@@ -1,0 +1,68 @@
+{
+    "metrics": [
+        {
+            "name": "净收入",
+            "definition": "扣除退款和折扣后的实际收入金额",
+            "table": "orders",
+            "calculation": "SUM(amount) - SUM(refund_amount) - SUM(discount_amount)"
+        },
+        {
+            "name": "活跃用户",
+            "definition": "过去30天内有登录或交易行为的用户",
+            "table": "users",
+            "calculation": "COUNT(DISTINCT user_id) FROM user_activity WHERE action_date >= CURDATE() - INTERVAL 30 DAY"
+        },
+        {
+            "name": "大客户",
+            "definition": "累计消费金额超过10万元 或 月均消费超过1万元的客户",
+            "table": "users, orders",
+            "calculation": "总消费: SUM(amount) > 100000 或 月均消费: SUM(amount)/月数 > 10000"
+        },
+        {
+            "name": "客单价",
+            "definition": "每笔订单的平均金额",
+            "table": "orders",
+            "calculation": "SUM(amount) / COUNT(DISTINCT order_id)"
+        },
+        {
+            "name": "复购率",
+            "definition": "在统计周期内有2次及以上购买行为的用户占比",
+            "table": "orders",
+            "calculation": "COUNT(购买>=2次的用户) / COUNT(全部用户) * 100"
+        }
+    ],
+    "business_rules": [
+        "订单金额(amount)单位为人民币元(CNY)，保留两位小数",
+        "日期字段统一使用 YYYY-MM-DD 格式",
+        "用户状态(status): 1=正常, 2=冻结, 3=注销",
+        "订单状态(order_status): pending=待付款, paid=已付款, shipped=已发货, completed=已完成, cancelled=已取消, refunded=已退款",
+        "统计'有效订单'时应排除 cancelled 和 refunded 状态",
+        "Q1=1-3月, Q2=4-6月, Q3=7-9月, Q4=10-12月"
+    ],
+    "common_gotchas": [
+        {
+            "issue": "金额字段精度问题",
+            "tables_affected": [
+                "orders",
+                "payments"
+            ],
+            "solution": "amount 字段为 DECIMAL(10,2) 类型，不要用 FLOAT 比较，使用 ROUND() 处理精度"
+        },
+        {
+            "issue": "时区问题",
+            "tables_affected": [
+                "orders",
+                "user_activity"
+            ],
+            "solution": "数据库存储 UTC 时间，查询时注意转换: CONVERT_TZ(created_at, '+00:00', '+08:00')"
+        },
+        {
+            "issue": "软删除字段",
+            "tables_affected": [
+                "users",
+                "products"
+            ],
+            "solution": "大部分表有 deleted_at 字段，查询有效数据时务必加 WHERE deleted_at IS NULL"
+        }
+    ]
+}

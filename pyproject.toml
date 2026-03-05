@@ -1,0 +1,24 @@
+[project]
+name = "data-agent"
+version = "0.1.0"
+description = "企业级数据智能体 - 基于事件驱动架构的数据分析 AI 助手"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "openai>=1.0.0",
+    "anthropic>=0.40.0",
+    "mcp>=1.0.0",
+    "python-dotenv>=1.0.0",
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.30.0",
+    "sse-starlette>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+]
+
+[project.scripts]
+data-agent = "main:main"
