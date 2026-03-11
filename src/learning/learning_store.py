@@ -17,6 +17,7 @@ import logging
 import re
 import time
 from dataclasses import dataclass, field, asdict
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -51,7 +52,9 @@ class LearningStore:
 
     存储结构：
       learnings/
-        data.json          ← 所有学习记录
+        data.json          ← 所有学习记录（JSON格式，供程序检索）
+      context/doc/
+        learning.md        ← 学习记录（Markdown格式，供grep工具检索）
 
     使用流程：
       1. SQL 沙盒验证失败 → 自动调用 save()
@@ -67,6 +70,9 @@ class LearningStore:
             self._storage_dir = project_root / "learnings"
 
         self._data_file = self._storage_dir / "data.json"
+        # context/doc/learning.md 用于 grep 工具检索
+        project_root = Path(__file__).resolve().parent.parent.parent
+        self._learning_md_file = project_root / "context" / "doc" / "learning.md"
         self._entries: list[LearningEntry] = []
         self._loaded = False
 
@@ -106,6 +112,53 @@ class LearningStore:
         data = [asdict(e) for e in self._entries]
         with open(self._data_file, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
+
+        # 同时追加到 context/doc/learning.md
+        self._append_to_learning_md()
+
+    def _append_to_learning_md(self) -> None:
+        """追加最后一条学习记录到 learning.md"""
+        if not self._entries:
+            return
+
+        # 确保目录存在
+        self._learning_md_file.parent.mkdir(parents=True, exist_ok=True)
+
+        # 获取最后一条记录
+        entry = self._entries[-1]
+
+        # 格式化为 Markdown
+        timestamp_str = datetime.fromtimestamp(entry.timestamp).strftime("%Y-%m-%d %H:%M:%S")
+        md_content = f"""
+
+### 错误: {entry.error_type or '未知错误'}
+**时间**: {timestamp_str}
+**来源**: {entry.source or 'agent'}
+
+**失败SQL**:
+```sql
+{entry.failed_sql}
+```
+
+**错误信息**: {entry.error_message}
+
+**修正SQL**:
+```sql
+{entry.fixed_sql}
+```
+
+**说明**: {entry.fix_explanation}
+
+---
+"""
+
+        # 追加到文件
+        try:
+            with open(self._learning_md_file, "a", encoding="utf-8") as f:
+                f.write(md_content)
+            logger.info(f"[Learning] 已追加到 learning.md: {entry.id}")
+        except Exception as e:
+            logger.error(f"[Learning] 追加到 learning.md 失败: {e}")
 
     def save(self, entry: LearningEntry) -> str:
         """

@@ -30,14 +30,90 @@ export type DBConfigUpdate = {
     database?: string;
 };
 
+export interface MCPMappingSummary {
+    configured: boolean;
+    count: number;
+    safe_keys?: string[];
+}
+
+export interface MCPServerConfig {
+    name: string;
+    transport: 'stdio' | 'http' | 'sse';
+    enabled: boolean;
+    command?: string;
+    script?: string;
+    url?: string;
+    headers?: MCPMappingSummary;
+    env?: MCPMappingSummary;
+    env_input?: string;
+    headers_input?: string;
+    description?: string;
+    tool_prefix?: string;
+    server_type?: string;
+    tags?: string[];
+}
+
+export interface MCPConfig {
+    servers: MCPServerConfig[];
+}
+
+export type MCPServerRequest = Omit<MCPServerConfig, 'headers' | 'env'> & {
+    headers?: Record<string, string>;
+    env?: Record<string, string>;
+};
+
+export interface MCPConfigRequest {
+    servers: MCPServerRequest[];
+}
+
+export interface MCPServerStatus extends MCPServerConfig {
+    connected?: boolean;
+}
+
+export interface MCPToolInfo {
+    server: string;
+    server_type: string;
+    name: string;
+    remote_name: string;
+    description: string;
+    parameters: any;
+}
+
+export interface MCPTestResult {
+    success: boolean;
+    message: string;
+    tools?: MCPToolInfo[];
+    server?: MCPServerConfig;
+}
+
+
 // ==========================================
 // Agent 聊天 API (SSE)
 // ==========================================
+
+export interface SkillInfo {
+    name: string;
+    description: string;
+    when_to_use?: string;
+    location: string;
+    skill_dir: string;
+    source_scope: 'project' | 'global' | string;
+    allowed_tools?: string[];
+    model?: string | null;
+}
+
+export interface SkillListResponse {
+    status: string;
+    skills: SkillInfo[];
+    total: number;
+}
 
 export type SSEEvent =
     | { type: 'text_delta'; content: string }
     | { type: 'tool_call'; name: string; arguments: any }
     | { type: 'tool_result'; name: string; content: string }
+    | { type: 'skill_activated'; skill: SkillInfo & { source?: string; command_text?: string; granted_permissions?: string[]; model_override?: string | null; ui_message?: string } }
+    | { type: 'workspace_updated'; tool: string }
     | { type: 'error'; error: string }
     | { type: 'done' };
 
@@ -168,5 +244,145 @@ export async function testDBConnection(data: DBConfigUpdate) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
     });
+    return res.json();
+}
+
+export async function getMCPConfig(): Promise<MCPConfig> {
+    const res = await fetch(`${API_BASE_URL}/mcp/config`);
+    if (!res.ok) throw new Error('Failed to fetch MCP config');
+    return res.json();
+}
+
+export async function saveMCPConfig(data: MCPConfigRequest) {
+    const res = await fetch(`${API_BASE_URL}/mcp/config`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Failed to save MCP config');
+    return res.json();
+}
+
+export async function getMCPServers(): Promise<{ status: string; servers: MCPServerStatus[] }> {
+    const res = await fetch(`${API_BASE_URL}/mcp/servers`);
+    if (!res.ok) throw new Error('Failed to fetch MCP servers');
+    return res.json();
+}
+
+export async function getMCPTools(): Promise<{ status: string; tools: MCPToolInfo[] }> {
+    const res = await fetch(`${API_BASE_URL}/mcp/tools`);
+    if (!res.ok) throw new Error('Failed to fetch MCP tools');
+    return res.json();
+}
+
+export async function testMCPServer(data: MCPServerRequest): Promise<MCPTestResult> {
+    const res = await fetch(`${API_BASE_URL}/mcp/test`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Failed to test MCP server');
+    return res.json();
+}
+
+export async function getSkills(): Promise<SkillListResponse> {
+    const res = await fetch(`${API_BASE_URL}/agent/skills`);
+    if (!res.ok) throw new Error('Failed to fetch skills');
+    return res.json();
+}
+
+// ==========================================
+// Workspace 文件管理 API
+// ==========================================
+
+export interface WorkspaceFile {
+    name: string;
+    relative_path: string;
+    size: number;
+    modified_at: string;
+}
+
+export interface WorkspaceFilesResponse {
+    files: WorkspaceFile[];
+}
+
+export async function getWorkspaceFiles(sessionId: string = ""): Promise<WorkspaceFilesResponse> {
+    const url = sessionId
+        ? `${API_BASE_URL}/workspace/files?session_id=${encodeURIComponent(sessionId)}`
+        : `${API_BASE_URL}/workspace/files`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Failed to fetch workspace files');
+    return res.json();
+}
+
+export function getWorkspaceFileDownloadUrl(relativePath: string): string {
+    return `${API_BASE_URL}/workspace/files/download?path=${encodeURIComponent(relativePath)}`;
+}
+
+export async function uploadWorkspaceFile(file: File, sessionId: string = ""): Promise<void> {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (sessionId) {
+        formData.append('session_id', sessionId);
+    }
+
+    const res = await fetch(`${API_BASE_URL}/workspace/upload`, {
+        method: 'POST',
+        body: formData,
+    });
+    if (!res.ok) throw new Error('Failed to upload file');
+}
+
+export async function deleteWorkspaceFile(relativePath: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/workspace/files?path=${encodeURIComponent(relativePath)}`, {
+        method: 'DELETE',
+    });
+    if (!res.ok) throw new Error('Failed to delete file');
+}
+
+// ==========================================
+// Knowledge 文件管理 API
+// ==========================================
+
+export interface KnowledgeFile {
+    name: string;
+    path: string;
+    size: number;
+    modified_at: string;
+    type: 'file' | 'directory';
+}
+
+export interface KnowledgeListResponse {
+    status: string;
+    files: KnowledgeFile[];
+    total: number;
+}
+
+export interface KnowledgeContentResponse {
+    status: string;
+    content: string;
+    path: string;
+    name: string;
+}
+
+export async function getKnowledgeFiles(): Promise<KnowledgeListResponse> {
+    const res = await fetch(`${API_BASE_URL}/knowledge/files`);
+    if (!res.ok) throw new Error('Failed to fetch knowledge files');
+    return res.json();
+}
+
+export async function getKnowledgeContent(path: string): Promise<KnowledgeContentResponse> {
+    const res = await fetch(`${API_BASE_URL}/knowledge/content?path=${encodeURIComponent(path)}`);
+    if (!res.ok) throw new Error('Failed to fetch knowledge content');
+    return res.json();
+}
+
+export async function saveKnowledgeContent(path: string, content: string): Promise<{ status: string; message: string }> {
+    const res = await fetch(`${API_BASE_URL}/knowledge/save`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path, content }),
+    });
+    if (!res.ok) throw new Error('Failed to save knowledge content');
     return res.json();
 }

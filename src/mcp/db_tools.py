@@ -14,14 +14,14 @@ from typing import Any
 from src.agent.types import AgentTool, AgentToolResult
 from src.ai.base_provider import ToolResultContent
 
-from .mcp_client import MCPClient
+from src.mcp.callable import MCPCallable
 from .sql_guard import SQLGuard
 
 logger = logging.getLogger("data_agent.mcp.db_tools")
 
 
 def create_db_tools(
-    mcp_client: MCPClient, sql_guard: SQLGuard | None = None
+    mcp_client: MCPCallable, sql_guard: SQLGuard | None = None
 ) -> list[AgentTool]:
     """
     创建三个数据库 AgentTool 实例
@@ -124,7 +124,7 @@ def create_db_tools(
             name="list_tables",
             description=(
                 "列出数据库中所有表的名称、注释信息和行数。"
-                "这是了解数据库全貌的第一步，应该在分析前调用。"
+                "当需要了解数据库中到底有哪些表时，可以使用这个工具。"
             ),
             parameters={
                 "type": "object",

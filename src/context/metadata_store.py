@@ -14,7 +14,7 @@ from typing import Any
 
 from src.agent.types import AgentTool, AgentToolResult
 from src.ai.base_provider import ToolResultContent
-from src.mcp.mcp_client import MCPClient
+from src.mcp.callable import MCPCallable
 
 logger = logging.getLogger("data_agent.context.metadata")
 
@@ -42,7 +42,7 @@ class MetadataStore:
     缓存策略：内存缓存，调 refresh() 可刷新
     """
 
-    def __init__(self, mcp_client: MCPClient):
+    def __init__(self, mcp_client: MCPCallable):
         self._mcp = mcp_client
         self._tables: dict[str, TableMeta] = {}
         self._initialized = False
@@ -50,6 +50,8 @@ class MetadataStore:
     async def refresh(self) -> None:
         """从 MCP Server 拉取全库表元数据"""
         logger.info("[Metadata] 开始拉取数据库元数据...")
+        self._tables = {}
+        self._initialized = False
 
         # Step 1: 列出所有表
         tables_raw = await self._mcp.call_tool("list_tables", {})
@@ -197,7 +199,7 @@ class MetadataStore:
                 name="introspect_database",
                 description=(
                     "获取数据库全部表的元数据概览，包括表名、注释、行数和核心列信息。"
-                    "这是了解数据库全貌的最佳起点，会返回比 list_tables 更丰富的上下文信息。"
+                    "当没有现成的查询模板，需要全盘了解数据库中有哪些表及关键字段结构时，调用此工具。"
                     "首次调用时会自动从数据库拉取元数据。"
                 ),
                 parameters={
@@ -212,7 +214,7 @@ class MetadataStore:
                 name="get_table_detail",
                 description=(
                     "获取某张表的完整列定义，包括列名、类型、是否可空、键约束、默认值和注释。"
-                    "在编写涉及该表的 SQL 之前，建议先调用此工具确认列信息。"
+                    "在编写涉及该表的 SQL 之前，如果不确定列名和意义，可调用此工具确认列信息。"
                 ),
                 parameters={
                     "type": "object",

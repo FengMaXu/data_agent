@@ -1,27 +1,16 @@
-import asyncio
-import logging
-from typing import Any
-from contextlib import AsyncExitStack
+from __future__ import annotations
 
+import logging
+from pathlib import Path
+from typing import Any
+
+from src.agent.tool_assembly import ToolAssemblyService
+from src.agent.tool_providers.base import GlobalRuntimeServices
 from src.ai.config import AIConfig
 from src.ai.gateway import AIGateway
-from src.mcp.mcp_client import MCPClient
-from src.mcp.db_tools import create_db_tools
-from src.mcp.sql_guard import SQLGuard
-from src.context.metadata_store import MetadataStore
-from src.context.annotations import AnnotationStore
-from src.context.query_patterns import QueryPatternStore
-from src.interaction.clarification import create_clarification_tool
-from src.interaction.sql_evaluator import SQLEvaluator
-from src.interaction.skill_registry import SkillRegistry, register_builtin_skills
-from src.learning.learning_store import LearningStore
-from src.learning.feedback import FeedbackCollector
-from src.workspace.workspace_manager import WorkspaceManager
-from src.workspace.file_tools import create_file_tools
-from src.workspace.code_executor import CodeExecutor, create_code_tools
-from src.ecosystem.mcp_registry import MCPRegistry
-from src.ecosystem.http_hooks import HttpHookRegistry, create_http_tools
-from src.agent.types import AgentTool
+from src.mcp.config_loader import MCPConfigLoader
+from src.mcp.config_models import MCPSettings
+from src.mcp.registry import MCPRegistry
 
 logger = logging.getLogger("data_agent.config_manager")
 
@@ -44,46 +33,58 @@ class ConfigManager:
         if self._initialized:
             return
 
+        self.project_root = Path(__file__).resolve().parent.parent
         self.ai_config: AIConfig = AIConfig.from_env()
         self.gateway: AIGateway | None = None
-
-        # MCP 相关
-        self.exit_stack: AsyncExitStack | None = None
-        self.mcp_client: MCPClient | None = None
-        self.tools: list[AgentTool] = []
+        self.tool_assembly = ToolAssemblyService(self.project_root)
+        self.global_runtime_services = GlobalRuntimeServices()
 
         self._initialized = True
+
+    @property
+    def mcp_registry(self) -> MCPRegistry | None:
+        return self.global_runtime_services.metadata.get("mcp_registry")
+
+    @property
+    def mcp_client(self):
+        registry = self.mcp_registry
+        if registry is None:
+            return None
+        connected = registry.find_server_by_type("database")
+        return connected.client if connected else None
 
     async def startup(self):
         """服务器启动时调用"""
         logger.info("[ConfigManager] 正在启动...")
         self.gateway = AIGateway(self.ai_config)
-        await self._init_mcp_and_tools()
+        await self.reload_runtime_services()
         logger.info("[ConfigManager] 启动完成。")
 
     async def shutdown(self):
         """服务器关闭时调用"""
         logger.info("[ConfigManager] 正在关闭...")
-        if getattr(self, "exit_stack", None):
+        registry = self.mcp_registry
+        if registry is not None:
             try:
-                await self.exit_stack.aclose()
+                await registry.shutdown()
             except Exception as e:
-                logger.error(f"Error closing MCP client stack: {e}")
-            self.exit_stack = None
-        self.mcp_client = None
+                logger.error(f"Error closing MCP registry: {e}")
+        self.global_runtime_services = GlobalRuntimeServices()
         logger.info("[ConfigManager] 关闭完成。")
 
     def get_config(self) -> dict[str, Any]:
         """获取当前配置快照"""
+        settings = self.global_runtime_services.metadata.get("mcp_settings")
         return {
             "default_model": self.ai_config.default_model,
-            "openai_api_key": self.ai_config.openai_api_key,
+            "openai_api_key": "[configured]" if self.ai_config.openai_api_key else "",
             "openai_base_url": self.ai_config.openai_base_url,
             "mcp_server_script": self.ai_config.mcp_server_script,
             "mysql_host": self.ai_config.mysql_host,
             "mysql_port": self.ai_config.mysql_port,
             "mysql_user": self.ai_config.mysql_user,
             "mysql_database": self.ai_config.mysql_database,
+            "mcp_config": self.serialize_mcp_settings(settings) if settings else {"servers": []},
         }
 
     async def update_llm_config(self, new_config: dict[str, Any]) -> None:
@@ -96,17 +97,12 @@ class ConfigManager:
         if "model" in new_config:
             self.ai_config.default_model = new_config["model"]
 
-        # 重建 Gateway
         self.gateway = AIGateway(self.ai_config)
 
     async def update_db_config(self, new_config: dict[str, Any]) -> None:
         """热更新数据库配置，并重连 MCP"""
         logger.info(f"[ConfigManager] 热更新数据库配置: {new_config.keys()}")
 
-        # 1. 关闭旧连接
-        await self.shutdown()
-
-        # 2. 更新配置
         if "host" in new_config:
             self.ai_config.mysql_host = new_config["host"]
         if "port" in new_config:
@@ -118,100 +114,179 @@ class ConfigManager:
         if "database" in new_config:
             self.ai_config.mysql_database = new_config["database"]
 
-        # 3. 重连 MCP 并重建工具
-        await self._init_mcp_and_tools()
+        await self.reload_runtime_services()
+
+    async def reload_runtime_services(
+        self,
+        runtime_overrides: dict[str, Any] | None = None,
+        enabled_mcp_servers: list[str] | None = None,
+    ) -> GlobalRuntimeServices:
+        self.global_runtime_services = await self.tool_assembly.build_global_runtime_services(
+            self.ai_config,
+            runtime_overrides=runtime_overrides or {},
+            enabled_mcp_servers=enabled_mcp_servers,
+        )
+        return self.global_runtime_services
+
+    async def build_session_tools(
+        self,
+        session_id: str,
+        workspace,
+        runtime_overrides: dict[str, Any] | None = None,
+        enabled_mcp_servers: list[str] | None = None,
+    ):
+        session_runtime_services = await self.tool_assembly.build_connected_runtime_services(
+            self.ai_config,
+            runtime_overrides=runtime_overrides or {},
+            enabled_mcp_servers=enabled_mcp_servers,
+        )
+        tools = await self.tool_assembly.build_session_tools(
+            session_id=session_id,
+            workspace=workspace,
+            global_services=session_runtime_services,
+            runtime_overrides=runtime_overrides or {},
+        )
+        return tools, session_runtime_services
 
     async def test_db_connection(self, conf: dict[str, Any]) -> dict[str, Any]:
         """测试数据库连接（临时连接）"""
+        legacy_server = MCPConfigLoader.from_legacy_ai_config(self.ai_config)
+        if legacy_server is None:
+            return {"success": False, "message": "未配置 MCP_SERVER_SCRIPT 路径"}
+
         env = self.ai_config.get_mcp_env()
-        # 覆盖临时变量
         env["MYSQL_HOST"] = conf.get("host", self.ai_config.mysql_host)
         env["MYSQL_PORT"] = str(conf.get("port", self.ai_config.mysql_port))
         env["MYSQL_USER"] = conf.get("user", self.ai_config.mysql_user)
         env["MYSQL_PASSWORD"] = conf.get("password", self.ai_config.mysql_password)
         env["MYSQL_DATABASE"] = conf.get("database", self.ai_config.mysql_database)
+        legacy_server.env = env
 
-        script = self.ai_config.mcp_server_script
-        if not script:
-            return {"success": False, "message": "未配置 MCP_SERVER_SCRIPT 路径"}
-
+        registry = MCPRegistry()
+        registry.configure(MCPSettings(servers=[legacy_server]))
         try:
-            # 使用 async with 临时连一下测试
-            async with MCPClient.connect(
-                command=self.ai_config.mcp_server_command,
-                script=script,
-                env=env,
-            ) as mcp_client:
-                # 调用一个简单的方法看是否成功 (比如 MCP Server 的 list_tables)
-                result = await mcp_client.call_tool("list_tables", {})
-                if "error" in result.lower():
-                    return {"success": False, "message": result}
-                return {"success": True, "message": "连接成功", "details": result[:200]}
+            await registry.connect_all_enabled()
+            tools = registry.list_tools()
+            return {
+                "success": True,
+                "message": "连接成功",
+                "details": tools,
+            }
         except Exception as e:
             return {"success": False, "message": f"连接失败: {str(e)}"}
+        finally:
+            await registry.shutdown()
 
-    async def _init_mcp_and_tools(self):
-        """初始化 MCP 并创建所有工具"""
-        self.tools = []
-        script = self.ai_config.mcp_server_script
+    def get_mcp_settings(self) -> MCPSettings:
+        settings = self.global_runtime_services.metadata.get("mcp_settings")
+        if settings:
+            return settings
+        return MCPConfigLoader.load_effective_settings(self.project_root, self.ai_config)
 
-        if script:
-            logger.info(f"[ConfigManager] 初始化 MCP 工具集: {script}")
-
-            self.exit_stack = AsyncExitStack()
-
-            # 使用标准的 AsyncExitStack 维持长连接的生命周期
-            self.mcp_client = await self.exit_stack.enter_async_context(
-                MCPClient.connect(
-                    command=self.ai_config.mcp_server_command,
-                    script=script,
-                    env=self.ai_config.get_mcp_env(),
-                )
+    def serialize_mcp_settings(self, settings: MCPSettings | None = None) -> dict[str, Any]:
+        settings = settings or self.get_mcp_settings()
+        sanitized_servers = []
+        for server in settings.servers:
+            sanitized_servers.append(
+                {
+                    "name": server.name,
+                    "transport": server.transport.value,
+                    "enabled": server.enabled,
+                    "command": server.command,
+                    "script": server.script,
+                    "url": server.url,
+                    "headers": self._summarize_mapping(server.headers),
+                    "env": self._summarize_mapping(server.env),
+                    "description": server.description,
+                    "tool_prefix": server.tool_prefix,
+                    "server_type": server.server_type,
+                    "tags": list(server.tags),
+                }
             )
+        return {"servers": sanitized_servers}
 
-            # 创建 MCP 工具
-            guard = SQLGuard(strict=True)
-            db_tools = create_db_tools(self.mcp_client, guard)
+    def _summarize_mapping(self, values: dict[str, str]) -> dict[str, Any]:
+        if not values:
+            return {"configured": False, "count": 0}
+        safe_keys = []
+        for key in values.keys():
+            upper_key = key.upper()
+            if self._is_secret_key(key):
+                continue
+            if upper_key.startswith(("OPENAI_", "ANTHROPIC_", "GEMINI_", "MYSQL_")):
+                continue
+            if upper_key in {"PATH", "PYTHONPATH", "PWD", "HOME", "USERPROFILE"}:
+                continue
+            safe_keys.append(key)
+        return {
+            "configured": True,
+            "count": len(values),
+            "safe_keys": sorted(safe_keys)[:20],
+        }
 
-            # 替换为带验证的 evaluate_sql
-            evaluator = SQLEvaluator(self.mcp_client, guard)
-            self.tools = [t for t in db_tools if t.name != "execute_sql"]
-            self.tools.append(evaluator.create_validated_execute_tool())
+    def _is_secret_key(self, key: str) -> bool:
+        upper_key = key.upper()
+        return any(token in upper_key for token in ["KEY", "TOKEN", "SECRET", "PASSWORD", "PASSWD", "PWD", "AUTH"])
 
-            # 元数据工具
-            metadata_store = MetadataStore(self.mcp_client)
-            self.tools.extend(metadata_store.create_tools())
-        else:
-            logger.info("[ConfigManager] 未配置 MCP，使用纯对话模式")
+    def _mask_secret(self, value: str | None) -> str:
+        if not value:
+            return ""
+        if len(value) <= 8:
+            return "*" * len(value)
+        return f"{value[:4]}***{value[-4:]}"
 
-        # 注册非 MCP 依赖的工具（上下文、技能、沙盒等）
-        annotation_store = AnnotationStore()
-        annotation_store.load()
-        self.tools.extend(annotation_store.create_tools())
+    async def save_mcp_settings(self, data: dict[str, Any]) -> dict[str, Any]:
+        new_settings = MCPSettings.from_dict(data)
+        old_settings = self.get_mcp_settings()
 
-        query_store = QueryPatternStore()
-        query_store.load()
-        self.tools.extend(query_store.create_tools())
+        for new_server in new_settings.servers:
+            old_server = old_settings.get_server(new_server.name)
+            if old_server:
+                if not new_server.env:
+                    new_server.env = dict(old_server.env)
+                if not new_server.headers:
+                    new_server.headers = dict(old_server.headers)
 
-        skill_registry = SkillRegistry()
-        register_builtin_skills(skill_registry)
-        self.tools.extend(skill_registry.create_tools())
+        MCPConfigLoader.save_project_settings(self.project_root, new_settings)
+        await self.reload_runtime_services()
+        return self.serialize_mcp_settings(new_settings)
 
-        learning_store = LearningStore()
-        self.tools.extend(learning_store.create_tools())
-        feedback_collector = FeedbackCollector(learning_store)
-        self.tools.extend(feedback_collector.create_tools())
+    async def list_mcp_servers(self) -> list[dict[str, Any]]:
+        runtime_services = await self.tool_assembly.build_connected_runtime_services(self.ai_config)
+        registry = runtime_services.metadata.get("mcp_registry")
+        try:
+            return registry.list_servers() if registry is not None else []
+        finally:
+            if registry is not None:
+                await registry.shutdown()
 
-        workspace = WorkspaceManager()
-        self.tools.extend(create_file_tools(workspace))
-        code_executor = CodeExecutor(workspace)
-        self.tools.extend(create_code_tools(code_executor))
+    async def list_mcp_tools(self) -> list[dict[str, Any]]:
+        runtime_services = await self.tool_assembly.build_connected_runtime_services(self.ai_config)
+        registry = runtime_services.metadata.get("mcp_registry")
+        try:
+            return registry.list_tools() if registry is not None else []
+        finally:
+            if registry is not None:
+                await registry.shutdown()
 
-        http_registry = HttpHookRegistry()
-        self.tools.extend(create_http_tools(http_registry))
+    async def test_mcp_server(self, data: dict[str, Any]) -> dict[str, Any]:
+        settings = MCPSettings.from_dict({"servers": [data]})
+        if not settings.servers:
+            return {"success": False, "message": "无效的 MCP server 配置"}
 
-        logger.info(f"[ConfigManager] 工具初始化完成，共 {len(self.tools)} 个工具")
+        new_server = settings.servers[0]
+        old_settings = self.get_mcp_settings()
+        old_server = old_settings.get_server(new_server.name)
+        if old_server:
+            if not new_server.env:
+                new_server.env = dict(old_server.env)
+            if not new_server.headers:
+                new_server.headers = dict(old_server.headers)
+
+        registry = MCPRegistry()
+        result = await registry.test_server(settings.servers[0])
+        result["server"] = self.serialize_mcp_settings(settings).get("servers", [])[0]
+        return result
 
 
-# 全局单例
 config_manager = ConfigManager()

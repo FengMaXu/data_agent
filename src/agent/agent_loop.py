@@ -13,6 +13,7 @@ Agent Loop —— 事件驱动的智能体主循环
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from typing import AsyncIterator
 
@@ -58,6 +59,13 @@ async def agent_loop(
     返回：
         异步迭代器，产出 AgentEvent
     """
+    # 确保 system prompt 在 messages 最前面（仅首次注入）
+    if context.system_prompt and (
+        not context.messages or context.messages[0].role != Role.SYSTEM
+    ):
+        system_msg = Message(role=Role.SYSTEM, content=context.system_prompt)
+        context.messages.insert(0, system_msg)
+
     # 添加用户消息到上下文
     user_msg = Message(role=Role.USER, content=user_message)
     context.messages.append(user_msg)
@@ -82,7 +90,7 @@ async def agent_loop(
         # ═══ 内循环：LLM 调用 → 工具执行 → steering 检查 ═══
         while has_more_tool_calls or pending_messages:
             turn_count += 1
-            if turn_count > config.max_turns:
+            if config.max_turns > 0 and turn_count > config.max_turns:
                 logger.warning(f"达到最大轮次限制 ({config.max_turns})，强制停止")
                 yield AgentEvent(
                     type=AgentEventType.ERROR,
@@ -219,65 +227,96 @@ async def _execute_tool_calls(
     config: AgentLoopConfig,
 ) -> tuple[list[Message], list[Message] | None]:
     """
-    执行工具调用，支持 Steering 打断
+    并发执行工具调用，支持结束前 Steering 打断检查
 
     返回：
         (tool_result_messages, steering_messages_or_None)
     """
     tool_map = {t.name: t for t in tools}
-    result_messages: list[Message] = []
-    steering_messages: list[Message] | None = None
 
-    for i, tc in enumerate(tool_calls):
+    async def _run_single_tool(tc: ToolCall) -> Message:
         tool = tool_map.get(tc.name)
-
-        logger.info(f"[Tool] 执行: {tc.name}({tc.arguments})")
+        logger.info(f"[Tool] 开始执行: {tc.name}({tc.arguments})")
 
         if not tool:
-            # 工具不存在
-            result_msg = Message(
-                role=Role.TOOL_RESULT,
-                content=f"错误：工具 '{tc.name}' 不存在。可用工具: {', '.join(tool_map.keys())}",
-                tool_call_id=tc.id,
-                tool_name=tc.name,
-            )
-            result_messages.append(result_msg)
-            continue
+            return [
+                Message(
+                    role=Role.TOOL_RESULT,
+                    content=f"错误：工具 '{tc.name}' 不存在。可用工具: {', '.join(tool_map.keys())}",
+                    tool_call_id=tc.id,
+                    tool_name=tc.name,
+                )
+            ]
 
         try:
             result = await tool.execute(tc.id, tc.arguments)
+
+            # Check if this tool result is a Skill Activation Payload Requesting Injection
+            if result.details and result.details.get("_is_skill_activation"):
+                # 1. Provide the UI message indicating the skill is loading
+                ui_message = result.details.get("ui_message", "")
+                user_msg = Message(
+                    role=Role.USER,
+                    content=ui_message,
+                )
+
+                # 2. Provide the hidden contextual injection payload
+                model_message_injection = result.details.get(
+                    "model_message_injection", ""
+                )
+                meta_msg = Message(
+                    role=Role.USER,
+                    content=model_message_injection,
+                )
+
+                # We return a list of messages instead of a single TOOL_RESULT message
+                # In anthropic's spec, this is typically handled at the API boundaries (is_meta=True).
+                # Here we simulate the context injection by pushing both into the history.
+                return [
+                    Message(
+                        role=Role.TOOL_RESULT,
+                        content=json.dumps(result.details, ensure_ascii=False),
+                        tool_call_id=tc.id,
+                        tool_name=tc.name,
+                    ),
+                    user_msg,
+                    meta_msg,
+                ]
+
             content_text = "\n".join(c.text for c in result.content if c.text)
-            result_msg = Message(
-                role=Role.TOOL_RESULT,
-                content=content_text,
-                tool_call_id=tc.id,
-                tool_name=tc.name,
-            )
+            return [
+                Message(
+                    role=Role.TOOL_RESULT,
+                    content=content_text,
+                    tool_call_id=tc.id,
+                    tool_name=tc.name,
+                )
+            ]
         except Exception as e:
             logger.error(f"[Tool] {tc.name} 执行失败: {e}")
-            result_msg = Message(
-                role=Role.TOOL_RESULT,
-                content=f"工具执行错误: {str(e)}",
-                tool_call_id=tc.id,
-                tool_name=tc.name,
-            )
+            return [
+                Message(
+                    role=Role.TOOL_RESULT,
+                    content=f"工具执行错误: {str(e)}",
+                    tool_call_id=tc.id,
+                    tool_name=tc.name,
+                )
+            ]
 
-        result_messages.append(result_msg)
+    # ── 使用 asyncio.gather 并行执行所有的工具调用 ──
+    tasks = [_run_single_tool(tc) for tc in tool_calls]
+    results_list_of_lists = await asyncio.gather(*tasks)
 
-        # ── Steering 检查：工具执行间隙 ──
-        if config.get_steering_messages and i < len(tool_calls) - 1:
-            steering = await config.get_steering_messages()
-            if steering:
-                steering_messages = steering
-                # 跳过剩余工具调用
-                for skipped_tc in tool_calls[i + 1 :]:
-                    skip_msg = Message(
-                        role=Role.TOOL_RESULT,
-                        content="已跳过 — 用户发送了新消息。",
-                        tool_call_id=skipped_tc.id,
-                        tool_name=skipped_tc.name,
-                    )
-                    result_messages.append(skip_msg)
-                break
+    # Flatten the lists of messages returned by the tools
+    result_messages = []
+    for msgs in results_list_of_lists:
+        result_messages.extend(msgs)
+
+    # ── Steering 检查：在工具全部执行完后检查打断队列 ──
+    steering_messages: list[Message] | None = None
+    if config.get_steering_messages:
+        steering = await config.get_steering_messages()
+        if steering:
+            steering_messages = steering
 
     return result_messages, steering_messages

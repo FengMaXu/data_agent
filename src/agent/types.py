@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Awaitable, Callable, Protocol
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Protocol
 
 from src.ai.base_provider import (
     AssistantResponse,
@@ -17,6 +17,14 @@ from src.ai.base_provider import (
     ToolDefinition,
     ToolResultContent,
 )
+
+if TYPE_CHECKING:
+    from src.skills.runtime import SkillRuntimeState
+
+
+def _new_skill_runtime():
+    from src.skills.runtime import SkillRuntimeState
+    return SkillRuntimeState()
 
 
 # ─────────────────────────────────────────────
@@ -83,6 +91,7 @@ class AgentContext:
     system_prompt: str
     messages: list[Message] = field(default_factory=list)
     tools: list[AgentTool] = field(default_factory=list)
+    active_skills: SkillRuntimeState = field(default_factory=_new_skill_runtime)
 
 
 # ─────────────────────────────────────────────
@@ -107,8 +116,8 @@ class AgentLoopConfig:
     # Follow-up 队列回调：返回用户"追加"消息（Agent 即将停止时调用）
     get_follow_up_messages: Callable[[], Awaitable[list[Message]]] | None = None
 
-    # 最大循环轮次（防止无限循环）
-    max_turns: int = 20
+    # 最大循环轮次（0 表示不限次数）
+    max_turns: int = 0
 
 
 # ─────────────────────────────────────────────

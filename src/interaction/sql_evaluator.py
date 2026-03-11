@@ -21,7 +21,7 @@ from typing import Any
 
 from src.agent.types import AgentTool, AgentToolResult
 from src.ai.base_provider import ToolResultContent
-from src.mcp.mcp_client import MCPClient
+from src.mcp.callable import MCPCallable
 from src.mcp.sql_guard import SQLGuard, SQLGuardResult
 
 logger = logging.getLogger("data_agent.interaction.sql_evaluator")
@@ -47,7 +47,7 @@ class SQLEvaluator:
     3. 空跑通过后再执行原始查询
     """
 
-    def __init__(self, mcp_client: MCPClient, sql_guard: SQLGuard | None = None):
+    def __init__(self, mcp_client: MCPCallable, sql_guard: SQLGuard | None = None):
         self._mcp = mcp_client
         self._guard = sql_guard or SQLGuard(strict=True)
 

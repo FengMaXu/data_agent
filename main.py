@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from pathlib import Path
 import sys
 
 from src.ai.config import AIConfig
@@ -22,7 +23,7 @@ from src.context.annotations import AnnotationStore
 from src.context.query_patterns import QueryPatternStore
 from src.interaction.clarification import create_clarification_tool
 from src.interaction.sql_evaluator import SQLEvaluator
-from src.interaction.skill_registry import SkillRegistry, register_builtin_skills
+from src.skills import create_project_skill_manager, create_skill_tools
 from src.learning.learning_store import LearningStore
 from src.learning.feedback import FeedbackCollector
 from src.workspace.workspace_manager import WorkspaceManager
@@ -253,9 +254,8 @@ async def main_async():
             # 阶段三：主动澄清 + 技能
             tools.append(create_clarification_tool(_cli_clarification_callback))
 
-            skill_registry = SkillRegistry()
-            register_builtin_skills(skill_registry)
-            tools.extend(skill_registry.create_tools())
+            skill_manager = create_project_skill_manager(Path(__file__).resolve().parent)
+            tools.extend(create_skill_tools(skill_manager))
 
             # 阶段四：错题本 + 反馈
             learning_store = LearningStore()
@@ -285,7 +285,7 @@ async def main_async():
 
             print(
                 f"🧠 已加载全部模块：上下文引擎 + 沙箱验证 + 主动澄清 + "
-                f"{len(skill_registry.list_skills())} 技能 + 错题本({learning_store.get_stats()['total']}条) "
+                f"{len(skill_manager.list_skills())} 技能 + 错题本({learning_store.get_stats()['total']}条) "
                 f"+ 工作区(代码执行) + 外部生态({len(http_tools)} API)"
             )
 
@@ -311,9 +311,8 @@ async def main_async():
         # 主动澄清 + 技能（纯对话模式也可用）
         tools.append(create_clarification_tool(_cli_clarification_callback))
 
-        skill_registry = SkillRegistry()
-        register_builtin_skills(skill_registry)
-        tools.extend(skill_registry.create_tools())
+        skill_manager = create_project_skill_manager(Path(__file__).resolve().parent)
+        tools.extend(create_skill_tools(skill_manager))
 
         # 错题本 + 反馈（纯对话模式也可用）
         learning_store = LearningStore()

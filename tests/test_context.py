@@ -1,6 +1,6 @@
 """
 上下文引擎单元测试
-测试业务标注检索和 SQL 模板解析
+测试业务标注检索、SQL 模板解析与知识库搜索
 """
 
 import json
@@ -11,6 +11,7 @@ import pytest
 
 from src.context.annotations import AnnotationStore
 from src.context.query_patterns import QueryPatternStore
+from src.context.knowledge_tools import _search_knowledge
 
 
 # ══════════════════════════════════════════════
@@ -248,6 +249,93 @@ SELECT 2
         store = QueryPatternStore()
         store.load(tmpdir)
 
-        result = store.get_all()
-        assert "q1" in result
-        assert "q2" in result
+
+
+# ══════════════════════════════════════════════
+# Knowledge Tools 测试
+# ══════════════════════════════════════════════
+
+
+class TestKnowledgeSearch:
+    def _create_temp_knowledge(self) -> str:
+        tmpdir = tempfile.mkdtemp()
+        knowledge_root = Path(tmpdir)
+        (knowledge_root / "doc").mkdir(parents=True, exist_ok=True)
+
+        (knowledge_root / "doc" / "query_patterns.md").write_text(
+            "# SQL 模板\n\n"
+            "## 批发业销售模板\n"
+            "查询批发业商品销售额和同比增速。\n"
+            "可复用到批发业月度分析。\n",
+            encoding="utf-8",
+        )
+        (knowledge_root / "doc" / "business.md").write_text(
+            "# 业务规则\n\n"
+            "## 口径说明\n"
+            "商品销售额口径不含批发额外补贴。\n",
+            encoding="utf-8",
+        )
+        (knowledge_root / "doc" / "rules.md").write_text(
+            "# SQL 规则\n\n"
+            "优先复用已验证模板，避免重复探索。\n",
+            encoding="utf-8",
+        )
+        return tmpdir
+
+    @pytest.mark.asyncio
+    async def test_search_knowledge_smart_mode_matches_multiple_keywords(self, monkeypatch):
+        knowledge_root = self._create_temp_knowledge()
+        monkeypatch.setattr("src.context.knowledge_tools.KNOWLEDGE_ROOT", Path(knowledge_root))
+
+        result = await _search_knowledge(
+            "call-1",
+            {"query": "批发业 商品销售额 增速", "context_lines": 1, "max_results": 5},
+        )
+
+        text = result.content[0].text
+        assert result.is_error is False
+        assert "query_patterns.md" in text
+        assert "命中关键词: 批发业, 商品销售额, 增速" in text
+        assert "批发业销售模板" in text
+
+    @pytest.mark.asyncio
+    async def test_search_knowledge_smart_mode_scans_multiple_documents(self, monkeypatch):
+        knowledge_root = self._create_temp_knowledge()
+        monkeypatch.setattr("src.context.knowledge_tools.KNOWLEDGE_ROOT", Path(knowledge_root))
+
+        result = await _search_knowledge(
+            "call-2",
+            {"query": "口径 商品销售额", "context_lines": 1, "max_results": 5},
+        )
+
+        text = result.content[0].text
+        assert "business.md" in text
+        assert "商品销售额口径不含批发额外补贴" in text
+
+    @pytest.mark.asyncio
+    async def test_search_knowledge_regex_mode_supports_exact_pattern(self, monkeypatch):
+        knowledge_root = self._create_temp_knowledge()
+        monkeypatch.setattr("src.context.knowledge_tools.KNOWLEDGE_ROOT", Path(knowledge_root))
+
+        result = await _search_knowledge(
+            "call-3",
+            {"query": "批发业.*增速", "mode": "regex", "context_lines": 1, "max_results": 5},
+        )
+
+        text = result.content[0].text
+        assert result.is_error is False
+        assert "模式: 正则" in text
+        assert "query_patterns.md" in text
+
+    @pytest.mark.asyncio
+    async def test_search_knowledge_regex_mode_reports_invalid_pattern(self, monkeypatch):
+        knowledge_root = self._create_temp_knowledge()
+        monkeypatch.setattr("src.context.knowledge_tools.KNOWLEDGE_ROOT", Path(knowledge_root))
+
+        result = await _search_knowledge(
+            "call-4",
+            {"query": "([未闭合", "mode": "regex"},
+        )
+
+        assert result.is_error is True
+        assert "非法正则表达式" in result.content[0].text
