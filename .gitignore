@@ -8,3 +8,26 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Application logs
+*.log
+data_agent.log
+
+# Workspace and temporary outputs
+workspace/
+test_output.txt
+*.png
+*.mp4
+*.csv
+
+# Temporary development documents
+*.resolved
+read_diffs.py
+show_b63.txt
+tree_*.txt
+diff_*.txt
+app_diff.txt
+dangling_doc.md
+dangling_names.txt
+0309更新.md
+工作区文件管理功能开发文档.md
