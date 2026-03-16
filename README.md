@@ -1,22 +1,34 @@
 # 📈 企业级数据智能体 (Enterprise Data Agent)
 
-> **基于六层数据上下文引擎与实体沙盒工作区的下一代智能数据分析平台**
+> **基于 Pi-Mono 框架与六层数据上下文引擎的端到端数据智能分析平台**
 
-![Data Agent Logo](https://img.shields.io/badge/Status-Active-brightgreen) ![Python 3.13+](https://img.shields.io/badge/Python-3.13%2B-blue) ![Data Analytics](https://img.shields.io/badge/AI-Data%20Analytics-blueviolet)
+## 🌐 项目概述 (Project Overview)
+本系统是一款自研的端到端企业级数据分析智能体，旨在通过高度自动化的工作流，将复杂的业务数据查询与深度分析任务简化为秒级的对话交互。
 
-## 🎬 核心痛点与价值主张 (Why This Exists)
-目前的商业大模型直接写 SQL 解决业务问题时，存在三大无法逾越的鸿沟：
-1. **脱离业务语境的“幻觉”**：不理解企业专有名词和真实的表关系。
-2. **只出表格画不出图表**：生成的 SQL 只能得到二维表格，无法进行高维度的可视化二次加工与清洗。
-3. **数据黑盒与危险操作**：缺少执行安全保障机制（如擅自执行 `DROP`、`DELETE` 等语句）。
+## 🚀 核心价值 (Core Value)
+- **极致效率**：数据查询准确率维持在 **100%**；将传统数仓查询的时间跨度由小时级缩窄至**秒级流式响应**。
+- **全链路自动化**：端到端执行从 SQL 生成到数据清洗、深度分析及可视化报告输出的全流程。
+- **决策辅助**：自动绘制多维度数据图表，并辅助生成具有业务洞察力的分析报告。
 
-本产品基于独创的**六层上下文大脑**与隔离级的**实体工作区 Sandbox**，既能保障执行级安全，又彻底打破了“大模型生成结果只是一张表”的僵局，真正将业务取数、二次分析和图表绘制的时间跨度从**按天计算压缩至分钟级流式响应**。
+## 🛠️ 技术框架 (Framework)
+- **Pi-Mono 底座**：基于高扩展性的多模态工程框架，原生支持 **Skill** 与 **Workflow** 的灵活接入与调度。
+- **六层数据上下文引擎 (Six Layers of Context)**：
+  - P1: 物理层元数据 (Schema)
+  - P2: 业务领域注解 (Knowledge)
+  - P3: 黄金 SQL 模版 (Few-shot)
+  - P4: 数据血缘解析 (Lineage)
+  - P5: 外部规章制度 (Wiki/Docs)
+  - P6: 运行时沙盒验证 (Validator)
+- **MCP 生态对接**：完全兼容 **Model Context Protocol (MCP)**，实现对数据库、外部 API 及第三方工具的标准化快速接入。
 
----
+## 💎 产品亮点 (Product Highlights)
+- **Steering 热打断与重定向**：支持在任务执行过程中随时介入，中断并纠正 Agent 的执行逻辑与方向。
+- **自主学习与记忆老化**：内置自学习机制，成功经验与用户反馈将自动固化至 Memory 记忆库，实现群体进化。
+- **SQL 安全锁 (Security Shield)**：执行前强制通过 AST 审计检测危险命令（如 `DROP`, `DELETE`），确保生产数据 100% 安全。
 
-## 🎥 产品演示 Demo
-
-<video src="./demo.mp4" controls="controls" width="100%" height="auto">您的浏览器不支持播放该视频！建议升级浏览器或直接打开仓库根目录下的 demo.mp4</video>
+## 💻 使用方式 (Usage)
+- **Web UI**：提供现代化的交互式聊天页面，支持可视化图表预览。
+- **CLI 命令行**：为开发者提供更直接的终端交互入口。
 
 ---
 
@@ -27,59 +39,24 @@
 - **Node.js 18+**
 
 ### 2️⃣ 启动后端服务 (Backend)
-
-进入项目根目录后，执行以下命令启动提供大模型能力与工作区支持的后端服务：
-
 ```bash
-# 1. 推荐使用虚拟环境 (可选)
-python -m venv venv
-venv\Scripts\activate  # Windows 用户
-# source venv/bin/activate  # macOS / Linux 用户
-
-# 2. 安装项目依赖
-pip install -e .
-
-# 3. 环境变量配置 (请先复制一份配置)
-cp .env.example .env
-# 并根据需要填入 .env 中的 API Keys 
-
-# 4. 启动后端服务器
 python server.py
 # 服务器将运行在 http://localhost:8000
 ```
 
 ### 3️⃣ 启动前端界面 (Frontend)
-
-另外开启一个新的终端窗口，用于启动交互聊天页面：
-
 ```bash
-# 1. 进入前端目录
 cd frontend
-
-# 2. 安装相关依赖
 npm install
-
-# 3. 运行开发服务器
 npm run dev
 # 前端页面将运行在 http://localhost:5173
 ```
 
 ---
 
-## 🌟 核心特性 (Features)
-
-### 1️⃣ 六层数据上下文引擎 (Six Layers of Context)
-本系统是智能体专业的“大脑”。在回答任何业务问题之前，会对大模型强制注入以下六层极高密度的信息组装：
-- **P1 - 库表元数据**：自动抽取 `Information Schema` 了解表结构与字段联动关系。
-- **P1 - 业务领域注解**：全盘载入企业特有业务“行话”词典。
-- **P2 - 历史模范查询**：高置信度 (Few-shot) 的经典黄金 SQL 片段兜底参考。
-- **P2 - 数据血缘解析**：无缝对接底层 ETL 代码仓库了解数据溯源。
-- **P3 - 外部规章制度**：打通企业内网 Wiki (Confluence/Notion)，结合内部合规。
-- **P3 - 运行时沙盒验证 (Runtime Validator)**：SQL 返回前强制包裹 `LIMIT 1` 查杀语法。
-
-### 2️⃣ 独立分析工作区引擎 (Workspace Sandbox)
-内置独立的挂载工作区目录与沙盒级 Python 运算模块。大模型获取到底层的百万级数据后，直接在隔离工作区落地为 CSV/JSON 中间件缓存。
-通过挂载的 Python CLI (`run_python`) 与绘图库（`Matplotlib`/`Seaborn`），系统可自主撰写代码降维分析成散点图、折线图等各类复合图表直接交付。
+## 📜 License
+MIT License
+��过挂载的 Python CLI (`run_python`) 与绘图库（`Matplotlib`/`Seaborn`），系统可自主撰写代码降维分析成散点图、折线图等各类复合图表直接交付。
 
 ### 3️⃣ AI 全链路打断与交互 (Advanced Agentic Flow)
 - **热打断与转向引擎**：在任务执行中可随时干预甚至 180 度转向。
