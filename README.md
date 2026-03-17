@@ -46,13 +46,13 @@
 - **Node.js 18+
 
 ### 2️⃣ 启动后端服务 (Backend)
-`ash
+`bash
 python server.py
 # 服务器将运行在 http://localhost:8000
 `
 
 ### 3️⃣ 启动前端界面 (Frontend)
-`ash
+`bash
 cd frontend
 npm install
 npm run dev
