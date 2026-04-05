@@ -50,6 +50,47 @@ class TestSQLEvaluator:
         assert result.validation_method == "limit1"
         assert "LIMIT 1" in mock_mcp.calls[0][1]["query"]
 
+    @pytest.mark.asyncio
+    async def test_trusted_template_simple_select_skips_dry_run(self):
+        mock_mcp = MockMCPClient()
+        evaluator = SQLEvaluator(mock_mcp, SQLGuard(strict=True))
+        result = await evaluator.validate(
+            "SELECT company_name FROM dim_company LIMIT 5",
+            trusted_template=True,
+        )
+        assert result.passed is True
+        assert result.validation_method == "template_fast_path"
+        assert mock_mcp.calls == []
+
+    @pytest.mark.asyncio
+    async def test_trusted_template_with_join_still_uses_limit_validation(self):
+        mock_mcp = MockMCPClient()
+        evaluator = SQLEvaluator(mock_mcp, SQLGuard(strict=True))
+        result = await evaluator.validate(
+            "SELECT * FROM a JOIN b ON a.id = b.id",
+            trusted_template=True,
+        )
+        assert result.passed is True
+        assert result.validation_method == "limit1"
+        assert len(mock_mcp.calls) == 1
+
+    @pytest.mark.asyncio
+    async def test_validated_execute_tool_exposes_validation_details(self):
+        mock_mcp = MockMCPClient()
+        evaluator = SQLEvaluator(mock_mcp, SQLGuard(strict=True))
+        tool = evaluator.create_validated_execute_tool()
+        result = await tool.execute(
+            "call-1",
+            {
+                "query": "SELECT company_name FROM dim_company LIMIT 5",
+                "trusted_template": True,
+            },
+        )
+        assert result.is_error is False
+        assert result.details["validation_method"] == "template_fast_path"
+        assert result.details["trusted_template"] is True
+        assert len(mock_mcp.calls) == 1
+
 
 class TestFileSkills:
     def _create_skill_dir(self) -> Path:

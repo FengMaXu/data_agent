@@ -18,5 +18,12 @@ class SkillRuntimeState:
     def to_dict(self) -> list[dict]:
         return [skill.to_dict() for skill in self._active_skills]
 
+    @classmethod
+    def from_dict(cls, items: list[dict] | None) -> "SkillRuntimeState":
+        state = cls()
+        for item in items or []:
+            state._active_skills.append(ActiveSkillState(**item))
+        return state
+
     def clear(self) -> None:
         self._active_skills.clear()

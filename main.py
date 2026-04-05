@@ -7,31 +7,16 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from pathlib import Path
-import sys
 
 from src.ai.config import AIConfig
 from src.ai.gateway import AIGateway
 from src.ai.base_provider import Message, Role
 from src.agent.agent_loop import agent_loop
-from src.agent.types import AgentContext, AgentLoopConfig, AgentEvent, AgentEventType
-from src.mcp.mcp_client import MCPClient
-from src.mcp.db_tools import create_db_tools
-from src.mcp.sql_guard import SQLGuard
-from src.context.metadata_store import MetadataStore
-from src.context.annotations import AnnotationStore
-from src.context.query_patterns import QueryPatternStore
-from src.interaction.clarification import create_clarification_tool
-from src.interaction.sql_evaluator import SQLEvaluator
-from src.skills import create_project_skill_manager, create_skill_tools
-from src.learning.learning_store import LearningStore
-from src.learning.feedback import FeedbackCollector
+from src.agent.tool_providers.base import GlobalRuntimeServices
+from src.agent.types import AgentContext, AgentLoopConfig, AgentEventType
+from src.config_manager import config_manager
+from src.prompts import load_system_prompt
 from src.workspace.workspace_manager import WorkspaceManager
-from src.workspace.file_tools import create_file_tools
-from src.workspace.code_executor import CodeExecutor, create_code_tools
-from src.ecosystem.mcp_registry import MCPRegistry
-from src.ecosystem.http_hooks import HttpHookRegistry, create_http_tools
-from src.prompts import SYSTEM_PROMPT
 
 # ─────────────────────────────────────────────
 # 日志配置
@@ -190,9 +175,33 @@ async def run_agent_turn(
     print()  # 换行
 
 
+async def _build_cli_context() -> tuple[AgentContext, WorkspaceManager, GlobalRuntimeServices]:
+    workspace = WorkspaceManager()
+    runtime_overrides = {"clarification_callback": _cli_clarification_callback}
+    enabled_mcp_servers = None
+
+    if not config_manager.ai_config.mcp_server_script:
+        enabled_mcp_servers = []
+
+    tools, session_runtime_services = await config_manager.build_session_tools(
+        session_id="cli",
+        workspace=workspace,
+        runtime_overrides=runtime_overrides,
+        enabled_mcp_servers=enabled_mcp_servers,
+    )
+    context = AgentContext(
+        system_prompt=load_system_prompt(config_manager.project_root),
+        tools=tools,
+    )
+    return context, workspace, session_runtime_services
+
+
 async def main_async():
     """异步主函数"""
     config = AIConfig.from_env()
+    config_manager.ai_config = config
+    config_manager.gateway = AIGateway(config)
+    steering_queue = SteeringQueue()
 
     # 验证配置
     if not config.openai_api_key and not config.anthropic_api_key:
@@ -203,9 +212,6 @@ async def main_async():
         print("  ANTHROPIC_API_KEY=sk-ant-...")
         print()
 
-    gateway = AIGateway(config)
-    steering_queue = SteeringQueue()
-
     # Agent Loop 配置
     loop_config = AgentLoopConfig(
         model=config.default_model,
@@ -213,131 +219,37 @@ async def main_async():
         max_tokens=config.max_tokens,
         get_steering_messages=steering_queue.get_steering_messages,
         get_follow_up_messages=steering_queue.get_follow_up_messages,
+        should_stop=None,
     )
 
     print_banner()
 
-    # 判断是否连接 MCP Server
     if config.mcp_server_script:
         print(f"📡 连接 MCP Server: {config.mcp_server_script}")
         print(
             f"🗄️  数据库: {config.mysql_host}:{config.mysql_port}/{config.mysql_database}"
         )
         print()
-
-        async with MCPClient.connect(
-            command=config.mcp_server_command,
-            script=config.mcp_server_script,
-            env=config.get_mcp_env(),
-        ) as mcp_client:
-            guard = SQLGuard(strict=True)
-
-            # 阶段一：数据库工具（使用沙箱验证版 execute_sql）
-            tools = create_db_tools(mcp_client, guard)
-            # 替换 execute_sql 为带沙箱验证的版本
-            evaluator = SQLEvaluator(mcp_client, guard)
-            tools = [t for t in tools if t.name != "execute_sql"]
-            tools.append(evaluator.create_validated_execute_tool())
-
-            # 阶段二：上下文引擎工具
-            metadata_store = MetadataStore(mcp_client)
-            tools.extend(metadata_store.create_tools())
-
-            annotation_store = AnnotationStore()
-            annotation_store.load()
-            tools.extend(annotation_store.create_tools())
-
-            query_store = QueryPatternStore()
-            query_store.load()
-            tools.extend(query_store.create_tools())
-
-            # 阶段三：主动澄清 + 技能
-            tools.append(create_clarification_tool(_cli_clarification_callback))
-
-            skill_manager = create_project_skill_manager(Path(__file__).resolve().parent)
-            tools.extend(create_skill_tools(skill_manager))
-
-            # 阶段四：错题本 + 反馈
-            learning_store = LearningStore()
-            tools.extend(learning_store.create_tools())
-
-            feedback_collector = FeedbackCollector(learning_store)
-            tools.extend(feedback_collector.create_tools())
-
-            # ────── 【新增】工作区 & 代码执行 ──────
-            workspace = WorkspaceManager()
-            tools.extend(create_file_tools(workspace))
-            code_executor = CodeExecutor(workspace)
-            tools.extend(create_code_tools(code_executor))
-            print(f"📂 工作区已就绪: {workspace.session_dir}")
-
-            # ────── 【新增】外部生态 MCP 注册表 ──────
-            mcp_registry = MCPRegistry()
-            # 可在此处通过配置文件动态注册外部 MCP Server：
-            # mcp_registry.register("knowledge", command="python", script="kb_mcp.py")
-
-            # ────── 【新增】外部 HTTP API Hooks ──────
-            http_registry = HttpHookRegistry()
-            # 可在此处注册外部 REST API：
-            # http_registry.register("weather", url="https://api.weather.com/v1", ...)
-            http_tools = create_http_tools(http_registry)
-            tools.extend(http_tools)
-
-            print(
-                f"🧠 已加载全部模块：上下文引擎 + 沙箱验证 + 主动澄清 + "
-                f"{len(skill_manager.list_skills())} 技能 + 错题本({learning_store.get_stats()['total']}条) "
-                f"+ 工作区(代码执行) + 外部生态({len(http_tools)} API)"
-            )
-
-            context = AgentContext(
-                system_prompt=SYSTEM_PROMPT,
-                tools=tools,
-            )
-            await _chat_loop(context, loop_config, gateway)
     else:
         print("💬 纯对话模式（未配置 MCP Server，无数据库工具）")
         print("   设置 MCP_SERVER_SCRIPT 环境变量以启用数据库查询")
         print()
 
-        tools = []
-        annotation_store = AnnotationStore()
-        annotation_store.load()
-        tools.extend(annotation_store.create_tools())
+    context, workspace, session_runtime_services = await _build_cli_context()
 
-        query_store = QueryPatternStore()
-        query_store.load()
-        tools.extend(query_store.create_tools())
+    print(f"📂 工作区已就绪: {workspace.session_dir}")
+    print(f"🧠 已通过统一装配链加载 {len(context.tools)} 个工具")
 
-        # 主动澄清 + 技能（纯对话模式也可用）
-        tools.append(create_clarification_tool(_cli_clarification_callback))
+    gateway = config_manager.gateway
+    if gateway is None:
+        raise RuntimeError("Gateway 未初始化")
 
-        skill_manager = create_project_skill_manager(Path(__file__).resolve().parent)
-        tools.extend(create_skill_tools(skill_manager))
-
-        # 错题本 + 反馈（纯对话模式也可用）
-        learning_store = LearningStore()
-        tools.extend(learning_store.create_tools())
-
-        feedback_collector = FeedbackCollector(learning_store)
-        tools.extend(feedback_collector.create_tools())
-
-        # ────── 【新增】工作区 & 代码执行（纯对话模式也可用）──────
-        workspace = WorkspaceManager()
-        tools.extend(create_file_tools(workspace))
-        code_executor = CodeExecutor(workspace)
-        tools.extend(create_code_tools(code_executor))
-        print(f"📂 工作区已就绪: {workspace.session_dir}")
-
-        # ────── 【新增】外部生态 ──────
-        http_registry = HttpHookRegistry()
-        http_tools = create_http_tools(http_registry)
-        tools.extend(http_tools)
-
-        context = AgentContext(
-            system_prompt=SYSTEM_PROMPT,
-            tools=tools,
-        )
+    try:
         await _chat_loop(context, loop_config, gateway)
+    finally:
+        registry = session_runtime_services.metadata.get("mcp_registry")
+        if registry is not None:
+            await registry.shutdown()
 
 
 async def _chat_loop(

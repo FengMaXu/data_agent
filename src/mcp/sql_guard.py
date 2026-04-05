@@ -49,12 +49,12 @@ DANGEROUS_KEYWORDS = [
 # SQL 注入特征
 INJECTION_PATTERNS = [
     r";\s*\w",  # 分号后跟语句（多语句注入）
-    r"--\s",  # SQL 注释符
-    r"/\*.*?\*/",  # 块注释
+    # NOTE: r"--\s" removed — standard SQL line comments (-- text) are valid
+    # and pose no injection risk when combined with the read-only whitelist below.
+    r"/\*.*?\*/",  # 块注释（可能隐藏危险关键字）
     r"\bUNION\s+(ALL\s+)?SELECT\b",  # UNION 注入
     r"\bEXEC\b",  # 执行存储过程
     r"\bXP_\w+",  # SQL Server 危险函数
-    r"0x[0-9a-fA-F]+",  # 十六进制注入
 ]
 
 # 允许的只读语句开头
@@ -93,6 +93,11 @@ class SQLGuard:
         ]
         self._safe_patterns = [re.compile(p, re.IGNORECASE) for p in SAFE_PREFIXES]
 
+    @staticmethod
+    def _strip_leading_comments(sql: str) -> str:
+        """去除 SQL 头部的行注释（-- ...），保留正文用于白名单匹配。"""
+        return re.sub(r"^\s*(--[^\n]*\n?\s*)*", "", sql).strip()
+
     def check(self, sql: str) -> SQLGuardResult:
         """
         检查 SQL 是否安全
@@ -104,7 +109,7 @@ class SQLGuard:
 
         sql_clean = sql.strip()
 
-        # ── 第一道：检查注入特征 ──
+        # ── 第一道：检查注入特征（对完整 SQL 检查）──
         for pattern in self._injection_patterns:
             if pattern.search(sql_clean):
                 reason = f"🚨 安全拦截：检测到 SQL 注入特征 [{pattern.pattern}]"
@@ -119,10 +124,12 @@ class SQLGuard:
                 return SQLGuardResult(allowed=False, reason=reason)
 
         # ── 第三道：严格模式下的白名单检查 ──
+        # 先去掉头部 -- 行注释，再判断语句类型（LLM 常在 SELECT 前加注释说明）
         if self.strict:
-            is_safe = any(p.match(sql_clean) for p in self._safe_patterns)
+            effective_sql = self._strip_leading_comments(sql_clean)
+            is_safe = any(p.match(effective_sql) for p in self._safe_patterns)
             if not is_safe:
-                reason = f"🚨 安全拦截：非只读查询。仅允许 SELECT/SHOW/DESCRIBE/EXPLAIN"
+                reason = "🚨 安全拦截：非只读查询。仅允许 SELECT/SHOW/DESCRIBE/EXPLAIN"
                 logger.warning(f"{reason} | SQL: {sql_clean[:100]}")
                 return SQLGuardResult(allowed=False, reason=reason)
 

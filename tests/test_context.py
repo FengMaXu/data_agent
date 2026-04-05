@@ -1,6 +1,6 @@
 """
 上下文引擎单元测试
-测试业务标注检索、SQL 模板解析与知识库搜索
+测试业务标注检索与知识库搜索
 """
 
 import json
@@ -10,8 +10,11 @@ from pathlib import Path
 import pytest
 
 from src.context.annotations import AnnotationStore
-from src.context.query_patterns import QueryPatternStore
-from src.context.knowledge_tools import _search_knowledge
+from src.context.knowledge_tools import (
+    _search_knowledge,
+    _search_query_patterns,
+    create_knowledge_tools,
+)
 
 
 # ══════════════════════════════════════════════
@@ -128,130 +131,6 @@ class TestAnnotationStore:
 
 
 # ══════════════════════════════════════════════
-# QueryPatternStore 测试
-# ══════════════════════════════════════════════
-
-
-class TestQueryPatternStore:
-    """SQL 模板库测试"""
-
-    def _create_temp_queries(self, content: str) -> str:
-        """创建临时 SQL 文件"""
-        tmpdir = tempfile.mkdtemp()
-        filepath = Path(tmpdir) / "test_queries.sql"
-        with open(filepath, "w", encoding="utf-8") as f:
-            f.write(content)
-        return tmpdir
-
-    def test_parse_xml_tags(self):
-        """测试 XML 标签解析"""
-        sql_content = """
--- <query name>monthly_revenue</query name>
--- <query description>
--- 按月统计收入趋势
--- </query description>
--- <query>
-SELECT DATE_FORMAT(created_at, '%Y-%m') AS month, SUM(amount) AS revenue
-FROM orders
-GROUP BY month
-ORDER BY month DESC
--- </query>
-
--- <query name>top_customers</query name>
--- <query description>
--- 按消费排名
--- </query description>
--- <query>
-SELECT user_id, SUM(amount) AS total
-FROM orders
-GROUP BY user_id
-ORDER BY total DESC
-LIMIT 10
--- </query>
-"""
-        tmpdir = self._create_temp_queries(sql_content)
-        store = QueryPatternStore()
-        store.load(tmpdir)
-
-        assert len(store._patterns) == 2
-        assert store._patterns[0].name == "monthly_revenue"
-        assert "SUM(amount)" in store._patterns[0].sql
-
-    def test_search_by_keyword(self):
-        """测试关键词搜索"""
-        sql_content = """
--- <query name>revenue_trend</query name>
--- <query description>
--- 收入趋势分析
--- </query description>
--- <query>
-SELECT month, SUM(amount) FROM orders GROUP BY month
--- </query>
-
--- <query name>user_count</query name>
--- <query description>
--- 用户数量统计
--- </query description>
--- <query>
-SELECT COUNT(*) FROM users
--- </query>
-"""
-        tmpdir = self._create_temp_queries(sql_content)
-        store = QueryPatternStore()
-        store.load(tmpdir)
-
-        result = store.search("收入")
-        assert "revenue_trend" in result
-        assert "SUM(amount)" in result
-
-    def test_search_no_match(self):
-        """测试无匹配时的行为"""
-        sql_content = """
--- <query name>test</query name>
--- <query description>test query</query description>
--- <query>
-SELECT 1
--- </query>
-"""
-        tmpdir = self._create_temp_queries(sql_content)
-        store = QueryPatternStore()
-        store.load(tmpdir)
-
-        # 只有1个模板，无匹配时返回全部
-        result = store.search("完全不相关的关键词xyz")
-        assert "test" in result  # 因为只有1条，兜底返回全部
-
-    def test_empty_dir(self):
-        """测试空目录"""
-        tmpdir = tempfile.mkdtemp()
-        store = QueryPatternStore()
-        store.load(tmpdir)
-
-        result = store.get_all()
-        assert "为空" in result
-
-    def test_get_all(self):
-        """测试获取全部模板"""
-        sql_content = """
--- <query name>q1</query name>
--- <query description>First</query description>
--- <query>
-SELECT 1
--- </query>
-
--- <query name>q2</query name>
--- <query description>Second</query description>
--- <query>
-SELECT 2
--- </query>
-"""
-        tmpdir = self._create_temp_queries(sql_content)
-        store = QueryPatternStore()
-        store.load(tmpdir)
-
-
-
-# ══════════════════════════════════════════════
 # Knowledge Tools 测试
 # ══════════════════════════════════════════════
 
@@ -264,9 +143,18 @@ class TestKnowledgeSearch:
 
         (knowledge_root / "doc" / "query_patterns.md").write_text(
             "# SQL 模板\n\n"
-            "## 批发业销售模板\n"
-            "查询批发业商品销售额和同比增速。\n"
-            "可复用到批发业月度分析。\n",
+            "## 行业大类累计销售额查询模板\n\n"
+            "### 查询指定行业大类在指定月份的累计销售额和同比增速\n"
+            "适用于批发业、零售业等行业大类单值查询。\n"
+            "```sql\n"
+            "SELECT industry_name_large, SUM(sales_ytd) AS 销售额\n"
+            "FROM fact_sales_monthly\n"
+            "WHERE snapshot_month = '2025-12-01'\n"
+            "GROUP BY industry_name_large\n"
+            "```\n\n"
+            "## 企业月度累计销售额查询模板\n\n"
+            "### 查询特定企业月度累计销售额和增速\n"
+            "适用于企业名称模糊匹配和月度走势。\n",
             encoding="utf-8",
         )
         (knowledge_root / "doc" / "business.md").write_text(
@@ -296,7 +184,7 @@ class TestKnowledgeSearch:
         assert result.is_error is False
         assert "query_patterns.md" in text
         assert "命中关键词: 批发业, 商品销售额, 增速" in text
-        assert "批发业销售模板" in text
+        assert "行业大类累计销售额查询模板" in text
 
     @pytest.mark.asyncio
     async def test_search_knowledge_smart_mode_scans_multiple_documents(self, monkeypatch):
@@ -339,3 +227,52 @@ class TestKnowledgeSearch:
 
         assert result.is_error is True
         assert "非法正则表达式" in result.content[0].text
+
+    @pytest.mark.asyncio
+    async def test_search_query_patterns_returns_direct_template_hit(self, monkeypatch):
+        knowledge_root = self._create_temp_knowledge()
+        root = Path(knowledge_root)
+        monkeypatch.setattr("src.context.knowledge_tools.KNOWLEDGE_ROOT", root)
+        monkeypatch.setattr(
+            "src.context.knowledge_tools.QUERY_PATTERNS_PATH",
+            root / "doc" / "query_patterns.md",
+        )
+
+        result = await _search_query_patterns(
+            "call-5",
+            {"query": "2025年批发业累计销售额", "max_results": 2},
+        )
+
+        text = result.content[0].text
+        assert result.is_error is False
+        assert "查询模板检索结果" in text
+        assert "行业大类累计销售额查询模板" in text
+        assert "示例 SQL" in text
+        assert result.details["source_path"] == "doc/query_patterns.md"
+        assert result.details["match_count"] >= 1
+
+    @pytest.mark.asyncio
+    async def test_search_query_patterns_reports_fallback_when_no_match(self, monkeypatch):
+        knowledge_root = self._create_temp_knowledge()
+        root = Path(knowledge_root)
+        monkeypatch.setattr("src.context.knowledge_tools.KNOWLEDGE_ROOT", root)
+        monkeypatch.setattr(
+            "src.context.knowledge_tools.QUERY_PATTERNS_PATH",
+            root / "doc" / "query_patterns.md",
+        )
+
+        result = await _search_query_patterns(
+            "call-6",
+            {"query": "完全无关的自定义库存预警指标"},
+        )
+
+        text = result.content[0].text
+        assert "未在 doc/query_patterns.md 中找到" in text
+        assert "search_knowledge" in text
+
+
+class TestKnowledgeToolRegistration:
+    def test_knowledge_tools_expose_dedicated_query_pattern_tool(self):
+        tool_names = {tool.name for tool in create_knowledge_tools()}
+        assert "search_knowledge" in tool_names
+        assert "search_query_patterns" in tool_names

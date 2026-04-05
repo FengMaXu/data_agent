@@ -195,10 +195,23 @@ async def download_workspace_file(path: str):
     if not resolved.is_file():
         raise HTTPException(status_code=400, detail=f"不是文件: {path}")
 
+    # 根据文件扩展名确定 media_type
+    suffix = resolved.suffix.lower()
+    if suffix == '.html':
+        media_type = "text/html"
+    elif suffix == '.pdf':
+        media_type = "application/pdf"
+    elif suffix in ['.csv', '.txt']:
+        media_type = "text/plain"
+    elif suffix == '.json':
+        media_type = "application/json"
+    else:
+        media_type = "application/octet-stream"
+
     return FileResponse(
         path=str(resolved),
         filename=resolved.name,
-        media_type="application/octet-stream",
+        media_type=media_type,
     )
 
 

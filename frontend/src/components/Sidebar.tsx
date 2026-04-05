@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-    MessageSquare,
     BookOpen,
     HardDrive,
-    BarChart2,
     Settings,
     ChevronDown,
     ChevronRight,
@@ -17,21 +15,35 @@ import {
     Trash2,
     Clock,
     Image,
-    Plus,
-    Users,
+    Paperclip,
+    Box,
+    Server,
+    Sparkles,
+    MessageSquare,
+    Check,
+    History,
 } from 'lucide-react';
 import {
-    getKnowledgeFiles, getKnowledgeContent, saveKnowledgeContent, type KnowledgeFile,
-    getWorkspaceFiles, uploadWorkspaceFile, deleteWorkspaceFile, getWorkspaceFileDownloadUrl, type WorkspaceFile
+    getKnowledgeFiles,
+    getKnowledgeContent,
+    saveKnowledgeContent,
+    type KnowledgeFile,
+    getWorkspaceFiles,
+    uploadWorkspaceFile,
+    deleteWorkspaceFile,
+    getWorkspaceFileDownloadUrl,
+    type WorkspaceFile,
 } from '../api/client';
 import { FileIcon } from './FileIcons';
 import { formatFileSize, formatTime } from '../utils/helpers';
 import ReactMarkdown from 'react-markdown';
 import { useSession, type Session } from '../hooks/useSession';
+import { useLanguage } from '../context/LanguageContext';
 
 interface SidebarProps {
     onOpenSettings: () => void;
-    onOpenWorkspace?: () => void;
+    onOpenWorkspace: () => void;
+    onOpenPlugins?: (tab: 'MCP' | 'Skills') => void;
 }
 
 interface KnowledgeFileNode {
@@ -41,37 +53,51 @@ interface KnowledgeFileNode {
     level: number;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings }) => {
-    // 会话管理
-    const { currentSession, sessions, createSession, switchSession, deleteSession, updateSessionName } = useSession();
+const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenWorkspace, onOpenPlugins }) => {
+    const {
+        sessions,
+        currentSession,
+        createSession,
+        switchSession,
+        deleteSession,
+        updateSessionName,
+        attachedFiles,
+        toggleAttachedFile,
+        isFileAttached,
+    } = useSession();
 
-    // 会话选择器状态
-    const [sessionSelectorOpen, setSessionSelectorOpen] = useState(false);
-    const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
-    const [editingSessionName, setEditingSessionName] = useState('');
+    const { t, language, toggleLanguage } = useLanguage();
 
-    // Knowledge 状态
     const [knowledgeExpanded, setKnowledgeExpanded] = useState(false);
+    const [pluginsExpanded, setPluginsExpanded] = useState(false);
+    const [historyExpanded, setHistoryExpanded] = useState(false);
+    const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+    const [editSessionName, setEditSessionName] = useState('');
     const [knowledgeFiles, setKnowledgeFiles] = useState<KnowledgeFile[]>([]);
     const [loadingKnowledge, setLoadingKnowledge] = useState(false);
     const [knowledgeExpandedPaths, setKnowledgeExpandedPaths] = useState<Set<string>>(new Set(['doc']));
 
-    // Workspace 状态
     const [workspaceExpanded, setWorkspaceExpanded] = useState(false);
     const [workspaceFiles, setWorkspaceFiles] = useState<WorkspaceFile[]>([]);
     const [loadingWorkspace, setLoadingWorkspace] = useState(false);
     const [deletingPath, setDeletingPath] = useState<string | null>(null);
 
-    // 编辑器模态框状态
     const [editorOpen, setEditorOpen] = useState(false);
     const [editorMode, setEditorMode] = useState<'knowledge' | 'workspace-preview'>('knowledge');
-    const [selectedFile, setSelectedFile] = useState<any>(null);
+    const [selectedFile, setSelectedFile] = useState<KnowledgeFile | WorkspaceFile | null>(null);
     const [fileContent, setFileContent] = useState('');
     const [isEditing, setIsEditing] = useState(false);
     const [saving, setSaving] = useState(false);
     const [toast, setToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-    // 加载知识库文件
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const showToast = useCallback((text: string, type: 'success' | 'error' = 'success') => {
+        setToast({ text, type });
+        setTimeout(() => setToast(null), 3000);
+    }, []);
+
     const loadKnowledgeFiles = useCallback(async () => {
         setLoadingKnowledge(true);
         try {
@@ -82,16 +108,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings }) => {
         } finally {
             setLoadingKnowledge(false);
         }
-    }, []);
+    }, [showToast]);
 
-    // 加载工作区文件
     const loadWorkspaceFiles = useCallback(async () => {
         setLoadingWorkspace(true);
         try {
             const res = await getWorkspaceFiles(currentSession.id);
-            // Sort by modified_at descending
             const sortedFiles = [...res.files].sort((a, b) =>
-                new Date(b.modified_at).getTime() - new Date(a.modified_at).getTime()
+                new Date(b.modified_at).getTime() - new Date(a.modified_at).getTime(),
             );
             setWorkspaceFiles(sortedFiles);
         } catch (e: any) {
@@ -99,10 +123,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings }) => {
         } finally {
             setLoadingWorkspace(false);
         }
-    }, [currentSession.id]);
+    }, [currentSession.id, showToast]);
 
-    // 防抖版本的 loadWorkspaceFiles（500ms），避免 watcher 与工具结果重复刷新
-    const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const debouncedLoadWorkspaceFiles = useCallback(() => {
         if (debounceTimerRef.current) {
             clearTimeout(debounceTimerRef.current);
@@ -113,7 +135,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings }) => {
         }, 500);
     }, [loadWorkspaceFiles]);
 
-    // 首次展开时加载文件
     useEffect(() => {
         if (knowledgeExpanded && knowledgeFiles.length === 0) {
             loadKnowledgeFiles();
@@ -126,7 +147,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings }) => {
         }
     }, [workspaceExpanded, loadWorkspaceFiles]);
 
-    // 监听工作区更新事件（使用防抖避免频繁刷新）
     useEffect(() => {
         const handler = () => {
             if (workspaceExpanded) {
@@ -136,45 +156,58 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings }) => {
         window.addEventListener('workspace_updated', handler);
         return () => {
             window.removeEventListener('workspace_updated', handler);
-            // 清理防抖定时器
             if (debounceTimerRef.current) {
                 clearTimeout(debounceTimerRef.current);
             }
         };
     }, [debouncedLoadWorkspaceFiles, workspaceExpanded]);
 
-    const showToast = (text: string, type: 'success' | 'error' = 'success') => {
-        setToast({ text, type });
-        setTimeout(() => setToast(null), 3000);
+    useEffect(() => {
+        if (workspaceExpanded) {
+            loadWorkspaceFiles();
+        }
+    }, [currentSession.id, workspaceExpanded, loadWorkspaceFiles]);
+
+    const toggleHistory = () => {
+        setHistoryExpanded(!historyExpanded);
+        if (workspaceExpanded) setWorkspaceExpanded(false);
+        if (knowledgeExpanded) setKnowledgeExpanded(false);
+        if (pluginsExpanded) setPluginsExpanded(false);
     };
 
-    // Knowledge 展开/折叠
     const toggleKnowledge = () => {
         setKnowledgeExpanded(!knowledgeExpanded);
-        // 关闭 Workspace
         if (workspaceExpanded) setWorkspaceExpanded(false);
+        if (pluginsExpanded) setPluginsExpanded(false);
+        if (historyExpanded) setHistoryExpanded(false);
     };
 
     const toggleWorkspace = () => {
         setWorkspaceExpanded(!workspaceExpanded);
-        // 关闭 Knowledge
         if (knowledgeExpanded) setKnowledgeExpanded(false);
+        if (pluginsExpanded) setPluginsExpanded(false);
+        if (historyExpanded) setHistoryExpanded(false);
     };
 
-    const toggleExpand = (path: string, isKnowledge: boolean) => {
-        const setter = isKnowledge ? setKnowledgeExpandedPaths : (v: any) => v;
-        setter((prev: Set<string>) => {
-            const newSet = new Set(prev);
-            if (newSet.has(path)) {
-                newSet.delete(path);
+    const togglePlugins = () => {
+        setPluginsExpanded(!pluginsExpanded);
+        if (knowledgeExpanded) setKnowledgeExpanded(false);
+        if (workspaceExpanded) setWorkspaceExpanded(false);
+        if (historyExpanded) setHistoryExpanded(false);
+    };
+
+    const toggleExpand = (path: string) => {
+        setKnowledgeExpandedPaths((prev) => {
+            const next = new Set(prev);
+            if (next.has(path)) {
+                next.delete(path);
             } else {
-                newSet.add(path);
+                next.add(path);
             }
-            return newSet;
+            return next;
         });
     };
 
-    // 打开 Knowledge 文件编辑
     const openKnowledgeFile = async (file: KnowledgeFile) => {
         if (file.type === 'directory') return;
 
@@ -190,39 +223,32 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings }) => {
         }
     };
 
-    // 预览 Workspace 文件
     const previewWorkspaceFile = async (file: WorkspaceFile) => {
         setSelectedFile(file);
         setEditorMode('workspace-preview');
         setEditorOpen(true);
 
-        // 尝试预览图片
-        if (file.name.toLowerCase().endsWith('.png') ||
-            file.name.toLowerCase().endsWith('.jpg') ||
-            file.name.toLowerCase().endsWith('.jpeg') ||
-            file.name.toLowerCase().endsWith('.gif') ||
-            file.name.toLowerCase().endsWith('.webp')) {
-            const url = getWorkspaceFileDownloadUrl(file.relative_path);
-            setFileContent(url); // 使用 URL 作为内容
-        } else if (file.name.toLowerCase().endsWith('.csv') ||
-            file.name.toLowerCase().endsWith('.md') ||
-            file.name.toLowerCase().endsWith('.txt') ||
-            file.name.toLowerCase().endsWith('.json')) {
-            // 尝试获取文本内容
+        const lower = file.name.toLowerCase();
+        if (lower.endsWith('.png') || lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.gif') || lower.endsWith('.webp')) {
+            setFileContent(getWorkspaceFileDownloadUrl(file.relative_path));
+            return;
+        }
+
+        if (lower.endsWith('.csv') || lower.endsWith('.md') || lower.endsWith('.txt') || lower.endsWith('.json')) {
             try {
                 const response = await fetch(getWorkspaceFileDownloadUrl(file.relative_path));
-                const text = await response.text();
-                setFileContent(text);
-            } catch (e) {
+                setFileContent(await response.text());
+            } catch {
                 setFileContent('无法预览此文件');
             }
-        } else {
-            setFileContent(''); // 不支持的预览类型
+            return;
         }
+
+        setFileContent('');
     };
 
     const handleSave = async () => {
-        if (!selectedFile || editorMode !== 'knowledge') return;
+        if (!selectedFile || editorMode !== 'knowledge' || !('path' in selectedFile)) return;
 
         setSaving(true);
         try {
@@ -243,7 +269,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings }) => {
         setIsEditing(false);
     };
 
-    // 处理文件上传
     const handleFileUpload = async (files: FileList | null) => {
         if (!files || files.length === 0) return;
 
@@ -255,12 +280,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings }) => {
                 showToast(`上传失败: ${e.message}`, 'error');
             }
         }
-        if (workspaceExpanded) {
-            loadWorkspaceFiles();
-        }
+        await loadWorkspaceFiles();
+        window.dispatchEvent(new CustomEvent('workspace_updated'));
     };
 
-    // 处理删除文件
     const handleDeleteFile = async (file: WorkspaceFile) => {
         if (!window.confirm(`确定要删除 "${file.name}" 吗？`)) return;
         setDeletingPath(file.relative_path);
@@ -268,6 +291,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings }) => {
             await deleteWorkspaceFile(file.relative_path);
             showToast(`${file.name} 已删除`);
             await loadWorkspaceFiles();
+            window.dispatchEvent(new CustomEvent('workspace_updated'));
         } catch (e: any) {
             showToast(`删除失败: ${e.message}`, 'error');
         } finally {
@@ -275,7 +299,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings }) => {
         }
     };
 
-    // 处理下载文件
     const handleDownloadFile = (file: WorkspaceFile) => {
         const a = document.createElement('a');
         a.href = getWorkspaceFileDownloadUrl(file.relative_path);
@@ -286,11 +309,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings }) => {
         document.body.removeChild(a);
     };
 
-    // 构建 Knowledge 文件树
     const buildKnowledgeFileTree = (): KnowledgeFileNode[] => {
         const pathMap = new Map<string, KnowledgeFileNode>();
 
-        knowledgeFiles.forEach(file => {
+        knowledgeFiles.forEach((file) => {
             const parts = file.path.split('/');
             let currentPath = '';
 
@@ -299,13 +321,15 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings }) => {
 
                 if (!pathMap.has(currentPath)) {
                     const isLast = index === parts.length - 1;
-                    const nodeItem = isLast ? file : {
-                        name: part,
-                        path: currentPath,
-                        size: 0,
-                        modified_at: '',
-                        type: 'directory' as const,
-                    };
+                    const nodeItem = isLast
+                        ? file
+                        : {
+                            name: part,
+                            path: currentPath,
+                            size: 0,
+                            modified_at: '',
+                            type: 'directory' as const,
+                        };
 
                     pathMap.set(currentPath, {
                         item: nodeItem,
@@ -347,7 +371,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings }) => {
                     style={{ paddingLeft: `${12 + level * 16}px` }}
                     onClick={() => {
                         if (hasChildren || isDirectory) {
-                            toggleExpand(item.path, true);
+                            toggleExpand(item.path);
                         } else {
                             openKnowledgeFile(item);
                         }
@@ -367,80 +391,33 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings }) => {
                     )}
                     <span className="file-name">{item.name}</span>
                 </div>
-                {hasChildren && isExpanded && children.map(child => renderKnowledgeFileNode(child))}
+                {hasChildren && isExpanded && children.map((child) => renderKnowledgeFileNode(child))}
             </div>
         );
     };
 
     const knowledgeFileTree = buildKnowledgeFileTree();
     const isMarkdown = selectedFile?.name.endsWith('.md');
-    const isImagePreview = editorMode === 'workspace-preview' &&
-        (selectedFile?.name.toLowerCase().endsWith('.png') ||
-            selectedFile?.name.toLowerCase().endsWith('.jpg') ||
-            selectedFile?.name.toLowerCase().endsWith('.jpeg') ||
-            selectedFile?.name.toLowerCase().endsWith('.gif') ||
-            selectedFile?.name.toLowerCase().endsWith('.webp'));
+    const isImagePreview = editorMode === 'workspace-preview' && Boolean(
+        selectedFile?.name.toLowerCase().endsWith('.png') ||
+        selectedFile?.name.toLowerCase().endsWith('.jpg') ||
+        selectedFile?.name.toLowerCase().endsWith('.jpeg') ||
+        selectedFile?.name.toLowerCase().endsWith('.gif') ||
+        selectedFile?.name.toLowerCase().endsWith('.webp'),
+    );
+    const isReadOnlyPreview = editorMode === 'workspace-preview' || !isEditing;
 
-    // 暴露上传函数到全局，供 ChatArea 调用
-    useEffect(() => {
-        (window as any).handleWorkspaceUpload = handleFileUpload;
-    }, [currentSession.id]);
-
-    // 会话切换时刷新工作区文件
-    useEffect(() => {
-        if (workspaceExpanded) {
-            loadWorkspaceFiles();
-        }
-    }, [currentSession.id]);
-
-    // 会话相关处理函数
     const handleCreateSession = () => {
         createSession();
-        setSessionSelectorOpen(false);
+        showToast('新工作区创建成功');
     };
 
-    const handleSwitchSession = (sessionId: string) => {
-        switchSession(sessionId);
-        setSessionSelectorOpen(false);
-    };
-
-    const handleDeleteSession = (e: React.MouseEvent, sessionId: string) => {
-        e.stopPropagation();
-        if (window.confirm('确定要删除这个会话吗？')) {
-            deleteSession(sessionId);
-        }
-    };
-
-    const handleStartEditSession = (e: React.MouseEvent, session: Session) => {
-        e.stopPropagation();
-        setEditingSessionId(session.id);
-        setEditingSessionName(session.name);
-    };
-
-    const handleSaveSessionName = (e: React.MouseEvent, sessionId: string) => {
-        e.stopPropagation();
-        if (editingSessionName.trim()) {
-            updateSessionName(sessionId, editingSessionName.trim());
-        }
-        setEditingSessionId(null);
-        setEditingSessionName('');
-    };
-
-    const handleCancelEditSession = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        setEditingSessionId(null);
-        setEditingSessionName('');
-    };
 
     return (
         <>
             <nav className="sidebar">
                 <div className="nav-menu scrollable-area">
-
-                    {/* Top Section */}
                     <div className="nav-section">
-
-                        {/* Logo */}
                         <div className="sidebar-logo" style={{
                             fontSize: '1.25rem',
                             fontWeight: 700,
@@ -449,7 +426,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings }) => {
                             display: 'flex',
                             alignItems: 'center',
                             gap: '8px',
-                            letterSpacing: '-0.5px'
+                            letterSpacing: '-0.5px',
                         }}>
                             <img
                                 src="/yourdb-logo.png"
@@ -459,209 +436,236 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings }) => {
                             YourDB
                         </div>
 
-                        <button className="nav-item active">
-                            <MessageSquare className="nav-item-icon" size={18} />
-                            <span className="nav-item-text">Chat <span className="nav-item-zh">聊天</span></span>
+                        <button className="nav-item" onClick={handleCreateSession} style={{ marginBottom: '8px' }}>
+                            <Edit3 className="nav-item-icon" size={18} />
+                            <span className="nav-item-text">{t('sidebar.newWorkspace')}</span>
                         </button>
 
-                        {/* Knowledge */}
-                        <button className={`nav-item ${knowledgeExpanded ? 'active' : ''}`} onClick={toggleKnowledge}>
+
+                        <button className={`nav-item ${historyExpanded ? 'expanded' : ''}`} onClick={toggleHistory}>
+                            <History className="nav-item-icon" size={18} />
+                            <span className="nav-item-text">{t('sidebar.history')}</span>
+                            <ChevronDown className={`expand-arrow ${historyExpanded ? 'rotated' : ''}`} size={14} />
+                        </button>
+
+                        {historyExpanded && (
+                            <div className="workspace-file-list" style={{ padding: '4px 16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                {sessions.map((session) => (
+                                    <div
+                                        key={session.id}
+                                        className={`workspace-file-item ${currentSession.id === session.id ? 'active' : ''}`}
+                                        onClick={() => {
+                                            if (editingSessionId !== session.id) {
+                                                switchSession(session.id);
+                                            }
+                                        }}
+                                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px', borderRadius: '6px', cursor: 'pointer', background: currentSession.id === session.id ? '#f3f4f6' : 'transparent', marginBottom: '2px' }}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', flex: 1 }}>
+                                            <MessageSquare size={14} style={{ flexShrink: 0 }} color={currentSession.id === session.id ? '#3b82f6' : '#6b7280'} />
+                                            {editingSessionId === session.id ? (
+                                                <input
+                                                    type="text"
+                                                    value={editSessionName}
+                                                    onChange={(e) => setEditSessionName(e.target.value)}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            updateSessionName(session.id, editSessionName);
+                                                            setEditingSessionId(null);
+                                                        } else if (e.key === 'Escape') {
+                                                            setEditingSessionId(null);
+                                                        }
+                                                    }}
+                                                    onBlur={() => {
+                                                        updateSessionName(session.id, editSessionName);
+                                                        setEditingSessionId(null);
+                                                    }}
+                                                    autoFocus
+                                                    style={{ outline: 'none', border: '1px solid #d1d5db', borderRadius: '4px', padding: '2px 4px', fontSize: '0.85rem', width: '100px' }}
+                                                />
+                                            ) : (
+                                                <span className="workspace-file-name" style={{ fontSize: '0.85rem', color: currentSession.id === session.id ? '#111827' : '#4b5563', fontWeight: currentSession.id === session.id ? 600 : 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={session.name}>
+                                                    {session.name}
+                                                </span>
+                                            )}
+                                        </div>
+                                        {currentSession.id === session.id && (
+                                            <div className="workspace-file-actions" onClick={(e) => e.stopPropagation()} style={{ display: 'flex' }}>
+                                                {editingSessionId === session.id ? (
+                                                    <button className="workspace-action-btn" onClick={() => { updateSessionName(session.id, editSessionName); setEditingSessionId(null); }} title="Save">
+                                                        <Check size={12} color="#10b981" />
+                                                    </button>
+                                                ) : (
+                                                    <button className="workspace-action-btn" onClick={() => { setEditSessionName(session.name); setEditingSessionId(session.id); }} title="Edit">
+                                                        <Edit3 size={12} />
+                                                    </button>
+                                                )}
+                                                <button className="workspace-action-btn delete" onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (window.confirm(`确认删除工作区 "${session.name}" 吗？\n删除后历史对话和文件将不可见。`)) {
+                                                        deleteSession(session.id);
+                                                    }
+                                                }} title="Delete" disabled={sessions.length <= 1}>
+                                                    <Trash2 size={12} />
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        <button className={`nav-item ${knowledgeExpanded ? 'expanded' : ''}`} onClick={toggleKnowledge}>
                             <BookOpen className="nav-item-icon" size={18} />
-                            <span className="nav-item-text">Knowledge <span className="nav-item-zh">知识</span></span>
-                            {knowledgeExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                            <span className="nav-item-text">{t('sidebar.knowledge')}</span>
+                            <ChevronDown className={`expand-arrow ${knowledgeExpanded ? 'rotated' : ''}`} size={14} />
                         </button>
 
                         {knowledgeExpanded && (
                             <div className="knowledge-file-list">
-                                <div className="knowledge-list-header">
-                                    <span className="file-count">{knowledgeFiles.filter(f => f.type === 'file').length} 文件</span>
-                                    <button className="refresh-btn" onClick={loadKnowledgeFiles} disabled={loadingKnowledge}>
-                                        <RefreshCw size={12} className={loadingKnowledge ? 'spin' : ''} />
-                                    </button>
-                                </div>
                                 {loadingKnowledge && knowledgeFiles.length === 0 ? (
                                     <div className="loading-state">加载中...</div>
-                                ) : knowledgeFiles.length === 0 ? (
-                                    <div className="empty-state">暂无文件</div>
+                                ) : knowledgeFileTree.length === 0 ? (
+                                    <div className="empty-state">暂无知识库文件</div>
                                 ) : (
-                                    <div className="file-tree">
-                                        {knowledgeFileTree.map(node => renderKnowledgeFileNode(node))}
-                                    </div>
+                                    knowledgeFileTree.map((node) => renderKnowledgeFileNode(node))
                                 )}
                             </div>
                         )}
 
-                        {/* Workspace */}
-                        <button className={`nav-item ${workspaceExpanded ? 'active' : ''}`} onClick={toggleWorkspace}>
+                        <button className={`nav-item ${workspaceExpanded ? 'expanded' : ''}`} onClick={toggleWorkspace}>
                             <HardDrive className="nav-item-icon" size={18} />
-                            <span className="nav-item-text">Workspace <span className="nav-item-zh">工作区</span></span>
-                            {workspaceExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                            <span className="nav-item-text">{t('sidebar.workspace')}</span>
+                            <ChevronDown className={`expand-arrow ${workspaceExpanded ? 'rotated' : ''}`} size={14} />
                         </button>
 
                         {workspaceExpanded && (
                             <div className="workspace-file-list">
-                                {/* 会话选择器 */}
-                                <div className="workspace-session-selector">
-                                    <button
-                                        className="session-current-btn"
-                                        onClick={() => setSessionSelectorOpen(!sessionSelectorOpen)}
-                                    >
-                                        <Users size={14} />
-                                        <span className="session-name">{currentSession.name}</span>
-                                        <ChevronDown size={12} />
-                                    </button>
-                                    {sessionSelectorOpen && (
-                                        <div className="session-dropdown" onClick={(e) => e.stopPropagation()}>
-                                            <div className="session-dropdown-header">
-                                                <span className="session-dropdown-title">选择会话</span>
-                                                <button
-                                                    className="session-new-btn"
-                                                    onClick={handleCreateSession}
-                                                >
-                                                    <Plus size={12} />
-                                                    新建
-                                                </button>
-                                            </div>
-                                            <div className="session-list">
-                                                {sessions.map(session => (
-                                                    <div
-                                                        key={session.id}
-                                                        className={`session-item ${session.id === currentSession.id ? 'active' : ''}`}
-                                                        onClick={() => handleSwitchSession(session.id)}
-                                                    >
-                                                        {editingSessionId === session.id ? (
-                                                            <div className="session-edit-form">
-                                                                <input
-                                                                    type="text"
-                                                                    className="session-edit-input"
-                                                                    value={editingSessionName}
-                                                                    onChange={(e) => setEditingSessionName(e.target.value)}
-                                                                    onKeyDown={(e) => {
-                                                                        if (e.key === 'Enter') {
-                                                                            handleSaveSessionName(e as any, session.id);
-                                                                        } else if (e.key === 'Escape') {
-                                                                            handleCancelEditSession(e as any);
-                                                                        }
-                                                                    }}
-                                                                    autoFocus
-                                                                    onClick={(e) => e.stopPropagation()}
-                                                                />
-                                                                <div className="session-edit-actions">
-                                                                    <button
-                                                                        className="session-edit-btn save"
-                                                                        onClick={(e) => handleSaveSessionName(e, session.id)}
-                                                                    >
-                                                                        保存
-                                                                    </button>
-                                                                    <button
-                                                                        className="session-edit-btn cancel"
-                                                                        onClick={handleCancelEditSession}
-                                                                    >
-                                                                        取消
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        ) : (
-                                                            <>
-                                                                <span className="session-item-name">{session.name}</span>
-                                                                <div className="session-item-actions">
-                                                                    <button
-                                                                        className="session-action-btn edit"
-                                                                        onClick={(e) => handleStartEditSession(e, session)}
-                                                                        title="重命名"
-                                                                    >
-                                                                        <Edit3 size={10} />
-                                                                    </button>
-                                                                    {session.id !== 'default_session' && (
-                                                                        <button
-                                                                            className="session-action-btn delete"
-                                                                            onClick={(e) => handleDeleteSession(e, session.id)}
-                                                                            title="删除"
-                                                                        >
-                                                                            <Trash2 size={10} />
-                                                                        </button>
-                                                                    )}
-                                                                </div>
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    multiple
+                                    style={{ display: 'none' }}
+                                    onChange={(e) => {
+                                        handleFileUpload(e.target.files);
+                                        e.target.value = '';
+                                    }}
+                                />
+
+
+                                <div className="workspace-list-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span className="file-count">{workspaceFiles.length} 文件 · 已附加 {attachedFiles.length}</span>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <button className="refresh-btn" onClick={() => fileInputRef.current?.click()} title="上传文件">
+                                            <Paperclip size={12} />
+                                        </button>
+                                        <button className="refresh-btn" onClick={loadWorkspaceFiles} disabled={loadingWorkspace} title="刷新">
+                                            <RefreshCw size={12} className={loadingWorkspace ? 'spin' : ''} />
+                                        </button>
+                                    </div>
                                 </div>
 
-                                <div className="workspace-list-header">
-                                    <span className="file-count">{workspaceFiles.length} 文件</span>
-                                    <button className="refresh-btn" onClick={loadWorkspaceFiles} disabled={loadingWorkspace}>
-                                        <RefreshCw size={12} className={loadingWorkspace ? 'spin' : ''} />
-                                    </button>
-                                </div>
                                 {loadingWorkspace && workspaceFiles.length === 0 ? (
                                     <div className="loading-state">加载中...</div>
                                 ) : workspaceFiles.length === 0 ? (
                                     <div className="empty-state">暂无文件</div>
                                 ) : (
                                     <div className="workspace-files">
-                                        {workspaceFiles.map(file => (
-                                            <div
-                                                key={file.relative_path}
-                                                className={`workspace-file-item ${deletingPath === file.relative_path ? 'deleting' : ''}`}
-                                                onClick={() => previewWorkspaceFile(file)}
-                                            >
-                                                <div className="workspace-file-icon">
-                                                    <FileIcon filename={file.name} size={16} />
-                                                </div>
-                                                <div className="workspace-file-info">
-                                                    <div className="workspace-file-name" title={file.name}>{file.name}</div>
-                                                    <div className="workspace-file-meta">
-                                                        <span>{formatFileSize(file.size)}</span>
-                                                        <span className="file-time">
-                                                            <Clock size={10} />
-                                                            {formatTime(file.modified_at)}
-                                                        </span>
+                                        {workspaceFiles.map((file) => {
+                                            const attached = isFileAttached(file.relative_path);
+                                            return (
+                                                <div
+                                                    key={file.relative_path}
+                                                    className={`workspace-file-item ${deletingPath === file.relative_path ? 'deleting' : ''}`}
+                                                    onClick={() => previewWorkspaceFile(file)}
+                                                >
+                                                    <div className="workspace-file-icon">
+                                                        <FileIcon filename={file.name} size={16} />
+                                                    </div>
+                                                    <div className="workspace-file-info">
+                                                        <div className="workspace-file-name" title={file.name}>{file.name}</div>
+                                                        <div className="workspace-file-meta">
+                                                            <span>{formatFileSize(file.size)}</span>
+                                                            <span className="file-time">
+                                                                <Clock size={10} />
+                                                                {formatTime(file.modified_at)}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="workspace-file-actions" onClick={(e) => e.stopPropagation()}>
+                                                        <button
+                                                            className="workspace-action-btn download"
+                                                            onClick={() => toggleAttachedFile(file.relative_path)}
+                                                            title={attached ? '取消附加到当前提问' : '附加到当前提问'}
+                                                            style={{ color: attached ? '#1d4ed8' : undefined }}
+                                                        >
+                                                            <Paperclip size={12} />
+                                                        </button>
+                                                        <button className="workspace-action-btn download" onClick={() => handleDownloadFile(file)} title="下载">
+                                                            <Download size={12} />
+                                                        </button>
+                                                        <button
+                                                            className="workspace-action-btn delete"
+                                                            onClick={() => handleDeleteFile(file)}
+                                                            title="删除"
+                                                            disabled={deletingPath === file.relative_path}
+                                                        >
+                                                            <Trash2 size={12} />
+                                                        </button>
                                                     </div>
                                                 </div>
-                                                <div className="workspace-file-actions" onClick={(e) => e.stopPropagation()}>
-                                                    <button
-                                                        className="workspace-action-btn download"
-                                                        onClick={() => handleDownloadFile(file)}
-                                                        title="下载"
-                                                    >
-                                                        <Download size={12} />
-                                                    </button>
-                                                    <button
-                                                        className="workspace-action-btn delete"
-                                                        onClick={() => handleDeleteFile(file)}
-                                                        title="删除"
-                                                        disabled={deletingPath === file.relative_path}
-                                                    >
-                                                        <Trash2 size={12} />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </div>
                         )}
 
-                        <button className="nav-item">
-                            <BarChart2 className="nav-item-icon" size={18} />
-                            <span className="nav-item-text">Metrics <span className="nav-item-zh">指标</span></span>
+                        {/* Plugins */}
+                        <button className={`nav-item ${pluginsExpanded ? 'expanded' : ''}`} onClick={togglePlugins}>
+                            <Box className="nav-item-icon" size={18} />
+                            <span className="nav-item-text">{t('sidebar.plugins')}</span>
+                            <ChevronDown className={`expand-arrow ${pluginsExpanded ? 'rotated' : ''}`} size={14} />
                         </button>
+
+                        {pluginsExpanded && (
+                            <div className="workspace-file-list" style={{ padding: '4px 16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <button className="nav-item" onClick={() => onOpenPlugins?.('MCP')} style={{ paddingLeft: '32px', height: '36px', width: '100%', marginBottom: '4px' }}>
+                                    <Server className="nav-item-icon" size={16} />
+                                    <span className="nav-item-text" style={{ fontSize: '0.9rem' }}>MCP</span>
+                                </button>
+                                <button className="nav-item" onClick={() => onOpenPlugins?.('Skills')} style={{ paddingLeft: '32px', height: '36px', width: '100%' }}>
+                                    <Sparkles className="nav-item-icon" size={16} />
+                                    <span className="nav-item-text" style={{ fontSize: '0.9rem' }}>Skills</span>
+                                </button>
+                            </div>
+                        )}
 
                     </div>
                 </div>
 
                 <div className="sidebar-footer">
+                    <button className="nav-item lang-toggle" onClick={toggleLanguage} style={{
+                        padding: '6px 12px',
+                        background: 'transparent',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '0.8rem',
+                        color: '#6b7280',
+                        fontWeight: 600,
+                        marginLeft: 'auto',
+                        marginRight: '12px'
+                    }}>
+                        {language === 'zh' ? 'EN' : '中文'}
+                    </button>
                     <button className="nav-item" onClick={onOpenSettings}>
                         <Settings className="nav-item-icon" size={18} />
-                        <span className="nav-item-text">Settings <span className="nav-item-zh">设置</span></span>
+                        <span className="nav-item-text">{t('sidebar.settings')}</span>
                     </button>
                 </div>
 
-                {/* Toast 提示 */}
                 {toast && (
                     <div className={`sidebar-toast ${toast.type}`}>
                         <span>{toast.text}</span>
@@ -669,7 +673,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings }) => {
                 )}
             </nav>
 
-            {/* 编辑器/预览模态框 */}
             {editorOpen && selectedFile && (
                 <div className="editor-modal-overlay" onClick={closeEditor}>
                     <div className="editor-modal" onClick={(e) => e.stopPropagation()}>
@@ -684,65 +687,45 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings }) => {
                             </div>
                             <div className="editor-actions">
                                 {editorMode === 'knowledge' && isMarkdown && !isEditing && (
-                                    <button
-                                        className="action-btn"
-                                        onClick={() => setIsEditing(true)}
-                                        title="编辑"
-                                    >
+                                    <button className="action-btn" onClick={() => setIsEditing(true)} title="编辑">
                                         <Edit3 size={14} />
                                     </button>
                                 )}
                                 {editorMode === 'knowledge' && isEditing && (
-                                    <button
-                                        className="action-btn save"
-                                        onClick={handleSave}
-                                        disabled={saving}
-                                        title="保存"
-                                    >
+                                    <button className="action-btn save" onClick={handleSave} disabled={saving} title="保存">
                                         <Save size={14} />
                                     </button>
                                 )}
-                                <button
-                                    className="action-btn"
-                                    onClick={closeEditor}
-                                    title="关闭"
-                                >
+                                <button className="action-btn" onClick={closeEditor} title="关闭">
                                     <X size={14} />
                                 </button>
                             </div>
                         </div>
 
-                        {editorMode === 'knowledge' && isEditing ? (
-                            <textarea
-                                className="editor-textarea"
-                                value={fileContent}
-                                onChange={(e) => setFileContent(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
-                                        e.preventDefault();
-                                        handleSave();
-                                    }
-                                }}
-                                spellCheck={false}
-                                autoFocus
-                            />
-                        ) : editorMode === 'workspace-preview' && isImagePreview ? (
-                            <div className="editor-preview image-preview">
-                                <img src={fileContent} alt={selectedFile.name} />
-                            </div>
-                        ) : (
-                            <div className="editor-preview markdown-content">
-                                {editorMode === 'knowledge' && isMarkdown ? (
-                                    <ReactMarkdown>{fileContent}</ReactMarkdown>
-                                ) : editorMode === 'workspace-preview' && fileContent ? (
-                                    fileContent.endsWith('.csv') ?
-                                        <pre className="csv-preview">{fileContent}</pre> :
-                                        <pre>{fileContent}</pre>
-                                ) : (
-                                    <div className="preview-not-supported">不支持预览此文件类型</div>
-                                )}
-                            </div>
-                        )}
+                        <div className="editor-modal-content">
+                            {editorMode === 'workspace-preview' && isImagePreview ? (
+                                <div className="editor-preview image-preview">
+                                    <img src={fileContent} alt={selectedFile.name} style={{ maxWidth: '100%', borderRadius: '8px' }} />
+                                </div>
+                            ) : editorMode === 'knowledge' && isMarkdown && !isEditing ? (
+                                <div className="editor-preview markdown-preview">
+                                    <div className="markdown-content">
+                                        <ReactMarkdown>{fileContent}</ReactMarkdown>
+                                    </div>
+                                </div>
+                            ) : isReadOnlyPreview ? (
+                                <div className="editor-preview plain-preview">
+                                    <pre>{fileContent}</pre>
+                                </div>
+                            ) : (
+                                <textarea
+                                    className="editor-textarea"
+                                    value={fileContent}
+                                    onChange={(e) => setFileContent(e.target.value)}
+                                    readOnly={false}
+                                />
+                            )}
+                        </div>
                     </div>
                 </div>
             )}

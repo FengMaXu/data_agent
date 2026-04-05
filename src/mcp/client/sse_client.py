@@ -1,15 +1,24 @@
 from __future__ import annotations
 
-from typing import Any
+from contextlib import asynccontextmanager
+from typing import AsyncIterator
+
+from src.agent.types import AgentTimingRecorder
+from src.mcp.mcp_client import MCPClient
 
 
-class SSEMCPClient:
-    def __init__(self, url: str, headers: dict[str, str] | None = None):
-        self.url = url
-        self.headers = headers or {}
-
-    async def call_tool(self, name: str, arguments: dict[str, Any]) -> str:
-        raise NotImplementedError("SSE MCP transport is not implemented yet")
-
-    async def list_tools(self) -> list[dict[str, Any]]:
-        raise NotImplementedError("SSE MCP transport is not implemented yet")
+class SSEMCPClient(MCPClient):
+    @classmethod
+    @asynccontextmanager
+    async def connect(
+        cls,
+        url: str,
+        headers: dict[str, str] | None = None,
+        timing: AgentTimingRecorder | None = None,
+    ) -> AsyncIterator[MCPClient]:
+        async with MCPClient.connect_sse(
+            url=url,
+            headers=headers,
+            timing=timing,
+        ) as client:
+            yield client

@@ -9,6 +9,7 @@ class MCPTransportType(str, Enum):
     STDIO = "stdio"
     HTTP = "http"
     SSE = "sse"
+    STREAMABLE_HTTP = "streamable-http"
 
 
 @dataclass

@@ -18,7 +18,9 @@ from .base_provider import (
     TokenUsage,
     ToolCall,
     ToolDefinition,
+    generate_message_id,
     generate_tool_call_id,
+    robust_parse_tool_arguments,
 )
 
 logger = logging.getLogger("data_agent.ai.anthropic")
@@ -127,58 +129,89 @@ class AnthropicProvider(LLMProvider):
 
         full_text = ""
         tool_calls: list[ToolCall] = []
-        current_tool_id = ""
-        current_tool_name = ""
-        current_tool_json = ""
+        tool_calls_by_id: dict[str, ToolCall] = {}
+        tool_json_buffers: dict[int, str] = {}
+        tool_meta_by_index: dict[int, dict[str, str]] = {}
         usage = TokenUsage()
+        message_id = generate_message_id()
 
         async with client.messages.stream(**request_kwargs) as stream:
             async for event in stream:
                 event_type = event.type
 
-                if event_type == "content_block_start":
-                    block = event.content_block
-                    if block.type == "text":
-                        pass  # 文本块开始
-                    elif block.type == "tool_use":
-                        current_tool_id = block.id
-                        current_tool_name = block.name
-                        current_tool_json = ""
-
-                elif event_type == "content_block_delta":
-                    delta = event.delta
-                    if delta.type == "text_delta":
-                        full_text += delta.text
-                        yield StreamEvent(type="text_delta", text=delta.text)
-                    elif delta.type == "input_json_delta":
-                        current_tool_json += delta.partial_json
-
-                elif event_type == "content_block_stop":
-                    if current_tool_name:
-                        try:
-                            args = (
-                                json.loads(current_tool_json)
-                                if current_tool_json
-                                else {}
-                            )
-                        except json.JSONDecodeError:
-                            args = {"_raw": current_tool_json}
-
-                        tc = ToolCall(
-                            id=current_tool_id or generate_tool_call_id(),
-                            name=current_tool_name,
-                            arguments=args,
-                        )
-                        tool_calls.append(tc)
-                        yield StreamEvent(type="tool_call_start", tool_call=tc)
-                        current_tool_id = ""
-                        current_tool_name = ""
-                        current_tool_json = ""
-
-                elif event_type == "message_start":
+                if event_type == "message_start":
+                    yield StreamEvent(type="message_start", message_id=message_id)
                     msg = event.message
                     if hasattr(msg, "usage") and msg.usage:
                         usage.prompt_tokens = msg.usage.input_tokens
+
+                elif event_type == "content_block_start":
+                    block = event.content_block
+                    block_index = getattr(event, "index", None)
+                    if block.type == "tool_use" and block_index is not None:
+                        tool_id = getattr(block, "id", "") or generate_tool_call_id()
+                        tool_name = getattr(block, "name", "")
+                        tool_meta_by_index[block_index] = {
+                            "id": tool_id,
+                            "name": tool_name,
+                        }
+                        tool_json_buffers[block_index] = ""
+                        yield StreamEvent(
+                            type="tool_call_start",
+                            message_id=message_id,
+                            tool_call_id=tool_id,
+                            tool_name=tool_name,
+                            tool_call=ToolCall(
+                                id=tool_id,
+                                name=tool_name,
+                                arguments={},
+                            ),
+                        )
+
+                elif event_type == "content_block_delta":
+                    delta = event.delta
+                    block_index = getattr(event, "index", None)
+                    if delta.type == "text_delta":
+                        full_text += delta.text
+                        yield StreamEvent(
+                            type="text_delta",
+                            text=delta.text,
+                            message_id=message_id,
+                        )
+                    elif delta.type == "input_json_delta" and block_index is not None:
+                        partial = delta.partial_json
+                        tool_json_buffers[block_index] = (
+                            tool_json_buffers.get(block_index, "") + partial
+                        )
+                        tool_meta = tool_meta_by_index.get(block_index, {})
+                        yield StreamEvent(
+                            type="tool_call_delta",
+                            message_id=message_id,
+                            tool_call_id=tool_meta.get("id"),
+                            tool_name=tool_meta.get("name"),
+                            partial_arguments=partial,
+                        )
+
+                elif event_type == "content_block_stop":
+                    block_index = getattr(event, "index", None)
+                    tool_meta = (
+                        tool_meta_by_index.get(block_index, {})
+                        if block_index is not None
+                        else {}
+                    )
+                    if tool_meta:
+                        current_tool_json = tool_json_buffers.get(block_index, "")
+                        args = robust_parse_tool_arguments(current_tool_json)
+
+                        tc = ToolCall(
+                            id=tool_meta.get("id") or generate_tool_call_id(),
+                            name=tool_meta.get("name", ""),
+                            arguments=args,
+                        )
+                        tool_calls.append(tc)
+                        tool_calls_by_id[tc.id] = tc
+                        tool_json_buffers.pop(block_index, None)
+                        tool_meta_by_index.pop(block_index, None)
 
                 elif event_type == "message_delta":
                     if hasattr(event, "usage") and event.usage:
@@ -190,11 +223,13 @@ class AnthropicProvider(LLMProvider):
         stop_reason = "tool_use" if tool_calls else "end_turn"
         yield StreamEvent(
             type="done",
+            message_id=message_id,
             response=AssistantResponse(
                 content=full_text,
-                tool_calls=tool_calls if tool_calls else None,
+                tool_calls=list(tool_calls_by_id.values()) or None,
                 stop_reason=stop_reason,
                 usage=usage,
                 model=model,
+                message_id=message_id,
             ),
         )

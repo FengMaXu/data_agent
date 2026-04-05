@@ -69,6 +69,17 @@ def create_file_tools(workspace: WorkspaceManager) -> list[AgentTool]:
         """写入文件到工作区"""
         path = arguments.get("path", "")
         content = arguments.get("content", "")
+        if not path and "_raw" in arguments:
+            import json as _json
+
+            raw = arguments["_raw"]
+            try:
+                inner = _json.loads(raw) if isinstance(raw, str) else raw
+                if isinstance(inner, dict):
+                    path = path or inner.get("path", "")
+                    content = content or inner.get("content", "")
+            except (ValueError, TypeError):
+                pass
         if not path:
             return AgentToolResult(
                 content=[
