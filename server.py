@@ -9,7 +9,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.config_manager import config_manager
+from src.app_runtime import app_runtime
 from src.api.agent import router as agent_router
 from src.api.settings import router as settings_router
 from src.api.workspace_api import router as workspace_router
@@ -30,13 +30,10 @@ logger = logging.getLogger("data_agent.server")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 启动时初始化
-    logger.info("============== 服务器启动 =============")
-    await config_manager.startup()
-    yield
-    # 关闭时清理
-    logger.info("============== 服务器关闭 =============")
-    await config_manager.shutdown()
+    logger.info("============== 服务器启动 ==============")
+    async with app_runtime():
+        yield
+    logger.info("============== 服务器关闭 ==============")
 
 
 app = FastAPI(

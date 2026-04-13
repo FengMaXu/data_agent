@@ -14,6 +14,7 @@ from src.ai.base_provider import Message, Role
 from src.agent.agent_loop import agent_loop
 from src.agent.tool_providers.base import GlobalRuntimeServices
 from src.agent.types import AgentContext, AgentLoopConfig, AgentEventType
+from src.app_runtime import app_runtime, get_enabled_mcp_server_names
 from src.config_manager import config_manager
 from src.prompts import load_system_prompt
 from src.workspace.workspace_manager import WorkspaceManager
@@ -178,16 +179,11 @@ async def run_agent_turn(
 async def _build_cli_context() -> tuple[AgentContext, WorkspaceManager, GlobalRuntimeServices]:
     workspace = WorkspaceManager()
     runtime_overrides = {"clarification_callback": _cli_clarification_callback}
-    enabled_mcp_servers = None
-
-    if not config_manager.ai_config.mcp_server_script:
-        enabled_mcp_servers = []
 
     tools, session_runtime_services = await config_manager.build_session_tools(
         session_id="cli",
         workspace=workspace,
         runtime_overrides=runtime_overrides,
-        enabled_mcp_servers=enabled_mcp_servers,
     )
     context = AgentContext(
         system_prompt=load_system_prompt(config_manager.project_root),
@@ -199,57 +195,50 @@ async def _build_cli_context() -> tuple[AgentContext, WorkspaceManager, GlobalRu
 async def main_async():
     """异步主函数"""
     config = AIConfig.from_env()
-    config_manager.ai_config = config
-    config_manager.gateway = AIGateway(config)
     steering_queue = SteeringQueue()
 
-    # 验证配置
-    if not config.openai_api_key and not config.anthropic_api_key:
-        print("⚠️  未检测到 API Key！")
-        print("请在项目根目录创建 .env 文件：")
-        print("  OPENAI_API_KEY=sk-...")
-        print("  # 或")
-        print("  ANTHROPIC_API_KEY=sk-ant-...")
-        print()
+    async with app_runtime(config):
+        if not config.openai_api_key and not config.anthropic_api_key:
+            print("⚠️  未检测到 API Key！")
+            print("请在项目根目录创建 .env 文件：")
+            print("  OPENAI_API_KEY=sk-...")
+            print("  # 或")
+            print("  ANTHROPIC_API_KEY=sk-ant-...")
+            print()
 
-    # Agent Loop 配置
-    loop_config = AgentLoopConfig(
-        model=config.default_model,
-        temperature=config.temperature,
-        max_tokens=config.max_tokens,
-        get_steering_messages=steering_queue.get_steering_messages,
-        get_follow_up_messages=steering_queue.get_follow_up_messages,
-        should_stop=None,
-    )
-
-    print_banner()
-
-    if config.mcp_server_script:
-        print(f"📡 连接 MCP Server: {config.mcp_server_script}")
-        print(
-            f"🗄️  数据库: {config.mysql_host}:{config.mysql_port}/{config.mysql_database}"
+        loop_config = AgentLoopConfig(
+            model=config.default_model,
+            temperature=config.temperature,
+            max_tokens=config.max_tokens,
+            get_steering_messages=steering_queue.get_steering_messages,
+            get_follow_up_messages=steering_queue.get_follow_up_messages,
+            should_stop=None,
         )
-        print()
-    else:
-        print("💬 纯对话模式（未配置 MCP Server，无数据库工具）")
-        print("   设置 MCP_SERVER_SCRIPT 环境变量以启用数据库查询")
-        print()
 
-    context, workspace, session_runtime_services = await _build_cli_context()
+        print_banner()
 
-    print(f"📂 工作区已就绪: {workspace.session_dir}")
-    print(f"🧠 已通过统一装配链加载 {len(context.tools)} 个工具")
+        enabled_servers = get_enabled_mcp_server_names()
+        if enabled_servers:
+            print(f"📡 已启用 MCP Servers: {', '.join(enabled_servers)}")
+            if config.mysql_database:
+                print(
+                    f"🗄️  数据库: {config.mysql_host}:{config.mysql_port}/{config.mysql_database}"
+                )
+            print()
+        else:
+            print("💬 纯对话模式（未启用 MCP Server，无外部工具）")
+            print()
 
-    gateway = config_manager.gateway
-    if gateway is None:
-        raise RuntimeError("Gateway 未初始化")
+        context, workspace, _session_runtime_services = await _build_cli_context()
 
-    try:
+        print(f"📂 工作区已就绪: {workspace.session_dir}")
+        print(f"🧠 已通过统一装配链加载 {len(context.tools)} 个工具")
+
+        gateway = config_manager.gateway
+        if gateway is None:
+            raise RuntimeError("Gateway 未初始化")
+
         await _chat_loop(context, loop_config, gateway)
-    finally:
-        registry = session_runtime_services.metadata.get("mcp_registry")
-        if registry is not None:
-            await registry.shutdown()
 
 
 async def _chat_loop(
