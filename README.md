@@ -85,3 +85,88 @@ CLI 保留统一 agent loop 能力，适合本地调试与工具链验证。
 ## License
 
 MIT License
+
+## Clone And Install
+
+This repository includes the backend, the web UI, and the Electron desktop
+client source. A fresh clone can be installed with the steps below.
+
+### Prerequisites
+
+- Python `3.13+`
+- Node.js `20+`
+- npm `10+`
+- Windows is required to build the desktop installer and packaged backend
+
+### Backend setup
+
+From the repository root:
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+python -m pip install --upgrade pip
+pip install -e .
+```
+
+Optional development dependencies:
+
+```bash
+pip install -e ".[dev]"
+```
+
+### Frontend setup
+
+```bash
+cd frontend
+npm install
+```
+
+### Run the web app in development
+
+Backend:
+
+```bash
+python server.py
+```
+
+Frontend:
+
+```bash
+cd frontend
+npm run dev
+```
+
+### Run the desktop app in development
+
+Start the frontend dev server:
+
+```bash
+cd frontend
+npm run dev
+```
+
+Then in a second terminal:
+
+```bash
+cd frontend
+npm run electron:dev
+```
+
+### Build the Windows desktop installer
+
+From `frontend/`:
+
+```bash
+npm run build:backend
+npm run build:installer
+```
+
+The installer output is written to `frontend/release/`.
+
+### Packaging notes
+
+- Desktop logs are written under `%APPDATA%\\Data Agent`.
+- The packaged backend uses PyInstaller `onedir` mode for faster first launch.
+- Desktop API keys are stored with Electron `safeStorage`, not browser
+  `localStorage`.

@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import logging
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter
 from pydantic import BaseModel
@@ -12,8 +14,12 @@ router = APIRouter(prefix="/settings", tags=["settings"])
 
 
 class LLMConfigRequest(BaseModel):
+    provider: Literal["openai", "anthropic"] | None = None
     api_key: str | None = None
+    openai_api_key: str | None = None
+    anthropic_api_key: str | None = None
     base_url: str | None = None
+    openai_base_url: str | None = None
     model: str | None = None
 
 
@@ -27,33 +33,34 @@ class DBConfigRequest(BaseModel):
 
 @router.get("/config")
 async def get_config() -> dict[str, Any]:
-    """获取当前配置"""
     return config_manager.get_config()
 
 
 @router.post("/llm")
 async def update_llm_config(req: LLMConfigRequest):
-    """热更新 LLM 配置"""
     data = req.model_dump(exclude_unset=True)
     await config_manager.update_llm_config(data)
-    return {"status": "success", "message": "LLM 配置已更新并重建 Gateway"}
+    return {"status": "success", "message": "LLM config updated and gateway rebuilt"}
+
+
+@router.post("/llm/test")
+async def test_llm_config(req: LLMConfigRequest):
+    data = req.model_dump(exclude_unset=True)
+    return await config_manager.test_llm_config(data)
 
 
 @router.post("/database")
 async def update_db_config(req: DBConfigRequest):
-    """热更新数据库配置并重连 MCP"""
     data = req.model_dump(exclude_unset=True)
     try:
         await config_manager.update_db_config(data)
-        return {"status": "success", "message": "数据库配置已更新并重建连接/工具"}
+        return {"status": "success", "message": "Database config updated and MCP restarted"}
     except Exception as e:
-        logger.error(f"重连数据库 MCP 失败: {e}")
+        logger.error("Failed to reload database MCP config: %s", e)
         return {"status": "error", "message": str(e)}
 
 
 @router.post("/database/test")
 async def test_db_connection(req: DBConfigRequest):
-    """测试数据库连接但不保存"""
     data = req.model_dump(exclude_unset=True)
-    result = await config_manager.test_db_connection(data)
-    return result
+    return await config_manager.test_db_connection(data)

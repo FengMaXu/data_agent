@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import asyncio
+import json
 import logging
 from pathlib import Path
 from typing import Any
+from urllib import error, request
 
 from src.agent.tool_assembly import ToolAssemblyService
 from src.agent.tool_providers.base import GlobalRuntimeServices
@@ -58,13 +61,50 @@ class ConfigManager:
 
     async def update_llm_config(self, new_config: dict[str, Any]) -> None:
         logger.info("[ConfigManager] 热更新 LLM 配置: %s", list(new_config.keys()))
-        if "api_key" in new_config:
-            self.ai_config.openai_api_key = new_config["api_key"]
-        if "base_url" in new_config:
-            self.ai_config.openai_base_url = new_config["base_url"]
-        if "model" in new_config:
-            self.ai_config.default_model = new_config["model"]
+        model = str(new_config.get("model") or self.ai_config.default_model or "")
+        provider = self._infer_llm_provider(new_config, model)
+
+        api_key = new_config.get("api_key")
+        if isinstance(api_key, str) and api_key.strip():
+            if provider == "anthropic":
+                self.ai_config.anthropic_api_key = api_key.strip()
+            else:
+                self.ai_config.openai_api_key = api_key.strip()
+
+        openai_api_key = new_config.get("openai_api_key")
+        if isinstance(openai_api_key, str) and openai_api_key.strip():
+            self.ai_config.openai_api_key = openai_api_key.strip()
+
+        anthropic_api_key = new_config.get("anthropic_api_key")
+        if isinstance(anthropic_api_key, str) and anthropic_api_key.strip():
+            self.ai_config.anthropic_api_key = anthropic_api_key.strip()
+
+        base_url = new_config.get("base_url") or new_config.get("openai_base_url")
+        if isinstance(base_url, str) and base_url.strip() and provider != "anthropic":
+            self.ai_config.openai_base_url = base_url.strip()
+
+        if "model" in new_config and new_config["model"]:
+            self.ai_config.default_model = str(new_config["model"])
         self.gateway = AIGateway(self.ai_config)
+
+    async def test_llm_config(self, new_config: dict[str, Any]) -> dict[str, Any]:
+        model = str(new_config.get("model") or self.ai_config.default_model or "")
+        provider = self._infer_llm_provider(new_config, model)
+        api_key = self._resolve_test_api_key(new_config, provider)
+        if not api_key:
+            return {"success": False, "message": "API key is required"}
+
+        try:
+            result = await asyncio.to_thread(
+                self._request_model_list,
+                provider,
+                api_key,
+                str(new_config.get("base_url") or new_config.get("openai_base_url") or ""),
+            )
+            return {"success": True, "message": "LLM connection verified", "details": result}
+        except Exception as exc:
+            logger.warning("[ConfigManager] LLM config test failed: %s", exc)
+            return {"success": False, "message": str(exc)}
 
     async def update_db_config(self, new_config: dict[str, Any]) -> None:
         logger.info("[ConfigManager] 热更新数据库配置: %s", list(new_config.keys()))
@@ -193,6 +233,7 @@ class ConfigManager:
         return {
             "default_model": self.ai_config.default_model,
             "openai_api_key": "[configured]" if self.ai_config.openai_api_key else "",
+            "anthropic_api_key": "[configured]" if self.ai_config.anthropic_api_key else "",
             "openai_base_url": self.ai_config.openai_base_url,
             "mcp_server_script": self.ai_config.mcp_server_script,
             "mysql_host": self.ai_config.mysql_host,
@@ -238,6 +279,66 @@ class ConfigManager:
     def _is_secret_key(self, key: str) -> bool:
         upper = key.upper()
         return any(t in upper for t in ["KEY", "TOKEN", "SECRET", "PASSWORD", "PASSWD", "PWD", "AUTH"])
+
+    def _infer_llm_provider(self, data: dict[str, Any], model: str) -> str:
+        provider = str(data.get("provider") or "").lower().strip()
+        if provider in {"openai", "anthropic"}:
+            return provider
+
+        base_url = str(data.get("base_url") or data.get("openai_base_url") or "").lower()
+        if model.lower().startswith("claude-") or "anthropic" in base_url:
+            return "anthropic"
+        return "openai"
+
+    def _resolve_test_api_key(self, data: dict[str, Any], provider: str) -> str:
+        explicit_key = data.get(f"{provider}_api_key")
+        if isinstance(explicit_key, str) and explicit_key.strip():
+            return explicit_key.strip()
+
+        generic_key = data.get("api_key")
+        if isinstance(generic_key, str) and generic_key.strip():
+            return generic_key.strip()
+
+        if provider == "anthropic":
+            return self.ai_config.anthropic_api_key
+        return self.ai_config.openai_api_key
+
+    def _request_model_list(self, provider: str, api_key: str, base_url: str) -> dict[str, Any]:
+        if provider == "anthropic":
+            url = "https://api.anthropic.com/v1/models"
+            headers = {
+                "x-api-key": api_key,
+                "anthropic-version": "2023-06-01",
+            }
+        else:
+            endpoint = (base_url or self.ai_config.openai_base_url or "https://api.openai.com/v1").rstrip("/")
+            url = f"{endpoint}/models"
+            headers = {"Authorization": f"Bearer {api_key}"}
+
+        req = request.Request(url, headers=headers, method="GET")
+        try:
+            with request.urlopen(req, timeout=10) as response:
+                body = response.read(256_000).decode("utf-8", errors="replace")
+        except error.HTTPError as exc:
+            body = exc.read().decode("utf-8", errors="replace")
+            raise RuntimeError(f"Model list request failed with HTTP {exc.code}: {body[:300]}") from exc
+        except error.URLError as exc:
+            raise RuntimeError(f"Model list request failed: {exc.reason}") from exc
+
+        try:
+            payload = json.loads(body)
+        except json.JSONDecodeError:
+            payload = {"raw": body[:1000]}
+
+        data = payload.get("data") if isinstance(payload, dict) else None
+        if isinstance(data, list):
+            sample_ids = [
+                item.get("id")
+                for item in data[:5]
+                if isinstance(item, dict) and item.get("id")
+            ]
+            return {"model_count": len(data), "sample_models": sample_ids}
+        return {"response": payload}
 
 
 config_manager = ConfigManager()
