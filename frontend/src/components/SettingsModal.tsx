@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
-    Settings as SettingsIcon, FolderOpen, Cpu, Server, Sparkles, X,
-    Shield, ServerOff, Folder, FileText, Search, Database, Plus,
-    User, Key, Activity, Link, Eye, ExternalLink, Loader2, RefreshCw
+    Settings as SettingsIcon, Cpu, Server, X,
+    Database, User, Key, Activity, Link, Eye, ExternalLink, Loader2
 } from 'lucide-react';
 import {
     getConfig,
@@ -65,6 +64,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
         enabled: boolean;
     };
 
+    const persistProviderPreference = (id: string, providerConfig: ProviderConfig) => {
+        const { apiKey: _apiKey, ...safeConfig } = providerConfig;
+        localStorage.setItem(`provider_config_${id}`, JSON.stringify(safeConfig));
+    };
+
     // Keep independent config for each provider
     const [providerConfigs, setProviderConfigs] = useState<Record<string, ProviderConfig>>(() => {
         const initial: Record<string, ProviderConfig> = {};
@@ -73,7 +77,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
             const saved = localStorage.getItem(`provider_config_${id}`);
             if (saved) {
                 try {
-                    initial[id] = JSON.parse(saved);
+                    initial[id] = { ...JSON.parse(saved), apiKey: '' };
                     // Ensure models array exists
                     if (!initial[id].models) {
                         initial[id].models = [...reg.models];
@@ -96,7 +100,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     const updateProviderConfig = (id: string, updates: Partial<ProviderConfig>) => {
         setProviderConfigs(prev => {
             const next = { ...prev, [id]: { ...prev[id], ...updates } };
-            localStorage.setItem(`provider_config_${id}`, JSON.stringify(next[id]));
+            persistProviderPreference(id, next[id]);
             return next;
         });
     };
@@ -125,6 +129,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                 setDbPort(initialConfig.mysql_port || 3306);
                 setDbUser(initialConfig.mysql_user || 'root');
                 setDbName(initialConfig.mysql_database || '');
+                const desktopSecrets = await window.dataAgent?.getStoredSecrets();
 
                 // Determine active provider
                 const activeId = detectActiveProvider(initialConfig.openai_base_url);
@@ -140,6 +145,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                              // Keep what's in local storage if we have one, otherwise it's just a placeholder placeholder
                              if (!pConfig.apiKey) pConfig.apiKey = '[configured_in_backend]';
                         }
+                        if (desktopSecrets?.openai_api_key && activeId !== 'Anthropic') {
+                            pConfig.apiKey = '[configured_in_desktop]';
+                        }
                         
                         // Handle custom model if it's not in the list
                         if (initialConfig.default_model) {
@@ -149,7 +157,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                             }
                         }
                         next[activeId] = pConfig;
-                        localStorage.setItem(`provider_config_${activeId}`, JSON.stringify(pConfig));
+                        persistProviderPreference(activeId, pConfig);
                         return next;
                     });
                 }
@@ -190,11 +198,24 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                 // The backend ignores empty API keys during update
                 const apikeyToSend = (configToSave.apiKey && !configToSave.apiKey.startsWith('[')) 
                     ? configToSave.apiKey : '';
-                    
-                await updateLLMConfig({ 
-                    api_key: apikeyToSend, 
-                    base_url: configToSave.baseUrl, 
-                    model: configToSave.selectedModel 
+
+                const provider = providerId === 'Anthropic' ? 'anthropic' : 'openai';
+                if (window.dataAgent && apikeyToSend) {
+                    await window.dataAgent.saveSecrets({
+                        openai_api_key: provider === 'openai' ? apikeyToSend : undefined,
+                        anthropic_api_key: provider === 'anthropic' ? apikeyToSend : undefined,
+                        default_model: configToSave.selectedModel,
+                        openai_base_url: provider === 'openai' ? configToSave.baseUrl : undefined,
+                    });
+                }
+
+                await updateLLMConfig({
+                    provider,
+                    api_key: apikeyToSend,
+                    openai_api_key: provider === 'openai' ? apikeyToSend : undefined,
+                    anthropic_api_key: provider === 'anthropic' ? apikeyToSend : undefined,
+                    base_url: provider === 'openai' ? configToSave.baseUrl : undefined,
+                    model: configToSave.selectedModel
                 });
                 
                 // Update top-level config to reflect changes

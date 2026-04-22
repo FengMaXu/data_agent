@@ -11,6 +11,11 @@ function resolveApiBaseUrl(): string {
     }
 
     if (typeof window !== 'undefined') {
+        const injectedPort = window.__PORT__ ?? window.dataAgent?.backendPort;
+        if (injectedPort) {
+            return `http://127.0.0.1:${injectedPort}`;
+        }
+
         const { hostname, port } = window.location;
         if (hostname === 'localhost' || hostname === '127.0.0.1') {
             if (port === '5173' || port === '5174') {
@@ -28,6 +33,7 @@ export const API_BASE_URL = resolveApiBaseUrl();
 export interface AIConfig {
     default_model: string;
     openai_api_key?: string;
+    anthropic_api_key?: string;
     openai_base_url?: string;
     mcp_server_script?: string;
     mysql_host?: string;
@@ -37,8 +43,12 @@ export interface AIConfig {
 }
 
 export type LLMConfigUpdate = {
+    provider?: 'openai' | 'anthropic';
     api_key?: string;
+    openai_api_key?: string;
+    anthropic_api_key?: string;
     base_url?: string;
+    openai_base_url?: string;
     model?: string;
 };
 
@@ -383,6 +393,16 @@ export async function updateLLMConfig(data: LLMConfigUpdate) {
         body: JSON.stringify(data),
     });
     if (!res.ok) throw new Error('Failed to update LLM config');
+    return res.json();
+}
+
+export async function testLLMConfig(data: LLMConfigUpdate): Promise<{ success: boolean; message: string; details?: any }> {
+    const res = await fetch(`${API_BASE_URL}/settings/llm/test`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Failed to test LLM config');
     return res.json();
 }
 

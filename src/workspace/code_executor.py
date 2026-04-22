@@ -101,10 +101,13 @@ class CodeExecutor:
         # 使用项目本地字体，摆脱对操作系统的依赖
         # -*- coding: utf-8 -*-
         font_config = """# -*- coding: utf-8 -*-
-import matplotlib.pyplot as plt
 import matplotlib
 import os
 import sys
+
+# 在桌面打包环境中固定使用无头后端，避免拉起 Qt/Tk GUI 依赖。
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 # 强制设置 stdout/stderr 编码为 UTF-8，解决 Windows 中文输出乱码问题
 # 这在沙盒环境中是安全的，因为输出是通过管道捕获的
@@ -193,6 +196,7 @@ plt.savefig = _patched_savefig
                     "WORKSPACE_DIR": str(self.workspace.session_dir),
                     "DATA_DIR": str(self.workspace.data_dir),
                     "OUTPUT_DIR": str(self.workspace.output_dir),
+                    "MPLBACKEND": "Agg",
                     # 强制 Python 使用 UTF-8 编码处理 stdin/stdout/stderr
                     "PYTHONIOENCODING": "utf-8",
                 }
@@ -242,6 +246,7 @@ plt.savefig = _patched_savefig
                         "WORKSPACE_DIR": str(self.workspace.session_dir),
                         "DATA_DIR": str(self.workspace.data_dir),
                         "OUTPUT_DIR": str(self.workspace.output_dir),
+                        "MPLBACKEND": "Agg",
                         # 强制 Python 使用 UTF-8 编码处理 stdin/stdout/stderr
                         "PYTHONIOENCODING": "utf-8",
                     },
