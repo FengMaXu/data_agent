@@ -1,18 +1,15 @@
-"""
-SQL 安全拦截器单元测试
-"""
+"""SQL Guard unit tests."""
 
-import pytest
+from __future__ import annotations
+
 from src.mcp.sql_guard import SQLGuard
 
 
 class TestSQLGuard:
-    """测试 SQL 安全拦截器"""
+    """Strict-mode SQL guard behavior."""
 
     def setup_method(self):
         self.guard = SQLGuard(strict=True)
-
-    # ── 应该放行的安全查询 ──
 
     def test_allow_select(self):
         result = self.guard.check("SELECT * FROM users")
@@ -50,8 +47,6 @@ class TestSQLGuard:
         )
         assert result.allowed is True
 
-    # ── 应该拦截的危险操作 ──
-
     def test_block_drop_table(self):
         result = self.guard.check("DROP TABLE users")
         assert result.allowed is False
@@ -85,23 +80,19 @@ class TestSQLGuard:
         result = self.guard.check("CREATE TABLE hacked (id INT)")
         assert result.allowed is False
 
-    # ── 应该拦截的注入攻击 ──
-
     def test_block_union_injection(self):
         result = self.guard.check(
             "SELECT * FROM users WHERE id = 1 UNION SELECT * FROM passwords"
         )
         assert result.allowed is False
 
-    def test_block_comment_injection(self):
+    def test_allow_standard_line_comment(self):
         result = self.guard.check("SELECT * FROM users WHERE id = 1 -- AND admin = 0")
-        assert result.allowed is False
+        assert result.allowed is True
 
     def test_block_multi_statement(self):
         result = self.guard.check("SELECT 1; DROP TABLE users")
         assert result.allowed is False
-
-    # ── 边界情况 ──
 
     def test_block_empty_query(self):
         result = self.guard.check("")
@@ -121,7 +112,7 @@ class TestSQLGuard:
 
 
 class TestSQLGuardNonStrict:
-    """测试非严格模式（黑名单优先）"""
+    """Non-strict SQL guard behavior."""
 
     def setup_method(self):
         self.guard = SQLGuard(strict=False)

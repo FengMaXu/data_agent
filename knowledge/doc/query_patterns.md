@@ -274,3 +274,169 @@ WHERE cs_target.snapshot_month = '2026-02-01'  -- 替换为目标月份
     AND s.sales_ytd IS NOT NULL
     AND s.sales_ytd_last_year IS NOT NULL
 ORDER BY i.industry_name_large, s.sales_ytd - s.sales_ytd_last_year DESC
+
+## 四上企业变动分析模板
+
+### 查询行业大类新增四上企业详细数据（含销售额指标）
+```sql
+-- 查询行业大类新增四上企业详细数据（含销售额指标）
+-- 参数说明：
+--   @industry_code_large: 行业大类代码（如：'51' 表示批发业）
+--   @base_month: 基准月份（格式：'YYYY-MM-01'，如：'2025-12-01'）
+--   @target_month: 目标月份（格式：'YYYY-MM-01'，如：'2026-03-01'）
+
+SELECT 
+    ROW_NUMBER() OVER (ORDER BY c.company_name) AS 序号,
+    c.company_name AS 单位详细名称,
+    i.industry_name_small AS 小类名称,
+    cs_target.district AS 片区,
+    ROUND(f.sales_ytd, 4) AS 商品销售额_亿元,
+    ROUND(f.sales_ytd_last_year, 4) AS 去年同期,
+    ROUND(f.yoy_growth_rate, 2) AS 同比增速_百分比,
+    ROUND(f.large_category_pull_effect, 6) AS 拉动力
+FROM dim_company_monthly_snapshot cs_target
+JOIN dim_company c ON cs_target.company_id = c.company_id
+JOIN dim_industry i ON cs_target.industry_code = i.industry_code
+JOIN fact_sales_monthly f ON cs_target.company_id = f.company_id 
+    AND cs_target.snapshot_month = f.snapshot_month
+LEFT JOIN (
+    SELECT company_id
+    FROM dim_company_monthly_snapshot
+    WHERE snapshot_month = '2025-12-01'  -- 替换为基准月份
+        AND is_four_above = 1
+) cs_base ON cs_target.company_id = cs_base.company_id
+WHERE cs_target.snapshot_month = '2026-03-01'  -- 替换为目标月份
+    AND cs_target.is_four_above = 1
+    AND i.industry_code_large = '51'  -- 替换为实际行业大类代码
+    AND cs_base.company_id IS NULL  -- 在基准月份不是四上企业
+    AND f.sales_ytd IS NOT NULL
+    AND f.sales_ytd_last_year IS NOT NULL
+ORDER BY c.company_name
+```
+
+### 查询行业大类减少四上企业详细数据（含转行业情况和销售额指标）
+```sql
+-- 查询行业大类减少四上企业详细数据（含转行业情况和销售额指标）
+-- 参数说明：
+--   @industry_code_large: 行业大类代码（如：'51' 表示批发业）
+--   @base_month: 基准月份（格式：'YYYY-MM-01'，如：'2025-12-01'）
+--   @target_month: 目标月份（格式：'YYYY-MM-01'，如：'2026-03-01'）
+
+SELECT 
+    ROW_NUMBER() OVER (ORDER BY c.company_name) AS 序号,
+    c.company_name AS 单位详细名称,
+    cs_base.district AS 片区,
+    i_base.industry_name_small AS 小类名称,
+    ROUND(f.sales_ytd, 4) AS 2025年12月累计销售额_亿元,
+    ROUND(f.sales_ytd_last_year, 4) AS 2024年12月累计销售额_亿元,
+    ROUND(f.yoy_growth_rate, 2) AS 同比增速_百分比,
+    CASE 
+        WHEN cs_target.company_id IS NULL THEN '退出四上'
+        WHEN i_target.industry_code_large != '51' THEN CONCAT('转至', i_target.industry_name_large)
+        ELSE '其他'
+    END AS 变动类型
+FROM dim_company_monthly_snapshot cs_base
+JOIN dim_company c ON cs_base.company_id = c.company_id
+JOIN dim_industry i_base ON cs_base.industry_code = i_base.industry_code
+JOIN fact_sales_monthly f ON cs_base.company_id = f.company_id 
+    AND cs_base.snapshot_month = f.snapshot_month
+LEFT JOIN dim_company_monthly_snapshot cs_target ON cs_base.company_id = cs_target.company_id 
+    AND cs_target.snapshot_month = '2026-03-01'  -- 替换为目标月份
+LEFT JOIN dim_industry i_target ON cs_target.industry_code = i_target.industry_code
+WHERE cs_base.snapshot_month = '2025-12-01'  -- 替换为基准月份
+    AND cs_base.is_four_above = 1
+    AND i_base.industry_code_large = '51'  -- 替换为实际行业大类代码
+    AND (
+        -- 目标月份不是四上企业
+        cs_target.company_id IS NULL 
+        OR cs_target.is_four_above = 0
+        -- 或者虽然还是四上企业但行业大类已经变了
+        OR (cs_target.is_four_above = 1 AND i_target.industry_code_large != '51')
+    )
+    AND f.sales_ytd IS NOT NULL
+    AND f.sales_ytd_last_year IS NOT NULL
+ORDER BY c.company_name
+```
+
+### 批量查询多个行业大类新增四上企业
+```sql
+-- 批量查询多个行业大类新增四上企业
+-- 参数说明：
+--   @industry_codes: 行业大类代码列表（如：'51','52','62' 表示批发业、零售业、餐饮业）
+--   @base_month: 基准月份（格式：'YYYY-MM-01'）
+--   @target_month: 目标月份（格式：'YYYY-MM-01'）
+
+SELECT 
+    ROW_NUMBER() OVER (PARTITION BY i.industry_name_large ORDER BY c.company_name) AS 序号,
+    i.industry_name_large AS 行业大类,
+    c.company_name AS 单位详细名称,
+    i.industry_name_small AS 小类名称,
+    cs_target.district AS 片区,
+    ROUND(f.sales_ytd, 4) AS 商品销售额_亿元,
+    ROUND(f.sales_ytd_last_year, 4) AS 去年同期,
+    ROUND(f.yoy_growth_rate, 2) AS 同比增速_百分比,
+    ROUND(f.large_category_pull_effect, 6) AS 拉动力
+FROM dim_company_monthly_snapshot cs_target
+JOIN dim_company c ON cs_target.company_id = c.company_id
+JOIN dim_industry i ON cs_target.industry_code = i.industry_code
+JOIN fact_sales_monthly f ON cs_target.company_id = f.company_id 
+    AND cs_target.snapshot_month = f.snapshot_month
+LEFT JOIN (
+    SELECT company_id
+    FROM dim_company_monthly_snapshot
+    WHERE snapshot_month = '2025-12-01'  -- 替换为基准月份
+        AND is_four_above = 1
+) cs_base ON cs_target.company_id = cs_base.company_id
+WHERE cs_target.snapshot_month = '2026-03-01'  -- 替换为目标月份
+    AND cs_target.is_four_above = 1
+    AND i.industry_code_large IN ('51', '52', '62')  -- 替换为实际行业大类代码列表
+    AND cs_base.company_id IS NULL  -- 在基准月份不是四上企业
+    AND f.sales_ytd IS NOT NULL
+    AND f.sales_ytd_last_year IS NOT NULL
+ORDER BY i.industry_name_large, c.company_name
+```
+
+### 批量查询多个行业大类减少四上企业（含转行业情况和销售额指标）
+```sql
+-- 批量查询多个行业大类减少四上企业（含转行业情况和销售额指标）
+-- 参数说明：
+--   @industry_codes: 行业大类代码列表（如：'51','52','62' 表示批发业、零售业、餐饮业）
+--   @base_month: 基准月份（格式：'YYYY-MM-01'）
+--   @target_month: 目标月份（格式：'YYYY-MM-01'）
+
+SELECT 
+    ROW_NUMBER() OVER (PARTITION BY i_base.industry_name_large ORDER BY c.company_name) AS 序号,
+    i_base.industry_name_large AS 行业大类,
+    c.company_name AS 单位详细名称,
+    cs_base.district AS 片区,
+    i_base.industry_name_small AS 小类名称,
+    ROUND(f.sales_ytd, 4) AS 2025年12月累计销售额_亿元,
+    ROUND(f.sales_ytd_last_year, 4) AS 2024年12月累计销售额_亿元,
+    ROUND(f.yoy_growth_rate, 2) AS 同比增速_百分比,
+    CASE 
+        WHEN cs_target.company_id IS NULL THEN '退出四上'
+        WHEN i_target.industry_code_large != i_base.industry_code_large THEN CONCAT('转至', i_target.industry_name_large)
+        ELSE '其他'
+    END AS 变动类型
+FROM dim_company_monthly_snapshot cs_base
+JOIN dim_company c ON cs_base.company_id = c.company_id
+JOIN dim_industry i_base ON cs_base.industry_code = i_base.industry_code
+JOIN fact_sales_monthly f ON cs_base.company_id = f.company_id 
+    AND cs_base.snapshot_month = f.snapshot_month
+LEFT JOIN dim_company_monthly_snapshot cs_target ON cs_base.company_id = cs_target.company_id 
+    AND cs_target.snapshot_month = '2026-03-01'  -- 替换为目标月份
+LEFT JOIN dim_industry i_target ON cs_target.industry_code = i_target.industry_code
+WHERE cs_base.snapshot_month = '2025-12-01'  -- 替换为基准月份
+    AND cs_base.is_four_above = 1
+    AND i_base.industry_code_large IN ('51', '52', '62')  -- 替换为实际行业大类代码列表
+    AND (
+        -- 目标月份不是四上企业
+        cs_target.company_id IS NULL 
+        OR cs_target.is_four_above = 0
+        -- 或者虽然还是四上企业但行业大类已经变了
+        OR (cs_target.is_four_above = 1 AND i_target.industry_code_large != i_base.industry_code_large)
+    )
+    AND f.sales_ytd IS NOT NULL
+    AND f.sales_ytd_last_year IS NOT NULL
+ORDER BY i_base.industry_name_large, c.company_name
+```

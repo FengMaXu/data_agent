@@ -36,6 +36,7 @@
 - 只能执行 SELECT 查询，禁止 INSERT/UPDATE/DELETE
 - 返回上下文的结果最多 100 行，超出自动截断并提示导出完整数据
 - 敏感字段需要脱敏处理
+- 大结果 SQL 的完整数据交付应优先使用 `export_sql_to_csv`，不要通过 `execute_sql` 反复扩大上下文窗口。
 
 ## SQL 规范
 - 表别名使用有意义的缩写

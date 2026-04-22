@@ -37,7 +37,7 @@ import {
 import { FileIcon } from './FileIcons';
 import { formatFileSize, formatTime } from '../utils/helpers';
 import ReactMarkdown from 'react-markdown';
-import { useSession, type Session } from '../hooks/useSession';
+import { useSession } from '../hooks/useSession';
 import { useLanguage } from '../context/LanguageContext';
 
 interface SidebarProps {
@@ -53,7 +53,7 @@ interface KnowledgeFileNode {
     level: number;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenWorkspace, onOpenPlugins }) => {
+const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
     const {
         sessions,
         currentSession,

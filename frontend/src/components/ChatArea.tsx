@@ -301,7 +301,7 @@ const ChatArea: React.FC<ChatAreaProps> = ({ onUpdateTools, onOpenToolPanel }) =
     // 监听 iframe 的 postMessage 事件（用于 HTML 看板下钻）
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
-            const { type, chartIndex, dimension, value, chartTitle, targetLevel } = event.data;
+            const { type, dimension, value, chartTitle, targetLevel } = event.data;
 
             if (type === 'drill_down') {
                 // 自动发送下钻查询
