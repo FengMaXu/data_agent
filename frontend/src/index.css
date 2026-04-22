@@ -125,7 +125,6 @@ body {
 
 .nav-item.active {
   color: var(--accent-color);
-  background-color: var(--accent-bg);
 }
 
 .nav-item-icon {
@@ -139,11 +138,6 @@ body {
   flex: 1;
 }
 
-.nav-item-zh {
-  font-size: 0.8rem;
-  font-weight: 400;
-  opacity: 0.8;
-}
 
 .badge-alpha {
   font-size: 0.65rem;
@@ -282,41 +276,183 @@ body {
   padding: 4px 0;
 }
 
-/* Agent Specifics */
-.agent-status-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: #f9fafb;
-  border: 1px solid var(--border-light);
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-  width: fit-content;
-  margin-bottom: 16px;
-  cursor: pointer;
+.agent-message-body {
+  margin-top: 2px;
 }
 
-.agent-loading-line {
+.agent-thinking-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.agent-hint-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.agent-hint-line {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.9rem;
   color: var(--text-secondary);
-  margin-bottom: 16px;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.agent-hint-line.is-error {
+  color: #b91c1c;
+}
+
+.agent-hint-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.55;
+  flex-shrink: 0;
+}
+
+/* Agent Specifics */
+.agent-orbit-icon {
+  display: block;
+  overflow: hidden;
+  color: currentColor;
+  filter: drop-shadow(0 0 8px rgba(240, 68, 56, 0.14));
+}
+
+.agent-message-icon {
+  transform: scale(1.18);
+  transform-origin: center;
+}
+
+.agent-orbit-electron-group {
+  transform-origin: 50px 50px;
+}
+
+.agent-orbit-electron-glow {
+  fill: currentColor;
+  opacity: 0.16;
+}
+
+.agent-orbit-electron-core {
+  fill: currentColor;
+}
+
+.agent-orbit-nucleus {
+  transform-origin: 50px 50px;
+}
+
+.agent-orbit-nucleus-glow {
+  fill: currentColor;
+  opacity: 0.12;
+}
+
+.agent-orbit-nucleus-core {
+  fill: currentColor;
+  opacity: 0.96;
+}
+
+.agent-orbit-nucleus-highlight {
+  fill: rgba(255, 255, 255, 0.82);
+}
+
+.agent-orbit-icon.is-animated .agent-orbit-nucleus {
+  animation: agent-orbit-nucleus-pulse 2.4s ease-in-out infinite;
+}
+
+.agent-orbit-icon.is-animated .electron-1 {
+  animation: agent-electron-float-1 3.8s ease-in-out infinite;
+}
+
+.agent-orbit-icon.is-animated .electron-2 {
+  animation: agent-electron-float-2 4.4s ease-in-out infinite;
+}
+
+.agent-orbit-icon.is-animated .electron-3 {
+  animation: agent-electron-float-3 5.1s ease-in-out infinite;
+}
+
+.agent-orbit-icon.is-animated .electron-1 .agent-orbit-electron-glow,
+.agent-orbit-icon.is-animated .electron-1 .agent-orbit-electron-core {
+  animation: agent-electron-phase-1 3.8s ease-in-out infinite;
+  transform-origin: 67px 35px;
+}
+
+.agent-orbit-icon.is-animated .electron-2 .agent-orbit-electron-glow,
+.agent-orbit-icon.is-animated .electron-2 .agent-orbit-electron-core {
+  animation: agent-electron-phase-2 4.4s ease-in-out infinite;
+  transform-origin: 33px 66px;
+}
+
+.agent-orbit-icon.is-animated .electron-3 .agent-orbit-electron-glow,
+.agent-orbit-icon.is-animated .electron-3 .agent-orbit-electron-core {
+  animation: agent-electron-phase-3 5.1s ease-in-out infinite;
+  transform-origin: 74px 63px;
+}
+
+@keyframes agent-orbit-nucleus-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.14);
+    opacity: 1;
+  }
+}
+
+@keyframes agent-electron-float-1 {
+  0%, 100% { transform: translate(0px, 0px); }
+  50% { transform: translate(-2px, -3px); }
+}
+
+@keyframes agent-electron-float-2 {
+  0%, 100% { transform: translate(0px, 0px); }
+  50% { transform: translate(2.6px, -1.8px); }
+}
+
+@keyframes agent-electron-float-3 {
+  0%, 100% { transform: translate(0px, 0px); }
+  50% { transform: translate(-2.2px, 2.4px); }
+}
+
+@keyframes agent-electron-phase-1 {
+  0%, 18%, 100% { opacity: 0; transform: scale(0.2); }
+  28%, 56% { opacity: 1; transform: scale(1.12); }
+  70% { opacity: 0.18; transform: scale(0.62); }
+}
+
+@keyframes agent-electron-phase-2 {
+  0%, 12%, 100% { opacity: 0; transform: scale(0.12); }
+  26%, 44% { opacity: 0.95; transform: scale(1); }
+  58% { opacity: 0.08; transform: scale(0.28); }
+  72%, 84% { opacity: 1; transform: scale(1.08); }
+}
+
+@keyframes agent-electron-phase-3 {
+  0%, 8%, 100% { opacity: 0.9; transform: scale(1); }
+  18%, 32% { opacity: 0.08; transform: scale(0.1); }
+  46%, 74% { opacity: 1; transform: scale(1.08); }
+  86% { opacity: 0.12; transform: scale(0.24); }
 }
 
 .agent-icon-red {
   color: var(--accent-color);
-  background: var(--accent-bg);
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
+  background: transparent;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
+  align-self: flex-start;
+  margin-top: 4px;
 }
 
 /* Tool Panel (Drawer) Styles */
@@ -991,6 +1127,15 @@ body {
 
 .workspace-panel .icon-btn .spin {
   animation: spin 1s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .agent-orbit-icon.is-animated .agent-orbit-nucleus,
+  .agent-orbit-icon.is-animated .agent-orbit-electron-group,
+  .agent-orbit-icon.is-animated .agent-orbit-electron-glow,
+  .agent-orbit-icon.is-animated .agent-orbit-electron-core {
+    animation: none;
+  }
 }
 
 @keyframes spin {
@@ -1990,9 +2135,12 @@ body {
 
 .editor-modal .editor-textarea {
   flex: 1;
+  min-height: 0;
+  width: 100%;
   border: none;
   outline: none;
   resize: none;
+  overflow: auto;
   padding: 16px;
   font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
   font-size: 0.85rem;
@@ -2016,8 +2164,38 @@ body {
   word-break: break-word;
 }
 
-/* Markdown styles in modal */
-.markdown-content {
+
+.editor-modal-content {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-modal .editor-preview {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 20px 24px;
+}
+
+.editor-modal .editor-preview.image-preview {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.editor-modal .editor-preview.plain-preview pre {
+  margin: 0;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.editor-modal .editor-preview.markdown-preview .markdown-content {
   color: var(--text-primary);
   line-height: 1.7;
 }

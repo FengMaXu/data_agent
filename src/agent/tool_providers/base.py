@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from src.agent.types import AgentTool
+from src.agent.types import AgentTimingRecorder, AgentTool
 
 
 @dataclass
@@ -23,6 +23,7 @@ class SessionToolBuildContext:
     project_root: Path
     global_services: GlobalRuntimeServices
     runtime_overrides: dict[str, Any] = field(default_factory=dict)
+    timing: AgentTimingRecorder | None = None
 
 
 class ToolProvider:

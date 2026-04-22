@@ -1,10 +1,12 @@
 """
 工作区管理器
-管理 Agent 的隔离沙盒文件系统。所有中间结果和最终结果都保存在此工作区中。
+管理 Agent 的隔离工作区文件系统。所有中间结果和最终产物都保存在此工作区中。
 """
 
 from __future__ import annotations
 
+import csv
+import json
 import logging
 import os
 import shutil
@@ -17,9 +19,17 @@ logger = logging.getLogger("data_agent.workspace")
 DEFAULT_WORKSPACE_ROOT = os.path.join(os.getcwd(), "workspace")
 
 
+def _normalize_csv_value(value: object) -> object:
+    if value is None:
+        return ""
+    if isinstance(value, (str, int, float, bool)):
+        return value
+    return json.dumps(value, ensure_ascii=False)
+
+
 class WorkspaceManager:
     """
-    隔离沙盒文件系统管理器
+    隔离沙箱文件系统管理器
 
     为每个会话创建一个隔离的工作目录，Agent 可以在其中：
     - 保存 SQL 查询结果 (CSV/JSON)
@@ -61,21 +71,19 @@ class WorkspaceManager:
         将相对路径解析为工作区内的绝对路径。
         安全限制：禁止路径逃逸到工作区之外。
         """
-        # 先规范化，去掉 .. 等
         cleaned = os.path.normpath(relative_path)
-        # 禁止绝对路径
         if os.path.isabs(cleaned):
             raise ValueError(f"路径逃逸检测！'{relative_path}' 不允许使用绝对路径。")
+
         resolved = (self._session_dir / cleaned).resolve()
         session_resolved = self._session_dir.resolve()
 
-        # 检查 resolved 是否在 session_dir 之下
         try:
             resolved.relative_to(session_resolved)
-        except ValueError:
+        except ValueError as exc:
             raise ValueError(
                 f"路径逃逸检测！'{relative_path}' 试图访问工作区之外的目录。"
-            )
+            ) from exc
         return resolved
 
     def list_files(self, sub_dir: str = "") -> list[dict[str, str | int]]:
@@ -89,7 +97,7 @@ class WorkspaceManager:
             entry = {
                 "name": item.name,
                 "type": "directory" if item.is_dir() else "file",
-                "relative_path": str(item.relative_to(self._session_dir)),
+                "relative_path": item.relative_to(self._session_dir).as_posix(),
             }
             if item.is_file():
                 entry["size_bytes"] = item.stat().st_size
@@ -106,26 +114,54 @@ class WorkspaceManager:
 
         size = path.stat().st_size
         if size > max_bytes:
-            # 超大文件只读取前 N 字节
-            with open(path, "r", encoding="utf-8", errors="replace") as f:
-                content = f.read(max_bytes)
+            with open(path, "r", encoding="utf-8", errors="replace") as handle:
+                content = handle.read(max_bytes)
             return (
                 content
                 + f"\n\n... [文件过大，仅显示前 {max_bytes} 字节，总大小 {size} 字节]"
             )
-        else:
-            return path.read_text(encoding="utf-8", errors="replace")
+        return path.read_text(encoding="utf-8", errors="replace")
 
     def write_file(self, relative_path: str, content: str) -> str:
         """写入文件到工作区"""
         path = self.resolve_path(relative_path)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content, encoding="utf-8")
-        logger.info(f"[Workspace] 已写入: {relative_path} ({len(content)} 字符)")
-        return str(path.relative_to(self._session_dir))
+        logger.info(f"[Workspace] 已写入 {relative_path} ({len(content)} 字符)")
+        return path.relative_to(self._session_dir).as_posix()
+
+    def write_csv_rows(self, relative_path: str, rows: list[dict[str, object]]) -> str:
+        """将结构化结果写入 CSV，使用 UTF-8 BOM 便于 Excel 打开。"""
+        path = self.resolve_path(relative_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        fieldnames: list[str] = []
+        for row in rows:
+            if not isinstance(row, dict):
+                raise ValueError("CSV row must be a dict")
+            for key in row.keys():
+                key_text = str(key)
+                if key_text not in fieldnames:
+                    fieldnames.append(key_text)
+
+        with path.open("w", encoding="utf-8-sig", newline="") as handle:
+            if fieldnames:
+                writer = csv.DictWriter(handle, fieldnames=fieldnames)
+                writer.writeheader()
+                for row in rows:
+                    writer.writerow(
+                        {
+                            name: _normalize_csv_value(row.get(name, ""))
+                            for name in fieldnames
+                        }
+                    )
+
+        logger.info(f"[Workspace] 已写入 {relative_path} ({len(rows)} 行 CSV)")
+        return path.relative_to(self._session_dir).as_posix()
 
     def cleanup(self) -> None:
         """清理当前会话的工作区"""
         if self._session_dir.exists():
             shutil.rmtree(self._session_dir)
             logger.info(f"[Workspace] 已清理工作区: {self._session_dir}")
+

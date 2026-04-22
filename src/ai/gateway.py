@@ -6,7 +6,10 @@ AI Gateway 统一路由器
 from __future__ import annotations
 
 import logging
-from typing import AsyncIterator
+from typing import TYPE_CHECKING, AsyncIterator
+
+if TYPE_CHECKING:
+    from src.agent.types import AgentTimingRecorder
 
 from .base_provider import (
     AssistantResponse,
@@ -85,6 +88,7 @@ class AIGateway:
         *,
         temperature: float | None = None,
         max_tokens: int | None = None,
+        timing: "AgentTimingRecorder | None" = None,
     ) -> AsyncIterator[StreamEvent]:
         """流式调用 LLM"""
         provider_name = _detect_provider(model)
@@ -95,8 +99,14 @@ class AIGateway:
         tokens = max_tokens if max_tokens is not None else self.config.max_tokens
 
         logger.info(f"[Gateway] model={model}, provider={provider_name}")
+        if timing is not None:
+            timing.record_llm_stage(
+                "gateway_stream_start",
+                turn=timing.counters.get("turns", 0),
+                provider=provider_name,
+                model=model,
+            )
 
-        # 构建额外参数（如自定义 base_url）
         extra_kwargs: dict = {}
         if provider_name == "openai" and self.config.openai_base_url:
             extra_kwargs["base_url"] = self.config.openai_base_url

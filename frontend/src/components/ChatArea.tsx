@@ -1,233 +1,711 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-    Orbit,
     PenTool,
     Loader2,
     Send,
     Trash2,
-    Paperclip
+    Square,
+    Paperclip,
 } from 'lucide-react';
-import { sendChatMessage, steerAgent, clearSession, type SSEEvent } from '../api/client';
+import {
+    sendChatMessage,
+    steerAgent,
+    stopAgent,
+    clearSession,
+    uploadWorkspaceFile,
+    answerClarification,
+    type ChatStreamHandle,
+    type SSEEvent,
+    type WidgetSpec,
+    type SessionSnapshotMessage,
+    type ClarificationRequest,
+    type AgentProgressStage,
+    type AgentTerminalReason,
+} from '../api/client';
 import type { ToolData } from './ToolPanel';
 import { useSession } from '../hooks/useSession';
+import { useLanguage } from '../context/LanguageContext';
+import WidgetRenderer from './widgets/WidgetRenderer';
+import AgentOrbitIcon from './AgentOrbitIcon';
 
-interface Message {
-    id: string;
-    role: 'user' | 'agent';
-    content: string;
-    toolCalls?: { name: string; arguments: any }[];
-    toolResults?: { name: string; content: string }[];
-    skillActivations?: {
-        name: string;
-        description?: string;
-        when_to_use?: string;
-        location?: string;
-        source_scope?: string;
-        granted_permissions?: string[];
-        model_override?: string | null;
-        ui_message?: string;
-    }[];
+interface SkillActivation {
+    name: string;
+    description?: string;
+    when_to_use?: string;
+    location?: string;
+    source_scope?: string;
+    granted_permissions?: string[];
+    model_override?: string | null;
+    ui_message?: string;
+    source?: string;
+    command_text?: string;
+    skill_dir?: string;
 }
+
+interface ToolCallState {
+    toolCallId: string;
+    name: string;
+    arguments: any;
+    partialArguments?: string;
+    result?: string;
+    details?: any;
+    isError?: boolean;
+    widgetId?: string | null;
+    status: 'calling' | 'running' | 'done' | 'error';
+}
+
+interface AgentMessage {
+    id: string;
+    role: 'agent';
+    content: string;
+    messageId: string;
+    toolCallsById: Record<string, ToolCallState>;
+    widgetsById: Record<string, WidgetSpec>;
+    skillActivations: SkillActivation[];
+    currentStage: AgentProgressStage;
+    visitedStages: AgentProgressStage[];
+    terminalReason: AgentTerminalReason;
+}
+
+interface UserMessage {
+    id: string;
+    role: 'user';
+    content: string;
+}
+
+type ChatMessage = AgentMessage | UserMessage;
 
 interface ChatAreaProps {
     onUpdateTools?: (tools: ToolData[]) => void;
+    onOpenToolPanel?: () => void;
 }
 
-const ChatArea: React.FC<ChatAreaProps> = ({ onUpdateTools }) => {
-    const { currentSession } = useSession();
+const STAGE_ORDER: AgentProgressStage[] = [
+    'sent',
+    'understanding',
+    'selecting_tool',
+    'executing_query',
+    'generating_answer',
+];
+
+const stageIndex = (stage: AgentProgressStage) => STAGE_ORDER.indexOf(stage);
+
+const advanceStage = (message: AgentMessage, stage: AgentProgressStage): AgentMessage => {
+    if (stageIndex(stage) <= stageIndex(message.currentStage)) {
+        return message;
+    }
+    const visitedStages = STAGE_ORDER.filter((item) => stageIndex(item) <= stageIndex(stage));
+    return {
+        ...message,
+        currentStage: stage,
+        visitedStages,
+    };
+};
+
+const setTerminalReason = (message: AgentMessage, reason: AgentTerminalReason): AgentMessage => ({
+    ...message,
+    terminalReason: reason,
+});
+
+const createLocalAgentMessage = (messageId: string): AgentMessage => ({
+    id: `local-${messageId}`,
+    role: 'agent',
+    content: '',
+    messageId,
+    toolCallsById: {},
+    widgetsById: {},
+    skillActivations: [],
+    currentStage: 'sent',
+    visitedStages: ['sent'],
+    terminalReason: null,
+});
+
+const toSnapshotMessage = (message: ChatMessage): SessionSnapshotMessage => {
+    if (message.role === 'user') {
+        return {
+            id: message.id,
+            role: 'user',
+            content: message.content,
+        };
+    }
+
+    return {
+        id: message.id,
+        role: 'agent',
+        content: message.content,
+        messageId: message.messageId,
+        toolCallsById: message.toolCallsById,
+        widgetsById: message.widgetsById,
+        skillActivations: message.skillActivations,
+        currentStage: message.currentStage,
+        visitedStages: message.visitedStages,
+        terminalReason: message.terminalReason,
+    };
+};
+
+const fromSnapshotMessage = (message: SessionSnapshotMessage): ChatMessage => {
+    if (message.role === 'user') {
+        return {
+            id: message.id,
+            role: 'user',
+            content: message.content,
+        };
+    }
+
+    return {
+        id: message.id,
+        role: 'agent',
+        content: message.content,
+        messageId: message.messageId || message.id,
+        toolCallsById: message.toolCallsById || {},
+        widgetsById: message.widgetsById || {},
+        skillActivations: (message.skillActivations || []) as SkillActivation[],
+        currentStage: message.currentStage || 'sent',
+        visitedStages: message.visitedStages?.length ? message.visitedStages : ['sent'],
+        terminalReason: message.terminalReason ?? null,
+    };
+};
+
+const dedupeSkillActivations = (skills: SkillActivation[]) => {
+    const seen = new Set<string>();
+    return skills.filter((skill) => {
+        const key = [skill.name, skill.source, skill.command_text, skill.location].join('|');
+        if (seen.has(key)) {
+            return false;
+        }
+        seen.add(key);
+        return true;
+    });
+};
+
+const getToolHintLabel = (tool: ToolCallState) => {
+    if (tool.status === 'done') {
+        return `完成工具: ${tool.name}`;
+    }
+    if (tool.status === 'error') {
+        return `工具失败: ${tool.name}`;
+    }
+    return `调用工具: ${tool.name}`;
+};
+
+const getSkillHintLabel = (skill: SkillActivation) => `Skill 已激活: ${skill.name}`;
+
+const isAgentMessageEmpty = (message: AgentMessage) => message.content.trim().length === 0;
+
+const ChatArea: React.FC<ChatAreaProps> = ({ onUpdateTools, onOpenToolPanel }) => {
+    const {
+        currentSession,
+        currentTranscript,
+        attachedFiles,
+        setCurrentTranscript,
+        clearCurrentTranscript,
+        clearAttachedFiles,
+    } = useSession();
+
+    const { t } = useLanguage();
 
     const [inputValue, setInputValue] = useState('');
-    const [messages, setMessages] = useState<Message[]>([]);
+    const [messages, setMessages] = useState<ChatMessage[]>(() => currentTranscript.map(fromSnapshotMessage));
     const [isStreaming, setIsStreaming] = useState(false);
-    const [uploading, setUploading] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
     const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
-    const activeAgentMsgIdRef = useRef<string | null>(null);
+    const [runReason, setRunReason] = useState<'completed' | 'stopped' | 'error' | null>(null);
+    const [pendingClarification, setPendingClarification] = useState<ClarificationRequest | null>(null);
+    const [clarificationInput, setClarificationInput] = useState('');
+    const [isSubmittingClarification, setIsSubmittingClarification] = useState(false);
+    const [drillPaths, setDrillPaths] = useState<Record<string, string[]>>({});
 
-    const messagesEndRef = useRef<HTMLDivElement>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    const chatContainerRef = useRef<HTMLDivElement>(null);
+    const currentSessionIdRef = useRef(currentSession.id);
+    const activeAgentMessageIdRef = useRef<string | null>(null);
+    const pendingAgentMessageIdRef = useRef<string | null>(null);
+    const agentBufferRef = useRef<Record<string, AgentMessage>>({});
     const onUpdateToolsRef = useRef(onUpdateTools);
-
-    // 缓冲池引用——供 SSE 回调闭包使用
-    const agentBufferRef = useRef<Message | null>(null);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const chatContainerRef = useRef<HTMLDivElement>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const streamHandleRef = useRef<ChatStreamHandle | null>(null);
+    const isRestoringRef = useRef(false);
 
     useEffect(() => {
         onUpdateToolsRef.current = onUpdateTools;
     }, [onUpdateTools]);
 
-    // Update tools when messages change
     useEffect(() => {
-        const allTools = messages.flatMap(msg => {
-            if (!msg.toolCalls) return [];
-            return msg.toolCalls.map(tc => {
-                const result = msg.toolResults?.find(tr => tr.name === tc.name)?.content;
-                const skill = tc.name === 'activate_skill'
-                    ? msg.skillActivations?.find(sa => sa.name === tc.arguments?.command)
-                    : undefined;
-                return {
-                    name: tc.name,
-                    args: tc.arguments,
-                    result: result,
-                    skill,
+        isRestoringRef.current = true;
+        currentSessionIdRef.current = currentSession.id;
+        const restoredMessages = currentTranscript.map(fromSnapshotMessage);
+        setMessages(restoredMessages);
+        activeAgentMessageIdRef.current = null;
+        pendingAgentMessageIdRef.current = null;
+        agentBufferRef.current = {};
+        restoredMessages.forEach((message) => {
+            if (message.role === 'agent') {
+                agentBufferRef.current[message.messageId] = {
+                    ...message,
+                    toolCallsById: { ...message.toolCallsById },
+                    widgetsById: { ...message.widgetsById },
+                    skillActivations: [...message.skillActivations],
+                    visitedStages: [...message.visitedStages],
                 };
-            });
+            }
         });
-        if (allTools.length > 0 && onUpdateToolsRef.current) {
-            onUpdateToolsRef.current(allTools);
+        setIsStreaming(false);
+        setRunReason(null);
+        setPendingClarification(null);
+        setClarificationInput('');
+        setIsSubmittingClarification(false);
+        onUpdateToolsRef.current?.([]);
+    }, [currentSession.id]);
+
+    useEffect(() => {
+        if (isRestoringRef.current) {
+            isRestoringRef.current = false;
+            return;
         }
+        setCurrentTranscript(currentSessionIdRef.current, messages.map(toSnapshotMessage));
+    }, [messages, setCurrentTranscript]);
+
+    useEffect(() => {
+        const allTools = messages.flatMap((message) => {
+            if (message.role !== 'agent') return [];
+            return Object.values(message.toolCallsById).map((tool) => ({
+                toolCallId: tool.toolCallId,
+                messageId: message.messageId,
+                name: tool.name,
+                args: tool.arguments,
+                result: tool.result,
+                details: tool.details,
+                status: tool.status,
+                widgetId: tool.widgetId,
+                widget: tool.widgetId ? message.widgetsById[tool.widgetId] : undefined,
+            }));
+        });
+        onUpdateToolsRef.current?.(allTools);
     }, [messages]);
 
-    // Auto-scroll
     useEffect(() => {
         if (shouldAutoScroll) {
             messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
         }
-    }, [messages, shouldAutoScroll]);
+    }, [messages, shouldAutoScroll, pendingClarification]);
 
-    // Clear messages when session changes
     useEffect(() => {
-        setMessages([]);
-        activeAgentMsgIdRef.current = null;
-        agentBufferRef.current = null;
-        if (onUpdateToolsRef.current) onUpdateToolsRef.current([]);
-    }, [currentSession.id]);
+        const textarea = textareaRef.current;
+        if (!textarea) return;
+        textarea.style.height = '0px';
+        const nextHeight = Math.min(textarea.scrollHeight, 160);
+        textarea.style.height = `${Math.max(nextHeight, 40)}px`;
+    }, [inputValue]);
+
+    // 监听 iframe 的 postMessage 事件（用于 HTML 看板下钻）
+    useEffect(() => {
+        const handleMessage = (event: MessageEvent) => {
+            const { type, dimension, value, chartTitle, targetLevel } = event.data;
+
+            if (type === 'drill_down') {
+                // 自动发送下钻查询
+                const drillMessage = `请下钻分析"${chartTitle}"中【${value}】的明细数据，按 ${dimension} 维度展开`;
+                setInputValue(drillMessage);
+                // 自动发送
+                setTimeout(() => {
+                    handleSend();
+                }, 100);
+            } else if (type === 'navigate_back') {
+                // 自动发送回退查询
+                const backMessage = `返回查看"${targetLevel}"层级的数据概览`;
+                setInputValue(backMessage);
+                // 自动发送
+                setTimeout(() => {
+                    handleSend();
+                }, 100);
+            }
+        };
+
+        window.addEventListener('message', handleMessage);
+        return () => window.removeEventListener('message', handleMessage);
+    }, []);
+
+    const attachedFilesLabel = useMemo(() => {
+        if (attachedFiles.length === 0) {
+            return t('chat.workspaceEmpty');
+        }
+        return `${t('chat.attachedFiles') || '已附加'} ${attachedFiles.length} ${t('chat.filesCount') || '个文件'}`;
+    }, [attachedFiles, t]);
 
     const handleScroll = () => {
         if (!chatContainerRef.current) return;
         const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
-        const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
-        setShouldAutoScroll(isNearBottom);
+        setShouldAutoScroll(scrollHeight - scrollTop - clientHeight < 100);
     };
 
-    /**
-     * 将缓冲池刷入 React state
-     */
-    const flushBuffer = () => {
-        const buf = agentBufferRef.current;
-        const targetId = activeAgentMsgIdRef.current;
-        if (!buf || !targetId) return;
-        const cloned = { ...buf };
-        setMessages(prev => prev.map(m => m.id === targetId ? cloned : m));
+    const ensureBufferedAgentMessage = (messageId: string) => {
+        if (!agentBufferRef.current[messageId]) {
+            agentBufferRef.current[messageId] = createLocalAgentMessage(messageId);
+        }
+        return agentBufferRef.current[messageId];
     };
+
+    const flushBufferedMessage = (messageId: string) => {
+        const buffered = agentBufferRef.current[messageId];
+        if (!buffered) return;
+        const snapshot: AgentMessage = {
+            ...buffered,
+            toolCallsById: { ...buffered.toolCallsById },
+            widgetsById: { ...buffered.widgetsById },
+            skillActivations: [...buffered.skillActivations],
+            visitedStages: [...buffered.visitedStages],
+        };
+        setMessages((prev) => {
+            const index = prev.findIndex((msg) => msg.role === 'agent' && msg.messageId === messageId);
+            if (index === -1) {
+                return [...prev, snapshot];
+            }
+            const next = [...prev];
+            next[index] = snapshot;
+            return next;
+        });
+    };
+
+    const flushAllBuffers = () => {
+        Object.keys(agentBufferRef.current).forEach(flushBufferedMessage);
+    };
+
+    const markTerminalReason = (reason: Exclude<AgentTerminalReason, null>) => {
+        const targetId = activeAgentMessageIdRef.current ?? pendingAgentMessageIdRef.current;
+        if (!targetId) {
+            return;
+        }
+        const message = ensureBufferedAgentMessage(targetId);
+        agentBufferRef.current[targetId] = setTerminalReason(message, reason);
+        flushBufferedMessage(targetId);
+    };
+
+    const promoteStage = (messageId: string, stage: AgentProgressStage) => {
+        const message = ensureBufferedAgentMessage(messageId);
+        agentBufferRef.current[messageId] = advanceStage(message, stage);
+    };
+
+    const handleStop = async () => {
+        if (!isStreaming) return;
+        try {
+            await stopAgent(currentSession.id);
+        } catch (err) {
+            console.error('Failed to stop agent:', err);
+        }
+    };
+
+    const handleUploadClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleUploadChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const files = event.target.files;
+        if (!files || files.length === 0) return;
+
+        setIsUploading(true);
+        try {
+            for (const file of Array.from(files)) {
+                await uploadWorkspaceFile(file, currentSession.id);
+            }
+            window.dispatchEvent(new CustomEvent('workspace_updated'));
+        } catch (err) {
+            console.error('Failed to upload files:', err);
+        } finally {
+            setIsUploading(false);
+            event.target.value = '';
+        }
+    };
+
+    const handleDrillDown = useCallback((dimension: string, value: string, title: string, widgetId: string) => {
+        setDrillPaths(prev => ({
+            ...prev,
+            [widgetId]: [...(prev[widgetId] || [title]), value],
+        }));
+        const drillMessage = `请下钻分析"${title}"中【${value}】的明细数据，按 ${dimension} 维度展开`;
+        setInputValue(drillMessage);
+    }, []);
+
+    const handleBreadcrumbNavigate = useCallback((widgetId: string, index: number) => {
+        const path = drillPaths[widgetId] || [];
+        const targetLevel = path[index];
+        setDrillPaths(prev => ({ ...prev, [widgetId]: prev[widgetId].slice(0, index + 1) }));
+        setInputValue(`返回查看"${targetLevel}"层级的数据概览`);
+    }, [drillPaths]);
 
     const handleSend = async () => {
         if (!inputValue.trim()) return;
 
-        const currentSessionId = currentSession.id;
+        const sessionId = currentSession.id;
         const content = inputValue.trim();
-
-        const userMsg: Message = {
-            id: Date.now().toString(),
+        const userMsg: UserMessage = {
+            id: `user-${Date.now()}`,
             role: 'user',
-            content: content,
+            content,
         };
 
-        // ── Steering: agent 正在运行时发送追加消息 ──
+        setMessages((prev) => [...prev, userMsg]);
+        setInputValue('');
+        setShouldAutoScroll(true);
+
         if (isStreaming) {
-            // 1. 先冻结当前 agent 气泡的内容（把缓冲池刷入 state）
-            flushBuffer();
-
-            // 2. 创建新的 agent 气泡
-            const newAgentMsgId = (Date.now() + 1).toString();
-            const newAgentMsg: Message = {
-                id: newAgentMsgId,
-                role: 'agent',
-                content: '',
-                toolCalls: [],
-                toolResults: []
-            };
-
-            // 3. 切换 activeAgentMsgIdRef 和缓冲池到新气泡
-            activeAgentMsgIdRef.current = newAgentMsgId;
-            agentBufferRef.current = { ...newAgentMsg };
-
-            setMessages(prev => [...prev, userMsg, newAgentMsg]);
-            setInputValue('');
-            setShouldAutoScroll(true);
-
+            flushAllBuffers();
             try {
-                await steerAgent(content, currentSessionId);
+                await steerAgent(content, sessionId);
             } catch (err) {
-                console.error("Failed to steer agent:", err);
+                console.error('Failed to steer agent:', err);
             }
             return;
         }
 
-        // ── 正常发送 ──
-        const agentMsgId = (Date.now() + 1).toString();
-        const initialAgentMsg: Message = {
-            id: agentMsgId,
-            role: 'agent',
-            content: '',
-            toolCalls: [],
-            toolResults: []
-        };
-
-        setMessages(prev => [...prev, userMsg, initialAgentMsg]);
-        activeAgentMsgIdRef.current = agentMsgId;
-        agentBufferRef.current = { ...initialAgentMsg };
-        setInputValue('');
         setIsStreaming(true);
-        setShouldAutoScroll(true);
+        setRunReason(null);
+        setPendingClarification(null);
+        setClarificationInput('');
+        activeAgentMessageIdRef.current = null;
+        pendingAgentMessageIdRef.current = `pending-${Date.now()}`;
+        promoteStage(pendingAgentMessageIdRef.current, 'sent');
+        flushBufferedMessage(pendingAgentMessageIdRef.current);
 
         let lastUpdateTime = Date.now();
         let flushTimer: ReturnType<typeof setTimeout> | null = null;
 
-        await sendChatMessage(
+        const scheduleFlush = (messageId?: string, immediate = false) => {
+            if (!messageId) return;
+            const now = Date.now();
+            if (immediate || now - lastUpdateTime > 60) {
+                flushBufferedMessage(messageId);
+                lastUpdateTime = now;
+                if (flushTimer) {
+                    clearTimeout(flushTimer);
+                    flushTimer = null;
+                }
+                return;
+            }
+            if (!flushTimer) {
+                flushTimer = setTimeout(() => {
+                    flushBufferedMessage(messageId);
+                    lastUpdateTime = Date.now();
+                    flushTimer = null;
+                }, 60);
+            }
+        };
+
+        streamHandleRef.current = await sendChatMessage(
             content,
             (event: SSEEvent) => {
-                const buf = agentBufferRef.current;
-                if (!buf) return;
+                if (event.session_id && event.session_id !== currentSessionIdRef.current) {
+                    return;
+                }
 
-                let needsImmediateUpdate = false;
+                if (event.type === 'workspace_updated') {
+                    window.dispatchEvent(new CustomEvent('workspace_updated'));
+                    return;
+                }
+
+                if (event.type === 'clarification_request') {
+                    setPendingClarification({
+                        clarification_id: event.clarification_id,
+                        question: event.question,
+                        options: event.options || [],
+                    });
+                    setClarificationInput('');
+                    setShouldAutoScroll(true);
+                    return;
+                }
+
+                if (event.type === 'clarification_answered') {
+                    setPendingClarification((current) => (
+                        current?.clarification_id === event.clarification_id ? null : current
+                    ));
+                    setClarificationInput('');
+                    return;
+                }
+
+                if (event.type === 'done') {
+                    setRunReason(event.reason);
+                    setPendingClarification(null);
+                    setClarificationInput('');
+                    markTerminalReason(event.reason);
+                    flushAllBuffers();
+                    return;
+                }
+
+                if (event.type === 'error') {
+                    setRunReason('error');
+                    const targetId = activeAgentMessageIdRef.current ?? pendingAgentMessageIdRef.current ?? `error-${Date.now()}`;
+                    activeAgentMessageIdRef.current = targetId;
+                    const message = ensureBufferedAgentMessage(targetId);
+                    const advanced = setTerminalReason(advanceStage(message, 'generating_answer'), 'error');
+                    advanced.content += `${advanced.content ? '\n\n' : ''}**Error:** ${event.error}`;
+                    agentBufferRef.current[targetId] = advanced;
+                    scheduleFlush(targetId, true);
+                    return;
+                }
+
+                if (event.type === 'progress') {
+                    const targetId = activeAgentMessageIdRef.current ?? pendingAgentMessageIdRef.current;
+                    if (!targetId) {
+                        return;
+                    }
+                    promoteStage(targetId, event.stage);
+                    scheduleFlush(targetId, true);
+                    return;
+                }
+
+                if (event.type === 'message_start') {
+                    const pendingId = pendingAgentMessageIdRef.current;
+                    if (pendingId && pendingId !== event.message_id && agentBufferRef.current[pendingId]) {
+                        const pendingBuffer = agentBufferRef.current[pendingId];
+                        const renamedBuffer: AgentMessage = {
+                            ...pendingBuffer,
+                            id: `local-${event.message_id}`,
+                            messageId: event.message_id,
+                            visitedStages: [...pendingBuffer.visitedStages],
+                        };
+                        delete agentBufferRef.current[pendingId];
+                        agentBufferRef.current[event.message_id] = renamedBuffer;
+                        setMessages((prev) => prev.map((item) => (
+                            item.role === 'agent' && item.messageId === pendingId
+                                ? renamedBuffer
+                                : item
+                        )));
+                    }
+                    activeAgentMessageIdRef.current = event.message_id;
+                    pendingAgentMessageIdRef.current = null;
+                    ensureBufferedAgentMessage(event.message_id);
+                    scheduleFlush(event.message_id, true);
+                    return;
+                }
+
+                const targetMessageId = 'message_id' in event ? event.message_id : activeAgentMessageIdRef.current;
+                if (!targetMessageId) return;
+
+                const message = ensureBufferedAgentMessage(targetMessageId);
 
                 if (event.type === 'text_delta') {
-                    buf.content += event.content;
-                } else if (event.type === 'tool_call') {
-                    buf.toolCalls = [
-                        ...(buf.toolCalls || []),
-                        { name: event.name, arguments: event.arguments }
-                    ];
-                    buf.content += `\n\n  🔧 调用工具: ${event.name}\n\n`;
-                    needsImmediateUpdate = true;
-                } else if (event.type === 'tool_result') {
-                    buf.toolResults = [
-                        ...(buf.toolResults || []),
-                        { name: event.name, content: event.content }
-                    ];
-                    if (event.name === 'activate_skill') {
-                        try {
-                            const parsed = JSON.parse(event.content);
-                            const skillMeta = parsed?.skill;
-                            if (skillMeta?.name) {
-                                buf.skillActivations = [
-                                    ...(buf.skillActivations || []),
-                                    {
-                                        name: skillMeta.name,
-                                        description: skillMeta.description,
-                                        when_to_use: skillMeta.when_to_use,
-                                        location: skillMeta.location,
-                                        source_scope: skillMeta.source_scope,
-                                        granted_permissions: parsed.granted_permissions,
-                                        model_override: parsed.model_override,
-                                        ui_message: parsed.ui_message,
-                                    }
-                                ];
-                            }
-                        } catch {
-                            const match = event.content.match(/The \"([^\"]+)\" skill is loading/);
-                            if (match?.[1]) {
-                                buf.skillActivations = [
-                                    ...(buf.skillActivations || []),
-                                    { name: match[1], ui_message: event.content }
-                                ];
-                            }
-                        }
+                    agentBufferRef.current[targetMessageId] = advanceStage(message, 'generating_answer');
+                    agentBufferRef.current[targetMessageId].content += event.content;
+                    scheduleFlush(targetMessageId, false);
+                    return;
+                }
+
+                if (event.type === 'tool_call') {
+                    agentBufferRef.current[targetMessageId] = advanceStage(message, 'executing_query');
+                    agentBufferRef.current[targetMessageId].toolCallsById[event.tool_call_id] = {
+                        toolCallId: event.tool_call_id,
+                        name: event.name,
+                        arguments: event.arguments,
+                        widgetId: event.widget_id ?? null,
+                        status: 'calling',
+                    };
+                    scheduleFlush(targetMessageId, true);
+                    return;
+                }
+
+                if (event.type === 'widget_patch') {
+                    const activeMessage = agentBufferRef.current[targetMessageId] || message;
+                    const existing = activeMessage.widgetsById[event.widget_id] || {
+                        widget_id: event.widget_id,
+                        title: '组件预览',
+                        kind: 'rich_text',
+                    };
+                    activeMessage.widgetsById[event.widget_id] = {
+                        ...existing,
+                        ...event.patch,
+                        widget_id: event.widget_id,
+                        status: 'previewing',
+                    } as WidgetSpec;
+                    const tool = activeMessage.toolCallsById[event.tool_call_id];
+                    if (tool) {
+                        tool.status = 'running';
+                        tool.widgetId = event.widget_id;
                     }
-                    needsImmediateUpdate = true;
-                } else if (event.type === 'skill_activated') {
-                    buf.skillActivations = [
-                        ...(buf.skillActivations || []),
+                    scheduleFlush(targetMessageId, true);
+                    return;
+                }
+
+                if (event.type === 'widget') {
+                    message.widgetsById[event.widget_id] = {
+                        ...event.widget,
+                        widget_id: event.widget_id,
+                        status: 'ready',
+                    };
+                    const tool = message.toolCallsById[event.tool_call_id];
+                    if (tool) {
+                        tool.status = 'running';
+                        tool.widgetId = event.widget_id;
+                    }
+                    scheduleFlush(targetMessageId, true);
+                    return;
+                }
+
+                if (event.type === 'widget_done') {
+                    const tool = message.toolCallsById[event.tool_call_id];
+                    if (tool) {
+                        tool.status = 'done';
+                    }
+                    const widget = message.widgetsById[event.widget_id];
+                    if (widget) {
+                        widget.status = 'ready';
+                    }
+                    scheduleFlush(targetMessageId, true);
+                    return;
+                }
+
+                if (event.type === 'widget_remove') {
+                    delete message.widgetsById[event.widget_id];
+                    scheduleFlush(targetMessageId, true);
+                    return;
+                }
+
+                if (event.type === 'widget_error') {
+                    const existing = message.widgetsById[event.widget_id] || {
+                        widget_id: event.widget_id,
+                        title: '组件错误',
+                        kind: 'rich_text',
+                    };
+                    message.widgetsById[event.widget_id] = {
+                        ...existing,
+                        status: 'error',
+                        error: event.error,
+                    } as WidgetSpec;
+                    const tool = message.toolCallsById[event.tool_call_id];
+                    if (tool) {
+                        tool.status = 'error';
+                        tool.widgetId = event.widget_id;
+                    }
+                    scheduleFlush(targetMessageId, true);
+                    return;
+                }
+
+                if (event.type === 'tool_result') {
+                    const existing = message.toolCallsById[event.tool_call_id] || {
+                        toolCallId: event.tool_call_id,
+                        name: event.name,
+                        arguments: event.arguments || {},
+                        status: 'done' as const,
+                    };
+                    message.toolCallsById[event.tool_call_id] = {
+                        ...existing,
+                        name: event.name,
+                        arguments: event.arguments ?? existing.arguments,
+                        result: event.content,
+                        details: event.details,
+                        isError: event.is_error,
+                        widgetId: event.widget_id ?? existing.widgetId,
+                        status: event.is_error ? 'error' : 'done',
+                    };
+                    scheduleFlush(targetMessageId, true);
+                    return;
+                }
+
+                if (event.type === 'skill_activated') {
+                    const targetId = activeAgentMessageIdRef.current ?? pendingAgentMessageIdRef.current;
+                    if (!targetId) return;
+                    const targetMessage = ensureBufferedAgentMessage(targetId);
+                    targetMessage.skillActivations = dedupeSkillActivations([
+                        ...targetMessage.skillActivations,
                         {
                             name: event.skill.name,
                             description: event.skill.description,
@@ -237,117 +715,141 @@ const ChatArea: React.FC<ChatAreaProps> = ({ onUpdateTools }) => {
                             granted_permissions: event.skill.granted_permissions,
                             model_override: event.skill.model_override,
                             ui_message: event.skill.ui_message,
-                        }
-                    ];
-                    needsImmediateUpdate = true;
-                } else if (event.type === 'workspace_updated') {
-                    window.dispatchEvent(new CustomEvent('workspace_updated'));
-                } else if (event.type === 'error') {
-                    buf.content += `\n\n**Error:** ${event.error}`;
-                    needsImmediateUpdate = true;
-                }
-
-                // 节流刷新
-                const now = Date.now();
-                if (event.type === 'done' || needsImmediateUpdate || now - lastUpdateTime > 60) {
-                    flushBuffer();
-                    lastUpdateTime = now;
-                    if (flushTimer) {
-                        clearTimeout(flushTimer);
-                        flushTimer = null;
-                    }
-                } else if (!flushTimer) {
-                    flushTimer = setTimeout(() => {
-                        flushBuffer();
-                        lastUpdateTime = Date.now();
-                        flushTimer = null;
-                    }, 60);
+                            source: event.skill.source,
+                            command_text: event.skill.command_text,
+                            skill_dir: event.skill.skill_dir,
+                        },
+                    ]);
+                    scheduleFlush(targetId, true);
                 }
             },
             (err) => {
-                console.error("Chat error:", err);
+                console.error('Chat error:', err);
+                setRunReason('error');
+                setPendingClarification(null);
                 setIsStreaming(false);
             },
             () => {
-                // 结束时最终刷新一次
                 if (flushTimer) {
                     clearTimeout(flushTimer);
                     flushTimer = null;
                 }
-                flushBuffer();
+                flushAllBuffers();
                 setIsStreaming(false);
-                activeAgentMsgIdRef.current = null;
-                agentBufferRef.current = null;
+                setIsSubmittingClarification(false);
+                activeAgentMessageIdRef.current = null;
+                pendingAgentMessageIdRef.current = null;
+                streamHandleRef.current = null;
             },
-            currentSessionId
+            sessionId,
+            attachedFiles,
         );
     };
 
     const handleClearSession = async () => {
         if (isStreaming) return;
         setMessages([]);
-        activeAgentMsgIdRef.current = null;
-        agentBufferRef.current = null;
-        if (onUpdateToolsRef.current) onUpdateToolsRef.current([]);
+        clearCurrentTranscript(currentSessionIdRef.current);
+        clearAttachedFiles();
+        activeAgentMessageIdRef.current = null;
+        pendingAgentMessageIdRef.current = null;
+        agentBufferRef.current = {};
+        onUpdateToolsRef.current?.([]);
+        setRunReason(null);
+        setPendingClarification(null);
+        setClarificationInput('');
         try {
             await clearSession(currentSession.id);
+            window.dispatchEvent(new CustomEvent('workspace_updated'));
         } catch (e) {
-            console.error("Failed to clear session on backend", e);
+            console.error('Failed to clear session on backend', e);
         }
     };
 
-    const handleKeyDown = (e: React.KeyboardEvent) => {
+    const handlePrimaryAction = async () => {
+        if (isStreaming && !inputValue.trim()) {
+            await handleStop();
+            return;
+        }
+        await handleSend();
+    };
+
+    const handleSubmitClarification = async (answerText?: string) => {
+        if (!pendingClarification || isSubmittingClarification) return;
+        const answer = (answerText ?? clarificationInput).trim();
+        if (!answer) return;
+
+        setIsSubmittingClarification(true);
+        try {
+            const userMsg: UserMessage = {
+                id: `user-clarification-${Date.now()}`,
+                role: 'user',
+                content: answer,
+            };
+            setMessages((prev) => [...prev, userMsg]);
+            setClarificationInput('');
+            await answerClarification(pendingClarification.clarification_id, answer, currentSession.id);
+        } catch (err) {
+            console.error('Failed to answer clarification:', err);
+        } finally {
+            setIsSubmittingClarification(false);
+        }
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            handleSend();
-        }
-    };
-
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = e.target.files;
-        if (!files || files.length === 0) return;
-
-        setUploading(true);
-        try {
-            const uploadFn = (window as any).handleWorkspaceUpload;
-            if (uploadFn) {
-                await uploadFn(files);
-            } else {
-                console.error('Upload function not available');
+            if (inputValue.trim()) {
+                void handleSend();
             }
-        } catch (e) {
-            console.error('Upload failed:', e);
-        } finally {
-            setUploading(false);
-            e.target.value = '';
         }
     };
+
+    const handleClarificationKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            void handleSubmitClarification();
+        }
+    };
+
+    const isAgentMessageAnimating = (messageId: string, terminalReason: AgentTerminalReason | null) => (
+        isStreaming &&
+        !terminalReason &&
+        (messageId === activeAgentMessageIdRef.current || messageId === pendingAgentMessageIdRef.current)
+    );
+
+    const shouldShowThinking = (message: AgentMessage) => (
+        isAgentMessageAnimating(message.messageId, message.terminalReason) &&
+        isAgentMessageEmpty(message)
+    );
 
     return (
         <main className="chat-area">
-            {/* Breadcrumb Header */}
             <header className="breadcrumb-header" style={{ justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Orbit size={16} className="breadcrumb-icon" />
+                    <AgentOrbitIcon size={32} className="breadcrumb-icon" />
                     <span style={{ color: '#1f2937', fontWeight: 600 }}>Agents</span>
                     <span className="breadcrumb-separator">/</span>
-                    <span style={{ fontWeight: 400 }}>当前会话</span>
+                    <span style={{ fontWeight: 400 }}>{currentSession.name}</span>
                 </div>
 
-                <button
-                    onClick={handleClearSession}
-                    disabled={isStreaming}
-                    style={{
-                        background: 'transparent', border: 'none', cursor: isStreaming ? 'not-allowed' : 'pointer',
-                        display: 'flex', alignItems: 'center', gap: '6px', color: '#6b7280', padding: '6px 12px',
-                        borderRadius: '6px', transition: 'background 0.2s', opacity: messages.length === 0 ? 0.5 : 1
-                    }}
-                    onMouseOver={e => !isStreaming && (e.currentTarget.style.background = '#f3f4f6')}
-                    onMouseOut={e => !isStreaming && (e.currentTarget.style.background = 'transparent')}
-                >
-                    <Trash2 size={14} />
-                    <span>清空对话</span>
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '12px', color: '#6b7280' }}>{attachedFilesLabel}</span>
+                    <button
+                        onClick={handleClearSession}
+                        disabled={isStreaming}
+                        style={{
+                            background: 'transparent', border: 'none', cursor: isStreaming ? 'not-allowed' : 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '6px', color: '#6b7280', padding: '6px 12px',
+                            borderRadius: '6px', transition: 'background 0.2s', opacity: messages.length === 0 ? 0.5 : 1,
+                        }}
+                        onMouseOver={(e) => !isStreaming && (e.currentTarget.style.background = '#f3f4f6')}
+                        onMouseOut={(e) => !isStreaming && (e.currentTarget.style.background = 'transparent')}
+                    >
+                        <Trash2 size={14} />
+                        <span>{t('chat.clearChat')}</span>
+                    </button>
+                </div>
             </header>
 
             <div
@@ -357,77 +859,73 @@ const ChatArea: React.FC<ChatAreaProps> = ({ onUpdateTools }) => {
             >
                 {messages.length === 0 && (
                     <div style={{ textAlign: 'center', color: '#9ca3af', marginTop: '100px' }}>
-                        发送一条消息开始会话...
+                        {t('chat.placeholder')}
                     </div>
                 )}
 
-                {messages.map(msg => (
+                {messages.map((msg) => (
                     <React.Fragment key={msg.id}>
                         {msg.role === 'user' ? (
                             <div className="message user self-end max-w-[80%]" style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginLeft: 'auto', flexDirection: 'row', alignItems: 'flex-start' }}>
-                                <div className="message-content shadow-sm" style={{ background: '#f3f4f6', padding: '12px 16px', borderRadius: '16px', borderTopRightRadius: '4px', color: '#1f2937' }}>
+                                <div className="message-content shadow-sm" style={{ background: '#f3f4f6', padding: '12px 16px', borderRadius: '16px', borderTopRightRadius: '4px', color: '#1f2937', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
                                     {msg.content}
                                 </div>
                                 <div className="message-avatar flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full" style={{ background: '#1f2937', color: '#fff', fontSize: '14px' }}>U</div>
                             </div>
                         ) : (
                             <div className="message agent max-w-[85%]" style={{ display: 'flex', gap: '12px' }}>
-                                <div className="agent-icon-red flex-shrink-0 flex items-center justify-center w-8 h-8 rounded mt-1" style={{ background: '#fee2e2' }}>
-                                    <Orbit size={18} color="#f04438" />
+                                <div className="agent-icon-red flex-shrink-0 flex items-center justify-center">
+                                    <AgentOrbitIcon
+                                        size={32}
+                                        animated={isAgentMessageAnimating(msg.messageId, msg.terminalReason)}
+                                        className="agent-message-icon"
+                                    />
                                 </div>
                                 <div className="message-content-wrapper" style={{ flex: 1, minWidth: 0 }}>
-
-                                    {/* Tool Calls Status */}
-                                    {msg.toolCalls && msg.toolCalls.length > 0 && (
-                                        <div className="agent-status-bar" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#6b7280', fontSize: '13px', marginBottom: '8px', background: '#f9fafb', padding: '6px 12px', borderRadius: '6px', border: '1px solid #f3f4f6', width: 'fit-content' }}>
-                                            <PenTool size={14} />
-                                            <span>{msg.toolCalls.length} 个工具调用</span>
-                                            {isStreaming && msg.id === activeAgentMsgIdRef.current && (
-                                                <Loader2 size={12} className="animate-spin ml-2" />
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {/* Tool Results Details */}
-                                    {msg.toolResults && msg.toolResults.length > 0 && (
-                                        <div className="agent-loading-line truncate" style={{ fontSize: '13px', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-                                            <span style={{ color: '#10b981' }}>✓</span>
-                                            <span>完成: {msg.toolResults[msg.toolResults.length - 1].name}</span>
-                                        </div>
-                                    )}
-
-                                    {msg.skillActivations && msg.skillActivations.length > 0 && (
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '10px' }}>
-                                            {msg.skillActivations.map((skill, index) => (
-                                                <div key={`${skill.name}-${index}`} style={{ background: '#fff7ed', border: '1px solid #fdba74', borderRadius: '10px', padding: '10px 12px', color: '#9a3412' }}>
-                                                    <div style={{ fontSize: '12px', fontWeight: 700, marginBottom: '4px' }}>Skill 已激活</div>
-                                                    <div style={{ fontSize: '14px', fontWeight: 600 }}>{skill.name}</div>
-                                                    {skill.description && <div style={{ fontSize: '13px', marginTop: '4px' }}>{skill.description}</div>}
-                                                    {skill.when_to_use && <div style={{ fontSize: '12px', marginTop: '6px' }}>使用时机：{skill.when_to_use}</div>}
-                                                    {(skill.granted_permissions && skill.granted_permissions.length > 0) && (
-                                                        <div style={{ fontSize: '12px', marginTop: '6px' }}>声明权限：{skill.granted_permissions.join(', ')}</div>
-                                                    )}
-                                                    {skill.model_override && <div style={{ fontSize: '12px', marginTop: '6px' }}>模型偏好：{skill.model_override}</div>}
-                                                    <div style={{ fontSize: '12px', marginTop: '6px', opacity: 0.9 }}>
-                                                        {skill.source_scope ? `来源: ${skill.source_scope}` : ''}
-                                                        {skill.location ? ` · ${skill.location}` : ''}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-
                                     {msg.content && (
-                                        <div className="message-content prose prose-sm max-w-none" style={{ marginTop: '8px', color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                                        <div className="message-content prose prose-sm max-w-none agent-message-body" style={{ color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
                                             {msg.content}
                                         </div>
                                     )}
 
-                                    {/* Streaming Indicator */}
-                                    {isStreaming && msg.id === activeAgentMsgIdRef.current && !msg.content && (!msg.toolCalls || msg.toolCalls.length === 0) && (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#9ca3af', marginTop: '8px' }}>
-                                            <Loader2 size={16} className="animate-spin" />
-                                            <span style={{ fontSize: '13px' }}>思考中...</span>
+                                    {shouldShowThinking(msg) && (
+                                        <div className="agent-thinking-line">
+                                            <span>{t('tools.processing')}</span>
+                                        </div>
+                                    )}
+
+                                    {Object.values(msg.widgetsById).map((widget) => (
+                                        <WidgetRenderer
+                                            key={widget.tool_call_id || widget.widget_id}
+                                            widget={widget}
+                                            drillPath={drillPaths[widget.widget_id]}
+                                            onDrillDown={handleDrillDown}
+                                            onBreadcrumbNavigate={handleBreadcrumbNavigate}
+                                        />
+                                    ))}
+
+                                    {(Object.values(msg.toolCallsById).length > 0 || msg.skillActivations.length > 0) && (
+                                        <div className="agent-hint-list">
+                                            {Object.values(msg.toolCallsById).map((tool) => (
+                                                <div
+                                                    key={tool.toolCallId}
+                                                    className={`agent-hint-line ${tool.status === 'error' ? 'is-error' : ''}`}
+                                                    onClick={onOpenToolPanel}
+                                                    style={{ cursor: onOpenToolPanel ? 'pointer' : 'default' }}
+                                                >
+                                                    <span className="agent-hint-dot" aria-hidden="true" />
+                                                    <span>{getToolHintLabel(tool)}</span>
+                                                </div>
+                                            ))}
+                                            {msg.skillActivations.map((skill) => (
+                                                <div
+                                                    key={[skill.name, skill.source, skill.command_text, skill.location].join('|')}
+                                                    className="agent-hint-line"
+                                                >
+                                                    <span className="agent-hint-dot" aria-hidden="true" />
+                                                    <span>{getSkillHintLabel(skill)}</span>
+                                                </div>
+                                            ))}
                                         </div>
                                     )}
                                 </div>
@@ -435,64 +933,147 @@ const ChatArea: React.FC<ChatAreaProps> = ({ onUpdateTools }) => {
                         )}
                     </React.Fragment>
                 ))}
+
+                {pendingClarification && (
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                        <div className="agent-icon-red flex-shrink-0 flex items-center justify-center w-8 h-8 rounded mt-1" style={{ background: '#dbeafe' }}>
+                            <PenTool size={18} color="#2563eb" />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0, background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '12px', padding: '14px' }}>
+                            <div style={{ fontSize: '12px', fontWeight: 700, color: '#1d4ed8', marginBottom: '8px' }}>需要你的澄清</div>
+                            <div style={{ color: '#1f2937', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{pendingClarification.question}</div>
+                            {pendingClarification.options.length > 0 && (
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px' }}>
+                                    {pendingClarification.options.map((option) => (
+                                        <button
+                                            key={option}
+                                            onClick={() => void handleSubmitClarification(option)}
+                                            disabled={isSubmittingClarification}
+                                            style={{
+                                                border: '1px solid #93c5fd',
+                                                background: '#ffffff',
+                                                color: '#1d4ed8',
+                                                borderRadius: '999px',
+                                                padding: '6px 12px',
+                                                fontSize: '12px',
+                                                cursor: isSubmittingClarification ? 'not-allowed' : 'pointer',
+                                            }}
+                                        >
+                                            {option}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                            <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                                <input
+                                    value={clarificationInput}
+                                    onChange={(e) => setClarificationInput(e.target.value)}
+                                    onKeyDown={handleClarificationKeyDown}
+                                    placeholder="输入你的回答..."
+                                    disabled={isSubmittingClarification}
+                                    style={{
+                                        flex: 1,
+                                        border: '1px solid #bfdbfe',
+                                        borderRadius: '8px',
+                                        padding: '10px 12px',
+                                        outline: 'none',
+                                        background: '#fff',
+                                    }}
+                                />
+                                <button
+                                    onClick={() => void handleSubmitClarification()}
+                                    disabled={isSubmittingClarification || !clarificationInput.trim()}
+                                    style={{
+                                        background: clarificationInput.trim() ? '#2563eb' : '#bfdbfe',
+                                        color: '#fff',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        padding: '0 14px',
+                                        cursor: isSubmittingClarification || !clarificationInput.trim() ? 'not-allowed' : 'pointer',
+                                    }}
+                                >
+                                    {isSubmittingClarification ? '提交中...' : '提交'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 <div ref={messagesEndRef} />
             </div>
 
             <div className="chat-input-container p-4 border-t border-gray-100 bg-white">
-                <div className="chat-input-wrapper shadow-sm" style={{ display: 'flex', alignItems: 'center', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '8px 12px', transition: 'border-color 0.2s' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', fontSize: '12px', color: '#6b7280' }}>
+                    <span>{isStreaming ? t('chat.steerHint') || '补充说明会作为 steer 发送' : t('chat.attachHint') || '可在左侧 Workspace 勾选文件后附加到本次提问'}</span>
+                    {runReason && <span>{t('chat.status') || '状态'}：{runReason === 'completed' ? t('tools.statusDone') : runReason === 'stopped' ? t('chat.stopped') || '已停止' : t('tools.statusError')}</span>}
+                </div>
+                <div className="chat-input-wrapper shadow-sm" style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '8px 12px', transition: 'border-color 0.2s' }}>
                     <input
-                        type="file"
                         ref={fileInputRef}
-                        style={{ display: 'none' }}
-                        onChange={handleFileUpload}
+                        type="file"
                         multiple
+                        style={{ display: 'none' }}
+                        onChange={handleUploadChange}
                     />
                     <button
-                        className="upload-btn"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={uploading}
-                        title="上传文件到工作区"
+                        onClick={handleUploadClick}
+                        disabled={isUploading || isStreaming}
                         style={{
                             background: 'transparent',
                             border: 'none',
-                            color: uploading ? '#9ca3af' : '#6b7280',
-                            cursor: uploading ? 'not-allowed' : 'pointer',
-                            padding: '6px',
-                            borderRadius: '6px',
-                            marginRight: '4px',
+                            color: isUploading || isStreaming ? '#9ca3af' : '#6b7280',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
+                            cursor: isUploading || isStreaming ? 'not-allowed' : 'pointer',
+                            padding: '8px',
+                            borderRadius: '8px',
                         }}
-                        onMouseOver={(e) => !uploading && (e.currentTarget.style.color = '#1f2937')}
-                        onMouseOut={(e) => !uploading && (e.currentTarget.style.color = '#6b7280')}
+                        title={t('chat.uploadTooltip') || "上传到当前会话工作区"}
                     >
-                        {uploading ? <Loader2 size={18} className="animate-spin" /> : <Paperclip size={18} />}
+                        {isUploading ? <Loader2 size={18} className="animate-spin" /> : <Paperclip size={18} />}
                     </button>
-                    <input
+                    <textarea
+                        ref={textareaRef}
                         className="chat-input flex-1"
-                        placeholder="输入消息..."
+                        placeholder={isStreaming ? (t('chat.steerPlaceholder') || '执行中补充说明...') : t('chat.placeholder')}
                         value={inputValue}
                         onChange={(e) => setInputValue(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        style={{ border: 'none', outline: 'none', padding: '8px 4px', fontSize: '15px' }}
+                        rows={1}
+                        style={{
+                            border: 'none',
+                            outline: 'none',
+                            padding: '8px 4px',
+                            fontSize: '15px',
+                            lineHeight: 1.5,
+                            resize: 'none',
+                            minHeight: '40px',
+                            maxHeight: '160px',
+                            overflowY: 'auto',
+                            whiteSpace: 'pre-wrap',
+                            overflowWrap: 'anywhere',
+                        }}
                     />
                     <button
-                        onClick={handleSend}
-                        disabled={!inputValue.trim()}
+                        onClick={() => void handlePrimaryAction()}
+                        disabled={isUploading || (!isStreaming && !inputValue.trim())}
+                        title={isStreaming && !inputValue.trim() ? t('chat.stop') : t('chat.send')}
                         style={{
-                            background: inputValue.trim() ? '#1f2937' : '#f3f4f6',
+                            background: isStreaming && !inputValue.trim() ? '#fee2e2' : inputValue.trim() ? '#1f2937' : '#f3f4f6',
                             border: 'none',
-                            color: inputValue.trim() ? '#fff' : '#d1d5db',
+                            color: isStreaming && !inputValue.trim() ? '#b91c1c' : inputValue.trim() ? '#fff' : '#d1d5db',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            cursor: inputValue.trim() ? 'pointer' : 'not-allowed',
+                            cursor: isUploading || (!isStreaming && !inputValue.trim()) ? 'not-allowed' : 'pointer',
                             padding: '8px',
                             borderRadius: '8px',
-                            transition: 'all 0.2s'
-                        }}>
-                        <Send size={18} />
+                            transition: 'all 0.2s',
+                            flexShrink: 0,
+                        }}
+                    >
+                        {isStreaming && !inputValue.trim() ? <Square size={18} /> : <Send size={18} />}
                     </button>
                 </div>
             </div>

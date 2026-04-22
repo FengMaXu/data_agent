@@ -2,7 +2,7 @@
 知识库工具集 (Knowledge Tools)
 
 提供对 knowledge/ 目录下 .md 文档的搜索、读取、写入能力。
-统一替代原先分散的 grep_tool / AnnotationStore / QueryPatternStore。
+统一替代原先分散的 grep_tool / AnnotationStore。
 
 目录结构:
   knowledge/
@@ -27,10 +27,13 @@ from typing import Any
 from src.agent.types import AgentTool, AgentToolResult
 from src.ai.base_provider import ToolResultContent
 
+from src.context.query_pattern_retriever import QueryPatternRetriever
+
 logger = logging.getLogger("data_agent.context.knowledge_tools")
 
 # 知识库根目录（项目根目录下的 knowledge/）
 KNOWLEDGE_ROOT = Path(__file__).resolve().parent.parent.parent / "knowledge"
+QUERY_PATTERNS_PATH = KNOWLEDGE_ROOT / "doc" / "query_patterns.md"
 DEFAULT_CONTEXT_LINES = 3
 DEFAULT_MAX_RESULTS = 8
 MAX_CONTEXT_LINES = 10
@@ -367,6 +370,35 @@ async def _search_knowledge(tool_call_id: str, arguments: dict) -> AgentToolResu
     )
 
 
+async def _search_query_patterns(tool_call_id: str, arguments: dict) -> AgentToolResult:
+    """在 doc/query_patterns.md 中直接检索最相关的查询模板片段"""
+    query = str(arguments.get("query", "")).strip()
+    max_results = _clamp_int(
+        arguments.get("max_results"),
+        default=3,
+        minimum=1,
+        maximum=8,
+    )
+
+    if not query:
+        return AgentToolResult(
+            content=[ToolResultContent(text="错误: 必须提供 query 参数")],
+            is_error=True,
+        )
+
+    retriever = QueryPatternRetriever(QUERY_PATTERNS_PATH)
+    matches = retriever.search(query, max_results=max_results)
+    return AgentToolResult(
+        content=[ToolResultContent(text=retriever.format_results(query, matches))],
+        details={
+            "query": query,
+            "match_count": len(matches),
+            "matched_titles": [match.title for match in matches],
+            "source_path": "doc/query_patterns.md",
+        },
+    )
+
+
 async def _read_knowledge(tool_call_id: str, arguments: dict) -> AgentToolResult:
     """读取知识库中的指定文件"""
     path = arguments.get("path", "")
@@ -538,6 +570,31 @@ async def _edit_knowledge(tool_call_id: str, arguments: dict) -> AgentToolResult
 def create_knowledge_tools() -> list[AgentTool]:
     """创建知识库工具集"""
     return [
+        AgentTool(
+            name="search_query_patterns",
+            label="检索查询模板",
+            description=(
+                "直接在 knowledge/doc/query_patterns.md 中检索最相关的查询模板片段。\n"
+                "适用于单值查询、单指标查询、单月累计值查询等快速路径场景。\n"
+                "返回最匹配的模板标题、适用片段、命中关键词和示例 SQL。\n"
+                "命中后应优先直接改写模板并执行 SQL，而不是先 search_knowledge 再 read_knowledge_file。"
+            ),
+            parameters={
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "业务问题或关键词，如'2025年批发业累计销售额'、'行业大类 单月累计值'",
+                    },
+                    "max_results": {
+                        "type": "integer",
+                        "description": "最多返回多少个候选模板（默认3，最大8）",
+                    },
+                },
+                "required": ["query"],
+            },
+            execute_fn=_search_query_patterns,
+        ),
         AgentTool(
             name="search_knowledge",
             label="搜索知识库",

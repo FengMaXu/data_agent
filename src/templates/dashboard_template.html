@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="{{ theme or 'light' }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        /* 主题变量 */
+        :root[data-theme="light"] {
+            --bg-primary: #f5f5f5;
+            --bg-secondary: #ffffff;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --border-color: rgba(0,0,0,0.08);
+            --shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        :root[data-theme="dark"] {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --text-primary: #e5e7eb;
+            --text-secondary: #9ca3af;
+            --border-color: rgba(255,255,255,0.1);
+            --shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        :root[data-theme="blue"] {
+            --bg-primary: #f0f4f8;
+            --bg-secondary: #ffffff;
+            --text-primary: #1e3a5f;
+            --text-secondary: #4a5568;
+            --border-color: rgba(59,130,246,0.1);
+            --shadow: 0 2px 8px rgba(59,130,246,0.1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: var(--bg-primary);
+            padding: 20px;
+            color: var(--text-primary);
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .dashboard-header {
+            background: var(--bg-secondary);
+            padding: 24px 32px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dashboard-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .dashboard-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .action-btn {
+            padding: 8px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            background: var(--bg-primary);
+        }
+
+        .action-btn.primary {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        .action-btn.primary:hover {
+            background: #2563eb;
+        }
+
+        .charts-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .chart-card {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chart-header {
+            margin-bottom: 16px;
+        }
+
+        .chart-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .chart-subtitle {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .chart-container {
+            flex: 1;
+        }
+
+        .breadcrumb {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--bg-primary);
+            border-radius: 6px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .breadcrumb-item {
+            cursor: pointer;
+            color: #3b82f6;
+        }
+
+        .breadcrumb-item:hover {
+            text-decoration: underline;
+        }
+
+        .breadcrumb-item.active {
+            color: var(--text-primary);
+            font-weight: 500;
+            cursor: default;
+        }
+
+        .breadcrumb-separator {
+            color: var(--text-secondary);
+        }
+
+        @media print {
+            body { background: white; padding: 0; }
+            .dashboard-actions { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">{{ title }}</h1>
+        <div class="dashboard-actions">
+            <button class="action-btn" onclick="changeTheme('light')">浅色</button>
+            <button class="action-btn" onclick="changeTheme('dark')">深色</button>
+            <button class="action-btn" onclick="changeTheme('blue')">蓝色</button>
+            <button class="action-btn primary" onclick="exportPDF()">导出 PDF</button>
+        </div>
+    </div>
+
+    <div class="charts-container">
+        {% for chart in charts %}
+        <div class="chart-card" style="width: calc({{ chart.width or '50%' }} - 10px);">
+            <div class="chart-header">
+                <div id="breadcrumb-{{ loop.index0 }}" class="breadcrumb" style="display: none;"></div>
+                <div class="chart-title">{{ chart.title }}</div>
+                {% if chart.subtitle %}
+                <div class="chart-subtitle">{{ chart.subtitle }}</div>
+                {% endif %}
+            </div>
+            <div id="chart-{{ loop.index0 }}" class="chart-container" style="min-height: {{ chart.height or '360px' }};"></div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <script id="charts-data" type="application/json">
+{{ charts_json | safe }}
+    </script>
+
+    <script>
+        const chartsData = JSON.parse(
+            document.getElementById('charts-data').textContent
+        );
+        const drillPaths = {};
+        const chartInstances = [];
+        const originalOptions = {};
+
+        // 主题切换
+        function changeTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            chartInstances.forEach((chart) => {
+                const isDark = theme === 'dark';
+                chart.setOption({
+                    backgroundColor: 'transparent',
+                    textStyle: { color: isDark ? '#e5e7eb' : '#1f2937' }
+                });
+            });
+        }
+
+        // PDF 导出
+        function exportPDF() {
+            const element = document.body;
+            const opt = {
+                margin: 10,
+                filename: '{{ title }}.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+            };
+            html2pdf().set(opt).from(element).save();
+        }
+
+        // 初始化所有图表
+        chartsData.forEach((chartConfig, index) => {
+            const container = document.getElementById(`chart-${index}`);
+            if (!container) return;
+
+            const chart = echarts.init(container);
+            chartInstances.push(chart);
+
+            const option = chartConfig.echarts_option;
+            chart.setOption(option);
+            originalOptions[index] = option;
+            drillPaths[index] = [chartConfig.title];
+
+            // 点击事件：下钻或通知
+            chart.on('click', (params) => {
+                handleChartClick(index, params, chartConfig);
+            });
+
+            window.addEventListener('resize', () => chart.resize());
+        });
+
+        function handleChartClick(chartIndex, params, chartConfig) {
+            const dimension = params.seriesName || params.dimensionNames?.[0] || 'value';
+            const value = params.name;
+
+            // 1. 优先使用内嵌下钻数据
+            const ddData = chartConfig.drilldown_data;
+            if (ddData && ddData[value]) {
+                drillPaths[chartIndex].push(value);
+                updateBreadcrumb(chartIndex);
+
+                const chart = chartInstances[chartIndex];
+                chart.setOption(ddData[value], true);
+                return;
+            }
+
+            // 2. 无内嵌下钻 → 通知父窗口（前端 Agent 处理）
+            drillPaths[chartIndex].push(value);
+            updateBreadcrumb(chartIndex);
+
+            if (window.parent !== window) {
+                window.parent.postMessage({
+                    type: 'drill_down',
+                    chartIndex,
+                    dimension,
+                    value,
+                    chartTitle: chartConfig.title
+                }, '*');
+            }
+
+            console.log(`下钻: ${chartConfig.title} -> ${dimension}: ${value}`);
+        }
+
+        function updateBreadcrumb(chartIndex) {
+            const breadcrumbEl = document.getElementById(`breadcrumb-${chartIndex}`);
+            if (!breadcrumbEl) return;
+            const path = drillPaths[chartIndex];
+
+            if (path.length <= 1) {
+                breadcrumbEl.style.display = 'none';
+                return;
+            }
+
+            breadcrumbEl.style.display = 'inline-flex';
+            breadcrumbEl.innerHTML = path.map((item, i) => {
+                const isLast = i === path.length - 1;
+                const itemClass = isLast ? 'breadcrumb-item active' : 'breadcrumb-item';
+                const separator = i < path.length - 1 ? '<span class="breadcrumb-separator">›</span>' : '';
+
+                return `<span class="${itemClass}" onclick="${isLast ? '' : `navigateTo(${chartIndex}, ${i})`}">${item}</span>${separator}`;
+            }).join('');
+        }
+
+        function navigateTo(chartIndex, level) {
+            const path = drillPaths[chartIndex];
+            drillPaths[chartIndex] = path.slice(0, level + 1);
+            updateBreadcrumb(chartIndex);
+
+            // 返回顶层时恢复原始图表
+            if (level === 0 && originalOptions[chartIndex]) {
+                chartInstances[chartIndex].setOption(originalOptions[chartIndex], true);
+            }
+
+            if (window.parent !== window) {
+                window.parent.postMessage({
+                    type: 'navigate_back',
+                    chartIndex,
+                    level,
+                    targetLevel: path[level]
+                }, '*');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -13,11 +13,13 @@ from .base_provider import (
     AssistantResponse,
     LLMProvider,
     Message,
+    robust_parse_tool_arguments,
     Role,
     StreamEvent,
     TokenUsage,
     ToolCall,
     ToolDefinition,
+    generate_message_id,
     generate_tool_call_id,
 )
 
@@ -153,13 +155,19 @@ class OpenAIProvider(LLMProvider):
         full_text = ""
         tool_calls_map: dict[int, dict] = {}  # index -> {id, name, arguments_str}
         usage = TokenUsage()
+        message_id = generate_message_id()
+        yield StreamEvent(type="message_start", message_id=message_id)
 
         async for chunk in response:
             delta = chunk.choices[0].delta if chunk.choices else None
 
             if delta and delta.content:
                 full_text += delta.content
-                yield StreamEvent(type="text_delta", text=delta.content)
+                yield StreamEvent(
+                    type="text_delta",
+                    text=delta.content,
+                    message_id=message_id,
+                )
 
             if delta and delta.tool_calls:
                 for tc_delta in delta.tool_calls:
@@ -173,15 +181,35 @@ class OpenAIProvider(LLMProvider):
                                 else ""
                             ),
                             "arguments_str": "",
+                            "started": False,
                         }
                     if tc_delta.function and tc_delta.function.name:
                         tool_calls_map[idx]["name"] = tc_delta.function.name
                     if tc_delta.id:
                         tool_calls_map[idx]["id"] = tc_delta.id
+                    if not tool_calls_map[idx]["started"]:
+                        tool_calls_map[idx]["started"] = True
+                        yield StreamEvent(
+                            type="tool_call_start",
+                            message_id=message_id,
+                            tool_call_id=tool_calls_map[idx]["id"],
+                            tool_name=tool_calls_map[idx]["name"],
+                            tool_call=ToolCall(
+                                id=tool_calls_map[idx]["id"],
+                                name=tool_calls_map[idx]["name"],
+                                arguments={},
+                            ),
+                        )
                     if tc_delta.function and tc_delta.function.arguments:
-                        tool_calls_map[idx][
-                            "arguments_str"
-                        ] += tc_delta.function.arguments
+                        partial_arguments = tc_delta.function.arguments
+                        tool_calls_map[idx]["arguments_str"] += partial_arguments
+                        yield StreamEvent(
+                            type="tool_call_delta",
+                            message_id=message_id,
+                            tool_call_id=tool_calls_map[idx]["id"],
+                            tool_name=tool_calls_map[idx]["name"],
+                            partial_arguments=partial_arguments,
+                        )
 
             # Token 统计在最后一个 chunk（usage 字段）
             if chunk.usage:
@@ -195,28 +223,22 @@ class OpenAIProvider(LLMProvider):
         final_tool_calls: list[ToolCall] = []
         for idx in sorted(tool_calls_map.keys()):
             tc_data = tool_calls_map[idx]
-            try:
-                args = (
-                    json.loads(tc_data["arguments_str"])
-                    if tc_data["arguments_str"]
-                    else {}
-                )
-            except json.JSONDecodeError:
-                args = {"_raw": tc_data["arguments_str"]}
+            args = robust_parse_tool_arguments(tc_data["arguments_str"])
 
             tc = ToolCall(id=tc_data["id"], name=tc_data["name"], arguments=args)
             final_tool_calls.append(tc)
-            yield StreamEvent(type="tool_call_start", tool_call=tc)
 
         # 最终 done 事件
         stop_reason = "tool_use" if final_tool_calls else "end_turn"
         yield StreamEvent(
             type="done",
+            message_id=message_id,
             response=AssistantResponse(
                 content=full_text,
                 tool_calls=final_tool_calls if final_tool_calls else None,
                 stop_reason=stop_reason,
                 usage=usage,
                 model=model,
+                message_id=message_id,
             ),
         )
