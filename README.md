@@ -165,6 +165,12 @@ npm run build:desktop
 - PyInstaller 中间产物：`build/pyinstaller/`
 - 打包后的后端目录：`dist/data_agent_server/`
 
+### 安装包下载
+
+- 安装包发布页：[GitHub Releases](https://github.com/FengMaXu/data_agent/releases)
+- 当前构建产物文件名示例：`Data Agent Setup 0.0.0.exe`
+- 后续发布新版本时，建议继续通过 Releases 页面统一提供下载
+
 ## 日志与运行时说明
 
 - 桌面端日志写入 `%APPDATA%\Data Agent`

@@ -1,95 +1,129 @@
 # Business Knowledge
 
-## 业务指标定义
+## 适用范围
 
-### 同比增速 (Year-over-Year Growth Rate)
-- **定义**: 与去年同期相比的增长百分比
-- **关联表**: fact_sales_monthly, fact_retail_monthly
-- **正确计算方式**: `(SUM(本年累计值) - SUM(上年同期累计值)) / SUM(上年同期累计值) * 100`
-- **错误做法**: 不能直接对各个企业的增速进行平均（AVG(yoy_growth_rate)）
-- **示例**:
-  - 批发业2025年12月累计销售额: 7,276.5712亿元
-  - 批发业2024年12月累计销售额: 9,492.5824亿元
-  - 正确增速: `(7276.5712 - 9492.5824) / 9492.5824 * 100 = -23.34%`
-  - 错误增速: `AVG(yoy_growth_rate) = 23.59%` (完全错误!)
+本默认文档面向通用企业数据库场景，不绑定任何具体行业或客户私有口径。后续接入真实业务库时，可在此基础上增量补充企业专属定义。
 
-### 行业分类信息
-- **批发业**: 行业大类代码为 "51"
-- **行业层级**: 行业门类 → 行业大类 → 行业中类 → 行业小类
-- **常用行业大类代码**:
-  - 51: 批发业
-  - 52: 零售业
-  - 其他行业代码可通过 `dim_industry` 表查询
+## 常见业务指标
 
+### 营收
+- 定义：在指定时间范围内已确认的订单收入。
+- 常用来源：`fact_orders.paid_amount` 或 `fact_order_items.net_amount`。
+- 默认排除：测试单、逻辑删除单、已取消订单、全额退款订单。
+- 示例：
+  - 2026 年 1 月营收 = 2026-01-01 至 2026-01-31 之间所有已支付订单的 `paid_amount` 汇总。
 
-### 汇总指标计算规则
-1. **汇总值的同比增速必须重新计算**，不能直接对个体增速进行平均
-2. **正确SQL示例**:
-   ```sql
-   -- 正确：先汇总再计算增速
-   SELECT 
-       industry,
-       SUM(sales_ytd) as current_year_total,
-       SUM(sales_ytd_last_year) as last_year_total,
-       (SUM(sales_ytd) - SUM(sales_ytd_last_year)) / SUM(sales_ytd_last_year) * 100 as correct_growth_rate
-   FROM fact_sales_monthly
-   GROUP BY industry
-   
-   -- 错误：直接平均个体增速
-   SELECT 
-       industry,
-       AVG(yoy_growth_rate) as wrong_growth_rate  -- 这是错误的！
-   FROM fact_sales_monthly
-   GROUP BY industry
-   ```
-3. **原因**: 个体增速的权重不同，直接平均会扭曲整体趋势
-4. **适用场景**: 行业汇总、区域汇总、品类汇总等所有需要计算汇总增速的场景
+### 毛利
+- 定义：收入减去商品成本。
+- 常用公式：`SUM(net_amount - cost_amount)`。
+- 注意：不要用吊牌价或原价代替实际净额。
+- 示例：
+  - 营收 100000 元，成本 72000 元，则毛利为 28000 元。
 
-## 常见问题
+### 订单数
+- 定义：唯一业务订单数。
+- 常用公式：`COUNT(DISTINCT order_id)`。
+- 注意：不能把订单明细行数当作订单数。
 
-### 汇总增速计算错误
-- **影响表**: fact_sales_monthly, fact_retail_monthly
-- **错误表现**: 使用 `AVG(yoy_growth_rate)` 计算汇总增速
-- **正确做法**: 先计算汇总值，再计算增速
-- **严重后果**: 可能导致增速方向完全相反（如负增长显示为正增长）
+### 客单价
+- 定义：营收除以有效订单数。
+- 常用公式：`SUM(paid_amount) / COUNT(DISTINCT order_id)`。
+- 注意：分母需用 `NULLIF` 防止除零。
 
-## 图表风格
-| 元素       | 常见咨询风格设置                  | 备注                              |
-|------------|-----------------------------------|-----------------------------------|
-| 主色       | #003087 (深蓝) / #005566 (深青)   | BCG / Bain 常用深蓝系            |
-| 辅助色     | #A6192E (暗红) / #F5A623 (橙)     | 用于警示或重点                    |
-| 背景       | #FFFFFF 或 #F5F5F5 极浅灰         | 大量留白                          |
-| 字体       | Segoe UI / Calibri 9–12pt/黑色       | 标题加粗 14–18pt                  |
-| 图表边框   | 无边框 或 极细 0.5pt 灰           | 几乎看不到边框                    |
-| 数据标签   | 直接标在柱子上 / 线上，不用图例   | 减少认知负担                      |
+### 活跃客户数
+- 定义：在目标时间段内至少有一笔有效订单的唯一客户数。
+- 常用公式：`COUNT(DISTINCT customer_id)`。
 
-### 新纳统企业 (Newly Added Four-Above Enterprises)
-- **定义**: 相较与基准月份，新增的四上企业
-- **具体标准**: 
-  1. 在目标月份是四上企业 (`is_four_above = 1`)
-  2. 在基准月份不是四上企业 (`is_four_above = 0` 或企业不存在于基准月份的四上企业名单中)
-- **关联表**: `dim_company_monthly_snapshot`
-- **关键字段**: `is_four_above` (tinyint(1)) - 标识企业是否为"四上"企业 (1:是, 0:否)
-- **常见应用场景**:
-  - 统计月度/季度新增的四上企业数量
-  - 分析新纳统企业对行业增长的贡献
-  - 监测"四上"企业培育成效
-- **SQL识别逻辑**:
-  ```sql
-  -- 识别新纳统企业的核心逻辑
-  SELECT 目标月.company_id
-  FROM dim_company_monthly_snapshot 目标月
-  LEFT JOIN (
-      SELECT company_id 
-      FROM dim_company_monthly_snapshot 
-      WHERE snapshot_month = '基准月份' 
-          AND is_four_above = 1
-  ) 基准月 ON 目标月.company_id = 基准月.company_id
-  WHERE 目标月.snapshot_month = '目标月份'
-      AND 目标月.is_four_above = 1
-      AND 基准月.company_id IS NULL  -- 在基准月份不是四上企业
-  ```
-- **注意事项**:
-  1. 需要明确基准月份和目标月份
-  2. 企业可能在基准月份不存在（新成立企业），也可能存在但不是四上企业
-  3. 统计时应确保企业有完整的销售额数据用于增量计算
+### 新客户数
+- 定义：客户首笔成功订单落在目标时间段内的客户数。
+- 常用方法：
+  - 先求每个客户的 `MIN(paid_at)`。
+  - 再统计首单时间落入目标周期的客户。
+
+### 复购率
+- 定义：在目标时间段内下单两次及以上客户占下单客户的比例。
+- 常用口径：
+  - 分子：`COUNT(DISTINCT customer_id)` 且订单数大于等于 2 的客户。
+  - 分母：至少有 1 笔有效订单的客户。
+
+## 时间口径规则
+
+- 用户说“本月”时，默认按自然月统计。
+- 用户说“近 30 天”时，按滚动日期区间统计，不等价于自然月。
+- 同比、环比必须基于汇总值重新计算，不能对行级增长率直接求平均。
+
+### 正确的同比计算方式
+
+```sql
+SELECT
+    SUM(current_period_amount) AS current_amount,
+    SUM(previous_period_amount) AS previous_amount,
+    (SUM(current_period_amount) - SUM(previous_period_amount))
+        / NULLIF(SUM(previous_period_amount), 0) AS growth_rate
+FROM some_summary_table;
+```
+
+### 错误的同比计算方式
+
+```sql
+SELECT AVG(row_level_growth_rate) AS growth_rate
+FROM some_summary_table;
+```
+
+## 常见分析维度
+
+### 区域
+- 常见层级：国家/大区 -> 省/州 -> 城市 -> 区县。
+- 分组时优先使用稳定且维护完整的字段。
+
+### 渠道
+- 常见类型：直营、经销、电商、门店、合作伙伴。
+- 对比分析时要保证渠道定义前后一致。
+
+### 产品
+- 常见层级：品类 -> 子品类 -> SKU。
+- 排名类问题通常按品类或 SKU 聚合。
+
+### 客户
+- 常见分组：企业/个人、新客/老客、行业、客户等级、客户经理。
+
+## 默认过滤条件
+
+除非用户明确要求，否则默认使用以下过滤：
+- 排除测试数据。
+- 排除逻辑删除数据。
+- 排除已取消订单。
+- 排除内部调拨或非经营性订单。
+- 收入类问题优先使用已支付或已完成订单。
+
+## 常见错误
+
+### 把明细行数当作业务实体数
+- 错误：在订单明细表上直接 `COUNT(*)` 统计订单数。
+- 正确：使用 `COUNT(DISTINCT order_id)`。
+
+### 使用错误的时间字段统计营收
+- 错误：所有收入问题都按 `created_at` 统计。
+- 正确：根据指标定义使用 `paid_at` 或 `completed_at`。
+
+### 混用原价和净额
+- 错误：用 `list_price * qty` 代表实际营收。
+- 正确：若问题询问实际收入，应使用支付金额或折后净额。
+
+### 快照表重复累计
+- 错误：直接把多日客户余额快照求和。
+- 正确：先找每个实体的最新快照，再做聚合。
+
+## 默认图表建议
+
+- 趋势问题：折线图。
+- 排名问题：横向条形图。
+- 占比问题：堆叠柱状图或环形图。
+- 表格输出需标注单位、排序方向和时间范围。
+
+## 示例问题
+
+- 最近 12 个月营收趋势如何？
+- 本季度收入贡献最高的前 10 个产品是什么？
+- 各渠道复购率分别是多少？
+- 哪些区域的毛利连续两个月下降？

@@ -1,184 +1,207 @@
-# 数据库 Schema 文档
+# Database Schema
 
-## 数据库概览
+## 概览
 
-本数据库包含企业统计相关的维度表和事实表，主要用于行业销售额和零售额的分析统计。
+本默认 Schema 采用企业分析中常见的“维度表 + 事实表”结构，适合作为通用企业数据库示例。实际接入真实业务时，可在此基础上映射到客户自己的表结构。
 
-### 表关系图
-```
-dim_company (企业主表)
-    ↑
-dim_company_monthly_snapshot (企业月度快照)
-    ↑
-dim_industry (行业维度表)
-    ↑
-fact_sales_monthly (销售额事实表)
-fact_retail_monthly (零售额事实表)
-```
+## 建议表清单
 
-## 表详细结构
-
-### 1. dim_company (企业主维度表)
-**说明**: 存储企业的核心身份信息
-**行数**: ~89,639
-
-| 列名 | 类型 | 可空 | 键 | 默认值 | 注释 |
-|------|------|------|-----|--------|------|
-| company_id | bigint | ✗ | PK | None | 主键。系统生成的唯一ID（代理键）。 |
-| unified_social_credit_code | varchar(50) | ✗ | UNI | None | 唯一键。统一社会信用代码。 |
-| company_name | varchar(255) | ✓ |  | None | 企业官方名称。 |
-| org_code | varchar(50) | ✓ |  | None | 组织机构代码。 |
-
-### 2. dim_company_monthly_snapshot (企业月度快照维度表)
-**说明**: 记录企业每月的动态属性
-**行数**: ~881,898
-
-| 列名 | 类型 | 可空 | 键 | 默认值 | 注释 |
-|------|------|------|-----|--------|------|
-| snapshot_id | bigint | ✗ | PK | None | 主键。快照记录的唯一ID。 |
-| company_id | bigint | ✗ | FK | None | 外键，关联到 dim_company。 |
-| industry_code | varchar(20) | ✗ | FK | None | 外键，关联到 dim_industry。 |
-| snapshot_month | date | ✗ | FK | None | 快照月份，格式为 YYYY-MM-01。 |
-| is_four_above | tinyint(1) | ✓ |  | None | 该企业在本月是否为"四上"企业 (1:是, 0:否)。 |
-| operating_address | text | ✓ |  | None | 企业在本月的实际经营地址。 |
-| district | varchar(100) | ✓ |  | None | 企业在本月所属的片区。 |
-
-### 3. dim_industry (行业维度表)
-**说明**: 存储所有行业的分类标准信息
-**行数**: ~1,381
-
-| 列名 | 类型 | 可空 | 键 | 默认值 | 注释 |
-|------|------|------|-----|--------|------|
-| industry_code | varchar(20) | ✗ | PK | None | 主键。行业小类代码，唯一标识一个行业细分。 |
-| industry_name_small | varchar(255) | ✓ |  | None | 行业小类名称。 |
-| industry_code_medium | varchar(20) | ✓ |  | None | 行业中类代码。 |
-| industry_name_medium | varchar(255) | ✓ |  | None | 行业中类名称。 |
-| industry_code_large | varchar(20) | ✓ |  | None | 行业大类代码。 |
-| industry_name_large | varchar(255) | ✓ |  | None | 行业大类名称。 |
-| industry_code_category | varchar(10) | ✓ |  | None | 行业门类代码。 |
-| industry_name_category | varchar(255) | ✓ |  | None | 行业门类名称。 |
-| gdp_industry_code | varchar(20) | ✓ |  | None | GDP行业分类代码。 |
-| gdp_industry_name | varchar(255) | ✓ |  | None | GDP行业分类名称。 |
-| tertiary_industry_code | varchar(10) | ✓ |  | None | 三次产业代码。 |
-| tertiary_industry_name | varchar(50) | ✓ |  | None | 三次产业划分名称。 |
-
-### 4. fact_sales_monthly (企业月度销售额事实表)
-**说明**: 企业月度销售额事实表（亿元）
-**行数**: ~14,851
-
-| 列名 | 类型 | 可空 | 键 | 默认值 | 注释 |
-|------|------|------|-----|--------|------|
-| fact_id | bigint | ✗ | PK | None | 主键。 |
-| company_id | bigint | ✗ | FK | None | 外键，关联到 dim_company。 |
-| snapshot_month | date | ✗ | FK | None | 关联的快照月份。 |
-| sales_ytd | decimal(20,4) | ✓ |  | None | 商品销售额_本年1月至本月累计。 |
-| sales_ytd_last_year | decimal(20,4) | ✓ |  | None | 商品销售额_上年1月至本月累计。 |
-| sales_current_month | decimal(20,4) | ✓ |  | None | 商品销售额_本月。 |
-| sales_same_month_last_year | decimal(20,4) | ✓ |  | None | 商品销售额_上年同月。 |
-| sales_ytd_prev_month | decimal(20,4) | ✓ |  | None | 商品销售额_本年1月至上月累计。 |
-| sales_ytd_prev_month_last_year | decimal(20,4) | ✓ |  | None | 商品销售额_上年1月至上月累计。 |
-| yoy_growth_rate | decimal(12,6) | ✓ |  | None | 同比增速。 |
-| yoy_growth_rate_prev_month | decimal(12,6) | ✓ |  | None | 上月同比增速。 |
-| yoy_narrowing | decimal(12,6) | ✓ |  | None | 同比收窄幅度。 |
-| large_category_pull_effect | decimal(20,6) | ✓ |  | None | 本月大类拉动效应。 |
-| large_category_pull_effect_prev_month | decimal(20,6) | ✓ |  | None | 上月大类拉动效应。 |
-| pull_effect_increment | decimal(20,6) | ✓ |  | None | 拉动增量。 |
-| medium_category_pull_effect | decimal(20,6) | ✓ |  | None | 本月中类拉动效应。 |
-| medium_category_pull_effect_prev_month | decimal(20,6) | ✓ |  | None | 上月中类拉动效应。 |
-| medium_category_pull_increment | decimal(20,6) | ✓ |  | None | 中类拉动增量。 |
-| sub_industry_proportion | decimal(12,6) | ✓ |  | None | 细分行业占比。 |
-| proportion | decimal(12,6) | ✓ |  | None | 占比。 |
-
-### 5. fact_retail_monthly (企业月度零售额事实表)
-**说明**: 企业月度零售额事实表（亿元）
-**行数**: ~16,128
-
-| 列名 | 类型 | 可空 | 键 | 默认值 | 注释 |
-|------|------|------|-----|--------|------|
-| fact_id | bigint | ✗ | PK | None | 主键。 |
-| company_id | bigint | ✗ | FK | None | 外键，关联到 dim_company。 |
-| snapshot_month | date | ✗ | FK | None | 关联的快照月份。 |
-| retail_sales_ytd | decimal(20,4) | ✓ |  | None | 零售额_本年1月至本月累计。 |
-| retail_sales_ytd_last_year | decimal(20,4) | ✓ |  | None | 零售额_上年1月至本月累计。 |
-| online_retail_sales_ytd | decimal(20,4) | ✓ |  | None | 其中通过公共网络实现的零售额_本年1月至本月累计。 |
-| online_retail_sales_ytd_last_year | decimal(20,4) | ✓ |  | None | 其中通过公共网络实现的零售额_上年1月至本月累计。 |
-
-### 6. temp_company (临时企业表)
-**说明**: 无注释
-**行数**: ~85,967
-
-| 列名 | 类型 | 可空 | 键 | 默认值 | 注释 |
-|------|------|------|-----|--------|------|
-| unified_social_credit_code | text | ✓ |  | None |  |
-| company_name | text | ✓ |  | None |  |
-| org_code | text | ✓ |  | None |  |
-
-## 关键字段说明
-
-### 1. 行业分类层级
-- **行业门类 (category)**: 最高层级分类
-- **行业大类 (large)**: 如"批发业" (代码: 51)
-- **行业中类 (medium)**: 大类下的细分
-- **行业小类 (small)**: 最细粒度的行业分类
-
-### 2. 时间字段格式
-- 所有月份字段格式为 `YYYY-MM-01`
-- 表示该月的第一天，用于标识月份
-
-### 3. 金额单位
-- `fact_sales_monthly` 和 `fact_retail_monthly` 表中的金额单位为 **亿元**
-- 数据类型为 `decimal(20,4)`，表示最多20位数字，其中4位小数
-
-### 4. 关键指标字段
-- `sales_ytd`: 本年1月至本月累计销售额
-- `sales_ytd_last_year`: 上年1月至本月累计销售额
-- `retail_sales_ytd`: 本年1月至本月累计零售额
-- `online_retail_sales_ytd`: 本年1月至本月累计网络零售额
-
-## 常用查询关联关系
-
-### 1. 获取企业行业信息
-```sql
-SELECT c.*, s.industry_code, s.snapshot_month
-FROM dim_company c
-JOIN dim_company_monthly_snapshot s ON c.company_id = s.company_id
+```text
+dim_date
+dim_customer
+dim_product
+dim_region
+dim_channel
+fact_orders
+fact_order_items
+fact_payments
+fact_inventory_snapshot
+fact_customer_activity
 ```
 
-### 2. 获取企业销售额及行业信息
-```sql
-SELECT f.*, s.industry_code, i.industry_name_large
-FROM fact_sales_monthly f
-JOIN dim_company_monthly_snapshot s ON f.company_id = s.company_id AND f.snapshot_month = s.snapshot_month
-JOIN dim_industry i ON s.industry_code = i.industry_code
+## 表结构说明
+
+### 1. dim_date
+
+用途：标准日期维表，用于统一时间分析口径。
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| date_key | int | 代理键，例如 20260131 |
+| calendar_date | date | 自然日期 |
+| year | int | 年 |
+| quarter | int | 季度 |
+| month | int | 月份 |
+| month_name | varchar | 月份标签 |
+| week_of_year | int | 年内周次 |
+| is_month_end | tinyint | 是否月末 |
+
+### 2. dim_customer
+
+用途：客户主数据。
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| customer_id | bigint | 主键 |
+| customer_code | varchar | 业务编码 |
+| customer_name | varchar | 客户名称 |
+| customer_type | varchar | 企业 / 个人 |
+| industry_name | varchar | 客户所属行业 |
+| region_id | bigint | 所属区域 |
+| created_at | datetime | 建档时间 |
+| is_active | tinyint | 是否有效 |
+
+### 3. dim_product
+
+用途：产品与品类层级信息。
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| product_id | bigint | 主键 |
+| sku_code | varchar | SKU 编码 |
+| product_name | varchar | 产品名称 |
+| category_name | varchar | 一级品类 |
+| subcategory_name | varchar | 二级品类 |
+| brand_name | varchar | 品牌 |
+| standard_cost | decimal(18,2) | 标准成本 |
+| is_active | tinyint | 是否有效 |
+
+### 4. dim_region
+
+用途：地理区域层级。
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| region_id | bigint | 主键 |
+| country_name | varchar | 国家 |
+| province_name | varchar | 省 / 州 |
+| city_name | varchar | 城市 |
+| district_name | varchar | 区县 |
+| sales_area | varchar | 内部销售大区 |
+
+### 5. dim_channel
+
+用途：销售渠道定义。
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| channel_id | bigint | 主键 |
+| channel_code | varchar | 渠道编码 |
+| channel_name | varchar | 渠道名称 |
+| channel_group | varchar | 渠道上级分组 |
+
+### 6. fact_orders
+
+用途：订单粒度事实表。
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| order_id | bigint | 主键 |
+| order_no | varchar | 订单号 |
+| customer_id | bigint | 客户 ID |
+| channel_id | bigint | 渠道 ID |
+| region_id | bigint | 区域 ID |
+| order_status | varchar | created / paid / shipped / completed / cancelled |
+| created_at | datetime | 下单时间 |
+| paid_at | datetime | 支付时间 |
+| completed_at | datetime | 完成时间 |
+| gross_amount | decimal(18,2) | 原始金额 |
+| discount_amount | decimal(18,2) | 优惠金额 |
+| paid_amount | decimal(18,2) | 实付金额 |
+| refund_amount | decimal(18,2) | 退款金额 |
+
+### 7. fact_order_items
+
+用途：订单明细粒度事实表。
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| order_item_id | bigint | 主键 |
+| order_id | bigint | 订单 ID |
+| product_id | bigint | 产品 ID |
+| quantity | decimal(18,4) | 销售数量 |
+| unit_price | decimal(18,2) | 单价 |
+| net_amount | decimal(18,2) | 折后净额 |
+| cost_amount | decimal(18,2) | 成本金额 |
+
+### 8. fact_payments
+
+用途：支付流水事实表。
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| payment_id | bigint | 主键 |
+| order_id | bigint | 订单 ID |
+| payment_method | varchar | card / transfer / cash / wallet |
+| payment_status | varchar | success / failed / refunded |
+| paid_amount | decimal(18,2) | 支付金额 |
+| paid_at | datetime | 支付时间 |
+
+### 9. fact_inventory_snapshot
+
+用途：库存快照表。
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| snapshot_id | bigint | 主键 |
+| snapshot_date | date | 快照日期 |
+| product_id | bigint | 产品 ID |
+| warehouse_name | varchar | 仓库名称 |
+| on_hand_qty | decimal(18,4) | 账面库存 |
+| reserved_qty | decimal(18,4) | 预留库存 |
+| inventory_value | decimal(18,2) | 库存金额 |
+
+### 10. fact_customer_activity
+
+用途：客户行为事实表。
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| activity_id | bigint | 主键 |
+| customer_id | bigint | 客户 ID |
+| activity_date | date | 活动日期 |
+| visit_count | int | 访问次数 |
+| inquiry_count | int | 询盘次数 |
+| order_count | int | 成功订单数 |
+| revenue_amount | decimal(18,2) | 产出收入 |
+
+## 常见关联路径
+
+### 按产品看收入
+
+```text
+fact_order_items -> fact_orders -> dim_product
 ```
 
-### 3. 获取行业大类销售额汇总
-```sql
-SELECT 
-    i.industry_code_large,
-    i.industry_name_large,
-    f.snapshot_month,
-    SUM(f.sales_ytd) as total_sales_ytd
-FROM fact_sales_monthly f
-JOIN dim_company_monthly_snapshot s ON f.company_id = s.company_id AND f.snapshot_month = s.snapshot_month
-JOIN dim_industry i ON s.industry_code = i.industry_code
-GROUP BY i.industry_code_large, i.industry_name_large, f.snapshot_month
+### 按客户行业看收入
+
+```text
+fact_orders -> dim_customer
 ```
 
-## 数据质量说明
+### 按区域或渠道看收入
 
-1. **数据完整性**: 
-   - 2025年数据从2月开始，缺少1月数据
-   - 所有表都有主键约束，数据唯一性有保障
+```text
+fact_orders -> dim_region
+fact_orders -> dim_channel
+```
 
-2. **外键关系**:
-   - 所有外键关系都已正确定义
-   - 事实表通过 `company_id` 和 `snapshot_month` 关联到快照表
+### 做库存分析
 
-3. **数据一致性**:
-   - 行业代码采用标准分类体系
-   - 时间格式统一为月份第一天
+```text
+fact_inventory_snapshot -> dim_product
+```
 
-## 更新历史
-- 文档创建时间: 2024年
-- 最后更新: 基于当前数据库schema生成
+## 查询约定
+
+- 收入类问题优先使用 `paid_at` 或 `completed_at`，不要一律使用 `created_at`。
+- 订单数使用 `COUNT(DISTINCT order_id)`。
+- 产品收入优先从 `fact_order_items` 聚合。
+- 库存问题通常先确定最新快照日期，再做汇总。
+
+## 示例映射
+
+- “月度营收” -> `fact_orders.paid_amount`
+- “毛利” -> `fact_order_items.net_amount - fact_order_items.cost_amount`
+- “热销产品” -> 按 `dim_product.product_name` 或 `sku_code` 分组
+- “客户留存” -> 基于客户订单历史衍生计算
