@@ -5,6 +5,7 @@ Knowledge 文件管理 API
 
 import logging
 import os
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -15,7 +16,25 @@ from pydantic import BaseModel
 logger = logging.getLogger("data_agent.api.knowledge")
 
 # Knowledge 根目录
-KNOWLEDGE_ROOT = Path(os.getcwd()) / "knowledge"
+def _get_default_knowledge_root() -> Path:
+    """Resolve the knowledge directory for both source and packaged runtimes."""
+    configured_root = os.getenv("DATA_AGENT_KNOWLEDGE_ROOT")
+    if configured_root:
+        return Path(configured_root).expanduser().resolve()
+
+    bundled_root = Path(getattr(sys, "_MEIPASS", "")) / "knowledge"
+    if bundled_root.exists():
+        return bundled_root.resolve()
+
+    project_root = Path(__file__).resolve().parents[2]
+    source_root = project_root / "knowledge"
+    if source_root.exists():
+        return source_root.resolve()
+
+    return (Path.cwd() / "knowledge").resolve()
+
+
+KNOWLEDGE_ROOT = _get_default_knowledge_root()
 
 router = APIRouter(prefix="/knowledge", tags=["knowledge"])
 

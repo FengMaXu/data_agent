@@ -36,6 +36,10 @@ fastapi_stub.APIRouter = _DummyAPIRouter
 fastapi_stub.HTTPException = _DummyHTTPException
 sys.modules.setdefault("fastapi", fastapi_stub)
 
+fastapi_responses_stub = types.ModuleType("fastapi.responses")
+fastapi_responses_stub.StreamingResponse = lambda payload, **kwargs: payload
+sys.modules.setdefault("fastapi.responses", fastapi_responses_stub)
+
 sse_stub = types.ModuleType("sse_starlette.sse")
 sse_stub.EventSourceResponse = lambda payload: payload
 sys.modules.setdefault("sse_starlette.sse", sse_stub)
@@ -51,7 +55,7 @@ async def _fake_awatch(_path):
 watchfiles_stub.awatch = _fake_awatch
 sys.modules.setdefault("watchfiles", watchfiles_stub)
 
-from src.ai.base_provider import ToolResultContent
+from src.ai.base_provider import Message, Role, ToolCall, ToolResultContent
 from src.agent.types import AgentEvent, AgentEventType, AgentToolResult
 from src.api import agent as agent_api
 
@@ -738,6 +742,96 @@ def test_stop_endpoint_marks_running_session(monkeypatch):
     assert runtime.stop_requested is True
     _reset_session(session_id)
     temp_dir.cleanup()
+
+
+def test_strip_unresolved_tool_calls_removes_dangling_calls():
+    messages = [
+        Message(role=Role.USER, content="first question", message_id="msg_user_1"),
+        Message(
+            role=Role.ASSISTANT,
+            content="我来查询。",
+            tool_calls=[
+                ToolCall(id="call_done", name="tool_a", arguments={"q": 1}),
+                ToolCall(id="call_pending", name="tool_b", arguments={"q": 2}),
+            ],
+            message_id="msg_assistant_1",
+        ),
+        Message(
+            role=Role.TOOL_RESULT,
+            content="done",
+            tool_call_id="call_done",
+            tool_name="tool_a",
+            message_id="msg_assistant_1",
+        ),
+        Message(role=Role.USER, content="continue", message_id="msg_user_2"),
+    ]
+
+    sanitized_messages, removed_tool_call_ids = agent_api._strip_unresolved_tool_calls(
+        messages
+    )
+
+    assert removed_tool_call_ids == ["call_pending"]
+    assert len(sanitized_messages) == 4
+    assert sanitized_messages[1].role == Role.ASSISTANT
+    assert sanitized_messages[1].tool_calls is not None
+    assert [tool_call.id for tool_call in sanitized_messages[1].tool_calls] == [
+        "call_done"
+    ]
+    assert sanitized_messages[-1].content == "continue"
+
+
+def test_load_session_snapshot_strips_unresolved_tool_calls():
+    with tempfile.TemporaryDirectory() as temp_root:
+        session_dir = Path(temp_root)
+        snapshot_path = session_dir / agent_api.SNAPSHOT_FILE_NAME
+        snapshot_path.write_text(
+            json.dumps(
+                {
+                    "session_id": "session_snapshot_cleanup",
+                    "updated_at": 1,
+                    "messages": [
+                        {
+                            "role": "assistant",
+                            "content": "我来查询。",
+                            "tool_calls": [
+                                {
+                                    "id": "call_pending",
+                                    "name": "qcc-company_get_company_registration_info",
+                                    "arguments": {"searchKey": "深圳市日盛新材料有限公司"},
+                                }
+                            ],
+                            "tool_call_id": None,
+                            "tool_name": None,
+                            "name": None,
+                            "message_id": "msg_assistant_pending",
+                        },
+                        {
+                            "role": "user",
+                            "content": "继续",
+                            "tool_calls": [],
+                            "tool_call_id": None,
+                            "tool_name": None,
+                            "name": None,
+                            "message_id": "msg_user_continue",
+                        },
+                    ],
+                    "active_skills": [],
+                },
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+
+        messages, active_skills = agent_api._load_session_snapshot(
+            SimpleNamespace(session_dir=session_dir)
+        )
+
+    assert len(messages) == 2
+    assert messages[0].role == Role.ASSISTANT
+    assert messages[0].tool_calls is None
+    assert messages[0].content == "我来查询。"
+    assert messages[1].role == Role.USER
+    assert active_skills.to_dict() == []
 
 
 def test_attached_files_are_scoped_to_session_workspace(monkeypatch):

@@ -31,12 +31,11 @@ class MCPConfigLoader:
         ai_config: AIConfig,
         runtime_override: dict[str, Any] | None = None,
     ) -> MCPSettings:
-        project_data = cls._read_json_file(cls.project_config_path(project_root))
+        cls.ensure_user_settings_migrated(project_root)
         user_data = cls._read_json_file(cls.USER_CONFIG_PATH)
         override_data = runtime_override or {}
 
-        merged = cls._merge_dicts(user_data, project_data)
-        merged = cls._merge_dicts(merged, override_data)
+        merged = cls._merge_dicts(user_data, override_data)
 
         settings = MCPSettings.from_dict(merged)
         legacy_server = cls.from_legacy_ai_config(ai_config)
@@ -51,11 +50,27 @@ class MCPConfigLoader:
 
     @classmethod
     def save_project_settings(cls, project_root: Path, settings: MCPSettings) -> Path:
-        path = cls.project_config_path(project_root)
+        path = cls.USER_CONFIG_PATH
         path.parent.mkdir(parents=True, exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:
             json.dump(settings.to_dict(), f, ensure_ascii=False, indent=2)
         return path
+
+    @classmethod
+    def ensure_user_settings_migrated(cls, project_root: Path) -> Path:
+        user_path = cls.USER_CONFIG_PATH
+        if user_path.exists():
+            return user_path
+
+        legacy_project_path = cls.project_config_path(project_root)
+        legacy_data = cls._read_json_file(legacy_project_path)
+        if not legacy_data:
+            return user_path
+
+        user_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(user_path, "w", encoding="utf-8") as f:
+            json.dump(legacy_data, f, ensure_ascii=False, indent=2)
+        return user_path
 
     @classmethod
     def from_legacy_ai_config(cls, ai_config: AIConfig) -> MCPServerConfig | None:

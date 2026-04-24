@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-type Language = 'en' | 'zh';
+export type Language = 'en' | 'zh';
 
 interface Translations {
     [key: string]: {
@@ -20,6 +20,8 @@ const translations: Translations = {
         'sidebar.metrics': 'Metrics',
         'sidebar.settings': 'Settings',
         'sidebar.langToggle': '切换至中文',
+
+        'app.preparing': 'Preparing Data Agent...',
 
         'settings.title': 'Settings',
         'settings.model': 'Model',
@@ -122,6 +124,40 @@ const translations: Translations = {
         'widgets.download': 'Download',
         'widgets.renderFail': 'Widget render failed',
 
+        'onboarding.badge': 'Desktop Setup',
+        'onboarding.titleLine1': 'Connect Data Agent',
+        'onboarding.titleLine2': 'to your model provider',
+        'onboarding.description': 'Choose your language, connect one model provider, and you can start using the local assistant right away.',
+        'onboarding.featureLabel': 'What this setup does',
+        'onboarding.featureOne': 'Encrypts desktop secrets with Electron safeStorage before reuse',
+        'onboarding.featureTwo': 'Keeps provider and database settings together in one startup flow',
+        'onboarding.featureThree': 'Lets you switch the interface language before entering the app',
+        'onboarding.browserWarning': 'Browser dev mode detected. Keys will be sent to the backend for this session, but they will not be persisted in localStorage.',
+        'onboarding.formEyebrow': 'Getting Started',
+        'onboarding.formTitle': 'Finish the first-run configuration',
+        'onboarding.formDescription': 'Set your preferred language first, then choose the provider you want Data Agent to use.',
+        'onboarding.languageLabel': 'Interface language',
+        'onboarding.languageHint': 'This choice is saved and reused the next time you open the desktop app.',
+        'onboarding.language.zh': 'Chinese',
+        'onboarding.language.en': 'English',
+        'onboarding.providerAria': 'Model provider',
+        'onboarding.provider.openai': 'OpenAI compatible',
+        'onboarding.provider.anthropic': 'Anthropic',
+        'onboarding.apiKey': 'API key',
+        'onboarding.baseUrl': 'Base URL',
+        'onboarding.defaultModel': 'Default model',
+        'onboarding.optionalMySql': 'Optional MySQL connection',
+        'onboarding.host': 'Host',
+        'onboarding.port': 'Port',
+        'onboarding.user': 'User',
+        'onboarding.password': 'Password',
+        'onboarding.databaseName': 'Database name',
+        'onboarding.verify': 'Verify and start',
+        'onboarding.verifying': 'Verifying...',
+        'onboarding.errorMissingKey': 'Please enter at least one API key before continuing.',
+        'onboarding.errorVerify': 'LLM verification failed',
+        'onboarding.errorSave': 'Failed to save configuration',
+
         'session.newWorkspace': 'New Workspace',
         'session.workspacePrefix': 'Workspace'
     },
@@ -135,6 +171,8 @@ const translations: Translations = {
         'sidebar.metrics': '指标',
         'sidebar.settings': '设置',
         'sidebar.langToggle': 'Switch to English',
+
+        'app.preparing': '正在准备 Data Agent...',
 
         'settings.title': '系统设置',
         'settings.model': '模型',
@@ -237,6 +275,40 @@ const translations: Translations = {
         'widgets.download': '下载',
         'widgets.renderFail': '组件渲染失败',
 
+        'onboarding.badge': '桌面端初始化',
+        'onboarding.titleLine1': '连接 Data Agent',
+        'onboarding.titleLine2': '到你的模型供应商',
+        'onboarding.description': '先选择界面语言，再配置一个可用的模型供应商，本地助手就能立即开始工作。',
+        'onboarding.featureLabel': '本次引导会完成',
+        'onboarding.featureOne': '使用 Electron safeStorage 加密并保存桌面端密钥',
+        'onboarding.featureTwo': '在同一个流程中完成模型和数据库的初始配置',
+        'onboarding.featureThree': '在进入主界面前就确定默认语言，后续自动沿用',
+        'onboarding.browserWarning': '当前为浏览器开发模式。密钥会发送到后端供本次会话使用，但不会持久化保存到 localStorage。',
+        'onboarding.formEyebrow': '首次启动',
+        'onboarding.formTitle': '完成首次使用配置',
+        'onboarding.formDescription': '先确认界面语言，再选择 Data Agent 要连接的模型供应商和默认模型。',
+        'onboarding.languageLabel': '界面语言',
+        'onboarding.languageHint': '当前选择会保存下来，下次打开桌面端时继续沿用。',
+        'onboarding.language.zh': '中文',
+        'onboarding.language.en': 'English',
+        'onboarding.providerAria': '模型供应商',
+        'onboarding.provider.openai': 'OpenAI 兼容',
+        'onboarding.provider.anthropic': 'Anthropic',
+        'onboarding.apiKey': 'API 密钥',
+        'onboarding.baseUrl': '基础地址',
+        'onboarding.defaultModel': '默认模型',
+        'onboarding.optionalMySql': '可选 MySQL 连接',
+        'onboarding.host': '主机',
+        'onboarding.port': '端口',
+        'onboarding.user': '用户名',
+        'onboarding.password': '密码',
+        'onboarding.databaseName': '数据库名称',
+        'onboarding.verify': '校验并启动',
+        'onboarding.verifying': '校验中...',
+        'onboarding.errorMissingKey': '继续之前请至少填写一个 API 密钥。',
+        'onboarding.errorVerify': '模型配置校验失败',
+        'onboarding.errorSave': '保存配置失败',
+
         'session.newWorkspace': '新建工作区',
         'session.workspacePrefix': '工作区'
     }
@@ -245,6 +317,7 @@ const translations: Translations = {
 interface LanguageContextProps {
     language: Language;
     toggleLanguage: () => void;
+    setLanguage: (language: Language) => void;
     t: (key: string) => string;
 }
 
@@ -268,12 +341,17 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         localStorage.setItem('app_language', nextLang);
     };
 
+    const updateLanguage = (nextLanguage: Language) => {
+        setLanguage(nextLanguage);
+        localStorage.setItem('app_language', nextLanguage);
+    };
+
     const t = (key: string): string => {
         return translations[language][key] || key;
     };
 
     return (
-        <LanguageContext.Provider value={{ language, toggleLanguage, t }}>
+        <LanguageContext.Provider value={{ language, toggleLanguage, setLanguage: updateLanguage, t }}>
             {children}
         </LanguageContext.Provider>
     );

@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { Terminal } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import ChatArea from './components/ChatArea';
 import ToolPanel, { type ToolData } from './components/ToolPanel';
@@ -7,22 +6,214 @@ import SettingsModal from './components/SettingsModal';
 import PluginsModal from './components/PluginsModal';
 import Onboarding from './components/Onboarding';
 import { SessionProvider } from './hooks/useSession';
-import { LanguageProvider } from './context/LanguageContext';
+import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { getConfig, updateLLMConfig } from './api/client';
 
-const App: React.FC = () => {
-  const [startupState, setStartupState] = useState<'checking' | 'ready' | 'onboarding'>('checking');
+interface AppShellProps {
+  startupState: 'checking' | 'ready' | 'onboarding';
+  setStartupState: React.Dispatch<React.SetStateAction<'checking' | 'ready' | 'onboarding'>>;
+}
+
+const DESKTOP_MENU_ITEMS = [
+  { id: 'file', label: 'File' },
+  { id: 'edit', label: 'Edit' },
+  { id: 'view', label: 'View' },
+  { id: 'window', label: 'Window' },
+  { id: 'help', label: 'Help' },
+];
+
+const TOOL_PANEL_WIDTH = 360;
+const CHAT_PANEL_MIN_WIDTH = 560;
+
+const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState }) => {
+  const { t } = useLanguage();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [tools, setTools] = useState<ToolData[]>([]);
   const [isToolPanelOpen, setIsToolPanelOpen] = useState(false);
   const [pluginsModalTab, setPluginsModalTab] = useState<'MCP' | 'Skills' | null>(null);
 
   const previousToolsRef = useRef<ToolData[]>([]);
+  const sidebarShellRef = useRef<HTMLDivElement>(null);
+  const chatPanelShellRef = useRef<HTMLDivElement>(null);
+  const chatMainPaneRef = useRef<HTMLDivElement>(null);
+  const chatResizeStartRef = useRef<{ startX: number; startWidth: number } | null>(null);
+  const [chatPaneWidth, setChatPaneWidth] = useState<number | null>(null);
+  const isDesktop = typeof window !== 'undefined' && Boolean(window.dataAgent);
 
   const handleUpdateTools = useCallback((newTools: ToolData[]) => {
     setTools(newTools);
     previousToolsRef.current = newTools;
   }, []);
+
+  const getMaxChatPaneWidth = useCallback(() => {
+    const sidebarWidth = sidebarShellRef.current?.getBoundingClientRect().width ?? 260;
+    const chromeAllowance = 40;
+    return Math.max(
+      CHAT_PANEL_MIN_WIDTH,
+      window.innerWidth - sidebarWidth - TOOL_PANEL_WIDTH - chromeAllowance,
+    );
+  }, []);
+
+  const openToolPanel = useCallback(() => {
+    const currentWidth =
+      chatMainPaneRef.current?.getBoundingClientRect().width ??
+      chatPanelShellRef.current?.getBoundingClientRect().width ??
+      CHAT_PANEL_MIN_WIDTH;
+
+    setChatPaneWidth((prev) => {
+      const nextWidth = prev ?? currentWidth;
+      return Math.min(getMaxChatPaneWidth(), Math.max(CHAT_PANEL_MIN_WIDTH, nextWidth));
+    });
+    setIsToolPanelOpen(true);
+  }, [getMaxChatPaneWidth]);
+
+  const closeToolPanel = useCallback(() => {
+    setIsToolPanelOpen(false);
+  }, []);
+
+  const toggleToolPanel = useCallback(() => {
+    if (isToolPanelOpen) {
+      closeToolPanel();
+      return;
+    }
+    openToolPanel();
+  }, [closeToolPanel, isToolPanelOpen, openToolPanel]);
+
+  const handleChatResizeStart = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const currentWidth = chatMainPaneRef.current?.getBoundingClientRect().width ?? CHAT_PANEL_MIN_WIDTH;
+    chatResizeStartRef.current = {
+      startX: event.clientX,
+      startWidth: currentWidth,
+    };
+    document.body.classList.add('chat-panel-resizing');
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      if (!chatResizeStartRef.current) return;
+      const { startX, startWidth } = chatResizeStartRef.current;
+      const maxWidth = getMaxChatPaneWidth();
+      const nextWidth = Math.min(
+        maxWidth,
+        Math.max(CHAT_PANEL_MIN_WIDTH, startWidth + (moveEvent.clientX - startX)),
+      );
+      setChatPaneWidth(nextWidth);
+    };
+
+    const handleMouseUp = () => {
+      chatResizeStartRef.current = null;
+      document.body.classList.remove('chat-panel-resizing');
+      window.removeEventListener('mousemove', handleMouseMove);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp, { once: true });
+  }, [getMaxChatPaneWidth]);
+
+  useEffect(() => {
+    if (!isToolPanelOpen || chatPaneWidth == null) {
+      return;
+    }
+
+    const handleResize = () => {
+      setChatPaneWidth((current) => {
+        if (current == null) return current;
+        return Math.min(getMaxChatPaneWidth(), Math.max(CHAT_PANEL_MIN_WIDTH, current));
+      });
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [chatPaneWidth, getMaxChatPaneWidth, isToolPanelOpen]);
+
+  if (startupState === 'checking') {
+    return <div className="app-loading">{t('app.preparing')}</div>;
+  }
+
+  if (startupState === 'onboarding') {
+    return <Onboarding onComplete={() => setStartupState('ready')} />;
+  }
+
+  return (
+    <SessionProvider>
+      <div className="desktop-shell">
+        {isDesktop && (
+          <div className="desktop-menu-strip" role="menubar" aria-label="Application menu">
+            {DESKTOP_MENU_ITEMS.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className="desktop-menu-item"
+                role="menuitem"
+                onClick={(event) => {
+                  const rect = event.currentTarget.getBoundingClientRect();
+                  void window.dataAgent?.showMenu(item.id, {
+                    x: Math.round(rect.left),
+                    y: Math.round(rect.bottom),
+                  });
+                }}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="app-container">
+          <div ref={sidebarShellRef} className="sidebar-shell">
+            <Sidebar
+              onOpenSettings={() => setIsSettingsOpen(true)}
+              onOpenWorkspace={() => {}}
+              onOpenPlugins={(tab) => setPluginsModalTab(tab)}
+            />
+          </div>
+
+          <div
+            ref={chatPanelShellRef}
+            className={`chat-panel-shell ${isToolPanelOpen ? 'has-tool-panel' : ''}`}
+          >
+            <div
+              ref={chatMainPaneRef}
+              className="chat-main-pane"
+              style={isToolPanelOpen && chatPaneWidth ? { flex: `0 0 ${chatPaneWidth}px`, width: chatPaneWidth } : undefined}
+            >
+              {isToolPanelOpen && (
+                <div
+                  className="chat-panel-resize-handle"
+                  role="separator"
+                  aria-orientation="vertical"
+                  aria-label="调整对话区域宽度"
+                  title="拖动调整对话区域宽度"
+                  onMouseDown={handleChatResizeStart}
+                />
+              )}
+
+              <ChatArea
+                onUpdateTools={handleUpdateTools}
+                onOpenToolPanel={openToolPanel}
+                onToggleToolPanel={toggleToolPanel}
+                isToolPanelOpen={isToolPanelOpen}
+                hasTools={tools.length > 0}
+              />
+            </div>
+
+            {isToolPanelOpen && <ToolPanel tools={tools} onClose={closeToolPanel} />}
+          </div>
+
+          {isSettingsOpen && (
+            <SettingsModal onClose={() => setIsSettingsOpen(false)} />
+          )}
+
+          {pluginsModalTab && (
+            <PluginsModal initialTab={pluginsModalTab} onClose={() => setPluginsModalTab(null)} />
+          )}
+        </div>
+      </div>
+    </SessionProvider>
+  );
+};
+
+const App: React.FC = () => {
+  const [startupState, setStartupState] = useState<'checking' | 'ready' | 'onboarding'>('checking');
 
   useEffect(() => {
     let cancelled = false;
@@ -61,72 +252,9 @@ const App: React.FC = () => {
     };
   }, []);
 
-  if (startupState === 'checking') {
-    return <div className="app-loading">Preparing Data Agent...</div>;
-  }
-
-  if (startupState === 'onboarding') {
-    return <Onboarding onComplete={() => setStartupState('ready')} />;
-  }
-
   return (
     <LanguageProvider>
-      <SessionProvider>
-        <div className="app-container">
-        <Sidebar
-          onOpenSettings={() => setIsSettingsOpen(true)}
-          onOpenWorkspace={() => {}}
-          onOpenPlugins={(tab) => setPluginsModalTab(tab)}
-        />
-        <ChatArea 
-          onUpdateTools={handleUpdateTools} 
-          onOpenToolPanel={() => setIsToolPanelOpen(true)}
-        />
-        {isToolPanelOpen && <ToolPanel tools={tools} onClose={() => setIsToolPanelOpen(false)} />}
-        
-        {!isToolPanelOpen && tools.length > 0 && (
-          <div style={{ position: 'fixed', right: 0, top: '50%', transform: 'translateY(-50%)', zIndex: 50 }}>
-            <button
-              onClick={() => setIsToolPanelOpen(true)}
-              style={{
-                background: '#fff',
-                border: '1px solid #e5e7eb',
-                borderRight: 'none',
-                padding: '12px 10px',
-                borderRadius: '12px 0 0 12px',
-                boxShadow: '-4px 0 12px rgba(0,0,0,0.05)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                color: '#6b7280',
-                transition: 'all 0.2s',
-              }}
-              onMouseOver={(e) => {
-                e.currentTarget.style.background = '#f9fafb';
-                e.currentTarget.style.color = '#3b82f6';
-                e.currentTarget.style.paddingRight = '16px';
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.background = '#fff';
-                e.currentTarget.style.color = '#6b7280';
-                e.currentTarget.style.paddingRight = '10px';
-              }}
-              title="打开工具执行详情"
-            >
-              <Terminal size={18} />
-            </button>
-          </div>
-        )}
-
-        {isSettingsOpen && (
-          <SettingsModal onClose={() => setIsSettingsOpen(false)} />
-        )}
-        
-        {pluginsModalTab && (
-          <PluginsModal initialTab={pluginsModalTab} onClose={() => setPluginsModalTab(null)} />
-        )}
-      </div>
-      </SessionProvider>
+      <AppShell startupState={startupState} setStartupState={setStartupState} />
     </LanguageProvider>
   );
 };

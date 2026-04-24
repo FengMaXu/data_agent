@@ -18,6 +18,7 @@ interface SettingsModalProps {
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     const { t } = useLanguage();
+    const logoSrc = `${import.meta.env.BASE_URL}yourdb-logo.png`;
     const [activeMenu, setActiveMenu] = useState('模型');
 
     // States for sub-tabs
@@ -288,7 +289,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                 <aside className="modal-sidebar">
                     <div className="modal-brand">
                         <img
-                            src="/yourdb-logo.png"
+                            src={logoSrc}
                             alt="YourDB logo"
                             style={{ width: '24px', height: '24px', marginRight: '8px', borderRadius: '4px', objectFit: 'contain' }}
                         />

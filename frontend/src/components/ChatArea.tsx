@@ -6,6 +6,7 @@ import {
     Trash2,
     Square,
     Paperclip,
+    ListTree,
 } from 'lucide-react';
 import {
     sendChatMessage,
@@ -78,6 +79,9 @@ type ChatMessage = AgentMessage | UserMessage;
 interface ChatAreaProps {
     onUpdateTools?: (tools: ToolData[]) => void;
     onOpenToolPanel?: () => void;
+    onToggleToolPanel?: () => void;
+    isToolPanelOpen?: boolean;
+    hasTools?: boolean;
 }
 
 const STAGE_ORDER: AgentProgressStage[] = [
@@ -192,7 +196,13 @@ const getSkillHintLabel = (skill: SkillActivation) => `Skill 已激活: ${skill.
 
 const isAgentMessageEmpty = (message: AgentMessage) => message.content.trim().length === 0;
 
-const ChatArea: React.FC<ChatAreaProps> = ({ onUpdateTools, onOpenToolPanel }) => {
+const ChatArea: React.FC<ChatAreaProps> = ({
+    onUpdateTools,
+    onOpenToolPanel,
+    onToggleToolPanel,
+    isToolPanelOpen = false,
+    hasTools = false,
+}) => {
     const {
         currentSession,
         currentTranscript,
@@ -825,26 +835,32 @@ const ChatArea: React.FC<ChatAreaProps> = ({ onUpdateTools, onOpenToolPanel }) =
 
     return (
         <main className="chat-area">
-            <header className="breadcrumb-header" style={{ justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <header className="breadcrumb-header">
+                <div className="breadcrumb-main">
                     <AgentOrbitIcon size={32} className="breadcrumb-icon" />
-                    <span style={{ color: '#1f2937', fontWeight: 600 }}>Agents</span>
+                    <span className="breadcrumb-title">Agents</span>
                     <span className="breadcrumb-separator">/</span>
-                    <span style={{ fontWeight: 400 }}>{currentSession.name}</span>
+                    <span className="breadcrumb-session">{currentSession.name}</span>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '12px', color: '#6b7280' }}>{attachedFilesLabel}</span>
+                <div className="breadcrumb-actions">
+                    {false && <span className="attachment-status">{attachedFilesLabel}</span>}
                     <button
+                        type="button"
+                        className={`tool-panel-header-btn ${isToolPanelOpen ? 'is-active' : ''}`}
+                        onClick={onToggleToolPanel}
+                        aria-pressed={isToolPanelOpen}
+                        disabled={!hasTools && !isToolPanelOpen}
+                        title={isToolPanelOpen ? '关闭详细信息' : '打开详细信息'}
+                    >
+                        <ListTree size={14} />
+                        <span>详细信息</span>
+                    </button>
+                    <button
+                        type="button"
+                        className={`chat-clear-btn ${messages.length === 0 ? 'is-muted' : ''}`}
                         onClick={handleClearSession}
                         disabled={isStreaming}
-                        style={{
-                            background: 'transparent', border: 'none', cursor: isStreaming ? 'not-allowed' : 'pointer',
-                            display: 'flex', alignItems: 'center', gap: '6px', color: '#6b7280', padding: '6px 12px',
-                            borderRadius: '6px', transition: 'background 0.2s', opacity: messages.length === 0 ? 0.5 : 1,
-                        }}
-                        onMouseOver={(e) => !isStreaming && (e.currentTarget.style.background = '#f3f4f6')}
-                        onMouseOut={(e) => !isStreaming && (e.currentTarget.style.background = 'transparent')}
                     >
                         <Trash2 size={14} />
                         <span>{t('chat.clearChat')}</span>
@@ -858,7 +874,7 @@ const ChatArea: React.FC<ChatAreaProps> = ({ onUpdateTools, onOpenToolPanel }) =
                 className="chat-message-list scrollable-area flex flex-col gap-6 p-6"
             >
                 {messages.length === 0 && (
-                    <div style={{ textAlign: 'center', color: '#9ca3af', marginTop: '100px' }}>
+                    <div className="empty-chat-state">
                         {t('chat.placeholder')}
                     </div>
                 )}
@@ -866,14 +882,14 @@ const ChatArea: React.FC<ChatAreaProps> = ({ onUpdateTools, onOpenToolPanel }) =
                 {messages.map((msg) => (
                     <React.Fragment key={msg.id}>
                         {msg.role === 'user' ? (
-                            <div className="message user self-end max-w-[80%]" style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginLeft: 'auto', flexDirection: 'row', alignItems: 'flex-start' }}>
-                                <div className="message-content shadow-sm" style={{ background: '#f3f4f6', padding: '12px 16px', borderRadius: '16px', borderTopRightRadius: '4px', color: '#1f2937', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
+                            <div className="message user">
+                                <div className="message-content user-message-body">
                                     {msg.content}
                                 </div>
-                                <div className="message-avatar flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full" style={{ background: '#1f2937', color: '#fff', fontSize: '14px' }}>U</div>
+                                <div className="message-avatar user-avatar">U</div>
                             </div>
                         ) : (
-                            <div className="message agent max-w-[85%]" style={{ display: 'flex', gap: '12px' }}>
+                            <div className="message agent">
                                 <div className="agent-icon-red flex-shrink-0 flex items-center justify-center">
                                     <AgentOrbitIcon
                                         size={32}
@@ -881,9 +897,9 @@ const ChatArea: React.FC<ChatAreaProps> = ({ onUpdateTools, onOpenToolPanel }) =
                                         className="agent-message-icon"
                                     />
                                 </div>
-                                <div className="message-content-wrapper" style={{ flex: 1, minWidth: 0 }}>
+                                <div className="message-content-wrapper">
                                     {msg.content && (
-                                        <div className="message-content prose prose-sm max-w-none agent-message-body" style={{ color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
+                                        <div className="message-content prose prose-sm max-w-none agent-message-body">
                                             {msg.content}
                                         </div>
                                     )}
@@ -1003,11 +1019,11 @@ const ChatArea: React.FC<ChatAreaProps> = ({ onUpdateTools, onOpenToolPanel }) =
             </div>
 
             <div className="chat-input-container p-4 border-t border-gray-100 bg-white">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', fontSize: '12px', color: '#6b7280' }}>
+                <div className="chat-input-meta">
                     <span>{isStreaming ? t('chat.steerHint') || '补充说明会作为 steer 发送' : t('chat.attachHint') || '可在左侧 Workspace 勾选文件后附加到本次提问'}</span>
                     {runReason && <span>{t('chat.status') || '状态'}：{runReason === 'completed' ? t('tools.statusDone') : runReason === 'stopped' ? t('chat.stopped') || '已停止' : t('tools.statusError')}</span>}
                 </div>
-                <div className="chat-input-wrapper shadow-sm" style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '8px 12px', transition: 'border-color 0.2s' }}>
+                <div className="chat-input-wrapper shadow-sm">
                     <input
                         ref={fileInputRef}
                         type="file"
@@ -1016,19 +1032,10 @@ const ChatArea: React.FC<ChatAreaProps> = ({ onUpdateTools, onOpenToolPanel }) =
                         onChange={handleUploadChange}
                     />
                     <button
+                        type="button"
+                        className="chat-icon-btn"
                         onClick={handleUploadClick}
                         disabled={isUploading || isStreaming}
-                        style={{
-                            background: 'transparent',
-                            border: 'none',
-                            color: isUploading || isStreaming ? '#9ca3af' : '#6b7280',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: isUploading || isStreaming ? 'not-allowed' : 'pointer',
-                            padding: '8px',
-                            borderRadius: '8px',
-                        }}
                         title={t('chat.uploadTooltip') || "上传到当前会话工作区"}
                     >
                         {isUploading ? <Loader2 size={18} className="animate-spin" /> : <Paperclip size={18} />}
@@ -1056,22 +1063,11 @@ const ChatArea: React.FC<ChatAreaProps> = ({ onUpdateTools, onOpenToolPanel }) =
                         }}
                     />
                     <button
+                        type="button"
+                        className={`chat-send-btn ${isStreaming && !inputValue.trim() ? 'is-stop' : inputValue.trim() ? 'is-ready' : ''}`}
                         onClick={() => void handlePrimaryAction()}
                         disabled={isUploading || (!isStreaming && !inputValue.trim())}
                         title={isStreaming && !inputValue.trim() ? t('chat.stop') : t('chat.send')}
-                        style={{
-                            background: isStreaming && !inputValue.trim() ? '#fee2e2' : inputValue.trim() ? '#1f2937' : '#f3f4f6',
-                            border: 'none',
-                            color: isStreaming && !inputValue.trim() ? '#b91c1c' : inputValue.trim() ? '#fff' : '#d1d5db',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: isUploading || (!isStreaming && !inputValue.trim()) ? 'not-allowed' : 'pointer',
-                            padding: '8px',
-                            borderRadius: '8px',
-                            transition: 'all 0.2s',
-                            flexShrink: 0,
-                        }}
                     >
                         {isStreaming && !inputValue.trim() ? <Square size={18} /> : <Send size={18} />}
                     </button>

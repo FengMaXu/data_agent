@@ -3,6 +3,7 @@ import {
     BookOpen,
     HardDrive,
     Settings,
+    Languages,
     ChevronDown,
     ChevronRight,
     FileText,
@@ -418,25 +419,9 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
             <nav className="sidebar">
                 <div className="nav-menu scrollable-area">
                     <div className="nav-section">
-                        <div className="sidebar-logo" style={{
-                            fontSize: '1.25rem',
-                            fontWeight: 700,
-                            padding: '0 12px 16px',
-                            color: '#1f2937',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            letterSpacing: '-0.5px',
-                        }}>
-                            <img
-                                src="/yourdb-logo.png"
-                                alt="YourDB logo"
-                                style={{ width: '28px', height: '28px', borderRadius: '6px', objectFit: 'contain' }}
-                            />
-                            YourDB
-                        </div>
+                        <div className="sidebar-logo">YourDB</div>
 
-                        <button className="nav-item" onClick={handleCreateSession} style={{ marginBottom: '8px' }}>
+                        <button className="nav-item sidebar-primary-action" onClick={handleCreateSession}>
                             <Edit3 className="nav-item-icon" size={18} />
                             <span className="nav-item-text">{t('sidebar.newWorkspace')}</span>
                         </button>
@@ -449,19 +434,18 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
                         </button>
 
                         {historyExpanded && (
-                            <div className="workspace-file-list" style={{ padding: '4px 16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <div className="workspace-file-list sidebar-history-list">
                                 {sessions.map((session) => (
                                     <div
                                         key={session.id}
-                                        className={`workspace-file-item ${currentSession.id === session.id ? 'active' : ''}`}
+                                        className={`workspace-file-item session-history-item ${currentSession.id === session.id ? 'active' : ''}`}
                                         onClick={() => {
                                             if (editingSessionId !== session.id) {
                                                 switchSession(session.id);
                                             }
                                         }}
-                                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px', borderRadius: '6px', cursor: 'pointer', background: currentSession.id === session.id ? '#f3f4f6' : 'transparent', marginBottom: '2px' }}
                                     >
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', flex: 1 }}>
+                                        <div className="session-history-main">
                                             <MessageSquare size={14} style={{ flexShrink: 0 }} color={currentSession.id === session.id ? '#3b82f6' : '#6b7280'} />
                                             {editingSessionId === session.id ? (
                                                 <input
@@ -482,16 +466,16 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
                                                         setEditingSessionId(null);
                                                     }}
                                                     autoFocus
-                                                    style={{ outline: 'none', border: '1px solid #d1d5db', borderRadius: '4px', padding: '2px 4px', fontSize: '0.85rem', width: '100px' }}
+                                                    className="session-history-input"
                                                 />
                                             ) : (
-                                                <span className="workspace-file-name" style={{ fontSize: '0.85rem', color: currentSession.id === session.id ? '#111827' : '#4b5563', fontWeight: currentSession.id === session.id ? 600 : 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={session.name}>
+                                                <span className="workspace-file-name session-history-name" title={session.name}>
                                                     {session.name}
                                                 </span>
                                             )}
                                         </div>
                                         {currentSession.id === session.id && (
-                                            <div className="workspace-file-actions" onClick={(e) => e.stopPropagation()} style={{ display: 'flex' }}>
+                                            <div className="workspace-file-actions session-history-actions" onClick={(e) => e.stopPropagation()}>
                                                 {editingSessionId === session.id ? (
                                                     <button className="workspace-action-btn" onClick={() => { updateSessionName(session.id, editSessionName); setEditingSessionId(null); }} title="Save">
                                                         <Check size={12} color="#10b981" />
@@ -516,14 +500,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
                             </div>
                         )}
 
-                        <button className={`nav-item ${knowledgeExpanded ? 'expanded' : ''}`} onClick={toggleKnowledge}>
+                        <button className={`nav-item ${knowledgeExpanded ? 'expanded' : ''}`} onClick={toggleKnowledge} style={{ order: 4 }}>
                             <BookOpen className="nav-item-icon" size={18} />
                             <span className="nav-item-text">{t('sidebar.knowledge')}</span>
                             <ChevronDown className={`expand-arrow ${knowledgeExpanded ? 'rotated' : ''}`} size={14} />
                         </button>
 
                         {knowledgeExpanded && (
-                            <div className="knowledge-file-list">
+                            <div className="knowledge-file-list" style={{ order: 4 }}>
                                 {loadingKnowledge && knowledgeFiles.length === 0 ? (
                                     <div className="loading-state">加载中...</div>
                                 ) : knowledgeFileTree.length === 0 ? (
@@ -534,14 +518,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
                             </div>
                         )}
 
-                        <button className={`nav-item ${workspaceExpanded ? 'expanded' : ''}`} onClick={toggleWorkspace}>
+                        <button className={`nav-item ${workspaceExpanded ? 'expanded' : ''}`} onClick={toggleWorkspace} style={{ order: 3 }}>
                             <HardDrive className="nav-item-icon" size={18} />
                             <span className="nav-item-text">{t('sidebar.workspace')}</span>
                             <ChevronDown className={`expand-arrow ${workspaceExpanded ? 'rotated' : ''}`} size={14} />
                         </button>
 
                         {workspaceExpanded && (
-                            <div className="workspace-file-list">
+                            <div className="workspace-file-list" style={{ order: 3 }}>
                                 <input
                                     ref={fileInputRef}
                                     type="file"
@@ -554,9 +538,9 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
                                 />
 
 
-                                <div className="workspace-list-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div className="workspace-list-header">
                                     <span className="file-count">{workspaceFiles.length} 文件 · 已附加 {attachedFiles.length}</span>
-                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                    <div className="workspace-list-actions">
                                         <button className="refresh-btn" onClick={() => fileInputRef.current?.click()} title="上传文件">
                                             <Paperclip size={12} />
                                         </button>
@@ -623,21 +607,21 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
                         )}
 
                         {/* Plugins */}
-                        <button className={`nav-item ${pluginsExpanded ? 'expanded' : ''}`} onClick={togglePlugins}>
+                        <button className={`nav-item ${pluginsExpanded ? 'expanded' : ''}`} onClick={togglePlugins} style={{ order: 5 }}>
                             <Box className="nav-item-icon" size={18} />
                             <span className="nav-item-text">{t('sidebar.plugins')}</span>
                             <ChevronDown className={`expand-arrow ${pluginsExpanded ? 'rotated' : ''}`} size={14} />
                         </button>
 
                         {pluginsExpanded && (
-                            <div className="workspace-file-list" style={{ padding: '4px 16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                <button className="nav-item" onClick={() => onOpenPlugins?.('MCP')} style={{ paddingLeft: '32px', height: '36px', width: '100%', marginBottom: '4px' }}>
+                            <div className="workspace-file-list sidebar-plugin-list" style={{ order: 5 }}>
+                                <button className="nav-item sidebar-plugin-item" onClick={() => onOpenPlugins?.('MCP')}>
                                     <Server className="nav-item-icon" size={16} />
-                                    <span className="nav-item-text" style={{ fontSize: '0.9rem' }}>MCP</span>
+                                    <span className="nav-item-text sidebar-plugin-text">MCP</span>
                                 </button>
-                                <button className="nav-item" onClick={() => onOpenPlugins?.('Skills')} style={{ paddingLeft: '32px', height: '36px', width: '100%' }}>
+                                <button className="nav-item sidebar-plugin-item" onClick={() => onOpenPlugins?.('Skills')}>
                                     <Sparkles className="nav-item-icon" size={16} />
-                                    <span className="nav-item-text" style={{ fontSize: '0.9rem' }}>Skills</span>
+                                    <span className="nav-item-text sidebar-plugin-text">Skills</span>
                                 </button>
                             </div>
                         )}
@@ -646,21 +630,13 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
                 </div>
 
                 <div className="sidebar-footer">
-                    <button className="nav-item lang-toggle" onClick={toggleLanguage} style={{
-                        padding: '6px 12px',
-                        background: 'transparent',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        fontSize: '0.8rem',
-                        color: '#6b7280',
-                        fontWeight: 600,
-                        marginLeft: 'auto',
-                        marginRight: '12px'
-                    }}>
+                    <button className="sidebar-footer-toggle" onClick={toggleLanguage}>
+                        <Languages size={16} />
+                        <span>
                         {language === 'zh' ? 'EN' : '中文'}
+                        </span>
                     </button>
-                    <button className="nav-item" onClick={onOpenSettings}>
+                    <button className="nav-item sidebar-footer-settings" onClick={onOpenSettings}>
                         <Settings className="nav-item-icon" size={18} />
                         <span className="nav-item-text">{t('sidebar.settings')}</span>
                     </button>
@@ -671,6 +647,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
                         <span>{toast.text}</span>
                     </div>
                 )}
+
             </nav>
 
             {editorOpen && selectedFile && (

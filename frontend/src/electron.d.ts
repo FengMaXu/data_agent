@@ -13,6 +13,7 @@ export interface DataAgentDesktopBridge {
     checkForUpdates: () => Promise<unknown>;
     downloadUpdate: () => Promise<unknown>;
     quitAndInstallUpdate: () => Promise<unknown>;
+    showMenu: (menuName: string, position: { x: number; y: number }) => Promise<boolean>;
     onUpdateEvent: (callback: (event: unknown) => void) => () => void;
 }
 

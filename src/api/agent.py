@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 import json
 import logging
 import os
@@ -309,8 +310,24 @@ def _invalidate_session_tool_cache(runtime: SessionRuntime) -> None:
 
 
 async def _shutdown_runtime_services(runtime_services: Any | None) -> None:
-    # MCP 连接生命周期由 MCPManager 在 server lifespan 里统一管理
-    pass
+    if runtime_services is None:
+        return
+
+    metadata = getattr(runtime_services, "metadata", None)
+    if not isinstance(metadata, dict):
+        return
+
+    mcp_registry = metadata.get("mcp_registry")
+    if mcp_registry is None:
+        return
+
+    shutdown = getattr(mcp_registry, "shutdown", None)
+    if shutdown is None:
+        return
+
+    result = shutdown()
+    if inspect.isawaitable(result):
+        await result
 
 
 def _generate_run_id() -> str:
@@ -360,6 +377,75 @@ def _deserialize_message(data: dict[str, Any]) -> Message:
     )
 
 
+def _strip_unresolved_tool_calls(
+    messages: list[Message],
+) -> tuple[list[Message], list[str]]:
+    resolved_tool_call_ids = {
+        str(message.tool_call_id)
+        for message in messages
+        if message.role == Role.TOOL_RESULT and message.tool_call_id
+    }
+    sanitized_messages: list[Message] = []
+    removed_tool_call_ids: list[str] = []
+
+    for message in messages:
+        if message.role != Role.ASSISTANT or not message.tool_calls:
+            sanitized_messages.append(message)
+            continue
+
+        resolved_tool_calls = [
+            tool_call
+            for tool_call in message.tool_calls
+            if tool_call.id and tool_call.id in resolved_tool_call_ids
+        ]
+        if len(resolved_tool_calls) == len(message.tool_calls):
+            sanitized_messages.append(message)
+            continue
+
+        removed_tool_call_ids.extend(
+            tool_call.id
+            for tool_call in message.tool_calls
+            if not tool_call.id or tool_call.id not in resolved_tool_call_ids
+        )
+        if not resolved_tool_calls and not message.content:
+            continue
+
+        sanitized_messages.append(
+            Message(
+                role=message.role,
+                content=message.content,
+                tool_calls=resolved_tool_calls or None,
+                tool_call_id=message.tool_call_id,
+                tool_name=message.tool_name,
+                name=message.name,
+                message_id=message.message_id,
+            )
+        )
+
+    return sanitized_messages, removed_tool_call_ids
+
+
+def _sanitize_runtime_messages(
+    runtime: SessionRuntime,
+    *,
+    reason: str,
+    phase: str,
+) -> None:
+    sanitized_messages, removed_tool_call_ids = _strip_unresolved_tool_calls(
+        runtime.context.messages
+    )
+    if not removed_tool_call_ids:
+        return
+    runtime.context.messages = sanitized_messages
+    logger.info(
+        "[Session] %s 清理未完成 tool_call: session=%s reason=%s removed=%s",
+        phase,
+        runtime.session_id,
+        reason,
+        ",".join(removed_tool_call_ids),
+    )
+
+
 def _load_session_snapshot(workspace: WorkspaceManager) -> tuple[list[Message], SkillRuntimeState]:
     snapshot_path = workspace.session_dir / SNAPSHOT_FILE_NAME
     if not snapshot_path.exists():
@@ -372,6 +458,13 @@ def _load_session_snapshot(workspace: WorkspaceManager) -> tuple[list[Message], 
             for item in list(payload.get("messages") or [])
             if isinstance(item, dict)
         ]
+        messages, removed_tool_call_ids = _strip_unresolved_tool_calls(messages)
+        if removed_tool_call_ids:
+            logger.warning(
+                "[Session] 恢复快照时清理未完成 tool_call: %s removed=%s",
+                workspace.session_dir.name,
+                ",".join(removed_tool_call_ids),
+            )
         active_skills = SkillRuntimeState.from_dict(payload.get("active_skills") or [])
         logger.info("[Session] 已恢复会话快照: %s", workspace.session_dir.name)
         return messages, active_skills
@@ -1004,6 +1097,12 @@ async def event_generator(
                             }
                         )
 
+                if local_terminal_reason == "stopped":
+                    _sanitize_runtime_messages(
+                        runtime,
+                        reason=local_terminal_reason,
+                        phase="结束持久化前",
+                    )
                 _persist_session_snapshot(runtime)
                 await emit_done(local_terminal_reason)
             except asyncio.CancelledError:
@@ -1018,6 +1117,12 @@ async def event_generator(
                             "session_id": session_id,
                             "error": "Agent 运行被取消",
                         }
+                    )
+                else:
+                    _sanitize_runtime_messages(
+                        runtime,
+                        reason=local_terminal_reason,
+                        phase="停止持久化前",
                     )
                 _persist_session_snapshot(runtime)
                 timing.mark_once("agent_done", status=terminal_status, reason=local_terminal_reason)

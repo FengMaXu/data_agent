@@ -97,7 +97,16 @@ export interface MCPConfigRequest {
 }
 
 export interface MCPServerStatus extends MCPServerConfig {
+    status?: 'disabled' | 'disconnected' | 'connected' | 'connecting' | 'error' | 'stopped';
     connected?: boolean;
+    tool_count?: number;
+    generation?: number;
+    tool_prefix?: string;
+}
+
+export interface MCPEnabledUpdateResponse {
+    status: string;
+    server: MCPServerStatus;
 }
 
 export interface MCPToolInfo {
@@ -445,6 +454,46 @@ export async function saveMCPConfig(data: MCPConfigRequest) {
 export async function getMCPServers(): Promise<{ status: string; servers: MCPServerStatus[] }> {
     const res = await fetch(`${API_BASE_URL}/mcp/servers`);
     if (!res.ok) throw new Error('Failed to fetch MCP servers');
+    return res.json();
+}
+
+export async function updateMCPServerEnabled(name: string, enabled: boolean): Promise<MCPEnabledUpdateResponse> {
+    const res = await fetch(`${API_BASE_URL}/mcp/servers/${encodeURIComponent(name)}/enabled`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled }),
+    });
+    if (!res.ok) {
+        let detail = 'Failed to update MCP server status';
+        try {
+            const payload = await res.json();
+            if (payload?.detail) {
+                detail = typeof payload.detail === 'string' ? payload.detail : JSON.stringify(payload.detail);
+            }
+        } catch {
+            // ignore
+        }
+        throw new Error(detail);
+    }
+    return res.json();
+}
+
+export async function restartMCPServer(name: string): Promise<MCPEnabledUpdateResponse> {
+    const res = await fetch(`${API_BASE_URL}/mcp/servers/${encodeURIComponent(name)}/restart`, {
+        method: 'POST',
+    });
+    if (!res.ok) {
+        let detail = 'Failed to restart MCP server';
+        try {
+            const payload = await res.json();
+            if (payload?.detail) {
+                detail = typeof payload.detail === 'string' ? payload.detail : JSON.stringify(payload.detail);
+            }
+        } catch {
+            // ignore
+        }
+        throw new Error(detail);
+    }
     return res.json();
 }
 

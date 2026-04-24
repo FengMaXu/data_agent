@@ -122,7 +122,7 @@ class ConfigManager:
 
     async def _reload_mcp(self) -> None:
         settings = MCPConfigLoader.load_effective_settings(self.project_root, self.ai_config)
-        await mcp_manager.restart(settings)
+        await mcp_manager.reconcile(settings)
 
     async def save_mcp_settings(self, data: dict[str, Any]) -> dict[str, Any]:
         new_settings = MCPSettings.from_dict(data)
@@ -137,8 +137,33 @@ class ConfigManager:
                     new_server.headers = dict(old_server.headers)
 
         MCPConfigLoader.save_project_settings(self.project_root, new_settings)
-        await mcp_manager.restart(new_settings)
+        await mcp_manager.reconcile(new_settings)
         return self.serialize_mcp_settings(new_settings)
+
+    async def set_mcp_server_enabled(self, name: str, enabled: bool) -> dict[str, Any]:
+        settings = self.get_mcp_settings()
+        server = settings.get_server(name)
+        if server is None:
+            raise KeyError(name)
+
+        if server.enabled == enabled:
+            return self.serialize_mcp_server(settings=settings, name=name)
+
+        server.enabled = enabled
+        MCPConfigLoader.save_project_settings(self.project_root, settings)
+        await mcp_manager.reconcile(settings)
+        return self.serialize_mcp_server(settings=settings, name=name)
+
+    async def restart_mcp_server(self, name: str) -> dict[str, Any]:
+        settings = self.get_mcp_settings()
+        server = settings.get_server(name)
+        if server is None:
+            raise KeyError(name)
+        if not server.enabled:
+            raise ValueError(f"MCP server is disabled: {name}")
+
+        await mcp_manager.restart_server(name, settings)
+        return self.serialize_mcp_server(settings=settings, name=name)
 
     # ── 工具装配（每次 chat 调用）────────────────────────────────────────────
 
@@ -176,7 +201,11 @@ class ConfigManager:
         return MCPConfigLoader.load_effective_settings(self.project_root, self.ai_config)
 
     async def list_mcp_servers(self) -> list[dict[str, Any]]:
-        return mcp_manager.list_servers()
+        settings = self.get_mcp_settings()
+        return [
+            self.serialize_mcp_server(name=server.name, settings=settings)
+            for server in settings.servers
+        ]
 
     async def list_mcp_tools(self) -> list[dict[str, Any]]:
         return mcp_manager.list_tools()
@@ -247,22 +276,53 @@ class ConfigManager:
         settings = settings or self.get_mcp_settings()
         return {
             "servers": [
-                {
-                    "name": s.name,
-                    "transport": s.transport.value,
-                    "enabled": s.enabled,
-                    "command": s.command,
-                    "script": s.script,
-                    "url": s.url,
-                    "headers": self._summarize_mapping(s.headers),
-                    "env": self._summarize_mapping(s.env),
-                    "description": s.description,
-                    "tool_prefix": s.tool_prefix,
-                    "server_type": s.server_type,
-                    "tags": list(s.tags),
-                }
+                self._serialize_mcp_server_config(s)
                 for s in settings.servers
             ]
+        }
+
+    def serialize_mcp_server(
+        self,
+        *,
+        name: str,
+        settings: MCPSettings | None = None,
+    ) -> dict[str, Any]:
+        settings = settings or self.get_mcp_settings()
+        server = settings.get_server(name)
+        if server is None:
+            raise KeyError(name)
+
+        data = self._serialize_mcp_server_config(server)
+        managed = mcp_manager.get_server(name)
+        runtime = managed.status() if managed is not None else {
+            "name": server.name,
+            "enabled": server.enabled,
+            "status": "disabled" if not server.enabled else "disconnected",
+            "server_type": server.server_type,
+            "transport": server.transport.value,
+            "connected": False,
+            "generation": 0,
+            "tool_count": 0,
+            "description": server.description,
+            "tool_prefix": server.resolved_tool_prefix(),
+            "tags": list(server.tags),
+        }
+        return {**data, **runtime, "enabled": server.enabled}
+
+    def _serialize_mcp_server_config(self, server: Any) -> dict[str, Any]:
+        return {
+            "name": server.name,
+            "transport": server.transport.value,
+            "enabled": server.enabled,
+            "command": server.command,
+            "script": server.script,
+            "url": server.url,
+            "headers": self._summarize_mapping(server.headers),
+            "env": self._summarize_mapping(server.env),
+            "description": server.description,
+            "tool_prefix": server.tool_prefix,
+            "server_type": server.server_type,
+            "tags": list(server.tags),
         }
 
     def _summarize_mapping(self, values: dict[str, str]) -> dict[str, Any]:

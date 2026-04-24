@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +16,9 @@ logger = logging.getLogger("data_agent.skills.loader")
 
 MAX_NAME_LENGTH = 64
 _VALID_NAME_RE = re.compile(r"^[a-z0-9-]+$")
+USER_DATA_AGENT_ROOT = Path.home() / ".data_agent"
+SHARED_SKILLS_ROOT = USER_DATA_AGENT_ROOT / "skills"
+LEGACY_USER_SKILLS_ROOT = Path.home() / ".agents" / "skills"
 
 
 def _validate_name(name: str, parent_dir_name: str, file_path: Path) -> list[str]:
@@ -53,11 +57,14 @@ class SkillManager:
         self.skills: dict[str, LoadedSkill] = {}
 
     def _resolve_source_scope(self, search_path: Path) -> str:
-        global_skill_root = (Path.home() / ".agents" / "skills").resolve()
+        global_skill_roots = {
+            SHARED_SKILLS_ROOT.resolve(),
+            LEGACY_USER_SKILLS_ROOT.resolve(),
+        }
         resolved_search_path = search_path.resolve()
-        if (
-            resolved_search_path == global_skill_root
-            or global_skill_root in resolved_search_path.parents
+        if any(
+            resolved_search_path == root or root in resolved_search_path.parents
+            for root in global_skill_roots
         ):
             return "global"
         return "project"
@@ -162,9 +169,57 @@ class SkillManager:
 
 def get_default_skill_search_paths(project_root: str | Path) -> list[Path]:
     project_root = Path(project_root)
-    return [project_root / ".agents" / "skills", Path.home() / ".agents" / "skills"]
+    shared_root = ensure_shared_skill_root(project_root)
+    return [shared_root]
 
 
 def create_project_skill_manager(project_root: str | Path) -> SkillManager:
     return SkillManager(get_default_skill_search_paths(project_root))
+
+
+def ensure_shared_skill_root(project_root: str | Path) -> Path:
+    project_root = Path(project_root)
+    shared_root = SHARED_SKILLS_ROOT
+    shared_root.mkdir(parents=True, exist_ok=True)
+
+    legacy_roots = [
+        project_root / ".agents" / "skills",
+        LEGACY_USER_SKILLS_ROOT,
+    ]
+    for legacy_root in legacy_roots:
+        _migrate_skills_into_shared_root(legacy_root, shared_root)
+
+    return shared_root
+
+
+def _migrate_skills_into_shared_root(source_root: Path, target_root: Path) -> None:
+    if not source_root.exists() or not source_root.is_dir():
+        return
+
+    for child in source_root.iterdir():
+        if child.name.startswith(".") or not child.is_dir():
+            continue
+
+        skill_manifest = child / "SKILL.md"
+        if not skill_manifest.exists():
+            continue
+
+        target_dir = target_root / child.name
+        if target_dir.exists():
+            continue
+
+        try:
+            shutil.copytree(child, target_dir)
+            logger.info(
+                "[Skill] migrated legacy skill directory from %s to %s",
+                child,
+                target_dir,
+            )
+        except Exception as exc:
+            logger.warning(
+                "[Skill] failed to migrate %s to %s: %s",
+                child,
+                target_dir,
+                exc,
+            )
 

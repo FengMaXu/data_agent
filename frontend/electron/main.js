@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, safeStorage } from 'electron';
+import { app, BrowserWindow, ipcMain, safeStorage, Menu } from 'electron';
 import electronUpdater from 'electron-updater';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
@@ -241,6 +241,8 @@ function createMainWindow() {
         height: 820,
         minWidth: 980,
         minHeight: 680,
+        backgroundColor: '#f6f0f9',
+        autoHideMenuBar: true,
         show: false,
         webPreferences: {
             preload: path.join(__dirname, 'preload.cjs'),
@@ -251,11 +253,66 @@ function createMainWindow() {
         },
     });
 
+    mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+        void writeMainLog('error', 'renderer failed to load', {
+            errorCode,
+            errorDescription,
+            validatedURL,
+        });
+    });
+
+    mainWindow.webContents.on('render-process-gone', (_event, details) => {
+        void writeMainLog('error', 'renderer process gone', details);
+    });
+
     mainWindow.once('ready-to-show', () => {
         mainWindow?.show();
     });
 
     mainWindow.loadFile(path.join(__dirname, 'loading.html'));
+}
+
+function getDesktopMenuTemplate(menuName) {
+    const templates = {
+        file: [
+            { role: 'close', label: 'Close' },
+        ],
+        edit: [
+            { role: 'undo', label: 'Undo' },
+            { role: 'redo', label: 'Redo' },
+            { type: 'separator' },
+            { role: 'cut', label: 'Cut' },
+            { role: 'copy', label: 'Copy' },
+            { role: 'paste', label: 'Paste' },
+            { role: 'selectAll', label: 'Select All' },
+        ],
+        view: [
+            { role: 'reload', label: 'Reload' },
+            { role: 'forceReload', label: 'Force Reload' },
+            { role: 'toggleDevTools', label: 'Toggle Developer Tools' },
+            { type: 'separator' },
+            { role: 'resetZoom', label: 'Actual Size' },
+            { role: 'zoomIn', label: 'Zoom In' },
+            { role: 'zoomOut', label: 'Zoom Out' },
+            { type: 'separator' },
+            { role: 'togglefullscreen', label: 'Toggle Full Screen' },
+        ],
+        window: [
+            { role: 'minimize', label: 'Minimize' },
+            { role: 'zoom', label: 'Zoom' },
+            { role: 'close', label: 'Close' },
+        ],
+        help: [
+            {
+                label: 'Check for Updates',
+                click: () => {
+                    void checkForUpdates();
+                },
+            },
+        ],
+    };
+
+    return templates[menuName] || [];
 }
 
 function loadRendererWindow() {
@@ -390,6 +447,18 @@ ipcMain.handle('data-agent:save-secrets', (_event, secrets) => saveStoredSecrets
 ipcMain.handle('data-agent:check-for-updates', () => checkForUpdates());
 ipcMain.handle('data-agent:download-update', () => autoUpdater.downloadUpdate());
 ipcMain.handle('data-agent:quit-and-install-update', () => autoUpdater.quitAndInstall());
+ipcMain.handle('data-agent:show-menu', (event, menuName, position = {}) => {
+    const template = getDesktopMenuTemplate(menuName);
+    if (template.length === 0) return false;
+    const targetWindow = BrowserWindow.fromWebContents(event.sender);
+    if (!targetWindow) return false;
+    Menu.buildFromTemplate(template).popup({
+        window: targetWindow,
+        x: Number(position.x) || 0,
+        y: Number(position.y) || 0,
+    });
+    return true;
+});
 
 app.on('before-quit', () => {
     isQuitting = true;

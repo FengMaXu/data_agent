@@ -246,15 +246,18 @@ const ToolPanel: React.FC<ToolPanelProps> = ({ tools = [], onClose }) => {
     return (
         <aside className="tool-panel">
             <div className="tool-panel-header">
-                <span>{t('tools.details')}</span>
-                <button className="close-btn" onClick={onClose}>
+                <div className="tool-panel-header-main">
+                    <span className="tool-panel-title">{t('tools.details')}</span>
+                    <span className="tool-panel-count">{orderedTools.length}</span>
+                </div>
+                <button type="button" className="close-btn" onClick={onClose}>
                     <X size={16} />
                 </button>
             </div>
 
             <div ref={contentRef} className="tool-panel-content scrollable-area">
                 {orderedTools.length === 0 && (
-                    <div style={{ padding: '20px', textAlign: 'center', color: '#9ca3af', fontSize: '13px' }}>
+                    <div className="tool-panel-empty">
                         {t('tools.noCalls')}
                     </div>
                 )}

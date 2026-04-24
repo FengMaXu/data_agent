@@ -4,13 +4,13 @@ import {
     getMCPConfig,
     saveMCPConfig,
     getMCPServers,
-    getMCPTools,
+    updateMCPServerEnabled,
+    restartMCPServer,
     testMCPServer,
     getSkills,
     type MCPConfig,
     type MCPServerConfig,
     type MCPServerStatus,
-    type MCPToolInfo,
     type MCPTestResult,
     type SkillInfo,
 } from '../api/client';
@@ -30,12 +30,14 @@ const PluginsModal: React.FC<PluginsModalProps> = ({ initialTab = 'MCP', onClose
     // MCP states
     const [mcpConfig, setMcpConfig] = useState<MCPConfig>({ servers: [] });
     const [mcpServers, setMcpServers] = useState<MCPServerStatus[]>([]);
-    const [mcpTools, setMcpTools] = useState<MCPToolInfo[]>([]);
     const [selectedMcpServer, setSelectedMcpServer] = useState<number | null>(null);
     const [isLoadingMCP, setIsLoadingMCP] = useState(false);
     const [isSavingMCP, setIsSavingMCP] = useState(false);
     const [isTestingMCP, setIsTestingMCP] = useState(false);
     const [mcpTestResult, setMcpTestResult] = useState<MCPTestResult | null>(null);
+    const [mcpError, setMcpError] = useState<string | null>(null);
+    const [pendingToggleServer, setPendingToggleServer] = useState<string | null>(null);
+    const [pendingRestartServer, setPendingRestartServer] = useState<string | null>(null);
     
     // Skills states
     const [skills, setSkills] = useState<SkillInfo[]>([]);
@@ -63,17 +65,18 @@ const PluginsModal: React.FC<PluginsModalProps> = ({ initialTab = 'MCP', onClose
         headers_input: '',
     });
 
-    const loadMCPData = async () => {
-        setIsLoadingMCP(true);
+    const loadMCPData = async ({ silent = false }: { silent?: boolean } = {}) => {
+        if (!silent) {
+            setIsLoadingMCP(true);
+        }
         try {
-            const [configRes, serversRes, toolsRes] = await Promise.all([
+            const [configRes, serversRes] = await Promise.all([
                 getMCPConfig(),
                 getMCPServers(),
-                getMCPTools(),
             ]);
+            setMcpError(null);
             setMcpConfig(configRes);
             setMcpServers(serversRes.servers || []);
-            setMcpTools(toolsRes.tools || []);
             setSelectedMcpServer(prev => {
                 if ((configRes.servers || []).length === 0) return null;
                 if (prev === null || prev >= configRes.servers.length) return 0;
@@ -81,8 +84,11 @@ const PluginsModal: React.FC<PluginsModalProps> = ({ initialTab = 'MCP', onClose
             });
         } catch (err) {
             console.error('Failed to load MCP config:', err);
+            setMcpError(err instanceof Error ? err.message : '加载 MCP 配置失败');
         } finally {
-            setIsLoadingMCP(false);
+            if (!silent) {
+                setIsLoadingMCP(false);
+            }
         }
     };
 
@@ -112,38 +118,101 @@ const PluginsModal: React.FC<PluginsModalProps> = ({ initialTab = 'MCP', onClose
         });
     };
 
+    const buildMcpPayload = (config: MCPConfig) => ({
+        servers: config.servers.map(server => {
+            const srv: any = {
+                name: server.name,
+                transport: server.transport,
+                enabled: server.enabled,
+                command: server.command || '',
+                script: server.script || '',
+                url: server.url || '',
+                description: server.description || '',
+                tool_prefix: server.tool_prefix || '',
+                server_type: server.server_type || 'service',
+                tags: server.tags || [],
+            };
+
+            if (server.env_input?.trim()) {
+                srv.env = JSON.parse(server.env_input);
+            }
+            if (server.headers_input?.trim()) {
+                srv.headers = JSON.parse(server.headers_input);
+            }
+            return srv;
+        }),
+    });
+
+    const persistMcpConfig = async (config: MCPConfig) => {
+        await saveMCPConfig(buildMcpPayload(config));
+    };
+
+    const handleToggleMCPEnabled = async (serverName: string, enabled: boolean) => {
+        const nextConfig: MCPConfig = {
+            ...mcpConfig,
+            servers: mcpConfig.servers.map(server =>
+                server.name === serverName ? { ...server, enabled } : server
+            ),
+        };
+
+        setMcpError(null);
+        setPendingToggleServer(serverName);
+        setMcpConfig(nextConfig);
+        try {
+            const result = await updateMCPServerEnabled(serverName, enabled);
+            setMcpConfig(prev => ({
+                ...prev,
+                servers: prev.servers.map(server =>
+                    server.name === serverName ? { ...server, ...result.server, enabled: result.server.enabled } : server
+                ),
+            }));
+            setMcpServers(prev => {
+                let found = false;
+                const next = prev.map(server => {
+                    if (server.name !== serverName) {
+                        return server;
+                    }
+                    found = true;
+                    return result.server;
+                });
+                return found ? next : [...next, result.server];
+            });
+        } catch (e: any) {
+            setMcpError(e instanceof SyntaxError ? '环境变量或请求头 JSON 格式错误' : (e.message || '更新 MCP 状态失败'));
+            await loadMCPData();
+        } finally {
+            setPendingToggleServer(null);
+        }
+    };
+
+    const handleRestartMCPServer = async (serverName: string) => {
+        setMcpError(null);
+        setPendingRestartServer(serverName);
+        try {
+            const result = await restartMCPServer(serverName);
+            setMcpConfig(prev => ({
+                ...prev,
+                servers: prev.servers.map(server =>
+                    server.name === serverName ? { ...server, ...result.server, enabled: result.server.enabled } : server
+                ),
+            }));
+            setMcpServers(prev => prev.map(server => server.name === serverName ? result.server : server));
+        } catch (e: any) {
+            setMcpError(e.message || '重连 MCP 失败');
+            await loadMCPData();
+        } finally {
+            setPendingRestartServer(null);
+        }
+    };
+
     const handleSaveMCP = async () => {
         setIsSavingMCP(true);
+        setMcpError(null);
         try {
-            const payload = {
-                servers: mcpConfig.servers.map(server => {
-                    const srv: any = {
-                        name: server.name,
-                        transport: server.transport,
-                        enabled: server.enabled,
-                        command: server.command || '',
-                        script: server.script || '',
-                        url: server.url || '',
-                        description: server.description || '',
-                        tool_prefix: server.tool_prefix || '',
-                        server_type: server.server_type || 'service',
-                        tags: server.tags || [],
-                    };
-                    
-                    if (server.env_input?.trim()) {
-                        srv.env = JSON.parse(server.env_input);
-                    }
-                    if (server.headers_input?.trim()) {
-                        srv.headers = JSON.parse(server.headers_input);
-                    }
-                    return srv;
-                }),
-            };
-            await saveMCPConfig(payload);
-            await loadMCPData();
-            alert('MCP 配置保存成功');
+            await persistMcpConfig(mcpConfig);
+            void loadMCPData({ silent: true });
         } catch (e: any) {
-            alert('MCP 配置保存失败: ' + (e instanceof SyntaxError ? '环境变量或请求头 JSON 格式错误' : e.message));
+            setMcpError(e instanceof SyntaxError ? '环境变量或请求头 JSON 格式错误' : (e.message || 'MCP 配置保存失败'));
         } finally {
             setIsSavingMCP(false);
         }
@@ -189,6 +258,33 @@ const PluginsModal: React.FC<PluginsModalProps> = ({ initialTab = 'MCP', onClose
         }
     };
 
+    const displayedMcpServers = mcpServers.map((server, index) => ({
+        ...server,
+        key: `${server.name || 'server'}-${index}`,
+        connected: server.enabled ? Boolean(server.connected) : false,
+        tool_count: server.enabled ? (server.tool_count ?? 0) : 0,
+    }));
+    const selectedServerStatus = selectedMcpServer === null ? null : displayedMcpServers.find(
+        server => server.name === mcpConfig.servers[selectedMcpServer]?.name,
+    );
+
+    const getServerStatusMeta = (server: MCPServerStatus) => {
+        const status = !server.enabled ? 'disabled' : (server.status || (server.connected ? 'connected' : 'disconnected'));
+        if (status === 'connected') {
+            return { label: t('plugins.connected'), fg: '#059669', bg: '#ecfdf5' };
+        }
+        if (status === 'connecting') {
+            return { label: '连接中', fg: '#1d4ed8', bg: '#eff6ff' };
+        }
+        if (status === 'error') {
+            return { label: '异常', fg: '#b91c1c', bg: '#fef2f2' };
+        }
+        if (status === 'disabled') {
+            return { label: t('plugins.disabled'), fg: '#6b7280', bg: '#f3f4f6' };
+        }
+        return { label: t('plugins.disconnected'), fg: '#b45309', bg: '#fffbeb' };
+    };
+
     return (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' }} onClick={onClose}>
             <div style={{ background: '#f9fafb', borderRadius: '16px', width: '800px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
@@ -228,7 +324,7 @@ const PluginsModal: React.FC<PluginsModalProps> = ({ initialTab = 'MCP', onClose
                                     </div>
                                     <div style={{ display: 'flex', gap: '12px' }}>
                                         <button
-                                            onClick={loadMCPData}
+                                            onClick={() => void loadMCPData()}
                                             disabled={isLoadingMCP}
                                             style={{ background: '#fff', color: '#1f2937', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 14px', display: 'flex', alignItems: 'center', gap: '8px', cursor: isLoadingMCP ? 'not-allowed' : 'pointer' }}
                                         >
@@ -241,41 +337,80 @@ const PluginsModal: React.FC<PluginsModalProps> = ({ initialTab = 'MCP', onClose
                                     </div>
                                 </div>
 
+                                {mcpError && (
+                                    <div style={{ marginBottom: '16px', padding: '10px 12px', borderRadius: '10px', border: '1px solid #fecaca', background: '#fff1f2', color: '#b91c1c', fontSize: '0.85rem' }}>
+                                        {mcpError}
+                                    </div>
+                                )}
+
                                 {mcpTab === '已安装' && (
                                     <div style={{ display: 'grid', gap: '16px' }}>
-                                        {mcpServers.length === 0 && (
+                                        {displayedMcpServers.length === 0 && (
                                             <div style={{ textAlign: 'center', color: '#9ca3af', marginTop: '64px' }}>{t('plugins.noServers')}</div>
                                         )}
-                                        {mcpServers.map((server, index) => {
-                                            const toolCount = mcpTools.filter((tool: any) => tool.server === server.name).length;
+                                        {displayedMcpServers.map((server, index) => {
+                                            const isToggling = pendingToggleServer === server.name;
+                                            const isRestarting = pendingRestartServer === server.name;
+                                            const statusMeta = getServerStatusMeta(server);
                                             return (
-                                                <div key={`${server.name}-${index}`} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '16px 18px' }}>
+                                                <div key={server.key} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '16px 18px' }}>
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px' }}>
                                                         <div>
                                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                                                                 <span style={{ fontWeight: 600, color: '#111827' }}>{server.name}</span>
-                                                                <span style={{ fontSize: '0.75rem', color: server.connected ? '#059669' : '#b45309', background: server.connected ? '#ecfdf5' : '#fffbeb', padding: '2px 8px', borderRadius: '999px' }}>
-                                                                    {server.connected ? t('plugins.connected') : t('plugins.disconnected')}
+                                                                <span style={{ fontSize: '0.75rem', color: statusMeta.fg, background: statusMeta.bg, padding: '2px 8px', borderRadius: '999px' }}>
+                                                                    {statusMeta.label}
                                                                 </span>
-                                                                {!server.enabled && (
-                                                                    <span style={{ fontSize: '0.75rem', color: '#6b7280', background: '#f3f4f6', padding: '2px 8px', borderRadius: '999px' }}>{t('plugins.disabled')}</span>
-                                                                )}
                                                             </div>
                                                             <div style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '4px' }}>{server.description || t('plugins.noDesc')}</div>
                                                             <div style={{ fontSize: '0.8rem', color: '#9ca3af' }}>
-                                                                transport: {server.transport} · type: {server.server_type || 'service'} · tools: {toolCount}
+                                                                transport: {server.transport} · type: {server.server_type || 'service'} · tools: {server.tool_count ?? 0}
                                                             </div>
                                                         </div>
-                                                        <button
-                                                            onClick={() => {
-                                                                const targetIndex = mcpConfig.servers.findIndex(item => item.name === server.name);
-                                                                setSelectedMcpServer(targetIndex >= 0 ? targetIndex : index);
-                                                                setMcpTab('设置');
-                                                            }}
-                                                            style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 12px', cursor: 'pointer', color: '#374151' }}
-                                                        >
-                                                            {t('plugins.edit')}
-                                                        </button>
+                                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                                            {server.enabled && (
+                                                                <button
+                                                                    onClick={() => void handleRestartMCPServer(server.name)}
+                                                                    disabled={isRestarting || isToggling}
+                                                                    style={{
+                                                                        background: '#eff6ff',
+                                                                        border: '1px solid #bfdbfe',
+                                                                        borderRadius: '8px',
+                                                                        padding: '8px 12px',
+                                                                        minWidth: '78px',
+                                                                        cursor: (isRestarting || isToggling) ? 'not-allowed' : 'pointer',
+                                                                        color: '#1d4ed8'
+                                                                    }}
+                                                                >
+                                                                    {isRestarting ? <Loader2 size={16} className="animate-spin" /> : '重连'}
+                                                                </button>
+                                                            )}
+                                                            <button
+                                                                onClick={() => void handleToggleMCPEnabled(server.name, !server.enabled)}
+                                                                disabled={isToggling || isRestarting}
+                                                                style={{
+                                                                    background: server.enabled ? '#fff7ed' : '#ecfdf5',
+                                                                    border: `1px solid ${server.enabled ? '#fdba74' : '#86efac'}`,
+                                                                    borderRadius: '8px',
+                                                                    padding: '8px 12px',
+                                                                    minWidth: '78px',
+                                                                    cursor: (isToggling || isRestarting) ? 'not-allowed' : 'pointer',
+                                                                    color: server.enabled ? '#c2410c' : '#166534'
+                                                                }}
+                                                            >
+                                                                {isToggling ? <Loader2 size={16} className="animate-spin" /> : (server.enabled ? '禁用' : '启用')}
+                                                            </button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    const targetIndex = mcpConfig.servers.findIndex(item => item.name === server.name);
+                                                                    setSelectedMcpServer(targetIndex >= 0 ? targetIndex : index);
+                                                                    setMcpTab('设置');
+                                                                }}
+                                                                style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 12px', cursor: 'pointer', color: '#374151' }}
+                                                            >
+                                                                {t('plugins.edit')}
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             );
@@ -318,7 +453,20 @@ const PluginsModal: React.FC<PluginsModalProps> = ({ initialTab = 'MCP', onClose
                                             ) : (
                                                 <div style={{ background: '#fff', borderRadius: '16px', padding: '24px', border: '1px solid #f3f4f6' }}>
                                                     <div style={{ marginBottom: '24px' }}>
-                                                        <h4 style={{ marginBottom: '4px', fontSize: '1.1rem', fontWeight: 600, color: '#111827' }}>MCP Server 设置</h4>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+                                                            <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#111827' }}>MCP Server 设置</h4>
+                                                            {selectedServerStatus && (
+                                                                <span style={{
+                                                                    fontSize: '0.75rem',
+                                                                    color: getServerStatusMeta(selectedServerStatus).fg,
+                                                                    background: getServerStatusMeta(selectedServerStatus).bg,
+                                                                    padding: '2px 8px',
+                                                                    borderRadius: '999px'
+                                                                }}>
+                                                                    {getServerStatusMeta(selectedServerStatus).label}
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                         <p style={{ fontSize: '0.9rem', color: '#6b7280' }}>支持 stdio / http / sse 配置。当前前端优先接 stdio 主链路。</p>
                                                     </div>
 
@@ -436,6 +584,16 @@ const PluginsModal: React.FC<PluginsModalProps> = ({ initialTab = 'MCP', onClose
                                                         )}
 
                                                     <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end', marginTop: '32px', paddingTop: '24px', borderTop: '1px solid #f3f4f6' }}>
+                                                        {selectedServerStatus?.enabled && (
+                                                            <button
+                                                                onClick={() => void handleRestartMCPServer(selectedServerStatus.name)}
+                                                                disabled={pendingRestartServer === selectedServerStatus.name}
+                                                                style={{ width: '180px', padding: '12px 24px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', borderRadius: '8px', fontWeight: 600, cursor: pendingRestartServer === selectedServerStatus.name ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                                                            >
+                                                                {pendingRestartServer === selectedServerStatus.name ? <Loader2 size={16} className="animate-spin" /> : null}
+                                                                重连 MCP
+                                                            </button>
+                                                        )}
                                                         <button onClick={handleTestMCP} disabled={isTestingMCP} style={{ width: '180px', padding: '12px 24px', background: '#f3f4f6', color: '#1f2937', border: '1px solid #e5e7eb', borderRadius: '8px', fontWeight: 600, cursor: isTestingMCP ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                                                             {isTestingMCP ? <Loader2 size={16} className="animate-spin" /> : null}
                                                             测试 MCP

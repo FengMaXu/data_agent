@@ -208,6 +208,8 @@ class _ManagedServer:
     def status(self) -> dict[str, Any]:
         return {
             "name": self._config.name,
+            "enabled": self._config.enabled,
+            "status": "connected" if self._ready.is_set() else "disconnected",
             "server_type": self._config.server_type,
             "transport": self._config.transport.value,
             "connected": self._ready.is_set(),
@@ -253,10 +255,7 @@ class MCPManager:
             self._settings = settings
             self._servers = {}
 
-            servers_to_start = [
-                s for s in settings.servers
-                if s.enabled and (enabled_names is None or s.name in enabled_names)
-            ]
+            servers_to_start = self._selected_enabled_servers(settings, enabled_names)
             if not servers_to_start:
                 logger.info("[MCPManager] 无 enabled server，跳过启动")
                 return
@@ -264,12 +263,7 @@ class MCPManager:
             logger.info("[MCPManager] 启动 %d 个 MCP server...", len(servers_to_start))
             start_time = time.perf_counter()
 
-            # 并发启动所有 server
-            managed = {s.name: _ManagedServer(s) for s in servers_to_start}
-            await asyncio.gather(
-                *(m.start() for m in managed.values()),
-                return_exceptions=True,
-            )
+            managed = await self._start_servers(servers_to_start)
             self._servers = managed
             elapsed = round((time.perf_counter() - start_time) * 1000)
             logger.info(
@@ -294,13 +288,109 @@ class MCPManager:
         logger.info("[MCPManager] 重启所有连接（配置热更新）...")
         await self.start(settings, enabled_names)
 
+    async def reconcile(
+        self,
+        settings: MCPSettings,
+        enabled_names: list[str] | None = None,
+    ) -> None:
+        """按配置差异增量启停/重启 MCP server。"""
+        async with self._lock:
+            selected_servers = self._selected_enabled_servers(settings, enabled_names)
+            selected_by_name = {server.name: server for server in selected_servers}
+            running_names = set(self._servers)
+
+            to_stop_names = sorted(running_names - set(selected_by_name))
+            to_restart_configs: list[MCPServerConfig] = []
+            to_start_configs: list[MCPServerConfig] = []
+            unchanged_names: list[str] = []
+
+            for config in selected_servers:
+                managed = self._servers.get(config.name)
+                if managed is None:
+                    to_start_configs.append(config)
+                elif managed.config != config:
+                    to_restart_configs.append(config)
+                else:
+                    unchanged_names.append(config.name)
+
+            if not to_stop_names and not to_restart_configs and not to_start_configs:
+                self._settings = settings
+                logger.info("[MCPManager] 配置无变化，保持现有连接")
+                return
+
+            logger.info(
+                "[MCPManager] 增量更新: stop=%s restart=%s start=%s keep=%s",
+                to_stop_names or [],
+                [config.name for config in to_restart_configs],
+                [config.name for config in to_start_configs],
+                unchanged_names,
+            )
+
+            restart_names = [config.name for config in to_restart_configs]
+            if to_stop_names or restart_names:
+                await self._stop_servers(to_stop_names + restart_names)
+                for name in to_stop_names + restart_names:
+                    self._servers.pop(name, None)
+
+            started = await self._start_servers(to_restart_configs + to_start_configs)
+            self._servers.update(started)
+            self._settings = settings
+
+    async def restart_server(
+        self,
+        name: str,
+        settings: MCPSettings | None = None,
+    ) -> _ManagedServer | None:
+        """仅重连指定 MCP server。"""
+        async with self._lock:
+            effective_settings = settings or self._settings or MCPSettings()
+            target_config = effective_settings.get_server(name)
+            if target_config is None:
+                raise KeyError(name)
+
+            self._settings = effective_settings
+            await self._stop_servers([name])
+            self._servers.pop(name, None)
+
+            if not target_config.enabled:
+                logger.info("[MCPManager] %s 已禁用，跳过重连", name)
+                return None
+
+            started = await self._start_servers([target_config])
+            self._servers.update(started)
+            logger.info("[MCPManager] 已重连 MCP server: %s", name)
+            return self._servers.get(name)
+
     async def _stop_all(self) -> None:
         if not self._servers:
             return
-        await asyncio.gather(
-            *(m.stop() for m in self._servers.values()),
-            return_exceptions=True,
-        )
+        await self._stop_servers(list(self._servers))
+
+    async def _stop_servers(self, names: list[str]) -> None:
+        targets = [self._servers[name] for name in names if name in self._servers]
+        if not targets:
+            return
+        await asyncio.gather(*(server.stop() for server in targets), return_exceptions=True)
+
+    async def _start_servers(
+        self,
+        configs: list[MCPServerConfig],
+    ) -> dict[str, _ManagedServer]:
+        if not configs:
+            return {}
+        managed = {config.name: _ManagedServer(config) for config in configs}
+        await asyncio.gather(*(server.start() for server in managed.values()), return_exceptions=True)
+        return managed
+
+    def _selected_enabled_servers(
+        self,
+        settings: MCPSettings,
+        enabled_names: list[str] | None = None,
+    ) -> list[MCPServerConfig]:
+        return [
+            server for server in settings.servers
+            if server.enabled and (enabled_names is None or server.name in enabled_names)
+        ]
 
     # ── 查询接口 ──────────────────────────────────────────────────────────────
 
