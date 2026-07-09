@@ -143,6 +143,7 @@ class AgentTimingRecorder:
             "status": status,
             "total_ms": round(total_ms, 3),
             "first_sse_ms": self._milestone_value("first_sse"),
+            "first_visible_text_ms": self._milestone_value("first_visible_text"),
             "first_text_ms": self._milestone_value("first_text"),
             "first_tool_ms": self._milestone_value("first_tool_call"),
             "attachments_ms": self._elapsed_value("request_start", "attachments_read_done"),
@@ -204,6 +205,18 @@ class AgentToolResult:
     is_error: bool = False
 
 
+@dataclass(frozen=True)
+class ToolExecutionPolicy:
+    """工具执行调度策略。
+
+    默认按有副作用处理。只有显式声明 read_only 的工具才会参与并发调度。
+    """
+
+    read_only: bool = False
+    resource: str = "default"
+    max_concurrency: int | None = None
+
+
 class AgentTool:
     """
     Agent 可用工具
@@ -218,12 +231,21 @@ class AgentTool:
         parameters: dict[str, Any],
         execute_fn: Callable[..., Awaitable[AgentToolResult]],
         label: str = "",
+        read_only: bool = False,
+        resource: str = "default",
+        max_concurrency: int | None = None,
+        execution_policy: ToolExecutionPolicy | None = None,
     ):
         self.name = name
         self.description = description
         self.parameters = parameters
         self.execute_fn = execute_fn
         self.label = label or name
+        self.execution_policy = execution_policy or ToolExecutionPolicy(
+            read_only=read_only,
+            resource=resource,
+            max_concurrency=max_concurrency,
+        )
 
     async def execute(
         self,
@@ -254,6 +276,7 @@ class AgentContext:
     system_prompt: str
     messages: list[Message] = field(default_factory=list)
     tools: list[AgentTool] = field(default_factory=list)
+    tool_catalog: Any | None = None
     active_skills: SkillRuntimeState = field(default_factory=_new_skill_runtime)
     timing: AgentTimingRecorder | None = None
 
@@ -302,6 +325,7 @@ class AgentEventType(str, Enum):
     TURN_END = "turn_end"
     MESSAGE_START = "message_start"
     MESSAGE_UPDATE = "message_update"
+    REASONING_UPDATE = "reasoning_update"
     MESSAGE_END = "message_end"
     TOOL_CALL_START = "tool_call_start"
     TOOL_CALL_DELTA = "tool_call_delta"
@@ -323,6 +347,7 @@ class AgentEvent:
 
     # 文本增量
     text_delta: str = ""
+    reasoning_delta: str = ""
 
     # 工具调用相关
     tool_call_id: str = ""

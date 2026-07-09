@@ -1,4 +1,4 @@
-"""交互层单元测试。"""
+"""Interaction layer unit tests."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ from src.workspace.workspace_manager import WorkspaceManager
 
 
 class MockMCPClient:
-    """模拟 MCP Client 进行测试。"""
+    """Mock MCP client for evaluator tests."""
 
     def __init__(self, responses: dict[str, str] | None = None):
         self._responses = responses or {}
@@ -42,7 +42,7 @@ class TestSQLEvaluator:
         evaluator = SQLEvaluator(mock_mcp, SQLGuard(strict=True))
         result = await evaluator.validate("DROP TABLE users")
         assert result.passed is False
-        assert "安全拦截" in result.error_message
+        assert "SQL blocked" in result.error_message
 
     @pytest.mark.asyncio
     async def test_select_goes_through_validation(self):
@@ -80,12 +80,13 @@ class TestSQLEvaluator:
     @pytest.mark.asyncio
     async def test_validated_execute_tool_returns_controlled_preview(self):
         query = "SELECT company_name FROM dim_company"
-        response_key = f"execute_sql:{json.dumps({'query': query}, sort_keys=True, ensure_ascii=False)}"
-        rows = [
-            {"company_name": f"公司{i}", "revenue": i}
-            for i in range(30)
-        ]
-        mock_mcp = MockMCPClient(responses={response_key: json.dumps(rows, ensure_ascii=False)})
+        response_key = (
+            f"execute_sql:{json.dumps({'query': query}, sort_keys=True, ensure_ascii=False)}"
+        )
+        rows = [{"company_name": f"公司{i}", "revenue": i} for i in range(30)]
+        mock_mcp = MockMCPClient(
+            responses={response_key: json.dumps(rows, ensure_ascii=False)}
+        )
         evaluator = SQLEvaluator(mock_mcp, SQLGuard(strict=True))
         tool = evaluator.create_validated_execute_tool()
 
@@ -107,12 +108,16 @@ class TestSQLEvaluator:
     @pytest.mark.asyncio
     async def test_export_tool_writes_csv_into_workspace(self):
         query = "SELECT company_name, revenue FROM dim_company"
-        response_key = f"execute_sql:{json.dumps({'query': query}, sort_keys=True, ensure_ascii=False)}"
+        response_key = (
+            f"execute_sql:{json.dumps({'query': query}, sort_keys=True, ensure_ascii=False)}"
+        )
         rows = [
             {"company_name": "甲公司", "revenue": 100},
             {"company_name": "乙公司", "revenue": 200},
         ]
-        mock_mcp = MockMCPClient(responses={response_key: json.dumps(rows, ensure_ascii=False)})
+        mock_mcp = MockMCPClient(
+            responses={response_key: json.dumps(rows, ensure_ascii=False)}
+        )
         workspace_root = Path(tempfile.mkdtemp())
         workspace = WorkspaceManager(root_dir=str(workspace_root), session_id="session_test")
         evaluator = SQLEvaluator(mock_mcp, SQLGuard(strict=True), workspace=workspace)
@@ -126,44 +131,52 @@ class TestSQLEvaluator:
         assert result.is_error is False
         assert result.details["row_count"] == 2
         assert result.details["file_path"] == "data/exports/sales_export.csv"
-        assert result.details["download_url"].endswith("data/exports/sales_export.csv")
+        assert result.details["download_path"] == "session_test/data/exports/sales_export.csv"
+        assert result.details["download_url"].endswith("session_test/data/exports/sales_export.csv")
         exported = workspace.read_file("data/exports/sales_export.csv")
         assert "company_name" in exported
         assert "甲公司" in exported
 
-
-
     @pytest.mark.asyncio
     async def test_export_tool_preserves_unicode_business_filename(self):
         query = "SELECT company_name, revenue FROM dim_company"
-        response_key = f"execute_sql:{json.dumps({'query': query}, sort_keys=True, ensure_ascii=False)}"
+        response_key = (
+            f"execute_sql:{json.dumps({'query': query}, sort_keys=True, ensure_ascii=False)}"
+        )
         rows = [{"company_name": "甲公司", "revenue": 100}]
-        mock_mcp = MockMCPClient(responses={response_key: json.dumps(rows, ensure_ascii=False)})
+        mock_mcp = MockMCPClient(
+            responses={response_key: json.dumps(rows, ensure_ascii=False)}
+        )
         workspace_root = Path(tempfile.mkdtemp())
         workspace = WorkspaceManager(root_dir=str(workspace_root), session_id="session_test")
         evaluator = SQLEvaluator(mock_mcp, SQLGuard(strict=True), workspace=workspace)
         tool = evaluator.create_export_tool()
 
+        filename = "批发业新增四上企业_2026年3月.csv"
         result = await tool.execute(
             "call-1",
             {
                 "query": query,
-                "filename": "批发业新增四上企业_2026年3月.csv",
+                "filename": filename,
                 "trusted_template": True,
             },
         )
 
         assert result.is_error is False
-        assert result.details["file_path"] == "data/exports/批发业新增四上企业_2026年3月.csv"
-        exported = workspace.read_file("data/exports/批发业新增四上企业_2026年3月.csv")
+        assert result.details["file_path"] == f"data/exports/{filename}"
+        exported = workspace.read_file(f"data/exports/{filename}")
         assert "company_name" in exported
 
     @pytest.mark.asyncio
     async def test_export_tool_sanitizes_only_invalid_windows_filename_chars(self):
         query = "SELECT company_name, revenue FROM dim_company"
-        response_key = f"execute_sql:{json.dumps({'query': query}, sort_keys=True, ensure_ascii=False)}"
+        response_key = (
+            f"execute_sql:{json.dumps({'query': query}, sort_keys=True, ensure_ascii=False)}"
+        )
         rows = [{"company_name": "甲公司", "revenue": 100}]
-        mock_mcp = MockMCPClient(responses={response_key: json.dumps(rows, ensure_ascii=False)})
+        mock_mcp = MockMCPClient(
+            responses={response_key: json.dumps(rows, ensure_ascii=False)}
+        )
         workspace_root = Path(tempfile.mkdtemp())
         workspace = WorkspaceManager(root_dir=str(workspace_root), session_id="session_test")
         evaluator = SQLEvaluator(mock_mcp, SQLGuard(strict=True), workspace=workspace)
@@ -182,6 +195,8 @@ class TestSQLEvaluator:
         assert result.details["file_path"] == "data/exports/批发_新增_四上_.csv"
         exported = workspace.read_file("data/exports/批发_新增_四上_.csv")
         assert "company_name" in exported
+
+
 class TestFileSkills:
     def _create_skill_dir(self) -> Path:
         base = Path(tempfile.mkdtemp())

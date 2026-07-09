@@ -1,9 +1,12 @@
 import pytest
+import json
 from types import SimpleNamespace
 
 import src.api.mcp as mcp_api_module
 import src.config_manager as config_manager_module
 import src.mcp.manager as manager_module
+from src.agent.tool_search import ToolSearchCatalog
+from src.ai.config import AIConfig
 from src.mcp.config_models import MCPServerConfig, MCPSettings, MCPTransportType
 from fastapi import HTTPException
 
@@ -91,6 +94,80 @@ async def test_reconcile_only_restarts_changed_servers(monkeypatch):
         ("stop", "qcc-company", "https://b.example.com/mcp"),
     ]
     assert set(manager._servers) == {"database", "qcc-risk"}
+
+
+@pytest.mark.asyncio
+async def test_runtime_fingerprint_changes_after_restart(monkeypatch):
+    class FakeManagedServer:
+        counter = 0
+
+        def __init__(self, config: MCPServerConfig, max_concurrent: int = 3) -> None:
+            FakeManagedServer.counter += 1
+            self._config = config
+            self._ready = SimpleNamespace(is_set=lambda: True)
+            self._generation = FakeManagedServer.counter
+            self.tools = [{"name": "execute_sql"}]
+
+        @property
+        def config(self) -> MCPServerConfig:
+            return self._config
+
+        async def start(self) -> None:
+            pass
+
+        async def stop(self) -> None:
+            pass
+
+    monkeypatch.setattr(manager_module, "_ManagedServer", FakeManagedServer)
+
+    manager = manager_module.MCPManager()
+    settings = MCPSettings(servers=[
+        _server("database", command="python", script="db.py", server_type="database"),
+    ])
+    await manager.start(settings)
+    before = manager.runtime_fingerprint(["database"])
+
+    await manager.restart_server("database", settings)
+    after = manager.runtime_fingerprint(["database"])
+
+    assert before != after
+    assert after[0]["name"] == "database"
+
+
+@pytest.mark.asyncio
+async def test_bridged_mcp_tools_are_searchable_by_mcp_source_terms():
+    class FakeManagedServer:
+        def __init__(self) -> None:
+            self._config = MCPServerConfig(
+                name="qcc-company",
+                description="Company profile service",
+                tags=["qcc"],
+            )
+            self.tools = [
+                {
+                    "name": "get_company_by_query",
+                    "description": "Find company by keyword",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {"keyword": {"type": "string"}},
+                    },
+                }
+            ]
+
+        @property
+        def config(self) -> MCPServerConfig:
+            return self._config
+
+        async def call_tool(self, name: str, arguments: dict):
+            return "{}"
+
+    manager = manager_module.MCPManager()
+    manager._servers = {"qcc-company": FakeManagedServer()}
+
+    catalog = ToolSearchCatalog(manager.bridge_tools())
+    result = await catalog.execute("call_1", {"query": "mcp"})
+
+    assert result.details["matches"] == ["qcc-company_get_company_by_query"]
 
 
 @pytest.mark.asyncio
@@ -405,3 +482,70 @@ async def test_restart_mcp_server_route_maps_errors(monkeypatch):
         await mcp_api_module.restart_mcp_server("disabled")
     assert bad_request.value.status_code == 400
     assert calls == ["qcc-company", "missing", "disabled"]
+
+
+@pytest.mark.asyncio
+async def test_update_db_config_persists_runtime_config_and_reconciles_effective_database_env(
+    monkeypatch,
+    tmp_path,
+):
+    user_mcp_path = tmp_path / "mcp.json"
+    user_mcp_path.write_text(
+        json.dumps(
+            {
+                "servers": [
+                    {
+                        "name": "database",
+                        "transport": "stdio",
+                        "enabled": True,
+                        "command": "python",
+                        "script": "db.py",
+                        "env": {
+                            "MYSQL_HOST": "localhost",
+                            "MYSQL_PORT": "3306",
+                            "MYSQL_USER": "root",
+                            "MYSQL_PASSWORD": "old-password",
+                            "MYSQL_DATABASE": "old_db",
+                        },
+                        "server_type": "database",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    config_manager = config_manager_module.ConfigManager()
+    config_manager.project_root = tmp_path
+    config_manager.user_config_dir = tmp_path
+    config_manager.runtime_config_path = tmp_path / "runtime.json"
+    config_manager.ai_config = AIConfig(
+        mcp_server_script="db.py",
+        mysql_host="localhost",
+        mysql_port=3306,
+        mysql_user="root",
+        mysql_password="current-password",
+        mysql_database="old_db",
+    )
+
+    reconcile_calls: list[MCPSettings] = []
+
+    class DummyMCPManager:
+        async def reconcile(self, settings: MCPSettings) -> None:
+            reconcile_calls.append(settings)
+
+    monkeypatch.setattr(config_manager_module.MCPConfigLoader, "USER_CONFIG_PATH", user_mcp_path)
+    monkeypatch.setattr(config_manager_module, "mcp_manager", DummyMCPManager())
+
+    await config_manager.update_db_config({"database": "wwe", "password": ""})
+
+    runtime = json.loads(config_manager.runtime_config_path.read_text(encoding="utf-8"))
+    assert runtime["database"]["database"] == "wwe"
+    assert runtime["database"]["password"] == "current-password"
+    assert len(reconcile_calls) == 1
+
+    database_server = reconcile_calls[0].get_server("database")
+    assert database_server is not None
+    assert database_server.env["MYSQL_DATABASE"] == "wwe"
+    assert database_server.env["MYSQL_PASSWORD"] == "current-password"
+    assert database_server.enabled is True

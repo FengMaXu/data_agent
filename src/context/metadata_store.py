@@ -209,6 +209,9 @@ class MetadataStore:
                 },
                 execute_fn=introspect_database,
                 label="数据库全景透视",
+                read_only=True,
+                resource="db",
+                max_concurrency=3,
             ),
             AgentTool(
                 name="get_table_detail",
@@ -228,5 +231,8 @@ class MetadataStore:
                 },
                 execute_fn=get_table_detail_tool,
                 label="表结构详情",
+                read_only=True,
+                resource="db",
+                max_concurrency=3,
             ),
         ]

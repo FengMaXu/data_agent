@@ -23,7 +23,9 @@ import {
     MessageSquare,
     Check,
     History,
-} from 'lucide-react';
+    User,
+    LogOut,
+} from './icons/Typicons';
 import {
     getKnowledgeFiles,
     getKnowledgeContent,
@@ -40,6 +42,7 @@ import { formatFileSize, formatTime } from '../utils/helpers';
 import ReactMarkdown from 'react-markdown';
 import { useSession } from '../hooks/useSession';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../hooks/useAuth';
 
 interface SidebarProps {
     onOpenSettings: () => void;
@@ -68,6 +71,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
     } = useSession();
 
     const { t, language, toggleLanguage } = useLanguage();
+    const { user, logout } = useAuth();
+    const displayName = user?.display_name || user?.username || 'User';
 
     const [knowledgeExpanded, setKnowledgeExpanded] = useState(false);
     const [pluginsExpanded, setPluginsExpanded] = useState(false);
@@ -630,15 +635,21 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
                 </div>
 
                 <div className="sidebar-footer">
-                    <button className="sidebar-footer-toggle" onClick={toggleLanguage}>
-                        <Languages size={16} />
-                        <span>
-                        {language === 'zh' ? 'EN' : '中文'}
-                        </span>
+                    <div className="nav-item sidebar-footer-user" title={user?.username || displayName}>
+                        <User className="nav-item-icon" size={18} />
+                        <span className="nav-item-text">{displayName}</span>
+                    </div>
+                    <button className="nav-item sidebar-footer-settings" onClick={toggleLanguage}>
+                        <Languages className="nav-item-icon" size={18} />
+                        <span className="nav-item-text">{language === 'zh' ? 'EN' : '中文'}</span>
                     </button>
                     <button className="nav-item sidebar-footer-settings" onClick={onOpenSettings}>
                         <Settings className="nav-item-icon" size={18} />
                         <span className="nav-item-text">{t('sidebar.settings')}</span>
+                    </button>
+                    <button className="nav-item sidebar-footer-settings" onClick={() => void logout()} title="退出">
+                        <LogOut className="nav-item-icon" size={18} />
+                        <span className="nav-item-text">退出</span>
                     </button>
                 </div>
 

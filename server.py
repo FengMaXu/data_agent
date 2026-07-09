@@ -5,6 +5,9 @@ from __future__ import annotations
 import argparse
 import logging
 import os
+import runpy
+import sys
+import traceback
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -13,11 +16,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.api.agent import router as agent_router
+from src.api.auth import router as auth_router
 from src.api.knowledge_api import router as knowledge_router
 from src.api.mcp import router as mcp_router
+from src.api.sessions import router as sessions_router
 from src.api.settings import router as settings_router
 from src.api.workspace_api import router as workspace_router
 from src.app_runtime import app_runtime
+from src.auth.service import get_user_by_token
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8080
@@ -64,7 +70,31 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=None,
         help="Directory for data_agent.log, usually Electron app.getPath('userData').",
     )
+    parser.add_argument(
+        "--data-agent-run-python-script",
+        default=None,
+        help=argparse.SUPPRESS,
+    )
     return parser.parse_args(argv)
+
+
+def run_python_script(script_path: str) -> int:
+    """Run a workspace script from the packaged backend executable."""
+    try:
+        sys.argv = [script_path]
+        runpy.run_path(script_path, run_name="__main__")
+        return 0
+    except SystemExit as exc:
+        code = exc.code
+        if code is None:
+            return 0
+        if isinstance(code, int):
+            return code
+        print(code, file=sys.stderr)
+        return 1
+    except Exception:
+        traceback.print_exc()
+        return 1
 
 
 configure_logging()
@@ -93,6 +123,32 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.middleware("http")
+async def authenticate_request(request, call_next):
+    if request.method == "OPTIONS":
+        return await call_next(request)
+
+    public_paths = ("/auth", "/health", "/docs", "/redoc", "/openapi.json")
+    if request.url.path.startswith(public_paths):
+        return await call_next(request)
+
+    auth_header = request.headers.get("authorization", "")
+    token = auth_header[7:].strip() if auth_header.lower().startswith("bearer ") else ""
+    if not token:
+        token = request.query_params.get("access_token", "")
+    user = get_user_by_token(token)
+    if user is None:
+        from fastapi.responses import JSONResponse
+
+        return JSONResponse({"detail": "Authentication required"}, status_code=401)
+
+    request.state.current_user = user
+    return await call_next(request)
+
+
+app.include_router(auth_router)
+app.include_router(sessions_router)
 app.include_router(agent_router)
 app.include_router(settings_router)
 app.include_router(settings_router, prefix="/api")
@@ -108,6 +164,9 @@ async def health_check():
 
 if __name__ == "__main__":
     args = parse_args()
+    if args.data_agent_run_python_script:
+        raise SystemExit(run_python_script(args.data_agent_run_python_script))
+
     log_path = configure_logging(args.log_dir)
     port = args.port or int(os.getenv("PORT", str(DEFAULT_PORT)))
     logger.info("Starting API on %s:%s; log=%s", args.host, port, log_path or "stream-only")

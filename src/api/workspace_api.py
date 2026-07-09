@@ -5,14 +5,18 @@
 """
 
 import logging
+import mimetypes
 import os
 import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi import APIRouter, HTTPException, UploadFile, File, Request
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
+
+from src.auth.service import ensure_local_user
+from src.persistence import chat_store
 
 logger = logging.getLogger("data_agent.api.workspace")
 
@@ -159,18 +163,56 @@ def _safe_resolve_path(relative_path: str) -> Path:
     return resolved
 
 
+def _request_user_id(request: Request | None) -> str:
+    user = getattr(getattr(request, "state", None), "current_user", None)
+    if user is not None:
+        return str(user.id)
+    return ensure_local_user().id
+
+
+def _ensure_owned_session(user_id: str, session_id: str) -> None:
+    if not session_id:
+        return
+    if chat_store.get_session(user_id, session_id) is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+
+def _session_from_relative_path(relative_path: str) -> str:
+    cleaned = os.path.normpath(relative_path)
+    first = Path(cleaned).parts[0] if Path(cleaned).parts else ""
+    return "" if first in {"", ".", ".."} else first
+
+
+def _media_type_for_path(path: Path) -> str:
+    suffix = path.suffix.lower()
+    if suffix in {".html", ".htm"}:
+        return "text/html; charset=utf-8"
+    if suffix == ".pdf":
+        return "application/pdf"
+    if suffix == ".csv":
+        return "text/csv; charset=utf-8"
+    if suffix == ".txt":
+        return "text/plain; charset=utf-8"
+    if suffix == ".json":
+        return "application/json"
+    guessed, _ = mimetypes.guess_type(path.name)
+    return guessed or "application/octet-stream"
+
+
 # ==========================================
 # API 端点
 # ==========================================
 
 
 @router.get("/files", response_model=FileListResponse)
-async def list_workspace_files(session_id: str | None = None):
+async def list_workspace_files(request: Request = None, session_id: str | None = None):
     """
     获取工作区内文件的列表。
     如果提供 session_id，则只列出该会话的文件。
     """
     try:
+        if session_id:
+            _ensure_owned_session(_request_user_id(request), session_id)
         files = _scan_workspace_files(session_id)
         return FileListResponse(
             status="success",
@@ -183,11 +225,12 @@ async def list_workspace_files(session_id: str | None = None):
 
 
 @router.get("/files/download")
-async def download_workspace_file(path: str):
+async def download_workspace_file(path: str, request: Request = None):
     """
     下载工作区中的指定文件。
     参数 path 为相对于 workspace 根目录的路径，例如 '20260305_120222/data/result.csv'
     """
+    _ensure_owned_session(_request_user_id(request), _session_from_relative_path(path))
     resolved = _safe_resolve_path(path)
 
     if not resolved.exists():
@@ -195,28 +238,37 @@ async def download_workspace_file(path: str):
     if not resolved.is_file():
         raise HTTPException(status_code=400, detail=f"不是文件: {path}")
 
-    # 根据文件扩展名确定 media_type
-    suffix = resolved.suffix.lower()
-    if suffix == '.html':
-        media_type = "text/html"
-    elif suffix == '.pdf':
-        media_type = "application/pdf"
-    elif suffix in ['.csv', '.txt']:
-        media_type = "text/plain"
-    elif suffix == '.json':
-        media_type = "application/json"
-    else:
-        media_type = "application/octet-stream"
-
     return FileResponse(
         path=str(resolved),
         filename=resolved.name,
-        media_type=media_type,
+        media_type=_media_type_for_path(resolved),
+    )
+
+
+@router.get("/files/preview")
+async def preview_workspace_file(path: str, request: Request = None):
+    """
+    内联预览工作区文件。
+    与 download 接口不同，这里不设置 attachment 文件名，供 iframe/img 等预览入口使用。
+    """
+    _ensure_owned_session(_request_user_id(request), _session_from_relative_path(path))
+    resolved = _safe_resolve_path(path)
+
+    if not resolved.exists():
+        raise HTTPException(status_code=404, detail=f"文件不存在: {path}")
+    if not resolved.is_file():
+        raise HTTPException(status_code=400, detail=f"不是文件: {path}")
+
+    return FileResponse(
+        path=str(resolved),
+        media_type=_media_type_for_path(resolved),
+        headers={"Content-Disposition": "inline"},
     )
 
 
 @router.post("/upload", response_model=UploadResponse)
 async def upload_workspace_file(
+    request: Request,
     file: UploadFile = File(...),
     session_id: str = "",
 ):
@@ -230,6 +282,8 @@ async def upload_workspace_file(
     # 确定目标 session 目录
     if not session_id:
         session_id = f"upload_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    user_id = _request_user_id(request)
+    chat_store.ensure_session(user_id, session_id)
 
     target_dir = WORKSPACE_ROOT / session_id / "data"
     target_dir.mkdir(parents=True, exist_ok=True)
@@ -274,11 +328,12 @@ async def upload_workspace_file(
 
 
 @router.delete("/files")
-async def delete_workspace_file(path: str):
+async def delete_workspace_file(path: str, request: Request = None):
     """
     删除工作区中的指定文件。
     参数 path 为相对于 workspace 根目录的路径。
     """
+    _ensure_owned_session(_request_user_id(request), _session_from_relative_path(path))
     resolved = _safe_resolve_path(path)
 
     if not resolved.exists():

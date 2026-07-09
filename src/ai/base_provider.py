@@ -72,6 +72,7 @@ class Message:
     tool_name: str | None = None  # for tool_result
     name: str | None = None
     message_id: str | None = None
+    reasoning_content: str | None = None
 
 
 @dataclass
@@ -81,6 +82,8 @@ class TokenUsage:
     prompt_tokens: int = 0
     completion_tokens: int = 0
     total_tokens: int = 0
+    cache_read_tokens: int = 0
+    cache_write_tokens: int = 0
 
 
 @dataclass
@@ -93,6 +96,7 @@ class AssistantResponse:
     usage: TokenUsage | None = None
     model: str = ""
     message_id: str | None = None
+    reasoning_content: str | None = None
 
 
 # ─────────────────────────────────────────────
@@ -104,7 +108,7 @@ class AssistantResponse:
 class StreamEvent:
     """流式输出事件"""
 
-    type: str  # "message_start" | "text_delta" | "tool_call_start" | "tool_call_delta" | "done" | "error"
+    type: str  # "message_start" | "text_delta" | "reasoning_delta" | "tool_call_start" | "tool_call_delta" | "done" | "error"
     text: str = ""
     tool_call: ToolCall | None = None
     message_id: str | None = None

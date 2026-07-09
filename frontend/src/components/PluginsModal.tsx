@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Search, RefreshCw, Plus, Loader2 } from 'lucide-react';
+import { X, Search, RefreshCw, Plus, Loader2 } from './icons/Typicons';
 import {
     getMCPConfig,
     saveMCPConfig,

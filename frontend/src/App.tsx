@@ -4,10 +4,15 @@ import ChatArea from './components/ChatArea';
 import ToolPanel, { type ToolData } from './components/ToolPanel';
 import SettingsModal from './components/SettingsModal';
 import PluginsModal from './components/PluginsModal';
+import LandingPage from './components/LandingPage';
 import Onboarding from './components/Onboarding';
 import { SessionProvider } from './hooks/useSession';
+import { AuthProvider, useAuth } from './hooks/useAuth';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
+import { PreviewProvider } from './context/PreviewContext';
 import { getConfig, updateLLMConfig } from './api/client';
+import LoginView from './components/LoginView';
+import GlobalPreviewModal from './components/common/GlobalPreviewModal';
 
 interface AppShellProps {
   startupState: 'checking' | 'ready' | 'onboarding';
@@ -22,7 +27,7 @@ const DESKTOP_MENU_ITEMS = [
   { id: 'help', label: 'Help' },
 ];
 
-const TOOL_PANEL_WIDTH = 360;
+const TOOL_PANEL_WIDTH = 410;
 const CHAT_PANEL_MIN_WIDTH = 560;
 
 const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState }) => {
@@ -214,9 +219,16 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState }) =>
 
 const App: React.FC = () => {
   const [startupState, setStartupState] = useState<'checking' | 'ready' | 'onboarding'>('checking');
+  const { status } = useAuth();
+  const { t } = useLanguage();
 
   useEffect(() => {
+    if (status !== 'authenticated') {
+      return;
+    }
+
     let cancelled = false;
+    setStartupState('checking');
 
     const completeStartupCheck = async () => {
       try {
@@ -232,8 +244,6 @@ const App: React.FC = () => {
             provider: storedSecrets.anthropic_api_key ? 'anthropic' : 'openai',
             openai_api_key: storedSecrets.openai_api_key,
             anthropic_api_key: storedSecrets.anthropic_api_key,
-            openai_base_url: storedSecrets.openai_base_url,
-            model: storedSecrets.default_model,
           });
           if (!cancelled) setStartupState('ready');
           return;
@@ -250,13 +260,39 @@ const App: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [status]);
+
+  if (status === 'checking') {
+    return <div className="app-loading">{t('app.preparing')}</div>;
+  }
+
+  if (status === 'anonymous') {
+    return <LoginView />;
+  }
+
+  return (
+    <PreviewProvider>
+      <AppShell startupState={startupState} setStartupState={setStartupState} />
+      <GlobalPreviewModal />
+    </PreviewProvider>
+  );
+};
+
+const Root: React.FC = () => {
+  const isDesktopRuntime = typeof window !== 'undefined' && Boolean(window.dataAgent);
+  const isAppRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/app');
 
   return (
     <LanguageProvider>
-      <AppShell startupState={startupState} setStartupState={setStartupState} />
+      {isDesktopRuntime || isAppRoute ? (
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      ) : (
+        <LandingPage />
+      )}
     </LanguageProvider>
   );
 };
 
-export default App;
+export default Root;

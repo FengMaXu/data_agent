@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import time
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -292,12 +293,25 @@ class SQLEvaluator:
         query: str,
         *,
         trusted_template: bool = False,
-    ) -> tuple[EvaluationResult, Any]:
+    ) -> tuple[EvaluationResult, Any, dict[str, Any]]:
+        started_at = time.perf_counter()
         eval_result = await self.validate(query, trusted_template=trusted_template)
+        validation_ms = round((time.perf_counter() - started_at) * 1000, 3)
         if not eval_result.passed:
-            return eval_result, None
+            return eval_result, None, {
+                "validation_ms": validation_ms,
+                "query_ms": 0,
+                "elapsed_ms": validation_ms,
+            }
+        query_started_at = time.perf_counter()
         result = await self._mcp.call_tool("execute_sql", {"query": query})
-        return eval_result, result
+        query_ms = round((time.perf_counter() - query_started_at) * 1000, 3)
+        elapsed_ms = round((time.perf_counter() - started_at) * 1000, 3)
+        return eval_result, result, {
+            "validation_ms": validation_ms,
+            "query_ms": query_ms,
+            "elapsed_ms": elapsed_ms,
+        }
 
     async def export_query_to_csv(
         self,
@@ -312,7 +326,7 @@ class SQLEvaluator:
                 is_error=True,
             )
 
-        eval_result, result = await self._run_validated_query(
+        eval_result, result, timing_meta = await self._run_validated_query(
             query,
             trusted_template=trusted_template,
         )
@@ -332,6 +346,7 @@ class SQLEvaluator:
                     "query": query,
                     "reason": eval_result.error_message,
                     "validation_method": eval_result.validation_method,
+                    **timing_meta,
                 },
                 is_error=True,
             )
@@ -341,7 +356,7 @@ class SQLEvaluator:
         if error_message:
             return AgentToolResult(
                 content=[ToolResultContent(text=f"导出失败：{error_message}")],
-                details={"query": query},
+                details={"query": query, **timing_meta},
                 is_error=True,
             )
 
@@ -349,13 +364,14 @@ class SQLEvaluator:
         if rows is None:
             return AgentToolResult(
                 content=[ToolResultContent(text="导出失败：当前查询结果不是可导出的表格数据。")],
-                details={"query": query},
+                details={"query": query, **timing_meta},
                 is_error=True,
             )
 
         relative_path = self._build_export_relative_path(filename)
         saved_path = self._workspace.write_csv_rows(relative_path, rows)
-        download_url = f"/workspace/files/download?path={quote(saved_path, safe='/')}"
+        download_path = f"{self._workspace.session_dir.name}/{saved_path}"
+        download_url = f"/workspace/files/download?path={quote(download_path, safe='/')}"
 
         return AgentToolResult(
             content=[
@@ -363,8 +379,8 @@ class SQLEvaluator:
                     text=(
                         f"已将查询结果导出为 CSV，共 {len(rows)} 行。\n"
                         f"文件路径: {saved_path}\n"
-                        f"下载链接: {download_url}\n"
-                        "如需在界面中展示文件入口，请继续调用 show_widget(kind='file_link', ...)"
+                        f"请在最终答复中直接展示这个 Markdown 下载链接："
+                        f"[下载 CSV]({download_url})"
                     )
                 )
             ],
@@ -375,8 +391,10 @@ class SQLEvaluator:
                 "trusted_template": trusted_template,
                 "row_count": len(rows),
                 "file_path": saved_path,
+                "download_path": download_path,
                 "download_url": download_url,
                 "file_type": "csv",
+                **timing_meta,
             },
         )
 
@@ -390,7 +408,7 @@ class SQLEvaluator:
             query = arguments.get("query", "")
             trusted_template = bool(arguments.get("trusted_template", False))
 
-            eval_result, result = await evaluator._run_validated_query(
+            eval_result, result, timing_meta = await evaluator._run_validated_query(
                 query,
                 trusted_template=trusted_template,
             )
@@ -411,11 +429,14 @@ class SQLEvaluator:
                         "query": query,
                         "reason": eval_result.error_message,
                         "validation_method": eval_result.validation_method,
+                        **timing_meta,
                     },
                     is_error=True,
                 )
 
+            preview_started_at = time.perf_counter()
             preview_text, preview_meta = evaluator._build_preview_text(result)
+            preview_ms = round((time.perf_counter() - preview_started_at) * 1000, 3)
             return AgentToolResult(
                 content=[ToolResultContent(text=preview_text)],
                 details={
@@ -423,6 +444,8 @@ class SQLEvaluator:
                     "validated": True,
                     "validation_method": eval_result.validation_method,
                     "trusted_template": trusted_template,
+                    **timing_meta,
+                    "preview_ms": preview_ms,
                     **preview_meta,
                 },
             )
@@ -451,6 +474,9 @@ class SQLEvaluator:
             },
             execute_fn=validated_execute_sql,
             label="执行 SQL（预览）",
+            read_only=True,
+            resource="db",
+            max_concurrency=3,
         )
 
     def create_export_tool(self) -> AgentTool:
@@ -493,4 +519,7 @@ class SQLEvaluator:
             },
             execute_fn=export_sql_to_csv,
             label="导出 SQL 为 CSV",
+            read_only=False,
+            resource="workspace_fs",
+            max_concurrency=1,
         )

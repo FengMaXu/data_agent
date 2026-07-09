@@ -15,6 +15,20 @@ from src.mcp.config_models import MCPServerConfig, MCPSettings, MCPTransportType
 
 logger = logging.getLogger("data_agent.mcp.registry")
 
+READ_ONLY_DATABASE_TOOLS = {
+    "execute_sql",
+    "get_table_schema",
+    "list_tables",
+    "get_table_detail",
+    "introspect_database",
+}
+
+
+def _mcp_tool_policy(server_type: str, tool_name: str) -> tuple[bool, str, int]:
+    if server_type == "database" and tool_name in READ_ONLY_DATABASE_TOOLS:
+        return True, "db", 3
+    return False, "mcp", 1
+
 
 @dataclass
 class ConnectedMCPServer:
@@ -150,6 +164,10 @@ class MCPRegistry:
         prefixed_name = f"{connected.config.resolved_tool_prefix()}{original_name}"
         description = remote_tool.get("description", "")
         parameters = remote_tool.get("parameters", {"type": "object", "properties": {}})
+        read_only, resource, max_concurrency = _mcp_tool_policy(
+            connected.config.server_type,
+            original_name,
+        )
 
         async def _execute(tool_call_id: str, arguments: dict[str, Any]) -> AgentToolResult:
             started_at = time.perf_counter()
@@ -204,6 +222,9 @@ class MCPRegistry:
             description=f"[来源: {server_name}] {description}",
             parameters=parameters,
             execute_fn=_execute,
+            read_only=read_only,
+            resource=resource,
+            max_concurrency=max_concurrency,
         )
 
     def bridge_all_tools(

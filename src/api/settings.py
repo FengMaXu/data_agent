@@ -23,12 +23,28 @@ class LLMConfigRequest(BaseModel):
     model: str | None = None
 
 
+class LLMProfileRequest(BaseModel):
+    id: str | None = None
+    name: str | None = None
+    provider: Literal["openai", "anthropic"]
+    model: str
+    base_url: str | None = None
+    api_key_ref: str | None = None
+    enabled: bool = True
+    is_default: bool = False
+
+
 class DBConfigRequest(BaseModel):
     host: str | None = None
     port: int | None = None
     user: str | None = None
     password: str | None = None
     database: str | None = None
+
+
+class PythonRuntimeRequest(BaseModel):
+    mode: Literal["bundled", "external"] = "bundled"
+    executable: str | None = None
 
 
 @router.get("/config")
@@ -41,6 +57,28 @@ async def update_llm_config(req: LLMConfigRequest):
     data = req.model_dump(exclude_unset=True)
     await config_manager.update_llm_config(data)
     return {"status": "success", "message": "LLM config updated and gateway rebuilt"}
+
+
+@router.get("/llm/profiles")
+async def list_llm_profiles():
+    return config_manager.list_llm_profiles()
+
+
+@router.post("/llm/profiles")
+async def save_llm_profile(req: LLMProfileRequest):
+    data = req.model_dump(exclude_unset=True)
+    return await config_manager.save_llm_profile(data)
+
+
+@router.post("/llm/profiles/{profile_id}/default")
+async def set_default_llm_profile(profile_id: str):
+    return await config_manager.set_default_llm_profile(profile_id)
+
+
+@router.delete("/llm/profiles/{profile_id}")
+async def delete_llm_profile(profile_id: str):
+    await config_manager.delete_llm_profile(profile_id)
+    return {"status": "success"}
 
 
 @router.post("/llm/test")
@@ -64,3 +102,20 @@ async def update_db_config(req: DBConfigRequest):
 async def test_db_connection(req: DBConfigRequest):
     data = req.model_dump(exclude_unset=True)
     return await config_manager.test_db_connection(data)
+
+
+@router.post("/python-runtime")
+async def update_python_runtime(req: PythonRuntimeRequest):
+    data = req.model_dump(exclude_unset=True)
+    try:
+        runtime = await config_manager.update_python_runtime_config(data)
+        return {"status": "success", "runtime": runtime}
+    except Exception as e:
+        logger.error("Failed to update Python runtime config: %s", e)
+        return {"status": "error", "message": str(e)}
+
+
+@router.post("/python-runtime/test")
+async def test_python_runtime(req: PythonRuntimeRequest):
+    data = req.model_dump(exclude_unset=True)
+    return await config_manager.test_python_runtime_config(data)

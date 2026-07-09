@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, safeStorage, Menu } from 'electron';
+import { app, BrowserWindow, ipcMain, safeStorage, Menu, dialog } from 'electron';
 import electronUpdater from 'electron-updater';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
@@ -94,7 +94,7 @@ async function readStoredSecrets() {
         const encoded = await fs.readFile(getSecretStorePath(), 'utf-8');
         const encrypted = Buffer.from(encoded, 'base64');
         const plaintext = safeStorage.decryptString(encrypted);
-        return JSON.parse(plaintext);
+        return pickSecretFields(JSON.parse(plaintext));
     } catch {
         return {};
     }
@@ -107,7 +107,7 @@ async function saveStoredSecrets(secrets) {
 
     const current = await readStoredSecrets();
     const next = { ...current };
-    for (const [key, value] of Object.entries(secrets || {})) {
+    for (const [key, value] of Object.entries(pickSecretFields(secrets || {}))) {
         if (typeof value === 'string' && value.trim()) {
             next[key] = value.trim();
         }
@@ -118,6 +118,13 @@ async function saveStoredSecrets(secrets) {
     await fs.mkdir(app.getPath('userData'), { recursive: true });
     await fs.writeFile(getSecretStorePath(), encrypted.toString('base64'), 'utf-8');
     return { ok: true };
+}
+
+function pickSecretFields(secrets) {
+    return {
+        openai_api_key: typeof secrets?.openai_api_key === 'string' ? secrets.openai_api_key : undefined,
+        anthropic_api_key: typeof secrets?.anthropic_api_key === 'string' ? secrets.anthropic_api_key : undefined,
+    };
 }
 
 function getBackendCommand() {
@@ -163,6 +170,10 @@ function startBackend() {
         cwd: projectRoot,
         windowsHide: true,
         stdio: ['ignore', 'pipe', 'pipe'],
+        env: {
+            ...process.env,
+            DATA_AGENT_CONFIG_DIR: app.getPath('userData'),
+        },
     });
 
     backendProcess.stdout?.on('data', (chunk) => {
@@ -229,8 +240,6 @@ async function applyStoredSecretsToBackend() {
             provider,
             openai_api_key: secrets.openai_api_key,
             anthropic_api_key: secrets.anthropic_api_key,
-            openai_base_url: secrets.openai_base_url,
-            model: secrets.default_model,
         }),
     });
 }
@@ -447,6 +456,20 @@ ipcMain.handle('data-agent:save-secrets', (_event, secrets) => saveStoredSecrets
 ipcMain.handle('data-agent:check-for-updates', () => checkForUpdates());
 ipcMain.handle('data-agent:download-update', () => autoUpdater.downloadUpdate());
 ipcMain.handle('data-agent:quit-and-install-update', () => autoUpdater.quitAndInstall());
+ipcMain.handle('data-agent:select-python-executable', async () => {
+    const result = await dialog.showOpenDialog(mainWindow ?? undefined, {
+        title: 'Select Python executable',
+        properties: ['openFile'],
+        filters: [
+            { name: 'Python executable', extensions: process.platform === 'win32' ? ['exe'] : ['*'] },
+            { name: 'All files', extensions: ['*'] },
+        ],
+    });
+    if (result.canceled || result.filePaths.length === 0) {
+        return null;
+    }
+    return result.filePaths[0];
+});
 ipcMain.handle('data-agent:show-menu', (event, menuName, position = {}) => {
     const template = getDesktopMenuTemplate(menuName);
     if (template.length === 0) return false;

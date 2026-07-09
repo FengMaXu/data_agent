@@ -11,7 +11,7 @@ import {
     FileCode,
     Database,
     Terminal,
-} from 'lucide-react';
+} from './icons/Typicons';
 import type { WidgetSpec } from '../api/client';
 import { useLanguage } from '../context/LanguageContext';
 

@@ -19,6 +19,7 @@ import tempfile
 import subprocess
 import threading
 from pathlib import Path
+from typing import Any
 
 from src.agent.types import AgentTool, AgentToolResult
 from src.ai.base_provider import ToolResultContent
@@ -60,9 +61,11 @@ class CodeExecutor:
         workspace: WorkspaceManager,
         timeout: int = DEFAULT_TIMEOUT,
         allowed_packages: list[str] | None = None,
+        python_runtime: dict[str, Any] | None = None,
     ):
         self.workspace = workspace
         self.timeout = timeout
+        self.python_runtime = python_runtime or {"mode": "bundled", "executable": ""}
         # 预期可用的数据分析包（不做强制校验，仅用于提示 Agent）
         self.allowed_packages = allowed_packages or [
             "pandas",
@@ -78,6 +81,30 @@ class CodeExecutor:
             "collections",
             "re",
         ]
+
+    def _python_command(self, script_path: Path) -> list[str]:
+        mode = str(self.python_runtime.get("mode") or "bundled").lower()
+        executable = str(self.python_runtime.get("executable") or "").strip()
+
+        if mode == "external" and executable:
+            cmd = [executable]
+            if IS_WINDOWS:
+                cmd.extend(["-X", "utf8"])
+            cmd.append(str(script_path))
+            return cmd
+
+        if getattr(sys, "frozen", False):
+            return [
+                sys.executable,
+                "--data-agent-run-python-script",
+                str(script_path),
+            ]
+
+        cmd = [sys.executable]
+        if IS_WINDOWS:
+            cmd.extend(["-X", "utf8"])
+        cmd.append(str(script_path))
+        return cmd
 
     async def execute_code(self, code: str, description: str = "") -> dict:
         """
@@ -201,11 +228,7 @@ plt.savefig = _patched_savefig
                     "PYTHONIOENCODING": "utf-8",
                 }
                 # 在 Windows 上使用 -X utf8 选项强制 UTF-8 模式
-                python_cmd = [sys.executable]
-                if IS_WINDOWS:
-                    python_cmd.append("-X")
-                    python_cmd.append("utf8")
-                python_cmd.append(str(script_path))
+                python_cmd = self._python_command(script_path)
 
                 return subprocess.run(
                     python_cmd,
@@ -230,11 +253,7 @@ plt.savefig = _patched_savefig
             else:
                 logger.debug("[CodeExecutor] Unix 环境使用异步子进程")
                 # Unix 环境也添加 UTF-8 支持
-                python_cmd = [sys.executable]
-                if IS_WINDOWS:
-                    python_cmd.append("-X")
-                    python_cmd.append("utf8")
-                python_cmd.append(str(script_path))
+                python_cmd = self._python_command(script_path)
 
                 process = await asyncio.create_subprocess_exec(
                     *python_cmd,
@@ -385,5 +404,8 @@ def create_code_tools(executor: CodeExecutor) -> list[AgentTool]:
                 "required": ["code"],
             },
             execute_fn=_run_python,
+            read_only=False,
+            resource="process",
+            max_concurrency=1,
         ),
     ]

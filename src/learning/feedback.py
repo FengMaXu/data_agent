@@ -180,5 +180,8 @@ class FeedbackCollector:
                 },
                 execute_fn=report_query_feedback,
                 label="查询反馈",
+                read_only=False,
+                resource="learning",
+                max_concurrency=1,
             ),
         ]

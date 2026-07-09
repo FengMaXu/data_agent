@@ -120,4 +120,7 @@ def create_clarification_tool(
         },
         execute_fn=request_user_clarification,
         label="主动提问",
+        read_only=False,
+        resource="session",
+        max_concurrency=1,
     )

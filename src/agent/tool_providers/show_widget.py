@@ -13,7 +13,6 @@ SUPPORTED_WIDGET_KINDS = {
     "steps",
     "rich_text",
     "echarts",
-    "file_link",
 }
 
 
@@ -83,25 +82,6 @@ def _normalize_widget_spec(tool_call_id: str, arguments: dict[str, Any]) -> dict
     if config is not None:
         spec["config"] = config
 
-    # 文件链接字段（kind="file_link" 时使用）
-    file_path = arguments.get("file_path")
-    if file_path is not None:
-        if not isinstance(file_path, str):
-            raise ValueError("file_path 必须是字符串")
-        spec["file_path"] = file_path
-
-    download_url = arguments.get("download_url")
-    if download_url is not None:
-        if not isinstance(download_url, str):
-            raise ValueError("download_url 必须是字符串")
-        spec["download_url"] = download_url
-
-    file_type = arguments.get("file_type")
-    if file_type is not None:
-        if not isinstance(file_type, str):
-            raise ValueError("file_type 必须是字符串")
-        spec["file_type"] = file_type
-
     return spec
 
 
@@ -133,6 +113,8 @@ def create_show_widget_tool() -> AgentTool:
         description=(
             "Display a structured UI widget inline in the chat. "
             "Use this for KPI cards, tables, charts, steps, and rich text summaries. "
+            "Do not use this tool to display file download links; output Markdown links "
+            "directly in the assistant response instead. "
             "Use kind='echarts' ONLY when the user explicitly requests a chart, visualization, "
             "dashboard, or trend analysis. For simple data queries, use table/metric_cards/chart instead. "
             "When kind='echarts', provide a complete ECharts option object in the 'config' field; "
@@ -196,20 +178,11 @@ def create_show_widget_tool() -> AgentTool:
                     "description": "ECharts option object. ONLY used when kind='echarts'. Include xAxis, yAxis, series, tooltip, legend etc.",
                     "additionalProperties": True,
                 },
-                "file_path": {
-                    "type": "string",
-                    "description": "File relative path in workspace. Used when kind='file_link'.",
-                },
-                "download_url": {
-                    "type": "string",
-                    "description": "Download URL for the file. Used when kind='file_link'.",
-                },
-                "file_type": {
-                    "type": "string",
-                    "description": "File type: 'html', 'pdf', 'excel', etc. Used when kind='file_link'.",
-                },
             },
             "required": ["kind", "title"],
         },
         execute_fn=_show_widget,
+        read_only=False,
+        resource="ui",
+        max_concurrency=1,
     )

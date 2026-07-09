@@ -20,6 +20,7 @@ HTTP API Hooks
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from dataclasses import dataclass, field
@@ -123,7 +124,7 @@ def _make_http_tool(config: HttpHookConfig) -> AgentTool:
         "required": required,
     }
 
-    async def _execute(tool_call_id: str, arguments: dict) -> AgentToolResult:
+    def _execute_blocking(arguments: dict) -> AgentToolResult:
         try:
             import urllib.request
             import urllib.parse
@@ -182,10 +183,16 @@ def _make_http_tool(config: HttpHookConfig) -> AgentTool:
                 is_error=True,
             )
 
+    async def _execute(tool_call_id: str, arguments: dict) -> AgentToolResult:
+        return await asyncio.to_thread(_execute_blocking, arguments)
+
     return AgentTool(
         name=f"api_{config.name}",
         label=f"[API] {config.name}",
         description=f"[外部API] {config.description}\n端点: {config.method} {config.url}",
         parameters=schema,
         execute_fn=_execute,
+        read_only=config.method.upper() in {"GET", "HEAD", "OPTIONS"},
+        resource="network",
+        max_concurrency=4,
     )

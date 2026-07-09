@@ -3,7 +3,11 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 from pathlib import Path
+import subprocess
+import sys
+import tempfile
 from typing import Any
 from urllib import error, request
 
@@ -12,12 +16,17 @@ from src.agent.tool_providers.base import GlobalRuntimeServices
 from src.agent.types import AgentTimingRecorder
 from src.ai.config import AIConfig
 from src.ai.gateway import AIGateway
+from src.ai.profiles import LLMProfileStore
 from src.mcp.config_loader import MCPConfigLoader
 from src.mcp.config_models import MCPSettings
 from src.mcp.manager import mcp_manager
 from src.mcp.registry import MCPRegistry
 
 logger = logging.getLogger("data_agent.config_manager")
+
+DATABASE_CONFIG_KEYS = ("host", "port", "user", "password", "database")
+LLM_WARMUP_DISABLED_VALUES = {"0", "false", "no", "off"}
+DEFAULT_LLM_WARMUP_TIMEOUT_SECONDS = 10.0
 
 
 class ConfigManager:
@@ -38,7 +47,14 @@ class ConfigManager:
         if self._initialized:
             return
         self.project_root = Path(__file__).resolve().parent.parent
+        self.user_config_dir = Path(
+            os.getenv("DATA_AGENT_CONFIG_DIR") or self.project_root / ".data_agent"
+        )
+        self.user_config_dir.mkdir(parents=True, exist_ok=True)
+        self.runtime_config_path = self.user_config_dir / "runtime.json"
         self.ai_config: AIConfig = AIConfig.from_env()
+        self._apply_runtime_database_config()
+        self.llm_profiles = LLMProfileStore(self.user_config_dir / "llm_profiles.json", self.ai_config)
         self.gateway: AIGateway | None = None
         self.tool_assembly = ToolAssemblyService(self.project_root)
         self._initialized = True
@@ -47,17 +63,40 @@ class ConfigManager:
 
     async def startup(self) -> None:
         logger.info("[ConfigManager] 正在启动...")
+        self.llm_profiles.apply_default_to(self.ai_config)
         self.gateway = AIGateway(self.ai_config)
         settings = MCPConfigLoader.load_effective_settings(self.project_root, self.ai_config)
         await mcp_manager.start(settings)
+        await self._warmup_llm_gateway()
         logger.info("[ConfigManager] 启动完成。")
 
     async def shutdown(self) -> None:
         logger.info("[ConfigManager] 正在关闭...")
         await mcp_manager.stop()
+        if self.gateway is not None:
+            await self.gateway.aclose()
         logger.info("[ConfigManager] 关闭完成。")
 
     # ── 配置热更新 ────────────────────────────────────────────────────────────
+
+    async def _warmup_llm_gateway(self) -> None:
+        if self.gateway is None:
+            return
+        enabled = os.getenv("DATA_AGENT_LLM_WARMUP", "1").strip().lower()
+        if enabled in LLM_WARMUP_DISABLED_VALUES:
+            logger.info("[ConfigManager] LLM warmup disabled")
+            return
+        timeout = DEFAULT_LLM_WARMUP_TIMEOUT_SECONDS
+        raw_timeout = os.getenv("DATA_AGENT_LLM_WARMUP_TIMEOUT_SECONDS", "").strip()
+        if raw_timeout:
+            try:
+                timeout = max(0.1, float(raw_timeout))
+            except ValueError:
+                logger.warning(
+                    "[ConfigManager] Invalid DATA_AGENT_LLM_WARMUP_TIMEOUT_SECONDS=%r",
+                    raw_timeout,
+                )
+        await self.gateway.warmup(timeout=timeout)
 
     async def update_llm_config(self, new_config: dict[str, Any]) -> None:
         logger.info("[ConfigManager] 热更新 LLM 配置: %s", list(new_config.keys()))
@@ -80,11 +119,59 @@ class ConfigManager:
             self.ai_config.anthropic_api_key = anthropic_api_key.strip()
 
         base_url = new_config.get("base_url") or new_config.get("openai_base_url")
-        if isinstance(base_url, str) and base_url.strip() and provider != "anthropic":
-            self.ai_config.openai_base_url = base_url.strip()
+        normalized_base_url = base_url.strip() if isinstance(base_url, str) else ""
 
         if "model" in new_config and new_config["model"]:
-            self.ai_config.default_model = str(new_config["model"])
+            current = self.llm_profiles.default_profile()
+            self.llm_profiles.upsert_profile(
+                {
+                    **current.to_dict(),
+                    "name": str(new_config["model"]),
+                    "provider": provider,
+                    "model": str(new_config["model"]),
+                    "base_url": normalized_base_url if provider != "anthropic" else "",
+                },
+                make_default=True,
+            )
+        elif normalized_base_url and provider != "anthropic":
+            current = self.llm_profiles.default_profile()
+            self.llm_profiles.upsert_profile(
+                {
+                    **current.to_dict(),
+                    "provider": provider,
+                    "base_url": normalized_base_url,
+                },
+                make_default=True,
+            )
+        self.llm_profiles.apply_default_to(self.ai_config)
+        self.gateway = AIGateway(self.ai_config)
+
+    def list_llm_profiles(self) -> dict[str, Any]:
+        default_profile = self.llm_profiles.default_profile()
+        return {
+            "default_profile_id": default_profile.id,
+            "profiles": [
+                self._serialize_llm_profile(profile)
+                for profile in self.llm_profiles.list_profiles()
+            ],
+        }
+
+    async def save_llm_profile(self, data: dict[str, Any]) -> dict[str, Any]:
+        profile = self.llm_profiles.upsert_profile(data, make_default=bool(data.get("is_default")))
+        if profile.is_default:
+            self.llm_profiles.apply_default_to(self.ai_config)
+            self.gateway = AIGateway(self.ai_config)
+        return self._serialize_llm_profile(profile)
+
+    async def set_default_llm_profile(self, profile_id: str) -> dict[str, Any]:
+        profile = self.llm_profiles.set_default(profile_id)
+        self.llm_profiles.apply_default_to(self.ai_config)
+        self.gateway = AIGateway(self.ai_config)
+        return self._serialize_llm_profile(profile)
+
+    async def delete_llm_profile(self, profile_id: str) -> None:
+        self.llm_profiles.delete_profile(profile_id)
+        self.llm_profiles.apply_default_to(self.ai_config)
         self.gateway = AIGateway(self.ai_config)
 
     async def test_llm_config(self, new_config: dict[str, Any]) -> dict[str, Any]:
@@ -108,16 +195,10 @@ class ConfigManager:
 
     async def update_db_config(self, new_config: dict[str, Any]) -> None:
         logger.info("[ConfigManager] 热更新数据库配置: %s", list(new_config.keys()))
-        if "host" in new_config:
-            self.ai_config.mysql_host = new_config["host"]
-        if "port" in new_config:
-            self.ai_config.mysql_port = int(new_config["port"])
-        if "user" in new_config:
-            self.ai_config.mysql_user = new_config["user"]
-        if "password" in new_config:
-            self.ai_config.mysql_password = new_config["password"]
-        if "database" in new_config:
-            self.ai_config.mysql_database = new_config["database"]
+        database_config = self._merged_database_config(new_config)
+        self._validate_database_config(database_config)
+        self._apply_database_config(database_config)
+        self._persist_database_config(database_config)
         await self._reload_mcp()
 
     async def _reload_mcp(self) -> None:
@@ -182,6 +263,7 @@ class ConfigManager:
         effective_overrides = dict(runtime_overrides or {})
         if enabled_mcp_servers is not None:
             effective_overrides["enabled_mcp_servers"] = enabled_mcp_servers
+        effective_overrides["python_runtime"] = self.get_python_runtime_config()
 
         global_services = self.tool_assembly.build_global_runtime_services(timing=timing)
         tools = await self.tool_assembly.build_session_tools(
@@ -217,12 +299,18 @@ class ConfigManager:
         if legacy_server is None:
             return {"success": False, "message": "未配置 MCP_SERVER_SCRIPT 路径"}
 
+        database_config = self._merged_database_config(conf)
+        try:
+            self._validate_database_config(database_config)
+        except ValueError as exc:
+            return {"success": False, "message": str(exc)}
+
         env = self.ai_config.get_mcp_env()
-        env["MYSQL_HOST"] = conf.get("host", self.ai_config.mysql_host)
-        env["MYSQL_PORT"] = str(conf.get("port", self.ai_config.mysql_port))
-        env["MYSQL_USER"] = conf.get("user", self.ai_config.mysql_user)
-        env["MYSQL_PASSWORD"] = conf.get("password", self.ai_config.mysql_password)
-        env["MYSQL_DATABASE"] = conf.get("database", self.ai_config.mysql_database)
+        env["MYSQL_HOST"] = database_config["host"]
+        env["MYSQL_PORT"] = str(database_config["port"])
+        env["MYSQL_USER"] = database_config["user"]
+        env["MYSQL_PASSWORD"] = database_config["password"]
+        env["MYSQL_DATABASE"] = database_config["database"]
         legacy_server.env = env
 
         registry = MCPRegistry()
@@ -259,6 +347,7 @@ class ConfigManager:
 
     def get_config(self) -> dict[str, Any]:
         settings = self.get_mcp_settings()
+        self.llm_profiles.apply_default_to(self.ai_config)
         return {
             "default_model": self.ai_config.default_model,
             "openai_api_key": "[configured]" if self.ai_config.openai_api_key else "",
@@ -270,7 +359,204 @@ class ConfigManager:
             "mysql_user": self.ai_config.mysql_user,
             "mysql_database": self.ai_config.mysql_database,
             "mcp_config": self.serialize_mcp_settings(settings),
+            "python_runtime": self.get_python_runtime_config(),
+            "llm_profiles": self.list_llm_profiles(),
         }
+
+    def get_python_runtime_config(self) -> dict[str, Any]:
+        data = self._read_runtime_config().get("python_runtime", {})
+        mode = str(data.get("mode") or "bundled").lower()
+        if mode not in {"bundled", "external"}:
+            mode = "bundled"
+        executable = str(data.get("executable") or "").strip()
+        return {
+            "mode": mode,
+            "executable": executable,
+            "label": self._python_runtime_label(mode, executable),
+        }
+
+    async def update_python_runtime_config(self, data: dict[str, Any]) -> dict[str, Any]:
+        mode = str(data.get("mode") or "bundled").lower()
+        if mode not in {"bundled", "external"}:
+            raise ValueError("Invalid Python runtime mode")
+        executable = str(data.get("executable") or "").strip()
+        if mode == "external" and not executable:
+            raise ValueError("External Python executable is required")
+        if mode == "external":
+            path = Path(executable).expanduser()
+            if not path.is_absolute():
+                path = (self.project_root / path).resolve()
+            if not path.exists() or not path.is_file():
+                raise ValueError("Python executable does not exist")
+            executable = str(path)
+
+        config = self._read_runtime_config()
+        config["python_runtime"] = {
+            "mode": mode,
+            "executable": executable if mode == "external" else "",
+        }
+        self._write_runtime_config(config)
+        return self.get_python_runtime_config()
+
+    async def test_python_runtime_config(self, data: dict[str, Any]) -> dict[str, Any]:
+        runtime = {
+            "mode": str(data.get("mode") or "bundled").lower(),
+            "executable": str(data.get("executable") or "").strip(),
+        }
+        if runtime["mode"] not in {"bundled", "external"}:
+            return {"success": False, "message": "Invalid Python runtime mode"}
+        if runtime["mode"] == "external":
+            executable = Path(runtime["executable"]).expanduser()
+            if not executable.is_absolute():
+                executable = (self.project_root / executable).resolve()
+            runtime["executable"] = str(executable)
+            if not executable.exists() or not executable.is_file():
+                return {"success": False, "message": "Python executable does not exist"}
+
+        script = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                "w",
+                suffix=".py",
+                encoding="utf-8",
+                delete=False,
+                dir=self.user_config_dir,
+            ) as handle:
+                script = Path(handle.name)
+                handle.write(
+                    "import json, sys\n"
+                    "print(json.dumps({'executable': sys.executable, 'version': sys.version.split()[0]}, ensure_ascii=False))\n"
+                )
+            cmd = self._python_runtime_command(runtime, script)
+            result = await asyncio.to_thread(
+                subprocess.run,
+                cmd,
+                cwd=str(self.project_root),
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=15,
+            )
+            if result.returncode != 0:
+                return {
+                    "success": False,
+                    "message": (result.stderr or result.stdout or "Python runtime test failed").strip(),
+                }
+            details = json.loads(result.stdout.strip().splitlines()[-1])
+            return {"success": True, "message": "Python runtime verified", "details": details}
+        except Exception as exc:
+            return {"success": False, "message": str(exc)}
+        finally:
+            if script is not None:
+                try:
+                    script.unlink(missing_ok=True)
+                except Exception:
+                    pass
+
+    def _read_runtime_config(self) -> dict[str, Any]:
+        if not self.runtime_config_path.exists():
+            return {}
+        try:
+            data = json.loads(self.runtime_config_path.read_text(encoding="utf-8"))
+            return data if isinstance(data, dict) else {}
+        except Exception as exc:
+            logger.warning("[ConfigManager] Failed to read runtime config: %s", exc)
+            return {}
+
+    def _write_runtime_config(self, config: dict[str, Any]) -> None:
+        self.runtime_config_path.write_text(
+            json.dumps(config, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
+    def _current_database_config(self) -> dict[str, Any]:
+        return {
+            "host": self.ai_config.mysql_host,
+            "port": self.ai_config.mysql_port,
+            "user": self.ai_config.mysql_user,
+            "password": self.ai_config.mysql_password,
+            "database": self.ai_config.mysql_database,
+        }
+
+    def _merged_database_config(self, new_config: dict[str, Any]) -> dict[str, Any]:
+        database_config = self._current_database_config()
+        for key in DATABASE_CONFIG_KEYS:
+            if key not in new_config:
+                continue
+            value = new_config[key]
+            if key == "password" and (value is None or str(value) == ""):
+                continue
+            database_config[key] = value
+        database_config["port"] = int(database_config["port"])
+        for key in ("host", "user", "password", "database"):
+            database_config[key] = "" if database_config[key] is None else str(database_config[key]).strip()
+        return database_config
+
+    def _validate_database_config(self, database_config: dict[str, Any]) -> None:
+        if not database_config["host"]:
+            raise ValueError("Database host is required")
+        if not database_config["user"]:
+            raise ValueError("Database user is required")
+        if not database_config["database"]:
+            raise ValueError("Database name is required")
+        port = int(database_config["port"])
+        if port < 1 or port > 65535:
+            raise ValueError("Database port must be between 1 and 65535")
+
+    def _apply_database_config(self, database_config: dict[str, Any]) -> None:
+        self.ai_config.mysql_host = database_config["host"]
+        self.ai_config.mysql_port = int(database_config["port"])
+        self.ai_config.mysql_user = database_config["user"]
+        self.ai_config.mysql_password = database_config["password"]
+        self.ai_config.mysql_database = database_config["database"]
+
+    def _persist_database_config(self, database_config: dict[str, Any]) -> None:
+        config = self._read_runtime_config()
+        config["database"] = {
+            "host": database_config["host"],
+            "port": int(database_config["port"]),
+            "user": database_config["user"],
+            "password": database_config["password"],
+            "database": database_config["database"],
+        }
+        self._write_runtime_config(config)
+
+    def _apply_runtime_database_config(self) -> None:
+        persisted = self._read_runtime_config().get("database", {})
+        if not isinstance(persisted, dict) or not persisted:
+            return
+        try:
+            database_config = self._merged_database_config(persisted)
+            self._validate_database_config(database_config)
+        except Exception as exc:
+            logger.warning("[ConfigManager] Ignoring invalid persisted database config: %s", exc)
+            return
+        self._apply_database_config(database_config)
+
+    def _python_runtime_command(self, runtime: dict[str, Any], script_path: Path) -> list[str]:
+        mode = str(runtime.get("mode") or "bundled").lower()
+        executable = str(runtime.get("executable") or "").strip()
+        if mode == "external" and executable:
+            cmd = [executable]
+            if sys.platform == "win32":
+                cmd.extend(["-X", "utf8"])
+            cmd.append(str(script_path))
+            return cmd
+        if getattr(sys, "frozen", False):
+            return [sys.executable, "--data-agent-run-python-script", str(script_path)]
+        cmd = [sys.executable]
+        if sys.platform == "win32":
+            cmd.extend(["-X", "utf8"])
+        cmd.append(str(script_path))
+        return cmd
+
+    def _python_runtime_label(self, mode: str, executable: str) -> str:
+        if mode == "external" and executable:
+            return executable
+        if getattr(sys, "frozen", False):
+            return "Bundled Data Agent Python"
+        return sys.executable
 
     def serialize_mcp_settings(self, settings: MCPSettings | None = None) -> dict[str, Any]:
         settings = settings or self.get_mcp_settings()
@@ -349,6 +635,14 @@ class ConfigManager:
         if model.lower().startswith("claude-") or "anthropic" in base_url:
             return "anthropic"
         return "openai"
+
+    def _serialize_llm_profile(self, profile) -> dict[str, Any]:
+        data = profile.to_dict()
+        if profile.provider == "anthropic":
+            data["api_key_configured"] = bool(self.ai_config.anthropic_api_key)
+        else:
+            data["api_key_configured"] = bool(self.ai_config.openai_api_key)
+        return data
 
     def _resolve_test_api_key(self, data: dict[str, Any], provider: str) -> str:
         explicit_key = data.get(f"{provider}_api_key")

@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 from pathlib import Path
@@ -17,6 +18,46 @@ from src.ai.base_provider import ToolResultContent
 logger = logging.getLogger("data_agent.context.grep_tool")
 
 CONTEXT_DIR = Path("context")
+
+
+def _grep_context_file(
+    filename: str,
+    query: str,
+    context_lines: int,
+) -> list[str]:
+    filepath = CONTEXT_DIR / "doc" / filename
+    if not filepath.exists():
+        logger.warning(f"[grep_context] 文件不存在: {filepath}")
+        return []
+
+    results: list[str] = []
+    try:
+        content = filepath.read_text(encoding="utf-8")
+        lines = content.split("\n")
+
+        for i, line in enumerate(lines):
+            try:
+                if re.search(query, line, re.IGNORECASE):
+                    start = max(0, i - context_lines)
+                    end = min(len(lines), i + context_lines + 1)
+                    context = lines[start:end]
+
+                    formatted_context = []
+                    for line_num, ctx_line in enumerate(context, start=start + 1):
+                        marker = " >>> " if line_num == i + 1 else "     "
+                        formatted_context.append(f"{marker}{line_num:4d} | {ctx_line}")
+
+                    results.append(f"""
+## {filename} (第 {i+1} 行)
+```
+{chr(10).join(formatted_context)}
+```
+""")
+            except re.error:
+                continue
+    except Exception as e:
+        logger.error(f"[grep_context] 读取文件失败 {filepath}: {e}")
+    return results
 
 
 async def grep_context(tool_call_id: str, arguments: dict) -> AgentToolResult:
@@ -42,42 +83,13 @@ async def grep_context(tool_call_id: str, arguments: dict) -> AgentToolResult:
     if not files:
         files = ["rules.md", "db_schema.md", "business.md", "query_patterns.md", "learning.md"]
 
-    results = []
-    for filename in files:
-        filepath = CONTEXT_DIR / "doc" / filename
-        if not filepath.exists():
-            logger.warning(f"[grep_context] 文件不存在: {filepath}")
-            continue
-
-        try:
-            content = filepath.read_text(encoding="utf-8")
-            lines = content.split("\n")
-
-            for i, line in enumerate(lines):
-                try:
-                    if re.search(query, line, re.IGNORECASE):
-                        start = max(0, i - context_lines)
-                        end = min(len(lines), i + context_lines + 1)
-                        context = lines[start:end]
-
-                        # 添加行号
-                        formatted_context = []
-                        for line_num, ctx_line in enumerate(context, start=start + 1):
-                            marker = " >>> " if line_num == i + 1 else "     "
-                            formatted_context.append(f"{marker}{line_num:4d} | {ctx_line}")
-
-                        results.append(f"""
-## {filename} (第 {i+1} 行)
-```
-{chr(10).join(formatted_context)}
-```
-""")
-                except re.error:
-                    # 正则表达式错误，跳过该行
-                    continue
-        except Exception as e:
-            logger.error(f"[grep_context] 读取文件失败 {filepath}: {e}")
-            continue
+    batches = await asyncio.gather(
+        *[
+            asyncio.to_thread(_grep_context_file, filename, query, context_lines)
+            for filename in files
+        ]
+    )
+    results = [result for batch in batches for result in batch]
 
     if results:
         return AgentToolResult(
@@ -119,4 +131,7 @@ def create_grep_tool() -> AgentTool:
         },
         execute_fn=grep_context,
         label="搜索上下文文档",
+        read_only=True,
+        resource="context_fs",
+        max_concurrency=8,
     )

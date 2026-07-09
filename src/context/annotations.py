@@ -7,6 +7,7 @@ Layer 2：业务标注字典库 (Human Annotations)
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import re
@@ -259,9 +260,13 @@ class AnnotationStore:
             tool_call_id: str, arguments: dict[str, Any]
         ) -> AgentToolResult:
             query = arguments.get("query", "")
-            if not store._initialized:
-                store.load()
-            result = store.search(query) if query else store.get_all()
+
+            def _run_search() -> str:
+                if not store._initialized:
+                    store.load()
+                return store.search(query) if query else store.get_all()
+
+            result = await asyncio.to_thread(_run_search)
             return AgentToolResult(content=[ToolResultContent(text=result)])
 
         return [
@@ -285,5 +290,8 @@ class AnnotationStore:
                 },
                 execute_fn=search_business_context,
                 label="搜索业务知识",
+                read_only=True,
+                resource="business_knowledge",
+                max_concurrency=8,
             ),
         ]

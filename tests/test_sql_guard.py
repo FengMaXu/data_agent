@@ -47,10 +47,26 @@ class TestSQLGuard:
         )
         assert result.allowed is True
 
+    def test_allow_with_cte_select(self):
+        result = self.guard.check(
+            """
+            WITH CustomerData AS (
+                SELECT customer_unique_id, COUNT(*) AS order_count
+                FROM customers
+                GROUP BY customer_unique_id
+            )
+            SELECT customer_unique_id, order_count
+            FROM CustomerData
+            ORDER BY order_count DESC
+            LIMIT 3
+            """
+        )
+        assert result.allowed is True
+
     def test_block_drop_table(self):
         result = self.guard.check("DROP TABLE users")
         assert result.allowed is False
-        assert "安全拦截" in result.reason
+        assert "SQL blocked" in result.reason
 
     def test_block_truncate(self):
         result = self.guard.check("TRUNCATE TABLE orders")
@@ -68,6 +84,12 @@ class TestSQLGuard:
         result = self.guard.check("UPDATE users SET name = 'hacked' WHERE id = 1")
         assert result.allowed is False
 
+    def test_block_with_cte_update(self):
+        result = self.guard.check(
+            "WITH targets AS (SELECT id FROM users) UPDATE users SET role = 'admin'"
+        )
+        assert result.allowed is False
+
     def test_block_alter(self):
         result = self.guard.check("ALTER TABLE users ADD COLUMN hack VARCHAR(100)")
         assert result.allowed is False
@@ -78,6 +100,10 @@ class TestSQLGuard:
 
     def test_block_create(self):
         result = self.guard.check("CREATE TABLE hacked (id INT)")
+        assert result.allowed is False
+
+    def test_block_call(self):
+        result = self.guard.check("CALL rebuild_customer_stats()")
         assert result.allowed is False
 
     def test_block_union_injection(self):

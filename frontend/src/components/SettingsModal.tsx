@@ -1,14 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import {
     Settings as SettingsIcon, Cpu, Server, X,
-    Database, User, Key, Activity, Link, Eye, ExternalLink, Loader2
-} from 'lucide-react';
+    Database, User, Key, Activity, Link, Eye, ExternalLink, Loader2, Terminal, Package, Save
+} from './icons/Typicons';
 import {
     getConfig,
     updateLLMConfig,
     updateDBConfig,
     testDBConnection,
+    updatePythonRuntime,
+    testPythonRuntime,
     type AIConfig,
+    type PythonRuntimeConfig,
+    type PythonRuntimeUpdate,
 } from '../api/client';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -18,7 +22,6 @@ interface SettingsModalProps {
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     const { t } = useLanguage();
-    const logoSrc = `${import.meta.env.BASE_URL}yourdb-logo.png`;
     const [activeMenu, setActiveMenu] = useState('模型');
 
     // States for sub-tabs
@@ -27,6 +30,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     const menuItems = [
         { id: '模型', icon: Cpu },
         { id: '数据库', icon: Database },
+        { id: '环境', icon: Package },
     ];
 
     const PROVIDER_REGISTRY: Record<string, { label: string; letter: string; baseUrl: string; models: string[]; apiKeyUrl: string }> = {
@@ -120,6 +124,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     const [isSavingDB, setIsSavingDB] = useState(false);
     const [dbTestResult, setDbTestResult] = useState<{ success: boolean, message: string } | null>(null);
 
+    const [pythonRuntime, setPythonRuntime] = useState<PythonRuntimeConfig>({ mode: 'bundled' });
+    const [pythonExecutable, setPythonExecutable] = useState('');
+    const [isTestingPython, setIsTestingPython] = useState(false);
+    const [isSavingPython, setIsSavingPython] = useState(false);
+    const [pythonTestResult, setPythonTestResult] = useState<{ success: boolean, message: string } | null>(null);
+
 
     useEffect(() => {
         const loadInitialData = async () => {
@@ -130,6 +140,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                 setDbPort(initialConfig.mysql_port || 3306);
                 setDbUser(initialConfig.mysql_user || 'root');
                 setDbName(initialConfig.mysql_database || '');
+                const runtime = initialConfig.python_runtime || { mode: 'bundled' as const };
+                setPythonRuntime(runtime);
+                setPythonExecutable(runtime.executable || '');
                 const desktopSecrets = await window.dataAgent?.getStoredSecrets();
 
                 // Determine active provider
@@ -282,17 +295,55 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
         }
     };
 
+
+    const pythonRuntimePayload = (): PythonRuntimeUpdate => ({
+        mode: pythonRuntime.mode,
+        executable: pythonRuntime.mode === 'external' ? pythonExecutable.trim() : undefined,
+    });
+
+    const handleChoosePython = async () => {
+        const selected = await window.dataAgent?.selectPythonExecutable();
+        if (!selected) return;
+        setPythonRuntime({ mode: 'external', executable: selected, label: selected });
+        setPythonExecutable(selected);
+        setPythonTestResult(null);
+    };
+
+    const handleTestPython = async () => {
+        setIsTestingPython(true);
+        setPythonTestResult(null);
+        try {
+            const res = await testPythonRuntime(pythonRuntimePayload());
+            setPythonTestResult({ success: res.success, message: res.message });
+        } catch (e: any) {
+            setPythonTestResult({ success: false, message: e.message || 'Python \u73af\u5883\u6d4b\u8bd5\u5931\u8d25' });
+        } finally {
+            setIsTestingPython(false);
+        }
+    };
+
+    const handleSavePython = async () => {
+        setIsSavingPython(true);
+        try {
+            const res = await updatePythonRuntime(pythonRuntimePayload());
+            if (res.runtime) {
+                setPythonRuntime(res.runtime);
+                setPythonExecutable(res.runtime.executable || '');
+            }
+            setPythonTestResult({ success: true, message: res.message || 'Python \u73af\u5883\u5df2\u4fdd\u5b58' });
+        } catch (e: any) {
+            setPythonTestResult({ success: false, message: e.message || 'Python \u73af\u5883\u6d4b\u8bd5\u5931\u8d25' });
+        } finally {
+            setIsSavingPython(false);
+        }
+    };
+
     return (
         <div className="modal-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
             <div className="modal-container" onMouseDown={(e) => e.stopPropagation()}>
                 {/* Left Navigation */}
                 <aside className="modal-sidebar">
                     <div className="modal-brand">
-                        <img
-                            src={logoSrc}
-                            alt="YourDB logo"
-                            style={{ width: '24px', height: '24px', marginRight: '8px', borderRadius: '4px', objectFit: 'contain' }}
-                        />
                         <span style={{ fontWeight: 700, fontSize: '1.1rem', letterSpacing: '-0.5px' }}>YourDB</span>
                     </div>
 
@@ -304,7 +355,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                 onClick={() => setActiveMenu(item.id)}
                             >
                                 <item.icon size={18} className="modal-nav-icon" />
-                                <span>{item.id === '模型' ? (t('settings.model') || '模型') : (t('settings.database') || '数据库')}</span>
+                                <span>{item.id === '模型' ? (t('settings.model') || '模型') : item.id === '数据库' ? (t('settings.database') || '数据库') : item.id}</span>
                             </button>
                         ))}
                     </nav>
@@ -314,7 +365,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                 <div className="modal-content-area flex-1 flex flex-col">
                     {/* Header */}
                     <header className="modal-header">
-                        <h2>{activeMenu === '模型' ? (t('settings.model') || '模型') : (t('settings.database') || '数据库')}</h2>
+                        <h2>{activeMenu === '模型' ? (t('settings.model') || '模型') : activeMenu === '数据库' ? (t('settings.database') || '数据库') : activeMenu}</h2>
                         <button className="modal-close-btn" onClick={onClose}>
                             <X size={20} />
                         </button>
@@ -585,11 +636,48 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                         )}
 
 
-                        {!['模型', '数据库'].includes(activeMenu) && (
+                        {/* 环境 (Environment) */}
+                        {activeMenu === '环境' && (
+                            <div className="settings-tab-content" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                                <div style={{ background: '#fff', borderRadius: '16px', padding: '32px', border: '1px solid #f3f4f6', flex: 1 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+                                        <Terminal size={22} />
+                                        <div>
+                                            <h3 className="settings-section-title" style={{ margin: 0 }}>Python 环境</h3>
+                                            <p className="settings-section-desc" style={{ margin: '4px 0 0' }}>选择后端执行 Python 工具时使用的运行环境。</p>
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
+                                        <button type="button" onClick={() => { setPythonRuntime({ mode: 'bundled' }); setPythonTestResult(null); }} style={{ padding: '10px 14px', borderRadius: '10px', border: pythonRuntime.mode === 'bundled' ? '2px solid #2563eb' : '1px solid #e5e7eb', background: pythonRuntime.mode === 'bundled' ? '#eff6ff' : '#fff', fontWeight: 600, cursor: 'pointer' }}>内置环境</button>
+                                        <button type="button" onClick={() => { setPythonRuntime({ mode: 'external', executable: pythonExecutable }); setPythonTestResult(null); }} style={{ padding: '10px 14px', borderRadius: '10px', border: pythonRuntime.mode === 'external' ? '2px solid #2563eb' : '1px solid #e5e7eb', background: pythonRuntime.mode === 'external' ? '#eff6ff' : '#fff', fontWeight: 600, cursor: 'pointer' }}>外部 Python</button>
+                                    </div>
+                                    <div style={{ marginBottom: '24px' }}>
+                                        <h4 className="settings-section-title" style={{ fontSize: '0.9rem', marginBottom: '12px' }}>Python 可执行文件</h4>
+                                        <div className="settings-input-wrapper" style={{ margin: 0, borderRadius: '12px', padding: '12px 16px', background: pythonRuntime.mode === 'bundled' ? '#f9fafb' : '#fff', border: '1px solid #e5e7eb', display: 'flex', gap: '8px' }}>
+                                            <input type="text" value={pythonRuntime.mode === 'bundled' ? (pythonRuntime.label || '使用应用内置 Python 环境') : pythonExecutable} onChange={e => setPythonExecutable(e.target.value)} readOnly={pythonRuntime.mode === 'bundled'} placeholder="例如: D:\\data_agent\\.venv\\Scripts\\python.exe" style={{ fontSize: '0.95rem', width: '100%' }} />
+                                            <button type="button" onClick={handleChoosePython} disabled={pythonRuntime.mode !== 'external'} style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #e5e7eb', background: '#fff', cursor: pythonRuntime.mode !== 'external' ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap' }}>选择</button>
+                                        </div>
+                                    </div>
+                                    {pythonTestResult && (
+                                        <div style={{ padding: '16px', borderRadius: '8px', background: pythonTestResult.success ? '#ecfdf5' : '#fef2f2', border: `1px solid ${pythonTestResult.success ? '#6ee7b7' : '#fca5a5'}`, color: pythonTestResult.success ? '#065f46' : '#991b1b', marginBottom: '24px' }}>
+                                            <div style={{ fontWeight: 600, marginBottom: '4px' }}>{pythonTestResult.success ? '测试成功' : '测试失败'}</div>
+                                            <div style={{ fontSize: '0.9rem', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{pythonTestResult.message}</div>
+                                        </div>
+                                    )}
+                                    <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end', marginTop: '48px', paddingTop: '24px', borderTop: '1px solid #f3f4f6' }}>
+                                        <button onClick={handleTestPython} disabled={isTestingPython || (pythonRuntime.mode === 'external' && !pythonExecutable.trim())} style={{ width: '180px', padding: '12px 24px', background: '#f3f4f6', color: '#1f2937', border: '1px solid #e5e7eb', borderRadius: '8px', fontWeight: 600, cursor: isTestingPython ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>{isTestingPython ? <Loader2 size={16} className="animate-spin" /> : null}{isTestingPython ? '测试中' : '测试环境'}</button>
+                                        <button onClick={handleSavePython} disabled={isSavingPython || (pythonRuntime.mode === 'external' && !pythonExecutable.trim())} style={{ width: '180px', padding: '12px 24px', background: '#1f2937', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: isSavingPython ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>{isSavingPython ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}保存环境</button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {!['模型', '数据库', '环境'].includes(activeMenu) && (
                             <div>
                                 <p>Content for {activeMenu} is under construction...</p>
                             </div>
                         )}
+
 
                     </div>
                 </div>

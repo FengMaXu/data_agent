@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Data Agent API Client
  * 用于连接后端 FastAPI 服务，处理 REST API 和 SSE 流
  */
@@ -29,6 +29,94 @@ function resolveApiBaseUrl(): string {
 }
 
 export const API_BASE_URL = resolveApiBaseUrl();
+const AUTH_TOKEN_STORAGE_KEY = 'data-agent:auth-token';
+const nativeFetch = globalThis.fetch.bind(globalThis);
+
+export function getAuthToken(): string {
+    if (typeof window === 'undefined') return '';
+    return window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY) || '';
+}
+
+export function setAuthToken(token: string) {
+    if (typeof window === 'undefined') return;
+    if (token) {
+        window.localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
+    } else {
+        window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+    }
+}
+
+export async function apiFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
+    const token = getAuthToken();
+    const headers = new Headers(init.headers || {});
+    if (token && !headers.has('Authorization')) {
+        headers.set('Authorization', `Bearer ${token}`);
+    }
+    return nativeFetch(input, { ...init, headers });
+}
+
+if (typeof window !== 'undefined') {
+    window.fetch = apiFetch;
+}
+
+export interface AuthUser {
+    id: string;
+    username: string;
+    display_name: string;
+}
+
+export interface AuthStatus {
+    authenticated: boolean;
+    registration_open: boolean;
+    user: AuthUser | null;
+}
+
+export interface AuthResponse {
+    token: string;
+    expires_at: number;
+    user: AuthUser;
+}
+
+export async function getAuthStatus(): Promise<AuthStatus> {
+    const res = await apiFetch(`${API_BASE_URL}/auth/status`);
+    if (!res.ok) throw new Error('Failed to fetch auth status');
+    return res.json();
+}
+
+export async function login(username: string, password: string): Promise<AuthResponse> {
+    const res = await apiFetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+    });
+    if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        throw new Error(payload.detail || 'Login failed');
+    }
+    const payload = await res.json();
+    setAuthToken(payload.token);
+    return payload;
+}
+
+export async function register(username: string, password: string, displayName?: string): Promise<AuthResponse> {
+    const res = await apiFetch(`${API_BASE_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password, display_name: displayName }),
+    });
+    if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        throw new Error(payload.detail || 'Registration failed');
+    }
+    const payload = await res.json();
+    setAuthToken(payload.token);
+    return payload;
+}
+
+export async function logout(): Promise<void> {
+    await apiFetch(`${API_BASE_URL}/auth/logout`, { method: 'POST' });
+    setAuthToken('');
+}
 
 export interface AIConfig {
     default_model: string;
@@ -40,7 +128,20 @@ export interface AIConfig {
     mysql_port?: number;
     mysql_user?: string;
     mysql_database?: string;
+    python_runtime?: PythonRuntimeConfig;
+    llm_profiles?: LLMProfilesResponse;
 }
+
+export interface PythonRuntimeConfig {
+    mode: 'bundled' | 'external';
+    executable?: string;
+    label?: string;
+}
+
+export type PythonRuntimeUpdate = {
+    mode: 'bundled' | 'external';
+    executable?: string;
+};
 
 export type LLMConfigUpdate = {
     provider?: 'openai' | 'anthropic';
@@ -50,6 +151,34 @@ export type LLMConfigUpdate = {
     base_url?: string;
     openai_base_url?: string;
     model?: string;
+};
+
+export interface LLMProfile {
+    id: string;
+    name: string;
+    provider: 'openai' | 'anthropic';
+    model: string;
+    base_url?: string;
+    api_key_ref?: string;
+    enabled: boolean;
+    is_default: boolean;
+    api_key_configured?: boolean;
+}
+
+export interface LLMProfilesResponse {
+    default_profile_id: string;
+    profiles: LLMProfile[];
+}
+
+export type LLMProfileUpdate = {
+    id?: string;
+    name?: string;
+    provider: 'openai' | 'anthropic';
+    model: string;
+    base_url?: string;
+    api_key_ref?: string;
+    enabled?: boolean;
+    is_default?: boolean;
 };
 
 export type DBConfigUpdate = {
@@ -210,6 +339,7 @@ export interface SessionSnapshotMessage {
     id: string;
     role: 'user' | 'agent';
     content: string;
+    reasoningContent?: string;
     messageId?: string;
     toolCallsById?: Record<string, SessionSnapshotAgentToolCall>;
     widgetsById?: Record<string, WidgetSpec>;
@@ -219,16 +349,114 @@ export interface SessionSnapshotMessage {
     terminalReason?: AgentTerminalReason;
 }
 
+export interface ChatSession {
+    id: string;
+    name: string;
+    created_at: number;
+    updated_at: number;
+    attached_files: string[];
+    conversation_version: number;
+    messages?: SessionSnapshotMessage[];
+    status?: 'success' | 'ignored';
+    reason?: string;
+}
+
+export async function listChatSessions(): Promise<{ sessions: ChatSession[] }> {
+    const res = await apiFetch(`${API_BASE_URL}/sessions`);
+    if (!res.ok) throw new Error('Failed to fetch sessions');
+    return res.json();
+}
+
+export async function createChatSession(session: { id: string; name: string }): Promise<ChatSession> {
+    const res = await apiFetch(`${API_BASE_URL}/sessions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(session),
+    });
+    if (!res.ok) throw new Error('Failed to create session');
+    return res.json();
+}
+
+export async function getChatSession(sessionId: string): Promise<ChatSession> {
+    const res = await apiFetch(`${API_BASE_URL}/sessions/${encodeURIComponent(sessionId)}`);
+    if (!res.ok) throw new Error('Failed to fetch session');
+    return res.json();
+}
+
+export async function updateChatSessionName(sessionId: string, name: string): Promise<ChatSession> {
+    const res = await apiFetch(`${API_BASE_URL}/sessions/${encodeURIComponent(sessionId)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+    });
+    if (!res.ok) throw new Error('Failed to update session');
+    return res.json();
+}
+
+export async function saveChatTranscript(
+    sessionId: string,
+    messages: SessionSnapshotMessage[],
+    attachedFiles?: string[],
+    conversationVersion?: number,
+): Promise<ChatSession> {
+    const res = await apiFetch(`${API_BASE_URL}/sessions/${encodeURIComponent(sessionId)}/transcript`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            messages,
+            attached_files: attachedFiles,
+            conversation_version: conversationVersion,
+        }),
+    });
+    if (!res.ok) throw new Error('Failed to save transcript');
+    return res.json();
+}
+
+export async function saveSessionAttachedFiles(
+    sessionId: string,
+    attachedFiles: string[],
+    conversationVersion?: number,
+): Promise<void> {
+    const res = await apiFetch(`${API_BASE_URL}/sessions/${encodeURIComponent(sessionId)}/attached-files`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            attached_files: attachedFiles,
+            conversation_version: conversationVersion,
+        }),
+    });
+    if (!res.ok) throw new Error('Failed to save attached files');
+}
+
+export async function deleteChatSession(sessionId: string): Promise<void> {
+    const res = await apiFetch(`${API_BASE_URL}/sessions/${encodeURIComponent(sessionId)}`, {
+        method: 'DELETE',
+    });
+    if (!res.ok) throw new Error('Failed to delete session');
+}
+
+export async function prepareAgentSession(sessionId: string): Promise<void> {
+    const res = await apiFetch(`${API_BASE_URL}/agent/sessions/${encodeURIComponent(sessionId)}/prepare`, {
+        method: 'POST',
+    });
+    if (!res.ok) throw new Error('Failed to prepare session');
+}
+
 export interface ClarificationRequest {
     clarification_id: string;
     question: string;
     options: string[];
 }
 export type SSEEvent =
+    | { type: 'run_start'; session_id?: string; run_id: string }
+    | { type: 'status'; session_id?: string; run_id?: string; phase: 'preparing' | 'calling_model' | 'running_tool' | 'generating_answer'; message?: string }
     | { type: 'message_start'; session_id?: string; message_id: string }
     | { type: 'progress'; session_id?: string; stage: Exclude<AgentProgressStage, 'sent'> }
-    | { type: 'text_delta'; session_id?: string; message_id: string; content: string }
+    | { type: 'auto_retry'; session_id?: string; operation: string; attempt: number; max_attempts: number; delay_seconds: number; reason: string }
+    | { type: 'text_delta'; session_id?: string; message_id?: string; content: string; ephemeral?: boolean }
+    | { type: 'reasoning_delta'; session_id?: string; message_id: string; content: string }
     | { type: 'tool_call'; session_id?: string; message_id: string; tool_call_id: string; widget_id?: string | null; name: string; arguments: any }
+    | { type: 'tool_progress'; session_id?: string; message_id: string; tool_call_id: string; name: string; phase: 'validating_sql' | 'running_query' | 'running' | 'done' | 'error'; elapsed_ms?: number | null }
     | { type: 'widget_patch'; session_id?: string; message_id: string; tool_call_id: string; widget_id: string; tool_name: string; patch: Partial<WidgetSpec> }
     | { type: 'widget'; session_id?: string; message_id: string; tool_call_id: string; widget_id: string; tool_name: string; widget: WidgetSpec }
     | { type: 'widget_done'; session_id?: string; message_id: string; tool_call_id: string; widget_id: string }
@@ -242,8 +470,12 @@ export type SSEEvent =
     | { type: 'error'; session_id?: string; error: string }
     | { type: 'done'; session_id?: string; run_id?: string; reason: 'completed' | 'stopped' | 'error' };
 
-export async function clearSession(sessionId: string = 'default') {
-    await fetch(`${API_BASE_URL}/agent/clear?session_id=${sessionId}`, { method: 'POST' });
+export async function clearSession(sessionId: string = 'default'): Promise<ChatSession> {
+    const res = await apiFetch(`${API_BASE_URL}/agent/clear?session_id=${encodeURIComponent(sessionId)}`, {
+        method: 'POST',
+    });
+    if (!res.ok) throw new Error('Failed to clear session');
+    return res.json();
 }
 
 export interface ChatStreamHandle {
@@ -405,6 +637,30 @@ export async function updateLLMConfig(data: LLMConfigUpdate) {
     return res.json();
 }
 
+export async function getLLMProfiles(): Promise<LLMProfilesResponse> {
+    const res = await fetch(`${API_BASE_URL}/settings/llm/profiles`);
+    if (!res.ok) throw new Error('Failed to fetch LLM profiles');
+    return res.json();
+}
+
+export async function saveLLMProfile(data: LLMProfileUpdate): Promise<LLMProfile> {
+    const res = await fetch(`${API_BASE_URL}/settings/llm/profiles`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Failed to save LLM profile');
+    return res.json();
+}
+
+export async function setDefaultLLMProfile(profileId: string): Promise<LLMProfile> {
+    const res = await fetch(`${API_BASE_URL}/settings/llm/profiles/${encodeURIComponent(profileId)}/default`, {
+        method: 'POST',
+    });
+    if (!res.ok) throw new Error('Failed to set default LLM profile');
+    return res.json();
+}
+
 export async function testLLMConfig(data: LLMConfigUpdate): Promise<{ success: boolean; message: string; details?: any }> {
     const res = await fetch(`${API_BASE_URL}/settings/llm/test`, {
         method: 'POST',
@@ -432,6 +688,27 @@ export async function testDBConnection(data: DBConfigUpdate) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
     });
+    return res.json();
+}
+
+export async function updatePythonRuntime(data: PythonRuntimeUpdate): Promise<{ status: string; runtime?: PythonRuntimeConfig; message?: string }> {
+    const res = await fetch(`${API_BASE_URL}/settings/python-runtime`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    const result = await res.json();
+    if (result.status === 'error') throw new Error(result.message);
+    return result;
+}
+
+export async function testPythonRuntime(data: PythonRuntimeUpdate): Promise<{ success: boolean; message: string; details?: any }> {
+    const res = await fetch(`${API_BASE_URL}/settings/python-runtime/test`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Failed to test Python runtime');
     return res.json();
 }
 
@@ -540,7 +817,9 @@ export async function getWorkspaceFiles(sessionId: string = ''): Promise<Workspa
 }
 
 export function getWorkspaceFileDownloadUrl(relativePath: string): string {
-    return `${API_BASE_URL}/workspace/files/download?path=${encodeURIComponent(relativePath)}`;
+    const token = getAuthToken();
+    const authSuffix = token ? `&access_token=${encodeURIComponent(token)}` : '';
+    return `${API_BASE_URL}/workspace/files/download?path=${encodeURIComponent(relativePath)}${authSuffix}`;
 }
 
 export async function uploadWorkspaceFile(file: File, sessionId: string = ''): Promise<void> {

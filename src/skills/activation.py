@@ -111,5 +111,8 @@ def create_skill_tools(skill_manager) -> list[AgentTool]:
                 "required": ["command"],
             },
             execute_fn=_activate_skill,
+            read_only=False,
+            resource="session",
+            max_concurrency=1,
         )
     ]

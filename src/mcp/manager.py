@@ -21,8 +21,36 @@ from src.agent.types import AgentTool, AgentToolResult
 from src.ai.base_provider import ToolResultContent
 from src.mcp.config_models import MCPServerConfig, MCPSettings
 from src.mcp.mcp_client import MCPConnectionError
+from src.resilience.retry import RetryPolicy, async_retry
 
 logger = logging.getLogger("data_agent.mcp.manager")
+
+READ_ONLY_DATABASE_TOOLS = {
+    "execute_sql",
+    "get_table_schema",
+    "list_tables",
+    "get_table_detail",
+    "introspect_database",
+}
+
+
+def _mcp_tool_policy(server_type: str, tool_name: str) -> tuple[bool, str, int]:
+    if server_type == "database" and tool_name in READ_ONLY_DATABASE_TOOLS:
+        return True, "db", 3
+    return False, "mcp", 1
+
+MCP_TOOL_RETRY_POLICY = RetryPolicy(
+    max_attempts=3,
+    base_delay=0.5,
+    multiplier=2.0,
+    max_delay=4.0,
+    jitter=0.2,
+    max_server_delay=10.0,
+)
+
+
+class MCPTransientError(RuntimeError):
+    pass
 
 
 # ─── _ManagedServer ───────────────────────────────────────────────────────────
@@ -161,41 +189,43 @@ class _ManagedServer:
         else:
             raise ValueError(f"Unsupported MCP transport: {transport}")
 
-    # ── 工具调用 ─────────────────────────────────────────────────────────────
-
     async def call_tool(self, name: str, arguments: dict[str, Any]) -> str:
-        """
-        调用 MCP tool。
+        """Call an MCP tool with bounded retries for transient readiness errors."""
+        try:
+            return await async_retry(
+                lambda: self._call_tool_once(name, arguments),
+                policy=MCP_TOOL_RETRY_POLICY,
+                operation_name=f"mcp.{self._config.name}.{name}",
+                logger=logger,
+            )
+        except MCPTransientError as exc:
+            return json.dumps({"error": str(exc)}, ensure_ascii=False)
 
-        - 等待连接就绪
-        - 连接断开时自动触发重连并重试一次，对上层透明
-        """
+    async def _call_tool_once(self, name: str, arguments: dict[str, Any]) -> str:
         if not self._ready.is_set():
             try:
-                await asyncio.wait_for(self._ready.wait(), timeout=30.0)
-            except asyncio.TimeoutError:
-                return json.dumps({"error": f"[{self._config.name}] MCP 未就绪"}, ensure_ascii=False)
+                await asyncio.wait_for(self._ready.wait(), timeout=10.0)
+            except asyncio.TimeoutError as exc:
+                raise MCPTransientError(f"[{self._config.name}] MCP 未就绪") from exc
 
         async with self._semaphore:
             gen_before = self._generation
             try:
                 return await self._client.call_tool(name, arguments)
 
-            except MCPConnectionError as e:
+            except MCPConnectionError as exc:
                 logger.warning(
-                    "[%s] 连接断开 gen=%d，触发重连: %s",
-                    self._config.name, gen_before, type(e).__name__,
+                    "[%s] connection dropped gen=%d, reconnecting: %s",
+                    self._config.name, gen_before, type(exc).__name__,
                 )
                 self._reconnect.set()
-                # 等待 _run 建立新连接（generation 递增）
                 try:
                     await asyncio.wait_for(
-                        self._wait_new_gen(gen_before), timeout=20.0
+                        self._wait_new_gen(gen_before), timeout=8.0
                     )
-                except asyncio.TimeoutError:
-                    logger.error("[%s] 重连超时", self._config.name)
-                    return json.dumps({"error": "MCP 重连超时，请稍后重试"}, ensure_ascii=False)
-                # 重试一次
+                except asyncio.TimeoutError as wait_exc:
+                    logger.error("[%s] reconnect timed out", self._config.name)
+                    raise MCPTransientError("MCP 重连超时，请稍后重试") from wait_exc
                 return await self._client.call_tool(name, arguments)
 
     async def _wait_new_gen(self, old_gen: int) -> None:
@@ -460,7 +490,16 @@ class MCPManager:
         prefixed_name = f"{prefix}{original_name}"
         server_name = server.config.name
         description = tool.get("description", "")
+        source_parts = [f"MCP server: {server_name}"]
+        if server.config.description:
+            source_parts.append(f"description: {server.config.description}")
+        if server.config.tags:
+            source_parts.append(f"tags: {', '.join(server.config.tags)}")
         parameters = tool.get("parameters", {"type": "object", "properties": {}})
+        read_only, resource, max_concurrency = _mcp_tool_policy(
+            server.config.server_type,
+            original_name,
+        )
 
         async def _execute(
             tool_call_id: str, arguments: dict[str, Any]
@@ -482,13 +521,32 @@ class MCPManager:
         return AgentTool(
             name=prefixed_name,
             label=f"[{server_name}] {original_name}",
-            description=f"[来源: {server_name}] {description}",
+            description=f"[{'; '.join(source_parts)}] {description}",
             parameters=parameters,
             execute_fn=_execute,
+            read_only=read_only,
+            resource=resource,
+            max_concurrency=max_concurrency,
         )
 
     def is_ready(self) -> bool:
         return bool(self._servers) and any(m._ready.is_set() for m in self._servers.values())
+
+    def runtime_fingerprint(self, only_names: list[str] | None = None) -> list[dict[str, Any]]:
+        """Return a stable snapshot for cache invalidation."""
+        snapshot: list[dict[str, Any]] = []
+        selected = set(only_names) if only_names is not None else None
+        for name, server in sorted(self._servers.items()):
+            if selected is not None and name not in selected:
+                continue
+            snapshot.append({
+                "name": name,
+                "server_type": server.config.server_type,
+                "connected": server._ready.is_set(),
+                "generation": server._generation,
+                "tool_count": len(server.tools),
+            })
+        return snapshot
 
 
 # 进程级单例

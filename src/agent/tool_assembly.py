@@ -22,7 +22,6 @@ from src.mcp.manager import mcp_manager
 
 logger = logging.getLogger(__name__)
 
-
 class ToolAssemblyService:
     def __init__(self, project_root: Path, providers: list[ToolProvider] | None = None):
         self.project_root = project_root
@@ -66,12 +65,13 @@ class ToolAssemblyService:
         runtime_overrides: dict[str, Any] | None = None,
         timing: AgentTimingRecorder | None = None,
     ) -> list[Any]:
+        runtime_overrides = runtime_overrides or {}
         context = SessionToolBuildContext(
             session_id=session_id,
             workspace=workspace,
             project_root=self.project_root,
             global_services=global_services,
-            runtime_overrides=runtime_overrides or {},
+            runtime_overrides=runtime_overrides,
             timing=timing,
         )
         tools: list[AgentTool] = []

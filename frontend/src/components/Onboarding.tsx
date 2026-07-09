@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Database, KeyRound, Languages, Loader2, ShieldCheck } from 'lucide-react';
+import { Database, KeyRound, Languages, Loader2, ShieldCheck } from './icons/Typicons';
 import {
     testLLMConfig,
     updateDBConfig,

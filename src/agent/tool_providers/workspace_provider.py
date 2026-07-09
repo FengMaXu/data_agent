@@ -10,7 +10,10 @@ class WorkspaceToolProvider(ToolProvider):
 
     async def build_tools(self, context: SessionToolBuildContext):
         workspace = context.workspace
-        code_executor = CodeExecutor(workspace)
+        code_executor = CodeExecutor(
+            workspace,
+            python_runtime=context.runtime_overrides.get("python_runtime"),
+        )
         return [
             *create_file_tools(workspace),
             *create_code_tools(code_executor),

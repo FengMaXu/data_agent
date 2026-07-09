@@ -1,7 +1,9 @@
 import React, { useEffect, useRef } from 'react';
-import { API_BASE_URL } from '../../api/client';
 import * as echarts from 'echarts';
 import { useLanguage } from '../../context/LanguageContext';
+import { usePreview } from '../../context/PreviewContext';
+import { resolveInternalUrl, resolveWorkspacePreviewUrl } from '../../utils/resolveInternalUrl';
+import { Download, Eye, File, FileCode, FileSpreadsheet, FileText } from '../icons/Typicons';
 
 export type WidgetKind = 'metric_cards' | 'table' | 'chart' | 'steps' | 'rich_text' | 'echarts' | 'file_link';
 
@@ -30,6 +32,7 @@ interface WidgetRendererProps {
     drillPath?: string[];
     onDrillDown?: (dimension: string, value: string, widgetTitle: string, widgetId: string) => void;
     onBreadcrumbNavigate?: (widgetId: string, index: number) => void;
+    currentSessionId?: string;
 }
 
 const cardStyle: React.CSSProperties = {
@@ -399,18 +402,17 @@ const Breadcrumb: React.FC<BreadcrumbProps> = ({ path, onNavigate }) => {
 interface FileLinkWidgetProps {
     widget: WidgetSpec;
     t: (key: string) => string;
+    currentSessionId?: string;
 }
 
-const FileLinkWidget: React.FC<FileLinkWidgetProps> = ({ widget, t }) => {
+const FileLinkWidget: React.FC<FileLinkWidgetProps> = ({ widget, t, currentSessionId }) => {
     const { file_path, download_url, file_type, title, subtitle } = widget;
+    const { openPreview } = usePreview();
 
-    const resolveUrl = (url: string | undefined) => {
-        if (!url) return '';
-        if (url.startsWith('http://') || url.startsWith('https://')) return url;
-        return `${API_BASE_URL}${url}`;
-    };
-
-    const fullUrl = resolveUrl(download_url);
+    const fullUrl = resolveInternalUrl(download_url, currentSessionId);
+    const previewUrl = resolveWorkspacePreviewUrl(download_url, currentSessionId);
+    const normalizedFileType = (file_type || file_path?.split('.').pop() || '').toLowerCase();
+    const canPreview = normalizedFileType === 'html' || normalizedFileType === 'htm';
 
     const handleDownload = () => {
         if (fullUrl) {
@@ -421,14 +423,21 @@ const FileLinkWidget: React.FC<FileLinkWidgetProps> = ({ widget, t }) => {
         }
     };
 
-    const getFileIcon = () => {
-        switch (file_type) {
-            case 'html': return '📊';
-            case 'pdf': return '📄';
-            case 'excel': return '📈';
-            default: return '📁';
+    const FileIcon = (() => {
+        switch (normalizedFileType) {
+            case 'html':
+            case 'htm':
+                return FileCode;
+            case 'pdf':
+                return FileText;
+            case 'xlsx':
+            case 'xls':
+            case 'excel':
+                return FileSpreadsheet;
+            default:
+                return File;
         }
-    };
+    })();
 
     return (
         <div style={{
@@ -444,7 +453,7 @@ const FileLinkWidget: React.FC<FileLinkWidgetProps> = ({ widget, t }) => {
                 alignItems: 'center',
                 gap: '16px'
             }}>
-                <div style={{ fontSize: '32px' }}>{getFileIcon()}</div>
+                <div style={{ color: '#4b5563', display: 'flex', alignItems: 'center' }}><FileIcon size={30} /></div>
                 <div style={{ flex: 1 }}>
                     <div style={{ fontSize: '16px', fontWeight: 600, color: '#1f2937', marginBottom: '4px' }}>
                         {title}
@@ -456,10 +465,34 @@ const FileLinkWidget: React.FC<FileLinkWidgetProps> = ({ widget, t }) => {
                     )}
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
+                    {canPreview && previewUrl && (
+                        <button
+                            onClick={() => openPreview(previewUrl, title || file_path || 'preview', normalizedFileType)}
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                padding: '8px 14px',
+                                background: '#111827',
+                                color: 'white',
+                                border: '1px solid #111827',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                fontSize: '14px',
+                                fontWeight: 500
+                            }}
+                        >
+                            <Eye size={15} />
+                            {t('widgets.preview') || '查看'}
+                        </button>
+                    )}
                     <button
                         onClick={handleDownload}
                         style={{
-                            padding: '8px 16px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '8px 14px',
                             background: 'white',
                             color: '#6b7280',
                             border: '1px solid #d1d5db',
@@ -469,6 +502,7 @@ const FileLinkWidget: React.FC<FileLinkWidgetProps> = ({ widget, t }) => {
                             fontWeight: 500
                         }}
                     >
+                        <Download size={15} />
                         {t('widgets.download') || '下载'}
                     </button>
                 </div>
@@ -479,7 +513,7 @@ const FileLinkWidget: React.FC<FileLinkWidgetProps> = ({ widget, t }) => {
 
 // ─── WidgetRenderer ────────────────────────────────────────────────────────────
 
-const WidgetRenderer: React.FC<WidgetRendererProps> = ({ widget, drillPath, onDrillDown, onBreadcrumbNavigate }) => {
+const WidgetRenderer: React.FC<WidgetRendererProps> = ({ widget, drillPath, onDrillDown, onBreadcrumbNavigate, currentSessionId }) => {
     const { t } = useLanguage();
 
     if (widget.status === 'previewing') {
@@ -516,7 +550,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = ({ widget, drillPath, onDr
                     </>
                 );
             case 'file_link':
-                return <FileLinkWidget widget={widget} t={t} />;
+                return <FileLinkWidget widget={widget} t={t} currentSessionId={currentSessionId} />;
             default:
                 return <pre style={{ margin: 0, whiteSpace: 'pre-wrap', fontSize: '12px' }}>{JSON.stringify(widget, null, 2)}</pre>;
         }

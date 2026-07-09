@@ -100,6 +100,9 @@ def create_db_tools(
             },
             execute_fn=execute_sql,
             label="执行 SQL 查询",
+            read_only=True,
+            resource="db",
+            max_concurrency=3,
         ),
         AgentTool(
             name="get_table_schema",
@@ -119,6 +122,9 @@ def create_db_tools(
             },
             execute_fn=get_table_schema,
             label="获取表结构",
+            read_only=True,
+            resource="db",
+            max_concurrency=3,
         ),
         AgentTool(
             name="list_tables",
@@ -133,5 +139,8 @@ def create_db_tools(
             },
             execute_fn=list_tables,
             label="列出所有表",
+            read_only=True,
+            resource="db",
+            max_concurrency=3,
         ),
     ]

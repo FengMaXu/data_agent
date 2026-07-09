@@ -76,6 +76,39 @@ def _reset_session(session_id: str) -> None:
     agent_api._cleanup_session_state(session_id)
 
 
+def test_event_generator_emits_immediate_text_before_prepare(monkeypatch):
+    session_id = "test_immediate_text_before_prepare"
+    _reset_session(session_id)
+    prepare_called = {"value": False}
+
+    async def fake_build_session_tools(**kwargs):
+        prepare_called["value"] = True
+        return [], SimpleNamespace(metadata={})
+
+    monkeypatch.setattr(agent_api.config_manager, "gateway", object())
+    monkeypatch.setattr(agent_api.config_manager, "build_session_tools", fake_build_session_tools)
+
+    async def collect_first_events():
+        agen = agent_api.event_generator(
+            prompt="hello",
+            session_id=session_id,
+            run_id="run_immediate_text",
+        )
+        try:
+            return [json.loads(await agen.__anext__()) for _ in range(3)]
+        finally:
+            await agen.aclose()
+
+    events = asyncio.run(collect_first_events())
+
+    assert [event["type"] for event in events] == ["run_start", "status", "text_delta"]
+    assert events[2]["content"]
+    assert "message_id" not in events[2]
+    assert events[2]["ephemeral"] is True
+    assert prepare_called["value"] is False
+    _reset_session(session_id)
+
+
 def test_show_widget_sse_sequence(monkeypatch):
     session_id = "test_widget_sse_sequence"
     _reset_session(session_id)
@@ -778,6 +811,41 @@ def test_strip_unresolved_tool_calls_removes_dangling_calls():
         "call_done"
     ]
     assert sanitized_messages[-1].content == "continue"
+
+
+def test_strip_unresolved_tool_calls_requires_immediate_tool_results():
+    messages = [
+        Message(role=Role.USER, content="first question", message_id="msg_user_1"),
+        Message(
+            role=Role.ASSISTANT,
+            content="我来查询。",
+            tool_calls=[
+                ToolCall(id="call_late", name="tool_a", arguments={"q": 1}),
+            ],
+            message_id="msg_assistant_1",
+        ),
+        Message(role=Role.USER, content="continue", message_id="msg_user_2"),
+        Message(
+            role=Role.TOOL_RESULT,
+            content="late result",
+            tool_call_id="call_late",
+            tool_name="tool_a",
+            message_id="msg_assistant_1",
+        ),
+    ]
+
+    sanitized_messages, removed_tool_call_ids = agent_api._strip_unresolved_tool_calls(
+        messages
+    )
+
+    assert removed_tool_call_ids == ["call_late"]
+    assert [message.role for message in sanitized_messages] == [
+        Role.USER,
+        Role.ASSISTANT,
+        Role.USER,
+    ]
+    assert sanitized_messages[1].tool_calls is None
+    assert sanitized_messages[1].content == "我来查询。"
 
 
 def test_load_session_snapshot_strips_unresolved_tool_calls():

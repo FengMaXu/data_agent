@@ -7,7 +7,7 @@ import {
     Square,
     Paperclip,
     ListTree,
-} from 'lucide-react';
+} from './icons/Typicons';
 import {
     sendChatMessage,
     steerAgent,
@@ -28,6 +28,7 @@ import { useSession } from '../hooks/useSession';
 import { useLanguage } from '../context/LanguageContext';
 import WidgetRenderer from './widgets/WidgetRenderer';
 import AgentOrbitIcon from './AgentOrbitIcon';
+import AgentMarkdown from './AgentMarkdown';
 
 interface SkillActivation {
     name: string;
@@ -53,12 +54,15 @@ interface ToolCallState {
     isError?: boolean;
     widgetId?: string | null;
     status: 'calling' | 'running' | 'done' | 'error';
+    progressText?: string;
 }
 
 interface AgentMessage {
     id: string;
     role: 'agent';
     content: string;
+    transientContent: string;
+    reasoningContent: string;
     messageId: string;
     toolCallsById: Record<string, ToolCallState>;
     widgetsById: Record<string, WidgetSpec>;
@@ -66,6 +70,8 @@ interface AgentMessage {
     currentStage: AgentProgressStage;
     visitedStages: AgentProgressStage[];
     terminalReason: AgentTerminalReason;
+    retryNotice?: string;
+    statusNotice?: string;
 }
 
 interface UserMessage {
@@ -115,6 +121,8 @@ const createLocalAgentMessage = (messageId: string): AgentMessage => ({
     id: `local-${messageId}`,
     role: 'agent',
     content: '',
+    transientContent: '',
+    reasoningContent: '',
     messageId,
     toolCallsById: {},
     widgetsById: {},
@@ -137,6 +145,7 @@ const toSnapshotMessage = (message: ChatMessage): SessionSnapshotMessage => {
         id: message.id,
         role: 'agent',
         content: message.content,
+        reasoningContent: message.reasoningContent,
         messageId: message.messageId,
         toolCallsById: message.toolCallsById,
         widgetsById: message.widgetsById,
@@ -160,6 +169,8 @@ const fromSnapshotMessage = (message: SessionSnapshotMessage): ChatMessage => {
         id: message.id,
         role: 'agent',
         content: message.content,
+        transientContent: '',
+        reasoningContent: message.reasoningContent || '',
         messageId: message.messageId || message.id,
         toolCallsById: message.toolCallsById || {},
         widgetsById: message.widgetsById || {},
@@ -183,6 +194,9 @@ const dedupeSkillActivations = (skills: SkillActivation[]) => {
 };
 
 const getToolHintLabel = (tool: ToolCallState) => {
+    if (tool.progressText) {
+        return tool.progressText;
+    }
     if (tool.status === 'done') {
         return `完成工具: ${tool.name}`;
     }
@@ -194,7 +208,22 @@ const getToolHintLabel = (tool: ToolCallState) => {
 
 const getSkillHintLabel = (skill: SkillActivation) => `Skill 已激活: ${skill.name}`;
 
-const isAgentMessageEmpty = (message: AgentMessage) => message.content.trim().length === 0;
+const IMMEDIATE_FEEDBACK_TEXT = '收到，我正在分析请求并检索可用工具…';
+const THINKING_STATUS_TEXT = '思考中';
+const REASONING_DONE_TEXT = '思考内容';
+
+const isAgentMessageEmpty = (message: AgentMessage) => (
+    message.content.trim().length === 0 &&
+    message.transientContent.trim().length === 0 &&
+    message.reasoningContent.trim().length === 0
+);
+
+const visibleAgentContent = (message: AgentMessage) => {
+    const normalizedContent = message.content.trimStart().startsWith(IMMEDIATE_FEEDBACK_TEXT)
+        ? message.content.trimStart().slice(IMMEDIATE_FEEDBACK_TEXT.length).trimStart()
+        : message.content;
+    return normalizedContent || message.transientContent;
+};
 
 const ChatArea: React.FC<ChatAreaProps> = ({
     onUpdateTools,
@@ -319,7 +348,7 @@ const ChatArea: React.FC<ChatAreaProps> = ({
                 setInputValue(drillMessage);
                 // 自动发送
                 setTimeout(() => {
-                    handleSend();
+                    void handleSend(drillMessage);
                 }, 100);
             } else if (type === 'navigate_back') {
                 // 自动发送回退查询
@@ -327,7 +356,7 @@ const ChatArea: React.FC<ChatAreaProps> = ({
                 setInputValue(backMessage);
                 // 自动发送
                 setTimeout(() => {
-                    handleSend();
+                    void handleSend(backMessage);
                 }, 100);
             }
         };
@@ -443,11 +472,11 @@ const ChatArea: React.FC<ChatAreaProps> = ({
         setInputValue(`返回查看"${targetLevel}"层级的数据概览`);
     }, [drillPaths]);
 
-    const handleSend = async () => {
-        if (!inputValue.trim()) return;
+    const handleSend = async (overrideContent?: string) => {
+        const content = (overrideContent ?? inputValue).trim();
+        if (!content) return;
 
         const sessionId = currentSession.id;
-        const content = inputValue.trim();
         const userMsg: UserMessage = {
             id: `user-${Date.now()}`,
             role: 'user',
@@ -532,6 +561,28 @@ const ChatArea: React.FC<ChatAreaProps> = ({
                     return;
                 }
 
+                if (event.type === 'status') {
+                    const targetId = activeAgentMessageIdRef.current ?? pendingAgentMessageIdRef.current;
+                    if (!targetId) {
+                        return;
+                    }
+                    const targetMessage = ensureBufferedAgentMessage(targetId);
+                    targetMessage.statusNotice = event.message || event.phase;
+                    scheduleFlush(targetId, true);
+                    return;
+                }
+
+                if (event.type === 'auto_retry') {
+                    const targetId = activeAgentMessageIdRef.current ?? pendingAgentMessageIdRef.current;
+                    if (!targetId) {
+                        return;
+                    }
+                    const targetMessage = ensureBufferedAgentMessage(targetId);
+                    targetMessage.retryNotice = `重试 ${event.operation}: ${event.attempt}/${event.max_attempts}，${event.delay_seconds}s 后继续`;
+                    scheduleFlush(targetId, true);
+                    return;
+                }
+
                 if (event.type === 'done') {
                     setRunReason(event.reason);
                     setPendingClarification(null);
@@ -594,8 +645,22 @@ const ChatArea: React.FC<ChatAreaProps> = ({
                 const message = ensureBufferedAgentMessage(targetMessageId);
 
                 if (event.type === 'text_delta') {
-                    agentBufferRef.current[targetMessageId] = advanceStage(message, 'generating_answer');
-                    agentBufferRef.current[targetMessageId].content += event.content;
+                    const advanced = advanceStage(message, 'generating_answer');
+                    if (event.ephemeral) {
+                        advanced.transientContent += event.content;
+                    } else {
+                        advanced.content += event.content;
+                        advanced.transientContent = '';
+                    }
+                    agentBufferRef.current[targetMessageId] = advanced;
+                    scheduleFlush(targetMessageId, false);
+                    return;
+                }
+
+                if (event.type === 'reasoning_delta') {
+                    const advanced = advanceStage(message, 'understanding');
+                    advanced.reasoningContent += event.content;
+                    agentBufferRef.current[targetMessageId] = advanced;
                     scheduleFlush(targetMessageId, false);
                     return;
                 }
@@ -608,6 +673,30 @@ const ChatArea: React.FC<ChatAreaProps> = ({
                         arguments: event.arguments,
                         widgetId: event.widget_id ?? null,
                         status: 'calling',
+                    };
+                    scheduleFlush(targetMessageId, true);
+                    return;
+                }
+
+                if (event.type === 'tool_progress') {
+                    const existing = message.toolCallsById[event.tool_call_id] || {
+                        toolCallId: event.tool_call_id,
+                        name: event.name,
+                        arguments: {},
+                        status: 'running' as const,
+                    };
+                    const phaseText: Record<typeof event.phase, string> = {
+                        validating_sql: '校验 SQL',
+                        running_query: '执行查询',
+                        running: '运行工具',
+                        done: '完成工具',
+                        error: '工具失败',
+                    };
+                    message.toolCallsById[event.tool_call_id] = {
+                        ...existing,
+                        name: event.name,
+                        status: event.phase === 'done' ? 'done' : event.phase === 'error' ? 'error' : 'running',
+                        progressText: `${phaseText[event.phase]}: ${event.name}`,
                     };
                     scheduleFlush(targetMessageId, true);
                     return;
@@ -898,15 +987,31 @@ const ChatArea: React.FC<ChatAreaProps> = ({
                                     />
                                 </div>
                                 <div className="message-content-wrapper">
-                                    {msg.content && (
-                                        <div className="message-content prose prose-sm max-w-none agent-message-body">
-                                            {msg.content}
+                                    {(msg.reasoningContent.trim().length > 0 || shouldShowThinking(msg)) && (
+                                        <details
+                                            className={`agent-reasoning-block ${isAgentMessageAnimating(msg.messageId, msg.terminalReason) ? 'is-streaming' : ''}`}
+                                            open={isAgentMessageAnimating(msg.messageId, msg.terminalReason)}
+                                        >
+                                            <summary className="agent-reasoning-title">
+                                                {isAgentMessageAnimating(msg.messageId, msg.terminalReason) ? THINKING_STATUS_TEXT : REASONING_DONE_TEXT}
+                                            </summary>
+                                            <div className="agent-reasoning-content">
+                                                {msg.reasoningContent || t('tools.processing')}
+                                            </div>
+                                        </details>
+                                    )}
+
+                                    {visibleAgentContent(msg) && (
+                                        <div className="message-content prose prose-sm max-w-none agent-message-body markdown-content">
+                                            <AgentMarkdown currentSessionId={currentSession.id}>
+                                                {visibleAgentContent(msg)}
+                                            </AgentMarkdown>
                                         </div>
                                     )}
 
-                                    {shouldShowThinking(msg) && (
+                                    {msg.retryNotice && (
                                         <div className="agent-thinking-line">
-                                            <span>{t('tools.processing')}</span>
+                                            <span>{msg.retryNotice}</span>
                                         </div>
                                     )}
 
@@ -917,6 +1022,7 @@ const ChatArea: React.FC<ChatAreaProps> = ({
                                             drillPath={drillPaths[widget.widget_id]}
                                             onDrillDown={handleDrillDown}
                                             onBreadcrumbNavigate={handleBreadcrumbNavigate}
+                                            currentSessionId={currentSession.id}
                                         />
                                     ))}
 

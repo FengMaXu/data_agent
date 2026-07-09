@@ -41,10 +41,7 @@ class MCPConfigLoader:
         legacy_server = cls.from_legacy_ai_config(ai_config)
 
         if legacy_server:
-            # Check if there's already a server with the same name
-            has_database_server = any(s.name == legacy_server.name for s in settings.servers)
-            if not has_database_server:
-                settings.servers.insert(0, legacy_server)
+            cls._upsert_legacy_database_server(settings, legacy_server)
 
         return settings
 
@@ -88,6 +85,36 @@ class MCPConfigLoader:
             server_type="database",
             tags=["database", "legacy"],
         )
+
+    @classmethod
+    def _upsert_legacy_database_server(
+        cls,
+        settings: MCPSettings,
+        legacy_server: MCPServerConfig,
+    ) -> None:
+        """
+        Keep the legacy database MCP server sourced from AIConfig.
+
+        Older mcp.json files may contain a full environment snapshot for the
+        "database" server. Treat that as stale metadata: runtime database
+        credentials belong to AIConfig/runtime config, while mcp.json owns only
+        the server list and enabled state.
+        """
+        existing = settings.get_server(legacy_server.name)
+        if existing is None:
+            settings.servers.insert(0, legacy_server)
+            return
+
+        existing.transport = legacy_server.transport
+        existing.command = legacy_server.command
+        existing.script = legacy_server.script
+        existing.url = legacy_server.url
+        existing.headers = dict(legacy_server.headers)
+        existing.env = dict(legacy_server.env)
+        existing.description = legacy_server.description
+        existing.tool_prefix = legacy_server.tool_prefix
+        existing.server_type = legacy_server.server_type
+        existing.tags = list(legacy_server.tags)
 
     @classmethod
     def _merge_dicts(cls, base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:

@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 
@@ -23,7 +24,7 @@ def create_file_tools(workspace: WorkspaceManager) -> list[AgentTool]:
         """列出工作区文件"""
         sub_dir = arguments.get("path", "")
         try:
-            files = workspace.list_files(sub_dir)
+            files = await asyncio.to_thread(workspace.list_files, sub_dir)
             result = {
                 "status": "success",
                 "workspace_session": str(workspace.session_dir),
@@ -55,7 +56,7 @@ def create_file_tools(workspace: WorkspaceManager) -> list[AgentTool]:
                 is_error=True,
             )
         try:
-            content = workspace.read_file(path)
+            content = await asyncio.to_thread(workspace.read_file, path)
             return AgentToolResult(
                 content=[ToolResultContent(type="text", text=content)]
             )
@@ -123,6 +124,9 @@ def create_file_tools(workspace: WorkspaceManager) -> list[AgentTool]:
                 "required": [],
             },
             execute_fn=_list_workspace,
+            read_only=True,
+            resource="workspace_fs",
+            max_concurrency=8,
         ),
         AgentTool(
             name="read_workspace_file",
@@ -143,6 +147,9 @@ def create_file_tools(workspace: WorkspaceManager) -> list[AgentTool]:
                 "required": ["path"],
             },
             execute_fn=_read_file,
+            read_only=True,
+            resource="workspace_fs",
+            max_concurrency=8,
         ),
         AgentTool(
             name="write_workspace_file",
@@ -167,5 +174,8 @@ def create_file_tools(workspace: WorkspaceManager) -> list[AgentTool]:
                 "required": ["path", "content"],
             },
             execute_fn=_write_file,
+            read_only=False,
+            resource="workspace_fs",
+            max_concurrency=1,
         ),
     ]

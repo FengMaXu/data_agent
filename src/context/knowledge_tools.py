@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import re
@@ -330,14 +331,15 @@ async def _search_knowledge(tool_call_id: str, arguments: dict) -> AgentToolResu
             is_error=True,
         )
 
-    md_files = _discover_md_files()
+    md_files = await asyncio.to_thread(_discover_md_files)
     if not md_files:
         return AgentToolResult(
             content=[ToolResultContent(text="知识库为空，未找到任何 .md 文件。")]
         )
 
     if search_mode == "regex":
-        hits, error_message = _search_hits_by_regex(
+        hits, error_message = await asyncio.to_thread(
+            _search_hits_by_regex,
             md_files=md_files,
             query=query,
             context_lines=context_lines,
@@ -349,7 +351,8 @@ async def _search_knowledge(tool_call_id: str, arguments: dict) -> AgentToolResu
                 is_error=True,
             )
     else:
-        hits = _search_hits_by_keywords(
+        hits = await asyncio.to_thread(
+            _search_hits_by_keywords,
             md_files=md_files,
             query=query,
             context_lines=context_lines,
@@ -387,7 +390,7 @@ async def _search_query_patterns(tool_call_id: str, arguments: dict) -> AgentToo
         )
 
     retriever = QueryPatternRetriever(QUERY_PATTERNS_PATH)
-    matches = retriever.search(query, max_results=max_results)
+    matches = await asyncio.to_thread(retriever.search, query, max_results=max_results)
     return AgentToolResult(
         content=[ToolResultContent(text=retriever.format_results(query, matches))],
         details={
@@ -404,7 +407,7 @@ async def _read_knowledge(tool_call_id: str, arguments: dict) -> AgentToolResult
     path = arguments.get("path", "")
     if not path:
         # 无参数时返回文件清单
-        md_files = _discover_md_files()
+        md_files = await asyncio.to_thread(_discover_md_files)
         listing = [
             str(f.relative_to(KNOWLEDGE_ROOT)) for f in md_files
         ]
@@ -438,7 +441,7 @@ async def _read_knowledge(tool_call_id: str, arguments: dict) -> AgentToolResult
         )
 
     try:
-        content = resolved.read_text(encoding="utf-8")
+        content = await asyncio.to_thread(resolved.read_text, encoding="utf-8")
         # 截断过大文件
         if len(content) > 50000:
             content = content[:50000] + "\n\n... [文件过大，已截断]"
@@ -594,6 +597,9 @@ def create_knowledge_tools() -> list[AgentTool]:
                 "required": ["query"],
             },
             execute_fn=_search_query_patterns,
+            read_only=True,
+            resource="knowledge",
+            max_concurrency=8,
         ),
         AgentTool(
             name="search_knowledge",
@@ -627,6 +633,9 @@ def create_knowledge_tools() -> list[AgentTool]:
                 "required": ["query"],
             },
             execute_fn=_search_knowledge,
+            read_only=True,
+            resource="knowledge",
+            max_concurrency=8,
         ),
         AgentTool(
             name="read_knowledge_file",
@@ -648,6 +657,9 @@ def create_knowledge_tools() -> list[AgentTool]:
                 "required": [],
             },
             execute_fn=_read_knowledge,
+            read_only=True,
+            resource="knowledge",
+            max_concurrency=8,
         ),
         AgentTool(
             name="write_knowledge_file",
@@ -677,6 +689,9 @@ def create_knowledge_tools() -> list[AgentTool]:
                 "required": ["path", "content"],
             },
             execute_fn=_write_knowledge,
+            read_only=False,
+            resource="knowledge",
+            max_concurrency=1,
         ),
         AgentTool(
             name="edit_knowledge_file",
@@ -707,5 +722,8 @@ def create_knowledge_tools() -> list[AgentTool]:
                 "required": ["path", "old_text", "new_text"],
             },
             execute_fn=_edit_knowledge,
+            read_only=False,
+            resource="knowledge",
+            max_concurrency=1,
         ),
     ]

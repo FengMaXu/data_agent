@@ -5,8 +5,7 @@ from types import SimpleNamespace
 
 from src.agent.tool_assembly import ToolAssemblyService
 from src.agent.tool_providers.base import GlobalRuntimeServices, ToolProvider
-from src.agent.types import AgentTimingRecorder, AgentTool
-from src.ai.config import AIConfig
+from src.agent.types import AgentTimingRecorder
 from src.mcp.config_models import MCPServerConfig, MCPSettings
 from src.mcp.registry import MCPRegistry
 
@@ -23,14 +22,6 @@ class DummyProvider(ToolProvider):
 def test_tool_assembly_logs_provider_timing(tmp_path: Path, monkeypatch, caplog):
     service = ToolAssemblyService(tmp_path, providers=[DummyProvider("one")])
     timing = AgentTimingRecorder(req="run_setup", session="session_setup")
-
-    async def fake_load_settings(*args, **kwargs):
-        raise AssertionError("should not call async loader")
-
-    monkeypatch.setattr(
-        "src.agent.tool_assembly.MCPConfigLoader.load_effective_settings",
-        lambda *args, **kwargs: MCPSettings(servers=[]),
-    )
 
     with caplog.at_level(logging.INFO):
         asyncio.run(

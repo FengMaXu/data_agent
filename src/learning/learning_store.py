@@ -12,6 +12,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import re
@@ -337,13 +338,15 @@ class LearningStore:
             """搜索历史教训"""
             query = arguments.get("query", "")
             tables = arguments.get("tables", [])
-            store._ensure_loaded()
 
-            entries = store.search(query, tables if tables else None)
-            if entries:
-                text = store.format_learnings(entries)
-            else:
-                text = "✅ 未找到相关历史教训。可以放心编写 SQL。"
+            def _run_search() -> str:
+                store._ensure_loaded()
+                entries = store.search(query, tables if tables else None)
+                if entries:
+                    return store.format_learnings(entries)
+                return "✅ 未找到相关历史教训。可以放心编写 SQL。"
+
+            text = await asyncio.to_thread(_run_search)
             return AgentToolResult(content=[ToolResultContent(text=text)])
 
         async def save_learning(
@@ -392,6 +395,9 @@ class LearningStore:
                 },
                 execute_fn=search_past_learnings,
                 label="搜索历史教训",
+                read_only=True,
+                resource="learning",
+                max_concurrency=4,
             ),
             AgentTool(
                 name="save_learning",
@@ -435,5 +441,8 @@ class LearningStore:
                 },
                 execute_fn=save_learning,
                 label="保存学习记录",
+                read_only=False,
+                resource="learning",
+                max_concurrency=1,
             ),
         ]

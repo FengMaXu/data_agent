@@ -5,7 +5,9 @@ AI Gateway 统一路由器
 
 from __future__ import annotations
 
+import asyncio
 import logging
+import time
 from typing import TYPE_CHECKING, AsyncIterator
 
 if TYPE_CHECKING:
@@ -15,6 +17,7 @@ from .base_provider import (
     AssistantResponse,
     LLMProvider,
     Message,
+    Role,
     StreamEvent,
     ToolDefinition,
 )
@@ -80,6 +83,78 @@ class AIGateway:
             return self.config.anthropic_api_key or None
         return None
 
+    async def warmup(self, *, timeout: float = 10.0) -> bool:
+        """Open the default LLM stream once so the provider connection pool is hot."""
+        model = self.config.default_model
+        provider_name = _detect_provider(model)
+        api_key = self._get_api_key(provider_name)
+        if not api_key:
+            logger.info(
+                "[Warmup] skip LLM warmup: missing API key for %s",
+                provider_name,
+            )
+            return False
+
+        provider = self._get_provider(provider_name)
+        extra_kwargs: dict = {}
+        if provider_name == "openai":
+            if self.config.openai_base_url:
+                extra_kwargs["base_url"] = self.config.openai_base_url
+            # Keep the preflight cheap for reasoning-capable OpenAI-compatible models.
+            extra_kwargs["reasoning_effort"] = "off"
+
+        async def _drain() -> None:
+            async for event in provider.stream(
+                model,
+                [Message(role=Role.USER, content="ping")],
+                tools=None,
+                temperature=0.0,
+                max_tokens=1,
+                api_key=api_key,
+                **extra_kwargs,
+            ):
+                if event.type == "done":
+                    break
+
+        started_at = time.perf_counter()
+        try:
+            await asyncio.wait_for(_drain(), timeout=timeout)
+        except TimeoutError:
+            duration_ms = round((time.perf_counter() - started_at) * 1000, 1)
+            logger.warning(
+                "[Warmup] LLM warmup timed out provider=%s model=%s duration_ms=%.1f",
+                provider_name,
+                model,
+                duration_ms,
+            )
+            return False
+        except Exception as exc:
+            duration_ms = round((time.perf_counter() - started_at) * 1000, 1)
+            logger.warning(
+                "[Warmup] LLM warmup failed provider=%s model=%s duration_ms=%.1f error=%s",
+                provider_name,
+                model,
+                duration_ms,
+                exc,
+            )
+            return False
+
+        duration_ms = round((time.perf_counter() - started_at) * 1000, 1)
+        logger.info(
+            "[Warmup] LLM channel warmed provider=%s model=%s duration_ms=%.1f",
+            provider_name,
+            model,
+            duration_ms,
+        )
+        return True
+
+    async def aclose(self) -> None:
+        for provider in self._providers.values():
+            close = getattr(provider, "aclose", None)
+            if close is not None:
+                await close()
+        self._providers.clear()
+
     async def stream(
         self,
         model: str,
@@ -110,6 +185,8 @@ class AIGateway:
         extra_kwargs: dict = {}
         if provider_name == "openai" and self.config.openai_base_url:
             extra_kwargs["base_url"] = self.config.openai_base_url
+        if timing is not None:
+            extra_kwargs["timing"] = timing
 
         async for event in provider.stream(
             model,

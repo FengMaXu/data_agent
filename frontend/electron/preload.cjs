@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('dataAgent', {
     checkForUpdates: () => ipcRenderer.invoke('data-agent:check-for-updates'),
     downloadUpdate: () => ipcRenderer.invoke('data-agent:download-update'),
     quitAndInstallUpdate: () => ipcRenderer.invoke('data-agent:quit-and-install-update'),
+    selectPythonExecutable: () => ipcRenderer.invoke('data-agent:select-python-executable'),
     showMenu: (menuName, position) => ipcRenderer.invoke('data-agent:show-menu', menuName, position),
     onUpdateEvent: (callback) => {
         const listener = (_event, payload) => callback(payload);
