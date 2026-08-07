@@ -13,7 +13,8 @@ router = APIRouter(prefix="/sessions", tags=["sessions"])
 
 class SessionCreateRequest(BaseModel):
     id: str
-    name: str = "New workspace"
+    name: str = "New session"
+    task_id: str | None = None
 
 
 class SessionUpdateRequest(BaseModel):
@@ -41,7 +42,9 @@ def current_user(request: Request) -> AuthenticatedUser:
 def serialize_session(record: chat_store.ChatSessionRecord, include_transcript: bool = False) -> dict[str, Any]:
     payload = {
         "id": record.id,
+        "task_id": record.task_id,
         "name": record.name,
+        "started_at": record.started_at,
         "created_at": record.created_at,
         "updated_at": record.updated_at,
         "attached_files": record.attached_files,
@@ -66,7 +69,10 @@ async def list_chat_sessions(request: Request):
 @router.post("")
 async def create_chat_session(req: SessionCreateRequest, request: Request):
     user = current_user(request)
-    record = chat_store.ensure_session(user.id, req.id, req.name)
+    try:
+        record = chat_store.ensure_session(user.id, req.id, req.name, task_id=req.task_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Task not found") from exc
     if req.name != record.name:
         record = chat_store.update_session_name(user.id, req.id, req.name)
     return serialize_session(record, include_transcript=True)
@@ -136,5 +142,8 @@ async def update_session_attached_files(session_id: str, req: AttachedFilesUpdat
 @router.delete("/{session_id}")
 async def delete_chat_session(session_id: str, request: Request):
     user = current_user(request)
+    record = chat_store.get_session(user.id, session_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Session not found")
     chat_store.delete_session(user.id, session_id)
     return {"status": "success"}

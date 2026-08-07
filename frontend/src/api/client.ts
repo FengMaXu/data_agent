@@ -351,7 +351,9 @@ export interface SessionSnapshotMessage {
 
 export interface ChatSession {
     id: string;
+    task_id: string;
     name: string;
+    started_at?: number | null;
     created_at: number;
     updated_at: number;
     attached_files: string[];
@@ -359,6 +361,57 @@ export interface ChatSession {
     messages?: SessionSnapshotMessage[];
     status?: 'success' | 'ignored';
     reason?: string;
+}
+
+export interface ChatTask {
+    id: string;
+    name: string;
+    created_at: number;
+    updated_at: number;
+    sessions?: ChatSession[];
+}
+
+export async function listTasks(): Promise<{ tasks: ChatTask[] }> {
+    const res = await apiFetch(`${API_BASE_URL}/tasks`);
+    if (!res.ok) throw new Error('Failed to fetch tasks');
+    return res.json();
+}
+
+export async function createTask(task: { id: string; name: string }): Promise<ChatTask> {
+    const res = await apiFetch(`${API_BASE_URL}/tasks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(task),
+    });
+    if (!res.ok) throw new Error('Failed to create task');
+    return res.json();
+}
+
+export async function updateTaskName(taskId: string, name: string): Promise<ChatTask> {
+    const res = await apiFetch(`${API_BASE_URL}/tasks/${encodeURIComponent(taskId)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+    });
+    if (!res.ok) throw new Error('Failed to update task');
+    return res.json();
+}
+
+export async function deleteTask(taskId: string): Promise<void> {
+    const res = await apiFetch(`${API_BASE_URL}/tasks/${encodeURIComponent(taskId)}`, {
+        method: 'DELETE',
+    });
+    if (!res.ok) throw new Error('Failed to delete task');
+}
+
+export async function createTaskSession(taskId: string, session: { id: string; name?: string }): Promise<ChatSession> {
+    const res = await apiFetch(`${API_BASE_URL}/tasks/${encodeURIComponent(taskId)}/sessions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(session),
+    });
+    if (!res.ok) throw new Error('Failed to create session');
+    return res.json();
 }
 
 export async function listChatSessions(): Promise<{ sessions: ChatSession[] }> {
@@ -822,18 +875,23 @@ export function getWorkspaceFileDownloadUrl(relativePath: string): string {
     return `${API_BASE_URL}/workspace/files/download?path=${encodeURIComponent(relativePath)}${authSuffix}`;
 }
 
-export async function uploadWorkspaceFile(file: File, sessionId: string = ''): Promise<void> {
+export interface WorkspaceUploadResponse {
+    filename: string;
+    session_id: string;
+    relative_path: string;
+    size: number;
+}
+
+export async function uploadWorkspaceFile(file: File, sessionId: string = ''): Promise<WorkspaceUploadResponse> {
     const formData = new FormData();
     formData.append('file', file);
-    if (sessionId) {
-        formData.append('session_id', sessionId);
-    }
-
-    const res = await fetch(`${API_BASE_URL}/workspace/upload`, {
+    const query = sessionId ? `?session_id=${encodeURIComponent(sessionId)}` : '';
+    const res = await fetch(`${API_BASE_URL}/workspace/upload${query}`, {
         method: 'POST',
         body: formData,
     });
     if (!res.ok) throw new Error('Failed to upload file');
+    return res.json();
 }
 
 export async function deleteWorkspaceFile(relativePath: string): Promise<void> {

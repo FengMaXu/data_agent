@@ -11,11 +11,10 @@ interface Translations {
 // Translations dictionary
 const translations: Translations = {
     en: {
-        'sidebar.newWorkspace': 'New Workspace',
+        'sidebar.newTask': 'New Task',
+        'sidebar.currentTask': 'Current Task',
         'sidebar.chat': 'Chat',
         'sidebar.knowledge': 'Knowledge',
-        'sidebar.workspace': 'Workspace Files',
-        'sidebar.history': 'Workspace History',
         'sidebar.plugins': 'Plugins',
         'sidebar.metrics': 'Metrics',
         'sidebar.settings': 'Settings',
@@ -49,9 +48,9 @@ const translations: Translations = {
         'landing.trust.database': 'Database aware',
         'landing.trust.skills': 'Custom skills',
         'landing.visual.label': 'YourDB product preview',
-        'landing.visual.workspace': 'New workspace',
-        'landing.visual.history': 'History',
-        'landing.visual.files': 'Workspace files',
+        'landing.visual.workspace': 'New task',
+        'landing.visual.history': 'Current task',
+        'landing.visual.files': 'Sessions',
         'landing.visual.prompt': 'Analyze monthly sales and build a dashboard.',
         'landing.visual.metricOne': 'Revenue +18%',
         'landing.visual.metricTwo': 'Top region East',
@@ -186,6 +185,7 @@ const translations: Translations = {
         'plugins.loadingSkills': 'Loading Skills...',
 
         'chat.workspaceEmpty': 'No files attached.',
+        'chat.attachHint': 'Use the paperclip to attach files to this query',
         'chat.clearChat': 'Clear Chat',
         'chat.stop': 'Stop',
         'chat.send': 'Send',
@@ -197,10 +197,9 @@ const translations: Translations = {
         'chat.submitting': 'Submitting...',
         'chat.submit': 'Submit',
         'chat.steerHint': 'Additional instructions will be sent as steer/follow-up',
-        'chat.attachHint': 'Select files in Workspace to attach to this query',
         'chat.status': 'Status',
         'chat.stopped': 'Stopped',
-        'chat.uploadTooltip': 'Upload to workspace',
+        'chat.uploadTooltip': 'Upload and attach files',
         'chat.steerPlaceholder': 'Steering instructions...',
         'chat.startMessage': 'Send a message to start...',
         
@@ -264,15 +263,20 @@ const translations: Translations = {
         'onboarding.errorVerify': 'LLM verification failed',
         'onboarding.errorSave': 'Failed to save configuration',
 
-        'session.newWorkspace': 'New Workspace',
-        'session.workspacePrefix': 'Workspace'
+        'task.new': 'New task',
+        'task.created': 'Task created',
+        'task.emptyPrompt': 'Create a task to begin.',
+        'session.new': 'New session',
+        'session.create': 'New session',
+        'session.empty': 'No sessions',
+        'session.emptyPrompt': 'This task has no sessions. Create a session when you are ready to start a conversation.',
+        'knowledge.loadFailed': 'Failed to load knowledge base'
     },
     zh: {
-        'sidebar.newWorkspace': '新建工作区',
+        'sidebar.newTask': '新建任务',
+        'sidebar.currentTask': '当前任务',
         'sidebar.chat': '对话',
         'sidebar.knowledge': '知识库',
-        'sidebar.workspace': '工作区文件',
-        'sidebar.history': '历史工作区',
         'sidebar.plugins': '插件管理',
         'sidebar.metrics': '指标',
         'sidebar.settings': '设置',
@@ -306,9 +310,9 @@ const translations: Translations = {
         'landing.trust.database': '理解数据库',
         'landing.trust.skills': '自定义技能',
         'landing.visual.label': 'YourDB 产品预览',
-        'landing.visual.workspace': '新建工作区',
-        'landing.visual.history': '历史记录',
-        'landing.visual.files': '工作区文件',
+        'landing.visual.workspace': '新建任务',
+        'landing.visual.history': '当前任务',
+        'landing.visual.files': '会话',
         'landing.visual.prompt': '分析月度销售并生成一个看板。',
         'landing.visual.metricOne': '收入 +18%',
         'landing.visual.metricTwo': '华东领先',
@@ -442,7 +446,8 @@ const translations: Translations = {
         'plugins.noSkills': '暂无 Skills',
         'plugins.loadingSkills': '正在加载 Skills...',
 
-        'chat.workspaceEmpty': '当前未附加工作区文件',
+        'chat.workspaceEmpty': '当前未附加文件',
+        'chat.attachHint': '点击回形针上传并附加文件到本次提问',
         'chat.clearChat': '清空对话',
         'chat.stop': '停止生成',
         'chat.send': '发送消息',
@@ -454,10 +459,9 @@ const translations: Translations = {
         'chat.submitting': '提交中...',
         'chat.submit': '提交',
         'chat.steerHint': '思考中补充说明会作为 steer/follow-up 发送',
-        'chat.attachHint': '可在左侧 Workspace 勾选文件后附加到本次提问',
         'chat.status': '状态',
         'chat.stopped': '已停止',
-        'chat.uploadTooltip': '上传到当前会话工作区',
+        'chat.uploadTooltip': '上传并附加文件',
         'chat.steerPlaceholder': '思考中补充说明...',
         'chat.startMessage': '发送一条消息开始会话...',
         
@@ -521,8 +525,14 @@ const translations: Translations = {
         'onboarding.errorVerify': '模型配置校验失败',
         'onboarding.errorSave': '保存配置失败',
 
-        'session.newWorkspace': '新建工作区',
-        'session.workspacePrefix': '工作区'
+        'task.new': '新任务',
+        'task.created': '新任务创建成功',
+        'task.emptyPrompt': '请先创建任务。',
+        'session.new': '新会话',
+        'session.create': '新建会话',
+        'session.empty': '暂无会话',
+        'session.emptyPrompt': '当前任务暂无会话，需要开始对话时再新建会话。',
+        'knowledge.loadFailed': '加载知识库失败'
     }
 };
 

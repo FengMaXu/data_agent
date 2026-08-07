@@ -27,7 +27,8 @@
 - `server.py`：FastAPI 服务入口，默认启动 API 服务
 - `main.py`：CLI 入口
 - `src/api/agent.py`：会话 runtime、chat / steer / stop / clear、SSE 事件桥接
-- `src/api/workspace_api.py`：工作区文件列表、上传、下载、删除
+- `src/api/tasks.py`：任务及其会话层级的创建、查询、更新与删除
+- `src/api/workspace_api.py`：会话产物的上传、下载与内部文件访问
 - `src/agent/agent_loop.py`：Agent loop、工具执行、stop / steering 检查点
 - `src/config_manager.py`：配置读写与运行时配置管理
 - `frontend/`：Vite + React 前端与 Electron 桌面端代码
@@ -172,14 +173,17 @@ npm run build:desktop
 - 后端日志会写入同一目录，便于排查首次启动、健康检查和运行期问题
 - 安装包内的后端采用 PyInstaller `onedir` 模式，避免 `onefile` 每次启动都进行大体积自解压
 
-## 会话与工作区约定
+## 任务、会话与工作区约定
 
-- 每个会话使用稳定 `session_id`
-- 后端工作区目录为 `workspace/<session_id>/`
+- 用户界面按“任务 → 会话”组织；创建任务时不会自动创建会话
+- 只有用户主动新建会话后，任务下才会出现可对话的会话
+- 会话名称由第一条用户消息自动生成，格式为 `XX月XX日_第一条消息`
+- 每个会话使用稳定 `session_id`，生成文件不在侧边栏单独展示
+- 后端工作区目录仍为 `workspace/<session_id>/`，仅作为会话执行与产物存储
 - 后端会在每个会话工作区下写入轻量快照 `.session_snapshot.json`
 - `/agent/clear` 会清空会话上下文与快照，但默认不删除工作区文件
 - `/workspace/files?session_id=<id>` 只返回当前会话工作区文件
-- 勾选的工作区文件会通过 `attached_files` 随聊天请求发送给后端
+- 通过输入框上传的文件会自动加入 `attached_files`，随聊天请求发送给后端
 
 ## 技术架构
 

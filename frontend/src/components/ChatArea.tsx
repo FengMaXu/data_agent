@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     PenTool,
     Loader2,
@@ -7,6 +7,7 @@ import {
     Square,
     Paperclip,
     ListTree,
+    Plus,
 } from './icons/Typicons';
 import {
     sendChatMessage,
@@ -24,7 +25,7 @@ import {
     type AgentTerminalReason,
 } from '../api/client';
 import type { ToolData } from './ToolPanel';
-import { useSession } from '../hooks/useSession';
+import { useSession, type Session, type Task } from '../hooks/useSession';
 import { useLanguage } from '../context/LanguageContext';
 import WidgetRenderer from './widgets/WidgetRenderer';
 import AgentOrbitIcon from './AgentOrbitIcon';
@@ -225,7 +226,14 @@ const visibleAgentContent = (message: AgentMessage) => {
     return normalizedContent || message.transientContent;
 };
 
-const ChatArea: React.FC<ChatAreaProps> = ({
+interface ActiveChatAreaProps extends ChatAreaProps {
+    activeTask: Task;
+    activeSession: Session;
+}
+
+const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
+    activeTask: currentTask,
+    activeSession: currentSession,
     onUpdateTools,
     onOpenToolPanel,
     onToggleToolPanel,
@@ -233,9 +241,9 @@ const ChatArea: React.FC<ChatAreaProps> = ({
     hasTools = false,
 }) => {
     const {
-        currentSession,
         currentTranscript,
         attachedFiles,
+        setAttachedFiles,
         setCurrentTranscript,
         clearCurrentTranscript,
         clearAttachedFiles,
@@ -365,13 +373,6 @@ const ChatArea: React.FC<ChatAreaProps> = ({
         return () => window.removeEventListener('message', handleMessage);
     }, []);
 
-    const attachedFilesLabel = useMemo(() => {
-        if (attachedFiles.length === 0) {
-            return t('chat.workspaceEmpty');
-        }
-        return `${t('chat.attachedFiles') || '已附加'} ${attachedFiles.length} ${t('chat.filesCount') || '个文件'}`;
-    }, [attachedFiles, t]);
-
     const handleScroll = () => {
         if (!chatContainerRef.current) return;
         const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
@@ -444,10 +445,12 @@ const ChatArea: React.FC<ChatAreaProps> = ({
 
         setIsUploading(true);
         try {
+            const uploadedPaths: string[] = [];
             for (const file of Array.from(files)) {
-                await uploadWorkspaceFile(file, currentSession.id);
+                const uploaded = await uploadWorkspaceFile(file, currentSession.id);
+                uploadedPaths.push(uploaded.relative_path);
             }
-            window.dispatchEvent(new CustomEvent('workspace_updated'));
+            setAttachedFiles([...attachedFiles, ...uploadedPaths]);
         } catch (err) {
             console.error('Failed to upload files:', err);
         } finally {
@@ -929,11 +932,12 @@ const ChatArea: React.FC<ChatAreaProps> = ({
                     <AgentOrbitIcon size={32} className="breadcrumb-icon" />
                     <span className="breadcrumb-title">Agents</span>
                     <span className="breadcrumb-separator">/</span>
+                    <span className="breadcrumb-task">{currentTask.name}</span>
+                    <span className="breadcrumb-separator">/</span>
                     <span className="breadcrumb-session">{currentSession.name}</span>
                 </div>
 
                 <div className="breadcrumb-actions">
-                    {false && <span className="attachment-status">{attachedFilesLabel}</span>}
                     <button
                         type="button"
                         className={`tool-panel-header-btn ${isToolPanelOpen ? 'is-active' : ''}`}
@@ -1126,7 +1130,7 @@ const ChatArea: React.FC<ChatAreaProps> = ({
 
             <div className="chat-input-container p-4 border-t border-gray-100 bg-white">
                 <div className="chat-input-meta">
-                    <span>{isStreaming ? t('chat.steerHint') || '补充说明会作为 steer 发送' : t('chat.attachHint') || '可在左侧 Workspace 勾选文件后附加到本次提问'}</span>
+                    <span>{isStreaming ? t('chat.steerHint') : t('chat.attachHint')}</span>
                     {runReason && <span>{t('chat.status') || '状态'}：{runReason === 'completed' ? t('tools.statusDone') : runReason === 'stopped' ? t('chat.stopped') || '已停止' : t('tools.statusError')}</span>}
                 </div>
                 <div className="chat-input-wrapper shadow-sm">
@@ -1142,7 +1146,7 @@ const ChatArea: React.FC<ChatAreaProps> = ({
                         className="chat-icon-btn"
                         onClick={handleUploadClick}
                         disabled={isUploading || isStreaming}
-                        title={t('chat.uploadTooltip') || "上传到当前会话工作区"}
+                        title={t('chat.uploadTooltip')}
                     >
                         {isUploading ? <Loader2 size={18} className="animate-spin" /> : <Paperclip size={18} />}
                     </button>
@@ -1178,6 +1182,41 @@ const ChatArea: React.FC<ChatAreaProps> = ({
                         {isStreaming && !inputValue.trim() ? <Square size={18} /> : <Send size={18} />}
                     </button>
                 </div>
+            </div>
+        </main>
+    );
+};
+
+const ChatArea: React.FC<ChatAreaProps> = (props) => {
+    const { currentTask, currentSession, createSession } = useSession();
+    const { t } = useLanguage();
+
+    if (currentTask && currentSession) {
+        return <ActiveChatArea {...props} activeTask={currentTask} activeSession={currentSession} />;
+    }
+
+    return (
+        <main className="chat-area">
+            <header className="breadcrumb-header">
+                <div className="breadcrumb-main">
+                    <AgentOrbitIcon size={32} className="breadcrumb-icon" />
+                    <span className="breadcrumb-title">Agents</span>
+                    {currentTask && (
+                        <>
+                            <span className="breadcrumb-separator">/</span>
+                            <span className="breadcrumb-task">{currentTask.name}</span>
+                        </>
+                    )}
+                </div>
+            </header>
+            <div className="empty-chat-state task-chat-empty-state">
+                <div>{currentTask ? t('session.emptyPrompt') : t('task.emptyPrompt')}</div>
+                {currentTask && (
+                    <button type="button" className="create-session-empty-btn" onClick={() => createSession(currentTask.id)}>
+                        <Plus size={14} />
+                        <span>{t('session.create')}</span>
+                    </button>
+                )}
             </div>
         </main>
     );

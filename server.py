@@ -21,6 +21,7 @@ from src.api.knowledge_api import router as knowledge_router
 from src.api.mcp import router as mcp_router
 from src.api.sessions import router as sessions_router
 from src.api.settings import router as settings_router
+from src.api.tasks import router as tasks_router
 from src.api.workspace_api import router as workspace_router
 from src.app_runtime import app_runtime
 from src.auth.service import get_user_by_token
@@ -148,6 +149,7 @@ async def authenticate_request(request, call_next):
 
 
 app.include_router(auth_router)
+app.include_router(tasks_router)
 app.include_router(sessions_router)
 app.include_router(agent_router)
 app.include_router(settings_router)

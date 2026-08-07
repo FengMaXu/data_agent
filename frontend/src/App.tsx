@@ -167,7 +167,6 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState }) =>
           <div ref={sidebarShellRef} className="sidebar-shell">
             <Sidebar
               onOpenSettings={() => setIsSettingsOpen(true)}
-              onOpenWorkspace={() => {}}
               onOpenPlugins={(tab) => setPluginsModalTab(tab)}
             />
           </div>

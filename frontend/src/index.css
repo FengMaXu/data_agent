@@ -1882,6 +1882,31 @@ body {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
+.task-chat-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.create-session-empty-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 13px;
+  border: 1px solid rgba(120, 53, 15, 0.14);
+  border-radius: 9px;
+  background: #ffffff;
+  color: #475569;
+  font: inherit;
+  cursor: pointer;
+}
+
+.create-session-empty-btn:hover {
+  border-color: rgba(120, 53, 15, 0.28);
+  color: #1f2937;
+}
+
 /* Chat Input Styles */
 .chat-input-container {
   padding: 24px 64px 32px;
@@ -4898,6 +4923,170 @@ body {
 
 .sidebar-plugin-text {
   font-size: 0.88rem;
+}
+
+.task-tree,
+.sidebar-plugin-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0 0 8px;
+  padding: 0 0 2px 18px;
+}
+
+.task-tree-item {
+  min-width: 0;
+}
+
+.task-row,
+.session-row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  color: #64748b;
+  cursor: pointer;
+  transition: background-color var(--duration-ui) var(--ease-out), color var(--duration-ui) var(--ease-out);
+}
+
+.task-row {
+  gap: 7px;
+  min-height: 34px;
+  padding: 5px 6px 5px 2px;
+  border-radius: 10px;
+  font-size: 0.84rem;
+}
+
+.task-row:hover,
+.session-row:hover,
+.session-row.active {
+  background: rgba(255, 255, 255, 0.68);
+  color: #1f2937;
+}
+
+.task-row.active {
+  background: transparent;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.session-row.active {
+  font-weight: 600;
+}
+
+.task-expand-btn,
+.tree-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.task-expand-btn {
+  width: 18px;
+  height: 22px;
+}
+
+.task-name,
+.session-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-name-input {
+  flex: 1;
+  min-width: 0;
+  width: 80px;
+  padding: 3px 6px;
+  border: 1px solid #d7dce3;
+  border-radius: 6px;
+  outline: none;
+  background: rgba(255, 255, 255, 0.92);
+  color: #1f2937;
+  font: inherit;
+}
+
+.task-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 1px;
+  opacity: 0;
+}
+
+.task-row:hover .task-actions,
+.task-row:focus-within .task-actions,
+.task-row.active .task-actions {
+  opacity: 1;
+}
+
+.tree-action-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+}
+
+.tree-action-btn:hover:not(:disabled) {
+  background: rgba(148, 163, 184, 0.16);
+  color: #0f172a;
+}
+
+.tree-action-btn.delete:hover:not(:disabled),
+.session-delete-btn:hover:not(:disabled) {
+  color: #dc2626;
+}
+
+.tree-action-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.3;
+}
+
+.task-session-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-left: 20px;
+  padding-left: 12px;
+  border-left: 1px solid rgba(148, 163, 184, 0.24);
+}
+
+.task-empty-sessions {
+  padding: 6px 8px;
+  color: #94a3b8;
+  font-size: 0.76rem;
+}
+
+.session-row {
+  gap: 7px;
+  min-height: 31px;
+  padding: 5px 6px 5px 8px;
+  border-radius: 9px;
+  font-size: 0.78rem;
+  font-weight: 400;
+}
+
+.session-delete-btn {
+  opacity: 0;
+}
+
+.session-row:hover .session-delete-btn,
+.session-row.active .session-delete-btn,
+.session-row:focus-within .session-delete-btn {
+  opacity: 1;
+}
+
+.breadcrumb-task {
+  max-width: 180px;
+  overflow: hidden;
+  color: #475569;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .chat-panel-shell {
