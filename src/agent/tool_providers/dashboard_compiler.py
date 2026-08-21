@@ -4,18 +4,10 @@ from copy import deepcopy
 from typing import Any
 
 from src.agent.tool_providers.dashboard_data import DashboardDataset
-
-
-COMMERCIAL_PALETTE = [
-    "#4F6980",
-    "#F47942",
-    "#638B66",
-    "#FBB04E",
-    "#B66353",
-    "#849DB1",
-    "#B9AA97",
-    "#7E756D",
-]
+from src.agent.tool_providers.dashboard_design import (
+    COMMERCIAL_PALETTE,
+    dashboard_design_tokens,
+)
 
 
 def compile_dashboard_runtime(
@@ -43,6 +35,7 @@ def compile_dashboard_runtime(
         "filters": deepcopy(spec.get("filters", [])),
         "interactions": deepcopy(spec.get("interactions", [])),
         "exports": deepcopy(spec.get("exports", [])),
+        "design": dashboard_design_tokens(),
         "state": {"filters": {}, "drill_path": []},
     }
 
@@ -66,6 +59,11 @@ def _runtime_view_base(view: dict[str, Any]) -> dict[str, Any]:
         "type": view.get("type", ""),
         "title": view.get("title", ""),
         "subtitle": view.get("subtitle", ""),
+        "insight": view.get("insight", ""),
+        "source": deepcopy(view.get("source")),
+        "annotations": deepcopy(view.get("annotations") or []),
+        "reading_mode": view.get("reading_mode"),
+        "recipe": view.get("recipe"),
         "layout": deepcopy(view.get("layout") or {}),
     }
 
@@ -139,7 +137,11 @@ def _compile_pie_view(view: dict[str, Any], datasets: dict[str, DashboardDataset
     }
     runtime_view["data"] = {
         "rows": deepcopy(dataset.rows),
-        "bindings": {"name": deepcopy(view.get("name", {})), "value": deepcopy(view.get("value", {}))},
+        "bindings": {
+            "name": deepcopy(view.get("name", {})),
+            "value": deepcopy(view.get("value", {})),
+            "radius": view.get("radius", "60%"),
+        },
     }
     return runtime_view
 
@@ -149,15 +151,22 @@ def _compile_cartesian_option(view: dict[str, Any], rows: list[dict[str, Any]]) 
     if coordinate != "cartesian":
         raise ValueError(f"Unsupported chart coordinate: {coordinate}")
     x_field = view["x"]["field"]
+    x_type = str(view["x"].get("type") or "category")
     y_axes = _cartesian_y_axes(view)
     axis_index_by_id = {axis["id"]: index for index, axis in enumerate(y_axes)}
     series_specs = view.get("series", [])
     series_by = view.get("series_by")
-    align_by_x = isinstance(series_by, dict) or any(isinstance(item.get("where"), dict) for item in series_specs)
-    x_data = _unique_values(rows, x_field) if align_by_x else [row.get(x_field, "") for row in rows]
+    align_by_x = x_type == "category" and (
+        isinstance(series_by, dict) or any(isinstance(item.get("where"), dict) for item in series_specs)
+    )
+    if x_type == "category":
+        x_data = _unique_values(rows, x_field) if align_by_x else [row.get(x_field, "") for row in rows]
+    else:
+        x_data = []
     series = _compile_cartesian_series(
         rows,
         x_field,
+        x_type,
         x_data,
         series_specs,
         y_axes,
@@ -167,9 +176,9 @@ def _compile_cartesian_option(view: dict[str, Any], rows: list[dict[str, Any]]) 
     )
     return {
         "color": COMMERCIAL_PALETTE,
-        "tooltip": {"trigger": "axis"},
+        "tooltip": {"trigger": "item" if x_type == "value" else "axis"},
         "legend": {"data": [item.get("name") for item in series]},
-        "xAxis": {"type": "category", "data": x_data},
+        "xAxis": {"type": x_type, **({"data": x_data} if x_type == "category" else {})},
         "yAxis": [
             {
                 "type": "value",
@@ -186,6 +195,7 @@ def _compile_cartesian_option(view: dict[str, Any], rows: list[dict[str, Any]]) 
 def _compile_cartesian_series(
     rows: list[dict[str, Any]],
     x_field: str,
+    x_type: str,
     x_data: list[Any],
     series_specs: list[dict[str, Any]],
     y_axes: list[dict[str, Any]],
@@ -208,6 +218,7 @@ def _compile_cartesian_series(
                     spec,
                     group_rows,
                     x_field,
+                    x_type,
                     x_data,
                     y_axes,
                     axis_index_by_id,
@@ -225,6 +236,7 @@ def _compile_cartesian_series(
             spec,
             spec_rows,
             x_field,
+            x_type,
             x_data,
             y_axes,
             axis_index_by_id,
@@ -238,6 +250,7 @@ def _compile_series_spec(
     spec: dict[str, Any],
     rows: list[dict[str, Any]],
     x_field: str,
+    x_type: str,
     x_data: list[Any],
     y_axes: list[dict[str, Any]],
     axis_index_by_id: dict[str, int],
@@ -254,7 +267,12 @@ def _compile_series_spec(
         "name": name or spec.get("name") or field,
         "type": mark,
         "yAxisIndex": axis_index_by_id.get(axis_id, 0),
-        "data": _aligned_series_data(rows, x_field, x_data, field) if align_by_x else [row.get(field, 0) for row in rows],
+        "data": (
+            [[row.get(x_field), row.get(field)] for row in rows]
+            if x_type == "value"
+            else _aligned_series_data(rows, x_field, x_data, field) if align_by_x
+            else [row.get(field, 0) for row in rows]
+        ),
         "smooth": bool(spec.get("smooth", mark == "line")),
     }
     _apply_series_style(series, spec, color, series_index)

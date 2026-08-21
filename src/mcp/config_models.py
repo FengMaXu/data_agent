@@ -26,6 +26,7 @@ class MCPServerConfig:
     tool_prefix: str = ""
     server_type: str = "service"
     tags: list[str] = field(default_factory=list)
+    args: list[str] = field(default_factory=list)
 
     def resolved_tool_prefix(self) -> str:
         return self.tool_prefix or f"{self.name}_"
@@ -53,6 +54,7 @@ class MCPSettings:
                     "enabled": server.enabled,
                     "command": server.command,
                     "script": server.script,
+                    "args": list(server.args),
                     "url": server.url,
                     "headers": dict(server.headers),
                     "env": dict(server.env),
@@ -80,6 +82,7 @@ class MCPSettings:
                     enabled=item.get("enabled", True),
                     command=item.get("command", "python"),
                     script=item.get("script", ""),
+                    args=[str(arg) for arg in item.get("args", []) or []],
                     url=item.get("url", ""),
                     headers=item.get("headers", {}) or {},
                     env=item.get("env", {}) or {},

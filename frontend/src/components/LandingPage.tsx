@@ -43,12 +43,13 @@ const LandingPage: React.FC = () => {
 
     return (
         <main className="landing-shell">
+            <a className="skip-link" href="#landing-content">{t('accessibility.skipToContent')}</a>
             <header className="landing-nav">
                 <div className="landing-brand">
                     <span className="landing-brand-mark"><Sparkles size={18} /></span>
                     <span>YourDB</span>
                 </div>
-                <nav className="landing-nav-links" aria-label="Landing navigation">
+                <nav className="landing-nav-links" aria-label={t('landing.nav.label')}>
                     <a href="#capabilities">{t('landing.nav.capabilities')}</a>
                     <a href="#highlights">{t('landing.nav.highlights')}</a>
                 </nav>
@@ -60,7 +61,7 @@ const LandingPage: React.FC = () => {
                 </div>
             </header>
 
-            <section className="landing-hero">
+            <section id="landing-content" className="landing-hero">
                 <div className="landing-hero-copy">
                     <div className="landing-kicker">
                         <Sparkles size={15} />

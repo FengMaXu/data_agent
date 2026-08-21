@@ -37,6 +37,7 @@ from src.mcp.manager import mcp_manager
 from src.persistence import chat_store
 from src.prompts import load_system_prompt
 from src.resilience.retry import reset_retry_event_handler, set_retry_event_handler
+from src.semantic_startup import semantic_startup
 from src.skills import (
     SkillRuntimeState,
     activate_skill_by_name,
@@ -1605,7 +1606,17 @@ async def agent_chat(req: ChatRequest, request: Request = None):
     user_id = _request_user_id(request)
     runtime = _ensure_session_runtime(req.session_id, user_id)
     if runtime.is_busy():
-        raise HTTPException(status_code=409, detail="褰撳墠 session 姝ｅ湪鎵ц锛岃绋嶅悗鎴栦娇鐢?steer/stop")
+        raise HTTPException(status_code=409, detail="当前 session 正在执行，请稍后或使用 steer/stop")
+
+    startup_status = semantic_startup.status()
+    if startup_status.get("status") in {"checking", "ingesting", "failed"}:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": startup_status.get("errorCode") or "semantic_catalog_not_ready",
+                "status": startup_status.get("status"),
+            },
+        )
 
     run_id = _generate_run_id()
     runtime.active_run_id = run_id

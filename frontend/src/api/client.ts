@@ -3,6 +3,8 @@
  * 用于连接后端 FastAPI 服务，处理 REST API 和 SSE 流
  */
 
+import type { SemanticSourceViewDto, SemanticSourcesResponse } from '../components/semantic-viewer/types';
+
 const ENV_API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim();
 
 function resolveApiBaseUrl(): string {
@@ -16,13 +18,11 @@ function resolveApiBaseUrl(): string {
             return `http://127.0.0.1:${injectedPort}`;
         }
 
-        const { hostname, port } = window.location;
-        if (hostname === 'localhost' || hostname === '127.0.0.1') {
-            if (port === '5173' || port === '5174') {
-                return `http://${hostname}:8080`;
-            }
-            return `http://${hostname}:8080`;
+        const { hostname } = window.location;
+        if (!hostname || hostname === 'localhost' || hostname === '127.0.0.1') {
+            return 'http://127.0.0.1:8080';
         }
+        return `http://${hostname}:8080`;
     }
 
     return '';
@@ -128,6 +128,7 @@ export interface AIConfig {
     mysql_port?: number;
     mysql_user?: string;
     mysql_database?: string;
+    connections?: DatabaseConnectionRegistry;
     python_runtime?: PythonRuntimeConfig;
     llm_profiles?: LLMProfilesResponse;
 }
@@ -189,6 +190,30 @@ export type DBConfigUpdate = {
     database?: string;
 };
 
+export interface DatabaseConnection {
+    id: string;
+    name: string;
+    driver: 'mysql';
+    host: string;
+    port: number;
+    user: string;
+    database: string;
+    semantic_enabled: boolean;
+    password_configured: boolean;
+}
+
+export interface DatabaseConnectionRegistry {
+    default_connection_id: string | null;
+    connections: DatabaseConnection[];
+}
+
+export type DatabaseConnectionUpdate = DBConfigUpdate & {
+    id?: string;
+    name?: string;
+    driver?: 'mysql';
+    semantic_enabled?: boolean;
+};
+
 export interface MCPMappingSummary {
     configured: boolean;
     count: number;
@@ -197,10 +222,12 @@ export interface MCPMappingSummary {
 
 export interface MCPServerConfig {
     name: string;
-    transport: 'stdio' | 'http' | 'sse';
+    transport: 'stdio' | 'http' | 'sse' | 'streamable-http';
     enabled: boolean;
     command?: string;
     script?: string;
+    args?: string[];
+    args_input?: string;
     url?: string;
     headers?: MCPMappingSummary;
     env?: MCPMappingSummary;
@@ -216,7 +243,7 @@ export interface MCPConfig {
     servers: MCPServerConfig[];
 }
 
-export type MCPServerRequest = Omit<MCPServerConfig, 'headers' | 'env'> & {
+export type MCPServerRequest = Omit<MCPServerConfig, 'headers' | 'env' | 'args_input'> & {
     headers?: Record<string, string>;
     env?: Record<string, string>;
 };
@@ -231,6 +258,7 @@ export interface MCPServerStatus extends MCPServerConfig {
     tool_count?: number;
     generation?: number;
     tool_prefix?: string;
+    host_managed?: boolean;
 }
 
 export interface MCPEnabledUpdateResponse {
@@ -680,6 +708,39 @@ export async function getConfig(): Promise<AIConfig> {
     return res.json();
 }
 
+export interface SemanticStartupSummary {
+    updated: number;
+    unchanged: number;
+    failed: number;
+    skipped: number;
+}
+
+export interface SemanticStartupStatus {
+    status: 'checking' | 'ingesting' | 'refreshing' | 'ready' | 'degraded' | 'failed' | 'skipped';
+    jobId: string | null;
+    currentConnectionId: string | null;
+    completedConnections: number;
+    totalConnections: number;
+    summary: SemanticStartupSummary;
+    failedConnections: string[];
+    errorCode: string | null;
+    updatedAt: string | null;
+}
+
+export async function getStartupStatus(): Promise<SemanticStartupStatus> {
+    const res = await apiFetch(`${API_BASE_URL}/startup/status`);
+    if (!res.ok) throw new Error('Failed to fetch startup status');
+    return res.json();
+}
+
+export async function retrySemanticIngest(): Promise<SemanticStartupStatus> {
+    const res = await apiFetch(`${API_BASE_URL}/startup/semantic-ingest/retry`, {
+        method: 'POST',
+    });
+    if (!res.ok) throw new Error('Failed to retry semantic ingest');
+    return res.json();
+}
+
 export async function updateLLMConfig(data: LLMConfigUpdate) {
     const res = await fetch(`${API_BASE_URL}/settings/llm`, {
         method: 'POST',
@@ -725,23 +786,61 @@ export async function testLLMConfig(data: LLMConfigUpdate): Promise<{ success: b
 }
 
 export async function updateDBConfig(data: DBConfigUpdate) {
-    const res = await fetch(`${API_BASE_URL}/settings/database`, {
+    return saveDatabaseConnection('default-mysql', {
+        name: 'Default MySQL',
+        driver: 'mysql',
+        semantic_enabled: true,
+        ...data,
+    });
+}
+
+export async function getDatabaseConnections(): Promise<DatabaseConnectionRegistry> {
+    const res = await fetch(`${API_BASE_URL}/settings/connections`);
+    if (!res.ok) throw new Error('Failed to fetch database connections');
+    return res.json();
+}
+
+export async function saveDatabaseConnection(
+    connectionId: string,
+    data: DatabaseConnectionUpdate,
+): Promise<DatabaseConnectionRegistry> {
+    const res = await fetch(`${API_BASE_URL}/settings/connections/${encodeURIComponent(connectionId)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.detail || 'Failed to save database connection');
+    return result;
+}
+
+export async function deleteDatabaseConnection(connectionId: string): Promise<DatabaseConnectionRegistry> {
+    const res = await fetch(`${API_BASE_URL}/settings/connections/${encodeURIComponent(connectionId)}`, {
+        method: 'DELETE',
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.detail || 'Failed to delete database connection');
+    return result;
+}
+
+export async function setDefaultDatabaseConnection(connectionId: string): Promise<DatabaseConnectionRegistry> {
+    const res = await fetch(`${API_BASE_URL}/settings/connections/${encodeURIComponent(connectionId)}/default`, {
+        method: 'POST',
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.detail || 'Failed to set default database connection');
+    return result;
+}
+
+export async function testDBConnection(data: DatabaseConnectionUpdate) {
+    const res = await fetch(`${API_BASE_URL}/settings/connections/test`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
     });
     const result = await res.json();
-    if (result.status === 'error') throw new Error(result.message);
+    if (!res.ok) throw new Error(result.detail || 'Failed to test database connection');
     return result;
-}
-
-export async function testDBConnection(data: DBConfigUpdate) {
-    const res = await fetch(`${API_BASE_URL}/settings/database/test`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-    });
-    return res.json();
 }
 
 export async function updatePythonRuntime(data: PythonRuntimeUpdate): Promise<{ status: string; runtime?: PythonRuntimeConfig; message?: string }> {
@@ -766,13 +865,13 @@ export async function testPythonRuntime(data: PythonRuntimeUpdate): Promise<{ su
 }
 
 export async function getMCPConfig(): Promise<MCPConfig> {
-    const res = await fetch(`${API_BASE_URL}/mcp/config`);
+    const res = await apiFetch(`${API_BASE_URL}/mcp/config`);
     if (!res.ok) throw new Error('Failed to fetch MCP config');
     return res.json();
 }
 
 export async function saveMCPConfig(data: MCPConfigRequest) {
-    const res = await fetch(`${API_BASE_URL}/mcp/config`, {
+    const res = await apiFetch(`${API_BASE_URL}/mcp/config`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -782,13 +881,13 @@ export async function saveMCPConfig(data: MCPConfigRequest) {
 }
 
 export async function getMCPServers(): Promise<{ status: string; servers: MCPServerStatus[] }> {
-    const res = await fetch(`${API_BASE_URL}/mcp/servers`);
+    const res = await apiFetch(`${API_BASE_URL}/mcp/servers`);
     if (!res.ok) throw new Error('Failed to fetch MCP servers');
     return res.json();
 }
 
 export async function updateMCPServerEnabled(name: string, enabled: boolean): Promise<MCPEnabledUpdateResponse> {
-    const res = await fetch(`${API_BASE_URL}/mcp/servers/${encodeURIComponent(name)}/enabled`, {
+    const res = await apiFetch(`${API_BASE_URL}/mcp/servers/${encodeURIComponent(name)}/enabled`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled }),
@@ -809,7 +908,7 @@ export async function updateMCPServerEnabled(name: string, enabled: boolean): Pr
 }
 
 export async function restartMCPServer(name: string): Promise<MCPEnabledUpdateResponse> {
-    const res = await fetch(`${API_BASE_URL}/mcp/servers/${encodeURIComponent(name)}/restart`, {
+    const res = await apiFetch(`${API_BASE_URL}/mcp/servers/${encodeURIComponent(name)}/restart`, {
         method: 'POST',
     });
     if (!res.ok) {
@@ -828,13 +927,13 @@ export async function restartMCPServer(name: string): Promise<MCPEnabledUpdateRe
 }
 
 export async function getMCPTools(): Promise<{ status: string; tools: MCPToolInfo[] }> {
-    const res = await fetch(`${API_BASE_URL}/mcp/tools`);
+    const res = await apiFetch(`${API_BASE_URL}/mcp/tools`);
     if (!res.ok) throw new Error('Failed to fetch MCP tools');
     return res.json();
 }
 
 export async function testMCPServer(data: MCPServerRequest): Promise<MCPTestResult> {
-    const res = await fetch(`${API_BASE_URL}/mcp/test`, {
+    const res = await apiFetch(`${API_BASE_URL}/mcp/test`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -942,4 +1041,59 @@ export async function saveKnowledgeContent(path: string, content: string): Promi
     });
     if (!res.ok) throw new Error('Failed to save knowledge content');
     return res.json();
+}
+
+export async function getSemanticSources(): Promise<SemanticSourcesResponse> {
+    const res = await apiFetch(`${API_BASE_URL}/semantic/sources`);
+    if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        throw new Error(payload.detail || 'Failed to fetch semantic sources');
+    }
+    return res.json();
+}
+
+export async function getSemanticSource(connectionId: string, sourceName: string): Promise<SemanticSourceViewDto> {
+    const res = await apiFetch(
+        `${API_BASE_URL}/semantic/sources/${encodeURIComponent(connectionId)}/${encodeURIComponent(sourceName)}`,
+    );
+    if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        throw new Error(payload.detail || 'Failed to fetch semantic source');
+    }
+    return res.json();
+}
+
+export interface DashboardRuntimeEvaluateRequest {
+    requestId: string;
+    dashboard: string;
+    parameters: Record<string, unknown>;
+    changed: string[] | null;
+}
+
+export interface DashboardRuntimeEvaluateResponse {
+    requestId: string;
+    parameters: Record<string, unknown>;
+    data: Record<string, { rows: Array<Record<string, unknown>>; totalRows: number; fingerprint?: string }>;
+    errors: Record<string, { code: string; message: string }>;
+}
+
+export async function evaluateDashboardRuntime(
+    payload: DashboardRuntimeEvaluateRequest,
+    signal?: AbortSignal,
+): Promise<DashboardRuntimeEvaluateResponse> {
+    const res = await apiFetch(`${API_BASE_URL}/dashboard-runtime/evaluate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal,
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+        const detail = body?.detail;
+        const message = typeof detail === 'string'
+            ? detail
+            : detail?.message || detail?.error?.message || 'Dashboard refresh failed';
+        throw new Error(message);
+    }
+    return body as DashboardRuntimeEvaluateResponse;
 }

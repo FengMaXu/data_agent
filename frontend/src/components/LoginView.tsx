@@ -70,7 +70,7 @@ const LoginView: React.FC<LoginViewProps> = ({ embedded = false }) => {
                     />
                 </label>
 
-                {error && <div className="auth-error">{error}</div>}
+                {error && <div className="auth-error" role="alert" aria-live="assertive">{error}</div>}
 
                 <button className="auth-submit" type="submit" disabled={submitting}>
                     {isRegister ? <UserPlus size={18} /> : <LogIn size={18} />}

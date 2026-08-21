@@ -194,3 +194,42 @@ async def test_edit_dashboard_replaces_view_from_embedded_spec():
     assert edit_result.details["applied_operations"] == ["replaced view sales_growth"]
     assert "Updated title" in html
     assert '"dashboard-spec"' in html
+
+
+@pytest.mark.asyncio
+async def test_edit_dashboard_adds_executable_filter():
+    workspace, context = _context()
+    _write_fixture_data(workspace)
+    tools = await HTMLDashboardProvider().build_tools(context)
+    build_dashboard = next(tool for tool in tools if tool.name == "build_dashboard")
+    edit_dashboard = next(tool for tool in tools if tool.name == "edit_dashboard")
+
+    build_result = await build_dashboard.execute("call-build", {"spec": _dashboard_spec("filter_dashboard")})
+    assert build_result.is_error is False
+
+    edit_result = await edit_dashboard.execute(
+        "call-edit",
+        {
+            "dashboard_path": "dashboards/filter_dashboard.html",
+            "operations": [
+                {
+                    "op": "add_filter",
+                    "filter": {
+                        "id": "category_filter",
+                        "type": "select",
+                        "label": "Category",
+                        "dataset": "summary",
+                        "field": "category",
+                        "targets": ["sales_growth"],
+                        "default": "",
+                    },
+                }
+            ],
+        },
+    )
+
+    html = workspace.read_file("dashboards/filter_dashboard.html")
+    assert edit_result.is_error is False
+    assert edit_result.details["applied_operations"] == ["added filter category_filter"]
+    assert 'data-filter-id="category_filter"' in html
+    assert '"id": "category_filter"' in html

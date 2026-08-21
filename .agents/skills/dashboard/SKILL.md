@@ -8,6 +8,8 @@ allowed-tools:
   - validate_dashboard_spec
   - build_dashboard
   - edit_dashboard
+  - validate_semantic_dashboard_spec
+  - build_semantic_dashboard
   - search_knowledge
   - read_knowledge_file
 ---
@@ -72,13 +74,73 @@ applied on first render, omit `default` or set `"default": ""`.
 
 默认使用 `build_dashboard(spec={...})` 的 v3 spec。不要再把复杂看板拆成 widget 卡片，也不要把“查看”做成下载行为。HTML 看板本身就是交付物，下载链接只作为文件获取入口。
 
+### KTX 实时联动看板使用 V4
+
+当用户要求“筛选后重新查询数据库”“KTX 语义查询联动”或“应用内实时刷新”时，使用 `validate_semantic_dashboard_spec` 和 `build_semantic_dashboard`，不要把语义查询伪装成 V3 CSV dataset。
+
+V4 的唯一核心模型是：
+
+```text
+parameters + data + views + interactions + layout
+```
+
+- `data` 节点直接声明 KTX source-relative dimensions/measures；不要写 SQL、SQL Template、QueryRegistry 或任意查询回调。
+- 选择字段的键是看板输出字段名，例如 `measures: {"sales": "sales_ytd_total"}`；工具会在服务端做 KTX headers 映射。
+- 参数只能是首期 `select`，options 必须引用一个不带 `$param` 的 data 节点；`null` 表示不筛选。
+- `where` 首期只使用 `eq` 和 `{"$param": "parameter_name"}`。
+- 点击筛选/预定义下钻统一使用 `action.type="set_parameter"`，不经过 Agent。
+- 先调用 `validate_semantic_dashboard_spec`，再调用 `build_semantic_dashboard`；构建时会执行真实 KTX 默认查询并生成快照，应用内预览才支持实时刷新，离线 HTML 仍是快照。
+
+V4 示例：
+
+```json
+{
+  "version": "4",
+  "title": "行业经营分析",
+  "connection": "default-mysql",
+  "parameters": {
+    "month": {
+      "type": "select",
+      "default": null,
+      "options": {"data": "month_options", "field": "month"}
+    }
+  },
+  "data": {
+    "month_options": {
+      "source": "business_industry_sales_trend",
+      "dimensions": {"month": {"field": "snapshot_month", "granularity": "month"}},
+      "measures": {"sales": "sales_ytd_total"},
+      "limit": 200
+    },
+    "trend": {
+      "source": "business_industry_sales_trend",
+      "dimensions": {"month": {"field": "snapshot_month", "granularity": "month"}},
+      "measures": {"sales": "sales_ytd_total"},
+      "where": [{"field": "snapshot_month", "operator": "eq", "value": {"$param": "month"}}]
+    }
+  },
+  "views": [{
+    "id": "trend_chart",
+    "type": "chart",
+    "data": "trend",
+    "x": {"field": "month", "type": "category"},
+    "axes": [{"id": "sales_axis", "orient": "y", "name": "销售额"}],
+    "series": [{"field": "sales", "mark": "bar", "axis": "sales_axis"}]
+  }],
+  "interactions": [],
+  "layout": {}
+}
+```
+
+V3 仍用于静态 CSV、本地筛选和可离线独立交付；不要在同一份 spec 中混用 V3 `datasets/filters` 与 V4 `data/parameters`。
+
 ## 工作原则
 
 1. 数据先落盘，再生成看板。
    SQL 或分析结果必须先写入 CSV 文件，再由 dashboard 工具读取 CSV。不要把大表数据塞进工具参数。
 
 2. 用结构化 spec 表达意图。
-   复杂图表、双轴、柱线组合、下钻和交叉过滤都应该写入 `datasets`、`views`、`interactions`。不要依赖 raw `echarts_option` 作为主要方案。
+   复杂图表、双轴和柱线组合写入 `views`，页面筛选写入 `filters`，点击下钻写入 `interactions`。不要依赖 raw `echarts_option`，也不要声明运行时尚未实现的交互。
 
 3. 一张看板回答一个业务问题。
    先明确受众、业务问题、关键指标、可用维度、默认时间范围。若用户没有明确，但数据中可以推断，先做合理假设并在最终说明中写明。
@@ -92,6 +154,34 @@ applied on first render, omit `default` or set `"default": ""`.
 6. 交互要显式可理解。
    优先提供明确筛选器、图例、tooltip、面包屑和下钻返回路径。不要只依赖隐蔽的交叉过滤。
 
+## 设计方法与硬约束
+
+借鉴编辑型图表的选型方法，但不复制外部模板、单色体系或代码。所有数据编码颜色继续使用本项目配色。
+
+1. 先判数据形状，再选 recipe。至少比较两个可承载同一数据本体的候选，按业务问题、标签容量和阅读速度选择，不按“哪个图最炫”选择。
+2. 每个 view 只承担一个独立结论。新建 view 必须填写 `insight`、`recipe`、`reading_mode` 和 `source`；`title` 应表达对象或结论，不写“柱状图”等图型名。
+3. `reading_mode` 只能是 `glance`、`analysis`、`detail`。管理层首屏优先 `glance`，诊断图优先 `analysis`，明细核对优先 `detail`。
+4. recipe 是选型记录，不拥有配色。禁止为了模仿外部风格替换本项目八色商用色板。
+5. 图表不诚实时拒绝：柱形图不断轴；面积不得直接用半径编码；占比类别超过 5 个时改用排序条形图或表格；超过 6 个系列时拆图。
+
+### 商业图表 Recipe
+
+| recipe | 数据形状 | 推荐视图 | 阅读模式 |
+|---|---|---|---|
+| `kpi-summary` | 3–6 个头部指标 | KPI cards | glance |
+| `trend-line` | 单指标有序时间序列 | line | analysis |
+| `multi-series-trend` | 一个指标按一个维度分组的趋势 | line + `series_by` | analysis |
+| `ranked-bars` | 已排序类目比较 | bar | glance |
+| `category-columns` | 少类目比较 | bar | glance |
+| `grouped-comparison` | 2–3 个可比系列 | grouped bar | analysis |
+| `volume-and-rate` | 绝对量 + 比率 | 双轴 bar + line | analysis |
+| `positive-negative` | 围绕零点的正负值 | bar | glance |
+| `composition-donut` | 不超过 5 类的 100% 构成 | pie_chart | glance |
+| `relationship-scatter` | 两个数值指标的关系 | scatter | analysis |
+| `distribution-scatter` | 逐记录分布 | scatter | detail |
+| `detail-table` | 可核对的明细记录 | table | detail |
+| `top-n-table` | 带多个指标的排名记录 | table | detail |
+| `master-detail` | 总览到明细的点击下钻 | chart/table + drilldown | analysis |
 ## 推荐流程
 
 1. 理解需求
@@ -108,8 +198,8 @@ applied on first render, omit `default` or set `"default": ""`.
 3. 设计 spec
    - 使用 `version: "3"`。
    - 在 `datasets` 中声明 CSV、字段类型、字段角色和单位。
-   - 在 `views` 中声明 KPI、图表、表格。
-   - 在 `interactions` 中声明下钻或过滤。
+   - 在 `views` 中声明 KPI、图表、表格，并记录 `insight`、`recipe`、`reading_mode`、`source`。
+   - 在 `filters` 中声明下拉筛选；`interactions` 目前只声明点击下钻。
 
 4. 先校验，再生成
    - 对复杂看板先调用 `validate_dashboard_spec(spec=...)`。
@@ -134,6 +224,23 @@ applied on first render, omit `default` or set `"default": ""`.
   "filters": [],
   "interactions": [],
   "exports": []
+}
+```
+
+### Filter 写法
+
+当前运行时只接受可真实执行的单选筛选器。`targets` 省略时作用于使用同一 dataset 的所有视图；指定时，目标视图必须使用同一 dataset。全部选项用空值表示，不写入显示标签作为默认值。
+
+```json
+{
+  "id": "industry_filter",
+  "type": "select",
+  "label": "行业",
+  "dataset": "industry_summary",
+  "field": "行业大类",
+  "targets": ["industry_sales_growth", "top_items"],
+  "default": "",
+  "all_label": "全部"
 }
 ```
 

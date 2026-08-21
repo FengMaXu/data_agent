@@ -108,6 +108,7 @@ class MCPConfigLoader:
         existing.transport = legacy_server.transport
         existing.command = legacy_server.command
         existing.script = legacy_server.script
+        existing.args = list(legacy_server.args)
         existing.url = legacy_server.url
         existing.headers = dict(legacy_server.headers)
         existing.env = dict(legacy_server.env)

@@ -89,6 +89,7 @@ interface ChatAreaProps {
     onToggleToolPanel?: () => void;
     isToolPanelOpen?: boolean;
     hasTools?: boolean;
+    semanticBlocked?: boolean;
 }
 
 const STAGE_ORDER: AgentProgressStage[] = [
@@ -194,20 +195,15 @@ const dedupeSkillActivations = (skills: SkillActivation[]) => {
     });
 };
 
-const getToolHintLabel = (tool: ToolCallState) => {
+const getToolHintLabel = (tool: ToolCallState, t: (key: string) => string) => {
     if (tool.progressText) {
         return tool.progressText;
     }
-    if (tool.status === 'done') {
-        return `完成工具: ${tool.name}`;
-    }
-    if (tool.status === 'error') {
-        return `工具失败: ${tool.name}`;
-    }
-    return `调用工具: ${tool.name}`;
+    const key = tool.status === 'done' ? 'chat.toolCompleted' : tool.status === 'error' ? 'chat.toolFailed' : 'chat.toolCalling';
+    return t(key).replace('{name}', tool.name);
 };
 
-const getSkillHintLabel = (skill: SkillActivation) => `Skill 已激活: ${skill.name}`;
+const getSkillHintLabel = (skill: SkillActivation, t: (key: string) => string) => t('chat.skillActivated').replace('{name}', skill.name);
 
 const IMMEDIATE_FEEDBACK_TEXT = '收到，我正在分析请求并检索可用工具…';
 const THINKING_STATUS_TEXT = '思考中';
@@ -239,6 +235,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
     onToggleToolPanel,
     isToolPanelOpen = false,
     hasTools = false,
+    semanticBlocked = false,
 }) => {
     const {
         currentTranscript,
@@ -453,6 +450,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
             setAttachedFiles([...attachedFiles, ...uploadedPaths]);
         } catch (err) {
             console.error('Failed to upload files:', err);
+            setRunReason('error');
         } finally {
             setIsUploading(false);
             event.target.value = '';
@@ -581,7 +579,11 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                         return;
                     }
                     const targetMessage = ensureBufferedAgentMessage(targetId);
-                    targetMessage.retryNotice = `重试 ${event.operation}: ${event.attempt}/${event.max_attempts}，${event.delay_seconds}s 后继续`;
+                    targetMessage.retryNotice = t('chat.retryNotice')
+                        .replace('{operation}', event.operation)
+                        .replace('{attempt}', String(event.attempt))
+                        .replace('{max}', String(event.max_attempts))
+                        .replace('{delay}', String(event.delay_seconds));
                     scheduleFlush(targetId, true);
                     return;
                 }
@@ -601,7 +603,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                     activeAgentMessageIdRef.current = targetId;
                     const message = ensureBufferedAgentMessage(targetId);
                     const advanced = setTerminalReason(advanceStage(message, 'generating_answer'), 'error');
-                    advanced.content += `${advanced.content ? '\n\n' : ''}**Error:** ${event.error}`;
+                    advanced.content += `${advanced.content ? '\n\n' : ''}**${t('chat.requestFailed')}**\n\n${t('chat.retryHint')}`;
                     agentBufferRef.current[targetId] = advanced;
                     scheduleFlush(targetId, true);
                     return;
@@ -689,11 +691,11 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                         status: 'running' as const,
                     };
                     const phaseText: Record<typeof event.phase, string> = {
-                        validating_sql: '校验 SQL',
-                        running_query: '执行查询',
-                        running: '运行工具',
-                        done: '完成工具',
-                        error: '工具失败',
+                        validating_sql: t('chat.phaseValidatingSql'),
+                        running_query: t('chat.phaseRunningQuery'),
+                        running: t('chat.phaseRunningTool'),
+                        done: t('chat.phaseDoneTool'),
+                        error: t('chat.phaseErrorTool'),
                     };
                     message.toolCallsById[event.tool_call_id] = {
                         ...existing,
@@ -924,13 +926,22 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
         isAgentMessageAnimating(message.messageId, message.terminalReason) &&
         isAgentMessageEmpty(message)
     );
+    const latestAgentMessage = [...messages].reverse().find((message): message is AgentMessage => message.role === 'agent');
+    const liveStatus = runReason === 'error'
+        ? `${t('chat.requestFailed')} ${t('chat.retryHint')}`
+        : latestAgentMessage?.statusNotice || latestAgentMessage?.retryNotice || (semanticBlocked && messages.length === 0 ? t('chat.semanticWaiting') : '');
 
     return (
-        <main className="chat-area">
+        <main id="main-content" className="chat-area" data-semantic-blocked={semanticBlocked || undefined} aria-labelledby="chat-page-title">
             <header className="breadcrumb-header">
+                <h1 id="chat-page-title" className="sr-only">{t('chat.pageTitle')}</h1>
                 <div className="breadcrumb-main">
-                    <AgentOrbitIcon size={32} className="breadcrumb-icon" />
-                    <span className="breadcrumb-title">Agents</span>
+                    <AgentOrbitIcon
+                        size={32}
+                        className={`breadcrumb-icon ${isStreaming ? 'is-running' : 'is-idle'}`}
+                        animated={isStreaming}
+                    />
+                    <span className="breadcrumb-title">{t('chat.agents')}</span>
                     <span className="breadcrumb-separator">/</span>
                     <span className="breadcrumb-task">{currentTask.name}</span>
                     <span className="breadcrumb-separator">/</span>
@@ -944,10 +955,11 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                         onClick={onToggleToolPanel}
                         aria-pressed={isToolPanelOpen}
                         disabled={!hasTools && !isToolPanelOpen}
-                        title={isToolPanelOpen ? '关闭详细信息' : '打开详细信息'}
+                        title={isToolPanelOpen ? t('chat.closeDetails') : t('chat.openDetails')}
+                        aria-label={isToolPanelOpen ? t('chat.closeDetails') : t('chat.openDetails')}
                     >
-                        <ListTree size={14} />
-                        <span>详细信息</span>
+                        <ListTree size={14} aria-hidden="true" />
+                        <span>{t('chat.details')}</span>
                     </button>
                     <button
                         type="button"
@@ -960,6 +972,9 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                     </button>
                 </div>
             </header>
+            <div className="chat-live-region" role={runReason === 'error' ? 'alert' : 'status'} aria-live={runReason === 'error' ? 'assertive' : 'polite'} aria-atomic="true">
+                {liveStatus}
+            </div>
 
             <div
                 ref={chatContainerRef}
@@ -983,7 +998,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                             </div>
                         ) : (
                             <div className="message agent">
-                                <div className="agent-icon-red flex-shrink-0 flex items-center justify-center">
+                                <div className={`agent-icon-red flex-shrink-0 flex items-center justify-center ${isAgentMessageAnimating(msg.messageId, msg.terminalReason) ? 'is-running' : 'is-idle'}`}>
                                     <AgentOrbitIcon
                                         size={32}
                                         animated={isAgentMessageAnimating(msg.messageId, msg.terminalReason)}
@@ -1033,15 +1048,18 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                                     {(Object.values(msg.toolCallsById).length > 0 || msg.skillActivations.length > 0) && (
                                         <div className="agent-hint-list">
                                             {Object.values(msg.toolCallsById).map((tool) => (
-                                                <div
+                                                <button
+                                                    type="button"
                                                     key={tool.toolCallId}
                                                     className={`agent-hint-line ${tool.status === 'error' ? 'is-error' : ''}`}
                                                     onClick={onOpenToolPanel}
-                                                    style={{ cursor: onOpenToolPanel ? 'pointer' : 'default' }}
+                                                    disabled={!onOpenToolPanel}
+                                                    aria-label={getToolHintLabel(tool, t)}
+                                                    style={{ cursor: onOpenToolPanel ? 'pointer' : 'default', background: 'none', border: 'none', padding: 0, textAlign: 'left' }}
                                                 >
                                                     <span className="agent-hint-dot" aria-hidden="true" />
-                                                    <span>{getToolHintLabel(tool)}</span>
-                                                </div>
+                                                    <span>{getToolHintLabel(tool, t)}</span>
+                                                </button>
                                             ))}
                                             {msg.skillActivations.map((skill) => (
                                                 <div
@@ -1049,7 +1067,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                                                     className="agent-hint-line"
                                                 >
                                                     <span className="agent-hint-dot" aria-hidden="true" />
-                                                    <span>{getSkillHintLabel(skill)}</span>
+                                                    <span>{getSkillHintLabel(skill, t)}</span>
                                                 </div>
                                             ))}
                                         </div>
@@ -1061,12 +1079,12 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                 ))}
 
                 {pendingClarification && (
-                    <div style={{ display: 'flex', gap: '12px' }}>
+                    <div role="alert" aria-live="assertive" style={{ display: 'flex', gap: '12px' }}>
                         <div className="agent-icon-red flex-shrink-0 flex items-center justify-center w-8 h-8 rounded mt-1" style={{ background: '#dbeafe' }}>
                             <PenTool size={18} color="#2563eb" />
                         </div>
                         <div style={{ flex: 1, minWidth: 0, background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '12px', padding: '14px' }}>
-                            <div style={{ fontSize: '12px', fontWeight: 700, color: '#1d4ed8', marginBottom: '8px' }}>需要你的澄清</div>
+                            <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#1e40af', marginBottom: '8px' }}>{t('chat.clarificationTitle')}</div>
                             <div style={{ color: '#1f2937', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{pendingClarification.question}</div>
                             {pendingClarification.options.length > 0 && (
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px' }}>
@@ -1095,7 +1113,8 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                                     value={clarificationInput}
                                     onChange={(e) => setClarificationInput(e.target.value)}
                                     onKeyDown={handleClarificationKeyDown}
-                                    placeholder="输入你的回答..."
+                                    aria-label={t('chat.inputAnswer')}
+                                    placeholder={t('chat.inputAnswer')}
                                     disabled={isSubmittingClarification}
                                     style={{
                                         flex: 1,
@@ -1118,7 +1137,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                                         cursor: isSubmittingClarification || !clarificationInput.trim() ? 'not-allowed' : 'pointer',
                                     }}
                                 >
-                                    {isSubmittingClarification ? '提交中...' : '提交'}
+                                    {isSubmittingClarification ? t('chat.submitting') : t('chat.submit')}
                                 </button>
                             </div>
                         </div>
@@ -1147,6 +1166,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                         onClick={handleUploadClick}
                         disabled={isUploading || isStreaming}
                         title={t('chat.uploadTooltip')}
+                        aria-label={t('chat.uploadTooltip')}
                     >
                         {isUploading ? <Loader2 size={18} className="animate-spin" /> : <Paperclip size={18} />}
                     </button>
@@ -1178,6 +1198,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                         onClick={() => void handlePrimaryAction()}
                         disabled={isUploading || (!isStreaming && !inputValue.trim())}
                         title={isStreaming && !inputValue.trim() ? t('chat.stop') : t('chat.send')}
+                        aria-label={isStreaming && !inputValue.trim() ? t('chat.stop') : t('chat.send')}
                     >
                         {isStreaming && !inputValue.trim() ? <Square size={18} /> : <Send size={18} />}
                     </button>
@@ -1196,11 +1217,12 @@ const ChatArea: React.FC<ChatAreaProps> = (props) => {
     }
 
     return (
-        <main className="chat-area">
+        <main id="main-content" className="chat-area" aria-labelledby="chat-page-title">
             <header className="breadcrumb-header">
+                <h1 id="chat-page-title" className="sr-only">{t('chat.pageTitle')}</h1>
                 <div className="breadcrumb-main">
-                    <AgentOrbitIcon size={32} className="breadcrumb-icon" />
-                    <span className="breadcrumb-title">Agents</span>
+                    <AgentOrbitIcon size={32} className="breadcrumb-icon is-idle" animated={false} />
+                    <span className="breadcrumb-title">{t('chat.agents')}</span>
                     {currentTask && (
                         <>
                             <span className="breadcrumb-separator">/</span>

@@ -13,6 +13,8 @@ import { PreviewProvider } from './context/PreviewContext';
 import { getConfig, updateLLMConfig } from './api/client';
 import LoginView from './components/LoginView';
 import GlobalPreviewModal from './components/common/GlobalPreviewModal';
+import { SemanticStartupStatus } from './components/SemanticStartupStatus';
+import { useSemanticStartupStatus } from './hooks/useSemanticStartupStatus';
 
 interface AppShellProps {
   startupState: 'checking' | 'ready' | 'onboarding';
@@ -20,11 +22,11 @@ interface AppShellProps {
 }
 
 const DESKTOP_MENU_ITEMS = [
-  { id: 'file', label: 'File' },
-  { id: 'edit', label: 'Edit' },
-  { id: 'view', label: 'View' },
-  { id: 'window', label: 'Window' },
-  { id: 'help', label: 'Help' },
+  { id: 'file', labelKey: 'desktop.file' },
+  { id: 'edit', labelKey: 'desktop.edit' },
+  { id: 'view', labelKey: 'desktop.view' },
+  { id: 'window', labelKey: 'desktop.window' },
+  { id: 'help', labelKey: 'desktop.help' },
 ];
 
 const TOOL_PANEL_WIDTH = 410;
@@ -36,6 +38,7 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState }) =>
   const [tools, setTools] = useState<ToolData[]>([]);
   const [isToolPanelOpen, setIsToolPanelOpen] = useState(false);
   const [pluginsModalTab, setPluginsModalTab] = useState<'MCP' | 'Skills' | null>(null);
+  const { status: semanticStatus, retrying: semanticRetrying, retry: retrySemantic } = useSemanticStartupStatus();
 
   const previousToolsRef = useRef<ToolData[]>([]);
   const sidebarShellRef = useRef<HTMLDivElement>(null);
@@ -44,6 +47,7 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState }) =>
   const chatResizeStartRef = useRef<{ startX: number; startWidth: number } | null>(null);
   const [chatPaneWidth, setChatPaneWidth] = useState<number | null>(null);
   const isDesktop = typeof window !== 'undefined' && Boolean(window.dataAgent);
+  const semanticBlocked = !semanticStatus || ['checking', 'ingesting', 'failed'].includes(semanticStatus.status);
 
   const handleUpdateTools = useCallback((newTools: ToolData[]) => {
     setTools(newTools);
@@ -114,6 +118,19 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState }) =>
     window.addEventListener('mouseup', handleMouseUp, { once: true });
   }, [getMaxChatPaneWidth]);
 
+  const handleChatResizeKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    const maxWidth = getMaxChatPaneWidth();
+    setChatPaneWidth((current) => {
+      const width = current ?? chatMainPaneRef.current?.getBoundingClientRect().width ?? CHAT_PANEL_MIN_WIDTH;
+      if (event.key === 'Home') return CHAT_PANEL_MIN_WIDTH;
+      if (event.key === 'End') return maxWidth;
+      const delta = event.key === 'ArrowRight' ? 40 : -40;
+      return Math.min(maxWidth, Math.max(CHAT_PANEL_MIN_WIDTH, width + delta));
+    });
+  }, [getMaxChatPaneWidth]);
+
   useEffect(() => {
     if (!isToolPanelOpen || chatPaneWidth == null) {
       return;
@@ -141,8 +158,9 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState }) =>
   return (
     <SessionProvider>
       <div className="desktop-shell">
+        <a className="skip-link" href="#main-content">{t('accessibility.skipToContent')}</a>
         {isDesktop && (
-          <div className="desktop-menu-strip" role="menubar" aria-label="Application menu">
+          <div className="desktop-menu-strip" role="menubar" aria-label={t('desktop.menu')}>
             {DESKTOP_MENU_ITEMS.map((item) => (
               <button
                 key={item.id}
@@ -157,11 +175,13 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState }) =>
                   });
                 }}
               >
-                {item.label}
+                {t(item.labelKey)}
               </button>
             ))}
           </div>
         )}
+
+        <SemanticStartupStatus status={semanticStatus} retrying={semanticRetrying} onRetry={retrySemantic} />
 
         <div className="app-container">
           <div ref={sidebarShellRef} className="sidebar-shell">
@@ -185,9 +205,14 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState }) =>
                   className="chat-panel-resize-handle"
                   role="separator"
                   aria-orientation="vertical"
-                  aria-label="调整对话区域宽度"
-                  title="拖动调整对话区域宽度"
+                  aria-valuemin={CHAT_PANEL_MIN_WIDTH}
+                  aria-valuemax={typeof window !== 'undefined' ? Math.max(CHAT_PANEL_MIN_WIDTH, window.innerWidth - TOOL_PANEL_WIDTH - 40) : CHAT_PANEL_MIN_WIDTH}
+                  aria-valuenow={Math.round(chatPaneWidth ?? CHAT_PANEL_MIN_WIDTH)}
+                  aria-label={t('chat.resizeWidth')}
+                  title={t('chat.resizeWidth')}
+                  tabIndex={0}
                   onMouseDown={handleChatResizeStart}
+                  onKeyDown={handleChatResizeKeyDown}
                 />
               )}
 
@@ -197,6 +222,7 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState }) =>
                 onToggleToolPanel={toggleToolPanel}
                 isToolPanelOpen={isToolPanelOpen}
                 hasTools={tools.length > 0}
+                semanticBlocked={semanticBlocked}
               />
             </div>
 

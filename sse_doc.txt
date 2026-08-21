@@ -1,0 +1,21 @@
+Python Library Documentation: function sse_client in module mcp.client.sse
+
+sse_client(
+    url: str,
+    headers: dict[str, typing.Any] | None = None,
+    timeout: float = 5,
+    sse_read_timeout: float = 300,
+    httpx_client_factory: mcp.shared._httpx_utils.McpHttpClientFactory = <function create_mcp_http_client at 0x0000025B66414400>,
+    auth: httpx.Auth | None = None
+)
+    Client transport for SSE.
+
+    `sse_read_timeout` determines how long (in seconds) the client will wait for a new
+    event before disconnecting. All other HTTP operations are controlled by `timeout`.
+
+    Args:
+        url: The SSE endpoint URL.
+        headers: Optional headers to include in requests.
+        timeout: HTTP timeout for regular operations.
+        sse_read_timeout: Timeout for SSE read operations.
+        auth: Optional HTTPX authentication handler.

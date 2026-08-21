@@ -16,11 +16,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.api.agent import router as agent_router
+from src.api.dashboard_runtime import router as dashboard_runtime_router
 from src.api.auth import router as auth_router
 from src.api.knowledge_api import router as knowledge_router
 from src.api.mcp import router as mcp_router
 from src.api.sessions import router as sessions_router
+from src.api.semantic_api import router as semantic_router
 from src.api.settings import router as settings_router
+from src.api.startup import router as startup_router
 from src.api.tasks import router as tasks_router
 from src.api.workspace_api import router as workspace_router
 from src.app_runtime import app_runtime
@@ -75,6 +78,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--data-agent-run-python-script",
         default=None,
         help=argparse.SUPPRESS,
+    )
+    parser.add_argument(
+        "--semantic-project-dir",
+        default=None,
+        help="Writable ktx semantic project directory.",
     )
     return parser.parse_args(argv)
 
@@ -152,11 +160,14 @@ app.include_router(auth_router)
 app.include_router(tasks_router)
 app.include_router(sessions_router)
 app.include_router(agent_router)
+app.include_router(dashboard_runtime_router)
 app.include_router(settings_router)
 app.include_router(settings_router, prefix="/api")
 app.include_router(workspace_router)
 app.include_router(knowledge_router)
 app.include_router(mcp_router)
+app.include_router(semantic_router)
+app.include_router(startup_router)
 
 
 @app.get("/health")
@@ -168,6 +179,12 @@ if __name__ == "__main__":
     args = parse_args()
     if args.data_agent_run_python_script:
         raise SystemExit(run_python_script(args.data_agent_run_python_script))
+
+    if args.semantic_project_dir:
+        os.environ["DATA_AGENT_SEMANTIC_PROJECT_DIR"] = args.semantic_project_dir
+        from src.config_manager import config_manager
+
+        config_manager.configure_semantic_project_dir(args.semantic_project_dir)
 
     log_path = configure_logging(args.log_dir)
     port = args.port or int(os.getenv("PORT", str(DEFAULT_PORT)))

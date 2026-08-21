@@ -2,7 +2,7 @@
 
 The public dashboard contract is v3-only:
 
-    datasets -> views -> interactions -> standalone HTML
+    datasets -> views -> filters/interactions -> standalone HTML
 
 Legacy `charts=[...]`, `add_chart`, and `remove_chart` entry points were
 removed so new dashboard generation cannot drift into a weaker rendering path.
@@ -61,7 +61,7 @@ def _normalize_dashboard_operation(operation: dict[str, Any]) -> dict[str, Any]:
 
     target = normalized.get("target")
     if isinstance(target, dict):
-        for key in ("view_id", "dataset_id", "interaction_id"):
+        for key in ("view_id", "dataset_id", "filter_id", "interaction_id"):
             if key in target and key not in normalized:
                 normalized[key] = target[key]
         if "id" in target:
@@ -70,6 +70,8 @@ def _normalize_dashboard_operation(operation: dict[str, Any]) -> dict[str, Any]:
                 normalized["view_id"] = target["id"]
             if "dataset" in op and "dataset_id" not in normalized:
                 normalized["dataset_id"] = target["id"]
+            if "filter" in op and "filter_id" not in normalized:
+                normalized["filter_id"] = target["id"]
             if "interaction" in op and "interaction_id" not in normalized:
                 normalized["interaction_id"] = target["id"]
     return normalized
@@ -161,6 +163,33 @@ class HTMLDashboardProvider(ToolProvider):
                 views[index] = view
                 return f"replaced view {view_id}"
 
+            if op in {"add_filter", "replace_filter", "remove_filter"}:
+                filters = spec.setdefault("filters", [])
+                filter_id = str(operation.get("filter_id") or (operation.get("filter") or {}).get("id") or "").strip()
+                if op == "add_filter":
+                    filter_spec = deepcopy(operation.get("filter"))
+                    if not isinstance(filter_spec, dict):
+                        raise ValueError("add_filter requires operation.filter")
+                    if _find_index_by_id(filters, str(filter_spec.get("id") or "")) is not None:
+                        raise ValueError(f"filter id already exists: {filter_spec.get('id')}")
+                    filters.append(filter_spec)
+                    return f"added filter {filter_spec.get('id')}"
+
+                if not filter_id:
+                    raise ValueError(f"{op} requires operation.filter_id")
+                index = _find_index_by_id(filters, filter_id)
+                if index is None:
+                    raise ValueError(f"filter not found: {filter_id}")
+                if op == "remove_filter":
+                    filters.pop(index)
+                    return f"removed filter {filter_id}"
+
+                filter_spec = deepcopy(operation.get("filter"))
+                if not isinstance(filter_spec, dict):
+                    raise ValueError("replace_filter requires operation.filter")
+                filter_spec.setdefault("id", filter_id)
+                filters[index] = filter_spec
+                return f"replaced filter {filter_id}"
             if op in {"add_interaction", "replace_interaction", "remove_interaction"}:
                 interactions = spec.setdefault("interactions", [])
                 interaction_id = str(operation.get("interaction_id") or (operation.get("interaction") or {}).get("id") or "").strip()
@@ -359,7 +388,7 @@ class HTMLDashboardProvider(ToolProvider):
 
         spec_parameter = {
             "type": "object",
-            "description": "Dashboard v3 spec. Required fields: version='3', title, datasets, views. Use views for charts, tables, KPI cards, and interactions for drilldown/filter behavior.",
+            "description": "Dashboard v3 spec. Required fields: version='3', title, datasets, views. Use filters for select controls, interactions for click drilldown, and view insight/recipe/reading_mode/source for auditable presentation intent.",
             "additionalProperties": True,
         }
 
@@ -388,7 +417,7 @@ class HTMLDashboardProvider(ToolProvider):
                 label="Build Dashboard",
                 description=(
                     "Create a standalone HTML BI dashboard from a v3 spec. "
-                    "Use datasets/views/interactions only. Do not pass legacy charts, chart_type, add_chart, or remove_chart style descriptors."
+                    "Use datasets/views/filters/interactions only. Do not pass legacy charts, chart_type, add_chart, or remove_chart style descriptors."
                 ),
                 parameters={
                     "type": "object",
@@ -420,6 +449,7 @@ class HTMLDashboardProvider(ToolProvider):
                             "type": "array",
                             "description": (
                                 "Structural edit operations. Supports add_view/replace_view/remove_view, "
+                                "add_filter/replace_filter/remove_filter, "
                                 "add_interaction/replace_interaction/remove_interaction, "
                                 "add_dataset/replace_dataset/remove_dataset."
                             ),

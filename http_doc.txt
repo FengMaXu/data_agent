@@ -1,0 +1,21 @@
+Python Library Documentation: function streamablehttp_client in module mcp.client.streamable_http
+
+streamablehttp_client(
+    url: str,
+    headers: dict[str, str] | None = None,
+    timeout: float | datetime.timedelta = 30,
+    sse_read_timeout: float | datetime.timedelta = 300,
+    terminate_on_close: bool = True,
+    httpx_client_factory: mcp.shared._httpx_utils.McpHttpClientFactory = <function create_mcp_http_client at 0x0000020FB993C720>,
+    auth: httpx.Auth | None = None
+) -> collections.abc.AsyncGenerator[tuple[anyio.streams.memory.MemoryObjectReceiveStream[mcp.shared.message.SessionMessage | Exception], anyio.streams.memory.MemoryObjectSendStream[mcp.shared.message.SessionMessage], collections.abc.Callable[[], str | None]], None]
+    Client transport for StreamableHTTP.
+
+    `sse_read_timeout` determines how long (in seconds) the client will wait for a new
+    event before disconnecting. All other HTTP operations are controlled by `timeout`.
+
+    Yields:
+        Tuple containing:
+            - read_stream: Stream for reading messages from the server
+            - write_stream: Stream for sending messages to the server
+            - get_session_id_callback: Function to retrieve the current session ID

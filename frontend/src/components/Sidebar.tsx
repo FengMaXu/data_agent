@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     BookOpen,
     Settings,
@@ -12,6 +12,7 @@ import {
     Edit3,
     Trash2,
     Box,
+    Database,
     Server,
     Sparkles,
     MessageSquare,
@@ -25,12 +26,16 @@ import {
     getKnowledgeFiles,
     getKnowledgeContent,
     saveKnowledgeContent,
+    getSemanticSources,
+    getSemanticSource,
     type KnowledgeFile,
 } from '../api/client';
 import ReactMarkdown from 'react-markdown';
 import { useSession } from '../hooks/useSession';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../hooks/useAuth';
+import { useFocusTrap } from '../hooks/useFocusTrap';
+import { SemanticAssetViewer, SourceKindBadge, type SemanticConnection, type SemanticSourceViewDto } from './semantic-viewer';
 
 interface SidebarProps {
     onOpenSettings: () => void;
@@ -66,8 +71,12 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
     const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
     const [editTaskName, setEditTaskName] = useState('');
     const [knowledgeExpanded, setKnowledgeExpanded] = useState(false);
+    const [semanticExpanded, setSemanticExpanded] = useState(false);
     const [pluginsExpanded, setPluginsExpanded] = useState(false);
     const [knowledgeFiles, setKnowledgeFiles] = useState<KnowledgeFile[]>([]);
+    const [semanticConnections, setSemanticConnections] = useState<SemanticConnection[]>([]);
+    const [loadingSemantic, setLoadingSemantic] = useState(false);
+    const [semanticExpandedConnections, setSemanticExpandedConnections] = useState<Set<string>>(new Set());
     const [loadingKnowledge, setLoadingKnowledge] = useState(false);
     const [knowledgeExpandedPaths, setKnowledgeExpandedPaths] = useState<Set<string>>(new Set(['doc']));
     const [editorOpen, setEditorOpen] = useState(false);
@@ -75,11 +84,29 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
     const [fileContent, setFileContent] = useState('');
     const [isEditing, setIsEditing] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [semanticViewerOpen, setSemanticViewerOpen] = useState(false);
+    const [semanticDetail, setSemanticDetail] = useState<SemanticSourceViewDto | null>(null);
+    const [loadingSemanticDetail, setLoadingSemanticDetail] = useState(false);
     const [toast, setToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const editorOverlayRef = useRef<HTMLDivElement>(null);
+    const editorModalRef = useRef<HTMLDivElement>(null);
+    const semanticOverlayRef = useRef<HTMLDivElement>(null);
+    const semanticModalRef = useRef<HTMLDivElement>(null);
+
+    useFocusTrap(editorOpen, editorModalRef, editorOverlayRef);
+    useFocusTrap(semanticViewerOpen, semanticModalRef, semanticOverlayRef);
 
     const showToast = useCallback((text: string, type: 'success' | 'error' = 'success') => {
+        if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
         setToast({ text, type });
-        setTimeout(() => setToast(null), 3000);
+        if (type === 'success') {
+            toastTimerRef.current = setTimeout(() => setToast(null), 3000);
+        }
+    }, []);
+
+    useEffect(() => () => {
+        if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     }, []);
 
     const loadKnowledgeFiles = useCallback(async () => {
@@ -98,9 +125,50 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
         if (knowledgeExpanded && knowledgeFiles.length === 0) void loadKnowledgeFiles();
     }, [knowledgeExpanded, knowledgeFiles.length, loadKnowledgeFiles]);
 
-    const toggleExclusiveSection = (section: 'tasks' | 'knowledge' | 'plugins') => {
+    const loadSemanticSources = useCallback(async () => {
+        setLoadingSemantic(true);
+        try {
+            const response = await getSemanticSources();
+            setSemanticConnections(response.connections);
+            setSemanticExpandedConnections((previous) => {
+                if (previous.size > 0) return previous;
+                return response.connections.length > 0 ? new Set([response.connections[0].connectionId]) : previous;
+            });
+        } catch (error) {
+            console.error('Failed to load semantic assets:', error);
+            showToast(t('semantic.loadFailed'), 'error');
+        } finally {
+            setLoadingSemantic(false);
+        }
+    }, [showToast, t]);
+
+    useEffect(() => {
+        if (semanticExpanded && semanticConnections.length === 0) void loadSemanticSources();
+    }, [semanticExpanded, semanticConnections.length, loadSemanticSources]);
+
+    useEffect(() => {
+        if (!editorOpen && !semanticViewerOpen) return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                if (semanticViewerOpen) {
+                    setSemanticViewerOpen(false);
+                    setSemanticDetail(null);
+                } else if (editorOpen) {
+                    setEditorOpen(false);
+                    setSelectedFile(null);
+                    setFileContent('');
+                    setIsEditing(false);
+                }
+            }
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [editorOpen, semanticViewerOpen]);
+
+    const toggleExclusiveSection = (section: 'tasks' | 'knowledge' | 'semantic' | 'plugins') => {
         setTasksExpanded(section === 'tasks' ? !tasksExpanded : false);
         setKnowledgeExpanded(section === 'knowledge' ? !knowledgeExpanded : false);
+        setSemanticExpanded(section === 'semantic' ? !semanticExpanded : false);
         setPluginsExpanded(section === 'plugins' ? !pluginsExpanded : false);
     };
 
@@ -127,8 +195,39 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
             setFileContent(response.content);
             setEditorOpen(true);
         } catch (error) {
-            showToast(`加载文件失败: ${(error as Error).message}`, 'error');
+            console.error('Failed to load knowledge file:', error);
+            showToast(t('editor.loadFailed'), 'error');
         }
+    };
+
+    const openSemanticSource = async (connectionId: string, sourceName: string) => {
+        setSemanticViewerOpen(true);
+        setSemanticDetail(null);
+        setLoadingSemanticDetail(true);
+        try {
+            const response = await getSemanticSource(connectionId, sourceName);
+            setSemanticDetail(response);
+        } catch (error) {
+            console.error('Failed to load semantic asset:', error);
+            setSemanticViewerOpen(false);
+            showToast(t('semantic.loadFailed'), 'error');
+        } finally {
+            setLoadingSemanticDetail(false);
+        }
+    };
+
+    const closeSemanticViewer = () => {
+        setSemanticViewerOpen(false);
+        setSemanticDetail(null);
+    };
+
+    const toggleSemanticConnection = (connectionId: string) => {
+        setSemanticExpandedConnections((previous) => {
+            const next = new Set(previous);
+            if (next.has(connectionId)) next.delete(connectionId);
+            else next.add(connectionId);
+            return next;
+        });
     };
 
     const handleSave = async () => {
@@ -139,7 +238,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
             showToast(`${selectedFile.name} 已保存`);
             setIsEditing(false);
         } catch (error) {
-            showToast(`保存失败: ${(error as Error).message}`, 'error');
+            console.error('Failed to save knowledge file:', error);
+            showToast(t('editor.saveFailed'), 'error');
         } finally {
             setSaving(false);
         }
@@ -201,9 +301,11 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
         const expanded = knowledgeExpandedPaths.has(item.path);
         return (
             <div key={item.path}>
-                <div
+                <button
+                    type="button"
                     className={`knowledge-file-node ${isDirectory ? 'directory' : 'file'}`}
                     style={{ paddingLeft: `${12 + level * 16}px` }}
+                    aria-expanded={isDirectory || children.length > 0 ? expanded : undefined}
                     onClick={() => isDirectory || children.length > 0 ? toggleKnowledgePath(item.path) : void openKnowledgeFile(item)}
                 >
                     {isDirectory || children.length > 0 ? (
@@ -211,7 +313,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
                     ) : <span className="expand-icon" />}
                     {isDirectory ? <Folder size={14} className="file-icon" /> : <FileText size={14} className="file-icon" />}
                     <span className="file-name">{item.name}</span>
-                </div>
+                </button>
                 {expanded && children.map(renderKnowledgeNode)}
             </div>
         );
@@ -220,14 +322,47 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
     const knowledgeFileTree = buildKnowledgeFileTree();
     const isMarkdown = selectedFile?.name.toLowerCase().endsWith('.md');
 
+    const renderSemanticConnection = (connection: SemanticConnection) => {
+        const expanded = semanticExpandedConnections.has(connection.connectionId);
+        return (
+            <div className="semantic-connection" key={connection.connectionId}>
+                <button type="button" className="semantic-connection-node" onClick={() => toggleSemanticConnection(connection.connectionId)}>
+                    {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                    <Database size={14} />
+                    <span title={connection.connectionId}>{connection.connectionId}</span>
+                    <span className="semantic-connection-count">{connection.sources.length}</span>
+                </button>
+                {expanded && (
+                    <div className="semantic-source-list">
+                        {connection.sources.map((source) => (
+                            <button
+                                type="button"
+                                className="semantic-source-node"
+                                key={source.sourceName}
+                                onClick={() => void openSemanticSource(connection.connectionId, source.sourceName)}
+                                title={source.description || source.sourceName}
+                            >
+                                <FileText size={13} />
+                                <span className="semantic-source-name">{source.title || source.sourceName}</span>
+                                {source.assetType === 'business_knowledge' && (
+                                    <span className="semantic-asset-type-badge">{t('semantic.businessKnowledge')}</span>
+                                )}
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     return (
         <>
-            <nav className="sidebar">
+            <nav className="sidebar" aria-label={t('sidebar.navigation')}>
                 <div className="nav-menu scrollable-area">
                     <div className="nav-section">
                         <div className="sidebar-logo">YourDB</div>
 
-                        <button className="nav-item sidebar-primary-action" onClick={() => {
+                        <button type="button" className="nav-item sidebar-primary-action" title={t('sidebar.newTask')} aria-label={t('sidebar.newTask')} onClick={() => {
                             createTask();
                             showToast(t('task.created') || '新任务创建成功');
                         }}>
@@ -235,7 +370,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
                             <span className="nav-item-text">{t('sidebar.newTask')}</span>
                         </button>
 
-                        <button className={`nav-item ${tasksExpanded ? 'expanded' : ''}`} onClick={() => toggleExclusiveSection('tasks')}>
+                        <button type="button" className={`nav-item ${tasksExpanded ? 'expanded' : ''}`} title={t('sidebar.currentTask')} aria-label={t('sidebar.currentTask')} onClick={() => toggleExclusiveSection('tasks')}>
                             <History className="nav-item-icon" size={18} />
                             <span className="nav-item-text">{t('sidebar.currentTask')}</span>
                             <ChevronDown className={`expand-arrow ${tasksExpanded ? 'rotated' : ''}`} size={14} />
@@ -249,62 +384,64 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
                                     const taskSessions = sessions.filter((session) => session.taskId === task.id);
                                     return (
                                         <div className="task-tree-item" key={task.id}>
-                                            <div
-                                                className={`task-row ${active ? 'active' : ''}`}
-                                                onClick={() => {
-                                                    switchTask(task.id);
-                                                    toggleTask(task.id);
-                                                }}
-                                            >
+                                            <div className={`task-row ${active ? 'active' : ''}`}>
                                                 <button
                                                     type="button"
-                                                    className="task-expand-btn"
-                                                    onClick={(event) => { event.stopPropagation(); toggleTask(task.id); }}
-                                                    title={expanded ? '收起会话' : '展开会话'}
+                                                    className="task-select-btn"
+                                                    onClick={() => {
+                                                        switchTask(task.id);
+                                                        toggleTask(task.id);
+                                                    }}
+                                                    aria-label={task.name}
+                                                    aria-expanded={expanded}
+                                                    aria-current={active ? 'page' : undefined}
                                                 >
-                                                    {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                                                    <span className="task-expand-indicator" aria-hidden="true">
+                                                        {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                                                    </span>
+                                                    <Folder size={14} aria-hidden="true" />
+                                                    {editingTaskId !== task.id && <span className="task-name" title={task.name}>{task.name}</span>}
                                                 </button>
-                                                <Folder size={14} />
-                                                {editingTaskId === task.id ? (
+                                                {editingTaskId === task.id && (
                                                     <input
                                                         className="task-name-input"
                                                         value={editTaskName}
                                                         onChange={(event) => setEditTaskName(event.target.value)}
-                                                        onClick={(event) => event.stopPropagation()}
                                                         onKeyDown={(event) => {
                                                             if (event.key === 'Enter') commitTaskName(task.id);
                                                             if (event.key === 'Escape') setEditingTaskId(null);
                                                         }}
                                                         onBlur={() => commitTaskName(task.id)}
                                                         autoFocus
+                                                        aria-label={task.name}
                                                     />
-                                                ) : (
-                                                    <span className="task-name" title={task.name}>{task.name}</span>
                                                 )}
-                                                <div className="task-actions" onClick={(event) => event.stopPropagation()}>
-                                                    <button className="tree-action-btn" onClick={() => {
+                                                <div className="task-actions">
+                                                    <button type="button" className="tree-action-btn" onClick={() => {
                                                         setExpandedTaskIds((prev) => new Set(prev).add(task.id));
                                                         createSession(task.id);
-                                                    }} title={t('session.create') || '新建会话'}>
-                                                        <Plus size={11} />
+                                                    }} title={t('session.create')} aria-label={t('session.create')}>
+                                                        <Plus size={11} aria-hidden="true" />
                                                     </button>
                                                     {editingTaskId === task.id ? (
-                                                        <button className="tree-action-btn" onMouseDown={(event) => event.preventDefault()} onClick={() => commitTaskName(task.id)} title="保存">
-                                                            <Check size={11} />
+                                                        <button type="button" className="tree-action-btn" onMouseDown={(event) => event.preventDefault()} onClick={() => commitTaskName(task.id)} title={t('common.save')} aria-label={t('common.save')}>
+                                                            <Check size={11} aria-hidden="true" />
                                                         </button>
                                                     ) : (
-                                                        <button className="tree-action-btn" onClick={() => { setEditTaskName(task.name); setEditingTaskId(task.id); }} title="重命名任务">
-                                                            <Edit3 size={11} />
+                                                        <button type="button" className="tree-action-btn" onClick={() => { setEditTaskName(task.name); setEditingTaskId(task.id); }} title={t('common.edit')} aria-label={t('common.edit')}>
+                                                            <Edit3 size={11} aria-hidden="true" />
                                                         </button>
                                                     )}
                                                     <button
+                                                        type="button"
                                                         className="tree-action-btn delete"
                                                         onClick={() => {
-                                                            if (window.confirm(`确认删除任务“${task.name}”及其全部会话吗？`)) deleteTask(task.id);
+                                                            if (window.confirm(t('task.confirmDelete').replace('{name}', task.name))) deleteTask(task.id);
                                                         }}
-                                                        title="删除任务"
+                                                        title={t('common.delete')}
+                                                        aria-label={t('common.delete')}
                                                     >
-                                                        <Trash2 size={11} />
+                                                        <Trash2 size={11} aria-hidden="true" />
                                                     </button>
                                                 </div>
                                             </div>
@@ -315,22 +452,26 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
                                                         <div className="task-empty-sessions">{t('session.empty')}</div>
                                                     )}
                                                     {taskSessions.map((session) => (
-                                                        <div
-                                                            key={session.id}
-                                                            className={`session-row ${currentSession?.id === session.id ? 'active' : ''}`}
-                                                            onClick={() => switchSession(session.id)}
-                                                        >
-                                                            <MessageSquare size={13} />
-                                                            <span className="session-name" title={session.name}>{session.name}</span>
+                                                        <div key={session.id} className={`session-row ${currentSession?.id === session.id ? 'active' : ''}`}>
                                                             <button
-                                                                className="tree-action-btn session-delete-btn"
-                                                                onClick={(event) => {
-                                                                    event.stopPropagation();
-                                                                    if (window.confirm(`确认删除会话“${session.name}”吗？`)) deleteSession(session.id);
-                                                                }}
-                                                                title="删除会话"
+                                                                type="button"
+                                                                className="session-select-btn"
+                                                                onClick={() => switchSession(session.id)}
+                                                                aria-current={currentSession?.id === session.id ? 'page' : undefined}
                                                             >
-                                                                <Trash2 size={11} />
+                                                                <MessageSquare size={13} aria-hidden="true" />
+                                                                <span className="session-name" title={session.name}>{session.name}</span>
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                className="tree-action-btn session-delete-btn"
+                                                                onClick={() => {
+                                                                    if (window.confirm(t('session.confirmDelete').replace('{name}', session.name))) deleteSession(session.id);
+                                                                }}
+                                                                title={t('common.delete')}
+                                                                aria-label={t('common.delete')}
+                                                            >
+                                                                <Trash2 size={11} aria-hidden="true" />
                                                             </button>
                                                         </div>
                                                     ))}
@@ -342,7 +483,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
                             </div>
                         )}
 
-                        <button className={`nav-item ${knowledgeExpanded ? 'expanded' : ''}`} onClick={() => toggleExclusiveSection('knowledge')}>
+                        <button type="button" className={`nav-item ${knowledgeExpanded ? 'expanded' : ''}`} title={t('sidebar.knowledge')} aria-label={t('sidebar.knowledge')} onClick={() => toggleExclusiveSection('knowledge')}>
                             <BookOpen className="nav-item-icon" size={18} />
                             <span className="nav-item-text">{t('sidebar.knowledge')}</span>
                             <ChevronDown className={`expand-arrow ${knowledgeExpanded ? 'rotated' : ''}`} size={14} />
@@ -350,25 +491,46 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
                         {knowledgeExpanded && (
                             <div className="knowledge-file-list">
                                 {loadingKnowledge && knowledgeFiles.length === 0 ? (
-                                    <div className="loading-state">加载中...</div>
+                                    <div className="loading-state" role="status">{t('common.loading')}</div>
                                 ) : knowledgeFileTree.length === 0 ? (
-                                    <div className="empty-state">暂无知识库文件</div>
+                                    <div className="empty-state sidebar-empty-state">
+                                        <strong>{t('common.noKnowledgeFiles')}</strong>
+                                        <span>{t('common.noKnowledgeFilesHint')}</span>
+                                    </div>
                                 ) : knowledgeFileTree.map(renderKnowledgeNode)}
                             </div>
                         )}
 
-                        <button className={`nav-item ${pluginsExpanded ? 'expanded' : ''}`} onClick={() => toggleExclusiveSection('plugins')}>
+                        <button type="button" className={`nav-item ${semanticExpanded ? 'expanded' : ''}`} title={t('sidebar.semantic')} aria-label={t('sidebar.semantic')} onClick={() => toggleExclusiveSection('semantic')}>
+                            <Database className="nav-item-icon" size={18} />
+                            <span className="nav-item-text">{t('sidebar.semantic')}</span>
+                            <ChevronDown className={`expand-arrow ${semanticExpanded ? 'rotated' : ''}`} size={14} />
+                        </button>
+                        {semanticExpanded && (
+                            <div className="semantic-asset-list">
+                                {loadingSemantic && semanticConnections.length === 0 ? (
+                                    <div className="loading-state" role="status">{t('common.loading')}</div>
+                                ) : semanticConnections.length === 0 ? (
+                                    <div className="empty-state sidebar-empty-state">
+                                        <strong>{t('common.noSemanticAssets')}</strong>
+                                        <span>{t('common.noSemanticAssetsHint')}</span>
+                                    </div>
+                                ) : semanticConnections.map(renderSemanticConnection)}
+                            </div>
+                        )}
+
+                        <button type="button" className={`nav-item ${pluginsExpanded ? 'expanded' : ''}`} title={t('sidebar.plugins')} aria-label={t('sidebar.plugins')} onClick={() => toggleExclusiveSection('plugins')}>
                             <Box className="nav-item-icon" size={18} />
                             <span className="nav-item-text">{t('sidebar.plugins')}</span>
                             <ChevronDown className={`expand-arrow ${pluginsExpanded ? 'rotated' : ''}`} size={14} />
                         </button>
                         {pluginsExpanded && (
                             <div className="sidebar-plugin-list">
-                                <button className="nav-item sidebar-plugin-item" onClick={() => onOpenPlugins?.('MCP')}>
+                                <button type="button" className="nav-item sidebar-plugin-item" title="MCP" aria-label="MCP" onClick={() => onOpenPlugins?.('MCP')}>
                                     <Server className="nav-item-icon" size={16} />
                                     <span className="nav-item-text sidebar-plugin-text">MCP</span>
                                 </button>
-                                <button className="nav-item sidebar-plugin-item" onClick={() => onOpenPlugins?.('Skills')}>
+                                <button type="button" className="nav-item sidebar-plugin-item" title="Skills" aria-label="Skills" onClick={() => onOpenPlugins?.('Skills')}>
                                     <Sparkles className="nav-item-icon" size={16} />
                                     <span className="nav-item-text sidebar-plugin-text">Skills</span>
                                 </button>
@@ -382,32 +544,41 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
                         <User className="nav-item-icon" size={18} />
                         <span className="nav-item-text">{displayName}</span>
                     </div>
-                    <button className="nav-item sidebar-footer-settings" onClick={toggleLanguage}>
+                    <button type="button" className="nav-item sidebar-footer-settings" onClick={toggleLanguage} title={t('sidebar.langToggle')} aria-label={t('sidebar.langToggle')}>
                         <Languages className="nav-item-icon" size={18} />
                         <span className="nav-item-text">{language === 'zh' ? 'EN' : '中文'}</span>
                     </button>
-                    <button className="nav-item sidebar-footer-settings" onClick={onOpenSettings}>
+                    <button type="button" className="nav-item sidebar-footer-settings" onClick={onOpenSettings} title={t('sidebar.settings')} aria-label={t('sidebar.settings')}>
                         <Settings className="nav-item-icon" size={18} />
                         <span className="nav-item-text">{t('sidebar.settings')}</span>
                     </button>
-                    <button className="nav-item sidebar-footer-settings" onClick={() => void logout()} title="退出">
+                    <button type="button" className="nav-item sidebar-footer-settings" onClick={() => void logout()} title={t('sidebar.logout')} aria-label={t('sidebar.logout')}>
                         <LogOut className="nav-item-icon" size={18} />
-                        <span className="nav-item-text">退出</span>
+                        <span className="nav-item-text">{t('sidebar.logout')}</span>
                     </button>
                 </div>
 
-                {toast && <div className={`sidebar-toast ${toast.type}`}><span>{toast.text}</span></div>}
+                {toast && (
+                    <div className={`sidebar-toast ${toast.type}`} role={toast.type === 'error' ? 'alert' : 'status'} aria-live={toast.type === 'error' ? 'assertive' : 'polite'}>
+                        <span>{toast.text}</span>
+                        {toast.type === 'error' && (
+                            <button type="button" className="sidebar-toast-close" onClick={() => setToast(null)} aria-label={t('common.close')}>
+                                <X size={13} aria-hidden="true" />
+                            </button>
+                        )}
+                    </div>
+                )}
             </nav>
 
             {editorOpen && selectedFile && (
-                <div className="editor-modal-overlay" onClick={closeEditor}>
-                    <div className="editor-modal" onClick={(event) => event.stopPropagation()}>
+                <div ref={editorOverlayRef} className="editor-modal-overlay" onClick={closeEditor}>
+                    <div ref={editorModalRef} className="editor-modal" onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="editor-modal-title" tabIndex={-1}>
                         <div className="editor-modal-header">
-                            <div className="editor-title"><FileText size={16} /><span>{selectedFile.name}</span></div>
+                            <div className="editor-title" id="editor-modal-title"><FileText size={16} aria-hidden="true" /><span>{selectedFile.name}</span></div>
                             <div className="editor-actions">
-                                {isMarkdown && !isEditing && <button className="action-btn" onClick={() => setIsEditing(true)} title="编辑"><Edit3 size={14} /></button>}
-                                {isEditing && <button className="action-btn save" onClick={handleSave} disabled={saving} title="保存"><Save size={14} /></button>}
-                                <button className="action-btn" onClick={closeEditor} title="关闭"><X size={14} /></button>
+                                {isMarkdown && !isEditing && <button type="button" className="action-btn" onClick={() => setIsEditing(true)} title={t('editor.edit')} aria-label={t('editor.edit')}><Edit3 size={14} aria-hidden="true" /></button>}
+                                {isEditing && <button type="button" className="action-btn save" onClick={handleSave} disabled={saving} title={t('editor.save')} aria-label={t('editor.save')}><Save size={14} aria-hidden="true" /></button>}
+                                <button type="button" className="action-btn" onClick={closeEditor} title={t('editor.close')} aria-label={t('editor.close')}><X size={14} aria-hidden="true" /></button>
                             </div>
                         </div>
                         <div className="editor-modal-content">
@@ -417,6 +588,39 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
                                 <div className="editor-preview plain-preview"><pre>{fileContent}</pre></div>
                             ) : (
                                 <textarea className="editor-textarea" value={fileContent} onChange={(event) => setFileContent(event.target.value)} />
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {semanticViewerOpen && (
+                <div ref={semanticOverlayRef} className="semantic-modal-overlay" onClick={closeSemanticViewer}>
+                    <div ref={semanticModalRef} className="semantic-asset-modal" onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="semantic-modal-title" tabIndex={-1}>
+                        <div className="semantic-modal-header">
+                            <div className="semantic-modal-title" id="semantic-modal-title">
+                                <Database size={16} aria-hidden="true" />
+                                <span>{semanticDetail?.assetType === 'business_knowledge'
+                                    ? (semanticDetail.title || semanticDetail.sourceName)
+                                    : (semanticDetail?.sourceName || t('sidebar.semantic'))}</span>
+                                {semanticDetail && (semanticDetail.assetType === 'business_knowledge' ? (
+                                    <span className="semantic-asset-type-badge">{t('semantic.businessKnowledge')}</span>
+                                ) : (
+                                    <>
+                                        <SourceKindBadge kind={semanticDetail.sourceKind} />
+                                        {semanticDetail.isQueryable && <span className="semantic-queryable-badge">{t('semantic.queryable')}</span>}
+                                    </>
+                                ))}
+                            </div>
+                            <button type="button" className="semantic-modal-close" onClick={closeSemanticViewer} title={t('semantic.close')} aria-label={t('semantic.close')}>
+                                <X size={16} aria-hidden="true" />
+                            </button>
+                        </div>
+                        <div className="semantic-modal-content">
+                            {loadingSemanticDetail || !semanticDetail ? (
+                                <div className="semantic-loading-state" role="status">{t('semantic.loading')}</div>
+                            ) : (
+                                <SemanticAssetViewer dto={semanticDetail} onClose={closeSemanticViewer} />
                             )}
                         </div>
                     </div>

@@ -1,0 +1,75 @@
+[
+  {
+    "id": "learn_1774798525931",
+    "timestamp": 1774798525.9316242,
+    "failed_sql": "-- 这不是SQL错误，而是HTML看板生成错误\n-- 原始看板生成代码中的ECharts配置问题：\n-- 在echarts_option中，formatter字段被错误地设置为字符串形式的JavaScript函数\n-- 例如：\"formatter\": \"function(params) { return params.value + '%'; }\"\n",
+    "error_message": "生成的HTML看板出现乱码，原因是ECharts配置中的formatter字段被错误地设置为字符串形式的JavaScript函数，而不是实际的函数对象或简单的格式化字符串。这导致浏览器解析错误，可能显示乱码或图表无法正常渲染。",
+    "error_type": "logic",
+    "fixed_sql": "-- 修复方案：使用ECharts内置的简单格式化语法\n-- 错误做法：\"formatter\": \"function(params) { return params.value + '%'; }\"\n-- 正确做法：\"formatter\": \"{c}%\" 或 \"formatter\": \"{c}亿\"\n-- 或者完全移除复杂的formatter，使用默认tooltip显示\n\n-- 修复后的ECharts配置示例：\n{\n  \"tooltip\": {\"trigger\": \"axis\", \"axisPointer\": {\"type\": \"shadow\"}},\n  \"series\": [\n    {\n      \"name\": \"同比增速\",\n      \"type\": \"line\",\n      \"label\": {\n        \"show\": true,\n        \"position\": \"top\",\n        \"formatter\": \"{c}%\"  -- 使用简单格式化语法\n      }\n    }\n  ]\n}\n",
+    "fix_explanation": "**经验教训：**\n\n1. **ECharts配置原则**：在JSON配置中，formatter字段应该使用ECharts内置的格式化语法（如`{c}`表示数据值，`{a}`表示系列名等），而不是字符串化的JavaScript函数。\n\n2. **JSON与JavaScript函数**：当通过`generate_html_dashboard`生成看板时，配置会被序列化为JSON。JavaScript函数对象无法被正确序列化，如果以字符串形式包含，会导致解析错误。\n\n3. **简单化优先**：对于常见的格式化需求（如添加单位、百分比符号），优先使用ECharts的简单格式化语法，而不是复杂的JavaScript函数。\n\n4. **测试验证**：生成看板后，应该检查HTML文件中的JavaScript部分，确保没有语法错误。\n\n5. **编码一致性**：确保所有文本内容使用UTF-8编码，特别是在包含中文字符时。\n\n**最佳实践：**\n- 使用`{c}`表示数据值，`{c}%`表示百分比，`{c}亿`表示亿元单位\n- 避免在JSON配置中嵌入JavaScript函数字符串\n- 复杂的tooltip格式化可以通过ECharts的tooltip.formatter回调函数实现，但需要在HTML的script标签中定义，而不是在JSON配置中",
+    "tables_involved": [],
+    "keywords": [
+      "logic"
+    ],
+    "source": "agent"
+  },
+  {
+    "id": "learn_1777455228374",
+    "timestamp": 1777455228.3745723,
+    "failed_sql": "WITH order_payment_totals AS (\n    SELECT order_id, SUM(payment_value) AS total_payment\n    FROM order_payments\n    GROUP BY order_id\n),\ncustomer_order_stats AS (\n    SELECT \n        c.customer_unique_id,\n        COUNT(DISTINCT o.order_id) AS order_count,\n        SUM(op.total_payment) AS total_spent,\n        MIN(o.order_purchase_timestamp) AS first_purchase,\n        MAX(o.order_purchase_timestamp) AS last_purchase\n    FROM orders o\n    JOIN customers c ON o.customer_id = c.customer_id\n    JOIN order_payment_totals op ON o.order_id = op.order_id\n    WHERE o.order_status != 'canceled'\n    GROUP BY c.customer_unique_id\n)\nSELECT \n    customer_unique_id,\n    order_count,\n    ROUND(total_spent / order_count, 2) AS avg_payment_per_order,\n    ROUND(GREATEST((JULIANDAY(last_purchase) - JULIANDAY(first_purchase)) / 7.0, 1.0), 2) AS lifespan_weeks\nFROM customer_order_stats\nORDER BY avg_payment_per_order DESC\nLIMIT 3",
+    "error_message": "结果中 avg_payment_per_order 为 109312.64，正确值应为 13664.08（8倍偏差），原因是 customers/orders/order_payments 三张表均存在完全重复的行，导致 JOIN 后数据膨胀 8倍",
+    "error_type": "logic",
+    "fixed_sql": "SELECT\n    cd.customer_unique_id,\n    cd.order_count AS PF,\n    ROUND(cd.total_payment / cd.order_count, 2) AS AOV,\n    CASE WHEN cd.days_diff < 7 THEN 1.0 ELSE ROUND(cd.days_diff / 7.0, 2) END AS ACL\nFROM (\n    SELECT\n        c.customer_unique_id,\n        COUNT(DISTINCT o.order_id) AS order_count,\n        SUM(p.payment_value) AS total_payment,\n        DATEDIFF(MAX(o.order_purchase_timestamp), MIN(o.order_purchase_timestamp)) AS days_diff\n    FROM (SELECT DISTINCT customer_unique_id, customer_id FROM customers) c\n    JOIN (SELECT DISTINCT order_id, customer_id, order_purchase_timestamp FROM orders) o \n        ON c.customer_id = o.customer_id\n    JOIN (SELECT DISTINCT order_id, payment_sequential, payment_type, payment_installments, payment_value FROM order_payments) p \n        ON o.order_id = p.order_id\n    GROUP BY c.customer_unique_id\n) cd\nORDER BY AOV DESC\nLIMIT 3",
+    "fix_explanation": "多表 JOIN 前必须先检查每张表是否有重复行。这个案例中 customers(2x) × orders(2x) × order_payments(2x) = 8倍数据膨胀。解决方案：对每张表用 SELECT DISTINCT 子查询先做行级去重，然后再 JOIN。另外 MySQL 不支持 JULIANDAY()，应改用 DATEDIFF()。",
+    "tables_involved": [
+      "customer_order_stats",
+      "customers",
+      "order_payment_totals",
+      "order_payments",
+      "orders"
+    ],
+    "keywords": [
+      "customer_order_stats",
+      "customers",
+      "logic",
+      "order_payment_totals",
+      "order_payments",
+      "orders"
+    ],
+    "source": "agent"
+  },
+  {
+    "id": "learn_1779072109458",
+    "timestamp": 1779072109.458268,
+    "failed_sql": "-- 我的错误查询（使用了上年同月销售额而非上年同期累计销售额）\nSELECT \n    DATE_FORMAT(f.snapshot_month, '%Y-%m') as 月份,\n    c.company_name as 企业名称,\n    ROUND(f.sales_current_month, 4) as 本月销售额_亿元,\n    ROUND(f.sales_ytd, 4) as 本月累计销售额_亿元,\n    ROUND(f.sales_same_month_last_year, 4) as 去年同期__亿元,   -- ❌ 误用上年同月\n    ROUND(f.yoy_growth_rate, 2) as 同比增速_百分比\nFROM fact_sales_monthly f\nJOIN dim_company c ON f.company_id = c.company_id\nWHERE f.company_id = 262497\n    AND f.snapshot_month >= '2025-02-01'\n    AND f.snapshot_month <= '2025-04-01'\nORDER BY f.snapshot_month",
+    "error_message": "用户要查询\"去年同期\"时，我自行判断为\"上年同月销售额\"（sales_same_month_last_year），但用户实际指的是\"上年同期累计销售额\"（sales_ytd_last_year）。在\"本月销售额、本月累计销售额、去年同期、同比增速\"这个并列语境中，\"去年同期\"应理解为累计值的去年同期即sales_ytd_last_year，不应擅自猜测。",
+    "error_type": "logic",
+    "fixed_sql": "SELECT \n    DATE_FORMAT(f.snapshot_month, '%Y-%m') as 月份,\n    c.company_name as 企业名称,\n    ROUND(f.sales_current_month, 4) as 本月销售额_亿元,\n    ROUND(f.sales_ytd, 4) as 本月累计销售额_亿元,\n    ROUND(f.sales_ytd_last_year, 4) as 去年同期累计销售额_亿元,   -- ✅ 使用上年同期累计\n    ROUND(f.yoy_growth_rate, 2) as 同比增速_百分比\nFROM fact_sales_monthly f\nJOIN dim_company c ON f.company_id = c.company_id\nWHERE f.company_id = 262497\n    AND f.snapshot_month >= '2025-02-01'\n    AND f.snapshot_month <= '2025-04-01'\nORDER BY f.snapshot_month",
+    "fix_explanation": "用户问\"本月销售额、本月累计销售额、去年同期、同比增速\"，这里的\"去年同期\"与\"本月累计销售额\"对应，应使用sales_ytd_last_year（上年同期累计销售额），而非sales_same_month_last_year（上年同月销售额）。当字段含义存在二义性时，不应自行猜测，而应向用户确认后执行。",
+    "tables_involved": [
+      "dim_company",
+      "fact_sales_monthly"
+    ],
+    "keywords": [
+      "column",
+      "dim_company",
+      "fact_sales_monthly",
+      "logic"
+    ],
+    "source": "agent"
+  },
+  {
+    "id": "learn_1787211717539",
+    "timestamp": 1787211717.539519,
+    "failed_sql": "-- 预测2026-09累计销售额时，用近3月平均同比增速103.13%直接套到2025-09基数72.60亿 => 147.48亿",
+    "error_message": "用户指出：2026-07累计已达154.44亿，预测的2026-09累计值147.48亿低于当前实际累计值，逻辑不可能成立。累计销售额(YTD)是单调递增口径，预测值必须 >= 最新已知累计值。",
+    "error_type": "logic",
+    "fixed_sql": "-- 修正：以2026-07实际累计154.44亿为锚，向前叠加估算的8、9月累计增量(按5-7月增量衰减趋势 68.3->42.4->21.8 约每两月减半, 或同比倍数2.29, 或回落至2025年节奏), 得159.7~173.8亿, 中性166.4亿(+129%)",
+    "fix_explanation": "预测\"本年累计销售额(YTD)\"时必须满足单调性约束：预测值不能低于最新已知累计值。若用同比增速×上年同期基数得到的结果低于当前累计值，说明该方法失效，应改为\"当前累计值+未来月份增量\"自下而上构建预测。",
+    "tables_involved": [],
+    "keywords": [
+      "logic"
+    ],
+    "source": "agent"
+  }
+]

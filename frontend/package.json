@@ -11,15 +11,18 @@
     "electron:dev": "electron . --dev",
     "build": "tsc -b && vite build",
     "build:backend": "python -m PyInstaller ../build.spec --distpath ../dist --workpath ../build/pyinstaller --clean --noconfirm",
+    "build:semantic-context": "pnpm --dir ../ktx run package:semantic-context",
     "build:unpacked": "npm run build && electron-builder --dir",
     "build:installer": "npm run build && electron-builder",
     "build:desktop": "npm run build:backend && npm run build:installer",
     "lint": "eslint .",
+    "test": "vitest run",
     "preview": "vite preview"
   },
   "dependencies": {
     "echarts": "^6.0.0",
     "electron-updater": "^6.8.3",
+    "js-yaml": "^4.3.1",
     "lucide-react": "^0.577.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
@@ -28,6 +31,9 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
@@ -38,9 +44,11 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
+    "jsdom": "^26.1.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.48.0",
-    "vite": "^7.3.1"
+    "vite": "^7.3.1",
+    "vitest": "^3.2.7"
   },
   "build": {
     "appId": "com.yourdb.data-agent",
@@ -57,6 +65,13 @@
       {
         "from": "../dist/data_agent_server",
         "to": "backend/data_agent_server"
+      },
+      {
+        "from": "../dist",
+        "to": ".",
+        "filter": [
+          "ktx-semantic-context/**/*"
+        ]
       }
     ],
     "win": {

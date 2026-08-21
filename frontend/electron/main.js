@@ -148,6 +148,13 @@ function startBackend() {
     }
 
     const { command, args } = getBackendCommand();
+    const semanticProjectDir = path.join(app.getPath('userData'), 'semantic-context');
+    const devSemanticRuntimeDir = path.join(projectRoot, 'dist', 'ktx-semantic-context');
+    const semanticRuntimeDir = app.isPackaged
+        ? path.join(process.resourcesPath, 'ktx-semantic-context')
+        : existsSync(devSemanticRuntimeDir)
+            ? devSemanticRuntimeDir
+            : '';
     const runtimeArgs = [
         ...args,
         '--host',
@@ -156,6 +163,8 @@ function startBackend() {
         String(backendPort),
         '--log-dir',
         app.getPath('userData'),
+        '--semantic-project-dir',
+        semanticProjectDir,
     ];
 
     void writeMainLog('info', 'starting backend', {
@@ -173,6 +182,8 @@ function startBackend() {
         env: {
             ...process.env,
             DATA_AGENT_CONFIG_DIR: app.getPath('userData'),
+            DATA_AGENT_SEMANTIC_PROJECT_DIR: semanticProjectDir,
+            ...(semanticRuntimeDir ? { DATA_AGENT_KTX_SEMANTIC_RUNTIME_DIR: semanticRuntimeDir } : {}),
         },
     });
 

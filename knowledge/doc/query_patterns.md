@@ -440,3 +440,49 @@ WHERE cs_base.snapshot_month = '2025-12-01'  -- 替换为基准月份
     AND f.sales_ytd_last_year IS NOT NULL
 ORDER BY i_base.industry_name_large, c.company_name
 ```
+
+## 四上企业整体新增（含外部转行业、剔除行业内部互转）
+
+### 查询多个行业整体新增四上企业数量（区分新纳统/内部互转/外部转入）
+```sql
+-- 查询多个行业整体新增四上企业数量（含三行业外部转行业进入，剔除三行业内部互转）
+-- 参数说明：
+--   @industry_codes: 行业大类代码列表（如：'51','52','62' 表示批发业、零售业、餐饮业）
+--   @base_month: 基准月份（格式：'YYYY-MM-01'，如：'2025-12-01'）
+--   @target_month: 目标月份（格式：'YYYY-MM-01'，如：'2026-07-01'）
+SELECT
+    i.industry_code_large AS 行业大类代码,
+    i.industry_name_large AS 行业大类,
+    CASE
+        WHEN cs_base.company_id IS NULL OR cs_base.is_four_above = 0 THEN '新纳统'
+        WHEN i_base.industry_code_large IN ('51','52','62') THEN '三行业内部互转'
+        ELSE '三行业外部转入'
+    END AS 变动类型,
+    COUNT(DISTINCT cs_target.company_id) AS 企业数
+FROM dim_company_monthly_snapshot cs_target
+JOIN dim_industry i ON cs_target.industry_code = i.industry_code
+LEFT JOIN dim_company_monthly_snapshot cs_base
+    ON cs_base.company_id = cs_target.company_id
+    AND cs_base.snapshot_month = '2025-12-01'  -- 替换为基准月份
+LEFT JOIN dim_industry i_base ON cs_base.industry_code = i_base.industry_code
+WHERE cs_target.snapshot_month = '2026-07-01'  -- 替换为目标月份
+    AND cs_target.is_four_above = 1
+    AND i.industry_code_large IN ('51','52','62')  -- 替换为实际行业大类代码列表
+    AND (
+        cs_base.company_id IS NULL
+        OR cs_base.is_four_above = 0
+        OR (cs_base.is_four_above = 1 AND i_base.industry_code_large != i.industry_code_large)
+    )
+GROUP BY i.industry_code_large, i.industry_name_large,
+         CASE
+            WHEN cs_base.company_id IS NULL OR cs_base.is_four_above = 0 THEN '新纳统'
+            WHEN i_base.industry_code_large IN ('51','52','62') THEN '三行业内部互转'
+            ELSE '三行业外部转入'
+         END
+ORDER BY i.industry_code_large, 变动类型
+```
+- **三行业整体新增数 = SUM(新纳统) + SUM(三行业外部转入)**，剔除三行业内部互转
+- **验证示例**：基准2025-12 → 目标2026-07，行业51/52/62：
+  - 批发业：新纳统218 + 外部转入5 = 223；零售业：48 + 1 = 49；餐饮业：45
+  - 整体合计 **317 家**（含1家零售→批发内部互转则318）
+- **关联业务口径**：见 doc/business.md「多行业整体新增口径」

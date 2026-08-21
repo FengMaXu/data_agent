@@ -16,6 +16,7 @@ from src.agent.tool_providers.mcp_provider import MCPToolProvider
 from src.agent.tool_providers.skill_provider import SkillToolProvider
 from src.agent.tool_providers.workspace_provider import WorkspaceToolProvider
 from src.agent.tool_providers.html_dashboard import HTMLDashboardProvider
+from src.agent.tool_providers.semantic_dashboard import SemanticDashboardProvider
 from src.agent.types import AgentTimingRecorder, AgentTool
 from src.ai.config import AIConfig
 from src.mcp.manager import mcp_manager
@@ -31,6 +32,7 @@ class ToolAssemblyService:
             SkillToolProvider(),
             WorkspaceToolProvider(),
             HTMLDashboardProvider(),
+            SemanticDashboardProvider(),
         ]
         self.provider_fingerprint = self._compute_provider_fingerprint()
 

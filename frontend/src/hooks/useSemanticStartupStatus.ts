@@ -1,0 +1,58 @@
+import { useCallback, useEffect, useState } from 'react';
+import {
+    getStartupStatus,
+    retrySemanticIngest,
+    type SemanticStartupStatus,
+} from '../api/client';
+
+export function useSemanticStartupStatus(): {
+    status: SemanticStartupStatus | null;
+    retrying: boolean;
+    retry: () => void;
+} {
+    const [status, setStatus] = useState<SemanticStartupStatus | null>(null);
+    const [retrying, setRetrying] = useState(false);
+
+    const refresh = useCallback(async () => {
+        try {
+            setStatus(await getStartupStatus());
+        } catch {
+            setStatus((current) => current ?? {
+                status: 'failed',
+                jobId: null,
+                currentConnectionId: null,
+                completedConnections: 0,
+                totalConnections: 0,
+                summary: { updated: 0, unchanged: 0, failed: 0, skipped: 0 },
+                failedConnections: [],
+                errorCode: 'startup_status_unavailable',
+                updatedAt: null,
+            });
+        }
+    }, []);
+
+    useEffect(() => {
+        let cancelled = false;
+        const load = async () => {
+            if (cancelled) return;
+            await refresh();
+        };
+        void load();
+        const timer = window.setInterval(() => void load(), 1_000);
+        return () => {
+            cancelled = true;
+            window.clearInterval(timer);
+        };
+    }, [refresh]);
+
+    const retry = useCallback(() => {
+        if (retrying) return;
+        setRetrying(true);
+        void retrySemanticIngest()
+            .then(setStatus)
+            .catch(() => setStatus((current) => current ? { ...current, status: 'failed', errorCode: 'semantic_retry_failed' } : current))
+            .finally(() => setRetrying(false));
+    }, [retrying]);
+
+    return { status, retrying, retry };
+}

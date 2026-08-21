@@ -20,6 +20,26 @@ test_output.txt
 *.mp4
 *.csv
 
+# Local repository checkouts and publish worktrees
+# KTX keeps its own Git history and must not be vendored into Data Agent.
+/ktx/
+/.codex_remote_publish/
+
+# Generated frontend packages
+/frontend/release-final/
+
+# Test-generated workspaces and retained pytest output
+/.dashboard_grouped_workspace/
+/.html_dashboard_provider_workspace/
+/.phase0_test_workspace/
+/pytest_full_run/
+/pytest_full_run_final/
+/pytest_graph_run/
+/.pytest_cache/
+
+# Local runtime state
+/caas_runtime.sqlite3
+
 # Temporary development documents
 *.resolved
 read_diffs.py

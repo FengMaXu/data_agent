@@ -3,9 +3,11 @@ import * as echarts from 'echarts';
 import { useLanguage } from '../../context/LanguageContext';
 import { usePreview } from '../../context/PreviewContext';
 import { resolveInternalUrl, resolveWorkspacePreviewUrl } from '../../utils/resolveInternalUrl';
-import { Download, Eye, File, FileCode, FileSpreadsheet, FileText } from '../icons/Typicons';
+import { Download, Eye, File, FileCode, FileSpreadsheet, FileText, Image } from '../icons/Typicons';
 
 export type WidgetKind = 'metric_cards' | 'table' | 'chart' | 'steps' | 'rich_text' | 'echarts' | 'file_link';
+
+const PREVIEWABLE_FILE_TYPES = new Set(['csv', 'gif', 'htm', 'html', 'jpeg', 'jpg', 'json', 'md', 'markdown', 'png', 'svg', 'txt', 'webp']);
 
 export interface WidgetSpec {
     widget_id: string;
@@ -309,13 +311,45 @@ const renderSteps = (widget: WidgetSpec, t: (key: string) => string) => {
     );
 };
 
-const renderRichText = (widget: WidgetSpec) => {
+const renderRichTextBlock = (block: any, t: (key: string) => string) => {
+    if (typeof block === 'string') return block;
+    if (!block || typeof block !== 'object') return String(block ?? '');
+    if (block.type === 'notice') {
+        return <div style={{ color: '#64748b', fontSize: '12px' }}>{block.text || t('widgets.preview')}</div>;
+    }
+    if (block.type === 'table' && Array.isArray(block.headers) && Array.isArray(block.rows)) {
+        const rows = block.rows.slice(0, 12).map((row: any) => (Array.isArray(row) ? row : Object.values(row || {})));
+        return (
+            <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                    <thead><tr>{block.headers.map((header: any, index: number) => <th key={index} style={{ textAlign: 'left', padding: '7px 9px', borderBottom: '1px solid #e5e7eb', color: '#6b7280' }}>{String(header)}</th>)}</tr></thead>
+                    <tbody>{rows.map((row: any[], rowIndex: number) => <tr key={rowIndex}>{row.map((cell, cellIndex) => <td key={cellIndex} style={{ padding: '7px 9px', borderBottom: '1px solid #f3f4f6' }}>{String(cell ?? '')}</td>)}</tr>)}</tbody>
+                </table>
+            </div>
+        );
+    }
+    if ((block.type === 'ol' || block.type === 'ul' || block.type === 'list') && Array.isArray(block.items)) {
+        const List = block.type === 'ul' || block.type === 'list' ? 'ul' : 'ol';
+        return <List style={{ margin: 0, paddingLeft: '20px' }}>{block.items.slice(0, 10).map((item: any, index: number) => <li key={index}>{String(item)}</li>)}</List>;
+    }
+    return block.text ?? block.content ?? JSON.stringify(block);
+};
+
+const renderRichText = (widget: WidgetSpec, t: (key: string) => string) => {
     const blocks = Array.isArray(widget.data) ? widget.data : [];
+    const visibleBlocks: any[] = [];
+    let charCount = 0;
+    for (const block of blocks) {
+        const size = typeof block === 'string' ? block.length : JSON.stringify(block).length;
+        if (visibleBlocks.length >= 7 || charCount + size > 2600) break;
+        visibleBlocks.push(block);
+        charCount += size;
+    }
+    const truncated = visibleBlocks.length < blocks.length;
     return (
         <div style={{ display: 'grid', gap: '8px', color: '#111827', fontSize: '14px', lineHeight: 1.6 }}>
-            {blocks.map((block, index) => (
-                <div key={index}>{typeof block === 'string' ? block : block.text ?? block.content ?? JSON.stringify(block)}</div>
-            ))}
+            {visibleBlocks.map((block, index) => <div key={index}>{renderRichTextBlock(block, t)}</div>)}
+            {truncated && <div style={{ color: '#64748b', fontSize: '12px' }}>内容较长，完整报告请打开文件链接预览。</div>}
         </div>
     );
 };
@@ -377,23 +411,38 @@ interface BreadcrumbProps {
 const Breadcrumb: React.FC<BreadcrumbProps> = ({ path, onNavigate }) => {
     if (path.length <= 1) return null;
     return (
-        <div style={{ fontSize: 12, color: '#888', marginBottom: 8, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+        <nav aria-label="Breadcrumb" style={{ fontSize: 12, color: '#888', marginBottom: 8, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
             {path.map((item, i) => (
                 <span key={i} style={{ display: 'flex', alignItems: 'center' }}>
-                    {i > 0 && <span style={{ margin: '0 4px', color: '#ccc' }}>›</span>}
-                    <span
-                        onClick={() => { if (i < path.length - 1) onNavigate(i); }}
-                        style={{
-                            cursor: i < path.length - 1 ? 'pointer' : 'default',
-                            color: i < path.length - 1 ? '#4e9cf7' : '#333',
-                            fontWeight: i === path.length - 1 ? 600 : 400,
-                        }}
-                    >
-                        {item}
-                    </span>
+                    {i > 0 && <span aria-hidden="true" style={{ margin: '0 4px', color: '#ccc' }}>›</span>}
+                    {i < path.length - 1 ? (
+                        <button
+                            type="button"
+                            onClick={() => onNavigate(i)}
+                            style={{
+                                cursor: 'pointer',
+                                color: '#4e9cf7',
+                                fontWeight: 400,
+                                background: 'none',
+                                border: 'none',
+                                padding: 0,
+                                font: 'inherit',
+                                fontSize: 'inherit',
+                            }}
+                        >
+                            {item}
+                        </button>
+                    ) : (
+                        <span
+                            style={{ color: '#333', fontWeight: 600 }}
+                            aria-current="page"
+                        >
+                            {item}
+                        </span>
+                    )}
                 </span>
             ))}
-        </div>
+        </nav>
     );
 };
 
@@ -412,7 +461,7 @@ const FileLinkWidget: React.FC<FileLinkWidgetProps> = ({ widget, t, currentSessi
     const fullUrl = resolveInternalUrl(download_url, currentSessionId);
     const previewUrl = resolveWorkspacePreviewUrl(download_url, currentSessionId);
     const normalizedFileType = (file_type || file_path?.split('.').pop() || '').toLowerCase();
-    const canPreview = normalizedFileType === 'html' || normalizedFileType === 'htm';
+    const canPreview = PREVIEWABLE_FILE_TYPES.has(normalizedFileType);
 
     const handleDownload = () => {
         if (fullUrl) {
@@ -434,6 +483,13 @@ const FileLinkWidget: React.FC<FileLinkWidgetProps> = ({ widget, t, currentSessi
             case 'xls':
             case 'excel':
                 return FileSpreadsheet;
+            case 'png':
+            case 'jpg':
+            case 'jpeg':
+            case 'gif':
+            case 'webp':
+            case 'svg':
+                return Image;
             default:
                 return File;
         }
@@ -464,46 +520,26 @@ const FileLinkWidget: React.FC<FileLinkWidgetProps> = ({ widget, t, currentSessi
                         </div>
                     )}
                 </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div className="agent-file-actions">
                     {canPreview && previewUrl && (
                         <button
+                            type="button"
+                            className="agent-file-action-btn"
                             onClick={() => openPreview(previewUrl, title || file_path || 'preview', normalizedFileType)}
-                            style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '6px',
-                                padding: '8px 14px',
-                                background: '#111827',
-                                color: 'white',
-                                border: '1px solid #111827',
-                                borderRadius: '6px',
-                                cursor: 'pointer',
-                                fontSize: '14px',
-                                fontWeight: 500
-                            }}
+                            title={t('widgets.preview') || '查看'}
+                            aria-label={t('widgets.preview') || '查看'}
                         >
-                            <Eye size={15} />
-                            {t('widgets.preview') || '查看'}
+                            <Eye size={15} strokeWidth={2} />
                         </button>
                     )}
                     <button
+                        type="button"
+                        className="agent-file-action-btn"
                         onClick={handleDownload}
-                        style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            padding: '8px 14px',
-                            background: 'white',
-                            color: '#6b7280',
-                            border: '1px solid #d1d5db',
-                            borderRadius: '6px',
-                            cursor: 'pointer',
-                            fontSize: '14px',
-                            fontWeight: 500
-                        }}
+                        title={t('widgets.download') || '下载'}
+                        aria-label={t('widgets.download') || '下载'}
                     >
-                        <Download size={15} />
-                        {t('widgets.download') || '下载'}
+                        <Download size={15} strokeWidth={2} />
                     </button>
                 </div>
             </div>
@@ -535,7 +571,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = ({ widget, drillPath, onDr
             case 'steps':
                 return renderSteps(widget, t);
             case 'rich_text':
-                return renderRichText(widget);
+                return renderRichText(widget, t);
             case 'echarts':
                 return (
                     <>

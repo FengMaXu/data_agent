@@ -12,6 +12,7 @@ from src.mcp.client.stdio_client import StdioMCPClient
 from src.mcp.client.sse_client import SSEMCPClient
 from src.mcp.client.streamable_http_client import StreamableHTTPMCPClient
 from src.mcp.config_models import MCPServerConfig, MCPSettings, MCPTransportType
+from src.mcp.mcp_client import format_mcp_error
 
 logger = logging.getLogger("data_agent.mcp.registry")
 
@@ -22,6 +23,8 @@ READ_ONLY_DATABASE_TOOLS = {
     "get_table_detail",
     "introspect_database",
 }
+
+SEMANTIC_AGENT_TOOLS = {"sl_discover", "sl_read_source", "sl_query"}
 
 
 def _mcp_tool_policy(server_type: str, tool_name: str) -> tuple[bool, str, int]:
@@ -238,6 +241,11 @@ class MCPRegistry:
             if connected.config.server_type in exclude_server_types:
                 continue
             for remote_tool in connected.tools:
+                if (
+                    connected.config.server_type == "semantic"
+                    and remote_tool.get("name") not in SEMANTIC_AGENT_TOOLS
+                ):
+                    continue
                 tools.append(self.bridge_tool(server_name, remote_tool))
         return tools
 
@@ -249,7 +257,7 @@ class MCPRegistry:
             tools = temp_registry.list_tools()
             return {"success": True, "message": "连接成功", "tools": tools}
         except Exception as e:
-            return {"success": False, "message": str(e)}
+            return {"success": False, "message": format_mcp_error(e)}
         finally:
             await temp_registry.shutdown()
 
@@ -302,6 +310,7 @@ class MCPRegistry:
             return StdioMCPClient.connect(
                 command=server.command,
                 script=server.script,
+                args=server.args,
                 env=server.env or None,
                 timing=self._timing,
             )

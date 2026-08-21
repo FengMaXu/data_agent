@@ -77,7 +77,12 @@ def test_normalize_requires_v3_spec():
     assert spec["title"] == "Industry"
     assert spec["filename"] == "industry"
     assert spec["views"][0]["id"] == "sales_growth"
-    assert validate_dashboard_spec(spec) == []
+    warnings = validate_dashboard_spec(spec)
+    assert {warning.split(" is recommended", 1)[0] for warning in warnings} == {
+        "views[0].insight",
+        "views[0].recipe",
+        "views[0].source",
+    }
 
 
 def test_rejects_legacy_top_level_charts():
@@ -173,7 +178,12 @@ def _ascii_spec() -> dict:
 def test_validates_table_drilldown_target_view():
     spec = normalize_dashboard_arguments({"spec": _ascii_spec()})
 
-    assert validate_dashboard_spec(spec) == []
+    warnings = validate_dashboard_spec(spec)
+    assert {warning.split(" is recommended", 1)[0] for warning in warnings} == {
+        "views[0].insight",
+        "views[0].recipe",
+        "views[0].source",
+    }
 
 
 def test_rejects_table_drilldown_target_missing_columns_with_path():

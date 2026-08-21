@@ -6,10 +6,13 @@ import logging
 import os
 from pathlib import Path
 import subprocess
+import shutil
 import sys
 import tempfile
 from typing import Any
 from urllib import error, request
+
+import yaml
 
 from src.agent.tool_assembly import ToolAssemblyService
 from src.agent.tool_providers.base import GlobalRuntimeServices
@@ -17,16 +20,22 @@ from src.agent.types import AgentTimingRecorder
 from src.ai.config import AIConfig
 from src.ai.gateway import AIGateway
 from src.ai.profiles import LLMProfileStore
+from src.connection_registry import ConnectionRegistry, DEFAULT_CONNECTION_ID
 from src.mcp.config_loader import MCPConfigLoader
-from src.mcp.config_models import MCPSettings
+from src.mcp.config_models import MCPServerConfig, MCPSettings, MCPTransportType
 from src.mcp.manager import mcp_manager
+from src.mcp.mcp_client import format_mcp_error
 from src.mcp.registry import MCPRegistry
+from src.semantic_startup import SEMANTIC_SERVER_TYPE, semantic_startup
 
 logger = logging.getLogger("data_agent.config_manager")
 
 DATABASE_CONFIG_KEYS = ("host", "port", "user", "password", "database")
 LLM_WARMUP_DISABLED_VALUES = {"0", "false", "no", "off"}
 DEFAULT_LLM_WARMUP_TIMEOUT_SECONDS = 10.0
+SEMANTIC_LLM_API_KEY_ENV = "DATA_AGENT_KTX_LLM_API_KEY"
+SEMANTIC_LLM_BASE_URL_ENV = "DATA_AGENT_KTX_LLM_BASE_URL"
+SEMANTIC_LLM_MODEL_ENV = "DATA_AGENT_KTX_LLM_MODEL"
 
 
 class ConfigManager:
@@ -52,9 +61,14 @@ class ConfigManager:
         )
         self.user_config_dir.mkdir(parents=True, exist_ok=True)
         self.runtime_config_path = self.user_config_dir / "runtime.json"
+        self.semantic_project_dir = Path(
+            os.getenv("DATA_AGENT_SEMANTIC_PROJECT_DIR") or self.user_config_dir / "semantic-context"
+        ).expanduser().resolve()
         self.ai_config: AIConfig = AIConfig.from_env()
-        self._apply_runtime_database_config()
+        self._base_database_config = self._current_database_config()
         self.llm_profiles = LLMProfileStore(self.user_config_dir / "llm_profiles.json", self.ai_config)
+        self.connection_registry = ConnectionRegistry(self.user_config_dir / "connections.json")
+        self._initialize_connection_registry()
         self.gateway: AIGateway | None = None
         self.tool_assembly = ToolAssemblyService(self.project_root)
         self._initialized = True
@@ -64,14 +78,18 @@ class ConfigManager:
     async def startup(self) -> None:
         logger.info("[ConfigManager] 正在启动...")
         self.llm_profiles.apply_default_to(self.ai_config)
+        self._sync_semantic_project()
         self.gateway = AIGateway(self.ai_config)
-        settings = MCPConfigLoader.load_effective_settings(self.project_root, self.ai_config)
+        settings = self.get_mcp_settings()
         await mcp_manager.start(settings)
+        semantic_startup.configure(self.semantic_project_dir)
+        await semantic_startup.start()
         await self._warmup_llm_gateway()
         logger.info("[ConfigManager] 启动完成。")
 
     async def shutdown(self) -> None:
         logger.info("[ConfigManager] 正在关闭...")
+        await semantic_startup.stop()
         await mcp_manager.stop()
         if self.gateway is not None:
             await self.gateway.aclose()
@@ -145,6 +163,8 @@ class ConfigManager:
             )
         self.llm_profiles.apply_default_to(self.ai_config)
         self.gateway = AIGateway(self.ai_config)
+        self._sync_semantic_project()
+        await self._reload_mcp()
 
     def list_llm_profiles(self) -> dict[str, Any]:
         default_profile = self.llm_profiles.default_profile()
@@ -161,18 +181,24 @@ class ConfigManager:
         if profile.is_default:
             self.llm_profiles.apply_default_to(self.ai_config)
             self.gateway = AIGateway(self.ai_config)
+            self._sync_semantic_project()
+            await self._reload_mcp()
         return self._serialize_llm_profile(profile)
 
     async def set_default_llm_profile(self, profile_id: str) -> dict[str, Any]:
         profile = self.llm_profiles.set_default(profile_id)
         self.llm_profiles.apply_default_to(self.ai_config)
         self.gateway = AIGateway(self.ai_config)
+        self._sync_semantic_project()
+        await self._reload_mcp()
         return self._serialize_llm_profile(profile)
 
     async def delete_llm_profile(self, profile_id: str) -> None:
         self.llm_profiles.delete_profile(profile_id)
         self.llm_profiles.apply_default_to(self.ai_config)
         self.gateway = AIGateway(self.ai_config)
+        self._sync_semantic_project()
+        await self._reload_mcp()
 
     async def test_llm_config(self, new_config: dict[str, Any]) -> dict[str, Any]:
         model = str(new_config.get("model") or self.ai_config.default_model or "")
@@ -194,16 +220,53 @@ class ConfigManager:
             return {"success": False, "message": str(exc)}
 
     async def update_db_config(self, new_config: dict[str, Any]) -> None:
-        logger.info("[ConfigManager] 热更新数据库配置: %s", list(new_config.keys()))
-        database_config = self._merged_database_config(new_config)
-        self._validate_database_config(database_config)
-        self._apply_database_config(database_config)
-        self._persist_database_config(database_config)
+        logger.info("[ConfigManager] Updating default database connection: %s", list(new_config.keys()))
+        existing = self.connection_registry.get(DEFAULT_CONNECTION_ID)
+        base = existing or {
+            "name": "Default MySQL",
+            "driver": "mysql",
+            **self._current_database_config(),
+            "semantic_enabled": True,
+        }
+        values = {**base, **new_config}
+        if not new_config.get("password") and existing is None:
+            values["password"] = base.get("password", "")
+        await self.save_database_connection(DEFAULT_CONNECTION_ID, values)
+
+    def list_database_connections(self) -> dict[str, Any]:
+        return self.connection_registry.api_snapshot()
+
+    async def save_database_connection(
+        self,
+        connection_id: str,
+        values: dict[str, Any],
+    ) -> dict[str, Any]:
+        logger.info("[ConfigManager] Updating database connection: %s", connection_id)
+        self.connection_registry.upsert(connection_id, values)
+        self._apply_default_registry_connection()
+        self._sync_semantic_project()
         await self._reload_mcp()
+        return self.connection_registry.api_snapshot()
+
+    async def delete_database_connection(self, connection_id: str) -> dict[str, Any]:
+        self.connection_registry.delete(connection_id)
+        self._apply_default_registry_connection()
+        self._sync_semantic_project()
+        await self._reload_mcp()
+        return self.connection_registry.api_snapshot()
+
+    async def set_default_database_connection(self, connection_id: str) -> dict[str, Any]:
+        self.connection_registry.set_default(connection_id)
+        self._apply_default_registry_connection()
+        await self._reload_mcp()
+        return self.connection_registry.api_snapshot()
 
     async def _reload_mcp(self) -> None:
-        settings = MCPConfigLoader.load_effective_settings(self.project_root, self.ai_config)
+        await semantic_startup.stop()
+        settings = self.get_mcp_settings()
         await mcp_manager.reconcile(settings)
+        semantic_startup.configure(self.semantic_project_dir)
+        await semantic_startup.retry()
 
     async def save_mcp_settings(self, data: dict[str, Any]) -> dict[str, Any]:
         new_settings = MCPSettings.from_dict(data)
@@ -217,29 +280,42 @@ class ConfigManager:
                 if not new_server.headers:
                     new_server.headers = dict(old_server.headers)
 
-        MCPConfigLoader.save_project_settings(self.project_root, new_settings)
-        await mcp_manager.reconcile(new_settings)
-        return self.serialize_mcp_settings(new_settings)
+        persisted_settings = MCPSettings(
+            servers=[
+                server
+                for server in new_settings.servers
+                if server.name != "semantic" and server.server_type != SEMANTIC_SERVER_TYPE
+            ]
+        )
+        MCPConfigLoader.save_project_settings(self.project_root, persisted_settings)
+        effective_settings = self._with_bundled_semantic_server(persisted_settings)
+        await mcp_manager.reconcile(effective_settings)
+        return self.serialize_mcp_settings(effective_settings)
 
     async def set_mcp_server_enabled(self, name: str, enabled: bool) -> dict[str, Any]:
         settings = self.get_mcp_settings()
         server = settings.get_server(name)
         if server is None:
             raise KeyError(name)
+        if server.server_type == SEMANTIC_SERVER_TYPE:
+            raise ValueError("The bundled semantic MCP is host-managed")
 
         if server.enabled == enabled:
             return self.serialize_mcp_server(settings=settings, name=name)
 
         server.enabled = enabled
         MCPConfigLoader.save_project_settings(self.project_root, settings)
-        await mcp_manager.reconcile(settings)
-        return self.serialize_mcp_server(settings=settings, name=name)
+        effective_settings = self._with_bundled_semantic_server(settings)
+        await mcp_manager.reconcile(effective_settings)
+        return self.serialize_mcp_server(settings=effective_settings, name=name)
 
     async def restart_mcp_server(self, name: str) -> dict[str, Any]:
         settings = self.get_mcp_settings()
         server = settings.get_server(name)
         if server is None:
             raise KeyError(name)
+        if server.server_type == SEMANTIC_SERVER_TYPE:
+            raise ValueError("The bundled semantic MCP is host-managed")
         if not server.enabled:
             raise ValueError(f"MCP server is disabled: {name}")
 
@@ -280,7 +356,68 @@ class ConfigManager:
     # ── MCP 状态查询 ──────────────────────────────────────────────────────────
 
     def get_mcp_settings(self) -> MCPSettings:
-        return MCPConfigLoader.load_effective_settings(self.project_root, self.ai_config)
+        settings = MCPConfigLoader.load_effective_settings(self.project_root, self.ai_config)
+        return self._with_bundled_semantic_server(settings)
+
+    def configure_semantic_project_dir(self, project_dir: str | Path) -> None:
+        self.semantic_project_dir = Path(project_dir).expanduser().resolve()
+
+    def _with_bundled_semantic_server(self, settings: MCPSettings) -> MCPSettings:
+        servers = [
+            server
+            for server in settings.servers
+            if server.name != "semantic" and server.server_type != SEMANTIC_SERVER_TYPE
+        ]
+        has_project = (self.semantic_project_dir / "ktx.yaml").is_file()
+
+        runtime_root_value = os.getenv("DATA_AGENT_KTX_SEMANTIC_RUNTIME_DIR", "").strip()
+        # The managed Python daemon receives JSON over stdin/stdout. Windows
+        # hosts may default to a legacy code page, which corrupts Chinese
+        # semantic descriptions and can make sl_query fail while validation
+        # appears healthy. Force UTF-8 for the host-owned KTX process tree.
+        semantic_env = {
+            "KTX_PROJECT_DIR": str(self.semantic_project_dir),
+            "PYTHONUTF8": "1",
+        }
+        semantic_env.update(self.connection_registry.semantic_environment())
+        semantic_env.update(self._semantic_llm_environment())
+        if runtime_root_value:
+            runtime_root = Path(runtime_root_value).expanduser().resolve()
+            node_name = "node.exe" if os.name == "nt" else "node"
+            command = str(runtime_root / "node" / node_name)
+            script = str(runtime_root / "app" / "semantic-context" / "stdio-launcher.js")
+            semantic_env["KTX_RUNTIME_ROOT"] = str(runtime_root / "python-runtime")
+        else:
+            command = os.getenv("DATA_AGENT_NODE_COMMAND") or shutil.which("node") or "node"
+            script = str(
+                self.project_root / "ktx" / "packages" / "cli" / "dist" / "semantic-context" / "stdio-launcher.js"
+            )
+            development_runtime_root = os.getenv("KTX_RUNTIME_ROOT", "").strip()
+            if development_runtime_root:
+                semantic_env["KTX_RUNTIME_ROOT"] = str(Path(development_runtime_root).expanduser().resolve())
+
+        return MCPSettings(
+            servers=[
+                *servers,
+                MCPServerConfig(
+                    name="semantic",
+                    transport=MCPTransportType.STDIO,
+                    enabled=has_project,
+                    command=command,
+                    script=script,
+                    args=["--project-dir", str(self.semantic_project_dir)],
+                    env=semantic_env,
+                    description=(
+                        "Bundled ktx semantic context MCP"
+                        if has_project
+                        else "Bundled ktx semantic context MCP (configure ktx.yaml to enable)"
+                    ),
+                    tool_prefix="semantic_",
+                    server_type=SEMANTIC_SERVER_TYPE,
+                    tags=["semantic", "host-only-ingest"],
+                ),
+            ]
+        )
 
     async def list_mcp_servers(self) -> list[dict[str, Any]]:
         settings = self.get_mcp_settings()
@@ -299,7 +436,9 @@ class ConfigManager:
         if legacy_server is None:
             return {"success": False, "message": "未配置 MCP_SERVER_SCRIPT 路径"}
 
-        database_config = self._merged_database_config(conf)
+        connection_id = str(conf.get("id") or "").strip()
+        existing = self.connection_registry.get(connection_id) if connection_id else None
+        database_config = self._merged_database_config(conf, base=existing)
         try:
             self._validate_database_config(database_config)
         except ValueError as exc:
@@ -320,7 +459,7 @@ class ConfigManager:
             tools = registry.list_tools()
             return {"success": True, "message": "连接成功", "details": tools}
         except Exception as e:
-            return {"success": False, "message": f"连接失败: {str(e)}"}
+            return {"success": False, "message": f"连接失败: {format_mcp_error(e)}"}
         finally:
             await registry.shutdown()
 
@@ -358,6 +497,7 @@ class ConfigManager:
             "mysql_port": self.ai_config.mysql_port,
             "mysql_user": self.ai_config.mysql_user,
             "mysql_database": self.ai_config.mysql_database,
+            "connections": self.list_database_connections(),
             "mcp_config": self.serialize_mcp_settings(settings),
             "python_runtime": self.get_python_runtime_config(),
             "llm_profiles": self.list_llm_profiles(),
@@ -479,8 +619,16 @@ class ConfigManager:
             "database": self.ai_config.mysql_database,
         }
 
-    def _merged_database_config(self, new_config: dict[str, Any]) -> dict[str, Any]:
-        database_config = self._current_database_config()
+    def _merged_database_config(
+        self,
+        new_config: dict[str, Any],
+        *,
+        base: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        database_config = {
+            key: (base or self._current_database_config()).get(key)
+            for key in DATABASE_CONFIG_KEYS
+        }
         for key in DATABASE_CONFIG_KEYS:
             if key not in new_config:
                 continue
@@ -511,28 +659,151 @@ class ConfigManager:
         self.ai_config.mysql_password = database_config["password"]
         self.ai_config.mysql_database = database_config["database"]
 
-    def _persist_database_config(self, database_config: dict[str, Any]) -> None:
-        config = self._read_runtime_config()
-        config["database"] = {
-            "host": database_config["host"],
-            "port": int(database_config["port"]),
-            "user": database_config["user"],
-            "password": database_config["password"],
-            "database": database_config["database"],
-        }
-        self._write_runtime_config(config)
-
-    def _apply_runtime_database_config(self) -> None:
-        persisted = self._read_runtime_config().get("database", {})
-        if not isinstance(persisted, dict) or not persisted:
-            return
+    def _initialize_connection_registry(self) -> None:
+        runtime = self._read_runtime_config()
+        persisted = runtime.get("database", {})
+        legacy = persisted if isinstance(persisted, dict) and persisted else self._base_database_config
         try:
-            database_config = self._merged_database_config(persisted)
+            database_config = self._merged_database_config(legacy)
             self._validate_database_config(database_config)
         except Exception as exc:
-            logger.warning("[ConfigManager] Ignoring invalid persisted database config: %s", exc)
+            logger.info("[ConfigManager] No legacy database connection to migrate: %s", exc)
+        else:
+            self.connection_registry.migrate_legacy(database_config)
+
+        if "database" in runtime and self.connection_registry.snapshot()["connections"]:
+            runtime.pop("database", None)
+            self._write_runtime_config(runtime)
+
+        self._apply_default_registry_connection()
+        try:
+            self._sync_semantic_project()
+        except (OSError, ValueError, yaml.YAMLError) as exc:
+            logger.warning("[ConfigManager] Failed to sync semantic project config: %s", exc)
+
+    def _apply_default_registry_connection(self) -> None:
+        default_connection = self.connection_registry.default_connection()
+        if default_connection is None:
+            self._apply_database_config(self._base_database_config)
             return
-        self._apply_database_config(database_config)
+        _, connection = default_connection
+        self._apply_database_config(connection)
+
+    def _sync_semantic_project(self) -> None:
+        self.connection_registry.sync_ktx_project(self.semantic_project_dir)
+        config_path = self.semantic_project_dir / "ktx.yaml"
+        if not config_path.is_file():
+            return
+
+        loaded = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+        if not isinstance(loaded, dict):
+            raise ValueError("ktx.yaml must contain a YAML object")
+
+        # These are the host-owned semantic scan policy fields.  Only the
+        # policy knobs are projected; all other KTX user configuration remains
+        # untouched.  The embedding block itself is host-owned and is reduced
+        # to backend:none so stale model/provider fields cannot start a daemon.
+        # `none` is intentional: embeddings are optional enrichment signals and
+        # must not start a daemon or block an enriched scan.
+        ingest = loaded.get("ingest")
+        if ingest is None:
+            ingest = {}
+        if not isinstance(ingest, dict):
+            raise ValueError("ktx.yaml ingest must contain a YAML object")
+        embeddings = ingest.get("embeddings")
+        if embeddings is None:
+            embeddings = {}
+        if not isinstance(embeddings, dict):
+            raise ValueError("ktx.yaml ingest.embeddings must contain a YAML object")
+        embeddings.clear()
+        embeddings["backend"] = "none"
+        ingest["embeddings"] = embeddings
+        loaded["ingest"] = ingest
+
+        scan = loaded.get("scan")
+        if scan is None:
+            scan = {}
+        if not isinstance(scan, dict):
+            raise ValueError("ktx.yaml scan must contain a YAML object")
+        enrichment = scan.get("enrichment")
+        if enrichment is None:
+            enrichment = {}
+        if not isinstance(enrichment, dict):
+            raise ValueError("ktx.yaml scan.enrichment must contain a YAML object")
+        enrichment.clear()
+        enrichment["mode"] = "llm"
+        scan["enrichment"] = enrichment
+        relationships = scan.get("relationships")
+        if relationships is None:
+            relationships = {}
+        if not isinstance(relationships, dict):
+            raise ValueError("ktx.yaml scan.relationships must contain a YAML object")
+        relationships["enabled"] = True
+        relationships["llmProposals"] = True
+        relationships["validationRequiredForManifest"] = True
+        scan["relationships"] = relationships
+        loaded["scan"] = scan
+
+        profile = self.llm_profiles.default_profile()
+        if profile.provider == "anthropic":
+            provider_config: dict[str, Any] = {
+                "backend": "anthropic",
+                "anthropic": {"api_key": f"env:{SEMANTIC_LLM_API_KEY_ENV}"},
+            }
+            if profile.base_url:
+                provider_config["anthropic"]["base_url"] = f"env:{SEMANTIC_LLM_BASE_URL_ENV}"
+        else:
+            provider_config = {
+                "backend": "openai-compatible",
+                "openai": {
+                    "api_key": f"env:{SEMANTIC_LLM_API_KEY_ENV}",
+                    "base_url": f"env:{SEMANTIC_LLM_BASE_URL_ENV}",
+                },
+            }
+
+        llm = loaded.get("llm")
+        if llm is None:
+            llm = {}
+        if not isinstance(llm, dict):
+            raise ValueError("ktx.yaml llm must contain a YAML object")
+        models = llm.get("models")
+        if models is None:
+            models = {}
+        if not isinstance(models, dict):
+            raise ValueError("ktx.yaml llm.models must contain a YAML object")
+        models["default"] = f"env:{SEMANTIC_LLM_MODEL_ENV}"
+        llm["provider"] = provider_config
+        llm["models"] = models
+        if profile.provider != "anthropic":
+            llm["promptCaching"] = {"enabled": False}
+        loaded["llm"] = llm
+
+        serialized = yaml.safe_dump(
+            loaded,
+            allow_unicode=True,
+            sort_keys=False,
+            default_flow_style=False,
+        )
+        temporary_path = config_path.with_name(f".{config_path.name}.{os.getpid()}.tmp")
+        temporary_path.write_text(serialized, encoding="utf-8")
+        os.replace(temporary_path, config_path)
+
+    def _semantic_llm_environment(self) -> dict[str, str]:
+        profile = self.llm_profiles.default_profile()
+        if profile.provider == "anthropic":
+            api_key = self.ai_config.anthropic_api_key
+            base_url = profile.base_url
+        else:
+            api_key = self.ai_config.openai_api_key
+            base_url = profile.base_url or self.ai_config.openai_base_url or "https://api.openai.com/v1"
+        environment = {
+            SEMANTIC_LLM_MODEL_ENV: profile.model,
+        }
+        if api_key:
+            environment[SEMANTIC_LLM_API_KEY_ENV] = api_key
+        if base_url:
+            environment[SEMANTIC_LLM_BASE_URL_ENV] = base_url
+        return environment
 
     def _python_runtime_command(self, runtime: dict[str, Any], script_path: Path) -> list[str]:
         mode = str(runtime.get("mode") or "bundled").lower()
@@ -564,6 +835,7 @@ class ConfigManager:
             "servers": [
                 self._serialize_mcp_server_config(s)
                 for s in settings.servers
+                if s.server_type != SEMANTIC_SERVER_TYPE
             ]
         }
 
@@ -602,6 +874,7 @@ class ConfigManager:
             "enabled": server.enabled,
             "command": server.command,
             "script": server.script,
+            "args": list(server.args),
             "url": server.url,
             "headers": self._summarize_mapping(server.headers),
             "env": self._summarize_mapping(server.env),
@@ -609,6 +882,7 @@ class ConfigManager:
             "tool_prefix": server.tool_prefix,
             "server_type": server.server_type,
             "tags": list(server.tags),
+            "host_managed": server.server_type == SEMANTIC_SERVER_TYPE,
         }
 
     def _summarize_mapping(self, values: dict[str, str]) -> dict[str, Any]:

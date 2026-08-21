@@ -7,6 +7,7 @@ import src.config_manager as config_manager_module
 import src.mcp.manager as manager_module
 from src.agent.tool_search import ToolSearchCatalog
 from src.ai.config import AIConfig
+from src.connection_registry import ConnectionRegistry
 from src.mcp.config_models import MCPServerConfig, MCPSettings, MCPTransportType
 from fastapi import HTTPException
 
@@ -516,17 +517,19 @@ async def test_update_db_config_persists_runtime_config_and_reconciles_effective
     )
 
     config_manager = config_manager_module.ConfigManager()
-    config_manager.project_root = tmp_path
-    config_manager.user_config_dir = tmp_path
-    config_manager.runtime_config_path = tmp_path / "runtime.json"
-    config_manager.ai_config = AIConfig(
+    monkeypatch.setattr(config_manager, "project_root", tmp_path)
+    monkeypatch.setattr(config_manager, "user_config_dir", tmp_path)
+    monkeypatch.setattr(config_manager, "runtime_config_path", tmp_path / "runtime.json")
+    monkeypatch.setattr(config_manager, "semantic_project_dir", tmp_path / "semantic-context")
+    monkeypatch.setattr(config_manager, "connection_registry", ConnectionRegistry(tmp_path / "connections.json"))
+    monkeypatch.setattr(config_manager, "ai_config", AIConfig(
         mcp_server_script="db.py",
         mysql_host="localhost",
         mysql_port=3306,
         mysql_user="root",
         mysql_password="current-password",
         mysql_database="old_db",
-    )
+    ))
 
     reconcile_calls: list[MCPSettings] = []
 
@@ -539,9 +542,17 @@ async def test_update_db_config_persists_runtime_config_and_reconciles_effective
 
     await config_manager.update_db_config({"database": "wwe", "password": ""})
 
-    runtime = json.loads(config_manager.runtime_config_path.read_text(encoding="utf-8"))
-    assert runtime["database"]["database"] == "wwe"
-    assert runtime["database"]["password"] == "current-password"
+    runtime = (
+        json.loads(config_manager.runtime_config_path.read_text(encoding="utf-8"))
+        if config_manager.runtime_config_path.exists()
+        else {}
+    )
+    assert "database" not in runtime
+    registry = json.loads((tmp_path / "connections.json").read_text(encoding="utf-8"))
+    assert registry["connections"]["default-mysql"]["database"] == "wwe"
+    assert registry["connections"]["default-mysql"]["password"] == "current-password"
+    ktx_config = (config_manager.semantic_project_dir / "ktx.yaml").read_text(encoding="utf-8")
+    assert "ref: env:DATA_AGENT_CONNECTION_DEFAULT_MYSQL" in ktx_config
     assert len(reconcile_calls) == 1
 
     database_server = reconcile_calls[0].get_server("database")

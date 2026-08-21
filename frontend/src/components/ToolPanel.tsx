@@ -131,12 +131,13 @@ const ResultRenderer: React.FC<{ result?: string }> = ({ result }) => {
 
     const trimmed = result.trim();
     if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+        let parsed: unknown = null;
         try {
-            const parsed = JSON.parse(trimmed);
-            return <JsonHighlight data={parsed} />;
+            parsed = JSON.parse(trimmed);
         } catch {
-            // ignore
+            parsed = null;
         }
+        if (parsed !== null) return <JsonHighlight data={parsed} />;
     }
 
     return <pre className="formatted-text">{result}</pre>;
@@ -145,32 +146,39 @@ const ResultRenderer: React.FC<{ result?: string }> = ({ result }) => {
 const ToolCard: React.FC<{ tool: ToolData; copiedKey: string | null; onCopy: (text: string, key: string) => void }> = ({ tool, copiedKey, onCopy }) => {
     const { t } = useLanguage();
     const [collapsed, setCollapsed] = useState(false);
+    const cardContentId = `tool-card-content-${tool.toolCallId}`;
     const argsText = typeof tool.args === 'string' ? tool.args : JSON.stringify(tool.args, null, 2);
     const detailsText = tool.details ? JSON.stringify(tool.details, null, 2) : '';
 
     return (
         <div className={`tool-card ${collapsed ? 'collapsed' : ''}`}>
-            <div className="tool-card-header" onClick={() => setCollapsed(!collapsed)}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+                type="button"
+                className="tool-card-header"
+                aria-expanded={!collapsed}
+                aria-controls={cardContentId}
+                onClick={() => setCollapsed(!collapsed)}
+            >
+                <span className="tool-card-header-main">
                     {getToolIcon(tool.name)}
                     <span>{tool.name}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span className={`tool-status-badge ${tool.status === 'error' ? 'running' : tool.status === 'done' ? 'success' : 'running'}`}>
+                </span>
+                <span className="tool-card-header-status">
+                    <span className={`tool-status-badge ${tool.status === 'error' ? 'error' : tool.status === 'done' ? 'success' : 'running'}`}>
                         {tool.status === 'error' ? t('tools.statusError') : tool.status === 'done' ? t('tools.statusDone') : t('tools.statusRunning')}
                     </span>
-                    {collapsed ? <ChevronDown size={16} color="#6b7280" /> : <ChevronUp size={16} color="#6b7280" />}
-                </div>
-            </div>
+                    {collapsed ? <ChevronDown size={16} color="#6b7280" aria-hidden="true" /> : <ChevronUp size={16} color="#6b7280" aria-hidden="true" />}
+                </span>
+            </button>
 
             {!collapsed && (
-                <>
+                <div id={cardContentId}>
                     {tool.args && (
                         <div className="tool-card-section">
                             <div className="section-title">
-                                <Code size={14} />
+                                <Code size={14} aria-hidden="true" />
                                 <span>{t('tools.args')}</span>
-                                <button className="copy-btn" onClick={() => onCopy(argsText, `args-${tool.toolCallId}`)} title={t('tools.copy') || "复制"}>
+                                <button type="button" className="copy-btn" onClick={() => onCopy(argsText, `args-${tool.toolCallId}`)} title={t('tools.copy')} aria-label={t('tools.copy')}>
                                     {copiedKey === `args-${tool.toolCallId}` ? <Check size={13} color="#10b981" /> : <Copy size={13} />}
                                 </button>
                             </div>
@@ -185,7 +193,7 @@ const ToolCard: React.FC<{ tool: ToolData; copiedKey: string | null; onCopy: (te
                             <div className="section-title">
                                 <ListTree size={14} />
                                 <span>Widget Spec</span>
-                                <button className="copy-btn" onClick={() => onCopy(JSON.stringify(tool.widget, null, 2), `widget-${tool.toolCallId}`)} title={t('tools.copy') || "复制"}>
+                                <button type="button" className="copy-btn" onClick={() => onCopy(JSON.stringify(tool.widget, null, 2), `widget-${tool.toolCallId}`)} title={t('tools.copy')} aria-label={t('tools.copy')}>
                                     {copiedKey === `widget-${tool.toolCallId}` ? <Check size={13} color="#10b981" /> : <Copy size={13} />}
                                 </button>
                             </div>
@@ -200,7 +208,7 @@ const ToolCard: React.FC<{ tool: ToolData; copiedKey: string | null; onCopy: (te
                             <div className="section-title">
                                 <ListTree size={14} />
                                 <span>{t('tools.details')}</span>
-                                <button className="copy-btn" onClick={() => onCopy(detailsText, `details-${tool.toolCallId}`)} title={t('tools.copy') || "复制"}>
+                                <button type="button" className="copy-btn" onClick={() => onCopy(detailsText, `details-${tool.toolCallId}`)} title={t('tools.copy')} aria-label={t('tools.copy')}>
                                     {copiedKey === `details-${tool.toolCallId}` ? <Check size={13} color="#10b981" /> : <Copy size={13} />}
                                 </button>
                             </div>
@@ -215,7 +223,7 @@ const ToolCard: React.FC<{ tool: ToolData; copiedKey: string | null; onCopy: (te
                             <ListTree size={14} />
                             <span>{t('tools.result')}</span>
                             {tool.result && (
-                                <button className="copy-btn" onClick={() => onCopy(tool.result || '', `result-${tool.toolCallId}`)} title={t('tools.copy') || "复制"}>
+                                <button type="button" className="copy-btn" onClick={() => onCopy(tool.result || '', `result-${tool.toolCallId}`)} title={t('tools.copy')} aria-label={t('tools.copy')}>
                                     {copiedKey === `result-${tool.toolCallId}` ? <Check size={13} color="#10b981" /> : <Copy size={13} />}
                                 </button>
                             )}
@@ -224,7 +232,7 @@ const ToolCard: React.FC<{ tool: ToolData; copiedKey: string | null; onCopy: (te
                             <ResultRenderer result={tool.result} />
                         </div>
                     </div>
-                </>
+                </div>
             )}
         </div>
     );
@@ -250,15 +258,16 @@ const ToolPanel: React.FC<ToolPanelProps> = ({ tools = [], onClose }) => {
                     <span className="tool-panel-title">{t('tools.details')}</span>
                     <span className="tool-panel-count">{orderedTools.length}</span>
                 </div>
-                <button type="button" className="close-btn" onClick={onClose}>
-                    <X size={16} />
+                <button type="button" className="close-btn" onClick={onClose} aria-label={t('common.close')} title={t('common.close')}>
+                    <X size={16} aria-hidden="true" />
                 </button>
             </div>
 
             <div ref={contentRef} className="tool-panel-content scrollable-area">
                 {orderedTools.length === 0 && (
                     <div className="tool-panel-empty">
-                        {t('tools.noCalls')}
+                        <strong>{t('tools.noCalls')}</strong>
+                        <span>{t('tools.noCallsHint')}</span>
                     </div>
                 )}
 

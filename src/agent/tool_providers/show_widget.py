@@ -15,6 +15,10 @@ SUPPORTED_WIDGET_KINDS = {
     "echarts",
 }
 
+MAX_RICH_TEXT_BLOCKS = 6
+MAX_RICH_TEXT_CHARS = 2400
+RICH_TEXT_TRUNCATION_NOTICE = "内容较长，已收起完整报告。请使用报告文件链接打开完整内容。"
+
 
 def _ensure_object(value: Any, field_name: str) -> dict[str, Any]:
     if value is None:
@@ -30,6 +34,25 @@ def _ensure_list(value: Any, field_name: str) -> list[Any]:
     if not isinstance(value, list):
         raise ValueError(f"{field_name} 必须是数组")
     return value
+
+
+def _normalize_rich_text_data(data: list[Any]) -> tuple[list[Any], bool]:
+    """Keep rich-text widgets as short inline summaries, not report containers."""
+    normalized: list[Any] = []
+    char_count = 0
+    truncated = False
+
+    for block in data:
+        block_size = len(block) if isinstance(block, str) else len(str(block))
+        if len(normalized) >= MAX_RICH_TEXT_BLOCKS or char_count + block_size > MAX_RICH_TEXT_CHARS:
+            truncated = True
+            break
+        normalized.append(block)
+        char_count += block_size
+
+    if truncated:
+        normalized.append({"type": "notice", "text": RICH_TEXT_TRUNCATION_NOTICE})
+    return normalized, truncated
 
 
 def _normalize_widget_spec(tool_call_id: str, arguments: dict[str, Any]) -> dict[str, Any]:
@@ -49,6 +72,15 @@ def _normalize_widget_spec(tool_call_id: str, arguments: dict[str, Any]) -> dict
     columns = _ensure_list(arguments.get("columns"), "columns")
     actions = _ensure_list(arguments.get("actions"), "actions")
     metadata = _ensure_object(arguments.get("metadata"), "metadata")
+
+    if kind == "rich_text":
+        data, rich_text_truncated = _normalize_rich_text_data(data)
+        if rich_text_truncated:
+            metadata = {
+                **metadata,
+                "truncated": True,
+                "truncation_reason": "rich_text widgets are inline summaries",
+            }
 
     raw_html = arguments.get("raw_html")
     if raw_html is not None and not isinstance(raw_html, str):
@@ -112,7 +144,8 @@ def create_show_widget_tool() -> AgentTool:
         label="Show Widget",
         description=(
             "Display a structured UI widget inline in the chat. "
-            "Use this for KPI cards, tables, charts, steps, and rich text summaries. "
+            "Use this for KPI cards, tables, charts, steps, and short rich text summaries only. "
+            "Never pass an entire report, long Markdown, HTML, or file contents to rich_text; save the full report and link the file instead. "
             "Do not use this tool to display file download links; output Markdown links "
             "directly in the assistant response instead. "
             "Use kind='echarts' ONLY when the user explicitly requests a chart, visualization, "
@@ -142,7 +175,7 @@ def create_show_widget_tool() -> AgentTool:
                 },
                 "data": {
                     "type": "array",
-                    "description": "Primary data rows or card items.",
+                    "description": "Primary data rows or card items. For rich_text, provide only a short summary.",
                     "items": {"type": "object"},
                 },
                 "series": {

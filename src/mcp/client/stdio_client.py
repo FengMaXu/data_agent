@@ -16,10 +16,12 @@ class StdioMCPClient(MCPClient):
         script: str = "",
         env: dict[str, str] | None = None,
         timing: AgentTimingRecorder | None = None,
+        args: list[str] | None = None,
     ) -> AsyncIterator[MCPClient]:
         async with MCPClient.connect(
             command=command,
             script=script,
+            args=args,
             env=env,
             timing=timing,
         ) as client:

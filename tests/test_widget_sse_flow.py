@@ -1025,6 +1025,22 @@ def test_answer_clarification_resolves_pending_future():
         _reset_session(session_id)
 
 
+def test_agent_chat_rejects_chat_when_semantic_catalog_is_not_ready(monkeypatch):
+    session_id = "semantic_blocked_session"
+    monkeypatch.setattr(
+        agent_api.semantic_startup,
+        "status",
+        lambda: {"status": "ingesting", "errorCode": None},
+    )
+
+    try:
+        asyncio.run(agent_api.agent_chat(agent_api.ChatRequest(prompt="hi", session_id=session_id)))
+        raise AssertionError("expected HTTPException")
+    except agent_api.HTTPException as exc:
+        assert exc.status_code == 503
+        assert exc.detail["code"] == "semantic_catalog_not_ready"
+
+
 def test_agent_chat_rejects_busy_session():
     session_id = "busy_session"
     temp_dir = tempfile.TemporaryDirectory()

@@ -19,6 +19,7 @@ class MCPServerRequest(BaseModel):
     enabled: bool = True
     command: str = "python"
     script: str = ""
+    args: list[str] = Field(default_factory=list)
     url: str = ""
     headers: dict[str, str] = Field(default_factory=dict)
     env: dict[str, str] = Field(default_factory=dict)

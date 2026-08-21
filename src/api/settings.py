@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Literal
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from src.config_manager import config_manager
@@ -40,6 +40,13 @@ class DBConfigRequest(BaseModel):
     user: str | None = None
     password: str | None = None
     database: str | None = None
+
+
+class DatabaseConnectionRequest(DBConfigRequest):
+    id: str | None = None
+    name: str | None = None
+    driver: Literal["mysql"] = "mysql"
+    semantic_enabled: bool = True
 
 
 class PythonRuntimeRequest(BaseModel):
@@ -102,6 +109,44 @@ async def update_db_config(req: DBConfigRequest):
 async def test_db_connection(req: DBConfigRequest):
     data = req.model_dump(exclude_unset=True)
     return await config_manager.test_db_connection(data)
+
+
+@router.get("/connections")
+async def list_database_connections():
+    return config_manager.list_database_connections()
+
+
+@router.post("/connections/test")
+async def test_database_registry_connection(req: DatabaseConnectionRequest):
+    data = req.model_dump(exclude_unset=True)
+    return await config_manager.test_db_connection(data)
+
+
+@router.put("/connections/{connection_id}")
+async def save_database_connection(connection_id: str, req: DatabaseConnectionRequest):
+    data = req.model_dump(exclude_unset=True, exclude={"id"})
+    try:
+        return await config_manager.save_database_connection(connection_id, data)
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.delete("/connections/{connection_id}")
+async def delete_database_connection(connection_id: str):
+    try:
+        return await config_manager.delete_database_connection(connection_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Database connection not found") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/connections/{connection_id}/default")
+async def set_default_database_connection(connection_id: str):
+    try:
+        return await config_manager.set_default_database_connection(connection_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Database connection not found") from exc
 
 
 @router.post("/python-runtime")

@@ -114,11 +114,11 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                         {t('onboarding.badge')}
                     </div>
                     <div className="onboarding-copy-body">
-                        <div className="onboarding-copy-title">
+                        <h1 className="onboarding-copy-title">
                             {titleLines.map((line) => (
                                 <span key={line}>{line}</span>
                             ))}
-                        </div>
+                        </h1>
                         <p className="onboarding-copy-description">{t('onboarding.description')}</p>
                     </div>
                     <div className="onboarding-copy-meta">
@@ -160,6 +160,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                                         key={langOption}
                                         type="button"
                                         className={language === langOption ? 'active' : ''}
+                                        aria-pressed={language === langOption}
                                         onClick={() => setLanguage(langOption)}
                                     >
                                         {langOption === 'zh' ? t('onboarding.language.zh') : t('onboarding.language.en')}
@@ -170,14 +171,22 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
                         <div className="onboarding-provider-toggle" role="tablist" aria-label={t('onboarding.providerAria')}>
                             <button
+                                id="provider-tab-openai"
                                 type="button"
+                                role="tab"
+                                aria-selected={provider === 'openai'}
+                                aria-controls="provider-fields"
                                 className={provider === 'openai' ? 'active' : ''}
                                 onClick={() => handleProviderChange('openai')}
                             >
                                 {t('onboarding.provider.openai')}
                             </button>
                             <button
+                                id="provider-tab-anthropic"
                                 type="button"
+                                role="tab"
+                                aria-selected={provider === 'anthropic'}
+                                aria-controls="provider-fields"
                                 className={provider === 'anthropic' ? 'active' : ''}
                                 onClick={() => handleProviderChange('anthropic')}
                             >
@@ -185,6 +194,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                             </button>
                         </div>
 
+                        <div id="provider-fields" role="tabpanel" aria-labelledby={provider === 'openai' ? 'provider-tab-openai' : 'provider-tab-anthropic'}>
                         <label className="onboarding-field">
                             <span><KeyRound size={16} /> {t('onboarding.apiKey')}</span>
                             <input
@@ -224,44 +234,38 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                             />
                         </label>
 
+                        </div>
+
                         <div className="onboarding-db-panel">
                             <div className="onboarding-db-title">
-                                <Database size={17} />
+                                <Database size={17} aria-hidden="true" />
                                 {t('onboarding.optionalMySql')}
                             </div>
                             <div className="onboarding-db-grid">
-                                <input
-                                    value={dbConfig.host}
-                                    onChange={(event) => setDbConfig((prev) => ({ ...prev, host: event.target.value }))}
-                                    placeholder={t('onboarding.host')}
-                                />
-                                <input
-                                    type="number"
-                                    value={dbConfig.port}
-                                    onChange={(event) => setDbConfig((prev) => ({ ...prev, port: Number(event.target.value) || 3306 }))}
-                                    placeholder={t('onboarding.port')}
-                                />
-                                <input
-                                    value={dbConfig.user}
-                                    onChange={(event) => setDbConfig((prev) => ({ ...prev, user: event.target.value }))}
-                                    placeholder={t('onboarding.user')}
-                                />
-                                <input
-                                    type="password"
-                                    value={dbConfig.password}
-                                    onChange={(event) => setDbConfig((prev) => ({ ...prev, password: event.target.value }))}
-                                    placeholder={t('onboarding.password')}
-                                />
-                                <input
-                                    className="wide"
-                                    value={dbConfig.database}
-                                    onChange={(event) => setDbConfig((prev) => ({ ...prev, database: event.target.value }))}
-                                    placeholder={t('onboarding.databaseName')}
-                                />
+                                <label className="onboarding-db-field">
+                                    <span>{t('onboarding.host')}</span>
+                                    <input id="onboarding-db-host" value={dbConfig.host} onChange={(event) => setDbConfig((prev) => ({ ...prev, host: event.target.value }))} placeholder="localhost" />
+                                </label>
+                                <label className="onboarding-db-field">
+                                    <span>{t('onboarding.port')}</span>
+                                    <input id="onboarding-db-port" type="number" value={dbConfig.port} onChange={(event) => setDbConfig((prev) => ({ ...prev, port: Number(event.target.value) || 3306 }))} placeholder="3306" />
+                                </label>
+                                <label className="onboarding-db-field">
+                                    <span>{t('onboarding.user')}</span>
+                                    <input id="onboarding-db-user" value={dbConfig.user} onChange={(event) => setDbConfig((prev) => ({ ...prev, user: event.target.value }))} placeholder={t('onboarding.user')} />
+                                </label>
+                                <label className="onboarding-db-field">
+                                    <span>{t('onboarding.password')}</span>
+                                    <input id="onboarding-db-password" type="password" value={dbConfig.password} onChange={(event) => setDbConfig((prev) => ({ ...prev, password: event.target.value }))} placeholder="••••••••" />
+                                </label>
+                                <label className="onboarding-db-field wide">
+                                    <span>{t('onboarding.databaseName')}</span>
+                                    <input id="onboarding-db-name" value={dbConfig.database} onChange={(event) => setDbConfig((prev) => ({ ...prev, database: event.target.value }))} placeholder={t('onboarding.databaseName')} />
+                                </label>
                             </div>
                         </div>
 
-                        {error && <div className="onboarding-error">{error}</div>}
+                        {error && <div className="onboarding-error" role="alert" aria-live="assertive">{error}</div>}
                     </div>
 
                     <div className="onboarding-form-footer">

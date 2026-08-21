@@ -18,6 +18,20 @@ from src.agent.types import AgentTimingRecorder
 logger = logging.getLogger("data_agent.mcp.client")
 
 
+def format_mcp_error(error: BaseException) -> str:
+    """Flatten ExceptionGroup wrappers into an actionable MCP error message."""
+    if isinstance(error, BaseExceptionGroup):
+        messages: list[str] = []
+        for child in error.exceptions:
+            message = format_mcp_error(child)
+            if message and message not in messages:
+                messages.append(message)
+        return "; ".join(messages) or type(error).__name__
+
+    message = str(error).strip()
+    return f"{type(error).__name__}: {message}" if message else type(error).__name__
+
+
 class MCPConnectionError(Exception):
     """MCP 底层流断开（anyio.EndOfStream / BrokenPipeError 等）。"""
 
@@ -55,6 +69,7 @@ class MCPClient:
         script: str = "",
         env: dict[str, str] | None = None,
         timing: AgentTimingRecorder | None = None,
+        args: list[str] | None = None,
     ) -> AsyncIterator["MCPClient"]:
         try:
             from mcp import ClientSession, StdioServerParameters
@@ -64,10 +79,10 @@ class MCPClient:
 
         server_params = StdioServerParameters(
             command=command,
-            args=[script] if script else [],
+            args=([script] if script else []) + list(args or []),
             env=env,
         )
-        logger.info("[MCP] 连接到: %s %s", command, script)
+        logger.info("[MCP] 连接到: %s %s", command, " ".join(server_params.args))
 
         async with stdio_client(server_params) as (read_stream, write_stream):
             async with ClientSession(read_stream, write_stream) as session:

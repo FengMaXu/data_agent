@@ -20,7 +20,7 @@ from typing import Any
 from src.agent.types import AgentTool, AgentToolResult
 from src.ai.base_provider import ToolResultContent
 from src.mcp.config_models import MCPServerConfig, MCPSettings
-from src.mcp.mcp_client import MCPConnectionError
+from src.mcp.mcp_client import MCPConnectionError, format_mcp_error
 from src.resilience.retry import RetryPolicy, async_retry
 
 logger = logging.getLogger("data_agent.mcp.manager")
@@ -32,6 +32,8 @@ READ_ONLY_DATABASE_TOOLS = {
     "get_table_detail",
     "introspect_database",
 }
+
+SEMANTIC_AGENT_TOOLS = {"sl_discover", "sl_read_source", "sl_query"}
 
 
 def _mcp_tool_policy(server_type: str, tool_name: str) -> tuple[bool, str, int]:
@@ -156,7 +158,7 @@ class _ManagedServer:
             except Exception as e:
                 if self._stop.is_set():
                     return
-                logger.warning("[%s] 连接失败，2s 后重试: %s", self._config.name, e)
+                logger.warning("[%s] 连接失败，2s 后重试: %s", self._config.name, format_mcp_error(e))
                 self._ready.clear()
                 self._client = None
                 await asyncio.sleep(2)
@@ -172,6 +174,7 @@ class _ManagedServer:
             return StdioMCPClient.connect(
                 command=self._config.command,
                 script=self._config.script,
+                args=self._config.args,
                 env=self._config.env or None,
             )
         elif transport == MCPTransportType.SSE:
@@ -476,6 +479,11 @@ class MCPManager:
                 continue
             prefix = server.config.resolved_tool_prefix()
             for tool in server.tools:
+                if (
+                    server.config.server_type == "semantic"
+                    and tool.get("name") not in SEMANTIC_AGENT_TOOLS
+                ):
+                    continue
                 tools.append(self._make_agent_tool(server, prefix, tool))
 
         return tools

@@ -3,6 +3,8 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
+from src.agent.tool_providers.dashboard_recipes import validate_dashboard_recipe
+
 
 CURRENT_DASHBOARD_SPEC_VERSION = "3"
 
@@ -45,8 +47,8 @@ def normalize_dashboard_arguments(arguments: dict[str, Any]) -> dict[str, Any]:
 
 def validate_dashboard_spec(spec: dict[str, Any]) -> list[str]:
     """Validate a normalized dashboard spec and return non-fatal warnings."""
-    _normalize_spec(spec)
-    return []
+    normalized = _normalize_spec(spec)
+    return _collect_dashboard_warnings(normalized)
 
 
 def _normalize_spec(spec: dict[str, Any]) -> dict[str, Any]:
@@ -69,6 +71,7 @@ def _normalize_spec(spec: dict[str, Any]) -> dict[str, Any]:
 
     normalized["theme"] = str(normalized.get("theme") or "light")
     normalized["layout"] = _ensure_object(normalized.get("layout"), "layout")
+    _validate_dashboard_layout(normalized["layout"])
 
     for field in _LIST_FIELDS:
         normalized[field] = _ensure_list(normalized.get(field), field)
@@ -130,8 +133,10 @@ def _validate_v3_spec(spec: dict[str, Any]) -> None:
             raise ValueError(f"views[{index}].id duplicates '{view_id}'")
         view_ids.add(view_id)
 
+        path = f"views[{index}]"
+        _validate_view_metadata(view, path)
         view_type = str(view.get("type") or "").strip()
-        if view_type not in {"metric_cards", "chart", "pie_chart", "table", "pivot_table"}:
+        if view_type not in {"metric_cards", "chart", "pie_chart", "table"}:
             raise ValueError(f"views[{index}].type unsupported: {view_type}")
 
         dataset_id = str(view.get("dataset") or "").strip()
@@ -153,8 +158,14 @@ def _validate_v3_spec(spec: dict[str, Any]) -> None:
         elif view_type == "pie_chart":
             _require_dataset_field(view.get("name", {}).get("field"), fields, f"views[{index}].name.field")
             _require_dataset_field(view.get("value", {}).get("field"), fields, f"views[{index}].value.field")
-        elif view_type in {"table", "pivot_table"}:
+        elif view_type == "table":
             _validate_table_view(view, fields, f"views[{index}]")
+
+        recipe_id = str(view.get("recipe") or "").strip()
+        if recipe_id:
+            validate_dashboard_recipe(recipe_id, view, path)
+
+    _validate_filters(spec.get("filters", []), dataset_fields, view_ids, view_dataset_by_id)
 
     for index, interaction in enumerate(spec.get("interactions", [])):
         if not isinstance(interaction, dict):
@@ -168,8 +179,14 @@ def _validate_v3_spec(spec: dict[str, Any]) -> None:
 
         action = _ensure_object(interaction.get("action"), f"interactions[{index}].action")
         action_type = str(action.get("type") or "").strip()
-        if action_type not in {"drilldown", "filter", "click-to-filter", "navigate-back"}:
-            raise ValueError(f"interactions[{index}].action.type unsupported: {action_type}")
+        if action_type != "drilldown":
+            raise ValueError(
+                f"interactions[{index}].action.type unsupported: {action_type}; "
+                "only drilldown interactions are executable, use spec.filters for filtering"
+            )
+        source_event = str(source.get("event") or "click")
+        if source_event != "click":
+            raise ValueError(f"interactions[{index}].source.event must be 'click'")
 
         target_dataset = str(action.get("target_dataset") or "").strip()
         if target_dataset and target_dataset not in dataset_ids:
@@ -183,6 +200,111 @@ def _validate_v3_spec(spec: dict[str, Any]) -> None:
                 view_dataset_by_id,
                 dataset_fields,
             )
+
+
+def _collect_dashboard_warnings(spec: dict[str, Any]) -> list[str]:
+    warnings = []
+    for index, view in enumerate(spec.get("views", [])):
+        path = f"views[{index}]"
+        if not str(view.get("insight") or "").strip():
+            warnings.append(f"{path}.insight is recommended so the view states one business conclusion")
+        if not str(view.get("recipe") or "").strip():
+            warnings.append(f"{path}.recipe is recommended so chart selection remains auditable")
+        if view.get("source") is None or view.get("source") == "":
+            warnings.append(f"{path}.source is recommended for delivery-ready dashboards")
+    return warnings
+
+
+def _validate_dashboard_layout(layout: dict[str, Any]) -> None:
+    sidebar = layout.get("sidebar")
+    if sidebar is not None and not isinstance(sidebar, bool):
+        raise ValueError("layout.sidebar must be a boolean")
+
+
+def _validate_view_metadata(view: dict[str, Any], path: str) -> None:
+    for field in ("title", "subtitle", "insight", "recipe"):
+        value = view.get(field)
+        if value is not None and not isinstance(value, str):
+            raise ValueError(f"{path}.{field} must be a string")
+
+    reading_mode = view.get("reading_mode")
+    if reading_mode is not None and reading_mode not in {"glance", "analysis", "detail"}:
+        raise ValueError(f"{path}.reading_mode must be glance, analysis, or detail")
+
+    source = view.get("source")
+    if source is not None and not isinstance(source, (str, dict)):
+        raise ValueError(f"{path}.source must be a string or object")
+    if isinstance(source, dict):
+        for field in ("label", "url", "updated_at"):
+            value = source.get(field)
+            if value is not None and not isinstance(value, str):
+                raise ValueError(f"{path}.source.{field} must be a string")
+
+    annotations = _ensure_list(view.get("annotations"), f"{path}.annotations")
+    for annotation_index, annotation in enumerate(annotations):
+        annotation_path = f"{path}.annotations[{annotation_index}]"
+        if not isinstance(annotation, dict):
+            raise ValueError(f"{annotation_path} must be an object")
+        if not str(annotation.get("text") or "").strip():
+            raise ValueError(f"{annotation_path}.text cannot be empty")
+        tone = str(annotation.get("tone") or "neutral")
+        if tone not in {"neutral", "positive", "warning", "negative"}:
+            raise ValueError(f"{annotation_path}.tone unsupported: {tone}")
+
+    layout = _ensure_object(view.get("layout"), f"{path}.layout")
+    span = layout.get("span")
+    if span is not None and (not isinstance(span, int) or isinstance(span, bool) or not 1 <= span <= 12):
+        raise ValueError(f"{path}.layout.span must be an integer from 1 to 12")
+    height = layout.get("height")
+    if isinstance(height, (int, float)) and (isinstance(height, bool) or height <= 0):
+        raise ValueError(f"{path}.layout.height must be positive")
+    if height is not None and not isinstance(height, (int, float, str)):
+        raise ValueError(f"{path}.layout.height must be a number or CSS length string")
+
+
+def _validate_filters(
+    filters: list[Any],
+    dataset_fields: dict[str, set[str]],
+    view_ids: set[str],
+    view_dataset_by_id: dict[str, str],
+) -> None:
+    filter_ids = set()
+    for index, filter_spec in enumerate(filters):
+        path = f"filters[{index}]"
+        if not isinstance(filter_spec, dict):
+            raise ValueError(f"{path} must be an object")
+        filter_id = str(filter_spec.get("id") or "").strip()
+        if not filter_id:
+            raise ValueError(f"{path}.id cannot be empty")
+        if filter_id in filter_ids:
+            raise ValueError(f"{path}.id duplicates '{filter_id}'")
+        filter_ids.add(filter_id)
+
+        filter_type = str(filter_spec.get("type") or "select")
+        if filter_type != "select":
+            raise ValueError(f"{path}.type unsupported: {filter_type}; only select filters are executable")
+        dataset_id = str(filter_spec.get("dataset") or "").strip()
+        if dataset_id not in dataset_fields:
+            raise ValueError(f"{path}.dataset references unknown dataset '{dataset_id}'")
+        _require_dataset_field(filter_spec.get("field"), dataset_fields[dataset_id], f"{path}.field")
+
+        targets = filter_spec.get("targets")
+        if targets is not None and not isinstance(targets, list):
+            raise ValueError(f"{path}.targets must be an array")
+        for target_index, target in enumerate(targets or []):
+            target_id = str(target or "").strip()
+            if target_id not in view_ids:
+                raise ValueError(f"{path}.targets[{target_index}] references unknown view '{target_id}'")
+            if view_dataset_by_id.get(target_id) != dataset_id:
+                raise ValueError(f"{path}.targets[{target_index}] must use dataset '{dataset_id}'")
+
+        default = filter_spec.get("default")
+        if isinstance(default, str) and default.strip().casefold() in {"all", "全部"}:
+            raise ValueError(f"{path}.default must use an empty value for the all option")
+        for field in ("label", "all_label"):
+            value = filter_spec.get(field)
+            if value is not None and not isinstance(value, str):
+                raise ValueError(f"{path}.{field} must be a string")
 
 
 def _validate_drilldown_interaction(
@@ -250,6 +372,9 @@ def _validate_cartesian_view(
 ) -> None:
     path = path or f"{prefix}[{index}]"
     _require_dataset_field(view.get("x", {}).get("field"), fields, f"{path}.x.field")
+    x_type = str(view.get("x", {}).get("type") or "category")
+    if x_type not in {"category", "value"}:
+        raise ValueError(f"{path}.x.type unsupported: {x_type}")
     axes = _cartesian_y_axes(view, path)
     axis_ids = set()
     for axis_index, axis in enumerate(axes):
