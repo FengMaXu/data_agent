@@ -80,6 +80,7 @@ export class DataAgentRuntime {
       if (command.command.type === "workspace.read") return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "workspace.result", operation: "read", path: command.command.path, content: await this.workspace.read(command.command.path) } };
       if (command.command.type === "workspace.delete") { await this.workspace.delete(command.command.path); return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "workspace.result", operation: "write", path: command.command.path } }; }
       await this.workspace.write(command.command.path, command.command.content);
+      this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, sessionId: context.sessionId, timestamp: Date.now(), event: { type: "workspace.artifact.created", path: command.command.path, kind: "file" } });
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "workspace.result", operation: "write", path: command.command.path } };
     }
 
