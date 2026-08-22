@@ -2,8 +2,11 @@
 name: demo-report
 description: 生成标准化数据分析报告的工作流 Skill
 when_to_use: 当用户要求生成正式的数据分析报告、或者明确提到"报告"、"report"时使用
-allowed-tools:  - query_database
-  - run_python  - write_file  - read_file
+allowed-tools:
+  - query_database
+  - run_python
+  - write_file
+  - read_file
 ---
 
 # 数据分析报告生成 Skill
