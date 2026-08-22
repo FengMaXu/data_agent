@@ -11,6 +11,7 @@ import {
 import { Value } from "typebox/value";
 import { MetadataStore } from "./metadata.js";
 import { randomUUID } from "node:crypto";
+import { PiJsonlSessionStore } from "./session-store.js";
 
 export class DataAgentRuntimeError extends Error {
   readonly code: "INVALID_COMMAND" | "UNSUPPORTED_PROTOCOL_VERSION" | "INVALID_CONTEXT";
@@ -34,11 +35,13 @@ export class DataAgentRuntime {
   private readonly listeners = new Set<DataAgentEventListener>();
   private readonly eventBuffer: DataAgentEventEnvelope[] = [];
   private readonly metadata?: MetadataStore;
+  private readonly sessions?: PiJsonlSessionStore;
   private activeRun?: { requestId: string; runId: string };
   private readonly agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void };
 
-  constructor(options: { metadata?: MetadataStore; agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void } } = {}) {
+  constructor(options: { metadata?: MetadataStore; sessions?: PiJsonlSessionStore; agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void } } = {}) {
     this.metadata = options.metadata;
+    this.sessions = options.sessions;
     this.agent = options.agent;
     this.agent?.subscribe?.((event) => this.mapPiEvent(event));
   }
@@ -95,7 +98,11 @@ export class DataAgentRuntime {
       if (c.type === "task.create") return this.mutation(command.requestId, "task", await this.metadata.call(c.type, userId, { idValue: MetadataStore.createId(), name: c.name }));
       if (c.type === "task.list") return this.list(command.requestId, "task", await this.metadata.call(c.type, userId));
       if (c.type === "task.rename" || c.type === "task.delete") return this.mutation(command.requestId, "task", await this.metadata.call(c.type, userId, c));
-      if (c.type === "session.create") return this.mutation(command.requestId, "session", await this.metadata.call(c.type, userId, { ...c, idValue: MetadataStore.createId() }));
+      if (c.type === "session.create") {
+        const item = await this.metadata.call(c.type, userId, { ...c, idValue: MetadataStore.createId() });
+        if (this.sessions) await this.sessions.create({ userId, taskId: c.taskId, sessionId: item.id });
+        return this.mutation(command.requestId, "session", item);
+      }
       if (c.type === "session.list") return this.list(command.requestId, "session", await this.metadata.call(c.type, userId, c));
       if (c.type === "session.rename" || c.type === "session.delete") return this.mutation(command.requestId, "session", await this.metadata.call(c.type, userId, c));
       throw new DataAgentRuntimeError("INVALID_COMMAND", "Unsupported DataAgent command");
