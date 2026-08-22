@@ -18,6 +18,7 @@ export class MetadataStore {
     this.worker.on("error", error => { for(const p of this.pending.values())p.reject(error); this.pending.clear(); });
   }
   call(op: string, userId: string, values: Record<string, unknown> = {}): Promise<any> { const id=this.next++; return new Promise((resolve,reject)=>{this.pending.set(id,{resolve,reject});this.worker.postMessage({id,op,userId,...values});}); }
+  async pendingOutbox(): Promise<any[]> { return this.call("outbox.list", "system"); }
   async close(): Promise<void> { await this.worker.terminate(); }
   static createId(): string { return randomUUID(); }
 }
