@@ -13,6 +13,7 @@ import { MetadataStore } from "./metadata.js";
 import { randomUUID } from "node:crypto";
 import { PiJsonlSessionStore } from "./session-store.js";
 import { WorkspaceStore } from "./workspace.js";
+import { runPythonJob } from "./python-job.js";
 
 export class DataAgentRuntimeError extends Error {
   readonly code: "INVALID_COMMAND" | "UNSUPPORTED_PROTOCOL_VERSION" | "INVALID_CONTEXT";
@@ -38,13 +39,15 @@ export class DataAgentRuntime {
   private readonly metadata?: MetadataStore;
   private readonly sessions?: PiJsonlSessionStore;
   private readonly workspace?: WorkspaceStore;
+  private pythonExecutable?: string;
   private activeRun?: { requestId: string; runId: string };
   private readonly agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void };
 
-  constructor(options: { metadata?: MetadataStore; sessions?: PiJsonlSessionStore; workspace?: WorkspaceStore; agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void } } = {}) {
+  constructor(options: { metadata?: MetadataStore; sessions?: PiJsonlSessionStore; workspace?: WorkspaceStore; pythonExecutable?: string; agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void } } = {}) {
     this.metadata = options.metadata;
     this.sessions = options.sessions;
     this.workspace = options.workspace;
+    this.pythonExecutable = options.pythonExecutable;
     this.agent = options.agent;
     this.agent?.subscribe?.((event) => this.mapPiEvent(event));
   }
@@ -82,6 +85,13 @@ export class DataAgentRuntime {
       await this.workspace.write(command.command.path, command.command.content);
       this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, sessionId: context.sessionId, timestamp: Date.now(), event: { type: "workspace.artifact.created", path: command.command.path, kind: "file" } });
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "workspace.result", operation: "write", path: command.command.path } };
+    }
+
+    if (command.command.type === "python.run") {
+      if (!this.pythonExecutable) throw new DataAgentRuntimeError("INVALID_COMMAND", "Python runtime is not configured");
+      if (!context.sessionId) throw new DataAgentRuntimeError("INVALID_CONTEXT", "Python jobs require a session workspace");
+      const result = await runPythonJob(command.command.code, { workspace: context.sessionId, executable: this.pythonExecutable });
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "python.result", jobId: result.jobId, status: result.status, exitCode: result.exitCode, stdout: result.stdout, stderr: result.stderr, scriptPath: result.scriptPath, durationMs: result.durationMs } };
     }
 
     if (command.command.type === "agent.steer" || command.command.type === "agent.follow_up") {
