@@ -166,4 +166,5 @@ export class DataAgentRuntime {
 
 export { LocalAuthService } from "./auth.js";
 export { migrateLegacyData, type MigrationReport } from "./legacy-migration.js";
+export { runPythonJob, type PythonJobResult } from "./python-job.js";
 export type { RequestContext } from "@data-agent/contracts";
