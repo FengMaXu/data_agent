@@ -1,4 +1,4 @@
-import { Agent } from "@earendil-works/pi-agent-core";
+import { AgentHarness, InMemorySessionRepo } from "@earendil-works/pi-agent-core";
 import { createModels, type Model, type Models } from "@earendil-works/pi-ai";
 
 export interface PiAgentTextEvent {
@@ -29,19 +29,15 @@ export interface PiAgentRunnerOptions {
 }
 
 /** Thin infrastructure adapter; application code must not depend on Pi events. */
-export function createPiAgentRunner(options: PiAgentRunnerOptions): Agent {
+export async function createPiAgentRunner(options: PiAgentRunnerOptions): Promise<AgentHarness> {
   const models = options.models ?? createModels();
-  const agent = new Agent({
-    initialState: {
-      systemPrompt: options.systemPrompt ?? "You are Data Agent.",
-      model: options.model,
-      thinkingLevel: "off",
-      tools: [],
-    },
-    convertToLlm: (messages) => messages.filter((message) =>
-      message.role === "user" || message.role === "assistant" || message.role === "toolResult",
-    ),
-    streamFn: models.streamSimple.bind(models),
+  const session = await new InMemorySessionRepo().create();
+  const agent = new AgentHarness({
+    session,
+    models,
+    model: options.model,
+    thinkingLevel: "off",
+    systemPrompt: options.systemPrompt ?? "You are Data Agent.",
   });
 
   if (options.onEvent) {
