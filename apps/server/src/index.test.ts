@@ -25,6 +25,14 @@ import { createRuntimeServer } from "./index.js";
     await app.close();
   });
 
+  it("starts an agent prompt through the HTTP Host", async () => {
+    const app = await createRuntimeServer(new DataAgentRuntime({ agent: { prompt: async () => undefined, abort: () => undefined } }));
+    const response = await app.inject({ method: "POST", url: "/api/runtime/command", payload: { protocolVersion: 1, requestId: "prompt", command: { type: "agent.prompt", prompt: "hello" } } });
+    expect(response.statusCode).toBe(200);
+    expect(response.json().response.type).toBe("agent.prompt.accepted");
+    await app.close();
+  });
+
   it("rejects malformed commands at the HTTP boundary", async () => {
     const app = await createRuntimeServer(new DataAgentRuntime());
 
