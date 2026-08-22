@@ -5,6 +5,11 @@ import Database from "better-sqlite3";
 
 export interface MigrationReport { migrationId: string; migrated: number; skipped: number; warnings: string[]; backupPath: string }
 
+function parseJson(value: unknown): unknown {
+  if (typeof value !== "string" || value.length === 0) return [];
+  try { return JSON.parse(value); } catch { return []; }
+}
+
 async function findFiles(root: string, name: string, result: string[] = []): Promise<string[]> {
   for (const entry of await readdir(root, { withFileTypes: true })) {
     const full = path.join(root, entry.name);
@@ -29,7 +34,8 @@ export async function migrateLegacyData(sourceRoot: string, targetRoot: string):
       db.close();
       const destination = path.join(target, "sessions", "legacy-metadata.json");
       await mkdir(path.dirname(destination), { recursive: true });
-      await writeFile(destination, JSON.stringify({ source: databasePath, tasks, sessions }, null, 2), "utf8");
+      const projections = sessions.map((session: any) => ({ id: session.id, taskId: session.task_id, name: session.name, uiTranscript: parseJson(session.ui_transcript_json), contextMessages: parseJson(session.context_messages_json), activeSkills: parseJson(session.active_skills_json), attachedFiles: parseJson(session.attached_files_json), conversationVersion: session.conversation_version }));
+      await writeFile(destination, JSON.stringify({ source: databasePath, tasks, sessions, projections }, null, 2), "utf8");
       report.migrated += tasks.length + sessions.length;
     } catch (error) { report.skipped += 1; report.warnings.push(`Failed to migrate ${databasePath}: ${error instanceof Error ? error.message : String(error)}`); }
   }
