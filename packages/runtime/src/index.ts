@@ -33,9 +33,9 @@ export type DataAgentEventListener = (event: DataAgentEventEnvelope) => void;
 export class DataAgentRuntime {
   private readonly listeners = new Set<DataAgentEventListener>();
   private readonly metadata?: MetadataStore;
-  private readonly agent?: { prompt(text: string): Promise<unknown>; abort(): void };
+  private readonly agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void };
 
-  constructor(options: { metadata?: MetadataStore; agent?: { prompt(text: string): Promise<unknown>; abort(): void } } = {}) {
+  constructor(options: { metadata?: MetadataStore; agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void } } = {}) {
     this.metadata = options.metadata;
     this.agent = options.agent;
   }
@@ -58,6 +58,19 @@ export class DataAgentRuntime {
         `Unsupported protocol version: ${command.protocolVersion}`,
         { supported: ProtocolVersion },
       );
+    }
+
+    if (command.command.type === "agent.steer" || command.command.type === "agent.follow_up") {
+      if (!this.agent) throw new DataAgentRuntimeError("INVALID_COMMAND", "Pi Agent is not configured");
+      const method = command.command.type === "agent.steer" ? this.agent.steer : this.agent.followUp;
+      if (!method) throw new DataAgentRuntimeError("INVALID_COMMAND", "Agent queue operation is not configured");
+      method.call(this.agent, command.command.prompt);
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "agent.prompt.accepted", runId: "queued" } };
+    }
+    if (command.command.type === "agent.stop") {
+      if (!this.agent) throw new DataAgentRuntimeError("INVALID_COMMAND", "Pi Agent is not configured");
+      this.agent.abort();
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "agent.prompt.accepted", runId: "stopped" } };
     }
 
     if (command.command.type === "agent.prompt") {
