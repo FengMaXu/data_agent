@@ -1,5 +1,7 @@
-import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
+
+export interface WorkspaceArtifact { path: string; size: number; modifiedAt: number; kind: "file" }
 
 export class WorkspaceStore {
   readonly root: string;
@@ -9,4 +11,6 @@ export class WorkspaceStore {
   async read(relativePath: string): Promise<string> { return readFile(this.resolve(relativePath), "utf8"); }
   async write(relativePath: string, content: string): Promise<void> { const target=this.resolve(relativePath); await mkdir(path.dirname(target), { recursive: true }); await writeFile(target, content, "utf8"); }
   async delete(relativePath: string): Promise<void> { await rm(this.resolve(relativePath), { force: true, recursive: true }); }
+  async upload(sourcePath: string, relativePath: string): Promise<WorkspaceArtifact> { const target=this.resolve(relativePath); await mkdir(path.dirname(target), { recursive: true }); await copyFile(sourcePath, target); return this.artifact(relativePath); }
+  async artifact(relativePath: string): Promise<WorkspaceArtifact> { const info=await stat(this.resolve(relativePath)); return { path: relativePath, size: info.size, modifiedAt: info.mtimeMs, kind: "file" }; }
 }
