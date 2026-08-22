@@ -10,6 +10,7 @@ import {
 } from "@data-agent/contracts";
 import { Value } from "typebox/value";
 import { MetadataStore } from "./metadata.js";
+import { randomUUID } from "node:crypto";
 
 export class DataAgentRuntimeError extends Error {
   readonly code: "INVALID_COMMAND" | "UNSUPPORTED_PROTOCOL_VERSION" | "INVALID_CONTEXT";
@@ -32,9 +33,11 @@ export type DataAgentEventListener = (event: DataAgentEventEnvelope) => void;
 export class DataAgentRuntime {
   private readonly listeners = new Set<DataAgentEventListener>();
   private readonly metadata?: MetadataStore;
+  private readonly agent?: { prompt(text: string): Promise<unknown>; abort(): void };
 
-  constructor(options: { metadata?: MetadataStore } = {}) {
+  constructor(options: { metadata?: MetadataStore; agent?: { prompt(text: string): Promise<unknown>; abort(): void } } = {}) {
     this.metadata = options.metadata;
+    this.agent = options.agent;
   }
   private nextSequence = 1;
 
@@ -55,6 +58,13 @@ export class DataAgentRuntime {
         `Unsupported protocol version: ${command.protocolVersion}`,
         { supported: ProtocolVersion },
       );
+    }
+
+    if (command.command.type === "agent.prompt") {
+      if (!this.agent) throw new DataAgentRuntimeError("INVALID_COMMAND", "Pi Agent is not configured");
+      const runId = randomUUID();
+      void this.agent.prompt(command.command.prompt).then(() => this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, runId, timestamp: Date.now(), event: { type: "agent.completed" } }));
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "agent.prompt.accepted", runId } };
     }
 
     if (command.command.type !== "runtime.probe") {
