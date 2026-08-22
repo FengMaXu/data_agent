@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { DataAgentRuntime } from "@data-agent/runtime";
 import { createRuntimeServer } from "./index.js";
+import { WorkspaceStore } from "@data-agent/runtime";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
  describe("Fastify Host", () => {
   it("supports Web registration and Bearer-token login", async () => {
@@ -33,6 +37,16 @@ import { createRuntimeServer } from "./index.js";
       response: { type: "runtime.probe.result" },
     });
     await app.close();
+  });
+
+  it("uploads a Workspace file through the dedicated multipart route", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-server-workspace-"));
+    const app = await createRuntimeServer(new DataAgentRuntime(), { workspace: new WorkspaceStore(root) });
+    const form = new FormData(); form.append("file", new Blob(["hello"]), "hello.txt");
+    const response = await app.inject({ method: "POST", url: "/api/workspace/upload", payload: form as any, headers: { "content-type": "multipart/form-data" } });
+    expect(response.statusCode).toBe(200);
+    expect(await readFile(join(root, "hello.txt"), "utf8")).toBe("hello");
+    await app.close(); await rm(root, { recursive: true, force: true });
   });
 
   it("starts an agent prompt through the HTTP Host", async () => {
