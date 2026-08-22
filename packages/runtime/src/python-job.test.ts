@@ -5,6 +5,13 @@ import { join } from "node:path";
 import { runPythonJob } from "./python-job.js";
 
 describe("Python workspace jobs", () => {
+  it("times out long-running code", async () => {
+    const workspace = await mkdtemp(join(tmpdir(), "data-agent-python-timeout-"));
+    const result = await runPythonJob("import time\ntime.sleep(10)", { workspace, executable: process.platform === "win32" ? "python" : "python3", timeoutMs: 500 });
+    expect(result.status).toBe("timeout");
+    await rm(workspace, { recursive: true, force: true });
+  });
+
   it("executes code and captures output", async () => {
     const workspace = await mkdtemp(join(tmpdir(), "data-agent-python-"));
     const result = await runPythonJob("print('ok')", { workspace, executable: process.platform === "win32" ? "python" : "python3" });
