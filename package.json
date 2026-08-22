@@ -1,0 +1,28 @@
+{
+  "name": "data-agent-workspace",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*",
+    "frontend"
+  ],
+  "scripts": {
+    "build:contracts": "npm run build --workspace=@data-agent/contracts",
+    "build:runtime": "npm run build --workspace=@data-agent/runtime",
+    "build:transport": "npm run build --workspace=@data-agent/transport",
+    "build:electron-host": "npm run build --workspace=@data-agent/electron-host",
+    "build:server": "npm run build --workspace=@data-agent/server",
+    "build:frontend": "npm run build --workspace=frontend",
+    "build": "npm run build:contracts && npm run build:runtime && npm run build:transport && npm run build:electron-host && npm run build:server && npm run build:frontend",
+    "pretest": "npm run build",
+    "test": "npm run test --workspaces --if-present",
+    "pretypecheck": "npm run build",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "vitest": "3.2.7"
+  }
+}
