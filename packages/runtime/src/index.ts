@@ -164,4 +164,5 @@ export class DataAgentRuntime {
   }
 }
 
+export { LocalAuthService } from "./auth.js";
 export type { RequestContext } from "@data-agent/contracts";
