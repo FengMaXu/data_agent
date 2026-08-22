@@ -67,11 +67,11 @@ applied on first render, omit `default` or set `"default": ""`.
 
 生成可以直接交付给业务人员、数据分析师或管理层使用的独立 HTML BI 看板。看板必须具备清晰的数据叙事、稳定的布局、统一的视觉编码、必要的交互能力和可维护的结构化 spec。
 
-默认使用 `build_dashboard(spec={...})` 的 v3 spec。不要再把复杂看板拆成 widget 卡片，也不要把“查看”做成下载行为。HTML 看板本身就是交付物，下载链接只作为文件获取入口。
+默认使用 `generate_dashboard(spec={...})` 的 v3 spec。不要再把复杂看板拆成 widget 卡片，也不要把“查看”做成下载行为。HTML 看板本身就是交付物，下载链接只作为文件获取入口。
 
 ### KTX 实时联动看板使用 V4
 
-当用户要求“筛选后重新查询数据库”“KTX 语义查询联动”或“应用内实时刷新”时，使用 `validate_semantic_dashboard_spec` 和 `build_semantic_dashboard`，不要把语义查询伪装成 V3 CSV dataset。
+当用户要求“筛选后重新查询数据库”“KTX 语义查询联动”或“应用内实时刷新”时，使用 `generate_dashboard` 和 `generate_dashboard`，不要把语义查询伪装成 V3 CSV dataset。
 
 V4 的唯一核心模型是：
 
@@ -84,7 +84,7 @@ parameters + data + views + interactions + layout
 - 参数只能是首期 `select`，options 必须引用一个不带 `$param` 的 data 节点；`null` 表示不筛选。
 - `where` 首期只使用 `eq` 和 `{"$param": "parameter_name"}`。
 - 点击筛选/预定义下钻统一使用 `action.type="set_parameter"`，不经过 Agent。
-- 先调用 `validate_semantic_dashboard_spec`，再调用 `build_semantic_dashboard`；构建时会执行真实 KTX 默认查询并生成快照，应用内预览才支持实时刷新，离线 HTML 仍是快照。
+- 先调用 `generate_dashboard`，再调用 `generate_dashboard`；构建时会执行真实 KTX 默认查询并生成快照，应用内预览才支持实时刷新，离线 HTML 仍是快照。
 
 V4 示例：
 
@@ -185,8 +185,8 @@ V3 仍用于静态 CSV、本地筛选和可离线独立交付；不要在同一�
    - 明确粒度：时间、地区、行业、产品、客户、组织等。
 
 2. 准备数据
-   - 用 `execute_sql` 查询数据，或使用已有文件。
-   - 用 `write_workspace_file` 写入 `data/*.csv`。
+   - 用 `query_database` 查询数据，或使用已有文件。
+   - 用 `write_file` 写入 `data/*.csv`。
    - 每个 CSV 保持窄而清晰：维度列、指标列、时间列、层级关联列。
    - 数值列使用数字，不要混入单位文本；单位写入 schema 或图表轴。
 
@@ -197,9 +197,9 @@ V3 仍用于静态 CSV、本地筛选和可离线独立交付；不要在同一�
    - 在 `filters` 中声明下拉筛选；`interactions` 目前只声明点击下钻。
 
 4. 先校验，再生成
-   - 对复杂看板先调用 `validate_dashboard_spec(spec=...)`。
-   - 校验通过后调用 `build_dashboard(spec=...)`。
-   - 需要修改已有看板时，只使用 `edit_dashboard` 做结构化修改。
+   - 对复杂看板先调用 `generate_dashboard(spec=...)`。
+   - 校验通过后调用 `generate_dashboard(spec=...)`。
+   - 需要修改已有看板时，只使用 `generate_dashboard` 做结构化修改。
    - 不使用旧版 `charts` 参数、`add_chart` 或 `remove_chart`。
 
 5. 最终交付
@@ -450,9 +450,9 @@ KPI 卡片只放最关键的 3 到 6 个指标。不要把所有明细都塞进 
 
 ## 错误处理
 
-- 如果 `validate_dashboard_spec` 报字段缺失，先修 CSV 或 schema，不要绕过校验。
+- 如果 `generate_dashboard` 报字段缺失，先修 CSV 或 schema，不要绕过校验。
 - 如果用户要求复杂交互，而当前工具能力不足，明确说明限制，并给出可落地替代方案；不要伪造交互。
-- 如果已有看板无法被 `edit_dashboard` 读取，说明它不是 v3 看板；应重新生成 v3 看板，不要继续编辑旧 HTML。
+- 如果已有看板无法被 `generate_dashboard` 读取，说明它不是 v3 看板；应重新生成 v3 看板，不要继续编辑旧 HTML。
 
 ## 最终答复格式
 

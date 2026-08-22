@@ -22,8 +22,8 @@ allowed-tools:
 - 如果用户没有明确指定，询问时间范围、维度和指标
 
 ### 第二步：数据获取
-- 使用 `execute_sql` 查询所需数据
-- 将结果通过 `write_workspace_file` 保存为 CSV（UTF-8 BOM）
+- 使用 `query_database` 查询所需数据
+- 将结果通过 `write_file` 保存为 CSV（UTF-8 BOM）
 
 ### 第三步：分析与可视化
 - 使用 `run_python` 执行 pandas 分析
@@ -31,7 +31,7 @@ allowed-tools:
 - 配色使用专业商务风格
 
 ### 第四步：撰写报告
-- 使用 `write_workspace_file` 生成 Markdown 报告
+- 使用 `write_file` 生成 Markdown 报告
 - 报告结构：摘要 → 数据概览 → 关键发现 → 图表 → 建议
 
 ## 报告模板

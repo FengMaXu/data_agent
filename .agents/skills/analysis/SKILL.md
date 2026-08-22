@@ -24,7 +24,7 @@ allowed-tools:
 
 ## 路径 A：内联 ECharts（聊天气泡内交互图表）
 
-1. `execute_sql` → 提取数据
+1. `query_database` → 提取数据
 2. `show_widget(kind="echarts", config={完整 ECharts option})` → 渲染交互图表
 3. 输出分析结论
 
@@ -48,8 +48,8 @@ ECharts config 示例（折线图）：
 ## 路径 B：文件输出（需要可下载文件时）
 
 1. `search_knowledge` → 检索业务规则
-2. `execute_sql` → 提取原始数据
-3. `write_workspace_file` → 将结果保存为 CSV（**禁止用 JSON 中转**）
+2. `query_database` → 提取原始数据
+3. `write_file` → 将结果保存为 CSV（**禁止用 JSON 中转**）
 4. `run_python` → 用 pandas 读取 CSV，分步执行：
    - 第一步：`pd.read_csv()` 加载 + 清洗
    - 第二步：统计计算
