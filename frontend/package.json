@@ -72,6 +72,13 @@
         "filter": [
           "ktx-semantic-context/**/*"
         ]
+      },
+      {
+        "from": "../dist/python-runtime",
+        "to": "python-runtime",
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "win": {
