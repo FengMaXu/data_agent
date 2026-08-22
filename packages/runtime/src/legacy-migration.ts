@@ -2,6 +2,7 @@ import { cp, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import Database from "better-sqlite3";
+import { PiJsonlSessionStore } from "./session-store.js";
 
 export interface MigrationReport { migrationId: string; migrated: number; skipped: number; warnings: string[]; backupPath: string }
 
@@ -19,7 +20,7 @@ async function findFiles(root: string, name: string, result: string[] = []): Pro
   return result;
 }
 
-export async function migrateLegacyData(sourceRoot: string, targetRoot: string): Promise<MigrationReport> {
+export async function migrateLegacyData(sourceRoot: string, targetRoot: string, sessionStore?: PiJsonlSessionStore): Promise<MigrationReport> {
   const source = path.resolve(sourceRoot); const target = path.resolve(targetRoot); const marker = path.join(target, ".migration-complete.json");
   try { return JSON.parse(await readFile(marker, "utf8")) as MigrationReport; } catch { /* first migration */ }
   const migrationId = randomUUID(); const backupPath = path.join(target, "migration-backup", migrationId);
@@ -36,6 +37,15 @@ export async function migrateLegacyData(sourceRoot: string, targetRoot: string):
       await mkdir(path.dirname(destination), { recursive: true });
       const projections = sessions.map((session: any) => ({ id: session.id, taskId: session.task_id, name: session.name, uiTranscript: parseJson(session.ui_transcript_json), contextMessages: parseJson(session.context_messages_json), activeSkills: parseJson(session.active_skills_json), attachedFiles: parseJson(session.attached_files_json), conversationVersion: session.conversation_version }));
       await writeFile(destination, JSON.stringify({ source: databasePath, tasks, sessions, projections }, null, 2), "utf8");
+      if (sessionStore) {
+        for (const projection of projections) {
+          const session = await sessionStore.create({ legacySessionId: projection.id, taskId: projection.taskId });
+          for (const message of Array.isArray(projection.contextMessages) ? projection.contextMessages : []) {
+            if (message?.role === "user" || message?.role === "assistant" || message?.role === "toolResult") await session.appendMessage(message);
+            else report.warnings.push(`Skipped unsupported legacy message in ${projection.id}`);
+          }
+        }
+      }
       report.migrated += tasks.length + sessions.length;
     } catch (error) { report.skipped += 1; report.warnings.push(`Failed to migrate ${databasePath}: ${error instanceof Error ? error.message : String(error)}`); }
   }
