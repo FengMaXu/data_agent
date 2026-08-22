@@ -1,6 +1,7 @@
 import { cp, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
+import Database from "better-sqlite3";
 
 export interface MigrationReport { migrationId: string; migrated: number; skipped: number; warnings: string[]; backupPath: string }
 
@@ -19,6 +20,19 @@ export async function migrateLegacyData(sourceRoot: string, targetRoot: string):
   const migrationId = randomUUID(); const backupPath = path.join(target, "migration-backup", migrationId);
   await mkdir(backupPath, { recursive: true }); await cp(source, backupPath, { recursive: true, force: true });
   const report: MigrationReport = { migrationId, migrated: 0, skipped: 0, warnings: [], backupPath };
+  const databases = await findFiles(source, "app.sqlite3");
+  for (const databasePath of databases) {
+    try {
+      const db = new Database(databasePath, { readonly: true });
+      const tasks = db.prepare("SELECT * FROM tasks").all();
+      const sessions = db.prepare("SELECT * FROM chat_sessions").all();
+      db.close();
+      const destination = path.join(target, "sessions", "legacy-metadata.json");
+      await mkdir(path.dirname(destination), { recursive: true });
+      await writeFile(destination, JSON.stringify({ source: databasePath, tasks, sessions }, null, 2), "utf8");
+      report.migrated += tasks.length + sessions.length;
+    } catch (error) { report.skipped += 1; report.warnings.push(`Failed to migrate ${databasePath}: ${error instanceof Error ? error.message : String(error)}`); }
+  }
   const snapshots = await findFiles(source, ".session_snapshot.json");
   for (const snapshot of snapshots) {
     try {
