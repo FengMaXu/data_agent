@@ -13,6 +13,8 @@ describe("DataAgentRuntime", () => {
     const result = await runtime.dispatch({ protocolVersion: 1, requestId: "req-1", command: { type: "runtime.probe" } }, { userId: "local", host: "electron" });
     expect(result.response.type).toBe("runtime.probe.result");
     expect(events).toHaveLength(1);
+    expect(runtime.eventsAfter(0)).toHaveLength(1);
+    expect(runtime.eventsAfter(1)).toHaveLength(0);
   });
 
   it("rejects an unsupported protocol version", async () => {

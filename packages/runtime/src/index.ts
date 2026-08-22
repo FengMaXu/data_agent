@@ -32,6 +32,7 @@ export type DataAgentEventListener = (event: DataAgentEventEnvelope) => void;
 
 export class DataAgentRuntime {
   private readonly listeners = new Set<DataAgentEventListener>();
+  private readonly eventBuffer: DataAgentEventEnvelope[] = [];
   private readonly metadata?: MetadataStore;
   private activeRun?: { requestId: string; runId: string };
   private readonly agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void };
@@ -42,6 +43,10 @@ export class DataAgentRuntime {
     this.agent?.subscribe?.((event) => this.mapPiEvent(event));
   }
   private nextSequence = 1;
+
+  eventsAfter(sequence: number): DataAgentEventEnvelope[] {
+    return this.eventBuffer.filter((event) => event.sequence > sequence);
+  }
 
   subscribe(listener: DataAgentEventListener): () => void {
     this.listeners.add(listener);
@@ -145,6 +150,8 @@ export class DataAgentRuntime {
     if (!Value.Check(DataAgentEventEnvelopeSchema, event)) {
       throw new DataAgentRuntimeError("INVALID_COMMAND", "Runtime produced an invalid event");
     }
+    this.eventBuffer.push(event);
+    if (this.eventBuffer.length > 256) this.eventBuffer.shift();
     for (const listener of this.listeners) listener(event);
   }
 }
