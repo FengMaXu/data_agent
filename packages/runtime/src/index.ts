@@ -33,11 +33,13 @@ export type DataAgentEventListener = (event: DataAgentEventEnvelope) => void;
 export class DataAgentRuntime {
   private readonly listeners = new Set<DataAgentEventListener>();
   private readonly metadata?: MetadataStore;
-  private readonly agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void };
+  private activeRun?: { requestId: string; runId: string };
+  private readonly agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void };
 
-  constructor(options: { metadata?: MetadataStore; agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void } } = {}) {
+  constructor(options: { metadata?: MetadataStore; agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void } } = {}) {
     this.metadata = options.metadata;
     this.agent = options.agent;
+    this.agent?.subscribe?.((event) => this.mapPiEvent(event));
   }
   private nextSequence = 1;
 
@@ -76,7 +78,8 @@ export class DataAgentRuntime {
     if (command.command.type === "agent.prompt") {
       if (!this.agent) throw new DataAgentRuntimeError("INVALID_COMMAND", "Pi Agent is not configured");
       const runId = randomUUID();
-      void this.agent.prompt(command.command.prompt).then(() => this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, runId, timestamp: Date.now(), event: { type: "agent.completed" } }));
+      this.activeRun = { requestId: command.requestId, runId };
+      void this.agent.prompt(command.command.prompt).then(() => { this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, runId, timestamp: Date.now(), event: { type: "agent.completed" } }); this.activeRun = undefined; });
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "agent.prompt.accepted", runId } };
     }
 
@@ -119,6 +122,14 @@ export class DataAgentRuntime {
     });
 
     return response;
+  }
+
+  private mapPiEvent(event: any): void {
+    const run = this.activeRun;
+    if (!run || event?.type !== "message_update") return;
+    const update = event.assistantMessageEvent;
+    if (update?.type !== "text_delta" && update?.type !== "thinking_delta") return;
+    this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: run.requestId, runId: run.runId, timestamp: Date.now(), event: { type: update.type === "text_delta" ? "agent.text_delta" : "agent.thinking_delta", delta: update.delta } });
   }
 
   private mutation(requestId: string, entity: "task" | "session", item: unknown): DataAgentResponseEnvelope { return { protocolVersion: ProtocolVersion, requestId, response: { type: "mutation.result", entity, item: item as never } }; }
