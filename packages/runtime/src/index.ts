@@ -14,6 +14,7 @@ import { randomUUID } from "node:crypto";
 import { PiJsonlSessionStore } from "./session-store.js";
 import { WorkspaceStore } from "./workspace.js";
 import { runPythonJob } from "./python-job.js";
+import { KnowledgeIndex } from "./knowledge.js";
 
 export class DataAgentRuntimeError extends Error {
   readonly code: "INVALID_COMMAND" | "UNSUPPORTED_PROTOCOL_VERSION" | "INVALID_CONTEXT";
@@ -40,14 +41,18 @@ export class DataAgentRuntime {
   private readonly sessions?: PiJsonlSessionStore;
   private readonly workspace?: WorkspaceStore;
   private pythonExecutable?: string;
+  private readonly knowledge?: KnowledgeIndex;
+  private readonly knowledgeRoot?: string;
   private activeRun?: { requestId: string; runId: string };
   private readonly agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void };
 
-  constructor(options: { metadata?: MetadataStore; sessions?: PiJsonlSessionStore; workspace?: WorkspaceStore; pythonExecutable?: string; agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void } } = {}) {
+  constructor(options: { metadata?: MetadataStore; sessions?: PiJsonlSessionStore; workspace?: WorkspaceStore; pythonExecutable?: string; knowledge?: KnowledgeIndex; knowledgeRoot?: string; agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void } } = {}) {
     this.metadata = options.metadata;
     this.sessions = options.sessions;
     this.workspace = options.workspace;
     this.pythonExecutable = options.pythonExecutable;
+    this.knowledge = options.knowledge;
+    this.knowledgeRoot = options.knowledgeRoot;
     this.agent = options.agent;
     this.agent?.subscribe?.((event) => this.mapPiEvent(event));
   }
@@ -92,6 +97,17 @@ export class DataAgentRuntime {
       if (!context.sessionId) throw new DataAgentRuntimeError("INVALID_CONTEXT", "Python jobs require a session workspace");
       const result = await runPythonJob(command.command.code, { workspace: context.sessionId, executable: this.pythonExecutable });
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "python.result", jobId: result.jobId, status: result.status, exitCode: result.exitCode, stdout: result.stdout, stderr: result.stderr, scriptPath: result.scriptPath, durationMs: result.durationMs } };
+    }
+
+    if (command.command.type === "knowledge.search" || command.command.type === "knowledge.read") {
+      if (!this.knowledge || !this.knowledgeRoot) throw new DataAgentRuntimeError("INVALID_COMMAND", "Knowledge index is not configured");
+      await this.knowledge.loadDirectory(this.knowledgeRoot);
+      if (command.command.type === "knowledge.search") return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "knowledge.search.result", hits: this.knowledge.search(command.command.query) } };
+      const { readFile } = await import("node:fs/promises");
+      const { resolve, join } = await import("node:path");
+      const target = resolve(join(this.knowledgeRoot, command.command.path));
+      if (!target.startsWith(resolve(this.knowledgeRoot))) throw new DataAgentRuntimeError("INVALID_COMMAND", "Knowledge path escapes root");
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "knowledge.read.result", path: command.command.path, content: await readFile(target, "utf8") } };
     }
 
     if (command.command.type === "agent.steer" || command.command.type === "agent.follow_up") {
