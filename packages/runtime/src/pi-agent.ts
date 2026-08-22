@@ -6,6 +6,21 @@ export interface PiAgentTextEvent {
   delta?: string;
 }
 
+export interface DataAgentModelProfile {
+  provider: string;
+  model: string;
+  apiKey?: string;
+}
+
+export function resolvePiModel(models: Models, profile: DataAgentModelProfile): Model<any> {
+  if (profile.apiKey && "setRuntimeApiKey" in models && typeof models.setRuntimeApiKey === "function") {
+    models.setRuntimeApiKey(profile.provider, profile.apiKey);
+  }
+  const model = models.getModel(profile.provider, profile.model);
+  if (!model) throw new Error(`Model not found: ${profile.provider}/${profile.model}`);
+  return model;
+}
+
 export interface PiAgentRunnerOptions {
   model: Model<any>;
   models?: Models;
