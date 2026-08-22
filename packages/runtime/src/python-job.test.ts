@@ -10,6 +10,7 @@ describe("Python workspace jobs", () => {
     const result = await runPythonJob("print('ok')", { workspace, executable: process.platform === "win32" ? "python" : "python3" });
     expect(result.status).toBe("success");
     expect(result.stdout).toContain("ok");
+    expect(result.artifacts).toContain("scripts");
     await rm(workspace, { recursive: true, force: true });
   });
 });
