@@ -101,6 +101,7 @@ export class DataAgentRuntime {
       if (c.type === "session.create") {
         const item = await this.metadata.call(c.type, userId, { ...c, idValue: MetadataStore.createId() });
         if (this.sessions) await this.sessions.create({ userId, taskId: c.taskId, sessionId: item.id });
+        await this.metadata.call("outbox.enqueue", userId, { sessionId: item.id, sequence: 0 });
         return this.mutation(command.requestId, "session", item);
       }
       if (c.type === "session.list") return this.list(command.requestId, "session", await this.metadata.call(c.type, userId, c));
