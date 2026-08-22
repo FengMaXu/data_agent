@@ -2,13 +2,10 @@
 name: analysis
 description: 数据分析与可视化 — ECharts 交互图表或 matplotlib 文件输出
 when_to_use: 当用户要求画图、趋势图、折线图、柱状图、饼图、可视化、保存图表、下载图表时使用
-allowed-tools:
-  - execute_sql
+allowed-tools:  - query_database
   - show_widget
-  - run_python
-  - write_workspace_file
-  - search_knowledge
-  - read_knowledge_file
+  - run_python  - write_file
+  - search_knowledge  - read_knowledge
 ---
 
 # 数据分析与可视化
