@@ -1,17 +1,16 @@
 ---
 name: dashboard
 description: 生成商用级别的交互式 HTML BI 看板
-when_to_use: 当用户要求生成、修改、重构、预览或交付 HTML BI 看板、经营分析看板、指标驾驶舱、多图表综合分析、下钻分析、导出型数据报告时使用。
 allowed-tools:
-  - execute_sql
-  - write_workspace_file
-  - validate_dashboard_spec
-  - build_dashboard
-  - edit_dashboard
-  - validate_semantic_dashboard_spec
-  - build_semantic_dashboard
+  - query_database
+  - write_file
+  - generate_dashboard
+  - generate_dashboard
+  - generate_dashboard
+  - generate_dashboard
+  - generate_dashboard
   - search_knowledge
-  - read_knowledge_file
+  - read_knowledge
 ---
 
 ## General multi-series contract
