@@ -9,6 +9,7 @@ import {
   type RequestContext,
 } from "@data-agent/contracts";
 import { Value } from "typebox/value";
+import { MetadataStore } from "./metadata.js";
 
 export class DataAgentRuntimeError extends Error {
   readonly code: "INVALID_COMMAND" | "UNSUPPORTED_PROTOCOL_VERSION" | "INVALID_CONTEXT";
@@ -30,6 +31,11 @@ export type DataAgentEventListener = (event: DataAgentEventEnvelope) => void;
 
 export class DataAgentRuntime {
   private readonly listeners = new Set<DataAgentEventListener>();
+  private readonly metadata?: MetadataStore;
+
+  constructor(options: { metadata?: MetadataStore } = {}) {
+    this.metadata = options.metadata;
+  }
   private nextSequence = 1;
 
   subscribe(listener: DataAgentEventListener): () => void {
@@ -52,6 +58,15 @@ export class DataAgentRuntime {
     }
 
     if (command.command.type !== "runtime.probe") {
+      if (!this.metadata) throw new DataAgentRuntimeError("INVALID_COMMAND", "Metadata store is not configured");
+      const c = command.command;
+      const userId = context.userId;
+      if (c.type === "task.create") return this.mutation(command.requestId, "task", await this.metadata.call(c.type, userId, { idValue: MetadataStore.createId(), name: c.name }));
+      if (c.type === "task.list") return this.list(command.requestId, "task", await this.metadata.call(c.type, userId));
+      if (c.type === "task.rename" || c.type === "task.delete") return this.mutation(command.requestId, "task", await this.metadata.call(c.type, userId, c));
+      if (c.type === "session.create") return this.mutation(command.requestId, "session", await this.metadata.call(c.type, userId, { ...c, idValue: MetadataStore.createId() }));
+      if (c.type === "session.list") return this.list(command.requestId, "session", await this.metadata.call(c.type, userId, c));
+      if (c.type === "session.rename" || c.type === "session.delete") return this.mutation(command.requestId, "session", await this.metadata.call(c.type, userId, c));
       throw new DataAgentRuntimeError("INVALID_COMMAND", "Unsupported DataAgent command");
     }
 
@@ -82,6 +97,9 @@ export class DataAgentRuntime {
 
     return response;
   }
+
+  private mutation(requestId: string, entity: "task" | "session", item: unknown): DataAgentResponseEnvelope { return { protocolVersion: ProtocolVersion, requestId, response: { type: "mutation.result", entity, item: item as never } }; }
+  private list(requestId: string, entity: "task" | "session", items: unknown): DataAgentResponseEnvelope { return { protocolVersion: ProtocolVersion, requestId, response: { type: "list.result", entity, items: items as never[] } }; }
 
   private assertContext(context: RequestContext): void {
     if (!Value.Check(RequestContextSchema, context)) {
