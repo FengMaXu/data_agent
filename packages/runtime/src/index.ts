@@ -183,4 +183,5 @@ export { migrateLegacyData, type MigrationReport } from "./legacy-migration.js";
 export { runPythonJob, type PythonJobResult } from "./python-job.js";
 export { WorkspaceStore } from "./workspace.js";
 export { loadRuntimeManifest, probePython, resolvePythonRuntime, type PythonRuntimeConfig, type PythonRuntimeManifest } from "./python-runtime.js";
+export { writePythonPackManifest } from "./python-pack-builder.js";
 export type { RequestContext } from "@data-agent/contracts";
