@@ -3,6 +3,16 @@ import { DataAgentRuntime } from "@data-agent/runtime";
 import { createRuntimeServer } from "./index.js";
 
  describe("Fastify Host", () => {
+  it("supports Web registration and Bearer-token login", async () => {
+    const app = await createRuntimeServer(new DataAgentRuntime());
+    const registered = await app.inject({ method: "POST", url: "/auth/register", payload: { username: "alice", password: "secret" } });
+    expect(registered.statusCode).toBe(200);
+    const loggedIn = await app.inject({ method: "POST", url: "/auth/login", payload: { username: "alice", password: "secret" } });
+    expect(loggedIn.statusCode).toBe(200);
+    expect(loggedIn.json().token).toEqual(expect.any(String));
+    await app.close();
+  });
+
   it("dispatches the same runtime probe contract as Electron", async () => {
     const app = await createRuntimeServer(new DataAgentRuntime());
 
