@@ -7,7 +7,8 @@ if (!source || !output) throw new Error("Usage: node build-python-runtime.mjs <s
 await mkdir(output, { recursive: true });
 await cp(source, output, { recursive: true, force: true });
 const hash = createHash("sha256");
-const files = await readFile(path.join(output, process.platform === "win32" ? "python.exe" : "bin/python"));
+const executableRelative = process.platform === "win32" ? (await readFile(path.join(output, "python.exe")).then(() => "python.exe").catch(() => "Scripts/python.exe")) : "bin/python";
+const files = await readFile(path.join(output, executableRelative));
 hash.update(files);
 const manifest = { runtimeId: `python-data-${process.platform}-${process.arch}`, pythonVersion: process.env.PYTHON_VERSION ?? "3.13.x", platform: process.platform, arch: process.arch, packs: ["base", "data", "visual"], sha256: hash.digest("hex") };
 await writeFile(path.join(output, "manifest.json"), JSON.stringify(manifest, null, 2), "utf8");
