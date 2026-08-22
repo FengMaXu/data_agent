@@ -1,9 +1,10 @@
 import Fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
 import { parseDataAgentCommandEnvelope, type RequestContext } from "@data-agent/contracts";
-import { DataAgentRuntime, DataAgentRuntimeError, LocalAuthService } from "@data-agent/runtime";
+import { DataAgentRuntime, DataAgentRuntimeError, LocalAuthService, WorkspaceStore } from "@data-agent/runtime";
 
 export interface RuntimeServerOptions {
   contextFactory?: (request: FastifyRequest) => RequestContext;
+  workspace?: WorkspaceStore;
 }
 
 export async function createRuntimeServer(
@@ -16,6 +17,7 @@ export async function createRuntimeServer(
   app.post("/auth/login", async (request, reply) => { const body = request.body as { username?: string; password?: string }; try { return auth.login(body.username ?? "", body.password ?? ""); } catch { return reply.code(401).send({ error: { code: "AUTH_INVALID_CREDENTIALS" } }); } });
   app.post("/auth/logout", async (request) => { const token = String(request.headers.authorization ?? "").replace(/^Bearer /i, ""); auth.logout(token); return { ok: true }; });
   const contextFactory = options.contextFactory ?? (() => ({ userId: "web-dev", host: "web" as const }));
+  if (options.workspace) app.get("/api/workspace/download", async (request, reply) => { const query = request.query as { path?: string }; try { const context = contextFactory(request); options.workspace!.assertAccess(context); return reply.type("text/plain").send(await options.workspace!.read(query.path ?? "")); } catch { return reply.code(403).send({ error: { code: "WORKSPACE_ACCESS_DENIED" } }); } });
 
   app.post("/api/runtime/command", async (request, reply) => {
     try {
