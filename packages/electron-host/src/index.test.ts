@@ -4,7 +4,7 @@ import { registerElectronRuntimeIpc, type IpcMainLike } from "./index.js";
 
  describe("Electron IPC Host", () => {
   it("dispatches the runtime probe without trusting renderer identity", async () => {
-    const runtime = new DataAgentRuntime();
+    const runtime = new DataAgentRuntime({ agent: { prompt: async () => undefined, abort: () => undefined } });
     const handlers = new Map<string, (event: unknown, payload: unknown) => Promise<unknown>>();
     const ipcMain: IpcMainLike = {
       handle(channel, handler) {
@@ -20,13 +20,13 @@ import { registerElectronRuntimeIpc, type IpcMainLike } from "./index.js";
       protocolVersion: 1,
       requestId: "req-1",
       userId: "spoofed",
-      command: { type: "runtime.probe" },
+      command: { type: "agent.prompt", prompt: "hello" },
     });
 
     expect(response).toMatchObject({
       protocolVersion: 1,
       requestId: "req-1",
-      response: { type: "runtime.probe.result" },
+      response: { type: "agent.prompt.accepted" },
     });
     unregister();
     expect(handlers.has("data-agent:command")).toBe(false);
