@@ -75,6 +75,7 @@ export class DataAgentRuntime {
 
     if (command.command.type === "workspace.list" || command.command.type === "workspace.read" || command.command.type === "workspace.write" || command.command.type === "workspace.delete") {
       if (!this.workspace) throw new DataAgentRuntimeError("INVALID_COMMAND", "Workspace is not configured");
+      this.workspace.assertAccess(context);
       if (command.command.type === "workspace.list") return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "workspace.result", operation: "list", files: await this.workspace.list() } };
       if (command.command.type === "workspace.read") return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "workspace.result", operation: "read", path: command.command.path, content: await this.workspace.read(command.command.path) } };
       if (command.command.type === "workspace.delete") { await this.workspace.delete(command.command.path); return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "workspace.result", operation: "write", path: command.command.path } }; }

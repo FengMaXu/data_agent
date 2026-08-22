@@ -5,7 +5,10 @@ export interface WorkspaceArtifact { path: string; size: number; modifiedAt: num
 
 export class WorkspaceStore {
   readonly root: string;
-  constructor(root: string) { this.root = path.resolve(root); }
+  private readonly ownerUserId?: string;
+  private readonly ownerSessionId?: string;
+  constructor(root: string, ownership: { userId?: string; sessionId?: string } = {}) { this.root = path.resolve(root); this.ownerUserId = ownership.userId; this.ownerSessionId = ownership.sessionId; }
+  assertAccess(context: { userId: string; sessionId?: string }): void { if (this.ownerUserId && context.userId !== this.ownerUserId) throw new Error("WORKSPACE_OWNER_MISMATCH"); if (this.ownerSessionId && context.sessionId !== this.ownerSessionId) throw new Error("WORKSPACE_SESSION_MISMATCH"); }
   private resolve(relativePath: string): string { const target = path.resolve(this.root, relativePath); if (target !== this.root && !target.startsWith(`${this.root}${path.sep}`)) throw new Error("WORKSPACE_PATH_ESCAPE"); return target; }
   async list(): Promise<string[]> { return readdir(this.root, { recursive: true }) as Promise<string[]>; }
   async read(relativePath: string): Promise<string> { return readFile(this.resolve(relativePath), "utf8"); }
