@@ -12,6 +12,7 @@ import { Value } from "typebox/value";
 import { MetadataStore } from "./metadata.js";
 import { randomUUID } from "node:crypto";
 import { PiJsonlSessionStore } from "./session-store.js";
+import { WorkspaceStore } from "./workspace.js";
 
 export class DataAgentRuntimeError extends Error {
   readonly code: "INVALID_COMMAND" | "UNSUPPORTED_PROTOCOL_VERSION" | "INVALID_CONTEXT";
@@ -36,12 +37,14 @@ export class DataAgentRuntime {
   private readonly eventBuffer: DataAgentEventEnvelope[] = [];
   private readonly metadata?: MetadataStore;
   private readonly sessions?: PiJsonlSessionStore;
+  private readonly workspace?: WorkspaceStore;
   private activeRun?: { requestId: string; runId: string };
   private readonly agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void };
 
-  constructor(options: { metadata?: MetadataStore; sessions?: PiJsonlSessionStore; agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void } } = {}) {
+  constructor(options: { metadata?: MetadataStore; sessions?: PiJsonlSessionStore; workspace?: WorkspaceStore; agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void } } = {}) {
     this.metadata = options.metadata;
     this.sessions = options.sessions;
+    this.workspace = options.workspace;
     this.agent = options.agent;
     this.agent?.subscribe?.((event) => this.mapPiEvent(event));
   }
@@ -68,6 +71,14 @@ export class DataAgentRuntime {
         `Unsupported protocol version: ${command.protocolVersion}`,
         { supported: ProtocolVersion },
       );
+    }
+
+    if (command.command.type === "workspace.list" || command.command.type === "workspace.read" || command.command.type === "workspace.write") {
+      if (!this.workspace) throw new DataAgentRuntimeError("INVALID_COMMAND", "Workspace is not configured");
+      if (command.command.type === "workspace.list") return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "workspace.result", operation: "list", files: await this.workspace.list() } };
+      if (command.command.type === "workspace.read") return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "workspace.result", operation: "read", path: command.command.path, content: await this.workspace.read(command.command.path) } };
+      await this.workspace.write(command.command.path, command.command.content);
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "workspace.result", operation: "write", path: command.command.path } };
     }
 
     if (command.command.type === "agent.steer" || command.command.type === "agent.follow_up") {
