@@ -36,6 +36,8 @@ export function createHttpTransport(
   };
 }
 
+export { createHttpFileTransfer, type WorkspaceFileTransfer } from "./files.js";
+
 export function createIpcTransport(bridge: ElectronCommandBridge): DataAgentTransport {
   return {
     async dispatch(command) {
