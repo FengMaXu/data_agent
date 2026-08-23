@@ -16,6 +16,7 @@ import { WorkspaceStore } from "./workspace.js";
 import { runPythonJob } from "./python-job.js";
 import { KnowledgeIndex } from "./knowledge.js";
 import { ClarificationManager } from "./clarification.js";
+import { renderStandaloneDashboardHtml, validateDashboardV3Spec } from "./dashboard-v3.js";
 
 export class DataAgentRuntimeError extends Error {
   readonly code: "INVALID_COMMAND" | "UNSUPPORTED_PROTOCOL_VERSION" | "INVALID_CONTEXT";
@@ -96,6 +97,22 @@ export class DataAgentRuntime {
       await this.workspace.write(command.command.path, command.command.content);
       this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, sessionId: context.sessionId, timestamp: Date.now(), event: { type: "workspace.artifact.created", path: command.command.path, kind: "file" } });
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "workspace.result", operation: "write", path: command.command.path } };
+    }
+
+    if (command.command.type === "dashboard.generate") {
+      if (!this.workspace) throw new DataAgentRuntimeError("INVALID_COMMAND", "Workspace is not configured");
+      this.workspace.assertAccess(context);
+      const c = command.command;
+      if (c.version !== "v3" || c.mode !== "static") throw new DataAgentRuntimeError("INVALID_COMMAND", "Only static v3 dashboards are supported in this milestone");
+      const validated = validateDashboardV3Spec(c.spec);
+      if (!validated.ok || c.operation === "validate") {
+        return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "dashboard.result", valid: validated.ok, errors: validated.ok ? [] : validated.errors } };
+      }
+      const target = c.editPath ?? `dashboards/${Date.now()}.html`;
+      const html = await renderStandaloneDashboardHtml(validated.spec);
+      await this.workspace.write(target, html);
+      this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, sessionId: context.sessionId, timestamp: Date.now(), event: { type: "workspace.artifact.created", path: target, kind: "file" } });
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "dashboard.result", valid: true, errors: [], path: target, bytes: html.length } };
     }
 
     if (command.command.type === "clarification.answer") {
