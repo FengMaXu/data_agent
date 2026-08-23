@@ -10,7 +10,6 @@ import {
     Plus,
 } from './icons/Typicons';
 import {
-    sendChatMessage,
     clearSession,
     uploadWorkspaceFile,
     type ChatStreamHandle,
@@ -22,6 +21,7 @@ import {
     type AgentTerminalReason,
 } from '../api/client';
 import { answerClarificationViaRuntime, steerAgentViaRuntime, stopAgentViaRuntime } from '../api/runtime-client';
+import { sendChatViaRuntime } from '../api/chat-events';
 import type { ToolData } from './ToolPanel';
 import { useSession, type Session, type Task } from '../hooks/useSession';
 import { useLanguage } from '../context/LanguageContext';
@@ -479,7 +479,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
         const content = (overrideContent ?? inputValue).trim();
         if (!content) return;
 
-        const sessionId = currentSession.id;
+        void currentSession.id;
         const userMsg: UserMessage = {
             id: `user-${Date.now()}`,
             role: 'user',
@@ -533,7 +533,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
             }
         };
 
-        streamHandleRef.current = await sendChatMessage(
+        streamHandleRef.current = await sendChatViaRuntime(
             content,
             (event: SSEEvent) => {
                 if (event.session_id && event.session_id !== currentSessionIdRef.current) {
@@ -847,8 +847,6 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                 pendingAgentMessageIdRef.current = null;
                 streamHandleRef.current = null;
             },
-            sessionId,
-            attachedFiles,
         );
     };
 
