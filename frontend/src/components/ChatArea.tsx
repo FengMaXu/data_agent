@@ -13,7 +13,6 @@ import {
     sendChatMessage,
     clearSession,
     uploadWorkspaceFile,
-    answerClarification,
     type ChatStreamHandle,
     type SSEEvent,
     type WidgetSpec,
@@ -22,7 +21,7 @@ import {
     type AgentProgressStage,
     type AgentTerminalReason,
 } from '../api/client';
-import { steerAgentViaRuntime, stopAgentViaRuntime } from '../api/runtime-client';
+import { answerClarificationViaRuntime, steerAgentViaRuntime, stopAgentViaRuntime } from '../api/runtime-client';
 import type { ToolData } from './ToolPanel';
 import { useSession, type Session, type Task } from '../hooks/useSession';
 import { useLanguage } from '../context/LanguageContext';
@@ -895,7 +894,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
             };
             setMessages((prev) => [...prev, userMsg]);
             setClarificationInput('');
-            await answerClarification(pendingClarification.clarification_id, answer, currentSession.id);
+            await answerClarificationViaRuntime(pendingClarification.clarification_id, answer);
         } catch (err) {
             console.error('Failed to answer clarification:', err);
         } finally {

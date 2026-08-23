@@ -23,10 +23,9 @@ import {
     Plus,
 } from './icons/Typicons';
 import {
-    getKnowledgeContent,
     type KnowledgeFile,
 } from '../api/client';
-import { getSemanticSourceViaRuntime, listSemanticSourcesViaRuntime } from '../api/runtime-client';
+import { getSemanticSourceViaRuntime, listSemanticSourcesViaRuntime, readKnowledgeViaRuntime } from '../api/runtime-client';
 import { listKnowledgeViaRuntime, saveKnowledgeViaRuntime } from '../api/runtime-client';
 import ReactMarkdown from 'react-markdown';
 import { useSession } from '../hooks/useSession';
@@ -197,8 +196,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
         setSelectedFile(file);
         setIsEditing(false);
         try {
-            const response = await getKnowledgeContent(file.path);
-            setFileContent(response.content);
+            const response = await readKnowledgeViaRuntime(file.path);
+            setFileContent(response);
             setEditorOpen(true);
         } catch (error) {
             console.error('Failed to load knowledge file:', error);

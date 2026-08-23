@@ -218,3 +218,7 @@ export async function retryIngestViaRuntime(): Promise<void> {
   const envelope = await getRuntimeClient().dispatch({ type: "semantic.ingest.retry" });
   if (envelope.response.type !== "semantic.ingest.retry.result") throw new Error("UNEXPECTED_RESPONSE");
 }
+
+export async function answerClarificationViaRuntime(clarificationId: string, answer: string): Promise<void> {
+  await getRuntimeClient().dispatch({ type: "clarification.answer", clarificationId, answer });
+}
