@@ -25,6 +25,7 @@ export async function createRuntimeServer(
   const auth = new LocalAuthService();
   app.post("/auth/register", async (request, reply) => { const body = request.body as { username?: string; password?: string; displayName?: string }; try { return { user: auth.register(body.username ?? "", body.password ?? "", body.displayName) }; } catch { return reply.code(400).send({ error: { code: "AUTH_REGISTRATION_FAILED" } }); } });
   app.post("/auth/login", async (request, reply) => { const body = request.body as { username?: string; password?: string }; try { return auth.login(body.username ?? "", body.password ?? ""); } catch { return reply.code(401).send({ error: { code: "AUTH_INVALID_CREDENTIALS" } }); } });
+  app.get("/auth/status", async (request) => { const user = auth.authenticate(String(request.headers.authorization ?? "").replace(/^Bearer /i, "")); return { authenticated: Boolean(user), user: user ?? null }; });
   app.post("/auth/logout", async (request) => { const token = String(request.headers.authorization ?? "").replace(/^Bearer /i, ""); auth.logout(token); return { ok: true }; });
   const contextFactory = options.contextFactory ?? (() => ({ userId: "web-dev", host: "web" as const }));
   if (options.workspace) {
