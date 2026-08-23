@@ -46,6 +46,7 @@ export class DataAgentRuntime {
   private pythonExecutable?: string;
   private readonly knowledge?: KnowledgeIndex;
   private readonly knowledgeRoot?: string;
+  queryExecutor?: { run(sql: string, rowLimit: number): Promise<{ columns: string[]; rows: unknown[][]; truncated: boolean }> };
   private readonly clarifications: ClarificationManager;
   private activeRun?: { requestId: string; runId: string };
   private readonly agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void };
@@ -158,6 +159,14 @@ export class DataAgentRuntime {
       const skills: Array<{ name: string; description: string; tools: string[] }> = [];
       for (const sk of loaded) skills.push({ name: String((sk as any).name ?? ""), description: String((sk as any).description ?? ""), tools: Array.isArray((sk as any).tools) ? (sk as any).tools.map(String) : [] });
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "skills.list.result", skills } };
+    }
+    if (command.command.type === "dashboard.evaluate") {
+      if (!this.queryExecutor) throw new DataAgentRuntimeError("INVALID_COMMAND", "QUERY_EXECUTOR_NOT_CONFIGURED");
+      const limit = Math.min(command.command.rowLimit ?? 1000, 10000);
+      const guarded = /\b(drop|delete|insert|update|alter|create|truncate)\b/i.test(command.command.sql);
+      if (guarded) throw new DataAgentRuntimeError("INVALID_COMMAND", "FORBIDDEN_SQL_IN_EVALUATE");
+      const result = await this.queryExecutor.run(command.command.sql, limit);
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "dashboard.evaluate.result", columns: result.columns, rows: result.rows, rowCount: result.rows.length, truncated: result.truncated } };
     }
     if (command.command.type === "python.run") {
       if (!this.pythonExecutable) throw new DataAgentRuntimeError("INVALID_COMMAND", "Python runtime is not configured");
