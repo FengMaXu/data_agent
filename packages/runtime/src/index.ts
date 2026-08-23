@@ -48,6 +48,7 @@ export class DataAgentRuntime {
   private readonly knowledgeRoot?: string;
   private readonly semanticProjectDir?: string;
   queryExecutor?: { run(sql: string, rowLimit: number): Promise<{ columns: string[]; rows: unknown[][]; truncated: boolean }> };
+  ingestJob?: { getStatus(): Promise<{ status: string; jobId: string | null; summary: { updated: number; unchanged: number; failed: number; skipped: number }; errorCode: string | null }>; retry(): Promise<{ accepted: boolean }> };
   private readonly clarifications: ClarificationManager;
   private activeRun?: { requestId: string; runId: string };
   private readonly agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void };
@@ -199,6 +200,16 @@ export class DataAgentRuntime {
       if (guarded) throw new DataAgentRuntimeError("INVALID_COMMAND", "FORBIDDEN_SQL_IN_EVALUATE");
       const result = await this.queryExecutor.run(command.command.sql, limit);
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "dashboard.evaluate.result", columns: result.columns, rows: result.rows, rowCount: result.rows.length, truncated: result.truncated } };
+    }
+    if (command.command.type === "semantic.ingest.status") {
+      if (!this.ingestJob) throw new DataAgentRuntimeError("INVALID_COMMAND", "INGEST_JOB_NOT_CONFIGURED");
+      const status = await this.ingestJob.getStatus();
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "semantic.ingest.status.result", ...status } };
+    }
+    if (command.command.type === "semantic.ingest.retry") {
+      if (!this.ingestJob) throw new DataAgentRuntimeError("INVALID_COMMAND", "INGEST_JOB_NOT_CONFIGURED");
+      const result = await this.ingestJob.retry();
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "semantic.ingest.retry.result", accepted: result.accepted } };
     }
     if (command.command.type === "python.run") {
       if (!this.pythonExecutable) throw new DataAgentRuntimeError("INVALID_COMMAND", "Python runtime is not configured");

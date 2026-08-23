@@ -204,3 +204,17 @@ export async function getMcpConfigViaRuntime(): Promise<{ servers: Array<Record<
 export async function saveMcpConfigViaRuntime(config: { servers: Array<Record<string, unknown>> }): Promise<void> {
   await getRuntimeClient().dispatch({ type: "mcp.config.save", config });
 }
+
+export interface RuntimeIngestStatus { status: string; jobId: string | null; summary: { updated: number; unchanged: number; failed: number; skipped: number }; errorCode: string | null }
+
+export async function getIngestStatusViaRuntime(): Promise<RuntimeIngestStatus> {
+  const envelope = await getRuntimeClient().dispatch({ type: "semantic.ingest.status" });
+  const result = envelope.response;
+  if (result.type !== "semantic.ingest.status.result") throw new Error("UNEXPECTED_RESPONSE");
+  return result as unknown as RuntimeIngestStatus;
+}
+
+export async function retryIngestViaRuntime(): Promise<void> {
+  const envelope = await getRuntimeClient().dispatch({ type: "semantic.ingest.retry" });
+  if (envelope.response.type !== "semantic.ingest.retry.result") throw new Error("UNEXPECTED_RESPONSE");
+}
