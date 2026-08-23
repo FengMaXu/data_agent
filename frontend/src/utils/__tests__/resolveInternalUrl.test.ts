@@ -16,13 +16,13 @@ describe('workspace markdown link resolution', () => {
 
     it('converts a relative CSV link to the authenticated download endpoint', () => {
         const url = new URL(resolveWorkspaceDownloadUrl('data/industry_sales_2026_h1.csv', 'session-123'));
-        expect(url.pathname).toBe('/workspace/files/download');
+        expect(url.pathname).toBe('/api/workspace/download');
         expect(url.searchParams.get('path')).toBe('session-123/data/industry_sales_2026_h1.csv');
     });
 
     it('converts a relative asset to the authenticated preview endpoint', () => {
         const url = new URL(resolveWorkspacePreviewUrl('data/industry_sales_2026_h1.csv', 'session-123'));
-        expect(url.pathname).toBe('/workspace/files/preview');
+        expect(url.pathname).toBe('/api/workspace/download');
         expect(url.searchParams.get('path')).toBe('session-123/data/industry_sales_2026_h1.csv');
     });
 });
