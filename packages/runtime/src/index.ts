@@ -309,10 +309,11 @@ export class DataAgentRuntime {
     }
 
     if (command.command.type === "knowledge.search" || command.command.type === "knowledge.read" || command.command.type === "knowledge.list" || command.command.type === "knowledge.save") {
-      if (!this.knowledge || !this.knowledgeRoot) throw new DataAgentRuntimeError("INVALID_COMMAND", "Knowledge index is not configured");
+      if (command.command.type === "knowledge.save" && !this.knowledgeRoot) throw new DataAgentRuntimeError("INVALID_COMMAND", "Knowledge root is not configured");
+      if (!this.knowledgeRoot && command.command.type !== "knowledge.save") throw new DataAgentRuntimeError("INVALID_COMMAND", "Knowledge index is not configured");
       const { resolve: resolvePath, join: joinPath } = await import("node:path");
-      await this.knowledge.loadDirectory(this.knowledgeRoot);
-      if (command.command.type === "knowledge.search") return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "knowledge.search.result", hits: this.knowledge.search(command.command.query) } };
+      if (this.knowledge) await this.knowledge.loadDirectory(this.knowledgeRoot as string);
+      if (command.command.type === "knowledge.search") return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "knowledge.search.result", hits: this.knowledge!.search(command.command.query) } };
       if (command.command.type === "knowledge.list") {
         const { readdir, stat } = await import("node:fs/promises");
         const files: Array<{ path: string; size: number; modifiedAt: number }> = [];
@@ -478,3 +479,5 @@ export { WorkspaceStore } from "./workspace.js";
 export { loadRuntimeManifest, probePython, resolvePythonRuntime, type PythonRuntimeConfig, type PythonRuntimeManifest } from "./python-runtime.js";
 export { writePythonPackManifest } from "./python-pack-builder.js";
 export type { RequestContext } from "@data-agent/contracts";
+export { MetadataStore } from "./metadata.js";
+export { PiJsonlSessionStore } from "./session-store.js";
