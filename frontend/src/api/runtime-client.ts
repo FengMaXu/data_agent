@@ -156,3 +156,14 @@ export async function deleteWorkspaceFileViaRuntime(path: string): Promise<void>
 export async function writeWorkspaceFileViaRuntime(path: string, content: string): Promise<void> {
   await getRuntimeClient().dispatch({ type: "workspace.write", path, content });
 }
+
+export async function listKnowledgeViaRuntime(): Promise<Array<{ path: string; size: number; modifiedAt: number }>> {
+  const envelope = await getRuntimeClient().dispatch({ type: "knowledge.list" });
+  const result = envelope.response;
+  if (result.type !== "knowledge.list.result") throw new Error("UNEXPECTED_RESPONSE");
+  return result.files;
+}
+
+export async function saveKnowledgeViaRuntime(path: string, content: string): Promise<void> {
+  await getRuntimeClient().dispatch({ type: "knowledge.save", path, content });
+}

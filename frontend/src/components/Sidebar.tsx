@@ -23,13 +23,12 @@ import {
     Plus,
 } from './icons/Typicons';
 import {
-    getKnowledgeFiles,
     getKnowledgeContent,
-    saveKnowledgeContent,
     getSemanticSources,
     getSemanticSource,
     type KnowledgeFile,
 } from '../api/client';
+import { listKnowledgeViaRuntime, saveKnowledgeViaRuntime } from '../api/runtime-client';
 import ReactMarkdown from 'react-markdown';
 import { useSession } from '../hooks/useSession';
 import { useLanguage } from '../context/LanguageContext';
@@ -112,7 +111,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
     const loadKnowledgeFiles = useCallback(async () => {
         setLoadingKnowledge(true);
         try {
-            const response = await getKnowledgeFiles();
+            const runtimeFiles = await listKnowledgeViaRuntime();
+            const response = { files: runtimeFiles.map((f) => ({ name: f.path.split('/').pop() || f.path, path: f.path, size: f.size, modified_at: new Date(f.modifiedAt).toISOString(), type: 'file' as const })) };
             setKnowledgeFiles(response.files);
         } catch {
             showToast(t('knowledge.loadFailed') || '加载知识库失败', 'error');
@@ -234,7 +234,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
         if (!selectedFile) return;
         setSaving(true);
         try {
-            await saveKnowledgeContent(selectedFile.path, fileContent);
+            await saveKnowledgeViaRuntime(selectedFile.path, fileContent);
             showToast(`${selectedFile.name} 已保存`);
             setIsEditing(false);
         } catch (error) {
