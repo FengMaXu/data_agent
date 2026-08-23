@@ -210,6 +210,7 @@ export { runPythonJob, type PythonJobResult } from "./python-job.js";
 export { effectiveTools, loadSkillsFromDir, moveSystemPrompt, type SkillDefinition, type SkillDiagnostic } from "./skills.js";
 export { KnowledgeIndex, type KnowledgeHit } from "./knowledge.js";
 export { KnowledgeWriter, KnowledgeWriteDeniedError, readAuditLog, type KnowledgeWriteOperation, type KnowledgeWriteResult } from "./knowledge-write.js";
+export { createExportQueryAdapter, ExportCapabilityError } from "./export-adapter.js";
 export { WorkspaceStore } from "./workspace.js";
 export { loadRuntimeManifest, probePython, resolvePythonRuntime, type PythonRuntimeConfig, type PythonRuntimeManifest } from "./python-runtime.js";
 export { writePythonPackManifest } from "./python-pack-builder.js";

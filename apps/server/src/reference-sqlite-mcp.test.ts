@@ -17,7 +17,7 @@ describe("Reference SQLite MCP Server", () => {
     seed.prepare("INSERT INTO sales (region, amount) VALUES (?, ?)").run("south", 20);
     seed.close();
 
-    const { server, close } = createReferenceSqliteServer({ databasePath: dbPath });
+    const { server, exports_, close } = createReferenceSqliteServer({ databasePath: dbPath });
     const client = new Client({ name: "data-agent-test", version: "1.0.0" });
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
     await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
@@ -33,6 +33,17 @@ describe("Reference SQLite MCP Server", () => {
 
     const schema = await client.callTool({ name: "get_schema", arguments: {} });
     expect(JSON.parse((schema.content as any)[0].text).schema[0].table).toBe("sales");
+
+    const exportResult = await client.callTool({ name: "export_query", arguments: { sql: "SELECT * FROM sales ORDER BY id" } });
+    const exportPayload = JSON.parse((exportResult.content as any)[0].text);
+    expect(exportPayload.resourceUri).toMatch(/^sqlite:\/\/exports\/.+\.csv$/);
+    expect(exportPayload.rowCount).toBe(2);
+    const resources = await client.listResources();
+    expect(resources.resources.some(r => r.uri === exportPayload.resourceUri)).toBe(true);
+    const read = await client.readResource({ uri: exportPayload.resourceUri });
+    const blob = (read.contents[0] as any).blob as string;
+    expect(Buffer.from(blob, "base64").toString("utf8")).toContain("north");
+    expect(exports_.size).toBe(1);
 
     await client.close();
     await close();
