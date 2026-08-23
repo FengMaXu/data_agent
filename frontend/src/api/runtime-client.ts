@@ -118,3 +118,11 @@ export async function readKnowledgeViaRuntime(path: string): Promise<string> {
   if (result.type !== "knowledge.read.result") throw new Error("UNEXPECTED_RESPONSE");
   return result.content;
 }
+
+export async function stopAgentViaRuntime(): Promise<void> {
+  await getRuntimeClient().dispatch({ type: "agent.stop" });
+}
+
+export async function steerAgentViaRuntime(prompt: string): Promise<void> {
+  await getRuntimeClient().dispatch({ type: "agent.steer", prompt });
+}
