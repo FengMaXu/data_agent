@@ -218,6 +218,13 @@ export class DataAgentRuntime {
       const result = await this.ingestJob.retry();
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "semantic.ingest.retry.result", accepted: result.accepted } };
     }
+    if (command.command.type === "dashboard.v3.data") {
+      if (!this.workspace) throw new DataAgentRuntimeError("INVALID_COMMAND", "WORKSPACE_NOT_CONFIGURED");
+      const html = await this.workspace.read(command.command.path);
+      const match = /window\.__DASHBOARD__=(\{[\s\S]*?\});<\/script>/.exec(html);
+      if (!match) throw new DataAgentRuntimeError("INVALID_COMMAND", "LEGACY_DASHBOARD_REQUIRES_REGENERATION");
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "dashboard.v3.data.result", payload: JSON.parse(match[1]) } };
+    }
     if (command.command.type === "config.get" || command.command.type === "config.save") {
       if (command.command.type === "config.save") { const current = (await this.metadata!.getConfig("ui.settings")) ?? {}; await this.metadata!.setConfig("ui.settings", { ...(current as Record<string, unknown>), ...((command.command as { patch: Record<string, unknown> }).patch) }); }
       const config = (await this.metadata!.getConfig("ui.settings")) ?? {};

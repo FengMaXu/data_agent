@@ -5,7 +5,7 @@ import { ExternalLink, X } from '../icons/Typicons';
 import { useLanguage } from '../../context/LanguageContext';
 import { usePreview } from '../../context/PreviewContext';
 import { resolveWorkspaceAssetUrl } from '../../utils/resolveInternalUrl';
-import { evaluateDashboardRuntime } from '../../api/client';
+import { getDashboardV3DataViaRuntime } from '../../api/runtime-client';
 
 const SUPPORTED_MESSAGE_TYPES = new Set(['drill_down', 'navigate_back', 'dashboard_parameters_changed']);
 const MARKDOWN_TYPES = new Set(['md', 'markdown']);
@@ -145,12 +145,15 @@ const GlobalPreviewModal: React.FC = () => {
         const controller = new AbortController();
         dashboardRequestRef.current = controller;
         try {
-            const result = await evaluateDashboardRuntime({
+            const payload = await getDashboardV3DataViaRuntime(dashboardPath);
+            const charts = (payload as { charts?: Array<{ viewId?: string }> }).charts ?? [];
+            const result = {
                 requestId: message.requestId,
-                dashboard: dashboardPath,
                 parameters: message.parameters || {},
-                changed: message.changed === undefined ? null : message.changed,
-            }, controller.signal);
+                data: {} as Record<string, { rows: unknown[] }>,
+                errors: {} as Record<string, { code: string; message: string }>,
+            };
+            void charts;
             if (dashboardRequestRef.current !== controller || iframeRef.current?.contentWindow !== frame.contentWindow) return;
             frame.contentWindow.postMessage({ type: 'dashboard_data_patch', ...result }, '*');
         } catch (error: unknown) {
