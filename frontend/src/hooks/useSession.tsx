@@ -6,13 +6,13 @@ import {
     deleteChatSession,
     deleteTask as deleteTaskRequest,
     getChatSession,
-    listTasks,
     prepareAgentSession,
     saveChatTranscript,
     saveSessionAttachedFiles,
     updateTaskName as updateTaskNameRequest,
     type SessionSnapshotMessage,
 } from '../api/client';
+import { listSessionsViaRuntime, listTasksViaRuntime } from '../api/runtime-client';
 import { useLanguage } from '../context/LanguageContext';
 
 export interface Task {
@@ -172,22 +172,25 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
         const load = async () => {
             try {
-                const response = await listTasks();
+                const [runtimeTasks, runtimeSessions] = await Promise.all([
+                    listTasksViaRuntime(),
+                    listSessionsViaRuntime(),
+                ]);
                 if (cancelled) return;
 
-                const loadedTasks: Task[] = response.tasks.map((task) => ({
+                const loadedTasks: Task[] = runtimeTasks.map((task) => ({
                     id: task.id,
                     name: DEFAULT_TASK_NAMES.has(task.name) ? defaultTaskName : task.name,
-                    createdAt: new Date(task.created_at * 1000).toISOString(),
-                    updatedAt: new Date(task.updated_at * 1000).toISOString(),
+                    createdAt: new Date(task.createdAt ?? Date.now()).toISOString(),
+                    updatedAt: new Date(task.updatedAt ?? Date.now()).toISOString(),
                 }));
-                const loadedSessions: Session[] = response.tasks.flatMap((task) => (task.sessions || []).map((session) => ({
+                const loadedSessions: Session[] = runtimeSessions.map((session) => ({
                     id: session.id,
-                    taskId: task.id,
+                    taskId: session.taskId ?? '',
                     name: DEFAULT_SESSION_NAMES.has(session.name) ? defaultSessionName : session.name,
-                    createdAt: new Date(session.created_at * 1000).toISOString(),
-                    conversationVersion: session.conversation_version || 1,
-                })));
+                    createdAt: new Date().toISOString(),
+                    conversationVersion: 1,
+                }));
 
                 loadedSessions.forEach((session) => {
                     conversationVersionsRef.current[session.id] = session.conversationVersion;
