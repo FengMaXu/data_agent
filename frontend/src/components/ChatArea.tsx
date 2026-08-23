@@ -10,7 +10,6 @@ import {
     Plus,
 } from './icons/Typicons';
 import {
-    clearSession,
     uploadWorkspaceFile,
     type ChatStreamHandle,
     type SSEEvent,
@@ -20,6 +19,7 @@ import {
     type AgentProgressStage,
     type AgentTerminalReason,
 } from '../api/client';
+import { clearSessionViaRuntime } from '../api/runtime-client';
 import { answerClarificationViaRuntime, steerAgentViaRuntime, stopAgentViaRuntime } from '../api/runtime-client';
 import { sendChatViaRuntime } from '../api/chat-events';
 import type { ToolData } from './ToolPanel';
@@ -863,8 +863,9 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
         setPendingClarification(null);
         setClarificationInput('');
         try {
-            await clearSession(currentSession.id);
+            await clearSessionViaRuntime(currentSession.id);
             window.dispatchEvent(new CustomEvent('workspace_updated'));
+            window.dispatchEvent(new CustomEvent('session_cleared', { detail: { oldId: currentSession.id } }));
         } catch (e) {
             console.error('Failed to clear session on backend', e);
         }

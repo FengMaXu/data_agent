@@ -324,3 +324,17 @@ export async function testLlmViaRuntime(profile: Record<string, unknown>): Promi
   const envelope = await getRuntimeClient().dispatch({ type: "llm.test", profile });
   return envelope.response as unknown as { success: boolean; message: string };
 }
+
+/**
+ * Clears a session's conversation in the new model: the Runtime session is
+ * deleted and a fresh one is created for the same task. Returns the new
+ * session id so the renderer can switch to it.
+ */
+export async function clearSessionViaRuntime(sessionId: string): Promise<string> {
+  const sessions = await listSessionsViaRuntime();
+  const target = sessions.find((session) => session.id === sessionId);
+  await deleteSessionViaRuntime(sessionId);
+  if (!target?.taskId) throw new Error("SESSION_TASK_UNKNOWN");
+  const created = await createSessionViaRuntime(target.taskId, target.name);
+  return created.id;
+}
