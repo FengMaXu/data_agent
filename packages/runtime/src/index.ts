@@ -48,6 +48,7 @@ export class DataAgentRuntime {
   private readonly knowledgeRoot?: string;
   private readonly semanticProjectDir?: string;
   queryExecutor?: { run(sql: string, rowLimit: number): Promise<{ columns: string[]; rows: unknown[][]; truncated: boolean }> };
+  providerRegistry?: { list(): Array<Record<string, unknown>>; save(profile: Record<string, unknown>): Promise<unknown> };
   mcpSupervisor?: { status(): Promise<Array<{ name: string; enabled: boolean; connected: boolean; toolCount: number; hostManaged: boolean }>>; test(name: string): Promise<{ ok: boolean; message: string }>; restart(name: string): Promise<{ ok: boolean }> };
   ingestJob?: { getStatus(): Promise<{ status: string; jobId: string | null; summary: { updated: number; unchanged: number; failed: number; skipped: number }; errorCode: string | null }>; retry(): Promise<{ accepted: boolean }> };
   private readonly clarifications: ClarificationManager;
@@ -214,6 +215,15 @@ export class DataAgentRuntime {
       if (!this.ingestJob) throw new DataAgentRuntimeError("INVALID_COMMAND", "INGEST_JOB_NOT_CONFIGURED");
       const result = await this.ingestJob.retry();
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "semantic.ingest.retry.result", accepted: result.accepted } };
+    }
+    if (command.command.type === "config.llm.list") {
+      const profiles = this.providerRegistry ? this.providerRegistry.list() : [];
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "config.llm.list.result", profiles } };
+    }
+    if (command.command.type === "config.llm.save") {
+      if (!this.providerRegistry) throw new DataAgentRuntimeError("INVALID_COMMAND", "PROVIDER_REGISTRY_NOT_CONFIGURED");
+      const saved = await this.providerRegistry.save(command.command.profile as never);
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "config.llm.save.result", profile: saved as never } };
     }
     if (command.command.type === "mcp.servers.status") {
       if (!this.mcpSupervisor) throw new DataAgentRuntimeError("INVALID_COMMAND", "MCP_SUPERVISOR_NOT_CONFIGURED");

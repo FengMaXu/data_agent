@@ -287,3 +287,15 @@ export async function restartMcpServerViaRuntime(name: string): Promise<void> {
   const envelope = await getRuntimeClient().dispatch({ type: "mcp.server.restart", name });
   if (envelope.response.type !== "mcp.server.restart.result") throw new Error("UNEXPECTED_RESPONSE");
 }
+
+export async function listLlmProfilesViaRuntime(): Promise<Array<Record<string, unknown>>> {
+  const envelope = await getRuntimeClient().dispatch({ type: "config.llm.list" });
+  const result = envelope.response;
+  if (result.type !== "config.llm.list.result") throw new Error("UNEXPECTED_RESPONSE");
+  return result.profiles as Array<Record<string, unknown>>;
+}
+
+export async function saveLlmProfileViaRuntime(profile: { id?: string; provider: string; model: string; apiKey?: string }): Promise<void> {
+  const envelope = await getRuntimeClient().dispatch({ type: "config.llm.save", profile });
+  if (envelope.response.type !== "config.llm.save.result") throw new Error("UNEXPECTED_RESPONSE");
+}
