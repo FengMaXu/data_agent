@@ -267,6 +267,7 @@ export { createExportQueryAdapter, ExportCapabilityError } from "./export-adapte
 export { ProcessSupervisor, semanticToolIdentity, type SupervisorState } from "./process-supervisor.js";
 export { ClarificationManager } from "./clarification.js";
 export { InMemorySecretVault, ProviderRegistry, type LLMProfile, type SecretVault } from "./providers.js";
+export { assertNoLegacyTools, canonicalLocalTools, type CanonicalTool } from "./tools-catalog.js";
 export { WorkspaceStore } from "./workspace.js";
 export { loadRuntimeManifest, probePython, resolvePythonRuntime, type PythonRuntimeConfig, type PythonRuntimeManifest } from "./python-runtime.js";
 export { writePythonPackManifest } from "./python-pack-builder.js";
