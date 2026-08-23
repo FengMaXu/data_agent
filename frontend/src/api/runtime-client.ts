@@ -83,3 +83,24 @@ export async function createTaskViaRuntime(name: string): Promise<{ id: string }
   if (result.type !== "mutation.result") throw new Error("UNEXPECTED_RESPONSE");
   return result.item as { id: string };
 }
+
+export async function listSessionsViaRuntime(taskId?: string): Promise<Array<{ id: string; taskId?: string; name: string }>> {
+  const envelope = await getRuntimeClient().dispatch({ type: "session.list", ...(taskId ? { taskId } : {}) });
+  const result = envelope.response;
+  if (result.type !== "list.result") throw new Error("UNEXPECTED_RESPONSE");
+  return result.items as Array<{ id: string; taskId?: string; name: string }>;
+}
+
+export async function createSessionViaRuntime(taskId: string, name?: string): Promise<{ id: string }> {
+  const envelope = await getRuntimeClient().dispatch({ type: "session.create", taskId, ...(name ? { name } : {}) });
+  const result = envelope.response;
+  if (result.type !== "mutation.result") throw new Error("UNEXPECTED_RESPONSE");
+  return result.item as { id: string };
+}
+
+export async function listWorkspaceViaRuntime(): Promise<string[]> {
+  const envelope = await getRuntimeClient().dispatch({ type: "workspace.list" });
+  const result = envelope.response;
+  if (result.type !== "workspace.result" || !result.files) throw new Error("UNEXPECTED_RESPONSE");
+  return result.files;
+}
