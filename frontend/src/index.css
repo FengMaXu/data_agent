@@ -255,6 +255,7 @@ body {
 }
 
 .app-container {
+  position: relative;
   display: flex;
   flex: 1;
   min-height: 0;
@@ -269,11 +270,64 @@ body {
 }
 
 .sidebar-shell {
+  position: relative;
+  z-index: 20;
   flex: 0 0 auto;
   width: max-content;
   min-width: 0;
   align-self: stretch;
   display: flex;
+  transition: flex-basis var(--duration-ui) var(--ease-out), width var(--duration-ui) var(--ease-out);
+}
+
+.sidebar-shell.is-collapsed {
+  flex-basis: 0;
+  width: 0;
+}
+
+.sidebar-shell.is-collapsed .sidebar {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.breadcrumb-toggle {
+  position: relative;
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  margin-left: -4px;
+  border: none;
+  border-radius: 10px;
+  background: transparent !important;
+  color: var(--text-secondary);
+  cursor: pointer;
+  pointer-events: auto;
+  transition: color var(--duration-quick) var(--ease-out), transform var(--duration-quick) var(--ease-out);
+}
+
+.breadcrumb-toggle:hover,
+.breadcrumb-toggle:focus-visible {
+  background: transparent !important;
+  color: var(--accent-strong);
+}
+
+.breadcrumb-toggle:hover .breadcrumb-icon,
+.breadcrumb-toggle:focus-visible .breadcrumb-icon {
+  color: var(--accent-strong);
+  filter: drop-shadow(0 0 5px rgba(194, 65, 12, 0.28));
+  transform: scale(1.08);
+}
+
+.breadcrumb-toggle:active {
+  transform: scale(0.96);
+}
+
+.breadcrumb-toggle:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -1713,9 +1767,9 @@ body {
 
 /* Sidebar Styles */
 .sidebar {
-  width: fit-content;
-  min-width: 232px;
-  max-width: min(296px, 26vw);
+  width: clamp(200px, 18vw, 224px);
+  min-width: 200px;
+  max-width: 224px;
   height: auto;
   margin: 0;
   flex-shrink: 0;
@@ -1845,7 +1899,7 @@ body {
 }
 
 .chat-panel-shell.has-tool-panel {
-  min-width: calc(560px + var(--tool-panel-width));
+  min-width: 0;
 }
 
 .chat-panel-resize-handle {
@@ -2692,10 +2746,12 @@ body {
 
 /* Tool Panel (Drawer) Styles */
 .tool-panel {
-  width: var(--tool-panel-width);
   height: auto;
   margin: 0 -8px 0 8px;
-  flex: 0 0 var(--tool-panel-width);
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 300px;
+  max-width: 520px;
   display: flex;
   flex-direction: column;
   background: rgba(252, 249, 245, 0.78);
@@ -4931,8 +4987,9 @@ body {
 }
 
 .sidebar {
-  min-width: 214px;
-  max-width: min(280px, 24vw);
+  width: clamp(200px, 18vw, 224px);
+  min-width: 200px;
+  max-width: 224px;
   height: 100%;
   padding: 20px 10px 12px 10px;
 }
@@ -5349,7 +5406,7 @@ body {
 }
 
 .chat-panel-shell.has-tool-panel {
-  min-width: calc(560px + var(--tool-panel-width));
+  min-width: 0;
 }
 
 .chat-main-pane {
@@ -5373,7 +5430,7 @@ body {
 }
 
 .tool-panel {
-  min-width: var(--tool-panel-width);
+  min-width: 300px;
 }
 
 /* Global file preview */

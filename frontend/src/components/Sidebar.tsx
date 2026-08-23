@@ -357,7 +357,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
 
     return (
         <>
-            <nav className="sidebar" aria-label={t('sidebar.navigation')}>
+            <nav id="workspace-sidebar" className="sidebar" aria-label={t('sidebar.navigation')}>
                 <div className="nav-menu scrollable-area">
                     <div className="nav-section">
                         <div className="sidebar-logo">YourDB</div>
@@ -373,7 +373,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
                         <button type="button" className={`nav-item ${tasksExpanded ? 'expanded' : ''}`} title={t('sidebar.currentTask')} aria-label={t('sidebar.currentTask')} onClick={() => toggleExclusiveSection('tasks')}>
                             <History className="nav-item-icon" size={18} />
                             <span className="nav-item-text">{t('sidebar.currentTask')}</span>
-                            <ChevronDown className={`expand-arrow ${tasksExpanded ? 'rotated' : ''}`} size={14} />
                         </button>
 
                         {tasksExpanded && (
@@ -486,7 +485,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
                         <button type="button" className={`nav-item ${knowledgeExpanded ? 'expanded' : ''}`} title={t('sidebar.knowledge')} aria-label={t('sidebar.knowledge')} onClick={() => toggleExclusiveSection('knowledge')}>
                             <BookOpen className="nav-item-icon" size={18} />
                             <span className="nav-item-text">{t('sidebar.knowledge')}</span>
-                            <ChevronDown className={`expand-arrow ${knowledgeExpanded ? 'rotated' : ''}`} size={14} />
                         </button>
                         {knowledgeExpanded && (
                             <div className="knowledge-file-list">
@@ -504,7 +502,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
                         <button type="button" className={`nav-item ${semanticExpanded ? 'expanded' : ''}`} title={t('sidebar.semantic')} aria-label={t('sidebar.semantic')} onClick={() => toggleExclusiveSection('semantic')}>
                             <Database className="nav-item-icon" size={18} />
                             <span className="nav-item-text">{t('sidebar.semantic')}</span>
-                            <ChevronDown className={`expand-arrow ${semanticExpanded ? 'rotated' : ''}`} size={14} />
                         </button>
                         {semanticExpanded && (
                             <div className="semantic-asset-list">
@@ -522,7 +519,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
                         <button type="button" className={`nav-item ${pluginsExpanded ? 'expanded' : ''}`} title={t('sidebar.plugins')} aria-label={t('sidebar.plugins')} onClick={() => toggleExclusiveSection('plugins')}>
                             <Box className="nav-item-icon" size={18} />
                             <span className="nav-item-text">{t('sidebar.plugins')}</span>
-                            <ChevronDown className={`expand-arrow ${pluginsExpanded ? 'rotated' : ''}`} size={14} />
                         </button>
                         {pluginsExpanded && (
                             <div className="sidebar-plugin-list">

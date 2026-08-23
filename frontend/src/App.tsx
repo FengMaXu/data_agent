@@ -29,7 +29,8 @@ const DESKTOP_MENU_ITEMS = [
   { id: 'help', labelKey: 'desktop.help' },
 ];
 
-const TOOL_PANEL_WIDTH = 410;
+const TOOL_PANEL_MIN_WIDTH = 300;
+const DEFAULT_CHAT_RATIO = 0.62;
 const CHAT_PANEL_MIN_WIDTH = 560;
 
 const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState }) => {
@@ -37,6 +38,7 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState }) =>
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [tools, setTools] = useState<ToolData[]>([]);
   const [isToolPanelOpen, setIsToolPanelOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [pluginsModalTab, setPluginsModalTab] = useState<'MCP' | 'Skills' | null>(null);
   const { status: semanticStatus, retrying: semanticRetrying, retry: retrySemantic } = useSemanticStartupStatus();
 
@@ -45,6 +47,7 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState }) =>
   const chatPanelShellRef = useRef<HTMLDivElement>(null);
   const chatMainPaneRef = useRef<HTMLDivElement>(null);
   const chatResizeStartRef = useRef<{ startX: number; startWidth: number } | null>(null);
+  const chatPaneRatioRef = useRef<number | null>(null);
   const [chatPaneWidth, setChatPaneWidth] = useState<number | null>(null);
   const isDesktop = typeof window !== 'undefined' && Boolean(window.dataAgent);
   const semanticBlocked = !semanticStatus || ['checking', 'ingesting', 'failed'].includes(semanticStatus.status);
@@ -54,27 +57,30 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState }) =>
     previousToolsRef.current = newTools;
   }, []);
 
-  const getMaxChatPaneWidth = useCallback(() => {
-    const sidebarWidth = sidebarShellRef.current?.getBoundingClientRect().width ?? 260;
+  const getAvailablePaneWidth = useCallback(() => {
+    const sidebarWidth = sidebarShellRef.current?.getBoundingClientRect().width ?? 220;
     const chromeAllowance = 40;
     return Math.max(
-      CHAT_PANEL_MIN_WIDTH,
-      window.innerWidth - sidebarWidth - TOOL_PANEL_WIDTH - chromeAllowance,
+      CHAT_PANEL_MIN_WIDTH + TOOL_PANEL_MIN_WIDTH,
+      window.innerWidth - sidebarWidth - chromeAllowance,
     );
   }, []);
 
-  const openToolPanel = useCallback(() => {
-    const currentWidth =
-      chatMainPaneRef.current?.getBoundingClientRect().width ??
-      chatPanelShellRef.current?.getBoundingClientRect().width ??
-      CHAT_PANEL_MIN_WIDTH;
+  const getMaxChatPaneWidth = useCallback(() => (
+    Math.max(CHAT_PANEL_MIN_WIDTH, getAvailablePaneWidth() - TOOL_PANEL_MIN_WIDTH)
+  ), [getAvailablePaneWidth]);
 
-    setChatPaneWidth((prev) => {
-      const nextWidth = prev ?? currentWidth;
-      return Math.min(getMaxChatPaneWidth(), Math.max(CHAT_PANEL_MIN_WIDTH, nextWidth));
-    });
-    setIsToolPanelOpen(true);
+  const recordChatPaneWidth = useCallback((nextWidth: number) => {
+    const available = Math.max(CHAT_PANEL_MIN_WIDTH, getMaxChatPaneWidth());
+    const clamped = Math.min(available, Math.max(CHAT_PANEL_MIN_WIDTH, nextWidth));
+    chatPaneRatioRef.current = clamped / available;
+    setChatPaneWidth(clamped);
   }, [getMaxChatPaneWidth]);
+
+  const openToolPanel = useCallback(() => {
+    recordChatPaneWidth(getAvailablePaneWidth() * DEFAULT_CHAT_RATIO);
+    setIsToolPanelOpen(true);
+  }, [getAvailablePaneWidth, recordChatPaneWidth]);
 
   const closeToolPanel = useCallback(() => {
     setIsToolPanelOpen(false);
@@ -105,7 +111,7 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState }) =>
         maxWidth,
         Math.max(CHAT_PANEL_MIN_WIDTH, startWidth + (moveEvent.clientX - startX)),
       );
-      setChatPaneWidth(nextWidth);
+      recordChatPaneWidth(nextWidth);
     };
 
     const handleMouseUp = () => {
@@ -116,7 +122,7 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState }) =>
 
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp, { once: true });
-  }, [getMaxChatPaneWidth]);
+  }, [getMaxChatPaneWidth, recordChatPaneWidth]);
 
   const handleChatResizeKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
     if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
@@ -124,28 +130,38 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState }) =>
     const maxWidth = getMaxChatPaneWidth();
     setChatPaneWidth((current) => {
       const width = current ?? chatMainPaneRef.current?.getBoundingClientRect().width ?? CHAT_PANEL_MIN_WIDTH;
-      if (event.key === 'Home') return CHAT_PANEL_MIN_WIDTH;
-      if (event.key === 'End') return maxWidth;
-      const delta = event.key === 'ArrowRight' ? 40 : -40;
-      return Math.min(maxWidth, Math.max(CHAT_PANEL_MIN_WIDTH, width + delta));
+      let next: number;
+      if (event.key === 'Home') next = CHAT_PANEL_MIN_WIDTH;
+      else if (event.key === 'End') next = maxWidth;
+      else {
+        const delta = event.key === 'ArrowRight' ? 40 : -40;
+        next = Math.min(maxWidth, Math.max(CHAT_PANEL_MIN_WIDTH, width + delta));
+      }
+      chatPaneRatioRef.current = next / Math.max(CHAT_PANEL_MIN_WIDTH, maxWidth);
+      return next;
     });
   }, [getMaxChatPaneWidth]);
 
   useEffect(() => {
-    if (!isToolPanelOpen || chatPaneWidth == null) {
+    if (chatPaneWidth == null) {
       return;
     }
 
     const handleResize = () => {
+      const available = Math.max(CHAT_PANEL_MIN_WIDTH, getMaxChatPaneWidth());
       setChatPaneWidth((current) => {
         if (current == null) return current;
-        return Math.min(getMaxChatPaneWidth(), Math.max(CHAT_PANEL_MIN_WIDTH, current));
+        const ratio = chatPaneRatioRef.current ?? current / available;
+        const next = Math.min(available, Math.max(CHAT_PANEL_MIN_WIDTH, ratio * available));
+        chatPaneRatioRef.current = next / available;
+        return next;
       });
     };
 
+    handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [chatPaneWidth, getMaxChatPaneWidth, isToolPanelOpen]);
+  }, [chatPaneWidth, getMaxChatPaneWidth, isSidebarOpen]);
 
   if (startupState === 'checking') {
     return <div className="app-loading">{t('app.preparing')}</div>;
@@ -184,7 +200,7 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState }) =>
         <SemanticStartupStatus status={semanticStatus} retrying={semanticRetrying} onRetry={retrySemantic} />
 
         <div className="app-container">
-          <div ref={sidebarShellRef} className="sidebar-shell">
+          <div ref={sidebarShellRef} className={`sidebar-shell ${isSidebarOpen ? '' : 'is-collapsed'}`}>
             <Sidebar
               onOpenSettings={() => setIsSettingsOpen(true)}
               onOpenPlugins={(tab) => setPluginsModalTab(tab)}
@@ -206,7 +222,7 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState }) =>
                   role="separator"
                   aria-orientation="vertical"
                   aria-valuemin={CHAT_PANEL_MIN_WIDTH}
-                  aria-valuemax={typeof window !== 'undefined' ? Math.max(CHAT_PANEL_MIN_WIDTH, window.innerWidth - TOOL_PANEL_WIDTH - 40) : CHAT_PANEL_MIN_WIDTH}
+                  aria-valuemax={typeof window !== 'undefined' ? getMaxChatPaneWidth() : CHAT_PANEL_MIN_WIDTH}
                   aria-valuenow={Math.round(chatPaneWidth ?? CHAT_PANEL_MIN_WIDTH)}
                   aria-label={t('chat.resizeWidth')}
                   title={t('chat.resizeWidth')}
@@ -223,6 +239,8 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState }) =>
                 isToolPanelOpen={isToolPanelOpen}
                 hasTools={tools.length > 0}
                 semanticBlocked={semanticBlocked}
+                isSidebarOpen={isSidebarOpen}
+                onToggleSidebar={() => setIsSidebarOpen((open) => !open)}
               />
             </div>
 

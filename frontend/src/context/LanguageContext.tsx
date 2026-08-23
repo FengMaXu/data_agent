@@ -12,6 +12,8 @@ interface Translations {
 const translations: Translations = {
     en: {
         'sidebar.navigation': 'Workspace navigation',
+        'sidebar.open': 'Open sidebar',
+        'sidebar.close': 'Close sidebar',
         'sidebar.newTask': 'New Task',
         'sidebar.currentTask': 'Current Task',
         'sidebar.chat': 'Chat',
@@ -419,6 +421,8 @@ const translations: Translations = {
     },
     zh: {
         'sidebar.navigation': '工作区导航',
+        'sidebar.open': '打开侧边栏',
+        'sidebar.close': '关闭侧边栏',
         'sidebar.newTask': '新建任务',
         'sidebar.currentTask': '当前任务',
         'sidebar.chat': '对话',
