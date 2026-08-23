@@ -24,10 +24,9 @@ import {
 } from './icons/Typicons';
 import {
     getKnowledgeContent,
-    getSemanticSources,
-    getSemanticSource,
     type KnowledgeFile,
 } from '../api/client';
+import { getSemanticSourceViaRuntime, listSemanticSourcesViaRuntime } from '../api/runtime-client';
 import { listKnowledgeViaRuntime, saveKnowledgeViaRuntime } from '../api/runtime-client';
 import ReactMarkdown from 'react-markdown';
 import { useSession } from '../hooks/useSession';
@@ -128,7 +127,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
     const loadSemanticSources = useCallback(async () => {
         setLoadingSemantic(true);
         try {
-            const response = await getSemanticSources();
+            const runtimeSources = await listSemanticSourcesViaRuntime();
+            const byConnection = new Map<string, SemanticConnection>();
+            for (const item of runtimeSources) {
+                const connection = byConnection.get(item.connectionId) ?? { connectionId: item.connectionId, sources: [] as SemanticConnection['sources'] };
+                connection.sources.push({ sourceName: item.sourceName, sourceKind: 'standalone', assetType: 'semantic_model', title: null, isQueryable: true, hasOverlay: false, description: '' });
+                byConnection.set(item.connectionId, connection);
+            }
+            const response = { connections: Array.from(byConnection.values()) };
             setSemanticConnections(response.connections);
             setSemanticExpandedConnections((previous) => {
                 if (previous.size > 0) return previous;
@@ -205,8 +211,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
         setSemanticDetail(null);
         setLoadingSemanticDetail(true);
         try {
-            const response = await getSemanticSource(connectionId, sourceName);
-            setSemanticDetail(response);
+            const detail = await getSemanticSourceViaRuntime(connectionId, sourceName);
+            setSemanticDetail({ connectionId, sourceName, sourceKind: 'standalone', assetType: 'semantic_model', title: null, isQueryable: true, rawYaml: detail.rawYaml ?? '', table: null, sql: null, descriptions: {}, primaryDescription: null, descriptionProvenance: null, grain: [], columns: [], measures: [], segments: [], joins: [], tags: [], defaultTimeDimension: null, sourceDocuments: [], businessRules: [], queryTemplates: [] });
         } catch (error) {
             console.error('Failed to load semantic asset:', error);
             setSemanticViewerOpen(false);

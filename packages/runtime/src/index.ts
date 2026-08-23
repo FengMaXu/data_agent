@@ -46,6 +46,7 @@ export class DataAgentRuntime {
   private pythonExecutable?: string;
   private readonly knowledge?: KnowledgeIndex;
   private readonly knowledgeRoot?: string;
+  private readonly semanticProjectDir?: string;
   queryExecutor?: { run(sql: string, rowLimit: number): Promise<{ columns: string[]; rows: unknown[][]; truncated: boolean }> };
   private readonly clarifications: ClarificationManager;
   private activeRun?: { requestId: string; runId: string };
@@ -58,6 +59,7 @@ export class DataAgentRuntime {
     this.pythonExecutable = options.pythonExecutable;
     this.knowledge = options.knowledge;
     this.knowledgeRoot = options.knowledgeRoot;
+    this.semanticProjectDir = (options as { semanticProjectDir?: string }).semanticProjectDir;
     this.clarifications = options.clarifications ?? new ClarificationManager();
     this.clarifications.onSettled = (clarificationId, outcome) => {
       this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: "clarification", timestamp: Date.now(), event: { type: "clarification.settled", clarificationId, outcome } });
@@ -137,6 +139,36 @@ export class DataAgentRuntime {
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "runtime.probe.result", service: "data-agent-runtime", runtimeVersion: "0.1.0" } };
     }
 
+    if (command.command.type === "semantic.sources.list" && this.semanticProjectDir) {
+      const { resolve: resolvePath2 } = await import("node:path");
+      const fs = await import("node:fs/promises");
+      const base = resolvePath2(this.semanticProjectDir);
+      const sources: Array<{ connectionId: string; sourceName: string; definition: unknown; updatedAt: number }> = [];
+      let connections: string[] = [];
+      try { connections = await fs.readdir(resolvePath2(base, "business-semantic")); } catch { connections = []; }
+      for (const connectionId of connections) {
+        const connDir = resolvePath2(base, "business-semantic", connectionId);
+        let entries: any[] = [];
+        try { entries = await fs.readdir(connDir, { withFileTypes: true }); } catch { continue; }
+        for (const entry of entries) {
+          if (!entry.isFile() || !(entry.name.endsWith(".yaml") || entry.name.endsWith(".yml"))) continue;
+          const full = resolvePath2(connDir, entry.name);
+          const info = await fs.stat(full);
+          sources.push({ connectionId, sourceName: entry.name.replace(/\.ya?ml$/i, ""), definition: {}, updatedAt: info.mtimeMs });
+        }
+      }
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "semantic.sources.result", sources } };
+    }
+    if (command.command.type === "semantic.sources.get" && this.semanticProjectDir) {
+      const { resolve: resolvePath2 } = await import("node:path");
+      const fs = await import("node:fs/promises");
+      const getCmd = command.command as { connectionId: string; sourceName: string };
+      const candidates = [".yaml", ".yml"].map((ext) => resolvePath2(this.semanticProjectDir as string, "business-semantic", getCmd.connectionId, getCmd.sourceName + ext));
+      let rawYaml: string | null = null;
+      for (const candidate of candidates) { try { rawYaml = await fs.readFile(candidate, "utf8"); break; } catch { /* next */ } }
+      if (rawYaml === null) throw new DataAgentRuntimeError("INVALID_COMMAND", "SEMANTIC_SOURCE_NOT_FOUND");
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "semantic.source.result", source: { connectionId: getCmd.connectionId, sourceName: getCmd.sourceName, definition: { rawYaml }, updatedAt: Date.now() } } };
+    }
     if (command.command.type === "semantic.sources.list") {
       const rows = (await this.metadata!.listSemanticSources()) ?? [];
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "semantic.sources.result", sources: rows.map((r: any) => ({ connectionId: String(r.connectionId), sourceName: String(r.sourceName), definition: JSON.parse(String(r.definitionJson)), updatedAt: r.updatedAt })) } };

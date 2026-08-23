@@ -167,3 +167,19 @@ export async function listKnowledgeViaRuntime(): Promise<Array<{ path: string; s
 export async function saveKnowledgeViaRuntime(path: string, content: string): Promise<void> {
   await getRuntimeClient().dispatch({ type: "knowledge.save", path, content });
 }
+
+export interface RuntimeSemanticConnection { connectionId: string; sources: Array<{ sourceName: string; sourceKind: string; assetType: string; title: string | null; isQueryable: boolean; hasOverlay: boolean; description: string }> }
+
+export async function listSemanticSourcesViaRuntime(): Promise<Array<{ connectionId: string; sourceName: string; updatedAt: number }>> {
+  const envelope = await getRuntimeClient().dispatch({ type: "semantic.sources.list" });
+  const result = envelope.response;
+  if (result.type !== "semantic.sources.result") throw new Error("UNEXPECTED_RESPONSE");
+  return result.sources as Array<{ connectionId: string; sourceName: string; updatedAt: number }>;
+}
+
+export async function getSemanticSourceViaRuntime(connectionId: string, sourceName: string): Promise<{ rawYaml: string }> {
+  const envelope = await getRuntimeClient().dispatch({ type: "semantic.sources.get", connectionId, sourceName });
+  const result = envelope.response;
+  if (result.type !== "semantic.source.result") throw new Error("UNEXPECTED_RESPONSE");
+  return (result.source as { definition: { rawYaml?: string } }).definition as { rawYaml: string };
+}
