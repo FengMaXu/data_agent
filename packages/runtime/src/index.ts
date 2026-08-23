@@ -136,6 +136,29 @@ export class DataAgentRuntime {
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "runtime.probe.result", service: "data-agent-runtime", runtimeVersion: "0.1.0" } };
     }
 
+    if (command.command.type === "semantic.sources.list") {
+      const rows = (await this.metadata!.listSemanticSources()) ?? [];
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "semantic.sources.result", sources: rows.map((r: any) => ({ connectionId: String(r.connectionId), sourceName: String(r.sourceName), definition: JSON.parse(String(r.definitionJson)), updatedAt: r.updatedAt })) } };
+    }
+    if (command.command.type === "semantic.sources.get") {
+      const row = await this.metadata!.getSemanticSource(command.command.connectionId, command.command.sourceName);
+      if (!row) throw new DataAgentRuntimeError("INVALID_COMMAND", "SEMANTIC_SOURCE_NOT_FOUND");
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "semantic.source.result", source: { connectionId: String(row.connectionId), sourceName: String(row.sourceName), definition: JSON.parse(String(row.definitionJson)), updatedAt: row.updatedAt } } };
+    }
+    if (command.command.type === "mcp.config.get" || command.command.type === "mcp.config.save") {
+      if (command.command.type === "mcp.config.save") await this.metadata!.setConfig("mcp.config", (command.command as { config: unknown }).config);
+      const config = (await this.metadata!.getConfig("mcp.config")) ?? null;
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "mcp.config.result", config } };
+    }
+    if (command.command.type === "skills.list") {
+      const { resolve: resolvePath2 } = await import("node:path");
+      const { loadSkillsFromDir } = await import("./skills.js");
+      const skillsRoot = resolvePath2(this.knowledgeRoot as string, "..", "skills");
+      const { skills: loaded } = await loadSkillsFromDir(skillsRoot);
+      const skills: Array<{ name: string; description: string; tools: string[] }> = [];
+      for (const sk of loaded) skills.push({ name: String((sk as any).name ?? ""), description: String((sk as any).description ?? ""), tools: Array.isArray((sk as any).tools) ? (sk as any).tools.map(String) : [] });
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "skills.list.result", skills } };
+    }
     if (command.command.type === "python.run") {
       if (!this.pythonExecutable) throw new DataAgentRuntimeError("INVALID_COMMAND", "Python runtime is not configured");
       if (!context.sessionId) throw new DataAgentRuntimeError("INVALID_CONTEXT", "Python jobs require a session workspace");
