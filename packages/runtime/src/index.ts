@@ -266,6 +266,7 @@ export { KnowledgeWriter, KnowledgeWriteDeniedError, readAuditLog, type Knowledg
 export { createExportQueryAdapter, ExportCapabilityError } from "./export-adapter.js";
 export { ProcessSupervisor, semanticToolIdentity, type SupervisorState } from "./process-supervisor.js";
 export { ClarificationManager } from "./clarification.js";
+export { InMemorySecretVault, ProviderRegistry, type LLMProfile, type SecretVault } from "./providers.js";
 export { WorkspaceStore } from "./workspace.js";
 export { loadRuntimeManifest, probePython, resolvePythonRuntime, type PythonRuntimeConfig, type PythonRuntimeManifest } from "./python-runtime.js";
 export { writePythonPackManifest } from "./python-pack-builder.js";
