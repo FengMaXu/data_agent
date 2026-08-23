@@ -15,6 +15,7 @@ import { PiJsonlSessionStore } from "./session-store.js";
 import { WorkspaceStore } from "./workspace.js";
 import { runPythonJob } from "./python-job.js";
 import { KnowledgeIndex } from "./knowledge.js";
+import { ClarificationManager } from "./clarification.js";
 
 export class DataAgentRuntimeError extends Error {
   readonly code: "INVALID_COMMAND" | "UNSUPPORTED_PROTOCOL_VERSION" | "INVALID_CONTEXT";
@@ -43,16 +44,21 @@ export class DataAgentRuntime {
   private pythonExecutable?: string;
   private readonly knowledge?: KnowledgeIndex;
   private readonly knowledgeRoot?: string;
+  private readonly clarifications: ClarificationManager;
   private activeRun?: { requestId: string; runId: string };
   private readonly agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void };
 
-  constructor(options: { metadata?: MetadataStore; sessions?: PiJsonlSessionStore; workspace?: WorkspaceStore; pythonExecutable?: string; knowledge?: KnowledgeIndex; knowledgeRoot?: string; agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void } } = {}) {
+  constructor(options: { metadata?: MetadataStore; sessions?: PiJsonlSessionStore; workspace?: WorkspaceStore; pythonExecutable?: string; knowledge?: KnowledgeIndex; knowledgeRoot?: string; clarifications?: ClarificationManager; agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void } } = {}) {
     this.metadata = options.metadata;
     this.sessions = options.sessions;
     this.workspace = options.workspace;
     this.pythonExecutable = options.pythonExecutable;
     this.knowledge = options.knowledge;
     this.knowledgeRoot = options.knowledgeRoot;
+    this.clarifications = options.clarifications ?? new ClarificationManager();
+    this.clarifications.onSettled = (clarificationId, outcome) => {
+      this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: "clarification", timestamp: Date.now(), event: { type: "clarification.settled", clarificationId, outcome } });
+    };
     this.agent = options.agent;
     this.agent?.subscribe?.((event) => this.mapPiEvent(event));
   }
@@ -90,6 +96,12 @@ export class DataAgentRuntime {
       await this.workspace.write(command.command.path, command.command.content);
       this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, sessionId: context.sessionId, timestamp: Date.now(), event: { type: "workspace.artifact.created", path: command.command.path, kind: "file" } });
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "workspace.result", operation: "write", path: command.command.path } };
+    }
+
+    if (command.command.type === "clarification.answer") {
+      const answered = this.clarifications.answer(command.command.clarificationId, command.command.answer);
+      if (!answered) throw new DataAgentRuntimeError("INVALID_COMMAND", "Unknown or already settled clarification");
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "runtime.probe.result", service: "data-agent-runtime", runtimeVersion: "0.1.0" } };
     }
 
     if (command.command.type === "python.run") {
@@ -177,6 +189,15 @@ export class DataAgentRuntime {
     return response;
   }
 
+  /** Tools call this to suspend the run until the user answers or timeout hits. */
+  askClarification(sessionId: string, question: string, options: string[], timeoutMs?: number): { clarificationId: string; promise: Promise<string> } {
+    const asked = this.clarifications.ask(sessionId, question, options, timeoutMs);
+    this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: "clarification", sessionId, timestamp: Date.now(), event: { type: "clarification.request", clarificationId: asked.clarificationId, question, options } });
+    return asked;
+  }
+
+  cancelSessionClarifications(sessionId: string): void { this.clarifications.cancel(sessionId, "cancelled"); }
+
   private mapPiEvent(event: any): void {
     const run = this.activeRun;
     if (!run || event?.type !== "message_update") return;
@@ -212,6 +233,7 @@ export { KnowledgeIndex, type KnowledgeHit } from "./knowledge.js";
 export { KnowledgeWriter, KnowledgeWriteDeniedError, readAuditLog, type KnowledgeWriteOperation, type KnowledgeWriteResult } from "./knowledge-write.js";
 export { createExportQueryAdapter, ExportCapabilityError } from "./export-adapter.js";
 export { ProcessSupervisor, semanticToolIdentity, type SupervisorState } from "./process-supervisor.js";
+export { ClarificationManager } from "./clarification.js";
 export { WorkspaceStore } from "./workspace.js";
 export { loadRuntimeManifest, probePython, resolvePythonRuntime, type PythonRuntimeConfig, type PythonRuntimeManifest } from "./python-runtime.js";
 export { writePythonPackManifest } from "./python-pack-builder.js";
