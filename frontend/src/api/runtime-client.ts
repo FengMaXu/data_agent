@@ -67,3 +67,19 @@ export function getRuntimeClient(): RuntimeClient {
   }
   return selected;
 }
+
+// ── Feature-level helpers over versioned commands ──────────────────────────
+
+export async function listTasksViaRuntime(): Promise<Array<{ id: string; name: string }>> {
+  const envelope = await getRuntimeClient().dispatch({ type: "task.list" });
+  const result = envelope.response;
+  if (result.type !== "list.result") throw new Error("UNEXPECTED_RESPONSE");
+  return result.items as Array<{ id: string; name: string }>;
+}
+
+export async function createTaskViaRuntime(name: string): Promise<{ id: string }> {
+  const envelope = await getRuntimeClient().dispatch({ type: "task.create", name });
+  const result = envelope.response;
+  if (result.type !== "mutation.result") throw new Error("UNEXPECTED_RESPONSE");
+  return result.item as { id: string };
+}
