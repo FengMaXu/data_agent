@@ -104,3 +104,17 @@ export async function listWorkspaceViaRuntime(): Promise<string[]> {
   if (result.type !== "workspace.result" || !result.files) throw new Error("UNEXPECTED_RESPONSE");
   return result.files;
 }
+
+export async function searchKnowledgeViaRuntime(query: string): Promise<Array<{ path: string; title: string; score: number }>> {
+  const envelope = await getRuntimeClient().dispatch({ type: "knowledge.search", query });
+  const result = envelope.response;
+  if (result.type !== "knowledge.search.result") throw new Error("UNEXPECTED_RESPONSE");
+  return result.hits as Array<{ path: string; title: string; score: number }>;
+}
+
+export async function readKnowledgeViaRuntime(path: string): Promise<string> {
+  const envelope = await getRuntimeClient().dispatch({ type: "knowledge.read", path });
+  const result = envelope.response;
+  if (result.type !== "knowledge.read.result") throw new Error("UNEXPECTED_RESPONSE");
+  return result.content;
+}
