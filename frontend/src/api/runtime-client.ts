@@ -126,3 +126,25 @@ export async function stopAgentViaRuntime(): Promise<void> {
 export async function steerAgentViaRuntime(prompt: string): Promise<void> {
   await getRuntimeClient().dispatch({ type: "agent.steer", prompt });
 }
+
+export async function renameSessionViaRuntime(sessionId: string, name: string): Promise<void> {
+  await getRuntimeClient().dispatch({ type: "session.rename", sessionId, name });
+}
+
+export async function deleteSessionViaRuntime(sessionId: string): Promise<void> {
+  await getRuntimeClient().dispatch({ type: "session.delete", sessionId });
+}
+
+export async function renameTaskViaRuntime(taskId: string, name: string): Promise<void> {
+  await getRuntimeClient().dispatch({ type: "task.rename", taskId, name });
+}
+
+export async function deleteTaskViaRuntime(taskId: string): Promise<void> {
+  await getRuntimeClient().dispatch({ type: "task.delete", taskId });
+}
+export async function createTaskWithIdViaRuntime(name: string): Promise<{ id: string; name: string }> {
+  const envelope = await getRuntimeClient().dispatch({ type: 'task.create', name });
+  const result = envelope.response;
+  if (result.type !== 'mutation.result') throw new Error('UNEXPECTED_RESPONSE');
+  return result.item as { id: string; name: string };
+}

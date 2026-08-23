@@ -1,18 +1,14 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
-    createTask as createTaskRequest,
-    createTaskSession,
-    deleteChatSession,
-    deleteTask as deleteTaskRequest,
     getChatSession,
     prepareAgentSession,
     saveChatTranscript,
     saveSessionAttachedFiles,
-    updateTaskName as updateTaskNameRequest,
     type SessionSnapshotMessage,
 } from '../api/client';
-import { listSessionsViaRuntime, listTasksViaRuntime } from '../api/runtime-client';
+import { createTaskWithIdViaRuntime } from '../api/runtime-client';
+import { createSessionViaRuntime, deleteSessionViaRuntime, deleteTaskViaRuntime, listSessionsViaRuntime, listTasksViaRuntime, renameTaskViaRuntime } from '../api/runtime-client';
 import { useLanguage } from '../context/LanguageContext';
 
 export interface Task {
@@ -280,7 +276,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         setCurrentSessionId('');
         writeCurrentTaskId(task.id);
         writeCurrentSessionId('');
-        void createTaskRequest({ id: task.id, name: task.name })
+        void createTaskWithIdViaRuntime(task.name)
+            .then((created) => { if (created.id !== task.id) console.warn('Task id mismatch:', created.id, task.id); })
             .catch((error) => console.warn('Failed to create task:', error));
     }, [defaultTaskName]);
 
@@ -302,9 +299,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         writeCurrentTaskId(taskId);
         writeCurrentSessionId(session.id);
 
-        void createTaskSession(taskId, { id: session.id, name: session.name }).then((created) => {
-            conversationVersionsRef.current[session.id] = created.conversation_version || 1;
-            warmSession(session.id);
+        void createSessionViaRuntime(taskId, session.name).then((created) => {
+            conversationVersionsRef.current[created.id] = 1;
+            warmSession(created.id);
         }).catch((error) => console.warn('Failed to create session:', error));
     }, [currentTask?.id, defaultSessionName, warmSession]);
 
@@ -350,7 +347,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
             delete next[sessionId];
             return next;
         });
-        void deleteChatSession(sessionId);
+        void deleteSessionViaRuntime(sessionId);
         if (sessionId === currentSessionId) {
             const next = nextSessions.find((session) => session.taskId === target.taskId);
             if (next) switchSession(next.id);
@@ -369,7 +366,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         setSessions(nextSessions);
         setTranscriptsBySession((prev) => Object.fromEntries(Object.entries(prev).filter(([id]) => !removedSessionIds.has(id))));
         setAttachedFilesBySession((prev) => Object.fromEntries(Object.entries(prev).filter(([id]) => !removedSessionIds.has(id))));
-        void deleteTaskRequest(taskId);
+        void deleteTaskViaRuntime(taskId);
         if (taskId === currentTaskId) {
             const nextTask = nextTasks[0] || null;
             const nextSession = nextTask ? nextSessions.find((session) => session.taskId === nextTask.id) || null : null;
@@ -384,7 +381,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     const updateTaskName = useCallback((taskId: string, name: string) => {
         const nextName = name.trim() || defaultTaskName;
         setTasks((prev) => prev.map((task) => task.id === taskId ? { ...task, name: nextName } : task));
-        void updateTaskNameRequest(taskId, nextName);
+        void renameTaskViaRuntime(taskId, nextName);
     }, [defaultTaskName]);
 
     const setCurrentTranscript = useCallback((sessionId: string, messages: SessionSnapshotMessage[]) => {
