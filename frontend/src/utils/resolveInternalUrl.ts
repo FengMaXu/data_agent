@@ -80,8 +80,8 @@ function resolveRelativeWorkspacePath(value: string, sourceUrl?: string, current
     return normalizePathSegments([...basePath, ...assetParts]);
 }
 
-function buildWorkspaceFileUrl(endpoint: 'download' | 'preview', path: string): string {
-    const url = new URL(`${API_BASE_URL}/workspace/files/${endpoint}`, API_BASE_URL || window.location.origin);
+function buildWorkspaceFileUrl(_endpoint: 'download' | 'preview', path: string): string {
+    const url = new URL(`${API_BASE_URL}/api/workspace/download`, API_BASE_URL || window.location.origin);
     url.searchParams.set('path', path);
     return appendAuthTokenWithoutDuplicate(url);
 }

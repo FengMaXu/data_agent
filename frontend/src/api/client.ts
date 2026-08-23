@@ -985,7 +985,7 @@ export async function uploadWorkspaceFile(file: File, sessionId: string = ''): P
     const formData = new FormData();
     formData.append('file', file);
     const query = sessionId ? `?session_id=${encodeURIComponent(sessionId)}` : '';
-    const res = await fetch(`${API_BASE_URL}/workspace/upload${query}`, {
+    const res = await fetch(`${API_BASE_URL}/api/workspace/upload${query}`, {
         method: 'POST',
         body: formData,
     });

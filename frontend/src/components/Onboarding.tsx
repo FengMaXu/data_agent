@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Database, KeyRound, Languages, Loader2, ShieldCheck } from './icons/Typicons';
 import {
-    updateLLMConfig,
     type DBConfigUpdate,
     type LLMConfigUpdate,
 } from '../api/client';
@@ -90,7 +89,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                 });
             }
 
-            await updateLLMConfig(llmPayload);
+            await saveConfigViaRuntime(llmPayload);
 
             if (dbConfig.database || dbConfig.user || dbConfig.password) {
                 await saveConfigViaRuntime(dbConfig);
