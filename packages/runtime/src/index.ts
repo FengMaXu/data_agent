@@ -62,6 +62,9 @@ export class DataAgentRuntime {
     this.knowledgeRoot = options.knowledgeRoot;
     this.semanticProjectDir = (options as { semanticProjectDir?: string }).semanticProjectDir;
     this.clarifications = options.clarifications ?? new ClarificationManager();
+    this.clarifications.onAsked = (request) => {
+      this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: "clarification", timestamp: Date.now(), sessionId: request.sessionId, event: { type: "clarification.request", clarificationId: request.clarificationId, question: request.question, options: request.options } });
+    };
     this.clarifications.onSettled = (clarificationId, outcome) => {
       this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: "clarification", timestamp: Date.now(), event: { type: "clarification.settled", clarificationId, outcome } });
     };

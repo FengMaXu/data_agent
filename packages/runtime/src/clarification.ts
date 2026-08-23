@@ -33,10 +33,12 @@ export class ClarificationManager {
       this.onSettled?.(clarificationId, "expired");
     }, timeoutMs ?? this.defaultTimeoutMs);
     this.pending.set(clarificationId, entry);
+    this.onAsked?.({ clarificationId, sessionId, question, options });
     return { clarificationId, promise };
   }
 
   onSettled?: (clarificationId: string, outcome: "answered" | "expired" | "cancelled") => void;
+  onAsked?: (request: { clarificationId: string; sessionId: string; question: string; options: string[] }) => void;
 
   answer(clarificationId: string, answer: string): boolean {
     const entry = this.pending.get(clarificationId);
