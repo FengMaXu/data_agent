@@ -11,8 +11,6 @@ import {
 } from './icons/Typicons';
 import {
     sendChatMessage,
-    steerAgent,
-    stopAgent,
     clearSession,
     uploadWorkspaceFile,
     answerClarification,
@@ -24,6 +22,7 @@ import {
     type AgentProgressStage,
     type AgentTerminalReason,
 } from '../api/client';
+import { steerAgentViaRuntime, stopAgentViaRuntime } from '../api/runtime-client';
 import type { ToolData } from './ToolPanel';
 import { useSession, type Session, type Task } from '../hooks/useSession';
 import { useLanguage } from '../context/LanguageContext';
@@ -430,7 +429,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
     const handleStop = async () => {
         if (!isStreaming) return;
         try {
-            await stopAgent(currentSession.id);
+            await stopAgentViaRuntime();
         } catch (err) {
             console.error('Failed to stop agent:', err);
         }
@@ -495,7 +494,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
         if (isStreaming) {
             flushAllBuffers();
             try {
-                await steerAgent(content, sessionId);
+                await steerAgentViaRuntime(content);
             } catch (err) {
                 console.error('Failed to steer agent:', err);
             }

@@ -148,3 +148,11 @@ export async function createTaskWithIdViaRuntime(name: string): Promise<{ id: st
   if (result.type !== 'mutation.result') throw new Error('UNEXPECTED_RESPONSE');
   return result.item as { id: string; name: string };
 }
+
+export async function deleteWorkspaceFileViaRuntime(path: string): Promise<void> {
+  await getRuntimeClient().dispatch({ type: "workspace.delete", path });
+}
+
+export async function writeWorkspaceFileViaRuntime(path: string, content: string): Promise<void> {
+  await getRuntimeClient().dispatch({ type: "workspace.write", path, content });
+}
