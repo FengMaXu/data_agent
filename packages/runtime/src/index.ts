@@ -211,6 +211,7 @@ export { effectiveTools, loadSkillsFromDir, moveSystemPrompt, type SkillDefiniti
 export { KnowledgeIndex, type KnowledgeHit } from "./knowledge.js";
 export { KnowledgeWriter, KnowledgeWriteDeniedError, readAuditLog, type KnowledgeWriteOperation, type KnowledgeWriteResult } from "./knowledge-write.js";
 export { createExportQueryAdapter, ExportCapabilityError } from "./export-adapter.js";
+export { ProcessSupervisor, semanticToolIdentity, type SupervisorState } from "./process-supervisor.js";
 export { WorkspaceStore } from "./workspace.js";
 export { loadRuntimeManifest, probePython, resolvePythonRuntime, type PythonRuntimeConfig, type PythonRuntimeManifest } from "./python-runtime.js";
 export { writePythonPackManifest } from "./python-pack-builder.js";
