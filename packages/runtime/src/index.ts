@@ -143,14 +143,39 @@ export class DataAgentRuntime {
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "python.result", jobId: result.jobId, status: result.status, exitCode: result.exitCode, stdout: result.stdout, stderr: result.stderr, scriptPath: result.scriptPath, durationMs: result.durationMs } };
     }
 
-    if (command.command.type === "knowledge.search" || command.command.type === "knowledge.read") {
+    if (command.command.type === "knowledge.search" || command.command.type === "knowledge.read" || command.command.type === "knowledge.list" || command.command.type === "knowledge.save") {
       if (!this.knowledge || !this.knowledgeRoot) throw new DataAgentRuntimeError("INVALID_COMMAND", "Knowledge index is not configured");
+      const { resolve: resolvePath, join: joinPath } = await import("node:path");
       await this.knowledge.loadDirectory(this.knowledgeRoot);
       if (command.command.type === "knowledge.search") return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "knowledge.search.result", hits: this.knowledge.search(command.command.query) } };
+      if (command.command.type === "knowledge.list") {
+        const { readdir, stat } = await import("node:fs/promises");
+        const files: Array<{ path: string; size: number; modifiedAt: number }> = [];
+        const walk = async (dir: string): Promise<void> => {
+          for (const entry of await readdir(dir, { withFileTypes: true })) {
+            const full = dir + "/" + entry.name;
+            if (entry.isDirectory()) await walk(full);
+            else if (entry.name.endsWith(".md")) {
+              const info = await stat(full);
+              files.push({ path: full.slice((this.knowledgeRoot as string).length + 1), size: info.size, modifiedAt: info.mtimeMs });
+            }
+          }
+        };
+        await walk(this.knowledgeRoot as string);
+        return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "knowledge.list.result", files } };
+      }
+      if (command.command.type === "knowledge.save") {
+        if (command.command.path.startsWith(".pi/")) throw new DataAgentRuntimeError("INVALID_COMMAND", "SYSTEM_PROMPT_IMMUTABLE");
+        const { writeFile, mkdir } = await import("node:fs/promises");
+        const target = resolvePath(joinPath(this.knowledgeRoot as string, command.command.path));
+        if (!target.startsWith(resolvePath(this.knowledgeRoot as string))) throw new DataAgentRuntimeError("INVALID_COMMAND", "Knowledge path escapes root");
+        await mkdir(joinPath(target, ".."), { recursive: true });
+        await writeFile(target, command.command.content, "utf8");
+        return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "knowledge.save.result", path: command.command.path } };
+      }
       const { readFile } = await import("node:fs/promises");
-      const { resolve, join } = await import("node:path");
-      const target = resolve(join(this.knowledgeRoot, command.command.path));
-      if (!target.startsWith(resolve(this.knowledgeRoot))) throw new DataAgentRuntimeError("INVALID_COMMAND", "Knowledge path escapes root");
+      const target = resolvePath(joinPath(this.knowledgeRoot as string, command.command.path));
+      if (!target.startsWith(resolvePath(this.knowledgeRoot as string))) throw new DataAgentRuntimeError("INVALID_COMMAND", "Knowledge path escapes root");
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "knowledge.read.result", path: command.command.path, content: await readFile(target, "utf8") } };
     }
 
