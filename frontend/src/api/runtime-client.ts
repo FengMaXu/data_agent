@@ -266,3 +266,24 @@ export function sendChatViaRuntime(
 export async function prepareSessionViaRuntime(sessionId: string): Promise<void> {
   await getRuntimeClient().dispatch({ type: "session.prepare", sessionId });
 }
+
+export interface RuntimeMcpServerStatus { name: string; enabled: boolean; connected: boolean; toolCount: number; hostManaged: boolean }
+
+export async function getMcpServersViaRuntime(): Promise<RuntimeMcpServerStatus[]> {
+  const envelope = await getRuntimeClient().dispatch({ type: "mcp.servers.status" });
+  const result = envelope.response;
+  if (result.type !== "mcp.servers.status.result") throw new Error("UNEXPECTED_RESPONSE");
+  return result.servers;
+}
+
+export async function testMcpServerViaRuntime(name: string): Promise<{ ok: boolean; message: string }> {
+  const envelope = await getRuntimeClient().dispatch({ type: "mcp.server.test", name });
+  const result = envelope.response;
+  if (result.type !== "mcp.server.test.result") throw new Error("UNEXPECTED_RESPONSE");
+  return { ok: result.ok, message: result.message };
+}
+
+export async function restartMcpServerViaRuntime(name: string): Promise<void> {
+  const envelope = await getRuntimeClient().dispatch({ type: "mcp.server.restart", name });
+  if (envelope.response.type !== "mcp.server.restart.result") throw new Error("UNEXPECTED_RESPONSE");
+}

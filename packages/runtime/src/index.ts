@@ -48,6 +48,7 @@ export class DataAgentRuntime {
   private readonly knowledgeRoot?: string;
   private readonly semanticProjectDir?: string;
   queryExecutor?: { run(sql: string, rowLimit: number): Promise<{ columns: string[]; rows: unknown[][]; truncated: boolean }> };
+  mcpSupervisor?: { status(): Promise<Array<{ name: string; enabled: boolean; connected: boolean; toolCount: number; hostManaged: boolean }>>; test(name: string): Promise<{ ok: boolean; message: string }>; restart(name: string): Promise<{ ok: boolean }> };
   ingestJob?: { getStatus(): Promise<{ status: string; jobId: string | null; summary: { updated: number; unchanged: number; failed: number; skipped: number }; errorCode: string | null }>; retry(): Promise<{ accepted: boolean }> };
   private readonly clarifications: ClarificationManager;
   private activeRun?: { requestId: string; runId: string; sessionId?: string };
@@ -213,6 +214,20 @@ export class DataAgentRuntime {
       if (!this.ingestJob) throw new DataAgentRuntimeError("INVALID_COMMAND", "INGEST_JOB_NOT_CONFIGURED");
       const result = await this.ingestJob.retry();
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "semantic.ingest.retry.result", accepted: result.accepted } };
+    }
+    if (command.command.type === "mcp.servers.status") {
+      if (!this.mcpSupervisor) throw new DataAgentRuntimeError("INVALID_COMMAND", "MCP_SUPERVISOR_NOT_CONFIGURED");
+      const servers = await this.mcpSupervisor.status();
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "mcp.servers.status.result", servers } };
+    }
+    if (command.command.type === "mcp.server.test" || command.command.type === "mcp.server.restart") {
+      if (!this.mcpSupervisor) throw new DataAgentRuntimeError("INVALID_COMMAND", "MCP_SUPERVISOR_NOT_CONFIGURED");
+      if (command.command.type === "mcp.server.test") {
+        const result = await this.mcpSupervisor.test((command.command as { name: string }).name);
+        return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "mcp.server.test.result", ok: result.ok, message: result.message } };
+      }
+      const result = await this.mcpSupervisor.restart((command.command as { name: string }).name);
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "mcp.server.restart.result", ok: result.ok } };
     }
     if (command.command.type === "session.prepare") {
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "runtime.probe.result", service: "data-agent-runtime", runtimeVersion: "0.1.0" } };

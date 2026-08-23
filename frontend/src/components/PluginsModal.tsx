@@ -1,9 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Search, RefreshCw, Plus, Loader2 } from './icons/Typicons';
 import {
-    updateMCPServerEnabled,
-    restartMCPServer,
-    testMCPServer,
     type MCPConfig,
     type MCPServerConfig,
     type MCPServerRequest,
@@ -11,7 +8,7 @@ import {
     type MCPTestResult,
     type SkillInfo,
 } from '../api/client';
-import { getMcpConfigViaRuntime, listSkillsViaRuntime, saveMcpConfigViaRuntime } from '../api/runtime-client';
+import { getMcpConfigViaRuntime, getMcpServersViaRuntime, listSkillsViaRuntime, restartMcpServerViaRuntime, saveMcpConfigViaRuntime, testMcpServerViaRuntime } from '../api/runtime-client';
 import { useLanguage } from '../context/LanguageContext';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 
@@ -184,7 +181,8 @@ const PluginsModal: React.FC<PluginsModalProps> = ({ initialTab = 'MCP', onClose
         setPendingToggleServer(serverName);
         setMcpConfig(nextConfig);
         try {
-            const result = await updateMCPServerEnabled(serverName, enabled);
+            await saveMcpConfigViaRuntime({ servers: nextConfig.servers.map((server) => ({ ...server, enabled: server.name === serverName ? enabled : server.enabled })) });
+            const result = { server: mcpConfig.servers.find((item) => item.name === serverName) ?? { name: serverName, enabled } as never };
             setMcpConfig(prev => ({
                 ...prev,
                 servers: prev.servers.map(server =>
@@ -215,7 +213,12 @@ const PluginsModal: React.FC<PluginsModalProps> = ({ initialTab = 'MCP', onClose
         setMcpError(null);
         setPendingRestartServer(serverName);
         try {
-            const result = await restartMCPServer(serverName);
+            await restartMcpServerViaRuntime(serverName);
+            const runtimeServers = await getMcpServersViaRuntime();
+            const runtimeServer = runtimeServers.find((item) => item.name === serverName);
+            const result = { server: (runtimeServer
+                ? { ...runtimeServer, tool_count: runtimeServer.toolCount, host_managed: runtimeServer.hostManaged, status: runtimeServer.connected ? 'connected' : 'disconnected' }
+                : { name: serverName, enabled: true }) as unknown as MCPServerStatus };
             setMcpConfig(prev => ({
                 ...prev,
                 servers: prev.servers.map(server =>
@@ -252,7 +255,8 @@ const PluginsModal: React.FC<PluginsModalProps> = ({ initialTab = 'MCP', onClose
         setIsTestingMCP(true);
         setMcpTestResult(null);
         try {
-            const result = await testMCPServer(buildMcpServerPayload(server));
+            const testResult = await testMcpServerViaRuntime(String(server.name ?? ''));
+            const result = { success: testResult.ok, message: testResult.message };
             setMcpTestResult(result);
             await loadMCPData();
         } catch (e: unknown) {
