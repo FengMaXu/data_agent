@@ -1,12 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
-    getChatSession,
-    saveChatTranscript,
-    saveSessionAttachedFiles,
     type SessionSnapshotMessage,
 } from '../api/client';
-import { createTaskWithIdViaRuntime, prepareSessionViaRuntime } from '../api/runtime-client';
+import { createTaskWithIdViaRuntime, getTranscriptViaRuntime, prepareSessionViaRuntime } from '../api/runtime-client';
 import { createSessionViaRuntime, deleteSessionViaRuntime, deleteTaskViaRuntime, listSessionsViaRuntime, listTasksViaRuntime, renameTaskViaRuntime } from '../api/runtime-client';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -119,22 +116,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         });
     }, []);
 
-    const persistTranscript = useCallback((sessionId: string, messages: SessionSnapshotMessage[]) => {
-        void saveChatTranscript(
-            sessionId,
-            messages,
-            attachedFilesRef.current[sessionId],
-            conversationVersionsRef.current[sessionId],
-        ).then((saved) => {
-            setSessions((prev) => prev.map((session) => (
-                session.id === sessionId
-                    ? { ...session, name: saved.name, conversationVersion: saved.conversation_version || session.conversationVersion }
-                    : session
-            )));
-            conversationVersionsRef.current[sessionId] = saved.conversation_version || conversationVersionsRef.current[sessionId] || 1;
-        }).catch((error) => {
-            console.warn('Failed to save transcript:', error);
-        });
+    const persistTranscript = useCallback((_sessionId: string, _messages: SessionSnapshotMessage[]) => {
+        // Transcripts are owned by the Runtime's Pi JSONL session store.
+        // Renderer snapshots are no longer persisted server-side.
     }, []);
 
     const scheduleTranscriptSave = useCallback((
@@ -205,11 +189,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
                 let transcripts: SessionTranscriptStore = {};
                 let attached: SessionAttachedFilesStore = {};
                 if (selectedSession) {
-                    const detail = await getChatSession(selectedSession.id);
+                    const transcriptMessages = await getTranscriptViaRuntime(selectedSession.id);
                     if (cancelled) return;
-                    conversationVersionsRef.current[selectedSession.id] = detail.conversation_version || selectedSession.conversationVersion;
-                    transcripts = { [selectedSession.id]: detail.messages || [] };
-                    attached = { [selectedSession.id]: detail.attached_files || [] };
+                    transcripts = { [selectedSession.id]: transcriptMessages.map((message) => ({
+                        id: message.id,
+                        role: message.role === 'agent' ? 'agent' : 'user',
+                        content: message.content,
+                        visitedStages: [],
+                    })) };
                     warmSession(selectedSession.id);
                 }
 
@@ -307,17 +294,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     const switchSession = useCallback((sessionId: string) => {
         if (!sessions.some((session) => session.id === sessionId)) return;
         if (transcriptsBySession[sessionId] === undefined) {
-            void getChatSession(sessionId).then((detail) => {
-                setTranscriptsBySession((prev) => ({ ...prev, [sessionId]: detail.messages || [] }));
-                setAttachedFilesBySession((prev) => ({ ...prev, [sessionId]: detail.attached_files || [] }));
-                conversationVersionsRef.current[sessionId] = detail.conversation_version || 1;
-                setSessions((prev) => prev.map((session) => (
-                    session.id === sessionId
-                        ? { ...session, name: detail.name, conversationVersion: detail.conversation_version || 1 }
-                        : session
-                )));
+            void getTranscriptViaRuntime(sessionId).then((transcriptMessages) => {
+                setTranscriptsBySession((prev) => ({ ...prev, [sessionId]: transcriptMessages.map((message) => ({
+                    id: message.id,
+                    role: message.role === 'agent' ? 'agent' : 'user',
+                    content: message.content,
+                    visitedStages: [],
+                })) }));
                 selectSession(sessionId);
-            }).catch((error) => console.warn('Failed to load session:', error));
+            }).catch((error: unknown) => console.warn('Failed to load session:', error));
             return;
         }
         selectSession(sessionId);
@@ -419,7 +404,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         if (!currentSession) return;
         const deduped = Array.from(new Set(files));
         setAttachedFilesBySession((prev) => ({ ...prev, [currentSession.id]: deduped }));
-        void saveSessionAttachedFiles(currentSession.id, deduped, conversationVersionsRef.current[currentSession.id]);
+        // Attached files persist with the workspace; no separate snapshot needed.
     }, [currentSession]);
 
     const toggleAttachedFile = useCallback((filePath: string) => {
@@ -427,14 +412,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         const current = attachedFilesBySession[currentSession.id] || [];
         const next = current.includes(filePath) ? current.filter((item) => item !== filePath) : [...current, filePath];
         setAttachedFilesBySession((prev) => ({ ...prev, [currentSession.id]: next }));
-        void saveSessionAttachedFiles(currentSession.id, next, conversationVersionsRef.current[currentSession.id]);
     }, [attachedFilesBySession, currentSession]);
 
     const clearAttachedFiles = useCallback((options: { persist?: boolean } = {}) => {
         if (!currentSession) return;
         setAttachedFilesBySession((prev) => ({ ...prev, [currentSession.id]: [] }));
         if (options.persist === false) return;
-        void saveSessionAttachedFiles(currentSession.id, [], conversationVersionsRef.current[currentSession.id]);
     }, [currentSession]);
 
     const isFileAttached = useCallback((filePath: string) => attachedFiles.includes(filePath), [attachedFiles]);

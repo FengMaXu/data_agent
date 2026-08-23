@@ -268,6 +268,29 @@ export class DataAgentRuntime {
       const result = await this.mcpSupervisor.restart((command.command as { name: string }).name);
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "mcp.server.restart.result", ok: result.ok } };
     }
+    if (command.command.type === "session.transcript") {
+      if (!this.sessions) throw new DataAgentRuntimeError("INVALID_COMMAND", "SESSION_STORE_NOT_CONFIGURED");
+      const listed = (await this.sessions.list()) as Array<Record<string, unknown>>;
+      const transcriptCmd = command.command as { sessionId: string };
+      const match = listed.find((meta) => (((meta.metadata ?? {}) as Record<string, unknown>).sessionId === transcriptCmd.sessionId || String(meta.id ?? "") === transcriptCmd.sessionId));
+      const messages: Array<{ id: string; role: string; content: string; timestamp: number }> = [];
+      if (match) {
+        const session = await this.sessions.open(match as never);
+        const entries = await session.getEntries();
+        for (const entry of entries) {
+          if (entry.type !== "message") continue;
+          const message = entry.message as unknown as Record<string, unknown>;
+          const role = message.role === "assistant" ? "agent" : String(message.role ?? "user");
+          let text = "";
+          for (const part of (Array.isArray(message.content) ? message.content : []) as Array<Record<string, unknown>>) {
+            if (part.type === "text" && typeof part.text === "string") text += part.text;
+          }
+          if (!text) continue;
+          messages.push({ id: entry.id, role, content: text, timestamp: Date.parse(entry.timestamp) || 0 });
+        }
+      }
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "session.transcript.result", messages } };
+    }
     if (command.command.type === "session.prepare") {
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "runtime.probe.result", service: "data-agent-runtime", runtimeVersion: "0.1.0" } };
     }

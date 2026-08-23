@@ -338,3 +338,11 @@ export async function clearSessionViaRuntime(sessionId: string): Promise<string>
   const created = await createSessionViaRuntime(target.taskId, target.name);
   return created.id;
 }
+
+export interface RuntimeTranscriptMessage { id: string; role: string; content: string; timestamp: number }
+
+export async function getTranscriptViaRuntime(sessionId: string): Promise<RuntimeTranscriptMessage[]> {
+  const envelope = await getRuntimeClient().dispatch({ type: "session.transcript", sessionId });
+  if (envelope.response.type !== "session.transcript.result") throw new Error("UNEXPECTED_RESPONSE");
+  return (envelope.response as unknown as { messages: RuntimeTranscriptMessage[] }).messages;
+}
