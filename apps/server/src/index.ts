@@ -11,12 +11,15 @@ import { DataAgentRuntime, DataAgentRuntimeError, LocalAuthService, WorkspaceSto
 export interface RuntimeServerOptions {
   contextFactory?: (request: FastifyRequest) => RequestContext;
   workspace?: WorkspaceStore;
+  /** Injected MCP-backed executor for dashboard.evaluate; Runtime never touches business DBs directly. */
+  queryExecutor?: { run(sql: string, rowLimit: number): Promise<{ columns: string[]; rows: unknown[][]; truncated: boolean }> };
 }
 
 export async function createRuntimeServer(
   runtime: DataAgentRuntime,
   options: RuntimeServerOptions = {},
 ): Promise<FastifyInstance> {
+  if (options.queryExecutor) runtime.queryExecutor = options.queryExecutor;
   const app = Fastify({ logger: false });
   await app.register(multipart, { limits: { fileSize: 100 * 1024 * 1024 } });
   const auth = new LocalAuthService();

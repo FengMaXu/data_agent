@@ -4,6 +4,8 @@ import { z } from "zod";
 import { createRequire } from "node:module";
 import { randomUUID } from "node:crypto";
 import { ReadResourceRequestSchema, ListResourcesRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+import { pathToFileURL } from "node:url";
+import path from "node:path";
 
 const DATABASE_MCP_CONTRACT_VERSION = 1;
 const DEFAULT_PREVIEW_LIMIT = 20;
@@ -89,4 +91,11 @@ export function createReferenceSqliteServer(options: ReferenceSqliteServerOption
 export async function startReferenceSqliteStdio(options: ReferenceSqliteServerOptions): Promise<void> {
   const { server } = createReferenceSqliteServer(options);
   await server.connect(new StdioServerTransport());
+}
+
+const invokedDirectly = process.argv[1] ? import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href : false;
+if (invokedDirectly) {
+  const dbArg = process.argv[2];
+  if (!dbArg) { console.error("usage: reference-sqlite-mcp <database-path>"); process.exit(2); }
+  void startReferenceSqliteStdio({ databasePath: path.resolve(dbArg) });
 }
