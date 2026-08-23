@@ -222,3 +222,13 @@ export async function retryIngestViaRuntime(): Promise<void> {
 export async function answerClarificationViaRuntime(clarificationId: string, answer: string): Promise<void> {
   await getRuntimeClient().dispatch({ type: "clarification.answer", clarificationId, answer });
 }
+
+export function subscribeRuntimeEvents(listener: (envelope: unknown) => void): () => void {
+  if (typeof window === "undefined") return () => undefined;
+  const base = (import.meta as { env?: Record<string, string> }).env?.VITE_API_BASE_URL ?? "";
+  const source = new EventSource(`${base}/api/runtime/events`);
+  source.onmessage = (message) => {
+    try { listener(JSON.parse(message.data)); } catch { /* ignore malformed */ }
+  };
+  return () => source.close();
+}

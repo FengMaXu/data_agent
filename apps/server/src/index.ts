@@ -32,6 +32,19 @@ export async function createRuntimeServer(
     app.post("/api/workspace/upload", async (request, reply) => { const context = contextFactory(request); try { options.workspace!.assertAccess(context); const part = await request.file(); if (!part) return reply.code(400).send({ error: { code: "WORKSPACE_FILE_REQUIRED" } }); const tempDir = await mkdtemp(path.join(tmpdir(), "data-agent-upload-")); const tempPath = path.join(tempDir, "upload"); await pipeline(part.file, createWriteStream(tempPath)); const artifact = await options.workspace!.upload(tempPath, part.filename); await rm(tempDir, { recursive: true, force: true }); return { artifact }; } catch { return reply.code(400).send({ error: { code: "WORKSPACE_UPLOAD_FAILED" } }); } });
   }
 
+  app.get("/api/runtime/events", async (request, reply) => {
+    reply.raw.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" });
+    reply.raw.write(`data: ${JSON.stringify({ protocolVersion: 1, sequence: 0, requestId: "hello", timestamp: Date.now(), event: { type: "runtime.hello" } })}
+
+`);
+    const unsubscribe = runtime.subscribe((envelope) => {
+      try { reply.raw.write(`data: ${JSON.stringify(envelope)}
+
+`); } catch { unsubscribe(); }
+    });
+    request.raw.on("close", () => { unsubscribe(); });
+  });
+
   app.post("/api/runtime/command", async (request, reply) => {
     try {
       const command = parseDataAgentCommandEnvelope(request.body);
