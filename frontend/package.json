@@ -56,18 +56,15 @@
     "appId": "com.yourdb.data-agent",
     "productName": "Data Agent",
     "directories": {
-      "output": "release"
+      "output": "C:/Temp/data-agent-release"
     },
     "files": [
       "dist/**/*",
       "electron/**/*",
+      "node_modules/@data-agent/**/*",
       "package.json"
     ],
     "extraResources": [
-      {
-        "from": "../dist/data_agent_server",
-        "to": "backend/data_agent_server"
-      },
       {
         "from": "../dist",
         "to": ".",
