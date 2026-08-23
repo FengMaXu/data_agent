@@ -12,7 +12,7 @@ import {
 import type {
   DataAgentCommand,
   DataAgentCommandEnvelope,
-  DataAgentResponse,
+  DataAgentResponseEnvelope,
 } from "@data-agent/contracts";
 
 let sequence = 0;
@@ -28,7 +28,7 @@ function envelope(command: DataAgentCommand, sessionId?: string): DataAgentComma
 }
 
 export interface RuntimeClient {
-  dispatch(command: DataAgentCommand, sessionId?: string): Promise<DataAgentResponse>;
+  dispatch(command: DataAgentCommand, sessionId?: string): Promise<DataAgentResponseEnvelope>;
   /** Subscribe to runtime events via the Host bridge (Electron) or SSE (Web). */
   onEvent?(listener: (event: unknown) => void): () => void;
 }
@@ -36,14 +36,14 @@ export interface RuntimeClient {
 export function createElectronRuntimeClient(bridge: ElectronCommandBridge): RuntimeClient {
   const transport: DataAgentTransport = createIpcTransport(bridge);
   return {
-    dispatch: (command, sessionId) => transport.dispatch(envelope(command, sessionId)) as Promise<DataAgentResponse>,
+    dispatch: (command, sessionId) => transport.dispatch(envelope(command, sessionId)) as unknown as Promise<DataAgentResponseEnvelope>,
   };
 }
 
 export function createHttpRuntimeClient(baseUrl: string, fetchLike: typeof fetch = fetch): RuntimeClient {
   const transport: DataAgentTransport = createHttpTransport(baseUrl, fetchLike as any);
   return {
-    dispatch: (command, sessionId) => transport.dispatch(envelope(command, sessionId)) as Promise<DataAgentResponse>,
+    dispatch: (command, sessionId) => transport.dispatch(envelope(command, sessionId)) as unknown as Promise<DataAgentResponseEnvelope>,
   };
 }
 
@@ -51,4 +51,19 @@ export function createHttpRuntimeClient(baseUrl: string, fetchLike: typeof fetch
 export function selectRuntimeClient(options: { electronBridge?: ElectronCommandBridge; httpBaseUrl?: string; fetchLike?: typeof fetch }): RuntimeClient {
   if (options.electronBridge) return createElectronRuntimeClient(options.electronBridge);
   return createHttpRuntimeClient(options.httpBaseUrl ?? "", options.fetchLike);
+}
+
+let selected: RuntimeClient | undefined;
+
+/** Process-lifetime client: Electron bridge when window.dataAgent exists, else HTTP. */
+export function getRuntimeClient(): RuntimeClient {
+  if (selected) return selected;
+  const bridge = (window as any).dataAgent;
+  if (bridge && typeof bridge.invokeRuntimeCommand === "function") {
+    selected = createElectronRuntimeClient({ invoke: (channel, payload) => bridge.invokeRuntimeCommand(channel, payload) });
+  } else {
+    const base = (import.meta as any).env?.VITE_API_BASE_URL?.trim()?.replace(/\/$/, "") ?? "";
+    selected = createHttpRuntimeClient(base);
+  }
+  return selected;
 }
