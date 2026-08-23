@@ -50,7 +50,7 @@ export class DataAgentRuntime {
   queryExecutor?: { run(sql: string, rowLimit: number): Promise<{ columns: string[]; rows: unknown[][]; truncated: boolean }> };
   ingestJob?: { getStatus(): Promise<{ status: string; jobId: string | null; summary: { updated: number; unchanged: number; failed: number; skipped: number }; errorCode: string | null }>; retry(): Promise<{ accepted: boolean }> };
   private readonly clarifications: ClarificationManager;
-  private activeRun?: { requestId: string; runId: string };
+  private activeRun?: { requestId: string; runId: string; sessionId?: string };
   private readonly agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void };
 
   constructor(options: { metadata?: MetadataStore; sessions?: PiJsonlSessionStore; workspace?: WorkspaceStore; pythonExecutable?: string; knowledge?: KnowledgeIndex; knowledgeRoot?: string; clarifications?: ClarificationManager; agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void } } = {}) {
@@ -270,7 +270,7 @@ export class DataAgentRuntime {
     if (command.command.type === "agent.prompt") {
       if (!this.agent) throw new DataAgentRuntimeError("INVALID_COMMAND", "Pi Agent is not configured");
       const runId = randomUUID();
-      this.activeRun = { requestId: command.requestId, runId };
+      this.activeRun = { requestId: command.requestId, runId, sessionId: context.sessionId };
       void this.agent.prompt(command.command.prompt).then(() => { this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, runId, timestamp: Date.now(), event: { type: "agent.completed" } }); this.activeRun = undefined; });
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "agent.prompt.accepted", runId } };
     }
@@ -332,10 +332,26 @@ export class DataAgentRuntime {
 
   private mapPiEvent(event: any): void {
     const run = this.activeRun;
-    if (!run || event?.type !== "message_update") return;
-    const update = event.assistantMessageEvent;
-    if (update?.type !== "text_delta" && update?.type !== "thinking_delta") return;
-    this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: run.requestId, runId: run.runId, timestamp: Date.now(), event: { type: update.type === "text_delta" ? "agent.text_delta" : "agent.thinking_delta", delta: update.delta } });
+    if (!run || !event?.type) return;
+    const base = () => ({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: run.requestId, runId: run.runId, sessionId: run.sessionId, timestamp: Date.now() });
+    if (event.type === "message_start") {
+      this.emit({ ...base(), event: { type: "agent.message_started", messageId: String(event.message?.id ?? "") } });
+      return;
+    }
+    if (event.type === "message_update") {
+      const update = event.assistantMessageEvent;
+      if (update?.type !== "text_delta" && update?.type !== "thinking_delta") return;
+      this.emit({ ...base(), event: { type: update.type === "text_delta" ? "agent.text_delta" : "agent.thinking_delta", delta: update.delta } });
+      return;
+    }
+    if (event.type === "tool_execution_start") {
+      this.emit({ ...base(), event: { type: "agent.tool_started", toolCallId: String(event.toolCallId), toolName: String(event.toolName), args: event.args ?? null } });
+      return;
+    }
+    if (event.type === "tool_execution_end") {
+      this.emit({ ...base(), event: { type: "agent.tool_finished", toolCallId: String(event.toolCallId), toolName: String(event.toolName), result: event.result ?? null, isError: Boolean(event.isError) } });
+      return;
+    }
   }
 
   private mutation(requestId: string, entity: "task" | "session", item: unknown): DataAgentResponseEnvelope { return { protocolVersion: ProtocolVersion, requestId, response: { type: "mutation.result", entity, item: item as never } }; }
