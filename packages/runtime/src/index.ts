@@ -48,6 +48,8 @@ export class DataAgentRuntime {
   private readonly knowledgeRoot?: string;
   private readonly semanticProjectDir?: string;
   queryExecutor?: { run(sql: string, rowLimit: number): Promise<{ columns: string[]; rows: unknown[][]; truncated: boolean }> };
+  dbTester?: { test(connection: Record<string, unknown>): Promise<{ success: boolean; message: string; details?: unknown }> };
+  llmTester?: { test(profile: Record<string, unknown>): Promise<{ success: boolean; message: string; details?: unknown }> };
   providerRegistry?: { list(): Array<Record<string, unknown>>; save(profile: Record<string, unknown>): Promise<unknown> };
   mcpSupervisor?: { status(): Promise<Array<{ name: string; enabled: boolean; connected: boolean; toolCount: number; hostManaged: boolean }>>; test(name: string): Promise<{ ok: boolean; message: string }>; restart(name: string): Promise<{ ok: boolean }> };
   ingestJob?: { getStatus(): Promise<{ status: string; jobId: string | null; summary: { updated: number; unchanged: number; failed: number; skipped: number }; errorCode: string | null }>; retry(): Promise<{ accepted: boolean }> };
@@ -215,6 +217,33 @@ export class DataAgentRuntime {
       if (!this.ingestJob) throw new DataAgentRuntimeError("INVALID_COMMAND", "INGEST_JOB_NOT_CONFIGURED");
       const result = await this.ingestJob.retry();
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "semantic.ingest.retry.result", accepted: result.accepted } };
+    }
+    if (command.command.type === "config.get" || command.command.type === "config.save") {
+      if (command.command.type === "config.save") { const current = (await this.metadata!.getConfig("ui.settings")) ?? {}; await this.metadata!.setConfig("ui.settings", { ...(current as Record<string, unknown>), ...((command.command as { patch: Record<string, unknown> }).patch) }); }
+      const config = (await this.metadata!.getConfig("ui.settings")) ?? {};
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "config.get.result", config } };
+    }
+    if (command.command.type === "python.runtime.test") {
+      const { execFile } = await import("node:child_process");
+      const { promisify } = await import("node:util");
+      const execFileAsync = promisify(execFile);
+      const executable = (command.command as { executable?: string }).executable || this.pythonExecutable || "python";
+      try {
+        const { stdout } = await execFileAsync(executable, ["--version"], { timeout: 15000 });
+        return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "test.result", success: true, message: stdout.trim() } };
+      } catch (error) {
+        return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "test.result", success: false, message: error instanceof Error ? error.message : String(error) } };
+      }
+    }
+    if (command.command.type === "db.test") {
+      if (!this.dbTester) throw new DataAgentRuntimeError("INVALID_COMMAND", "DB_TESTER_NOT_CONFIGURED");
+      const result = await this.dbTester.test((command.command as { connection: Record<string, unknown> }).connection);
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "test.result", success: result.success, message: result.message } };
+    }
+    if (command.command.type === "llm.test") {
+      if (!this.llmTester) throw new DataAgentRuntimeError("INVALID_COMMAND", "LLM_TESTER_NOT_CONFIGURED");
+      const result = await this.llmTester.test((command.command as { profile: Record<string, unknown> }).profile);
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "test.result", success: result.success, message: result.message, details: result.details } };
     }
     if (command.command.type === "config.llm.list") {
       const profiles = this.providerRegistry ? this.providerRegistry.list() : [];

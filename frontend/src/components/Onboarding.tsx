@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { Database, KeyRound, Languages, Loader2, ShieldCheck } from './icons/Typicons';
 import {
-    testLLMConfig,
-    updateDBConfig,
     updateLLMConfig,
     type DBConfigUpdate,
     type LLMConfigUpdate,
 } from '../api/client';
+import { saveConfigViaRuntime, testLlmViaRuntime } from '../api/runtime-client';
 import { useLanguage } from '../context/LanguageContext';
 
 interface OnboardingProps {
@@ -77,7 +76,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         setIsSaving(true);
         try {
             const llmPayload = buildLLMPayload();
-            const testResult = await testLLMConfig(llmPayload);
+            const testResult = await testLlmViaRuntime(llmPayload);
             if (!testResult.success) {
                 throw new Error(testResult.message || t('onboarding.errorVerify'));
             }
@@ -94,7 +93,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
             await updateLLMConfig(llmPayload);
 
             if (dbConfig.database || dbConfig.user || dbConfig.password) {
-                await updateDBConfig(dbConfig);
+                await saveConfigViaRuntime(dbConfig);
             }
 
             onComplete();

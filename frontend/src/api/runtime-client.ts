@@ -299,3 +299,28 @@ export async function saveLlmProfileViaRuntime(profile: { id?: string; provider:
   const envelope = await getRuntimeClient().dispatch({ type: "config.llm.save", profile });
   if (envelope.response.type !== "config.llm.save.result") throw new Error("UNEXPECTED_RESPONSE");
 }
+
+export async function getConfigViaRuntime(): Promise<Record<string, unknown>> {
+  const envelope = await getRuntimeClient().dispatch({ type: "config.get" });
+  if (envelope.response.type !== "config.get.result") throw new Error("UNEXPECTED_RESPONSE");
+  return (envelope.response as unknown as { config: Record<string, unknown> }).config;
+}
+
+export async function saveConfigViaRuntime(patch: Record<string, unknown>): Promise<void> {
+  await getRuntimeClient().dispatch({ type: "config.save", patch });
+}
+
+export async function testPythonRuntimeViaRuntime(mode: 'bundled' | 'external', executable?: string): Promise<{ success: boolean; message: string }> {
+  const envelope = await getRuntimeClient().dispatch({ type: "python.runtime.test", mode, ...(executable ? { executable } : {}) });
+  return envelope.response as unknown as { success: boolean; message: string };
+}
+
+export async function testDbViaRuntime(connection: Record<string, unknown>): Promise<{ success: boolean; message: string }> {
+  const envelope = await getRuntimeClient().dispatch({ type: "db.test", connection });
+  return envelope.response as unknown as { success: boolean; message: string };
+}
+
+export async function testLlmViaRuntime(profile: Record<string, unknown>): Promise<{ success: boolean; message: string }> {
+  const envelope = await getRuntimeClient().dispatch({ type: "llm.test", profile });
+  return envelope.response as unknown as { success: boolean; message: string };
+}

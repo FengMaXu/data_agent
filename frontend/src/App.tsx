@@ -10,7 +10,7 @@ import { SessionProvider } from './hooks/useSession';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { PreviewProvider } from './context/PreviewContext';
-import { getConfig, updateLLMConfig } from './api/client';
+import { saveConfigViaRuntime, getConfigViaRuntime } from './api/runtime-client';
 import LoginView from './components/LoginView';
 import GlobalPreviewModal from './components/common/GlobalPreviewModal';
 import { SemanticStartupStatus } from './components/SemanticStartupStatus';
@@ -275,15 +275,15 @@ const App: React.FC = () => {
 
     const completeStartupCheck = async () => {
       try {
-        const config = await getConfig();
-        if (config.openai_api_key || config.anthropic_api_key) {
+        const config = await getConfigViaRuntime();
+        if ((config as Record<string, unknown>).openai_api_key || (config as Record<string, unknown>).anthropic_api_key) {
           if (!cancelled) setStartupState('ready');
           return;
         }
 
         const storedSecrets = await window.dataAgent?.getStoredSecrets();
         if (storedSecrets?.openai_api_key || storedSecrets?.anthropic_api_key) {
-          await updateLLMConfig({
+          await saveConfigViaRuntime({
             provider: storedSecrets.anthropic_api_key ? 'anthropic' : 'openai',
             openai_api_key: storedSecrets.openai_api_key,
             anthropic_api_key: storedSecrets.anthropic_api_key,

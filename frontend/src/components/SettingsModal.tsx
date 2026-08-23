@@ -4,16 +4,11 @@ import {
     Database, User, Key, Activity, Link, Eye, ExternalLink, Loader2, Terminal, Package, Save
 } from './icons/Typicons';
 import {
-    getConfig,
-    updateLLMConfig,
-    updateDBConfig,
-    testDBConnection,
-    updatePythonRuntime,
-    testPythonRuntime,
     type AIConfig,
     type PythonRuntimeConfig,
     type PythonRuntimeUpdate,
 } from '../api/client';
+import { getConfigViaRuntime, saveConfigViaRuntime, testDbViaRuntime, testPythonRuntimeViaRuntime } from '../api/runtime-client';
 import { useLanguage } from '../context/LanguageContext';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 
@@ -150,7 +145,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     useEffect(() => {
         const loadInitialData = async () => {
             try {
-                const initialConfig = await getConfig();
+                const initialConfig: AIConfig = await getConfigViaRuntime() as unknown as AIConfig;
                 setConfig(initialConfig);
                 setDbHost(initialConfig.mysql_host || 'localhost');
                 setDbPort(initialConfig.mysql_port || 3306);
@@ -239,7 +234,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                     });
                 }
 
-                await updateLLMConfig({
+                await saveConfigViaRuntime({
                     provider,
                     api_key: apikeyToSend,
                     openai_api_key: provider === 'openai' ? apikeyToSend : undefined,
@@ -278,7 +273,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
         setIsTestingDB(true);
         setDbTestResult(null);
         try {
-            const res = await testDBConnection({
+            const res = await testDbViaRuntime({
                 host: dbHost,
                 port: dbPort,
                 user: dbUser,
@@ -297,7 +292,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     const handleSaveDB = async () => {
         setIsSavingDB(true);
         try {
-            await updateDBConfig({
+            await saveConfigViaRuntime({
                 host: dbHost,
                 port: dbPort,
                 user: dbUser,
@@ -331,7 +326,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
         setIsTestingPython(true);
         setPythonTestResult(null);
         try {
-            const res = await testPythonRuntime(pythonRuntimePayload());
+            const res = await testPythonRuntimeViaRuntime(pythonRuntimePayload().mode, pythonRuntimePayload().executable);
             setPythonTestResult({ success: res.success, message: res.message });
         } catch (e: unknown) {
             console.error('Python runtime test failed:', e);
@@ -344,12 +339,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     const handleSavePython = async () => {
         setIsSavingPython(true);
         try {
-            const res = await updatePythonRuntime(pythonRuntimePayload());
-            if (res.runtime) {
-                setPythonRuntime(res.runtime);
-                setPythonExecutable(res.runtime.executable || '');
-            }
-            setPythonTestResult({ success: true, message: res.message || t('settings.saveSuccess') });
+            const payload = pythonRuntimePayload();
+            await saveConfigViaRuntime({ python_runtime: payload });
+            setPythonRuntime(payload.mode === 'bundled' ? { mode: 'bundled' } : { mode: 'external', executable: payload.executable });
+            setPythonExecutable(payload.executable || '');
+            setPythonTestResult({ success: true, message: t('settings.saveSuccess') });
         } catch (e: unknown) {
             console.error('Failed to save Python runtime:', e);
             setPythonTestResult({ success: false, message: t('settings.saveFailed') });
