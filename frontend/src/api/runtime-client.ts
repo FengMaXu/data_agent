@@ -262,3 +262,7 @@ export function sendChatViaRuntime(
   })();
   return { cancel: () => { controller.abort(); unsubscribe(); }, finished };
 }
+
+export async function prepareSessionViaRuntime(sessionId: string): Promise<void> {
+  await getRuntimeClient().dispatch({ type: "session.prepare", sessionId });
+}

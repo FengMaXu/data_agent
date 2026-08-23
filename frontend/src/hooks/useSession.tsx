@@ -2,12 +2,11 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { ReactNode } from 'react';
 import {
     getChatSession,
-    prepareAgentSession,
     saveChatTranscript,
     saveSessionAttachedFiles,
     type SessionSnapshotMessage,
 } from '../api/client';
-import { createTaskWithIdViaRuntime } from '../api/runtime-client';
+import { createTaskWithIdViaRuntime, prepareSessionViaRuntime } from '../api/runtime-client';
 import { createSessionViaRuntime, deleteSessionViaRuntime, deleteTaskViaRuntime, listSessionsViaRuntime, listTasksViaRuntime, renameTaskViaRuntime } from '../api/runtime-client';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -115,7 +114,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }, [sessions]);
 
     const warmSession = useCallback((sessionId: string) => {
-        void prepareAgentSession(sessionId).catch((error) => {
+        void prepareSessionViaRuntime(sessionId).catch((error) => {
             console.warn('Failed to prepare session runtime:', error);
         });
     }, []);
