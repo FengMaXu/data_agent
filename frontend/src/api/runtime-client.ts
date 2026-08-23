@@ -183,3 +183,24 @@ export async function getSemanticSourceViaRuntime(connectionId: string, sourceNa
   if (result.type !== "semantic.source.result") throw new Error("UNEXPECTED_RESPONSE");
   return (result.source as { definition: { rawYaml?: string } }).definition as { rawYaml: string };
 }
+
+export interface RuntimeSkillInfo { name: string; description: string; tools?: string[] }
+
+export async function listSkillsViaRuntime(): Promise<RuntimeSkillInfo[]> {
+  const envelope = await getRuntimeClient().dispatch({ type: "skills.list" });
+  const result = envelope.response;
+  if (result.type !== "skills.list.result") throw new Error("UNEXPECTED_RESPONSE");
+  return result.skills;
+}
+
+export async function getMcpConfigViaRuntime(): Promise<{ servers: Array<Record<string, unknown>> }> {
+  const envelope = await getRuntimeClient().dispatch({ type: "mcp.config.get" });
+  const result = envelope.response;
+  if (result.type !== "mcp.config.result") throw new Error("UNEXPECTED_RESPONSE");
+  const cfg = (result.config ?? {}) as { servers?: Array<Record<string, unknown>> };
+  return { servers: cfg.servers ?? [] };
+}
+
+export async function saveMcpConfigViaRuntime(config: { servers: Array<Record<string, unknown>> }): Promise<void> {
+  await getRuntimeClient().dispatch({ type: "mcp.config.save", config });
+}

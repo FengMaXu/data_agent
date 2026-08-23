@@ -1,13 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Search, RefreshCw, Plus, Loader2 } from './icons/Typicons';
 import {
-    getMCPConfig,
-    saveMCPConfig,
-    getMCPServers,
     updateMCPServerEnabled,
     restartMCPServer,
     testMCPServer,
-    getSkills,
     type MCPConfig,
     type MCPServerConfig,
     type MCPServerRequest,
@@ -15,6 +11,7 @@ import {
     type MCPTestResult,
     type SkillInfo,
 } from '../api/client';
+import { getMcpConfigViaRuntime, listSkillsViaRuntime, saveMcpConfigViaRuntime } from '../api/runtime-client';
 import { useLanguage } from '../context/LanguageContext';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 
@@ -87,12 +84,10 @@ const PluginsModal: React.FC<PluginsModalProps> = ({ initialTab = 'MCP', onClose
             setIsLoadingMCP(true);
         }
         try {
-            const [configRes, serversRes] = await Promise.all([
-                getMCPConfig(),
-                getMCPServers(),
-            ]);
+            const configRes = await getMcpConfigViaRuntime();
+            const serversRes = { servers: [] as never[] };
             setMcpError(null);
-            setMcpConfig(configRes);
+            setMcpConfig(configRes as never);
             setMcpServers(serversRes.servers || []);
             setSelectedMcpServer(prev => {
                 if ((configRes.servers || []).length === 0) return null;
@@ -174,7 +169,7 @@ const PluginsModal: React.FC<PluginsModalProps> = ({ initialTab = 'MCP', onClose
         servers: config.servers.map(buildMcpServerPayload),
     });
     const persistMcpConfig = async (config: MCPConfig) => {
-        await saveMCPConfig(buildMcpPayload(config));
+        await saveMcpConfigViaRuntime(buildMcpPayload(config) as never);
     };
 
     const handleToggleMCPEnabled = async (serverName: string, enabled: boolean) => {
@@ -272,8 +267,8 @@ const PluginsModal: React.FC<PluginsModalProps> = ({ initialTab = 'MCP', onClose
         setIsLoadingSkills(true);
         setSkillsError(null);
         try {
-            const result = await getSkills();
-            setSkills(result.skills || []);
+            const runtimeSkills = await listSkillsViaRuntime();
+            setSkills(runtimeSkills.map((skill) => ({ name: skill.name, description: skill.description || '', location: '', skill_dir: '', source_scope: 'project', allowed_tools: skill.tools })) as never);
         } catch (err) {
             console.error('Failed to load skills:', err);
             setSkills([]);
