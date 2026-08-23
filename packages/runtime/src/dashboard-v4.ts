@@ -60,6 +60,28 @@ export interface BridgeSession {
   nonce: string;
 }
 
+/** Renders an embedded semantic dashboard shell: bridge-only, no inline data, no Node. */
+export function renderSemanticDashboardHtml(spec: DashboardV4SemanticSpec, options: { nonce: string; expectedOrigin: string }): string {
+  const payload = JSON.stringify({ title: spec.title, views: spec.views, parameters: spec.parameters ?? {}, nonce: options.nonce, expectedOrigin: options.expectedOrigin });
+  return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>${spec.title}</title></head>
+<body><h1>${spec.title}</h1><div id="charts"></div>
+<script>window.__SEMANTIC_DASHBOARD__=${payload};
+(function(){
+  var nonce=window.__SEMANTIC_DASHBOARD__.nonce;
+  var hostOrigin=window.__SEMANTIC_DASHBOARD__.expectedOrigin;
+  function send(msg){msg.nonce=nonce;window.parent.postMessage(msg,hostOrigin);}
+  send({kind:'dashboard.ready'});
+  window.addEventListener('message',function(ev){
+    if(ev.origin!==hostOrigin)return;
+    var d=ev.data||{};
+    if(d.kind==='semantic.result'){document.title='updated:'+d.requestId;}
+    if(d.kind==='semantic.error'){document.title='error:'+d.requestId;}
+  });
+})();
+</script></body></html>`;
+}
+
 /** Validates sender identity before any dispatch; returns the request or rejects. */
 export function handleBridgeMessage(
   session: BridgeSession,

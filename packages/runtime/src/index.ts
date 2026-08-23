@@ -17,6 +17,7 @@ import { runPythonJob } from "./python-job.js";
 import { KnowledgeIndex } from "./knowledge.js";
 import { ClarificationManager } from "./clarification.js";
 import { renderStandaloneDashboardHtml, validateDashboardV3Spec } from "./dashboard-v3.js";
+import { renderSemanticDashboardHtml, validateDashboardV4Spec } from "./dashboard-v4.js";
 
 export class DataAgentRuntimeError extends Error {
   readonly code: "INVALID_COMMAND" | "UNSUPPORTED_PROTOCOL_VERSION" | "INVALID_CONTEXT";
@@ -103,16 +104,30 @@ export class DataAgentRuntime {
       if (!this.workspace) throw new DataAgentRuntimeError("INVALID_COMMAND", "Workspace is not configured");
       this.workspace.assertAccess(context);
       const c = command.command;
-      if (c.version !== "v3" || c.mode !== "static") throw new DataAgentRuntimeError("INVALID_COMMAND", "Only static v3 dashboards are supported in this milestone");
-      const validated = validateDashboardV3Spec(c.spec);
-      if (!validated.ok || c.operation === "validate") {
-        return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "dashboard.result", valid: validated.ok, errors: validated.ok ? [] : validated.errors } };
+      if (c.version === "v3" && c.mode === "static") {
+        const validated = validateDashboardV3Spec(c.spec);
+        if (!validated.ok || c.operation === "validate") {
+          return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "dashboard.result", valid: validated.ok, errors: validated.ok ? [] : validated.errors } };
+        }
+        const target = c.editPath ?? `dashboards/${Date.now()}.html`;
+        const html = await renderStandaloneDashboardHtml(validated.spec);
+        await this.workspace.write(target, html);
+        this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, sessionId: context.sessionId, timestamp: Date.now(), event: { type: "workspace.artifact.created", path: target, kind: "file" } });
+        return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "dashboard.result", valid: true, errors: [], path: target, bytes: html.length } };
       }
-      const target = c.editPath ?? `dashboards/${Date.now()}.html`;
-      const html = await renderStandaloneDashboardHtml(validated.spec);
-      await this.workspace.write(target, html);
-      this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, sessionId: context.sessionId, timestamp: Date.now(), event: { type: "workspace.artifact.created", path: target, kind: "file" } });
-      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "dashboard.result", valid: true, errors: [], path: target, bytes: html.length } };
+      if (c.version === "v4" && c.mode === "semantic") {
+        const validated = validateDashboardV4Spec(c.spec);
+        if (!validated.ok || c.operation === "validate") {
+          return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "dashboard.result", valid: validated.ok, errors: validated.ok ? [] : validated.errors } };
+        }
+        const target = c.editPath ?? `dashboards/${Date.now()}-semantic.html`;
+        const nonce = randomUUID();
+        const html = renderSemanticDashboardHtml(validated.spec, { nonce, expectedOrigin: "https://data-agent.local" });
+        await this.workspace.write(target, html);
+        this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, sessionId: context.sessionId, timestamp: Date.now(), event: { type: "workspace.artifact.created", path: target, kind: "file" } });
+        return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "dashboard.result", valid: true, errors: [], path: target, bytes: html.length } };
+      }
+      throw new DataAgentRuntimeError("INVALID_COMMAND", "Unsupported dashboard mode/version combination");
     }
 
     if (command.command.type === "clarification.answer") {
