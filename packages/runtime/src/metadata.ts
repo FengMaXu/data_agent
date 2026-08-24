@@ -1,3 +1,5 @@
+declare const __dirname: string;
+
 import { Worker } from "node:worker_threads";
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
@@ -10,7 +12,11 @@ export class MetadataStore {
   private next = 1;
   private pending = new Map<number, Pending>();
   constructor(dbPath: string) {
-    const sourceDir = path.dirname(fileURLToPath(import.meta.url));
+    // Works both as native ESM (import.meta.url preferred) and inside an esbuild
+  // CJS bundle where import.meta.url is defined away and only __dirname exists.
+  const sourceDir = typeof import.meta.url === "string"
+    ? path.dirname(fileURLToPath(import.meta.url))
+    : __dirname;
     const workerPath = path.join(sourceDir, "metadata-worker.js");
     const builtWorkerPath = path.resolve(sourceDir, "../dist/metadata-worker.js");
     this.worker = new Worker(existsSync(workerPath) ? workerPath : builtWorkerPath, { workerData: { path: path.resolve(dbPath) } });

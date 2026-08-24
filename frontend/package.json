@@ -5,7 +5,7 @@
   "description": "Data Agent desktop client",
   "author": "OpenAI Codex",
   "type": "module",
-  "main": "electron/main.js",
+  "main": "electron-host/main.cjs",
   "scripts": {
     "dev": "vite",
     "electron:dev": "electron . --dev",
@@ -22,6 +22,7 @@
   "dependencies": {
     "@data-agent/contracts": "0.1.0",
     "@data-agent/transport": "0.1.0",
+    "better-sqlite3": "^12.11.1",
     "echarts": "^6.0.0",
     "electron-updater": "^6.8.3",
     "js-yaml": "^4.3.1",
@@ -61,7 +62,7 @@
     "files": [
       "dist/**/*",
       "electron/**/*",
-      "node_modules/@data-agent/**/*",
+      "electron-host/**/*",
       "package.json"
     ],
     "extraResources": [
@@ -88,6 +89,9 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
-    }
+    },
+    "asarUnpack": [
+      "node_modules/better-sqlite3/**/*"
+    ]
   }
 }

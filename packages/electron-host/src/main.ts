@@ -1,5 +1,5 @@
 import { pathToFileURL } from "node:url";
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import path from "node:path";
 
 /**
@@ -18,14 +18,25 @@ import path from "node:path";
 
 export interface ElectronMainRuntimePaths {
   userDataDir: string;
+  /** Packaged resources dir; resolved from process.resourcesPath by the entry. */
+  resourcesPath?: string;
   rendererDist: string;
 }
 
+declare const __dirname: string;
+
 export function resolveRuntimePaths(options: { userDataDir: string; appDir?: string }): ElectronMainRuntimePaths {
+  let appDir = options.appDir;
+  if (!appDir && typeof __dirname !== "undefined") {
+    // Dev layout:  frontend/electron-host/main.cjs -> frontend
+    // Packaged:     resources/app.asar/electron-host -> resources/app.asar
+    const insideAsar = __dirname.includes(`${path.sep}app.asar`);
+    appDir = insideAsar ? path.resolve(__dirname, "..") : path.resolve(__dirname, "..", "..");
+  }
   return {
     userDataDir: options.userDataDir,
     // Renderer output lives in <app>/dist when packaged via electron-builder files config
-    rendererDist: options.appDir ? path.join(options.appDir, "dist") : "dist",
+    rendererDist: path.join(appDir ?? process.cwd(), "dist"),
   };
 }
 
@@ -35,6 +46,8 @@ export interface MainDeps {
     getPath(name: "userData"): string;
     quit(): void;
   };
+  /** Packaged resources dir (process.resourcesPath); absent in dev. */
+  resourcesPath?: string;
   BrowserWindow: new (options: Record<string, unknown>) => { loadFile(file: string): Promise<void>; loadURL(url: string): Promise<void> };
   ipcMain: unknown;
 }
@@ -44,9 +57,16 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
   const { KnowledgeIndex } = await import("@data-agent/runtime");
   const { registerElectronRuntimeIpc } = await import("./index.js");
 
-  const paths = resolveRuntimePaths({ userDataDir: deps.app.getPath("userData"), appDir: path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1")) });
+  const paths = resolveRuntimePaths({ userDataDir: deps.app.getPath("userData") });
   if (overrides.userDataDir) paths.userDataDir = overrides.userDataDir;
   if (overrides.rendererDist) paths.rendererDist = overrides.rendererDist;
+
+  // Bundled Python runtime pack ships under extraResources; never fall back to
+  // development paths inside the packaged application.
+  const effectiveResources = overrides.resourcesPath ?? deps.resourcesPath;
+  let pythonExecutable: string | undefined;
+  const bundledPython = path.join(effectiveResources ?? "", "python-runtime", "Scripts", "python.exe");
+  if (effectiveResources && existsSync(bundledPython)) pythonExecutable = bundledPython;
 
   for (const dir of ["metadata", "sessions", "workspace", "knowledge"]) {
     mkdirSync(path.join(paths.userDataDir, dir), { recursive: true });
@@ -61,16 +81,23 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
   } catch {
     knowledge = undefined;
   }
-  const runtime = new DataAgentRuntime({ metadata, sessions, knowledgeRoot, knowledge });
+  const runtime = new DataAgentRuntime({ metadata, sessions, knowledgeRoot, knowledge, pythonExecutable });
 
   registerElectronRuntimeIpc(deps.ipcMain as never, runtime);
 
   await deps.app.whenReady();
+  if (process.env.DATA_AGENT_SMOKE === "1") {
+    // Startup smoke: runtime + IPC registered without loading a window.
+    const { writeFileSync } = await import("node:fs");
+    try { writeFileSync(path.join(paths.userDataDir, "smoke.ok"), "ok"); } catch { /* best effort */ }
+    deps.app.quit();
+    return;
+  }
   const window = new deps.BrowserWindow({
     width: 1440,
     height: 900,
     webPreferences: {
-      preload: path.join(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1")), "preload.cjs"),
+      preload: path.join(__dirname, "..", "electron", "preload.cjs"),
       contextIsolation: true,
       nodeIntegration: false,
     },
@@ -78,12 +105,29 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
   await window.loadFile(path.join(paths.rendererDist, "index.html"));
 }
 
-const isElectronMain = process.argv[1] && process.argv[1].includes("electron-host");
-if (isElectronMain) {
-  // Executed as the real Electron main; resolved at runtime so unit tests never load electron.
-  const electronModule = "electron";
-  void (async () => {
-    const electron = (await import(/* @vite-ignore */ electronModule)) as never;
-    await startElectronHost(electron);
-  })();
-}
+// This module is only loaded as an Electron main entry (tests import
+// ./index.js directly), so starting unconditionally here is safe.
+// Vitest imports this file for unit tests; never boot electron there.
+if (process.env.VITEST !== "true" && process.env.NODE_ENV !== "test") void (async () => {
+  try {
+    const electronModule = "electron";
+    const electron = (await import(/* @vite-ignore */ electronModule)) as never as MainDeps & { resourcesPath?: string };
+    await startElectronHost(electron, { resourcesPath: electron.resourcesPath });
+  } catch (error) {
+    // GUI-subsystem processes have no console; persist the failure for diagnostics.
+    try {
+      const { appendFileSync } = await import("node:fs");
+      appendFileSync(path.join(process.env.TEMP ?? process.cwd(), "data-agent-main-error.log"),
+        `[${new Date().toISOString()}] electron host failed to start:\n${(error instanceof Error ? error.stack : String(error))}\n`);
+    } catch {
+      /* ignore */
+    }
+    console.error("electron host failed to start:", error);
+    const electronModule2 = "electron";
+    try {
+      const { app: crashedApp } = (await import(/* @vite-ignore */ electronModule2)) as never;
+      (crashedApp as { exit?: (code: number) => void }).exit?.(1);
+    } catch { /* not in electron */ }
+    process.exitCode = 1;
+  }
+})();

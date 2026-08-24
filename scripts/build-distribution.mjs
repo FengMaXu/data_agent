@@ -4,8 +4,8 @@
  * contracts -> runtime -> electron-host/web host packages -> Renderer (vite).
  * Verifies no legacy Python backend artifacts are referenced.
  */
-import { execSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { execSync, spawnSync } from "node:child_process";
+import { copyFileSync, existsSync } from "node:fs";
 import path from "node:path";
 
 const root = process.cwd();
@@ -20,6 +20,23 @@ for (const pkg of ["@data-agent/electron-host", "@data-agent/server", "@data-age
   run(`npm run build --workspace=${pkg}`);
 }
 run("npm run build --workspace=frontend");
+
+// Bundle the TS Electron host into a single CJS entry so no workspace
+// node_modules are needed at runtime; better-sqlite3 stays external and is
+// unpacked via asarUnpack.
+{
+  const args = [
+    "node_modules/esbuild/bin/esbuild",
+    "packages/electron-host/dist/main.js",
+    "--bundle", "--platform=node", "--format=cjs",
+    "--external:electron", "--external:better-sqlite3",
+    "--define:import.meta.url=undefined",
+    "--outfile=frontend/electron-host/main.cjs",
+  ];
+  const result = spawnSync(process.execPath, args, { stdio: "inherit", cwd: root });
+  if (result.status !== 0) { console.error("esbuild failed"); process.exit(1); }
+}
+copyFileSync("packages/electron-host/preload.cjs", "frontend/electron/preload.cjs");
 
 // Sanity checks: renderer + host outputs exist; python web backend not required.
 for (const p of [

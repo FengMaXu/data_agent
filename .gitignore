@@ -72,3 +72,7 @@ nul
 test_result.txt
 test_session_dashboard/
 README_debug.txt
+frontend/release-manual/
+frontend/release2/
+frontend/rel-*/
+.tmp/
