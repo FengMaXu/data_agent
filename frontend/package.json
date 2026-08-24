@@ -10,11 +10,10 @@
     "dev": "vite",
     "electron:dev": "electron . --dev",
     "build": "tsc -b && vite build",
-    "build:backend": "python -m PyInstaller ../build.spec --distpath ../dist --workpath ../build/pyinstaller --clean --noconfirm",
     "build:semantic-context": "pnpm --dir ../ktx run package:semantic-context",
     "build:unpacked": "npm run build && electron-builder --dir",
     "build:installer": "npm run build && electron-builder",
-    "build:desktop": "npm run build:backend && npm run build:installer",
+    "build:desktop": "npm run build:installer",
     "lint": "eslint .",
     "test": "vitest run",
     "preview": "vite preview"

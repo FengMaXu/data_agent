@@ -97,9 +97,19 @@ describe("legacy migration gate (representative data)", () => {
       const report = await migrateLegacyData(source, target);
       expect(report.backupPath).toBeTruthy();
 
-      // Backup contains the untouched source tree.
-      const backupFiles = await readdir(report.backupPath, { recursive: true });
-      expect(backupFiles.some((f) => String(f).endsWith("app.sqlite3"))).toBe(true);
+      // Backup contains the untouched source tree, and its databases remain readable
+      // (a prior-release backup must open for rollback/audit).
+      const backupFiles = (await readdir(report.backupPath, { recursive: true })).map(String);
+      const backupDbs = backupFiles.filter((f) => f.endsWith("app.sqlite3") && !f.includes("broken"));
+      expect(backupDbs.length).toBeGreaterThanOrEqual(1);
+      let tasks: Array<{ id: string }> = [];
+      const readable = new Database(join(report.backupPath, backupDbs[0]), { readonly: true });
+      try {
+        tasks = readable.prepare("SELECT * FROM tasks").all() as Array<{ id: string }>;
+      } finally {
+        readable.close();
+      }
+      expect(tasks.some((t) => t.id === "task-1")).toBe(true);
 
       const rollback = await rollbackMigration(target);
       expect(rollback.rolledBack).toBe(true);

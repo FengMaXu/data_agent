@@ -1,5 +1,5 @@
 {
-  "measuredAt": "2026-08-24T08:43:24.440Z",
+  "measuredAt": "2026-08-24T14:41:08.290Z",
   "sizes": {
     "appAsarMB": 12.8,
     "appAsarUnpackedMB": 1.8,
@@ -9,8 +9,8 @@
     "rendererDistMB": 1.9
   },
   "latencies": {
-    "p50": 1.1,
-    "p95": 2.9,
+    "p50": 87.9,
+    "p95": 192,
     "n": 100,
     "warmup": 10
   },
@@ -33,8 +33,8 @@
     },
     "commandRoundTripMs": {
       "limit": 200,
-      "p50": 1.1,
-      "p95": 2.9
+      "p50": 87.9,
+      "p95": 192
     }
   },
   "budgetsPass": true,

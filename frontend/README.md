@@ -1,6 +1,6 @@
 # Data Agent Frontend
 
-React + Vite 前端，用于连接 `server.py` 暴露的 FastAPI 后端。
+React + Vite 渲染层，通过版本化 envelope 与共享 DataAgentRuntime 通信（Electron IPC 桥或 Fastify Web Host）。
 
 ## 开发启动
 
@@ -29,7 +29,7 @@ VITE_API_BASE_URL=http://localhost:8080
 - 后端：`http://localhost:8080`
 - 前端：`http://localhost:5173`
 
-后端 `server.py` 已默认放行：
+开发服务器默认放行：
 
 - `http://localhost:5173`
 - `http://127.0.0.1:5173`
