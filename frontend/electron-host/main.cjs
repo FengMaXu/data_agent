@@ -24400,8 +24400,9 @@ async function migrateLegacyData(sourceRoot, targetRoot, sessionStore) {
   const report = { migrationId, migrated: 0, skipped: 0, warnings: [], backupPath };
   const databases = await findFiles(source, "app.sqlite3");
   for (const databasePath of databases) {
+    let db;
     try {
-      const db = new import_better_sqlite3.default(databasePath, { readonly: true });
+      db = new import_better_sqlite3.default(databasePath, { readonly: true });
       const tasks = db.prepare("SELECT * FROM tasks").all();
       const sessions = db.prepare("SELECT * FROM chat_sessions").all();
       db.close();
@@ -24424,6 +24425,11 @@ async function migrateLegacyData(sourceRoot, targetRoot, sessionStore) {
     } catch (error) {
       report.skipped += 1;
       report.warnings.push(`Failed to migrate ${databasePath}: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      try {
+        db?.close();
+      } catch {
+      }
     }
   }
   const snapshots = await findFiles(source, ".session_snapshot.json");
@@ -24913,13 +24919,77 @@ var init_python_pack_builder = __esm({
   }
 });
 
+// packages/runtime/dist/sql-guard.js
+var DANGEROUS_KEYWORDS, INJECTION_PATTERNS, SqlGuard;
+var init_sql_guard = __esm({
+  "packages/runtime/dist/sql-guard.js"() {
+    "use strict";
+    DANGEROUS_KEYWORDS = [
+      "\\bDROP\\b",
+      "\\bTRUNCATE\\b",
+      "\\bDELETE\\b",
+      "\\bALTER\\b",
+      "\\bGRANT\\b",
+      "\\bREVOKE\\b",
+      "\\bINSERT\\b",
+      "\\bUPDATE\\b",
+      "\\bCALL\\b",
+      "\\bCREATE\\b",
+      "\\bRENAME\\b",
+      "\\bREPLACE\\b",
+      // REPLACE INTO
+      "\\bLOAD\\s+DATA\\b",
+      "\\bINTO\\s+OUTFILE\\b",
+      "\\bINTO\\s+DUMPFILE\\b"
+    ];
+    INJECTION_PATTERNS = [
+      ";\\s*\\w",
+      // Multi-statement injection.
+      // Standard SQL line comments (-- text) are valid and are not high-risk alone.
+      "/\\*.*?\\*/",
+      // Block comments can hide dangerous keywords.
+      "\\bUNION\\s+(ALL\\s+)?SELECT\\b",
+      "\\bEXEC\\b",
+      "\\bXP_\\w+"
+    ];
+    SqlGuard = class {
+      strict;
+      dangerousPatterns;
+      injectionPatterns;
+      constructor(strict = true) {
+        this.strict = strict;
+        this.dangerousPatterns = DANGEROUS_KEYWORDS.map((p) => new RegExp(p, "i"));
+        this.injectionPatterns = INJECTION_PATTERNS.map((p) => new RegExp(p, "is"));
+      }
+      check(sql) {
+        if (!sql || !sql.trim())
+          return { allowed: false, reason: "Empty query" };
+        const sqlClean = sql.trim();
+        for (const pattern of this.injectionPatterns) {
+          if (pattern.test(sqlClean)) {
+            return { allowed: false, reason: `SQL blocked: injection pattern detected [${pattern.source}]` };
+          }
+        }
+        for (const pattern of this.dangerousPatterns) {
+          if (pattern.test(sqlClean)) {
+            return { allowed: false, reason: `SQL blocked: high-risk operation detected [${pattern.source}]` };
+          }
+        }
+        return { allowed: true, reason: "" };
+      }
+    };
+  }
+});
+
 // packages/runtime/dist/index.js
 var dist_exports = {};
 __export(dist_exports, {
   ClarificationManager: () => ClarificationManager,
+  DANGEROUS_KEYWORDS: () => DANGEROUS_KEYWORDS,
   DataAgentRuntime: () => DataAgentRuntime,
   DataAgentRuntimeError: () => DataAgentRuntimeError,
   ExportCapabilityError: () => ExportCapabilityError,
+  INJECTION_PATTERNS: () => INJECTION_PATTERNS,
   InMemorySecretVault: () => InMemorySecretVault,
   KnowledgeIndex: () => KnowledgeIndex,
   KnowledgeWriteDeniedError: () => KnowledgeWriteDeniedError,
@@ -24929,6 +24999,7 @@ __export(dist_exports, {
   PiJsonlSessionStore: () => PiJsonlSessionStore,
   ProcessSupervisor: () => ProcessSupervisor,
   ProviderRegistry: () => ProviderRegistry,
+  SqlGuard: () => SqlGuard,
   WorkspaceStore: () => WorkspaceStore,
   assertNoLegacyTools: () => assertNoLegacyTools,
   canonicalLocalTools: () => canonicalLocalTools,
@@ -24975,6 +25046,7 @@ var init_dist4 = __esm({
     init_python_runtime();
     init_python_pack_builder();
     init_metadata();
+    init_sql_guard();
     init_session_store();
     DataAgentRuntimeError = class extends Error {
       code;
@@ -25298,7 +25370,7 @@ var init_dist4 = __esm({
           if (command.command.type === "knowledge.search")
             return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "knowledge.search.result", hits: this.knowledge.search(command.command.query) } };
           if (command.command.type === "knowledge.list") {
-            const { readdir: readdir8, stat: stat3 } = await import("node:fs/promises");
+            const { readdir: readdir8, stat: stat4 } = await import("node:fs/promises");
             const files = [];
             const walk = async (dir) => {
               for (const entry of await readdir8(dir, { withFileTypes: true })) {
@@ -25306,7 +25378,7 @@ var init_dist4 = __esm({
                 if (entry.isDirectory())
                   await walk(full);
                 else if (entry.name.endsWith(".md")) {
-                  const info = await stat3(full);
+                  const info = await stat4(full);
                   files.push({ path: full.slice(this.knowledgeRoot.length + 1), size: info.size, modifiedAt: info.mtimeMs });
                 }
               }

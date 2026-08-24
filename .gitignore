@@ -76,3 +76,4 @@ frontend/release-manual/
 frontend/release2/
 frontend/rel-*/
 .tmp/
+*.tsbuildinfo

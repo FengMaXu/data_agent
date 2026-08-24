@@ -1,0 +1,42 @@
+{
+  "measuredAt": "2026-08-24T08:43:24.440Z",
+  "sizes": {
+    "appAsarMB": 12.8,
+    "appAsarUnpackedMB": 1.8,
+    "pythonRuntimePackMB": 172.9,
+    "unpackedAppMB": 513.1,
+    "installerMB": 194,
+    "rendererDistMB": 1.9
+  },
+  "latencies": {
+    "p50": 1.1,
+    "p95": 2.9,
+    "n": 100,
+    "warmup": 10
+  },
+  "budgets": {
+    "appAsarMB": {
+      "limit": 30,
+      "actual": 12.8
+    },
+    "pythonRuntimePackMB": {
+      "limit": 400,
+      "actual": 172.9
+    },
+    "unpackedAppMB": {
+      "limit": 900,
+      "actual": 513.1
+    },
+    "installerMB": {
+      "limit": 350,
+      "actual": 194
+    },
+    "commandRoundTripMs": {
+      "limit": 200,
+      "p50": 1.1,
+      "p95": 2.9
+    }
+  },
+  "budgetsPass": true,
+  "latenciesPass": true
+}

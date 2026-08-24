@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto";
 import { ReadResourceRequestSchema, ListResourcesRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { pathToFileURL } from "node:url";
 import path from "node:path";
+import { SqlGuard } from "@data-agent/runtime";
 
 const DATABASE_MCP_CONTRACT_VERSION = 1;
 const DEFAULT_PREVIEW_LIMIT = 20;
@@ -32,7 +33,7 @@ export function createReferenceSqliteServer(options: ReferenceSqliteServerOption
     previewShape,
     async ({ sql, limit }) => {
       const trimmed = sql.trim().replace(/;+\s*$/, "");
-      if (FORBIDDEN.test(trimmed)) return { content: [{ type: "text", text: JSON.stringify({ error: { code: "FORBIDDEN_SQL" } }) }] };
+      if (!new SqlGuard().check(trimmed).allowed) return { content: [{ type: "text", text: JSON.stringify({ error: { code: "FORBIDDEN_SQL" } }) }] };
       const effectiveLimit = Math.min(limit ?? maxRows, maxRows);
       const rows = (db.prepare(`SELECT * FROM (${trimmed}) __preview LIMIT ?`).all(effectiveLimit + 1)) as any[];
       const truncated = rows.length > effectiveLimit;
@@ -59,7 +60,7 @@ export function createReferenceSqliteServer(options: ReferenceSqliteServerOption
     { sql: z.string().min(1), maxRows: z.number().int().positive().max(100000).optional() },
     async ({ sql, maxRows: rowLimitArg }) => {
       const trimmed = sql.trim().replace(/;+\s*$/, "");
-      if (FORBIDDEN.test(trimmed)) return { content: [{ type: "text", text: JSON.stringify({ error: { code: "FORBIDDEN_SQL" } }) }] };
+      if (!new SqlGuard().check(trimmed).allowed) return { content: [{ type: "text", text: JSON.stringify({ error: { code: "FORBIDDEN_SQL" } }) }] };
       const rowLimit = Math.min(rowLimitArg ?? 100000, 100000);
       const rows = db.prepare(`SELECT * FROM (${trimmed}) __export LIMIT ?`).all(rowLimit + 1) as any[];
       if (rows.length > rowLimit) return { content: [{ type: "text", text: JSON.stringify({ error: { code: "EXPORT_ROW_LIMIT_EXCEEDED", rowLimit } }) }] };

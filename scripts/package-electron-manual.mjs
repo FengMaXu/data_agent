@@ -31,12 +31,21 @@ if (!existsSync(path.join(frontend, "electron-host", "main.cjs"))) {
   process.exit(1);
 }
 
-// Windows AV/indexer can briefly hold handles on a freshly written tree.
+// Windows AV/indexer can briefly hold handles on a freshly written tree, and a
+// previous smoke run's processes may linger; clear both before restaging.
+if (process.platform === "win32") {
+  spawnSync("taskkill", ["/F", "/IM", "Data Agent.exe"], { stdio: "ignore", shell: true });
+}
 for (let attempt = 1; ; attempt++) {
   try { rmSync(out, { recursive: true, force: true }); break; }
   catch (error) {
-    if (attempt >= 5) throw error;
-    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 2000 * attempt);
+    if (attempt >= 12) throw error;
+    // Real-time protection can hold the previous build's asar for ~1 minute
+    // after the owning process exits; re-kill stragglers and back off.
+    if (process.platform === "win32") {
+      spawnSync("taskkill", ["/F", "/IM", "Data Agent.exe"], { stdio: "ignore", shell: true });
+    }
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 5000 * attempt);
   }
 }
 mkdirSync(out, { recursive: true });

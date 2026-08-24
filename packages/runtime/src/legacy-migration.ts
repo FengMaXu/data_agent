@@ -1,10 +1,41 @@
-import { cp, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import Database from "better-sqlite3";
 import { PiJsonlSessionStore } from "./session-store.js";
 
 export interface MigrationReport { migrationId: string; migrated: number; skipped: number; warnings: string[]; backupPath: string }
+
+export interface RollbackReport { rolledBack: boolean; migrationId?: string; restoredFrom?: string }
+
+/**
+ * Roll back a completed migration: remove the completion marker and restore the
+ * target data directories from the migration backup snapshot. The backup itself
+ * is preserved so the operation remains auditable.
+ */
+export async function rollbackMigration(targetRoot: string): Promise<RollbackReport> {
+  const target = path.resolve(targetRoot);
+  const marker = path.join(target, ".migration-complete.json");
+  let migrationId: string | undefined;
+  let backupPath: string | undefined;
+  try {
+    const report = JSON.parse(await readFile(marker, "utf8")) as MigrationReport;
+    migrationId = report.migrationId;
+    backupPath = report.backupPath;
+  } catch {
+    return { rolledBack: false };
+  }
+  if (!backupPath) return { rolledBack: false, migrationId };
+  const backupStat = await stat(backupPath).catch(() => undefined);
+  if (!backupStat?.isDirectory()) return { rolledBack: false, migrationId };
+  // Restore: remove migrated artifacts derived from the source, then copy the backup back.
+  for (const derived of ["sessions", "metadata"]) {
+    await rm(path.join(target, derived), { recursive: true, force: true });
+  }
+  await cp(backupPath, target, { recursive: true, force: true });
+  await rm(marker, { force: true });
+  return { rolledBack: true, migrationId, restoredFrom: backupPath };
+}
 
 function parseJson(value: unknown): unknown {
   if (typeof value !== "string" || value.length === 0) return [];
@@ -28,8 +59,9 @@ export async function migrateLegacyData(sourceRoot: string, targetRoot: string, 
   const report: MigrationReport = { migrationId, migrated: 0, skipped: 0, warnings: [], backupPath };
   const databases = await findFiles(source, "app.sqlite3");
   for (const databasePath of databases) {
+    let db: InstanceType<typeof Database> | undefined;
     try {
-      const db = new Database(databasePath, { readonly: true });
+      db = new Database(databasePath, { readonly: true });
       const tasks = db.prepare("SELECT * FROM tasks").all();
       const sessions = db.prepare("SELECT * FROM chat_sessions").all();
       db.close();
@@ -48,6 +80,7 @@ export async function migrateLegacyData(sourceRoot: string, targetRoot: string, 
       }
       report.migrated += tasks.length + sessions.length;
     } catch (error) { report.skipped += 1; report.warnings.push(`Failed to migrate ${databasePath}: ${error instanceof Error ? error.message : String(error)}`); }
+    finally { try { db?.close(); } catch { /* already closed */ } }
   }
   const snapshots = await findFiles(source, ".session_snapshot.json");
   for (const snapshot of snapshots) {

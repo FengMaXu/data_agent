@@ -480,4 +480,5 @@ export { loadRuntimeManifest, probePython, resolvePythonRuntime, type PythonRunt
 export { writePythonPackManifest } from "./python-pack-builder.js";
 export type { RequestContext } from "@data-agent/contracts";
 export { MetadataStore } from "./metadata.js";
+export { SqlGuard, DANGEROUS_KEYWORDS, INJECTION_PATTERNS, type SqlGuardResult } from "./sql-guard.js";
 export { PiJsonlSessionStore } from "./session-store.js";
