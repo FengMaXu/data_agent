@@ -200,6 +200,15 @@ export class DataAgentRuntime {
       for (const sk of loaded) skills.push({ name: String((sk as any).name ?? ""), description: String((sk as any).description ?? ""), tools: Array.isArray((sk as any).tools) ? (sk as any).tools.map(String) : [] });
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "skills.list.result", skills } };
     }
+    if (command.command.type === "dashboard.migrate") {
+      if (!this.workspace) throw new DataAgentRuntimeError("INVALID_COMMAND", "Workspace is not configured");
+      this.workspace.assertAccess(context);
+      const root = this.workspace.root as string;
+      const { migrateDashboardFiles } = await import("./dashboard-migration.js");
+      const report = await migrateDashboardFiles(command.command.paths, { root });
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "dashboard.migrate.result", ...report } };
+    }
+
     if (command.command.type === "dashboard.evaluate") {
       if (!this.queryExecutor) throw new DataAgentRuntimeError("INVALID_COMMAND", "QUERY_EXECUTOR_NOT_CONFIGURED");
       const limit = Math.min(command.command.rowLimit ?? 1000, 10000);
@@ -481,4 +490,5 @@ export { writePythonPackManifest } from "./python-pack-builder.js";
 export type { RequestContext } from "@data-agent/contracts";
 export { MetadataStore } from "./metadata.js";
 export { SqlGuard, DANGEROUS_KEYWORDS, INJECTION_PATTERNS, type SqlGuardResult } from "./sql-guard.js";
+export { migrateV3SpecToV4, migrateDashboardFiles, type DashboardMigrationReport, type SpecMigrationResult } from "./dashboard-migration.js";
 export { PiJsonlSessionStore } from "./session-store.js";

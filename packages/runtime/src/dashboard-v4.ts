@@ -62,7 +62,7 @@ export interface BridgeSession {
 
 /** Renders an embedded semantic dashboard shell: bridge-only, no inline data, no Node. */
 export function renderSemanticDashboardHtml(spec: DashboardV4SemanticSpec, options: { nonce: string; expectedOrigin: string }): string {
-  const payload = JSON.stringify({ title: spec.title, views: spec.views, parameters: spec.parameters ?? {}, nonce: options.nonce, expectedOrigin: options.expectedOrigin });
+  const payload = JSON.stringify({ dashboardVersion: 4, title: spec.title, views: spec.views, parameters: spec.parameters ?? {}, nonce: options.nonce, expectedOrigin: options.expectedOrigin });
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>${spec.title}</title></head>
 <body><h1>${spec.title}</h1><div id="charts"></div>
