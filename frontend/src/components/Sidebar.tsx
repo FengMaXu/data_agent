@@ -21,6 +21,7 @@ import {
     User,
     LogOut,
     Plus,
+    RefreshCw,
 } from './icons/Typicons';
 import {
     type KnowledgeFile,
@@ -86,6 +87,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
     const [loadingSemanticDetail, setLoadingSemanticDetail] = useState(false);
     const [toast, setToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
     const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const knowledgeImportInputRef = useRef<HTMLInputElement>(null);
     const editorOverlayRef = useRef<HTMLDivElement>(null);
     const editorModalRef = useRef<HTMLDivElement>(null);
     const semanticOverlayRef = useRef<HTMLDivElement>(null);
@@ -120,8 +122,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
     }, [showToast, t]);
 
     useEffect(() => {
-        if (knowledgeExpanded && knowledgeFiles.length === 0) void loadKnowledgeFiles();
-    }, [knowledgeExpanded, knowledgeFiles.length, loadKnowledgeFiles]);
+        if (knowledgeExpanded) void loadKnowledgeFiles();
+    }, [knowledgeExpanded, loadKnowledgeFiles]);
 
     const loadSemanticSources = useCallback(async () => {
         setLoadingSemantic(true);
@@ -148,8 +150,16 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
     }, [showToast, t]);
 
     useEffect(() => {
-        if (semanticExpanded && semanticConnections.length === 0) void loadSemanticSources();
-    }, [semanticExpanded, semanticConnections.length, loadSemanticSources]);
+        if (semanticExpanded) void loadSemanticSources();
+    }, [semanticExpanded, loadSemanticSources]);
+
+    // Auto-refresh while the section is open so newly ingested/discovered
+    // semantic sources appear without manual interaction.
+    useEffect(() => {
+        if (!semanticExpanded) return;
+        const timer = setInterval(() => { void loadSemanticSources(); }, 15000);
+        return () => clearInterval(timer);
+    }, [semanticExpanded, loadSemanticSources]);
 
     useEffect(() => {
         if (!editorOpen && !semanticViewerOpen) return;
@@ -202,6 +212,40 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
         } catch (error) {
             console.error('Failed to load knowledge file:', error);
             showToast(t('editor.loadFailed'), 'error');
+        }
+    };
+
+    const handleNewKnowledgeFile = () => {
+        const suggested = 'doc/';
+        const name = window.prompt(t('common.knowledgeNamePrompt'), suggested);
+        if (!name || !name.trim()) return;
+        const normalized = name.trim().replace(/^\/+/, '');
+        const fileName = /\.(md|markdown|txt)$/i.test(normalized) ? normalized : `${normalized}.md`;
+        setSelectedFile({ name: fileName.split('/').pop() || fileName, path: fileName, size: 0, modified_at: new Date().toISOString(), type: 'file' });
+        setFileContent('');
+        setIsEditing(true);
+        setEditorOpen(true);
+    };
+
+    const handleImportKnowledge = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(event.target.files ?? []);
+        event.target.value = '';
+        if (files.length === 0) return;
+        let imported = 0;
+        for (const file of files) {
+            try {
+                const content = await file.text();
+                await saveKnowledgeViaRuntime(`doc/${file.name}`, content);
+                imported += 1;
+            } catch (error) {
+                console.error('Failed to import knowledge file:', error);
+            }
+        }
+        if (imported > 0) {
+            await loadKnowledgeFiles();
+            showToast(`${t('common.knowledgeImported')} ${imported}`);
+        } else {
+            showToast(t('editor.saveFailed'), 'error');
         }
     };
 
@@ -493,6 +537,24 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
                         </button>
                         {knowledgeExpanded && (
                             <div className="knowledge-file-list">
+                                <div className="knowledge-actions" style={{ display: 'flex', gap: 6, padding: '4px 12px 8px' }}>
+                                    <button type="button" className="nav-item sidebar-plugin-item" title={t('common.knowledgeNew')} aria-label={t('common.knowledgeNew')} onClick={handleNewKnowledgeFile} style={{ flex: 1, justifyContent: 'center' }}>
+                                        <Plus size={14} className="file-icon" />
+                                        <span className="sidebar-plugin-text">{t('common.knowledgeNew')}</span>
+                                    </button>
+                                    <button type="button" className="nav-item sidebar-plugin-item" title={t('common.knowledgeImport')} aria-label={t('common.knowledgeImport')} onClick={() => knowledgeImportInputRef.current?.click()} style={{ flex: 1, justifyContent: 'center' }}>
+                                        <FileText size={14} className="file-icon" />
+                                        <span className="sidebar-plugin-text">{t('common.knowledgeImport')}</span>
+                                    </button>
+                                    <input
+                                        ref={knowledgeImportInputRef}
+                                        type="file"
+                                        multiple
+                                        accept=".md,.markdown,.txt"
+                                        style={{ display: 'none' }}
+                                        onChange={(event) => { void handleImportKnowledge(event); }}
+                                    />
+                                </div>
                                 {loadingKnowledge && knowledgeFiles.length === 0 ? (
                                     <div className="loading-state" role="status">{t('common.loading')}</div>
                                 ) : knowledgeFileTree.length === 0 ? (
@@ -510,6 +572,11 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
                         </button>
                         {semanticExpanded && (
                             <div className="semantic-asset-list">
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '4px 12px' }}>
+                                    <button type="button" className="tree-action-btn" title={t('common.semanticRefresh')} aria-label={t('common.semanticRefresh')} onClick={() => { void loadSemanticSources(); }}>
+                                        <RefreshCw size={12} aria-hidden="true" />
+                                    </button>
+                                </div>
                                 {loadingSemantic && semanticConnections.length === 0 ? (
                                     <div className="loading-state" role="status">{t('common.loading')}</div>
                                 ) : semanticConnections.length === 0 ? (

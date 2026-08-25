@@ -13088,23 +13088,23 @@ var init_parse3 = __esm({
 });
 
 // node_modules/typebox/build/value/delta/diff.mjs
-function CreateUpdate(path13, value) {
-  return { type: "update", path: path13, value };
+function CreateUpdate(path14, value) {
+  return { type: "update", path: path14, value };
 }
-function CreateInsert(path13, value) {
-  return { type: "insert", path: path13, value };
+function CreateInsert(path14, value) {
+  return { type: "insert", path: path14, value };
 }
-function CreateDelete(path13) {
-  return { type: "delete", path: path13 };
+function CreateDelete(path14) {
+  return { type: "delete", path: path14 };
 }
 function AssertCanDiffObject(value) {
   if (guard_exports.IsObject(value) && guard_exports.IsEqual(guard_exports.Symbols(value).length, 0))
     return;
   throw new Error("Cannot create diffs for objects with symbols keys");
 }
-function* FromObject17(path13, left, right) {
+function* FromObject17(path14, left, right) {
   if (!guard_exports.IsObject(right) || guard_exports.IsArray(right))
-    return yield CreateUpdate(path13, right);
+    return yield CreateUpdate(path14, right);
   AssertCanDiffObject(left);
   AssertCanDiffObject(right);
   const leftKeys = guard_exports.Keys(left);
@@ -13114,7 +13114,7 @@ function* FromObject17(path13, left, right) {
       continue;
     if (guard_exports.IsUnsafePropertyKey(key))
       continue;
-    yield CreateInsert(`${path13}/${key}`, right[key]);
+    yield CreateInsert(`${path14}/${key}`, right[key]);
   }
   for (const key of leftKeys) {
     if (!guard_exports.HasPropertyKey(right, key))
@@ -13123,52 +13123,52 @@ function* FromObject17(path13, left, right) {
       continue;
     if (Equal(left, right))
       continue;
-    yield* FromValue4(`${path13}/${key}`, left[key], right[key]);
+    yield* FromValue4(`${path14}/${key}`, left[key], right[key]);
   }
   for (const key of leftKeys) {
     if (guard_exports.HasPropertyKey(right, key))
       continue;
     if (guard_exports.IsUnsafePropertyKey(key))
       continue;
-    yield CreateDelete(`${path13}/${key}`);
+    yield CreateDelete(`${path14}/${key}`);
   }
 }
-function* FromArray13(path13, left, right) {
+function* FromArray13(path14, left, right) {
   if (!guard_exports.IsArray(right))
-    return yield CreateUpdate(path13, right);
+    return yield CreateUpdate(path14, right);
   for (let i = 0; i < Math.min(left.length, right.length); i++) {
-    yield* FromValue4(`${path13}/${i}`, left[i], right[i]);
+    yield* FromValue4(`${path14}/${i}`, left[i], right[i]);
   }
   for (let i = 0; i < right.length; i++) {
     if (i < left.length)
       continue;
-    yield CreateInsert(`${path13}/${i}`, right[i]);
+    yield CreateInsert(`${path14}/${i}`, right[i]);
   }
   for (let i = left.length - 1; i >= 0; i--) {
     if (i < right.length)
       continue;
-    yield CreateDelete(`${path13}/${i}`);
+    yield CreateDelete(`${path14}/${i}`);
   }
 }
-function* FromTypedArray2(path13, left, right) {
+function* FromTypedArray2(path14, left, right) {
   const typeLeft = globalThis.Object.getPrototypeOf(left).constructor.name;
   const typeRight = globalThis.Object.getPrototypeOf(right).constructor.name;
   const predicate = globals_exports.IsTypeArray(right) && guard_exports.IsEqual(left.length, right.length) && guard_exports.IsEqual(typeLeft, typeRight);
   if (predicate) {
     for (let index = 0; index < Math.min(left.length, right.length); index++) {
-      yield* FromValue4(`${path13}/${index}`, left[index], right[index]);
+      yield* FromValue4(`${path14}/${index}`, left[index], right[index]);
     }
   } else {
-    return yield CreateUpdate(path13, right);
+    return yield CreateUpdate(path14, right);
   }
 }
-function* FromUnknown(path13, left, right) {
+function* FromUnknown(path14, left, right) {
   if (left === right)
     return;
-  yield CreateUpdate(path13, right);
+  yield CreateUpdate(path14, right);
 }
-function* FromValue4(path13, left, right) {
-  return globals_exports.IsTypeArray(left) ? yield* FromTypedArray2(path13, left, right) : guard_exports.IsArray(left) ? yield* FromArray13(path13, left, right) : guard_exports.IsObject(left) ? yield* FromObject17(path13, left, right) : yield* FromUnknown(path13, left, right);
+function* FromValue4(path14, left, right) {
+  return globals_exports.IsTypeArray(left) ? yield* FromTypedArray2(path14, left, right) : guard_exports.IsArray(left) ? yield* FromArray13(path14, left, right) : guard_exports.IsObject(left) ? yield* FromObject17(path14, left, right) : yield* FromUnknown(path14, left, right);
 }
 function Diff(current, next) {
   return [...FromValue4("", current, next)];
@@ -13683,7 +13683,7 @@ function parseDataAgentCommandEnvelope(value) {
     throw new TypeError("Invalid DataAgent command envelope");
   return value;
 }
-var ProtocolVersion, RequestContextSchema, RuntimeProbeCommandSchema, AgentPromptCommandSchema, AgentSteerCommandSchema, AgentFollowUpCommandSchema, AgentStopCommandSchema, WorkspaceListCommandSchema, WorkspaceReadCommandSchema, WorkspaceWriteCommandSchema, WorkspaceDeleteCommandSchema, RunPythonCommandSchema, KnowledgeSearchCommandSchema, KnowledgeReadCommandSchema, ClarificationAnswerCommandSchema, KnowledgeListCommandSchema, KnowledgeSaveCommandSchema, DashboardV3DataCommandSchema, ConfigGetCommandSchema, ConfigSaveCommandSchema, PythonRuntimeTestCommandSchema, DbTestCommandSchema, LlmTestCommandSchema, ConfigLlmListCommandSchema, ConfigLlmSaveCommandSchema, McpServersStatusCommandSchema, McpServerTestCommandSchema, McpServerRestartCommandSchema, SessionTranscriptCommandSchema, SessionPrepareCommandSchema, SemanticSourcesListCommandSchema, SemanticSourcesGetCommandSchema, McpConfigGetCommandSchema, McpConfigSaveCommandSchema, SkillsListCommandSchema, DashboardEvaluateCommandSchema, SemanticIngestStatusCommandSchema, SemanticIngestRetryCommandSchema, DashboardCommandSchema, TaskCreateCommandSchema, TaskListCommandSchema, TaskRenameCommandSchema, TaskDeleteCommandSchema, SessionCreateCommandSchema, SessionListCommandSchema, SessionRenameCommandSchema, SessionDeleteCommandSchema, DataAgentCommandSchema, DataAgentCommandEnvelopeSchema, RuntimeProbeResponseSchema, AgentPromptResponseSchema, KnowledgeSearchResponseSchema, KnowledgeReadResponseSchema, KnowledgeListResponseSchema, KnowledgeSaveResponseSchema, SemanticSourcesResponseSchema, SemanticSourceResponseSchema, McpConfigResponseSchema, SkillsListResponseSchema, DashboardEvaluateResponseSchema, SemanticIngestStatusResponseSchema, SemanticIngestRetryResponseSchema, SessionTranscriptResponseSchema, DashboardV3DataResponseSchema, ConfigGetResponseSchema, ConfigSaveResponseSchema, SimpleTestResponseSchema, ConfigLlmListResponseSchema, ConfigLlmSaveResponseSchema, McpServersStatusResponseSchema, McpServerTestResponseSchema, McpServerRestartResponseSchema, DashboardResponseSchema, PythonResponseSchema, WorkspaceResponseSchema, TaskSchema, SessionSchema, MutationResponseSchema, ListResponseSchema, DataAgentResponseSchema, DataAgentResponseEnvelopeSchema, DataAgentEventSchema, DataAgentEventEnvelopeSchema;
+var ProtocolVersion, RequestContextSchema, RuntimeProbeCommandSchema, AgentPromptCommandSchema, AgentSteerCommandSchema, AgentFollowUpCommandSchema, AgentStopCommandSchema, WorkspaceListCommandSchema, WorkspaceReadCommandSchema, WorkspaceWriteCommandSchema, WorkspaceDeleteCommandSchema, RunPythonCommandSchema, KnowledgeSearchCommandSchema, KnowledgeReadCommandSchema, ClarificationAnswerCommandSchema, KnowledgeListCommandSchema, KnowledgeSaveCommandSchema, DashboardV3DataCommandSchema, ConfigGetCommandSchema, ConfigSaveCommandSchema, PythonRuntimeTestCommandSchema, DbTestCommandSchema, LlmTestCommandSchema, ConfigLlmListCommandSchema, ConfigLlmSaveCommandSchema, McpServersStatusCommandSchema, McpServerTestCommandSchema, McpServerRestartCommandSchema, SessionTranscriptCommandSchema, SessionPrepareCommandSchema, SemanticSourcesListCommandSchema, SemanticSourcesGetCommandSchema, McpConfigGetCommandSchema, McpConfigSaveCommandSchema, SkillsListCommandSchema, DashboardEvaluateCommandSchema, SemanticIngestStatusCommandSchema, SemanticIngestRetryCommandSchema, DashboardMigrateCommandSchema, DashboardCommandSchema, TaskCreateCommandSchema, TaskListCommandSchema, TaskRenameCommandSchema, TaskDeleteCommandSchema, SessionCreateCommandSchema, SessionListCommandSchema, SessionRenameCommandSchema, SessionDeleteCommandSchema, DataAgentCommandSchema, DataAgentCommandEnvelopeSchema, RuntimeProbeResponseSchema, AgentPromptResponseSchema, KnowledgeSearchResponseSchema, KnowledgeReadResponseSchema, KnowledgeListResponseSchema, KnowledgeSaveResponseSchema, SemanticSourcesResponseSchema, SemanticSourceResponseSchema, McpConfigResponseSchema, SkillsListResponseSchema, DashboardEvaluateResponseSchema, SemanticIngestStatusResponseSchema, SemanticIngestRetryResponseSchema, SessionTranscriptResponseSchema, DashboardV3DataResponseSchema, ConfigGetResponseSchema, ConfigSaveResponseSchema, SimpleTestResponseSchema, ConfigLlmListResponseSchema, ConfigLlmSaveResponseSchema, McpServersStatusResponseSchema, McpServerTestResponseSchema, McpServerRestartResponseSchema, DashboardResponseSchema, DashboardMigrateResponseSchema, PythonResponseSchema, WorkspaceResponseSchema, TaskSchema, SessionSchema, MutationResponseSchema, ListResponseSchema, DataAgentResponseSchema, DataAgentResponseEnvelopeSchema, DataAgentEventSchema, DataAgentEventEnvelopeSchema;
 var init_dist = __esm({
   "packages/contracts/dist/index.js"() {
     "use strict";
@@ -13727,6 +13727,7 @@ var init_dist = __esm({
     DashboardEvaluateCommandSchema = typebox_exports.Object({ type: typebox_exports.Literal("dashboard.evaluate"), sql: typebox_exports.String({ minLength: 1 }), rowLimit: typebox_exports.Optional(typebox_exports.Number({ minimum: 1, maximum: 1e4 })) });
     SemanticIngestStatusCommandSchema = typebox_exports.Object({ type: typebox_exports.Literal("semantic.ingest.status") });
     SemanticIngestRetryCommandSchema = typebox_exports.Object({ type: typebox_exports.Literal("semantic.ingest.retry") });
+    DashboardMigrateCommandSchema = typebox_exports.Object({ type: typebox_exports.Literal("dashboard.migrate"), paths: typebox_exports.Array(typebox_exports.String({ minLength: 1 }), { minItems: 1 }) });
     DashboardCommandSchema = typebox_exports.Object({ type: typebox_exports.Literal("dashboard.generate"), operation: typebox_exports.Union([typebox_exports.Literal("create"), typebox_exports.Literal("edit"), typebox_exports.Literal("validate")]), mode: typebox_exports.Union([typebox_exports.Literal("static"), typebox_exports.Literal("semantic")]), version: typebox_exports.Union([typebox_exports.Literal("v3"), typebox_exports.Literal("v4")]), spec: typebox_exports.Unknown(), editPath: typebox_exports.Optional(typebox_exports.String({ minLength: 1 })) });
     TaskCreateCommandSchema = typebox_exports.Object({ type: typebox_exports.Literal("task.create"), name: typebox_exports.String({ minLength: 1 }) });
     TaskListCommandSchema = typebox_exports.Object({ type: typebox_exports.Literal("task.list") });
@@ -13736,7 +13737,7 @@ var init_dist = __esm({
     SessionListCommandSchema = typebox_exports.Object({ type: typebox_exports.Literal("session.list"), taskId: typebox_exports.Optional(typebox_exports.String({ minLength: 1 })) });
     SessionRenameCommandSchema = typebox_exports.Object({ type: typebox_exports.Literal("session.rename"), sessionId: typebox_exports.String({ minLength: 1 }), name: typebox_exports.String({ minLength: 1 }) });
     SessionDeleteCommandSchema = typebox_exports.Object({ type: typebox_exports.Literal("session.delete"), sessionId: typebox_exports.String({ minLength: 1 }) });
-    DataAgentCommandSchema = typebox_exports.Union([RuntimeProbeCommandSchema, AgentPromptCommandSchema, AgentSteerCommandSchema, AgentFollowUpCommandSchema, AgentStopCommandSchema, WorkspaceListCommandSchema, WorkspaceReadCommandSchema, WorkspaceWriteCommandSchema, WorkspaceDeleteCommandSchema, RunPythonCommandSchema, KnowledgeSearchCommandSchema, KnowledgeReadCommandSchema, ClarificationAnswerCommandSchema, KnowledgeListCommandSchema, KnowledgeSaveCommandSchema, DashboardV3DataCommandSchema, ConfigGetCommandSchema, ConfigSaveCommandSchema, PythonRuntimeTestCommandSchema, DbTestCommandSchema, LlmTestCommandSchema, ConfigLlmListCommandSchema, ConfigLlmSaveCommandSchema, McpServersStatusCommandSchema, McpServerTestCommandSchema, McpServerRestartCommandSchema, SessionPrepareCommandSchema, SessionTranscriptCommandSchema, SemanticSourcesListCommandSchema, SemanticSourcesGetCommandSchema, McpConfigGetCommandSchema, McpConfigSaveCommandSchema, SkillsListCommandSchema, DashboardEvaluateCommandSchema, SemanticIngestStatusCommandSchema, SemanticIngestRetryCommandSchema, DashboardCommandSchema, TaskCreateCommandSchema, TaskListCommandSchema, TaskRenameCommandSchema, TaskDeleteCommandSchema, SessionCreateCommandSchema, SessionListCommandSchema, SessionRenameCommandSchema, SessionDeleteCommandSchema]);
+    DataAgentCommandSchema = typebox_exports.Union([RuntimeProbeCommandSchema, AgentPromptCommandSchema, AgentSteerCommandSchema, AgentFollowUpCommandSchema, AgentStopCommandSchema, WorkspaceListCommandSchema, WorkspaceReadCommandSchema, WorkspaceWriteCommandSchema, WorkspaceDeleteCommandSchema, RunPythonCommandSchema, KnowledgeSearchCommandSchema, KnowledgeReadCommandSchema, ClarificationAnswerCommandSchema, KnowledgeListCommandSchema, KnowledgeSaveCommandSchema, DashboardV3DataCommandSchema, ConfigGetCommandSchema, ConfigSaveCommandSchema, PythonRuntimeTestCommandSchema, DbTestCommandSchema, LlmTestCommandSchema, ConfigLlmListCommandSchema, ConfigLlmSaveCommandSchema, McpServersStatusCommandSchema, McpServerTestCommandSchema, McpServerRestartCommandSchema, SessionPrepareCommandSchema, SessionTranscriptCommandSchema, SemanticSourcesListCommandSchema, SemanticSourcesGetCommandSchema, McpConfigGetCommandSchema, McpConfigSaveCommandSchema, SkillsListCommandSchema, DashboardEvaluateCommandSchema, DashboardMigrateCommandSchema, SemanticIngestStatusCommandSchema, SemanticIngestRetryCommandSchema, DashboardCommandSchema, TaskCreateCommandSchema, TaskListCommandSchema, TaskRenameCommandSchema, TaskDeleteCommandSchema, SessionCreateCommandSchema, SessionListCommandSchema, SessionRenameCommandSchema, SessionDeleteCommandSchema]);
     DataAgentCommandEnvelopeSchema = typebox_exports.Object({ protocolVersion: typebox_exports.Integer({ minimum: 1 }), requestId: typebox_exports.String({ minLength: 1 }), command: DataAgentCommandSchema });
     RuntimeProbeResponseSchema = typebox_exports.Object({ type: typebox_exports.Literal("runtime.probe.result"), service: typebox_exports.Literal("data-agent-runtime"), runtimeVersion: typebox_exports.Literal("0.1.0") });
     AgentPromptResponseSchema = typebox_exports.Object({ type: typebox_exports.Literal("agent.prompt.accepted"), runId: typebox_exports.String({ minLength: 1 }) });
@@ -13762,13 +13763,14 @@ var init_dist = __esm({
     McpServerTestResponseSchema = typebox_exports.Object({ type: typebox_exports.Literal("mcp.server.test.result"), ok: typebox_exports.Boolean(), message: typebox_exports.String() });
     McpServerRestartResponseSchema = typebox_exports.Object({ type: typebox_exports.Literal("mcp.server.restart.result"), ok: typebox_exports.Boolean() });
     DashboardResponseSchema = typebox_exports.Object({ type: typebox_exports.Literal("dashboard.result"), valid: typebox_exports.Boolean(), errors: typebox_exports.Array(typebox_exports.String()), path: typebox_exports.Optional(typebox_exports.String()), bytes: typebox_exports.Optional(typebox_exports.Number()) });
+    DashboardMigrateResponseSchema = typebox_exports.Object({ type: typebox_exports.Literal("dashboard.migrate.result"), migrationId: typebox_exports.String(), fromVersion: typebox_exports.Literal("v3"), toVersion: typebox_exports.Literal("v4"), converted: typebox_exports.Array(typebox_exports.String()), unchanged: typebox_exports.Array(typebox_exports.String()), unsupported: typebox_exports.Array(typebox_exports.Object({ path: typebox_exports.String(), reasons: typebox_exports.Array(typebox_exports.String()) })) });
     PythonResponseSchema = typebox_exports.Object({ type: typebox_exports.Literal("python.result"), jobId: typebox_exports.String(), status: typebox_exports.Union([typebox_exports.Literal("success"), typebox_exports.Literal("error"), typebox_exports.Literal("timeout"), typebox_exports.Literal("aborted")]), exitCode: typebox_exports.Union([typebox_exports.Number(), typebox_exports.Null()]), stdout: typebox_exports.String(), stderr: typebox_exports.String(), scriptPath: typebox_exports.String(), durationMs: typebox_exports.Number() });
     WorkspaceResponseSchema = typebox_exports.Object({ type: typebox_exports.Literal("workspace.result"), operation: typebox_exports.Union([typebox_exports.Literal("list"), typebox_exports.Literal("read"), typebox_exports.Literal("write")]), path: typebox_exports.Optional(typebox_exports.String()), content: typebox_exports.Optional(typebox_exports.String()), files: typebox_exports.Optional(typebox_exports.Array(typebox_exports.String())) });
     TaskSchema = typebox_exports.Object({ id: typebox_exports.String(), name: typebox_exports.String(), createdAt: typebox_exports.Number(), updatedAt: typebox_exports.Number() });
     SessionSchema = typebox_exports.Object({ id: typebox_exports.String(), taskId: typebox_exports.String(), name: typebox_exports.String(), createdAt: typebox_exports.Number(), updatedAt: typebox_exports.Number() });
     MutationResponseSchema = typebox_exports.Object({ type: typebox_exports.Literal("mutation.result"), entity: typebox_exports.Union([typebox_exports.Literal("task"), typebox_exports.Literal("session")]), item: typebox_exports.Union([TaskSchema, SessionSchema]) });
     ListResponseSchema = typebox_exports.Object({ type: typebox_exports.Literal("list.result"), entity: typebox_exports.Union([typebox_exports.Literal("task"), typebox_exports.Literal("session")]), items: typebox_exports.Array(typebox_exports.Union([TaskSchema, SessionSchema])) });
-    DataAgentResponseSchema = typebox_exports.Union([RuntimeProbeResponseSchema, AgentPromptResponseSchema, KnowledgeSearchResponseSchema, KnowledgeReadResponseSchema, KnowledgeListResponseSchema, KnowledgeSaveResponseSchema, SemanticSourcesResponseSchema, SemanticSourceResponseSchema, McpConfigResponseSchema, SkillsListResponseSchema, DashboardEvaluateResponseSchema, SemanticIngestStatusResponseSchema, SemanticIngestRetryResponseSchema, SessionTranscriptResponseSchema, DashboardV3DataResponseSchema, ConfigGetResponseSchema, ConfigSaveResponseSchema, SimpleTestResponseSchema, ConfigLlmListResponseSchema, ConfigLlmSaveResponseSchema, McpServersStatusResponseSchema, McpServerTestResponseSchema, McpServerRestartResponseSchema, DashboardResponseSchema, PythonResponseSchema, WorkspaceResponseSchema, MutationResponseSchema, ListResponseSchema]);
+    DataAgentResponseSchema = typebox_exports.Union([RuntimeProbeResponseSchema, AgentPromptResponseSchema, KnowledgeSearchResponseSchema, KnowledgeReadResponseSchema, KnowledgeListResponseSchema, KnowledgeSaveResponseSchema, SemanticSourcesResponseSchema, SemanticSourceResponseSchema, McpConfigResponseSchema, SkillsListResponseSchema, DashboardEvaluateResponseSchema, SemanticIngestStatusResponseSchema, SemanticIngestRetryResponseSchema, SessionTranscriptResponseSchema, DashboardV3DataResponseSchema, ConfigGetResponseSchema, ConfigSaveResponseSchema, SimpleTestResponseSchema, ConfigLlmListResponseSchema, ConfigLlmSaveResponseSchema, McpServersStatusResponseSchema, McpServerTestResponseSchema, McpServerRestartResponseSchema, DashboardResponseSchema, DashboardMigrateResponseSchema, PythonResponseSchema, WorkspaceResponseSchema, MutationResponseSchema, ListResponseSchema]);
     DataAgentResponseEnvelopeSchema = typebox_exports.Object({ protocolVersion: typebox_exports.Literal(ProtocolVersion), requestId: typebox_exports.String({ minLength: 1 }), response: DataAgentResponseSchema });
     DataAgentEventSchema = typebox_exports.Union([typebox_exports.Object({ type: typebox_exports.Literal("runtime.probe.completed"), service: typebox_exports.Literal("data-agent-runtime") }), typebox_exports.Object({ type: typebox_exports.Literal("agent.text_delta"), delta: typebox_exports.String() }), typebox_exports.Object({ type: typebox_exports.Literal("agent.thinking_delta"), delta: typebox_exports.String() }), typebox_exports.Object({ type: typebox_exports.Literal("agent.message_started"), messageId: typebox_exports.String() }), typebox_exports.Object({ type: typebox_exports.Literal("agent.tool_started"), toolCallId: typebox_exports.String(), toolName: typebox_exports.String(), args: typebox_exports.Unknown() }), typebox_exports.Object({ type: typebox_exports.Literal("agent.tool_finished"), toolCallId: typebox_exports.String(), toolName: typebox_exports.String(), result: typebox_exports.Unknown(), isError: typebox_exports.Boolean() }), typebox_exports.Object({ type: typebox_exports.Literal("agent.completed") }), typebox_exports.Object({ type: typebox_exports.Literal("workspace.artifact.created"), path: typebox_exports.String(), kind: typebox_exports.Literal("file") }), typebox_exports.Object({ type: typebox_exports.Literal("clarification.request"), clarificationId: typebox_exports.String(), question: typebox_exports.String(), options: typebox_exports.Array(typebox_exports.String()) }), typebox_exports.Object({ type: typebox_exports.Literal("clarification.settled"), clarificationId: typebox_exports.String(), outcome: typebox_exports.Union([typebox_exports.Literal("answered"), typebox_exports.Literal("expired"), typebox_exports.Literal("cancelled")]) })]);
     DataAgentEventEnvelopeSchema = typebox_exports.Object({ protocolVersion: typebox_exports.Literal(ProtocolVersion), sequence: typebox_exports.Integer({ minimum: 1 }), requestId: typebox_exports.String({ minLength: 1 }), sessionId: typebox_exports.Optional(typebox_exports.String()), runId: typebox_exports.Optional(typebox_exports.String()), timestamp: typebox_exports.Integer({ minimum: 0 }), event: DataAgentEventSchema });
@@ -14469,11 +14471,11 @@ var init_types5 = __esm({
       code;
       /** Absolute addressed path associated with the failure, when available. */
       path;
-      constructor(code, message, path13, cause) {
+      constructor(code, message, path14, cause) {
         super(message, cause === void 0 ? void 0 : { cause });
         this.name = "FileError";
         this.code = code;
-        this.path = path13;
+        this.path = path14;
       }
     };
     ExecutionError = class extends Error {
@@ -14867,17 +14869,17 @@ var require_visit = __commonJS({
     visit.BREAK = BREAK;
     visit.SKIP = SKIP;
     visit.REMOVE = REMOVE;
-    function visit_(key, node, visitor, path13) {
-      const ctrl = callVisitor(key, node, visitor, path13);
+    function visit_(key, node, visitor, path14) {
+      const ctrl = callVisitor(key, node, visitor, path14);
       if (identity.isNode(ctrl) || identity.isPair(ctrl)) {
-        replaceNode(key, path13, ctrl);
-        return visit_(key, ctrl, visitor, path13);
+        replaceNode(key, path14, ctrl);
+        return visit_(key, ctrl, visitor, path14);
       }
       if (typeof ctrl !== "symbol") {
         if (identity.isCollection(node)) {
-          path13 = Object.freeze(path13.concat(node));
+          path14 = Object.freeze(path14.concat(node));
           for (let i = 0; i < node.items.length; ++i) {
-            const ci = visit_(i, node.items[i], visitor, path13);
+            const ci = visit_(i, node.items[i], visitor, path14);
             if (typeof ci === "number")
               i = ci - 1;
             else if (ci === BREAK)
@@ -14888,13 +14890,13 @@ var require_visit = __commonJS({
             }
           }
         } else if (identity.isPair(node)) {
-          path13 = Object.freeze(path13.concat(node));
-          const ck = visit_("key", node.key, visitor, path13);
+          path14 = Object.freeze(path14.concat(node));
+          const ck = visit_("key", node.key, visitor, path14);
           if (ck === BREAK)
             return BREAK;
           else if (ck === REMOVE)
             node.key = null;
-          const cv = visit_("value", node.value, visitor, path13);
+          const cv = visit_("value", node.value, visitor, path14);
           if (cv === BREAK)
             return BREAK;
           else if (cv === REMOVE)
@@ -14915,17 +14917,17 @@ var require_visit = __commonJS({
     visitAsync.BREAK = BREAK;
     visitAsync.SKIP = SKIP;
     visitAsync.REMOVE = REMOVE;
-    async function visitAsync_(key, node, visitor, path13) {
-      const ctrl = await callVisitor(key, node, visitor, path13);
+    async function visitAsync_(key, node, visitor, path14) {
+      const ctrl = await callVisitor(key, node, visitor, path14);
       if (identity.isNode(ctrl) || identity.isPair(ctrl)) {
-        replaceNode(key, path13, ctrl);
-        return visitAsync_(key, ctrl, visitor, path13);
+        replaceNode(key, path14, ctrl);
+        return visitAsync_(key, ctrl, visitor, path14);
       }
       if (typeof ctrl !== "symbol") {
         if (identity.isCollection(node)) {
-          path13 = Object.freeze(path13.concat(node));
+          path14 = Object.freeze(path14.concat(node));
           for (let i = 0; i < node.items.length; ++i) {
-            const ci = await visitAsync_(i, node.items[i], visitor, path13);
+            const ci = await visitAsync_(i, node.items[i], visitor, path14);
             if (typeof ci === "number")
               i = ci - 1;
             else if (ci === BREAK)
@@ -14936,13 +14938,13 @@ var require_visit = __commonJS({
             }
           }
         } else if (identity.isPair(node)) {
-          path13 = Object.freeze(path13.concat(node));
-          const ck = await visitAsync_("key", node.key, visitor, path13);
+          path14 = Object.freeze(path14.concat(node));
+          const ck = await visitAsync_("key", node.key, visitor, path14);
           if (ck === BREAK)
             return BREAK;
           else if (ck === REMOVE)
             node.key = null;
-          const cv = await visitAsync_("value", node.value, visitor, path13);
+          const cv = await visitAsync_("value", node.value, visitor, path14);
           if (cv === BREAK)
             return BREAK;
           else if (cv === REMOVE)
@@ -14969,23 +14971,23 @@ var require_visit = __commonJS({
       }
       return visitor;
     }
-    function callVisitor(key, node, visitor, path13) {
+    function callVisitor(key, node, visitor, path14) {
       if (typeof visitor === "function")
-        return visitor(key, node, path13);
+        return visitor(key, node, path14);
       if (identity.isMap(node))
-        return visitor.Map?.(key, node, path13);
+        return visitor.Map?.(key, node, path14);
       if (identity.isSeq(node))
-        return visitor.Seq?.(key, node, path13);
+        return visitor.Seq?.(key, node, path14);
       if (identity.isPair(node))
-        return visitor.Pair?.(key, node, path13);
+        return visitor.Pair?.(key, node, path14);
       if (identity.isScalar(node))
-        return visitor.Scalar?.(key, node, path13);
+        return visitor.Scalar?.(key, node, path14);
       if (identity.isAlias(node))
-        return visitor.Alias?.(key, node, path13);
+        return visitor.Alias?.(key, node, path14);
       return void 0;
     }
-    function replaceNode(key, path13, node) {
-      const parent = path13[path13.length - 1];
+    function replaceNode(key, path14, node) {
+      const parent = path14[path14.length - 1];
       if (identity.isCollection(parent)) {
         parent.items[key] = node;
       } else if (identity.isPair(parent)) {
@@ -15595,10 +15597,10 @@ var require_Collection = __commonJS({
     var createNode = require_createNode();
     var identity = require_identity();
     var Node = require_Node();
-    function collectionFromPath(schema, path13, value) {
+    function collectionFromPath(schema, path14, value) {
       let v = value;
-      for (let i = path13.length - 1; i >= 0; --i) {
-        const k = path13[i];
+      for (let i = path14.length - 1; i >= 0; --i) {
+        const k = path14[i];
         if (typeof k === "number" && Number.isInteger(k) && k >= 0) {
           const a = [];
           a[k] = v;
@@ -15617,7 +15619,7 @@ var require_Collection = __commonJS({
         sourceObjects: /* @__PURE__ */ new Map()
       });
     }
-    var isEmptyPath = (path13) => path13 == null || typeof path13 === "object" && !!path13[Symbol.iterator]().next().done;
+    var isEmptyPath = (path14) => path14 == null || typeof path14 === "object" && !!path14[Symbol.iterator]().next().done;
     var Collection = class extends Node.NodeBase {
       constructor(type, schema) {
         super(type);
@@ -15647,11 +15649,11 @@ var require_Collection = __commonJS({
        * be a Pair instance or a `{ key, value }` object, which may not have a key
        * that already exists in the map.
        */
-      addIn(path13, value) {
-        if (isEmptyPath(path13))
+      addIn(path14, value) {
+        if (isEmptyPath(path14))
           this.add(value);
         else {
-          const [key, ...rest] = path13;
+          const [key, ...rest] = path14;
           const node = this.get(key, true);
           if (identity.isCollection(node))
             node.addIn(rest, value);
@@ -15665,8 +15667,8 @@ var require_Collection = __commonJS({
        * Removes a value from the collection.
        * @returns `true` if the item was found and removed.
        */
-      deleteIn(path13) {
-        const [key, ...rest] = path13;
+      deleteIn(path14) {
+        const [key, ...rest] = path14;
         if (rest.length === 0)
           return this.delete(key);
         const node = this.get(key, true);
@@ -15680,8 +15682,8 @@ var require_Collection = __commonJS({
        * scalar values from their surrounding node; to disable set `keepScalar` to
        * `true` (collections are always returned intact).
        */
-      getIn(path13, keepScalar) {
-        const [key, ...rest] = path13;
+      getIn(path14, keepScalar) {
+        const [key, ...rest] = path14;
         const node = this.get(key, true);
         if (rest.length === 0)
           return !keepScalar && identity.isScalar(node) ? node.value : node;
@@ -15699,8 +15701,8 @@ var require_Collection = __commonJS({
       /**
        * Checks if the collection includes a value with the key `key`.
        */
-      hasIn(path13) {
-        const [key, ...rest] = path13;
+      hasIn(path14) {
+        const [key, ...rest] = path14;
         if (rest.length === 0)
           return this.has(key);
         const node = this.get(key, true);
@@ -15710,8 +15712,8 @@ var require_Collection = __commonJS({
        * Sets a value in this collection. For `!!set`, `value` needs to be a
        * boolean to add/remove the item from the set.
        */
-      setIn(path13, value) {
-        const [key, ...rest] = path13;
+      setIn(path14, value) {
+        const [key, ...rest] = path14;
         if (rest.length === 0) {
           this.set(key, value);
         } else {
@@ -18226,9 +18228,9 @@ var require_Document = __commonJS({
           this.contents.add(value);
       }
       /** Adds a value to the document. */
-      addIn(path13, value) {
+      addIn(path14, value) {
         if (assertCollection(this.contents))
-          this.contents.addIn(path13, value);
+          this.contents.addIn(path14, value);
       }
       /**
        * Create a new `Alias` node, ensuring that the target `node` has the required anchor.
@@ -18303,14 +18305,14 @@ var require_Document = __commonJS({
        * Removes a value from the document.
        * @returns `true` if the item was found and removed.
        */
-      deleteIn(path13) {
-        if (Collection.isEmptyPath(path13)) {
+      deleteIn(path14) {
+        if (Collection.isEmptyPath(path14)) {
           if (this.contents == null)
             return false;
           this.contents = null;
           return true;
         }
-        return assertCollection(this.contents) ? this.contents.deleteIn(path13) : false;
+        return assertCollection(this.contents) ? this.contents.deleteIn(path14) : false;
       }
       /**
        * Returns item at `key`, or `undefined` if not found. By default unwraps
@@ -18325,10 +18327,10 @@ var require_Document = __commonJS({
        * scalar values from their surrounding node; to disable set `keepScalar` to
        * `true` (collections are always returned intact).
        */
-      getIn(path13, keepScalar) {
-        if (Collection.isEmptyPath(path13))
+      getIn(path14, keepScalar) {
+        if (Collection.isEmptyPath(path14))
           return !keepScalar && identity.isScalar(this.contents) ? this.contents.value : this.contents;
-        return identity.isCollection(this.contents) ? this.contents.getIn(path13, keepScalar) : void 0;
+        return identity.isCollection(this.contents) ? this.contents.getIn(path14, keepScalar) : void 0;
       }
       /**
        * Checks if the document includes a value with the key `key`.
@@ -18339,10 +18341,10 @@ var require_Document = __commonJS({
       /**
        * Checks if the document includes a value at `path`.
        */
-      hasIn(path13) {
-        if (Collection.isEmptyPath(path13))
+      hasIn(path14) {
+        if (Collection.isEmptyPath(path14))
           return this.contents !== void 0;
-        return identity.isCollection(this.contents) ? this.contents.hasIn(path13) : false;
+        return identity.isCollection(this.contents) ? this.contents.hasIn(path14) : false;
       }
       /**
        * Sets a value in this document. For `!!set`, `value` needs to be a
@@ -18359,13 +18361,13 @@ var require_Document = __commonJS({
        * Sets a value in this document. For `!!set`, `value` needs to be a
        * boolean to add/remove the item from the set.
        */
-      setIn(path13, value) {
-        if (Collection.isEmptyPath(path13)) {
+      setIn(path14, value) {
+        if (Collection.isEmptyPath(path14)) {
           this.contents = value;
         } else if (this.contents == null) {
-          this.contents = Collection.collectionFromPath(this.schema, Array.from(path13), value);
+          this.contents = Collection.collectionFromPath(this.schema, Array.from(path14), value);
         } else if (assertCollection(this.contents)) {
-          this.contents.setIn(path13, value);
+          this.contents.setIn(path14, value);
         }
       }
       /**
@@ -20325,9 +20327,9 @@ var require_cst_visit = __commonJS({
     visit.BREAK = BREAK;
     visit.SKIP = SKIP;
     visit.REMOVE = REMOVE;
-    visit.itemAtPath = (cst, path13) => {
+    visit.itemAtPath = (cst, path14) => {
       let item = cst;
-      for (const [field, index] of path13) {
+      for (const [field, index] of path14) {
         const tok = item?.[field];
         if (tok && "items" in tok) {
           item = tok.items[index];
@@ -20336,23 +20338,23 @@ var require_cst_visit = __commonJS({
       }
       return item;
     };
-    visit.parentCollection = (cst, path13) => {
-      const parent = visit.itemAtPath(cst, path13.slice(0, -1));
-      const field = path13[path13.length - 1][0];
+    visit.parentCollection = (cst, path14) => {
+      const parent = visit.itemAtPath(cst, path14.slice(0, -1));
+      const field = path14[path14.length - 1][0];
       const coll = parent?.[field];
       if (coll && "items" in coll)
         return coll;
       throw new Error("Parent collection not found");
     };
-    function _visit(path13, item, visitor) {
-      let ctrl = visitor(item, path13);
+    function _visit(path14, item, visitor) {
+      let ctrl = visitor(item, path14);
       if (typeof ctrl === "symbol")
         return ctrl;
       for (const field of ["key", "value"]) {
         const token = item[field];
         if (token && "items" in token) {
           for (let i = 0; i < token.items.length; ++i) {
-            const ci = _visit(Object.freeze(path13.concat([[field, i]])), token.items[i], visitor);
+            const ci = _visit(Object.freeze(path14.concat([[field, i]])), token.items[i], visitor);
             if (typeof ci === "number")
               i = ci - 1;
             else if (ci === BREAK)
@@ -20363,10 +20365,10 @@ var require_cst_visit = __commonJS({
             }
           }
           if (typeof ctrl === "function" && field === "key")
-            ctrl = ctrl(item, path13);
+            ctrl = ctrl(item, path14);
         }
       }
-      return typeof ctrl === "function" ? ctrl(item, path13) : ctrl;
+      return typeof ctrl === "function" ? ctrl(item, path14) : ctrl;
     }
     exports2.visit = visit;
   }
@@ -22423,7 +22425,7 @@ var require_ignore = __commonJS({
       //   path matching.
       // - check `string` either `MODE_IGNORE` or `MODE_CHECK_IGNORE`
       // @returns {TestResult} true if a file is ignored
-      test(path13, checkUnignored, mode) {
+      test(path14, checkUnignored, mode) {
         let ignored = false;
         let unignored = false;
         let matchedRule;
@@ -22432,7 +22434,7 @@ var require_ignore = __commonJS({
           if (unignored === negative && ignored !== unignored || negative && !ignored && !unignored && !checkUnignored) {
             return;
           }
-          const matched = rule[mode].test(path13);
+          const matched = rule[mode].test(path14);
           if (!matched) {
             return;
           }
@@ -22453,17 +22455,17 @@ var require_ignore = __commonJS({
     var throwError = (message, Ctor) => {
       throw new Ctor(message);
     };
-    var checkPath = (path13, originalPath, doThrow) => {
-      if (!isString(path13)) {
+    var checkPath = (path14, originalPath, doThrow) => {
+      if (!isString(path14)) {
         return doThrow(
           `path must be a string, but got \`${originalPath}\``,
           TypeError
         );
       }
-      if (!path13) {
+      if (!path14) {
         return doThrow(`path must not be empty`, TypeError);
       }
-      if (checkPath.isNotRelative(path13)) {
+      if (checkPath.isNotRelative(path14)) {
         const r = "`path.relative()`d";
         return doThrow(
           `path should be a ${r} string, but got "${originalPath}"`,
@@ -22472,7 +22474,7 @@ var require_ignore = __commonJS({
       }
       return true;
     };
-    var isNotRelative = (path13) => REGEX_TEST_INVALID_PATH.test(path13);
+    var isNotRelative = (path14) => REGEX_TEST_INVALID_PATH.test(path14);
     checkPath.isNotRelative = isNotRelative;
     checkPath.convert = (p) => p;
     var Ignore = class {
@@ -22502,19 +22504,19 @@ var require_ignore = __commonJS({
       }
       // @returns {TestResult}
       _test(originalPath, cache, checkUnignored, slices) {
-        const path13 = originalPath && checkPath.convert(originalPath);
+        const path14 = originalPath && checkPath.convert(originalPath);
         checkPath(
-          path13,
+          path14,
           originalPath,
           this._strictPathCheck ? throwError : RETURN_FALSE
         );
-        return this._t(path13, cache, checkUnignored, slices);
+        return this._t(path14, cache, checkUnignored, slices);
       }
-      checkIgnore(path13) {
-        if (!REGEX_TEST_TRAILING_SLASH.test(path13)) {
-          return this.test(path13);
+      checkIgnore(path14) {
+        if (!REGEX_TEST_TRAILING_SLASH.test(path14)) {
+          return this.test(path14);
         }
-        const slices = path13.split(SLASH).filter(Boolean);
+        const slices = path14.split(SLASH).filter(Boolean);
         slices.pop();
         if (slices.length) {
           const parent = this._t(
@@ -22527,18 +22529,18 @@ var require_ignore = __commonJS({
             return parent;
           }
         }
-        return this._rules.test(path13, false, MODE_CHECK_IGNORE);
+        return this._rules.test(path14, false, MODE_CHECK_IGNORE);
       }
-      _t(path13, cache, checkUnignored, slices) {
-        if (path13 in cache) {
-          return cache[path13];
+      _t(path14, cache, checkUnignored, slices) {
+        if (path14 in cache) {
+          return cache[path14];
         }
         if (!slices) {
-          slices = path13.split(SLASH).filter(Boolean);
+          slices = path14.split(SLASH).filter(Boolean);
         }
         slices.pop();
         if (!slices.length) {
-          return cache[path13] = this._rules.test(path13, checkUnignored, MODE_IGNORE);
+          return cache[path14] = this._rules.test(path14, checkUnignored, MODE_IGNORE);
         }
         const parent = this._t(
           slices.join(SLASH) + SLASH,
@@ -22546,29 +22548,29 @@ var require_ignore = __commonJS({
           checkUnignored,
           slices
         );
-        return cache[path13] = parent.ignored ? parent : this._rules.test(path13, checkUnignored, MODE_IGNORE);
+        return cache[path14] = parent.ignored ? parent : this._rules.test(path14, checkUnignored, MODE_IGNORE);
       }
-      ignores(path13) {
-        return this._test(path13, this._ignoreCache, false).ignored;
+      ignores(path14) {
+        return this._test(path14, this._ignoreCache, false).ignored;
       }
       createFilter() {
-        return (path13) => !this.ignores(path13);
+        return (path14) => !this.ignores(path14);
       }
       filter(paths) {
         return makeArray(paths).filter(this.createFilter());
       }
       // @returns {TestResult}
-      test(path13) {
-        return this._test(path13, this._testCache, true);
+      test(path14) {
+        return this._test(path14, this._testCache, true);
       }
     };
     var factory = (options) => new Ignore(options);
-    var isPathValid = (path13) => checkPath(path13 && checkPath.convert(path13), path13, RETURN_FALSE);
+    var isPathValid = (path14) => checkPath(path14 && checkPath.convert(path14), path14, RETURN_FALSE);
     var setupWindows = () => {
       const makePosix = (str) => /^\\\\\?\\/.test(str) || /["<>|\u0000-\u001F]+/u.test(str) ? str : str.replace(/\\/g, "/");
       checkPath.convert = makePosix;
       const REGEX_TEST_WINDOWS_PATH_ABSOLUTE = /^[a-z]:\//i;
-      checkPath.isNotRelative = (path13) => REGEX_TEST_WINDOWS_PATH_ABSOLUTE.test(path13) || isNotRelative(path13);
+      checkPath.isNotRelative = (path14) => REGEX_TEST_WINDOWS_PATH_ABSOLUTE.test(path14) || isNotRelative(path14);
     };
     if (
       // Detect `process` so that it can run in browsers.
@@ -22748,12 +22750,12 @@ function parseEntryLine(line, filePath, lineNumber) {
 function leafIdAfterEntry(entry) {
   return entry.type === "leaf" ? entry.targetId : entry.id;
 }
-function headerToSessionMetadata(header, path13) {
+function headerToSessionMetadata(header, path14) {
   return {
     id: header.id,
     createdAt: header.timestamp,
     cwd: header.cwd,
-    path: path13,
+    path: path14,
     parentSessionPath: header.parentSession,
     metadata: header.metadata
   };
@@ -22902,13 +22904,13 @@ var init_jsonl_storage = __esm({
       async getPathToRootOrCompaction(leafId) {
         if (leafId === null)
           return [];
-        const path13 = [];
+        const path14 = [];
         let stopAtEntryId = null;
         let current = this.byId.get(leafId);
         if (!current)
           throw new SessionError("not_found", `Entry ${leafId} not found`);
         while (current) {
-          path13.unshift(current);
+          path14.unshift(current);
           if (stopAtEntryId !== null && current.id === stopAtEntryId)
             break;
           if (current.type === "compaction") {
@@ -22923,7 +22925,7 @@ var init_jsonl_storage = __esm({
             throw new SessionError("invalid_session", `Entry ${current.parentId} not found`);
           current = parent;
         }
-        return path13;
+        return path14;
       }
       async getEntries(options) {
         const start = options?.afterEntrySeq ?? 0;
@@ -23241,8 +23243,8 @@ function resolveTimeoutMs(timeout) {
   }
   return ok(timeoutMs);
 }
-function resolvePath(cwd, path13) {
-  let normalized = path13;
+function resolvePath(cwd, path14) {
+  let normalized = path14;
   if (normalized === "~") {
     normalized = (0, import_node_os.homedir)();
   } else if (normalized.startsWith("~/") || process.platform === "win32" && normalized.startsWith("~\\")) {
@@ -23264,13 +23266,13 @@ function fileKindFromStats(stats) {
     return "symlink";
   return void 0;
 }
-function fileInfoFromStats(path13, stats) {
+function fileInfoFromStats(path14, stats) {
   const kind = fileKindFromStats(stats);
   if (!kind)
-    return err(new FileError("invalid", "Unsupported file type", path13));
+    return err(new FileError("invalid", "Unsupported file type", path14));
   return ok({
-    name: path13.replace(/\/+$/, "").split("/").pop() ?? path13,
-    path: path13,
+    name: path14.replace(/\/+$/, "").split("/").pop() ?? path14,
+    path: path14,
     kind,
     size: stats.size,
     mtimeMs: stats.mtimeMs
@@ -23279,7 +23281,7 @@ function fileInfoFromStats(path13, stats) {
 function isNodeError(error) {
   return error instanceof Error && "code" in error;
 }
-function toFileError(error, path13) {
+function toFileError(error, path14) {
   if (error instanceof FileError)
     return error;
   const cause = toError(error);
@@ -23287,28 +23289,28 @@ function toFileError(error, path13) {
     const message = error.message;
     switch (error.code) {
       case "ABORT_ERR":
-        return new FileError("aborted", message, path13, cause);
+        return new FileError("aborted", message, path14, cause);
       case "ENOENT":
-        return new FileError("not_found", message, path13, cause);
+        return new FileError("not_found", message, path14, cause);
       case "EACCES":
       case "EPERM":
-        return new FileError("permission_denied", message, path13, cause);
+        return new FileError("permission_denied", message, path14, cause);
       case "ENOTDIR":
-        return new FileError("not_directory", message, path13, cause);
+        return new FileError("not_directory", message, path14, cause);
       case "EISDIR":
-        return new FileError("is_directory", message, path13, cause);
+        return new FileError("is_directory", message, path14, cause);
       case "EINVAL":
-        return new FileError("invalid", message, path13, cause);
+        return new FileError("invalid", message, path14, cause);
     }
   }
-  return new FileError("unknown", cause.message, path13, cause);
+  return new FileError("unknown", cause.message, path14, cause);
 }
-function abortResult(signal, path13) {
-  return signal?.aborted ? err(new FileError("aborted", "aborted", path13)) : void 0;
+function abortResult(signal, path14) {
+  return signal?.aborted ? err(new FileError("aborted", "aborted", path14)) : void 0;
 }
-async function pathExists(path13) {
+async function pathExists(path14) {
   try {
-    await (0, import_promises.access)(path13, import_node_fs2.constants.F_OK);
+    await (0, import_promises.access)(path14, import_node_fs2.constants.F_OK);
     return true;
   } catch {
     return false;
@@ -23352,8 +23354,8 @@ async function findBashOnPath() {
   const firstMatch = result.stdout.trim().split(/\r?\n/)[0];
   return firstMatch && await pathExists(firstMatch) ? firstMatch : null;
 }
-function isLegacyWslBashPath(path13) {
-  const normalized = path13.replace(/\//g, "\\").toLowerCase();
+function isLegacyWslBashPath(path14) {
+  const normalized = path14.replace(/\//g, "\\").toLowerCase();
   return /^[a-z]:\\windows\\(?:system32|sysnative)\\bash\.exe$/.test(normalized);
 }
 function getBashShellConfig(shell) {
@@ -23389,7 +23391,7 @@ async function getShellConfig(customShellPath) {
   3. Configure an explicit shellPath
 
 Searched Git Bash in:
-${candidates.map((path13) => `  ${path13}`).join("\n")}`));
+${candidates.map((path14) => `  ${path14}`).join("\n")}`));
   }
   if (await pathExists("/bin/bash")) {
     return ok(getBashShellConfig("/bin/bash"));
@@ -23528,8 +23530,8 @@ var init_nodejs = __esm({
         this.shellPath = options.shellPath;
         this.shellEnv = options.shellEnv;
       }
-      async absolutePath(path13) {
-        return ok(resolvePath(this.cwd, path13));
+      async absolutePath(path14) {
+        return ok(resolvePath(this.cwd, path14));
       }
       async joinPath(parts) {
         return ok((0, import_node_path2.join)(...parts));
@@ -23650,8 +23652,8 @@ Cannot execute bash commands.`, cause));
           }, (error) => settle(err(new ExecutionError("spawn_error", error.message, error))));
         });
       }
-      async readTextFile(path13, abortSignal) {
-        const resolved = resolvePath(this.cwd, path13);
+      async readTextFile(path14, abortSignal) {
+        const resolved = resolvePath(this.cwd, path14);
         const aborted = abortResult(abortSignal, resolved);
         if (aborted)
           return aborted;
@@ -23661,8 +23663,8 @@ Cannot execute bash commands.`, cause));
           return err(toFileError(error, resolved));
         }
       }
-      async readTextLines(path13, options) {
-        const resolved = resolvePath(this.cwd, path13);
+      async readTextLines(path14, options) {
+        const resolved = resolvePath(this.cwd, path14);
         const aborted = abortResult(options?.abortSignal, resolved);
         if (aborted)
           return aborted;
@@ -23693,8 +23695,8 @@ Cannot execute bash commands.`, cause));
           stream?.destroy();
         }
       }
-      async readBinaryFile(path13, abortSignal) {
-        const resolved = resolvePath(this.cwd, path13);
+      async readBinaryFile(path14, abortSignal) {
+        const resolved = resolvePath(this.cwd, path14);
         const aborted = abortResult(abortSignal, resolved);
         if (aborted)
           return aborted;
@@ -23704,8 +23706,8 @@ Cannot execute bash commands.`, cause));
           return err(toFileError(error, resolved));
         }
       }
-      async writeFile(path13, content, abortSignal) {
-        const resolved = resolvePath(this.cwd, path13);
+      async writeFile(path14, content, abortSignal) {
+        const resolved = resolvePath(this.cwd, path14);
         const aborted = abortResult(abortSignal, resolved);
         if (aborted)
           return aborted;
@@ -23720,8 +23722,8 @@ Cannot execute bash commands.`, cause));
           return err(toFileError(error, resolved));
         }
       }
-      async appendFile(path13, content) {
-        const resolved = resolvePath(this.cwd, path13);
+      async appendFile(path14, content) {
+        const resolved = resolvePath(this.cwd, path14);
         try {
           await (0, import_promises.mkdir)((0, import_node_path2.resolve)(resolved, ".."), { recursive: true });
           await (0, import_promises.appendFile)(resolved, content);
@@ -23730,16 +23732,16 @@ Cannot execute bash commands.`, cause));
           return err(toFileError(error, resolved));
         }
       }
-      async fileInfo(path13) {
-        const resolved = resolvePath(this.cwd, path13);
+      async fileInfo(path14) {
+        const resolved = resolvePath(this.cwd, path14);
         try {
           return fileInfoFromStats(resolved, await (0, import_promises.lstat)(resolved));
         } catch (error) {
           return err(toFileError(error, resolved));
         }
       }
-      async listDir(path13, abortSignal) {
-        const resolved = resolvePath(this.cwd, path13);
+      async listDir(path14, abortSignal) {
+        const resolved = resolvePath(this.cwd, path14);
         const aborted = abortResult(abortSignal, resolved);
         if (aborted)
           return aborted;
@@ -23764,24 +23766,24 @@ Cannot execute bash commands.`, cause));
           return err(toFileError(error, resolved));
         }
       }
-      async canonicalPath(path13) {
-        const resolved = resolvePath(this.cwd, path13);
+      async canonicalPath(path14) {
+        const resolved = resolvePath(this.cwd, path14);
         try {
           return ok(await (0, import_promises.realpath)(resolved));
         } catch (error) {
           return err(toFileError(error, resolved));
         }
       }
-      async exists(path13) {
-        const result = await this.fileInfo(path13);
+      async exists(path14) {
+        const result = await this.fileInfo(path14);
         if (result.ok)
           return ok(true);
         if (result.error.code === "not_found")
           return ok(false);
         return err(result.error);
       }
-      async createDir(path13, options) {
-        const resolved = resolvePath(this.cwd, path13);
+      async createDir(path14, options) {
+        const resolved = resolvePath(this.cwd, path14);
         try {
           await (0, import_promises.mkdir)(resolved, { recursive: options?.recursive ?? true });
           return ok(void 0);
@@ -23789,8 +23791,8 @@ Cannot execute bash commands.`, cause));
           return err(toFileError(error, resolved));
         }
       }
-      async remove(path13, options) {
-        const resolved = resolvePath(this.cwd, path13);
+      async remove(path14, options) {
+        const resolved = resolvePath(this.cwd, path14);
         try {
           await (0, import_promises.rm)(resolved, { recursive: options?.recursive ?? false, force: options?.force ?? false });
           return ok(void 0);
@@ -24301,7 +24303,7 @@ function validateDashboardV4Spec(spec) {
   return errors.length === 0 ? { ok: true, spec: s } : { ok: false, errors };
 }
 function renderSemanticDashboardHtml(spec, options) {
-  const payload = JSON.stringify({ title: spec.title, views: spec.views, parameters: spec.parameters ?? {}, nonce: options.nonce, expectedOrigin: options.expectedOrigin });
+  const payload = JSON.stringify({ dashboardVersion: 4, title: spec.title, views: spec.views, parameters: spec.parameters ?? {}, nonce: options.nonce, expectedOrigin: options.expectedOrigin });
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>${spec.title}</title></head>
 <body><h1>${spec.title}</h1><div id="charts"></div>
@@ -24509,16 +24511,16 @@ function effectiveTools(globalTools, activeSkills) {
   return globalTools.filter((tool) => allowed.has(tool));
 }
 async function moveSystemPrompt(agentMdPath, systemMdPath) {
-  const { writeFile: writeFile8, rename: rename3, access: access3 } = await import("node:fs/promises");
+  const { writeFile: writeFile9, rename: rename3, access: access3 } = await import("node:fs/promises");
   try {
     await access3(systemMdPath);
     return;
   } catch {
   }
   const content = await (0, import_promises8.readFile)(agentMdPath, "utf8");
-  const { mkdir: mkdir8 } = await import("node:fs/promises");
-  await mkdir8(import_node_path8.default.dirname(systemMdPath), { recursive: true });
-  await writeFile8(systemMdPath, content, "utf8");
+  const { mkdir: mkdir9 } = await import("node:fs/promises");
+  await mkdir9(import_node_path8.default.dirname(systemMdPath), { recursive: true });
+  await writeFile9(systemMdPath, content, "utf8");
   await rename3(agentMdPath, `${agentMdPath}.migrated`);
 }
 var import_promises8, import_node_path8, CANONICAL_TOOLS;
@@ -24981,6 +24983,155 @@ var init_sql_guard = __esm({
   }
 });
 
+// packages/runtime/dist/dashboard-migration.js
+var dashboard_migration_exports = {};
+__export(dashboard_migration_exports, {
+  migrateDashboardFiles: () => migrateDashboardFiles,
+  migrateV3SpecToV4: () => migrateV3SpecToV4
+});
+function queryFor(view) {
+  const parts = [`dataset:${view.dataset ?? "__default__"}`, `type:${view.type}`];
+  if (view.xField)
+    parts.push(`x:${view.xField}`);
+  if (view.yField)
+    parts.push(`y:${view.yField}`);
+  if (view.nameField)
+    parts.push(`name:${view.nameField}`);
+  if (view.valueField)
+    parts.push(`value:${view.valueField}`);
+  if (view.field)
+    parts.push(`field:${view.field}`);
+  if (view.aggregate)
+    parts.push(`aggregate:${view.aggregate}`);
+  return parts.join("|");
+}
+function fieldMappingFor(view) {
+  const mapping = { dataset: view.dataset ?? "__default__" };
+  if (view.xField)
+    mapping.x = view.xField;
+  if (view.yField)
+    mapping.y = view.yField;
+  if (view.nameField)
+    mapping.name = view.nameField;
+  if (view.valueField)
+    mapping.value = view.valueField;
+  if (view.field)
+    mapping.field = view.field;
+  if (view.aggregate)
+    mapping.aggregate = view.aggregate;
+  return mapping;
+}
+function migrateV3SpecToV4(spec) {
+  if (spec.dashboardVersion === 4) {
+    return { status: "unchanged", views: [], reasons: [] };
+  }
+  const datasetIds = new Set(spec.datasets.map((d) => d.id));
+  const views = [];
+  const viewResults = [];
+  const parameters = {};
+  for (const dataset of spec.datasets) {
+    const filters = dataset.filters;
+    for (const [name, value] of Object.entries(filters ?? {})) {
+      parameters[name] = { type: typeof value === "number" ? "number" : typeof value === "boolean" ? "string" : "string", default: value };
+    }
+  }
+  for (const [index, view] of spec.views.entries()) {
+    const viewId = view.id ?? view.title ?? `${view.type}-${index}`;
+    const reasons = [];
+    if (!["line", "bar", "pie", "kpi", "table"].includes(view.type))
+      reasons.push(`unsupported view type ${view.type}`);
+    if (view.dataset && !datasetIds.has(view.dataset))
+      reasons.push(`references unknown dataset ${view.dataset}`);
+    if ((view.type === "line" || view.type === "bar") && (!view.xField || !view.yField))
+      reasons.push("needs xField/yField");
+    if (view.type === "pie" && (!view.nameField || !view.valueField))
+      reasons.push("needs nameField/valueField");
+    if (view.type === "kpi" && !view.field)
+      reasons.push("needs field");
+    if (reasons.length > 0) {
+      viewResults.push({ viewId, status: "unsupported", reasons });
+      continue;
+    }
+    views.push({ id: viewId, type: view.type, title: view.title, query: queryFor(view), fieldMapping: fieldMappingFor(view) });
+    const viewFilters = view.filters;
+    for (const [name, value] of Object.entries(viewFilters ?? {})) {
+      parameters[name] = { type: typeof value === "number" ? "number" : "string", default: value };
+      views[views.length - 1].fieldMapping[`filter:${name}`] = String(value);
+    }
+    viewResults.push({ viewId, status: "converted", reasons: [] });
+  }
+  const unsupportedViews = viewResults.filter((v) => v.status === "unsupported");
+  if (spec.views.length === 0) {
+    return { status: "unsupported", views: viewResults, reasons: ["spec has no views"] };
+  }
+  if (unsupportedViews.length > 0) {
+    return {
+      status: "unsupported",
+      views: viewResults,
+      reasons: unsupportedViews.flatMap((v) => v.reasons.map((r) => `${v.viewId}: ${r}`))
+    };
+  }
+  const hasParameters = Object.keys(parameters).length > 0;
+  return {
+    status: "converted",
+    views: viewResults,
+    reasons: [],
+    spec: {
+      title: spec.title,
+      ...hasParameters ? { parameters } : {},
+      views
+    }
+  };
+}
+async function migrateDashboardFiles(paths, options) {
+  const report = { migrationId: (0, import_node_crypto11.randomUUID)(), fromVersion: "v3", toVersion: "v4", converted: [], unchanged: [], unsupported: [] };
+  for (const relativePath of paths) {
+    const target = import_node_path13.default.resolve(options.root, relativePath);
+    let raw;
+    try {
+      raw = await (0, import_promises13.readFile)(target, "utf8");
+    } catch (error) {
+      report.unsupported.push({ path: relativePath, reasons: [`unreadable: ${error instanceof Error ? error.message : String(error)}`] });
+      continue;
+    }
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (error) {
+      report.unsupported.push({ path: relativePath, reasons: [`invalid JSON: ${error instanceof Error ? error.message : String(error)}`] });
+      continue;
+    }
+    if (parsed?.dashboardVersion === 4) {
+      report.unchanged.push(relativePath);
+      continue;
+    }
+    const result = migrateV3SpecToV4(parsed);
+    if (result.status !== "converted" || !result.spec) {
+      report.unsupported.push({ path: relativePath, reasons: result.reasons.length ? result.reasons : ["spec could not be converted"] });
+      continue;
+    }
+    const backupPath = `${target}.v3.bak`;
+    await (0, import_promises13.mkdir)(import_node_path13.default.dirname(backupPath), { recursive: true });
+    await (0, import_promises13.copyFile)(target, backupPath).catch((error) => {
+      if (error.code !== "EEXIST")
+        throw error;
+    });
+    const converted = { dashboardVersion: 4, migratedFrom: "v3", migrationId: report.migrationId, ...result.spec };
+    await (0, import_promises13.writeFile)(target, JSON.stringify(converted, null, 2), "utf8");
+    report.converted.push(relativePath);
+  }
+  return report;
+}
+var import_node_crypto11, import_promises13, import_node_path13;
+var init_dashboard_migration = __esm({
+  "packages/runtime/dist/dashboard-migration.js"() {
+    "use strict";
+    import_node_crypto11 = require("node:crypto");
+    import_promises13 = require("node:fs/promises");
+    import_node_path13 = __toESM(require("node:path"), 1);
+  }
+});
+
 // packages/runtime/dist/index.js
 var dist_exports = {};
 __export(dist_exports, {
@@ -25007,7 +25158,9 @@ __export(dist_exports, {
   effectiveTools: () => effectiveTools,
   loadRuntimeManifest: () => loadRuntimeManifest,
   loadSkillsFromDir: () => loadSkillsFromDir,
+  migrateDashboardFiles: () => migrateDashboardFiles,
   migrateLegacyData: () => migrateLegacyData,
+  migrateV3SpecToV4: () => migrateV3SpecToV4,
   moveSystemPrompt: () => moveSystemPrompt,
   probePython: () => probePython,
   readAuditLog: () => readAuditLog,
@@ -25016,14 +25169,14 @@ __export(dist_exports, {
   semanticToolIdentity: () => semanticToolIdentity,
   writePythonPackManifest: () => writePythonPackManifest
 });
-var import_node_crypto11, DataAgentRuntimeError, DataAgentRuntime;
+var import_node_crypto12, DataAgentRuntimeError, DataAgentRuntime;
 var init_dist4 = __esm({
   "packages/runtime/dist/index.js"() {
     "use strict";
     init_dist();
     init_value2();
     init_metadata();
-    import_node_crypto11 = require("node:crypto");
+    import_node_crypto12 = require("node:crypto");
     init_session_store();
     init_workspace();
     init_python_job();
@@ -25047,6 +25200,7 @@ var init_dist4 = __esm({
     init_python_pack_builder();
     init_metadata();
     init_sql_guard();
+    init_dashboard_migration();
     init_session_store();
     DataAgentRuntimeError = class extends Error {
       code;
@@ -25146,7 +25300,7 @@ var init_dist4 = __esm({
               return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "dashboard.result", valid: validated.ok, errors: validated.ok ? [] : validated.errors } };
             }
             const target = c.editPath ?? `dashboards/${Date.now()}-semantic.html`;
-            const nonce = (0, import_node_crypto11.randomUUID)();
+            const nonce = (0, import_node_crypto12.randomUUID)();
             const html = renderSemanticDashboardHtml(validated.spec, { nonce, expectedOrigin: "https://data-agent.local" });
             await this.workspace.write(target, html);
             this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, sessionId: context.sessionId, timestamp: Date.now(), event: { type: "workspace.artifact.created", path: target, kind: "file" } });
@@ -25165,26 +25319,34 @@ var init_dist4 = __esm({
           const fs = await import("node:fs/promises");
           const base = resolvePath2(this.semanticProjectDir);
           const sources = [];
-          let connections = [];
-          try {
-            connections = await fs.readdir(resolvePath2(base, "business-semantic"));
-          } catch {
-            connections = [];
-          }
-          for (const connectionId of connections) {
-            const connDir = resolvePath2(base, "business-semantic", connectionId);
-            let entries = [];
+          const seen = /* @__PURE__ */ new Set();
+          for (const segment of ["business-semantic", "semantic-layer"]) {
+            let connections = [];
             try {
-              entries = await fs.readdir(connDir, { withFileTypes: true });
+              connections = await fs.readdir(resolvePath2(base, segment));
             } catch {
-              continue;
+              connections = [];
             }
-            for (const entry of entries) {
-              if (!entry.isFile() || !(entry.name.endsWith(".yaml") || entry.name.endsWith(".yml")))
+            for (const connectionId of connections) {
+              const connDir = resolvePath2(base, segment, connectionId);
+              let entries = [];
+              try {
+                entries = await fs.readdir(connDir, { withFileTypes: true });
+              } catch {
                 continue;
-              const full = resolvePath2(connDir, entry.name);
-              const info = await fs.stat(full);
-              sources.push({ connectionId, sourceName: entry.name.replace(/\.ya?ml$/i, ""), definition: {}, updatedAt: info.mtimeMs });
+              }
+              for (const entry of entries) {
+                if (!entry.isFile() || !(entry.name.endsWith(".yaml") || entry.name.endsWith(".yml")))
+                  continue;
+                const sourceName = entry.name.replace(/\.ya?ml$/i, "");
+                const key = `${connectionId}/${sourceName}`;
+                if (seen.has(key))
+                  continue;
+                seen.add(key);
+                const full = resolvePath2(connDir, entry.name);
+                const info = await fs.stat(full);
+                sources.push({ connectionId, sourceName, definition: {}, updatedAt: info.mtimeMs });
+              }
             }
           }
           return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "semantic.sources.result", sources } };
@@ -25193,7 +25355,8 @@ var init_dist4 = __esm({
           const { resolve: resolvePath2 } = await import("node:path");
           const fs = await import("node:fs/promises");
           const getCmd = command.command;
-          const candidates = [".yaml", ".yml"].map((ext) => resolvePath2(this.semanticProjectDir, "business-semantic", getCmd.connectionId, getCmd.sourceName + ext));
+          const segments = ["business-semantic", "semantic-layer"];
+          const candidates = segments.flatMap((segment) => [".yaml", ".yml"].map((ext) => resolvePath2(this.semanticProjectDir, segment, getCmd.connectionId, getCmd.sourceName + ext)));
           let rawYaml = null;
           for (const candidate of candidates) {
             try {
@@ -25231,6 +25394,15 @@ var init_dist4 = __esm({
           for (const sk of loaded)
             skills.push({ name: String(sk.name ?? ""), description: String(sk.description ?? ""), tools: Array.isArray(sk.tools) ? sk.tools.map(String) : [] });
           return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "skills.list.result", skills } };
+        }
+        if (command.command.type === "dashboard.migrate") {
+          if (!this.workspace)
+            throw new DataAgentRuntimeError("INVALID_COMMAND", "Workspace is not configured");
+          this.workspace.assertAccess(context);
+          const root = this.workspace.root;
+          const { migrateDashboardFiles: migrateDashboardFiles2 } = await Promise.resolve().then(() => (init_dashboard_migration(), dashboard_migration_exports));
+          const report = await migrateDashboardFiles2(command.command.paths, { root });
+          return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "dashboard.migrate.result", ...report } };
         }
         if (command.command.type === "dashboard.evaluate") {
           if (!this.queryExecutor)
@@ -25389,19 +25561,19 @@ var init_dist4 = __esm({
           if (command.command.type === "knowledge.save") {
             if (command.command.path.startsWith(".pi/"))
               throw new DataAgentRuntimeError("INVALID_COMMAND", "SYSTEM_PROMPT_IMMUTABLE");
-            const { writeFile: writeFile8, mkdir: mkdir8 } = await import("node:fs/promises");
+            const { writeFile: writeFile9, mkdir: mkdir9 } = await import("node:fs/promises");
             const target2 = resolvePath2(joinPath(this.knowledgeRoot, command.command.path));
             if (!target2.startsWith(resolvePath2(this.knowledgeRoot)))
               throw new DataAgentRuntimeError("INVALID_COMMAND", "Knowledge path escapes root");
-            await mkdir8(joinPath(target2, ".."), { recursive: true });
-            await writeFile8(target2, command.command.content, "utf8");
+            await mkdir9(joinPath(target2, ".."), { recursive: true });
+            await writeFile9(target2, command.command.content, "utf8");
             return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "knowledge.save.result", path: command.command.path } };
           }
-          const { readFile: readFile10 } = await import("node:fs/promises");
+          const { readFile: readFile11 } = await import("node:fs/promises");
           const target = resolvePath2(joinPath(this.knowledgeRoot, command.command.path));
           if (!target.startsWith(resolvePath2(this.knowledgeRoot)))
             throw new DataAgentRuntimeError("INVALID_COMMAND", "Knowledge path escapes root");
-          return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "knowledge.read.result", path: command.command.path, content: await readFile10(target, "utf8") } };
+          return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "knowledge.read.result", path: command.command.path, content: await readFile11(target, "utf8") } };
         }
         if (command.command.type === "agent.steer" || command.command.type === "agent.follow_up") {
           if (!this.agent)
@@ -25421,7 +25593,7 @@ var init_dist4 = __esm({
         if (command.command.type === "agent.prompt") {
           if (!this.agent)
             throw new DataAgentRuntimeError("INVALID_COMMAND", "Pi Agent is not configured");
-          const runId = (0, import_node_crypto11.randomUUID)();
+          const runId = (0, import_node_crypto12.randomUUID)();
           this.activeRun = { requestId: command.requestId, runId, sessionId: context.sessionId };
           void this.agent.prompt(command.command.prompt).then(() => {
             this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, runId, timestamp: Date.now(), event: { type: "agent.completed" } });
@@ -25579,17 +25751,17 @@ __export(main_exports, {
 });
 module.exports = __toCommonJS(main_exports);
 var import_node_fs3 = require("node:fs");
-var import_node_path13 = __toESM(require("node:path"), 1);
+var import_node_path14 = __toESM(require("node:path"), 1);
 function resolveRuntimePaths(options) {
   let appDir = options.appDir;
   if (!appDir && typeof __dirname !== "undefined") {
-    const insideAsar = __dirname.includes(`${import_node_path13.default.sep}app.asar`);
-    appDir = insideAsar ? import_node_path13.default.resolve(__dirname, "..") : import_node_path13.default.resolve(__dirname, "..", "..");
+    const insideAsar = __dirname.includes(`${import_node_path14.default.sep}app.asar`);
+    appDir = insideAsar ? import_node_path14.default.resolve(__dirname, "..") : import_node_path14.default.resolve(__dirname, "..", "..");
   }
   return {
     userDataDir: options.userDataDir,
     // Renderer output lives in <app>/dist when packaged via electron-builder files config
-    rendererDist: import_node_path13.default.join(appDir ?? process.cwd(), "dist")
+    rendererDist: import_node_path14.default.join(appDir ?? process.cwd(), "dist")
   };
 }
 async function startElectronHost(deps, overrides = {}) {
@@ -25603,28 +25775,29 @@ async function startElectronHost(deps, overrides = {}) {
     paths.rendererDist = overrides.rendererDist;
   const effectiveResources = overrides.resourcesPath ?? deps.resourcesPath;
   let pythonExecutable;
-  const bundledPython = import_node_path13.default.join(effectiveResources ?? "", "python-runtime", "Scripts", "python.exe");
+  const bundledPython = import_node_path14.default.join(effectiveResources ?? "", "python-runtime", "Scripts", "python.exe");
   if (effectiveResources && (0, import_node_fs3.existsSync)(bundledPython))
     pythonExecutable = bundledPython;
   for (const dir of ["metadata", "sessions", "workspace", "knowledge"]) {
-    (0, import_node_fs3.mkdirSync)(import_node_path13.default.join(paths.userDataDir, dir), { recursive: true });
+    (0, import_node_fs3.mkdirSync)(import_node_path14.default.join(paths.userDataDir, dir), { recursive: true });
   }
-  const metadata = new MetadataStore2(import_node_path13.default.join(paths.userDataDir, "metadata", "app.db"));
-  const sessions = new PiJsonlSessionStore2(import_node_path13.default.join(paths.userDataDir, "sessions"));
-  const knowledgeRoot = import_node_path13.default.join(paths.userDataDir, "knowledge");
+  const metadata = new MetadataStore2(import_node_path14.default.join(paths.userDataDir, "metadata", "app.db"));
+  const sessions = new PiJsonlSessionStore2(import_node_path14.default.join(paths.userDataDir, "sessions"));
+  const knowledgeRoot = import_node_path14.default.join(paths.userDataDir, "knowledge");
   let knowledge;
   try {
     knowledge = new KnowledgeIndex2(knowledgeRoot);
   } catch {
     knowledge = void 0;
   }
-  const runtime = new DataAgentRuntime2({ metadata, sessions, knowledgeRoot, knowledge, pythonExecutable });
+  const semanticProjectDir = process.env.DATA_AGENT_SEMANTIC_PROJECT_DIR ? import_node_path14.default.resolve(process.env.DATA_AGENT_SEMANTIC_PROJECT_DIR) : import_node_path14.default.join(paths.userDataDir, "semantic-context");
+  const runtime = new DataAgentRuntime2({ metadata, sessions, knowledgeRoot, knowledge, pythonExecutable, semanticProjectDir });
   registerElectronRuntimeIpc2(deps.ipcMain, runtime);
   await deps.app.whenReady();
   if (process.env.DATA_AGENT_SMOKE === "1") {
     const { writeFileSync } = await import("node:fs");
     try {
-      writeFileSync(import_node_path13.default.join(paths.userDataDir, "smoke.ok"), "ok");
+      writeFileSync(import_node_path14.default.join(paths.userDataDir, "smoke.ok"), "ok");
     } catch {
     }
     deps.app.quit();
@@ -25634,12 +25807,12 @@ async function startElectronHost(deps, overrides = {}) {
     width: 1440,
     height: 900,
     webPreferences: {
-      preload: import_node_path13.default.join(__dirname, "..", "electron", "preload.cjs"),
+      preload: import_node_path14.default.join(__dirname, "..", "electron", "preload.cjs"),
       contextIsolation: true,
       nodeIntegration: false
     }
   });
-  await window.loadFile(import_node_path13.default.join(paths.rendererDist, "index.html"));
+  await window.loadFile(import_node_path14.default.join(paths.rendererDist, "index.html"));
 }
 if (process.env.VITEST !== "true" && process.env.NODE_ENV !== "test")
   void (async () => {
@@ -25653,7 +25826,7 @@ if (process.env.VITEST !== "true" && process.env.NODE_ENV !== "test")
     } catch (error) {
       try {
         const { appendFileSync } = await import("node:fs");
-        appendFileSync(import_node_path13.default.join(process.env.TEMP ?? process.cwd(), "data-agent-main-error.log"), `[${(/* @__PURE__ */ new Date()).toISOString()}] electron host failed to start:
+        appendFileSync(import_node_path14.default.join(process.env.TEMP ?? process.cwd(), "data-agent-main-error.log"), `[${(/* @__PURE__ */ new Date()).toISOString()}] electron host failed to start:
 ${error instanceof Error ? error.stack : String(error)}
 `);
       } catch {

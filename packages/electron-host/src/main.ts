@@ -81,7 +81,13 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
   } catch {
     knowledge = undefined;
   }
-  const runtime = new DataAgentRuntime({ metadata, sessions, knowledgeRoot, knowledge, pythonExecutable });
+    // Semantic sources live in a KTX project under the user data dir; the
+  // runtime scans business-semantic/ and semantic-layer/ layouts there.
+  // DATA_AGENT_SEMANTIC_PROJECT_DIR overrides (e.g. to reuse an existing project).
+  const semanticProjectDir = process.env.DATA_AGENT_SEMANTIC_PROJECT_DIR
+    ? path.resolve(process.env.DATA_AGENT_SEMANTIC_PROJECT_DIR)
+    : path.join(paths.userDataDir, "semantic-context");
+  const runtime = new DataAgentRuntime({ metadata, sessions, knowledgeRoot, knowledge, pythonExecutable, semanticProjectDir });
 
   registerElectronRuntimeIpc(deps.ipcMain as never, runtime);
 

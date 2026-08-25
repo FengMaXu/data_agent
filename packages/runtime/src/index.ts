@@ -57,7 +57,7 @@ export class DataAgentRuntime {
   private activeRun?: { requestId: string; runId: string; sessionId?: string };
   private readonly agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void };
 
-  constructor(options: { metadata?: MetadataStore; sessions?: PiJsonlSessionStore; workspace?: WorkspaceStore; pythonExecutable?: string; knowledge?: KnowledgeIndex; knowledgeRoot?: string; clarifications?: ClarificationManager; agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void } } = {}) {
+  constructor(options: { metadata?: MetadataStore; sessions?: PiJsonlSessionStore; workspace?: WorkspaceStore; pythonExecutable?: string; knowledge?: KnowledgeIndex; knowledgeRoot?: string; semanticProjectDir?: string; clarifications?: ClarificationManager; agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void } } = {}) {
     this.metadata = options.metadata;
     this.sessions = options.sessions;
     this.workspace = options.workspace;
@@ -152,17 +152,27 @@ export class DataAgentRuntime {
       const fs = await import("node:fs/promises");
       const base = resolvePath2(this.semanticProjectDir);
       const sources: Array<{ connectionId: string; sourceName: string; definition: unknown; updatedAt: number }> = [];
-      let connections: string[] = [];
-      try { connections = await fs.readdir(resolvePath2(base, "business-semantic")); } catch { connections = []; }
-      for (const connectionId of connections) {
-        const connDir = resolvePath2(base, "business-semantic", connectionId);
-        let entries: any[] = [];
-        try { entries = await fs.readdir(connDir, { withFileTypes: true }); } catch { continue; }
-        for (const entry of entries) {
-          if (!entry.isFile() || !(entry.name.endsWith(".yaml") || entry.name.endsWith(".yml"))) continue;
-          const full = resolvePath2(connDir, entry.name);
-          const info = await fs.stat(full);
-          sources.push({ connectionId, sourceName: entry.name.replace(/\.ya?ml$/i, ""), definition: {}, updatedAt: info.mtimeMs });
+      // Scan both layouts: canonical business-semantic/<conn>/*.yaml and the
+      // legacy KTX semantic-layer/<conn>/*.yaml so pre-existing projects are
+      // discovered automatically without re-ingest.
+      const seen = new Set<string>();
+      for (const segment of ["business-semantic", "semantic-layer"]) {
+        let connections: string[] = [];
+        try { connections = await fs.readdir(resolvePath2(base, segment)); } catch { connections = []; }
+        for (const connectionId of connections) {
+          const connDir = resolvePath2(base, segment, connectionId);
+          let entries: any[] = [];
+          try { entries = await fs.readdir(connDir, { withFileTypes: true }); } catch { continue; }
+          for (const entry of entries) {
+            if (!entry.isFile() || !(entry.name.endsWith(".yaml") || entry.name.endsWith(".yml"))) continue;
+            const sourceName = entry.name.replace(/\.ya?ml$/i, "");
+            const key = `${connectionId}/${sourceName}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            const full = resolvePath2(connDir, entry.name);
+            const info = await fs.stat(full);
+            sources.push({ connectionId, sourceName, definition: {}, updatedAt: info.mtimeMs });
+          }
         }
       }
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "semantic.sources.result", sources } };
@@ -171,7 +181,8 @@ export class DataAgentRuntime {
       const { resolve: resolvePath2 } = await import("node:path");
       const fs = await import("node:fs/promises");
       const getCmd = command.command as { connectionId: string; sourceName: string };
-      const candidates = [".yaml", ".yml"].map((ext) => resolvePath2(this.semanticProjectDir as string, "business-semantic", getCmd.connectionId, getCmd.sourceName + ext));
+      const segments = ["business-semantic", "semantic-layer"];
+      const candidates = segments.flatMap((segment) => [".yaml", ".yml"].map((ext) => resolvePath2(this.semanticProjectDir as string, segment, getCmd.connectionId, getCmd.sourceName + ext)));
       let rawYaml: string | null = null;
       for (const candidate of candidates) { try { rawYaml = await fs.readFile(candidate, "utf8"); break; } catch { /* next */ } }
       if (rawYaml === null) throw new DataAgentRuntimeError("INVALID_COMMAND", "SEMANTIC_SOURCE_NOT_FOUND");
