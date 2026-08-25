@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { LockKeyhole, LogIn, UserPlus } from './icons/Typicons';
 import { useAuth } from '../hooks/useAuth';
 import { useLanguage } from '../context/LanguageContext';
@@ -11,6 +11,12 @@ const LoginView: React.FC<LoginViewProps> = ({ embedded = false }) => {
     const { login, register, registrationOpen } = useAuth();
     const { t } = useLanguage();
     const [mode, setMode] = useState<'login' | 'register'>(registrationOpen ? 'register' : 'login');
+
+    // registrationOpen arrives asynchronously from /auth/status; flip to the
+    // register form when this host is waiting for its first account.
+    useEffect(() => {
+        if (registrationOpen) setMode('register');
+    }, [registrationOpen]);
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');

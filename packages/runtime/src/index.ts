@@ -41,6 +41,8 @@ export class DataAgentRuntime {
   private readonly listeners = new Set<DataAgentEventListener>();
   private readonly eventBuffer: DataAgentEventEnvelope[] = [];
   private readonly metadata?: MetadataStore;
+  /** Exposed for host-level services (e.g. persistent auth). */
+  get metadataStore(): MetadataStore | undefined { return this.metadata; }
   private readonly sessions?: PiJsonlSessionStore;
   private readonly workspace?: WorkspaceStore;
   private pythonExecutable?: string;

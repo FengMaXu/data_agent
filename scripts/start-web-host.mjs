@@ -11,9 +11,7 @@
  *   DATA_AGENT_SEMANTIC_PROJECT_DIR  KTX project dir      (default <data dir>/../semantic-context)
  *   DATA_AGENT_WEB_DIST          renderer static root     (default frontend/dist, served at /)
  */
-import { mkdtemp } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
 
@@ -21,15 +19,19 @@ const require_ = createRequire(import.meta.url);
 const root = path.resolve(new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
 const toUrl = (p) => { const u = p.split(path.sep).join("/"); return u.startsWith("/") ? `file://${u}` : `file:///${u}`; };
 
+// Stable default so accounts, config and knowledge survive restarts.
 const dataDir = process.env.DATA_AGENT_DATA_DIR
   ? path.resolve(process.env.DATA_AGENT_DATA_DIR)
-  : await mkdtemp(path.join(os.tmpdir(), "data-agent-web-"));
+  : path.join(root, ".data_agent", "runtime-web");
 
 const { DataAgentRuntime, MetadataStore, PiJsonlSessionStore, KnowledgeIndex, WorkspaceStore } = await import(toUrl(path.join(root, "packages/runtime/dist/index.js")));
 const { createRuntimeServer } = await import(toUrl(path.join(root, "apps/server/dist/index.js")));
 
 const fsPromises = await import("node:fs/promises");
 await fsPromises.mkdir(dataDir, { recursive: true });
+await fsPromises.mkdir(path.join(dataDir, "metadata"), { recursive: true });
+await fsPromises.mkdir(path.join(dataDir, "sessions"), { recursive: true });
+await fsPromises.mkdir(path.join(dataDir, "workspace"), { recursive: true });
 const metadata = new MetadataStore(path.join(dataDir, "metadata", "app.db"));
 const sessions = new PiJsonlSessionStore(path.join(dataDir, "sessions"));
 const knowledgeRoot = path.join(dataDir, "knowledge");

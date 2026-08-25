@@ -13792,6 +13792,7 @@ var init_metadata = __esm({
       pending = /* @__PURE__ */ new Map();
       constructor(dbPath) {
         const sourceDir = false ? import_node_path.default.dirname((0, import_node_url.fileURLToPath)(void 0)) : __dirname;
+        (0, import_node_fs.mkdirSync)(import_node_path.default.dirname(import_node_path.default.resolve(dbPath)), { recursive: true });
         const workerPath = import_node_path.default.join(sourceDir, "metadata-worker.js");
         const builtWorkerPath = import_node_path.default.resolve(sourceDir, "../dist/metadata-worker.js");
         this.worker = new import_node_worker_threads.Worker((0, import_node_fs.existsSync)(workerPath) ? workerPath : builtWorkerPath, { workerData: { path: import_node_path.default.resolve(dbPath) } });
@@ -24338,33 +24339,84 @@ var init_auth = __esm({
     "use strict";
     import_node_crypto5 = require("node:crypto");
     LocalAuthService = class {
+      store;
       users = /* @__PURE__ */ new Map();
       tokens = /* @__PURE__ */ new Map();
-      register(username, password, displayName = username) {
-        if (!username || !password || this.users.has(username))
+      constructor(store) {
+        this.store = store;
+      }
+      hash(password, salt) {
+        return (0, import_node_crypto5.scryptSync)(password, salt, 32);
+      }
+      /** Number of registered accounts (0 ⇒ registration open for the first admin). */
+      async userCount() {
+        if (!this.store)
+          return this.users.size;
+        const result = await this.store.call("auth.userCount", "system");
+        return Number(result?.count ?? 0);
+      }
+      async register(username, password, displayName = username) {
+        if (!username || !password)
           throw new Error("AUTH_REGISTRATION_FAILED");
+        if (!this.store) {
+          if (this.users.has(username))
+            throw new Error("AUTH_REGISTRATION_FAILED");
+          const salt2 = (0, import_node_crypto5.randomBytes)(16);
+          const user2 = { id: (0, import_node_crypto5.randomUUID)(), username, displayName };
+          this.users.set(username, { user: user2, hash: this.hash(password, salt2), salt: salt2 });
+          return user2;
+        }
+        if (await this.userCount() > 0)
+          throw new Error("AUTH_REGISTRATION_CLOSED");
         const salt = (0, import_node_crypto5.randomBytes)(16);
-        const hash = (0, import_node_crypto5.scryptSync)(password, salt, 32);
         const user = { id: (0, import_node_crypto5.randomUUID)(), username, displayName };
-        this.users.set(username, { user, hash, salt });
+        const result = await this.store.call("auth.register", "system", {
+          username,
+          userId: user.id,
+          displayName,
+          salt: salt.toString("hex"),
+          hash: this.hash(password, salt).toString("hex")
+        });
+        if (!result?.ok)
+          throw new Error(result?.reason ?? "AUTH_REGISTRATION_FAILED");
         return user;
       }
-      login(username, password) {
-        const record = this.users.get(username);
-        if (!record)
+      async login(username, password) {
+        if (!this.store) {
+          const record = this.users.get(username);
+          if (!record)
+            throw new Error("AUTH_INVALID_CREDENTIALS");
+          if (!(0, import_node_crypto5.timingSafeEqual)(this.hash(password, record.salt), record.hash))
+            throw new Error("AUTH_INVALID_CREDENTIALS");
+          const token2 = (0, import_node_crypto5.randomBytes)(32).toString("hex");
+          this.tokens.set(token2, record.user);
+          return { user: record.user, token: token2 };
+        }
+        const row = await this.store.call("auth.verify", "system", { username });
+        if (!row)
           throw new Error("AUTH_INVALID_CREDENTIALS");
-        const hash = (0, import_node_crypto5.scryptSync)(password, record.salt, 32);
-        if (!(0, import_node_crypto5.timingSafeEqual)(hash, record.hash))
+        const salt = Buffer.from(row.salt, "hex");
+        if (!(0, import_node_crypto5.timingSafeEqual)(this.hash(password, salt), Buffer.from(row.hash, "hex")))
           throw new Error("AUTH_INVALID_CREDENTIALS");
+        const user = { id: row.userId, username, displayName: row.displayName };
         const token = (0, import_node_crypto5.randomBytes)(32).toString("hex");
-        this.tokens.set(token, record.user);
-        return { user: record.user, token };
+        await this.store.call("auth.token.set", "system", { token, userId: user.id, username: user.username, displayName: user.displayName });
+        return { user, token };
       }
-      authenticate(token) {
-        return token ? this.tokens.get(token) : void 0;
+      async authenticate(token) {
+        if (!token)
+          return void 0;
+        if (!this.store)
+          return this.tokens.get(token);
+        const row = await this.store.call("auth.token.get", "system", { token });
+        return row ? { id: row.userId, username: row.username, displayName: row.displayName } : void 0;
       }
-      logout(token) {
-        this.tokens.delete(token);
+      async logout(token) {
+        if (!this.store) {
+          this.tokens.delete(token);
+          return;
+        }
+        await this.store.call("auth.token.delete", "system", { token });
       }
     };
   }
@@ -25219,6 +25271,10 @@ var init_dist4 = __esm({
       listeners = /* @__PURE__ */ new Set();
       eventBuffer = [];
       metadata;
+      /** Exposed for host-level services (e.g. persistent auth). */
+      get metadataStore() {
+        return this.metadata;
+      }
       sessions;
       workspace;
       pythonExecutable;

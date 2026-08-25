@@ -4,7 +4,7 @@ import { Worker } from "node:worker_threads";
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 
 type Pending = { resolve: (value: any) => void; reject: (error: Error) => void };
 export class MetadataStore {
@@ -17,6 +17,8 @@ export class MetadataStore {
   const sourceDir = typeof import.meta.url === "string"
     ? path.dirname(fileURLToPath(import.meta.url))
     : __dirname;
+    // better-sqlite3 cannot create missing parent directories.
+    mkdirSync(path.dirname(path.resolve(dbPath)), { recursive: true });
     const workerPath = path.join(sourceDir, "metadata-worker.js");
     const builtWorkerPath = path.resolve(sourceDir, "../dist/metadata-worker.js");
     this.worker = new Worker(existsSync(workerPath) ? workerPath : builtWorkerPath, { workerData: { path: path.resolve(dbPath) } });

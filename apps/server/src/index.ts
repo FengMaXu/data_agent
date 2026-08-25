@@ -22,11 +22,11 @@ export async function createRuntimeServer(
   if (options.queryExecutor) runtime.queryExecutor = options.queryExecutor;
   const app = Fastify({ logger: false });
   await app.register(multipart, { limits: { fileSize: 100 * 1024 * 1024 } });
-  const auth = new LocalAuthService();
-  app.post("/auth/register", async (request, reply) => { const body = request.body as { username?: string; password?: string; displayName?: string }; try { return { user: auth.register(body.username ?? "", body.password ?? "", body.displayName) }; } catch { return reply.code(400).send({ error: { code: "AUTH_REGISTRATION_FAILED" } }); } });
-  app.post("/auth/login", async (request, reply) => { const body = request.body as { username?: string; password?: string }; try { return auth.login(body.username ?? "", body.password ?? ""); } catch { return reply.code(401).send({ error: { code: "AUTH_INVALID_CREDENTIALS" } }); } });
-  app.get("/auth/status", async (request) => { const user = auth.authenticate(String(request.headers.authorization ?? "").replace(/^Bearer /i, "")); return { authenticated: Boolean(user), user: user ?? null }; });
-  app.post("/auth/logout", async (request) => { const token = String(request.headers.authorization ?? "").replace(/^Bearer /i, ""); auth.logout(token); return { ok: true }; });
+  const auth = new LocalAuthService(runtime.metadataStore);
+  app.post("/auth/register", async (request, reply) => { const body = request.body as { username?: string; password?: string; displayName?: string }; try { return { user: await auth.register(body.username ?? "", body.password ?? "", body.displayName) }; } catch (error) { const code = error instanceof Error && error.message === "AUTH_REGISTRATION_CLOSED" ? "AUTH_REGISTRATION_CLOSED" : "AUTH_REGISTRATION_FAILED"; return reply.code(400).send({ error: { code } }); } });
+  app.post("/auth/login", async (request, reply) => { const body = request.body as { username?: string; password?: string }; try { return await auth.login(body.username ?? "", body.password ?? ""); } catch { return reply.code(401).send({ error: { code: "AUTH_INVALID_CREDENTIALS" } }); } });
+  app.get("/auth/status", async (request) => { const user = await auth.authenticate(String(request.headers.authorization ?? "").replace(/^Bearer /i, "")); const registrationOpen = (await auth.userCount()) === 0; return { authenticated: Boolean(user), user: user ?? null, registration_open: registrationOpen }; });
+  app.post("/auth/logout", async (request) => { const token = String(request.headers.authorization ?? "").replace(/^Bearer /i, ""); await auth.logout(token); return { ok: true }; });
   const contextFactory = options.contextFactory ?? (() => ({ userId: "web-dev", host: "web" as const }));
   if (options.workspace) {
     app.get("/api/workspace/download", async (request, reply) => { const query = request.query as { path?: string }; try { const context = contextFactory(request); options.workspace!.assertAccess(context); return reply.type("text/plain").send(await options.workspace!.read(query.path ?? "")); } catch { return reply.code(403).send({ error: { code: "WORKSPACE_ACCESS_DENIED" } }); } });
