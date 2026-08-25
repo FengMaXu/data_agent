@@ -52,9 +52,13 @@ const webDist = process.env.DATA_AGENT_WEB_DIST ? path.resolve(process.env.DATA_
 if (existsSync(path.join(webDist, "index.html"))) {
   const fastifyStatic = await import("@fastify/static").then((m) => m.default).catch(() => null);
   if (fastifyStatic) {
-    await app.register(fastifyStatic, { root: webDist, prefix: "/", wildcard: false });
+    // wildcard (default) so hashed /assets/* files are served as files; API
+    // routes are registered before this and keep precedence.
+    await app.register(fastifyStatic, { root: webDist, prefix: "/" });
     app.setNotFoundHandler((request, reply) => {
-      if (request.url.startsWith("/api/")) return reply.code(404).send({ error: { code: "NOT_FOUND" } });
+      if (request.url.startsWith("/api/") || request.method !== "GET") {
+        return reply.code(404).send({ error: { code: "NOT_FOUND" } });
+      }
       return reply.sendFile("index.html");
     });
   } else {
