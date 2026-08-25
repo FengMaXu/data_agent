@@ -18,11 +18,12 @@ function resolveApiBaseUrl(): string {
             return `http://127.0.0.1:${injectedPort}`;
         }
 
-        const { hostname } = window.location;
-        if (!hostname || hostname === 'localhost' || hostname === '127.0.0.1') {
-            return 'http://127.0.0.1:8080';
+        // Served by the Web Host itself (or any same-origin reverse proxy):
+        // use same-origin relative URLs so the app works on any port.
+        const { origin, hostname } = window.location;
+        if (origin && origin !== 'null' && hostname) {
+            return origin;
         }
-        return `http://${hostname}:8080`;
     }
 
     return '';
