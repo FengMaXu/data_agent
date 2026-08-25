@@ -54,6 +54,7 @@ const LandingPage: React.FC = () => {
                     <a href="#highlights">{t('landing.nav.highlights')}</a>
                 </nav>
                 <div className="landing-nav-actions">
+                    <a className="landing-lang-btn" href="/app" style={{ textDecoration: 'none' }}>{t('landing.enterApp')}</a>
                     <button className="landing-lang-btn" type="button" onClick={toggleLanguage}>
                         <Languages size={16} />
                         <span>{language === 'zh' ? 'EN' : '中文'}</span>
@@ -70,7 +71,7 @@ const LandingPage: React.FC = () => {
                     <h1>{t('landing.hero.title')}</h1>
                     <p>{t('landing.hero.subtitle')}</p>
                     <div className="landing-hero-actions">
-                        <a className="landing-primary-btn" href="#capabilities">
+                        <a className="landing-primary-btn" href="/app">
                             <span>{t('landing.hero.primary')}</span>
                             <ArrowRight size={18} />
                         </a>
