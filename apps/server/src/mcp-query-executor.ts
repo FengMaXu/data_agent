@@ -28,6 +28,9 @@ export function createMcpQueryExecutor(options: McpQueryExecutorOptions) {
       args: options.args ?? [],
       env: options.env ? { ...options.env } : undefined,
     });
+    transport.onerror = (error) => console.error("[mcp-query-executor] transport error:", error.message);
+    // Note: client.connect(transport) invokes start(); do not call it here.
+    transport.onclose = () => console.error("[mcp-query-executor] transport closed");
     client = new Client({ name: "data-agent-query-executor", version: "1.0.0" });
     await client.connect(transport);
     return client;
@@ -35,12 +38,18 @@ export function createMcpQueryExecutor(options: McpQueryExecutorOptions) {
   return {
     async run(sql: string, rowLimit: number): Promise<McpQueryResult> {
       const c = await connect();
-      const result = await c.callTool({ name: "execute_query_preview", arguments: { sql, limit: rowLimit } });
-      const text = (result as { content?: Array<{ type: string; text?: string }> }).content?.find((part) => part.type === "text")?.text;
+      // mcp-mysql caps preview rows at 200 (MAX_PREVIEW_LIMIT); exceeding it
+      // fails server-side schema validation with an opaque -32602.
+      const effectiveLimit = Math.min(Math.max(1, Math.floor(rowLimit)), 200);
+      const result = await c.callTool({ name: "execute_query_preview", arguments: { sql, limit: effectiveLimit } }) as { isError?: boolean; content?: Array<{ type: string; text?: string }> };
+      const text = result.content?.find((part) => part.type === "text")?.text;
       if (!text) throw new Error("MCP_QUERY_EMPTY_RESPONSE");
-      const payload = JSON.parse(text) as { error?: { code: string }; rows?: any[]; truncated?: boolean };
-      if (payload.error) throw new Error(payload.error.code);
-      const rows = payload.rows ?? [];
+      if (result.isError) throw new Error(`MCP_TOOL_ERROR: ${text.slice(0, 300)}`);
+      let payload: { error?: { code: string; message?: string }; rows?: unknown[]; truncated?: boolean };
+      try { payload = JSON.parse(text) as typeof payload; }
+      catch { throw new Error(`MCP_QUERY_BAD_RESPONSE: ${text.slice(0, 300)}`); }
+      if (payload.error) throw new Error(`${payload.error.code}${payload.error.message ? `: ${payload.error.message}` : ""}`);
+      const rows = (payload.rows ?? []) as Record<string, unknown>[];
       const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
       return {
         columns,

@@ -57,7 +57,7 @@ export class DataAgentRuntime {
   ingestJob?: { getStatus(): Promise<{ status: string; jobId: string | null; summary: { updated: number; unchanged: number; failed: number; skipped: number }; errorCode: string | null }>; retry(): Promise<{ accepted: boolean }> };
   private readonly clarifications: ClarificationManager;
   private activeRun?: { requestId: string; runId: string; sessionId?: string };
-  private readonly agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void };
+  private agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void };
 
   constructor(options: { metadata?: MetadataStore; sessions?: PiJsonlSessionStore; workspace?: WorkspaceStore; pythonExecutable?: string; knowledge?: KnowledgeIndex; knowledgeRoot?: string; semanticProjectDir?: string; clarifications?: ClarificationManager; agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void } } = {}) {
     this.metadata = options.metadata;
@@ -248,7 +248,7 @@ export class DataAgentRuntime {
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "dashboard.v3.data.result", payload: JSON.parse(match[1]) } };
     }
     if (command.command.type === "config.get" || command.command.type === "config.save") {
-      if (command.command.type === "config.save") { const current = (await this.metadata!.getConfig("ui.settings")) ?? {}; await this.metadata!.setConfig("ui.settings", { ...(current as Record<string, unknown>), ...((command.command as { patch: Record<string, unknown> }).patch) }); }
+      if (command.command.type === "config.save") { const current = (await this.metadata!.getConfig("ui.settings")) ?? {}; const patch = { ...((command.command as { patch: Record<string, unknown> }).patch) }; for (const field of ["api_key", "openai_api_key", "anthropic_api_key"]) { if (typeof patch[field] === "string" && (patch[field] as string).trim() === "" && typeof (current as Record<string, unknown>)[field] === "string" && (current as Record<string, unknown>)[field] !== "") delete patch[field]; } await this.metadata!.setConfig("ui.settings", { ...(current as Record<string, unknown>), ...patch }); }
       const config = (await this.metadata!.getConfig("ui.settings")) ?? {};
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "config.get.result", config } };
     }
@@ -384,7 +384,7 @@ export class DataAgentRuntime {
       if (!this.agent) throw new DataAgentRuntimeError("INVALID_COMMAND", "Pi Agent is not configured");
       const runId = randomUUID();
       this.activeRun = { requestId: command.requestId, runId, sessionId: context.sessionId };
-      void this.agent.prompt(command.command.prompt).then(() => { this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, runId, timestamp: Date.now(), event: { type: "agent.completed" } }); this.activeRun = undefined; });
+      void this.agent.prompt(command.command.prompt).then(() => { this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, runId, timestamp: Date.now(), event: { type: "agent.completed" } }); this.activeRun = undefined; }).catch((error) => { console.error("[data-agent] agent run failed:", error instanceof Error ? error.message : error); this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, runId, timestamp: Date.now(), event: { type: "agent.completed" } }); this.activeRun = undefined; });
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "agent.prompt.accepted", runId } };
     }
 
@@ -467,6 +467,12 @@ export class DataAgentRuntime {
     }
   }
 
+  /** Attach an agent after construction (host wiring) — (re)subscribes event mapping. */
+  attachAgent(agent: NonNullable<Parameters<DataAgentRuntime["dispatch"]>[0] extends never ? never : { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void }>): void {
+    this.agent = agent;
+    agent.subscribe?.((event) => this.mapPiEvent(event));
+  }
+
   private mutation(requestId: string, entity: "task" | "session", item: unknown): DataAgentResponseEnvelope { return { protocolVersion: ProtocolVersion, requestId, response: { type: "mutation.result", entity, item: item as never } }; }
   private list(requestId: string, entity: "task" | "session", items: unknown): DataAgentResponseEnvelope { return { protocolVersion: ProtocolVersion, requestId, response: { type: "list.result", entity, items: items as never[] } }; }
 
@@ -487,6 +493,7 @@ export class DataAgentRuntime {
 }
 
 export { LocalAuthService } from "./auth.js";
+export { createDataAgentHarness, buildAgentTools, resolveSystemPrompt, TOOL_NAME_MAPPING, DATA_AGENT_SYSTEM_PROMPT, type AgentAssemblyDeps, type AgentModelProfile } from "./agent-assembly.js";
 export { migrateLegacyData, type MigrationReport } from "./legacy-migration.js";
 export { runPythonJob, type PythonJobResult } from "./python-job.js";
 export { effectiveTools, loadSkillsFromDir, moveSystemPrompt, type SkillDefinition, type SkillDiagnostic } from "./skills.js";

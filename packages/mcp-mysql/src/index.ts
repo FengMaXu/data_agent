@@ -58,7 +58,7 @@ export async function createMysqlReferenceServer(options: MysqlReferenceServerOp
         const list = rows as any[];
         return { content: [{ type: "text", text: JSON.stringify({ rows: list.slice(0, effectiveLimit), totalRows: list.length, truncated: list.length > effectiveLimit, serverLimit: maxRows(), contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
       } catch (error) {
-        return { content: [{ type: "text", text: JSON.stringify({ error: { code: "QUERY_FAILED", message: redact(`${(error as Error).message} in ${redact(trimmed)}`) } }) }] };
+        return { content: [{ type: "text", text: JSON.stringify({ error: { code: "QUERY_FAILED", message: redact(`${(error as Error).message} in ${redact(trimmed)}`).slice(0, 500) } }) }] };
       }
     },
   );

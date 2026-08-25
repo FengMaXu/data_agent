@@ -51,6 +51,66 @@ const runtime = new DataAgentRuntime({ metadata, sessions, knowledgeRoot, knowle
 const { createHostTesters } = await import(toUrl(path.join(root, "apps/server/dist/host-testers.js")));
 Object.assign(runtime, createHostTesters());
 
+// Dashboard evaluate and agent query_database flow through the contract MCP
+// database server; connection details come from the saved db config.
+const { createMcpQueryExecutor } = await import(toUrl(path.join(root, "apps/server/dist/mcp-query-executor.js")));
+function mysqlEnvFromConfig(cfg) {
+  const env = {};
+  if (!cfg) return env;
+  if (cfg.host) env.DATA_AGENT_MYSQL_HOST = String(cfg.host);
+  if (cfg.port) env.DATA_AGENT_MYSQL_PORT = String(cfg.port);
+  if (cfg.user) env.DATA_AGENT_MYSQL_USER = String(cfg.user);
+  if (cfg.password) env.DATA_AGENT_MYSQL_PASSWORD = String(cfg.password);
+  if (cfg.database) env.DATA_AGENT_MYSQL_DATABASE = String(cfg.database);
+  return env;
+}
+let queryExecutor; let queryExecutorEnvKey = "";
+async function resolveQueryExecutor() {
+  const cfg = (await metadata.getConfig("ui.settings")) ?? {};
+  const env = mysqlEnvFromConfig(cfg);
+  const key = JSON.stringify(env);
+  if (!queryExecutor || key !== queryExecutorEnvKey) {
+    queryExecutor = createMcpQueryExecutor({ command: process.execPath, args: [path.join(root, "packages", "mcp-mysql", "dist", "cli.js")], env: Object.keys(env).length ? env : undefined });
+    runtime.queryExecutor = queryExecutor;
+    queryExecutorEnvKey = key;
+  }
+  return queryExecutor;
+}
+resolveQueryExecutor().catch((error) => console.warn("[data-agent-web] mcp query executor unavailable:", error.message));
+
+
+// Lazy Pi agent: (re)built from the latest saved LLM config on first chat use.
+const pythonExecutable = process.env.DATA_AGENT_PYTHON
+  ?? (existsSync(path.join(root, "dist", "python-runtime", "Scripts", "python.exe")) ? path.join(root, "dist", "python-runtime", "Scripts", "python.exe") : undefined);
+let agentHarness; let agentProfileKey = "";
+const agentListeners = new Set();
+async function resolveAgentHarness() {
+  const cfg = (await metadata.getConfig("ui.settings")) ?? {};
+  const profile = {
+    provider: String(cfg.provider ?? "openai"),
+    model: String(cfg.model ?? ""),
+    apiKey: String(cfg.api_key ?? cfg.openai_api_key ?? cfg.anthropic_api_key ?? ""),
+    baseUrl: cfg.base_url ? String(cfg.base_url) : undefined,
+  };
+  if (!profile.apiKey || !profile.model) throw new Error("LLM_NOT_CONFIGURED: complete onboarding first");
+  const key = JSON.stringify(profile);
+  if (!agentHarness || key !== agentProfileKey) {
+    const { createDataAgentHarness } = await import(toUrl(path.join(root, "packages/runtime/dist/index.js")));
+    agentHarness = await createDataAgentHarness({ workspace, knowledge, knowledgeRoot, pythonExecutable, queryExecutor: await resolveQueryExecutor(), clarifications: runtime.clarifications, systemPromptRoots: [knowledgeRoot, root] }, profile);
+    for (const listener of agentListeners) agentHarness.subscribe(listener);
+    agentProfileKey = key;
+    console.log(`[data-agent-web] agent ready: ${profile.provider}/${profile.model}`);
+  }
+  return agentHarness;
+}
+runtime.attachAgent({
+  prompt: async (text) => (await resolveAgentHarness()).prompt(text),
+  steer: async (text) => (await resolveAgentHarness())?.steer(text),
+  followUp: async (text) => (await resolveAgentHarness())?.followUp(text),
+  abort: async () => agentHarness?.abort(),
+  subscribe: (listener) => { agentListeners.add(listener); return () => agentListeners.delete(listener); },
+});
+
 const app = await createRuntimeServer(runtime);
 
 // Serve the built renderer when available so one process fronts the whole app.
