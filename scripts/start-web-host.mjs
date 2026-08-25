@@ -28,10 +28,12 @@ const dataDir = process.env.DATA_AGENT_DATA_DIR
 const { DataAgentRuntime, MetadataStore, PiJsonlSessionStore, KnowledgeIndex, WorkspaceStore } = await import(toUrl(path.join(root, "packages/runtime/dist/index.js")));
 const { createRuntimeServer } = await import(toUrl(path.join(root, "apps/server/dist/index.js")));
 
-await import("node:fs/promises").then((fs) => fs.mkdir(dataDir, { recursive: true }));
+const fsPromises = await import("node:fs/promises");
+await fsPromises.mkdir(dataDir, { recursive: true });
 const metadata = new MetadataStore(path.join(dataDir, "metadata", "app.db"));
 const sessions = new PiJsonlSessionStore(path.join(dataDir, "sessions"));
 const knowledgeRoot = path.join(dataDir, "knowledge");
+await fsPromises.mkdir(knowledgeRoot, { recursive: true });
 let knowledge;
 try { knowledge = new KnowledgeIndex(knowledgeRoot); } catch { knowledge = undefined; }
 

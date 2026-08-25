@@ -1,4 +1,5 @@
 import { readFile, readdir } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import path from "node:path";
 
 export interface KnowledgeHit {
@@ -45,6 +46,8 @@ export class KnowledgeIndex {
 
   async loadDirectory(root: string, base?: string): Promise<number> {
     const baseRoot = base ?? root;
+    // A not-yet-created knowledge root is an empty index, not an error.
+    if (!existsSync(root)) return 0;
     let loaded = 0;
     for (const entry of await readdir(root, { withFileTypes: true })) {
       const full = path.join(root, entry.name);

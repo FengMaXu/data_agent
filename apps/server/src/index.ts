@@ -69,5 +69,6 @@ function toRuntimeError(error: unknown): DataAgentRuntimeError {
   if (error instanceof TypeError) {
     return new DataAgentRuntimeError("INVALID_COMMAND", error.message);
   }
+  if (process.env.DATA_AGENT_DEBUG_ERRORS === "1") console.error("[data-agent] command failed:", error);
   return new DataAgentRuntimeError("INVALID_COMMAND", "DataAgent command failed");
 }

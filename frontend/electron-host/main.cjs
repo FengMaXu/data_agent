@@ -24011,11 +24011,12 @@ function splitChunks(text) {
     chunks.push({ startLine: start, endLine: lines.length, text: current.join("\n"), title });
   return chunks.filter((chunk) => chunk.text.trim().length > 0);
 }
-var import_promises5, import_node_path6, KnowledgeIndex;
+var import_promises5, import_node_fs3, import_node_path6, KnowledgeIndex;
 var init_knowledge = __esm({
   "packages/runtime/dist/knowledge.js"() {
     "use strict";
     import_promises5 = require("node:fs/promises");
+    import_node_fs3 = require("node:fs");
     import_node_path6 = __toESM(require("node:path"), 1);
     KnowledgeIndex = class {
       docs = /* @__PURE__ */ new Map();
@@ -24025,6 +24026,8 @@ var init_knowledge = __esm({
       };
       async loadDirectory(root, base) {
         const baseRoot = base ?? root;
+        if (!(0, import_node_fs3.existsSync)(root))
+          return 0;
         let loaded = 0;
         for (const entry of await (0, import_promises5.readdir)(root, { withFileTypes: true })) {
           const full = import_node_path6.default.join(root, entry.name);
@@ -25750,7 +25753,7 @@ __export(main_exports, {
   startElectronHost: () => startElectronHost
 });
 module.exports = __toCommonJS(main_exports);
-var import_node_fs3 = require("node:fs");
+var import_node_fs4 = require("node:fs");
 var import_node_path14 = __toESM(require("node:path"), 1);
 function resolveRuntimePaths(options) {
   let appDir = options.appDir;
@@ -25776,10 +25779,10 @@ async function startElectronHost(deps, overrides = {}) {
   const effectiveResources = overrides.resourcesPath ?? deps.resourcesPath;
   let pythonExecutable;
   const bundledPython = import_node_path14.default.join(effectiveResources ?? "", "python-runtime", "Scripts", "python.exe");
-  if (effectiveResources && (0, import_node_fs3.existsSync)(bundledPython))
+  if (effectiveResources && (0, import_node_fs4.existsSync)(bundledPython))
     pythonExecutable = bundledPython;
   for (const dir of ["metadata", "sessions", "workspace", "knowledge"]) {
-    (0, import_node_fs3.mkdirSync)(import_node_path14.default.join(paths.userDataDir, dir), { recursive: true });
+    (0, import_node_fs4.mkdirSync)(import_node_path14.default.join(paths.userDataDir, dir), { recursive: true });
   }
   const metadata = new MetadataStore2(import_node_path14.default.join(paths.userDataDir, "metadata", "app.db"));
   const sessions = new PiJsonlSessionStore2(import_node_path14.default.join(paths.userDataDir, "sessions"));
