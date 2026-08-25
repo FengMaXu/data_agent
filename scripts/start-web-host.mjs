@@ -47,6 +47,10 @@ const semanticProjectDir = process.env.DATA_AGENT_SEMANTIC_PROJECT_DIR
 const workspace = new WorkspaceStore(path.join(dataDir, "workspace"), { userId: "local", sessionId: undefined });
 const runtime = new DataAgentRuntime({ metadata, sessions, knowledgeRoot, knowledge, workspace, semanticProjectDir });
 
+// Real db/llm probes so onboarding and the settings testers work over HTTP.
+const { createHostTesters } = await import(toUrl(path.join(root, "apps/server/dist/host-testers.js")));
+Object.assign(runtime, createHostTesters());
+
 const app = await createRuntimeServer(runtime);
 
 // Serve the built renderer when available so one process fronts the whole app.
