@@ -3,6 +3,42 @@ import type { SSEEvent } from "./client";
 
 export interface RuntimeChatHandle { cancel: () => void; finished: Promise<void> }
 
+type RuntimeEvent = { type?: string; [key: string]: unknown };
+
+/** Convert a versioned runtime event into the renderer's replayable chat event. */
+export function mapRuntimeEvent(event: RuntimeEvent, activeMessageId: string): SSEEvent | undefined {
+  if (event.type === "agent.text_delta") {
+    return { type: "text_delta", message_id: activeMessageId, content: String(event.delta ?? "") };
+  }
+  if (event.type === "agent.thinking_delta") {
+    return { type: "reasoning_delta", message_id: activeMessageId, content: String(event.delta ?? "") };
+  }
+  if (event.type === "agent.tool_started") {
+    return { type: "tool_call", message_id: activeMessageId, tool_call_id: String(event.toolCallId ?? ""), name: String(event.toolName ?? ""), arguments: event.args ?? {} };
+  }
+  if (event.type === "agent.tool_finished") {
+    return {
+      type: "tool_result",
+      message_id: activeMessageId,
+      tool_call_id: String(event.toolCallId ?? ""),
+      name: String(event.toolName ?? ""),
+      ...(event.args !== undefined ? { arguments: event.args } : {}),
+      content: JSON.stringify(event.result ?? null),
+      is_error: Boolean(event.isError),
+    };
+  }
+  if (event.type === "clarification.request") {
+    return { type: "clarification_request", clarification_id: String(event.clarificationId ?? ""), question: String(event.question ?? ""), options: (event.options as string[]) ?? [] };
+  }
+  if (event.type === "workspace.artifact.created") {
+    return { type: "workspace_updated", tool: "" };
+  }
+  if (event.type === "agent.completed") {
+    return { type: "done", reason: "completed" };
+  }
+  return undefined;
+}
+
 /**
  * Transitional bridge: consumes versioned runtime event envelopes over the
  * shared transport and adapts them to the renderer's chat event model. The
@@ -31,21 +67,10 @@ export function sendChatViaRuntime(
     if (event.type === "agent.message_started") {
       activeMessageId = String(event.messageId || `msg-${Date.now()}`);
       onEvent({ type: "message_start", message_id: activeMessageId });
-    } else if (event.type === "agent.text_delta") {
-      onEvent({ type: "text_delta", message_id: activeMessageId, content: String(event.delta ?? "") });
-    } else if (event.type === "agent.thinking_delta") {
-      onEvent({ type: "reasoning_delta", message_id: activeMessageId, content: String(event.delta ?? "") });
-    } else if (event.type === "agent.tool_started") {
-      onEvent({ type: "tool_call", message_id: activeMessageId, tool_call_id: String(event.toolCallId ?? ""), name: String(event.toolName ?? ""), arguments: event.args ?? {} });
-    } else if (event.type === "agent.tool_finished") {
-      onEvent({ type: "tool_result", message_id: activeMessageId, tool_call_id: String(event.toolCallId ?? ""), name: String(event.toolName ?? ""), arguments: {}, content: JSON.stringify(event.result ?? null), is_error: Boolean(event.isError) });
-    } else if (event.type === "clarification.request") {
-      onEvent({ type: "clarification_request", clarification_id: String(event.clarificationId ?? ""), question: String(event.question ?? ""), options: (event.options as string[]) ?? [] });
-    } else if (event.type === "workspace.artifact.created") {
-      onEvent({ type: "workspace_updated", tool: "" });
-    } else if (event.type === "agent.completed") {
-      onEvent({ type: "done", reason: "completed" });
-      handleFinish();
+    } else {
+      const mapped = mapRuntimeEvent(event, activeMessageId);
+      if (mapped) onEvent(mapped);
+      if (event.type === "agent.completed") handleFinish();
     }
   });
   const finished = (async () => {

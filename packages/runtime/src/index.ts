@@ -471,7 +471,17 @@ export class DataAgentRuntime {
       return;
     }
     if (event.type === "tool_execution_end") {
-      this.emit({ ...base(), event: { type: "agent.tool_finished", toolCallId: String(event.toolCallId), toolName: String(event.toolName), result: event.result ?? null, isError: Boolean(event.isError) } });
+      this.emit({
+        ...base(),
+        event: {
+          type: "agent.tool_finished",
+          toolCallId: String(event.toolCallId),
+          toolName: String(event.toolName),
+          ...(event.args !== undefined ? { args: event.args } : {}),
+          result: event.result ?? null,
+          isError: Boolean(event.isError),
+        },
+      });
       return;
     }
   }
