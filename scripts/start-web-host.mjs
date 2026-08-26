@@ -24,7 +24,7 @@ const dataDir = process.env.DATA_AGENT_DATA_DIR
   ? path.resolve(process.env.DATA_AGENT_DATA_DIR)
   : path.join(root, ".data_agent", "runtime-web");
 
-const { DataAgentRuntime, MetadataStore, PiJsonlSessionStore, KnowledgeIndex, WorkspaceStore } = await import(toUrl(path.join(root, "packages/runtime/dist/index.js")));
+const { DataAgentRuntime, MetadataStore, PiJsonlSessionStore, KnowledgeIndex, WorkspaceStore, createAgentHarnessResolver } = await import(toUrl(path.join(root, "packages/runtime/dist/index.js")));
 const { createRuntimeServer } = await import(toUrl(path.join(root, "apps/server/dist/index.js")));
 
 const fsPromises = await import("node:fs/promises");
@@ -107,30 +107,35 @@ async function resolveQueryExecutor() {
 resolveQueryExecutor().catch((error) => console.warn("[data-agent-web] mcp query executor unavailable:", error.message));
 
 
-// Lazy Pi agent: (re)built from the latest saved LLM config on first chat use.
+// Pi agent initialization is shared by startup warm-up and request-time use.
+// A missing or temporarily invalid LLM configuration must not prevent the host
+// from listening; the next request will retry after a failed warm-up.
 const pythonExecutable = process.env.DATA_AGENT_PYTHON
   ?? (existsSync(path.join(root, "dist", "python-runtime", "Scripts", "python.exe")) ? path.join(root, "dist", "python-runtime", "Scripts", "python.exe") : undefined);
-let agentHarness; let agentProfileKey = "";
+let agentHarness;
 const agentListeners = new Set();
-async function resolveAgentHarness() {
-  const cfg = (await metadata.getConfig("ui.settings")) ?? {};
-  const profile = {
-    provider: String(cfg.provider ?? "openai"),
-    model: String(cfg.model ?? ""),
-    apiKey: String(cfg.api_key ?? cfg.openai_api_key ?? cfg.anthropic_api_key ?? ""),
-    baseUrl: cfg.base_url ? String(cfg.base_url) : undefined,
-  };
-  if (!profile.apiKey || !profile.model) throw new Error("LLM_NOT_CONFIGURED: complete onboarding first");
-  const key = JSON.stringify(profile);
-  if (!agentHarness || key !== agentProfileKey) {
+const agentHarnessResolver = createAgentHarnessResolver({
+  getProfile: async () => {
+    const cfg = (await metadata.getConfig("ui.settings")) ?? {};
+    const profile = {
+      provider: String(cfg.provider ?? "openai"),
+      model: String(cfg.model ?? ""),
+      apiKey: String(cfg.api_key ?? cfg.openai_api_key ?? cfg.anthropic_api_key ?? ""),
+      baseUrl: cfg.base_url ? String(cfg.base_url) : undefined,
+    };
+    if (!profile.apiKey || !profile.model) throw new Error("LLM_NOT_CONFIGURED: complete onboarding first");
+    return profile;
+  },
+  create: async (profile) => {
     const { createDataAgentHarness } = await import(toUrl(path.join(root, "packages/runtime/dist/index.js")));
-    agentHarness = await createDataAgentHarness({ workspace, knowledge, knowledgeRoot, pythonExecutable, queryExecutor: await resolveQueryExecutor(), clarifications: runtime.clarifications, systemPromptRoots: [knowledgeRoot, root] }, profile);
-    for (const listener of agentListeners) agentHarness.subscribe(listener);
-    agentProfileKey = key;
+    const harness = await createDataAgentHarness({ workspace, knowledge, knowledgeRoot, pythonExecutable, queryExecutor: await resolveQueryExecutor(), clarifications: runtime.clarifications, systemPromptRoots: [knowledgeRoot, root] }, profile);
+    for (const listener of agentListeners) harness.subscribe(listener);
+    agentHarness = harness;
     console.log(`[data-agent-web] agent ready: ${profile.provider}/${profile.model}`);
-  }
-  return agentHarness;
-}
+    return harness;
+  },
+});
+const resolveAgentHarness = () => agentHarnessResolver.resolve();
 runtime.attachAgent({
   prompt: async (text) => (await resolveAgentHarness()).prompt(text),
   steer: async (text) => (await resolveAgentHarness())?.steer(text),
@@ -138,6 +143,9 @@ runtime.attachAgent({
   abort: async () => agentHarness?.abort(),
   subscribe: (listener) => { agentListeners.add(listener); return () => agentListeners.delete(listener); },
 });
+// Start in the background so normal web routes remain available during a cold
+// start, or when onboarding has not configured an LLM yet.
+agentHarnessResolver.warmup((error) => console.warn("[data-agent-web] agent warm-up unavailable:", error?.message ?? error));
 
 const app = await createRuntimeServer(runtime);
 
