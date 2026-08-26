@@ -6,6 +6,15 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('dataAgentRuntime', {
     invokeRuntimeCommand: (envelope) => ipcRenderer.invoke('data-agent:command', envelope),
+    subscribeRuntimeEvents: (listener) => {
+        const handler = (_event, payload) => listener(payload);
+        ipcRenderer.on('data-agent:event', handler);
+        ipcRenderer.send('data-agent:events:subscribe');
+        return () => {
+            ipcRenderer.removeListener('data-agent:event', handler);
+            ipcRenderer.send('data-agent:events:unsubscribe');
+        };
+    },
 });
 
 contextBridge.exposeInMainWorld('dataAgent', {

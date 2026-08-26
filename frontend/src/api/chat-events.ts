@@ -1,4 +1,4 @@
-import { isDataAgentEvent, type DataAgentEvent } from "@data-agent/contracts";
+import { isDataAgentEventEnvelope, type DataAgentEvent } from "@data-agent/contracts";
 import { subscribeRuntimeEvents, getRuntimeClient } from "./runtime-client";
 import type { SSEEvent, WidgetSpec } from "./client";
 
@@ -157,10 +157,10 @@ export function mapRuntimeEvent(event: DataAgentEvent, activeMessageId: string):
 }
 
 function readRuntimeEnvelope(raw: unknown): { event: DataAgentEvent; sessionId?: string } | null {
-  if (!isRecord(raw) || !isDataAgentEvent(raw.event)) return null;
+  if (!isDataAgentEventEnvelope(raw)) return null;
   return {
     event: raw.event,
-    sessionId: typeof raw.sessionId === "string" ? raw.sessionId : undefined,
+    sessionId: raw.sessionId,
   };
 }
 
@@ -174,6 +174,7 @@ export function sendChatViaRuntime(
   onEvent: (event: SSEEvent) => void,
   onError: (err: unknown) => void,
   onFinish: () => void,
+  sessionId?: string,
 ): RuntimeChatHandle {
   let activeMessageId = "";
   let isDone = false;
@@ -214,10 +215,14 @@ export function sendChatViaRuntime(
     onEvent(adapted);
     if (event.type === "agent.tool_finished") toolArgumentsById.delete(toolCallId);
     if (event.type === "agent.completed") handleFinish();
+  }, sessionId, (error) => {
+    if (isDone) return;
+    onError(error);
+    handleFinish();
   });
   const finished = (async () => {
     try {
-      await getRuntimeClient().dispatch({ type: "agent.prompt", prompt });
+      await getRuntimeClient().dispatch({ type: "agent.prompt", prompt }, sessionId);
     } catch (err) {
       onError(err);
       handleFinish();

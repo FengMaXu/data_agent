@@ -51,7 +51,7 @@ describe("native Widget lifecycle", () => {
       toolCallId: "call-1",
       toolName: "show_widget",
       args: { kind: "kpi" },
-      partialResult: { details: { widgetEvent: "widget", widgetId: "wrong-id", toolCallId: "call-1", toolName: "show_widget", widget: { widget_id: "wrong-id", kind: "kpi", title: "Revenue", tool_call_id: "call-1" }, legacyText: "[widget:kpi] Revenue" } },
+      partialResult: { details: { widgetEvent: "widget", widgetId: "wrong-id", toolCallId: "call-1", toolName: "show_widget", widget: { widget_id: "wrong-id", kind: "kpi", title: "Revenue", value: 42, tool_call_id: "call-1" }, legacyText: "[widget:kpi] Revenue" } },
     });
     receive({
       type: "tool_execution_update",

@@ -6,12 +6,19 @@ import { registerElectronRuntimeIpc, type IpcMainLike } from "./index.js";
   it("dispatches the runtime probe without trusting renderer identity", async () => {
     const runtime = new DataAgentRuntime({ agent: { prompt: async () => undefined, abort: () => undefined } });
     const handlers = new Map<string, (event: unknown, payload: unknown) => Promise<unknown>>();
+    const eventListeners = new Map<string, (event: unknown) => void>();
     const ipcMain: IpcMainLike = {
       handle(channel, handler) {
         handlers.set(channel, handler);
       },
       removeHandler(channel) {
         handlers.delete(channel);
+      },
+      on(channel, listener) {
+        eventListeners.set(channel, listener);
+      },
+      removeListener(channel) {
+        eventListeners.delete(channel);
       },
     };
 
@@ -30,6 +37,37 @@ import { registerElectronRuntimeIpc, type IpcMainLike } from "./index.js";
     });
     unregister();
     expect(handlers.has("data-agent:command")).toBe(false);
+  });
+
+  it("forwards runtime events to an Electron renderer subscription", async () => {
+    const runtime = new DataAgentRuntime();
+    const handlers = new Map<string, (event: unknown, payload: unknown) => Promise<unknown>>();
+    const eventListeners = new Map<string, (event: unknown) => void>();
+    const ipcMain: IpcMainLike = {
+      handle: (channel, handler) => { handlers.set(channel, handler); },
+      removeHandler: (channel) => { handlers.delete(channel); },
+      on: (channel, listener) => { eventListeners.set(channel, listener); },
+      removeListener: (channel) => { eventListeners.delete(channel); },
+    };
+    const sent: unknown[] = [];
+    const sender = { send: (channel: string, payload: unknown) => sent.push({ channel, payload }) };
+    const unregister = registerElectronRuntimeIpc(ipcMain, runtime);
+    eventListeners.get("data-agent:events:subscribe")?.({ sender });
+
+    await handlers.get("data-agent:command")?.({}, {
+      protocolVersion: 1,
+      requestId: "probe-event",
+      command: { type: "runtime.probe" },
+    });
+
+    expect(sent).toHaveLength(1);
+    expect(sent[0]).toMatchObject({
+      channel: "data-agent:event",
+      payload: { event: { type: "runtime.probe.completed" } },
+    });
+    eventListeners.get("data-agent:events:unsubscribe")?.({ sender });
+    unregister();
+    expect(eventListeners.size).toBe(0);
   });
 });
 
@@ -50,7 +88,12 @@ describe("Electron IPC Host: migrated capabilities", () => {
       agent: { prompt: async () => undefined, abort: () => undefined },
     });
     const handlers = new Map<string, (event: unknown, payload: unknown) => Promise<unknown>>();
-    registerElectronRuntimeIpc({ handle: (channel, handler) => { handlers.set(channel, handler); }, removeHandler: (channel) => { handlers.delete(channel); } }, runtime);
+    registerElectronRuntimeIpc({
+      handle: (channel, handler) => { handlers.set(channel, handler); },
+      removeHandler: (channel) => { handlers.delete(channel); },
+      on: () => undefined,
+      removeListener: () => undefined,
+    }, runtime);
 
     const dispatch = (type: string, extra: Record<string, unknown> = {}) =>
       handlers.get("data-agent:command")?.({}, { protocolVersion: 1, requestId: `r-${Date.now()}`, command: { type, ...extra } });

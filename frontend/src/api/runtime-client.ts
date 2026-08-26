@@ -8,6 +8,7 @@ import {
   createIpcTransport,
   type DataAgentTransport,
   type ElectronCommandBridge,
+  type FetchLike,
 } from "@data-agent/transport";
 import type {
   DataAgentCommand,
@@ -22,8 +23,8 @@ function envelope(command: DataAgentCommand, sessionId?: string): DataAgentComma
   return {
     protocolVersion: 1,
     requestId: `renderer-${Date.now()}-${sequence}`,
+    ...(sessionId ? { sessionId } : {}),
     command,
-    ...(sessionId ? {} : {}),
   } as DataAgentCommandEnvelope;
 }
 
@@ -35,13 +36,15 @@ export interface RuntimeClient {
 
 export function createElectronRuntimeClient(bridge: ElectronCommandBridge): RuntimeClient {
   const transport: DataAgentTransport = createIpcTransport(bridge);
-  return {
+  const client: RuntimeClient = {
     dispatch: (command, sessionId) => transport.dispatch(envelope(command, sessionId)) as unknown as Promise<DataAgentResponseEnvelope>,
   };
+  if (bridge.subscribe) client.onEvent = bridge.subscribe;
+  return client;
 }
 
 export function createHttpRuntimeClient(baseUrl: string, fetchLike: typeof fetch = fetch): RuntimeClient {
-  const transport: DataAgentTransport = createHttpTransport(baseUrl, fetchLike as any);
+  const transport: DataAgentTransport = createHttpTransport(baseUrl, fetchLike as unknown as FetchLike);
   return {
     dispatch: (command, sessionId) => transport.dispatch(envelope(command, sessionId)) as unknown as Promise<DataAgentResponseEnvelope>,
   };
@@ -55,14 +58,18 @@ export function selectRuntimeClient(options: { electronBridge?: ElectronCommandB
 
 let selected: RuntimeClient | undefined;
 
-/** Process-lifetime client: Electron bridge when window.dataAgent exists, else HTTP. */
+/** Process-lifetime client: Electron bridge when window.dataAgentRuntime exists, else HTTP. */
 export function getRuntimeClient(): RuntimeClient {
   if (selected) return selected;
-  const bridge = (window as any).dataAgent;
+  const bridge = window.dataAgentRuntime;
   if (bridge && typeof bridge.invokeRuntimeCommand === "function") {
-    selected = createElectronRuntimeClient({ invoke: (channel, payload) => bridge.invokeRuntimeCommand(channel, payload) });
+    selected = createElectronRuntimeClient({
+      invoke: (_channel, payload) => bridge.invokeRuntimeCommand(payload),
+      subscribe: bridge.subscribeRuntimeEvents,
+    });
   } else {
-    const base = (import.meta as any).env?.VITE_API_BASE_URL?.trim()?.replace(/\/$/, "") ?? "";
+    const configuredBase = import.meta.env.VITE_API_BASE_URL;
+    const base = typeof configuredBase === "string" ? configuredBase.trim().replace(/\/$/, "") : "";
     selected = createHttpRuntimeClient(base);
   }
   return selected;
@@ -223,12 +230,26 @@ export async function answerClarificationViaRuntime(clarificationId: string, ans
   await getRuntimeClient().dispatch({ type: "clarification.answer", clarificationId, answer });
 }
 
-export function subscribeRuntimeEvents(listener: (envelope: unknown) => void): () => void {
+export function subscribeRuntimeEvents(
+  listener: (envelope: unknown) => void,
+  sessionId?: string,
+  onError?: (error: unknown) => void,
+): () => void {
   if (typeof window === "undefined") return () => undefined;
-  const base = (import.meta as { env?: Record<string, string> }).env?.VITE_API_BASE_URL ?? "";
-  const source = new EventSource(`${base}/api/runtime/events`);
+  const runtimeClient = getRuntimeClient();
+  if (runtimeClient.onEvent) return runtimeClient.onEvent(listener);
+
+  const configuredBase = import.meta.env.VITE_API_BASE_URL;
+  const base = typeof configuredBase === "string" ? configuredBase.trim().replace(/\/$/, "") : "";
+  const endpoint = new URL(`${base}/api/runtime/events`, window.location.href);
+  if (sessionId) endpoint.searchParams.set("session_id", sessionId);
+  const source = new EventSource(endpoint.toString());
   source.onmessage = (message) => {
-    try { listener(JSON.parse(message.data)); } catch { /* ignore malformed */ }
+    try { listener(JSON.parse(message.data) as unknown); } catch { /* ignore malformed */ }
+  };
+  source.onerror = (error) => {
+    onError?.(error);
+    source.close();
   };
   return () => source.close();
 }

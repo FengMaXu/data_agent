@@ -5,7 +5,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { pipeline } from "node:stream/promises";
-import { parseDataAgentCommandEnvelope, type RequestContext } from "@data-agent/contracts";
+import { parseDataAgentCommandEnvelope, type DataAgentCommandEnvelope, type RequestContext } from "@data-agent/contracts";
 import { DataAgentRuntime, DataAgentRuntimeError, LocalAuthService, WorkspaceStore } from "@data-agent/runtime";
 
 export interface RuntimeServerOptions {
@@ -34,11 +34,10 @@ export async function createRuntimeServer(
   }
 
   app.get("/api/runtime/events", async (request, reply) => {
+    const query = request.query as { session_id?: string };
     reply.raw.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" });
-    reply.raw.write(`data: ${JSON.stringify({ protocolVersion: 1, sequence: 0, requestId: "hello", timestamp: Date.now(), event: { type: "runtime.hello" } })}
-
-`);
     const unsubscribe = runtime.subscribe((envelope) => {
+      if (query.session_id && envelope.sessionId !== query.session_id) return;
       try { reply.raw.write(`data: ${JSON.stringify(envelope)}
 
 `); } catch { unsubscribe(); }
@@ -48,8 +47,12 @@ export async function createRuntimeServer(
 
   app.post("/api/runtime/command", async (request, reply) => {
     try {
-      const command = parseDataAgentCommandEnvelope(request.body);
-      return await runtime.dispatch(command, contextFactory(request));
+      const command: DataAgentCommandEnvelope = parseDataAgentCommandEnvelope(request.body);
+      const context: RequestContext = contextFactory(request);
+      const effectiveContext = context.sessionId || !command.sessionId
+        ? context
+        : { ...context, sessionId: command.sessionId };
+      return await runtime.dispatch(command, effectiveContext);
     } catch (error) {
       const runtimeError = toRuntimeError(error);
       return reply.code(400).send({

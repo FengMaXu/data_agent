@@ -5,6 +5,11 @@ export interface StoredLLMSecrets {
     openai_base_url?: string;
 }
 
+export interface DataAgentRuntimeBridge {
+    invokeRuntimeCommand: (envelope: unknown) => Promise<unknown>;
+    subscribeRuntimeEvents: (listener: (event: unknown) => void) => () => void;
+}
+
 export interface DataAgentDesktopBridge {
     backendPort?: number;
     getBackendPort: () => Promise<number | null>;
@@ -22,6 +27,7 @@ declare global {
     interface Window {
         __PORT__?: number;
         dataAgent?: DataAgentDesktopBridge;
+        dataAgentRuntime?: DataAgentRuntimeBridge;
     }
 }
 

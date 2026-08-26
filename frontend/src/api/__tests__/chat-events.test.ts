@@ -3,6 +3,7 @@ import { mapRuntimeEvent, sendChatViaRuntime } from '../chat-events';
 import { mergeToolResultState } from '../../components/tool-event-state';
 
 let runtimeListener: ((event: unknown) => void) | undefined;
+let runtimeSequence = 0;
 const unsubscribe = vi.fn();
 const dispatch = vi.fn(async () => ({
     response: { type: 'agent.prompt.accepted', runId: 'run-1' },
@@ -10,7 +11,17 @@ const dispatch = vi.fn(async () => ({
 
 vi.mock('../runtime-client', () => ({
     subscribeRuntimeEvents: vi.fn((listener: (event: unknown) => void) => {
-        runtimeListener = listener;
+        runtimeListener = (raw) => {
+            const value = raw && typeof raw === 'object' ? raw as { sessionId?: unknown; event?: unknown } : {};
+            listener({
+                protocolVersion: 1,
+                sequence: ++runtimeSequence,
+                requestId: 'test-request',
+                timestamp: Date.now(),
+                ...(typeof value.sessionId === 'string' ? { sessionId: value.sessionId } : {}),
+                event: value.event,
+            });
+        };
         return unsubscribe;
     }),
     getRuntimeClient: vi.fn(() => ({ dispatch })),
@@ -91,6 +102,7 @@ describe('runtime tool argument preservation', () => {
 describe('runtime chat event replay', () => {
     beforeEach(() => {
         runtimeListener = undefined;
+        runtimeSequence = 0;
         unsubscribe.mockReset();
         dispatch.mockClear();
     });

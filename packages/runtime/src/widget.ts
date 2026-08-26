@@ -55,6 +55,31 @@ export function validateWidgetSpec(kind: WidgetKind, value: unknown): WidgetVali
   return { ok: true, spec: value };
 }
 
+function isWidgetKind(value: unknown): value is WidgetKind {
+  return value === "kpi" || value === "chart" || value === "table" || value === "steps";
+}
+
+function isWidgetPayload(value: unknown): value is WidgetPayload {
+  if (!isObject(value)) return false;
+  return typeof value.widget_id === "string"
+    && isWidgetKind(value.kind)
+    && typeof value.title === "string"
+    && typeof value.tool_call_id === "string";
+}
+
+/** Runtime guard for partial tool updates received from the native Pi event stream. */
+export function isWidgetLifecycleDetails(value: unknown): value is WidgetLifecycleDetails {
+  if (!isObject(value)) return false;
+  if (!["widget", "widget_patch", "widget_done", "widget_remove", "widget_error"].includes(String(value.widgetEvent))) return false;
+  if (typeof value.widgetId !== "string" || value.widgetId.length === 0) return false;
+  if (typeof value.toolCallId !== "string" || value.toolCallId.length === 0) return false;
+  if (value.toolName !== "show_widget" || typeof value.legacyText !== "string") return false;
+  if (value.widget !== undefined && !isWidgetPayload(value.widget)) return false;
+  if (value.patch !== undefined && !isObject(value.patch)) return false;
+  if (value.error !== undefined && typeof value.error !== "string") return false;
+  return true;
+}
+
 export function widgetLegacyText(widget: WidgetPayload): string {
   return `[widget:${widget.kind}] ${widget.title}: ${JSON.stringify(widget)}`;
 }

@@ -15,6 +15,7 @@ export type FetchLike = (
 
 export interface ElectronCommandBridge {
   invoke(channel: string, payload: unknown): Promise<unknown>;
+  subscribe?(listener: (payload: unknown) => void): () => void;
 }
 
 export function createHttpTransport(

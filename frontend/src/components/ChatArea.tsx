@@ -816,6 +816,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                 pendingAgentMessageIdRef.current = null;
                 streamHandleRef.current = null;
             },
+            currentSession.id,
         );
     };
 

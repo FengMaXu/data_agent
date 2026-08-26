@@ -1,3 +1,4 @@
+import type { AgentEvent } from "@earendil-works/pi-agent-core";
 import {
   DataAgentEventEnvelopeSchema,
   DataAgentResponseEnvelopeSchema,
@@ -20,7 +21,7 @@ import { ClarificationManager } from "./clarification.js";
 import { renderStandaloneDashboardHtml, validateDashboardV3Spec } from "./dashboard-v3.js";
 import { renderSemanticDashboardHtml, validateDashboardV4Spec } from "./dashboard-v4.js";
 import { loadSkillsFromRoots, resolveSkillRoots } from "./skills.js";
-import type { WidgetLifecycleDetails } from "./widget.js";
+import { isWidgetLifecycleDetails, validateWidgetSpec, type WidgetLifecycleDetails } from "./widget.js";
 import { readBoundedFile } from "./bounded-read.js";
 
 export class DataAgentRuntimeError extends Error {
@@ -40,6 +41,24 @@ export class DataAgentRuntimeError extends Error {
 }
 
 export type DataAgentEventListener = (event: DataAgentEventEnvelope) => void;
+
+type RuntimeAgent = {
+  prompt(text: string): Promise<unknown>;
+  steer?(text: string): void;
+  followUp?(text: string): void;
+  abort(): void;
+  subscribe?(listener: (event: AgentEvent) => void): () => void;
+  getResources?(): { skills?: unknown[]; promptTemplates?: unknown[] };
+  setResources?(resources: { skills?: unknown[]; promptTemplates?: unknown[] }): Promise<void>;
+};
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return typeof value === "object" && value !== null ? value as Record<string, unknown> : undefined;
+}
 
 function readableToolResult(result: unknown, fallback: string): string {
   if (typeof result === "string" && result.trim()) return result;
@@ -77,9 +96,9 @@ export class DataAgentRuntime {
   private activeMessageId?: string;
   private readonly widgetCalls = new Map<string, { widgetId: string; messageId: string; toolName: string; errorEmitted: boolean; doneEmitted: boolean }>();
   private readonly toolArgs = new Map<string, unknown>();
-  private agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void; getResources?(): { skills?: unknown[]; promptTemplates?: unknown[] }; setResources?(resources: { skills?: unknown[]; promptTemplates?: unknown[] }): Promise<void> };
+  private agent?: RuntimeAgent;
 
-  constructor(options: { metadata?: MetadataStore; sessions?: PiJsonlSessionStore; workspace?: WorkspaceStore; pythonExecutable?: string; knowledge?: KnowledgeIndex; knowledgeRoot?: string; semanticProjectDir?: string; skillRoots?: string[]; projectRoot?: string; packagedRoot?: string; clarifications?: ClarificationManager; agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void; getResources?(): { skills?: unknown[]; promptTemplates?: unknown[] }; setResources?(resources: { skills?: unknown[]; promptTemplates?: unknown[] }): Promise<void> } } = {}) {
+  constructor(options: { metadata?: MetadataStore; sessions?: PiJsonlSessionStore; workspace?: WorkspaceStore; pythonExecutable?: string; knowledge?: KnowledgeIndex; knowledgeRoot?: string; semanticProjectDir?: string; skillRoots?: string[]; projectRoot?: string; packagedRoot?: string; clarifications?: ClarificationManager; agent?: RuntimeAgent } = {}) {
     this.metadata = options.metadata;
     this.sessions = options.sessions;
     this.workspace = options.workspace;
@@ -498,27 +517,33 @@ export class DataAgentRuntime {
 
   cancelSessionClarifications(sessionId: string): void { this.clarifications.cancel(sessionId, "cancelled"); }
 
-  private mapPiEvent(event: any): void {
+  private mapPiEvent(event: AgentEvent): void {
     const run = this.activeRun;
     if (!run || !event?.type) return;
     const base = () => ({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: run.requestId, runId: run.runId, sessionId: run.sessionId, timestamp: Date.now() });
     if (event.type === "message_start") {
-      const messageId = String(event.message?.id ?? "") || undefined;
+      const message = asRecord(event.message);
+      const messageId = isNonEmptyString(message?.id) ? message.id : undefined;
       // Pi emits message_start for user and tool-result messages too. Keep the
       // active id on the assistant message so widgets stay attached to it.
-      if (!event.message?.role || event.message.role === "assistant") this.activeMessageId = messageId;
+      if (!message?.role || message.role === "assistant") this.activeMessageId = messageId;
       this.emit({ ...base(), event: { type: "agent.message_started", messageId: messageId ?? `message-${run.runId}` } });
       return;
     }
     if (event.type === "message_update") {
       const update = event.assistantMessageEvent;
       if (update?.type !== "text_delta" && update?.type !== "thinking_delta") return;
+      if (!isNonEmptyString(update.delta)) return;
       this.emit({ ...base(), event: { type: update.type === "text_delta" ? "agent.text_delta" : "agent.thinking_delta", delta: update.delta } });
       return;
     }
     if (event.type === "tool_execution_start") {
-      const toolCallId = String(event.toolCallId);
-      const toolName = String(event.toolName);
+      if (!isNonEmptyString(event.toolCallId) || !isNonEmptyString(event.toolName)) {
+        console.error("[data-agent] ignoring malformed tool start event");
+        return;
+      }
+      const toolCallId = event.toolCallId;
+      const toolName = event.toolName;
       this.toolArgs.set(toolCallId, event.args ?? null);
       if (toolName === "show_widget") {
         this.widgetCalls.set(toolCallId, {
@@ -533,14 +558,31 @@ export class DataAgentRuntime {
       return;
     }
     if (event.type === "tool_execution_update") {
-      const details = event.partialResult?.details as WidgetLifecycleDetails | undefined;
-      const call = this.widgetCalls.get(String(event.toolCallId));
-      if (!call || !details?.widgetEvent) return;
-      const common = { messageId: call.messageId, toolCallId: String(event.toolCallId), widgetId: call.widgetId, toolName: "show_widget" as const };
+      const partialResult = event.partialResult && typeof event.partialResult === "object"
+        ? event.partialResult as { details?: unknown }
+        : undefined;
+      const details = isWidgetLifecycleDetails(partialResult?.details) ? partialResult.details : undefined;
+      const call = this.widgetCalls.get(event.toolCallId);
+      if (!call) return;
+      const common = { messageId: call.messageId, toolCallId: event.toolCallId, widgetId: call.widgetId, toolName: "show_widget" as const };
+      const emitWidgetError = (error: string): void => {
+        if (call.doneEmitted || call.errorEmitted) return;
+        call.errorEmitted = true;
+        this.emit({ ...base(), event: { type: "widget_error", ...common, error } });
+      };
+      if (!details) {
+        emitWidgetError("Invalid Widget update");
+        return;
+      }
       if (details.widgetEvent === "widget" && details.widget) {
+        const validation = validateWidgetSpec(details.widget.kind, details.widget);
+        if (!validation.ok) {
+          emitWidgetError(validation.error);
+          return;
+        }
         // Runtime owns the identity; a tool cannot create a second widget by
         // returning a different id in its details payload.
-        const widget = { ...details.widget, widget_id: call.widgetId, tool_call_id: String(event.toolCallId) };
+        const widget = { ...details.widget, widget_id: call.widgetId, tool_call_id: event.toolCallId };
         this.emit({ ...base(), event: { type: "widget", ...common, widget } });
       } else if (details.widgetEvent === "widget_patch" && details.patch) {
         this.emit({ ...base(), event: { type: "widget_patch", ...common, patch: details.patch } });
@@ -558,8 +600,13 @@ export class DataAgentRuntime {
       return;
     }
     if (event.type === "tool_execution_end") {
-      const toolCallId = String(event.toolCallId);
+      if (!isNonEmptyString(event.toolCallId) || !isNonEmptyString(event.toolName)) {
+        console.error("[data-agent] ignoring malformed tool completion event");
+        return;
+      }
+      const toolCallId = event.toolCallId;
       const call = this.widgetCalls.get(toolCallId);
+      const completionArgs = (event as unknown as { args?: unknown }).args;
       if (call && event.isError && !call.errorEmitted && !call.doneEmitted) {
         call.errorEmitted = true;
         this.emit({ ...base(), event: { type: "widget_error", messageId: call.messageId, toolCallId, widgetId: call.widgetId, toolName: "show_widget", error: readableToolResult(event.result, "Widget execution failed") } });
@@ -567,7 +614,7 @@ export class DataAgentRuntime {
         call.doneEmitted = true;
         this.emit({ ...base(), event: { type: "widget_done", messageId: call.messageId, toolCallId, widgetId: call.widgetId, toolName: "show_widget" } });
       }
-      this.emit({ ...base(), event: { type: "agent.tool_finished", toolCallId, toolName: String(event.toolName), ...(event.args !== undefined ? { args: event.args } : {}), result: event.result ?? null, isError: Boolean(event.isError) } });
+      this.emit({ ...base(), event: { type: "agent.tool_finished", toolCallId, toolName: event.toolName, ...(completionArgs !== undefined ? { args: completionArgs } : {}), result: event.result ?? null, isError: Boolean(event.isError || call?.errorEmitted) } });
       this.widgetCalls.delete(toolCallId);
       this.toolArgs.delete(toolCallId);
       return;
@@ -575,7 +622,7 @@ export class DataAgentRuntime {
   }
 
   /** Attach an agent after construction (host wiring) — (re)subscribes event mapping. */
-  attachAgent(agent: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void; getResources?(): { skills?: unknown[]; promptTemplates?: unknown[] }; setResources?(resources: { skills?: unknown[]; promptTemplates?: unknown[] }): Promise<void> }): void {
+  attachAgent(agent: RuntimeAgent): void {
     this.agent = agent;
     agent.subscribe?.((event) => this.mapPiEvent(event));
   }
