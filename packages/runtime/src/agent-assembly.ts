@@ -17,13 +17,24 @@ import type { WorkspaceStore } from "./workspace.js";
 import type { ClarificationManager } from "./clarification.js";
 import { emitWidgetUpdate, validateWidgetSpec, widgetLegacyText, type WidgetLifecycleDetails, type WidgetPayload } from "./widget.js";
 
+export interface QueryExportBatch {
+  columns: string[];
+  rows: unknown[][];
+}
+
+export interface QueryExecutor {
+  run(sql: string, rowLimit: number): Promise<{ columns: string[]; rows: unknown[][]; truncated: boolean }>;
+  /** Optional incremental export source. Each batch is released by the executor after consumption. */
+  stream?(sql: string, signal?: AbortSignal): AsyncIterable<QueryExportBatch> | Promise<AsyncIterable<QueryExportBatch>>;
+}
+
 export interface AgentAssemblyDeps {
   workspace: WorkspaceStore;
   knowledge?: KnowledgeIndex;
   knowledgeRoot?: string;
   pythonExecutable?: string;
   pythonWorkspaceDir?: string;
-  queryExecutor?: { run(sql: string, rowLimit: number): Promise<{ columns: string[]; rows: unknown[][]; truncated: boolean }> };
+  queryExecutor?: QueryExecutor;
   clarifications?: ClarificationManager;
   sessionId?: string;
   /** Explicit system prompt; overrides systemPromptRoots resolution. */
@@ -51,6 +62,10 @@ const DEFAULT_ROW_LIMIT = 50;
 
 function text(content: string, details: unknown = undefined): AgentToolResult<unknown> {
   return { content: [{ type: "text", text: content }], details };
+}
+
+function throwIfAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) throw new Error("EXPORT_CANCELLED");
 }
 
 function buildModel(profile: AgentModelProfile): Model<any> {
@@ -244,13 +259,47 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
     };
     tools.push(
       defineTool("query_database", canonicalLocalTools()[10].description, Type.Object({ sql: Type.String({ minLength: 1 }), limit: Type.Optional(Type.Number()) }), async (p) => runQuery(p.sql, p.limit)),
-      defineTool("export_query", canonicalLocalTools()[12].description, Type.Object({ sql: Type.String({ minLength: 1 }), filename: Type.Optional(Type.String()) }), async (p) => {
-        const full = await deps.queryExecutor!.run(p.sql, 100000);
-        const csv = [full.columns.join(","), ...full.rows.map((row) => row.map((cell) => JSON.stringify(cell ?? "")).join(","))].join("\n");
+      defineTool("export_query", canonicalLocalTools()[12].description, Type.Object({ sql: Type.String({ minLength: 1 }), filename: Type.Optional(Type.String()) }), async (p, native) => {
+        const signal = native.signal;
         const target = p.filename ?? `exports/query-${Date.now()}.csv`;
-        await deps.workspace.write(target, csv);
+        let rowCount = 0;
+        await deps.workspace.writeStream(target, async (write) => {
+          let pending = "";
+          let columnsWritten = false;
+          const append = async (line: string) => {
+            pending += line;
+            if (pending.length >= 64 * 1024) {
+              await write(pending);
+              pending = "";
+            }
+          };
+          const consume = async (batch: QueryExportBatch) => {
+            throwIfAborted(signal);
+            if (!columnsWritten && batch.rows.length > 0) {
+              await append(batch.columns.join(","));
+              columnsWritten = true;
+            }
+            for (const row of batch.rows) {
+              throwIfAborted(signal);
+              await append(`${columnsWritten ? "\n" : ""}${row.map((cell) => JSON.stringify(cell ?? "")).join(",")}`);
+              columnsWritten = true;
+              rowCount++;
+            }
+          };
+          if (deps.queryExecutor!.stream) {
+            const batches = await deps.queryExecutor!.stream(p.sql, signal);
+            for await (const batch of batches) await consume(batch);
+          } else {
+            // Keep the legacy executor contract working while ensuring the CSV
+            // itself is never assembled as one in-memory string.
+            const full = await deps.queryExecutor!.run(p.sql, 100000);
+            await consume(full);
+          }
+          if (pending) await write(pending);
+        }, signal);
+        // The artifact is observable only after the temporary file was promoted.
         deps.emitArtifact?.(target);
-        return text(`exported ${full.rows.length} rows to ${target}`);
+        return text(`exported ${rowCount} rows to ${target}`);
       }),
     );
   }

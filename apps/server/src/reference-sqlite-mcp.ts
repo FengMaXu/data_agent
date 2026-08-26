@@ -42,6 +42,25 @@ export function createReferenceSqliteServer(options: ReferenceSqliteServerOption
   );
 
   server.tool(
+    "execute_query_export_batch",
+    "Run one bounded batch of a read-only SQLite export",
+    { sql: z.string().min(1), offset: z.number().int().nonnegative().max(100000).optional(), limit: z.number().int().positive().max(1000).optional(), maxRows: z.number().int().positive().max(100000).optional() },
+    async ({ sql, offset, limit, maxRows: requestedMaxRows }) => {
+      const trimmed = sql.trim().replace(/;+\s*$/, "");
+      if (!new SqlGuard().check(trimmed).allowed) return { content: [{ type: "text", text: JSON.stringify({ error: { code: "FORBIDDEN_SQL" } }) }] };
+      const start = offset ?? 0;
+      const batchLimit = Math.min(limit ?? 1000, 1000);
+      const rowLimit = Math.min(requestedMaxRows ?? 100000, 100000);
+      if (start >= rowLimit) return { content: [{ type: "text", text: JSON.stringify({ rows: [], columns: [], done: true, contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
+      const rows = db.prepare(`SELECT * FROM (${trimmed}) __export LIMIT ? OFFSET ?`).all(Math.min(batchLimit + 1, rowLimit - start + 1), start) as Record<string, unknown>[];
+      if (rows.length > batchLimit && start + batchLimit >= rowLimit) return { content: [{ type: "text", text: JSON.stringify({ error: { code: "EXPORT_ROW_LIMIT_EXCEEDED", rowLimit } }) }] };
+      const values = rows.slice(0, batchLimit);
+      const columns = values.length > 0 ? Object.keys(values[0]) : [];
+      return { content: [{ type: "text", text: JSON.stringify({ rows: values, columns, done: values.length < batchLimit, contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
+    },
+  );
+
+  server.tool(
     "get_schema",
     "List tables and columns of the reference SQLite database",
     {},

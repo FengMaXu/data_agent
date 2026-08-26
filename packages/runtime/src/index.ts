@@ -600,7 +600,7 @@ export class DataAgentRuntime {
 }
 
 export { LocalAuthService } from "./auth.js";
-export { createDataAgentHarness, buildAgentTools, resolveSystemPrompt, TOOL_NAME_MAPPING, DATA_AGENT_SYSTEM_PROMPT, type AgentAssemblyDeps, type AgentAssemblyToolContext, type AgentModelProfile } from "./agent-assembly.js";
+export { createDataAgentHarness, buildAgentTools, resolveSystemPrompt, TOOL_NAME_MAPPING, DATA_AGENT_SYSTEM_PROMPT, type AgentAssemblyDeps, type AgentAssemblyToolContext, type AgentModelProfile, type QueryExecutor, type QueryExportBatch } from "./agent-assembly.js";
 export { validateWidgetSpec, widgetLegacyText, type WidgetKind, type WidgetPayload, type WidgetLifecycleDetails } from "./widget.js";
 export { migrateLegacyData, type MigrationReport } from "./legacy-migration.js";
 export { runPythonJob, type PythonJobResult } from "./python-job.js";
@@ -612,7 +612,7 @@ export { ProcessSupervisor, semanticToolIdentity, type SupervisorState } from ".
 export { ClarificationManager } from "./clarification.js";
 export { InMemorySecretVault, ProviderRegistry, type LLMProfile, type SecretVault } from "./providers.js";
 export { assertNoLegacyTools, canonicalLocalTools, type CanonicalTool } from "./tools-catalog.js";
-export { WorkspaceStore } from "./workspace.js";
+export { WorkspaceStore, type WorkspaceStreamProducer, type WorkspaceArtifact } from "./workspace.js";
 export { loadRuntimeManifest, probePython, resolvePythonRuntime, type PythonRuntimeConfig, type PythonRuntimeManifest } from "./python-runtime.js";
 export { writePythonPackManifest } from "./python-pack-builder.js";
 export type { RequestContext } from "@data-agent/contracts";
