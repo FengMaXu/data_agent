@@ -66,6 +66,7 @@ export function sendChatViaRuntime(
 ): RuntimeChatHandle {
   let activeMessageId = "";
   let isDone = false;
+  const toolArgumentsById = new Map<string, unknown>();
 
   const handleFinish = () => {
     if (isDone) return;
@@ -75,13 +76,32 @@ export function sendChatViaRuntime(
   };
 
   const unsubscribe = subscribeRuntimeEvents((raw) => {
-    const envelope = raw as { event?: RuntimeEvent };
+    const envelope = raw as { sessionId?: string; event?: RuntimeEvent };
     const event = envelope?.event;
     if (!event?.type) return;
-    const mapped = mapRuntimeEvent(event, activeMessageId);
+
+    // Runtime replay envelopes carry the session identity needed to discard
+    // events from another session in ChatArea. Keep the widget-aware mapping
+    // centralized so native widget lifecycle events remain intact.
+    const sessionId = envelope.sessionId;
+    const toolCallId = event.type === "agent.tool_finished"
+      ? String(event.toolCallId ?? "")
+      : "";
+    const eventForMapping = event.type === "agent.tool_finished" && event.args === undefined
+      ? { ...event, args: toolArgumentsById.get(toolCallId) ?? {} }
+      : event;
+    if (event.type === "agent.tool_started") {
+      toolArgumentsById.set(String(event.toolCallId ?? ""), event.args ?? {});
+    }
+
+    const mapped = mapRuntimeEvent(eventForMapping, activeMessageId);
     if (!mapped) return;
     if (mapped.messageId !== undefined) activeMessageId = mapped.messageId;
-    onEvent(mapped.event);
+    const adapted = sessionId
+      ? { ...mapped.event, session_id: sessionId } as SSEEvent
+      : mapped.event;
+    onEvent(adapted);
+    if (event.type === "agent.tool_finished") toolArgumentsById.delete(toolCallId);
     if (event.type === "agent.completed") handleFinish();
   });
   const finished = (async () => {

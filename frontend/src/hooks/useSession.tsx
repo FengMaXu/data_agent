@@ -4,8 +4,9 @@ import {
     type SessionSnapshotMessage,
 } from '../api/client';
 import { createTaskWithIdViaRuntime, getTranscriptViaRuntime, prepareSessionViaRuntime } from '../api/runtime-client';
-import { createSessionViaRuntime, deleteSessionViaRuntime, deleteTaskViaRuntime, listSessionsViaRuntime, listTasksViaRuntime, renameTaskViaRuntime } from '../api/runtime-client';
+import { createSessionViaRuntime, deleteSessionViaRuntime, deleteTaskViaRuntime, listSessionsViaRuntime, listTasksViaRuntime, renameSessionViaRuntime, renameTaskViaRuntime } from '../api/runtime-client';
 import { useLanguage } from '../context/LanguageContext';
+import { cleanSessionTitle } from '../utils/session-title';
 
 export interface Task {
     id: string;
@@ -371,10 +372,22 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     const setCurrentTranscript = useCallback((sessionId: string, messages: SessionSnapshotMessage[]) => {
         setTranscriptsBySession((prev) => ({ ...prev, [sessionId]: messages }));
         const sessionName = sessionNamesRef.current[sessionId];
-        const isUntitled = ['New session', 'New Session', '新会话'].includes(sessionName);
-        const hasFirstMessage = messages.some((message) => message.role === 'user');
-        const shouldSaveTitleNow = Boolean(isUntitled && hasFirstMessage && !titleSaveRequestedRef.current.has(sessionId));
-        if (shouldSaveTitleNow) titleSaveRequestedRef.current.add(sessionId);
+        const isUntitled = DEFAULT_SESSION_NAMES.has(sessionName);
+        const firstUserMessage = messages.find((message) => message.role === 'user');
+        const title = firstUserMessage ? cleanSessionTitle(firstUserMessage.content) : '';
+        const shouldSaveTitleNow = Boolean(isUntitled && title && !titleSaveRequestedRef.current.has(sessionId));
+        if (shouldSaveTitleNow) {
+            titleSaveRequestedRef.current.add(sessionId);
+            // Naming is deliberately local and best-effort. A failed metadata
+            // write must never interrupt transcript persistence or the answer.
+            sessionNamesRef.current[sessionId] = title;
+            setSessions((prev) => prev.map((session) => (
+                session.id === sessionId ? { ...session, name: title } : session
+            )));
+            void renameSessionViaRuntime(sessionId, title).catch((error) => {
+                console.warn('Failed to rename session:', error);
+            });
+        }
         scheduleTranscriptSave(sessionId, messages, shouldSaveTitleNow);
     }, [scheduleTranscriptSave]);
 
@@ -389,6 +402,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
             )));
         }
         setTranscriptsBySession((prev) => ({ ...prev, [sessionId]: [] }));
+        titleSaveRequestedRef.current.delete(sessionId);
         if (options.persist === false) {
             const existingTimer = transcriptSaveTimersRef.current[sessionId];
             if (existingTimer) {
