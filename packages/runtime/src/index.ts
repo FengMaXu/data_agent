@@ -602,6 +602,7 @@ export class DataAgentRuntime {
 export { LocalAuthService } from "./auth.js";
 export { createDataAgentHarness, buildAgentTools, resolveSystemPrompt, TOOL_NAME_MAPPING, DATA_AGENT_SYSTEM_PROMPT, type AgentAssemblyDeps, type AgentAssemblyToolContext, type AgentModelProfile, type QueryExecutor, type QueryExportBatch } from "./agent-assembly.js";
 export { validateWidgetSpec, widgetLegacyText, type WidgetKind, type WidgetPayload, type WidgetLifecycleDetails } from "./widget.js";
+export { createAgentHarnessResolver, type AgentHarnessResolver, type AgentHarnessResolverOptions } from "./agent-harness-lifecycle.js";
 export { migrateLegacyData, type MigrationReport } from "./legacy-migration.js";
 export { runPythonJob, type PythonJobResult } from "./python-job.js";
 export { effectiveTools, loadSkillsFromDir, loadSkillsFromRoots, resolveSkillRoots, moveSystemPrompt, type SkillDefinition, type SkillDiagnostic, type SkillRootOptions } from "./skills.js";
