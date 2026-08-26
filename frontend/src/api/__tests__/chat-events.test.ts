@@ -18,11 +18,11 @@ vi.mock('../runtime-client', () => ({
 
 describe('Runtime Widget event replay adapter', () => {
     it('maps the lifecycle vocabulary while keeping the active message', () => {
-        const common = { messageId: 'message-1', toolCallId: 'call-1', widgetId: 'widget-call-1', toolName: 'show_widget' };
+        const common = { messageId: 'message-1', toolCallId: 'call-1', widgetId: 'widget-call-1', toolName: 'show_widget' } as const;
         const types = ['widget', 'widget_patch', 'widget_done', 'widget_remove', 'widget_error'] as const;
         const events = types.map((type) => {
             const event = type === 'widget'
-                ? { type, ...common, widget: { widget_id: common.widgetId, kind: 'kpi', title: 'Revenue' } }
+                ? { type, ...common, widget: { widget_id: common.widgetId, kind: 'kpi', title: 'Revenue' } as const }
                 : type === 'widget_patch'
                     ? { type, ...common, patch: { subtitle: 'Today' } }
                     : type === 'widget_error'
@@ -158,5 +158,12 @@ describe('runtime chat event replay', () => {
         runtimeListener?.({ event: { type: 'agent.completed' } });
         expect(onFinish).toHaveBeenCalledTimes(1);
         expect(unsubscribe).toHaveBeenCalledTimes(1);
+    });
+
+    it('ignores malformed runtime payloads at the frontend boundary', () => {
+        const events: unknown[] = [];
+        sendChatViaRuntime('hello', (event) => events.push(event), vi.fn(), vi.fn());
+        runtimeListener?.({ event: { type: 'agent.text_delta', delta: 42 } });
+        expect(events).toEqual([]);
     });
 });

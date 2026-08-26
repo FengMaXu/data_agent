@@ -1,9 +1,34 @@
+import { isDataAgentEvent, type DataAgentEvent } from "@data-agent/contracts";
 import { subscribeRuntimeEvents, getRuntimeClient } from "./runtime-client";
-import type { SSEEvent } from "./client";
+import type { SSEEvent, WidgetSpec } from "./client";
 
 export interface RuntimeChatHandle { cancel: () => void; finished: Promise<void> }
 
-type RuntimeEvent = { type?: string; [key: string]: unknown };
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function isWidgetKind(value: unknown): value is WidgetSpec["kind"] {
+  return value === "kpi"
+    || value === "metric_cards"
+    || value === "table"
+    || value === "chart"
+    || value === "steps"
+    || value === "rich_text"
+    || value === "echarts"
+    || value === "file_link";
+}
+
+function isWidgetSpec(value: unknown): value is WidgetSpec {
+  return isRecord(value)
+    && typeof value.widget_id === "string"
+    && typeof value.title === "string"
+    && isWidgetKind(value.kind);
+}
+
+function asWidgetPatch(value: unknown): Partial<WidgetSpec> {
+  return isRecord(value) ? value as unknown as Partial<WidgetSpec> : {};
+}
 
 /** Extract the text content retained for clients that do not understand Widget events. */
 function readableToolResult(result: unknown): string {
@@ -15,7 +40,7 @@ function readableToolResult(result: unknown): string {
       if (text && typeof (text as { text?: unknown }).text === "string") return (text as { text: string }).text;
     }
   }
-  return JSON.stringify(result ?? null);
+  return JSON.stringify(result ?? null) ?? String(result);
 }
 
 /**
@@ -23,34 +48,120 @@ function readableToolResult(result: unknown): string {
  * event model. In particular, terminal tool results retain readable text for
  * clients that predate structured Widget events.
  */
-export function mapRuntimeEvent(event: RuntimeEvent, activeMessageId: string): { event: SSEEvent; messageId?: string } | null {
-  if (event.type === "agent.message_started") {
-    const messageId = String(event.messageId || `msg-${Date.now()}`);
-    return { event: { type: "message_start", message_id: messageId }, messageId };
+export function mapRuntimeEvent(event: DataAgentEvent, activeMessageId: string): { event: SSEEvent; messageId?: string } | null {
+  switch (event.type) {
+    case "agent.message_started": {
+      const messageId = event.messageId || `msg-${Date.now()}`;
+      return { event: { type: "message_start", message_id: messageId }, messageId };
+    }
+    case "agent.text_delta":
+      return { event: { type: "text_delta", message_id: activeMessageId, content: event.delta } };
+    case "agent.thinking_delta":
+      return { event: { type: "reasoning_delta", message_id: activeMessageId, content: event.delta } };
+    case "agent.tool_started":
+      return {
+        event: {
+          type: "tool_call",
+          message_id: activeMessageId,
+          tool_call_id: event.toolCallId,
+          name: event.toolName,
+          arguments: event.args,
+        },
+      };
+    case "widget":
+      if (!isWidgetSpec(event.widget)) return null;
+      return {
+        event: {
+          type: "widget",
+          message_id: event.messageId,
+          tool_call_id: event.toolCallId,
+          widget_id: event.widgetId,
+          tool_name: event.toolName,
+          widget: event.widget,
+        },
+      };
+    case "widget_patch":
+      return {
+        event: {
+          type: "widget_patch",
+          message_id: event.messageId,
+          tool_call_id: event.toolCallId,
+          widget_id: event.widgetId,
+          tool_name: event.toolName,
+          patch: asWidgetPatch(event.patch),
+        },
+      };
+    case "widget_done":
+      return {
+        event: {
+          type: "widget_done",
+          message_id: event.messageId,
+          tool_call_id: event.toolCallId,
+          widget_id: event.widgetId,
+        },
+      };
+    case "widget_remove":
+      return {
+        event: {
+          type: "widget_remove",
+          message_id: event.messageId,
+          tool_call_id: event.toolCallId,
+          widget_id: event.widgetId,
+        },
+      };
+    case "widget_error":
+      return {
+        event: {
+          type: "widget_error",
+          message_id: event.messageId,
+          tool_call_id: event.toolCallId,
+          widget_id: event.widgetId,
+          error: event.error,
+        },
+      };
+    case "agent.tool_finished": {
+      const details = isRecord(event.result) ? event.result.details : undefined;
+      const widgetId = isRecord(details) && details.widgetId !== undefined
+        ? String(details.widgetId)
+        : undefined;
+      return {
+        event: {
+          type: "tool_result",
+          message_id: activeMessageId,
+          tool_call_id: event.toolCallId,
+          name: event.toolName,
+          ...(event.args !== undefined ? { arguments: event.args } : {}),
+          content: readableToolResult(event.result),
+          details,
+          widget_id: widgetId,
+          is_error: event.isError,
+        },
+      };
+    }
+    case "clarification.request":
+      return {
+        event: {
+          type: "clarification_request",
+          clarification_id: event.clarificationId,
+          question: event.question,
+          options: event.options,
+        },
+      };
+    case "workspace.artifact.created":
+      return { event: { type: "workspace_updated", tool: "" } };
+    case "agent.completed":
+      return { event: { type: "done", reason: "completed" } };
+    default:
+      return null;
   }
-  if (event.type === "agent.text_delta") return { event: { type: "text_delta", message_id: activeMessageId, content: String(event.delta ?? "") } };
-  if (event.type === "agent.thinking_delta") return { event: { type: "reasoning_delta", message_id: activeMessageId, content: String(event.delta ?? "") } };
-  if (event.type === "agent.tool_started") return { event: { type: "tool_call", message_id: activeMessageId, tool_call_id: String(event.toolCallId ?? ""), name: String(event.toolName ?? ""), arguments: event.args ?? {} } };
-  if (event.type === "widget" || event.type === "widget_patch" || event.type === "widget_done" || event.type === "widget_remove" || event.type === "widget_error") {
-    const messageId = String(event.messageId ?? activeMessageId ?? "");
-    const toolCallId = String(event.toolCallId ?? "");
-    const widgetId = String(event.widgetId ?? "");
-    if (event.type === "widget") return { event: { type: "widget", message_id: messageId, tool_call_id: toolCallId, widget_id: widgetId, tool_name: String(event.toolName ?? "show_widget"), widget: event.widget as any } };
-    if (event.type === "widget_patch") return { event: { type: "widget_patch", message_id: messageId, tool_call_id: toolCallId, widget_id: widgetId, tool_name: String(event.toolName ?? "show_widget"), patch: (event.patch ?? {}) as any } };
-    if (event.type === "widget_done") return { event: { type: "widget_done", message_id: messageId, tool_call_id: toolCallId, widget_id: widgetId } };
-    if (event.type === "widget_remove") return { event: { type: "widget_remove", message_id: messageId, tool_call_id: toolCallId || undefined, widget_id: widgetId } };
-    return { event: { type: "widget_error", message_id: messageId, tool_call_id: toolCallId, widget_id: widgetId, error: String(event.error ?? "Widget execution failed") } };
-  }
-  if (event.type === "agent.tool_finished") {
-    const result = event.result;
-    const details = result && typeof result === "object" ? (result as { details?: unknown }).details : undefined;
-    const widgetId = details && typeof details === "object" ? (details as { widgetId?: unknown }).widgetId : undefined;
-    return { event: { type: "tool_result", message_id: activeMessageId, tool_call_id: String(event.toolCallId ?? ""), name: String(event.toolName ?? ""), ...(event.args !== undefined ? { arguments: event.args } : {}), content: readableToolResult(result), details, widget_id: widgetId ? String(widgetId) : undefined, is_error: Boolean(event.isError) } };
-  }
-  if (event.type === "clarification.request") return { event: { type: "clarification_request", clarification_id: String(event.clarificationId ?? ""), question: String(event.question ?? ""), options: (event.options as string[]) ?? [] } };
-  if (event.type === "workspace.artifact.created") return { event: { type: "workspace_updated", tool: "" } };
-  if (event.type === "agent.completed") return { event: { type: "done", reason: "completed" } };
-  return null;
+}
+
+function readRuntimeEnvelope(raw: unknown): { event: DataAgentEvent; sessionId?: string } | null {
+  if (!isRecord(raw) || !isDataAgentEvent(raw.event)) return null;
+  return {
+    event: raw.event,
+    sessionId: typeof raw.sessionId === "string" ? raw.sessionId : undefined,
+  };
 }
 
 /**
@@ -76,22 +187,22 @@ export function sendChatViaRuntime(
   };
 
   const unsubscribe = subscribeRuntimeEvents((raw) => {
-    const envelope = raw as { sessionId?: string; event?: RuntimeEvent };
-    const event = envelope?.event;
-    if (!event?.type) return;
+    const envelope = readRuntimeEnvelope(raw);
+    if (!envelope) return;
+    const { event, sessionId } = envelope;
 
     // Runtime replay envelopes carry the session identity needed to discard
     // events from another session in ChatArea. Keep the widget-aware mapping
     // centralized so native widget lifecycle events remain intact.
-    const sessionId = envelope.sessionId;
     const toolCallId = event.type === "agent.tool_finished"
-      ? String(event.toolCallId ?? "")
+      ? event.toolCallId
       : "";
-    const eventForMapping = event.type === "agent.tool_finished" && event.args === undefined
-      ? { ...event, args: toolArgumentsById.get(toolCallId) ?? {} }
-      : event;
+    let eventForMapping: DataAgentEvent = event;
+    if (event.type === "agent.tool_finished" && event.args === undefined) {
+      eventForMapping = { ...event, args: toolArgumentsById.get(toolCallId) ?? {} };
+    }
     if (event.type === "agent.tool_started") {
-      toolArgumentsById.set(String(event.toolCallId ?? ""), event.args ?? {});
+      toolArgumentsById.set(event.toolCallId, event.args);
     }
 
     const mapped = mapRuntimeEvent(eventForMapping, activeMessageId);

@@ -3,10 +3,10 @@ import type { SSEEvent } from '../api/client';
 export interface ToolCallState {
     toolCallId: string;
     name: string;
-    arguments: any;
+    arguments: unknown;
     partialArguments?: string;
     result?: string;
-    details?: any;
+    details?: unknown;
     isError?: boolean;
     widgetId?: string | null;
     status: 'calling' | 'running' | 'done' | 'error';
