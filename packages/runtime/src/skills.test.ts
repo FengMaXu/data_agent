@@ -50,6 +50,18 @@ describe("Skills", () => {
     await Promise.all([rm(projectRoot, { recursive: true, force: true }), rm(packagedRoot, { recursive: true, force: true })]);
   });
 
+  it.skipIf(process.platform !== "win32")("loads an absolute Windows-style root through the native loader", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-windows-skills-"));
+    await mkdir(join(root, "windows"), { recursive: true });
+    await writeFile(join(root, "windows", "SKILL.md"), "---\nname: windows\ndescription: Windows path regression\n---\nbody", "utf8");
+    const windowsRoot = root.replaceAll("/", "\\");
+    const result = await loadSkillsFromRoots([windowsRoot]);
+    expect(result.diagnostics).toEqual([]);
+    expect(result.skills.map((skill) => skill.name)).toEqual(["windows"]);
+    expect(result.skills[0].filePath).toBe(resolvePath(root, "windows", "SKILL.md"));
+    await rm(root, { recursive: true, force: true });
+  });
+
   it("uses the native loader, skips malformed Skills, and never executes their body", async () => {
     const root = await mkdtemp(join(tmpdir(), "data-agent-native-skills-"));
     await mkdir(join(root, "valid", "nested"), { recursive: true });

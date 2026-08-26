@@ -89,12 +89,54 @@ function parseToolMetadata(raw: string, filePath: string): { allowedTools?: stri
   return { allowedTools: values, diagnostics, valid: true };
 }
 
+const isWindows = process.platform === "win32";
+
+/** Paths used by the native loader use `/` even when the host filesystem does not. */
+function pathForNativeLoader(value: string): string {
+  return isWindows ? value.replaceAll("\\", "/") : value;
+}
+
+function pathForNodeFilesystem(value: string): string {
+  return isWindows ? value.replaceAll("/", "\\") : value;
+}
+
+/**
+ * Keep Pi's native Skill traversal while adapting its slash-based path logic
+ * to Node's filesystem implementation on Windows.
+ */
+class NativeLoaderExecutionEnv extends NodeExecutionEnv {
+  override async fileInfo(filePath: string) {
+    const result = await super.fileInfo(pathForNodeFilesystem(filePath));
+    if (!result.ok) return result;
+    return { ...result, value: { ...result.value, path: pathForNativeLoader(result.value.path) } };
+  }
+
+  override async listDir(filePath: string, abortSignal?: AbortSignal) {
+    const result = await super.listDir(pathForNodeFilesystem(filePath), abortSignal);
+    if (!result.ok) return result;
+    return {
+      ...result,
+      value: result.value.map((info) => ({ ...info, path: pathForNativeLoader(info.path) })),
+    };
+  }
+
+  override async canonicalPath(filePath: string) {
+    const result = await super.canonicalPath(pathForNodeFilesystem(filePath));
+    if (!result.ok) return result;
+    return { ...result, value: pathForNativeLoader(result.value) };
+  }
+
+  override async readTextFile(filePath: string, abortSignal?: AbortSignal) {
+    return super.readTextFile(pathForNodeFilesystem(filePath), abortSignal);
+  }
+}
+
 /** Load Skills through Pi's native AgentHarness resource loader. */
 export async function loadSkillsFromRoots(roots: string[]): Promise<{ skills: SkillDefinition[]; diagnostics: SkillDiagnostic[] }> {
   const normalizedRoots = [...new Set(roots.map((root) => path.resolve(root)))];
-  const env = new NodeExecutionEnv({ cwd: process.cwd() });
+  const env = new NativeLoaderExecutionEnv({ cwd: process.cwd() });
   try {
-    const nativeResult = await loadNativeSkills(env, normalizedRoots);
+    const nativeResult = await loadNativeSkills(env, normalizedRoots.map(pathForNativeLoader));
     const diagnostics: SkillDiagnostic[] = nativeResult.diagnostics.map((item) => ({
       path: item.path,
       message: item.message,
