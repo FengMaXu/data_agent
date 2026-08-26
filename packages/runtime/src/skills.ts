@@ -100,6 +100,14 @@ function pathForNodeFilesystem(value: string): string {
   return isWindows ? value.replaceAll("/", "\\") : value;
 }
 
+function fileInfoForNativeLoader(info: { name: string; path: string }): { name: string; path: string } {
+  const normalizedPath = pathForNativeLoader(info.path);
+  return {
+    name: isWindows ? normalizedPath.slice(normalizedPath.lastIndexOf("/") + 1) : info.name,
+    path: normalizedPath,
+  };
+}
+
 /**
  * Keep Pi's native Skill traversal while adapting its slash-based path logic
  * to Node's filesystem implementation on Windows.
@@ -108,7 +116,7 @@ class NativeLoaderExecutionEnv extends NodeExecutionEnv {
   override async fileInfo(filePath: string) {
     const result = await super.fileInfo(pathForNodeFilesystem(filePath));
     if (!result.ok) return result;
-    return { ...result, value: { ...result.value, path: pathForNativeLoader(result.value.path) } };
+    return { ...result, value: { ...result.value, ...fileInfoForNativeLoader(result.value) } };
   }
 
   override async listDir(filePath: string, abortSignal?: AbortSignal) {
@@ -116,7 +124,7 @@ class NativeLoaderExecutionEnv extends NodeExecutionEnv {
     if (!result.ok) return result;
     return {
       ...result,
-      value: result.value.map((info) => ({ ...info, path: pathForNativeLoader(info.path) })),
+      value: result.value.map((info) => ({ ...info, ...fileInfoForNativeLoader(info) })),
     };
   }
 
