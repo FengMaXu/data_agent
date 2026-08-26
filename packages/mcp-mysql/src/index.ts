@@ -53,8 +53,15 @@ export async function createMysqlReferenceServer(options: MysqlReferenceServerOp
         return { content: [{ type: "text", text: JSON.stringify({ error: { code: "FORBIDDEN_SQL" } }) }] };
       }
       const effectiveLimit = Math.min(limit ?? maxRows(), maxRows());
+      // MySQL does not allow SHOW/DESCRIBE statements inside a derived table.
+      // Execute these read-only introspection statements directly while keeping
+      // the response preview shape and bound used for ordinary SELECT queries.
+      const isIntrospectionQuery = /^(?:show|describe|desc)\b/i.test(trimmed);
       try {
-        const [rows] = await pool.query(`SELECT * FROM (${trimmed}) __preview LIMIT ${effectiveLimit + 1}`);
+        const query = isIntrospectionQuery
+          ? trimmed
+          : `SELECT * FROM (${trimmed}) __preview LIMIT ${effectiveLimit + 1}`;
+        const [rows] = await pool.query(query);
         const list = rows as any[];
         return { content: [{ type: "text", text: JSON.stringify({ rows: list.slice(0, effectiveLimit), totalRows: list.length, truncated: list.length > effectiveLimit, serverLimit: maxRows(), contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
       } catch (error) {

@@ -25,6 +25,21 @@ describe.runIf(enabled)("MySQL Reference MCP Server contract", () => {
     expect(payload.truncated).toBe(true);
     expect(payload.contractVersion).toBe(1);
 
+    const showTables = await client.callTool({ name: "execute_query_preview", arguments: { sql: "SHOW TABLES" } });
+    const showTablesPayload = JSON.parse((showTables.content as any)[0].text);
+    expect(showTablesPayload.error).toBeUndefined();
+    expect(showTablesPayload.rows.some((row: Record<string, unknown>) => Object.values(row).includes("contract_sales"))).toBe(true);
+
+    const describe = await client.callTool({ name: "execute_query_preview", arguments: { sql: "DESCRIBE contract_sales" } });
+    const describePayload = JSON.parse((describe.content as any)[0].text);
+    expect(describePayload.error).toBeUndefined();
+    expect(describePayload.rows.some((row: Record<string, unknown>) => row.Field === "id")).toBe(true);
+
+    const desc = await client.callTool({ name: "execute_query_preview", arguments: { sql: "DESC contract_sales" } });
+    const descPayload = JSON.parse((desc.content as any)[0].text);
+    expect(descPayload.error).toBeUndefined();
+    expect(descPayload.rows.some((row: Record<string, unknown>) => row.Field === "amount")).toBe(true);
+
     const dangerous = await client.callTool({ name: "execute_query_preview", arguments: { sql: "DELETE FROM contract_sales" } });
     expect(JSON.parse((dangerous.content as any)[0].text).error.code).toBe("FORBIDDEN_SQL");
 
