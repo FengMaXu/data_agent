@@ -45,7 +45,7 @@ export function mapRuntimeEvent(event: RuntimeEvent, activeMessageId: string): {
     const result = event.result;
     const details = result && typeof result === "object" ? (result as { details?: unknown }).details : undefined;
     const widgetId = details && typeof details === "object" ? (details as { widgetId?: unknown }).widgetId : undefined;
-    return { event: { type: "tool_result", message_id: activeMessageId, tool_call_id: String(event.toolCallId ?? ""), name: String(event.toolName ?? ""), arguments: event.args ?? {}, content: readableToolResult(result), details, widget_id: widgetId ? String(widgetId) : undefined, is_error: Boolean(event.isError) } };
+    return { event: { type: "tool_result", message_id: activeMessageId, tool_call_id: String(event.toolCallId ?? ""), name: String(event.toolName ?? ""), ...(event.args !== undefined ? { arguments: event.args } : {}), content: readableToolResult(result), details, widget_id: widgetId ? String(widgetId) : undefined, is_error: Boolean(event.isError) } };
   }
   if (event.type === "clarification.request") return { event: { type: "clarification_request", clarification_id: String(event.clarificationId ?? ""), question: String(event.question ?? ""), options: (event.options as string[]) ?? [] } };
   if (event.type === "workspace.artifact.created") return { event: { type: "workspace_updated", tool: "" } };

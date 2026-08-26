@@ -551,7 +551,7 @@ export class DataAgentRuntime {
         call.doneEmitted = true;
         this.emit({ ...base(), event: { type: "widget_done", messageId: call.messageId, toolCallId, widgetId: call.widgetId, toolName: "show_widget" } });
       }
-      this.emit({ ...base(), event: { type: "agent.tool_finished", toolCallId, toolName: String(event.toolName), args: this.toolArgs.get(toolCallId) ?? event.args ?? null, result: event.result ?? null, isError: Boolean(event.isError) } });
+      this.emit({ ...base(), event: { type: "agent.tool_finished", toolCallId, toolName: String(event.toolName), ...(event.args !== undefined ? { args: event.args } : {}), result: event.result ?? null, isError: Boolean(event.isError) } });
       this.widgetCalls.delete(toolCallId);
       this.toolArgs.delete(toolCallId);
       return;

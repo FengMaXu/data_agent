@@ -29,6 +29,7 @@ import WidgetRenderer from './widgets/WidgetRenderer';
 import AgentOrbitIcon from './AgentOrbitIcon';
 import AgentMarkdown from './AgentMarkdown';
 import { isAgentMessageEmpty, visibleAgentContent } from '../utils/agent-message';
+import { mergeToolResultState, type ToolCallState } from './tool-event-state';
 
 interface SkillActivation {
     name: string;
@@ -42,19 +43,6 @@ interface SkillActivation {
     source?: string;
     command_text?: string;
     skill_dir?: string;
-}
-
-interface ToolCallState {
-    toolCallId: string;
-    name: string;
-    arguments: any;
-    partialArguments?: string;
-    result?: string;
-    details?: any;
-    isError?: boolean;
-    widgetId?: string | null;
-    status: 'calling' | 'running' | 'done' | 'error';
-    progressText?: string;
 }
 
 interface AgentMessage {
@@ -779,24 +767,10 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                 }
 
                 if (event.type === 'tool_result') {
-                    const existing = message.toolCallsById[event.tool_call_id] || {
-                        toolCallId: event.tool_call_id,
-                        name: event.name,
-                        arguments: event.arguments || {},
-                        status: 'done' as const,
-                    };
-                    message.toolCallsById[event.tool_call_id] = {
-                        ...existing,
-                        name: event.name,
-                        arguments: event.arguments && typeof event.arguments === 'object' && Object.keys(event.arguments).length > 0
-                            ? event.arguments
-                            : existing.arguments,
-                        result: event.content,
-                        details: event.details,
-                        isError: event.is_error,
-                        widgetId: event.widget_id ?? existing.widgetId,
-                        status: event.is_error ? 'error' : 'done',
-                    };
+                    message.toolCallsById[event.tool_call_id] = mergeToolResultState(
+                        message.toolCallsById[event.tool_call_id],
+                        event,
+                    );
                     scheduleFlush(targetMessageId, true);
                     return;
                 }

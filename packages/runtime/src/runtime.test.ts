@@ -18,6 +18,35 @@ describe("DataAgentRuntime", () => {
     expect(runtime.eventsAfter(1)).toHaveLength(0);
   });
 
+  it("keeps tool arguments on completion events, including legacy and empty-args completions", async () => {
+    let receive: ((event: unknown) => void) | undefined;
+    const agent = {
+      subscribe(listener: (event: unknown) => void) { receive = listener; return () => undefined; },
+      async prompt() {
+        receive?.({ type: "tool_execution_start", toolCallId: "call-sql", toolName: "query", args: { sql: "select 1" } });
+        receive?.({ type: "tool_execution_end", toolCallId: "call-sql", toolName: "query", args: { sql: "select 1" }, result: { rows: [] }, isError: false });
+        receive?.({ type: "tool_execution_start", toolCallId: "call-file", toolName: "read_file", args: { path: "report.csv" } });
+        receive?.({ type: "tool_execution_end", toolCallId: "call-file", toolName: "read_file", result: "contents", isError: false });
+        receive?.({ type: "tool_execution_start", toolCallId: "call-skill", toolName: "load_skill", args: { name: "analysis" } });
+        receive?.({ type: "tool_execution_end", toolCallId: "call-skill", toolName: "load_skill", args: {}, result: "ok", isError: false });
+      },
+      abort() { return undefined; },
+    };
+    const runtime = new DataAgentRuntime({ agent });
+    await runtime.dispatch({ protocolVersion: 1, requestId: "req-tools", command: { type: "agent.prompt", prompt: "inspect" } }, { userId: "local", host: "electron" });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const toolEvents = runtime.eventsAfter(0)
+      .map((envelope) => envelope.event)
+      .filter((event) => event.type === "agent.tool_finished");
+    expect(toolEvents).toEqual([
+      expect.objectContaining({ toolCallId: "call-sql", args: { sql: "select 1" } }),
+      expect.objectContaining({ toolCallId: "call-file" }),
+      expect.objectContaining({ toolCallId: "call-skill", args: {} }),
+    ]);
+    expect(toolEvents[1]).not.toHaveProperty("args");
+  });
+
   it("rejects an unsupported protocol version", async () => {
     const runtime = new DataAgentRuntime();
     await expect(runtime.dispatch({ protocolVersion: 99, requestId: "req-1", command: { type: "runtime.probe" } }, { userId: "local", host: "electron" })).rejects.toMatchObject({ code: "UNSUPPORTED_PROTOCOL_VERSION" });
