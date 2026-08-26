@@ -1,6 +1,7 @@
 import { readFile, readdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
+import { boundTextByLines } from "./bounded-read.js";
 
 export interface KnowledgeHit {
   path: string;
@@ -11,6 +12,8 @@ export interface KnowledgeHit {
   endLine: number;
   score: number;
   revision: number;
+  /** The readable Markdown content of the matching chunk. */
+  snippet: string;
 }
 
 interface Chunk { chunkId: string; title: string; startLine: number; endLine: number; text: string; tokens: Map<string, number>; length: number }
@@ -95,7 +98,7 @@ export class KnowledgeIndex {
       }
       if (score > 0) {
         const category = relative.includes("/") ? relative.split("/")[0] : "doc";
-        scored.push({ path: relative, title: chunk.title, category, chunkId: chunk.chunkId.split(":").slice(0, 2).join(":"), startLine: chunk.startLine, endLine: chunk.endLine, score, revision: doc.revision });
+        scored.push({ path: relative, title: chunk.title, category, chunkId: chunk.chunkId.split(":").slice(0, 2).join(":"), startLine: chunk.startLine, endLine: chunk.endLine, score, revision: doc.revision, snippet: boundTextByLines(chunk.text).content });
       }
     }
     return scored.sort((a, z) => z.score - a.score).slice(0, limit);

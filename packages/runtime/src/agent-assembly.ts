@@ -1,6 +1,7 @@
 import { AgentHarness, InMemorySessionRepo } from "@earendil-works/pi-agent-core";
 import type { AgentHarnessTool, AgentToolResult } from "@earendil-works/pi-agent-core";
 import { type Model, type Models } from "@earendil-works/pi-ai";
+import { boundTextByLines, readBoundedFile } from "./bounded-read.js";
 import { builtinModels } from "@earendil-works/pi-ai/providers/all";
 import { Type, type Static, type TSchema } from "typebox";
 import { randomUUID } from "node:crypto";
@@ -84,8 +85,10 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<undef
   const tools: AgentHarnessTool<undefined>[] = [
     defineTool("list_workspace", canonicalLocalTools()[0].description, Type.Object({}), async () =>
       text((await deps.workspace.list()).filter((entry) => !entry.split(path.sep).includes(".audit.log")).join("\n") || "(workspace empty)")),
-    defineTool("read_file", canonicalLocalTools()[1].description, Type.Object({ path: Type.String() }), async (p) =>
-      text(await deps.workspace.read(p.path))),
+    defineTool("read_file", canonicalLocalTools()[1].description, Type.Object({ path: Type.String(), startLine: Type.Optional(Type.Integer({ minimum: 1 })), endLine: Type.Optional(Type.Integer({ minimum: 1 })) }), async (p) => {
+      const result = await deps.workspace.readRange(p.path, { startLine: p.startLine, endLine: p.endLine });
+      return text(result.content, { startLine: p.startLine, endLine: p.endLine, truncated: result.truncated });
+    }),
     defineTool("write_file", canonicalLocalTools()[2].description, Type.Object({ path: Type.String(), content: Type.String() }), async (p) => {
       await deps.workspace.write(p.path, p.content);
       deps.emitArtifact?.(p.path);
@@ -102,12 +105,15 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<undef
     tools.push(
       defineTool("search_knowledge", canonicalLocalTools()[4].description, Type.Object({ query: Type.String({ minLength: 1 }) }), async (p) => {
         const hits = knowledge.search(p.query);
-        return text(hits.length ? hits.map((h) => `${h.path} (score ${h.score.toFixed(3)})`).join("\n") : "(no matches)");
+        const details = hits.map(({ path: hitPath, score, title, startLine, endLine, snippet }) => ({ path: hitPath, score, title, startLine, endLine, snippet }));
+        const rendered = hits.length
+          ? hits.map((h) => `${h.path} (score ${h.score.toFixed(3)}, lines ${h.startLine}-${h.endLine}, title: ${h.title})\n${h.snippet}`).join("\n\n")
+          : "(no matches)";
+        return text(boundTextByLines(rendered).content, details);
       }),
-      defineTool("read_knowledge", canonicalLocalTools()[5].description, Type.Object({ path: Type.String({ minLength: 1 }) }), async (p) => {
-        const target = path.resolve(deps.knowledgeRoot!, p.path);
-        if (!target.startsWith(path.resolve(deps.knowledgeRoot!))) throw new Error("KNOWLEDGE_PATH_ESCAPE");
-        return text(await readFile(target, "utf8"));
+      defineTool("read_knowledge", canonicalLocalTools()[5].description, Type.Object({ path: Type.String({ minLength: 1 }), startLine: Type.Optional(Type.Integer({ minimum: 1 })), endLine: Type.Optional(Type.Integer({ minimum: 1 })) }), async (p) => {
+        const result = await readBoundedFile(deps.knowledgeRoot!, p.path, { startLine: p.startLine, endLine: p.endLine });
+        return text(result.content, { startLine: p.startLine, endLine: p.endLine, truncated: result.truncated });
       }),
     );
   }
