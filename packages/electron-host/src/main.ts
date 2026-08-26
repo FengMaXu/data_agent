@@ -87,7 +87,18 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
   const semanticProjectDir = process.env.DATA_AGENT_SEMANTIC_PROJECT_DIR
     ? path.resolve(process.env.DATA_AGENT_SEMANTIC_PROJECT_DIR)
     : path.join(paths.userDataDir, "semantic-context");
-  const runtime = new DataAgentRuntime({ metadata, sessions, knowledgeRoot, knowledge, pythonExecutable, semanticProjectDir });
+  const applicationRoot = path.dirname(paths.rendererDist);
+  const developmentRoot = applicationRoot.includes(`${path.sep}app.asar`) ? applicationRoot : path.resolve(applicationRoot, "..");
+  const packagedRoot = effectiveResources ?? applicationRoot;
+  const runtime = new DataAgentRuntime({
+    metadata,
+    sessions,
+    knowledgeRoot,
+    knowledge,
+    pythonExecutable,
+    semanticProjectDir,
+    skillRoots: [path.join(developmentRoot, ".agents", "skills"), path.join(packagedRoot, ".agents", "skills")],
+  });
 
   registerElectronRuntimeIpc(deps.ipcMain as never, runtime);
 

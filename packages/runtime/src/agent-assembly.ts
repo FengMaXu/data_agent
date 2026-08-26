@@ -1,5 +1,5 @@
 import { AgentHarness, InMemorySessionRepo } from "@earendil-works/pi-agent-core";
-import type { AgentHarnessTool, AgentToolResult } from "@earendil-works/pi-agent-core";
+import type { AgentHarnessTool, AgentToolResult, Skill as NativeSkill } from "@earendil-works/pi-agent-core";
 import { type Model, type Models } from "@earendil-works/pi-ai";
 import { builtinModels } from "@earendil-works/pi-ai/providers/all";
 import { Type, type Static, type TSchema } from "typebox";
@@ -10,6 +10,7 @@ import { renderSemanticDashboardHtml, validateDashboardV4Spec } from "./dashboar
 import { KnowledgeWriter } from "./knowledge-write.js";
 import { runPythonJob } from "./python-job.js";
 import { canonicalLocalTools } from "./tools-catalog.js";
+import { effectiveTools, loadSkillsFromRoots, resolveSkillRoots } from "./skills.js";
 import type { KnowledgeIndex } from "./knowledge.js";
 import type { WorkspaceStore } from "./workspace.js";
 import type { ClarificationManager } from "./clarification.js";
@@ -29,6 +30,10 @@ export interface AgentAssemblyDeps {
   systemPromptRoots?: string[];
   /** Runtime event sink for artifact notifications. */
   emitArtifact?: (relativePath: string) => void;
+  /** Explicit project root used for development Skills. */
+  projectRoot?: string;
+  /** Explicit application resources root used for packaged Skills. */
+  packagedRoot?: string;
 }
 
 export interface AgentModelProfile {
@@ -76,6 +81,26 @@ function defineTool<S extends TSchema>(
   execute: (params: Static<S>) => Promise<AgentToolResult<unknown>>,
 ): AgentHarnessTool<undefined> {
   return { name, label: name, description, parameters, execute: async (_id: unknown, params: any) => execute(params as Static<S>) } as unknown as AgentHarnessTool<undefined>;
+}
+
+interface DataAgentSkill extends NativeSkill {
+  allowedTools?: string[];
+}
+
+/** Keeps native AgentHarness skill invocation while applying legacy allowlists. */
+class DataAgentHarness extends AgentHarness<undefined, DataAgentSkill> {
+  override async skill(name: string, additionalInstructions?: string) {
+    const skill = this.getResources().skills?.find((candidate) => candidate.name === name);
+    if (!skill) return super.skill(name, additionalInstructions);
+    const previous = this.getActiveTools().map((tool) => (tool as unknown as { name: string }).name);
+    const active = effectiveTools(previous, [skill]);
+    await this.setActiveTools(active);
+    try {
+      return await super.skill(name, additionalInstructions);
+    } finally {
+      await this.setActiveTools(previous);
+    }
+  }
 }
 
 export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<undefined>[] {
@@ -215,13 +240,16 @@ export async function createDataAgentHarness(deps: AgentAssemblyDeps, profile: A
   if (profile.provider === "anthropic") process.env.ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || profile.apiKey;
   else process.env.OPENAI_API_KEY = process.env.OPENAI_API_KEY || profile.apiKey;
   const models: Models = builtinModels();
-  const harness = new AgentHarness({
+  const skillLoad = await loadSkillsFromRoots(resolveSkillRoots({ projectRoot: deps.projectRoot, packagedRoot: deps.packagedRoot }));
+  for (const item of skillLoad.diagnostics) console.warn(`[data-agent] Skill diagnostic (${item.code ?? "warning"}) ${item.path}: ${item.message}`);
+  const harness = new DataAgentHarness({
     session: await new InMemorySessionRepo().create(),
     models,
     model: buildModel(profile),
     thinkingLevel: "off",
     systemPrompt: deps.systemPrompt ?? await resolveSystemPrompt(deps.systemPromptRoots ?? (deps.knowledgeRoot ? [deps.knowledgeRoot] : [])),
     tools: buildAgentTools(deps),
+    resources: { skills: skillLoad.skills },
   });
   return harness;
 }

@@ -45,7 +45,7 @@ const semanticProjectDir = process.env.DATA_AGENT_SEMANTIC_PROJECT_DIR
   : path.resolve(dataDir, "..", "semantic-context");
 
 const workspace = new WorkspaceStore(path.join(dataDir, "workspace"), { userId: "local", sessionId: undefined });
-const runtime = new DataAgentRuntime({ metadata, sessions, knowledgeRoot, knowledge, workspace, semanticProjectDir });
+const runtime = new DataAgentRuntime({ metadata, sessions, knowledgeRoot, knowledge, workspace, semanticProjectDir, skillRoots: [path.join(root, ".agents", "skills"), path.join(process.resourcesPath ?? root, ".agents", "skills")] });
 
 // Real db/llm probes so onboarding and the settings testers work over HTTP.
 const { createHostTesters } = await import(toUrl(path.join(root, "apps/server/dist/host-testers.js")));
@@ -124,7 +124,7 @@ async function resolveAgentHarness() {
   const key = JSON.stringify(profile);
   if (!agentHarness || key !== agentProfileKey) {
     const { createDataAgentHarness } = await import(toUrl(path.join(root, "packages/runtime/dist/index.js")));
-    agentHarness = await createDataAgentHarness({ workspace, knowledge, knowledgeRoot, pythonExecutable, queryExecutor: await resolveQueryExecutor(), clarifications: runtime.clarifications, systemPromptRoots: [knowledgeRoot, root] }, profile);
+    agentHarness = await createDataAgentHarness({ workspace, knowledge, knowledgeRoot, pythonExecutable, queryExecutor: await resolveQueryExecutor(), clarifications: runtime.clarifications, systemPromptRoots: [knowledgeRoot, root], projectRoot: root, packagedRoot: process.resourcesPath ?? root }, profile);
     for (const listener of agentListeners) agentHarness.subscribe(listener);
     agentProfileKey = key;
     console.log(`[data-agent-web] agent ready: ${profile.provider}/${profile.model}`);
@@ -136,6 +136,8 @@ runtime.attachAgent({
   steer: async (text) => (await resolveAgentHarness())?.steer(text),
   followUp: async (text) => (await resolveAgentHarness())?.followUp(text),
   abort: async () => agentHarness?.abort(),
+  getResources: () => agentHarness?.getResources() ?? {},
+  setResources: async (resources) => { if (agentHarness) await agentHarness.setResources(resources); },
   subscribe: (listener) => { agentListeners.add(listener); return () => agentListeners.delete(listener); },
 });
 

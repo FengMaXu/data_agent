@@ -18,6 +18,7 @@ import { KnowledgeIndex } from "./knowledge.js";
 import { ClarificationManager } from "./clarification.js";
 import { renderStandaloneDashboardHtml, validateDashboardV3Spec } from "./dashboard-v3.js";
 import { renderSemanticDashboardHtml, validateDashboardV4Spec } from "./dashboard-v4.js";
+import { loadSkillsFromRoots, resolveSkillRoots } from "./skills.js";
 
 export class DataAgentRuntimeError extends Error {
   readonly code: "INVALID_COMMAND" | "UNSUPPORTED_PROTOCOL_VERSION" | "INVALID_CONTEXT";
@@ -49,6 +50,7 @@ export class DataAgentRuntime {
   private readonly knowledge?: KnowledgeIndex;
   private readonly knowledgeRoot?: string;
   private readonly semanticProjectDir?: string;
+  private readonly skillRoots: string[];
   queryExecutor?: { run(sql: string, rowLimit: number): Promise<{ columns: string[]; rows: unknown[][]; truncated: boolean }> };
   dbTester?: { test(connection: Record<string, unknown>): Promise<{ success: boolean; message: string; details?: unknown }> };
   llmTester?: { test(profile: Record<string, unknown>): Promise<{ success: boolean; message: string; details?: unknown }> };
@@ -57,9 +59,9 @@ export class DataAgentRuntime {
   ingestJob?: { getStatus(): Promise<{ status: string; jobId: string | null; summary: { updated: number; unchanged: number; failed: number; skipped: number }; errorCode: string | null }>; retry(): Promise<{ accepted: boolean }> };
   private readonly clarifications: ClarificationManager;
   private activeRun?: { requestId: string; runId: string; sessionId?: string };
-  private agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void };
+  private agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void; getResources?(): { skills?: unknown[]; promptTemplates?: unknown[] }; setResources?(resources: { skills?: unknown[]; promptTemplates?: unknown[] }): Promise<void> };
 
-  constructor(options: { metadata?: MetadataStore; sessions?: PiJsonlSessionStore; workspace?: WorkspaceStore; pythonExecutable?: string; knowledge?: KnowledgeIndex; knowledgeRoot?: string; semanticProjectDir?: string; clarifications?: ClarificationManager; agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void } } = {}) {
+  constructor(options: { metadata?: MetadataStore; sessions?: PiJsonlSessionStore; workspace?: WorkspaceStore; pythonExecutable?: string; knowledge?: KnowledgeIndex; knowledgeRoot?: string; semanticProjectDir?: string; skillRoots?: string[]; projectRoot?: string; packagedRoot?: string; clarifications?: ClarificationManager; agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void; getResources?(): { skills?: unknown[]; promptTemplates?: unknown[] }; setResources?(resources: { skills?: unknown[]; promptTemplates?: unknown[] }): Promise<void> } } = {}) {
     this.metadata = options.metadata;
     this.sessions = options.sessions;
     this.workspace = options.workspace;
@@ -67,6 +69,7 @@ export class DataAgentRuntime {
     this.knowledge = options.knowledge;
     this.knowledgeRoot = options.knowledgeRoot;
     this.semanticProjectDir = (options as { semanticProjectDir?: string }).semanticProjectDir;
+    this.skillRoots = options.skillRoots ?? resolveSkillRoots({ projectRoot: options.projectRoot, packagedRoot: options.packagedRoot });
     this.clarifications = options.clarifications ?? new ClarificationManager();
     this.clarifications.onAsked = (request) => {
       this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: "clarification", timestamp: Date.now(), sessionId: request.sessionId, event: { type: "clarification.request", clarificationId: request.clarificationId, question: request.question, options: request.options } });
@@ -205,13 +208,20 @@ export class DataAgentRuntime {
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "mcp.config.result", config } };
     }
     if (command.command.type === "skills.list") {
-      const { resolve: resolvePath2 } = await import("node:path");
-      const { loadSkillsFromDir } = await import("./skills.js");
-      const skillsRoot = resolvePath2(this.knowledgeRoot as string, "..", "skills");
-      const { skills: loaded } = await loadSkillsFromDir(skillsRoot);
-      const skills: Array<{ name: string; description: string; tools: string[] }> = [];
-      for (const sk of loaded) skills.push({ name: String((sk as any).name ?? ""), description: String((sk as any).description ?? ""), tools: Array.isArray((sk as any).tools) ? (sk as any).tools.map(String) : [] });
-      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "skills.list.result", skills } };
+      const roots = this.skillRoots;
+      const loaded = await loadSkillsFromRoots(roots);
+      for (const item of loaded.diagnostics) console.warn(`[data-agent] Skill diagnostic (${item.code ?? "warning"}) ${item.path}: ${item.message}`);
+      if (this.agent?.setResources) {
+        const previous = this.agent.getResources?.() ?? {};
+        await this.agent.setResources({ ...previous, skills: loaded.skills });
+      }
+      const skills: Array<{ name: string; description: string; tools: string[] }> = loaded.skills.map((skill) => ({
+        name: skill.name,
+        description: skill.description,
+        tools: skill.allowedTools ?? [],
+      }));
+      const diagnostics = loaded.diagnostics.map((item) => ({ path: item.path, message: item.message }));
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "skills.list.result", skills, diagnostics } };
     }
     if (command.command.type === "dashboard.migrate") {
       if (!this.workspace) throw new DataAgentRuntimeError("INVALID_COMMAND", "Workspace is not configured");
@@ -477,7 +487,7 @@ export class DataAgentRuntime {
   }
 
   /** Attach an agent after construction (host wiring) — (re)subscribes event mapping. */
-  attachAgent(agent: NonNullable<Parameters<DataAgentRuntime["dispatch"]>[0] extends never ? never : { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void }>): void {
+  attachAgent(agent: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void; getResources?(): { skills?: unknown[]; promptTemplates?: unknown[] }; setResources?(resources: { skills?: unknown[]; promptTemplates?: unknown[] }): Promise<void> }): void {
     this.agent = agent;
     agent.subscribe?.((event) => this.mapPiEvent(event));
   }
@@ -505,7 +515,7 @@ export { LocalAuthService } from "./auth.js";
 export { createDataAgentHarness, buildAgentTools, resolveSystemPrompt, TOOL_NAME_MAPPING, DATA_AGENT_SYSTEM_PROMPT, type AgentAssemblyDeps, type AgentModelProfile } from "./agent-assembly.js";
 export { migrateLegacyData, type MigrationReport } from "./legacy-migration.js";
 export { runPythonJob, type PythonJobResult } from "./python-job.js";
-export { effectiveTools, loadSkillsFromDir, moveSystemPrompt, type SkillDefinition, type SkillDiagnostic } from "./skills.js";
+export { effectiveTools, loadSkillsFromDir, loadSkillsFromRoots, resolveSkillRoots, moveSystemPrompt, type SkillDefinition, type SkillDiagnostic, type SkillRootOptions } from "./skills.js";
 export { KnowledgeIndex, type KnowledgeHit } from "./knowledge.js";
 export { KnowledgeWriter, KnowledgeWriteDeniedError, readAuditLog, type KnowledgeWriteOperation, type KnowledgeWriteResult } from "./knowledge-write.js";
 export { createExportQueryAdapter, ExportCapabilityError } from "./export-adapter.js";
