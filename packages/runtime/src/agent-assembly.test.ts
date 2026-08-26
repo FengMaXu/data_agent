@@ -44,6 +44,65 @@ describe("export_query", () => {
     }
   }, 30_000);
 
+  it("escapes embedded quotes and newlines according to RFC 4180", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-export-csv-"));
+    const workspace = new WorkspaceStore(root);
+    const tool = exportTool(workspace, {
+      stream: async function* (): AsyncGenerator<QueryExportBatch> {
+        yield { columns: ["name", "note"], rows: [["Ada", "say \"hello\"\nthen leave"]] };
+      },
+      run: async () => { throw new Error("run should not be used"); },
+    });
+    try {
+      await tool.execute("call-csv", { sql: "SELECT name, note", filename: "exports/escaped.csv" });
+      expect(await readFile(join(root, "exports", "escaped.csv"), "utf8")).toBe(
+        "name,note\n\"Ada\",\"say \"\"hello\"\"\nthen leave\"",
+      );
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("uses native skill invocation for the model-visible load_skill tool", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-load-skill-"));
+    const workspace = new WorkspaceStore(root);
+    const calls: string[] = [];
+    const tool = buildAgentTools({
+      workspace,
+      invokeSkill: async (name) => {
+        calls.push(name);
+        return { content: [{ type: "text", text: "native result" }] };
+      },
+    }).find((candidate) => candidate.name === "load_skill") as any;
+    try {
+      const result = await tool.execute("call-skill", { name: "analysis" });
+      expect(calls).toEqual(["analysis"]);
+      expect(result.content).toEqual([{ type: "text", text: "native result" }]);
+      expect(result.details).toEqual({ nativeSkill: "analysis" });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("keeps legacy executors bounded instead of requesting a full result copy", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-export-legacy-"));
+    const workspace = new WorkspaceStore(root);
+    let requestedLimit: number | undefined;
+    const tool = exportTool(workspace, {
+      run: async (_sql: string, limit: number) => {
+        requestedLimit = limit;
+        return { columns: ["id"], rows: [[1]], truncated: true };
+      },
+    });
+    try {
+      await expect(tool.execute("call-legacy", { sql: "SELECT id", filename: "exports/legacy.csv" })).rejects.toThrow("EXPORT_STREAM_REQUIRED");
+      expect(requestedLimit).toBe(50);
+      expect(await tempFiles(root)).toEqual([]);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("preserves existing output and cleans the temporary file on failure", async () => {
     const root = await mkdtemp(join(tmpdir(), "data-agent-export-failure-"));
     const workspace = new WorkspaceStore(root);

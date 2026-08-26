@@ -6,11 +6,11 @@ import { builtinModels } from "@earendil-works/pi-ai/providers/all";
 import { Type, type Static, type TSchema } from "typebox";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { renderSemanticDashboardHtml, validateDashboardV4Spec } from "./dashboard-v4.js";
 import { KnowledgeWriter } from "./knowledge-write.js";
 import { runPythonJob } from "./python-job.js";
-import { canonicalLocalTools } from "./tools-catalog.js";
+import { canonicalLocalTools, type CanonicalTool } from "./tools-catalog.js";
 import { effectiveTools, loadSkillsFromRoots, resolveSkillRoots } from "./skills.js";
 import type { KnowledgeIndex } from "./knowledge.js";
 import type { WorkspaceStore } from "./workspace.js";
@@ -27,6 +27,8 @@ export interface QueryExecutor {
   /** Optional incremental export source. Each batch is released by the executor after consumption. */
   stream?(sql: string, signal?: AbortSignal): AsyncIterable<QueryExportBatch> | Promise<AsyncIterable<QueryExportBatch>>;
 }
+
+export type NativeSkillInvoker = (name: string, additionalInstructions?: string) => Promise<unknown>;
 
 export interface AgentAssemblyDeps {
   workspace: WorkspaceStore;
@@ -47,6 +49,8 @@ export interface AgentAssemblyDeps {
   projectRoot?: string;
   /** Explicit application resources root used for packaged Skills. */
   packagedRoot?: string;
+  /** Native AgentHarness skill invocation seam, supplied by createDataAgentHarness. */
+  invokeSkill?: NativeSkillInvoker;
 }
 
 export interface AgentModelProfile {
@@ -59,6 +63,15 @@ export interface AgentModelProfile {
 }
 
 const DEFAULT_ROW_LIMIT = 50;
+const CANONICAL_TOOL_BY_NAME = new Map<string, CanonicalTool>(
+  canonicalLocalTools().map((tool) => [tool.name, tool]),
+);
+
+function canonicalTool(name: string): CanonicalTool {
+  const tool = CANONICAL_TOOL_BY_NAME.get(name);
+  if (!tool) throw new Error(`CANONICAL_TOOL_MISSING:${name}`);
+  return tool;
+}
 
 function text(content: string, details: unknown = undefined): AgentToolResult<unknown> {
   return { content: [{ type: "text", text: content }], details };
@@ -66,6 +79,31 @@ function text(content: string, details: unknown = undefined): AgentToolResult<un
 
 function throwIfAborted(signal?: AbortSignal): void {
   if (signal?.aborted) throw new Error("EXPORT_CANCELLED");
+}
+
+/** RFC 4180 field encoding; strings remain quoted for compatibility with prior exports. */
+function csvField(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  const raw = typeof value === "string" ? value : typeof value === "object" ? JSON.stringify(value) : String(value);
+  const escaped = raw.replaceAll('"', '""');
+  return typeof value === "string" || /[",\r\n]/.test(raw) ? `"${escaped}"` : escaped;
+}
+
+function csvHeaderField(value: string): string {
+  return /[",\r\n]/.test(value) ? csvField(value) : value;
+}
+
+function nativeSkillResult(result: unknown, name: string): AgentToolResult<unknown> {
+  if (!result || typeof result !== "object" || !("content" in result) || !Array.isArray(result.content)) {
+    throw new Error("NATIVE_SKILL_INVALID_RESULT");
+  }
+  const content = result.content.filter((item: unknown) => {
+    if (!item || typeof item !== "object" || !("type" in item)) return false;
+    const type = (item as { type?: unknown }).type;
+    return type === "text" || type === "image";
+  });
+  if (content.length === 0) throw new Error("NATIVE_SKILL_EMPTY_RESULT");
+  return { content, details: { nativeSkill: name } } as AgentToolResult<unknown>;
 }
 
 function buildModel(profile: AgentModelProfile): Model<any> {
@@ -151,18 +189,18 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
   const writer = deps.knowledgeRoot ? new KnowledgeWriter(deps.knowledgeRoot) : undefined;
   const workspaceDir = deps.pythonWorkspaceDir ?? deps.workspace.root;
   const tools: AgentHarnessTool<AgentAssemblyToolContext>[] = [
-    defineTool("list_workspace", canonicalLocalTools()[0].description, Type.Object({}), async () =>
+    defineTool("list_workspace", canonicalTool("list_workspace").description, Type.Object({}), async () =>
       text((await deps.workspace.list()).filter((entry) => !entry.split(path.sep).includes(".audit.log")).join("\n") || "(workspace empty)")),
-    defineTool("read_file", canonicalLocalTools()[1].description, Type.Object({ path: Type.String(), startLine: Type.Optional(Type.Integer({ minimum: 1 })), endLine: Type.Optional(Type.Integer({ minimum: 1 })) }), async (p) => {
+    defineTool("read_file", canonicalTool("read_file").description, Type.Object({ path: Type.String(), startLine: Type.Optional(Type.Integer({ minimum: 1 })), endLine: Type.Optional(Type.Integer({ minimum: 1 })) }), async (p) => {
       const result = await deps.workspace.readRange(p.path, { startLine: p.startLine, endLine: p.endLine });
       return text(result.content, { startLine: p.startLine, endLine: p.endLine, truncated: result.truncated });
     }),
-    defineTool("write_file", canonicalLocalTools()[2].description, Type.Object({ path: Type.String(), content: Type.String() }), async (p) => {
+    defineTool("write_file", canonicalTool("write_file").description, Type.Object({ path: Type.String(), content: Type.String() }), async (p) => {
       await deps.workspace.write(p.path, p.content);
       deps.emitArtifact?.(p.path);
       return text(`written ${p.path} (${p.content.length} bytes)`);
     }),
-    defineTool("run_python", canonicalLocalTools()[3].description, Type.Object({ code: Type.String({ minLength: 1 }), description: Type.Optional(Type.String()) }), async (p) => {
+    defineTool("run_python", canonicalTool("run_python").description, Type.Object({ code: Type.String({ minLength: 1 }), description: Type.Optional(Type.String()) }), async (p) => {
       if (!deps.pythonExecutable) throw new Error("PYTHON_RUNTIME_NOT_AVAILABLE");
       const result = await runPythonJob(p.code, { workspace: workspaceDir, executable: deps.pythonExecutable, timeoutMs: 120000 });
       return text(result.stdout || result.stderr || "(no output)", { exitCode: result.exitCode });
@@ -171,7 +209,7 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
   if (deps.knowledge) {
     const knowledge = deps.knowledge;
     tools.push(
-      defineTool("search_knowledge", canonicalLocalTools()[4].description, Type.Object({ query: Type.String({ minLength: 1 }) }), async (p) => {
+      defineTool("search_knowledge", canonicalTool("search_knowledge").description, Type.Object({ query: Type.String({ minLength: 1 }) }), async (p) => {
         const hits = knowledge.search(p.query);
         const details = hits.map(({ path: hitPath, score, title, startLine, endLine, snippet }) => ({ path: hitPath, score, title, startLine, endLine, snippet }));
         const rendered = hits.length
@@ -179,20 +217,24 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
           : "(no matches)";
         return text(boundTextByLines(rendered).content, details);
       }),
-      defineTool("read_knowledge", canonicalLocalTools()[5].description, Type.Object({ path: Type.String({ minLength: 1 }), startLine: Type.Optional(Type.Integer({ minimum: 1 })), endLine: Type.Optional(Type.Integer({ minimum: 1 })) }), async (p) => {
+      defineTool("read_knowledge", canonicalTool("read_knowledge").description, Type.Object({ path: Type.String({ minLength: 1 }), startLine: Type.Optional(Type.Integer({ minimum: 1 })), endLine: Type.Optional(Type.Integer({ minimum: 1 })) }), async (p) => {
         const result = await readBoundedFile(deps.knowledgeRoot!, p.path, { startLine: p.startLine, endLine: p.endLine });
         return text(result.content, { startLine: p.startLine, endLine: p.endLine, truncated: result.truncated });
       }),
     );
   }
   if (writer) {
-    tools.push(defineTool("update_knowledge", canonicalLocalTools()[6].description, Type.Object({ operation: Type.Union([Type.Literal("append_learning"), Type.Literal("write_draft"), Type.Literal("update_schema")]), path: Type.String({ minLength: 1 }), content: Type.String() }), async (p) => {
+    tools.push(defineTool("update_knowledge", canonicalTool("update_knowledge").description, Type.Object({ operation: Type.Union([Type.Literal("append_learning"), Type.Literal("write_draft"), Type.Literal("update_schema")]), path: Type.String({ minLength: 1 }), content: Type.String() }), async (p) => {
       const result = await writer.write(p.operation, p.path, p.content);
       return text(`${result.operation} -> ${result.path} (${result.bytesWritten} bytes)`);
     }));
   }
   tools.push(
-    defineTool("generate_dashboard", canonicalLocalTools()[8].description, Type.Object({ operation: Type.Union([Type.Literal("create"), Type.Literal("edit"), Type.Literal("validate")]), mode: Type.Union([Type.Literal("static"), Type.Literal("semantic")]), version: Type.Union([Type.Literal("v3"), Type.Literal("v4")]), spec: Type.Unknown(), editPath: Type.Optional(Type.String()) }), async (p) => {
+    defineTool("load_skill", canonicalTool("load_skill").description, Type.Object({ name: Type.String({ minLength: 1 }) }), async (p) => {
+      if (!deps.invokeSkill) throw new Error("NATIVE_SKILL_INVOCATION_UNAVAILABLE");
+      return nativeSkillResult(await deps.invokeSkill(p.name), p.name);
+    }),
+    defineTool("generate_dashboard", canonicalTool("generate_dashboard").description, Type.Object({ operation: Type.Union([Type.Literal("create"), Type.Literal("edit"), Type.Literal("validate")]), mode: Type.Union([Type.Literal("static"), Type.Literal("semantic")]), version: Type.Union([Type.Literal("v3"), Type.Literal("v4")]), spec: Type.Unknown(), editPath: Type.Optional(Type.String()) }), async (p) => {
       const validated = validateDashboardV4Spec(p.spec);
       if (!validated.ok) throw new Error(`DASHBOARD_SPEC_INVALID: ${validated.errors.join("; ")}`);
       if (p.operation === "validate") return text("dashboard spec valid");
@@ -202,7 +244,7 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
       deps.emitArtifact?.(target);
       return text(`dashboard written to ${target}`);
     }),
-    defineTool("show_widget", canonicalLocalTools()[9].description, Type.Object({ kind: Type.Union([Type.Literal("kpi"), Type.Literal("chart"), Type.Literal("table"), Type.Literal("steps")]), spec: Type.Unknown() }), async (p, native) => {
+    defineTool("show_widget", canonicalTool("show_widget").description, Type.Object({ kind: Type.Union([Type.Literal("kpi"), Type.Literal("chart"), Type.Literal("table"), Type.Literal("steps")]), spec: Type.Unknown() }), async (p, native) => {
       const widgetId = `widget-${native.toolCallId}`;
       if (native.signal?.aborted) throw new Error("Operation aborted");
       const validation = validateWidgetSpec(p.kind, p.spec);
@@ -258,16 +300,16 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
       return text(`${header}\n${body}${result.truncated ? `\n(truncated at ${result.rows.length} rows)` : ""}`, { columns: result.columns, rows: result.rows });
     };
     tools.push(
-      defineTool("query_database", canonicalLocalTools()[10].description, Type.Object({ sql: Type.String({ minLength: 1 }), limit: Type.Optional(Type.Number()) }), async (p) => runQuery(p.sql, p.limit)),
-      defineTool("export_query", canonicalLocalTools()[12].description, Type.Object({ sql: Type.String({ minLength: 1 }), filename: Type.Optional(Type.String()) }), async (p, native) => {
+      defineTool("query_database", canonicalTool("query_database").description, Type.Object({ sql: Type.String({ minLength: 1 }), limit: Type.Optional(Type.Number()) }), async (p) => runQuery(p.sql, p.limit)),
+      defineTool("export_query", canonicalTool("export_query").description, Type.Object({ sql: Type.String({ minLength: 1 }), filename: Type.Optional(Type.String()) }), async (p, native) => {
         const signal = native.signal;
         const target = p.filename ?? `exports/query-${Date.now()}.csv`;
         let rowCount = 0;
         await deps.workspace.writeStream(target, async (write) => {
           let pending = "";
-          let columnsWritten = false;
-          const append = async (line: string) => {
-            pending += line;
+          let headerWritten = false;
+          const append = async (chunk: string) => {
+            pending += chunk;
             if (pending.length >= 64 * 1024) {
               await write(pending);
               pending = "";
@@ -275,14 +317,13 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
           };
           const consume = async (batch: QueryExportBatch) => {
             throwIfAborted(signal);
-            if (!columnsWritten && batch.rows.length > 0) {
-              await append(batch.columns.join(","));
-              columnsWritten = true;
+            if (!headerWritten) {
+              await append(batch.columns.map(csvHeaderField).join(","));
+              headerWritten = true;
             }
             for (const row of batch.rows) {
               throwIfAborted(signal);
-              await append(`${columnsWritten ? "\n" : ""}${row.map((cell) => JSON.stringify(cell ?? "")).join(",")}`);
-              columnsWritten = true;
+              await append(`\n${row.map(csvField).join(",")}`);
               rowCount++;
             }
           };
@@ -290,10 +331,11 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
             const batches = await deps.queryExecutor!.stream(p.sql, signal);
             for await (const batch of batches) await consume(batch);
           } else {
-            // Keep the legacy executor contract working while ensuring the CSV
-            // itself is never assembled as one in-memory string.
-            const full = await deps.queryExecutor!.run(p.sql, 100000);
-            await consume(full);
+            // The legacy preview contract is intentionally bounded. Executors
+            // that support complete exports must implement stream().
+            const bounded = await deps.queryExecutor!.run(p.sql, DEFAULT_ROW_LIMIT);
+            if (bounded.truncated) throw new Error("EXPORT_STREAM_REQUIRED");
+            await consume(bounded);
           }
           if (pending) await write(pending);
         }, signal);
@@ -305,7 +347,7 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
   }
   if (deps.clarifications) {
     const clarifications = deps.clarifications;
-    tools.push(defineTool("ask_user_clarification", canonicalLocalTools()[11].description, Type.Object({ question: Type.String({ minLength: 1 }), options: Type.Optional(Type.Array(Type.String())) }), async (p) => {
+    tools.push(defineTool("ask_user_clarification", canonicalTool("ask_user_clarification").description, Type.Object({ question: Type.String({ minLength: 1 }), options: Type.Optional(Type.Array(Type.String())) }), async (p) => {
       const { clarificationId, promise } = clarifications.ask(deps.sessionId ?? "web", p.question, p.options ?? []);
       deps.emitArtifact?.(`__clarification__:${clarificationId}`);
       const answer = await promise;
@@ -370,13 +412,21 @@ export async function createDataAgentHarness(deps: AgentAssemblyDeps, profile: A
   const models: Models = builtinModels();
   const skillLoad = await loadSkillsFromRoots(resolveSkillRoots({ projectRoot: deps.projectRoot, packagedRoot: deps.packagedRoot }));
   for (const item of skillLoad.diagnostics) console.warn(`[data-agent] Skill diagnostic (${item.code ?? "warning"}) ${item.path}: ${item.message}`);
-  const harness = new DataAgentHarness({
+  let harness: DataAgentHarness | undefined;
+  const tools = buildAgentTools({
+    ...deps,
+    invokeSkill: (name, additionalInstructions) => {
+      if (!harness) throw new Error("NATIVE_SKILL_INVOCATION_UNAVAILABLE");
+      return harness.skill(name, additionalInstructions);
+    },
+  });
+  harness = new DataAgentHarness({
     session: await new InMemorySessionRepo().create(),
     models,
     model: buildModel(profile),
     thinkingLevel: "off",
     systemPrompt: deps.systemPrompt ?? await resolveSystemPrompt(deps.systemPromptRoots ?? (deps.knowledgeRoot ? [deps.knowledgeRoot] : [])),
-    tools: buildAgentTools(deps),
+    tools,
     resources: { skills: skillLoad.skills },
     toolContext: { sessionId: deps.sessionId },
   });
