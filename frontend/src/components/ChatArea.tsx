@@ -797,7 +797,9 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                     message.toolCallsById[event.tool_call_id] = {
                         ...existing,
                         name: event.name,
-                        arguments: event.arguments ?? existing.arguments,
+                        arguments: event.arguments && typeof event.arguments === 'object' && Object.keys(event.arguments).length > 0
+                            ? event.arguments
+                            : existing.arguments,
                         result: event.content,
                         details: event.details,
                         isError: event.is_error,

@@ -92,7 +92,30 @@ export type DataAgentResponse = Static<typeof DataAgentResponseSchema>;
 export const DataAgentResponseEnvelopeSchema = Type.Object({ protocolVersion: Type.Literal(ProtocolVersion), requestId: Type.String({ minLength: 1 }), response: DataAgentResponseSchema });
 export type DataAgentResponseEnvelope = Static<typeof DataAgentResponseEnvelopeSchema>;
 
-export const DataAgentEventSchema = Type.Union([Type.Object({ type: Type.Literal("runtime.probe.completed"), service: Type.Literal("data-agent-runtime") }), Type.Object({ type: Type.Literal("agent.text_delta"), delta: Type.String() }), Type.Object({ type: Type.Literal("agent.thinking_delta"), delta: Type.String() }), Type.Object({ type: Type.Literal("agent.message_started"), messageId: Type.String() }), Type.Object({ type: Type.Literal("agent.tool_started"), toolCallId: Type.String(), toolName: Type.String(), args: Type.Unknown() }), Type.Object({ type: Type.Literal("agent.tool_finished"), toolCallId: Type.String(), toolName: Type.String(), result: Type.Unknown(), isError: Type.Boolean() }), Type.Object({ type: Type.Literal("agent.completed") }), Type.Object({ type: Type.Literal("workspace.artifact.created"), path: Type.String(), kind: Type.Literal("file") }), Type.Object({ type: Type.Literal("clarification.request"), clarificationId: Type.String(), question: Type.String(), options: Type.Array(Type.String()) }), Type.Object({ type: Type.Literal("clarification.settled"), clarificationId: Type.String(), outcome: Type.Union([Type.Literal("answered"), Type.Literal("expired"), Type.Literal("cancelled")]) })]);
+const WidgetRecordSchema = Type.Record(Type.String(), Type.Unknown());
+const WidgetEventFields = {
+  messageId: Type.String({ minLength: 1 }),
+  toolCallId: Type.String({ minLength: 1 }),
+  widgetId: Type.String({ minLength: 1 }),
+};
+
+export const DataAgentEventSchema = Type.Union([
+  Type.Object({ type: Type.Literal("runtime.probe.completed"), service: Type.Literal("data-agent-runtime") }),
+  Type.Object({ type: Type.Literal("agent.text_delta"), delta: Type.String() }),
+  Type.Object({ type: Type.Literal("agent.thinking_delta"), delta: Type.String() }),
+  Type.Object({ type: Type.Literal("agent.message_started"), messageId: Type.String() }),
+  Type.Object({ type: Type.Literal("agent.tool_started"), toolCallId: Type.String(), toolName: Type.String(), args: Type.Unknown() }),
+  Type.Object({ type: Type.Literal("agent.tool_finished"), toolCallId: Type.String(), toolName: Type.String(), args: Type.Optional(Type.Unknown()), result: Type.Unknown(), isError: Type.Boolean() }),
+  Type.Object({ type: Type.Literal("widget"), ...WidgetEventFields, toolName: Type.Literal("show_widget"), widget: WidgetRecordSchema }),
+  Type.Object({ type: Type.Literal("widget_patch"), ...WidgetEventFields, toolName: Type.Literal("show_widget"), patch: WidgetRecordSchema }),
+  Type.Object({ type: Type.Literal("widget_done"), ...WidgetEventFields, toolName: Type.Literal("show_widget") }),
+  Type.Object({ type: Type.Literal("widget_remove"), ...WidgetEventFields, toolName: Type.Literal("show_widget") }),
+  Type.Object({ type: Type.Literal("widget_error"), ...WidgetEventFields, toolName: Type.Literal("show_widget"), error: Type.String() }),
+  Type.Object({ type: Type.Literal("agent.completed") }),
+  Type.Object({ type: Type.Literal("workspace.artifact.created"), path: Type.String(), kind: Type.Literal("file") }),
+  Type.Object({ type: Type.Literal("clarification.request"), clarificationId: Type.String(), question: Type.String(), options: Type.Array(Type.String()) }),
+  Type.Object({ type: Type.Literal("clarification.settled"), clarificationId: Type.String(), outcome: Type.Union([Type.Literal("answered"), Type.Literal("expired"), Type.Literal("cancelled")]) }),
+]);
 export type DataAgentEvent = Static<typeof DataAgentEventSchema>;
 export const DataAgentEventEnvelopeSchema = Type.Object({ protocolVersion: Type.Literal(ProtocolVersion), sequence: Type.Integer({ minimum: 1 }), requestId: Type.String({ minLength: 1 }), sessionId: Type.Optional(Type.String()), runId: Type.Optional(Type.String()), timestamp: Type.Integer({ minimum: 0 }), event: DataAgentEventSchema });
 export type DataAgentEventEnvelope = Static<typeof DataAgentEventEnvelopeSchema>;

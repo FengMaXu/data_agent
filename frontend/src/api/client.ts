@@ -302,10 +302,12 @@ export interface SkillListResponse {
 
 export interface WidgetSpec {
     widget_id: string;
-    kind: 'metric_cards' | 'table' | 'chart' | 'steps' | 'rich_text' | 'echarts' | 'file_link';
+    kind: 'kpi' | 'metric_cards' | 'table' | 'chart' | 'steps' | 'rich_text' | 'echarts' | 'file_link';
     title: string;
     subtitle?: string;
     data?: any[];
+    value?: string | number;
+    label?: string;
     series?: any[];
     columns?: any[];
     actions?: any[];

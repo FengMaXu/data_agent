@@ -13,6 +13,7 @@ import { canonicalLocalTools } from "./tools-catalog.js";
 import type { KnowledgeIndex } from "./knowledge.js";
 import type { WorkspaceStore } from "./workspace.js";
 import type { ClarificationManager } from "./clarification.js";
+import { emitWidgetUpdate, validateWidgetSpec, widgetLegacyText, type WidgetLifecycleDetails, type WidgetPayload } from "./widget.js";
 
 export interface AgentAssemblyDeps {
   workspace: WorkspaceStore;
@@ -71,17 +72,44 @@ function buildModel(profile: AgentModelProfile): Model<any> {
   };
 }
 
-function defineTool<S extends TSchema>(
-  name: string, description: string, parameters: S,
-  execute: (params: Static<S>) => Promise<AgentToolResult<unknown>>,
-): AgentHarnessTool<undefined> {
-  return { name, label: name, description, parameters, execute: async (_id: unknown, params: any) => execute(params as Static<S>) } as unknown as AgentHarnessTool<undefined>;
+export interface AgentAssemblyToolContext {
+  /** Session identity associated with this harness turn, when available. */
+  sessionId?: string;
 }
 
-export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<undefined>[] {
+interface NativeToolExecution {
+  toolCallId: string;
+  signal: AbortSignal | undefined;
+  onUpdate: Parameters<NonNullable<AgentHarnessTool<AgentAssemblyToolContext>["execute"]>>[3];
+  context: AgentAssemblyToolContext;
+}
+
+function defineTool<S extends TSchema>(
+  name: string, description: string, parameters: S,
+  execute: (params: Static<S>, native: NativeToolExecution) => Promise<AgentToolResult<unknown>>,
+): AgentHarnessTool<AgentAssemblyToolContext> {
+  return {
+    name,
+    label: name,
+    description,
+    parameters,
+    execute: async (
+      toolCallId: string,
+      params: Static<S>,
+      signal: AbortSignal | undefined,
+      onUpdate: NativeToolExecution["onUpdate"],
+      context: AgentAssemblyToolContext,
+    ) => execute(
+      params,
+      { toolCallId, signal, onUpdate, context },
+    ),
+  } as unknown as AgentHarnessTool<AgentAssemblyToolContext>;
+}
+
+export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<AgentAssemblyToolContext>[] {
   const writer = deps.knowledgeRoot ? new KnowledgeWriter(deps.knowledgeRoot) : undefined;
   const workspaceDir = deps.pythonWorkspaceDir ?? deps.workspace.root;
-  const tools: AgentHarnessTool<undefined>[] = [
+  const tools: AgentHarnessTool<AgentAssemblyToolContext>[] = [
     defineTool("list_workspace", canonicalLocalTools()[0].description, Type.Object({}), async () =>
       text((await deps.workspace.list()).filter((entry) => !entry.split(path.sep).includes(".audit.log")).join("\n") || "(workspace empty)")),
     defineTool("read_file", canonicalLocalTools()[1].description, Type.Object({ path: Type.String() }), async (p) =>
@@ -128,8 +156,53 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<undef
       deps.emitArtifact?.(target);
       return text(`dashboard written to ${target}`);
     }),
-    defineTool("show_widget", canonicalLocalTools()[9].description, Type.Object({ kind: Type.Union([Type.Literal("kpi"), Type.Literal("chart"), Type.Literal("table"), Type.Literal("steps")]), spec: Type.Unknown() }), async (p) =>
-      text(`[widget:${p.kind}] ${JSON.stringify(p.spec)}`)),
+    defineTool("show_widget", canonicalLocalTools()[9].description, Type.Object({ kind: Type.Union([Type.Literal("kpi"), Type.Literal("chart"), Type.Literal("table"), Type.Literal("steps")]), spec: Type.Unknown() }), async (p, native) => {
+      const widgetId = `widget-${native.toolCallId}`;
+      if (native.signal?.aborted) throw new Error("Operation aborted");
+      const validation = validateWidgetSpec(p.kind, p.spec);
+      if (!validation.ok) {
+        const error = `WIDGET_SPEC_INVALID: ${validation.error}`;
+        emitWidgetUpdate(native.onUpdate, {
+          widgetEvent: "widget_error",
+          widgetId,
+          toolCallId: native.toolCallId,
+          toolName: "show_widget",
+          error,
+          legacyText: `[widget error] ${error}`,
+        });
+        throw new Error(error);
+      }
+      const spec = { ...validation.spec };
+      // The renderer consumes KPI items, while accepting the compact scalar
+      // form keeps the tool useful to callers that only have one value.
+      if (p.kind === "kpi" && !Array.isArray(spec.data) && (typeof spec.value === "string" || typeof spec.value === "number")) {
+        spec.data = [{ label: spec.label ?? "", value: spec.value }];
+      }
+      const widget: WidgetPayload = {
+        ...spec,
+        widget_id: widgetId,
+        kind: p.kind,
+        title: typeof spec.title === "string" && spec.title.trim() ? spec.title : `${p.kind} widget`,
+        tool_call_id: native.toolCallId,
+      };
+      const legacyText = widgetLegacyText(widget);
+      emitWidgetUpdate(native.onUpdate, {
+        widgetEvent: "widget",
+        widgetId,
+        toolCallId: native.toolCallId,
+        toolName: "show_widget",
+        widget,
+        legacyText,
+      });
+      return text(legacyText, {
+        widgetEvent: "widget",
+        widgetId,
+        toolCallId: native.toolCallId,
+        toolName: "show_widget",
+        widget,
+        legacyText,
+      } satisfies WidgetLifecycleDetails);
+    }),
   );
   if (deps.queryExecutor) {
     const runQuery = async (sql: string, limit?: number) => {
@@ -209,7 +282,7 @@ export async function resolveSystemPrompt(searchRoots: string[]): Promise<string
   return DATA_AGENT_SYSTEM_PROMPT;
 }
 
-export async function createDataAgentHarness(deps: AgentAssemblyDeps, profile: AgentModelProfile): Promise<AgentHarness> {
+export async function createDataAgentHarness(deps: AgentAssemblyDeps, profile: AgentModelProfile): Promise<AgentHarness<AgentAssemblyToolContext>> {
   if (!profile.apiKey) throw new Error("LLM_API_KEY_MISSING");
   // Providers resolve auth from the environment; seed it so Models.getAuth succeeds.
   if (profile.provider === "anthropic") process.env.ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || profile.apiKey;
@@ -222,6 +295,7 @@ export async function createDataAgentHarness(deps: AgentAssemblyDeps, profile: A
     thinkingLevel: "off",
     systemPrompt: deps.systemPrompt ?? await resolveSystemPrompt(deps.systemPromptRoots ?? (deps.knowledgeRoot ? [deps.knowledgeRoot] : [])),
     tools: buildAgentTools(deps),
+    toolContext: { sessionId: deps.sessionId },
   });
   return harness;
 }

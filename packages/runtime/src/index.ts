@@ -18,6 +18,7 @@ import { KnowledgeIndex } from "./knowledge.js";
 import { ClarificationManager } from "./clarification.js";
 import { renderStandaloneDashboardHtml, validateDashboardV3Spec } from "./dashboard-v3.js";
 import { renderSemanticDashboardHtml, validateDashboardV4Spec } from "./dashboard-v4.js";
+import type { WidgetLifecycleDetails } from "./widget.js";
 
 export class DataAgentRuntimeError extends Error {
   readonly code: "INVALID_COMMAND" | "UNSUPPORTED_PROTOCOL_VERSION" | "INVALID_CONTEXT";
@@ -36,6 +37,18 @@ export class DataAgentRuntimeError extends Error {
 }
 
 export type DataAgentEventListener = (event: DataAgentEventEnvelope) => void;
+
+function readableToolResult(result: unknown, fallback: string): string {
+  if (typeof result === "string" && result.trim()) return result;
+  if (result && typeof result === "object") {
+    const content = (result as { content?: unknown }).content;
+    if (Array.isArray(content)) {
+      const text = content.find((part) => part && typeof part === "object" && (part as { type?: unknown }).type === "text");
+      if (text && typeof (text as { text?: unknown }).text === "string") return (text as { text: string }).text;
+    }
+  }
+  return fallback;
+}
 
 export class DataAgentRuntime {
   private readonly listeners = new Set<DataAgentEventListener>();
@@ -57,6 +70,9 @@ export class DataAgentRuntime {
   ingestJob?: { getStatus(): Promise<{ status: string; jobId: string | null; summary: { updated: number; unchanged: number; failed: number; skipped: number }; errorCode: string | null }>; retry(): Promise<{ accepted: boolean }> };
   private readonly clarifications: ClarificationManager;
   private activeRun?: { requestId: string; runId: string; sessionId?: string };
+  private activeMessageId?: string;
+  private readonly widgetCalls = new Map<string, { widgetId: string; messageId: string; toolName: string; errorEmitted: boolean; doneEmitted: boolean }>();
+  private readonly toolArgs = new Map<string, unknown>();
   private agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void };
 
   constructor(options: { metadata?: MetadataStore; sessions?: PiJsonlSessionStore; workspace?: WorkspaceStore; pythonExecutable?: string; knowledge?: KnowledgeIndex; knowledgeRoot?: string; semanticProjectDir?: string; clarifications?: ClarificationManager; agent?: { prompt(text: string): Promise<unknown>; steer?(text: string): void; followUp?(text: string): void; abort(): void; subscribe?(listener: (event: any) => void): () => void } } = {}) {
@@ -382,6 +398,10 @@ export class DataAgentRuntime {
 
     if (command.command.type === "agent.prompt") {
       if (!this.agent) throw new DataAgentRuntimeError("INVALID_COMMAND", "Pi Agent is not configured");
+      // Do not let a stale or aborted run associate its tool calls with this one.
+      this.activeMessageId = undefined;
+      this.widgetCalls.clear();
+      this.toolArgs.clear();
       const runId = randomUUID();
       this.activeRun = { requestId: command.requestId, runId, sessionId: context.sessionId };
       void this.agent.prompt(command.command.prompt).then(() => {
@@ -457,7 +477,11 @@ export class DataAgentRuntime {
     if (!run || !event?.type) return;
     const base = () => ({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: run.requestId, runId: run.runId, sessionId: run.sessionId, timestamp: Date.now() });
     if (event.type === "message_start") {
-      this.emit({ ...base(), event: { type: "agent.message_started", messageId: String(event.message?.id ?? "") } });
+      const messageId = String(event.message?.id ?? "") || undefined;
+      // Pi emits message_start for user and tool-result messages too. Keep the
+      // active id on the assistant message so widgets stay attached to it.
+      if (!event.message?.role || event.message.role === "assistant") this.activeMessageId = messageId;
+      this.emit({ ...base(), event: { type: "agent.message_started", messageId: messageId ?? `message-${run.runId}` } });
       return;
     }
     if (event.type === "message_update") {
@@ -467,11 +491,59 @@ export class DataAgentRuntime {
       return;
     }
     if (event.type === "tool_execution_start") {
-      this.emit({ ...base(), event: { type: "agent.tool_started", toolCallId: String(event.toolCallId), toolName: String(event.toolName), args: event.args ?? null } });
+      const toolCallId = String(event.toolCallId);
+      const toolName = String(event.toolName);
+      this.toolArgs.set(toolCallId, event.args ?? null);
+      if (toolName === "show_widget") {
+        this.widgetCalls.set(toolCallId, {
+          widgetId: `widget-${toolCallId}`,
+          messageId: this.activeMessageId || `message-${toolCallId}`,
+          toolName,
+          errorEmitted: false,
+          doneEmitted: false,
+        });
+      }
+      this.emit({ ...base(), event: { type: "agent.tool_started", toolCallId, toolName, args: event.args ?? null } });
+      return;
+    }
+    if (event.type === "tool_execution_update") {
+      const details = event.partialResult?.details as WidgetLifecycleDetails | undefined;
+      const call = this.widgetCalls.get(String(event.toolCallId));
+      if (!call || !details?.widgetEvent) return;
+      const common = { messageId: call.messageId, toolCallId: String(event.toolCallId), widgetId: call.widgetId, toolName: "show_widget" as const };
+      if (details.widgetEvent === "widget" && details.widget) {
+        // Runtime owns the identity; a tool cannot create a second widget by
+        // returning a different id in its details payload.
+        const widget = { ...details.widget, widget_id: call.widgetId, tool_call_id: String(event.toolCallId) };
+        this.emit({ ...base(), event: { type: "widget", ...common, widget } });
+      } else if (details.widgetEvent === "widget_patch" && details.patch) {
+        this.emit({ ...base(), event: { type: "widget_patch", ...common, patch: details.patch } });
+      } else if (details.widgetEvent === "widget_done") {
+        if (!call.errorEmitted && !call.doneEmitted) {
+          call.doneEmitted = true;
+          this.emit({ ...base(), event: { type: "widget_done", ...common } });
+        }
+      } else if (details.widgetEvent === "widget_remove") {
+        this.emit({ ...base(), event: { type: "widget_remove", ...common } });
+      } else if (details.widgetEvent === "widget_error" && !call.doneEmitted && !call.errorEmitted) {
+        call.errorEmitted = true;
+        this.emit({ ...base(), event: { type: "widget_error", ...common, error: details.error || "Widget execution failed" } });
+      }
       return;
     }
     if (event.type === "tool_execution_end") {
-      this.emit({ ...base(), event: { type: "agent.tool_finished", toolCallId: String(event.toolCallId), toolName: String(event.toolName), result: event.result ?? null, isError: Boolean(event.isError) } });
+      const toolCallId = String(event.toolCallId);
+      const call = this.widgetCalls.get(toolCallId);
+      if (call && event.isError && !call.errorEmitted && !call.doneEmitted) {
+        call.errorEmitted = true;
+        this.emit({ ...base(), event: { type: "widget_error", messageId: call.messageId, toolCallId, widgetId: call.widgetId, toolName: "show_widget", error: readableToolResult(event.result, "Widget execution failed") } });
+      } else if (call && !event.isError && !call.errorEmitted && !call.doneEmitted) {
+        call.doneEmitted = true;
+        this.emit({ ...base(), event: { type: "widget_done", messageId: call.messageId, toolCallId, widgetId: call.widgetId, toolName: "show_widget" } });
+      }
+      this.emit({ ...base(), event: { type: "agent.tool_finished", toolCallId, toolName: String(event.toolName), args: this.toolArgs.get(toolCallId) ?? event.args ?? null, result: event.result ?? null, isError: Boolean(event.isError) } });
+      this.widgetCalls.delete(toolCallId);
+      this.toolArgs.delete(toolCallId);
       return;
     }
   }
@@ -502,7 +574,8 @@ export class DataAgentRuntime {
 }
 
 export { LocalAuthService } from "./auth.js";
-export { createDataAgentHarness, buildAgentTools, resolveSystemPrompt, TOOL_NAME_MAPPING, DATA_AGENT_SYSTEM_PROMPT, type AgentAssemblyDeps, type AgentModelProfile } from "./agent-assembly.js";
+export { createDataAgentHarness, buildAgentTools, resolveSystemPrompt, TOOL_NAME_MAPPING, DATA_AGENT_SYSTEM_PROMPT, type AgentAssemblyDeps, type AgentAssemblyToolContext, type AgentModelProfile } from "./agent-assembly.js";
+export { validateWidgetSpec, widgetLegacyText, type WidgetKind, type WidgetPayload, type WidgetLifecycleDetails } from "./widget.js";
 export { migrateLegacyData, type MigrationReport } from "./legacy-migration.js";
 export { runPythonJob, type PythonJobResult } from "./python-job.js";
 export { effectiveTools, loadSkillsFromDir, moveSystemPrompt, type SkillDefinition, type SkillDiagnostic } from "./skills.js";
