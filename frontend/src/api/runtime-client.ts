@@ -233,35 +233,7 @@ export function subscribeRuntimeEvents(listener: (envelope: unknown) => void): (
   return () => source.close();
 }
 
-export interface RuntimeChatHandle { cancel: () => void; finished: Promise<void> }
-
-/**
- * Chat streaming over the shared transport: dispatches agent.prompt and
- * consumes versioned runtime events (agent.text_delta / agent.tool_started /
- * agent.tool_finished / agent.completed). The legacy SSE DTO adapter lives in
- * ChatArea and will be dissolved when the component consumes versioned
- * events natively.
- */
-export function sendChatViaRuntime(
-  prompt: string,
-  onEvent: (envelope: any) => void,
-  onError: (err: unknown) => void,
-  onFinish: () => void,
-): RuntimeChatHandle {
-  const unsubscribe = subscribeRuntimeEvents((envelope) => onEvent(envelope));
-  const controller = new AbortController();
-  const finished = (async () => {
-    try {
-      await getRuntimeClient().dispatch({ type: "agent.prompt", prompt });
-      onFinish();
-    } catch (err) {
-      if ((err as Error)?.name === "AbortError") { onFinish(); return; }
-      onError(err);
-      onFinish();
-    }
-  })();
-  return { cancel: () => { controller.abort(); unsubscribe(); }, finished };
-}
+export { sendChatViaRuntime, type RuntimeChatHandle } from "./chat-events";
 
 export async function prepareSessionViaRuntime(sessionId: string): Promise<void> {
   await getRuntimeClient().dispatch({ type: "session.prepare", sessionId });

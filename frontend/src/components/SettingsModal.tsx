@@ -55,12 +55,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     };
     const providerIds = Object.keys(PROVIDER_REGISTRY);
 
-    // Detect which provider is active based on current base_url
-    const detectActiveProvider = (baseUrl: string | undefined): string | null => {
-        if (!baseUrl) return null;
-        for (const [id, reg] of Object.entries(PROVIDER_REGISTRY)) {
-            if (baseUrl.startsWith(reg.baseUrl) || reg.baseUrl.startsWith(baseUrl)) return id;
+    // Detect which provider is active based on current base_url or provider
+    const detectActiveProvider = (baseUrl: string | undefined, provider?: string): string | null => {
+        if (provider === 'anthropic') return 'Anthropic';
+        if (baseUrl) {
+            for (const [id, reg] of Object.entries(PROVIDER_REGISTRY)) {
+                if (baseUrl.startsWith(reg.baseUrl) || reg.baseUrl.startsWith(baseUrl)) return id;
+            }
         }
+        if (provider === 'openai') return 'OpenAI';
         return null;
     };
 
@@ -147,38 +150,37 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
             try {
                 const initialConfig: AIConfig = await getConfigViaRuntime() as unknown as AIConfig;
                 setConfig(initialConfig);
-                setDbHost(initialConfig.mysql_host || 'localhost');
-                setDbPort(initialConfig.mysql_port || 3306);
-                setDbUser(initialConfig.mysql_user || 'root');
-                setDbName(initialConfig.mysql_database || '');
+                setDbHost(initialConfig.host || 'localhost');
+                setDbPort(initialConfig.port || 3306);
+                setDbUser(initialConfig.user || 'root');
+                setDbPassword(initialConfig.password || '');
+                setDbName(initialConfig.database || '');
                 const runtime = initialConfig.python_runtime || { mode: 'bundled' as const };
                 setPythonRuntime(runtime);
                 setPythonExecutable(runtime.executable || '');
                 const desktopSecrets = await window.dataAgent?.getStoredSecrets();
 
                 // Determine active provider
-                const activeId = detectActiveProvider(initialConfig.openai_base_url);
+                const activeId = detectActiveProvider(initialConfig.base_url, initialConfig.provider);
                 if (activeId) {
                     setProviderConfigs(prev => {
                         const next = { ...prev };
                         const pConfig = { ...next[activeId] };
                         pConfig.enabled = true;
-                        pConfig.baseUrl = initialConfig.openai_base_url || pConfig.baseUrl;
+                        pConfig.baseUrl = initialConfig.base_url || pConfig.baseUrl;
                         
-                        // Just check if we have a key configured, we can't get the actual key from backend
-                        if (initialConfig.openai_api_key === '[configured]') {
-                             // Keep what's in local storage if we have one, otherwise it's just a placeholder placeholder
-                             if (!pConfig.apiKey) pConfig.apiKey = '[configured_in_backend]';
+                        if (initialConfig.api_key) {
+                            pConfig.apiKey = initialConfig.api_key;
                         }
                         if (desktopSecrets?.openai_api_key && activeId !== 'Anthropic') {
                             pConfig.apiKey = '[configured_in_desktop]';
                         }
                         
                         // Handle custom model if it's not in the list
-                        if (initialConfig.default_model) {
-                            pConfig.selectedModel = initialConfig.default_model;
-                            if (!pConfig.models.includes(initialConfig.default_model)) {
-                                pConfig.models = [...pConfig.models, initialConfig.default_model];
+                        if (initialConfig.model) {
+                            pConfig.selectedModel = initialConfig.model;
+                            if (!pConfig.models.includes(initialConfig.model)) {
+                                pConfig.models = [...pConfig.models, initialConfig.model];
                             }
                         }
                         next[activeId] = pConfig;
@@ -237,18 +239,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                 await saveConfigViaRuntime({
                     provider,
                     api_key: apikeyToSend,
-                    openai_api_key: provider === 'openai' ? apikeyToSend : undefined,
-                    anthropic_api_key: provider === 'anthropic' ? apikeyToSend : undefined,
-                    base_url: provider === 'openai' ? configToSave.baseUrl : undefined,
+                    base_url: configToSave.baseUrl,
                     model: configToSave.selectedModel
                 });
                 
                 // Update top-level config to reflect changes
                 setConfig(prev => prev ? { 
                     ...prev, 
-                    openai_base_url: configToSave.baseUrl, 
-                    default_model: configToSave.selectedModel,
-                    openai_api_key: apikeyToSend ? '[configured]' : prev.openai_api_key
+                    provider,
+                    base_url: configToSave.baseUrl, 
+                    model: configToSave.selectedModel,
+                    api_key: apikeyToSend || prev.api_key
                 } : null);
                 
                 setSaveFeedback(`✓ ${t('settings.saveSuccess')}`);
@@ -429,7 +430,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 <input
                                                     id="settings-default-model"
                                                     style={{ flex: 1, fontSize: '0.9rem', border: 'none', outline: 'none', background: 'transparent', cursor: 'not-allowed', color: '#6b7280' }}
-                                                    value={config?.default_model || ''}
+                                                    value={config?.model || ''}
                                                     readOnly
                                                     placeholder={t('settings.notSet')}
                                                 />

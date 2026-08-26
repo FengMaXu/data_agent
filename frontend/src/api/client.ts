@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Data Agent API Client
  * 用于连接后端 FastAPI 服务，处理 REST API 和 SSE 流
  */
@@ -120,15 +120,15 @@ export async function logout(): Promise<void> {
 }
 
 export interface AIConfig {
-    default_model: string;
-    openai_api_key?: string;
-    anthropic_api_key?: string;
-    openai_base_url?: string;
-    mcp_server_script?: string;
-    mysql_host?: string;
-    mysql_port?: number;
-    mysql_user?: string;
-    mysql_database?: string;
+    provider?: 'openai' | 'anthropic';
+    model?: string;
+    api_key?: string;
+    base_url?: string;
+    host?: string;
+    port?: number;
+    user?: string;
+    password?: string;
+    database?: string;
     connections?: DatabaseConnectionRegistry;
     python_runtime?: PythonRuntimeConfig;
     llm_profiles?: LLMProfilesResponse;

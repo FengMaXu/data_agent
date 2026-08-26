@@ -646,7 +646,9 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                     return;
                 }
 
-                const targetMessageId = 'message_id' in event ? event.message_id : activeAgentMessageIdRef.current;
+                const targetMessageId = ('message_id' in event && event.message_id)
+                    ? event.message_id
+                    : (activeAgentMessageIdRef.current || pendingAgentMessageIdRef.current);
                 if (!targetMessageId) return;
 
                 const message = ensureBufferedAgentMessage(targetMessageId);

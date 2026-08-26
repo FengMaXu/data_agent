@@ -384,7 +384,16 @@ export class DataAgentRuntime {
       if (!this.agent) throw new DataAgentRuntimeError("INVALID_COMMAND", "Pi Agent is not configured");
       const runId = randomUUID();
       this.activeRun = { requestId: command.requestId, runId, sessionId: context.sessionId };
-      void this.agent.prompt(command.command.prompt).then(() => { this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, runId, timestamp: Date.now(), event: { type: "agent.completed" } }); this.activeRun = undefined; }).catch((error) => { console.error("[data-agent] agent run failed:", error instanceof Error ? error.message : error); this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, runId, timestamp: Date.now(), event: { type: "agent.completed" } }); this.activeRun = undefined; });
+      void this.agent.prompt(command.command.prompt).then(() => {
+        this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, runId, timestamp: Date.now(), event: { type: "agent.completed" } });
+        this.activeRun = undefined;
+      }).catch((error) => {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error("[data-agent] agent run failed:", message);
+        this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, runId, timestamp: Date.now(), event: { type: "agent.text_delta", delta: `\n\n> ⚠️ **执行失败**: ${message}` } });
+        this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, runId, timestamp: Date.now(), event: { type: "agent.completed" } });
+        this.activeRun = undefined;
+      });
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "agent.prompt.accepted", runId } };
     }
 

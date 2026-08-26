@@ -51,6 +51,34 @@ const runtime = new DataAgentRuntime({ metadata, sessions, knowledgeRoot, knowle
 const { createHostTesters } = await import(toUrl(path.join(root, "apps/server/dist/host-testers.js")));
 Object.assign(runtime, createHostTesters());
 
+// Ingest status port for semantic context readiness
+runtime.ingestJob = {
+  async getStatus() {
+    let count = 0;
+    try {
+      const candidates = ["semantic-layer", "business-semantic"];
+      for (const seg of candidates) {
+        const segDir = path.join(semanticProjectDir, seg);
+        if (existsSync(segDir)) {
+          const entries = await fsPromises.readdir(segDir, { recursive: true });
+          count += entries.filter((f) => String(f).endsWith(".yaml") || String(f).endsWith(".yml")).length;
+        }
+      }
+    } catch {
+      count = 0;
+    }
+    return {
+      status: count > 0 ? "ready" : "skipped",
+      jobId: null,
+      summary: { updated: 0, unchanged: count, failed: 0, skipped: 0 },
+      errorCode: null,
+    };
+  },
+  async retry() {
+    return { accepted: true };
+  },
+};
+
 // Dashboard evaluate and agent query_database flow through the contract MCP
 // database server; connection details come from the saved db config.
 const { createMcpQueryExecutor } = await import(toUrl(path.join(root, "apps/server/dist/mcp-query-executor.js")));
