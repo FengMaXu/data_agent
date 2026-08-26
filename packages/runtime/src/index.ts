@@ -11,6 +11,7 @@ import {
 import { Value } from "typebox/value";
 import { MetadataStore } from "./metadata.js";
 import { randomUUID } from "node:crypto";
+import path from "node:path";
 import { PiJsonlSessionStore } from "./session-store.js";
 import { WorkspaceStore } from "./workspace.js";
 import { runPythonJob } from "./python-job.js";
@@ -20,6 +21,7 @@ import { renderStandaloneDashboardHtml, validateDashboardV3Spec } from "./dashbo
 import { renderSemanticDashboardHtml, validateDashboardV4Spec } from "./dashboard-v4.js";
 import { loadSkillsFromRoots, resolveSkillRoots } from "./skills.js";
 import type { WidgetLifecycleDetails } from "./widget.js";
+import { readBoundedFile } from "./bounded-read.js";
 
 export class DataAgentRuntimeError extends Error {
   readonly code: "INVALID_COMMAND" | "UNSUPPORTED_PROTOCOL_VERSION" | "INVALID_CONTEXT";
@@ -125,7 +127,15 @@ export class DataAgentRuntime {
       if (!this.workspace) throw new DataAgentRuntimeError("INVALID_COMMAND", "Workspace is not configured");
       this.workspace.assertAccess(context);
       if (command.command.type === "workspace.list") return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "workspace.result", operation: "list", files: await this.workspace.list() } };
-      if (command.command.type === "workspace.read") return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "workspace.result", operation: "read", path: command.command.path, content: await this.workspace.read(command.command.path) } };
+      if (command.command.type === "workspace.read") {
+        try {
+          const result = await this.workspace.readRange(command.command.path, { startLine: command.command.startLine, endLine: command.command.endLine });
+          return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "workspace.result", operation: "read", path: command.command.path, content: result.content } };
+        } catch (error) {
+          if (error instanceof Error && error.message.startsWith("INVALID_LINE_RANGE:")) throw new DataAgentRuntimeError("INVALID_COMMAND", error.message);
+          throw error;
+        }
+      }
       if (command.command.type === "workspace.delete") { await this.workspace.delete(command.command.path); return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "workspace.result", operation: "write", path: command.command.path } }; }
       await this.workspace.write(command.command.path, command.command.content);
       this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, sessionId: context.sessionId, timestamp: Date.now(), event: { type: "workspace.artifact.created", path: command.command.path, kind: "file" } });
@@ -387,10 +397,16 @@ export class DataAgentRuntime {
         await writeFile(target, command.command.content, "utf8");
         return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "knowledge.save.result", path: command.command.path } };
       }
-      const { readFile } = await import("node:fs/promises");
-      const target = resolvePath(joinPath(this.knowledgeRoot as string, command.command.path));
-      if (!target.startsWith(resolvePath(this.knowledgeRoot as string))) throw new DataAgentRuntimeError("INVALID_COMMAND", "Knowledge path escapes root");
-      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "knowledge.read.result", path: command.command.path, content: await readFile(target, "utf8") } };
+      const root = resolvePath(this.knowledgeRoot as string);
+      const target = resolvePath(joinPath(root, command.command.path));
+      if (target !== root && !target.startsWith(`${root}${path.sep}`)) throw new DataAgentRuntimeError("INVALID_COMMAND", "Knowledge path escapes root");
+      try {
+        const result = await readBoundedFile(root, command.command.path, { startLine: command.command.startLine, endLine: command.command.endLine });
+        return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "knowledge.read.result", path: command.command.path, content: result.content } };
+      } catch (error) {
+        if (error instanceof Error && error.message.startsWith("INVALID_LINE_RANGE:")) throw new DataAgentRuntimeError("INVALID_COMMAND", error.message);
+        throw error;
+      }
     }
 
     if (command.command.type === "agent.steer" || command.command.type === "agent.follow_up") {
