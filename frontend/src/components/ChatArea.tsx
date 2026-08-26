@@ -28,6 +28,7 @@ import { useLanguage } from '../context/LanguageContext';
 import WidgetRenderer from './widgets/WidgetRenderer';
 import AgentOrbitIcon from './AgentOrbitIcon';
 import AgentMarkdown from './AgentMarkdown';
+import { isAgentMessageEmpty, visibleAgentContent } from '../utils/agent-message';
 
 interface SkillActivation {
     name: string;
@@ -205,22 +206,8 @@ const getToolHintLabel = (tool: ToolCallState, t: (key: string) => string) => {
 
 const getSkillHintLabel = (skill: SkillActivation, t: (key: string) => string) => t('chat.skillActivated').replace('{name}', skill.name);
 
-const IMMEDIATE_FEEDBACK_TEXT = '收到，我正在分析请求并检索可用工具…';
 const THINKING_STATUS_TEXT = '思考中';
 const REASONING_DONE_TEXT = '思考内容';
-
-const isAgentMessageEmpty = (message: AgentMessage) => (
-    message.content.trim().length === 0 &&
-    message.transientContent.trim().length === 0 &&
-    message.reasoningContent.trim().length === 0
-);
-
-const visibleAgentContent = (message: AgentMessage) => {
-    const normalizedContent = message.content.trimStart().startsWith(IMMEDIATE_FEEDBACK_TEXT)
-        ? message.content.trimStart().slice(IMMEDIATE_FEEDBACK_TEXT.length).trimStart()
-        : message.content;
-    return normalizedContent || message.transientContent;
-};
 
 interface ActiveChatAreaProps extends ChatAreaProps {
     activeTask: Task;
@@ -397,8 +384,12 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
         };
         setMessages((prev) => {
             const index = prev.findIndex((msg) => msg.role === 'agent' && msg.messageId === messageId);
+            const empty = isAgentMessageEmpty(snapshot);
             if (index === -1) {
-                return [...prev, snapshot];
+                return empty ? prev : [...prev, snapshot];
+            }
+            if (empty) {
+                return prev.filter((msg) => !(msg.role === 'agent' && msg.messageId === messageId));
             }
             const next = [...prev];
             next[index] = snapshot;
@@ -1003,7 +994,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                     </div>
                 )}
 
-                {messages.map((msg) => (
+                {messages.filter((msg) => msg.role === 'user' || !isAgentMessageEmpty(msg)).map((msg) => (
                     <React.Fragment key={msg.id}>
                         {msg.role === 'user' ? (
                             <div className="message user">
