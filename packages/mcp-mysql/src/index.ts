@@ -66,6 +66,36 @@ export async function createMysqlReferenceServer(options: MysqlReferenceServerOp
   function maxRows() { return DEFAULT_PREVIEW_LIMIT; }
 
   server.tool(
+    "execute_query_export_batch",
+    "Run one bounded batch of a read-only MySQL export",
+    {
+      sql: z.string().min(1),
+      offset: z.number().int().nonnegative().max(100000).optional(),
+      limit: z.number().int().positive().max(1000).optional(),
+      maxRows: z.number().int().positive().max(100000).optional(),
+    },
+    async ({ sql, offset, limit, maxRows: requestedMaxRows }) => {
+      const trimmed = sql.trim().replace(/;+\s*$/, "");
+      if (FORBIDDEN.test(trimmed)) return { content: [{ type: "text", text: JSON.stringify({ error: { code: "FORBIDDEN_SQL" } }) }] };
+      const start = offset ?? 0;
+      const batchLimit = Math.min(limit ?? 1000, 1000);
+      const rowLimit = Math.min(requestedMaxRows ?? 100000, 100000);
+      if (start >= rowLimit) return { content: [{ type: "text", text: JSON.stringify({ rows: [], columns: [], done: true, contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
+      try {
+        const [rows] = await pool.query(`SELECT * FROM (${trimmed}) __export LIMIT ${Math.min(batchLimit + 1, rowLimit - start + 1)} OFFSET ${start}`);
+        const list = rows as Record<string, unknown>[];
+        const columns = list.length > 0 ? Object.keys(list[0]) : [];
+        const tooMany = list.length > batchLimit && start + batchLimit >= rowLimit;
+        if (tooMany) return { content: [{ type: "text", text: JSON.stringify({ error: { code: "EXPORT_ROW_LIMIT_EXCEEDED", rowLimit } }) }] };
+        const values = list.slice(0, batchLimit);
+        return { content: [{ type: "text", text: JSON.stringify({ rows: values, columns, done: values.length < batchLimit, contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
+      } catch (error) {
+        return { content: [{ type: "text", text: JSON.stringify({ error: { code: "QUERY_FAILED", message: redact(`${(error as Error).message} in ${redact(trimmed)}`).slice(0, 500) } }) }] };
+      }
+    },
+  );
+
+  server.tool(
     "get_schema",
     "List tables and columns of the MySQL database",
     {},

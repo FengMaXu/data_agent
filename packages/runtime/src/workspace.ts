@@ -1,7 +1,9 @@
-import { copyFile, mkdir, readFile, readdir, realpath, rm, stat, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, open, readFile, readdir, realpath, rename, rm, stat, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import path from "node:path";
 
 export interface WorkspaceArtifact { path: string; size: number; modifiedAt: number; kind: "file" }
+export type WorkspaceStreamProducer = (write: (chunk: string | Uint8Array) => Promise<void>) => Promise<void>;
 
 export class WorkspaceStore {
   readonly root: string;
@@ -16,5 +18,30 @@ export class WorkspaceStore {
   async write(relativePath: string, content: string): Promise<void> { const target=this.resolve(relativePath); await mkdir(path.dirname(target), { recursive: true }); await writeFile(target, content, "utf8"); }
   async delete(relativePath: string): Promise<void> { await rm(await this.safeExisting(relativePath), { force: true, recursive: true }); }
   async upload(sourcePath: string, relativePath: string): Promise<WorkspaceArtifact> { const target=this.resolve(relativePath); await mkdir(path.dirname(target), { recursive: true }); await copyFile(sourcePath, target); return this.artifact(relativePath); }
+  /** Write incrementally to a sibling temporary file, then atomically promote it. */
+  async writeStream(relativePath: string, producer: WorkspaceStreamProducer, signal?: AbortSignal): Promise<void> {
+    const target = this.resolve(relativePath);
+    await mkdir(path.dirname(target), { recursive: true });
+    const temporary = `${target}.${randomUUID()}.tmp`;
+    const handle = await open(temporary, "w");
+    const throwIfAborted = () => {
+      if (signal?.aborted) throw new Error("EXPORT_CANCELLED");
+    };
+    try {
+      await producer(async (chunk) => {
+        throwIfAborted();
+        if (typeof chunk === "string") await handle.write(chunk);
+        else await handle.write(chunk);
+      });
+      throwIfAborted();
+      await handle.sync();
+      await handle.close();
+      await rename(temporary, target);
+    } catch (error) {
+      await handle.close().catch(() => undefined);
+      await rm(temporary, { force: true }).catch(() => undefined);
+      throw error;
+    }
+  }
   async artifact(relativePath: string): Promise<WorkspaceArtifact> { const info=await stat(await this.safeExisting(relativePath)); return { path: relativePath, size: info.size, modifiedAt: info.mtimeMs, kind: "file" }; }
 }
