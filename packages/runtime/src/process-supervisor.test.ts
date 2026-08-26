@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { ProcessSupervisor, semanticToolIdentity } from "./process-supervisor.js";
 
 describe("ProcessSupervisor", () => {
@@ -16,10 +16,12 @@ describe("ProcessSupervisor", () => {
     await supervisor.start();
     expect(supervisor.getState()).toBe("running");
     const firstPid = supervisor.getPid();
-    // Wait past several child lifecycles (each node boot costs ~100ms on Windows).
-    await new Promise((resolve) => setTimeout(resolve, 700));
-    expect(supervisor.getState()).toBe("running");
-    expect(supervisor.getPid()).not.toBe(firstPid);
+    // Wait until a replacement is observed. Child startup time varies on
+    // Windows when the workspace test suite is running in parallel.
+    await vi.waitFor(() => {
+      expect(supervisor.getState()).toBe("running");
+      expect(supervisor.getPid()).not.toBe(firstPid);
+    }, { timeout: 3000, interval: 50 });
     await supervisor.stop();
     expect(supervisor.getState()).toBe("stopped");
   }, 10000);
