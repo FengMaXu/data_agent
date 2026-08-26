@@ -273,8 +273,15 @@ const renderTable = (widget: WidgetSpec, t: (key: string) => string) => {
 };
 
 
+const normalizeChartPoints = (widget: WidgetSpec) => {
+    const data = Array.isArray(widget.data) ? widget.data : undefined;
+    const series = Array.isArray(widget.series) ? widget.series : undefined;
+    const source = data && data.length > 0 ? data : series ?? data;
+    return source ?? [];
+};
+
 const renderChart = (widget: WidgetSpec, t: (key: string) => string) => {
-    const points = Array.isArray(widget.data) ? widget.data : [];
+    const points = normalizeChartPoints(widget);
     const values = points
         .map((point) => Number(point.value ?? point.y ?? 0))
         .filter((value) => Number.isFinite(value));

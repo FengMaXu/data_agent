@@ -28,7 +28,16 @@ describe.runIf(enabled)("MySQL Reference MCP Server contract", () => {
     const showTables = await client.callTool({ name: "execute_query_preview", arguments: { sql: "SHOW TABLES" } });
     const showTablesPayload = JSON.parse((showTables.content as any)[0].text);
     expect(showTablesPayload.error).toBeUndefined();
+    expect(showTablesPayload.rows.length).toBeLessThanOrEqual(20);
+    expect(showTablesPayload.totalRows).toBeLessThanOrEqual(21);
     expect(showTablesPayload.rows.some((row: Record<string, unknown>) => Object.values(row).includes("contract_sales"))).toBe(true);
+
+    const boundedShowTables = await client.callTool({ name: "execute_query_preview", arguments: { sql: "SHOW TABLES", limit: 1 } });
+    const boundedShowTablesPayload = JSON.parse((boundedShowTables.content as any)[0].text);
+    expect(boundedShowTablesPayload.error).toBeUndefined();
+    expect(boundedShowTablesPayload.rows.length).toBeLessThanOrEqual(1);
+    expect(boundedShowTablesPayload.totalRows).toBeLessThanOrEqual(2);
+    expect(boundedShowTablesPayload.truncated).toBe(boundedShowTablesPayload.totalRows > 1);
 
     const describe = await client.callTool({ name: "execute_query_preview", arguments: { sql: "DESCRIBE contract_sales" } });
     const describePayload = JSON.parse((describe.content as any)[0].text);
