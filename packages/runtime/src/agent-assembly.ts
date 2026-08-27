@@ -1,4 +1,4 @@
-import { AgentHarness, InMemorySessionRepo } from "@earendil-works/pi-agent-core";
+import { AgentHarness, formatSkillsForSystemPrompt, InMemorySessionRepo } from "@earendil-works/pi-agent-core";
 import type { AgentHarnessTool, AgentToolResult, Session, Skill as NativeSkill } from "@earendil-works/pi-agent-core";
 import { InMemoryCredentialStore, type Model, type Models } from "@earendil-works/pi-ai";
 import { boundTextByLines, readBoundedFile } from "./bounded-read.js";
@@ -418,6 +418,11 @@ export const DATA_AGENT_SYSTEM_PROMPT = [
 ].join("\n");
 
 /** Legacy → canonical tool-name mapping appended to the migrated SYSTEM.md. */
+export function composeDataAgentSystemPrompt(basePrompt: string, skills: NativeSkill[]): string {
+  const skillsPrompt = formatSkillsForSystemPrompt(skills);
+  return [basePrompt.trim(), skillsPrompt].filter(Boolean).join("\n\n");
+}
+
 export const TOOL_NAME_MAPPING = [
   "## 工具名映射（当前运行时）",
   "",
@@ -477,12 +482,16 @@ export async function createDataAgentHarness(deps: AgentAssemblyDeps, profile: A
       return { content: [{ type: "text", text: content }] };
     },
   });
+  const baseSystemPrompt = deps.systemPrompt ?? await resolveSystemPrompt(deps.systemPromptRoots ?? (deps.knowledgeRoot ? [deps.knowledgeRoot] : []));
   const harness = new DataAgentHarness({
     session: deps.session ?? await new InMemorySessionRepo().create(),
     models,
     model: buildModel(profile),
     thinkingLevel: "off",
-    systemPrompt: deps.systemPrompt ?? await resolveSystemPrompt(deps.systemPromptRoots ?? (deps.knowledgeRoot ? [deps.knowledgeRoot] : [])),
+    // Use Pi's per-turn prompt callback rather than freezing a prompt string.
+    // The callback receives the current resources snapshot, so a later
+    // setResources() immediately changes the model-visible skill catalog.
+    systemPrompt: ({ resources }) => composeDataAgentSystemPrompt(baseSystemPrompt, resources.skills ?? []),
     tools,
     resources: { skills: skillLoad.skills },
     toolContext: deps.toolContext ?? { sessionId: deps.sessionId },

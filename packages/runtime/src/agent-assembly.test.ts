@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path, { join } from "node:path";
-import { buildAgentTools, createDataAgentHarness, type QueryExportBatch } from "./agent-assembly.js";
+import { buildAgentTools, composeDataAgentSystemPrompt, createDataAgentHarness, type QueryExportBatch } from "./agent-assembly.js";
 import { ClarificationManager } from "./clarification.js";
 import { WorkspaceStore } from "./workspace.js";
 
@@ -45,6 +45,16 @@ describe("session workspace isolation", () => {
     } finally {
       await rm(root, { recursive: true, force: true });
     }
+  });
+});
+
+describe("native system prompt assembly", () => {
+  it("uses Pi's XML skill formatter and exposes the current skill catalog", () => {
+    const prompt = composeDataAgentSystemPrompt("base instructions", [{ name: "analysis", description: "Analyze data", content: "body", filePath: "C:/skills/analysis/SKILL.md" }]);
+    expect(prompt).toContain("base instructions");
+    expect(prompt).toContain("<available_skills>");
+    expect(prompt).toContain("<name>analysis</name>");
+    expect(prompt).toContain("<location>C:/skills/analysis/SKILL.md</location>");
   });
 });
 
