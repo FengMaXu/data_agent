@@ -71,7 +71,9 @@ export async function createRuntimeServer(
       const query = request.query as { path?: string };
       try {
         options.workspace!.assertAccess(context);
-        return reply.type("text/plain").send(await options.workspace!.read(query.path ?? ""));
+        const workspacePath = query.path ?? "";
+        const bytes = await options.workspace!.readBytes(workspacePath);
+        return reply.type(workspaceContentType(workspacePath)).send(Buffer.from(bytes));
       } catch {
         return reply.code(403).send({ error: { code: "WORKSPACE_ACCESS_DENIED" } });
       }
@@ -161,6 +163,26 @@ function safeUploadFileName(fileName: string): string {
   const name = path.posix.basename(fileName.replaceAll("\\", "/"));
   if (!name || name === "." || name === "..") throw new Error("WORKSPACE_FILE_REQUIRED");
   return name;
+}
+
+function workspaceContentType(relativePath: string): string {
+  const extension = path.extname(relativePath).toLowerCase();
+  return ({
+    ".csv": "text/csv; charset=utf-8",
+    ".json": "application/json; charset=utf-8",
+    ".txt": "text/plain; charset=utf-8",
+    ".log": "text/plain; charset=utf-8",
+    ".md": "text/markdown; charset=utf-8",
+    ".html": "text/html; charset=utf-8",
+    ".htm": "text/html; charset=utf-8",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".gif": "image/gif",
+    ".svg": "image/svg+xml",
+    ".webp": "image/webp",
+    ".pdf": "application/pdf",
+  } as Record<string, string>)[extension] ?? "application/octet-stream";
 }
 
 function requestToken(request: FastifyRequest): string | undefined {

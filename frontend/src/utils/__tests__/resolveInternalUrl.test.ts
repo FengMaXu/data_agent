@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
     isWorkspaceRelativePath,
+    resolveWorkspaceAssetUrl,
     resolveWorkspaceDownloadUrl,
     resolveWorkspacePreviewUrl,
 } from '../resolveInternalUrl';
@@ -24,6 +25,11 @@ describe('workspace markdown link resolution', () => {
         const url = new URL(resolveWorkspacePreviewUrl('data/industry_sales_2026_h1.csv', 'session-123'));
         expect(url.pathname).toBe('/api/workspace/download');
         expect(url.searchParams.get('path')).toBe('session-123/data/industry_sales_2026_h1.csv');
+    });
+
+    it('keeps a bare generated image at the workspace root', () => {
+        const url = new URL(resolveWorkspaceAssetUrl('chart1_trend.png', undefined, 'session-123'));
+        expect(url.searchParams.get('path')).toBe('chart1_trend.png');
     });
 
     it('uses the Electron workspace protocol instead of file:// HTTP paths', () => {

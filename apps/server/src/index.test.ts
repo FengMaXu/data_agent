@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { DataAgentRuntime } from "@data-agent/runtime";
 import { createRuntimeServer } from "./index.js";
 import { WorkspaceStore } from "@data-agent/runtime";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -61,6 +61,20 @@ import { join } from "node:path";
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({ filename: "hello.txt", relative_path: "hello.txt", size: 5 });
     expect(await readFile(join(root, "hello.txt"), "utf8")).toBe("hello");
+    await app.close(); await rm(root, { recursive: true, force: true });
+  });
+
+  it("serves workspace images as unmodified binary data with the correct media type", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-server-image-"));
+    const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0xff, 0x00, 0xfe]);
+    await writeFile(join(root, "chart.png"), png);
+    const app = await createRuntimeServer(new DataAgentRuntime(), { ...trustedWebContext, workspace: new WorkspaceStore(root) });
+
+    const response = await app.inject({ method: "GET", url: "/api/workspace/download?path=chart.png" });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers["content-type"]).toBe("image/png");
+    expect(response.rawPayload).toEqual(png);
     await app.close(); await rm(root, { recursive: true, force: true });
   });
 
