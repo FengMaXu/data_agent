@@ -1,34 +1,61 @@
 import { AgentHarness, InMemorySessionRepo } from "@earendil-works/pi-agent-core";
-import type { AgentHarnessTool, AgentToolResult } from "@earendil-works/pi-agent-core";
-import { type Model, type Models } from "@earendil-works/pi-ai";
+import type { AgentHarnessTool, AgentToolResult, Session, Skill as NativeSkill } from "@earendil-works/pi-agent-core";
+import { InMemoryCredentialStore, type Model, type Models } from "@earendil-works/pi-ai";
+import { boundTextByLines, readBoundedFile } from "./bounded-read.js";
 import { builtinModels } from "@earendil-works/pi-ai/providers/all";
 import { Type, type Static, type TSchema } from "typebox";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { renderSemanticDashboardHtml, validateDashboardV4Spec } from "./dashboard-v4.js";
 import { KnowledgeWriter } from "./knowledge-write.js";
 import { runPythonJob } from "./python-job.js";
-import { canonicalLocalTools } from "./tools-catalog.js";
+import { canonicalLocalTools, type CanonicalTool } from "./tools-catalog.js";
+import { effectiveTools, loadSkillsFromRoots, resolveSkillRoots } from "./skills.js";
 import type { KnowledgeIndex } from "./knowledge.js";
 import type { WorkspaceStore } from "./workspace.js";
 import type { ClarificationManager } from "./clarification.js";
+import { emitWidgetUpdate, validateWidgetSpec, widgetLegacyText, type WidgetLifecycleDetails, type WidgetPayload } from "./widget.js";
+
+export interface QueryExportBatch {
+  columns: string[];
+  rows: unknown[][];
+}
+
+export interface QueryExecutor {
+  run(sql: string, rowLimit: number): Promise<{ columns: string[]; rows: unknown[][]; truncated: boolean }>;
+  /** Optional incremental export source. Each batch is released by the executor after consumption. */
+  stream?(sql: string, signal?: AbortSignal): AsyncIterable<QueryExportBatch> | Promise<AsyncIterable<QueryExportBatch>>;
+}
+
+export type NativeSkillInvoker = (name: string, additionalInstructions?: string) => Promise<unknown>;
+export type PythonExecutableSource = string | (() => string | undefined);
 
 export interface AgentAssemblyDeps {
   workspace: WorkspaceStore;
   knowledge?: KnowledgeIndex;
   knowledgeRoot?: string;
-  pythonExecutable?: string;
+  pythonExecutable?: PythonExecutableSource;
   pythonWorkspaceDir?: string;
-  queryExecutor?: { run(sql: string, rowLimit: number): Promise<{ columns: string[]; rows: unknown[][]; truncated: boolean }> };
+  queryExecutor?: QueryExecutor;
   clarifications?: ClarificationManager;
   sessionId?: string;
+  /** Persistent Pi session used by this application chat session. */
+  session?: Session;
   /** Explicit system prompt; overrides systemPromptRoots resolution. */
   systemPrompt?: string;
   /** Roots scanned for the migrated `.pi/SYSTEM.md` (knowledge root first). */
   systemPromptRoots?: string[];
   /** Runtime event sink for artifact notifications. */
   emitArtifact?: (relativePath: string) => void;
+  /** Explicit project root used for development Skills. */
+  projectRoot?: string;
+  /** Explicit application resources root used for packaged Skills. */
+  packagedRoot?: string;
+  /** Native AgentHarness skill invocation seam, supplied by createDataAgentHarness. */
+  invokeSkill?: NativeSkillInvoker;
+  /** Optional per-turn context source for hosts serving multiple sessions. */
+  toolContext?: AgentAssemblyToolContextSource;
 }
 
 export interface AgentModelProfile {
@@ -41,9 +68,47 @@ export interface AgentModelProfile {
 }
 
 const DEFAULT_ROW_LIMIT = 50;
+const CANONICAL_TOOL_BY_NAME = new Map<string, CanonicalTool>(
+  canonicalLocalTools().map((tool) => [tool.name, tool]),
+);
+
+function canonicalTool(name: string): CanonicalTool {
+  const tool = CANONICAL_TOOL_BY_NAME.get(name);
+  if (!tool) throw new Error(`CANONICAL_TOOL_MISSING:${name}`);
+  return tool;
+}
 
 function text(content: string, details: unknown = undefined): AgentToolResult<unknown> {
   return { content: [{ type: "text", text: content }], details };
+}
+
+function throwIfAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) throw new Error("EXPORT_CANCELLED");
+}
+
+/** RFC 4180 field encoding; strings remain quoted for compatibility with prior exports. */
+function csvField(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  const raw = typeof value === "string" ? value : typeof value === "object" ? JSON.stringify(value) : String(value);
+  const escaped = raw.replaceAll('"', '""');
+  return typeof value === "string" || /[",\r\n]/.test(raw) ? `"${escaped}"` : escaped;
+}
+
+function csvHeaderField(value: string): string {
+  return /[",\r\n]/.test(value) ? csvField(value) : value;
+}
+
+function nativeSkillResult(result: unknown, name: string): AgentToolResult<unknown> {
+  if (!result || typeof result !== "object" || !("content" in result) || !Array.isArray(result.content)) {
+    throw new Error("NATIVE_SKILL_INVALID_RESULT");
+  }
+  const content = result.content.filter((item: unknown) => {
+    if (!item || typeof item !== "object" || !("type" in item)) return false;
+    const type = (item as { type?: unknown }).type;
+    return type === "text" || type === "image";
+  });
+  if (content.length === 0) throw new Error("NATIVE_SKILL_EMPTY_RESULT");
+  return { content, details: { nativeSkill: name } } as AgentToolResult<unknown>;
 }
 
 function buildModel(profile: AgentModelProfile): Model<any> {
@@ -71,65 +136,185 @@ function buildModel(profile: AgentModelProfile): Model<any> {
   };
 }
 
-function defineTool<S extends TSchema>(
-  name: string, description: string, parameters: S,
-  execute: (params: Static<S>) => Promise<AgentToolResult<unknown>>,
-): AgentHarnessTool<undefined> {
-  return { name, label: name, description, parameters, execute: async (_id: unknown, params: any) => execute(params as Static<S>) } as unknown as AgentHarnessTool<undefined>;
+export interface AgentAssemblyToolContext {
+  /** Session identity associated with this harness turn, when available. */
+  sessionId?: string;
 }
 
-export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<undefined>[] {
+export type AgentAssemblyToolContextSource = AgentAssemblyToolContext | (() => AgentAssemblyToolContext | Promise<AgentAssemblyToolContext>);
+
+interface NativeToolExecution {
+  toolCallId: string;
+  signal: AbortSignal | undefined;
+  onUpdate: Parameters<NonNullable<AgentHarnessTool<AgentAssemblyToolContext>["execute"]>>[3];
+  context: AgentAssemblyToolContext;
+}
+
+function defineTool<S extends TSchema>(
+  name: string, description: string, parameters: S,
+  execute: (params: Static<S>, native: NativeToolExecution) => Promise<AgentToolResult<unknown>>,
+): AgentHarnessTool<AgentAssemblyToolContext> {
+  return {
+    name,
+    label: name,
+    description,
+    parameters,
+    execute: async (
+      toolCallId: string,
+      params: Static<S>,
+      signal: AbortSignal | undefined,
+      onUpdate: NativeToolExecution["onUpdate"],
+      context: AgentAssemblyToolContext,
+    ) => execute(
+      params,
+      { toolCallId, signal, onUpdate, context },
+    ),
+  } as unknown as AgentHarnessTool<AgentAssemblyToolContext>;
+}
+
+interface DataAgentSkill extends NativeSkill {
+  allowedTools?: string[];
+}
+
+/** Keeps native AgentHarness skill invocation while applying legacy allowlists. */
+class DataAgentHarness extends AgentHarness<AgentAssemblyToolContext, DataAgentSkill> {
+  override async skill(name: string, additionalInstructions?: string) {
+    const skill = this.getResources().skills?.find((candidate) => candidate.name === name);
+    if (!skill) return super.skill(name, additionalInstructions);
+    const previous = this.getActiveTools().map((tool) => (tool as unknown as { name: string }).name);
+    const active = effectiveTools(previous, [skill]);
+    await this.setActiveTools(active);
+    try {
+      return await super.skill(name, additionalInstructions);
+    } finally {
+      await this.setActiveTools(previous);
+    }
+  }
+}
+
+export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<AgentAssemblyToolContext>[] {
   const writer = deps.knowledgeRoot ? new KnowledgeWriter(deps.knowledgeRoot) : undefined;
-  const workspaceDir = deps.pythonWorkspaceDir ?? deps.workspace.root;
-  const tools: AgentHarnessTool<undefined>[] = [
-    defineTool("list_workspace", canonicalLocalTools()[0].description, Type.Object({}), async () =>
-      text((await deps.workspace.list()).filter((entry) => !entry.split(path.sep).includes(".audit.log")).join("\n") || "(workspace empty)")),
-    defineTool("read_file", canonicalLocalTools()[1].description, Type.Object({ path: Type.String() }), async (p) =>
-      text(await deps.workspace.read(p.path))),
-    defineTool("write_file", canonicalLocalTools()[2].description, Type.Object({ path: Type.String(), content: Type.String() }), async (p) => {
-      await deps.workspace.write(p.path, p.content);
-      deps.emitArtifact?.(p.path);
+  const sessionIdFor = (native: NativeToolExecution) => native.context?.sessionId ?? deps.sessionId;
+  const workspaceFor = async (native: NativeToolExecution) => {
+    const sessionId = sessionIdFor(native);
+    return sessionId ? deps.workspace.scoped(sessionId) : deps.workspace;
+  };
+  const artifactPathFor = (native: NativeToolExecution, relativePath: string) => {
+    const sessionId = sessionIdFor(native);
+    return sessionId ? `${sessionId}/${relativePath}` : relativePath;
+  };
+  const tools: AgentHarnessTool<AgentAssemblyToolContext>[] = [
+    defineTool("list_workspace", canonicalTool("list_workspace").description, Type.Object({}), async (_p, native) => {
+      const workspace = await workspaceFor(native);
+      return text((await workspace.list()).filter((entry) => !entry.split(path.sep).includes(".audit.log")).join("\n") || "(workspace empty)");
+    }),
+    defineTool("read_file", canonicalTool("read_file").description, Type.Object({ path: Type.String(), startLine: Type.Optional(Type.Integer({ minimum: 1 })), endLine: Type.Optional(Type.Integer({ minimum: 1 })) }), async (p, native) => {
+      const workspace = await workspaceFor(native);
+      const result = await workspace.readRange(p.path, { startLine: p.startLine, endLine: p.endLine });
+      return text(result.content, { startLine: p.startLine, endLine: p.endLine, truncated: result.truncated });
+    }),
+    defineTool("write_file", canonicalTool("write_file").description, Type.Object({ path: Type.String(), content: Type.String() }), async (p, native) => {
+      const workspace = await workspaceFor(native);
+      await workspace.write(p.path, p.content);
+      deps.emitArtifact?.(artifactPathFor(native, p.path));
       return text(`written ${p.path} (${p.content.length} bytes)`);
     }),
-    defineTool("run_python", canonicalLocalTools()[3].description, Type.Object({ code: Type.String({ minLength: 1 }), description: Type.Optional(Type.String()) }), async (p) => {
-      if (!deps.pythonExecutable) throw new Error("PYTHON_RUNTIME_NOT_AVAILABLE");
-      const result = await runPythonJob(p.code, { workspace: workspaceDir, executable: deps.pythonExecutable, timeoutMs: 120000 });
+    defineTool("run_python", canonicalTool("run_python").description, Type.Object({ code: Type.String({ minLength: 1 }), description: Type.Optional(Type.String()) }), async (p, native) => {
+      const executable = typeof deps.pythonExecutable === "function" ? deps.pythonExecutable() : deps.pythonExecutable;
+      if (!executable) throw new Error("PYTHON_RUNTIME_NOT_AVAILABLE");
+      const workspace = deps.pythonWorkspaceDir
+        ? { root: deps.pythonWorkspaceDir }
+        : await workspaceFor(native);
+      const result = await runPythonJob(p.code, { workspace: workspace.root, executable, timeoutMs: 120000 });
       return text(result.stdout || result.stderr || "(no output)", { exitCode: result.exitCode });
     }),
   ];
   if (deps.knowledge) {
     const knowledge = deps.knowledge;
     tools.push(
-      defineTool("search_knowledge", canonicalLocalTools()[4].description, Type.Object({ query: Type.String({ minLength: 1 }) }), async (p) => {
+      defineTool("search_knowledge", canonicalTool("search_knowledge").description, Type.Object({ query: Type.String({ minLength: 1 }) }), async (p) => {
         const hits = knowledge.search(p.query);
-        return text(hits.length ? hits.map((h) => `${h.path} (score ${h.score.toFixed(3)})`).join("\n") : "(no matches)");
+        const details = hits.map(({ path: hitPath, score, title, startLine, endLine, snippet }) => ({ path: hitPath, score, title, startLine, endLine, snippet }));
+        const rendered = hits.length
+          ? hits.map((h) => `${h.path} (score ${h.score.toFixed(3)}, lines ${h.startLine}-${h.endLine}, title: ${h.title})\n${h.snippet}`).join("\n\n")
+          : "(no matches)";
+        return text(boundTextByLines(rendered).content, details);
       }),
-      defineTool("read_knowledge", canonicalLocalTools()[5].description, Type.Object({ path: Type.String({ minLength: 1 }) }), async (p) => {
-        const target = path.resolve(deps.knowledgeRoot!, p.path);
-        if (!target.startsWith(path.resolve(deps.knowledgeRoot!))) throw new Error("KNOWLEDGE_PATH_ESCAPE");
-        return text(await readFile(target, "utf8"));
+      defineTool("read_knowledge", canonicalTool("read_knowledge").description, Type.Object({ path: Type.String({ minLength: 1 }), startLine: Type.Optional(Type.Integer({ minimum: 1 })), endLine: Type.Optional(Type.Integer({ minimum: 1 })) }), async (p) => {
+        const result = await readBoundedFile(deps.knowledgeRoot!, p.path, { startLine: p.startLine, endLine: p.endLine });
+        return text(result.content, { startLine: p.startLine, endLine: p.endLine, truncated: result.truncated });
       }),
     );
   }
   if (writer) {
-    tools.push(defineTool("update_knowledge", canonicalLocalTools()[6].description, Type.Object({ operation: Type.Union([Type.Literal("append_learning"), Type.Literal("write_draft"), Type.Literal("update_schema")]), path: Type.String({ minLength: 1 }), content: Type.String() }), async (p) => {
+    tools.push(defineTool("update_knowledge", canonicalTool("update_knowledge").description, Type.Object({ operation: Type.Union([Type.Literal("append_learning"), Type.Literal("write_draft"), Type.Literal("update_schema")]), path: Type.String({ minLength: 1 }), content: Type.String() }), async (p) => {
       const result = await writer.write(p.operation, p.path, p.content);
       return text(`${result.operation} -> ${result.path} (${result.bytesWritten} bytes)`);
     }));
   }
   tools.push(
-    defineTool("generate_dashboard", canonicalLocalTools()[8].description, Type.Object({ operation: Type.Union([Type.Literal("create"), Type.Literal("edit"), Type.Literal("validate")]), mode: Type.Union([Type.Literal("static"), Type.Literal("semantic")]), version: Type.Union([Type.Literal("v3"), Type.Literal("v4")]), spec: Type.Unknown(), editPath: Type.Optional(Type.String()) }), async (p) => {
+    defineTool("load_skill", canonicalTool("load_skill").description, Type.Object({ name: Type.String({ minLength: 1 }) }), async (p) => {
+      if (!deps.invokeSkill) throw new Error("NATIVE_SKILL_INVOCATION_UNAVAILABLE");
+      return nativeSkillResult(await deps.invokeSkill(p.name), p.name);
+    }),
+    defineTool("generate_dashboard", canonicalTool("generate_dashboard").description, Type.Object({ operation: Type.Union([Type.Literal("create"), Type.Literal("edit"), Type.Literal("validate")]), mode: Type.Union([Type.Literal("static"), Type.Literal("semantic")]), version: Type.Union([Type.Literal("v3"), Type.Literal("v4")]), spec: Type.Unknown(), editPath: Type.Optional(Type.String()) }), async (p, native) => {
       const validated = validateDashboardV4Spec(p.spec);
       if (!validated.ok) throw new Error(`DASHBOARD_SPEC_INVALID: ${validated.errors.join("; ")}`);
       if (p.operation === "validate") return text("dashboard spec valid");
       const target = p.editPath ?? `dashboards/${Date.now()}-semantic.html`;
       const html = renderSemanticDashboardHtml(validated.spec, { nonce: randomUUID().replace(/-/g, ""), expectedOrigin: "https://data-agent.local" });
-      await deps.workspace.write(target, html);
-      deps.emitArtifact?.(target);
+      const workspace = await workspaceFor(native);
+      await workspace.write(target, html);
+      deps.emitArtifact?.(artifactPathFor(native, target));
       return text(`dashboard written to ${target}`);
     }),
-    defineTool("show_widget", canonicalLocalTools()[9].description, Type.Object({ kind: Type.Union([Type.Literal("kpi"), Type.Literal("chart"), Type.Literal("table"), Type.Literal("steps")]), spec: Type.Unknown() }), async (p) =>
-      text(`[widget:${p.kind}] ${JSON.stringify(p.spec)}`)),
+    defineTool("show_widget", canonicalTool("show_widget").description, Type.Object({ kind: Type.Union([Type.Literal("kpi"), Type.Literal("chart"), Type.Literal("table"), Type.Literal("steps")]), spec: Type.Unknown() }), async (p, native) => {
+      const widgetId = `widget-${native.toolCallId}`;
+      if (native.signal?.aborted) throw new Error("Operation aborted");
+      const validation = validateWidgetSpec(p.kind, p.spec);
+      if (!validation.ok) {
+        const error = `WIDGET_SPEC_INVALID: ${validation.error}`;
+        emitWidgetUpdate(native.onUpdate, {
+          widgetEvent: "widget_error",
+          widgetId,
+          toolCallId: native.toolCallId,
+          toolName: "show_widget",
+          error,
+          legacyText: `[widget error] ${error}`,
+        });
+        throw new Error(error);
+      }
+      const spec = { ...validation.spec };
+      // The renderer consumes KPI items, while accepting the compact scalar
+      // form keeps the tool useful to callers that only have one value.
+      if (p.kind === "kpi" && !Array.isArray(spec.data) && (typeof spec.value === "string" || typeof spec.value === "number")) {
+        spec.data = [{ label: spec.label ?? "", value: spec.value }];
+      }
+      const widget: WidgetPayload = {
+        ...spec,
+        widget_id: widgetId,
+        kind: p.kind,
+        title: typeof spec.title === "string" && spec.title.trim() ? spec.title : `${p.kind} widget`,
+        tool_call_id: native.toolCallId,
+      };
+      const legacyText = widgetLegacyText(widget);
+      emitWidgetUpdate(native.onUpdate, {
+        widgetEvent: "widget",
+        widgetId,
+        toolCallId: native.toolCallId,
+        toolName: "show_widget",
+        widget,
+        legacyText,
+      });
+      return text(legacyText, {
+        widgetEvent: "widget",
+        widgetId,
+        toolCallId: native.toolCallId,
+        toolName: "show_widget",
+        widget,
+        legacyText,
+      } satisfies WidgetLifecycleDetails);
+    }),
   );
   if (deps.queryExecutor) {
     const runQuery = async (sql: string, limit?: number) => {
@@ -139,21 +324,57 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<undef
       return text(`${header}\n${body}${result.truncated ? `\n(truncated at ${result.rows.length} rows)` : ""}`, { columns: result.columns, rows: result.rows });
     };
     tools.push(
-      defineTool("query_database", canonicalLocalTools()[10].description, Type.Object({ sql: Type.String({ minLength: 1 }), limit: Type.Optional(Type.Number()) }), async (p) => runQuery(p.sql, p.limit)),
-      defineTool("export_query", canonicalLocalTools()[12].description, Type.Object({ sql: Type.String({ minLength: 1 }), filename: Type.Optional(Type.String()) }), async (p) => {
-        const full = await deps.queryExecutor!.run(p.sql, 100000);
-        const csv = [full.columns.join(","), ...full.rows.map((row) => row.map((cell) => JSON.stringify(cell ?? "")).join(","))].join("\n");
+      defineTool("query_database", canonicalTool("query_database").description, Type.Object({ sql: Type.String({ minLength: 1 }), limit: Type.Optional(Type.Number()) }), async (p) => runQuery(p.sql, p.limit)),
+      defineTool("export_query", canonicalTool("export_query").description, Type.Object({ sql: Type.String({ minLength: 1 }), filename: Type.Optional(Type.String()) }), async (p, native) => {
+        const signal = native.signal;
         const target = p.filename ?? `exports/query-${Date.now()}.csv`;
-        await deps.workspace.write(target, csv);
-        deps.emitArtifact?.(target);
-        return text(`exported ${full.rows.length} rows to ${target}`);
+        let rowCount = 0;
+        const workspace = await workspaceFor(native);
+        await workspace.writeStream(target, async (write) => {
+          let pending = "";
+          let headerWritten = false;
+          const append = async (chunk: string) => {
+            pending += chunk;
+            if (pending.length >= 64 * 1024) {
+              await write(pending);
+              pending = "";
+            }
+          };
+          const consume = async (batch: QueryExportBatch) => {
+            throwIfAborted(signal);
+            if (!headerWritten) {
+              await append(batch.columns.map(csvHeaderField).join(","));
+              headerWritten = true;
+            }
+            for (const row of batch.rows) {
+              throwIfAborted(signal);
+              await append(`\n${row.map(csvField).join(",")}`);
+              rowCount++;
+            }
+          };
+          if (deps.queryExecutor!.stream) {
+            const batches = await deps.queryExecutor!.stream(p.sql, signal);
+            for await (const batch of batches) await consume(batch);
+          } else {
+            // The legacy preview contract is intentionally bounded. Executors
+            // that support complete exports must implement stream().
+            const bounded = await deps.queryExecutor!.run(p.sql, DEFAULT_ROW_LIMIT);
+            if (bounded.truncated) throw new Error("EXPORT_STREAM_REQUIRED");
+            await consume(bounded);
+          }
+          if (pending) await write(pending);
+        }, signal);
+        // The artifact is observable only after the temporary file was promoted.
+        deps.emitArtifact?.(artifactPathFor(native, target));
+        return text(`exported ${rowCount} rows to ${target}`);
       }),
     );
   }
   if (deps.clarifications) {
     const clarifications = deps.clarifications;
-    tools.push(defineTool("ask_user_clarification", canonicalLocalTools()[11].description, Type.Object({ question: Type.String({ minLength: 1 }), options: Type.Optional(Type.Array(Type.String())) }), async (p) => {
-      const { clarificationId, promise } = clarifications.ask(deps.sessionId ?? "web", p.question, p.options ?? []);
+    tools.push(defineTool("ask_user_clarification", canonicalTool("ask_user_clarification").description, Type.Object({ question: Type.String({ minLength: 1 }), options: Type.Optional(Type.Array(Type.String())) }), async (p, native) => {
+      const sessionId = native.context.sessionId ?? deps.sessionId ?? "web";
+      const { clarificationId, promise } = clarifications.ask(sessionId, p.question, p.options ?? []);
       deps.emitArtifact?.(`__clarification__:${clarificationId}`);
       const answer = await promise;
       return text(answer || "(no answer)");
@@ -209,19 +430,33 @@ export async function resolveSystemPrompt(searchRoots: string[]): Promise<string
   return DATA_AGENT_SYSTEM_PROMPT;
 }
 
-export async function createDataAgentHarness(deps: AgentAssemblyDeps, profile: AgentModelProfile): Promise<AgentHarness> {
+export async function createDataAgentHarness(deps: AgentAssemblyDeps, profile: AgentModelProfile): Promise<AgentHarness<AgentAssemblyToolContext>> {
   if (!profile.apiKey) throw new Error("LLM_API_KEY_MISSING");
-  // Providers resolve auth from the environment; seed it so Models.getAuth succeeds.
-  if (profile.provider === "anthropic") process.env.ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || profile.apiKey;
-  else process.env.OPENAI_API_KEY = process.env.OPENAI_API_KEY || profile.apiKey;
-  const models: Models = builtinModels();
-  const harness = new AgentHarness({
-    session: await new InMemorySessionRepo().create(),
+  // Keep credentials scoped to this harness. Never place them in process.env,
+  // because tool subprocesses (notably Python jobs) inherit that environment.
+  const credentials = new InMemoryCredentialStore();
+  const providerId = profile.provider === "anthropic" ? "anthropic" : "openai";
+  await credentials.modify(providerId, async () => ({ type: "api_key", key: profile.apiKey }));
+  const models: Models = builtinModels({ credentials });
+  const skillLoad = await loadSkillsFromRoots(resolveSkillRoots({ projectRoot: deps.projectRoot, packagedRoot: deps.packagedRoot }));
+  for (const item of skillLoad.diagnostics) console.warn(`[data-agent] Skill diagnostic (${item.code ?? "warning"}) ${item.path}: ${item.message}`);
+  let harness: DataAgentHarness | undefined;
+  const tools = buildAgentTools({
+    ...deps,
+    invokeSkill: (name, additionalInstructions) => {
+      if (!harness) throw new Error("NATIVE_SKILL_INVOCATION_UNAVAILABLE");
+      return harness.skill(name, additionalInstructions);
+    },
+  });
+  harness = new DataAgentHarness({
+    session: deps.session ?? await new InMemorySessionRepo().create(),
     models,
     model: buildModel(profile),
     thinkingLevel: "off",
     systemPrompt: deps.systemPrompt ?? await resolveSystemPrompt(deps.systemPromptRoots ?? (deps.knowledgeRoot ? [deps.knowledgeRoot] : [])),
-    tools: buildAgentTools(deps),
+    tools,
+    resources: { skills: skillLoad.skills },
+    toolContext: deps.toolContext ?? { sessionId: deps.sessionId },
   });
   return harness;
 }

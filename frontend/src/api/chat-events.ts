@@ -1,7 +1,168 @@
+import { isDataAgentEventEnvelope, type DataAgentEvent } from "@data-agent/contracts";
 import { subscribeRuntimeEvents, getRuntimeClient } from "./runtime-client";
-import type { SSEEvent } from "./client";
+import type { SSEEvent, WidgetSpec } from "./client";
 
 export interface RuntimeChatHandle { cancel: () => void; finished: Promise<void> }
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function isWidgetKind(value: unknown): value is WidgetSpec["kind"] {
+  return value === "kpi"
+    || value === "metric_cards"
+    || value === "table"
+    || value === "chart"
+    || value === "steps"
+    || value === "rich_text"
+    || value === "echarts"
+    || value === "file_link";
+}
+
+function isWidgetSpec(value: unknown): value is WidgetSpec {
+  return isRecord(value)
+    && typeof value.widget_id === "string"
+    && typeof value.title === "string"
+    && isWidgetKind(value.kind);
+}
+
+function asWidgetPatch(value: unknown): Partial<WidgetSpec> {
+  return isRecord(value) ? value as unknown as Partial<WidgetSpec> : {};
+}
+
+/** Extract the text content retained for clients that do not understand Widget events. */
+function readableToolResult(result: unknown): string {
+  if (typeof result === "string") return result;
+  if (result && typeof result === "object") {
+    const content = (result as { content?: unknown }).content;
+    if (Array.isArray(content)) {
+      const text = content.find((part) => part && typeof part === "object" && (part as { type?: unknown }).type === "text");
+      if (text && typeof (text as { text?: unknown }).text === "string") return (text as { text: string }).text;
+    }
+  }
+  return JSON.stringify(result ?? null) ?? String(result);
+}
+
+/**
+ * Compatibility adapter from one versioned Runtime event to the existing chat
+ * event model. In particular, terminal tool results retain readable text for
+ * clients that predate structured Widget events.
+ */
+export function mapRuntimeEvent(event: DataAgentEvent, activeMessageId: string): { event: SSEEvent; messageId?: string } | null {
+  switch (event.type) {
+    case "agent.message_started": {
+      const messageId = event.messageId || `msg-${Date.now()}`;
+      return { event: { type: "message_start", message_id: messageId }, messageId };
+    }
+    case "agent.text_delta":
+      return { event: { type: "text_delta", message_id: activeMessageId, content: event.delta } };
+    case "agent.thinking_delta":
+      return { event: { type: "reasoning_delta", message_id: activeMessageId, content: event.delta } };
+    case "agent.tool_started":
+      return {
+        event: {
+          type: "tool_call",
+          message_id: activeMessageId,
+          tool_call_id: event.toolCallId,
+          name: event.toolName,
+          arguments: event.args,
+        },
+      };
+    case "widget":
+      if (!isWidgetSpec(event.widget)) return null;
+      return {
+        event: {
+          type: "widget",
+          message_id: event.messageId,
+          tool_call_id: event.toolCallId,
+          widget_id: event.widgetId,
+          tool_name: event.toolName,
+          widget: event.widget,
+        },
+      };
+    case "widget_patch":
+      return {
+        event: {
+          type: "widget_patch",
+          message_id: event.messageId,
+          tool_call_id: event.toolCallId,
+          widget_id: event.widgetId,
+          tool_name: event.toolName,
+          patch: asWidgetPatch(event.patch),
+        },
+      };
+    case "widget_done":
+      return {
+        event: {
+          type: "widget_done",
+          message_id: event.messageId,
+          tool_call_id: event.toolCallId,
+          widget_id: event.widgetId,
+        },
+      };
+    case "widget_remove":
+      return {
+        event: {
+          type: "widget_remove",
+          message_id: event.messageId,
+          tool_call_id: event.toolCallId,
+          widget_id: event.widgetId,
+        },
+      };
+    case "widget_error":
+      return {
+        event: {
+          type: "widget_error",
+          message_id: event.messageId,
+          tool_call_id: event.toolCallId,
+          widget_id: event.widgetId,
+          error: event.error,
+        },
+      };
+    case "agent.tool_finished": {
+      const details = isRecord(event.result) ? event.result.details : undefined;
+      const widgetId = isRecord(details) && details.widgetId !== undefined
+        ? String(details.widgetId)
+        : undefined;
+      return {
+        event: {
+          type: "tool_result",
+          message_id: activeMessageId,
+          tool_call_id: event.toolCallId,
+          name: event.toolName,
+          ...(event.args !== undefined ? { arguments: event.args } : {}),
+          content: readableToolResult(event.result),
+          details,
+          widget_id: widgetId,
+          is_error: event.isError,
+        },
+      };
+    }
+    case "clarification.request":
+      return {
+        event: {
+          type: "clarification_request",
+          clarification_id: event.clarificationId,
+          question: event.question,
+          options: event.options,
+        },
+      };
+    case "workspace.artifact.created":
+      return { event: { type: "workspace_updated", tool: "" } };
+    case "agent.completed":
+      return { event: { type: "done", reason: "completed" } };
+    default:
+      return null;
+  }
+}
+
+function readRuntimeEnvelope(raw: unknown): { event: DataAgentEvent; sessionId?: string } | null {
+  if (!isDataAgentEventEnvelope(raw)) return null;
+  return {
+    event: raw.event,
+    sessionId: raw.sessionId,
+  };
+}
 
 /**
  * Transitional bridge: consumes versioned runtime event envelopes over the
@@ -13,37 +174,55 @@ export function sendChatViaRuntime(
   onEvent: (event: SSEEvent) => void,
   onError: (err: unknown) => void,
   onFinish: () => void,
+  sessionId?: string,
 ): RuntimeChatHandle {
+  let activeMessageId = "";
+  let isDone = false;
+  const toolArgumentsById = new Map<string, unknown>();
+
+  const handleFinish = () => {
+    if (isDone) return;
+    isDone = true;
+    unsubscribe();
+    onFinish();
+  };
+
   const unsubscribe = subscribeRuntimeEvents((raw) => {
-    const envelope = raw as { event?: { type?: string } & Record<string, unknown> };
-    const event = envelope?.event;
-    if (!event?.type) return;
-    if (event.type === "agent.message_started") {
-      onEvent({ type: "message_start", message_id: String(event.messageId ?? "") });
-    } else if (event.type === "agent.text_delta") {
-      onEvent({ type: "text_delta", content: String(event.delta ?? "") });
-    } else if (event.type === "agent.thinking_delta") {
-      onEvent({ type: "reasoning_delta", message_id: "", content: String(event.delta ?? "") });
-    } else if (event.type === "agent.tool_started") {
-      onEvent({ type: "tool_call", message_id: "", tool_call_id: String(event.toolCallId ?? ""), name: String(event.toolName ?? ""), arguments: event.args ?? {} });
-    } else if (event.type === "agent.tool_finished") {
-      onEvent({ type: "tool_result", message_id: "", tool_call_id: String(event.toolCallId ?? ""), name: String(event.toolName ?? ""), arguments: {}, content: JSON.stringify(event.result ?? null), is_error: Boolean(event.isError) });
-    } else if (event.type === "clarification.request") {
-      onEvent({ type: "clarification_request", clarification_id: String(event.clarificationId ?? ""), question: String(event.question ?? ""), options: (event.options as string[]) ?? [] });
-    } else if (event.type === "workspace.artifact.created") {
-      onEvent({ type: "workspace_updated", tool: "" });
-    } else if (event.type === "agent.completed") {
-      onEvent({ type: "done", reason: "completed" });
+    const envelope = readRuntimeEnvelope(raw);
+    if (!envelope) return;
+    const { event, sessionId } = envelope;
+
+    // Runtime replay envelopes carry the session identity needed to discard
+    // events from another session in ChatArea. Keep the widget-aware mapping
+    // centralized so native widget lifecycle events remain intact.
+    const toolCallId = event.type === "agent.tool_finished"
+      ? event.toolCallId
+      : "";
+    let eventForMapping: DataAgentEvent = event;
+    if (event.type === "agent.tool_finished" && event.args === undefined) {
+      eventForMapping = { ...event, args: toolArgumentsById.get(toolCallId) ?? {} };
     }
-  });
+    if (event.type === "agent.tool_started") {
+      toolArgumentsById.set(event.toolCallId, event.args);
+    }
+
+    const mapped = mapRuntimeEvent(eventForMapping, activeMessageId);
+    if (!mapped) return;
+    if (mapped.messageId !== undefined) activeMessageId = mapped.messageId;
+    const adapted = sessionId
+      ? { ...mapped.event, session_id: sessionId } as SSEEvent
+      : mapped.event;
+    onEvent(adapted);
+    if (event.type === "agent.tool_finished") toolArgumentsById.delete(toolCallId);
+    if (event.type === "agent.completed") handleFinish();
+  }, sessionId);
   const finished = (async () => {
     try {
-      await getRuntimeClient().dispatch({ type: "agent.prompt", prompt });
-      onFinish();
+      await getRuntimeClient().dispatch({ type: "agent.prompt", prompt }, sessionId);
     } catch (err) {
       onError(err);
-      onFinish();
+      handleFinish();
     }
   })();
-  return { cancel: () => { unsubscribe(); }, finished };
+  return { cancel: () => { unsubscribe(); handleFinish(); }, finished };
 }

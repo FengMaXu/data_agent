@@ -1,34 +1,35 @@
 /**
- * Host-injected tester ports shared by the Web Host and Electron Host.
- *
- * These implement the runtime's dbTester / llmTester ports with real probes:
- * - db.test  → opens a MySQL connection and runs SELECT 1
- * - llm.test → calls the configured provider with a 1-token completion
+ * Host-injected tester ports shared by the Web Host.
+ * Database probes are routed through the MySQL MCP child process; this module
+ * never imports a database driver or opens a business-database connection.
  */
-import path from "node:path";
-import { createRequire } from "node:module";
-
-const require_ = createRequire(import.meta.url);
+import { createMcpQueryExecutor, type McpQueryExecutorOptions } from "./mcp-query-executor.js";
 
 export interface ProbeResult { success: boolean; message: string; details?: unknown }
 
-export async function testMySqlConnection(connection: Record<string, unknown>): Promise<ProbeResult> {
+function mysqlMcpEnv(connection: Record<string, unknown>, baseEnv: Record<string, string> = {}): Record<string, string> {
+  const env = { ...baseEnv };
+  for (const [key, envName] of [["host", "DATA_AGENT_MYSQL_HOST"], ["port", "DATA_AGENT_MYSQL_PORT"], ["user", "DATA_AGENT_MYSQL_USER"], ["password", "DATA_AGENT_MYSQL_PASSWORD"], ["database", "DATA_AGENT_MYSQL_DATABASE"]] as const) {
+    if (connection[key] !== undefined && connection[key] !== null) env[envName] = String(connection[key]);
+  }
+  return env;
+}
+
+export async function testMySqlConnection(
+  connection: Record<string, unknown>,
+  mcp: McpQueryExecutorOptions,
+): Promise<ProbeResult> {
   const host = String(connection.host ?? "127.0.0.1");
   const port = Number(connection.port ?? 3306);
-  const user = String(connection.user ?? "root");
-  const password = String(connection.password ?? "");
   const database = connection.database ? String(connection.database) : undefined;
+  const executor = createMcpQueryExecutor({ ...mcp, env: mysqlMcpEnv(connection, mcp.env) });
   try {
-    const mysql = require_("mysql2/promise");
-    const conn = await mysql.createConnection({ host, port, user, password, database, connectTimeout: 8000 });
-    try {
-      await conn.query("SELECT 1");
-      return { success: true, message: `MySQL 连接成功（${host}:${port}${database ? `/ ${database}` : ""}）` };
-    } finally {
-      await conn.end().catch(() => undefined);
-    }
+    await executor.run("SELECT 1 AS connection_ok", 1);
+    return { success: true, message: `MySQL 连接成功（${host}:${port}${database ? `/ ${database}` : ""}）` };
   } catch (error) {
     return { success: false, message: `MySQL 连接失败: ${error instanceof Error ? error.message : String(error)}` };
+  } finally {
+    await executor.close().catch(() => undefined);
   }
 }
 
@@ -71,9 +72,9 @@ export async function testLlmProfile(profile: Record<string, unknown>): Promise<
   }
 }
 
-export function createHostTesters() {
+export function createHostTesters(options: { dbMcp: McpQueryExecutorOptions }) {
   return {
-    dbTester: { test: testMySqlConnection },
+    dbTester: { test: (connection: Record<string, unknown>) => testMySqlConnection(connection, options.dbMcp) },
     llmTester: { test: testLlmProfile },
   };
 }

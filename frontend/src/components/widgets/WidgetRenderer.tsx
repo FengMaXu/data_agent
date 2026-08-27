@@ -5,7 +5,7 @@ import { usePreview } from '../../context/PreviewContext';
 import { resolveInternalUrl, resolveWorkspacePreviewUrl } from '../../utils/resolveInternalUrl';
 import { Download, Eye, File, FileCode, FileSpreadsheet, FileText, Image } from '../icons/Typicons';
 
-export type WidgetKind = 'metric_cards' | 'table' | 'chart' | 'steps' | 'rich_text' | 'echarts' | 'file_link';
+export type WidgetKind = 'kpi' | 'metric_cards' | 'table' | 'chart' | 'steps' | 'rich_text' | 'echarts' | 'file_link';
 
 const PREVIEWABLE_FILE_TYPES = new Set(['csv', 'gif', 'htm', 'html', 'jpeg', 'jpg', 'json', 'md', 'markdown', 'png', 'svg', 'txt', 'webp']);
 
@@ -15,6 +15,8 @@ export interface WidgetSpec {
     title: string;
     subtitle?: string;
     data?: any[];
+    value?: string | number;
+    label?: string;
     series?: any[];
     columns?: any[];
     actions?: any[];
@@ -218,7 +220,11 @@ const formatTableCell = (value: unknown, column: any, t: (key: string) => string
 };
 
 const renderMetricCards = (widget: WidgetSpec, t: (key: string) => string) => {
-    const items = Array.isArray(widget.data) ? widget.data : [];
+    const items = Array.isArray(widget.data)
+        ? widget.data
+        : widget.value !== undefined
+            ? [{ label: widget.label, value: widget.value }]
+            : [];
     return (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
             {items.map((item, index) => (
@@ -267,8 +273,15 @@ const renderTable = (widget: WidgetSpec, t: (key: string) => string) => {
 };
 
 
+const normalizeChartPoints = (widget: WidgetSpec) => {
+    const data = Array.isArray(widget.data) ? widget.data : undefined;
+    const series = Array.isArray(widget.series) ? widget.series : undefined;
+    const source = data && data.length > 0 ? data : series ?? data;
+    return source ?? [];
+};
+
 const renderChart = (widget: WidgetSpec, t: (key: string) => string) => {
-    const points = Array.isArray(widget.data) ? widget.data : [];
+    const points = normalizeChartPoints(widget);
     const values = points
         .map((point) => Number(point.value ?? point.y ?? 0))
         .filter((value) => Number.isFinite(value));
@@ -562,6 +575,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = ({ widget, drillPath, onDr
         }
 
         switch (widget.kind) {
+            case 'kpi':
             case 'metric_cards':
                 return renderMetricCards(widget, t);
             case 'table':

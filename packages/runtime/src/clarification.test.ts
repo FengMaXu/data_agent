@@ -10,6 +10,7 @@ describe("clarification flow", () => {
     runtime.subscribe((event) => events.push(event));
     const first = runtime.askClarification("session-1", "Which region?", ["north", "south"]);
     const second = runtime.askClarification("session-1", "Second?", []);
+    expect(events.filter((e) => e.event.type === "clarification.request").length).toBe(2);
     expect(events.filter((e) => e.event.type === "clarification.settled").length).toBe(1);
 
     await expect(first.promise).resolves.toBe("");

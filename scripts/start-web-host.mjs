@@ -24,7 +24,7 @@ const dataDir = process.env.DATA_AGENT_DATA_DIR
   ? path.resolve(process.env.DATA_AGENT_DATA_DIR)
   : path.join(root, ".data_agent", "runtime-web");
 
-const { DataAgentRuntime, MetadataStore, PiJsonlSessionStore, KnowledgeIndex, WorkspaceStore } = await import(toUrl(path.join(root, "packages/runtime/dist/index.js")));
+const { DataAgentRuntime, MetadataStore, PiJsonlSessionStore, KnowledgeIndex, WorkspaceStore, createAgentHarnessResolver } = await import(toUrl(path.join(root, "packages/runtime/dist/index.js")));
 const { createRuntimeServer } = await import(toUrl(path.join(root, "apps/server/dist/index.js")));
 
 const fsPromises = await import("node:fs/promises");
@@ -44,16 +44,46 @@ const semanticProjectDir = process.env.DATA_AGENT_SEMANTIC_PROJECT_DIR
   ? path.resolve(process.env.DATA_AGENT_SEMANTIC_PROJECT_DIR)
   : path.resolve(dataDir, "..", "semantic-context");
 
-const workspace = new WorkspaceStore(path.join(dataDir, "workspace"), { userId: "local", sessionId: undefined });
-const runtime = new DataAgentRuntime({ metadata, sessions, knowledgeRoot, knowledge, workspace, semanticProjectDir });
+const workspace = new WorkspaceStore(path.join(dataDir, "workspace"));
+const runtime = new DataAgentRuntime({ metadata, sessions, knowledgeRoot, knowledge, workspace, semanticProjectDir, skillRoots: [path.join(root, ".agents", "skills"), path.join(process.resourcesPath ?? root, ".agents", "skills")] });
 
-// Real db/llm probes so onboarding and the settings testers work over HTTP.
-const { createHostTesters } = await import(toUrl(path.join(root, "apps/server/dist/host-testers.js")));
-Object.assign(runtime, createHostTesters());
+// Ingest status port for semantic context readiness
+runtime.ingestJob = {
+  async getStatus() {
+    let count = 0;
+    try {
+      const candidates = ["semantic-layer", "business-semantic"];
+      for (const seg of candidates) {
+        const segDir = path.join(semanticProjectDir, seg);
+        if (existsSync(segDir)) {
+          const entries = await fsPromises.readdir(segDir, { recursive: true });
+          count += entries.filter((f) => String(f).endsWith(".yaml") || String(f).endsWith(".yml")).length;
+        }
+      }
+    } catch {
+      count = 0;
+    }
+    return {
+      status: count > 0 ? "ready" : "skipped",
+      jobId: null,
+      summary: { updated: 0, unchanged: count, failed: 0, skipped: 0 },
+      errorCode: null,
+    };
+  },
+  async retry() {
+    return { accepted: true };
+  },
+};
 
 // Dashboard evaluate and agent query_database flow through the contract MCP
 // database server; connection details come from the saved db config.
 const { createMcpQueryExecutor } = await import(toUrl(path.join(root, "apps/server/dist/mcp-query-executor.js")));
+const mysqlMcpProcess = {
+  command: process.execPath,
+  args: [path.join(root, "packages", "mcp-mysql", "dist", "cli.js")],
+};
+const { createHostTesters } = await import(toUrl(path.join(root, "apps/server/dist/host-testers.js")));
+Object.assign(runtime, createHostTesters({ dbMcp: mysqlMcpProcess }));
 function mysqlEnvFromConfig(cfg) {
   const env = {};
   if (!cfg) return env;
@@ -70,7 +100,7 @@ async function resolveQueryExecutor() {
   const env = mysqlEnvFromConfig(cfg);
   const key = JSON.stringify(env);
   if (!queryExecutor || key !== queryExecutorEnvKey) {
-    queryExecutor = createMcpQueryExecutor({ command: process.execPath, args: [path.join(root, "packages", "mcp-mysql", "dist", "cli.js")], env: Object.keys(env).length ? env : undefined });
+    queryExecutor = createMcpQueryExecutor({ ...mysqlMcpProcess, env: Object.keys(env).length ? env : undefined });
     runtime.queryExecutor = queryExecutor;
     queryExecutorEnvKey = key;
   }
@@ -79,39 +109,50 @@ async function resolveQueryExecutor() {
 resolveQueryExecutor().catch((error) => console.warn("[data-agent-web] mcp query executor unavailable:", error.message));
 
 
-// Lazy Pi agent: (re)built from the latest saved LLM config on first chat use.
+// Pi agent initialization is shared by startup warm-up and request-time use.
+// A missing or temporarily invalid LLM configuration must not prevent the host
+// from listening; the next request will retry after a failed warm-up.
 const pythonExecutable = process.env.DATA_AGENT_PYTHON
   ?? (existsSync(path.join(root, "dist", "python-runtime", "Scripts", "python.exe")) ? path.join(root, "dist", "python-runtime", "Scripts", "python.exe") : undefined);
-let agentHarness; let agentProfileKey = "";
+let agentHarness;
 const agentListeners = new Set();
-async function resolveAgentHarness() {
-  const cfg = (await metadata.getConfig("ui.settings")) ?? {};
-  const profile = {
-    provider: String(cfg.provider ?? "openai"),
-    model: String(cfg.model ?? ""),
-    apiKey: String(cfg.api_key ?? cfg.openai_api_key ?? cfg.anthropic_api_key ?? ""),
-    baseUrl: cfg.base_url ? String(cfg.base_url) : undefined,
-  };
-  if (!profile.apiKey || !profile.model) throw new Error("LLM_NOT_CONFIGURED: complete onboarding first");
-  const key = JSON.stringify(profile);
-  if (!agentHarness || key !== agentProfileKey) {
+const agentHarnessResolver = createAgentHarnessResolver({
+  getProfile: async () => {
+    const cfg = (await metadata.getConfig("ui.settings")) ?? {};
+    const profile = {
+      provider: String(cfg.provider ?? "openai"),
+      model: String(cfg.model ?? ""),
+      apiKey: String(cfg.api_key ?? cfg.openai_api_key ?? cfg.anthropic_api_key ?? ""),
+      baseUrl: cfg.base_url ? String(cfg.base_url) : undefined,
+    };
+    if (cfg.llm_enabled === false || !profile.apiKey || !profile.model) throw new Error("LLM_NOT_CONFIGURED: complete onboarding first");
+    return profile;
+  },
+  create: async (profile, sessionId) => {
     const { createDataAgentHarness } = await import(toUrl(path.join(root, "packages/runtime/dist/index.js")));
-    agentHarness = await createDataAgentHarness({ workspace, knowledge, knowledgeRoot, pythonExecutable, queryExecutor: await resolveQueryExecutor(), clarifications: runtime.clarifications, systemPromptRoots: [knowledgeRoot, root] }, profile);
-    for (const listener of agentListeners) agentHarness.subscribe(listener);
-    agentProfileKey = key;
+    const persistentSession = sessionId ? await sessions.openByAppSessionId(sessionId) : undefined;
+    const harness = await createDataAgentHarness({ workspace, knowledge, knowledgeRoot, pythonExecutable, queryExecutor: await resolveQueryExecutor(), clarifications: runtime.clarifications, session: persistentSession, systemPromptRoots: [knowledgeRoot, root], projectRoot: root, packagedRoot: process.resourcesPath ?? root, toolContext: { sessionId } }, profile);
+    for (const listener of agentListeners) harness.subscribe(listener);
+    agentHarness = harness;
     console.log(`[data-agent-web] agent ready: ${profile.provider}/${profile.model}`);
-  }
-  return agentHarness;
-}
+    return harness;
+  },
+});
+const resolveAgentHarness = (sessionId) => agentHarnessResolver.resolve(sessionId);
 runtime.attachAgent({
-  prompt: async (text) => (await resolveAgentHarness()).prompt(text),
-  steer: async (text) => (await resolveAgentHarness())?.steer(text),
-  followUp: async (text) => (await resolveAgentHarness())?.followUp(text),
+  prompt: async (text, context) => (await resolveAgentHarness(context?.sessionId)).prompt(text),
+  steer: async (text, context) => (await resolveAgentHarness(context?.sessionId))?.steer(text),
+  followUp: async (text, context) => (await resolveAgentHarness(context?.sessionId))?.followUp(text),
   abort: async () => agentHarness?.abort(),
+  getResources: () => agentHarness?.getResources() ?? {},
+  setResources: async (resources) => { if (agentHarness) await agentHarness.setResources(resources); },
   subscribe: (listener) => { agentListeners.add(listener); return () => agentListeners.delete(listener); },
 });
+// Start in the background so normal web routes remain available during a cold
+// start, or when onboarding has not configured an LLM yet.
+agentHarnessResolver.warmup((error) => console.warn("[data-agent-web] agent warm-up unavailable:", error?.message ?? error));
 
-const app = await createRuntimeServer(runtime);
+const app = await createRuntimeServer(runtime, { workspace });
 
 // Serve the built renderer when available so one process fronts the whole app.
 const webDist = process.env.DATA_AGENT_WEB_DIST ? path.resolve(process.env.DATA_AGENT_WEB_DIST) : path.join(root, "frontend", "dist");

@@ -10,15 +10,18 @@ import { SessionProvider } from './hooks/useSession';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { PreviewProvider } from './context/PreviewContext';
-import { saveConfigViaRuntime, getConfigViaRuntime } from './api/runtime-client';
+import { getConfigViaRuntime } from './api/runtime-client';
 import LoginView from './components/LoginView';
 import GlobalPreviewModal from './components/common/GlobalPreviewModal';
 import { SemanticStartupStatus } from './components/SemanticStartupStatus';
 import { useSemanticStartupStatus } from './hooks/useSemanticStartupStatus';
 
+type StartupState = 'checking' | 'ready' | 'onboarding' | 'error';
+
 interface AppShellProps {
-  startupState: 'checking' | 'ready' | 'onboarding';
-  setStartupState: React.Dispatch<React.SetStateAction<'checking' | 'ready' | 'onboarding'>>;
+  startupState: StartupState;
+  setStartupState: React.Dispatch<React.SetStateAction<StartupState>>;
+  onRetryStartup: () => void;
 }
 
 const DESKTOP_MENU_ITEMS = [
@@ -33,7 +36,7 @@ const TOOL_PANEL_MIN_WIDTH = 300;
 const DEFAULT_CHAT_RATIO = 0.62;
 const CHAT_PANEL_MIN_WIDTH = 560;
 
-const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState }) => {
+const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState, onRetryStartup }) => {
   const { t } = useLanguage();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [tools, setTools] = useState<ToolData[]>([]);
@@ -171,6 +174,15 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState }) =>
     return <Onboarding onComplete={() => setStartupState('ready')} />;
   }
 
+  if (startupState === 'error') {
+    return (
+      <div className="app-loading" role="alert">
+        <p>{t('app.startupError')}</p>
+        <button type="button" onClick={onRetryStartup}>{t('app.retry')}</button>
+      </div>
+    );
+  }
+
   return (
     <SessionProvider>
       <div className="desktop-shell">
@@ -261,7 +273,8 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState }) =>
 };
 
 const App: React.FC = () => {
-  const [startupState, setStartupState] = useState<'checking' | 'ready' | 'onboarding'>('checking');
+  const [startupState, setStartupState] = useState<StartupState>('checking');
+  const [startupAttempt, setStartupAttempt] = useState(0);
   const { status } = useAuth();
   const { t } = useLanguage();
 
@@ -276,18 +289,16 @@ const App: React.FC = () => {
     const completeStartupCheck = async () => {
       try {
         const config = await getConfigViaRuntime();
-        if ((config as Record<string, unknown>).openai_api_key || (config as Record<string, unknown>).anthropic_api_key) {
-          if (!cancelled) setStartupState('ready');
-          return;
-        }
-
+        const configRecord = config as Record<string, unknown>;
         const storedSecrets = await window.dataAgent?.getStoredSecrets();
-        if (storedSecrets?.openai_api_key || storedSecrets?.anthropic_api_key) {
-          await saveConfigViaRuntime({
-            provider: storedSecrets.anthropic_api_key ? 'anthropic' : 'openai',
-            openai_api_key: storedSecrets.openai_api_key,
-            anthropic_api_key: storedSecrets.anthropic_api_key,
-          });
+        const hasConfiguredKey = configRecord.llm_enabled !== false && [
+          configRecord.api_key,
+          configRecord.openai_api_key,
+          configRecord.anthropic_api_key,
+          storedSecrets?.openai_api_key,
+          storedSecrets?.anthropic_api_key,
+        ].some((value) => typeof value === 'string' && value.trim().length > 0);
+        if (hasConfiguredKey) {
           if (!cancelled) setStartupState('ready');
           return;
         }
@@ -295,7 +306,7 @@ const App: React.FC = () => {
         if (!cancelled) setStartupState('onboarding');
       } catch (error) {
         console.error('Startup config check failed:', error);
-        if (!cancelled) setStartupState('ready');
+        if (!cancelled) setStartupState('error');
       }
     };
 
@@ -303,7 +314,7 @@ const App: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [status]);
+  }, [status, startupAttempt]);
 
   if (status === 'checking') {
     return <div className="app-loading">{t('app.preparing')}</div>;
@@ -315,7 +326,11 @@ const App: React.FC = () => {
 
   return (
     <PreviewProvider>
-      <AppShell startupState={startupState} setStartupState={setStartupState} />
+      <AppShell
+        startupState={startupState}
+        setStartupState={setStartupState}
+        onRetryStartup={() => setStartupAttempt((attempt) => attempt + 1)}
+      />
       <GlobalPreviewModal />
     </PreviewProvider>
   );

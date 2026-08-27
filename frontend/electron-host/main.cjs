@@ -13953,23 +13953,23 @@ var init_parse3 = __esm({
 });
 
 // node_modules/typebox/build/value/delta/diff.mjs
-function CreateUpdate(path18, value) {
-  return { type: "update", path: path18, value };
+function CreateUpdate(path20, value) {
+  return { type: "update", path: path20, value };
 }
-function CreateInsert(path18, value) {
-  return { type: "insert", path: path18, value };
+function CreateInsert(path20, value) {
+  return { type: "insert", path: path20, value };
 }
-function CreateDelete(path18) {
-  return { type: "delete", path: path18 };
+function CreateDelete(path20) {
+  return { type: "delete", path: path20 };
 }
 function AssertCanDiffObject(value) {
   if (guard_exports.IsObject(value) && guard_exports.IsEqual(guard_exports.Symbols(value).length, 0))
     return;
   throw new Error("Cannot create diffs for objects with symbols keys");
 }
-function* FromObject17(path18, left, right) {
+function* FromObject17(path20, left, right) {
   if (!guard_exports.IsObject(right) || guard_exports.IsArray(right))
-    return yield CreateUpdate(path18, right);
+    return yield CreateUpdate(path20, right);
   AssertCanDiffObject(left);
   AssertCanDiffObject(right);
   const leftKeys = guard_exports.Keys(left);
@@ -13979,7 +13979,7 @@ function* FromObject17(path18, left, right) {
       continue;
     if (guard_exports.IsUnsafePropertyKey(key))
       continue;
-    yield CreateInsert(`${path18}/${key}`, right[key]);
+    yield CreateInsert(`${path20}/${key}`, right[key]);
   }
   for (const key of leftKeys) {
     if (!guard_exports.HasPropertyKey(right, key))
@@ -13988,52 +13988,52 @@ function* FromObject17(path18, left, right) {
       continue;
     if (Equal(left, right))
       continue;
-    yield* FromValue4(`${path18}/${key}`, left[key], right[key]);
+    yield* FromValue4(`${path20}/${key}`, left[key], right[key]);
   }
   for (const key of leftKeys) {
     if (guard_exports.HasPropertyKey(right, key))
       continue;
     if (guard_exports.IsUnsafePropertyKey(key))
       continue;
-    yield CreateDelete(`${path18}/${key}`);
+    yield CreateDelete(`${path20}/${key}`);
   }
 }
-function* FromArray13(path18, left, right) {
+function* FromArray13(path20, left, right) {
   if (!guard_exports.IsArray(right))
-    return yield CreateUpdate(path18, right);
+    return yield CreateUpdate(path20, right);
   for (let i2 = 0; i2 < Math.min(left.length, right.length); i2++) {
-    yield* FromValue4(`${path18}/${i2}`, left[i2], right[i2]);
+    yield* FromValue4(`${path20}/${i2}`, left[i2], right[i2]);
   }
   for (let i2 = 0; i2 < right.length; i2++) {
     if (i2 < left.length)
       continue;
-    yield CreateInsert(`${path18}/${i2}`, right[i2]);
+    yield CreateInsert(`${path20}/${i2}`, right[i2]);
   }
   for (let i2 = left.length - 1; i2 >= 0; i2--) {
     if (i2 < right.length)
       continue;
-    yield CreateDelete(`${path18}/${i2}`);
+    yield CreateDelete(`${path20}/${i2}`);
   }
 }
-function* FromTypedArray2(path18, left, right) {
+function* FromTypedArray2(path20, left, right) {
   const typeLeft = globalThis.Object.getPrototypeOf(left).constructor.name;
   const typeRight = globalThis.Object.getPrototypeOf(right).constructor.name;
   const predicate = globals_exports.IsTypeArray(right) && guard_exports.IsEqual(left.length, right.length) && guard_exports.IsEqual(typeLeft, typeRight);
   if (predicate) {
     for (let index3 = 0; index3 < Math.min(left.length, right.length); index3++) {
-      yield* FromValue4(`${path18}/${index3}`, left[index3], right[index3]);
+      yield* FromValue4(`${path20}/${index3}`, left[index3], right[index3]);
     }
   } else {
-    return yield CreateUpdate(path18, right);
+    return yield CreateUpdate(path20, right);
   }
 }
-function* FromUnknown(path18, left, right) {
+function* FromUnknown(path20, left, right) {
   if (left === right)
     return;
-  yield CreateUpdate(path18, right);
+  yield CreateUpdate(path20, right);
 }
-function* FromValue4(path18, left, right) {
-  return globals_exports.IsTypeArray(left) ? yield* FromTypedArray2(path18, left, right) : guard_exports.IsArray(left) ? yield* FromArray13(path18, left, right) : guard_exports.IsObject(left) ? yield* FromObject17(path18, left, right) : yield* FromUnknown(path18, left, right);
+function* FromValue4(path20, left, right) {
+  return globals_exports.IsTypeArray(left) ? yield* FromTypedArray2(path20, left, right) : guard_exports.IsArray(left) ? yield* FromArray13(path20, left, right) : guard_exports.IsObject(left) ? yield* FromObject17(path20, left, right) : yield* FromUnknown(path20, left, right);
 }
 function Diff(current, next) {
   return [...FromValue4("", current, next)];
@@ -14548,7 +14548,7 @@ function parseDataAgentCommandEnvelope(value) {
     throw new TypeError("Invalid DataAgent command envelope");
   return value;
 }
-var ProtocolVersion, RequestContextSchema, RuntimeProbeCommandSchema, AgentPromptCommandSchema, AgentSteerCommandSchema, AgentFollowUpCommandSchema, AgentStopCommandSchema, WorkspaceListCommandSchema, WorkspaceReadCommandSchema, WorkspaceWriteCommandSchema, WorkspaceDeleteCommandSchema, RunPythonCommandSchema, KnowledgeSearchCommandSchema, KnowledgeReadCommandSchema, ClarificationAnswerCommandSchema, KnowledgeListCommandSchema, KnowledgeSaveCommandSchema, DashboardV3DataCommandSchema, ConfigGetCommandSchema, ConfigSaveCommandSchema, PythonRuntimeTestCommandSchema, DbTestCommandSchema, LlmTestCommandSchema, ConfigLlmListCommandSchema, ConfigLlmSaveCommandSchema, McpServersStatusCommandSchema, McpServerTestCommandSchema, McpServerRestartCommandSchema, SessionTranscriptCommandSchema, SessionPrepareCommandSchema, SemanticSourcesListCommandSchema, SemanticSourcesGetCommandSchema, McpConfigGetCommandSchema, McpConfigSaveCommandSchema, SkillsListCommandSchema, DashboardEvaluateCommandSchema, SemanticIngestStatusCommandSchema, SemanticIngestRetryCommandSchema, DashboardMigrateCommandSchema, DashboardCommandSchema, TaskCreateCommandSchema, TaskListCommandSchema, TaskRenameCommandSchema, TaskDeleteCommandSchema, SessionCreateCommandSchema, SessionListCommandSchema, SessionRenameCommandSchema, SessionDeleteCommandSchema, DataAgentCommandSchema, DataAgentCommandEnvelopeSchema, RuntimeProbeResponseSchema, AgentPromptResponseSchema, KnowledgeSearchResponseSchema, KnowledgeReadResponseSchema, KnowledgeListResponseSchema, KnowledgeSaveResponseSchema, SemanticSourcesResponseSchema, SemanticSourceResponseSchema, McpConfigResponseSchema, SkillsListResponseSchema, DashboardEvaluateResponseSchema, SemanticIngestStatusResponseSchema, SemanticIngestRetryResponseSchema, SessionTranscriptResponseSchema, DashboardV3DataResponseSchema, ConfigGetResponseSchema, ConfigSaveResponseSchema, SimpleTestResponseSchema, ConfigLlmListResponseSchema, ConfigLlmSaveResponseSchema, McpServersStatusResponseSchema, McpServerTestResponseSchema, McpServerRestartResponseSchema, DashboardResponseSchema, DashboardMigrateResponseSchema, PythonResponseSchema, WorkspaceResponseSchema, TaskSchema, SessionSchema, MutationResponseSchema, ListResponseSchema, DataAgentResponseSchema, DataAgentResponseEnvelopeSchema, DataAgentEventSchema, DataAgentEventEnvelopeSchema;
+var ProtocolVersion, RequestContextSchema, RuntimeProbeCommandSchema, AgentPromptCommandSchema, AgentSteerCommandSchema, AgentFollowUpCommandSchema, AgentStopCommandSchema, WorkspaceListCommandSchema, WorkspaceReadCommandSchema, WorkspaceWriteCommandSchema, WorkspaceDeleteCommandSchema, RunPythonCommandSchema, KnowledgeSearchCommandSchema, KnowledgeReadCommandSchema, ClarificationAnswerCommandSchema, KnowledgeListCommandSchema, KnowledgeSaveCommandSchema, DashboardV3DataCommandSchema, ConfigGetCommandSchema, ConfigSaveCommandSchema, PythonRuntimeTestCommandSchema, DbTestCommandSchema, LlmTestCommandSchema, ConfigLlmListCommandSchema, ConfigLlmSaveCommandSchema, McpServersStatusCommandSchema, McpServerTestCommandSchema, McpServerRestartCommandSchema, SessionTranscriptCommandSchema, SessionPrepareCommandSchema, SemanticSourcesListCommandSchema, SemanticSourcesGetCommandSchema, McpConfigGetCommandSchema, McpConfigSaveCommandSchema, SkillsListCommandSchema, DashboardEvaluateCommandSchema, SemanticIngestStatusCommandSchema, SemanticIngestRetryCommandSchema, DashboardMigrateCommandSchema, DashboardCommandSchema, TaskCreateCommandSchema, TaskListCommandSchema, TaskRenameCommandSchema, TaskDeleteCommandSchema, SessionCreateCommandSchema, SessionListCommandSchema, SessionRenameCommandSchema, SessionDeleteCommandSchema, DataAgentCommandSchema, DataAgentCommandEnvelopeSchema, RuntimeProbeResponseSchema, AgentPromptResponseSchema, KnowledgeSearchResponseSchema, KnowledgeReadResponseSchema, KnowledgeListResponseSchema, KnowledgeSaveResponseSchema, SemanticSourcesResponseSchema, SemanticSourceResponseSchema, McpConfigResponseSchema, SkillsListResponseSchema, DashboardEvaluateResponseSchema, SemanticIngestStatusResponseSchema, SemanticIngestRetryResponseSchema, SessionTranscriptResponseSchema, DashboardV3DataResponseSchema, ConfigGetResponseSchema, ConfigSaveResponseSchema, SimpleTestResponseSchema, ConfigLlmListResponseSchema, ConfigLlmSaveResponseSchema, McpServersStatusResponseSchema, McpServerTestResponseSchema, McpServerRestartResponseSchema, DashboardResponseSchema, DashboardMigrateResponseSchema, PythonResponseSchema, WorkspaceResponseSchema, TaskSchema, SessionSchema, MutationResponseSchema, ListResponseSchema, DataAgentResponseSchema, DataAgentResponseEnvelopeSchema, WidgetRecordSchema, WidgetEventFields, DataAgentEventSchema, DataAgentEventEnvelopeSchema;
 var init_dist = __esm({
   "packages/contracts/dist/index.js"() {
     "use strict";
@@ -14562,12 +14562,12 @@ var init_dist = __esm({
     AgentFollowUpCommandSchema = typebox_exports.Object({ type: typebox_exports.Literal("agent.follow_up"), prompt: typebox_exports.String({ minLength: 1 }) });
     AgentStopCommandSchema = typebox_exports.Object({ type: typebox_exports.Literal("agent.stop") });
     WorkspaceListCommandSchema = typebox_exports.Object({ type: typebox_exports.Literal("workspace.list") });
-    WorkspaceReadCommandSchema = typebox_exports.Object({ type: typebox_exports.Literal("workspace.read"), path: typebox_exports.String({ minLength: 1 }) });
+    WorkspaceReadCommandSchema = typebox_exports.Object({ type: typebox_exports.Literal("workspace.read"), path: typebox_exports.String({ minLength: 1 }), startLine: typebox_exports.Optional(typebox_exports.Integer({ minimum: 1 })), endLine: typebox_exports.Optional(typebox_exports.Integer({ minimum: 1 })) });
     WorkspaceWriteCommandSchema = typebox_exports.Object({ type: typebox_exports.Literal("workspace.write"), path: typebox_exports.String({ minLength: 1 }), content: typebox_exports.String() });
     WorkspaceDeleteCommandSchema = typebox_exports.Object({ type: typebox_exports.Literal("workspace.delete"), path: typebox_exports.String({ minLength: 1 }) });
     RunPythonCommandSchema = typebox_exports.Object({ type: typebox_exports.Literal("python.run"), code: typebox_exports.String({ minLength: 1 }), description: typebox_exports.Optional(typebox_exports.String()) });
     KnowledgeSearchCommandSchema = typebox_exports.Object({ type: typebox_exports.Literal("knowledge.search"), query: typebox_exports.String({ minLength: 1 }) });
-    KnowledgeReadCommandSchema = typebox_exports.Object({ type: typebox_exports.Literal("knowledge.read"), path: typebox_exports.String({ minLength: 1 }) });
+    KnowledgeReadCommandSchema = typebox_exports.Object({ type: typebox_exports.Literal("knowledge.read"), path: typebox_exports.String({ minLength: 1 }), startLine: typebox_exports.Optional(typebox_exports.Integer({ minimum: 1 })), endLine: typebox_exports.Optional(typebox_exports.Integer({ minimum: 1 })) });
     ClarificationAnswerCommandSchema = typebox_exports.Object({ type: typebox_exports.Literal("clarification.answer"), clarificationId: typebox_exports.String({ minLength: 1 }), answer: typebox_exports.String() });
     KnowledgeListCommandSchema = typebox_exports.Object({ type: typebox_exports.Literal("knowledge.list") });
     KnowledgeSaveCommandSchema = typebox_exports.Object({ type: typebox_exports.Literal("knowledge.save"), path: typebox_exports.String({ minLength: 1 }), content: typebox_exports.String() });
@@ -14603,17 +14603,17 @@ var init_dist = __esm({
     SessionRenameCommandSchema = typebox_exports.Object({ type: typebox_exports.Literal("session.rename"), sessionId: typebox_exports.String({ minLength: 1 }), name: typebox_exports.String({ minLength: 1 }) });
     SessionDeleteCommandSchema = typebox_exports.Object({ type: typebox_exports.Literal("session.delete"), sessionId: typebox_exports.String({ minLength: 1 }) });
     DataAgentCommandSchema = typebox_exports.Union([RuntimeProbeCommandSchema, AgentPromptCommandSchema, AgentSteerCommandSchema, AgentFollowUpCommandSchema, AgentStopCommandSchema, WorkspaceListCommandSchema, WorkspaceReadCommandSchema, WorkspaceWriteCommandSchema, WorkspaceDeleteCommandSchema, RunPythonCommandSchema, KnowledgeSearchCommandSchema, KnowledgeReadCommandSchema, ClarificationAnswerCommandSchema, KnowledgeListCommandSchema, KnowledgeSaveCommandSchema, DashboardV3DataCommandSchema, ConfigGetCommandSchema, ConfigSaveCommandSchema, PythonRuntimeTestCommandSchema, DbTestCommandSchema, LlmTestCommandSchema, ConfigLlmListCommandSchema, ConfigLlmSaveCommandSchema, McpServersStatusCommandSchema, McpServerTestCommandSchema, McpServerRestartCommandSchema, SessionPrepareCommandSchema, SessionTranscriptCommandSchema, SemanticSourcesListCommandSchema, SemanticSourcesGetCommandSchema, McpConfigGetCommandSchema, McpConfigSaveCommandSchema, SkillsListCommandSchema, DashboardEvaluateCommandSchema, DashboardMigrateCommandSchema, SemanticIngestStatusCommandSchema, SemanticIngestRetryCommandSchema, DashboardCommandSchema, TaskCreateCommandSchema, TaskListCommandSchema, TaskRenameCommandSchema, TaskDeleteCommandSchema, SessionCreateCommandSchema, SessionListCommandSchema, SessionRenameCommandSchema, SessionDeleteCommandSchema]);
-    DataAgentCommandEnvelopeSchema = typebox_exports.Object({ protocolVersion: typebox_exports.Integer({ minimum: 1 }), requestId: typebox_exports.String({ minLength: 1 }), command: DataAgentCommandSchema });
+    DataAgentCommandEnvelopeSchema = typebox_exports.Object({ protocolVersion: typebox_exports.Integer({ minimum: 1 }), requestId: typebox_exports.String({ minLength: 1 }), sessionId: typebox_exports.Optional(typebox_exports.String({ minLength: 1 })), command: DataAgentCommandSchema });
     RuntimeProbeResponseSchema = typebox_exports.Object({ type: typebox_exports.Literal("runtime.probe.result"), service: typebox_exports.Literal("data-agent-runtime"), runtimeVersion: typebox_exports.Literal("0.1.0") });
     AgentPromptResponseSchema = typebox_exports.Object({ type: typebox_exports.Literal("agent.prompt.accepted"), runId: typebox_exports.String({ minLength: 1 }) });
-    KnowledgeSearchResponseSchema = typebox_exports.Object({ type: typebox_exports.Literal("knowledge.search.result"), hits: typebox_exports.Array(typebox_exports.Object({ path: typebox_exports.String(), title: typebox_exports.String(), category: typebox_exports.String(), chunkId: typebox_exports.String(), startLine: typebox_exports.Integer(), endLine: typebox_exports.Integer(), score: typebox_exports.Number(), revision: typebox_exports.Integer() })) });
+    KnowledgeSearchResponseSchema = typebox_exports.Object({ type: typebox_exports.Literal("knowledge.search.result"), hits: typebox_exports.Array(typebox_exports.Object({ path: typebox_exports.String(), title: typebox_exports.String(), category: typebox_exports.String(), chunkId: typebox_exports.String(), startLine: typebox_exports.Integer(), endLine: typebox_exports.Integer(), score: typebox_exports.Number(), revision: typebox_exports.Integer(), snippet: typebox_exports.Optional(typebox_exports.String()) })) });
     KnowledgeReadResponseSchema = typebox_exports.Object({ type: typebox_exports.Literal("knowledge.read.result"), path: typebox_exports.String(), content: typebox_exports.String() });
     KnowledgeListResponseSchema = typebox_exports.Object({ type: typebox_exports.Literal("knowledge.list.result"), files: typebox_exports.Array(typebox_exports.Object({ path: typebox_exports.String(), size: typebox_exports.Number(), modifiedAt: typebox_exports.Number() })) });
     KnowledgeSaveResponseSchema = typebox_exports.Object({ type: typebox_exports.Literal("knowledge.save.result"), path: typebox_exports.String() });
     SemanticSourcesResponseSchema = typebox_exports.Object({ type: typebox_exports.Literal("semantic.sources.result"), sources: typebox_exports.Array(typebox_exports.Object({ connectionId: typebox_exports.String(), sourceName: typebox_exports.String(), definition: typebox_exports.Unknown(), updatedAt: typebox_exports.Number() })) });
     SemanticSourceResponseSchema = typebox_exports.Object({ type: typebox_exports.Literal("semantic.source.result"), source: typebox_exports.Object({ connectionId: typebox_exports.String(), sourceName: typebox_exports.String(), definition: typebox_exports.Unknown(), updatedAt: typebox_exports.Number() }) });
     McpConfigResponseSchema = typebox_exports.Object({ type: typebox_exports.Literal("mcp.config.result"), config: typebox_exports.Unknown() });
-    SkillsListResponseSchema = typebox_exports.Object({ type: typebox_exports.Literal("skills.list.result"), skills: typebox_exports.Array(typebox_exports.Object({ name: typebox_exports.String(), description: typebox_exports.String(), tools: typebox_exports.Array(typebox_exports.String()) })) });
+    SkillsListResponseSchema = typebox_exports.Object({ type: typebox_exports.Literal("skills.list.result"), skills: typebox_exports.Array(typebox_exports.Object({ name: typebox_exports.String(), description: typebox_exports.String(), tools: typebox_exports.Array(typebox_exports.String()) })), diagnostics: typebox_exports.Optional(typebox_exports.Array(typebox_exports.Object({ path: typebox_exports.String(), message: typebox_exports.String() }))) });
     DashboardEvaluateResponseSchema = typebox_exports.Object({ type: typebox_exports.Literal("dashboard.evaluate.result"), columns: typebox_exports.Array(typebox_exports.String()), rows: typebox_exports.Array(typebox_exports.Array(typebox_exports.Unknown())), rowCount: typebox_exports.Number(), truncated: typebox_exports.Boolean() });
     SemanticIngestStatusResponseSchema = typebox_exports.Object({ type: typebox_exports.Literal("semantic.ingest.status.result"), status: typebox_exports.String(), jobId: typebox_exports.Union([typebox_exports.String(), typebox_exports.Null()]), summary: typebox_exports.Object({ updated: typebox_exports.Number(), unchanged: typebox_exports.Number(), failed: typebox_exports.Number(), skipped: typebox_exports.Number() }), errorCode: typebox_exports.Union([typebox_exports.String(), typebox_exports.Null()]) });
     SemanticIngestRetryResponseSchema = typebox_exports.Object({ type: typebox_exports.Literal("semantic.ingest.retry.result"), accepted: typebox_exports.Boolean() });
@@ -14637,7 +14637,29 @@ var init_dist = __esm({
     ListResponseSchema = typebox_exports.Object({ type: typebox_exports.Literal("list.result"), entity: typebox_exports.Union([typebox_exports.Literal("task"), typebox_exports.Literal("session")]), items: typebox_exports.Array(typebox_exports.Union([TaskSchema, SessionSchema])) });
     DataAgentResponseSchema = typebox_exports.Union([RuntimeProbeResponseSchema, AgentPromptResponseSchema, KnowledgeSearchResponseSchema, KnowledgeReadResponseSchema, KnowledgeListResponseSchema, KnowledgeSaveResponseSchema, SemanticSourcesResponseSchema, SemanticSourceResponseSchema, McpConfigResponseSchema, SkillsListResponseSchema, DashboardEvaluateResponseSchema, SemanticIngestStatusResponseSchema, SemanticIngestRetryResponseSchema, SessionTranscriptResponseSchema, DashboardV3DataResponseSchema, ConfigGetResponseSchema, ConfigSaveResponseSchema, SimpleTestResponseSchema, ConfigLlmListResponseSchema, ConfigLlmSaveResponseSchema, McpServersStatusResponseSchema, McpServerTestResponseSchema, McpServerRestartResponseSchema, DashboardResponseSchema, DashboardMigrateResponseSchema, PythonResponseSchema, WorkspaceResponseSchema, MutationResponseSchema, ListResponseSchema]);
     DataAgentResponseEnvelopeSchema = typebox_exports.Object({ protocolVersion: typebox_exports.Literal(ProtocolVersion), requestId: typebox_exports.String({ minLength: 1 }), response: DataAgentResponseSchema });
-    DataAgentEventSchema = typebox_exports.Union([typebox_exports.Object({ type: typebox_exports.Literal("runtime.probe.completed"), service: typebox_exports.Literal("data-agent-runtime") }), typebox_exports.Object({ type: typebox_exports.Literal("agent.text_delta"), delta: typebox_exports.String() }), typebox_exports.Object({ type: typebox_exports.Literal("agent.thinking_delta"), delta: typebox_exports.String() }), typebox_exports.Object({ type: typebox_exports.Literal("agent.message_started"), messageId: typebox_exports.String() }), typebox_exports.Object({ type: typebox_exports.Literal("agent.tool_started"), toolCallId: typebox_exports.String(), toolName: typebox_exports.String(), args: typebox_exports.Unknown() }), typebox_exports.Object({ type: typebox_exports.Literal("agent.tool_finished"), toolCallId: typebox_exports.String(), toolName: typebox_exports.String(), result: typebox_exports.Unknown(), isError: typebox_exports.Boolean() }), typebox_exports.Object({ type: typebox_exports.Literal("agent.completed") }), typebox_exports.Object({ type: typebox_exports.Literal("workspace.artifact.created"), path: typebox_exports.String(), kind: typebox_exports.Literal("file") }), typebox_exports.Object({ type: typebox_exports.Literal("clarification.request"), clarificationId: typebox_exports.String(), question: typebox_exports.String(), options: typebox_exports.Array(typebox_exports.String()) }), typebox_exports.Object({ type: typebox_exports.Literal("clarification.settled"), clarificationId: typebox_exports.String(), outcome: typebox_exports.Union([typebox_exports.Literal("answered"), typebox_exports.Literal("expired"), typebox_exports.Literal("cancelled")]) })]);
+    WidgetRecordSchema = typebox_exports.Record(typebox_exports.String(), typebox_exports.Unknown());
+    WidgetEventFields = {
+      messageId: typebox_exports.String({ minLength: 1 }),
+      toolCallId: typebox_exports.String({ minLength: 1 }),
+      widgetId: typebox_exports.String({ minLength: 1 })
+    };
+    DataAgentEventSchema = typebox_exports.Union([
+      typebox_exports.Object({ type: typebox_exports.Literal("runtime.probe.completed"), service: typebox_exports.Literal("data-agent-runtime") }),
+      typebox_exports.Object({ type: typebox_exports.Literal("agent.text_delta"), delta: typebox_exports.String() }),
+      typebox_exports.Object({ type: typebox_exports.Literal("agent.thinking_delta"), delta: typebox_exports.String() }),
+      typebox_exports.Object({ type: typebox_exports.Literal("agent.message_started"), messageId: typebox_exports.String() }),
+      typebox_exports.Object({ type: typebox_exports.Literal("agent.tool_started"), toolCallId: typebox_exports.String(), toolName: typebox_exports.String(), args: typebox_exports.Unknown() }),
+      typebox_exports.Object({ type: typebox_exports.Literal("agent.tool_finished"), toolCallId: typebox_exports.String(), toolName: typebox_exports.String(), args: typebox_exports.Optional(typebox_exports.Unknown()), result: typebox_exports.Unknown(), isError: typebox_exports.Boolean() }),
+      typebox_exports.Object({ type: typebox_exports.Literal("widget"), ...WidgetEventFields, toolName: typebox_exports.Literal("show_widget"), widget: WidgetRecordSchema }),
+      typebox_exports.Object({ type: typebox_exports.Literal("widget_patch"), ...WidgetEventFields, toolName: typebox_exports.Literal("show_widget"), patch: WidgetRecordSchema }),
+      typebox_exports.Object({ type: typebox_exports.Literal("widget_done"), ...WidgetEventFields, toolName: typebox_exports.Literal("show_widget") }),
+      typebox_exports.Object({ type: typebox_exports.Literal("widget_remove"), ...WidgetEventFields, toolName: typebox_exports.Literal("show_widget") }),
+      typebox_exports.Object({ type: typebox_exports.Literal("widget_error"), ...WidgetEventFields, toolName: typebox_exports.Literal("show_widget"), error: typebox_exports.String() }),
+      typebox_exports.Object({ type: typebox_exports.Literal("agent.completed") }),
+      typebox_exports.Object({ type: typebox_exports.Literal("workspace.artifact.created"), path: typebox_exports.String(), kind: typebox_exports.Literal("file") }),
+      typebox_exports.Object({ type: typebox_exports.Literal("clarification.request"), clarificationId: typebox_exports.String(), question: typebox_exports.String(), options: typebox_exports.Array(typebox_exports.String()) }),
+      typebox_exports.Object({ type: typebox_exports.Literal("clarification.settled"), clarificationId: typebox_exports.String(), outcome: typebox_exports.Union([typebox_exports.Literal("answered"), typebox_exports.Literal("expired"), typebox_exports.Literal("cancelled")]) })
+    ]);
     DataAgentEventEnvelopeSchema = typebox_exports.Object({ protocolVersion: typebox_exports.Literal(ProtocolVersion), sequence: typebox_exports.Integer({ minimum: 1 }), requestId: typebox_exports.String({ minLength: 1 }), sessionId: typebox_exports.Optional(typebox_exports.String()), runId: typebox_exports.Optional(typebox_exports.String()), timestamp: typebox_exports.Integer({ minimum: 0 }), event: DataAgentEventSchema });
   }
 });
@@ -14658,9 +14680,17 @@ var init_metadata = __esm({
       constructor(dbPath) {
         const sourceDir = false ? import_node_path.default.dirname((0, import_node_url.fileURLToPath)(void 0)) : __dirname;
         (0, import_node_fs.mkdirSync)(import_node_path.default.dirname(import_node_path.default.resolve(dbPath)), { recursive: true });
-        const workerPath = import_node_path.default.join(sourceDir, "metadata-worker.js");
-        const builtWorkerPath = import_node_path.default.resolve(sourceDir, "../dist/metadata-worker.js");
-        this.worker = new import_node_worker_threads.Worker((0, import_node_fs.existsSync)(workerPath) ? workerPath : builtWorkerPath, { workerData: { path: import_node_path.default.resolve(dbPath) } });
+        const workerCandidates = [
+          // The Electron CJS bundle stages a CJS worker next to main.cjs.
+          import_node_path.default.join(sourceDir, "metadata-worker.cjs"),
+          // Native runtime builds keep the ESM worker next to metadata.js.
+          import_node_path.default.join(sourceDir, "metadata-worker.js"),
+          import_node_path.default.resolve(sourceDir, "../dist/metadata-worker.js")
+        ];
+        const workerPath = workerCandidates.find(import_node_fs.existsSync);
+        if (!workerPath)
+          throw new Error(`METADATA_WORKER_NOT_FOUND: ${workerCandidates.join(", ")}`);
+        this.worker = new import_node_worker_threads.Worker(workerPath, { workerData: { path: import_node_path.default.resolve(dbPath) } });
         this.worker.on("message", (message) => {
           const p = this.pending.get(message.id);
           if (!p)
@@ -14857,10 +14887,10 @@ function defaultProviderAuthContext() {
       const value = getProcessEnv()?.[name];
       return typeof value === "string" && value.trim().length > 0 ? value : void 0;
     },
-    async fileExists(path18) {
+    async fileExists(path20) {
       try {
         const fs3 = await importNodeModule("node:fs/promises");
-        let resolved = path18;
+        let resolved = path20;
         if (resolved.startsWith("~")) {
           const os = await importNodeModule("node:os");
           resolved = os.homedir() + resolved.slice(1);
@@ -14876,13 +14906,13 @@ function defaultProviderAuthContext() {
 var __rewriteRelativeImportExtension, importNodeModule;
 var init_context2 = __esm({
   "node_modules/@earendil-works/pi-ai/dist/auth/context.js"() {
-    __rewriteRelativeImportExtension = function(path18, preserveJsx) {
-      if (typeof path18 === "string" && /^\.\.?\//.test(path18)) {
-        return path18.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m2, tsx, d, ext, cm) {
+    __rewriteRelativeImportExtension = function(path20, preserveJsx) {
+      if (typeof path20 === "string" && /^\.\.?\//.test(path20)) {
+        return path20.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m2, tsx, d, ext, cm) {
           return tsx ? preserveJsx ? ".jsx" : ".js" : d && (!ext || !cm) ? m2 : d + ext + "." + cm.toLowerCase() + "js";
         });
       }
-      return path18;
+      return path20;
     };
     importNodeModule = (specifier) => import(__rewriteRelativeImportExtension(specifier));
   }
@@ -14999,8 +15029,8 @@ function extractDiagnosticError(error51) {
 function createAssistantMessageDiagnostic(type, error51, details) {
   return { type, timestamp: Date.now(), error: extractDiagnosticError(error51), details };
 }
-function appendAssistantMessageDiagnostic(message, diagnostic) {
-  message.diagnostics = [...message.diagnostics ?? [], diagnostic];
+function appendAssistantMessageDiagnostic(message, diagnostic2) {
+  message.diagnostics = [...message.diagnostics ?? [], diagnostic2];
 }
 var init_diagnostics = __esm({
   "node_modules/@earendil-works/pi-ai/dist/utils/diagnostics.js"() {
@@ -15041,7 +15071,7 @@ async function resolveProviderAuth(provider, credentials, authContext, overrides
 function overlayEnvAuthContext(base, env2) {
   return {
     env: async (name) => env2[name] || await base.env(name),
-    fileExists: (path18) => base.fileExists(path18)
+    fileExists: (path20) => base.fileExists(path20)
   };
 }
 async function resolveStoredOAuth(credentials, providerId, oauth, stored, minOAuthValidityMs) {
@@ -16447,8 +16477,8 @@ function formatValidationPath(error51) {
       return basePath ? `${basePath}.${requiredProperty}` : requiredProperty;
     }
   }
-  const path18 = error51.instancePath.replace(/^\//, "").replace(/\//g, ".");
-  return path18 || "root";
+  const path20 = error51.instancePath.replace(/^\//, "").replace(/\//g, ".");
+  return path20 || "root";
 }
 function validateToolArguments(tool, toolCall) {
   const args = structuredClone(toolCall.arguments);
@@ -17123,11 +17153,11 @@ var init_types5 = __esm({
       code;
       /** Absolute addressed path associated with the failure, when available. */
       path;
-      constructor(code, message, path18, cause) {
+      constructor(code, message, path20, cause) {
         super(message, cause === void 0 ? void 0 : { cause });
         this.name = "FileError";
         this.code = code;
-        this.path = path18;
+        this.path = path20;
       }
     };
     ExecutionError = class extends Error {
@@ -17466,18 +17496,18 @@ function extractFileOpsFromMessage(message, fileOps) {
     const args = block.arguments;
     if (!args)
       continue;
-    const path18 = typeof args.path === "string" ? args.path : void 0;
-    if (!path18)
+    const path20 = typeof args.path === "string" ? args.path : void 0;
+    if (!path20)
       continue;
     switch (block.name) {
       case "read":
-        fileOps.read.add(path18);
+        fileOps.read.add(path20);
         break;
       case "write":
-        fileOps.written.add(path18);
+        fileOps.written.add(path20);
         break;
       case "edit":
-        fileOps.edited.add(path18);
+        fileOps.edited.add(path20);
         break;
     }
   }
@@ -18379,17 +18409,17 @@ var require_visit = __commonJS({
     visit.BREAK = BREAK;
     visit.SKIP = SKIP;
     visit.REMOVE = REMOVE;
-    function visit_(key, node, visitor, path18) {
-      const ctrl = callVisitor(key, node, visitor, path18);
+    function visit_(key, node, visitor, path20) {
+      const ctrl = callVisitor(key, node, visitor, path20);
       if (identity.isNode(ctrl) || identity.isPair(ctrl)) {
-        replaceNode(key, path18, ctrl);
-        return visit_(key, ctrl, visitor, path18);
+        replaceNode(key, path20, ctrl);
+        return visit_(key, ctrl, visitor, path20);
       }
       if (typeof ctrl !== "symbol") {
         if (identity.isCollection(node)) {
-          path18 = Object.freeze(path18.concat(node));
+          path20 = Object.freeze(path20.concat(node));
           for (let i2 = 0; i2 < node.items.length; ++i2) {
-            const ci = visit_(i2, node.items[i2], visitor, path18);
+            const ci = visit_(i2, node.items[i2], visitor, path20);
             if (typeof ci === "number")
               i2 = ci - 1;
             else if (ci === BREAK)
@@ -18400,13 +18430,13 @@ var require_visit = __commonJS({
             }
           }
         } else if (identity.isPair(node)) {
-          path18 = Object.freeze(path18.concat(node));
-          const ck = visit_("key", node.key, visitor, path18);
+          path20 = Object.freeze(path20.concat(node));
+          const ck = visit_("key", node.key, visitor, path20);
           if (ck === BREAK)
             return BREAK;
           else if (ck === REMOVE)
             node.key = null;
-          const cv = visit_("value", node.value, visitor, path18);
+          const cv = visit_("value", node.value, visitor, path20);
           if (cv === BREAK)
             return BREAK;
           else if (cv === REMOVE)
@@ -18427,17 +18457,17 @@ var require_visit = __commonJS({
     visitAsync.BREAK = BREAK;
     visitAsync.SKIP = SKIP;
     visitAsync.REMOVE = REMOVE;
-    async function visitAsync_(key, node, visitor, path18) {
-      const ctrl = await callVisitor(key, node, visitor, path18);
+    async function visitAsync_(key, node, visitor, path20) {
+      const ctrl = await callVisitor(key, node, visitor, path20);
       if (identity.isNode(ctrl) || identity.isPair(ctrl)) {
-        replaceNode(key, path18, ctrl);
-        return visitAsync_(key, ctrl, visitor, path18);
+        replaceNode(key, path20, ctrl);
+        return visitAsync_(key, ctrl, visitor, path20);
       }
       if (typeof ctrl !== "symbol") {
         if (identity.isCollection(node)) {
-          path18 = Object.freeze(path18.concat(node));
+          path20 = Object.freeze(path20.concat(node));
           for (let i2 = 0; i2 < node.items.length; ++i2) {
-            const ci = await visitAsync_(i2, node.items[i2], visitor, path18);
+            const ci = await visitAsync_(i2, node.items[i2], visitor, path20);
             if (typeof ci === "number")
               i2 = ci - 1;
             else if (ci === BREAK)
@@ -18448,13 +18478,13 @@ var require_visit = __commonJS({
             }
           }
         } else if (identity.isPair(node)) {
-          path18 = Object.freeze(path18.concat(node));
-          const ck = await visitAsync_("key", node.key, visitor, path18);
+          path20 = Object.freeze(path20.concat(node));
+          const ck = await visitAsync_("key", node.key, visitor, path20);
           if (ck === BREAK)
             return BREAK;
           else if (ck === REMOVE)
             node.key = null;
-          const cv = await visitAsync_("value", node.value, visitor, path18);
+          const cv = await visitAsync_("value", node.value, visitor, path20);
           if (cv === BREAK)
             return BREAK;
           else if (cv === REMOVE)
@@ -18481,23 +18511,23 @@ var require_visit = __commonJS({
       }
       return visitor;
     }
-    function callVisitor(key, node, visitor, path18) {
+    function callVisitor(key, node, visitor, path20) {
       if (typeof visitor === "function")
-        return visitor(key, node, path18);
+        return visitor(key, node, path20);
       if (identity.isMap(node))
-        return visitor.Map?.(key, node, path18);
+        return visitor.Map?.(key, node, path20);
       if (identity.isSeq(node))
-        return visitor.Seq?.(key, node, path18);
+        return visitor.Seq?.(key, node, path20);
       if (identity.isPair(node))
-        return visitor.Pair?.(key, node, path18);
+        return visitor.Pair?.(key, node, path20);
       if (identity.isScalar(node))
-        return visitor.Scalar?.(key, node, path18);
+        return visitor.Scalar?.(key, node, path20);
       if (identity.isAlias(node))
-        return visitor.Alias?.(key, node, path18);
+        return visitor.Alias?.(key, node, path20);
       return void 0;
     }
-    function replaceNode(key, path18, node) {
-      const parent = path18[path18.length - 1];
+    function replaceNode(key, path20, node) {
+      const parent = path20[path20.length - 1];
       if (identity.isCollection(parent)) {
         parent.items[key] = node;
       } else if (identity.isPair(parent)) {
@@ -19107,10 +19137,10 @@ var require_Collection = __commonJS({
     var createNode = require_createNode();
     var identity = require_identity();
     var Node = require_Node();
-    function collectionFromPath(schema, path18, value) {
+    function collectionFromPath(schema, path20, value) {
       let v = value;
-      for (let i2 = path18.length - 1; i2 >= 0; --i2) {
-        const k = path18[i2];
+      for (let i2 = path20.length - 1; i2 >= 0; --i2) {
+        const k = path20[i2];
         if (typeof k === "number" && Number.isInteger(k) && k >= 0) {
           const a = [];
           a[k] = v;
@@ -19129,7 +19159,7 @@ var require_Collection = __commonJS({
         sourceObjects: /* @__PURE__ */ new Map()
       });
     }
-    var isEmptyPath = (path18) => path18 == null || typeof path18 === "object" && !!path18[Symbol.iterator]().next().done;
+    var isEmptyPath = (path20) => path20 == null || typeof path20 === "object" && !!path20[Symbol.iterator]().next().done;
     var Collection = class extends Node.NodeBase {
       constructor(type, schema) {
         super(type);
@@ -19159,11 +19189,11 @@ var require_Collection = __commonJS({
        * be a Pair instance or a `{ key, value }` object, which may not have a key
        * that already exists in the map.
        */
-      addIn(path18, value) {
-        if (isEmptyPath(path18))
+      addIn(path20, value) {
+        if (isEmptyPath(path20))
           this.add(value);
         else {
-          const [key, ...rest] = path18;
+          const [key, ...rest] = path20;
           const node = this.get(key, true);
           if (identity.isCollection(node))
             node.addIn(rest, value);
@@ -19177,8 +19207,8 @@ var require_Collection = __commonJS({
        * Removes a value from the collection.
        * @returns `true` if the item was found and removed.
        */
-      deleteIn(path18) {
-        const [key, ...rest] = path18;
+      deleteIn(path20) {
+        const [key, ...rest] = path20;
         if (rest.length === 0)
           return this.delete(key);
         const node = this.get(key, true);
@@ -19192,8 +19222,8 @@ var require_Collection = __commonJS({
        * scalar values from their surrounding node; to disable set `keepScalar` to
        * `true` (collections are always returned intact).
        */
-      getIn(path18, keepScalar) {
-        const [key, ...rest] = path18;
+      getIn(path20, keepScalar) {
+        const [key, ...rest] = path20;
         const node = this.get(key, true);
         if (rest.length === 0)
           return !keepScalar && identity.isScalar(node) ? node.value : node;
@@ -19211,8 +19241,8 @@ var require_Collection = __commonJS({
       /**
        * Checks if the collection includes a value with the key `key`.
        */
-      hasIn(path18) {
-        const [key, ...rest] = path18;
+      hasIn(path20) {
+        const [key, ...rest] = path20;
         if (rest.length === 0)
           return this.has(key);
         const node = this.get(key, true);
@@ -19222,8 +19252,8 @@ var require_Collection = __commonJS({
        * Sets a value in this collection. For `!!set`, `value` needs to be a
        * boolean to add/remove the item from the set.
        */
-      setIn(path18, value) {
-        const [key, ...rest] = path18;
+      setIn(path20, value) {
+        const [key, ...rest] = path20;
         if (rest.length === 0) {
           this.set(key, value);
         } else {
@@ -21738,9 +21768,9 @@ var require_Document = __commonJS({
           this.contents.add(value);
       }
       /** Adds a value to the document. */
-      addIn(path18, value) {
+      addIn(path20, value) {
         if (assertCollection(this.contents))
-          this.contents.addIn(path18, value);
+          this.contents.addIn(path20, value);
       }
       /**
        * Create a new `Alias` node, ensuring that the target `node` has the required anchor.
@@ -21815,14 +21845,14 @@ var require_Document = __commonJS({
        * Removes a value from the document.
        * @returns `true` if the item was found and removed.
        */
-      deleteIn(path18) {
-        if (Collection.isEmptyPath(path18)) {
+      deleteIn(path20) {
+        if (Collection.isEmptyPath(path20)) {
           if (this.contents == null)
             return false;
           this.contents = null;
           return true;
         }
-        return assertCollection(this.contents) ? this.contents.deleteIn(path18) : false;
+        return assertCollection(this.contents) ? this.contents.deleteIn(path20) : false;
       }
       /**
        * Returns item at `key`, or `undefined` if not found. By default unwraps
@@ -21837,10 +21867,10 @@ var require_Document = __commonJS({
        * scalar values from their surrounding node; to disable set `keepScalar` to
        * `true` (collections are always returned intact).
        */
-      getIn(path18, keepScalar) {
-        if (Collection.isEmptyPath(path18))
+      getIn(path20, keepScalar) {
+        if (Collection.isEmptyPath(path20))
           return !keepScalar && identity.isScalar(this.contents) ? this.contents.value : this.contents;
-        return identity.isCollection(this.contents) ? this.contents.getIn(path18, keepScalar) : void 0;
+        return identity.isCollection(this.contents) ? this.contents.getIn(path20, keepScalar) : void 0;
       }
       /**
        * Checks if the document includes a value with the key `key`.
@@ -21851,10 +21881,10 @@ var require_Document = __commonJS({
       /**
        * Checks if the document includes a value at `path`.
        */
-      hasIn(path18) {
-        if (Collection.isEmptyPath(path18))
+      hasIn(path20) {
+        if (Collection.isEmptyPath(path20))
           return this.contents !== void 0;
-        return identity.isCollection(this.contents) ? this.contents.hasIn(path18) : false;
+        return identity.isCollection(this.contents) ? this.contents.hasIn(path20) : false;
       }
       /**
        * Sets a value in this document. For `!!set`, `value` needs to be a
@@ -21871,13 +21901,13 @@ var require_Document = __commonJS({
        * Sets a value in this document. For `!!set`, `value` needs to be a
        * boolean to add/remove the item from the set.
        */
-      setIn(path18, value) {
-        if (Collection.isEmptyPath(path18)) {
+      setIn(path20, value) {
+        if (Collection.isEmptyPath(path20)) {
           this.contents = value;
         } else if (this.contents == null) {
-          this.contents = Collection.collectionFromPath(this.schema, Array.from(path18), value);
+          this.contents = Collection.collectionFromPath(this.schema, Array.from(path20), value);
         } else if (assertCollection(this.contents)) {
-          this.contents.setIn(path18, value);
+          this.contents.setIn(path20, value);
         }
       }
       /**
@@ -23837,9 +23867,9 @@ var require_cst_visit = __commonJS({
     visit.BREAK = BREAK;
     visit.SKIP = SKIP;
     visit.REMOVE = REMOVE;
-    visit.itemAtPath = (cst, path18) => {
+    visit.itemAtPath = (cst, path20) => {
       let item = cst;
-      for (const [field, index3] of path18) {
+      for (const [field, index3] of path20) {
         const tok = item?.[field];
         if (tok && "items" in tok) {
           item = tok.items[index3];
@@ -23848,23 +23878,23 @@ var require_cst_visit = __commonJS({
       }
       return item;
     };
-    visit.parentCollection = (cst, path18) => {
-      const parent = visit.itemAtPath(cst, path18.slice(0, -1));
-      const field = path18[path18.length - 1][0];
+    visit.parentCollection = (cst, path20) => {
+      const parent = visit.itemAtPath(cst, path20.slice(0, -1));
+      const field = path20[path20.length - 1][0];
       const coll = parent?.[field];
       if (coll && "items" in coll)
         return coll;
       throw new Error("Parent collection not found");
     };
-    function _visit(path18, item, visitor) {
-      let ctrl = visitor(item, path18);
+    function _visit(path20, item, visitor) {
+      let ctrl = visitor(item, path20);
       if (typeof ctrl === "symbol")
         return ctrl;
       for (const field of ["key", "value"]) {
         const token = item[field];
         if (token && "items" in token) {
           for (let i2 = 0; i2 < token.items.length; ++i2) {
-            const ci = _visit(Object.freeze(path18.concat([[field, i2]])), token.items[i2], visitor);
+            const ci = _visit(Object.freeze(path20.concat([[field, i2]])), token.items[i2], visitor);
             if (typeof ci === "number")
               i2 = ci - 1;
             else if (ci === BREAK)
@@ -23875,10 +23905,10 @@ var require_cst_visit = __commonJS({
             }
           }
           if (typeof ctrl === "function" && field === "key")
-            ctrl = ctrl(item, path18);
+            ctrl = ctrl(item, path20);
         }
       }
-      return typeof ctrl === "function" ? ctrl(item, path18) : ctrl;
+      return typeof ctrl === "function" ? ctrl(item, path20) : ctrl;
     }
     exports2.visit = visit;
   }
@@ -25954,7 +25984,7 @@ var require_ignore = __commonJS({
       //   path matching.
       // - check `string` either `MODE_IGNORE` or `MODE_CHECK_IGNORE`
       // @returns {TestResult} true if a file is ignored
-      test(path18, checkUnignored, mode) {
+      test(path20, checkUnignored, mode) {
         let ignored = false;
         let unignored = false;
         let matchedRule;
@@ -25963,7 +25993,7 @@ var require_ignore = __commonJS({
           if (unignored === negative && ignored !== unignored || negative && !ignored && !unignored && !checkUnignored) {
             return;
           }
-          const matched = rule[mode].test(path18);
+          const matched = rule[mode].test(path20);
           if (!matched) {
             return;
           }
@@ -25984,17 +26014,17 @@ var require_ignore = __commonJS({
     var throwError = (message, Ctor) => {
       throw new Ctor(message);
     };
-    var checkPath = (path18, originalPath, doThrow) => {
-      if (!isString(path18)) {
+    var checkPath = (path20, originalPath, doThrow) => {
+      if (!isString(path20)) {
         return doThrow(
           `path must be a string, but got \`${originalPath}\``,
           TypeError
         );
       }
-      if (!path18) {
+      if (!path20) {
         return doThrow(`path must not be empty`, TypeError);
       }
-      if (checkPath.isNotRelative(path18)) {
+      if (checkPath.isNotRelative(path20)) {
         const r2 = "`path.relative()`d";
         return doThrow(
           `path should be a ${r2} string, but got "${originalPath}"`,
@@ -26003,7 +26033,7 @@ var require_ignore = __commonJS({
       }
       return true;
     };
-    var isNotRelative = (path18) => REGEX_TEST_INVALID_PATH.test(path18);
+    var isNotRelative = (path20) => REGEX_TEST_INVALID_PATH.test(path20);
     checkPath.isNotRelative = isNotRelative;
     checkPath.convert = (p) => p;
     var Ignore = class {
@@ -26033,19 +26063,19 @@ var require_ignore = __commonJS({
       }
       // @returns {TestResult}
       _test(originalPath, cache, checkUnignored, slices) {
-        const path18 = originalPath && checkPath.convert(originalPath);
+        const path20 = originalPath && checkPath.convert(originalPath);
         checkPath(
-          path18,
+          path20,
           originalPath,
           this._strictPathCheck ? throwError : RETURN_FALSE
         );
-        return this._t(path18, cache, checkUnignored, slices);
+        return this._t(path20, cache, checkUnignored, slices);
       }
-      checkIgnore(path18) {
-        if (!REGEX_TEST_TRAILING_SLASH.test(path18)) {
-          return this.test(path18);
+      checkIgnore(path20) {
+        if (!REGEX_TEST_TRAILING_SLASH.test(path20)) {
+          return this.test(path20);
         }
-        const slices = path18.split(SLASH).filter(Boolean);
+        const slices = path20.split(SLASH).filter(Boolean);
         slices.pop();
         if (slices.length) {
           const parent = this._t(
@@ -26058,18 +26088,18 @@ var require_ignore = __commonJS({
             return parent;
           }
         }
-        return this._rules.test(path18, false, MODE_CHECK_IGNORE);
+        return this._rules.test(path20, false, MODE_CHECK_IGNORE);
       }
-      _t(path18, cache, checkUnignored, slices) {
-        if (path18 in cache) {
-          return cache[path18];
+      _t(path20, cache, checkUnignored, slices) {
+        if (path20 in cache) {
+          return cache[path20];
         }
         if (!slices) {
-          slices = path18.split(SLASH).filter(Boolean);
+          slices = path20.split(SLASH).filter(Boolean);
         }
         slices.pop();
         if (!slices.length) {
-          return cache[path18] = this._rules.test(path18, checkUnignored, MODE_IGNORE);
+          return cache[path20] = this._rules.test(path20, checkUnignored, MODE_IGNORE);
         }
         const parent = this._t(
           slices.join(SLASH) + SLASH,
@@ -26077,29 +26107,29 @@ var require_ignore = __commonJS({
           checkUnignored,
           slices
         );
-        return cache[path18] = parent.ignored ? parent : this._rules.test(path18, checkUnignored, MODE_IGNORE);
+        return cache[path20] = parent.ignored ? parent : this._rules.test(path20, checkUnignored, MODE_IGNORE);
       }
-      ignores(path18) {
-        return this._test(path18, this._ignoreCache, false).ignored;
+      ignores(path20) {
+        return this._test(path20, this._ignoreCache, false).ignored;
       }
       createFilter() {
-        return (path18) => !this.ignores(path18);
+        return (path20) => !this.ignores(path20);
       }
       filter(paths) {
         return makeArray(paths).filter(this.createFilter());
       }
       // @returns {TestResult}
-      test(path18) {
-        return this._test(path18, this._testCache, true);
+      test(path20) {
+        return this._test(path20, this._testCache, true);
       }
     };
     var factory = (options) => new Ignore(options);
-    var isPathValid = (path18) => checkPath(path18 && checkPath.convert(path18), path18, RETURN_FALSE);
+    var isPathValid = (path20) => checkPath(path20 && checkPath.convert(path20), path20, RETURN_FALSE);
     var setupWindows = () => {
       const makePosix = (str2) => /^\\\\\?\\/.test(str2) || /["<>|\u0000-\u001F]+/u.test(str2) ? str2 : str2.replace(/\\/g, "/");
       checkPath.convert = makePosix;
       const REGEX_TEST_WINDOWS_PATH_ABSOLUTE = /^[a-z]:\//i;
-      checkPath.isNotRelative = (path18) => REGEX_TEST_WINDOWS_PATH_ABSOLUTE.test(path18) || isNotRelative(path18);
+      checkPath.isNotRelative = (path20) => REGEX_TEST_WINDOWS_PATH_ABSOLUTE.test(path20) || isNotRelative(path20);
     };
     if (
       // Detect `process` so that it can run in browsers.
@@ -26125,17 +26155,281 @@ ${skill.content}
 
 ${additionalInstructions}` : skillBlock;
 }
-function dirnameEnvPath(path18) {
-  const normalized = path18.replace(/\/+$/, "");
+async function loadSkills(env2, dirs) {
+  const skills = [];
+  const diagnostics = [];
+  for (const dir of Array.isArray(dirs) ? dirs : [dirs]) {
+    const rootInfoResult = await env2.fileInfo(dir);
+    if (!rootInfoResult.ok) {
+      if (rootInfoResult.error.code !== "not_found") {
+        diagnostics.push({
+          type: "warning",
+          code: "file_info_failed",
+          message: rootInfoResult.error.message,
+          path: dir
+        });
+      }
+      continue;
+    }
+    const rootInfo = rootInfoResult.value;
+    if (await resolveKind(env2, rootInfo, diagnostics) !== "directory")
+      continue;
+    const result = await loadSkillsFromDirInternal(env2, rootInfo.path, true, (0, import_ignore.default)(), rootInfo.path);
+    skills.push(...result.skills);
+    diagnostics.push(...result.diagnostics);
+  }
+  return { skills, diagnostics };
+}
+async function loadSkillsFromDirInternal(env2, dir, includeRootFiles, ignoreMatcher, rootDir) {
+  const skills = [];
+  const diagnostics = [];
+  const dirInfoResult = await env2.fileInfo(dir);
+  if (!dirInfoResult.ok) {
+    if (dirInfoResult.error.code !== "not_found") {
+      diagnostics.push({
+        type: "warning",
+        code: "file_info_failed",
+        message: dirInfoResult.error.message,
+        path: dir
+      });
+    }
+    return { skills, diagnostics };
+  }
+  const dirInfo = dirInfoResult.value;
+  if (await resolveKind(env2, dirInfo, diagnostics) !== "directory")
+    return { skills, diagnostics };
+  await addIgnoreRules(env2, ignoreMatcher, dir, rootDir, diagnostics);
+  const entriesResult = await env2.listDir(dir);
+  if (!entriesResult.ok) {
+    diagnostics.push({ type: "warning", code: "list_failed", message: entriesResult.error.message, path: dir });
+    return { skills, diagnostics };
+  }
+  const entries = entriesResult.value;
+  for (const entry of entries) {
+    if (entry.name !== "SKILL.md")
+      continue;
+    const fullPath = entry.path;
+    const kind = await resolveKind(env2, entry, diagnostics);
+    if (kind !== "file")
+      continue;
+    const relPath = relativeEnvPath(rootDir, fullPath);
+    if (ignoreMatcher.ignores(relPath))
+      continue;
+    const result = await loadSkillFromFile(env2, fullPath);
+    if (result.skill)
+      skills.push(result.skill);
+    diagnostics.push(...result.diagnostics);
+    return { skills, diagnostics };
+  }
+  for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
+    if (entry.name.startsWith(".") || entry.name === "node_modules")
+      continue;
+    const fullPath = entry.path;
+    const kind = await resolveKind(env2, entry, diagnostics);
+    if (!kind)
+      continue;
+    const relPath = relativeEnvPath(rootDir, fullPath);
+    const ignorePath = kind === "directory" ? `${relPath}/` : relPath;
+    if (ignoreMatcher.ignores(ignorePath))
+      continue;
+    if (kind === "directory") {
+      const result2 = await loadSkillsFromDirInternal(env2, fullPath, false, ignoreMatcher, rootDir);
+      skills.push(...result2.skills);
+      diagnostics.push(...result2.diagnostics);
+      continue;
+    }
+    if (kind !== "file" || !includeRootFiles || !entry.name.endsWith(".md"))
+      continue;
+    const result = await loadSkillFromFile(env2, fullPath);
+    if (result.skill)
+      skills.push(result.skill);
+    diagnostics.push(...result.diagnostics);
+  }
+  return { skills, diagnostics };
+}
+async function addIgnoreRules(env2, ig, dir, rootDir, diagnostics) {
+  const relativeDir = relativeEnvPath(rootDir, dir);
+  const prefix = relativeDir ? `${relativeDir}/` : "";
+  for (const filename of IGNORE_FILE_NAMES) {
+    const ignorePath = joinEnvPath(dir, filename);
+    const info = await env2.fileInfo(ignorePath);
+    if (!info.ok) {
+      if (info.error.code !== "not_found") {
+        diagnostics.push({
+          type: "warning",
+          code: "file_info_failed",
+          message: info.error.message,
+          path: ignorePath
+        });
+      }
+      continue;
+    }
+    if (info.value.kind !== "file")
+      continue;
+    const content = await env2.readTextFile(ignorePath);
+    if (!content.ok) {
+      diagnostics.push({ type: "warning", code: "read_failed", message: content.error.message, path: ignorePath });
+      continue;
+    }
+    const patterns = content.value.split(/\r?\n/).map((line) => prefixIgnorePattern(line, prefix)).filter((line) => Boolean(line));
+    if (patterns.length > 0)
+      ig.add(patterns);
+  }
+}
+function prefixIgnorePattern(line, prefix) {
+  const trimmed = line.trim();
+  if (!trimmed)
+    return null;
+  if (trimmed.startsWith("#") && !trimmed.startsWith("\\#"))
+    return null;
+  let pattern = line;
+  let negated = false;
+  if (pattern.startsWith("!")) {
+    negated = true;
+    pattern = pattern.slice(1);
+  } else if (pattern.startsWith("\\!")) {
+    pattern = pattern.slice(1);
+  }
+  if (pattern.startsWith("/"))
+    pattern = pattern.slice(1);
+  const prefixed = prefix ? `${prefix}${pattern}` : pattern;
+  return negated ? `!${prefixed}` : prefixed;
+}
+async function loadSkillFromFile(env2, filePath) {
+  const diagnostics = [];
+  const rawContent = await env2.readTextFile(filePath);
+  if (!rawContent.ok) {
+    diagnostics.push({ type: "warning", code: "read_failed", message: rawContent.error.message, path: filePath });
+    return { skill: null, diagnostics };
+  }
+  const parsed = parseFrontmatter(rawContent.value);
+  if (!parsed.ok) {
+    diagnostics.push({ type: "warning", code: "parse_failed", message: parsed.error.message, path: filePath });
+    return { skill: null, diagnostics };
+  }
+  const { frontmatter, body } = parsed.value;
+  const skillDir = dirnameEnvPath(filePath);
+  const parentDirName = basenameEnvPath(skillDir);
+  const description = typeof frontmatter.description === "string" ? frontmatter.description : void 0;
+  for (const error51 of validateDescription(description)) {
+    diagnostics.push({ type: "warning", code: "invalid_metadata", message: error51, path: filePath });
+  }
+  const frontmatterName = typeof frontmatter.name === "string" ? frontmatter.name : void 0;
+  const name = frontmatterName || parentDirName;
+  for (const error51 of validateName(name, parentDirName)) {
+    diagnostics.push({ type: "warning", code: "invalid_metadata", message: error51, path: filePath });
+  }
+  if (!description || description.trim() === "") {
+    return { skill: null, diagnostics };
+  }
+  return {
+    skill: {
+      name,
+      description,
+      content: body,
+      filePath,
+      disableModelInvocation: frontmatter["disable-model-invocation"] === true
+    },
+    diagnostics
+  };
+}
+function validateName(name, parentDirName) {
+  const errors = [];
+  if (name !== parentDirName)
+    errors.push(`name "${name}" does not match parent directory "${parentDirName}"`);
+  if (name.length > MAX_NAME_LENGTH)
+    errors.push(`name exceeds ${MAX_NAME_LENGTH} characters (${name.length})`);
+  if (!/^[a-z0-9-]+$/.test(name)) {
+    errors.push("name contains invalid characters (must be lowercase a-z, 0-9, hyphens only)");
+  }
+  if (name.startsWith("-") || name.endsWith("-"))
+    errors.push("name must not start or end with a hyphen");
+  if (name.includes("--"))
+    errors.push("name must not contain consecutive hyphens");
+  return errors;
+}
+function validateDescription(description) {
+  const errors = [];
+  if (!description || description.trim() === "") {
+    errors.push("description is required");
+  } else if (description.length > MAX_DESCRIPTION_LENGTH) {
+    errors.push(`description exceeds ${MAX_DESCRIPTION_LENGTH} characters (${description.length})`);
+  }
+  return errors;
+}
+function parseFrontmatter(content) {
+  try {
+    const normalized = content.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+    if (!normalized.startsWith("---"))
+      return { ok: true, value: { frontmatter: {}, body: normalized } };
+    const endIndex = normalized.indexOf("\n---", 3);
+    if (endIndex === -1)
+      return { ok: true, value: { frontmatter: {}, body: normalized } };
+    const yamlString = normalized.slice(4, endIndex);
+    const body = normalized.slice(endIndex + 4).trim();
+    return { ok: true, value: { frontmatter: (0, import_yaml2.parse)(yamlString) ?? {}, body } };
+  } catch (error51) {
+    return { ok: false, error: toError(error51) };
+  }
+}
+async function resolveKind(env2, info, diagnostics) {
+  if (info.kind === "file" || info.kind === "directory")
+    return info.kind;
+  const canonicalPath = await env2.canonicalPath(info.path);
+  if (!canonicalPath.ok) {
+    if (canonicalPath.error.code !== "not_found") {
+      diagnostics.push({
+        type: "warning",
+        code: "file_info_failed",
+        message: canonicalPath.error.message,
+        path: info.path
+      });
+    }
+    return void 0;
+  }
+  const target = await env2.fileInfo(canonicalPath.value);
+  if (!target.ok) {
+    if (target.error.code !== "not_found") {
+      diagnostics.push({
+        type: "warning",
+        code: "file_info_failed",
+        message: target.error.message,
+        path: info.path
+      });
+    }
+    return void 0;
+  }
+  return target.value.kind === "file" || target.value.kind === "directory" ? target.value.kind : void 0;
+}
+function joinEnvPath(base, child) {
+  return `${base.replace(/\/+$/, "")}/${child.replace(/^\/+/, "")}`;
+}
+function dirnameEnvPath(path20) {
+  const normalized = path20.replace(/\/+$/, "");
   const slashIndex = normalized.lastIndexOf("/");
   return slashIndex <= 0 ? "/" : normalized.slice(0, slashIndex);
 }
-var import_ignore, import_yaml2;
+function basenameEnvPath(path20) {
+  const normalized = path20.replace(/\/+$/, "");
+  const slashIndex = normalized.lastIndexOf("/");
+  return slashIndex === -1 ? normalized : normalized.slice(slashIndex + 1);
+}
+function relativeEnvPath(root, path20) {
+  const normalizedRoot = root.replace(/\/+$/, "");
+  const normalizedPath = path20.replace(/\/+$/, "");
+  if (normalizedPath === normalizedRoot)
+    return "";
+  return normalizedPath.startsWith(`${normalizedRoot}/`) ? normalizedPath.slice(normalizedRoot.length + 1) : normalizedPath.replace(/^\/+/, "");
+}
+var import_ignore, import_yaml2, MAX_NAME_LENGTH, MAX_DESCRIPTION_LENGTH, IGNORE_FILE_NAMES;
 var init_skills = __esm({
   "node_modules/@earendil-works/pi-agent-core/dist/harness/skills.js"() {
     import_ignore = __toESM(require_ignore(), 1);
     import_yaml2 = __toESM(require_dist2(), 1);
     init_types5();
+    MAX_NAME_LENGTH = 64;
+    MAX_DESCRIPTION_LENGTH = 1024;
+    IGNORE_FILE_NAMES = [".gitignore", ".ignore", ".fdignore"];
   }
 });
 
@@ -27195,12 +27489,12 @@ function parseEntryLine(line, filePath, lineNumber) {
 function leafIdAfterEntry(entry) {
   return entry.type === "leaf" ? entry.targetId : entry.id;
 }
-function headerToSessionMetadata(header, path18) {
+function headerToSessionMetadata(header, path20) {
   return {
     id: header.id,
     createdAt: header.timestamp,
     cwd: header.cwd,
-    path: path18,
+    path: path20,
     parentSessionPath: header.parentSession,
     metadata: header.metadata
   };
@@ -27349,13 +27643,13 @@ var init_jsonl_storage = __esm({
       async getPathToRootOrCompaction(leafId) {
         if (leafId === null)
           return [];
-        const path18 = [];
+        const path20 = [];
         let stopAtEntryId = null;
         let current = this.byId.get(leafId);
         if (!current)
           throw new SessionError("not_found", `Entry ${leafId} not found`);
         while (current) {
-          path18.unshift(current);
+          path20.unshift(current);
           if (stopAtEntryId !== null && current.id === stopAtEntryId)
             break;
           if (current.type === "compaction") {
@@ -27370,7 +27664,7 @@ var init_jsonl_storage = __esm({
             throw new SessionError("invalid_session", `Entry ${current.parentId} not found`);
           current = parent;
         }
-        return path18;
+        return path20;
       }
       async getEntries(options) {
         const start = options?.afterEntrySeq ?? 0;
@@ -27617,13 +27911,13 @@ var init_memory_storage = __esm({
       async getPathToRootOrCompaction(leafId) {
         if (leafId === null)
           return [];
-        const path18 = [];
+        const path20 = [];
         let stopAtEntryId = null;
         let current = this.byId.get(leafId);
         if (!current)
           throw new SessionError("not_found", `Entry ${leafId} not found`);
         while (current) {
-          path18.unshift(current);
+          path20.unshift(current);
           if (stopAtEntryId !== null && current.id === stopAtEntryId)
             break;
           if (current.type === "compaction") {
@@ -27638,7 +27932,7 @@ var init_memory_storage = __esm({
             throw new SessionError("invalid_session", `Entry ${current.parentId} not found`);
           current = parent;
         }
-        return path18;
+        return path20;
       }
       async getEntries(options) {
         const start = options?.afterEntrySeq ?? 0;
@@ -27880,8 +28174,8 @@ function resolveTimeoutMs(timeout) {
   }
   return ok(timeoutMs);
 }
-function resolvePath(cwd, path18) {
-  let normalized = path18;
+function resolvePath(cwd, path20) {
+  let normalized = path20;
   if (normalized === "~") {
     normalized = (0, import_node_os.homedir)();
   } else if (normalized.startsWith("~/") || process.platform === "win32" && normalized.startsWith("~\\")) {
@@ -27903,13 +28197,13 @@ function fileKindFromStats(stats) {
     return "symlink";
   return void 0;
 }
-function fileInfoFromStats(path18, stats) {
+function fileInfoFromStats(path20, stats) {
   const kind = fileKindFromStats(stats);
   if (!kind)
-    return err(new FileError("invalid", "Unsupported file type", path18));
+    return err(new FileError("invalid", "Unsupported file type", path20));
   return ok({
-    name: path18.replace(/\/+$/, "").split("/").pop() ?? path18,
-    path: path18,
+    name: path20.replace(/\/+$/, "").split("/").pop() ?? path20,
+    path: path20,
     kind,
     size: stats.size,
     mtimeMs: stats.mtimeMs
@@ -27918,7 +28212,7 @@ function fileInfoFromStats(path18, stats) {
 function isNodeError(error51) {
   return error51 instanceof Error && "code" in error51;
 }
-function toFileError(error51, path18) {
+function toFileError(error51, path20) {
   if (error51 instanceof FileError)
     return error51;
   const cause = toError(error51);
@@ -27926,28 +28220,28 @@ function toFileError(error51, path18) {
     const message = error51.message;
     switch (error51.code) {
       case "ABORT_ERR":
-        return new FileError("aborted", message, path18, cause);
+        return new FileError("aborted", message, path20, cause);
       case "ENOENT":
-        return new FileError("not_found", message, path18, cause);
+        return new FileError("not_found", message, path20, cause);
       case "EACCES":
       case "EPERM":
-        return new FileError("permission_denied", message, path18, cause);
+        return new FileError("permission_denied", message, path20, cause);
       case "ENOTDIR":
-        return new FileError("not_directory", message, path18, cause);
+        return new FileError("not_directory", message, path20, cause);
       case "EISDIR":
-        return new FileError("is_directory", message, path18, cause);
+        return new FileError("is_directory", message, path20, cause);
       case "EINVAL":
-        return new FileError("invalid", message, path18, cause);
+        return new FileError("invalid", message, path20, cause);
     }
   }
-  return new FileError("unknown", cause.message, path18, cause);
+  return new FileError("unknown", cause.message, path20, cause);
 }
-function abortResult(signal, path18) {
-  return signal?.aborted ? err(new FileError("aborted", "aborted", path18)) : void 0;
+function abortResult(signal, path20) {
+  return signal?.aborted ? err(new FileError("aborted", "aborted", path20)) : void 0;
 }
-async function pathExists(path18) {
+async function pathExists(path20) {
   try {
-    await (0, import_promises.access)(path18, import_node_fs2.constants.F_OK);
+    await (0, import_promises.access)(path20, import_node_fs2.constants.F_OK);
     return true;
   } catch {
     return false;
@@ -27991,8 +28285,8 @@ async function findBashOnPath() {
   const firstMatch = result.stdout.trim().split(/\r?\n/)[0];
   return firstMatch && await pathExists(firstMatch) ? firstMatch : null;
 }
-function isLegacyWslBashPath(path18) {
-  const normalized = path18.replace(/\//g, "\\").toLowerCase();
+function isLegacyWslBashPath(path20) {
+  const normalized = path20.replace(/\//g, "\\").toLowerCase();
   return /^[a-z]:\\windows\\(?:system32|sysnative)\\bash\.exe$/.test(normalized);
 }
 function getBashShellConfig(shell) {
@@ -28028,7 +28322,7 @@ async function getShellConfig(customShellPath) {
   3. Configure an explicit shellPath
 
 Searched Git Bash in:
-${candidates.map((path18) => `  ${path18}`).join("\n")}`));
+${candidates.map((path20) => `  ${path20}`).join("\n")}`));
   }
   if (await pathExists("/bin/bash")) {
     return ok(getBashShellConfig("/bin/bash"));
@@ -28167,8 +28461,8 @@ var init_nodejs = __esm({
         this.shellPath = options.shellPath;
         this.shellEnv = options.shellEnv;
       }
-      async absolutePath(path18) {
-        return ok(resolvePath(this.cwd, path18));
+      async absolutePath(path20) {
+        return ok(resolvePath(this.cwd, path20));
       }
       async joinPath(parts) {
         return ok((0, import_node_path2.join)(...parts));
@@ -28289,8 +28583,8 @@ Cannot execute bash commands.`, cause));
           }, (error51) => settle(err(new ExecutionError("spawn_error", error51.message, error51))));
         });
       }
-      async readTextFile(path18, abortSignal) {
-        const resolved = resolvePath(this.cwd, path18);
+      async readTextFile(path20, abortSignal) {
+        const resolved = resolvePath(this.cwd, path20);
         const aborted2 = abortResult(abortSignal, resolved);
         if (aborted2)
           return aborted2;
@@ -28300,8 +28594,8 @@ Cannot execute bash commands.`, cause));
           return err(toFileError(error51, resolved));
         }
       }
-      async readTextLines(path18, options) {
-        const resolved = resolvePath(this.cwd, path18);
+      async readTextLines(path20, options) {
+        const resolved = resolvePath(this.cwd, path20);
         const aborted2 = abortResult(options?.abortSignal, resolved);
         if (aborted2)
           return aborted2;
@@ -28332,8 +28626,8 @@ Cannot execute bash commands.`, cause));
           stream11?.destroy();
         }
       }
-      async readBinaryFile(path18, abortSignal) {
-        const resolved = resolvePath(this.cwd, path18);
+      async readBinaryFile(path20, abortSignal) {
+        const resolved = resolvePath(this.cwd, path20);
         const aborted2 = abortResult(abortSignal, resolved);
         if (aborted2)
           return aborted2;
@@ -28343,8 +28637,8 @@ Cannot execute bash commands.`, cause));
           return err(toFileError(error51, resolved));
         }
       }
-      async writeFile(path18, content, abortSignal) {
-        const resolved = resolvePath(this.cwd, path18);
+      async writeFile(path20, content, abortSignal) {
+        const resolved = resolvePath(this.cwd, path20);
         const aborted2 = abortResult(abortSignal, resolved);
         if (aborted2)
           return aborted2;
@@ -28359,8 +28653,8 @@ Cannot execute bash commands.`, cause));
           return err(toFileError(error51, resolved));
         }
       }
-      async appendFile(path18, content) {
-        const resolved = resolvePath(this.cwd, path18);
+      async appendFile(path20, content) {
+        const resolved = resolvePath(this.cwd, path20);
         try {
           await (0, import_promises.mkdir)((0, import_node_path2.resolve)(resolved, ".."), { recursive: true });
           await (0, import_promises.appendFile)(resolved, content);
@@ -28369,16 +28663,16 @@ Cannot execute bash commands.`, cause));
           return err(toFileError(error51, resolved));
         }
       }
-      async fileInfo(path18) {
-        const resolved = resolvePath(this.cwd, path18);
+      async fileInfo(path20) {
+        const resolved = resolvePath(this.cwd, path20);
         try {
           return fileInfoFromStats(resolved, await (0, import_promises.lstat)(resolved));
         } catch (error51) {
           return err(toFileError(error51, resolved));
         }
       }
-      async listDir(path18, abortSignal) {
-        const resolved = resolvePath(this.cwd, path18);
+      async listDir(path20, abortSignal) {
+        const resolved = resolvePath(this.cwd, path20);
         const aborted2 = abortResult(abortSignal, resolved);
         if (aborted2)
           return aborted2;
@@ -28403,24 +28697,24 @@ Cannot execute bash commands.`, cause));
           return err(toFileError(error51, resolved));
         }
       }
-      async canonicalPath(path18) {
-        const resolved = resolvePath(this.cwd, path18);
+      async canonicalPath(path20) {
+        const resolved = resolvePath(this.cwd, path20);
         try {
           return ok(await (0, import_promises.realpath)(resolved));
         } catch (error51) {
           return err(toFileError(error51, resolved));
         }
       }
-      async exists(path18) {
-        const result = await this.fileInfo(path18);
+      async exists(path20) {
+        const result = await this.fileInfo(path20);
         if (result.ok)
           return ok(true);
         if (result.error.code === "not_found")
           return ok(false);
         return err(result.error);
       }
-      async createDir(path18, options) {
-        const resolved = resolvePath(this.cwd, path18);
+      async createDir(path20, options) {
+        const resolved = resolvePath(this.cwd, path20);
         try {
           await (0, import_promises.mkdir)(resolved, { recursive: options?.recursive ?? true });
           return ok(void 0);
@@ -28428,8 +28722,8 @@ Cannot execute bash commands.`, cause));
           return err(toFileError(error51, resolved));
         }
       }
-      async remove(path18, options) {
-        const resolved = resolvePath(this.cwd, path18);
+      async remove(path20, options) {
+        const resolved = resolvePath(this.cwd, path20);
         try {
           await (0, import_promises.rm)(resolved, { recursive: options?.recursive ?? false, force: options?.force ?? false });
           return ok(void 0);
@@ -28499,23 +28793,81 @@ var init_session_store = __esm({
       async open(metadata) {
         return this.repo.open(metadata);
       }
+      async openByAppSessionId(sessionId) {
+        const metadata = (await this.list()).find((item) => item?.metadata?.sessionId === sessionId || item?.id === sessionId);
+        if (!metadata)
+          throw new Error(`SESSION_NOT_FOUND: ${sessionId}`);
+        return this.open(metadata);
+      }
     };
   }
 });
 
-// packages/runtime/dist/workspace.js
-var import_promises3, import_node_path4, WorkspaceStore;
-var init_workspace = __esm({
-  "packages/runtime/dist/workspace.js"() {
+// packages/runtime/dist/bounded-read.js
+function validateLineRange({ startLine, endLine }) {
+  for (const [name, value] of [["startLine", startLine], ["endLine", endLine]]) {
+    if (value !== void 0 && (!Number.isInteger(value) || value < 1)) {
+      throw new Error(`INVALID_LINE_RANGE:${name}`);
+    }
+  }
+  if (startLine !== void 0 && endLine !== void 0 && startLine > endLine) {
+    throw new Error("INVALID_LINE_RANGE:START_AFTER_END");
+  }
+}
+function truncateUtf8(content) {
+  const bytes = Buffer.from(content, "utf8");
+  if (bytes.byteLength <= MAX_TEXT_BYTES)
+    return { content, truncated: false };
+  let end = MAX_TEXT_BYTES;
+  while (end < bytes.byteLength && (bytes[end] & 192) === 128)
+    end -= 1;
+  return { content: bytes.subarray(0, end).toString("utf8"), truncated: true };
+}
+function boundTextByLines(content, range = {}) {
+  validateLineRange(range);
+  if (range.startLine === void 0 && range.endLine === void 0)
+    return truncateUtf8(content);
+  const lines = content.split(/\r?\n/);
+  const start = range.startLine ?? 1;
+  const end = range.endLine ?? lines.length;
+  return truncateUtf8(lines.slice(start - 1, end).join("\n"));
+}
+async function readBoundedFile(root, relativePath, range = {}) {
+  const resolvedRoot = import_node_path4.default.resolve(root);
+  const target = import_node_path4.default.resolve(resolvedRoot, relativePath);
+  if (target !== resolvedRoot && !target.startsWith(`${resolvedRoot}${import_node_path4.default.sep}`))
+    throw new Error("PATH_ESCAPE");
+  const [realRoot, realTarget] = await Promise.all([(0, import_promises3.realpath)(resolvedRoot), (0, import_promises3.realpath)(target)]);
+  if (realTarget !== realRoot && !realTarget.startsWith(`${realRoot}${import_node_path4.default.sep}`))
+    throw new Error("SYMLINK_ESCAPE");
+  return boundTextByLines(await (0, import_promises3.readFile)(realTarget, "utf8"), range);
+}
+var import_promises3, import_node_path4, MAX_TEXT_BYTES;
+var init_bounded_read = __esm({
+  "packages/runtime/dist/bounded-read.js"() {
     "use strict";
     import_promises3 = require("node:fs/promises");
     import_node_path4 = __toESM(require("node:path"), 1);
-    WorkspaceStore = class {
+    MAX_TEXT_BYTES = 50 * 1024;
+  }
+});
+
+// packages/runtime/dist/workspace.js
+var import_node_fs3, import_promises4, import_node_crypto3, import_node_path5, WorkspaceStore;
+var init_workspace = __esm({
+  "packages/runtime/dist/workspace.js"() {
+    "use strict";
+    import_node_fs3 = require("node:fs");
+    import_promises4 = require("node:fs/promises");
+    import_node_crypto3 = require("node:crypto");
+    import_node_path5 = __toESM(require("node:path"), 1);
+    init_bounded_read();
+    WorkspaceStore = class _WorkspaceStore {
       root;
       ownerUserId;
       ownerSessionId;
       constructor(root, ownership = {}) {
-        this.root = import_node_path4.default.resolve(root);
+        this.root = import_node_path5.default.resolve(root);
         this.ownerUserId = ownership.userId;
         this.ownerSessionId = ownership.sessionId;
       }
@@ -28525,41 +28877,201 @@ var init_workspace = __esm({
         if (this.ownerSessionId && context2.sessionId !== this.ownerSessionId)
           throw new Error("WORKSPACE_SESSION_MISMATCH");
       }
+      /** Create an isolated direct-child workspace for one application session. */
+      async scoped(sessionId) {
+        if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(sessionId) || sessionId === "." || sessionId === "..")
+          throw new Error("INVALID_WORKSPACE_SESSION");
+        const target = this.resolve(sessionId);
+        await (0, import_promises4.mkdir)(target, { recursive: true });
+        const info = await (0, import_promises4.lstat)(target);
+        if (!info.isDirectory() || info.isSymbolicLink())
+          throw new Error("WORKSPACE_SYMLINK_ESCAPE");
+        this.assertWithin(await (0, import_promises4.realpath)(this.root), await (0, import_promises4.realpath)(target));
+        return new _WorkspaceStore(target, { userId: this.ownerUserId, sessionId });
+      }
       resolve(relativePath) {
-        const target = import_node_path4.default.resolve(this.root, relativePath);
-        if (target !== this.root && !target.startsWith(`${this.root}${import_node_path4.default.sep}`))
+        const target = import_node_path5.default.resolve(this.root, relativePath);
+        if (!this.isWithin(this.root, target))
           throw new Error("WORKSPACE_PATH_ESCAPE");
         return target;
       }
+      isWithin(root, target) {
+        const relative = import_node_path5.default.relative(root, target);
+        return relative === "" || relative !== ".." && !relative.startsWith(`..${import_node_path5.default.sep}`) && !import_node_path5.default.isAbsolute(relative);
+      }
+      assertWithin(root, target) {
+        if (!this.isWithin(root, target))
+          throw new Error("WORKSPACE_SYMLINK_ESCAPE");
+      }
       async list() {
-        return (0, import_promises3.readdir)(this.root, { recursive: true });
+        return (0, import_promises4.readdir)(this.root, { recursive: true });
       }
       async safeExisting(relativePath) {
-        const target = await (0, import_promises3.realpath)(this.resolve(relativePath));
-        const root = await (0, import_promises3.realpath)(this.root);
-        if (target !== root && !target.startsWith(`${root}${import_node_path4.default.sep}`))
-          throw new Error("WORKSPACE_SYMLINK_ESCAPE");
+        const target = await (0, import_promises4.realpath)(this.resolve(relativePath));
+        const root = await (0, import_promises4.realpath)(this.root);
+        this.assertWithin(root, target);
         return target;
       }
       async read(relativePath) {
-        return (0, import_promises3.readFile)(await this.safeExisting(relativePath), "utf8");
+        return (await this.readRange(relativePath)).content;
+      }
+      async readBytes(relativePath) {
+        return new Uint8Array(await (0, import_promises4.readFile)(await this.safeExisting(relativePath)));
+      }
+      /** Read a session path, falling back to a pre-session-isolation root artifact. */
+      async readBytesWithLegacyFallback(relativePath) {
+        try {
+          return await this.readBytes(relativePath);
+        } catch (error51) {
+          if (error51.code !== "ENOENT")
+            throw error51;
+          const normalized = relativePath.replaceAll("\\", "/");
+          const parts = normalized.split("/").filter(Boolean);
+          if (parts.length !== 2 || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(parts[0]))
+            throw error51;
+          return this.readBytes(parts[1]);
+        }
+      }
+      async readRange(relativePath, range = {}) {
+        return boundTextByLines(await (0, import_promises4.readFile)(await this.safeExisting(relativePath), "utf8"), range);
       }
       async write(relativePath, content) {
-        const target = this.resolve(relativePath);
-        await (0, import_promises3.mkdir)(import_node_path4.default.dirname(target), { recursive: true });
-        await (0, import_promises3.writeFile)(target, content, "utf8");
+        await this.writeStream(relativePath, async (write) => {
+          await write(content);
+        });
       }
       async delete(relativePath) {
-        await (0, import_promises3.rm)(await this.safeExisting(relativePath), { force: true, recursive: true });
+        await (0, import_promises4.rm)(await this.safeExisting(relativePath), { force: true, recursive: true });
       }
       async upload(sourcePath, relativePath) {
-        const target = this.resolve(relativePath);
-        await (0, import_promises3.mkdir)(import_node_path4.default.dirname(target), { recursive: true });
-        await (0, import_promises3.copyFile)(sourcePath, target);
+        await this.writeStream(relativePath, async (write) => {
+          for await (const chunk of (0, import_node_fs3.createReadStream)(sourcePath))
+            await write(chunk);
+        });
         return this.artifact(relativePath);
       }
+      async writeBytes(relativePath, content) {
+        await this.writeStream(relativePath, async (write) => {
+          await write(content);
+        });
+      }
+      samePath(left, right) {
+        return import_node_path5.default.relative(left, right) === "";
+      }
+      async prepareWritePath(relativePath, expectedRoot) {
+        const lexicalTarget = this.resolve(relativePath);
+        const root = await (0, import_promises4.realpath)(this.root);
+        if (expectedRoot && !this.samePath(root, expectedRoot))
+          throw new Error("WORKSPACE_SYMLINK_ESCAPE");
+        const relativeParent = import_node_path5.default.relative(this.root, import_node_path5.default.dirname(lexicalTarget));
+        let parent = root;
+        if (relativeParent && relativeParent !== ".") {
+          for (const component of relativeParent.split(import_node_path5.default.sep).filter(Boolean)) {
+            const candidate = import_node_path5.default.join(parent, component);
+            let info;
+            try {
+              info = await (0, import_promises4.lstat)(candidate);
+            } catch (error51) {
+              if (error51.code !== "ENOENT")
+                throw error51;
+              try {
+                await (0, import_promises4.mkdir)(candidate);
+              } catch (mkdirError) {
+                if (mkdirError.code !== "EEXIST")
+                  throw mkdirError;
+              }
+              info = await (0, import_promises4.lstat)(candidate);
+            }
+            let canonical;
+            try {
+              canonical = await (0, import_promises4.realpath)(candidate);
+            } catch {
+              throw new Error("WORKSPACE_SYMLINK_ESCAPE");
+            }
+            this.assertWithin(root, canonical);
+            const canonicalInfo = await (0, import_promises4.stat)(canonical);
+            if (!info.isDirectory() && !info.isSymbolicLink() || !canonicalInfo.isDirectory()) {
+              throw new Error("WORKSPACE_SYMLINK_ESCAPE");
+            }
+            parent = canonical;
+          }
+        }
+        const target = import_node_path5.default.join(parent, import_node_path5.default.basename(lexicalTarget));
+        try {
+          await (0, import_promises4.lstat)(target);
+          let canonical;
+          try {
+            canonical = await (0, import_promises4.realpath)(target);
+          } catch {
+            throw new Error("WORKSPACE_SYMLINK_ESCAPE");
+          }
+          this.assertWithin(root, canonical);
+        } catch (error51) {
+          if (error51.code !== "ENOENT")
+            throw error51;
+        }
+        return { root, parent, target };
+      }
+      async assertSafeTemporary(root, parent, temporary) {
+        const currentRoot = await (0, import_promises4.realpath)(this.root);
+        if (!this.samePath(currentRoot, root))
+          throw new Error("WORKSPACE_SYMLINK_ESCAPE");
+        const currentParent = await (0, import_promises4.realpath)(parent);
+        if (!this.samePath(currentParent, parent))
+          throw new Error("WORKSPACE_SYMLINK_ESCAPE");
+        const info = await (0, import_promises4.lstat)(temporary);
+        if (info.isSymbolicLink())
+          throw new Error("WORKSPACE_SYMLINK_ESCAPE");
+        this.assertWithin(root, await (0, import_promises4.realpath)(temporary));
+      }
+      async cleanupTemporary(root, parent, temporary) {
+        try {
+          const currentRoot = await (0, import_promises4.realpath)(this.root);
+          if (!this.samePath(currentRoot, root))
+            return;
+          const currentParent = await (0, import_promises4.realpath)(parent);
+          if (!this.samePath(currentParent, parent))
+            return;
+          const info = await (0, import_promises4.lstat)(temporary);
+          if (!info.isSymbolicLink())
+            await (0, import_promises4.rm)(temporary, { force: true });
+        } catch {
+        }
+      }
+      /** Write incrementally to a sibling temporary file, then atomically promote it. */
+      async writeStream(relativePath, producer, signal) {
+        const prepared = await this.prepareWritePath(relativePath);
+        const temporary = import_node_path5.default.join(prepared.parent, `${import_node_path5.default.basename(prepared.target)}.${(0, import_node_crypto3.randomUUID)()}.tmp`);
+        const handle = await (0, import_promises4.open)(temporary, "wx");
+        const throwIfAborted2 = () => {
+          if (signal?.aborted)
+            throw new Error("EXPORT_CANCELLED");
+        };
+        try {
+          await producer(async (chunk) => {
+            throwIfAborted2();
+            if (typeof chunk === "string")
+              await handle.write(chunk);
+            else
+              await handle.write(chunk);
+          });
+          throwIfAborted2();
+          await this.assertSafeTemporary(prepared.root, prepared.parent, temporary);
+          await handle.sync();
+          await handle.close();
+          const promotion = await this.prepareWritePath(relativePath, prepared.root);
+          if (!this.samePath(promotion.parent, prepared.parent))
+            throw new Error("WORKSPACE_SYMLINK_ESCAPE");
+          await this.assertSafeTemporary(prepared.root, prepared.parent, temporary);
+          await (0, import_promises4.rename)(temporary, promotion.target);
+        } catch (error51) {
+          await handle.close().catch(() => void 0);
+          await this.cleanupTemporary(prepared.root, prepared.parent, temporary);
+          throw error51;
+        }
+      }
       async artifact(relativePath) {
-        const info = await (0, import_promises3.stat)(await this.safeExisting(relativePath));
+        const info = await (0, import_promises4.stat)(await this.safeExisting(relativePath));
         return { path: relativePath, size: info.size, modifiedAt: info.mtimeMs, kind: "file" };
       }
     };
@@ -28567,15 +29079,18 @@ var init_workspace = __esm({
 });
 
 // packages/runtime/dist/python-job.js
+function pythonJobEnvironment(source = process.env) {
+  return Object.fromEntries(Object.entries(source).filter(([name]) => PYTHON_ENV_ALLOWLIST.has(name.toUpperCase())));
+}
 async function runPythonJob(code, options) {
-  const jobId = (0, import_node_crypto3.randomUUID)();
+  const jobId = (0, import_node_crypto4.randomUUID)();
   const started = Date.now();
-  const scripts = import_node_path5.default.join(options.workspace, "scripts");
-  await (0, import_promises4.mkdir)(scripts, { recursive: true });
-  const scriptPath = import_node_path5.default.join(scripts, `${jobId}.py`);
-  await (0, import_promises4.writeFile)(scriptPath, code, "utf8");
+  const scripts = import_node_path6.default.join(options.workspace, "scripts");
+  await (0, import_promises5.mkdir)(scripts, { recursive: true });
+  const scriptPath = import_node_path6.default.join(scripts, `${jobId}.py`);
+  await (0, import_promises5.writeFile)(scriptPath, code, "utf8");
   return await new Promise((resolve2) => {
-    const child = (0, import_node_child_process2.spawn)(options.executable, [scriptPath], { cwd: options.workspace, shell: false, windowsHide: true });
+    const child = (0, import_node_child_process2.spawn)(options.executable, [scriptPath], { cwd: options.workspace, shell: false, windowsHide: true, env: pythonJobEnvironment() });
     let stdout = "", stderr = "";
     child.stdout.on("data", (chunk) => {
       stdout += chunk.toString();
@@ -28595,25 +29110,47 @@ async function runPythonJob(code, options) {
     options.signal?.addEventListener("abort", abort, { once: true });
     child.on("error", (error51) => {
       clearTimeout(timer);
-      (0, import_promises4.readdir)(options.workspace).then((artifacts) => resolve2({ jobId, status, exitCode: null, stdout, stderr: `${stderr}${error51.message}`, scriptPath, artifacts, durationMs: Date.now() - started }));
+      (0, import_promises5.readdir)(options.workspace).then((artifacts) => resolve2({ jobId, status, exitCode: null, stdout, stderr: `${stderr}${error51.message}`, scriptPath, artifacts, durationMs: Date.now() - started }));
     });
     child.on("close", (code2) => {
       clearTimeout(timer);
       options.signal?.removeEventListener("abort", abort);
       if (status !== "timeout" && status !== "aborted")
         status = code2 === 0 ? "success" : "error";
-      (0, import_promises4.readdir)(options.workspace).then((artifacts) => resolve2({ jobId, status, exitCode: code2, stdout, stderr, scriptPath, artifacts, durationMs: Date.now() - started }));
+      (0, import_promises5.readdir)(options.workspace).then((artifacts) => resolve2({ jobId, status, exitCode: code2, stdout, stderr, scriptPath, artifacts, durationMs: Date.now() - started }));
     });
   });
 }
-var import_node_child_process2, import_node_crypto3, import_promises4, import_node_path5;
+var import_node_child_process2, import_node_crypto4, import_promises5, import_node_path6, PYTHON_ENV_ALLOWLIST;
 var init_python_job = __esm({
   "packages/runtime/dist/python-job.js"() {
     "use strict";
     import_node_child_process2 = require("node:child_process");
-    import_node_crypto3 = require("node:crypto");
-    import_promises4 = require("node:fs/promises");
-    import_node_path5 = __toESM(require("node:path"), 1);
+    import_node_crypto4 = require("node:crypto");
+    import_promises5 = require("node:fs/promises");
+    import_node_path6 = __toESM(require("node:path"), 1);
+    PYTHON_ENV_ALLOWLIST = /* @__PURE__ */ new Set([
+      "PATH",
+      "PATHEXT",
+      "SYSTEMROOT",
+      "WINDIR",
+      "COMSPEC",
+      "TEMP",
+      "TMP",
+      "TMPDIR",
+      "HOME",
+      "USERPROFILE",
+      "APPDATA",
+      "LOCALAPPDATA",
+      "PROGRAMDATA",
+      "PROGRAMFILES",
+      "PROGRAMFILES(X86)",
+      "PROCESSOR_ARCHITECTURE",
+      "NUMBER_OF_PROCESSORS",
+      "LANG",
+      "LC_ALL",
+      "LC_CTYPE"
+    ]);
   }
 });
 
@@ -28648,13 +29185,14 @@ function splitChunks(text2) {
     chunks.push({ startLine: start, endLine: lines.length, text: current.join("\n"), title });
   return chunks.filter((chunk) => chunk.text.trim().length > 0);
 }
-var import_promises5, import_node_fs3, import_node_path6, KnowledgeIndex;
+var import_promises6, import_node_fs4, import_node_path7, KnowledgeIndex;
 var init_knowledge = __esm({
   "packages/runtime/dist/knowledge.js"() {
     "use strict";
-    import_promises5 = require("node:fs/promises");
-    import_node_fs3 = require("node:fs");
-    import_node_path6 = __toESM(require("node:path"), 1);
+    import_promises6 = require("node:fs/promises");
+    import_node_fs4 = require("node:fs");
+    import_node_path7 = __toESM(require("node:path"), 1);
+    init_bounded_read();
     KnowledgeIndex = class {
       docs = /* @__PURE__ */ new Map();
       avgLength = () => {
@@ -28663,11 +29201,11 @@ var init_knowledge = __esm({
       };
       async loadDirectory(root, base) {
         const baseRoot = base ?? root;
-        if (!(0, import_node_fs3.existsSync)(root))
+        if (!(0, import_node_fs4.existsSync)(root))
           return 0;
         let loaded = 0;
-        for (const entry of await (0, import_promises5.readdir)(root, { withFileTypes: true })) {
-          const full = import_node_path6.default.join(root, entry.name);
+        for (const entry of await (0, import_promises6.readdir)(root, { withFileTypes: true })) {
+          const full = import_node_path7.default.join(root, entry.name);
           if (entry.isDirectory())
             loaded += await this.loadDirectory(full, baseRoot);
           else if (entry.name.endsWith(".md")) {
@@ -28678,8 +29216,8 @@ var init_knowledge = __esm({
         return loaded;
       }
       async loadFile(root, filePath) {
-        const relative = import_node_path6.default.relative(root, filePath).split(import_node_path6.default.sep).join("/");
-        const text2 = await (0, import_promises5.readFile)(filePath, "utf8");
+        const relative = import_node_path7.default.relative(root, filePath).split(import_node_path7.default.sep).join("/");
+        const text2 = await (0, import_promises6.readFile)(filePath, "utf8");
         const revision = this.hash(text2);
         const category = relative.includes("/") ? relative.split("/")[0] : "doc";
         const chunks = splitChunks(text2).map((chunk, index3) => {
@@ -28687,7 +29225,7 @@ var init_knowledge = __esm({
           const map2 = /* @__PURE__ */ new Map();
           for (const token of tokens)
             map2.set(token, (map2.get(token) ?? 0) + 1);
-          return { chunkId: `${relative}#${index3}`, title: chunk.title || import_node_path6.default.basename(filePath), startLine: chunk.startLine, endLine: chunk.endLine, text: chunk.text, tokens: map2, length: tokens.length };
+          return { chunkId: `${relative}#${index3}`, title: chunk.title || import_node_path7.default.basename(filePath), startLine: chunk.startLine, endLine: chunk.endLine, text: chunk.text, tokens: map2, length: tokens.length };
         }).map((chunk) => ({ ...chunk, chunkId: `${chunk.chunkId}:${category}` }));
         this.docs.set(relative, { revision, chunks });
       }
@@ -28728,7 +29266,7 @@ var init_knowledge = __esm({
           }
           if (score > 0) {
             const category = relative.includes("/") ? relative.split("/")[0] : "doc";
-            scored.push({ path: relative, title: chunk.title, category, chunkId: chunk.chunkId.split(":").slice(0, 2).join(":"), startLine: chunk.startLine, endLine: chunk.endLine, score, revision: doc.revision });
+            scored.push({ path: relative, title: chunk.title, category, chunkId: chunk.chunkId.split(":").slice(0, 2).join(":"), startLine: chunk.startLine, endLine: chunk.endLine, score, revision: doc.revision, snippet: boundTextByLines(chunk.text).content });
           }
         }
         return scored.sort((a, z2) => z2.score - a.score).slice(0, limit2);
@@ -28738,11 +29276,11 @@ var init_knowledge = __esm({
 });
 
 // packages/runtime/dist/clarification.js
-var import_node_crypto4, ClarificationManager;
+var import_node_crypto5, ClarificationManager;
 var init_clarification = __esm({
   "packages/runtime/dist/clarification.js"() {
     "use strict";
-    import_node_crypto4 = require("node:crypto");
+    import_node_crypto5 = require("node:crypto");
     ClarificationManager = class {
       defaultTimeoutMs;
       pending = /* @__PURE__ */ new Map();
@@ -28751,7 +29289,7 @@ var init_clarification = __esm({
       }
       ask(sessionId, question, options, timeoutMs) {
         this.cancel(sessionId, "cancelled");
-        const clarificationId = (0, import_node_crypto4.randomUUID)();
+        const clarificationId = (0, import_node_crypto5.randomUUID)();
         let resolve2;
         const promise2 = new Promise((res) => {
           resolve2 = res;
@@ -28894,7 +29432,7 @@ async function renderStandaloneDashboardHtml(spec, options = {}) {
   const payload = JSON.stringify({ title: spec.title, charts });
   let echartsScript = "";
   if (options.echartsAssetPath)
-    echartsScript = `<script>${await (0, import_promises6.readFile)(options.echartsAssetPath, "utf8")}</script>`;
+    echartsScript = `<script>${await (0, import_promises7.readFile)(options.echartsAssetPath, "utf8")}</script>`;
   else
     echartsScript = "<script>/* offline build requires bundled echarts asset */window.__DATA_AGENT_OFFLINE__=true;</script>";
   return `<!DOCTYPE html>
@@ -28913,11 +29451,11 @@ ${echartsScript}
 })();
 </script></body></html>`;
 }
-var import_promises6;
+var import_promises7;
 var init_dashboard_v3 = __esm({
   "packages/runtime/dist/dashboard-v3.js"() {
     "use strict";
-    import_promises6 = require("node:fs/promises");
+    import_promises7 = require("node:fs/promises");
   }
 });
 
@@ -28968,12 +29506,276 @@ var init_dashboard_v4 = __esm({
   }
 });
 
+// packages/runtime/dist/skills.js
+function resolveSkillRoots(options = {}) {
+  const developmentRoot = import_node_path8.default.resolve(options.projectRoot ?? process.cwd(), ".agents", "skills");
+  const packagedRoot = import_node_path8.default.resolve(options.packagedRoot ?? options.projectRoot ?? process.cwd(), ".agents", "skills");
+  return [.../* @__PURE__ */ new Set([developmentRoot, packagedRoot])];
+}
+function diagnostic(filePath, message, code) {
+  return code ? { path: filePath, message, code } : { path: filePath, message };
+}
+function isWithinRoot(root, candidate) {
+  const relative = import_node_path8.default.relative(root, candidate);
+  return relative === "" || relative !== ".." && !relative.startsWith(`..${import_node_path8.default.sep}`) && !import_node_path8.default.isAbsolute(relative);
+}
+function parseToolMetadata(raw, filePath) {
+  const diagnostics = [];
+  const normalized = raw.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  if (!normalized.startsWith("---\n")) {
+    return { diagnostics: [diagnostic(filePath, "missing frontmatter", "missing_frontmatter")], valid: false };
+  }
+  const end = normalized.indexOf("\n---", 4);
+  if (end < 0) {
+    return { diagnostics: [diagnostic(filePath, "unterminated frontmatter", "parse_failed")], valid: false };
+  }
+  const frontmatter = normalized.slice(4, end);
+  const key = /^allowed-tools\s*:/m.exec(frontmatter) ?? /^allowedTools\s*:/m.exec(frontmatter);
+  if (!key)
+    return { diagnostics, valid: true };
+  const line = key[0];
+  const colon = line.indexOf(":");
+  const inline = line.slice(colon + 1).trim();
+  let values = [];
+  if (inline) {
+    if (!inline.startsWith("[") || !inline.endsWith("]")) {
+      diagnostics.push(diagnostic(filePath, "allowed-tools must be a list", "invalid_metadata"));
+      return { diagnostics, valid: false };
+    }
+    values = inline.slice(1, -1).split(",").map((value) => value.trim().replace(/^['\"]|['\"]$/g, "")).filter(Boolean);
+  } else {
+    const start = frontmatter.slice(key.index + key[0].length);
+    for (const item of start.split("\n")) {
+      if (/^\s*-\s*/.test(item)) {
+        const value = /^\s*-\s*(\S.*?)\s*$/.exec(item)?.[1];
+        if (value)
+          values.push(value.replace(/^['\"]|['\"]$/g, ""));
+      } else if (item.trim() && !/^\s/.test(item)) {
+        break;
+      }
+    }
+  }
+  const unknown2 = values.filter((tool) => !CANONICAL_TOOLS.has(tool));
+  if (unknown2.length > 0)
+    diagnostics.push(diagnostic(filePath, `unknown tool names: ${unknown2.join(", ")}`, "unknown_tool"));
+  return { allowedTools: values, diagnostics, valid: true };
+}
+function pathForNativeLoader(value) {
+  return isWindows ? value.replaceAll("\\", "/") : value;
+}
+function pathForNodeFilesystem(value) {
+  return isWindows ? value.replaceAll("/", "\\") : value;
+}
+function fileInfoForNativeLoader(info) {
+  const normalizedPath = pathForNativeLoader(info.path);
+  return {
+    name: isWindows ? normalizedPath.slice(normalizedPath.lastIndexOf("/") + 1) : info.name,
+    path: normalizedPath
+  };
+}
+async function loadSkillsFromRoots(roots) {
+  const normalizedRoots = [...new Set(roots.map((root) => import_node_path8.default.resolve(root)))];
+  const env2 = new NativeLoaderExecutionEnv({ cwd: process.cwd() });
+  try {
+    const nativeResult = await loadSkills(env2, normalizedRoots.map(pathForNativeLoader));
+    const diagnostics = nativeResult.diagnostics.map((item) => ({
+      path: item.path,
+      message: item.message,
+      code: item.code
+    }));
+    const trustedRoots = [];
+    for (const root of normalizedRoots) {
+      try {
+        trustedRoots.push(await (0, import_promises8.realpath)(root));
+      } catch {
+      }
+    }
+    const candidates = [];
+    for (const nativeSkill of nativeResult.skills) {
+      const filePath = import_node_path8.default.resolve(nativeSkill.filePath);
+      let canonicalFilePath;
+      try {
+        canonicalFilePath = await (0, import_promises8.realpath)(filePath);
+      } catch (error51) {
+        diagnostics.push(diagnostic(filePath, error51 instanceof Error ? error51.message : String(error51), "read_failed"));
+        continue;
+      }
+      if (!trustedRoots.some((root) => isWithinRoot(root, canonicalFilePath))) {
+        diagnostics.push(diagnostic(filePath, "skill path escapes configured root", "path_escape"));
+        continue;
+      }
+      let raw;
+      try {
+        raw = await (0, import_promises8.readFile)(filePath, "utf8");
+      } catch (error51) {
+        diagnostics.push(diagnostic(filePath, error51 instanceof Error ? error51.message : String(error51), "read_failed"));
+        continue;
+      }
+      const metadata = parseToolMetadata(raw, filePath);
+      diagnostics.push(...metadata.diagnostics);
+      if (!metadata.valid)
+        continue;
+      const invalidNativeMetadata = nativeResult.diagnostics.some((item) => item.path === nativeSkill.filePath && item.code === "invalid_metadata");
+      if (invalidNativeMetadata)
+        continue;
+      candidates.push({ ...nativeSkill, filePath, allowedTools: metadata.allowedTools });
+    }
+    const counts = /* @__PURE__ */ new Map();
+    for (const skill of candidates)
+      counts.set(skill.name, (counts.get(skill.name) ?? 0) + 1);
+    const skills = candidates.filter((skill) => {
+      if ((counts.get(skill.name) ?? 0) <= 1)
+        return true;
+      diagnostics.push(diagnostic(skill.filePath, `duplicate skill name: ${skill.name}`, "duplicate_name"));
+      return false;
+    });
+    return { skills, diagnostics };
+  } finally {
+    await env2.cleanup();
+  }
+}
+async function loadSkillsFromDir(dir) {
+  return loadSkillsFromRoots([dir]);
+}
+function effectiveTools(globalTools, activeSkills) {
+  const declared = activeSkills.filter((skill) => skill.allowedTools !== void 0);
+  if (declared.length === 0)
+    return globalTools;
+  const allowed = new Set(declared.flatMap((skill) => skill.allowedTools ?? []));
+  return globalTools.filter((tool) => allowed.has(tool));
+}
+async function moveSystemPrompt(agentMdPath, systemMdPath) {
+  const { writeFile: writeFile9, rename: rename4, access: access3 } = await import("node:fs/promises");
+  try {
+    await access3(systemMdPath);
+    return;
+  } catch {
+  }
+  const content = await (0, import_promises8.readFile)(agentMdPath, "utf8");
+  const { mkdir: mkdir9 } = await import("node:fs/promises");
+  await mkdir9(import_node_path8.default.dirname(systemMdPath), { recursive: true });
+  await writeFile9(systemMdPath, content, "utf8");
+  await rename4(agentMdPath, `${agentMdPath}.migrated`);
+}
+var import_promises8, import_node_path8, CANONICAL_TOOLS, isWindows, NativeLoaderExecutionEnv;
+var init_skills2 = __esm({
+  "packages/runtime/dist/skills.js"() {
+    "use strict";
+    import_promises8 = require("node:fs/promises");
+    import_node_path8 = __toESM(require("node:path"), 1);
+    init_node();
+    CANONICAL_TOOLS = /* @__PURE__ */ new Set([
+      "list_workspace",
+      "read_file",
+      "write_file",
+      "run_python",
+      "search_knowledge",
+      "read_knowledge",
+      "update_knowledge",
+      "load_skill",
+      "generate_dashboard",
+      "show_widget",
+      "query_database",
+      "ask_user_clarification",
+      "export_query"
+    ]);
+    isWindows = process.platform === "win32";
+    NativeLoaderExecutionEnv = class extends NodeExecutionEnv {
+      async fileInfo(filePath) {
+        const result = await super.fileInfo(pathForNodeFilesystem(filePath));
+        if (!result.ok)
+          return result;
+        return { ...result, value: { ...result.value, ...fileInfoForNativeLoader(result.value) } };
+      }
+      async listDir(filePath, abortSignal) {
+        const result = await super.listDir(pathForNodeFilesystem(filePath), abortSignal);
+        if (!result.ok)
+          return result;
+        return {
+          ...result,
+          value: result.value.map((info) => ({ ...info, ...fileInfoForNativeLoader(info) }))
+        };
+      }
+      async canonicalPath(filePath) {
+        const result = await super.canonicalPath(pathForNodeFilesystem(filePath));
+        if (!result.ok)
+          return result;
+        return { ...result, value: pathForNativeLoader(result.value) };
+      }
+      async readTextFile(filePath, abortSignal) {
+        return super.readTextFile(pathForNodeFilesystem(filePath), abortSignal);
+      }
+    };
+  }
+});
+
+// packages/runtime/dist/widget.js
+function validateWidgetSpec(kind, value) {
+  if (!isObject(value))
+    return { ok: false, error: "spec must be an object" };
+  if (value.title !== void 0 && typeof value.title !== "string") {
+    return { ok: false, error: "spec.title must be a string when provided" };
+  }
+  if (kind === "kpi") {
+    const hasValue = typeof value.value === "string" || typeof value.value === "number";
+    if (!hasValue && !Array.isArray(value.data)) {
+      return { ok: false, error: "kpi spec requires a scalar value or data array" };
+    }
+  } else if (!Array.isArray(value.data) && !(kind === "chart" && Array.isArray(value.series))) {
+    return { ok: false, error: `${kind} spec requires a data array${kind === "chart" ? " or series array" : ""}` };
+  }
+  return { ok: true, spec: value };
+}
+function isWidgetKind(value) {
+  return value === "kpi" || value === "chart" || value === "table" || value === "steps";
+}
+function isWidgetPayload(value) {
+  if (!isObject(value))
+    return false;
+  return typeof value.widget_id === "string" && isWidgetKind(value.kind) && typeof value.title === "string" && typeof value.tool_call_id === "string";
+}
+function isWidgetLifecycleDetails(value) {
+  if (!isObject(value))
+    return false;
+  if (!["widget", "widget_patch", "widget_done", "widget_remove", "widget_error"].includes(String(value.widgetEvent)))
+    return false;
+  if (typeof value.widgetId !== "string" || value.widgetId.length === 0)
+    return false;
+  if (typeof value.toolCallId !== "string" || value.toolCallId.length === 0)
+    return false;
+  if (value.toolName !== "show_widget" || typeof value.legacyText !== "string")
+    return false;
+  if (value.widget !== void 0 && !isWidgetPayload(value.widget))
+    return false;
+  if (value.patch !== void 0 && !isObject(value.patch))
+    return false;
+  if (value.error !== void 0 && typeof value.error !== "string")
+    return false;
+  return true;
+}
+function widgetLegacyText(widget) {
+  return `[widget:${widget.kind}] ${widget.title}: ${JSON.stringify(widget)}`;
+}
+function emitWidgetUpdate(onUpdate, details) {
+  onUpdate?.({
+    content: [{ type: "text", text: details.legacyText }],
+    details
+  });
+}
+var isObject;
+var init_widget = __esm({
+  "packages/runtime/dist/widget.js"() {
+    "use strict";
+    isObject = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
+  }
+});
+
 // packages/runtime/dist/auth.js
-var import_node_crypto5, LocalAuthService;
+var import_node_crypto6, LocalAuthService;
 var init_auth = __esm({
   "packages/runtime/dist/auth.js"() {
     "use strict";
-    import_node_crypto5 = require("node:crypto");
+    import_node_crypto6 = require("node:crypto");
     LocalAuthService = class {
       store;
       users = /* @__PURE__ */ new Map();
@@ -28982,7 +29784,7 @@ var init_auth = __esm({
         this.store = store;
       }
       hash(password, salt) {
-        return (0, import_node_crypto5.scryptSync)(password, salt, 32);
+        return (0, import_node_crypto6.scryptSync)(password, salt, 32);
       }
       /** Number of registered accounts (0 ⇒ registration open for the first admin). */
       async userCount() {
@@ -28997,15 +29799,15 @@ var init_auth = __esm({
         if (!this.store) {
           if (this.users.has(username))
             throw new Error("AUTH_REGISTRATION_FAILED");
-          const salt2 = (0, import_node_crypto5.randomBytes)(16);
-          const user2 = { id: (0, import_node_crypto5.randomUUID)(), username, displayName };
+          const salt2 = (0, import_node_crypto6.randomBytes)(16);
+          const user2 = { id: (0, import_node_crypto6.randomUUID)(), username, displayName };
           this.users.set(username, { user: user2, hash: this.hash(password, salt2), salt: salt2 });
           return user2;
         }
         if (await this.userCount() > 0)
           throw new Error("AUTH_REGISTRATION_CLOSED");
-        const salt = (0, import_node_crypto5.randomBytes)(16);
-        const user = { id: (0, import_node_crypto5.randomUUID)(), username, displayName };
+        const salt = (0, import_node_crypto6.randomBytes)(16);
+        const user = { id: (0, import_node_crypto6.randomUUID)(), username, displayName };
         const result = await this.store.call("auth.register", "system", {
           username,
           userId: user.id,
@@ -29022,9 +29824,9 @@ var init_auth = __esm({
           const record2 = this.users.get(username);
           if (!record2)
             throw new Error("AUTH_INVALID_CREDENTIALS");
-          if (!(0, import_node_crypto5.timingSafeEqual)(this.hash(password, record2.salt), record2.hash))
+          if (!(0, import_node_crypto6.timingSafeEqual)(this.hash(password, record2.salt), record2.hash))
             throw new Error("AUTH_INVALID_CREDENTIALS");
-          const token2 = (0, import_node_crypto5.randomBytes)(32).toString("hex");
+          const token2 = (0, import_node_crypto6.randomBytes)(32).toString("hex");
           this.tokens.set(token2, record2.user);
           return { user: record2.user, token: token2 };
         }
@@ -29032,10 +29834,10 @@ var init_auth = __esm({
         if (!row)
           throw new Error("AUTH_INVALID_CREDENTIALS");
         const salt = Buffer.from(row.salt, "hex");
-        if (!(0, import_node_crypto5.timingSafeEqual)(this.hash(password, salt), Buffer.from(row.hash, "hex")))
+        if (!(0, import_node_crypto6.timingSafeEqual)(this.hash(password, salt), Buffer.from(row.hash, "hex")))
           throw new Error("AUTH_INVALID_CREDENTIALS");
         const user = { id: row.userId, username, displayName: row.displayName };
-        const token = (0, import_node_crypto5.randomBytes)(32).toString("hex");
+        const token = (0, import_node_crypto6.randomBytes)(32).toString("hex");
         await this.store.call("auth.token.set", "system", { token, userId: user.id, username: user.username, displayName: user.displayName });
         return { user, token };
       }
@@ -29738,13 +30540,13 @@ var __rewriteRelativeImportExtension2, importNodeOnlyApi, bedrockModuleOverride,
 var init_bedrock_converse_stream_lazy = __esm({
   "node_modules/@earendil-works/pi-ai/dist/api/bedrock-converse-stream.lazy.js"() {
     init_lazy();
-    __rewriteRelativeImportExtension2 = function(path18, preserveJsx) {
-      if (typeof path18 === "string" && /^\.\.?\//.test(path18)) {
-        return path18.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m2, tsx, d, ext, cm) {
+    __rewriteRelativeImportExtension2 = function(path20, preserveJsx) {
+      if (typeof path20 === "string" && /^\.\.?\//.test(path20)) {
+        return path20.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m2, tsx, d, ext, cm) {
           return tsx ? preserveJsx ? ".jsx" : ".js" : d && (!ext || !cm) ? m2 : d + ext + "." + cm.toLowerCase() + "js";
         });
       }
-      return path18;
+      return path20;
     };
     importNodeOnlyApi = (specifier) => {
       const runtimeSpecifier = (void 0).endsWith(".js") ? specifier.replace(/\.ts$/, ".js") : specifier;
@@ -31624,17 +32426,17 @@ var init_resource = __esm({
 function encodeURIPath(str2) {
   return str2.replace(/[^A-Za-z0-9\-._~!$&'()*+,;=:@]+/g, encodeURIComponent);
 }
-var EMPTY, createPathTagFunction, path6;
+var EMPTY, createPathTagFunction, path8;
 var init_path = __esm({
   "node_modules/openai/internal/utils/path.mjs"() {
     init_error3();
     EMPTY = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.create(null));
-    createPathTagFunction = (pathEncoder = encodeURIPath) => function path18(statics, ...params) {
+    createPathTagFunction = (pathEncoder = encodeURIPath) => function path20(statics, ...params) {
       if (statics.length === 1)
         return statics[0];
       let postPath = false;
       const invalidSegments = [];
-      const path19 = statics.reduce((previousValue, currentValue, index3) => {
+      const path21 = statics.reduce((previousValue, currentValue, index3) => {
         if (/[?#]/.test(currentValue)) {
           postPath = true;
         }
@@ -31651,7 +32453,7 @@ var init_path = __esm({
         }
         return previousValue + currentValue + (index3 === params.length ? "" : encoded);
       }, "");
-      const pathOnly = path19.split(/[?#]/, 1)[0];
+      const pathOnly = path21.split(/[?#]/, 1)[0];
       const invalidSegmentPattern = /(?<=^|\/)(?:\.|%2e){1,2}(?=\/|$)/gi;
       let match2;
       while ((match2 = invalidSegmentPattern.exec(pathOnly)) !== null) {
@@ -31672,12 +32474,12 @@ var init_path = __esm({
         }, "");
         throw new OpenAIError(`Path parameters result in path with invalid segments:
 ${invalidSegments.map((e2) => e2.error).join("\n")}
-${path19}
+${path21}
 ${underline}`);
       }
-      return path19;
+      return path21;
     };
-    path6 = /* @__PURE__ */ createPathTagFunction(encodeURIPath);
+    path8 = /* @__PURE__ */ createPathTagFunction(encodeURIPath);
   }
 });
 
@@ -31704,7 +32506,7 @@ var init_messages2 = __esm({
        * ```
        */
       list(completionID, query = {}, options) {
-        return this._client.getAPIList(path6`/chat/completions/${completionID}/messages`, CursorPage, { query, ...options });
+        return this._client.getAPIList(path8`/chat/completions/${completionID}/messages`, CursorPage, { query, ...options });
       }
     };
   }
@@ -33099,7 +33901,7 @@ var init_completions = __esm({
        * ```
        */
       retrieve(completionID, options) {
-        return this._client.get(path6`/chat/completions/${completionID}`, options);
+        return this._client.get(path8`/chat/completions/${completionID}`, options);
       }
       /**
        * Modify a stored chat completion. Only Chat Completions that have been created
@@ -33115,7 +33917,7 @@ var init_completions = __esm({
        * ```
        */
       update(completionID, body, options) {
-        return this._client.post(path6`/chat/completions/${completionID}`, { body, ...options });
+        return this._client.post(path8`/chat/completions/${completionID}`, { body, ...options });
       }
       /**
        * List stored Chat Completions. Only Chat Completions that have been stored with
@@ -33143,7 +33945,7 @@ var init_completions = __esm({
        * ```
        */
       delete(completionID, options) {
-        return this._client.delete(path6`/chat/completions/${completionID}`, options);
+        return this._client.delete(path8`/chat/completions/${completionID}`, options);
       }
       parse(body, options) {
         validateInputTools(body.tools);
@@ -33393,7 +34195,7 @@ var init_batches = __esm({
        * Retrieves a batch.
        */
       retrieve(batchID, options) {
-        return this._client.get(path6`/batches/${batchID}`, options);
+        return this._client.get(path8`/batches/${batchID}`, options);
       }
       /**
        * List your organization's batches.
@@ -33407,7 +34209,7 @@ var init_batches = __esm({
        * (if any) available in the output file.
        */
       cancel(batchID, options) {
-        return this._client.post(path6`/batches/${batchID}/cancel`, options);
+        return this._client.post(path8`/batches/${batchID}/cancel`, options);
       }
     };
   }
@@ -33440,7 +34242,7 @@ var init_assistants = __esm({
        * @deprecated
        */
       retrieve(assistantID, options) {
-        return this._client.get(path6`/assistants/${assistantID}`, {
+        return this._client.get(path8`/assistants/${assistantID}`, {
           ...options,
           headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
         });
@@ -33451,7 +34253,7 @@ var init_assistants = __esm({
        * @deprecated
        */
       update(assistantID, body, options) {
-        return this._client.post(path6`/assistants/${assistantID}`, {
+        return this._client.post(path8`/assistants/${assistantID}`, {
           body,
           ...options,
           headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
@@ -33475,7 +34277,7 @@ var init_assistants = __esm({
        * @deprecated
        */
       delete(assistantID, options) {
-        return this._client.delete(path6`/assistants/${assistantID}`, {
+        return this._client.delete(path8`/assistants/${assistantID}`, {
           ...options,
           headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
         });
@@ -33610,7 +34412,7 @@ var init_sessions2 = __esm({
        * ```
        */
       cancel(sessionID, options) {
-        return this._client.post(path6`/chatkit/sessions/${sessionID}/cancel`, {
+        return this._client.post(path8`/chatkit/sessions/${sessionID}/cancel`, {
           ...options,
           headers: buildHeaders([{ "OpenAI-Beta": "chatkit_beta=v1" }, options?.headers])
         });
@@ -33638,7 +34440,7 @@ var init_threads = __esm({
        * ```
        */
       retrieve(threadID, options) {
-        return this._client.get(path6`/chatkit/threads/${threadID}`, {
+        return this._client.get(path8`/chatkit/threads/${threadID}`, {
           ...options,
           headers: buildHeaders([{ "OpenAI-Beta": "chatkit_beta=v1" }, options?.headers])
         });
@@ -33672,7 +34474,7 @@ var init_threads = __esm({
        * ```
        */
       delete(threadID, options) {
-        return this._client.delete(path6`/chatkit/threads/${threadID}`, {
+        return this._client.delete(path8`/chatkit/threads/${threadID}`, {
           ...options,
           headers: buildHeaders([{ "OpenAI-Beta": "chatkit_beta=v1" }, options?.headers])
         });
@@ -33691,7 +34493,7 @@ var init_threads = __esm({
        * ```
        */
       listItems(threadID, query = {}, options) {
-        return this._client.getAPIList(path6`/chatkit/threads/${threadID}/items`, ConversationCursorPage, { query, ...options, headers: buildHeaders([{ "OpenAI-Beta": "chatkit_beta=v1" }, options?.headers]) });
+        return this._client.getAPIList(path8`/chatkit/threads/${threadID}/items`, ConversationCursorPage, { query, ...options, headers: buildHeaders([{ "OpenAI-Beta": "chatkit_beta=v1" }, options?.headers]) });
       }
     };
   }
@@ -33733,7 +34535,7 @@ var init_messages3 = __esm({
        * @deprecated The Assistants API is deprecated in favor of the Responses API
        */
       create(threadID, body, options) {
-        return this._client.post(path6`/threads/${threadID}/messages`, {
+        return this._client.post(path8`/threads/${threadID}/messages`, {
           body,
           ...options,
           headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
@@ -33746,7 +34548,7 @@ var init_messages3 = __esm({
        */
       retrieve(messageID, params, options) {
         const { thread_id } = params;
-        return this._client.get(path6`/threads/${thread_id}/messages/${messageID}`, {
+        return this._client.get(path8`/threads/${thread_id}/messages/${messageID}`, {
           ...options,
           headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
         });
@@ -33758,7 +34560,7 @@ var init_messages3 = __esm({
        */
       update(messageID, params, options) {
         const { thread_id, ...body } = params;
-        return this._client.post(path6`/threads/${thread_id}/messages/${messageID}`, {
+        return this._client.post(path8`/threads/${thread_id}/messages/${messageID}`, {
           body,
           ...options,
           headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
@@ -33770,7 +34572,7 @@ var init_messages3 = __esm({
        * @deprecated The Assistants API is deprecated in favor of the Responses API
        */
       list(threadID, query = {}, options) {
-        return this._client.getAPIList(path6`/threads/${threadID}/messages`, CursorPage, {
+        return this._client.getAPIList(path8`/threads/${threadID}/messages`, CursorPage, {
           query,
           ...options,
           headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
@@ -33783,7 +34585,7 @@ var init_messages3 = __esm({
        */
       delete(messageID, params, options) {
         const { thread_id } = params;
-        return this._client.delete(path6`/threads/${thread_id}/messages/${messageID}`, {
+        return this._client.delete(path8`/threads/${thread_id}/messages/${messageID}`, {
           ...options,
           headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
         });
@@ -33808,7 +34610,7 @@ var init_steps = __esm({
        */
       retrieve(stepID, params, options) {
         const { thread_id, run_id, ...query } = params;
-        return this._client.get(path6`/threads/${thread_id}/runs/${run_id}/steps/${stepID}`, {
+        return this._client.get(path8`/threads/${thread_id}/runs/${run_id}/steps/${stepID}`, {
           query,
           ...options,
           headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
@@ -33821,7 +34623,7 @@ var init_steps = __esm({
        */
       list(runID, params, options) {
         const { thread_id, ...query } = params;
-        return this._client.getAPIList(path6`/threads/${thread_id}/runs/${runID}/steps`, CursorPage, {
+        return this._client.getAPIList(path8`/threads/${thread_id}/runs/${runID}/steps`, CursorPage, {
           query,
           ...options,
           headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
@@ -34428,7 +35230,7 @@ var init_runs = __esm({
       }
       create(threadID, params, options) {
         const { include, ...body } = params;
-        return this._client.post(path6`/threads/${threadID}/runs`, {
+        return this._client.post(path8`/threads/${threadID}/runs`, {
           query: { include },
           body,
           ...options,
@@ -34444,7 +35246,7 @@ var init_runs = __esm({
        */
       retrieve(runID, params, options) {
         const { thread_id } = params;
-        return this._client.get(path6`/threads/${thread_id}/runs/${runID}`, {
+        return this._client.get(path8`/threads/${thread_id}/runs/${runID}`, {
           ...options,
           headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
         });
@@ -34456,7 +35258,7 @@ var init_runs = __esm({
        */
       update(runID, params, options) {
         const { thread_id, ...body } = params;
-        return this._client.post(path6`/threads/${thread_id}/runs/${runID}`, {
+        return this._client.post(path8`/threads/${thread_id}/runs/${runID}`, {
           body,
           ...options,
           headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
@@ -34468,7 +35270,7 @@ var init_runs = __esm({
        * @deprecated The Assistants API is deprecated in favor of the Responses API
        */
       list(threadID, query = {}, options) {
-        return this._client.getAPIList(path6`/threads/${threadID}/runs`, CursorPage, {
+        return this._client.getAPIList(path8`/threads/${threadID}/runs`, CursorPage, {
           query,
           ...options,
           headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
@@ -34481,7 +35283,7 @@ var init_runs = __esm({
        */
       cancel(runID, params, options) {
         const { thread_id } = params;
-        return this._client.post(path6`/threads/${thread_id}/runs/${runID}/cancel`, {
+        return this._client.post(path8`/threads/${thread_id}/runs/${runID}/cancel`, {
           ...options,
           headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
         });
@@ -34559,7 +35361,7 @@ var init_runs = __esm({
       }
       submitToolOutputs(runID, params, options) {
         const { thread_id, ...body } = params;
-        return this._client.post(path6`/threads/${thread_id}/runs/${runID}/submit_tool_outputs`, {
+        return this._client.post(path8`/threads/${thread_id}/runs/${runID}/submit_tool_outputs`, {
           body,
           ...options,
           headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers]),
@@ -34625,7 +35427,7 @@ var init_threads2 = __esm({
        * @deprecated The Assistants API is deprecated in favor of the Responses API
        */
       retrieve(threadID, options) {
-        return this._client.get(path6`/threads/${threadID}`, {
+        return this._client.get(path8`/threads/${threadID}`, {
           ...options,
           headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
         });
@@ -34636,7 +35438,7 @@ var init_threads2 = __esm({
        * @deprecated The Assistants API is deprecated in favor of the Responses API
        */
       update(threadID, body, options) {
-        return this._client.post(path6`/threads/${threadID}`, {
+        return this._client.post(path8`/threads/${threadID}`, {
           body,
           ...options,
           headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
@@ -34648,7 +35450,7 @@ var init_threads2 = __esm({
        * @deprecated The Assistants API is deprecated in favor of the Responses API
        */
       delete(threadID, options) {
-        return this._client.delete(path6`/threads/${threadID}`, {
+        return this._client.delete(path8`/threads/${threadID}`, {
           ...options,
           headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
         });
@@ -34738,7 +35540,7 @@ var init_content = __esm({
        */
       retrieve(fileID, params, options) {
         const { container_id } = params;
-        return this._client.get(path6`/containers/${container_id}/files/${fileID}/content`, {
+        return this._client.get(path8`/containers/${container_id}/files/${fileID}/content`, {
           ...options,
           headers: buildHeaders([{ Accept: "application/binary" }, options?.headers]),
           __binaryResponse: true
@@ -34771,20 +35573,20 @@ var init_files = __esm({
        * a JSON request with a file ID.
        */
       create(containerID, body, options) {
-        return this._client.post(path6`/containers/${containerID}/files`, maybeMultipartFormRequestOptions({ body, ...options }, this._client));
+        return this._client.post(path8`/containers/${containerID}/files`, maybeMultipartFormRequestOptions({ body, ...options }, this._client));
       }
       /**
        * Retrieve Container File
        */
       retrieve(fileID, params, options) {
         const { container_id } = params;
-        return this._client.get(path6`/containers/${container_id}/files/${fileID}`, options);
+        return this._client.get(path8`/containers/${container_id}/files/${fileID}`, options);
       }
       /**
        * List Container files
        */
       list(containerID, query = {}, options) {
-        return this._client.getAPIList(path6`/containers/${containerID}/files`, CursorPage, {
+        return this._client.getAPIList(path8`/containers/${containerID}/files`, CursorPage, {
           query,
           ...options
         });
@@ -34794,7 +35596,7 @@ var init_files = __esm({
        */
       delete(fileID, params, options) {
         const { container_id } = params;
-        return this._client.delete(path6`/containers/${container_id}/files/${fileID}`, {
+        return this._client.delete(path8`/containers/${container_id}/files/${fileID}`, {
           ...options,
           headers: buildHeaders([{ Accept: "*/*" }, options?.headers])
         });
@@ -34829,7 +35631,7 @@ var init_containers = __esm({
        * Retrieve Container
        */
       retrieve(containerID, options) {
-        return this._client.get(path6`/containers/${containerID}`, options);
+        return this._client.get(path8`/containers/${containerID}`, options);
       }
       /**
        * List Containers
@@ -34841,7 +35643,7 @@ var init_containers = __esm({
        * Delete Container
        */
       delete(containerID, options) {
-        return this._client.delete(path6`/containers/${containerID}`, {
+        return this._client.delete(path8`/containers/${containerID}`, {
           ...options,
           headers: buildHeaders([{ Accept: "*/*" }, options?.headers])
         });
@@ -34864,7 +35666,7 @@ var init_items3 = __esm({
        */
       create(conversationID, params, options) {
         const { include, ...body } = params;
-        return this._client.post(path6`/conversations/${conversationID}/items`, {
+        return this._client.post(path8`/conversations/${conversationID}/items`, {
           query: { include },
           body,
           ...options
@@ -34875,20 +35677,20 @@ var init_items3 = __esm({
        */
       retrieve(itemID, params, options) {
         const { conversation_id, ...query } = params;
-        return this._client.get(path6`/conversations/${conversation_id}/items/${itemID}`, { query, ...options });
+        return this._client.get(path8`/conversations/${conversation_id}/items/${itemID}`, { query, ...options });
       }
       /**
        * List all items for a conversation with the given ID.
        */
       list(conversationID, query = {}, options) {
-        return this._client.getAPIList(path6`/conversations/${conversationID}/items`, ConversationCursorPage, { query, ...options });
+        return this._client.getAPIList(path8`/conversations/${conversationID}/items`, ConversationCursorPage, { query, ...options });
       }
       /**
        * Delete an item from a conversation with the given IDs.
        */
       delete(itemID, params, options) {
         const { conversation_id } = params;
-        return this._client.delete(path6`/conversations/${conversation_id}/items/${itemID}`, options);
+        return this._client.delete(path8`/conversations/${conversation_id}/items/${itemID}`, options);
       }
     };
   }
@@ -34917,19 +35719,19 @@ var init_conversations = __esm({
        * Get a conversation
        */
       retrieve(conversationID, options) {
-        return this._client.get(path6`/conversations/${conversationID}`, options);
+        return this._client.get(path8`/conversations/${conversationID}`, options);
       }
       /**
        * Update a conversation
        */
       update(conversationID, body, options) {
-        return this._client.post(path6`/conversations/${conversationID}`, { body, ...options });
+        return this._client.post(path8`/conversations/${conversationID}`, { body, ...options });
       }
       /**
        * Delete a conversation. Items in the conversation will not be deleted.
        */
       delete(conversationID, options) {
-        return this._client.delete(path6`/conversations/${conversationID}`, options);
+        return this._client.delete(path8`/conversations/${conversationID}`, options);
       }
     };
     Conversations.Items = Items;
@@ -34999,14 +35801,14 @@ var init_output_items = __esm({
        */
       retrieve(outputItemID, params, options) {
         const { eval_id, run_id } = params;
-        return this._client.get(path6`/evals/${eval_id}/runs/${run_id}/output_items/${outputItemID}`, options);
+        return this._client.get(path8`/evals/${eval_id}/runs/${run_id}/output_items/${outputItemID}`, options);
       }
       /**
        * Get a list of output items for an evaluation run.
        */
       list(runID, params, options) {
         const { eval_id, ...query } = params;
-        return this._client.getAPIList(path6`/evals/${eval_id}/runs/${runID}/output_items`, CursorPage, { query, ...options });
+        return this._client.getAPIList(path8`/evals/${eval_id}/runs/${runID}/output_items`, CursorPage, { query, ...options });
       }
     };
   }
@@ -35032,20 +35834,20 @@ var init_runs2 = __esm({
        * schema specified in the config of the evaluation.
        */
       create(evalID, body, options) {
-        return this._client.post(path6`/evals/${evalID}/runs`, { body, ...options });
+        return this._client.post(path8`/evals/${evalID}/runs`, { body, ...options });
       }
       /**
        * Get an evaluation run by ID.
        */
       retrieve(runID, params, options) {
         const { eval_id } = params;
-        return this._client.get(path6`/evals/${eval_id}/runs/${runID}`, options);
+        return this._client.get(path8`/evals/${eval_id}/runs/${runID}`, options);
       }
       /**
        * Get a list of runs for an evaluation.
        */
       list(evalID, query = {}, options) {
-        return this._client.getAPIList(path6`/evals/${evalID}/runs`, CursorPage, {
+        return this._client.getAPIList(path8`/evals/${evalID}/runs`, CursorPage, {
           query,
           ...options
         });
@@ -35055,14 +35857,14 @@ var init_runs2 = __esm({
        */
       delete(runID, params, options) {
         const { eval_id } = params;
-        return this._client.delete(path6`/evals/${eval_id}/runs/${runID}`, options);
+        return this._client.delete(path8`/evals/${eval_id}/runs/${runID}`, options);
       }
       /**
        * Cancel an ongoing evaluation run.
        */
       cancel(runID, params, options) {
         const { eval_id } = params;
-        return this._client.post(path6`/evals/${eval_id}/runs/${runID}`, options);
+        return this._client.post(path8`/evals/${eval_id}/runs/${runID}`, options);
       }
     };
     Runs2.OutputItems = OutputItems;
@@ -35098,13 +35900,13 @@ var init_evals = __esm({
        * Get an evaluation by ID.
        */
       retrieve(evalID, options) {
-        return this._client.get(path6`/evals/${evalID}`, options);
+        return this._client.get(path8`/evals/${evalID}`, options);
       }
       /**
        * Update certain properties of an evaluation.
        */
       update(evalID, body, options) {
-        return this._client.post(path6`/evals/${evalID}`, { body, ...options });
+        return this._client.post(path8`/evals/${evalID}`, { body, ...options });
       }
       /**
        * List evaluations for a project.
@@ -35116,7 +35918,7 @@ var init_evals = __esm({
        * Delete an evaluation.
        */
       delete(evalID, options) {
-        return this._client.delete(path6`/evals/${evalID}`, options);
+        return this._client.delete(path8`/evals/${evalID}`, options);
       }
     };
     Evals.Runs = Runs2;
@@ -35164,7 +35966,7 @@ var init_files2 = __esm({
        * Returns information about a specific file.
        */
       retrieve(fileID, options) {
-        return this._client.get(path6`/files/${fileID}`, options);
+        return this._client.get(path8`/files/${fileID}`, options);
       }
       /**
        * Returns a list of files.
@@ -35176,13 +35978,13 @@ var init_files2 = __esm({
        * Delete a file and remove it from all vector stores.
        */
       delete(fileID, options) {
-        return this._client.delete(path6`/files/${fileID}`, options);
+        return this._client.delete(path8`/files/${fileID}`, options);
       }
       /**
        * Returns the contents of the specified file.
        */
       content(fileID, options) {
-        return this._client.get(path6`/files/${fileID}/content`, {
+        return this._client.get(path8`/files/${fileID}/content`, {
           ...options,
           headers: buildHeaders([{ Accept: "application/binary" }, options?.headers]),
           __binaryResponse: true
@@ -35313,7 +36115,7 @@ var init_permissions = __esm({
        * ```
        */
       create(fineTunedModelCheckpoint, body, options) {
-        return this._client.getAPIList(path6`/fine_tuning/checkpoints/${fineTunedModelCheckpoint}/permissions`, Page, { body, method: "post", ...options });
+        return this._client.getAPIList(path8`/fine_tuning/checkpoints/${fineTunedModelCheckpoint}/permissions`, Page, { body, method: "post", ...options });
       }
       /**
        * **NOTE:** This endpoint requires an [admin API key](../admin-api-keys).
@@ -35324,7 +36126,7 @@ var init_permissions = __esm({
        * @deprecated Retrieve is deprecated. Please swap to the paginated list method instead.
        */
       retrieve(fineTunedModelCheckpoint, query = {}, options) {
-        return this._client.get(path6`/fine_tuning/checkpoints/${fineTunedModelCheckpoint}/permissions`, {
+        return this._client.get(path8`/fine_tuning/checkpoints/${fineTunedModelCheckpoint}/permissions`, {
           query,
           ...options
         });
@@ -35346,7 +36148,7 @@ var init_permissions = __esm({
        * ```
        */
       list(fineTunedModelCheckpoint, query = {}, options) {
-        return this._client.getAPIList(path6`/fine_tuning/checkpoints/${fineTunedModelCheckpoint}/permissions`, ConversationCursorPage, { query, ...options });
+        return this._client.getAPIList(path8`/fine_tuning/checkpoints/${fineTunedModelCheckpoint}/permissions`, ConversationCursorPage, { query, ...options });
       }
       /**
        * **NOTE:** This endpoint requires an [admin API key](../admin-api-keys).
@@ -35368,7 +36170,7 @@ var init_permissions = __esm({
        */
       delete(permissionID, params, options) {
         const { fine_tuned_model_checkpoint } = params;
-        return this._client.delete(path6`/fine_tuning/checkpoints/${fine_tuned_model_checkpoint}/permissions/${permissionID}`, options);
+        return this._client.delete(path8`/fine_tuning/checkpoints/${fine_tuned_model_checkpoint}/permissions/${permissionID}`, options);
       }
     };
   }
@@ -35413,7 +36215,7 @@ var init_checkpoints2 = __esm({
        * ```
        */
       list(fineTuningJobID, query = {}, options) {
-        return this._client.getAPIList(path6`/fine_tuning/jobs/${fineTuningJobID}/checkpoints`, CursorPage, { query, ...options });
+        return this._client.getAPIList(path8`/fine_tuning/jobs/${fineTuningJobID}/checkpoints`, CursorPage, { query, ...options });
       }
     };
   }
@@ -35466,7 +36268,7 @@ var init_jobs = __esm({
        * ```
        */
       retrieve(fineTuningJobID, options) {
-        return this._client.get(path6`/fine_tuning/jobs/${fineTuningJobID}`, options);
+        return this._client.get(path8`/fine_tuning/jobs/${fineTuningJobID}`, options);
       }
       /**
        * List your organization's fine-tuning jobs
@@ -35493,7 +36295,7 @@ var init_jobs = __esm({
        * ```
        */
       cancel(fineTuningJobID, options) {
-        return this._client.post(path6`/fine_tuning/jobs/${fineTuningJobID}/cancel`, options);
+        return this._client.post(path8`/fine_tuning/jobs/${fineTuningJobID}/cancel`, options);
       }
       /**
        * Get status updates for a fine-tuning job.
@@ -35509,7 +36311,7 @@ var init_jobs = __esm({
        * ```
        */
       listEvents(fineTuningJobID, query = {}, options) {
-        return this._client.getAPIList(path6`/fine_tuning/jobs/${fineTuningJobID}/events`, CursorPage, { query, ...options });
+        return this._client.getAPIList(path8`/fine_tuning/jobs/${fineTuningJobID}/events`, CursorPage, { query, ...options });
       }
       /**
        * Pause a fine-tune job.
@@ -35522,7 +36324,7 @@ var init_jobs = __esm({
        * ```
        */
       pause(fineTuningJobID, options) {
-        return this._client.post(path6`/fine_tuning/jobs/${fineTuningJobID}/pause`, options);
+        return this._client.post(path8`/fine_tuning/jobs/${fineTuningJobID}/pause`, options);
       }
       /**
        * Resume a fine-tune job.
@@ -35535,7 +36337,7 @@ var init_jobs = __esm({
        * ```
        */
       resume(fineTuningJobID, options) {
-        return this._client.post(path6`/fine_tuning/jobs/${fineTuningJobID}/resume`, options);
+        return this._client.post(path8`/fine_tuning/jobs/${fineTuningJobID}/resume`, options);
       }
     };
     Jobs.Checkpoints = Checkpoints2;
@@ -35641,7 +36443,7 @@ var init_models2 = __esm({
        * the owner and permissioning.
        */
       retrieve(model, options) {
-        return this._client.get(path6`/models/${model}`, options);
+        return this._client.get(path8`/models/${model}`, options);
       }
       /**
        * Lists the currently available models, and provides basic information about each
@@ -35655,7 +36457,7 @@ var init_models2 = __esm({
        * delete a model.
        */
       delete(model, options) {
-        return this._client.delete(path6`/models/${model}`, options);
+        return this._client.delete(path8`/models/${model}`, options);
       }
     };
   }
@@ -35698,7 +36500,7 @@ var init_calls = __esm({
        * ```
        */
       accept(callID, body, options) {
-        return this._client.post(path6`/realtime/calls/${callID}/accept`, {
+        return this._client.post(path8`/realtime/calls/${callID}/accept`, {
           body,
           ...options,
           headers: buildHeaders([{ Accept: "*/*" }, options?.headers])
@@ -35713,7 +36515,7 @@ var init_calls = __esm({
        * ```
        */
       hangup(callID, options) {
-        return this._client.post(path6`/realtime/calls/${callID}/hangup`, {
+        return this._client.post(path8`/realtime/calls/${callID}/hangup`, {
           ...options,
           headers: buildHeaders([{ Accept: "*/*" }, options?.headers])
         });
@@ -35729,7 +36531,7 @@ var init_calls = __esm({
        * ```
        */
       refer(callID, body, options) {
-        return this._client.post(path6`/realtime/calls/${callID}/refer`, {
+        return this._client.post(path8`/realtime/calls/${callID}/refer`, {
           body,
           ...options,
           headers: buildHeaders([{ Accept: "*/*" }, options?.headers])
@@ -35744,7 +36546,7 @@ var init_calls = __esm({
        * ```
        */
       reject(callID, body = {}, options) {
-        return this._client.post(path6`/realtime/calls/${callID}/reject`, {
+        return this._client.post(path8`/realtime/calls/${callID}/reject`, {
           body,
           ...options,
           headers: buildHeaders([{ Accept: "*/*" }, options?.headers])
@@ -36223,7 +37025,7 @@ var init_input_items = __esm({
        * ```
        */
       list(responseID, query = {}, options) {
-        return this._client.getAPIList(path6`/responses/${responseID}/input_items`, CursorPage, { query, ...options });
+        return this._client.getAPIList(path8`/responses/${responseID}/input_items`, CursorPage, { query, ...options });
       }
     };
   }
@@ -36281,7 +37083,7 @@ var init_responses = __esm({
         });
       }
       retrieve(responseID, query = {}, options) {
-        return this._client.get(path6`/responses/${responseID}`, {
+        return this._client.get(path8`/responses/${responseID}`, {
           query,
           ...options,
           stream: query?.stream ?? false
@@ -36303,7 +37105,7 @@ var init_responses = __esm({
        * ```
        */
       delete(responseID, options) {
-        return this._client.delete(path6`/responses/${responseID}`, {
+        return this._client.delete(path8`/responses/${responseID}`, {
           ...options,
           headers: buildHeaders([{ Accept: "*/*" }, options?.headers])
         });
@@ -36330,7 +37132,7 @@ var init_responses = __esm({
        * ```
        */
       cancel(responseID, options) {
-        return this._client.post(path6`/responses/${responseID}/cancel`, options);
+        return this._client.post(path8`/responses/${responseID}/cancel`, options);
       }
       /**
        * Compact a conversation. Returns a compacted response object.
@@ -36368,7 +37170,7 @@ var init_content2 = __esm({
        * Download a skill zip bundle by its ID.
        */
       retrieve(skillID, options) {
-        return this._client.get(path6`/skills/${skillID}/content`, {
+        return this._client.get(path8`/skills/${skillID}/content`, {
           ...options,
           headers: buildHeaders([{ Accept: "application/binary" }, options?.headers]),
           __binaryResponse: true
@@ -36391,7 +37193,7 @@ var init_content3 = __esm({
        */
       retrieve(version2, params, options) {
         const { skill_id } = params;
-        return this._client.get(path6`/skills/${skill_id}/versions/${version2}/content`, {
+        return this._client.get(path8`/skills/${skill_id}/versions/${version2}/content`, {
           ...options,
           headers: buildHeaders([{ Accept: "application/binary" }, options?.headers]),
           __binaryResponse: true
@@ -36420,20 +37222,20 @@ var init_versions = __esm({
        * Create a new immutable skill version.
        */
       create(skillID, body = {}, options) {
-        return this._client.post(path6`/skills/${skillID}/versions`, maybeMultipartFormRequestOptions({ body, ...options }, this._client));
+        return this._client.post(path8`/skills/${skillID}/versions`, maybeMultipartFormRequestOptions({ body, ...options }, this._client));
       }
       /**
        * Get a specific skill version.
        */
       retrieve(version2, params, options) {
         const { skill_id } = params;
-        return this._client.get(path6`/skills/${skill_id}/versions/${version2}`, options);
+        return this._client.get(path8`/skills/${skill_id}/versions/${version2}`, options);
       }
       /**
        * List skill versions for a skill.
        */
       list(skillID, query = {}, options) {
-        return this._client.getAPIList(path6`/skills/${skillID}/versions`, CursorPage, {
+        return this._client.getAPIList(path8`/skills/${skillID}/versions`, CursorPage, {
           query,
           ...options
         });
@@ -36443,7 +37245,7 @@ var init_versions = __esm({
        */
       delete(version2, params, options) {
         const { skill_id } = params;
-        return this._client.delete(path6`/skills/${skill_id}/versions/${version2}`, options);
+        return this._client.delete(path8`/skills/${skill_id}/versions/${version2}`, options);
       }
     };
     Versions.Content = Content3;
@@ -36452,7 +37254,7 @@ var init_versions = __esm({
 
 // node_modules/openai/resources/skills/skills.mjs
 var Skills;
-var init_skills2 = __esm({
+var init_skills3 = __esm({
   "node_modules/openai/resources/skills/skills.mjs"() {
     init_resource();
     init_content2();
@@ -36478,13 +37280,13 @@ var init_skills2 = __esm({
        * Get a skill by its ID.
        */
       retrieve(skillID, options) {
-        return this._client.get(path6`/skills/${skillID}`, options);
+        return this._client.get(path8`/skills/${skillID}`, options);
       }
       /**
        * Update the default version pointer for a skill.
        */
       update(skillID, body, options) {
-        return this._client.post(path6`/skills/${skillID}`, { body, ...options });
+        return this._client.post(path8`/skills/${skillID}`, { body, ...options });
       }
       /**
        * List all skills for the current project.
@@ -36496,7 +37298,7 @@ var init_skills2 = __esm({
        * Delete a skill by its ID.
        */
       delete(skillID, options) {
-        return this._client.delete(path6`/skills/${skillID}`, options);
+        return this._client.delete(path8`/skills/${skillID}`, options);
       }
     };
     Skills.Content = Content2;
@@ -36526,7 +37328,7 @@ var init_parts = __esm({
        * [complete the Upload](https://platform.openai.com/docs/api-reference/uploads/complete).
        */
       create(uploadID, body, options) {
-        return this._client.post(path6`/uploads/${uploadID}/parts`, multipartFormRequestOptions({ body, ...options }, this._client));
+        return this._client.post(path8`/uploads/${uploadID}/parts`, multipartFormRequestOptions({ body, ...options }, this._client));
       }
     };
   }
@@ -36577,7 +37379,7 @@ var init_uploads3 = __esm({
        * Returns the Upload object with status `cancelled`.
        */
       cancel(uploadID, options) {
-        return this._client.post(path6`/uploads/${uploadID}/cancel`, options);
+        return this._client.post(path8`/uploads/${uploadID}/cancel`, options);
       }
       /**
        * Completes the
@@ -36597,7 +37399,7 @@ var init_uploads3 = __esm({
        * object.
        */
       complete(uploadID, body, options) {
-        return this._client.post(path6`/uploads/${uploadID}/complete`, { body, ...options });
+        return this._client.post(path8`/uploads/${uploadID}/complete`, { body, ...options });
       }
     };
     Uploads.Parts = Parts;
@@ -36643,7 +37445,7 @@ var init_file_batches = __esm({
        * Create a vector store file batch.
        */
       create(vectorStoreID, body, options) {
-        return this._client.post(path6`/vector_stores/${vectorStoreID}/file_batches`, {
+        return this._client.post(path8`/vector_stores/${vectorStoreID}/file_batches`, {
           body,
           ...options,
           headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
@@ -36654,7 +37456,7 @@ var init_file_batches = __esm({
        */
       retrieve(batchID, params, options) {
         const { vector_store_id } = params;
-        return this._client.get(path6`/vector_stores/${vector_store_id}/file_batches/${batchID}`, {
+        return this._client.get(path8`/vector_stores/${vector_store_id}/file_batches/${batchID}`, {
           ...options,
           headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
         });
@@ -36665,7 +37467,7 @@ var init_file_batches = __esm({
        */
       cancel(batchID, params, options) {
         const { vector_store_id } = params;
-        return this._client.post(path6`/vector_stores/${vector_store_id}/file_batches/${batchID}/cancel`, {
+        return this._client.post(path8`/vector_stores/${vector_store_id}/file_batches/${batchID}/cancel`, {
           ...options,
           headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
         });
@@ -36682,7 +37484,7 @@ var init_file_batches = __esm({
        */
       listFiles(batchID, params, options) {
         const { vector_store_id, ...query } = params;
-        return this._client.getAPIList(path6`/vector_stores/${vector_store_id}/file_batches/${batchID}/files`, CursorPage, { query, ...options, headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers]) });
+        return this._client.getAPIList(path8`/vector_stores/${vector_store_id}/file_batches/${batchID}/files`, CursorPage, { query, ...options, headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers]) });
       }
       /**
        * Wait for the given file batch to be processed.
@@ -36772,7 +37574,7 @@ var init_files3 = __esm({
        * [vector store](https://platform.openai.com/docs/api-reference/vector-stores/object).
        */
       create(vectorStoreID, body, options) {
-        return this._client.post(path6`/vector_stores/${vectorStoreID}/files`, {
+        return this._client.post(path8`/vector_stores/${vectorStoreID}/files`, {
           body,
           ...options,
           headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
@@ -36783,7 +37585,7 @@ var init_files3 = __esm({
        */
       retrieve(fileID, params, options) {
         const { vector_store_id } = params;
-        return this._client.get(path6`/vector_stores/${vector_store_id}/files/${fileID}`, {
+        return this._client.get(path8`/vector_stores/${vector_store_id}/files/${fileID}`, {
           ...options,
           headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
         });
@@ -36793,7 +37595,7 @@ var init_files3 = __esm({
        */
       update(fileID, params, options) {
         const { vector_store_id, ...body } = params;
-        return this._client.post(path6`/vector_stores/${vector_store_id}/files/${fileID}`, {
+        return this._client.post(path8`/vector_stores/${vector_store_id}/files/${fileID}`, {
           body,
           ...options,
           headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
@@ -36803,7 +37605,7 @@ var init_files3 = __esm({
        * Returns a list of vector store files.
        */
       list(vectorStoreID, query = {}, options) {
-        return this._client.getAPIList(path6`/vector_stores/${vectorStoreID}/files`, CursorPage, {
+        return this._client.getAPIList(path8`/vector_stores/${vectorStoreID}/files`, CursorPage, {
           query,
           ...options,
           headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
@@ -36817,7 +37619,7 @@ var init_files3 = __esm({
        */
       delete(fileID, params, options) {
         const { vector_store_id } = params;
-        return this._client.delete(path6`/vector_stores/${vector_store_id}/files/${fileID}`, {
+        return this._client.delete(path8`/vector_stores/${vector_store_id}/files/${fileID}`, {
           ...options,
           headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
         });
@@ -36892,7 +37694,7 @@ var init_files3 = __esm({
        */
       content(fileID, params, options) {
         const { vector_store_id } = params;
-        return this._client.getAPIList(path6`/vector_stores/${vector_store_id}/files/${fileID}/content`, Page, { ...options, headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers]) });
+        return this._client.getAPIList(path8`/vector_stores/${vector_store_id}/files/${fileID}/content`, Page, { ...options, headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers]) });
       }
     };
   }
@@ -36930,7 +37732,7 @@ var init_vector_stores = __esm({
        * Retrieves a vector store.
        */
       retrieve(vectorStoreID, options) {
-        return this._client.get(path6`/vector_stores/${vectorStoreID}`, {
+        return this._client.get(path8`/vector_stores/${vectorStoreID}`, {
           ...options,
           headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
         });
@@ -36939,7 +37741,7 @@ var init_vector_stores = __esm({
        * Modifies a vector store.
        */
       update(vectorStoreID, body, options) {
-        return this._client.post(path6`/vector_stores/${vectorStoreID}`, {
+        return this._client.post(path8`/vector_stores/${vectorStoreID}`, {
           body,
           ...options,
           headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
@@ -36959,7 +37761,7 @@ var init_vector_stores = __esm({
        * Delete a vector store.
        */
       delete(vectorStoreID, options) {
-        return this._client.delete(path6`/vector_stores/${vectorStoreID}`, {
+        return this._client.delete(path8`/vector_stores/${vectorStoreID}`, {
           ...options,
           headers: buildHeaders([{ "OpenAI-Beta": "assistants=v2" }, options?.headers])
         });
@@ -36969,7 +37771,7 @@ var init_vector_stores = __esm({
        * filter.
        */
       search(vectorStoreID, body, options) {
-        return this._client.getAPIList(path6`/vector_stores/${vectorStoreID}/search`, Page, {
+        return this._client.getAPIList(path8`/vector_stores/${vectorStoreID}/search`, Page, {
           body,
           method: "post",
           ...options,
@@ -37002,7 +37804,7 @@ var init_videos = __esm({
        * Fetch the latest metadata for a generated video.
        */
       retrieve(videoID, options) {
-        return this._client.get(path6`/videos/${videoID}`, options);
+        return this._client.get(path8`/videos/${videoID}`, options);
       }
       /**
        * List recently generated videos for the current project.
@@ -37014,7 +37816,7 @@ var init_videos = __esm({
        * Permanently delete a completed or failed video and its stored assets.
        */
       delete(videoID, options) {
-        return this._client.delete(path6`/videos/${videoID}`, options);
+        return this._client.delete(path8`/videos/${videoID}`, options);
       }
       /**
        * Download the generated video bytes or a derived preview asset.
@@ -37022,7 +37824,7 @@ var init_videos = __esm({
        * Streams the rendered video content for the specified video job.
        */
       downloadContent(videoID, query = {}, options) {
-        return this._client.get(path6`/videos/${videoID}/content`, {
+        return this._client.get(path8`/videos/${videoID}/content`, {
           query,
           ...options,
           headers: buildHeaders([{ Accept: "application/binary" }, options?.headers]),
@@ -37033,7 +37835,7 @@ var init_videos = __esm({
        * Create a remix of a completed video using a refreshed prompt.
        */
       remix(videoID, body, options) {
-        return this._client.post(path6`/videos/${videoID}/remix`, maybeMultipartFormRequestOptions({ body, ...options }, this._client));
+        return this._client.post(path8`/videos/${videoID}/remix`, maybeMultipartFormRequestOptions({ body, ...options }, this._client));
       }
     };
   }
@@ -37159,7 +37961,7 @@ var init_resources = __esm({
     init_moderations();
     init_realtime2();
     init_responses();
-    init_skills2();
+    init_skills3();
     init_uploads3();
     init_vector_stores();
     init_videos();
@@ -37204,7 +38006,7 @@ var init_client = __esm({
     init_graders2();
     init_realtime2();
     init_responses();
-    init_skills2();
+    init_skills3();
     init_uploads3();
     init_vector_stores();
     init_webhooks();
@@ -37349,9 +38151,9 @@ var init_client = __esm({
         this.apiKey = token;
         return true;
       }
-      buildURL(path18, query, defaultBaseURL) {
+      buildURL(path20, query, defaultBaseURL) {
         const baseURL = !__classPrivateFieldGet2(this, _OpenAI_instances, "m", _OpenAI_baseURLOverridden).call(this) && defaultBaseURL || this.baseURL;
-        const url2 = isAbsoluteURL(path18) ? new URL(path18) : new URL(baseURL + (baseURL.endsWith("/") && path18.startsWith("/") ? path18.slice(1) : path18));
+        const url2 = isAbsoluteURL(path20) ? new URL(path20) : new URL(baseURL + (baseURL.endsWith("/") && path20.startsWith("/") ? path20.slice(1) : path20));
         const defaultQuery = this.defaultQuery();
         if (!isEmptyObj(defaultQuery)) {
           query = { ...defaultQuery, ...query };
@@ -37375,24 +38177,24 @@ var init_client = __esm({
        */
       async prepareRequest(request, { url: url2, options }) {
       }
-      get(path18, opts) {
-        return this.methodRequest("get", path18, opts);
+      get(path20, opts) {
+        return this.methodRequest("get", path20, opts);
       }
-      post(path18, opts) {
-        return this.methodRequest("post", path18, opts);
+      post(path20, opts) {
+        return this.methodRequest("post", path20, opts);
       }
-      patch(path18, opts) {
-        return this.methodRequest("patch", path18, opts);
+      patch(path20, opts) {
+        return this.methodRequest("patch", path20, opts);
       }
-      put(path18, opts) {
-        return this.methodRequest("put", path18, opts);
+      put(path20, opts) {
+        return this.methodRequest("put", path20, opts);
       }
-      delete(path18, opts) {
-        return this.methodRequest("delete", path18, opts);
+      delete(path20, opts) {
+        return this.methodRequest("delete", path20, opts);
       }
-      methodRequest(method, path18, opts) {
+      methodRequest(method, path20, opts) {
         return this.request(Promise.resolve(opts).then((opts2) => {
-          return { method, path: path18, ...opts2 };
+          return { method, path: path20, ...opts2 };
         }));
       }
       request(options, remainingRetries = null) {
@@ -37496,8 +38298,8 @@ var init_client = __esm({
         }));
         return { response, options, controller, requestLogID, retryOfRequestLogID, startTime };
       }
-      getAPIList(path18, Page3, opts) {
-        return this.requestAPIList(Page3, opts && "then" in opts ? opts.then((opts2) => ({ method: "get", path: path18, ...opts2 })) : { method: "get", path: path18, ...opts });
+      getAPIList(path20, Page3, opts) {
+        return this.requestAPIList(Page3, opts && "then" in opts ? opts.then((opts2) => ({ method: "get", path: path20, ...opts2 })) : { method: "get", path: path20, ...opts });
       }
       requestAPIList(Page3, options) {
         const request = this.makeRequest(options, null, void 0);
@@ -37576,8 +38378,8 @@ var init_client = __esm({
       }
       async buildRequest(inputOptions, { retryCount = 0 } = {}) {
         const options = { ...inputOptions };
-        const { method, path: path18, query, defaultBaseURL } = options;
-        const url2 = this.buildURL(path18, query, defaultBaseURL);
+        const { method, path: path20, query, defaultBaseURL } = options;
+        const url2 = this.buildURL(path20, query, defaultBaseURL);
         if ("timeout" in options)
           validatePositiveInteger("timeout", options.timeout);
         options.timeout = options.timeout ?? this.timeout;
@@ -37935,8 +38737,8 @@ function getBunSandboxEnvValue(name) {
   if (procEnvCache === null) {
     procEnvCache = /* @__PURE__ */ new Map();
     try {
-      const { readFileSync } = require("node:fs");
-      const data = readFileSync("/proc/self/environ", "utf-8");
+      const { readFileSync: readFileSync2 } = require("node:fs");
+      const data = readFileSync2("/proc/self/environ", "utf-8");
       for (const entry of data.split("\0")) {
         const idx = entry.indexOf("=");
         if (idx > 0) {
@@ -41066,17 +41868,17 @@ var init_headers3 = __esm({
 function encodeURIPath2(str2) {
   return str2.replace(/[^A-Za-z0-9\-._~!$&'()*+,;=:@]+/g, encodeURIComponent);
 }
-var EMPTY2, createPathTagFunction2, path7;
+var EMPTY2, createPathTagFunction2, path9;
 var init_path2 = __esm({
   "node_modules/@anthropic-ai/sdk/internal/utils/path.mjs"() {
     init_error5();
     EMPTY2 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.create(null));
-    createPathTagFunction2 = (pathEncoder = encodeURIPath2) => function path18(statics, ...params) {
+    createPathTagFunction2 = (pathEncoder = encodeURIPath2) => function path20(statics, ...params) {
       if (statics.length === 1)
         return statics[0];
       let postPath = false;
       const invalidSegments = [];
-      const path19 = statics.reduce((previousValue, currentValue, index3) => {
+      const path21 = statics.reduce((previousValue, currentValue, index3) => {
         if (/[?#]/.test(currentValue)) {
           postPath = true;
         }
@@ -41093,7 +41895,7 @@ var init_path2 = __esm({
         }
         return previousValue + currentValue + (index3 === params.length ? "" : encoded);
       }, "");
-      const pathOnly = path19.split(/[?#]/, 1)[0];
+      const pathOnly = path21.split(/[?#]/, 1)[0];
       const invalidSegmentPattern = /(?<=^|\/)(?:\.|%2e){1,2}(?=\/|$)/gi;
       let match2;
       while ((match2 = invalidSegmentPattern.exec(pathOnly)) !== null) {
@@ -41114,12 +41916,12 @@ var init_path2 = __esm({
         }, "");
         throw new AnthropicError(`Path parameters result in path with invalid segments:
 ${invalidSegments.map((e2) => e2.error).join("\n")}
-${path19}
+${path21}
 ${underline}`);
       }
-      return path19;
+      return path21;
     };
-    path7 = /* @__PURE__ */ createPathTagFunction2(encodeURIPath2);
+    path9 = /* @__PURE__ */ createPathTagFunction2(encodeURIPath2);
   }
 });
 
@@ -41167,7 +41969,7 @@ var init_environments = __esm({
        */
       retrieve(environmentID, params = {}, options) {
         const { betas } = params ?? {};
-        return this._client.get(path7`/v1/environments/${environmentID}?beta=true`, {
+        return this._client.get(path9`/v1/environments/${environmentID}?beta=true`, {
           ...options,
           headers: buildHeaders2([
             { "anthropic-beta": [...betas ?? [], "managed-agents-2026-04-01"].toString() },
@@ -41188,7 +41990,7 @@ var init_environments = __esm({
        */
       update(environmentID, params, options) {
         const { betas, ...body } = params;
-        return this._client.post(path7`/v1/environments/${environmentID}?beta=true`, {
+        return this._client.post(path9`/v1/environments/${environmentID}?beta=true`, {
           body,
           ...options,
           headers: buildHeaders2([
@@ -41232,7 +42034,7 @@ var init_environments = __esm({
        */
       delete(environmentID, params = {}, options) {
         const { betas } = params ?? {};
-        return this._client.delete(path7`/v1/environments/${environmentID}?beta=true`, {
+        return this._client.delete(path9`/v1/environments/${environmentID}?beta=true`, {
           ...options,
           headers: buildHeaders2([
             { "anthropic-beta": [...betas ?? [], "managed-agents-2026-04-01"].toString() },
@@ -41254,7 +42056,7 @@ var init_environments = __esm({
        */
       archive(environmentID, params = {}, options) {
         const { betas } = params ?? {};
-        return this._client.post(path7`/v1/environments/${environmentID}/archive?beta=true`, {
+        return this._client.post(path9`/v1/environments/${environmentID}/archive?beta=true`, {
           ...options,
           headers: buildHeaders2([
             { "anthropic-beta": [...betas ?? [], "managed-agents-2026-04-01"].toString() },
@@ -41359,7 +42161,7 @@ var init_files4 = __esm({
        */
       delete(fileID, params = {}, options) {
         const { betas } = params ?? {};
-        return this._client.delete(path7`/v1/files/${fileID}?beta=true`, {
+        return this._client.delete(path9`/v1/files/${fileID}?beta=true`, {
           ...options,
           headers: buildHeaders2([
             { "anthropic-beta": [...betas ?? [], "files-api-2025-04-14"].toString() },
@@ -41382,7 +42184,7 @@ var init_files4 = __esm({
        */
       download(fileID, params = {}, options) {
         const { betas } = params ?? {};
-        return this._client.get(path7`/v1/files/${fileID}/content?beta=true`, {
+        return this._client.get(path9`/v1/files/${fileID}/content?beta=true`, {
           ...options,
           headers: buildHeaders2([
             {
@@ -41405,7 +42207,7 @@ var init_files4 = __esm({
        */
       retrieveMetadata(fileID, params = {}, options) {
         const { betas } = params ?? {};
-        return this._client.get(path7`/v1/files/${fileID}?beta=true`, {
+        return this._client.get(path9`/v1/files/${fileID}?beta=true`, {
           ...options,
           headers: buildHeaders2([
             { "anthropic-beta": [...betas ?? [], "files-api-2025-04-14"].toString() },
@@ -41463,7 +42265,7 @@ var init_models3 = __esm({
        */
       retrieve(modelID, params = {}, options) {
         const { betas } = params ?? {};
-        return this._client.get(path7`/v1/models/${modelID}?beta=true`, {
+        return this._client.get(path9`/v1/models/${modelID}?beta=true`, {
           ...options,
           headers: buildHeaders2([
             { ...betas?.toString() != null ? { "anthropic-beta": betas?.toString() } : void 0 },
@@ -41542,7 +42344,7 @@ var init_user_profiles = __esm({
        */
       retrieve(userProfileID, params = {}, options) {
         const { betas } = params ?? {};
-        return this._client.get(path7`/v1/user_profiles/${userProfileID}?beta=true`, {
+        return this._client.get(path9`/v1/user_profiles/${userProfileID}?beta=true`, {
           ...options,
           headers: buildHeaders2([
             { "anthropic-beta": [...betas ?? [], "user-profiles-2026-03-24"].toString() },
@@ -41563,7 +42365,7 @@ var init_user_profiles = __esm({
        */
       update(userProfileID, params, options) {
         const { betas, ...body } = params;
-        return this._client.post(path7`/v1/user_profiles/${userProfileID}?beta=true`, {
+        return this._client.post(path9`/v1/user_profiles/${userProfileID}?beta=true`, {
           body,
           ...options,
           headers: buildHeaders2([
@@ -41607,7 +42409,7 @@ var init_user_profiles = __esm({
        */
       createEnrollmentURL(userProfileID, params = {}, options) {
         const { betas } = params ?? {};
-        return this._client.post(path7`/v1/user_profiles/${userProfileID}/enrollment_url?beta=true`, {
+        return this._client.post(path9`/v1/user_profiles/${userProfileID}/enrollment_url?beta=true`, {
           ...options,
           headers: buildHeaders2([
             { "anthropic-beta": [...betas ?? [], "user-profiles-2026-03-24"].toString() },
@@ -41643,7 +42445,7 @@ var init_versions2 = __esm({
        */
       list(agentID, params = {}, options) {
         const { betas, ...query } = params ?? {};
-        return this._client.getAPIList(path7`/v1/agents/${agentID}/versions?beta=true`, PageCursor, {
+        return this._client.getAPIList(path9`/v1/agents/${agentID}/versions?beta=true`, PageCursor, {
           query,
           ...options,
           headers: buildHeaders2([
@@ -41707,7 +42509,7 @@ var init_agents = __esm({
        */
       retrieve(agentID, params = {}, options) {
         const { betas, ...query } = params ?? {};
-        return this._client.get(path7`/v1/agents/${agentID}?beta=true`, {
+        return this._client.get(path9`/v1/agents/${agentID}?beta=true`, {
           query,
           ...options,
           headers: buildHeaders2([
@@ -41730,7 +42532,7 @@ var init_agents = __esm({
        */
       update(agentID, params, options) {
         const { betas, ...body } = params;
-        return this._client.post(path7`/v1/agents/${agentID}?beta=true`, {
+        return this._client.post(path9`/v1/agents/${agentID}?beta=true`, {
           body,
           ...options,
           headers: buildHeaders2([
@@ -41774,7 +42576,7 @@ var init_agents = __esm({
        */
       archive(agentID, params = {}, options) {
         const { betas } = params ?? {};
-        return this._client.post(path7`/v1/agents/${agentID}/archive?beta=true`, {
+        return this._client.post(path9`/v1/agents/${agentID}/archive?beta=true`, {
           ...options,
           headers: buildHeaders2([
             { "anthropic-beta": [...betas ?? [], "managed-agents-2026-04-01"].toString() },
@@ -41810,7 +42612,7 @@ var init_memories = __esm({
        */
       create(memoryStoreID, params, options) {
         const { view, betas, ...body } = params;
-        return this._client.post(path7`/v1/memory_stores/${memoryStoreID}/memories?beta=true`, {
+        return this._client.post(path9`/v1/memory_stores/${memoryStoreID}/memories?beta=true`, {
           query: { view },
           body,
           ...options,
@@ -41834,7 +42636,7 @@ var init_memories = __esm({
        */
       retrieve(memoryID, params, options) {
         const { memory_store_id, betas, ...query } = params;
-        return this._client.get(path7`/v1/memory_stores/${memory_store_id}/memories/${memoryID}?beta=true`, {
+        return this._client.get(path9`/v1/memory_stores/${memory_store_id}/memories/${memoryID}?beta=true`, {
           query,
           ...options,
           headers: buildHeaders2([
@@ -41857,7 +42659,7 @@ var init_memories = __esm({
        */
       update(memoryID, params, options) {
         const { memory_store_id, view, betas, ...body } = params;
-        return this._client.post(path7`/v1/memory_stores/${memory_store_id}/memories/${memoryID}?beta=true`, {
+        return this._client.post(path9`/v1/memory_stores/${memory_store_id}/memories/${memoryID}?beta=true`, {
           query: { view },
           body,
           ...options,
@@ -41882,7 +42684,7 @@ var init_memories = __esm({
        */
       list(memoryStoreID, params = {}, options) {
         const { betas, ...query } = params ?? {};
-        return this._client.getAPIList(path7`/v1/memory_stores/${memoryStoreID}/memories?beta=true`, PageCursor, {
+        return this._client.getAPIList(path9`/v1/memory_stores/${memoryStoreID}/memories?beta=true`, PageCursor, {
           query,
           ...options,
           headers: buildHeaders2([
@@ -41905,7 +42707,7 @@ var init_memories = __esm({
        */
       delete(memoryID, params, options) {
         const { memory_store_id, expected_content_sha256, betas } = params;
-        return this._client.delete(path7`/v1/memory_stores/${memory_store_id}/memories/${memoryID}?beta=true`, {
+        return this._client.delete(path9`/v1/memory_stores/${memory_store_id}/memories/${memoryID}?beta=true`, {
           query: { expected_content_sha256 },
           ...options,
           headers: buildHeaders2([
@@ -41941,7 +42743,7 @@ var init_memory_versions = __esm({
        */
       retrieve(memoryVersionID, params, options) {
         const { memory_store_id, betas, ...query } = params;
-        return this._client.get(path7`/v1/memory_stores/${memory_store_id}/memory_versions/${memoryVersionID}?beta=true`, {
+        return this._client.get(path9`/v1/memory_stores/${memory_store_id}/memory_versions/${memoryVersionID}?beta=true`, {
           query,
           ...options,
           headers: buildHeaders2([
@@ -41965,7 +42767,7 @@ var init_memory_versions = __esm({
        */
       list(memoryStoreID, params = {}, options) {
         const { betas, ...query } = params ?? {};
-        return this._client.getAPIList(path7`/v1/memory_stores/${memoryStoreID}/memory_versions?beta=true`, PageCursor, {
+        return this._client.getAPIList(path9`/v1/memory_stores/${memoryStoreID}/memory_versions?beta=true`, PageCursor, {
           query,
           ...options,
           headers: buildHeaders2([
@@ -41988,7 +42790,7 @@ var init_memory_versions = __esm({
        */
       redact(memoryVersionID, params, options) {
         const { memory_store_id, betas } = params;
-        return this._client.post(path7`/v1/memory_stores/${memory_store_id}/memory_versions/${memoryVersionID}/redact?beta=true`, {
+        return this._client.post(path9`/v1/memory_stores/${memory_store_id}/memory_versions/${memoryVersionID}/redact?beta=true`, {
           ...options,
           headers: buildHeaders2([
             { "anthropic-beta": [...betas ?? [], "managed-agents-2026-04-01"].toString() },
@@ -42051,7 +42853,7 @@ var init_memory_stores = __esm({
        */
       retrieve(memoryStoreID, params = {}, options) {
         const { betas } = params ?? {};
-        return this._client.get(path7`/v1/memory_stores/${memoryStoreID}?beta=true`, {
+        return this._client.get(path9`/v1/memory_stores/${memoryStoreID}?beta=true`, {
           ...options,
           headers: buildHeaders2([
             { "anthropic-beta": [...betas ?? [], "managed-agents-2026-04-01"].toString() },
@@ -42070,7 +42872,7 @@ var init_memory_stores = __esm({
        */
       update(memoryStoreID, params, options) {
         const { betas, ...body } = params;
-        return this._client.post(path7`/v1/memory_stores/${memoryStoreID}?beta=true`, {
+        return this._client.post(path9`/v1/memory_stores/${memoryStoreID}?beta=true`, {
           body,
           ...options,
           headers: buildHeaders2([
@@ -42112,7 +42914,7 @@ var init_memory_stores = __esm({
        */
       delete(memoryStoreID, params = {}, options) {
         const { betas } = params ?? {};
-        return this._client.delete(path7`/v1/memory_stores/${memoryStoreID}?beta=true`, {
+        return this._client.delete(path9`/v1/memory_stores/${memoryStoreID}?beta=true`, {
           ...options,
           headers: buildHeaders2([
             { "anthropic-beta": [...betas ?? [], "managed-agents-2026-04-01"].toString() },
@@ -42131,7 +42933,7 @@ var init_memory_stores = __esm({
        */
       archive(memoryStoreID, params = {}, options) {
         const { betas } = params ?? {};
-        return this._client.post(path7`/v1/memory_stores/${memoryStoreID}/archive?beta=true`, {
+        return this._client.post(path9`/v1/memory_stores/${memoryStoreID}/archive?beta=true`, {
           ...options,
           headers: buildHeaders2([
             { "anthropic-beta": [...betas ?? [], "managed-agents-2026-04-01"].toString() },
@@ -43592,7 +44394,7 @@ var init_batches2 = __esm({
        */
       retrieve(messageBatchID, params = {}, options) {
         const { betas } = params ?? {};
-        return this._client.get(path7`/v1/messages/batches/${messageBatchID}?beta=true`, {
+        return this._client.get(path9`/v1/messages/batches/${messageBatchID}?beta=true`, {
           ...options,
           headers: buildHeaders2([
             { "anthropic-beta": [...betas ?? [], "message-batches-2024-09-24"].toString() },
@@ -43645,7 +44447,7 @@ var init_batches2 = __esm({
        */
       delete(messageBatchID, params = {}, options) {
         const { betas } = params ?? {};
-        return this._client.delete(path7`/v1/messages/batches/${messageBatchID}?beta=true`, {
+        return this._client.delete(path9`/v1/messages/batches/${messageBatchID}?beta=true`, {
           ...options,
           headers: buildHeaders2([
             { "anthropic-beta": [...betas ?? [], "message-batches-2024-09-24"].toString() },
@@ -43677,7 +44479,7 @@ var init_batches2 = __esm({
        */
       cancel(messageBatchID, params = {}, options) {
         const { betas } = params ?? {};
-        return this._client.post(path7`/v1/messages/batches/${messageBatchID}/cancel?beta=true`, {
+        return this._client.post(path9`/v1/messages/batches/${messageBatchID}/cancel?beta=true`, {
           ...options,
           headers: buildHeaders2([
             { "anthropic-beta": [...betas ?? [], "message-batches-2024-09-24"].toString() },
@@ -43902,7 +44704,7 @@ var init_events = __esm({
        */
       list(sessionID, params = {}, options) {
         const { betas, ...query } = params ?? {};
-        return this._client.getAPIList(path7`/v1/sessions/${sessionID}/events?beta=true`, PageCursor, {
+        return this._client.getAPIList(path9`/v1/sessions/${sessionID}/events?beta=true`, PageCursor, {
           query,
           ...options,
           headers: buildHeaders2([
@@ -43937,7 +44739,7 @@ var init_events = __esm({
        */
       send(sessionID, params, options) {
         const { betas, ...body } = params;
-        return this._client.post(path7`/v1/sessions/${sessionID}/events?beta=true`, {
+        return this._client.post(path9`/v1/sessions/${sessionID}/events?beta=true`, {
           body,
           ...options,
           headers: buildHeaders2([
@@ -43959,7 +44761,7 @@ var init_events = __esm({
        */
       stream(sessionID, params = {}, options) {
         const { betas } = params ?? {};
-        return this._client.get(path7`/v1/sessions/${sessionID}/events/stream?beta=true`, {
+        return this._client.get(path9`/v1/sessions/${sessionID}/events/stream?beta=true`, {
           ...options,
           headers: buildHeaders2([
             { "anthropic-beta": [...betas ?? [], "managed-agents-2026-04-01"].toString() },
@@ -43995,7 +44797,7 @@ var init_resources2 = __esm({
        */
       retrieve(resourceID, params, options) {
         const { session_id, betas } = params;
-        return this._client.get(path7`/v1/sessions/${session_id}/resources/${resourceID}?beta=true`, {
+        return this._client.get(path9`/v1/sessions/${session_id}/resources/${resourceID}?beta=true`, {
           ...options,
           headers: buildHeaders2([
             { "anthropic-beta": [...betas ?? [], "managed-agents-2026-04-01"].toString() },
@@ -44020,7 +44822,7 @@ var init_resources2 = __esm({
        */
       update(resourceID, params, options) {
         const { session_id, betas, ...body } = params;
-        return this._client.post(path7`/v1/sessions/${session_id}/resources/${resourceID}?beta=true`, {
+        return this._client.post(path9`/v1/sessions/${session_id}/resources/${resourceID}?beta=true`, {
           body,
           ...options,
           headers: buildHeaders2([
@@ -44044,7 +44846,7 @@ var init_resources2 = __esm({
        */
       list(sessionID, params = {}, options) {
         const { betas, ...query } = params ?? {};
-        return this._client.getAPIList(path7`/v1/sessions/${sessionID}/resources?beta=true`, PageCursor, {
+        return this._client.getAPIList(path9`/v1/sessions/${sessionID}/resources?beta=true`, PageCursor, {
           query,
           ...options,
           headers: buildHeaders2([
@@ -44067,7 +44869,7 @@ var init_resources2 = __esm({
        */
       delete(resourceID, params, options) {
         const { session_id, betas } = params;
-        return this._client.delete(path7`/v1/sessions/${session_id}/resources/${resourceID}?beta=true`, {
+        return this._client.delete(path9`/v1/sessions/${session_id}/resources/${resourceID}?beta=true`, {
           ...options,
           headers: buildHeaders2([
             { "anthropic-beta": [...betas ?? [], "managed-agents-2026-04-01"].toString() },
@@ -44092,7 +44894,7 @@ var init_resources2 = __esm({
        */
       add(sessionID, params, options) {
         const { betas, ...body } = params;
-        return this._client.post(path7`/v1/sessions/${sessionID}/resources?beta=true`, {
+        return this._client.post(path9`/v1/sessions/${sessionID}/resources?beta=true`, {
           body,
           ...options,
           headers: buildHeaders2([
@@ -44159,7 +44961,7 @@ var init_sessions3 = __esm({
        */
       retrieve(sessionID, params = {}, options) {
         const { betas } = params ?? {};
-        return this._client.get(path7`/v1/sessions/${sessionID}?beta=true`, {
+        return this._client.get(path9`/v1/sessions/${sessionID}?beta=true`, {
           ...options,
           headers: buildHeaders2([
             { "anthropic-beta": [...betas ?? [], "managed-agents-2026-04-01"].toString() },
@@ -44180,7 +44982,7 @@ var init_sessions3 = __esm({
        */
       update(sessionID, params, options) {
         const { betas, ...body } = params;
-        return this._client.post(path7`/v1/sessions/${sessionID}?beta=true`, {
+        return this._client.post(path9`/v1/sessions/${sessionID}?beta=true`, {
           body,
           ...options,
           headers: buildHeaders2([
@@ -44224,7 +45026,7 @@ var init_sessions3 = __esm({
        */
       delete(sessionID, params = {}, options) {
         const { betas } = params ?? {};
-        return this._client.delete(path7`/v1/sessions/${sessionID}?beta=true`, {
+        return this._client.delete(path9`/v1/sessions/${sessionID}?beta=true`, {
           ...options,
           headers: buildHeaders2([
             { "anthropic-beta": [...betas ?? [], "managed-agents-2026-04-01"].toString() },
@@ -44245,7 +45047,7 @@ var init_sessions3 = __esm({
        */
       archive(sessionID, params = {}, options) {
         const { betas } = params ?? {};
-        return this._client.post(path7`/v1/sessions/${sessionID}/archive?beta=true`, {
+        return this._client.post(path9`/v1/sessions/${sessionID}/archive?beta=true`, {
           ...options,
           headers: buildHeaders2([
             { "anthropic-beta": [...betas ?? [], "managed-agents-2026-04-01"].toString() },
@@ -44281,7 +45083,7 @@ var init_versions3 = __esm({
        */
       create(skillID, params = {}, options) {
         const { betas, ...body } = params ?? {};
-        return this._client.post(path7`/v1/skills/${skillID}/versions?beta=true`, multipartFormRequestOptions2({
+        return this._client.post(path9`/v1/skills/${skillID}/versions?beta=true`, multipartFormRequestOptions2({
           body,
           ...options,
           headers: buildHeaders2([
@@ -44303,7 +45105,7 @@ var init_versions3 = __esm({
        */
       retrieve(version2, params, options) {
         const { skill_id, betas } = params;
-        return this._client.get(path7`/v1/skills/${skill_id}/versions/${version2}?beta=true`, {
+        return this._client.get(path9`/v1/skills/${skill_id}/versions/${version2}?beta=true`, {
           ...options,
           headers: buildHeaders2([
             { "anthropic-beta": [...betas ?? [], "skills-2025-10-02"].toString() },
@@ -44326,7 +45128,7 @@ var init_versions3 = __esm({
        */
       list(skillID, params = {}, options) {
         const { betas, ...query } = params ?? {};
-        return this._client.getAPIList(path7`/v1/skills/${skillID}/versions?beta=true`, PageCursor, {
+        return this._client.getAPIList(path9`/v1/skills/${skillID}/versions?beta=true`, PageCursor, {
           query,
           ...options,
           headers: buildHeaders2([
@@ -44348,7 +45150,7 @@ var init_versions3 = __esm({
        */
       delete(version2, params, options) {
         const { skill_id, betas } = params;
-        return this._client.delete(path7`/v1/skills/${skill_id}/versions/${version2}?beta=true`, {
+        return this._client.delete(path9`/v1/skills/${skill_id}/versions/${version2}?beta=true`, {
           ...options,
           headers: buildHeaders2([
             { "anthropic-beta": [...betas ?? [], "skills-2025-10-02"].toString() },
@@ -44362,7 +45164,7 @@ var init_versions3 = __esm({
 
 // node_modules/@anthropic-ai/sdk/resources/beta/skills/skills.mjs
 var Skills2;
-var init_skills3 = __esm({
+var init_skills4 = __esm({
   "node_modules/@anthropic-ai/sdk/resources/beta/skills/skills.mjs"() {
     init_resource2();
     init_versions3();
@@ -44405,7 +45207,7 @@ var init_skills3 = __esm({
        */
       retrieve(skillID, params = {}, options) {
         const { betas } = params ?? {};
-        return this._client.get(path7`/v1/skills/${skillID}?beta=true`, {
+        return this._client.get(path9`/v1/skills/${skillID}?beta=true`, {
           ...options,
           headers: buildHeaders2([
             { "anthropic-beta": [...betas ?? [], "skills-2025-10-02"].toString() },
@@ -44445,7 +45247,7 @@ var init_skills3 = __esm({
        */
       delete(skillID, params = {}, options) {
         const { betas } = params ?? {};
-        return this._client.delete(path7`/v1/skills/${skillID}?beta=true`, {
+        return this._client.delete(path9`/v1/skills/${skillID}?beta=true`, {
           ...options,
           headers: buildHeaders2([
             { "anthropic-beta": [...betas ?? [], "skills-2025-10-02"].toString() },
@@ -44488,7 +45290,7 @@ var init_credentials = __esm({
        */
       create(vaultID, params, options) {
         const { betas, ...body } = params;
-        return this._client.post(path7`/v1/vaults/${vaultID}/credentials?beta=true`, {
+        return this._client.post(path9`/v1/vaults/${vaultID}/credentials?beta=true`, {
           body,
           ...options,
           headers: buildHeaders2([
@@ -44511,7 +45313,7 @@ var init_credentials = __esm({
        */
       retrieve(credentialID, params, options) {
         const { vault_id, betas } = params;
-        return this._client.get(path7`/v1/vaults/${vault_id}/credentials/${credentialID}?beta=true`, {
+        return this._client.get(path9`/v1/vaults/${vault_id}/credentials/${credentialID}?beta=true`, {
           ...options,
           headers: buildHeaders2([
             { "anthropic-beta": [...betas ?? [], "managed-agents-2026-04-01"].toString() },
@@ -44533,7 +45335,7 @@ var init_credentials = __esm({
        */
       update(credentialID, params, options) {
         const { vault_id, betas, ...body } = params;
-        return this._client.post(path7`/v1/vaults/${vault_id}/credentials/${credentialID}?beta=true`, {
+        return this._client.post(path9`/v1/vaults/${vault_id}/credentials/${credentialID}?beta=true`, {
           body,
           ...options,
           headers: buildHeaders2([
@@ -44557,7 +45359,7 @@ var init_credentials = __esm({
        */
       list(vaultID, params = {}, options) {
         const { betas, ...query } = params ?? {};
-        return this._client.getAPIList(path7`/v1/vaults/${vaultID}/credentials?beta=true`, PageCursor, {
+        return this._client.getAPIList(path9`/v1/vaults/${vaultID}/credentials?beta=true`, PageCursor, {
           query,
           ...options,
           headers: buildHeaders2([
@@ -44580,7 +45382,7 @@ var init_credentials = __esm({
        */
       delete(credentialID, params, options) {
         const { vault_id, betas } = params;
-        return this._client.delete(path7`/v1/vaults/${vault_id}/credentials/${credentialID}?beta=true`, {
+        return this._client.delete(path9`/v1/vaults/${vault_id}/credentials/${credentialID}?beta=true`, {
           ...options,
           headers: buildHeaders2([
             { "anthropic-beta": [...betas ?? [], "managed-agents-2026-04-01"].toString() },
@@ -44602,7 +45404,7 @@ var init_credentials = __esm({
        */
       archive(credentialID, params, options) {
         const { vault_id, betas } = params;
-        return this._client.post(path7`/v1/vaults/${vault_id}/credentials/${credentialID}/archive?beta=true`, {
+        return this._client.post(path9`/v1/vaults/${vault_id}/credentials/${credentialID}/archive?beta=true`, {
           ...options,
           headers: buildHeaders2([
             { "anthropic-beta": [...betas ?? [], "managed-agents-2026-04-01"].toString() },
@@ -44664,7 +45466,7 @@ var init_vaults = __esm({
        */
       retrieve(vaultID, params = {}, options) {
         const { betas } = params ?? {};
-        return this._client.get(path7`/v1/vaults/${vaultID}?beta=true`, {
+        return this._client.get(path9`/v1/vaults/${vaultID}?beta=true`, {
           ...options,
           headers: buildHeaders2([
             { "anthropic-beta": [...betas ?? [], "managed-agents-2026-04-01"].toString() },
@@ -44685,7 +45487,7 @@ var init_vaults = __esm({
        */
       update(vaultID, params, options) {
         const { betas, ...body } = params;
-        return this._client.post(path7`/v1/vaults/${vaultID}?beta=true`, {
+        return this._client.post(path9`/v1/vaults/${vaultID}?beta=true`, {
           body,
           ...options,
           headers: buildHeaders2([
@@ -44729,7 +45531,7 @@ var init_vaults = __esm({
        */
       delete(vaultID, params = {}, options) {
         const { betas } = params ?? {};
-        return this._client.delete(path7`/v1/vaults/${vaultID}?beta=true`, {
+        return this._client.delete(path9`/v1/vaults/${vaultID}?beta=true`, {
           ...options,
           headers: buildHeaders2([
             { "anthropic-beta": [...betas ?? [], "managed-agents-2026-04-01"].toString() },
@@ -44750,7 +45552,7 @@ var init_vaults = __esm({
        */
       archive(vaultID, params = {}, options) {
         const { betas } = params ?? {};
-        return this._client.post(path7`/v1/vaults/${vaultID}/archive?beta=true`, {
+        return this._client.post(path9`/v1/vaults/${vaultID}/archive?beta=true`, {
           ...options,
           headers: buildHeaders2([
             { "anthropic-beta": [...betas ?? [], "managed-agents-2026-04-01"].toString() },
@@ -44784,8 +45586,8 @@ var init_beta2 = __esm({
     init_messages4();
     init_sessions3();
     init_sessions3();
-    init_skills3();
-    init_skills3();
+    init_skills4();
+    init_skills4();
     init_vaults();
     init_vaults();
     Beta2 = class extends APIResource2 {
@@ -45541,7 +46343,7 @@ var init_batches3 = __esm({
        * ```
        */
       retrieve(messageBatchID, options) {
-        return this._client.get(path7`/v1/messages/batches/${messageBatchID}`, options);
+        return this._client.get(path9`/v1/messages/batches/${messageBatchID}`, options);
       }
       /**
        * List all Message Batches within a Workspace. Most recently created batches are
@@ -45577,7 +46379,7 @@ var init_batches3 = __esm({
        * ```
        */
       delete(messageBatchID, options) {
-        return this._client.delete(path7`/v1/messages/batches/${messageBatchID}`, options);
+        return this._client.delete(path9`/v1/messages/batches/${messageBatchID}`, options);
       }
       /**
        * Batches may be canceled any time before processing ends. Once cancellation is
@@ -45601,7 +46403,7 @@ var init_batches3 = __esm({
        * ```
        */
       cancel(messageBatchID, options) {
-        return this._client.post(path7`/v1/messages/batches/${messageBatchID}/cancel`, options);
+        return this._client.post(path9`/v1/messages/batches/${messageBatchID}/cancel`, options);
       }
       /**
        * Streams the results of a Message Batch as a `.jsonl` file.
@@ -45782,7 +46584,7 @@ var init_models4 = __esm({
        */
       retrieve(modelID, params = {}, options) {
         const { betas } = params ?? {};
-        return this._client.get(path7`/v1/models/${modelID}`, {
+        return this._client.get(path9`/v1/models/${modelID}`, {
           ...options,
           headers: buildHeaders2([
             { ...betas?.toString() != null ? { "anthropic-beta": betas?.toString() } : void 0 },
@@ -45979,9 +46781,9 @@ var init_client2 = __esm({
       makeStatusError(status, error51, message, headers) {
         return APIError2.generate(status, error51, message, headers);
       }
-      buildURL(path18, query, defaultBaseURL) {
+      buildURL(path20, query, defaultBaseURL) {
         const baseURL = !__classPrivateFieldGet3(this, _BaseAnthropic_instances, "m", _BaseAnthropic_baseURLOverridden).call(this) && defaultBaseURL || this.baseURL;
-        const url2 = isAbsoluteURL2(path18) ? new URL(path18) : new URL(baseURL + (baseURL.endsWith("/") && path18.startsWith("/") ? path18.slice(1) : path18));
+        const url2 = isAbsoluteURL2(path20) ? new URL(path20) : new URL(baseURL + (baseURL.endsWith("/") && path20.startsWith("/") ? path20.slice(1) : path20));
         const defaultQuery = this.defaultQuery();
         const pathQuery = Object.fromEntries(url2.searchParams);
         if (!isEmptyObj2(defaultQuery) || !isEmptyObj2(pathQuery)) {
@@ -46013,24 +46815,24 @@ var init_client2 = __esm({
        */
       async prepareRequest(request, { url: url2, options }) {
       }
-      get(path18, opts) {
-        return this.methodRequest("get", path18, opts);
+      get(path20, opts) {
+        return this.methodRequest("get", path20, opts);
       }
-      post(path18, opts) {
-        return this.methodRequest("post", path18, opts);
+      post(path20, opts) {
+        return this.methodRequest("post", path20, opts);
       }
-      patch(path18, opts) {
-        return this.methodRequest("patch", path18, opts);
+      patch(path20, opts) {
+        return this.methodRequest("patch", path20, opts);
       }
-      put(path18, opts) {
-        return this.methodRequest("put", path18, opts);
+      put(path20, opts) {
+        return this.methodRequest("put", path20, opts);
       }
-      delete(path18, opts) {
-        return this.methodRequest("delete", path18, opts);
+      delete(path20, opts) {
+        return this.methodRequest("delete", path20, opts);
       }
-      methodRequest(method, path18, opts) {
+      methodRequest(method, path20, opts) {
         return this.request(Promise.resolve(opts).then((opts2) => {
-          return { method, path: path18, ...opts2 };
+          return { method, path: path20, ...opts2 };
         }));
       }
       request(options, remainingRetries = null) {
@@ -46134,8 +46936,8 @@ var init_client2 = __esm({
         }));
         return { response, options, controller, requestLogID, retryOfRequestLogID, startTime };
       }
-      getAPIList(path18, Page3, opts) {
-        return this.requestAPIList(Page3, opts && "then" in opts ? opts.then((opts2) => ({ method: "get", path: path18, ...opts2 })) : { method: "get", path: path18, ...opts });
+      getAPIList(path20, Page3, opts) {
+        return this.requestAPIList(Page3, opts && "then" in opts ? opts.then((opts2) => ({ method: "get", path: path20, ...opts2 })) : { method: "get", path: path20, ...opts });
       }
       requestAPIList(Page3, options) {
         const request = this.makeRequest(options, null, void 0);
@@ -46223,8 +47025,8 @@ var init_client2 = __esm({
       }
       async buildRequest(inputOptions, { retryCount = 0 } = {}) {
         const options = { ...inputOptions };
-        const { method, path: path18, query, defaultBaseURL } = options;
-        const url2 = this.buildURL(path18, query, defaultBaseURL);
+        const { method, path: path20, query, defaultBaseURL } = options;
+        const url2 = this.buildURL(path20, query, defaultBaseURL);
         if ("timeout" in options)
           validatePositiveInteger2("timeout", options.timeout);
         options.timeout = options.timeout ?? this.timeout;
@@ -47344,13 +48146,13 @@ var init_anthropic_messages_lazy = __esm({
 var __rewriteRelativeImportExtension3, importOAuthModule, bundledLoaders, loadAnthropicOAuth, loadOpenAICodexOAuth, loadGitHubCopilotOAuth, loadOpenRouterOAuth, loadKimiCodingOAuth, loadXaiOAuth, loadRadiusOAuth;
 var init_load = __esm({
   "node_modules/@earendil-works/pi-ai/dist/auth/oauth/load.js"() {
-    __rewriteRelativeImportExtension3 = function(path18, preserveJsx) {
-      if (typeof path18 === "string" && /^\.\.?\//.test(path18)) {
-        return path18.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m2, tsx, d, ext, cm) {
+    __rewriteRelativeImportExtension3 = function(path20, preserveJsx) {
+      if (typeof path20 === "string" && /^\.\.?\//.test(path20)) {
+        return path20.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m2, tsx, d, ext, cm) {
           return tsx ? preserveJsx ? ".jsx" : ".js" : d && (!ext || !cm) ? m2 : d + ext + "." + cm.toLowerCase() + "js";
         });
       }
-      return path18;
+      return path20;
     };
     importOAuthModule = (specifier) => {
       const runtimeSpecifier = (void 0).endsWith(".js") ? specifier.replace(/\.ts$/, ".js") : specifier;
@@ -47398,13 +48200,13 @@ var init_load = __esm({
 var __rewriteRelativeImportExtension4, _existsSync, _homedir, _join, dynamicImport, NODE_FS_SPECIFIER, NODE_OS_SPECIFIER, NODE_PATH_SPECIFIER, ANTHROPIC_AUTH_TOKEN_ENV, ANTHROPIC_OAUTH_TOKEN_ENV, ANTHROPIC_API_KEY_ENV;
 var init_env_api_keys = __esm({
   "node_modules/@earendil-works/pi-ai/dist/env-api-keys.js"() {
-    __rewriteRelativeImportExtension4 = function(path18, preserveJsx) {
-      if (typeof path18 === "string" && /^\.\.?\//.test(path18)) {
-        return path18.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m2, tsx, d, ext, cm) {
+    __rewriteRelativeImportExtension4 = function(path20, preserveJsx) {
+      if (typeof path20 === "string" && /^\.\.?\//.test(path20)) {
+        return path20.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m2, tsx, d, ext, cm) {
           return tsx ? preserveJsx ? ".jsx" : ".js" : d && (!ext || !cm) ? m2 : d + ext + "." + cm.toLowerCase() + "js";
         });
       }
-      return path18;
+      return path20;
     };
     _existsSync = null;
     _homedir = null;
@@ -51265,11 +52067,11 @@ var require_ponyfill_es2018 = __commonJS({
           throw new TypeError(`${context2} is not a function.`);
         }
       }
-      function isObject2(x2) {
+      function isObject3(x2) {
         return typeof x2 === "object" && x2 !== null || typeof x2 === "function";
       }
       function assertObject(x2, context2) {
-        if (!isObject2(x2)) {
+        if (!isObject3(x2)) {
           throw new TypeError(`${context2} is not an object.`);
         }
       }
@@ -55764,31 +56566,31 @@ var require_node_domexception = __commonJS({
 });
 
 // node_modules/fetch-blob/from.js
-var import_node_fs4, import_node_path7, import_node_domexception, stat2, blobFromSync, blobFrom, fileFrom, fileFromSync, fromBlob, fromFile, BlobDataItem;
+var import_node_fs5, import_node_path9, import_node_domexception, stat2, blobFromSync, blobFrom, fileFrom, fileFromSync, fromBlob, fromFile, BlobDataItem;
 var init_from = __esm({
   "node_modules/fetch-blob/from.js"() {
-    import_node_fs4 = require("node:fs");
-    import_node_path7 = require("node:path");
+    import_node_fs5 = require("node:fs");
+    import_node_path9 = require("node:path");
     import_node_domexception = __toESM(require_node_domexception(), 1);
     init_file();
     init_fetch_blob();
-    ({ stat: stat2 } = import_node_fs4.promises);
-    blobFromSync = (path18, type) => fromBlob((0, import_node_fs4.statSync)(path18), path18, type);
-    blobFrom = (path18, type) => stat2(path18).then((stat6) => fromBlob(stat6, path18, type));
-    fileFrom = (path18, type) => stat2(path18).then((stat6) => fromFile(stat6, path18, type));
-    fileFromSync = (path18, type) => fromFile((0, import_node_fs4.statSync)(path18), path18, type);
-    fromBlob = (stat6, path18, type = "") => new fetch_blob_default([new BlobDataItem({
-      path: path18,
+    ({ stat: stat2 } = import_node_fs5.promises);
+    blobFromSync = (path20, type) => fromBlob((0, import_node_fs5.statSync)(path20), path20, type);
+    blobFrom = (path20, type) => stat2(path20).then((stat6) => fromBlob(stat6, path20, type));
+    fileFrom = (path20, type) => stat2(path20).then((stat6) => fromFile(stat6, path20, type));
+    fileFromSync = (path20, type) => fromFile((0, import_node_fs5.statSync)(path20), path20, type);
+    fromBlob = (stat6, path20, type = "") => new fetch_blob_default([new BlobDataItem({
+      path: path20,
       size: stat6.size,
       lastModified: stat6.mtimeMs,
       start: 0
     })], { type });
-    fromFile = (stat6, path18, type = "") => new file_default([new BlobDataItem({
-      path: path18,
+    fromFile = (stat6, path20, type = "") => new file_default([new BlobDataItem({
+      path: path20,
       size: stat6.size,
       lastModified: stat6.mtimeMs,
       start: 0
-    })], (0, import_node_path7.basename)(path18), { type, lastModified: stat6.mtimeMs });
+    })], (0, import_node_path9.basename)(path20), { type, lastModified: stat6.mtimeMs });
     BlobDataItem = class _BlobDataItem {
       #path;
       #start;
@@ -55815,7 +56617,7 @@ var init_from = __esm({
         if (mtimeMs > this.lastModified) {
           throw new import_node_domexception.default("The requested file could not be read, typically due to permission problems that have occurred after a reference to a file was acquired.", "NotReadableError");
         }
-        yield* (0, import_node_fs4.createReadStream)(this.#path, {
+        yield* (0, import_node_fs5.createReadStream)(this.#path, {
           start: this.#start,
           end: this.#start + this.size - 1
         });
@@ -57472,7 +58274,7 @@ var require_gaxios = __commonJS({
     var retry_js_1 = require_retry3();
     var stream_1 = require("stream");
     var interceptor_js_1 = require_interceptor();
-    var randomUUID13 = async () => globalThis.crypto?.randomUUID() || (await import("crypto")).randomUUID();
+    var randomUUID14 = async () => globalThis.crypto?.randomUUID() || (await import("crypto")).randomUUID();
     var HTTP_STATUS_NO_CONTENT = 204;
     var Gaxios = class {
       agentCache = /* @__PURE__ */ new Map();
@@ -57745,7 +58547,7 @@ var require_gaxios = __commonJS({
          */
         ["Blob", "File", "FormData"].includes(opts.data?.constructor?.name || "");
         if (opts.multipart?.length) {
-          const boundary = await randomUUID13();
+          const boundary = await randomUUID14();
           preparedHeaders.set("content-type", `multipart/related; boundary=${boundary}`);
           opts.body = stream_1.Readable.from(this.getMultipartRequest(opts.multipart, boundary));
         } else if (shouldDirectlyPassData) {
@@ -60968,7 +61770,7 @@ var require_util2 = __commonJS({
     exports2.getWellKnownCertificateConfigFileLocation = getWellKnownCertificateConfigFileLocation;
     var fs3 = require("fs");
     var os = require("os");
-    var path18 = require("path");
+    var path20 = require("path");
     var WELL_KNOWN_CERTIFICATE_CONFIG_FILE = "certificate_config.json";
     var CLOUDSDK_CONFIG_DIRECTORY = "gcloud";
     function snakeToCamel(str2) {
@@ -61061,8 +61863,8 @@ var require_util2 = __commonJS({
       }
     }
     function getWellKnownCertificateConfigFileLocation() {
-      const configDir = process.env.CLOUDSDK_CONFIG || (_isWindows() ? path18.join(process.env.APPDATA || "", CLOUDSDK_CONFIG_DIRECTORY) : path18.join(process.env.HOME || "", ".config", CLOUDSDK_CONFIG_DIRECTORY));
-      return path18.join(configDir, WELL_KNOWN_CERTIFICATE_CONFIG_FILE);
+      const configDir = process.env.CLOUDSDK_CONFIG || (_isWindows() ? path20.join(process.env.APPDATA || "", CLOUDSDK_CONFIG_DIRECTORY) : path20.join(process.env.HOME || "", ".config", CLOUDSDK_CONFIG_DIRECTORY));
+      return path20.join(configDir, WELL_KNOWN_CERTIFICATE_CONFIG_FILE);
     }
     function _isWindows() {
       return os.platform().startsWith("win");
@@ -62769,11 +63571,11 @@ var require_verify_stream = __commonJS({
     var toString = require_tostring();
     var util2 = require("util");
     var JWS_REGEX = /^[a-zA-Z0-9\-_]+?\.[a-zA-Z0-9\-_]+?\.([a-zA-Z0-9\-_]+)?$/;
-    function isObject2(thing) {
+    function isObject3(thing) {
       return Object.prototype.toString.call(thing) === "[object Object]";
     }
     function safeJsonParse(thing) {
-      if (isObject2(thing))
+      if (isObject3(thing))
         return thing;
       try {
         return JSON.parse(thing);
@@ -63008,7 +63810,7 @@ var require_getCredentials = __commonJS({
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.getCredentials = getCredentials;
-    var path18 = require("path");
+    var path20 = require("path");
     var fs3 = require("fs");
     var util_1 = require("util");
     var errorWithCode_1 = require_errorWithCode();
@@ -63080,7 +63882,7 @@ var require_getCredentials = __commonJS({
        * @returns An instance of a class that implements ICredentialsProvider.
        */
       static create(keyFilePath) {
-        const keyFileExtension = path18.extname(keyFilePath);
+        const keyFileExtension = path20.extname(keyFilePath);
         switch (keyFileExtension) {
           case ExtensionFiles.JSON:
             return new JsonCredentialsProvider(keyFilePath);
@@ -64692,9 +65494,9 @@ var require_filesubjecttokensupplier = __commonJS({
     var fs3 = require("fs");
     var readFile12 = (0, util_1.promisify)(fs3.readFile ?? (() => {
     }));
-    var realpath3 = (0, util_1.promisify)(fs3.realpath ?? (() => {
+    var realpath5 = (0, util_1.promisify)(fs3.realpath ?? (() => {
     }));
-    var lstat2 = (0, util_1.promisify)(fs3.lstat ?? (() => {
+    var lstat3 = (0, util_1.promisify)(fs3.lstat ?? (() => {
     }));
     var FileSubjectTokenSupplier = class {
       filePath;
@@ -64719,8 +65521,8 @@ var require_filesubjecttokensupplier = __commonJS({
       async getSubjectToken() {
         let parsedFilePath = this.filePath;
         try {
-          parsedFilePath = await realpath3(parsedFilePath);
-          if (!(await lstat2(parsedFilePath)).isFile()) {
+          parsedFilePath = await realpath5(parsedFilePath);
+          if (!(await lstat3(parsedFilePath)).isFile()) {
             throw new Error();
           }
         } catch (err2) {
@@ -66449,7 +67251,7 @@ var require_googleauth = __commonJS({
     var gaxios_1 = require_src2();
     var gcpMetadata = require_src4();
     var os = require("os");
-    var path18 = require("path");
+    var path20 = require("path");
     var crypto_1 = require_crypto3();
     var computeclient_1 = require_computeclient();
     var idtokenclient_1 = require_idtokenclient();
@@ -66734,19 +67536,19 @@ var require_googleauth = __commonJS({
         if (!configDir) {
           if (this._isWindows()) {
             if (process.env["APPDATA"]) {
-              configDir = path18.join(process.env["APPDATA"], "gcloud");
+              configDir = path20.join(process.env["APPDATA"], "gcloud");
             }
           } else {
             const home = process.env["HOME"];
             if (home) {
-              configDir = path18.join(home, ".config", "gcloud");
+              configDir = path20.join(home, ".config", "gcloud");
             }
           }
         }
         if (!configDir) {
           return null;
         }
-        const location = path18.join(configDir, "application_default_credentials.json");
+        const location = path20.join(configDir, "application_default_credentials.json");
         if (!fs3.existsSync(location)) {
           return null;
         }
@@ -67101,7 +67903,7 @@ var require_googleauth = __commonJS({
         if (this.jsonContent) {
           return this._cacheClientFromJSON(this.jsonContent, this.clientOptions);
         } else if (this.keyFilename) {
-          const filePath = path18.resolve(this.keyFilename);
+          const filePath = path20.resolve(this.keyFilename);
           const stream11 = fs3.createReadStream(filePath);
           return await this.fromStreamAsync(stream11, this.clientOptions);
         } else if (this.apiKey) {
@@ -70836,7 +71638,7 @@ var require_stream = __commonJS({
       };
       duplex._final = function(callback) {
         if (ws.readyState === ws.CONNECTING) {
-          ws.once("open", function open2() {
+          ws.once("open", function open3() {
             duplex._final(callback);
           });
           return;
@@ -70857,7 +71659,7 @@ var require_stream = __commonJS({
       };
       duplex._write = function(chunk, encoding, callback) {
         if (ws.readyState === ws.CONNECTING) {
-          ws.once("open", function open2() {
+          ws.once("open", function open3() {
             duplex._write(chunk, encoding, callback);
           });
           return;
@@ -82052,16 +82854,16 @@ function getApiKeyFromEnv() {
   }
   return envGoogleApiKey || envGeminiApiKey || void 0;
 }
-var import_p_retry, import_google_auth_library, import_fs, fs2, import_promises7, import_node_stream3, import_promises8, path$1, _defaultBaseGeminiUrl, _defaultBaseVertexUrl, BaseModule, Language, Outcome, FunctionResponseScheduling, Type2, Environment, AuthType, HttpElementLocation, ApiSpec, PhishBlockThreshold, Behavior, DynamicRetrievalConfigMode, FunctionCallingConfigMode, ThinkingLevel, PersonGeneration, ProminentPeople, HarmCategory, HarmBlockMethod, HarmBlockThreshold, FinishReason, HarmProbability, HarmSeverity, UrlRetrievalStatus, BlockedReason, TrafficType, Modality, ModelStage, MediaResolution, TuningMode, AdapterSize, JobState, TuningJobState, AggregationMetric, PairwiseChoice, TuningTask, DocumentState, PartMediaResolutionLevel, ToolType, ResourceScope, ServiceTier, FeatureSelectionPreference, EmbeddingApiType, SafetyFilterLevel, ImagePromptLanguage, MaskReferenceMode, ControlReferenceType, SubjectReferenceType, EditMode, SegmentMode, VideoGenerationReferenceType, VideoGenerationMaskMode, VideoCompressionQuality, ImageResizeMode, TuningMethod, FileState, FileSource, TurnCompleteReason, MediaModality, VadSignalType, VoiceActivityType, StartSensitivity, EndSensitivity, ActivityHandling, TurnCoverage, Scale, MusicGenerationMode, LiveMusicPlaybackControl, HttpResponse, GenerateContentResponse, EmbedContentResponse, GenerateImagesResponse, EditImageResponse, UpscaleImageResponse, RecontextImageResponse, SegmentImageResponse, ListModelsResponse, DeleteModelResponse, CountTokensResponse, ComputeTokensResponse, GenerateVideosOperation, ListTuningJobsResponse, CancelTuningJobResponse, DeleteCachedContentResponse, ListCachedContentsResponse, ListDocumentsResponse, ListFileSearchStoresResponse, UploadToFileSearchStoreResumableResponse, ImportFileOperation, ListFilesResponse, CreateFileResponse, DeleteFileResponse, RegisterFilesResponse, ListBatchJobsResponse, LiveServerMessage, LiveMusicServerMessage, UploadToFileSearchStoreOperation, PagedItem, Pager, Batches4, Caches, Chats, Chat2, ApiError, Files5, CONTENT_TYPE_HEADER, SERVER_TIMEOUT_HEADER, USER_AGENT_HEADER, GOOGLE_API_CLIENT_HEADER, SDK_VERSION, LIBRARY_LABEL, VERTEX_AI_API_DEFAULT_VERSION, GOOGLE_AI_API_DEFAULT_VERSION, MULTI_REGIONAL_LOCATIONS, DEFAULT_RETRY_ATTEMPTS, DEFAULT_RETRY_HTTP_STATUS_CODES, ApiClient, MCP_LABEL, hasMcpToolUsageFromMcpToTool, McpCallableTool, LiveMusic, LiveMusicSession, FUNCTION_RESPONSE_REQUIRES_ID, Live, defaultLiveSendClientContentParamerters, Session2, DEFAULT_MAX_REMOTE_CALLS, Models4, Operations, Tokens, Documents, FileSearchStores, uuid4Internal, uuid43, castToError3, GeminiNextGenAPIClientError, APIError3, APIUserAbortError3, APIConnectionError3, APIConnectionTimeoutError3, BadRequestError3, AuthenticationError3, PermissionDeniedError3, NotFoundError3, ConflictError3, UnprocessableEntityError3, RateLimitError3, InternalServerError3, startsWithSchemeRegexp3, isAbsoluteURL3, isArrayInternal, isArray3, isReadonlyArrayInternal, isReadonlyArray3, validatePositiveInteger3, safeJSON3, sleep$1, FallbackEncoder3, VERSION3, checkFileSupport3, isAsyncIterable3, isBlobLike3, isFileLike3, isResponseLike3, APIResource3, EMPTY3, createPathTagFunction3, path8, BaseInteractions, Interactions, BaseWebhooks, Webhooks2, encodeUTF8_3, decodeUTF8_3, LineDecoder3, levelNumbers3, parseLogLevel3, noopLogger3, cachedLoggers3, formatRequestDetails3, Stream5, SSEDecoder3, APIPromise3, brand_privateNullableHeaders3, buildHeaders3, readEnv3, _a4, BaseGeminiNextGenAPIClient, GeminiNextGenAPIClient, GOOGLE_API_KEY_HEADER, REQUIRED_VERTEX_AI_SCOPE, NodeAuth, NodeDownloader, NodeWebSocketFactory, NodeWebSocket, Tunings, MAX_CHUNK_SIZE, MAX_RETRY_COUNT, INITIAL_RETRY_DELAY_MS, DELAY_MULTIPLIER, X_GOOG_UPLOAD_STATUS_HEADER_FIELD, NodeUploader, NodeFiles, LANGUAGE_LABEL_PREFIX, GoogleGenAI;
+var import_p_retry, import_google_auth_library, import_fs, fs2, import_promises9, import_node_stream3, import_promises10, path$1, _defaultBaseGeminiUrl, _defaultBaseVertexUrl, BaseModule, Language, Outcome, FunctionResponseScheduling, Type2, Environment, AuthType, HttpElementLocation, ApiSpec, PhishBlockThreshold, Behavior, DynamicRetrievalConfigMode, FunctionCallingConfigMode, ThinkingLevel, PersonGeneration, ProminentPeople, HarmCategory, HarmBlockMethod, HarmBlockThreshold, FinishReason, HarmProbability, HarmSeverity, UrlRetrievalStatus, BlockedReason, TrafficType, Modality, ModelStage, MediaResolution, TuningMode, AdapterSize, JobState, TuningJobState, AggregationMetric, PairwiseChoice, TuningTask, DocumentState, PartMediaResolutionLevel, ToolType, ResourceScope, ServiceTier, FeatureSelectionPreference, EmbeddingApiType, SafetyFilterLevel, ImagePromptLanguage, MaskReferenceMode, ControlReferenceType, SubjectReferenceType, EditMode, SegmentMode, VideoGenerationReferenceType, VideoGenerationMaskMode, VideoCompressionQuality, ImageResizeMode, TuningMethod, FileState, FileSource, TurnCompleteReason, MediaModality, VadSignalType, VoiceActivityType, StartSensitivity, EndSensitivity, ActivityHandling, TurnCoverage, Scale, MusicGenerationMode, LiveMusicPlaybackControl, HttpResponse, GenerateContentResponse, EmbedContentResponse, GenerateImagesResponse, EditImageResponse, UpscaleImageResponse, RecontextImageResponse, SegmentImageResponse, ListModelsResponse, DeleteModelResponse, CountTokensResponse, ComputeTokensResponse, GenerateVideosOperation, ListTuningJobsResponse, CancelTuningJobResponse, DeleteCachedContentResponse, ListCachedContentsResponse, ListDocumentsResponse, ListFileSearchStoresResponse, UploadToFileSearchStoreResumableResponse, ImportFileOperation, ListFilesResponse, CreateFileResponse, DeleteFileResponse, RegisterFilesResponse, ListBatchJobsResponse, LiveServerMessage, LiveMusicServerMessage, UploadToFileSearchStoreOperation, PagedItem, Pager, Batches4, Caches, Chats, Chat2, ApiError, Files5, CONTENT_TYPE_HEADER, SERVER_TIMEOUT_HEADER, USER_AGENT_HEADER, GOOGLE_API_CLIENT_HEADER, SDK_VERSION, LIBRARY_LABEL, VERTEX_AI_API_DEFAULT_VERSION, GOOGLE_AI_API_DEFAULT_VERSION, MULTI_REGIONAL_LOCATIONS, DEFAULT_RETRY_ATTEMPTS, DEFAULT_RETRY_HTTP_STATUS_CODES, ApiClient, MCP_LABEL, hasMcpToolUsageFromMcpToTool, McpCallableTool, LiveMusic, LiveMusicSession, FUNCTION_RESPONSE_REQUIRES_ID, Live, defaultLiveSendClientContentParamerters, Session2, DEFAULT_MAX_REMOTE_CALLS, Models4, Operations, Tokens, Documents, FileSearchStores, uuid4Internal, uuid43, castToError3, GeminiNextGenAPIClientError, APIError3, APIUserAbortError3, APIConnectionError3, APIConnectionTimeoutError3, BadRequestError3, AuthenticationError3, PermissionDeniedError3, NotFoundError3, ConflictError3, UnprocessableEntityError3, RateLimitError3, InternalServerError3, startsWithSchemeRegexp3, isAbsoluteURL3, isArrayInternal, isArray3, isReadonlyArrayInternal, isReadonlyArray3, validatePositiveInteger3, safeJSON3, sleep$1, FallbackEncoder3, VERSION3, checkFileSupport3, isAsyncIterable3, isBlobLike3, isFileLike3, isResponseLike3, APIResource3, EMPTY3, createPathTagFunction3, path10, BaseInteractions, Interactions, BaseWebhooks, Webhooks2, encodeUTF8_3, decodeUTF8_3, LineDecoder3, levelNumbers3, parseLogLevel3, noopLogger3, cachedLoggers3, formatRequestDetails3, Stream5, SSEDecoder3, APIPromise3, brand_privateNullableHeaders3, buildHeaders3, readEnv3, _a4, BaseGeminiNextGenAPIClient, GeminiNextGenAPIClient, GOOGLE_API_KEY_HEADER, REQUIRED_VERTEX_AI_SCOPE, NodeAuth, NodeDownloader, NodeWebSocketFactory, NodeWebSocket, Tunings, MAX_CHUNK_SIZE, MAX_RETRY_COUNT, INITIAL_RETRY_DELAY_MS, DELAY_MULTIPLIER, X_GOOG_UPLOAD_STATUS_HEADER_FIELD, NodeUploader, NodeFiles, LANGUAGE_LABEL_PREFIX, GoogleGenAI;
 var init_node2 = __esm({
   "node_modules/@google/genai/dist/node/index.mjs"() {
     import_p_retry = __toESM(require_p_retry(), 1);
     import_google_auth_library = __toESM(require_src5(), 1);
     import_fs = require("fs");
     fs2 = __toESM(require("fs/promises"), 1);
-    import_promises7 = require("fs/promises");
+    import_promises9 = require("fs/promises");
     import_node_stream3 = require("node:stream");
-    import_promises8 = require("node:stream/promises");
+    import_promises10 = require("node:stream/promises");
     init_wrapper();
     path$1 = __toESM(require("path"), 1);
     _defaultBaseGeminiUrl = void 0;
@@ -83144,7 +83946,7 @@ var init_node2 = __esm({
           params
         );
         const urlParams = body["_url"];
-        const path18 = formatMap("{model}:batchGenerateContent", urlParams);
+        const path20 = formatMap("{model}:batchGenerateContent", urlParams);
         const batch = body["batch"];
         const inputConfig = batch["inputConfig"];
         const requestsWrapper = inputConfig["requests"];
@@ -83165,7 +83967,7 @@ var init_node2 = __esm({
         delete body["config"];
         delete body["_url"];
         delete body["_query"];
-        return { path: path18, body };
+        return { path: path20, body };
       }
       // Helper function to get the first GCS URI
       getGcsUri(src) {
@@ -83221,16 +84023,16 @@ var init_node2 = __esm({
       async createInternal(params) {
         var _a7, _b, _c, _d;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           const body = createBatchJobParametersToVertex(this.apiClient, params);
-          path18 = formatMap("batchPredictionJobs", body["_url"]);
+          path20 = formatMap("batchPredictionJobs", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "POST",
@@ -83245,12 +84047,12 @@ var init_node2 = __esm({
           });
         } else {
           const body = createBatchJobParametersToMldev(this.apiClient, params);
-          path18 = formatMap("{model}:batchGenerateContent", body["_url"]);
+          path20 = formatMap("{model}:batchGenerateContent", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "POST",
@@ -83275,18 +84077,18 @@ var init_node2 = __esm({
       async createEmbeddingsInternal(params) {
         var _a7, _b;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           throw new Error("This method is only supported by the Gemini Developer API.");
         } else {
           const body = createEmbeddingsBatchJobParametersToMldev(this.apiClient, params);
-          path18 = formatMap("{model}:asyncBatchEmbedContent", body["_url"]);
+          path20 = formatMap("{model}:asyncBatchEmbedContent", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "POST",
@@ -83315,16 +84117,16 @@ var init_node2 = __esm({
       async get(params) {
         var _a7, _b, _c, _d;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           const body = getBatchJobParametersToVertex(this.apiClient, params);
-          path18 = formatMap("batchPredictionJobs/{name}", body["_url"]);
+          path20 = formatMap("batchPredictionJobs/{name}", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "GET",
@@ -83339,12 +84141,12 @@ var init_node2 = __esm({
           });
         } else {
           const body = getBatchJobParametersToMldev(this.apiClient, params);
-          path18 = formatMap("batches/{name}", body["_url"]);
+          path20 = formatMap("batches/{name}", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "GET",
@@ -83372,16 +84174,16 @@ var init_node2 = __esm({
        */
       async cancel(params) {
         var _a7, _b, _c, _d;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           const body = cancelBatchJobParametersToVertex(this.apiClient, params);
-          path18 = formatMap("batchPredictionJobs/{name}:cancel", body["_url"]);
+          path20 = formatMap("batchPredictionJobs/{name}:cancel", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           await this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "POST",
@@ -83390,12 +84192,12 @@ var init_node2 = __esm({
           });
         } else {
           const body = cancelBatchJobParametersToMldev(this.apiClient, params);
-          path18 = formatMap("batches/{name}:cancel", body["_url"]);
+          path20 = formatMap("batches/{name}:cancel", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           await this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "POST",
@@ -83407,16 +84209,16 @@ var init_node2 = __esm({
       async listInternal(params) {
         var _a7, _b, _c, _d;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           const body = listBatchJobsParametersToVertex(params);
-          path18 = formatMap("batchPredictionJobs", body["_url"]);
+          path20 = formatMap("batchPredictionJobs", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "GET",
@@ -83439,12 +84241,12 @@ var init_node2 = __esm({
           });
         } else {
           const body = listBatchJobsParametersToMldev(params);
-          path18 = formatMap("batches", body["_url"]);
+          path20 = formatMap("batches", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "GET",
@@ -83481,16 +84283,16 @@ var init_node2 = __esm({
       async delete(params) {
         var _a7, _b, _c, _d;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           const body = deleteBatchJobParametersToVertex(this.apiClient, params);
-          path18 = formatMap("batchPredictionJobs/{name}", body["_url"]);
+          path20 = formatMap("batchPredictionJobs/{name}", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "DELETE",
@@ -83511,12 +84313,12 @@ var init_node2 = __esm({
           });
         } else {
           const body = deleteBatchJobParametersToMldev(this.apiClient, params);
-          path18 = formatMap("batches/{name}", body["_url"]);
+          path20 = formatMap("batches/{name}", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "DELETE",
@@ -83575,16 +84377,16 @@ var init_node2 = __esm({
       async create(params) {
         var _a7, _b, _c, _d;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           const body = createCachedContentParametersToVertex(this.apiClient, params);
-          path18 = formatMap("cachedContents", body["_url"]);
+          path20 = formatMap("cachedContents", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "POST",
@@ -83598,12 +84400,12 @@ var init_node2 = __esm({
           });
         } else {
           const body = createCachedContentParametersToMldev(this.apiClient, params);
-          path18 = formatMap("cachedContents", body["_url"]);
+          path20 = formatMap("cachedContents", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "POST",
@@ -83631,16 +84433,16 @@ var init_node2 = __esm({
       async get(params) {
         var _a7, _b, _c, _d;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           const body = getCachedContentParametersToVertex(this.apiClient, params);
-          path18 = formatMap("{name}", body["_url"]);
+          path20 = formatMap("{name}", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "GET",
@@ -83654,12 +84456,12 @@ var init_node2 = __esm({
           });
         } else {
           const body = getCachedContentParametersToMldev(this.apiClient, params);
-          path18 = formatMap("{name}", body["_url"]);
+          path20 = formatMap("{name}", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "GET",
@@ -83687,16 +84489,16 @@ var init_node2 = __esm({
       async delete(params) {
         var _a7, _b, _c, _d;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           const body = deleteCachedContentParametersToVertex(this.apiClient, params);
-          path18 = formatMap("{name}", body["_url"]);
+          path20 = formatMap("{name}", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "DELETE",
@@ -83719,12 +84521,12 @@ var init_node2 = __esm({
           });
         } else {
           const body = deleteCachedContentParametersToMldev(this.apiClient, params);
-          path18 = formatMap("{name}", body["_url"]);
+          path20 = formatMap("{name}", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "DELETE",
@@ -83764,16 +84566,16 @@ var init_node2 = __esm({
       async update(params) {
         var _a7, _b, _c, _d;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           const body = updateCachedContentParametersToVertex(this.apiClient, params);
-          path18 = formatMap("{name}", body["_url"]);
+          path20 = formatMap("{name}", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "PATCH",
@@ -83787,12 +84589,12 @@ var init_node2 = __esm({
           });
         } else {
           const body = updateCachedContentParametersToMldev(this.apiClient, params);
-          path18 = formatMap("{name}", body["_url"]);
+          path20 = formatMap("{name}", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "PATCH",
@@ -83809,16 +84611,16 @@ var init_node2 = __esm({
       async listInternal(params) {
         var _a7, _b, _c, _d;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           const body = listCachedContentsParametersToVertex(params);
-          path18 = formatMap("cachedContents", body["_url"]);
+          path20 = formatMap("cachedContents", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "GET",
@@ -83841,12 +84643,12 @@ var init_node2 = __esm({
           });
         } else {
           const body = listCachedContentsParametersToMldev(params);
-          path18 = formatMap("cachedContents", body["_url"]);
+          path20 = formatMap("cachedContents", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "GET",
@@ -84177,18 +84979,18 @@ var init_node2 = __esm({
       async listInternal(params) {
         var _a7, _b;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           throw new Error("This method is only supported by the Gemini Developer API.");
         } else {
           const body = listFilesParametersToMldev(params);
-          path18 = formatMap("files", body["_url"]);
+          path20 = formatMap("files", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "GET",
@@ -84214,18 +85016,18 @@ var init_node2 = __esm({
       async createInternal(params) {
         var _a7, _b;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           throw new Error("This method is only supported by the Gemini Developer API.");
         } else {
           const body = createFileParametersToMldev(params);
-          path18 = formatMap("upload/v1beta/files", body["_url"]);
+          path20 = formatMap("upload/v1beta/files", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "POST",
@@ -84260,18 +85062,18 @@ var init_node2 = __esm({
       async get(params) {
         var _a7, _b;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           throw new Error("This method is only supported by the Gemini Developer API.");
         } else {
           const body = getFileParametersToMldev(params);
-          path18 = formatMap("files/{file}", body["_url"]);
+          path20 = formatMap("files/{file}", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "GET",
@@ -84301,18 +85103,18 @@ var init_node2 = __esm({
       async delete(params) {
         var _a7, _b;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           throw new Error("This method is only supported by the Gemini Developer API.");
         } else {
           const body = deleteFileParametersToMldev(params);
-          path18 = formatMap("files/{file}", body["_url"]);
+          path20 = formatMap("files/{file}", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "DELETE",
@@ -84338,18 +85140,18 @@ var init_node2 = __esm({
       async registerFilesInternal(params) {
         var _a7, _b;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           throw new Error("This method is only supported by the Gemini Developer API.");
         } else {
           const body = internalRegisterFilesParametersToMldev(params);
-          path18 = formatMap("files:register", body["_url"]);
+          path20 = formatMap("files:register", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "POST",
@@ -84509,13 +85311,13 @@ var init_node2 = __esm({
           throw new Error("HTTP options are not correctly set.");
         }
       }
-      constructUrl(path18, httpOptions, prependProjectLocation) {
+      constructUrl(path20, httpOptions, prependProjectLocation) {
         const urlElement = [this.getRequestUrlInternal(httpOptions)];
         if (prependProjectLocation) {
           urlElement.push(this.getBaseResourcePath());
         }
-        if (path18 !== "") {
-          urlElement.push(path18);
+        if (path20 !== "") {
+          urlElement.push(path20);
         }
         const url2 = new URL(`${urlElement.join("/")}`);
         return url2;
@@ -84800,8 +85602,8 @@ var init_node2 = __esm({
           file: fileToUpload
         };
         const fileName = this.getFileName(file2);
-        const path18 = formatMap("upload/v1beta/files", body["_url"]);
-        const uploadUrl = await this.fetchUploadUrl(path18, fileToUpload.sizeBytes, fileToUpload.mimeType, fileName, body, config2 === null || config2 === void 0 ? void 0 : config2.httpOptions);
+        const path20 = formatMap("upload/v1beta/files", body["_url"]);
+        const uploadUrl = await this.fetchUploadUrl(path20, fileToUpload.sizeBytes, fileToUpload.mimeType, fileName, body, config2 === null || config2 === void 0 ? void 0 : config2.httpOptions);
         return uploader.upload(file2, uploadUrl, this);
       }
       /**
@@ -84825,13 +85627,13 @@ var init_node2 = __esm({
         if (mimeType === void 0 || mimeType === "") {
           throw new Error("Can not determine mimeType. Please provide mimeType in the config.");
         }
-        const path18 = `upload/v1beta/${fileSearchStoreName}:uploadToFileSearchStore`;
+        const path20 = `upload/v1beta/${fileSearchStoreName}:uploadToFileSearchStore`;
         const fileName = this.getFileName(file2);
         const body = {};
         if (config2 != null) {
           uploadToFileSearchStoreConfigToMldev(config2, body);
         }
-        const uploadUrl = await this.fetchUploadUrl(path18, sizeBytes, mimeType, fileName, body, config2 === null || config2 === void 0 ? void 0 : config2.httpOptions);
+        const uploadUrl = await this.fetchUploadUrl(path20, sizeBytes, mimeType, fileName, body, config2 === null || config2 === void 0 ? void 0 : config2.httpOptions);
         return uploader.uploadToFileSearchStore(file2, uploadUrl, this);
       }
       /**
@@ -84844,7 +85646,7 @@ var init_node2 = __esm({
         const downloader = this.clientOptions.downloader;
         await downloader.download(params, this);
       }
-      async fetchUploadUrl(path18, sizeBytes, mimeType, fileName, body, configHttpOptions) {
+      async fetchUploadUrl(path20, sizeBytes, mimeType, fileName, body, configHttpOptions) {
         var _a7;
         let httpOptions = {};
         if (configHttpOptions) {
@@ -84857,7 +85659,7 @@ var init_node2 = __esm({
           };
         }
         const httpResponse = await this.request({
-          path: path18,
+          path: path20,
           body: JSON.stringify(body),
           httpMethod: "POST",
           httpOptions
@@ -84973,14 +85775,14 @@ var init_node2 = __esm({
       /**
            Establishes a connection to the specified model and returns a
            LiveMusicSession object representing that connection.
-      
+
            @experimental
-      
+
            @remarks
-      
+
            @param params - The parameters for establishing a connection to the model.
            @return A live session.
-      
+
            @example
            ```ts
            let model = 'models/lyria-realtime-exp';
@@ -85049,12 +85851,12 @@ var init_node2 = __esm({
       /**
           Sets inputs to steer music generation. Updates the session's current
           weighted prompts.
-      
+
           @param params - Contains one property, `weightedPrompts`.
-      
+
             - `weightedPrompts` to send to the model; weights are normalized to
               sum to 1.0.
-      
+
           @experimental
          */
       async setWeightedPrompts(params) {
@@ -85067,12 +85869,12 @@ var init_node2 = __esm({
       /**
           Sets a configuration to the model. Updates the session's current
           music generation config.
-      
+
           @param params - Contains one property, `musicGenerationConfig`.
-      
+
             - `musicGenerationConfig` to set in the model. Passing an empty or
           undefined config to the model will reset the config to defaults.
-      
+
           @experimental
          */
       async setMusicGenerationConfig(params) {
@@ -85123,7 +85925,7 @@ var init_node2 = __esm({
       }
       /**
            Terminates the WebSocket connection.
-      
+
            @experimental
          */
       close() {
@@ -85141,15 +85943,15 @@ var init_node2 = __esm({
       /**
            Establishes a connection to the specified model with the given
            configuration and returns a Session object representing that connection.
-      
+
            @experimental Built-in MCP support is an experimental feature, may change in
            future versions.
-      
+
            @remarks
-      
+
            @param params - The parameters for establishing a connection to the model.
            @return A live session.
-      
+
            @example
            ```ts
            let model: string;
@@ -85349,36 +86151,36 @@ var init_node2 = __esm({
       }
       /**
           Send a message over the established connection.
-      
+
           @param params - Contains two **optional** properties, `turns` and
               `turnComplete`.
-      
+
             - `turns` will be converted to a `Content[]`
             - `turnComplete: true` [default] indicates that you are done sending
               content and expect a response. If `turnComplete: false`, the server
               will wait for additional messages before starting generation.
-      
+
           @experimental
-      
+
           @remarks
           There are two ways to send messages to the live API:
           `sendClientContent` and `sendRealtimeInput`.
-      
+
           `sendClientContent` messages are added to the model context **in order**.
           Having a conversation using `sendClientContent` messages is roughly
           equivalent to using the `Chat.sendMessageStream`, except that the state of
           the `chat` history is stored on the API server instead of locally.
-      
+
           Because of `sendClientContent`'s order guarantee, the model cannot respons
           as quickly to `sendClientContent` messages as to `sendRealtimeInput`
           messages. This makes the biggest difference when sending objects that have
           significant preprocessing time (typically images).
-      
+
           The `sendClientContent` message sends a `Content[]`
           which has more options than the `Blob` sent by `sendRealtimeInput`.
-      
+
           So the main use-cases for `sendClientContent` over `sendRealtimeInput` are:
-      
+
           - Sending anything that can't be represented as a `Blob` (text,
           `sendClientContent({turns="Hello?"}`)).
           - Managing turns when not using audio input and voice activity detection.
@@ -85403,23 +86205,23 @@ var init_node2 = __esm({
       }
       /**
           Send a realtime message over the established connection.
-      
+
           @param params - Contains one property, `media`.
-      
+
             - `media` will be converted to a `Blob`
-      
+
           @experimental
-      
+
           @remarks
           Use `sendRealtimeInput` for realtime audio chunks and video frames (images).
-      
+
           With `sendRealtimeInput` the api will respond to audio automatically
           based on voice activity detection (VAD).
-      
+
           `sendRealtimeInput` is optimized for responsivness at the expense of
           deterministic ordering guarantees. Audio and video tokens are to the
           context when they become available.
-      
+
           Note: The Call signature expects a `Blob` object, but only a subset
           of audio and image mimetypes are allowed.
          */
@@ -85438,16 +86240,16 @@ var init_node2 = __esm({
       }
       /**
           Send a function response message over the established connection.
-      
+
           @param params - Contains property `functionResponses`.
-      
+
             - `functionResponses` will be converted to a `functionResponses[]`
-      
+
           @remarks
           Use `sendFunctionResponse` to reply to `LiveServerToolCall` from the server.
-      
+
           Use {@link types.LiveConnectConfig#tools} to configure the callable functions.
-      
+
           @experimental
          */
       sendToolResponse(params) {
@@ -85459,9 +86261,9 @@ var init_node2 = __esm({
       }
       /**
            Terminates the WebSocket connection.
-      
+
            @experimental
-      
+
            @example
            ```ts
            let model: string;
@@ -85476,7 +86278,7 @@ var init_node2 = __esm({
                responseModalities: [Modality.AUDIO],
              }
            });
-      
+
            session.close();
            ```
          */
@@ -85834,16 +86636,16 @@ var init_node2 = __esm({
       async generateContentInternal(params) {
         var _a7, _b, _c, _d;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           const body = generateContentParametersToVertex(this.apiClient, params);
-          path18 = formatMap("{model}:generateContent", body["_url"]);
+          path20 = formatMap("{model}:generateContent", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "POST",
@@ -85866,12 +86668,12 @@ var init_node2 = __esm({
           });
         } else {
           const body = generateContentParametersToMldev(this.apiClient, params);
-          path18 = formatMap("{model}:generateContent", body["_url"]);
+          path20 = formatMap("{model}:generateContent", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "POST",
@@ -85897,17 +86699,17 @@ var init_node2 = __esm({
       async generateContentStreamInternal(params) {
         var _a7, _b, _c, _d;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           const body = generateContentParametersToVertex(this.apiClient, params);
-          path18 = formatMap("{model}:streamGenerateContent?alt=sse", body["_url"]);
+          path20 = formatMap("{model}:streamGenerateContent?alt=sse", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           const apiClient = this.apiClient;
           response = apiClient.requestStream({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "POST",
@@ -85943,13 +86745,13 @@ var init_node2 = __esm({
           });
         } else {
           const body = generateContentParametersToMldev(this.apiClient, params);
-          path18 = formatMap("{model}:streamGenerateContent?alt=sse", body["_url"]);
+          path20 = formatMap("{model}:streamGenerateContent?alt=sse", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           const apiClient = this.apiClient;
           response = apiClient.requestStream({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "POST",
@@ -86009,17 +86811,17 @@ var init_node2 = __esm({
       async embedContentInternal(params) {
         var _a7, _b, _c, _d;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           const body = embedContentParametersPrivateToVertex(this.apiClient, params, params);
           const endpointUrl = tIsVertexEmbedContentModel(params.model) ? "{model}:embedContent" : "{model}:predict";
-          path18 = formatMap(endpointUrl, body["_url"]);
+          path20 = formatMap(endpointUrl, body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "POST",
@@ -86042,12 +86844,12 @@ var init_node2 = __esm({
           });
         } else {
           const body = embedContentParametersPrivateToMldev(this.apiClient, params);
-          path18 = formatMap("{model}:batchEmbedContents", body["_url"]);
+          path20 = formatMap("{model}:batchEmbedContents", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "POST",
@@ -86076,16 +86878,16 @@ var init_node2 = __esm({
       async generateImagesInternal(params) {
         var _a7, _b, _c, _d;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           const body = generateImagesParametersToVertex(this.apiClient, params);
-          path18 = formatMap("{model}:predict", body["_url"]);
+          path20 = formatMap("{model}:predict", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "POST",
@@ -86108,12 +86910,12 @@ var init_node2 = __esm({
           });
         } else {
           const body = generateImagesParametersToMldev(this.apiClient, params);
-          path18 = formatMap("{model}:predict", body["_url"]);
+          path20 = formatMap("{model}:predict", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "POST",
@@ -86142,16 +86944,16 @@ var init_node2 = __esm({
       async editImageInternal(params) {
         var _a7, _b;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           const body = editImageParametersInternalToVertex(this.apiClient, params);
-          path18 = formatMap("{model}:predict", body["_url"]);
+          path20 = formatMap("{model}:predict", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "POST",
@@ -86182,16 +86984,16 @@ var init_node2 = __esm({
       async upscaleImageInternal(params) {
         var _a7, _b;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           const body = upscaleImageAPIParametersInternalToVertex(this.apiClient, params);
-          path18 = formatMap("{model}:predict", body["_url"]);
+          path20 = formatMap("{model}:predict", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "POST",
@@ -86243,16 +87045,16 @@ var init_node2 = __esm({
       async recontextImage(params) {
         var _a7, _b;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           const body = recontextImageParametersToVertex(this.apiClient, params);
-          path18 = formatMap("{model}:predict", body["_url"]);
+          path20 = formatMap("{model}:predict", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "POST",
@@ -86294,16 +87096,16 @@ var init_node2 = __esm({
       async segmentImage(params) {
         var _a7, _b;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           const body = segmentImageParametersToVertex(this.apiClient, params);
-          path18 = formatMap("{model}:predict", body["_url"]);
+          path20 = formatMap("{model}:predict", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "POST",
@@ -86333,16 +87135,16 @@ var init_node2 = __esm({
       async get(params) {
         var _a7, _b, _c, _d;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           const body = getModelParametersToVertex(this.apiClient, params);
-          path18 = formatMap("{name}", body["_url"]);
+          path20 = formatMap("{name}", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "GET",
@@ -86357,12 +87159,12 @@ var init_node2 = __esm({
           });
         } else {
           const body = getModelParametersToMldev(this.apiClient, params);
-          path18 = formatMap("{name}", body["_url"]);
+          path20 = formatMap("{name}", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "GET",
@@ -86380,16 +87182,16 @@ var init_node2 = __esm({
       async listInternal(params) {
         var _a7, _b, _c, _d;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           const body = listModelsParametersToVertex(this.apiClient, params);
-          path18 = formatMap("{models_url}", body["_url"]);
+          path20 = formatMap("{models_url}", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "GET",
@@ -86412,12 +87214,12 @@ var init_node2 = __esm({
           });
         } else {
           const body = listModelsParametersToMldev(this.apiClient, params);
-          path18 = formatMap("{models_url}", body["_url"]);
+          path20 = formatMap("{models_url}", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "GET",
@@ -86460,16 +87262,16 @@ var init_node2 = __esm({
       async update(params) {
         var _a7, _b, _c, _d;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           const body = updateModelParametersToVertex(this.apiClient, params);
-          path18 = formatMap("{model}", body["_url"]);
+          path20 = formatMap("{model}", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "PATCH",
@@ -86484,12 +87286,12 @@ var init_node2 = __esm({
           });
         } else {
           const body = updateModelParametersToMldev(this.apiClient, params);
-          path18 = formatMap("{name}", body["_url"]);
+          path20 = formatMap("{name}", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "PATCH",
@@ -86518,16 +87320,16 @@ var init_node2 = __esm({
       async delete(params) {
         var _a7, _b, _c, _d;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           const body = deleteModelParametersToVertex(this.apiClient, params);
-          path18 = formatMap("{name}", body["_url"]);
+          path20 = formatMap("{name}", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "DELETE",
@@ -86550,12 +87352,12 @@ var init_node2 = __esm({
           });
         } else {
           const body = deleteModelParametersToMldev(this.apiClient, params);
-          path18 = formatMap("{name}", body["_url"]);
+          path20 = formatMap("{name}", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "DELETE",
@@ -86597,16 +87399,16 @@ var init_node2 = __esm({
       async countTokens(params) {
         var _a7, _b, _c, _d;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           const body = countTokensParametersToVertex(this.apiClient, params);
-          path18 = formatMap("{model}:countTokens", body["_url"]);
+          path20 = formatMap("{model}:countTokens", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "POST",
@@ -86629,12 +87431,12 @@ var init_node2 = __esm({
           });
         } else {
           const body = countTokensParametersToMldev(this.apiClient, params);
-          path18 = formatMap("{model}:countTokens", body["_url"]);
+          path20 = formatMap("{model}:countTokens", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "POST",
@@ -86678,16 +87480,16 @@ var init_node2 = __esm({
       async computeTokens(params) {
         var _a7, _b;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           const body = computeTokensParametersToVertex(this.apiClient, params);
-          path18 = formatMap("{model}:computeTokens", body["_url"]);
+          path20 = formatMap("{model}:computeTokens", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "POST",
@@ -86718,16 +87520,16 @@ var init_node2 = __esm({
       async generateVideosInternal(params) {
         var _a7, _b, _c, _d;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           const body = generateVideosParametersToVertex(this.apiClient, params);
-          path18 = formatMap("{model}:predictLongRunning", body["_url"]);
+          path20 = formatMap("{model}:predictLongRunning", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "POST",
@@ -86744,12 +87546,12 @@ var init_node2 = __esm({
           });
         } else {
           const body = generateVideosParametersToMldev(this.apiClient, params);
-          path18 = formatMap("{model}:predictLongRunning", body["_url"]);
+          path20 = formatMap("{model}:predictLongRunning", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "POST",
@@ -86851,16 +87653,16 @@ var init_node2 = __esm({
       async getVideosOperationInternal(params) {
         var _a7, _b, _c, _d;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           const body = getOperationParametersToVertex(params);
-          path18 = formatMap("{operationName}", body["_url"]);
+          path20 = formatMap("{operationName}", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "GET",
@@ -86872,12 +87674,12 @@ var init_node2 = __esm({
           return response;
         } else {
           const body = getOperationParametersToMldev(params);
-          path18 = formatMap("{operationName}", body["_url"]);
+          path20 = formatMap("{operationName}", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "GET",
@@ -86892,16 +87694,16 @@ var init_node2 = __esm({
       async fetchPredictVideosOperationInternal(params) {
         var _a7, _b;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           const body = fetchPredictOperationParametersToVertex(params);
-          path18 = formatMap("{resourceName}:fetchPredictOperation", body["_url"]);
+          path20 = formatMap("{resourceName}:fetchPredictOperation", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "POST",
@@ -87007,20 +87809,20 @@ var init_node2 = __esm({
       async create(params) {
         var _a7, _b;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           throw new Error("The client.tokens.create method is only supported by the Gemini Developer API.");
         } else {
           const body = createAuthTokenParametersToMldev(this.apiClient, params);
-          path18 = formatMap("auth_tokens", body["_url"]);
+          path20 = formatMap("auth_tokens", body["_url"]);
           queryParams = body["_query"];
           delete body["config"];
           delete body["_url"];
           delete body["_query"];
           const transformedBody = convertBidiSetupToTokenSetup(body, params.config);
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(transformedBody),
             httpMethod: "POST",
@@ -87052,18 +87854,18 @@ var init_node2 = __esm({
       async get(params) {
         var _a7, _b;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           throw new Error("This method is only supported by the Gemini Developer API.");
         } else {
           const body = getDocumentParametersToMldev(params);
-          path18 = formatMap("{name}", body["_url"]);
+          path20 = formatMap("{name}", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "GET",
@@ -87084,18 +87886,18 @@ var init_node2 = __esm({
        */
       async delete(params) {
         var _a7, _b;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           throw new Error("This method is only supported by the Gemini Developer API.");
         } else {
           const body = deleteDocumentParametersToMldev(params);
-          path18 = formatMap("{name}", body["_url"]);
+          path20 = formatMap("{name}", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           await this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "DELETE",
@@ -87107,18 +87909,18 @@ var init_node2 = __esm({
       async listInternal(params) {
         var _a7, _b;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           throw new Error("This method is only supported by the Gemini Developer API.");
         } else {
           const body = listDocumentsParametersToMldev(params);
-          path18 = formatMap("{parent}/documents", body["_url"]);
+          path20 = formatMap("{parent}/documents", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "GET",
@@ -87235,18 +88037,18 @@ var init_node2 = __esm({
       async create(params) {
         var _a7, _b;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           throw new Error("This method is only supported by the Gemini Developer API.");
         } else {
           const body = createFileSearchStoreParametersToMldev(this.apiClient, params);
-          path18 = formatMap("fileSearchStores", body["_url"]);
+          path20 = formatMap("fileSearchStores", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "POST",
@@ -87269,18 +88071,18 @@ var init_node2 = __esm({
       async get(params) {
         var _a7, _b;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           throw new Error("This method is only supported by the Gemini Developer API.");
         } else {
           const body = getFileSearchStoreParametersToMldev(params);
-          path18 = formatMap("{name}", body["_url"]);
+          path20 = formatMap("{name}", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "GET",
@@ -87301,18 +88103,18 @@ var init_node2 = __esm({
        */
       async delete(params) {
         var _a7, _b;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           throw new Error("This method is only supported by the Gemini Developer API.");
         } else {
           const body = deleteFileSearchStoreParametersToMldev(params);
-          path18 = formatMap("{name}", body["_url"]);
+          path20 = formatMap("{name}", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           await this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "DELETE",
@@ -87324,18 +88126,18 @@ var init_node2 = __esm({
       async listInternal(params) {
         var _a7, _b;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           throw new Error("This method is only supported by the Gemini Developer API.");
         } else {
           const body = listFileSearchStoresParametersToMldev(params);
-          path18 = formatMap("fileSearchStores", body["_url"]);
+          path20 = formatMap("fileSearchStores", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "GET",
@@ -87355,18 +88157,18 @@ var init_node2 = __esm({
       async uploadToFileSearchStoreInternal(params) {
         var _a7, _b;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           throw new Error("This method is only supported by the Gemini Developer API.");
         } else {
           const body = uploadToFileSearchStoreParametersToMldev(params);
-          path18 = formatMap("upload/v1beta/{file_search_store_name}:uploadToFileSearchStore", body["_url"]);
+          path20 = formatMap("upload/v1beta/{file_search_store_name}:uploadToFileSearchStore", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "POST",
@@ -87394,18 +88196,18 @@ var init_node2 = __esm({
       async importFile(params) {
         var _a7, _b;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           throw new Error("This method is only supported by the Gemini Developer API.");
         } else {
           const body = importFileParametersToMldev(params);
-          path18 = formatMap("{file_search_store_name}:importFile", body["_url"]);
+          path20 = formatMap("{file_search_store_name}:importFile", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "POST",
@@ -87598,12 +88400,12 @@ var init_node2 = __esm({
     };
     APIResource3._key = [];
     EMPTY3 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.create(null));
-    createPathTagFunction3 = (pathEncoder = encodeURIPath3) => (function path18(statics, ...params) {
+    createPathTagFunction3 = (pathEncoder = encodeURIPath3) => (function path20(statics, ...params) {
       if (statics.length === 1)
         return statics[0];
       let postPath = false;
       const invalidSegments = [];
-      const path19 = statics.reduce((previousValue, currentValue, index3) => {
+      const path21 = statics.reduce((previousValue, currentValue, index3) => {
         var _a7, _b, _c;
         if (/[?#]/.test(currentValue)) {
           postPath = true;
@@ -87621,7 +88423,7 @@ var init_node2 = __esm({
         }
         return previousValue + currentValue + (index3 === params.length ? "" : encoded);
       }, "");
-      const pathOnly = path19.split(/[?#]/, 1)[0];
+      const pathOnly = path21.split(/[?#]/, 1)[0];
       const invalidSegmentPattern = /(^|\/)(?:\.|%2e){1,2}(?=\/|$)/gi;
       let match2;
       while ((match2 = invalidSegmentPattern.exec(pathOnly)) !== null) {
@@ -87645,12 +88447,12 @@ var init_node2 = __esm({
         }, "");
         throw new GeminiNextGenAPIClientError(`Path parameters result in path with invalid segments:
 ${invalidSegments.map((e2) => e2.error).join("\n")}
-${path19}
+${path21}
 ${underline}`);
       }
-      return path19;
+      return path21;
     });
-    path8 = /* @__PURE__ */ createPathTagFunction3(encodeURIPath3);
+    path10 = /* @__PURE__ */ createPathTagFunction3(encodeURIPath3);
     BaseInteractions = class extends APIResource3 {
       create(params, options) {
         var _a7;
@@ -87661,7 +88463,7 @@ ${underline}`);
         if ("agent" in body && "generation_config" in body) {
           throw new GeminiNextGenAPIClientError(`Invalid request: specified \`agent\` and \`generation_config\`. If specifying \`agent\`, use \`agent_config\`.`);
         }
-        return this._client.post(path8`/${api_version}/interactions`, Object.assign(Object.assign({ body }, options), { stream: (_a7 = params.stream) !== null && _a7 !== void 0 ? _a7 : false }));
+        return this._client.post(path10`/${api_version}/interactions`, Object.assign(Object.assign({ body }, options), { stream: (_a7 = params.stream) !== null && _a7 !== void 0 ? _a7 : false }));
       }
       /**
        * Deletes the interaction by id.
@@ -87675,7 +88477,7 @@ ${underline}`);
        */
       delete(id, params = {}, options) {
         const { api_version = this._client.apiVersion } = params !== null && params !== void 0 ? params : {};
-        return this._client.delete(path8`/${api_version}/interactions/${id}`, options);
+        return this._client.delete(path10`/${api_version}/interactions/${id}`, options);
       }
       /**
        * Cancels an interaction by id. This only applies to background interactions that
@@ -87690,12 +88492,12 @@ ${underline}`);
        */
       cancel(id, params = {}, options) {
         const { api_version = this._client.apiVersion } = params !== null && params !== void 0 ? params : {};
-        return this._client.post(path8`/${api_version}/interactions/${id}/cancel`, options);
+        return this._client.post(path10`/${api_version}/interactions/${id}/cancel`, options);
       }
       get(id, params = {}, options) {
         var _a7;
         const _b = params !== null && params !== void 0 ? params : {}, { api_version = this._client.apiVersion } = _b, query = __rest(_b, ["api_version"]);
-        return this._client.get(path8`/${api_version}/interactions/${id}`, Object.assign(Object.assign({ query }, options), { stream: (_a7 = params === null || params === void 0 ? void 0 : params.stream) !== null && _a7 !== void 0 ? _a7 : false }));
+        return this._client.get(path10`/${api_version}/interactions/${id}`, Object.assign(Object.assign({ query }, options), { stream: (_a7 = params === null || params === void 0 ? void 0 : params.stream) !== null && _a7 !== void 0 ? _a7 : false }));
       }
     };
     BaseInteractions._key = Object.freeze(["interactions"]);
@@ -87707,49 +88509,49 @@ ${underline}`);
        */
       create(params, options) {
         const { api_version = this._client.apiVersion } = params, body = __rest(params, ["api_version"]);
-        return this._client.post(path8`/${api_version}/webhooks`, Object.assign({ body }, options));
+        return this._client.post(path10`/${api_version}/webhooks`, Object.assign({ body }, options));
       }
       /**
        * Updates an existing Webhook.
        */
       update(id, params = {}, options) {
         const _a7 = params !== null && params !== void 0 ? params : {}, { api_version = this._client.apiVersion, update_mask } = _a7, body = __rest(_a7, ["api_version", "update_mask"]);
-        return this._client.patch(path8`/${api_version}/webhooks/${id}`, Object.assign({ query: { update_mask }, body }, options));
+        return this._client.patch(path10`/${api_version}/webhooks/${id}`, Object.assign({ query: { update_mask }, body }, options));
       }
       /**
        * Lists all Webhooks.
        */
       list(params = {}, options) {
         const _a7 = params !== null && params !== void 0 ? params : {}, { api_version = this._client.apiVersion } = _a7, query = __rest(_a7, ["api_version"]);
-        return this._client.get(path8`/${api_version}/webhooks`, Object.assign({ query }, options));
+        return this._client.get(path10`/${api_version}/webhooks`, Object.assign({ query }, options));
       }
       /**
        * Deletes a Webhook.
        */
       delete(id, params = {}, options) {
         const { api_version = this._client.apiVersion } = params !== null && params !== void 0 ? params : {};
-        return this._client.delete(path8`/${api_version}/webhooks/${id}`, options);
+        return this._client.delete(path10`/${api_version}/webhooks/${id}`, options);
       }
       /**
        * Gets a specific Webhook.
        */
       get(id, params = {}, options) {
         const { api_version = this._client.apiVersion } = params !== null && params !== void 0 ? params : {};
-        return this._client.get(path8`/${api_version}/webhooks/${id}`, options);
+        return this._client.get(path10`/${api_version}/webhooks/${id}`, options);
       }
       /**
        * Sends a ping event to a Webhook.
        */
       ping(id, params = void 0, options) {
         const { api_version = this._client.apiVersion, body } = params !== null && params !== void 0 ? params : {};
-        return this._client.post(path8`/${api_version}/webhooks/${id}:ping`, Object.assign({ body }, options));
+        return this._client.post(path10`/${api_version}/webhooks/${id}:ping`, Object.assign({ body }, options));
       }
       /**
        * Generates a new signing secret for a Webhook.
        */
       rotateSigningSecret(id, params = {}, options) {
         const _a7 = params !== null && params !== void 0 ? params : {}, { api_version = this._client.apiVersion } = _a7, body = __rest(_a7, ["api_version"]);
-        return this._client.post(path8`/${api_version}/webhooks/${id}:rotateSigningSecret`, Object.assign({ body }, options));
+        return this._client.post(path10`/${api_version}/webhooks/${id}:rotateSigningSecret`, Object.assign({ body }, options));
       }
     };
     BaseWebhooks._key = Object.freeze(["webhooks"]);
@@ -88257,9 +89059,9 @@ ${underline}`);
       makeStatusError(status, error51, message, headers) {
         return APIError3.generate(status, error51, message, headers);
       }
-      buildURL(path18, query, defaultBaseURL) {
+      buildURL(path20, query, defaultBaseURL) {
         const baseURL = !this.baseURLOverridden() && defaultBaseURL || this.baseURL;
-        const url2 = isAbsoluteURL3(path18) ? new URL(path18) : new URL(baseURL + (baseURL.endsWith("/") && path18.startsWith("/") ? path18.slice(1) : path18));
+        const url2 = isAbsoluteURL3(path20) ? new URL(path20) : new URL(baseURL + (baseURL.endsWith("/") && path20.startsWith("/") ? path20.slice(1) : path20));
         const defaultQuery = this.defaultQuery();
         const pathQuery = Object.fromEntries(url2.searchParams);
         if (!isEmptyObj3(defaultQuery) || !isEmptyObj3(pathQuery)) {
@@ -88272,7 +89074,7 @@ ${underline}`);
       }
       /**
          * Used as a callback for mutating the given `FinalRequestOptions` object.
-      
+
          */
       async prepareOptions(options) {
         if (this.clientAdapter && this.clientAdapter.isVertexAI() && !options.path.startsWith(`/${this.apiVersion}/projects/`)) {
@@ -88288,24 +89090,24 @@ ${underline}`);
        */
       async prepareRequest(request, { url: url2, options }) {
       }
-      get(path18, opts) {
-        return this.methodRequest("get", path18, opts);
+      get(path20, opts) {
+        return this.methodRequest("get", path20, opts);
       }
-      post(path18, opts) {
-        return this.methodRequest("post", path18, opts);
+      post(path20, opts) {
+        return this.methodRequest("post", path20, opts);
       }
-      patch(path18, opts) {
-        return this.methodRequest("patch", path18, opts);
+      patch(path20, opts) {
+        return this.methodRequest("patch", path20, opts);
       }
-      put(path18, opts) {
-        return this.methodRequest("put", path18, opts);
+      put(path20, opts) {
+        return this.methodRequest("put", path20, opts);
       }
-      delete(path18, opts) {
-        return this.methodRequest("delete", path18, opts);
+      delete(path20, opts) {
+        return this.methodRequest("delete", path20, opts);
       }
-      methodRequest(method, path18, opts) {
+      methodRequest(method, path20, opts) {
         return this.request(Promise.resolve(opts).then((opts2) => {
-          return Object.assign({ method, path: path18 }, opts2);
+          return Object.assign({ method, path: path20 }, opts2);
         }));
       }
       request(options, remainingRetries = null) {
@@ -88479,8 +89281,8 @@ ${underline}`);
       async buildRequest(inputOptions, { retryCount = 0 } = {}) {
         var _b, _c, _d;
         const options = Object.assign({}, inputOptions);
-        const { method, path: path18, query, defaultBaseURL } = options;
-        const url2 = this.buildURL(path18, query, defaultBaseURL);
+        const { method, path: path20, query, defaultBaseURL } = options;
+        const url2 = this.buildURL(path20, query, defaultBaseURL);
         if ("timeout" in options)
           validatePositiveInteger3("timeout", options.timeout);
         options.timeout = (_b = options.timeout) !== null && _b !== void 0 ? _b : this.timeout;
@@ -88615,10 +89417,10 @@ ${underline}`);
             const writer = (0, import_fs.createWriteStream)(params.downloadPath);
             const body = import_node_stream3.Readable.fromWeb(response.responseInternal.body);
             body.pipe(writer);
-            await (0, import_promises8.finished)(writer);
+            await (0, import_promises10.finished)(writer);
           } else {
             try {
-              await (0, import_promises7.writeFile)(params.downloadPath, response, {
+              await (0, import_promises9.writeFile)(params.downloadPath, response, {
                 encoding: "base64"
               });
             } catch (error51) {
@@ -88706,16 +89508,16 @@ ${underline}`);
       async getInternal(params) {
         var _a7, _b, _c, _d;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           const body = getTuningJobParametersToVertex(params);
-          path18 = formatMap("{name}", body["_url"]);
+          path20 = formatMap("{name}", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "GET",
@@ -88736,12 +89538,12 @@ ${underline}`);
           });
         } else {
           const body = getTuningJobParametersToMldev(params);
-          path18 = formatMap("{name}", body["_url"]);
+          path20 = formatMap("{name}", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "GET",
@@ -88765,16 +89567,16 @@ ${underline}`);
       async listInternal(params) {
         var _a7, _b;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           const body = listTuningJobsParametersToVertex(params);
-          path18 = formatMap("tuningJobs", body["_url"]);
+          path20 = formatMap("tuningJobs", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "GET",
@@ -88813,16 +89615,16 @@ ${underline}`);
       async cancel(params) {
         var _a7, _b, _c, _d;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           const body = cancelTuningJobParametersToVertex(params);
-          path18 = formatMap("{name}:cancel", body["_url"]);
+          path20 = formatMap("{name}:cancel", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "POST",
@@ -88845,12 +89647,12 @@ ${underline}`);
           });
         } else {
           const body = cancelTuningJobParametersToMldev(params);
-          path18 = formatMap("{name}:cancel", body["_url"]);
+          path20 = formatMap("{name}:cancel", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "POST",
@@ -88876,16 +89678,16 @@ ${underline}`);
       async tuneInternal(params) {
         var _a7, _b;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           const body = createTuningJobParametersPrivateToVertex(params, params);
-          path18 = formatMap("tuningJobs", body["_url"]);
+          path20 = formatMap("tuningJobs", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "POST",
@@ -88911,18 +89713,18 @@ ${underline}`);
       async tuneMldevInternal(params) {
         var _a7, _b;
         let response;
-        let path18 = "";
+        let path20 = "";
         let queryParams = {};
         if (this.apiClient.isVertexAI()) {
           throw new Error("This method is only supported by the Gemini Developer API.");
         } else {
           const body = createTuningJobParametersPrivateToMldev(params);
-          path18 = formatMap("tunedModels", body["_url"]);
+          path20 = formatMap("tunedModels", body["_url"]);
           queryParams = body["_query"];
           delete body["_url"];
           delete body["_query"];
           response = this.apiClient.request({
-            path: path18,
+            path: path20,
             queryParams,
             body: JSON.stringify(body),
             httpMethod: "POST",
@@ -97320,7 +98122,7 @@ __export(util_exports, {
   getParsedType: () => getParsedType,
   getSizableOrigin: () => getSizableOrigin,
   hexToUint8Array: () => hexToUint8Array,
-  isObject: () => isObject,
+  isObject: () => isObject2,
   isPlainObject: () => isPlainObject,
   issue: () => issue,
   joinValues: () => joinValues,
@@ -97450,10 +98252,10 @@ function mergeDefs(...defs) {
 function cloneDef(schema) {
   return mergeDefs(schema._zod.def);
 }
-function getElementAtPath(obj, path18) {
-  if (!path18)
+function getElementAtPath(obj, path20) {
+  if (!path20)
     return obj;
-  return path18.reduce((acc, key) => acc?.[key], obj);
+  return path20.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -97480,11 +98282,11 @@ function esc(str2) {
 function slugify(input) {
   return input.toLowerCase().trim().replace(/[^\w\s-]/g, "").replace(/[\s_-]+/g, "-").replace(/^-+|-+$/g, "");
 }
-function isObject(data) {
+function isObject2(data) {
   return typeof data === "object" && data !== null && !Array.isArray(data);
 }
 function isPlainObject(o) {
-  if (isObject(o) === false)
+  if (isObject2(o) === false)
     return false;
   const ctor = o.constructor;
   if (ctor === void 0)
@@ -97492,7 +98294,7 @@ function isPlainObject(o) {
   if (typeof ctor !== "function")
     return true;
   const prot = ctor.prototype;
-  if (isObject(prot) === false)
+  if (isObject2(prot) === false)
     return false;
   if (Object.prototype.hasOwnProperty.call(prot, "isPrototypeOf") === false) {
     return false;
@@ -97781,11 +98583,11 @@ function explicitlyAborted(x2, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path18, issues) {
+function prefixIssues(path20, issues) {
   return issues.map((iss) => {
     var _a7;
     (_a7 = iss).path ?? (_a7.path = []);
-    iss.path.unshift(path18);
+    iss.path.unshift(path20);
     return iss;
   });
 }
@@ -98002,16 +98804,16 @@ function flattenError(error51, mapper = (issue2) => issue2.message) {
 }
 function formatError(error51, mapper = (issue2) => issue2.message) {
   const fieldErrors = { _errors: [] };
-  const processError = (error52, path18 = []) => {
+  const processError = (error52, path20 = []) => {
     for (const issue2 of error52.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path18, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path20, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path18, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path20, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path18, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path20, ...issue2.path]);
       } else {
-        const fullpath = [...path18, ...issue2.path];
+        const fullpath = [...path20, ...issue2.path];
         if (fullpath.length === 0) {
           fieldErrors._errors.push(mapper(issue2));
         } else {
@@ -98038,17 +98840,17 @@ function formatError(error51, mapper = (issue2) => issue2.message) {
 }
 function treeifyError(error51, mapper = (issue2) => issue2.message) {
   const result = { errors: [] };
-  const processError = (error52, path18 = []) => {
+  const processError = (error52, path20 = []) => {
     var _a7, _b;
     for (const issue2 of error52.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path18, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path20, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path18, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path20, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path18, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path20, ...issue2.path]);
       } else {
-        const fullpath = [...path18, ...issue2.path];
+        const fullpath = [...path20, ...issue2.path];
         if (fullpath.length === 0) {
           result.errors.push(mapper(issue2));
           continue;
@@ -98080,8 +98882,8 @@ function treeifyError(error51, mapper = (issue2) => issue2.message) {
 }
 function toDotPath(_path) {
   const segs = [];
-  const path18 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
-  for (const seg of path18) {
+  const path20 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
+  for (const seg of path20) {
     if (typeof seg === "number")
       segs.push(`[${seg}]`);
     else if (typeof seg === "symbol")
@@ -100055,13 +100857,13 @@ var init_schemas = __esm({
         }
         return propValues;
       });
-      const isObject2 = isObject;
+      const isObject3 = isObject2;
       const catchall = def.catchall;
       let value;
       inst._zod.parse = (payload, ctx) => {
         value ?? (value = _normalized.value);
         const input = payload.value;
-        if (!isObject2(input)) {
+        if (!isObject3(input)) {
           payload.issues.push({
             expected: "object",
             code: "invalid_type",
@@ -100125,7 +100927,7 @@ var init_schemas = __esm({
             })));
           }
         }
-        
+
         if (${id}.value === undefined) {
           if (${k} in input) {
             newResult[${k}] = undefined;
@@ -100133,7 +100935,7 @@ var init_schemas = __esm({
         } else {
           newResult[${k}] = ${id}.value;
         }
-        
+
       `);
           } else if (!isOptionalIn) {
             doc.write(`
@@ -100170,7 +100972,7 @@ var init_schemas = __esm({
             path: iss.path ? [${k}, ...iss.path] : [${k}]
           })));
         }
-        
+
         if (${id}.value === undefined) {
           if (${k} in input) {
             newResult[${k}] = undefined;
@@ -100178,7 +100980,7 @@ var init_schemas = __esm({
         } else {
           newResult[${k}] = ${id}.value;
         }
-        
+
       `);
           }
         }
@@ -100188,7 +100990,7 @@ var init_schemas = __esm({
         return (payload, ctx) => fn(shape, payload, ctx);
       };
       let fastpass;
-      const isObject2 = isObject;
+      const isObject3 = isObject2;
       const jit = !globalConfig.jitless;
       const allowsEval2 = allowsEval;
       const fastEnabled = jit && allowsEval2.value;
@@ -100197,7 +100999,7 @@ var init_schemas = __esm({
       inst._zod.parse = (payload, ctx) => {
         value ?? (value = _normalized.value);
         const input = payload.value;
-        if (!isObject2(input)) {
+        if (!isObject3(input)) {
           payload.issues.push({
             expected: "object",
             code: "invalid_type",
@@ -100329,7 +101131,7 @@ var init_schemas = __esm({
       });
       inst._zod.parse = (payload, ctx) => {
         const input = payload.value;
-        if (!isObject(input)) {
+        if (!isObject2(input)) {
           payload.issues.push({
             code: "invalid_type",
             expected: "object",
@@ -111511,13 +112313,13 @@ function resolveRef(ref, ctx) {
   if (!ref.startsWith("#")) {
     throw new Error("External $ref is not supported, only local refs (#/...) are allowed");
   }
-  const path18 = ref.slice(1).split("/").filter(Boolean);
-  if (path18.length === 0) {
+  const path20 = ref.slice(1).split("/").filter(Boolean);
+  if (path20.length === 0) {
     return ctx.rootSchema;
   }
   const defsKey = ctx.version === "draft-2020-12" ? "$defs" : "definitions";
-  if (path18[0] === defsKey) {
-    const key = path18[1];
+  if (path20[0] === defsKey) {
+    const key = path20[1];
     if (!key || !ctx.defs[key]) {
       throw new Error(`Reference not found: ${ref}`);
     }
@@ -112482,8 +113284,8 @@ function discriminatedUnion2(inputPropertyName, options, opts = {}) {
       [outputPropertyName ?? inputPropertyName]: unknownValue,
       isUnknown: true
     }, { [UNKNOWN]: { value: true, enumerable: false, configurable: false } });
-    const isObject2 = typeof input === "object" && input !== null;
-    if (!isObject2)
+    const isObject3 = typeof input === "object" && input !== null;
+    if (!isObject3)
       return fallback;
     const discriminator = input[inputPropertyName];
     if (typeof discriminator !== "string")
@@ -114594,16 +115396,16 @@ var init_sdks = __esm({
         }
       }
       _createRequest(context2, conf, options) {
-        const { method, path: path18, query, headers: opHeaders, security } = conf;
+        const { method, path: path20, query, headers: opHeaders, security } = conf;
         const base = conf.baseURL ?? this._baseURL;
         if (!base) {
           return ERR(new InvalidRequestError("No base URL provided for operation"));
         }
         const baseURL = new URL(base);
         let reqURL;
-        if (path18) {
+        if (path20) {
           baseURL.pathname = baseURL.pathname.replace(/\/+$/, "") + "/";
-          reqURL = new URL(path18, baseURL);
+          reqURL = new URL(path20, baseURL);
         } else {
           reqURL = baseURL;
         }
@@ -128923,7 +129725,7 @@ async function $do(client, request, options) {
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
-  const path18 = pathToFunc("/v1/agents/completions")();
+  const path20 = pathToFunc("/v1/agents/completions")();
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -128945,7 +129747,7 @@ async function $do(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -129157,7 +129959,7 @@ async function $do2(client, request, options) {
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
-  const path18 = pathToFunc("/v1/agents/completions#stream")();
+  const path20 = pathToFunc("/v1/agents/completions#stream")();
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "text/event-stream"
@@ -129179,7 +129981,7 @@ async function $do2(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -133024,7 +133826,7 @@ async function $do3(client, request, options) {
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
-  const path18 = pathToFunc("/v1/audio/speech")();
+  const path20 = pathToFunc("/v1/audio/speech")();
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: options?.acceptHeaderOverride || "application/json;q=1, text/event-stream;q=0"
@@ -133046,7 +133848,7 @@ async function $do3(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -133175,7 +133977,7 @@ async function $do4(client, request, options) {
   if (payload.timestamp_granularities !== void 0) {
     appendForm(body, "timestamp_granularities", payload.timestamp_granularities);
   }
-  const path18 = pathToFunc("/v1/audio/transcriptions")();
+  const path20 = pathToFunc("/v1/audio/transcriptions")();
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -133196,7 +133998,7 @@ async function $do4(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -133290,7 +134092,7 @@ async function $do5(client, request, options) {
   if (payload.timestamp_granularities !== void 0) {
     appendForm(body, "timestamp_granularities", payload.timestamp_granularities);
   }
-  const path18 = pathToFunc("/v1/audio/transcriptions#stream")();
+  const path20 = pathToFunc("/v1/audio/transcriptions#stream")();
   const headers = new Headers(compactMap({
     Accept: "text/event-stream"
   }));
@@ -133311,7 +134113,7 @@ async function $do5(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -133399,7 +134201,7 @@ async function $do6(client, request, options) {
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
-  const path18 = pathToFunc("/v1/audio/voices")();
+  const path20 = pathToFunc("/v1/audio/voices")();
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -133421,7 +134223,7 @@ async function $do6(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -133482,7 +134284,7 @@ async function $do7(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/audio/voices/{voice_id}")(pathParams);
+  const path20 = pathToFunc("/v1/audio/voices/{voice_id}")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -133503,7 +134305,7 @@ async function $do7(client, request, options) {
     security: requestSecurity,
     method: "DELETE",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -133565,7 +134367,7 @@ async function $do8(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/audio/voices/{voice_id}")(pathParams);
+  const path20 = pathToFunc("/v1/audio/voices/{voice_id}")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -133586,7 +134388,7 @@ async function $do8(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -133648,7 +134450,7 @@ async function $do9(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/audio/voices/{voice_id}/sample")(pathParams);
+  const path20 = pathToFunc("/v1/audio/voices/{voice_id}/sample")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "audio/wav"
   }));
@@ -133669,7 +134471,7 @@ async function $do9(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -133725,7 +134527,7 @@ async function $do10(client, request, options) {
   }
   const payload = parsed.value;
   const body = null;
-  const path18 = pathToFunc("/v1/audio/voices")();
+  const path20 = pathToFunc("/v1/audio/voices")();
   const query = encodeFormQuery({
     "limit": payload?.limit,
     "offset": payload?.offset,
@@ -133751,7 +134553,7 @@ async function $do10(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -133816,7 +134618,7 @@ async function $do11(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/audio/voices/{voice_id}")(pathParams);
+  const path20 = pathToFunc("/v1/audio/voices/{voice_id}")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -133838,7 +134640,7 @@ async function $do11(client, request, options) {
     security: requestSecurity,
     method: "PATCH",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -133996,7 +134798,7 @@ async function $do12(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/batch/jobs/{job_id}/cancel")(pathParams);
+  const path20 = pathToFunc("/v1/batch/jobs/{job_id}/cancel")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -134017,7 +134819,7 @@ async function $do12(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -134069,7 +134871,7 @@ async function $do13(client, request, options) {
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
-  const path18 = pathToFunc("/v1/batch/jobs")();
+  const path20 = pathToFunc("/v1/batch/jobs")();
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -134091,7 +134893,7 @@ async function $do13(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -134148,7 +134950,7 @@ async function $do14(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/batch/jobs/{job_id}")(pathParams);
+  const path20 = pathToFunc("/v1/batch/jobs/{job_id}")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -134169,7 +134971,7 @@ async function $do14(client, request, options) {
     security: requestSecurity,
     method: "DELETE",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -134227,7 +135029,7 @@ async function $do15(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/batch/jobs/{job_id}")(pathParams);
+  const path20 = pathToFunc("/v1/batch/jobs/{job_id}")(pathParams);
   const query = encodeFormQuery({
     "inline": payload.inline
   });
@@ -134251,7 +135053,7 @@ async function $do15(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -134304,7 +135106,7 @@ async function $do16(client, request, options) {
   }
   const payload = parsed.value;
   const body = null;
-  const path18 = pathToFunc("/v1/batch/jobs")();
+  const path20 = pathToFunc("/v1/batch/jobs")();
   const query = encodeFormQuery({
     "agent_id": payload?.agent_id,
     "created_after": payload?.created_after,
@@ -134336,7 +135138,7 @@ async function $do16(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -134468,7 +135270,7 @@ async function $do17(client, request, options) {
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
-  const path18 = pathToFunc("/v1/agents")();
+  const path20 = pathToFunc("/v1/agents")();
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -134490,7 +135292,7 @@ async function $do17(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -134551,7 +135353,7 @@ async function $do18(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/agents/{agent_id}/aliases")(pathParams);
+  const path20 = pathToFunc("/v1/agents/{agent_id}/aliases")(pathParams);
   const query = encodeFormQuery({
     "alias": payload.alias,
     "version": payload.version
@@ -134576,7 +135378,7 @@ async function $do18(client, request, options) {
     security: requestSecurity,
     method: "PUT",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -134639,7 +135441,7 @@ async function $do19(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/agents/{agent_id}")(pathParams);
+  const path20 = pathToFunc("/v1/agents/{agent_id}")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -134660,7 +135462,7 @@ async function $do19(client, request, options) {
     security: requestSecurity,
     method: "DELETE",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -134722,7 +135524,7 @@ async function $do20(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/agents/{agent_id}/aliases")(pathParams);
+  const path20 = pathToFunc("/v1/agents/{agent_id}/aliases")(pathParams);
   const query = encodeFormQuery({
     "alias": payload.alias
   });
@@ -134746,7 +135548,7 @@ async function $do20(client, request, options) {
     security: requestSecurity,
     method: "DELETE",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -134809,7 +135611,7 @@ async function $do21(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/agents/{agent_id}")(pathParams);
+  const path20 = pathToFunc("/v1/agents/{agent_id}")(pathParams);
   const query = encodeFormQuery({
     "agent_version": payload.agent_version
   });
@@ -134833,7 +135635,7 @@ async function $do21(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -134900,7 +135702,7 @@ async function $do22(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/agents/{agent_id}/versions/{version}")(pathParams);
+  const path20 = pathToFunc("/v1/agents/{agent_id}/versions/{version}")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -134921,7 +135723,7 @@ async function $do22(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -134977,7 +135779,7 @@ async function $do23(client, request, options) {
   }
   const payload = parsed.value;
   const body = null;
-  const path18 = pathToFunc("/v1/agents")();
+  const path20 = pathToFunc("/v1/agents")();
   const query = queryJoin(encodeFormQuery({
     "deployment_chat": payload?.deployment_chat,
     "id": payload?.id,
@@ -135009,7 +135811,7 @@ async function $do23(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -135073,7 +135875,7 @@ async function $do24(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/agents/{agent_id}/aliases")(pathParams);
+  const path20 = pathToFunc("/v1/agents/{agent_id}/aliases")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -135094,7 +135896,7 @@ async function $do24(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -135157,7 +135959,7 @@ async function $do25(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/agents/{agent_id}/versions")(pathParams);
+  const path20 = pathToFunc("/v1/agents/{agent_id}/versions")(pathParams);
   const query = encodeFormQuery({
     "page": payload.page,
     "page_size": payload.page_size
@@ -135182,7 +135984,7 @@ async function $do25(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -135248,7 +136050,7 @@ async function $do26(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/agents/{agent_id}")(pathParams);
+  const path20 = pathToFunc("/v1/agents/{agent_id}")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -135270,7 +136072,7 @@ async function $do26(client, request, options) {
     security: requestSecurity,
     method: "PATCH",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -135332,7 +136134,7 @@ async function $do27(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/agents/{agent_id}/version")(pathParams);
+  const path20 = pathToFunc("/v1/agents/{agent_id}/version")(pathParams);
   const query = encodeFormQuery({
     "version": payload.version
   });
@@ -135356,7 +136158,7 @@ async function $do27(client, request, options) {
     security: requestSecurity,
     method: "PATCH",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -135539,7 +136341,7 @@ async function $do28(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/connectors/{connector_id}/organization/activate")(pathParams);
+  const path20 = pathToFunc("/v1/connectors/{connector_id}/organization/activate")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -135561,7 +136363,7 @@ async function $do28(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -135625,7 +136427,7 @@ async function $do29(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/connectors/{connector_id}/user/activate")(pathParams);
+  const path20 = pathToFunc("/v1/connectors/{connector_id}/user/activate")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -135647,7 +136449,7 @@ async function $do29(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -135711,7 +136513,7 @@ async function $do30(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/connectors/{connector_id}/workspace/activate")(pathParams);
+  const path20 = pathToFunc("/v1/connectors/{connector_id}/workspace/activate")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -135733,7 +136535,7 @@ async function $do30(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -135798,7 +136600,7 @@ async function $do31(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/connectors/{connector_id_or_name}/tools/{tool_name}/call")(pathParams);
+  const path20 = pathToFunc("/v1/connectors/{connector_id_or_name}/tools/{tool_name}/call")(pathParams);
   const query = encodeFormQuery({
     "credentials_name": payload.credentials_name
   });
@@ -135823,7 +136625,7 @@ async function $do31(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -135880,7 +136682,7 @@ async function $do32(client, request, options) {
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
-  const path18 = pathToFunc("/v1/connectors")();
+  const path20 = pathToFunc("/v1/connectors")();
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -135902,7 +136704,7 @@ async function $do32(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -135962,7 +136764,7 @@ async function $do33(client, request, options) {
   const pathParams = {
     connector_id_or_name: encodeSimple("connector_id_or_name", payload.connector_id_or_name, { explode: false, charEncoding: "percent" })
   };
-  const path18 = pathToFunc("/v1/connectors/{connector_id_or_name}/organization/credentials")(pathParams);
+  const path20 = pathToFunc("/v1/connectors/{connector_id_or_name}/organization/credentials")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -135984,7 +136786,7 @@ async function $do33(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -136045,7 +136847,7 @@ async function $do34(client, request, options) {
   const pathParams = {
     connector_id_or_name: encodeSimple("connector_id_or_name", payload.connector_id_or_name, { explode: false, charEncoding: "percent" })
   };
-  const path18 = pathToFunc("/v1/connectors/{connector_id_or_name}/user/credentials")(pathParams);
+  const path20 = pathToFunc("/v1/connectors/{connector_id_or_name}/user/credentials")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -136067,7 +136869,7 @@ async function $do34(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -136128,7 +136930,7 @@ async function $do35(client, request, options) {
   const pathParams = {
     connector_id_or_name: encodeSimple("connector_id_or_name", payload.connector_id_or_name, { explode: false, charEncoding: "percent" })
   };
-  const path18 = pathToFunc("/v1/connectors/{connector_id_or_name}/workspace/credentials")(pathParams);
+  const path20 = pathToFunc("/v1/connectors/{connector_id_or_name}/workspace/credentials")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -136150,7 +136952,7 @@ async function $do35(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -136212,7 +137014,7 @@ async function $do36(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/connectors/{connector_id}/organization/deactivate")(pathParams);
+  const path20 = pathToFunc("/v1/connectors/{connector_id}/organization/deactivate")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -136233,7 +137035,7 @@ async function $do36(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -136295,7 +137097,7 @@ async function $do37(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/connectors/{connector_id}/user/deactivate")(pathParams);
+  const path20 = pathToFunc("/v1/connectors/{connector_id}/user/deactivate")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -136316,7 +137118,7 @@ async function $do37(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -136378,7 +137180,7 @@ async function $do38(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/connectors/{connector_id}/workspace/deactivate")(pathParams);
+  const path20 = pathToFunc("/v1/connectors/{connector_id}/workspace/deactivate")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -136399,7 +137201,7 @@ async function $do38(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -136461,7 +137263,7 @@ async function $do39(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/connectors/{connector_id}#id")(pathParams);
+  const path20 = pathToFunc("/v1/connectors/{connector_id}#id")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -136482,7 +137284,7 @@ async function $do39(client, request, options) {
     security: requestSecurity,
     method: "DELETE",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -136542,7 +137344,7 @@ async function $do40(client, request, options) {
     connector_id_or_name: encodeSimple("connector_id_or_name", payload.connector_id_or_name, { explode: false, charEncoding: "percent" }),
     credentials_name: encodeSimple("credentials_name", payload.credentials_name, { explode: false, charEncoding: "percent" })
   };
-  const path18 = pathToFunc("/v1/connectors/{connector_id_or_name}/organization/credentials/{credentials_name}")(pathParams);
+  const path20 = pathToFunc("/v1/connectors/{connector_id_or_name}/organization/credentials/{credentials_name}")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -136563,7 +137365,7 @@ async function $do40(client, request, options) {
     security: requestSecurity,
     method: "DELETE",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -136623,7 +137425,7 @@ async function $do41(client, request, options) {
     connector_id_or_name: encodeSimple("connector_id_or_name", payload.connector_id_or_name, { explode: false, charEncoding: "percent" }),
     credentials_name: encodeSimple("credentials_name", payload.credentials_name, { explode: false, charEncoding: "percent" })
   };
-  const path18 = pathToFunc("/v1/connectors/{connector_id_or_name}/user/credentials/{credentials_name}")(pathParams);
+  const path20 = pathToFunc("/v1/connectors/{connector_id_or_name}/user/credentials/{credentials_name}")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -136644,7 +137446,7 @@ async function $do41(client, request, options) {
     security: requestSecurity,
     method: "DELETE",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -136704,7 +137506,7 @@ async function $do42(client, request, options) {
     connector_id_or_name: encodeSimple("connector_id_or_name", payload.connector_id_or_name, { explode: false, charEncoding: "percent" }),
     credentials_name: encodeSimple("credentials_name", payload.credentials_name, { explode: false, charEncoding: "percent" })
   };
-  const path18 = pathToFunc("/v1/connectors/{connector_id_or_name}/workspace/credentials/{credentials_name}")(pathParams);
+  const path20 = pathToFunc("/v1/connectors/{connector_id_or_name}/workspace/credentials/{credentials_name}")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -136725,7 +137527,7 @@ async function $do42(client, request, options) {
     security: requestSecurity,
     method: "DELETE",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -136784,7 +137586,7 @@ async function $do43(client, request, options) {
   const pathParams = {
     connector_id_or_name: encodeSimple("connector_id_or_name", payload.connector_id_or_name, { explode: false, charEncoding: "percent" })
   };
-  const path18 = pathToFunc("/v1/connectors/{connector_id_or_name}#idOrName")(pathParams);
+  const path20 = pathToFunc("/v1/connectors/{connector_id_or_name}#idOrName")(pathParams);
   const query = encodeFormQuery({
     "fetch_customer_data": payload.fetch_customer_data,
     "fetch_user_data": payload.fetch_user_data
@@ -136809,7 +137611,7 @@ async function $do43(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -136869,7 +137671,7 @@ async function $do44(client, request, options) {
   const pathParams = {
     connector_id_or_name: encodeSimple("connector_id_or_name", payload.connector_id_or_name, { explode: false, charEncoding: "percent" })
   };
-  const path18 = pathToFunc("/v1/connectors/{connector_id_or_name}/authentication_methods")(pathParams);
+  const path20 = pathToFunc("/v1/connectors/{connector_id_or_name}/authentication_methods")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -136890,7 +137692,7 @@ async function $do44(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -136946,7 +137748,7 @@ async function $do45(client, request, options) {
   const pathParams = {
     connector_id_or_name: encodeSimple("connector_id_or_name", payload.connector_id_or_name, { explode: false, charEncoding: "percent" })
   };
-  const path18 = pathToFunc("/v1/connectors/{connector_id_or_name}/auth_url")(pathParams);
+  const path20 = pathToFunc("/v1/connectors/{connector_id_or_name}/auth_url")(pathParams);
   const query = encodeFormQuery({
     "app_return_url": payload.app_return_url,
     "credentials_name": payload.credentials_name,
@@ -136973,7 +137775,7 @@ async function $do45(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -137030,7 +137832,7 @@ async function $do46(client, request, options) {
   }
   const payload = parsed.value;
   const body = null;
-  const path18 = pathToFunc("/v1/connectors")();
+  const path20 = pathToFunc("/v1/connectors")();
   const query = encodeFormQuery({
     "cursor": payload?.cursor,
     "page_size": payload?.page_size,
@@ -137056,7 +137858,7 @@ async function $do46(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -137116,7 +137918,7 @@ async function $do47(client, request, options) {
   const pathParams = {
     connector_id_or_name: encodeSimple("connector_id_or_name", payload.connector_id_or_name, { explode: false, charEncoding: "percent" })
   };
-  const path18 = pathToFunc("/v1/connectors/{connector_id_or_name}/organization/credentials")(pathParams);
+  const path20 = pathToFunc("/v1/connectors/{connector_id_or_name}/organization/credentials")(pathParams);
   const query = encodeFormQuery({
     "auth_type": payload.auth_type,
     "fetch_default": payload.fetch_default
@@ -137141,7 +137943,7 @@ async function $do47(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -137201,7 +138003,7 @@ async function $do48(client, request, options) {
   const pathParams = {
     connector_id_or_name: encodeSimple("connector_id_or_name", payload.connector_id_or_name, { explode: false, charEncoding: "percent" })
   };
-  const path18 = pathToFunc("/v1/connectors/{connector_id_or_name}/tools")(pathParams);
+  const path20 = pathToFunc("/v1/connectors/{connector_id_or_name}/tools")(pathParams);
   const query = encodeFormQuery({
     "credentials_name": payload.credentials_name,
     "page": payload.page,
@@ -137229,7 +138031,7 @@ async function $do48(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -137288,7 +138090,7 @@ async function $do49(client, request, options) {
   const pathParams = {
     connector_id_or_name: encodeSimple("connector_id_or_name", payload.connector_id_or_name, { explode: false, charEncoding: "percent" })
   };
-  const path18 = pathToFunc("/v1/connectors/{connector_id_or_name}/user/credentials")(pathParams);
+  const path20 = pathToFunc("/v1/connectors/{connector_id_or_name}/user/credentials")(pathParams);
   const query = encodeFormQuery({
     "auth_type": payload.auth_type,
     "fetch_default": payload.fetch_default
@@ -137313,7 +138115,7 @@ async function $do49(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -137373,7 +138175,7 @@ async function $do50(client, request, options) {
   const pathParams = {
     connector_id_or_name: encodeSimple("connector_id_or_name", payload.connector_id_or_name, { explode: false, charEncoding: "percent" })
   };
-  const path18 = pathToFunc("/v1/connectors/{connector_id_or_name}/workspace/credentials")(pathParams);
+  const path20 = pathToFunc("/v1/connectors/{connector_id_or_name}/workspace/credentials")(pathParams);
   const query = encodeFormQuery({
     "auth_type": payload.auth_type,
     "fetch_default": payload.fetch_default
@@ -137398,7 +138200,7 @@ async function $do50(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -137463,7 +138265,7 @@ async function $do51(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/connectors/{connector_id}#id")(pathParams);
+  const path20 = pathToFunc("/v1/connectors/{connector_id}#id")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -137485,7 +138287,7 @@ async function $do51(client, request, options) {
     security: requestSecurity,
     method: "PATCH",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -137800,7 +138602,7 @@ async function $do52(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/conversations/{conversation_id}")(pathParams);
+  const path20 = pathToFunc("/v1/conversations/{conversation_id}")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -137822,7 +138624,7 @@ async function $do52(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -137886,7 +138688,7 @@ async function $do53(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/conversations/{conversation_id}#stream")(pathParams);
+  const path20 = pathToFunc("/v1/conversations/{conversation_id}#stream")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "text/event-stream"
@@ -137908,7 +138710,7 @@ async function $do53(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -137979,7 +138781,7 @@ async function $do54(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/conversations/{conversation_id}")(pathParams);
+  const path20 = pathToFunc("/v1/conversations/{conversation_id}")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -138000,7 +138802,7 @@ async function $do54(client, request, options) {
     security: requestSecurity,
     method: "DELETE",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -138062,7 +138864,7 @@ async function $do55(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/conversations/{conversation_id}")(pathParams);
+  const path20 = pathToFunc("/v1/conversations/{conversation_id}")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -138083,7 +138885,7 @@ async function $do55(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -138144,7 +138946,7 @@ async function $do56(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/conversations/{conversation_id}/history")(pathParams);
+  const path20 = pathToFunc("/v1/conversations/{conversation_id}/history")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -138165,7 +138967,7 @@ async function $do56(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -138227,7 +139029,7 @@ async function $do57(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/conversations/{conversation_id}/messages")(pathParams);
+  const path20 = pathToFunc("/v1/conversations/{conversation_id}/messages")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -138248,7 +139050,7 @@ async function $do57(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -138304,7 +139106,7 @@ async function $do58(client, request, options) {
   }
   const payload = parsed.value;
   const body = null;
-  const path18 = pathToFunc("/v1/conversations")();
+  const path20 = pathToFunc("/v1/conversations")();
   const query = queryJoin(encodeFormQuery({
     "page": payload?.page,
     "page_size": payload?.page_size
@@ -138331,7 +139133,7 @@ async function $do58(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -138396,7 +139198,7 @@ async function $do59(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/conversations/{conversation_id}/restart")(pathParams);
+  const path20 = pathToFunc("/v1/conversations/{conversation_id}/restart")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -138418,7 +139220,7 @@ async function $do59(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -138482,7 +139284,7 @@ async function $do60(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/conversations/{conversation_id}/restart#stream")(pathParams);
+  const path20 = pathToFunc("/v1/conversations/{conversation_id}/restart#stream")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "text/event-stream"
@@ -138504,7 +139306,7 @@ async function $do60(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -138569,7 +139371,7 @@ async function $do61(client, request, options) {
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
-  const path18 = pathToFunc("/v1/conversations")();
+  const path20 = pathToFunc("/v1/conversations")();
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -138591,7 +139393,7 @@ async function $do61(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -138646,7 +139448,7 @@ async function $do62(client, request, options) {
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
-  const path18 = pathToFunc("/v1/conversations#stream")();
+  const path20 = pathToFunc("/v1/conversations#stream")();
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "text/event-stream"
@@ -138668,7 +139470,7 @@ async function $do62(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -138853,7 +139655,7 @@ async function $do63(client, request, options) {
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
-  const path18 = pathToFunc("/v1/libraries")();
+  const path20 = pathToFunc("/v1/libraries")();
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -138875,7 +139677,7 @@ async function $do63(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -138936,7 +139738,7 @@ async function $do64(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/libraries/{library_id}")(pathParams);
+  const path20 = pathToFunc("/v1/libraries/{library_id}")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -138957,7 +139759,7 @@ async function $do64(client, request, options) {
     security: requestSecurity,
     method: "DELETE",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -139019,7 +139821,7 @@ async function $do65(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/libraries/{library_id}")(pathParams);
+  const path20 = pathToFunc("/v1/libraries/{library_id}")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -139040,7 +139842,7 @@ async function $do65(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -139104,7 +139906,7 @@ async function $do66(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/libraries/{library_id}")(pathParams);
+  const path20 = pathToFunc("/v1/libraries/{library_id}")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -139126,7 +139928,7 @@ async function $do66(client, request, options) {
     security: requestSecurity,
     method: "PUT",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -139182,7 +139984,7 @@ async function $do67(client, request, options) {
   }
   const payload = parsed.value;
   const body = null;
-  const path18 = pathToFunc("/v1/libraries")();
+  const path20 = pathToFunc("/v1/libraries")();
   const query = encodeFormQuery({
     "filter_owned_by_me": payload?.filter_owned_by_me,
     "page": payload?.page,
@@ -139209,7 +140011,7 @@ async function $do67(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -139274,7 +140076,7 @@ async function $do68(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/libraries/{library_id}")(pathParams);
+  const path20 = pathToFunc("/v1/libraries/{library_id}")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -139296,7 +140098,7 @@ async function $do68(client, request, options) {
     security: requestSecurity,
     method: "PATCH",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -139358,7 +140160,7 @@ async function $do69(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/libraries/{library_id}/share")(pathParams);
+  const path20 = pathToFunc("/v1/libraries/{library_id}/share")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -139380,7 +140182,7 @@ async function $do69(client, request, options) {
     security: requestSecurity,
     method: "DELETE",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -139442,7 +140244,7 @@ async function $do70(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/libraries/{library_id}/share")(pathParams);
+  const path20 = pathToFunc("/v1/libraries/{library_id}/share")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -139463,7 +140265,7 @@ async function $do70(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -139525,7 +140327,7 @@ async function $do71(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/libraries/{library_id}/share")(pathParams);
+  const path20 = pathToFunc("/v1/libraries/{library_id}/share")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -139547,7 +140349,7 @@ async function $do71(client, request, options) {
     security: requestSecurity,
     method: "PUT",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -139654,7 +140456,7 @@ async function $do72(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/libraries/{library_id}/documents/{document_id}")(pathParams);
+  const path20 = pathToFunc("/v1/libraries/{library_id}/documents/{document_id}")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -139675,7 +140477,7 @@ async function $do72(client, request, options) {
     security: requestSecurity,
     method: "DELETE",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -139741,7 +140543,7 @@ async function $do73(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/libraries/{library_id}/documents/{document_id}/extracted-text-signed-url")(pathParams);
+  const path20 = pathToFunc("/v1/libraries/{library_id}/documents/{document_id}/extracted-text-signed-url")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -139762,7 +140564,7 @@ async function $do73(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -139828,7 +140630,7 @@ async function $do74(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/libraries/{library_id}/documents/{document_id}")(pathParams);
+  const path20 = pathToFunc("/v1/libraries/{library_id}/documents/{document_id}")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -139849,7 +140651,7 @@ async function $do74(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -139915,7 +140717,7 @@ async function $do75(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/libraries/{library_id}/documents/{document_id}/signed-url")(pathParams);
+  const path20 = pathToFunc("/v1/libraries/{library_id}/documents/{document_id}/signed-url")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -139936,7 +140738,7 @@ async function $do75(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -140004,7 +140806,7 @@ async function $do76(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/libraries/{library_id}/documents/{document_id}")(pathParams);
+  const path20 = pathToFunc("/v1/libraries/{library_id}/documents/{document_id}")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -140026,7 +140828,7 @@ async function $do76(client, request, options) {
     security: requestSecurity,
     method: "PUT",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -140088,7 +140890,7 @@ async function $do77(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/libraries/{library_id}/documents")(pathParams);
+  const path20 = pathToFunc("/v1/libraries/{library_id}/documents")(pathParams);
   const query = encodeFormQuery({
     "filters_attributes": payload.filters_attributes,
     "page": payload.page,
@@ -140117,7 +140919,7 @@ async function $do77(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -140184,7 +140986,7 @@ async function $do78(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/libraries/{library_id}/documents/{document_id}/reprocess")(pathParams);
+  const path20 = pathToFunc("/v1/libraries/{library_id}/documents/{document_id}/reprocess")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -140205,7 +141007,7 @@ async function $do78(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -140271,7 +141073,7 @@ async function $do79(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/libraries/{library_id}/documents/{document_id}/status")(pathParams);
+  const path20 = pathToFunc("/v1/libraries/{library_id}/documents/{document_id}/status")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -140292,7 +141094,7 @@ async function $do79(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -140358,7 +141160,7 @@ async function $do80(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/libraries/{library_id}/documents/{document_id}/text_content")(pathParams);
+  const path20 = pathToFunc("/v1/libraries/{library_id}/documents/{document_id}/text_content")(pathParams);
   const query = encodeFormQuery({
     "page_end": payload.page_end,
     "page_start": payload.page_start
@@ -140383,7 +141185,7 @@ async function $do80(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -140452,7 +141254,7 @@ async function $do81(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/libraries/{library_id}/documents/{document_id}")(pathParams);
+  const path20 = pathToFunc("/v1/libraries/{library_id}/documents/{document_id}")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -140474,7 +141276,7 @@ async function $do81(client, request, options) {
     security: requestSecurity,
     method: "PATCH",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -140549,7 +141351,7 @@ async function $do82(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/libraries/{library_id}/documents")(pathParams);
+  const path20 = pathToFunc("/v1/libraries/{library_id}/documents")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -140570,7 +141372,7 @@ async function $do82(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -140835,7 +141637,7 @@ async function $do83(client, request, options) {
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
-  const path18 = pathToFunc("/v1/observability/campaigns")();
+  const path20 = pathToFunc("/v1/observability/campaigns")();
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -140857,7 +141659,7 @@ async function $do83(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -140918,7 +141720,7 @@ async function $do84(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/observability/campaigns/{campaign_id}")(pathParams);
+  const path20 = pathToFunc("/v1/observability/campaigns/{campaign_id}")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -140939,7 +141741,7 @@ async function $do84(client, request, options) {
     security: requestSecurity,
     method: "DELETE",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -141001,7 +141803,7 @@ async function $do85(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/observability/campaigns/{campaign_id}")(pathParams);
+  const path20 = pathToFunc("/v1/observability/campaigns/{campaign_id}")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -141022,7 +141824,7 @@ async function $do85(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -141084,7 +141886,7 @@ async function $do86(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/observability/campaigns/{campaign_id}/status")(pathParams);
+  const path20 = pathToFunc("/v1/observability/campaigns/{campaign_id}/status")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -141105,7 +141907,7 @@ async function $do86(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -141161,7 +141963,7 @@ async function $do87(client, request, options) {
   }
   const payload = parsed.value;
   const body = null;
-  const path18 = pathToFunc("/v1/observability/campaigns")();
+  const path20 = pathToFunc("/v1/observability/campaigns")();
   const query = encodeFormQuery({
     "page": payload?.page,
     "page_size": payload?.page_size,
@@ -141187,7 +141989,7 @@ async function $do87(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -141250,7 +142052,7 @@ async function $do88(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/observability/campaigns/{campaign_id}/selected-events")(pathParams);
+  const path20 = pathToFunc("/v1/observability/campaigns/{campaign_id}/selected-events")(pathParams);
   const query = encodeFormQuery({
     "page": payload.page,
     "page_size": payload.page_size
@@ -141275,7 +142077,7 @@ async function $do88(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -141391,7 +142193,7 @@ async function $do89(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/observability/chat-completion-events/{event_id}")(pathParams);
+  const path20 = pathToFunc("/v1/observability/chat-completion-events/{event_id}")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -141412,7 +142214,7 @@ async function $do89(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -141474,7 +142276,7 @@ async function $do90(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/observability/chat-completion-events/{event_id}/similar-events")(pathParams);
+  const path20 = pathToFunc("/v1/observability/chat-completion-events/{event_id}/similar-events")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -141495,7 +142297,7 @@ async function $do90(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -141559,7 +142361,7 @@ async function $do91(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/observability/chat-completion-events/{event_id}/live-judging")(pathParams);
+  const path20 = pathToFunc("/v1/observability/chat-completion-events/{event_id}/live-judging")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -141581,7 +142383,7 @@ async function $do91(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -141639,7 +142441,7 @@ async function $do92(client, request, options) {
   const body = encodeJSON("body", payload.SearchChatCompletionEventsRequest, {
     explode: true
   });
-  const path18 = pathToFunc("/v1/observability/chat-completion-events/search")();
+  const path20 = pathToFunc("/v1/observability/chat-completion-events/search")();
   const query = encodeFormQuery({
     "cursor": payload.cursor,
     "page_size": payload.page_size
@@ -141665,7 +142467,7 @@ async function $do92(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -141722,7 +142524,7 @@ async function $do93(client, request, options) {
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
-  const path18 = pathToFunc("/v1/observability/chat-completion-events/search-ids")();
+  const path20 = pathToFunc("/v1/observability/chat-completion-events/search-ids")();
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -141744,7 +142546,7 @@ async function $do93(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -141807,7 +142609,7 @@ async function $do94(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/observability/chat-completion-fields/{field_name}/options-counts")(pathParams);
+  const path20 = pathToFunc("/v1/observability/chat-completion-fields/{field_name}/options-counts")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -141829,7 +142631,7 @@ async function $do94(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -141891,7 +142693,7 @@ async function $do95(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/observability/chat-completion-fields/{field_name}/options")(pathParams);
+  const path20 = pathToFunc("/v1/observability/chat-completion-fields/{field_name}/options")(pathParams);
   const query = encodeFormQuery({
     "operator": payload.operator
   });
@@ -141915,7 +142717,7 @@ async function $do95(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -141966,7 +142768,7 @@ function betaObservabilityChatCompletionEventsFieldsList(client, options) {
   return new APIPromise4($do96(client, options));
 }
 async function $do96(client, options) {
-  const path18 = pathToFunc("/v1/observability/chat-completion-fields")();
+  const path20 = pathToFunc("/v1/observability/chat-completion-fields")();
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -141987,7 +142789,7 @@ async function $do96(client, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     userAgent: client._options.userAgent,
     timeoutMs: options?.timeoutMs || client._options.timeoutMs || 6e4
@@ -142122,7 +142924,7 @@ async function $do97(client, request, options) {
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
-  const path18 = pathToFunc("/v1/observability/datasets")();
+  const path20 = pathToFunc("/v1/observability/datasets")();
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -142144,7 +142946,7 @@ async function $do97(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -142207,7 +143009,7 @@ async function $do98(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/observability/datasets/{dataset_id}/records")(pathParams);
+  const path20 = pathToFunc("/v1/observability/datasets/{dataset_id}/records")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -142229,7 +143031,7 @@ async function $do98(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -142291,7 +143093,7 @@ async function $do99(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/observability/datasets/{dataset_id}")(pathParams);
+  const path20 = pathToFunc("/v1/observability/datasets/{dataset_id}")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -142312,7 +143114,7 @@ async function $do99(client, request, options) {
     security: requestSecurity,
     method: "DELETE",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -142374,7 +143176,7 @@ async function $do100(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/observability/datasets/{dataset_id}/exports/to-jsonl")(pathParams);
+  const path20 = pathToFunc("/v1/observability/datasets/{dataset_id}/exports/to-jsonl")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -142395,7 +143197,7 @@ async function $do100(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -142457,7 +143259,7 @@ async function $do101(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/observability/datasets/{dataset_id}")(pathParams);
+  const path20 = pathToFunc("/v1/observability/datasets/{dataset_id}")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -142478,7 +143280,7 @@ async function $do101(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -142544,7 +143346,7 @@ async function $do102(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/observability/datasets/{dataset_id}/tasks/{task_id}")(pathParams);
+  const path20 = pathToFunc("/v1/observability/datasets/{dataset_id}/tasks/{task_id}")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -142565,7 +143367,7 @@ async function $do102(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -142629,7 +143431,7 @@ async function $do103(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/observability/datasets/{dataset_id}/imports/from-campaign")(pathParams);
+  const path20 = pathToFunc("/v1/observability/datasets/{dataset_id}/imports/from-campaign")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -142651,7 +143453,7 @@ async function $do103(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -142715,7 +143517,7 @@ async function $do104(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/observability/datasets/{dataset_id}/imports/from-dataset")(pathParams);
+  const path20 = pathToFunc("/v1/observability/datasets/{dataset_id}/imports/from-dataset")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -142737,7 +143539,7 @@ async function $do104(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -142801,7 +143603,7 @@ async function $do105(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/observability/datasets/{dataset_id}/imports/from-explorer")(pathParams);
+  const path20 = pathToFunc("/v1/observability/datasets/{dataset_id}/imports/from-explorer")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -142823,7 +143625,7 @@ async function $do105(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -142887,7 +143689,7 @@ async function $do106(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/observability/datasets/{dataset_id}/imports/from-file")(pathParams);
+  const path20 = pathToFunc("/v1/observability/datasets/{dataset_id}/imports/from-file")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -142909,7 +143711,7 @@ async function $do106(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -142973,7 +143775,7 @@ async function $do107(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/observability/datasets/{dataset_id}/imports/from-playground")(pathParams);
+  const path20 = pathToFunc("/v1/observability/datasets/{dataset_id}/imports/from-playground")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -142995,7 +143797,7 @@ async function $do107(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -143051,7 +143853,7 @@ async function $do108(client, request, options) {
   }
   const payload = parsed.value;
   const body = null;
-  const path18 = pathToFunc("/v1/observability/datasets")();
+  const path20 = pathToFunc("/v1/observability/datasets")();
   const query = encodeFormQuery({
     "page": payload?.page,
     "page_size": payload?.page_size,
@@ -143077,7 +143879,7 @@ async function $do108(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -143140,7 +143942,7 @@ async function $do109(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/observability/datasets/{dataset_id}/records")(pathParams);
+  const path20 = pathToFunc("/v1/observability/datasets/{dataset_id}/records")(pathParams);
   const query = encodeFormQuery({
     "page": payload.page,
     "page_size": payload.page_size
@@ -143165,7 +143967,7 @@ async function $do109(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -143228,7 +144030,7 @@ async function $do110(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/observability/datasets/{dataset_id}/tasks")(pathParams);
+  const path20 = pathToFunc("/v1/observability/datasets/{dataset_id}/tasks")(pathParams);
   const query = encodeFormQuery({
     "page": payload.page,
     "page_size": payload.page_size
@@ -143253,7 +144055,7 @@ async function $do110(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -143318,7 +144120,7 @@ async function $do111(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/observability/datasets/{dataset_id}")(pathParams);
+  const path20 = pathToFunc("/v1/observability/datasets/{dataset_id}")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -143340,7 +144142,7 @@ async function $do111(client, request, options) {
     security: requestSecurity,
     method: "PATCH",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -143396,7 +144198,7 @@ async function $do112(client, request, options) {
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
-  const path18 = pathToFunc("/v1/observability/dataset-records/bulk-delete")();
+  const path20 = pathToFunc("/v1/observability/dataset-records/bulk-delete")();
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -143418,7 +144220,7 @@ async function $do112(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -143477,7 +144279,7 @@ async function $do113(client, request, options) {
   const pathParams = {
     dataset_record_id: encodeSimple("dataset_record_id", payload.dataset_record_id, { explode: false, charEncoding: "percent" })
   };
-  const path18 = pathToFunc("/v1/observability/dataset-records/{dataset_record_id}")(pathParams);
+  const path20 = pathToFunc("/v1/observability/dataset-records/{dataset_record_id}")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -143498,7 +144300,7 @@ async function $do113(client, request, options) {
     security: requestSecurity,
     method: "DELETE",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -143557,7 +144359,7 @@ async function $do114(client, request, options) {
   const pathParams = {
     dataset_record_id: encodeSimple("dataset_record_id", payload.dataset_record_id, { explode: false, charEncoding: "percent" })
   };
-  const path18 = pathToFunc("/v1/observability/dataset-records/{dataset_record_id}")(pathParams);
+  const path20 = pathToFunc("/v1/observability/dataset-records/{dataset_record_id}")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -143578,7 +144380,7 @@ async function $do114(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -143639,7 +144441,7 @@ async function $do115(client, request, options) {
   const pathParams = {
     dataset_record_id: encodeSimple("dataset_record_id", payload.dataset_record_id, { explode: false, charEncoding: "percent" })
   };
-  const path18 = pathToFunc("/v1/observability/dataset-records/{dataset_record_id}/live-judging")(pathParams);
+  const path20 = pathToFunc("/v1/observability/dataset-records/{dataset_record_id}/live-judging")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -143661,7 +144463,7 @@ async function $do115(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -143722,7 +144524,7 @@ async function $do116(client, request, options) {
   const pathParams = {
     dataset_record_id: encodeSimple("dataset_record_id", payload.dataset_record_id, { explode: false, charEncoding: "percent" })
   };
-  const path18 = pathToFunc("/v1/observability/dataset-records/{dataset_record_id}/payload")(pathParams);
+  const path20 = pathToFunc("/v1/observability/dataset-records/{dataset_record_id}/payload")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -143744,7 +144546,7 @@ async function $do116(client, request, options) {
     security: requestSecurity,
     method: "PUT",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -143803,7 +144605,7 @@ async function $do117(client, request, options) {
   const pathParams = {
     dataset_record_id: encodeSimple("dataset_record_id", payload.dataset_record_id, { explode: false, charEncoding: "percent" })
   };
-  const path18 = pathToFunc("/v1/observability/dataset-records/{dataset_record_id}/properties")(pathParams);
+  const path20 = pathToFunc("/v1/observability/dataset-records/{dataset_record_id}/properties")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -143825,7 +144627,7 @@ async function $do117(client, request, options) {
     security: requestSecurity,
     method: "PUT",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -144055,7 +144857,7 @@ async function $do118(client, request, options) {
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
-  const path18 = pathToFunc("/v1/observability/judges")();
+  const path20 = pathToFunc("/v1/observability/judges")();
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -144077,7 +144879,7 @@ async function $do118(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -144138,7 +144940,7 @@ async function $do119(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/observability/judges/{judge_id}")(pathParams);
+  const path20 = pathToFunc("/v1/observability/judges/{judge_id}")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -144159,7 +144961,7 @@ async function $do119(client, request, options) {
     security: requestSecurity,
     method: "DELETE",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -144221,7 +145023,7 @@ async function $do120(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/observability/judges/{judge_id}")(pathParams);
+  const path20 = pathToFunc("/v1/observability/judges/{judge_id}")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -144242,7 +145044,7 @@ async function $do120(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -144306,7 +145108,7 @@ async function $do121(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/observability/judges/{judge_id}/live-judging")(pathParams);
+  const path20 = pathToFunc("/v1/observability/judges/{judge_id}/live-judging")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -144328,7 +145130,7 @@ async function $do121(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -144384,7 +145186,7 @@ async function $do122(client, request, options) {
   }
   const payload = parsed.value;
   const body = null;
-  const path18 = pathToFunc("/v1/observability/judges")();
+  const path20 = pathToFunc("/v1/observability/judges")();
   const query = encodeFormQuery({
     "model_filter": payload?.model_filter,
     "page": payload?.page,
@@ -144412,7 +145214,7 @@ async function $do122(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -144477,7 +145279,7 @@ async function $do123(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/observability/judges/{judge_id}")(pathParams);
+  const path20 = pathToFunc("/v1/observability/judges/{judge_id}")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -144499,7 +145301,7 @@ async function $do123(client, request, options) {
     security: requestSecurity,
     method: "PUT",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -144614,7 +145416,7 @@ async function $do124(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/observability/logs/fields/{field_name}/options")(pathParams);
+  const path20 = pathToFunc("/v1/observability/logs/fields/{field_name}/options")(pathParams);
   const query = encodeFormQuery({
     "from": payload.from,
     "to": payload.to
@@ -144639,7 +145441,7 @@ async function $do124(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -144690,7 +145492,7 @@ function betaObservabilityLogsList(client, options) {
   return new APIPromise4($do125(client, options));
 }
 async function $do125(client, options) {
-  const path18 = pathToFunc("/v1/observability/logs/fields")();
+  const path20 = pathToFunc("/v1/observability/logs/fields")();
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -144711,7 +145513,7 @@ async function $do125(client, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     userAgent: client._options.userAgent,
     timeoutMs: options?.timeoutMs || client._options.timeoutMs || 6e4
@@ -144763,7 +145565,7 @@ async function $do126(client, request, options) {
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload.LogsRequest, { explode: true });
-  const path18 = pathToFunc("/v1/observability/logs/search")();
+  const path20 = pathToFunc("/v1/observability/logs/search")();
   const query = encodeFormQuery({
     "cursor": payload.cursor,
     "from": payload.from,
@@ -144791,7 +145593,7 @@ async function $do126(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -144886,7 +145688,7 @@ async function $do127(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/observability/spans/evaluations/fields/{field_name}/options")(pathParams);
+  const path20 = pathToFunc("/v1/observability/spans/evaluations/fields/{field_name}/options")(pathParams);
   const query = encodeFormQuery({
     "from": payload.from,
     "to": payload.to
@@ -144911,7 +145713,7 @@ async function $do127(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -144974,7 +145776,7 @@ async function $do128(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/observability/spans/fields/{field_name}/options")(pathParams);
+  const path20 = pathToFunc("/v1/observability/spans/fields/{field_name}/options")(pathParams);
   const query = encodeFormQuery({
     "from": payload.from,
     "to": payload.to
@@ -144999,7 +145801,7 @@ async function $do128(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -145050,7 +145852,7 @@ function betaObservabilitySpansListSpanEvalFields(client, options) {
   return new APIPromise4($do129(client, options));
 }
 async function $do129(client, options) {
-  const path18 = pathToFunc("/v1/observability/spans/evaluations/fields")();
+  const path20 = pathToFunc("/v1/observability/spans/evaluations/fields")();
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -145071,7 +145873,7 @@ async function $do129(client, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     userAgent: client._options.userAgent,
     timeoutMs: options?.timeoutMs || client._options.timeoutMs || 6e4
@@ -145117,7 +145919,7 @@ function betaObservabilitySpansListSpanFields(client, options) {
   return new APIPromise4($do130(client, options));
 }
 async function $do130(client, options) {
-  const path18 = pathToFunc("/v1/observability/spans/fields")();
+  const path20 = pathToFunc("/v1/observability/spans/fields")();
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -145138,7 +145940,7 @@ async function $do130(client, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     userAgent: client._options.userAgent,
     timeoutMs: options?.timeoutMs || client._options.timeoutMs || 6e4
@@ -145192,7 +145994,7 @@ async function $do131(client, request, options) {
   const body = encodeJSON("body", payload.SpanEvaluationsRequest, {
     explode: true
   });
-  const path18 = pathToFunc("/v1/observability/spans/evaluations/search/latest")();
+  const path20 = pathToFunc("/v1/observability/spans/evaluations/search/latest")();
   const query = encodeFormQuery({
     "cursor": payload.cursor,
     "from": payload.from,
@@ -145220,7 +146022,7 @@ async function $do131(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -145279,7 +146081,7 @@ async function $do132(client, request, options) {
   const body = encodeJSON("body", payload.SpanEvaluationsRequest, {
     explode: true
   });
-  const path18 = pathToFunc("/v1/observability/spans/evaluations/search")();
+  const path20 = pathToFunc("/v1/observability/spans/evaluations/search")();
   const query = encodeFormQuery({
     "cursor": payload.cursor,
     "from": payload.from,
@@ -145307,7 +146109,7 @@ async function $do132(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -145364,7 +146166,7 @@ async function $do133(client, request, options) {
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload.SpansRequest, { explode: true });
-  const path18 = pathToFunc("/v1/observability/spans/search")();
+  const path20 = pathToFunc("/v1/observability/spans/search")();
   const query = encodeFormQuery({
     "cursor": payload.cursor,
     "from": payload.from,
@@ -145392,7 +146194,7 @@ async function $do133(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -145515,7 +146317,7 @@ async function $do134(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/observability/traces/fields/{field_name}/options")(pathParams);
+  const path20 = pathToFunc("/v1/observability/traces/fields/{field_name}/options")(pathParams);
   const query = encodeFormQuery({
     "from": payload.from,
     "to": payload.to
@@ -145540,7 +146342,7 @@ async function $do134(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -145607,7 +146409,7 @@ async function $do135(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/observability/traces/{trace_id}/spans/{span_id}")(pathParams);
+  const path20 = pathToFunc("/v1/observability/traces/{trace_id}/spans/{span_id}")(pathParams);
   const query = encodeFormQuery({
     "from": payload.from,
     "to": payload.to
@@ -145632,7 +146434,7 @@ async function $do135(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -145695,7 +146497,7 @@ async function $do136(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/observability/traces/{trace_id}")(pathParams);
+  const path20 = pathToFunc("/v1/observability/traces/{trace_id}")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -145716,7 +146518,7 @@ async function $do136(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -145766,7 +146568,7 @@ function betaObservabilityTracesGetTraceFields(client, options) {
   return new APIPromise4($do137(client, options));
 }
 async function $do137(client, options) {
-  const path18 = pathToFunc("/v1/observability/traces/fields")();
+  const path20 = pathToFunc("/v1/observability/traces/fields")();
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -145787,7 +146589,7 @@ async function $do137(client, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     userAgent: client._options.userAgent,
     timeoutMs: options?.timeoutMs || client._options.timeoutMs || 6e4
@@ -145845,7 +146647,7 @@ async function $do138(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/observability/traces/{trace_id}/spans")(pathParams);
+  const path20 = pathToFunc("/v1/observability/traces/{trace_id}/spans")(pathParams);
   const query = encodeFormQuery({
     "cursor": payload.cursor,
     "from": payload.from,
@@ -145872,7 +146674,7 @@ async function $do138(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -145929,7 +146731,7 @@ async function $do139(client, request, options) {
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload.TracesRequest, { explode: true });
-  const path18 = pathToFunc("/v1/observability/traces/search")();
+  const path20 = pathToFunc("/v1/observability/traces/search")();
   const query = encodeFormQuery({
     "cursor": payload.cursor,
     "from": payload.from,
@@ -145957,7 +146759,7 @@ async function $do139(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -146106,7 +146908,7 @@ function betaRagIngestionPipelineConfigurationsList(client, options) {
   return new APIPromise4($do140(client, options));
 }
 async function $do140(client, options) {
-  const path18 = pathToFunc("/v1/rag/ingestion_pipeline_configurations")();
+  const path20 = pathToFunc("/v1/rag/ingestion_pipeline_configurations")();
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -146127,7 +146929,7 @@ async function $do140(client, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     userAgent: client._options.userAgent,
     timeoutMs: options?.timeoutMs || client._options.timeoutMs || 6e4
@@ -146176,7 +146978,7 @@ async function $do141(client, request, options) {
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
-  const path18 = pathToFunc("/v1/rag/ingestion_pipeline_configurations")();
+  const path20 = pathToFunc("/v1/rag/ingestion_pipeline_configurations")();
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -146198,7 +147000,7 @@ async function $do141(client, request, options) {
     security: requestSecurity,
     method: "PUT",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -146259,7 +147061,7 @@ async function $do142(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/rag/ingestion_pipeline_configurations/{id}/run_info")(pathParams);
+  const path20 = pathToFunc("/v1/rag/ingestion_pipeline_configurations/{id}/run_info")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -146281,7 +147083,7 @@ async function $do142(client, request, options) {
     security: requestSecurity,
     method: "PUT",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -146369,7 +147171,7 @@ function betaRagSearchIndexesList(client, options) {
   return new APIPromise4($do143(client, options));
 }
 async function $do143(client, options) {
-  const path18 = pathToFunc("/v1/rag/search_index")();
+  const path20 = pathToFunc("/v1/rag/search_index")();
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -146390,7 +147192,7 @@ async function $do143(client, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     userAgent: client._options.userAgent,
     timeoutMs: options?.timeoutMs || client._options.timeoutMs || 6e4
@@ -146439,7 +147241,7 @@ async function $do144(client, request, options) {
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
-  const path18 = pathToFunc("/v1/rag/search_index")();
+  const path20 = pathToFunc("/v1/rag/search_index")();
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -146461,7 +147263,7 @@ async function $do144(client, request, options) {
     security: requestSecurity,
     method: "PUT",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -146601,7 +147403,7 @@ async function $do145(client, request, options) {
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
-  const path18 = pathToFunc("/v1/chat/completions")();
+  const path20 = pathToFunc("/v1/chat/completions")();
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -146623,7 +147425,7 @@ async function $do145(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -146678,7 +147480,7 @@ async function $do146(client, request, options) {
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
-  const path18 = pathToFunc("/v1/chat/completions#stream")();
+  const path20 = pathToFunc("/v1/chat/completions#stream")();
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "text/event-stream"
@@ -146700,7 +147502,7 @@ async function $do146(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -147262,8 +148064,8 @@ var init_parseUtil = __esm({
     init_errors9();
     init_en2();
     makeIssue = (params) => {
-      const { data, path: path18, errorMaps, issueData } = params;
-      const fullPath = [...path18, ...issueData.path || []];
+      const { data, path: path20, errorMaps, issueData } = params;
+      const fullPath = [...path20, ...issueData.path || []];
       const fullIssue = {
         ...issueData,
         path: fullPath
@@ -147543,11 +148345,11 @@ var init_types8 = __esm({
     init_parseUtil();
     init_util2();
     ParseInputLazyPath = class {
-      constructor(parent, value, path18, key) {
+      constructor(parent, value, path20, key) {
         this._cachedPath = [];
         this.parent = parent;
         this.data = value;
-        this._path = path18;
+        this._path = path20;
         this._key = key;
       }
       get path() {
@@ -152464,7 +153266,7 @@ async function $do147(client, request, options) {
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
-  const path18 = pathToFunc("/v1/classifications")();
+  const path20 = pathToFunc("/v1/classifications")();
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -152486,7 +153288,7 @@ async function $do147(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -152541,7 +153343,7 @@ async function $do148(client, request, options) {
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
-  const path18 = pathToFunc("/v1/chat/classifications")();
+  const path20 = pathToFunc("/v1/chat/classifications")();
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -152563,7 +153365,7 @@ async function $do148(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -152618,7 +153420,7 @@ async function $do149(client, request, options) {
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
-  const path18 = pathToFunc("/v1/moderations")();
+  const path20 = pathToFunc("/v1/moderations")();
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -152640,7 +153442,7 @@ async function $do149(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -152695,7 +153497,7 @@ async function $do150(client, request, options) {
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
-  const path18 = pathToFunc("/v1/chat/moderations")();
+  const path20 = pathToFunc("/v1/chat/moderations")();
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -152717,7 +153519,7 @@ async function $do150(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -152811,7 +153613,7 @@ async function $do151(client, request, options) {
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
-  const path18 = pathToFunc("/v1/embeddings")();
+  const path20 = pathToFunc("/v1/embeddings")();
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -152833,7 +153635,7 @@ async function $do151(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -152909,7 +153711,7 @@ async function $do152(client, request, options) {
   }
   const payload = parsed.value;
   const body = null;
-  const path18 = pathToFunc("/v1/workflows/events/stream")();
+  const path20 = pathToFunc("/v1/workflows/events/stream")();
   const query = encodeFormQuery({
     "activity_id": payload?.activity_id,
     "activity_name": payload?.activity_name,
@@ -152947,7 +153749,7 @@ async function $do152(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -153012,7 +153814,7 @@ async function $do153(client, request, options) {
   }
   const payload = parsed.value;
   const body = null;
-  const path18 = pathToFunc("/v1/workflows/events/list")();
+  const path20 = pathToFunc("/v1/workflows/events/list")();
   const query = encodeFormQuery({
     "cursor": payload?.cursor,
     "limit": payload?.limit,
@@ -153040,7 +153842,7 @@ async function $do153(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -153128,7 +153930,7 @@ async function $do154(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/files/{file_id}")(pathParams);
+  const path20 = pathToFunc("/v1/files/{file_id}")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -153149,7 +153951,7 @@ async function $do154(client, request, options) {
     security: requestSecurity,
     method: "DELETE",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -153207,7 +154009,7 @@ async function $do155(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/files/{file_id}/content")(pathParams);
+  const path20 = pathToFunc("/v1/files/{file_id}/content")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/octet-stream"
   }));
@@ -153228,7 +154030,7 @@ async function $do155(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -153286,7 +154088,7 @@ async function $do156(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/files/{file_id}/url")(pathParams);
+  const path20 = pathToFunc("/v1/files/{file_id}/url")(pathParams);
   const query = encodeFormQuery({
     "expiry": payload.expiry
   });
@@ -153310,7 +154112,7 @@ async function $do156(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -153363,7 +154165,7 @@ async function $do157(client, request, options) {
   }
   const payload = parsed.value;
   const body = null;
-  const path18 = pathToFunc("/v1/files")();
+  const path20 = pathToFunc("/v1/files")();
   const query = encodeFormQuery({
     "include_total": payload?.include_total,
     "mimetypes": payload?.mimetypes,
@@ -153394,7 +154196,7 @@ async function $do157(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -153453,7 +154255,7 @@ async function $do158(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/files/{file_id}")(pathParams);
+  const path20 = pathToFunc("/v1/files/{file_id}")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -153474,7 +154276,7 @@ async function $do158(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -153548,7 +154350,7 @@ async function $do159(client, request, options) {
   if (payload.visibility !== void 0) {
     appendForm(body, "visibility", payload.visibility);
   }
-  const path18 = pathToFunc("/v1/files")();
+  const path20 = pathToFunc("/v1/files")();
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -153569,7 +154371,7 @@ async function $do159(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -153696,7 +154498,7 @@ async function $do160(client, request, options) {
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
-  const path18 = pathToFunc("/v1/fim/completions")();
+  const path20 = pathToFunc("/v1/fim/completions")();
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -153718,7 +154520,7 @@ async function $do160(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -153773,7 +154575,7 @@ async function $do161(client, request, options) {
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
-  const path18 = pathToFunc("/v1/fim/completions#stream")();
+  const path20 = pathToFunc("/v1/fim/completions#stream")();
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "text/event-stream"
@@ -153795,7 +154597,7 @@ async function $do161(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -153899,7 +154701,7 @@ async function $do162(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/fine_tuning/jobs/{job_id}/cancel")(pathParams);
+  const path20 = pathToFunc("/v1/fine_tuning/jobs/{job_id}/cancel")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -153920,7 +154722,7 @@ async function $do162(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -153971,7 +154773,7 @@ async function $do163(client, request, options) {
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
-  const path18 = pathToFunc("/v1/fine_tuning/jobs")();
+  const path20 = pathToFunc("/v1/fine_tuning/jobs")();
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -153993,7 +154795,7 @@ async function $do163(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -154051,7 +154853,7 @@ async function $do164(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/fine_tuning/jobs/{job_id}")(pathParams);
+  const path20 = pathToFunc("/v1/fine_tuning/jobs/{job_id}")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -154072,7 +154874,7 @@ async function $do164(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -154123,7 +154925,7 @@ async function $do165(client, request, options) {
   }
   const payload = parsed.value;
   const body = null;
-  const path18 = pathToFunc("/v1/fine_tuning/jobs")();
+  const path20 = pathToFunc("/v1/fine_tuning/jobs")();
   const query = encodeFormQuery({
     "created_after": payload?.created_after,
     "created_before": payload?.created_before,
@@ -154156,7 +154958,7 @@ async function $do165(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -154215,7 +155017,7 @@ async function $do166(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/fine_tuning/jobs/{job_id}/start")(pathParams);
+  const path20 = pathToFunc("/v1/fine_tuning/jobs/{job_id}/start")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -154236,7 +155038,7 @@ async function $do166(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -154369,7 +155171,7 @@ async function $do167(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/fine_tuning/models/{model_id}/archive")(pathParams);
+  const path20 = pathToFunc("/v1/fine_tuning/models/{model_id}/archive")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -154390,7 +155192,7 @@ async function $do167(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -154448,7 +155250,7 @@ async function $do168(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/models/{model_id}")(pathParams);
+  const path20 = pathToFunc("/v1/models/{model_id}")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -154469,7 +155271,7 @@ async function $do168(client, request, options) {
     security: requestSecurity,
     method: "DELETE",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -154525,7 +155327,7 @@ async function $do169(client, request, options) {
   }
   const payload = parsed.value;
   const body = null;
-  const path18 = pathToFunc("/v1/models")();
+  const path20 = pathToFunc("/v1/models")();
   const query = encodeFormQuery({
     "model": payload?.model,
     "provider": payload?.provider
@@ -154550,7 +155352,7 @@ async function $do169(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -154613,7 +155415,7 @@ async function $do170(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/models/{model_id}")(pathParams);
+  const path20 = pathToFunc("/v1/models/{model_id}")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -154634,7 +155436,7 @@ async function $do170(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -154695,7 +155497,7 @@ async function $do171(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/fine_tuning/models/{model_id}/archive")(pathParams);
+  const path20 = pathToFunc("/v1/fine_tuning/models/{model_id}/archive")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -154716,7 +155518,7 @@ async function $do171(client, request, options) {
     security: requestSecurity,
     method: "DELETE",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -154776,7 +155578,7 @@ async function $do172(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/fine_tuning/models/{model_id}")(pathParams);
+  const path20 = pathToFunc("/v1/fine_tuning/models/{model_id}")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -154798,7 +155600,7 @@ async function $do172(client, request, options) {
     security: requestSecurity,
     method: "PATCH",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -154920,7 +155722,7 @@ async function $do173(client, request, options) {
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
-  const path18 = pathToFunc("/v1/ocr")();
+  const path20 = pathToFunc("/v1/ocr")();
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -154942,7 +155744,7 @@ async function $do173(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -155018,7 +155820,7 @@ async function $do174(client, request, options) {
   const pathParams = {
     workflow_identifier: encodeSimple("workflow_identifier", payload.workflow_identifier, { explode: false, charEncoding: "percent" })
   };
-  const path18 = pathToFunc("/v1/workflows/{workflow_identifier}/archive")(pathParams);
+  const path20 = pathToFunc("/v1/workflows/{workflow_identifier}/archive")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -155039,7 +155841,7 @@ async function $do174(client, request, options) {
     security: requestSecurity,
     method: "PUT",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -155095,7 +155897,7 @@ async function $do175(client, request, options) {
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
-  const path18 = pathToFunc("/v1/workflows/archive")();
+  const path20 = pathToFunc("/v1/workflows/archive")();
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -155117,7 +155919,7 @@ async function $do175(client, request, options) {
     security: requestSecurity,
     method: "PUT",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -155172,7 +155974,7 @@ async function $do176(client, request, options) {
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
-  const path18 = pathToFunc("/v1/workflows/unarchive")();
+  const path20 = pathToFunc("/v1/workflows/unarchive")();
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -155194,7 +155996,7 @@ async function $do176(client, request, options) {
     security: requestSecurity,
     method: "PUT",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -155254,7 +156056,7 @@ async function $do177(client, request, options) {
   const pathParams = {
     workflow_identifier: encodeSimple("workflow_identifier", payload.workflow_identifier, { explode: false, charEncoding: "percent" })
   };
-  const path18 = pathToFunc("/v1/workflows/{workflow_identifier}/execute")(pathParams);
+  const path20 = pathToFunc("/v1/workflows/{workflow_identifier}/execute")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -155276,7 +156078,7 @@ async function $do177(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -155336,7 +156138,7 @@ async function $do178(client, request, options) {
   const pathParams = {
     workflow_registration_id: encodeSimple("workflow_registration_id", payload.workflow_registration_id, { explode: false, charEncoding: "percent" })
   };
-  const path18 = pathToFunc("/v1/workflows/registrations/{workflow_registration_id}/execute")(pathParams);
+  const path20 = pathToFunc("/v1/workflows/registrations/{workflow_registration_id}/execute")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -155358,7 +156160,7 @@ async function $do178(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -155416,7 +156218,7 @@ async function $do179(client, request, options) {
   const pathParams = {
     workflow_identifier: encodeSimple("workflow_identifier", payload.workflow_identifier, { explode: false, charEncoding: "percent" })
   };
-  const path18 = pathToFunc("/v1/workflows/{workflow_identifier}")(pathParams);
+  const path20 = pathToFunc("/v1/workflows/{workflow_identifier}")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -155437,7 +156239,7 @@ async function $do179(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -155496,7 +156298,7 @@ async function $do180(client, request, options) {
   const pathParams = {
     workflow_registration_id: encodeSimple("workflow_registration_id", payload.workflow_registration_id, { explode: false, charEncoding: "percent" })
   };
-  const path18 = pathToFunc("/v1/workflows/registrations/{workflow_registration_id}")(pathParams);
+  const path20 = pathToFunc("/v1/workflows/registrations/{workflow_registration_id}")(pathParams);
   const query = encodeFormQuery({
     "include_shared": payload.include_shared,
     "with_workflow": payload.with_workflow
@@ -155521,7 +156323,7 @@ async function $do180(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -155578,7 +156380,7 @@ async function $do181(client, request, options) {
   }
   const payload = parsed.value;
   const body = null;
-  const path18 = pathToFunc("/v1/workflows/registrations")();
+  const path20 = pathToFunc("/v1/workflows/registrations")();
   const query = encodeFormQuery({
     "active_only": payload?.active_only,
     "archived": payload?.archived,
@@ -155611,7 +156413,7 @@ async function $do181(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -155737,7 +156539,7 @@ async function $do182(client, request, options) {
   }
   const payload = parsed.value;
   const body = null;
-  const path18 = pathToFunc("/v1/workflows")();
+  const path20 = pathToFunc("/v1/workflows")();
   const query = encodeFormQuery({
     "active_only": payload?.active_only,
     "archived": payload?.archived,
@@ -155772,7 +156574,7 @@ async function $do182(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -155866,7 +156668,7 @@ async function $do183(client, request, options) {
   const pathParams = {
     workflow_identifier: encodeSimple("workflow_identifier", payload.workflow_identifier, { explode: false, charEncoding: "percent" })
   };
-  const path18 = pathToFunc("/v1/workflows/{workflow_identifier}/unarchive")(pathParams);
+  const path20 = pathToFunc("/v1/workflows/{workflow_identifier}/unarchive")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -155887,7 +156689,7 @@ async function $do183(client, request, options) {
     security: requestSecurity,
     method: "PUT",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -155948,7 +156750,7 @@ async function $do184(client, request, options) {
   const pathParams = {
     workflow_identifier: encodeSimple("workflow_identifier", payload.workflow_identifier, { explode: false, charEncoding: "percent" })
   };
-  const path18 = pathToFunc("/v1/workflows/{workflow_identifier}")(pathParams);
+  const path20 = pathToFunc("/v1/workflows/{workflow_identifier}")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -155970,7 +156772,7 @@ async function $do184(client, request, options) {
     security: requestSecurity,
     method: "PUT",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -156032,7 +156834,7 @@ async function $do185(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/workflows/deployments/{name}")(pathParams);
+  const path20 = pathToFunc("/v1/workflows/deployments/{name}")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -156053,7 +156855,7 @@ async function $do185(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -156109,7 +156911,7 @@ async function $do186(client, request, options) {
   }
   const payload = parsed.value;
   const body = null;
-  const path18 = pathToFunc("/v1/workflows/deployments")();
+  const path20 = pathToFunc("/v1/workflows/deployments")();
   const query = encodeFormQuery({
     "active_only": payload?.active_only,
     "cursor": payload?.cursor,
@@ -156139,7 +156941,7 @@ async function $do186(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -156221,7 +157023,7 @@ async function $do187(client, request, options) {
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
-  const path18 = pathToFunc("/v1/workflows/executions/cancel")();
+  const path20 = pathToFunc("/v1/workflows/executions/cancel")();
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -156243,7 +157045,7 @@ async function $do187(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -156298,7 +157100,7 @@ async function $do188(client, request, options) {
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
-  const path18 = pathToFunc("/v1/workflows/executions/terminate")();
+  const path20 = pathToFunc("/v1/workflows/executions/terminate")();
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -156320,7 +157122,7 @@ async function $do188(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -156381,7 +157183,7 @@ async function $do189(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/workflows/executions/{execution_id}/cancel")(pathParams);
+  const path20 = pathToFunc("/v1/workflows/executions/{execution_id}/cancel")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -156402,7 +157204,7 @@ async function $do189(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -156464,7 +157266,7 @@ async function $do190(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/workflows/executions/{execution_id}")(pathParams);
+  const path20 = pathToFunc("/v1/workflows/executions/{execution_id}")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -156485,7 +157287,7 @@ async function $do190(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -156547,7 +157349,7 @@ async function $do191(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/workflows/executions/{execution_id}/history")(pathParams);
+  const path20 = pathToFunc("/v1/workflows/executions/{execution_id}/history")(pathParams);
   const query = encodeFormQuery({
     "decode_payloads": payload.decode_payloads
   });
@@ -156571,7 +157373,7 @@ async function $do191(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -156634,7 +157436,7 @@ async function $do192(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/workflows/executions/{execution_id}/logs")(pathParams);
+  const path20 = pathToFunc("/v1/workflows/executions/{execution_id}/logs")(pathParams);
   const query = encodeFormQuery({
     "activity_id": payload.activity_id,
     "after": payload.after,
@@ -156664,7 +157466,7 @@ async function $do192(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -156727,7 +157529,7 @@ async function $do193(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/workflows/executions/{execution_id}/trace/events")(pathParams);
+  const path20 = pathToFunc("/v1/workflows/executions/{execution_id}/trace/events")(pathParams);
   const query = encodeFormQuery({
     "include_internal_events": payload.include_internal_events,
     "merge_same_id_events": payload.merge_same_id_events
@@ -156752,7 +157554,7 @@ async function $do193(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -156815,7 +157617,7 @@ async function $do194(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/workflows/executions/{execution_id}/trace/otel")(pathParams);
+  const path20 = pathToFunc("/v1/workflows/executions/{execution_id}/trace/otel")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -156836,7 +157638,7 @@ async function $do194(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -156898,7 +157700,7 @@ async function $do195(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/workflows/executions/{execution_id}/trace/summary")(pathParams);
+  const path20 = pathToFunc("/v1/workflows/executions/{execution_id}/trace/summary")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -156919,7 +157721,7 @@ async function $do195(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -156983,7 +157785,7 @@ async function $do196(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/workflows/executions/{execution_id}/queries")(pathParams);
+  const path20 = pathToFunc("/v1/workflows/executions/{execution_id}/queries")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -157005,7 +157807,7 @@ async function $do196(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -157069,7 +157871,7 @@ async function $do197(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/workflows/executions/{execution_id}/reset")(pathParams);
+  const path20 = pathToFunc("/v1/workflows/executions/{execution_id}/reset")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -157091,7 +157893,7 @@ async function $do197(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -157155,7 +157957,7 @@ async function $do198(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/workflows/executions/{execution_id}/signals")(pathParams);
+  const path20 = pathToFunc("/v1/workflows/executions/{execution_id}/signals")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -157177,7 +157979,7 @@ async function $do198(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -157239,7 +158041,7 @@ async function $do199(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/workflows/executions/{execution_id}/stream")(pathParams);
+  const path20 = pathToFunc("/v1/workflows/executions/{execution_id}/stream")(pathParams);
   const query = encodeFormQuery({
     "event_source": payload.event_source,
     "last_event_id": payload.last_event_id
@@ -157264,7 +158066,7 @@ async function $do199(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -157335,7 +158137,7 @@ async function $do200(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/workflows/executions/{execution_id}/logs/stream")(pathParams);
+  const path20 = pathToFunc("/v1/workflows/executions/{execution_id}/logs/stream")(pathParams);
   const query = encodeFormQuery({
     "activity_id": payload.activity_id,
     "after": payload.after,
@@ -157362,7 +158164,7 @@ async function $do200(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -157433,7 +158235,7 @@ async function $do201(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/workflows/executions/{execution_id}/terminate")(pathParams);
+  const path20 = pathToFunc("/v1/workflows/executions/{execution_id}/terminate")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -157454,7 +158256,7 @@ async function $do201(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -157518,7 +158320,7 @@ async function $do202(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/workflows/executions/{execution_id}/updates")(pathParams);
+  const path20 = pathToFunc("/v1/workflows/executions/{execution_id}/updates")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -157540,7 +158342,7 @@ async function $do202(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -157739,7 +158541,7 @@ async function $do203(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/workflows/{workflow_name}/metrics")(pathParams);
+  const path20 = pathToFunc("/v1/workflows/{workflow_name}/metrics")(pathParams);
   const query = encodeFormQuery({
     "end_time": payload.end_time,
     "start_time": payload.start_time
@@ -157764,7 +158566,7 @@ async function $do203(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -157867,7 +158669,7 @@ async function $do204(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/workflows/runs/{run_id}")(pathParams);
+  const path20 = pathToFunc("/v1/workflows/runs/{run_id}")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -157888,7 +158690,7 @@ async function $do204(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -157950,7 +158752,7 @@ async function $do205(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/workflows/runs/{run_id}/history")(pathParams);
+  const path20 = pathToFunc("/v1/workflows/runs/{run_id}/history")(pathParams);
   const query = encodeFormQuery({
     "decode_payloads": payload.decode_payloads
   });
@@ -157974,7 +158776,7 @@ async function $do205(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -158031,7 +158833,7 @@ async function $do206(client, request, options) {
   }
   const payload = parsed.value;
   const body = null;
-  const path18 = pathToFunc("/v1/workflows/runs")();
+  const path20 = pathToFunc("/v1/workflows/runs")();
   const query = encodeFormQuery({
     "deployment_name": payload?.deployment_name,
     "end_time_after": payload?.end_time_after,
@@ -158067,7 +158869,7 @@ async function $do206(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -158197,7 +158999,7 @@ async function $do207(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/workflows/schedules/{schedule_id}")(pathParams);
+  const path20 = pathToFunc("/v1/workflows/schedules/{schedule_id}")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -158218,7 +159020,7 @@ async function $do207(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -158274,7 +159076,7 @@ async function $do208(client, request, options) {
   }
   const payload = parsed.value;
   const body = null;
-  const path18 = pathToFunc("/v1/workflows/schedules")();
+  const path20 = pathToFunc("/v1/workflows/schedules")();
   const query = encodeFormQuery({
     "next_page_token": payload?.next_page_token,
     "page_size": payload?.page_size,
@@ -158302,7 +159104,7 @@ async function $do208(client, request, options) {
     security: requestSecurity,
     method: "GET",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     query,
     body,
@@ -158399,7 +159201,7 @@ async function $do209(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/workflows/schedules/{schedule_id}/pause")(pathParams);
+  const path20 = pathToFunc("/v1/workflows/schedules/{schedule_id}/pause")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -158421,7 +159223,7 @@ async function $do209(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -158485,7 +159287,7 @@ async function $do210(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/workflows/schedules/{schedule_id}/resume")(pathParams);
+  const path20 = pathToFunc("/v1/workflows/schedules/{schedule_id}/resume")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -158507,7 +159309,7 @@ async function $do210(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -158563,7 +159365,7 @@ async function $do211(client, request, options) {
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
-  const path18 = pathToFunc("/v1/workflows/schedules")();
+  const path20 = pathToFunc("/v1/workflows/schedules")();
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -158585,7 +159387,7 @@ async function $do211(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -158648,7 +159450,7 @@ async function $do212(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/workflows/schedules/{schedule_id}/trigger")(pathParams);
+  const path20 = pathToFunc("/v1/workflows/schedules/{schedule_id}/trigger")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -158670,7 +159472,7 @@ async function $do212(client, request, options) {
     security: requestSecurity,
     method: "POST",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -158732,7 +159534,7 @@ async function $do213(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/workflows/schedules/{schedule_id}")(pathParams);
+  const path20 = pathToFunc("/v1/workflows/schedules/{schedule_id}")(pathParams);
   const headers = new Headers(compactMap({
     Accept: "application/json"
   }));
@@ -158753,7 +159555,7 @@ async function $do213(client, request, options) {
     security: requestSecurity,
     method: "DELETE",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -158817,7 +159619,7 @@ async function $do214(client, request, options) {
       charEncoding: "percent"
     })
   };
-  const path18 = pathToFunc("/v1/workflows/schedules/{schedule_id}")(pathParams);
+  const path20 = pathToFunc("/v1/workflows/schedules/{schedule_id}")(pathParams);
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json"
@@ -158839,7 +159641,7 @@ async function $do214(client, request, options) {
     security: requestSecurity,
     method: "PATCH",
     baseURL: options?.serverURL,
-    path: path18,
+    path: path20,
     headers,
     body,
     userAgent: client._options.userAgent,
@@ -162043,18 +162845,18 @@ var init_all = __esm({
 // packages/runtime/dist/knowledge-write.js
 async function readAuditLog(auditPath) {
   try {
-    return (await (0, import_promises9.readFile)(auditPath, "utf8")).trim().split("\n").filter(Boolean).map((line) => JSON.parse(line));
+    return (await (0, import_promises11.readFile)(auditPath, "utf8")).trim().split("\n").filter(Boolean).map((line) => JSON.parse(line));
   } catch {
     return [];
   }
 }
-var import_promises9, import_node_path8, import_node_crypto6, CANONICAL_DOCS, KnowledgeWriteDeniedError, KnowledgeWriter;
+var import_promises11, import_node_path10, import_node_crypto7, CANONICAL_DOCS, KnowledgeWriteDeniedError, KnowledgeWriter;
 var init_knowledge_write = __esm({
   "packages/runtime/dist/knowledge-write.js"() {
     "use strict";
-    import_promises9 = require("node:fs/promises");
-    import_node_path8 = __toESM(require("node:path"), 1);
-    import_node_crypto6 = require("node:crypto");
+    import_promises11 = require("node:fs/promises");
+    import_node_path10 = __toESM(require("node:path"), 1);
+    import_node_crypto7 = require("node:crypto");
     CANONICAL_DOCS = ["doc/business.md", "doc/rules.md", "doc/query_patterns.md", ".pi/SYSTEM.md"];
     KnowledgeWriteDeniedError = class extends Error {
       constructor(message) {
@@ -162066,17 +162868,17 @@ var init_knowledge_write = __esm({
       root;
       auditPath;
       constructor(root, auditPath) {
-        this.root = import_node_path8.default.resolve(root);
-        this.auditPath = auditPath ?? import_node_path8.default.join(this.root, ".audit.log");
+        this.root = import_node_path10.default.resolve(root);
+        this.auditPath = auditPath ?? import_node_path10.default.join(this.root, ".audit.log");
       }
       resolve(relativePath) {
-        const target = import_node_path8.default.resolve(this.root, relativePath);
-        if (!target.startsWith(`${this.root}${import_node_path8.default.sep}`) && target !== this.root)
+        const target = import_node_path10.default.resolve(this.root, relativePath);
+        if (!target.startsWith(`${this.root}${import_node_path10.default.sep}`) && target !== this.root)
           throw new Error("KNOWLEDGE_PATH_ESCAPE");
         return target;
       }
       assertAllowed(operation, relativePath) {
-        const normalized = relativePath.split(import_node_path8.default.sep).join("/").replace(/^\.\//, "");
+        const normalized = relativePath.split(import_node_path10.default.sep).join("/").replace(/^\.\//, "");
         if (normalized === "agent.md" || normalized.startsWith(".pi/"))
           throw new KnowledgeWriteDeniedError("SYSTEM_PROMPT_IMMUTABLE");
         if (CANONICAL_DOCS.includes(normalized) && operation !== "update_schema")
@@ -162087,26 +162889,26 @@ var init_knowledge_write = __esm({
       async write(operation, relativePath, content) {
         this.assertAllowed(operation, relativePath);
         const target = this.resolve(relativePath);
-        await (0, import_promises9.mkdir)(import_node_path8.default.dirname(target), { recursive: true });
+        await (0, import_promises11.mkdir)(import_node_path10.default.dirname(target), { recursive: true });
         if (operation === "append_learning") {
           let previous = "";
           try {
-            previous = await (0, import_promises9.readFile)(target, "utf8");
+            previous = await (0, import_promises11.readFile)(target, "utf8");
           } catch {
           }
-          await (0, import_promises9.writeFile)(target, previous + (previous.endsWith("\n") || previous === "" ? "" : "\n") + content + "\n", "utf8");
+          await (0, import_promises11.writeFile)(target, previous + (previous.endsWith("\n") || previous === "" ? "" : "\n") + content + "\n", "utf8");
           await this.audit(operation, relativePath);
           return { operation, path: relativePath, bytesWritten: content.length };
         }
-        const temp = `${target}.${(0, import_node_crypto6.randomUUID)()}.tmp`;
-        await (0, import_promises9.writeFile)(temp, content, "utf8");
-        await (0, import_promises9.rename)(temp, target);
+        const temp = `${target}.${(0, import_node_crypto7.randomUUID)()}.tmp`;
+        await (0, import_promises11.writeFile)(temp, content, "utf8");
+        await (0, import_promises11.rename)(temp, target);
         await this.audit(operation, relativePath);
-        return { operation, path: relativePath, bytesWritten: (await (0, import_promises9.stat)(target)).size };
+        return { operation, path: relativePath, bytesWritten: (await (0, import_promises11.stat)(target)).size };
       }
       async audit(operation, relativePath) {
-        await (0, import_promises9.mkdir)(import_node_path8.default.dirname(this.auditPath), { recursive: true });
-        await (0, import_promises9.appendFile)(this.auditPath, `${JSON.stringify({ id: (0, import_node_crypto6.randomUUID)(), timestamp: Date.now(), operation, path: relativePath })}
+        await (0, import_promises11.mkdir)(import_node_path10.default.dirname(this.auditPath), { recursive: true });
+        await (0, import_promises11.appendFile)(this.auditPath, `${JSON.stringify({ id: (0, import_node_crypto7.randomUUID)(), timestamp: Date.now(), operation, path: relativePath })}
 `, "utf8");
       }
     };
@@ -162117,11 +162919,11 @@ var init_knowledge_write = __esm({
 function canonicalLocalTools() {
   return [
     { name: "list_workspace", identity: "list_workspace", origin: "local", description: "List files in the session workspace.", parameters: typebox_exports.Object({}) },
-    { name: "read_file", identity: "read_file", origin: "local", description: "Read a workspace file.", parameters: typebox_exports.Object({ path: typebox_exports.String() }) },
+    { name: "read_file", identity: "read_file", origin: "local", description: "Read a workspace file, optionally selecting one-based inclusive lines. Results are capped at 50 KiB.", parameters: typebox_exports.Object({ path: typebox_exports.String(), startLine: typebox_exports.Optional(typebox_exports.Integer({ minimum: 1 })), endLine: typebox_exports.Optional(typebox_exports.Integer({ minimum: 1 })) }) },
     { name: "write_file", identity: "write_file", origin: "local", description: "Write a workspace file.", parameters: typebox_exports.Object({ path: typebox_exports.String(), content: typebox_exports.String() }) },
     { name: "run_python", identity: "run_python", origin: "local", description: "Execute Python analysis code in an isolated job.", parameters: typebox_exports.Object({ code: typebox_exports.String({ minLength: 1 }), description: typebox_exports.Optional(typebox_exports.String()) }) },
-    { name: "search_knowledge", identity: "search_knowledge", origin: "local", description: "Search the Markdown knowledge base.", parameters: typebox_exports.Object({ query: typebox_exports.String({ minLength: 1 }) }) },
-    { name: "read_knowledge", identity: "read_knowledge", origin: "local", description: "Read a knowledge document.", parameters: typebox_exports.Object({ path: typebox_exports.String({ minLength: 1 }) }) },
+    { name: "search_knowledge", identity: "search_knowledge", origin: "local", description: "Search the Markdown knowledge base and return readable matching snippets with locations.", parameters: typebox_exports.Object({ query: typebox_exports.String({ minLength: 1 }) }) },
+    { name: "read_knowledge", identity: "read_knowledge", origin: "local", description: "Read a knowledge document, optionally selecting one-based inclusive lines. Results are capped at 50 KiB.", parameters: typebox_exports.Object({ path: typebox_exports.String({ minLength: 1 }), startLine: typebox_exports.Optional(typebox_exports.Integer({ minimum: 1 })), endLine: typebox_exports.Optional(typebox_exports.Integer({ minimum: 1 })) }) },
     { name: "update_knowledge", identity: "update_knowledge", origin: "local", description: "Append learning, write drafts, or update schema snapshots.", parameters: typebox_exports.Object({ operation: typebox_exports.Union([typebox_exports.Literal("append_learning"), typebox_exports.Literal("write_draft"), typebox_exports.Literal("update_schema")]), path: typebox_exports.String({ minLength: 1 }), content: typebox_exports.String() }) },
     { name: "load_skill", identity: "load_skill", origin: "local", description: "Load a discovered skill by name.", parameters: typebox_exports.Object({ name: typebox_exports.String({ minLength: 1 }) }) },
     { name: "generate_dashboard", identity: "generate_dashboard", origin: "local", description: "Validate, create or edit static/semantic dashboards.", parameters: typebox_exports.Object({ operation: typebox_exports.Union([typebox_exports.Literal("create"), typebox_exports.Literal("edit"), typebox_exports.Literal("validate")]), mode: typebox_exports.Union([typebox_exports.Literal("static"), typebox_exports.Literal("semantic")]), version: typebox_exports.Union([typebox_exports.Literal("v3"), typebox_exports.Literal("v4")]), spec: typebox_exports.Unknown(), editPath: typebox_exports.Optional(typebox_exports.String()) }) },
@@ -162167,8 +162969,42 @@ var init_tools_catalog = __esm({
 });
 
 // packages/runtime/dist/agent-assembly.js
+function canonicalTool(name) {
+  const tool = CANONICAL_TOOL_BY_NAME.get(name);
+  if (!tool)
+    throw new Error(`CANONICAL_TOOL_MISSING:${name}`);
+  return tool;
+}
 function text(content, details = void 0) {
   return { content: [{ type: "text", text: content }], details };
+}
+function throwIfAborted(signal) {
+  if (signal?.aborted)
+    throw new Error("EXPORT_CANCELLED");
+}
+function csvField(value) {
+  if (value === null || value === void 0)
+    return "";
+  const raw = typeof value === "string" ? value : typeof value === "object" ? JSON.stringify(value) : String(value);
+  const escaped = raw.replaceAll('"', '""');
+  return typeof value === "string" || /[",\r\n]/.test(raw) ? `"${escaped}"` : escaped;
+}
+function csvHeaderField(value) {
+  return /[",\r\n]/.test(value) ? csvField(value) : value;
+}
+function nativeSkillResult(result, name) {
+  if (!result || typeof result !== "object" || !("content" in result) || !Array.isArray(result.content)) {
+    throw new Error("NATIVE_SKILL_INVALID_RESULT");
+  }
+  const content = result.content.filter((item) => {
+    if (!item || typeof item !== "object" || !("type" in item))
+      return false;
+    const type = item.type;
+    return type === "text" || type === "image";
+  });
+  if (content.length === 0)
+    throw new Error("NATIVE_SKILL_EMPTY_RESULT");
+  return { content, details: { nativeSkill: name } };
 }
 function buildModel(profile) {
   const anthropic = profile.provider === "anthropic";
@@ -162190,56 +163026,131 @@ function buildModel(profile) {
   };
 }
 function defineTool(name, description, parameters, execute) {
-  return { name, label: name, description, parameters, execute: async (_id, params) => execute(params) };
+  return {
+    name,
+    label: name,
+    description,
+    parameters,
+    execute: async (toolCallId, params, signal, onUpdate, context2) => execute(params, { toolCallId, signal, onUpdate, context: context2 })
+  };
 }
 function buildAgentTools(deps) {
   const writer = deps.knowledgeRoot ? new KnowledgeWriter(deps.knowledgeRoot) : void 0;
-  const workspaceDir = deps.pythonWorkspaceDir ?? deps.workspace.root;
+  const sessionIdFor = (native) => native.context?.sessionId ?? deps.sessionId;
+  const workspaceFor = async (native) => {
+    const sessionId = sessionIdFor(native);
+    return sessionId ? deps.workspace.scoped(sessionId) : deps.workspace;
+  };
+  const artifactPathFor = (native, relativePath) => {
+    const sessionId = sessionIdFor(native);
+    return sessionId ? `${sessionId}/${relativePath}` : relativePath;
+  };
   const tools = [
-    defineTool("list_workspace", canonicalLocalTools()[0].description, typebox_exports.Object({}), async () => text((await deps.workspace.list()).filter((entry) => !entry.split(import_node_path9.default.sep).includes(".audit.log")).join("\n") || "(workspace empty)")),
-    defineTool("read_file", canonicalLocalTools()[1].description, typebox_exports.Object({ path: typebox_exports.String() }), async (p) => text(await deps.workspace.read(p.path))),
-    defineTool("write_file", canonicalLocalTools()[2].description, typebox_exports.Object({ path: typebox_exports.String(), content: typebox_exports.String() }), async (p) => {
-      await deps.workspace.write(p.path, p.content);
-      deps.emitArtifact?.(p.path);
+    defineTool("list_workspace", canonicalTool("list_workspace").description, typebox_exports.Object({}), async (_p, native) => {
+      const workspace = await workspaceFor(native);
+      return text((await workspace.list()).filter((entry) => !entry.split(import_node_path11.default.sep).includes(".audit.log")).join("\n") || "(workspace empty)");
+    }),
+    defineTool("read_file", canonicalTool("read_file").description, typebox_exports.Object({ path: typebox_exports.String(), startLine: typebox_exports.Optional(typebox_exports.Integer({ minimum: 1 })), endLine: typebox_exports.Optional(typebox_exports.Integer({ minimum: 1 })) }), async (p, native) => {
+      const workspace = await workspaceFor(native);
+      const result = await workspace.readRange(p.path, { startLine: p.startLine, endLine: p.endLine });
+      return text(result.content, { startLine: p.startLine, endLine: p.endLine, truncated: result.truncated });
+    }),
+    defineTool("write_file", canonicalTool("write_file").description, typebox_exports.Object({ path: typebox_exports.String(), content: typebox_exports.String() }), async (p, native) => {
+      const workspace = await workspaceFor(native);
+      await workspace.write(p.path, p.content);
+      deps.emitArtifact?.(artifactPathFor(native, p.path));
       return text(`written ${p.path} (${p.content.length} bytes)`);
     }),
-    defineTool("run_python", canonicalLocalTools()[3].description, typebox_exports.Object({ code: typebox_exports.String({ minLength: 1 }), description: typebox_exports.Optional(typebox_exports.String()) }), async (p) => {
-      if (!deps.pythonExecutable)
+    defineTool("run_python", canonicalTool("run_python").description, typebox_exports.Object({ code: typebox_exports.String({ minLength: 1 }), description: typebox_exports.Optional(typebox_exports.String()) }), async (p, native) => {
+      const executable = typeof deps.pythonExecutable === "function" ? deps.pythonExecutable() : deps.pythonExecutable;
+      if (!executable)
         throw new Error("PYTHON_RUNTIME_NOT_AVAILABLE");
-      const result = await runPythonJob(p.code, { workspace: workspaceDir, executable: deps.pythonExecutable, timeoutMs: 12e4 });
+      const workspace = deps.pythonWorkspaceDir ? { root: deps.pythonWorkspaceDir } : await workspaceFor(native);
+      const result = await runPythonJob(p.code, { workspace: workspace.root, executable, timeoutMs: 12e4 });
       return text(result.stdout || result.stderr || "(no output)", { exitCode: result.exitCode });
     })
   ];
   if (deps.knowledge) {
     const knowledge = deps.knowledge;
-    tools.push(defineTool("search_knowledge", canonicalLocalTools()[4].description, typebox_exports.Object({ query: typebox_exports.String({ minLength: 1 }) }), async (p) => {
+    tools.push(defineTool("search_knowledge", canonicalTool("search_knowledge").description, typebox_exports.Object({ query: typebox_exports.String({ minLength: 1 }) }), async (p) => {
       const hits = knowledge.search(p.query);
-      return text(hits.length ? hits.map((h2) => `${h2.path} (score ${h2.score.toFixed(3)})`).join("\n") : "(no matches)");
-    }), defineTool("read_knowledge", canonicalLocalTools()[5].description, typebox_exports.Object({ path: typebox_exports.String({ minLength: 1 }) }), async (p) => {
-      const target = import_node_path9.default.resolve(deps.knowledgeRoot, p.path);
-      if (!target.startsWith(import_node_path9.default.resolve(deps.knowledgeRoot)))
-        throw new Error("KNOWLEDGE_PATH_ESCAPE");
-      return text(await (0, import_promises10.readFile)(target, "utf8"));
+      const details = hits.map(({ path: hitPath, score, title, startLine, endLine, snippet }) => ({ path: hitPath, score, title, startLine, endLine, snippet }));
+      const rendered = hits.length ? hits.map((h2) => `${h2.path} (score ${h2.score.toFixed(3)}, lines ${h2.startLine}-${h2.endLine}, title: ${h2.title})
+${h2.snippet}`).join("\n\n") : "(no matches)";
+      return text(boundTextByLines(rendered).content, details);
+    }), defineTool("read_knowledge", canonicalTool("read_knowledge").description, typebox_exports.Object({ path: typebox_exports.String({ minLength: 1 }), startLine: typebox_exports.Optional(typebox_exports.Integer({ minimum: 1 })), endLine: typebox_exports.Optional(typebox_exports.Integer({ minimum: 1 })) }), async (p) => {
+      const result = await readBoundedFile(deps.knowledgeRoot, p.path, { startLine: p.startLine, endLine: p.endLine });
+      return text(result.content, { startLine: p.startLine, endLine: p.endLine, truncated: result.truncated });
     }));
   }
   if (writer) {
-    tools.push(defineTool("update_knowledge", canonicalLocalTools()[6].description, typebox_exports.Object({ operation: typebox_exports.Union([typebox_exports.Literal("append_learning"), typebox_exports.Literal("write_draft"), typebox_exports.Literal("update_schema")]), path: typebox_exports.String({ minLength: 1 }), content: typebox_exports.String() }), async (p) => {
+    tools.push(defineTool("update_knowledge", canonicalTool("update_knowledge").description, typebox_exports.Object({ operation: typebox_exports.Union([typebox_exports.Literal("append_learning"), typebox_exports.Literal("write_draft"), typebox_exports.Literal("update_schema")]), path: typebox_exports.String({ minLength: 1 }), content: typebox_exports.String() }), async (p) => {
       const result = await writer.write(p.operation, p.path, p.content);
       return text(`${result.operation} -> ${result.path} (${result.bytesWritten} bytes)`);
     }));
   }
-  tools.push(defineTool("generate_dashboard", canonicalLocalTools()[8].description, typebox_exports.Object({ operation: typebox_exports.Union([typebox_exports.Literal("create"), typebox_exports.Literal("edit"), typebox_exports.Literal("validate")]), mode: typebox_exports.Union([typebox_exports.Literal("static"), typebox_exports.Literal("semantic")]), version: typebox_exports.Union([typebox_exports.Literal("v3"), typebox_exports.Literal("v4")]), spec: typebox_exports.Unknown(), editPath: typebox_exports.Optional(typebox_exports.String()) }), async (p) => {
+  tools.push(defineTool("load_skill", canonicalTool("load_skill").description, typebox_exports.Object({ name: typebox_exports.String({ minLength: 1 }) }), async (p) => {
+    if (!deps.invokeSkill)
+      throw new Error("NATIVE_SKILL_INVOCATION_UNAVAILABLE");
+    return nativeSkillResult(await deps.invokeSkill(p.name), p.name);
+  }), defineTool("generate_dashboard", canonicalTool("generate_dashboard").description, typebox_exports.Object({ operation: typebox_exports.Union([typebox_exports.Literal("create"), typebox_exports.Literal("edit"), typebox_exports.Literal("validate")]), mode: typebox_exports.Union([typebox_exports.Literal("static"), typebox_exports.Literal("semantic")]), version: typebox_exports.Union([typebox_exports.Literal("v3"), typebox_exports.Literal("v4")]), spec: typebox_exports.Unknown(), editPath: typebox_exports.Optional(typebox_exports.String()) }), async (p, native) => {
     const validated = validateDashboardV4Spec(p.spec);
     if (!validated.ok)
       throw new Error(`DASHBOARD_SPEC_INVALID: ${validated.errors.join("; ")}`);
     if (p.operation === "validate")
       return text("dashboard spec valid");
     const target = p.editPath ?? `dashboards/${Date.now()}-semantic.html`;
-    const html = renderSemanticDashboardHtml(validated.spec, { nonce: (0, import_node_crypto7.randomUUID)().replace(/-/g, ""), expectedOrigin: "https://data-agent.local" });
-    await deps.workspace.write(target, html);
-    deps.emitArtifact?.(target);
+    const html = renderSemanticDashboardHtml(validated.spec, { nonce: (0, import_node_crypto8.randomUUID)().replace(/-/g, ""), expectedOrigin: "https://data-agent.local" });
+    const workspace = await workspaceFor(native);
+    await workspace.write(target, html);
+    deps.emitArtifact?.(artifactPathFor(native, target));
     return text(`dashboard written to ${target}`);
-  }), defineTool("show_widget", canonicalLocalTools()[9].description, typebox_exports.Object({ kind: typebox_exports.Union([typebox_exports.Literal("kpi"), typebox_exports.Literal("chart"), typebox_exports.Literal("table"), typebox_exports.Literal("steps")]), spec: typebox_exports.Unknown() }), async (p) => text(`[widget:${p.kind}] ${JSON.stringify(p.spec)}`)));
+  }), defineTool("show_widget", canonicalTool("show_widget").description, typebox_exports.Object({ kind: typebox_exports.Union([typebox_exports.Literal("kpi"), typebox_exports.Literal("chart"), typebox_exports.Literal("table"), typebox_exports.Literal("steps")]), spec: typebox_exports.Unknown() }), async (p, native) => {
+    const widgetId = `widget-${native.toolCallId}`;
+    if (native.signal?.aborted)
+      throw new Error("Operation aborted");
+    const validation = validateWidgetSpec(p.kind, p.spec);
+    if (!validation.ok) {
+      const error51 = `WIDGET_SPEC_INVALID: ${validation.error}`;
+      emitWidgetUpdate(native.onUpdate, {
+        widgetEvent: "widget_error",
+        widgetId,
+        toolCallId: native.toolCallId,
+        toolName: "show_widget",
+        error: error51,
+        legacyText: `[widget error] ${error51}`
+      });
+      throw new Error(error51);
+    }
+    const spec = { ...validation.spec };
+    if (p.kind === "kpi" && !Array.isArray(spec.data) && (typeof spec.value === "string" || typeof spec.value === "number")) {
+      spec.data = [{ label: spec.label ?? "", value: spec.value }];
+    }
+    const widget = {
+      ...spec,
+      widget_id: widgetId,
+      kind: p.kind,
+      title: typeof spec.title === "string" && spec.title.trim() ? spec.title : `${p.kind} widget`,
+      tool_call_id: native.toolCallId
+    };
+    const legacyText = widgetLegacyText(widget);
+    emitWidgetUpdate(native.onUpdate, {
+      widgetEvent: "widget",
+      widgetId,
+      toolCallId: native.toolCallId,
+      toolName: "show_widget",
+      widget,
+      legacyText
+    });
+    return text(legacyText, {
+      widgetEvent: "widget",
+      widgetId,
+      toolCallId: native.toolCallId,
+      toolName: "show_widget",
+      widget,
+      legacyText
+    });
+  }));
   if (deps.queryExecutor) {
     const runQuery = async (sql, limit2) => {
       const result = await deps.queryExecutor.run(sql, limit2 ?? DEFAULT_ROW_LIMIT);
@@ -162249,19 +163160,56 @@ function buildAgentTools(deps) {
 ${body}${result.truncated ? `
 (truncated at ${result.rows.length} rows)` : ""}`, { columns: result.columns, rows: result.rows });
     };
-    tools.push(defineTool("query_database", canonicalLocalTools()[10].description, typebox_exports.Object({ sql: typebox_exports.String({ minLength: 1 }), limit: typebox_exports.Optional(typebox_exports.Number()) }), async (p) => runQuery(p.sql, p.limit)), defineTool("export_query", canonicalLocalTools()[12].description, typebox_exports.Object({ sql: typebox_exports.String({ minLength: 1 }), filename: typebox_exports.Optional(typebox_exports.String()) }), async (p) => {
-      const full = await deps.queryExecutor.run(p.sql, 1e5);
-      const csv = [full.columns.join(","), ...full.rows.map((row) => row.map((cell) => JSON.stringify(cell ?? "")).join(","))].join("\n");
+    tools.push(defineTool("query_database", canonicalTool("query_database").description, typebox_exports.Object({ sql: typebox_exports.String({ minLength: 1 }), limit: typebox_exports.Optional(typebox_exports.Number()) }), async (p) => runQuery(p.sql, p.limit)), defineTool("export_query", canonicalTool("export_query").description, typebox_exports.Object({ sql: typebox_exports.String({ minLength: 1 }), filename: typebox_exports.Optional(typebox_exports.String()) }), async (p, native) => {
+      const signal = native.signal;
       const target = p.filename ?? `exports/query-${Date.now()}.csv`;
-      await deps.workspace.write(target, csv);
-      deps.emitArtifact?.(target);
-      return text(`exported ${full.rows.length} rows to ${target}`);
+      let rowCount = 0;
+      const workspace = await workspaceFor(native);
+      await workspace.writeStream(target, async (write) => {
+        let pending = "";
+        let headerWritten = false;
+        const append = async (chunk) => {
+          pending += chunk;
+          if (pending.length >= 64 * 1024) {
+            await write(pending);
+            pending = "";
+          }
+        };
+        const consume = async (batch) => {
+          throwIfAborted(signal);
+          if (!headerWritten) {
+            await append(batch.columns.map(csvHeaderField).join(","));
+            headerWritten = true;
+          }
+          for (const row of batch.rows) {
+            throwIfAborted(signal);
+            await append(`
+${row.map(csvField).join(",")}`);
+            rowCount++;
+          }
+        };
+        if (deps.queryExecutor.stream) {
+          const batches = await deps.queryExecutor.stream(p.sql, signal);
+          for await (const batch of batches)
+            await consume(batch);
+        } else {
+          const bounded = await deps.queryExecutor.run(p.sql, DEFAULT_ROW_LIMIT);
+          if (bounded.truncated)
+            throw new Error("EXPORT_STREAM_REQUIRED");
+          await consume(bounded);
+        }
+        if (pending)
+          await write(pending);
+      }, signal);
+      deps.emitArtifact?.(artifactPathFor(native, target));
+      return text(`exported ${rowCount} rows to ${target}`);
     }));
   }
   if (deps.clarifications) {
     const clarifications = deps.clarifications;
-    tools.push(defineTool("ask_user_clarification", canonicalLocalTools()[11].description, typebox_exports.Object({ question: typebox_exports.String({ minLength: 1 }), options: typebox_exports.Optional(typebox_exports.Array(typebox_exports.String())) }), async (p) => {
-      const { clarificationId, promise: promise2 } = clarifications.ask(deps.sessionId ?? "web", p.question, p.options ?? []);
+    tools.push(defineTool("ask_user_clarification", canonicalTool("ask_user_clarification").description, typebox_exports.Object({ question: typebox_exports.String({ minLength: 1 }), options: typebox_exports.Optional(typebox_exports.Array(typebox_exports.String())) }), async (p, native) => {
+      const sessionId = native.context.sessionId ?? deps.sessionId ?? "web";
+      const { clarificationId, promise: promise2 } = clarifications.ask(sessionId, p.question, p.options ?? []);
       deps.emitArtifact?.(`__clarification__:${clarificationId}`);
       const answer = await promise2;
       return text(answer || "(no answer)");
@@ -162275,7 +163223,7 @@ async function resolveSystemPrompt(searchRoots) {
     if (!root)
       continue;
     try {
-      const migrated = await readFile12(import_node_path9.default.join(root, ".pi", "SYSTEM.md"), "utf8");
+      const migrated = await readFile12(import_node_path11.default.join(root, ".pi", "SYSTEM.md"), "utf8");
       return `${migrated.trim()}
 
 ${TOOL_NAME_MAPPING}`;
@@ -162287,36 +163235,68 @@ ${TOOL_NAME_MAPPING}`;
 async function createDataAgentHarness(deps, profile) {
   if (!profile.apiKey)
     throw new Error("LLM_API_KEY_MISSING");
-  if (profile.provider === "anthropic")
-    process.env.ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || profile.apiKey;
-  else
-    process.env.OPENAI_API_KEY = process.env.OPENAI_API_KEY || profile.apiKey;
-  const models = builtinModels();
-  const harness = new AgentHarness({
-    session: await new InMemorySessionRepo().create(),
+  const credentials = new InMemoryCredentialStore();
+  const providerId = profile.provider === "anthropic" ? "anthropic" : "openai";
+  await credentials.modify(providerId, async () => ({ type: "api_key", key: profile.apiKey }));
+  const models = builtinModels({ credentials });
+  const skillLoad = await loadSkillsFromRoots(resolveSkillRoots({ projectRoot: deps.projectRoot, packagedRoot: deps.packagedRoot }));
+  for (const item of skillLoad.diagnostics)
+    console.warn(`[data-agent] Skill diagnostic (${item.code ?? "warning"}) ${item.path}: ${item.message}`);
+  let harness;
+  const tools = buildAgentTools({
+    ...deps,
+    invokeSkill: (name, additionalInstructions) => {
+      if (!harness)
+        throw new Error("NATIVE_SKILL_INVOCATION_UNAVAILABLE");
+      return harness.skill(name, additionalInstructions);
+    }
+  });
+  harness = new DataAgentHarness({
+    session: deps.session ?? await new InMemorySessionRepo().create(),
     models,
     model: buildModel(profile),
     thinkingLevel: "off",
     systemPrompt: deps.systemPrompt ?? await resolveSystemPrompt(deps.systemPromptRoots ?? (deps.knowledgeRoot ? [deps.knowledgeRoot] : [])),
-    tools: buildAgentTools(deps)
+    tools,
+    resources: { skills: skillLoad.skills },
+    toolContext: deps.toolContext ?? { sessionId: deps.sessionId }
   });
   return harness;
 }
-var import_node_crypto7, import_node_path9, import_promises10, DEFAULT_ROW_LIMIT, DATA_AGENT_SYSTEM_PROMPT, TOOL_NAME_MAPPING;
+var import_node_crypto8, import_node_path11, DEFAULT_ROW_LIMIT, CANONICAL_TOOL_BY_NAME, DataAgentHarness, DATA_AGENT_SYSTEM_PROMPT, TOOL_NAME_MAPPING;
 var init_agent_assembly = __esm({
   "packages/runtime/dist/agent-assembly.js"() {
     "use strict";
     init_dist3();
+    init_dist2();
+    init_bounded_read();
     init_all();
     init_build();
-    import_node_crypto7 = require("node:crypto");
-    import_node_path9 = __toESM(require("node:path"), 1);
-    import_promises10 = require("node:fs/promises");
+    import_node_crypto8 = require("node:crypto");
+    import_node_path11 = __toESM(require("node:path"), 1);
     init_dashboard_v4();
     init_knowledge_write();
     init_python_job();
     init_tools_catalog();
+    init_skills2();
+    init_widget();
     DEFAULT_ROW_LIMIT = 50;
+    CANONICAL_TOOL_BY_NAME = new Map(canonicalLocalTools().map((tool) => [tool.name, tool]));
+    DataAgentHarness = class extends AgentHarness {
+      async skill(name, additionalInstructions) {
+        const skill = this.getResources().skills?.find((candidate) => candidate.name === name);
+        if (!skill)
+          return super.skill(name, additionalInstructions);
+        const previous = this.getActiveTools().map((tool) => tool.name);
+        const active = effectiveTools(previous, [skill]);
+        await this.setActiveTools(active);
+        try {
+          return await super.skill(name, additionalInstructions);
+        } finally {
+          await this.setActiveTools(previous);
+        }
+      }
+    };
     DATA_AGENT_SYSTEM_PROMPT = [
       "\u4F60\u662F Data Agent\uFF0C\u4E00\u4E2A\u6570\u636E\u5206\u6790\u52A9\u624B\u3002",
       "\u4F60\u53EF\u4EE5\u4F7F\u7528\u5DE5\u4F5C\u533A\u6587\u4EF6\u3001Python\u3001\u77E5\u8BC6\u5E93\u548C\u6570\u636E\u5E93\u5DE5\u5177\u6765\u56DE\u7B54\u6570\u636E\u5206\u6790\u95EE\u9898\u3002",
@@ -162347,6 +163327,45 @@ var init_agent_assembly = __esm({
   }
 });
 
+// packages/runtime/dist/agent-harness-lifecycle.js
+function createAgentHarnessResolver(options) {
+  const keyOf = options.key ?? ((profile, scope) => `${JSON.stringify(profile) ?? ""}:${scope ?? ""}`);
+  const agents = /* @__PURE__ */ new Map();
+  const inFlight = /* @__PURE__ */ new Map();
+  async function resolve2(scope) {
+    const profile = await options.getProfile();
+    const key = keyOf(profile, scope);
+    const existing = agents.get(key);
+    if (existing !== void 0)
+      return existing;
+    const pending = inFlight.get(key);
+    if (pending)
+      return pending;
+    let tracked;
+    tracked = options.create(profile, scope).then((created) => {
+      agents.set(key, created);
+      if (inFlight.get(key) === tracked)
+        inFlight.delete(key);
+      return created;
+    }, (error51) => {
+      if (inFlight.get(key) === tracked)
+        inFlight.delete(key);
+      throw error51;
+    });
+    inFlight.set(key, tracked);
+    return tracked;
+  }
+  function warmup(onError) {
+    void resolve2().catch((error51) => onError?.(error51));
+  }
+  return { resolve: resolve2, warmup };
+}
+var init_agent_harness_lifecycle = __esm({
+  "packages/runtime/dist/agent-harness-lifecycle.js"() {
+    "use strict";
+  }
+});
+
 // packages/runtime/dist/legacy-migration.js
 function parseJson(value) {
   if (typeof value !== "string" || value.length === 0)
@@ -162358,8 +163377,8 @@ function parseJson(value) {
   }
 }
 async function findFiles(root, name, result = []) {
-  for (const entry of await (0, import_promises11.readdir)(root, { withFileTypes: true })) {
-    const full = import_node_path10.default.join(root, entry.name);
+  for (const entry of await (0, import_promises12.readdir)(root, { withFileTypes: true })) {
+    const full = import_node_path12.default.join(root, entry.name);
     if (entry.isDirectory())
       await findFiles(full, name, result);
     else if (entry.name === name)
@@ -162368,17 +163387,17 @@ async function findFiles(root, name, result = []) {
   return result;
 }
 async function migrateLegacyData(sourceRoot, targetRoot, sessionStore) {
-  const source = import_node_path10.default.resolve(sourceRoot);
-  const target = import_node_path10.default.resolve(targetRoot);
-  const marker = import_node_path10.default.join(target, ".migration-complete.json");
+  const source = import_node_path12.default.resolve(sourceRoot);
+  const target = import_node_path12.default.resolve(targetRoot);
+  const marker = import_node_path12.default.join(target, ".migration-complete.json");
   try {
-    return JSON.parse(await (0, import_promises11.readFile)(marker, "utf8"));
+    return JSON.parse(await (0, import_promises12.readFile)(marker, "utf8"));
   } catch {
   }
-  const migrationId = (0, import_node_crypto8.randomUUID)();
-  const backupPath = import_node_path10.default.join(target, "migration-backup", migrationId);
-  await (0, import_promises11.mkdir)(backupPath, { recursive: true });
-  await (0, import_promises11.cp)(source, backupPath, { recursive: true, force: true });
+  const migrationId = (0, import_node_crypto9.randomUUID)();
+  const backupPath = import_node_path12.default.join(target, "migration-backup", migrationId);
+  await (0, import_promises12.mkdir)(backupPath, { recursive: true });
+  await (0, import_promises12.cp)(source, backupPath, { recursive: true, force: true });
   const report = { migrationId, migrated: 0, skipped: 0, warnings: [], backupPath };
   const databases = await findFiles(source, "app.sqlite3");
   for (const databasePath of databases) {
@@ -162388,10 +163407,10 @@ async function migrateLegacyData(sourceRoot, targetRoot, sessionStore) {
       const tasks = db.prepare("SELECT * FROM tasks").all();
       const sessions = db.prepare("SELECT * FROM chat_sessions").all();
       db.close();
-      const destination = import_node_path10.default.join(target, "sessions", "legacy-metadata.json");
-      await (0, import_promises11.mkdir)(import_node_path10.default.dirname(destination), { recursive: true });
+      const destination = import_node_path12.default.join(target, "sessions", "legacy-metadata.json");
+      await (0, import_promises12.mkdir)(import_node_path12.default.dirname(destination), { recursive: true });
       const projections = sessions.map((session) => ({ id: session.id, taskId: session.task_id, name: session.name, uiTranscript: parseJson(session.ui_transcript_json), contextMessages: parseJson(session.context_messages_json), activeSkills: parseJson(session.active_skills_json), attachedFiles: parseJson(session.attached_files_json), conversationVersion: session.conversation_version }));
-      await (0, import_promises11.writeFile)(destination, JSON.stringify({ source: databasePath, tasks, sessions, projections }, null, 2), "utf8");
+      await (0, import_promises12.writeFile)(destination, JSON.stringify({ source: databasePath, tasks, sessions, projections }, null, 2), "utf8");
       if (sessionStore) {
         for (const projection of projections) {
           const session = await sessionStore.create({ legacySessionId: projection.id, taskId: projection.taskId });
@@ -162417,113 +163436,30 @@ async function migrateLegacyData(sourceRoot, targetRoot, sessionStore) {
   const snapshots = await findFiles(source, ".session_snapshot.json");
   for (const snapshot of snapshots) {
     try {
-      const data = JSON.parse(await (0, import_promises11.readFile)(snapshot, "utf8"));
-      const sessionId = typeof data.session_id === "string" ? data.session_id : import_node_path10.default.basename(import_node_path10.default.dirname(snapshot));
-      const destination = import_node_path10.default.join(target, "sessions", `${sessionId}.legacy.json`);
-      await (0, import_promises11.mkdir)(import_node_path10.default.dirname(destination), { recursive: true });
-      await (0, import_promises11.writeFile)(destination, JSON.stringify({ legacy: true, source: snapshot, data }, null, 2), "utf8");
+      const data = JSON.parse(await (0, import_promises12.readFile)(snapshot, "utf8"));
+      const sessionId = typeof data.session_id === "string" ? data.session_id : import_node_path12.default.basename(import_node_path12.default.dirname(snapshot));
+      const destination = import_node_path12.default.join(target, "sessions", `${sessionId}.legacy.json`);
+      await (0, import_promises12.mkdir)(import_node_path12.default.dirname(destination), { recursive: true });
+      await (0, import_promises12.writeFile)(destination, JSON.stringify({ legacy: true, source: snapshot, data }, null, 2), "utf8");
       report.migrated += 1;
     } catch (error51) {
       report.skipped += 1;
       report.warnings.push(`Failed to migrate ${snapshot}: ${error51 instanceof Error ? error51.message : String(error51)}`);
     }
   }
-  await (0, import_promises11.mkdir)(target, { recursive: true });
-  await (0, import_promises11.writeFile)(marker, JSON.stringify(report, null, 2), "utf8");
+  await (0, import_promises12.mkdir)(target, { recursive: true });
+  await (0, import_promises12.writeFile)(marker, JSON.stringify(report, null, 2), "utf8");
   return report;
 }
-var import_promises11, import_node_path10, import_node_crypto8, import_better_sqlite3;
+var import_promises12, import_node_path12, import_node_crypto9, import_better_sqlite3;
 var init_legacy_migration = __esm({
   "packages/runtime/dist/legacy-migration.js"() {
     "use strict";
-    import_promises11 = require("node:fs/promises");
-    import_node_path10 = __toESM(require("node:path"), 1);
-    import_node_crypto8 = require("node:crypto");
+    import_promises12 = require("node:fs/promises");
+    import_node_path12 = __toESM(require("node:path"), 1);
+    import_node_crypto9 = require("node:crypto");
     import_better_sqlite3 = __toESM(require("better-sqlite3"), 1);
     init_session_store();
-  }
-});
-
-// packages/runtime/dist/skills.js
-var skills_exports2 = {};
-__export(skills_exports2, {
-  effectiveTools: () => effectiveTools,
-  loadSkillsFromDir: () => loadSkillsFromDir,
-  moveSystemPrompt: () => moveSystemPrompt
-});
-async function loadSkillsFromDir(dir) {
-  const skills = [];
-  const diagnostics = [];
-  let entries;
-  try {
-    entries = await (0, import_promises12.readdir)(dir, { withFileTypes: true });
-  } catch {
-    return { skills, diagnostics };
-  }
-  for (const entry of entries) {
-    if (!entry.isDirectory())
-      continue;
-    const filePath = import_node_path11.default.join(dir, entry.name, "SKILL.md");
-    try {
-      const raw = await (0, import_promises12.readFile)(filePath, "utf8");
-      const match2 = /^---\n([\s\S]*?)\n---\n/.exec(raw);
-      if (!match2) {
-        diagnostics.push({ path: filePath, message: "missing frontmatter" });
-        continue;
-      }
-      const name = /^name:\s*(.+)$/m.exec(match2[1])?.[1]?.trim() ?? entry.name;
-      const description = /^description:\s*(.+)$/m.exec(match2[1])?.[1]?.trim() ?? "";
-      const allowedTools = [...match2[1].matchAll(/^\s*-\s*(\S+)\s*$/gm)].map((m2) => m2[1]);
-      const unknown2 = allowedTools.filter((tool) => !CANONICAL_TOOLS.has(tool));
-      if (unknown2.length > 0)
-        diagnostics.push({ path: filePath, message: `unknown tool names: ${unknown2.join(", ")}` });
-      skills.push({ name, description, filePath, allowedTools, content: raw });
-    } catch (error51) {
-      diagnostics.push({ path: filePath, message: error51 instanceof Error ? error51.message : String(error51) });
-    }
-  }
-  return { skills, diagnostics };
-}
-function effectiveTools(globalTools, activeSkills) {
-  if (activeSkills.length === 0)
-    return globalTools;
-  const allowed = new Set(activeSkills.flatMap((skill) => skill.allowedTools));
-  return globalTools.filter((tool) => allowed.has(tool));
-}
-async function moveSystemPrompt(agentMdPath, systemMdPath) {
-  const { writeFile: writeFile11, rename: rename3, access: access3 } = await import("node:fs/promises");
-  try {
-    await access3(systemMdPath);
-    return;
-  } catch {
-  }
-  const content = await (0, import_promises12.readFile)(agentMdPath, "utf8");
-  const { mkdir: mkdir9 } = await import("node:fs/promises");
-  await mkdir9(import_node_path11.default.dirname(systemMdPath), { recursive: true });
-  await writeFile11(systemMdPath, content, "utf8");
-  await rename3(agentMdPath, `${agentMdPath}.migrated`);
-}
-var import_promises12, import_node_path11, CANONICAL_TOOLS;
-var init_skills4 = __esm({
-  "packages/runtime/dist/skills.js"() {
-    "use strict";
-    import_promises12 = require("node:fs/promises");
-    import_node_path11 = __toESM(require("node:path"), 1);
-    CANONICAL_TOOLS = /* @__PURE__ */ new Set([
-      "list_workspace",
-      "read_file",
-      "write_file",
-      "run_python",
-      "search_knowledge",
-      "read_knowledge",
-      "update_knowledge",
-      "load_skill",
-      "generate_dashboard",
-      "show_widget",
-      "query_database",
-      "ask_user_clarification",
-      "export_query"
-    ]);
   }
 });
 
@@ -162543,29 +163479,29 @@ function createExportQueryAdapter(options) {
       const blob = Buffer.from(resource.blob, "base64");
       if (blob.byteLength > maxBytes)
         throw new ExportCapabilityError("EXPORT_TOO_LARGE");
-      const sha256 = (0, import_node_crypto9.createHash)("sha256").update(blob).digest("hex");
-      const filename = relativePath ?? `data/exports/${import_node_path12.default.basename(new URL(resource.uri.replace(/^sqlite:\/\//, "http://")).pathname)}`;
-      const target = import_node_path12.default.resolve(options.workspace.root, filename);
-      if (!target.startsWith(`${options.workspace.root}${import_node_path12.default.sep}`))
+      const sha256 = (0, import_node_crypto10.createHash)("sha256").update(blob).digest("hex");
+      const filename = relativePath ?? `data/exports/${import_node_path13.default.basename(new URL(resource.uri.replace(/^sqlite:\/\//, "http://")).pathname)}`;
+      const target = import_node_path13.default.resolve(options.workspace.root, filename);
+      if (!target.startsWith(`${options.workspace.root}${import_node_path13.default.sep}`))
         throw new ExportCapabilityError("WORKSPACE_PATH_ESCAPE");
-      await (0, import_promises13.mkdir)(import_node_path12.default.dirname(target), { recursive: true });
-      const temp = `${target}.${randomUUID9()}.tmp`;
+      await (0, import_promises13.mkdir)(import_node_path13.default.dirname(target), { recursive: true });
+      const temp = `${target}.${randomUUID10()}.tmp`;
       await (0, import_promises13.writeFile)(temp, blob);
       await (0, import_promises13.rename)(temp, target);
-      return { path: import_node_path12.default.relative(options.workspace.root, target).split(import_node_path12.default.sep).join("/"), sha256, bytes: blob.byteLength };
+      return { path: import_node_path13.default.relative(options.workspace.root, target).split(import_node_path13.default.sep).join("/"), sha256, bytes: blob.byteLength };
     }
   };
 }
-function randomUUID9() {
+function randomUUID10() {
   return crypto.randomUUID();
 }
-var import_node_crypto9, import_promises13, import_node_path12, ExportCapabilityError;
+var import_node_crypto10, import_promises13, import_node_path13, ExportCapabilityError;
 var init_export_adapter = __esm({
   "packages/runtime/dist/export-adapter.js"() {
     "use strict";
-    import_node_crypto9 = require("node:crypto");
+    import_node_crypto10 = require("node:crypto");
     import_promises13 = require("node:fs/promises");
-    import_node_path12 = __toESM(require("node:path"), 1);
+    import_node_path13 = __toESM(require("node:path"), 1);
     ExportCapabilityError = class extends Error {
       constructor(message) {
         super(message);
@@ -162668,15 +163604,15 @@ var init_process_supervisor = __esm({
 });
 
 // packages/runtime/dist/providers.js
-var import_node_crypto10, InMemorySecretVault, ProviderRegistry;
+var import_node_crypto11, InMemorySecretVault, ProviderRegistry;
 var init_providers = __esm({
   "packages/runtime/dist/providers.js"() {
     "use strict";
-    import_node_crypto10 = require("node:crypto");
+    import_node_crypto11 = require("node:crypto");
     InMemorySecretVault = class {
       store = /* @__PURE__ */ new Map();
       async encrypt(plain) {
-        const id = (0, import_node_crypto10.randomUUID)();
+        const id = (0, import_node_crypto11.randomUUID)();
         this.store.set(id, plain);
         return `mem:${id}`;
       }
@@ -162693,7 +163629,7 @@ var init_providers = __esm({
         this.vault = vault;
       }
       async save(profile) {
-        const id = profile.id ?? (0, import_node_crypto10.randomUUID)();
+        const id = profile.id ?? (0, import_node_crypto11.randomUUID)();
         let apiKey;
         if (profile.apiKey)
           apiKey = await this.vault.encrypt(profile.apiKey);
@@ -162734,44 +163670,44 @@ async function probePython(executable) {
   }
 }
 async function loadRuntimeManifest(runtimeRoot) {
-  return JSON.parse(await (0, import_promises14.readFile)(import_node_path13.default.join(runtimeRoot, "manifest.json"), "utf8"));
+  return JSON.parse(await (0, import_promises14.readFile)(import_node_path14.default.join(runtimeRoot, "manifest.json"), "utf8"));
 }
 async function resolvePythonRuntime(external, bundled, manifest) {
   if (external && await probePython(external))
     return { mode: "external", executable: external };
   return { mode: "bundled", executable: bundled, manifest };
 }
-var import_promises14, import_node_path13;
+var import_promises14, import_node_path14;
 var init_python_runtime = __esm({
   "packages/runtime/dist/python-runtime.js"() {
     "use strict";
     import_promises14 = require("node:fs/promises");
-    import_node_path13 = __toESM(require("node:path"), 1);
+    import_node_path14 = __toESM(require("node:path"), 1);
   }
 });
 
 // packages/runtime/dist/python-pack-builder.js
 async function writePythonPackManifest(packRoot, manifest) {
   const files = await (0, import_promises15.readdir)(packRoot, { recursive: true });
-  const hash2 = (0, import_node_crypto11.createHash)("sha256");
+  const hash2 = (0, import_node_crypto12.createHash)("sha256");
   for (const file2 of files.sort()) {
     try {
-      hash2.update(await (0, import_promises15.readFile)(import_node_path14.default.join(packRoot, file2)));
+      hash2.update(await (0, import_promises15.readFile)(import_node_path15.default.join(packRoot, file2)));
     } catch {
     }
   }
   const output = { ...manifest, sha256: hash2.digest("hex") };
-  const target = import_node_path14.default.join(packRoot, "manifest.json");
+  const target = import_node_path15.default.join(packRoot, "manifest.json");
   await (0, import_promises15.writeFile)(target, JSON.stringify(output, null, 2), "utf8");
   return target;
 }
-var import_node_crypto11, import_promises15, import_node_path14;
+var import_node_crypto12, import_promises15, import_node_path15;
 var init_python_pack_builder = __esm({
   "packages/runtime/dist/python-pack-builder.js"() {
     "use strict";
-    import_node_crypto11 = require("node:crypto");
+    import_node_crypto12 = require("node:crypto");
     import_promises15 = require("node:fs/promises");
-    import_node_path14 = __toESM(require("node:path"), 1);
+    import_node_path15 = __toESM(require("node:path"), 1);
   }
 });
 
@@ -162938,9 +163874,9 @@ function migrateV3SpecToV4(spec) {
   };
 }
 async function migrateDashboardFiles(paths, options) {
-  const report = { migrationId: (0, import_node_crypto12.randomUUID)(), fromVersion: "v3", toVersion: "v4", converted: [], unchanged: [], unsupported: [] };
+  const report = { migrationId: (0, import_node_crypto13.randomUUID)(), fromVersion: "v3", toVersion: "v4", converted: [], unchanged: [], unsupported: [] };
   for (const relativePath of paths) {
-    const target = import_node_path15.default.resolve(options.root, relativePath);
+    const target = import_node_path16.default.resolve(options.root, relativePath);
     let raw;
     try {
       raw = await (0, import_promises16.readFile)(target, "utf8");
@@ -162965,7 +163901,7 @@ async function migrateDashboardFiles(paths, options) {
       continue;
     }
     const backupPath = `${target}.v3.bak`;
-    await (0, import_promises16.mkdir)(import_node_path15.default.dirname(backupPath), { recursive: true });
+    await (0, import_promises16.mkdir)(import_node_path16.default.dirname(backupPath), { recursive: true });
     await (0, import_promises16.copyFile)(target, backupPath).catch((error51) => {
       if (error51.code !== "EEXIST")
         throw error51;
@@ -162976,13 +163912,13 @@ async function migrateDashboardFiles(paths, options) {
   }
   return report;
 }
-var import_node_crypto12, import_promises16, import_node_path15;
+var import_node_crypto13, import_promises16, import_node_path16;
 var init_dashboard_migration = __esm({
   "packages/runtime/dist/dashboard-migration.js"() {
     "use strict";
-    import_node_crypto12 = require("node:crypto");
+    import_node_crypto13 = require("node:crypto");
     import_promises16 = require("node:fs/promises");
-    import_node_path15 = __toESM(require("node:path"), 1);
+    import_node_path16 = __toESM(require("node:path"), 1);
   }
 });
 
@@ -163011,11 +163947,13 @@ __export(dist_exports, {
   assertNoLegacyTools: () => assertNoLegacyTools,
   buildAgentTools: () => buildAgentTools,
   canonicalLocalTools: () => canonicalLocalTools,
+  createAgentHarnessResolver: () => createAgentHarnessResolver,
   createDataAgentHarness: () => createDataAgentHarness,
   createExportQueryAdapter: () => createExportQueryAdapter,
   effectiveTools: () => effectiveTools,
   loadRuntimeManifest: () => loadRuntimeManifest,
   loadSkillsFromDir: () => loadSkillsFromDir,
+  loadSkillsFromRoots: () => loadSkillsFromRoots,
   migrateDashboardFiles: () => migrateDashboardFiles,
   migrateLegacyData: () => migrateLegacyData,
   migrateV3SpecToV4: () => migrateV3SpecToV4,
@@ -163023,19 +163961,50 @@ __export(dist_exports, {
   probePython: () => probePython,
   readAuditLog: () => readAuditLog,
   resolvePythonRuntime: () => resolvePythonRuntime,
+  resolveSkillRoots: () => resolveSkillRoots,
   resolveSystemPrompt: () => resolveSystemPrompt,
   runPythonJob: () => runPythonJob,
   semanticToolIdentity: () => semanticToolIdentity,
+  validateWidgetSpec: () => validateWidgetSpec,
+  widgetLegacyText: () => widgetLegacyText,
   writePythonPackManifest: () => writePythonPackManifest
 });
-var import_node_crypto13, DataAgentRuntimeError, DataAgentRuntime;
+function isNonEmptyString(value) {
+  return typeof value === "string" && value.length > 0;
+}
+function asRecord(value) {
+  return typeof value === "object" && value !== null ? value : void 0;
+}
+function readableToolResult(result, fallback) {
+  if (typeof result === "string" && result.trim())
+    return result;
+  if (result && typeof result === "object") {
+    const content = result.content;
+    if (Array.isArray(content)) {
+      const text2 = content.find((part) => part && typeof part === "object" && part.type === "text");
+      if (text2 && typeof text2.text === "string")
+        return text2.text;
+    }
+  }
+  return fallback;
+}
+function sanitizeConfigForHost(value, host) {
+  const config2 = typeof value === "object" && value !== null ? { ...value } : {};
+  if (host === "electron") {
+    for (const field of DESKTOP_SECRET_CONFIG_FIELDS)
+      delete config2[field];
+  }
+  return config2;
+}
+var import_node_crypto14, import_node_path17, DataAgentRuntimeError, DESKTOP_SECRET_CONFIG_FIELDS, DataAgentRuntime;
 var init_dist5 = __esm({
   "packages/runtime/dist/index.js"() {
     "use strict";
     init_dist();
     init_value2();
     init_metadata();
-    import_node_crypto13 = require("node:crypto");
+    import_node_crypto14 = require("node:crypto");
+    import_node_path17 = __toESM(require("node:path"), 1);
     init_session_store();
     init_workspace();
     init_python_job();
@@ -163043,11 +164012,16 @@ var init_dist5 = __esm({
     init_clarification();
     init_dashboard_v3();
     init_dashboard_v4();
+    init_skills2();
+    init_widget();
+    init_bounded_read();
     init_auth();
     init_agent_assembly();
+    init_widget();
+    init_agent_harness_lifecycle();
     init_legacy_migration();
     init_python_job();
-    init_skills4();
+    init_skills2();
     init_knowledge();
     init_knowledge_write();
     init_export_adapter();
@@ -163072,6 +164046,7 @@ var init_dist5 = __esm({
         this.details = details;
       }
     };
+    DESKTOP_SECRET_CONFIG_FIELDS = ["api_key", "openai_api_key", "anthropic_api_key"];
     DataAgentRuntime = class {
       listeners = /* @__PURE__ */ new Set();
       eventBuffer = [];
@@ -163083,9 +164058,11 @@ var init_dist5 = __esm({
       sessions;
       workspace;
       pythonExecutable;
+      bundledPythonExecutable;
       knowledge;
       knowledgeRoot;
       semanticProjectDir;
+      skillRoots;
       queryExecutor;
       dbTester;
       llmTester;
@@ -163093,16 +164070,26 @@ var init_dist5 = __esm({
       mcpSupervisor;
       ingestJob;
       clarifications;
+      /** Host composition seam for wiring native AgentHarness tools. */
+      get clarificationManager() {
+        return this.clarifications;
+      }
       activeRun;
+      activeMessageId;
+      assistantMessageSequence = 0;
+      widgetCalls = /* @__PURE__ */ new Map();
+      toolArgs = /* @__PURE__ */ new Map();
       agent;
       constructor(options = {}) {
         this.metadata = options.metadata;
         this.sessions = options.sessions;
         this.workspace = options.workspace;
         this.pythonExecutable = options.pythonExecutable;
+        this.bundledPythonExecutable = options.bundledPythonExecutable ?? options.pythonExecutable;
         this.knowledge = options.knowledge;
         this.knowledgeRoot = options.knowledgeRoot;
         this.semanticProjectDir = options.semanticProjectDir;
+        this.skillRoots = options.skillRoots ?? resolveSkillRoots({ projectRoot: options.projectRoot, packagedRoot: options.packagedRoot });
         this.clarifications = options.clarifications ?? new ClarificationManager();
         this.clarifications.onAsked = (request) => {
           this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: "clarification", timestamp: Date.now(), sessionId: request.sessionId, event: { type: "clarification.request", clarificationId: request.clarificationId, question: request.question, options: request.options } });
@@ -163114,6 +164101,9 @@ var init_dist5 = __esm({
         this.agent?.subscribe?.((event) => this.mapPiEvent(event));
       }
       nextSequence = 1;
+      get pythonExecutablePath() {
+        return this.pythonExecutable;
+      }
       eventsAfter(sequence2) {
         return this.eventBuffer.filter((event) => event.sequence > sequence2);
       }
@@ -163132,8 +164122,16 @@ var init_dist5 = __esm({
           this.workspace.assertAccess(context2);
           if (command.command.type === "workspace.list")
             return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "workspace.result", operation: "list", files: await this.workspace.list() } };
-          if (command.command.type === "workspace.read")
-            return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "workspace.result", operation: "read", path: command.command.path, content: await this.workspace.read(command.command.path) } };
+          if (command.command.type === "workspace.read") {
+            try {
+              const result = await this.workspace.readRange(command.command.path, { startLine: command.command.startLine, endLine: command.command.endLine });
+              return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "workspace.result", operation: "read", path: command.command.path, content: result.content } };
+            } catch (error51) {
+              if (error51 instanceof Error && error51.message.startsWith("INVALID_LINE_RANGE:"))
+                throw new DataAgentRuntimeError("INVALID_COMMAND", error51.message);
+              throw error51;
+            }
+          }
           if (command.command.type === "workspace.delete") {
             await this.workspace.delete(command.command.path);
             return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "workspace.result", operation: "write", path: command.command.path } };
@@ -163164,7 +164162,7 @@ var init_dist5 = __esm({
               return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "dashboard.result", valid: validated.ok, errors: validated.ok ? [] : validated.errors } };
             }
             const target = c.editPath ?? `dashboards/${Date.now()}-semantic.html`;
-            const nonce = (0, import_node_crypto13.randomUUID)();
+            const nonce = (0, import_node_crypto14.randomUUID)();
             const html = renderSemanticDashboardHtml(validated.spec, { nonce, expectedOrigin: "https://data-agent.local" });
             await this.workspace.write(target, html);
             this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, sessionId: context2.sessionId, timestamp: Date.now(), event: { type: "workspace.artifact.created", path: target, kind: "file" } });
@@ -163250,14 +164248,21 @@ var init_dist5 = __esm({
           return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "mcp.config.result", config: config2 } };
         }
         if (command.command.type === "skills.list") {
-          const { resolve: resolvePath2 } = await import("node:path");
-          const { loadSkillsFromDir: loadSkillsFromDir2 } = await Promise.resolve().then(() => (init_skills4(), skills_exports2));
-          const skillsRoot = resolvePath2(this.knowledgeRoot, "..", "skills");
-          const { skills: loaded } = await loadSkillsFromDir2(skillsRoot);
-          const skills = [];
-          for (const sk of loaded)
-            skills.push({ name: String(sk.name ?? ""), description: String(sk.description ?? ""), tools: Array.isArray(sk.tools) ? sk.tools.map(String) : [] });
-          return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "skills.list.result", skills } };
+          const roots = this.skillRoots;
+          const loaded = await loadSkillsFromRoots(roots);
+          for (const item of loaded.diagnostics)
+            console.warn(`[data-agent] Skill diagnostic (${item.code ?? "warning"}) ${item.path}: ${item.message}`);
+          if (this.agent?.setResources) {
+            const previous = this.agent.getResources?.() ?? {};
+            await this.agent.setResources({ ...previous, skills: loaded.skills });
+          }
+          const skills = loaded.skills.map((skill) => ({
+            name: skill.name,
+            description: skill.description,
+            tools: skill.allowedTools ?? []
+          }));
+          const diagnostics = loaded.diagnostics.map((item) => ({ path: item.path, message: item.message }));
+          return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "skills.list.result", skills, diagnostics } };
         }
         if (command.command.type === "dashboard.migrate") {
           if (!this.workspace)
@@ -163301,15 +164306,25 @@ var init_dist5 = __esm({
         }
         if (command.command.type === "config.get" || command.command.type === "config.save") {
           if (command.command.type === "config.save") {
-            const current = await this.metadata.getConfig("ui.settings") ?? {};
+            const current = sanitizeConfigForHost(await this.metadata.getConfig("ui.settings"), context2.host);
             const patch = { ...command.command.patch };
-            for (const field of ["api_key", "openai_api_key", "anthropic_api_key"]) {
-              if (typeof patch[field] === "string" && patch[field].trim() === "" && typeof current[field] === "string" && current[field] !== "")
+            for (const field of DESKTOP_SECRET_CONFIG_FIELDS) {
+              if (typeof patch[field] === "string" && patch[field].trim() === "" && typeof current[field] === "string" && current[field] !== "") {
                 delete patch[field];
+              }
             }
-            await this.metadata.setConfig("ui.settings", { ...current, ...patch });
+            const next = { ...current, ...patch };
+            if (context2.host === "electron") {
+              for (const field of DESKTOP_SECRET_CONFIG_FIELDS)
+                delete next[field];
+            }
+            await this.metadata.setConfig("ui.settings", next);
+            const pythonConfig = asRecord(patch.python_runtime);
+            if (pythonConfig) {
+              this.pythonExecutable = pythonConfig.mode === "external" && typeof pythonConfig.executable === "string" && pythonConfig.executable.trim() ? pythonConfig.executable : this.bundledPythonExecutable;
+            }
           }
-          const config2 = await this.metadata.getConfig("ui.settings") ?? {};
+          const config2 = sanitizeConfigForHost(await this.metadata.getConfig("ui.settings"), context2.host);
           return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "config.get.result", config: config2 } };
         }
         if (command.command.type === "python.runtime.test") {
@@ -163376,8 +164391,10 @@ var init_dist5 = __esm({
               if (entry.type !== "message")
                 continue;
               const message = entry.message;
-              const role = message.role === "assistant" ? "agent" : String(message.role ?? "user");
-              let text2 = "";
+              if (message.role !== "user" && message.role !== "assistant")
+                continue;
+              const role = message.role === "assistant" ? "agent" : "user";
+              let text2 = typeof message.content === "string" ? message.content : "";
               for (const part of Array.isArray(message.content) ? message.content : []) {
                 if (part.type === "text" && typeof part.text === "string")
                   text2 += part.text;
@@ -163411,10 +164428,10 @@ var init_dist5 = __esm({
           if (command.command.type === "knowledge.search")
             return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "knowledge.search.result", hits: this.knowledge.search(command.command.query) } };
           if (command.command.type === "knowledge.list") {
-            const { readdir: readdir8, stat: stat6 } = await import("node:fs/promises");
+            const { readdir: readdir7, stat: stat6 } = await import("node:fs/promises");
             const files = [];
             const walk = async (dir) => {
-              for (const entry of await readdir8(dir, { withFileTypes: true })) {
+              for (const entry of await readdir7(dir, { withFileTypes: true })) {
                 const full = dir + "/" + entry.name;
                 if (entry.isDirectory())
                   await walk(full);
@@ -163428,29 +164445,43 @@ var init_dist5 = __esm({
             return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "knowledge.list.result", files } };
           }
           if (command.command.type === "knowledge.save") {
-            if (command.command.path.startsWith(".pi/"))
+            const requestedPath = command.command.path.replaceAll("\\", "/");
+            if (requestedPath === ".pi" || requestedPath.startsWith(".pi/")) {
               throw new DataAgentRuntimeError("INVALID_COMMAND", "SYSTEM_PROMPT_IMMUTABLE");
-            const { writeFile: writeFile11, mkdir: mkdir9 } = await import("node:fs/promises");
-            const target2 = resolvePath2(joinPath(this.knowledgeRoot, command.command.path));
-            if (!target2.startsWith(resolvePath2(this.knowledgeRoot)))
+            }
+            const { writeFile: writeFile9, mkdir: mkdir9 } = await import("node:fs/promises");
+            const root2 = resolvePath2(this.knowledgeRoot);
+            const target2 = resolvePath2(joinPath(root2, command.command.path));
+            if (target2 !== root2 && !target2.startsWith(`${root2}${import_node_path17.default.sep}`)) {
               throw new DataAgentRuntimeError("INVALID_COMMAND", "Knowledge path escapes root");
-            await mkdir9(joinPath(target2, ".."), { recursive: true });
-            await writeFile11(target2, command.command.content, "utf8");
+            }
+            await mkdir9(import_node_path17.default.dirname(target2), { recursive: true });
+            await writeFile9(target2, command.command.content, "utf8");
             return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "knowledge.save.result", path: command.command.path } };
           }
-          const { readFile: readFile12 } = await import("node:fs/promises");
-          const target = resolvePath2(joinPath(this.knowledgeRoot, command.command.path));
-          if (!target.startsWith(resolvePath2(this.knowledgeRoot)))
+          const root = resolvePath2(this.knowledgeRoot);
+          const target = resolvePath2(joinPath(root, command.command.path));
+          if (target !== root && !target.startsWith(`${root}${import_node_path17.default.sep}`))
             throw new DataAgentRuntimeError("INVALID_COMMAND", "Knowledge path escapes root");
-          return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "knowledge.read.result", path: command.command.path, content: await readFile12(target, "utf8") } };
+          try {
+            const result = await readBoundedFile(root, command.command.path, { startLine: command.command.startLine, endLine: command.command.endLine });
+            return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "knowledge.read.result", path: command.command.path, content: result.content } };
+          } catch (error51) {
+            if (error51 instanceof Error && error51.message.startsWith("INVALID_LINE_RANGE:"))
+              throw new DataAgentRuntimeError("INVALID_COMMAND", error51.message);
+            throw error51;
+          }
         }
         if (command.command.type === "agent.steer" || command.command.type === "agent.follow_up") {
           if (!this.agent)
             throw new DataAgentRuntimeError("INVALID_COMMAND", "Pi Agent is not configured");
+          if (this.activeRun?.sessionId && context2.sessionId !== this.activeRun.sessionId) {
+            throw new DataAgentRuntimeError("INVALID_CONTEXT", "Agent queue command belongs to another session");
+          }
           const method = command.command.type === "agent.steer" ? this.agent.steer : this.agent.followUp;
           if (!method)
             throw new DataAgentRuntimeError("INVALID_COMMAND", "Agent queue operation is not configured");
-          method.call(this.agent, command.command.prompt);
+          method.call(this.agent, command.command.prompt, { sessionId: context2.sessionId });
           return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "agent.prompt.accepted", runId: "queued" } };
         }
         if (command.command.type === "agent.stop") {
@@ -163462,14 +164493,24 @@ var init_dist5 = __esm({
         if (command.command.type === "agent.prompt") {
           if (!this.agent)
             throw new DataAgentRuntimeError("INVALID_COMMAND", "Pi Agent is not configured");
-          const runId = (0, import_node_crypto13.randomUUID)();
+          if (this.activeRun)
+            throw new DataAgentRuntimeError("INVALID_COMMAND", "AGENT_BUSY");
+          this.activeMessageId = void 0;
+          this.assistantMessageSequence = 0;
+          this.widgetCalls.clear();
+          this.toolArgs.clear();
+          const runId = (0, import_node_crypto14.randomUUID)();
           this.activeRun = { requestId: command.requestId, runId, sessionId: context2.sessionId };
-          void this.agent.prompt(command.command.prompt).then(() => {
-            this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, runId, timestamp: Date.now(), event: { type: "agent.completed" } });
+          void this.agent.prompt(command.command.prompt, { sessionId: context2.sessionId }).then(() => {
+            this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, runId, sessionId: context2.sessionId, timestamp: Date.now(), event: { type: "agent.completed" } });
             this.activeRun = void 0;
           }).catch((error51) => {
-            console.error("[data-agent] agent run failed:", error51 instanceof Error ? error51.message : error51);
-            this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, runId, timestamp: Date.now(), event: { type: "agent.completed" } });
+            const message = error51 instanceof Error ? error51.message : String(error51);
+            console.error("[data-agent] agent run failed:", message);
+            this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, runId, sessionId: context2.sessionId, timestamp: Date.now(), event: { type: "agent.text_delta", delta: `
+
+> \u26A0\uFE0F **\u6267\u884C\u5931\u8D25**: ${message}` } });
+            this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, runId, sessionId: context2.sessionId, timestamp: Date.now(), event: { type: "agent.completed" } });
             this.activeRun = void 0;
           });
           return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "agent.prompt.accepted", runId } };
@@ -163524,9 +164565,7 @@ var init_dist5 = __esm({
       }
       /** Tools call this to suspend the run until the user answers or timeout hits. */
       askClarification(sessionId, question, options, timeoutMs) {
-        const asked = this.clarifications.ask(sessionId, question, options, timeoutMs);
-        this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: "clarification", sessionId, timestamp: Date.now(), event: { type: "clarification.request", clarificationId: asked.clarificationId, question, options } });
-        return asked;
+        return this.clarifications.ask(sessionId, question, options, timeoutMs);
       }
       cancelSessionClarifications(sessionId) {
         this.clarifications.cancel(sessionId, "cancelled");
@@ -163537,22 +164576,101 @@ var init_dist5 = __esm({
           return;
         const base = () => ({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: run.requestId, runId: run.runId, sessionId: run.sessionId, timestamp: Date.now() });
         if (event.type === "message_start") {
-          this.emit({ ...base(), event: { type: "agent.message_started", messageId: String(event.message?.id ?? "") } });
+          const message = asRecord(event.message);
+          if (message?.role !== "assistant")
+            return;
+          const messageId = isNonEmptyString(message.id) ? message.id : `${run.runId}:assistant:${++this.assistantMessageSequence}`;
+          this.activeMessageId = messageId;
+          this.emit({ ...base(), event: { type: "agent.message_started", messageId } });
           return;
         }
         if (event.type === "message_update") {
           const update = event.assistantMessageEvent;
           if (update?.type !== "text_delta" && update?.type !== "thinking_delta")
             return;
+          if (!isNonEmptyString(update.delta))
+            return;
           this.emit({ ...base(), event: { type: update.type === "text_delta" ? "agent.text_delta" : "agent.thinking_delta", delta: update.delta } });
           return;
         }
         if (event.type === "tool_execution_start") {
-          this.emit({ ...base(), event: { type: "agent.tool_started", toolCallId: String(event.toolCallId), toolName: String(event.toolName), args: event.args ?? null } });
+          if (!isNonEmptyString(event.toolCallId) || !isNonEmptyString(event.toolName)) {
+            console.error("[data-agent] ignoring malformed tool start event");
+            return;
+          }
+          const toolCallId = event.toolCallId;
+          const toolName = event.toolName;
+          this.toolArgs.set(toolCallId, event.args ?? null);
+          if (toolName === "show_widget") {
+            this.widgetCalls.set(toolCallId, {
+              widgetId: `widget-${toolCallId}`,
+              messageId: this.activeMessageId || `message-${toolCallId}`,
+              toolName,
+              errorEmitted: false,
+              doneEmitted: false
+            });
+          }
+          this.emit({ ...base(), event: { type: "agent.tool_started", toolCallId, toolName, args: event.args ?? null } });
+          return;
+        }
+        if (event.type === "tool_execution_update") {
+          const partialResult = event.partialResult && typeof event.partialResult === "object" ? event.partialResult : void 0;
+          const details = isWidgetLifecycleDetails(partialResult?.details) ? partialResult.details : void 0;
+          const call = this.widgetCalls.get(event.toolCallId);
+          if (!call)
+            return;
+          const common = { messageId: call.messageId, toolCallId: event.toolCallId, widgetId: call.widgetId, toolName: "show_widget" };
+          const emitWidgetError = (error51) => {
+            if (call.doneEmitted || call.errorEmitted)
+              return;
+            call.errorEmitted = true;
+            this.emit({ ...base(), event: { type: "widget_error", ...common, error: error51 } });
+          };
+          if (!details) {
+            emitWidgetError("Invalid Widget update");
+            return;
+          }
+          if (details.widgetEvent === "widget" && details.widget) {
+            const validation = validateWidgetSpec(details.widget.kind, details.widget);
+            if (!validation.ok) {
+              emitWidgetError(validation.error);
+              return;
+            }
+            const widget = { ...details.widget, widget_id: call.widgetId, tool_call_id: event.toolCallId };
+            this.emit({ ...base(), event: { type: "widget", ...common, widget } });
+          } else if (details.widgetEvent === "widget_patch" && details.patch) {
+            this.emit({ ...base(), event: { type: "widget_patch", ...common, patch: details.patch } });
+          } else if (details.widgetEvent === "widget_done") {
+            if (!call.errorEmitted && !call.doneEmitted) {
+              call.doneEmitted = true;
+              this.emit({ ...base(), event: { type: "widget_done", ...common } });
+            }
+          } else if (details.widgetEvent === "widget_remove") {
+            this.emit({ ...base(), event: { type: "widget_remove", ...common } });
+          } else if (details.widgetEvent === "widget_error" && !call.doneEmitted && !call.errorEmitted) {
+            call.errorEmitted = true;
+            this.emit({ ...base(), event: { type: "widget_error", ...common, error: details.error || "Widget execution failed" } });
+          }
           return;
         }
         if (event.type === "tool_execution_end") {
-          this.emit({ ...base(), event: { type: "agent.tool_finished", toolCallId: String(event.toolCallId), toolName: String(event.toolName), result: event.result ?? null, isError: Boolean(event.isError) } });
+          if (!isNonEmptyString(event.toolCallId) || !isNonEmptyString(event.toolName)) {
+            console.error("[data-agent] ignoring malformed tool completion event");
+            return;
+          }
+          const toolCallId = event.toolCallId;
+          const call = this.widgetCalls.get(toolCallId);
+          const completionArgs = event.args;
+          if (call && event.isError && !call.errorEmitted && !call.doneEmitted) {
+            call.errorEmitted = true;
+            this.emit({ ...base(), event: { type: "widget_error", messageId: call.messageId, toolCallId, widgetId: call.widgetId, toolName: "show_widget", error: readableToolResult(event.result, "Widget execution failed") } });
+          } else if (call && !event.isError && !call.errorEmitted && !call.doneEmitted) {
+            call.doneEmitted = true;
+            this.emit({ ...base(), event: { type: "widget_done", messageId: call.messageId, toolCallId, widgetId: call.widgetId, toolName: "show_widget" } });
+          }
+          this.emit({ ...base(), event: { type: "agent.tool_finished", toolCallId, toolName: event.toolName, ...completionArgs !== void 0 ? { args: completionArgs } : {}, result: event.result ?? null, isError: Boolean(event.isError || call?.errorEmitted) } });
+          this.widgetCalls.delete(toolCallId);
+          this.toolArgs.delete(toolCallId);
           return;
         }
       }
@@ -163593,15 +164711,71 @@ __export(index_exports, {
 });
 function registerElectronRuntimeIpc(ipcMain, runtime, options = {}) {
   const contextFactory = options.contextFactory ?? (() => ({ userId: "local", host: "electron" }));
+  const eventSubscriptions = /* @__PURE__ */ new Map();
   ipcMain.handle("data-agent:command", async (event, payload) => {
     try {
       const command = parseDataAgentCommandEnvelope(payload);
-      return await runtime.dispatch(command, contextFactory(event));
+      const context2 = contextFactory(event);
+      const effectiveContext = context2.sessionId || !command.sessionId ? context2 : { ...context2, sessionId: command.sessionId };
+      return await runtime.dispatch(command, effectiveContext);
     } catch (error51) {
       throw toIpcError(error51);
     }
   });
-  return () => ipcMain.removeHandler("data-agent:command");
+  const removeSender = (sender) => {
+    const subscription = eventSubscriptions.get(sender);
+    if (!subscription)
+      return;
+    subscription.unsubscribe();
+    eventSubscriptions.delete(sender);
+  };
+  const subscribeListener = (event, payload) => {
+    const sender = getIpcSender(event);
+    if (!sender)
+      return;
+    removeSender(sender);
+    const sessionId = getSessionId(payload);
+    const unsubscribe = runtime.subscribe((envelope) => {
+      if (sessionId && envelope.sessionId !== sessionId)
+        return;
+      try {
+        sender.send("data-agent:event", envelope);
+      } catch {
+        removeSender(sender);
+      }
+    });
+    eventSubscriptions.set(sender, { sessionId, unsubscribe });
+  };
+  const unsubscribeListener = (event) => {
+    const sender = getIpcSender(event);
+    if (sender)
+      removeSender(sender);
+  };
+  ipcMain.on("data-agent:events:subscribe", subscribeListener);
+  ipcMain.on("data-agent:events:unsubscribe", unsubscribeListener);
+  return () => {
+    ipcMain.removeHandler("data-agent:command");
+    ipcMain.removeListener("data-agent:events:subscribe", subscribeListener);
+    ipcMain.removeListener("data-agent:events:unsubscribe", unsubscribeListener);
+    for (const sender of eventSubscriptions.keys())
+      removeSender(sender);
+  };
+}
+function getSessionId(payload) {
+  if (!payload || typeof payload !== "object")
+    return void 0;
+  const sessionId = payload.sessionId;
+  return typeof sessionId === "string" && sessionId.length > 0 ? sessionId : void 0;
+}
+function getIpcSender(event) {
+  if (!event || typeof event !== "object")
+    return void 0;
+  const sender = event.sender;
+  if (!sender || typeof sender !== "object")
+    return void 0;
+  if (typeof sender.send !== "function")
+    return void 0;
+  return sender;
 }
 function toIpcError(error51) {
   if (error51 instanceof DataAgentRuntimeError)
@@ -163624,27 +164798,425 @@ var init_index = __esm({
 // packages/electron-host/dist/main.js
 var main_exports = {};
 __export(main_exports, {
+  registerDesktopCapabilities: () => registerDesktopCapabilities,
   resolveRuntimePaths: () => resolveRuntimePaths,
   startElectronHost: () => startElectronHost
 });
 module.exports = __toCommonJS(main_exports);
-var import_node_fs5 = require("node:fs");
-var import_node_path16 = __toESM(require("node:path"), 1);
+var import_node_fs6 = require("node:fs");
+var import_node_path18 = __toESM(require("node:path"), 1);
+
+// packages/electron-host/dist/mcp-query-executor.js
+var import_client = require("@modelcontextprotocol/sdk/client/index.js");
+var import_stdio = require("@modelcontextprotocol/sdk/client/stdio.js");
+function createMcpQueryExecutor(options) {
+  let client = null;
+  const connect = async () => {
+    if (client)
+      return client;
+    const transport = new import_stdio.StdioClientTransport({
+      command: options.command,
+      args: options.args ?? [],
+      env: options.env ? { ...options.env } : void 0
+    });
+    transport.onerror = (error51) => console.error("[mcp-query-executor] transport error:", error51.message);
+    transport.onclose = () => console.error("[mcp-query-executor] transport closed");
+    const next = new import_client.Client({ name: "data-agent-electron-query-executor", version: "1.0.0" });
+    await next.connect(transport);
+    client = next;
+    return next;
+  };
+  const parseResult = (result) => {
+    if (!result || typeof result !== "object")
+      throw new Error("MCP_QUERY_EMPTY_RESPONSE");
+    const content = result.content;
+    const text2 = Array.isArray(content) ? content.find((part) => part && typeof part === "object" && part.type === "text") : void 0;
+    if (!text2 || typeof text2.text !== "string")
+      throw new Error("MCP_QUERY_EMPTY_RESPONSE");
+    return { text: text2.text, isError: Boolean(result.isError) };
+  };
+  return {
+    async run(sql, rowLimit) {
+      const effectiveLimit = Math.min(Math.max(1, Math.floor(rowLimit)), 200);
+      const raw = await (await connect()).callTool({ name: "execute_query_preview", arguments: { sql, limit: effectiveLimit } });
+      const result = parseResult(raw);
+      if (result.isError)
+        throw new Error(`MCP_TOOL_ERROR: ${result.text.slice(0, 300)}`);
+      let payload;
+      try {
+        payload = JSON.parse(result.text);
+      } catch {
+        throw new Error(`MCP_QUERY_BAD_RESPONSE: ${result.text.slice(0, 300)}`);
+      }
+      if (payload.error)
+        throw new Error(`${payload.error.code}${payload.error.message ? `: ${payload.error.message}` : ""}`);
+      const rows = payload.rows ?? [];
+      const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
+      return {
+        columns,
+        rows: rows.map((row) => columns.map((column) => row[column])),
+        truncated: Boolean(payload.truncated)
+      };
+    },
+    async *stream(sql, signal) {
+      const client2 = await connect();
+      const batchSize = 1e3;
+      for (let offset = 0; offset < 1e5; offset += batchSize) {
+        if (signal?.aborted)
+          throw new Error("EXPORT_CANCELLED");
+        const raw = await client2.callTool({ name: "execute_query_export_batch", arguments: { sql, offset, limit: batchSize, maxRows: 1e5 } });
+        const result = parseResult(raw);
+        if (result.isError)
+          throw new Error(`MCP_TOOL_ERROR: ${result.text.slice(0, 300)}`);
+        let payload;
+        try {
+          payload = JSON.parse(result.text);
+        } catch {
+          throw new Error(`MCP_QUERY_BAD_RESPONSE: ${result.text.slice(0, 300)}`);
+        }
+        if (payload.error)
+          throw new Error(`${payload.error.code}${payload.error.message ? `: ${payload.error.message}` : ""}`);
+        const rows = payload.rows ?? [];
+        const columns = payload.columns ?? (rows.length > 0 ? Object.keys(rows[0]) : []);
+        const values = rows.map((row) => columns.map((column) => row[column]));
+        if (values.length > 0)
+          yield { columns, rows: values };
+        if (payload.done || values.length < batchSize)
+          return;
+      }
+      throw new Error("EXPORT_ROW_LIMIT_EXCEEDED");
+    },
+    async close() {
+      if (client) {
+        const current = client;
+        client = null;
+        await current.close();
+      }
+    }
+  };
+}
+
+// packages/electron-host/dist/main.js
 function resolveRuntimePaths(options) {
   let appDir = options.appDir;
   if (!appDir && typeof __dirname !== "undefined") {
-    const insideAsar = __dirname.includes(`${import_node_path16.default.sep}app.asar`);
-    appDir = insideAsar ? import_node_path16.default.resolve(__dirname, "..") : import_node_path16.default.resolve(__dirname, "..", "..");
+    appDir = import_node_path18.default.resolve(__dirname, "..");
   }
   return {
     userDataDir: options.userDataDir,
     // Renderer output lives in <app>/dist when packaged via electron-builder files config
-    rendererDist: import_node_path16.default.join(appDir ?? process.cwd(), "dist")
+    rendererDist: import_node_path18.default.join(appDir ?? process.cwd(), "dist")
   };
 }
+var SECRET_FIELDS = ["openai_api_key", "anthropic_api_key", "default_model", "openai_base_url"];
+function registerDesktopCapabilities(ipcMain, options) {
+  const secretPath = import_node_path18.default.join(options.userDataDir, "secrets.json");
+  const handlers = /* @__PURE__ */ new Set();
+  const handle = (channel, listener) => {
+    ipcMain.handle(channel, listener);
+    handlers.add(channel);
+  };
+  handle("data-agent:get-stored-secrets", async () => readStoredSecrets(secretPath, options.safeStorage));
+  handle("data-agent:save-secrets", async (_event, payload) => {
+    if (!options.safeStorage?.isEncryptionAvailable())
+      return { ok: false };
+    const incoming = isRecord(payload) ? payload : {};
+    const encrypted = readEncryptedSecretRecord(secretPath);
+    for (const field of SECRET_FIELDS) {
+      const value = incoming[field];
+      if (value === void 0)
+        continue;
+      if (typeof value !== "string" || !value.trim()) {
+        delete encrypted[field];
+        continue;
+      }
+      encrypted[field] = options.safeStorage.encryptString(value).toString("base64");
+    }
+    writeEncryptedSecretRecord(secretPath, encrypted);
+    return { ok: true };
+  });
+  handle("data-agent:select-python-executable", async () => {
+    if (!options.dialog)
+      return null;
+    const result = await options.dialog.showOpenDialog({ properties: ["openFile"] });
+    return result.canceled ? null : result.filePaths[0] ?? null;
+  });
+  handle("data-agent:workspace-upload", async (_event, payload) => {
+    if (!options.workspace)
+      throw new Error("WORKSPACE_NOT_CONFIGURED");
+    if (!isRecord(payload) || typeof payload.fileName !== "string")
+      throw new Error("WORKSPACE_FILE_REQUIRED");
+    const bytes = toBytes(payload.bytes);
+    if (!bytes)
+      throw new Error("WORKSPACE_FILE_REQUIRED");
+    const fileName = safeUploadName(payload.fileName);
+    const sessionId = typeof payload.sessionId === "string" && payload.sessionId ? safeSessionSegment(payload.sessionId) : "";
+    const storagePath = sessionId ? `${sessionId}/${fileName}` : fileName;
+    await options.workspace.writeBytes(storagePath, bytes);
+    return { filename: fileName, session_id: sessionId, relative_path: fileName, size: bytes.byteLength };
+  });
+  handle("data-agent:show-menu", async () => false);
+  handle("data-agent:get-backend-port", async () => null);
+  handle("data-agent:check-for-updates", async () => options.autoUpdater ? options.autoUpdater.checkForUpdates() : { ok: false, reason: "UPDATES_NOT_CONFIGURED" });
+  handle("data-agent:download-update", async () => options.autoUpdater ? options.autoUpdater.downloadUpdate() : { ok: false, reason: "UPDATES_NOT_CONFIGURED" });
+  handle("data-agent:quit-and-install-update", async () => {
+    if (!options.autoUpdater)
+      return { ok: false, reason: "UPDATES_NOT_CONFIGURED" };
+    options.autoUpdater.quitAndInstall();
+    return { ok: true };
+  });
+  return () => {
+    for (const channel of handlers)
+      ipcMain.removeHandler(channel);
+  };
+}
+function isRecord(value) {
+  return typeof value === "object" && value !== null;
+}
+function firstString(...values) {
+  return values.find((value) => typeof value === "string" && value.trim().length > 0)?.trim();
+}
+function isRuntimeAgentEvent(value) {
+  if (!isRecord(value) || typeof value.type !== "string")
+    return false;
+  return ["message_start", "message_update", "tool_execution_start", "tool_execution_update", "tool_execution_end"].includes(value.type);
+}
+function readEncryptedSecretRecord(secretPath) {
+  try {
+    const parsed = JSON.parse((0, import_node_fs6.readFileSync)(secretPath, "utf8"));
+    if (!isRecord(parsed) || !isRecord(parsed.encrypted))
+      return {};
+    const encrypted = parsed.encrypted;
+    return Object.fromEntries(SECRET_FIELDS.flatMap((field) => typeof encrypted[field] === "string" ? [[field, encrypted[field]]] : []));
+  } catch {
+    return {};
+  }
+}
+function readStoredSecrets(secretPath, safeStorage) {
+  if (!safeStorage?.isEncryptionAvailable())
+    return {};
+  const encrypted = readEncryptedSecretRecord(secretPath);
+  const result = {};
+  for (const field of SECRET_FIELDS) {
+    const value = encrypted[field];
+    if (!value)
+      continue;
+    try {
+      result[field] = safeStorage.decryptString(Buffer.from(value, "base64"));
+    } catch {
+    }
+  }
+  return result;
+}
+function writeEncryptedSecretRecord(secretPath, encrypted) {
+  const temporary = `${secretPath}.${process.pid}.tmp`;
+  (0, import_node_fs6.mkdirSync)(import_node_path18.default.dirname(secretPath), { recursive: true });
+  (0, import_node_fs6.writeFileSync)(temporary, JSON.stringify({ version: 1, encrypted }, null, 2), "utf8");
+  (0, import_node_fs6.renameSync)(temporary, secretPath);
+}
+function toBytes(value) {
+  if (value instanceof Uint8Array)
+    return value;
+  if (value instanceof ArrayBuffer)
+    return new Uint8Array(value);
+  if (Array.isArray(value) && value.every((item) => Number.isInteger(item) && item >= 0 && item <= 255))
+    return Uint8Array.from(value);
+  return void 0;
+}
+function safeUploadName(fileName) {
+  const normalized = fileName.replaceAll("\\", "/");
+  const name = import_node_path18.default.posix.basename(normalized);
+  if (!name || name === "." || name === "..")
+    throw new Error("WORKSPACE_FILE_REQUIRED");
+  return name;
+}
+function safeSessionSegment(sessionId) {
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(sessionId) || sessionId === "." || sessionId === "..")
+    throw new Error("INVALID_WORKSPACE_SESSION");
+  return sessionId;
+}
+async function registerWorkspaceProtocol(protocol, workspace) {
+  if (!protocol)
+    return () => void 0;
+  await protocol.handle("data-agent", async (request) => {
+    try {
+      const url2 = new URL(request.url);
+      if (url2.hostname !== "workspace" || !url2.pathname.startsWith("/workspace/files/"))
+        return new Response("Not found", { status: 404 });
+      const relativePath = url2.searchParams.get("path") ?? "";
+      if (!relativePath)
+        return new Response("File path is required", { status: 400 });
+      const bytes = await workspace.readBytesWithLegacyFallback(relativePath);
+      return new Response(Buffer.from(bytes), { headers: { "Content-Type": contentTypeFor(relativePath), "Cache-Control": "no-store" } });
+    } catch {
+      return new Response("Not found", { status: 404 });
+    }
+  });
+  return () => protocol.unhandle?.("data-agent");
+}
+function contentTypeFor(relativePath) {
+  const extension2 = import_node_path18.default.extname(relativePath).toLowerCase();
+  return {
+    ".csv": "text/csv; charset=utf-8",
+    ".json": "application/json; charset=utf-8",
+    ".txt": "text/plain; charset=utf-8",
+    ".md": "text/markdown; charset=utf-8",
+    ".html": "text/html; charset=utf-8",
+    ".htm": "text/html; charset=utf-8",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".gif": "image/gif",
+    ".svg": "image/svg+xml",
+    ".pdf": "application/pdf"
+  }[extension2] ?? "application/octet-stream";
+}
+function createElectronQueryExecutor(metadata, options) {
+  let executor;
+  let executorKey = "";
+  const resolveExecutor = async () => {
+    const saved = await metadata.getConfig("ui.settings");
+    const cfg = isRecord(saved) ? saved : {};
+    const env2 = { ...options.baseEnv ?? {} };
+    for (const [key, envName] of [["host", "DATA_AGENT_MYSQL_HOST"], ["port", "DATA_AGENT_MYSQL_PORT"], ["user", "DATA_AGENT_MYSQL_USER"], ["password", "DATA_AGENT_MYSQL_PASSWORD"], ["database", "DATA_AGENT_MYSQL_DATABASE"]]) {
+      if (cfg[key] !== void 0 && cfg[key] !== null)
+        env2[envName] = String(cfg[key]);
+    }
+    const nextKey = JSON.stringify(env2);
+    if (executor && executorKey === nextKey)
+      return executor;
+    if (executor)
+      await executor.close();
+    executor = createMcpQueryExecutor({ command: options.command, args: options.args, env: env2 });
+    executorKey = nextKey;
+    return executor;
+  };
+  return {
+    run: (sql, rowLimit) => resolveExecutor().then((current) => current.run(sql, rowLimit)),
+    async *stream(sql, signal) {
+      yield* (await resolveExecutor()).stream(sql, signal);
+    },
+    async close() {
+      if (!executor)
+        return;
+      const current = executor;
+      executor = void 0;
+      executorKey = "";
+      await current.close();
+    }
+  };
+}
+function mysqlMcpEnv(connection, baseEnv = {}) {
+  const env2 = { ...baseEnv };
+  for (const [key, envName] of [["host", "DATA_AGENT_MYSQL_HOST"], ["port", "DATA_AGENT_MYSQL_PORT"], ["user", "DATA_AGENT_MYSQL_USER"], ["password", "DATA_AGENT_MYSQL_PASSWORD"], ["database", "DATA_AGENT_MYSQL_DATABASE"]]) {
+    if (connection[key] !== void 0 && connection[key] !== null)
+      env2[envName] = String(connection[key]);
+  }
+  return env2;
+}
+function createElectronHostTesters(mcp) {
+  return {
+    dbTester: {
+      test: async (connection) => {
+        const host = String(connection.host ?? "127.0.0.1");
+        const port = Number(connection.port ?? 3306);
+        const database = connection.database ? String(connection.database) : void 0;
+        const executor = createMcpQueryExecutor({ command: mcp.command, args: mcp.args, env: mysqlMcpEnv(connection, mcp.baseEnv) });
+        try {
+          await executor.run("SELECT 1 AS connection_ok", 1);
+          return { success: true, message: `MySQL \u8FDE\u63A5\u6210\u529F\uFF08${host}:${port}${database ? `/ ${database}` : ""}\uFF09` };
+        } catch (error51) {
+          return { success: false, message: `MySQL \u8FDE\u63A5\u5931\u8D25: ${error51 instanceof Error ? error51.message : String(error51)}` };
+        } finally {
+          await executor.close().catch(() => void 0);
+        }
+      }
+    },
+    llmTester: { test: testLlmProfile }
+  };
+}
+async function testLlmProfile(profile) {
+  const provider = String(profile.provider ?? "openai");
+  const apiKey = String(profile.api_key ?? profile.openai_api_key ?? profile.anthropic_api_key ?? "").trim();
+  const model = String(profile.model ?? (provider === "anthropic" ? "claude-sonnet-4-20250514" : "gpt-4o-mini"));
+  if (!apiKey)
+    return { success: false, message: "\u7F3A\u5C11 API Key" };
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 2e4);
+  try {
+    if (provider === "anthropic") {
+      const baseUrl2 = String(profile.base_url ?? "https://api.anthropic.com").replace(/\/$/, "");
+      const response2 = await fetch(`${baseUrl2}/v1/messages`, {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
+        body: JSON.stringify({ model, max_tokens: 1, messages: [{ role: "user", content: "ping" }] }),
+        signal: controller.signal
+      });
+      if (response2.ok)
+        return { success: true, message: `Anthropic \u8FDE\u63A5\u6210\u529F\uFF08${model}\uFF09` };
+      return { success: false, message: `Anthropic \u6821\u9A8C\u5931\u8D25 (HTTP ${response2.status})`, details: (await response2.text().catch(() => "")).slice(0, 300) };
+    }
+    const baseUrl = String(profile.base_url ?? profile.openai_base_url ?? "https://api.openai.com/v1").replace(/\/$/, "");
+    const response = await fetch(`${baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({ model, max_tokens: 1, messages: [{ role: "user", content: "ping" }] }),
+      signal: controller.signal
+    });
+    if (response.ok)
+      return { success: true, message: `OpenAI \u517C\u5BB9\u63A5\u53E3\u8FDE\u63A5\u6210\u529F\uFF08${model}\uFF09` };
+    return { success: false, message: `OpenAI \u517C\u5BB9\u63A5\u53E3\u6821\u9A8C\u5931\u8D25 (HTTP ${response.status})`, details: (await response.text().catch(() => "")).slice(0, 300) };
+  } catch (error51) {
+    const reason = error51 instanceof Error ? error51.name === "AbortError" ? "\u8BF7\u6C42\u8D85\u65F6\uFF0820s\uFF09" : error51.message : String(error51);
+    return { success: false, message: `\u6A21\u578B\u670D\u52A1\u8FDE\u63A5\u5931\u8D25: ${reason}` };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+async function runPackagedRendererSmoke(window2) {
+  if (!window2.webContents)
+    throw new Error("SMOKE_RENDERER_WEB_CONTENTS_MISSING");
+  const result = await window2.webContents.executeJavaScript(`
+    (async () => {
+      const invoke = window.dataAgentRuntime?.invokeRuntimeCommand;
+      const subscribe = window.dataAgentRuntime?.subscribeRuntimeEvents;
+      const upload = window.dataAgent?.uploadWorkspaceFile;
+      if (!invoke || !subscribe || !upload) throw new Error("SMOKE_PRELOAD_BRIDGE_MISSING");
+      const envelope = (requestId, command, sessionId) => ({ protocolVersion: 1, requestId, ...(sessionId ? { sessionId } : {}), command });
+      const probe = await invoke(envelope("smoke-probe", { type: "runtime.probe" }));
+      const config = await invoke(envelope("smoke-config", { type: "config.get" }));
+      const artifact = await upload({ fileName: "smoke-renderer.txt", bytes: new Uint8Array([115, 109, 111, 107, 101]), sessionId: "smoke-session" });
+      let unsubscribe = () => undefined;
+      const completed = new Promise((resolve, reject) => {
+        const timer = setTimeout(() => { unsubscribe(); reject(new Error("SMOKE_CHAT_TIMEOUT")); }, 10000);
+        unsubscribe = subscribe((event) => {
+          if (event?.sessionId === "smoke-session" && event?.event?.type === "agent.completed") {
+            clearTimeout(timer);
+            unsubscribe();
+            resolve(true);
+          }
+        }, "smoke-session");
+      });
+      const chat = await invoke(envelope("smoke-chat", { type: "agent.prompt", prompt: "smoke" }, "smoke-session"));
+      await completed;
+      return {
+        probe: probe?.response?.type,
+        config: config?.response?.type,
+        artifact: artifact?.relative_path,
+        chat: chat?.response?.type,
+      };
+    })()
+  `);
+  if (!isRecord(result) || result.probe !== "runtime.probe.result" || result.config !== "config.get.result" || result.artifact !== "smoke-renderer.txt" || result.chat !== "agent.prompt.accepted") {
+    throw new Error(`SMOKE_RENDERER_SELF_TEST_FAILED: ${JSON.stringify(result)}`);
+  }
+}
 async function startElectronHost(deps, overrides = {}) {
-  const { DataAgentRuntime: DataAgentRuntime2, MetadataStore: MetadataStore2, PiJsonlSessionStore: PiJsonlSessionStore2 } = await Promise.resolve().then(() => (init_dist5(), dist_exports));
-  const { KnowledgeIndex: KnowledgeIndex2 } = await Promise.resolve().then(() => (init_dist5(), dist_exports));
+  deps.protocol?.registerSchemesAsPrivileged?.([{
+    scheme: "data-agent",
+    privileges: { secure: true, standard: true, supportFetchAPI: true, stream: true }
+  }]);
+  const { DataAgentRuntime: DataAgentRuntime2, MetadataStore: MetadataStore2, PiJsonlSessionStore: PiJsonlSessionStore2, KnowledgeIndex: KnowledgeIndex2, WorkspaceStore: WorkspaceStore2, createAgentHarnessResolver: createAgentHarnessResolver2, createDataAgentHarness: createDataAgentHarness2 } = await Promise.resolve().then(() => (init_dist5(), dist_exports));
   const { registerElectronRuntimeIpc: registerElectronRuntimeIpc2 } = await Promise.resolve().then(() => (init_index(), index_exports));
   const paths = resolveRuntimePaths({ userDataDir: deps.app.getPath("userData") });
   if (overrides.userDataDir)
@@ -163652,45 +165224,182 @@ async function startElectronHost(deps, overrides = {}) {
   if (overrides.rendererDist)
     paths.rendererDist = overrides.rendererDist;
   const effectiveResources = overrides.resourcesPath ?? deps.resourcesPath;
-  let pythonExecutable;
-  const bundledPython = import_node_path16.default.join(effectiveResources ?? "", "python-runtime", "Scripts", "python.exe");
-  if (effectiveResources && (0, import_node_fs5.existsSync)(bundledPython))
-    pythonExecutable = bundledPython;
+  const bundledPython = import_node_path18.default.join(effectiveResources ?? "", "python-runtime", "Scripts", "python.exe");
+  const bundledPythonExecutable = effectiveResources && (0, import_node_fs6.existsSync)(bundledPython) ? bundledPython : void 0;
+  let pythonExecutable = bundledPythonExecutable;
   for (const dir of ["metadata", "sessions", "workspace", "knowledge"]) {
-    (0, import_node_fs5.mkdirSync)(import_node_path16.default.join(paths.userDataDir, dir), { recursive: true });
+    (0, import_node_fs6.mkdirSync)(import_node_path18.default.join(paths.userDataDir, dir), { recursive: true });
   }
-  const metadata = new MetadataStore2(import_node_path16.default.join(paths.userDataDir, "metadata", "app.db"));
-  const sessions = new PiJsonlSessionStore2(import_node_path16.default.join(paths.userDataDir, "sessions"));
-  const knowledgeRoot = import_node_path16.default.join(paths.userDataDir, "knowledge");
+  const metadata = new MetadataStore2(import_node_path18.default.join(paths.userDataDir, "metadata", "app.db"));
+  const sessions = new PiJsonlSessionStore2(import_node_path18.default.join(paths.userDataDir, "sessions"));
+  const knowledgeRoot = import_node_path18.default.join(paths.userDataDir, "knowledge");
+  const workspace = new WorkspaceStore2(import_node_path18.default.join(paths.userDataDir, "workspace"), { userId: "local" });
   let knowledge;
   try {
     knowledge = new KnowledgeIndex2(knowledgeRoot);
   } catch {
     knowledge = void 0;
   }
-  const semanticProjectDir = process.env.DATA_AGENT_SEMANTIC_PROJECT_DIR ? import_node_path16.default.resolve(process.env.DATA_AGENT_SEMANTIC_PROJECT_DIR) : import_node_path16.default.join(paths.userDataDir, "semantic-context");
-  const runtime = new DataAgentRuntime2({ metadata, sessions, knowledgeRoot, knowledge, pythonExecutable, semanticProjectDir });
-  registerElectronRuntimeIpc2(deps.ipcMain, runtime);
-  await deps.app.whenReady();
-  if (process.env.DATA_AGENT_SMOKE === "1") {
-    const { writeFileSync } = await import("node:fs");
-    try {
-      writeFileSync(import_node_path16.default.join(paths.userDataDir, "smoke.ok"), "ok");
-    } catch {
+  const savedConfig = await metadata.getConfig("ui.settings");
+  if (isRecord(savedConfig)) {
+    const pythonConfig = savedConfig.python_runtime;
+    if (isRecord(pythonConfig) && pythonConfig.mode === "external" && typeof pythonConfig.executable === "string" && pythonConfig.executable.trim()) {
+      pythonExecutable = pythonConfig.executable;
     }
-    deps.app.quit();
-    return;
   }
+  const semanticProjectDir = process.env.DATA_AGENT_SEMANTIC_PROJECT_DIR ? import_node_path18.default.resolve(process.env.DATA_AGENT_SEMANTIC_PROJECT_DIR) : import_node_path18.default.join(paths.userDataDir, "semantic-context");
+  const applicationRoot = import_node_path18.default.dirname(paths.rendererDist);
+  const developmentRoot = applicationRoot.includes(`${import_node_path18.default.sep}app.asar`) ? applicationRoot : import_node_path18.default.resolve(applicationRoot, "..");
+  const packagedRoot = effectiveResources ?? applicationRoot;
+  const runtime = new DataAgentRuntime2({
+    metadata,
+    sessions,
+    workspace,
+    knowledgeRoot,
+    knowledge,
+    pythonExecutable,
+    bundledPythonExecutable,
+    semanticProjectDir,
+    skillRoots: [import_node_path18.default.join(developmentRoot, ".agents", "skills"), import_node_path18.default.join(packagedRoot, ".agents", "skills")]
+  });
+  runtime.ingestJob = {
+    async getStatus() {
+      const { readdir: readdir7 } = await import("node:fs/promises");
+      let count = 0;
+      for (const segment of ["semantic-layer", "business-semantic"]) {
+        try {
+          const entries = await readdir7(import_node_path18.default.join(semanticProjectDir, segment), { recursive: true });
+          count += entries.filter((entry) => entry.endsWith(".yaml") || entry.endsWith(".yml")).length;
+        } catch {
+        }
+      }
+      return {
+        status: count > 0 ? "ready" : "skipped",
+        jobId: null,
+        summary: { updated: 0, unchanged: count, failed: 0, skipped: 0 },
+        errorCode: null
+      };
+    },
+    async retry() {
+      return { accepted: true };
+    }
+  };
+  const mcpProcess = {
+    command: process.execPath,
+    args: [import_node_path18.default.join(__dirname, "mcp-mysql.cjs")],
+    baseEnv: { ELECTRON_RUN_AS_NODE: "1" }
+  };
+  const testers = createElectronHostTesters(mcpProcess);
+  runtime.dbTester = testers.dbTester;
+  runtime.llmTester = testers.llmTester;
+  const queryExecutor = createElectronQueryExecutor(metadata, mcpProcess);
+  runtime.queryExecutor = queryExecutor;
+  const unregisterDesktopCapabilities = registerDesktopCapabilities(deps.ipcMain, {
+    userDataDir: paths.userDataDir,
+    safeStorage: deps.safeStorage,
+    dialog: deps.dialog,
+    autoUpdater: deps.autoUpdater,
+    workspace
+  });
+  const unregisterRuntimeIpc = registerElectronRuntimeIpc2(deps.ipcMain, runtime);
+  let agentHarness;
+  const agentListeners = /* @__PURE__ */ new Set();
+  const secretPath = import_node_path18.default.join(paths.userDataDir, "secrets.json");
+  const agentHarnessResolver = createAgentHarnessResolver2({
+    getProfile: async () => {
+      const config2 = await metadata.getConfig("ui.settings") ?? {};
+      const cfg = isRecord(config2) ? config2 : {};
+      const stored = readStoredSecrets(secretPath, deps.safeStorage);
+      const provider = typeof cfg.provider === "string" && cfg.provider ? cfg.provider : stored.anthropic_api_key ? "anthropic" : "openai";
+      const apiKey = firstString(cfg.api_key, provider === "anthropic" ? cfg.anthropic_api_key : cfg.openai_api_key, stored.anthropic_api_key && provider === "anthropic" ? stored.anthropic_api_key : void 0, stored.openai_api_key && provider !== "anthropic" ? stored.openai_api_key : void 0);
+      const model = firstString(cfg.model, stored.default_model);
+      const baseUrl = firstString(cfg.base_url, stored.openai_base_url);
+      if (cfg.llm_enabled === false || !apiKey || !model)
+        throw new Error("LLM_NOT_CONFIGURED: complete onboarding first");
+      return { provider, model, apiKey, ...baseUrl ? { baseUrl } : {} };
+    },
+    create: async (profile, sessionId) => {
+      const persistentSession = sessionId ? await sessions.openByAppSessionId(sessionId) : void 0;
+      const harness = await createDataAgentHarness2({
+        workspace,
+        knowledge,
+        knowledgeRoot,
+        pythonExecutable: () => runtime.pythonExecutablePath,
+        queryExecutor,
+        clarifications: runtime.clarificationManager,
+        session: persistentSession,
+        systemPromptRoots: [knowledgeRoot, developmentRoot, packagedRoot],
+        projectRoot: developmentRoot,
+        packagedRoot,
+        toolContext: { sessionId }
+      }, profile);
+      for (const listener of agentListeners)
+        harness.subscribe?.(listener);
+      agentHarness = harness;
+      return harness;
+    }
+  });
+  const resolveAgentHarness = (sessionId) => agentHarnessResolver.resolve(sessionId);
+  runtime.attachAgent({
+    prompt: async (text2, context2) => (await resolveAgentHarness(context2?.sessionId)).prompt(text2),
+    steer: (text2, context2) => {
+      void resolveAgentHarness(context2?.sessionId).then((agent) => agent.steer?.(text2));
+    },
+    followUp: (text2, context2) => {
+      void resolveAgentHarness(context2?.sessionId).then((agent) => agent.followUp?.(text2));
+    },
+    abort: () => {
+      agentHarness?.abort();
+    },
+    getResources: () => agentHarness?.getResources?.() ?? {},
+    setResources: async (resources) => {
+      if (agentHarness?.setResources)
+        await agentHarness.setResources(resources);
+    },
+    subscribe: (listener) => {
+      const forward = (event) => {
+        if (isRuntimeAgentEvent(event))
+          listener(event);
+      };
+      agentListeners.add(forward);
+      return () => agentListeners.delete(forward);
+    }
+  });
+  agentHarnessResolver.warmup((error51) => console.warn("[data-agent-electron] agent warm-up unavailable:", error51 instanceof Error ? error51.message : error51));
+  await deps.app.whenReady();
+  const unregisterWorkspaceProtocol = await registerWorkspaceProtocol(deps.protocol, workspace);
+  let disposed = false;
+  const dispose = async () => {
+    if (disposed)
+      return;
+    disposed = true;
+    agentHarness?.abort();
+    unregisterWorkspaceProtocol();
+    unregisterDesktopCapabilities();
+    unregisterRuntimeIpc();
+    await queryExecutor.close();
+    await metadata.close();
+  };
   const window2 = new deps.BrowserWindow({
     width: 1440,
     height: 900,
     webPreferences: {
-      preload: import_node_path16.default.join(__dirname, "..", "electron", "preload.cjs"),
+      preload: import_node_path18.default.join(__dirname, "..", "electron", "preload.cjs"),
       contextIsolation: true,
       nodeIntegration: false
     }
   });
-  await window2.loadFile(import_node_path16.default.join(paths.rendererDist, "index.html"));
+  const devServerUrl = process.env.DATA_AGENT_DEV_URL?.trim() || "http://localhost:5173";
+  if (process.env.DATA_AGENT_DEV === "1" || process.argv.includes("--dev")) {
+    await window2.loadURL(devServerUrl);
+  } else {
+    await window2.loadFile(import_node_path18.default.join(paths.rendererDist, "index.html"));
+  }
+  if (process.env.DATA_AGENT_SMOKE === "1") {
+    await runPackagedRendererSmoke(window2);
+    (0, import_node_fs6.writeFileSync)(import_node_path18.default.join(paths.userDataDir, "smoke.ok"), "renderer-runtime-config-upload-chat");
+  }
+  return { runtime, dispose };
 }
 if (process.env.VITEST !== "true" && process.env.NODE_ENV !== "test")
   void (async () => {
@@ -163700,11 +165409,30 @@ if (process.env.VITEST !== "true" && process.env.NODE_ENV !== "test")
         /* @vite-ignore */
         electronModule
       );
-      await startElectronHost(electron, { resourcesPath: electron.resourcesPath });
+      if (electron.app.requestSingleInstanceLock?.() === false) {
+        electron.app.quit();
+        return;
+      }
+      const resourcesPath = process.resourcesPath;
+      const smokeUserData = process.env.DATA_AGENT_SMOKE_DIR?.trim();
+      const host = await startElectronHost(electron, { resourcesPath, ...smokeUserData ? { userDataDir: smokeUserData } : {} });
+      if (process.env.DATA_AGENT_SMOKE === "1") {
+        await host.dispose();
+        electron.app.quit();
+        return;
+      }
+      let quitting = false;
+      electron.app.on?.("before-quit", (event) => {
+        if (quitting)
+          return;
+        quitting = true;
+        event?.preventDefault?.();
+        void host.dispose().finally(() => electron.app.quit());
+      });
     } catch (error51) {
       try {
         const { appendFileSync } = await import("node:fs");
-        appendFileSync(import_node_path16.default.join(process.env.TEMP ?? process.cwd(), "data-agent-main-error.log"), `[${(/* @__PURE__ */ new Date()).toISOString()}] electron host failed to start:
+        appendFileSync(import_node_path18.default.join(process.env.TEMP ?? process.cwd(), "data-agent-main-error.log"), `[${(/* @__PURE__ */ new Date()).toISOString()}] electron host failed to start:
 ${error51 instanceof Error ? error51.stack : String(error51)}
 `);
       } catch {
@@ -163724,6 +165452,7 @@ ${error51 instanceof Error ? error51.stack : String(error51)}
   })();
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
+  registerDesktopCapabilities,
   resolveRuntimePaths,
   startElectronHost
 });

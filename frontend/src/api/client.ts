@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Data Agent API Client
  * 用于连接后端 FastAPI 服务，处理 REST API 和 SSE 流
  */
@@ -120,15 +120,16 @@ export async function logout(): Promise<void> {
 }
 
 export interface AIConfig {
-    default_model: string;
-    openai_api_key?: string;
-    anthropic_api_key?: string;
-    openai_base_url?: string;
-    mcp_server_script?: string;
-    mysql_host?: string;
-    mysql_port?: number;
-    mysql_user?: string;
-    mysql_database?: string;
+    provider?: 'openai' | 'anthropic';
+    llm_enabled?: boolean;
+    model?: string;
+    api_key?: string;
+    base_url?: string;
+    host?: string;
+    port?: number;
+    user?: string;
+    password?: string;
+    database?: string;
     connections?: DatabaseConnectionRegistry;
     python_runtime?: PythonRuntimeConfig;
     llm_profiles?: LLMProfilesResponse;
@@ -302,10 +303,12 @@ export interface SkillListResponse {
 
 export interface WidgetSpec {
     widget_id: string;
-    kind: 'metric_cards' | 'table' | 'chart' | 'steps' | 'rich_text' | 'echarts' | 'file_link';
+    kind: 'kpi' | 'metric_cards' | 'table' | 'chart' | 'steps' | 'rich_text' | 'echarts' | 'file_link';
     title: string;
     subtitle?: string;
     data?: any[];
+    value?: string | number;
+    label?: string;
     series?: any[];
     columns?: any[];
     actions?: any[];
@@ -537,14 +540,14 @@ export type SSEEvent =
     | { type: 'auto_retry'; session_id?: string; operation: string; attempt: number; max_attempts: number; delay_seconds: number; reason: string }
     | { type: 'text_delta'; session_id?: string; message_id?: string; content: string; ephemeral?: boolean }
     | { type: 'reasoning_delta'; session_id?: string; message_id: string; content: string }
-    | { type: 'tool_call'; session_id?: string; message_id: string; tool_call_id: string; widget_id?: string | null; name: string; arguments: any }
+    | { type: 'tool_call'; session_id?: string; message_id: string; tool_call_id: string; widget_id?: string | null; name: string; arguments: unknown }
     | { type: 'tool_progress'; session_id?: string; message_id: string; tool_call_id: string; name: string; phase: 'validating_sql' | 'running_query' | 'running' | 'done' | 'error'; elapsed_ms?: number | null }
     | { type: 'widget_patch'; session_id?: string; message_id: string; tool_call_id: string; widget_id: string; tool_name: string; patch: Partial<WidgetSpec> }
     | { type: 'widget'; session_id?: string; message_id: string; tool_call_id: string; widget_id: string; tool_name: string; widget: WidgetSpec }
     | { type: 'widget_done'; session_id?: string; message_id: string; tool_call_id: string; widget_id: string }
     | { type: 'widget_remove'; session_id?: string; message_id: string; tool_call_id?: string; widget_id: string }
     | { type: 'widget_error'; session_id?: string; message_id: string; tool_call_id: string; widget_id: string; error: string }
-    | { type: 'tool_result'; session_id?: string; message_id: string; tool_call_id: string; widget_id?: string | null; name: string; arguments: any; content: string; details?: any; is_error?: boolean }
+    | { type: 'tool_result'; session_id?: string; message_id: string; tool_call_id: string; widget_id?: string | null; name: string; arguments?: unknown; content: string; details?: unknown; is_error?: boolean }
     | { type: 'clarification_request'; session_id?: string; clarification_id: string; question: string; options: string[] }
     | { type: 'clarification_answered'; session_id?: string; clarification_id: string; answer: string }
     | { type: 'skill_activated'; session_id?: string; skill: SkillInfo & { source?: string; command_text?: string; granted_permissions?: string[]; model_override?: string | null; ui_message?: string } }
@@ -983,10 +986,15 @@ export interface WorkspaceUploadResponse {
 }
 
 export async function uploadWorkspaceFile(file: File, sessionId: string = ''): Promise<WorkspaceUploadResponse> {
+    if (window.dataAgent?.uploadWorkspaceFile) {
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        return window.dataAgent.uploadWorkspaceFile({ fileName: file.name, bytes, sessionId });
+    }
+
     const formData = new FormData();
     formData.append('file', file);
     const query = sessionId ? `?session_id=${encodeURIComponent(sessionId)}` : '';
-    const res = await fetch(`${API_BASE_URL}/api/workspace/upload${query}`, {
+    const res = await apiFetch(`${API_BASE_URL}/api/workspace/upload${query}`, {
         method: 'POST',
         body: formData,
     });

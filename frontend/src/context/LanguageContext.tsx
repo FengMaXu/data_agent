@@ -47,6 +47,8 @@ const translations: Translations = {
         'common.retryHint': 'Check your connection or configuration and try again.',
 
         'app.preparing': 'Preparing Data Agent...',
+        'app.startupError': 'Data Agent could not initialize its local runtime. Check the configuration and try again.',
+        'app.retry': 'Try again',
         'desktop.file': 'File',
         'desktop.edit': 'Edit',
         'desktop.view': 'View',
@@ -462,6 +464,8 @@ const translations: Translations = {
         'common.retryHint': '请检查网络或配置后重试。',
 
         'app.preparing': '正在准备 Data Agent...',
+        'app.startupError': 'Data Agent 无法初始化本地运行时，请检查配置后重试。',
+        'app.retry': '重试',
         'desktop.file': '文件',
         'desktop.edit': '编辑',
         'desktop.view': '视图',

@@ -19,9 +19,16 @@ export class MetadataStore {
     : __dirname;
     // better-sqlite3 cannot create missing parent directories.
     mkdirSync(path.dirname(path.resolve(dbPath)), { recursive: true });
-    const workerPath = path.join(sourceDir, "metadata-worker.js");
-    const builtWorkerPath = path.resolve(sourceDir, "../dist/metadata-worker.js");
-    this.worker = new Worker(existsSync(workerPath) ? workerPath : builtWorkerPath, { workerData: { path: path.resolve(dbPath) } });
+    const workerCandidates = [
+      // The Electron CJS bundle stages a CJS worker next to main.cjs.
+      path.join(sourceDir, "metadata-worker.cjs"),
+      // Native runtime builds keep the ESM worker next to metadata.js.
+      path.join(sourceDir, "metadata-worker.js"),
+      path.resolve(sourceDir, "../dist/metadata-worker.js"),
+    ];
+    const workerPath = workerCandidates.find(existsSync);
+    if (!workerPath) throw new Error(`METADATA_WORKER_NOT_FOUND: ${workerCandidates.join(", ")}`);
+    this.worker = new Worker(workerPath, { workerData: { path: path.resolve(dbPath) } });
     this.worker.on("message", (message: { id: number; ok: boolean; result?: unknown; error?: string }) => { const p=this.pending.get(message.id); if(!p)return; this.pending.delete(message.id); message.ok?p.resolve(message.result):p.reject(new Error(message.error)); });
     this.worker.on("error", error => { for(const p of this.pending.values())p.reject(error); this.pending.clear(); });
   }

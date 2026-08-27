@@ -16,6 +16,7 @@
     "build:server": "npm run build --workspace=@data-agent/server",
     "build:frontend": "npm run build --workspace=frontend",
     "build": "npm run build:contracts && npm run build:runtime && npm run build:transport && npm run build:electron-host && npm run build:server && npm run build:frontend",
+    "build:distribution": "node scripts/build-distribution.mjs",
     "pretest": "npm run build",
     "test": "npm run test --workspaces --if-present",
     "pretypecheck": "npm run build",

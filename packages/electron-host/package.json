@@ -15,7 +15,9 @@
   },
   "dependencies": {
     "@data-agent/contracts": "0.1.0",
-    "@data-agent/runtime": "0.1.0"
+    "@data-agent/runtime": "0.1.0",
+    "@earendil-works/pi-agent-core": "0.83.0",
+    "@modelcontextprotocol/sdk": "1.29.0"
   },
   "devDependencies": {
     "@types/node": "24.10.1",

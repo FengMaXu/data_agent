@@ -6,6 +6,15 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('dataAgentRuntime', {
     invokeRuntimeCommand: (envelope) => ipcRenderer.invoke('data-agent:command', envelope),
+    subscribeRuntimeEvents: (listener, sessionId) => {
+        const handler = (_event, payload) => listener(payload);
+        ipcRenderer.on('data-agent:event', handler);
+        ipcRenderer.send('data-agent:events:subscribe', { sessionId });
+        return () => {
+            ipcRenderer.removeListener('data-agent:event', handler);
+            ipcRenderer.send('data-agent:events:unsubscribe');
+        };
+    },
 });
 
 contextBridge.exposeInMainWorld('dataAgent', {
@@ -15,4 +24,12 @@ contextBridge.exposeInMainWorld('dataAgent', {
     downloadUpdate: () => ipcRenderer.invoke('data-agent:download-update'),
     quitAndInstallUpdate: () => ipcRenderer.invoke('data-agent:quit-and-install-update'),
     selectPythonExecutable: () => ipcRenderer.invoke('data-agent:select-python-executable'),
+    uploadWorkspaceFile: (payload) => ipcRenderer.invoke('data-agent:workspace-upload', payload),
+    showMenu: (menuName, position) => ipcRenderer.invoke('data-agent:show-menu', { menuName, position }),
+    getBackendPort: () => ipcRenderer.invoke('data-agent:get-backend-port'),
+    onUpdateEvent: (listener) => {
+        const handler = (_event, payload) => listener(payload);
+        ipcRenderer.on('data-agent:update', handler);
+        return () => ipcRenderer.removeListener('data-agent:update', handler);
+    },
 });

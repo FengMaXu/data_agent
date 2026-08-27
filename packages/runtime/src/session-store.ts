@@ -16,4 +16,9 @@ export class PiJsonlSessionStore {
   }
   async list(): Promise<any[]> { return this.repo.list({ cwd: this.cwd }); }
   async open(metadata: any): Promise<Session<any>> { return this.repo.open(metadata); }
+  async openByAppSessionId(sessionId: string): Promise<Session<any>> {
+    const metadata = (await this.list()).find((item) => item?.metadata?.sessionId === sessionId || item?.id === sessionId);
+    if (!metadata) throw new Error(`SESSION_NOT_FOUND: ${sessionId}`);
+    return this.open(metadata);
+  }
 }

@@ -8,12 +8,14 @@ import {
   createIpcTransport,
   type DataAgentTransport,
   type ElectronCommandBridge,
+  type FetchLike,
 } from "@data-agent/transport";
 import type {
   DataAgentCommand,
   DataAgentCommandEnvelope,
   DataAgentResponseEnvelope,
 } from "@data-agent/contracts";
+import { apiFetch } from "./client";
 
 let sequence = 0;
 
@@ -22,26 +24,28 @@ function envelope(command: DataAgentCommand, sessionId?: string): DataAgentComma
   return {
     protocolVersion: 1,
     requestId: `renderer-${Date.now()}-${sequence}`,
+    ...(sessionId ? { sessionId } : {}),
     command,
-    ...(sessionId ? {} : {}),
   } as DataAgentCommandEnvelope;
 }
 
 export interface RuntimeClient {
   dispatch(command: DataAgentCommand, sessionId?: string): Promise<DataAgentResponseEnvelope>;
   /** Subscribe to runtime events via the Host bridge (Electron) or SSE (Web). */
-  onEvent?(listener: (event: unknown) => void): () => void;
+  onEvent?(listener: (event: unknown) => void, sessionId?: string): () => void;
 }
 
 export function createElectronRuntimeClient(bridge: ElectronCommandBridge): RuntimeClient {
   const transport: DataAgentTransport = createIpcTransport(bridge);
-  return {
+  const client: RuntimeClient = {
     dispatch: (command, sessionId) => transport.dispatch(envelope(command, sessionId)) as unknown as Promise<DataAgentResponseEnvelope>,
   };
+  if (bridge.subscribe) client.onEvent = (listener, sessionId) => bridge.subscribe!(listener, sessionId);
+  return client;
 }
 
-export function createHttpRuntimeClient(baseUrl: string, fetchLike: typeof fetch = fetch): RuntimeClient {
-  const transport: DataAgentTransport = createHttpTransport(baseUrl, fetchLike as any);
+export function createHttpRuntimeClient(baseUrl: string, fetchLike: typeof fetch = apiFetch): RuntimeClient {
+  const transport: DataAgentTransport = createHttpTransport(baseUrl, fetchLike as unknown as FetchLike);
   return {
     dispatch: (command, sessionId) => transport.dispatch(envelope(command, sessionId)) as unknown as Promise<DataAgentResponseEnvelope>,
   };
@@ -55,14 +59,18 @@ export function selectRuntimeClient(options: { electronBridge?: ElectronCommandB
 
 let selected: RuntimeClient | undefined;
 
-/** Process-lifetime client: Electron bridge when window.dataAgent exists, else HTTP. */
+/** Process-lifetime client: Electron bridge when window.dataAgentRuntime exists, else HTTP. */
 export function getRuntimeClient(): RuntimeClient {
   if (selected) return selected;
-  const bridge = (window as any).dataAgent;
+  const bridge = window.dataAgentRuntime;
   if (bridge && typeof bridge.invokeRuntimeCommand === "function") {
-    selected = createElectronRuntimeClient({ invoke: (channel, payload) => bridge.invokeRuntimeCommand(channel, payload) });
+    selected = createElectronRuntimeClient({
+      invoke: (_channel, payload) => bridge.invokeRuntimeCommand(payload),
+      subscribe: bridge.subscribeRuntimeEvents,
+    });
   } else {
-    const base = (import.meta as any).env?.VITE_API_BASE_URL?.trim()?.replace(/\/$/, "") ?? "";
+    const configuredBase = import.meta.env.VITE_API_BASE_URL;
+    const base = typeof configuredBase === "string" ? configuredBase.trim().replace(/\/$/, "") : "";
     selected = createHttpRuntimeClient(base);
   }
   return selected;
@@ -91,11 +99,11 @@ export async function listSessionsViaRuntime(taskId?: string): Promise<Array<{ i
   return result.items as Array<{ id: string; taskId?: string; name: string }>;
 }
 
-export async function createSessionViaRuntime(taskId: string, name?: string): Promise<{ id: string }> {
+export async function createSessionViaRuntime(taskId: string, name?: string): Promise<{ id: string; taskId?: string; name?: string; createdAt?: number }> {
   const envelope = await getRuntimeClient().dispatch({ type: "session.create", taskId, ...(name ? { name } : {}) });
   const result = envelope.response;
   if (result.type !== "mutation.result") throw new Error("UNEXPECTED_RESPONSE");
-  return result.item as { id: string };
+  return result.item as { id: string; taskId?: string; name?: string; createdAt?: number };
 }
 
 export async function listWorkspaceViaRuntime(): Promise<string[]> {
@@ -223,45 +231,73 @@ export async function answerClarificationViaRuntime(clarificationId: string, ans
   await getRuntimeClient().dispatch({ type: "clarification.answer", clarificationId, answer });
 }
 
-export function subscribeRuntimeEvents(listener: (envelope: unknown) => void): () => void {
+export function subscribeRuntimeEvents(
+  listener: (envelope: unknown) => void,
+  sessionId?: string,
+): () => void {
   if (typeof window === "undefined") return () => undefined;
-  const base = (import.meta as { env?: Record<string, string> }).env?.VITE_API_BASE_URL ?? "";
-  const source = new EventSource(`${base}/api/runtime/events`);
-  source.onmessage = (message) => {
-    try { listener(JSON.parse(message.data)); } catch { /* ignore malformed */ }
-  };
-  return () => source.close();
-}
+  const runtimeClient = getRuntimeClient();
+  if (runtimeClient.onEvent) return runtimeClient.onEvent(listener, sessionId);
 
-export interface RuntimeChatHandle { cancel: () => void; finished: Promise<void> }
-
-/**
- * Chat streaming over the shared transport: dispatches agent.prompt and
- * consumes versioned runtime events (agent.text_delta / agent.tool_started /
- * agent.tool_finished / agent.completed). The legacy SSE DTO adapter lives in
- * ChatArea and will be dissolved when the component consumes versioned
- * events natively.
- */
-export function sendChatViaRuntime(
-  prompt: string,
-  onEvent: (envelope: any) => void,
-  onError: (err: unknown) => void,
-  onFinish: () => void,
-): RuntimeChatHandle {
-  const unsubscribe = subscribeRuntimeEvents((envelope) => onEvent(envelope));
-  const controller = new AbortController();
-  const finished = (async () => {
+  const configuredBase = import.meta.env.VITE_API_BASE_URL;
+  const base = typeof configuredBase === "string" ? configuredBase.trim().replace(/\/$/, "") : "";
+  let disposed = false;
+  let controller: AbortController | undefined;
+  let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
+  let lastSequence = 0;
+  const connect = async (): Promise<void> => {
+    if (disposed) return;
+    const endpoint = new URL(`${base}/api/runtime/events`, window.location.href);
+    if (sessionId) endpoint.searchParams.set("session_id", sessionId);
+    if (lastSequence > 0) endpoint.searchParams.set("after_sequence", String(lastSequence));
+    controller = new AbortController();
     try {
-      await getRuntimeClient().dispatch({ type: "agent.prompt", prompt });
-      onFinish();
-    } catch (err) {
-      if ((err as Error)?.name === "AbortError") { onFinish(); return; }
-      onError(err);
-      onFinish();
+      const response = await apiFetch(endpoint, { headers: { Accept: "text/event-stream" }, signal: controller.signal });
+      if (!response.ok || !response.body) throw new Error(`Runtime event stream failed: ${response.status}`);
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      while (!disposed) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true }).replaceAll("\r\n", "\n");
+        let boundary = buffer.indexOf("\n\n");
+        while (boundary >= 0) {
+          const block = buffer.slice(0, boundary);
+          buffer = buffer.slice(boundary + 2);
+          const data = block.split("\n").filter((line) => line.startsWith("data:")).map((line) => line.slice(5).trimStart()).join("\n");
+          if (data) {
+            try {
+              const payload = JSON.parse(data) as unknown;
+              if (payload && typeof payload === "object" && typeof (payload as { sequence?: unknown }).sequence === "number") {
+                lastSequence = Math.max(lastSequence, (payload as { sequence: number }).sequence);
+              }
+              listener(payload);
+            } catch {
+              // Ignore malformed payloads; the chat adapter validates envelopes.
+            }
+          }
+          boundary = buffer.indexOf("\n\n");
+        }
+      }
+    } catch (error) {
+      if (!disposed && !(error instanceof DOMException && error.name === "AbortError")) {
+        reconnectTimer = setTimeout(() => { void connect(); }, 500);
+      }
+      return;
     }
-  })();
-  return { cancel: () => { controller.abort(); unsubscribe(); }, finished };
+    if (!disposed) reconnectTimer = setTimeout(() => { void connect(); }, 500);
+  };
+  void connect();
+  return () => {
+    disposed = true;
+    if (reconnectTimer) clearTimeout(reconnectTimer);
+    controller?.abort();
+    controller = undefined;
+  };
 }
+
+export { sendChatViaRuntime, type RuntimeChatHandle } from "./chat-events";
 
 export async function prepareSessionViaRuntime(sessionId: string): Promise<void> {
   await getRuntimeClient().dispatch({ type: "session.prepare", sessionId });

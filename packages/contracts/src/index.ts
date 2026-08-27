@@ -11,12 +11,12 @@ const AgentSteerCommandSchema = Type.Object({ type: Type.Literal("agent.steer"),
 const AgentFollowUpCommandSchema = Type.Object({ type: Type.Literal("agent.follow_up"), prompt: Type.String({ minLength: 1 }) });
 const AgentStopCommandSchema = Type.Object({ type: Type.Literal("agent.stop") });
 const WorkspaceListCommandSchema = Type.Object({ type: Type.Literal("workspace.list") });
-const WorkspaceReadCommandSchema = Type.Object({ type: Type.Literal("workspace.read"), path: Type.String({ minLength: 1 }) });
+const WorkspaceReadCommandSchema = Type.Object({ type: Type.Literal("workspace.read"), path: Type.String({ minLength: 1 }), startLine: Type.Optional(Type.Integer({ minimum: 1 })), endLine: Type.Optional(Type.Integer({ minimum: 1 })) });
 const WorkspaceWriteCommandSchema = Type.Object({ type: Type.Literal("workspace.write"), path: Type.String({ minLength: 1 }), content: Type.String() });
 const WorkspaceDeleteCommandSchema = Type.Object({ type: Type.Literal("workspace.delete"), path: Type.String({ minLength: 1 }) });
 const RunPythonCommandSchema = Type.Object({ type: Type.Literal("python.run"), code: Type.String({ minLength: 1 }), description: Type.Optional(Type.String()) });
 const KnowledgeSearchCommandSchema = Type.Object({ type: Type.Literal("knowledge.search"), query: Type.String({ minLength: 1 }) });
-const KnowledgeReadCommandSchema = Type.Object({ type: Type.Literal("knowledge.read"), path: Type.String({ minLength: 1 }) });
+const KnowledgeReadCommandSchema = Type.Object({ type: Type.Literal("knowledge.read"), path: Type.String({ minLength: 1 }), startLine: Type.Optional(Type.Integer({ minimum: 1 })), endLine: Type.Optional(Type.Integer({ minimum: 1 })) });
 const ClarificationAnswerCommandSchema = Type.Object({ type: Type.Literal("clarification.answer"), clarificationId: Type.String({ minLength: 1 }), answer: Type.String() });
 const KnowledgeListCommandSchema = Type.Object({ type: Type.Literal("knowledge.list") });
 const KnowledgeSaveCommandSchema = Type.Object({ type: Type.Literal("knowledge.save"), path: Type.String({ minLength: 1 }), content: Type.String() });
@@ -53,19 +53,19 @@ const SessionRenameCommandSchema = Type.Object({ type: Type.Literal("session.ren
 const SessionDeleteCommandSchema = Type.Object({ type: Type.Literal("session.delete"), sessionId: Type.String({ minLength: 1 }) });
 export const DataAgentCommandSchema = Type.Union([RuntimeProbeCommandSchema, AgentPromptCommandSchema, AgentSteerCommandSchema, AgentFollowUpCommandSchema, AgentStopCommandSchema, WorkspaceListCommandSchema, WorkspaceReadCommandSchema, WorkspaceWriteCommandSchema, WorkspaceDeleteCommandSchema, RunPythonCommandSchema, KnowledgeSearchCommandSchema, KnowledgeReadCommandSchema, ClarificationAnswerCommandSchema, KnowledgeListCommandSchema, KnowledgeSaveCommandSchema, DashboardV3DataCommandSchema, ConfigGetCommandSchema, ConfigSaveCommandSchema, PythonRuntimeTestCommandSchema, DbTestCommandSchema, LlmTestCommandSchema, ConfigLlmListCommandSchema, ConfigLlmSaveCommandSchema, McpServersStatusCommandSchema, McpServerTestCommandSchema, McpServerRestartCommandSchema, SessionPrepareCommandSchema, SessionTranscriptCommandSchema, SemanticSourcesListCommandSchema, SemanticSourcesGetCommandSchema, McpConfigGetCommandSchema, McpConfigSaveCommandSchema, SkillsListCommandSchema, DashboardEvaluateCommandSchema, DashboardMigrateCommandSchema, SemanticIngestStatusCommandSchema, SemanticIngestRetryCommandSchema, DashboardCommandSchema, TaskCreateCommandSchema, TaskListCommandSchema, TaskRenameCommandSchema, TaskDeleteCommandSchema, SessionCreateCommandSchema, SessionListCommandSchema, SessionRenameCommandSchema, SessionDeleteCommandSchema]);
 export type DataAgentCommand = Static<typeof DataAgentCommandSchema>;
-export const DataAgentCommandEnvelopeSchema = Type.Object({ protocolVersion: Type.Integer({ minimum: 1 }), requestId: Type.String({ minLength: 1 }), command: DataAgentCommandSchema });
+export const DataAgentCommandEnvelopeSchema = Type.Object({ protocolVersion: Type.Integer({ minimum: 1 }), requestId: Type.String({ minLength: 1 }), sessionId: Type.Optional(Type.String({ minLength: 1 })), command: DataAgentCommandSchema });
 export type DataAgentCommandEnvelope = Static<typeof DataAgentCommandEnvelopeSchema>;
 
 const RuntimeProbeResponseSchema = Type.Object({ type: Type.Literal("runtime.probe.result"), service: Type.Literal("data-agent-runtime"), runtimeVersion: Type.Literal("0.1.0") });
 const AgentPromptResponseSchema = Type.Object({ type: Type.Literal("agent.prompt.accepted"), runId: Type.String({ minLength: 1 }) });
-const KnowledgeSearchResponseSchema = Type.Object({ type: Type.Literal("knowledge.search.result"), hits: Type.Array(Type.Object({ path: Type.String(), title: Type.String(), category: Type.String(), chunkId: Type.String(), startLine: Type.Integer(), endLine: Type.Integer(), score: Type.Number(), revision: Type.Integer() })) });
+const KnowledgeSearchResponseSchema = Type.Object({ type: Type.Literal("knowledge.search.result"), hits: Type.Array(Type.Object({ path: Type.String(), title: Type.String(), category: Type.String(), chunkId: Type.String(), startLine: Type.Integer(), endLine: Type.Integer(), score: Type.Number(), revision: Type.Integer(), snippet: Type.Optional(Type.String()) })) });
 const KnowledgeReadResponseSchema = Type.Object({ type: Type.Literal("knowledge.read.result"), path: Type.String(), content: Type.String() });
 const KnowledgeListResponseSchema = Type.Object({ type: Type.Literal("knowledge.list.result"), files: Type.Array(Type.Object({ path: Type.String(), size: Type.Number(), modifiedAt: Type.Number() })) });
 const KnowledgeSaveResponseSchema = Type.Object({ type: Type.Literal("knowledge.save.result"), path: Type.String() });
 const SemanticSourcesResponseSchema = Type.Object({ type: Type.Literal("semantic.sources.result"), sources: Type.Array(Type.Object({ connectionId: Type.String(), sourceName: Type.String(), definition: Type.Unknown(), updatedAt: Type.Number() })) });
 const SemanticSourceResponseSchema = Type.Object({ type: Type.Literal("semantic.source.result"), source: Type.Object({ connectionId: Type.String(), sourceName: Type.String(), definition: Type.Unknown(), updatedAt: Type.Number() }) });
 const McpConfigResponseSchema = Type.Object({ type: Type.Literal("mcp.config.result"), config: Type.Unknown() });
-const SkillsListResponseSchema = Type.Object({ type: Type.Literal("skills.list.result"), skills: Type.Array(Type.Object({ name: Type.String(), description: Type.String(), tools: Type.Array(Type.String()) })) });
+const SkillsListResponseSchema = Type.Object({ type: Type.Literal("skills.list.result"), skills: Type.Array(Type.Object({ name: Type.String(), description: Type.String(), tools: Type.Array(Type.String()) })), diagnostics: Type.Optional(Type.Array(Type.Object({ path: Type.String(), message: Type.String() }))) });
 const DashboardEvaluateResponseSchema = Type.Object({ type: Type.Literal("dashboard.evaluate.result"), columns: Type.Array(Type.String()), rows: Type.Array(Type.Array(Type.Unknown())), rowCount: Type.Number(), truncated: Type.Boolean() });
 const SemanticIngestStatusResponseSchema = Type.Object({ type: Type.Literal("semantic.ingest.status.result"), status: Type.String(), jobId: Type.Union([Type.String(), Type.Null()]), summary: Type.Object({ updated: Type.Number(), unchanged: Type.Number(), failed: Type.Number(), skipped: Type.Number() }), errorCode: Type.Union([Type.String(), Type.Null()]) });
 const SemanticIngestRetryResponseSchema = Type.Object({ type: Type.Literal("semantic.ingest.retry.result"), accepted: Type.Boolean() });
@@ -92,10 +92,35 @@ export type DataAgentResponse = Static<typeof DataAgentResponseSchema>;
 export const DataAgentResponseEnvelopeSchema = Type.Object({ protocolVersion: Type.Literal(ProtocolVersion), requestId: Type.String({ minLength: 1 }), response: DataAgentResponseSchema });
 export type DataAgentResponseEnvelope = Static<typeof DataAgentResponseEnvelopeSchema>;
 
-export const DataAgentEventSchema = Type.Union([Type.Object({ type: Type.Literal("runtime.probe.completed"), service: Type.Literal("data-agent-runtime") }), Type.Object({ type: Type.Literal("agent.text_delta"), delta: Type.String() }), Type.Object({ type: Type.Literal("agent.thinking_delta"), delta: Type.String() }), Type.Object({ type: Type.Literal("agent.message_started"), messageId: Type.String() }), Type.Object({ type: Type.Literal("agent.tool_started"), toolCallId: Type.String(), toolName: Type.String(), args: Type.Unknown() }), Type.Object({ type: Type.Literal("agent.tool_finished"), toolCallId: Type.String(), toolName: Type.String(), result: Type.Unknown(), isError: Type.Boolean() }), Type.Object({ type: Type.Literal("agent.completed") }), Type.Object({ type: Type.Literal("workspace.artifact.created"), path: Type.String(), kind: Type.Literal("file") }), Type.Object({ type: Type.Literal("clarification.request"), clarificationId: Type.String(), question: Type.String(), options: Type.Array(Type.String()) }), Type.Object({ type: Type.Literal("clarification.settled"), clarificationId: Type.String(), outcome: Type.Union([Type.Literal("answered"), Type.Literal("expired"), Type.Literal("cancelled")]) })]);
+const WidgetRecordSchema = Type.Record(Type.String(), Type.Unknown());
+const WidgetEventFields = {
+  messageId: Type.String({ minLength: 1 }),
+  toolCallId: Type.String({ minLength: 1 }),
+  widgetId: Type.String({ minLength: 1 }),
+};
+
+export const DataAgentEventSchema = Type.Union([
+  Type.Object({ type: Type.Literal("runtime.probe.completed"), service: Type.Literal("data-agent-runtime") }),
+  Type.Object({ type: Type.Literal("agent.text_delta"), delta: Type.String() }),
+  Type.Object({ type: Type.Literal("agent.thinking_delta"), delta: Type.String() }),
+  Type.Object({ type: Type.Literal("agent.message_started"), messageId: Type.String() }),
+  Type.Object({ type: Type.Literal("agent.tool_started"), toolCallId: Type.String(), toolName: Type.String(), args: Type.Unknown() }),
+  Type.Object({ type: Type.Literal("agent.tool_finished"), toolCallId: Type.String(), toolName: Type.String(), args: Type.Optional(Type.Unknown()), result: Type.Unknown(), isError: Type.Boolean() }),
+  Type.Object({ type: Type.Literal("widget"), ...WidgetEventFields, toolName: Type.Literal("show_widget"), widget: WidgetRecordSchema }),
+  Type.Object({ type: Type.Literal("widget_patch"), ...WidgetEventFields, toolName: Type.Literal("show_widget"), patch: WidgetRecordSchema }),
+  Type.Object({ type: Type.Literal("widget_done"), ...WidgetEventFields, toolName: Type.Literal("show_widget") }),
+  Type.Object({ type: Type.Literal("widget_remove"), ...WidgetEventFields, toolName: Type.Literal("show_widget") }),
+  Type.Object({ type: Type.Literal("widget_error"), ...WidgetEventFields, toolName: Type.Literal("show_widget"), error: Type.String() }),
+  Type.Object({ type: Type.Literal("agent.completed") }),
+  Type.Object({ type: Type.Literal("workspace.artifact.created"), path: Type.String(), kind: Type.Literal("file") }),
+  Type.Object({ type: Type.Literal("clarification.request"), clarificationId: Type.String(), question: Type.String(), options: Type.Array(Type.String()) }),
+  Type.Object({ type: Type.Literal("clarification.settled"), clarificationId: Type.String(), outcome: Type.Union([Type.Literal("answered"), Type.Literal("expired"), Type.Literal("cancelled")]) }),
+]);
 export type DataAgentEvent = Static<typeof DataAgentEventSchema>;
 export const DataAgentEventEnvelopeSchema = Type.Object({ protocolVersion: Type.Literal(ProtocolVersion), sequence: Type.Integer({ minimum: 1 }), requestId: Type.String({ minLength: 1 }), sessionId: Type.Optional(Type.String()), runId: Type.Optional(Type.String()), timestamp: Type.Integer({ minimum: 0 }), event: DataAgentEventSchema });
 export type DataAgentEventEnvelope = Static<typeof DataAgentEventEnvelopeSchema>;
 export function isDataAgentCommandEnvelope(value: unknown): value is DataAgentCommandEnvelope { return Value.Check(DataAgentCommandEnvelopeSchema, value); }
+export function isDataAgentEvent(value: unknown): value is DataAgentEvent { return Value.Check(DataAgentEventSchema, value); }
+export function isDataAgentEventEnvelope(value: unknown): value is DataAgentEventEnvelope { return Value.Check(DataAgentEventEnvelopeSchema, value); }
 export function parseDataAgentCommandEnvelope(value: unknown): DataAgentCommandEnvelope { if (!isDataAgentCommandEnvelope(value)) throw new TypeError("Invalid DataAgent command envelope"); return value; }
 export function parseDataAgentResponseEnvelope(value: unknown): DataAgentResponseEnvelope { if (!Value.Check(DataAgentResponseEnvelopeSchema, value)) throw new TypeError("Invalid DataAgent response envelope"); return value; }

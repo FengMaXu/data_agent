@@ -2,9 +2,22 @@ import { describe, expect, it } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { runPythonJob } from "./python-job.js";
+import { pythonJobEnvironment, runPythonJob } from "./python-job.js";
 
 describe("Python workspace jobs", () => {
+  it("removes host credentials from the subprocess environment", () => {
+    expect(pythonJobEnvironment({
+      PATH: "bin",
+      TEMP: "tmp",
+      OPENAI_API_KEY: "secret",
+      DATA_AGENT_MYSQL_PASSWORD: "secret",
+      DATABASE_URL: "postgres://secret",
+      PGHOST: "internal-db",
+      AWS_ACCESS_KEY_ID: "cloud-key",
+      SESSION_TOKEN: "secret",
+    })).toEqual({ PATH: "bin", TEMP: "tmp" });
+  });
+
   it("times out long-running code", async () => {
     const workspace = await mkdtemp(join(tmpdir(), "data-agent-python-timeout-"));
     const result = await runPythonJob("import time\ntime.sleep(10)", { workspace, executable: process.platform === "win32" ? "python" : "python3", timeoutMs: 500 });
