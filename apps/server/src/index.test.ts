@@ -92,6 +92,26 @@ import { join } from "node:path";
     await app.close(); await rm(root, { recursive: true, force: true });
   });
 
+  it("accepts a query access token for authenticated inline workspace images", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-server-auth-image-"));
+    const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    await writeFile(join(root, "chart.png"), png);
+    const runtime = new DataAgentRuntime();
+    const app = await createRuntimeServer(runtime, { workspace: new WorkspaceStore(root) });
+    const registered = await app.inject({ method: "POST", url: "/auth/register", payload: { username: "alice", password: "secret" } });
+    const token = registered.json().token as string;
+
+    const response = await app.inject({
+      method: "GET",
+      url: `/api/workspace/download?path=session-A%2Fchart.png&access_token=${encodeURIComponent(token)}`,
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers["content-type"]).toBe("image/png");
+    expect(response.rawPayload).toEqual(png);
+    await app.close(); await rm(root, { recursive: true, force: true });
+  });
+
   it("starts an agent prompt through the HTTP Host", async () => {
     const app = await createRuntimeServer(new DataAgentRuntime({ agent: { prompt: async () => undefined, abort: () => undefined } }), trustedWebContext);
     const response = await app.inject({ method: "POST", url: "/api/runtime/command", payload: { protocolVersion: 1, requestId: "prompt", command: { type: "agent.prompt", prompt: "hello" } } });

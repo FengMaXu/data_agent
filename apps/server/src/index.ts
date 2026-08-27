@@ -190,7 +190,14 @@ function requestToken(request: FastifyRequest): string | undefined {
   const authorization = request.headers.authorization;
   const value = Array.isArray(authorization) ? authorization[0] : authorization;
   const match = typeof value === "string" ? /^Bearer\s+(.+)$/i.exec(value.trim()) : null;
-  return match?.[1];
+  if (match?.[1]) return match[1];
+
+  // Native browser resources such as <img> and EventSource cannot attach an
+  // Authorization header. Allow a query token on GET requests only; mutating
+  // endpoints continue to require the Bearer header.
+  if (request.method !== "GET") return undefined;
+  const query = request.query as { access_token?: unknown };
+  return typeof query.access_token === "string" && query.access_token ? query.access_token : undefined;
 }
 
 function parseEventCursor(value: unknown): number {
