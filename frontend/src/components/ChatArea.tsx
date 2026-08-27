@@ -184,9 +184,17 @@ const dedupeSkillActivations = (skills: SkillActivation[]) => {
     });
 };
 
-const getToolHintLabel = (tool: ToolCallState, t: (key: string) => string) => {
+export const getToolHintLabel = (tool: ToolCallState, t: (key: string) => string) => {
     if (tool.progressText) {
         return tool.progressText;
+    }
+    if (tool.name === 'load_skill' && tool.status === 'done' && tool.isError !== true) {
+        const details = tool.details && typeof tool.details === 'object' && !Array.isArray(tool.details)
+            ? tool.details as { nativeSkill?: unknown }
+            : undefined;
+        if (typeof details?.nativeSkill === 'string' && details.nativeSkill.trim()) {
+            return t('chat.skillLoaded').replace('{name}', details.nativeSkill);
+        }
     }
     const key = tool.status === 'done' ? 'chat.toolCompleted' : tool.status === 'error' ? 'chat.toolFailed' : 'chat.toolCalling';
     return t(key).replace('{name}', tool.name);

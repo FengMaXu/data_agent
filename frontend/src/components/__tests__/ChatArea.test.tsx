@@ -10,6 +10,7 @@ vi.mock('../../api/runtime-client', () => ({
     subscribeRuntimeEvents: vi.fn(() => () => undefined),
 }));
 
+import { getToolHintLabel } from '../ChatArea';
 import { isAgentMessageEmpty, type AgentMessageLike } from '../../utils/agent-message';
 
 const emptyAgent = (): AgentMessageLike => ({
@@ -23,6 +24,29 @@ const emptyAgent = (): AgentMessageLike => ({
 });
 
 describe('ChatArea agent message buffering', () => {
+    it('shows the loaded skill name after a successful load_skill result', () => {
+        const translate = (key: string) => key === 'chat.skillLoaded' ? '已加载：“{name}”' : key;
+        expect(getToolHintLabel({
+            toolCallId: 'load-1',
+            name: 'load_skill',
+            arguments: { name: 'dashboard' },
+            details: { nativeSkill: 'dashboard' },
+            status: 'done',
+        }, translate)).toBe('已加载：“dashboard”');
+    });
+
+    it('does not claim a skill loaded when load_skill failed', () => {
+        const translate = (key: string) => key === 'chat.skillLoaded' ? '已加载：“{name}”' : '完成工具：{name}';
+        expect(getToolHintLabel({
+            toolCallId: 'load-2',
+            name: 'load_skill',
+            arguments: { name: 'dashboard' },
+            details: { nativeSkill: 'dashboard' },
+            isError: true,
+            status: 'error',
+        }, translate)).toBe('完成工具：load_skill');
+    });
+
     it('recognizes only a completely empty agent message as empty', () => {
         expect(isAgentMessageEmpty(emptyAgent())).toBe(true);
 
