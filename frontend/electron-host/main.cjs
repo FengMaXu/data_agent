@@ -14617,7 +14617,20 @@ var init_dist = __esm({
     DashboardEvaluateResponseSchema = typebox_exports.Object({ type: typebox_exports.Literal("dashboard.evaluate.result"), columns: typebox_exports.Array(typebox_exports.String()), rows: typebox_exports.Array(typebox_exports.Array(typebox_exports.Unknown())), rowCount: typebox_exports.Number(), truncated: typebox_exports.Boolean() });
     SemanticIngestStatusResponseSchema = typebox_exports.Object({ type: typebox_exports.Literal("semantic.ingest.status.result"), status: typebox_exports.String(), jobId: typebox_exports.Union([typebox_exports.String(), typebox_exports.Null()]), summary: typebox_exports.Object({ updated: typebox_exports.Number(), unchanged: typebox_exports.Number(), failed: typebox_exports.Number(), skipped: typebox_exports.Number() }), errorCode: typebox_exports.Union([typebox_exports.String(), typebox_exports.Null()]) });
     SemanticIngestRetryResponseSchema = typebox_exports.Object({ type: typebox_exports.Literal("semantic.ingest.retry.result"), accepted: typebox_exports.Boolean() });
-    SessionTranscriptResponseSchema = typebox_exports.Object({ type: typebox_exports.Literal("session.transcript.result"), messages: typebox_exports.Array(typebox_exports.Object({ id: typebox_exports.String(), role: typebox_exports.String(), content: typebox_exports.String(), timestamp: typebox_exports.Number() })) });
+    SessionTranscriptResponseSchema = typebox_exports.Object({ type: typebox_exports.Literal("session.transcript.result"), messages: typebox_exports.Array(typebox_exports.Object({
+      id: typebox_exports.String(),
+      role: typebox_exports.String(),
+      content: typebox_exports.String(),
+      timestamp: typebox_exports.Number(),
+      reasoningContent: typebox_exports.Optional(typebox_exports.String()),
+      messageId: typebox_exports.Optional(typebox_exports.String()),
+      toolCallsById: typebox_exports.Optional(typebox_exports.Record(typebox_exports.String(), typebox_exports.Unknown())),
+      widgetsById: typebox_exports.Optional(typebox_exports.Record(typebox_exports.String(), typebox_exports.Unknown())),
+      skillActivations: typebox_exports.Optional(typebox_exports.Array(typebox_exports.Unknown())),
+      currentStage: typebox_exports.Optional(typebox_exports.String()),
+      visitedStages: typebox_exports.Optional(typebox_exports.Array(typebox_exports.String())),
+      terminalReason: typebox_exports.Optional(typebox_exports.Union([typebox_exports.String(), typebox_exports.Null()]))
+    })) });
     DashboardV3DataResponseSchema = typebox_exports.Object({ type: typebox_exports.Literal("dashboard.v3.data.result"), payload: typebox_exports.Unknown() });
     ConfigGetResponseSchema = typebox_exports.Object({ type: typebox_exports.Literal("config.get.result"), config: typebox_exports.Unknown() });
     ConfigSaveResponseSchema = typebox_exports.Object({ type: typebox_exports.Literal("config.save.result"), saved: typebox_exports.Boolean() });
@@ -27992,6 +28005,30 @@ var init_memory_repo = __esm({
 });
 
 // node_modules/@earendil-works/pi-agent-core/dist/harness/system-prompt.js
+function formatSkillsForSystemPrompt(skills) {
+  const visibleSkills = skills.filter((skill) => !skill.disableModelInvocation);
+  if (visibleSkills.length === 0)
+    return "";
+  const lines = [
+    "The following skills provide specialized instructions for specific tasks.",
+    "Read the full skill file when the task matches its description.",
+    "When a skill file references a relative path, resolve it against the skill directory (parent of SKILL.md / dirname of the path) and use that absolute path in tool commands.",
+    "",
+    "<available_skills>"
+  ];
+  for (const skill of visibleSkills) {
+    lines.push("  <skill>");
+    lines.push(`    <name>${escapeXml(skill.name)}</name>`);
+    lines.push(`    <description>${escapeXml(skill.description)}</description>`);
+    lines.push(`    <location>${escapeXml(skill.filePath)}</location>`);
+    lines.push("  </skill>");
+  }
+  lines.push("</available_skills>");
+  return lines.join("\n");
+}
+function escapeXml(value) {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+}
 var init_system_prompt = __esm({
   "node_modules/@earendil-works/pi-agent-core/dist/harness/system-prompt.js"() {
   }
@@ -29348,6 +29385,58 @@ var init_clarification = __esm({
 });
 
 // packages/runtime/dist/dashboard-v3.js
+function parseDashboardCsvRows(textValue) {
+  const matrix = [];
+  let row = [];
+  let cell = "";
+  let quoted = false;
+  const text2 = textValue.replace(/^\uFEFF/, "");
+  for (let index3 = 0; index3 < text2.length; index3++) {
+    const character = text2[index3];
+    const next = text2[index3 + 1];
+    if (character === '"' && quoted && next === '"') {
+      cell += '"';
+      index3++;
+    } else if (character === '"')
+      quoted = !quoted;
+    else if (character === "," && !quoted) {
+      row.push(cell);
+      cell = "";
+    } else if ((character === "\n" || character === "\r") && !quoted) {
+      if (character === "\r" && next === "\n")
+        index3++;
+      row.push(cell);
+      matrix.push(row);
+      row = [];
+      cell = "";
+    } else
+      cell += character;
+  }
+  if (cell || row.length) {
+    row.push(cell);
+    matrix.push(row);
+  }
+  const headers = matrix.shift() ?? [];
+  return matrix.filter((values) => values.some(Boolean)).map((values) => Object.fromEntries(headers.map((header, index3) => {
+    const raw = values[index3] ?? "";
+    return [header, raw.trim() !== "" && Number.isFinite(Number(raw)) ? Number(raw) : raw];
+  })));
+}
+async function materializeDashboardV3Spec(rawSpec, workspace) {
+  if (!rawSpec || typeof rawSpec !== "object")
+    return rawSpec;
+  const spec = rawSpec;
+  const datasets = await Promise.all((Array.isArray(spec.datasets) ? spec.datasets : []).map(async (value) => {
+    const dataset = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+    const source = dataset.source && typeof dataset.source === "object" && !Array.isArray(dataset.source) ? dataset.source : {};
+    const id = typeof dataset.id === "string" ? dataset.id : typeof dataset.name === "string" ? dataset.name : "";
+    if (Array.isArray(dataset.rows))
+      return { ...dataset, id, rows: dataset.rows };
+    const sourcePath = typeof source.path === "string" ? source.path : typeof dataset.file === "string" ? dataset.file : "";
+    return { ...dataset, id, rows: sourcePath ? parseDashboardCsvRows(await workspace.read(sourcePath)) : [] };
+  }));
+  return { ...spec, title: typeof spec.title === "string" ? spec.title : "Dashboard", datasets };
+}
 function validateDashboardV3Spec(spec) {
   const errors = [];
   const s2 = spec;
@@ -29369,16 +29458,34 @@ function validateDashboardV3Spec(spec) {
   else {
     const ids = new Set((s2.datasets ?? []).map((d) => d.id));
     s2.views.forEach((v, i2) => {
-      if (!["line", "bar", "pie", "kpi", "table"].includes(v.type))
-        errors.push(`view ${i2} has unsupported type`);
+      if (!VIEW_TYPES.has(v.type))
+        errors.push(`view ${v.id ?? i2} has unsupported type`);
       if (v.dataset && !ids.has(v.dataset))
-        errors.push(`view ${i2} references unknown dataset ${v.dataset}`);
+        errors.push(`view ${v.id ?? i2} references unknown dataset ${v.dataset}`);
       if ((v.type === "line" || v.type === "bar") && (!v.xField || !v.yField))
-        errors.push(`view ${i2} needs xField/yField`);
+        errors.push(`view ${v.id ?? i2} needs xField/yField`);
       if (v.type === "pie" && (!v.nameField || !v.valueField))
-        errors.push(`view ${i2} needs nameField/valueField`);
+        errors.push(`view ${v.id ?? i2} needs nameField/valueField`);
       if (v.type === "kpi" && !v.field)
-        errors.push(`view ${i2} needs field`);
+        errors.push(`view ${v.id ?? i2} needs field`);
+      if (v.type === "metric_cards" && (!Array.isArray(v.cards) || v.cards.length === 0))
+        errors.push(`view ${v.id ?? i2} needs cards`);
+      if (v.type === "chart") {
+        if (!v.dataset)
+          errors.push(`view ${v.id ?? i2} needs dataset`);
+        if (!v.x?.field)
+          errors.push(`view ${v.id ?? i2} needs x.field`);
+        if (!Array.isArray(v.series) || v.series.length === 0 || v.series.some((series) => !series.field || !series.mark))
+          errors.push(`view ${v.id ?? i2} needs series field/mark`);
+        if (v.series_by && !v.series_by.field)
+          errors.push(`view ${v.id ?? i2} needs series_by.field`);
+        if (v.series_by && v.series?.length !== 1)
+          errors.push(`view ${v.id ?? i2} series_by requires exactly one base series`);
+        const fields = (v.series ?? []).map((series) => series.field).filter(Boolean);
+        const repeated = fields.some((field, index3) => fields.indexOf(field) !== index3);
+        if (repeated && !v.series_by && (v.series ?? []).some((series) => !series.where))
+          errors.push(`view ${v.id ?? i2} repeated series fields require series_by or where`);
+      }
     });
   }
   return errors.length === 0 ? { ok: true, spec: s2 } : { ok: false, errors };
@@ -29406,56 +29513,95 @@ function seriesForView(view, dataset) {
       groups.set(key, []);
     groups.get(key).push(value);
   }
-  return [{ name: view.title ?? view.yField ?? view.valueField ?? "", points: [...groups.entries()].map(([name, values]) => ({ name, value: aggregate(values, view.aggregate) })) }];
+  return [{
+    name: view.title ?? view.yField ?? view.valueField ?? "",
+    points: [...groups.entries()].map(([name, values]) => ({ name, value: aggregate(values, view.aggregate) }))
+  }];
 }
-function compileEChartsOptions(view, datasets) {
-  const dataset = datasets.find((d) => d.id === view.dataset) ?? datasets[0];
-  switch (view.type) {
-    case "pie": {
-      const data = dataset.rows.map((row) => ({ name: String(row[view.nameField] ?? ""), value: Number(row[view.valueField] ?? 0) }));
-      return { title: { text: view.title }, series: [{ type: "pie", data }] };
-    }
-    case "kpi": {
-      const values = dataset.rows.map((row) => Number(row[view.field] ?? 0));
-      return { kpi: { label: view.title, value: aggregate(values, view.aggregate) } };
-    }
-    case "table":
-      return { table: { columns: dataset.rows.length ? Object.keys(dataset.rows[0]) : [], rows: dataset.rows } };
-    default: {
-      const series = seriesForView(view, dataset)[0];
-      return { xAxis: { data: series.points.map((p) => p.name) }, yAxis: {}, series: [{ name: series.name, type: view.type, data: series.points.map((p) => p.value) }] };
-    }
+function datasetFor(view, datasets) {
+  return datasets.find((dataset) => dataset.id === view.dataset) ?? datasets[0];
+}
+function chartOption(view, dataset) {
+  const xField = view.x?.field ?? view.xField ?? "";
+  const legacySeries = !view.series?.length && (view.xField || view.yField) ? seriesForView(view, dataset) : void 0;
+  const categories = legacySeries ? legacySeries[0].points.map((point) => point.name) : [...new Set(dataset.rows.map((row) => String(row[xField] ?? "")))];
+  const axes = (view.axes ?? []).filter((axis) => axis.orient === "y");
+  const yAxis = axes.length ? axes.map((axis) => ({ type: "value", name: [axis.name, axis.unit].filter(Boolean).join(" "), position: axis.position ?? "left" })) : [{ type: "value" }];
+  const axisIndex = (axisId) => Math.max(0, axes.findIndex((axis) => axis.id === axisId));
+  const palette = ["#4F6980", "#F47942", "#638B66", "#FBB04E", "#B66353", "#849DB1", "#B9AA97", "#7E756D"];
+  const rowsFor = (where) => where ? dataset.rows.filter((row) => Object.entries(where).every(([field, value]) => row[field] === value)) : dataset.rows;
+  const valuesFor = (field, rows) => categories.map((category) => rows.filter((row) => String(row[xField] ?? "") === category).reduce((sum, row) => sum + Number(row[field ?? ""] ?? 0), 0));
+  const baseSeries = view.series ?? [{ name: view.title, field: view.yField, mark: view.type === "line" ? "line" : "bar" }];
+  const descriptors = view.series_by?.field && baseSeries.length === 1 ? (() => {
+    const groupField = view.series_by.field;
+    const observed = [...new Set(dataset.rows.map((row) => String(row[groupField] ?? "")))];
+    const groups = [...(view.series_by.order ?? []).filter((group) => observed.includes(group)), ...observed.filter((group) => !view.series_by.order?.includes(group))];
+    return groups.map((group) => ({ ...baseSeries[0], name: group, where: { [groupField]: group }, color: view.series_by.colors?.[group] }));
+  })() : baseSeries;
+  const series = descriptors.map((item, index3) => ({
+    name: item.name ?? item.field ?? `series-${index3 + 1}`,
+    type: item.mark ?? (view.type === "line" ? "line" : "bar"),
+    yAxisIndex: axisIndex(item.axis),
+    data: legacySeries && index3 === 0 ? legacySeries[0].points.map((point) => point.value) : valuesFor(item.field, rowsFor(item.where)),
+    smooth: item.mark === "line",
+    itemStyle: { color: "color" in item && typeof item.color === "string" ? item.color : palette[index3 % palette.length] }
+  }));
+  return {
+    color: palette,
+    tooltip: { trigger: "axis" },
+    legend: { top: 8 },
+    grid: { left: 52, right: 42, top: 52, bottom: 48, containLabel: true },
+    xAxis: { type: "category", data: categories, axisLabel: { interval: 0 } },
+    yAxis,
+    series
+  };
+}
+function compileDashboardView(view, datasets) {
+  const dataset = datasetFor(view, datasets);
+  if (view.type === "metric_cards")
+    return { kind: "metric_cards", cards: view.cards ?? [] };
+  if (view.type === "table") {
+    const columns = view.columns?.length ? view.columns.map((column) => ({ field: column.field ?? "", label: column.label ?? column.field ?? "" })) : dataset.rows[0] ? Object.keys(dataset.rows[0]).map((field) => ({ field, label: field })) : [];
+    return { kind: "table", columns, rows: dataset.rows };
   }
+  if (view.type === "kpi") {
+    const values = dataset.rows.map((row) => Number(row[view.field ?? ""] ?? 0));
+    return { kind: "metric_cards", cards: [{ label: view.title ?? view.field ?? "", value: aggregate(values, view.aggregate) }] };
+  }
+  if (view.type === "pie") {
+    return {
+      kind: "chart",
+      option: {
+        tooltip: { trigger: "item" },
+        legend: { bottom: 4 },
+        series: [{ type: "pie", radius: ["42%", "70%"], data: dataset.rows.map((row) => ({ name: String(row[view.nameField ?? ""] ?? ""), value: Number(row[view.valueField ?? ""] ?? 0) })) }]
+      }
+    };
+  }
+  return { kind: "chart", option: chartOption(view, dataset) };
+}
+function escapeHtml(value) {
+  return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+}
+function safeJson(value) {
+  return JSON.stringify(value).replaceAll("<", "\\u003c");
 }
 async function renderStandaloneDashboardHtml(spec, options = {}) {
-  const charts = spec.views.map((view) => ({ viewId: view.id ?? view.title ?? view.type, options: compileEChartsOptions(view, spec.datasets) }));
-  const payload = JSON.stringify({ title: spec.title, charts });
-  let echartsScript = "";
-  if (options.echartsAssetPath)
-    echartsScript = `<script>${await (0, import_promises7.readFile)(options.echartsAssetPath, "utf8")}</script>`;
-  else
-    echartsScript = "<script>/* offline build requires bundled echarts asset */window.__DATA_AGENT_OFFLINE__=true;</script>";
+  const views = spec.views.map((view) => ({ id: view.id ?? view.title ?? view.type, title: view.title ?? "", subtitle: view.subtitle ?? "", ...compileDashboardView(view, spec.datasets) }));
+  const payload = safeJson({ title: spec.title, views });
+  const echartsScript = options.echartsAssetPath ? `<script>${await (0, import_promises7.readFile)(options.echartsAssetPath, "utf8")}</script>` : "<script>window.__DATA_AGENT_OFFLINE__=true;</script>";
   return `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>${spec.title}</title></head>
-<body><h1>${spec.title}</h1><div id="charts"></div>
-${echartsScript}
-<script>window.__DASHBOARD__=${payload};
-(function(){
-  var host=document.getElementById('charts');
-  var hasEcharts=typeof window.echarts!=='undefined';
-  window.__DASHBOARD__.charts.forEach(function(c){
-    var el=document.createElement('div');el.style.width='600px';el.style.height='400px';host.appendChild(el);
-    if(hasEcharts){var chart=window.echarts.init(el);chart.setOption(c.options.kpi?{title:{text:c.options.kpi.label,textAlign:'center',top:'40%'},series:[]}:c.options);}
-    else{el.textContent=JSON.stringify(c.options);}
-  });
-})();
-</script></body></html>`;
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(spec.title)}</title>
+<style>body{margin:0;background:#f5f6f8;color:#243142;font-family:"Segoe UI","Microsoft YaHei",sans-serif}.shell{max-width:1440px;margin:auto;padding:28px}.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}.panel{grid-column:span 6;background:#fff;border:1px solid #e4e8ee;border-radius:12px;padding:18px;min-height:160px;box-shadow:0 4px 18px rgba(35,49,66,.05)}.panel.wide{grid-column:span 12}.chart{height:380px}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}.card{background:#f7f9fb;border-radius:9px;padding:16px}.label{color:#697586;font-size:13px}.value{font-size:28px;font-weight:700;margin-top:8px}.change{color:#638b66;margin-top:5px}table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid #e8ebef;text-align:left}th{background:#f7f9fb}@media(max-width:800px){.panel{grid-column:span 12}.shell{padding:14px}}</style></head>
+<body><main class="shell"><h1>${escapeHtml(spec.title)}</h1><div id="dashboard" class="grid"></div></main>${echartsScript}
+<script>window.__DASHBOARD__=${payload};(function(){var host=document.getElementById('dashboard');window.__DASHBOARD__.views.forEach(function(v){var p=document.createElement('section');p.className='panel'+(v.kind==='table'?' wide':'');p.innerHTML='<h2></h2>'+(v.subtitle?'<p class="label"></p>':'');p.querySelector('h2').textContent=v.title;if(v.subtitle)p.querySelector('p').textContent=v.subtitle;if(v.kind==='metric_cards'){var cards=document.createElement('div');cards.className='cards';(v.cards||[]).forEach(function(c){var d=document.createElement('div');d.className='card';d.innerHTML='<div class="label"></div><div class="value"></div><div class="change"></div>';d.children[0].textContent=c.label||'';d.children[1].textContent=String(c.value??'');d.children[2].textContent=String(c.change??'');cards.appendChild(d)});p.appendChild(cards)}else if(v.kind==='table'){var table=document.createElement('table'),thead=document.createElement('thead'),tr=document.createElement('tr');(v.columns||[]).forEach(function(c){var th=document.createElement('th');th.textContent=c.label;tr.appendChild(th)});thead.appendChild(tr);table.appendChild(thead);var tb=document.createElement('tbody');(v.rows||[]).forEach(function(r){var row=document.createElement('tr');v.columns.forEach(function(c){var td=document.createElement('td');td.textContent=String(r[c.field]??'');row.appendChild(td)});tb.appendChild(row)});table.appendChild(tb);p.appendChild(table)}else{var el=document.createElement('div');el.className='chart';p.appendChild(el);if(window.echarts){var chart=echarts.init(el);chart.setOption(v.option);window.addEventListener('resize',function(){chart.resize()})}else{el.textContent=JSON.stringify(v.option)}}host.appendChild(p)})})();</script></body></html>`;
 }
-var import_promises7;
+var import_promises7, VIEW_TYPES;
 var init_dashboard_v3 = __esm({
   "packages/runtime/dist/dashboard-v3.js"() {
     "use strict";
     import_promises7 = require("node:fs/promises");
+    VIEW_TYPES = /* @__PURE__ */ new Set(["line", "bar", "pie", "kpi", "table", "chart", "metric_cards"]);
   }
 });
 
@@ -163094,17 +163240,38 @@ ${h2.snippet}`).join("\n\n") : "(no matches)";
       throw new Error("NATIVE_SKILL_INVOCATION_UNAVAILABLE");
     return nativeSkillResult(await deps.invokeSkill(p.name), p.name);
   }), defineTool("generate_dashboard", canonicalTool("generate_dashboard").description, typebox_exports.Object({ operation: typebox_exports.Union([typebox_exports.Literal("create"), typebox_exports.Literal("edit"), typebox_exports.Literal("validate")]), mode: typebox_exports.Union([typebox_exports.Literal("static"), typebox_exports.Literal("semantic")]), version: typebox_exports.Union([typebox_exports.Literal("v3"), typebox_exports.Literal("v4")]), spec: typebox_exports.Unknown(), editPath: typebox_exports.Optional(typebox_exports.String()) }), async (p, native) => {
-    const validated = validateDashboardV4Spec(p.spec);
-    if (!validated.ok)
-      throw new Error(`DASHBOARD_SPEC_INVALID: ${validated.errors.join("; ")}`);
-    if (p.operation === "validate")
-      return text("dashboard spec valid");
-    const target = p.editPath ?? `dashboards/${Date.now()}-semantic.html`;
-    const html = renderSemanticDashboardHtml(validated.spec, { nonce: (0, import_node_crypto8.randomUUID)().replace(/-/g, ""), expectedOrigin: "https://data-agent.local" });
     const workspace = await workspaceFor(native);
-    await workspace.write(target, html);
-    deps.emitArtifact?.(artifactPathFor(native, target));
-    return text(`dashboard written to ${target}`);
+    if (p.mode === "static" && p.version === "v3") {
+      const materialized = await materializeDashboardV3Spec(p.spec, workspace);
+      const validated = validateDashboardV3Spec(materialized);
+      if (!validated.ok)
+        throw new Error(`DASHBOARD_SPEC_INVALID: ${validated.errors.join("; ")}`);
+      if (p.operation === "validate")
+        return text("dashboard spec valid");
+      const fileName = validated.spec.filename?.replace(/\.html$/i, "") || String(Date.now());
+      const target = p.editPath ?? `dashboards/${fileName}.html`;
+      const html = await renderStandaloneDashboardHtml(validated.spec);
+      await workspace.write(target, html);
+      const artifactPath = artifactPathFor(native, target);
+      const downloadUrl = `/workspace/files/download?path=${encodeURIComponent(artifactPath)}`;
+      deps.emitArtifact?.(artifactPath);
+      return text(`[\u67E5\u770B HTML \u770B\u677F](${downloadUrl})`, { status: "success", relativePath: target, downloadUrl, fileType: "html" });
+    }
+    if (p.mode === "semantic" && p.version === "v4") {
+      const validated = validateDashboardV4Spec(p.spec);
+      if (!validated.ok)
+        throw new Error(`DASHBOARD_SPEC_INVALID: ${validated.errors.join("; ")}`);
+      if (p.operation === "validate")
+        return text("dashboard spec valid");
+      const target = p.editPath ?? `dashboards/${Date.now()}-semantic.html`;
+      const html = renderSemanticDashboardHtml(validated.spec, { nonce: (0, import_node_crypto8.randomUUID)().replace(/-/g, ""), expectedOrigin: "https://data-agent.local" });
+      await workspace.write(target, html);
+      const artifactPath = artifactPathFor(native, target);
+      const downloadUrl = `/workspace/files/download?path=${encodeURIComponent(artifactPath)}`;
+      deps.emitArtifact?.(artifactPath);
+      return text(`[\u67E5\u770B\u8BED\u4E49\u770B\u677F](${downloadUrl})`, { status: "success", relativePath: target, downloadUrl, fileType: "html" });
+    }
+    throw new Error("DASHBOARD_MODE_VERSION_MISMATCH");
   }), defineTool("show_widget", canonicalTool("show_widget").description, typebox_exports.Object({ kind: typebox_exports.Union([typebox_exports.Literal("kpi"), typebox_exports.Literal("chart"), typebox_exports.Literal("table"), typebox_exports.Literal("steps")]), spec: typebox_exports.Unknown() }), async (p, native) => {
     const widgetId = `widget-${native.toolCallId}`;
     if (native.signal?.aborted)
@@ -163201,8 +163368,10 @@ ${row.map(csvField).join(",")}`);
         if (pending)
           await write(pending);
       }, signal);
-      deps.emitArtifact?.(artifactPathFor(native, target));
-      return text(`exported ${rowCount} rows to ${target}`);
+      const artifactPath = artifactPathFor(native, target);
+      const downloadUrl = `/workspace/files/download?path=${encodeURIComponent(artifactPath)}`;
+      deps.emitArtifact?.(artifactPath);
+      return text(`exported ${rowCount} rows: [\u4E0B\u8F7D CSV](${downloadUrl})`, { status: "success", relativePath: target, downloadUrl, fileType: "csv", rowCount });
     }));
   }
   if (deps.clarifications) {
@@ -163216,6 +163385,10 @@ ${row.map(csvField).join(",")}`);
     }));
   }
   return tools;
+}
+function composeDataAgentSystemPrompt(basePrompt, skills) {
+  const skillsPrompt = formatSkillsForSystemPrompt(skills);
+  return [basePrompt.trim(), skillsPrompt].filter(Boolean).join("\n\n");
 }
 async function resolveSystemPrompt(searchRoots) {
   const { readFile: readFile12 } = await import("node:fs/promises");
@@ -163242,21 +163415,29 @@ async function createDataAgentHarness(deps, profile) {
   const skillLoad = await loadSkillsFromRoots(resolveSkillRoots({ projectRoot: deps.projectRoot, packagedRoot: deps.packagedRoot }));
   for (const item of skillLoad.diagnostics)
     console.warn(`[data-agent] Skill diagnostic (${item.code ?? "warning"}) ${item.path}: ${item.message}`);
-  let harness;
   const tools = buildAgentTools({
     ...deps,
-    invokeSkill: (name, additionalInstructions) => {
-      if (!harness)
-        throw new Error("NATIVE_SKILL_INVOCATION_UNAVAILABLE");
-      return harness.skill(name, additionalInstructions);
+    invokeSkill: async (name, additionalInstructions) => {
+      const skill = skillLoad.skills.find((candidate) => candidate.name === name);
+      if (!skill)
+        throw new Error(`SKILL_NOT_FOUND: ${name}`);
+      const content = additionalInstructions ? `${skill.content}
+
+Additional instructions:
+${additionalInstructions}` : skill.content;
+      return { content: [{ type: "text", text: content }] };
     }
   });
-  harness = new DataAgentHarness({
+  const baseSystemPrompt = deps.systemPrompt ?? await resolveSystemPrompt(deps.systemPromptRoots ?? (deps.knowledgeRoot ? [deps.knowledgeRoot] : []));
+  const harness = new DataAgentHarness({
     session: deps.session ?? await new InMemorySessionRepo().create(),
     models,
     model: buildModel(profile),
     thinkingLevel: "off",
-    systemPrompt: deps.systemPrompt ?? await resolveSystemPrompt(deps.systemPromptRoots ?? (deps.knowledgeRoot ? [deps.knowledgeRoot] : [])),
+    // Use Pi's per-turn prompt callback rather than freezing a prompt string.
+    // The callback receives the current resources snapshot, so a later
+    // setResources() immediately changes the model-visible skill catalog.
+    systemPrompt: ({ resources }) => composeDataAgentSystemPrompt(baseSystemPrompt, resources.skills ?? []),
     tools,
     resources: { skills: skillLoad.skills },
     toolContext: deps.toolContext ?? { sessionId: deps.sessionId }
@@ -163275,6 +163456,7 @@ var init_agent_assembly = __esm({
     import_node_crypto8 = require("node:crypto");
     import_node_path11 = __toESM(require("node:path"), 1);
     init_dashboard_v4();
+    init_dashboard_v3();
     init_knowledge_write();
     init_python_job();
     init_tools_catalog();
@@ -163795,6 +163977,9 @@ function queryFor(view) {
     parts.push(`aggregate:${view.aggregate}`);
   return parts.join("|");
 }
+function isMigratableViewType(type) {
+  return type === "line" || type === "bar" || type === "pie" || type === "kpi" || type === "table";
+}
 function fieldMappingFor(view) {
   const mapping = { dataset: view.dataset ?? "__default__" };
   if (view.xField)
@@ -163828,7 +164013,7 @@ function migrateV3SpecToV4(spec) {
   for (const [index3, view] of spec.views.entries()) {
     const viewId = view.id ?? view.title ?? `${view.type}-${index3}`;
     const reasons = [];
-    if (!["line", "bar", "pie", "kpi", "table"].includes(view.type))
+    if (!isMigratableViewType(view.type))
       reasons.push(`unsupported view type ${view.type}`);
     if (view.dataset && !datasetIds.has(view.dataset))
       reasons.push(`references unknown dataset ${view.dataset}`);
@@ -163842,6 +164027,8 @@ function migrateV3SpecToV4(spec) {
       viewResults.push({ viewId, status: "unsupported", reasons });
       continue;
     }
+    if (!isMigratableViewType(view.type))
+      continue;
     views.push({ id: viewId, type: view.type, title: view.title, query: queryFor(view), fieldMapping: fieldMappingFor(view) });
     const viewFilters = view.filters;
     for (const [name, value] of Object.entries(viewFilters ?? {})) {
@@ -164146,7 +164333,8 @@ var init_dist5 = __esm({
           this.workspace.assertAccess(context2);
           const c = command.command;
           if (c.version === "v3" && c.mode === "static") {
-            const validated = validateDashboardV3Spec(c.spec);
+            const materialized = await materializeDashboardV3Spec(c.spec, this.workspace);
+            const validated = validateDashboardV3Spec(materialized);
             if (!validated.ok || c.operation === "validate") {
               return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "dashboard.result", valid: validated.ok, errors: validated.ok ? [] : validated.errors } };
             }
@@ -164387,21 +164575,77 @@ var init_dist5 = __esm({
           if (match2) {
             const session = await this.sessions.open(match2);
             const entries = await session.getEntries();
+            const toolOwners = /* @__PURE__ */ new Map();
             for (const entry of entries) {
               if (entry.type !== "message")
                 continue;
               const message = entry.message;
-              if (message.role !== "user" && message.role !== "assistant")
+              if (message.role === "user") {
+                let content = typeof message.content === "string" ? message.content : "";
+                for (const part of Array.isArray(message.content) ? message.content : []) {
+                  if (part.type === "text" && typeof part.text === "string")
+                    content += part.text;
+                }
+                if (content)
+                  messages.push({ id: entry.id, role: "user", content, timestamp: Date.parse(entry.timestamp) || 0 });
                 continue;
-              const role = message.role === "assistant" ? "agent" : "user";
-              let text2 = typeof message.content === "string" ? message.content : "";
-              for (const part of Array.isArray(message.content) ? message.content : []) {
-                if (part.type === "text" && typeof part.text === "string")
-                  text2 += part.text;
               }
-              if (!text2)
+              if (message.role === "assistant") {
+                let content = typeof message.content === "string" ? message.content : "";
+                let reasoningContent = "";
+                const toolCallsById = {};
+                for (const part of Array.isArray(message.content) ? message.content : []) {
+                  if (part.type === "text" && typeof part.text === "string")
+                    content += part.text;
+                  if (part.type === "thinking" && typeof part.thinking === "string")
+                    reasoningContent += part.thinking;
+                  if (part.type === "toolCall" && typeof part.id === "string" && typeof part.name === "string") {
+                    const tool = { toolCallId: part.id, name: part.name, arguments: asRecord(part.arguments) ?? {}, status: "calling" };
+                    toolCallsById[part.id] = tool;
+                  }
+                }
+                if (!content && !reasoningContent && Object.keys(toolCallsById).length === 0)
+                  continue;
+                const snapshot = {
+                  id: entry.id,
+                  role: "agent",
+                  content,
+                  reasoningContent,
+                  messageId: entry.id,
+                  toolCallsById,
+                  widgetsById: {},
+                  skillActivations: [],
+                  currentStage: Object.keys(toolCallsById).length ? "executing_query" : "generating_answer",
+                  visitedStages: Object.keys(toolCallsById).length ? ["sent", "selecting_tool", "executing_query"] : ["sent", "generating_answer"],
+                  terminalReason: message.stopReason === "error" ? "error" : "completed",
+                  timestamp: Date.parse(entry.timestamp) || 0
+                };
+                messages.push(snapshot);
+                for (const [toolCallId, tool] of Object.entries(toolCallsById))
+                  toolOwners.set(toolCallId, { snapshot, tool });
                 continue;
-              messages.push({ id: entry.id, role, content: text2, timestamp: Date.parse(entry.timestamp) || 0 });
+              }
+              if (message.role === "toolResult" && typeof message.toolCallId === "string") {
+                const owner = toolOwners.get(message.toolCallId);
+                if (!owner)
+                  continue;
+                let result = "";
+                for (const part of Array.isArray(message.content) ? message.content : []) {
+                  if (part.type === "text" && typeof part.text === "string")
+                    result += part.text;
+                }
+                const details = asRecord(message.details);
+                owner.tool.result = result;
+                owner.tool.details = message.details;
+                owner.tool.isError = message.isError === true;
+                owner.tool.status = message.isError === true ? "error" : "done";
+                const widgetId = typeof details?.widgetId === "string" ? details.widgetId : void 0;
+                const widget = asRecord(details?.widget);
+                if (widgetId)
+                  owner.tool.widgetId = widgetId;
+                if (widgetId && widget)
+                  owner.snapshot.widgetsById[widgetId] = widget;
+              }
             }
           }
           return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "session.transcript.result", messages } };
