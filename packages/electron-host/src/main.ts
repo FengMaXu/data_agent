@@ -51,7 +51,11 @@ export interface MainDeps {
   };
   /** Packaged resources dir (process.resourcesPath); absent in dev. */
   resourcesPath?: string;
-  BrowserWindow: new (options: Record<string, unknown>) => { loadFile(file: string): Promise<void>; loadURL(url: string): Promise<void> };
+  BrowserWindow: new (options: Record<string, unknown>) => {
+    loadFile(file: string): Promise<void>;
+    loadURL(url: string): Promise<void>;
+    webContents?: { executeJavaScript(script: string): Promise<unknown> };
+  };
   ipcMain: unknown;
   safeStorage?: ElectronSafeStorageLike;
   dialog?: ElectronDialogLike;
@@ -362,6 +366,48 @@ async function testLlmProfile(profile: Record<string, unknown>): Promise<{ succe
   }
 }
 
+async function runPackagedRendererSmoke(window: { webContents?: { executeJavaScript(script: string): Promise<unknown> } }): Promise<void> {
+  if (!window.webContents) throw new Error("SMOKE_RENDERER_WEB_CONTENTS_MISSING");
+  const result = await window.webContents.executeJavaScript(`
+    (async () => {
+      const invoke = window.dataAgentRuntime?.invokeRuntimeCommand;
+      const subscribe = window.dataAgentRuntime?.subscribeRuntimeEvents;
+      const upload = window.dataAgent?.uploadWorkspaceFile;
+      if (!invoke || !subscribe || !upload) throw new Error("SMOKE_PRELOAD_BRIDGE_MISSING");
+      const envelope = (requestId, command, sessionId) => ({ protocolVersion: 1, requestId, ...(sessionId ? { sessionId } : {}), command });
+      const probe = await invoke(envelope("smoke-probe", { type: "runtime.probe" }));
+      const config = await invoke(envelope("smoke-config", { type: "config.get" }));
+      const artifact = await upload({ fileName: "smoke-renderer.txt", bytes: new Uint8Array([115, 109, 111, 107, 101]), sessionId: "smoke-session" });
+      let unsubscribe = () => undefined;
+      const completed = new Promise((resolve, reject) => {
+        const timer = setTimeout(() => { unsubscribe(); reject(new Error("SMOKE_CHAT_TIMEOUT")); }, 10000);
+        unsubscribe = subscribe((event) => {
+          if (event?.sessionId === "smoke-session" && event?.event?.type === "agent.completed") {
+            clearTimeout(timer);
+            unsubscribe();
+            resolve(true);
+          }
+        }, "smoke-session");
+      });
+      const chat = await invoke(envelope("smoke-chat", { type: "agent.prompt", prompt: "smoke" }, "smoke-session"));
+      await completed;
+      return {
+        probe: probe?.response?.type,
+        config: config?.response?.type,
+        artifact: artifact?.relative_path,
+        chat: chat?.response?.type,
+      };
+    })()
+  `);
+  if (!isRecord(result)
+    || result.probe !== "runtime.probe.result"
+    || result.config !== "config.get.result"
+    || result.artifact !== "smoke-renderer.txt"
+    || result.chat !== "agent.prompt.accepted") {
+    throw new Error(`SMOKE_RENDERER_SELF_TEST_FAILED: ${JSON.stringify(result)}`);
+  }
+}
+
 export interface ElectronHostHandle {
   runtime: unknown;
   dispose(): Promise<void>;
@@ -509,7 +555,7 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
       );
       const model = firstString(cfg.model, stored.default_model);
       const baseUrl = firstString(cfg.base_url, stored.openai_base_url);
-      if (!apiKey || !model) throw new Error("LLM_NOT_CONFIGURED: complete onboarding first");
+      if (cfg.llm_enabled === false || !apiKey || !model) throw new Error("LLM_NOT_CONFIGURED: complete onboarding first");
       return { provider, model, apiKey, ...(baseUrl ? { baseUrl } : {}) };
     },
     create: async (profile) => {
@@ -540,14 +586,8 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
         activeAgentSessionId = undefined;
       }
     },
-    steer: (text, context) => {
-      if (context?.sessionId) activeAgentSessionId = context.sessionId;
-      void resolveAgentHarness().then((agent) => agent.steer?.(text));
-    },
-    followUp: (text, context) => {
-      if (context?.sessionId) activeAgentSessionId = context.sessionId;
-      void resolveAgentHarness().then((agent) => agent.followUp?.(text));
-    },
+    steer: (text) => { void resolveAgentHarness().then((agent) => agent.steer?.(text)); },
+    followUp: (text) => { void resolveAgentHarness().then((agent) => agent.followUp?.(text)); },
     abort: () => { agentHarness?.abort(); },
     getResources: () => agentHarness?.getResources?.() ?? {},
     setResources: async (resources) => { if (agentHarness?.setResources) await agentHarness.setResources(resources); },
@@ -572,13 +612,6 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
     await queryExecutor.close();
     await metadata.close();
   };
-  if (process.env.DATA_AGENT_SMOKE === "1") {
-    // Startup smoke: runtime + IPC registered without loading a window.
-    const { writeFileSync } = await import("node:fs");
-    try { writeFileSync(path.join(paths.userDataDir, "smoke.ok"), "ok"); } catch { /* best effort */ }
-    deps.app.quit();
-    return { runtime, dispose };
-  }
   const window = new deps.BrowserWindow({
     width: 1440,
     height: 900,
@@ -593,6 +626,10 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
     await window.loadURL(devServerUrl);
   } else {
     await window.loadFile(path.join(paths.rendererDist, "index.html"));
+  }
+  if (process.env.DATA_AGENT_SMOKE === "1") {
+    await runPackagedRendererSmoke(window);
+    writeFileSync(path.join(paths.userDataDir, "smoke.ok"), "renderer-runtime-config-upload-chat");
   }
   return { runtime, dispose };
 }
@@ -609,7 +646,13 @@ if (process.env.VITEST !== "true" && process.env.NODE_ENV !== "test") void (asyn
       return;
     }
     const resourcesPath = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath;
-    const host = await startElectronHost(electron, { resourcesPath });
+    const smokeUserData = process.env.DATA_AGENT_SMOKE_DIR?.trim();
+    const host = await startElectronHost(electron, { resourcesPath, ...(smokeUserData ? { userDataDir: smokeUserData } : {}) });
+    if (process.env.DATA_AGENT_SMOKE === "1") {
+      await host.dispose();
+      electron.app.quit();
+      return;
+    }
     let quitting = false;
     electron.app.on?.("before-quit", (event) => {
       if (quitting) return;

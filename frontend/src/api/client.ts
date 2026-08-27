@@ -121,6 +121,7 @@ export async function logout(): Promise<void> {
 
 export interface AIConfig {
     provider?: 'openai' | 'anthropic';
+    llm_enabled?: boolean;
     model?: string;
     api_key?: string;
     base_url?: string;

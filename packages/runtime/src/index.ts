@@ -473,6 +473,9 @@ export class DataAgentRuntime {
 
     if (command.command.type === "agent.steer" || command.command.type === "agent.follow_up") {
       if (!this.agent) throw new DataAgentRuntimeError("INVALID_COMMAND", "Pi Agent is not configured");
+      if (this.activeRun?.sessionId && context.sessionId !== this.activeRun.sessionId) {
+        throw new DataAgentRuntimeError("INVALID_CONTEXT", "Agent queue command belongs to another session");
+      }
       const method = command.command.type === "agent.steer" ? this.agent.steer : this.agent.followUp;
       if (!method) throw new DataAgentRuntimeError("INVALID_COMMAND", "Agent queue operation is not configured");
       method.call(this.agent, command.command.prompt, { sessionId: context.sessionId });
@@ -486,6 +489,9 @@ export class DataAgentRuntime {
 
     if (command.command.type === "agent.prompt") {
       if (!this.agent) throw new DataAgentRuntimeError("INVALID_COMMAND", "Pi Agent is not configured");
+      // One harness owns one mutable conversation. Reject before host-level
+      // per-turn context can be changed by a concurrent session.
+      if (this.activeRun) throw new DataAgentRuntimeError("INVALID_COMMAND", "AGENT_BUSY");
       // Do not let a stale or aborted run associate its tool calls with this one.
       this.activeMessageId = undefined;
       this.widgetCalls.clear();

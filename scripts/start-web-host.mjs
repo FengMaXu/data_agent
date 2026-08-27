@@ -126,7 +126,7 @@ const agentHarnessResolver = createAgentHarnessResolver({
       apiKey: String(cfg.api_key ?? cfg.openai_api_key ?? cfg.anthropic_api_key ?? ""),
       baseUrl: cfg.base_url ? String(cfg.base_url) : undefined,
     };
-    if (!profile.apiKey || !profile.model) throw new Error("LLM_NOT_CONFIGURED: complete onboarding first");
+    if (cfg.llm_enabled === false || !profile.apiKey || !profile.model) throw new Error("LLM_NOT_CONFIGURED: complete onboarding first");
     return profile;
   },
   create: async (profile) => {
@@ -145,14 +145,8 @@ runtime.attachAgent({
     try { return await (await resolveAgentHarness()).prompt(text); }
     finally { activeAgentSessionId = undefined; }
   },
-  steer: async (text, context) => {
-    if (context?.sessionId) activeAgentSessionId = context.sessionId;
-    return (await resolveAgentHarness())?.steer(text);
-  },
-  followUp: async (text, context) => {
-    if (context?.sessionId) activeAgentSessionId = context.sessionId;
-    return (await resolveAgentHarness())?.followUp(text);
-  },
+  steer: async (text) => (await resolveAgentHarness())?.steer(text),
+  followUp: async (text) => (await resolveAgentHarness())?.followUp(text),
   abort: async () => agentHarness?.abort(),
   getResources: () => agentHarness?.getResources() ?? {},
   setResources: async (resources) => { if (agentHarness) await agentHarness.setResources(resources); },

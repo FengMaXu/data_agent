@@ -35,6 +35,8 @@ describe("resolveRuntimePaths", () => {
       removeListener: (channel: string) => { eventListeners.delete(channel); },
     };
     let quitCalled = false;
+    const loadedFiles: string[] = [];
+    let rendererSmokeScript = "";
     let protocolHandler: ((request: { url: string }) => Promise<Response>) | undefined;
     const protocol = {
       registerSchemesAsPrivileged: vi.fn(),
@@ -46,11 +48,22 @@ describe("resolveRuntimePaths", () => {
     try {
       const host = await startElectronHost({
         app: { whenReady: async () => undefined, getPath: () => root, quit: () => { quitCalled = true; } },
-        BrowserWindow: class { async loadFile() { /* smoke mode */ } async loadURL() { /* smoke mode */ } },
+        BrowserWindow: class {
+          webContents = { executeJavaScript: async (script: string) => {
+            rendererSmokeScript = script;
+            return { probe: "runtime.probe.result", config: "config.get.result", artifact: "smoke-renderer.txt", chat: "agent.prompt.accepted" };
+          } };
+          async loadFile(file: string) { loadedFiles.push(file); }
+          async loadURL() { /* smoke mode */ }
+        },
         ipcMain,
         protocol,
       });
-      expect(quitCalled).toBe(true);
+      expect(quitCalled).toBe(false);
+      expect(loadedFiles).toHaveLength(1);
+      expect(loadedFiles[0]).toMatch(/[\\/]dist[\\/]index\.html$/);
+      expect(rendererSmokeScript).toContain("SMOKE_CHAT_TIMEOUT");
+      expect(await readFile(path.join(root, "smoke.ok"), "utf8")).toBe("renderer-runtime-config-upload-chat");
       const command = handlers.get("data-agent:command");
       const context = { protocolVersion: 1, requestId: "desktop-test", command: { type: "llm.test", profile: {} } };
       const tested = await command?.({}, context) as { response?: { type?: string; success?: boolean } };

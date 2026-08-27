@@ -118,7 +118,19 @@ exec(process.platform === "win32" ? "npx.cmd" : "npx", [
 const npxCmd = process.platform === "win32" ? "npx.cmd" : "npx";
 exec(npxCmd, ["@electron/asar", "pack", staging, path.join(out, "resources", "app.asar"), "--unpack=*.node"]);
 
-// 4. extraResources
+// 4. extraResources. These capabilities are mandatory for a usable desktop
+// package; fail closed instead of producing a silently incomplete artifact.
+for (const required of [
+  "../dist/python-runtime/Scripts/python.exe",
+  "../.agents/skills/analysis/SKILL.md",
+  "../.pi/SYSTEM.md",
+]) {
+  const source = path.resolve(frontend, required);
+  if (!existsSync(source)) {
+    console.error(`required extraResource missing: ${required}`);
+    process.exit(1);
+  }
+}
 for (const res of pkg.build?.extraResources ?? []) {
   const from = path.resolve(frontend, res.from);
   if (!existsSync(from)) {

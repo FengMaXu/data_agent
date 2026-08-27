@@ -91,7 +91,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                 if (!stored.ok) throw new Error(t('onboarding.errorSave'));
             }
 
-            await saveConfigViaRuntime(llmPayload);
+            await saveConfigViaRuntime({ ...llmPayload, llm_enabled: true });
 
             if (dbConfig.database || dbConfig.user || dbConfig.password) {
                 await saveConfigViaRuntime(dbConfig);

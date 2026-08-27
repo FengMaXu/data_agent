@@ -29048,7 +29048,7 @@ var init_workspace = __esm({
 
 // packages/runtime/dist/python-job.js
 function pythonJobEnvironment(source = process.env) {
-  return Object.fromEntries(Object.entries(source).filter(([name]) => !SENSITIVE_ENV_NAME.test(name)));
+  return Object.fromEntries(Object.entries(source).filter(([name]) => PYTHON_ENV_ALLOWLIST.has(name.toUpperCase())));
 }
 async function runPythonJob(code, options) {
   const jobId = (0, import_node_crypto4.randomUUID)();
@@ -29089,7 +29089,7 @@ async function runPythonJob(code, options) {
     });
   });
 }
-var import_node_child_process2, import_node_crypto4, import_promises5, import_node_path6, SENSITIVE_ENV_NAME;
+var import_node_child_process2, import_node_crypto4, import_promises5, import_node_path6, PYTHON_ENV_ALLOWLIST;
 var init_python_job = __esm({
   "packages/runtime/dist/python-job.js"() {
     "use strict";
@@ -29097,7 +29097,28 @@ var init_python_job = __esm({
     import_node_crypto4 = require("node:crypto");
     import_promises5 = require("node:fs/promises");
     import_node_path6 = __toESM(require("node:path"), 1);
-    SENSITIVE_ENV_NAME = /(?:API_?KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL)/i;
+    PYTHON_ENV_ALLOWLIST = /* @__PURE__ */ new Set([
+      "PATH",
+      "PATHEXT",
+      "SYSTEMROOT",
+      "WINDIR",
+      "COMSPEC",
+      "TEMP",
+      "TMP",
+      "TMPDIR",
+      "HOME",
+      "USERPROFILE",
+      "APPDATA",
+      "LOCALAPPDATA",
+      "PROGRAMDATA",
+      "PROGRAMFILES",
+      "PROGRAMFILES(X86)",
+      "PROCESSOR_ARCHITECTURE",
+      "NUMBER_OF_PROCESSORS",
+      "LANG",
+      "LC_ALL",
+      "LC_CTYPE"
+    ]);
   }
 });
 
@@ -164415,6 +164436,9 @@ var init_dist5 = __esm({
         if (command.command.type === "agent.steer" || command.command.type === "agent.follow_up") {
           if (!this.agent)
             throw new DataAgentRuntimeError("INVALID_COMMAND", "Pi Agent is not configured");
+          if (this.activeRun?.sessionId && context2.sessionId !== this.activeRun.sessionId) {
+            throw new DataAgentRuntimeError("INVALID_CONTEXT", "Agent queue command belongs to another session");
+          }
           const method = command.command.type === "agent.steer" ? this.agent.steer : this.agent.followUp;
           if (!method)
             throw new DataAgentRuntimeError("INVALID_COMMAND", "Agent queue operation is not configured");
@@ -164430,6 +164454,8 @@ var init_dist5 = __esm({
         if (command.command.type === "agent.prompt") {
           if (!this.agent)
             throw new DataAgentRuntimeError("INVALID_COMMAND", "Pi Agent is not configured");
+          if (this.activeRun)
+            throw new DataAgentRuntimeError("INVALID_COMMAND", "AGENT_BUSY");
           this.activeMessageId = void 0;
           this.widgetCalls.clear();
           this.toolArgs.clear();
@@ -165099,6 +165125,44 @@ async function testLlmProfile(profile) {
     clearTimeout(timer);
   }
 }
+async function runPackagedRendererSmoke(window2) {
+  if (!window2.webContents)
+    throw new Error("SMOKE_RENDERER_WEB_CONTENTS_MISSING");
+  const result = await window2.webContents.executeJavaScript(`
+    (async () => {
+      const invoke = window.dataAgentRuntime?.invokeRuntimeCommand;
+      const subscribe = window.dataAgentRuntime?.subscribeRuntimeEvents;
+      const upload = window.dataAgent?.uploadWorkspaceFile;
+      if (!invoke || !subscribe || !upload) throw new Error("SMOKE_PRELOAD_BRIDGE_MISSING");
+      const envelope = (requestId, command, sessionId) => ({ protocolVersion: 1, requestId, ...(sessionId ? { sessionId } : {}), command });
+      const probe = await invoke(envelope("smoke-probe", { type: "runtime.probe" }));
+      const config = await invoke(envelope("smoke-config", { type: "config.get" }));
+      const artifact = await upload({ fileName: "smoke-renderer.txt", bytes: new Uint8Array([115, 109, 111, 107, 101]), sessionId: "smoke-session" });
+      let unsubscribe = () => undefined;
+      const completed = new Promise((resolve, reject) => {
+        const timer = setTimeout(() => { unsubscribe(); reject(new Error("SMOKE_CHAT_TIMEOUT")); }, 10000);
+        unsubscribe = subscribe((event) => {
+          if (event?.sessionId === "smoke-session" && event?.event?.type === "agent.completed") {
+            clearTimeout(timer);
+            unsubscribe();
+            resolve(true);
+          }
+        }, "smoke-session");
+      });
+      const chat = await invoke(envelope("smoke-chat", { type: "agent.prompt", prompt: "smoke" }, "smoke-session"));
+      await completed;
+      return {
+        probe: probe?.response?.type,
+        config: config?.response?.type,
+        artifact: artifact?.relative_path,
+        chat: chat?.response?.type,
+      };
+    })()
+  `);
+  if (!isRecord(result) || result.probe !== "runtime.probe.result" || result.config !== "config.get.result" || result.artifact !== "smoke-renderer.txt" || result.chat !== "agent.prompt.accepted") {
+    throw new Error(`SMOKE_RENDERER_SELF_TEST_FAILED: ${JSON.stringify(result)}`);
+  }
+}
 async function startElectronHost(deps, overrides = {}) {
   deps.protocol?.registerSchemesAsPrivileged?.([{
     scheme: "data-agent",
@@ -165203,7 +165267,7 @@ async function startElectronHost(deps, overrides = {}) {
       const apiKey = firstString(cfg.api_key, provider === "anthropic" ? cfg.anthropic_api_key : cfg.openai_api_key, stored.anthropic_api_key && provider === "anthropic" ? stored.anthropic_api_key : void 0, stored.openai_api_key && provider !== "anthropic" ? stored.openai_api_key : void 0);
       const model = firstString(cfg.model, stored.default_model);
       const baseUrl = firstString(cfg.base_url, stored.openai_base_url);
-      if (!apiKey || !model)
+      if (cfg.llm_enabled === false || !apiKey || !model)
         throw new Error("LLM_NOT_CONFIGURED: complete onboarding first");
       return { provider, model, apiKey, ...baseUrl ? { baseUrl } : {} };
     },
@@ -165236,14 +165300,10 @@ async function startElectronHost(deps, overrides = {}) {
         activeAgentSessionId = void 0;
       }
     },
-    steer: (text2, context2) => {
-      if (context2?.sessionId)
-        activeAgentSessionId = context2.sessionId;
+    steer: (text2) => {
       void resolveAgentHarness().then((agent) => agent.steer?.(text2));
     },
-    followUp: (text2, context2) => {
-      if (context2?.sessionId)
-        activeAgentSessionId = context2.sessionId;
+    followUp: (text2) => {
       void resolveAgentHarness().then((agent) => agent.followUp?.(text2));
     },
     abort: () => {
@@ -165278,15 +165338,6 @@ async function startElectronHost(deps, overrides = {}) {
     await queryExecutor.close();
     await metadata.close();
   };
-  if (process.env.DATA_AGENT_SMOKE === "1") {
-    const { writeFileSync: writeFileSync2 } = await import("node:fs");
-    try {
-      writeFileSync2(import_node_path18.default.join(paths.userDataDir, "smoke.ok"), "ok");
-    } catch {
-    }
-    deps.app.quit();
-    return { runtime, dispose };
-  }
   const window2 = new deps.BrowserWindow({
     width: 1440,
     height: 900,
@@ -165301,6 +165352,10 @@ async function startElectronHost(deps, overrides = {}) {
     await window2.loadURL(devServerUrl);
   } else {
     await window2.loadFile(import_node_path18.default.join(paths.rendererDist, "index.html"));
+  }
+  if (process.env.DATA_AGENT_SMOKE === "1") {
+    await runPackagedRendererSmoke(window2);
+    (0, import_node_fs6.writeFileSync)(import_node_path18.default.join(paths.userDataDir, "smoke.ok"), "renderer-runtime-config-upload-chat");
   }
   return { runtime, dispose };
 }
@@ -165317,7 +165372,13 @@ if (process.env.VITEST !== "true" && process.env.NODE_ENV !== "test")
         return;
       }
       const resourcesPath = process.resourcesPath;
-      const host = await startElectronHost(electron, { resourcesPath });
+      const smokeUserData = process.env.DATA_AGENT_SMOKE_DIR?.trim();
+      const host = await startElectronHost(electron, { resourcesPath, ...smokeUserData ? { userDataDir: smokeUserData } : {} });
+      if (process.env.DATA_AGENT_SMOKE === "1") {
+        await host.dispose();
+        electron.app.quit();
+        return;
+      }
       let quitting = false;
       electron.app.on?.("before-quit", (event) => {
         if (quitting)

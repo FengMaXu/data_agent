@@ -5,11 +5,15 @@ import path from "node:path";
 
 export interface PythonJobResult { jobId: string; status: "success" | "error" | "timeout" | "aborted"; exitCode: number | null; stdout: string; stderr: string; scriptPath: string; artifacts: string[]; durationMs: number }
 
-const SENSITIVE_ENV_NAME = /(?:API_?KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL)/i;
+const PYTHON_ENV_ALLOWLIST = new Set([
+  "PATH", "PATHEXT", "SYSTEMROOT", "WINDIR", "COMSPEC", "TEMP", "TMP", "TMPDIR",
+  "HOME", "USERPROFILE", "APPDATA", "LOCALAPPDATA", "PROGRAMDATA", "PROGRAMFILES",
+  "PROGRAMFILES(X86)", "PROCESSOR_ARCHITECTURE", "NUMBER_OF_PROCESSORS", "LANG", "LC_ALL", "LC_CTYPE",
+]);
 
-/** Tool code receives normal process settings (PATH, locale, proxy) but no host credentials. */
+/** Agent-authored code receives only OS/process essentials, never ambient host credentials. */
 export function pythonJobEnvironment(source: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
-  return Object.fromEntries(Object.entries(source).filter(([name]) => !SENSITIVE_ENV_NAME.test(name)));
+  return Object.fromEntries(Object.entries(source).filter(([name]) => PYTHON_ENV_ALLOWLIST.has(name.toUpperCase())));
 }
 
 export async function runPythonJob(code: string, options: { workspace: string; executable: string; timeoutMs?: number; signal?: AbortSignal }): Promise<PythonJobResult> {

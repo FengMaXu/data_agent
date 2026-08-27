@@ -162,7 +162,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
 
                 // Determine active provider
                 const activeId = detectActiveProvider(initialConfig.base_url, initialConfig.provider);
-                if (activeId) {
+                if (activeId && initialConfig.llm_enabled !== false) {
                     setProviderConfigs(prev => {
                         const next = { ...prev };
                         const pConfig = { ...next[activeId] };
@@ -240,6 +240,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
 
                 await saveConfigViaRuntime({
                     provider,
+                    llm_enabled: true,
                     api_key: apikeyToSend,
                     base_url: configToSave.baseUrl,
                     model: configToSave.selectedModel
@@ -249,6 +250,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                 setConfig(prev => prev ? { 
                     ...prev, 
                     provider,
+                    llm_enabled: true,
                     base_url: configToSave.baseUrl, 
                     model: configToSave.selectedModel,
                     api_key: apikeyToSend || prev.api_key
@@ -267,6 +269,25 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
             } finally {
                 setIsSavingLLM(false);
             }
+            return;
+        }
+
+        setIsSavingLLM(true);
+        setSaveFeedback(null);
+        try {
+            await saveConfigViaRuntime({ llm_enabled: false });
+            setConfig(prev => prev ? { ...prev, llm_enabled: false } : null);
+            setSaveFeedback(`✓ ${t('settings.saveSuccess')}`);
+            setTimeout(() => setSaveFeedback(null), 2000);
+        } catch (e: unknown) {
+            console.error('Failed to disable provider:', e);
+            setSaveFeedback(`✗ ${t('settings.saveFailed')}`);
+            setProviderConfigs(prev => ({
+                ...prev,
+                [providerId]: { ...prev[providerId], enabled: true }
+            }));
+        } finally {
+            setIsSavingLLM(false);
         }
     };
 
