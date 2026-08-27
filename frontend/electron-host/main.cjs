@@ -164040,6 +164040,7 @@ var init_dist5 = __esm({
       }
       activeRun;
       activeMessageId;
+      assistantMessageSequence = 0;
       widgetCalls = /* @__PURE__ */ new Map();
       toolArgs = /* @__PURE__ */ new Map();
       agent;
@@ -164457,6 +164458,7 @@ var init_dist5 = __esm({
           if (this.activeRun)
             throw new DataAgentRuntimeError("INVALID_COMMAND", "AGENT_BUSY");
           this.activeMessageId = void 0;
+          this.assistantMessageSequence = 0;
           this.widgetCalls.clear();
           this.toolArgs.clear();
           const runId = (0, import_node_crypto14.randomUUID)();
@@ -164537,10 +164539,11 @@ var init_dist5 = __esm({
         const base = () => ({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: run.requestId, runId: run.runId, sessionId: run.sessionId, timestamp: Date.now() });
         if (event.type === "message_start") {
           const message = asRecord(event.message);
-          const messageId = isNonEmptyString(message?.id) ? message.id : void 0;
-          if (!message?.role || message.role === "assistant")
-            this.activeMessageId = messageId;
-          this.emit({ ...base(), event: { type: "agent.message_started", messageId: messageId ?? `message-${run.runId}` } });
+          if (message?.role !== "assistant")
+            return;
+          const messageId = isNonEmptyString(message.id) ? message.id : `${run.runId}:assistant:${++this.assistantMessageSequence}`;
+          this.activeMessageId = messageId;
+          this.emit({ ...base(), event: { type: "agent.message_started", messageId } });
           return;
         }
         if (event.type === "message_update") {

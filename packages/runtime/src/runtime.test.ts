@@ -18,6 +18,31 @@ describe("DataAgentRuntime", () => {
     expect(runtime.eventsAfter(1)).toHaveLength(0);
   });
 
+  it("emits a distinct renderer message for each assistant turn", async () => {
+    let receive: ((event: unknown) => void) | undefined;
+    const agent = {
+      subscribe(listener: (event: unknown) => void) { receive = listener; return () => undefined; },
+      async prompt() {
+        receive?.({ type: "message_start", message: { role: "user", content: "question" } });
+        receive?.({ type: "message_start", message: { role: "assistant" } });
+        receive?.({ type: "tool_execution_start", toolCallId: "call-1", toolName: "query", args: { sql: "select 1" } });
+        receive?.({ type: "tool_execution_end", toolCallId: "call-1", toolName: "query", result: "ok", isError: false });
+        receive?.({ type: "message_start", message: { role: "toolResult", content: [] } });
+        receive?.({ type: "message_start", message: { role: "assistant" } });
+      },
+      abort() { return undefined; },
+    };
+    const runtime = new DataAgentRuntime({ agent });
+    await runtime.dispatch({ protocolVersion: 1, requestId: "turns", command: { type: "agent.prompt", prompt: "question" } }, { userId: "local", host: "electron" });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const events = runtime.eventsAfter(0).map((envelope) => envelope.event);
+    const starts = events.filter((event) => event.type === "agent.message_started");
+    expect(starts).toHaveLength(2);
+    expect(starts[0].messageId).not.toBe(starts[1].messageId);
+    expect(events.filter((event) => event.type === "agent.tool_started")).toHaveLength(1);
+  });
+
   it("keeps tool arguments on completion events, including legacy and empty-args completions", async () => {
     let receive: ((event: unknown) => void) | undefined;
     const agent = {

@@ -109,6 +109,7 @@ export class DataAgentRuntime {
   get clarificationManager(): ClarificationManager { return this.clarifications; }
   private activeRun?: { requestId: string; runId: string; sessionId?: string };
   private activeMessageId?: string;
+  private assistantMessageSequence = 0;
   private readonly widgetCalls = new Map<string, { widgetId: string; messageId: string; toolName: string; errorEmitted: boolean; doneEmitted: boolean }>();
   private readonly toolArgs = new Map<string, unknown>();
   private agent?: RuntimeAgent;
@@ -494,6 +495,7 @@ export class DataAgentRuntime {
       if (this.activeRun) throw new DataAgentRuntimeError("INVALID_COMMAND", "AGENT_BUSY");
       // Do not let a stale or aborted run associate its tool calls with this one.
       this.activeMessageId = undefined;
+      this.assistantMessageSequence = 0;
       this.widgetCalls.clear();
       this.toolArgs.clear();
       const runId = randomUUID();
@@ -572,11 +574,15 @@ export class DataAgentRuntime {
     const base = () => ({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: run.requestId, runId: run.runId, sessionId: run.sessionId, timestamp: Date.now() });
     if (event.type === "message_start") {
       const message = asRecord(event.message);
-      const messageId = isNonEmptyString(message?.id) ? message.id : undefined;
-      // Pi emits message_start for user and tool-result messages too. Keep the
-      // active id on the assistant message so widgets stay attached to it.
-      if (!message?.role || message.role === "assistant") this.activeMessageId = messageId;
-      this.emit({ ...base(), event: { type: "agent.message_started", messageId: messageId ?? `message-${run.runId}` } });
+      // Pi emits message_start for the prompt and tool-result messages too.
+      // They are protocol messages, not renderer assistant rounds. Only expose
+      // assistant starts, otherwise the UI invents empty agent bubbles.
+      if (message?.role !== "assistant") return;
+      const messageId = isNonEmptyString(message.id)
+        ? message.id
+        : `${run.runId}:assistant:${++this.assistantMessageSequence}`;
+      this.activeMessageId = messageId;
+      this.emit({ ...base(), event: { type: "agent.message_started", messageId } });
       return;
     }
     if (event.type === "message_update") {
