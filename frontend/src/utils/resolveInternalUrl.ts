@@ -163,9 +163,11 @@ export function resolveWorkspacePreviewUrl(href: string | undefined, currentSess
         }
         const normalizedPath = normalizeWorkspacePath(workspaceFilePath(url), currentSessionId);
         if (isDesktopRuntime()) return buildDesktopWorkspaceUrl('preview', normalizedPath);
-        url.pathname = url.pathname.replace(/\/download$/, '/preview');
-        url.searchParams.set('path', normalizedPath);
-        return appendAuthTokenWithoutDuplicate(url);
+        // The web server intentionally exposes one authenticated byte endpoint
+        // for both downloads and previews. Do not leave `/workspace/files/preview`
+        // in the browser URL: that path is handled by the SPA fallback and
+        // returns index.html instead of the requested workspace file.
+        return buildWorkspaceFileUrl('preview', normalizedPath);
     } catch {
         return resolveInternalUrl(value, currentSessionId);
     }

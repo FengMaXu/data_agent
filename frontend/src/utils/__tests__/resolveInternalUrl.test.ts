@@ -21,6 +21,12 @@ describe('workspace markdown link resolution', () => {
         expect(url.searchParams.get('path')).toBe('session-123/data/industry_sales_2026_h1.csv');
     });
 
+    it('converts an internal preview path to the real web file endpoint', () => {
+        const url = new URL(resolveWorkspacePreviewUrl('/workspace/files/preview?path=session-123%2Fdata%2Fresult.csv', 'session-123'));
+        expect(url.pathname).toBe('/api/workspace/download');
+        expect(url.searchParams.get('path')).toBe('session-123/data/result.csv');
+    });
+
     it('converts a relative asset to the authenticated preview endpoint', () => {
         const url = new URL(resolveWorkspacePreviewUrl('data/industry_sales_2026_h1.csv', 'session-123'));
         expect(url.pathname).toBe('/api/workspace/download');
