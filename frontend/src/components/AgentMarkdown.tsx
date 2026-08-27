@@ -23,6 +23,7 @@ import {
 const PREVIEWABLE_FILE_TYPES = new Set([
     'csv', 'gif', 'htm', 'html', 'jpeg', 'jpg', 'json', 'md', 'markdown', 'png', 'svg', 'txt', 'webp',
 ]);
+const WORKSPACE_FILE_TYPES = new Set([...PREVIEWABLE_FILE_TYPES, 'pdf', 'xlsx', 'xls', 'zip']);
 
 function getWorkspaceDownloadPath(href: string | undefined): string {
     if (!href) return '';
@@ -57,11 +58,47 @@ function getImagePreviewType(src: string | undefined): string {
     return sourceName.split('.').pop()?.toLowerCase() || 'png';
 }
 
-const createMarkdownComponents = (
+export const createMarkdownComponents = (
     currentSessionId?: string,
     openPreview?: (url: string, title: string, fileType: string) => void,
     t?: (key: string) => string,
 ): React.ComponentProps<typeof ReactMarkdown>['components'] => ({
+    code: ({ children, className, ...props }) => {
+        const value = String(children ?? '').trim();
+        const fileType = getFileTypeFromPath(value);
+        if (className || value.includes('\n') || !WORKSPACE_FILE_TYPES.has(fileType)) {
+            return <code className={className} {...props}>{children}</code>;
+        }
+        const previewUrl = resolveWorkspaceAssetUrl(value, undefined, currentSessionId);
+        const downloadUrl = resolveWorkspaceDownloadUrl(previewUrl, currentSessionId);
+        const previewLabel = t?.('widgets.preview') || '查看';
+        const downloadLabel = t?.('widgets.download') || '下载';
+        const title = getFileTitle(value, value);
+        const triggerDownload = (event: React.MouseEvent<HTMLButtonElement>) => {
+            event.preventDefault();
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = title;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        };
+        return (
+            <span className="agent-file-action-row">
+                <code {...props}>{children}</code>
+                <span className="agent-file-actions">
+                    {PREVIEWABLE_FILE_TYPES.has(fileType) && openPreview && (
+                        <button type="button" className="agent-file-action-btn" onClick={() => openPreview(previewUrl, title, fileType)} title={previewLabel} aria-label={previewLabel}>
+                            <Eye size={15} strokeWidth={2} />
+                        </button>
+                    )}
+                    <button type="button" className="agent-file-action-btn" onClick={triggerDownload} title={downloadLabel} aria-label={downloadLabel}>
+                        <Download size={15} strokeWidth={2} />
+                    </button>
+                </span>
+            </span>
+        );
+    },
     img: ({ src, alt, ...props }) => {
         const resolvedSrc = resolveWorkspaceAssetUrl(src, undefined, currentSessionId);
         const title = getImagePreviewTitle(src, alt);

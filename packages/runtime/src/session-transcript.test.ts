@@ -51,7 +51,11 @@ describe("session.transcript", () => {
     await session.appendMessage({ role: "user", content: "persist this question", timestamp: 100 });
     await session.appendMessage({
       role: "assistant",
-      content: [{ type: "text", text: "persist this answer" }],
+      content: [
+        { type: "thinking", thinking: "persist this reasoning" },
+        { type: "text", text: "persist this answer" },
+        { type: "toolCall", id: "call-1", name: "read_file", arguments: { path: "report.csv" } },
+      ],
       api: "openai-responses",
       provider: "openai",
       model: "test",
@@ -68,7 +72,14 @@ describe("session.transcript", () => {
       type: "session.transcript.result",
       messages: [
         expect.objectContaining({ role: "user", content: "persist this question" }),
-        expect.objectContaining({ role: "agent", content: "persist this answer" }),
+        expect.objectContaining({
+          role: "agent",
+          content: "persist this answer",
+          reasoningContent: "persist this reasoning",
+          toolCallsById: {
+            "call-1": expect.objectContaining({ name: "read_file", status: "done", result: "protocol-only" }),
+          },
+        }),
       ],
     });
     await rm(root, { recursive: true, force: true });

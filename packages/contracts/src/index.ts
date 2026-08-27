@@ -69,7 +69,20 @@ const SkillsListResponseSchema = Type.Object({ type: Type.Literal("skills.list.r
 const DashboardEvaluateResponseSchema = Type.Object({ type: Type.Literal("dashboard.evaluate.result"), columns: Type.Array(Type.String()), rows: Type.Array(Type.Array(Type.Unknown())), rowCount: Type.Number(), truncated: Type.Boolean() });
 const SemanticIngestStatusResponseSchema = Type.Object({ type: Type.Literal("semantic.ingest.status.result"), status: Type.String(), jobId: Type.Union([Type.String(), Type.Null()]), summary: Type.Object({ updated: Type.Number(), unchanged: Type.Number(), failed: Type.Number(), skipped: Type.Number() }), errorCode: Type.Union([Type.String(), Type.Null()]) });
 const SemanticIngestRetryResponseSchema = Type.Object({ type: Type.Literal("semantic.ingest.retry.result"), accepted: Type.Boolean() });
-const SessionTranscriptResponseSchema = Type.Object({ type: Type.Literal("session.transcript.result"), messages: Type.Array(Type.Object({ id: Type.String(), role: Type.String(), content: Type.String(), timestamp: Type.Number() })) });
+const SessionTranscriptResponseSchema = Type.Object({ type: Type.Literal("session.transcript.result"), messages: Type.Array(Type.Object({
+  id: Type.String(),
+  role: Type.String(),
+  content: Type.String(),
+  timestamp: Type.Number(),
+  reasoningContent: Type.Optional(Type.String()),
+  messageId: Type.Optional(Type.String()),
+  toolCallsById: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
+  widgetsById: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
+  skillActivations: Type.Optional(Type.Array(Type.Unknown())),
+  currentStage: Type.Optional(Type.String()),
+  visitedStages: Type.Optional(Type.Array(Type.String())),
+  terminalReason: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+})) });
 const DashboardV3DataResponseSchema = Type.Object({ type: Type.Literal("dashboard.v3.data.result"), payload: Type.Unknown() });
 const ConfigGetResponseSchema = Type.Object({ type: Type.Literal("config.get.result"), config: Type.Unknown() });
 const ConfigSaveResponseSchema = Type.Object({ type: Type.Literal("config.save.result"), saved: Type.Boolean() });

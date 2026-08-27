@@ -186,10 +186,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
                     const transcriptMessages = await getTranscriptViaRuntime(selectedSession.id);
                     if (cancelled) return;
                     transcripts = { [selectedSession.id]: transcriptMessages.map((message) => ({
-                        id: message.id,
+                        ...message,
                         role: message.role === 'agent' ? 'agent' : 'user',
-                        content: message.content,
-                        visitedStages: [],
+                        visitedStages: message.visitedStages || [],
                     })) };
                     warmSession(selectedSession.id);
                 }
@@ -287,10 +286,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         if (transcriptsBySession[sessionId] === undefined) {
             void getTranscriptViaRuntime(sessionId).then((transcriptMessages) => {
                 setTranscriptsBySession((prev) => ({ ...prev, [sessionId]: transcriptMessages.map((message) => ({
-                    id: message.id,
+                    ...message,
                     role: message.role === 'agent' ? 'agent' : 'user',
-                    content: message.content,
-                    visitedStages: [],
+                    visitedStages: message.visitedStages || [],
                 })) }));
                 selectSession(sessionId);
             }).catch((error: unknown) => console.warn('Failed to load session:', error));

@@ -15,7 +15,7 @@ import type {
   DataAgentCommandEnvelope,
   DataAgentResponseEnvelope,
 } from "@data-agent/contracts";
-import { apiFetch } from "./client";
+import { apiFetch, type SessionSnapshotMessage } from "./client";
 
 let sequence = 0;
 
@@ -375,7 +375,7 @@ export async function clearSessionViaRuntime(sessionId: string): Promise<string>
   return created.id;
 }
 
-export interface RuntimeTranscriptMessage { id: string; role: string; content: string; timestamp: number }
+export type RuntimeTranscriptMessage = SessionSnapshotMessage & { timestamp?: number };
 
 export async function getTranscriptViaRuntime(sessionId: string): Promise<RuntimeTranscriptMessage[]> {
   const envelope = await getRuntimeClient().dispatch({ type: "session.transcript", sessionId });

@@ -18,7 +18,7 @@ import { WorkspaceStore } from "./workspace.js";
 import { runPythonJob } from "./python-job.js";
 import { KnowledgeIndex } from "./knowledge.js";
 import { ClarificationManager } from "./clarification.js";
-import { renderStandaloneDashboardHtml, validateDashboardV3Spec } from "./dashboard-v3.js";
+import { materializeDashboardV3Spec, renderStandaloneDashboardHtml, validateDashboardV3Spec } from "./dashboard-v3.js";
 import { renderSemanticDashboardHtml, validateDashboardV4Spec } from "./dashboard-v4.js";
 import { loadSkillsFromRoots, resolveSkillRoots } from "./skills.js";
 import { isWidgetLifecycleDetails, validateWidgetSpec, type WidgetLifecycleDetails } from "./widget.js";
@@ -43,6 +43,21 @@ export class DataAgentRuntimeError extends Error {
 export type DataAgentEventListener = (event: DataAgentEventEnvelope) => void;
 
 type RuntimeAgentContext = { sessionId?: string };
+
+type TranscriptMessage = {
+  id: string;
+  role: string;
+  content: string;
+  timestamp: number;
+  reasoningContent?: string;
+  messageId?: string;
+  toolCallsById?: Record<string, unknown>;
+  widgetsById?: Record<string, unknown>;
+  skillActivations?: unknown[];
+  currentStage?: string;
+  visitedStages?: string[];
+  terminalReason?: string | null;
+};
 
 type RuntimeAgent = {
   prompt(text: string, context?: RuntimeAgentContext): Promise<unknown>;
@@ -185,7 +200,8 @@ export class DataAgentRuntime {
       this.workspace.assertAccess(context);
       const c = command.command;
       if (c.version === "v3" && c.mode === "static") {
-        const validated = validateDashboardV3Spec(c.spec);
+        const materialized = await materializeDashboardV3Spec(c.spec, this.workspace);
+        const validated = validateDashboardV3Spec(materialized);
         if (!validated.ok || c.operation === "validate") {
           return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "dashboard.result", valid: validated.ok, errors: validated.ok ? [] : validated.errors } };
         }
@@ -395,21 +411,70 @@ export class DataAgentRuntime {
       const listed = (await this.sessions.list()) as Array<Record<string, unknown>>;
       const transcriptCmd = command.command as { sessionId: string };
       const match = listed.find((meta) => (((meta.metadata ?? {}) as Record<string, unknown>).sessionId === transcriptCmd.sessionId || String(meta.id ?? "") === transcriptCmd.sessionId));
-      const messages: Array<{ id: string; role: string; content: string; timestamp: number }> = [];
+      const messages: TranscriptMessage[] = [];
       if (match) {
         const session = await this.sessions.open(match as never);
         const entries = await session.getEntries();
+        const toolOwners = new Map<string, { snapshot: TranscriptMessage; tool: Record<string, unknown> }>();
         for (const entry of entries) {
           if (entry.type !== "message") continue;
           const message = entry.message as unknown as Record<string, unknown>;
-          if (message.role !== "user" && message.role !== "assistant") continue;
-          const role = message.role === "assistant" ? "agent" : "user";
-          let text = typeof message.content === "string" ? message.content : "";
-          for (const part of (Array.isArray(message.content) ? message.content : []) as Array<Record<string, unknown>>) {
-            if (part.type === "text" && typeof part.text === "string") text += part.text;
+          if (message.role === "user") {
+            let content = typeof message.content === "string" ? message.content : "";
+            for (const part of (Array.isArray(message.content) ? message.content : []) as Array<Record<string, unknown>>) {
+              if (part.type === "text" && typeof part.text === "string") content += part.text;
+            }
+            if (content) messages.push({ id: entry.id, role: "user", content, timestamp: Date.parse(entry.timestamp) || 0 });
+            continue;
           }
-          if (!text) continue;
-          messages.push({ id: entry.id, role, content: text, timestamp: Date.parse(entry.timestamp) || 0 });
+          if (message.role === "assistant") {
+            let content = typeof message.content === "string" ? message.content : "";
+            let reasoningContent = "";
+            const toolCallsById: Record<string, Record<string, unknown>> = {};
+            for (const part of (Array.isArray(message.content) ? message.content : []) as Array<Record<string, unknown>>) {
+              if (part.type === "text" && typeof part.text === "string") content += part.text;
+              if (part.type === "thinking" && typeof part.thinking === "string") reasoningContent += part.thinking;
+              if (part.type === "toolCall" && typeof part.id === "string" && typeof part.name === "string") {
+                const tool = { toolCallId: part.id, name: part.name, arguments: asRecord(part.arguments) ?? {}, status: "calling" };
+                toolCallsById[part.id] = tool;
+              }
+            }
+            if (!content && !reasoningContent && Object.keys(toolCallsById).length === 0) continue;
+            const snapshot: TranscriptMessage = {
+              id: entry.id,
+              role: "agent",
+              content,
+              reasoningContent,
+              messageId: entry.id,
+              toolCallsById,
+              widgetsById: {},
+              skillActivations: [],
+              currentStage: Object.keys(toolCallsById).length ? "executing_query" : "generating_answer",
+              visitedStages: Object.keys(toolCallsById).length ? ["sent", "selecting_tool", "executing_query"] : ["sent", "generating_answer"],
+              terminalReason: message.stopReason === "error" ? "error" : "completed",
+              timestamp: Date.parse(entry.timestamp) || 0,
+            };
+            messages.push(snapshot);
+            for (const [toolCallId, tool] of Object.entries(toolCallsById)) toolOwners.set(toolCallId, { snapshot, tool });
+            continue;
+          }
+          if (message.role === "toolResult" && typeof message.toolCallId === "string") {
+            const owner = toolOwners.get(message.toolCallId);
+            if (!owner) continue;
+            let result = "";
+            for (const part of (Array.isArray(message.content) ? message.content : []) as Array<Record<string, unknown>>) {
+              if (part.type === "text" && typeof part.text === "string") result += part.text;
+            }
+            const details = asRecord(message.details);
+            owner.tool.result = result;
+            owner.tool.details = message.details;
+            owner.tool.isError = message.isError === true;
+            owner.tool.status = message.isError === true ? "error" : "done";
+            const widgetId = typeof details?.widgetId === "string" ? details.widgetId : undefined;
+            const widget = asRecord(details?.widget);
+            if (widgetId) owner.tool.widgetId = widgetId;
+            if (widgetId && widget) (owner.snapshot.widgetsById as Record<string, unknown>)[widgetId] = widget;
+          }
         }
       }
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "session.transcript.result", messages } };

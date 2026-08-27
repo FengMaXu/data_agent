@@ -51,6 +51,10 @@ function queryFor(view: DashboardV3View): string {
   return parts.join("|");
 }
 
+function isMigratableViewType(type: DashboardV3View["type"]): type is "line" | "bar" | "pie" | "kpi" | "table" {
+  return type === "line" || type === "bar" || type === "pie" || type === "kpi" || type === "table";
+}
+
 function fieldMappingFor(view: DashboardV3View): Record<string, string> {
   const mapping: Record<string, string> = { dataset: view.dataset ?? "__default__" };
   if (view.xField) mapping.x = view.xField;
@@ -83,7 +87,7 @@ export function migrateV3SpecToV4(spec: DashboardV3Spec): SpecMigrationResult {
   for (const [index, view] of spec.views.entries()) {
     const viewId = view.id ?? view.title ?? `${view.type}-${index}`;
     const reasons: string[] = [];
-    if (!["line", "bar", "pie", "kpi", "table"].includes(view.type)) reasons.push(`unsupported view type ${view.type}`);
+    if (!isMigratableViewType(view.type)) reasons.push(`unsupported view type ${view.type}`);
     if (view.dataset && !datasetIds.has(view.dataset)) reasons.push(`references unknown dataset ${view.dataset}`);
     if ((view.type === "line" || view.type === "bar") && (!view.xField || !view.yField)) reasons.push("needs xField/yField");
     if (view.type === "pie" && (!view.nameField || !view.valueField)) reasons.push("needs nameField/valueField");
@@ -92,6 +96,7 @@ export function migrateV3SpecToV4(spec: DashboardV3Spec): SpecMigrationResult {
       viewResults.push({ viewId, status: "unsupported", reasons });
       continue;
     }
+    if (!isMigratableViewType(view.type)) continue;
     views.push({ id: viewId, type: view.type, title: view.title, query: queryFor(view), fieldMapping: fieldMappingFor(view) });
     // View-level filters also become parameters (view binding kept in fieldMapping).
     const viewFilters = (view as { filters?: Record<string, unknown> }).filters;

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { buildAgentTools, type QueryExportBatch } from "./agent-assembly.js";
+import path, { join } from "node:path";
+import { buildAgentTools, createDataAgentHarness, type QueryExportBatch } from "./agent-assembly.js";
 import { ClarificationManager } from "./clarification.js";
 import { WorkspaceStore } from "./workspace.js";
 
@@ -42,6 +42,38 @@ describe("session workspace isolation", () => {
       await tool.execute("call-python", { code: "from pathlib import Path\nPath('chart.txt').write_text('session chart', encoding='utf-8')" }, undefined, undefined, { sessionId: "session-python" });
       expect(await readFile(join(root, "session-python", "chart.txt"), "utf8")).toBe("session chart");
       await expect(readFile(join(root, "chart.txt"), "utf8")).rejects.toThrow();
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("generate_dashboard", () => {
+  it("builds a standalone V3 dashboard from a session CSV instead of a V4 semantic shell", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-dashboard-v3-"));
+    const workspace = new WorkspaceStore(root);
+    const session = await workspace.scoped("session-dashboard");
+    await session.write("data/sales.csv", "行业,销售额,增速\n批发业,100,10\n零售业,40,20\n");
+    const tool = buildAgentTools({ workspace }).find((candidate) => candidate.name === "generate_dashboard") as any;
+    const spec = {
+      version: "3",
+      title: "行业看板",
+      filename: "industry_dashboard",
+      datasets: [{ id: "sales", source: { type: "csv", path: "data/sales.csv" }, schema: [] }],
+      views: [
+        { id: "kpis", type: "metric_cards", title: "核心指标", cards: [{ label: "累计销售额", value: "140" }] },
+        { id: "sales_chart", type: "chart", title: "行业销售额", dataset: "sales", x: { field: "行业", type: "category" }, axes: [{ id: "sales_axis", orient: "y", name: "销售额" }], series: [{ name: "销售额", field: "销售额", mark: "bar", axis: "sales_axis" }] },
+        { id: "detail", type: "table", title: "明细", dataset: "sales", columns: [{ field: "行业", label: "行业" }, { field: "销售额", label: "销售额" }] },
+      ],
+    };
+    try {
+      const result = await tool.execute("call-dashboard", { operation: "create", mode: "static", version: "v3", spec }, undefined, undefined, { sessionId: "session-dashboard" });
+      const html = await readFile(join(root, "session-dashboard", "dashboards", "industry_dashboard.html"), "utf8");
+      expect(html).toContain("window.__DASHBOARD__");
+      expect(html).toContain("行业销售额");
+      expect(html).not.toContain("__SEMANTIC_DASHBOARD__");
+      expect(result.content[0].text).toContain("/workspace/files/download?path=");
+      expect(result.details).toMatchObject({ fileType: "html", relativePath: "dashboards/industry_dashboard.html" });
     } finally {
       await rm(root, { recursive: true, force: true });
     }
@@ -110,6 +142,24 @@ describe("export_query", () => {
       expect(calls).toEqual(["analysis"]);
       expect(result.content).toEqual([{ type: "text", text: "native result" }]);
       expect(result.details).toEqual({ nativeSkill: "analysis" });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("loads skill instructions from resources without recursively running the busy harness", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-load-skill-resource-"));
+    const harness = await createDataAgentHarness({
+      workspace: new WorkspaceStore(root),
+      projectRoot: path.resolve(process.cwd(), "../.."),
+      systemPrompt: "test",
+      toolContext: { sessionId: "session-skill" },
+    }, { provider: "openai", model: "test", apiKey: "test" });
+    try {
+      const tool = harness.getTools().find((candidate) => candidate.name === "load_skill") as any;
+      const result = await tool.execute("call-dashboard-skill", { name: "dashboard" }, undefined, undefined, { sessionId: "session-skill" });
+      expect(result.content[0].text).toContain("HTML BI");
+      expect(result.details).toEqual({ nativeSkill: "dashboard" });
     } finally {
       await rm(root, { recursive: true, force: true });
     }

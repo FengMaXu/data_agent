@@ -8,6 +8,7 @@ import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { readFile } from "node:fs/promises";
 import { renderSemanticDashboardHtml, validateDashboardV4Spec } from "./dashboard-v4.js";
+import { materializeDashboardV3Spec, renderStandaloneDashboardHtml, validateDashboardV3Spec } from "./dashboard-v3.js";
 import { KnowledgeWriter } from "./knowledge-write.js";
 import { runPythonJob } from "./python-job.js";
 import { canonicalLocalTools, type CanonicalTool } from "./tools-catalog.js";
@@ -80,6 +81,10 @@ function canonicalTool(name: string): CanonicalTool {
 
 function text(content: string, details: unknown = undefined): AgentToolResult<unknown> {
   return { content: [{ type: "text", text: content }], details };
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : undefined;
 }
 
 function throwIfAborted(signal?: AbortSignal): void {
@@ -258,15 +263,34 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
       return nativeSkillResult(await deps.invokeSkill(p.name), p.name);
     }),
     defineTool("generate_dashboard", canonicalTool("generate_dashboard").description, Type.Object({ operation: Type.Union([Type.Literal("create"), Type.Literal("edit"), Type.Literal("validate")]), mode: Type.Union([Type.Literal("static"), Type.Literal("semantic")]), version: Type.Union([Type.Literal("v3"), Type.Literal("v4")]), spec: Type.Unknown(), editPath: Type.Optional(Type.String()) }), async (p, native) => {
-      const validated = validateDashboardV4Spec(p.spec);
-      if (!validated.ok) throw new Error(`DASHBOARD_SPEC_INVALID: ${validated.errors.join("; ")}`);
-      if (p.operation === "validate") return text("dashboard spec valid");
-      const target = p.editPath ?? `dashboards/${Date.now()}-semantic.html`;
-      const html = renderSemanticDashboardHtml(validated.spec, { nonce: randomUUID().replace(/-/g, ""), expectedOrigin: "https://data-agent.local" });
       const workspace = await workspaceFor(native);
-      await workspace.write(target, html);
-      deps.emitArtifact?.(artifactPathFor(native, target));
-      return text(`dashboard written to ${target}`);
+      if (p.mode === "static" && p.version === "v3") {
+        const materialized = await materializeDashboardV3Spec(p.spec, workspace);
+        const validated = validateDashboardV3Spec(materialized);
+        if (!validated.ok) throw new Error(`DASHBOARD_SPEC_INVALID: ${validated.errors.join("; ")}`);
+        if (p.operation === "validate") return text("dashboard spec valid");
+        const fileName = validated.spec.filename?.replace(/\.html$/i, "") || String(Date.now());
+        const target = p.editPath ?? `dashboards/${fileName}.html`;
+        const html = await renderStandaloneDashboardHtml(validated.spec);
+        await workspace.write(target, html);
+        const artifactPath = artifactPathFor(native, target);
+        const downloadUrl = `/workspace/files/download?path=${encodeURIComponent(artifactPath)}`;
+        deps.emitArtifact?.(artifactPath);
+        return text(`[查看 HTML 看板](${downloadUrl})`, { status: "success", relativePath: target, downloadUrl, fileType: "html" });
+      }
+      if (p.mode === "semantic" && p.version === "v4") {
+        const validated = validateDashboardV4Spec(p.spec);
+        if (!validated.ok) throw new Error(`DASHBOARD_SPEC_INVALID: ${validated.errors.join("; ")}`);
+        if (p.operation === "validate") return text("dashboard spec valid");
+        const target = p.editPath ?? `dashboards/${Date.now()}-semantic.html`;
+        const html = renderSemanticDashboardHtml(validated.spec, { nonce: randomUUID().replace(/-/g, ""), expectedOrigin: "https://data-agent.local" });
+        await workspace.write(target, html);
+        const artifactPath = artifactPathFor(native, target);
+        const downloadUrl = `/workspace/files/download?path=${encodeURIComponent(artifactPath)}`;
+        deps.emitArtifact?.(artifactPath);
+        return text(`[查看语义看板](${downloadUrl})`, { status: "success", relativePath: target, downloadUrl, fileType: "html" });
+      }
+      throw new Error("DASHBOARD_MODE_VERSION_MISMATCH");
     }),
     defineTool("show_widget", canonicalTool("show_widget").description, Type.Object({ kind: Type.Union([Type.Literal("kpi"), Type.Literal("chart"), Type.Literal("table"), Type.Literal("steps")]), spec: Type.Unknown() }), async (p, native) => {
       const widgetId = `widget-${native.toolCallId}`;
@@ -365,8 +389,10 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
           if (pending) await write(pending);
         }, signal);
         // The artifact is observable only after the temporary file was promoted.
-        deps.emitArtifact?.(artifactPathFor(native, target));
-        return text(`exported ${rowCount} rows to ${target}`);
+        const artifactPath = artifactPathFor(native, target);
+        const downloadUrl = `/workspace/files/download?path=${encodeURIComponent(artifactPath)}`;
+        deps.emitArtifact?.(artifactPath);
+        return text(`exported ${rowCount} rows: [下载 CSV](${downloadUrl})`, { status: "success", relativePath: target, downloadUrl, fileType: "csv", rowCount });
       }),
     );
   }
@@ -440,15 +466,18 @@ export async function createDataAgentHarness(deps: AgentAssemblyDeps, profile: A
   const models: Models = builtinModels({ credentials });
   const skillLoad = await loadSkillsFromRoots(resolveSkillRoots({ projectRoot: deps.projectRoot, packagedRoot: deps.packagedRoot }));
   for (const item of skillLoad.diagnostics) console.warn(`[data-agent] Skill diagnostic (${item.code ?? "warning"}) ${item.path}: ${item.message}`);
-  let harness: DataAgentHarness | undefined;
   const tools = buildAgentTools({
     ...deps,
-    invokeSkill: (name, additionalInstructions) => {
-      if (!harness) throw new Error("NATIVE_SKILL_INVOCATION_UNAVAILABLE");
-      return harness.skill(name, additionalInstructions);
+    invokeSkill: async (name, additionalInstructions) => {
+      const skill = skillLoad.skills.find((candidate) => candidate.name === name);
+      if (!skill) throw new Error(`SKILL_NOT_FOUND: ${name}`);
+      const content = additionalInstructions
+        ? `${skill.content}\n\nAdditional instructions:\n${additionalInstructions}`
+        : skill.content;
+      return { content: [{ type: "text", text: content }] };
     },
   });
-  harness = new DataAgentHarness({
+  const harness = new DataAgentHarness({
     session: deps.session ?? await new InMemorySessionRepo().create(),
     models,
     model: buildModel(profile),

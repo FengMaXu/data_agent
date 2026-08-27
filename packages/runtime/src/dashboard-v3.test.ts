@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { compileEChartsOptions, renderStandaloneDashboardHtml, validateDashboardV3Spec } from "./dashboard-v3.js";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { WorkspaceStore } from "./workspace.js";
+import { compileEChartsOptions, materializeDashboardV3Spec, renderStandaloneDashboardHtml, validateDashboardV3Spec } from "./dashboard-v3.js";
 
 const spec = {
   title: "销售看板",
@@ -24,6 +28,35 @@ describe("Dashboard V3", () => {
     expect(options.series[0].data).toEqual([10, 20]);
     const kpi = compileEChartsOptions(spec.views[1], spec.datasets) as any;
     expect(kpi.kpi.value).toBe(30);
+  });
+
+  it("groups long-form multi-series charts by series_by without duplicating a measure", () => {
+    const options = compileEChartsOptions({
+      type: "chart",
+      dataset: "sales",
+      x: { field: "month", type: "category" },
+      series_by: { field: "industry", order: ["批发业", "零售业"], colors: { "批发业": "#111111" } },
+      series: [{ field: "amount", mark: "line" }],
+    }, [{ id: "sales", rows: [
+      { month: "1月", industry: "批发业", amount: 10 },
+      { month: "1月", industry: "零售业", amount: 4 },
+      { month: "2月", industry: "批发业", amount: 12 },
+    ] }]) as any;
+    expect(options.xAxis.data).toEqual(["1月", "2月"]);
+    expect(options.series.map((series: any) => series.data)).toEqual([[10, 12], [4, 0]]);
+    expect(options.series[0].itemStyle.color).toBe("#111111");
+  });
+
+  it("materializes CSV datasets with quoted fields before rendering", async () => {
+    const root = await mkdtemp(join(tmpdir(), "dashboard-v3-csv-"));
+    try {
+      const workspace = new WorkspaceStore(root);
+      await workspace.write("data/sales.csv", "month,amount,note\n1月,10,\"包含,逗号\"\n");
+      const materialized = await materializeDashboardV3Spec({ title: "CSV", datasets: [{ id: "sales", source: { type: "csv", path: "data/sales.csv" } }], views: [{ type: "table", dataset: "sales" }] }, workspace);
+      expect(materialized.datasets[0].rows).toEqual([{ month: "1月", amount: 10, note: "包含,逗号" }]);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 
   it("renders a standalone offline HTML artifact", async () => {
