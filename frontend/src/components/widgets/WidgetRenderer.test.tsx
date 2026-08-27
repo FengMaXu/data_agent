@@ -29,4 +29,25 @@ describe('WidgetRenderer chart replay', () => {
         expect(screen.getByText('25')).toBeInTheDocument();
         expect(screen.queryByText('North')).not.toBeInTheDocument();
     });
+
+    it('does not render ECharts label configuration objects as React children', () => {
+        expect(() => render(
+            <WidgetRenderer
+                widget={{
+                    widget_id: 'chart-echarts-series',
+                    kind: 'chart',
+                    title: 'Growth',
+                    series: [{
+                        name: '同比增速',
+                        type: 'line',
+                        data: [-23.34, 12.98],
+                        label: { show: true, formatter: '{c}%', position: 'top' },
+                    }],
+                    xAxis: { type: 'category', data: ['批发业整体', '剔除比亚迪后'] },
+                }}
+            />,
+        )).not.toThrow();
+        expect(screen.getByText('同比增速 · 批发业整体')).toBeInTheDocument();
+        expect(screen.getByText('-23.34')).toBeInTheDocument();
+    });
 });
