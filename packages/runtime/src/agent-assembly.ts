@@ -1,6 +1,6 @@
 import { AgentHarness, InMemorySessionRepo } from "@earendil-works/pi-agent-core";
 import type { AgentHarnessTool, AgentToolResult, Skill as NativeSkill } from "@earendil-works/pi-agent-core";
-import { type Model, type Models } from "@earendil-works/pi-ai";
+import { InMemoryCredentialStore, type Model, type Models } from "@earendil-works/pi-ai";
 import { boundTextByLines, readBoundedFile } from "./bounded-read.js";
 import { builtinModels } from "@earendil-works/pi-ai/providers/all";
 import { Type, type Static, type TSchema } from "typebox";
@@ -29,12 +29,13 @@ export interface QueryExecutor {
 }
 
 export type NativeSkillInvoker = (name: string, additionalInstructions?: string) => Promise<unknown>;
+export type PythonExecutableSource = string | (() => string | undefined);
 
 export interface AgentAssemblyDeps {
   workspace: WorkspaceStore;
   knowledge?: KnowledgeIndex;
   knowledgeRoot?: string;
-  pythonExecutable?: string;
+  pythonExecutable?: PythonExecutableSource;
   pythonWorkspaceDir?: string;
   queryExecutor?: QueryExecutor;
   clarifications?: ClarificationManager;
@@ -51,6 +52,8 @@ export interface AgentAssemblyDeps {
   packagedRoot?: string;
   /** Native AgentHarness skill invocation seam, supplied by createDataAgentHarness. */
   invokeSkill?: NativeSkillInvoker;
+  /** Optional per-turn context source for hosts serving multiple sessions. */
+  toolContext?: AgentAssemblyToolContextSource;
 }
 
 export interface AgentModelProfile {
@@ -136,6 +139,8 @@ export interface AgentAssemblyToolContext {
   sessionId?: string;
 }
 
+export type AgentAssemblyToolContextSource = AgentAssemblyToolContext | (() => AgentAssemblyToolContext | Promise<AgentAssemblyToolContext>);
+
 interface NativeToolExecution {
   toolCallId: string;
   signal: AbortSignal | undefined;
@@ -201,8 +206,9 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
       return text(`written ${p.path} (${p.content.length} bytes)`);
     }),
     defineTool("run_python", canonicalTool("run_python").description, Type.Object({ code: Type.String({ minLength: 1 }), description: Type.Optional(Type.String()) }), async (p) => {
-      if (!deps.pythonExecutable) throw new Error("PYTHON_RUNTIME_NOT_AVAILABLE");
-      const result = await runPythonJob(p.code, { workspace: workspaceDir, executable: deps.pythonExecutable, timeoutMs: 120000 });
+      const executable = typeof deps.pythonExecutable === "function" ? deps.pythonExecutable() : deps.pythonExecutable;
+      if (!executable) throw new Error("PYTHON_RUNTIME_NOT_AVAILABLE");
+      const result = await runPythonJob(p.code, { workspace: workspaceDir, executable, timeoutMs: 120000 });
       return text(result.stdout || result.stderr || "(no output)", { exitCode: result.exitCode });
     }),
   ];
@@ -347,8 +353,9 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
   }
   if (deps.clarifications) {
     const clarifications = deps.clarifications;
-    tools.push(defineTool("ask_user_clarification", canonicalTool("ask_user_clarification").description, Type.Object({ question: Type.String({ minLength: 1 }), options: Type.Optional(Type.Array(Type.String())) }), async (p) => {
-      const { clarificationId, promise } = clarifications.ask(deps.sessionId ?? "web", p.question, p.options ?? []);
+    tools.push(defineTool("ask_user_clarification", canonicalTool("ask_user_clarification").description, Type.Object({ question: Type.String({ minLength: 1 }), options: Type.Optional(Type.Array(Type.String())) }), async (p, native) => {
+      const sessionId = native.context.sessionId ?? deps.sessionId ?? "web";
+      const { clarificationId, promise } = clarifications.ask(sessionId, p.question, p.options ?? []);
       deps.emitArtifact?.(`__clarification__:${clarificationId}`);
       const answer = await promise;
       return text(answer || "(no answer)");
@@ -406,10 +413,12 @@ export async function resolveSystemPrompt(searchRoots: string[]): Promise<string
 
 export async function createDataAgentHarness(deps: AgentAssemblyDeps, profile: AgentModelProfile): Promise<AgentHarness<AgentAssemblyToolContext>> {
   if (!profile.apiKey) throw new Error("LLM_API_KEY_MISSING");
-  // Providers resolve auth from the environment; seed it so Models.getAuth succeeds.
-  if (profile.provider === "anthropic") process.env.ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || profile.apiKey;
-  else process.env.OPENAI_API_KEY = process.env.OPENAI_API_KEY || profile.apiKey;
-  const models: Models = builtinModels();
+  // Keep credentials scoped to this harness. Never place them in process.env,
+  // because tool subprocesses (notably Python jobs) inherit that environment.
+  const credentials = new InMemoryCredentialStore();
+  const providerId = profile.provider === "anthropic" ? "anthropic" : "openai";
+  await credentials.modify(providerId, async () => ({ type: "api_key", key: profile.apiKey }));
+  const models: Models = builtinModels({ credentials });
   const skillLoad = await loadSkillsFromRoots(resolveSkillRoots({ projectRoot: deps.projectRoot, packagedRoot: deps.packagedRoot }));
   for (const item of skillLoad.diagnostics) console.warn(`[data-agent] Skill diagnostic (${item.code ?? "warning"}) ${item.path}: ${item.message}`);
   let harness: DataAgentHarness | undefined;
@@ -428,7 +437,7 @@ export async function createDataAgentHarness(deps: AgentAssemblyDeps, profile: A
     systemPrompt: deps.systemPrompt ?? await resolveSystemPrompt(deps.systemPromptRoots ?? (deps.knowledgeRoot ? [deps.knowledgeRoot] : [])),
     tools,
     resources: { skills: skillLoad.skills },
-    toolContext: { sessionId: deps.sessionId },
+    toolContext: deps.toolContext ?? { sessionId: deps.sessionId },
   });
   return harness;
 }

@@ -1,4 +1,5 @@
-import { copyFile, lstat, mkdir, open, readFile, readdir, realpath, rename, rm, stat, writeFile } from "node:fs/promises";
+import { createReadStream } from "node:fs";
+import { lstat, mkdir, open, readFile, readdir, realpath, rename, rm, stat } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { boundTextByLines, type BoundedReadResult, type LineRange } from "./bounded-read.js";
@@ -32,12 +33,23 @@ export class WorkspaceStore {
     return target;
   }
   async read(relativePath: string): Promise<string> { return (await this.readRange(relativePath)).content; }
+  async readBytes(relativePath: string): Promise<Uint8Array> { return new Uint8Array(await readFile(await this.safeExisting(relativePath))); }
   async readRange(relativePath: string, range: LineRange = {}): Promise<BoundedReadResult> {
     return boundTextByLines(await readFile(await this.safeExisting(relativePath), "utf8"), range);
   }
-  async write(relativePath: string, content: string): Promise<void> { const target=this.resolve(relativePath); await mkdir(path.dirname(target), { recursive: true }); await writeFile(target, content, "utf8"); }
+  async write(relativePath: string, content: string): Promise<void> {
+    await this.writeStream(relativePath, async (write) => { await write(content); });
+  }
   async delete(relativePath: string): Promise<void> { await rm(await this.safeExisting(relativePath), { force: true, recursive: true }); }
-  async upload(sourcePath: string, relativePath: string): Promise<WorkspaceArtifact> { const target=this.resolve(relativePath); await mkdir(path.dirname(target), { recursive: true }); await copyFile(sourcePath, target); return this.artifact(relativePath); }
+  async upload(sourcePath: string, relativePath: string): Promise<WorkspaceArtifact> {
+    await this.writeStream(relativePath, async (write) => {
+      for await (const chunk of createReadStream(sourcePath)) await write(chunk);
+    });
+    return this.artifact(relativePath);
+  }
+  async writeBytes(relativePath: string, content: Uint8Array): Promise<void> {
+    await this.writeStream(relativePath, async (write) => { await write(content); });
+  }
   private samePath(left: string, right: string): boolean { return path.relative(left, right) === ""; }
   private async prepareWritePath(relativePath: string, expectedRoot?: string): Promise<{ root: string; parent: string; target: string }> {
     const lexicalTarget = this.resolve(relativePath);

@@ -41,6 +41,16 @@ function isWorkspaceFileEndpoint(pathname: string): boolean {
         || pathname.endsWith(`${WORKSPACE_FILE_ENDPOINT}preview`);
 }
 
+function isDesktopRuntime(): boolean {
+    return typeof window !== 'undefined' && Boolean(window.dataAgentRuntime);
+}
+
+function buildDesktopWorkspaceUrl(endpoint: 'download' | 'preview', path: string): string {
+    const url = new URL(`data-agent://workspace${WORKSPACE_FILE_ENDPOINT}${endpoint}`);
+    url.searchParams.set('path', path);
+    return url.toString();
+}
+
 function workspaceFilePath(url: URL): string {
     return url.searchParams.get('path') || '';
 }
@@ -80,7 +90,8 @@ function resolveRelativeWorkspacePath(value: string, sourceUrl?: string, current
     return normalizePathSegments([...basePath, ...assetParts]);
 }
 
-function buildWorkspaceFileUrl(_endpoint: 'download' | 'preview', path: string): string {
+function buildWorkspaceFileUrl(endpoint: 'download' | 'preview', path: string): string {
+    if (isDesktopRuntime()) return buildDesktopWorkspaceUrl(endpoint, path);
     const url = new URL(`${API_BASE_URL}/api/workspace/download`, API_BASE_URL || window.location.origin);
     url.searchParams.set('path', path);
     return appendAuthTokenWithoutDuplicate(url);
@@ -95,6 +106,17 @@ export function resolveInternalUrl(href: string | undefined, currentSessionId?: 
 
     if (isInternalApiPath(href)) {
         const normalizedHref = normalizeWorkspaceDownloadPath(href, currentSessionId);
+        if (isDesktopRuntime()) {
+            try {
+                const url = new URL(normalizedHref, 'http://data-agent.local');
+                if (isWorkspaceFileEndpoint(url.pathname)) {
+                    const endpoint = url.pathname.endsWith('/preview') ? 'preview' : 'download';
+                    return buildDesktopWorkspaceUrl(endpoint, workspaceFilePath(url));
+                }
+            } catch {
+                // Fall through to the legacy URL for non-workspace paths.
+            }
+        }
         return appendAuthToken(`${API_BASE_URL}${normalizedHref}`);
     }
 
@@ -116,6 +138,7 @@ export function resolveWorkspaceDownloadUrl(href: string | undefined, currentSes
             return resolveInternalUrl(value, currentSessionId);
         }
         const normalizedPath = normalizeWorkspacePath(workspaceFilePath(url), currentSessionId);
+        if (isDesktopRuntime()) return buildDesktopWorkspaceUrl('download', normalizedPath);
         url.pathname = url.pathname.replace(/\/(?:download|preview)$/, '/download');
         url.searchParams.set('path', normalizedPath);
         return appendAuthTokenWithoutDuplicate(url);
@@ -139,6 +162,7 @@ export function resolveWorkspacePreviewUrl(href: string | undefined, currentSess
             return resolveInternalUrl(value, currentSessionId);
         }
         const normalizedPath = normalizeWorkspacePath(workspaceFilePath(url), currentSessionId);
+        if (isDesktopRuntime()) return buildDesktopWorkspaceUrl('preview', normalizedPath);
         url.pathname = url.pathname.replace(/\/download$/, '/preview');
         url.searchParams.set('path', normalizedPath);
         return appendAuthTokenWithoutDuplicate(url);

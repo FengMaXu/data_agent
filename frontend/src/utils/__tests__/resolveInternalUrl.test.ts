@@ -25,4 +25,17 @@ describe('workspace markdown link resolution', () => {
         expect(url.pathname).toBe('/api/workspace/download');
         expect(url.searchParams.get('path')).toBe('session-123/data/industry_sales_2026_h1.csv');
     });
+
+    it('uses the Electron workspace protocol instead of file:// HTTP paths', () => {
+        window.dataAgentRuntime = { invokeRuntimeCommand: async () => ({}), subscribeRuntimeEvents: () => () => undefined };
+        try {
+            const url = new URL(resolveWorkspacePreviewUrl('data/result.csv', 'session-123'));
+            expect(url.protocol).toBe('data-agent:');
+            expect(url.hostname).toBe('workspace');
+            expect(url.pathname).toBe('/workspace/files/preview');
+            expect(url.searchParams.get('path')).toBe('session-123/data/result.csv');
+        } finally {
+            delete window.dataAgentRuntime;
+        }
+    });
 });

@@ -10,7 +10,7 @@ import { SessionProvider } from './hooks/useSession';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { PreviewProvider } from './context/PreviewContext';
-import { saveConfigViaRuntime, getConfigViaRuntime } from './api/runtime-client';
+import { getConfigViaRuntime } from './api/runtime-client';
 import LoginView from './components/LoginView';
 import GlobalPreviewModal from './components/common/GlobalPreviewModal';
 import { SemanticStartupStatus } from './components/SemanticStartupStatus';
@@ -276,18 +276,16 @@ const App: React.FC = () => {
     const completeStartupCheck = async () => {
       try {
         const config = await getConfigViaRuntime();
-        if ((config as Record<string, unknown>).openai_api_key || (config as Record<string, unknown>).anthropic_api_key) {
-          if (!cancelled) setStartupState('ready');
-          return;
-        }
-
+        const configRecord = config as Record<string, unknown>;
         const storedSecrets = await window.dataAgent?.getStoredSecrets();
-        if (storedSecrets?.openai_api_key || storedSecrets?.anthropic_api_key) {
-          await saveConfigViaRuntime({
-            provider: storedSecrets.anthropic_api_key ? 'anthropic' : 'openai',
-            openai_api_key: storedSecrets.openai_api_key,
-            anthropic_api_key: storedSecrets.anthropic_api_key,
-          });
+        const hasConfiguredKey = [
+          configRecord.api_key,
+          configRecord.openai_api_key,
+          configRecord.anthropic_api_key,
+          storedSecrets?.openai_api_key,
+          storedSecrets?.anthropic_api_key,
+        ].some((value) => typeof value === 'string' && value.trim().length > 0);
+        if (hasConfiguredKey) {
           if (!cancelled) setStartupState('ready');
           return;
         }

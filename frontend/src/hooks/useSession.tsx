@@ -56,13 +56,6 @@ interface SessionContextType {
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
 
-function createId(prefix: 'task' | 'session'): string {
-    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-        return `${prefix}_${crypto.randomUUID()}`;
-    }
-    return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-}
-
 function readCurrentTaskId(): string {
     if (typeof window === 'undefined') return '';
     return window.localStorage.getItem(CURRENT_TASK_STORAGE_KEY) || '';
@@ -188,7 +181,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
                     : null;
 
                 let transcripts: SessionTranscriptStore = {};
-                let attached: SessionAttachedFilesStore = {};
+                const attached: SessionAttachedFilesStore = {};
                 if (selectedSession) {
                     const transcriptMessages = await getTranscriptViaRuntime(selectedSession.id);
                     if (cancelled) return;
@@ -251,44 +244,41 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }, [sessions, warmSession]);
 
     const createTask = useCallback(() => {
-        const now = new Date().toISOString();
-        const task: Task = {
-            id: createId('task'),
-            name: defaultTaskName,
-            createdAt: now,
-            updatedAt: now,
-        };
-        setTasks((prev) => [task, ...prev]);
-        setCurrentTaskId(task.id);
-        setCurrentSessionId('');
-        writeCurrentTaskId(task.id);
-        writeCurrentSessionId('');
-        void createTaskWithIdViaRuntime(task.name)
-            .then((created) => { if (created.id !== task.id) console.warn('Task id mismatch:', created.id, task.id); })
-            .catch((error) => console.warn('Failed to create task:', error));
+        void createTaskWithIdViaRuntime(defaultTaskName).then((created) => {
+            const now = new Date().toISOString();
+            const task: Task = {
+                id: created.id,
+                name: created.name || defaultTaskName,
+                createdAt: now,
+                updatedAt: now,
+            };
+            setTasks((prev) => [task, ...prev.filter((item) => item.id !== task.id)]);
+            setCurrentTaskId(task.id);
+            setCurrentSessionId('');
+            writeCurrentTaskId(task.id);
+            writeCurrentSessionId('');
+        }).catch((error) => console.warn('Failed to create task:', error));
     }, [defaultTaskName]);
 
     const createSession = useCallback((taskId = currentTask?.id || '') => {
         if (!taskId) return;
-        const session: Session = {
-            id: createId('session'),
-            taskId,
-            name: defaultSessionName,
-            createdAt: new Date().toISOString(),
-            conversationVersion: 1,
-        };
-        setSessions((prev) => [session, ...prev]);
-        setTranscriptsBySession((prev) => ({ ...prev, [session.id]: [] }));
-        setAttachedFilesBySession((prev) => ({ ...prev, [session.id]: [] }));
-        conversationVersionsRef.current[session.id] = 1;
-        setCurrentTaskId(taskId);
-        setCurrentSessionId(session.id);
-        writeCurrentTaskId(taskId);
-        writeCurrentSessionId(session.id);
-
-        void createSessionViaRuntime(taskId, session.name).then((created) => {
-            conversationVersionsRef.current[created.id] = 1;
-            warmSession(created.id);
+        void createSessionViaRuntime(taskId, defaultSessionName).then((created) => {
+            const session: Session = {
+                id: created.id,
+                taskId: created.taskId || taskId,
+                name: created.name || defaultSessionName,
+                createdAt: new Date(created.createdAt ?? Date.now()).toISOString(),
+                conversationVersion: 1,
+            };
+            setSessions((prev) => [session, ...prev.filter((item) => item.id !== session.id)]);
+            setTranscriptsBySession((prev) => ({ ...prev, [session.id]: [] }));
+            setAttachedFilesBySession((prev) => ({ ...prev, [session.id]: [] }));
+            conversationVersionsRef.current[session.id] = 1;
+            setCurrentTaskId(session.taskId);
+            setCurrentSessionId(session.id);
+            writeCurrentTaskId(session.taskId);
+            writeCurrentSessionId(session.id);
+            warmSession(session.id);
         }).catch((error) => console.warn('Failed to create session:', error));
     }, [currentTask?.id, defaultSessionName, warmSession]);
 

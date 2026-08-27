@@ -6,6 +6,8 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+ const trustedWebContext = { contextFactory: () => ({ userId: "web-dev", host: "web" as const }) };
+
  describe("Fastify Host", () => {
   it("supports Web registration and Bearer-token login", async () => {
     const app = await createRuntimeServer(new DataAgentRuntime());
@@ -17,8 +19,20 @@ import { join } from "node:path";
     await app.close();
   });
 
-  it("dispatches the same runtime probe contract as Electron", async () => {
+  it("rejects runtime commands without authentication by default", async () => {
     const app = await createRuntimeServer(new DataAgentRuntime());
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/runtime/command",
+      payload: { protocolVersion: 1, requestId: "unauthenticated", command: { type: "runtime.probe" } },
+    });
+    expect(response.statusCode).toBe(401);
+    expect(response.json()).toEqual({ error: { code: "AUTH_REQUIRED" } });
+    await app.close();
+  });
+
+  it("dispatches the same runtime probe contract as Electron", async () => {
+    const app = await createRuntimeServer(new DataAgentRuntime(), trustedWebContext);
 
     const response = await app.inject({
       method: "POST",
@@ -41,16 +55,17 @@ import { join } from "node:path";
 
   it("uploads a Workspace file through the dedicated multipart route", async () => {
     const root = await mkdtemp(join(tmpdir(), "data-agent-server-workspace-"));
-    const app = await createRuntimeServer(new DataAgentRuntime(), { workspace: new WorkspaceStore(root) });
+    const app = await createRuntimeServer(new DataAgentRuntime(), { ...trustedWebContext, workspace: new WorkspaceStore(root) });
     const form = new FormData(); form.append("file", new Blob(["hello"]), "hello.txt");
     const response = await app.inject({ method: "POST", url: "/api/workspace/upload", payload: form as any, headers: { "content-type": "multipart/form-data" } });
     expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({ filename: "hello.txt", relative_path: "hello.txt", size: 5 });
     expect(await readFile(join(root, "hello.txt"), "utf8")).toBe("hello");
     await app.close(); await rm(root, { recursive: true, force: true });
   });
 
   it("starts an agent prompt through the HTTP Host", async () => {
-    const app = await createRuntimeServer(new DataAgentRuntime({ agent: { prompt: async () => undefined, abort: () => undefined } }));
+    const app = await createRuntimeServer(new DataAgentRuntime({ agent: { prompt: async () => undefined, abort: () => undefined } }), trustedWebContext);
     const response = await app.inject({ method: "POST", url: "/api/runtime/command", payload: { protocolVersion: 1, requestId: "prompt", command: { type: "agent.prompt", prompt: "hello" } } });
     expect(response.statusCode).toBe(200);
     expect(response.json().response.type).toBe("agent.prompt.accepted");
@@ -58,7 +73,7 @@ import { join } from "node:path";
   });
 
   it("rejects malformed commands at the HTTP boundary", async () => {
-    const app = await createRuntimeServer(new DataAgentRuntime());
+    const app = await createRuntimeServer(new DataAgentRuntime(), trustedWebContext);
 
     const response = await app.inject({
       method: "POST",

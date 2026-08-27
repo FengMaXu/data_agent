@@ -14,6 +14,14 @@ describe("WorkspaceStore", () => {
     await rm(root, { recursive: true, force: true });
   });
 
+  it("writes binary content atomically", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-workspace-"));
+    const store = new WorkspaceStore(root);
+    await store.writeBytes("uploads/report.bin", Uint8Array.from([0, 1, 127, 255]));
+    expect([...await readFile(join(root, "uploads", "report.bin"))]).toEqual([0, 1, 127, 255]);
+    await rm(root, { recursive: true, force: true });
+  });
+
   it("writes long single-line and empty exports atomically", async () => {
     const root = await mkdtemp(join(tmpdir(), "data-agent-workspace-"));
     const store = new WorkspaceStore(root);
@@ -39,8 +47,14 @@ describe("WorkspaceStore", () => {
       throw error;
     }
     const store = new WorkspaceStore(root);
+    const uploadSource = join(outside, "upload-source.txt");
+    await writeFile(uploadSource, "must not escape", "utf8");
     await expect(store.writeStream("linked/export.csv", async (write) => write("must not escape"))).rejects.toThrow("WORKSPACE_SYMLINK_ESCAPE");
+    await expect(store.write("linked/write.txt", "must not escape")).rejects.toThrow("WORKSPACE_SYMLINK_ESCAPE");
+    await expect(store.upload(uploadSource, "linked/upload.txt")).rejects.toThrow("WORKSPACE_SYMLINK_ESCAPE");
     expect(existsSync(join(outside, "export.csv"))).toBe(false);
+    expect(existsSync(join(outside, "write.txt"))).toBe(false);
+    expect(existsSync(join(outside, "upload.txt"))).toBe(false);
     await rm(root, { recursive: true, force: true });
     await rm(outside, { recursive: true, force: true });
   });

@@ -14680,9 +14680,17 @@ var init_metadata = __esm({
       constructor(dbPath) {
         const sourceDir = false ? import_node_path.default.dirname((0, import_node_url.fileURLToPath)(void 0)) : __dirname;
         (0, import_node_fs.mkdirSync)(import_node_path.default.dirname(import_node_path.default.resolve(dbPath)), { recursive: true });
-        const workerPath = import_node_path.default.join(sourceDir, "metadata-worker.js");
-        const builtWorkerPath = import_node_path.default.resolve(sourceDir, "../dist/metadata-worker.js");
-        this.worker = new import_node_worker_threads.Worker((0, import_node_fs.existsSync)(workerPath) ? workerPath : builtWorkerPath, { workerData: { path: import_node_path.default.resolve(dbPath) } });
+        const workerCandidates = [
+          // The Electron CJS bundle stages a CJS worker next to main.cjs.
+          import_node_path.default.join(sourceDir, "metadata-worker.cjs"),
+          // Native runtime builds keep the ESM worker next to metadata.js.
+          import_node_path.default.join(sourceDir, "metadata-worker.js"),
+          import_node_path.default.resolve(sourceDir, "../dist/metadata-worker.js")
+        ];
+        const workerPath = workerCandidates.find(import_node_fs.existsSync);
+        if (!workerPath)
+          throw new Error(`METADATA_WORKER_NOT_FOUND: ${workerCandidates.join(", ")}`);
+        this.worker = new import_node_worker_threads.Worker(workerPath, { workerData: { path: import_node_path.default.resolve(dbPath) } });
         this.worker.on("message", (message) => {
           const p = this.pending.get(message.id);
           if (!p)
@@ -28839,10 +28847,11 @@ var init_bounded_read = __esm({
 });
 
 // packages/runtime/dist/workspace.js
-var import_promises4, import_node_crypto3, import_node_path5, WorkspaceStore;
+var import_node_fs3, import_promises4, import_node_crypto3, import_node_path5, WorkspaceStore;
 var init_workspace = __esm({
   "packages/runtime/dist/workspace.js"() {
     "use strict";
+    import_node_fs3 = require("node:fs");
     import_promises4 = require("node:fs/promises");
     import_node_crypto3 = require("node:crypto");
     import_node_path5 = __toESM(require("node:path"), 1);
@@ -28888,22 +28897,31 @@ var init_workspace = __esm({
       async read(relativePath) {
         return (await this.readRange(relativePath)).content;
       }
+      async readBytes(relativePath) {
+        return new Uint8Array(await (0, import_promises4.readFile)(await this.safeExisting(relativePath)));
+      }
       async readRange(relativePath, range = {}) {
         return boundTextByLines(await (0, import_promises4.readFile)(await this.safeExisting(relativePath), "utf8"), range);
       }
       async write(relativePath, content) {
-        const target = this.resolve(relativePath);
-        await (0, import_promises4.mkdir)(import_node_path5.default.dirname(target), { recursive: true });
-        await (0, import_promises4.writeFile)(target, content, "utf8");
+        await this.writeStream(relativePath, async (write) => {
+          await write(content);
+        });
       }
       async delete(relativePath) {
         await (0, import_promises4.rm)(await this.safeExisting(relativePath), { force: true, recursive: true });
       }
       async upload(sourcePath, relativePath) {
-        const target = this.resolve(relativePath);
-        await (0, import_promises4.mkdir)(import_node_path5.default.dirname(target), { recursive: true });
-        await (0, import_promises4.copyFile)(sourcePath, target);
+        await this.writeStream(relativePath, async (write) => {
+          for await (const chunk of (0, import_node_fs3.createReadStream)(sourcePath))
+            await write(chunk);
+        });
         return this.artifact(relativePath);
+      }
+      async writeBytes(relativePath, content) {
+        await this.writeStream(relativePath, async (write) => {
+          await write(content);
+        });
       }
       samePath(left, right) {
         return import_node_path5.default.relative(left, right) === "";
@@ -29029,6 +29047,9 @@ var init_workspace = __esm({
 });
 
 // packages/runtime/dist/python-job.js
+function pythonJobEnvironment(source = process.env) {
+  return Object.fromEntries(Object.entries(source).filter(([name]) => !SENSITIVE_ENV_NAME.test(name)));
+}
 async function runPythonJob(code, options) {
   const jobId = (0, import_node_crypto4.randomUUID)();
   const started = Date.now();
@@ -29037,7 +29058,7 @@ async function runPythonJob(code, options) {
   const scriptPath = import_node_path6.default.join(scripts, `${jobId}.py`);
   await (0, import_promises5.writeFile)(scriptPath, code, "utf8");
   return await new Promise((resolve2) => {
-    const child = (0, import_node_child_process2.spawn)(options.executable, [scriptPath], { cwd: options.workspace, shell: false, windowsHide: true });
+    const child = (0, import_node_child_process2.spawn)(options.executable, [scriptPath], { cwd: options.workspace, shell: false, windowsHide: true, env: pythonJobEnvironment() });
     let stdout = "", stderr = "";
     child.stdout.on("data", (chunk) => {
       stdout += chunk.toString();
@@ -29068,7 +29089,7 @@ async function runPythonJob(code, options) {
     });
   });
 }
-var import_node_child_process2, import_node_crypto4, import_promises5, import_node_path6;
+var import_node_child_process2, import_node_crypto4, import_promises5, import_node_path6, SENSITIVE_ENV_NAME;
 var init_python_job = __esm({
   "packages/runtime/dist/python-job.js"() {
     "use strict";
@@ -29076,6 +29097,7 @@ var init_python_job = __esm({
     import_node_crypto4 = require("node:crypto");
     import_promises5 = require("node:fs/promises");
     import_node_path6 = __toESM(require("node:path"), 1);
+    SENSITIVE_ENV_NAME = /(?:API_?KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL)/i;
   }
 });
 
@@ -29110,12 +29132,12 @@ function splitChunks(text2) {
     chunks.push({ startLine: start, endLine: lines.length, text: current.join("\n"), title });
   return chunks.filter((chunk) => chunk.text.trim().length > 0);
 }
-var import_promises6, import_node_fs3, import_node_path7, KnowledgeIndex;
+var import_promises6, import_node_fs4, import_node_path7, KnowledgeIndex;
 var init_knowledge = __esm({
   "packages/runtime/dist/knowledge.js"() {
     "use strict";
     import_promises6 = require("node:fs/promises");
-    import_node_fs3 = require("node:fs");
+    import_node_fs4 = require("node:fs");
     import_node_path7 = __toESM(require("node:path"), 1);
     init_bounded_read();
     KnowledgeIndex = class {
@@ -29126,7 +29148,7 @@ var init_knowledge = __esm({
       };
       async loadDirectory(root, base) {
         const baseRoot = base ?? root;
-        if (!(0, import_node_fs3.existsSync)(root))
+        if (!(0, import_node_fs4.existsSync)(root))
           return 0;
         let loaded = 0;
         for (const entry of await (0, import_promises6.readdir)(root, { withFileTypes: true })) {
@@ -29570,7 +29592,7 @@ function effectiveTools(globalTools, activeSkills) {
   return globalTools.filter((tool) => allowed.has(tool));
 }
 async function moveSystemPrompt(agentMdPath, systemMdPath) {
-  const { writeFile: writeFile10, rename: rename4, access: access3 } = await import("node:fs/promises");
+  const { writeFile: writeFile9, rename: rename4, access: access3 } = await import("node:fs/promises");
   try {
     await access3(systemMdPath);
     return;
@@ -29579,7 +29601,7 @@ async function moveSystemPrompt(agentMdPath, systemMdPath) {
   const content = await (0, import_promises8.readFile)(agentMdPath, "utf8");
   const { mkdir: mkdir9 } = await import("node:fs/promises");
   await mkdir9(import_node_path8.default.dirname(systemMdPath), { recursive: true });
-  await writeFile10(systemMdPath, content, "utf8");
+  await writeFile9(systemMdPath, content, "utf8");
   await rename4(agentMdPath, `${agentMdPath}.migrated`);
 }
 var import_promises8, import_node_path8, CANONICAL_TOOLS, isWindows, NativeLoaderExecutionEnv;
@@ -38662,8 +38684,8 @@ function getBunSandboxEnvValue(name) {
   if (procEnvCache === null) {
     procEnvCache = /* @__PURE__ */ new Map();
     try {
-      const { readFileSync } = require("node:fs");
-      const data = readFileSync("/proc/self/environ", "utf-8");
+      const { readFileSync: readFileSync2 } = require("node:fs");
+      const data = readFileSync2("/proc/self/environ", "utf-8");
       for (const entry of data.split("\0")) {
         const idx = entry.indexOf("=");
         if (idx > 0) {
@@ -56491,19 +56513,19 @@ var require_node_domexception = __commonJS({
 });
 
 // node_modules/fetch-blob/from.js
-var import_node_fs4, import_node_path9, import_node_domexception, stat2, blobFromSync, blobFrom, fileFrom, fileFromSync, fromBlob, fromFile, BlobDataItem;
+var import_node_fs5, import_node_path9, import_node_domexception, stat2, blobFromSync, blobFrom, fileFrom, fileFromSync, fromBlob, fromFile, BlobDataItem;
 var init_from = __esm({
   "node_modules/fetch-blob/from.js"() {
-    import_node_fs4 = require("node:fs");
+    import_node_fs5 = require("node:fs");
     import_node_path9 = require("node:path");
     import_node_domexception = __toESM(require_node_domexception(), 1);
     init_file();
     init_fetch_blob();
-    ({ stat: stat2 } = import_node_fs4.promises);
-    blobFromSync = (path20, type) => fromBlob((0, import_node_fs4.statSync)(path20), path20, type);
+    ({ stat: stat2 } = import_node_fs5.promises);
+    blobFromSync = (path20, type) => fromBlob((0, import_node_fs5.statSync)(path20), path20, type);
     blobFrom = (path20, type) => stat2(path20).then((stat6) => fromBlob(stat6, path20, type));
     fileFrom = (path20, type) => stat2(path20).then((stat6) => fromFile(stat6, path20, type));
-    fileFromSync = (path20, type) => fromFile((0, import_node_fs4.statSync)(path20), path20, type);
+    fileFromSync = (path20, type) => fromFile((0, import_node_fs5.statSync)(path20), path20, type);
     fromBlob = (stat6, path20, type = "") => new fetch_blob_default([new BlobDataItem({
       path: path20,
       size: stat6.size,
@@ -56542,7 +56564,7 @@ var init_from = __esm({
         if (mtimeMs > this.lastModified) {
           throw new import_node_domexception.default("The requested file could not be read, typically due to permission problems that have occurred after a reference to a file was acquired.", "NotReadableError");
         }
-        yield* (0, import_node_fs4.createReadStream)(this.#path, {
+        yield* (0, import_node_fs5.createReadStream)(this.#path, {
           start: this.#start,
           end: this.#start + this.size - 1
         });
@@ -85700,14 +85722,14 @@ var init_node2 = __esm({
       /**
            Establishes a connection to the specified model and returns a
            LiveMusicSession object representing that connection.
-      
+
            @experimental
-      
+
            @remarks
-      
+
            @param params - The parameters for establishing a connection to the model.
            @return A live session.
-      
+
            @example
            ```ts
            let model = 'models/lyria-realtime-exp';
@@ -85776,12 +85798,12 @@ var init_node2 = __esm({
       /**
           Sets inputs to steer music generation. Updates the session's current
           weighted prompts.
-      
+
           @param params - Contains one property, `weightedPrompts`.
-      
+
             - `weightedPrompts` to send to the model; weights are normalized to
               sum to 1.0.
-      
+
           @experimental
          */
       async setWeightedPrompts(params) {
@@ -85794,12 +85816,12 @@ var init_node2 = __esm({
       /**
           Sets a configuration to the model. Updates the session's current
           music generation config.
-      
+
           @param params - Contains one property, `musicGenerationConfig`.
-      
+
             - `musicGenerationConfig` to set in the model. Passing an empty or
           undefined config to the model will reset the config to defaults.
-      
+
           @experimental
          */
       async setMusicGenerationConfig(params) {
@@ -85850,7 +85872,7 @@ var init_node2 = __esm({
       }
       /**
            Terminates the WebSocket connection.
-      
+
            @experimental
          */
       close() {
@@ -85868,15 +85890,15 @@ var init_node2 = __esm({
       /**
            Establishes a connection to the specified model with the given
            configuration and returns a Session object representing that connection.
-      
+
            @experimental Built-in MCP support is an experimental feature, may change in
            future versions.
-      
+
            @remarks
-      
+
            @param params - The parameters for establishing a connection to the model.
            @return A live session.
-      
+
            @example
            ```ts
            let model: string;
@@ -86076,36 +86098,36 @@ var init_node2 = __esm({
       }
       /**
           Send a message over the established connection.
-      
+
           @param params - Contains two **optional** properties, `turns` and
               `turnComplete`.
-      
+
             - `turns` will be converted to a `Content[]`
             - `turnComplete: true` [default] indicates that you are done sending
               content and expect a response. If `turnComplete: false`, the server
               will wait for additional messages before starting generation.
-      
+
           @experimental
-      
+
           @remarks
           There are two ways to send messages to the live API:
           `sendClientContent` and `sendRealtimeInput`.
-      
+
           `sendClientContent` messages are added to the model context **in order**.
           Having a conversation using `sendClientContent` messages is roughly
           equivalent to using the `Chat.sendMessageStream`, except that the state of
           the `chat` history is stored on the API server instead of locally.
-      
+
           Because of `sendClientContent`'s order guarantee, the model cannot respons
           as quickly to `sendClientContent` messages as to `sendRealtimeInput`
           messages. This makes the biggest difference when sending objects that have
           significant preprocessing time (typically images).
-      
+
           The `sendClientContent` message sends a `Content[]`
           which has more options than the `Blob` sent by `sendRealtimeInput`.
-      
+
           So the main use-cases for `sendClientContent` over `sendRealtimeInput` are:
-      
+
           - Sending anything that can't be represented as a `Blob` (text,
           `sendClientContent({turns="Hello?"}`)).
           - Managing turns when not using audio input and voice activity detection.
@@ -86130,23 +86152,23 @@ var init_node2 = __esm({
       }
       /**
           Send a realtime message over the established connection.
-      
+
           @param params - Contains one property, `media`.
-      
+
             - `media` will be converted to a `Blob`
-      
+
           @experimental
-      
+
           @remarks
           Use `sendRealtimeInput` for realtime audio chunks and video frames (images).
-      
+
           With `sendRealtimeInput` the api will respond to audio automatically
           based on voice activity detection (VAD).
-      
+
           `sendRealtimeInput` is optimized for responsivness at the expense of
           deterministic ordering guarantees. Audio and video tokens are to the
           context when they become available.
-      
+
           Note: The Call signature expects a `Blob` object, but only a subset
           of audio and image mimetypes are allowed.
          */
@@ -86165,16 +86187,16 @@ var init_node2 = __esm({
       }
       /**
           Send a function response message over the established connection.
-      
+
           @param params - Contains property `functionResponses`.
-      
+
             - `functionResponses` will be converted to a `functionResponses[]`
-      
+
           @remarks
           Use `sendFunctionResponse` to reply to `LiveServerToolCall` from the server.
-      
+
           Use {@link types.LiveConnectConfig#tools} to configure the callable functions.
-      
+
           @experimental
          */
       sendToolResponse(params) {
@@ -86186,9 +86208,9 @@ var init_node2 = __esm({
       }
       /**
            Terminates the WebSocket connection.
-      
+
            @experimental
-      
+
            @example
            ```ts
            let model: string;
@@ -86203,7 +86225,7 @@ var init_node2 = __esm({
                responseModalities: [Modality.AUDIO],
              }
            });
-      
+
            session.close();
            ```
          */
@@ -88999,7 +89021,7 @@ ${underline}`);
       }
       /**
          * Used as a callback for mutating the given `FinalRequestOptions` object.
-      
+
          */
       async prepareOptions(options) {
         if (this.clientAdapter && this.clientAdapter.isVertexAI() && !options.path.startsWith(`/${this.apiVersion}/projects/`)) {
@@ -100852,7 +100874,7 @@ var init_schemas = __esm({
             })));
           }
         }
-        
+
         if (${id}.value === undefined) {
           if (${k} in input) {
             newResult[${k}] = undefined;
@@ -100860,7 +100882,7 @@ var init_schemas = __esm({
         } else {
           newResult[${k}] = ${id}.value;
         }
-        
+
       `);
           } else if (!isOptionalIn) {
             doc.write(`
@@ -100897,7 +100919,7 @@ var init_schemas = __esm({
             path: iss.path ? [${k}, ...iss.path] : [${k}]
           })));
         }
-        
+
         if (${id}.value === undefined) {
           if (${k} in input) {
             newResult[${k}] = undefined;
@@ -100905,7 +100927,7 @@ var init_schemas = __esm({
         } else {
           newResult[${k}] = ${id}.value;
         }
-        
+
       `);
           }
         }
@@ -162974,9 +162996,10 @@ function buildAgentTools(deps) {
       return text(`written ${p.path} (${p.content.length} bytes)`);
     }),
     defineTool("run_python", canonicalTool("run_python").description, typebox_exports.Object({ code: typebox_exports.String({ minLength: 1 }), description: typebox_exports.Optional(typebox_exports.String()) }), async (p) => {
-      if (!deps.pythonExecutable)
+      const executable = typeof deps.pythonExecutable === "function" ? deps.pythonExecutable() : deps.pythonExecutable;
+      if (!executable)
         throw new Error("PYTHON_RUNTIME_NOT_AVAILABLE");
-      const result = await runPythonJob(p.code, { workspace: workspaceDir, executable: deps.pythonExecutable, timeoutMs: 12e4 });
+      const result = await runPythonJob(p.code, { workspace: workspaceDir, executable, timeoutMs: 12e4 });
       return text(result.stdout || result.stderr || "(no output)", { exitCode: result.exitCode });
     })
   ];
@@ -163115,8 +163138,9 @@ ${row.map(csvField).join(",")}`);
   }
   if (deps.clarifications) {
     const clarifications = deps.clarifications;
-    tools.push(defineTool("ask_user_clarification", canonicalTool("ask_user_clarification").description, typebox_exports.Object({ question: typebox_exports.String({ minLength: 1 }), options: typebox_exports.Optional(typebox_exports.Array(typebox_exports.String())) }), async (p) => {
-      const { clarificationId, promise: promise2 } = clarifications.ask(deps.sessionId ?? "web", p.question, p.options ?? []);
+    tools.push(defineTool("ask_user_clarification", canonicalTool("ask_user_clarification").description, typebox_exports.Object({ question: typebox_exports.String({ minLength: 1 }), options: typebox_exports.Optional(typebox_exports.Array(typebox_exports.String())) }), async (p, native) => {
+      const sessionId = native.context.sessionId ?? deps.sessionId ?? "web";
+      const { clarificationId, promise: promise2 } = clarifications.ask(sessionId, p.question, p.options ?? []);
       deps.emitArtifact?.(`__clarification__:${clarificationId}`);
       const answer = await promise2;
       return text(answer || "(no answer)");
@@ -163142,11 +163166,10 @@ ${TOOL_NAME_MAPPING}`;
 async function createDataAgentHarness(deps, profile) {
   if (!profile.apiKey)
     throw new Error("LLM_API_KEY_MISSING");
-  if (profile.provider === "anthropic")
-    process.env.ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || profile.apiKey;
-  else
-    process.env.OPENAI_API_KEY = process.env.OPENAI_API_KEY || profile.apiKey;
-  const models = builtinModels();
+  const credentials = new InMemoryCredentialStore();
+  const providerId = profile.provider === "anthropic" ? "anthropic" : "openai";
+  await credentials.modify(providerId, async () => ({ type: "api_key", key: profile.apiKey }));
+  const models = builtinModels({ credentials });
   const skillLoad = await loadSkillsFromRoots(resolveSkillRoots({ projectRoot: deps.projectRoot, packagedRoot: deps.packagedRoot }));
   for (const item of skillLoad.diagnostics)
     console.warn(`[data-agent] Skill diagnostic (${item.code ?? "warning"}) ${item.path}: ${item.message}`);
@@ -163167,7 +163190,7 @@ async function createDataAgentHarness(deps, profile) {
     systemPrompt: deps.systemPrompt ?? await resolveSystemPrompt(deps.systemPromptRoots ?? (deps.knowledgeRoot ? [deps.knowledgeRoot] : [])),
     tools,
     resources: { skills: skillLoad.skills },
-    toolContext: { sessionId: deps.sessionId }
+    toolContext: deps.toolContext ?? { sessionId: deps.sessionId }
   });
   return harness;
 }
@@ -163176,6 +163199,7 @@ var init_agent_assembly = __esm({
   "packages/runtime/dist/agent-assembly.js"() {
     "use strict";
     init_dist3();
+    init_dist2();
     init_bounded_read();
     init_all();
     init_build();
@@ -163907,7 +163931,15 @@ function readableToolResult(result, fallback) {
   }
   return fallback;
 }
-var import_node_crypto14, import_node_path17, DataAgentRuntimeError, DataAgentRuntime;
+function sanitizeConfigForHost(value, host) {
+  const config2 = typeof value === "object" && value !== null ? { ...value } : {};
+  if (host === "electron") {
+    for (const field of DESKTOP_SECRET_CONFIG_FIELDS)
+      delete config2[field];
+  }
+  return config2;
+}
+var import_node_crypto14, import_node_path17, DataAgentRuntimeError, DESKTOP_SECRET_CONFIG_FIELDS, DataAgentRuntime;
 var init_dist5 = __esm({
   "packages/runtime/dist/index.js"() {
     "use strict";
@@ -163957,6 +163989,7 @@ var init_dist5 = __esm({
         this.details = details;
       }
     };
+    DESKTOP_SECRET_CONFIG_FIELDS = ["api_key", "openai_api_key", "anthropic_api_key"];
     DataAgentRuntime = class {
       listeners = /* @__PURE__ */ new Set();
       eventBuffer = [];
@@ -163968,6 +164001,7 @@ var init_dist5 = __esm({
       sessions;
       workspace;
       pythonExecutable;
+      bundledPythonExecutable;
       knowledge;
       knowledgeRoot;
       semanticProjectDir;
@@ -163979,6 +164013,10 @@ var init_dist5 = __esm({
       mcpSupervisor;
       ingestJob;
       clarifications;
+      /** Host composition seam for wiring native AgentHarness tools. */
+      get clarificationManager() {
+        return this.clarifications;
+      }
       activeRun;
       activeMessageId;
       widgetCalls = /* @__PURE__ */ new Map();
@@ -163989,6 +164027,7 @@ var init_dist5 = __esm({
         this.sessions = options.sessions;
         this.workspace = options.workspace;
         this.pythonExecutable = options.pythonExecutable;
+        this.bundledPythonExecutable = options.bundledPythonExecutable ?? options.pythonExecutable;
         this.knowledge = options.knowledge;
         this.knowledgeRoot = options.knowledgeRoot;
         this.semanticProjectDir = options.semanticProjectDir;
@@ -164004,6 +164043,9 @@ var init_dist5 = __esm({
         this.agent?.subscribe?.((event) => this.mapPiEvent(event));
       }
       nextSequence = 1;
+      get pythonExecutablePath() {
+        return this.pythonExecutable;
+      }
       eventsAfter(sequence2) {
         return this.eventBuffer.filter((event) => event.sequence > sequence2);
       }
@@ -164206,15 +164248,25 @@ var init_dist5 = __esm({
         }
         if (command.command.type === "config.get" || command.command.type === "config.save") {
           if (command.command.type === "config.save") {
-            const current = await this.metadata.getConfig("ui.settings") ?? {};
+            const current = sanitizeConfigForHost(await this.metadata.getConfig("ui.settings"), context2.host);
             const patch = { ...command.command.patch };
-            for (const field of ["api_key", "openai_api_key", "anthropic_api_key"]) {
-              if (typeof patch[field] === "string" && patch[field].trim() === "" && typeof current[field] === "string" && current[field] !== "")
+            for (const field of DESKTOP_SECRET_CONFIG_FIELDS) {
+              if (typeof patch[field] === "string" && patch[field].trim() === "" && typeof current[field] === "string" && current[field] !== "") {
                 delete patch[field];
+              }
             }
-            await this.metadata.setConfig("ui.settings", { ...current, ...patch });
+            const next = { ...current, ...patch };
+            if (context2.host === "electron") {
+              for (const field of DESKTOP_SECRET_CONFIG_FIELDS)
+                delete next[field];
+            }
+            await this.metadata.setConfig("ui.settings", next);
+            const pythonConfig = asRecord(patch.python_runtime);
+            if (pythonConfig) {
+              this.pythonExecutable = pythonConfig.mode === "external" && typeof pythonConfig.executable === "string" && pythonConfig.executable.trim() ? pythonConfig.executable : this.bundledPythonExecutable;
+            }
           }
-          const config2 = await this.metadata.getConfig("ui.settings") ?? {};
+          const config2 = sanitizeConfigForHost(await this.metadata.getConfig("ui.settings"), context2.host);
           return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "config.get.result", config: config2 } };
         }
         if (command.command.type === "python.runtime.test") {
@@ -164333,14 +164385,18 @@ var init_dist5 = __esm({
             return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "knowledge.list.result", files } };
           }
           if (command.command.type === "knowledge.save") {
-            if (command.command.path.startsWith(".pi/"))
+            const requestedPath = command.command.path.replaceAll("\\", "/");
+            if (requestedPath === ".pi" || requestedPath.startsWith(".pi/")) {
               throw new DataAgentRuntimeError("INVALID_COMMAND", "SYSTEM_PROMPT_IMMUTABLE");
-            const { writeFile: writeFile10, mkdir: mkdir9 } = await import("node:fs/promises");
-            const target2 = resolvePath2(joinPath(this.knowledgeRoot, command.command.path));
-            if (!target2.startsWith(resolvePath2(this.knowledgeRoot)))
+            }
+            const { writeFile: writeFile9, mkdir: mkdir9 } = await import("node:fs/promises");
+            const root2 = resolvePath2(this.knowledgeRoot);
+            const target2 = resolvePath2(joinPath(root2, command.command.path));
+            if (target2 !== root2 && !target2.startsWith(`${root2}${import_node_path17.default.sep}`)) {
               throw new DataAgentRuntimeError("INVALID_COMMAND", "Knowledge path escapes root");
-            await mkdir9(joinPath(target2, ".."), { recursive: true });
-            await writeFile10(target2, command.command.content, "utf8");
+            }
+            await mkdir9(import_node_path17.default.dirname(target2), { recursive: true });
+            await writeFile9(target2, command.command.content, "utf8");
             return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "knowledge.save.result", path: command.command.path } };
           }
           const root = resolvePath2(this.knowledgeRoot);
@@ -164362,7 +164418,7 @@ var init_dist5 = __esm({
           const method = command.command.type === "agent.steer" ? this.agent.steer : this.agent.followUp;
           if (!method)
             throw new DataAgentRuntimeError("INVALID_COMMAND", "Agent queue operation is not configured");
-          method.call(this.agent, command.command.prompt);
+          method.call(this.agent, command.command.prompt, { sessionId: context2.sessionId });
           return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "agent.prompt.accepted", runId: "queued" } };
         }
         if (command.command.type === "agent.stop") {
@@ -164379,16 +164435,16 @@ var init_dist5 = __esm({
           this.toolArgs.clear();
           const runId = (0, import_node_crypto14.randomUUID)();
           this.activeRun = { requestId: command.requestId, runId, sessionId: context2.sessionId };
-          void this.agent.prompt(command.command.prompt).then(() => {
-            this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, runId, timestamp: Date.now(), event: { type: "agent.completed" } });
+          void this.agent.prompt(command.command.prompt, { sessionId: context2.sessionId }).then(() => {
+            this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, runId, sessionId: context2.sessionId, timestamp: Date.now(), event: { type: "agent.completed" } });
             this.activeRun = void 0;
           }).catch((error51) => {
             const message = error51 instanceof Error ? error51.message : String(error51);
             console.error("[data-agent] agent run failed:", message);
-            this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, runId, timestamp: Date.now(), event: { type: "agent.text_delta", delta: `
+            this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, runId, sessionId: context2.sessionId, timestamp: Date.now(), event: { type: "agent.text_delta", delta: `
 
 > \u26A0\uFE0F **\u6267\u884C\u5931\u8D25**: ${message}` } });
-            this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, runId, timestamp: Date.now(), event: { type: "agent.completed" } });
+            this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, runId, sessionId: context2.sessionId, timestamp: Date.now(), event: { type: "agent.completed" } });
             this.activeRun = void 0;
           });
           return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "agent.prompt.accepted", runId } };
@@ -164443,9 +164499,7 @@ var init_dist5 = __esm({
       }
       /** Tools call this to suspend the run until the user answers or timeout hits. */
       askClarification(sessionId, question, options, timeoutMs) {
-        const asked = this.clarifications.ask(sessionId, question, options, timeoutMs);
-        this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: "clarification", sessionId, timestamp: Date.now(), event: { type: "clarification.request", clarificationId: asked.clarificationId, question, options } });
-        return asked;
+        return this.clarifications.ask(sessionId, question, options, timeoutMs);
       }
       cancelSessionClarifications(sessionId) {
         this.clarifications.cancel(sessionId, "cancelled");
@@ -164602,25 +164656,28 @@ function registerElectronRuntimeIpc(ipcMain, runtime, options = {}) {
     }
   });
   const removeSender = (sender) => {
-    const unsubscribe = eventSubscriptions.get(sender);
-    if (!unsubscribe)
+    const subscription = eventSubscriptions.get(sender);
+    if (!subscription)
       return;
-    unsubscribe();
+    subscription.unsubscribe();
     eventSubscriptions.delete(sender);
   };
-  const subscribeListener = (event) => {
+  const subscribeListener = (event, payload) => {
     const sender = getIpcSender(event);
     if (!sender)
       return;
     removeSender(sender);
+    const sessionId = getSessionId(payload);
     const unsubscribe = runtime.subscribe((envelope) => {
+      if (sessionId && envelope.sessionId !== sessionId)
+        return;
       try {
         sender.send("data-agent:event", envelope);
       } catch {
         removeSender(sender);
       }
     });
-    eventSubscriptions.set(sender, unsubscribe);
+    eventSubscriptions.set(sender, { sessionId, unsubscribe });
   };
   const unsubscribeListener = (event) => {
     const sender = getIpcSender(event);
@@ -164636,6 +164693,12 @@ function registerElectronRuntimeIpc(ipcMain, runtime, options = {}) {
     for (const sender of eventSubscriptions.keys())
       removeSender(sender);
   };
+}
+function getSessionId(payload) {
+  if (!payload || typeof payload !== "object")
+    return void 0;
+  const sessionId = payload.sessionId;
+  return typeof sessionId === "string" && sessionId.length > 0 ? sessionId : void 0;
 }
 function getIpcSender(event) {
   if (!event || typeof event !== "object")
@@ -164668,17 +164731,109 @@ var init_index = __esm({
 // packages/electron-host/dist/main.js
 var main_exports = {};
 __export(main_exports, {
+  registerDesktopCapabilities: () => registerDesktopCapabilities,
   resolveRuntimePaths: () => resolveRuntimePaths,
   startElectronHost: () => startElectronHost
 });
 module.exports = __toCommonJS(main_exports);
-var import_node_fs5 = require("node:fs");
+var import_node_fs6 = require("node:fs");
 var import_node_path18 = __toESM(require("node:path"), 1);
+
+// packages/electron-host/dist/mcp-query-executor.js
+var import_client = require("@modelcontextprotocol/sdk/client/index.js");
+var import_stdio = require("@modelcontextprotocol/sdk/client/stdio.js");
+function createMcpQueryExecutor(options) {
+  let client = null;
+  const connect = async () => {
+    if (client)
+      return client;
+    const transport = new import_stdio.StdioClientTransport({
+      command: options.command,
+      args: options.args ?? [],
+      env: options.env ? { ...options.env } : void 0
+    });
+    transport.onerror = (error51) => console.error("[mcp-query-executor] transport error:", error51.message);
+    transport.onclose = () => console.error("[mcp-query-executor] transport closed");
+    const next = new import_client.Client({ name: "data-agent-electron-query-executor", version: "1.0.0" });
+    await next.connect(transport);
+    client = next;
+    return next;
+  };
+  const parseResult = (result) => {
+    if (!result || typeof result !== "object")
+      throw new Error("MCP_QUERY_EMPTY_RESPONSE");
+    const content = result.content;
+    const text2 = Array.isArray(content) ? content.find((part) => part && typeof part === "object" && part.type === "text") : void 0;
+    if (!text2 || typeof text2.text !== "string")
+      throw new Error("MCP_QUERY_EMPTY_RESPONSE");
+    return { text: text2.text, isError: Boolean(result.isError) };
+  };
+  return {
+    async run(sql, rowLimit) {
+      const effectiveLimit = Math.min(Math.max(1, Math.floor(rowLimit)), 200);
+      const raw = await (await connect()).callTool({ name: "execute_query_preview", arguments: { sql, limit: effectiveLimit } });
+      const result = parseResult(raw);
+      if (result.isError)
+        throw new Error(`MCP_TOOL_ERROR: ${result.text.slice(0, 300)}`);
+      let payload;
+      try {
+        payload = JSON.parse(result.text);
+      } catch {
+        throw new Error(`MCP_QUERY_BAD_RESPONSE: ${result.text.slice(0, 300)}`);
+      }
+      if (payload.error)
+        throw new Error(`${payload.error.code}${payload.error.message ? `: ${payload.error.message}` : ""}`);
+      const rows = payload.rows ?? [];
+      const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
+      return {
+        columns,
+        rows: rows.map((row) => columns.map((column) => row[column])),
+        truncated: Boolean(payload.truncated)
+      };
+    },
+    async *stream(sql, signal) {
+      const client2 = await connect();
+      const batchSize = 1e3;
+      for (let offset = 0; offset < 1e5; offset += batchSize) {
+        if (signal?.aborted)
+          throw new Error("EXPORT_CANCELLED");
+        const raw = await client2.callTool({ name: "execute_query_export_batch", arguments: { sql, offset, limit: batchSize, maxRows: 1e5 } });
+        const result = parseResult(raw);
+        if (result.isError)
+          throw new Error(`MCP_TOOL_ERROR: ${result.text.slice(0, 300)}`);
+        let payload;
+        try {
+          payload = JSON.parse(result.text);
+        } catch {
+          throw new Error(`MCP_QUERY_BAD_RESPONSE: ${result.text.slice(0, 300)}`);
+        }
+        if (payload.error)
+          throw new Error(`${payload.error.code}${payload.error.message ? `: ${payload.error.message}` : ""}`);
+        const rows = payload.rows ?? [];
+        const columns = payload.columns ?? (rows.length > 0 ? Object.keys(rows[0]) : []);
+        const values = rows.map((row) => columns.map((column) => row[column]));
+        if (values.length > 0)
+          yield { columns, rows: values };
+        if (payload.done || values.length < batchSize)
+          return;
+      }
+      throw new Error("EXPORT_ROW_LIMIT_EXCEEDED");
+    },
+    async close() {
+      if (client) {
+        const current = client;
+        client = null;
+        await current.close();
+      }
+    }
+  };
+}
+
+// packages/electron-host/dist/main.js
 function resolveRuntimePaths(options) {
   let appDir = options.appDir;
   if (!appDir && typeof __dirname !== "undefined") {
-    const insideAsar = __dirname.includes(`${import_node_path18.default.sep}app.asar`);
-    appDir = insideAsar ? import_node_path18.default.resolve(__dirname, "..") : import_node_path18.default.resolve(__dirname, "..", "..");
+    appDir = import_node_path18.default.resolve(__dirname, "..");
   }
   return {
     userDataDir: options.userDataDir,
@@ -164686,9 +164841,270 @@ function resolveRuntimePaths(options) {
     rendererDist: import_node_path18.default.join(appDir ?? process.cwd(), "dist")
   };
 }
+var SECRET_FIELDS = ["openai_api_key", "anthropic_api_key", "default_model", "openai_base_url"];
+function registerDesktopCapabilities(ipcMain, options) {
+  const secretPath = import_node_path18.default.join(options.userDataDir, "secrets.json");
+  const handlers = /* @__PURE__ */ new Set();
+  const handle = (channel, listener) => {
+    ipcMain.handle(channel, listener);
+    handlers.add(channel);
+  };
+  handle("data-agent:get-stored-secrets", async () => readStoredSecrets(secretPath, options.safeStorage));
+  handle("data-agent:save-secrets", async (_event, payload) => {
+    if (!options.safeStorage?.isEncryptionAvailable())
+      return { ok: false };
+    const incoming = isRecord(payload) ? payload : {};
+    const encrypted = readEncryptedSecretRecord(secretPath);
+    for (const field of SECRET_FIELDS) {
+      const value = incoming[field];
+      if (value === void 0)
+        continue;
+      if (typeof value !== "string" || !value.trim()) {
+        delete encrypted[field];
+        continue;
+      }
+      encrypted[field] = options.safeStorage.encryptString(value).toString("base64");
+    }
+    writeEncryptedSecretRecord(secretPath, encrypted);
+    return { ok: true };
+  });
+  handle("data-agent:select-python-executable", async () => {
+    if (!options.dialog)
+      return null;
+    const result = await options.dialog.showOpenDialog({ properties: ["openFile"] });
+    return result.canceled ? null : result.filePaths[0] ?? null;
+  });
+  handle("data-agent:workspace-upload", async (_event, payload) => {
+    if (!options.workspace)
+      throw new Error("WORKSPACE_NOT_CONFIGURED");
+    if (!isRecord(payload) || typeof payload.fileName !== "string")
+      throw new Error("WORKSPACE_FILE_REQUIRED");
+    const bytes = toBytes(payload.bytes);
+    if (!bytes)
+      throw new Error("WORKSPACE_FILE_REQUIRED");
+    const relativePath = safeUploadName(payload.fileName);
+    await options.workspace.writeBytes(relativePath, bytes);
+    return { filename: relativePath, session_id: typeof payload.sessionId === "string" ? payload.sessionId : "", relative_path: relativePath, size: bytes.byteLength };
+  });
+  handle("data-agent:show-menu", async () => false);
+  handle("data-agent:get-backend-port", async () => null);
+  handle("data-agent:check-for-updates", async () => options.autoUpdater ? options.autoUpdater.checkForUpdates() : { ok: false, reason: "UPDATES_NOT_CONFIGURED" });
+  handle("data-agent:download-update", async () => options.autoUpdater ? options.autoUpdater.downloadUpdate() : { ok: false, reason: "UPDATES_NOT_CONFIGURED" });
+  handle("data-agent:quit-and-install-update", async () => {
+    if (!options.autoUpdater)
+      return { ok: false, reason: "UPDATES_NOT_CONFIGURED" };
+    options.autoUpdater.quitAndInstall();
+    return { ok: true };
+  });
+  return () => {
+    for (const channel of handlers)
+      ipcMain.removeHandler(channel);
+  };
+}
+function isRecord(value) {
+  return typeof value === "object" && value !== null;
+}
+function firstString(...values) {
+  return values.find((value) => typeof value === "string" && value.trim().length > 0)?.trim();
+}
+function isRuntimeAgentEvent(value) {
+  if (!isRecord(value) || typeof value.type !== "string")
+    return false;
+  return ["message_start", "message_update", "tool_execution_start", "tool_execution_update", "tool_execution_end"].includes(value.type);
+}
+function readEncryptedSecretRecord(secretPath) {
+  try {
+    const parsed = JSON.parse((0, import_node_fs6.readFileSync)(secretPath, "utf8"));
+    if (!isRecord(parsed) || !isRecord(parsed.encrypted))
+      return {};
+    const encrypted = parsed.encrypted;
+    return Object.fromEntries(SECRET_FIELDS.flatMap((field) => typeof encrypted[field] === "string" ? [[field, encrypted[field]]] : []));
+  } catch {
+    return {};
+  }
+}
+function readStoredSecrets(secretPath, safeStorage) {
+  if (!safeStorage?.isEncryptionAvailable())
+    return {};
+  const encrypted = readEncryptedSecretRecord(secretPath);
+  const result = {};
+  for (const field of SECRET_FIELDS) {
+    const value = encrypted[field];
+    if (!value)
+      continue;
+    try {
+      result[field] = safeStorage.decryptString(Buffer.from(value, "base64"));
+    } catch {
+    }
+  }
+  return result;
+}
+function writeEncryptedSecretRecord(secretPath, encrypted) {
+  const temporary = `${secretPath}.${process.pid}.tmp`;
+  (0, import_node_fs6.mkdirSync)(import_node_path18.default.dirname(secretPath), { recursive: true });
+  (0, import_node_fs6.writeFileSync)(temporary, JSON.stringify({ version: 1, encrypted }, null, 2), "utf8");
+  (0, import_node_fs6.renameSync)(temporary, secretPath);
+}
+function toBytes(value) {
+  if (value instanceof Uint8Array)
+    return value;
+  if (value instanceof ArrayBuffer)
+    return new Uint8Array(value);
+  if (Array.isArray(value) && value.every((item) => Number.isInteger(item) && item >= 0 && item <= 255))
+    return Uint8Array.from(value);
+  return void 0;
+}
+function safeUploadName(fileName) {
+  const normalized = fileName.replaceAll("\\", "/");
+  const name = import_node_path18.default.posix.basename(normalized);
+  if (!name || name === "." || name === "..")
+    throw new Error("WORKSPACE_FILE_REQUIRED");
+  return name;
+}
+async function registerWorkspaceProtocol(protocol, workspace) {
+  if (!protocol)
+    return () => void 0;
+  await protocol.handle("data-agent", async (request) => {
+    try {
+      const url2 = new URL(request.url);
+      if (url2.hostname !== "workspace" || !url2.pathname.startsWith("/workspace/files/"))
+        return new Response("Not found", { status: 404 });
+      const relativePath = url2.searchParams.get("path") ?? "";
+      if (!relativePath)
+        return new Response("File path is required", { status: 400 });
+      const bytes = await workspace.readBytes(relativePath);
+      return new Response(Buffer.from(bytes), { headers: { "Content-Type": contentTypeFor(relativePath), "Cache-Control": "no-store" } });
+    } catch {
+      return new Response("Not found", { status: 404 });
+    }
+  });
+  return () => protocol.unhandle?.("data-agent");
+}
+function contentTypeFor(relativePath) {
+  const extension2 = import_node_path18.default.extname(relativePath).toLowerCase();
+  return {
+    ".csv": "text/csv; charset=utf-8",
+    ".json": "application/json; charset=utf-8",
+    ".txt": "text/plain; charset=utf-8",
+    ".md": "text/markdown; charset=utf-8",
+    ".html": "text/html; charset=utf-8",
+    ".htm": "text/html; charset=utf-8",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".gif": "image/gif",
+    ".svg": "image/svg+xml",
+    ".pdf": "application/pdf"
+  }[extension2] ?? "application/octet-stream";
+}
+function createElectronQueryExecutor(metadata, options) {
+  let executor;
+  let executorKey = "";
+  const resolveExecutor = async () => {
+    const saved = await metadata.getConfig("ui.settings");
+    const cfg = isRecord(saved) ? saved : {};
+    const env2 = { ...options.baseEnv ?? {} };
+    for (const [key, envName] of [["host", "DATA_AGENT_MYSQL_HOST"], ["port", "DATA_AGENT_MYSQL_PORT"], ["user", "DATA_AGENT_MYSQL_USER"], ["password", "DATA_AGENT_MYSQL_PASSWORD"], ["database", "DATA_AGENT_MYSQL_DATABASE"]]) {
+      if (cfg[key] !== void 0 && cfg[key] !== null)
+        env2[envName] = String(cfg[key]);
+    }
+    const nextKey = JSON.stringify(env2);
+    if (executor && executorKey === nextKey)
+      return executor;
+    if (executor)
+      await executor.close();
+    executor = createMcpQueryExecutor({ command: options.command, args: options.args, env: env2 });
+    executorKey = nextKey;
+    return executor;
+  };
+  return {
+    run: (sql, rowLimit) => resolveExecutor().then((current) => current.run(sql, rowLimit)),
+    async *stream(sql, signal) {
+      yield* (await resolveExecutor()).stream(sql, signal);
+    },
+    async close() {
+      if (!executor)
+        return;
+      const current = executor;
+      executor = void 0;
+      executorKey = "";
+      await current.close();
+    }
+  };
+}
+function mysqlMcpEnv(connection, baseEnv = {}) {
+  const env2 = { ...baseEnv };
+  for (const [key, envName] of [["host", "DATA_AGENT_MYSQL_HOST"], ["port", "DATA_AGENT_MYSQL_PORT"], ["user", "DATA_AGENT_MYSQL_USER"], ["password", "DATA_AGENT_MYSQL_PASSWORD"], ["database", "DATA_AGENT_MYSQL_DATABASE"]]) {
+    if (connection[key] !== void 0 && connection[key] !== null)
+      env2[envName] = String(connection[key]);
+  }
+  return env2;
+}
+function createElectronHostTesters(mcp) {
+  return {
+    dbTester: {
+      test: async (connection) => {
+        const host = String(connection.host ?? "127.0.0.1");
+        const port = Number(connection.port ?? 3306);
+        const database = connection.database ? String(connection.database) : void 0;
+        const executor = createMcpQueryExecutor({ command: mcp.command, args: mcp.args, env: mysqlMcpEnv(connection, mcp.baseEnv) });
+        try {
+          await executor.run("SELECT 1 AS connection_ok", 1);
+          return { success: true, message: `MySQL \u8FDE\u63A5\u6210\u529F\uFF08${host}:${port}${database ? `/ ${database}` : ""}\uFF09` };
+        } catch (error51) {
+          return { success: false, message: `MySQL \u8FDE\u63A5\u5931\u8D25: ${error51 instanceof Error ? error51.message : String(error51)}` };
+        } finally {
+          await executor.close().catch(() => void 0);
+        }
+      }
+    },
+    llmTester: { test: testLlmProfile }
+  };
+}
+async function testLlmProfile(profile) {
+  const provider = String(profile.provider ?? "openai");
+  const apiKey = String(profile.api_key ?? profile.openai_api_key ?? profile.anthropic_api_key ?? "").trim();
+  const model = String(profile.model ?? (provider === "anthropic" ? "claude-sonnet-4-20250514" : "gpt-4o-mini"));
+  if (!apiKey)
+    return { success: false, message: "\u7F3A\u5C11 API Key" };
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 2e4);
+  try {
+    if (provider === "anthropic") {
+      const baseUrl2 = String(profile.base_url ?? "https://api.anthropic.com").replace(/\/$/, "");
+      const response2 = await fetch(`${baseUrl2}/v1/messages`, {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
+        body: JSON.stringify({ model, max_tokens: 1, messages: [{ role: "user", content: "ping" }] }),
+        signal: controller.signal
+      });
+      if (response2.ok)
+        return { success: true, message: `Anthropic \u8FDE\u63A5\u6210\u529F\uFF08${model}\uFF09` };
+      return { success: false, message: `Anthropic \u6821\u9A8C\u5931\u8D25 (HTTP ${response2.status})`, details: (await response2.text().catch(() => "")).slice(0, 300) };
+    }
+    const baseUrl = String(profile.base_url ?? profile.openai_base_url ?? "https://api.openai.com/v1").replace(/\/$/, "");
+    const response = await fetch(`${baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({ model, max_tokens: 1, messages: [{ role: "user", content: "ping" }] }),
+      signal: controller.signal
+    });
+    if (response.ok)
+      return { success: true, message: `OpenAI \u517C\u5BB9\u63A5\u53E3\u8FDE\u63A5\u6210\u529F\uFF08${model}\uFF09` };
+    return { success: false, message: `OpenAI \u517C\u5BB9\u63A5\u53E3\u6821\u9A8C\u5931\u8D25 (HTTP ${response.status})`, details: (await response.text().catch(() => "")).slice(0, 300) };
+  } catch (error51) {
+    const reason = error51 instanceof Error ? error51.name === "AbortError" ? "\u8BF7\u6C42\u8D85\u65F6\uFF0820s\uFF09" : error51.message : String(error51);
+    return { success: false, message: `\u6A21\u578B\u670D\u52A1\u8FDE\u63A5\u5931\u8D25: ${reason}` };
+  } finally {
+    clearTimeout(timer);
+  }
+}
 async function startElectronHost(deps, overrides = {}) {
-  const { DataAgentRuntime: DataAgentRuntime2, MetadataStore: MetadataStore2, PiJsonlSessionStore: PiJsonlSessionStore2 } = await Promise.resolve().then(() => (init_dist5(), dist_exports));
-  const { KnowledgeIndex: KnowledgeIndex2 } = await Promise.resolve().then(() => (init_dist5(), dist_exports));
+  deps.protocol?.registerSchemesAsPrivileged?.([{
+    scheme: "data-agent",
+    privileges: { secure: true, standard: true, supportFetchAPI: true, stream: true }
+  }]);
+  const { DataAgentRuntime: DataAgentRuntime2, MetadataStore: MetadataStore2, PiJsonlSessionStore: PiJsonlSessionStore2, KnowledgeIndex: KnowledgeIndex2, WorkspaceStore: WorkspaceStore2, createAgentHarnessResolver: createAgentHarnessResolver2, createDataAgentHarness: createDataAgentHarness2 } = await Promise.resolve().then(() => (init_dist5(), dist_exports));
   const { registerElectronRuntimeIpc: registerElectronRuntimeIpc2 } = await Promise.resolve().then(() => (init_index(), index_exports));
   const paths = resolveRuntimePaths({ userDataDir: deps.app.getPath("userData") });
   if (overrides.userDataDir)
@@ -164696,21 +165112,28 @@ async function startElectronHost(deps, overrides = {}) {
   if (overrides.rendererDist)
     paths.rendererDist = overrides.rendererDist;
   const effectiveResources = overrides.resourcesPath ?? deps.resourcesPath;
-  let pythonExecutable;
   const bundledPython = import_node_path18.default.join(effectiveResources ?? "", "python-runtime", "Scripts", "python.exe");
-  if (effectiveResources && (0, import_node_fs5.existsSync)(bundledPython))
-    pythonExecutable = bundledPython;
+  const bundledPythonExecutable = effectiveResources && (0, import_node_fs6.existsSync)(bundledPython) ? bundledPython : void 0;
+  let pythonExecutable = bundledPythonExecutable;
   for (const dir of ["metadata", "sessions", "workspace", "knowledge"]) {
-    (0, import_node_fs5.mkdirSync)(import_node_path18.default.join(paths.userDataDir, dir), { recursive: true });
+    (0, import_node_fs6.mkdirSync)(import_node_path18.default.join(paths.userDataDir, dir), { recursive: true });
   }
   const metadata = new MetadataStore2(import_node_path18.default.join(paths.userDataDir, "metadata", "app.db"));
   const sessions = new PiJsonlSessionStore2(import_node_path18.default.join(paths.userDataDir, "sessions"));
   const knowledgeRoot = import_node_path18.default.join(paths.userDataDir, "knowledge");
+  const workspace = new WorkspaceStore2(import_node_path18.default.join(paths.userDataDir, "workspace"), { userId: "local" });
   let knowledge;
   try {
     knowledge = new KnowledgeIndex2(knowledgeRoot);
   } catch {
     knowledge = void 0;
+  }
+  const savedConfig = await metadata.getConfig("ui.settings");
+  if (isRecord(savedConfig)) {
+    const pythonConfig = savedConfig.python_runtime;
+    if (isRecord(pythonConfig) && pythonConfig.mode === "external" && typeof pythonConfig.executable === "string" && pythonConfig.executable.trim()) {
+      pythonExecutable = pythonConfig.executable;
+    }
   }
   const semanticProjectDir = process.env.DATA_AGENT_SEMANTIC_PROJECT_DIR ? import_node_path18.default.resolve(process.env.DATA_AGENT_SEMANTIC_PROJECT_DIR) : import_node_path18.default.join(paths.userDataDir, "semantic-context");
   const applicationRoot = import_node_path18.default.dirname(paths.rendererDist);
@@ -164719,22 +165142,150 @@ async function startElectronHost(deps, overrides = {}) {
   const runtime = new DataAgentRuntime2({
     metadata,
     sessions,
+    workspace,
     knowledgeRoot,
     knowledge,
     pythonExecutable,
+    bundledPythonExecutable,
     semanticProjectDir,
     skillRoots: [import_node_path18.default.join(developmentRoot, ".agents", "skills"), import_node_path18.default.join(packagedRoot, ".agents", "skills")]
   });
-  registerElectronRuntimeIpc2(deps.ipcMain, runtime);
+  runtime.ingestJob = {
+    async getStatus() {
+      const { readdir: readdir7 } = await import("node:fs/promises");
+      let count = 0;
+      for (const segment of ["semantic-layer", "business-semantic"]) {
+        try {
+          const entries = await readdir7(import_node_path18.default.join(semanticProjectDir, segment), { recursive: true });
+          count += entries.filter((entry) => entry.endsWith(".yaml") || entry.endsWith(".yml")).length;
+        } catch {
+        }
+      }
+      return {
+        status: count > 0 ? "ready" : "skipped",
+        jobId: null,
+        summary: { updated: 0, unchanged: count, failed: 0, skipped: 0 },
+        errorCode: null
+      };
+    },
+    async retry() {
+      return { accepted: true };
+    }
+  };
+  const mcpProcess = {
+    command: process.execPath,
+    args: [import_node_path18.default.join(__dirname, "mcp-mysql.cjs")],
+    baseEnv: { ELECTRON_RUN_AS_NODE: "1" }
+  };
+  const testers = createElectronHostTesters(mcpProcess);
+  runtime.dbTester = testers.dbTester;
+  runtime.llmTester = testers.llmTester;
+  const queryExecutor = createElectronQueryExecutor(metadata, mcpProcess);
+  runtime.queryExecutor = queryExecutor;
+  const unregisterDesktopCapabilities = registerDesktopCapabilities(deps.ipcMain, {
+    userDataDir: paths.userDataDir,
+    safeStorage: deps.safeStorage,
+    dialog: deps.dialog,
+    autoUpdater: deps.autoUpdater,
+    workspace
+  });
+  const unregisterRuntimeIpc = registerElectronRuntimeIpc2(deps.ipcMain, runtime);
+  let agentHarness;
+  let activeAgentSessionId;
+  const agentListeners = /* @__PURE__ */ new Set();
+  const secretPath = import_node_path18.default.join(paths.userDataDir, "secrets.json");
+  const agentHarnessResolver = createAgentHarnessResolver2({
+    getProfile: async () => {
+      const config2 = await metadata.getConfig("ui.settings") ?? {};
+      const cfg = isRecord(config2) ? config2 : {};
+      const stored = readStoredSecrets(secretPath, deps.safeStorage);
+      const provider = typeof cfg.provider === "string" && cfg.provider ? cfg.provider : stored.anthropic_api_key ? "anthropic" : "openai";
+      const apiKey = firstString(cfg.api_key, provider === "anthropic" ? cfg.anthropic_api_key : cfg.openai_api_key, stored.anthropic_api_key && provider === "anthropic" ? stored.anthropic_api_key : void 0, stored.openai_api_key && provider !== "anthropic" ? stored.openai_api_key : void 0);
+      const model = firstString(cfg.model, stored.default_model);
+      const baseUrl = firstString(cfg.base_url, stored.openai_base_url);
+      if (!apiKey || !model)
+        throw new Error("LLM_NOT_CONFIGURED: complete onboarding first");
+      return { provider, model, apiKey, ...baseUrl ? { baseUrl } : {} };
+    },
+    create: async (profile) => {
+      const harness = await createDataAgentHarness2({
+        workspace,
+        knowledge,
+        knowledgeRoot,
+        pythonExecutable: () => runtime.pythonExecutablePath,
+        queryExecutor,
+        clarifications: runtime.clarificationManager,
+        systemPromptRoots: [knowledgeRoot, developmentRoot, packagedRoot],
+        projectRoot: developmentRoot,
+        packagedRoot,
+        toolContext: () => ({ sessionId: activeAgentSessionId })
+      }, profile);
+      for (const listener of agentListeners)
+        harness.subscribe?.(listener);
+      agentHarness = harness;
+      return harness;
+    }
+  });
+  const resolveAgentHarness = () => agentHarnessResolver.resolve();
+  runtime.attachAgent({
+    prompt: async (text2, context2) => {
+      activeAgentSessionId = context2?.sessionId;
+      try {
+        return await (await resolveAgentHarness()).prompt(text2);
+      } finally {
+        activeAgentSessionId = void 0;
+      }
+    },
+    steer: (text2, context2) => {
+      if (context2?.sessionId)
+        activeAgentSessionId = context2.sessionId;
+      void resolveAgentHarness().then((agent) => agent.steer?.(text2));
+    },
+    followUp: (text2, context2) => {
+      if (context2?.sessionId)
+        activeAgentSessionId = context2.sessionId;
+      void resolveAgentHarness().then((agent) => agent.followUp?.(text2));
+    },
+    abort: () => {
+      agentHarness?.abort();
+    },
+    getResources: () => agentHarness?.getResources?.() ?? {},
+    setResources: async (resources) => {
+      if (agentHarness?.setResources)
+        await agentHarness.setResources(resources);
+    },
+    subscribe: (listener) => {
+      const forward = (event) => {
+        if (isRuntimeAgentEvent(event))
+          listener(event);
+      };
+      agentListeners.add(forward);
+      return () => agentListeners.delete(forward);
+    }
+  });
+  agentHarnessResolver.warmup((error51) => console.warn("[data-agent-electron] agent warm-up unavailable:", error51 instanceof Error ? error51.message : error51));
   await deps.app.whenReady();
+  const unregisterWorkspaceProtocol = await registerWorkspaceProtocol(deps.protocol, workspace);
+  let disposed = false;
+  const dispose = async () => {
+    if (disposed)
+      return;
+    disposed = true;
+    agentHarness?.abort();
+    unregisterWorkspaceProtocol();
+    unregisterDesktopCapabilities();
+    unregisterRuntimeIpc();
+    await queryExecutor.close();
+    await metadata.close();
+  };
   if (process.env.DATA_AGENT_SMOKE === "1") {
-    const { writeFileSync } = await import("node:fs");
+    const { writeFileSync: writeFileSync2 } = await import("node:fs");
     try {
-      writeFileSync(import_node_path18.default.join(paths.userDataDir, "smoke.ok"), "ok");
+      writeFileSync2(import_node_path18.default.join(paths.userDataDir, "smoke.ok"), "ok");
     } catch {
     }
     deps.app.quit();
-    return;
+    return { runtime, dispose };
   }
   const window2 = new deps.BrowserWindow({
     width: 1440,
@@ -164745,7 +165296,13 @@ async function startElectronHost(deps, overrides = {}) {
       nodeIntegration: false
     }
   });
-  await window2.loadFile(import_node_path18.default.join(paths.rendererDist, "index.html"));
+  const devServerUrl = process.env.DATA_AGENT_DEV_URL?.trim() || "http://localhost:5173";
+  if (process.env.DATA_AGENT_DEV === "1" || process.argv.includes("--dev")) {
+    await window2.loadURL(devServerUrl);
+  } else {
+    await window2.loadFile(import_node_path18.default.join(paths.rendererDist, "index.html"));
+  }
+  return { runtime, dispose };
 }
 if (process.env.VITEST !== "true" && process.env.NODE_ENV !== "test")
   void (async () => {
@@ -164755,7 +165312,20 @@ if (process.env.VITEST !== "true" && process.env.NODE_ENV !== "test")
         /* @vite-ignore */
         electronModule
       );
-      await startElectronHost(electron, { resourcesPath: electron.resourcesPath });
+      if (electron.app.requestSingleInstanceLock?.() === false) {
+        electron.app.quit();
+        return;
+      }
+      const resourcesPath = process.resourcesPath;
+      const host = await startElectronHost(electron, { resourcesPath });
+      let quitting = false;
+      electron.app.on?.("before-quit", (event) => {
+        if (quitting)
+          return;
+        quitting = true;
+        event?.preventDefault?.();
+        void host.dispose().finally(() => electron.app.quit());
+      });
     } catch (error51) {
       try {
         const { appendFileSync } = await import("node:fs");
@@ -164779,6 +165349,7 @@ ${error51 instanceof Error ? error51.stack : String(error51)}
   })();
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
+  registerDesktopCapabilities,
   resolveRuntimePaths,
   startElectronHost
 });

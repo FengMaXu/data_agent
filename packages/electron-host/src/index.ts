@@ -21,6 +21,10 @@ type IpcEventListener = (event: unknown, payload?: unknown) => void;
 interface IpcSenderLike {
   send(channel: string, payload: unknown): void;
 }
+interface EventSubscription {
+  sessionId?: string;
+  unsubscribe: () => void;
+}
 
 export interface ElectronRuntimeHostOptions {
   contextFactory?: (event: unknown) => RequestContext;
@@ -32,7 +36,7 @@ export function registerElectronRuntimeIpc(
   options: ElectronRuntimeHostOptions = {},
 ): () => void {
   const contextFactory = options.contextFactory ?? (() => ({ userId: "local", host: "electron" as const }));
-  const eventSubscriptions = new Map<IpcSenderLike, () => void>();
+  const eventSubscriptions = new Map<IpcSenderLike, EventSubscription>();
 
   ipcMain.handle("data-agent:command", async (event, payload) => {
     try {
@@ -48,24 +52,26 @@ export function registerElectronRuntimeIpc(
   });
 
   const removeSender = (sender: IpcSenderLike): void => {
-    const unsubscribe = eventSubscriptions.get(sender);
-    if (!unsubscribe) return;
-    unsubscribe();
+    const subscription = eventSubscriptions.get(sender);
+    if (!subscription) return;
+    subscription.unsubscribe();
     eventSubscriptions.delete(sender);
   };
 
-  const subscribeListener: IpcEventListener = (event) => {
+  const subscribeListener: IpcEventListener = (event, payload) => {
     const sender = getIpcSender(event);
     if (!sender) return;
     removeSender(sender);
+    const sessionId = getSessionId(payload);
     const unsubscribe = runtime.subscribe((envelope) => {
+      if (sessionId && envelope.sessionId !== sessionId) return;
       try {
         sender.send("data-agent:event", envelope);
       } catch {
         removeSender(sender);
       }
     });
-    eventSubscriptions.set(sender, unsubscribe);
+    eventSubscriptions.set(sender, { sessionId, unsubscribe });
   };
 
   const unsubscribeListener: IpcEventListener = (event) => {
@@ -82,6 +88,12 @@ export function registerElectronRuntimeIpc(
     ipcMain.removeListener("data-agent:events:unsubscribe", unsubscribeListener);
     for (const sender of eventSubscriptions.keys()) removeSender(sender);
   };
+}
+
+function getSessionId(payload: unknown): string | undefined {
+  if (!payload || typeof payload !== "object") return undefined;
+  const sessionId = (payload as { sessionId?: unknown }).sessionId;
+  return typeof sessionId === "string" && sessionId.length > 0 ? sessionId : undefined;
 }
 
 function getIpcSender(event: unknown): IpcSenderLike | undefined {

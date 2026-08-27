@@ -47,6 +47,26 @@ describe("DataAgentRuntime", () => {
     expect(toolEvents[1]).not.toHaveProperty("args");
   });
 
+  it("passes the requested session to queued agent operations", async () => {
+    let received: { prompt: string; context?: { sessionId?: string } } | undefined;
+    const runtime = new DataAgentRuntime({
+      agent: {
+        prompt: async () => undefined,
+        steer: (prompt, context) => { received = { prompt, context }; },
+        abort: () => undefined,
+      },
+    });
+    await runtime.dispatch({ protocolVersion: 1, requestId: "steer", sessionId: "session-7", command: { type: "agent.steer", prompt: "continue" } }, { userId: "local", host: "electron", sessionId: "session-7" });
+    expect(received).toEqual({ prompt: "continue", context: { sessionId: "session-7" } });
+  });
+
+  it("keeps terminal agent events correlated to the requested session", async () => {
+    const runtime = new DataAgentRuntime({ agent: { prompt: async () => undefined, abort: () => undefined } });
+    await runtime.dispatch({ protocolVersion: 1, requestId: "session-run", sessionId: "session-1", command: { type: "agent.prompt", prompt: "hello" } }, { userId: "local", host: "electron", sessionId: "session-1" });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(runtime.eventsAfter(0).at(-1)).toMatchObject({ sessionId: "session-1", event: { type: "agent.completed" } });
+  });
+
   it("rejects an unsupported protocol version", async () => {
     const runtime = new DataAgentRuntime();
     await expect(runtime.dispatch({ protocolVersion: 99, requestId: "req-1", command: { type: "runtime.probe" } }, { userId: "local", host: "electron" })).rejects.toMatchObject({ code: "UNSUPPORTED_PROTOCOL_VERSION" });
@@ -71,6 +91,40 @@ describe("DataAgentRuntime", () => {
     expect((result.response as any).skills).toEqual([{ name: "refreshable", description: "refresh test", tools: [] }]);
     expect((result.response as any).diagnostics.length).toBeGreaterThan(0);
     expect(resources.skills[0].content).toBe("body");
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it("rejects knowledge paths that only share a root-name prefix", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "data-agent-knowledge-path-"));
+    const root = join(dir, "knowledge");
+    const metadata = new MetadataStore(join(dir, "app.db"));
+    const runtime = new DataAgentRuntime({ metadata, knowledgeRoot: root });
+    await expect(runtime.dispatch({ protocolVersion: 1, requestId: "escape", command: { type: "knowledge.save", path: "../knowledge-evil/escape.md", content: "nope" } }, { userId: "local", host: "electron" })).rejects.toMatchObject({ code: "INVALID_COMMAND" });
+    await expect(runtime.dispatch({ protocolVersion: 1, requestId: "system", command: { type: "knowledge.save", path: ".pi\\SYSTEM.md", content: "nope" } }, { userId: "local", host: "electron" })).rejects.toMatchObject({ code: "INVALID_COMMAND" });
+    await metadata.close();
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it("keeps desktop LLM secrets out of Runtime metadata responses", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "data-agent-desktop-config-"));
+    const metadata = new MetadataStore(join(dir, "app.sqlite3"));
+    const runtime = new DataAgentRuntime({ metadata, pythonExecutable: "bundled-python", bundledPythonExecutable: "bundled-python" });
+    const command = {
+      protocolVersion: 1 as const,
+      requestId: "desktop-config",
+      command: {
+        type: "config.save" as const,
+        patch: { provider: "openai", model: "test", api_key: "secret", python_runtime: { mode: "external", executable: "custom-python" } },
+      },
+    };
+    const saved = await runtime.dispatch(command, { userId: "local", host: "electron" });
+    expect((saved.response as { config?: Record<string, unknown> }).config).toEqual({ provider: "openai", model: "test", python_runtime: { mode: "external", executable: "custom-python" } });
+    const stored = await metadata.getConfig("ui.settings");
+    expect(stored).toEqual({ provider: "openai", model: "test", python_runtime: { mode: "external", executable: "custom-python" } });
+    expect(runtime.pythonExecutablePath).toBe("custom-python");
+    await runtime.dispatch({ protocolVersion: 1, requestId: "desktop-config-bundled", command: { type: "config.save", patch: { python_runtime: { mode: "bundled" } } } }, { userId: "local", host: "electron" });
+    expect(runtime.pythonExecutablePath).toBe("bundled-python");
+    await metadata.close();
     await rm(dir, { recursive: true, force: true });
   });
 

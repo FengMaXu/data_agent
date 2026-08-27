@@ -44,12 +44,8 @@ const semanticProjectDir = process.env.DATA_AGENT_SEMANTIC_PROJECT_DIR
   ? path.resolve(process.env.DATA_AGENT_SEMANTIC_PROJECT_DIR)
   : path.resolve(dataDir, "..", "semantic-context");
 
-const workspace = new WorkspaceStore(path.join(dataDir, "workspace"), { userId: "local", sessionId: undefined });
+const workspace = new WorkspaceStore(path.join(dataDir, "workspace"));
 const runtime = new DataAgentRuntime({ metadata, sessions, knowledgeRoot, knowledge, workspace, semanticProjectDir, skillRoots: [path.join(root, ".agents", "skills"), path.join(process.resourcesPath ?? root, ".agents", "skills")] });
-
-// Real db/llm probes so onboarding and the settings testers work over HTTP.
-const { createHostTesters } = await import(toUrl(path.join(root, "apps/server/dist/host-testers.js")));
-Object.assign(runtime, createHostTesters());
 
 // Ingest status port for semantic context readiness
 runtime.ingestJob = {
@@ -82,6 +78,12 @@ runtime.ingestJob = {
 // Dashboard evaluate and agent query_database flow through the contract MCP
 // database server; connection details come from the saved db config.
 const { createMcpQueryExecutor } = await import(toUrl(path.join(root, "apps/server/dist/mcp-query-executor.js")));
+const mysqlMcpProcess = {
+  command: process.execPath,
+  args: [path.join(root, "packages", "mcp-mysql", "dist", "cli.js")],
+};
+const { createHostTesters } = await import(toUrl(path.join(root, "apps/server/dist/host-testers.js")));
+Object.assign(runtime, createHostTesters({ dbMcp: mysqlMcpProcess }));
 function mysqlEnvFromConfig(cfg) {
   const env = {};
   if (!cfg) return env;
@@ -98,7 +100,7 @@ async function resolveQueryExecutor() {
   const env = mysqlEnvFromConfig(cfg);
   const key = JSON.stringify(env);
   if (!queryExecutor || key !== queryExecutorEnvKey) {
-    queryExecutor = createMcpQueryExecutor({ command: process.execPath, args: [path.join(root, "packages", "mcp-mysql", "dist", "cli.js")], env: Object.keys(env).length ? env : undefined });
+    queryExecutor = createMcpQueryExecutor({ ...mysqlMcpProcess, env: Object.keys(env).length ? env : undefined });
     runtime.queryExecutor = queryExecutor;
     queryExecutorEnvKey = key;
   }
@@ -113,6 +115,7 @@ resolveQueryExecutor().catch((error) => console.warn("[data-agent-web] mcp query
 const pythonExecutable = process.env.DATA_AGENT_PYTHON
   ?? (existsSync(path.join(root, "dist", "python-runtime", "Scripts", "python.exe")) ? path.join(root, "dist", "python-runtime", "Scripts", "python.exe") : undefined);
 let agentHarness;
+let activeAgentSessionId;
 const agentListeners = new Set();
 const agentHarnessResolver = createAgentHarnessResolver({
   getProfile: async () => {
@@ -128,7 +131,7 @@ const agentHarnessResolver = createAgentHarnessResolver({
   },
   create: async (profile) => {
     const { createDataAgentHarness } = await import(toUrl(path.join(root, "packages/runtime/dist/index.js")));
-    const harness = await createDataAgentHarness({ workspace, knowledge, knowledgeRoot, pythonExecutable, queryExecutor: await resolveQueryExecutor(), clarifications: runtime.clarifications, systemPromptRoots: [knowledgeRoot, root], projectRoot: root, packagedRoot: process.resourcesPath ?? root }, profile);
+    const harness = await createDataAgentHarness({ workspace, knowledge, knowledgeRoot, pythonExecutable, queryExecutor: await resolveQueryExecutor(), clarifications: runtime.clarifications, systemPromptRoots: [knowledgeRoot, root], projectRoot: root, packagedRoot: process.resourcesPath ?? root, toolContext: () => ({ sessionId: activeAgentSessionId }) }, profile);
     for (const listener of agentListeners) harness.subscribe(listener);
     agentHarness = harness;
     console.log(`[data-agent-web] agent ready: ${profile.provider}/${profile.model}`);
@@ -137,9 +140,19 @@ const agentHarnessResolver = createAgentHarnessResolver({
 });
 const resolveAgentHarness = () => agentHarnessResolver.resolve();
 runtime.attachAgent({
-  prompt: async (text) => (await resolveAgentHarness()).prompt(text),
-  steer: async (text) => (await resolveAgentHarness())?.steer(text),
-  followUp: async (text) => (await resolveAgentHarness())?.followUp(text),
+  prompt: async (text, context) => {
+    activeAgentSessionId = context?.sessionId;
+    try { return await (await resolveAgentHarness()).prompt(text); }
+    finally { activeAgentSessionId = undefined; }
+  },
+  steer: async (text, context) => {
+    if (context?.sessionId) activeAgentSessionId = context.sessionId;
+    return (await resolveAgentHarness())?.steer(text);
+  },
+  followUp: async (text, context) => {
+    if (context?.sessionId) activeAgentSessionId = context.sessionId;
+    return (await resolveAgentHarness())?.followUp(text);
+  },
   abort: async () => agentHarness?.abort(),
   getResources: () => agentHarness?.getResources() ?? {},
   setResources: async (resources) => { if (agentHarness) await agentHarness.setResources(resources); },
@@ -149,7 +162,7 @@ runtime.attachAgent({
 // start, or when onboarding has not configured an LLM yet.
 agentHarnessResolver.warmup((error) => console.warn("[data-agent-web] agent warm-up unavailable:", error?.message ?? error));
 
-const app = await createRuntimeServer(runtime);
+const app = await createRuntimeServer(runtime, { workspace });
 
 // Serve the built renderer when available so one process fronts the whole app.
 const webDist = process.env.DATA_AGENT_WEB_DIST ? path.resolve(process.env.DATA_AGENT_WEB_DIST) : path.join(root, "frontend", "dist");

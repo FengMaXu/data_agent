@@ -17,16 +17,18 @@ import { cpSync, existsSync, mkdirSync, renameSync, rmSync, writeFileSync } from
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 
-const root = process.cwd();
+const root = path.resolve(new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
 const frontend = path.join(root, "frontend");
-const out = process.argv[2] ?? path.join(frontend, "release-manual", "win-unpacked");
+const out = process.argv[2] ? path.resolve(process.cwd(), process.argv[2]) : path.join(frontend, "release-manual", "win-unpacked");
 const pkg = JSON.parse(await import("node:fs").then(m => m.readFileSync(path.join(frontend, "package.json"), "utf8")));
 
 if (!existsSync(path.join(frontend, "dist", "index.html"))) {
   console.error("Renderer build missing; run scripts/build-distribution.mjs first");
   process.exit(1);
 }
-if (!existsSync(path.join(frontend, "electron-host", "main.cjs"))) {
+if (!existsSync(path.join(frontend, "electron-host", "main.cjs"))
+  || !existsSync(path.join(frontend, "electron-host", "metadata-worker.cjs"))
+  || !existsSync(path.join(frontend, "electron-host", "mcp-mysql.cjs"))) {
   console.error("Electron host bundle missing; run scripts/build-distribution.mjs first");
   process.exit(1);
 }
@@ -77,6 +79,8 @@ cpSync(path.join(frontend, "dist"), path.join(staging, "dist"), { recursive: tru
 cpSync(path.join(frontend, "electron"), path.join(staging, "electron"), { recursive: true });
 mkdirSync(path.join(staging, "electron-host"), { recursive: true });
 cpSync(path.join(frontend, "electron-host", "main.cjs"), path.join(staging, "electron-host", "main.cjs"));
+cpSync(path.join(frontend, "electron-host", "metadata-worker.cjs"), path.join(staging, "electron-host", "metadata-worker.cjs"));
+cpSync(path.join(frontend, "electron-host", "mcp-mysql.cjs"), path.join(staging, "electron-host", "mcp-mysql.cjs"));
 
 // Native module + its runtime deps ship inside the archive but with *.node unpacked.
 // npm may hoist better-sqlite3 to the workspace root, so probe both locations.
@@ -90,7 +94,14 @@ function resolveModule(name) {
   process.exit(1);
 }
 mkdirSync(path.join(staging, "node_modules"), { recursive: true });
-for (const name of ["better-sqlite3", "bindings", "file-uri-to-path"]) {
+for (const name of [
+  "better-sqlite3", "bindings", "file-uri-to-path",
+  "mysql2", "aws-ssl-profiles", "denque", "generate-function", "is-property",
+  "iconv-lite", "safer-buffer", "long", "lru.min", "named-placeholders", "sql-escaper",
+  "@modelcontextprotocol/sdk", "ajv", "ajv-formats", "cross-spawn", "fast-deep-equal",
+  "fast-uri", "json-schema-traverse", "json-schema-typed", "path-key", "require-from-string",
+  "shebang-command", "shebang-regex", "which", "isexe", "zod", "zod-to-json-schema",
+]) {
   cpSync(resolveModule(name), path.join(staging, "node_modules", name), { recursive: true });
 }
 

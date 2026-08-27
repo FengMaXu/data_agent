@@ -42,10 +42,12 @@ export class DataAgentRuntimeError extends Error {
 
 export type DataAgentEventListener = (event: DataAgentEventEnvelope) => void;
 
+type RuntimeAgentContext = { sessionId?: string };
+
 type RuntimeAgent = {
-  prompt(text: string): Promise<unknown>;
-  steer?(text: string): void;
-  followUp?(text: string): void;
+  prompt(text: string, context?: RuntimeAgentContext): Promise<unknown>;
+  steer?(text: string, context?: RuntimeAgentContext): void;
+  followUp?(text: string, context?: RuntimeAgentContext): void;
   abort(): void;
   subscribe?(listener: (event: AgentEvent) => void): () => void;
   getResources?(): { skills?: unknown[]; promptTemplates?: unknown[] };
@@ -72,6 +74,16 @@ function readableToolResult(result: unknown, fallback: string): string {
   return fallback;
 }
 
+const DESKTOP_SECRET_CONFIG_FIELDS = ["api_key", "openai_api_key", "anthropic_api_key"] as const;
+
+function sanitizeConfigForHost(value: unknown, host: RequestContext["host"]): Record<string, unknown> {
+  const config = typeof value === "object" && value !== null ? { ...(value as Record<string, unknown>) } : {};
+  if (host === "electron") {
+    for (const field of DESKTOP_SECRET_CONFIG_FIELDS) delete config[field];
+  }
+  return config;
+}
+
 export class DataAgentRuntime {
   private readonly listeners = new Set<DataAgentEventListener>();
   private readonly eventBuffer: DataAgentEventEnvelope[] = [];
@@ -81,6 +93,7 @@ export class DataAgentRuntime {
   private readonly sessions?: PiJsonlSessionStore;
   private readonly workspace?: WorkspaceStore;
   private pythonExecutable?: string;
+  private readonly bundledPythonExecutable?: string;
   private readonly knowledge?: KnowledgeIndex;
   private readonly knowledgeRoot?: string;
   private readonly semanticProjectDir?: string;
@@ -92,17 +105,20 @@ export class DataAgentRuntime {
   mcpSupervisor?: { status(): Promise<Array<{ name: string; enabled: boolean; connected: boolean; toolCount: number; hostManaged: boolean }>>; test(name: string): Promise<{ ok: boolean; message: string }>; restart(name: string): Promise<{ ok: boolean }> };
   ingestJob?: { getStatus(): Promise<{ status: string; jobId: string | null; summary: { updated: number; unchanged: number; failed: number; skipped: number }; errorCode: string | null }>; retry(): Promise<{ accepted: boolean }> };
   private readonly clarifications: ClarificationManager;
+  /** Host composition seam for wiring native AgentHarness tools. */
+  get clarificationManager(): ClarificationManager { return this.clarifications; }
   private activeRun?: { requestId: string; runId: string; sessionId?: string };
   private activeMessageId?: string;
   private readonly widgetCalls = new Map<string, { widgetId: string; messageId: string; toolName: string; errorEmitted: boolean; doneEmitted: boolean }>();
   private readonly toolArgs = new Map<string, unknown>();
   private agent?: RuntimeAgent;
 
-  constructor(options: { metadata?: MetadataStore; sessions?: PiJsonlSessionStore; workspace?: WorkspaceStore; pythonExecutable?: string; knowledge?: KnowledgeIndex; knowledgeRoot?: string; semanticProjectDir?: string; skillRoots?: string[]; projectRoot?: string; packagedRoot?: string; clarifications?: ClarificationManager; agent?: RuntimeAgent } = {}) {
+  constructor(options: { metadata?: MetadataStore; sessions?: PiJsonlSessionStore; workspace?: WorkspaceStore; pythonExecutable?: string; bundledPythonExecutable?: string; knowledge?: KnowledgeIndex; knowledgeRoot?: string; semanticProjectDir?: string; skillRoots?: string[]; projectRoot?: string; packagedRoot?: string; clarifications?: ClarificationManager; agent?: RuntimeAgent } = {}) {
     this.metadata = options.metadata;
     this.sessions = options.sessions;
     this.workspace = options.workspace;
     this.pythonExecutable = options.pythonExecutable;
+    this.bundledPythonExecutable = options.bundledPythonExecutable ?? options.pythonExecutable;
     this.knowledge = options.knowledge;
     this.knowledgeRoot = options.knowledgeRoot;
     this.semanticProjectDir = (options as { semanticProjectDir?: string }).semanticProjectDir;
@@ -118,6 +134,8 @@ export class DataAgentRuntime {
     this.agent?.subscribe?.((event) => this.mapPiEvent(event));
   }
   private nextSequence = 1;
+
+  get pythonExecutablePath(): string | undefined { return this.pythonExecutable; }
 
   eventsAfter(sequence: number): DataAgentEventEnvelope[] {
     return this.eventBuffer.filter((event) => event.sequence > sequence);
@@ -303,8 +321,27 @@ export class DataAgentRuntime {
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "dashboard.v3.data.result", payload: JSON.parse(match[1]) } };
     }
     if (command.command.type === "config.get" || command.command.type === "config.save") {
-      if (command.command.type === "config.save") { const current = (await this.metadata!.getConfig("ui.settings")) ?? {}; const patch = { ...((command.command as { patch: Record<string, unknown> }).patch) }; for (const field of ["api_key", "openai_api_key", "anthropic_api_key"]) { if (typeof patch[field] === "string" && (patch[field] as string).trim() === "" && typeof (current as Record<string, unknown>)[field] === "string" && (current as Record<string, unknown>)[field] !== "") delete patch[field]; } await this.metadata!.setConfig("ui.settings", { ...(current as Record<string, unknown>), ...patch }); }
-      const config = (await this.metadata!.getConfig("ui.settings")) ?? {};
+      if (command.command.type === "config.save") {
+        const current = sanitizeConfigForHost(await this.metadata!.getConfig("ui.settings"), context.host);
+        const patch = { ...((command.command as { patch: Record<string, unknown> }).patch) };
+        for (const field of DESKTOP_SECRET_CONFIG_FIELDS) {
+          if (typeof patch[field] === "string" && patch[field].trim() === "" && typeof current[field] === "string" && current[field] !== "") {
+            delete patch[field];
+          }
+        }
+        const next = { ...current, ...patch };
+        if (context.host === "electron") {
+          for (const field of DESKTOP_SECRET_CONFIG_FIELDS) delete next[field];
+        }
+        await this.metadata!.setConfig("ui.settings", next);
+        const pythonConfig = asRecord(patch.python_runtime);
+        if (pythonConfig) {
+          this.pythonExecutable = pythonConfig.mode === "external" && typeof pythonConfig.executable === "string" && pythonConfig.executable.trim()
+            ? pythonConfig.executable
+            : this.bundledPythonExecutable;
+        }
+      }
+      const config = sanitizeConfigForHost(await this.metadata!.getConfig("ui.settings"), context.host);
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "config.get.result", config } };
     }
     if (command.command.type === "python.runtime.test") {
@@ -408,11 +445,17 @@ export class DataAgentRuntime {
         return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "knowledge.list.result", files } };
       }
       if (command.command.type === "knowledge.save") {
-        if (command.command.path.startsWith(".pi/")) throw new DataAgentRuntimeError("INVALID_COMMAND", "SYSTEM_PROMPT_IMMUTABLE");
+        const requestedPath = command.command.path.replaceAll("\\", "/");
+        if (requestedPath === ".pi" || requestedPath.startsWith(".pi/")) {
+          throw new DataAgentRuntimeError("INVALID_COMMAND", "SYSTEM_PROMPT_IMMUTABLE");
+        }
         const { writeFile, mkdir } = await import("node:fs/promises");
-        const target = resolvePath(joinPath(this.knowledgeRoot as string, command.command.path));
-        if (!target.startsWith(resolvePath(this.knowledgeRoot as string))) throw new DataAgentRuntimeError("INVALID_COMMAND", "Knowledge path escapes root");
-        await mkdir(joinPath(target, ".."), { recursive: true });
+        const root = resolvePath(this.knowledgeRoot as string);
+        const target = resolvePath(joinPath(root, command.command.path));
+        if (target !== root && !target.startsWith(`${root}${path.sep}`)) {
+          throw new DataAgentRuntimeError("INVALID_COMMAND", "Knowledge path escapes root");
+        }
+        await mkdir(path.dirname(target), { recursive: true });
         await writeFile(target, command.command.content, "utf8");
         return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "knowledge.save.result", path: command.command.path } };
       }
@@ -432,7 +475,7 @@ export class DataAgentRuntime {
       if (!this.agent) throw new DataAgentRuntimeError("INVALID_COMMAND", "Pi Agent is not configured");
       const method = command.command.type === "agent.steer" ? this.agent.steer : this.agent.followUp;
       if (!method) throw new DataAgentRuntimeError("INVALID_COMMAND", "Agent queue operation is not configured");
-      method.call(this.agent, command.command.prompt);
+      method.call(this.agent, command.command.prompt, { sessionId: context.sessionId });
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "agent.prompt.accepted", runId: "queued" } };
     }
     if (command.command.type === "agent.stop") {
@@ -449,14 +492,14 @@ export class DataAgentRuntime {
       this.toolArgs.clear();
       const runId = randomUUID();
       this.activeRun = { requestId: command.requestId, runId, sessionId: context.sessionId };
-      void this.agent.prompt(command.command.prompt).then(() => {
-        this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, runId, timestamp: Date.now(), event: { type: "agent.completed" } });
+      void this.agent.prompt(command.command.prompt, { sessionId: context.sessionId }).then(() => {
+        this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, runId, sessionId: context.sessionId, timestamp: Date.now(), event: { type: "agent.completed" } });
         this.activeRun = undefined;
       }).catch((error) => {
         const message = error instanceof Error ? error.message : String(error);
         console.error("[data-agent] agent run failed:", message);
-        this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, runId, timestamp: Date.now(), event: { type: "agent.text_delta", delta: `\n\n> ⚠️ **执行失败**: ${message}` } });
-        this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, runId, timestamp: Date.now(), event: { type: "agent.completed" } });
+        this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, runId, sessionId: context.sessionId, timestamp: Date.now(), event: { type: "agent.text_delta", delta: `\n\n> ⚠️ **执行失败**: ${message}` } });
+        this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, runId, sessionId: context.sessionId, timestamp: Date.now(), event: { type: "agent.completed" } });
         this.activeRun = undefined;
       });
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "agent.prompt.accepted", runId } };
@@ -510,9 +553,9 @@ export class DataAgentRuntime {
 
   /** Tools call this to suspend the run until the user answers or timeout hits. */
   askClarification(sessionId: string, question: string, options: string[], timeoutMs?: number): { clarificationId: string; promise: Promise<string> } {
-    const asked = this.clarifications.ask(sessionId, question, options, timeoutMs);
-    this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: "clarification", sessionId, timestamp: Date.now(), event: { type: "clarification.request", clarificationId: asked.clarificationId, question, options } });
-    return asked;
+    // ClarificationManager.onAsked is wired to the Runtime event stream in the
+    // constructor; emitting here as well would duplicate every request.
+    return this.clarifications.ask(sessionId, question, options, timeoutMs);
   }
 
   cancelSessionClarifications(sessionId: string): void { this.clarifications.cancel(sessionId, "cancelled"); }
@@ -647,7 +690,7 @@ export class DataAgentRuntime {
 }
 
 export { LocalAuthService } from "./auth.js";
-export { createDataAgentHarness, buildAgentTools, resolveSystemPrompt, TOOL_NAME_MAPPING, DATA_AGENT_SYSTEM_PROMPT, type AgentAssemblyDeps, type AgentAssemblyToolContext, type AgentModelProfile, type QueryExecutor, type QueryExportBatch } from "./agent-assembly.js";
+export { createDataAgentHarness, buildAgentTools, resolveSystemPrompt, TOOL_NAME_MAPPING, DATA_AGENT_SYSTEM_PROMPT, type AgentAssemblyDeps, type AgentAssemblyToolContext, type AgentAssemblyToolContextSource, type AgentModelProfile, type PythonExecutableSource, type QueryExecutor, type QueryExportBatch } from "./agent-assembly.js";
 export { validateWidgetSpec, widgetLegacyText, type WidgetKind, type WidgetPayload, type WidgetLifecycleDetails } from "./widget.js";
 export { createAgentHarnessResolver, type AgentHarnessResolver, type AgentHarnessResolverOptions } from "./agent-harness-lifecycle.js";
 export { migrateLegacyData, type MigrationReport } from "./legacy-migration.js";

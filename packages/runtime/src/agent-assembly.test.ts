@@ -3,6 +3,7 @@ import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { buildAgentTools, type QueryExportBatch } from "./agent-assembly.js";
+import { ClarificationManager } from "./clarification.js";
 import { WorkspaceStore } from "./workspace.js";
 
 function exportTool(workspace: WorkspaceStore, queryExecutor: any, emitArtifact?: (path: string) => void): any {
@@ -80,6 +81,26 @@ describe("export_query", () => {
       expect(result.content).toEqual([{ type: "text", text: "native result" }]);
       expect(result.details).toEqual({ nativeSkill: "analysis" });
     } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("uses the native per-turn session for clarification requests", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-clarification-context-"));
+    const workspace = new WorkspaceStore(root);
+    const manager = new ClarificationManager(5000);
+    let clarificationId = "";
+    manager.onAsked = (request) => { clarificationId = request.clarificationId; };
+    const tool = buildAgentTools({ workspace, clarifications: manager }).find((candidate) => candidate.name === "ask_user_clarification") as any;
+    try {
+      const pending = tool.execute("call-clarification", { question: "Which region?" }, undefined, undefined, { sessionId: "session-42" });
+      expect(clarificationId).not.toBe("");
+      expect(manager.isPending("session-42")).toBe(true);
+      expect(manager.isPending("web")).toBe(false);
+      expect(manager.answer(clarificationId, "north")).toBe(true);
+      await expect(pending).resolves.toMatchObject({ content: [{ text: "north" }] });
+    } finally {
+      manager.dropAll();
       await rm(root, { recursive: true, force: true });
     }
   });

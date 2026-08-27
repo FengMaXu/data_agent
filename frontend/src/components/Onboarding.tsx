@@ -40,6 +40,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                 provider,
                 api_key: anthropicKey,
                 anthropic_api_key: anthropicKey,
+                base_url: 'https://api.anthropic.com',
                 model: model || 'claude-sonnet-4-20250514',
             };
         }
@@ -81,12 +82,13 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
             }
 
             if (window.dataAgent) {
-                await window.dataAgent.saveSecrets({
+                const stored = await window.dataAgent.saveSecrets({
                     openai_api_key: openaiKey || undefined,
                     anthropic_api_key: anthropicKey || undefined,
                     default_model: llmPayload.model,
                     openai_base_url: provider === 'openai' ? baseUrl : undefined,
                 });
+                if (!stored.ok) throw new Error(t('onboarding.errorSave'));
             }
 
             await saveConfigViaRuntime(llmPayload);

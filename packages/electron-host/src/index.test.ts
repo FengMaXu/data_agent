@@ -39,6 +39,31 @@ import { registerElectronRuntimeIpc, type IpcMainLike } from "./index.js";
     expect(handlers.has("data-agent:command")).toBe(false);
   });
 
+  it("filters IPC runtime events by the renderer's requested session", () => {
+    const runtime = new DataAgentRuntime();
+    const eventListeners = new Map<string, (event: unknown, payload?: unknown) => void>();
+    const ipcMain: IpcMainLike = {
+      handle: () => undefined,
+      removeHandler: () => undefined,
+      on: (channel, listener) => { eventListeners.set(channel, listener); },
+      removeListener: (channel) => { eventListeners.delete(channel); },
+    };
+    const sent: unknown[] = [];
+    const sender = { send: (_channel: string, payload: unknown) => sent.push(payload) };
+    const unregister = registerElectronRuntimeIpc(ipcMain, runtime);
+    eventListeners.get("data-agent:events:subscribe")?.({ sender }, { sessionId: "session-1" });
+
+    runtime.askClarification("session-2", "other", []);
+    runtime.askClarification("session-1", "wanted", []);
+
+    expect(sent.length).toBeGreaterThan(0);
+    expect(sent.every((payload) => (payload as { sessionId?: string }).sessionId === "session-1")).toBe(true);
+    expect(sent.some((payload) => (payload as { event?: { question?: string } }).event?.question === "wanted")).toBe(true);
+    runtime.cancelSessionClarifications("session-1");
+    runtime.cancelSessionClarifications("session-2");
+    unregister();
+  });
+
   it("forwards runtime events to an Electron renderer subscription", async () => {
     const runtime = new DataAgentRuntime();
     const handlers = new Map<string, (event: unknown, payload: unknown) => Promise<unknown>>();

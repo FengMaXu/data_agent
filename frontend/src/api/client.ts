@@ -985,10 +985,15 @@ export interface WorkspaceUploadResponse {
 }
 
 export async function uploadWorkspaceFile(file: File, sessionId: string = ''): Promise<WorkspaceUploadResponse> {
+    if (window.dataAgent?.uploadWorkspaceFile) {
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        return window.dataAgent.uploadWorkspaceFile({ fileName: file.name, bytes, sessionId });
+    }
+
     const formData = new FormData();
     formData.append('file', file);
     const query = sessionId ? `?session_id=${encodeURIComponent(sessionId)}` : '';
-    const res = await fetch(`${API_BASE_URL}/api/workspace/upload${query}`, {
+    const res = await apiFetch(`${API_BASE_URL}/api/workspace/upload${query}`, {
         method: 'POST',
         body: formData,
     });

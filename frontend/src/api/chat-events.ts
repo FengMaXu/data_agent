@@ -215,11 +215,7 @@ export function sendChatViaRuntime(
     onEvent(adapted);
     if (event.type === "agent.tool_finished") toolArgumentsById.delete(toolCallId);
     if (event.type === "agent.completed") handleFinish();
-  }, sessionId, (error) => {
-    if (isDone) return;
-    onError(error);
-    handleFinish();
-  });
+  }, sessionId);
   const finished = (async () => {
     try {
       await getRuntimeClient().dispatch({ type: "agent.prompt", prompt }, sessionId);

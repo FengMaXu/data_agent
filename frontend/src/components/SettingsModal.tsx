@@ -172,7 +172,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                         if (initialConfig.api_key) {
                             pConfig.apiKey = initialConfig.api_key;
                         }
-                        if (desktopSecrets?.openai_api_key && activeId !== 'Anthropic') {
+                        if ((activeId === 'Anthropic' && desktopSecrets?.anthropic_api_key)
+                            || (activeId !== 'Anthropic' && desktopSecrets?.openai_api_key)) {
                             pConfig.apiKey = '[configured_in_desktop]';
                         }
                         
@@ -228,12 +229,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
 
                 const provider = providerId === 'Anthropic' ? 'anthropic' : 'openai';
                 if (window.dataAgent && apikeyToSend) {
-                    await window.dataAgent.saveSecrets({
+                    const stored = await window.dataAgent.saveSecrets({
                         openai_api_key: provider === 'openai' ? apikeyToSend : undefined,
                         anthropic_api_key: provider === 'anthropic' ? apikeyToSend : undefined,
                         default_model: configToSave.selectedModel,
                         openai_base_url: provider === 'openai' ? configToSave.baseUrl : undefined,
                     });
+                    if (!stored.ok) throw new Error(t('settings.saveFailed'));
                 }
 
                 await saveConfigViaRuntime({

@@ -7,7 +7,7 @@ export interface StoredLLMSecrets {
 
 export interface DataAgentRuntimeBridge {
     invokeRuntimeCommand: (envelope: unknown) => Promise<unknown>;
-    subscribeRuntimeEvents: (listener: (event: unknown) => void) => () => void;
+    subscribeRuntimeEvents: (listener: (event: unknown) => void, sessionId?: string) => () => void;
 }
 
 export interface DataAgentDesktopBridge {
@@ -19,6 +19,7 @@ export interface DataAgentDesktopBridge {
     downloadUpdate: () => Promise<unknown>;
     quitAndInstallUpdate: () => Promise<unknown>;
     selectPythonExecutable: () => Promise<string | null>;
+    uploadWorkspaceFile: (payload: { fileName: string; bytes: Uint8Array; sessionId?: string }) => Promise<{ filename: string; session_id: string; relative_path: string; size: number }>;
     showMenu: (menuName: string, position: { x: number; y: number }) => Promise<boolean>;
     onUpdateEvent: (callback: (event: unknown) => void) => () => void;
 }

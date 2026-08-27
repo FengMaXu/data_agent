@@ -25,7 +25,7 @@ describe("Web host end-to-end: migrated capabilities", () => {
     await mkdir(knowledgeRoot, { recursive: true });
     const sessions = new PiJsonlSessionStore(path.join(root, "sessions"));
     const runtime = new DataAgentRuntime({ metadata, sessions, knowledgeRoot, semanticProjectDir: root } as never);
-    app = await createRuntimeServer(runtime, { contextFactory: () => ({ userId: "web-dev", host: "web" }) });
+    app = await createRuntimeServer(runtime);
     await app.ready();
   });
 
@@ -34,7 +34,9 @@ describe("Web host end-to-end: migrated capabilities", () => {
     await app.inject({ method: "POST", url: "/auth/register", payload: { username: "alice", password: "secret123" } });
     const login = await app.inject({ method: "POST", url: "/auth/login", payload: { username: "alice", password: "secret123" } });
     expect(login.statusCode).toBe(200);
-    expect((login.json() as { user: unknown }).user).toBeTruthy();
+    const loginPayload = login.json() as { user: unknown; token: string };
+    expect(loginPayload.user).toBeTruthy();
+    token = loginPayload.token;
 
     // task + session lifecycle
     const created = await command("task.create", { name: "E2E" });

@@ -41,8 +41,26 @@ beforeEach(() => {
         { id: 'session-1', taskId: 'task-1', name: 'New session' },
     ]);
     runtime.getTranscriptViaRuntime.mockResolvedValue([]);
+    runtime.createTaskWithIdViaRuntime.mockResolvedValue({ id: 'task-runtime', name: 'New task' });
+    runtime.createSessionViaRuntime.mockResolvedValue({ id: 'session-runtime', taskId: 'task-runtime', name: 'New session', createdAt: 1 });
     runtime.prepareSessionViaRuntime.mockResolvedValue(undefined);
     runtime.renameSessionViaRuntime.mockResolvedValue(undefined);
+});
+
+describe('SessionProvider runtime identities', () => {
+    it('uses the IDs returned by the Runtime for newly created tasks and sessions', async () => {
+        const { result } = renderHook(() => useSession(), { wrapper });
+        await waitFor(() => expect(result.current.currentTask?.id).toBe('task-1'));
+
+        act(() => result.current.createTask());
+        await waitFor(() => expect(result.current.currentTask?.id).toBe('task-runtime'));
+        expect(window.localStorage.getItem('data-agent:current-task')).toBe('task-runtime');
+
+        act(() => result.current.createSession('task-runtime'));
+        await waitFor(() => expect(result.current.currentSession?.id).toBe('session-runtime'));
+        expect(result.current.currentSession?.taskId).toBe('task-runtime');
+        expect(window.localStorage.getItem('data-agent:current-session')).toBe('session-runtime');
+    });
 });
 
 describe('SessionProvider automatic session titles', () => {
