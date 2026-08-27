@@ -155,7 +155,7 @@ describe("resolveRuntimePaths", () => {
     expect(await handlers.get("data-agent:quit-and-install-update")?.({}, undefined)).toEqual({ ok: true });
     expect(await handlers.get("data-agent:show-menu")?.({}, undefined)).toBe(false);
     expect(await handlers.get("data-agent:workspace-upload")?.({}, { fileName: "..\\\\report.csv", bytes: Uint8Array.from([1, 2, 3]), sessionId: "s1" })).toMatchObject({ relative_path: "report.csv", size: 3, session_id: "s1" });
-    expect(workspace.writeBytes).toHaveBeenCalledWith("report.csv", expect.any(Uint8Array));
+    expect(workspace.writeBytes).toHaveBeenCalledWith("s1/report.csv", expect.any(Uint8Array));
     expect(updater.quitAndInstall).toHaveBeenCalledOnce();
 
     unregister();

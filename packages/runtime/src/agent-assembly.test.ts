@@ -18,6 +18,36 @@ async function tempFiles(root: string): Promise<string[]> {
   }
 }
 
+describe("session workspace isolation", () => {
+  it("writes identical relative paths into separate session directories", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-session-workspace-"));
+    const workspace = new WorkspaceStore(root);
+    const tool = buildAgentTools({ workspace }).find((candidate) => candidate.name === "write_file") as any;
+    try {
+      await tool.execute("call-a", { path: "report.txt", content: "session A" }, undefined, undefined, { sessionId: "session-A" });
+      await tool.execute("call-b", { path: "report.txt", content: "session B" }, undefined, undefined, { sessionId: "session-B" });
+      expect(await readFile(join(root, "session-A", "report.txt"), "utf8")).toBe("session A");
+      expect(await readFile(join(root, "session-B", "report.txt"), "utf8")).toBe("session B");
+      await expect(readFile(join(root, "report.txt"), "utf8")).rejects.toThrow();
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("runs Python with the active session directory as its working directory", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-session-python-"));
+    const workspace = new WorkspaceStore(root);
+    const tool = buildAgentTools({ workspace, pythonExecutable: process.platform === "win32" ? "python" : "python3" }).find((candidate) => candidate.name === "run_python") as any;
+    try {
+      await tool.execute("call-python", { code: "from pathlib import Path\nPath('chart.txt').write_text('session chart', encoding='utf-8')" }, undefined, undefined, { sessionId: "session-python" });
+      expect(await readFile(join(root, "session-python", "chart.txt"), "utf8")).toBe("session chart");
+      await expect(readFile(join(root, "chart.txt"), "utf8")).rejects.toThrow();
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+});
+
 describe("export_query", () => {
   it("streams a 100,000-row result and preserves CSV escaping", async () => {
     const root = await mkdtemp(join(tmpdir(), "data-agent-export-stream-"));

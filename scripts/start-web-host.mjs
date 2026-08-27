@@ -115,7 +115,6 @@ resolveQueryExecutor().catch((error) => console.warn("[data-agent-web] mcp query
 const pythonExecutable = process.env.DATA_AGENT_PYTHON
   ?? (existsSync(path.join(root, "dist", "python-runtime", "Scripts", "python.exe")) ? path.join(root, "dist", "python-runtime", "Scripts", "python.exe") : undefined);
 let agentHarness;
-let activeAgentSessionId;
 const agentListeners = new Set();
 const agentHarnessResolver = createAgentHarnessResolver({
   getProfile: async () => {
@@ -129,24 +128,21 @@ const agentHarnessResolver = createAgentHarnessResolver({
     if (cfg.llm_enabled === false || !profile.apiKey || !profile.model) throw new Error("LLM_NOT_CONFIGURED: complete onboarding first");
     return profile;
   },
-  create: async (profile) => {
+  create: async (profile, sessionId) => {
     const { createDataAgentHarness } = await import(toUrl(path.join(root, "packages/runtime/dist/index.js")));
-    const harness = await createDataAgentHarness({ workspace, knowledge, knowledgeRoot, pythonExecutable, queryExecutor: await resolveQueryExecutor(), clarifications: runtime.clarifications, systemPromptRoots: [knowledgeRoot, root], projectRoot: root, packagedRoot: process.resourcesPath ?? root, toolContext: () => ({ sessionId: activeAgentSessionId }) }, profile);
+    const persistentSession = sessionId ? await sessions.openByAppSessionId(sessionId) : undefined;
+    const harness = await createDataAgentHarness({ workspace, knowledge, knowledgeRoot, pythonExecutable, queryExecutor: await resolveQueryExecutor(), clarifications: runtime.clarifications, session: persistentSession, systemPromptRoots: [knowledgeRoot, root], projectRoot: root, packagedRoot: process.resourcesPath ?? root, toolContext: { sessionId } }, profile);
     for (const listener of agentListeners) harness.subscribe(listener);
     agentHarness = harness;
     console.log(`[data-agent-web] agent ready: ${profile.provider}/${profile.model}`);
     return harness;
   },
 });
-const resolveAgentHarness = () => agentHarnessResolver.resolve();
+const resolveAgentHarness = (sessionId) => agentHarnessResolver.resolve(sessionId);
 runtime.attachAgent({
-  prompt: async (text, context) => {
-    activeAgentSessionId = context?.sessionId;
-    try { return await (await resolveAgentHarness()).prompt(text); }
-    finally { activeAgentSessionId = undefined; }
-  },
-  steer: async (text) => (await resolveAgentHarness())?.steer(text),
-  followUp: async (text) => (await resolveAgentHarness())?.followUp(text),
+  prompt: async (text, context) => (await resolveAgentHarness(context?.sessionId)).prompt(text),
+  steer: async (text, context) => (await resolveAgentHarness(context?.sessionId))?.steer(text),
+  followUp: async (text, context) => (await resolveAgentHarness(context?.sessionId))?.followUp(text),
   abort: async () => agentHarness?.abort(),
   getResources: () => agentHarness?.getResources() ?? {},
   setResources: async (resources) => { if (agentHarness) await agentHarness.setResources(resources); },

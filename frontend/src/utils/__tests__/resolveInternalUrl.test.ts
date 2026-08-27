@@ -27,9 +27,9 @@ describe('workspace markdown link resolution', () => {
         expect(url.searchParams.get('path')).toBe('session-123/data/industry_sales_2026_h1.csv');
     });
 
-    it('keeps a bare generated image at the workspace root', () => {
+    it('resolves a bare generated image inside the active session workspace', () => {
         const url = new URL(resolveWorkspaceAssetUrl('chart1_trend.png', undefined, 'session-123'));
-        expect(url.searchParams.get('path')).toBe('chart1_trend.png');
+        expect(url.searchParams.get('path')).toBe('session-123/chart1_trend.png');
     });
 
     it('uses the Electron workspace protocol instead of file:// HTTP paths', () => {

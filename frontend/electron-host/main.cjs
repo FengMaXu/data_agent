@@ -28793,6 +28793,12 @@ var init_session_store = __esm({
       async open(metadata) {
         return this.repo.open(metadata);
       }
+      async openByAppSessionId(sessionId) {
+        const metadata = (await this.list()).find((item) => item?.metadata?.sessionId === sessionId || item?.id === sessionId);
+        if (!metadata)
+          throw new Error(`SESSION_NOT_FOUND: ${sessionId}`);
+        return this.open(metadata);
+      }
     };
   }
 });
@@ -28856,7 +28862,7 @@ var init_workspace = __esm({
     import_node_crypto3 = require("node:crypto");
     import_node_path5 = __toESM(require("node:path"), 1);
     init_bounded_read();
-    WorkspaceStore = class {
+    WorkspaceStore = class _WorkspaceStore {
       root;
       ownerUserId;
       ownerSessionId;
@@ -28870,6 +28876,18 @@ var init_workspace = __esm({
           throw new Error("WORKSPACE_OWNER_MISMATCH");
         if (this.ownerSessionId && context2.sessionId !== this.ownerSessionId)
           throw new Error("WORKSPACE_SESSION_MISMATCH");
+      }
+      /** Create an isolated direct-child workspace for one application session. */
+      async scoped(sessionId) {
+        if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(sessionId) || sessionId === "." || sessionId === "..")
+          throw new Error("INVALID_WORKSPACE_SESSION");
+        const target = this.resolve(sessionId);
+        await (0, import_promises4.mkdir)(target, { recursive: true });
+        const info = await (0, import_promises4.lstat)(target);
+        if (!info.isDirectory() || info.isSymbolicLink())
+          throw new Error("WORKSPACE_SYMLINK_ESCAPE");
+        this.assertWithin(await (0, import_promises4.realpath)(this.root), await (0, import_promises4.realpath)(target));
+        return new _WorkspaceStore(target, { userId: this.ownerUserId, sessionId });
       }
       resolve(relativePath) {
         const target = import_node_path5.default.resolve(this.root, relativePath);
@@ -28899,6 +28917,20 @@ var init_workspace = __esm({
       }
       async readBytes(relativePath) {
         return new Uint8Array(await (0, import_promises4.readFile)(await this.safeExisting(relativePath)));
+      }
+      /** Read a session path, falling back to a pre-session-isolation root artifact. */
+      async readBytesWithLegacyFallback(relativePath) {
+        try {
+          return await this.readBytes(relativePath);
+        } catch (error51) {
+          if (error51.code !== "ENOENT")
+            throw error51;
+          const normalized = relativePath.replaceAll("\\", "/");
+          const parts = normalized.split("/").filter(Boolean);
+          if (parts.length !== 2 || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(parts[0]))
+            throw error51;
+          return this.readBytes(parts[1]);
+        }
       }
       async readRange(relativePath, range = {}) {
         return boundTextByLines(await (0, import_promises4.readFile)(await this.safeExisting(relativePath), "utf8"), range);
@@ -163004,23 +163036,37 @@ function defineTool(name, description, parameters, execute) {
 }
 function buildAgentTools(deps) {
   const writer = deps.knowledgeRoot ? new KnowledgeWriter(deps.knowledgeRoot) : void 0;
-  const workspaceDir = deps.pythonWorkspaceDir ?? deps.workspace.root;
+  const sessionIdFor = (native) => native.context?.sessionId ?? deps.sessionId;
+  const workspaceFor = async (native) => {
+    const sessionId = sessionIdFor(native);
+    return sessionId ? deps.workspace.scoped(sessionId) : deps.workspace;
+  };
+  const artifactPathFor = (native, relativePath) => {
+    const sessionId = sessionIdFor(native);
+    return sessionId ? `${sessionId}/${relativePath}` : relativePath;
+  };
   const tools = [
-    defineTool("list_workspace", canonicalTool("list_workspace").description, typebox_exports.Object({}), async () => text((await deps.workspace.list()).filter((entry) => !entry.split(import_node_path11.default.sep).includes(".audit.log")).join("\n") || "(workspace empty)")),
-    defineTool("read_file", canonicalTool("read_file").description, typebox_exports.Object({ path: typebox_exports.String(), startLine: typebox_exports.Optional(typebox_exports.Integer({ minimum: 1 })), endLine: typebox_exports.Optional(typebox_exports.Integer({ minimum: 1 })) }), async (p) => {
-      const result = await deps.workspace.readRange(p.path, { startLine: p.startLine, endLine: p.endLine });
+    defineTool("list_workspace", canonicalTool("list_workspace").description, typebox_exports.Object({}), async (_p, native) => {
+      const workspace = await workspaceFor(native);
+      return text((await workspace.list()).filter((entry) => !entry.split(import_node_path11.default.sep).includes(".audit.log")).join("\n") || "(workspace empty)");
+    }),
+    defineTool("read_file", canonicalTool("read_file").description, typebox_exports.Object({ path: typebox_exports.String(), startLine: typebox_exports.Optional(typebox_exports.Integer({ minimum: 1 })), endLine: typebox_exports.Optional(typebox_exports.Integer({ minimum: 1 })) }), async (p, native) => {
+      const workspace = await workspaceFor(native);
+      const result = await workspace.readRange(p.path, { startLine: p.startLine, endLine: p.endLine });
       return text(result.content, { startLine: p.startLine, endLine: p.endLine, truncated: result.truncated });
     }),
-    defineTool("write_file", canonicalTool("write_file").description, typebox_exports.Object({ path: typebox_exports.String(), content: typebox_exports.String() }), async (p) => {
-      await deps.workspace.write(p.path, p.content);
-      deps.emitArtifact?.(p.path);
+    defineTool("write_file", canonicalTool("write_file").description, typebox_exports.Object({ path: typebox_exports.String(), content: typebox_exports.String() }), async (p, native) => {
+      const workspace = await workspaceFor(native);
+      await workspace.write(p.path, p.content);
+      deps.emitArtifact?.(artifactPathFor(native, p.path));
       return text(`written ${p.path} (${p.content.length} bytes)`);
     }),
-    defineTool("run_python", canonicalTool("run_python").description, typebox_exports.Object({ code: typebox_exports.String({ minLength: 1 }), description: typebox_exports.Optional(typebox_exports.String()) }), async (p) => {
+    defineTool("run_python", canonicalTool("run_python").description, typebox_exports.Object({ code: typebox_exports.String({ minLength: 1 }), description: typebox_exports.Optional(typebox_exports.String()) }), async (p, native) => {
       const executable = typeof deps.pythonExecutable === "function" ? deps.pythonExecutable() : deps.pythonExecutable;
       if (!executable)
         throw new Error("PYTHON_RUNTIME_NOT_AVAILABLE");
-      const result = await runPythonJob(p.code, { workspace: workspaceDir, executable, timeoutMs: 12e4 });
+      const workspace = deps.pythonWorkspaceDir ? { root: deps.pythonWorkspaceDir } : await workspaceFor(native);
+      const result = await runPythonJob(p.code, { workspace: workspace.root, executable, timeoutMs: 12e4 });
       return text(result.stdout || result.stderr || "(no output)", { exitCode: result.exitCode });
     })
   ];
@@ -163047,7 +163093,7 @@ ${h2.snippet}`).join("\n\n") : "(no matches)";
     if (!deps.invokeSkill)
       throw new Error("NATIVE_SKILL_INVOCATION_UNAVAILABLE");
     return nativeSkillResult(await deps.invokeSkill(p.name), p.name);
-  }), defineTool("generate_dashboard", canonicalTool("generate_dashboard").description, typebox_exports.Object({ operation: typebox_exports.Union([typebox_exports.Literal("create"), typebox_exports.Literal("edit"), typebox_exports.Literal("validate")]), mode: typebox_exports.Union([typebox_exports.Literal("static"), typebox_exports.Literal("semantic")]), version: typebox_exports.Union([typebox_exports.Literal("v3"), typebox_exports.Literal("v4")]), spec: typebox_exports.Unknown(), editPath: typebox_exports.Optional(typebox_exports.String()) }), async (p) => {
+  }), defineTool("generate_dashboard", canonicalTool("generate_dashboard").description, typebox_exports.Object({ operation: typebox_exports.Union([typebox_exports.Literal("create"), typebox_exports.Literal("edit"), typebox_exports.Literal("validate")]), mode: typebox_exports.Union([typebox_exports.Literal("static"), typebox_exports.Literal("semantic")]), version: typebox_exports.Union([typebox_exports.Literal("v3"), typebox_exports.Literal("v4")]), spec: typebox_exports.Unknown(), editPath: typebox_exports.Optional(typebox_exports.String()) }), async (p, native) => {
     const validated = validateDashboardV4Spec(p.spec);
     if (!validated.ok)
       throw new Error(`DASHBOARD_SPEC_INVALID: ${validated.errors.join("; ")}`);
@@ -163055,8 +163101,9 @@ ${h2.snippet}`).join("\n\n") : "(no matches)";
       return text("dashboard spec valid");
     const target = p.editPath ?? `dashboards/${Date.now()}-semantic.html`;
     const html = renderSemanticDashboardHtml(validated.spec, { nonce: (0, import_node_crypto8.randomUUID)().replace(/-/g, ""), expectedOrigin: "https://data-agent.local" });
-    await deps.workspace.write(target, html);
-    deps.emitArtifact?.(target);
+    const workspace = await workspaceFor(native);
+    await workspace.write(target, html);
+    deps.emitArtifact?.(artifactPathFor(native, target));
     return text(`dashboard written to ${target}`);
   }), defineTool("show_widget", canonicalTool("show_widget").description, typebox_exports.Object({ kind: typebox_exports.Union([typebox_exports.Literal("kpi"), typebox_exports.Literal("chart"), typebox_exports.Literal("table"), typebox_exports.Literal("steps")]), spec: typebox_exports.Unknown() }), async (p, native) => {
     const widgetId = `widget-${native.toolCallId}`;
@@ -163117,7 +163164,8 @@ ${body}${result.truncated ? `
       const signal = native.signal;
       const target = p.filename ?? `exports/query-${Date.now()}.csv`;
       let rowCount = 0;
-      await deps.workspace.writeStream(target, async (write) => {
+      const workspace = await workspaceFor(native);
+      await workspace.writeStream(target, async (write) => {
         let pending = "";
         let headerWritten = false;
         const append = async (chunk) => {
@@ -163153,7 +163201,7 @@ ${row.map(csvField).join(",")}`);
         if (pending)
           await write(pending);
       }, signal);
-      deps.emitArtifact?.(target);
+      deps.emitArtifact?.(artifactPathFor(native, target));
       return text(`exported ${rowCount} rows to ${target}`);
     }));
   }
@@ -163204,7 +163252,7 @@ async function createDataAgentHarness(deps, profile) {
     }
   });
   harness = new DataAgentHarness({
-    session: await new InMemorySessionRepo().create(),
+    session: deps.session ?? await new InMemorySessionRepo().create(),
     models,
     model: buildModel(profile),
     thinkingLevel: "off",
@@ -163281,42 +163329,30 @@ var init_agent_assembly = __esm({
 
 // packages/runtime/dist/agent-harness-lifecycle.js
 function createAgentHarnessResolver(options) {
-  const keyOf = options.key ?? ((profile) => JSON.stringify(profile) ?? "");
-  let agent;
-  let agentKey;
-  let inFlight;
-  let inFlightKey;
-  async function resolve2() {
+  const keyOf = options.key ?? ((profile, scope) => `${JSON.stringify(profile) ?? ""}:${scope ?? ""}`);
+  const agents = /* @__PURE__ */ new Map();
+  const inFlight = /* @__PURE__ */ new Map();
+  async function resolve2(scope) {
     const profile = await options.getProfile();
-    const key = keyOf(profile);
-    if (agent !== void 0 && agentKey === key)
-      return agent;
-    if (inFlight && inFlightKey === key)
-      return inFlight;
-    const initialization = (async () => {
-      const created = await options.create(profile);
-      if (inFlightKey === key) {
-        agent = created;
-        agentKey = key;
-      }
-      return created;
-    })();
+    const key = keyOf(profile, scope);
+    const existing = agents.get(key);
+    if (existing !== void 0)
+      return existing;
+    const pending = inFlight.get(key);
+    if (pending)
+      return pending;
     let tracked;
-    tracked = initialization.then((created) => {
-      if (inFlight === tracked) {
-        inFlight = void 0;
-        inFlightKey = void 0;
-      }
+    tracked = options.create(profile, scope).then((created) => {
+      agents.set(key, created);
+      if (inFlight.get(key) === tracked)
+        inFlight.delete(key);
       return created;
     }, (error51) => {
-      if (inFlight === tracked) {
-        inFlight = void 0;
-        inFlightKey = void 0;
-      }
+      if (inFlight.get(key) === tracked)
+        inFlight.delete(key);
       throw error51;
     });
-    inFlight = tracked;
-    inFlightKey = key;
+    inFlight.set(key, tracked);
     return tracked;
   }
   function warmup(onError) {
@@ -164355,8 +164391,10 @@ var init_dist5 = __esm({
               if (entry.type !== "message")
                 continue;
               const message = entry.message;
-              const role = message.role === "assistant" ? "agent" : String(message.role ?? "user");
-              let text2 = "";
+              if (message.role !== "user" && message.role !== "assistant")
+                continue;
+              const role = message.role === "assistant" ? "agent" : "user";
+              let text2 = typeof message.content === "string" ? message.content : "";
               for (const part of Array.isArray(message.content) ? message.content : []) {
                 if (part.type === "text" && typeof part.text === "string")
                   text2 += part.text;
@@ -164911,9 +164949,11 @@ function registerDesktopCapabilities(ipcMain, options) {
     const bytes = toBytes(payload.bytes);
     if (!bytes)
       throw new Error("WORKSPACE_FILE_REQUIRED");
-    const relativePath = safeUploadName(payload.fileName);
-    await options.workspace.writeBytes(relativePath, bytes);
-    return { filename: relativePath, session_id: typeof payload.sessionId === "string" ? payload.sessionId : "", relative_path: relativePath, size: bytes.byteLength };
+    const fileName = safeUploadName(payload.fileName);
+    const sessionId = typeof payload.sessionId === "string" && payload.sessionId ? safeSessionSegment(payload.sessionId) : "";
+    const storagePath = sessionId ? `${sessionId}/${fileName}` : fileName;
+    await options.workspace.writeBytes(storagePath, bytes);
+    return { filename: fileName, session_id: sessionId, relative_path: fileName, size: bytes.byteLength };
   });
   handle("data-agent:show-menu", async () => false);
   handle("data-agent:get-backend-port", async () => null);
@@ -164990,6 +165030,11 @@ function safeUploadName(fileName) {
     throw new Error("WORKSPACE_FILE_REQUIRED");
   return name;
 }
+function safeSessionSegment(sessionId) {
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(sessionId) || sessionId === "." || sessionId === "..")
+    throw new Error("INVALID_WORKSPACE_SESSION");
+  return sessionId;
+}
 async function registerWorkspaceProtocol(protocol, workspace) {
   if (!protocol)
     return () => void 0;
@@ -165001,7 +165046,7 @@ async function registerWorkspaceProtocol(protocol, workspace) {
       const relativePath = url2.searchParams.get("path") ?? "";
       if (!relativePath)
         return new Response("File path is required", { status: 400 });
-      const bytes = await workspace.readBytes(relativePath);
+      const bytes = await workspace.readBytesWithLegacyFallback(relativePath);
       return new Response(Buffer.from(bytes), { headers: { "Content-Type": contentTypeFor(relativePath), "Cache-Control": "no-store" } });
     } catch {
       return new Response("Not found", { status: 404 });
@@ -165258,7 +165303,6 @@ async function startElectronHost(deps, overrides = {}) {
   });
   const unregisterRuntimeIpc = registerElectronRuntimeIpc2(deps.ipcMain, runtime);
   let agentHarness;
-  let activeAgentSessionId;
   const agentListeners = /* @__PURE__ */ new Set();
   const secretPath = import_node_path18.default.join(paths.userDataDir, "secrets.json");
   const agentHarnessResolver = createAgentHarnessResolver2({
@@ -165274,7 +165318,8 @@ async function startElectronHost(deps, overrides = {}) {
         throw new Error("LLM_NOT_CONFIGURED: complete onboarding first");
       return { provider, model, apiKey, ...baseUrl ? { baseUrl } : {} };
     },
-    create: async (profile) => {
+    create: async (profile, sessionId) => {
+      const persistentSession = sessionId ? await sessions.openByAppSessionId(sessionId) : void 0;
       const harness = await createDataAgentHarness2({
         workspace,
         knowledge,
@@ -165282,10 +165327,11 @@ async function startElectronHost(deps, overrides = {}) {
         pythonExecutable: () => runtime.pythonExecutablePath,
         queryExecutor,
         clarifications: runtime.clarificationManager,
+        session: persistentSession,
         systemPromptRoots: [knowledgeRoot, developmentRoot, packagedRoot],
         projectRoot: developmentRoot,
         packagedRoot,
-        toolContext: () => ({ sessionId: activeAgentSessionId })
+        toolContext: { sessionId }
       }, profile);
       for (const listener of agentListeners)
         harness.subscribe?.(listener);
@@ -165293,21 +165339,14 @@ async function startElectronHost(deps, overrides = {}) {
       return harness;
     }
   });
-  const resolveAgentHarness = () => agentHarnessResolver.resolve();
+  const resolveAgentHarness = (sessionId) => agentHarnessResolver.resolve(sessionId);
   runtime.attachAgent({
-    prompt: async (text2, context2) => {
-      activeAgentSessionId = context2?.sessionId;
-      try {
-        return await (await resolveAgentHarness()).prompt(text2);
-      } finally {
-        activeAgentSessionId = void 0;
-      }
+    prompt: async (text2, context2) => (await resolveAgentHarness(context2?.sessionId)).prompt(text2),
+    steer: (text2, context2) => {
+      void resolveAgentHarness(context2?.sessionId).then((agent) => agent.steer?.(text2));
     },
-    steer: (text2) => {
-      void resolveAgentHarness().then((agent) => agent.steer?.(text2));
-    },
-    followUp: (text2) => {
-      void resolveAgentHarness().then((agent) => agent.followUp?.(text2));
+    followUp: (text2, context2) => {
+      void resolveAgentHarness(context2?.sessionId).then((agent) => agent.followUp?.(text2));
     },
     abort: () => {
       agentHarness?.abort();

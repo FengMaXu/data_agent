@@ -64,13 +64,27 @@ import { join } from "node:path";
     await app.close(); await rm(root, { recursive: true, force: true });
   });
 
-  it("serves workspace images as unmodified binary data with the correct media type", async () => {
+  it("stores uploads inside the requested session workspace", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-server-session-upload-"));
+    const app = await createRuntimeServer(new DataAgentRuntime(), { ...trustedWebContext, workspace: new WorkspaceStore(root) });
+    const form = new FormData(); form.append("file", new Blob(["isolated"]), "report.txt");
+
+    const response = await app.inject({ method: "POST", url: "/api/workspace/upload?session_id=session-A", payload: form as any, headers: { "content-type": "multipart/form-data" } });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({ relative_path: "report.txt", session_id: "session-A" });
+    expect(await readFile(join(root, "session-A", "report.txt"), "utf8")).toBe("isolated");
+    await expect(readFile(join(root, "report.txt"), "utf8")).rejects.toThrow();
+    await app.close(); await rm(root, { recursive: true, force: true });
+  });
+
+  it("serves legacy root images through a session URL without changing their bytes", async () => {
     const root = await mkdtemp(join(tmpdir(), "data-agent-server-image-"));
     const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0xff, 0x00, 0xfe]);
     await writeFile(join(root, "chart.png"), png);
     const app = await createRuntimeServer(new DataAgentRuntime(), { ...trustedWebContext, workspace: new WorkspaceStore(root) });
 
-    const response = await app.inject({ method: "GET", url: "/api/workspace/download?path=chart.png" });
+    const response = await app.inject({ method: "GET", url: "/api/workspace/download?path=session-A%2Fchart.png" });
 
     expect(response.statusCode).toBe(200);
     expect(response.headers["content-type"]).toBe("image/png");

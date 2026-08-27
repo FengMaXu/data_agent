@@ -402,8 +402,9 @@ export class DataAgentRuntime {
         for (const entry of entries) {
           if (entry.type !== "message") continue;
           const message = entry.message as unknown as Record<string, unknown>;
-          const role = message.role === "assistant" ? "agent" : String(message.role ?? "user");
-          let text = "";
+          if (message.role !== "user" && message.role !== "assistant") continue;
+          const role = message.role === "assistant" ? "agent" : "user";
+          let text = typeof message.content === "string" ? message.content : "";
           for (const part of (Array.isArray(message.content) ? message.content : []) as Array<Record<string, unknown>>) {
             if (part.type === "text" && typeof part.text === "string") text += part.text;
           }

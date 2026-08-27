@@ -148,9 +148,11 @@ export function registerDesktopCapabilities(
     if (!isRecord(payload) || typeof payload.fileName !== "string") throw new Error("WORKSPACE_FILE_REQUIRED");
     const bytes = toBytes(payload.bytes);
     if (!bytes) throw new Error("WORKSPACE_FILE_REQUIRED");
-    const relativePath = safeUploadName(payload.fileName);
-    await options.workspace.writeBytes(relativePath, bytes);
-    return { filename: relativePath, session_id: typeof payload.sessionId === "string" ? payload.sessionId : "", relative_path: relativePath, size: bytes.byteLength };
+    const fileName = safeUploadName(payload.fileName);
+    const sessionId = typeof payload.sessionId === "string" && payload.sessionId ? safeSessionSegment(payload.sessionId) : "";
+    const storagePath = sessionId ? `${sessionId}/${fileName}` : fileName;
+    await options.workspace.writeBytes(storagePath, bytes);
+    return { filename: fileName, session_id: sessionId, relative_path: fileName, size: bytes.byteLength };
   });
   handle("data-agent:show-menu", async () => false);
   handle("data-agent:get-backend-port", async () => null);
@@ -228,7 +230,12 @@ function safeUploadName(fileName: string): string {
   return name;
 }
 
-async function registerWorkspaceProtocol(protocol: ElectronProtocolLike | undefined, workspace: WorkspaceBytesLike & { readBytes(relativePath: string): Promise<Uint8Array> }): Promise<() => void> {
+function safeSessionSegment(sessionId: string): string {
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(sessionId) || sessionId === "." || sessionId === "..") throw new Error("INVALID_WORKSPACE_SESSION");
+  return sessionId;
+}
+
+async function registerWorkspaceProtocol(protocol: ElectronProtocolLike | undefined, workspace: WorkspaceBytesLike & { readBytesWithLegacyFallback(relativePath: string): Promise<Uint8Array> }): Promise<() => void> {
   if (!protocol) return () => undefined;
   await protocol.handle("data-agent", async (request) => {
     try {
@@ -236,7 +243,7 @@ async function registerWorkspaceProtocol(protocol: ElectronProtocolLike | undefi
       if (url.hostname !== "workspace" || !url.pathname.startsWith("/workspace/files/")) return new Response("Not found", { status: 404 });
       const relativePath = url.searchParams.get("path") ?? "";
       if (!relativePath) return new Response("File path is required", { status: 400 });
-      const bytes = await workspace.readBytes(relativePath);
+      const bytes = await workspace.readBytesWithLegacyFallback(relativePath);
       return new Response(Buffer.from(bytes), { headers: { "Content-Type": contentTypeFor(relativePath), "Cache-Control": "no-store" } });
     } catch {
       return new Response("Not found", { status: 404 });
@@ -538,7 +545,6 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
     setResources?(resources: { skills?: unknown[]; promptTemplates?: unknown[] }): Promise<void>;
   };
   let agentHarness: HarnessLike | undefined;
-  let activeAgentSessionId: string | undefined;
   const agentListeners = new Set<(event: unknown) => void>();
   const secretPath = path.join(paths.userDataDir, "secrets.json");
   const agentHarnessResolver = createAgentHarnessResolver({
@@ -558,7 +564,8 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
       if (cfg.llm_enabled === false || !apiKey || !model) throw new Error("LLM_NOT_CONFIGURED: complete onboarding first");
       return { provider, model, apiKey, ...(baseUrl ? { baseUrl } : {}) };
     },
-    create: async (profile) => {
+    create: async (profile, sessionId) => {
+      const persistentSession = sessionId ? await sessions.openByAppSessionId(sessionId) : undefined;
       const harness = await createDataAgentHarness({
         workspace,
         knowledge,
@@ -566,28 +573,22 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
         pythonExecutable: () => runtime.pythonExecutablePath,
         queryExecutor,
         clarifications: runtime.clarificationManager,
+        session: persistentSession,
         systemPromptRoots: [knowledgeRoot, developmentRoot, packagedRoot],
         projectRoot: developmentRoot,
         packagedRoot,
-        toolContext: () => ({ sessionId: activeAgentSessionId }),
+        toolContext: { sessionId },
       }, profile);
       for (const listener of agentListeners) harness.subscribe?.(listener);
       agentHarness = harness as unknown as HarnessLike;
       return harness;
     },
   });
-  const resolveAgentHarness = () => agentHarnessResolver.resolve();
+  const resolveAgentHarness = (sessionId?: string) => agentHarnessResolver.resolve(sessionId);
   runtime.attachAgent({
-    prompt: async (text, context) => {
-      activeAgentSessionId = context?.sessionId;
-      try {
-        return await (await resolveAgentHarness()).prompt(text);
-      } finally {
-        activeAgentSessionId = undefined;
-      }
-    },
-    steer: (text) => { void resolveAgentHarness().then((agent) => agent.steer?.(text)); },
-    followUp: (text) => { void resolveAgentHarness().then((agent) => agent.followUp?.(text)); },
+    prompt: async (text, context) => (await resolveAgentHarness(context?.sessionId)).prompt(text),
+    steer: (text, context) => { void resolveAgentHarness(context?.sessionId).then((agent) => agent.steer?.(text)); },
+    followUp: (text, context) => { void resolveAgentHarness(context?.sessionId).then((agent) => agent.followUp?.(text)); },
     abort: () => { agentHarness?.abort(); },
     getResources: () => agentHarness?.getResources?.() ?? {},
     setResources: async (resources) => { if (agentHarness?.setResources) await agentHarness.setResources(resources); },

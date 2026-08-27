@@ -1,64 +1,48 @@
 export interface AgentHarnessResolverOptions<TProfile, TAgent> {
   getProfile: () => Promise<TProfile>;
-  create: (profile: TProfile) => Promise<TAgent>;
-  key?: (profile: TProfile) => string;
+  create: (profile: TProfile, scope?: string) => Promise<TAgent>;
+  key?: (profile: TProfile, scope?: string) => string;
 }
 
 export interface AgentHarnessResolver<TAgent> {
-  /** Resolve the current agent, sharing initialization with concurrent callers. */
-  resolve(): Promise<TAgent>;
+  /** Resolve the current agent, sharing initialization with concurrent callers in the same scope. */
+  resolve(scope?: string): Promise<TAgent>;
   /** Start initialization without making startup wait for it. */
   warmup(onError?: (error: unknown) => void): void;
 }
 
 /**
- * Keeps one harness initialization in flight for a profile. A failed
- * initialization is discarded so the next request can retry it.
+ * Keeps one harness initialization in flight for each profile/scope key. A
+ * failed initialization is discarded so the next request can retry it.
  */
 export function createAgentHarnessResolver<TProfile, TAgent>(
   options: AgentHarnessResolverOptions<TProfile, TAgent>,
 ): AgentHarnessResolver<TAgent> {
-  const keyOf = options.key ?? ((profile: TProfile) => JSON.stringify(profile) ?? "");
-  let agent: TAgent | undefined;
-  let agentKey: string | undefined;
-  let inFlight: Promise<TAgent> | undefined;
-  let inFlightKey: string | undefined;
+  const keyOf = options.key ?? ((profile: TProfile, scope?: string) => `${JSON.stringify(profile) ?? ""}:${scope ?? ""}`);
+  const agents = new Map<string, TAgent>();
+  const inFlight = new Map<string, Promise<TAgent>>();
 
-  async function resolve(): Promise<TAgent> {
+  async function resolve(scope?: string): Promise<TAgent> {
     const profile = await options.getProfile();
-    const key = keyOf(profile);
-    if (agent !== undefined && agentKey === key) return agent;
-    if (inFlight && inFlightKey === key) return inFlight;
+    const key = keyOf(profile, scope);
+    const existing = agents.get(key);
+    if (existing !== undefined) return existing;
+    const pending = inFlight.get(key);
+    if (pending) return pending;
 
-    const initialization = (async () => {
-      const created = await options.create(profile);
-      // Do not let an older profile overwrite a newer initialization that is
-      // already in flight.
-      if (inFlightKey === key) {
-        agent = created;
-        agentKey = key;
-      }
-      return created;
-    })();
     let tracked!: Promise<TAgent>;
-    tracked = initialization.then(
+    tracked = options.create(profile, scope).then(
       (created) => {
-        if (inFlight === tracked) {
-          inFlight = undefined;
-          inFlightKey = undefined;
-        }
+        agents.set(key, created);
+        if (inFlight.get(key) === tracked) inFlight.delete(key);
         return created;
       },
       (error: unknown) => {
-        if (inFlight === tracked) {
-          inFlight = undefined;
-          inFlightKey = undefined;
-        }
+        if (inFlight.get(key) === tracked) inFlight.delete(key);
         throw error;
       },
     );
-    inFlight = tracked;
-    inFlightKey = key;
+    inFlight.set(key, tracked);
     return tracked;
   }
 

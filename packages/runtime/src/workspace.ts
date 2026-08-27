@@ -13,6 +13,16 @@ export class WorkspaceStore {
   private readonly ownerSessionId?: string;
   constructor(root: string, ownership: { userId?: string; sessionId?: string } = {}) { this.root = path.resolve(root); this.ownerUserId = ownership.userId; this.ownerSessionId = ownership.sessionId; }
   assertAccess(context: { userId: string; sessionId?: string }): void { if (this.ownerUserId && context.userId !== this.ownerUserId) throw new Error("WORKSPACE_OWNER_MISMATCH"); if (this.ownerSessionId && context.sessionId !== this.ownerSessionId) throw new Error("WORKSPACE_SESSION_MISMATCH"); }
+  /** Create an isolated direct-child workspace for one application session. */
+  async scoped(sessionId: string): Promise<WorkspaceStore> {
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(sessionId) || sessionId === "." || sessionId === "..") throw new Error("INVALID_WORKSPACE_SESSION");
+    const target = this.resolve(sessionId);
+    await mkdir(target, { recursive: true });
+    const info = await lstat(target);
+    if (!info.isDirectory() || info.isSymbolicLink()) throw new Error("WORKSPACE_SYMLINK_ESCAPE");
+    this.assertWithin(await realpath(this.root), await realpath(target));
+    return new WorkspaceStore(target, { userId: this.ownerUserId, sessionId });
+  }
   private resolve(relativePath: string): string {
     const target = path.resolve(this.root, relativePath);
     if (!this.isWithin(this.root, target)) throw new Error("WORKSPACE_PATH_ESCAPE");
@@ -34,6 +44,21 @@ export class WorkspaceStore {
   }
   async read(relativePath: string): Promise<string> { return (await this.readRange(relativePath)).content; }
   async readBytes(relativePath: string): Promise<Uint8Array> { return new Uint8Array(await readFile(await this.safeExisting(relativePath))); }
+  /** Read a session path, falling back to a pre-session-isolation root artifact. */
+  async readBytesWithLegacyFallback(relativePath: string): Promise<Uint8Array> {
+    try {
+      return await this.readBytes(relativePath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      const normalized = relativePath.replaceAll("\\", "/");
+      const parts = normalized.split("/").filter(Boolean);
+      // Legacy artifacts were written directly at the workspace root. Only
+      // support session-id/root-file lookups; nested paths must fail closed so
+      // stripping one segment can never address another session directory.
+      if (parts.length !== 2 || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(parts[0])) throw error;
+      return this.readBytes(parts[1]);
+    }
+  }
   async readRange(relativePath: string, range: LineRange = {}): Promise<BoundedReadResult> {
     return boundTextByLines(await readFile(await this.safeExisting(relativePath), "utf8"), range);
   }

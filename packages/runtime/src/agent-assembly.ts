@@ -1,5 +1,5 @@
 import { AgentHarness, InMemorySessionRepo } from "@earendil-works/pi-agent-core";
-import type { AgentHarnessTool, AgentToolResult, Skill as NativeSkill } from "@earendil-works/pi-agent-core";
+import type { AgentHarnessTool, AgentToolResult, Session, Skill as NativeSkill } from "@earendil-works/pi-agent-core";
 import { InMemoryCredentialStore, type Model, type Models } from "@earendil-works/pi-ai";
 import { boundTextByLines, readBoundedFile } from "./bounded-read.js";
 import { builtinModels } from "@earendil-works/pi-ai/providers/all";
@@ -40,6 +40,8 @@ export interface AgentAssemblyDeps {
   queryExecutor?: QueryExecutor;
   clarifications?: ClarificationManager;
   sessionId?: string;
+  /** Persistent Pi session used by this application chat session. */
+  session?: Session;
   /** Explicit system prompt; overrides systemPromptRoots resolution. */
   systemPrompt?: string;
   /** Roots scanned for the migrated `.pi/SYSTEM.md` (knowledge root first). */
@@ -192,23 +194,38 @@ class DataAgentHarness extends AgentHarness<AgentAssemblyToolContext, DataAgentS
 
 export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<AgentAssemblyToolContext>[] {
   const writer = deps.knowledgeRoot ? new KnowledgeWriter(deps.knowledgeRoot) : undefined;
-  const workspaceDir = deps.pythonWorkspaceDir ?? deps.workspace.root;
+  const sessionIdFor = (native: NativeToolExecution) => native.context?.sessionId ?? deps.sessionId;
+  const workspaceFor = async (native: NativeToolExecution) => {
+    const sessionId = sessionIdFor(native);
+    return sessionId ? deps.workspace.scoped(sessionId) : deps.workspace;
+  };
+  const artifactPathFor = (native: NativeToolExecution, relativePath: string) => {
+    const sessionId = sessionIdFor(native);
+    return sessionId ? `${sessionId}/${relativePath}` : relativePath;
+  };
   const tools: AgentHarnessTool<AgentAssemblyToolContext>[] = [
-    defineTool("list_workspace", canonicalTool("list_workspace").description, Type.Object({}), async () =>
-      text((await deps.workspace.list()).filter((entry) => !entry.split(path.sep).includes(".audit.log")).join("\n") || "(workspace empty)")),
-    defineTool("read_file", canonicalTool("read_file").description, Type.Object({ path: Type.String(), startLine: Type.Optional(Type.Integer({ minimum: 1 })), endLine: Type.Optional(Type.Integer({ minimum: 1 })) }), async (p) => {
-      const result = await deps.workspace.readRange(p.path, { startLine: p.startLine, endLine: p.endLine });
+    defineTool("list_workspace", canonicalTool("list_workspace").description, Type.Object({}), async (_p, native) => {
+      const workspace = await workspaceFor(native);
+      return text((await workspace.list()).filter((entry) => !entry.split(path.sep).includes(".audit.log")).join("\n") || "(workspace empty)");
+    }),
+    defineTool("read_file", canonicalTool("read_file").description, Type.Object({ path: Type.String(), startLine: Type.Optional(Type.Integer({ minimum: 1 })), endLine: Type.Optional(Type.Integer({ minimum: 1 })) }), async (p, native) => {
+      const workspace = await workspaceFor(native);
+      const result = await workspace.readRange(p.path, { startLine: p.startLine, endLine: p.endLine });
       return text(result.content, { startLine: p.startLine, endLine: p.endLine, truncated: result.truncated });
     }),
-    defineTool("write_file", canonicalTool("write_file").description, Type.Object({ path: Type.String(), content: Type.String() }), async (p) => {
-      await deps.workspace.write(p.path, p.content);
-      deps.emitArtifact?.(p.path);
+    defineTool("write_file", canonicalTool("write_file").description, Type.Object({ path: Type.String(), content: Type.String() }), async (p, native) => {
+      const workspace = await workspaceFor(native);
+      await workspace.write(p.path, p.content);
+      deps.emitArtifact?.(artifactPathFor(native, p.path));
       return text(`written ${p.path} (${p.content.length} bytes)`);
     }),
-    defineTool("run_python", canonicalTool("run_python").description, Type.Object({ code: Type.String({ minLength: 1 }), description: Type.Optional(Type.String()) }), async (p) => {
+    defineTool("run_python", canonicalTool("run_python").description, Type.Object({ code: Type.String({ minLength: 1 }), description: Type.Optional(Type.String()) }), async (p, native) => {
       const executable = typeof deps.pythonExecutable === "function" ? deps.pythonExecutable() : deps.pythonExecutable;
       if (!executable) throw new Error("PYTHON_RUNTIME_NOT_AVAILABLE");
-      const result = await runPythonJob(p.code, { workspace: workspaceDir, executable, timeoutMs: 120000 });
+      const workspace = deps.pythonWorkspaceDir
+        ? { root: deps.pythonWorkspaceDir }
+        : await workspaceFor(native);
+      const result = await runPythonJob(p.code, { workspace: workspace.root, executable, timeoutMs: 120000 });
       return text(result.stdout || result.stderr || "(no output)", { exitCode: result.exitCode });
     }),
   ];
@@ -240,14 +257,15 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
       if (!deps.invokeSkill) throw new Error("NATIVE_SKILL_INVOCATION_UNAVAILABLE");
       return nativeSkillResult(await deps.invokeSkill(p.name), p.name);
     }),
-    defineTool("generate_dashboard", canonicalTool("generate_dashboard").description, Type.Object({ operation: Type.Union([Type.Literal("create"), Type.Literal("edit"), Type.Literal("validate")]), mode: Type.Union([Type.Literal("static"), Type.Literal("semantic")]), version: Type.Union([Type.Literal("v3"), Type.Literal("v4")]), spec: Type.Unknown(), editPath: Type.Optional(Type.String()) }), async (p) => {
+    defineTool("generate_dashboard", canonicalTool("generate_dashboard").description, Type.Object({ operation: Type.Union([Type.Literal("create"), Type.Literal("edit"), Type.Literal("validate")]), mode: Type.Union([Type.Literal("static"), Type.Literal("semantic")]), version: Type.Union([Type.Literal("v3"), Type.Literal("v4")]), spec: Type.Unknown(), editPath: Type.Optional(Type.String()) }), async (p, native) => {
       const validated = validateDashboardV4Spec(p.spec);
       if (!validated.ok) throw new Error(`DASHBOARD_SPEC_INVALID: ${validated.errors.join("; ")}`);
       if (p.operation === "validate") return text("dashboard spec valid");
       const target = p.editPath ?? `dashboards/${Date.now()}-semantic.html`;
       const html = renderSemanticDashboardHtml(validated.spec, { nonce: randomUUID().replace(/-/g, ""), expectedOrigin: "https://data-agent.local" });
-      await deps.workspace.write(target, html);
-      deps.emitArtifact?.(target);
+      const workspace = await workspaceFor(native);
+      await workspace.write(target, html);
+      deps.emitArtifact?.(artifactPathFor(native, target));
       return text(`dashboard written to ${target}`);
     }),
     defineTool("show_widget", canonicalTool("show_widget").description, Type.Object({ kind: Type.Union([Type.Literal("kpi"), Type.Literal("chart"), Type.Literal("table"), Type.Literal("steps")]), spec: Type.Unknown() }), async (p, native) => {
@@ -311,7 +329,8 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
         const signal = native.signal;
         const target = p.filename ?? `exports/query-${Date.now()}.csv`;
         let rowCount = 0;
-        await deps.workspace.writeStream(target, async (write) => {
+        const workspace = await workspaceFor(native);
+        await workspace.writeStream(target, async (write) => {
           let pending = "";
           let headerWritten = false;
           const append = async (chunk: string) => {
@@ -346,7 +365,7 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
           if (pending) await write(pending);
         }, signal);
         // The artifact is observable only after the temporary file was promoted.
-        deps.emitArtifact?.(target);
+        deps.emitArtifact?.(artifactPathFor(native, target));
         return text(`exported ${rowCount} rows to ${target}`);
       }),
     );
@@ -430,7 +449,7 @@ export async function createDataAgentHarness(deps: AgentAssemblyDeps, profile: A
     },
   });
   harness = new DataAgentHarness({
-    session: await new InMemorySessionRepo().create(),
+    session: deps.session ?? await new InMemorySessionRepo().create(),
     models,
     model: buildModel(profile),
     thinkingLevel: "off",

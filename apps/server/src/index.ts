@@ -72,7 +72,7 @@ export async function createRuntimeServer(
       try {
         options.workspace!.assertAccess(context);
         const workspacePath = query.path ?? "";
-        const bytes = await options.workspace!.readBytes(workspacePath);
+        const bytes = await options.workspace!.readBytesWithLegacyFallback(workspacePath);
         return reply.type(workspaceContentType(workspacePath)).send(Buffer.from(bytes));
       } catch {
         return reply.code(403).send({ error: { code: "WORKSPACE_ACCESS_DENIED" } });
@@ -85,13 +85,14 @@ export async function createRuntimeServer(
         options.workspace!.assertAccess(context);
         const part = await request.file();
         if (!part) return reply.code(400).send({ error: { code: "WORKSPACE_FILE_REQUIRED" } });
+        const query = request.query as { session_id?: string };
+        const targetWorkspace = query.session_id ? await options.workspace!.scoped(query.session_id) : options.workspace!;
         const tempDir = await mkdtemp(path.join(tmpdir(), "data-agent-upload-"));
         const tempPath = path.join(tempDir, "upload");
         try {
           await pipeline(part.file, createWriteStream(tempPath));
           const relativePath = safeUploadFileName(part.filename);
-          const artifact = await options.workspace!.upload(tempPath, relativePath);
-          const query = request.query as { session_id?: string };
+          const artifact = await targetWorkspace.upload(tempPath, relativePath);
           return { filename: relativePath, session_id: query.session_id ?? "", relative_path: relativePath, size: artifact.size };
         } finally {
           await rm(tempDir, { recursive: true, force: true });

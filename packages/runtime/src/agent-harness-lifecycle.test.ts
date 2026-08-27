@@ -48,6 +48,33 @@ describe("AgentHarness startup lifecycle", () => {
     await expect(second).resolves.toEqual({ id: "shared" });
   });
 
+  it("shares initialization by scope without mixing interleaved sessions", async () => {
+    const releases = new Map<string, () => void>();
+    const createCount = new Map<string, number>();
+    const resolver = createAgentHarnessResolver({
+      getProfile: async () => ({ model: "test" }),
+      create: async (_profile, scope) => {
+        const key = scope ?? "";
+        createCount.set(key, (createCount.get(key) ?? 0) + 1);
+        await new Promise<void>((resolve) => { releases.set(key, resolve); });
+        return { scope: key };
+      },
+    });
+
+    const firstA = resolver.resolve("session-A");
+    const firstB = resolver.resolve("session-B");
+    const secondA = resolver.resolve("session-A");
+    await tick();
+    expect(createCount).toEqual(new Map([["session-A", 1], ["session-B", 1]]));
+    releases.get("session-A")?.();
+    releases.get("session-B")?.();
+    await expect(Promise.all([firstA, firstB, secondA])).resolves.toEqual([
+      { scope: "session-A" },
+      { scope: "session-B" },
+      { scope: "session-A" },
+    ]);
+  });
+
   it("uses a successfully warmed harness for later requests", async () => {
     let createCount = 0;
     const resolver = createAgentHarnessResolver({

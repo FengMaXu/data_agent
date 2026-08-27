@@ -22,6 +22,18 @@ describe("WorkspaceStore", () => {
     await rm(root, { recursive: true, force: true });
   });
 
+  it("limits legacy root fallback to a missing session/root-file path", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-workspace-legacy-"));
+    const store = new WorkspaceStore(root);
+    await store.writeBytes("legacy.png", Uint8Array.from([1, 2, 3]));
+    await store.writeBytes("session-B/secret.png", Uint8Array.from([9, 9, 9]));
+
+    expect([...await store.readBytesWithLegacyFallback("session-A/legacy.png")]).toEqual([1, 2, 3]);
+    await expect(store.readBytesWithLegacyFallback("session-A/session-B/secret.png")).rejects.toMatchObject({ code: "ENOENT" });
+
+    await rm(root, { recursive: true, force: true });
+  });
+
   it("writes long single-line and empty exports atomically", async () => {
     const root = await mkdtemp(join(tmpdir(), "data-agent-workspace-"));
     const store = new WorkspaceStore(root);

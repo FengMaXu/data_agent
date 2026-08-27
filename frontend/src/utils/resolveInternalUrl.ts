@@ -81,7 +81,7 @@ function resolveRelativeWorkspacePath(value: string, sourceUrl?: string, current
     const sourcePath = sourceWorkspacePath(sourceUrl);
     const sourceParts = sourcePath ? sourcePath.split('/') : [];
     const sourceSession = sourceParts[0] || currentSessionId || '';
-    const sourceDirectory = sourceParts.length > 1 ? sourceParts.slice(0, -1) : [];
+    const sourceDirectory = sourceParts.length > 1 ? sourceParts.slice(0, -1) : [sourceSession];
     const assetParts = value.split('/');
     const firstAssetSegment = assetParts.find((part) => part && part !== '.');
     const basePath = firstAssetSegment && SESSION_RELATIVE_WORKSPACE_ROOTS.includes(firstAssetSegment)
