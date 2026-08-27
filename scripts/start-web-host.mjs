@@ -156,6 +156,11 @@ const app = await createRuntimeServer(runtime, { workspace });
 
 // Serve the built renderer when available so one process fronts the whole app.
 const webDist = process.env.DATA_AGENT_WEB_DIST ? path.resolve(process.env.DATA_AGENT_WEB_DIST) : path.join(root, "frontend", "dist");
+// Production Electron builds intentionally use Vite's relative asset paths.
+// Canonicalize the web app route without a trailing slash so `./assets/*`
+// resolves to `/assets/*` rather than `/app/assets/*` (the latter falls back
+// to index.html and leaves the React root blank).
+app.get("/app/", async (_request, reply) => reply.redirect("/app"));
 if (existsSync(path.join(webDist, "index.html"))) {
   const fastifyStatic = await import("@fastify/static").then((m) => m.default).catch(() => null);
   if (fastifyStatic) {

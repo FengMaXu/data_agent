@@ -25,14 +25,14 @@ const emptyAgent = (): AgentMessageLike => ({
 
 describe('ChatArea agent message buffering', () => {
     it('shows the loaded skill name after a successful load_skill result', () => {
-        const translate = (key: string) => key === 'chat.skillLoaded' ? '已加载：“{name}”' : key;
+        const translate = (key: string) => key === 'chat.skillLoaded' ? '已加载：{name}' : key;
         expect(getToolHintLabel({
             toolCallId: 'load-1',
             name: 'load_skill',
             arguments: { name: 'dashboard' },
             details: { nativeSkill: 'dashboard' },
             status: 'done',
-        }, translate)).toBe('已加载：“dashboard”');
+        }, translate)).toBe('已加载：dashboard');
     });
 
     it('does not claim a skill loaded when load_skill failed', () => {
