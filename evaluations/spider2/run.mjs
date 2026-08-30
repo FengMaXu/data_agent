@@ -469,6 +469,7 @@ async function createCaseRunner(config, runDir) {
       const reviewer = createEvaluationReviewer(runtime, profile, config);
       assurance = runtime.createQueryAssurance({
         mode: config.assurance?.mode ?? "off",
+        allowUnavailablePublication: config.assurance?.allowUnavailablePublication === true,
         ...(config.assurance?.sqlglotExecutable ? { digestCompiler: runtime.createSqlglotQueryDigestCompiler({ executable: config.assurance.sqlglotExecutable }) } : {}),
         reviewer,
         auditStore,

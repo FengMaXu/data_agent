@@ -111,11 +111,14 @@ export interface DeliveryDecision {
 }
 
 export class DeliveryPolicy {
-  constructor(readonly mode: QueryAssuranceMode) {}
+  constructor(readonly mode: QueryAssuranceMode, readonly options: { allowUnavailablePublication?: boolean } = {}) {}
 
   decide(outcome: ReviewOutcome, authorization?: PublicationAuthorization): DeliveryDecision {
     const approved = outcome.availability === "available" && outcome.decision.status === "approved";
-    if (approved || this.mode === "shadow" || this.mode === "off" || authorization) return { allowed: true, status: approved ? "published_approved" : "published_with_disagreement" };
+    const unavailable = outcome.availability === "unavailable";
+    const allowedInShadow = this.mode === "shadow" && (!unavailable || this.options.allowUnavailablePublication === true);
+    const allowedInOff = this.mode === "off";
+    if (approved || allowedInShadow || allowedInOff || authorization) return { allowed: true, status: approved ? "published_approved" : "published_with_disagreement" };
     return {
       allowed: false,
       status: outcome.availability === "unavailable" ? "not_published_review_unavailable" : "not_published_rejected",

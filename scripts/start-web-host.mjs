@@ -24,7 +24,7 @@ const dataDir = process.env.DATA_AGENT_DATA_DIR
   ? path.resolve(process.env.DATA_AGENT_DATA_DIR)
   : path.join(root, ".data_agent", "runtime-web");
 
-const { DataAgentRuntime, MetadataStore, PiJsonlSessionStore, KnowledgeIndex, WorkspaceStore, createAgentHarnessResolver } = await import(toUrl(path.join(root, "packages/runtime/dist/index.js")));
+const { DataAgentRuntime, MetadataStore, PiJsonlSessionStore, KnowledgeIndex, WorkspaceStore, createAgentHarnessResolver, createQueryAssurance } = await import(toUrl(path.join(root, "packages/runtime/dist/index.js")));
 const { createRuntimeServer } = await import(toUrl(path.join(root, "apps/server/dist/index.js")));
 
 const fsPromises = await import("node:fs/promises");
@@ -46,6 +46,11 @@ const semanticProjectDir = process.env.DATA_AGENT_SEMANTIC_PROJECT_DIR
 
 const workspace = new WorkspaceStore(path.join(dataDir, "workspace"));
 const runtime = new DataAgentRuntime({ metadata, sessions, knowledgeRoot, knowledge, workspace, semanticProjectDir, skillRoots: [path.join(root, ".agents", "skills"), path.join(process.resourcesPath ?? root, ".agents", "skills")] });
+const requestedAssuranceMode = process.env.DATA_AGENT_QUERY_ASSURANCE_MODE;
+const queryAssurance = createQueryAssurance({
+  mode: requestedAssuranceMode === "enforce" || requestedAssuranceMode === "shadow" ? requestedAssuranceMode : "off",
+  allowUnavailablePublication: false,
+});
 
 // Ingest status port for semantic context readiness
 runtime.ingestJob = {
@@ -131,7 +136,7 @@ const agentHarnessResolver = createAgentHarnessResolver({
   create: async (profile, sessionId) => {
     const { createDataAgentHarness } = await import(toUrl(path.join(root, "packages/runtime/dist/index.js")));
     const persistentSession = sessionId ? await sessions.openByAppSessionId(sessionId) : undefined;
-    const harness = await createDataAgentHarness({ workspace, knowledge, knowledgeRoot, pythonExecutable, databaseDialect: "mysql", queryExecutor: await resolveQueryExecutor(), clarifications: runtime.clarifications, session: persistentSession, systemPromptRoots: [knowledgeRoot, root], projectRoot: root, packagedRoot: process.resourcesPath ?? root, toolContext: { sessionId } }, profile);
+    const harness = await createDataAgentHarness({ workspace, knowledge, knowledgeRoot, pythonExecutable, databaseDialect: "mysql", queryExecutor: await resolveQueryExecutor(), queryAssurance, enforceDeliveryReceipt: true, clarifications: runtime.clarifications, session: persistentSession, systemPromptRoots: [knowledgeRoot, root], projectRoot: root, packagedRoot: process.resourcesPath ?? root, toolContext: { sessionId } }, profile);
     for (const listener of agentListeners) harness.subscribe(listener);
     agentHarness = harness;
     console.log(`[data-agent-web] agent ready: ${profile.provider}/${profile.model}`);

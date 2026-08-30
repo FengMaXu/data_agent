@@ -103,6 +103,26 @@ describe("Review Off QueryAssurance", () => {
     expect(calls).toBe(1);
   });
 
+  it("rejects a candidate whose binding does not match the stored Artifact", async () => {
+    const assurance = new InMemoryQueryAssurance();
+    const task = await assurance.prepareTask({ question: "q" }, new AbortController().signal);
+    const artifact = await assurance.recordPreview?.({ task, sql: "SELECT 1", result: { columns: ["answer"], rows: [[1]], truncated: false } }, new AbortController().signal);
+    const outcome = await assurance.reviewForPublication({
+      task,
+      candidate: {
+        candidateId: "candidate-1",
+        taskId: task.taskId,
+        queryArtifactId: artifact!.queryArtifactId,
+        normalizedSqlHash: "forged",
+        specVersion: task.specVersion,
+        schemaEvidenceFingerprint: "unknown",
+        metadata: artifact!.previewMetadata,
+      },
+    }, new AbortController().signal);
+    expect(outcome).toMatchObject({ availability: "unavailable", failure: { code: "REVIEW_CANDIDATE_BINDING_INVALID" } });
+    expect(outcome).not.toHaveProperty("reviewToken");
+  });
+
   it("allows one Automatic Semantic Repair per Spec version and resets on a new version", async () => {
     const assurance = new InMemoryQueryAssurance();
     expect(assurance.claimAutomaticRepair?.("task-1", "1")).toEqual({ allowed: true, attempt: 1 });

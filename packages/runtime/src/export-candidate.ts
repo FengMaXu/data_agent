@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type { ResultMetadata } from "./query-assurance.js";
 import { WorkspaceStore } from "./workspace.js";
 
@@ -14,6 +14,7 @@ export interface ExportCandidate {
   readonly taskId: string;
   readonly queryArtifactId: string;
   readonly path: string;
+  readonly contentSha256: string;
   readonly metadata: ResultMetadata;
   readonly createdAt: string;
 }
@@ -69,6 +70,7 @@ export class ExportCandidateStore {
     let columnTypes: string[] | undefined;
     let rowCount = 0;
     let truncated = false;
+    const contentHash = createHash("sha256");
     const nullCounts: Record<string, number> = {};
     const distinct: Array<Set<string>> = [];
     const minMax: Record<string, { min?: unknown; max?: unknown }> = {};
@@ -77,6 +79,7 @@ export class ExportCandidateStore {
       await this.workspace.writeStream(relativePath, async (write) => {
         let pending = "";
         const append = async (chunk: string) => {
+          contentHash.update(chunk, "utf8");
           pending += chunk;
           if (pending.length >= 64 * 1024) { await write(pending); pending = ""; }
         };
@@ -125,6 +128,7 @@ export class ExportCandidateStore {
         taskId: input.taskId,
         queryArtifactId: input.queryArtifactId,
         path: relativePath,
+        contentSha256: contentHash.digest("hex"),
         metadata: {
           columns: observedColumns ?? [],
           columnTypes: columnTypes ?? [],

@@ -70852,7 +70852,7 @@ var require_websocket = __commonJS({
     var http3 = require("http");
     var net = require("net");
     var tls = require("tls");
-    var { randomBytes: randomBytes2, createHash: createHash6 } = require("crypto");
+    var { randomBytes: randomBytes2, createHash: createHash9 } = require("crypto");
     var { Duplex, Readable: Readable2 } = require("stream");
     var { URL: URL2 } = require("url");
     var PerMessageDeflate2 = require_permessage_deflate();
@@ -71520,7 +71520,7 @@ var require_websocket = __commonJS({
           abortHandshake(websocket, socket, "Invalid Upgrade header");
           return;
         }
-        const digest = createHash6("sha1").update(key + GUID).digest("base64");
+        const digest = createHash9("sha1").update(key + GUID).digest("base64");
         if (res.headers["sec-websocket-accept"] !== digest) {
           abortHandshake(websocket, socket, "Invalid Sec-WebSocket-Accept header");
           return;
@@ -71889,7 +71889,7 @@ var require_websocket_server = __commonJS({
     var EventEmitter = require("events");
     var http3 = require("http");
     var { Duplex } = require("stream");
-    var { createHash: createHash6 } = require("crypto");
+    var { createHash: createHash9 } = require("crypto");
     var extension2 = require_extension();
     var PerMessageDeflate2 = require_permessage_deflate();
     var subprotocol2 = require_subprotocol();
@@ -72196,7 +72196,7 @@ var require_websocket_server = __commonJS({
           );
         }
         if (this._state > RUNNING) return abortHandshake(socket, 503);
-        const digest = createHash6("sha1").update(key + GUID).digest("base64");
+        const digest = createHash9("sha1").update(key + GUID).digest("base64");
         const headers = [
           "HTTP/1.1 101 Switching Protocols",
           "Upgrade: websocket",
@@ -164039,12 +164039,17 @@ var init_review_policy = __esm({
     };
     DeliveryPolicy = class {
       mode;
-      constructor(mode) {
+      options;
+      constructor(mode, options = {}) {
         this.mode = mode;
+        this.options = options;
       }
       decide(outcome, authorization) {
         const approved = outcome.availability === "available" && outcome.decision.status === "approved";
-        if (approved || this.mode === "shadow" || this.mode === "off" || authorization)
+        const unavailable = outcome.availability === "unavailable";
+        const allowedInShadow = this.mode === "shadow" && (!unavailable || this.options.allowUnavailablePublication === true);
+        const allowedInOff = this.mode === "off";
+        if (approved || allowedInShadow || allowedInOff || authorization)
           return { allowed: true, status: approved ? "published_approved" : "published_with_disagreement" };
         return {
           allowed: false,
@@ -164100,9 +164105,20 @@ var init_review_policy = __esm({
 });
 
 // packages/runtime/dist/publication.js
+function stable2(value) {
+  if (value === null || typeof value !== "object")
+    return JSON.stringify(value);
+  if (Array.isArray(value))
+    return `[${value.map(stable2).join(",")}]`;
+  const record2 = value;
+  return `{${Object.keys(record2).sort().map((key) => `${JSON.stringify(key)}:${stable2(record2[key])}`).join(",")}}`;
+}
+function semanticDiffHash(diff) {
+  return (0, import_node_crypto10.createHash)("sha256").update(stable2(diff), "utf8").digest("hex");
+}
 function candidateMetadataMatchesToken(token, candidate) {
   const bound = candidate;
-  return (bound.normalizedSqlHash === void 0 || token.normalizedSqlHash === bound.normalizedSqlHash) && (bound.specVersion === void 0 || token.specVersion === bound.specVersion) && (bound.schemaEvidenceFingerprint === void 0 || token.schemaEvidenceFingerprint === bound.schemaEvidenceFingerprint);
+  return token.candidatePath === candidate.path && token.contentSha256 === candidate.contentSha256 && (bound.normalizedSqlHash === void 0 || token.normalizedSqlHash === bound.normalizedSqlHash) && (bound.specVersion === void 0 || token.specVersion === bound.specVersion) && (bound.schemaEvidenceFingerprint === void 0 || token.schemaEvidenceFingerprint === bound.schemaEvidenceFingerprint);
 }
 function candidateMatchesToken(token, candidate) {
   return token.taskId === candidate.taskId && token.queryArtifactId === candidate.queryArtifactId && token.candidateId === candidate.candidateId && candidateMetadataMatchesToken(token, candidate);
@@ -164121,6 +164137,7 @@ var init_publication = __esm({
       tokens = /* @__PURE__ */ new Map();
       artifactReceipts = /* @__PURE__ */ new Map();
       artifactInFlight = /* @__PURE__ */ new Map();
+      taskReceipts = /* @__PURE__ */ new Map();
       now;
       constructor(options) {
         this.options = options;
@@ -164128,6 +164145,9 @@ var init_publication = __esm({
       }
       hasReceipt(taskId) {
         return [...this.receipts.values()].some((receipt) => receipt.taskId === taskId);
+      }
+      receiptForTask(taskId) {
+        return this.taskReceipts.get(taskId);
       }
       receiptForArtifact(taskId, queryArtifactId) {
         return this.artifactReceipts.get(`${taskId}:${queryArtifactId}`);
@@ -164143,6 +164163,9 @@ var init_publication = __esm({
           specVersion: input.specVersion,
           schemaEvidenceFingerprint: input.schemaEvidenceFingerprint,
           candidateId: input.candidate.candidateId,
+          candidatePath: input.candidate.path,
+          contentSha256: input.candidate.contentSha256,
+          semanticDiffHashes: input.outcome.availability === "available" && input.outcome.decision.diffs ? input.outcome.decision.diffs.map(semanticDiffHash) : [],
           outcome: input.outcome,
           ...input.reviewerVersion ? { reviewerVersion: input.reviewerVersion } : {},
           ...input.policyVersion ? { policyVersion: input.policyVersion } : {},
@@ -164158,9 +164181,15 @@ var init_publication = __esm({
         if (known.taskId !== candidate.taskId || known.queryArtifactId !== candidate.queryArtifactId || !candidateMetadataMatchesToken(known, candidate))
           throw new Error("REVIEW_TOKEN_CANDIDATE_MISMATCH");
         const artifactKey = `${known.taskId}:${known.queryArtifactId}`;
+        const existingTask = this.taskReceipts.get(known.taskId);
+        if (existingTask && existingTask.queryArtifactId !== known.queryArtifactId)
+          throw new Error("PUBLICATION_TASK_ALREADY_COMPLETE");
         const existingArtifact = this.artifactReceipts.get(artifactKey);
-        if (existingArtifact)
+        if (existingArtifact) {
+          if (existingArtifact.candidatePath !== candidate.path || existingArtifact.contentSha256 !== candidate.contentSha256)
+            throw new Error("REVIEW_TOKEN_CANDIDATE_MISMATCH");
           return existingArtifact;
+        }
         const existing = this.receipts.get(token.tokenId);
         if (existing)
           return existing;
@@ -164183,6 +164212,7 @@ var init_publication = __esm({
         this.activeTasks.add(token.taskId);
         const operation = this.publishOnce(known, candidate, targetPath, authorization, promote).then((receipt) => {
           this.artifactReceipts.set(artifactKey, receipt);
+          this.taskReceipts.set(receipt.taskId, receipt);
           return receipt;
         }).finally(() => {
           this.activeTasks.delete(token.taskId);
@@ -164196,12 +164226,12 @@ var init_publication = __esm({
       validateAuthorization(token, authorization) {
         if (!authorization)
           return;
-        if (authorization.taskId !== token.taskId || authorization.queryArtifactId !== token.queryArtifactId || authorization.normalizedSqlHash !== token.normalizedSqlHash || authorization.specVersion !== token.specVersion || authorization.candidateId !== token.candidateId)
+        if (authorization.taskId !== token.taskId || authorization.queryArtifactId !== token.queryArtifactId || authorization.normalizedSqlHash !== token.normalizedSqlHash || authorization.specVersion !== token.specVersion || authorization.candidateId !== token.candidateId || authorization.candidatePath !== token.candidatePath || authorization.contentSha256 !== token.contentSha256 || authorization.semanticDiffHashes.length !== token.semanticDiffHashes.length || [...authorization.semanticDiffHashes].sort().some((hash3, index3) => hash3 !== [...token.semanticDiffHashes].sort()[index3]))
           throw new Error("PUBLICATION_AUTHORIZATION_MISMATCH");
       }
       async publishOnce(token, candidate, targetPath, authorization, promote) {
         const mode = this.options.modeFor?.() ?? this.options.mode;
-        const policy = new DeliveryPolicy(mode);
+        const policy = new DeliveryPolicy(mode, { allowUnavailablePublication: this.options.allowUnavailablePublication });
         const delivery = policy.decide(token.outcome, authorization);
         if (!delivery.allowed)
           throw new Error(delivery.reason ?? "REVIEW_NOT_APPROVED");
@@ -164214,6 +164244,8 @@ var init_publication = __esm({
           taskId: token.taskId,
           queryArtifactId: token.queryArtifactId,
           candidateId: candidate.candidateId,
+          candidatePath: candidate.path,
+          contentSha256: candidate.contentSha256,
           status: delivery.status,
           reviewOutcome: token.outcome,
           mode,
@@ -164229,14 +164261,14 @@ var init_publication = __esm({
 });
 
 // packages/runtime/dist/review-cache.js
-function stable2(value) {
+function stable3(value) {
   if (value === null || typeof value !== "object")
     return JSON.stringify(value);
   const record2 = value;
-  return `{${Object.keys(record2).sort().map((key) => `${JSON.stringify(key)}:${stable2(record2[key])}`).join(",")}}`;
+  return `{${Object.keys(record2).sort().map((key) => `${JSON.stringify(key)}:${stable3(record2[key])}`).join(",")}}`;
 }
 function keyOf(identity) {
-  return (0, import_node_crypto11.createHash)("sha256").update(stable2(identity), "utf8").digest("hex");
+  return (0, import_node_crypto11.createHash)("sha256").update(stable3(identity), "utf8").digest("hex");
 }
 var import_node_crypto11, ReviewCache;
 var init_review_cache = __esm({
@@ -164482,6 +164514,7 @@ var init_query_assurance = __esm({
         this.publicationRegistry = options.publicationRegistry ?? new PublicationRegistry({
           mode: this.configuredMode,
           modeFor: () => this.mode,
+          allowUnavailablePublication: options.allowUnavailablePublication,
           specVersionFor: (taskId) => this.specAuthority.get(taskId)?.specVersion
         });
         this.reviewCache = options.reviewCache ?? new ReviewCache();
@@ -164552,6 +164585,9 @@ var init_query_assurance = __esm({
       }
       publicationForArtifact(taskId, queryArtifactId) {
         return this.publicationRegistry.receiptForArtifact(taskId, queryArtifactId);
+      }
+      publicationForTask(taskId) {
+        return this.publicationRegistry.receiptForTask(taskId);
       }
       claimAutomaticRepair(taskId, specVersion) {
         const key = `${taskId}:${specVersion}`;
@@ -164629,9 +164665,15 @@ var init_query_assurance = __esm({
         const startedAt = this.now();
         const candidate = input.candidate;
         const candidateArtifact = typeof candidate?.queryArtifactId === "string" ? await this.getArtifact(input.task.taskId, candidate.queryArtifactId, signal) : void 0;
+        const hasCandidateBinding = Boolean(candidate && typeof candidate.candidateId === "string");
+        const expectedSchemaFingerprint = candidateArtifact?.queryDigest?.schemaEvidenceFingerprint ?? "unknown";
+        const candidateMetadata = candidate?.metadata;
+        const candidateBindingValid = !hasCandidateBinding || candidateArtifact !== void 0 && candidate.taskId === input.task.taskId && candidate.queryArtifactId === candidateArtifact.queryArtifactId && candidate.normalizedSqlHash === candidateArtifact.normalizedSqlHash && candidate.specVersion === (candidateArtifact.specVersion ?? input.task.specVersion ?? "1") && candidate.schemaEvidenceFingerprint === expectedSchemaFingerprint && typeof candidate.path === "string" && typeof candidate.contentSha256 === "string" && candidateMetadata !== void 0 && candidateMetadata.columns.length === candidateArtifact.previewMetadata.columns.length && candidateMetadata.columns.every((column, index3) => column === candidateArtifact.previewMetadata.columns[index3]);
         const blockingPreflight = candidateArtifact?.preflightOutcomes?.find((probe) => probe.status === "failed" && probe.blocking);
         let outcome;
-        if (this.mode === "off") {
+        if (hasCandidateBinding && !candidateBindingValid) {
+          outcome = { availability: "unavailable", failure: { code: "REVIEW_CANDIDATE_BINDING_INVALID", message: "Candidate identity does not match the Validated Query Artifact", retryable: false } };
+        } else if (this.mode === "off") {
           outcome = {
             availability: "unavailable",
             failure: { code: "REVIEW_OFF", message: "Query Assurance review is disabled", retryable: false }
@@ -164681,7 +164723,11 @@ var init_query_assurance = __esm({
           const cached2 = await this.reviewCache.getOrCreate(identity, review, signal);
           outcome = { ...cached2.outcome, cacheHit: cached2.cacheHit };
         }
-        if (candidate && typeof candidate.candidateId === "string" && typeof candidate.taskId === "string" && typeof candidate.queryArtifactId === "string" && typeof candidate.normalizedSqlHash === "string" && typeof candidate.specVersion === "string" && typeof candidate.schemaEvidenceFingerprint === "string") {
+        if (!candidateBindingValid) {
+          this.recordReviewAudit(input, outcome, candidate, startedAt);
+          return outcome;
+        }
+        if (candidate && typeof candidate.candidateId === "string" && typeof candidate.taskId === "string" && typeof candidate.queryArtifactId === "string" && typeof candidate.normalizedSqlHash === "string" && typeof candidate.specVersion === "string" && typeof candidate.schemaEvidenceFingerprint === "string" && typeof candidate.path === "string" && typeof candidate.contentSha256 === "string" && candidate.metadata !== void 0) {
           const reviewToken = this.publicationRegistry.issueToken({
             taskId: candidate.taskId,
             queryArtifactId: candidate.queryArtifactId,
@@ -164798,6 +164844,7 @@ var init_export_candidate = __esm({
         let columnTypes;
         let rowCount = 0;
         let truncated = false;
+        const contentHash = (0, import_node_crypto14.createHash)("sha256");
         const nullCounts = {};
         const distinct = [];
         const minMax = {};
@@ -164806,6 +164853,7 @@ var init_export_candidate = __esm({
           await this.workspace.writeStream(relativePath, async (write) => {
             let pending = "";
             const append = async (chunk) => {
+              contentHash.update(chunk, "utf8");
               pending += chunk;
               if (pending.length >= 64 * 1024) {
                 await write(pending);
@@ -164876,6 +164924,7 @@ ${row.map(csvField).join(",")}`);
             taskId: input.taskId,
             queryArtifactId: input.queryArtifactId,
             path: relativePath,
+            contentSha256: contentHash.digest("hex"),
             metadata: {
               columns: observedColumns ?? [],
               columnTypes: columnTypes ?? [],
@@ -165225,6 +165274,8 @@ ${body}${result.truncated ? `
         queryTaskStateFor(native).hasExported = true;
         return text(`[PUBLICATION_ALREADY_COMPLETE] Publication Receipt ${existingReceipt.receiptId} (${existingReceipt.status})`, { status: "success", taskComplete: true, publicationReceipt: existingReceipt, queryArtifactId: artifact.queryArtifactId });
       }
+      if (queryAssurance.publicationForTask?.(taskId))
+        throw new Error("PUBLICATION_TASK_ALREADY_COMPLETE");
       const target = params.filename ?? `exports/query-${Date.now()}.csv`;
       const workspace = await workspaceFor(native);
       const taskSpec = queryAssurance.getAnswerSpec?.(taskId, artifact.specVersion);
@@ -165257,11 +165308,12 @@ ${body}${result.truncated ? `
         const candidateForReview = { ...storedCandidate, normalizedSqlHash: artifact.normalizedSqlHash, specVersion, schemaEvidenceFingerprint };
         const digest = artifact.queryDigest;
         const spec = taskSpec;
-        const reviewInput = digest && spec && artifact.schemaEvidence ? {
+        const schema = artifact.schemaEvidence ?? (digest ? { connectionId: "unknown", dialect: digest.dialect, tables: [] } : void 0);
+        const reviewInput = digest && spec && schema ? {
           question: spec.question,
           clarifications: [],
           answerSpec: spec,
-          schema: artifact.schemaEvidence,
+          schema,
           sql: artifact.normalizedSql,
           digest,
           resultMetadata: storedCandidate.metadata
@@ -165311,6 +165363,8 @@ ${body}${result.truncated ? `
       const existingReceipt = queryAssurance.publicationForArtifact?.(taskId, artifact.queryArtifactId);
       if (existingReceipt)
         return text(`[PUBLICATION_ALREADY_COMPLETE] Publication Receipt ${existingReceipt.receiptId} (${existingReceipt.status})`, { status: "success", taskComplete: true, publishedInline: true, publicationReceipt: existingReceipt, queryArtifactId: artifact.queryArtifactId });
+      if (queryAssurance.publicationForTask?.(taskId))
+        throw new Error("PUBLICATION_TASK_ALREADY_COMPLETE");
       const preview = queryTaskStateFor(native).previewResults.get(params.queryArtifactId);
       if (!preview)
         throw new Error("QUERY_ARTIFACT_PREVIEW_NOT_AVAILABLE");
@@ -165321,6 +165375,7 @@ ${body}${result.truncated ? `
         taskId,
         queryArtifactId: artifact.queryArtifactId,
         path: `inline://${artifact.queryArtifactId}`,
+        contentSha256: (0, import_node_crypto15.createHash)("sha256").update(JSON.stringify({ columns: preview.columns, rows: preview.rows }), "utf8").digest("hex"),
         metadata: artifact.previewMetadata,
         createdAt: (/* @__PURE__ */ new Date()).toISOString(),
         normalizedSqlHash: artifact.normalizedSqlHash,
@@ -165328,11 +165383,12 @@ ${body}${result.truncated ? `
         schemaEvidenceFingerprint: artifact.queryDigest?.schemaEvidenceFingerprint ?? "unknown"
       };
       const spec = queryAssurance.getAnswerSpec?.(taskId, artifact.specVersion);
-      const reviewInput = artifact.queryDigest && spec && artifact.schemaEvidence ? {
+      const schema = artifact.schemaEvidence ?? (artifact.queryDigest ? { connectionId: "unknown", dialect: artifact.queryDigest.dialect, tables: [] } : void 0);
+      const reviewInput = artifact.queryDigest && spec && schema ? {
         question: spec.question,
         clarifications: [],
         answerSpec: spec,
-        schema: artifact.schemaEvidence,
+        schema,
         sql: artifact.normalizedSql,
         digest: artifact.queryDigest,
         resultMetadata: artifact.previewMetadata
@@ -166667,6 +166723,7 @@ __export(dist_exports, {
   runPythonJob: () => runPythonJob,
   runtimeCapabilitiesPrompt: () => runtimeCapabilitiesPrompt,
   schemaEvidenceFromDdl: () => schemaEvidenceFromDdl,
+  semanticDiffHash: () => semanticDiffHash,
   semanticToolIdentity: () => semanticToolIdentity,
   unknownToolRecoveryMessage: () => unknownToolRecoveryMessage,
   validateWidgetSpec: () => validateWidgetSpec,
@@ -167988,7 +168045,7 @@ async function startElectronHost(deps, overrides = {}) {
     scheme: "data-agent",
     privileges: { secure: true, standard: true, supportFetchAPI: true, stream: true }
   }]);
-  const { DataAgentRuntime: DataAgentRuntime2, MetadataStore: MetadataStore2, PiJsonlSessionStore: PiJsonlSessionStore2, KnowledgeIndex: KnowledgeIndex2, WorkspaceStore: WorkspaceStore2, createAgentHarnessResolver: createAgentHarnessResolver2, createDataAgentHarness: createDataAgentHarness2 } = await Promise.resolve().then(() => (init_dist5(), dist_exports));
+  const { DataAgentRuntime: DataAgentRuntime2, MetadataStore: MetadataStore2, PiJsonlSessionStore: PiJsonlSessionStore2, KnowledgeIndex: KnowledgeIndex2, WorkspaceStore: WorkspaceStore2, createAgentHarnessResolver: createAgentHarnessResolver2, createDataAgentHarness: createDataAgentHarness2, createQueryAssurance: createQueryAssurance2 } = await Promise.resolve().then(() => (init_dist5(), dist_exports));
   const { registerElectronRuntimeIpc: registerElectronRuntimeIpc2 } = await Promise.resolve().then(() => (init_index(), index_exports));
   const paths = resolveRuntimePaths({ userDataDir: deps.app.getPath("userData") });
   if (overrides.userDataDir)
@@ -168019,6 +168076,8 @@ async function startElectronHost(deps, overrides = {}) {
       pythonExecutable = pythonConfig.executable;
     }
   }
+  const configuredAssuranceMode = isRecord2(savedConfig) && ["off", "shadow", "enforce"].includes(String(savedConfig.query_assurance_mode)) ? String(savedConfig.query_assurance_mode) : "shadow";
+  const queryAssurance = createQueryAssurance2({ mode: configuredAssuranceMode, allowUnavailablePublication: false });
   const semanticProjectDir = process.env.DATA_AGENT_SEMANTIC_PROJECT_DIR ? import_node_path18.default.resolve(process.env.DATA_AGENT_SEMANTIC_PROJECT_DIR) : import_node_path18.default.join(paths.userDataDir, "semantic-context");
   const applicationRoot = import_node_path18.default.dirname(paths.rendererDist);
   const developmentRoot = applicationRoot.includes(`${import_node_path18.default.sep}app.asar`) ? applicationRoot : import_node_path18.default.resolve(applicationRoot, "..");
@@ -168099,6 +168158,8 @@ async function startElectronHost(deps, overrides = {}) {
         pythonExecutable: () => runtime.pythonExecutablePath,
         databaseDialect: "mysql",
         queryExecutor,
+        queryAssurance,
+        enforceDeliveryReceipt: true,
         clarifications: runtime.clarificationManager,
         session: persistentSession,
         systemPromptRoots: [knowledgeRoot, developmentRoot, packagedRoot],

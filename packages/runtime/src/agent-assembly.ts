@@ -4,7 +4,7 @@ import { InMemoryCredentialStore, type Model, type Models } from "@earendil-work
 import { boundTextByLines, readBoundedFile } from "./bounded-read.js";
 import { builtinModels } from "@earendil-works/pi-ai/providers/all";
 import { Type, type Static, type TSchema } from "typebox";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import path from "node:path";
 import { readFile } from "node:fs/promises";
 import { renderSemanticDashboardHtml, validateDashboardV4Spec } from "./dashboard-v4.js";
@@ -527,6 +527,7 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
         queryTaskStateFor(native).hasExported = true;
         return text(`[PUBLICATION_ALREADY_COMPLETE] Publication Receipt ${existingReceipt.receiptId} (${existingReceipt.status})`, { status: "success", taskComplete: true, publicationReceipt: existingReceipt, queryArtifactId: artifact.queryArtifactId });
       }
+      if (queryAssurance.publicationForTask?.(taskId)) throw new Error("PUBLICATION_TASK_ALREADY_COMPLETE");
       const target = params.filename ?? `exports/query-${Date.now()}.csv`;
       const workspace = await workspaceFor(native);
       const taskSpec = queryAssurance.getAnswerSpec?.(taskId, artifact.specVersion);
@@ -557,12 +558,13 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
         const candidateForReview = { ...storedCandidate, normalizedSqlHash: artifact.normalizedSqlHash, specVersion, schemaEvidenceFingerprint };
         const digest = artifact.queryDigest;
         const spec = taskSpec;
-        const reviewInput = digest && spec && artifact.schemaEvidence
+        const schema = artifact.schemaEvidence ?? (digest ? { connectionId: "unknown", dialect: digest.dialect, tables: [] } : undefined);
+        const reviewInput = digest && spec && schema
           ? {
             question: spec.question,
             clarifications: [],
             answerSpec: spec,
-            schema: artifact.schemaEvidence,
+            schema,
             sql: artifact.normalizedSql,
             digest,
             resultMetadata: storedCandidate.metadata,
@@ -607,6 +609,7 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
       if (!artifact) throw new Error("QUERY_ARTIFACT_NOT_FOUND_OR_EXPIRED");
       const existingReceipt = queryAssurance.publicationForArtifact?.(taskId, artifact.queryArtifactId);
       if (existingReceipt) return text(`[PUBLICATION_ALREADY_COMPLETE] Publication Receipt ${existingReceipt.receiptId} (${existingReceipt.status})`, { status: "success", taskComplete: true, publishedInline: true, publicationReceipt: existingReceipt, queryArtifactId: artifact.queryArtifactId });
+      if (queryAssurance.publicationForTask?.(taskId)) throw new Error("PUBLICATION_TASK_ALREADY_COMPLETE");
       const preview = queryTaskStateFor(native).previewResults.get(params.queryArtifactId);
       if (!preview) throw new Error("QUERY_ARTIFACT_PREVIEW_NOT_AVAILABLE");
       if (preview.truncated || artifact.previewMetadata.truncated) throw new Error("INLINE_RESULT_TRUNCATED");
@@ -615,6 +618,7 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
         taskId,
         queryArtifactId: artifact.queryArtifactId,
         path: `inline://${artifact.queryArtifactId}`,
+        contentSha256: createHash("sha256").update(JSON.stringify({ columns: preview.columns, rows: preview.rows }), "utf8").digest("hex"),
         metadata: artifact.previewMetadata,
         createdAt: new Date().toISOString(),
         normalizedSqlHash: artifact.normalizedSqlHash,
@@ -622,12 +626,13 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
         schemaEvidenceFingerprint: artifact.queryDigest?.schemaEvidenceFingerprint ?? "unknown",
       };
       const spec = queryAssurance.getAnswerSpec?.(taskId, artifact.specVersion);
-      const reviewInput = artifact.queryDigest && spec && artifact.schemaEvidence
+      const schema = artifact.schemaEvidence ?? (artifact.queryDigest ? { connectionId: "unknown", dialect: artifact.queryDigest.dialect, tables: [] } : undefined);
+      const reviewInput = artifact.queryDigest && spec && schema
         ? {
           question: spec.question,
           clarifications: [],
           answerSpec: spec,
-          schema: artifact.schemaEvidence,
+          schema,
           sql: artifact.normalizedSql,
           digest: artifact.queryDigest,
           resultMetadata: artifact.previewMetadata,

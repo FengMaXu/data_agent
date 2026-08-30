@@ -130,6 +130,7 @@ export interface QueryAssurance {
   hasInternalEvidence?(taskId: string): boolean;
   hasPublication?(taskId: string): boolean;
   publicationForArtifact?(taskId: string, queryArtifactId: string): PublicationReceipt | undefined;
+  publicationForTask?(taskId: string): PublicationReceipt | undefined;
   claimAutomaticRepair?(taskId: string, specVersion: string): { readonly allowed: boolean; readonly attempt: number };
 }
 
@@ -150,6 +151,7 @@ export interface QueryAssuranceOptions {
   mode?: QueryAssuranceMode;
   reviewer?: ConversationBlindReviewer;
   publicationRegistry?: PublicationRegistry;
+  allowUnavailablePublication?: boolean;
   reviewCache?: ReviewCache;
   reviewerModel?: string;
   reviewerPromptVersion?: string;
@@ -253,6 +255,7 @@ export class InMemoryQueryAssurance implements QueryAssurance {
     this.publicationRegistry = options.publicationRegistry ?? new PublicationRegistry({
       mode: this.configuredMode,
       modeFor: () => this.mode,
+      allowUnavailablePublication: options.allowUnavailablePublication,
       specVersionFor: (taskId) => this.specAuthority.get(taskId)?.specVersion,
     });
     this.reviewCache = options.reviewCache ?? new ReviewCache();
@@ -314,6 +317,7 @@ export class InMemoryQueryAssurance implements QueryAssurance {
   hasInternalEvidence(taskId: string): boolean { return (this.artifacts.get(taskId)?.size ?? 0) > 0; }
   hasPublication(taskId: string): boolean { return this.publicationRegistry.hasReceipt(taskId); }
   publicationForArtifact(taskId: string, queryArtifactId: string): PublicationReceipt | undefined { return this.publicationRegistry.receiptForArtifact(taskId, queryArtifactId); }
+  publicationForTask(taskId: string): PublicationReceipt | undefined { return this.publicationRegistry.receiptForTask(taskId); }
   claimAutomaticRepair(taskId: string, specVersion: string): { readonly allowed: boolean; readonly attempt: number } {
     const key = `${taskId}:${specVersion}`;
     const attempt = this.repairAttempts.get(key) ?? 0;
@@ -395,9 +399,27 @@ export class InMemoryQueryAssurance implements QueryAssurance {
     const candidateArtifact = typeof candidate?.queryArtifactId === "string"
       ? await this.getArtifact(input.task.taskId, candidate.queryArtifactId, signal)
       : undefined;
+    const hasCandidateBinding = Boolean(candidate && typeof candidate.candidateId === "string");
+    const expectedSchemaFingerprint = candidateArtifact?.queryDigest?.schemaEvidenceFingerprint ?? "unknown";
+    const candidateMetadata = candidate?.metadata;
+    const candidateBindingValid = !hasCandidateBinding || (
+      candidateArtifact !== undefined
+      && candidate.taskId === input.task.taskId
+      && candidate.queryArtifactId === candidateArtifact.queryArtifactId
+      && candidate.normalizedSqlHash === candidateArtifact.normalizedSqlHash
+      && candidate.specVersion === (candidateArtifact.specVersion ?? input.task.specVersion ?? "1")
+      && candidate.schemaEvidenceFingerprint === expectedSchemaFingerprint
+      && typeof candidate.path === "string"
+      && typeof candidate.contentSha256 === "string"
+      && candidateMetadata !== undefined
+      && candidateMetadata.columns.length === candidateArtifact.previewMetadata.columns.length
+      && candidateMetadata.columns.every((column, index) => column === candidateArtifact.previewMetadata.columns[index])
+    );
     const blockingPreflight = candidateArtifact?.preflightOutcomes?.find((probe) => probe.status === "failed" && probe.blocking);
     let outcome: ReviewOutcome;
-    if (this.mode === "off") {
+    if (hasCandidateBinding && !candidateBindingValid) {
+      outcome = { availability: "unavailable", failure: { code: "REVIEW_CANDIDATE_BINDING_INVALID", message: "Candidate identity does not match the Validated Query Artifact", retryable: false } };
+    } else if (this.mode === "off") {
       outcome = {
         availability: "unavailable",
         failure: { code: "REVIEW_OFF", message: "Query Assurance review is disabled", retryable: false },
@@ -446,7 +468,11 @@ export class InMemoryQueryAssurance implements QueryAssurance {
       const cached = await this.reviewCache.getOrCreate(identity, review, signal);
       outcome = { ...cached.outcome, cacheHit: cached.cacheHit };
     }
-    if (candidate && typeof candidate.candidateId === "string" && typeof candidate.taskId === "string" && typeof candidate.queryArtifactId === "string" && typeof candidate.normalizedSqlHash === "string" && typeof candidate.specVersion === "string" && typeof candidate.schemaEvidenceFingerprint === "string") {
+    if (!candidateBindingValid) {
+      this.recordReviewAudit(input, outcome, candidate, startedAt);
+      return outcome;
+    }
+    if (candidate && typeof candidate.candidateId === "string" && typeof candidate.taskId === "string" && typeof candidate.queryArtifactId === "string" && typeof candidate.normalizedSqlHash === "string" && typeof candidate.specVersion === "string" && typeof candidate.schemaEvidenceFingerprint === "string" && typeof candidate.path === "string" && typeof candidate.contentSha256 === "string" && candidate.metadata !== undefined) {
       const reviewToken = this.publicationRegistry.issueToken({
         taskId: candidate.taskId,
         queryArtifactId: candidate.queryArtifactId,
