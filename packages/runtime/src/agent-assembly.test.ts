@@ -2,8 +2,9 @@ import { describe, expect, it } from "vitest";
 import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path, { join } from "node:path";
-import { buildAgentTools, composeDataAgentSystemPrompt, createDataAgentHarness, resolveSystemPrompt, runtimeCapabilitiesPrompt, unknownToolRecoveryMessage, type QueryExportBatch } from "./agent-assembly.js";
+import { buildAgentTools, composeDataAgentSystemPrompt, createDataAgentHarness, resolveSystemPrompt, runtimeCapabilitiesPrompt, unknownToolRecoveryMessage, type AgentAssemblyDeps, type QueryExportBatch } from "./agent-assembly.js";
 import { ClarificationManager } from "./clarification.js";
+import type { QueryAssurance } from "./query-assurance.js";
 import { WorkspaceStore } from "./workspace.js";
 
 function exportTool(workspace: WorkspaceStore, queryExecutor: any, emitArtifact?: (path: string) => void): any {
@@ -101,6 +102,22 @@ describe("native system prompt assembly", () => {
     expect(prompt).toContain("ask_user_clarification");
     expect(prompt).toContain("Clarification is unavailable in this session");
     expect(prompt).not.toContain("read_knowledge_file");
+  });
+
+  it("accepts one QueryAssurance dependency at the assembly boundary", () => {
+    const workspace = new WorkspaceStore("/tmp/data-agent-query-assurance-dependency");
+    const queryAssurance: QueryAssurance = {
+      mode: "shadow",
+      prepareTask: async (_input, _signal) => ({ taskId: "task-1", mode: "shadow" }),
+      reviewForPublication: async (_input, _signal) => ({ availability: "unavailable", failure: { code: "TEST", message: "not configured", retryable: false } }),
+    };
+    const deps: AgentAssemblyDeps = {
+      workspace,
+      queryAssurance,
+      queryExecutor: { run: async () => ({ columns: [], rows: [], truncated: false }) },
+    };
+
+    expect(buildAgentTools(deps).map((tool) => tool.name)).toContain("query_database");
   });
 
   it("does not expose optional or unavailable capabilities", () => {

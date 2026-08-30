@@ -17,6 +17,7 @@ import type { KnowledgeIndex } from "./knowledge.js";
 import type { WorkspaceStore } from "./workspace.js";
 import type { ClarificationManager } from "./clarification.js";
 import { emitWidgetUpdate, validateWidgetSpec, widgetLegacyText, type WidgetLifecycleDetails, type WidgetPayload } from "./widget.js";
+import { createReviewOffQueryAssurance, type QueryAssurance } from "./query-assurance.js";
 
 export interface QueryExportBatch {
   columns: string[];
@@ -50,6 +51,8 @@ export interface AgentAssemblyDeps {
   enableWidgets?: boolean;
   enableDashboards?: boolean;
   queryExecutor?: QueryExecutor;
+  /** Top-level Query Assurance coordinator; defaults to explicit Review Off. */
+  queryAssurance?: QueryAssurance;
   clarifications?: ClarificationManager;
   sessionId?: string;
   /** Persistent Pi session used by this application chat session. */
@@ -249,7 +252,10 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
     return sessionId ? `${sessionId}/${relativePath}` : relativePath;
   };
   const toolFailures = new Map<string, { message: string; count: number }>();
+  const queryAssurance = deps.queryAssurance ?? createReviewOffQueryAssurance();
   type QueryTaskState = {
+    /** Pre-wired for the next Query Task slice; Review Off is behavior-neutral. */
+    queryAssurance: QueryAssurance;
     exploratoryCount: number;
     hasExported: boolean;
     lastSuccessfulSql?: string;
@@ -262,7 +268,7 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
     const key = sessionIdFor(native) ?? "__default__";
     const existing = queryTaskStates.get(key);
     if (existing) return existing;
-    const created: QueryTaskState = { exploratoryCount: 0, hasExported: false };
+    const created: QueryTaskState = { queryAssurance, exploratoryCount: 0, hasExported: false };
     queryTaskStates.set(key, created);
     return created;
   };
@@ -450,7 +456,7 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
       defineTool("query_database", canonicalTool("query_database").description, QUERY_DATABASE_PARAMETERS, async (p, native) => withToolFailureGuidance("query_database", native, async () => {
         let state = queryTaskStateFor(native);
         if (state.hasExported) {
-          state = { exploratoryCount: 0, hasExported: false };
+          state = { queryAssurance, exploratoryCount: 0, hasExported: false };
           queryTaskStates.set(sessionIdFor(native) ?? "__default__", state);
         }
         const validationPurpose = p.purpose;
