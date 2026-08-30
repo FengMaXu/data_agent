@@ -30,7 +30,9 @@ describe("PublicationRegistry", () => {
     expect(receipts[0]).toEqual(receipts[1]);
     expect(receipts[0]).toMatchObject({ status: "published_approved", taskId: "task-1", queryArtifactId: "artifact-1", candidateId: "candidate-1" });
     await expect(registry.publish(token, candidate("candidate-1"), "exports/other.csv")).resolves.toEqual(receipts[0]);
-    await expect(registry.publish(token, candidate("candidate-2"), "exports/other.csv")).rejects.toThrow("REVIEW_TOKEN_CANDIDATE_MISMATCH");
+    const secondToken = registry.issueToken({ taskId: "task-1", queryArtifactId: "artifact-1", normalizedSqlHash: "sql-1", specVersion: "spec-1", schemaEvidenceFingerprint: "schema-1", candidate: candidate("candidate-2"), outcome: approved });
+    await expect(registry.publish(secondToken, candidate("candidate-2"), "exports/other.csv")).resolves.toEqual(receipts[0]);
+    await expect(registry.publish(token, { ...candidate("candidate-1"), normalizedSqlHash: "different" } as ExportCandidate & { normalizedSqlHash: string }, "exports/other.csv")).rejects.toThrow("REVIEW_TOKEN_CANDIDATE_MISMATCH");
   });
 
   it("does not publish an unavailable review in enforce mode and does publish it as disagreement in shadow mode", async () => {

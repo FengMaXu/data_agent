@@ -719,6 +719,29 @@ describe("export_query", () => {
     }
   });
 
+  it("applies a task-local clarification to the active Answer Spec version", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-clarification-spec-"));
+    const workspace = new WorkspaceStore(root);
+    const manager = new ClarificationManager(5000);
+    let clarificationId = "";
+    manager.onAsked = (request) => { clarificationId = request.clarificationId; };
+    const assurance = createReviewOffQueryAssurance();
+    const task = await assurance.prepareTask({ question: "Which population?" }, new AbortController().signal);
+    let changed: string | undefined;
+    const tool = buildAgentTools({ workspace, clarifications: manager, queryAssurance: assurance, onTaskSpecVersionChanged: (_taskId, version) => { changed = version; } }).find((candidate) => candidate.name === "ask_user_clarification") as any;
+    try {
+      const pending = tool.execute("call-clarification-spec", { question: "Include customers with no orders?" }, undefined, undefined, { sessionId: "session-42", taskId: task.taskId, specVersion: task.specVersion });
+      expect(clarificationId).not.toBe("");
+      expect(manager.answer(clarificationId, "Yes, include them")).toBe(true);
+      await expect(pending).resolves.toMatchObject({ details: { taskId: task.taskId, specVersion: "2" } });
+      expect(changed).toBe("2");
+      expect(assurance.getAnswerSpec?.(task.taskId, "2")?.hardConstraints.at(-1)?.statement).toBe("Yes, include them");
+    } finally {
+      manager.dropAll();
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("uses the native per-turn session for clarification requests", async () => {
     const root = await mkdtemp(join(tmpdir(), "data-agent-clarification-context-"));
     const workspace = new WorkspaceStore(root);

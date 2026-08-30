@@ -7,6 +7,7 @@ import { PublicationRegistry, type PublicationAuthorization, type PublicationRec
 import { ReviewCache, type ReviewCacheIdentity } from "./review-cache.js";
 import { type AssuranceMetrics, type ReviewModeController } from "./review-policy.js";
 import { InMemoryAssuranceAuditStore, type AssuranceAuditRecord, type AssuranceAuditStore } from "./assurance-audit.js";
+import { InvariantProbeRegistry, type ProbeOutcome } from "./invariant-probe.js";
 
 /** Runtime modes are explicit so Review Off cannot be confused with Shadow Review. */
 export type QueryAssuranceMode = "off" | "shadow" | "enforce";
@@ -76,6 +77,7 @@ export interface ValidatedQueryArtifact {
   readonly schemaEvidence?: SchemaEvidence;
   readonly specVersion?: string;
   readonly specStatus?: "available" | "unavailable";
+  readonly preflightOutcomes?: readonly ProbeOutcome[];
   readonly internalEvidence: true;
   readonly createdAt: string;
   readonly expiresAt: string;
@@ -101,6 +103,7 @@ export interface ReviewDecision {
   readonly retryable?: boolean;
   readonly ambiguities?: readonly string[];
   readonly reason?: string;
+  readonly blocking?: boolean;
 }
 
 export interface ReviewFailure {
@@ -126,6 +129,8 @@ export interface QueryAssurance {
   publishCandidate?(input: { reviewToken: ReviewToken; candidate: ExportCandidate; targetPath: string; authorization?: PublicationAuthorization; promote?: () => Promise<void> }, signal: AbortSignal): Promise<PublicationReceipt>;
   hasInternalEvidence?(taskId: string): boolean;
   hasPublication?(taskId: string): boolean;
+  publicationForArtifact?(taskId: string, queryArtifactId: string): PublicationReceipt | undefined;
+  claimAutomaticRepair?(taskId: string, specVersion: string): { readonly allowed: boolean; readonly attempt: number };
 }
 
 export class QueryAssuranceAbortError extends Error {
@@ -153,6 +158,7 @@ export interface QueryAssuranceOptions {
   modeController?: ReviewModeController;
   auditStore?: AssuranceAuditStore;
   specGenerator?: AnswerSpecGenerator;
+  invariantProbes?: InvariantProbeRegistry;
 }
 
 export function normalizeQuerySql(sql: string): string {
@@ -222,6 +228,7 @@ export class InMemoryQueryAssurance implements QueryAssurance {
   private readonly now: () => number;
   private readonly artifacts = new Map<string, Map<string, ValidatedQueryArtifact>>();
   private readonly taskEvidence = new Map<string, TaskEvidence>();
+  private readonly repairAttempts = new Map<string, number>();
   private readonly specAuthority: SpecAuthority;
   private readonly digestCompiler: QueryDigestCompiler;
   private readonly reviewer?: ConversationBlindReviewer;
@@ -233,6 +240,7 @@ export class InMemoryQueryAssurance implements QueryAssurance {
   private readonly reviewCoverageSchemaVersion: string;
   private readonly auditStore: AssuranceAuditStore;
   private readonly specGenerator?: AnswerSpecGenerator;
+  private readonly invariantProbes?: InvariantProbeRegistry;
 
   constructor(options: QueryAssuranceOptions = {}) {
     this.modeController = options.modeController;
@@ -254,6 +262,7 @@ export class InMemoryQueryAssurance implements QueryAssurance {
     this.reviewCoverageSchemaVersion = options.reviewCoverageSchemaVersion ?? "1";
     this.auditStore = options.auditStore ?? new InMemoryAssuranceAuditStore({ now: this.now });
     this.specGenerator = options.specGenerator;
+    this.invariantProbes = options.invariantProbes;
   }
 
   get mode(): QueryAssuranceMode { return this.modeController?.mode() ?? this.configuredMode; }
@@ -304,6 +313,15 @@ export class InMemoryQueryAssurance implements QueryAssurance {
   getTaskEvidence(taskId: string): TaskEvidence | undefined { return this.taskEvidence.get(taskId); }
   hasInternalEvidence(taskId: string): boolean { return (this.artifacts.get(taskId)?.size ?? 0) > 0; }
   hasPublication(taskId: string): boolean { return this.publicationRegistry.hasReceipt(taskId); }
+  publicationForArtifact(taskId: string, queryArtifactId: string): PublicationReceipt | undefined { return this.publicationRegistry.receiptForArtifact(taskId, queryArtifactId); }
+  claimAutomaticRepair(taskId: string, specVersion: string): { readonly allowed: boolean; readonly attempt: number } {
+    const key = `${taskId}:${specVersion}`;
+    const attempt = this.repairAttempts.get(key) ?? 0;
+    if (attempt >= 1) return { allowed: false, attempt };
+    const next = attempt + 1;
+    this.repairAttempts.set(key, next);
+    return { allowed: true, attempt: next };
+  }
 
   applyClarification(taskId: string, baseSpecVersion: string, clarification: string): AnswerSpec {
     return this.specAuthority.applyClarification(taskId, baseSpecVersion, clarification);
@@ -320,7 +338,7 @@ export class InMemoryQueryAssurance implements QueryAssurance {
     const taskContext = this.taskEvidence.get(input.task.taskId);
     const dialect = input.dialect ?? taskContext?.dialect;
     const schema = input.schema ?? taskContext?.schema;
-    const artifact: ValidatedQueryArtifact = {
+    let artifact: ValidatedQueryArtifact = {
       taskId: input.task.taskId,
       queryArtifactId: randomUUID(),
       normalizedSql,
@@ -335,6 +353,11 @@ export class InMemoryQueryAssurance implements QueryAssurance {
       expiresAt: new Date(createdAtMs + this.artifactTtlMs).toISOString(),
       ...(input.purpose ? { purpose: input.purpose } : {}),
     };
+    const spec = this.getAnswerSpec(input.task.taskId, input.task.specVersion);
+    if (this.invariantProbes && spec) {
+      const preflightOutcomes = this.invariantProbes.ids().map((id) => this.invariantProbes!.evaluate(id, { answerSpec: spec, digest: artifact.queryDigest, schema: artifact.schemaEvidence, resultMetadata: artifact.previewMetadata }));
+      artifact = { ...artifact, preflightOutcomes };
+    }
     let taskArtifacts = this.artifacts.get(input.task.taskId);
     if (!taskArtifacts) {
       taskArtifacts = new Map();
@@ -368,11 +391,21 @@ export class InMemoryQueryAssurance implements QueryAssurance {
   async reviewForPublication(input: PublicationReviewRequest, signal: AbortSignal): Promise<ReviewOutcome> {
     throwIfAborted(signal);
     const startedAt = this.now();
+    const candidate = input.candidate as Partial<ExportCandidate> & { normalizedSqlHash?: string; specVersion?: string; schemaEvidenceFingerprint?: string };
+    const candidateArtifact = typeof candidate?.queryArtifactId === "string"
+      ? await this.getArtifact(input.task.taskId, candidate.queryArtifactId, signal)
+      : undefined;
+    const blockingPreflight = candidateArtifact?.preflightOutcomes?.find((probe) => probe.status === "failed" && probe.blocking);
     let outcome: ReviewOutcome;
     if (this.mode === "off") {
       outcome = {
         availability: "unavailable",
         failure: { code: "REVIEW_OFF", message: "Query Assurance review is disabled", retryable: false },
+      };
+    } else if (blockingPreflight) {
+      outcome = {
+        availability: "available",
+        decision: { status: "rejected", blocking: true, reason: "A deterministic Hard Constraint or Structural Fact probe failed" },
       };
     } else if (!this.reviewer) {
       outcome = {
@@ -413,7 +446,6 @@ export class InMemoryQueryAssurance implements QueryAssurance {
       const cached = await this.reviewCache.getOrCreate(identity, review, signal);
       outcome = { ...cached.outcome, cacheHit: cached.cacheHit };
     }
-    const candidate = input.candidate as Partial<ExportCandidate> & { normalizedSqlHash?: string; specVersion?: string; schemaEvidenceFingerprint?: string };
     if (candidate && typeof candidate.candidateId === "string" && typeof candidate.taskId === "string" && typeof candidate.queryArtifactId === "string" && typeof candidate.normalizedSqlHash === "string" && typeof candidate.specVersion === "string" && typeof candidate.schemaEvidenceFingerprint === "string") {
       const reviewToken = this.publicationRegistry.issueToken({
         taskId: candidate.taskId,

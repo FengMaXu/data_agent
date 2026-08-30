@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { spawnSync } from "node:child_process";
 
 export type SqlDialect = "sqlite" | "mysql" | "bigquery" | "snowflake";
 export type DigestCoverageStatus = "checked" | "not_applicable" | "unsupported" | "insufficient_evidence";
@@ -64,6 +65,7 @@ export interface QueryDigest {
   readonly normalizedSqlHash: string;
   readonly dialect: SqlDialect;
   readonly parserVersion: string;
+  readonly parserEngine: "sqlglot" | "deterministic-tokenizer";
   readonly queryDigestVersion: string;
   readonly schemaEvidenceFingerprint: string;
   readonly sources: readonly DigestSource[];
@@ -93,12 +95,23 @@ export interface QueryDigestCompiler {
   compile(input: QueryDigestInput): QueryDigest;
 }
 
-const PARSER_VERSION = "sqlglot-30.8.0-adapter-1";
+export interface SqlglotQueryDigestCompilerOptions {
+  readonly executable: string;
+  readonly timeoutMs?: number;
+}
+
+const PARSER_VERSION = "query-digest-tokenizer-1";
+const SQLGLOT_SCRIPT = [
+  "import json, sys, sqlglot",
+  "payload = json.loads(sys.stdin.read())",
+  "expression = sqlglot.parse_one(payload['sql'], read=payload['dialect'])",
+  "print(json.dumps({'version': getattr(sqlglot, '__version__', 'unknown'), 'sql': expression.sql()}, ensure_ascii=False))",
+].join("; ");
 const QUERY_DIGEST_VERSION = "1";
 const AGGREGATE_FUNCTIONS = new Set(["COUNT", "SUM", "AVG", "MIN", "MAX", "TOTAL", "GROUP_CONCAT"]);
-const CLAUSE_WORDS = new Set(["WHERE", "GROUP", "HAVING", "ORDER", "LIMIT", "UNION", "INTERSECT", "EXCEPT", "FETCH", "QUALIFY"]);
+const CLAUSE_WORDS = new Set(["WHERE", "GROUP", "HAVING", "ORDER", "LIMIT", "UNION", "INTERSECT", "EXCEPT", "FETCH", "QUALIFY", "JOIN", "LEFT", "RIGHT", "FULL", "INNER", "CROSS"]);
 const IDENTIFIER_STOP_WORDS = new Set([
-  "SELECT", "FROM", "JOIN", "LEFT", "RIGHT", "FULL", "INNER", "OUTER", "CROSS", "ON", "WHERE", "GROUP", "BY", "HAVING", "ORDER", "LIMIT", "UNION", "ALL", "INTERSECT", "EXCEPT", "FETCH", "QUALIFY",
+  "SELECT", "FROM", "JOIN", "LEFT", "RIGHT", "FULL", "INNER", "OUTER", "CROSS", "ON", "USING", "WHERE", "GROUP", "BY", "HAVING", "ORDER", "LIMIT", "UNION", "ALL", "INTERSECT", "EXCEPT", "FETCH", "QUALIFY",
 ]);
 const SQL_KEYWORDS = new Set([
   ...IDENTIFIER_STOP_WORDS,
@@ -415,7 +428,11 @@ function parseSources(tokens: readonly Token[]): { sources: DigestSource[]; join
         if (["LEFT", "RIGHT", "FULL", "CROSS", "INNER"].includes(candidate)) { type = candidate; break; }
       }
       const onIndex = findTopLevel(tokens, "ON", parsed.next);
-      const condition = onIndex >= 0 && onIndex < clauseEnd(tokens, parsed.next) ? render(tokens.slice(onIndex + 1, clauseEnd(tokens, onIndex + 1))) : undefined;
+      const usingIndex = findTopLevel(tokens, "USING", parsed.next);
+      const conditionIndex = onIndex >= 0 && (usingIndex < 0 || onIndex < usingIndex) ? onIndex : usingIndex;
+      const condition = conditionIndex >= 0 && conditionIndex < clauseEnd(tokens, parsed.next)
+        ? render(tokens.slice(conditionIndex + (conditionIndex === onIndex ? 1 : 0), clauseEnd(tokens, conditionIndex)))
+        : undefined;
       joins.push({ type, source: parsed.source, ...(condition ? { condition } : {}) });
     }
     sources.push(parsed.source);
@@ -567,6 +584,7 @@ export function createQueryDigestCompiler(): QueryDigestCompiler {
         normalizedSqlHash: digestHash(normalizedSql),
         dialect: input.dialect,
         parserVersion: PARSER_VERSION,
+        parserEngine: "deterministic-tokenizer",
         queryDigestVersion: QUERY_DIGEST_VERSION,
         schemaEvidenceFingerprint: schemaFingerprint(input, parsedSources.sources),
         sources: parsedSources.sources,
@@ -585,6 +603,31 @@ export function createQueryDigestCompiler(): QueryDigestCompiler {
         unsupportedNodes,
         lineageCompleteness,
       };
+    },
+  };
+}
+
+/**
+ * Optional strict parser adapter. The configured Python runtime must provide
+ * the pinned sqlglot package; unlike the deterministic fallback this adapter
+ * fails closed when sqlglot is unavailable or rejects the dialect.
+ */
+export function createSqlglotQueryDigestCompiler(options: SqlglotQueryDigestCompilerOptions): QueryDigestCompiler {
+  return {
+    compile(input) {
+      const result = spawnSync(options.executable, ["-c", SQLGLOT_SCRIPT], {
+        input: JSON.stringify({ sql: input.sql, dialect: input.dialect }),
+        encoding: "utf8",
+        timeout: options.timeoutMs ?? 5_000,
+        windowsHide: true,
+      });
+      if (result.error) throw new Error(`SQLGLOT_UNAVAILABLE:${result.error.message}`);
+      if (result.status !== 0) throw new Error(`SQLGLOT_PARSE_FAILED:${(result.stderr || result.stdout || "unknown error").trim().slice(0, 500)}`);
+      let payload: { version?: string; sql?: string };
+      try { payload = JSON.parse(result.stdout) as typeof payload; } catch { throw new Error("SQLGLOT_BAD_RESPONSE"); }
+      if (!payload.sql || !payload.version) throw new Error("SQLGLOT_BAD_RESPONSE");
+      const digest = createQueryDigestCompiler().compile({ ...input, sql: payload.sql });
+      return { ...digest, parserVersion: `sqlglot-${payload.version}`, parserEngine: "sqlglot" };
     },
   };
 }

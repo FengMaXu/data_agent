@@ -5,6 +5,7 @@ export const DEFAULT_CALIBRATION_THRESHOLDS = {
   correctQuerySpecificity: 0.98,
   mismatchPrecision: 0.9,
   repeatAgreement: 0.95,
+  timeoutDeltaMax: 0.01,
   nonDeliveryDeltaMax: 0.01,
   p95LatencyAbsoluteMaxMs: 20_000,
   p95LatencyRatioMax: 0.25,
@@ -56,6 +57,7 @@ export interface CalibrationReport {
     readonly correctQuerySpecificity: boolean;
     readonly mismatchPrecision: boolean;
     readonly repeatAgreement: boolean;
+    readonly timeout: boolean;
     readonly netE2ECorrect: boolean;
     readonly nonDelivery: boolean;
     readonly latency: boolean;
@@ -107,6 +109,7 @@ export function createCalibrationReport(cases: readonly CalibrationCase[]): Cali
     correctQuerySpecificity: metrics.correctQuerySpecificity >= DEFAULT_CALIBRATION_THRESHOLDS.correctQuerySpecificity,
     mismatchPrecision: metrics.mismatchPrecision >= DEFAULT_CALIBRATION_THRESHOLDS.mismatchPrecision,
     repeatAgreement: metrics.repeatAgreement >= DEFAULT_CALIBRATION_THRESHOLDS.repeatAgreement,
+    timeout: metrics.timeoutDelta <= DEFAULT_CALIBRATION_THRESHOLDS.timeoutDeltaMax,
     netE2ECorrect: metrics.netE2ECorrect > 0,
     nonDelivery: metrics.nonDeliveryDelta <= DEFAULT_CALIBRATION_THRESHOLDS.nonDeliveryDeltaMax,
     latency: metrics.p95LatencyDeltaMs <= Math.max(DEFAULT_CALIBRATION_THRESHOLDS.p95LatencyAbsoluteMaxMs, baselineP95Latency * DEFAULT_CALIBRATION_THRESHOLDS.p95LatencyRatioMax),

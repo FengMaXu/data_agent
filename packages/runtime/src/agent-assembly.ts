@@ -89,6 +89,8 @@ export interface AgentAssemblyDeps {
   requireQueryArtifactId?: boolean;
   /** Require a Publication Receipt before a query task can complete. */
   enforceDeliveryReceipt?: boolean;
+  /** Reflect task-local Answer Spec version changes back into the active harness context. */
+  onTaskSpecVersionChanged?: (taskId: string, specVersion: string) => void;
 }
 
 export interface AgentModelProfile {
@@ -520,6 +522,11 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
       const signal = native.signal ?? new AbortController().signal;
       const artifact = await queryAssurance.getArtifact(taskId, params.queryArtifactId, signal);
       if (!artifact) throw new Error("QUERY_ARTIFACT_NOT_FOUND_OR_EXPIRED");
+      const existingReceipt = queryAssurance.publicationForArtifact?.(taskId, artifact.queryArtifactId);
+      if (existingReceipt) {
+        queryTaskStateFor(native).hasExported = true;
+        return text(`[PUBLICATION_ALREADY_COMPLETE] Publication Receipt ${existingReceipt.receiptId} (${existingReceipt.status})`, { status: "success", taskComplete: true, publicationReceipt: existingReceipt, queryArtifactId: artifact.queryArtifactId });
+      }
       const target = params.filename ?? `exports/query-${Date.now()}.csv`;
       const workspace = await workspaceFor(native);
       const taskSpec = queryAssurance.getAnswerSpec?.(taskId, artifact.specVersion);
@@ -562,6 +569,13 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
           }
           : undefined;
         const outcome = await queryAssurance.reviewForPublication({ task: { taskId, mode: queryAssurance.mode, specVersion }, candidate: candidateForReview, reviewInput }, signal);
+        if (outcome.availability === "available" && outcome.decision.status === "rejected" && queryAssurance.mode === "enforce" && queryAssurance.claimAutomaticRepair) {
+          const repair = queryAssurance.claimAutomaticRepair(taskId, specVersion);
+          if (repair.allowed) {
+            await candidateStore.discard(storedCandidate);
+            throw new Error(`SEMANTIC_DIFF_REPAIR_REQUIRED:${JSON.stringify({ attempt: repair.attempt, diffs: outcome.decision.diffs ?? [] })}`);
+          }
+        }
         if (!outcome.reviewToken) throw new Error("REVIEW_TOKEN_MISSING");
         const receipt = await queryAssurance.publishCandidate({ reviewToken: outcome.reviewToken, candidate: candidateForReview, targetPath: target, promote: () => candidateStore.publish(storedCandidate, target) }, signal);
         queryTaskStateFor(native).hasExported = true;
@@ -591,6 +605,8 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
       const signal = native.signal ?? new AbortController().signal;
       const artifact = await queryAssurance.getArtifact(taskId, params.queryArtifactId, signal);
       if (!artifact) throw new Error("QUERY_ARTIFACT_NOT_FOUND_OR_EXPIRED");
+      const existingReceipt = queryAssurance.publicationForArtifact?.(taskId, artifact.queryArtifactId);
+      if (existingReceipt) return text(`[PUBLICATION_ALREADY_COMPLETE] Publication Receipt ${existingReceipt.receiptId} (${existingReceipt.status})`, { status: "success", taskComplete: true, publishedInline: true, publicationReceipt: existingReceipt, queryArtifactId: artifact.queryArtifactId });
       const preview = queryTaskStateFor(native).previewResults.get(params.queryArtifactId);
       if (!preview) throw new Error("QUERY_ARTIFACT_PREVIEW_NOT_AVAILABLE");
       if (preview.truncated || artifact.previewMetadata.truncated) throw new Error("INLINE_RESULT_TRUNCATED");
@@ -618,6 +634,10 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
         }
         : undefined;
       const outcome = await queryAssurance.reviewForPublication({ task: { taskId, mode: queryAssurance.mode, specVersion: candidate.specVersion }, candidate, reviewInput }, signal);
+      if (outcome.availability === "available" && outcome.decision.status === "rejected" && queryAssurance.mode === "enforce" && queryAssurance.claimAutomaticRepair) {
+        const repair = queryAssurance.claimAutomaticRepair(taskId, candidate.specVersion);
+        if (repair.allowed) throw new Error(`SEMANTIC_DIFF_REPAIR_REQUIRED:${JSON.stringify({ attempt: repair.attempt, diffs: outcome.decision.diffs ?? [] })}`);
+      }
       if (!outcome.reviewToken) throw new Error("REVIEW_TOKEN_MISSING");
       const receipt = await queryAssurance.publishCandidate({ reviewToken: outcome.reviewToken, candidate, targetPath: candidate.path }, signal);
       queryTaskStateFor(native).hasExported = true;
@@ -827,7 +847,16 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
       const { clarificationId, promise } = clarifications.ask(sessionId, p.question, p.options ?? []);
       deps.emitArtifact?.(`__clarification__:${clarificationId}`);
       const answer = await promise;
-      return text(answer || "(no answer)");
+      const taskId = taskIdFor(native);
+      const baseSpecVersion = specVersionFor(native);
+      let nextSpecVersion: string | undefined;
+      if (answer && taskId && baseSpecVersion && queryAssurance.applyClarification) {
+        const next = queryAssurance.applyClarification(taskId, baseSpecVersion, answer);
+        nextSpecVersion = next.specVersion;
+        native.context.specVersion = next.specVersion;
+        deps.onTaskSpecVersionChanged?.(taskId, next.specVersion);
+      }
+      return text(answer || "(no answer)", nextSpecVersion ? { taskId, specVersion: nextSpecVersion } : undefined);
     }));
   }
   return tools;
@@ -935,6 +964,10 @@ export async function createDataAgentHarness(deps: AgentAssemblyDeps, profile: A
     ...deps,
     queryAssurance,
     toolContext,
+    onTaskSpecVersionChanged: (taskId, specVersion) => {
+      if (activeTask?.taskId === taskId) activeTask = { ...activeTask, specVersion };
+      deps.onTaskSpecVersionChanged?.(taskId, specVersion);
+    },
     invokeSkill: async (name, additionalInstructions) => {
       const skill = skills.find((candidate) => candidate.name === name);
       if (!skill) throw new Error(`SKILL_NOT_FOUND: ${name}`);

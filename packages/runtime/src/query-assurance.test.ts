@@ -103,6 +103,13 @@ describe("Review Off QueryAssurance", () => {
     expect(calls).toBe(1);
   });
 
+  it("allows one Automatic Semantic Repair per Spec version and resets on a new version", async () => {
+    const assurance = new InMemoryQueryAssurance();
+    expect(assurance.claimAutomaticRepair?.("task-1", "1")).toEqual({ allowed: true, attempt: 1 });
+    expect(assurance.claimAutomaticRepair?.("task-1", "1")).toEqual({ allowed: false, attempt: 1 });
+    expect(assurance.claimAutomaticRepair?.("task-1", "2")).toEqual({ allowed: true, attempt: 1 });
+  });
+
   it("marks a failed Spec Generator unavailable instead of fabricating an empty Spec", async () => {
     const assurance = new InMemoryQueryAssurance({ specGenerator: { generate: async () => { throw new Error("SPEC_GENERATOR_TIMEOUT"); } } });
     const task = await assurance.prepareTask({ question: "q" }, new AbortController().signal);

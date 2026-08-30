@@ -20,6 +20,7 @@ describe("Query Digest compiler", () => {
 
     expect(digest.sources.map((source) => source.name)).toEqual(["orders", "customers"]);
     expect(digest.joins).toHaveLength(1);
+    expect(digest.joins[0].condition).toBe("c.id = o.customer_id");
     expect(digest.measures.map((measure) => measure.function)).toContain("SUM");
     expect(digest.groupBy).toEqual(["c.name"]);
     expect(digest.orderBy).toEqual(["total DESC"]);
@@ -30,6 +31,16 @@ describe("Query Digest compiler", () => {
     expect(digest.coverage.sources).toBe("checked");
     expect(digest.coverage.outputLineage).toBe("checked");
     expect(digest.schemaEvidenceFingerprint).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+  it("keeps each JOIN condition separate", () => {
+    const digest = createQueryDigestCompiler().compile({
+      sql: "SELECT a.id FROM a JOIN b ON b.a_id = a.id LEFT JOIN c ON c.b_id = b.id",
+      dialect: "mysql",
+    });
+    expect(digest.joins.map((join) => join.condition)).toEqual(["b.a_id = a.id", "c.b_id = b.id"]);
+    const using = createQueryDigestCompiler().compile({ sql: "SELECT * FROM a JOIN b USING (id)", dialect: "mysql" });
+    expect(using.joins[0].condition).toBe("USING(id)");
   });
 
   it("records windows, set operations and unsupported coverage without inventing facts", () => {

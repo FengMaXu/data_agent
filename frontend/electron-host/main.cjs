@@ -529,8 +529,8 @@ function Ternary(condition, true_, false_) {
 function Statements(statements) {
   return `{ ${statements.join("; ")}; }`;
 }
-function ConstDeclaration(identifier, expression) {
-  return `const ${identifier} = ${expression}`;
+function ConstDeclaration(identifier2, expression) {
+  return `const ${identifier2} = ${expression}`;
 }
 function If(condition, then) {
   return `if(${condition}) { ${then} }`;
@@ -3119,8 +3119,8 @@ function FactorWith(type, withClause) {
   return guard_exports.IsArray(withClause) && guard_exports.IsEqual(withClause.length, 0) ? type : WithDeferred(type, withClause);
 }
 function FactorMapping(input) {
-  const [keyOf, type, indexArray, extend2, withClause] = input;
-  return FactorWith(keyOf ? FactorExtends(KeyOfDeferred(FactorIndexArray(type, indexArray)), extend2) : FactorExtends(FactorIndexArray(type, indexArray), extend2), withClause);
+  const [keyOf2, type, indexArray, extend2, withClause] = input;
+  return FactorWith(keyOf2 ? FactorExtends(KeyOfDeferred(FactorIndexArray(type, indexArray)), extend2) : FactorExtends(FactorIndexArray(type, indexArray), extend2), withClause);
 }
 function ExprBinaryMapping(left, rest) {
   return guard_exports.IsEqual(rest.length, 3) ? (() => {
@@ -6387,11 +6387,11 @@ var init_instantiate14 = __esm({
 });
 
 // node_modules/typebox/build/type/action/mapped.mjs
-function MappedDeferred(identifier, type, as, property, options = {}) {
-  return Deferred("Mapped", [identifier, type, as, property], options);
+function MappedDeferred(identifier2, type, as, property, options = {}) {
+  return Deferred("Mapped", [identifier2, type, as, property], options);
 }
-function Mapped(identifier, type, as, property, options = {}) {
-  return MappedAction({}, State([], []), identifier, type, as, property, options);
+function Mapped(identifier2, type, as, property, options = {}) {
+  return MappedAction({}, State([], []), identifier2, type, as, property, options);
 }
 var init_mapped = __esm({
   "node_modules/typebox/build/type/action/mapped.mjs"() {
@@ -6446,16 +6446,16 @@ function CanonicalAs(instantiatedAs) {
   const result = IsTemplateLiteral(instantiatedAs) ? EvaluateTemplateLiteral(instantiatedAs.pattern) : instantiatedAs;
   return result;
 }
-function MappedVariant(context2, state2, identifier, variant, as, property) {
-  const variantContext = memory_exports.Assign(context2, { [identifier["name"]]: variant });
+function MappedVariant(context2, state2, identifier2, variant, as, property) {
+  const variantContext = memory_exports.Assign(context2, { [identifier2["name"]]: variant });
   const instantiatedAs = InstantiateType(variantContext, state2, as);
   const canonicalAs = CanonicalAs(instantiatedAs);
   const instantiatedProperty = InstantiateType(variantContext, state2, property);
   return IsLiteralNumber(canonicalAs) || IsLiteralString(canonicalAs) ? { [canonicalAs.const]: instantiatedProperty } : {};
 }
-function MappedProperties(context2, state2, identifier, variants, as, property) {
+function MappedProperties(context2, state2, identifier2, variants, as, property) {
   return variants.reduce((result, left) => {
-    return [...result, MappedVariant(context2, state2, identifier, left, as, property)];
+    return [...result, MappedVariant(context2, state2, identifier2, left, as, property)];
   }, []);
 }
 function MappedObjects(properties) {
@@ -6463,9 +6463,9 @@ function MappedObjects(properties) {
     return [...result, _Object_(left)];
   }, []);
 }
-function MappedOperation(context2, state2, identifier, type, as, property) {
+function MappedOperation(context2, state2, identifier2, type, as, property) {
   const variants = MappedVariants(type);
-  const mappedProperties = MappedProperties(context2, state2, identifier, variants, as, property);
+  const mappedProperties = MappedProperties(context2, state2, identifier2, variants, as, property);
   const mappedObjects = MappedObjects(mappedProperties);
   const result = EvaluateIntersect(mappedObjects);
   return result;
@@ -6484,13 +6484,13 @@ var init_mapped_operation = __esm({
 });
 
 // node_modules/typebox/build/type/engine/mapped/instantiate.mjs
-function MappedAction(context2, state2, identifier, type, as, property, options) {
-  const result = CanInstantiate([type]) ? memory_exports.Update(MappedOperation(context2, state2, identifier, type, as, property), {}, options) : MappedDeferred(identifier, type, as, property, options);
+function MappedAction(context2, state2, identifier2, type, as, property, options) {
+  const result = CanInstantiate([type]) ? memory_exports.Update(MappedOperation(context2, state2, identifier2, type, as, property), {}, options) : MappedDeferred(identifier2, type, as, property, options);
   return result;
 }
-function MappedInstantiate(context2, state2, identifier, type, as, property, options) {
+function MappedInstantiate(context2, state2, identifier2, type, as, property, options) {
   const instantiatedType = InstantiateType(context2, state2, type);
-  return MappedAction(context2, state2, identifier, instantiatedType, as, property, options);
+  return MappedAction(context2, state2, identifier2, instantiatedType, as, property, options);
 }
 var init_instantiate15 = __esm({
   "node_modules/typebox/build/type/engine/mapped/instantiate.mjs"() {
@@ -11066,10 +11066,10 @@ function ErrorUniqueItems(_stack, context2, schemaPath, instancePath, schema, va
     return true;
   const set2 = /* @__PURE__ */ new Set();
   const duplicateItems = value.reduce((result, value2, index3) => {
-    const hash2 = hash_exports.Hash(value2);
-    if (set2.has(hash2))
+    const hash3 = hash_exports.Hash(value2);
+    if (set2.has(hash3))
       return [...result, index3];
-    set2.add(hash2);
+    set2.add(hash3);
     return result;
   }, []);
   const isUniqueItems = guard_exports.IsEqual(duplicateItems.length, 0);
@@ -14141,10 +14141,10 @@ var init_error2 = __esm({
 function MakeUnique(values) {
   const [hashes, result] = [/* @__PURE__ */ new Set(), []];
   for (const value of values) {
-    const hash2 = Hash2(value);
-    if (hashes.has(hash2))
+    const hash3 = Hash2(value);
+    if (hashes.has(hash3))
       continue;
-    hashes.add(hash2);
+    hashes.add(hash3);
     result.push(value);
   }
   return result;
@@ -28941,7 +28941,12 @@ var init_workspace = __esm({
           throw new Error("WORKSPACE_SYMLINK_ESCAPE");
       }
       async list() {
-        return (0, import_promises4.readdir)(this.root, { recursive: true });
+        return (await (0, import_promises4.readdir)(this.root, { recursive: true })).filter((entry) => !entry.split(import_node_path5.default.sep).includes(".query-assurance") && !entry.endsWith(".audit.log"));
+      }
+      assertReadable(relativePath) {
+        const normalized = relativePath.replaceAll("\\", "/");
+        if (normalized === ".query-assurance" || normalized.startsWith(".query-assurance/"))
+          throw new Error("PRIVATE_WORKSPACE_PATH");
       }
       async safeExisting(relativePath) {
         const target = await (0, import_promises4.realpath)(this.resolve(relativePath));
@@ -28953,6 +28958,7 @@ var init_workspace = __esm({
         return (await this.readRange(relativePath)).content;
       }
       async readBytes(relativePath) {
+        this.assertReadable(relativePath);
         return new Uint8Array(await (0, import_promises4.readFile)(await this.safeExisting(relativePath)));
       }
       /** Read a session path, falling back to a pre-session-isolation root artifact. */
@@ -28970,6 +28976,7 @@ var init_workspace = __esm({
         }
       }
       async readRange(relativePath, range = {}) {
+        this.assertReadable(relativePath);
         return boundTextByLines(await (0, import_promises4.readFile)(await this.safeExisting(relativePath), "utf8"), range);
       }
       async write(relativePath, content) {
@@ -29080,19 +29087,19 @@ var init_workspace = __esm({
         const prepared = await this.prepareWritePath(relativePath);
         const temporary = import_node_path5.default.join(prepared.parent, `${import_node_path5.default.basename(prepared.target)}.${(0, import_node_crypto3.randomUUID)()}.tmp`);
         const handle = await (0, import_promises4.open)(temporary, "wx");
-        const throwIfAborted2 = () => {
+        const throwIfAborted3 = () => {
           if (signal?.aborted)
             throw new Error("EXPORT_CANCELLED");
         };
         try {
           await producer(async (chunk) => {
-            throwIfAborted2();
+            throwIfAborted3();
             if (typeof chunk === "string")
               await handle.write(chunk);
             else
               await handle.write(chunk);
           });
-          throwIfAborted2();
+          throwIfAborted3();
           await this.assertSafeTemporary(prepared.root, prepared.parent, temporary);
           await handle.sync();
           await handle.close();
@@ -29106,6 +29113,15 @@ var init_workspace = __esm({
           await this.cleanupTemporary(prepared.root, prepared.parent, temporary);
           throw error51;
         }
+      }
+      /** Atomically promotes an existing private file to a workspace artifact. */
+      async promote(sourceRelativePath, targetRelativePath) {
+        const source = await this.safeExisting(sourceRelativePath);
+        const sourceInfo = await (0, import_promises4.lstat)(source);
+        if (sourceInfo.isSymbolicLink() || !sourceInfo.isFile())
+          throw new Error("WORKSPACE_SOURCE_NOT_FILE");
+        const target = await this.prepareWritePath(targetRelativePath);
+        await (0, import_promises4.rename)(source, target.target);
       }
       async artifact(relativePath) {
         const info = await (0, import_promises4.stat)(await this.safeExisting(relativePath));
@@ -29822,6 +29838,7 @@ var init_skills2 = __esm({
       "generate_dashboard",
       "show_widget",
       "query_database",
+      "publish_query_result",
       "ask_user_clarification",
       "export_query"
     ]);
@@ -39832,9 +39849,9 @@ function convertMessages(model, context2, compat, options) {
       if (combinedId.length <= 40) {
         return combinedId;
       }
-      const hash2 = shortHash(id).slice(0, 8);
-      const prefix = callId.slice(0, Math.max(1, 40 - hash2.length - 1));
-      return `${prefix}_${hash2}`;
+      const hash3 = shortHash(id).slice(0, 8);
+      const prefix = callId.slice(0, Math.max(1, 40 - hash3.length - 1));
+      return `${prefix}_${hash3}`;
     }
     if (model.provider === "openai")
       return id.length > 40 ? id.slice(0, 40) : id;
@@ -50817,12 +50834,12 @@ var require_common2 = __commonJS({
       createDebug.skips = [];
       createDebug.formatters = {};
       function selectColor(namespace) {
-        let hash2 = 0;
+        let hash3 = 0;
         for (let i2 = 0; i2 < namespace.length; i2++) {
-          hash2 = (hash2 << 5) - hash2 + namespace.charCodeAt(i2);
-          hash2 |= 0;
+          hash3 = (hash3 << 5) - hash3 + namespace.charCodeAt(i2);
+          hash3 |= 0;
         }
-        return createDebug.colors[Math.abs(hash2) % createDebug.colors.length];
+        return createDebug.colors[Math.abs(hash3) % createDebug.colors.length];
       }
       createDebug.selectColor = selectColor;
       function createDebug(namespace) {
@@ -57732,8 +57749,8 @@ var init_get_search = __esm({
         return parsedURL.search;
       }
       const lastOffset = parsedURL.href.length - 1;
-      const hash2 = parsedURL.hash || (parsedURL.href[lastOffset] === "#" ? "#" : "");
-      return parsedURL.href[lastOffset - hash2.length] === "?" ? "?" : "";
+      const hash3 = parsedURL.hash || (parsedURL.href[lastOffset] === "#" ? "#" : "");
+      return parsedURL.href[lastOffset - hash3.length] === "?" ? "?" : "";
     };
   }
 });
@@ -58420,7 +58437,7 @@ var require_gaxios = __commonJS({
     var retry_js_1 = require_retry3();
     var stream_1 = require("stream");
     var interceptor_js_1 = require_interceptor();
-    var randomUUID14 = async () => globalThis.crypto?.randomUUID() || (await import("crypto")).randomUUID();
+    var randomUUID19 = async () => globalThis.crypto?.randomUUID() || (await import("crypto")).randomUUID();
     var HTTP_STATUS_NO_CONTENT = 204;
     var Gaxios = class {
       agentCache = /* @__PURE__ */ new Map();
@@ -58693,7 +58710,7 @@ var require_gaxios = __commonJS({
          */
         ["Blob", "File", "FormData"].includes(opts.data?.constructor?.name || "");
         if (opts.multipart?.length) {
-          const boundary = await randomUUID14();
+          const boundary = await randomUUID19();
           preparedHeaders.set("content-type", `multipart/related; boundary=${boundary}`);
           opts.body = stream_1.Readable.from(this.getMultipartRequest(opts.multipart, boundary));
         } else if (shouldDirectlyPassData) {
@@ -70835,7 +70852,7 @@ var require_websocket = __commonJS({
     var http3 = require("http");
     var net = require("net");
     var tls = require("tls");
-    var { randomBytes: randomBytes2, createHash: createHash3 } = require("crypto");
+    var { randomBytes: randomBytes2, createHash: createHash6 } = require("crypto");
     var { Duplex, Readable: Readable2 } = require("stream");
     var { URL: URL2 } = require("url");
     var PerMessageDeflate2 = require_permessage_deflate();
@@ -71503,7 +71520,7 @@ var require_websocket = __commonJS({
           abortHandshake(websocket, socket, "Invalid Upgrade header");
           return;
         }
-        const digest = createHash3("sha1").update(key + GUID).digest("base64");
+        const digest = createHash6("sha1").update(key + GUID).digest("base64");
         if (res.headers["sec-websocket-accept"] !== digest) {
           abortHandshake(websocket, socket, "Invalid Sec-WebSocket-Accept header");
           return;
@@ -71872,7 +71889,7 @@ var require_websocket_server = __commonJS({
     var EventEmitter = require("events");
     var http3 = require("http");
     var { Duplex } = require("stream");
-    var { createHash: createHash3 } = require("crypto");
+    var { createHash: createHash6 } = require("crypto");
     var extension2 = require_extension();
     var PerMessageDeflate2 = require_permessage_deflate();
     var subprotocol2 = require_subprotocol();
@@ -72179,7 +72196,7 @@ var require_websocket_server = __commonJS({
           );
         }
         if (this._state > RUNNING) return abortHandshake(socket, 503);
-        const digest = createHash3("sha1").update(key + GUID).digest("base64");
+        const digest = createHash6("sha1").update(key + GUID).digest("base64");
         const headers = [
           "HTTP/1.1 101 Switching Protocols",
           "Upgrade: websocket",
@@ -163089,9 +163106,10 @@ function canonicalLocalTools() {
     { name: "load_skill", identity: "load_skill", origin: "local", description: "Load a discovered skill by name.", parameters: typebox_exports.Object({ name: typebox_exports.String({ minLength: 1 }) }) },
     { name: "generate_dashboard", identity: "generate_dashboard", origin: "local", description: "Validate, create or edit static/semantic dashboards.", parameters: typebox_exports.Object({ operation: typebox_exports.Union([typebox_exports.Literal("create"), typebox_exports.Literal("edit"), typebox_exports.Literal("validate")]), mode: typebox_exports.Union([typebox_exports.Literal("static"), typebox_exports.Literal("semantic")]), version: typebox_exports.Union([typebox_exports.Literal("v3"), typebox_exports.Literal("v4")]), spec: typebox_exports.Unknown(), editPath: typebox_exports.Optional(typebox_exports.String()) }) },
     { name: "show_widget", identity: "show_widget", origin: "local", description: "Render an inline UI widget card.", parameters: SHOW_WIDGET_PARAMETERS },
-    { name: "query_database", identity: "query_database", origin: "mcp-dynamic", description: "Preview a read-only query through the database MCP server.", parameters: typebox_exports.Object({ sql: typebox_exports.String({ minLength: 1 }), limit: typebox_exports.Optional(typebox_exports.Number()) }) },
+    { name: "query_database", identity: "query_database", origin: "mcp-dynamic", description: "Preview a read-only query through the database MCP server. Use purpose=reconciliation for an independent JOIN/aggregate audit or purpose=verification for an independent value check.", parameters: QUERY_DATABASE_PARAMETERS },
+    { name: "publish_query_result", identity: "publish_query_result", origin: "local", description: "Publish a small Query Artifact result after Query Assurance review.", parameters: PUBLISH_QUERY_RESULT_PARAMETERS },
     { name: "ask_user_clarification", identity: "ask_user_clarification", origin: "local", description: "Ask the user a structured clarifying question.", parameters: typebox_exports.Object({ question: typebox_exports.String({ minLength: 1 }), options: typebox_exports.Optional(typebox_exports.Array(typebox_exports.String())) }) },
-    { name: "export_query", identity: "mcp__database__export_query", origin: "mcp-dynamic", description: "Export validated query results as CSV. Declare scalar/top_n/grouped/full shape and the exact output-column whitelist; shape mismatches are rejected before publication.", parameters: EXPORT_QUERY_PARAMETERS }
+    { name: "export_query", identity: "mcp__database__export_query", origin: "mcp-dynamic", description: "Publish a Query Artifact as CSV after Query Assurance review. Select the exact queryArtifactId; do not submit a different SQL string.", parameters: EXPORT_QUERY_PARAMETERS }
   ];
 }
 function assertNoLegacyTools(names2) {
@@ -163099,26 +163117,29 @@ function assertNoLegacyTools(names2) {
   if (offenders.length > 0)
     throw new Error(`LEGACY_TOOL_NAMES_PRESENT:${offenders.join(",")}`);
 }
-var SHOW_WIDGET_PARAMETERS, EXPORT_QUERY_PARAMETERS, FORBIDDEN_LEGACY;
+var PUBLISH_QUERY_RESULT_PARAMETERS, SHOW_WIDGET_PARAMETERS, QUERY_DATABASE_PARAMETERS, EXPORT_QUERY_PARAMETERS, FORBIDDEN_LEGACY;
 var init_tools_catalog = __esm({
   "packages/runtime/dist/tools-catalog.js"() {
     "use strict";
     init_build();
+    PUBLISH_QUERY_RESULT_PARAMETERS = typebox_exports.Object({
+      queryArtifactId: typebox_exports.String({ minLength: 1 })
+    });
     SHOW_WIDGET_PARAMETERS = typebox_exports.Object({
       kind: typebox_exports.Union([typebox_exports.Literal("kpi"), typebox_exports.Literal("chart"), typebox_exports.Literal("table"), typebox_exports.Literal("steps")]),
       spec: typebox_exports.Unknown()
     });
-    EXPORT_QUERY_PARAMETERS = typebox_exports.Object({
+    QUERY_DATABASE_PARAMETERS = typebox_exports.Object({
       sql: typebox_exports.String({ minLength: 1 }),
-      filename: typebox_exports.Optional(typebox_exports.String()),
-      expected_rows: typebox_exports.Union([
-        typebox_exports.Literal("scalar"),
-        typebox_exports.Literal("top_n"),
-        typebox_exports.Literal("grouped"),
-        typebox_exports.Literal("full")
-      ]),
-      expected_row_count: typebox_exports.Optional(typebox_exports.Integer({ minimum: 1 })),
-      expected_columns: typebox_exports.Optional(typebox_exports.Array(typebox_exports.String({ minLength: 1 }), { minItems: 1, uniqueItems: true }))
+      limit: typebox_exports.Optional(typebox_exports.Number()),
+      purpose: typebox_exports.Optional(typebox_exports.Union([
+        typebox_exports.Literal("reconciliation"),
+        typebox_exports.Literal("verification")
+      ]))
+    });
+    EXPORT_QUERY_PARAMETERS = typebox_exports.Object({
+      queryArtifactId: typebox_exports.String({ minLength: 1 }),
+      filename: typebox_exports.Optional(typebox_exports.String())
     });
     FORBIDDEN_LEGACY = /* @__PURE__ */ new Set([
       "execute_sql",
@@ -163145,6 +163166,1723 @@ var init_tools_catalog = __esm({
   }
 });
 
+// packages/runtime/dist/answer-spec.js
+function isHardConstraintEligible(input) {
+  return input.authority !== "model_inference" && input.authority !== "observed_data" && (input.authority !== "schema_structure" || input.structural === true);
+}
+function reference(input) {
+  return { authority: input.authority, source: input.source ?? "task-evidence" };
+}
+function makeHardConstraint(input, index3) {
+  return {
+    id: `HC-${index3 + 1}`,
+    statement: input.statement,
+    scope: input.scope,
+    provenance: reference(input)
+  };
+}
+function makeHypothesis(input, index3) {
+  const authority = input.authority ?? "model_inference";
+  return {
+    id: `HY-${index3 + 1}`,
+    statement: input.statement,
+    scope: input.scope,
+    ..."confidence" in input && input.confidence !== void 0 ? { confidence: input.confidence } : {},
+    provenance: reference({ authority, source: input.source })
+  };
+}
+function makeAmbiguity(input, index3) {
+  return {
+    id: `AM-${index3 + 1}`,
+    question: input.question,
+    alternatives: [...input.alternatives],
+    scope: input.scope,
+    ...input.source ? { provenance: { authority: "model_inference", source: input.source } } : {}
+  };
+}
+function createAnswerSpec(input) {
+  const constraints = [...input.constraints ?? []];
+  for (const clarification of input.clarifications ?? []) {
+    constraints.push({ statement: clarification, authority: "user_clarification", scope: "task", source: "user-clarification" });
+  }
+  const hardConstraints = [];
+  const hypotheses = [...(input.hypotheses ?? []).map((item, index3) => makeHypothesis(item, index3))];
+  for (const constraint of constraints) {
+    if (isHardConstraintEligible(constraint))
+      hardConstraints.push(makeHardConstraint(constraint, hardConstraints.length));
+    else
+      hypotheses.push(makeHypothesis(constraint, hypotheses.length));
+  }
+  const provenance = [
+    ...constraints.map((item) => reference(item)),
+    ...(input.hypotheses ?? []).map((item) => reference({ authority: item.authority ?? "model_inference", source: item.source })),
+    ...(input.clarifications ?? []).map(() => ({ authority: "user_clarification", source: "user-clarification" }))
+  ];
+  return {
+    taskId: input.taskId,
+    specVersion: "1",
+    question: input.question,
+    ...input.outputColumns ? { outputColumns: [...input.outputColumns] } : {},
+    ...input.rowMode ? { rowMode: input.rowMode } : {},
+    ...input.rowCount !== void 0 ? { rowCount: input.rowCount } : {},
+    hardConstraints,
+    hypotheses,
+    ambiguities: (input.ambiguities ?? []).map((item, index3) => makeAmbiguity(item, index3)),
+    provenance
+  };
+}
+function cloneSpec(spec, specVersion, hardConstraints, hypotheses = spec.hypotheses, ambiguities = spec.ambiguities) {
+  return {
+    ...spec,
+    specVersion,
+    hardConstraints: hardConstraints.map((item) => ({ ...item, provenance: { ...item.provenance } })),
+    hypotheses: hypotheses.map((item) => ({ ...item, provenance: { ...item.provenance } })),
+    ambiguities: ambiguities.map((item) => ({ ...item, alternatives: [...item.alternatives], ...item.provenance ? { provenance: { ...item.provenance } } : {} })),
+    provenance: spec.provenance.map((item) => ({ ...item }))
+  };
+}
+function createAnswerSpecGenerator() {
+  return { async generate(input) {
+    return input;
+  } };
+}
+function createSpecAuthority() {
+  const versions = /* @__PURE__ */ new Map();
+  const proposals = /* @__PURE__ */ new Map();
+  const current = (taskId, specVersion) => {
+    const spec = versions.get(taskId)?.find((item) => item.specVersion === specVersion);
+    if (!spec)
+      throw new Error(`ANSWER_SPEC_NOT_FOUND:${taskId}:${specVersion}`);
+    return spec;
+  };
+  const append = (spec) => {
+    const history = versions.get(spec.taskId) ?? [];
+    history.push(spec);
+    versions.set(spec.taskId, history);
+    return spec;
+  };
+  return {
+    prepare(input) {
+      if (!input.taskId || !input.question.trim())
+        throw new Error("ANSWER_SPEC_INPUT_INVALID");
+      const spec = createAnswerSpec(input);
+      return append(spec);
+    },
+    get(taskId, specVersion) {
+      const history = versions.get(taskId);
+      return specVersion ? history?.find((item) => item.specVersion === specVersion) : history?.at(-1);
+    },
+    applyClarification(taskId, baseSpecVersion, clarification) {
+      if (!clarification.trim())
+        throw new Error("ANSWER_SPEC_CLARIFICATION_EMPTY");
+      const base = current(taskId, baseSpecVersion);
+      const nextConstraint = {
+        id: `HC-${base.hardConstraints.length + 1}`,
+        statement: clarification,
+        scope: "task",
+        provenance: { authority: "user_clarification", source: "user-clarification" }
+      };
+      return append(cloneSpec(base, String(Number(base.specVersion) + 1), [...base.hardConstraints, nextConstraint]));
+    },
+    submitProposal(proposal) {
+      const rejected = {
+        accepted: false,
+        proposal: { ...proposal, proposalId: proposal.proposalId ?? (0, import_node_crypto8.randomUUID)() },
+        reason: "SOLVER_PROPOSAL_REQUIRES_AUTHORITY"
+      };
+      proposals.set(rejected.proposal.proposalId, rejected);
+      return rejected;
+    },
+    applyAuthoritativeChange(taskId, baseSpecVersion, change) {
+      if (!isHardConstraintEligible(change))
+        throw new Error("ANSWER_SPEC_HARD_CONSTRAINT_EVIDENCE_INSUFFICIENT");
+      const base = current(taskId, baseSpecVersion);
+      const nextConstraint = makeHardConstraint(change, base.hardConstraints.length);
+      return append(cloneSpec(base, String(Number(base.specVersion) + 1), [...base.hardConstraints, nextConstraint]));
+    }
+  };
+}
+var import_node_crypto8, EVIDENCE_AUTHORITY_ORDER;
+var init_answer_spec = __esm({
+  "packages/runtime/dist/answer-spec.js"() {
+    "use strict";
+    import_node_crypto8 = require("node:crypto");
+    EVIDENCE_AUTHORITY_ORDER = [
+      "user_clarification",
+      "reviewed_semantic_model",
+      "task_document",
+      "request_wording",
+      "schema_structure",
+      "observed_data",
+      "model_inference"
+    ];
+  }
+});
+
+// packages/runtime/dist/query-digest.js
+function isWordStart(char) {
+  return /[A-Za-z_]/.test(char);
+}
+function isWordPart(char) {
+  return /[A-Za-z0-9_$]/.test(char);
+}
+function isDigit(char) {
+  return char >= "0" && char <= "9";
+}
+function tokenize3(sql) {
+  const tokens = [];
+  let index3 = 0;
+  while (index3 < sql.length) {
+    const char = sql[index3];
+    if (/\s/.test(char)) {
+      index3 += 1;
+      continue;
+    }
+    if (char === "-" && sql[index3 + 1] === "-") {
+      index3 += 2;
+      while (index3 < sql.length && sql[index3] !== "\n")
+        index3 += 1;
+      continue;
+    }
+    if (char === "/" && sql[index3 + 1] === "*") {
+      index3 += 2;
+      while (index3 < sql.length && !(sql[index3] === "*" && sql[index3 + 1] === "/"))
+        index3 += 1;
+      index3 += index3 < sql.length ? 2 : 0;
+      continue;
+    }
+    if (char === "#") {
+      index3 += 1;
+      while (index3 < sql.length && sql[index3] !== "\n")
+        index3 += 1;
+      continue;
+    }
+    if (char === "'" || char === '"' || char === "`" || char === "[") {
+      const quote = char === "[" ? "]" : char;
+      const start = index3;
+      index3 += 1;
+      while (index3 < sql.length) {
+        if (sql[index3] === quote) {
+          if (sql[index3 + 1] === quote) {
+            index3 += 2;
+            continue;
+          }
+          index3 += 1;
+          break;
+        }
+        if (char === "'" && sql[index3] === "\\")
+          index3 += 2;
+        else
+          index3 += 1;
+      }
+      tokens.push({ kind: char === "'" ? "string" : "quoted", value: sql.slice(start, index3) });
+      continue;
+    }
+    if (isWordStart(char)) {
+      const start = index3;
+      index3 += 1;
+      while (index3 < sql.length && isWordPart(sql[index3]))
+        index3 += 1;
+      tokens.push({ kind: "word", value: sql.slice(start, index3) });
+      continue;
+    }
+    if (isDigit(char) || char === "." && isDigit(sql[index3 + 1] ?? "")) {
+      const start = index3;
+      index3 += 1;
+      while (index3 < sql.length && /[0-9.eE+-]/.test(sql[index3]) && !(sql[index3] === "+" || sql[index3] === "-") || (sql[index3 - 1] === "e" || sql[index3 - 1] === "E"))
+        index3 += 1;
+      tokens.push({ kind: "number", value: sql.slice(start, index3) });
+      continue;
+    }
+    const two = sql.slice(index3, index3 + 2);
+    if (["<=", ">=", "<>", "!=", "||", "::", "+=", "-=", "->"].includes(two)) {
+      tokens.push({ kind: "symbol", value: two });
+      index3 += 2;
+      continue;
+    }
+    tokens.push({ kind: "symbol", value: char });
+    index3 += 1;
+  }
+  return tokens;
+}
+function upper(token) {
+  return token?.value.toUpperCase() ?? "";
+}
+function sameWord(token, value) {
+  return upper(token) === value;
+}
+function depthAt(tokens, index3) {
+  let depth = 0;
+  for (let cursor = 0; cursor < index3; cursor += 1) {
+    if (tokens[cursor].value === "(")
+      depth += 1;
+    else if (tokens[cursor].value === ")")
+      depth = Math.max(0, depth - 1);
+  }
+  return depth;
+}
+function findTopLevel(tokens, word, start = 0) {
+  let depth = 0;
+  for (let index3 = start; index3 < tokens.length; index3 += 1) {
+    const value = tokens[index3].value;
+    if (value === "(") {
+      depth += 1;
+      continue;
+    }
+    if (value === ")") {
+      depth = Math.max(0, depth - 1);
+      continue;
+    }
+    if (depth === 0 && sameWord(tokens[index3], word))
+      return index3;
+  }
+  return -1;
+}
+function findTopLevelAny(tokens, words, start) {
+  let depth = 0;
+  for (let index3 = start; index3 < tokens.length; index3 += 1) {
+    const value = tokens[index3].value;
+    if (value === "(") {
+      depth += 1;
+      continue;
+    }
+    if (value === ")") {
+      depth = Math.max(0, depth - 1);
+      continue;
+    }
+    if (depth === 0 && words.has(upper(tokens[index3])))
+      return index3;
+  }
+  return tokens.length;
+}
+function matchingParen(tokens, open3) {
+  let depth = 0;
+  for (let index3 = open3; index3 < tokens.length; index3 += 1) {
+    if (tokens[index3].value === "(")
+      depth += 1;
+    else if (tokens[index3].value === ")") {
+      depth -= 1;
+      if (depth === 0)
+        return index3;
+    }
+  }
+  return -1;
+}
+function splitTopLevel(tokens, start, end) {
+  const result = [];
+  let itemStart = start;
+  let depth = 0;
+  for (let index3 = start; index3 < end; index3 += 1) {
+    if (tokens[index3].value === "(")
+      depth += 1;
+    else if (tokens[index3].value === ")")
+      depth = Math.max(0, depth - 1);
+    else if (tokens[index3].value === "," && depth === 0) {
+      if (index3 > itemStart)
+        result.push(tokens.slice(itemStart, index3));
+      itemStart = index3 + 1;
+    }
+  }
+  if (itemStart < end)
+    result.push(tokens.slice(itemStart, end));
+  return result;
+}
+function render(tokens) {
+  let output = "";
+  for (const token of tokens) {
+    const value = token.value;
+    if (value === ",") {
+      output = `${output.trimEnd()}, `;
+      continue;
+    }
+    if (value === "." || value === ")" || output.endsWith(".") || output.endsWith("(")) {
+      output += value;
+      continue;
+    }
+    if (value === "(") {
+      output = `${output.trimEnd()}(`;
+      continue;
+    }
+    if (!output) {
+      output = value;
+      continue;
+    }
+    output += ` ${value}`;
+  }
+  return output.trim();
+}
+function identifier(tokens, start) {
+  if (!tokens[start] || tokens[start].value === "(")
+    return { next: start };
+  let index3 = start;
+  let name = tokens[index3].value;
+  index3 += 1;
+  while (tokens[index3]?.value === "." && tokens[index3 + 1] && !["(", ")", ","].includes(tokens[index3 + 1].value)) {
+    name += `.${tokens[index3 + 1].value}`;
+    index3 += 2;
+  }
+  return { name, next: index3 };
+}
+function sourceAt(tokens, start) {
+  if (tokens[start]?.value === "(")
+    return { next: matchingParen(tokens, start) + 1, subquery: true };
+  const parsed = identifier(tokens, start);
+  if (!parsed.name)
+    return { next: start, subquery: false };
+  let next = parsed.next;
+  let alias;
+  if (sameWord(tokens[next], "AS")) {
+    alias = tokens[next + 1]?.value;
+    next += alias ? 2 : 1;
+  } else if (tokens[next]?.kind === "word" && !IDENTIFIER_STOP_WORDS.has(upper(tokens[next]))) {
+    alias = tokens[next].value;
+    next += 1;
+  }
+  return { source: { name: parsed.name, ...alias ? { alias } : {} }, next, subquery: false };
+}
+function clauseEnd(tokens, start) {
+  return findTopLevelAny(tokens, CLAUSE_WORDS, start);
+}
+function aliasAndExpression(tokens) {
+  const asIndex = tokens.findIndex((token, index3) => index3 > 0 && sameWord(token, "AS"));
+  if (asIndex >= 0 && tokens[asIndex + 1])
+    return { expression: render(tokens.slice(0, asIndex)), output: tokens[asIndex + 1].value };
+  const last = tokens.at(-1);
+  if (tokens.length > 1 && last?.kind === "word" && !SQL_KEYWORDS.has(upper(last))) {
+    return { expression: render(tokens.slice(0, -1)), output: last.value };
+  }
+  return { expression: render(tokens), output: render(tokens) };
+}
+function expressionColumns(tokens) {
+  const columns = [];
+  for (let index3 = 0; index3 < tokens.length; index3 += 1) {
+    const token = tokens[index3];
+    if (token.kind !== "word" && token.kind !== "quoted")
+      continue;
+    const value = upper(token);
+    if (SQL_KEYWORDS.has(value) || AGGREGATE_FUNCTIONS.has(value) || upper(tokens[index3 + 1]) === "(")
+      continue;
+    const qualified = identifier(tokens, index3).name;
+    if (!qualified || qualified === "*")
+      continue;
+    if (tokens[index3 - 1]?.value === ".")
+      continue;
+    if (!columns.includes(qualified))
+      columns.push(qualified);
+  }
+  return columns;
+}
+function parseProjection(tokens, start, end) {
+  const projections = [];
+  const measures = [];
+  const lineage = [];
+  for (const item of splitTopLevel(tokens, start, end)) {
+    const parsed = aliasAndExpression(item);
+    projections.push({ output: parsed.output, expression: parsed.expression });
+    lineage.push({ output: parsed.output, expression: parsed.expression, columns: expressionColumns(item) });
+    for (let index3 = 0; index3 < item.length - 1; index3 += 1) {
+      const functionName = upper(item[index3]);
+      if (item[index3].kind === "word" && AGGREGATE_FUNCTIONS.has(functionName) && item[index3 + 1].value === "(") {
+        const close = matchingParen(item, index3 + 1);
+        measures.push({ function: functionName, expression: close > index3 ? render(item.slice(index3 + 1, close + 1)) : parsed.expression, ...parsed.output !== parsed.expression ? { output: parsed.output } : {} });
+      }
+    }
+  }
+  return { projections, measures, lineage };
+}
+function parseWindows(tokens) {
+  const windows = [];
+  for (let index3 = 0; index3 < tokens.length; index3 += 1) {
+    if (!sameWord(tokens[index3], "OVER") || tokens[index3 + 1]?.value !== "(")
+      continue;
+    const close = matchingParen(tokens, index3 + 1);
+    if (close < 0)
+      continue;
+    let openFunction = index3 - 1;
+    if (tokens[openFunction]?.value === ")") {
+      let depth = 0;
+      for (; openFunction >= 0; openFunction -= 1) {
+        if (tokens[openFunction].value === ")")
+          depth += 1;
+        else if (tokens[openFunction].value === "(") {
+          depth -= 1;
+          if (depth === 0)
+            break;
+        }
+      }
+      openFunction -= 1;
+    }
+    const functionName = upper(tokens[openFunction]) || "WINDOW";
+    const bodyStart = index3 + 2;
+    const partitionIndex = findTopLevel(tokens.slice(bodyStart, close), "PARTITION");
+    const orderIndex = findTopLevel(tokens.slice(bodyStart, close), "ORDER");
+    const body = tokens.slice(bodyStart, close);
+    const relativePartition = partitionIndex >= 0 ? partitionIndex : -1;
+    const relativeOrder = orderIndex >= 0 ? orderIndex : -1;
+    const partitionStart = relativePartition >= 0 ? relativePartition + 2 : -1;
+    const partitionEnd = relativeOrder >= 0 ? relativeOrder : body.length;
+    const orderStart = relativeOrder >= 0 ? relativeOrder + 2 : -1;
+    const frameStart = orderStart >= 0 ? body.findIndex((token, position) => position >= orderStart && ["ROWS", "RANGE", "GROUPS"].includes(upper(token))) : -1;
+    const orderEnd = frameStart >= 0 ? frameStart : body.length;
+    windows.push({
+      function: functionName,
+      partitionBy: partitionStart >= 0 ? splitTopLevel(body, partitionStart, partitionEnd).map(render) : [],
+      orderBy: orderStart >= 0 ? splitTopLevel(body, orderStart, orderEnd).map(render) : [],
+      ...frameStart >= 0 ? { frame: render(body.slice(frameStart)) } : {}
+    });
+    index3 = close;
+  }
+  return windows;
+}
+function stable(value) {
+  if (value === null || typeof value !== "object")
+    return JSON.stringify(value);
+  if (Array.isArray(value))
+    return `[${value.map(stable).join(",")}]`;
+  const record2 = value;
+  return `{${Object.keys(record2).sort().map((key) => `${JSON.stringify(key)}:${stable(record2[key])}`).join(",")}}`;
+}
+function digestHash(value) {
+  return (0, import_node_crypto9.createHash)("sha256").update(value, "utf8").digest("hex");
+}
+function schemaFingerprint(input, sources) {
+  const names2 = new Set(sources.map((source) => source.name.toLowerCase()));
+  const tables = (input.schema?.tables ?? []).filter((table) => names2.has(table.name.toLowerCase())).map((table) => ({
+    name: table.name,
+    columns: [...table.columns],
+    ...table.primaryKey ? { primaryKey: [...table.primaryKey] } : {},
+    ...table.uniqueKeys ? { uniqueKeys: table.uniqueKeys.map((key) => [...key]) } : {},
+    ...table.foreignKeys ? { foreignKeys: table.foreignKeys.map((key) => ({ columns: [...key.columns], references: { table: key.references.table, columns: [...key.references.columns] } })) } : {},
+    ...table.description ?? input.schema?.reviewedDescriptions?.[table.name] ? { description: table.description ?? input.schema?.reviewedDescriptions?.[table.name] } : {}
+  })).sort((left, right) => left.name.localeCompare(right.name));
+  return digestHash(stable({
+    connectionId: input.schema?.connectionId ?? "unknown",
+    dialect: input.dialect,
+    tables
+  }));
+}
+function parseSources(tokens) {
+  const sources = [];
+  const joins = [];
+  const unsupported = [];
+  for (let index3 = 0; index3 < tokens.length; index3 += 1) {
+    if (depthAt(tokens, index3) !== 0)
+      continue;
+    const isFrom = sameWord(tokens[index3], "FROM");
+    const isJoin = sameWord(tokens[index3], "JOIN");
+    if (!isFrom && !isJoin)
+      continue;
+    const parsed = sourceAt(tokens, index3 + 1);
+    if (parsed.subquery) {
+      unsupported.push("subquery");
+      continue;
+    }
+    if (!parsed.source)
+      continue;
+    if (isJoin) {
+      let type = "INNER";
+      for (let cursor = index3 - 1; cursor >= 0 && index3 - cursor <= 3; cursor -= 1) {
+        const candidate = upper(tokens[cursor]);
+        if (["LEFT", "RIGHT", "FULL", "CROSS", "INNER"].includes(candidate)) {
+          type = candidate;
+          break;
+        }
+      }
+      const onIndex = findTopLevel(tokens, "ON", parsed.next);
+      const usingIndex = findTopLevel(tokens, "USING", parsed.next);
+      const conditionIndex = onIndex >= 0 && (usingIndex < 0 || onIndex < usingIndex) ? onIndex : usingIndex;
+      const condition = conditionIndex >= 0 && conditionIndex < clauseEnd(tokens, parsed.next) ? render(tokens.slice(conditionIndex + (conditionIndex === onIndex ? 1 : 0), clauseEnd(tokens, conditionIndex))) : void 0;
+      joins.push({ type, source: parsed.source, ...condition ? { condition } : {} });
+    }
+    sources.push(parsed.source);
+    index3 = Math.max(index3, parsed.next - 1);
+  }
+  return { sources, joins, unsupported };
+}
+function parseFilters(tokens) {
+  const filters = [];
+  for (const word of ["WHERE", "HAVING", "QUALIFY"]) {
+    const start = findTopLevel(tokens, word);
+    if (start >= 0) {
+      const end = clauseEnd(tokens, start + 1);
+      const value = render(tokens.slice(start + 1, end));
+      if (value)
+        filters.push(value);
+    }
+  }
+  return filters;
+}
+function parseListClause(tokens, first, second) {
+  const start = findTopLevel(tokens, first);
+  if (start < 0)
+    return [];
+  const contentStart = second && sameWord(tokens[start + 1], second) ? start + 2 : start + 1;
+  const end = clauseEnd(tokens, contentStart);
+  return splitTopLevel(tokens, contentStart, end).map(render).filter(Boolean);
+}
+function parseOrder(tokens) {
+  const start = findTopLevel(tokens, "ORDER");
+  if (start < 0 || !sameWord(tokens[start + 1], "BY"))
+    return [];
+  const end = clauseEnd(tokens, start + 2);
+  return splitTopLevel(tokens, start + 2, end).map(render).filter(Boolean);
+}
+function parseSetOperations(tokens) {
+  const operations = [];
+  for (let index3 = 0; index3 < tokens.length; index3 += 1) {
+    if (depthAt(tokens, index3) !== 0)
+      continue;
+    const word = upper(tokens[index3]);
+    if (!["UNION", "INTERSECT", "EXCEPT"].includes(word))
+      continue;
+    operations.push(`${word}${sameWord(tokens[index3 + 1], "ALL") ? " ALL" : ""}`);
+  }
+  return operations;
+}
+function parseLimit(tokens) {
+  const index3 = findTopLevel(tokens, "LIMIT");
+  const value = index3 >= 0 ? Number(tokens[index3 + 1]?.value) : Number.NaN;
+  return Number.isFinite(value) ? value : void 0;
+}
+function parseNullHandling(tokens) {
+  const found = /* @__PURE__ */ new Set();
+  for (let index3 = 0; index3 < tokens.length; index3 += 1) {
+    const word = upper(tokens[index3]);
+    if (["COALESCE", "NULLIF", "CASE", "NULL"].includes(word))
+      found.add(word);
+    if (word === "IS" && ["NULL", "NOT"].includes(upper(tokens[index3 + 1])))
+      found.add("IS NULL");
+  }
+  return [...found];
+}
+function schemaEvidenceFromDdl(connectionId, dialect, ddl) {
+  const tokens = tokenize3(ddl);
+  const tables = [];
+  for (let index3 = 0; index3 < tokens.length - 2; index3 += 1) {
+    if (!sameWord(tokens[index3], "CREATE") || !sameWord(tokens[index3 + 1], "TABLE"))
+      continue;
+    let nameIndex = index3 + 2;
+    if (sameWord(tokens[nameIndex], "IF") && sameWord(tokens[nameIndex + 1], "NOT") && sameWord(tokens[nameIndex + 2], "EXISTS"))
+      nameIndex += 3;
+    const table = identifier(tokens, nameIndex).name;
+    const open3 = identifier(tokens, nameIndex).next;
+    if (!table || tokens[open3]?.value !== "(")
+      continue;
+    const close = matchingParen(tokens, open3);
+    if (close < 0)
+      continue;
+    const columns = [];
+    let primaryKey;
+    const uniqueKeys = [];
+    const foreignKeys = [];
+    for (const item of splitTopLevel(tokens, open3 + 1, close)) {
+      const first = upper(item[0]);
+      if (["PRIMARY", "UNIQUE", "CONSTRAINT", "FOREIGN", "CHECK"].includes(first)) {
+        const primary = item.findIndex((token) => sameWord(token, "PRIMARY"));
+        const unique = item.findIndex((token) => sameWord(token, "UNIQUE"));
+        const foreign = item.findIndex((token) => sameWord(token, "FOREIGN"));
+        const keyOpen = item.findIndex((token, position) => position > 0 && token.value === "(");
+        const keyClose = keyOpen >= 0 ? matchingParen(item, keyOpen) : -1;
+        const keyColumns = keyOpen >= 0 && keyClose > keyOpen ? splitTopLevel(item, keyOpen + 1, keyClose).map(render) : [];
+        if (primary >= 0 && keyColumns.length)
+          primaryKey = keyColumns;
+        else if (unique >= 0 && keyColumns.length)
+          uniqueKeys.push(keyColumns);
+        else if (foreign >= 0 && keyColumns.length) {
+          const references = item.findIndex((token, position) => position > foreign && sameWord(token, "REFERENCES"));
+          if (references >= 0) {
+            const target = identifier(item, references + 1);
+            const targetOpen = target.next;
+            const targetClose = targetOpen >= 0 && item[targetOpen]?.value === "(" ? matchingParen(item, targetOpen) : -1;
+            const targetColumns = targetOpen >= 0 && targetClose > targetOpen ? splitTopLevel(item, targetOpen + 1, targetClose).map(render) : [];
+            if (target.name && targetColumns.length)
+              foreignKeys.push({ columns: keyColumns, references: { table: target.name, columns: targetColumns } });
+          }
+        }
+      } else if (item[0]?.kind === "word" || item[0]?.kind === "quoted") {
+        columns.push(item[0].value);
+        if (item.some((token) => sameWord(token, "PRIMARY") && sameWord(item[item.indexOf(token) + 1], "KEY")))
+          primaryKey = [item[0].value];
+        if (item.some((token) => sameWord(token, "UNIQUE")))
+          uniqueKeys.push([item[0].value]);
+      }
+    }
+    tables.push({ name: table, columns, ...primaryKey ? { primaryKey } : {}, ...uniqueKeys.length ? { uniqueKeys } : {}, ...foreignKeys.length ? { foreignKeys } : {} });
+    index3 = close;
+  }
+  return { connectionId, dialect, tables };
+}
+function createQueryDigestCompiler() {
+  return {
+    compile(input) {
+      const tokens = tokenize3(input.sql);
+      const normalizedSql = render(tokens);
+      const selectIndex = findTopLevel(tokens, "SELECT");
+      const fromIndex = selectIndex >= 0 ? findTopLevel(tokens, "FROM", selectIndex + 1) : -1;
+      const projectionEnd = fromIndex >= 0 ? fromIndex : tokens.length;
+      const parsedProjection = selectIndex >= 0 ? parseProjection(tokens, selectIndex + 1, projectionEnd) : { projections: [], measures: [], lineage: [] };
+      const parsedSources = parseSources(tokens);
+      const windows = parseWindows(tokens);
+      const unsupportedNodes = [.../* @__PURE__ */ new Set([
+        ...parsedSources.unsupported,
+        ...tokens.some((token) => sameWord(token, "RECURSIVE")) ? ["recursive_cte"] : [],
+        ...tokens.some((token, index3) => sameWord(token, "SELECT") && depthAt(tokens, index3) > 0) ? ["subquery"] : []
+      ])];
+      const wildcard = tokens.some((token) => token.value === "*");
+      const coverage = {
+        sources: parsedSources.sources.length ? "checked" : "insufficient_evidence",
+        joins: parsedSources.joins.length ? "checked" : "not_applicable",
+        filters: parseFilters(tokens).length ? "checked" : "not_applicable",
+        measures: parsedProjection.measures.length ? "checked" : "not_applicable",
+        groupBy: parseListClause(tokens, "GROUP", "BY").length ? "checked" : "not_applicable",
+        projections: parsedProjection.projections.length ? "checked" : "insufficient_evidence",
+        outputLineage: wildcard ? "unsupported" : parsedProjection.lineage.length ? "checked" : "insufficient_evidence",
+        windows: windows.length ? "checked" : "not_applicable",
+        orderBy: parseOrder(tokens).length ? "checked" : "not_applicable",
+        setOperations: parseSetOperations(tokens).length ? "checked" : "not_applicable",
+        nullHandling: parseNullHandling(tokens).length ? "checked" : "not_applicable"
+      };
+      for (const node of unsupportedNodes) {
+        if (node === "subquery" || node === "recursive_cte")
+          coverage.outputLineage = "unsupported";
+      }
+      const lineageCompleteness = wildcard ? "partial" : unsupportedNodes.length ? "partial" : "complete";
+      return {
+        normalizedSql,
+        normalizedSqlHash: digestHash(normalizedSql),
+        dialect: input.dialect,
+        parserVersion: PARSER_VERSION,
+        queryDigestVersion: QUERY_DIGEST_VERSION,
+        schemaEvidenceFingerprint: schemaFingerprint(input, parsedSources.sources),
+        sources: parsedSources.sources,
+        joins: parsedSources.joins,
+        filters: parseFilters(tokens),
+        measures: parsedProjection.measures,
+        groupBy: parseListClause(tokens, "GROUP", "BY"),
+        projections: parsedProjection.projections,
+        outputLineage: parsedProjection.lineage,
+        windows,
+        orderBy: parseOrder(tokens),
+        ...parseLimit(tokens) !== void 0 ? { limit: parseLimit(tokens) } : {},
+        setOperations: parseSetOperations(tokens),
+        nullHandling: parseNullHandling(tokens),
+        coverage,
+        unsupportedNodes,
+        lineageCompleteness
+      };
+    }
+  };
+}
+var import_node_crypto9, PARSER_VERSION, QUERY_DIGEST_VERSION, AGGREGATE_FUNCTIONS, CLAUSE_WORDS, IDENTIFIER_STOP_WORDS, SQL_KEYWORDS;
+var init_query_digest = __esm({
+  "packages/runtime/dist/query-digest.js"() {
+    "use strict";
+    import_node_crypto9 = require("node:crypto");
+    PARSER_VERSION = "sqlglot-30.8.0-adapter-1";
+    QUERY_DIGEST_VERSION = "1";
+    AGGREGATE_FUNCTIONS = /* @__PURE__ */ new Set(["COUNT", "SUM", "AVG", "MIN", "MAX", "TOTAL", "GROUP_CONCAT"]);
+    CLAUSE_WORDS = /* @__PURE__ */ new Set(["WHERE", "GROUP", "HAVING", "ORDER", "LIMIT", "UNION", "INTERSECT", "EXCEPT", "FETCH", "QUALIFY", "JOIN", "LEFT", "RIGHT", "FULL", "INNER", "CROSS"]);
+    IDENTIFIER_STOP_WORDS = /* @__PURE__ */ new Set([
+      "SELECT",
+      "FROM",
+      "JOIN",
+      "LEFT",
+      "RIGHT",
+      "FULL",
+      "INNER",
+      "OUTER",
+      "CROSS",
+      "ON",
+      "USING",
+      "WHERE",
+      "GROUP",
+      "BY",
+      "HAVING",
+      "ORDER",
+      "LIMIT",
+      "UNION",
+      "ALL",
+      "INTERSECT",
+      "EXCEPT",
+      "FETCH",
+      "QUALIFY"
+    ]);
+    SQL_KEYWORDS = /* @__PURE__ */ new Set([
+      ...IDENTIFIER_STOP_WORDS,
+      "AS",
+      "AND",
+      "OR",
+      "NOT",
+      "NULL",
+      "IS",
+      "IN",
+      "CASE",
+      "WHEN",
+      "THEN",
+      "ELSE",
+      "END",
+      "DISTINCT",
+      "ASC",
+      "DESC",
+      "OVER",
+      "PARTITION",
+      "ROWS",
+      "RANGE",
+      "BETWEEN",
+      "CURRENT",
+      "ROW",
+      "PRECEDING",
+      "FOLLOWING",
+      "FILTER",
+      "TRUE",
+      "FALSE"
+    ]);
+  }
+});
+
+// packages/runtime/dist/review-policy.js
+function sameIdentity(left, right) {
+  if (!left || !right)
+    return left === right;
+  return Object.keys(left).every((key) => left[key] === right[key]);
+}
+var DEFAULT_THRESHOLDS, AssuranceCircuitBreaker, DeliveryPolicy, ReviewModeController;
+var init_review_policy = __esm({
+  "packages/runtime/dist/review-policy.js"() {
+    "use strict";
+    DEFAULT_THRESHOLDS = {
+      unavailableRate: 0.1,
+      timeoutRate: 0.1,
+      invalidResponseRate: 0.05,
+      userOverrideRate: 0.2,
+      specificity: 0.98,
+      latencyAbsoluteMs: 2e4,
+      latencyRatio: 0.25,
+      costRatio: 1.3
+    };
+    AssuranceCircuitBreaker = class {
+      thresholds;
+      onTrip;
+      tripped = false;
+      reason;
+      constructor(options = {}) {
+        this.thresholds = { ...DEFAULT_THRESHOLDS, ...options.thresholds };
+        this.onTrip = options.onTrip;
+      }
+      observe(metrics) {
+        if (this.tripped)
+          return;
+        const reasons = [
+          metrics.unavailableRate > this.thresholds.unavailableRate ? "unavailable_rate" : void 0,
+          metrics.timeoutRate > this.thresholds.timeoutRate ? "timeout_rate" : void 0,
+          metrics.invalidResponseRate > this.thresholds.invalidResponseRate ? "invalid_response_rate" : void 0,
+          metrics.userOverrideRate > this.thresholds.userOverrideRate ? "user_override_rate" : void 0,
+          metrics.specificity < this.thresholds.specificity ? "specificity" : void 0,
+          metrics.p95LatencyMs > metrics.p95BaselineLatencyMs + Math.max(this.thresholds.latencyAbsoluteMs, metrics.p95BaselineLatencyMs * this.thresholds.latencyRatio) ? "latency" : void 0,
+          metrics.baselineCost > 0 && metrics.averageCost > metrics.baselineCost * this.thresholds.costRatio ? "cost" : void 0
+        ].filter((reason) => Boolean(reason));
+        if (reasons.length > 0) {
+          this.tripped = true;
+          this.reason = reasons[0];
+          this.onTrip?.(reasons[0]);
+        }
+      }
+      effectiveMode(requested) {
+        return this.tripped && requested === "enforce" ? "shadow" : requested;
+      }
+      isTripped() {
+        return this.tripped;
+      }
+      tripReason() {
+        return this.reason;
+      }
+      reset(options = {}) {
+        if (!options.recalibrated)
+          throw new Error("CIRCUIT_BREAKER_RECALIBRATION_REQUIRED");
+        this.tripped = false;
+        this.reason = void 0;
+      }
+    };
+    DeliveryPolicy = class {
+      mode;
+      constructor(mode) {
+        this.mode = mode;
+      }
+      decide(outcome, authorization) {
+        const approved = outcome.availability === "available" && outcome.decision.status === "approved";
+        if (approved || this.mode === "shadow" || this.mode === "off" || authorization)
+          return { allowed: true, status: approved ? "published_approved" : "published_with_disagreement" };
+        return {
+          allowed: false,
+          status: outcome.availability === "unavailable" ? "not_published_review_unavailable" : "not_published_rejected",
+          reason: outcome.availability === "unavailable" ? "REVIEW_UNAVAILABLE" : "REVIEW_NOT_APPROVED"
+        };
+      }
+    };
+    ReviewModeController = class {
+      requestedMode;
+      reviewerAvailable;
+      calibration;
+      invalidated = false;
+      breaker;
+      constructor(options) {
+        this.requestedMode = options.requestedMode ?? "shadow";
+        this.reviewerAvailable = options.reviewerAvailable;
+        this.calibration = options.calibration;
+        if (options.calibration && options.currentCalibrationIdentity && !sameIdentity(options.calibration.identity, options.currentCalibrationIdentity))
+          this.invalidated = true;
+        this.breaker = options.breaker ?? new AssuranceCircuitBreaker();
+      }
+      mode() {
+        if (!this.reviewerAvailable)
+          return "off";
+        if (this.requestedMode !== "enforce")
+          return this.requestedMode;
+        if (!this.calibration?.eligible || this.invalidated)
+          return "shadow";
+        return this.breaker.effectiveMode("enforce");
+      }
+      setMode(mode) {
+        if (mode === "enforce" && (!this.reviewerAvailable || !this.calibration?.eligible || this.invalidated))
+          throw new Error("REVIEW_CALIBRATION_REQUIRED");
+        this.requestedMode = mode;
+      }
+      updateCalibration(record2) {
+        if (this.calibration && !sameIdentity(this.calibration.identity, record2.identity))
+          this.invalidated = true;
+        this.calibration = record2;
+      }
+      calibrationInvalidated() {
+        return this.invalidated;
+      }
+      circuitBreaker() {
+        return this.breaker;
+      }
+      manifest() {
+        return { mode: this.mode(), calibrationInvalidated: this.invalidated, circuitTripped: this.breaker.isTripped() };
+      }
+    };
+  }
+});
+
+// packages/runtime/dist/publication.js
+function candidateMetadataMatchesToken(token, candidate) {
+  const bound = candidate;
+  return (bound.normalizedSqlHash === void 0 || token.normalizedSqlHash === bound.normalizedSqlHash) && (bound.specVersion === void 0 || token.specVersion === bound.specVersion) && (bound.schemaEvidenceFingerprint === void 0 || token.schemaEvidenceFingerprint === bound.schemaEvidenceFingerprint);
+}
+function candidateMatchesToken(token, candidate) {
+  return token.taskId === candidate.taskId && token.queryArtifactId === candidate.queryArtifactId && token.candidateId === candidate.candidateId && candidateMetadataMatchesToken(token, candidate);
+}
+var import_node_crypto10, PublicationRegistry;
+var init_publication = __esm({
+  "packages/runtime/dist/publication.js"() {
+    "use strict";
+    import_node_crypto10 = require("node:crypto");
+    init_review_policy();
+    PublicationRegistry = class {
+      options;
+      receipts = /* @__PURE__ */ new Map();
+      inFlight = /* @__PURE__ */ new Map();
+      activeTasks = /* @__PURE__ */ new Set();
+      tokens = /* @__PURE__ */ new Map();
+      artifactReceipts = /* @__PURE__ */ new Map();
+      artifactInFlight = /* @__PURE__ */ new Map();
+      now;
+      constructor(options) {
+        this.options = options;
+        this.now = options.now ?? Date.now;
+      }
+      hasReceipt(taskId) {
+        return [...this.receipts.values()].some((receipt) => receipt.taskId === taskId);
+      }
+      receiptForArtifact(taskId, queryArtifactId) {
+        return this.artifactReceipts.get(`${taskId}:${queryArtifactId}`);
+      }
+      issueToken(input) {
+        if (input.candidate.taskId !== input.taskId || input.candidate.queryArtifactId !== input.queryArtifactId)
+          throw new Error("REVIEW_TOKEN_CANDIDATE_BINDING_INVALID");
+        const token = {
+          tokenId: (0, import_node_crypto10.randomUUID)(),
+          taskId: input.taskId,
+          queryArtifactId: input.queryArtifactId,
+          normalizedSqlHash: input.normalizedSqlHash,
+          specVersion: input.specVersion,
+          schemaEvidenceFingerprint: input.schemaEvidenceFingerprint,
+          candidateId: input.candidate.candidateId,
+          outcome: input.outcome,
+          ...input.reviewerVersion ? { reviewerVersion: input.reviewerVersion } : {},
+          ...input.policyVersion ? { policyVersion: input.policyVersion } : {},
+          issuedAt: new Date(this.now()).toISOString()
+        };
+        this.tokens.set(token.tokenId, token);
+        return token;
+      }
+      async publish(token, candidate, targetPath, authorization, promote) {
+        const known = this.tokens.get(token.tokenId);
+        if (!known)
+          throw new Error("REVIEW_TOKEN_UNKNOWN");
+        if (known.taskId !== candidate.taskId || known.queryArtifactId !== candidate.queryArtifactId || !candidateMetadataMatchesToken(known, candidate))
+          throw new Error("REVIEW_TOKEN_CANDIDATE_MISMATCH");
+        const artifactKey = `${known.taskId}:${known.queryArtifactId}`;
+        const existingArtifact = this.artifactReceipts.get(artifactKey);
+        if (existingArtifact)
+          return existingArtifact;
+        const existing = this.receipts.get(token.tokenId);
+        if (existing)
+          return existing;
+        const pendingArtifact = this.artifactInFlight.get(artifactKey);
+        if (pendingArtifact)
+          return pendingArtifact;
+        if (!candidateMatchesToken(known, candidate))
+          throw new Error("REVIEW_TOKEN_CANDIDATE_MISMATCH");
+        const pending = this.inFlight.get(token.tokenId);
+        if (pending)
+          return pending;
+        if (this.options.specVersionFor) {
+          const current = this.options.specVersionFor(token.taskId);
+          if (current !== void 0 && current !== token.specVersion)
+            throw new Error("REVIEW_TOKEN_SPEC_STALE");
+        }
+        this.validateAuthorization(known, authorization);
+        if (this.activeTasks.has(token.taskId))
+          throw new Error("PUBLICATION_TASK_BUSY");
+        this.activeTasks.add(token.taskId);
+        const operation = this.publishOnce(known, candidate, targetPath, authorization, promote).then((receipt) => {
+          this.artifactReceipts.set(artifactKey, receipt);
+          return receipt;
+        }).finally(() => {
+          this.activeTasks.delete(token.taskId);
+          this.inFlight.delete(token.tokenId);
+          this.artifactInFlight.delete(artifactKey);
+        });
+        this.inFlight.set(token.tokenId, operation);
+        this.artifactInFlight.set(artifactKey, operation);
+        return operation;
+      }
+      validateAuthorization(token, authorization) {
+        if (!authorization)
+          return;
+        if (authorization.taskId !== token.taskId || authorization.queryArtifactId !== token.queryArtifactId || authorization.normalizedSqlHash !== token.normalizedSqlHash || authorization.specVersion !== token.specVersion || authorization.candidateId !== token.candidateId)
+          throw new Error("PUBLICATION_AUTHORIZATION_MISMATCH");
+      }
+      async publishOnce(token, candidate, targetPath, authorization, promote) {
+        const mode = this.options.modeFor?.() ?? this.options.mode;
+        const policy = new DeliveryPolicy(mode);
+        const delivery = policy.decide(token.outcome, authorization);
+        if (!delivery.allowed)
+          throw new Error(delivery.reason ?? "REVIEW_NOT_APPROVED");
+        if (this.options.publishCandidate)
+          await this.options.publishCandidate(candidate, targetPath);
+        if (promote)
+          await promote();
+        const receipt = {
+          receiptId: (0, import_node_crypto10.randomUUID)(),
+          taskId: token.taskId,
+          queryArtifactId: token.queryArtifactId,
+          candidateId: candidate.candidateId,
+          status: delivery.status,
+          reviewOutcome: token.outcome,
+          mode,
+          targetPath,
+          ...authorization ? { authorization } : {},
+          publishedAt: new Date(this.now()).toISOString()
+        };
+        this.receipts.set(token.tokenId, receipt);
+        return receipt;
+      }
+    };
+  }
+});
+
+// packages/runtime/dist/review-cache.js
+function stable2(value) {
+  if (value === null || typeof value !== "object")
+    return JSON.stringify(value);
+  const record2 = value;
+  return `{${Object.keys(record2).sort().map((key) => `${JSON.stringify(key)}:${stable2(record2[key])}`).join(",")}}`;
+}
+function keyOf(identity) {
+  return (0, import_node_crypto11.createHash)("sha256").update(stable2(identity), "utf8").digest("hex");
+}
+var import_node_crypto11, ReviewCache;
+var init_review_cache = __esm({
+  "packages/runtime/dist/review-cache.js"() {
+    "use strict";
+    import_node_crypto11 = require("node:crypto");
+    ReviewCache = class {
+      stored = /* @__PURE__ */ new Map();
+      inFlight = /* @__PURE__ */ new Map();
+      async getOrCreate(identity, loader, signal) {
+        if (signal?.aborted)
+          throw new Error("REVIEW_CACHE_ABORTED");
+        const key = keyOf(identity);
+        const existing = this.stored.get(key);
+        if (existing)
+          return { outcome: existing.outcome, cacheHit: true };
+        const pending = this.inFlight.get(key);
+        if (pending)
+          return { outcome: await pending, cacheHit: false };
+        const operation = loader();
+        this.inFlight.set(key, operation);
+        try {
+          const outcome = await operation;
+          if (outcome.availability === "available")
+            this.stored.set(key, { key, outcome });
+          return { outcome, cacheHit: false };
+        } finally {
+          if (this.inFlight.get(key) === operation)
+            this.inFlight.delete(key);
+        }
+      }
+      entries() {
+        return [...this.stored.values()].map((entry) => ({ key: entry.key, outcome: entry.outcome }));
+      }
+      clear() {
+        this.stored.clear();
+      }
+    };
+  }
+});
+
+// packages/runtime/dist/assurance-audit.js
+var import_node_crypto12, InMemoryAssuranceAuditStore;
+var init_assurance_audit = __esm({
+  "packages/runtime/dist/assurance-audit.js"() {
+    "use strict";
+    import_node_crypto12 = require("node:crypto");
+    InMemoryAssuranceAuditStore = class {
+      records = [];
+      now;
+      constructor(options = {}) {
+        this.now = options.now ?? Date.now;
+      }
+      append(input) {
+        const record2 = {
+          auditId: (0, import_node_crypto12.randomUUID)(),
+          recordedAt: new Date(this.now()).toISOString(),
+          taskId: input.taskId,
+          ...input.queryArtifactId ? { queryArtifactId: input.queryArtifactId } : {},
+          ...input.sqlHash ? { sqlHash: input.sqlHash } : {},
+          ...input.specVersion ? { specVersion: input.specVersion } : {},
+          ...input.specStatus ? { specStatus: input.specStatus } : {},
+          ...input.schemaEvidenceFingerprint ? { schemaEvidenceFingerprint: input.schemaEvidenceFingerprint } : {},
+          ...input.queryDigestVersion ? { queryDigestVersion: input.queryDigestVersion } : {},
+          ...input.reviewerModel ? { reviewerModel: input.reviewerModel } : {},
+          ...input.reviewerPromptVersion ? { reviewerPromptVersion: input.reviewerPromptVersion } : {},
+          ...input.reviewPolicyVersion ? { reviewPolicyVersion: input.reviewPolicyVersion } : {},
+          reviewAvailability: input.reviewAvailability,
+          ...input.decision ? { decision: input.decision } : {},
+          ...input.coverage ? { coverage: input.coverage } : {},
+          ...input.semanticDiffs ? { semanticDiffs: input.semanticDiffs.map((diff) => ({ ...diff, evidence: { ...diff.evidence } })) } : {},
+          repairAttempt: input.repairAttempt,
+          ...input.publicationStatus ? { publicationStatus: input.publicationStatus } : {},
+          reviewMode: input.reviewMode,
+          ...input.cacheHit !== void 0 ? { cacheHit: input.cacheHit } : {},
+          ...input.latencyMs !== void 0 ? { latencyMs: input.latencyMs } : {},
+          ...input.tokens !== void 0 ? { tokens: input.tokens } : {},
+          ...input.cost !== void 0 ? { cost: input.cost } : {}
+        };
+        this.records.push(record2);
+        return record2;
+      }
+      list(taskId) {
+        return this.records.filter((record2) => taskId === void 0 || record2.taskId === taskId).map((record2) => ({ ...record2 }));
+      }
+    };
+  }
+});
+
+// packages/runtime/dist/invariant-probe.js
+var InvariantProbeRegistry;
+var init_invariant_probe = __esm({
+  "packages/runtime/dist/invariant-probe.js"() {
+    "use strict";
+    InvariantProbeRegistry = class {
+      probes = /* @__PURE__ */ new Map();
+      constructor(probes = []) {
+        for (const probe of probes)
+          this.probes.set(probe.id, probe);
+      }
+      register(probe) {
+        this.probes.set(probe.id, probe);
+      }
+      evaluate(id, input) {
+        const probe = this.probes.get(id);
+        if (!probe)
+          return { status: "unsupported", reason: `PROBE_NOT_REGISTERED:${id}` };
+        const missing = [];
+        for (const requirement of probe.requiredEvidence) {
+          if (requirement.kind === "hard_constraint" && !input.answerSpec.hardConstraints.some((constraint) => constraint.id === requirement.id))
+            missing.push(requirement.id);
+          if (requirement.kind === "schema" && !input.schema)
+            missing.push(requirement.id);
+        }
+        if (missing.length > 0)
+          return { status: "not_applicable", missing };
+        const outcome = probe.evaluate(input);
+        if (outcome.status === "failed")
+          return { ...outcome, blocking: true };
+        return outcome;
+      }
+      ids() {
+        return [...this.probes.keys()];
+      }
+    };
+  }
+});
+
+// packages/runtime/dist/query-assurance.js
+function normalizeQuerySql(sql) {
+  return sql.trim().replace(/;\s*$/, "").replace(/\s+/g, " ");
+}
+function throwIfAborted(signal) {
+  if (signal.aborted)
+    throw new QueryAssuranceAbortError();
+}
+function inferColumnType(value) {
+  if (value === null || value === void 0)
+    return "NULL";
+  if (typeof value === "number")
+    return Number.isInteger(value) ? "INTEGER" : "REAL";
+  if (typeof value === "boolean")
+    return "BOOLEAN";
+  if (typeof value === "bigint")
+    return "BIGINT";
+  if (value instanceof Date)
+    return "DATETIME";
+  if (typeof value === "object")
+    return "JSON";
+  return "TEXT";
+}
+function resultMetadata(result) {
+  const columns = [...result.columns];
+  const firstRow = result.rows[0] ?? [];
+  const columnTypes = columns.map((_, index3) => result.columnTypes?.[index3] ?? inferColumnType(firstRow[index3]));
+  const nullCounts = Object.fromEntries(columns.map((column) => [column, 0]));
+  const distinct = columns.map(() => /* @__PURE__ */ new Set());
+  const minMax = {};
+  for (const row of result.rows) {
+    for (let index3 = 0; index3 < columns.length; index3 += 1) {
+      const value = row[index3];
+      if (value === null || value === void 0)
+        nullCounts[columns[index3]] += 1;
+      else {
+        distinct[index3].add(JSON.stringify(value));
+        const current = minMax[columns[index3]];
+        if (!current)
+          minMax[columns[index3]] = { min: value, max: value };
+        else {
+          if (current.min === void 0 || String(value) < String(current.min))
+            current.min = value;
+          if (current.max === void 0 || String(value) > String(current.max))
+            current.max = value;
+        }
+      }
+    }
+  }
+  return {
+    columns,
+    columnTypes,
+    rowCount: result.rows.length,
+    truncated: result.truncated,
+    nullCounts,
+    ...columns.length ? { minMax, distinctCounts: Object.fromEntries(columns.map((column, index3) => [column, distinct[index3].size])) } : {}
+  };
+}
+function hash2(value) {
+  return (0, import_node_crypto13.createHash)("sha256").update(value, "utf8").digest("hex");
+}
+function createQueryAssurance(options = {}) {
+  return new InMemoryQueryAssurance(options);
+}
+function createReviewOffQueryAssurance(options = {}) {
+  return new InMemoryQueryAssurance({ ...options, mode: "off" });
+}
+var import_node_crypto13, QueryAssuranceAbortError, InMemoryQueryAssurance;
+var init_query_assurance = __esm({
+  "packages/runtime/dist/query-assurance.js"() {
+    "use strict";
+    import_node_crypto13 = require("node:crypto");
+    init_answer_spec();
+    init_query_digest();
+    init_publication();
+    init_review_cache();
+    init_review_policy();
+    init_assurance_audit();
+    init_invariant_probe();
+    QueryAssuranceAbortError = class extends Error {
+      code = "QUERY_ASSURANCE_ABORTED";
+      constructor() {
+        super("Query Assurance operation was aborted");
+        this.name = "AbortError";
+      }
+    };
+    InMemoryQueryAssurance = class {
+      configuredMode;
+      modeController;
+      artifactTtlMs;
+      now;
+      artifacts = /* @__PURE__ */ new Map();
+      taskEvidence = /* @__PURE__ */ new Map();
+      repairAttempts = /* @__PURE__ */ new Map();
+      specAuthority;
+      digestCompiler;
+      reviewer;
+      publicationRegistry;
+      reviewCache;
+      reviewerModel;
+      reviewerPromptVersion;
+      reviewPolicyVersion;
+      reviewCoverageSchemaVersion;
+      auditStore;
+      specGenerator;
+      invariantProbes;
+      constructor(options = {}) {
+        this.modeController = options.modeController;
+        this.configuredMode = options.mode === "enforce" && !this.modeController ? "shadow" : options.mode ?? "off";
+        this.artifactTtlMs = options.artifactTtlMs ?? 5 * 60 * 1e3;
+        this.now = options.now ?? Date.now;
+        this.specAuthority = options.specAuthority ?? createSpecAuthority();
+        this.digestCompiler = options.digestCompiler ?? createQueryDigestCompiler();
+        this.reviewer = options.reviewer;
+        this.publicationRegistry = options.publicationRegistry ?? new PublicationRegistry({
+          mode: this.configuredMode,
+          modeFor: () => this.mode,
+          specVersionFor: (taskId) => this.specAuthority.get(taskId)?.specVersion
+        });
+        this.reviewCache = options.reviewCache ?? new ReviewCache();
+        this.reviewerModel = options.reviewerModel ?? "unknown";
+        this.reviewerPromptVersion = options.reviewerPromptVersion ?? "1";
+        this.reviewPolicyVersion = options.reviewPolicyVersion ?? "1";
+        this.reviewCoverageSchemaVersion = options.reviewCoverageSchemaVersion ?? "1";
+        this.auditStore = options.auditStore ?? new InMemoryAssuranceAuditStore({ now: this.now });
+        this.specGenerator = options.specGenerator;
+        this.invariantProbes = options.invariantProbes;
+      }
+      get mode() {
+        return this.modeController?.mode() ?? this.configuredMode;
+      }
+      observeMetrics(metrics) {
+        this.modeController?.circuitBreaker().observe(metrics);
+      }
+      auditRecords(taskId) {
+        return this.auditStore.list(taskId);
+      }
+      async prepareTask(input, signal) {
+        throwIfAborted(signal);
+        const taskId = (0, import_node_crypto13.randomUUID)();
+        this.taskEvidence.set(taskId, input);
+        const specInput = {
+          taskId,
+          question: input.question,
+          clarifications: input.clarifications,
+          constraints: input.constraints,
+          hypotheses: input.hypotheses,
+          ambiguities: input.ambiguities,
+          outputColumns: input.outputColumns,
+          rowMode: input.rowMode,
+          rowCount: input.rowCount
+        };
+        try {
+          if (this.specGenerator) {
+            const generated = await this.specGenerator.generate(specInput, signal);
+            const prepared2 = this.specAuthority.prepare({ ...generated, taskId, question: input.question });
+            return { taskId, mode: this.mode, specVersion: prepared2.specVersion, specStatus: "available" };
+          }
+          const prepared = this.specAuthority.prepare(specInput);
+          return { taskId, mode: this.mode, specVersion: prepared.specVersion, specStatus: "available" };
+        } catch (error51) {
+          if (error51 instanceof QueryAssuranceAbortError)
+            throw error51;
+          this.auditStore.append({
+            taskId,
+            reviewAvailability: "unavailable",
+            specStatus: "unavailable",
+            repairAttempt: 0,
+            reviewMode: this.mode
+          });
+          return { taskId, mode: this.mode, specStatus: "unavailable" };
+        }
+      }
+      getAnswerSpec(taskId, specVersion) {
+        return this.specAuthority.get(taskId, specVersion);
+      }
+      getTaskEvidence(taskId) {
+        return this.taskEvidence.get(taskId);
+      }
+      hasInternalEvidence(taskId) {
+        return (this.artifacts.get(taskId)?.size ?? 0) > 0;
+      }
+      hasPublication(taskId) {
+        return this.publicationRegistry.hasReceipt(taskId);
+      }
+      publicationForArtifact(taskId, queryArtifactId) {
+        return this.publicationRegistry.receiptForArtifact(taskId, queryArtifactId);
+      }
+      claimAutomaticRepair(taskId, specVersion) {
+        const key = `${taskId}:${specVersion}`;
+        const attempt = this.repairAttempts.get(key) ?? 0;
+        if (attempt >= 1)
+          return { allowed: false, attempt };
+        const next = attempt + 1;
+        this.repairAttempts.set(key, next);
+        return { allowed: true, attempt: next };
+      }
+      applyClarification(taskId, baseSpecVersion, clarification) {
+        return this.specAuthority.applyClarification(taskId, baseSpecVersion, clarification);
+      }
+      submitSpecChange(proposal) {
+        return this.specAuthority.submitProposal(proposal);
+      }
+      async recordPreview(input, signal) {
+        throwIfAborted(signal);
+        const normalizedSql = normalizeQuerySql(input.sql);
+        const createdAtMs = this.now();
+        const taskContext = this.taskEvidence.get(input.task.taskId);
+        const dialect = input.dialect ?? taskContext?.dialect;
+        const schema = input.schema ?? taskContext?.schema;
+        let artifact = {
+          taskId: input.task.taskId,
+          queryArtifactId: (0, import_node_crypto13.randomUUID)(),
+          normalizedSql,
+          normalizedSqlHash: hash2(normalizedSql),
+          previewMetadata: resultMetadata(input.result),
+          ...dialect ? { queryDigest: this.digestCompiler.compile({ sql: normalizedSql, dialect, schema }) } : {},
+          ...schema ? { schemaEvidence: schema } : {},
+          ...input.task.specVersion ? { specVersion: input.task.specVersion } : {},
+          ...input.task.specStatus ? { specStatus: input.task.specStatus } : {},
+          internalEvidence: true,
+          createdAt: new Date(createdAtMs).toISOString(),
+          expiresAt: new Date(createdAtMs + this.artifactTtlMs).toISOString(),
+          ...input.purpose ? { purpose: input.purpose } : {}
+        };
+        const spec = this.getAnswerSpec(input.task.taskId, input.task.specVersion);
+        if (this.invariantProbes && spec) {
+          const preflightOutcomes = this.invariantProbes.ids().map((id) => this.invariantProbes.evaluate(id, { answerSpec: spec, digest: artifact.queryDigest, schema: artifact.schemaEvidence, resultMetadata: artifact.previewMetadata }));
+          artifact = { ...artifact, preflightOutcomes };
+        }
+        let taskArtifacts = this.artifacts.get(input.task.taskId);
+        if (!taskArtifacts) {
+          taskArtifacts = /* @__PURE__ */ new Map();
+          this.artifacts.set(input.task.taskId, taskArtifacts);
+        }
+        taskArtifacts.set(artifact.queryArtifactId, artifact);
+        this.auditStore?.append({
+          taskId: artifact.taskId,
+          queryArtifactId: artifact.queryArtifactId,
+          sqlHash: artifact.normalizedSqlHash,
+          ...artifact.specVersion ? { specVersion: artifact.specVersion } : {},
+          ...artifact.queryDigest ? { queryDigestVersion: artifact.queryDigest.queryDigestVersion } : {},
+          reviewAvailability: this.mode === "off" ? "off" : "unavailable",
+          repairAttempt: 0,
+          reviewMode: this.mode
+        });
+        return artifact;
+      }
+      async getArtifact(taskId, queryArtifactId, signal) {
+        throwIfAborted(signal);
+        const artifact = this.artifacts.get(taskId)?.get(queryArtifactId);
+        if (!artifact)
+          return void 0;
+        if (Date.parse(artifact.expiresAt) <= this.now()) {
+          this.artifacts.get(taskId)?.delete(queryArtifactId);
+          return void 0;
+        }
+        return artifact;
+      }
+      async reviewForPublication(input, signal) {
+        throwIfAborted(signal);
+        const startedAt = this.now();
+        const candidate = input.candidate;
+        const candidateArtifact = typeof candidate?.queryArtifactId === "string" ? await this.getArtifact(input.task.taskId, candidate.queryArtifactId, signal) : void 0;
+        const blockingPreflight = candidateArtifact?.preflightOutcomes?.find((probe) => probe.status === "failed" && probe.blocking);
+        let outcome;
+        if (this.mode === "off") {
+          outcome = {
+            availability: "unavailable",
+            failure: { code: "REVIEW_OFF", message: "Query Assurance review is disabled", retryable: false }
+          };
+        } else if (blockingPreflight) {
+          outcome = {
+            availability: "available",
+            decision: { status: "rejected", blocking: true, reason: "A deterministic Hard Constraint or Structural Fact probe failed" }
+          };
+        } else if (!this.reviewer) {
+          outcome = {
+            availability: "unavailable",
+            failure: { code: "REVIEWER_NOT_CONFIGURED", message: "Conversation-Blind Reviewer is not configured", retryable: false }
+          };
+        } else if (!input.reviewInput || !input.reviewInput.digest || !input.reviewInput.answerSpec || !input.reviewInput.resultMetadata) {
+          outcome = {
+            availability: "unavailable",
+            failure: { code: "REVIEW_INPUT_INCOMPLETE", message: "Publication review input is incomplete", retryable: false }
+          };
+        } else {
+          const review = async () => {
+            try {
+              return { availability: "available", decision: await this.reviewer.review(input.reviewInput, signal) };
+            } catch (error51) {
+              if (error51 instanceof QueryAssuranceAbortError)
+                throw error51;
+              return {
+                availability: "unavailable",
+                failure: { code: "REVIEWER_FAILED", message: error51 instanceof Error ? error51.message : String(error51), retryable: true }
+              };
+            }
+          };
+          const digest = input.reviewInput.digest;
+          const identity = {
+            taskId: input.task.taskId,
+            taskQuestionHash: hash2(input.reviewInput.question),
+            specVersion: input.reviewInput.answerSpec.specVersion,
+            schemaEvidenceFingerprint: digest.schemaEvidenceFingerprint,
+            normalizedSqlHash: digest.normalizedSqlHash,
+            queryDigestVersion: digest.queryDigestVersion,
+            reviewerModel: this.reviewerModel,
+            reviewerPromptVersion: this.reviewerPromptVersion,
+            reviewPolicyVersion: this.reviewPolicyVersion,
+            reviewCoverageSchemaVersion: this.reviewCoverageSchemaVersion,
+            parserVersion: digest.parserVersion
+          };
+          const cached2 = await this.reviewCache.getOrCreate(identity, review, signal);
+          outcome = { ...cached2.outcome, cacheHit: cached2.cacheHit };
+        }
+        if (candidate && typeof candidate.candidateId === "string" && typeof candidate.taskId === "string" && typeof candidate.queryArtifactId === "string" && typeof candidate.normalizedSqlHash === "string" && typeof candidate.specVersion === "string" && typeof candidate.schemaEvidenceFingerprint === "string") {
+          const reviewToken = this.publicationRegistry.issueToken({
+            taskId: candidate.taskId,
+            queryArtifactId: candidate.queryArtifactId,
+            normalizedSqlHash: candidate.normalizedSqlHash,
+            specVersion: candidate.specVersion,
+            schemaEvidenceFingerprint: candidate.schemaEvidenceFingerprint,
+            candidate,
+            outcome,
+            reviewerVersion: `${this.reviewerModel}:${this.reviewerPromptVersion}`,
+            policyVersion: this.reviewPolicyVersion
+          });
+          const withToken = { ...outcome, reviewToken };
+          this.recordReviewAudit(input, withToken, candidate, startedAt);
+          return withToken;
+        }
+        this.recordReviewAudit(input, outcome, candidate, startedAt);
+        return outcome;
+      }
+      recordReviewAudit(input, outcome, candidate, startedAt) {
+        if (!this.auditStore)
+          return;
+        const decision = outcome.availability === "available" ? outcome.decision : void 0;
+        this.auditStore.append({
+          taskId: input.task.taskId,
+          ...typeof candidate.queryArtifactId === "string" ? { queryArtifactId: candidate.queryArtifactId } : {},
+          ...typeof candidate.normalizedSqlHash === "string" ? { sqlHash: candidate.normalizedSqlHash } : {},
+          ...typeof candidate.specVersion === "string" ? { specVersion: candidate.specVersion } : {},
+          ...typeof candidate.schemaEvidenceFingerprint === "string" ? { schemaEvidenceFingerprint: candidate.schemaEvidenceFingerprint } : {},
+          ...input.reviewInput?.digest ? { queryDigestVersion: input.reviewInput.digest.queryDigestVersion } : {},
+          reviewerModel: this.reviewerModel,
+          reviewerPromptVersion: this.reviewerPromptVersion,
+          reviewPolicyVersion: this.reviewPolicyVersion,
+          reviewAvailability: outcome.availability === "unavailable" && outcome.failure.code === "REVIEW_OFF" ? "off" : outcome.availability,
+          ...decision ? { decision: decision.status, ...decision.coverage ? { coverage: decision.coverage } : {}, ...decision.diffs ? { semanticDiffs: decision.diffs } : {} } : {},
+          repairAttempt: 0,
+          reviewMode: this.mode,
+          ...outcome.cacheHit !== void 0 ? { cacheHit: outcome.cacheHit } : {},
+          latencyMs: Math.max(0, this.now() - startedAt)
+        });
+      }
+      async publishCandidate(input, signal) {
+        throwIfAborted(signal);
+        const receipt = await this.publicationRegistry.publish(input.reviewToken, input.candidate, input.targetPath, input.authorization, input.promote);
+        if (this.auditStore)
+          this.auditStore.append({
+            taskId: receipt.taskId,
+            queryArtifactId: receipt.queryArtifactId,
+            publicationStatus: receipt.status,
+            reviewAvailability: receipt.reviewOutcome.availability === "unavailable" ? "unavailable" : "available",
+            ...receipt.reviewOutcome.availability === "available" ? {
+              decision: receipt.reviewOutcome.decision.status,
+              ...receipt.reviewOutcome.decision.coverage ? { coverage: receipt.reviewOutcome.decision.coverage } : {},
+              ...receipt.reviewOutcome.decision.diffs ? { semanticDiffs: receipt.reviewOutcome.decision.diffs } : {}
+            } : {},
+            reviewerModel: this.reviewerModel,
+            reviewerPromptVersion: this.reviewerPromptVersion,
+            reviewPolicyVersion: this.reviewPolicyVersion,
+            repairAttempt: 0,
+            reviewMode: receipt.mode
+          });
+        return receipt;
+      }
+    };
+  }
+});
+
+// packages/runtime/dist/export-candidate.js
+function csvField(value) {
+  if (value === null || value === void 0)
+    return "";
+  const raw = typeof value === "string" ? value : typeof value === "object" ? JSON.stringify(value) : String(value);
+  const escaped = raw.replaceAll('"', '""');
+  return typeof value === "string" || /[",\r\n]/.test(raw) ? `"${escaped}"` : escaped;
+}
+function csvHeaderField(value) {
+  return /[",\r\n]/.test(value) ? csvField(value) : value;
+}
+function inferType(value) {
+  if (value === null || value === void 0)
+    return "NULL";
+  if (typeof value === "number")
+    return Number.isInteger(value) ? "INTEGER" : "REAL";
+  if (typeof value === "boolean")
+    return "BOOLEAN";
+  if (typeof value === "bigint")
+    return "BIGINT";
+  if (typeof value === "object")
+    return "JSON";
+  return "TEXT";
+}
+function sameColumns(left, right) {
+  return left.length === right.length && left.every((value, index3) => value === right[index3]);
+}
+var import_node_crypto14, ExportCandidateStore;
+var init_export_candidate = __esm({
+  "packages/runtime/dist/export-candidate.js"() {
+    "use strict";
+    import_node_crypto14 = require("node:crypto");
+    init_workspace();
+    ExportCandidateStore = class {
+      workspace;
+      now;
+      maxRows;
+      constructor(workspace, options = {}) {
+        this.workspace = workspace;
+        this.now = options.now ?? Date.now;
+        this.maxRows = options.maxRows ?? 1e5;
+      }
+      async create(input, signal) {
+        const candidateId = (0, import_node_crypto14.randomUUID)();
+        const relativePath = `.query-assurance/candidates/${candidateId}.csv`;
+        const maxRows = input.maxRows ?? this.maxRows;
+        let observedColumns;
+        let columnTypes;
+        let rowCount = 0;
+        let truncated = false;
+        const nullCounts = {};
+        const distinct = [];
+        const minMax = {};
+        let headerWritten = false;
+        try {
+          await this.workspace.writeStream(relativePath, async (write) => {
+            let pending = "";
+            const append = async (chunk) => {
+              pending += chunk;
+              if (pending.length >= 64 * 1024) {
+                await write(pending);
+                pending = "";
+              }
+            };
+            const consume = async (batch) => {
+              if (!observedColumns) {
+                observedColumns = [...batch.columns];
+                columnTypes = [...batch.columnTypes ?? batch.columns.map((_, index3) => inferType(batch.rows[0]?.[index3]))];
+                for (let index3 = 0; index3 < observedColumns.length; index3 += 1) {
+                  nullCounts[observedColumns[index3]] = 0;
+                  distinct[index3] = /* @__PURE__ */ new Set();
+                }
+              }
+              if (!sameColumns(batch.columns, observedColumns))
+                throw new Error("CANDIDATE_COLUMNS_CHANGED");
+              if (input.expectedColumns && !sameColumns(batch.columns, input.expectedColumns))
+                throw new Error(`CANDIDATE_COLUMNS_MISMATCH: expected [${input.expectedColumns.join(", ")}] got [${batch.columns.join(", ")}]`);
+              if (!headerWritten) {
+                await append(batch.columns.map(csvHeaderField).join(","));
+                headerWritten = true;
+              }
+              truncated ||= Boolean(batch.truncated);
+              for (const row of batch.rows) {
+                if (row.length !== batch.columns.length)
+                  throw new Error("CANDIDATE_ROW_WIDTH_MISMATCH");
+                rowCount += 1;
+                if (input.expectedRows === "scalar" && rowCount > 1)
+                  throw new Error("CANDIDATE_SCALAR_SHAPE_MISMATCH");
+                if ((input.expectedRows === "top_n" || input.expectedRows === "grouped") && input.expectedRowCount !== void 0 && rowCount > input.expectedRowCount)
+                  throw new Error("CANDIDATE_ROW_COUNT_MISMATCH");
+                if (rowCount > maxRows)
+                  throw new Error("CANDIDATE_ROW_LIMIT_EXCEEDED");
+                for (let index3 = 0; index3 < row.length; index3 += 1) {
+                  if (row[index3] === null || row[index3] === void 0)
+                    nullCounts[batch.columns[index3]] += 1;
+                  else {
+                    distinct[index3].add(JSON.stringify(row[index3]));
+                    const current = minMax[batch.columns[index3]];
+                    if (!current)
+                      minMax[batch.columns[index3]] = { min: row[index3], max: row[index3] };
+                    else {
+                      if (current.min === void 0 || String(row[index3]) < String(current.min))
+                        current.min = row[index3];
+                      if (current.max === void 0 || String(row[index3]) > String(current.max))
+                        current.max = row[index3];
+                    }
+                    if (columnTypes?.[index3] === "NULL")
+                      columnTypes[index3] = inferType(row[index3]);
+                  }
+                }
+                await append(`
+${row.map(csvField).join(",")}`);
+              }
+            };
+            for await (const batch of await input.batches)
+              await consume(batch);
+            if (!headerWritten)
+              throw new Error("CANDIDATE_EMPTY_STREAM");
+            if (input.expectedRows === "scalar" && rowCount !== 1)
+              throw new Error("CANDIDATE_SCALAR_SHAPE_MISMATCH");
+            if (pending)
+              await write(pending);
+          }, signal);
+          return {
+            candidateId,
+            taskId: input.taskId,
+            queryArtifactId: input.queryArtifactId,
+            path: relativePath,
+            metadata: {
+              columns: observedColumns ?? [],
+              columnTypes: columnTypes ?? [],
+              rowCount,
+              truncated,
+              nullCounts,
+              ...observedColumns?.length ? { minMax, distinctCounts: Object.fromEntries(observedColumns.map((column, index3) => [column, distinct[index3].size])) } : {}
+            },
+            createdAt: new Date(this.now()).toISOString()
+          };
+        } catch (error51) {
+          await this.discardPath(relativePath);
+          throw error51;
+        }
+      }
+      async publish(candidate, targetRelativePath) {
+        try {
+          await this.workspace.promote(candidate.path, targetRelativePath);
+        } catch (error51) {
+          if (!(error51 instanceof Error) || !/ENOENT|not found/i.test(error51.message))
+            throw error51;
+          try {
+            await this.workspace.artifact(targetRelativePath);
+          } catch {
+            throw error51;
+          }
+        }
+      }
+      async discard(candidate) {
+        await this.discardPath(candidate.path);
+      }
+      async discardPath(relativePath) {
+        try {
+          await this.workspace.delete(relativePath);
+        } catch {
+        }
+      }
+    };
+  }
+});
+
 // packages/runtime/dist/agent-assembly.js
 function canonicalTool(name) {
   const tool = CANONICAL_TOOL_BY_NAME.get(name);
@@ -163158,7 +164896,7 @@ function text(content, details = void 0) {
 function asRecord(value) {
   return value && typeof value === "object" && !Array.isArray(value) ? value : void 0;
 }
-function throwIfAborted(signal) {
+function throwIfAborted2(signal) {
   if (signal?.aborted)
     throw new Error("EXPORT_CANCELLED");
 }
@@ -163169,18 +164907,24 @@ function isExploratoryQuery(sql) {
   const normalized = normalizeValidatedSql(sql).replace(/\s+/g, " ");
   return /^(?:PRAGMA\b|SELECT\s+(?:name|sql)\s+FROM\s+sqlite_master\b|SELECT\s+\*\s+FROM\s+[^\s;]+\s+LIMIT\s+\d+$|SELECT\s+DISTINCT\s+[\w.\[\]`\"]+\s+FROM\s+[^\s;]+(?:\s+LIMIT\s+\d+)?$|SELECT\s+COUNT\s*\(\s*\*\s*\)\s+(?:AS\s+\w+\s+)?FROM\s+[^\s;]+$)/i.test(normalized);
 }
-function sameColumns(actual, expected) {
+function requiresJoinReconciliation(sql) {
+  const normalized = normalizeValidatedSql(sql);
+  const hasJoin = /\b(?:LEFT|RIGHT|FULL|INNER|CROSS)?\s+JOIN\b/i.test(normalized);
+  const hasAggregate = /\b(?:COUNT|SUM|AVG|MIN|MAX|GROUP_CONCAT|TOTAL)\s*\(/i.test(normalized) || /\bGROUP\s+BY\b/i.test(normalized);
+  return hasJoin && hasAggregate;
+}
+function sameColumns2(actual, expected) {
   return actual.length === expected.length && actual.every((column, index3) => column === expected[index3]);
 }
-function csvField(value) {
+function csvField2(value) {
   if (value === null || value === void 0)
     return "";
   const raw = typeof value === "string" ? value : typeof value === "object" ? JSON.stringify(value) : String(value);
   const escaped = raw.replaceAll('"', '""');
   return typeof value === "string" || /[",\r\n]/.test(raw) ? `"${escaped}"` : escaped;
 }
-function csvHeaderField(value) {
-  return /[",\r\n]/.test(value) ? csvField(value) : value;
+function csvHeaderField2(value) {
+  return /[",\r\n]/.test(value) ? csvField2(value) : value;
 }
 function nativeSkillResult(result, name) {
   if (!result || typeof result !== "object" || !("content" in result) || !Array.isArray(result.content)) {
@@ -163227,6 +164971,9 @@ function defineTool(name, description, parameters, execute) {
 function buildAgentTools(deps) {
   const writer = deps.knowledgeRoot ? new KnowledgeWriter(deps.knowledgeRoot) : void 0;
   const sessionIdFor = (native) => native.context?.sessionId ?? deps.sessionId;
+  const taskIdFor = (native) => native.context?.taskId;
+  const specVersionFor = (native) => native.context?.specVersion;
+  const queryTaskKeyFor = (native) => taskIdFor(native) ?? sessionIdFor(native) ?? "__default__";
   const workspaceFor = async (native) => {
     const sessionId = sessionIdFor(native);
     return sessionId ? deps.workspace.scoped(sessionId) : deps.workspace;
@@ -163236,13 +164983,15 @@ function buildAgentTools(deps) {
     return sessionId ? `${sessionId}/${relativePath}` : relativePath;
   };
   const toolFailures = /* @__PURE__ */ new Map();
+  const queryAssurance = deps.queryAssurance ?? createReviewOffQueryAssurance();
+  const legacyExportEnabled = deps.requireQueryArtifactId === false;
   const queryTaskStates = /* @__PURE__ */ new Map();
   const queryTaskStateFor = (native) => {
-    const key = sessionIdFor(native) ?? "__default__";
+    const key = queryTaskKeyFor(native);
     const existing = queryTaskStates.get(key);
     if (existing)
       return existing;
-    const created = { exploratoryCount: 0, hasExported: false };
+    const created = { queryAssurance, previewResults: /* @__PURE__ */ new Map(), exploratoryCount: 0, hasExported: false };
     queryTaskStates.set(key, created);
     return created;
   };
@@ -163298,7 +165047,7 @@ This exact ${toolName} error has occurred ${count} times. Stop repeating the sam
       }
       const workspace = deps.pythonWorkspaceDir ? { root: deps.pythonWorkspaceDir } : await workspaceFor(native);
       const result = await runPythonJob(p.code, { workspace: workspace.root, executable, timeoutMs: 12e4 });
-      if (result.status === "error" && /(?:ENOENT|not found|cannot find|not recognized)/i.test(result.stderr)) {
+      if (result.status === "error" && (/(?:ENOENT|not found|cannot find|not recognized)/i.test(result.stderr) || result.exitCode === 127 || result.exitCode === -4058)) {
         pythonCapabilityUnavailable = true;
         throw new Error(pythonUnavailableMessage());
       }
@@ -163355,7 +165104,7 @@ ${h2.snippet}`).join("\n\n") : "(no matches)";
         if (p.operation === "validate")
           return text("dashboard spec valid");
         const target = p.editPath ?? `dashboards/${Date.now()}-semantic.html`;
-        const html = renderSemanticDashboardHtml(validated.spec, { nonce: (0, import_node_crypto8.randomUUID)().replace(/-/g, ""), expectedOrigin: "https://data-agent.local" });
+        const html = renderSemanticDashboardHtml(validated.spec, { nonce: (0, import_node_crypto15.randomUUID)().replace(/-/g, ""), expectedOrigin: "https://data-agent.local" });
         await workspace.write(target, html);
         const artifactPath = artifactPathFor(native, target);
         const downloadUrl = `/workspace/files/download?path=${encodeURIComponent(artifactPath)}`;
@@ -163425,13 +165174,166 @@ ${body}${result.truncated ? `
         result
       };
     };
-    tools.push(defineTool("query_database", canonicalTool("query_database").description, typebox_exports.Object({ sql: typebox_exports.String({ minLength: 1 }), limit: typebox_exports.Optional(typebox_exports.Number()) }), async (p, native) => withToolFailureGuidance("query_database", native, async () => {
+    const exportViaAssurance = async (params, native) => {
+      const taskId = taskIdFor(native);
+      if (!taskId)
+        throw new Error("QUERY_TASK_REQUIRED: queryArtifactId publication requires an active Query Task");
+      if (!params.queryArtifactId)
+        throw new Error("QUERY_ARTIFACT_REQUIRED");
+      if (!queryAssurance.getArtifact || !queryAssurance.publishCandidate)
+        throw new Error("QUERY_ASSURANCE_ARTIFACT_API_UNAVAILABLE");
+      const signal = native.signal ?? new AbortController().signal;
+      const artifact = await queryAssurance.getArtifact(taskId, params.queryArtifactId, signal);
+      if (!artifact)
+        throw new Error("QUERY_ARTIFACT_NOT_FOUND_OR_EXPIRED");
+      const existingReceipt = queryAssurance.publicationForArtifact?.(taskId, artifact.queryArtifactId);
+      if (existingReceipt) {
+        queryTaskStateFor(native).hasExported = true;
+        return text(`[PUBLICATION_ALREADY_COMPLETE] Publication Receipt ${existingReceipt.receiptId} (${existingReceipt.status})`, { status: "success", taskComplete: true, publicationReceipt: existingReceipt, queryArtifactId: artifact.queryArtifactId });
+      }
+      const target = params.filename ?? `exports/query-${Date.now()}.csv`;
+      const workspace = await workspaceFor(native);
+      const taskSpec = queryAssurance.getAnswerSpec?.(taskId, artifact.specVersion);
+      const candidateStore = new ExportCandidateStore(workspace);
+      const batches = (async function* () {
+        if (deps.queryExecutor.stream) {
+          const streamed = await deps.queryExecutor.stream(artifact.normalizedSql, signal);
+          for await (const batch of streamed)
+            yield batch;
+          return;
+        }
+        const bounded = await deps.queryExecutor.run(artifact.normalizedSql, DEFAULT_ROW_LIMIT);
+        if (bounded.truncated)
+          throw new Error("EXPORT_STREAM_REQUIRED");
+        yield bounded;
+      })();
+      let candidate;
+      try {
+        candidate = await candidateStore.create({
+          taskId,
+          queryArtifactId: artifact.queryArtifactId,
+          batches,
+          expectedColumns: taskSpec?.outputColumns ?? artifact.previewMetadata.columns,
+          expectedRows: taskSpec?.rowMode,
+          expectedRowCount: taskSpec?.rowCount
+        }, signal);
+        const storedCandidate = candidate;
+        const specVersion = artifact.specVersion ?? specVersionFor(native) ?? "1";
+        const schemaEvidenceFingerprint = artifact.queryDigest?.schemaEvidenceFingerprint ?? "unknown";
+        const candidateForReview = { ...storedCandidate, normalizedSqlHash: artifact.normalizedSqlHash, specVersion, schemaEvidenceFingerprint };
+        const digest = artifact.queryDigest;
+        const spec = taskSpec;
+        const reviewInput = digest && spec && artifact.schemaEvidence ? {
+          question: spec.question,
+          clarifications: [],
+          answerSpec: spec,
+          schema: artifact.schemaEvidence,
+          sql: artifact.normalizedSql,
+          digest,
+          resultMetadata: storedCandidate.metadata
+        } : void 0;
+        const outcome = await queryAssurance.reviewForPublication({ task: { taskId, mode: queryAssurance.mode, specVersion }, candidate: candidateForReview, reviewInput }, signal);
+        if (outcome.availability === "available" && outcome.decision.status === "rejected" && queryAssurance.mode === "enforce" && queryAssurance.claimAutomaticRepair) {
+          const repair = queryAssurance.claimAutomaticRepair(taskId, specVersion);
+          if (repair.allowed) {
+            await candidateStore.discard(storedCandidate);
+            throw new Error(`SEMANTIC_DIFF_REPAIR_REQUIRED:${JSON.stringify({ attempt: repair.attempt, diffs: outcome.decision.diffs ?? [] })}`);
+          }
+        }
+        if (!outcome.reviewToken)
+          throw new Error("REVIEW_TOKEN_MISSING");
+        const receipt = await queryAssurance.publishCandidate({ reviewToken: outcome.reviewToken, candidate: candidateForReview, targetPath: target, promote: () => candidateStore.publish(storedCandidate, target) }, signal);
+        queryTaskStateFor(native).hasExported = true;
+        const artifactPath = artifactPathFor(native, target);
+        const downloadUrl = `/workspace/files/download?path=${encodeURIComponent(artifactPath)}`;
+        deps.emitArtifact?.(artifactPath);
+        return text(`exported ${storedCandidate.metadata.rowCount} rows: [\u4E0B\u8F7D CSV](${downloadUrl})\\n[TASK_COMPLETE] Publication Receipt ${receipt.receiptId} (${receipt.status})`, {
+          status: "success",
+          taskComplete: true,
+          publicationReceipt: receipt,
+          relativePath: target,
+          downloadUrl,
+          fileType: "csv",
+          rowCount: storedCandidate.metadata.rowCount,
+          columns: storedCandidate.metadata.columns,
+          queryArtifactId: artifact.queryArtifactId
+        });
+      } catch (error51) {
+        if (candidate)
+          await candidateStore.discard(candidate);
+        throw error51;
+      }
+    };
+    const publishInlineViaAssurance = async (params, native) => {
+      const taskId = taskIdFor(native);
+      if (!taskId)
+        throw new Error("QUERY_TASK_REQUIRED: inline publication requires an active Query Task");
+      if (!queryAssurance.getArtifact || !queryAssurance.publishCandidate)
+        throw new Error("QUERY_ASSURANCE_ARTIFACT_API_UNAVAILABLE");
+      const signal = native.signal ?? new AbortController().signal;
+      const artifact = await queryAssurance.getArtifact(taskId, params.queryArtifactId, signal);
+      if (!artifact)
+        throw new Error("QUERY_ARTIFACT_NOT_FOUND_OR_EXPIRED");
+      const existingReceipt = queryAssurance.publicationForArtifact?.(taskId, artifact.queryArtifactId);
+      if (existingReceipt)
+        return text(`[PUBLICATION_ALREADY_COMPLETE] Publication Receipt ${existingReceipt.receiptId} (${existingReceipt.status})`, { status: "success", taskComplete: true, publishedInline: true, publicationReceipt: existingReceipt, queryArtifactId: artifact.queryArtifactId });
+      const preview = queryTaskStateFor(native).previewResults.get(params.queryArtifactId);
+      if (!preview)
+        throw new Error("QUERY_ARTIFACT_PREVIEW_NOT_AVAILABLE");
+      if (preview.truncated || artifact.previewMetadata.truncated)
+        throw new Error("INLINE_RESULT_TRUNCATED");
+      const candidate = {
+        candidateId: (0, import_node_crypto15.randomUUID)(),
+        taskId,
+        queryArtifactId: artifact.queryArtifactId,
+        path: `inline://${artifact.queryArtifactId}`,
+        metadata: artifact.previewMetadata,
+        createdAt: (/* @__PURE__ */ new Date()).toISOString(),
+        normalizedSqlHash: artifact.normalizedSqlHash,
+        specVersion: artifact.specVersion ?? specVersionFor(native) ?? "1",
+        schemaEvidenceFingerprint: artifact.queryDigest?.schemaEvidenceFingerprint ?? "unknown"
+      };
+      const spec = queryAssurance.getAnswerSpec?.(taskId, artifact.specVersion);
+      const reviewInput = artifact.queryDigest && spec && artifact.schemaEvidence ? {
+        question: spec.question,
+        clarifications: [],
+        answerSpec: spec,
+        schema: artifact.schemaEvidence,
+        sql: artifact.normalizedSql,
+        digest: artifact.queryDigest,
+        resultMetadata: artifact.previewMetadata
+      } : void 0;
+      const outcome = await queryAssurance.reviewForPublication({ task: { taskId, mode: queryAssurance.mode, specVersion: candidate.specVersion }, candidate, reviewInput }, signal);
+      if (outcome.availability === "available" && outcome.decision.status === "rejected" && queryAssurance.mode === "enforce" && queryAssurance.claimAutomaticRepair) {
+        const repair = queryAssurance.claimAutomaticRepair(taskId, candidate.specVersion);
+        if (repair.allowed)
+          throw new Error(`SEMANTIC_DIFF_REPAIR_REQUIRED:${JSON.stringify({ attempt: repair.attempt, diffs: outcome.decision.diffs ?? [] })}`);
+      }
+      if (!outcome.reviewToken)
+        throw new Error("REVIEW_TOKEN_MISSING");
+      const receipt = await queryAssurance.publishCandidate({ reviewToken: outcome.reviewToken, candidate, targetPath: candidate.path }, signal);
+      queryTaskStateFor(native).hasExported = true;
+      const header = preview.columns.join(" | ");
+      const body = preview.rows.map((row) => row.map((cell) => String(cell ?? "NULL")).join(" | ")).join("\\n");
+      return text(`${header}\\n${body}\\n[PUBLISHED_INLINE] Publication Receipt ${receipt.receiptId} (${receipt.status})`, {
+        status: "success",
+        taskComplete: true,
+        publishedInline: true,
+        internalEvidence: false,
+        publicationReceipt: receipt,
+        queryArtifactId: artifact.queryArtifactId,
+        columns: preview.columns,
+        rows: preview.rows
+      });
+    };
+    tools.push(defineTool("query_database", canonicalTool("query_database").description, QUERY_DATABASE_PARAMETERS, async (p, native) => withToolFailureGuidance("query_database", native, async () => {
       let state2 = queryTaskStateFor(native);
       if (state2.hasExported) {
-        state2 = { exploratoryCount: 0, hasExported: false };
-        queryTaskStates.set(sessionIdFor(native) ?? "__default__", state2);
+        state2 = { queryAssurance, previewResults: /* @__PURE__ */ new Map(), exploratoryCount: 0, hasExported: false };
+        queryTaskStates.set(queryTaskKeyFor(native), state2);
       }
-      const exploratory = isExploratoryQuery(p.sql);
+      const validationPurpose = p.purpose;
+      const exploratory = !validationPurpose && isExploratoryQuery(p.sql);
       const explorationLimit = deps.explorationQueryBudget === void 0 ? void 0 : Math.max(1, deps.explorationQueryBudget);
       if (exploratory && explorationLimit !== void 0 && state2.exploratoryCount >= explorationLimit) {
         return text(`You have used ${state2.exploratoryCount}/${explorationLimit} exploratory queries. Stop exploring and write your final analytical SQL now. If you already have a validated result, call export_query immediately.`, { warning: "EXPLORATION_BUDGET_EXCEEDED", exploratoryCount: state2.exploratoryCount, limit: explorationLimit });
@@ -163439,32 +165341,77 @@ ${body}${result.truncated ? `
       if (exploratory)
         state2.exploratoryCount++;
       const { rendered, result } = await runQuery(p.sql, p.limit);
-      state2.lastSuccessfulSql = normalizeValidatedSql(p.sql);
+      const normalizedSql = normalizeValidatedSql(p.sql);
+      const signal = native.signal ?? new AbortController().signal;
+      const taskId = taskIdFor(native);
+      const artifact = taskId && !validationPurpose && queryAssurance.recordPreview ? await queryAssurance.recordPreview({
+        task: { taskId, mode: queryAssurance.mode, ...specVersionFor(native) ? { specVersion: specVersionFor(native) } : {} },
+        sql: p.sql,
+        result: { columns: result.columns, rows: result.rows, truncated: result.truncated, ...result.columnTypes ? { columnTypes: result.columnTypes } : {} },
+        ...deps.databaseDialect ? { dialect: deps.databaseDialect } : {},
+        ...deps.schemaEvidence ? { schema: deps.schemaEvidence } : {}
+      }, signal) : void 0;
+      if (artifact)
+        state2.previewResults.set(artifact.queryArtifactId, { columns: [...result.columns], rows: result.rows, truncated: result.truncated });
+      if (legacyExportEnabled) {
+        if (validationPurpose === "reconciliation") {
+          state2.legacyLastReconciliationSql = normalizedSql;
+          state2.legacyReconciliationForSql = state2.legacyLastSuccessfulSql;
+        } else if (!validationPurpose) {
+          state2.legacyLastSuccessfulSql = normalizedSql;
+        }
+      }
       const progress = await deps.taskProgress?.(native.context);
       const remindToExport = Boolean(progress && progress.maxTurns > 0 && progress.turnCount >= progress.maxTurns * 0.6 && !state2.hasExported);
       const reminder = remindToExport ? `
 
 [EXPORT_DEADLINE] You have used ${progress.turnCount}/${progress.maxTurns} turns and have not exported yet. If this result satisfies the declared output contract, call export_query immediately with this validated SQL.` : "";
-      return text(`${rendered}${reminder}`, {
+      const validationHint = validationPurpose === "reconciliation" ? "\n[RECONCILIATION_RECORDED] This independent reconciliation query does not replace the final SQL used for export." : validationPurpose === "verification" ? "\n[VERIFICATION_RECORDED] This independent verification query does not replace the final SQL used for export." : "";
+      const artifactHint = artifact ? `
+[INTERNAL_EVIDENCE] queryArtifactId=${artifact.queryArtifactId}` : "";
+      return text(`${rendered}${validationHint}${artifactHint}${reminder}`, {
         columns: result.columns,
         rows: result.rows,
         exploratory,
+        ...validationPurpose ? { purpose: validationPurpose } : {},
+        ...taskId ? { taskId, internalEvidence: true } : {},
+        ...artifact ? {
+          queryArtifactId: artifact.queryArtifactId,
+          normalizedSqlHash: artifact.normalizedSqlHash,
+          previewMetadata: artifact.previewMetadata,
+          expiresAt: artifact.expiresAt,
+          ...artifact.specStatus ? { specStatus: artifact.specStatus } : {}
+        } : {},
         ...remindToExport ? { exportReminder: true, turnCount: progress.turnCount, maxTurns: progress.maxTurns } : {}
       });
     })), defineTool("export_query", canonicalTool("export_query").description, EXPORT_QUERY_PARAMETERS, async (p, native) => withToolFailureGuidance("export_query", native, async () => {
-      if (!p.expected_rows) {
+      if (p.queryArtifactId)
+        return exportViaAssurance(p, native);
+      const legacy = p;
+      if (deps.requireQueryArtifactId !== false)
+        throw new Error("EXPORT_QUERY_REQUIRES_QUERY_ARTIFACT_ID: select a Query Artifact instead of submitting SQL directly");
+      if (!legacy.expected_rows) {
         throw new Error("SHAPE_DECLARATION_INVALID: expected_rows is required");
       }
       const taskState = queryTaskStateFor(native);
-      if (deps.requireValidatedExportSql !== false && taskState.lastSuccessfulSql !== normalizeValidatedSql(p.sql)) {
-        throw new Error("EXPORT_SQL_NOT_VALIDATED: export_query SQL must exactly match the last successful query_database SQL in this session. Validate this SQL, then export it unchanged.");
+      const normalizedSql = normalizeValidatedSql(legacy.sql);
+      if (deps.requireValidatedExportSql !== false && taskState.legacyLastSuccessfulSql !== normalizedSql) {
+        throw new Error("EXPORT_SQL_NOT_VALIDATED: export_query SQL must exactly match the last successful final query_database SQL in this session. Validate this SQL, then export it unchanged. Re-derive the expected shape from the question, not from the last query result.");
       }
-      if (p.expected_rows === "top_n" && p.expected_row_count === void 0) {
+      if (legacy.expected_rows === "top_n" && legacy.expected_row_count === void 0) {
         throw new Error("SHAPE_DECLARATION_INVALID: expected_row_count is required for top_n");
       }
+      if (!legacy.expected_columns || legacy.expected_columns.length === 0) {
+        throw new Error("SHAPE_DECLARATION_INVALID: expected_columns is required");
+      }
+      if (deps.requireJoinReconciliation !== false && requiresJoinReconciliation(legacy.sql)) {
+        if (taskState.legacyReconciliationForSql !== normalizedSql || taskState.legacyLastReconciliationSql === normalizedSql) {
+          throw new Error("JOIN_RECONCILIATION_REQUIRED: run a different successful query_database call with purpose=reconciliation to audit JOIN aggregate row counts or totals before exporting. The reconciliation query does not replace the final SQL.");
+        }
+      }
       const signal = native.signal;
-      const target = p.filename ?? `exports/query-${Date.now()}.csv`;
-      const topNMaximum = p.expected_rows === "top_n" ? p.expected_row_count : void 0;
+      const target = legacy.filename ?? `exports/query-${Date.now()}.csv`;
+      const rowCountMaximum = legacy.expected_rows === "top_n" || legacy.expected_rows === "grouped" ? legacy.expected_row_count : void 0;
       let rowCount = 0;
       let observedColumns;
       const workspace = await workspaceFor(native);
@@ -163479,48 +165426,48 @@ ${body}${result.truncated ? `
           }
         };
         const consume = async (batch) => {
-          throwIfAborted(signal);
+          throwIfAborted2(signal);
           if (!observedColumns)
             observedColumns = [...batch.columns];
-          if (!sameColumns(batch.columns, observedColumns)) {
+          if (!sameColumns2(batch.columns, observedColumns)) {
             throw new Error(`SHAPE_MISMATCH: export batches changed columns from [${observedColumns.join(", ")}] to [${batch.columns.join(", ")}]`);
           }
-          if (p.expected_columns && !sameColumns(batch.columns, p.expected_columns)) {
-            throw new Error(`SHAPE_MISMATCH: expected columns [${p.expected_columns.join(", ")}] but query returned [${batch.columns.join(", ")}]`);
+          if (!sameColumns2(batch.columns, legacy.expected_columns)) {
+            throw new Error(`SHAPE_MISMATCH: expected columns [${legacy.expected_columns.join(", ")}] but query returned [${batch.columns.join(", ")}]`);
           }
           if (!headerWritten) {
-            await append(batch.columns.map(csvHeaderField).join(","));
+            await append(batch.columns.map(csvHeaderField2).join(","));
             headerWritten = true;
           }
           for (const row of batch.rows) {
-            throwIfAborted(signal);
+            throwIfAborted2(signal);
             if (row.length !== batch.columns.length) {
               throw new Error(`SHAPE_MISMATCH: row width ${row.length} does not match ${batch.columns.length} columns`);
             }
             rowCount++;
-            if (p.expected_rows === "scalar" && rowCount > 1) {
+            if (legacy.expected_rows === "scalar" && rowCount > 1) {
               throw new Error("SHAPE_MISMATCH: declared scalar but query produced more than 1 row. Add a final aggregation or LIMIT 1 before exporting.");
             }
-            if (topNMaximum !== void 0 && rowCount > topNMaximum) {
-              throw new Error(`SHAPE_MISMATCH: declared top_n=${p.expected_row_count} but query produced more than ${topNMaximum} rows. Add LIMIT or a stricter filter before exporting.`);
+            if (rowCountMaximum !== void 0 && rowCount > rowCountMaximum) {
+              throw new Error(`SHAPE_MISMATCH: declared ${legacy.expected_rows} maximum=${legacy.expected_row_count} but query produced more than ${rowCountMaximum} rows. Add a final LIMIT, aggregation, or stricter filter before exporting.`);
             }
             await append(`
-${row.map(csvField).join(",")}`);
+${row.map(csvField2).join(",")}`);
           }
         };
         if (deps.queryExecutor.stream) {
-          const batches = await deps.queryExecutor.stream(p.sql, signal);
+          const batches = await deps.queryExecutor.stream(legacy.sql, signal);
           for await (const batch of batches)
             await consume(batch);
         } else {
-          const bounded = await deps.queryExecutor.run(p.sql, DEFAULT_ROW_LIMIT);
+          const bounded = await deps.queryExecutor.run(legacy.sql, DEFAULT_ROW_LIMIT);
           if (bounded.truncated)
             throw new Error("EXPORT_STREAM_REQUIRED");
           await consume(bounded);
         }
         if (!headerWritten)
           throw new Error("EXPORT_EMPTY_STREAM: executor returned no column metadata");
-        if (p.expected_rows === "scalar" && rowCount === 0) {
+        if (legacy.expected_rows === "scalar" && rowCount === 0) {
           throw new Error("SHAPE_MISMATCH: declared scalar but query produced 0 rows. Return exactly one aggregate row before exporting.");
         }
         if (pending)
@@ -163531,7 +165478,7 @@ ${row.map(csvField).join(",")}`);
       const downloadUrl = `/workspace/files/download?path=${encodeURIComponent(artifactPath)}`;
       deps.emitArtifact?.(artifactPath);
       return text(`exported ${rowCount} rows: [\u4E0B\u8F7D CSV](${downloadUrl})
-[TASK_COMPLETE] The declared ${p.expected_rows} shape and output columns were validated. If the user's request was to query and export data, the task is complete. Do not call Python, show_widget, or generate_dashboard unless the user explicitly requested analysis or visualization.`, {
+[TASK_COMPLETE] The declared ${legacy.expected_rows} shape and output columns were validated. If the user's request was to query and export data, the task is complete. Do not call Python, show_widget, or generate_dashboard unless the user explicitly requested analysis or visualization.`, {
         status: "success",
         taskComplete: true,
         relativePath: target,
@@ -163539,9 +165486,9 @@ ${row.map(csvField).join(",")}`);
         fileType: "csv",
         rowCount,
         columns: observedColumns ?? [],
-        expectedRows: p.expected_rows
+        expectedRows: legacy.expected_rows
       });
-    })));
+    })), defineTool("publish_query_result", canonicalTool("publish_query_result").description, PUBLISH_QUERY_RESULT_PARAMETERS, async (p, native) => withToolFailureGuidance("publish_query_result", native, async () => publishInlineViaAssurance(p, native))));
   }
   if (deps.clarifications) {
     const clarifications = deps.clarifications;
@@ -163550,7 +165497,16 @@ ${row.map(csvField).join(",")}`);
       const { clarificationId, promise: promise2 } = clarifications.ask(sessionId, p.question, p.options ?? []);
       deps.emitArtifact?.(`__clarification__:${clarificationId}`);
       const answer = await promise2;
-      return text(answer || "(no answer)");
+      const taskId = taskIdFor(native);
+      const baseSpecVersion = specVersionFor(native);
+      let nextSpecVersion;
+      if (answer && taskId && baseSpecVersion && queryAssurance.applyClarification) {
+        const next = queryAssurance.applyClarification(taskId, baseSpecVersion, answer);
+        nextSpecVersion = next.specVersion;
+        native.context.specVersion = next.specVersion;
+        deps.onTaskSpecVersionChanged?.(taskId, next.specVersion);
+      }
+      return text(answer || "(no answer)", nextSpecVersion ? { taskId, specVersion: nextSpecVersion } : void 0);
     }));
   }
   return tools;
@@ -163589,20 +165545,24 @@ function unknownToolRecoveryMessage(errorText, toolNames) {
   if (!match2)
     return void 0;
   const available = [...new Set(toolNames)];
+  const clarificationFallback = match2[1] === "ask_user_clarification" ? "Clarification is unavailable in this runtime. Resolve ambiguity by the most literal reading of the request; never invent thresholds, default values, date baselines, or unit conversions, and state the assumption in the final response." : void 0;
   return [
     `Tool "${match2[1]}" does not exist in this runtime. Do not retry it.`,
     `Available tools: ${available.join(", ") || "none"}.`,
-    "Use search_knowledge/read_knowledge for knowledge, query_database for read-only SQL, and export_query for final CSV delivery."
+    "Use search_knowledge/read_knowledge for knowledge, query_database for read-only SQL, and export_query for final CSV delivery.",
+    ...clarificationFallback ? [clarificationFallback] : []
   ].join("\n");
 }
 function runtimeCapabilitiesPrompt(toolNames) {
   const available = [...new Set(toolNames)];
-  const unavailable = ["run_python", "show_widget", "generate_dashboard"].filter((name) => !available.includes(name));
+  const unavailable = ["run_python", "show_widget", "generate_dashboard", "ask_user_clarification"].filter((name) => !available.includes(name));
+  const clarificationFallback = unavailable.includes("ask_user_clarification") ? "Clarification is unavailable in this session. Resolve ambiguity by the most literal reading of the request; never invent thresholds, default values, date baselines, or unit conversions, and state the assumption in the final response." : void 0;
   return [
     "## Runtime capability contract",
     "Only tools present in the current tool list are available in this session. Never call an absent tool.",
     `Available tools: ${available.join(", ") || "none"}.`,
-    ...unavailable.length ? [`Unavailable tools: ${unavailable.join(", ")}. Do not retry them; complete the task with the available tools.`] : []
+    ...unavailable.length ? [`Unavailable tools: ${unavailable.join(", ")}. Do not retry them; complete the task with the available tools.`] : [],
+    ...clarificationFallback ? [clarificationFallback] : []
   ].join("\n");
 }
 async function resolveSystemPrompt(searchRoots, databaseDialect) {
@@ -163629,8 +165589,22 @@ async function createDataAgentHarness(deps, profile) {
   for (const item of skillLoad.diagnostics)
     console.warn(`[data-agent] Skill diagnostic (${item.code ?? "warning"}) ${item.path}: ${item.message}`);
   let skills = [];
+  const queryAssurance = deps.queryAssurance ?? createReviewOffQueryAssurance();
+  let activeTask;
+  const baseToolContext = deps.toolContext ?? { sessionId: deps.sessionId };
+  const toolContext = async () => {
+    const base = typeof baseToolContext === "function" ? await baseToolContext() : baseToolContext;
+    return activeTask ? { ...base, taskId: activeTask.taskId, ...activeTask.specVersion ? { specVersion: activeTask.specVersion } : {} } : base;
+  };
   const tools = buildAgentTools({
     ...deps,
+    queryAssurance,
+    toolContext,
+    onTaskSpecVersionChanged: (taskId, specVersion) => {
+      if (activeTask?.taskId === taskId)
+        activeTask = { ...activeTask, specVersion };
+      deps.onTaskSpecVersionChanged?.(taskId, specVersion);
+    },
     invokeSkill: async (name, additionalInstructions) => {
       const skill = skills.find((candidate) => candidate.name === name);
       if (!skill)
@@ -163659,8 +165633,15 @@ ${additionalInstructions}` : skill.content;
 ${capabilityPrompt}`, resources.skills ?? []),
     tools,
     resources: { skills },
-    toolContext: deps.toolContext ?? { sessionId: deps.sessionId }
-  });
+    toolContext
+  }, async (text2, signal) => {
+    activeTask = await queryAssurance.prepareTask({
+      question: text2,
+      ...deps.databaseDialect ? { dialect: deps.databaseDialect } : {},
+      ...deps.schemaEvidence ? { schema: deps.schemaEvidence } : {}
+    }, signal);
+    return activeTask;
+  }, async (task) => Boolean(deps.enforceDeliveryReceipt !== false && queryAssurance.hasInternalEvidence?.(task.taskId) && !queryAssurance.hasPublication?.(task.taskId)));
   harness.subscribe((event) => {
     if (event?.type !== "tool_execution_end" || !event.isError)
       return;
@@ -163672,7 +165653,7 @@ ${capabilityPrompt}`, resources.skills ?? []),
   });
   return harness;
 }
-var import_node_crypto8, import_node_path11, DEFAULT_ROW_LIMIT, CANONICAL_TOOL_BY_NAME, DataAgentHarness;
+var import_node_crypto15, import_node_path11, DEFAULT_ROW_LIMIT, CANONICAL_TOOL_BY_NAME, DataAgentHarness;
 var init_agent_assembly = __esm({
   "packages/runtime/dist/agent-assembly.js"() {
     "use strict";
@@ -163681,7 +165662,7 @@ var init_agent_assembly = __esm({
     init_bounded_read();
     init_all();
     init_build();
-    import_node_crypto8 = require("node:crypto");
+    import_node_crypto15 = require("node:crypto");
     import_node_path11 = __toESM(require("node:path"), 1);
     init_dashboard_v4();
     init_dashboard_v3();
@@ -163690,9 +165671,38 @@ var init_agent_assembly = __esm({
     init_tools_catalog();
     init_skills2();
     init_widget();
+    init_query_assurance();
+    init_export_candidate();
     DEFAULT_ROW_LIMIT = 50;
     CANONICAL_TOOL_BY_NAME = new Map(canonicalLocalTools().map((tool) => [tool.name, tool]));
     DataAgentHarness = class extends AgentHarness {
+      prepareQueryTask;
+      deliveryRequired;
+      promptPreparationController;
+      constructor(options, prepareQueryTask, deliveryRequired) {
+        super(options);
+        this.prepareQueryTask = prepareQueryTask;
+        this.deliveryRequired = deliveryRequired;
+      }
+      async prompt(text2, options) {
+        const controller = new AbortController();
+        this.promptPreparationController = controller;
+        try {
+          const task = await this.prepareQueryTask?.(text2, controller.signal);
+          const response = await super.prompt(text2, options);
+          if (task && await this.deliveryRequired?.(task)) {
+            await super.followUp("[DELIVERY_REQUIRED] Query results are Internal Evidence until publication. Use export_query with the exact queryArtifactId for CSV delivery or publish_query_result for a small inline result. Do not answer with unapproved result values.");
+          }
+          return response;
+        } finally {
+          if (this.promptPreparationController === controller)
+            this.promptPreparationController = void 0;
+        }
+      }
+      async abort() {
+        this.promptPreparationController?.abort();
+        return super.abort();
+      }
       async skill(name, additionalInstructions) {
         const skill = this.getResources().skills?.find((candidate) => candidate.name === name);
         if (!skill)
@@ -163710,14 +165720,257 @@ var init_agent_assembly = __esm({
   }
 });
 
+// packages/runtime/dist/conversation-blind-reviewer.js
+function isRecord(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+function ensureString(value, code) {
+  if (typeof value !== "string" || !value.trim())
+    throw new Error(code);
+  return value;
+}
+function validateCoverage(value) {
+  if (value === void 0)
+    throw new Error("REVIEW_COVERAGE_REQUIRED");
+  if (!isRecord(value))
+    throw new Error("REVIEW_COVERAGE_INVALID");
+  const coverage = {};
+  for (const [facet, status] of Object.entries(value)) {
+    if (!REVIEW_COVERAGE_FACETS.includes(facet) || !COVERAGE_STATUSES.has(status))
+      throw new Error("REVIEW_COVERAGE_INVALID");
+    coverage[facet] = status;
+  }
+  for (const facet of REVIEW_COVERAGE_FACETS)
+    if (coverage[facet] === void 0)
+      coverage[facet] = "insufficient_evidence";
+  return coverage;
+}
+function digestPathExists(digest, path20) {
+  const match2 = /^([A-Za-z_][A-Za-z0-9_]*)(?:\[(\d+)\])?(?:\.([A-Za-z_][A-Za-z0-9_]*))?$/.exec(path20);
+  if (!match2)
+    return false;
+  const first = match2[1];
+  if (!(first in digest))
+    return false;
+  const value = digest[first];
+  if (match2[2] !== void 0) {
+    if (!Array.isArray(value) || Number(match2[2]) >= value.length)
+      return false;
+    if (match2[3] !== void 0)
+      return isRecord(value[Number(match2[2])]) && match2[3] in value[Number(match2[2])];
+  }
+  return match2[3] === void 0 || isRecord(value) && match2[3] in value;
+}
+function validateDiffs(value, input) {
+  if (!Array.isArray(value))
+    throw new Error("REVIEW_DIFFS_INVALID");
+  const hardConstraintIds = new Set(input.answerSpec.hardConstraints.map((constraint) => constraint.id));
+  return value.map((item) => {
+    if (!isRecord(item))
+      throw new Error("REVIEW_DIFF_INVALID");
+    const evidence = item.evidence;
+    if (!isRecord(evidence) || typeof evidence.constraintId !== "string" || !evidence.constraintId.trim() || typeof evidence.digestPath !== "string" || !evidence.digestPath.trim()) {
+      throw new Error("REVIEW_DIFF_EVIDENCE_REQUIRED");
+    }
+    if (!hardConstraintIds.has(evidence.constraintId))
+      throw new Error("REVIEW_DIFF_CONSTRAINT_UNKNOWN");
+    if (!digestPathExists(input.digest, evidence.digestPath))
+      throw new Error("REVIEW_DIFF_DIGEST_PATH_UNKNOWN");
+    return {
+      aspect: ensureString(item.aspect, "REVIEW_DIFF_ASPECT_INVALID"),
+      required: ensureString(item.required, "REVIEW_DIFF_REQUIRED_INVALID"),
+      observed: ensureString(item.observed, "REVIEW_DIFF_OBSERVED_INVALID"),
+      evidence: { constraintId: evidence.constraintId, digestPath: evidence.digestPath }
+    };
+  });
+}
+function validateResponse(value, input) {
+  if (!isRecord(value))
+    throw new Error("REVIEW_RESPONSE_INVALID");
+  for (const key of Object.keys(value))
+    if (!RESPONSE_FIELDS.has(key))
+      throw new Error(`REVIEW_RESPONSE_UNKNOWN_FIELD:${key}`);
+  if (!DECISION_STATUSES.has(value.status))
+    throw new Error("REVIEW_STATUS_INVALID");
+  const status = value.status;
+  const coverage = validateCoverage(value.coverage);
+  if (status === "approved") {
+    return {
+      status,
+      coverage,
+      ...Array.isArray(value.warnings) ? { warnings: value.warnings.map((warning) => ensureString(warning, "REVIEW_WARNING_INVALID")) } : {}
+    };
+  }
+  if (status === "rejected") {
+    return {
+      status,
+      coverage,
+      diffs: validateDiffs(value.diffs, input),
+      retryable: value.retryable === true
+    };
+  }
+  if (status === "needs_clarification") {
+    if (!Array.isArray(value.ambiguities))
+      throw new Error("REVIEW_AMBIGUITIES_INVALID");
+    return {
+      status,
+      coverage,
+      ambiguities: value.ambiguities.map((ambiguity) => ensureString(ambiguity, "REVIEW_AMBIGUITY_INVALID"))
+    };
+  }
+  return {
+    status,
+    coverage,
+    reason: ensureString(value.reason, "REVIEW_REASON_INVALID")
+  };
+}
+function declaredInput(input) {
+  return {
+    question: input.question,
+    clarifications: [...input.clarifications],
+    answerSpec: input.answerSpec,
+    schema: input.schema,
+    sql: input.sql,
+    digest: input.digest,
+    resultMetadata: input.resultMetadata
+  };
+}
+function createConversationBlindReviewer(model, options = {}) {
+  const maxAttempts = Math.min(2, Math.max(1, options.maxAttempts ?? 2));
+  return {
+    async review(input, signal) {
+      let lastError;
+      for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        try {
+          const response = await model.complete(declaredInput(input), { freshContext: true, temperature: 0 }, signal);
+          return validateResponse(response, input);
+        } catch (error51) {
+          lastError = error51;
+          if (attempt + 1 >= maxAttempts)
+            throw error51;
+        }
+      }
+      throw lastError instanceof Error ? lastError : new Error(String(lastError));
+    }
+  };
+}
+var REVIEW_COVERAGE_FACETS, RESPONSE_FIELDS, DECISION_STATUSES, COVERAGE_STATUSES;
+var init_conversation_blind_reviewer = __esm({
+  "packages/runtime/dist/conversation-blind-reviewer.js"() {
+    "use strict";
+    REVIEW_COVERAGE_FACETS = [
+      "projection",
+      "grain",
+      "measure",
+      "population",
+      "join_cardinality",
+      "time_filter",
+      "time_window",
+      "ranking_partition",
+      "tie_policy",
+      "unit",
+      "rounding",
+      "entity_resolution",
+      "null_handling"
+    ];
+    RESPONSE_FIELDS = /* @__PURE__ */ new Set(["status", "coverage", "warnings", "diffs", "retryable", "ambiguities", "reason"]);
+    DECISION_STATUSES = /* @__PURE__ */ new Set(["approved", "rejected", "needs_clarification", "abstained"]);
+    COVERAGE_STATUSES = /* @__PURE__ */ new Set(["checked", "not_applicable", "unsupported", "insufficient_evidence"]);
+  }
+});
+
+// packages/runtime/dist/calibration.js
+function p95(values) {
+  if (values.length === 0)
+    return 0;
+  const sorted = [...values].sort((left, right) => left - right);
+  return sorted[Math.min(sorted.length - 1, Math.ceil(sorted.length * 0.95) - 1)];
+}
+function average(values) {
+  return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+}
+function sameIdentity2(left, right) {
+  return Object.keys(left).every((key) => left[key] === right[key]);
+}
+function createCalibrationReport(cases) {
+  if (cases.length === 0)
+    throw new Error("CALIBRATION_CASES_EMPTY");
+  const identity = cases[0].identity;
+  if (cases.some((item) => !sameIdentity2(identity, item.identity)))
+    throw new Error("CALIBRATION_IDENTITY_MIXED");
+  const mismatches = cases.filter((item) => item.expected === "mismatch");
+  const correct = cases.filter((item) => item.expected === "correct");
+  const detected = mismatches.filter((item) => item.decision !== "approved");
+  const allDiffs = mismatches.flatMap((item) => item.diffs);
+  const validDiffs = allDiffs.filter((item) => item.valid);
+  const repeatGroups = /* @__PURE__ */ new Map();
+  for (const item of cases)
+    if (item.repeatGroup)
+      repeatGroups.set(item.repeatGroup, [...repeatGroups.get(item.repeatGroup) ?? [], item]);
+  const repeatable = [...repeatGroups.values()].filter((group) => group.length > 1);
+  const agreement = repeatable.filter((group) => group.every((item) => item.decision === group[0].decision)).length;
+  const notDelivered = cases.filter((item) => !item.submitted).length / cases.length;
+  const baselineNotDelivered = cases.filter((item) => item.baselineSubmitted === false).length / cases.length;
+  const timeouts = cases.filter((item) => item.timedOut).length / cases.length;
+  const baselineTimeouts = cases.filter((item) => item.baselineTimedOut === true).length / cases.length;
+  const baselineP95Latency = p95(cases.map((item) => item.baselineDurationMs));
+  const metrics = {
+    errorRecall: mismatches.length ? detected.length / mismatches.length : 0,
+    correctQuerySpecificity: correct.length ? correct.filter((item) => item.decision === "approved").length / correct.length : 0,
+    mismatchPrecision: allDiffs.length ? validDiffs.length / allDiffs.length : 0,
+    repeatAgreement: repeatable.length ? agreement / repeatable.length : 0,
+    netE2ECorrect: cases.filter((item) => item.assuranceCorrect).length - cases.filter((item) => item.baselineCorrect).length,
+    nonDeliveryDelta: notDelivered - baselineNotDelivered,
+    timeoutDelta: timeouts - baselineTimeouts,
+    p95LatencyDeltaMs: p95(cases.map((item) => item.durationMs)) - p95(cases.map((item) => item.baselineDurationMs)),
+    averageTokenDeltaRatio: average(cases.map((item) => item.baselineTokens)) ? average(cases.map((item) => item.tokens)) / average(cases.map((item) => item.baselineTokens)) - 1 : 0,
+    averageCostDeltaRatio: average(cases.map((item) => item.baselineCost)) ? average(cases.map((item) => item.cost)) / average(cases.map((item) => item.baselineCost)) - 1 : 0
+  };
+  const passes = {
+    correctQuerySpecificity: metrics.correctQuerySpecificity >= DEFAULT_CALIBRATION_THRESHOLDS.correctQuerySpecificity,
+    mismatchPrecision: metrics.mismatchPrecision >= DEFAULT_CALIBRATION_THRESHOLDS.mismatchPrecision,
+    repeatAgreement: metrics.repeatAgreement >= DEFAULT_CALIBRATION_THRESHOLDS.repeatAgreement,
+    timeout: metrics.timeoutDelta <= DEFAULT_CALIBRATION_THRESHOLDS.timeoutDeltaMax,
+    netE2ECorrect: metrics.netE2ECorrect > 0,
+    nonDelivery: metrics.nonDeliveryDelta <= DEFAULT_CALIBRATION_THRESHOLDS.nonDeliveryDeltaMax,
+    latency: metrics.p95LatencyDeltaMs <= Math.max(DEFAULT_CALIBRATION_THRESHOLDS.p95LatencyAbsoluteMaxMs, baselineP95Latency * DEFAULT_CALIBRATION_THRESHOLDS.p95LatencyRatioMax),
+    cost: metrics.averageCostDeltaRatio <= DEFAULT_CALIBRATION_THRESHOLDS.averageCostDeltaRatioMax
+  };
+  return { identity, sampleSize: cases.length, metrics, thresholds: DEFAULT_CALIBRATION_THRESHOLDS, passes, eligibleForEnforce: Object.values(passes).every(Boolean) };
+}
+function createCalibrationReports(cases) {
+  const groups = /* @__PURE__ */ new Map();
+  for (const item of cases) {
+    const key = JSON.stringify(item.identity, Object.keys(item.identity).sort());
+    groups.set(key, [...groups.get(key) ?? [], item]);
+  }
+  return [...groups.values()].map(createCalibrationReport);
+}
+var DEFAULT_CALIBRATION_THRESHOLDS;
+var init_calibration = __esm({
+  "packages/runtime/dist/calibration.js"() {
+    "use strict";
+    DEFAULT_CALIBRATION_THRESHOLDS = {
+      correctQuerySpecificity: 0.98,
+      mismatchPrecision: 0.9,
+      repeatAgreement: 0.95,
+      timeoutDeltaMax: 0.01,
+      nonDeliveryDeltaMax: 0.01,
+      p95LatencyAbsoluteMaxMs: 2e4,
+      p95LatencyRatioMax: 0.25,
+      averageCostDeltaRatioMax: 0.3
+    };
+  }
+});
+
 // packages/runtime/dist/agent-harness-lifecycle.js
 function createAgentHarnessResolver(options) {
-  const keyOf = options.key ?? ((profile, scope) => `${JSON.stringify(profile) ?? ""}:${scope ?? ""}`);
+  const keyOf2 = options.key ?? ((profile, scope) => `${JSON.stringify(profile) ?? ""}:${scope ?? ""}`);
   const agents = /* @__PURE__ */ new Map();
   const inFlight = /* @__PURE__ */ new Map();
   async function resolve2(scope) {
     const profile = await options.getProfile();
-    const key = keyOf(profile, scope);
+    const key = keyOf2(profile, scope);
     const existing = agents.get(key);
     if (existing !== void 0)
       return existing;
@@ -163777,7 +166030,7 @@ async function migrateLegacyData(sourceRoot, targetRoot, sessionStore) {
     return JSON.parse(await (0, import_promises12.readFile)(marker, "utf8"));
   } catch {
   }
-  const migrationId = (0, import_node_crypto9.randomUUID)();
+  const migrationId = (0, import_node_crypto16.randomUUID)();
   const backupPath = import_node_path12.default.join(target, "migration-backup", migrationId);
   await (0, import_promises12.mkdir)(backupPath, { recursive: true });
   await (0, import_promises12.cp)(source, backupPath, { recursive: true, force: true });
@@ -163834,13 +166087,13 @@ async function migrateLegacyData(sourceRoot, targetRoot, sessionStore) {
   await (0, import_promises12.writeFile)(marker, JSON.stringify(report, null, 2), "utf8");
   return report;
 }
-var import_promises12, import_node_path12, import_node_crypto9, import_better_sqlite3;
+var import_promises12, import_node_path12, import_node_crypto16, import_better_sqlite3;
 var init_legacy_migration = __esm({
   "packages/runtime/dist/legacy-migration.js"() {
     "use strict";
     import_promises12 = require("node:fs/promises");
     import_node_path12 = __toESM(require("node:path"), 1);
-    import_node_crypto9 = require("node:crypto");
+    import_node_crypto16 = require("node:crypto");
     import_better_sqlite3 = __toESM(require("better-sqlite3"), 1);
     init_session_store();
   }
@@ -163862,27 +166115,27 @@ function createExportQueryAdapter(options) {
       const blob = Buffer.from(resource.blob, "base64");
       if (blob.byteLength > maxBytes)
         throw new ExportCapabilityError("EXPORT_TOO_LARGE");
-      const sha256 = (0, import_node_crypto10.createHash)("sha256").update(blob).digest("hex");
+      const sha256 = (0, import_node_crypto17.createHash)("sha256").update(blob).digest("hex");
       const filename = relativePath ?? `data/exports/${import_node_path13.default.basename(new URL(resource.uri.replace(/^sqlite:\/\//, "http://")).pathname)}`;
       const target = import_node_path13.default.resolve(options.workspace.root, filename);
       if (!target.startsWith(`${options.workspace.root}${import_node_path13.default.sep}`))
         throw new ExportCapabilityError("WORKSPACE_PATH_ESCAPE");
       await (0, import_promises13.mkdir)(import_node_path13.default.dirname(target), { recursive: true });
-      const temp = `${target}.${randomUUID10()}.tmp`;
+      const temp = `${target}.${randomUUID15()}.tmp`;
       await (0, import_promises13.writeFile)(temp, blob);
       await (0, import_promises13.rename)(temp, target);
       return { path: import_node_path13.default.relative(options.workspace.root, target).split(import_node_path13.default.sep).join("/"), sha256, bytes: blob.byteLength };
     }
   };
 }
-function randomUUID10() {
+function randomUUID15() {
   return crypto.randomUUID();
 }
-var import_node_crypto10, import_promises13, import_node_path13, ExportCapabilityError;
+var import_node_crypto17, import_promises13, import_node_path13, ExportCapabilityError;
 var init_export_adapter = __esm({
   "packages/runtime/dist/export-adapter.js"() {
     "use strict";
-    import_node_crypto10 = require("node:crypto");
+    import_node_crypto17 = require("node:crypto");
     import_promises13 = require("node:fs/promises");
     import_node_path13 = __toESM(require("node:path"), 1);
     ExportCapabilityError = class extends Error {
@@ -163987,15 +166240,15 @@ var init_process_supervisor = __esm({
 });
 
 // packages/runtime/dist/providers.js
-var import_node_crypto11, InMemorySecretVault, ProviderRegistry;
+var import_node_crypto18, InMemorySecretVault, ProviderRegistry;
 var init_providers = __esm({
   "packages/runtime/dist/providers.js"() {
     "use strict";
-    import_node_crypto11 = require("node:crypto");
+    import_node_crypto18 = require("node:crypto");
     InMemorySecretVault = class {
       store = /* @__PURE__ */ new Map();
       async encrypt(plain) {
-        const id = (0, import_node_crypto11.randomUUID)();
+        const id = (0, import_node_crypto18.randomUUID)();
         this.store.set(id, plain);
         return `mem:${id}`;
       }
@@ -164012,7 +166265,7 @@ var init_providers = __esm({
         this.vault = vault;
       }
       async save(profile) {
-        const id = profile.id ?? (0, import_node_crypto11.randomUUID)();
+        const id = profile.id ?? (0, import_node_crypto18.randomUUID)();
         let apiKey;
         if (profile.apiKey)
           apiKey = await this.vault.encrypt(profile.apiKey);
@@ -164072,23 +166325,23 @@ var init_python_runtime = __esm({
 // packages/runtime/dist/python-pack-builder.js
 async function writePythonPackManifest(packRoot, manifest) {
   const files = await (0, import_promises15.readdir)(packRoot, { recursive: true });
-  const hash2 = (0, import_node_crypto12.createHash)("sha256");
+  const hash3 = (0, import_node_crypto19.createHash)("sha256");
   for (const file2 of files.sort()) {
     try {
-      hash2.update(await (0, import_promises15.readFile)(import_node_path15.default.join(packRoot, file2)));
+      hash3.update(await (0, import_promises15.readFile)(import_node_path15.default.join(packRoot, file2)));
     } catch {
     }
   }
-  const output = { ...manifest, sha256: hash2.digest("hex") };
+  const output = { ...manifest, sha256: hash3.digest("hex") };
   const target = import_node_path15.default.join(packRoot, "manifest.json");
   await (0, import_promises15.writeFile)(target, JSON.stringify(output, null, 2), "utf8");
   return target;
 }
-var import_node_crypto12, import_promises15, import_node_path15;
+var import_node_crypto19, import_promises15, import_node_path15;
 var init_python_pack_builder = __esm({
   "packages/runtime/dist/python-pack-builder.js"() {
     "use strict";
-    import_node_crypto12 = require("node:crypto");
+    import_node_crypto19 = require("node:crypto");
     import_promises15 = require("node:fs/promises");
     import_node_path15 = __toESM(require("node:path"), 1);
   }
@@ -164261,7 +166514,7 @@ function migrateV3SpecToV4(spec) {
   };
 }
 async function migrateDashboardFiles(paths, options) {
-  const report = { migrationId: (0, import_node_crypto13.randomUUID)(), fromVersion: "v3", toVersion: "v4", converted: [], unchanged: [], unsupported: [] };
+  const report = { migrationId: (0, import_node_crypto20.randomUUID)(), fromVersion: "v3", toVersion: "v4", converted: [], unchanged: [], unsupported: [] };
   for (const relativePath of paths) {
     const target = import_node_path16.default.resolve(options.root, relativePath);
     let raw;
@@ -164299,11 +166552,11 @@ async function migrateDashboardFiles(paths, options) {
   }
   return report;
 }
-var import_node_crypto13, import_promises16, import_node_path16;
+var import_node_crypto20, import_promises16, import_node_path16;
 var init_dashboard_migration = __esm({
   "packages/runtime/dist/dashboard-migration.js"() {
     "use strict";
-    import_node_crypto13 = require("node:crypto");
+    import_node_crypto20 = require("node:crypto");
     import_promises16 = require("node:fs/promises");
     import_node_path16 = __toESM(require("node:path"), 1);
   }
@@ -164312,22 +166565,36 @@ var init_dashboard_migration = __esm({
 // packages/runtime/dist/index.js
 var dist_exports = {};
 __export(dist_exports, {
+  AssuranceCircuitBreaker: () => AssuranceCircuitBreaker,
   ClarificationManager: () => ClarificationManager,
   DANGEROUS_KEYWORDS: () => DANGEROUS_KEYWORDS,
+  DEFAULT_CALIBRATION_THRESHOLDS: () => DEFAULT_CALIBRATION_THRESHOLDS,
   DataAgentRuntime: () => DataAgentRuntime,
   DataAgentRuntimeError: () => DataAgentRuntimeError,
+  DeliveryPolicy: () => DeliveryPolicy,
+  EVIDENCE_AUTHORITY_ORDER: () => EVIDENCE_AUTHORITY_ORDER,
   EXPORT_QUERY_PARAMETERS: () => EXPORT_QUERY_PARAMETERS,
+  ExportCandidateStore: () => ExportCandidateStore,
   ExportCapabilityError: () => ExportCapabilityError,
   INJECTION_PATTERNS: () => INJECTION_PATTERNS,
+  InMemoryAssuranceAuditStore: () => InMemoryAssuranceAuditStore,
+  InMemoryQueryAssurance: () => InMemoryQueryAssurance,
   InMemorySecretVault: () => InMemorySecretVault,
+  InvariantProbeRegistry: () => InvariantProbeRegistry,
   KnowledgeIndex: () => KnowledgeIndex,
   KnowledgeWriteDeniedError: () => KnowledgeWriteDeniedError,
   KnowledgeWriter: () => KnowledgeWriter,
   LocalAuthService: () => LocalAuthService,
   MetadataStore: () => MetadataStore,
+  PUBLISH_QUERY_RESULT_PARAMETERS: () => PUBLISH_QUERY_RESULT_PARAMETERS,
   PiJsonlSessionStore: () => PiJsonlSessionStore,
   ProcessSupervisor: () => ProcessSupervisor,
   ProviderRegistry: () => ProviderRegistry,
+  PublicationRegistry: () => PublicationRegistry,
+  QueryAssuranceAbortError: () => QueryAssuranceAbortError,
+  REVIEW_COVERAGE_FACETS: () => REVIEW_COVERAGE_FACETS,
+  ReviewCache: () => ReviewCache,
+  ReviewModeController: () => ReviewModeController,
   SHOW_WIDGET_PARAMETERS: () => SHOW_WIDGET_PARAMETERS,
   SqlGuard: () => SqlGuard,
   WorkspaceStore: () => WorkspaceStore,
@@ -164335,10 +166602,20 @@ __export(dist_exports, {
   buildAgentTools: () => buildAgentTools,
   canonicalLocalTools: () => canonicalLocalTools,
   createAgentHarnessResolver: () => createAgentHarnessResolver,
+  createAnswerSpec: () => createAnswerSpec,
+  createAnswerSpecGenerator: () => createAnswerSpecGenerator,
+  createCalibrationReport: () => createCalibrationReport,
+  createCalibrationReports: () => createCalibrationReports,
+  createConversationBlindReviewer: () => createConversationBlindReviewer,
   createDataAgentHarness: () => createDataAgentHarness,
   createExportQueryAdapter: () => createExportQueryAdapter,
+  createQueryAssurance: () => createQueryAssurance,
+  createQueryDigestCompiler: () => createQueryDigestCompiler,
+  createReviewOffQueryAssurance: () => createReviewOffQueryAssurance,
+  createSpecAuthority: () => createSpecAuthority,
   dialectHint: () => dialectHint,
   effectiveTools: () => effectiveTools,
+  isHardConstraintEligible: () => isHardConstraintEligible,
   loadRuntimeManifest: () => loadRuntimeManifest,
   loadSkillsFromDir: () => loadSkillsFromDir,
   loadSkillsFromRoots: () => loadSkillsFromRoots,
@@ -164346,6 +166623,7 @@ __export(dist_exports, {
   migrateLegacyData: () => migrateLegacyData,
   migrateV3SpecToV4: () => migrateV3SpecToV4,
   moveSystemPrompt: () => moveSystemPrompt,
+  normalizeQuerySql: () => normalizeQuerySql,
   probePython: () => probePython,
   readAuditLog: () => readAuditLog,
   resolvePythonRuntime: () => resolvePythonRuntime,
@@ -164353,6 +166631,7 @@ __export(dist_exports, {
   resolveSystemPrompt: () => resolveSystemPrompt,
   runPythonJob: () => runPythonJob,
   runtimeCapabilitiesPrompt: () => runtimeCapabilitiesPrompt,
+  schemaEvidenceFromDdl: () => schemaEvidenceFromDdl,
   semanticToolIdentity: () => semanticToolIdentity,
   unknownToolRecoveryMessage: () => unknownToolRecoveryMessage,
   validateWidgetSpec: () => validateWidgetSpec,
@@ -164386,14 +166665,14 @@ function sanitizeConfigForHost(value, host) {
   }
   return config2;
 }
-var import_node_crypto14, import_node_path17, DataAgentRuntimeError, DESKTOP_SECRET_CONFIG_FIELDS, DataAgentRuntime;
+var import_node_crypto21, import_node_path17, DataAgentRuntimeError, DESKTOP_SECRET_CONFIG_FIELDS, DataAgentRuntime;
 var init_dist5 = __esm({
   "packages/runtime/dist/index.js"() {
     "use strict";
     init_dist();
     init_value2();
     init_metadata();
-    import_node_crypto14 = require("node:crypto");
+    import_node_crypto21 = require("node:crypto");
     import_node_path17 = __toESM(require("node:path"), 1);
     init_session_store();
     init_workspace();
@@ -164407,6 +166686,17 @@ var init_dist5 = __esm({
     init_bounded_read();
     init_auth();
     init_agent_assembly();
+    init_query_assurance();
+    init_answer_spec();
+    init_query_digest();
+    init_export_candidate();
+    init_publication();
+    init_conversation_blind_reviewer();
+    init_review_policy();
+    init_review_cache();
+    init_assurance_audit();
+    init_calibration();
+    init_invariant_probe();
     init_widget();
     init_agent_harness_lifecycle();
     init_legacy_migration();
@@ -164553,7 +166843,7 @@ var init_dist5 = __esm({
               return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "dashboard.result", valid: validated.ok, errors: validated.ok ? [] : validated.errors } };
             }
             const target = c.editPath ?? `dashboards/${Date.now()}-semantic.html`;
-            const nonce = (0, import_node_crypto14.randomUUID)();
+            const nonce = (0, import_node_crypto21.randomUUID)();
             const html = renderSemanticDashboardHtml(validated.spec, { nonce, expectedOrigin: "https://data-agent.local" });
             await this.workspace.write(target, html);
             this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, sessionId: context2.sessionId, timestamp: Date.now(), event: { type: "workspace.artifact.created", path: target, kind: "file" } });
@@ -164946,7 +167236,7 @@ var init_dist5 = __esm({
           this.assistantMessageSequence = 0;
           this.widgetCalls.clear();
           this.toolArgs.clear();
-          const runId = (0, import_node_crypto14.randomUUID)();
+          const runId = (0, import_node_crypto21.randomUUID)();
           this.activeRun = { requestId: command.requestId, runId, sessionId: context2.sessionId };
           void this.agent.prompt(command.command.prompt, { sessionId: context2.sessionId }).then(() => {
             this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, runId, sessionId: context2.sessionId, timestamp: Date.now(), event: { type: "agent.completed" } });
@@ -165367,7 +167657,7 @@ function registerDesktopCapabilities(ipcMain, options) {
   handle("data-agent:save-secrets", async (_event, payload) => {
     if (!options.safeStorage?.isEncryptionAvailable())
       return { ok: false };
-    const incoming = isRecord(payload) ? payload : {};
+    const incoming = isRecord2(payload) ? payload : {};
     const encrypted = readEncryptedSecretRecord(secretPath);
     for (const field of SECRET_FIELDS) {
       const value = incoming[field];
@@ -165391,7 +167681,7 @@ function registerDesktopCapabilities(ipcMain, options) {
   handle("data-agent:workspace-upload", async (_event, payload) => {
     if (!options.workspace)
       throw new Error("WORKSPACE_NOT_CONFIGURED");
-    if (!isRecord(payload) || typeof payload.fileName !== "string")
+    if (!isRecord2(payload) || typeof payload.fileName !== "string")
       throw new Error("WORKSPACE_FILE_REQUIRED");
     const bytes = toBytes(payload.bytes);
     if (!bytes)
@@ -165417,21 +167707,21 @@ function registerDesktopCapabilities(ipcMain, options) {
       ipcMain.removeHandler(channel);
   };
 }
-function isRecord(value) {
+function isRecord2(value) {
   return typeof value === "object" && value !== null;
 }
 function firstString(...values) {
   return values.find((value) => typeof value === "string" && value.trim().length > 0)?.trim();
 }
 function isRuntimeAgentEvent(value) {
-  if (!isRecord(value) || typeof value.type !== "string")
+  if (!isRecord2(value) || typeof value.type !== "string")
     return false;
   return ["message_start", "message_update", "tool_execution_start", "tool_execution_update", "tool_execution_end"].includes(value.type);
 }
 function readEncryptedSecretRecord(secretPath) {
   try {
     const parsed = JSON.parse((0, import_node_fs6.readFileSync)(secretPath, "utf8"));
-    if (!isRecord(parsed) || !isRecord(parsed.encrypted))
+    if (!isRecord2(parsed) || !isRecord2(parsed.encrypted))
       return {};
     const encrypted = parsed.encrypted;
     return Object.fromEntries(SECRET_FIELDS.flatMap((field) => typeof encrypted[field] === "string" ? [[field, encrypted[field]]] : []));
@@ -165523,7 +167813,7 @@ function createElectronQueryExecutor(metadata, options) {
   let executorKey = "";
   const resolveExecutor = async () => {
     const saved = await metadata.getConfig("ui.settings");
-    const cfg = isRecord(saved) ? saved : {};
+    const cfg = isRecord2(saved) ? saved : {};
     const env2 = { ...options.baseEnv ?? {} };
     for (const [key, envName] of [["host", "DATA_AGENT_MYSQL_HOST"], ["port", "DATA_AGENT_MYSQL_PORT"], ["user", "DATA_AGENT_MYSQL_USER"], ["password", "DATA_AGENT_MYSQL_PASSWORD"], ["database", "DATA_AGENT_MYSQL_DATABASE"]]) {
       if (cfg[key] !== void 0 && cfg[key] !== null)
@@ -165654,7 +167944,7 @@ async function runPackagedRendererSmoke(window2) {
       };
     })()
   `);
-  if (!isRecord(result) || result.probe !== "runtime.probe.result" || result.config !== "config.get.result" || result.artifact !== "smoke-renderer.txt" || result.chat !== "agent.prompt.accepted") {
+  if (!isRecord2(result) || result.probe !== "runtime.probe.result" || result.config !== "config.get.result" || result.artifact !== "smoke-renderer.txt" || result.chat !== "agent.prompt.accepted") {
     throw new Error(`SMOKE_RENDERER_SELF_TEST_FAILED: ${JSON.stringify(result)}`);
   }
 }
@@ -165688,9 +167978,9 @@ async function startElectronHost(deps, overrides = {}) {
     knowledge = void 0;
   }
   const savedConfig = await metadata.getConfig("ui.settings");
-  if (isRecord(savedConfig)) {
+  if (isRecord2(savedConfig)) {
     const pythonConfig = savedConfig.python_runtime;
-    if (isRecord(pythonConfig) && pythonConfig.mode === "external" && typeof pythonConfig.executable === "string" && pythonConfig.executable.trim()) {
+    if (isRecord2(pythonConfig) && pythonConfig.mode === "external" && typeof pythonConfig.executable === "string" && pythonConfig.executable.trim()) {
       pythonExecutable = pythonConfig.executable;
     }
   }
@@ -165755,7 +168045,7 @@ async function startElectronHost(deps, overrides = {}) {
   const agentHarnessResolver = createAgentHarnessResolver2({
     getProfile: async () => {
       const config2 = await metadata.getConfig("ui.settings") ?? {};
-      const cfg = isRecord(config2) ? config2 : {};
+      const cfg = isRecord2(config2) ? config2 : {};
       const stored = readStoredSecrets(secretPath, deps.safeStorage);
       const provider = typeof cfg.provider === "string" && cfg.provider ? cfg.provider : stored.anthropic_api_key ? "anthropic" : "openai";
       const apiKey = firstString(cfg.api_key, provider === "anthropic" ? cfg.anthropic_api_key : cfg.openai_api_key, stored.anthropic_api_key && provider === "anthropic" ? stored.anthropic_api_key : void 0, stored.openai_api_key && provider !== "anthropic" ? stored.openai_api_key : void 0);
