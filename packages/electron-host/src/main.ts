@@ -433,6 +433,7 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
     WorkspaceStore,
     createAgentHarnessResolver,
     createDataAgentHarness,
+    createQueryAssurance,
   } = await import("@data-agent/runtime");
   const { registerElectronRuntimeIpc } = await import("./index.js");
 
@@ -469,6 +470,13 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
       pythonExecutable = pythonConfig.executable;
     }
   }
+
+  const configuredAssuranceMode = isRecord(savedConfig) && ["off", "shadow", "enforce"].includes(String(savedConfig.query_assurance_mode))
+    ? String(savedConfig.query_assurance_mode) as "off" | "shadow" | "enforce"
+    : "shadow";
+  // Query Assurance is explicitly wired for product sessions. Until a
+  // calibrated reviewer is configured, unavailable review remains fail-closed.
+  const queryAssurance = createQueryAssurance({ mode: configuredAssuranceMode, allowUnavailablePublication: false });
 
   // Semantic sources live in a KTX project under the user data dir; the
   // runtime scans business-semantic/ and semantic-layer/ layouts there.
@@ -573,6 +581,8 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
         pythonExecutable: () => runtime.pythonExecutablePath,
         databaseDialect: "mysql",
         queryExecutor,
+        queryAssurance,
+        enforceDeliveryReceipt: true,
         clarifications: runtime.clarificationManager,
         session: persistentSession,
         systemPromptRoots: [knowledgeRoot, developmentRoot, packagedRoot],
