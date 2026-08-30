@@ -24,6 +24,12 @@ describe("Skills", () => {
     expect(effectiveTools(global, [])).toEqual(global);
   });
 
+  it("never reintroduces capabilities omitted from the registered tool surface", () => {
+    const registered = ["read_file", "query_database"];
+    const skill = { name: "analysis", description: "", filePath: "", allowedTools: ["query_database", "run_python", "show_widget"], content: "" };
+    expect(effectiveTools(registered, [skill])).toEqual(["query_database"]);
+  });
+
   it("preserves global tools when a Skill omits allowed-tools", () => {
     const global = ["read_file", "query_database", "run_python"];
     const skill = { name: "s", description: "", filePath: "", content: "" };

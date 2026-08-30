@@ -571,6 +571,7 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
         knowledge,
         knowledgeRoot,
         pythonExecutable: () => runtime.pythonExecutablePath,
+        databaseDialect: "mysql",
         queryExecutor,
         clarifications: runtime.clarificationManager,
         session: persistentSession,

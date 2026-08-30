@@ -23,6 +23,9 @@ describe("MCP query executor", () => {
       expect(result.columns).toEqual(["n"]);
       expect(result.rows).toEqual([[1], [2]]);
       expect(result.truncated).toBe(false);
+      const emptyBatches = [];
+      for await (const batch of executor.stream("SELECT n FROM t WHERE 1 = 0")) emptyBatches.push(batch);
+      expect(emptyBatches).toEqual([{ columns: ["n"], rows: [] }]);
     } finally {
       await executor.close();
       await rm(dir, { recursive: true, force: true }).catch(() => {});

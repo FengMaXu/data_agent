@@ -2,12 +2,12 @@ import { describe, expect, it } from "vitest";
 import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path, { join } from "node:path";
-import { buildAgentTools, composeDataAgentSystemPrompt, createDataAgentHarness, type QueryExportBatch } from "./agent-assembly.js";
+import { buildAgentTools, composeDataAgentSystemPrompt, createDataAgentHarness, resolveSystemPrompt, runtimeCapabilitiesPrompt, unknownToolRecoveryMessage, type QueryExportBatch } from "./agent-assembly.js";
 import { ClarificationManager } from "./clarification.js";
 import { WorkspaceStore } from "./workspace.js";
 
 function exportTool(workspace: WorkspaceStore, queryExecutor: any, emitArtifact?: (path: string) => void): any {
-  return buildAgentTools({ workspace, queryExecutor, emitArtifact }).find((tool) => tool.name === "export_query");
+  return buildAgentTools({ workspace, queryExecutor, emitArtifact, requireValidatedExportSql: false }).find((tool) => tool.name === "export_query");
 }
 
 async function tempFiles(root: string): Promise<string[]> {
@@ -56,6 +56,88 @@ describe("native system prompt assembly", () => {
     expect(prompt).toContain("<name>analysis</name>");
     expect(prompt).toContain("<location>C:/skills/analysis/SKILL.md</location>");
   });
+
+  it("fails explicitly when no canonical SYSTEM.md can be found", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-no-system-prompt-"));
+    try {
+      await expect(resolveSystemPrompt([root], "sqlite")).rejects.toThrow("SYSTEM_PROMPT_NOT_FOUND");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("injects the active database dialect instead of a global MySQL assumption", async () => {
+    const prompt = await resolveSystemPrompt([path.resolve(process.cwd(), "../..")], "sqlite");
+    expect(prompt).toContain("数据库后端为 SQLite");
+    expect(prompt).toContain("sqlite_master");
+    expect(prompt).toContain("### 1.4 导出前检查（Final Answer Contract）");
+    expect(prompt).toContain("导出的 SQL 是否与最后一次 `query_database` 成功执行的 SQL 完全一致");
+    expect(prompt).not.toContain("数据库为 MySQL 业务库");
+  });
+
+  it("turns native unknown-tool errors into canonical recovery guidance", () => {
+    const guidance = unknownToolRecoveryMessage("Tool read_knowledge_file not found", ["search_knowledge", "read_knowledge", "query_database"]);
+    expect(guidance).toContain('Tool "read_knowledge_file" does not exist');
+    expect(guidance).toContain("Available tools: search_knowledge, read_knowledge, query_database");
+    expect(guidance).toContain("Do not retry");
+    expect(unknownToolRecoveryMessage("SQL_SYNTAX_ERROR", ["query_database"])).toBeUndefined();
+  });
+
+  it("lists the exact runtime tool surface for unknown-tool recovery", () => {
+    const prompt = runtimeCapabilitiesPrompt(["query_database", "export_query", "read_knowledge"]);
+    expect(prompt).toContain("Available tools: query_database, export_query, read_knowledge");
+    expect(prompt).toContain("Never call an absent tool");
+    expect(prompt).not.toContain("read_knowledge_file");
+  });
+
+  it("does not expose optional or unavailable capabilities", () => {
+    const workspace = new WorkspaceStore("/tmp/data-agent-capabilities");
+    const minimalNames = buildAgentTools({ workspace }).map((tool) => tool.name);
+    expect(minimalNames).not.toContain("run_python");
+    expect(minimalNames).toContain("show_widget");
+    expect(minimalNames).toContain("generate_dashboard");
+
+    const queryOnlyNames = buildAgentTools({ workspace, pythonExecutable: "python", enableWidgets: false, enableDashboards: false }).map((tool) => tool.name);
+    expect(queryOnlyNames).toContain("run_python");
+    expect(queryOnlyNames).not.toContain("show_widget");
+    expect(queryOnlyNames).not.toContain("generate_dashboard");
+  });
+
+  it("hides Python when a dynamic Python source is unavailable", () => {
+    const tools = buildAgentTools({ workspace: new WorkspaceStore("/tmp/data-agent-python-unavailable"), pythonExecutable: () => undefined });
+    expect(tools.some((candidate) => candidate.name === "run_python")).toBe(false);
+  });
+
+  it("gives a permanent no-retry instruction when a configured Python executable is missing", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-python-missing-"));
+    const tool = buildAgentTools({ workspace: new WorkspaceStore(root), pythonExecutable: "definitely-missing-python-executable" }).find((candidate) => candidate.name === "run_python") as any;
+    try {
+      await expect(tool.execute("call-python-unavailable", { code: "print(1)" })).rejects.toThrow("Do NOT call run_python again");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("isolates repeated-error guidance between sessions", async () => {
+    const tool = buildAgentTools({
+      workspace: new WorkspaceStore("/tmp/data-agent-session-error-isolation"),
+      queryExecutor: { run: async () => { throw new Error("SQL_SYNTAX_ERROR"); } },
+    }).find((candidate) => candidate.name === "query_database") as any;
+    await expect(tool.execute("a-1", { sql: "SELECT bad" }, undefined, undefined, { sessionId: "a" })).rejects.toThrow("SQL_SYNTAX_ERROR");
+    await expect(tool.execute("a-2", { sql: "SELECT bad" }, undefined, undefined, { sessionId: "a" })).rejects.toThrow("SQL_SYNTAX_ERROR");
+    await expect(tool.execute("b-1", { sql: "SELECT bad" }, undefined, undefined, { sessionId: "b" })).rejects.not.toThrow("Stop repeating");
+    await expect(tool.execute("a-3", { sql: "SELECT bad" }, undefined, undefined, { sessionId: "a" })).rejects.toThrow("Stop repeating the same call");
+  });
+
+  it("adds a strategy-switch instruction after repeated identical tool errors", async () => {
+    const tool = buildAgentTools({
+      workspace: new WorkspaceStore("/tmp/data-agent-repeated-error"),
+      queryExecutor: { run: async () => { throw new Error("SQL_SYNTAX_ERROR"); } },
+    }).find((candidate) => candidate.name === "query_database") as any;
+    await expect(tool.execute("call-error-1", { sql: "SELECT bad" })).rejects.toThrow("SQL_SYNTAX_ERROR");
+    await expect(tool.execute("call-error-2", { sql: "SELECT bad" })).rejects.toThrow("SQL_SYNTAX_ERROR");
+    await expect(tool.execute("call-error-3", { sql: "SELECT bad" })).rejects.toThrow("Stop repeating the same call");
+  });
 });
 
 describe("generate_dashboard", () => {
@@ -90,7 +172,248 @@ describe("generate_dashboard", () => {
   });
 });
 
+describe("query task guardrails", () => {
+  it("stops executing exploratory SQL after the per-session budget is exhausted", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-exploration-budget-"));
+    let executions = 0;
+    const tools = buildAgentTools({
+      workspace: new WorkspaceStore(root),
+      explorationQueryBudget: 2,
+      queryExecutor: {
+        run: async () => {
+          executions++;
+          return { columns: ["id"], rows: [[1]], truncated: false };
+        },
+      },
+    });
+    const query = tools.find((candidate) => candidate.name === "query_database") as any;
+    try {
+      await query.execute("explore-1", { sql: "SELECT * FROM users LIMIT 5" }, undefined, undefined, { sessionId: "session-a" });
+      await query.execute("explore-2", { sql: "SELECT DISTINCT state FROM users" }, undefined, undefined, { sessionId: "session-a" });
+      const blocked = await query.execute("explore-3", { sql: "SELECT name FROM sqlite_master WHERE type='table'" }, undefined, undefined, { sessionId: "session-a" });
+      expect(executions).toBe(2);
+      expect(blocked.content[0].text).toContain("Stop exploring and write your final analytical SQL now");
+      expect(blocked.details).toMatchObject({ warning: "EXPLORATION_BUDGET_EXCEEDED", exploratoryCount: 2, limit: 2 });
+      await query.execute("final-full", { sql: "SELECT * FROM users" }, undefined, undefined, { sessionId: "session-a" });
+      await query.execute("final-distinct", { sql: "SELECT DISTINCT customer_id FROM orders WHERE status = 'paid'" }, undefined, undefined, { sessionId: "session-a" });
+      await query.execute("other-session", { sql: "SELECT * FROM users LIMIT 5" }, undefined, undefined, { sessionId: "session-b" });
+      expect(executions).toBe(5);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("resets delivery reminders when a new query starts after a completed export", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-export-deadline-reset-"));
+    const executor = {
+      run: async () => ({ columns: ["answer"], rows: [[1]], truncated: false }),
+      stream: async function* (): AsyncGenerator<QueryExportBatch> { yield { columns: ["answer"], rows: [[1]] }; },
+    };
+    const tools = buildAgentTools({
+      workspace: new WorkspaceStore(root),
+      taskProgress: () => ({ turnCount: 12, maxTurns: 20 }),
+      queryExecutor: executor,
+    });
+    const query = tools.find((candidate) => candidate.name === "query_database") as any;
+    const exportQuery = tools.find((candidate) => candidate.name === "export_query") as any;
+    try {
+      await query.execute("first-query", { sql: "SELECT 1 AS answer" }, undefined, undefined, { sessionId: "session-a" });
+      await exportQuery.execute("first-export", {
+        sql: "SELECT 1 AS answer",
+        expected_rows: "scalar",
+        expected_columns: ["answer"],
+      }, undefined, undefined, { sessionId: "session-a" });
+      const nextTask = await query.execute("next-query", { sql: "SELECT 2 AS answer" }, undefined, undefined, { sessionId: "session-a" });
+      expect(nextTask.content[0].text).toContain("EXPORT_DEADLINE");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("reminds the model to export after sixty percent of the turn budget", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-export-deadline-"));
+    const query = buildAgentTools({
+      workspace: new WorkspaceStore(root),
+      taskProgress: () => ({ turnCount: 12, maxTurns: 20 }),
+      queryExecutor: {
+        run: async () => ({ columns: ["answer"], rows: [[107]], truncated: false }),
+      },
+    }).find((candidate) => candidate.name === "query_database") as any;
+    try {
+      const result = await query.execute("late-query", { sql: "SELECT COUNT(*) AS answer FROM actors WHERE qualified = 1" }, undefined, undefined, { sessionId: "session-a" });
+      expect(result.content[0].text).toContain("12/20 turns");
+      expect(result.content[0].text).toContain("call export_query immediately");
+      expect(result.details).toMatchObject({ exportReminder: true, turnCount: 12, maxTurns: 20 });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+});
+
 describe("export_query", () => {
+  it("rejects a scalar declaration that produces multiple rows without publishing a file", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-export-scalar-shape-"));
+    const workspace = new WorkspaceStore(root);
+    const tool = exportTool(workspace, {
+      stream: async function* (): AsyncGenerator<QueryExportBatch> {
+        yield { columns: ["name"], rows: [["Ada"], ["Grace"]] };
+      },
+      run: async () => { throw new Error("run should not be used"); },
+    });
+    try {
+      await expect(tool.execute("shape-scalar", {
+        sql: "SELECT name FROM users",
+        filename: "exports/scalar.csv",
+        expected_rows: "scalar",
+        expected_columns: ["name"],
+      })).rejects.toThrow("SHAPE_MISMATCH: declared scalar but query produced more than 1 row");
+      await expect(workspace.read("exports/scalar.csv")).rejects.toThrow();
+      expect(await tempFiles(root)).toEqual([]);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("exports only the last SQL validated in the same session", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-export-validated-sql-"));
+    const workspace = new WorkspaceStore(root);
+    const executor = {
+      run: async (sql: string) => ({ columns: ["id"], rows: sql.includes("WHERE") ? [[1]] : [[1], [2]], truncated: false }),
+      stream: async function* (sql: string): AsyncGenerator<QueryExportBatch> {
+        yield { columns: ["id"], rows: sql.includes("WHERE") ? [[1]] : [[1], [2]] };
+      },
+    };
+    const tools = buildAgentTools({ workspace, queryExecutor: executor });
+    const query = tools.find((candidate) => candidate.name === "query_database") as any;
+    const exportQuery = tools.find((candidate) => candidate.name === "export_query") as any;
+    const finalSql = "SELECT id FROM users WHERE active = 1";
+    try {
+      await expect(exportQuery.execute("unvalidated", {
+        sql: finalSql,
+        expected_rows: "scalar",
+        expected_columns: ["id"],
+      }, undefined, undefined, { sessionId: "session-a" })).rejects.toThrow("EXPORT_SQL_NOT_VALIDATED");
+      await query.execute("preview", { sql: finalSql }, undefined, undefined, { sessionId: "session-a" });
+      await expect(exportQuery.execute("changed", {
+        sql: "SELECT id FROM users WHERE active = 0",
+        expected_rows: "scalar",
+        expected_columns: ["id"],
+      }, undefined, undefined, { sessionId: "session-a" })).rejects.toThrow("EXPORT_SQL_NOT_VALIDATED");
+      await expect(exportQuery.execute("cross-session", {
+        sql: finalSql,
+        expected_rows: "scalar",
+        expected_columns: ["id"],
+      }, undefined, undefined, { sessionId: "session-b" })).rejects.toThrow("EXPORT_SQL_NOT_VALIDATED");
+      await expect(exportQuery.execute("validated", {
+        sql: `${finalSql};`,
+        filename: "exports/validated.csv",
+        expected_rows: "scalar",
+        expected_columns: ["id"],
+      }, undefined, undefined, { sessionId: "session-a" })).resolves.toMatchObject({ details: { taskComplete: true, rowCount: 1 } });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("requires a shape declaration before starting the export stream", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-export-shape-required-"));
+    let streams = 0;
+    const tool = exportTool(new WorkspaceStore(root), {
+      stream: async function* (): AsyncGenerator<QueryExportBatch> {
+        streams++;
+        yield { columns: ["id"], rows: [[1]] };
+      },
+      run: async () => { throw new Error("run should not be used"); },
+    });
+    try {
+      await expect(tool.execute("shape-required", { sql: "SELECT id FROM users" })).rejects.toThrow(
+        "SHAPE_DECLARATION_INVALID: expected_rows is required",
+      );
+      expect(streams).toBe(0);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects top_n without a row count and enforces the declared tolerance", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-export-topn-shape-"));
+    const workspace = new WorkspaceStore(root);
+    let streams = 0;
+    const tool = exportTool(workspace, {
+      stream: async function* (): AsyncGenerator<QueryExportBatch> {
+        streams++;
+        yield { columns: ["id"], rows: [[1], [2], [3], [4]] };
+      },
+      run: async () => { throw new Error("run should not be used"); },
+    });
+    try {
+      await expect(tool.execute("shape-topn-missing", {
+        sql: "SELECT id FROM users",
+        expected_rows: "top_n",
+      })).rejects.toThrow("SHAPE_DECLARATION_INVALID: expected_row_count is required for top_n");
+      expect(streams).toBe(0);
+      await expect(tool.execute("shape-topn-large", {
+        sql: "SELECT id FROM users",
+        filename: "exports/topn.csv",
+        expected_rows: "top_n",
+        expected_row_count: 2,
+        expected_columns: ["id"],
+      })).rejects.toThrow("SHAPE_MISMATCH: declared top_n=2 but query produced more than 2 rows");
+      await expect(workspace.read("exports/topn.csv")).rejects.toThrow();
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("requires exactly one scalar row and rejects row-width mismatches", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-export-row-shape-"));
+    const workspace = new WorkspaceStore(root);
+    const empty = exportTool(workspace, {
+      stream: async function* (): AsyncGenerator<QueryExportBatch> { yield { columns: ["answer"], rows: [] }; },
+      run: async () => { throw new Error("run should not be used"); },
+    });
+    const malformed = exportTool(workspace, {
+      stream: async function* (): AsyncGenerator<QueryExportBatch> { yield { columns: ["id"], rows: [[1, "extra"]] }; },
+      run: async () => { throw new Error("run should not be used"); },
+    });
+    try {
+      await expect(empty.execute("empty-scalar", {
+        sql: "SELECT answer",
+        expected_rows: "scalar",
+        expected_columns: ["answer"],
+      })).rejects.toThrow("SHAPE_MISMATCH: declared scalar but query produced 0 rows");
+      await expect(malformed.execute("malformed-width", {
+        sql: "SELECT id",
+        expected_rows: "full",
+        expected_columns: ["id"],
+      })).rejects.toThrow("SHAPE_MISMATCH: row width 2 does not match 1 columns");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("enforces the expected column whitelist before publishing a file", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-export-column-shape-"));
+    const workspace = new WorkspaceStore(root);
+    const tool = exportTool(workspace, {
+      stream: async function* (): AsyncGenerator<QueryExportBatch> {
+        yield { columns: ["id", "diagnostic_count"], rows: [[1, 42]] };
+      },
+      run: async () => { throw new Error("run should not be used"); },
+    });
+    try {
+      await expect(tool.execute("shape-columns", {
+        sql: "SELECT id, diagnostic_count FROM users",
+        filename: "exports/columns.csv",
+        expected_rows: "scalar",
+        expected_columns: ["id"],
+      })).rejects.toThrow("SHAPE_MISMATCH: expected columns [id] but query returned [id, diagnostic_count]");
+      await expect(workspace.read("exports/columns.csv")).rejects.toThrow();
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("streams a 100,000-row result and preserves CSV escaping", async () => {
     const root = await mkdtemp(join(tmpdir(), "data-agent-export-stream-"));
     const workspace = new WorkspaceStore(root);
@@ -105,7 +428,7 @@ describe("export_query", () => {
     const artifacts: string[] = [];
     const tool = exportTool(workspace, { stream: () => batches(), run: async () => { throw new Error("run should not be used"); } }, (path) => artifacts.push(path));
     try {
-      await tool.execute("call-1", { sql: "SELECT id, value FROM rows", filename: "exports/large.csv" });
+      await tool.execute("call-1", { sql: "SELECT id, value FROM rows", filename: "exports/large.csv", expected_rows: "full", expected_columns: ["id", "value"] });
       const content = await readFile(join(root, "exports", "large.csv"), "utf8");
       expect(content.split("\n")).toHaveLength(100_001);
       expect(content.startsWith("id,value\n1,\"row-1\"\n2,\"row-2\"\n")).toBe(true);
@@ -117,6 +440,25 @@ describe("export_query", () => {
     }
   }, 30_000);
 
+  it("writes a header for an empty streamed result and marks delivery complete", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-export-empty-"));
+    const workspace = new WorkspaceStore(root);
+    const tool = exportTool(workspace, {
+      stream: async function* (): AsyncGenerator<QueryExportBatch> {
+        yield { columns: ["id", "name"], rows: [] };
+      },
+      run: async () => { throw new Error("run should not be used"); },
+    });
+    try {
+      const result = await tool.execute("call-empty", { sql: "SELECT id, name FROM users WHERE 1 = 0", filename: "exports/empty.csv", expected_rows: "full", expected_columns: ["id", "name"] });
+      expect(await readFile(join(root, "exports", "empty.csv"), "utf8")).toBe("id,name");
+      expect(result.content[0].text).toContain("TASK_COMPLETE");
+      expect(result.details).toMatchObject({ rowCount: 0, taskComplete: true });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("escapes embedded quotes and newlines according to RFC 4180", async () => {
     const root = await mkdtemp(join(tmpdir(), "data-agent-export-csv-"));
     const workspace = new WorkspaceStore(root);
@@ -127,7 +469,7 @@ describe("export_query", () => {
       run: async () => { throw new Error("run should not be used"); },
     });
     try {
-      await tool.execute("call-csv", { sql: "SELECT name, note", filename: "exports/escaped.csv" });
+      await tool.execute("call-csv", { sql: "SELECT name, note", filename: "exports/escaped.csv", expected_rows: "full", expected_columns: ["name", "note"] });
       expect(await readFile(join(root, "exports", "escaped.csv"), "utf8")).toBe(
         "name,note\n\"Ada\",\"say \"\"hello\"\"\nthen leave\"",
       );
@@ -206,7 +548,7 @@ describe("export_query", () => {
       },
     });
     try {
-      await expect(tool.execute("call-legacy", { sql: "SELECT id", filename: "exports/legacy.csv" })).rejects.toThrow("EXPORT_STREAM_REQUIRED");
+      await expect(tool.execute("call-legacy", { sql: "SELECT id", filename: "exports/legacy.csv", expected_rows: "full", expected_columns: ["id"] })).rejects.toThrow("EXPORT_STREAM_REQUIRED");
       expect(requestedLimit).toBe(50);
       expect(await tempFiles(root)).toEqual([]);
     } finally {
@@ -225,7 +567,7 @@ describe("export_query", () => {
     const artifacts: string[] = [];
     const tool = exportTool(workspace, { stream: () => stream(), run: async () => { throw new Error("run should not be used"); } }, (path) => artifacts.push(path));
     try {
-      await expect(tool.execute("call-2", { sql: "SELECT id", filename: "exports/result.csv" })).rejects.toThrow("QUERY_FAILED");
+      await expect(tool.execute("call-2", { sql: "SELECT id", filename: "exports/result.csv", expected_rows: "full", expected_columns: ["id"] })).rejects.toThrow("QUERY_FAILED");
       expect(await readFile(join(root, "exports", "result.csv"), "utf8")).toBe("previous\n");
       expect(artifacts).toEqual([]);
       expect(await tempFiles(root)).toEqual([]);
@@ -246,7 +588,7 @@ describe("export_query", () => {
     const artifacts: string[] = [];
     const tool = exportTool(workspace, { stream: () => stream(), run: async () => { throw new Error("run should not be used"); } }, (path) => artifacts.push(path));
     try {
-      await expect(tool.execute("call-3", { sql: "SELECT id", filename: "exports/cancelled.csv" }, controller.signal, undefined, undefined)).rejects.toThrow("EXPORT_CANCELLED");
+      await expect(tool.execute("call-3", { sql: "SELECT id", filename: "exports/cancelled.csv", expected_rows: "full", expected_columns: ["id"] }, controller.signal, undefined, undefined)).rejects.toThrow("EXPORT_CANCELLED");
       await expect(workspace.read("exports/cancelled.csv")).rejects.toThrow();
       expect(artifacts).toEqual([]);
       expect(await tempFiles(root)).toEqual([]);

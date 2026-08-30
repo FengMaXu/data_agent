@@ -11,9 +11,12 @@ import { SqlGuard } from "@data-agent/runtime";
 const DATABASE_MCP_CONTRACT_VERSION = 1;
 const DEFAULT_PREVIEW_LIMIT = 20;
 const MAX_PREVIEW_LIMIT = 200;
-const FORBIDDEN = /\b(drop|truncate|delete|insert|update|alter|create|grant|revoke|call|replace)\b/i;
-
 export interface ReferenceSqliteServerOptions { databasePath: string; maxPreviewRows?: number }
+
+function forbiddenSql(reason: string) {
+  const message = `${reason}. Only read-only SELECT/WITH queries are supported; rewrite the request without write operations or multiple statements.`;
+  return { content: [{ type: "text" as const, text: JSON.stringify({ error: { code: "FORBIDDEN_SQL", message } }) }] };
+}
 
 export function createReferenceSqliteServer(options: ReferenceSqliteServerOptions) {
   const require_ = createRequire(import.meta.url);
@@ -33,11 +36,14 @@ export function createReferenceSqliteServer(options: ReferenceSqliteServerOption
     previewShape,
     async ({ sql, limit }) => {
       const trimmed = sql.trim().replace(/;+\s*$/, "");
-      if (!new SqlGuard().check(trimmed).allowed) return { content: [{ type: "text", text: JSON.stringify({ error: { code: "FORBIDDEN_SQL" } }) }] };
+      const guard = new SqlGuard().check(trimmed);
+      if (!guard.allowed) return forbiddenSql(guard.reason);
       const effectiveLimit = Math.min(limit ?? maxRows, maxRows);
-      const rows = (db.prepare(`SELECT * FROM (${trimmed}) __preview LIMIT ?`).all(effectiveLimit + 1)) as any[];
+      const statement = db.prepare(`SELECT * FROM (${trimmed}) __preview LIMIT ?`);
+      const columns: string[] = statement.columns().map((column: { name: string }) => column.name);
+      const rows = statement.all(effectiveLimit + 1) as any[];
       const truncated = rows.length > effectiveLimit;
-      return { content: [{ type: "text", text: JSON.stringify({ rows: rows.slice(0, effectiveLimit), totalRows: rows.length, truncated, serverLimit: maxRows, contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
+      return { content: [{ type: "text", text: JSON.stringify({ columns, rows: rows.slice(0, effectiveLimit), totalRows: rows.length, truncated, serverLimit: maxRows, contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
     },
   );
 
@@ -47,15 +53,17 @@ export function createReferenceSqliteServer(options: ReferenceSqliteServerOption
     { sql: z.string().min(1), offset: z.number().int().nonnegative().max(100000).optional(), limit: z.number().int().positive().max(1000).optional(), maxRows: z.number().int().positive().max(100000).optional() },
     async ({ sql, offset, limit, maxRows: requestedMaxRows }) => {
       const trimmed = sql.trim().replace(/;+\s*$/, "");
-      if (!new SqlGuard().check(trimmed).allowed) return { content: [{ type: "text", text: JSON.stringify({ error: { code: "FORBIDDEN_SQL" } }) }] };
+      const guard = new SqlGuard().check(trimmed);
+      if (!guard.allowed) return forbiddenSql(guard.reason);
       const start = offset ?? 0;
       const batchLimit = Math.min(limit ?? 1000, 1000);
       const rowLimit = Math.min(requestedMaxRows ?? 100000, 100000);
       if (start >= rowLimit) return { content: [{ type: "text", text: JSON.stringify({ rows: [], columns: [], done: true, contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
-      const rows = db.prepare(`SELECT * FROM (${trimmed}) __export LIMIT ? OFFSET ?`).all(Math.min(batchLimit + 1, rowLimit - start + 1), start) as Record<string, unknown>[];
+      const statement = db.prepare(`SELECT * FROM (${trimmed}) __export LIMIT ? OFFSET ?`);
+      const columns: string[] = statement.columns().map((column: { name: string }) => column.name);
+      const rows = statement.all(Math.min(batchLimit + 1, rowLimit - start + 1), start) as Record<string, unknown>[];
       if (rows.length > batchLimit && start + batchLimit >= rowLimit) return { content: [{ type: "text", text: JSON.stringify({ error: { code: "EXPORT_ROW_LIMIT_EXCEEDED", rowLimit } }) }] };
       const values = rows.slice(0, batchLimit);
-      const columns = values.length > 0 ? Object.keys(values[0]) : [];
       return { content: [{ type: "text", text: JSON.stringify({ rows: values, columns, done: values.length < batchLimit, contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
     },
   );
@@ -79,11 +87,13 @@ export function createReferenceSqliteServer(options: ReferenceSqliteServerOption
     { sql: z.string().min(1), maxRows: z.number().int().positive().max(100000).optional() },
     async ({ sql, maxRows: rowLimitArg }) => {
       const trimmed = sql.trim().replace(/;+\s*$/, "");
-      if (!new SqlGuard().check(trimmed).allowed) return { content: [{ type: "text", text: JSON.stringify({ error: { code: "FORBIDDEN_SQL" } }) }] };
+      const guard = new SqlGuard().check(trimmed);
+      if (!guard.allowed) return forbiddenSql(guard.reason);
       const rowLimit = Math.min(rowLimitArg ?? 100000, 100000);
-      const rows = db.prepare(`SELECT * FROM (${trimmed}) __export LIMIT ?`).all(rowLimit + 1) as any[];
+      const statement = db.prepare(`SELECT * FROM (${trimmed}) __export LIMIT ?`);
+      const columns: string[] = statement.columns().map((column: { name: string }) => column.name);
+      const rows = statement.all(rowLimit + 1) as Record<string, unknown>[];
       if (rows.length > rowLimit) return { content: [{ type: "text", text: JSON.stringify({ error: { code: "EXPORT_ROW_LIMIT_EXCEEDED", rowLimit } }) }] };
-      const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
       const escape = (value: unknown) => {
         const text = value === null || value === undefined ? "" : String(value);
         return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;

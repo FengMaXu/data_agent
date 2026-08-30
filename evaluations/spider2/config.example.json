@@ -1,0 +1,32 @@
+{
+  "spider2Repo": "C:/data-agent-eval/Spider2",
+  "runsRoot": "C:/data-agent-eval/runs",
+  "pythonExecutable": "python",
+  "localDatabasePackSha256": null,
+  "concurrency": 1,
+  "scoreWorkers": 4,
+  "llm": {
+    "provider": "openai",
+    "model": "gpt-4o",
+    "apiKeyEnv": "OPENAI_API_KEY",
+    "baseUrlEnv": "OPENAI_BASE_URL",
+    "apiFormat": "responses"
+  },
+  "limits": {
+    "timeoutMs": 120000,
+    "maxTurns": 20,
+    "maxToolCalls": 50,
+    "maxExploratoryQueries": 6
+  },
+  "backends": {
+    "sqlite": {
+      "databaseDir": "C:/data-agent-eval/Spider2/spider2-lite/resource/databases"
+    },
+    "bigquery": {
+      "mcp": null
+    },
+    "snowflake": {
+      "mcp": null
+    }
+  }
+}

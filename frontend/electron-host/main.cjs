@@ -162989,6 +162989,17 @@ var init_all = __esm({
 });
 
 // packages/runtime/dist/knowledge-write.js
+function normalizeLearning(value) {
+  return value.replace(/\r\n/g, "\n").replace(/\s+/g, " ").trim();
+}
+function learningAlreadyExists(previous, candidate) {
+  const normalizedCandidate = normalizeLearning(candidate);
+  if (!normalizedCandidate)
+    return false;
+  if (previous.includes(candidate.trim()))
+    return true;
+  return previous.split(/\n(?=### )|\n---+\s*\n/).some((block) => normalizeLearning(block) === normalizedCandidate);
+}
 async function readAuditLog(auditPath) {
   try {
     return (await (0, import_promises11.readFile)(auditPath, "utf8")).trim().split("\n").filter(Boolean).map((line) => JSON.parse(line));
@@ -163042,6 +163053,10 @@ var init_knowledge_write = __esm({
             previous = await (0, import_promises11.readFile)(target, "utf8");
           } catch {
           }
+          if (learningAlreadyExists(previous, content)) {
+            await this.audit(operation, relativePath);
+            return { operation, path: relativePath, bytesWritten: 0 };
+          }
           await (0, import_promises11.writeFile)(target, previous + (previous.endsWith("\n") || previous === "" ? "" : "\n") + content + "\n", "utf8");
           await this.audit(operation, relativePath);
           return { operation, path: relativePath, bytesWritten: content.length };
@@ -163073,10 +163088,10 @@ function canonicalLocalTools() {
     { name: "update_knowledge", identity: "update_knowledge", origin: "local", description: "Append learning, write drafts, or update schema snapshots.", parameters: typebox_exports.Object({ operation: typebox_exports.Union([typebox_exports.Literal("append_learning"), typebox_exports.Literal("write_draft"), typebox_exports.Literal("update_schema")]), path: typebox_exports.String({ minLength: 1 }), content: typebox_exports.String() }) },
     { name: "load_skill", identity: "load_skill", origin: "local", description: "Load a discovered skill by name.", parameters: typebox_exports.Object({ name: typebox_exports.String({ minLength: 1 }) }) },
     { name: "generate_dashboard", identity: "generate_dashboard", origin: "local", description: "Validate, create or edit static/semantic dashboards.", parameters: typebox_exports.Object({ operation: typebox_exports.Union([typebox_exports.Literal("create"), typebox_exports.Literal("edit"), typebox_exports.Literal("validate")]), mode: typebox_exports.Union([typebox_exports.Literal("static"), typebox_exports.Literal("semantic")]), version: typebox_exports.Union([typebox_exports.Literal("v3"), typebox_exports.Literal("v4")]), spec: typebox_exports.Unknown(), editPath: typebox_exports.Optional(typebox_exports.String()) }) },
-    { name: "show_widget", identity: "show_widget", origin: "local", description: "Render an inline UI widget card.", parameters: typebox_exports.Object({ kind: typebox_exports.Union([typebox_exports.Literal("kpi"), typebox_exports.Literal("chart"), typebox_exports.Literal("table"), typebox_exports.Literal("steps")]), spec: typebox_exports.Unknown() }) },
+    { name: "show_widget", identity: "show_widget", origin: "local", description: "Render an inline UI widget card.", parameters: SHOW_WIDGET_PARAMETERS },
     { name: "query_database", identity: "query_database", origin: "mcp-dynamic", description: "Preview a read-only query through the database MCP server.", parameters: typebox_exports.Object({ sql: typebox_exports.String({ minLength: 1 }), limit: typebox_exports.Optional(typebox_exports.Number()) }) },
     { name: "ask_user_clarification", identity: "ask_user_clarification", origin: "local", description: "Ask the user a structured clarifying question.", parameters: typebox_exports.Object({ question: typebox_exports.String({ minLength: 1 }), options: typebox_exports.Optional(typebox_exports.Array(typebox_exports.String())) }) },
-    { name: "export_query", identity: "mcp__database__export_query", origin: "mcp-dynamic", description: "Export full query results as a CSV artifact via MCP Resource transfer.", parameters: typebox_exports.Object({ sql: typebox_exports.String({ minLength: 1 }), filename: typebox_exports.Optional(typebox_exports.String()) }) }
+    { name: "export_query", identity: "mcp__database__export_query", origin: "mcp-dynamic", description: "Export validated query results as CSV. Declare scalar/top_n/grouped/full shape and the exact output-column whitelist; shape mismatches are rejected before publication.", parameters: EXPORT_QUERY_PARAMETERS }
   ];
 }
 function assertNoLegacyTools(names2) {
@@ -163084,11 +163099,27 @@ function assertNoLegacyTools(names2) {
   if (offenders.length > 0)
     throw new Error(`LEGACY_TOOL_NAMES_PRESENT:${offenders.join(",")}`);
 }
-var FORBIDDEN_LEGACY;
+var SHOW_WIDGET_PARAMETERS, EXPORT_QUERY_PARAMETERS, FORBIDDEN_LEGACY;
 var init_tools_catalog = __esm({
   "packages/runtime/dist/tools-catalog.js"() {
     "use strict";
     init_build();
+    SHOW_WIDGET_PARAMETERS = typebox_exports.Object({
+      kind: typebox_exports.Union([typebox_exports.Literal("kpi"), typebox_exports.Literal("chart"), typebox_exports.Literal("table"), typebox_exports.Literal("steps")]),
+      spec: typebox_exports.Unknown()
+    });
+    EXPORT_QUERY_PARAMETERS = typebox_exports.Object({
+      sql: typebox_exports.String({ minLength: 1 }),
+      filename: typebox_exports.Optional(typebox_exports.String()),
+      expected_rows: typebox_exports.Union([
+        typebox_exports.Literal("scalar"),
+        typebox_exports.Literal("top_n"),
+        typebox_exports.Literal("grouped"),
+        typebox_exports.Literal("full")
+      ]),
+      expected_row_count: typebox_exports.Optional(typebox_exports.Integer({ minimum: 1 })),
+      expected_columns: typebox_exports.Optional(typebox_exports.Array(typebox_exports.String({ minLength: 1 }), { minItems: 1, uniqueItems: true }))
+    });
     FORBIDDEN_LEGACY = /* @__PURE__ */ new Set([
       "execute_sql",
       "export_sql_to_csv",
@@ -163124,9 +163155,22 @@ function canonicalTool(name) {
 function text(content, details = void 0) {
   return { content: [{ type: "text", text: content }], details };
 }
+function asRecord(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : void 0;
+}
 function throwIfAborted(signal) {
   if (signal?.aborted)
     throw new Error("EXPORT_CANCELLED");
+}
+function normalizeValidatedSql(sql) {
+  return sql.trim().replace(/;+\s*$/, "");
+}
+function isExploratoryQuery(sql) {
+  const normalized = normalizeValidatedSql(sql).replace(/\s+/g, " ");
+  return /^(?:PRAGMA\b|SELECT\s+(?:name|sql)\s+FROM\s+sqlite_master\b|SELECT\s+\*\s+FROM\s+[^\s;]+\s+LIMIT\s+\d+$|SELECT\s+DISTINCT\s+[\w.\[\]`\"]+\s+FROM\s+[^\s;]+(?:\s+LIMIT\s+\d+)?$|SELECT\s+COUNT\s*\(\s*\*\s*\)\s+(?:AS\s+\w+\s+)?FROM\s+[^\s;]+$)/i.test(normalized);
+}
+function sameColumns(actual, expected) {
+  return actual.length === expected.length && actual.every((column, index3) => column === expected[index3]);
 }
 function csvField(value) {
   if (value === null || value === void 0)
@@ -163191,6 +163235,43 @@ function buildAgentTools(deps) {
     const sessionId = sessionIdFor(native);
     return sessionId ? `${sessionId}/${relativePath}` : relativePath;
   };
+  const toolFailures = /* @__PURE__ */ new Map();
+  const queryTaskStates = /* @__PURE__ */ new Map();
+  const queryTaskStateFor = (native) => {
+    const key = sessionIdFor(native) ?? "__default__";
+    const existing = queryTaskStates.get(key);
+    if (existing)
+      return existing;
+    const created = { exploratoryCount: 0, hasExported: false };
+    queryTaskStates.set(key, created);
+    return created;
+  };
+  const withToolFailureGuidance = async (toolName, native, operation) => {
+    const failureKey = `${sessionIdFor(native) ?? "__default__"}:${toolName}`;
+    try {
+      const result = await operation();
+      toolFailures.delete(failureKey);
+      return result;
+    } catch (error51) {
+      const message = error51 instanceof Error ? error51.message : String(error51);
+      const previous = toolFailures.get(failureKey);
+      const count = previous?.message === message ? previous.count + 1 : 1;
+      toolFailures.set(failureKey, { message, count });
+      if (count >= 3) {
+        throw new Error(`${message}
+This exact ${toolName} error has occurred ${count} times. Stop repeating the same call; inspect the schema/knowledge and use a materially different strategy.`);
+      }
+      throw error51;
+    }
+  };
+  let pythonCapabilityUnavailable = false;
+  const configuredPythonExecutable = typeof deps.pythonExecutable === "function" ? deps.pythonExecutable() : deps.pythonExecutable;
+  const pythonUnavailableMessage = () => [
+    "PYTHON_RUNTIME_NOT_AVAILABLE.",
+    "Python is not available in this environment. Do NOT call run_python again.",
+    "Use SQL (query_database / export_query) or the other currently available tools instead.",
+    "For statistics such as median, percentile, or standard deviation, use SQL window functions or subqueries when the database supports them."
+  ].join("\n");
   const tools = [
     defineTool("list_workspace", canonicalTool("list_workspace").description, typebox_exports.Object({}), async (_p, native) => {
       const workspace = await workspaceFor(native);
@@ -163206,16 +163287,24 @@ function buildAgentTools(deps) {
       await workspace.write(p.path, p.content);
       deps.emitArtifact?.(artifactPathFor(native, p.path));
       return text(`written ${p.path} (${p.content.length} bytes)`);
-    }),
-    defineTool("run_python", canonicalTool("run_python").description, typebox_exports.Object({ code: typebox_exports.String({ minLength: 1 }), description: typebox_exports.Optional(typebox_exports.String()) }), async (p, native) => {
-      const executable = typeof deps.pythonExecutable === "function" ? deps.pythonExecutable() : deps.pythonExecutable;
-      if (!executable)
-        throw new Error("PYTHON_RUNTIME_NOT_AVAILABLE");
-      const workspace = deps.pythonWorkspaceDir ? { root: deps.pythonWorkspaceDir } : await workspaceFor(native);
-      const result = await runPythonJob(p.code, { workspace: workspace.root, executable, timeoutMs: 12e4 });
-      return text(result.stdout || result.stderr || "(no output)", { exitCode: result.exitCode });
     })
   ];
+  if (configuredPythonExecutable) {
+    tools.push(defineTool("run_python", canonicalTool("run_python").description, typebox_exports.Object({ code: typebox_exports.String({ minLength: 1 }), description: typebox_exports.Optional(typebox_exports.String()) }), async (p, native) => {
+      const executable = typeof deps.pythonExecutable === "function" ? deps.pythonExecutable() : deps.pythonExecutable;
+      if (pythonCapabilityUnavailable || !executable) {
+        pythonCapabilityUnavailable = true;
+        throw new Error(pythonUnavailableMessage());
+      }
+      const workspace = deps.pythonWorkspaceDir ? { root: deps.pythonWorkspaceDir } : await workspaceFor(native);
+      const result = await runPythonJob(p.code, { workspace: workspace.root, executable, timeoutMs: 12e4 });
+      if (result.status === "error" && /(?:ENOENT|not found|cannot find|not recognized)/i.test(result.stderr)) {
+        pythonCapabilityUnavailable = true;
+        throw new Error(pythonUnavailableMessage());
+      }
+      return text(result.stdout || result.stderr || "(no output)", { exitCode: result.exitCode, status: result.status });
+    }));
+  }
   if (deps.knowledge) {
     const knowledge = deps.knowledge;
     tools.push(defineTool("search_knowledge", canonicalTool("search_knowledge").description, typebox_exports.Object({ query: typebox_exports.String({ minLength: 1 }) }), async (p) => {
@@ -163239,98 +163328,145 @@ ${h2.snippet}`).join("\n\n") : "(no matches)";
     if (!deps.invokeSkill)
       throw new Error("NATIVE_SKILL_INVOCATION_UNAVAILABLE");
     return nativeSkillResult(await deps.invokeSkill(p.name), p.name);
-  }), defineTool("generate_dashboard", canonicalTool("generate_dashboard").description, typebox_exports.Object({ operation: typebox_exports.Union([typebox_exports.Literal("create"), typebox_exports.Literal("edit"), typebox_exports.Literal("validate")]), mode: typebox_exports.Union([typebox_exports.Literal("static"), typebox_exports.Literal("semantic")]), version: typebox_exports.Union([typebox_exports.Literal("v3"), typebox_exports.Literal("v4")]), spec: typebox_exports.Unknown(), editPath: typebox_exports.Optional(typebox_exports.String()) }), async (p, native) => {
-    const workspace = await workspaceFor(native);
-    if (p.mode === "static" && p.version === "v3") {
-      const materialized = await materializeDashboardV3Spec(p.spec, workspace);
-      const validated = validateDashboardV3Spec(materialized);
-      if (!validated.ok)
-        throw new Error(`DASHBOARD_SPEC_INVALID: ${validated.errors.join("; ")}`);
-      if (p.operation === "validate")
-        return text("dashboard spec valid");
-      const fileName = validated.spec.filename?.replace(/\.html$/i, "") || String(Date.now());
-      const target = p.editPath ?? `dashboards/${fileName}.html`;
-      const html = await renderStandaloneDashboardHtml(validated.spec);
-      await workspace.write(target, html);
-      const artifactPath = artifactPathFor(native, target);
-      const downloadUrl = `/workspace/files/download?path=${encodeURIComponent(artifactPath)}`;
-      deps.emitArtifact?.(artifactPath);
-      return text(`[\u67E5\u770B HTML \u770B\u677F](${downloadUrl})`, { status: "success", relativePath: target, downloadUrl, fileType: "html" });
-    }
-    if (p.mode === "semantic" && p.version === "v4") {
-      const validated = validateDashboardV4Spec(p.spec);
-      if (!validated.ok)
-        throw new Error(`DASHBOARD_SPEC_INVALID: ${validated.errors.join("; ")}`);
-      if (p.operation === "validate")
-        return text("dashboard spec valid");
-      const target = p.editPath ?? `dashboards/${Date.now()}-semantic.html`;
-      const html = renderSemanticDashboardHtml(validated.spec, { nonce: (0, import_node_crypto8.randomUUID)().replace(/-/g, ""), expectedOrigin: "https://data-agent.local" });
-      await workspace.write(target, html);
-      const artifactPath = artifactPathFor(native, target);
-      const downloadUrl = `/workspace/files/download?path=${encodeURIComponent(artifactPath)}`;
-      deps.emitArtifact?.(artifactPath);
-      return text(`[\u67E5\u770B\u8BED\u4E49\u770B\u677F](${downloadUrl})`, { status: "success", relativePath: target, downloadUrl, fileType: "html" });
-    }
-    throw new Error("DASHBOARD_MODE_VERSION_MISMATCH");
-  }), defineTool("show_widget", canonicalTool("show_widget").description, typebox_exports.Object({ kind: typebox_exports.Union([typebox_exports.Literal("kpi"), typebox_exports.Literal("chart"), typebox_exports.Literal("table"), typebox_exports.Literal("steps")]), spec: typebox_exports.Unknown() }), async (p, native) => {
-    const widgetId = `widget-${native.toolCallId}`;
-    if (native.signal?.aborted)
-      throw new Error("Operation aborted");
-    const validation = validateWidgetSpec(p.kind, p.spec);
-    if (!validation.ok) {
-      const error51 = `WIDGET_SPEC_INVALID: ${validation.error}`;
+  }));
+  if (deps.enableDashboards !== false) {
+    tools.push(defineTool("generate_dashboard", canonicalTool("generate_dashboard").description, typebox_exports.Object({ operation: typebox_exports.Union([typebox_exports.Literal("create"), typebox_exports.Literal("edit"), typebox_exports.Literal("validate")]), mode: typebox_exports.Union([typebox_exports.Literal("static"), typebox_exports.Literal("semantic")]), version: typebox_exports.Union([typebox_exports.Literal("v3"), typebox_exports.Literal("v4")]), spec: typebox_exports.Unknown(), editPath: typebox_exports.Optional(typebox_exports.String()) }), async (p, native) => withToolFailureGuidance("generate_dashboard", native, async () => {
+      const workspace = await workspaceFor(native);
+      if (p.mode === "static" && p.version === "v3") {
+        const materialized = await materializeDashboardV3Spec(p.spec, workspace);
+        const validated = validateDashboardV3Spec(materialized);
+        if (!validated.ok)
+          throw new Error(`DASHBOARD_SPEC_INVALID: ${validated.errors.join("; ")}`);
+        if (p.operation === "validate")
+          return text("dashboard spec valid");
+        const fileName = validated.spec.filename?.replace(/\.html$/i, "") || String(Date.now());
+        const target = p.editPath ?? `dashboards/${fileName}.html`;
+        const html = await renderStandaloneDashboardHtml(validated.spec);
+        await workspace.write(target, html);
+        const artifactPath = artifactPathFor(native, target);
+        const downloadUrl = `/workspace/files/download?path=${encodeURIComponent(artifactPath)}`;
+        deps.emitArtifact?.(artifactPath);
+        return text(`[\u67E5\u770B HTML \u770B\u677F](${downloadUrl})`, { status: "success", relativePath: target, downloadUrl, fileType: "html" });
+      }
+      if (p.mode === "semantic" && p.version === "v4") {
+        const validated = validateDashboardV4Spec(p.spec);
+        if (!validated.ok)
+          throw new Error(`DASHBOARD_SPEC_INVALID: ${validated.errors.join("; ")}`);
+        if (p.operation === "validate")
+          return text("dashboard spec valid");
+        const target = p.editPath ?? `dashboards/${Date.now()}-semantic.html`;
+        const html = renderSemanticDashboardHtml(validated.spec, { nonce: (0, import_node_crypto8.randomUUID)().replace(/-/g, ""), expectedOrigin: "https://data-agent.local" });
+        await workspace.write(target, html);
+        const artifactPath = artifactPathFor(native, target);
+        const downloadUrl = `/workspace/files/download?path=${encodeURIComponent(artifactPath)}`;
+        deps.emitArtifact?.(artifactPath);
+        return text(`[\u67E5\u770B\u8BED\u4E49\u770B\u677F](${downloadUrl})`, { status: "success", relativePath: target, downloadUrl, fileType: "html" });
+      }
+      throw new Error("DASHBOARD_MODE_VERSION_MISMATCH");
+    })));
+  }
+  if (deps.enableWidgets !== false) {
+    tools.push(defineTool("show_widget", canonicalTool("show_widget").description, SHOW_WIDGET_PARAMETERS, async (p, native) => withToolFailureGuidance("show_widget", native, async () => {
+      const widgetId = `widget-${native.toolCallId}`;
+      if (native.signal?.aborted)
+        throw new Error("Operation aborted");
+      const validation = validateWidgetSpec(p.kind, p.spec);
+      if (!validation.ok) {
+        const error51 = `WIDGET_SPEC_INVALID: ${validation.error}`;
+        emitWidgetUpdate(native.onUpdate, {
+          widgetEvent: "widget_error",
+          widgetId,
+          toolCallId: native.toolCallId,
+          toolName: "show_widget",
+          error: error51,
+          legacyText: `[widget error] ${error51}`
+        });
+        throw new Error(error51);
+      }
+      const spec = { ...validation.spec };
+      if (p.kind === "kpi" && !Array.isArray(spec.data) && (typeof spec.value === "string" || typeof spec.value === "number")) {
+        spec.data = [{ label: spec.label ?? "", value: spec.value }];
+      }
+      const widget = {
+        ...spec,
+        widget_id: widgetId,
+        kind: p.kind,
+        title: typeof spec.title === "string" && spec.title.trim() ? spec.title : `${p.kind} widget`,
+        tool_call_id: native.toolCallId
+      };
+      const legacyText = widgetLegacyText(widget);
       emitWidgetUpdate(native.onUpdate, {
-        widgetEvent: "widget_error",
+        widgetEvent: "widget",
         widgetId,
         toolCallId: native.toolCallId,
         toolName: "show_widget",
-        error: error51,
-        legacyText: `[widget error] ${error51}`
+        widget,
+        legacyText
       });
-      throw new Error(error51);
-    }
-    const spec = { ...validation.spec };
-    if (p.kind === "kpi" && !Array.isArray(spec.data) && (typeof spec.value === "string" || typeof spec.value === "number")) {
-      spec.data = [{ label: spec.label ?? "", value: spec.value }];
-    }
-    const widget = {
-      ...spec,
-      widget_id: widgetId,
-      kind: p.kind,
-      title: typeof spec.title === "string" && spec.title.trim() ? spec.title : `${p.kind} widget`,
-      tool_call_id: native.toolCallId
-    };
-    const legacyText = widgetLegacyText(widget);
-    emitWidgetUpdate(native.onUpdate, {
-      widgetEvent: "widget",
-      widgetId,
-      toolCallId: native.toolCallId,
-      toolName: "show_widget",
-      widget,
-      legacyText
-    });
-    return text(legacyText, {
-      widgetEvent: "widget",
-      widgetId,
-      toolCallId: native.toolCallId,
-      toolName: "show_widget",
-      widget,
-      legacyText
-    });
-  }));
+      return text(legacyText, {
+        widgetEvent: "widget",
+        widgetId,
+        toolCallId: native.toolCallId,
+        toolName: "show_widget",
+        widget,
+        legacyText
+      });
+    })));
+  }
   if (deps.queryExecutor) {
     const runQuery = async (sql, limit2) => {
       const result = await deps.queryExecutor.run(sql, limit2 ?? DEFAULT_ROW_LIMIT);
       const header = result.columns.join(" | ");
       const body = result.rows.map((row) => row.map((cell) => String(cell ?? "NULL")).join(" | ")).join("\n");
-      return text(`${header}
+      return {
+        rendered: `${header}
 ${body}${result.truncated ? `
-(truncated at ${result.rows.length} rows)` : ""}`, { columns: result.columns, rows: result.rows });
+(truncated at ${result.rows.length} rows)` : ""}`,
+        result
+      };
     };
-    tools.push(defineTool("query_database", canonicalTool("query_database").description, typebox_exports.Object({ sql: typebox_exports.String({ minLength: 1 }), limit: typebox_exports.Optional(typebox_exports.Number()) }), async (p) => runQuery(p.sql, p.limit)), defineTool("export_query", canonicalTool("export_query").description, typebox_exports.Object({ sql: typebox_exports.String({ minLength: 1 }), filename: typebox_exports.Optional(typebox_exports.String()) }), async (p, native) => {
+    tools.push(defineTool("query_database", canonicalTool("query_database").description, typebox_exports.Object({ sql: typebox_exports.String({ minLength: 1 }), limit: typebox_exports.Optional(typebox_exports.Number()) }), async (p, native) => withToolFailureGuidance("query_database", native, async () => {
+      let state2 = queryTaskStateFor(native);
+      if (state2.hasExported) {
+        state2 = { exploratoryCount: 0, hasExported: false };
+        queryTaskStates.set(sessionIdFor(native) ?? "__default__", state2);
+      }
+      const exploratory = isExploratoryQuery(p.sql);
+      const explorationLimit = deps.explorationQueryBudget === void 0 ? void 0 : Math.max(1, deps.explorationQueryBudget);
+      if (exploratory && explorationLimit !== void 0 && state2.exploratoryCount >= explorationLimit) {
+        return text(`You have used ${state2.exploratoryCount}/${explorationLimit} exploratory queries. Stop exploring and write your final analytical SQL now. If you already have a validated result, call export_query immediately.`, { warning: "EXPLORATION_BUDGET_EXCEEDED", exploratoryCount: state2.exploratoryCount, limit: explorationLimit });
+      }
+      if (exploratory)
+        state2.exploratoryCount++;
+      const { rendered, result } = await runQuery(p.sql, p.limit);
+      state2.lastSuccessfulSql = normalizeValidatedSql(p.sql);
+      const progress = await deps.taskProgress?.(native.context);
+      const remindToExport = Boolean(progress && progress.maxTurns > 0 && progress.turnCount >= progress.maxTurns * 0.6 && !state2.hasExported);
+      const reminder = remindToExport ? `
+
+[EXPORT_DEADLINE] You have used ${progress.turnCount}/${progress.maxTurns} turns and have not exported yet. If this result satisfies the declared output contract, call export_query immediately with this validated SQL.` : "";
+      return text(`${rendered}${reminder}`, {
+        columns: result.columns,
+        rows: result.rows,
+        exploratory,
+        ...remindToExport ? { exportReminder: true, turnCount: progress.turnCount, maxTurns: progress.maxTurns } : {}
+      });
+    })), defineTool("export_query", canonicalTool("export_query").description, EXPORT_QUERY_PARAMETERS, async (p, native) => withToolFailureGuidance("export_query", native, async () => {
+      if (!p.expected_rows) {
+        throw new Error("SHAPE_DECLARATION_INVALID: expected_rows is required");
+      }
+      const taskState = queryTaskStateFor(native);
+      if (deps.requireValidatedExportSql !== false && taskState.lastSuccessfulSql !== normalizeValidatedSql(p.sql)) {
+        throw new Error("EXPORT_SQL_NOT_VALIDATED: export_query SQL must exactly match the last successful query_database SQL in this session. Validate this SQL, then export it unchanged.");
+      }
+      if (p.expected_rows === "top_n" && p.expected_row_count === void 0) {
+        throw new Error("SHAPE_DECLARATION_INVALID: expected_row_count is required for top_n");
+      }
       const signal = native.signal;
       const target = p.filename ?? `exports/query-${Date.now()}.csv`;
+      const topNMaximum = p.expected_rows === "top_n" ? p.expected_row_count : void 0;
       let rowCount = 0;
+      let observedColumns;
       const workspace = await workspaceFor(native);
       await workspace.writeStream(target, async (write) => {
         let pending = "";
@@ -163344,15 +163480,32 @@ ${body}${result.truncated ? `
         };
         const consume = async (batch) => {
           throwIfAborted(signal);
+          if (!observedColumns)
+            observedColumns = [...batch.columns];
+          if (!sameColumns(batch.columns, observedColumns)) {
+            throw new Error(`SHAPE_MISMATCH: export batches changed columns from [${observedColumns.join(", ")}] to [${batch.columns.join(", ")}]`);
+          }
+          if (p.expected_columns && !sameColumns(batch.columns, p.expected_columns)) {
+            throw new Error(`SHAPE_MISMATCH: expected columns [${p.expected_columns.join(", ")}] but query returned [${batch.columns.join(", ")}]`);
+          }
           if (!headerWritten) {
             await append(batch.columns.map(csvHeaderField).join(","));
             headerWritten = true;
           }
           for (const row of batch.rows) {
             throwIfAborted(signal);
+            if (row.length !== batch.columns.length) {
+              throw new Error(`SHAPE_MISMATCH: row width ${row.length} does not match ${batch.columns.length} columns`);
+            }
+            rowCount++;
+            if (p.expected_rows === "scalar" && rowCount > 1) {
+              throw new Error("SHAPE_MISMATCH: declared scalar but query produced more than 1 row. Add a final aggregation or LIMIT 1 before exporting.");
+            }
+            if (topNMaximum !== void 0 && rowCount > topNMaximum) {
+              throw new Error(`SHAPE_MISMATCH: declared top_n=${p.expected_row_count} but query produced more than ${topNMaximum} rows. Add LIMIT or a stricter filter before exporting.`);
+            }
             await append(`
 ${row.map(csvField).join(",")}`);
-            rowCount++;
           }
         };
         if (deps.queryExecutor.stream) {
@@ -163365,14 +163518,30 @@ ${row.map(csvField).join(",")}`);
             throw new Error("EXPORT_STREAM_REQUIRED");
           await consume(bounded);
         }
+        if (!headerWritten)
+          throw new Error("EXPORT_EMPTY_STREAM: executor returned no column metadata");
+        if (p.expected_rows === "scalar" && rowCount === 0) {
+          throw new Error("SHAPE_MISMATCH: declared scalar but query produced 0 rows. Return exactly one aggregate row before exporting.");
+        }
         if (pending)
           await write(pending);
       }, signal);
+      queryTaskStateFor(native).hasExported = true;
       const artifactPath = artifactPathFor(native, target);
       const downloadUrl = `/workspace/files/download?path=${encodeURIComponent(artifactPath)}`;
       deps.emitArtifact?.(artifactPath);
-      return text(`exported ${rowCount} rows: [\u4E0B\u8F7D CSV](${downloadUrl})`, { status: "success", relativePath: target, downloadUrl, fileType: "csv", rowCount });
-    }));
+      return text(`exported ${rowCount} rows: [\u4E0B\u8F7D CSV](${downloadUrl})
+[TASK_COMPLETE] The declared ${p.expected_rows} shape and output columns were validated. If the user's request was to query and export data, the task is complete. Do not call Python, show_widget, or generate_dashboard unless the user explicitly requested analysis or visualization.`, {
+        status: "success",
+        taskComplete: true,
+        relativePath: target,
+        downloadUrl,
+        fileType: "csv",
+        rowCount,
+        columns: observedColumns ?? [],
+        expectedRows: p.expected_rows
+      });
+    })));
   }
   if (deps.clarifications) {
     const clarifications = deps.clarifications;
@@ -163390,20 +163559,64 @@ function composeDataAgentSystemPrompt(basePrompt, skills) {
   const skillsPrompt = formatSkillsForSystemPrompt(skills);
   return [basePrompt.trim(), skillsPrompt].filter(Boolean).join("\n\n");
 }
-async function resolveSystemPrompt(searchRoots) {
+function dialectHint(dialect) {
+  switch (dialect) {
+    case "sqlite":
+      return [
+        "\u6570\u636E\u5E93\u540E\u7AEF\u4E3A SQLite\u3002",
+        "\u7CFB\u7EDF\u8868\u67E5\u8BE2\u7528 `SELECT name FROM sqlite_master WHERE type='table'`\u3002",
+        "\u65E5\u671F\u63D0\u53D6\u7528 `strftime()`\uFF1B\u4E0D\u652F\u6301 YEAR()\u3001MONTH()\u3001DATEDIFF()\u3001DATE_FORMAT()\u3002",
+        "\u65E5\u671F\u5DEE\u7528 `julianday(d1) - julianday(d2)`\u3002",
+        "\u6D6E\u70B9\u9664\u6CD5\u7528 `CAST(x AS REAL) / y` \u6216 `1.0 * x / y`\uFF1B\u6574\u6570\u9664\u6CD5\u4F1A\u622A\u65AD\u3002",
+        "\u5B57\u7B26\u4E32\u8FDE\u63A5\u7528 `||`\uFF0C\u4E0D\u652F\u6301 CONCAT()\uFF1B\u6761\u4EF6\u8868\u8FBE\u5F0F\u7528 CASE\uFF0C\u4E0D\u4F7F\u7528 IF()\u3002",
+        "\u5B57\u7B26\u4E32\u622A\u53D6\u7528 `substr()`\uFF1B\u4E0D\u652F\u6301 SUBSTRING_INDEX()\u3002",
+        "\u4E0D\u652F\u6301 information_schema\uFF0C\u4E5F\u4E0D\u652F\u6301 LIMIT offset, count\uFF1B\u4F7F\u7528 LIMIT count OFFSET offset\u3002",
+        "\u4F7F\u7528 COALESCE() \u5904\u7406\u7A7A\u503C\u3002"
+      ].join("\n");
+    case "mysql":
+      return "\u6570\u636E\u5E93\u540E\u7AEF\u4E3A MySQL \u4E1A\u52A1\u5E93\uFF1A\u7CFB\u7EDF\u8868\u67E5\u8BE2\u7528 `SELECT table_name FROM information_schema.tables WHERE table_schema=DATABASE()`\uFF1B\u4E0D\u8981\u4F7F\u7528 sqlite_master\u3002";
+    case "bigquery":
+      return "\u6570\u636E\u5E93\u540E\u7AEF\u4E3A BigQuery\u3002\u4F7F\u7528 BigQuery Standard SQL\uFF1B\u4E0D\u8981\u5047\u8BBE SQLite \u7684 sqlite_master \u6216 MySQL \u7684 information_schema \u53EF\u7528\u3002";
+    case "snowflake":
+      return "\u6570\u636E\u5E93\u540E\u7AEF\u4E3A Snowflake\u3002\u4F7F\u7528 Snowflake SQL\uFF1B\u4E0D\u8981\u5047\u8BBE SQLite \u7684 sqlite_master \u6216 MySQL \u7684 information_schema \u53EF\u7528\u3002";
+  }
+}
+function dialectGuidance(databaseDialect) {
+  return databaseDialect ? dialectHint(databaseDialect) : "\u6570\u636E\u5E93\u65B9\u8A00\u7531\u5F53\u524D\u8FDE\u63A5\u63D0\u4F9B\uFF1B\u4E0D\u8981\u9ED8\u8BA4\u5047\u8BBE MySQL\u3001SQLite \u6216\u5176\u4ED6\u65B9\u8A00\u3002\u5148\u53C2\u8003\u77E5\u8BC6\u5E93\u548C\u67E5\u8BE2\u5DE5\u5177\u8FD4\u56DE\u7684\u540E\u7AEF\u4FE1\u606F\u3002";
+}
+function unknownToolRecoveryMessage(errorText, toolNames) {
+  const match2 = /^Tool\s+([A-Za-z0-9_-]+)\s+not found\b/.exec(errorText.trim());
+  if (!match2)
+    return void 0;
+  const available = [...new Set(toolNames)];
+  return [
+    `Tool "${match2[1]}" does not exist in this runtime. Do not retry it.`,
+    `Available tools: ${available.join(", ") || "none"}.`,
+    "Use search_knowledge/read_knowledge for knowledge, query_database for read-only SQL, and export_query for final CSV delivery."
+  ].join("\n");
+}
+function runtimeCapabilitiesPrompt(toolNames) {
+  const available = [...new Set(toolNames)];
+  const unavailable = ["run_python", "show_widget", "generate_dashboard"].filter((name) => !available.includes(name));
+  return [
+    "## Runtime capability contract",
+    "Only tools present in the current tool list are available in this session. Never call an absent tool.",
+    `Available tools: ${available.join(", ") || "none"}.`,
+    ...unavailable.length ? [`Unavailable tools: ${unavailable.join(", ")}. Do not retry them; complete the task with the available tools.`] : []
+  ].join("\n");
+}
+async function resolveSystemPrompt(searchRoots, databaseDialect) {
   const { readFile: readFile12 } = await import("node:fs/promises");
   for (const root of searchRoots) {
     if (!root)
       continue;
     try {
       const migrated = await readFile12(import_node_path11.default.join(root, ".pi", "SYSTEM.md"), "utf8");
-      return `${migrated.trim()}
-
-${TOOL_NAME_MAPPING}`;
+      return [migrated.trim(), dialectGuidance(databaseDialect)].filter(Boolean).join("\n\n");
     } catch {
     }
   }
-  return DATA_AGENT_SYSTEM_PROMPT;
+  throw new Error(`SYSTEM_PROMPT_NOT_FOUND: expected .pi/SYSTEM.md under ${searchRoots.filter(Boolean).join(", ") || "the configured system prompt roots"}`);
 }
 async function createDataAgentHarness(deps, profile) {
   if (!profile.apiKey)
@@ -163415,10 +163628,11 @@ async function createDataAgentHarness(deps, profile) {
   const skillLoad = await loadSkillsFromRoots(resolveSkillRoots({ projectRoot: deps.projectRoot, packagedRoot: deps.packagedRoot }));
   for (const item of skillLoad.diagnostics)
     console.warn(`[data-agent] Skill diagnostic (${item.code ?? "warning"}) ${item.path}: ${item.message}`);
+  let skills = [];
   const tools = buildAgentTools({
     ...deps,
     invokeSkill: async (name, additionalInstructions) => {
-      const skill = skillLoad.skills.find((candidate) => candidate.name === name);
+      const skill = skills.find((candidate) => candidate.name === name);
       if (!skill)
         throw new Error(`SKILL_NOT_FOUND: ${name}`);
       const content = additionalInstructions ? `${skill.content}
@@ -163428,7 +163642,10 @@ ${additionalInstructions}` : skill.content;
       return { content: [{ type: "text", text: content }] };
     }
   });
-  const baseSystemPrompt = deps.systemPrompt ?? await resolveSystemPrompt(deps.systemPromptRoots ?? (deps.knowledgeRoot ? [deps.knowledgeRoot] : []));
+  const registeredToolNames = new Set(tools.map((tool) => tool.name));
+  skills = skillLoad.skills.map((skill) => skill.allowedTools === void 0 ? skill : { ...skill, allowedTools: skill.allowedTools.filter((name) => registeredToolNames.has(name)) });
+  const baseSystemPrompt = deps.systemPrompt ? [deps.systemPrompt.trim(), dialectGuidance(deps.databaseDialect)].filter(Boolean).join("\n\n") : await resolveSystemPrompt(deps.systemPromptRoots ?? (deps.knowledgeRoot ? [deps.knowledgeRoot] : []), deps.databaseDialect);
+  const capabilityPrompt = runtimeCapabilitiesPrompt(registeredToolNames);
   const harness = new DataAgentHarness({
     session: deps.session ?? await new InMemorySessionRepo().create(),
     models,
@@ -163437,14 +163654,25 @@ ${additionalInstructions}` : skill.content;
     // Use Pi's per-turn prompt callback rather than freezing a prompt string.
     // The callback receives the current resources snapshot, so a later
     // setResources() immediately changes the model-visible skill catalog.
-    systemPrompt: ({ resources }) => composeDataAgentSystemPrompt(baseSystemPrompt, resources.skills ?? []),
+    systemPrompt: ({ resources }) => composeDataAgentSystemPrompt(`${baseSystemPrompt}
+
+${capabilityPrompt}`, resources.skills ?? []),
     tools,
-    resources: { skills: skillLoad.skills },
+    resources: { skills },
     toolContext: deps.toolContext ?? { sessionId: deps.sessionId }
+  });
+  harness.subscribe((event) => {
+    if (event?.type !== "tool_execution_end" || !event.isError)
+      return;
+    const content = event.result?.content;
+    const errorText = Array.isArray(content) ? content.find((item) => asRecord(item)?.type === "text" && typeof asRecord(item)?.text === "string") : void 0;
+    const guidance = unknownToolRecoveryMessage(String(asRecord(errorText)?.text ?? ""), registeredToolNames);
+    if (guidance)
+      void harness.steer(guidance).catch(() => void 0);
   });
   return harness;
 }
-var import_node_crypto8, import_node_path11, DEFAULT_ROW_LIMIT, CANONICAL_TOOL_BY_NAME, DataAgentHarness, DATA_AGENT_SYSTEM_PROMPT, TOOL_NAME_MAPPING;
+var import_node_crypto8, import_node_path11, DEFAULT_ROW_LIMIT, CANONICAL_TOOL_BY_NAME, DataAgentHarness;
 var init_agent_assembly = __esm({
   "packages/runtime/dist/agent-assembly.js"() {
     "use strict";
@@ -163479,33 +163707,6 @@ var init_agent_assembly = __esm({
         }
       }
     };
-    DATA_AGENT_SYSTEM_PROMPT = [
-      "\u4F60\u662F Data Agent\uFF0C\u4E00\u4E2A\u6570\u636E\u5206\u6790\u52A9\u624B\u3002",
-      "\u4F60\u53EF\u4EE5\u4F7F\u7528\u5DE5\u4F5C\u533A\u6587\u4EF6\u3001Python\u3001\u77E5\u8BC6\u5E93\u548C\u6570\u636E\u5E93\u5DE5\u5177\u6765\u56DE\u7B54\u6570\u636E\u5206\u6790\u95EE\u9898\u3002",
-      "\u67E5\u8BE2\u6570\u636E\u5E93\u65F6\u4F7F\u7528 query_database \u5DE5\u5177\u6267\u884C\u53EA\u8BFB SQL\uFF1B\u9700\u8981\u5BFC\u51FA\u5B8C\u6574\u7ED3\u679C\u65F6\u4F7F\u7528 export_query\u3002",
-      "\u6D89\u53CA\u516C\u53F8\u3001\u884C\u4E1A\u3001\u6708\u4EFD\u7B49\u4E1A\u52A1\u6761\u4EF6\u65F6\uFF0C\u5148\u53C2\u8003\u77E5\u8BC6\u5E93\u4E2D\u7684\u4E1A\u52A1\u53E3\u5F84\uFF08search_knowledge\uFF09\uFF0C\u518D\u7F16\u5199 SQL\u3002",
-      "\u56DE\u7B54\u4F7F\u7528\u7528\u6237\u63D0\u95EE\u7684\u8BED\u8A00\uFF0C\u7ED3\u8BBA\u5148\u884C\u3001\u8BC1\u636E\u968F\u540E\uFF0C\u7ED3\u6784\u5316\u8F93\u51FA\u3002"
-    ].join("\n");
-    TOOL_NAME_MAPPING = [
-      "## \u5DE5\u5177\u540D\u6620\u5C04\uFF08\u5F53\u524D\u8FD0\u884C\u65F6\uFF09",
-      "",
-      "\u672C\u8FD0\u884C\u65F6\u7684\u89C4\u8303\u5DE5\u5177\u540D\u4E0E\u4E0A\u6587\u5386\u53F2\u540D\u79F0\u4E0D\u540C\uFF0C\u4E00\u5F8B\u4F7F\u7528\u4E0B\u8868\u5F53\u524D\u540D\uFF1A",
-      "",
-      "| \u5386\u53F2\u540D\u79F0\uFF08\u672C\u6587\u6863\u4E2D\u7684\uFF09 | \u5F53\u524D\u5DE5\u5177\u540D |",
-      "|---|---|",
-      "| execute_sql | query_database\uFF08\u53EA\u8BFB\u9884\u89C8\uFF0C\u9ED8\u8BA4 50 \u884C\uFF09 |",
-      "| export_sql_to_csv | export_query\uFF08\u5168\u91CF\u5BFC\u51FA CSV \u5230\u5DE5\u4F5C\u533A\uFF09 |",
-      "| search_knowledge / search_past_learnings | search_knowledge |",
-      "| read_knowledge_file | read_knowledge |",
-      "| edit_knowledge_file / write_knowledge_file / save_learning | update_knowledge\uFF08append_learning \u8FFD\u52A0 doc/learning/\uFF09 |",
-      "| activate_skill | load_skill |",
-      "| read_workspace_file / write_workspace_file | read_file / write_file |",
-      "| introspect_database / list_tables / get_table_schema | \u5148 search_knowledge \u67E5 doc/db_schema.md\uFF0C\u518D\u7528 query_database \u8BD5\u63A2 |",
-      "| build_dashboard / add_chart / remove_chart | generate_dashboard |",
-      "| semantic_sl_discover / semantic_sl_query | \u8BED\u4E49\u6A21\u578B\u6E05\u5355\u89C1\u77E5\u8BC6\u5E93\uFF1B\u6267\u884C\u7528 query_database |",
-      "",
-      "\u6570\u636E\u5E93\u4E3A MySQL \u4E1A\u52A1\u5E93\uFF1A\u7CFB\u7EDF\u8868\u67E5\u8BE2\u7528 `SELECT table_name FROM information_schema.tables WHERE table_schema=DATABASE()`\uFF0C\u7981\u6B62\u4F7F\u7528 sqlite_master\u3002"
-    ].join("\n");
   }
 });
 
@@ -163910,8 +164111,8 @@ var init_sql_guard = __esm({
       "\\bCALL\\b",
       "\\bCREATE\\b",
       "\\bRENAME\\b",
-      "\\bREPLACE\\b",
-      // REPLACE INTO
+      "\\bREPLACE\\s+INTO\\b",
+      // REPLACE INTO is a write operation; scalar REPLACE() remains allowed.
       "\\bLOAD\\s+DATA\\b",
       "\\bINTO\\s+OUTFILE\\b",
       "\\bINTO\\s+DUMPFILE\\b"
@@ -163922,7 +164123,6 @@ var init_sql_guard = __esm({
       // Standard SQL line comments (-- text) are valid and are not high-risk alone.
       "/\\*.*?\\*/",
       // Block comments can hide dangerous keywords.
-      "\\bUNION\\s+(ALL\\s+)?SELECT\\b",
       "\\bEXEC\\b",
       "\\bXP_\\w+"
     ];
@@ -164114,9 +164314,9 @@ var dist_exports = {};
 __export(dist_exports, {
   ClarificationManager: () => ClarificationManager,
   DANGEROUS_KEYWORDS: () => DANGEROUS_KEYWORDS,
-  DATA_AGENT_SYSTEM_PROMPT: () => DATA_AGENT_SYSTEM_PROMPT,
   DataAgentRuntime: () => DataAgentRuntime,
   DataAgentRuntimeError: () => DataAgentRuntimeError,
+  EXPORT_QUERY_PARAMETERS: () => EXPORT_QUERY_PARAMETERS,
   ExportCapabilityError: () => ExportCapabilityError,
   INJECTION_PATTERNS: () => INJECTION_PATTERNS,
   InMemorySecretVault: () => InMemorySecretVault,
@@ -164128,8 +164328,8 @@ __export(dist_exports, {
   PiJsonlSessionStore: () => PiJsonlSessionStore,
   ProcessSupervisor: () => ProcessSupervisor,
   ProviderRegistry: () => ProviderRegistry,
+  SHOW_WIDGET_PARAMETERS: () => SHOW_WIDGET_PARAMETERS,
   SqlGuard: () => SqlGuard,
-  TOOL_NAME_MAPPING: () => TOOL_NAME_MAPPING,
   WorkspaceStore: () => WorkspaceStore,
   assertNoLegacyTools: () => assertNoLegacyTools,
   buildAgentTools: () => buildAgentTools,
@@ -164137,6 +164337,7 @@ __export(dist_exports, {
   createAgentHarnessResolver: () => createAgentHarnessResolver,
   createDataAgentHarness: () => createDataAgentHarness,
   createExportQueryAdapter: () => createExportQueryAdapter,
+  dialectHint: () => dialectHint,
   effectiveTools: () => effectiveTools,
   loadRuntimeManifest: () => loadRuntimeManifest,
   loadSkillsFromDir: () => loadSkillsFromDir,
@@ -164151,7 +164352,9 @@ __export(dist_exports, {
   resolveSkillRoots: () => resolveSkillRoots,
   resolveSystemPrompt: () => resolveSystemPrompt,
   runPythonJob: () => runPythonJob,
+  runtimeCapabilitiesPrompt: () => runtimeCapabilitiesPrompt,
   semanticToolIdentity: () => semanticToolIdentity,
+  unknownToolRecoveryMessage: () => unknownToolRecoveryMessage,
   validateWidgetSpec: () => validateWidgetSpec,
   widgetLegacyText: () => widgetLegacyText,
   writePythonPackManifest: () => writePythonPackManifest
@@ -164159,7 +164362,7 @@ __export(dist_exports, {
 function isNonEmptyString(value) {
   return typeof value === "string" && value.length > 0;
 }
-function asRecord(value) {
+function asRecord2(value) {
   return typeof value === "object" && value !== null ? value : void 0;
 }
 function readableToolResult(result, fallback) {
@@ -164507,7 +164710,7 @@ var init_dist5 = __esm({
                 delete next[field];
             }
             await this.metadata.setConfig("ui.settings", next);
-            const pythonConfig = asRecord(patch.python_runtime);
+            const pythonConfig = asRecord2(patch.python_runtime);
             if (pythonConfig) {
               this.pythonExecutable = pythonConfig.mode === "external" && typeof pythonConfig.executable === "string" && pythonConfig.executable.trim() ? pythonConfig.executable : this.bundledPythonExecutable;
             }
@@ -164600,7 +164803,7 @@ var init_dist5 = __esm({
                   if (part.type === "thinking" && typeof part.thinking === "string")
                     reasoningContent += part.thinking;
                   if (part.type === "toolCall" && typeof part.id === "string" && typeof part.name === "string") {
-                    const tool = { toolCallId: part.id, name: part.name, arguments: asRecord(part.arguments) ?? {}, status: "calling" };
+                    const tool = { toolCallId: part.id, name: part.name, arguments: asRecord2(part.arguments) ?? {}, status: "calling" };
                     toolCallsById[part.id] = tool;
                   }
                 }
@@ -164634,13 +164837,13 @@ var init_dist5 = __esm({
                   if (part.type === "text" && typeof part.text === "string")
                     result += part.text;
                 }
-                const details = asRecord(message.details);
+                const details = asRecord2(message.details);
                 owner.tool.result = result;
                 owner.tool.details = message.details;
                 owner.tool.isError = message.isError === true;
                 owner.tool.status = message.isError === true ? "error" : "done";
                 const widgetId = typeof details?.widgetId === "string" ? details.widgetId : void 0;
-                const widget = asRecord(details?.widget);
+                const widget = asRecord2(details?.widget);
                 if (widgetId)
                   owner.tool.widgetId = widgetId;
                 if (widgetId && widget)
@@ -164820,7 +165023,7 @@ var init_dist5 = __esm({
           return;
         const base = () => ({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: run.requestId, runId: run.runId, sessionId: run.sessionId, timestamp: Date.now() });
         if (event.type === "message_start") {
-          const message = asRecord(event.message);
+          const message = asRecord2(event.message);
           if (message?.role !== "assistant")
             return;
           const messageId = isNonEmptyString(message.id) ? message.id : `${run.runId}:assistant:${++this.assistantMessageSequence}`;
@@ -165569,6 +165772,7 @@ async function startElectronHost(deps, overrides = {}) {
         knowledge,
         knowledgeRoot,
         pythonExecutable: () => runtime.pythonExecutablePath,
+        databaseDialect: "mysql",
         queryExecutor,
         clarifications: runtime.clarificationManager,
         session: persistentSession,

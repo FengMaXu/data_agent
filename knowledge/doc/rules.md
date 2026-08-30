@@ -36,12 +36,25 @@
 - 只能执行 SELECT 查询，禁止 INSERT/UPDATE/DELETE
 - 返回上下文的结果最多 100 行，超出自动截断并提示导出完整数据
 - 敏感字段需要脱敏处理
-- 大结果 SQL 的完整数据交付应优先使用 `export_sql_to_csv`，不要通过 `execute_sql` 反复扩大上下文窗口。
+- 大结果 SQL 的完整数据交付应优先使用 `export_query`，不要通过 `query_database` 反复扩大上下文窗口。
 
 ## SQL 规范
 - 表别名使用有意义的缩写
 - JOIN 必须指定 ON 条件
 
-## 状态值定义
+## SQL 语义自检
+
+在 `query_database` 验证结果后、`export_query` 导出前，检查：
+
+1. **聚合粒度**：AVG 的分母是什么？是按行、按实体、还是按分组？
+2. **JOIN 基数**：一对多 JOIN 是否导致行重复膨胀？必要时先按业务键去重或预聚合。
+3. **浮点除法**：整数除以整数可能截断，是否需要 `CAST(... AS REAL)` 或等价写法？
+4. **窗口边界**：`ROWS BETWEEN` 是否包含当前行，`PRECEDING`/`FOLLOWING` 范围是否符合需求？
+5. **排序 Tie-breaker**：Top-N 或首条记录存在并列时，是否追加唯一标识符？
+6. **NULL 处理**：确认 `COUNT(*)`、`COUNT(column)`、`SUM` 中的 NULL 语义，并使用 `COALESCE` 兜底。
+7. **时间边界**：`BETWEEN` 包含两端；时间范围是否应使用 `>= start AND < end`？
+8. **最终粒度**：导出的列数和行数是否与用户要求的标量、Top-N、分组汇总或明细一致？
+
+## 状态值定义（生产业务规则）
 - 用户状态(status): 1=正常, 2=冻结, 3=注销
 - 订单状态(order_status): pending=待付款, paid=已付款, shipped=已发货, completed=已完成, cancelled=已取消, refunded=已退款

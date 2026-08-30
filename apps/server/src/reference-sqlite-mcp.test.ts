@@ -29,7 +29,12 @@ describe("Reference SQLite MCP Server", () => {
     expect(payload.contractVersion).toBe(1);
 
     const dangerous = await client.callTool({ name: "execute_query_preview", arguments: { sql: "DROP TABLE sales" } });
-    expect(JSON.parse((dangerous.content as any)[0].text).error.code).toBe("FORBIDDEN_SQL");
+    const dangerousPayload = JSON.parse((dangerous.content as any)[0].text);
+    expect(dangerousPayload.error.code).toBe("FORBIDDEN_SQL");
+    expect(dangerousPayload.error.message).toContain("high-risk");
+
+    const union = await client.callTool({ name: "execute_query_preview", arguments: { sql: "SELECT region FROM sales UNION ALL SELECT region FROM sales" } });
+    expect(JSON.parse((union.content as any)[0].text).rows).toHaveLength(4);
 
     const schema = await client.callTool({ name: "get_schema", arguments: {} });
     expect(JSON.parse((schema.content as any)[0].text).schema[0].table).toBe("sales");
@@ -44,6 +49,11 @@ describe("Reference SQLite MCP Server", () => {
     const blob = (read.contents[0] as any).blob as string;
     expect(Buffer.from(blob, "base64").toString("utf8")).toContain("north");
     expect(exports_.size).toBe(1);
+
+    const emptyExport = await client.callTool({ name: "export_query", arguments: { sql: "SELECT id, region FROM sales WHERE 1 = 0" } });
+    const emptyPayload = JSON.parse((emptyExport.content as any)[0].text);
+    const emptyResource = await client.readResource({ uri: emptyPayload.resourceUri });
+    expect(Buffer.from((emptyResource.contents[0] as any).blob, "base64").toString("utf8")).toBe("id,region");
 
     await client.close();
     await close();

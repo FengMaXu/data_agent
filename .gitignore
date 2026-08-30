@@ -18,6 +18,8 @@ data_agent.log
 
 # Workspace and temporary outputs
 workspace/
+/eval_results_spider2/
+/evaluations/spider2/config.local.json
 test_output.txt
 *.png
 *.mp4

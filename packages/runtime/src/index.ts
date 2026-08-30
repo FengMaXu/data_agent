@@ -768,7 +768,7 @@ export class DataAgentRuntime {
 }
 
 export { LocalAuthService } from "./auth.js";
-export { createDataAgentHarness, buildAgentTools, resolveSystemPrompt, TOOL_NAME_MAPPING, DATA_AGENT_SYSTEM_PROMPT, type AgentAssemblyDeps, type AgentAssemblyToolContext, type AgentAssemblyToolContextSource, type AgentModelProfile, type PythonExecutableSource, type QueryExecutor, type QueryExportBatch } from "./agent-assembly.js";
+export { createDataAgentHarness, buildAgentTools, resolveSystemPrompt, dialectHint, runtimeCapabilitiesPrompt, unknownToolRecoveryMessage, type AgentAssemblyDeps, type AgentAssemblyToolContext, type AgentAssemblyToolContextSource, type AgentTaskProgress, type AgentModelProfile, type PythonExecutableSource, type DatabaseDialect, type QueryExecutor, type QueryExportBatch } from "./agent-assembly.js";
 export { validateWidgetSpec, widgetLegacyText, type WidgetKind, type WidgetPayload, type WidgetLifecycleDetails } from "./widget.js";
 export { createAgentHarnessResolver, type AgentHarnessResolver, type AgentHarnessResolverOptions } from "./agent-harness-lifecycle.js";
 export { migrateLegacyData, type MigrationReport } from "./legacy-migration.js";
@@ -780,7 +780,7 @@ export { createExportQueryAdapter, ExportCapabilityError } from "./export-adapte
 export { ProcessSupervisor, semanticToolIdentity, type SupervisorState } from "./process-supervisor.js";
 export { ClarificationManager } from "./clarification.js";
 export { InMemorySecretVault, ProviderRegistry, type LLMProfile, type SecretVault } from "./providers.js";
-export { assertNoLegacyTools, canonicalLocalTools, type CanonicalTool } from "./tools-catalog.js";
+export { assertNoLegacyTools, canonicalLocalTools, EXPORT_QUERY_PARAMETERS, SHOW_WIDGET_PARAMETERS, type CanonicalTool } from "./tools-catalog.js";
 export { WorkspaceStore, type WorkspaceStreamProducer, type WorkspaceArtifact } from "./workspace.js";
 export { loadRuntimeManifest, probePython, resolvePythonRuntime, type PythonRuntimeConfig, type PythonRuntimeManifest } from "./python-runtime.js";
 export { writePythonPackManifest } from "./python-pack-builder.js";

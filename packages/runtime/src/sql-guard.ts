@@ -6,12 +6,13 @@
  * are executed against this implementation and against the legacy Python
  * `SQLGuard` to prove behaviour parity.
  *
- * Parity notes (verified against the legacy implementation):
+ * Safety contract:
  * - empty/whitespace-only SQL is rejected with "Empty query"
  * - injection patterns are checked first, then dangerous keywords
  * - reasons are "SQL blocked: injection pattern detected [<pattern>]" and
  *   "SQL blocked: high-risk operation detected [<pattern>]"
  * - matching is case-insensitive; injection patterns are dot-all
+ * - read-only UNION and scalar REPLACE() are allowed; REPLACE INTO remains blocked
  */
 
 export const DANGEROUS_KEYWORDS = [
@@ -26,7 +27,7 @@ export const DANGEROUS_KEYWORDS = [
   "\\bCALL\\b",
   "\\bCREATE\\b",
   "\\bRENAME\\b",
-  "\\bREPLACE\\b", // REPLACE INTO
+  "\\bREPLACE\\s+INTO\\b", // REPLACE INTO is a write operation; scalar REPLACE() remains allowed.
   "\\bLOAD\\s+DATA\\b",
   "\\bINTO\\s+OUTFILE\\b",
   "\\bINTO\\s+DUMPFILE\\b",
@@ -36,7 +37,6 @@ export const INJECTION_PATTERNS = [
   ";\\s*\\w", // Multi-statement injection.
   // Standard SQL line comments (-- text) are valid and are not high-risk alone.
   "/\\*.*?\\*/", // Block comments can hide dangerous keywords.
-  "\\bUNION\\s+(ALL\\s+)?SELECT\\b",
   "\\bEXEC\\b",
   "\\bXP_\\w+",
 ] as const;

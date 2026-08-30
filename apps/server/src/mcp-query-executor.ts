@@ -50,12 +50,12 @@ export function createMcpQueryExecutor(options: McpQueryExecutorOptions) {
       const text = result.content?.find((part) => part.type === "text")?.text;
       if (!text) throw new Error("MCP_QUERY_EMPTY_RESPONSE");
       if (result.isError) throw new Error(`MCP_TOOL_ERROR: ${text.slice(0, 300)}`);
-      let payload: { error?: { code: string; message?: string }; rows?: unknown[]; truncated?: boolean };
+      let payload: { error?: { code: string; message?: string }; columns?: string[]; rows?: unknown[]; truncated?: boolean };
       try { payload = JSON.parse(text) as typeof payload; }
       catch { throw new Error(`MCP_QUERY_BAD_RESPONSE: ${text.slice(0, 300)}`); }
       if (payload.error) throw new Error(`${payload.error.code}${payload.error.message ? `: ${payload.error.message}` : ""}`);
       const rows = (payload.rows ?? []) as Record<string, unknown>[];
-      const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
+      const columns = payload.columns ?? (rows.length > 0 ? Object.keys(rows[0]) : []);
       return {
         columns,
         rows: rows.map((row) => columns.map((col) => row[col])),
@@ -78,7 +78,9 @@ export function createMcpQueryExecutor(options: McpQueryExecutorOptions) {
         const rows = (payload.rows ?? []) as Record<string, unknown>[];
         const columns = payload.columns ?? (rows.length > 0 ? Object.keys(rows[0]) : []);
         const values = rows.map((row) => columns.map((column) => row[column]));
-        if (values.length > 0) yield { columns, rows: values };
+        // Preserve an empty first batch with its column metadata so an empty
+        // result still produces a header-only CSV.
+        yield { columns, rows: values };
         if (payload.done || values.length < batchSize) return;
       }
       throw new Error("EXPORT_ROW_LIMIT_EXCEEDED");
