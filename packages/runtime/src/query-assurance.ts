@@ -1,12 +1,12 @@
 import { createHash, randomUUID } from "node:crypto";
-import { createSpecAuthority, type AmbiguityInput, type AnswerSpec, type ConstraintInput, type HypothesisInput, type SpecAuthority } from "./answer-spec.js";
+import { createSpecAuthority, type AmbiguityInput, type AnswerRowMode, type AnswerSpec, type AnswerSpecGenerator, type ConstraintInput, type HypothesisInput, type SpecAuthority } from "./answer-spec.js";
 import { createQueryDigestCompiler, type QueryDigest, type QueryDigestCompiler, type SchemaEvidence, type SqlDialect } from "./query-digest.js";
 import type { ConversationBlindReviewer, ConversationBlindReviewerInput, ReviewCoverage, SemanticDiff } from "./conversation-blind-reviewer.js";
 import type { ExportCandidate } from "./export-candidate.js";
 import { PublicationRegistry, type PublicationAuthorization, type PublicationReceipt, type ReviewToken } from "./publication.js";
 import { ReviewCache, type ReviewCacheIdentity } from "./review-cache.js";
 import { type AssuranceMetrics, type ReviewModeController } from "./review-policy.js";
-import type { AssuranceAuditStore } from "./assurance-audit.js";
+import { InMemoryAssuranceAuditStore, type AssuranceAuditRecord, type AssuranceAuditStore } from "./assurance-audit.js";
 
 /** Runtime modes are explicit so Review Off cannot be confused with Shadow Review. */
 export type QueryAssuranceMode = "off" | "shadow" | "enforce";
@@ -24,6 +24,9 @@ export interface TaskEvidence {
   readonly constraints?: readonly ConstraintInput[];
   readonly hypotheses?: readonly HypothesisInput[];
   readonly ambiguities?: readonly AmbiguityInput[];
+  readonly outputColumns?: readonly string[];
+  readonly rowMode?: AnswerRowMode;
+  readonly rowCount?: number;
   readonly dialect?: SqlDialect;
   readonly schema?: SchemaEvidence;
   readonly [key: string]: unknown;
@@ -34,6 +37,7 @@ export interface PreparedQueryTask {
   readonly taskId: string;
   readonly mode: QueryAssuranceMode;
   readonly specVersion?: string;
+  readonly specStatus?: "available" | "unavailable";
 }
 
 export interface QueryPreviewResult {
@@ -71,6 +75,7 @@ export interface ValidatedQueryArtifact {
   readonly queryDigest?: QueryDigest;
   readonly schemaEvidence?: SchemaEvidence;
   readonly specVersion?: string;
+  readonly specStatus?: "available" | "unavailable";
   readonly internalEvidence: true;
   readonly createdAt: string;
   readonly expiresAt: string;
@@ -147,6 +152,7 @@ export interface QueryAssuranceOptions {
   reviewCoverageSchemaVersion?: string;
   modeController?: ReviewModeController;
   auditStore?: AssuranceAuditStore;
+  specGenerator?: AnswerSpecGenerator;
 }
 
 export function normalizeQuerySql(sql: string): string {
@@ -225,7 +231,8 @@ export class InMemoryQueryAssurance implements QueryAssurance {
   private readonly reviewerPromptVersion: string;
   private readonly reviewPolicyVersion: string;
   private readonly reviewCoverageSchemaVersion: string;
-  private readonly auditStore?: AssuranceAuditStore;
+  private readonly auditStore: AssuranceAuditStore;
+  private readonly specGenerator?: AnswerSpecGenerator;
 
   constructor(options: QueryAssuranceOptions = {}) {
     this.modeController = options.modeController;
@@ -245,26 +252,49 @@ export class InMemoryQueryAssurance implements QueryAssurance {
     this.reviewerPromptVersion = options.reviewerPromptVersion ?? "1";
     this.reviewPolicyVersion = options.reviewPolicyVersion ?? "1";
     this.reviewCoverageSchemaVersion = options.reviewCoverageSchemaVersion ?? "1";
-    this.auditStore = options.auditStore;
+    this.auditStore = options.auditStore ?? new InMemoryAssuranceAuditStore({ now: this.now });
+    this.specGenerator = options.specGenerator;
   }
 
   get mode(): QueryAssuranceMode { return this.modeController?.mode() ?? this.configuredMode; }
 
   observeMetrics(metrics: AssuranceMetrics): void { this.modeController?.circuitBreaker().observe(metrics); }
+  auditRecords(taskId?: string): readonly AssuranceAuditRecord[] { return this.auditStore.list(taskId); }
 
   async prepareTask(input: TaskEvidence, signal: AbortSignal): Promise<PreparedQueryTask> {
     throwIfAborted(signal);
     const taskId = randomUUID();
     this.taskEvidence.set(taskId, input);
-    const spec = this.specAuthority.prepare({
+    const specInput = {
       taskId,
       question: input.question,
       clarifications: input.clarifications,
       constraints: input.constraints,
       hypotheses: input.hypotheses,
       ambiguities: input.ambiguities,
-    });
-    return { taskId, mode: this.mode, specVersion: spec.specVersion };
+      outputColumns: input.outputColumns,
+      rowMode: input.rowMode,
+      rowCount: input.rowCount,
+    };
+    try {
+      if (this.specGenerator) {
+        const generated = await this.specGenerator.generate(specInput, signal);
+        const prepared = this.specAuthority.prepare({ ...generated, taskId, question: input.question });
+        return { taskId, mode: this.mode, specVersion: prepared.specVersion, specStatus: "available" };
+      }
+      const prepared = this.specAuthority.prepare(specInput);
+      return { taskId, mode: this.mode, specVersion: prepared.specVersion, specStatus: "available" };
+    } catch (error) {
+      if (error instanceof QueryAssuranceAbortError) throw error;
+      this.auditStore.append({
+        taskId,
+        reviewAvailability: "unavailable",
+        specStatus: "unavailable",
+        repairAttempt: 0,
+        reviewMode: this.mode,
+      });
+      return { taskId, mode: this.mode, specStatus: "unavailable" };
+    }
   }
 
   getAnswerSpec(taskId: string, specVersion?: string): AnswerSpec | undefined {
@@ -299,6 +329,7 @@ export class InMemoryQueryAssurance implements QueryAssurance {
       ...(dialect ? { queryDigest: this.digestCompiler.compile({ sql: normalizedSql, dialect, schema }) } : {}),
       ...(schema ? { schemaEvidence: schema } : {}),
       ...(input.task.specVersion ? { specVersion: input.task.specVersion } : {}),
+      ...(input.task.specStatus ? { specStatus: input.task.specStatus } : {}),
       internalEvidence: true,
       createdAt: new Date(createdAtMs).toISOString(),
       expiresAt: new Date(createdAtMs + this.artifactTtlMs).toISOString(),
@@ -310,6 +341,16 @@ export class InMemoryQueryAssurance implements QueryAssurance {
       this.artifacts.set(input.task.taskId, taskArtifacts);
     }
     taskArtifacts.set(artifact.queryArtifactId, artifact);
+    this.auditStore?.append({
+      taskId: artifact.taskId,
+      queryArtifactId: artifact.queryArtifactId,
+      sqlHash: artifact.normalizedSqlHash,
+      ...(artifact.specVersion ? { specVersion: artifact.specVersion } : {}),
+      ...(artifact.queryDigest ? { queryDigestVersion: artifact.queryDigest.queryDigestVersion } : {}),
+      reviewAvailability: this.mode === "off" ? "off" : "unavailable",
+      repairAttempt: 0,
+      reviewMode: this.mode,
+    });
     return artifact;
   }
 
@@ -338,7 +379,7 @@ export class InMemoryQueryAssurance implements QueryAssurance {
         availability: "unavailable",
         failure: { code: "REVIEWER_NOT_CONFIGURED", message: "Conversation-Blind Reviewer is not configured", retryable: false },
       };
-    } else if (!input.reviewInput) {
+    } else if (!input.reviewInput || !input.reviewInput.digest || !input.reviewInput.answerSpec || !input.reviewInput.resultMetadata) {
       outcome = {
         availability: "unavailable",
         failure: { code: "REVIEW_INPUT_INCOMPLETE", message: "Publication review input is incomplete", retryable: false },
@@ -402,7 +443,7 @@ export class InMemoryQueryAssurance implements QueryAssurance {
       ...(typeof candidate.normalizedSqlHash === "string" ? { sqlHash: candidate.normalizedSqlHash } : {}),
       ...(typeof candidate.specVersion === "string" ? { specVersion: candidate.specVersion } : {}),
       ...(typeof candidate.schemaEvidenceFingerprint === "string" ? { schemaEvidenceFingerprint: candidate.schemaEvidenceFingerprint } : {}),
-      ...(input.reviewInput ? { queryDigestVersion: input.reviewInput.digest.queryDigestVersion } : {}),
+      ...(input.reviewInput?.digest ? { queryDigestVersion: input.reviewInput.digest.queryDigestVersion } : {}),
       reviewerModel: this.reviewerModel,
       reviewerPromptVersion: this.reviewerPromptVersion,
       reviewPolicyVersion: this.reviewPolicyVersion,
@@ -418,7 +459,22 @@ export class InMemoryQueryAssurance implements QueryAssurance {
   async publishCandidate(input: { reviewToken: ReviewToken; candidate: ExportCandidate; targetPath: string; authorization?: PublicationAuthorization; promote?: () => Promise<void> }, signal: AbortSignal): Promise<PublicationReceipt> {
     throwIfAborted(signal);
     const receipt = await this.publicationRegistry.publish(input.reviewToken, input.candidate, input.targetPath, input.authorization, input.promote);
-    if (this.auditStore) this.auditStore.append({ taskId: receipt.taskId, queryArtifactId: receipt.queryArtifactId, publicationStatus: receipt.status, reviewAvailability: receipt.reviewOutcome.availability === "unavailable" ? "unavailable" : "available", ...(receipt.reviewOutcome.availability === "available" ? { decision: receipt.reviewOutcome.decision.status } : {}), repairAttempt: 0, reviewMode: receipt.mode });
+    if (this.auditStore) this.auditStore.append({
+      taskId: receipt.taskId,
+      queryArtifactId: receipt.queryArtifactId,
+      publicationStatus: receipt.status,
+      reviewAvailability: receipt.reviewOutcome.availability === "unavailable" ? "unavailable" : "available",
+      ...(receipt.reviewOutcome.availability === "available" ? {
+        decision: receipt.reviewOutcome.decision.status,
+        ...(receipt.reviewOutcome.decision.coverage ? { coverage: receipt.reviewOutcome.decision.coverage } : {}),
+        ...(receipt.reviewOutcome.decision.diffs ? { semanticDiffs: receipt.reviewOutcome.decision.diffs } : {}),
+      } : {}),
+      reviewerModel: this.reviewerModel,
+      reviewerPromptVersion: this.reviewerPromptVersion,
+      reviewPolicyVersion: this.reviewPolicyVersion,
+      repairAttempt: 0,
+      reviewMode: receipt.mode,
+    });
     return receipt;
   }
 }

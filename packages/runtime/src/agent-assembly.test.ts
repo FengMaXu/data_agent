@@ -317,7 +317,6 @@ describe("export_query", () => {
       const queryArtifactId = preview.details.queryArtifactId;
       expect(queryArtifactId).toBeTruthy();
       const result = await exportQuery.execute("artifact-export", {
-        sql: "SELECT 1 AS answer",
         queryArtifactId,
         filename: "exports/artifact.csv",
         expected_rows: "scalar",

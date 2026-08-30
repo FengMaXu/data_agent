@@ -10,6 +10,7 @@ export interface AssuranceAuditRecord {
   readonly queryArtifactId?: string;
   readonly sqlHash?: string;
   readonly specVersion?: string;
+  readonly specStatus?: "available" | "unavailable";
   readonly schemaEvidenceFingerprint?: string;
   readonly queryDigestVersion?: string;
   readonly reviewerModel?: string;
@@ -49,6 +50,7 @@ export class InMemoryAssuranceAuditStore implements AssuranceAuditStore {
       ...(input.queryArtifactId ? { queryArtifactId: input.queryArtifactId } : {}),
       ...(input.sqlHash ? { sqlHash: input.sqlHash } : {}),
       ...(input.specVersion ? { specVersion: input.specVersion } : {}),
+      ...(input.specStatus ? { specStatus: input.specStatus } : {}),
       ...(input.schemaEvidenceFingerprint ? { schemaEvidenceFingerprint: input.schemaEvidenceFingerprint } : {}),
       ...(input.queryDigestVersion ? { queryDigestVersion: input.queryDigestVersion } : {}),
       ...(input.reviewerModel ? { reviewerModel: input.reviewerModel } : {}),

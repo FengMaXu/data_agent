@@ -43,6 +43,8 @@ describe("ReviewCache", () => {
       await cache.getOrCreate(identity({ [field]: `${identity()[field]}-changed` }), loader);
     }
     expect(calls).toBe(1 + Object.keys(identity()).length);
+    await cache.getOrCreate(identity({ taskId: "task-2" }), loader);
+    expect(calls).toBe(2 + Object.keys(identity()).length);
 
     let unavailableCalls = 0;
     const unavailable = async () => { unavailableCalls += 1; return { availability: "unavailable", failure: { code: "TIMEOUT", message: "timeout", retryable: true } } as const; };

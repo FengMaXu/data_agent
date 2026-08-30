@@ -28,6 +28,8 @@ describe("ExportCandidateStore", () => {
         nullCounts: { id: 0, value: 1 },
       });
       expect(candidate.path).toContain(".query-assurance/candidates/");
+      expect(await workspace.list()).not.toContain(candidate.path);
+      await expect(workspace.read(candidate.path)).rejects.toThrow("PRIVATE_WORKSPACE_PATH");
       expect(await readFile(join(root, candidate.path), "utf8")).toBe("id,value\n1,\"a\"\n2,");
       await store.publish(candidate, "exports/result.csv");
       expect(await readFile(join(root, "exports/result.csv"), "utf8")).toBe("id,value\n1,\"a\"\n2,");

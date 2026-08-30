@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AssuranceCircuitBreaker, ReviewModeController, type CalibrationIdentity } from "./review-policy.js";
+import { AssuranceCircuitBreaker, DeliveryPolicy, ReviewModeController, type CalibrationIdentity } from "./review-policy.js";
 
 const identity: CalibrationIdentity = {
   reviewerModel: "model-1",
@@ -10,6 +10,15 @@ const identity: CalibrationIdentity = {
   reviewPolicyVersion: "policy-1",
   hardConstraintAdmissionPolicy: "hard-1",
 };
+
+describe("DeliveryPolicy", () => {
+  it("keeps unavailable and rejected decisions distinct from Approved", () => {
+    const policy = new DeliveryPolicy("enforce");
+    expect(policy.decide({ availability: "unavailable", failure: { code: "TIMEOUT", message: "timeout", retryable: true } })).toMatchObject({ allowed: false, status: "not_published_review_unavailable" });
+    expect(policy.decide({ availability: "available", decision: { status: "rejected" } })).toMatchObject({ allowed: false, status: "not_published_rejected" });
+    expect(new DeliveryPolicy("shadow").decide({ availability: "available", decision: { status: "rejected" } })).toMatchObject({ allowed: true, status: "published_with_disagreement" });
+  });
+});
 
 describe("ReviewModeController", () => {
   it("defaults product-style configuration to Shadow Review and refuses uncalibrated enforce", () => {

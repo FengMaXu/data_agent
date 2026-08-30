@@ -35,7 +35,13 @@ export class WorkspaceStore {
   private assertWithin(root: string, target: string): void {
     if (!this.isWithin(root, target)) throw new Error("WORKSPACE_SYMLINK_ESCAPE");
   }
-  async list(): Promise<string[]> { return readdir(this.root, { recursive: true }) as Promise<string[]>; }
+  async list(): Promise<string[]> {
+    return (await readdir(this.root, { recursive: true }) as string[]).filter((entry) => !entry.split(path.sep).includes(".query-assurance") && !entry.endsWith(".audit.log"));
+  }
+  private assertReadable(relativePath: string): void {
+    const normalized = relativePath.replaceAll("\\", "/");
+    if (normalized === ".query-assurance" || normalized.startsWith(".query-assurance/")) throw new Error("PRIVATE_WORKSPACE_PATH");
+  }
   private async safeExisting(relativePath: string): Promise<string> {
     const target = await realpath(this.resolve(relativePath));
     const root = await realpath(this.root);
@@ -43,7 +49,7 @@ export class WorkspaceStore {
     return target;
   }
   async read(relativePath: string): Promise<string> { return (await this.readRange(relativePath)).content; }
-  async readBytes(relativePath: string): Promise<Uint8Array> { return new Uint8Array(await readFile(await this.safeExisting(relativePath))); }
+  async readBytes(relativePath: string): Promise<Uint8Array> { this.assertReadable(relativePath); return new Uint8Array(await readFile(await this.safeExisting(relativePath))); }
   /** Read a session path, falling back to a pre-session-isolation root artifact. */
   async readBytesWithLegacyFallback(relativePath: string): Promise<Uint8Array> {
     try {
@@ -60,6 +66,7 @@ export class WorkspaceStore {
     }
   }
   async readRange(relativePath: string, range: LineRange = {}): Promise<BoundedReadResult> {
+    this.assertReadable(relativePath);
     return boundTextByLines(await readFile(await this.safeExisting(relativePath), "utf8"), range);
   }
   async write(relativePath: string, content: string): Promise<void> {

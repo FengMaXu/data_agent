@@ -1,4 +1,5 @@
-import type { QueryAssuranceMode } from "./query-assurance.js";
+import type { QueryAssuranceMode, ReviewOutcome } from "./query-assurance.js";
+import type { PublicationAuthorization, PublicationStatus } from "./publication.js";
 
 export interface CalibrationIdentity {
   readonly reviewerModel: string;
@@ -100,6 +101,26 @@ export class AssuranceCircuitBreaker {
     if (!options.recalibrated) throw new Error("CIRCUIT_BREAKER_RECALIBRATION_REQUIRED");
     this.tripped = false;
     this.reason = undefined;
+  }
+}
+
+export interface DeliveryDecision {
+  readonly allowed: boolean;
+  readonly status: PublicationStatus;
+  readonly reason?: string;
+}
+
+export class DeliveryPolicy {
+  constructor(readonly mode: QueryAssuranceMode) {}
+
+  decide(outcome: ReviewOutcome, authorization?: PublicationAuthorization): DeliveryDecision {
+    const approved = outcome.availability === "available" && outcome.decision.status === "approved";
+    if (approved || this.mode === "shadow" || this.mode === "off" || authorization) return { allowed: true, status: approved ? "published_approved" : "published_with_disagreement" };
+    return {
+      allowed: false,
+      status: outcome.availability === "unavailable" ? "not_published_review_unavailable" : "not_published_rejected",
+      reason: outcome.availability === "unavailable" ? "REVIEW_UNAVAILABLE" : "REVIEW_NOT_APPROVED",
+    };
   }
 }
 

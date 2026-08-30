@@ -103,10 +103,17 @@ describe("Review Off QueryAssurance", () => {
     expect(calls).toBe(1);
   });
 
+  it("marks a failed Spec Generator unavailable instead of fabricating an empty Spec", async () => {
+    const assurance = new InMemoryQueryAssurance({ specGenerator: { generate: async () => { throw new Error("SPEC_GENERATOR_TIMEOUT"); } } });
+    const task = await assurance.prepareTask({ question: "q" }, new AbortController().signal);
+    expect(task).toMatchObject({ specStatus: "unavailable" });
+    expect(assurance.getAnswerSpec?.(task.taskId)).toBeUndefined();
+  });
+
   it("converts reviewer failures to Review Unavailable rather than Approved", async () => {
     const assurance = new InMemoryQueryAssurance({ mode: "shadow", reviewer: { review: async () => { throw new Error("PROVIDER_TIMEOUT"); } } });
     const task = await assurance.prepareTask({ question: "q" }, new AbortController().signal);
-    await expect(assurance.reviewForPublication({ task, candidate: "candidate", reviewInput: {} as any }, new AbortController().signal)).resolves.toMatchObject({ availability: "unavailable", failure: { code: "REVIEWER_FAILED" } });
+    await expect(assurance.reviewForPublication({ task, candidate: "candidate", reviewInput: {} as any }, new AbortController().signal)).resolves.toMatchObject({ availability: "unavailable", failure: { code: "REVIEW_INPUT_INCOMPLETE" } });
   });
 
   it("propagates cancellation at both lifecycle operations", async () => {

@@ -386,7 +386,7 @@ function schemaFingerprint(input: QueryDigestInput, sources: readonly DigestSour
       ...(table.primaryKey ? { primaryKey: [...table.primaryKey] } : {}),
       ...(table.uniqueKeys ? { uniqueKeys: table.uniqueKeys.map((key) => [...key]) } : {}),
       ...(table.foreignKeys ? { foreignKeys: table.foreignKeys.map((key) => ({ columns: [...key.columns], references: { table: key.references.table, columns: [...key.references.columns] } })) } : {}),
-      ...(table.description ? { description: table.description } : {}),
+      ...((table.description ?? input.schema?.reviewedDescriptions?.[table.name]) ? { description: table.description ?? input.schema?.reviewedDescriptions?.[table.name] } : {}),
     }))
     .sort((left, right) => left.name.localeCompare(right.name));
   return digestHash(stable({

@@ -522,6 +522,7 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
       if (!artifact) throw new Error("QUERY_ARTIFACT_NOT_FOUND_OR_EXPIRED");
       const target = params.filename ?? `exports/query-${Date.now()}.csv`;
       const workspace = await workspaceFor(native);
+      const taskSpec = queryAssurance.getAnswerSpec?.(taskId, artifact.specVersion);
       const candidateStore = new ExportCandidateStore(workspace);
       const batches = (async function* (): AsyncGenerator<{ columns: readonly string[]; rows: readonly (readonly unknown[])[]; columnTypes?: readonly string[]; truncated?: boolean }> {
         if (deps.queryExecutor!.stream) {
@@ -539,14 +540,16 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
           taskId,
           queryArtifactId: artifact.queryArtifactId,
           batches,
-          expectedColumns: artifact.previewMetadata.columns,
+          expectedColumns: taskSpec?.outputColumns ?? artifact.previewMetadata.columns,
+          expectedRows: taskSpec?.rowMode,
+          expectedRowCount: taskSpec?.rowCount,
         }, signal);
         const storedCandidate = candidate;
         const specVersion = artifact.specVersion ?? specVersionFor(native) ?? "1";
         const schemaEvidenceFingerprint = artifact.queryDigest?.schemaEvidenceFingerprint ?? "unknown";
         const candidateForReview = { ...storedCandidate, normalizedSqlHash: artifact.normalizedSqlHash, specVersion, schemaEvidenceFingerprint };
         const digest = artifact.queryDigest;
-        const spec = queryAssurance.getAnswerSpec?.(taskId, artifact.specVersion);
+        const spec = taskSpec;
         const reviewInput = digest && spec && artifact.schemaEvidence
           ? {
             question: spec.question,
@@ -700,6 +703,7 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
             normalizedSqlHash: artifact.normalizedSqlHash,
             previewMetadata: artifact.previewMetadata,
             expiresAt: artifact.expiresAt,
+            ...(artifact.specStatus ? { specStatus: artifact.specStatus } : {}),
           } : {}),
           ...(remindToExport ? { exportReminder: true, turnCount: progress!.turnCount, maxTurns: progress!.maxTurns } : {}),
         });

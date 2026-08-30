@@ -41,9 +41,14 @@ export interface AmbiguityInput {
   readonly source?: string;
 }
 
+export type AnswerRowMode = "scalar" | "top_n" | "grouped" | "full";
+
 export interface AnswerSpecInput {
   readonly taskId: string;
   readonly question: string;
+  readonly outputColumns?: readonly string[];
+  readonly rowMode?: AnswerRowMode;
+  readonly rowCount?: number;
   readonly clarifications?: readonly string[];
   readonly constraints?: readonly ConstraintInput[];
   readonly hypotheses?: readonly HypothesisInput[];
@@ -77,6 +82,9 @@ export interface AnswerSpec {
   readonly taskId: string;
   readonly specVersion: string;
   readonly question: string;
+  readonly outputColumns?: readonly string[];
+  readonly rowMode?: AnswerRowMode;
+  readonly rowCount?: number;
   readonly hardConstraints: readonly HardConstraint[];
   readonly hypotheses: readonly Hypothesis[];
   readonly ambiguities: readonly Ambiguity[];
@@ -168,6 +176,9 @@ export function createAnswerSpec(input: AnswerSpecInput): AnswerSpec {
     taskId: input.taskId,
     specVersion: "1",
     question: input.question,
+    ...(input.outputColumns ? { outputColumns: [...input.outputColumns] } : {}),
+    ...(input.rowMode ? { rowMode: input.rowMode } : {}),
+    ...(input.rowCount !== undefined ? { rowCount: input.rowCount } : {}),
     hardConstraints,
     hypotheses,
     ambiguities: (input.ambiguities ?? []).map((item, index) => makeAmbiguity(item, index)),
@@ -184,6 +195,14 @@ function cloneSpec(spec: AnswerSpec, specVersion: string, hardConstraints: reado
     ambiguities: ambiguities.map((item) => ({ ...item, alternatives: [...item.alternatives], ...(item.provenance ? { provenance: { ...item.provenance } } : {}) })),
     provenance: spec.provenance.map((item) => ({ ...item })),
   };
+}
+
+export interface AnswerSpecGenerator {
+  generate(input: AnswerSpecInput, signal: AbortSignal): Promise<AnswerSpecInput>;
+}
+
+export function createAnswerSpecGenerator(): AnswerSpecGenerator {
+  return { async generate(input) { return input; } };
 }
 
 export interface SpecAuthority {

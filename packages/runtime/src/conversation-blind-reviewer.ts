@@ -76,6 +76,7 @@ function validateCoverage(value: unknown): ReviewCoverage {
     if (!(REVIEW_COVERAGE_FACETS as readonly string[]).includes(facet) || !COVERAGE_STATUSES.has(status as ReviewCoverageStatus)) throw new Error("REVIEW_COVERAGE_INVALID");
     coverage[facet as ReviewCoverageFacet] = status as ReviewCoverageStatus;
   }
+  for (const facet of REVIEW_COVERAGE_FACETS) if (coverage[facet] === undefined) coverage[facet] = "insufficient_evidence";
   return coverage;
 }
 
