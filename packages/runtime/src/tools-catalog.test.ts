@@ -22,8 +22,17 @@ describe("canonical tool surface", () => {
     const exportTool = canonicalLocalTools().find((tool) => tool.name === "export_query")!;
     const schema = exportTool.parameters as { required?: string[]; properties?: Record<string, unknown> };
     expect(schema.required).toContain("expected_rows");
+    expect(schema.required).toContain("expected_columns");
     expect(schema.properties).toHaveProperty("expected_row_count");
     expect(schema.properties).toHaveProperty("expected_columns");
+  });
+
+  it("documents explicit validation purposes for database previews", () => {
+    const queryTool = canonicalLocalTools().find((tool) => tool.name === "query_database")!;
+    const schema = queryTool.parameters as { properties?: Record<string, any> };
+    expect(schema.properties).toHaveProperty("purpose");
+    expect(queryTool.description).toContain("purpose=reconciliation");
+    expect(queryTool.description).toContain("purpose=verification");
   });
 
   it("keeps SYSTEM.md tool references aligned with canonical or documented conditional tools", async () => {

@@ -5,6 +5,15 @@ export const SHOW_WIDGET_PARAMETERS = Type.Object({
   spec: Type.Unknown(),
 });
 
+export const QUERY_DATABASE_PARAMETERS = Type.Object({
+  sql: Type.String({ minLength: 1 }),
+  limit: Type.Optional(Type.Number()),
+  purpose: Type.Optional(Type.Union([
+    Type.Literal("reconciliation"),
+    Type.Literal("verification"),
+  ])),
+});
+
 export const EXPORT_QUERY_PARAMETERS = Type.Object({
   sql: Type.String({ minLength: 1 }),
   filename: Type.Optional(Type.String()),
@@ -15,7 +24,7 @@ export const EXPORT_QUERY_PARAMETERS = Type.Object({
     Type.Literal("full"),
   ]),
   expected_row_count: Type.Optional(Type.Integer({ minimum: 1 })),
-  expected_columns: Type.Optional(Type.Array(Type.String({ minLength: 1 }), { minItems: 1, uniqueItems: true })),
+  expected_columns: Type.Array(Type.String({ minLength: 1 }), { minItems: 1, uniqueItems: true }),
 });
 
 export interface CanonicalTool {
@@ -46,9 +55,9 @@ export function canonicalLocalTools(): CanonicalTool[] {
     { name: "load_skill", identity: "load_skill", origin: "local", description: "Load a discovered skill by name.", parameters: Type.Object({ name: Type.String({ minLength: 1 }) }) },
     { name: "generate_dashboard", identity: "generate_dashboard", origin: "local", description: "Validate, create or edit static/semantic dashboards.", parameters: Type.Object({ operation: Type.Union([Type.Literal("create"), Type.Literal("edit"), Type.Literal("validate")]), mode: Type.Union([Type.Literal("static"), Type.Literal("semantic")]), version: Type.Union([Type.Literal("v3"), Type.Literal("v4")]), spec: Type.Unknown(), editPath: Type.Optional(Type.String()) }) },
     { name: "show_widget", identity: "show_widget", origin: "local", description: "Render an inline UI widget card.", parameters: SHOW_WIDGET_PARAMETERS },
-    { name: "query_database", identity: "query_database", origin: "mcp-dynamic", description: "Preview a read-only query through the database MCP server.", parameters: Type.Object({ sql: Type.String({ minLength: 1 }), limit: Type.Optional(Type.Number()) }) },
+    { name: "query_database", identity: "query_database", origin: "mcp-dynamic", description: "Preview a read-only query through the database MCP server. Use purpose=reconciliation for an independent JOIN/aggregate audit or purpose=verification for an independent value check.", parameters: QUERY_DATABASE_PARAMETERS },
     { name: "ask_user_clarification", identity: "ask_user_clarification", origin: "local", description: "Ask the user a structured clarifying question.", parameters: Type.Object({ question: Type.String({ minLength: 1 }), options: Type.Optional(Type.Array(Type.String())) }) },
-    { name: "export_query", identity: "mcp__database__export_query", origin: "mcp-dynamic", description: "Export validated query results as CSV. Declare scalar/top_n/grouped/full shape and the exact output-column whitelist; shape mismatches are rejected before publication.", parameters: EXPORT_QUERY_PARAMETERS },
+    { name: "export_query", identity: "mcp__database__export_query", origin: "mcp-dynamic", description: "Export validated query results as CSV. Declare scalar/top_n/grouped/full shape, the expected row count when applicable, and the exact output-column whitelist; shape mismatches are rejected before publication.", parameters: EXPORT_QUERY_PARAMETERS },
   ];
 }
 

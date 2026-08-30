@@ -16,7 +16,8 @@
     "timeoutMs": 120000,
     "maxTurns": 20,
     "maxToolCalls": 50,
-    "maxExploratoryQueries": 6
+    "maxExploratoryQueries": 6,
+    "requireJoinReconciliation": true
   },
   "backends": {
     "sqlite": {

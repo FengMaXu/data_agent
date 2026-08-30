@@ -159,7 +159,7 @@ export async function resolveLocalDatabase(config, spider2LiteRoot, instance) {
 }
 
 export function buildAgentPrompt(instance) {
-  return `${instance.question}\n\nAfter completing the query, use export_query to export the complete final result to ${instance.instance_id}.csv.`;
+  return `${instance.question}\n\nBefore the first database query, derive a compact answer contract from the question: requested entities and filters, row grain and row mode/count, exact output columns, units/rounding, and ordering. Do not invent thresholds, defaults, date baselines, or unit conversions. If the question is ambiguous and ask_user_clarification is unavailable, use the most literal reading and state the assumption. For a JOIN with aggregation, run a different successful query_database call with purpose=reconciliation to check join cardinality or measure totals before export; for a complex formula, window, or recursive calculation, use purpose=verification for an independent value check when available. These checks must not replace the final SQL. After completing the query, use export_query to export only the minimal final result needed to answer the question to ${instance.instance_id}.csv. Declare the exact expected_columns and expected_rows. Do not export intermediate data, diagnostic columns, candidate rows, or a complete ranking unless the question explicitly requests them.`;
 }
 
 export function classifyProviderFailure(message) {
@@ -196,6 +196,7 @@ export function parseCorrectIdsCsv(text) {
 export function buildEvaluationGuardrails(limits, getTurnCount) {
   return {
     explorationQueryBudget: Number(limits?.maxExploratoryQueries ?? 6),
+    requireJoinReconciliation: limits?.requireJoinReconciliation !== false,
     taskProgress: () => ({ turnCount: Number(getTurnCount?.() ?? 0), maxTurns: Number(limits?.maxTurns ?? 20) }),
   };
 }
@@ -206,7 +207,9 @@ export function needsDeliveryFollowUp(toolCalls, turnCount, maxTurns) {
   if (completed.some((call) => call.toolName === "export_query")) return false;
   return completed.some((call) => call.toolName === "query_database"
     && call.result?.details?.warning !== "EXPLORATION_BUDGET_EXCEEDED"
-    && call.result?.details?.exploratory !== true);
+    && call.result?.details?.exploratory !== true
+    && call.result?.details?.purpose !== "reconciliation"
+    && call.result?.details?.purpose !== "verification");
 }
 
 export function exceedsTurnBudget(turnCount, maxTurns) {
@@ -230,6 +233,8 @@ export function selectFinalSql(toolCalls) {
     && !call.isError
     && call.result?.details?.warning !== "EXPLORATION_BUDGET_EXCEEDED"
     && call.result?.details?.exploratory !== true
+    && call.result?.details?.purpose !== "reconciliation"
+    && call.result?.details?.purpose !== "verification"
     && typeof call.args?.sql === "string"
     && call.args.sql.trim());
   const last = (name) => successful.filter((call) => call.toolName === name).at(-1);

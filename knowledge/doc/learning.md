@@ -85,3 +85,122 @@ Top-N、第一名、最短或最长记录存在并列时，必须定义业务 Ti
 
 - 多行业整体新增企业的统计，需要区分新纳统、外部转入和行业内部互转；内部互转不能计入多行业整体新增，但可以计入单行业新增。
 - 企业、行业和月度快照的关联关系必须以对应数据库 Schema 和业务文档为准。
+
+## 通用 SQL 验证模板
+
+以下模板只描述可迁移的 SQL 方法，不绑定任何数据库实体或业务领域；先按当前数据库 Schema 替换占位符，再执行验证。
+
+### 日期差
+
+```sql
+SELECT julianday(end_date) - julianday(start_date) AS elapsed_days
+FROM source_table
+WHERE start_date IS NOT NULL AND end_date IS NOT NULL;
+```
+
+不要按年份、月份、日期字段分别相减。SQLite 使用 `julianday`；其他方言使用其等价的日期差函数。
+
+### 带历史基线的 LAG/rolling 窗口
+
+```sql
+WITH history AS (
+    SELECT entity_id, period, value
+    FROM source_table
+    WHERE period >= :calculation_start
+      AND period < :display_end
+), windowed AS (
+    SELECT
+        entity_id,
+        period,
+        value,
+        LAG(value) OVER (PARTITION BY entity_id ORDER BY period) AS previous_value,
+        AVG(value) OVER (
+            PARTITION BY entity_id
+            ORDER BY period
+            ROWS BETWEEN :lookback PRECEDING AND CURRENT ROW
+        ) AS rolling_value
+    FROM history
+)
+SELECT entity_id, period, value, previous_value, rolling_value
+FROM windowed
+WHERE period >= :display_start AND period < :display_end;
+```
+
+计算范围必须覆盖展示期之前所需的历史基线，最后一步才裁剪到展示期。
+
+### as-of 累计余额
+
+```sql
+SELECT entity_id, COALESCE(SUM(amount), 0) AS balance_as_of
+FROM transactions
+WHERE transaction_time < :as_of_boundary
+GROUP BY entity_id;
+```
+
+`<`、`<=` 和边界时间的选择必须由题目定义；不能把“截至某月初”改成该月净额。
+
+### 日期区间覆盖某个时点
+
+```sql
+WHERE start_time <= :point_in_time
+  AND (end_time >= :point_in_time OR end_time IS NULL)
+```
+
+必须明确开放区间、结束端点是否包含以及 NULL 是否代表仍然有效。
+
+### 日历年过滤
+
+```sql
+WHERE strftime('%Y', date_col) = :calendar_year
+```
+
+不要用年份差近似日历年，也不要把财年、自然年和滚动十二个月混为一谈。
+
+### 比例和百分数
+
+先在答案合同中写明量纲。`ratio`/`proportion` 通常保留 0–1，`percentage` 是否要求 0–100 需依据题目或业务文档确认；不得静默乘以 100，也不得把一个单位的经验当成所有任务的默认规则。
+
+## 通用递归与逐期状态模板
+
+### 递归展开叶节点
+
+```sql
+WITH RECURSIVE expanded(root_id, node_id, quantity) AS (
+    SELECT root_id, child_id, CAST(quantity AS REAL)
+    FROM root_components
+    UNION ALL
+    SELECT e.root_id, c.child_id, e.quantity * c.quantity
+    FROM expanded e
+    JOIN components c ON c.parent_id = e.node_id
+), leaves AS (
+    SELECT e.root_id, e.node_id, e.quantity
+    FROM expanded e
+    WHERE NOT EXISTS (
+        SELECT 1 FROM components c WHERE c.parent_id = e.node_id
+    )
+)
+SELECT root_id, node_id, SUM(quantity) AS total_quantity
+FROM leaves
+GROUP BY root_id, node_id;
+```
+
+递归结果要明确是每条路径、每个叶节点还是每个根节点；不能把路径数直接当叶节点数。
+
+### 有序逐期状态
+
+```sql
+WITH RECURSIVE states(entity_id, sequence_no, period, state_value) AS (
+    SELECT entity_id, 0, first_period, initial_value
+    FROM initial_state
+    UNION ALL
+    SELECT s.entity_id, n.sequence_no, n.period, s.state_value + n.delta
+    FROM states s
+    JOIN ordered_events n
+      ON n.entity_id = s.entity_id
+     AND n.sequence_no = s.sequence_no + 1
+)
+SELECT entity_id, period, state_value
+FROM states;
+```
+
+每个递归步骤必须有唯一的下一期、明确的初始状态和可检查的不变量；FIFO 分配、库存滚动和会话序列都应先验证前几步和最后一步。

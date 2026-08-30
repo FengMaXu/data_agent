@@ -64,12 +64,14 @@ test("selectFinalSql prefers the last finished successful export", () => {
     { toolCallId: "3", toolName: "export_query", args: { sql: "unfinished" }, isError: false },
     { toolCallId: "4", toolName: "export_query", args: { sql: "select 2" }, isError: false, finishedAt: 3 },
     { toolCallId: "5", toolName: "query_database", args: { sql: "blocked exploration" }, isError: false, finishedAt: 4, result: { details: { warning: "EXPLORATION_BUDGET_EXCEEDED" } } },
+    { toolCallId: "6", toolName: "query_database", args: { sql: "reconciliation" }, isError: false, finishedAt: 5, result: { details: { purpose: "reconciliation" } } },
   ];
   assert.deepEqual(selectFinalSql(calls), { sql: "select 2", toolCallId: "4", toolName: "export_query" });
   assert.deepEqual(selectFinalSql([
     { toolCallId: "1", toolName: "query_database", args: { sql: "select 1" }, isError: false, finishedAt: 1 },
     { toolCallId: "2", toolName: "query_database", args: { sql: "successful exploration" }, isError: false, finishedAt: 2, result: { details: { exploratory: true } } },
     { toolCallId: "3", toolName: "query_database", args: { sql: "blocked exploration" }, isError: false, finishedAt: 3, result: { details: { warning: "EXPLORATION_BUDGET_EXCEEDED" } } },
+    { toolCallId: "4", toolName: "query_database", args: { sql: "reconciliation" }, isError: false, finishedAt: 4, result: { details: { purpose: "reconciliation" } } },
   ]), { sql: "select 1", toolCallId: "1", toolName: "query_database" });
   assert.equal(selectFinalSql([]), undefined);
 });
@@ -85,12 +87,17 @@ test("evaluation knowledge preserves reusable rules and adds SQLite guidance", (
   assert.match(buildEvaluationLearning("# Curated learnings"), /Curated learnings/);
 });
 
-test("buildAgentPrompt adds only an ASCII fixed delivery contract", () => {
+test("buildAgentPrompt requires the minimal final result rather than exploratory or diagnostic output", () => {
   const prompt = buildAgentPrompt({ instance_id: "local001", question: "Original question?" });
   assert.match(prompt, /^Original question\?/);
   assert.match(prompt, /local001\.csv/);
-  assert.match(prompt, /complete final result/);
-  assert.doesNotMatch(prompt, /table|column|SELECT/i);
+  assert.match(prompt, /Before the first database query, derive a compact answer contract/);
+  assert.match(prompt, /Do not invent thresholds, defaults, date baselines, or unit conversions/);
+  assert.match(prompt, /purpose=reconciliation/);
+  assert.match(prompt, /purpose=verification/);
+  assert.match(prompt, /only the minimal final result needed to answer the question/);
+  assert.match(prompt, /Declare the exact expected_columns and expected_rows/);
+  assert.match(prompt, /Do not export intermediate data, diagnostic columns, candidate rows, or a complete ranking unless the question explicitly requests them/);
   assert.equal([...prompt.slice("Original question?".length)].every((char) => char.charCodeAt(0) < 128), true);
 });
 
@@ -108,15 +115,19 @@ test("evaluation harness guardrails carry the configured budget and live turn co
   let turnCount = 7;
   const guardrails = buildEvaluationGuardrails({ maxTurns: 20, maxExploratoryQueries: 6 }, () => turnCount);
   assert.equal(guardrails.explorationQueryBudget, 6);
+  assert.equal(guardrails.requireJoinReconciliation, true);
   assert.deepEqual(guardrails.taskProgress(), { turnCount: 7, maxTurns: 20 });
   turnCount = 12;
   assert.deepEqual(guardrails.taskProgress(), { turnCount: 12, maxTurns: 20 });
+  assert.equal(buildEvaluationGuardrails({ requireJoinReconciliation: false }, () => 0).requireJoinReconciliation, false);
 });
 
 test("delivery follow-up runs once only for validated non-exploratory results without export", () => {
   const finalQuery = { toolCallId: "q", toolName: "query_database", finishedAt: 1, isError: false, result: { details: { exploratory: false } } };
   assert.equal(needsDeliveryFollowUp([finalQuery], 7, 20), true);
   assert.equal(needsDeliveryFollowUp([{ ...finalQuery, result: { details: { exploratory: true } } }], 7, 20), false);
+  assert.equal(needsDeliveryFollowUp([{ ...finalQuery, result: { details: { purpose: "reconciliation" } } }], 7, 20), false);
+  assert.equal(needsDeliveryFollowUp([{ ...finalQuery, result: { details: { purpose: "verification" } } }], 7, 20), false);
   assert.equal(needsDeliveryFollowUp([finalQuery, { toolCallId: "e", toolName: "export_query", finishedAt: 2, isError: false }], 7, 20), false);
   assert.equal(needsDeliveryFollowUp([finalQuery], 20, 20), false);
 });

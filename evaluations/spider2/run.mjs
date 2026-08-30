@@ -94,6 +94,7 @@ async function loadConfig(explicitPath) {
     maxTurns: 20,
     maxToolCalls: 50,
     maxExploratoryQueries: 6,
+    requireJoinReconciliation: true,
     ...(config.limits ?? {}),
   };
   config.concurrency = Math.max(1, Number(config.concurrency ?? 1));
@@ -302,8 +303,9 @@ async function runPromptWithTimeout(harness, prompt, timeoutMs, recorder, limits
     await harness.prompt(prompt);
     if (needsDeliveryFollowUp(recorder.calls, recorder.turnCount, limits.maxTurns)) {
       await harness.prompt(
-        "[DELIVERY_REQUIRED] No successful export_query was observed. Re-read your constraint table. " +
+        "[DELIVERY_REQUIRED] No successful export_query was observed. Re-read your answer contract. " +
         "If the last SQL is not the requested final shape, correct it and validate it once with query_database. " +
+        "If it is a JOIN with aggregation, first run a different successful query_database call with purpose=reconciliation, then keep the final SQL unchanged. " +
         "Then call export_query with expected_rows, expected_row_count when applicable, and the exact expected_columns. " +
         "Do not perform any more schema or sample exploration.",
       );

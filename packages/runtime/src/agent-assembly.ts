@@ -11,7 +11,7 @@ import { renderSemanticDashboardHtml, validateDashboardV4Spec } from "./dashboar
 import { materializeDashboardV3Spec, renderStandaloneDashboardHtml, validateDashboardV3Spec } from "./dashboard-v3.js";
 import { KnowledgeWriter } from "./knowledge-write.js";
 import { runPythonJob } from "./python-job.js";
-import { canonicalLocalTools, EXPORT_QUERY_PARAMETERS, SHOW_WIDGET_PARAMETERS, type CanonicalTool } from "./tools-catalog.js";
+import { canonicalLocalTools, EXPORT_QUERY_PARAMETERS, QUERY_DATABASE_PARAMETERS, SHOW_WIDGET_PARAMETERS, type CanonicalTool } from "./tools-catalog.js";
 import { effectiveTools, loadSkillsFromRoots, resolveSkillRoots } from "./skills.js";
 import type { KnowledgeIndex } from "./knowledge.js";
 import type { WorkspaceStore } from "./workspace.js";
@@ -72,6 +72,8 @@ export interface AgentAssemblyDeps {
   taskProgress?: (context: AgentAssemblyToolContext) => AgentTaskProgress | undefined | Promise<AgentTaskProgress | undefined>;
   /** Maximum metadata/sample probes allowed per session before final SQL is required. */
   explorationQueryBudget?: number;
+  /** Require an independent reconciliation query before exporting JOIN aggregates. */
+  requireJoinReconciliation?: boolean;
   /** Test/adapter escape hatch; product and evaluation harnesses enforce preview-before-export by default. */
   requireValidatedExportSql?: boolean;
 }
@@ -115,6 +117,14 @@ function normalizeValidatedSql(sql: string): string {
 function isExploratoryQuery(sql: string): boolean {
   const normalized = normalizeValidatedSql(sql).replace(/\s+/g, " ");
   return /^(?:PRAGMA\b|SELECT\s+(?:name|sql)\s+FROM\s+sqlite_master\b|SELECT\s+\*\s+FROM\s+[^\s;]+\s+LIMIT\s+\d+$|SELECT\s+DISTINCT\s+[\w.\[\]`\"]+\s+FROM\s+[^\s;]+(?:\s+LIMIT\s+\d+)?$|SELECT\s+COUNT\s*\(\s*\*\s*\)\s+(?:AS\s+\w+\s+)?FROM\s+[^\s;]+$)/i.test(normalized);
+}
+
+function requiresJoinReconciliation(sql: string): boolean {
+  const normalized = normalizeValidatedSql(sql);
+  const hasJoin = /\b(?:LEFT|RIGHT|FULL|INNER|CROSS)?\s+JOIN\b/i.test(normalized);
+  const hasAggregate = /\b(?:COUNT|SUM|AVG|MIN|MAX|GROUP_CONCAT|TOTAL)\s*\(/i.test(normalized)
+    || /\bGROUP\s+BY\b/i.test(normalized);
+  return hasJoin && hasAggregate;
 }
 
 function sameColumns(actual: string[], expected: string[]): boolean {
@@ -239,7 +249,14 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
     return sessionId ? `${sessionId}/${relativePath}` : relativePath;
   };
   const toolFailures = new Map<string, { message: string; count: number }>();
-  type QueryTaskState = { exploratoryCount: number; hasExported: boolean; lastSuccessfulSql?: string };
+  type QueryTaskState = {
+    exploratoryCount: number;
+    hasExported: boolean;
+    lastSuccessfulSql?: string;
+    lastReconciliationSql?: string;
+    reconciliationForSql?: string;
+    lastVerificationSql?: string;
+  };
   const queryTaskStates = new Map<string, QueryTaskState>();
   const queryTaskStateFor = (native: NativeToolExecution): QueryTaskState => {
     const key = sessionIdFor(native) ?? "__default__";
@@ -302,7 +319,7 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
         ? { root: deps.pythonWorkspaceDir }
         : await workspaceFor(native);
       const result = await runPythonJob(p.code, { workspace: workspace.root, executable, timeoutMs: 120000 });
-      if (result.status === "error" && /(?:ENOENT|not found|cannot find|not recognized)/i.test(result.stderr)) {
+      if (result.status === "error" && (/(?:ENOENT|not found|cannot find|not recognized)/i.test(result.stderr) || result.exitCode === 127 || result.exitCode === -4058)) {
         pythonCapabilityUnavailable = true;
         throw new Error(pythonUnavailableMessage());
       }
@@ -430,13 +447,14 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
       };
     };
     tools.push(
-      defineTool("query_database", canonicalTool("query_database").description, Type.Object({ sql: Type.String({ minLength: 1 }), limit: Type.Optional(Type.Number()) }), async (p, native) => withToolFailureGuidance("query_database", native, async () => {
+      defineTool("query_database", canonicalTool("query_database").description, QUERY_DATABASE_PARAMETERS, async (p, native) => withToolFailureGuidance("query_database", native, async () => {
         let state = queryTaskStateFor(native);
         if (state.hasExported) {
           state = { exploratoryCount: 0, hasExported: false };
           queryTaskStates.set(sessionIdFor(native) ?? "__default__", state);
         }
-        const exploratory = isExploratoryQuery(p.sql);
+        const validationPurpose = p.purpose;
+        const exploratory = !validationPurpose && isExploratoryQuery(p.sql);
         const explorationLimit = deps.explorationQueryBudget === undefined
           ? undefined
           : Math.max(1, deps.explorationQueryBudget);
@@ -450,7 +468,15 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
         }
         if (exploratory) state.exploratoryCount++;
         const { rendered, result } = await runQuery(p.sql, p.limit);
-        state.lastSuccessfulSql = normalizeValidatedSql(p.sql);
+        const normalizedSql = normalizeValidatedSql(p.sql);
+        if (validationPurpose === "reconciliation") {
+          state.lastReconciliationSql = normalizedSql;
+          state.reconciliationForSql = state.lastSuccessfulSql;
+        } else if (validationPurpose === "verification") {
+          state.lastVerificationSql = normalizedSql;
+        } else {
+          state.lastSuccessfulSql = normalizedSql;
+        }
         const progress = await deps.taskProgress?.(native.context);
         const remindToExport = Boolean(progress
           && progress.maxTurns > 0
@@ -460,27 +486,45 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
           ? `\n\n[EXPORT_DEADLINE] You have used ${progress!.turnCount}/${progress!.maxTurns} turns and have not exported yet. ` +
             "If this result satisfies the declared output contract, call export_query immediately with this validated SQL."
           : "";
-        return text(`${rendered}${reminder}`, {
+        const validationHint = validationPurpose === "reconciliation"
+          ? "\n[RECONCILIATION_RECORDED] This independent reconciliation query does not replace the final SQL used for export."
+          : validationPurpose === "verification"
+            ? "\n[VERIFICATION_RECORDED] This independent verification query does not replace the final SQL used for export."
+            : "";
+        return text(`${rendered}${validationHint}${reminder}`, {
           columns: result.columns,
           rows: result.rows,
           exploratory,
+          ...(validationPurpose ? { purpose: validationPurpose } : {}),
           ...(remindToExport ? { exportReminder: true, turnCount: progress!.turnCount, maxTurns: progress!.maxTurns } : {}),
         });
       })),
+
       defineTool("export_query", canonicalTool("export_query").description, EXPORT_QUERY_PARAMETERS, async (p, native) => withToolFailureGuidance("export_query", native, async () => {
         if (!p.expected_rows) {
           throw new Error("SHAPE_DECLARATION_INVALID: expected_rows is required");
         }
         const taskState = queryTaskStateFor(native);
-        if (deps.requireValidatedExportSql !== false && taskState.lastSuccessfulSql !== normalizeValidatedSql(p.sql)) {
-          throw new Error("EXPORT_SQL_NOT_VALIDATED: export_query SQL must exactly match the last successful query_database SQL in this session. Validate this SQL, then export it unchanged.");
+        const normalizedSql = normalizeValidatedSql(p.sql);
+        if (deps.requireValidatedExportSql !== false && taskState.lastSuccessfulSql !== normalizedSql) {
+          throw new Error("EXPORT_SQL_NOT_VALIDATED: export_query SQL must exactly match the last successful final query_database SQL in this session. Validate this SQL, then export it unchanged. Re-derive the expected shape from the question, not from the last query result.");
         }
         if (p.expected_rows === "top_n" && p.expected_row_count === undefined) {
           throw new Error("SHAPE_DECLARATION_INVALID: expected_row_count is required for top_n");
         }
+        if (!p.expected_columns || p.expected_columns.length === 0) {
+          throw new Error("SHAPE_DECLARATION_INVALID: expected_columns is required");
+        }
+        if (deps.requireJoinReconciliation !== false && requiresJoinReconciliation(p.sql)) {
+          if (taskState.reconciliationForSql !== normalizedSql || taskState.lastReconciliationSql === normalizedSql) {
+            throw new Error("JOIN_RECONCILIATION_REQUIRED: run a different successful query_database call with purpose=reconciliation to audit JOIN aggregate row counts or totals before exporting. The reconciliation query does not replace the final SQL.");
+          }
+        }
         const signal = native.signal;
         const target = p.filename ?? `exports/query-${Date.now()}.csv`;
-        const topNMaximum = p.expected_rows === "top_n" ? p.expected_row_count! : undefined;
+        const rowCountMaximum = (p.expected_rows === "top_n" || p.expected_rows === "grouped")
+          ? p.expected_row_count
+          : undefined;
         let rowCount = 0;
         let observedColumns: string[] | undefined;
         const workspace = await workspaceFor(native);
@@ -500,7 +544,7 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
             if (!sameColumns(batch.columns, observedColumns)) {
               throw new Error(`SHAPE_MISMATCH: export batches changed columns from [${observedColumns.join(", ")}] to [${batch.columns.join(", ")}]`);
             }
-            if (p.expected_columns && !sameColumns(batch.columns, p.expected_columns)) {
+            if (!sameColumns(batch.columns, p.expected_columns)) {
               throw new Error(`SHAPE_MISMATCH: expected columns [${p.expected_columns.join(", ")}] but query returned [${batch.columns.join(", ")}]`);
             }
             if (!headerWritten) {
@@ -516,8 +560,8 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
               if (p.expected_rows === "scalar" && rowCount > 1) {
                 throw new Error("SHAPE_MISMATCH: declared scalar but query produced more than 1 row. Add a final aggregation or LIMIT 1 before exporting.");
               }
-              if (topNMaximum !== undefined && rowCount > topNMaximum) {
-                throw new Error(`SHAPE_MISMATCH: declared top_n=${p.expected_row_count} but query produced more than ${topNMaximum} rows. Add LIMIT or a stricter filter before exporting.`);
+              if (rowCountMaximum !== undefined && rowCount > rowCountMaximum) {
+                throw new Error(`SHAPE_MISMATCH: declared ${p.expected_rows} maximum=${p.expected_row_count} but query produced more than ${rowCountMaximum} rows. Add a final LIMIT, aggregation, or stricter filter before exporting.`);
               }
               await append(`\n${row.map(csvField).join(",")}`);
             }
@@ -613,21 +657,29 @@ export function unknownToolRecoveryMessage(errorText: string, toolNames: Iterabl
   const match = /^Tool\s+([A-Za-z0-9_-]+)\s+not found\b/.exec(errorText.trim());
   if (!match) return undefined;
   const available = [...new Set(toolNames)];
+  const clarificationFallback = match[1] === "ask_user_clarification"
+    ? "Clarification is unavailable in this runtime. Resolve ambiguity by the most literal reading of the request; never invent thresholds, default values, date baselines, or unit conversions, and state the assumption in the final response."
+    : undefined;
   return [
     `Tool "${match[1]}" does not exist in this runtime. Do not retry it.`,
     `Available tools: ${available.join(", ") || "none"}.`,
     "Use search_knowledge/read_knowledge for knowledge, query_database for read-only SQL, and export_query for final CSV delivery.",
+    ...(clarificationFallback ? [clarificationFallback] : []),
   ].join("\n");
 }
 
 export function runtimeCapabilitiesPrompt(toolNames: Iterable<string>): string {
   const available = [...new Set(toolNames)];
-  const unavailable = ["run_python", "show_widget", "generate_dashboard"].filter((name) => !available.includes(name));
+  const unavailable = ["run_python", "show_widget", "generate_dashboard", "ask_user_clarification"].filter((name) => !available.includes(name));
+  const clarificationFallback = unavailable.includes("ask_user_clarification")
+    ? "Clarification is unavailable in this session. Resolve ambiguity by the most literal reading of the request; never invent thresholds, default values, date baselines, or unit conversions, and state the assumption in the final response."
+    : undefined;
   return [
     "## Runtime capability contract",
     "Only tools present in the current tool list are available in this session. Never call an absent tool.",
     `Available tools: ${available.join(", ") || "none"}.`,
     ...(unavailable.length ? [`Unavailable tools: ${unavailable.join(", ")}. Do not retry them; complete the task with the available tools.`] : []),
+    ...(clarificationFallback ? [clarificationFallback] : []),
   ].join("\n");
 }
 

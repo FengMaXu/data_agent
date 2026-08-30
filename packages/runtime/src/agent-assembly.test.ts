@@ -72,6 +72,9 @@ describe("native system prompt assembly", () => {
     expect(prompt).toContain("sqlite_master");
     expect(prompt).toContain("### 1.4 导出前检查（Final Answer Contract）");
     expect(prompt).toContain("导出的 SQL 是否与最后一次 `query_database` 成功执行的 SQL 完全一致");
+    expect(prompt).toContain("The only sources of truth are the user's inquiry and the business documentation");
+    expect(prompt).toContain("Guessing or fabricating non-existent business rules is strictly prohibited");
+    expect(prompt).toContain("若该工具不在当前工具列表中");
     expect(prompt).not.toContain("数据库为 MySQL 业务库");
   });
 
@@ -83,10 +86,20 @@ describe("native system prompt assembly", () => {
     expect(unknownToolRecoveryMessage("SQL_SYNTAX_ERROR", ["query_database"])).toBeUndefined();
   });
 
+  it("gives a literal no-guessing fallback when clarification is unavailable", () => {
+    const guidance = unknownToolRecoveryMessage("Tool ask_user_clarification not found", ["query_database", "export_query"]);
+    expect(guidance).toContain("Clarification is unavailable in this runtime");
+    expect(guidance).toContain("most literal reading");
+    expect(guidance).toContain("never invent thresholds");
+  });
+
   it("lists the exact runtime tool surface for unknown-tool recovery", () => {
     const prompt = runtimeCapabilitiesPrompt(["query_database", "export_query", "read_knowledge"]);
     expect(prompt).toContain("Available tools: query_database, export_query, read_knowledge");
     expect(prompt).toContain("Never call an absent tool");
+    expect(prompt).toContain("Unavailable tools:");
+    expect(prompt).toContain("ask_user_clarification");
+    expect(prompt).toContain("Clarification is unavailable in this session");
     expect(prompt).not.toContain("read_knowledge_file");
   });
 
@@ -329,6 +342,9 @@ describe("export_query", () => {
       await expect(tool.execute("shape-required", { sql: "SELECT id FROM users" })).rejects.toThrow(
         "SHAPE_DECLARATION_INVALID: expected_rows is required",
       );
+      await expect(tool.execute("columns-required", { sql: "SELECT id FROM users", expected_rows: "full" })).rejects.toThrow(
+        "SHAPE_DECLARATION_INVALID: expected_columns is required",
+      );
       expect(streams).toBe(0);
     } finally {
       await rm(root, { recursive: true, force: true });
@@ -358,8 +374,94 @@ describe("export_query", () => {
         expected_rows: "top_n",
         expected_row_count: 2,
         expected_columns: ["id"],
-      })).rejects.toThrow("SHAPE_MISMATCH: declared top_n=2 but query produced more than 2 rows");
+      })).rejects.toThrow("SHAPE_MISMATCH: declared top_n maximum=2 but query produced more than 2 rows");
       await expect(workspace.read("exports/topn.csv")).rejects.toThrow();
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("requires an independent reconciliation query before exporting a JOIN aggregate", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-join-reconciliation-"));
+    const workspace = new WorkspaceStore(root);
+    const executor = {
+      run: async () => ({ columns: ["answer"], rows: [[1]], truncated: false }),
+      stream: async function* (): AsyncGenerator<QueryExportBatch> { yield { columns: ["answer"], rows: [[1]] }; },
+    };
+    const tools = buildAgentTools({ workspace, queryExecutor: executor, requireJoinReconciliation: true });
+    const query = tools.find((candidate) => candidate.name === "query_database") as any;
+    const exportQuery = tools.find((candidate) => candidate.name === "export_query") as any;
+    const finalSql = "SELECT u.id, SUM(o.amount) AS total FROM users u JOIN orders o ON o.user_id = u.id GROUP BY u.id";
+    try {
+      await query.execute("join-final", { sql: finalSql }, undefined, undefined, { sessionId: "session-a" });
+      await expect(exportQuery.execute("join-export-before-audit", {
+        sql: finalSql,
+        filename: "exports/join.csv",
+        expected_rows: "grouped",
+        expected_row_count: 1,
+        expected_columns: ["answer"],
+      }, undefined, undefined, { sessionId: "session-a" })).rejects.toThrow("JOIN_RECONCILIATION_REQUIRED");
+      const reconciliationSql = "SELECT COUNT(*) AS joined_rows, SUM(amount) AS joined_total FROM users u JOIN orders o ON o.user_id = u.id";
+      const reconciliation = await query.execute("join-reconciliation", {
+        sql: reconciliationSql,
+        purpose: "reconciliation",
+      }, undefined, undefined, { sessionId: "session-a" });
+      expect(reconciliation.content[0].text).toContain("RECONCILIATION_RECORDED");
+      await expect(exportQuery.execute("join-export", {
+        sql: `${finalSql};`,
+        filename: "exports/join.csv",
+        expected_rows: "grouped",
+        expected_row_count: 1,
+        expected_columns: ["answer"],
+      }, undefined, undefined, { sessionId: "session-a" })).resolves.toMatchObject({ details: { taskComplete: true } });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("records verification queries without replacing the final export SQL", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-verification-purpose-"));
+    const workspace = new WorkspaceStore(root);
+    const executor = {
+      run: async () => ({ columns: ["answer"], rows: [[1]], truncated: false }),
+      stream: async function* (): AsyncGenerator<QueryExportBatch> { yield { columns: ["answer"], rows: [[1]] }; },
+    };
+    const tools = buildAgentTools({ workspace, queryExecutor: executor });
+    const query = tools.find((candidate) => candidate.name === "query_database") as any;
+    const exportQuery = tools.find((candidate) => candidate.name === "export_query") as any;
+    try {
+      await query.execute("final", { sql: "SELECT 1 AS answer" }, undefined, undefined, { sessionId: "session-a" });
+      const verification = await query.execute("verification", { sql: "SELECT 1 AS independently_verified", purpose: "verification" }, undefined, undefined, { sessionId: "session-a" });
+      expect(verification.content[0].text).toContain("VERIFICATION_RECORDED");
+      await expect(exportQuery.execute("export", {
+        sql: "SELECT 1 AS answer",
+        filename: "exports/verified.csv",
+        expected_rows: "scalar",
+        expected_columns: ["answer"],
+      }, undefined, undefined, { sessionId: "session-a" })).resolves.toMatchObject({ details: { taskComplete: true } });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("enforces an optional grouped row-count ceiling", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-export-grouped-shape-"));
+    const workspace = new WorkspaceStore(root);
+    const tool = exportTool(workspace, {
+      stream: async function* (): AsyncGenerator<QueryExportBatch> {
+        yield { columns: ["period", "value"], rows: [["2024-01", 1], ["2024-02", 2], ["2024-03", 3]] };
+      },
+      run: async () => { throw new Error("run should not be used"); },
+    });
+    try {
+      await expect(tool.execute("grouped-too-many", {
+        sql: "SELECT period, SUM(value) AS value FROM metrics GROUP BY period",
+        filename: "exports/grouped.csv",
+        expected_rows: "grouped",
+        expected_row_count: 2,
+        expected_columns: ["period", "value"],
+      })).rejects.toThrow("SHAPE_MISMATCH: declared grouped maximum=2 but query produced more than 2 rows");
+      await expect(workspace.read("exports/grouped.csv")).rejects.toThrow();
     } finally {
       await rm(root, { recursive: true, force: true });
     }
