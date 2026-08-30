@@ -163852,6 +163852,7 @@ function createQueryDigestCompiler() {
         normalizedSqlHash: digestHash(normalizedSql),
         dialect: input.dialect,
         parserVersion: PARSER_VERSION,
+        parserEngine: "deterministic-tokenizer",
         queryDigestVersion: QUERY_DIGEST_VERSION,
         schemaEvidenceFingerprint: schemaFingerprint(input, parsedSources.sources),
         sources: parsedSources.sources,
@@ -163873,12 +163874,45 @@ function createQueryDigestCompiler() {
     }
   };
 }
-var import_node_crypto9, PARSER_VERSION, QUERY_DIGEST_VERSION, AGGREGATE_FUNCTIONS, CLAUSE_WORDS, IDENTIFIER_STOP_WORDS, SQL_KEYWORDS;
+function createSqlglotQueryDigestCompiler(options) {
+  return {
+    compile(input) {
+      const result = (0, import_node_child_process3.spawnSync)(options.executable, ["-c", SQLGLOT_SCRIPT], {
+        input: JSON.stringify({ sql: input.sql, dialect: input.dialect }),
+        encoding: "utf8",
+        timeout: options.timeoutMs ?? 5e3,
+        windowsHide: true
+      });
+      if (result.error)
+        throw new Error(`SQLGLOT_UNAVAILABLE:${result.error.message}`);
+      if (result.status !== 0)
+        throw new Error(`SQLGLOT_PARSE_FAILED:${(result.stderr || result.stdout || "unknown error").trim().slice(0, 500)}`);
+      let payload;
+      try {
+        payload = JSON.parse(result.stdout);
+      } catch {
+        throw new Error("SQLGLOT_BAD_RESPONSE");
+      }
+      if (!payload.sql || !payload.version)
+        throw new Error("SQLGLOT_BAD_RESPONSE");
+      const digest = createQueryDigestCompiler().compile({ ...input, sql: payload.sql });
+      return { ...digest, parserVersion: `sqlglot-${payload.version}`, parserEngine: "sqlglot" };
+    }
+  };
+}
+var import_node_crypto9, import_node_child_process3, PARSER_VERSION, SQLGLOT_SCRIPT, QUERY_DIGEST_VERSION, AGGREGATE_FUNCTIONS, CLAUSE_WORDS, IDENTIFIER_STOP_WORDS, SQL_KEYWORDS;
 var init_query_digest = __esm({
   "packages/runtime/dist/query-digest.js"() {
     "use strict";
     import_node_crypto9 = require("node:crypto");
-    PARSER_VERSION = "sqlglot-30.8.0-adapter-1";
+    import_node_child_process3 = require("node:child_process");
+    PARSER_VERSION = "query-digest-tokenizer-1";
+    SQLGLOT_SCRIPT = [
+      "import json, sys, sqlglot",
+      "payload = json.loads(sys.stdin.read())",
+      "expression = sqlglot.parse_one(payload['sql'], read=payload['dialect'])",
+      "print(json.dumps({'version': getattr(sqlglot, '__version__', 'unknown'), 'sql': expression.sql()}, ensure_ascii=False))"
+    ].join("; ");
     QUERY_DIGEST_VERSION = "1";
     AGGREGATE_FUNCTIONS = /* @__PURE__ */ new Set(["COUNT", "SUM", "AVG", "MIN", "MAX", "TOTAL", "GROUP_CONCAT"]);
     CLAUSE_WORDS = /* @__PURE__ */ new Set(["WHERE", "GROUP", "HAVING", "ORDER", "LIMIT", "UNION", "INTERSECT", "EXCEPT", "FETCH", "QUALIFY", "JOIN", "LEFT", "RIGHT", "FULL", "INNER", "CROSS"]);
@@ -166151,11 +166185,11 @@ var init_export_adapter = __esm({
 function semanticToolIdentity(serverName, toolName) {
   return `mcp__${serverName}__${toolName}`;
 }
-var import_node_child_process3, ProcessSupervisor;
+var import_node_child_process4, ProcessSupervisor;
 var init_process_supervisor = __esm({
   "packages/runtime/dist/process-supervisor.js"() {
     "use strict";
-    import_node_child_process3 = require("node:child_process");
+    import_node_child_process4 = require("node:child_process");
     ProcessSupervisor = class {
       options;
       child;
@@ -166192,7 +166226,7 @@ var init_process_supervisor = __esm({
         this.setState("running");
       }
       spawnChild() {
-        this.child = (0, import_node_child_process3.spawn)(this.options.command, this.options.args ?? [], { stdio: "ignore", windowsHide: true });
+        this.child = (0, import_node_child_process4.spawn)(this.options.command, this.options.args ?? [], { stdio: "ignore", windowsHide: true });
         this.child.on("error", () => this.handleExit());
         this.child.on("exit", () => this.handleExit());
       }
@@ -166613,6 +166647,7 @@ __export(dist_exports, {
   createQueryDigestCompiler: () => createQueryDigestCompiler,
   createReviewOffQueryAssurance: () => createReviewOffQueryAssurance,
   createSpecAuthority: () => createSpecAuthority,
+  createSqlglotQueryDigestCompiler: () => createSqlglotQueryDigestCompiler,
   dialectHint: () => dialectHint,
   effectiveTools: () => effectiveTools,
   isHardConstraintEligible: () => isHardConstraintEligible,
