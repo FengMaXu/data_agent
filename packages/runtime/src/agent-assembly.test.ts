@@ -104,11 +104,21 @@ describe("native system prompt assembly", () => {
     expect(prompt).not.toContain("read_knowledge_file");
   });
 
-  it("accepts one QueryAssurance dependency at the assembly boundary", () => {
+  it("accepts one QueryAssurance dependency at the assembly boundary", async () => {
     const workspace = new WorkspaceStore("/tmp/data-agent-query-assurance-dependency");
     const queryAssurance: QueryAssurance = {
       mode: "shadow",
       prepareTask: async (_input, _signal) => ({ taskId: "task-1", mode: "shadow" }),
+      recordPreview: async ({ task }, _signal) => ({
+        taskId: task.taskId,
+        queryArtifactId: "artifact-1",
+        normalizedSql: "SELECT 1 AS answer",
+        normalizedSqlHash: "hash",
+        previewMetadata: { columns: ["answer"], columnTypes: ["INTEGER"], rowCount: 1, truncated: false, nullCounts: { answer: 0 } },
+        internalEvidence: true,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        expiresAt: "2026-01-01T00:05:00.000Z",
+      }),
       reviewForPublication: async (_input, _signal) => ({ availability: "unavailable", failure: { code: "TEST", message: "not configured", retryable: false } }),
     };
     const deps: AgentAssemblyDeps = {
@@ -117,7 +127,11 @@ describe("native system prompt assembly", () => {
       queryExecutor: { run: async () => ({ columns: [], rows: [], truncated: false }) },
     };
 
-    expect(buildAgentTools(deps).map((tool) => tool.name)).toContain("query_database");
+    const tools = buildAgentTools(deps);
+    expect(tools.map((tool) => tool.name)).toContain("query_database");
+    const query = tools.find((tool) => tool.name === "query_database") as any;
+    const result = await query.execute("assurance-query", { sql: "SELECT 1 AS answer" }, undefined, undefined, { sessionId: "session-a", taskId: "task-1" });
+    expect(result.details).toMatchObject({ taskId: "task-1", internalEvidence: true });
   });
 
   it("does not expose optional or unavailable capabilities", () => {

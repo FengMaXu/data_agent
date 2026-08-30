@@ -1,5 +1,5 @@
 import { AgentHarness, formatSkillsForSystemPrompt, InMemorySessionRepo } from "@earendil-works/pi-agent-core";
-import type { AgentHarnessTool, AgentToolResult, Session, Skill as NativeSkill } from "@earendil-works/pi-agent-core";
+import type { AgentHarnessOptions, AgentHarnessTool, AgentToolResult, Session, Skill as NativeSkill } from "@earendil-works/pi-agent-core";
 import { InMemoryCredentialStore, type Model, type Models } from "@earendil-works/pi-ai";
 import { boundTextByLines, readBoundedFile } from "./bounded-read.js";
 import { builtinModels } from "@earendil-works/pi-ai/providers/all";
@@ -17,7 +17,7 @@ import type { KnowledgeIndex } from "./knowledge.js";
 import type { WorkspaceStore } from "./workspace.js";
 import type { ClarificationManager } from "./clarification.js";
 import { emitWidgetUpdate, validateWidgetSpec, widgetLegacyText, type WidgetLifecycleDetails, type WidgetPayload } from "./widget.js";
-import { createReviewOffQueryAssurance, type QueryAssurance } from "./query-assurance.js";
+import { createReviewOffQueryAssurance, type PreparedQueryTask, type QueryAssurance } from "./query-assurance.js";
 
 export interface QueryExportBatch {
   columns: string[];
@@ -187,9 +187,13 @@ function buildModel(profile: AgentModelProfile): Model<any> {
 export interface AgentAssemblyToolContext {
   /** Session identity associated with this harness turn, when available. */
   sessionId?: string;
+  /** Query Task identity associated with this harness turn, when available. */
+  taskId?: string;
 }
 
 export type AgentAssemblyToolContextSource = AgentAssemblyToolContext | (() => AgentAssemblyToolContext | Promise<AgentAssemblyToolContext>);
+
+type PrepareQueryTaskForPrompt = (text: string, signal: AbortSignal) => Promise<PreparedQueryTask>;
 
 interface NativeToolExecution {
   toolCallId: string;
@@ -226,6 +230,31 @@ interface DataAgentSkill extends NativeSkill {
 
 /** Keeps native AgentHarness skill invocation while applying legacy allowlists. */
 class DataAgentHarness extends AgentHarness<AgentAssemblyToolContext, DataAgentSkill> {
+  private promptPreparationController?: AbortController;
+
+  constructor(
+    options: AgentHarnessOptions<AgentAssemblyToolContext, DataAgentSkill>,
+    private readonly prepareQueryTask?: PrepareQueryTaskForPrompt,
+  ) {
+    super(options);
+  }
+
+  override async prompt(text: string, options?: Parameters<AgentHarness<AgentAssemblyToolContext, DataAgentSkill>["prompt"]>[1]): ReturnType<AgentHarness<AgentAssemblyToolContext, DataAgentSkill>["prompt"]> {
+    const controller = new AbortController();
+    this.promptPreparationController = controller;
+    try {
+      await this.prepareQueryTask?.(text, controller.signal);
+      return await super.prompt(text, options);
+    } finally {
+      if (this.promptPreparationController === controller) this.promptPreparationController = undefined;
+    }
+  }
+
+  override async abort() {
+    this.promptPreparationController?.abort();
+    return super.abort();
+  }
+
   override async skill(name: string, additionalInstructions?: string) {
     const skill = this.getResources().skills?.find((candidate) => candidate.name === name);
     if (!skill) return super.skill(name, additionalInstructions);
@@ -243,6 +272,8 @@ class DataAgentHarness extends AgentHarness<AgentAssemblyToolContext, DataAgentS
 export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<AgentAssemblyToolContext>[] {
   const writer = deps.knowledgeRoot ? new KnowledgeWriter(deps.knowledgeRoot) : undefined;
   const sessionIdFor = (native: NativeToolExecution) => native.context?.sessionId ?? deps.sessionId;
+  const taskIdFor = (native: NativeToolExecution) => native.context?.taskId;
+  const queryTaskKeyFor = (native: NativeToolExecution) => taskIdFor(native) ?? sessionIdFor(native) ?? "__default__";
   const workspaceFor = async (native: NativeToolExecution) => {
     const sessionId = sessionIdFor(native);
     return sessionId ? deps.workspace.scoped(sessionId) : deps.workspace;
@@ -265,7 +296,7 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
   };
   const queryTaskStates = new Map<string, QueryTaskState>();
   const queryTaskStateFor = (native: NativeToolExecution): QueryTaskState => {
-    const key = sessionIdFor(native) ?? "__default__";
+    const key = queryTaskKeyFor(native);
     const existing = queryTaskStates.get(key);
     if (existing) return existing;
     const created: QueryTaskState = { queryAssurance, exploratoryCount: 0, hasExported: false };
@@ -457,7 +488,7 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
         let state = queryTaskStateFor(native);
         if (state.hasExported) {
           state = { queryAssurance, exploratoryCount: 0, hasExported: false };
-          queryTaskStates.set(sessionIdFor(native) ?? "__default__", state);
+          queryTaskStates.set(queryTaskKeyFor(native), state);
         }
         const validationPurpose = p.purpose;
         const exploratory = !validationPurpose && isExploratoryQuery(p.sql);
@@ -475,6 +506,15 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
         if (exploratory) state.exploratoryCount++;
         const { rendered, result } = await runQuery(p.sql, p.limit);
         const normalizedSql = normalizeValidatedSql(p.sql);
+        const signal = native.signal ?? new AbortController().signal;
+        const taskId = taskIdFor(native);
+        const artifact = taskId && !validationPurpose && queryAssurance.recordPreview
+          ? await queryAssurance.recordPreview({
+            task: { taskId, mode: queryAssurance.mode },
+            sql: p.sql,
+            result: { columns: result.columns, rows: result.rows, truncated: result.truncated },
+          }, signal)
+          : undefined;
         if (validationPurpose === "reconciliation") {
           state.lastReconciliationSql = normalizedSql;
           state.reconciliationForSql = state.lastSuccessfulSql;
@@ -502,6 +542,13 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
           rows: result.rows,
           exploratory,
           ...(validationPurpose ? { purpose: validationPurpose } : {}),
+          ...(taskId ? { taskId, internalEvidence: true } : {}),
+          ...(artifact ? {
+            queryArtifactId: artifact.queryArtifactId,
+            normalizedSqlHash: artifact.normalizedSqlHash,
+            previewMetadata: artifact.previewMetadata,
+            expiresAt: artifact.expiresAt,
+          } : {}),
           ...(remindToExport ? { exportReminder: true, turnCount: progress!.turnCount, maxTurns: progress!.maxTurns } : {}),
         });
       })),
@@ -716,8 +763,17 @@ export async function createDataAgentHarness(deps: AgentAssemblyDeps, profile: A
   const skillLoad = await loadSkillsFromRoots(resolveSkillRoots({ projectRoot: deps.projectRoot, packagedRoot: deps.packagedRoot }));
   for (const item of skillLoad.diagnostics) console.warn(`[data-agent] Skill diagnostic (${item.code ?? "warning"}) ${item.path}: ${item.message}`);
   let skills: DataAgentSkill[] = [];
+  const queryAssurance = deps.queryAssurance ?? createReviewOffQueryAssurance();
+  let activeTask: PreparedQueryTask | undefined;
+  const baseToolContext = deps.toolContext ?? { sessionId: deps.sessionId };
+  const toolContext: AgentAssemblyToolContextSource = async () => {
+    const base = typeof baseToolContext === "function" ? await baseToolContext() : baseToolContext;
+    return activeTask ? { ...base, taskId: activeTask.taskId } : base;
+  };
   const tools = buildAgentTools({
     ...deps,
+    queryAssurance,
+    toolContext,
     invokeSkill: async (name, additionalInstructions) => {
       const skill = skills.find((candidate) => candidate.name === name);
       if (!skill) throw new Error(`SKILL_NOT_FOUND: ${name}`);
@@ -749,7 +805,10 @@ export async function createDataAgentHarness(deps: AgentAssemblyDeps, profile: A
     systemPrompt: ({ resources }) => composeDataAgentSystemPrompt(`${baseSystemPrompt}\n\n${capabilityPrompt}`, resources.skills ?? []),
     tools,
     resources: { skills },
-    toolContext: deps.toolContext ?? { sessionId: deps.sessionId },
+    toolContext,
+  }, async (text, signal) => {
+    activeTask = await queryAssurance.prepareTask({ question: text }, signal);
+    return activeTask;
   });
   harness.subscribe((event) => {
     if (event?.type !== "tool_execution_end" || !event.isError) return;

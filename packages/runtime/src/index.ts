@@ -769,7 +769,7 @@ export class DataAgentRuntime {
 
 export { LocalAuthService } from "./auth.js";
 export { createDataAgentHarness, buildAgentTools, resolveSystemPrompt, dialectHint, runtimeCapabilitiesPrompt, unknownToolRecoveryMessage, type AgentAssemblyDeps, type AgentAssemblyToolContext, type AgentAssemblyToolContextSource, type AgentTaskProgress, type AgentModelProfile, type PythonExecutableSource, type DatabaseDialect, type QueryExecutor, type QueryExportBatch } from "./agent-assembly.js";
-export { createReviewOffQueryAssurance, QueryAssuranceAbortError, type QueryAssurance, type QueryAssuranceMode, type TaskEvidence, type PreparedQueryTask, type PublicationReviewRequest, type ReviewDecisionStatus, type ReviewDecision, type ReviewFailure, type ReviewOutcome } from "./query-assurance.js";
+export { createReviewOffQueryAssurance, InMemoryQueryAssurance, QueryAssuranceAbortError, normalizeQuerySql, type QueryAssurance, type QueryAssuranceMode, type TaskEvidence, type PreparedQueryTask, type PublicationReviewRequest, type QueryPreviewResult, type ResultMetadata, type QueryPreviewRegistration, type ValidatedQueryArtifact, type ReviewOffQueryAssuranceOptions, type ReviewDecisionStatus, type ReviewDecision, type ReviewFailure, type ReviewOutcome } from "./query-assurance.js";
 export { validateWidgetSpec, widgetLegacyText, type WidgetKind, type WidgetPayload, type WidgetLifecycleDetails } from "./widget.js";
 export { createAgentHarnessResolver, type AgentHarnessResolver, type AgentHarnessResolverOptions } from "./agent-harness-lifecycle.js";
 export { migrateLegacyData, type MigrationReport } from "./legacy-migration.js";
