@@ -56,11 +56,16 @@ npm run eval:spider2 -- run --ids-file evaluations/spider2/smoke-local.txt
 # 评分和报告
 npm run eval:spider2 -- score --run <run_id>
 npm run eval:spider2 -- report --run <run_id>
+
+# 基于冻结运行和外部人工标签生成 Calibration 报告
+npm run eval:spider2 -- calibrate --run <run_id> --labels <labels.jsonl>
 ```
 
 `run` 可追加 `--score`，完成后立即执行官方 SQL/CSV 两种评分。正式发布运行使用 `--formal`；首轮基线必须使用 `--baseline`。`--baseline` 会同时检查 Gold 兼容性和冻结指纹，并在开始前执行真实模型 canary；Prompt、Runtime、工具、Skills、模型或评测适配器发生任何变化都会阻断运行。
 
 运行器会把模型 `stopReason=error` 记为 `provider_error`。遇到供应商错误，或正式运行中的资源/基础设施错误，会保存已有证据并立即终止，不再把失败误记为 `completed`。正式运行只有在所有选定题目均得到有效执行结果后才允许评分；`timeout`、`max_turns` 属于 Agent 表现，仍计入完整分母。
+
+评分前会检查官方 evaluator 源码并拒绝硬编码 `.decode("gbk")` 的版本，避免 UTF-8 提交在部分环境中被错误解码。Gold 兼容性预检同时固定 evaluator、dataset 和 Spider2 commit 指纹。
 
 ## 结果
 
@@ -81,7 +86,7 @@ npm run eval:spider2 -- report --run <run_id>
 └── report.md
 ```
 
-最终 SQL 选择规则：最后一次已完成且成功的 `export_query`，否则最后一次已完成且成功的 `query_database`；未完成的工具调用不计入候选。`export_query` 必须声明 `expected_rows`，Top-N 还必须声明 `expected_row_count`，并可用 `expected_columns` 声明精确列白名单；Shape 不匹配时不会发布 CSV。最终 CSV 只接受与最终导出调用关联且非空的文件，不使用“第一个 CSV”兜底；零行结果必须保留 CSV 表头。报告同时保留官方“已提交样本”分数和以本次固定题目数为分母的严格分数，未提交 SQL/CSV 的题目按错误计入严格分数。
+最终 SQL 选择规则：最后一次已完成且成功、并带有 `queryArtifactId` 的 `export_query` 关联到同一 Artifact 的 `query_database` SQL；没有导出时才回退到最后一次已完成且成功的正式 `query_database`。未完成的工具调用不计入候选。`export_query` 只能选择 Artifact，完整结果先进入私有 Export Candidate，经 Query Assurance 后原子发布；Shape 和列证据来自 Artifact/Answer Spec，不接受 Solver 自报合同。最终 CSV 只接受与最终导出调用关联且非空的文件，不使用“第一个 CSV”兜底；零行结果必须保留 CSV 表头。报告同时保留官方“已提交样本”分数和以本次固定题目数为分母的严格分数，未提交 SQL/CSV 的题目按错误计入严格分数。
 
 ## 云数据库
 

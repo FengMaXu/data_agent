@@ -159,7 +159,7 @@ export async function resolveLocalDatabase(config, spider2LiteRoot, instance) {
 }
 
 export function buildAgentPrompt(instance) {
-  return `${instance.question}\n\nBefore the first database query, derive a compact answer contract from the question: requested entities and filters, row grain and row mode/count, exact output columns, units/rounding, and ordering. Do not invent thresholds, defaults, date baselines, or unit conversions. If the question is ambiguous and ask_user_clarification is unavailable, use the most literal reading and state the assumption. For a JOIN with aggregation, run a different successful query_database call with purpose=reconciliation to check join cardinality or measure totals before export; for a complex formula, window, or recursive calculation, use purpose=verification for an independent value check when available. These checks must not replace the final SQL. After completing the query, use export_query to export only the minimal final result needed to answer the question to ${instance.instance_id}.csv. Declare the exact expected_columns and expected_rows. Do not export intermediate data, diagnostic columns, candidate rows, or a complete ranking unless the question explicitly requests them.`;
+  return `${instance.question}\n\nBefore the first database query, derive a compact answer contract from the question: requested entities and filters, row grain and row mode/count, exact output columns, units/rounding, and ordering. Do not invent thresholds, defaults, date baselines, or unit conversions. If the question is ambiguous and ask_user_clarification is unavailable, use the most literal reading and state the assumption. For a JOIN with aggregation, run a different successful query_database call with purpose=reconciliation to check join cardinality or measure totals before export; for a complex formula, window, or recursive calculation, use purpose=verification for an independent value check when available. These checks must not replace the final SQL. After a successful final query_database call, use export_query with its exact queryArtifactId to export only the minimal final result needed to answer the question to ${instance.instance_id}.csv. Do not submit a different SQL string or solver-declared expected shape. (The product may use publish_query_result for small results; this Spider2 runner requires the CSV export.) Do not export intermediate data, diagnostic columns, candidate rows, or a complete ranking unless the question explicitly requests them.`;
 }
 
 export function classifyProviderFailure(message) {
@@ -201,11 +201,12 @@ export function buildEvaluationGuardrails(limits, getTurnCount) {
   };
 }
 
-export function needsDeliveryFollowUp(toolCalls, turnCount, maxTurns) {
+export function needsDeliveryFollowUp(toolCalls, turnCount, maxTurns, options = {}) {
   if (Number(turnCount) >= Number(maxTurns)) return false;
   const completed = toolCalls.filter((call) => call.finishedAt && !call.isError);
   if (completed.some((call) => call.toolName === "export_query")) return false;
-  return completed.some((call) => call.toolName === "query_database"
+  if (!options.requireExport && completed.some((call) => call.toolName === "publish_query_result")) return false;
+  return completed.some((call) => (call.toolName === "query_database" || (options.requireExport && call.toolName === "publish_query_result"))
     && call.result?.details?.warning !== "EXPLORATION_BUDGET_EXCEEDED"
     && call.result?.details?.exploratory !== true
     && call.result?.details?.purpose !== "reconciliation"
@@ -229,18 +230,27 @@ export function fixedDenominatorScore(correct, expectedTotal, submittedTotal = e
 }
 
 export function selectFinalSql(toolCalls) {
-  const successful = toolCalls.filter((call) => call.finishedAt
-    && !call.isError
+  const completed = toolCalls.filter((call) => call.finishedAt && !call.isError);
+  const successfulQueries = completed.filter((call) => call.toolName === "query_database"
     && call.result?.details?.warning !== "EXPLORATION_BUDGET_EXCEEDED"
     && call.result?.details?.exploratory !== true
     && call.result?.details?.purpose !== "reconciliation"
     && call.result?.details?.purpose !== "verification"
     && typeof call.args?.sql === "string"
     && call.args.sql.trim());
-  const last = (name) => successful.filter((call) => call.toolName === name).at(-1);
-  const selected = last("export_query") ?? last("query_database");
-  if (!selected) return undefined;
-  return { sql: selected.args.sql.trim(), toolCallId: selected.toolCallId, toolName: selected.toolName };
+  const exports = completed.filter((call) => call.toolName === "export_query");
+  const lastExport = exports.at(-1);
+  if (lastExport) {
+    const artifactId = lastExport.args?.queryArtifactId;
+    const query = typeof artifactId === "string"
+      ? successfulQueries.filter((call) => call.result?.details?.queryArtifactId === artifactId).at(-1)
+      : undefined;
+    if (query) return { sql: query.args.sql.trim(), toolCallId: lastExport.toolCallId, toolName: "export_query", queryArtifactId: artifactId };
+    if (typeof lastExport.args?.sql === "string" && lastExport.args.sql.trim()) return { sql: lastExport.args.sql.trim(), toolCallId: lastExport.toolCallId, toolName: "export_query" };
+  }
+  const lastQuery = successfulQueries.at(-1);
+  if (!lastQuery) return undefined;
+  return { sql: lastQuery.args.sql.trim(), toolCallId: lastQuery.toolCallId, toolName: "query_database", ...(typeof lastQuery.result?.details?.queryArtifactId === "string" ? { queryArtifactId: lastQuery.result.details.queryArtifactId } : {}) };
 }
 
 export function parseCsvRows(text) {
@@ -262,6 +272,15 @@ export function parseCsvRows(text) {
   if (quoted) throw new Error("INVALID_CSV:unterminated_quote");
   if (field || row.length) { row.push(field.replace(/\r$/, "")); rows.push(row); }
   return rows;
+}
+
+export function ddlCsvToSql(csvText) {
+  const rows = parseCsvRows(csvText);
+  if (rows.length === 0) return "";
+  const header = rows[0].map((value) => value.trim().toLowerCase());
+  const ddlIndex = header.indexOf("ddl");
+  if (ddlIndex < 0) throw new Error("INVALID_DDL_CSV:DDL_REQUIRED");
+  return rows.slice(1).map((row) => row[ddlIndex]?.trim()).filter(Boolean).join("\n");
 }
 
 export function ddlCsvToMarkdown(csvText, databaseName) {
@@ -317,6 +336,13 @@ export async function sha256Tree(root) {
   };
   await walk(path.resolve(root));
   return hash.digest("hex");
+}
+
+export function validateOfficialEvaluatorSource(source) {
+  if (typeof source !== "string") throw new Error("INVALID_EVALUATOR_SOURCE:string_required");
+  if (/\.decode\s*\(\s*["']gbk["']\s*\)/i.test(source)) {
+    throw new Error("EVALUATOR_HARDCODED_GBK_DECODE");
+  }
 }
 
 export function parseOfficialScore(output) {

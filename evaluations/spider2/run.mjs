@@ -13,6 +13,7 @@ import {
   buildEvaluationRules,
   classifyProviderFailure,
   ddlCsvToMarkdown,
+  ddlCsvToSql,
   extractProviderFailure,
   exceedsTurnBudget,
   fixedDenominatorScore,
@@ -29,6 +30,7 @@ import {
   selectFinalSql,
   sha256File,
   sha256Tree,
+  validateOfficialEvaluatorSource,
 } from "./lib.mjs";
 
 const execFileAsync = promisify(execFile);
@@ -98,6 +100,13 @@ async function loadConfig(explicitPath) {
     ...(config.limits ?? {}),
   };
   config.concurrency = Math.max(1, Number(config.concurrency ?? 1));
+  config.assurance = {
+    mode: "off",
+    reviewerModel: "none",
+    reviewerPromptVersion: "1",
+    reviewPolicyVersion: "1",
+    ...(config.assurance ?? {}),
+  };
   return config;
 }
 
@@ -301,12 +310,12 @@ async function runPromptWithTimeout(harness, prompt, timeoutMs, recorder, limits
   let timer;
   const executeTask = async () => {
     await harness.prompt(prompt);
-    if (needsDeliveryFollowUp(recorder.calls, recorder.turnCount, limits.maxTurns)) {
-      await harness.prompt(
-        "[DELIVERY_REQUIRED] No successful export_query was observed. Re-read your answer contract. " +
-        "If the last SQL is not the requested final shape, correct it and validate it once with query_database. " +
+    if (needsDeliveryFollowUp(recorder.calls, recorder.turnCount, limits.maxTurns, { requireExport: true })) {
+      await harness.followUp(
+        "[DELIVERY_REQUIRED] No successful export_query was observed. Re-read the Answer Spec and the final Query Artifact. " +
+        "If the final SQL is not the requested shape, correct it and validate the corrected SQL once with query_database. " +
         "If it is a JOIN with aggregation, first run a different successful query_database call with purpose=reconciliation, then keep the final SQL unchanged. " +
-        "Then call export_query with expected_rows, expected_row_count when applicable, and the exact expected_columns. " +
+        "Then call export_query with the exact queryArtifactId returned by that final query_database call. " +
         "Do not perform any more schema or sample exploration.",
       );
     }
@@ -365,6 +374,16 @@ async function collectArtifacts(instance, runDir, workspace, recorder) {
   return { finalSql, finalCsv, csvError };
 }
 
+function publicationStatusFor(recorder, auditStore) {
+  const receiptStatus = recorder?.calls.map((call) => call.result?.details?.publicationReceipt?.status).filter(Boolean).at(-1);
+  if (receiptStatus) return receiptStatus;
+  const records = auditStore?.list?.() ?? [];
+  const last = records.at(-1);
+  if (last?.reviewAvailability === "unavailable" || last?.reviewAvailability === "off") return "not_published_review_unavailable";
+  if (last?.decision === "rejected" || last?.decision === "needs_clarification") return "not_published_rejected";
+  return null;
+}
+
 async function createCaseRunner(config, runDir) {
   const runtime = await import("@data-agent/runtime");
   const { createMcpQueryExecutor } = await import("../../apps/server/dist/mcp-query-executor.js");
@@ -379,12 +398,23 @@ async function createCaseRunner(config, runDir) {
     let status = "completed";
     let error;
     let artifacts = {};
+    let assurance;
+    let auditStore;
     try {
       prepared = await prepareKnowledge(instance, config, caseRoot, runtime.KnowledgeIndex, runtime.WorkspaceStore);
       const backend = await backendExecutor(instance, config, createMcpQueryExecutor);
       executor = backend.executor;
       const sessionStore = new runtime.PiJsonlSessionStore(path.join(runDir, "transcripts", instance.instance_id));
       const session = await sessionStore.create({ instanceId: instance.instance_id, runId: path.basename(runDir) });
+      auditStore = new runtime.InMemoryAssuranceAuditStore();
+      const ddl = await readFile(path.join(prepared.metadataDir, "DDL.csv"), "utf8");
+      const schemaEvidence = runtime.schemaEvidenceFromDdl(instance.instance_id, backendForCase(instance), ddlCsvToSql(ddl));
+      assurance = runtime.createQueryAssurance({
+        mode: config.assurance?.mode ?? "off",
+        auditStore,
+        reviewerModel: config.assurance?.reviewerModel ?? "none",
+        reviewerPromptVersion: config.assurance?.reviewerPromptVersion ?? "1",
+      });
       const harness = await runtime.createDataAgentHarness({
         workspace: prepared.workspace,
         knowledge: prepared.knowledge,
@@ -396,6 +426,8 @@ async function createCaseRunner(config, runDir) {
         enableDashboards: false,
         ...buildEvaluationGuardrails(config.limits, () => recorder?.turnCount ?? 0),
         queryExecutor: executor,
+        queryAssurance: assurance,
+        schemaEvidence,
         session,
         projectRoot,
         systemPromptRoots: [prepared.knowledgeRoot, projectRoot],
@@ -431,10 +463,13 @@ async function createCaseRunner(config, runDir) {
       csvGenerated: Boolean(artifacts.finalCsv),
       csvError: artifacts.csvError ?? null,
       error: error ?? null,
+      assuranceMode: assurance?.mode ?? config.assurance?.mode ?? "off",
+      publicationStatus: publicationStatusFor(recorder, auditStore),
+      assuranceAuditRecords: auditStore?.list() ?? [],
     };
     await Promise.all([
       writeFile(path.join(caseRoot, "result.json"), JSON.stringify(result, null, 2), "utf8"),
-      writeFile(path.join(caseRoot, "trace.json"), JSON.stringify({ events: recorder?.events ?? [], toolCalls: recorder?.calls ?? [] }, null, 2), "utf8"),
+      writeFile(path.join(caseRoot, "trace.json"), JSON.stringify({ events: recorder?.events ?? [], toolCalls: recorder?.calls ?? [], assuranceAuditRecords: auditStore?.list() ?? [] }, null, 2), "utf8"),
     ]);
     return result;
   };
@@ -536,6 +571,7 @@ async function runCommand(config, options) {
     evaluatorSha256: await sha256File(path.join(config.evaluationSuite, "evaluate.py")),
     systemPromptSha256: await sha256File(path.join(projectRoot, ".pi", "SYSTEM.md")),
     model: { provider: config.llm?.provider ?? "openai", model: config.llm?.model, apiFormat: config.llm?.apiFormat },
+    assurance: { mode: config.assurance?.mode ?? "off", reviewerModel: config.assurance?.reviewerModel ?? "none", reviewPolicyVersion: config.assurance?.reviewPolicyVersion ?? "1" },
     instanceIds: selected.map((item) => item.instance_id),
     limits: config.limits,
     concurrency: Number(options.concurrency ?? config.concurrency),
@@ -603,6 +639,7 @@ async function runEvaluator(config, resultDir, mode, outputDir) {
   const python = config.pythonExecutable || "python";
   const evaluator = path.join(config.evaluationSuite, "evaluate.py");
   const evaluatorSource = await readFile(evaluator, "utf8");
+  validateOfficialEvaluatorSource(evaluatorSource);
   const evaluatorArgs = [
     evaluator,
     "--result_dir", resultDir,
@@ -624,6 +661,60 @@ async function runEvaluator(config, resultDir, mode, outputDir) {
     await writeFile(path.join(outputDir, `${mode}.log`), output, "utf8");
     return { mode, skipped: false, error: error.message, ...parseOfficialScore(output), caseScores: parseOfficialCaseScores(output) };
   }
+}
+
+async function calibrationCommand(config, options) {
+  if (!options.run) throw new Error("--run is required");
+  if (!options.labels) throw new Error("--labels is required");
+  const runDir = path.join(config.runsRoot, options.run);
+  const manifest = JSON.parse(await readFile(path.join(runDir, "manifest.json"), "utf8"));
+  const results = await loadCaseResults(runDir);
+  const byId = new Map(results.map((item) => [item.instanceId, item]));
+  const labels = (await readFile(path.resolve(options.labels), "utf8")).split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line));
+  const identityDefaults = {
+    reviewerModel: manifest.assurance?.reviewerModel ?? "unknown",
+    reviewerPromptVersion: manifest.assurance?.reviewerPromptVersion ?? "unknown",
+    queryDigestVersion: "unknown",
+    parserVersion: "unknown",
+    reviewCoverageSchemaVersion: "unknown",
+    reviewPolicyVersion: manifest.assurance?.reviewPolicyVersion ?? "unknown",
+    hardConstraintAdmissionPolicy: "unknown",
+  };
+  const cases = labels.map((label) => {
+    const result = byId.get(label.caseId);
+    if (!result) throw new Error(`CALIBRATION_CASE_NOT_FOUND:${label.caseId}`);
+    for (const field of ["expected", "decision", "baselineCorrect", "assuranceCorrect", "baselineDurationMs", "baselineTokens", "baselineCost"]) {
+      if (label[field] === undefined) throw new Error(`CALIBRATION_LABEL_REQUIRED:${label.caseId}:${field}`);
+    }
+    return {
+      caseId: label.caseId,
+      expected: label.expected,
+      decision: label.decision,
+      diffs: label.diffs ?? [],
+      repeatGroup: label.repeatGroup,
+      baselineCorrect: Boolean(label.baselineCorrect),
+      assuranceCorrect: Boolean(label.assuranceCorrect),
+      submitted: label.submitted === undefined ? Boolean(result.csvGenerated) : Boolean(label.submitted),
+      baselineSubmitted: label.baselineSubmitted,
+      timedOut: Boolean(label.timedOut ?? result.status === "timeout"),
+      baselineTimedOut: label.baselineTimedOut,
+      durationMs: Number(label.durationMs ?? result.durationMs),
+      baselineDurationMs: Number(label.baselineDurationMs),
+      tokens: Number(label.tokens ?? 0),
+      baselineTokens: Number(label.baselineTokens),
+      cost: Number(label.cost ?? 0),
+      baselineCost: Number(label.baselineCost),
+      identity: { ...identityDefaults, ...(label.identity ?? {}) },
+    };
+  });
+  const runtime = await import("@data-agent/runtime");
+  const reports = runtime.createCalibrationReports(cases);
+  const target = path.join(runDir, "calibration", "summary.json");
+  await mkdir(path.dirname(target), { recursive: true });
+  const result = { runId: options.run, sampleSize: cases.length, reports };
+  await writeFile(target, JSON.stringify(result, null, 2), "utf8");
+  console.log(JSON.stringify(result, null, 2));
+  return result;
 }
 
 async function scoreCommand(config, options) {
@@ -665,14 +756,17 @@ async function loadCaseResults(runDir) {
 async function writeSummary(runDir, results) {
   const statuses = {};
   const backends = {};
+  const publicationStatuses = {};
   for (const result of results) {
     statuses[result.status] = (statuses[result.status] ?? 0) + 1;
     backends[result.backend] = (backends[result.backend] ?? 0) + 1;
+    if (result.publicationStatus) publicationStatuses[result.publicationStatus] = (publicationStatuses[result.publicationStatus] ?? 0) + 1;
   }
   const summary = {
     total: results.length,
     statuses,
     backends,
+    publicationStatuses,
     sqlCoverage: results.length ? results.filter((item) => item.finalSql).length / results.length : 0,
     csvCoverage: results.length ? results.filter((item) => item.csvGenerated).length / results.length : 0,
     averageDurationMs: results.length ? Math.round(results.reduce((sum, item) => sum + item.durationMs, 0) / results.length) : 0,
@@ -699,6 +793,7 @@ async function reportCommand(config, options) {
     `- Status: ${Object.entries(summary.statuses).map(([key, value]) => `${key}=${value}`).join(", ") || "none"}`,
     `- SQL coverage: ${(summary.sqlCoverage * 100).toFixed(2)}%`,
     `- CSV coverage: ${(summary.csvCoverage * 100).toFixed(2)}%`,
+    `- Publication statuses: ${Object.entries(summary.publicationStatuses).map(([key, value]) => `${key}=${value}`).join(", ") || "none"}`,
     `- Average latency: ${summary.averageDurationMs} ms`,
     `- Average tool calls: ${summary.averageToolCalls.toFixed(2)}`,
     ...(official ? [
@@ -817,6 +912,7 @@ async function main() {
   else if (command === "freeze") await freezeCommand(config);
   else if (command === "run") await runCommand(config, options);
   else if (command === "score") await scoreCommand(config, options);
+  else if (command === "calibrate") await calibrationCommand(config, options);
   else if (command === "report") await reportCommand(config, options);
   else throw new Error(`UNKNOWN_COMMAND:${command}`);
 }

@@ -10,7 +10,7 @@ describe("canonical tool surface", () => {
     const names = tools.map(t => t.name);
     expect(new Set(names).size).toBe(names.length);
     assertNoLegacyTools(names);
-    for (const required of ["list_workspace", "read_file", "write_file", "run_python", "search_knowledge", "read_knowledge", "update_knowledge", "load_skill", "generate_dashboard", "show_widget", "query_database", "ask_user_clarification"]) {
+    for (const required of ["list_workspace", "read_file", "write_file", "run_python", "search_knowledge", "read_knowledge", "update_knowledge", "load_skill", "generate_dashboard", "show_widget", "query_database", "publish_query_result", "ask_user_clarification"]) {
       expect(names).toContain(required);
     }
     const exportAdapter = tools.find(t => t.name === "export_query")!;
@@ -18,13 +18,13 @@ describe("canonical tool surface", () => {
     expect(exportAdapter.origin).toBe("mcp-dynamic");
   });
 
-  it("requires export shape declarations in the canonical schema", () => {
+  it("requires a Query Artifact in the canonical export schema", () => {
     const exportTool = canonicalLocalTools().find((tool) => tool.name === "export_query")!;
     const schema = exportTool.parameters as { required?: string[]; properties?: Record<string, unknown> };
-    expect(schema.required).toContain("expected_rows");
-    expect(schema.required).toContain("expected_columns");
-    expect(schema.properties).toHaveProperty("expected_row_count");
-    expect(schema.properties).toHaveProperty("expected_columns");
+    expect(schema.required).toContain("queryArtifactId");
+    expect(schema.properties).toHaveProperty("queryArtifactId");
+    expect(schema.properties).not.toHaveProperty("expected_rows");
+    expect(schema.properties).not.toHaveProperty("expected_columns");
   });
 
   it("documents explicit validation purposes for database previews", () => {
@@ -40,7 +40,7 @@ describe("canonical tool surface", () => {
     const registered = new Set(canonicalLocalTools().map((tool) => tool.name));
     const documentedConditional = new Set(["semantic_sl_discover", "semantic_sl_read_source", "semantic_sl_query"]);
     const operationValues = new Set(["append_learning", "write_draft", "update_schema"]);
-    const toolVerb = /^(?:query|export|read|write|search|update|load|generate|show|run|ask|build|edit|validate|execute|introspect|list|save|report|activate|check|semantic)/;
+    const toolVerb = /^(?:query|publish|export|read|write|search|update|load|generate|show|run|ask|build|edit|validate|execute|introspect|list|save|report|activate|check|semantic)/;
     const references = [...prompt.matchAll(/`([a-z][a-z0-9_]*)`/g)]
       .map((match) => match[1])
       .filter((name) => toolVerb.test(name) && !operationValues.has(name));

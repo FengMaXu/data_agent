@@ -11,21 +11,25 @@ import { renderSemanticDashboardHtml, validateDashboardV4Spec } from "./dashboar
 import { materializeDashboardV3Spec, renderStandaloneDashboardHtml, validateDashboardV3Spec } from "./dashboard-v3.js";
 import { KnowledgeWriter } from "./knowledge-write.js";
 import { runPythonJob } from "./python-job.js";
-import { canonicalLocalTools, EXPORT_QUERY_PARAMETERS, QUERY_DATABASE_PARAMETERS, SHOW_WIDGET_PARAMETERS, type CanonicalTool } from "./tools-catalog.js";
+import { canonicalLocalTools, EXPORT_QUERY_PARAMETERS, PUBLISH_QUERY_RESULT_PARAMETERS, QUERY_DATABASE_PARAMETERS, SHOW_WIDGET_PARAMETERS, type CanonicalTool } from "./tools-catalog.js";
 import { effectiveTools, loadSkillsFromRoots, resolveSkillRoots } from "./skills.js";
 import type { KnowledgeIndex } from "./knowledge.js";
 import type { WorkspaceStore } from "./workspace.js";
 import type { ClarificationManager } from "./clarification.js";
 import { emitWidgetUpdate, validateWidgetSpec, widgetLegacyText, type WidgetLifecycleDetails, type WidgetPayload } from "./widget.js";
 import { createReviewOffQueryAssurance, type PreparedQueryTask, type QueryAssurance } from "./query-assurance.js";
+import { ExportCandidateStore, type ExportCandidate } from "./export-candidate.js";
+import type { SchemaEvidence } from "./query-digest.js";
 
 export interface QueryExportBatch {
   columns: string[];
   rows: unknown[][];
+  columnTypes?: string[];
+  truncated?: boolean;
 }
 
 export interface QueryExecutor {
-  run(sql: string, rowLimit: number): Promise<{ columns: string[]; rows: unknown[][]; truncated: boolean }>;
+  run(sql: string, rowLimit: number): Promise<{ columns: string[]; rows: unknown[][]; truncated: boolean; columnTypes?: string[] }>;
   /** Optional incremental export source. Each batch is released by the executor after consumption. */
   stream?(sql: string, signal?: AbortSignal): AsyncIterable<QueryExportBatch> | Promise<AsyncIterable<QueryExportBatch>>;
 }
@@ -53,6 +57,8 @@ export interface AgentAssemblyDeps {
   queryExecutor?: QueryExecutor;
   /** Top-level Query Assurance coordinator; defaults to explicit Review Off. */
   queryAssurance?: QueryAssurance;
+  /** Optional formal schema evidence for Query Assurance; never inferred here. */
+  schemaEvidence?: SchemaEvidence;
   clarifications?: ClarificationManager;
   sessionId?: string;
   /** Persistent Pi session used by this application chat session. */
@@ -79,6 +85,10 @@ export interface AgentAssemblyDeps {
   requireJoinReconciliation?: boolean;
   /** Test/adapter escape hatch; product and evaluation harnesses enforce preview-before-export by default. */
   requireValidatedExportSql?: boolean;
+  /** Final-contract opt-in; migration keeps legacy SQL export calls compatible until contract shrink. */
+  requireQueryArtifactId?: boolean;
+  /** Require a Publication Receipt before a query task can complete. */
+  enforceDeliveryReceipt?: boolean;
 }
 
 export interface AgentModelProfile {
@@ -133,6 +143,15 @@ function requiresJoinReconciliation(sql: string): boolean {
 function sameColumns(actual: string[], expected: string[]): boolean {
   return actual.length === expected.length && actual.every((column, index) => column === expected[index]);
 }
+
+type ExportQueryParams = Static<typeof EXPORT_QUERY_PARAMETERS>;
+type LegacyExportQueryParams = {
+  sql: string;
+  filename?: string;
+  expected_rows?: "scalar" | "top_n" | "grouped" | "full";
+  expected_row_count?: number;
+  expected_columns?: string[];
+};
 
 /** RFC 4180 field encoding; strings remain quoted for compatibility with prior exports. */
 function csvField(value: unknown): string {
@@ -189,11 +208,14 @@ export interface AgentAssemblyToolContext {
   sessionId?: string;
   /** Query Task identity associated with this harness turn, when available. */
   taskId?: string;
+  /** Answer Spec version associated with this harness turn, when available. */
+  specVersion?: string;
 }
 
 export type AgentAssemblyToolContextSource = AgentAssemblyToolContext | (() => AgentAssemblyToolContext | Promise<AgentAssemblyToolContext>);
 
 type PrepareQueryTaskForPrompt = (text: string, signal: AbortSignal) => Promise<PreparedQueryTask>;
+type DeliveryRequirement = (task: PreparedQueryTask) => boolean | Promise<boolean>;
 
 interface NativeToolExecution {
   toolCallId: string;
@@ -235,6 +257,7 @@ class DataAgentHarness extends AgentHarness<AgentAssemblyToolContext, DataAgentS
   constructor(
     options: AgentHarnessOptions<AgentAssemblyToolContext, DataAgentSkill>,
     private readonly prepareQueryTask?: PrepareQueryTaskForPrompt,
+    private readonly deliveryRequired?: DeliveryRequirement,
   ) {
     super(options);
   }
@@ -243,8 +266,12 @@ class DataAgentHarness extends AgentHarness<AgentAssemblyToolContext, DataAgentS
     const controller = new AbortController();
     this.promptPreparationController = controller;
     try {
-      await this.prepareQueryTask?.(text, controller.signal);
-      return await super.prompt(text, options);
+      const task = await this.prepareQueryTask?.(text, controller.signal);
+      const response = await super.prompt(text, options);
+      if (task && await this.deliveryRequired?.(task)) {
+        await super.followUp("[DELIVERY_REQUIRED] Query results are Internal Evidence until publication. Use export_query with the exact queryArtifactId for CSV delivery or publish_query_result for a small inline result. Do not answer with unapproved result values.");
+      }
+      return response;
     } finally {
       if (this.promptPreparationController === controller) this.promptPreparationController = undefined;
     }
@@ -273,6 +300,7 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
   const writer = deps.knowledgeRoot ? new KnowledgeWriter(deps.knowledgeRoot) : undefined;
   const sessionIdFor = (native: NativeToolExecution) => native.context?.sessionId ?? deps.sessionId;
   const taskIdFor = (native: NativeToolExecution) => native.context?.taskId;
+  const specVersionFor = (native: NativeToolExecution) => native.context?.specVersion;
   const queryTaskKeyFor = (native: NativeToolExecution) => taskIdFor(native) ?? sessionIdFor(native) ?? "__default__";
   const workspaceFor = async (native: NativeToolExecution) => {
     const sessionId = sessionIdFor(native);
@@ -284,22 +312,23 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
   };
   const toolFailures = new Map<string, { message: string; count: number }>();
   const queryAssurance = deps.queryAssurance ?? createReviewOffQueryAssurance();
+  const legacyExportEnabled = deps.requireQueryArtifactId === false;
   type QueryTaskState = {
     /** Pre-wired for the next Query Task slice; Review Off is behavior-neutral. */
     queryAssurance: QueryAssurance;
+    previewResults: Map<string, { columns: string[]; rows: unknown[][]; truncated: boolean }>;
     exploratoryCount: number;
     hasExported: boolean;
-    lastSuccessfulSql?: string;
-    lastReconciliationSql?: string;
-    reconciliationForSql?: string;
-    lastVerificationSql?: string;
+    legacyLastSuccessfulSql?: string;
+    legacyLastReconciliationSql?: string;
+    legacyReconciliationForSql?: string;
   };
   const queryTaskStates = new Map<string, QueryTaskState>();
   const queryTaskStateFor = (native: NativeToolExecution): QueryTaskState => {
     const key = queryTaskKeyFor(native);
     const existing = queryTaskStates.get(key);
     if (existing) return existing;
-    const created: QueryTaskState = { queryAssurance, exploratoryCount: 0, hasExported: false };
+    const created: QueryTaskState = { queryAssurance, previewResults: new Map(), exploratoryCount: 0, hasExported: false };
     queryTaskStates.set(key, created);
     return created;
   };
@@ -483,11 +512,130 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
         result,
       };
     };
+    const exportViaAssurance = async (params: ExportQueryParams, native: NativeToolExecution): Promise<AgentToolResult<unknown>> => {
+      const taskId = taskIdFor(native);
+      if (!taskId) throw new Error("QUERY_TASK_REQUIRED: queryArtifactId publication requires an active Query Task");
+      if (!params.queryArtifactId) throw new Error("QUERY_ARTIFACT_REQUIRED");
+      if (!queryAssurance.getArtifact || !queryAssurance.publishCandidate) throw new Error("QUERY_ASSURANCE_ARTIFACT_API_UNAVAILABLE");
+      const signal = native.signal ?? new AbortController().signal;
+      const artifact = await queryAssurance.getArtifact(taskId, params.queryArtifactId, signal);
+      if (!artifact) throw new Error("QUERY_ARTIFACT_NOT_FOUND_OR_EXPIRED");
+      const target = params.filename ?? `exports/query-${Date.now()}.csv`;
+      const workspace = await workspaceFor(native);
+      const candidateStore = new ExportCandidateStore(workspace);
+      const batches = (async function* (): AsyncGenerator<{ columns: readonly string[]; rows: readonly (readonly unknown[])[]; columnTypes?: readonly string[]; truncated?: boolean }> {
+        if (deps.queryExecutor!.stream) {
+          const streamed = await deps.queryExecutor!.stream(artifact.normalizedSql, signal);
+          for await (const batch of streamed) yield batch;
+          return;
+        }
+        const bounded = await deps.queryExecutor!.run(artifact.normalizedSql, DEFAULT_ROW_LIMIT);
+        if (bounded.truncated) throw new Error("EXPORT_STREAM_REQUIRED");
+        yield bounded;
+      })();
+      let candidate: ExportCandidate | undefined;
+      try {
+        candidate = await candidateStore.create({
+          taskId,
+          queryArtifactId: artifact.queryArtifactId,
+          batches,
+          expectedColumns: artifact.previewMetadata.columns,
+        }, signal);
+        const storedCandidate = candidate;
+        const specVersion = artifact.specVersion ?? specVersionFor(native) ?? "1";
+        const schemaEvidenceFingerprint = artifact.queryDigest?.schemaEvidenceFingerprint ?? "unknown";
+        const candidateForReview = { ...storedCandidate, normalizedSqlHash: artifact.normalizedSqlHash, specVersion, schemaEvidenceFingerprint };
+        const digest = artifact.queryDigest;
+        const spec = queryAssurance.getAnswerSpec?.(taskId, artifact.specVersion);
+        const reviewInput = digest && spec && artifact.schemaEvidence
+          ? {
+            question: spec.question,
+            clarifications: [],
+            answerSpec: spec,
+            schema: artifact.schemaEvidence,
+            sql: artifact.normalizedSql,
+            digest,
+            resultMetadata: storedCandidate.metadata,
+          }
+          : undefined;
+        const outcome = await queryAssurance.reviewForPublication({ task: { taskId, mode: queryAssurance.mode, specVersion }, candidate: candidateForReview, reviewInput }, signal);
+        if (!outcome.reviewToken) throw new Error("REVIEW_TOKEN_MISSING");
+        const receipt = await queryAssurance.publishCandidate({ reviewToken: outcome.reviewToken, candidate: candidateForReview, targetPath: target, promote: () => candidateStore.publish(storedCandidate, target) }, signal);
+        queryTaskStateFor(native).hasExported = true;
+        const artifactPath = artifactPathFor(native, target);
+        const downloadUrl = `/workspace/files/download?path=${encodeURIComponent(artifactPath)}`;
+        deps.emitArtifact?.(artifactPath);
+        return text(`exported ${storedCandidate.metadata.rowCount} rows: [下载 CSV](${downloadUrl})\\n[TASK_COMPLETE] Publication Receipt ${receipt.receiptId} (${receipt.status})`, {
+          status: "success",
+          taskComplete: true,
+          publicationReceipt: receipt,
+          relativePath: target,
+          downloadUrl,
+          fileType: "csv",
+          rowCount: storedCandidate.metadata.rowCount,
+          columns: storedCandidate.metadata.columns,
+          queryArtifactId: artifact.queryArtifactId,
+        });
+      } catch (error) {
+        if (candidate) await candidateStore.discard(candidate);
+        throw error;
+      }
+    };
+    const publishInlineViaAssurance = async (params: Static<typeof PUBLISH_QUERY_RESULT_PARAMETERS>, native: NativeToolExecution): Promise<AgentToolResult<unknown>> => {
+      const taskId = taskIdFor(native);
+      if (!taskId) throw new Error("QUERY_TASK_REQUIRED: inline publication requires an active Query Task");
+      if (!queryAssurance.getArtifact || !queryAssurance.publishCandidate) throw new Error("QUERY_ASSURANCE_ARTIFACT_API_UNAVAILABLE");
+      const signal = native.signal ?? new AbortController().signal;
+      const artifact = await queryAssurance.getArtifact(taskId, params.queryArtifactId, signal);
+      if (!artifact) throw new Error("QUERY_ARTIFACT_NOT_FOUND_OR_EXPIRED");
+      const preview = queryTaskStateFor(native).previewResults.get(params.queryArtifactId);
+      if (!preview) throw new Error("QUERY_ARTIFACT_PREVIEW_NOT_AVAILABLE");
+      if (preview.truncated || artifact.previewMetadata.truncated) throw new Error("INLINE_RESULT_TRUNCATED");
+      const candidate: ExportCandidate & { normalizedSqlHash: string; specVersion: string; schemaEvidenceFingerprint: string } = {
+        candidateId: randomUUID(),
+        taskId,
+        queryArtifactId: artifact.queryArtifactId,
+        path: `inline://${artifact.queryArtifactId}`,
+        metadata: artifact.previewMetadata,
+        createdAt: new Date().toISOString(),
+        normalizedSqlHash: artifact.normalizedSqlHash,
+        specVersion: artifact.specVersion ?? specVersionFor(native) ?? "1",
+        schemaEvidenceFingerprint: artifact.queryDigest?.schemaEvidenceFingerprint ?? "unknown",
+      };
+      const spec = queryAssurance.getAnswerSpec?.(taskId, artifact.specVersion);
+      const reviewInput = artifact.queryDigest && spec && artifact.schemaEvidence
+        ? {
+          question: spec.question,
+          clarifications: [],
+          answerSpec: spec,
+          schema: artifact.schemaEvidence,
+          sql: artifact.normalizedSql,
+          digest: artifact.queryDigest,
+          resultMetadata: artifact.previewMetadata,
+        }
+        : undefined;
+      const outcome = await queryAssurance.reviewForPublication({ task: { taskId, mode: queryAssurance.mode, specVersion: candidate.specVersion }, candidate, reviewInput }, signal);
+      if (!outcome.reviewToken) throw new Error("REVIEW_TOKEN_MISSING");
+      const receipt = await queryAssurance.publishCandidate({ reviewToken: outcome.reviewToken, candidate, targetPath: candidate.path }, signal);
+      queryTaskStateFor(native).hasExported = true;
+      const header = preview.columns.join(" | ");
+      const body = preview.rows.map((row) => row.map((cell) => String(cell ?? "NULL")).join(" | ")).join("\\n");
+      return text(`${header}\\n${body}\\n[PUBLISHED_INLINE] Publication Receipt ${receipt.receiptId} (${receipt.status})`, {
+        status: "success",
+        taskComplete: true,
+        publishedInline: true,
+        internalEvidence: false,
+        publicationReceipt: receipt,
+        queryArtifactId: artifact.queryArtifactId,
+        columns: preview.columns,
+        rows: preview.rows,
+      });
+    };
     tools.push(
       defineTool("query_database", canonicalTool("query_database").description, QUERY_DATABASE_PARAMETERS, async (p, native) => withToolFailureGuidance("query_database", native, async () => {
         let state = queryTaskStateFor(native);
         if (state.hasExported) {
-          state = { queryAssurance, exploratoryCount: 0, hasExported: false };
+          state = { queryAssurance, previewResults: new Map(), exploratoryCount: 0, hasExported: false };
           queryTaskStates.set(queryTaskKeyFor(native), state);
         }
         const validationPurpose = p.purpose;
@@ -510,18 +658,21 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
         const taskId = taskIdFor(native);
         const artifact = taskId && !validationPurpose && queryAssurance.recordPreview
           ? await queryAssurance.recordPreview({
-            task: { taskId, mode: queryAssurance.mode },
+            task: { taskId, mode: queryAssurance.mode, ...(specVersionFor(native) ? { specVersion: specVersionFor(native) } : {}) },
             sql: p.sql,
-            result: { columns: result.columns, rows: result.rows, truncated: result.truncated },
+            result: { columns: result.columns, rows: result.rows, truncated: result.truncated, ...(result.columnTypes ? { columnTypes: result.columnTypes } : {}) },
+            ...(deps.databaseDialect ? { dialect: deps.databaseDialect } : {}),
+            ...(deps.schemaEvidence ? { schema: deps.schemaEvidence } : {}),
           }, signal)
           : undefined;
-        if (validationPurpose === "reconciliation") {
-          state.lastReconciliationSql = normalizedSql;
-          state.reconciliationForSql = state.lastSuccessfulSql;
-        } else if (validationPurpose === "verification") {
-          state.lastVerificationSql = normalizedSql;
-        } else {
-          state.lastSuccessfulSql = normalizedSql;
+        if (artifact) state.previewResults.set(artifact.queryArtifactId, { columns: [...result.columns], rows: result.rows, truncated: result.truncated });
+        if (legacyExportEnabled) {
+          if (validationPurpose === "reconciliation") {
+            state.legacyLastReconciliationSql = normalizedSql;
+            state.legacyReconciliationForSql = state.legacyLastSuccessfulSql;
+          } else if (!validationPurpose) {
+            state.legacyLastSuccessfulSql = normalizedSql;
+          }
         }
         const progress = await deps.taskProgress?.(native.context);
         const remindToExport = Boolean(progress
@@ -537,7 +688,8 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
           : validationPurpose === "verification"
             ? "\n[VERIFICATION_RECORDED] This independent verification query does not replace the final SQL used for export."
             : "";
-        return text(`${rendered}${validationHint}${reminder}`, {
+        const artifactHint = artifact ? `\n[INTERNAL_EVIDENCE] queryArtifactId=${artifact.queryArtifactId}` : "";
+        return text(`${rendered}${validationHint}${artifactHint}${reminder}`, {
           columns: result.columns,
           rows: result.rows,
           exploratory,
@@ -554,29 +706,32 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
       })),
 
       defineTool("export_query", canonicalTool("export_query").description, EXPORT_QUERY_PARAMETERS, async (p, native) => withToolFailureGuidance("export_query", native, async () => {
-        if (!p.expected_rows) {
+        if (p.queryArtifactId) return exportViaAssurance(p, native);
+        const legacy = p as unknown as LegacyExportQueryParams;
+        if (deps.requireQueryArtifactId !== false) throw new Error("EXPORT_QUERY_REQUIRES_QUERY_ARTIFACT_ID: select a Query Artifact instead of submitting SQL directly");
+        if (!legacy.expected_rows) {
           throw new Error("SHAPE_DECLARATION_INVALID: expected_rows is required");
         }
         const taskState = queryTaskStateFor(native);
-        const normalizedSql = normalizeValidatedSql(p.sql);
-        if (deps.requireValidatedExportSql !== false && taskState.lastSuccessfulSql !== normalizedSql) {
+        const normalizedSql = normalizeValidatedSql(legacy.sql);
+        if (deps.requireValidatedExportSql !== false && taskState.legacyLastSuccessfulSql !== normalizedSql) {
           throw new Error("EXPORT_SQL_NOT_VALIDATED: export_query SQL must exactly match the last successful final query_database SQL in this session. Validate this SQL, then export it unchanged. Re-derive the expected shape from the question, not from the last query result.");
         }
-        if (p.expected_rows === "top_n" && p.expected_row_count === undefined) {
+        if (legacy.expected_rows === "top_n" && legacy.expected_row_count === undefined) {
           throw new Error("SHAPE_DECLARATION_INVALID: expected_row_count is required for top_n");
         }
-        if (!p.expected_columns || p.expected_columns.length === 0) {
+        if (!legacy.expected_columns || legacy.expected_columns.length === 0) {
           throw new Error("SHAPE_DECLARATION_INVALID: expected_columns is required");
         }
-        if (deps.requireJoinReconciliation !== false && requiresJoinReconciliation(p.sql)) {
-          if (taskState.reconciliationForSql !== normalizedSql || taskState.lastReconciliationSql === normalizedSql) {
+        if (deps.requireJoinReconciliation !== false && requiresJoinReconciliation(legacy.sql)) {
+          if (taskState.legacyReconciliationForSql !== normalizedSql || taskState.legacyLastReconciliationSql === normalizedSql) {
             throw new Error("JOIN_RECONCILIATION_REQUIRED: run a different successful query_database call with purpose=reconciliation to audit JOIN aggregate row counts or totals before exporting. The reconciliation query does not replace the final SQL.");
           }
         }
         const signal = native.signal;
-        const target = p.filename ?? `exports/query-${Date.now()}.csv`;
-        const rowCountMaximum = (p.expected_rows === "top_n" || p.expected_rows === "grouped")
-          ? p.expected_row_count
+        const target = legacy.filename ?? `exports/query-${Date.now()}.csv`;
+        const rowCountMaximum = (legacy.expected_rows === "top_n" || legacy.expected_rows === "grouped")
+          ? legacy.expected_row_count
           : undefined;
         let rowCount = 0;
         let observedColumns: string[] | undefined;
@@ -597,8 +752,8 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
             if (!sameColumns(batch.columns, observedColumns)) {
               throw new Error(`SHAPE_MISMATCH: export batches changed columns from [${observedColumns.join(", ")}] to [${batch.columns.join(", ")}]`);
             }
-            if (!sameColumns(batch.columns, p.expected_columns)) {
-              throw new Error(`SHAPE_MISMATCH: expected columns [${p.expected_columns.join(", ")}] but query returned [${batch.columns.join(", ")}]`);
+            if (!sameColumns(batch.columns, legacy.expected_columns!)) {
+              throw new Error(`SHAPE_MISMATCH: expected columns [${legacy.expected_columns!.join(", ")}] but query returned [${batch.columns.join(", ")}]`);
             }
             if (!headerWritten) {
               await append(batch.columns.map(csvHeaderField).join(","));
@@ -610,27 +765,27 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
                 throw new Error(`SHAPE_MISMATCH: row width ${row.length} does not match ${batch.columns.length} columns`);
               }
               rowCount++;
-              if (p.expected_rows === "scalar" && rowCount > 1) {
+              if (legacy.expected_rows === "scalar" && rowCount > 1) {
                 throw new Error("SHAPE_MISMATCH: declared scalar but query produced more than 1 row. Add a final aggregation or LIMIT 1 before exporting.");
               }
               if (rowCountMaximum !== undefined && rowCount > rowCountMaximum) {
-                throw new Error(`SHAPE_MISMATCH: declared ${p.expected_rows} maximum=${p.expected_row_count} but query produced more than ${rowCountMaximum} rows. Add a final LIMIT, aggregation, or stricter filter before exporting.`);
+                throw new Error(`SHAPE_MISMATCH: declared ${legacy.expected_rows} maximum=${legacy.expected_row_count} but query produced more than ${rowCountMaximum} rows. Add a final LIMIT, aggregation, or stricter filter before exporting.`);
               }
               await append(`\n${row.map(csvField).join(",")}`);
             }
           };
           if (deps.queryExecutor!.stream) {
-            const batches = await deps.queryExecutor!.stream(p.sql, signal);
+            const batches = await deps.queryExecutor!.stream(legacy.sql, signal);
             for await (const batch of batches) await consume(batch);
           } else {
             // The legacy preview contract is intentionally bounded. Executors
             // that support complete exports must implement stream().
-            const bounded = await deps.queryExecutor!.run(p.sql, DEFAULT_ROW_LIMIT);
+            const bounded = await deps.queryExecutor!.run(legacy.sql, DEFAULT_ROW_LIMIT);
             if (bounded.truncated) throw new Error("EXPORT_STREAM_REQUIRED");
             await consume(bounded);
           }
           if (!headerWritten) throw new Error("EXPORT_EMPTY_STREAM: executor returned no column metadata");
-          if (p.expected_rows === "scalar" && rowCount === 0) {
+          if (legacy.expected_rows === "scalar" && rowCount === 0) {
             throw new Error("SHAPE_MISMATCH: declared scalar but query produced 0 rows. Return exactly one aggregate row before exporting.");
           }
           if (pending) await write(pending);
@@ -642,7 +797,7 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
         deps.emitArtifact?.(artifactPath);
         return text(
           `exported ${rowCount} rows: [下载 CSV](${downloadUrl})\n` +
-          `[TASK_COMPLETE] The declared ${p.expected_rows} shape and output columns were validated. ` +
+          `[TASK_COMPLETE] The declared ${legacy.expected_rows} shape and output columns were validated. ` +
           "If the user's request was to query and export data, the task is complete. " +
           "Do not call Python, show_widget, or generate_dashboard unless the user explicitly requested analysis or visualization.",
           {
@@ -653,10 +808,12 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
             fileType: "csv",
             rowCount,
             columns: observedColumns ?? [],
-            expectedRows: p.expected_rows,
+            expectedRows: legacy.expected_rows,
           },
         );
       })),
+
+      defineTool("publish_query_result", canonicalTool("publish_query_result").description, PUBLISH_QUERY_RESULT_PARAMETERS, async (p, native) => withToolFailureGuidance("publish_query_result", native, async () => publishInlineViaAssurance(p, native))),
     );
   }
   if (deps.clarifications) {
@@ -768,7 +925,7 @@ export async function createDataAgentHarness(deps: AgentAssemblyDeps, profile: A
   const baseToolContext = deps.toolContext ?? { sessionId: deps.sessionId };
   const toolContext: AgentAssemblyToolContextSource = async () => {
     const base = typeof baseToolContext === "function" ? await baseToolContext() : baseToolContext;
-    return activeTask ? { ...base, taskId: activeTask.taskId } : base;
+    return activeTask ? { ...base, taskId: activeTask.taskId, ...(activeTask.specVersion ? { specVersion: activeTask.specVersion } : {}) } : base;
   };
   const tools = buildAgentTools({
     ...deps,
@@ -807,9 +964,17 @@ export async function createDataAgentHarness(deps: AgentAssemblyDeps, profile: A
     resources: { skills },
     toolContext,
   }, async (text, signal) => {
-    activeTask = await queryAssurance.prepareTask({ question: text }, signal);
+    activeTask = await queryAssurance.prepareTask({
+      question: text,
+      ...(deps.databaseDialect ? { dialect: deps.databaseDialect } : {}),
+      ...(deps.schemaEvidence ? { schema: deps.schemaEvidence } : {}),
+    }, signal);
     return activeTask;
-  });
+  }, async (task) => Boolean(
+    deps.enforceDeliveryReceipt !== false
+      && queryAssurance.hasInternalEvidence?.(task.taskId)
+      && !queryAssurance.hasPublication?.(task.taskId),
+  ));
   harness.subscribe((event) => {
     if (event?.type !== "tool_execution_end" || !event.isError) return;
     const content = event.result?.content;

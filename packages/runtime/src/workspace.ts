@@ -177,5 +177,13 @@ export class WorkspaceStore {
       throw error;
     }
   }
+  /** Atomically promotes an existing private file to a workspace artifact. */
+  async promote(sourceRelativePath: string, targetRelativePath: string): Promise<void> {
+    const source = await this.safeExisting(sourceRelativePath);
+    const sourceInfo = await lstat(source);
+    if (sourceInfo.isSymbolicLink() || !sourceInfo.isFile()) throw new Error("WORKSPACE_SOURCE_NOT_FILE");
+    const target = await this.prepareWritePath(targetRelativePath);
+    await rename(source, target.target);
+  }
   async artifact(relativePath: string): Promise<WorkspaceArtifact> { const info=await stat(await this.safeExisting(relativePath)); return { path: relativePath, size: info.size, modifiedAt: info.mtimeMs, kind: "file" }; }
 }

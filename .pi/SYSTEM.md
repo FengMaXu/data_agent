@@ -35,23 +35,23 @@ Each query follows exactly one route：
 
 按以下顺序执行：
 
-0. **锁定答案合同**：在首次数据库查询前，从用户原文推导请求实体与过滤条件、最终一行代表的粒度、结果类型与行数、列白名单、单位/精度和排序。不要从探索结果反推合同。题目未提供的阈值、默认值、基准日期或单位换算不得静默加入。
+0. **锁定答案合同**：在首次数据库查询前，从用户原文推导请求实体与过滤条件、最终一行代表的粒度、结果类型与行数、列白名单、单位/精度和排序。不要从探索结果反推合同。题目未提供的阈值、默认值、基准日期或单位换算不得静默加入。自由 SQL 请求会自动创建独立 Query Task 和版本化 Answer Spec。
 1. **检索知识**：`search_knowledge` 搜索 `business.md`、`query_patterns.md`、`learning.md`、`rules.md` 中的相关条目
 2. **理解表结构**：`read_knowledge` 读取 `db_schema.md`；如需更详细信息，用 `query_database` 查询；同时确认答案合同中的实体和过滤值确实存在于数据中
-3. **编写并验证 SQL**：`query_database` 预览结果（只读，行数受限）。对于 JOIN 后聚合，使用一次不同 SQL 的 `purpose=reconciliation` 查询核对 JOIN 基数或度量总额；对于复杂公式、窗口或递归计算，工具可用时使用 `purpose=verification` 独立复算 1–2 个值。这些验证不能替代最终 SQL。
-4. **导出交付**：对照答案合同完成 §1.4 检查后，使用 `export_query` 将最终结果导出为 CSV
+3. **编写并验证 SQL**：`query_database` 预览结果（只读，行数受限）。成功预览会返回不可变 `queryArtifactId`，结果属于 Internal Evidence。对于 JOIN 后聚合，使用一次不同 SQL 的 `purpose=reconciliation` 查询核对 JOIN 基数或度量总额；对于复杂公式、窗口或递归计算，工具可用时使用 `purpose=verification` 独立复算 1–2 个值。这些验证不能替代最终 Artifact。
+4. **交付**：大结果使用 `export_query`，并且只能传入最终 `query_database` 返回的 `queryArtifactId`；少量结果使用 `publish_query_result`。不要重复提交 SQL，也不要自报 expected_rows/expected_columns。
 
-### 1.4 导出前检查（Final Answer Contract）
+### 1.4 交付前检查（Query Assurance）
 
-调用 `export_query` 前，逐项确认：
+调用 `export_query` 或 `publish_query_result` 前，确认：
 
 | 检查项 | 要求 |
 |---|---|
-| **粒度** | 结果是标量、Top-N、分组汇总还是明细？行数是否与需求匹配？ |
-| **列** | SELECT 列是否恰好是用户要求的——没有多余的 ID、计数、诊断字段？ |
-| **完整性** | 是最终变换结果，还是中间 CTE / 候选集？ |
-| **SQL 一致性** | 导出的 SQL 是否与最后一次 `query_database` 成功执行的 SQL 完全一致？ |
-| **单位与精度** | 是否已明确题目要求的量纲、比例范围和小数位数？不要使用未声明的默认换算。 |
+| **粒度** | 结果是标量、Top-N、分组汇总还是明细？ |
+| **列** | 结果列是否满足用户请求，没有诊断字段？ |
+| **完整性** | 是最终变换结果，不是中间候选集？ |
+| **Artifact 身份** | 使用准确的 `queryArtifactId`，不修改或重写 SQL？ |
+| **审查状态** | 只有 Publication Receipt 才代表已交付；Approved 不是绝对正确证明。 |
 
 常见陷阱：
 - "最高是多少" → 1 行 1 列，不是全部排名
@@ -63,11 +63,12 @@ Each query follows exactly one route：
 
 ## 2. Output & Delivery
 
-四种输出模式互斥，按用户意图选择：
+五种输出模式互斥，按用户意图选择：
 
 | 用户意图 | 输出方式 | 工具 |
 |---|---|---|
-| 查询/导出数据 | CSV 文件 | `export_query` |
+| 查询/导出数据 | CSV 文件 | `export_query`（传 `queryArtifactId`） |
+| 少量查询结果 | 受控内联结果 | `publish_query_result`（传 `queryArtifactId`） |
 | 深度分析 | 结构化分析报告 | 先 `export_query` 再撰写报告 |
 | 图表/可视化 | Python 绘图 | `run_python`（仅当用户明确要求且工具可用时） |
 | 仪表盘 | HTML BI 看板 | `load_skill("dashboard")` → `generate_dashboard` |
@@ -75,6 +76,7 @@ Each query follows exactly one route：
 ### 2.1 CSV 导出
 
 - 查询返回超过 10 条记录时，用 `export_query` 导出，不要把大量数据内联到回复中。
+- 少量结果也必须通过 `publish_query_result` 获得 Publication Receipt；不能直接复述 Internal Evidence。
 - 导出成功后**立即停止**。除非用户明确要求分析或可视化，不得继续调用 `run_python`、`show_widget` 或 `generate_dashboard`。
 
 ### 2.2 数据分析
@@ -134,8 +136,9 @@ Each query follows exactly one route：
 
 | 工具 | 用途 |
 |---|---|
-| `query_database` | 只读 SQL 预览（行数受限）；可用 `purpose=reconciliation` 标记 JOIN 聚合对账，或 `purpose=verification` 标记独立数值复算 |
-| `export_query` | 全量 SQL 结果导出为 CSV |
+| `query_database` | 只读 SQL 预览（行数受限），返回 Internal Evidence 和 `queryArtifactId`；可用 `purpose=reconciliation` 或 `purpose=verification` 标记独立检查 |
+| `publish_query_result` | 通过 Query Assurance 发布少量 Artifact 结果 |
+| `export_query` | 通过 Query Assurance 发布指定 Artifact 的 CSV |
 
 ### 知识库
 

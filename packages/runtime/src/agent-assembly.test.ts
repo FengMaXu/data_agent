@@ -4,11 +4,11 @@ import { tmpdir } from "node:os";
 import path, { join } from "node:path";
 import { buildAgentTools, composeDataAgentSystemPrompt, createDataAgentHarness, resolveSystemPrompt, runtimeCapabilitiesPrompt, unknownToolRecoveryMessage, type AgentAssemblyDeps, type QueryExportBatch } from "./agent-assembly.js";
 import { ClarificationManager } from "./clarification.js";
-import type { QueryAssurance } from "./query-assurance.js";
+import { createReviewOffQueryAssurance, type QueryAssurance } from "./query-assurance.js";
 import { WorkspaceStore } from "./workspace.js";
 
 function exportTool(workspace: WorkspaceStore, queryExecutor: any, emitArtifact?: (path: string) => void): any {
-  return buildAgentTools({ workspace, queryExecutor, emitArtifact, requireValidatedExportSql: false }).find((tool) => tool.name === "export_query");
+  return buildAgentTools({ workspace, queryExecutor, emitArtifact, requireValidatedExportSql: false, requireQueryArtifactId: false }).find((tool) => tool.name === "export_query");
 }
 
 async function tempFiles(root: string): Promise<string[]> {
@@ -71,8 +71,8 @@ describe("native system prompt assembly", () => {
     const prompt = await resolveSystemPrompt([path.resolve(process.cwd(), "../..")], "sqlite");
     expect(prompt).toContain("数据库后端为 SQLite");
     expect(prompt).toContain("sqlite_master");
-    expect(prompt).toContain("### 1.4 导出前检查（Final Answer Contract）");
-    expect(prompt).toContain("导出的 SQL 是否与最后一次 `query_database` 成功执行的 SQL 完全一致");
+    expect(prompt).toContain("### 1.4 交付前检查（Query Assurance）");
+    expect(prompt).toContain("使用准确的 `queryArtifactId`");
     expect(prompt).toContain("The only sources of truth are the user's inquiry and the business documentation");
     expect(prompt).toContain("Guessing or fabricating non-existent business rules is strictly prohibited");
     expect(prompt).toContain("若该工具不在当前工具列表中");
@@ -257,6 +257,7 @@ describe("query task guardrails", () => {
       workspace: new WorkspaceStore(root),
       taskProgress: () => ({ turnCount: 12, maxTurns: 20 }),
       queryExecutor: executor,
+      requireQueryArtifactId: false,
     });
     const query = tools.find((candidate) => candidate.name === "query_database") as any;
     const exportQuery = tools.find((candidate) => candidate.name === "export_query") as any;
@@ -295,6 +296,62 @@ describe("query task guardrails", () => {
 });
 
 describe("export_query", () => {
+  it("publishes the exact Query Artifact through a Review Token", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-export-artifact-"));
+    const workspace = new WorkspaceStore(root);
+    const assurance = createReviewOffQueryAssurance();
+    const task = await assurance.prepareTask({ question: "What is the answer?" }, new AbortController().signal);
+    const tools = buildAgentTools({
+      workspace,
+      queryAssurance: assurance,
+      databaseDialect: "sqlite",
+      queryExecutor: {
+        run: async () => ({ columns: ["answer"], rows: [[1]], truncated: false }),
+        stream: async function* (): AsyncGenerator<QueryExportBatch> { yield { columns: ["answer"], rows: [[1]] }; },
+      },
+    });
+    const query = tools.find((candidate) => candidate.name === "query_database") as any;
+    const exportQuery = tools.find((candidate) => candidate.name === "export_query") as any;
+    try {
+      const preview = await query.execute("artifact-preview", { sql: "SELECT 1 AS answer" }, undefined, undefined, { sessionId: "session-a", taskId: task.taskId, specVersion: task.specVersion });
+      const queryArtifactId = preview.details.queryArtifactId;
+      expect(queryArtifactId).toBeTruthy();
+      const result = await exportQuery.execute("artifact-export", {
+        sql: "SELECT 1 AS answer",
+        queryArtifactId,
+        filename: "exports/artifact.csv",
+        expected_rows: "scalar",
+        expected_columns: ["answer"],
+      }, undefined, undefined, { sessionId: "session-a", taskId: task.taskId, specVersion: task.specVersion });
+      expect(result.details).toMatchObject({ taskComplete: true, publicationReceipt: { status: "published_with_disagreement", queryArtifactId } });
+      expect(await readFile(join(root, "session-a", "exports", "artifact.csv"), "utf8")).toBe("answer\n1");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("publishes a small Query Artifact inline through the same Receipt path", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-inline-result-"));
+    const workspace = new WorkspaceStore(root);
+    const assurance = createReviewOffQueryAssurance();
+    const task = await assurance.prepareTask({ question: "What is the answer?" }, new AbortController().signal);
+    const tools = buildAgentTools({
+      workspace,
+      queryAssurance: assurance,
+      queryExecutor: { run: async () => ({ columns: ["answer"], rows: [[1]], truncated: false }) },
+    });
+    const query = tools.find((candidate) => candidate.name === "query_database") as any;
+    const publish = tools.find((candidate) => candidate.name === "publish_query_result") as any;
+    try {
+      const preview = await query.execute("inline-preview", { sql: "SELECT 1 AS answer" }, undefined, undefined, { sessionId: "session-a", taskId: task.taskId, specVersion: task.specVersion });
+      const result = await publish.execute("inline-publish", { queryArtifactId: preview.details.queryArtifactId }, undefined, undefined, { sessionId: "session-a", taskId: task.taskId, specVersion: task.specVersion });
+      expect(result.details).toMatchObject({ publishedInline: true, taskComplete: true, publicationReceipt: { status: "published_with_disagreement" } });
+      expect(result.content[0].text).toContain("PUBLISHED_INLINE");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("rejects a scalar declaration that produces multiple rows without publishing a file", async () => {
     const root = await mkdtemp(join(tmpdir(), "data-agent-export-scalar-shape-"));
     const workspace = new WorkspaceStore(root);
@@ -327,7 +384,7 @@ describe("export_query", () => {
         yield { columns: ["id"], rows: sql.includes("WHERE") ? [[1]] : [[1], [2]] };
       },
     };
-    const tools = buildAgentTools({ workspace, queryExecutor: executor });
+    const tools = buildAgentTools({ workspace, queryExecutor: executor, requireQueryArtifactId: false });
     const query = tools.find((candidate) => candidate.name === "query_database") as any;
     const exportQuery = tools.find((candidate) => candidate.name === "export_query") as any;
     const finalSql = "SELECT id FROM users WHERE active = 1";
@@ -354,6 +411,19 @@ describe("export_query", () => {
         expected_rows: "scalar",
         expected_columns: ["id"],
       }, undefined, undefined, { sessionId: "session-a" })).resolves.toMatchObject({ details: { taskComplete: true, rowCount: 1 } });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects the legacy SQL export contract by default", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-export-legacy-contract-"));
+    const exportQuery = buildAgentTools({
+      workspace: new WorkspaceStore(root),
+      queryExecutor: { run: async () => ({ columns: ["id"], rows: [[1]], truncated: false }) },
+    }).find((candidate) => candidate.name === "export_query") as any;
+    try {
+      await expect(exportQuery.execute("legacy-contract", { sql: "SELECT id FROM users", expected_rows: "full", expected_columns: ["id"] })).rejects.toThrow("EXPORT_QUERY_REQUIRES_QUERY_ARTIFACT_ID");
     } finally {
       await rm(root, { recursive: true, force: true });
     }
@@ -419,7 +489,7 @@ describe("export_query", () => {
       run: async () => ({ columns: ["answer"], rows: [[1]], truncated: false }),
       stream: async function* (): AsyncGenerator<QueryExportBatch> { yield { columns: ["answer"], rows: [[1]] }; },
     };
-    const tools = buildAgentTools({ workspace, queryExecutor: executor, requireJoinReconciliation: true });
+    const tools = buildAgentTools({ workspace, queryExecutor: executor, requireJoinReconciliation: true, requireQueryArtifactId: false });
     const query = tools.find((candidate) => candidate.name === "query_database") as any;
     const exportQuery = tools.find((candidate) => candidate.name === "export_query") as any;
     const finalSql = "SELECT u.id, SUM(o.amount) AS total FROM users u JOIN orders o ON o.user_id = u.id GROUP BY u.id";
@@ -457,7 +527,7 @@ describe("export_query", () => {
       run: async () => ({ columns: ["answer"], rows: [[1]], truncated: false }),
       stream: async function* (): AsyncGenerator<QueryExportBatch> { yield { columns: ["answer"], rows: [[1]] }; },
     };
-    const tools = buildAgentTools({ workspace, queryExecutor: executor });
+    const tools = buildAgentTools({ workspace, queryExecutor: executor, requireQueryArtifactId: false });
     const query = tools.find((candidate) => candidate.name === "query_database") as any;
     const exportQuery = tools.find((candidate) => candidate.name === "export_query") as any;
     try {

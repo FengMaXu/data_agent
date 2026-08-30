@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createReviewOffQueryAssurance } from "./query-assurance.js";
+import { InMemoryQueryAssurance, createReviewOffQueryAssurance } from "./query-assurance.js";
 
 describe("Review Off QueryAssurance", () => {
   it("prepares a task with an explicit off mode", async () => {
@@ -9,6 +9,10 @@ describe("Review Off QueryAssurance", () => {
     expect(assurance.mode).toBe("off");
     expect(task).toMatchObject({ mode: "off" });
     expect(task.taskId).toMatch(/^[0-9a-f-]{36}$/i);
+  });
+
+  it("downgrades an uncalibrated enforce request to Shadow Review", () => {
+    expect(new InMemoryQueryAssurance({ mode: "enforce" }).mode).toBe("shadow");
   });
 
   it("reports review unavailable instead of fabricating an Approved decision", async () => {
@@ -34,6 +38,8 @@ describe("Review Off QueryAssurance", () => {
       task: first,
       sql: " SELECT id FROM orders; ",
       result: { columns: ["id"], rows: [[1], [2]], truncated: false },
+      dialect: "sqlite",
+      schema: { connectionId: "connection", dialect: "sqlite", tables: [{ name: "orders", columns: ["id"] }] },
     }, signal);
 
     expect(first.taskId).not.toBe(second.taskId);
@@ -41,6 +47,8 @@ describe("Review Off QueryAssurance", () => {
       taskId: first.taskId,
       normalizedSqlHash: expect.stringMatching(/^[a-f0-9]{64}$/),
       previewMetadata: { columns: ["id"], rowCount: 2, truncated: false },
+      queryDigest: { dialect: "sqlite", schemaEvidenceFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/) },
+      schemaEvidence: { connectionId: "connection", dialect: "sqlite", tables: [{ name: "orders", columns: ["id"] }] },
       internalEvidence: true,
     });
     expect(await assurance.getArtifact?.(first.taskId, artifact!.queryArtifactId, signal)).toEqual(artifact);
@@ -55,6 +63,50 @@ describe("Review Off QueryAssurance", () => {
 
     now += 101;
     await expect(assurance.getArtifact?.(task.taskId, artifact!.queryArtifactId, new AbortController().signal)).resolves.toBeUndefined();
+  });
+
+  it("delegates a complete publication input to a configured reviewer in shadow mode", async () => {
+    let calls = 0;
+    const assurance = new InMemoryQueryAssurance({
+      mode: "shadow",
+      reviewer: {
+        review: async (input) => {
+          calls += 1;
+          expect(input.sql).toBe("SELECT 1");
+          return { status: "approved", coverage: { projection: "checked" } };
+        },
+      },
+    });
+    const task = await assurance.prepareTask({ question: "How many?" }, new AbortController().signal);
+    const outcome = await assurance.reviewForPublication({ task, candidate: "candidate", reviewInput: {
+      question: "How many?",
+      clarifications: [],
+      answerSpec: { taskId: task.taskId, specVersion: "1", question: "How many?", hardConstraints: [], hypotheses: [], ambiguities: [], provenance: [] },
+      schema: { connectionId: "connection", dialect: "sqlite", tables: [] },
+      sql: "SELECT 1",
+      digest: { normalizedSql: "SELECT 1", normalizedSqlHash: "hash", dialect: "sqlite", parserVersion: "p", queryDigestVersion: "1", schemaEvidenceFingerprint: "schema", sources: [], joins: [], filters: [], measures: [], groupBy: [], projections: [], outputLineage: [], windows: [], orderBy: [], setOperations: [], nullHandling: [], coverage: {}, unsupportedNodes: [], lineageCompleteness: "complete" },
+      resultMetadata: { columns: ["answer"], columnTypes: ["INTEGER"], rowCount: 1, truncated: false, nullCounts: { answer: 0 } },
+    } }, new AbortController().signal);
+
+    expect(calls).toBe(1);
+    expect(outcome).toMatchObject({ availability: "available", decision: { status: "approved" }, cacheHit: false });
+    const cached = await assurance.reviewForPublication({ task, candidate: "candidate", reviewInput: {
+      question: "How many?",
+      clarifications: [],
+      answerSpec: { taskId: task.taskId, specVersion: "1", question: "How many?", hardConstraints: [], hypotheses: [], ambiguities: [], provenance: [] },
+      schema: { connectionId: "connection", dialect: "sqlite", tables: [] },
+      sql: "SELECT 1",
+      digest: { normalizedSql: "SELECT 1", normalizedSqlHash: "hash", dialect: "sqlite", parserVersion: "p", queryDigestVersion: "1", schemaEvidenceFingerprint: "schema", sources: [], joins: [], filters: [], measures: [], groupBy: [], projections: [], outputLineage: [], windows: [], orderBy: [], setOperations: [], nullHandling: [], coverage: {}, unsupportedNodes: [], lineageCompleteness: "complete" },
+      resultMetadata: { columns: ["answer"], columnTypes: ["INTEGER"], rowCount: 1, truncated: false, nullCounts: { answer: 0 } },
+    } }, new AbortController().signal);
+    expect(cached).toMatchObject({ availability: "available", cacheHit: true });
+    expect(calls).toBe(1);
+  });
+
+  it("converts reviewer failures to Review Unavailable rather than Approved", async () => {
+    const assurance = new InMemoryQueryAssurance({ mode: "shadow", reviewer: { review: async () => { throw new Error("PROVIDER_TIMEOUT"); } } });
+    const task = await assurance.prepareTask({ question: "q" }, new AbortController().signal);
+    await expect(assurance.reviewForPublication({ task, candidate: "candidate", reviewInput: {} as any }, new AbortController().signal)).resolves.toMatchObject({ availability: "unavailable", failure: { code: "REVIEWER_FAILED" } });
   });
 
   it("propagates cancellation at both lifecycle operations", async () => {

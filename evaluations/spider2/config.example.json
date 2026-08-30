@@ -5,6 +5,12 @@
   "localDatabasePackSha256": null,
   "concurrency": 1,
   "scoreWorkers": 4,
+  "assurance": {
+    "mode": "off",
+    "reviewerModel": "none",
+    "reviewerPromptVersion": "1",
+    "reviewPolicyVersion": "1"
+  },
   "llm": {
     "provider": "openai",
     "model": "gpt-4o",

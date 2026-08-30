@@ -11,6 +11,7 @@ import {
   buildEvaluationRules,
   classifyProviderFailure,
   ddlCsvToMarkdown,
+  ddlCsvToSql,
   extractProviderFailure,
   exceedsTurnBudget,
   fixedDenominatorScore,
@@ -25,6 +26,7 @@ import {
   selectCases,
   selectFinalSql,
   sha256Tree,
+  validateOfficialEvaluatorSource,
 } from "./lib.mjs";
 
 test("parseJsonl validates official fields and duplicate ids", () => {
@@ -74,6 +76,10 @@ test("selectFinalSql prefers the last finished successful export", () => {
     { toolCallId: "4", toolName: "query_database", args: { sql: "reconciliation" }, isError: false, finishedAt: 4, result: { details: { purpose: "reconciliation" } } },
   ]), { sql: "select 1", toolCallId: "1", toolName: "query_database" });
   assert.equal(selectFinalSql([]), undefined);
+  assert.deepEqual(selectFinalSql([
+    { toolCallId: "q", toolName: "query_database", args: { sql: "SELECT 1" }, isError: false, finishedAt: 1, result: { details: { queryArtifactId: "artifact-1" } } },
+    { toolCallId: "e", toolName: "export_query", args: { queryArtifactId: "artifact-1" }, isError: false, finishedAt: 2, result: { details: { taskComplete: true } } },
+  ]), { sql: "SELECT 1", toolCallId: "e", toolName: "export_query", queryArtifactId: "artifact-1" });
 });
 
 test("evaluation knowledge preserves reusable rules and adds SQLite guidance", () => {
@@ -96,7 +102,9 @@ test("buildAgentPrompt requires the minimal final result rather than exploratory
   assert.match(prompt, /purpose=reconciliation/);
   assert.match(prompt, /purpose=verification/);
   assert.match(prompt, /only the minimal final result needed to answer the question/);
-  assert.match(prompt, /Declare the exact expected_columns and expected_rows/);
+  assert.match(prompt, /queryArtifactId/);
+  assert.match(prompt, /publish_query_result/);
+  assert.match(prompt, /Do not submit a different SQL string or solver-declared expected shape/);
   assert.match(prompt, /Do not export intermediate data, diagnostic columns, candidate rows, or a complete ranking unless the question explicitly requests them/);
   assert.equal([...prompt.slice("Original question?".length)].every((char) => char.charCodeAt(0) < 128), true);
 });
@@ -128,6 +136,8 @@ test("delivery follow-up runs once only for validated non-exploratory results wi
   assert.equal(needsDeliveryFollowUp([{ ...finalQuery, result: { details: { exploratory: true } } }], 7, 20), false);
   assert.equal(needsDeliveryFollowUp([{ ...finalQuery, result: { details: { purpose: "reconciliation" } } }], 7, 20), false);
   assert.equal(needsDeliveryFollowUp([{ ...finalQuery, result: { details: { purpose: "verification" } } }], 7, 20), false);
+  assert.equal(needsDeliveryFollowUp([{ ...finalQuery, toolName: "publish_query_result", result: { details: { taskComplete: true } } }], 7, 20), false);
+  assert.equal(needsDeliveryFollowUp([{ ...finalQuery, toolName: "publish_query_result", result: { details: { taskComplete: true } } }], 7, 20, { requireExport: true }), true);
   assert.equal(needsDeliveryFollowUp([finalQuery, { toolCallId: "e", toolName: "export_query", finishedAt: 2, isError: false }], 7, 20), false);
   assert.equal(needsDeliveryFollowUp([finalQuery], 20, 20), false);
 });
@@ -155,6 +165,7 @@ test("CSV parser and DDL converter support quoted multiline statements", () => {
     ["table_name", "DDL"],
     ["users", "CREATE TABLE users (\n id INTEGER,\n name TEXT\n);"],
   ]);
+  assert.match(ddlCsvToSql(csv), /CREATE TABLE users/);
   const markdown = ddlCsvToMarkdown(csv, "sample");
   assert.match(markdown, /# Database Schema: sample/);
   assert.match(markdown, /## Table: users/);
@@ -194,4 +205,16 @@ test("official score parsers read aggregate and per-case results", () => {
   assert.deepEqual(parseOfficialScore(output), { score: 0.5, correct: 1, total: 2 });
   assert.deepEqual(parseOfficialCaseScores(output), { local003: 0, local004: 1 });
   assert.equal(parseOfficialScore("no score"), undefined);
+});
+
+test("official evaluator validation rejects hard-coded GBK decoding", () => {
+  assert.doesNotThrow(() => validateOfficialEvaluatorSource('pd.read_csv("result.csv")'));
+  assert.throws(
+    () => validateOfficialEvaluatorSource('payload.decode("gbk")'),
+    /EVALUATOR_HARDCODED_GBK_DECODE/,
+  );
+  assert.throws(
+    () => validateOfficialEvaluatorSource("payload.decode ( 'GBK' )"),
+    /EVALUATOR_HARDCODED_GBK_DECODE/,
+  );
 });

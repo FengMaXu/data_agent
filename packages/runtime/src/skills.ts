@@ -18,7 +18,7 @@ const CANONICAL_TOOLS = new Set([
   "list_workspace", "read_file", "write_file", "run_python",
   "search_knowledge", "read_knowledge", "update_knowledge",
   "load_skill", "generate_dashboard", "show_widget",
-  "query_database", "ask_user_clarification",
+  "query_database", "publish_query_result", "ask_user_clarification",
   "export_query",
 ]);
 

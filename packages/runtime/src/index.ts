@@ -769,7 +769,17 @@ export class DataAgentRuntime {
 
 export { LocalAuthService } from "./auth.js";
 export { createDataAgentHarness, buildAgentTools, resolveSystemPrompt, dialectHint, runtimeCapabilitiesPrompt, unknownToolRecoveryMessage, type AgentAssemblyDeps, type AgentAssemblyToolContext, type AgentAssemblyToolContextSource, type AgentTaskProgress, type AgentModelProfile, type PythonExecutableSource, type DatabaseDialect, type QueryExecutor, type QueryExportBatch } from "./agent-assembly.js";
-export { createReviewOffQueryAssurance, InMemoryQueryAssurance, QueryAssuranceAbortError, normalizeQuerySql, type QueryAssurance, type QueryAssuranceMode, type TaskEvidence, type PreparedQueryTask, type PublicationReviewRequest, type QueryPreviewResult, type ResultMetadata, type QueryPreviewRegistration, type ValidatedQueryArtifact, type ReviewOffQueryAssuranceOptions, type ReviewDecisionStatus, type ReviewDecision, type ReviewFailure, type ReviewOutcome } from "./query-assurance.js";
+export { createQueryAssurance, createReviewOffQueryAssurance, InMemoryQueryAssurance, QueryAssuranceAbortError, normalizeQuerySql, type QueryAssurance, type QueryAssuranceMode, type TaskEvidence, type PreparedQueryTask, type PublicationReviewRequest, type QueryPreviewResult, type ResultMetadata, type QueryPreviewRegistration, type ValidatedQueryArtifact, type QueryAssuranceOptions, type ReviewOffQueryAssuranceOptions, type ReviewDecisionStatus, type ReviewDecision, type ReviewFailure, type ReviewOutcome } from "./query-assurance.js";
+export { EVIDENCE_AUTHORITY_ORDER, createAnswerSpec, createSpecAuthority, isHardConstraintEligible, type EvidenceAuthority, type EvidenceReference, type ConstraintInput, type HypothesisInput, type AmbiguityInput, type AnswerSpecInput, type HardConstraint, type Hypothesis, type Ambiguity, type AnswerSpec, type SpecChangeProposal, type RejectedSpecChange, type BusinessDefinitionProposal, type SpecAuthority } from "./answer-spec.js";
+export { createQueryDigestCompiler, schemaEvidenceFromDdl, type SqlDialect, type DigestCoverageStatus, type SchemaForeignKey, type SchemaTable, type SchemaEvidence, type DigestSource, type DigestJoin, type DigestMeasure, type DigestProjection, type DigestOutputLineage, type DigestWindow, type QueryDigest, type QueryDigestInput, type QueryDigestCompiler } from "./query-digest.js";
+export { ExportCandidateStore, type ExportCandidateBatch, type ExportCandidate, type ExportCandidateInput, type ExportCandidateStoreOptions } from "./export-candidate.js";
+export { PublicationRegistry, type PublicationStatus, type ReviewToken, type ReviewTokenInput, type PublicationAuthorization, type PublicationReceipt, type PublicationRegistryOptions } from "./publication.js";
+export { createConversationBlindReviewer, REVIEW_COVERAGE_FACETS, type ReviewCoverageFacet, type ReviewCoverageStatus, type ReviewCoverage, type SemanticDiff, type ConversationBlindReviewerInput, type ReviewCompletionOptions, type ConversationBlindReviewModel, type ConversationBlindReviewer } from "./conversation-blind-reviewer.js";
+export { AssuranceCircuitBreaker, ReviewModeController, type CalibrationIdentity, type CalibrationRecord, type ReviewModeControllerOptions, type AssuranceMetrics, type CircuitBreakerThresholds } from "./review-policy.js";
+export { ReviewCache, type ReviewCacheIdentity, type ReviewCacheEntry, type CachedReviewOutcome } from "./review-cache.js";
+export { InMemoryAssuranceAuditStore, type AssuranceAuditRecord, type AssuranceAuditInput, type AssuranceAuditStore } from "./assurance-audit.js";
+export { createCalibrationReport, createCalibrationReports, DEFAULT_CALIBRATION_THRESHOLDS, type CalibrationDiffLabel, type CalibrationCase, type CalibrationMetrics, type CalibrationReport } from "./calibration.js";
+export { InvariantProbeRegistry, type EvidenceRequirement, type ProbeInput, type ProbeOutcome, type InvariantProbe } from "./invariant-probe.js";
 export { validateWidgetSpec, widgetLegacyText, type WidgetKind, type WidgetPayload, type WidgetLifecycleDetails } from "./widget.js";
 export { createAgentHarnessResolver, type AgentHarnessResolver, type AgentHarnessResolverOptions } from "./agent-harness-lifecycle.js";
 export { migrateLegacyData, type MigrationReport } from "./legacy-migration.js";
@@ -781,7 +791,7 @@ export { createExportQueryAdapter, ExportCapabilityError } from "./export-adapte
 export { ProcessSupervisor, semanticToolIdentity, type SupervisorState } from "./process-supervisor.js";
 export { ClarificationManager } from "./clarification.js";
 export { InMemorySecretVault, ProviderRegistry, type LLMProfile, type SecretVault } from "./providers.js";
-export { assertNoLegacyTools, canonicalLocalTools, EXPORT_QUERY_PARAMETERS, SHOW_WIDGET_PARAMETERS, type CanonicalTool } from "./tools-catalog.js";
+export { assertNoLegacyTools, canonicalLocalTools, EXPORT_QUERY_PARAMETERS, PUBLISH_QUERY_RESULT_PARAMETERS, SHOW_WIDGET_PARAMETERS, type CanonicalTool } from "./tools-catalog.js";
 export { WorkspaceStore, type WorkspaceStreamProducer, type WorkspaceArtifact } from "./workspace.js";
 export { loadRuntimeManifest, probePython, resolvePythonRuntime, type PythonRuntimeConfig, type PythonRuntimeManifest } from "./python-runtime.js";
 export { writePythonPackManifest } from "./python-pack-builder.js";
