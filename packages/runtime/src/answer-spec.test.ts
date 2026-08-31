@@ -38,6 +38,78 @@ describe("Answer Spec Authority", () => {
     expect(spec.hypotheses.map((item) => item.statement)).toContain("Customers with no orders are included");
   });
 
+  it("normalizes legacy string hypotheses and ambiguities at the authority boundary", () => {
+    const spec = createAnswerSpec({
+      taskId: "task-legacy-planner",
+      question: "Calculate the requested metric",
+      hypotheses: ["The reference date is the latest purchase date"] as any,
+      ambiguities: ["The segment thresholds are not specified"] as any,
+    });
+
+    expect(spec.hypotheses[0]).toMatchObject({
+      statement: "The reference date is the latest purchase date",
+      scope: "task",
+      provenance: { authority: "model_inference", source: "planner:hypotheses" },
+    });
+    expect(spec.ambiguities[0]).toMatchObject({
+      question: "The segment thresholds are not specified",
+      alternatives: [],
+      scope: "task",
+      provenance: { authority: "model_inference", source: "planner:ambiguities" },
+    });
+  });
+
+  it("normalizes output, grain, measure, and denominator into typed contract facets", () => {
+    const spec = createAnswerSpec({
+      taskId: "task-contract",
+      question: "What is the average payment count per customer?",
+      answerContract: {
+        output: { value: { columns: ["customer_id", "average_payments"], rowMode: "grouped" }, authority: "request_wording", source: "question" },
+        grain: { value: { entity: "customer", keyColumns: ["customer_id"] }, authority: "request_wording", source: "question" },
+        measures: [{ value: { kind: "avg", name: "average_payments", expression: "payment_count" }, authority: "task_document", source: "business.md" }],
+        denominator: { value: { expression: "COUNT(DISTINCT customer_id)", population: "all customers", zeroPolicy: "null" }, authority: "task_document", source: "business.md" },
+      },
+    });
+
+    expect(spec.answerContract.output).toMatchObject({ binding: "hard", value: { columns: ["customer_id", "average_payments"], rowMode: "grouped" } });
+    expect(spec.answerContract.grain).toMatchObject({ value: { entity: "customer", keyColumns: ["customer_id"] } });
+    expect(spec.answerContract.measures?.[0]).toMatchObject({ value: { kind: "avg" }, binding: "hard" });
+    expect(spec.answerContract.denominator).toMatchObject({ value: { population: "all customers", zeroPolicy: "null" } });
+  });
+
+  it("only promotes planner-extracted wording when it carries an exact quote", () => {
+    const grounded = createAnswerSpec({
+      taskId: "task-grounded",
+      question: "Return exactly the customer_id column",
+      answerContract: {
+        output: { value: { columns: ["customer_id"] }, authority: "request_wording", source: "planner:output", quote: "customer_id" },
+      },
+    });
+    const ungrounded = createAnswerSpec({
+      taskId: "task-ungrounded",
+      question: "Return the customer column",
+      answerContract: {
+        output: { value: { columns: ["customer_id"] }, authority: "request_wording", source: "planner:output", quote: "revenue" },
+      },
+    });
+    expect(grounded.answerContract.output?.binding).toBe("hard");
+    expect(ungrounded.answerContract.output?.binding).toBe("hypothesis");
+  });
+
+  it("keeps model-inferred structured facets as hypotheses rather than blockers", () => {
+    const spec = createAnswerSpec({
+      taskId: "task-soft-contract",
+      question: "Revenue by customer",
+      answerContract: {
+        grain: { value: { keyColumns: ["customer_id"] }, authority: "model_inference", source: "planner" },
+        denominator: { value: { expression: "COUNT(*)" }, authority: "observed_data", source: "query" },
+      },
+    });
+
+    expect(spec.answerContract.grain?.binding).toBe("hypothesis");
+    expect(spec.answerContract.denominator?.binding).toBe("hypothesis");
+  });
+
   it("versions user clarifications without mutating the previous spec", () => {
     const authority = createSpecAuthority();
     const initial = authority.prepare({ taskId: "task-1", question: "Revenue by month" });

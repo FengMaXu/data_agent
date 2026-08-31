@@ -12,7 +12,7 @@ import { renderSemanticDashboardHtml, validateDashboardV4Spec } from "./dashboar
 import { materializeDashboardV3Spec, renderStandaloneDashboardHtml, validateDashboardV3Spec } from "./dashboard-v3.js";
 import { KnowledgeWriter } from "./knowledge-write.js";
 import { runPythonJob } from "./python-job.js";
-import { canonicalLocalTools, EXPORT_QUERY_PARAMETERS, PUBLISH_QUERY_RESULT_PARAMETERS, QUERY_DATABASE_PARAMETERS, SHOW_WIDGET_PARAMETERS, type CanonicalTool } from "./tools-catalog.js";
+import { canonicalLocalTools, EXPORT_QUERY_PARAMETERS, PUBLISH_QUERY_RESULT_PARAMETERS, QUERY_DATABASE_PARAMETERS, SEMANTIC_VALIDATE_PARAMETERS, SHOW_WIDGET_PARAMETERS, SQL_VALIDATE_PARAMETERS, type CanonicalTool } from "./tools-catalog.js";
 import { effectiveTools, loadSkillsFromRoots, resolveSkillRoots } from "./skills.js";
 import type { KnowledgeIndex } from "./knowledge.js";
 import type { WorkspaceStore } from "./workspace.js";
@@ -21,6 +21,7 @@ import { emitWidgetUpdate, validateWidgetSpec, widgetLegacyText, type WidgetLife
 import { createReviewOffQueryAssurance, type PreparedQueryTask, type QueryAssurance } from "./query-assurance.js";
 import { ExportCandidateStore, type ExportCandidate } from "./export-candidate.js";
 import type { SchemaEvidence } from "./query-digest.js";
+import { createAnswerSpec, type AmbiguityInput, type AnswerContractInput, type AnswerSpecGenerator, type AnswerSpecInput, type EvidenceAuthority, type HypothesisInput } from "./answer-spec.js";
 import { createConversationBlindReviewer, type ConversationBlindReviewer, type ConversationBlindReviewerInput } from "./conversation-blind-reviewer.js";
 
 export interface QueryExportBatch {
@@ -32,6 +33,8 @@ export interface QueryExportBatch {
 
 export interface QueryExecutor {
   run(sql: string, rowLimit: number): Promise<{ columns: string[]; rows: unknown[][]; truncated: boolean; columnTypes?: string[] }>;
+  /** Optional database-native EXPLAIN path; falls back to a read-only EXPLAIN query when absent. */
+  explain?(sql: string, signal?: AbortSignal): Promise<{ columns: string[]; rows: unknown[][]; truncated: boolean; columnTypes?: string[] }>;
   /** Optional incremental export source. Each batch is released by the executor after consumption. */
   stream?(sql: string, signal?: AbortSignal): AsyncIterable<QueryExportBatch> | Promise<AsyncIterable<QueryExportBatch>>;
   /** Optional formal schema snapshot from the same database connection. */
@@ -55,6 +58,8 @@ export interface AgentAssemblyDeps {
   pythonWorkspaceDir?: string;
   /** Dialect-specific guidance appended to the model prompt. */
   databaseDialect?: DatabaseDialect;
+  /** Per-provider-request wall-clock bound; unset preserves provider defaults. */
+  providerTimeoutMs?: number;
   /** Optional UI capabilities. They remain enabled by default for product hosts. */
   enableWidgets?: boolean;
   enableDashboards?: boolean;
@@ -104,6 +109,10 @@ export interface AgentModelProfile {
   baseUrl?: string;
   /** OpenAI-compatible wire format: "responses" (default) or "chat". */
   apiFormat?: "responses" | "chat";
+  /** Whether the selected model exposes a reasoning channel. */
+  reasoning?: boolean;
+  /** Optional provider-specific mapping for Pi thinking levels. */
+  thinkingLevelMap?: Model<any>["thinkingLevelMap"];
 }
 
 const DEFAULT_ROW_LIMIT = 50;
@@ -123,6 +132,10 @@ function text(content: string, details: unknown = undefined): AgentToolResult<un
 
 function asRecord(value: unknown): Record<string, unknown> | undefined {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : undefined;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 function throwIfAborted(signal?: AbortSignal): void {
@@ -193,7 +206,7 @@ function parseReviewerJson(value: string): unknown {
   return JSON.parse(source.slice(first, last + 1)) as unknown;
 }
 
-const REVIEWER_SYSTEM_PROMPT = `You are a Conversation-Blind Query Assurance reviewer. You receive only the structured review input below, never solver reasoning or gold answers. Compare the question, Answer Spec, schema evidence, SQL, deterministic Query Digest, and result metadata. Return one JSON object and no prose. Required shape: {"status":"approved|rejected|needs_clarification|abstained","coverage":{<every facet>:"checked|not_applicable|unsupported|insufficient_evidence"}, ...}. For rejected include diffs with aspect, required, observed, and evidence {constraintId,digestPath}; cite only a hard-constraint id and an existing Query Digest path. If evidence is insufficient, use abstained or needs_clarification rather than approving. Do not include reasoning or unknown fields.`;
+const REVIEWER_SYSTEM_PROMPT = `You are a Conversation-Blind Query Assurance reviewer. You receive only the structured review input below, never solver reasoning or gold answers. Compare the question, Answer Spec, schema evidence, SQL, deterministic Query Digest, result metadata, and resultEvidence. resultEvidence exposes complete numeric values only when numericCompleteness is "complete"; raw rows are intentionally absent unless explicitly enabled. When numericCompleteness is "partial", do not claim complete numeric coverage. Runtime supplies coverageRequirements from the Digest: you must not change a facet's applicability. Return one JSON object and no prose. Required shape: {"status":"approved|rejected|needs_clarification|abstained","coverage":{<every facet>:{"status":"checked|not_applicable|unsupported|insufficient_evidence","evidence":[{"digestPath":"existing.path[0].field","specPath":"answerContract...","resultPath":"resultEvidence.numericRows"}]}}, ...}. Every coverage facet is required. Every evidence value must be an array of objects, never a string. Every checked facet must cite an existing Digest path that belongs to that facet; copy exactly the FIRST path listed for that facet in coverageRequirements and use one evidence object only (for example projections[0].output, groupBy, measures[0].function, filters, joins, windows[0], orderBy, limit, sources, nullHandling). Never invent array indexes or Digest paths. Do not invent specPath values: include specPath only when that exact answerContract path exists. For result_values, a checked claim must include resultPath=resultEvidence.numericRows and numericCompleteness must be complete. For rejected include diffs with aspect, required, observed, and evidence {constraintId|specPath,digestPath}; cite only existing evidence. If evidence is insufficient, use abstained or needs_clarification rather than approving. Do not include reasoning or unknown fields.`;
 
 export function createProfileConversationBlindReviewer(profile: AgentModelProfile): ConversationBlindReviewer {
   const model = buildModel(profile);
@@ -211,10 +224,135 @@ export function createProfileConversationBlindReviewer(profile: AgentModelProfil
   });
 }
 
+const ANSWER_CONTRACT_FIELDS = new Set(["output", "grain", "measures", "denominator", "ranking", "time", "unit", "rounding"]);
+const SPEC_GENERATOR_FIELDS = new Set(["answerContract", "hypotheses", "ambiguities"]);
+const SPEC_GENERATOR_SYSTEM_PROMPT = `You are the Answer Spec planner for a database question. You have no database query results and must not invent observed facts, thresholds, dates, units, or business rules. Return exactly one JSON object and no markdown or prose. The only allowed top-level keys are answerContract, hypotheses, and ambiguities; omit a key when it has no supported content.
+
+Every hypotheses item MUST be an object with exactly these allowed keys: {"statement":"...","scope":"...","confidence":0.0}. statement and scope are non-empty strings; confidence is optional and must be a number from 0 to 1. A hypothesis may also be represented internally as a string by older planners, but you should always return the object form.
+Every ambiguities item MUST be an object with exactly these allowed keys: {"question":"...","alternatives":["..."],"scope":"..."}. question and scope are non-empty strings and alternatives is an array of strings; use an empty array when no alternatives are established. A string is not the preferred output form.
+
+answerContract fields are structured wrappers: {"value":...,"authority":"model_inference","source":"planner"}; if and only if a field is literally stated, it may use authority=request_wording and must include quote with the exact question span. Runtime downgrades generated authority unless a request-wording field includes an exact quote from the question; all other generated fields remain hypotheses unless separately supported by authoritative input. Extract only what the wording explicitly requests; leave unresolved fields absent and put plausible alternatives in ambiguities. output.value has columns (aliases/names requested), rowMode (scalar|top_n|grouped|full), and optional rowCount. grain.value has entity and keyColumns. measures.value has kind (count|count_distinct|sum|avg|min|max|ratio|difference|unknown), optional name/expression/distinctKey. denominator.value has expression, optional population and zeroPolicy. ranking.value has n, partitionBy, orderBy, and tiePolicy. time.value has displayWindow, lookback, asOf, and boundary. unit.value has kind (absolute|count|currency|ratio|percentage), scale, and currency. rounding.value has mode and optional places. Do not emit SQL or prose.`;
+
+function plannerField(value: unknown, field: string): { value: unknown; authority: EvidenceAuthority; source: string; quote?: string } {
+  const record = asRecord(value);
+  if (!record || !("value" in record)) return { value, authority: "model_inference", source: `planner:${field}` };
+  const authority = record.authority === "request_wording" ? "request_wording" : "model_inference";
+  // A planner cannot self-attest a stronger provenance by changing source.
+  // Request-wording extractions must carry an exact quote, checked later by
+  // Answer Spec construction.
+  const source = `planner:${field}`;
+  return { value: record.value, authority, source, ...(typeof record.quote === "string" && record.quote.trim() ? { quote: record.quote } : {}) };
+}
+
+function sanitizePlannerContract(value: unknown): AnswerContractInput | undefined {
+  if (value === undefined) return undefined;
+  const record = asRecord(value);
+  if (!record) throw new Error("ANSWER_SPEC_GENERATOR_CONTRACT_INVALID");
+  for (const key of Object.keys(record)) if (!ANSWER_CONTRACT_FIELDS.has(key)) throw new Error(`ANSWER_SPEC_GENERATOR_UNKNOWN_CONTRACT_FIELD:${key}`);
+  const contract: Record<string, unknown> = {};
+  for (const field of ANSWER_CONTRACT_FIELDS) {
+    const raw = record[field];
+    if (raw === undefined) continue;
+    if (field === "measures") {
+      // Accept the common single-measure object form, then normalize it to
+      // the canonical array required by AnswerContractInput.
+      const measures = Array.isArray(raw) ? raw : [raw];
+      contract[field] = measures.map((item) => plannerField(item, field));
+    } else contract[field] = plannerField(raw, field);
+  }
+  return contract as AnswerContractInput;
+}
+
+function normalizePlannerHypothesis(value: unknown): HypothesisInput {
+  if (typeof value === "string") {
+    const statement = value.trim();
+    if (!statement) throw new Error("ANSWER_SPEC_GENERATOR_HYPOTHESIS_INVALID");
+    return { statement, scope: "task", authority: "model_inference", source: "planner:hypotheses" };
+  }
+  const record = asRecord(value);
+  if (record && Object.keys(record).some((key) => !["statement", "scope", "confidence"].includes(key))) throw new Error("ANSWER_SPEC_GENERATOR_HYPOTHESIS_FIELDS_INVALID");
+  if (!record || typeof record.statement !== "string" || !record.statement.trim() || typeof record.scope !== "string" || !record.scope.trim()) {
+    throw new Error("ANSWER_SPEC_GENERATOR_HYPOTHESIS_INVALID");
+  }
+  if (record.confidence !== undefined && (typeof record.confidence !== "number" || !Number.isFinite(record.confidence) || record.confidence < 0 || record.confidence > 1)) {
+    throw new Error("ANSWER_SPEC_GENERATOR_HYPOTHESIS_CONFIDENCE_INVALID");
+  }
+  return {
+    statement: record.statement.trim(),
+    scope: record.scope.trim(),
+    ...(record.confidence !== undefined ? { confidence: record.confidence } : {}),
+    authority: "model_inference",
+    source: "planner:hypotheses",
+  };
+}
+
+function normalizePlannerAmbiguity(value: unknown): AmbiguityInput {
+  if (typeof value === "string") {
+    const question = value.trim();
+    if (!question) throw new Error("ANSWER_SPEC_GENERATOR_AMBIGUITY_INVALID");
+    return { question, alternatives: [], scope: "task", source: "planner:ambiguities" };
+  }
+  const record = asRecord(value);
+  if (record && Object.keys(record).some((key) => !["question", "alternatives", "scope"].includes(key))) throw new Error("ANSWER_SPEC_GENERATOR_AMBIGUITY_FIELDS_INVALID");
+  if (!record || typeof record.question !== "string" || !record.question.trim() || typeof record.scope !== "string" || !record.scope.trim()) {
+    throw new Error("ANSWER_SPEC_GENERATOR_AMBIGUITY_INVALID");
+  }
+  if (!Array.isArray(record.alternatives) || record.alternatives.some((item) => typeof item !== "string")) {
+    throw new Error("ANSWER_SPEC_GENERATOR_AMBIGUITY_ALTERNATIVES_INVALID");
+  }
+  return {
+    question: record.question.trim(),
+    alternatives: record.alternatives.map((item) => item.trim()),
+    scope: record.scope.trim(),
+    source: "planner:ambiguities",
+  };
+}
+
+export function normalizeAnswerSpecPlannerOutput(input: AnswerSpecInput, value: unknown): AnswerSpecInput {
+  const record = asRecord(value);
+  if (!record) throw new Error("ANSWER_SPEC_GENERATOR_RESPONSE_INVALID");
+  for (const key of Object.keys(record)) if (!SPEC_GENERATOR_FIELDS.has(key)) throw new Error(`ANSWER_SPEC_GENERATOR_UNKNOWN_FIELD:${key}`);
+  if (record.hypotheses !== undefined && !Array.isArray(record.hypotheses)) throw new Error("ANSWER_SPEC_GENERATOR_HYPOTHESES_INVALID");
+  if (record.ambiguities !== undefined && !Array.isArray(record.ambiguities)) throw new Error("ANSWER_SPEC_GENERATOR_AMBIGUITIES_INVALID");
+  const generatedContract = sanitizePlannerContract(record.answerContract);
+  const mergedContract = generatedContract || input.answerContract
+    ? { ...(generatedContract ?? {}), ...(input.answerContract ?? {}) }
+    : undefined;
+  const generatedHypotheses = record.hypotheses?.map(normalizePlannerHypothesis) ?? [];
+  const generatedAmbiguities = record.ambiguities?.map(normalizePlannerAmbiguity) ?? [];
+  const result: AnswerSpecInput = {
+    ...input,
+    ...(mergedContract ? { answerContract: mergedContract } : {}),
+    ...(record.hypotheses !== undefined ? { hypotheses: [...(input.hypotheses ?? []), ...generatedHypotheses] } : {}),
+    ...(record.ambiguities !== undefined ? { ambiguities: [...(input.ambiguities ?? []), ...generatedAmbiguities] } : {}),
+  };
+  // Reuse the authoritative constructor as the generator response validator;
+  // this also guarantees malformed planner fields never enter the version
+  // chain. Generated fields remain model_inference hypotheses.
+  createAnswerSpec(result);
+  return result;
+}
+
+/** Independent planner context: it receives the question/schema, never solver messages or query results. */
+export function createProfileAnswerSpecGenerator(profile: AgentModelProfile): AnswerSpecGenerator {
+  const model = buildModel(profile);
+  return {
+    async generate(input, signal) {
+      const response = await completeSimple(model, {
+        systemPrompt: SPEC_GENERATOR_SYSTEM_PROMPT,
+        messages: [{ role: "user", content: JSON.stringify({ question: input.question, clarifications: input.clarifications ?? [], schema: input.schema, authoritativeEvidence: input.constraints ?? [] }), timestamp: Date.now() }],
+      }, { temperature: 0, maxTokens: 3072, signal, apiKey: profile.apiKey });
+      const content = response.content.filter((item) => item.type === "text").map((item) => item.text).join("\\n");
+      return normalizeAnswerSpecPlannerOutput(input, parseReviewerJson(content));
+    },
+  };
+}
+
 function buildModel(profile: AgentModelProfile): Model<any> {
   const anthropic = profile.provider === "anthropic";
+  const openrouter = profile.provider === "openrouter";
   const baseUrl = (profile.baseUrl
-    ?? (anthropic ? "https://api.anthropic.com" : "https://api.openai.com/v1")).replace(/\/$/, "");
+    ?? (anthropic ? "https://api.anthropic.com" : openrouter ? "https://openrouter.ai/api/v1" : "https://api.openai.com/v1")).replace(/\/$/, "");
   const headers: Record<string, string> | undefined = profile.apiKey
     ? (anthropic
       ? { "x-api-key": profile.apiKey, "anthropic-version": "2023-06-01" }
@@ -225,9 +363,10 @@ function buildModel(profile: AgentModelProfile): Model<any> {
     id: profile.model,
     name: profile.model,
     api: anthropic ? "anthropic-messages" : (apiFormat === "chat" ? "openai-completions" : "openai-responses"),
-    provider: anthropic ? "anthropic" : "openai",
+    provider: anthropic ? "anthropic" : openrouter ? "openrouter" : "openai",
     baseUrl,
-    reasoning: false,
+    reasoning: profile.reasoning ?? false,
+    ...(profile.thinkingLevelMap ? { thinkingLevelMap: profile.thinkingLevelMap } : {}),
     input: ["text"],
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
     contextWindow: 128000,
@@ -296,13 +435,22 @@ class DataAgentHarness extends AgentHarness<AgentAssemblyToolContext, DataAgentS
   }
 
   override async prompt(text: string, options?: Parameters<AgentHarness<AgentAssemblyToolContext, DataAgentSkill>["prompt"]>[1]): ReturnType<AgentHarness<AgentAssemblyToolContext, DataAgentSkill>["prompt"]> {
+    // Delivery reminders are internal continuation turns. They must reuse the
+    // active task instead of preparing a new Query Task from the reminder text.
+    if (text.startsWith("[DELIVERY_REQUIRED]")) return super.prompt(text, options);
     const controller = new AbortController();
     this.promptPreparationController = controller;
     try {
       const task = await this.prepareQueryTask?.(text, controller.signal);
-      const response = await super.prompt(text, options);
+      const solverPrompt = task?.answerSpec
+        ? `${text}\n\n[ANSWER_SPEC_READ_ONLY]\n${JSON.stringify(task.answerSpec)}\n[/ANSWER_SPEC_READ_ONLY]`
+        : text;
+      const response = await super.prompt(solverPrompt, options);
       if (task && await this.deliveryRequired?.(task)) {
-        await super.followUp("[DELIVERY_REQUIRED] Query results are Internal Evidence until publication. Use export_query with the exact queryArtifactId for CSV delivery or publish_query_result for a small inline result. Do not answer with unapproved result values.");
+        // super.prompt() has returned and the harness is idle, so followUp()
+        // would be rejected by AgentHarness. Start a second turn explicitly;
+        // this preserves the delivery reminder without racing the idle phase.
+        await super.prompt("[DELIVERY_REQUIRED] Query results are Internal Evidence until publication. Use export_query with the exact queryArtifactId for CSV delivery or publish_query_result for a small inline result. Do not answer with unapproved result values.");
       }
       return response;
     } finally {
@@ -545,6 +693,22 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
         result,
       };
     };
+    const getArtifactForValidation = async (queryArtifactId: string, native: NativeToolExecution) => {
+      const taskId = taskIdFor(native);
+      if (!taskId) throw new Error("QUERY_TASK_REQUIRED: validation requires an active Query Task");
+      if (!queryAssurance.getArtifact) throw new Error("QUERY_ASSURANCE_ARTIFACT_API_UNAVAILABLE");
+      const signal = native.signal ?? new AbortController().signal;
+      const artifact = await queryAssurance.getArtifact(taskId, queryArtifactId, signal);
+      if (!artifact) throw new Error("QUERY_ARTIFACT_NOT_FOUND_OR_EXPIRED");
+      return { taskId, artifact, signal };
+    };
+    const semanticReviewInputForArtifact = (taskId: string, artifact: Awaited<ReturnType<NonNullable<QueryAssurance["getArtifact"]>>>) => {
+      const spec = queryAssurance.getAnswerSpec?.(taskId, artifact?.specVersion);
+      const digest = artifact?.queryDigest;
+      if (!artifact || !spec || !digest) return undefined;
+      const schema = artifact.schemaEvidence ?? { connectionId: "unknown", dialect: digest.dialect, tables: [] };
+      return { question: spec.question, clarifications: [], answerSpec: spec, schema, sql: artifact.normalizedSql, digest, resultMetadata: artifact.previewMetadata, resultEvidence: artifact.previewMetadata.resultEvidence };
+    };
     const exportViaAssurance = async (params: ExportQueryParams, native: NativeToolExecution): Promise<AgentToolResult<unknown>> => {
       const taskId = taskIdFor(native);
       if (!taskId) throw new Error("QUERY_TASK_REQUIRED: queryArtifactId publication requires an active Query Task");
@@ -562,6 +726,13 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
       const target = params.filename ?? `exports/query-${Date.now()}.csv`;
       const workspace = await workspaceFor(native);
       const taskSpec = queryAssurance.getAnswerSpec?.(taskId, artifact.specVersion);
+      const hardOutputContract = taskSpec?.answerContract?.output?.binding === "hard"
+        ? taskSpec.answerContract.output.value
+        : undefined;
+      // EXPLAIN is performed against the immutable Artifact, not Solver SQL.
+      // The helper tool has no publication authority; this preflight is also
+      // repeated automatically so calling the tool is not required for safety.
+      await sqlValidateTool.execute("export-sql-preflight", { queryArtifactId: artifact.queryArtifactId }, native.signal, native.onUpdate, native.context);
       const candidateStore = new ExportCandidateStore(workspace);
       const batches = (async function* (): AsyncGenerator<{ columns: readonly string[]; rows: readonly (readonly unknown[])[]; columnTypes?: readonly string[]; truncated?: boolean }> {
         if (deps.queryExecutor!.stream) {
@@ -579,9 +750,9 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
           taskId,
           queryArtifactId: artifact.queryArtifactId,
           batches,
-          expectedColumns: taskSpec?.outputColumns ?? artifact.previewMetadata.columns,
-          expectedRows: taskSpec?.rowMode,
-          expectedRowCount: taskSpec?.rowCount,
+          expectedColumns: taskSpec?.outputColumns ?? hardOutputContract?.columns ?? artifact.previewMetadata.columns,
+          expectedRows: taskSpec?.rowMode ?? hardOutputContract?.rowMode,
+          expectedRowCount: taskSpec?.rowCount ?? hardOutputContract?.rowCount,
         }, signal);
         const storedCandidate = candidate;
         const specVersion = artifact.specVersion ?? specVersionFor(native) ?? "1";
@@ -599,18 +770,51 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
             sql: artifact.normalizedSql,
             digest,
             resultMetadata: storedCandidate.metadata,
+            resultEvidence: storedCandidate.metadata.resultEvidence,
           }
           : undefined;
         const outcome = await queryAssurance.reviewForPublication({ task: { taskId, mode: queryAssurance.mode, specVersion }, candidate: candidateForReview, reviewInput }, signal);
-        if (outcome.availability === "available" && outcome.decision.status === "rejected" && queryAssurance.mode !== "off" && queryAssurance.claimAutomaticRepair) {
+        if (outcome.availability === "available" && outcome.decision.status === "rejected" && outcome.decision.blocking !== false && queryAssurance.mode === "enforce" && queryAssurance.claimAutomaticRepair) {
           const repair = queryAssurance.claimAutomaticRepair(taskId, specVersion);
           if (repair.allowed) {
             await candidateStore.discard(storedCandidate);
             throw new Error(`SEMANTIC_DIFF_REPAIR_REQUIRED:${JSON.stringify({ attempt: repair.attempt, diffs: outcome.decision.diffs ?? [] })}`);
           }
         }
-        if (!outcome.reviewToken) throw new Error("REVIEW_TOKEN_MISSING");
-        const receipt = await queryAssurance.publishCandidate({ reviewToken: outcome.reviewToken, candidate: candidateForReview, targetPath: target, promote: () => candidateStore.publish(storedCandidate, target) }, signal);
+        if (!outcome.reviewToken) {
+          const failure = outcome.availability === "unavailable" ? outcome.failure : undefined;
+          await candidateStore.discard(storedCandidate);
+          // Review Unavailable is fail-closed and terminal for this exact
+          // candidate. Returning terminate prevents the Agent from launching
+          // another provider turn that can only repeat the same blocked export.
+          return {
+            ...text(`[REVIEW_UNAVAILABLE] ${failure?.code ?? "REVIEW_TOKEN_MISSING"}: ${failure?.message ?? "No Review Token was issued"}. This exact result cannot be published; do not retry export_query or semantic_validate.`, {
+              status: "blocked",
+              terminal: true,
+              queryArtifactId: artifact.queryArtifactId,
+              ...(failure ? { reviewFailure: failure } : {}),
+            }),
+            terminate: true,
+          };
+        }
+        let receipt;
+        try {
+          receipt = await queryAssurance.publishCandidate({ reviewToken: outcome.reviewToken, candidate: candidateForReview, targetPath: target, promote: () => candidateStore.publish(storedCandidate, target) }, signal);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          if (/REVIEW_UNAVAILABLE|REVIEW_TIMEOUT/.test(message)) {
+            await candidateStore.discard(storedCandidate);
+            return {
+              ...text(`[REVIEW_UNAVAILABLE] ${message}. This exact result cannot be published; do not retry export_query or semantic_validate.`, {
+                status: "blocked",
+                terminal: true,
+                queryArtifactId: artifact.queryArtifactId,
+              }),
+              terminate: true,
+            };
+          }
+          throw error;
+        }
         queryTaskStateFor(native).hasExported = true;
         const artifactPath = artifactPathFor(native, target);
         const downloadUrl = `/workspace/files/download?path=${encodeURIComponent(artifactPath)}`;
@@ -667,15 +871,43 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
           sql: artifact.normalizedSql,
           digest: artifact.queryDigest,
           resultMetadata: artifact.previewMetadata,
+          resultEvidence: artifact.previewMetadata.resultEvidence,
         }
         : undefined;
       const outcome = await queryAssurance.reviewForPublication({ task: { taskId, mode: queryAssurance.mode, specVersion: candidate.specVersion }, candidate, reviewInput }, signal);
-      if (outcome.availability === "available" && outcome.decision.status === "rejected" && queryAssurance.mode !== "off" && queryAssurance.claimAutomaticRepair) {
+      if (outcome.availability === "available" && outcome.decision.status === "rejected" && outcome.decision.blocking !== false && queryAssurance.mode === "enforce" && queryAssurance.claimAutomaticRepair) {
         const repair = queryAssurance.claimAutomaticRepair(taskId, candidate.specVersion);
         if (repair.allowed) throw new Error(`SEMANTIC_DIFF_REPAIR_REQUIRED:${JSON.stringify({ attempt: repair.attempt, diffs: outcome.decision.diffs ?? [] })}`);
       }
-      if (!outcome.reviewToken) throw new Error("REVIEW_TOKEN_MISSING");
-      const receipt = await queryAssurance.publishCandidate({ reviewToken: outcome.reviewToken, candidate, targetPath: candidate.path }, signal);
+      if (!outcome.reviewToken) {
+        const failure = outcome.availability === "unavailable" ? outcome.failure : undefined;
+        return {
+          ...text(`[REVIEW_UNAVAILABLE] ${failure?.code ?? "REVIEW_TOKEN_MISSING"}: ${failure?.message ?? "No Review Token was issued"}. This exact result cannot be published; do not retry export_query or semantic_validate.`, {
+            status: "blocked",
+            terminal: true,
+            queryArtifactId: artifact.queryArtifactId,
+            ...(failure ? { reviewFailure: failure } : {}),
+          }),
+          terminate: true,
+        };
+      }
+      let receipt;
+      try {
+        receipt = await queryAssurance.publishCandidate({ reviewToken: outcome.reviewToken, candidate, targetPath: candidate.path }, signal);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (/REVIEW_UNAVAILABLE|REVIEW_TIMEOUT/.test(message)) {
+          return {
+            ...text(`[REVIEW_UNAVAILABLE] ${message}. This exact result cannot be published; do not retry publish_query_result or semantic_validate.`, {
+              status: "blocked",
+              terminal: true,
+              queryArtifactId: artifact.queryArtifactId,
+            }),
+            terminate: true,
+          };
+        }
+        throw error;
+      }
       queryTaskStateFor(native).hasExported = true;
       const header = preview.columns.join(" | ");
       const body = preview.rows.map((row) => row.map((cell) => String(cell ?? "NULL")).join(" | ")).join("\\n");
@@ -690,7 +922,57 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
         rows: preview.rows,
       });
     };
+    const sqlValidateTool = defineTool("sql_validate", canonicalTool("sql_validate").description, SQL_VALIDATE_PARAMETERS, async (p, native) => withToolFailureGuidance("sql_validate", native, async () => {
+      const { taskId, artifact, signal } = await getArtifactForValidation(p.queryArtifactId, native);
+      if (!artifact.queryDigest) return text(JSON.stringify({ status: "unsupported", reason: "SQL_VALIDATE_DIGEST_UNAVAILABLE", queryArtifactId: artifact.queryArtifactId }), { status: "unsupported", queryArtifactId: artifact.queryArtifactId });
+      const dialect = artifact.queryDigest.dialect ?? deps.databaseDialect;
+      if (!dialect) return text(JSON.stringify({ status: "unsupported", reason: "SQL_VALIDATE_DIALECT_UNAVAILABLE", queryArtifactId: artifact.queryArtifactId }), { status: "unsupported", queryArtifactId: artifact.queryArtifactId });
+      const explainSql = dialect === "sqlite" ? `EXPLAIN QUERY PLAN ${artifact.normalizedSql}` : `EXPLAIN ${artifact.normalizedSql}`;
+      let explainResult: Awaited<ReturnType<QueryExecutor["run"]>> | undefined;
+      let explainError: string | undefined;
+      try {
+        explainResult = deps.queryExecutor!.explain
+          ? await deps.queryExecutor!.explain(artifact.normalizedSql, signal)
+          : (await runQuery(explainSql, DEFAULT_ROW_LIMIT)).result;
+      } catch (error) {
+        // The original Artifact has already executed successfully. EXPLAIN is
+        // an advisory capability and differs across engines/permissions; do
+        // not turn an unsupported plan verb into a false SQL failure.
+        explainError = error instanceof Error ? error.message : String(error);
+      }
+      const status = explainResult ? "valid" : "unsupported";
+      return text(JSON.stringify({
+        status,
+        queryArtifactId: artifact.queryArtifactId,
+        normalizedSqlHash: artifact.normalizedSqlHash,
+        parser: { engine: artifact.queryDigest.parserEngine, version: artifact.queryDigest.parserVersion, coverage: artifact.queryDigest.coverage, unsupportedNodes: artifact.queryDigest.unsupportedNodes },
+        digest: { sources: artifact.queryDigest.sources, joins: artifact.queryDigest.joins, measures: artifact.queryDigest.measures, projections: artifact.queryDigest.projections, groupBy: artifact.queryDigest.groupBy, windows: artifact.queryDigest.windows, limit: artifact.queryDigest.limit },
+        ...(explainResult ? { explain: explainResult } : { explainError }),
+        taskId,
+      }), { status, queryArtifactId: artifact.queryArtifactId, normalizedSqlHash: artifact.normalizedSqlHash, ...(explainResult ? { explain: explainResult } : { explainError }) });
+    }));
+    const semanticValidateTool = defineTool("semantic_validate", canonicalTool("semantic_validate").description, SEMANTIC_VALIDATE_PARAMETERS, async (p, native) => withToolFailureGuidance("semantic_validate", native, async () => {
+      const { taskId, artifact, signal } = await getArtifactForValidation(p.queryArtifactId, native);
+      const reviewInput = semanticReviewInputForArtifact(taskId, artifact);
+      if (!reviewInput) throw new Error("SEMANTIC_VALIDATE_INPUT_UNAVAILABLE");
+      const outcome = await queryAssurance.reviewForPublication({
+        task: { taskId, mode: queryAssurance.mode, ...(artifact.specVersion ? { specVersion: artifact.specVersion } : {}) },
+        candidate: "semantic-validation-only",
+        reviewInput,
+      }, signal);
+      // This tool is advisory. It cannot issue a Review Token or publish; the
+      // final export path performs a fresh candidate-bound review.
+      const advisory = outcome.availability === "available"
+        ? { availability: outcome.availability, decision: outcome.decision }
+        : { availability: outcome.availability, failure: outcome.failure };
+      const rendered = outcome.availability === "unavailable"
+        ? `${JSON.stringify(advisory)}\nREVIEW_ADVISORY_UNAVAILABLE: Do not retry semantic_validate. Proceed directly to export_query for the exact Query Artifact; export performs its own candidate-bound review.`
+        : JSON.stringify(advisory);
+      return text(rendered, { status: "advisory", queryArtifactId: artifact.queryArtifactId, outcome: advisory });
+    }));
     tools.push(
+      sqlValidateTool,
+      semanticValidateTool,
       defineTool("query_database", canonicalTool("query_database").description, QUERY_DATABASE_PARAMETERS, async (p, native) => withToolFailureGuidance("query_database", native, async () => {
         let state = queryTaskStateFor(native);
         if (state.hasExported) {
@@ -990,7 +1272,7 @@ export async function createDataAgentHarness(deps: AgentAssemblyDeps, profile: A
   // Keep credentials scoped to this harness. Never place them in process.env,
   // because tool subprocesses (notably Python jobs) inherit that environment.
   const credentials = new InMemoryCredentialStore();
-  const providerId = profile.provider === "anthropic" ? "anthropic" : "openai";
+  const providerId = profile.provider === "anthropic" ? "anthropic" : profile.provider === "openrouter" ? "openrouter" : "openai";
   await credentials.modify(providerId, async () => ({ type: "api_key", key: profile.apiKey }));
   const models: Models = builtinModels({ credentials });
   const skillLoad = await loadSkillsFromRoots(resolveSkillRoots({ projectRoot: deps.projectRoot, packagedRoot: deps.packagedRoot }));
@@ -1035,6 +1317,7 @@ export async function createDataAgentHarness(deps: AgentAssemblyDeps, profile: A
     session: deps.session ?? await new InMemorySessionRepo().create(),
     models,
     model: buildModel(profile),
+    ...(deps.providerTimeoutMs !== undefined ? { streamOptions: { timeoutMs: Math.max(1, deps.providerTimeoutMs) } } : {}),
     thinkingLevel: "off",
     // Use Pi's per-turn prompt callback rather than freezing a prompt string.
     // The callback receives the current resources snapshot, so a later

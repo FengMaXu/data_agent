@@ -6,10 +6,13 @@
   "concurrency": 1,
   "scoreWorkers": 4,
   "assurance": {
-    "mode": "off",
-    "reviewerModel": "none",
+    "mode": "shadow",
+    "reviewerModel": "gpt-4o",
     "reviewerPromptVersion": "2",
-    "reviewPolicyVersion": "1",
+    "reviewPolicyVersion": "2",
+    "reviewCoverageSchemaVersion": "2",
+    "planner": true,
+    "shadowDelivery": "publish_with_disagreement",
     "calibration": { "eligible": false }
   },
   "llm": {
@@ -21,6 +24,7 @@
   },
   "limits": {
     "timeoutMs": 120000,
+    "providerTimeoutMs": 30000,
     "maxTurns": 20,
     "maxToolCalls": 50,
     "maxExploratoryQueries": 6,

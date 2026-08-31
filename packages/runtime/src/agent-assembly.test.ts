@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path, { join } from "node:path";
-import { buildAgentTools, composeDataAgentSystemPrompt, createDataAgentHarness, resolveSystemPrompt, runtimeCapabilitiesPrompt, unknownToolRecoveryMessage, type AgentAssemblyDeps, type QueryExportBatch } from "./agent-assembly.js";
+import { buildAgentTools, composeDataAgentSystemPrompt, createDataAgentHarness, normalizeAnswerSpecPlannerOutput, resolveSystemPrompt, runtimeCapabilitiesPrompt, unknownToolRecoveryMessage, type AgentAssemblyDeps, type QueryExportBatch } from "./agent-assembly.js";
 import { ClarificationManager } from "./clarification.js";
-import { createReviewOffQueryAssurance, type QueryAssurance } from "./query-assurance.js";
+import { createReviewOffQueryAssurance, InMemoryQueryAssurance, type QueryAssurance } from "./query-assurance.js";
 import { WorkspaceStore } from "./workspace.js";
 
 function exportTool(workspace: WorkspaceStore, queryExecutor: any, emitArtifact?: (path: string) => void): any {
@@ -46,6 +46,40 @@ describe("session workspace isolation", () => {
     } finally {
       await rm(root, { recursive: true, force: true });
     }
+  });
+});
+
+describe("Answer Spec planner output", () => {
+  it("normalizes string hypotheses and ambiguities into safe model-inference objects", () => {
+    const normalized = normalizeAnswerSpecPlannerOutput({
+      taskId: "task-planner-strings",
+      question: "Calculate Recency and report any unresolved segmentation criteria",
+    }, {
+      hypotheses: ["Recency uses the latest purchase timestamp as its reference"],
+      ambiguities: ["The RFM segment thresholds are not stated"],
+    });
+
+    expect(normalized.hypotheses).toEqual([{
+      statement: "Recency uses the latest purchase timestamp as its reference",
+      scope: "task",
+      authority: "model_inference",
+      source: "planner:hypotheses",
+    }]);
+    expect(normalized.ambiguities).toEqual([{
+      question: "The RFM segment thresholds are not stated",
+      alternatives: [],
+      scope: "task",
+      source: "planner:ambiguities",
+    }]);
+  });
+
+  it("rejects malformed structured planner arrays instead of silently dropping them", () => {
+    expect(() => normalizeAnswerSpecPlannerOutput({ taskId: "task-invalid-planner", question: "q" }, {
+      hypotheses: { statement: "not an array" },
+    })).toThrow("ANSWER_SPEC_GENERATOR_HYPOTHESES_INVALID");
+    expect(() => normalizeAnswerSpecPlannerOutput({ taskId: "task-invalid-planner", question: "q" }, {
+      ambiguities: [{ question: "Missing alternatives", alternatives: "a or b", scope: "task" }],
+    })).toThrow("ANSWER_SPEC_GENERATOR_AMBIGUITY_ALTERNATIVES_INVALID");
   });
 });
 
@@ -295,6 +329,38 @@ describe("query task guardrails", () => {
   });
 });
 
+describe("validation tools", () => {
+  it("validates an existing Artifact with EXPLAIN and keeps semantic review advisory", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-validation-tools-"));
+    const assurance = createReviewOffQueryAssurance();
+    const task = await assurance.prepareTask({ question: "What is the answer?", dialect: "sqlite" }, new AbortController().signal);
+    let explainCalls = 0;
+    const tools = buildAgentTools({
+      workspace: new WorkspaceStore(root),
+      databaseDialect: "sqlite",
+      queryAssurance: assurance,
+      queryExecutor: {
+        run: async () => ({ columns: ["answer"], rows: [[1]], truncated: false }),
+        explain: async () => { explainCalls += 1; return { columns: ["detail"], rows: [["SCAN CONSTANT ROW"]], truncated: false }; },
+      },
+    });
+    const query = tools.find((candidate) => candidate.name === "query_database") as any;
+    const sqlValidate = tools.find((candidate) => candidate.name === "sql_validate") as any;
+    const semanticValidate = tools.find((candidate) => candidate.name === "semantic_validate") as any;
+    try {
+      const preview = await query.execute("validation-preview", { sql: "SELECT 1 AS answer" }, undefined, undefined, { sessionId: "session-a", taskId: task.taskId, specVersion: task.specVersion });
+      const sqlResult = await sqlValidate.execute("sql-validate", { queryArtifactId: preview.details.queryArtifactId }, undefined, undefined, { sessionId: "session-a", taskId: task.taskId, specVersion: task.specVersion });
+      expect(sqlResult.details).toMatchObject({ status: "valid", queryArtifactId: preview.details.queryArtifactId, explain: { columns: ["detail"] } });
+      expect(explainCalls).toBe(1);
+      const semanticResult = await semanticValidate.execute("semantic-validate", { queryArtifactId: preview.details.queryArtifactId }, undefined, undefined, { sessionId: "session-a", taskId: task.taskId, specVersion: task.specVersion });
+      expect(semanticResult.details).toMatchObject({ status: "advisory", queryArtifactId: preview.details.queryArtifactId });
+      expect(semanticResult.content[0].text).toContain("Do not retry semantic_validate");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+});
+
 describe("export_query", () => {
   it("publishes the exact Query Artifact through a Review Token", async () => {
     const root = await mkdtemp(join(tmpdir(), "data-agent-export-artifact-"));
@@ -324,6 +390,37 @@ describe("export_query", () => {
       }, undefined, undefined, { sessionId: "session-a", taskId: task.taskId, specVersion: task.specVersion });
       expect(result.details).toMatchObject({ taskComplete: true, publicationReceipt: { status: "published_with_disagreement", queryArtifactId } });
       expect(await readFile(join(root, "session-a", "exports", "artifact.csv"), "utf8")).toBe("answer\n1");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("terminates an export turn when review is unavailable instead of retrying the provider turn", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-export-review-unavailable-"));
+    const assurance = new InMemoryQueryAssurance({ mode: "shadow" });
+    const task = await assurance.prepareTask({ question: "What is the answer?" }, new AbortController().signal);
+    const tools = buildAgentTools({
+      workspace: new WorkspaceStore(root),
+      queryAssurance: assurance,
+      databaseDialect: "sqlite",
+      queryExecutor: {
+        run: async () => ({ columns: ["answer"], rows: [[1]], truncated: false }),
+        stream: async function* (): AsyncGenerator<QueryExportBatch> { yield { columns: ["answer"], rows: [[1]] }; },
+      },
+    });
+    const query = tools.find((candidate) => candidate.name === "query_database") as any;
+    const exportQuery = tools.find((candidate) => candidate.name === "export_query") as any;
+    try {
+      const preview = await query.execute("unavailable-preview", { sql: "SELECT 1 AS answer" }, undefined, undefined, { sessionId: "session-a", taskId: task.taskId, specVersion: task.specVersion });
+      const result = await exportQuery.execute("unavailable-export", {
+        queryArtifactId: preview.details.queryArtifactId,
+        filename: "exports/unavailable.csv",
+        expected_rows: "scalar",
+        expected_columns: ["answer"],
+      }, undefined, undefined, { sessionId: "session-a", taskId: task.taskId, specVersion: task.specVersion });
+      expect(result.details).toMatchObject({ status: "blocked", terminal: true, queryArtifactId: preview.details.queryArtifactId });
+      expect(result.content[0].text).toContain("do not retry export_query");
+      await expect(readFile(join(root, "session-a", "exports", "unavailable.csv"), "utf8")).rejects.toThrow();
     } finally {
       await rm(root, { recursive: true, force: true });
     }
@@ -696,6 +793,34 @@ describe("export_query", () => {
       expect(calls).toEqual(["analysis"]);
       expect(result.content).toEqual([{ type: "text", text: "native result" }]);
       expect(result.details).toEqual({ nativeSkill: "analysis" });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("routes OpenRouter profiles through the OpenRouter Chat Completions provider", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-openrouter-profile-"));
+    const harness = await createDataAgentHarness({
+      workspace: new WorkspaceStore(root),
+      projectRoot: path.resolve(process.cwd(), "../.."),
+      systemPrompt: "test",
+    }, {
+      provider: "openrouter",
+      model: "qwen/qwen3.8-max",
+      apiKey: "test",
+      baseUrl: "https://openrouter.ai/api/v1",
+      apiFormat: "chat",
+      reasoning: true,
+      thinkingLevelMap: { off: "low" },
+    });
+    try {
+      expect(harness.getModel()).toMatchObject({
+        provider: "openrouter",
+        api: "openai-completions",
+        baseUrl: "https://openrouter.ai/api/v1",
+        reasoning: true,
+        thinkingLevelMap: { off: "low" },
+      });
     } finally {
       await rm(root, { recursive: true, force: true });
     }

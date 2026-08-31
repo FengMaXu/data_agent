@@ -1,13 +1,14 @@
 import { createHash, randomUUID } from "node:crypto";
-import { createSpecAuthority, type AmbiguityInput, type AnswerRowMode, type AnswerSpec, type AnswerSpecGenerator, type ConstraintInput, type HypothesisInput, type SpecAuthority } from "./answer-spec.js";
+import { createSpecAuthority, type AmbiguityInput, type AnswerContractInput, type AnswerRowMode, type AnswerSpec, type AnswerSpecGenerator, type ConstraintInput, type HypothesisInput, type SpecAuthority } from "./answer-spec.js";
 import { createQueryDigestCompiler, type QueryDigest, type QueryDigestCompiler, type SchemaEvidence, type SqlDialect } from "./query-digest.js";
-import type { ConversationBlindReviewer, ConversationBlindReviewerInput, ReviewCoverage, SemanticDiff } from "./conversation-blind-reviewer.js";
+import { deriveReviewCoverageRequirements, validateReviewDecision, REVIEW_COVERAGE_SCHEMA_VERSION, type ConversationBlindReviewer, type ConversationBlindReviewerInput, type ReviewCoverage, type SemanticDiff } from "./conversation-blind-reviewer.js";
 import type { ExportCandidate } from "./export-candidate.js";
 import { PublicationRegistry, type PublicationAuthorization, type PublicationReceipt, type ReviewToken } from "./publication.js";
 import { ReviewCache, type ReviewCacheIdentity } from "./review-cache.js";
 import { type AssuranceMetrics, type ReviewModeController } from "./review-policy.js";
-import { InMemoryAssuranceAuditStore, type AssuranceAuditRecord, type AssuranceAuditStore } from "./assurance-audit.js";
+import { InMemoryAssuranceAuditStore, type AssuranceAuditRecord, type AssuranceAuditStore, type SpecGenerationFailure } from "./assurance-audit.js";
 import { InvariantProbeRegistry, type ProbeOutcome } from "./invariant-probe.js";
+import { buildResultEvidence, type ResultEvidence } from "./result-evidence.js";
 
 /** Runtime modes are explicit so Review Off cannot be confused with Shadow Review. */
 export type QueryAssuranceMode = "off" | "shadow" | "enforce";
@@ -28,6 +29,8 @@ export interface TaskEvidence {
   readonly outputColumns?: readonly string[];
   readonly rowMode?: AnswerRowMode;
   readonly rowCount?: number;
+  /** Structured output/grain/measure/denominator contract from authoritative evidence. */
+  readonly answerContract?: AnswerContractInput;
   readonly dialect?: SqlDialect;
   readonly schema?: SchemaEvidence;
   readonly [key: string]: unknown;
@@ -39,6 +42,10 @@ export interface PreparedQueryTask {
   readonly mode: QueryAssuranceMode;
   readonly specVersion?: string;
   readonly specStatus?: "available" | "unavailable";
+  /** Indicates that the basic request-only Spec was used after planner failure. */
+  readonly specGenerationStatus?: "generated" | "fallback";
+  /** Read-only planner output supplied to Solver; Solver cannot mutate authority. */
+  readonly answerSpec?: AnswerSpec;
 }
 
 export interface QueryPreviewResult {
@@ -56,6 +63,8 @@ export interface ResultMetadata {
   readonly nullCounts: Readonly<Record<string, number>>;
   readonly minMax?: Readonly<Record<string, { readonly min?: unknown; readonly max?: unknown }>>;
   readonly distinctCounts?: Readonly<Record<string, number>>;
+  /** Bounded value evidence for blind semantic review; never written to audit. */
+  readonly resultEvidence?: ResultEvidence;
 }
 
 export interface QueryPreviewRegistration {
@@ -152,6 +161,8 @@ export interface QueryAssuranceOptions {
   reviewer?: ConversationBlindReviewer;
   publicationRegistry?: PublicationRegistry;
   allowUnavailablePublication?: boolean;
+  /** Shadow records reviewer decisions; record_only additionally fails closed. */
+  shadowDelivery?: "publish_with_disagreement" | "record_only";
   reviewCache?: ReviewCache;
   reviewerModel?: string;
   reviewerPromptVersion?: string;
@@ -169,6 +180,15 @@ export function normalizeQuerySql(sql: string): string {
 
 function throwIfAborted(signal: AbortSignal): void {
   if (signal.aborted) throw new QueryAssuranceAbortError();
+}
+
+function specGenerationFailure(error: unknown): SpecGenerationFailure {
+  const record = error && typeof error === "object" ? error as Record<string, unknown> : undefined;
+  const rawMessage = error instanceof Error ? error.message : typeof error === "string" ? error : String(error);
+  const explicitCode = typeof record?.code === "string" && record.code.trim() ? record.code.trim() : undefined;
+  const messageCode = /^([A-Z][A-Z0-9_]*(?::|$))/.exec(rawMessage)?.[1]?.replace(/:$/, "");
+  const code = explicitCode ?? messageCode ?? (error instanceof Error && error.name ? error.name : "SPEC_GENERATOR_FAILED");
+  return { code, message: rawMessage.slice(0, 2_000) };
 }
 
 function inferColumnType(value: unknown): string {
@@ -210,6 +230,7 @@ function resultMetadata(result: QueryPreviewResult): ResultMetadata {
     truncated: result.truncated,
     nullCounts,
     ...(columns.length ? { minMax, distinctCounts: Object.fromEntries(columns.map((column, index) => [column, distinct[index].size])) } : {}),
+    resultEvidence: buildResultEvidence(columns, result.rows, result.truncated),
   };
 }
 
@@ -222,6 +243,73 @@ function stable(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(stable).join(",")}]`;
   const record = value as Record<string, unknown>;
   return `{${Object.keys(record).sort().map((key) => `${JSON.stringify(key)}:${stable(record[key])}`).join(",")}}`;
+}
+
+function normalizedExpression(value: string): string {
+  return value.toLowerCase().replace(/[\[\]`"']/g, "").replace(/\s+/g, " ").trim();
+}
+
+function contractDiff(
+  spec: AnswerSpec,
+  digest: QueryDigest,
+  metadata: ResultMetadata,
+): SemanticDiff[] {
+  const diffs: SemanticDiff[] = [];
+  const contract = spec.answerContract;
+  if (!contract) return diffs;
+  const outputField = contract.output;
+  const grainField = contract.grain;
+  const rankingField = contract.ranking;
+  const output = outputField?.binding === "hard" ? outputField.value : undefined;
+  const grain = grainField?.binding === "hard" ? grainField.value : undefined;
+  const measures = contract.measures?.filter((measure) => measure.binding === "hard").map((measure) => measure.value) ?? [];
+  const ranking = rankingField?.binding === "hard" ? rankingField.value : undefined;
+  const digestPath = digest.projections.length > 0 ? "projections" : "outputLineage";
+  const outputColumns = output?.columns ?? [];
+  const grainColumns = grain?.keyColumns ?? [];
+  if (outputColumns.length > 0 && digestCoverageSupports(digest, ["projections", "outputLineage"])) {
+    const observed = digest.projections.map((projection) => projection.output);
+    if (!sameStringArray(outputColumns, observed) || !sameStringArray(outputColumns, metadata.columns)) {
+      diffs.push({ aspect: "projection", required: outputColumns.join(", "), observed: observed.join(", ") || metadata.columns.join(", "), blocking: true, evidence: { specPath: "answerContract.output.value.columns", digestPath } });
+    }
+  }
+  if (output?.rowCount !== undefined && metadata.rowCount !== output.rowCount) {
+    diffs.push({ aspect: "row_count", required: String(output.rowCount), observed: String(metadata.rowCount), blocking: true, evidence: { specPath: "answerContract.output.value.rowCount", digestPath } });
+  }
+  if (output?.rowMode === "scalar" && metadata.rowCount !== 1) {
+    diffs.push({ aspect: "row_mode", required: "exactly one scalar row", observed: `${metadata.rowCount} rows`, blocking: true, evidence: { specPath: "answerContract.output.value.rowMode", digestPath } });
+  }
+  if (grainColumns.length > 0 && digestCoverageSupports(digest, ["groupBy", "windows", "projections"])) {
+    const observedGroupBy = digest.groupBy.map(normalizedExpression);
+    const missing = grainColumns.filter((column) => !observedGroupBy.includes(normalizedExpression(column)));
+    if (missing.length > 0) diffs.push({ aspect: "grain", required: `grouped by ${grainColumns.join(", ")}`, observed: digest.groupBy.join(", ") || "no GROUP BY", blocking: true, evidence: { specPath: "answerContract.grain.value.keyColumns", digestPath: digest.groupBy.length > 0 ? "groupBy" : "projections" } });
+  }
+  for (const measure of measures) {
+    if (measure.kind === "unknown") continue;
+    const expectedFunction = measure.kind === "count" || measure.kind === "count_distinct" ? "COUNT" : measure.kind.toUpperCase();
+    const matched = digest.measures.some((candidate) => candidate.function === expectedFunction
+      && (measure.kind !== "count_distinct" || /DISTINCT/i.test(candidate.expression))
+      && (measure.kind !== "count" || !/DISTINCT/i.test(candidate.expression)));
+    if (!matched && digestCoverageSupports(digest, ["measures", "outputLineage"])) diffs.push({ aspect: "measure", required: measure.kind, observed: digest.measures.map((candidate) => candidate.function).join(", ") || "no aggregate", blocking: true, evidence: { specPath: "answerContract.measures", digestPath: digest.measures.length > 0 ? "measures" : "projections" } });
+  }
+  if (ranking) {
+    const expectedPartition = ranking.partitionBy.map(normalizedExpression);
+    const matched = digest.windows.some((window) => sameStringArray(expectedPartition, window.partitionBy.map(normalizedExpression)))
+      || (expectedPartition.length === 0 && digest.limit !== undefined && digest.orderBy.length > 0);
+    if (!matched && digestCoverageSupports(digest, ["windows", "orderBy", "limit"])) diffs.push({ aspect: "ranking_partition", required: expectedPartition.length ? expectedPartition.join(", ") : "global", observed: digest.windows.map((window) => window.partitionBy.join(", ")).join("; ") || "global/non-window", blocking: true, evidence: { specPath: "answerContract.ranking.value.partitionBy", digestPath: digest.windows.length > 0 ? "windows" : "orderBy" } });
+  }
+  return diffs;
+}
+
+function sameStringArray(left: readonly string[], right: readonly string[]): boolean {
+  return left.length === right.length && left.every((value, index) => normalizedExpression(value) === normalizedExpression(right[index]));
+}
+
+function digestCoverageSupports(digest: QueryDigest, paths: readonly string[]): boolean {
+  return paths.some((path) => {
+    const status = digest.coverage[path];
+    return status === undefined || status === "checked" || status === "not_applicable";
+  });
 }
 
 /**
@@ -263,13 +351,14 @@ export class InMemoryQueryAssurance implements QueryAssurance {
       mode: this.configuredMode,
       modeFor: () => this.mode,
       allowUnavailablePublication: options.allowUnavailablePublication,
+      shadowDelivery: options.shadowDelivery,
       specVersionFor: (taskId) => this.specAuthority.get(taskId)?.specVersion,
     });
     this.reviewCache = options.reviewCache ?? new ReviewCache();
     this.reviewerModel = options.reviewerModel ?? "unknown";
-    this.reviewerPromptVersion = options.reviewerPromptVersion ?? "1";
-    this.reviewPolicyVersion = options.reviewPolicyVersion ?? "1";
-    this.reviewCoverageSchemaVersion = options.reviewCoverageSchemaVersion ?? "1";
+    this.reviewerPromptVersion = options.reviewerPromptVersion ?? "2";
+    this.reviewPolicyVersion = options.reviewPolicyVersion ?? "2";
+    this.reviewCoverageSchemaVersion = options.reviewCoverageSchemaVersion ?? REVIEW_COVERAGE_SCHEMA_VERSION;
     this.auditStore = options.auditStore ?? new InMemoryAssuranceAuditStore({ now: this.now });
     this.specGenerator = options.specGenerator;
     this.invariantProbes = options.invariantProbes;
@@ -294,25 +383,51 @@ export class InMemoryQueryAssurance implements QueryAssurance {
       outputColumns: input.outputColumns,
       rowMode: input.rowMode,
       rowCount: input.rowCount,
+      answerContract: input.answerContract,
+      schema: input.schema,
     };
-    try {
-      if (this.specGenerator) {
-        const generated = await this.specGenerator.generate(specInput, signal);
-        const prepared = this.specAuthority.prepare({ ...generated, taskId, question: input.question });
-        return { taskId, mode: this.mode, specVersion: prepared.specVersion, specStatus: "available" };
-      }
+    if (!this.specGenerator) {
       const prepared = this.specAuthority.prepare(specInput);
-      return { taskId, mode: this.mode, specVersion: prepared.specVersion, specStatus: "available" };
+      return { taskId, mode: this.mode, specVersion: prepared.specVersion, specStatus: "available", answerSpec: prepared };
+    }
+
+    try {
+      const generated = await this.specGenerator.generate(specInput, signal);
+      const prepared = this.specAuthority.prepare({ ...generated, taskId, question: input.question });
+      return { taskId, mode: this.mode, specVersion: prepared.specVersion, specStatus: "available", specGenerationStatus: "generated", answerSpec: prepared };
     } catch (error) {
-      if (error instanceof QueryAssuranceAbortError) throw error;
-      this.auditStore.append({
-        taskId,
-        reviewAvailability: "unavailable",
-        specStatus: "unavailable",
-        repairAttempt: 0,
-        reviewMode: this.mode,
-      });
-      return { taskId, mode: this.mode, specStatus: "unavailable" };
+      // A planner is an enrichment step, not an authority boundary. Preserve
+      // cancellation, but never make a valid database task unpublishable just
+      // because the optional planner failed or returned an unsupported shape.
+      throwIfAborted(signal);
+      const failure = specGenerationFailure(error);
+      try {
+        const fallback = this.specAuthority.prepare(specInput);
+        this.auditStore.append({
+          taskId,
+          reviewAvailability: this.mode === "off" ? "off" : "unavailable",
+          specStatus: "available",
+          specGenerationStatus: "fallback",
+          specGenerationFailure: failure,
+          repairAttempt: 0,
+          reviewMode: this.mode,
+        });
+        return { taskId, mode: this.mode, specVersion: fallback.specVersion, specStatus: "available", specGenerationStatus: "fallback", answerSpec: fallback };
+      } catch (fallbackError) {
+        // This should only be reachable for invalid task evidence (for
+        // example, an empty question). Keep the original planner failure and
+        // the fallback failure visible instead of losing both in "unavailable".
+        const fallbackFailure = specGenerationFailure(fallbackError);
+        this.auditStore.append({
+          taskId,
+          reviewAvailability: "unavailable",
+          specStatus: "unavailable",
+          specGenerationFailure: { code: `${failure.code};${fallbackFailure.code}`, message: `${failure.message}; fallback: ${fallbackFailure.message}`.slice(0, 2_000) },
+          repairAttempt: 0,
+          reviewMode: this.mode,
+        });
+        return { taskId, mode: this.mode, specStatus: "unavailable" };
+      }
     }
   }
 
@@ -428,7 +543,16 @@ export class InMemoryQueryAssurance implements QueryAssurance {
     const expectedSpecVersion = candidateArtifact?.specVersion ?? input.task.specVersion ?? "1";
     const storedSpec = this.getAnswerSpec(input.task.taskId, expectedSpecVersion);
     const candidateMetadata = candidate?.metadata;
-    const reviewInput = input.reviewInput;
+    const suppliedReviewInput = input.reviewInput;
+    // Coverage is a runtime challenge, not a field the Solver or Reviewer can
+    // choose. Recompute it from the canonical stored Digest before invoking a
+    // reviewer, so a forged/ stale coverageRequirements field is ignored.
+    const reviewInput = suppliedReviewInput && suppliedReviewInput.digest
+      ? {
+        ...suppliedReviewInput,
+        coverageRequirements: deriveReviewCoverageRequirements(suppliedReviewInput),
+      }
+      : suppliedReviewInput;
     const reviewInputBindingValid = !hasCandidateBinding || this.mode === "off" || (
       candidateArtifact !== undefined
       && reviewInput !== undefined
@@ -442,6 +566,8 @@ export class InMemoryQueryAssurance implements QueryAssurance {
       && (!candidateArtifact.schemaEvidence || stable(reviewInput.schema) === stable(candidateArtifact.schemaEvidence))
       && reviewInput.resultMetadata.columns.length === candidateArtifact.previewMetadata.columns.length
       && reviewInput.resultMetadata.columns.every((column, index) => column === candidateArtifact.previewMetadata.columns[index])
+      && (!candidateMetadata?.resultEvidence || reviewInput.resultMetadata.resultEvidence?.evidenceHash === candidateMetadata.resultEvidence.evidenceHash)
+      && (!candidateMetadata?.resultEvidence || reviewInput.resultEvidence?.evidenceHash === candidateMetadata.resultEvidence.evidenceHash)
     );
     const candidateBindingValid = !hasCandidateBinding || (
       candidateArtifact !== undefined
@@ -459,6 +585,9 @@ export class InMemoryQueryAssurance implements QueryAssurance {
       && reviewInputBindingValid
     );
     const blockingPreflight = candidateArtifact?.preflightOutcomes?.find((probe) => probe.status === "failed" && probe.blocking);
+    const deterministicContractDiffs = candidateArtifact?.queryDigest && storedSpec && candidateMetadata
+      ? contractDiff(storedSpec, candidateArtifact.queryDigest, candidateMetadata)
+      : [];
     let outcome: ReviewOutcome;
     if (hasCandidateBinding && !candidateBindingValid) {
       outcome = { availability: "unavailable", failure: { code: "REVIEW_CANDIDATE_BINDING_INVALID", message: "Candidate identity does not match the Validated Query Artifact", retryable: false } };
@@ -471,6 +600,11 @@ export class InMemoryQueryAssurance implements QueryAssurance {
       outcome = {
         availability: "available",
         decision: { status: "rejected", blocking: true, reason: "A deterministic Hard Constraint or Structural Fact probe failed" },
+      };
+    } else if (deterministicContractDiffs.length > 0) {
+      outcome = {
+        availability: "available",
+        decision: { status: "rejected", blocking: true, diffs: deterministicContractDiffs, retryable: true, reason: "A hard Answer Contract facet does not match the Query Digest or result shape" },
       };
     } else if (!this.reviewer) {
       outcome = {
@@ -485,20 +619,25 @@ export class InMemoryQueryAssurance implements QueryAssurance {
     } else {
       const review = async (): Promise<ReviewOutcome> => {
         try {
-          return { availability: "available", decision: await this.reviewer!.review(input.reviewInput!, signal) };
+          const decision = await this.reviewer!.review(reviewInput!, signal);
+          // Defense in depth: custom reviewer adapters may bypass the standard
+          // response parser. Never let such an adapter self-assert coverage.
+          return { availability: "available", decision: validateReviewDecision(decision, reviewInput!) };
         } catch (error) {
           if (error instanceof QueryAssuranceAbortError) throw error;
+          const message = error instanceof Error ? error.message : String(error);
+          const timedOut = error instanceof Error && error.name === "ReviewTimeoutError";
           return {
             availability: "unavailable",
-            failure: { code: "REVIEWER_FAILED", message: error instanceof Error ? error.message : String(error), retryable: true },
+            failure: { code: timedOut ? "REVIEW_TIMEOUT" : "REVIEWER_FAILED", message, retryable: !timedOut },
           };
         }
       };
-      const digest = input.reviewInput.digest;
+      const digest = reviewInput!.digest;
       const identity: ReviewCacheIdentity = {
         taskId: input.task.taskId,
-        taskQuestionHash: hash(input.reviewInput.question),
-        specVersion: input.reviewInput.answerSpec.specVersion,
+        taskQuestionHash: hash(reviewInput!.question),
+        specVersion: reviewInput!.answerSpec.specVersion,
         schemaEvidenceFingerprint: digest.schemaEvidenceFingerprint,
         normalizedSqlHash: digest.normalizedSqlHash,
         queryDigestVersion: digest.queryDigestVersion,
@@ -507,6 +646,7 @@ export class InMemoryQueryAssurance implements QueryAssurance {
         reviewPolicyVersion: this.reviewPolicyVersion,
         reviewCoverageSchemaVersion: this.reviewCoverageSchemaVersion,
         parserVersion: digest.parserVersion,
+        resultEvidenceHash: reviewInput!.resultMetadata.resultEvidence?.evidenceHash ?? hash(stable(reviewInput!.resultMetadata)),
       };
       const cached = await this.reviewCache.getOrCreate(identity, review, signal);
       outcome = { ...cached.outcome, cacheHit: cached.cacheHit };
@@ -549,6 +689,7 @@ export class InMemoryQueryAssurance implements QueryAssurance {
       reviewerPromptVersion: this.reviewerPromptVersion,
       reviewPolicyVersion: this.reviewPolicyVersion,
       reviewAvailability: outcome.availability === "unavailable" && outcome.failure.code === "REVIEW_OFF" ? "off" : outcome.availability,
+      ...(outcome.availability === "unavailable" ? { reviewFailure: { ...outcome.failure, message: outcome.failure.message.slice(0, 2_000) } } : {}),
       ...(decision ? { decision: decision.status, ...(decision.coverage ? { coverage: decision.coverage } : {}), ...(decision.diffs ? { semanticDiffs: decision.diffs } : {}) } : {}),
       repairAttempt: 0,
       reviewMode: this.mode,
@@ -565,6 +706,7 @@ export class InMemoryQueryAssurance implements QueryAssurance {
       queryArtifactId: receipt.queryArtifactId,
       publicationStatus: receipt.status,
       reviewAvailability: receipt.reviewOutcome.availability === "unavailable" ? "unavailable" : "available",
+      ...(receipt.reviewOutcome.availability === "unavailable" ? { reviewFailure: { ...receipt.reviewOutcome.failure, message: receipt.reviewOutcome.failure.message.slice(0, 2_000) } } : {}),
       ...(receipt.reviewOutcome.availability === "available" ? {
         decision: receipt.reviewOutcome.decision.status,
         ...(receipt.reviewOutcome.decision.coverage ? { coverage: receipt.reviewOutcome.decision.coverage } : {}),

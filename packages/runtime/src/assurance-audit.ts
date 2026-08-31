@@ -3,6 +3,17 @@ import type { ReviewCoverage, SemanticDiff } from "./conversation-blind-reviewer
 import type { PublicationStatus } from "./publication.js";
 import type { QueryAssuranceMode } from "./query-assurance.js";
 
+export interface SpecGenerationFailure {
+  readonly code: string;
+  readonly message: string;
+}
+
+export interface ReviewFailureAudit {
+  readonly code: string;
+  readonly message: string;
+  readonly retryable: boolean;
+}
+
 export interface AssuranceAuditRecord {
   readonly auditId: string;
   readonly recordedAt: string;
@@ -11,6 +22,12 @@ export interface AssuranceAuditRecord {
   readonly sqlHash?: string;
   readonly specVersion?: string;
   readonly specStatus?: "available" | "unavailable";
+  /** Whether the Answer Spec came from the planner or the basic fallback. */
+  readonly specGenerationStatus?: "generated" | "fallback";
+  /** Bounded, non-secret diagnostic for a failed planner attempt. */
+  readonly specGenerationFailure?: SpecGenerationFailure;
+  /** Bounded diagnostic for a reviewer request that could not complete. */
+  readonly reviewFailure?: ReviewFailureAudit;
   readonly schemaEvidenceFingerprint?: string;
   readonly queryDigestVersion?: string;
   readonly reviewerModel?: string;
@@ -51,6 +68,9 @@ export class InMemoryAssuranceAuditStore implements AssuranceAuditStore {
       ...(input.sqlHash ? { sqlHash: input.sqlHash } : {}),
       ...(input.specVersion ? { specVersion: input.specVersion } : {}),
       ...(input.specStatus ? { specStatus: input.specStatus } : {}),
+      ...(input.specGenerationStatus ? { specGenerationStatus: input.specGenerationStatus } : {}),
+      ...(input.specGenerationFailure ? { specGenerationFailure: { ...input.specGenerationFailure } } : {}),
+      ...(input.reviewFailure ? { reviewFailure: { ...input.reviewFailure } } : {}),
       ...(input.schemaEvidenceFingerprint ? { schemaEvidenceFingerprint: input.schemaEvidenceFingerprint } : {}),
       ...(input.queryDigestVersion ? { queryDigestVersion: input.queryDigestVersion } : {}),
       ...(input.reviewerModel ? { reviewerModel: input.reviewerModel } : {}),
