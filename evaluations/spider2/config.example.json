@@ -8,7 +8,7 @@
   "assurance": {
     "mode": "off",
     "reviewerModel": "none",
-    "reviewerPromptVersion": "1",
+    "reviewerPromptVersion": "2",
     "reviewPolicyVersion": "1",
     "calibration": { "eligible": false }
   },
