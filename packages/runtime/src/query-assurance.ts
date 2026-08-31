@@ -217,6 +217,13 @@ function hash(value: string): string {
   return createHash("sha256").update(value, "utf8").digest("hex");
 }
 
+function stable(value: unknown): string {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(stable).join(",")}]`;
+  const record = value as Record<string, unknown>;
+  return `{${Object.keys(record).sort().map((key) => `${JSON.stringify(key)}:${stable(record[key])}`).join(",")}}`;
+}
+
 /**
  * In-memory Query Assurance used for the pre-wired seam and local hosts.
  * Review Off preserves the existing delivery behavior while making the lack
@@ -246,7 +253,7 @@ export class InMemoryQueryAssurance implements QueryAssurance {
 
   constructor(options: QueryAssuranceOptions = {}) {
     this.modeController = options.modeController;
-    this.configuredMode = options.mode === "enforce" && !this.modeController ? "shadow" : (options.mode ?? "off");
+    this.configuredMode = options.mode ?? this.modeController?.mode() ?? "off";
     this.artifactTtlMs = options.artifactTtlMs ?? 5 * 60 * 1000;
     this.now = options.now ?? Date.now;
     this.specAuthority = options.specAuthority ?? createSpecAuthority();
@@ -342,13 +349,30 @@ export class InMemoryQueryAssurance implements QueryAssurance {
     const taskContext = this.taskEvidence.get(input.task.taskId);
     const dialect = input.dialect ?? taskContext?.dialect;
     const schema = input.schema ?? taskContext?.schema;
+    let digest: QueryDigest | undefined;
+    if (dialect) {
+      try {
+        digest = this.digestCompiler.compile({ sql: normalizedSql, dialect, schema });
+      } catch (error) {
+        const fallback = createQueryDigestCompiler().compile({ sql: normalizedSql, dialect, schema });
+        const fallbackCoverage = Object.fromEntries(Object.keys(fallback.coverage).map((key) => [key, "unsupported" as const]));
+        digest = {
+          ...fallback,
+          parserVersion: `fallback-after-${error instanceof Error ? error.name : "parser-error"}`,
+          parserEngine: "deterministic-tokenizer",
+          coverage: fallbackCoverage,
+          unsupportedNodes: [...new Set([...fallback.unsupportedNodes, "strict_parser_error"])],
+          lineageCompleteness: "unsupported",
+        };
+      }
+    }
     let artifact: ValidatedQueryArtifact = {
       taskId: input.task.taskId,
       queryArtifactId: randomUUID(),
       normalizedSql,
-      normalizedSqlHash: hash(normalizedSql),
+      normalizedSqlHash: digest?.normalizedSqlHash ?? hash(normalizedSql),
       previewMetadata: resultMetadata(input.result),
-      ...(dialect ? { queryDigest: this.digestCompiler.compile({ sql: normalizedSql, dialect, schema }) } : {}),
+      ...(digest ? { queryDigest: digest } : {}),
       ...(schema ? { schemaEvidence: schema } : {}),
       ...(input.task.specVersion ? { specVersion: input.task.specVersion } : {}),
       ...(input.task.specStatus ? { specStatus: input.task.specStatus } : {}),
@@ -401,19 +425,38 @@ export class InMemoryQueryAssurance implements QueryAssurance {
       : undefined;
     const hasCandidateBinding = Boolean(candidate && typeof candidate.candidateId === "string");
     const expectedSchemaFingerprint = candidateArtifact?.queryDigest?.schemaEvidenceFingerprint ?? "unknown";
+    const expectedSpecVersion = candidateArtifact?.specVersion ?? input.task.specVersion ?? "1";
+    const storedSpec = this.getAnswerSpec(input.task.taskId, expectedSpecVersion);
     const candidateMetadata = candidate?.metadata;
+    const reviewInput = input.reviewInput;
+    const reviewInputBindingValid = !hasCandidateBinding || this.mode === "off" || (
+      candidateArtifact !== undefined
+      && reviewInput !== undefined
+      && normalizeQuerySql(reviewInput.sql) === candidateArtifact.normalizedSql
+      && reviewInput.digest.normalizedSqlHash === candidateArtifact.normalizedSqlHash
+      && reviewInput.digest.schemaEvidenceFingerprint === expectedSchemaFingerprint
+      && reviewInput.answerSpec.taskId === input.task.taskId
+      && reviewInput.answerSpec.specVersion === expectedSpecVersion
+      && storedSpec !== undefined
+      && stable(reviewInput.answerSpec) === stable(storedSpec)
+      && (!candidateArtifact.schemaEvidence || stable(reviewInput.schema) === stable(candidateArtifact.schemaEvidence))
+      && reviewInput.resultMetadata.columns.length === candidateArtifact.previewMetadata.columns.length
+      && reviewInput.resultMetadata.columns.every((column, index) => column === candidateArtifact.previewMetadata.columns[index])
+    );
     const candidateBindingValid = !hasCandidateBinding || (
       candidateArtifact !== undefined
       && candidate.taskId === input.task.taskId
       && candidate.queryArtifactId === candidateArtifact.queryArtifactId
+      && candidateArtifact.specVersion === (input.task.specVersion ?? candidateArtifact.specVersion)
       && candidate.normalizedSqlHash === candidateArtifact.normalizedSqlHash
-      && candidate.specVersion === (candidateArtifact.specVersion ?? input.task.specVersion ?? "1")
+      && candidate.specVersion === expectedSpecVersion
       && candidate.schemaEvidenceFingerprint === expectedSchemaFingerprint
       && typeof candidate.path === "string"
       && typeof candidate.contentSha256 === "string"
       && candidateMetadata !== undefined
       && candidateMetadata.columns.length === candidateArtifact.previewMetadata.columns.length
       && candidateMetadata.columns.every((column, index) => column === candidateArtifact.previewMetadata.columns[index])
+      && reviewInputBindingValid
     );
     const blockingPreflight = candidateArtifact?.preflightOutcomes?.find((probe) => probe.status === "failed" && probe.blocking);
     let outcome: ReviewOutcome;

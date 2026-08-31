@@ -1,6 +1,7 @@
 import { AgentHarness, formatSkillsForSystemPrompt, InMemorySessionRepo } from "@earendil-works/pi-agent-core";
 import type { AgentHarnessOptions, AgentHarnessTool, AgentToolResult, Session, Skill as NativeSkill } from "@earendil-works/pi-agent-core";
 import { InMemoryCredentialStore, type Model, type Models } from "@earendil-works/pi-ai";
+import { completeSimple } from "@earendil-works/pi-ai/compat";
 import { boundTextByLines, readBoundedFile } from "./bounded-read.js";
 import { builtinModels } from "@earendil-works/pi-ai/providers/all";
 import { Type, type Static, type TSchema } from "typebox";
@@ -20,6 +21,7 @@ import { emitWidgetUpdate, validateWidgetSpec, widgetLegacyText, type WidgetLife
 import { createReviewOffQueryAssurance, type PreparedQueryTask, type QueryAssurance } from "./query-assurance.js";
 import { ExportCandidateStore, type ExportCandidate } from "./export-candidate.js";
 import type { SchemaEvidence } from "./query-digest.js";
+import { createConversationBlindReviewer, type ConversationBlindReviewer, type ConversationBlindReviewerInput } from "./conversation-blind-reviewer.js";
 
 export interface QueryExportBatch {
   columns: string[];
@@ -32,6 +34,8 @@ export interface QueryExecutor {
   run(sql: string, rowLimit: number): Promise<{ columns: string[]; rows: unknown[][]; truncated: boolean; columnTypes?: string[] }>;
   /** Optional incremental export source. Each batch is released by the executor after consumption. */
   stream?(sql: string, signal?: AbortSignal): AsyncIterable<QueryExportBatch> | Promise<AsyncIterable<QueryExportBatch>>;
+  /** Optional formal schema snapshot from the same database connection. */
+  getSchema?(): Promise<SchemaEvidence>;
 }
 
 export type NativeSkillInvoker = (name: string, additionalInstructions?: string) => Promise<unknown>;
@@ -178,6 +182,33 @@ function nativeSkillResult(result: unknown, name: string): AgentToolResult<unkno
   });
   if (content.length === 0) throw new Error("NATIVE_SKILL_EMPTY_RESULT");
   return { content, details: { nativeSkill: name } } as AgentToolResult<unknown>;
+}
+
+function parseReviewerJson(value: string): unknown {
+  const fenced = /^```(?:json)?\s*([\s\S]*?)\s*```$/i.exec(value.trim());
+  const source = fenced?.[1] ?? value.trim();
+  const first = source.indexOf("{");
+  const last = source.lastIndexOf("}");
+  if (first < 0 || last <= first) throw new Error("REVIEW_RESPONSE_JSON_REQUIRED");
+  return JSON.parse(source.slice(first, last + 1)) as unknown;
+}
+
+const REVIEWER_SYSTEM_PROMPT = `You are a Conversation-Blind Query Assurance reviewer. You receive only the structured review input below, never solver reasoning or gold answers. Compare the question, Answer Spec, schema evidence, SQL, deterministic Query Digest, and result metadata. Return one JSON object and no prose. Required shape: {"status":"approved|rejected|needs_clarification|abstained","coverage":{<every facet>:"checked|not_applicable|unsupported|insufficient_evidence"}, ...}. For rejected include diffs with aspect, required, observed, and evidence {constraintId,digestPath}; cite only a hard-constraint id and an existing Query Digest path. If evidence is insufficient, use abstained or needs_clarification rather than approving. Do not include reasoning or unknown fields.`;
+
+export function createProfileConversationBlindReviewer(profile: AgentModelProfile): ConversationBlindReviewer {
+  const model = buildModel(profile);
+  return createConversationBlindReviewer({
+    complete: async (input: ConversationBlindReviewerInput, options, signal) => {
+      const response = await completeSimple(model, {
+        systemPrompt: REVIEWER_SYSTEM_PROMPT,
+        messages: [{ role: "user", content: JSON.stringify(input), timestamp: Date.now() }],
+      }, { temperature: options.temperature, maxTokens: 2048, signal, apiKey: profile.apiKey });
+      return parseReviewerJson(response.content
+        .filter((content) => content.type === "text")
+        .map((content) => content.text)
+        .join("\n"));
+    },
+  });
 }
 
 function buildModel(profile: AgentModelProfile): Model<any> {
@@ -571,7 +602,7 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
           }
           : undefined;
         const outcome = await queryAssurance.reviewForPublication({ task: { taskId, mode: queryAssurance.mode, specVersion }, candidate: candidateForReview, reviewInput }, signal);
-        if (outcome.availability === "available" && outcome.decision.status === "rejected" && queryAssurance.mode === "enforce" && queryAssurance.claimAutomaticRepair) {
+        if (outcome.availability === "available" && outcome.decision.status === "rejected" && queryAssurance.mode !== "off" && queryAssurance.claimAutomaticRepair) {
           const repair = queryAssurance.claimAutomaticRepair(taskId, specVersion);
           if (repair.allowed) {
             await candidateStore.discard(storedCandidate);
@@ -639,7 +670,7 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
         }
         : undefined;
       const outcome = await queryAssurance.reviewForPublication({ task: { taskId, mode: queryAssurance.mode, specVersion: candidate.specVersion }, candidate, reviewInput }, signal);
-      if (outcome.availability === "available" && outcome.decision.status === "rejected" && queryAssurance.mode === "enforce" && queryAssurance.claimAutomaticRepair) {
+      if (outcome.availability === "available" && outcome.decision.status === "rejected" && queryAssurance.mode !== "off" && queryAssurance.claimAutomaticRepair) {
         const repair = queryAssurance.claimAutomaticRepair(taskId, candidate.specVersion);
         if (repair.allowed) throw new Error(`SEMANTIC_DIFF_REPAIR_REQUIRED:${JSON.stringify({ attempt: repair.attempt, diffs: outcome.decision.diffs ?? [] })}`);
       }
@@ -684,13 +715,20 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
         const normalizedSql = normalizeValidatedSql(p.sql);
         const signal = native.signal ?? new AbortController().signal;
         const taskId = taskIdFor(native);
+        let schemaEvidence = deps.schemaEvidence;
+        if (!schemaEvidence && deps.queryExecutor!.getSchema) {
+          schemaEvidence = await deps.queryExecutor!.getSchema().catch((error) => {
+            console.warn("[data-agent] schema evidence unavailable:", error instanceof Error ? error.message : String(error));
+            return undefined;
+          });
+        }
         const artifact = taskId && !validationPurpose && queryAssurance.recordPreview
           ? await queryAssurance.recordPreview({
             task: { taskId, mode: queryAssurance.mode, ...(specVersionFor(native) ? { specVersion: specVersionFor(native) } : {}) },
             sql: p.sql,
             result: { columns: result.columns, rows: result.rows, truncated: result.truncated, ...(result.columnTypes ? { columnTypes: result.columnTypes } : {}) },
             ...(deps.databaseDialect ? { dialect: deps.databaseDialect } : {}),
-            ...(deps.schemaEvidence ? { schema: deps.schemaEvidence } : {}),
+            ...(schemaEvidence ? { schema: schemaEvidence } : {}),
           }, signal)
           : undefined;
         if (artifact) state.previewResults.set(artifact.queryArtifactId, { columns: [...result.columns], rows: result.rows, truncated: result.truncated });

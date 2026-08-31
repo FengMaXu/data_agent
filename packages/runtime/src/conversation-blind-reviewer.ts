@@ -120,6 +120,9 @@ function validateResponse(value: unknown, input: ConversationBlindReviewerInput)
   const status = value.status as ReviewDecision["status"];
   const coverage = validateCoverage(value.coverage);
   if (status === "approved") {
+    if (Object.values(coverage).some((item) => item === "unsupported" || item === "insufficient_evidence")) {
+      return { status: "abstained", coverage, reason: "REVIEW_COVERAGE_INSUFFICIENT" };
+    }
     return {
       status,
       coverage,

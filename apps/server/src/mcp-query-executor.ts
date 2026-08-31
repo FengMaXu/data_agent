@@ -18,6 +18,12 @@ export interface McpQueryExportBatch {
   rows: unknown[][];
 }
 
+export interface McpSchemaEvidence {
+  connectionId: string;
+  dialect: "mysql";
+  tables: Array<{ name: string; columns: string[] }>;
+}
+
 /**
  * Infrastructure adapter: connects to a Data Agent contract MCP database
  * server (stdio) and executes read-only preview queries for the
@@ -60,6 +66,21 @@ export function createMcpQueryExecutor(options: McpQueryExecutorOptions) {
         columns,
         rows: rows.map((row) => columns.map((col) => row[col])),
         truncated: Boolean(payload.truncated),
+      };
+    },
+    async getSchema(): Promise<McpSchemaEvidence> {
+      const c = await connect();
+      const result = await c.callTool({ name: "get_schema", arguments: {} }) as { isError?: boolean; content?: Array<{ type: string; text?: string }> };
+      const text = result.content?.find((part) => part.type === "text")?.text;
+      if (!text) throw new Error("MCP_SCHEMA_EMPTY_RESPONSE");
+      if (result.isError) throw new Error(`MCP_TOOL_ERROR: ${text.slice(0, 300)}`);
+      let payload: { schema?: Array<{ table?: unknown; columns?: Array<{ name?: unknown }> }> };
+      try { payload = JSON.parse(text) as typeof payload; }
+      catch { throw new Error(`MCP_SCHEMA_BAD_RESPONSE: ${text.slice(0, 300)}`); }
+      return {
+        connectionId: `mysql:${String(options.env?.DATA_AGENT_MYSQL_DATABASE ?? "configured")}`,
+        dialect: "mysql",
+        tables: (payload.schema ?? []).flatMap((table) => typeof table.table === "string" ? [{ name: table.table, columns: (table.columns ?? []).flatMap((column) => typeof column.name === "string" ? [column.name] : []) }] : []),
       };
     },
     async *stream(sql: string, signal?: AbortSignal): AsyncGenerator<McpQueryExportBatch> {

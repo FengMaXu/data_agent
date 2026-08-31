@@ -19,6 +19,8 @@ describe("DeliveryPolicy", () => {
     expect(new DeliveryPolicy("shadow").decide({ availability: "available", decision: { status: "rejected" } })).toMatchObject({ allowed: true, status: "published_with_disagreement" });
     expect(new DeliveryPolicy("shadow").decide({ availability: "unavailable", failure: { code: "TIMEOUT", message: "timeout", retryable: true } })).toMatchObject({ allowed: false, status: "not_published_review_unavailable" });
     expect(new DeliveryPolicy("shadow", { allowUnavailablePublication: true }).decide({ availability: "unavailable", failure: { code: "TIMEOUT", message: "timeout", retryable: true } })).toMatchObject({ allowed: true, status: "published_with_disagreement" });
+    const authorization = { taskId: "task", queryArtifactId: "artifact", normalizedSqlHash: "sql", specVersion: "1", candidateId: "candidate", candidatePath: "path", contentSha256: "content", semanticDiffHashes: [] };
+    expect(new DeliveryPolicy("enforce").decide({ availability: "available", decision: { status: "needs_clarification", ambiguities: ["scope"] } }, authorization)).toMatchObject({ allowed: false, status: "not_published_rejected" });
   });
 });
 

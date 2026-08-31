@@ -413,30 +413,46 @@ function parseSources(tokens: readonly Token[]): { sources: DigestSource[]; join
   const sources: DigestSource[] = [];
   const joins: DigestJoin[] = [];
   const unsupported: string[] = [];
+  const addFromSource = (start: number): number => {
+    const parsed = sourceAt(tokens, start);
+    if (parsed.subquery) { unsupported.push("subquery"); return Math.max(start, parsed.next); }
+    if (!parsed.source) return start;
+    sources.push(parsed.source);
+    return parsed.next;
+  };
   for (let index = 0; index < tokens.length; index += 1) {
     if (depthAt(tokens, index) !== 0) continue;
     const isFrom = sameWord(tokens[index], "FROM");
     const isJoin = sameWord(tokens[index], "JOIN");
     if (!isFrom && !isJoin) continue;
-    const parsed = sourceAt(tokens, index + 1);
-    if (parsed.subquery) { unsupported.push("subquery"); continue; }
-    if (!parsed.source) continue;
-    if (isJoin) {
-      let type = "INNER";
-      for (let cursor = index - 1; cursor >= 0 && index - cursor <= 3; cursor -= 1) {
-        const candidate = upper(tokens[cursor]);
-        if (["LEFT", "RIGHT", "FULL", "CROSS", "INNER"].includes(candidate)) { type = candidate; break; }
+    let next = addFromSource(index + 1);
+    if (isFrom) {
+      // A comma-separated FROM list is a set of independent sources, not a
+      // JOIN. Keep every source visible so coverage cannot claim a partial
+      // population or relationship description is complete.
+      while (tokens[next]?.value === ",") {
+        const afterComma = addFromSource(next + 1);
+        if (afterComma <= next + 1) break;
+        next = afterComma;
       }
-      const onIndex = findTopLevel(tokens, "ON", parsed.next);
-      const usingIndex = findTopLevel(tokens, "USING", parsed.next);
-      const conditionIndex = onIndex >= 0 && (usingIndex < 0 || onIndex < usingIndex) ? onIndex : usingIndex;
-      const condition = conditionIndex >= 0 && conditionIndex < clauseEnd(tokens, parsed.next)
-        ? render(tokens.slice(conditionIndex + (conditionIndex === onIndex ? 1 : 0), clauseEnd(tokens, conditionIndex)))
-        : undefined;
-      joins.push({ type, source: parsed.source, ...(condition ? { condition } : {}) });
+    } else {
+      const parsed = sourceAt(tokens, index + 1);
+      if (parsed.source) {
+        let type = "INNER";
+        for (let cursor = index - 1; cursor >= 0 && index - cursor <= 3; cursor -= 1) {
+          const candidate = upper(tokens[cursor]);
+          if (["LEFT", "RIGHT", "FULL", "CROSS", "INNER"].includes(candidate)) { type = candidate; break; }
+        }
+        const onIndex = findTopLevel(tokens, "ON", parsed.next);
+        const usingIndex = findTopLevel(tokens, "USING", parsed.next);
+        const conditionIndex = onIndex >= 0 && (usingIndex < 0 || onIndex < usingIndex) ? onIndex : usingIndex;
+        const condition = conditionIndex >= 0 && conditionIndex < clauseEnd(tokens, parsed.next)
+          ? render(tokens.slice(conditionIndex + (conditionIndex === onIndex ? 1 : 0), clauseEnd(tokens, conditionIndex)))
+          : undefined;
+        joins.push({ type, source: parsed.source, ...(condition ? { condition } : {}) });
+      }
     }
-    sources.push(parsed.source);
-    index = Math.max(index, parsed.next - 1);
+    index = Math.max(index, next - 1);
   }
   return { sources, joins, unsupported };
 }
@@ -556,8 +572,21 @@ export function createQueryDigestCompiler(): QueryDigestCompiler {
       const parsedProjection = selectIndex >= 0 ? parseProjection(tokens, selectIndex + 1, projectionEnd) : { projections: [], measures: [], lineage: [] };
       const parsedSources = parseSources(tokens);
       const windows = parseWindows(tokens);
+      const unbalancedParentheses = (() => {
+        let depth = 0;
+        for (const token of tokens) {
+          if (token.value === "(") depth += 1;
+          else if (token.value === ")") depth -= 1;
+          if (depth < 0) return true;
+        }
+        return depth !== 0;
+      })();
       const unsupportedNodes = [...new Set([
         ...parsedSources.unsupported,
+        ...(tokens.length === 0 ? ["empty_sql"] : []),
+        ...(selectIndex < 0 ? ["missing_select"] : []),
+        ...(selectIndex >= 0 && parsedProjection.projections.length === 0 ? ["missing_projection"] : []),
+        ...(unbalancedParentheses ? ["unbalanced_parentheses"] : []),
         ...(tokens.some((token) => sameWord(token, "RECURSIVE")) ? ["recursive_cte"] : []),
         ...(tokens.some((token, index) => sameWord(token, "SELECT") && depthAt(tokens, index) > 0) ? ["subquery"] : []),
       ])];
@@ -578,7 +607,9 @@ export function createQueryDigestCompiler(): QueryDigestCompiler {
       for (const node of unsupportedNodes) {
         if (node === "subquery" || node === "recursive_cte") coverage.outputLineage = "unsupported";
       }
-      const lineageCompleteness = wildcard ? "partial" : unsupportedNodes.length ? "partial" : "complete";
+      const lineageCompleteness = unsupportedNodes.some((node) => ["empty_sql", "missing_select", "missing_projection", "unbalanced_parentheses"].includes(node))
+        ? "unsupported"
+        : wildcard || unsupportedNodes.length ? "partial" : "complete";
       return {
         normalizedSql,
         normalizedSqlHash: digestHash(normalizedSql),
@@ -610,7 +641,9 @@ export function createQueryDigestCompiler(): QueryDigestCompiler {
 /**
  * Optional strict parser adapter. The configured Python runtime must provide
  * the pinned sqlglot package; unlike the deterministic fallback this adapter
- * fails closed when sqlglot is unavailable or rejects the dialect.
+ * fails closed when sqlglot is unavailable or rejects the dialect; the
+ * QueryAssurance coordinator may record that failure with an explicitly
+ * unsupported fallback digest rather than treating it as full coverage.
  */
 export function createSqlglotQueryDigestCompiler(options: SqlglotQueryDigestCompilerOptions): QueryDigestCompiler {
   return {

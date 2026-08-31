@@ -69,6 +69,19 @@ export function createMcpQueryExecutor(options: McpQueryExecutorOptions) {
       };
     },
 
+    async getSchema(): Promise<{ connectionId: string; dialect: "mysql"; tables: Array<{ name: string; columns: string[] }> }> {
+      const result = parseResult(await (await connect()).callTool({ name: "get_schema", arguments: {} }));
+      if (result.isError) throw new Error(`MCP_TOOL_ERROR: ${result.text.slice(0, 300)}`);
+      let payload: { schema?: Array<{ table?: unknown; columns?: Array<{ name?: unknown }> }> };
+      try { payload = JSON.parse(result.text) as typeof payload; }
+      catch { throw new Error(`MCP_SCHEMA_BAD_RESPONSE: ${result.text.slice(0, 300)}`); }
+      return {
+        connectionId: `mysql:${String(options.env?.DATA_AGENT_MYSQL_DATABASE ?? "configured")}`,
+        dialect: "mysql",
+        tables: (payload.schema ?? []).flatMap((table) => typeof table.table === "string" ? [{ name: table.table, columns: (table.columns ?? []).flatMap((column) => typeof column.name === "string" ? [column.name] : []) }] : []),
+      };
+    },
+
     async *stream(sql: string, signal?: AbortSignal): AsyncGenerator<McpQueryExportBatch> {
       const client = await connect();
       const batchSize = 1000;

@@ -10,6 +10,7 @@ import {
   buildEvaluationLearning,
   buildEvaluationRules,
   classifyProviderFailure,
+  createRecorder,
   ddlCsvToMarkdown,
   ddlCsvToSql,
   extractProviderFailure,
@@ -217,4 +218,45 @@ test("official evaluator validation rejects hard-coded GBK decoding", () => {
     () => validateOfficialEvaluatorSource("payload.decode ( 'GBK' )"),
     /EVALUATOR_HARDCODED_GBK_DECODE/,
   );
+});
+
+test("createRecorder filters streaming token updates while preserving discrete lifecycle and tool events", () => {
+  let subscriber;
+  const mockHarness = {
+    subscribe: (fn) => {
+      subscriber = fn;
+      return () => {};
+    },
+    abort: () => {},
+  };
+  const recorder = createRecorder(mockHarness, { maxTurns: 20, maxToolCalls: 50 });
+
+  subscriber({ type: "agent_start" });
+  subscriber({ type: "turn_start" });
+  subscriber({ type: "message_start", message: { role: "assistant" } });
+  subscriber({ type: "message_update", assistantMessageEvent: { type: "text_delta", delta: "Hello" } });
+  subscriber({ type: "message_update", assistantMessageEvent: { type: "text_delta", delta: " world" } });
+  subscriber({ type: "tool_execution_update", toolCallId: "call_1", update: "streaming..." });
+  subscriber({ type: "tool_execution_start", toolCallId: "call_1", toolName: "query_database", args: { sql: "SELECT 1" } });
+  subscriber({ type: "tool_execution_end", toolCallId: "call_1", result: { content: [{ type: "text", text: "1" }] }, isError: false });
+  subscriber({ type: "message_end", message: { role: "assistant", content: [{ type: "text", text: "Hello world" }], stopReason: "stop" } });
+  subscriber({ type: "turn_end" });
+
+  assert.equal(recorder.turnCount, 1);
+  assert.equal(recorder.calls.length, 1);
+  assert.equal(recorder.calls[0].toolName, "query_database");
+  assert.equal(recorder.calls[0].isError, false);
+
+  const eventTypes = recorder.events.map((e) => e.type);
+  assert.deepEqual(eventTypes, [
+    "agent_start",
+    "turn_start",
+    "message_start",
+    "tool_execution_start",
+    "tool_execution_end",
+    "message_end",
+    "turn_end",
+  ]);
+  assert.equal(recorder.events.some((e) => e.type === "message_update"), false);
+  assert.equal(recorder.events.some((e) => e.type === "tool_execution_update"), false);
 });

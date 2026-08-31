@@ -45,11 +45,16 @@ describe("ConversationBlindReviewer", () => {
     const reviewer = createConversationBlindReviewer({
       complete: async () => {
         calls += 1;
-        return calls === 1 ? { status: "approved", extra: true } : { status: "approved", coverage: { projection: "checked" } };
+        return calls === 1 ? { status: "approved", extra: true } : { status: "approved", coverage: Object.fromEntries(REVIEW_COVERAGE_FACETS.map((facet) => [facet, "checked"])) };
       },
     });
     await expect(reviewer.review(input, new AbortController().signal)).resolves.toMatchObject({ status: "approved" });
     expect(calls).toBe(2);
+  });
+
+  it("turns approved output with unsupported coverage into Abstained", async () => {
+    const reviewer = createConversationBlindReviewer({ complete: async () => ({ status: "approved", coverage: { projection: "checked", grain: "unsupported" } }) });
+    await expect(reviewer.review(input, new AbortController().signal)).resolves.toMatchObject({ status: "abstained", reason: "REVIEW_COVERAGE_INSUFFICIENT" });
   });
 
   it("returns abstained when the reviewer lacks evidence instead of approving", async () => {

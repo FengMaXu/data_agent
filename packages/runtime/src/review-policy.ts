@@ -118,7 +118,8 @@ export class DeliveryPolicy {
     const unavailable = outcome.availability === "unavailable";
     const allowedInShadow = this.mode === "shadow" && (!unavailable || this.options.allowUnavailablePublication === true);
     const allowedInOff = this.mode === "off";
-    if (approved || allowedInShadow || allowedInOff || authorization) return { allowed: true, status: approved ? "published_approved" : "published_with_disagreement" };
+    const authorizationCanOverride = Boolean(authorization) && (unavailable || (outcome.availability === "available" && (outcome.decision.status === "rejected" || outcome.decision.status === "abstained")));
+    if (approved || allowedInShadow || allowedInOff || authorizationCanOverride) return { allowed: true, status: approved ? "published_approved" : "published_with_disagreement" };
     return {
       allowed: false,
       status: outcome.availability === "unavailable" ? "not_published_review_unavailable" : "not_published_rejected",
@@ -161,7 +162,7 @@ export class ReviewModeController {
 
   calibrationInvalidated(): boolean { return this.invalidated; }
   circuitBreaker(): AssuranceCircuitBreaker { return this.breaker; }
-  manifest(): { mode: QueryAssuranceMode; calibrationInvalidated: boolean; circuitTripped: boolean } {
-    return { mode: this.mode(), calibrationInvalidated: this.invalidated, circuitTripped: this.breaker.isTripped() };
+  manifest(): { requestedMode: QueryAssuranceMode; mode: QueryAssuranceMode; calibrationInvalidated: boolean; circuitTripped: boolean } {
+    return { requestedMode: this.requestedMode, mode: this.mode(), calibrationInvalidated: this.invalidated, circuitTripped: this.breaker.isTripped() };
   }
 }

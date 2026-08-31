@@ -294,6 +294,7 @@ function createElectronQueryExecutor(
 
   return {
     run: (sql: string, rowLimit: number) => resolveExecutor().then((current) => current.run(sql, rowLimit)),
+    getSchema: () => resolveExecutor().then((current) => current.getSchema()),
     async *stream(sql: string, signal?: AbortSignal) {
       yield* (await resolveExecutor()).stream(sql, signal);
     },
@@ -433,7 +434,9 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
     WorkspaceStore,
     createAgentHarnessResolver,
     createDataAgentHarness,
+    createProfileConversationBlindReviewer,
     createQueryAssurance,
+    ReviewModeController,
   } = await import("@data-agent/runtime");
   const { registerElectronRuntimeIpc } = await import("./index.js");
 
@@ -471,12 +474,77 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
     }
   }
 
+  const secretPath = path.join(paths.userDataDir, "secrets.json");
+  const startupStoredSecrets = readStoredSecrets(secretPath, deps.safeStorage);
+  const resolveConfiguredProfile = async () => {
+    const saved = await metadata.getConfig("ui.settings");
+    const cfg = isRecord(saved) ? saved : {};
+    const stored = readStoredSecrets(secretPath, deps.safeStorage);
+    const provider = typeof cfg.provider === "string" && cfg.provider ? cfg.provider : (stored.anthropic_api_key ? "anthropic" : "openai");
+    const apiKey = firstString(
+      cfg.api_key,
+      provider === "anthropic" ? cfg.anthropic_api_key : cfg.openai_api_key,
+      stored.anthropic_api_key && provider === "anthropic" ? stored.anthropic_api_key : undefined,
+      stored.openai_api_key && provider !== "anthropic" ? stored.openai_api_key : undefined,
+    );
+    const model = firstString(cfg.model, stored.default_model);
+    if (cfg.llm_enabled === false || !apiKey || !model) throw new Error("LLM_NOT_CONFIGURED: complete onboarding first");
+    const baseUrl = firstString(cfg.base_url, stored.openai_base_url);
+    const apiFormat = cfg.api_format === "chat" || cfg.apiFormat === "chat" ? "chat" : "responses";
+    return { provider, model, apiKey, apiFormat, ...(baseUrl ? { baseUrl } : {}) } as const;
+  };
+  let reviewerCache: { key: string; reviewer: ReturnType<typeof createProfileConversationBlindReviewer> } | undefined;
+  const reviewer = {
+    review: async (input: import("@data-agent/runtime").ConversationBlindReviewerInput, signal: AbortSignal) => {
+      const profile = await resolveConfiguredProfile();
+      const key = JSON.stringify([profile.provider, profile.model, profile.apiFormat, profile.baseUrl]);
+      if (!reviewerCache || reviewerCache.key !== key) reviewerCache = { key, reviewer: createProfileConversationBlindReviewer(profile) };
+      return reviewerCache.reviewer.review(input, signal);
+    },
+  };
   const configuredAssuranceMode = isRecord(savedConfig) && ["off", "shadow", "enforce"].includes(String(savedConfig.query_assurance_mode))
     ? String(savedConfig.query_assurance_mode) as "off" | "shadow" | "enforce"
     : "shadow";
+  const savedAssuranceConfig = isRecord(savedConfig) && isRecord(savedConfig.query_assurance_calibration)
+    ? savedConfig.query_assurance_calibration
+    : isRecord(savedConfig) && savedConfig.query_assurance_calibrated === true
+      ? { eligible: true }
+      : undefined;
+  const configuredReviewerAvailable = (isRecord(savedConfig) ? savedConfig.llm_enabled !== false : true)
+    && Boolean(firstString(isRecord(savedConfig) ? savedConfig.api_key : undefined, isRecord(savedConfig) ? savedConfig.openai_api_key : undefined, isRecord(savedConfig) ? savedConfig.anthropic_api_key : undefined, startupStoredSecrets.openai_api_key, startupStoredSecrets.anthropic_api_key))
+    && Boolean(firstString(isRecord(savedConfig) ? savedConfig.model : undefined, startupStoredSecrets.default_model));
+  const reviewerModel = firstString(isRecord(savedConfig) ? savedConfig.model : undefined, startupStoredSecrets.default_model) ?? "configured";
+  const calibrationIdentity = {
+    reviewerModel,
+    reviewerPromptVersion: "1",
+    queryDigestVersion: "1",
+    parserVersion: "query-digest-tokenizer-1",
+    reviewCoverageSchemaVersion: "1",
+    reviewPolicyVersion: "1",
+    hardConstraintAdmissionPolicy: "1",
+  };
+  const modeController = configuredAssuranceMode === "enforce"
+    ? new ReviewModeController({
+      requestedMode: configuredAssuranceMode,
+      reviewerAvailable: configuredReviewerAvailable,
+      ...(savedAssuranceConfig ? {
+        calibration: {
+          eligible: savedAssuranceConfig.eligible === true,
+          identity: { ...calibrationIdentity, ...(isRecord(savedAssuranceConfig.identity) ? savedAssuranceConfig.identity : {}) },
+        },
+      } : {}),
+      currentCalibrationIdentity: calibrationIdentity,
+    })
+    : undefined;
   // Query Assurance is explicitly wired for product sessions. Until a
   // calibrated reviewer is configured, unavailable review remains fail-closed.
-  const queryAssurance = createQueryAssurance({ mode: configuredAssuranceMode, allowUnavailablePublication: false });
+  const queryAssurance = createQueryAssurance({
+    mode: configuredAssuranceMode,
+    ...(modeController ? { modeController } : {}),
+    reviewer,
+    reviewerModel,
+    allowUnavailablePublication: false,
+  });
 
   // Semantic sources live in a KTX project under the user data dir; the
   // runtime scans business-semantic/ and semantic-layer/ layouts there.
@@ -554,24 +622,8 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
   };
   let agentHarness: HarnessLike | undefined;
   const agentListeners = new Set<(event: unknown) => void>();
-  const secretPath = path.join(paths.userDataDir, "secrets.json");
   const agentHarnessResolver = createAgentHarnessResolver({
-    getProfile: async () => {
-      const config = (await metadata.getConfig("ui.settings")) ?? {};
-      const cfg = isRecord(config) ? config : {};
-      const stored = readStoredSecrets(secretPath, deps.safeStorage);
-      const provider = typeof cfg.provider === "string" && cfg.provider ? cfg.provider : (stored.anthropic_api_key ? "anthropic" : "openai");
-      const apiKey = firstString(
-        cfg.api_key,
-        provider === "anthropic" ? cfg.anthropic_api_key : cfg.openai_api_key,
-        stored.anthropic_api_key && provider === "anthropic" ? stored.anthropic_api_key : undefined,
-        stored.openai_api_key && provider !== "anthropic" ? stored.openai_api_key : undefined,
-      );
-      const model = firstString(cfg.model, stored.default_model);
-      const baseUrl = firstString(cfg.base_url, stored.openai_base_url);
-      if (cfg.llm_enabled === false || !apiKey || !model) throw new Error("LLM_NOT_CONFIGURED: complete onboarding first");
-      return { provider, model, apiKey, ...(baseUrl ? { baseUrl } : {}) };
-    },
+    getProfile: resolveConfiguredProfile,
     create: async (profile, sessionId) => {
       const persistentSession = sessionId ? await sessions.openByAppSessionId(sessionId) : undefined;
       const harness = await createDataAgentHarness({
@@ -580,6 +632,10 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
         knowledgeRoot,
         pythonExecutable: () => runtime.pythonExecutablePath,
         databaseDialect: "mysql",
+        schemaEvidence: await queryExecutor.getSchema().catch((error) => {
+          console.warn("[data-agent-electron] schema evidence unavailable:", error instanceof Error ? error.message : String(error));
+          return undefined;
+        }),
         queryExecutor,
         queryAssurance,
         enforceDeliveryReceipt: true,

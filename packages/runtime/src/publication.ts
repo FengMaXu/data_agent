@@ -141,7 +141,7 @@ export class PublicationRegistry {
   async publish(token: ReviewToken, candidate: ExportCandidate, targetPath: string, authorization?: PublicationAuthorization, promote?: () => Promise<void>): Promise<PublicationReceipt> {
     const known = this.tokens.get(token.tokenId);
     if (!known) throw new Error("REVIEW_TOKEN_UNKNOWN");
-    if (known.taskId !== candidate.taskId || known.queryArtifactId !== candidate.queryArtifactId || !candidateMetadataMatchesToken(known, candidate)) throw new Error("REVIEW_TOKEN_CANDIDATE_MISMATCH");
+    if (known.taskId !== candidate.taskId || known.queryArtifactId !== candidate.queryArtifactId || !candidateMatchesToken(known, candidate)) throw new Error("REVIEW_TOKEN_CANDIDATE_MISMATCH");
     const artifactKey = `${known.taskId}:${known.queryArtifactId}`;
     const existingTask = this.taskReceipts.get(known.taskId);
     if (existingTask && existingTask.queryArtifactId !== known.queryArtifactId) throw new Error("PUBLICATION_TASK_ALREADY_COMPLETE");
@@ -154,7 +154,6 @@ export class PublicationRegistry {
     if (existing) return existing;
     const pendingArtifact = this.artifactInFlight.get(artifactKey);
     if (pendingArtifact) return pendingArtifact;
-    if (!candidateMatchesToken(known, candidate)) throw new Error("REVIEW_TOKEN_CANDIDATE_MISMATCH");
     const pending = this.inFlight.get(token.tokenId);
     if (pending) return pending;
     if (this.options.specVersionFor) {

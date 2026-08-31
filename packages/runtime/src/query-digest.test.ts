@@ -33,6 +33,13 @@ describe("Query Digest compiler", () => {
     expect(digest.schemaEvidenceFingerprint).toMatch(/^[a-f0-9]{64}$/);
   });
 
+  it("retains every comma-separated FROM source", () => {
+    const digest = createQueryDigestCompiler().compile({ sql: "SELECT a.id, b.id FROM a, b WHERE a.id = b.a_id", dialect: "mysql" });
+    expect(digest.sources.map((source) => source.name)).toEqual(["a", "b"]);
+    expect(digest.joins).toEqual([]);
+    expect(digest.coverage.sources).toBe("checked");
+  });
+
   it("keeps each JOIN condition separate", () => {
     const digest = createQueryDigestCompiler().compile({
       sql: "SELECT a.id FROM a JOIN b ON b.a_id = a.id LEFT JOIN c ON c.b_id = b.id",

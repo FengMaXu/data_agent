@@ -12,6 +12,7 @@ import {
   buildEvaluationLearning,
   buildEvaluationRules,
   classifyProviderFailure,
+  createRecorder,
   ddlCsvToMarkdown,
   ddlCsvToSql,
   extractProviderFailure,
@@ -307,61 +308,6 @@ async function prepareKnowledge(instance, config, caseRoot, KnowledgeIndex, Work
   };
 }
 
-function createRecorder(harness, limits) {
-  const events = [];
-  const calls = [];
-  const callsById = new Map();
-  let turnCount = 0;
-  let terminalReason = "completed";
-  let limitError;
-  let providerFailure;
-  const stopForLimit = (reason) => {
-    if (limitError) return;
-    terminalReason = reason;
-    limitError = new Error(reason.toUpperCase());
-    harness.abort();
-  };
-  const unsubscribe = harness.subscribe((event) => {
-    events.push(JSON.parse(safeJson(event)));
-    providerFailure ??= extractProviderFailure(event);
-    if (event?.type === "message_start" && event.message?.role === "assistant") {
-      turnCount += 1;
-      if (exceedsTurnBudget(turnCount, limits.maxTurns)) stopForLimit("max_turns");
-    }
-    if (event?.type === "tool_execution_start") {
-      const call = {
-        sequence: calls.length + 1,
-        toolCallId: event.toolCallId,
-        toolName: event.toolName,
-        args: event.args ?? null,
-        startedAt: Date.now(),
-        isError: false,
-      };
-      calls.push(call);
-      callsById.set(call.toolCallId, call);
-      if (calls.length > limits.maxToolCalls) stopForLimit("max_tool_calls");
-    }
-    if (event?.type === "tool_execution_end") {
-      const call = callsById.get(event.toolCallId);
-      if (call) {
-        call.finishedAt = Date.now();
-        call.durationMs = call.finishedAt - call.startedAt;
-        call.result = JSON.parse(safeJson(event.result ?? null));
-        call.isError = Boolean(event.isError);
-      }
-    }
-  });
-  return {
-    events,
-    calls,
-    get turnCount() { return turnCount; },
-    get terminalReason() { return terminalReason; },
-    get limitError() { return limitError; },
-    get providerFailure() { return providerFailure; },
-    unsubscribe,
-    setTerminalReason(value) { terminalReason = value; },
-  };
-}
 
 async function runPromptWithTimeout(harness, prompt, timeoutMs, recorder, limits) {
   let timer;
@@ -457,6 +403,7 @@ async function createCaseRunner(config, runDir) {
     let artifacts = {};
     let assurance;
     let auditStore;
+    let modeController;
     try {
       prepared = await prepareKnowledge(instance, config, caseRoot, runtime.KnowledgeIndex, runtime.WorkspaceStore);
       const backend = await backendExecutor(instance, config, createMcpQueryExecutor);
@@ -467,8 +414,31 @@ async function createCaseRunner(config, runDir) {
       const ddl = await readFile(path.join(prepared.metadataDir, "DDL.csv"), "utf8");
       const schemaEvidence = runtime.schemaEvidenceFromDdl(instance.instance_id, backendForCase(instance), ddlCsvToSql(ddl));
       const reviewer = createEvaluationReviewer(runtime, profile, config);
+      const requestedAssuranceMode = config.assurance?.mode ?? "off";
+      const calibrationIdentity = {
+        reviewerModel: config.assurance?.reviewerModel ?? profile.model ?? "none",
+        reviewerPromptVersion: config.assurance?.reviewerPromptVersion ?? "1",
+        queryDigestVersion: "1",
+        parserVersion: config.assurance?.parserVersion ?? (config.assurance?.sqlglotExecutable ? "sqlglot-configured" : "query-digest-tokenizer-1"),
+        reviewCoverageSchemaVersion: config.assurance?.reviewCoverageSchemaVersion ?? "1",
+        reviewPolicyVersion: config.assurance?.reviewPolicyVersion ?? "1",
+        hardConstraintAdmissionPolicy: config.assurance?.hardConstraintAdmissionPolicy ?? "1",
+      };
+      const suppliedCalibration = config.assurance?.calibration;
+      modeController = new runtime.ReviewModeController({
+        requestedMode: requestedAssuranceMode,
+        reviewerAvailable: Boolean(reviewer),
+        ...(suppliedCalibration ? {
+          calibration: {
+            eligible: suppliedCalibration.eligible === true,
+            identity: { ...calibrationIdentity, ...(suppliedCalibration.identity ?? {}) },
+          },
+        } : {}),
+        currentCalibrationIdentity: calibrationIdentity,
+      });
       assurance = runtime.createQueryAssurance({
-        mode: config.assurance?.mode ?? "off",
+        mode: requestedAssuranceMode,
+        modeController,
         allowUnavailablePublication: config.assurance?.allowUnavailablePublication === true,
         ...(config.assurance?.sqlglotExecutable ? { digestCompiler: runtime.createSqlglotQueryDigestCompiler({ executable: config.assurance.sqlglotExecutable }) } : {}),
         reviewer,
@@ -527,6 +497,7 @@ async function createCaseRunner(config, runDir) {
       csvError: artifacts.csvError ?? null,
       error: error ?? null,
       assuranceMode: assurance?.mode ?? config.assurance?.mode ?? "off",
+      assuranceManifest: modeController?.manifest?.() ?? null,
       publicationStatus: publicationStatusFor(recorder, auditStore),
       assuranceAuditRecords: auditStore?.list() ?? [],
     };

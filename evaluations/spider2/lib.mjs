@@ -356,3 +356,63 @@ export function parseOfficialCaseScores(output) {
   for (const match of output.matchAll(/["']([^"']+)["']:\s*([01])(?=\s*[,}])/g)) scores[match[1]] = Number(match[2]);
   return scores;
 }
+
+export const IGNORED_STREAMING_EVENTS = new Set(["message_update", "tool_execution_update"]);
+
+export function createRecorder(harness, limits) {
+  const events = [];
+  const calls = [];
+  const callsById = new Map();
+  let turnCount = 0;
+  let terminalReason = "completed";
+  let limitError;
+  let providerFailure;
+  const stopForLimit = (reason) => {
+    if (limitError) return;
+    terminalReason = reason;
+    limitError = new Error(reason.toUpperCase());
+    harness.abort();
+  };
+  const unsubscribe = harness.subscribe((event) => {
+    if (event && !IGNORED_STREAMING_EVENTS.has(event.type)) {
+      events.push(JSON.parse(safeJson(event)));
+    }
+    providerFailure ??= extractProviderFailure(event);
+    if (event?.type === "message_start" && event.message?.role === "assistant") {
+      turnCount += 1;
+      if (exceedsTurnBudget(turnCount, limits.maxTurns)) stopForLimit("max_turns");
+    }
+    if (event?.type === "tool_execution_start") {
+      const call = {
+        sequence: calls.length + 1,
+        toolCallId: event.toolCallId,
+        toolName: event.toolName,
+        args: event.args ?? null,
+        startedAt: Date.now(),
+        isError: false,
+      };
+      calls.push(call);
+      callsById.set(call.toolCallId, call);
+      if (calls.length > limits.maxToolCalls) stopForLimit("max_tool_calls");
+    }
+    if (event?.type === "tool_execution_end") {
+      const call = callsById.get(event.toolCallId);
+      if (call) {
+        call.finishedAt = Date.now();
+        call.durationMs = call.finishedAt - call.startedAt;
+        call.result = JSON.parse(safeJson(event.result ?? null));
+        call.isError = Boolean(event.isError);
+      }
+    }
+  });
+  return {
+    events,
+    calls,
+    get turnCount() { return turnCount; },
+    get terminalReason() { return terminalReason; },
+    get limitError() { return limitError; },
+    get providerFailure() { return providerFailure; },
+    unsubscribe,
+    setTerminalReason(value) { terminalReason = value; },
+  };
+}

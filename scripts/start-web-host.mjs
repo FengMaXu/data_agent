@@ -24,7 +24,7 @@ const dataDir = process.env.DATA_AGENT_DATA_DIR
   ? path.resolve(process.env.DATA_AGENT_DATA_DIR)
   : path.join(root, ".data_agent", "runtime-web");
 
-const { DataAgentRuntime, MetadataStore, PiJsonlSessionStore, KnowledgeIndex, WorkspaceStore, createAgentHarnessResolver, createQueryAssurance } = await import(toUrl(path.join(root, "packages/runtime/dist/index.js")));
+const { DataAgentRuntime, MetadataStore, PiJsonlSessionStore, KnowledgeIndex, WorkspaceStore, createAgentHarnessResolver, createProfileConversationBlindReviewer, createQueryAssurance, ReviewModeController } = await import(toUrl(path.join(root, "packages/runtime/dist/index.js")));
 const { createRuntimeServer } = await import(toUrl(path.join(root, "apps/server/dist/index.js")));
 
 const fsPromises = await import("node:fs/promises");
@@ -47,8 +47,50 @@ const semanticProjectDir = process.env.DATA_AGENT_SEMANTIC_PROJECT_DIR
 const workspace = new WorkspaceStore(path.join(dataDir, "workspace"));
 const runtime = new DataAgentRuntime({ metadata, sessions, knowledgeRoot, knowledge, workspace, semanticProjectDir, skillRoots: [path.join(root, ".agents", "skills"), path.join(process.resourcesPath ?? root, ".agents", "skills")] });
 const requestedAssuranceMode = process.env.DATA_AGENT_QUERY_ASSURANCE_MODE;
+const reviewer = {
+  review: async (input, signal) => {
+    const saved = (await metadata.getConfig("ui.settings")) ?? {};
+    const cfg = saved && typeof saved === "object" ? saved : {};
+    const profile = {
+      provider: String(cfg.provider ?? "openai"),
+      model: String(cfg.model ?? ""),
+      apiKey: String(cfg.api_key ?? cfg.openai_api_key ?? cfg.anthropic_api_key ?? ""),
+      ...(cfg.base_url ? { baseUrl: String(cfg.base_url) } : {}),
+      apiFormat: cfg.api_format === "chat" || cfg.apiFormat === "chat" ? "chat" : "responses",
+    };
+    if (cfg.llm_enabled === false || !profile.apiKey || !profile.model) throw new Error("LLM_NOT_CONFIGURED: complete onboarding first");
+    const key = JSON.stringify([profile.provider, profile.model, profile.baseUrl, profile.apiFormat]);
+    if (!reviewer.cache || reviewer.cache.key !== key) reviewer.cache = { key, instance: createProfileConversationBlindReviewer(profile) };
+    return reviewer.cache.instance.review(input, signal);
+  },
+  cache: undefined,
+};
+const effectiveRequestedAssuranceMode = requestedAssuranceMode === "off" || requestedAssuranceMode === "enforce" || requestedAssuranceMode === "shadow" ? requestedAssuranceMode : "shadow";
+const modeController = new ReviewModeController({
+  requestedMode: effectiveRequestedAssuranceMode,
+  // The reviewer is lazy and reports provider/configuration failures as
+  // Review Unavailable. Calibration is the separate gate for Enforce.
+  reviewerAvailable: true,
+  ...(process.env.DATA_AGENT_QUERY_ASSURANCE_CALIBRATED === "1" ? {
+    calibration: {
+      eligible: true,
+      identity: {
+        reviewerModel: "web-configured",
+        reviewerPromptVersion: "1",
+        queryDigestVersion: "1",
+        parserVersion: "query-digest-tokenizer-1",
+        reviewCoverageSchemaVersion: "1",
+        reviewPolicyVersion: "1",
+        hardConstraintAdmissionPolicy: "1",
+      },
+    },
+  } : {}),
+});
 const queryAssurance = createQueryAssurance({
-  mode: requestedAssuranceMode === "enforce" || requestedAssuranceMode === "shadow" ? requestedAssuranceMode : "off",
+  mode: effectiveRequestedAssuranceMode,
+  modeController,
+  reviewer,
+  reviewerModel: "web-configured",
   allowUnavailablePublication: false,
 });
 
@@ -136,7 +178,12 @@ const agentHarnessResolver = createAgentHarnessResolver({
   create: async (profile, sessionId) => {
     const { createDataAgentHarness } = await import(toUrl(path.join(root, "packages/runtime/dist/index.js")));
     const persistentSession = sessionId ? await sessions.openByAppSessionId(sessionId) : undefined;
-    const harness = await createDataAgentHarness({ workspace, knowledge, knowledgeRoot, pythonExecutable, databaseDialect: "mysql", queryExecutor: await resolveQueryExecutor(), queryAssurance, enforceDeliveryReceipt: true, clarifications: runtime.clarifications, session: persistentSession, systemPromptRoots: [knowledgeRoot, root], projectRoot: root, packagedRoot: process.resourcesPath ?? root, toolContext: { sessionId } }, profile);
+    const currentQueryExecutor = await resolveQueryExecutor();
+    const schemaEvidence = await currentQueryExecutor.getSchema().catch((error) => {
+      console.warn("[data-agent-web] schema evidence unavailable:", error?.message ?? error);
+      return undefined;
+    });
+    const harness = await createDataAgentHarness({ workspace, knowledge, knowledgeRoot, pythonExecutable, databaseDialect: "mysql", schemaEvidence, queryExecutor: currentQueryExecutor, queryAssurance, enforceDeliveryReceipt: true, clarifications: runtime.clarifications, session: persistentSession, systemPromptRoots: [knowledgeRoot, root], projectRoot: root, packagedRoot: process.resourcesPath ?? root, toolContext: { sessionId } }, profile);
     for (const listener of agentListeners) harness.subscribe(listener);
     agentHarness = harness;
     console.log(`[data-agent-web] agent ready: ${profile.provider}/${profile.model}`);

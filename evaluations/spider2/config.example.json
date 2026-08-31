@@ -9,7 +9,8 @@
     "mode": "off",
     "reviewerModel": "none",
     "reviewerPromptVersion": "1",
-    "reviewPolicyVersion": "1"
+    "reviewPolicyVersion": "1",
+    "calibration": { "eligible": false }
   },
   "llm": {
     "provider": "openai",

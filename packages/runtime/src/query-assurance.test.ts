@@ -11,8 +11,8 @@ describe("Review Off QueryAssurance", () => {
     expect(task.taskId).toMatch(/^[0-9a-f-]{36}$/i);
   });
 
-  it("downgrades an uncalibrated enforce request to Shadow Review", () => {
-    expect(new InMemoryQueryAssurance({ mode: "enforce" }).mode).toBe("shadow");
+  it("does not silently change an explicit enforce mode without a controller", () => {
+    expect(new InMemoryQueryAssurance({ mode: "enforce" }).mode).toBe("enforce");
   });
 
   it("reports review unavailable instead of fabricating an Approved decision", async () => {
