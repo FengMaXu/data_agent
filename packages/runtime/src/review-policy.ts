@@ -31,6 +31,8 @@ export interface CalibrationRecord {
 /** Only Runtime-generated reports may mint an Enforce calibration record. */
 export function calibrationRecordFromReports(identity: CalibrationIdentity, reports: readonly DeterministicGateCalibrationReport[], reviewerCalibration?: CalibrationReport, overallEligible = true): CalibrationRecord {
   if (reports.length === 0) throw new Error("DETERMINISTIC_GATE_CALIBRATION_REPORTS_REQUIRED");
+  const reportedGates = new Set(reports.map((report) => report.gate));
+  if (DETERMINISTIC_GATE_NAMES.some((gate) => !reportedGates.has(gate))) throw new Error("DETERMINISTIC_GATE_CALIBRATION_REPORTS_INCOMPLETE");
   if (reports.some((report) => !sameIdentity(report.identity, identity) || report.dialect !== identity.dialect)) throw new Error("DETERMINISTIC_GATE_CALIBRATION_IDENTITY_MIXED");
   if (reviewerCalibration && !sameIdentity(reviewerCalibration.identity, identity)) throw new Error("REVIEWER_CALIBRATION_IDENTITY_MIXED");
   const gateEligibility = Object.fromEntries(reports.map((report) => [report.gate, report.eligibleForEnforce])) as Partial<Record<GateName, boolean>>;
@@ -227,7 +229,7 @@ export class ReviewModeController {
     this.reviewerAvailable = options.reviewerAvailable;
     this.calibration = trustedCalibration(options.calibration);
     this.currentCalibrationIdentity = options.currentCalibrationIdentity;
-    this.requiredGateNames = [...new Set(options.requiredGateNames ?? [])];
+    this.requiredGateNames = [...new Set(options.requiredGateNames ?? DETERMINISTIC_GATE_NAMES)];
     if (options.calibration && this.currentCalibrationIdentity && !sameIdentity(options.calibration.identity, this.currentCalibrationIdentity)) this.invalidated = true;
     this.breaker = options.breaker ?? new AssuranceCircuitBreaker();
   }

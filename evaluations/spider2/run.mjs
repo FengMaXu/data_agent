@@ -586,6 +586,11 @@ function timestampId() {
   return new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z").replace("T", "-");
 }
 
+function sameIdentity(left, right) {
+  const keys = new Set([...Object.keys(left ?? {}), ...Object.keys(right ?? {})]);
+  return [...keys].every((key) => left?.[key] === right?.[key]);
+}
+
 async function currentBaselineSurface(config) {
   return {
     agentCommit: await gitCommit(projectRoot),
@@ -905,7 +910,7 @@ async function calibrationCommand(config, options) {
   const calibrationRecords = [];
   for (const dialect of new Set(gateReports.map((report) => report.dialect))) {
     const deterministicReports = gateReports.filter((report) => report.dialect === dialect);
-    const reviewerReport = reports.find((report) => report.identity.dialect === dialect);
+    const reviewerReport = reports.find((report) => report.identity.dialect === dialect && sameIdentity(report.identity, deterministicReports[0].identity));
     if (!reviewerReport) continue;
     calibrationRecords.push(runtime.calibrationRecordFromReports(deterministicReports[0].identity, deterministicReports, reviewerReport));
   }

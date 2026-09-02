@@ -119,7 +119,7 @@ const calibrationIdentity = {
 let trustedCalibration;
 try {
   trustedCalibration = Array.isArray(initialConfig.query_assurance_calibration?.reports)
-    ? calibrationRecordFromReports(calibrationIdentity, initialConfig.query_assurance_calibration.reports)
+    ? calibrationRecordFromReports(calibrationIdentity, initialConfig.query_assurance_calibration.reports, initialConfig.query_assurance_calibration.reviewerCalibration)
     : undefined;
 } catch {
   trustedCalibration = undefined;

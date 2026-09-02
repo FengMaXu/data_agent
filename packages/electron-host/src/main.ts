@@ -573,7 +573,7 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
   let trustedCalibration;
   try {
     trustedCalibration = Array.isArray(savedAssuranceConfig?.reports)
-      ? calibrationRecordFromReports(calibrationIdentity, savedAssuranceConfig.reports as never[])
+      ? calibrationRecordFromReports(calibrationIdentity, savedAssuranceConfig.reports as never[], savedAssuranceConfig.reviewerCalibration as never)
       : undefined;
   } catch {
     trustedCalibration = undefined;

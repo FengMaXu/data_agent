@@ -165931,17 +165931,23 @@ var init_conversation_blind_reviewer = __esm({
 });
 
 // packages/runtime/dist/review-policy.js
-function calibrationRecordFromReports(identity, reports, overallEligible = true) {
+function calibrationRecordFromReports(identity, reports, reviewerCalibration, overallEligible = true) {
   if (reports.length === 0)
     throw new Error("DETERMINISTIC_GATE_CALIBRATION_REPORTS_REQUIRED");
+  const reportedGates = new Set(reports.map((report) => report.gate));
+  if (DETERMINISTIC_GATE_NAMES.some((gate) => !reportedGates.has(gate)))
+    throw new Error("DETERMINISTIC_GATE_CALIBRATION_REPORTS_INCOMPLETE");
   if (reports.some((report) => !sameIdentity(report.identity, identity) || report.dialect !== identity.dialect))
     throw new Error("DETERMINISTIC_GATE_CALIBRATION_IDENTITY_MIXED");
+  if (reviewerCalibration && !sameIdentity(reviewerCalibration.identity, identity))
+    throw new Error("REVIEWER_CALIBRATION_IDENTITY_MIXED");
   const gateEligibility = Object.fromEntries(reports.map((report) => [report.gate, report.eligibleForEnforce]));
   const record2 = {
     identity: { ...identity },
-    eligible: overallEligible && reports.every((report) => report.eligibleForEnforce),
+    eligible: overallEligible && Boolean(reviewerCalibration?.eligibleForEnforce) && reports.every((report) => report.eligibleForEnforce),
     gateEligibility,
-    reportIds: reports.map((report) => `${report.dialect}:${report.gate}:${report.caseIds.join(",")}`)
+    reportIds: reports.map((report) => `${report.dialect}:${report.gate}:${report.caseIds.join(",")}`),
+    ...reviewerCalibration ? { reviewerCalibration } : {}
   };
   return { ...record2, reports: reports.map((report) => ({ ...report, identity: { ...report.identity } })) };
 }
@@ -165950,7 +165956,7 @@ function trustedCalibration(record2) {
     return void 0;
   const reports = record2.reports;
   const derived = Object.fromEntries(reports.map((report) => [report.gate, report.eligibleForEnforce]));
-  if (reports.some((report) => !sameIdentity(report.identity, record2.identity) || report.dialect !== record2.identity.dialect) || JSON.stringify(derived) !== JSON.stringify(record2.gateEligibility ?? {}) || reports.length !== record2.reportIds.length)
+  if (!record2.reviewerCalibration || !record2.reviewerCalibration.eligibleForEnforce || !sameIdentity(record2.reviewerCalibration.identity, record2.identity) || reports.some((report) => !sameIdentity(report.identity, record2.identity) || report.dialect !== record2.identity.dialect) || JSON.stringify(derived) !== JSON.stringify(record2.gateEligibility ?? {}) || reports.length !== record2.reportIds.length)
     return void 0;
   return record2;
 }
@@ -166042,8 +166048,8 @@ var init_review_policy = __esm({
         const allowedInOff = this.mode === "off";
         const authorizationCanOverride = Boolean(authorization) && outcome.availability === "available" && outcome.decision.status === "rejected" && outcome.decision.deterministic !== true && Boolean(outcome.decision.diffs?.length);
         const approvedAllowed = approved && (this.mode !== "shadow" || this.options.shadowDelivery !== "record_only");
-        const nonBlockingRejection = outcome.availability === "available" && outcome.decision.status === "rejected" && outcome.decision.blocking === false;
-        if (approvedAllowed || allowedInShadow || allowedInOff || authorizationCanOverride || nonBlockingRejection) {
+        const nonBlockingRejectionInShadow = this.mode === "shadow" && outcome.availability === "available" && outcome.decision.status === "rejected" && outcome.decision.blocking === false;
+        if (approvedAllowed || allowedInShadow || allowedInOff || authorizationCanOverride || nonBlockingRejectionInShadow) {
           const status = approved && this.mode === "enforce" ? "published_approved" : "published_with_disagreement";
           return { allowed: true, status };
         }
@@ -166067,7 +166073,7 @@ var init_review_policy = __esm({
         this.reviewerAvailable = options.reviewerAvailable;
         this.calibration = trustedCalibration(options.calibration);
         this.currentCalibrationIdentity = options.currentCalibrationIdentity;
-        this.requiredGateNames = [...new Set(options.requiredGateNames ?? [])];
+        this.requiredGateNames = [...new Set(options.requiredGateNames ?? DETERMINISTIC_GATE_NAMES)];
         if (options.calibration && this.currentCalibrationIdentity && !sameIdentity(options.calibration.identity, this.currentCalibrationIdentity))
           this.invalidated = true;
         this.breaker = options.breaker ?? new AssuranceCircuitBreaker();
@@ -166084,12 +166090,12 @@ var init_review_policy = __esm({
           return "shadow";
         if (this.requestedMode !== "enforce")
           return this.requestedMode;
-        if (!this.calibration?.eligible || this.invalidated || this.missingGateCalibrations().length > 0)
+        if (!this.calibration?.eligible || !this.calibration.reviewerCalibration?.eligibleForEnforce || this.invalidated || this.missingGateCalibrations().length > 0)
           return "shadow";
         return this.breaker.effectiveMode("enforce");
       }
       setMode(mode) {
-        if (mode === "enforce" && (!this.reviewerAvailable || !this.calibration?.eligible || this.invalidated || this.missingGateCalibrations().length > 0))
+        if (mode === "enforce" && (!this.reviewerAvailable || !this.calibration?.eligible || !this.calibration.reviewerCalibration?.eligibleForEnforce || this.invalidated || this.missingGateCalibrations().length > 0))
           throw new Error("REVIEW_CALIBRATION_REQUIRED");
         this.requestedMode = mode;
       }
@@ -166984,9 +166990,22 @@ function classifyEffect(spec, effect) {
   if (effect.kind === "structural")
     return "structural";
   const filterConstraints = spec.hardConstraints.filter((constraint) => /filter|population|exclude|include|where/i.test(`${constraint.scope} ${constraint.statement}`));
+  const mappings = spec.physicalMappings ?? [];
+  const authorizePredicate = (predicate) => {
+    const expression = `${predicate.left} ${predicate.operator} ${predicate.right}`;
+    const matchingConstraint2 = filterConstraints.find((constraint) => constraintMatchesEffect(constraint.statement, { ...effect, expression }));
+    if (!matchingConstraint2)
+      return false;
+    return mappings.some((mapping) => mapping.hardConstraintId === matchingConstraint2.id && mapping.physicalField.trim() && containsIdentifier(expression, mapping.physicalField) && (!mapping.physicalValue || expression.includes(normalized(mapping.physicalValue))));
+  };
+  const fullExpression = `${effect.expression} ${effect.value ?? ""}`;
+  const predicates = predicateShapes(fullExpression);
+  if (predicates.length > 1 && /\bOR\b/i.test(fullExpression))
+    return "unresolved";
+  if (predicates.length > 1)
+    return predicates.every(authorizePredicate) ? "authorized" : "disputed";
   const matchingConstraint = filterConstraints.find((constraint) => constraintMatchesEffect(constraint.statement, effect));
   if (matchingConstraint) {
-    const mappings = spec.physicalMappings ?? [];
     const expression = normalized(`${effect.expression} ${effect.value ?? ""}`);
     const mappingBound = mappings.some((mapping) => mapping.hardConstraintId === matchingConstraint.id && mapping.physicalField.trim() && containsIdentifier(expression, mapping.physicalField) && (!mapping.physicalValue || expression.includes(normalized(mapping.physicalValue))));
     return mappingBound ? "authorized" : "unresolved";
@@ -169846,6 +169865,11 @@ function createDeterministicGateCalibrationReport(cases) {
     throw new Error("DETERMINISTIC_GATE_REPLAY_IDENTITY_REQUIRED");
   if (cases.some((item) => (item.gate ?? item.result?.gate) !== gate || item.dialect !== dialect || !item.identity || !sameIdentity2(identity, item.identity)))
     throw new Error("DETERMINISTIC_GATE_CALIBRATION_IDENTITY_MIXED");
+  if (cases.some((item) => !item.input || !item.candidate))
+    throw new Error("DETERMINISTIC_GATE_REPLAY_INPUT_REQUIRED");
+  const candidateIds = new Set(cases.map((item) => item.candidate.queryArtifactId));
+  if (candidateIds.size !== cases.length)
+    throw new Error("DETERMINISTIC_GATE_REPLAY_CANDIDATE_REUSED");
   const evaluated = cases.map((item) => ({
     item,
     result: item.input ? evaluateGates(item.input).find((result) => result.gate === gate) : item.result ?? (() => {
@@ -169886,7 +169910,7 @@ function createDeterministicGateCalibrationReport(cases) {
     metrics,
     fixtureCoverage,
     thresholds: DETERMINISTIC_GATE_CALIBRATION_THRESHOLDS,
-    eligibleForEnforce: metrics.specificity >= DETERMINISTIC_GATE_CALIBRATION_THRESHOLDS.specificity && metrics.precision >= DETERMINISTIC_GATE_CALIBRATION_THRESHOLDS.precision && metrics.recall >= DETERMINISTIC_GATE_CALIBRATION_THRESHOLDS.recall && metrics.unsupportedCases === 0 && metrics.hardGateBypasses === 0 && Object.values(fixtureCoverage).every(Boolean)
+    eligibleForEnforce: metrics.specificity >= DETERMINISTIC_GATE_CALIBRATION_THRESHOLDS.specificity && metrics.precision >= DETERMINISTIC_GATE_CALIBRATION_THRESHOLDS.precision && metrics.recall >= DETERMINISTIC_GATE_CALIBRATION_THRESHOLDS.recall && metrics.unsupportedCases === 0 && metrics.hardGateBypasses === 0 && metrics.timeoutRate <= DETERMINISTIC_GATE_CALIBRATION_THRESHOLDS.maxTimeoutRate && metrics.nonDeliveryRate <= DETERMINISTIC_GATE_CALIBRATION_THRESHOLDS.maxNonDeliveryRate && metrics.e2eRate >= DETERMINISTIC_GATE_CALIBRATION_THRESHOLDS.minE2eRate && Object.values(fixtureCoverage).every(Boolean)
   };
 }
 function createCalibrationReport(cases) {
@@ -169951,7 +169975,10 @@ var init_calibration = __esm({
     DETERMINISTIC_GATE_CALIBRATION_THRESHOLDS = {
       specificity: 0.99,
       precision: 0.99,
-      recall: 1
+      recall: 1,
+      maxTimeoutRate: 0,
+      maxNonDeliveryRate: 0,
+      minE2eRate: 1
     };
     DEFAULT_CALIBRATION_THRESHOLDS = {
       correctQuerySpecificity: 0.98,
@@ -172147,7 +172174,7 @@ async function startElectronHost(deps, overrides = {}) {
   };
   let trustedCalibration2;
   try {
-    trustedCalibration2 = Array.isArray(savedAssuranceConfig?.reports) ? calibrationRecordFromReports2(calibrationIdentity, savedAssuranceConfig.reports) : void 0;
+    trustedCalibration2 = Array.isArray(savedAssuranceConfig?.reports) ? calibrationRecordFromReports2(calibrationIdentity, savedAssuranceConfig.reports, savedAssuranceConfig.reviewerCalibration) : void 0;
   } catch {
     trustedCalibration2 = void 0;
   }

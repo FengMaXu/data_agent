@@ -505,9 +505,14 @@ function classifyEffect(spec: AnswerSpec, effect: PopulationEffectNode): Populat
       && containsIdentifier(expression, mapping.physicalField)
       && (!mapping.physicalValue || expression.includes(normalized(mapping.physicalValue))));
   };
-  const predicates = predicateShapes(`${effect.expression} ${effect.value ?? ""}`);
-  // SQLGlot keeps a compound WHERE as one population node. Authorize it only
-  // when every concrete predicate has its own Hard Constraint and mapping.
+  const fullExpression = `${effect.expression} ${effect.value ?? ""}`;
+  const predicates = predicateShapes(fullExpression);
+  // The bounded first version can prove conjunctions predicate-by-predicate,
+  // but it does not preserve arbitrary boolean branch semantics. Never turn
+  // separately authorized predicates joined by OR into an authorized total.
+  if (predicates.length > 1 && /\bOR\b/i.test(fullExpression)) return "unresolved";
+  // SQLGlot keeps a compound AND WHERE as one population node. Authorize it
+  // only when every concrete predicate has its own Hard Constraint and mapping.
   if (predicates.length > 1) return predicates.every(authorizePredicate) ? "authorized" : "disputed";
   const matchingConstraint = filterConstraints.find((constraint) => constraintMatchesEffect(constraint.statement, effect));
   if (matchingConstraint) {

@@ -54,6 +54,25 @@ describe("bounded deterministic query gates", () => {
     expect(result).toMatchObject({ applicability: "checked", passed: true, populationEffects: [expect.objectContaining({ status: "authorized" })] });
   });
 
+  it("authorizes mapped conjunctions but abstains on unsupported OR semantics", () => {
+    const spec = createAnswerSpec({
+      taskId: "task-population-compound",
+      question: "Show paid US orders",
+      constraints: [
+        { statement: "Filter status = 'paid'", authority: "request_wording", scope: "filter", source: "question" },
+        { statement: "Filter region = 'US'", authority: "request_wording", scope: "filter", source: "question" },
+      ],
+      physicalMappings: [
+        { mappingId: "map-status", hardConstraintId: "HC-1", physicalField: "status", physicalValue: "paid", authority: "observed_data", source: "controlled-observation" },
+        { mappingId: "map-region", hardConstraintId: "HC-2", physicalField: "region", physicalValue: "US", authority: "observed_data", source: "controlled-observation" },
+      ],
+    });
+    const andDigest = compiler.compile({ sql: "SELECT id FROM orders WHERE status = 'paid' AND region = 'US'", dialect: "sqlite" });
+    expect(evaluateG2({ spec, digest: andDigest })).toMatchObject({ applicability: "checked", passed: true });
+    const orDigest = compiler.compile({ sql: "SELECT id FROM orders WHERE status = 'paid' OR region = 'US'", dialect: "sqlite" });
+    expect(evaluateG2({ spec, digest: orDigest })).toMatchObject({ applicability: "inconclusive", passed: false, requiresClarification: true });
+  });
+
   it("does not let an output alias replace a required semantic lineage role", () => {
     const spec = createAnswerSpec({ taskId: "task-role", question: "Return the customer", answerContract: { output: { value: { columns: ["label"], schema: [{ semanticRole: "customer" }], rowMode: "scalar" }, authority: "request_wording", source: "question" } } });
     const digest = createQueryDigestCompiler().compile({ sql: "SELECT order_id AS label FROM orders", dialect: "sqlite" });

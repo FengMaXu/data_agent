@@ -77,9 +77,10 @@ describe("ReviewModeController", () => {
   });
 
   it("requires explicit calibration for every deterministic gate before Enforce", () => {
-    const controller = new ReviewModeController({ requestedMode: "enforce", reviewerAvailable: true, requiredGateNames: DETERMINISTIC_GATE_NAMES, calibration: calibrated(["g1_shape", "g2_population", "g3_fanout"]) });
+    expect(() => calibrated(["g1_shape", "g2_population", "g3_fanout"])).toThrow("DETERMINISTIC_GATE_CALIBRATION_REPORTS_INCOMPLETE");
+    const controller = new ReviewModeController({ requestedMode: "enforce", reviewerAvailable: true });
     expect(controller.mode()).toBe("shadow");
-    expect(controller.manifest().gateCalibrationMissing).toEqual(["g4_candidate"]);
+    expect(controller.manifest().gateCalibrationMissing).toEqual(DETERMINISTIC_GATE_NAMES);
     controller.updateCalibration(calibrated());
     expect(controller.mode()).toBe("enforce");
   });
