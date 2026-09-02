@@ -387,6 +387,21 @@ export function parseOfficialCaseScores(output) {
 }
 
 export const IGNORED_STREAMING_EVENTS = new Set(["message_update", "tool_execution_update"]);
+const REDUNDANT_TRACE_EVENTS = new Set([
+  "message_start",
+  "tool_execution_start",
+  "tool_execution_end",
+  "turn_end",
+  "agent_end",
+]);
+
+function isCanonicalTraceEvent(event) {
+  if (!event || IGNORED_STREAMING_EVENTS.has(event.type) || REDUNDANT_TRACE_EVENTS.has(event.type)) return false;
+  // Tool results are already stored once in toolCalls. Keeping the mirrored
+  // message_end would duplicate the complete result payload in trace.json.
+  if (event.type === "message_end" && event.message?.role === "toolResult") return false;
+  return true;
+}
 
 export function createRecorder(harness, limits) {
   const events = [];
@@ -403,9 +418,7 @@ export function createRecorder(harness, limits) {
     harness.abort();
   };
   const unsubscribe = harness.subscribe((event) => {
-    if (event && !IGNORED_STREAMING_EVENTS.has(event.type)) {
-      events.push(JSON.parse(safeJson(event)));
-    }
+    if (isCanonicalTraceEvent(event)) events.push(JSON.parse(safeJson(event)));
     providerFailure ??= extractProviderFailure(event);
     if (event?.type === "message_start" && event.message?.role === "assistant") {
       turnCount += 1;

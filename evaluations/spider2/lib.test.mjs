@@ -211,7 +211,7 @@ test("official evaluator validation rejects hard-coded GBK decoding", () => {
   );
 });
 
-test("createRecorder filters streaming token updates while preserving discrete lifecycle and tool events", () => {
+test("createRecorder stores each completed message and tool payload exactly once", () => {
   let subscriber;
   const mockHarness = {
     subscribe: (fn) => {
@@ -230,8 +230,11 @@ test("createRecorder filters streaming token updates while preserving discrete l
   subscriber({ type: "tool_execution_update", toolCallId: "call_1", update: "streaming..." });
   subscriber({ type: "tool_execution_start", toolCallId: "call_1", toolName: "query_database", args: { sql: "SELECT 1" } });
   subscriber({ type: "tool_execution_end", toolCallId: "call_1", result: { content: [{ type: "text", text: "1" }] }, isError: false });
+  subscriber({ type: "message_start", message: { role: "toolResult", content: [{ type: "text", text: "1" }] } });
+  subscriber({ type: "message_end", message: { role: "toolResult", content: [{ type: "text", text: "1" }] } });
   subscriber({ type: "message_end", message: { role: "assistant", content: [{ type: "text", text: "Hello world" }], stopReason: "stop" } });
-  subscriber({ type: "turn_end" });
+  subscriber({ type: "turn_end", message: { role: "assistant", content: [{ type: "text", text: "Hello world" }] }, toolResults: [{ content: [{ type: "text", text: "1" }] }] });
+  subscriber({ type: "agent_end", messages: [{ role: "assistant", content: [{ type: "text", text: "Hello world" }] }] });
 
   assert.equal(recorder.turnCount, 1);
   assert.equal(recorder.calls.length, 1);
@@ -239,15 +242,10 @@ test("createRecorder filters streaming token updates while preserving discrete l
   assert.equal(recorder.calls[0].isError, false);
 
   const eventTypes = recorder.events.map((e) => e.type);
-  assert.deepEqual(eventTypes, [
-    "agent_start",
-    "turn_start",
-    "message_start",
-    "tool_execution_start",
-    "tool_execution_end",
-    "message_end",
-    "turn_end",
-  ]);
+  assert.deepEqual(eventTypes, ["agent_start", "turn_start", "message_end"]);
+  const persisted = JSON.stringify({ events: recorder.events, toolCalls: recorder.calls });
+  assert.equal(persisted.match(/Hello world/g)?.length, 1);
+  assert.equal(persisted.match(/SELECT 1/g)?.length, 1);
   assert.equal(recorder.events.some((e) => e.type === "message_update"), false);
   assert.equal(recorder.events.some((e) => e.type === "tool_execution_update"), false);
 });
