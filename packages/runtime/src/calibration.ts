@@ -199,6 +199,15 @@ export function createDeterministicGateCalibrationReport(cases: readonly Determi
   };
 }
 
+export function createDeterministicGateCalibrationReports(cases: readonly DeterministicGateCalibrationCase[]): readonly DeterministicGateCalibrationReport[] {
+  const groups = new Map<string, DeterministicGateCalibrationCase[]>();
+  for (const item of cases) {
+    const key = JSON.stringify({ dialect: item.dialect, gate: item.gate, identity: item.identity }, Object.keys({ ...item.identity, dialect: item.dialect, gate: item.gate }).sort());
+    groups.set(key, [...(groups.get(key) ?? []), item]);
+  }
+  return [...groups.values()].map(createDeterministicGateCalibrationReport);
+}
+
 export function createCalibrationReport(cases: readonly CalibrationCase[]): CalibrationReport {
   if (cases.length === 0) throw new Error("CALIBRATION_CASES_EMPTY");
   const identity = cases[0].identity;
