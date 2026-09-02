@@ -16,7 +16,7 @@
     "hardConstraintAdmissionPolicy": "2",
     "reviewCoverageSchemaVersion": "4",
     "gatePolicyVersion": "1",
-    "gateApplicabilityVersion": "1",
+    "gateApplicabilityVersion": "2",
     "probeTemplateVersion": "1",
     "evidenceAdmissionPolicyVersion": "1",
     "planner": true,

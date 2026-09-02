@@ -491,7 +491,13 @@ function validateResponse(value: unknown, input: ConversationBlindReviewerInput)
     if (!Array.isArray(response.ambiguities)) throw new Error("REVIEW_AMBIGUITIES_INVALID");
     return { status, coverage, ambiguities: response.ambiguities.map((ambiguity) => ensureString(ambiguity, "REVIEW_AMBIGUITY_INVALID")) };
   }
-  return { status, coverage, reason: ensureString(response.reason, "REVIEW_REASON_INVALID") };
+  return {
+    status,
+    coverage,
+    reason: typeof response.reason === "string" && response.reason.trim()
+      ? response.reason.trim()
+      : "REVIEWER_ABSTAINED_WITHOUT_REASON",
+  };
 }
 
 function declaredInput(input: ConversationBlindReviewerInput): ConversationBlindReviewerInput {

@@ -9,7 +9,7 @@ import type {
 import type { QueryDigest, PopulationEffectNode, DigestCardinalityEvidence, DigestWindow, SchemaEvidence } from "./query-digest.js";
 
 export type GateName = "g1_shape" | "g2_population" | "g3_fanout" | "g4_candidate";
-export const GATE_APPLICABILITY_VERSION = "1";
+export const GATE_APPLICABILITY_VERSION = "2";
 export type GateApplicability = "checked" | "not_applicable" | "unsupported" | "inconclusive";
 export type PopulationEffectStatus = "authorized" | "structural" | "disputed" | "unresolved";
 
@@ -33,10 +33,10 @@ export interface GateApplicabilityContract {
 }
 
 export const DEFAULT_GATE_APPLICABILITY_CONTRACTS: readonly GateApplicabilityContract[] = [
-  { gate: "g1_shape", version: "1", supportedDialects: ["sqlite", "mysql", "postgres", "bigquery", "snowflake"], requiredDigestFacets: ["projections", "outputLineage"] },
-  { gate: "g2_population", version: "1", supportedDialects: ["sqlite", "mysql", "postgres", "bigquery", "snowflake"], requiredDigestFacets: ["filters"] },
-  { gate: "g3_fanout", version: "1", supportedDialects: ["sqlite", "mysql", "postgres", "bigquery", "snowflake"], requiredDigestFacets: ["joins", "measures", "outputLineage"] },
-  { gate: "g4_candidate", version: "1", supportedDialects: ["sqlite", "mysql", "postgres", "bigquery", "snowflake"], requiredDigestFacets: [] },
+  { gate: "g1_shape", version: "2", supportedDialects: ["sqlite", "mysql", "postgres", "bigquery", "snowflake"], requiredDigestFacets: ["projections", "outputLineage"] },
+  { gate: "g2_population", version: "2", supportedDialects: ["sqlite", "mysql", "postgres", "bigquery", "snowflake"], requiredDigestFacets: ["filters"] },
+  { gate: "g3_fanout", version: "2", supportedDialects: ["sqlite", "mysql", "postgres", "bigquery", "snowflake"], requiredDigestFacets: ["joins", "measures", "outputLineage"] },
+  { gate: "g4_candidate", version: "2", supportedDialects: ["sqlite", "mysql", "postgres", "bigquery", "snowflake"], requiredDigestFacets: [] },
 ];
 
 export interface GateResult {
@@ -496,15 +496,18 @@ function classifyEffect(spec: AnswerSpec, effect: PopulationEffectNode): Populat
   if (effect.kind === "structural") return "structural";
   const filterConstraints = spec.hardConstraints.filter((constraint) => /filter|population|exclude|include|where/i.test(`${constraint.scope} ${constraint.statement}`));
   const mappings = spec.physicalMappings ?? [];
-  const authorizePredicate = (predicate: PredicateShape): boolean => {
-    const expression = `${predicate.left} ${predicate.operator} ${predicate.right}`;
-    const matchingConstraint = filterConstraints.find((constraint) => constraintMatchesEffect(constraint.statement, { ...effect, expression }));
-    if (!matchingConstraint) return false;
-    return mappings.some((mapping) => mapping.hardConstraintId === matchingConstraint.id
-      && mapping.physicalField.trim()
-      && containsIdentifier(expression, mapping.physicalField)
-      && (!mapping.physicalValue || expression.includes(normalized(mapping.physicalValue))));
+  const mappedConstraintForPredicate = (predicate: PredicateShape) => {
+    const predicateField = predicate.left.split(".").at(-1);
+    return filterConstraints.find((constraint) => mappings.some((mapping) => {
+      if (mapping.hardConstraintId !== constraint.id || !mapping.physicalField.trim()) return false;
+      const mappedField = normalized(mapping.physicalField).split(".").at(-1);
+      if (!predicateField || predicateField !== mappedField) return false;
+      if (mapping.physicalValue && normalized(mapping.physicalValue) !== predicate.right) return false;
+      const expression = `${predicate.left} ${predicate.operator} ${predicate.right}`;
+      return !(negativePopulationExpression(expression) && !negativePopulationExpression(constraint.statement));
+    }));
   };
+  const authorizePredicate = (predicate: PredicateShape): boolean => Boolean(mappedConstraintForPredicate(predicate));
   const fullExpression = `${effect.expression} ${effect.value ?? ""}`;
   const predicates = predicateShapes(fullExpression);
   // The bounded first version can prove conjunctions predicate-by-predicate,
@@ -514,15 +517,9 @@ function classifyEffect(spec: AnswerSpec, effect: PopulationEffectNode): Populat
   // SQLGlot keeps a compound AND WHERE as one population node. Authorize it
   // only when every concrete predicate has its own Hard Constraint and mapping.
   if (predicates.length > 1) return predicates.every(authorizePredicate) ? "authorized" : "disputed";
+  if (predicates.length === 1 && authorizePredicate(predicates[0])) return "authorized";
   const matchingConstraint = filterConstraints.find((constraint) => constraintMatchesEffect(constraint.statement, effect));
-  if (matchingConstraint) {
-    const expression = normalized(`${effect.expression} ${effect.value ?? ""}`);
-    const mappingBound = mappings.some((mapping) => mapping.hardConstraintId === matchingConstraint.id
-      && mapping.physicalField.trim()
-      && containsIdentifier(expression, mapping.physicalField)
-      && (!mapping.physicalValue || expression.includes(normalized(mapping.physicalValue))));
-    return mappingBound ? "authorized" : "unresolved";
-  }
+  if (matchingConstraint) return "unresolved";
   const explicitPredicate = ["filter", "having", "qualify"].includes(effect.kind);
   if (explicitPredicate && filterConstraints.length > 0) return "disputed";
   return "unresolved";
@@ -539,9 +536,33 @@ export function classifyPopulationEffects(spec: AnswerSpec, digest: QueryDigest)
   return effects.map((effect) => ({ ...effect, status: classifyEffect(spec, effect) }));
 }
 
+const G2_OUTSIDE_SUPPORTED_QUERY_CLASS = new Set([
+  "cte",
+  "recursive_cte",
+  "subquery",
+  "set_operation",
+  "case_expression",
+]);
+
+/**
+ * G2 v1 intentionally understands only a single, non-windowed SELECT block.
+ * Complex queries are outside this narrow gate rather than failed attempts to
+ * inspect it. Only an authoritative AST Digest may establish that boundary;
+ * a fallback parser error must remain Review Unavailable.
+ */
+function g2OutsideSupportedQueryClass(digest: QueryDigest): boolean {
+  if (digest.parserEngine !== "sqlglot") return false;
+  return digest.windows.length > 0
+    || digest.setOperations.length > 0
+    || digest.unsupportedNodes.some((node) => G2_OUTSIDE_SUPPORTED_QUERY_CLASS.has(node));
+}
+
 export function evaluateG2(input: GateEvaluationInput): GateResult {
   const hasFilterContract = input.spec.hardConstraints.some((constraint) => /filter|population|exclude|include|where/i.test(`${constraint.scope} ${constraint.statement}`));
   if (!input.digest) return emptyResult("g2_population", "unsupported", ["Query Digest is unavailable"]);
+  if (g2OutsideSupportedQueryClass(input.digest)) {
+    return emptyResult("g2_population", "not_applicable", ["Query is outside the bounded G2 v1 query class"]);
+  }
   if (input.digest.lineageCompleteness === "unsupported" || input.digest.coverage.filters === "unsupported" || input.digest.coverage.joins === "unsupported") {
     return emptyResult("g2_population", "unsupported", ["Population effect lineage is unavailable"]);
   }

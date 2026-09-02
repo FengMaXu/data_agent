@@ -54,6 +54,56 @@ describe("bounded deterministic query gates", () => {
     expect(result).toMatchObject({ applicability: "checked", passed: true, populationEffects: [expect.objectContaining({ status: "authorized" })] });
   });
 
+  it("distinguishes supported G2 coverage, parser failure, and gate-external complex SQL", () => {
+    const spec = createAnswerSpec({
+      taskId: "task-g2-applicability",
+      question: "Show paid orders",
+      constraints: [{ statement: "Filter status = 'paid'", authority: "request_wording", scope: "filter", source: "question" }],
+      physicalMappings: [{ mappingId: "map-paid", hardConstraintId: "HC-1", physicalField: "status", physicalValue: "paid", authority: "observed_data", source: "controlled-observation" }],
+    });
+    const supported = compiler.compile({ sql: "SELECT id FROM orders WHERE status = 'paid'", dialect: "sqlite" });
+    const supportedG2 = evaluateGates({ spec, digest: { ...supported, parserEngine: "sqlglot" } }).find((gate) => gate.gate === "g2_population");
+    expect(supportedG2).toMatchObject({ applicability: "checked", passed: true });
+
+    const parserFailure = {
+      ...supported,
+      coverage: { ...supported.coverage, filters: "unsupported" as const },
+      unsupportedNodes: ["strict_parser_error"],
+      lineageCompleteness: "unsupported" as const,
+    };
+    const failedG2 = evaluateGates({ spec, digest: parserFailure }).find((gate) => gate.gate === "g2_population");
+    expect(failedG2).toMatchObject({ applicability: "unsupported", passed: false });
+
+    for (const sql of [
+      "WITH paid AS (SELECT id FROM orders WHERE status = 'paid') SELECT id FROM paid",
+      "SELECT id FROM (SELECT id FROM orders WHERE status = 'paid') paid",
+      "SELECT id, ROW_NUMBER() OVER (ORDER BY id) AS rank FROM orders WHERE status = 'paid'",
+      "SELECT id FROM orders WHERE status = 'paid' UNION SELECT id FROM archived_orders",
+    ]) {
+      const complex = compiler.compile({ sql, dialect: "sqlite" });
+      const result = evaluateGates({ spec, digest: { ...complex, parserEngine: "sqlglot" } }).find((gate) => gate.gate === "g2_population");
+      expect(result).toMatchObject({ applicability: "not_applicable", passed: true });
+      expect(result).not.toMatchObject({ applicability: "checked" });
+    }
+  });
+
+  it("lets trusted Physical Mapping bind business wording to a physical filter", () => {
+    const spec = createAnswerSpec({
+      taskId: "task-business-filter-mapping",
+      question: "Consider only delivered orders",
+      constraints: [{ statement: "Consider only delivered orders", authority: "request_wording", scope: "filter", source: "question" }],
+      physicalMappings: [{ mappingId: "map-delivered", hardConstraintId: "HC-1", physicalField: "order_status", physicalValue: "delivered", authority: "observed_data", source: "controlled-observation" }],
+    });
+    const digest = compiler.compile({ sql: "SELECT order_id FROM orders WHERE order_status = 'delivered'", dialect: "sqlite" });
+    expect(evaluateG2({ spec, digest: { ...digest, parserEngine: "sqlglot" } })).toMatchObject({
+      applicability: "checked",
+      passed: true,
+      populationEffects: [expect.objectContaining({ status: "authorized" })],
+    });
+    const negative = compiler.compile({ sql: "SELECT order_id FROM orders WHERE order_status != 'delivered'", dialect: "sqlite" });
+    expect(evaluateG2({ spec, digest: { ...negative, parserEngine: "sqlglot" } })).toMatchObject({ applicability: "checked", passed: false, blocking: true });
+  });
+
   it("authorizes mapped conjunctions but abstains on unsupported OR semantics", () => {
     const spec = createAnswerSpec({
       taskId: "task-population-compound",

@@ -366,6 +366,14 @@ describe("ConversationBlindReviewer", () => {
     expect(calls).toBe(1);
   });
 
+  it("keeps a reason-less abstention available without inventing approval", async () => {
+    const reviewer = createConversationBlindReviewer({ complete: async () => ({ status: "abstained", coverage: projectedCoverage("unsupported") }) });
+    await expect(reviewer.review(projectedInput, new AbortController().signal)).resolves.toMatchObject({
+      status: "abstained",
+      reason: "REVIEWER_ABSTAINED_WITHOUT_REASON",
+    });
+  });
+
   it("returns abstained when the reviewer lacks evidence instead of approving", async () => {
     const reviewer = createConversationBlindReviewer({ complete: async () => ({ status: "abstained", reason: "unsupported SQL", coverage: projectedCoverage("unsupported") }) });
     await expect(reviewer.review(projectedInput, new AbortController().signal)).resolves.toMatchObject({ status: "abstained", coverage: { projection: { status: "unsupported" } } });
