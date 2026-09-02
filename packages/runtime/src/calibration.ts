@@ -6,6 +6,9 @@ export const DETERMINISTIC_GATE_CALIBRATION_THRESHOLDS = {
   specificity: 0.99,
   precision: 0.99,
   recall: 1,
+  maxTimeoutRate: 0,
+  maxNonDeliveryRate: 0,
+  minE2eRate: 1,
 } as const;
 
 export type DeterministicGateVariant = "positive" | "neighbor_negative" | "equivalent_rewrite";
@@ -141,6 +144,9 @@ export function createDeterministicGateCalibrationReport(cases: readonly Determi
   const identity = cases[0].identity;
   if (!gate || !identity) throw new Error("DETERMINISTIC_GATE_REPLAY_IDENTITY_REQUIRED");
   if (cases.some((item) => (item.gate ?? item.result?.gate) !== gate || item.dialect !== dialect || !item.identity || !sameIdentity(identity, item.identity))) throw new Error("DETERMINISTIC_GATE_CALIBRATION_IDENTITY_MIXED");
+  if (cases.some((item) => !item.input || !item.candidate)) throw new Error("DETERMINISTIC_GATE_REPLAY_INPUT_REQUIRED");
+  const candidateIds = new Set(cases.map((item) => item.candidate!.queryArtifactId));
+  if (candidateIds.size !== cases.length) throw new Error("DETERMINISTIC_GATE_REPLAY_CANDIDATE_REUSED");
   const evaluated = cases.map((item) => ({
     item,
     result: item.input
@@ -186,6 +192,9 @@ export function createDeterministicGateCalibrationReport(cases: readonly Determi
       && metrics.recall >= DETERMINISTIC_GATE_CALIBRATION_THRESHOLDS.recall
       && metrics.unsupportedCases === 0
       && metrics.hardGateBypasses === 0
+      && metrics.timeoutRate <= DETERMINISTIC_GATE_CALIBRATION_THRESHOLDS.maxTimeoutRate
+      && metrics.nonDeliveryRate <= DETERMINISTIC_GATE_CALIBRATION_THRESHOLDS.maxNonDeliveryRate
+      && metrics.e2eRate >= DETERMINISTIC_GATE_CALIBRATION_THRESHOLDS.minE2eRate
       && Object.values(fixtureCoverage).every(Boolean),
   };
 }

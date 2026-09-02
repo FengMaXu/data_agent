@@ -43,7 +43,7 @@ describe("Review Calibration", () => {
     const spec = (columns: readonly string[]) => ({ taskId: "task", specVersion: "1", question: "return answer", answerContract: { output: { value: { columns, rowMode: "scalar" as const }, binding: "hard" as const, provenance: { authority: "request_wording" as const, source: "question" } } }, hardConstraints: [], hypotheses: [], ambiguities: [], provenance: [] });
     const make = (caseId: string, variant: DeterministicGateCalibrationCase["variant"], expected: DeterministicGateCalibrationCase["expected"], actualColumn: string): DeterministicGateCalibrationCase => {
       const digest = { ...compiler.compile({ sql: `SELECT 1 AS ${actualColumn}`, dialect: "sqlite" }), parserEngine: "sqlglot" as const };
-      return { caseId, dialect: "sqlite", gate: "g1_shape", expected, variant, candidate: { queryArtifactId: caseId, normalizedSqlHash: digest.normalizedSqlHash }, identity, input: { spec: spec(["answer"]), digest, metadata: { columns: [actualColumn], rowCount: 1 }, gatePolicyVersion: "1", gateApplicabilityVersion: "1" } };
+      return { caseId, dialect: "sqlite", gate: "g1_shape", expected, variant, candidate: { queryArtifactId: caseId, normalizedSqlHash: digest.normalizedSqlHash }, identity, input: { spec: spec(["answer"]), digest, metadata: { columns: [actualColumn], rowCount: 1 }, gatePolicyVersion: "1", gateApplicabilityVersion: "1" }, submitted: true, e2eCorrect: true, durationMs: 1 };
     };
     const report = createDeterministicGateCalibrationReport([
       make("correct", "positive", "pass", "answer"),

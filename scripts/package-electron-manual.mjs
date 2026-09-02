@@ -132,9 +132,9 @@ for (const required of [
     process.exit(1);
   }
 }
-const pythonProbe = spawnSync(pythonRuntimeExecutable, ["-c", "import sqlglot"], { stdio: "ignore" });
-if (pythonProbe.status !== 0) {
-  console.error("bundled Python runtime must include sqlglot for strict Query Digest enforcement");
+const pythonProbe = spawnSync(pythonRuntimeExecutable, ["-c", "import sqlglot; print(sqlglot.__version__)"], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+if (pythonProbe.status !== 0 || pythonProbe.stdout.trim() !== "30.17.0") {
+  console.error("bundled Python runtime must include sqlglot 30.17.0 for strict Query Digest enforcement");
   process.exit(1);
 }
 for (const res of pkg.build?.extraResources ?? []) {

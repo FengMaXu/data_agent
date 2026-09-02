@@ -473,6 +473,14 @@ async function createCaseRunner(config, runDir) {
         dialect: backendForCase(instance),
       };
       const suppliedCalibration = config.assurance?.calibration;
+      let trustedCalibration;
+      try {
+        trustedCalibration = Array.isArray(suppliedCalibration?.reports)
+          ? runtime.calibrationRecordFromReports(calibrationIdentity, suppliedCalibration.reports, suppliedCalibration.reviewerCalibration)
+          : undefined;
+      } catch {
+        trustedCalibration = undefined;
+      }
       modeController = new runtime.ReviewModeController({
         requestedMode: requestedAssuranceMode,
         // Baseline `off` must preserve the legacy delivery path. For the
@@ -481,13 +489,7 @@ async function createCaseRunner(config, runDir) {
         // gates cannot be turned into an Off token and bypassed.
         reviewerAvailable: true,
         requiredGateNames: runtime.DETERMINISTIC_GATE_NAMES,
-        ...(suppliedCalibration ? {
-          calibration: {
-            eligible: suppliedCalibration.eligible === true,
-            gateEligibility: suppliedCalibration.gateEligibility ?? {},
-            identity: { ...calibrationIdentity, ...(suppliedCalibration.identity ?? {}) },
-          },
-        } : {}),
+        ...(trustedCalibration ? { calibration: trustedCalibration } : {}),
         currentCalibrationIdentity: calibrationIdentity,
       });
       assurance = runtime.createQueryAssurance({
@@ -900,9 +902,16 @@ async function calibrationCommand(config, options) {
     gateGroups.set(key, group);
   }
   for (const group of gateGroups.values()) gateReports.push(runtime.createDeterministicGateCalibrationReport(group));
+  const calibrationRecords = [];
+  for (const dialect of new Set(gateReports.map((report) => report.dialect))) {
+    const deterministicReports = gateReports.filter((report) => report.dialect === dialect);
+    const reviewerReport = reports.find((report) => report.identity.dialect === dialect);
+    if (!reviewerReport) continue;
+    calibrationRecords.push(runtime.calibrationRecordFromReports(deterministicReports[0].identity, deterministicReports, reviewerReport));
+  }
   const target = path.join(runDir, "calibration", "summary.json");
   await mkdir(path.dirname(target), { recursive: true });
-  const result = { runId: options.run, sampleSize: cases.length, reports, deterministicGateReports: gateReports };
+  const result = { runId: options.run, sampleSize: cases.length, reports, deterministicGateReports: gateReports, calibrationRecords };
   await writeFile(target, JSON.stringify(result, null, 2), "utf8");
   console.log(JSON.stringify(result, null, 2));
   return result;

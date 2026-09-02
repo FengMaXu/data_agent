@@ -495,21 +495,29 @@ function constraintMatchesEffect(statement: string, effect: PopulationEffectNode
 function classifyEffect(spec: AnswerSpec, effect: PopulationEffectNode): PopulationEffectStatus {
   if (effect.kind === "structural") return "structural";
   const filterConstraints = spec.hardConstraints.filter((constraint) => /filter|population|exclude|include|where/i.test(`${constraint.scope} ${constraint.statement}`));
+  const mappings = spec.physicalMappings ?? [];
+  const authorizePredicate = (predicate: PredicateShape): boolean => {
+    const expression = `${predicate.left} ${predicate.operator} ${predicate.right}`;
+    const matchingConstraint = filterConstraints.find((constraint) => constraintMatchesEffect(constraint.statement, { ...effect, expression }));
+    if (!matchingConstraint) return false;
+    return mappings.some((mapping) => mapping.hardConstraintId === matchingConstraint.id
+      && mapping.physicalField.trim()
+      && containsIdentifier(expression, mapping.physicalField)
+      && (!mapping.physicalValue || expression.includes(normalized(mapping.physicalValue))));
+  };
+  const predicates = predicateShapes(`${effect.expression} ${effect.value ?? ""}`);
+  // SQLGlot keeps a compound WHERE as one population node. Authorize it only
+  // when every concrete predicate has its own Hard Constraint and mapping.
+  if (predicates.length > 1) return predicates.every(authorizePredicate) ? "authorized" : "disputed";
   const matchingConstraint = filterConstraints.find((constraint) => constraintMatchesEffect(constraint.statement, effect));
   if (matchingConstraint) {
-    const mappings = spec.physicalMappings ?? [];
     const expression = normalized(`${effect.expression} ${effect.value ?? ""}`);
     const mappingBound = mappings.some((mapping) => mapping.hardConstraintId === matchingConstraint.id
       && mapping.physicalField.trim()
       && containsIdentifier(expression, mapping.physicalField)
       && (!mapping.physicalValue || expression.includes(normalized(mapping.physicalValue))));
-    // A business Hard Constraint alone cannot authorize a physical predicate;
-    // the Runtime must also have admitted an explicit field/value mapping.
     return mappingBound ? "authorized" : "unresolved";
   }
-  // A filter contract authorizes inspection of explicit filter predicates. It
-  // does not by itself decide whether every INNER JOIN, DISTINCT or set
-  // operation is a business population rule.
   const explicitPredicate = ["filter", "having", "qualify"].includes(effect.kind);
   if (explicitPredicate && filterConstraints.length > 0) return "disputed";
   return "unresolved";

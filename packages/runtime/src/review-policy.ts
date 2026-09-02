@@ -1,7 +1,7 @@
 import type { QueryAssuranceMode, ReviewOutcome } from "./query-assurance.js";
 import type { GateName } from "./query-gates.js";
 import type { PublicationAuthorization, PublicationStatus } from "./publication.js";
-import type { DeterministicGateCalibrationReport } from "./calibration.js";
+import type { CalibrationReport, DeterministicGateCalibrationReport } from "./calibration.js";
 
 export interface CalibrationIdentity {
   readonly reviewerModel: string;
@@ -25,18 +25,21 @@ export interface CalibrationRecord {
   readonly gateEligibility?: Partial<Record<GateName, boolean>>;
   readonly reportIds?: readonly string[];
   readonly reports?: readonly DeterministicGateCalibrationReport[];
+  readonly reviewerCalibration?: CalibrationReport;
 }
 
 /** Only Runtime-generated reports may mint an Enforce calibration record. */
-export function calibrationRecordFromReports(identity: CalibrationIdentity, reports: readonly DeterministicGateCalibrationReport[], overallEligible = true): CalibrationRecord {
+export function calibrationRecordFromReports(identity: CalibrationIdentity, reports: readonly DeterministicGateCalibrationReport[], reviewerCalibration?: CalibrationReport, overallEligible = true): CalibrationRecord {
   if (reports.length === 0) throw new Error("DETERMINISTIC_GATE_CALIBRATION_REPORTS_REQUIRED");
   if (reports.some((report) => !sameIdentity(report.identity, identity) || report.dialect !== identity.dialect)) throw new Error("DETERMINISTIC_GATE_CALIBRATION_IDENTITY_MIXED");
+  if (reviewerCalibration && !sameIdentity(reviewerCalibration.identity, identity)) throw new Error("REVIEWER_CALIBRATION_IDENTITY_MIXED");
   const gateEligibility = Object.fromEntries(reports.map((report) => [report.gate, report.eligibleForEnforce])) as Partial<Record<GateName, boolean>>;
   const record: CalibrationRecord = {
     identity: { ...identity },
-    eligible: overallEligible && reports.every((report) => report.eligibleForEnforce),
+    eligible: overallEligible && Boolean(reviewerCalibration?.eligibleForEnforce) && reports.every((report) => report.eligibleForEnforce),
     gateEligibility,
     reportIds: reports.map((report) => `${report.dialect}:${report.gate}:${report.caseIds.join(",")}`),
+    ...(reviewerCalibration ? { reviewerCalibration } : {}),
   };
   return { ...record, reports: reports.map((report) => ({ ...report, identity: { ...report.identity } })) };
 }
@@ -45,7 +48,10 @@ function trustedCalibration(record: CalibrationRecord | undefined): CalibrationR
   if (!record?.reports?.length || !record.reportIds?.length) return undefined;
   const reports = record.reports;
   const derived = Object.fromEntries(reports.map((report) => [report.gate, report.eligibleForEnforce])) as Partial<Record<GateName, boolean>>;
-  if (reports.some((report) => !sameIdentity(report.identity, record.identity) || report.dialect !== record.identity.dialect)
+  if (!record.reviewerCalibration
+    || !record.reviewerCalibration.eligibleForEnforce
+    || !sameIdentity(record.reviewerCalibration.identity, record.identity)
+    || reports.some((report) => !sameIdentity(report.identity, record.identity) || report.dialect !== record.identity.dialect)
     || JSON.stringify(derived) !== JSON.stringify(record.gateEligibility ?? {})
     || reports.length !== record.reportIds.length) return undefined;
   return record;
@@ -189,10 +195,11 @@ export class DeliveryPolicy {
       && outcome.decision.deterministic !== true
       && Boolean(outcome.decision.diffs?.length);
     const approvedAllowed = approved && (this.mode !== "shadow" || this.options.shadowDelivery !== "record_only");
-    const nonBlockingRejection = outcome.availability === "available"
+    const nonBlockingRejectionInShadow = this.mode === "shadow"
+      && outcome.availability === "available"
       && outcome.decision.status === "rejected"
       && outcome.decision.blocking === false;
-    if (approvedAllowed || allowedInShadow || allowedInOff || authorizationCanOverride || nonBlockingRejection) {
+    if (approvedAllowed || allowedInShadow || allowedInOff || authorizationCanOverride || nonBlockingRejectionInShadow) {
       // A Shadow reviewer has not earned publication authority. Never emit an
       // Approved receipt in Shadow, even if its model returned `approved`.
       const status = approved && this.mode === "enforce" ? "published_approved" : "published_with_disagreement";
@@ -236,12 +243,12 @@ export class ReviewModeController {
     // Review Off, whose Delivery Policy intentionally preserves legacy output.
     if (!this.reviewerAvailable) return "shadow";
     if (this.requestedMode !== "enforce") return this.requestedMode;
-    if (!this.calibration?.eligible || this.invalidated || this.missingGateCalibrations().length > 0) return "shadow";
+    if (!this.calibration?.eligible || !this.calibration.reviewerCalibration?.eligibleForEnforce || this.invalidated || this.missingGateCalibrations().length > 0) return "shadow";
     return this.breaker.effectiveMode("enforce");
   }
 
   setMode(mode: QueryAssuranceMode): void {
-    if (mode === "enforce" && (!this.reviewerAvailable || !this.calibration?.eligible || this.invalidated || this.missingGateCalibrations().length > 0)) throw new Error("REVIEW_CALIBRATION_REQUIRED");
+    if (mode === "enforce" && (!this.reviewerAvailable || !this.calibration?.eligible || !this.calibration.reviewerCalibration?.eligibleForEnforce || this.invalidated || this.missingGateCalibrations().length > 0)) throw new Error("REVIEW_CALIBRATION_REQUIRED");
     this.requestedMode = mode;
   }
 

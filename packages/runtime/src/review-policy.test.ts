@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { AssuranceCircuitBreaker, calibrationRecordFromReports, DETERMINISTIC_GATE_NAMES, DeliveryPolicy, ReviewModeController, type CalibrationIdentity } from "./review-policy.js";
-import { DETERMINISTIC_GATE_CALIBRATION_THRESHOLDS, type DeterministicGateCalibrationReport } from "./calibration.js";
+import { DETERMINISTIC_GATE_CALIBRATION_THRESHOLDS, DEFAULT_CALIBRATION_THRESHOLDS, type CalibrationReport, type DeterministicGateCalibrationReport } from "./calibration.js";
 
 const identity: CalibrationIdentity = {
   reviewerModel: "model-1",
@@ -25,7 +25,15 @@ function calibrated(gates = DETERMINISTIC_GATE_NAMES, calibratedIdentity = ident
     thresholds: DETERMINISTIC_GATE_CALIBRATION_THRESHOLDS,
     eligibleForEnforce: true,
   }));
-  return calibrationRecordFromReports(calibratedIdentity, reports);
+  const reviewerCalibration: CalibrationReport = {
+    identity: calibratedIdentity,
+    sampleSize: 1,
+    metrics: { errorRecall: 1, correctQuerySpecificity: 1, mismatchPrecision: 1, repeatAgreement: 1, netE2ECorrect: 1, nonDeliveryDelta: 0, timeoutDelta: 0, p95LatencyDeltaMs: 0, averageTokenDeltaRatio: 0, averageCostDeltaRatio: 0 },
+    thresholds: DEFAULT_CALIBRATION_THRESHOLDS,
+    passes: { correctQuerySpecificity: true, mismatchPrecision: true, repeatAgreement: true, timeout: true, netE2ECorrect: true, nonDelivery: true, latency: true, cost: true },
+    eligibleForEnforce: true,
+  };
+  return calibrationRecordFromReports(calibratedIdentity, reports, reviewerCalibration);
 }
 
 describe("DeliveryPolicy", () => {
@@ -36,7 +44,7 @@ describe("DeliveryPolicy", () => {
     expect(new DeliveryPolicy("shadow").decide({ availability: "available", decision: { status: "rejected" } })).toMatchObject({ allowed: true, status: "published_with_disagreement" });
     expect(new DeliveryPolicy("shadow").decide({ availability: "available", decision: { status: "approved" } })).toMatchObject({ allowed: true, status: "published_with_disagreement" });
     expect(new DeliveryPolicy("enforce").decide({ availability: "available", decision: { status: "approved" } })).toMatchObject({ allowed: true, status: "published_approved" });
-    expect(new DeliveryPolicy("enforce").decide({ availability: "available", decision: { status: "rejected", blocking: false } })).toMatchObject({ allowed: true, status: "published_with_disagreement" });
+    expect(new DeliveryPolicy("enforce").decide({ availability: "available", decision: { status: "rejected", blocking: false, diffs: [{ aspect: "semantic", required: "x", observed: "y", evidence: { digestPath: "filters" } }] } })).toMatchObject({ allowed: false, status: "not_published_rejected" });
     expect(new DeliveryPolicy("shadow").decide({ availability: "available", decision: { status: "rejected", blocking: true } })).toMatchObject({ allowed: true, status: "published_with_disagreement" });
     expect(new DeliveryPolicy("shadow").decide({ availability: "available", decision: { status: "rejected", blocking: true, deterministic: true } })).toMatchObject({ allowed: false, status: "not_published_rejected" });
     expect(new DeliveryPolicy("shadow", { shadowDelivery: "record_only" }).decide({ availability: "available", decision: { status: "approved" } })).toMatchObject({ allowed: false, reason: "SHADOW_REVIEW_RECORD_ONLY" });
