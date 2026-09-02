@@ -31,6 +31,35 @@ describe("JsonFileQueryAssuranceStateStore", () => {
     }
   });
 
+  it("authenticates cross-trust journals and rejects missing or incorrect keys", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-assurance-state-auth-"));
+    try {
+      const file = join(root, "state.jsonl");
+      new JsonFileQueryAssuranceStateStore(file, { integrityKey: "trusted-secret" }).save(state);
+      expect(() => new JsonFileQueryAssuranceStateStore(file).load()).toThrow("QUERY_ASSURANCE_STATE_AUTHENTICATION_REQUIRED");
+      expect(() => new JsonFileQueryAssuranceStateStore(file, { integrityKey: "wrong-secret" }).load()).toThrow("QUERY_ASSURANCE_STATE_AUTHENTICATION_INVALID");
+      expect(new JsonFileQueryAssuranceStateStore(file, { integrityKey: "trusted-secret" }).load()).toMatchObject(state);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed when a stale writer would overwrite a newer snapshot", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-assurance-state-concurrency-"));
+    try {
+      const file = join(root, "state.jsonl");
+      const first = new JsonFileQueryAssuranceStateStore(file);
+      const stale = new JsonFileQueryAssuranceStateStore(file);
+      expect(first.load()).toBeUndefined();
+      expect(stale.load()).toBeUndefined();
+      first.save(state);
+      expect(() => stale.save({ ...state, repairAttempts: [["task:1", 2]] })).toThrow("QUERY_ASSURANCE_STATE_CONCURRENT_WRITE");
+      expect(first.load()).toMatchObject(state);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("fails closed for an unknown state version", async () => {
     const root = await mkdtemp(join(tmpdir(), "data-agent-assurance-state-version-"));
     try {

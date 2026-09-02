@@ -1,5 +1,5 @@
-import { appendFileSync, chmodSync, existsSync, mkdirSync, readFileSync } from "node:fs";
-import { createHash } from "node:crypto";
+import { appendFileSync, chmodSync, closeSync, existsSync, mkdirSync, openSync, readFileSync, unlinkSync } from "node:fs";
+import { createHash, createHmac } from "node:crypto";
 import path from "node:path";
 import type { AnswerSpec } from "./answer-spec.js";
 import type { AssuranceAuditRecord } from "./assurance-audit.js";
@@ -43,6 +43,8 @@ export interface QueryAssurancePersistedState {
   readonly identity?: QueryAssuranceStateIdentity;
   readonly previousHash?: string;
   readonly recordHash?: string;
+  /** HMAC used when the journal crosses a trust boundary. */
+  readonly recordMac?: string;
   readonly specs: readonly AnswerSpec[];
   readonly tasks: readonly { readonly taskId: string; readonly evidence: TaskEvidence }[];
   readonly artifacts: readonly ValidatedQueryArtifact[];
@@ -72,13 +74,36 @@ function jsonReviver(_key: string, value: unknown): unknown {
  * one complete versioned snapshot, so an Enforce process can resume from the
  * last durable state without rewriting the task history in place.
  */
+export interface JsonFileQueryAssuranceStateStoreOptions {
+  /** Required for journals transported across a trust boundary. */
+  readonly integrityKey?: string | Buffer;
+}
+
 export class JsonFileQueryAssuranceStateStore implements QueryAssuranceStateStore {
-  constructor(private readonly filePath: string) {}
+  private lastRecordIdentity?: string;
+  private hasLoaded = false;
+
+  constructor(private readonly filePath: string, private readonly options: JsonFileQueryAssuranceStateStoreOptions = {}) {}
+
+  private authenticate(payload: unknown): string {
+    const serialized = JSON.stringify(payload, jsonReplacer);
+    return this.options.integrityKey
+      ? createHmac("sha256", this.options.integrityKey).update(serialized, "utf8").digest("hex")
+      : createHash("sha256").update(serialized, "utf8").digest("hex");
+  }
 
   load(): QueryAssurancePersistedState | undefined {
-    if (!existsSync(this.filePath)) return undefined;
+    if (!existsSync(this.filePath)) {
+      this.lastRecordIdentity = undefined;
+      this.hasLoaded = true;
+      return undefined;
+    }
     const content = readFileSync(this.filePath, "utf8").trim();
-    if (!content) return undefined;
+    if (!content) {
+      this.lastRecordIdentity = undefined;
+      this.hasLoaded = true;
+      return undefined;
+    }
     let records: unknown[];
     try {
       // Accept the pre-journal single-object form as a read-only migration
@@ -91,36 +116,54 @@ export class JsonFileQueryAssuranceStateStore implements QueryAssuranceStateStor
     } catch (error) {
       throw new Error(`QUERY_ASSURANCE_STATE_INVALID:${error instanceof Error ? error.message : String(error)}`);
     }
-    let previousHash: string | undefined;
+    let previousIdentity: string | undefined;
     for (const record of records) {
       if (!record || typeof record !== "object" || (record as { version?: unknown }).version !== 1) throw new Error("QUERY_ASSURANCE_STATE_VERSION_UNSUPPORTED");
       const journal = record as QueryAssurancePersistedState;
-      if (journal.recordHash) {
-        if (journal.previousHash !== previousHash) throw new Error("QUERY_ASSURANCE_STATE_CHAIN_INVALID");
-        const { recordHash: _recordHash, ...payload } = journal;
-        const expected = createHash("sha256").update(JSON.stringify(payload, jsonReplacer), "utf8").digest("hex");
-        if (expected !== journal.recordHash) throw new Error("QUERY_ASSURANCE_STATE_INTEGRITY_INVALID");
-        previousHash = journal.recordHash;
-      } else if (previousHash) {
+      const identity = journal.recordMac ?? journal.recordHash;
+      if (identity) {
+        if (journal.previousHash !== previousIdentity) throw new Error("QUERY_ASSURANCE_STATE_CHAIN_INVALID");
+        if (journal.recordMac && !this.options.integrityKey) throw new Error("QUERY_ASSURANCE_STATE_AUTHENTICATION_REQUIRED");
+        const { recordHash: _recordHash, recordMac: _recordMac, ...payload } = journal;
+        const expected = this.authenticate(payload);
+        if (expected !== identity) throw new Error(journal.recordMac ? "QUERY_ASSURANCE_STATE_AUTHENTICATION_INVALID" : "QUERY_ASSURANCE_STATE_INTEGRITY_INVALID");
+        previousIdentity = identity;
+      } else if (previousIdentity) {
         throw new Error("QUERY_ASSURANCE_STATE_CHAIN_INVALID");
       }
     }
+    this.lastRecordIdentity = previousIdentity;
+    this.hasLoaded = true;
     return records.at(-1) as QueryAssurancePersistedState | undefined;
   }
 
   save(state: QueryAssurancePersistedState): void {
     if (state.version !== 1) throw new Error("QUERY_ASSURANCE_STATE_VERSION_UNSUPPORTED");
     const target = path.resolve(this.filePath);
+    const lockPath = `${target}.lock`;
     mkdirSync(path.dirname(target), { recursive: true });
+    let lock: number | undefined;
     try {
+      lock = openSync(lockPath, "wx", 0o600);
+      const expectedPrevious = this.lastRecordIdentity;
+      const hasExpectedSnapshot = this.hasLoaded;
       const previous = this.load();
-      const { recordHash: _oldHash, ...payload } = state;
-      const journal = { ...payload, ...(previous?.recordHash ? { previousHash: previous.recordHash } : {}) };
-      const recordHash = createHash("sha256").update(JSON.stringify(journal, jsonReplacer), "utf8").digest("hex");
-      appendFileSync(target, `${JSON.stringify({ ...journal, recordHash }, jsonReplacer)}\n`, { encoding: "utf8", flag: "a" });
+      const currentPrevious = previous?.recordMac ?? previous?.recordHash;
+      if (hasExpectedSnapshot && expectedPrevious !== currentPrevious) throw new Error("QUERY_ASSURANCE_STATE_CONCURRENT_WRITE");
+      const { recordHash: _oldHash, recordMac: _oldMac, previousHash: _oldPrevious, ...payload } = state;
+      const journal = { ...payload, ...(currentPrevious ? { previousHash: currentPrevious } : {}) };
+      const identity = this.authenticate(journal);
+      const authenticated = this.options.integrityKey ? { ...journal, recordMac: identity } : { ...journal, recordHash: identity };
+      appendFileSync(target, `${JSON.stringify(authenticated, jsonReplacer)}\n`, { encoding: "utf8", flag: "a" });
       chmodSync(target, 0o600);
+      this.lastRecordIdentity = identity;
     } catch (error) {
       throw new Error(`QUERY_ASSURANCE_STATE_SAVE_FAILED:${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      if (lock !== undefined) {
+        closeSync(lock);
+        if (existsSync(lockPath)) unlinkSync(lockPath);
+      }
     }
   }
 }
