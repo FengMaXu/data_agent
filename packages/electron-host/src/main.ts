@@ -549,7 +549,8 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
     : isRecord(savedConfig) && savedConfig.query_assurance_calibrated === true
       ? { eligible: true }
       : undefined;
-  const configuredReviewerAvailable = reviewerAvailableForConfig(savedConfig);
+  const reviewerRuntimeEnabled = isRecord(savedConfig) && savedConfig.query_assurance_reviewer_enabled === true;
+  const configuredReviewerAvailable = reviewerRuntimeEnabled && reviewerAvailableForConfig(savedConfig);
   const reviewerModel = firstString(isRecord(savedConfig) ? savedConfig.model : undefined, startupStoredSecrets.default_model) ?? "configured";
   // Raw categorical rows are opt-in because they may contain personal data.
   // Keep preview and export review evidence policies identical.
@@ -593,7 +594,7 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
   const queryAssurance = createQueryAssurance({
     mode: configuredAssuranceMode,
     ...(modeController ? { modeController } : {}),
-    reviewer,
+    ...(reviewerRuntimeEnabled ? { reviewer } : {}),
     ...(digestCompiler ? { digestCompiler } : {}),
     parserVersion: digestParserVersion,
     ...(configuredAssuranceMode !== "off" && (!isRecord(savedConfig) || savedConfig.query_assurance_planner !== false) ? { specGenerator: planner } : {}),

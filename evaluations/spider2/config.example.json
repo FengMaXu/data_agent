@@ -20,6 +20,7 @@
     "probeTemplateVersion": "1",
     "evidenceAdmissionPolicyVersion": "1",
     "planner": true,
+    "reviewer": { "enabled": false },
     "shadowDelivery": "publish_with_disagreement",
     "includeResultRows": true,
     "maxResultRows": 2000,

@@ -107,6 +107,7 @@ async function loadConfig(explicitPath) {
     reviewPolicyVersion: "2",
     reviewCoverageSchemaVersion: "4",
     planner: true,
+    reviewer: { enabled: false },
     shadowDelivery: "publish_with_disagreement",
     includeResultRows: true,
     maxResultRows: 2000,
@@ -170,7 +171,8 @@ function reviewEvidenceOptions(config) {
 }
 
 function createEvaluationReviewer(runtime, profile, config) {
-  if (config.assurance?.reviewer === false || config.assurance?.mode === "off") return undefined;
+  const reviewerEnabled = config.assurance?.reviewer === true || config.assurance?.reviewer?.enabled === true;
+  if (!reviewerEnabled || config.assurance?.mode === "off") return undefined;
   const baseUrl = (profile.baseUrl ?? (profile.provider === "anthropic" ? "https://api.anthropic.com" : "https://api.openai.com/v1")).replace(/\/+$/, "");
   const coverageFacets = runtime.REVIEW_COVERAGE_FACETS.join(", ");
   const coverageStatuses = "checked, not_applicable, unsupported, insufficient_evidence";
@@ -444,6 +446,7 @@ async function createCaseRunner(config, runDir) {
     let artifacts = {};
     let assurance;
     let auditStore;
+    let hookEvents = [];
     let modeController;
     try {
       prepared = await prepareKnowledge(instance, config, caseRoot, runtime.KnowledgeIndex, runtime.WorkspaceStore);
@@ -532,6 +535,7 @@ async function createCaseRunner(config, runDir) {
         session,
         projectRoot,
         systemPromptRoots: [prepared.knowledgeRoot, projectRoot],
+        onHookFired: (event) => hookEvents.push(event),
       }, profile);
       recorder = createRecorder(harness, config.limits);
       await runPromptWithTimeout(harness, buildAgentPrompt(instance), config.limits.timeoutMs, recorder);
@@ -568,10 +572,11 @@ async function createCaseRunner(config, runDir) {
       assuranceManifest: modeController?.manifest?.() ?? null,
       publicationStatus: publicationStatusFor(recorder, auditStore),
       assuranceAuditRecords: auditStore?.list() ?? [],
+      hookEvents,
     };
     await Promise.all([
       writeFile(path.join(caseRoot, "result.json"), JSON.stringify(result, null, 2), "utf8"),
-      writeFile(path.join(caseRoot, "trace.json"), JSON.stringify({ events: recorder?.events ?? [], toolCalls: recorder?.calls ?? [], assuranceAuditRecords: auditStore?.list() ?? [] }, null, 2), "utf8"),
+      writeFile(path.join(caseRoot, "trace.json"), JSON.stringify({ events: recorder?.events ?? [], toolCalls: recorder?.calls ?? [], assuranceAuditRecords: auditStore?.list() ?? [], hookEvents }, null, 2), "utf8"),
     ]);
     return result;
   };

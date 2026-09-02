@@ -28,8 +28,8 @@ describe("Review Off QueryAssurance", () => {
     expect(task.taskId).toMatch(/^[0-9a-f-]{36}$/i);
   });
 
-  it("does not grant Enforce authority without a calibration controller", () => {
-    expect(new InMemoryQueryAssurance({ digestCompiler: authoritativeDigestCompiler, mode: "enforce" }).mode).toBe("shadow");
+  it("keeps the requested mode as audit metadata without calibration gating", () => {
+    expect(new InMemoryQueryAssurance({ digestCompiler: authoritativeDigestCompiler, mode: "enforce" }).mode).toBe("enforce");
   });
 
   it("reports review unavailable instead of fabricating an Approved decision", async () => {
@@ -182,7 +182,7 @@ describe("Review Off QueryAssurance", () => {
     expect(calls).toBe(1);
   });
 
-  it("blocks a hard Answer Contract mismatch even while reviewer mode is shadow", async () => {
+  it("records a hard Answer Contract mismatch without blocking the reviewer or token", async () => {
     let reviewerCalls = 0;
     const assurance = new InMemoryQueryAssurance({ digestCompiler: authoritativeDigestCompiler,
       mode: "shadow",
@@ -219,11 +219,19 @@ describe("Review Off QueryAssurance", () => {
       candidate,
       reviewInput: { question: spec.question, clarifications: [], answerSpec: spec, schema: { connectionId: "unknown", dialect: "sqlite", tables: [] }, sql: artifact!.normalizedSql, digest: artifact!.queryDigest!, resultMetadata: metadata, resultEvidence: metadata.resultEvidence },
     }, new AbortController().signal);
-    expect(outcome).toMatchObject({ availability: "available", decision: { status: "rejected", blocking: true, diffs: [{ aspect: "projection" }] } });
-    expect(reviewerCalls).toBe(0);
+    expect(outcome).toMatchObject({
+      availability: "available",
+      decision: {
+        deterministicGates: expect.arrayContaining([
+          expect.objectContaining({ gate: "g1_shape", violations: expect.arrayContaining([expect.objectContaining({ aspect: "projection" })]) }),
+        ]),
+      },
+      reviewToken: expect.any(Object),
+    });
+    expect(reviewerCalls).toBe(1);
   });
 
-  it("blocks a Runtime-derived final scalar shape before model review", async () => {
+  it("records a Runtime-derived scalar shape anomaly and still reviews the candidate", async () => {
     let reviewerCalls = 0;
     const assurance = new InMemoryQueryAssurance({ digestCompiler: authoritativeDigestCompiler,
       mode: "shadow",
@@ -256,12 +264,19 @@ describe("Review Off QueryAssurance", () => {
       reviewInput: { question: spec.question, clarifications: [], answerSpec: spec, schema: { connectionId: "unknown", dialect: "sqlite", tables: [] }, sql: artifact!.normalizedSql, digest: artifact!.queryDigest!, resultMetadata: metadata, resultEvidence: metadata.resultEvidence },
     }, signal);
 
-    expect(outcome).toMatchObject({ availability: "available", decision: { status: "rejected", blocking: true } });
-    expect(outcome.availability === "available" ? outcome.decision.diffs : []).toEqual(expect.arrayContaining([expect.objectContaining({ aspect: "row_count" })]));
-    expect(reviewerCalls).toBe(0);
+    expect(outcome).toMatchObject({
+      availability: "available",
+      decision: {
+        deterministicGates: expect.arrayContaining([
+          expect.objectContaining({ gate: "g1_shape", violations: expect.arrayContaining([expect.objectContaining({ aspect: "row_count" })]) }),
+        ]),
+      },
+      reviewToken: expect.any(Object),
+    });
+    expect(reviewerCalls).toBe(1);
   });
 
-  it("rejects an unauthorized population effect before calling the reviewer", async () => {
+  it("records an unauthorized population effect without taking delivery authority", async () => {
     let reviewerCalls = 0;
     const assurance = new InMemoryQueryAssurance({ digestCompiler: authoritativeDigestCompiler,
       mode: "shadow",
@@ -304,12 +319,19 @@ describe("Review Off QueryAssurance", () => {
       },
     }, new AbortController().signal);
 
-    expect(outcome).toMatchObject({ availability: "available", decision: { status: "rejected", deterministic: true, blocking: true } });
-    expect(outcome.availability === "available" ? outcome.decision.diffs : []).toEqual(expect.arrayContaining([expect.objectContaining({ aspect: "population" })]));
-    expect(reviewerCalls).toBe(0);
+    expect(outcome).toMatchObject({
+      availability: "available",
+      decision: {
+        deterministicGates: expect.arrayContaining([
+          expect.objectContaining({ gate: "g2_population", violations: expect.arrayContaining([expect.objectContaining({ aspect: "population" })]) }),
+        ]),
+      },
+      reviewToken: expect.any(Object),
+    });
+    expect(reviewerCalls).toBe(1);
   });
 
-  it("rejects a contracted JOIN that duplicates a measure from the fanout side", async () => {
+  it("records contracted JOIN fanout without taking delivery authority", async () => {
     let reviewerCalls = 0;
     const assurance = new InMemoryQueryAssurance({ digestCompiler: authoritativeDigestCompiler,
       mode: "shadow",
@@ -358,12 +380,19 @@ describe("Review Off QueryAssurance", () => {
       },
     }, new AbortController().signal);
 
-    expect(outcome).toMatchObject({ availability: "available", decision: { status: "rejected", deterministic: true, blocking: true } });
-    expect(outcome.availability === "available" ? outcome.decision.diffs : []).toEqual(expect.arrayContaining([expect.objectContaining({ aspect: "join_cardinality" })]));
-    expect(reviewerCalls).toBe(0);
+    expect(outcome).toMatchObject({
+      availability: "available",
+      decision: {
+        deterministicGates: expect.arrayContaining([
+          expect.objectContaining({ gate: "g3_fanout", violations: expect.arrayContaining([expect.objectContaining({ aspect: "join_cardinality" })]) }),
+        ]),
+      },
+      reviewToken: expect.any(Object),
+    });
+    expect(reviewerCalls).toBe(1);
   });
 
-  it("does not accept the same semantic candidate after a deterministic failure", async () => {
+  it("does not block repeated candidates when review is unavailable", async () => {
     const assurance = new InMemoryQueryAssurance({ digestCompiler: authoritativeDigestCompiler, mode: "shadow" });
     const task = await assurance.prepareTask({
       question: "Return paid orders",
@@ -400,10 +429,8 @@ describe("Review Off QueryAssurance", () => {
     const first = await assurance.reviewForPublication({ task, candidate: candidate("first"), reviewInput }, new AbortController().signal);
     const second = await assurance.reviewForPublication({ task, candidate: candidate("second"), reviewInput }, new AbortController().signal);
 
-    expect(first).toMatchObject({ availability: "available", decision: { status: "rejected", deterministic: true } });
-    expect(second).toMatchObject({ availability: "available", decision: { status: "rejected", deterministic: true, blocking: true } });
-    expect(second.availability === "available" ? second.decision.diffs : []).toEqual(expect.arrayContaining([expect.objectContaining({ aspect: "candidate_repair" })]));
-    expect(second).not.toHaveProperty("reviewToken");
+    expect(first).toMatchObject({ availability: "unavailable", failure: { code: "REVIEWER_NOT_CONFIGURED", deterministicGates: expect.any(Array) }, reviewToken: expect.any(Object) });
+    expect(second).toMatchObject({ availability: "unavailable", failure: { code: "REVIEWER_NOT_CONFIGURED", deterministicGates: expect.any(Array) }, reviewToken: expect.any(Object) });
   });
 
   it("rejects a forged reviewer Digest even when its SQL hash is copied", async () => {
@@ -419,7 +446,7 @@ describe("Review Off QueryAssurance", () => {
     expect(reviewerCalls).toBe(0);
   });
 
-  it("fails closed when a required Runtime probe is unsupported", async () => {
+  it("records an unsupported Runtime probe without failing closed", async () => {
     const probes = new InvariantProbeRegistry([{ id: "required-check", requiredEvidence: [], evaluate: () => ({ status: "unsupported", reason: "provider missing" }) }]);
     const assurance = new InMemoryQueryAssurance({ digestCompiler: authoritativeDigestCompiler, mode: "shadow", invariantProbes: probes, reviewer: { review: async () => ({ status: "approved", coverage: {} }) } });
     const task = await assurance.prepareTask({ question: "Return one answer" }, new AbortController().signal);
@@ -427,7 +454,8 @@ describe("Review Off QueryAssurance", () => {
     const spec = assurance.getAnswerSpec(task.taskId, task.specVersion)!;
     const candidate = { candidateId: "probe-candidate", taskId: task.taskId, queryArtifactId: artifact.queryArtifactId, normalizedSqlHash: artifact.normalizedSqlHash, specVersion: task.specVersion, schemaEvidenceFingerprint: artifact.queryDigest!.schemaEvidenceFingerprint, path: "inline://probe-candidate", contentSha256: "content", metadata: artifact.previewMetadata };
     const outcome = await assurance.reviewForPublication({ task, candidate, reviewInput: { question: spec.question, clarifications: [], answerSpec: spec, schema: { connectionId: "unknown", dialect: "sqlite", tables: [] }, sql: artifact.normalizedSql, digest: artifact.queryDigest!, resultMetadata: artifact.previewMetadata, resultEvidence: artifact.previewMetadata.resultEvidence } }, new AbortController().signal);
-    expect(outcome).toMatchObject({ availability: "unavailable", failure: { code: "DETERMINISTIC_PROBE_UNAVAILABLE", deterministic: true } });
+    expect(artifact.preflightOutcomes).toEqual([expect.objectContaining({ status: "unsupported" })]);
+    expect(outcome).toMatchObject({ availability: "available", reviewToken: expect.any(Object) });
   });
 
   it("rejects a candidate whose binding does not match the stored Artifact", async () => {

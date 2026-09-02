@@ -790,6 +790,7 @@ export { evaluateG1, evaluateG2, evaluateG3, evaluateG4, evaluateGates, classify
 export { JsonFileQueryAssuranceStateStore, InMemoryQueryAssuranceStateStore, type JsonFileQueryAssuranceStateStoreOptions, type QueryAssurancePersistedState, type QueryAssuranceStateIdentity, type QueryAssuranceStateStore, type PersistedFailedCandidate } from "./query-assurance-store.js";
 export { validateWidgetSpec, widgetLegacyText, type WidgetKind, type WidgetPayload, type WidgetLifecycleDetails } from "./widget.js";
 export { createAgentHarnessResolver, type AgentHarnessResolver, type AgentHarnessResolverOptions } from "./agent-harness-lifecycle.js";
+export { createAssuranceHooks, wireAssuranceHooks, isSuccessfulAssurancePublication, type AssuranceHooks, type AssuranceHookOptions, type HookFiredEvent } from "./hooks/assurance-hooks.js";
 export { migrateLegacyData, type MigrationReport } from "./legacy-migration.js";
 export { runPythonJob, type PythonJobResult } from "./python-job.js";
 export { effectiveTools, loadSkillsFromDir, loadSkillsFromRoots, resolveSkillRoots, moveSystemPrompt, type SkillDefinition, type SkillDiagnostic, type SkillRootOptions } from "./skills.js";

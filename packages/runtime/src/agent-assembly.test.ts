@@ -472,7 +472,7 @@ describe("publication tools", () => {
     }
   });
 
-  it("blocks a scalar shape mismatch before the reviewer or publication", async () => {
+  it("delivers a scalar shape mismatch with detector disclosure", async () => {
     const root = await mkdtemp(join(tmpdir(), "data-agent-export-g1-scalar-"));
     const assurance = new InMemoryQueryAssurance({ digestCompiler: testAuthoritativeDigestCompiler, mode: "shadow", reviewer: { review: async () => ({ status: "approved", coverage: {} }) } });
     const task = await assurance.prepareTask({ question: "How many answers?", rowMode: "scalar", rowCount: 1 }, new AbortController().signal);
@@ -490,9 +490,8 @@ describe("publication tools", () => {
     try {
       const preview = await query.execute("g1-preview", { sql: "SELECT answer FROM answers" }, undefined, undefined, { sessionId: "session-a", taskId: task.taskId, specVersion: task.specVersion });
       const result = await exportQuery.execute("g1-export", { queryArtifactId: preview.details.queryArtifactId, filename: "exports/g1.csv" }, undefined, undefined, { sessionId: "session-a", taskId: task.taskId, specVersion: task.specVersion });
-      expect(result.details).toMatchObject({ status: "blocked", terminal: true });
-      expect(result.content[0].text).toContain("DETERMINISTIC_GATE_REJECTED");
-      await expect(readFile(join(root, "session-a", "exports", "g1.csv"), "utf8")).rejects.toThrow();
+      expect(result.details).toMatchObject({ status: "success", taskComplete: true, publicationReceipt: { status: "published_with_disagreement" } });
+      expect(await readFile(join(root, "session-a", "exports", "g1.csv"), "utf8")).toBe("answer\n1\n2");
     } finally {
       await rm(root, { recursive: true, force: true });
     }

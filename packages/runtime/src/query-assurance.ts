@@ -9,7 +9,7 @@ import { type AssuranceMetrics, type ReviewModeController } from "./review-polic
 import { InMemoryAssuranceAuditStore, type AssuranceAuditRecord, type AssuranceAuditStore, type SpecGenerationFailure } from "./assurance-audit.js";
 import { InvariantProbeRegistry, type ProbeInstance, type ProbeOutcome } from "./invariant-probe.js";
 import { buildResultEvidence, type ResultEvidence, type ResultEvidenceOptions } from "./result-evidence.js";
-import { candidateSemanticFingerprint, candidateSemanticFingerprintForClaim, evaluateGates, GATE_APPLICABILITY_VERSION, type GateResult, type GateViolation } from "./query-gates.js";
+import { candidateSemanticFingerprint, candidateSemanticFingerprintForClaim, evaluateGates, GATE_APPLICABILITY_VERSION, type GateResult } from "./query-gates.js";
 import { JsonFileQueryAssuranceStateStore, type QueryAssurancePersistedState, type QueryAssuranceStateIdentity, type QueryAssuranceStateStore } from "./query-assurance-store.js";
 
 /** Runtime modes are explicit so Review Off cannot be confused with Shadow Review. */
@@ -302,31 +302,6 @@ function cloneTaskEvidence<T>(value: T): T {
   return copy as T;
 }
 
-function gateViolationToDiff(violation: GateViolation): SemanticDiff {
-  return {
-    aspect: violation.aspect,
-    required: violation.required,
-    observed: violation.observed,
-    ...(violation.claimId ? { claimId: violation.claimId } : { claimId: `${violation.gate}:${violation.code}` }),
-    blocking: violation.blocking,
-    evidence: {
-      ...(violation.specPath ? { specPath: violation.specPath } : {}),
-      digestPath: violation.digestPath ?? "projections",
-    },
-  };
-}
-
-function gateUnavailable(gate: GateResult): boolean {
-  return gate.applicability === "unsupported" || gate.applicability === "inconclusive";
-}
-
-function gateFailureMessage(gates: readonly GateResult[]): string {
-  return gates
-    .filter(gateUnavailable)
-    .map((gate) => `${gate.gate}:${gate.warnings.join("; ") || gate.applicability}`)
-    .join(" | ") || "Required deterministic gate evidence is unavailable";
-}
-
 function failedCandidateFingerprint(fingerprint: string): string {
   return hash(fingerprint);
 }
@@ -377,12 +352,9 @@ export class InMemoryQueryAssurance implements QueryAssurance {
 
   constructor(options: QueryAssuranceOptions = {}) {
     this.modeController = options.modeController;
-    // Enforce is an earned mode. Direct construction without the calibration
-    // controller cannot grant blocking authority; it starts in Shadow so the
-    // caller must provide a version-matched calibrated controller explicitly.
-    this.configuredMode = options.mode === "enforce" && !this.modeController
-      ? "shadow"
-      : options.mode ?? this.modeController?.mode() ?? "off";
+    // Modes remain part of the receipt/audit identity during the migration,
+    // but calibration no longer grants or removes publication authority.
+    this.configuredMode = options.mode ?? this.modeController?.mode() ?? "off";
     this.artifactTtlMs = options.artifactTtlMs ?? 5 * 60 * 1000;
     this.now = options.now ?? Date.now;
     this.shadowDelivery = options.shadowDelivery ?? "publish_with_disagreement";
@@ -896,11 +868,7 @@ export class InMemoryQueryAssurance implements QueryAssurance {
       })
       : [];
     const deterministicGateViolations = deterministicGates.flatMap((gate) => gate.violations);
-    const deterministicGateDiffs = deterministicGateViolations.filter((violation) => violation.blocking).map(gateViolationToDiff);
-    const unavailableGates = deterministicGates.filter(gateUnavailable);
-    const clarificationGates = deterministicGates.filter((gate) => gate.requiresClarification);
     const preflightOutcomes = candidateArtifact?.preflightOutcomes ?? [];
-    const preflightUnavailable = preflightOutcomes.filter((probe) => probe.status === "unsupported" || probe.status === "inconclusive");
     const preflightDiffs: SemanticDiff[] = preflightOutcomes.flatMap((probe, index) => probe.status === "failed" ? [{
       aspect: "invariant_probe",
       required: "probe prerequisites hold",
@@ -909,7 +877,6 @@ export class InMemoryQueryAssurance implements QueryAssurance {
       blocking: true,
       evidence: { digestPath: "projections" },
     }] : []);
-    const deterministicDiffs = [...preflightDiffs, ...deterministicGateDiffs];
     let outcome: ReviewOutcome;
     if (hasCandidateBinding && !candidateBindingValid) {
       outcome = { availability: "unavailable", failure: { code: "REVIEW_CANDIDATE_BINDING_INVALID", message: "Candidate identity does not match the Validated Query Artifact", retryable: false } };
@@ -917,44 +884,6 @@ export class InMemoryQueryAssurance implements QueryAssurance {
       outcome = {
         availability: "unavailable",
         failure: { code: "REVIEW_OFF", message: "Query Assurance review is disabled", retryable: false },
-      };
-    } else if (this.mode === "enforce" && candidateArtifact?.queryDigest?.parserEngine !== "sqlglot") {
-      outcome = {
-        availability: "unavailable",
-        failure: { code: "DETERMINISTIC_DIGEST_UNAVAILABLE", message: "Enforce requires a versioned sqlglot Query Digest; tokenizer diagnostics cannot grant blocking authority", retryable: false, deterministic: true, deterministicGates },
-      };
-    } else if (clarificationGates.length > 0) {
-      outcome = {
-        availability: "available",
-        decision: {
-          status: "needs_clarification",
-          blocking: true,
-          deterministic: true,
-          ambiguities: clarificationGates.flatMap((gate) => gate.warnings),
-          reason: "Top-N tie semantics require user clarification",
-          deterministicGates,
-        },
-      };
-    } else if (preflightUnavailable.length > 0) {
-      outcome = {
-        availability: "unavailable",
-        failure: {
-          code: "DETERMINISTIC_PROBE_UNAVAILABLE",
-          message: preflightUnavailable.map((probe) => probe.status).join(", "),
-          retryable: false,
-          deterministic: true,
-          deterministicGates,
-        },
-      };
-    } else if (unavailableGates.length > 0) {
-      outcome = {
-        availability: "unavailable",
-        failure: { code: "DETERMINISTIC_GATE_UNAVAILABLE", message: gateFailureMessage(unavailableGates), retryable: false, deterministic: true, deterministicGates },
-      };
-    } else if (deterministicDiffs.length > 0) {
-      outcome = {
-        availability: "available",
-        decision: { status: "rejected", blocking: true, deterministic: true, diffs: deterministicDiffs, retryable: true, reason: "A deterministic Query Assurance gate rejected this Candidate" },
       };
     } else if (!this.reviewer) {
       outcome = {
@@ -1014,8 +943,10 @@ export class InMemoryQueryAssurance implements QueryAssurance {
       const cached = await this.reviewCache.getOrCreate(identity, review, signal);
       outcome = { ...cached.outcome, cacheHit: cached.cacheHit };
     }
-    if (outcome.availability === "available" && deterministicGates.length > 0) {
-      outcome = { ...outcome, decision: { ...outcome.decision, deterministicGates } };
+    if (deterministicGates.length > 0) {
+      outcome = outcome.availability === "available"
+        ? { ...outcome, decision: { ...outcome.decision, deterministicGates } }
+        : { ...outcome, failure: { ...outcome.failure, deterministicGates } };
     }
     if (!candidateBindingValid) {
       this.recordReviewAudit(input, outcome, candidate, startedAt);
@@ -1037,7 +968,7 @@ export class InMemoryQueryAssurance implements QueryAssurance {
     } else if (outcome.decision.status === "rejected") {
       this.taskStatuses.set(input.task.taskId, "awaiting_authorization");
     }
-    if (candidate && typeof candidate.candidateId === "string" && typeof candidate.taskId === "string" && typeof candidate.queryArtifactId === "string" && typeof candidate.normalizedSqlHash === "string" && typeof candidate.specVersion === "string" && typeof candidate.schemaEvidenceFingerprint === "string" && typeof candidate.path === "string" && typeof candidate.contentSha256 === "string" && candidate.metadata !== undefined && !(outcome.availability === "available" && outcome.decision.deterministic) && !(outcome.availability === "unavailable" && outcome.failure.deterministic)) {
+    if (candidate && typeof candidate.candidateId === "string" && typeof candidate.taskId === "string" && typeof candidate.queryArtifactId === "string" && typeof candidate.normalizedSqlHash === "string" && typeof candidate.specVersion === "string" && typeof candidate.schemaEvidenceFingerprint === "string" && typeof candidate.path === "string" && typeof candidate.contentSha256 === "string" && candidate.metadata !== undefined) {
       const reviewToken = this.publicationRegistry.issueToken({
         taskId: candidate.taskId,
         queryArtifactId: candidate.queryArtifactId,
@@ -1087,7 +1018,10 @@ export class InMemoryQueryAssurance implements QueryAssurance {
       reviewCoverageSchemaVersion: this.reviewCoverageSchemaVersion,
       hardConstraintAdmissionPolicy: this.hardConstraintAdmissionPolicy,
       reviewAvailability: outcome.availability === "unavailable" && outcome.failure.code === "REVIEW_OFF" ? "off" : outcome.availability,
-      ...(outcome.availability === "unavailable" ? { reviewFailure: { ...outcome.failure, message: outcome.failure.message.slice(0, 2_000) } } : {}),
+      ...(outcome.availability === "unavailable" ? {
+        reviewFailure: { ...outcome.failure, message: outcome.failure.message.slice(0, 2_000) },
+        ...(outcome.failure.deterministicGates ? { deterministicGates: outcome.failure.deterministicGates } : {}),
+      } : {}),
       ...(decision ? {
         decision: decision.status,
         ...(decision.reason ? { decisionReason: decision.reason } : {}),

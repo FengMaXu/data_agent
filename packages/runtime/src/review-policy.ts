@@ -163,54 +163,14 @@ export interface DeliveryDecision {
 export class DeliveryPolicy {
   constructor(readonly mode: QueryAssuranceMode, readonly options: { allowUnavailablePublication?: boolean; shadowDelivery?: ShadowDeliveryMode } = {}) {}
 
-  decide(outcome: ReviewOutcome, authorization?: PublicationAuthorization): DeliveryDecision {
+  decide(outcome: ReviewOutcome, _authorization?: PublicationAuthorization): DeliveryDecision {
     const approved = outcome.availability === "available" && outcome.decision.status === "approved";
-    const blockingRejection = outcome.availability === "available" && outcome.decision.blocking === true;
-    // Shadow records the blind review but does not grant its semantic
-    // disagreement blocking authority. Runtime-owned deterministic failures
-    // remain non-overridable in every mode; an available LLM disagreement may
-    // be published only as published_with_disagreement (or acknowledged by a
-    // precise Publication Authorization in Enforce).
-    const deterministicBlock = blockingRejection && outcome.decision.deterministic === true;
-    const unavailable = outcome.availability === "unavailable";
-    const deterministicUnavailable = unavailable && outcome.failure.deterministic === true;
-    // Shadow is deliberately non-authoritative for LLM decisions, but a
-    // deterministic Hard Constraint/Structural Fact failure is never allowed
-    // to pass merely because the system is collecting shadow telemetry.
-    if (deterministicBlock) return { allowed: false, status: "not_published_rejected", reason: "DETERMINISTIC_PREFLIGHT_FAILED" };
-    if (deterministicUnavailable) return { allowed: false, status: "not_published_review_unavailable", reason: "DETERMINISTIC_GATE_UNAVAILABLE" };
-    if (this.mode === "shadow" && this.options.shadowDelivery === "record_only" && !authorization) {
-      return { allowed: false, status: "not_published_rejected", reason: "SHADOW_REVIEW_RECORD_ONLY" };
-    }
-    const allowedInShadow = this.mode === "shadow"
-      && this.options.shadowDelivery !== "record_only"
-      && !deterministicUnavailable
-      && (!unavailable || this.options.allowUnavailablePublication === true);
-    const allowedInOff = this.mode === "off";
-    // Authorization is a user acknowledgement of an available, disclosed
-    // semantic disagreement. It cannot manufacture evidence when review is
-    // unavailable, and the deterministic block above has already failed
-    // closed before this branch.
-    const authorizationCanOverride = Boolean(authorization)
-      && outcome.availability === "available"
-      && outcome.decision.status === "rejected"
-      && outcome.decision.deterministic !== true
-      && Boolean(outcome.decision.diffs?.length);
-    const approvedAllowed = approved && (this.mode !== "shadow" || this.options.shadowDelivery !== "record_only");
-    const nonBlockingRejectionInShadow = this.mode === "shadow"
-      && outcome.availability === "available"
-      && outcome.decision.status === "rejected"
-      && outcome.decision.blocking === false;
-    if (approvedAllowed || allowedInShadow || allowedInOff || authorizationCanOverride || nonBlockingRejectionInShadow) {
-      // A Shadow reviewer has not earned publication authority. Never emit an
-      // Approved receipt in Shadow, even if its model returned `approved`.
-      const status = approved && this.mode === "enforce" ? "published_approved" : "published_with_disagreement";
-      return { allowed: true, status };
-    }
+    // Runtime review and deterministic detectors are observational. They may
+    // change the disclosure attached to a receipt, but they never decide
+    // whether an otherwise valid candidate is delivered.
     return {
-      allowed: false,
-      status: outcome.availability === "unavailable" ? "not_published_review_unavailable" : "not_published_rejected",
-      reason: outcome.availability === "unavailable" ? "REVIEW_UNAVAILABLE" : "REVIEW_NOT_APPROVED",
+      allowed: true,
+      status: approved && this.mode === "enforce" ? "published_approved" : "published_with_disagreement",
     };
   }
 }

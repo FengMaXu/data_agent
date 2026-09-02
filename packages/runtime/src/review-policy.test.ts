@@ -37,25 +37,27 @@ function calibrated(gates = DETERMINISTIC_GATE_NAMES, calibratedIdentity = ident
 }
 
 describe("DeliveryPolicy", () => {
-  it("keeps unavailable and rejected decisions distinct from Approved", () => {
-    const policy = new DeliveryPolicy("enforce");
-    expect(policy.decide({ availability: "unavailable", failure: { code: "TIMEOUT", message: "timeout", retryable: true } })).toMatchObject({ allowed: false, status: "not_published_review_unavailable" });
-    expect(policy.decide({ availability: "available", decision: { status: "rejected" } })).toMatchObject({ allowed: false, status: "not_published_rejected" });
-    expect(new DeliveryPolicy("shadow").decide({ availability: "available", decision: { status: "rejected" } })).toMatchObject({ allowed: true, status: "published_with_disagreement" });
-    expect(new DeliveryPolicy("shadow").decide({ availability: "available", decision: { status: "approved" } })).toMatchObject({ allowed: true, status: "published_with_disagreement" });
-    expect(new DeliveryPolicy("enforce").decide({ availability: "available", decision: { status: "approved" } })).toMatchObject({ allowed: true, status: "published_approved" });
-    expect(new DeliveryPolicy("enforce").decide({ availability: "available", decision: { status: "rejected", blocking: false, diffs: [{ aspect: "semantic", required: "x", observed: "y", evidence: { digestPath: "filters" } }] } })).toMatchObject({ allowed: false, status: "not_published_rejected" });
-    expect(new DeliveryPolicy("shadow").decide({ availability: "available", decision: { status: "rejected", blocking: true } })).toMatchObject({ allowed: true, status: "published_with_disagreement" });
-    expect(new DeliveryPolicy("shadow").decide({ availability: "available", decision: { status: "rejected", blocking: true, deterministic: true } })).toMatchObject({ allowed: false, status: "not_published_rejected" });
-    expect(new DeliveryPolicy("shadow", { shadowDelivery: "record_only" }).decide({ availability: "available", decision: { status: "approved" } })).toMatchObject({ allowed: false, reason: "SHADOW_REVIEW_RECORD_ONLY" });
-    expect(new DeliveryPolicy("shadow").decide({ availability: "unavailable", failure: { code: "TIMEOUT", message: "timeout", retryable: true } })).toMatchObject({ allowed: false, status: "not_published_review_unavailable" });
-    expect(new DeliveryPolicy("shadow", { allowUnavailablePublication: true }).decide({ availability: "unavailable", failure: { code: "TIMEOUT", message: "timeout", retryable: true } })).toMatchObject({ allowed: true, status: "published_with_disagreement" });
-    const authorization = { taskId: "task", queryArtifactId: "artifact", normalizedSqlHash: "sql", specVersion: "1", candidateId: "candidate", candidatePath: "path", contentSha256: "content", semanticDiffHashes: [] };
-    expect(new DeliveryPolicy("enforce").decide({ availability: "available", decision: { status: "needs_clarification", ambiguities: ["scope"] } }, authorization)).toMatchObject({ allowed: false, status: "not_published_rejected" });
-    expect(new DeliveryPolicy("enforce").decide({ availability: "available", decision: { status: "abstained", reason: "insufficient" } }, authorization)).toMatchObject({ allowed: false, status: "not_published_rejected" });
-    expect(new DeliveryPolicy("enforce").decide({ availability: "available", decision: { status: "rejected", blocking: true } }, authorization)).toMatchObject({ allowed: false, status: "not_published_rejected" });
-    expect(new DeliveryPolicy("enforce").decide({ availability: "unavailable", failure: { code: "DIGEST_UNAVAILABLE", message: "missing coverage", retryable: false } }, authorization)).toMatchObject({ allowed: false, status: "not_published_review_unavailable" });
-    expect(new DeliveryPolicy("enforce").decide({ availability: "available", decision: { status: "rejected", blocking: true, deterministic: true } }, authorization)).toMatchObject({ allowed: false, status: "not_published_rejected" });
+  it("delivers every review outcome and discloses every non-approved result", () => {
+    const outcomes = [
+      { availability: "unavailable", failure: { code: "TIMEOUT", message: "timeout", retryable: true } },
+      { availability: "unavailable", failure: { code: "DIGEST_UNAVAILABLE", message: "missing coverage", retryable: false, deterministic: true } },
+      { availability: "available", decision: { status: "rejected", blocking: true, deterministic: true } },
+      { availability: "available", decision: { status: "needs_clarification", ambiguities: ["scope"] } },
+      { availability: "available", decision: { status: "abstained", reason: "insufficient" } },
+    ] as const;
+    for (const mode of ["off", "shadow", "enforce"] as const) {
+      for (const outcome of outcomes) {
+        expect(new DeliveryPolicy(mode, { shadowDelivery: "record_only" }).decide(outcome)).toEqual({
+          allowed: true,
+          status: "published_with_disagreement",
+        });
+      }
+    }
+  });
+
+  it("only labels an approved enforce review as approved", () => {
+    expect(new DeliveryPolicy("enforce").decide({ availability: "available", decision: { status: "approved" } })).toEqual({ allowed: true, status: "published_approved" });
+    expect(new DeliveryPolicy("shadow").decide({ availability: "available", decision: { status: "approved" } })).toEqual({ allowed: true, status: "published_with_disagreement" });
   });
 });
 

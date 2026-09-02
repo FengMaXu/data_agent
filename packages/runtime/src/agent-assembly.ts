@@ -24,6 +24,7 @@ import type { DigestCardinalityEvidence, SchemaEvidence } from "./query-digest.j
 import { createAnswerSpec, type AmbiguityInput, type AnswerContractInput, type AnswerRowMode, type AnswerSpecGenerator, type AnswerSpecInput, type ConstraintInput, type EvidenceAuthority, type HypothesisInput, type SemanticEvidenceExcerpt } from "./answer-spec.js";
 import { createConversationBlindReviewer, type ConversationBlindReviewer, type ConversationBlindReviewerInput } from "./conversation-blind-reviewer.js";
 import type { ResultEvidenceOptions } from "./result-evidence.js";
+import { createAssuranceHooks, wireAssuranceHooks, type HookFiredEvent, type AssuranceHooks } from "./hooks/assurance-hooks.js";
 
 export interface QueryExportBatch {
   columns: string[];
@@ -93,6 +94,10 @@ export interface AgentAssemblyDeps {
   toolContext?: AgentAssemblyToolContextSource;
   /** Current task progress, used to warn when delivery has not happened by 60% of the turn budget. */
   taskProgress?: (context: AgentAssemblyToolContext) => AgentTaskProgress | undefined | Promise<AgentTaskProgress | undefined>;
+  /** Optional lifecycle adapter; defaults to the Phase 2 publication terminator. */
+  assuranceHooks?: AssuranceHooks;
+  /** Receives non-sensitive lifecycle telemetry from the Hook adapter. */
+  onHookFired?: (event: HookFiredEvent) => void | Promise<void>;
   /** Maximum metadata/sample queries allowed per session before final SQL is required. */
   explorationQueryBudget?: number;
   /** Require a Publication Receipt before a query task can complete. */
@@ -970,7 +975,6 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
       const signal = native.signal ?? new AbortController().signal;
       const artifact = await queryAssurance.getArtifact(taskId, params.queryArtifactId, signal);
       if (!artifact) throw new Error("QUERY_ARTIFACT_NOT_FOUND_OR_EXPIRED");
-      if (artifact.exploratory) throw new Error("QUERY_ARTIFACT_EXPLORATION_ONLY: run a final analytical query before publishing");
       const existingReceipt = queryAssurance.publicationForArtifact?.(taskId, artifact.queryArtifactId);
       if (existingReceipt) {
         queryTaskStateFor(native).hasExported = true;
@@ -1027,13 +1031,6 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
           }
           : undefined;
         const outcome = await queryAssurance.reviewForPublication({ task: { taskId, mode: queryAssurance.mode, specVersion }, candidate: candidateForReview, reviewInput }, signal);
-        if (outcome.availability === "available" && outcome.decision.status === "rejected" && outcome.decision.blocking !== false && queryAssurance.mode === "enforce" && queryAssurance.claimAutomaticRepair) {
-          const repair = queryAssurance.claimAutomaticRepair(taskId, specVersion);
-          if (repair.allowed) {
-            await candidateStore.discard(storedCandidate);
-            throw new Error(`SEMANTIC_DIFF_REPAIR_REQUIRED:${JSON.stringify({ attempt: repair.attempt, diffs: outcome.decision.diffs ?? [] })}`);
-          }
-        }
         if (!outcome.reviewToken) {
           await candidateStore.discard(storedCandidate);
           if (outcome.availability === "available") {
@@ -1109,7 +1106,6 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
       const signal = native.signal ?? new AbortController().signal;
       const artifact = await queryAssurance.getArtifact(taskId, params.queryArtifactId, signal);
       if (!artifact) throw new Error("QUERY_ARTIFACT_NOT_FOUND_OR_EXPIRED");
-      if (artifact.exploratory) throw new Error("QUERY_ARTIFACT_EXPLORATION_ONLY: run a final analytical query before publishing");
       const existingReceipt = queryAssurance.publicationForArtifact?.(taskId, artifact.queryArtifactId);
       if (existingReceipt) return text(`[PUBLICATION_ALREADY_COMPLETE] Publication Receipt ${existingReceipt.receiptId} (${existingReceipt.status})`, { status: "success", taskComplete: true, publishedInline: true, publicationReceipt: existingReceipt, queryArtifactId: artifact.queryArtifactId });
       if (queryAssurance.publicationForTask?.(taskId)) throw new Error("PUBLICATION_TASK_ALREADY_COMPLETE");
@@ -1146,10 +1142,6 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
         }
         : undefined;
       const outcome = await queryAssurance.reviewForPublication({ task: { taskId, mode: queryAssurance.mode, specVersion: candidate.specVersion }, candidate, reviewInput }, signal);
-      if (outcome.availability === "available" && outcome.decision.status === "rejected" && outcome.decision.blocking !== false && queryAssurance.mode === "enforce" && queryAssurance.claimAutomaticRepair) {
-        const repair = queryAssurance.claimAutomaticRepair(taskId, candidate.specVersion);
-        if (repair.allowed) throw new Error(`SEMANTIC_DIFF_REPAIR_REQUIRED:${JSON.stringify({ attempt: repair.attempt, diffs: outcome.decision.diffs ?? [] })}`);
-      }
       if (!outcome.reviewToken) {
         if (outcome.availability === "available") {
           const clarification = outcome.decision.status === "needs_clarification" || outcome.decision.status === "abstained";
@@ -1471,6 +1463,11 @@ export async function createDataAgentHarness(deps: AgentAssemblyDeps, profile: A
       && queryAssurance.hasInternalEvidence?.(task.taskId)
       && !queryAssurance.hasPublication?.(task.taskId),
   ));
+  const assuranceHooks = deps.assuranceHooks ?? createAssuranceHooks({
+    taskId: () => activeTask?.taskId,
+    onHookFired: deps.onHookFired,
+  });
+  wireAssuranceHooks(harness, assuranceHooks);
   harness.subscribe((event) => {
     if (event?.type !== "tool_execution_end" || !event.isError) return;
     const content = event.result?.content;

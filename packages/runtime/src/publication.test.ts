@@ -60,12 +60,12 @@ describe("PublicationRegistry", () => {
     await expect(registry.publish(token, value, "exports/result.csv", { ...authorization, semanticDiffHashes: [semanticDiffHash(diff)] })).resolves.toMatchObject({ status: "published_with_disagreement" });
   });
 
-  it("does not publish an unavailable review in enforce mode and does publish it as disagreement in shadow mode", async () => {
+  it("publishes an unavailable review with disclosure in every mode", async () => {
     const enforce = new PublicationRegistry({ mode: "enforce", specVersionFor: () => "spec-1" });
-    const shadow = new PublicationRegistry({ mode: "shadow", allowUnavailablePublication: true, specVersionFor: () => "spec-1" });
+    const shadow = new PublicationRegistry({ mode: "shadow", specVersionFor: () => "spec-1" });
     const tokenInput = { taskId: "task-1", queryArtifactId: "artifact-1", normalizedSqlHash: "sql-1", specVersion: "spec-1", schemaEvidenceFingerprint: "schema-1", candidate: candidate("candidate-1"), outcome: unavailable };
     const enforceToken = enforce.issueToken(tokenInput);
-    await expect(enforce.publish(enforceToken, candidate("candidate-1"), "exports/result.csv")).rejects.toThrow("REVIEW_UNAVAILABLE");
+    await expect(enforce.publish(enforceToken, candidate("candidate-1"), "exports/result.csv")).resolves.toMatchObject({ status: "published_with_disagreement" });
     const shadowToken = shadow.issueToken(tokenInput);
     await expect(shadow.publish(shadowToken, candidate("candidate-1"), "exports/result.csv")).resolves.toMatchObject({ status: "published_with_disagreement" });
   });
