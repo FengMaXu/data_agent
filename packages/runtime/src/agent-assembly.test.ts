@@ -1,15 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path, { join } from "node:path";
-import { buildAgentTools, composeDataAgentSystemPrompt, createDataAgentHarness, normalizeAnswerSpecPlannerOutput, resolveSystemPrompt, runtimeCapabilitiesPrompt, unknownToolRecoveryMessage, type AgentAssemblyDeps, type QueryExportBatch } from "./agent-assembly.js";
+import { buildAgentTools, collectTaskSemanticEvidence, composeDataAgentSystemPrompt, createDataAgentHarness, deriveRequestAnswerShape, deriveRequestFilterConstraints, normalizeAnswerSpecPlannerOutput, resolveSystemPrompt, runtimeCapabilitiesPrompt, solverPromptForTask, unknownToolRecoveryMessage, type AgentAssemblyDeps, type QueryExportBatch } from "./agent-assembly.js";
 import { ClarificationManager } from "./clarification.js";
 import { createReviewOffQueryAssurance, InMemoryQueryAssurance, type QueryAssurance } from "./query-assurance.js";
 import { WorkspaceStore } from "./workspace.js";
+import { KnowledgeIndex } from "./knowledge.js";
+import { createQueryDigestCompiler, type QueryDigestCompiler } from "./query-digest.js";
 
-function exportTool(workspace: WorkspaceStore, queryExecutor: any, emitArtifact?: (path: string) => void): any {
-  return buildAgentTools({ workspace, queryExecutor, emitArtifact, requireValidatedExportSql: false, requireQueryArtifactId: false }).find((tool) => tool.name === "export_query");
-}
+const testAuthoritativeDigestCompiler: QueryDigestCompiler = {
+  compile(input) {
+    return { ...createQueryDigestCompiler().compile(input), parserEngine: "sqlglot", parserVersion: "test-sqlglot" };
+  },
+};
 
 async function tempFiles(root: string): Promise<string[]> {
   try {
@@ -50,6 +54,45 @@ describe("session workspace isolation", () => {
 });
 
 describe("Answer Spec planner output", () => {
+  it("separates final answer shape from intermediate analysis shape", () => {
+    expect(deriveRequestAnswerShape("List the top five categories, then how many have no sales?")).toEqual({ rowMode: "scalar", rowCount: 1 });
+    expect(deriveRequestAnswerShape("Distribute city pairs into ranges. Then how many pairs are in the least populated range?")).toEqual({ rowMode: "scalar", rowCount: 1 });
+    expect(deriveRequestAnswerShape("Identify the top three customers by delivered order count.")).toEqual({ rowMode: "top_n", rowCount: 3 });
+    expect(deriveRequestAnswerShape("Calculate the average of the most used payment count for each category.")).toEqual({ rowMode: "scalar", rowCount: 1 });
+    expect(deriveRequestAnswerShape("List the projected average sales by month.")).toEqual({});
+  });
+
+  it("extracts only explicit SQL-shaped request predicates for G2 authorization", () => {
+    expect(deriveRequestFilterConstraints("Return orders where status = 'paid' and region != 'CN'. What is the count?")).toEqual([
+      { statement: "status = 'paid'", authority: "request_wording", scope: "filter", source: "request-question" },
+      { statement: "region != 'CN'", authority: "request_wording", scope: "filter", source: "request-question" },
+    ]);
+    expect(deriveRequestFilterConstraints("What is the average?" )).toEqual([]);
+  });
+
+  it("builds a bounded task-document evidence pack before planning", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-semantic-evidence-"));
+    try {
+      await mkdir(join(root, "doc"), { recursive: true });
+      await writeFile(join(root, "doc", "business.md"), "# RFM definition\n\nRecency uses the latest delivered purchase. Segment thresholds come from this reviewed table.", "utf8");
+      await writeFile(join(root, "doc", "learning.md"), "# Learning\n\nRecency guesses must never become business rules.", "utf8");
+      for (let index = 0; index < 70; index += 1) {
+        await writeFile(join(root, "doc", `unrelated-${index}.md`), `# Unrelated ${index}\n\nRecency segment query notes unrelated to business definitions.`, "utf8");
+      }
+      const knowledge = new KnowledgeIndex();
+      await knowledge.loadDirectory(root);
+
+      const evidence = collectTaskSemanticEvidence(knowledge, "How is Recency defined for RFM segments?", { maxEntries: 2, maxChars: 80 });
+
+      expect(evidence).toHaveLength(1);
+      expect(evidence[0]).toMatchObject({ authority: "task_document", path: "doc/business.md", startLine: 1 });
+      expect(evidence[0].content.length).toBeLessThanOrEqual(80);
+      expect(evidence[0].content).toContain("Recency");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("normalizes string hypotheses and ambiguities into safe model-inference objects", () => {
     const normalized = normalizeAnswerSpecPlannerOutput({
       taskId: "task-planner-strings",
@@ -73,6 +116,63 @@ describe("Answer Spec planner output", () => {
     }]);
   });
 
+  it("normalizes common JSON wire variants in structured Answer Contract fields", () => {
+    const normalized = normalizeAnswerSpecPlannerOutput({ taskId: "task-planner-wire", question: "Show the top 3 customers by average payment" }, {
+      answerContract: {
+        output: { value: "customer_id", rowMode: "top-3", rowCount: "3" },
+        measures: { value: { kind: "average", name: "average payment" } },
+        ranking: { value: { n: "3", partitionBy: "customer_state", orderBy: ["average payment DESC", "customer_id ASC"], tiePolicy: "exactly_n" } },
+        rounding: { value: { mode: "decimal_places", places: "2" } },
+      },
+    });
+
+    expect(normalized.answerContract?.output?.value).toEqual({ columns: ["customer_id"], rowMode: "top_n", rowCount: 3 });
+    expect(normalized.answerContract?.measures?.[0]?.value).toEqual({ kind: "avg", name: "average payment" });
+    expect(normalized.answerContract?.ranking?.value).toEqual({ n: 3, partitionBy: ["customer_state"], orderBy: "average payment DESC, customer_id ASC", tiePolicy: "strict" });
+    expect(normalized.answerContract?.rounding?.value).toEqual({ mode: "decimal_places", places: 2 });
+  });
+
+  it("normalizes scalar and array wrapper values without losing their facet", () => {
+    const normalized = normalizeAnswerSpecPlannerOutput({ taskId: "task-wrapper", question: "Show the requested customers" }, {
+      answerContract: {
+        output: { value: ["customer_id"], authority: "request_wording", quote: "customers" },
+        measures: { value: "count", authority: "request_wording", quote: "count" },
+      },
+    });
+    expect(normalized.answerContract?.output?.value).toEqual({ columns: ["customer_id"] });
+    expect(normalized.answerContract?.measures?.[0]?.value).toEqual({ kind: "count" });
+  });
+
+  it("keeps Planner output consistent with Runtime-derived final answer shape", () => {
+    const normalized = normalizeAnswerSpecPlannerOutput({ taskId: "task-shape", question: "Then how many?", rowMode: "scalar", rowCount: 1 }, {
+      answerContract: { output: { value: ["distance_range", "pair_count"], rowMode: "grouped", rowCount: 7 } },
+    });
+
+    expect(normalized.answerContract?.output?.value).toEqual({ columns: ["distance_range", "pair_count"], rowMode: "scalar", rowCount: 1 });
+  });
+
+  it("omits null optionals and inapplicable planner facets instead of invalidating the whole spec", () => {
+    const normalized = normalizeAnswerSpecPlannerOutput({ taskId: "task-planner-null", question: "Group sales by segment without rounding" }, {
+      answerContract: {
+        output: { value: ["segment", "sales"], rowMode: "grouped", rowCount: null },
+        grain: null,
+        measures: [null, "not specified"],
+        denominator: { value: null },
+        ranking: "not applicable",
+        time: { value: { displayWindow: "not applicable", lookback: null, asOf: null, boundary: null } },
+        rounding: { value: { mode: "none", places: null } },
+      },
+    });
+
+    expect(normalized.answerContract?.output?.value).toEqual({ columns: ["segment", "sales"], rowMode: "grouped" });
+    expect(normalized.answerContract?.grain).toBeUndefined();
+    expect(normalized.answerContract?.measures).toBeUndefined();
+    expect(normalized.answerContract?.denominator).toBeUndefined();
+    expect(normalized.answerContract?.ranking).toBeUndefined();
+    expect(normalized.answerContract?.time).toBeUndefined();
+    expect(normalized.answerContract?.rounding).toBeUndefined();
+  });
+
   it("rejects malformed structured planner arrays instead of silently dropping them", () => {
     expect(() => normalizeAnswerSpecPlannerOutput({ taskId: "task-invalid-planner", question: "q" }, {
       hypotheses: { statement: "not an array" },
@@ -84,12 +184,20 @@ describe("Answer Spec planner output", () => {
 });
 
 describe("native system prompt assembly", () => {
-  it("uses Pi's XML skill formatter and exposes the current skill catalog", () => {
+  it("uses Pi's XML skill formatter and ends the complete system prompt with the language instruction", () => {
     const prompt = composeDataAgentSystemPrompt("base instructions", [{ name: "analysis", description: "Analyze data", content: "body", filePath: "C:/skills/analysis/SKILL.md" }]);
     expect(prompt).toContain("base instructions");
     expect(prompt).toContain("<available_skills>");
     expect(prompt).toContain("<name>analysis</name>");
     expect(prompt).toContain("<location>C:/skills/analysis/SKILL.md</location>");
+    expect(prompt.endsWith("所有文字输出与回应必须使用中文，包括每一轮工具调用前的说明、过程性说明、澄清、错误说明和最终答复。禁止使用英文自然语言。工具调用前不要输出过程性文字，直接调用工具。仅 SQL、代码、工具名、字段名、表名、文件路径和数据库原始值可以保持原样。"));
+  });
+
+  it("passes through the original prompt when Query Assurance is off", () => {
+    const question = "Original question";
+    const answerSpec = { taskId: "task-1", specVersion: "1", question, hardConstraints: [], hypotheses: [], ambiguities: [], provenance: [] };
+    expect(solverPromptForTask(question, { mode: "off", answerSpec })).toBe(question);
+    expect(solverPromptForTask(question, { mode: "shadow", answerSpec })).toContain("[ANSWER_SPEC_READ_ONLY]");
   });
 
   it("fails explicitly when no canonical SYSTEM.md can be found", async () => {
@@ -105,11 +213,10 @@ describe("native system prompt assembly", () => {
     const prompt = await resolveSystemPrompt([path.resolve(process.cwd(), "../..")], "sqlite");
     expect(prompt).toContain("数据库后端为 SQLite");
     expect(prompt).toContain("sqlite_master");
-    expect(prompt).toContain("### 1.4 交付前检查（Query Assurance）");
-    expect(prompt).toContain("使用准确的 `queryArtifactId`");
-    expect(prompt).toContain("The only sources of truth are the user's inquiry and the business documentation");
-    expect(prompt).toContain("Guessing or fabricating non-existent business rules is strictly prohibited");
-    expect(prompt).toContain("若该工具不在当前工具列表中");
+    expect(prompt).toContain("### 1.4 交付前检查");
+    expect(prompt).toContain("传入的 `queryArtifactId`");
+    expect(prompt).toContain("证据优先级");
+    expect(prompt).toContain("只调用出现在当前列表中的工具");
     expect(prompt).not.toContain("数据库为 MySQL 业务库");
   });
 
@@ -267,7 +374,7 @@ describe("query task guardrails", () => {
     const query = tools.find((candidate) => candidate.name === "query_database") as any;
     try {
       await query.execute("explore-1", { sql: "SELECT * FROM users LIMIT 5" }, undefined, undefined, { sessionId: "session-a" });
-      await query.execute("explore-2", { sql: "SELECT DISTINCT state FROM users" }, undefined, undefined, { sessionId: "session-a" });
+      await query.execute("explore-2", { sql: "SELECT * FROM users LIMIT 3" }, undefined, undefined, { sessionId: "session-a" });
       const blocked = await query.execute("explore-3", { sql: "SELECT name FROM sqlite_master WHERE type='table'" }, undefined, undefined, { sessionId: "session-a" });
       expect(executions).toBe(2);
       expect(blocked.content[0].text).toContain("Stop exploring and write your final analytical SQL now");
@@ -276,34 +383,6 @@ describe("query task guardrails", () => {
       await query.execute("final-distinct", { sql: "SELECT DISTINCT customer_id FROM orders WHERE status = 'paid'" }, undefined, undefined, { sessionId: "session-a" });
       await query.execute("other-session", { sql: "SELECT * FROM users LIMIT 5" }, undefined, undefined, { sessionId: "session-b" });
       expect(executions).toBe(5);
-    } finally {
-      await rm(root, { recursive: true, force: true });
-    }
-  });
-
-  it("resets delivery reminders when a new query starts after a completed export", async () => {
-    const root = await mkdtemp(join(tmpdir(), "data-agent-export-deadline-reset-"));
-    const executor = {
-      run: async () => ({ columns: ["answer"], rows: [[1]], truncated: false }),
-      stream: async function* (): AsyncGenerator<QueryExportBatch> { yield { columns: ["answer"], rows: [[1]] }; },
-    };
-    const tools = buildAgentTools({
-      workspace: new WorkspaceStore(root),
-      taskProgress: () => ({ turnCount: 12, maxTurns: 20 }),
-      queryExecutor: executor,
-      requireQueryArtifactId: false,
-    });
-    const query = tools.find((candidate) => candidate.name === "query_database") as any;
-    const exportQuery = tools.find((candidate) => candidate.name === "export_query") as any;
-    try {
-      await query.execute("first-query", { sql: "SELECT 1 AS answer" }, undefined, undefined, { sessionId: "session-a" });
-      await exportQuery.execute("first-export", {
-        sql: "SELECT 1 AS answer",
-        expected_rows: "scalar",
-        expected_columns: ["answer"],
-      }, undefined, undefined, { sessionId: "session-a" });
-      const nextTask = await query.execute("next-query", { sql: "SELECT 2 AS answer" }, undefined, undefined, { sessionId: "session-a" });
-      expect(nextTask.content[0].text).toContain("EXPORT_DEADLINE");
     } finally {
       await rm(root, { recursive: true, force: true });
     }
@@ -329,40 +408,17 @@ describe("query task guardrails", () => {
   });
 });
 
-describe("validation tools", () => {
-  it("validates an existing Artifact with EXPLAIN and keeps semantic review advisory", async () => {
-    const root = await mkdtemp(join(tmpdir(), "data-agent-validation-tools-"));
-    const assurance = createReviewOffQueryAssurance();
-    const task = await assurance.prepareTask({ question: "What is the answer?", dialect: "sqlite" }, new AbortController().signal);
-    let explainCalls = 0;
+describe("publication tools", () => {
+  it("does not expose advisory validation tools to the Solver", () => {
     const tools = buildAgentTools({
-      workspace: new WorkspaceStore(root),
-      databaseDialect: "sqlite",
-      queryAssurance: assurance,
-      queryExecutor: {
-        run: async () => ({ columns: ["answer"], rows: [[1]], truncated: false }),
-        explain: async () => { explainCalls += 1; return { columns: ["detail"], rows: [["SCAN CONSTANT ROW"]], truncated: false }; },
-      },
+      workspace: new WorkspaceStore("/tmp/data-agent-tools"),
+      queryExecutor: { run: async () => ({ columns: [], rows: [], truncated: false }) },
     });
-    const query = tools.find((candidate) => candidate.name === "query_database") as any;
-    const sqlValidate = tools.find((candidate) => candidate.name === "sql_validate") as any;
-    const semanticValidate = tools.find((candidate) => candidate.name === "semantic_validate") as any;
-    try {
-      const preview = await query.execute("validation-preview", { sql: "SELECT 1 AS answer" }, undefined, undefined, { sessionId: "session-a", taskId: task.taskId, specVersion: task.specVersion });
-      const sqlResult = await sqlValidate.execute("sql-validate", { queryArtifactId: preview.details.queryArtifactId }, undefined, undefined, { sessionId: "session-a", taskId: task.taskId, specVersion: task.specVersion });
-      expect(sqlResult.details).toMatchObject({ status: "valid", queryArtifactId: preview.details.queryArtifactId, explain: { columns: ["detail"] } });
-      expect(explainCalls).toBe(1);
-      const semanticResult = await semanticValidate.execute("semantic-validate", { queryArtifactId: preview.details.queryArtifactId }, undefined, undefined, { sessionId: "session-a", taskId: task.taskId, specVersion: task.specVersion });
-      expect(semanticResult.details).toMatchObject({ status: "advisory", queryArtifactId: preview.details.queryArtifactId });
-      expect(semanticResult.content[0].text).toContain("Do not retry semantic_validate");
-    } finally {
-      await rm(root, { recursive: true, force: true });
-    }
+    expect(tools.find((tool) => tool.name === "sql_validate")).toBeUndefined();
+    expect(tools.find((tool) => tool.name === "semantic_validate")).toBeUndefined();
   });
-});
 
-describe("export_query", () => {
-  it("publishes the exact Query Artifact through a Review Token", async () => {
+  it("publishes the exact Query Artifact selected by queryArtifactId", async () => {
     const root = await mkdtemp(join(tmpdir(), "data-agent-export-artifact-"));
     const workspace = new WorkspaceStore(root);
     const assurance = createReviewOffQueryAssurance();
@@ -380,25 +436,21 @@ describe("export_query", () => {
     const exportQuery = tools.find((candidate) => candidate.name === "export_query") as any;
     try {
       const preview = await query.execute("artifact-preview", { sql: "SELECT 1 AS answer" }, undefined, undefined, { sessionId: "session-a", taskId: task.taskId, specVersion: task.specVersion });
-      const queryArtifactId = preview.details.queryArtifactId;
-      expect(queryArtifactId).toBeTruthy();
-      const result = await exportQuery.execute("artifact-export", {
-        queryArtifactId,
-        filename: "exports/artifact.csv",
-        expected_rows: "scalar",
-        expected_columns: ["answer"],
-      }, undefined, undefined, { sessionId: "session-a", taskId: task.taskId, specVersion: task.specVersion });
-      expect(result.details).toMatchObject({ taskComplete: true, publicationReceipt: { status: "published_with_disagreement", queryArtifactId } });
+      const result = await exportQuery.execute("artifact-export", { queryArtifactId: preview.details.queryArtifactId, filename: "exports/artifact.csv" }, undefined, undefined, { sessionId: "session-a", taskId: task.taskId, specVersion: task.specVersion });
+      expect(result.details).toMatchObject({ taskComplete: true, publicationReceipt: { queryArtifactId: preview.details.queryArtifactId } });
       expect(await readFile(join(root, "session-a", "exports", "artifact.csv"), "utf8")).toBe("answer\n1");
     } finally {
       await rm(root, { recursive: true, force: true });
     }
   });
 
-  it("terminates an export turn when review is unavailable instead of retrying the provider turn", async () => {
-    const root = await mkdtemp(join(tmpdir(), "data-agent-export-review-unavailable-"));
-    const assurance = new InMemoryQueryAssurance({ mode: "shadow" });
-    const task = await assurance.prepareTask({ question: "What is the answer?" }, new AbortController().signal);
+  it("does not turn an empty Answer Contract into an expected zero-column Candidate", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-export-empty-contract-"));
+    const assurance = createReviewOffQueryAssurance();
+    const task = await assurance.prepareTask({
+      question: "Return the answer",
+      answerContract: { output: { value: { columns: [] }, authority: "request_wording", source: "question", quote: "Return the answer" } },
+    }, new AbortController().signal);
     const tools = buildAgentTools({
       workspace: new WorkspaceStore(root),
       queryAssurance: assurance,
@@ -411,372 +463,85 @@ describe("export_query", () => {
     const query = tools.find((candidate) => candidate.name === "query_database") as any;
     const exportQuery = tools.find((candidate) => candidate.name === "export_query") as any;
     try {
-      const preview = await query.execute("unavailable-preview", { sql: "SELECT 1 AS answer" }, undefined, undefined, { sessionId: "session-a", taskId: task.taskId, specVersion: task.specVersion });
-      const result = await exportQuery.execute("unavailable-export", {
-        queryArtifactId: preview.details.queryArtifactId,
-        filename: "exports/unavailable.csv",
-        expected_rows: "scalar",
-        expected_columns: ["answer"],
-      }, undefined, undefined, { sessionId: "session-a", taskId: task.taskId, specVersion: task.specVersion });
-      expect(result.details).toMatchObject({ status: "blocked", terminal: true, queryArtifactId: preview.details.queryArtifactId });
-      expect(result.content[0].text).toContain("do not retry export_query");
-      await expect(readFile(join(root, "session-a", "exports", "unavailable.csv"), "utf8")).rejects.toThrow();
+      const preview = await query.execute("empty-contract-preview", { sql: "SELECT 1 AS answer" }, undefined, undefined, { sessionId: "session-a", taskId: task.taskId, specVersion: task.specVersion });
+      const result = await exportQuery.execute("empty-contract-export", { queryArtifactId: preview.details.queryArtifactId, filename: "exports/empty-contract.csv" }, undefined, undefined, { sessionId: "session-a", taskId: task.taskId, specVersion: task.specVersion });
+      expect(result.details).toMatchObject({ taskComplete: true });
+      expect(await readFile(join(root, "session-a", "exports", "empty-contract.csv"), "utf8")).toBe("answer\n1");
     } finally {
       await rm(root, { recursive: true, force: true });
     }
   });
 
-  it("publishes a small Query Artifact inline through the same Receipt path", async () => {
-    const root = await mkdtemp(join(tmpdir(), "data-agent-inline-result-"));
-    const workspace = new WorkspaceStore(root);
-    const assurance = createReviewOffQueryAssurance();
-    const task = await assurance.prepareTask({ question: "What is the answer?" }, new AbortController().signal);
+  it("blocks a scalar shape mismatch before the reviewer or publication", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-export-g1-scalar-"));
+    const assurance = new InMemoryQueryAssurance({ digestCompiler: testAuthoritativeDigestCompiler, mode: "shadow", reviewer: { review: async () => ({ status: "approved", coverage: {} }) } });
+    const task = await assurance.prepareTask({ question: "How many answers?", rowMode: "scalar", rowCount: 1 }, new AbortController().signal);
     const tools = buildAgentTools({
-      workspace,
+      workspace: new WorkspaceStore(root),
       queryAssurance: assurance,
-      queryExecutor: { run: async () => ({ columns: ["answer"], rows: [[1]], truncated: false }) },
-    });
-    const query = tools.find((candidate) => candidate.name === "query_database") as any;
-    const publish = tools.find((candidate) => candidate.name === "publish_query_result") as any;
-    try {
-      const preview = await query.execute("inline-preview", { sql: "SELECT 1 AS answer" }, undefined, undefined, { sessionId: "session-a", taskId: task.taskId, specVersion: task.specVersion });
-      const result = await publish.execute("inline-publish", { queryArtifactId: preview.details.queryArtifactId }, undefined, undefined, { sessionId: "session-a", taskId: task.taskId, specVersion: task.specVersion });
-      expect(result.details).toMatchObject({ publishedInline: true, taskComplete: true, publicationReceipt: { status: "published_with_disagreement" } });
-      expect(result.content[0].text).toContain("PUBLISHED_INLINE");
-    } finally {
-      await rm(root, { recursive: true, force: true });
-    }
-  });
-
-  it("rejects a scalar declaration that produces multiple rows without publishing a file", async () => {
-    const root = await mkdtemp(join(tmpdir(), "data-agent-export-scalar-shape-"));
-    const workspace = new WorkspaceStore(root);
-    const tool = exportTool(workspace, {
-      stream: async function* (): AsyncGenerator<QueryExportBatch> {
-        yield { columns: ["name"], rows: [["Ada"], ["Grace"]] };
+      databaseDialect: "sqlite",
+      queryExecutor: {
+        run: async () => ({ columns: ["answer"], rows: [[1], [2]], truncated: false }),
+        stream: async function* (): AsyncGenerator<QueryExportBatch> { yield { columns: ["answer"], rows: [[1], [2]] }; },
       },
-      run: async () => { throw new Error("run should not be used"); },
     });
-    try {
-      await expect(tool.execute("shape-scalar", {
-        sql: "SELECT name FROM users",
-        filename: "exports/scalar.csv",
-        expected_rows: "scalar",
-        expected_columns: ["name"],
-      })).rejects.toThrow("SHAPE_MISMATCH: declared scalar but query produced more than 1 row");
-      await expect(workspace.read("exports/scalar.csv")).rejects.toThrow();
-      expect(await tempFiles(root)).toEqual([]);
-    } finally {
-      await rm(root, { recursive: true, force: true });
-    }
-  });
-
-  it("exports only the last SQL validated in the same session", async () => {
-    const root = await mkdtemp(join(tmpdir(), "data-agent-export-validated-sql-"));
-    const workspace = new WorkspaceStore(root);
-    const executor = {
-      run: async (sql: string) => ({ columns: ["id"], rows: sql.includes("WHERE") ? [[1]] : [[1], [2]], truncated: false }),
-      stream: async function* (sql: string): AsyncGenerator<QueryExportBatch> {
-        yield { columns: ["id"], rows: sql.includes("WHERE") ? [[1]] : [[1], [2]] };
-      },
-    };
-    const tools = buildAgentTools({ workspace, queryExecutor: executor, requireQueryArtifactId: false });
     const query = tools.find((candidate) => candidate.name === "query_database") as any;
     const exportQuery = tools.find((candidate) => candidate.name === "export_query") as any;
-    const finalSql = "SELECT id FROM users WHERE active = 1";
     try {
-      await expect(exportQuery.execute("unvalidated", {
-        sql: finalSql,
-        expected_rows: "scalar",
-        expected_columns: ["id"],
-      }, undefined, undefined, { sessionId: "session-a" })).rejects.toThrow("EXPORT_SQL_NOT_VALIDATED");
-      await query.execute("preview", { sql: finalSql }, undefined, undefined, { sessionId: "session-a" });
-      await expect(exportQuery.execute("changed", {
-        sql: "SELECT id FROM users WHERE active = 0",
-        expected_rows: "scalar",
-        expected_columns: ["id"],
-      }, undefined, undefined, { sessionId: "session-a" })).rejects.toThrow("EXPORT_SQL_NOT_VALIDATED");
-      await expect(exportQuery.execute("cross-session", {
-        sql: finalSql,
-        expected_rows: "scalar",
-        expected_columns: ["id"],
-      }, undefined, undefined, { sessionId: "session-b" })).rejects.toThrow("EXPORT_SQL_NOT_VALIDATED");
-      await expect(exportQuery.execute("validated", {
-        sql: `${finalSql};`,
-        filename: "exports/validated.csv",
-        expected_rows: "scalar",
-        expected_columns: ["id"],
-      }, undefined, undefined, { sessionId: "session-a" })).resolves.toMatchObject({ details: { taskComplete: true, rowCount: 1 } });
+      const preview = await query.execute("g1-preview", { sql: "SELECT answer FROM answers" }, undefined, undefined, { sessionId: "session-a", taskId: task.taskId, specVersion: task.specVersion });
+      const result = await exportQuery.execute("g1-export", { queryArtifactId: preview.details.queryArtifactId, filename: "exports/g1.csv" }, undefined, undefined, { sessionId: "session-a", taskId: task.taskId, specVersion: task.specVersion });
+      expect(result.details).toMatchObject({ status: "blocked", terminal: true });
+      expect(result.content[0].text).toContain("DETERMINISTIC_GATE_REJECTED");
+      await expect(readFile(join(root, "session-a", "exports", "g1.csv"), "utf8")).rejects.toThrow();
     } finally {
       await rm(root, { recursive: true, force: true });
     }
   });
 
-  it("rejects the legacy SQL export contract by default", async () => {
-    const root = await mkdtemp(join(tmpdir(), "data-agent-export-legacy-contract-"));
+  it("rejects direct SQL export without silently restoring the old contract", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-export-no-legacy-"));
     const exportQuery = buildAgentTools({
       workspace: new WorkspaceStore(root),
       queryExecutor: { run: async () => ({ columns: ["id"], rows: [[1]], truncated: false }) },
     }).find((candidate) => candidate.name === "export_query") as any;
     try {
-      await expect(exportQuery.execute("legacy-contract", { sql: "SELECT id FROM users", expected_rows: "full", expected_columns: ["id"] })).rejects.toThrow("EXPORT_QUERY_REQUIRES_QUERY_ARTIFACT_ID");
+      await expect(exportQuery.execute("legacy-contract", { sql: "SELECT id FROM users", expected_rows: "full", expected_columns: ["id"] })).rejects.toThrow("QUERY_ARTIFACT_REQUIRED");
     } finally {
       await rm(root, { recursive: true, force: true });
     }
   });
 
-  it("requires a shape declaration before starting the export stream", async () => {
-    const root = await mkdtemp(join(tmpdir(), "data-agent-export-shape-required-"));
-    let streams = 0;
-    const tool = exportTool(new WorkspaceStore(root), {
-      stream: async function* (): AsyncGenerator<QueryExportBatch> {
-        streams++;
-        yield { columns: ["id"], rows: [[1]] };
+  it("cleans a private Candidate when the export stream fails", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-export-stream-failure-"));
+    const workspace = new WorkspaceStore(root);
+    const assurance = createReviewOffQueryAssurance();
+    const task = await assurance.prepareTask({ question: "Return rows" }, new AbortController().signal);
+    const tools = buildAgentTools({
+      workspace,
+      queryAssurance: assurance,
+      databaseDialect: "sqlite",
+      queryExecutor: {
+        run: async () => ({ columns: ["id"], rows: [[1]], truncated: false }),
+        stream: async function* (): AsyncGenerator<QueryExportBatch> {
+          yield { columns: ["id"], rows: [[1]] };
+          throw new Error("QUERY_FAILED");
+        },
       },
-      run: async () => { throw new Error("run should not be used"); },
     });
-    try {
-      await expect(tool.execute("shape-required", { sql: "SELECT id FROM users" })).rejects.toThrow(
-        "SHAPE_DECLARATION_INVALID: expected_rows is required",
-      );
-      await expect(tool.execute("columns-required", { sql: "SELECT id FROM users", expected_rows: "full" })).rejects.toThrow(
-        "SHAPE_DECLARATION_INVALID: expected_columns is required",
-      );
-      expect(streams).toBe(0);
-    } finally {
-      await rm(root, { recursive: true, force: true });
-    }
-  });
-
-  it("rejects top_n without a row count and enforces the declared tolerance", async () => {
-    const root = await mkdtemp(join(tmpdir(), "data-agent-export-topn-shape-"));
-    const workspace = new WorkspaceStore(root);
-    let streams = 0;
-    const tool = exportTool(workspace, {
-      stream: async function* (): AsyncGenerator<QueryExportBatch> {
-        streams++;
-        yield { columns: ["id"], rows: [[1], [2], [3], [4]] };
-      },
-      run: async () => { throw new Error("run should not be used"); },
-    });
-    try {
-      await expect(tool.execute("shape-topn-missing", {
-        sql: "SELECT id FROM users",
-        expected_rows: "top_n",
-      })).rejects.toThrow("SHAPE_DECLARATION_INVALID: expected_row_count is required for top_n");
-      expect(streams).toBe(0);
-      await expect(tool.execute("shape-topn-large", {
-        sql: "SELECT id FROM users",
-        filename: "exports/topn.csv",
-        expected_rows: "top_n",
-        expected_row_count: 2,
-        expected_columns: ["id"],
-      })).rejects.toThrow("SHAPE_MISMATCH: declared top_n maximum=2 but query produced more than 2 rows");
-      await expect(workspace.read("exports/topn.csv")).rejects.toThrow();
-    } finally {
-      await rm(root, { recursive: true, force: true });
-    }
-  });
-
-  it("requires an independent reconciliation query before exporting a JOIN aggregate", async () => {
-    const root = await mkdtemp(join(tmpdir(), "data-agent-join-reconciliation-"));
-    const workspace = new WorkspaceStore(root);
-    const executor = {
-      run: async () => ({ columns: ["answer"], rows: [[1]], truncated: false }),
-      stream: async function* (): AsyncGenerator<QueryExportBatch> { yield { columns: ["answer"], rows: [[1]] }; },
-    };
-    const tools = buildAgentTools({ workspace, queryExecutor: executor, requireJoinReconciliation: true, requireQueryArtifactId: false });
-    const query = tools.find((candidate) => candidate.name === "query_database") as any;
-    const exportQuery = tools.find((candidate) => candidate.name === "export_query") as any;
-    const finalSql = "SELECT u.id, SUM(o.amount) AS total FROM users u JOIN orders o ON o.user_id = u.id GROUP BY u.id";
-    try {
-      await query.execute("join-final", { sql: finalSql }, undefined, undefined, { sessionId: "session-a" });
-      await expect(exportQuery.execute("join-export-before-audit", {
-        sql: finalSql,
-        filename: "exports/join.csv",
-        expected_rows: "grouped",
-        expected_row_count: 1,
-        expected_columns: ["answer"],
-      }, undefined, undefined, { sessionId: "session-a" })).rejects.toThrow("JOIN_RECONCILIATION_REQUIRED");
-      const reconciliationSql = "SELECT COUNT(*) AS joined_rows, SUM(amount) AS joined_total FROM users u JOIN orders o ON o.user_id = u.id";
-      const reconciliation = await query.execute("join-reconciliation", {
-        sql: reconciliationSql,
-        purpose: "reconciliation",
-      }, undefined, undefined, { sessionId: "session-a" });
-      expect(reconciliation.content[0].text).toContain("RECONCILIATION_RECORDED");
-      await expect(exportQuery.execute("join-export", {
-        sql: `${finalSql};`,
-        filename: "exports/join.csv",
-        expected_rows: "grouped",
-        expected_row_count: 1,
-        expected_columns: ["answer"],
-      }, undefined, undefined, { sessionId: "session-a" })).resolves.toMatchObject({ details: { taskComplete: true } });
-    } finally {
-      await rm(root, { recursive: true, force: true });
-    }
-  });
-
-  it("records verification queries without replacing the final export SQL", async () => {
-    const root = await mkdtemp(join(tmpdir(), "data-agent-verification-purpose-"));
-    const workspace = new WorkspaceStore(root);
-    const executor = {
-      run: async () => ({ columns: ["answer"], rows: [[1]], truncated: false }),
-      stream: async function* (): AsyncGenerator<QueryExportBatch> { yield { columns: ["answer"], rows: [[1]] }; },
-    };
-    const tools = buildAgentTools({ workspace, queryExecutor: executor, requireQueryArtifactId: false });
     const query = tools.find((candidate) => candidate.name === "query_database") as any;
     const exportQuery = tools.find((candidate) => candidate.name === "export_query") as any;
     try {
-      await query.execute("final", { sql: "SELECT 1 AS answer" }, undefined, undefined, { sessionId: "session-a" });
-      const verification = await query.execute("verification", { sql: "SELECT 1 AS independently_verified", purpose: "verification" }, undefined, undefined, { sessionId: "session-a" });
-      expect(verification.content[0].text).toContain("VERIFICATION_RECORDED");
-      await expect(exportQuery.execute("export", {
-        sql: "SELECT 1 AS answer",
-        filename: "exports/verified.csv",
-        expected_rows: "scalar",
-        expected_columns: ["answer"],
-      }, undefined, undefined, { sessionId: "session-a" })).resolves.toMatchObject({ details: { taskComplete: true } });
-    } finally {
-      await rm(root, { recursive: true, force: true });
-    }
-  });
-
-  it("enforces an optional grouped row-count ceiling", async () => {
-    const root = await mkdtemp(join(tmpdir(), "data-agent-export-grouped-shape-"));
-    const workspace = new WorkspaceStore(root);
-    const tool = exportTool(workspace, {
-      stream: async function* (): AsyncGenerator<QueryExportBatch> {
-        yield { columns: ["period", "value"], rows: [["2024-01", 1], ["2024-02", 2], ["2024-03", 3]] };
-      },
-      run: async () => { throw new Error("run should not be used"); },
-    });
-    try {
-      await expect(tool.execute("grouped-too-many", {
-        sql: "SELECT period, SUM(value) AS value FROM metrics GROUP BY period",
-        filename: "exports/grouped.csv",
-        expected_rows: "grouped",
-        expected_row_count: 2,
-        expected_columns: ["period", "value"],
-      })).rejects.toThrow("SHAPE_MISMATCH: declared grouped maximum=2 but query produced more than 2 rows");
-      await expect(workspace.read("exports/grouped.csv")).rejects.toThrow();
-    } finally {
-      await rm(root, { recursive: true, force: true });
-    }
-  });
-
-  it("requires exactly one scalar row and rejects row-width mismatches", async () => {
-    const root = await mkdtemp(join(tmpdir(), "data-agent-export-row-shape-"));
-    const workspace = new WorkspaceStore(root);
-    const empty = exportTool(workspace, {
-      stream: async function* (): AsyncGenerator<QueryExportBatch> { yield { columns: ["answer"], rows: [] }; },
-      run: async () => { throw new Error("run should not be used"); },
-    });
-    const malformed = exportTool(workspace, {
-      stream: async function* (): AsyncGenerator<QueryExportBatch> { yield { columns: ["id"], rows: [[1, "extra"]] }; },
-      run: async () => { throw new Error("run should not be used"); },
-    });
-    try {
-      await expect(empty.execute("empty-scalar", {
-        sql: "SELECT answer",
-        expected_rows: "scalar",
-        expected_columns: ["answer"],
-      })).rejects.toThrow("SHAPE_MISMATCH: declared scalar but query produced 0 rows");
-      await expect(malformed.execute("malformed-width", {
-        sql: "SELECT id",
-        expected_rows: "full",
-        expected_columns: ["id"],
-      })).rejects.toThrow("SHAPE_MISMATCH: row width 2 does not match 1 columns");
-    } finally {
-      await rm(root, { recursive: true, force: true });
-    }
-  });
-
-  it("enforces the expected column whitelist before publishing a file", async () => {
-    const root = await mkdtemp(join(tmpdir(), "data-agent-export-column-shape-"));
-    const workspace = new WorkspaceStore(root);
-    const tool = exportTool(workspace, {
-      stream: async function* (): AsyncGenerator<QueryExportBatch> {
-        yield { columns: ["id", "diagnostic_count"], rows: [[1, 42]] };
-      },
-      run: async () => { throw new Error("run should not be used"); },
-    });
-    try {
-      await expect(tool.execute("shape-columns", {
-        sql: "SELECT id, diagnostic_count FROM users",
-        filename: "exports/columns.csv",
-        expected_rows: "scalar",
-        expected_columns: ["id"],
-      })).rejects.toThrow("SHAPE_MISMATCH: expected columns [id] but query returned [id, diagnostic_count]");
-      await expect(workspace.read("exports/columns.csv")).rejects.toThrow();
-    } finally {
-      await rm(root, { recursive: true, force: true });
-    }
-  });
-
-  it("streams a 100,000-row result and preserves CSV escaping", async () => {
-    const root = await mkdtemp(join(tmpdir(), "data-agent-export-stream-"));
-    const workspace = new WorkspaceStore(root);
-    const batches = async function* (): AsyncGenerator<QueryExportBatch> {
-      for (let offset = 0; offset < 100_000; offset += 1_000) {
-        yield {
-          columns: ["id", "value"],
-          rows: Array.from({ length: 1_000 }, (_, index) => [offset + index + 1, index === 98 ? "comma,value" : `row-${offset + index + 1}`]),
-        };
-      }
-    };
-    const artifacts: string[] = [];
-    const tool = exportTool(workspace, { stream: () => batches(), run: async () => { throw new Error("run should not be used"); } }, (path) => artifacts.push(path));
-    try {
-      await tool.execute("call-1", { sql: "SELECT id, value FROM rows", filename: "exports/large.csv", expected_rows: "full", expected_columns: ["id", "value"] });
-      const content = await readFile(join(root, "exports", "large.csv"), "utf8");
-      expect(content.split("\n")).toHaveLength(100_001);
-      expect(content.startsWith("id,value\n1,\"row-1\"\n2,\"row-2\"\n")).toBe(true);
-      expect(content).toContain("99,\"comma,value\"");
-      expect(artifacts).toEqual(["exports/large.csv"]);
+      const preview = await query.execute("failure-preview", { sql: "SELECT id FROM users" }, undefined, undefined, { sessionId: "session-a", taskId: task.taskId, specVersion: task.specVersion });
+      await expect(exportQuery.execute("failure-export", { queryArtifactId: preview.details.queryArtifactId, filename: "exports/failure.csv" }, undefined, undefined, { sessionId: "session-a", taskId: task.taskId, specVersion: task.specVersion })).rejects.toThrow("QUERY_FAILED");
+      await expect(readFile(join(root, "session-a", "exports", "failure.csv"), "utf8")).rejects.toThrow();
       expect(await tempFiles(root)).toEqual([]);
     } finally {
       await rm(root, { recursive: true, force: true });
     }
-  }, 30_000);
-
-  it("writes a header for an empty streamed result and marks delivery complete", async () => {
-    const root = await mkdtemp(join(tmpdir(), "data-agent-export-empty-"));
-    const workspace = new WorkspaceStore(root);
-    const tool = exportTool(workspace, {
-      stream: async function* (): AsyncGenerator<QueryExportBatch> {
-        yield { columns: ["id", "name"], rows: [] };
-      },
-      run: async () => { throw new Error("run should not be used"); },
-    });
-    try {
-      const result = await tool.execute("call-empty", { sql: "SELECT id, name FROM users WHERE 1 = 0", filename: "exports/empty.csv", expected_rows: "full", expected_columns: ["id", "name"] });
-      expect(await readFile(join(root, "exports", "empty.csv"), "utf8")).toBe("id,name");
-      expect(result.content[0].text).toContain("TASK_COMPLETE");
-      expect(result.details).toMatchObject({ rowCount: 0, taskComplete: true });
-    } finally {
-      await rm(root, { recursive: true, force: true });
-    }
   });
+});
 
-  it("escapes embedded quotes and newlines according to RFC 4180", async () => {
-    const root = await mkdtemp(join(tmpdir(), "data-agent-export-csv-"));
-    const workspace = new WorkspaceStore(root);
-    const tool = exportTool(workspace, {
-      stream: async function* (): AsyncGenerator<QueryExportBatch> {
-        yield { columns: ["name", "note"], rows: [["Ada", "say \"hello\"\nthen leave"]] };
-      },
-      run: async () => { throw new Error("run should not be used"); },
-    });
-    try {
-      await tool.execute("call-csv", { sql: "SELECT name, note", filename: "exports/escaped.csv", expected_rows: "full", expected_columns: ["name", "note"] });
-      expect(await readFile(join(root, "exports", "escaped.csv"), "utf8")).toBe(
-        "name,note\n\"Ada\",\"say \"\"hello\"\"\nthen leave\"",
-      );
-    } finally {
-      await rm(root, { recursive: true, force: true });
-    }
-  });
-
+describe("remaining agent tools", () => {
   it("uses native skill invocation for the model-visible load_skill tool", async () => {
     const root = await mkdtemp(join(tmpdir(), "data-agent-load-skill-"));
     const workspace = new WorkspaceStore(root);
@@ -887,63 +652,4 @@ describe("export_query", () => {
     }
   });
 
-  it("keeps legacy executors bounded instead of requesting a full result copy", async () => {
-    const root = await mkdtemp(join(tmpdir(), "data-agent-export-legacy-"));
-    const workspace = new WorkspaceStore(root);
-    let requestedLimit: number | undefined;
-    const tool = exportTool(workspace, {
-      run: async (_sql: string, limit: number) => {
-        requestedLimit = limit;
-        return { columns: ["id"], rows: [[1]], truncated: true };
-      },
-    });
-    try {
-      await expect(tool.execute("call-legacy", { sql: "SELECT id", filename: "exports/legacy.csv", expected_rows: "full", expected_columns: ["id"] })).rejects.toThrow("EXPORT_STREAM_REQUIRED");
-      expect(requestedLimit).toBe(50);
-      expect(await tempFiles(root)).toEqual([]);
-    } finally {
-      await rm(root, { recursive: true, force: true });
-    }
-  });
-
-  it("preserves existing output and cleans the temporary file on failure", async () => {
-    const root = await mkdtemp(join(tmpdir(), "data-agent-export-failure-"));
-    const workspace = new WorkspaceStore(root);
-    await workspace.write("exports/result.csv", "previous\n");
-    const stream = async function* (): AsyncGenerator<QueryExportBatch> {
-      yield { columns: ["id"], rows: [[1]] };
-      throw new Error("QUERY_FAILED");
-    };
-    const artifacts: string[] = [];
-    const tool = exportTool(workspace, { stream: () => stream(), run: async () => { throw new Error("run should not be used"); } }, (path) => artifacts.push(path));
-    try {
-      await expect(tool.execute("call-2", { sql: "SELECT id", filename: "exports/result.csv", expected_rows: "full", expected_columns: ["id"] })).rejects.toThrow("QUERY_FAILED");
-      expect(await readFile(join(root, "exports", "result.csv"), "utf8")).toBe("previous\n");
-      expect(artifacts).toEqual([]);
-      expect(await tempFiles(root)).toEqual([]);
-    } finally {
-      await rm(root, { recursive: true, force: true });
-    }
-  });
-
-  it("cleans the temporary file and emits no artifact when cancelled", async () => {
-    const root = await mkdtemp(join(tmpdir(), "data-agent-export-cancel-"));
-    const workspace = new WorkspaceStore(root);
-    const controller = new AbortController();
-    const stream = async function* (): AsyncGenerator<QueryExportBatch> {
-      yield { columns: ["id"], rows: [[1]] };
-      controller.abort();
-      yield { columns: ["id"], rows: [[2]] };
-    };
-    const artifacts: string[] = [];
-    const tool = exportTool(workspace, { stream: () => stream(), run: async () => { throw new Error("run should not be used"); } }, (path) => artifacts.push(path));
-    try {
-      await expect(tool.execute("call-3", { sql: "SELECT id", filename: "exports/cancelled.csv", expected_rows: "full", expected_columns: ["id"] }, controller.signal, undefined, undefined)).rejects.toThrow("EXPORT_CANCELLED");
-      await expect(workspace.read("exports/cancelled.csv")).rejects.toThrow();
-      expect(artifacts).toEqual([]);
-      expect(await tempFiles(root)).toEqual([]);
-    } finally {
-      await rm(root, { recursive: true, force: true });
-    }
-  });
 });

@@ -24,7 +24,7 @@ const dataDir = process.env.DATA_AGENT_DATA_DIR
   ? path.resolve(process.env.DATA_AGENT_DATA_DIR)
   : path.join(root, ".data_agent", "runtime-web");
 
-const { DataAgentRuntime, MetadataStore, PiJsonlSessionStore, KnowledgeIndex, WorkspaceStore, createAgentHarnessResolver, createProfileConversationBlindReviewer, createQueryAssurance, ReviewModeController } = await import(toUrl(path.join(root, "packages/runtime/dist/index.js")));
+const { DataAgentRuntime, MetadataStore, PiJsonlSessionStore, KnowledgeIndex, WorkspaceStore, createAgentHarnessResolver, createProfileConversationBlindReviewer, createProfileAnswerSpecGenerator, createQueryAssurance, createSqlglotQueryDigestCompiler, resolveQueryDigestParserVersion, CONVERSATION_BLIND_REVIEWER_PROMPT_VERSION, REVIEW_COVERAGE_SCHEMA_VERSION, QUERY_DIGEST_VERSION, DETERMINISTIC_GATE_NAMES, calibrationRecordFromReports, ReviewModeController } = await import(toUrl(path.join(root, "packages/runtime/dist/index.js")));
 const { createRuntimeServer } = await import(toUrl(path.join(root, "apps/server/dist/index.js")));
 
 const fsPromises = await import("node:fs/promises");
@@ -33,11 +33,23 @@ await fsPromises.mkdir(path.join(dataDir, "metadata"), { recursive: true });
 await fsPromises.mkdir(path.join(dataDir, "sessions"), { recursive: true });
 await fsPromises.mkdir(path.join(dataDir, "workspace"), { recursive: true });
 const metadata = new MetadataStore(path.join(dataDir, "metadata", "app.db"));
+const initialSettings = await metadata.getConfig("ui.settings");
+const initialConfig = initialSettings && typeof initialSettings === "object" && !Array.isArray(initialSettings) ? initialSettings : {};
+const configuredReviewerModel = typeof initialConfig.model === "string" && initialConfig.model.trim() ? initialConfig.model.trim() : "unconfigured";
+const reviewerAvailableForConfig = (config) => {
+  const model = typeof config?.model === "string" ? config.model.trim() : "";
+  const apiKey = String(config?.api_key ?? config?.openai_api_key ?? config?.anthropic_api_key ?? "").trim();
+  return config?.llm_enabled !== false && Boolean(apiKey) && Boolean(model);
+};
+const configuredReviewerAvailable = reviewerAvailableForConfig(initialConfig);
 const sessions = new PiJsonlSessionStore(path.join(dataDir, "sessions"));
 const knowledgeRoot = path.join(dataDir, "knowledge");
 await fsPromises.mkdir(knowledgeRoot, { recursive: true });
 let knowledge;
-try { knowledge = new KnowledgeIndex(knowledgeRoot); } catch { knowledge = undefined; }
+try {
+  knowledge = new KnowledgeIndex(knowledgeRoot);
+  await knowledge.loadDirectory(knowledgeRoot);
+} catch { knowledge = undefined; }
 
 // Semantic sources: KTX project dir (business-semantic/ + semantic-layer/ layouts).
 const semanticProjectDir = process.env.DATA_AGENT_SEMANTIC_PROJECT_DIR
@@ -49,48 +61,101 @@ const runtime = new DataAgentRuntime({ metadata, sessions, knowledgeRoot, knowle
 const requestedAssuranceMode = process.env.DATA_AGENT_QUERY_ASSURANCE_MODE;
 const reviewer = {
   review: async (input, signal) => {
-    const saved = (await metadata.getConfig("ui.settings")) ?? {};
-    const cfg = saved && typeof saved === "object" ? saved : {};
-    const profile = {
-      provider: String(cfg.provider ?? "openai"),
-      model: String(cfg.model ?? ""),
-      apiKey: String(cfg.api_key ?? cfg.openai_api_key ?? cfg.anthropic_api_key ?? ""),
-      ...(cfg.base_url ? { baseUrl: String(cfg.base_url) } : {}),
-      apiFormat: cfg.api_format === "chat" || cfg.apiFormat === "chat" ? "chat" : "responses",
-    };
-    if (cfg.llm_enabled === false || !profile.apiKey || !profile.model) throw new Error("LLM_NOT_CONFIGURED: complete onboarding first");
+    const profile = await configuredProfile();
     const key = JSON.stringify([profile.provider, profile.model, profile.baseUrl, profile.apiFormat]);
     if (!reviewer.cache || reviewer.cache.key !== key) reviewer.cache = { key, instance: createProfileConversationBlindReviewer(profile) };
     return reviewer.cache.instance.review(input, signal);
   },
   cache: undefined,
 };
+async function configuredProfile() {
+  const saved = (await metadata.getConfig("ui.settings")) ?? {};
+  const cfg = saved && typeof saved === "object" ? saved : {};
+  const profile = {
+    provider: String(cfg.provider ?? "openai"),
+    model: String(cfg.model ?? ""),
+    apiKey: String(cfg.api_key ?? cfg.openai_api_key ?? cfg.anthropic_api_key ?? ""),
+    ...(cfg.base_url ? { baseUrl: String(cfg.base_url) } : {}),
+    apiFormat: cfg.api_format === "chat" || cfg.apiFormat === "chat" ? "chat" : "responses",
+  };
+  if (cfg.llm_enabled === false || !profile.apiKey || !profile.model) throw new Error("LLM_NOT_CONFIGURED: complete onboarding first");
+  return profile;
+}
+let plannerCache;
+const planner = {
+  generate: async (input, signal) => {
+    const profile = await configuredProfile();
+    const key = JSON.stringify([profile.provider, profile.model, profile.baseUrl, profile.apiFormat]);
+    if (!plannerCache || plannerCache.key !== key) plannerCache = { key, instance: createProfileAnswerSpecGenerator(profile) };
+    return plannerCache.instance.generate(input, signal);
+  },
+};
+// Raw categorical rows are opt-in because they may contain personal data. The
+// same policy is passed to preview and export paths so review behavior is
+// consistent; default remains numeric-only evidence.
+const reviewEvidence = { includeRows: process.env.DATA_AGENT_QUERY_ASSURANCE_INCLUDE_ROWS === "1" };
+// Use the same managed Python capability for strict Query Digest parsing and
+// plotting. An absent or incomplete package fails closed in the coordinator.
+const pythonExecutable = process.env.DATA_AGENT_PYTHON
+  ?? (existsSync(path.join(root, "dist", "python-runtime", "Scripts", "python.exe")) ? path.join(root, "dist", "python-runtime", "Scripts", "python.exe") : undefined);
+const sqlglotExecutable = process.env.DATA_AGENT_SQLGLOT_EXECUTABLE ?? pythonExecutable;
+const digestCompiler = sqlglotExecutable ? createSqlglotQueryDigestCompiler({ executable: sqlglotExecutable }) : undefined;
+const digestParserVersion = resolveQueryDigestParserVersion(digestCompiler, "mysql");
 const effectiveRequestedAssuranceMode = requestedAssuranceMode === "off" || requestedAssuranceMode === "enforce" || requestedAssuranceMode === "shadow" ? requestedAssuranceMode : "shadow";
+const calibrationIdentity = {
+  reviewerModel: configuredReviewerModel,
+  reviewerPromptVersion: CONVERSATION_BLIND_REVIEWER_PROMPT_VERSION,
+  queryDigestVersion: QUERY_DIGEST_VERSION,
+  parserVersion: digestParserVersion,
+  reviewCoverageSchemaVersion: REVIEW_COVERAGE_SCHEMA_VERSION,
+  reviewPolicyVersion: "2",
+  hardConstraintAdmissionPolicy: "2",
+  gatePolicyVersion: "1",
+  gateApplicabilityVersion: "1",
+  probeTemplateVersion: "1",
+  evidenceAdmissionPolicyVersion: "1",
+  dialect: "mysql",
+};
+let trustedCalibration;
+try {
+  trustedCalibration = Array.isArray(initialConfig.query_assurance_calibration?.reports)
+    ? calibrationRecordFromReports(calibrationIdentity, initialConfig.query_assurance_calibration.reports)
+    : undefined;
+} catch {
+  trustedCalibration = undefined;
+}
 const modeController = new ReviewModeController({
   requestedMode: effectiveRequestedAssuranceMode,
   // The reviewer is lazy and reports provider/configuration failures as
   // Review Unavailable. Calibration is the separate gate for Enforce.
-  reviewerAvailable: true,
-  ...(process.env.DATA_AGENT_QUERY_ASSURANCE_CALIBRATED === "1" ? {
-    calibration: {
-      eligible: true,
-      identity: {
-        reviewerModel: "web-configured",
-        reviewerPromptVersion: "1",
-        queryDigestVersion: "1",
-        parserVersion: "query-digest-tokenizer-1",
-        reviewCoverageSchemaVersion: "1",
-        reviewPolicyVersion: "1",
-        hardConstraintAdmissionPolicy: "1",
-      },
-    },
-  } : {}),
+  reviewerAvailable: configuredReviewerAvailable,
+  requiredGateNames: DETERMINISTIC_GATE_NAMES,
+  ...(trustedCalibration ? { calibration: trustedCalibration } : {}),
 });
+// The web UI completes onboarding through runtime config.save after this
+// controller is constructed. Keep the capability state synchronized so a
+// startup Off state does not survive successful onboarding.
+runtime.onConfigSaved = (config) => {
+  modeController.setReviewerAvailable(reviewerAvailableForConfig(config));
+};
 const queryAssurance = createQueryAssurance({
   mode: effectiveRequestedAssuranceMode,
   modeController,
   reviewer,
-  reviewerModel: "web-configured",
+  ...(digestCompiler ? { digestCompiler } : {}),
+  ...(effectiveRequestedAssuranceMode !== "off" && process.env.DATA_AGENT_QUERY_ASSURANCE_PLANNER !== "0" ? { specGenerator: planner } : {}),
+  reviewerModel: configuredReviewerModel,
+  reviewerPromptVersion: CONVERSATION_BLIND_REVIEWER_PROMPT_VERSION,
+  reviewCoverageSchemaVersion: REVIEW_COVERAGE_SCHEMA_VERSION,
+  gatePolicyVersion: "1",
+  gateApplicabilityVersion: "1",
+  probeTemplateVersion: "1",
+  evidenceAdmissionPolicyVersion: "1",
+  parserVersion: digestParserVersion,
+  dialect: "mysql",
+  statePath: path.join(dataDir, "metadata", "query-assurance-state.json"),
+  reviewEvidence,
+  shadowDelivery: process.env.DATA_AGENT_QUERY_ASSURANCE_SHADOW_DELIVERY === "record_only" ? "record_only" : "publish_with_disagreement",
   allowUnavailablePublication: false,
 });
 
@@ -159,8 +224,6 @@ resolveQueryExecutor().catch((error) => console.warn("[data-agent-web] mcp query
 // Pi agent initialization is shared by startup warm-up and request-time use.
 // A missing or temporarily invalid LLM configuration must not prevent the host
 // from listening; the next request will retry after a failed warm-up.
-const pythonExecutable = process.env.DATA_AGENT_PYTHON
-  ?? (existsSync(path.join(root, "dist", "python-runtime", "Scripts", "python.exe")) ? path.join(root, "dist", "python-runtime", "Scripts", "python.exe") : undefined);
 let agentHarness;
 const agentListeners = new Set();
 const agentHarnessResolver = createAgentHarnessResolver({
@@ -183,7 +246,7 @@ const agentHarnessResolver = createAgentHarnessResolver({
       console.warn("[data-agent-web] schema evidence unavailable:", error?.message ?? error);
       return undefined;
     });
-    const harness = await createDataAgentHarness({ workspace, knowledge, knowledgeRoot, pythonExecutable, databaseDialect: "mysql", schemaEvidence, queryExecutor: currentQueryExecutor, queryAssurance, enforceDeliveryReceipt: true, clarifications: runtime.clarifications, session: persistentSession, systemPromptRoots: [knowledgeRoot, root], projectRoot: root, packagedRoot: process.resourcesPath ?? root, toolContext: { sessionId } }, profile);
+    const harness = await createDataAgentHarness({ workspace, knowledge, knowledgeRoot, pythonExecutable, databaseDialect: "mysql", schemaEvidence, queryExecutor: currentQueryExecutor, queryAssurance, reviewEvidence, enforceDeliveryReceipt: true, clarifications: runtime.clarifications, session: persistentSession, systemPromptRoots: [knowledgeRoot, root], projectRoot: root, packagedRoot: process.resourcesPath ?? root, toolContext: { sessionId } }, profile);
     for (const listener of agentListeners) harness.subscribe(listener);
     agentHarness = harness;
     console.log(`[data-agent-web] agent ready: ${profile.provider}/${profile.model}`);

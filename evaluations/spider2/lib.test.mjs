@@ -13,10 +13,10 @@ import {
   createRecorder,
   ddlCsvToMarkdown,
   ddlCsvToSql,
+  deterministicGateCasesFromLabels,
   extractProviderFailure,
   exceedsTurnBudget,
   fixedDenominatorScore,
-  needsDeliveryFollowUp,
   parseCorrectIdsCsv,
   parseCsvRows,
   parseJsonl,
@@ -60,27 +60,37 @@ test("selectCases filters, sorts, and limits deterministically", () => {
   assert.deepEqual(selectCases(cases, { backend: "sqlite", maxCases: 1 }).map((item) => item.instance_id), ["local002"]);
 });
 
-test("selectFinalSql prefers the last finished successful export", () => {
-  const calls = [
-    { toolCallId: "1", toolName: "query_database", args: { sql: "select 1" }, isError: false, finishedAt: 1 },
-    { toolCallId: "2", toolName: "export_query", args: { sql: "bad" }, isError: true, finishedAt: 2 },
-    { toolCallId: "3", toolName: "export_query", args: { sql: "unfinished" }, isError: false },
-    { toolCallId: "4", toolName: "export_query", args: { sql: "select 2" }, isError: false, finishedAt: 3 },
-    { toolCallId: "5", toolName: "query_database", args: { sql: "blocked exploration" }, isError: false, finishedAt: 4, result: { details: { warning: "EXPLORATION_BUDGET_EXCEEDED" } } },
-    { toolCallId: "6", toolName: "query_database", args: { sql: "reconciliation" }, isError: false, finishedAt: 5, result: { details: { purpose: "reconciliation" } } },
+test("selectFinalSql follows the exact exported Query Artifact", () => {
+  assert.deepEqual(selectFinalSql([
+    { toolCallId: "q1", toolName: "query_database", args: { sql: "select 1" }, isError: false, finishedAt: 1, result: { details: { queryArtifactId: "artifact-1" } } },
+    { toolCallId: "q2", toolName: "query_database", args: { sql: "select 2" }, isError: false, finishedAt: 2, result: { details: { queryArtifactId: "artifact-2" } } },
+    { toolCallId: "e", toolName: "export_query", args: { queryArtifactId: "artifact-2" }, isError: false, finishedAt: 3, result: { details: { taskComplete: true } } },
+  ]), { sql: "select 2", toolCallId: "e", toolName: "export_query", queryArtifactId: "artifact-2" });
+  const previewOnly = [
+    { toolCallId: "q", toolName: "query_database", args: { sql: "select 1" }, isError: false, finishedAt: 1, result: { details: { queryArtifactId: "artifact-1" } } },
+    { toolCallId: "explore", toolName: "query_database", args: { sql: "successful exploration" }, isError: false, finishedAt: 2, result: { details: { exploratory: true } } },
+    { toolCallId: "blocked", toolName: "query_database", args: { sql: "blocked exploration" }, isError: false, finishedAt: 3, result: { details: { warning: "EXPLORATION_BUDGET_EXCEEDED" } } },
   ];
-  assert.deepEqual(selectFinalSql(calls), { sql: "select 2", toolCallId: "4", toolName: "export_query" });
-  assert.deepEqual(selectFinalSql([
-    { toolCallId: "1", toolName: "query_database", args: { sql: "select 1" }, isError: false, finishedAt: 1 },
-    { toolCallId: "2", toolName: "query_database", args: { sql: "successful exploration" }, isError: false, finishedAt: 2, result: { details: { exploratory: true } } },
-    { toolCallId: "3", toolName: "query_database", args: { sql: "blocked exploration" }, isError: false, finishedAt: 3, result: { details: { warning: "EXPLORATION_BUDGET_EXCEEDED" } } },
-    { toolCallId: "4", toolName: "query_database", args: { sql: "reconciliation" }, isError: false, finishedAt: 4, result: { details: { purpose: "reconciliation" } } },
-  ]), { sql: "select 1", toolCallId: "1", toolName: "query_database" });
+  assert.deepEqual(selectFinalSql(previewOnly), { sql: "select 1", toolCallId: "q", toolName: "query_database", queryArtifactId: "artifact-1" });
+  assert.equal(selectFinalSql(previewOnly, { assuranceMode: "shadow" }), undefined);
+  assert.equal(selectFinalSql(previewOnly, { assuranceMode: "enforce" }), undefined);
+  assert.equal(selectFinalSql([
+    { toolCallId: "q", toolName: "query_database", args: { sql: "select 1" }, isError: false, finishedAt: 1, result: { details: { queryArtifactId: "artifact-1" } } },
+    { toolCallId: "blocked-export", toolName: "export_query", args: { queryArtifactId: "artifact-1" }, isError: false, finishedAt: 2, result: { details: { status: "blocked", terminal: true } } },
+  ]), undefined);
   assert.equal(selectFinalSql([]), undefined);
-  assert.deepEqual(selectFinalSql([
-    { toolCallId: "q", toolName: "query_database", args: { sql: "SELECT 1" }, isError: false, finishedAt: 1, result: { details: { queryArtifactId: "artifact-1" } } },
-    { toolCallId: "e", toolName: "export_query", args: { queryArtifactId: "artifact-1" }, isError: false, finishedAt: 2, result: { details: { taskComplete: true } } },
-  ]), { sql: "SELECT 1", toolCallId: "e", toolName: "export_query", queryArtifactId: "artifact-1" });
+});
+
+test("deterministic gate labels become dialect-scoped replay cases", () => {
+  const cases = deterministicGateCasesFromLabels([{ caseId: "local001", dialect: "sqlite", gates: [
+    { gate: "g1_shape", expected: "block", applicability: "checked", blocking: true },
+    { gate: "g3_fanout", expected: "pass", applicability: "not_applicable", blocking: false },
+  ] }]);
+  assert.deepEqual(cases.map((item) => ({ caseId: item.caseId, dialect: item.dialect, expected: item.expected, gate: item.result.gate, blocking: item.result.blocking })), [
+    { caseId: "local001:g1_shape", dialect: "sqlite", expected: "block", gate: "g1_shape", blocking: true },
+    { caseId: "local001:g3_fanout", dialect: "sqlite", expected: "pass", gate: "g3_fanout", blocking: false },
+  ]);
+  assert.throws(() => deterministicGateCasesFromLabels([{ caseId: "broken", gates: [{ gate: "g1_shape", expected: "pass" }] }]), /DIALECT_REQUIRED/);
 });
 
 test("evaluation knowledge preserves reusable rules and adds SQLite guidance", () => {
@@ -94,20 +104,13 @@ test("evaluation knowledge preserves reusable rules and adds SQLite guidance", (
   assert.match(buildEvaluationLearning("# Curated learnings"), /Curated learnings/);
 });
 
-test("buildAgentPrompt requires the minimal final result rather than exploratory or diagnostic output", () => {
-  const prompt = buildAgentPrompt({ instance_id: "local001", question: "Original question?" });
-  assert.match(prompt, /^Original question\?/);
-  assert.match(prompt, /local001\.csv/);
-  assert.match(prompt, /Before the first database query, derive a compact answer contract/);
-  assert.match(prompt, /Do not invent thresholds, defaults, date baselines, or unit conversions/);
-  assert.match(prompt, /purpose=reconciliation/);
-  assert.match(prompt, /purpose=verification/);
-  assert.match(prompt, /only the minimal final result needed to answer the question/);
-  assert.match(prompt, /queryArtifactId/);
-  assert.match(prompt, /publish_query_result/);
-  assert.match(prompt, /Do not submit a different SQL string or solver-declared expected shape/);
-  assert.match(prompt, /Do not export intermediate data, diagnostic columns, candidate rows, or a complete ranking unless the question explicitly requests them/);
-  assert.equal([...prompt.slice("Original question?".length)].every((char) => char.charCodeAt(0) < 128), true);
+test("buildAgentPrompt adds only the final CSV delivery instruction", () => {
+  const question = "Original question?\n请返回销售额。";
+  const prompt = buildAgentPrompt({ instance_id: "local001", question });
+  assert.match(prompt, /^Original question\?\n请返回销售额。/);
+  assert.match(prompt, /将最终成果导出为 CSV/);
+  assert.match(prompt, /使用 export_query 生成 CSV/);
+  assert.doesNotMatch(prompt, /verification|reconciliation/i);
 });
 
 test("provider failures are detected from assistant events", () => {
@@ -124,23 +127,11 @@ test("evaluation harness guardrails carry the configured budget and live turn co
   let turnCount = 7;
   const guardrails = buildEvaluationGuardrails({ maxTurns: 20, maxExploratoryQueries: 6 }, () => turnCount);
   assert.equal(guardrails.explorationQueryBudget, 6);
-  assert.equal(guardrails.requireJoinReconciliation, true);
+  assert.equal("requireJoinReconciliation" in guardrails, false);
   assert.deepEqual(guardrails.taskProgress(), { turnCount: 7, maxTurns: 20 });
   turnCount = 12;
   assert.deepEqual(guardrails.taskProgress(), { turnCount: 12, maxTurns: 20 });
-  assert.equal(buildEvaluationGuardrails({ requireJoinReconciliation: false }, () => 0).requireJoinReconciliation, false);
-});
-
-test("delivery follow-up runs once only for validated non-exploratory results without export", () => {
-  const finalQuery = { toolCallId: "q", toolName: "query_database", finishedAt: 1, isError: false, result: { details: { exploratory: false } } };
-  assert.equal(needsDeliveryFollowUp([finalQuery], 7, 20), true);
-  assert.equal(needsDeliveryFollowUp([{ ...finalQuery, result: { details: { exploratory: true } } }], 7, 20), false);
-  assert.equal(needsDeliveryFollowUp([{ ...finalQuery, result: { details: { purpose: "reconciliation" } } }], 7, 20), false);
-  assert.equal(needsDeliveryFollowUp([{ ...finalQuery, result: { details: { purpose: "verification" } } }], 7, 20), false);
-  assert.equal(needsDeliveryFollowUp([{ ...finalQuery, toolName: "publish_query_result", result: { details: { taskComplete: true } } }], 7, 20), false);
-  assert.equal(needsDeliveryFollowUp([{ ...finalQuery, toolName: "publish_query_result", result: { details: { taskComplete: true } } }], 7, 20, { requireExport: true }), true);
-  assert.equal(needsDeliveryFollowUp([finalQuery, { toolCallId: "e", toolName: "export_query", finishedAt: 2, isError: false }], 7, 20), false);
-  assert.equal(needsDeliveryFollowUp([finalQuery], 20, 20), false);
+  assert.equal("requireJoinReconciliation" in buildEvaluationGuardrails({ requireJoinReconciliation: false }, () => 0), false);
 });
 
 test("turn budget allows the configured final turn and stops the next one", () => {

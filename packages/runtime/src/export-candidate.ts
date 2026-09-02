@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import type { ResultMetadata } from "./query-assurance.js";
 import { WorkspaceStore } from "./workspace.js";
+import { buildResultEvidence, type ResultEvidenceOptions } from "./result-evidence.js";
 
 export interface ExportCandidateBatch {
   readonly columns: readonly string[];
@@ -9,13 +10,17 @@ export interface ExportCandidateBatch {
   readonly truncated?: boolean;
 }
 
+export const EXPORT_CANDIDATE_SCHEMA_VERSION = 2;
+
 export interface ExportCandidate {
   readonly candidateId: string;
+  readonly schemaVersion?: number;
   readonly taskId: string;
   readonly queryArtifactId: string;
   readonly path: string;
   readonly contentSha256: string;
   readonly metadata: ResultMetadata;
+  readonly dataSnapshot?: string;
   readonly createdAt: string;
 }
 
@@ -23,15 +28,18 @@ export interface ExportCandidateInput {
   readonly taskId: string;
   readonly queryArtifactId: string;
   readonly batches: AsyncIterable<ExportCandidateBatch> | Promise<AsyncIterable<ExportCandidateBatch>>;
-  readonly expectedColumns?: readonly string[];
-  readonly expectedRows?: "scalar" | "top_n" | "grouped" | "full";
-  readonly expectedRowCount?: number;
+  /** Artifact preview columns; this is identity evidence, not Solver output semantics. */
+  readonly artifactColumns?: readonly string[];
   readonly maxRows?: number;
+  /** Snapshot identity inherited from the Validated Query Artifact. */
+  readonly dataSnapshot?: string;
 }
 
 export interface ExportCandidateStoreOptions {
   now?: () => number;
   maxRows?: number;
+  /** Limits value evidence sent to the blind reviewer, not the exported file. */
+  reviewEvidence?: ResultEvidenceOptions;
 }
 
 function csvField(value: unknown): string {
@@ -56,10 +64,12 @@ function sameColumns(left: readonly string[], right: readonly string[]): boolean
 export class ExportCandidateStore {
   private readonly now: () => number;
   private readonly maxRows: number;
+  private readonly reviewEvidence: ResultEvidenceOptions;
 
   constructor(private readonly workspace: WorkspaceStore, options: ExportCandidateStoreOptions = {}) {
     this.now = options.now ?? Date.now;
     this.maxRows = options.maxRows ?? 100_000;
+    this.reviewEvidence = options.reviewEvidence ?? {};
   }
 
   async create(input: ExportCandidateInput, signal?: AbortSignal): Promise<ExportCandidate> {
@@ -74,6 +84,8 @@ export class ExportCandidateStore {
     const nullCounts: Record<string, number> = {};
     const distinct: Array<Set<string>> = [];
     const minMax: Record<string, { min?: unknown; max?: unknown }> = {};
+    const evidenceMaxRows = Math.max(this.reviewEvidence.maxRows ?? 2_000, this.reviewEvidence.maxNumericRows ?? 10_000);
+    const evidenceRows: unknown[][] = [];
     let headerWritten = false;
     try {
       await this.workspace.writeStream(relativePath, async (write) => {
@@ -93,14 +105,17 @@ export class ExportCandidateStore {
             }
           }
           if (!sameColumns(batch.columns, observedColumns)) throw new Error("CANDIDATE_COLUMNS_CHANGED");
-          if (input.expectedColumns && !sameColumns(batch.columns, input.expectedColumns)) throw new Error(`CANDIDATE_COLUMNS_MISMATCH: expected [${input.expectedColumns.join(", ")}] got [${batch.columns.join(", ")}]`);
+          // An empty contract means the expected shape was not established;
+          // it must not be interpreted as a zero-column result. G1 owns the
+          // semantic output contract, while this check only protects the
+          // Candidate/Artifact identity boundary.
+          if (input.artifactColumns?.length && !sameColumns(batch.columns, input.artifactColumns)) throw new Error(`CANDIDATE_COLUMNS_MISMATCH: expected [${input.artifactColumns.join(", ")}] got [${batch.columns.join(", ")}]`);
           if (!headerWritten) { await append(batch.columns.map(csvHeaderField).join(",")); headerWritten = true; }
           truncated ||= Boolean(batch.truncated);
           for (const row of batch.rows) {
             if (row.length !== batch.columns.length) throw new Error("CANDIDATE_ROW_WIDTH_MISMATCH");
             rowCount += 1;
-            if (input.expectedRows === "scalar" && rowCount > 1) throw new Error("CANDIDATE_SCALAR_SHAPE_MISMATCH");
-            if ((input.expectedRows === "top_n" || input.expectedRows === "grouped") && input.expectedRowCount !== undefined && rowCount > input.expectedRowCount) throw new Error("CANDIDATE_ROW_COUNT_MISMATCH");
+            if (evidenceRows.length < evidenceMaxRows) evidenceRows.push([...row]);
             if (rowCount > maxRows) throw new Error("CANDIDATE_ROW_LIMIT_EXCEEDED");
             for (let index = 0; index < row.length; index += 1) {
               if (row[index] === null || row[index] === undefined) nullCounts[batch.columns[index]] += 1;
@@ -120,15 +135,20 @@ export class ExportCandidateStore {
         };
         for await (const batch of await input.batches) await consume(batch);
         if (!headerWritten) throw new Error("CANDIDATE_EMPTY_STREAM");
-        if (input.expectedRows === "scalar" && rowCount !== 1) throw new Error("CANDIDATE_SCALAR_SHAPE_MISMATCH");
         if (pending) await write(pending);
       }, signal);
+      const contentSha256 = contentHash.digest("hex");
+      const evidence = observedColumns
+        ? buildResultEvidence(observedColumns, evidenceRows, truncated || evidenceRows.length < rowCount, this.reviewEvidence, rowCount)
+        : undefined;
+      const boundEvidence = evidence ? { ...evidence, evidenceHash: contentSha256 } : undefined;
       return {
         candidateId,
+        schemaVersion: EXPORT_CANDIDATE_SCHEMA_VERSION,
         taskId: input.taskId,
         queryArtifactId: input.queryArtifactId,
         path: relativePath,
-        contentSha256: contentHash.digest("hex"),
+        contentSha256,
         metadata: {
           columns: observedColumns ?? [],
           columnTypes: columnTypes ?? [],
@@ -136,7 +156,9 @@ export class ExportCandidateStore {
           truncated,
           nullCounts,
           ...(observedColumns?.length ? { minMax, distinctCounts: Object.fromEntries(observedColumns.map((column, index) => [column, distinct[index].size])) } : {}),
+          ...(boundEvidence ? { resultEvidence: boundEvidence } : {}),
         },
+        ...(input.dataSnapshot ? { dataSnapshot: input.dataSnapshot } : {}),
         createdAt: new Date(this.now()).toISOString(),
       };
     } catch (error) {

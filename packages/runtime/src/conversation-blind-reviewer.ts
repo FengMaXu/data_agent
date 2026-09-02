@@ -1,9 +1,10 @@
-import type { AnswerSpec } from "./answer-spec.js";
+import type { AnswerSpec, SemanticEvidenceExcerpt } from "./answer-spec.js";
 import type { QueryDigest, SchemaEvidence } from "./query-digest.js";
 import type { ResultMetadata, ReviewDecision } from "./query-assurance.js";
 import type { ResultEvidence } from "./result-evidence.js";
 
-export const REVIEW_COVERAGE_SCHEMA_VERSION = "2";
+export const REVIEW_COVERAGE_SCHEMA_VERSION = "4";
+export const CONVERSATION_BLIND_REVIEWER_PROMPT_VERSION = "5";
 
 export const REVIEW_COVERAGE_FACETS = [
   "projection",
@@ -30,7 +31,7 @@ export interface ReviewCoverageEvidence {
   readonly digestPath: string;
   /** Optional structured Answer Spec path, added as contract slots are populated. */
   readonly specPath?: string;
-  /** Required by result_values to prove the reviewer saw complete numeric data. */
+  /** Added by Runtime for complete full-row or numeric result evidence. */
   readonly resultPath?: string;
 }
 
@@ -42,8 +43,8 @@ export interface ReviewCoverageClaim {
 
 /**
  * The string form remains accepted by the public type for old audit records and
- * hand-written integrations. Reviewer responses are normalized to claims and
- * a checked string is rejected because it has no evidence.
+ * hand-written integrations. Reviewer responses declare only status; Runtime
+ * replaces any supplied evidence with canonical citations.
  */
 export type ReviewCoverageValue = ReviewCoverageStatus | ReviewCoverageClaim;
 export type ReviewCoverage = Partial<Record<ReviewCoverageFacet, ReviewCoverageValue>>;
@@ -59,11 +60,18 @@ export interface SemanticDiff {
   readonly aspect: string;
   readonly required: string;
   readonly observed: string;
+  /** Runtime-owned stable identity for deterministic gate claims. */
+  readonly claimId?: string;
   /** Runtime derives this from evidence authority; reviewer cannot set it. */
   readonly blocking?: boolean;
   readonly evidence: {
     readonly constraintId?: string;
     readonly specPath?: string;
+    /** Exact substring of the authoritative user request. */
+    readonly questionQuote?: string;
+    readonly semanticEvidenceId?: string;
+    /** Exact substring of the referenced task document/semantic model. */
+    readonly semanticEvidenceQuote?: string;
     readonly digestPath: string;
   };
 }
@@ -72,6 +80,8 @@ export interface ConversationBlindReviewerInput {
   readonly question: string;
   readonly clarifications: readonly string[];
   readonly answerSpec: AnswerSpec;
+  /** Runtime-selected business evidence; treated as data, never instructions. */
+  readonly semanticEvidence?: readonly SemanticEvidenceExcerpt[];
   readonly schema: SchemaEvidence;
   readonly sql: string;
   readonly digest: QueryDigest;
@@ -96,8 +106,6 @@ export interface ConversationBlindReviewer {
 }
 
 const RESPONSE_FIELDS = new Set(["status", "coverage", "warnings", "diffs", "retryable", "ambiguities", "reason"]);
-const COVERAGE_FIELDS = new Set(["status", "evidence", "reason"]);
-const COVERAGE_EVIDENCE_FIELDS = new Set(["digestPath", "specPath", "resultPath"]);
 const DECISION_STATUSES = new Set(["approved", "rejected", "needs_clarification", "abstained"]);
 const COVERAGE_STATUSES = new Set<ReviewCoverageStatus>(["checked", "not_applicable", "unsupported", "insufficient_evidence"]);
 
@@ -130,14 +138,62 @@ function digestPathExists(digest: QueryDigest, path: string): boolean {
   return Array.isArray(value) ? value.length > 0 : true;
 }
 
-function pathMatchesBase(path: string, base: string): boolean {
-  return path === base || path.startsWith(`${base}[`);
+const CANONICAL_DIGEST_PATH_BY_FIELD: Readonly<Record<string, string>> = {
+  sources: "sources[0].name",
+  joins: "joins[0].type",
+  filters: "filters[0]",
+  measures: "measures[0].function",
+  groupBy: "groupBy[0]",
+  projections: "projections[0].output",
+  outputLineage: "outputLineage[0].output",
+  windows: "windows[0].function",
+  orderBy: "orderBy[0]",
+  limit: "limit",
+  setOperations: "setOperations[0]",
+  nullHandling: "nullHandling[0]",
+};
+
+function digestField(path: string): string {
+  return path.split(/[.[]/, 1)[0];
 }
 
-function digestPathSupported(digest: QueryDigest, path: string): boolean {
-  const base = path.split("[")[0];
-  const status = digest.coverage[base];
-  return status === undefined || status === "checked" || status === "not_applicable";
+/** Resolve an auditable, concrete path from a Runtime-owned requirement. */
+function canonicalDigestPath(digest: QueryDigest, requestedPath: string): string | undefined {
+  const field = digestField(requestedPath);
+  const coverageStatus = digest.coverage[field];
+  if (coverageStatus === "unsupported" || coverageStatus === "insufficient_evidence" || coverageStatus === "not_applicable") return undefined;
+  if (requestedPath !== field && digestPathExists(digest, requestedPath)) return requestedPath;
+  const preferred = CANONICAL_DIGEST_PATH_BY_FIELD[field];
+  if (preferred && digestPathExists(digest, preferred)) return preferred;
+
+  const value = (digest as unknown as Record<string, unknown>)[field];
+  if (Array.isArray(value) && value.length > 0) {
+    if (!isRecord(value[0])) return `${field}[0]`;
+    const firstKey = Object.keys(value[0]).sort()[0];
+    if (firstKey) return `${field}[0].${firstKey}`;
+  }
+  if (value !== undefined && !Array.isArray(value)) return field;
+  return undefined;
+}
+
+function runtimeDigestEvidence(digest: QueryDigest, requirementForFacet: ReviewCoverageRequirement):
+  | { readonly status: "checked"; readonly digestPath: string }
+  | { readonly status: "unsupported" | "insufficient_evidence" } {
+  // Tokenizer diagnostics are useful for shadow observability but cannot be
+  // cited as authoritative semantic evidence.
+  if (digest.parserEngine !== "sqlglot") return { status: "unsupported" };
+  // A top-level projection path cannot stand in for hidden CTE/subquery
+  // semantics. Until lineage closes over every aggregation/source boundary,
+  // no required semantic facet may claim deterministic Digest coverage.
+  if (digest.lineageCompleteness !== "complete" || digest.unsupportedNodes.length > 0) return { status: "unsupported" };
+  const statuses = requirementForFacet.digestPaths.map((path) => digest.coverage[digestField(path)]);
+  for (const path of requirementForFacet.digestPaths) {
+    const canonicalPath = canonicalDigestPath(digest, path);
+    if (canonicalPath) return { status: "checked", digestPath: canonicalPath };
+  }
+  const declaredStatuses = statuses.filter((status): status is NonNullable<typeof status> => status !== undefined);
+  if (declaredStatuses.length > 0 && declaredStatuses.every((status) => status === "unsupported")) return { status: "unsupported" };
+  return { status: "insufficient_evidence" };
 }
 
 function requirement(
@@ -195,7 +251,7 @@ export function deriveReviewCoverageRequirements(input: Pick<ConversationBlindRe
     ["projection", requirement("projection", digest.projections.length > 0 || Boolean(contract?.output), ["projections", "outputLineage"], "the query or Answer Contract has an output projection")],
     ["grain", requirement("grain", hasGrouping || Boolean(contract?.grain), grainPaths, "aggregation, grouping, a window, or the Answer Contract makes result grain material")],
     ["measure", requirement("measure", hasAggregates || contractHasMeasures, measurePaths, "the query or Answer Contract contains an aggregate measure")],
-    ["result_values", requirement("result_values", hasAggregates || contractHasMeasures, measurePaths, "the result contains numeric measure values that must be available to review")],
+    ["result_values", requirement("result_values", digest.projections.length > 0 || Boolean(contract?.output), hasAggregates || contractHasMeasures ? measurePaths : ["projections", "outputLineage"], "the projected result values must be available to review")],
     ["population", requirement("population", hasSources || Boolean(contract?.denominator), ["sources", "filters", "joins", "setOperations"], "the query or Answer Contract selects a population")],
     ["join_cardinality", requirement("join_cardinality", hasJoins, ["joins"], "the query contains a JOIN")],
     ["time_filter", requirement("time_filter", hasDate || contractHasTime, timePaths, "a date or time predicate or Answer Contract window is present")],
@@ -210,17 +266,15 @@ export function deriveReviewCoverageRequirements(input: Pick<ConversationBlindRe
   return REVIEW_COVERAGE_FACETS.map((facet) => required.get(facet)!);
 }
 
-function resultPathExists(metadata: ResultMetadata, path: string, explicitEvidence?: ResultEvidence): boolean {
+function completeResultEvidencePath(metadata: ResultMetadata, explicitEvidence?: ResultEvidence): "resultEvidence.rows" | "resultEvidence.numericRows" | undefined {
   const evidence = explicitEvidence ?? metadata.resultEvidence;
-  if (!evidence) return false;
-  if (path === "resultEvidence") return true;
-  if (path === "resultEvidence.rows") return Boolean(evidence.rows && evidence.rows.length > 0);
-  if (path === "resultEvidence.numericRows") return evidence.numericRows.length > 0;
-  if (path === "resultEvidence.numericColumns") return evidence.numericColumns.length > 0;
-  const match = /^resultEvidence\.(rows|numericRows)\[(\d+)\]$/.exec(path);
-  if (!match) return false;
-  const values = match[1] === "rows" ? evidence.rows : evidence.numericRows;
-  return Boolean(values && Number(match[2]) < values.length);
+  if (!evidence || evidence.rowCount !== metadata.rowCount) return undefined;
+  if (evidence.completeness === "complete" && evidence.rows !== undefined && evidence.rows.length === evidence.rowCount) return "resultEvidence.rows";
+  if (evidence.numericCompleteness === "complete"
+    && evidence.numericColumns.length > 0
+    && evidence.numericRows.length === evidence.rowCount
+    && evidence.numericRows.every((row) => row.length === evidence.numericColumns.length)) return "resultEvidence.numericRows";
+  return undefined;
 }
 
 function answerSpecPathExists(answerSpec: AnswerSpec, path: string): boolean {
@@ -239,7 +293,7 @@ function answerSpecPathExists(answerSpec: AnswerSpec, path: string): boolean {
 }
 
 function answerSpecPathBinding(answerSpec: AnswerSpec, path: string): "hard" | "hypothesis" | undefined {
-  const match = /^answerContract\.(output|grain|measures(?:\[\d+\])?|denominator|ranking|time|unit|rounding)(?:\.|$)/.exec(path);
+  const match = /^answerContract\.(output|grain|measures(?:\[\d+\])?|denominator|ranking|time|unit|rounding|joins(?:\[\d+\])?)(?:\.|$)/.exec(path);
   if (!match) return undefined;
   const field = match[1].replace(/\[\d+\]$/, "") as keyof typeof answerSpec.answerContract;
   const value = answerSpec.answerContract?.[field];
@@ -250,70 +304,89 @@ function answerSpecPathBinding(answerSpec: AnswerSpec, path: string): "hard" | "
   return (value as { binding?: "hard" | "hypothesis" } | undefined)?.binding;
 }
 
-function normalizeClaim(value: unknown, facet: ReviewCoverageFacet, requirementForFacet: ReviewCoverageRequirement, digest: QueryDigest, metadata: ResultMetadata, answerSpec: AnswerSpec, explicitEvidence?: ResultEvidence): ReviewCoverageClaim {
-  let claim: ReviewCoverageClaim;
-  if (typeof value === "string") {
-    if (!COVERAGE_STATUSES.has(value as ReviewCoverageStatus)) throw new Error("REVIEW_COVERAGE_INVALID");
-    claim = { status: value as ReviewCoverageStatus };
-  } else if (isRecord(value)) {
-    for (const key of Object.keys(value)) if (!COVERAGE_FIELDS.has(key)) throw new Error(`REVIEW_COVERAGE_UNKNOWN_FIELD:${key}`);
-    if (!COVERAGE_STATUSES.has(value.status as ReviewCoverageStatus)) throw new Error("REVIEW_COVERAGE_INVALID");
-    let evidence: ReviewCoverageEvidence[] | undefined;
-    if (value.evidence !== undefined) {
-      if (!Array.isArray(value.evidence)) throw new Error("REVIEW_COVERAGE_EVIDENCE_INVALID");
-      evidence = value.evidence.map((item) => {
-        if (!isRecord(item) || typeof item.digestPath !== "string" || !item.digestPath.trim()) throw new Error("REVIEW_COVERAGE_EVIDENCE_INVALID");
-        for (const key of Object.keys(item)) if (!COVERAGE_EVIDENCE_FIELDS.has(key)) throw new Error(`REVIEW_COVERAGE_EVIDENCE_UNKNOWN_FIELD:${key}`);
-        if (item.specPath !== undefined && (typeof item.specPath !== "string" || !item.specPath.trim())) throw new Error("REVIEW_COVERAGE_EVIDENCE_INVALID");
-        if (item.resultPath !== undefined && (typeof item.resultPath !== "string" || !item.resultPath.trim())) throw new Error("REVIEW_COVERAGE_EVIDENCE_INVALID");
-        // A reviewer may copy a stale/speculative specPath even when the
-        // Digest evidence is valid (especially with a request-only fallback
-        // Answer Spec). Drop that optional citation rather than spending a
-        // second provider request on a non-semantic formatting defect.
-        const specPath = item.specPath !== undefined && answerSpecPathExists(answerSpec, item.specPath as string)
-          ? item.specPath as string
-          : undefined;
-        if (!digestPathExists(digest, item.digestPath)) throw new Error("REVIEW_COVERAGE_DIGEST_PATH_UNKNOWN");
-        if (!digestPathSupported(digest, item.digestPath as string)) throw new Error("REVIEW_COVERAGE_DIGEST_UNSUPPORTED");
-        if (!requirementForFacet.digestPaths.some((base) => pathMatchesBase(item.digestPath as string, base))) throw new Error(`REVIEW_COVERAGE_DIGEST_PATH_WRONG_FACET:${facet}`);
-        if (item.resultPath !== undefined && !resultPathExists(metadata, item.resultPath as string, explicitEvidence)) throw new Error("REVIEW_COVERAGE_RESULT_PATH_UNKNOWN");
-        return { digestPath: item.digestPath as string, ...(specPath ? { specPath } : {}), ...(item.resultPath !== undefined ? { resultPath: item.resultPath as string } : {}) };
-      });
-    }
-    claim = {
-      status: value.status as ReviewCoverageStatus,
-      ...(evidence ? { evidence } : {}),
-      ...(value.reason !== undefined ? { reason: ensureString(value.reason, "REVIEW_COVERAGE_REASON_INVALID") } : {}),
-    };
-  } else {
-    throw new Error("REVIEW_COVERAGE_INVALID");
-  }
-  if (!requirementForFacet.required && claim.status !== "not_applicable") throw new Error(`REVIEW_COVERAGE_APPLICABILITY_MISMATCH:${facet}`);
-  if (requirementForFacet.required && claim.status === "not_applicable") throw new Error(`REVIEW_COVERAGE_APPLICABILITY_MISMATCH:${facet}`);
-  if (claim.status === "checked" && (!claim.evidence || claim.evidence.length === 0)) throw new Error(`REVIEW_COVERAGE_EVIDENCE_REQUIRED:${facet}`);
-  return claim;
+interface ReviewerCoverageDeclaration {
+  readonly status?: ReviewCoverageStatus;
+  readonly reason?: string;
 }
 
-/** Runtime-owned coverage validation. It verifies both applicability and all evidence paths. */
+/**
+ * Reviewer coverage is a semantic declaration, not an evidence locator. The
+ * Runtime intentionally ignores reviewer-supplied paths and validates only the
+ * small status vocabulary; malformed or omitted statuses fail closed to
+ * insufficient evidence instead of becoming provider/protocol failures.
+ */
+function reviewerCoverageDeclaration(value: unknown): ReviewerCoverageDeclaration {
+  if (typeof value === "string") {
+    return COVERAGE_STATUSES.has(value as ReviewCoverageStatus) ? { status: value as ReviewCoverageStatus } : {};
+  }
+  if (!isRecord(value)) return {};
+  const status = COVERAGE_STATUSES.has(value.status as ReviewCoverageStatus) ? value.status as ReviewCoverageStatus : undefined;
+  const reason = typeof value.reason === "string" && value.reason.trim() ? value.reason.trim() : undefined;
+  return { ...(status ? { status } : {}), ...(reason ? { reason } : {}) };
+}
+
+function canonicalCoverageClaim(
+  facet: ReviewCoverageFacet,
+  declaration: ReviewerCoverageDeclaration,
+  requirementForFacet: ReviewCoverageRequirement,
+  input: Pick<ConversationBlindReviewerInput, "digest" | "resultMetadata" | "resultEvidence">,
+): ReviewCoverageClaim {
+  // Applicability belongs exclusively to the Runtime challenge. Reviewer
+  // output can neither create a requirement nor dismiss one.
+  if (!requirementForFacet.required) return { status: "not_applicable" };
+
+  const digestEvidence = runtimeDigestEvidence(input.digest, requirementForFacet);
+  if (digestEvidence.status !== "checked") {
+    return {
+      status: digestEvidence.status,
+      reason: digestEvidence.status === "unsupported"
+        ? `Query Digest cannot inspect required ${facet} evidence`
+        : `Query Digest lacks required ${facet} evidence`,
+    };
+  }
+  const resultPath = facet === "result_values"
+    ? completeResultEvidencePath(input.resultMetadata, input.resultEvidence)
+    : undefined;
+  if (facet === "result_values" && !resultPath) {
+    return { status: "insufficient_evidence", reason: "Complete result evidence is unavailable" };
+  }
+
+  if (declaration.status !== "checked") {
+    const status = declaration.status === "unsupported" || declaration.status === "insufficient_evidence"
+      ? declaration.status
+      : "insufficient_evidence";
+    return { status, ...(declaration.reason ? { reason: declaration.reason } : {}) };
+  }
+
+  const evidence: ReviewCoverageEvidence = {
+    digestPath: digestEvidence.digestPath,
+    ...(resultPath ? { resultPath } : {}),
+  };
+  return { status: "checked", evidence: [evidence] };
+}
+
+/**
+ * Canonicalize Review Coverage at the Runtime seam. The reviewer decides only
+ * whether it inspected a facet; Runtime derives applicability, Digest paths,
+ * Result Evidence paths, and unsupported/insufficient capability states.
+ */
 export function validateReviewCoverage(value: unknown, input: Pick<ConversationBlindReviewerInput, "question" | "answerSpec" | "digest" | "resultMetadata" | "resultEvidence"> & { coverageRequirements?: readonly ReviewCoverageRequirement[] }): ReviewCoverage {
-  if (value === undefined || !isRecord(value)) throw new Error("REVIEW_COVERAGE_REQUIRED");
+  const declarations = isRecord(value) ? value : {};
+  for (const key of Object.keys(declarations)) {
+    if (!REVIEW_COVERAGE_FACETS.includes(key as ReviewCoverageFacet)) throw new Error(`REVIEW_COVERAGE_UNKNOWN_FACET:${key}`);
+  }
   // Never trust a caller-provided requirement list. It is an explanatory
   // challenge payload only; applicability is recomputed from the Digest here.
   const requirements = deriveReviewCoverageRequirements(input);
   const byFacet = new Map(requirements.map((item) => [item.facet, item]));
-  for (const facet of Object.keys(value)) if (!byFacet.has(facet as ReviewCoverageFacet)) throw new Error(`REVIEW_COVERAGE_UNKNOWN_FACET:${facet}`);
   const coverage: Partial<Record<ReviewCoverageFacet, ReviewCoverageClaim>> = {};
   for (const facet of REVIEW_COVERAGE_FACETS) {
-    if (!(facet in value)) throw new Error(`REVIEW_COVERAGE_FACET_REQUIRED:${facet}`);
-    const claim = normalizeClaim(value[facet], facet, byFacet.get(facet)!, input.digest, input.resultMetadata, input.answerSpec, input.resultEvidence);
-    const resultEvidence = input.resultEvidence ?? input.resultMetadata.resultEvidence;
-    if (facet === "result_values" && claim.status === "checked") {
-      const hasCompleteValues = claim.evidence?.some((evidence) => evidence.resultPath !== undefined
-        && resultEvidence?.numericCompleteness === "complete"
-        && (resultEvidence.numericColumns.length > 0 || input.resultMetadata.rowCount === 0));
-      if (!hasCompleteValues) throw new Error("REVIEW_COVERAGE_RESULT_EVIDENCE_INSUFFICIENT");
-    }
-    coverage[facet] = claim;
+    coverage[facet] = canonicalCoverageClaim(
+      facet,
+      reviewerCoverageDeclaration(declarations[facet]),
+      byFacet.get(facet)!,
+      input,
+    );
   }
   return coverage;
 }
@@ -328,10 +401,8 @@ function hasInsufficientCoverage(coverage: ReviewCoverage): boolean {
 export function validateReviewDecision(value: ReviewDecision, input: ConversationBlindReviewerInput): ReviewDecision {
   const coverage = validateReviewCoverage(value.coverage, input);
   if (value.status === "approved" && hasInsufficientCoverage(coverage)) return { status: "abstained", coverage, reason: "REVIEW_COVERAGE_INSUFFICIENT" };
-  if (value.status === "rejected") {
-    const diffs = validateDiffs(value.diffs, input);
-    return { ...value, coverage, diffs, blocking: diffs.some((diff) => diff.blocking !== false) };
-  }
+  if (value.status === "approved" && value.diffs !== undefined && (!Array.isArray(value.diffs) || value.diffs.length > 0)) return { status: "abstained", coverage, reason: "REVIEW_APPROVED_WITH_DIFFS" };
+  if (value.status === "rejected") return validateRejectedDecision(value.diffs, value.retryable, coverage, input);
   return { ...value, coverage };
 }
 
@@ -344,40 +415,83 @@ function validateDiffs(value: unknown, input: ConversationBlindReviewerInput): S
     if (!isRecord(evidence) || typeof evidence.digestPath !== "string" || !evidence.digestPath.trim()) throw new Error("REVIEW_DIFF_EVIDENCE_REQUIRED");
     const constraintId = typeof evidence.constraintId === "string" && evidence.constraintId.trim() ? evidence.constraintId : undefined;
     const specPath = typeof evidence.specPath === "string" && evidence.specPath.trim() ? evidence.specPath : undefined;
-    if (!constraintId && !specPath) throw new Error("REVIEW_DIFF_EVIDENCE_REQUIRED");
+    const questionQuote = typeof evidence.questionQuote === "string" && evidence.questionQuote.trim() ? evidence.questionQuote.trim() : undefined;
+    const semanticEvidenceId = typeof evidence.semanticEvidenceId === "string" && evidence.semanticEvidenceId.trim() ? evidence.semanticEvidenceId.trim() : undefined;
+    const semanticEvidenceQuote = typeof evidence.semanticEvidenceQuote === "string" && evidence.semanticEvidenceQuote.trim() ? evidence.semanticEvidenceQuote.trim() : undefined;
+    if (!constraintId && !specPath && !questionQuote && !semanticEvidenceId) throw new Error("REVIEW_DIFF_EVIDENCE_REQUIRED");
+    if (Boolean(semanticEvidenceId) !== Boolean(semanticEvidenceQuote)) throw new Error("REVIEW_DIFF_SEMANTIC_EVIDENCE_INCOMPLETE");
     if (constraintId && !hardConstraintIds.has(constraintId)) throw new Error("REVIEW_DIFF_CONSTRAINT_UNKNOWN");
     if (specPath && !answerSpecPathExists(input.answerSpec, specPath)) throw new Error("REVIEW_DIFF_SPEC_PATH_UNKNOWN");
+    if (questionQuote && !input.question.includes(questionQuote)) throw new Error("REVIEW_DIFF_QUESTION_QUOTE_UNKNOWN");
+    const semanticEvidence = semanticEvidenceId ? input.semanticEvidence?.find((candidate) => candidate.id === semanticEvidenceId) : undefined;
+    if (semanticEvidenceId && !semanticEvidence) throw new Error("REVIEW_DIFF_SEMANTIC_EVIDENCE_UNKNOWN");
+    if (semanticEvidenceQuote && !semanticEvidence?.content.includes(semanticEvidenceQuote)) throw new Error("REVIEW_DIFF_SEMANTIC_EVIDENCE_QUOTE_UNKNOWN");
     if (!digestPathExists(input.digest, evidence.digestPath)) throw new Error("REVIEW_DIFF_DIGEST_PATH_UNKNOWN");
-    const blocking = Boolean(constraintId) || (specPath ? answerSpecPathBinding(input.answerSpec, specPath) === "hard" : false);
+    const blocking = Boolean(constraintId || questionQuote || semanticEvidenceId) || (specPath ? answerSpecPathBinding(input.answerSpec, specPath) === "hard" : false);
     return {
       aspect: ensureString(item.aspect, "REVIEW_DIFF_ASPECT_INVALID"),
       required: ensureString(item.required, "REVIEW_DIFF_REQUIRED_INVALID"),
       observed: ensureString(item.observed, "REVIEW_DIFF_OBSERVED_INVALID"),
       blocking,
-      evidence: { ...(constraintId ? { constraintId } : {}), ...(specPath ? { specPath } : {}), digestPath: evidence.digestPath },
+      evidence: { ...(constraintId ? { constraintId } : {}), ...(specPath ? { specPath } : {}), ...(questionQuote ? { questionQuote } : {}), ...(semanticEvidenceId ? { semanticEvidenceId, semanticEvidenceQuote } : {}), digestPath: evidence.digestPath },
     };
   });
 }
 
+function malformedDiffWarnings(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (!isRecord(item)) return [];
+    const message = [item.diff, item.message, item.observed].find((candidate) => typeof candidate === "string" && candidate.trim());
+    return typeof message === "string" ? [message.trim().slice(0, 500)] : [];
+  }).slice(0, 5);
+}
+
+function validateRejectedDecision(diffsValue: unknown, retryableValue: unknown, coverage: ReviewCoverage, input: ConversationBlindReviewerInput): ReviewDecision {
+  try {
+    const diffs = validateDiffs(diffsValue, input);
+    return { status: "rejected", coverage, diffs, blocking: diffs.some((diff) => diff.blocking !== false), retryable: retryableValue === true };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!message.startsWith("REVIEW_DIFF")) throw error;
+    const warnings = malformedDiffWarnings(diffsValue);
+    return {
+      status: "abstained",
+      coverage,
+      reason: `REVIEW_DIFF_EVIDENCE_INSUFFICIENT:${message}`,
+      ...(warnings.length > 0 ? { warnings } : {}),
+    };
+  }
+}
+
 function validateResponse(value: unknown, input: ConversationBlindReviewerInput): ReviewDecision {
   if (!isRecord(value)) throw new Error("REVIEW_RESPONSE_INVALID");
-  for (const key of Object.keys(value)) if (!RESPONSE_FIELDS.has(key)) throw new Error(`REVIEW_RESPONSE_UNKNOWN_FIELD:${key}`);
-  if (![...DECISION_STATUSES].includes(value.status as string)) throw new Error("REVIEW_STATUS_INVALID");
-  const status = value.status as ReviewDecision["status"];
-  const coverage = validateReviewCoverage(value.coverage, input);
+  const response = { ...value };
+  // Some providers mirror the domain term Semantic Diff as `semanticDiffs`.
+  // Normalize that harmless wire alias once; conflicting dual fields remain a
+  // protocol error so no semantic content is silently discarded.
+  if ("semanticDiffs" in response) {
+    if (response.diffs !== undefined) throw new Error("REVIEW_RESPONSE_DIFF_ALIAS_CONFLICT");
+    response.diffs = response.semanticDiffs;
+    delete response.semanticDiffs;
+  }
+  for (const key of Object.keys(response)) if (!RESPONSE_FIELDS.has(key)) throw new Error(`REVIEW_RESPONSE_UNKNOWN_FIELD:${key}`);
+  if (![...DECISION_STATUSES].includes(response.status as string)) throw new Error("REVIEW_STATUS_INVALID");
+  const status = response.status as ReviewDecision["status"];
+  const coverage = validateReviewCoverage(response.coverage, input);
   if (status === "approved") {
     if (hasInsufficientCoverage(coverage)) return { status: "abstained", coverage, reason: "REVIEW_COVERAGE_INSUFFICIENT" };
-    return { status, coverage, ...(Array.isArray(value.warnings) ? { warnings: value.warnings.map((warning) => ensureString(warning, "REVIEW_WARNING_INVALID")) } : {}) };
+    if (response.diffs !== undefined && (!Array.isArray(response.diffs) || response.diffs.length > 0)) {
+      return { status: "abstained", coverage, reason: "REVIEW_APPROVED_WITH_DIFFS" };
+    }
+    return { status, coverage, ...(Array.isArray(response.warnings) ? { warnings: response.warnings.map((warning) => ensureString(warning, "REVIEW_WARNING_INVALID")) } : {}) };
   }
-  if (status === "rejected") {
-    const diffs = validateDiffs(value.diffs, input);
-    return { status, coverage, diffs, blocking: diffs.some((diff) => diff.blocking !== false), retryable: value.retryable === true };
-  }
+  if (status === "rejected") return validateRejectedDecision(response.diffs, response.retryable, coverage, input);
   if (status === "needs_clarification") {
-    if (!Array.isArray(value.ambiguities)) throw new Error("REVIEW_AMBIGUITIES_INVALID");
-    return { status, coverage, ambiguities: value.ambiguities.map((ambiguity) => ensureString(ambiguity, "REVIEW_AMBIGUITY_INVALID")) };
+    if (!Array.isArray(response.ambiguities)) throw new Error("REVIEW_AMBIGUITIES_INVALID");
+    return { status, coverage, ambiguities: response.ambiguities.map((ambiguity) => ensureString(ambiguity, "REVIEW_AMBIGUITY_INVALID")) };
   }
-  return { status, coverage, reason: ensureString(value.reason, "REVIEW_REASON_INVALID") };
+  return { status, coverage, reason: ensureString(response.reason, "REVIEW_REASON_INVALID") };
 }
 
 function declaredInput(input: ConversationBlindReviewerInput): ConversationBlindReviewerInput {
@@ -387,6 +501,7 @@ function declaredInput(input: ConversationBlindReviewerInput): ConversationBlind
     question: input.question,
     clarifications: [...input.clarifications],
     answerSpec: input.answerSpec,
+    ...(input.semanticEvidence?.length ? { semanticEvidence: input.semanticEvidence.map((item) => ({ ...item })) } : {}),
     schema: input.schema,
     sql: input.sql,
     digest: input.digest,

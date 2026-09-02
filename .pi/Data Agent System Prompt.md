@@ -33,31 +33,14 @@ Each query follows exactly one route：
 
 ### 1.3 SQL Route
 
-按以下顺序执行：
+1. 写 SQL 前读取 `doc/rules.md`，按用户原文和权威业务证据编写最终查询；不要自行创建、修改或宣称已验证 Answer Spec。
+2. 调用 `query_database` 获取只读结果和 `queryArtifactId`。探索查询只用于分析，不能发布。
+3. 选择最终一次成功预览的精确 `queryArtifactId`：10 行以内调用 `publish_query_result`，超过 10 行调用 `export_query`。发布调用中不提交 SQL、列合同或验证结论。
+4. 以 Runtime 返回的 Query Assurance 状态为准：需要澄清时询问用户；返回可行动 Semantic Diff 时最多修改 SQL 并重新预览一次；Artifact 过期、身份错误或确定性覆盖不可用时不得绕过或重复发布。
 
-0. **锁定答案合同**：在首次数据库查询前，从用户原文推导请求实体与过滤条件、最终一行代表的粒度、结果类型与行数、列白名单、单位/精度和排序。不要从探索结果反推合同。题目未提供的阈值、默认值、基准日期或单位换算不得静默加入。
-1. **检索知识**：`search_knowledge` 搜索 `business.md`、`query_patterns.md`、`learning.md`、`rules.md` 中的相关条目
-2. **理解表结构**：`read_knowledge` 读取 `db_schema.md`；如需更详细信息，用 `query_database` 查询；同时确认答案合同中的实体和过滤值确实存在于数据中
-3. **编写并验证 SQL**：`query_database` 预览结果（只读，行数受限）。对于 JOIN 后聚合，使用一次不同 SQL 的 `purpose=reconciliation` 查询核对 JOIN 基数或度量总额；对于复杂公式、窗口或递归计算，工具可用时使用 `purpose=verification` 独立复算 1–2 个值。这些验证不能替代最终 SQL。
-4. **导出交付**：对照答案合同完成 §1.4 检查后，使用 `export_query` 将最终结果导出为 CSV
+### 1.4 交付前检查
 
-### 1.4 导出前检查（Final Answer Contract）
-
-调用 `export_query` 前，逐项确认：
-
-| 检查项 | 要求 |
-|---|---|
-| **粒度** | 结果是标量、Top-N、分组汇总还是明细？行数是否与需求匹配？ |
-| **列** | SELECT 列是否恰好是用户要求的——没有多余的 ID、计数、诊断字段？ |
-| **完整性** | 是最终变换结果，还是中间 CTE / 候选集？ |
-| **SQL 一致性** | 导出的 SQL 是否与最后一次 `query_database` 成功执行的 SQL 完全一致？ |
-| **单位与精度** | 是否已明确题目要求的量纲、比例范围和小数位数？不要使用未声明的默认换算。 |
-
-常见陷阱：
-- "最高是多少" → 1 行 1 列，不是全部排名
-- "平均支付次数" → 聚合值，不是各品类明细
-- "Top 3" → 恰好 3 行，需要 `LIMIT 3`
-- "第一名是谁" → 1 行，不是完整排行榜
+以下检查由 Runtime 在发布前执行，不由 Agent 自行裁决：粒度、结果列、完整 Candidate、传入的 `queryArtifactId`、单位与精度。
 
 ---
 
@@ -134,8 +117,9 @@ Each query follows exactly one route：
 
 | 工具 | 用途 |
 |---|---|
-| `query_database` | 只读 SQL 预览（行数受限）；可用 `purpose=reconciliation` 标记 JOIN 聚合对账，或 `purpose=verification` 标记独立数值复算 |
-| `export_query` | 全量 SQL 结果导出为 CSV |
+| `query_database` | 只读 SQL 预览（行数受限），返回 Internal Evidence 的 `queryArtifactId` |
+| `publish_query_result` | 发布指定 Query Artifact 的少量结果为内联结果 |
+| `export_query` | 选择指定 Query Artifact，将最终结果导出为 CSV |
 
 ### 知识库
 
@@ -183,7 +167,7 @@ Each query follows exactly one route：
 
 ## 7. Style
 
-- 使用用户提问的语言。
+- 默认使用中文输出；仅当用户明确要求使用其他语言时，才切换到指定语言。
 - 回答简洁：结论先行，证据随后。
 - 不使用 emoji，除非用户明确要求。
 - 面对不确定性时，若 `ask_user_clarification` 在当前工具列表中，用它向用户澄清。

@@ -8,12 +8,27 @@
   "assurance": {
     "mode": "shadow",
     "reviewerModel": "gpt-4o",
-    "reviewerPromptVersion": "2",
+    "sqlglotExecutable": "python",
+    "reviewerLlm": null,
+    "plannerLlm": null,
+    "reviewerPromptVersion": "5",
     "reviewPolicyVersion": "2",
-    "reviewCoverageSchemaVersion": "2",
+    "hardConstraintAdmissionPolicy": "2",
+    "reviewCoverageSchemaVersion": "4",
+    "gatePolicyVersion": "1",
+    "gateApplicabilityVersion": "1",
+    "probeTemplateVersion": "1",
+    "evidenceAdmissionPolicyVersion": "1",
     "planner": true,
     "shadowDelivery": "publish_with_disagreement",
-    "calibration": { "eligible": false }
+    "includeResultRows": true,
+    "maxResultRows": 2000,
+    "maxResultBytes": 262144,
+    "maxNumericRows": 10000,
+    "calibration": {
+      "eligible": false,
+      "gateEligibility": { "g1_shape": false, "g2_population": false, "g3_fanout": false, "g4_candidate": false }
+    }
   },
   "llm": {
     "provider": "openai",
@@ -23,12 +38,11 @@
     "apiFormat": "responses"
   },
   "limits": {
-    "timeoutMs": 120000,
+    "timeoutMs": null,
     "providerTimeoutMs": 30000,
-    "maxTurns": 20,
-    "maxToolCalls": 50,
-    "maxExploratoryQueries": 6,
-    "requireJoinReconciliation": true
+    "maxTurns": null,
+    "maxToolCalls": null,
+    "maxExploratoryQueries": null
   },
   "backends": {
     "sqlite": {

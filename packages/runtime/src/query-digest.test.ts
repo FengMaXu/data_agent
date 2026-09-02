@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createQueryDigestCompiler, schemaEvidenceFromDdl, type SchemaEvidence } from "./query-digest.js";
+import { createQueryDigestCompiler, createSqlglotQueryDigestCompiler, schemaEvidenceFromDdl, SQLGLOT_RUNTIME_VERSION, type SchemaEvidence } from "./query-digest.js";
+import { candidateSemanticFingerprint } from "./query-gates.js";
 
 const schema: SchemaEvidence = {
   connectionId: "conn-1",
@@ -11,6 +12,43 @@ const schema: SchemaEvidence = {
 };
 
 describe("Query Digest compiler", () => {
+  it("fails closed when the strict AST parser is unavailable", () => {
+    expect(() => createSqlglotQueryDigestCompiler({ executable: "data-agent-missing-sqlglot-python" }).compile({ sql: "SELECT 1", dialect: "sqlite" })).toThrow("SQLGLOT_UNAVAILABLE");
+  });
+
+  it("marks CTE lineage as unsupported instead of claiming outer-only coverage is complete", () => {
+    const digest = createSqlglotQueryDigestCompiler({ executable: "python" }).compile({
+      sql: "WITH paid AS (SELECT id FROM orders WHERE status = 'paid') SELECT id FROM paid",
+      dialect: "sqlite",
+    });
+    expect(digest.unsupportedNodes).toContain("cte");
+    expect(digest.coverage.filters).toBe("unsupported");
+    expect(digest.coverage.outputLineage).toBe("unsupported");
+    expect(digest.lineageCompleteness).not.toBe("complete");
+  });
+
+  it("marks set operations and CASE expressions unsupported when branch semantics are not fully modeled", () => {
+    const compiler = createSqlglotQueryDigestCompiler({ executable: "python" });
+    const union = compiler.compile({ sql: "SELECT id FROM orders UNION ALL SELECT id FROM customers", dialect: "sqlite" });
+    const conditional = compiler.compile({ sql: "SELECT CASE WHEN amount > 0 THEN amount ELSE 0 END AS value FROM orders", dialect: "sqlite" });
+    expect(union.unsupportedNodes).toContain("set_operation");
+    expect(conditional.unsupportedNodes).toContain("case_expression");
+    expect(union.coverage.outputLineage).toBe("unsupported");
+    expect(conditional.coverage.measures).toBe("unsupported");
+  });
+
+  it("derives authoritative population effects and join sides from sqlglot", () => {
+    const digest = createSqlglotQueryDigestCompiler({ executable: "python" }).compile({
+      sql: "SELECT o.id, SUM(i.amount) AS total FROM orders o JOIN order_items i ON i.order_id = o.id WHERE i.amount > 0 GROUP BY o.id",
+      dialect: "sqlite",
+    });
+    expect(digest.joins[0]).toMatchObject({ left: { name: "orders" }, source: { name: "order_items" } });
+    expect(digest.populationEffects).toEqual(expect.arrayContaining([
+      expect.objectContaining({ kind: "filter", expression: "i.amount > 0" }),
+      expect.objectContaining({ kind: "inner_join", source: "order_items" }),
+    ]));
+  });
+
   it("describes sources, measures, filters, grouping, ordering and output lineage", () => {
     const digest = createQueryDigestCompiler().compile({
       sql: "SELECT c.name, SUM(o.amount) AS total FROM orders o JOIN customers c ON c.id = o.customer_id WHERE o.amount IS NOT NULL GROUP BY c.name ORDER BY total DESC LIMIT 3",
@@ -26,6 +64,10 @@ describe("Query Digest compiler", () => {
     expect(digest.orderBy).toEqual(["total DESC"]);
     expect(digest.limit).toBe(3);
     expect(digest.filters).toContain("o.amount IS NOT NULL");
+    expect(digest.populationEffects).toEqual(expect.arrayContaining([expect.objectContaining({ kind: "filter", path: "filters[0]" }), expect.objectContaining({ kind: "inner_join", path: "joins[0]" })]));
+    expect(digest.queryDigestVersion).toBe("3");
+    expect(SQLGLOT_RUNTIME_VERSION).toBe("30.17.0");
+    expect(digest.projections[0]).toMatchObject({ output: "c.name", expression: "c.name" });
     expect(digest.outputLineage[0].columns).toContain("c.name");
     expect(digest.outputLineage[1].columns).toContain("o.amount");
     expect(digest.coverage.sources).toBe("checked");
@@ -62,6 +104,26 @@ describe("Query Digest compiler", () => {
     expect(digest.coverage.windows).toBe("checked");
     expect(digest.lineageCompleteness).not.toBe("complete");
     expect(digest.unsupportedNodes).toContain("subquery");
+  });
+
+  it("ignores presentation aliases when identifying a candidate semantic change", () => {
+    const compiler = createQueryDigestCompiler();
+    const first = compiler.compile({ sql: "SELECT o.id AS customer_id FROM orders o JOIN order_items i ON i.order_id = o.id WHERE i.amount > 0", dialect: "sqlite" });
+    const renamed = compiler.compile({ sql: "SELECT o.id AS renamed_customer FROM orders o JOIN order_items i ON i.order_id = o.id WHERE i.amount > 0", dialect: "sqlite" });
+    expect(candidateSemanticFingerprint(first)).toBe(candidateSemanticFingerprint(renamed));
+  });
+
+  it("keeps BigQuery and Snowflake window coverage tied to their dialect", () => {
+    for (const dialect of ["bigquery", "snowflake"] as const) {
+      const digest = createQueryDigestCompiler().compile({
+        sql: "SELECT customer_id, amount, ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY amount DESC) AS rank FROM orders QUALIFY rank = 1",
+        dialect,
+      });
+      expect(digest.dialect).toBe(dialect);
+      expect(digest.coverage.windows).toBe("checked");
+      expect(digest.coverage.filters).toBe("checked");
+      expect(digest.windows[0].partitionBy).toEqual(["customer_id"]);
+    }
   });
 
   it("extracts formal keys and columns from DDL for the Schema evidence slice", () => {

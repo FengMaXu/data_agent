@@ -2,8 +2,6 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { createRequire } from "node:module";
-import { randomUUID } from "node:crypto";
-import { ReadResourceRequestSchema, ListResourcesRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { pathToFileURL } from "node:url";
 import path from "node:path";
 import { SqlGuard } from "@data-agent/runtime";
@@ -38,6 +36,7 @@ export function createReferenceSqliteServer(options: ReferenceSqliteServerOption
       const trimmed = sql.trim().replace(/;+\s*$/, "");
       const guard = new SqlGuard().check(trimmed);
       if (!guard.allowed) return forbiddenSql(guard.reason);
+      if (!/^(?:SELECT|WITH)\b/i.test(trimmed)) return forbiddenSql("Only SELECT/WITH statements are supported");
       const effectiveLimit = Math.min(limit ?? maxRows, maxRows);
       const statement = db.prepare(`SELECT * FROM (${trimmed}) __preview LIMIT ?`);
       const columns: string[] = statement.columns().map((column: { name: string }) => column.name);
@@ -55,6 +54,7 @@ export function createReferenceSqliteServer(options: ReferenceSqliteServerOption
       const trimmed = sql.trim().replace(/;+\s*$/, "");
       const guard = new SqlGuard().check(trimmed);
       if (!guard.allowed) return forbiddenSql(guard.reason);
+      if (!/^(?:SELECT|WITH)\b/i.test(trimmed)) return forbiddenSql("Only SELECT/WITH statements are supported");
       const start = offset ?? 0;
       const batchLimit = Math.min(limit ?? 1000, 1000);
       const rowLimit = Math.min(requestedMaxRows ?? 100000, 100000);
@@ -69,53 +69,56 @@ export function createReferenceSqliteServer(options: ReferenceSqliteServerOption
   );
 
   server.tool(
+    "explain_query",
+    "Compile a read-only SQLite query and return its EXPLAIN QUERY PLAN",
+    { sql: z.string().min(1) },
+    async ({ sql }) => {
+      const trimmed = sql.trim().replace(/;+\s*$/, "");
+      const guard = new SqlGuard().check(trimmed);
+      if (!guard.allowed) return forbiddenSql(guard.reason);
+      try {
+        const statement = db.prepare(`EXPLAIN QUERY PLAN ${trimmed}`);
+        const columns: string[] = statement.columns().map((column: { name: string }) => column.name);
+        const rows = statement.all() as Record<string, unknown>[];
+        return { content: [{ type: "text", text: JSON.stringify({ columns, rows, truncated: false, contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
+      } catch (error) {
+        return { content: [{ type: "text", text: JSON.stringify({ error: { code: "EXPLAIN_FAILED", message: String((error as Error).message).slice(0, 300) } }) }] };
+      }
+    },
+  );
+
+  server.tool(
     "get_schema",
     "List tables and columns of the reference SQLite database",
     {},
     async () => {
       const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all();
-      const schema = tables.map((t: any) => ({ table: t.name, columns: db.prepare(`PRAGMA table_info(${JSON.stringify(t.name).slice(1, -1)})`).all() }));
+      const schema = tables.map((t: any) => {
+        const quoted = JSON.stringify(t.name).slice(1, -1);
+        const columns = db.prepare(`PRAGMA table_info(${quoted})`).all() as Array<{ name: string; type?: string; pk?: number }>;
+        const primaryKey = columns.filter((column) => Number(column.pk) > 0).sort((left, right) => Number(left.pk) - Number(right.pk)).map((column) => column.name);
+        const indexes = db.prepare(`PRAGMA index_list(${quoted})`).all() as Array<{ name: string; unique?: number }>;
+        const uniqueKeys = indexes.filter((index) => Number(index.unique) === 1).flatMap((index) => {
+          const entries = db.prepare(`PRAGMA index_info(${JSON.stringify(index.name).slice(1, -1)})`).all() as Array<{ name?: string; seqno?: number }>;
+          return [entries.sort((left, right) => Number(left.seqno) - Number(right.seqno)).flatMap((entry) => entry.name ? [entry.name] : [])];
+        }).filter((key) => key.length > 0);
+        const foreignRows = db.prepare(`PRAGMA foreign_key_list(${quoted})`).all() as Array<{ id?: number; seq?: number; from?: string; table?: string; to?: string }>;
+        const foreignKeys = [...new Set(foreignRows.map((row) => row.id).filter((id): id is number => id !== undefined))].flatMap((id) => {
+          const rows = foreignRows.filter((row) => row.id === id).sort((left, right) => Number(left.seq) - Number(right.seq));
+          const first = rows[0];
+          if (!first?.table) return [];
+          return [{ columns: rows.flatMap((row) => row.from ? [row.from] : []), references: { table: first.table, columns: rows.flatMap((row) => row.to ? [row.to] : []) } }];
+        });
+        return { table: t.name, columns, ...(primaryKey.length ? { primaryKey } : {}), ...(uniqueKeys.length ? { uniqueKeys } : {}), ...(foreignKeys.length ? { foreignKeys } : {}) };
+      });
       return { content: [{ type: "text", text: JSON.stringify({ schema, contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
     },
   );
 
-  const exports_ = new Map<string, { uri: string; name: string; mimeType: string; blob: Buffer }>();
-
-  server.tool(
-    "export_query",
-    "Run a read-only SQLite query and register the full result as a CSV Resource",
-    { sql: z.string().min(1), maxRows: z.number().int().positive().max(100000).optional() },
-    async ({ sql, maxRows: rowLimitArg }) => {
-      const trimmed = sql.trim().replace(/;+\s*$/, "");
-      const guard = new SqlGuard().check(trimmed);
-      if (!guard.allowed) return forbiddenSql(guard.reason);
-      const rowLimit = Math.min(rowLimitArg ?? 100000, 100000);
-      const statement = db.prepare(`SELECT * FROM (${trimmed}) __export LIMIT ?`);
-      const columns: string[] = statement.columns().map((column: { name: string }) => column.name);
-      const rows = statement.all(rowLimit + 1) as Record<string, unknown>[];
-      if (rows.length > rowLimit) return { content: [{ type: "text", text: JSON.stringify({ error: { code: "EXPORT_ROW_LIMIT_EXCEEDED", rowLimit } }) }] };
-      const escape = (value: unknown) => {
-        const text = value === null || value === undefined ? "" : String(value);
-        return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
-      };
-      const csv = [columns.join(","), ...rows.map(row => columns.map(c => escape(row[c])).join(","))].join("\n");
-      const resourceId = randomUUID();
-      exports_.set(resourceId, { uri: `sqlite://exports/${resourceId}.csv`, name: `${resourceId}.csv`, mimeType: "text/csv", blob: Buffer.from(csv, "utf8") });
-      return { content: [{ type: "text", text: JSON.stringify({ resourceUri: `sqlite://exports/${resourceId}.csv`, rowCount: rows.length, columnCount: columns.length, contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
-    },
-  );
-
-  server.server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
-    const uri = request.params.uri as string;
-    for (const entry of exports_.values()) {
-      if (entry.uri === uri) return { contents: [{ uri: entry.uri, mimeType: entry.mimeType, blob: entry.blob.toString("base64") }] };
-    }
-    throw new Error(`Resource not found: ${uri}`);
-  });
-
-  server.server.setRequestHandler(ListResourcesRequestSchema, async () => ({ resources: [...exports_.values()].map(e => ({ uri: e.uri, name: e.name, mimeType: e.mimeType })) }));
-
-  return { server, db, exports_, close: () => db.close(), contractVersion: DATABASE_MCP_CONTRACT_VERSION, maxRows };
+  // The database MCP server deliberately has no raw export_query(sql) tool.
+  // Full publication is owned by the Query Assurance Runtime, which binds a
+  // Query Artifact, Candidate, Review Outcome and Publication Receipt.
+  return { server, db, close: () => db.close(), contractVersion: DATABASE_MCP_CONTRACT_VERSION, maxRows };
 }
 
 export async function startReferenceSqliteStdio(options: ReferenceSqliteServerOptions): Promise<void> {

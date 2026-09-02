@@ -1,14 +1,16 @@
 import { createHash, randomUUID } from "node:crypto";
-import { createSpecAuthority, type AmbiguityInput, type AnswerContractInput, type AnswerRowMode, type AnswerSpec, type AnswerSpecGenerator, type ConstraintInput, type HypothesisInput, type SpecAuthority } from "./answer-spec.js";
-import { createQueryDigestCompiler, type QueryDigest, type QueryDigestCompiler, type SchemaEvidence, type SqlDialect } from "./query-digest.js";
-import { deriveReviewCoverageRequirements, validateReviewDecision, REVIEW_COVERAGE_SCHEMA_VERSION, type ConversationBlindReviewer, type ConversationBlindReviewerInput, type ReviewCoverage, type SemanticDiff } from "./conversation-blind-reviewer.js";
+import { createSpecAuthority, type AmbiguityInput, type AnswerContractInput, type AnswerRowMode, type AnswerSpec, type AnswerSpecGenerator, type ConstraintInput, type HypothesisInput, type PhysicalMappingEvidence, type SemanticEvidenceExcerpt, type SpecAuthority } from "./answer-spec.js";
+import { createQueryDigestCompiler, QUERY_DIGEST_PARSER_VERSION, QUERY_DIGEST_VERSION, type DigestCardinalityEvidence, type QueryDigest, type QueryDigestCompiler, type SchemaEvidence, type SqlDialect } from "./query-digest.js";
+import { CONVERSATION_BLIND_REVIEWER_PROMPT_VERSION, deriveReviewCoverageRequirements, validateReviewDecision, REVIEW_COVERAGE_SCHEMA_VERSION, type ConversationBlindReviewer, type ConversationBlindReviewerInput, type ReviewCoverage, type SemanticDiff } from "./conversation-blind-reviewer.js";
 import type { ExportCandidate } from "./export-candidate.js";
 import { PublicationRegistry, type PublicationAuthorization, type PublicationReceipt, type ReviewToken } from "./publication.js";
 import { ReviewCache, type ReviewCacheIdentity } from "./review-cache.js";
 import { type AssuranceMetrics, type ReviewModeController } from "./review-policy.js";
 import { InMemoryAssuranceAuditStore, type AssuranceAuditRecord, type AssuranceAuditStore, type SpecGenerationFailure } from "./assurance-audit.js";
-import { InvariantProbeRegistry, type ProbeOutcome } from "./invariant-probe.js";
-import { buildResultEvidence, type ResultEvidence } from "./result-evidence.js";
+import { InvariantProbeRegistry, type ProbeInstance, type ProbeOutcome } from "./invariant-probe.js";
+import { buildResultEvidence, type ResultEvidence, type ResultEvidenceOptions } from "./result-evidence.js";
+import { candidateSemanticFingerprint, candidateSemanticFingerprintForClaim, evaluateGates, GATE_APPLICABILITY_VERSION, type GateResult, type GateViolation } from "./query-gates.js";
+import { JsonFileQueryAssuranceStateStore, type QueryAssurancePersistedState, type QueryAssuranceStateIdentity, type QueryAssuranceStateStore } from "./query-assurance-store.js";
 
 /** Runtime modes are explicit so Review Off cannot be confused with Shadow Review. */
 export type QueryAssuranceMode = "off" | "shadow" | "enforce";
@@ -31,10 +33,15 @@ export interface TaskEvidence {
   readonly rowCount?: number;
   /** Structured output/grain/measure/denominator contract from authoritative evidence. */
   readonly answerContract?: AnswerContractInput;
+  /** Bounded business/semantic evidence retrieved before planning. */
+  readonly semanticEvidence?: readonly SemanticEvidenceExcerpt[];
+  readonly physicalMappings?: readonly PhysicalMappingEvidence[];
   readonly dialect?: SqlDialect;
   readonly schema?: SchemaEvidence;
   readonly [key: string]: unknown;
 }
+
+export type QueryTaskLifecycleStatus = "spec_pending" | "exploration" | "candidate_review" | "repair_available" | "awaiting_clarification" | "awaiting_authorization" | "published" | "closed_without_publication";
 
 /** The task identity returned by Query Assurance before a query is executed. */
 export interface PreparedQueryTask {
@@ -53,6 +60,7 @@ export interface QueryPreviewResult {
   readonly rows: readonly (readonly unknown[])[];
   readonly truncated: boolean;
   readonly columnTypes?: readonly string[];
+  readonly dataSnapshot?: string;
 }
 
 export interface ResultMetadata {
@@ -71,7 +79,10 @@ export interface QueryPreviewRegistration {
   readonly task: PreparedQueryTask;
   readonly sql: string;
   readonly result: QueryPreviewResult;
-  readonly purpose?: "reconciliation" | "verification";
+  /** Runtime classification; Solver cannot override exploration status. */
+  readonly exploratory?: boolean;
+  readonly cardinalityEvidence?: readonly DigestCardinalityEvidence[];
+  readonly dataSnapshot?: string;
   readonly dialect?: SqlDialect;
   readonly schema?: SchemaEvidence;
 }
@@ -87,10 +98,13 @@ export interface ValidatedQueryArtifact {
   readonly specVersion?: string;
   readonly specStatus?: "available" | "unavailable";
   readonly preflightOutcomes?: readonly ProbeOutcome[];
+  readonly preflightInstances?: readonly ProbeInstance[];
+  readonly deterministicGates?: readonly GateResult[];
+  readonly exploratory?: boolean;
+  readonly dataSnapshot?: string;
   readonly internalEvidence: true;
   readonly createdAt: string;
   readonly expiresAt: string;
-  readonly purpose?: "reconciliation" | "verification";
 }
 
 /** Opaque publication input; candidate details belong to later assurance slices. */
@@ -113,12 +127,19 @@ export interface ReviewDecision {
   readonly ambiguities?: readonly string[];
   readonly reason?: string;
   readonly blocking?: boolean;
+  /** True when the Runtime, rather than the LLM reviewer, produced the decision. */
+  readonly deterministic?: boolean;
+  /** Runtime-owned gate observations attached to this publication decision. */
+  readonly deterministicGates?: readonly GateResult[];
 }
 
 export interface ReviewFailure {
   readonly code: string;
   readonly message: string;
   readonly retryable: boolean;
+  /** True when required deterministic coverage, rather than a provider, failed. */
+  readonly deterministic?: boolean;
+  readonly deterministicGates?: readonly GateResult[];
 }
 
 /** Separates a successful reviewer decision from a reviewer that could not run. */
@@ -132,6 +153,8 @@ export interface QueryAssurance {
   recordPreview?(input: QueryPreviewRegistration, signal: AbortSignal): Promise<ValidatedQueryArtifact>;
   getArtifact?(taskId: string, queryArtifactId: string, signal: AbortSignal): Promise<ValidatedQueryArtifact | undefined>;
   getAnswerSpec?(taskId: string, specVersion?: string): AnswerSpec | undefined;
+  getTaskEvidence?(taskId: string): TaskEvidence | undefined;
+  getTaskStatus?(taskId: string): QueryTaskLifecycleStatus | undefined;
   applyClarification?(taskId: string, baseSpecVersion: string, clarification: string): AnswerSpec;
   submitSpecChange?(proposal: Parameters<SpecAuthority["submitProposal"]>[0]): ReturnType<SpecAuthority["submitProposal"]>;
   reviewForPublication(input: PublicationReviewRequest, signal: AbortSignal): Promise<ReviewOutcome>;
@@ -168,10 +191,24 @@ export interface QueryAssuranceOptions {
   reviewerPromptVersion?: string;
   reviewPolicyVersion?: string;
   reviewCoverageSchemaVersion?: string;
+  parserVersion?: string;
+  hardConstraintAdmissionPolicy?: string;
+  gatePolicyVersion?: string;
+  gateApplicabilityVersion?: string;
+  probeTemplateVersion?: string;
+  evidenceAdmissionPolicyVersion?: string;
+  /** Dialect scope for persisted assurance state; product hosts provide one per runtime. */
+  dialect?: SqlDialect;
   modeController?: ReviewModeController;
   auditStore?: AssuranceAuditStore;
   specGenerator?: AnswerSpecGenerator;
   invariantProbes?: InvariantProbeRegistry;
+  /** Controls which bounded result values may be sent to the blind reviewer. */
+  reviewEvidence?: ResultEvidenceOptions;
+  /** Optional trusted persistence seam for product Enforce mode. */
+  stateStore?: QueryAssuranceStateStore;
+  /** Convenience file-backed state store; stateStore takes precedence. */
+  statePath?: string;
 }
 
 export function normalizeQuerySql(sql: string): string {
@@ -201,8 +238,9 @@ function inferColumnType(value: unknown): string {
   return "TEXT";
 }
 
-function resultMetadata(result: QueryPreviewResult): ResultMetadata {
+function resultMetadata(result: QueryPreviewResult, reviewEvidence: ResultEvidenceOptions = {}): ResultMetadata {
   const columns = [...result.columns];
+  if (result.rows.some((row) => row.length !== columns.length)) throw new Error("QUERY_ARTIFACT_ROW_WIDTH_MISMATCH");
   const firstRow = result.rows[0] ?? [];
   const columnTypes = columns.map((_, index) => result.columnTypes?.[index] ?? inferColumnType(firstRow[index]));
   const nullCounts: Record<string, number> = Object.fromEntries(columns.map((column) => [column, 0]));
@@ -230,7 +268,7 @@ function resultMetadata(result: QueryPreviewResult): ResultMetadata {
     truncated: result.truncated,
     nullCounts,
     ...(columns.length ? { minMax, distinctCounts: Object.fromEntries(columns.map((column, index) => [column, distinct[index].size])) } : {}),
-    resultEvidence: buildResultEvidence(columns, result.rows, result.truncated),
+    resultEvidence: buildResultEvidence(columns, result.rows, result.truncated, reviewEvidence),
   };
 }
 
@@ -245,71 +283,56 @@ function stable(value: unknown): string {
   return `{${Object.keys(record).sort().map((key) => `${JSON.stringify(key)}:${stable(record[key])}`).join(",")}}`;
 }
 
-function normalizedExpression(value: string): string {
-  return value.toLowerCase().replace(/[\[\]`"']/g, "").replace(/\s+/g, " ").trim();
+function mergeStableItems<T>(trusted: readonly T[] | undefined, generated: readonly T[] | undefined): readonly T[] | undefined {
+  if (trusted === undefined && generated === undefined) return undefined;
+  const result: T[] = [];
+  for (const item of [...(trusted ?? []), ...(generated ?? [])]) {
+    if (!result.some((existing) => stable(existing) === stable(item))) result.push(item);
+  }
+  return result;
 }
 
-function contractDiff(
-  spec: AnswerSpec,
-  digest: QueryDigest,
-  metadata: ResultMetadata,
-): SemanticDiff[] {
-  const diffs: SemanticDiff[] = [];
-  const contract = spec.answerContract;
-  if (!contract) return diffs;
-  const outputField = contract.output;
-  const grainField = contract.grain;
-  const rankingField = contract.ranking;
-  const output = outputField?.binding === "hard" ? outputField.value : undefined;
-  const grain = grainField?.binding === "hard" ? grainField.value : undefined;
-  const measures = contract.measures?.filter((measure) => measure.binding === "hard").map((measure) => measure.value) ?? [];
-  const ranking = rankingField?.binding === "hard" ? rankingField.value : undefined;
-  const digestPath = digest.projections.length > 0 ? "projections" : "outputLineage";
-  const outputColumns = output?.columns ?? [];
-  const grainColumns = grain?.keyColumns ?? [];
-  if (outputColumns.length > 0 && digestCoverageSupports(digest, ["projections", "outputLineage"])) {
-    const observed = digest.projections.map((projection) => projection.output);
-    if (!sameStringArray(outputColumns, observed) || !sameStringArray(outputColumns, metadata.columns)) {
-      diffs.push({ aspect: "projection", required: outputColumns.join(", "), observed: observed.join(", ") || metadata.columns.join(", "), blocking: true, evidence: { specPath: "answerContract.output.value.columns", digestPath } });
-    }
-  }
-  if (output?.rowCount !== undefined && metadata.rowCount !== output.rowCount) {
-    diffs.push({ aspect: "row_count", required: String(output.rowCount), observed: String(metadata.rowCount), blocking: true, evidence: { specPath: "answerContract.output.value.rowCount", digestPath } });
-  }
-  if (output?.rowMode === "scalar" && metadata.rowCount !== 1) {
-    diffs.push({ aspect: "row_mode", required: "exactly one scalar row", observed: `${metadata.rowCount} rows`, blocking: true, evidence: { specPath: "answerContract.output.value.rowMode", digestPath } });
-  }
-  if (grainColumns.length > 0 && digestCoverageSupports(digest, ["groupBy", "windows", "projections"])) {
-    const observedGroupBy = digest.groupBy.map(normalizedExpression);
-    const missing = grainColumns.filter((column) => !observedGroupBy.includes(normalizedExpression(column)));
-    if (missing.length > 0) diffs.push({ aspect: "grain", required: `grouped by ${grainColumns.join(", ")}`, observed: digest.groupBy.join(", ") || "no GROUP BY", blocking: true, evidence: { specPath: "answerContract.grain.value.keyColumns", digestPath: digest.groupBy.length > 0 ? "groupBy" : "projections" } });
-  }
-  for (const measure of measures) {
-    if (measure.kind === "unknown") continue;
-    const expectedFunction = measure.kind === "count" || measure.kind === "count_distinct" ? "COUNT" : measure.kind.toUpperCase();
-    const matched = digest.measures.some((candidate) => candidate.function === expectedFunction
-      && (measure.kind !== "count_distinct" || /DISTINCT/i.test(candidate.expression))
-      && (measure.kind !== "count" || !/DISTINCT/i.test(candidate.expression)));
-    if (!matched && digestCoverageSupports(digest, ["measures", "outputLineage"])) diffs.push({ aspect: "measure", required: measure.kind, observed: digest.measures.map((candidate) => candidate.function).join(", ") || "no aggregate", blocking: true, evidence: { specPath: "answerContract.measures", digestPath: digest.measures.length > 0 ? "measures" : "projections" } });
-  }
-  if (ranking) {
-    const expectedPartition = ranking.partitionBy.map(normalizedExpression);
-    const matched = digest.windows.some((window) => sameStringArray(expectedPartition, window.partitionBy.map(normalizedExpression)))
-      || (expectedPartition.length === 0 && digest.limit !== undefined && digest.orderBy.length > 0);
-    if (!matched && digestCoverageSupports(digest, ["windows", "orderBy", "limit"])) diffs.push({ aspect: "ranking_partition", required: expectedPartition.length ? expectedPartition.join(", ") : "global", observed: digest.windows.map((window) => window.partitionBy.join(", ")).join("; ") || "global/non-window", blocking: true, evidence: { specPath: "answerContract.ranking.value.partitionBy", digestPath: digest.windows.length > 0 ? "windows" : "orderBy" } });
-  }
-  return diffs;
+/** Clone task evidence at the authority boundary so later caller mutation cannot
+ * change what the planner/reviewer sees for an existing Query Task. */
+function cloneTaskEvidence<T>(value: T): T {
+  if (value === null || typeof value !== "object") return value;
+  if (Array.isArray(value)) return value.map((item) => cloneTaskEvidence(item)) as T;
+  if (value instanceof Date) return new Date(value.getTime()) as T;
+  const copy = Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([key, item]) => [key, cloneTaskEvidence(item)]));
+  return copy as T;
 }
 
-function sameStringArray(left: readonly string[], right: readonly string[]): boolean {
-  return left.length === right.length && left.every((value, index) => normalizedExpression(value) === normalizedExpression(right[index]));
+function gateViolationToDiff(violation: GateViolation): SemanticDiff {
+  return {
+    aspect: violation.aspect,
+    required: violation.required,
+    observed: violation.observed,
+    ...(violation.claimId ? { claimId: violation.claimId } : { claimId: `${violation.gate}:${violation.code}` }),
+    blocking: violation.blocking,
+    evidence: {
+      ...(violation.specPath ? { specPath: violation.specPath } : {}),
+      digestPath: violation.digestPath ?? "projections",
+    },
+  };
 }
 
-function digestCoverageSupports(digest: QueryDigest, paths: readonly string[]): boolean {
-  return paths.some((path) => {
-    const status = digest.coverage[path];
-    return status === undefined || status === "checked" || status === "not_applicable";
-  });
+function gateUnavailable(gate: GateResult): boolean {
+  return gate.applicability === "unsupported" || gate.applicability === "inconclusive";
+}
+
+function gateFailureMessage(gates: readonly GateResult[]): string {
+  return gates
+    .filter(gateUnavailable)
+    .map((gate) => `${gate.gate}:${gate.warnings.join("; ") || gate.applicability}`)
+    .join(" | ") || "Required deterministic gate evidence is unavailable";
+}
+
+function failedCandidateFingerprint(fingerprint: string): string {
+  return hash(fingerprint);
+}
+
+function candidateEvidenceScope(digest: QueryDigest, dataSnapshot?: string): string {
+  return `snapshot:${dataSnapshot ?? "unknown"}|schema:${digest.schemaEvidenceFingerprint}|digest:${digest.queryDigestVersion}|parser:${digest.parserVersion}|dialect:${digest.dialect}`;
 }
 
 /**
@@ -321,11 +344,15 @@ function digestCoverageSupports(digest: QueryDigest, paths: readonly string[]): 
 export class InMemoryQueryAssurance implements QueryAssurance {
   private readonly configuredMode: QueryAssuranceMode;
   private readonly modeController?: ReviewModeController;
+  private readonly shadowDelivery: "publish_with_disagreement" | "record_only";
+  private readonly allowUnavailablePublication: boolean;
   private readonly artifactTtlMs: number;
   private readonly now: () => number;
   private readonly artifacts = new Map<string, Map<string, ValidatedQueryArtifact>>();
   private readonly taskEvidence = new Map<string, TaskEvidence>();
   private readonly repairAttempts = new Map<string, number>();
+  private readonly failedCandidates = new Map<string, { specVersion: string; candidateId?: string; queryArtifactId?: string; digestPaths?: readonly string[]; gatePolicyVersion?: string; gateApplicabilityVersion?: string; fingerprint: string; claimIds: readonly string[]; claimFingerprints?: readonly (readonly [string, string])[] }[]>();
+  private readonly taskStatuses = new Map<string, QueryTaskLifecycleStatus>();
   private readonly specAuthority: SpecAuthority;
   private readonly digestCompiler: QueryDigestCompiler;
   private readonly reviewer?: ConversationBlindReviewer;
@@ -335,33 +362,145 @@ export class InMemoryQueryAssurance implements QueryAssurance {
   private readonly reviewerPromptVersion: string;
   private readonly reviewPolicyVersion: string;
   private readonly reviewCoverageSchemaVersion: string;
+  private readonly parserVersion: string;
+  private readonly hardConstraintAdmissionPolicy: string;
+  private readonly gatePolicyVersion: string;
+  private readonly gateApplicabilityVersion: string;
+  private readonly probeTemplateVersion: string;
+  private readonly evidenceAdmissionPolicyVersion: string;
+  private readonly assuranceDialect: string;
   private readonly auditStore: AssuranceAuditStore;
   private readonly specGenerator?: AnswerSpecGenerator;
   private readonly invariantProbes?: InvariantProbeRegistry;
+  private readonly reviewEvidence: ResultEvidenceOptions;
+  private readonly stateStore?: QueryAssuranceStateStore;
 
   constructor(options: QueryAssuranceOptions = {}) {
     this.modeController = options.modeController;
-    this.configuredMode = options.mode ?? this.modeController?.mode() ?? "off";
+    // Enforce is an earned mode. Direct construction without the calibration
+    // controller cannot grant blocking authority; it starts in Shadow so the
+    // caller must provide a version-matched calibrated controller explicitly.
+    this.configuredMode = options.mode === "enforce" && !this.modeController
+      ? "shadow"
+      : options.mode ?? this.modeController?.mode() ?? "off";
     this.artifactTtlMs = options.artifactTtlMs ?? 5 * 60 * 1000;
     this.now = options.now ?? Date.now;
+    this.shadowDelivery = options.shadowDelivery ?? "publish_with_disagreement";
+    this.allowUnavailablePublication = options.allowUnavailablePublication === true;
     this.specAuthority = options.specAuthority ?? createSpecAuthority();
     this.digestCompiler = options.digestCompiler ?? createQueryDigestCompiler();
     this.reviewer = options.reviewer;
     this.publicationRegistry = options.publicationRegistry ?? new PublicationRegistry({
       mode: this.configuredMode,
       modeFor: () => this.mode,
-      allowUnavailablePublication: options.allowUnavailablePublication,
-      shadowDelivery: options.shadowDelivery,
+      allowUnavailablePublication: this.allowUnavailablePublication,
+      shadowDelivery: this.shadowDelivery,
       specVersionFor: (taskId) => this.specAuthority.get(taskId)?.specVersion,
     });
     this.reviewCache = options.reviewCache ?? new ReviewCache();
     this.reviewerModel = options.reviewerModel ?? "unknown";
-    this.reviewerPromptVersion = options.reviewerPromptVersion ?? "2";
+    this.reviewerPromptVersion = options.reviewerPromptVersion ?? CONVERSATION_BLIND_REVIEWER_PROMPT_VERSION;
     this.reviewPolicyVersion = options.reviewPolicyVersion ?? "2";
     this.reviewCoverageSchemaVersion = options.reviewCoverageSchemaVersion ?? REVIEW_COVERAGE_SCHEMA_VERSION;
+    this.parserVersion = options.parserVersion ?? QUERY_DIGEST_PARSER_VERSION;
+    this.hardConstraintAdmissionPolicy = options.hardConstraintAdmissionPolicy ?? "2";
+    this.gatePolicyVersion = options.gatePolicyVersion ?? "1";
+    this.gateApplicabilityVersion = options.gateApplicabilityVersion ?? GATE_APPLICABILITY_VERSION;
+    this.probeTemplateVersion = options.probeTemplateVersion ?? "1";
+    this.evidenceAdmissionPolicyVersion = options.evidenceAdmissionPolicyVersion ?? "1";
+    this.assuranceDialect = options.dialect ?? "unknown";
     this.auditStore = options.auditStore ?? new InMemoryAssuranceAuditStore({ now: this.now });
     this.specGenerator = options.specGenerator;
     this.invariantProbes = options.invariantProbes;
+    this.reviewEvidence = options.reviewEvidence ?? {};
+    this.stateStore = options.stateStore ?? (options.statePath ? new JsonFileQueryAssuranceStateStore(options.statePath) : undefined);
+    this.restoreState(this.stateStore?.load());
+  }
+
+  private currentStateIdentity(): QueryAssuranceStateIdentity {
+    return {
+      reviewerModel: this.reviewerModel,
+      reviewerPromptVersion: this.reviewerPromptVersion,
+      queryDigestVersion: QUERY_DIGEST_VERSION,
+      parserVersion: this.parserVersion,
+      reviewCoverageSchemaVersion: this.reviewCoverageSchemaVersion,
+      reviewPolicyVersion: this.reviewPolicyVersion,
+      hardConstraintAdmissionPolicy: this.hardConstraintAdmissionPolicy,
+      gatePolicyVersion: this.gatePolicyVersion,
+      gateApplicabilityVersion: this.gateApplicabilityVersion,
+      probeTemplateVersion: this.probeTemplateVersion,
+      evidenceAdmissionPolicyVersion: this.evidenceAdmissionPolicyVersion,
+      dialect: this.assuranceDialect,
+      deliveryMode: this.mode,
+      shadowDelivery: this.shadowDelivery,
+      allowUnavailablePublication: this.allowUnavailablePublication,
+    };
+  }
+
+  private restoreState(state: QueryAssurancePersistedState | undefined): void {
+    if (!state) return;
+    const identity = this.currentStateIdentity();
+    const identityMatches = Boolean(state.identity)
+      && Object.keys({ ...state.identity, ...identity }).every((key) => state.identity?.[key as keyof QueryAssuranceStateIdentity] === identity[key as keyof QueryAssuranceStateIdentity]);
+    // Every persisted object that can feed a new review is scoped to the exact
+    // assurance implementation identity. A changed parser, gate, policy, or
+    // reviewer must not retain an old Spec or Query Task and accidentally let
+    // recordPreview reuse its stale contract.
+    if (!identityMatches) {
+      this.auditStore.restore?.(state.auditRecords ?? []);
+      return;
+    }
+    this.specAuthority.restore?.(state.specs ?? []);
+    for (const task of state.tasks ?? []) this.taskEvidence.set(task.taskId, cloneTaskEvidence(task.evidence));
+    for (const artifact of state.artifacts ?? []) {
+      const taskArtifacts = this.artifacts.get(artifact.taskId) ?? new Map<string, ValidatedQueryArtifact>();
+      taskArtifacts.set(artifact.queryArtifactId, cloneTaskEvidence(artifact));
+      this.artifacts.set(artifact.taskId, taskArtifacts);
+    }
+    for (const [key, attempt] of state.repairAttempts ?? []) this.repairAttempts.set(key, attempt);
+    for (const entry of state.failedCandidates ?? []) this.failedCandidates.set(entry.taskId, entry.candidates.map((candidate) => ({
+      ...candidate,
+      claimIds: [...candidate.claimIds],
+      ...(candidate.claimFingerprints ? { claimFingerprints: candidate.claimFingerprints.map(([claimId, fingerprint]) => [claimId, fingerprint] as const) } : {}),
+    })));
+    for (const entry of state.taskStatuses ?? []) this.taskStatuses.set(entry.taskId, entry.status);
+    if (state.publication) this.publicationRegistry.restore(state.publication);
+    this.auditStore.restore?.(state.auditRecords ?? []);
+  }
+
+  private persistState(): void {
+    if (!this.stateStore) return;
+    const persistedArtifact = (artifact: ValidatedQueryArtifact): ValidatedQueryArtifact => {
+      const evidence = artifact.previewMetadata.resultEvidence;
+      // Raw preview values belong to short-lived Internal Evidence, not a
+      // durable control-plane snapshot. Metadata and identities remain enough
+      // to reject stale publication; a post-restart inline review can abstain
+      // if it needs values that are no longer retained.
+      const previewMetadata = evidence
+        ? (() => {
+          const { rows: _rows, ...withoutRawRows } = evidence;
+          return { ...artifact.previewMetadata, resultEvidence: { ...withoutRawRows, numericRows: [], numericCompleteness: "partial" as const } };
+        })()
+        : artifact.previewMetadata;
+      return { ...cloneTaskEvidence(artifact), previewMetadata };
+    };
+    const state: QueryAssurancePersistedState = {
+      version: 1,
+      identity: this.currentStateIdentity(),
+      specs: this.specAuthority.snapshot?.() ?? [],
+      tasks: [...this.taskEvidence.entries()].map(([taskId, evidence]) => ({ taskId, evidence: cloneTaskEvidence(evidence) })),
+      artifacts: [...this.artifacts.values()].flatMap((items) => [...items.values()].map(persistedArtifact)),
+      repairAttempts: [...this.repairAttempts.entries()],
+      failedCandidates: [...this.failedCandidates.entries()].map(([taskId, candidates]) => ({ taskId, candidates: candidates.map((candidate) => ({
+        ...candidate,
+        claimIds: [...candidate.claimIds],
+        ...(candidate.claimFingerprints ? { claimFingerprints: candidate.claimFingerprints.map(([claimId, fingerprint]) => [claimId, fingerprint] as const) } : {}),
+      })) })),
+      taskStatuses: [...this.taskStatuses.entries()].map(([taskId, status]) => ({ taskId, status })),
+      publication: this.publicationRegistry.snapshot(),
+      auditRecords: this.auditStore.snapshot?.() ?? [],
+    };
+    this.stateStore.save(state);
   }
 
   get mode(): QueryAssuranceMode { return this.modeController?.mode() ?? this.configuredMode; }
@@ -372,28 +511,56 @@ export class InMemoryQueryAssurance implements QueryAssurance {
   async prepareTask(input: TaskEvidence, signal: AbortSignal): Promise<PreparedQueryTask> {
     throwIfAborted(signal);
     const taskId = randomUUID();
-    this.taskEvidence.set(taskId, input);
+    const taskEvidence = cloneTaskEvidence(input);
+    this.taskEvidence.set(taskId, taskEvidence);
+    this.taskStatuses.set(taskId, "spec_pending");
+    this.persistState();
     const specInput = {
       taskId,
-      question: input.question,
-      clarifications: input.clarifications,
-      constraints: input.constraints,
-      hypotheses: input.hypotheses,
-      ambiguities: input.ambiguities,
-      outputColumns: input.outputColumns,
-      rowMode: input.rowMode,
-      rowCount: input.rowCount,
-      answerContract: input.answerContract,
-      schema: input.schema,
+      question: taskEvidence.question,
+      clarifications: taskEvidence.clarifications,
+      constraints: taskEvidence.constraints,
+      hypotheses: taskEvidence.hypotheses,
+      ambiguities: taskEvidence.ambiguities,
+      outputColumns: taskEvidence.outputColumns,
+      rowMode: taskEvidence.rowMode,
+      rowCount: taskEvidence.rowCount,
+      answerContract: taskEvidence.answerContract,
+      schema: taskEvidence.schema,
+      semanticEvidence: taskEvidence.semanticEvidence,
+      physicalMappings: taskEvidence.physicalMappings,
     };
     if (!this.specGenerator) {
       const prepared = this.specAuthority.prepare(specInput);
+      this.taskStatuses.set(taskId, "exploration");
+      this.persistState();
       return { taskId, mode: this.mode, specVersion: prepared.specVersion, specStatus: "available", answerSpec: prepared };
     }
 
     try {
       const generated = await this.specGenerator.generate(specInput, signal);
-      const prepared = this.specAuthority.prepare({ ...generated, taskId, question: input.question });
+      // The Planner may enrich provisional facets, but it cannot drop or
+      // replace trusted task evidence that the Runtime supplied at creation.
+      const hypotheses = mergeStableItems(taskEvidence.hypotheses, generated.hypotheses);
+      const ambiguities = mergeStableItems(taskEvidence.ambiguities, generated.ambiguities);
+      const prepared = this.specAuthority.prepare({
+        ...generated,
+        taskId,
+        question: input.question,
+        ...(taskEvidence.clarifications ? { clarifications: taskEvidence.clarifications } : {}),
+        ...(hypotheses ? { hypotheses } : {}),
+        ...(ambiguities ? { ambiguities } : {}),
+        ...(taskEvidence.constraints ? { constraints: taskEvidence.constraints } : {}),
+        ...(taskEvidence.outputColumns ? { outputColumns: taskEvidence.outputColumns } : {}),
+        ...(taskEvidence.rowMode ? { rowMode: taskEvidence.rowMode } : {}),
+        ...(taskEvidence.rowCount !== undefined ? { rowCount: taskEvidence.rowCount } : {}),
+        ...(taskEvidence.answerContract ? { answerContract: taskEvidence.answerContract } : {}),
+        ...(taskEvidence.schema ? { schema: taskEvidence.schema } : {}),
+        ...(taskEvidence.semanticEvidence ? { semanticEvidence: taskEvidence.semanticEvidence } : {}),
+        ...(taskEvidence.physicalMappings ? { physicalMappings: taskEvidence.physicalMappings } : {}),
+      });
+      this.taskStatuses.set(taskId, "exploration");
+      this.persistState();
       return { taskId, mode: this.mode, specVersion: prepared.specVersion, specStatus: "available", specGenerationStatus: "generated", answerSpec: prepared };
     } catch (error) {
       // A planner is an enrichment step, not an authority boundary. Preserve
@@ -412,6 +579,8 @@ export class InMemoryQueryAssurance implements QueryAssurance {
           repairAttempt: 0,
           reviewMode: this.mode,
         });
+        this.taskStatuses.set(taskId, "exploration");
+        this.persistState();
         return { taskId, mode: this.mode, specVersion: fallback.specVersion, specStatus: "available", specGenerationStatus: "fallback", answerSpec: fallback };
       } catch (fallbackError) {
         // This should only be reachable for invalid task evidence (for
@@ -426,35 +595,103 @@ export class InMemoryQueryAssurance implements QueryAssurance {
           repairAttempt: 0,
           reviewMode: this.mode,
         });
+        this.persistState();
         return { taskId, mode: this.mode, specStatus: "unavailable" };
       }
     }
   }
 
   getAnswerSpec(taskId: string, specVersion?: string): AnswerSpec | undefined {
-    return this.specAuthority.get(taskId, specVersion);
+    const spec = this.specAuthority.get(taskId, specVersion);
+    return spec ? cloneTaskEvidence(spec) : undefined;
   }
 
-  getTaskEvidence(taskId: string): TaskEvidence | undefined { return this.taskEvidence.get(taskId); }
+  getTaskEvidence(taskId: string): TaskEvidence | undefined {
+    const evidence = this.taskEvidence.get(taskId);
+    return evidence ? cloneTaskEvidence(evidence) : undefined;
+  }
+  getTaskStatus(taskId: string): QueryTaskLifecycleStatus | undefined { return this.taskStatuses.get(taskId); }
   hasInternalEvidence(taskId: string): boolean { return (this.artifacts.get(taskId)?.size ?? 0) > 0; }
   hasPublication(taskId: string): boolean { return this.publicationRegistry.hasReceipt(taskId); }
-  publicationForArtifact(taskId: string, queryArtifactId: string): PublicationReceipt | undefined { return this.publicationRegistry.receiptForArtifact(taskId, queryArtifactId); }
-  publicationForTask(taskId: string): PublicationReceipt | undefined { return this.publicationRegistry.receiptForTask(taskId); }
+  publicationForArtifact(taskId: string, queryArtifactId: string): PublicationReceipt | undefined {
+    const receipt = this.publicationRegistry.receiptForArtifact(taskId, queryArtifactId);
+    return receipt ? cloneTaskEvidence(receipt) : undefined;
+  }
+  publicationForTask(taskId: string): PublicationReceipt | undefined {
+    const receipt = this.publicationRegistry.receiptForTask(taskId);
+    return receipt ? cloneTaskEvidence(receipt) : undefined;
+  }
   claimAutomaticRepair(taskId: string, specVersion: string): { readonly allowed: boolean; readonly attempt: number } {
     const key = `${taskId}:${specVersion}`;
     const attempt = this.repairAttempts.get(key) ?? 0;
     if (attempt >= 1) return { allowed: false, attempt };
     const next = attempt + 1;
     this.repairAttempts.set(key, next);
+    try {
+      this.persistState();
+    } catch (error) {
+      // A storage/transaction failure is infrastructure failure, not a
+      // semantic repair. Do not burn the one-shot budget in memory.
+      if (attempt === 0) this.repairAttempts.delete(key);
+      else this.repairAttempts.set(key, attempt);
+      throw error;
+    }
     return { allowed: true, attempt: next };
   }
 
+  private failedCandidateFor(taskId: string, specVersion: string, fingerprint: string, digest?: QueryDigest, dataSnapshot?: string): { specVersion: string; candidateId?: string; queryArtifactId?: string; digestPaths?: readonly string[]; gatePolicyVersion?: string; gateApplicabilityVersion?: string; fingerprint: string; claimIds: readonly string[]; claimFingerprints?: readonly (readonly [string, string])[] } | undefined {
+    const current = this.failedCandidates.get(taskId) ?? [];
+    const exact = current.find((candidate) => candidate.specVersion === specVersion && candidate.fingerprint === fingerprint);
+    if (exact) return exact;
+    if (!digest) return undefined;
+    return current.find((candidate) => candidate.specVersion === specVersion
+      && candidate.claimFingerprints?.some(([claimId, claimFingerprint]) => {
+        const currentClaimFingerprint = candidateSemanticFingerprintForClaim(digest, claimId);
+        return currentClaimFingerprint !== undefined
+          && failedCandidateFingerprint(`${currentClaimFingerprint}|${candidateEvidenceScope(digest, dataSnapshot)}`) === claimFingerprint;
+      }));
+  }
+
+  private rememberFailedCandidate(taskId: string, specVersion: string, fingerprint: string | undefined, claimIds: readonly string[], digest?: QueryDigest, dataSnapshot?: string, candidateId?: string, queryArtifactId?: string): void {
+    if (!fingerprint) return;
+    const ids = [...new Set(claimIds.filter((claimId) => claimId.trim()))];
+    const claimFingerprints = digest
+      ? ids.map((claimId) => {
+        const value = candidateSemanticFingerprintForClaim(digest, claimId);
+        return value ? [claimId, failedCandidateFingerprint(`${value}|${candidateEvidenceScope(digest, dataSnapshot)}`)] as const : undefined;
+      }).filter((entry): entry is readonly [string, string] => entry !== undefined)
+      : [];
+    const entries = this.failedCandidates.get(taskId) ?? [];
+    if (!entries.some((entry) => entry.specVersion === specVersion && entry.fingerprint === fingerprint)) {
+      entries.push({
+        specVersion,
+        ...(candidateId ? { candidateId } : {}),
+        ...(queryArtifactId ? { queryArtifactId } : {}),
+        ...(digest ? { digestPaths: ids.map((claimId) => `claim:${claimId}`) } : {}),
+        gatePolicyVersion: this.gatePolicyVersion,
+        gateApplicabilityVersion: this.gateApplicabilityVersion,
+        fingerprint,
+        claimIds: ids,
+        ...(claimFingerprints.length ? { claimFingerprints } : {}),
+      });
+      this.failedCandidates.set(taskId, entries);
+    }
+  }
+
   applyClarification(taskId: string, baseSpecVersion: string, clarification: string): AnswerSpec {
-    return this.specAuthority.applyClarification(taskId, baseSpecVersion, clarification);
+    const next = this.specAuthority.applyClarification(taskId, baseSpecVersion, clarification);
+    this.taskStatuses.set(taskId, "exploration");
+    this.persistState();
+    return next;
   }
 
   submitSpecChange(proposal: Parameters<SpecAuthority["submitProposal"]>[0]): ReturnType<SpecAuthority["submitProposal"]> {
-    return this.specAuthority.submitProposal(proposal);
+    const result = this.specAuthority.submitProposal(proposal);
+    if (result.accepted) {
+      this.taskStatuses.set(proposal.taskId, "exploration");
+      this.persistState();
+    }
+    return result;
   }
 
   async recordPreview(input: QueryPreviewRegistration, signal: AbortSignal): Promise<ValidatedQueryArtifact> {
@@ -481,43 +718,84 @@ export class InMemoryQueryAssurance implements QueryAssurance {
         };
       }
     }
+    if (digest && input.cardinalityEvidence?.length) digest = { ...digest, cardinalityEvidence: input.cardinalityEvidence };
+    const queryArtifactId = randomUUID();
     let artifact: ValidatedQueryArtifact = {
       taskId: input.task.taskId,
-      queryArtifactId: randomUUID(),
+      queryArtifactId,
       normalizedSql,
       normalizedSqlHash: digest?.normalizedSqlHash ?? hash(normalizedSql),
-      previewMetadata: resultMetadata(input.result),
+      previewMetadata: resultMetadata(input.result, this.reviewEvidence),
       ...(digest ? { queryDigest: digest } : {}),
       ...(schema ? { schemaEvidence: schema } : {}),
       ...(input.task.specVersion ? { specVersion: input.task.specVersion } : {}),
       ...(input.task.specStatus ? { specStatus: input.task.specStatus } : {}),
+      ...(input.exploratory ? { exploratory: true } : {}),
+      ...((input.dataSnapshot ?? input.result.dataSnapshot) ? { dataSnapshot: input.dataSnapshot ?? input.result.dataSnapshot } : {}),
       internalEvidence: true,
       createdAt: new Date(createdAtMs).toISOString(),
       expiresAt: new Date(createdAtMs + this.artifactTtlMs).toISOString(),
-      ...(input.purpose ? { purpose: input.purpose } : {}),
     };
     const spec = this.getAnswerSpec(input.task.taskId, input.task.specVersion);
     if (this.invariantProbes && spec) {
-      const preflightOutcomes = this.invariantProbes.ids().map((id) => this.invariantProbes!.evaluate(id, { answerSpec: spec, digest: artifact.queryDigest, schema: artifact.schemaEvidence, resultMetadata: artifact.previewMetadata }));
-      artifact = { ...artifact, preflightOutcomes };
+      const preflightInstances = this.invariantProbes.ids().map((id) => this.invariantProbes!.createInstance(id, {
+        claimId: id,
+        specVersion: spec.specVersion,
+        candidateId: artifact.queryArtifactId,
+        digestPaths: artifact.queryDigest ? ["queryDigest"] : [],
+        ...(artifact.queryDigest ? {
+          queryDigestVersion: artifact.queryDigest.queryDigestVersion,
+          normalizedSqlHash: artifact.queryDigest.normalizedSqlHash,
+          schemaEvidenceFingerprint: artifact.queryDigest.schemaEvidenceFingerprint,
+        } : {}),
+        snapshotId: artifact.dataSnapshot,
+        frozenAt: artifact.createdAt,
+      }));
+      const preflightOutcomes = preflightInstances.map((instance) => this.invariantProbes!.evaluateInstance(instance, {
+        answerSpec: spec,
+        digest: artifact.queryDigest,
+        schema: artifact.schemaEvidence,
+        dataSnapshot: artifact.dataSnapshot,
+        resultMetadata: artifact.previewMetadata,
+        candidateId: artifact.queryArtifactId,
+      }));
+      artifact = { ...artifact, preflightInstances, preflightOutcomes };
     }
     let taskArtifacts = this.artifacts.get(input.task.taskId);
     if (!taskArtifacts) {
       taskArtifacts = new Map();
       this.artifacts.set(input.task.taskId, taskArtifacts);
     }
-    taskArtifacts.set(artifact.queryArtifactId, artifact);
+    const storedArtifact = cloneTaskEvidence(artifact);
+    taskArtifacts.set(artifact.queryArtifactId, storedArtifact);
+    this.taskStatuses.set(artifact.taskId, artifact.exploratory ? "exploration" : "candidate_review");
     this.auditStore?.append({
       taskId: artifact.taskId,
       queryArtifactId: artifact.queryArtifactId,
       sqlHash: artifact.normalizedSqlHash,
       ...(artifact.specVersion ? { specVersion: artifact.specVersion } : {}),
-      ...(artifact.queryDigest ? { queryDigestVersion: artifact.queryDigest.queryDigestVersion } : {}),
+      ...(artifact.queryDigest ? { queryDigestVersion: artifact.queryDigest.queryDigestVersion, parserVersion: artifact.queryDigest.parserVersion, parserEngine: artifact.queryDigest.parserEngine, dialect: artifact.queryDigest.dialect } : {}),
+      reviewCoverageSchemaVersion: this.reviewCoverageSchemaVersion,
+      hardConstraintAdmissionPolicy: this.hardConstraintAdmissionPolicy,
+      gatePolicyVersion: this.gatePolicyVersion,
+      gateApplicabilityVersion: this.gateApplicabilityVersion,
+      probeTemplateVersion: this.probeTemplateVersion,
+      evidenceAdmissionPolicyVersion: this.evidenceAdmissionPolicyVersion,
+      ...(artifact.preflightOutcomes?.length && artifact.preflightInstances?.length ? {
+        probeOutcomes: artifact.preflightOutcomes.map((outcome, index) => ({
+          instanceId: artifact.preflightInstances![index].instanceId,
+          templateId: artifact.preflightInstances![index].templateId,
+          templateVersion: artifact.preflightInstances![index].templateVersion,
+          claimId: artifact.preflightInstances![index].claimId,
+          status: outcome.status,
+        })),
+      } : {}),
       reviewAvailability: this.mode === "off" ? "off" : "unavailable",
       repairAttempt: 0,
       reviewMode: this.mode,
     });
-    return artifact;
+    this.persistState();
+    return cloneTaskEvidence(storedArtifact);
   }
 
   async getArtifact(taskId: string, queryArtifactId: string, signal: AbortSignal): Promise<ValidatedQueryArtifact | undefined> {
@@ -528,13 +806,13 @@ export class InMemoryQueryAssurance implements QueryAssurance {
       this.artifacts.get(taskId)?.delete(queryArtifactId);
       return undefined;
     }
-    return artifact;
+    return cloneTaskEvidence(artifact);
   }
 
   async reviewForPublication(input: PublicationReviewRequest, signal: AbortSignal): Promise<ReviewOutcome> {
     throwIfAborted(signal);
     const startedAt = this.now();
-    const candidate = input.candidate as Partial<ExportCandidate> & { normalizedSqlHash?: string; specVersion?: string; schemaEvidenceFingerprint?: string };
+    const candidate = input.candidate as Partial<ExportCandidate> & { normalizedSqlHash?: string; specVersion?: string; schemaEvidenceFingerprint?: string; dataSnapshot?: string };
     const candidateArtifact = typeof candidate?.queryArtifactId === "string"
       ? await this.getArtifact(input.task.taskId, candidate.queryArtifactId, signal)
       : undefined;
@@ -542,14 +820,17 @@ export class InMemoryQueryAssurance implements QueryAssurance {
     const expectedSchemaFingerprint = candidateArtifact?.queryDigest?.schemaEvidenceFingerprint ?? "unknown";
     const expectedSpecVersion = candidateArtifact?.specVersion ?? input.task.specVersion ?? "1";
     const storedSpec = this.getAnswerSpec(input.task.taskId, expectedSpecVersion);
+    const expectedReviewSchema = candidateArtifact?.schemaEvidence ?? (candidateArtifact?.queryDigest ? { connectionId: "unknown", dialect: candidateArtifact.queryDigest.dialect, tables: [] } : undefined);
     const candidateMetadata = candidate?.metadata;
     const suppliedReviewInput = input.reviewInput;
+    const taskSemanticEvidence = this.taskEvidence.get(input.task.taskId)?.semanticEvidence;
     // Coverage is a runtime challenge, not a field the Solver or Reviewer can
     // choose. Recompute it from the canonical stored Digest before invoking a
     // reviewer, so a forged/ stale coverageRequirements field is ignored.
     const reviewInput = suppliedReviewInput && suppliedReviewInput.digest
       ? {
         ...suppliedReviewInput,
+        ...(taskSemanticEvidence?.length ? { semanticEvidence: taskSemanticEvidence } : { semanticEvidence: undefined }),
         coverageRequirements: deriveReviewCoverageRequirements(suppliedReviewInput),
       }
       : suppliedReviewInput;
@@ -559,11 +840,15 @@ export class InMemoryQueryAssurance implements QueryAssurance {
       && normalizeQuerySql(reviewInput.sql) === candidateArtifact.normalizedSql
       && reviewInput.digest.normalizedSqlHash === candidateArtifact.normalizedSqlHash
       && reviewInput.digest.schemaEvidenceFingerprint === expectedSchemaFingerprint
+      && stable(reviewInput.digest) === stable(candidateArtifact.queryDigest)
+      && reviewInput.question === (storedSpec?.question ?? reviewInput.question)
       && reviewInput.answerSpec.taskId === input.task.taskId
       && reviewInput.answerSpec.specVersion === expectedSpecVersion
       && storedSpec !== undefined
       && stable(reviewInput.answerSpec) === stable(storedSpec)
-      && (!candidateArtifact.schemaEvidence || stable(reviewInput.schema) === stable(candidateArtifact.schemaEvidence))
+      && (!expectedReviewSchema || stable(reviewInput.schema) === stable(expectedReviewSchema))
+      && candidateMetadata !== undefined
+      && stable(reviewInput.resultMetadata) === stable(candidateMetadata)
       && reviewInput.resultMetadata.columns.length === candidateArtifact.previewMetadata.columns.length
       && reviewInput.resultMetadata.columns.every((column, index) => column === candidateArtifact.previewMetadata.columns[index])
       && (!candidateMetadata?.resultEvidence || reviewInput.resultMetadata.resultEvidence?.evidenceHash === candidateMetadata.resultEvidence.evidenceHash)
@@ -577,6 +862,7 @@ export class InMemoryQueryAssurance implements QueryAssurance {
       && candidate.normalizedSqlHash === candidateArtifact.normalizedSqlHash
       && candidate.specVersion === expectedSpecVersion
       && candidate.schemaEvidenceFingerprint === expectedSchemaFingerprint
+      && (!candidateArtifact.dataSnapshot || candidate.dataSnapshot === candidateArtifact.dataSnapshot)
       && typeof candidate.path === "string"
       && typeof candidate.contentSha256 === "string"
       && candidateMetadata !== undefined
@@ -584,10 +870,46 @@ export class InMemoryQueryAssurance implements QueryAssurance {
       && candidateMetadata.columns.every((column, index) => column === candidateArtifact.previewMetadata.columns[index])
       && reviewInputBindingValid
     );
-    const blockingPreflight = candidateArtifact?.preflightOutcomes?.find((probe) => probe.status === "failed" && probe.blocking);
-    const deterministicContractDiffs = candidateArtifact?.queryDigest && storedSpec && candidateMetadata
-      ? contractDiff(storedSpec, candidateArtifact.queryDigest, candidateMetadata)
+    const candidateFingerprint = candidateArtifact
+      ? (() => {
+        const digestFingerprint = candidateSemanticFingerprint(candidateArtifact.queryDigest);
+        return digestFingerprint && candidateArtifact.queryDigest
+          ? `${digestFingerprint}|${candidateEvidenceScope(candidateArtifact.queryDigest, candidateArtifact.dataSnapshot)}`
+          : undefined;
+      })()
+      : undefined;
+    const failedCandidate = candidateFingerprint && expectedSpecVersion
+      ? this.failedCandidateFor(input.task.taskId, expectedSpecVersion, failedCandidateFingerprint(candidateFingerprint), candidateArtifact?.queryDigest, candidateArtifact?.dataSnapshot)
+      : undefined;
+    const deterministicGates = storedSpec && candidateMetadata
+      ? evaluateGates({
+        spec: storedSpec,
+        digest: candidateArtifact?.queryDigest,
+        metadata: candidateMetadata,
+        dataSnapshot: candidateArtifact?.dataSnapshot,
+        schema: candidateArtifact?.schemaEvidence,
+        gateApplicabilityVersion: this.gateApplicabilityVersion,
+        gatePolicyVersion: this.gatePolicyVersion,
+        candidateFingerprint,
+        candidatePreviouslyFailed: Boolean(failedCandidate),
+        failedClaimIds: failedCandidate?.claimIds,
+      })
       : [];
+    const deterministicGateViolations = deterministicGates.flatMap((gate) => gate.violations);
+    const deterministicGateDiffs = deterministicGateViolations.filter((violation) => violation.blocking).map(gateViolationToDiff);
+    const unavailableGates = deterministicGates.filter(gateUnavailable);
+    const clarificationGates = deterministicGates.filter((gate) => gate.requiresClarification);
+    const preflightOutcomes = candidateArtifact?.preflightOutcomes ?? [];
+    const preflightUnavailable = preflightOutcomes.filter((probe) => probe.status === "unsupported" || probe.status === "inconclusive");
+    const preflightDiffs: SemanticDiff[] = preflightOutcomes.flatMap((probe, index) => probe.status === "failed" ? [{
+      aspect: "invariant_probe",
+      required: "probe prerequisites hold",
+      observed: "probe failed",
+      claimId: candidateArtifact?.preflightInstances?.[index]?.claimId ?? `probe:${index + 1}`,
+      blocking: true,
+      evidence: { digestPath: "projections" },
+    }] : []);
+    const deterministicDiffs = [...preflightDiffs, ...deterministicGateDiffs];
     let outcome: ReviewOutcome;
     if (hasCandidateBinding && !candidateBindingValid) {
       outcome = { availability: "unavailable", failure: { code: "REVIEW_CANDIDATE_BINDING_INVALID", message: "Candidate identity does not match the Validated Query Artifact", retryable: false } };
@@ -596,15 +918,43 @@ export class InMemoryQueryAssurance implements QueryAssurance {
         availability: "unavailable",
         failure: { code: "REVIEW_OFF", message: "Query Assurance review is disabled", retryable: false },
       };
-    } else if (blockingPreflight) {
+    } else if (this.mode === "enforce" && candidateArtifact?.queryDigest?.parserEngine !== "sqlglot") {
       outcome = {
-        availability: "available",
-        decision: { status: "rejected", blocking: true, reason: "A deterministic Hard Constraint or Structural Fact probe failed" },
+        availability: "unavailable",
+        failure: { code: "DETERMINISTIC_DIGEST_UNAVAILABLE", message: "Enforce requires a versioned sqlglot Query Digest; tokenizer diagnostics cannot grant blocking authority", retryable: false, deterministic: true, deterministicGates },
       };
-    } else if (deterministicContractDiffs.length > 0) {
+    } else if (clarificationGates.length > 0) {
       outcome = {
         availability: "available",
-        decision: { status: "rejected", blocking: true, diffs: deterministicContractDiffs, retryable: true, reason: "A hard Answer Contract facet does not match the Query Digest or result shape" },
+        decision: {
+          status: "needs_clarification",
+          blocking: true,
+          deterministic: true,
+          ambiguities: clarificationGates.flatMap((gate) => gate.warnings),
+          reason: "Top-N tie semantics require user clarification",
+          deterministicGates,
+        },
+      };
+    } else if (preflightUnavailable.length > 0) {
+      outcome = {
+        availability: "unavailable",
+        failure: {
+          code: "DETERMINISTIC_PROBE_UNAVAILABLE",
+          message: preflightUnavailable.map((probe) => probe.status).join(", "),
+          retryable: false,
+          deterministic: true,
+          deterministicGates,
+        },
+      };
+    } else if (unavailableGates.length > 0) {
+      outcome = {
+        availability: "unavailable",
+        failure: { code: "DETERMINISTIC_GATE_UNAVAILABLE", message: gateFailureMessage(unavailableGates), retryable: false, deterministic: true, deterministicGates },
+      };
+    } else if (deterministicDiffs.length > 0) {
+      outcome = {
+        availability: "available",
+        decision: { status: "rejected", blocking: true, deterministic: true, diffs: deterministicDiffs, retryable: true, reason: "A deterministic Query Assurance gate rejected this Candidate" },
       };
     } else if (!this.reviewer) {
       outcome = {
@@ -641,21 +991,53 @@ export class InMemoryQueryAssurance implements QueryAssurance {
         schemaEvidenceFingerprint: digest.schemaEvidenceFingerprint,
         normalizedSqlHash: digest.normalizedSqlHash,
         queryDigestVersion: digest.queryDigestVersion,
+        parserEngine: digest.parserEngine,
+        dialect: digest.dialect,
         reviewerModel: this.reviewerModel,
         reviewerPromptVersion: this.reviewerPromptVersion,
         reviewPolicyVersion: this.reviewPolicyVersion,
+        hardConstraintAdmissionPolicy: this.hardConstraintAdmissionPolicy,
         reviewCoverageSchemaVersion: this.reviewCoverageSchemaVersion,
         parserVersion: digest.parserVersion,
-        resultEvidenceHash: reviewInput!.resultMetadata.resultEvidence?.evidenceHash ?? hash(stable(reviewInput!.resultMetadata)),
+        gatePolicyVersion: this.gatePolicyVersion,
+        gateApplicabilityVersion: this.gateApplicabilityVersion,
+        probeTemplateVersion: this.probeTemplateVersion,
+        evidenceAdmissionPolicyVersion: this.evidenceAdmissionPolicyVersion,
+        semanticEvidenceFingerprint: hash(stable(reviewInput!.semanticEvidence ?? [])),
+        // Include the bounded envelope shape as well as its row hash, so a
+        // cache entry cannot cross a changed evidence policy (for example
+        // numeric-only versus complete categorical rows).
+        resultEvidenceHash: reviewInput!.resultMetadata.resultEvidence
+          ? hash(stable(reviewInput!.resultMetadata.resultEvidence))
+          : hash(stable(reviewInput!.resultMetadata)),
       };
       const cached = await this.reviewCache.getOrCreate(identity, review, signal);
       outcome = { ...cached.outcome, cacheHit: cached.cacheHit };
+    }
+    if (outcome.availability === "available" && deterministicGates.length > 0) {
+      outcome = { ...outcome, decision: { ...outcome.decision, deterministicGates } };
     }
     if (!candidateBindingValid) {
       this.recordReviewAudit(input, outcome, candidate, startedAt);
       return outcome;
     }
-    if (candidate && typeof candidate.candidateId === "string" && typeof candidate.taskId === "string" && typeof candidate.queryArtifactId === "string" && typeof candidate.normalizedSqlHash === "string" && typeof candidate.specVersion === "string" && typeof candidate.schemaEvidenceFingerprint === "string" && typeof candidate.path === "string" && typeof candidate.contentSha256 === "string" && candidate.metadata !== undefined) {
+    if (outcome.availability === "unavailable") {
+      this.taskStatuses.set(input.task.taskId, "closed_without_publication");
+    } else if (hasCandidateBinding && candidateFingerprint && outcome.decision.status === "rejected" && outcome.decision.blocking !== false) {
+      this.taskStatuses.set(input.task.taskId, "repair_available");
+      const claimIds = outcome.decision.deterministic
+        ? [
+          ...deterministicGateViolations.filter((violation) => violation.blocking).map((violation) => violation.claimId ?? `${violation.gate}:${violation.code}`),
+          ...preflightDiffs.map((diff) => diff.claimId ?? diff.evidence.constraintId ?? diff.aspect),
+        ]
+        : outcome.decision.diffs?.map((diff) => diff.claimId ?? diff.evidence.constraintId ?? diff.aspect) ?? [];
+      this.rememberFailedCandidate(input.task.taskId, expectedSpecVersion, failedCandidateFingerprint(candidateFingerprint), claimIds, candidateArtifact?.queryDigest, candidateArtifact?.dataSnapshot, typeof candidate.candidateId === "string" ? candidate.candidateId : undefined, candidateArtifact?.queryArtifactId);
+    } else if (outcome.decision.status === "needs_clarification" || outcome.decision.status === "abstained") {
+      this.taskStatuses.set(input.task.taskId, "awaiting_clarification");
+    } else if (outcome.decision.status === "rejected") {
+      this.taskStatuses.set(input.task.taskId, "awaiting_authorization");
+    }
+    if (candidate && typeof candidate.candidateId === "string" && typeof candidate.taskId === "string" && typeof candidate.queryArtifactId === "string" && typeof candidate.normalizedSqlHash === "string" && typeof candidate.specVersion === "string" && typeof candidate.schemaEvidenceFingerprint === "string" && typeof candidate.path === "string" && typeof candidate.contentSha256 === "string" && candidate.metadata !== undefined && !(outcome.availability === "available" && outcome.decision.deterministic) && !(outcome.availability === "unavailable" && outcome.failure.deterministic)) {
       const reviewToken = this.publicationRegistry.issueToken({
         taskId: candidate.taskId,
         queryArtifactId: candidate.queryArtifactId,
@@ -666,6 +1048,14 @@ export class InMemoryQueryAssurance implements QueryAssurance {
         outcome,
         reviewerVersion: `${this.reviewerModel}:${this.reviewerPromptVersion}`,
         policyVersion: this.reviewPolicyVersion,
+        ...(candidateArtifact?.queryDigest ? { queryDigestVersion: candidateArtifact.queryDigest.queryDigestVersion, parserVersion: candidateArtifact.queryDigest.parserVersion, parserEngine: candidateArtifact.queryDigest.parserEngine, dialect: candidateArtifact.queryDigest.dialect } : {}),
+        hardConstraintAdmissionPolicy: this.hardConstraintAdmissionPolicy,
+        reviewCoverageSchemaVersion: this.reviewCoverageSchemaVersion,
+        gatePolicyVersion: this.gatePolicyVersion,
+        gateApplicabilityVersion: this.gateApplicabilityVersion,
+        probeTemplateVersion: this.probeTemplateVersion,
+        evidenceAdmissionPolicyVersion: this.evidenceAdmissionPolicyVersion,
+        issuedMode: this.mode,
       });
       const withToken = { ...outcome, reviewToken } as ReviewOutcome;
       this.recordReviewAudit(input, withToken, candidate, startedAt);
@@ -675,49 +1065,85 @@ export class InMemoryQueryAssurance implements QueryAssurance {
     return outcome;
   }
 
-  private recordReviewAudit(input: PublicationReviewRequest, outcome: ReviewOutcome, candidate: Partial<ExportCandidate> & { normalizedSqlHash?: string; specVersion?: string; schemaEvidenceFingerprint?: string }, startedAt: number): void {
+  private recordReviewAudit(input: PublicationReviewRequest, outcome: ReviewOutcome, candidate: Partial<ExportCandidate> & { normalizedSqlHash?: string; specVersion?: string; schemaEvidenceFingerprint?: string; dataSnapshot?: string }, startedAt: number): void {
     if (!this.auditStore) return;
     const decision = outcome.availability === "available" ? outcome.decision : undefined;
+    const semanticEvidence = this.taskEvidence.get(input.task.taskId)?.semanticEvidence;
     this.auditStore.append({
       taskId: input.task.taskId,
       ...(typeof candidate.queryArtifactId === "string" ? { queryArtifactId: candidate.queryArtifactId } : {}),
       ...(typeof candidate.normalizedSqlHash === "string" ? { sqlHash: candidate.normalizedSqlHash } : {}),
       ...(typeof candidate.specVersion === "string" ? { specVersion: candidate.specVersion } : {}),
       ...(typeof candidate.schemaEvidenceFingerprint === "string" ? { schemaEvidenceFingerprint: candidate.schemaEvidenceFingerprint } : {}),
-      ...(input.reviewInput?.digest ? { queryDigestVersion: input.reviewInput.digest.queryDigestVersion } : {}),
+      ...(semanticEvidence?.length ? { semanticEvidenceFingerprint: hash(stable(semanticEvidence)) } : {}),
+      ...(input.reviewInput?.digest ? { queryDigestVersion: input.reviewInput.digest.queryDigestVersion, parserVersion: input.reviewInput.digest.parserVersion, parserEngine: input.reviewInput.digest.parserEngine, dialect: input.reviewInput.digest.dialect } : {}),
+      gatePolicyVersion: this.gatePolicyVersion,
+      gateApplicabilityVersion: this.gateApplicabilityVersion,
+      probeTemplateVersion: this.probeTemplateVersion,
+      evidenceAdmissionPolicyVersion: this.evidenceAdmissionPolicyVersion,
       reviewerModel: this.reviewerModel,
       reviewerPromptVersion: this.reviewerPromptVersion,
       reviewPolicyVersion: this.reviewPolicyVersion,
+      reviewCoverageSchemaVersion: this.reviewCoverageSchemaVersion,
+      hardConstraintAdmissionPolicy: this.hardConstraintAdmissionPolicy,
       reviewAvailability: outcome.availability === "unavailable" && outcome.failure.code === "REVIEW_OFF" ? "off" : outcome.availability,
       ...(outcome.availability === "unavailable" ? { reviewFailure: { ...outcome.failure, message: outcome.failure.message.slice(0, 2_000) } } : {}),
-      ...(decision ? { decision: decision.status, ...(decision.coverage ? { coverage: decision.coverage } : {}), ...(decision.diffs ? { semanticDiffs: decision.diffs } : {}) } : {}),
+      ...(decision ? {
+        decision: decision.status,
+        ...(decision.reason ? { decisionReason: decision.reason } : {}),
+        ...(decision.warnings?.length ? { reviewWarnings: decision.warnings } : {}),
+        ...(decision.coverage ? { coverage: decision.coverage } : {}),
+        ...(decision.diffs ? { semanticDiffs: decision.diffs } : {}),
+        ...(decision.deterministicGates ? { deterministicGates: decision.deterministicGates } : {}),
+      } : {}),
       repairAttempt: 0,
       reviewMode: this.mode,
       ...(outcome.cacheHit !== undefined ? { cacheHit: outcome.cacheHit } : {}),
       latencyMs: Math.max(0, this.now() - startedAt),
     });
+    this.persistState();
   }
 
   async publishCandidate(input: { reviewToken: ReviewToken; candidate: ExportCandidate; targetPath: string; authorization?: PublicationAuthorization; promote?: () => Promise<void> }, signal: AbortSignal): Promise<PublicationReceipt> {
     throwIfAborted(signal);
-    const receipt = await this.publicationRegistry.publish(input.reviewToken, input.candidate, input.targetPath, input.authorization, input.promote);
+    const artifact = await this.getArtifact(input.reviewToken.taskId, input.reviewToken.queryArtifactId, signal);
+    if (!artifact) throw new Error("REVIEW_UNAVAILABLE: QUERY_ARTIFACT_NOT_FOUND_OR_EXPIRED");
+    const promote = input.promote ? async (): Promise<void> => {
+      throwIfAborted(signal);
+      const currentArtifact = await this.getArtifact(input.reviewToken.taskId, input.reviewToken.queryArtifactId, signal);
+      if (!currentArtifact) throw new Error("REVIEW_UNAVAILABLE: QUERY_ARTIFACT_NOT_FOUND_OR_EXPIRED");
+      await input.promote!();
+    } : undefined;
+    const receipt = await this.publicationRegistry.publish(input.reviewToken, input.candidate, input.targetPath, input.authorization, promote);
+    this.taskStatuses.set(receipt.taskId, "published");
     if (this.auditStore) this.auditStore.append({
       taskId: receipt.taskId,
       queryArtifactId: receipt.queryArtifactId,
       publicationStatus: receipt.status,
+      ...(this.taskEvidence.get(receipt.taskId)?.semanticEvidence?.length ? { semanticEvidenceFingerprint: hash(stable(this.taskEvidence.get(receipt.taskId)!.semanticEvidence)) } : {}),
       reviewAvailability: receipt.reviewOutcome.availability === "unavailable" ? "unavailable" : "available",
       ...(receipt.reviewOutcome.availability === "unavailable" ? { reviewFailure: { ...receipt.reviewOutcome.failure, message: receipt.reviewOutcome.failure.message.slice(0, 2_000) } } : {}),
       ...(receipt.reviewOutcome.availability === "available" ? {
         decision: receipt.reviewOutcome.decision.status,
+        ...(receipt.reviewOutcome.decision.reason ? { decisionReason: receipt.reviewOutcome.decision.reason } : {}),
+        ...(receipt.reviewOutcome.decision.warnings?.length ? { reviewWarnings: receipt.reviewOutcome.decision.warnings } : {}),
         ...(receipt.reviewOutcome.decision.coverage ? { coverage: receipt.reviewOutcome.decision.coverage } : {}),
         ...(receipt.reviewOutcome.decision.diffs ? { semanticDiffs: receipt.reviewOutcome.decision.diffs } : {}),
+        ...(receipt.reviewOutcome.decision.deterministicGates ? { deterministicGates: receipt.reviewOutcome.decision.deterministicGates } : {}),
       } : {}),
       reviewerModel: this.reviewerModel,
       reviewerPromptVersion: this.reviewerPromptVersion,
       reviewPolicyVersion: this.reviewPolicyVersion,
+      reviewCoverageSchemaVersion: this.reviewCoverageSchemaVersion,
+      hardConstraintAdmissionPolicy: this.hardConstraintAdmissionPolicy,
+      gatePolicyVersion: this.gatePolicyVersion,
+      gateApplicabilityVersion: this.gateApplicabilityVersion,
+      probeTemplateVersion: this.probeTemplateVersion,
+      evidenceAdmissionPolicyVersion: this.evidenceAdmissionPolicyVersion,
       repairAttempt: 0,
       reviewMode: receipt.mode,
     });
+    this.persistState();
     return receipt;
   }
 }

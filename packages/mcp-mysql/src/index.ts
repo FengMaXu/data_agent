@@ -67,25 +67,47 @@ export async function createMysqlReferenceServer(options: MysqlReferenceServerOp
         const result = isIntrospectionQuery
           ? await readIntrospectionPreview(trimmed, effectiveLimit)
           : await readQueryPreview(trimmed, effectiveLimit);
-        return { content: [{ type: "text", text: JSON.stringify({ rows: result.rows, totalRows: result.totalRows, truncated: result.truncated, serverLimit: maxRows(), contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
+        return { content: [{ type: "text", text: JSON.stringify({ rows: result.rows, columns: result.columns, totalRows: result.totalRows, truncated: result.truncated, serverLimit: maxRows(), contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
       } catch (error) {
         return { content: [{ type: "text", text: JSON.stringify({ error: { code: "QUERY_FAILED", message: redact(`${(error as Error).message} in ${redact(trimmed)}`).slice(0, 500) } }) }] };
       }
     },
   );
 
+  server.tool(
+    "explain_query",
+    "Compile a read-only MySQL query and return its EXPLAIN plan",
+    { sql: z.string().min(1) },
+    async ({ sql }) => {
+      const trimmed = sql.trim().replace(/;+\s*$/, "");
+      if (FORBIDDEN.test(trimmed)) return { content: [{ type: "text", text: JSON.stringify({ error: { code: "FORBIDDEN_SQL" } }) }] };
+      try {
+        const [rows, fields] = await pool.query(`EXPLAIN ${trimmed}`);
+        const values = rows as Record<string, unknown>[];
+        const columns = (fields as Array<{ name: string }> | undefined)?.map((field) => field.name) ?? (values.length > 0 ? Object.keys(values[0]) : []);
+        return { content: [{ type: "text", text: JSON.stringify({ columns, rows: values, truncated: false, contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
+      } catch (error) {
+        return { content: [{ type: "text", text: JSON.stringify({ error: { code: "EXPLAIN_FAILED", message: redact(String((error as Error).message)).slice(0, 300) } }) }] };
+      }
+    },
+  );
+
   async function readQueryPreview(sql: string, limit: number) {
-    const [rows] = await pool.query(`SELECT * FROM (${sql}) __preview LIMIT ${limit + 1}`);
+    const [rows, fields] = await pool.query(`SELECT * FROM (${sql}) __preview LIMIT ${limit + 1}`);
     const list = rows as any[];
-    return { rows: list.slice(0, limit), totalRows: list.length, truncated: list.length > limit };
+    const columns = (fields as Array<{ name: string }> | undefined)?.map((field) => field.name) ?? (list.length > 0 ? Object.keys(list[0]) : []);
+    return { rows: list.slice(0, limit), columns, totalRows: list.length, truncated: list.length > limit };
   }
 
-  function readIntrospectionPreview(sql: string, limit: number): Promise<{ rows: any[]; totalRows: number; truncated: boolean }> {
+  function readIntrospectionPreview(sql: string, limit: number): Promise<{ rows: any[]; columns: string[]; totalRows: number; truncated: boolean }> {
     return new Promise((resolve, reject) => {
       const rows: any[] = [];
       let settled = false;
-      const queryStream = (introspectionPool.query(sql) as any).stream({ highWaterMark: 1 });
-      const finish = (result: { rows: any[]; totalRows: number; truncated: boolean }) => {
+      let columns: string[] = [];
+      const query = introspectionPool.query(sql) as any;
+      query.on("fields", (fields: Array<{ name: string }>) => { columns = fields.map((field) => field.name); });
+      const queryStream = query.stream({ highWaterMark: 1 });
+      const finish = (result: { rows: any[]; columns: string[]; totalRows: number; truncated: boolean }) => {
         if (settled) return;
         settled = true;
         queryStream.destroy();
@@ -95,10 +117,10 @@ export async function createMysqlReferenceServer(options: MysqlReferenceServerOp
         if (settled) return;
         rows.push(row);
         if (rows.length > limit) {
-          finish({ rows: rows.slice(0, limit), totalRows: rows.length, truncated: true });
+          finish({ rows: rows.slice(0, limit), columns, totalRows: rows.length, truncated: true });
         }
       });
-      queryStream.on("end", () => finish({ rows, totalRows: rows.length, truncated: false }));
+      queryStream.on("end", () => finish({ rows, columns, totalRows: rows.length, truncated: false }));
       queryStream.on("error", (error: Error) => {
         if (!settled) {
           settled = true;
@@ -127,9 +149,9 @@ export async function createMysqlReferenceServer(options: MysqlReferenceServerOp
       const rowLimit = Math.min(requestedMaxRows ?? 100000, 100000);
       if (start >= rowLimit) return { content: [{ type: "text", text: JSON.stringify({ rows: [], columns: [], done: true, contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
       try {
-        const [rows] = await pool.query(`SELECT * FROM (${trimmed}) __export LIMIT ${Math.min(batchLimit + 1, rowLimit - start + 1)} OFFSET ${start}`);
+        const [rows, fields] = await pool.query(`SELECT * FROM (${trimmed}) __export LIMIT ${Math.min(batchLimit + 1, rowLimit - start + 1)} OFFSET ${start}`);
         const list = rows as Record<string, unknown>[];
-        const columns = list.length > 0 ? Object.keys(list[0]) : [];
+        const columns = (fields as Array<{ name: string }> | undefined)?.map((field) => field.name) ?? (list.length > 0 ? Object.keys(list[0]) : []);
         const tooMany = list.length > batchLimit && start + batchLimit >= rowLimit;
         if (tooMany) return { content: [{ type: "text", text: JSON.stringify({ error: { code: "EXPORT_ROW_LIMIT_EXCEEDED", rowLimit } }) }] };
         const values = list.slice(0, batchLimit);
@@ -149,7 +171,19 @@ export async function createMysqlReferenceServer(options: MysqlReferenceServerOp
       const schema = [];
       for (const t of tables as any[]) {
         const [columns] = await pool.query("SELECT column_name AS name, data_type AS dataType FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ?", [t.table]);
-        schema.push({ table: t.table, columns });
+        const [constraints] = await pool.query("SELECT tc.constraint_name AS constraintName, tc.constraint_type AS constraintType, kcu.column_name AS columnName, kcu.referenced_table_name AS referencedTable, kcu.referenced_column_name AS referencedColumn, kcu.ordinal_position AS ordinalPosition FROM information_schema.table_constraints tc JOIN information_schema.key_column_usage kcu ON tc.constraint_schema = kcu.constraint_schema AND tc.table_name = kcu.table_name AND tc.constraint_name = kcu.constraint_name WHERE tc.table_schema = DATABASE() AND tc.table_name = ? ORDER BY kcu.ordinal_position", [t.table]);
+        const rows = constraints as Array<{ constraintName?: string; constraintType?: string; columnName?: string; referencedTable?: string; referencedColumn?: string }>;
+        const primaryKey = rows.filter((row) => row.constraintType === "PRIMARY KEY" && row.columnName).map((row) => row.columnName);
+        const uniqueGroups = new Map<string, string[]>();
+        for (const row of rows) if (row.constraintType === "UNIQUE" && row.constraintName && row.columnName) uniqueGroups.set(row.constraintName, [...(uniqueGroups.get(row.constraintName) ?? []), row.columnName]);
+        const foreignGroups = new Map<string, { columns: string[]; references: { table: string; columns: string[] } }>();
+        for (const row of rows) if (row.constraintType === "FOREIGN KEY" && row.constraintName && row.columnName && row.referencedTable && row.referencedColumn) {
+          const existing = foreignGroups.get(row.constraintName) ?? { columns: [], references: { table: row.referencedTable, columns: [] } };
+          existing.columns.push(row.columnName);
+          existing.references.columns.push(row.referencedColumn);
+          foreignGroups.set(row.constraintName, existing);
+        }
+        schema.push({ table: t.table, columns, ...(primaryKey.length ? { primaryKey } : {}), ...(uniqueGroups.size ? { uniqueKeys: [...uniqueGroups.values()] } : {}), ...(foreignGroups.size ? { foreignKeys: [...foreignGroups.values()] } : {}) });
       }
       return { content: [{ type: "text", text: JSON.stringify({ schema, contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
     },

@@ -8,11 +8,16 @@ const identity = (overrides: Partial<ReviewCacheIdentity> = {}): ReviewCacheIden
   schemaEvidenceFingerprint: "schema-1",
   normalizedSqlHash: "sql-1",
   queryDigestVersion: "digest-1",
+  parserEngine: "deterministic-tokenizer",
+  dialect: "sqlite",
   reviewerModel: "model-1",
   reviewerPromptVersion: "prompt-1",
   reviewPolicyVersion: "policy-1",
+  hardConstraintAdmissionPolicy: "hard-1",
   reviewCoverageSchemaVersion: "coverage-1",
   parserVersion: "parser-1",
+  semanticEvidenceFingerprint: "semantic-1",
+  resultEvidenceHash: "result-1",
   ...overrides,
 });
 

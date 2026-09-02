@@ -120,6 +120,7 @@ exec(npxCmd, ["@electron/asar", "pack", staging, path.join(out, "resources", "ap
 
 // 4. extraResources. These capabilities are mandatory for a usable desktop
 // package; fail closed instead of producing a silently incomplete artifact.
+const pythonRuntimeExecutable = path.resolve(frontend, "../dist/python-runtime/Scripts/python.exe");
 for (const required of [
   "../dist/python-runtime/Scripts/python.exe",
   "../.agents/skills/analysis/SKILL.md",
@@ -130,6 +131,11 @@ for (const required of [
     console.error(`required extraResource missing: ${required}`);
     process.exit(1);
   }
+}
+const pythonProbe = spawnSync(pythonRuntimeExecutable, ["-c", "import sqlglot"], { stdio: "ignore" });
+if (pythonProbe.status !== 0) {
+  console.error("bundled Python runtime must include sqlglot for strict Query Digest enforcement");
+  process.exit(1);
 }
 for (const res of pkg.build?.extraResources ?? []) {
   const from = path.resolve(frontend, res.from);

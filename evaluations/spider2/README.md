@@ -2,6 +2,8 @@
 
 该目录是 Data Agent 与官方 Spider2-Lite 之间的薄适配层。它直接运行现有 `createDataAgentHarness`，不包含独立模型链路或自定义评分器。
 
+完整的第 1～8 轮进展、Query Assurance 试验、启动命令和结果分析流程见：[Spider2 与 Query Assurance 测评转交文档](../docs/Spider2与Query%20Assurance测评转交文档.md)。
+
 ## 存储建议
 
 仓库代码位于 `D:/data_agent/evaluations/spider2`。Spider2 数据库和评测结果体积较大，默认放在：
@@ -27,7 +29,7 @@ C 盘当前空间仍需由使用者确认。不要将本地数据库、云凭据
 6. 设置模型密钥，例如 `OPENAI_API_KEY`。
 7. 如需自定义，复制 `config.example.json` 为 `config.local.json`；该文件已被 Git 忽略。
 
-评测 Runner 会将配置的 Python 解释器和每题独立工作区传给 Agent；纯查询评测默认不注册 Widget 和 Dashboard 工具，并按每题后端动态注入 SQL 方言提示。每题默认最多执行 6 次元数据/样本探索查询；达到 60% 轮次预算且尚未导出时，查询结果会附加交付提醒。
+评测 Runner 会将配置的 Python 解释器和每题独立工作区传给 Agent；纯查询评测默认不注册 Widget 和 Dashboard 工具，并按每题后端动态注入 SQL 方言提示。评测默认不设置任务总时间、Agent 轮数、工具调用数或探索查询数上限；如配置了对应限制则按配置执行。达到已配置轮次预算的 60% 且尚未导出时，查询结果会附加交付提醒。
 
 ## 命令
 
@@ -61,7 +63,9 @@ npm run eval:spider2 -- report --run <run_id>
 npm run eval:spider2 -- calibrate --run <run_id> --labels <labels.jsonl>
 ```
 
-`run` 可追加 `--score`，完成后立即执行官方 SQL/CSV 两种评分。正式发布运行使用 `--formal`；首轮基线必须使用 `--baseline`。`--baseline` 会同时检查 Gold 兼容性和冻结指纹，并在开始前执行真实模型 canary；Prompt、Runtime、工具、Skills、模型或评测适配器发生任何变化都会阻断运行。
+`run` 可追加 `--score`，完成后立即执行官方 SQL/CSV 两种评分。正式发布运行使用 `--formal`；首轮基线必须使用 `--baseline`。
+
+`assurance.reviewerLlm` 与 `assurance.plannerLlm` 可分别配置独立 provider/model/API；省略或设为 `null` 时继承主 `llm`。`assurance.sqlglotExecutable` 可单独指定严格 Query Digest 的 Python 解释器，省略时使用顶层 `pythonExecutable`；解释器缺少 sqlglot 时按 Review Unavailable 处理，不得由 tokenizer 冒充完整覆盖。Calibration identity 使用实际 Reviewer 模型，而不是仅用于显示的标签，从而支持异构模型审查并避免 Solver/Reviewer 错误完全相关。`--baseline` 会同时检查 Gold 兼容性和冻结指纹，并在开始前执行真实模型 canary；Prompt、Runtime、工具、Skills、模型或评测适配器发生任何变化都会阻断运行。
 
 运行器会把模型 `stopReason=error` 记为 `provider_error`。遇到供应商错误，或正式运行中的资源/基础设施错误，会保存已有证据并立即终止，不再把失败误记为 `completed`。正式运行只有在所有选定题目均得到有效执行结果后才允许评分；`timeout`、`max_turns` 属于 Agent 表现，仍计入完整分母。
 

@@ -34,12 +34,21 @@ describe("PostgreSQL Reference MCP Server contract", () => {
     expect(payload.rows).toHaveLength(1);
     expect(payload.truncated).toBe(true);
     expect(payload.contractVersion).toBe(1);
+    expect(payload.columns).toEqual(["id", "region", "amount"]);
+
+    const emptyExport = await client.callTool({ name: "execute_query_export_batch", arguments: { sql: "SELECT * FROM contract_sales WHERE 1 = 0" } });
+    const emptyPayload = JSON.parse((emptyExport.content as any)[0].text);
+    expect(emptyPayload.columns).toEqual(["id", "region", "amount"]);
+    expect(emptyPayload.rows).toEqual([]);
+    expect(emptyPayload.done).toBe(true);
 
     const dangerous = await client.callTool({ name: "execute_query_preview", arguments: { sql: "DELETE FROM contract_sales" } });
     expect(JSON.parse((dangerous.content as any)[0].text).error.code).toBe("FORBIDDEN_SQL");
 
     const schema = await client.callTool({ name: "get_schema", arguments: {} });
-    expect(JSON.parse((schema.content as any)[0].text).schema[0].table).toBe("contract_sales");
+    const schemaPayload = JSON.parse((schema.content as any)[0].text);
+    expect(schemaPayload.schema[0].table).toBe("contract_sales");
+    expect(schemaPayload.schema[0].primaryKey).toEqual(["id"]);
 
     await client.close();
     await close();

@@ -1,5 +1,62 @@
 import type { CalibrationIdentity } from "./review-policy.js";
 import type { ReviewDecisionStatus } from "./query-assurance.js";
+import { evaluateGates, type GateEvaluationInput, type GateName, type GateResult } from "./query-gates.js";
+
+export const DETERMINISTIC_GATE_CALIBRATION_THRESHOLDS = {
+  specificity: 0.99,
+  precision: 0.99,
+  recall: 1,
+} as const;
+
+export type DeterministicGateVariant = "positive" | "neighbor_negative" | "equivalent_rewrite";
+
+export interface DeterministicGateCalibrationCase {
+  readonly caseId: string;
+  readonly dialect: string;
+  readonly gate: GateName;
+  readonly expected: "pass" | "block";
+  readonly variant: DeterministicGateVariant;
+  /** Frozen Runtime inputs. Offline labels provide only expected/variant. */
+  readonly input?: GateEvaluationInput;
+  /** Deprecated compatibility for offline fixtures; production replay must provide input. */
+  readonly result?: Pick<GateResult, "applicability" | "blocking"> & { readonly gate: GateName };
+  readonly candidate?: { readonly queryArtifactId: string; readonly normalizedSqlHash: string };
+  readonly identity: CalibrationIdentity;
+  readonly submitted?: boolean;
+  readonly e2eCorrect?: boolean;
+  readonly timedOut?: boolean;
+  readonly durationMs?: number;
+  readonly scannedRows?: number;
+  readonly cost?: number;
+}
+
+export interface DeterministicGateCalibrationMetrics {
+  readonly recall: number;
+  readonly specificity: number;
+  readonly precision: number;
+  readonly falseBlocks: number;
+  readonly missedBlocks: number;
+  readonly unsupportedCases: number;
+  readonly hardGateBypasses: number;
+  readonly e2eRate: number;
+  readonly nonDeliveryRate: number;
+  readonly timeoutRate: number;
+  readonly averageLatencyMs: number;
+  readonly scannedRows: number;
+  readonly averageCost: number;
+}
+
+export interface DeterministicGateCalibrationReport {
+  readonly gate: GateName;
+  readonly dialect: string;
+  readonly identity: CalibrationIdentity;
+  readonly sampleSize: number;
+  readonly caseIds: readonly string[];
+  readonly metrics: DeterministicGateCalibrationMetrics;
+  readonly fixtureCoverage: Readonly<Record<DeterministicGateVariant, boolean>>;
+  readonly thresholds: typeof DETERMINISTIC_GATE_CALIBRATION_THRESHOLDS;
+  readonly eligibleForEnforce: boolean;
+}
 
 export const DEFAULT_CALIBRATION_THRESHOLDS = {
   correctQuerySpecificity: 0.98,
@@ -73,7 +130,65 @@ function p95(values: readonly number[]): number {
 }
 
 function average(values: readonly number[]): number { return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0; }
-function sameIdentity(left: CalibrationIdentity, right: CalibrationIdentity): boolean { return Object.keys(left).every((key) => left[key as keyof CalibrationIdentity] === right[key as keyof CalibrationIdentity]); }
+function sameIdentity(left: CalibrationIdentity, right: CalibrationIdentity): boolean {
+  return Object.keys({ ...left, ...right }).every((key) => left[key as keyof CalibrationIdentity] === right[key as keyof CalibrationIdentity]);
+}
+
+export function createDeterministicGateCalibrationReport(cases: readonly DeterministicGateCalibrationCase[]): DeterministicGateCalibrationReport {
+  if (cases.length === 0) throw new Error("DETERMINISTIC_GATE_CALIBRATION_CASES_EMPTY");
+  const gate = cases[0].gate ?? cases[0].result?.gate;
+  const dialect = cases[0].dialect;
+  const identity = cases[0].identity;
+  if (!gate || !identity) throw new Error("DETERMINISTIC_GATE_REPLAY_IDENTITY_REQUIRED");
+  if (cases.some((item) => (item.gate ?? item.result?.gate) !== gate || item.dialect !== dialect || !item.identity || !sameIdentity(identity, item.identity))) throw new Error("DETERMINISTIC_GATE_CALIBRATION_IDENTITY_MIXED");
+  const evaluated = cases.map((item) => ({
+    item,
+    result: item.input
+      ? evaluateGates(item.input).find((result) => result.gate === gate)!
+      : item.result ?? (() => { throw new Error("DETERMINISTIC_GATE_REPLAY_INPUT_REQUIRED"); })(),
+  }));
+  const expectedBlocks = evaluated.filter(({ item }) => item.expected === "block");
+  const expectedPasses = evaluated.filter(({ item }) => item.expected === "pass");
+  const observedBlocks = evaluated.filter(({ result }) => result.applicability === "checked" && result.blocking);
+  const trueBlocks = observedBlocks.filter(({ item }) => item.expected === "block").length;
+  const falseBlocks = observedBlocks.filter(({ item }) => item.expected === "pass").length;
+  const fixtureCoverage = {
+    positive: cases.some((item) => item.variant === "positive"),
+    neighbor_negative: cases.some((item) => item.variant === "neighbor_negative"),
+    equivalent_rewrite: cases.some((item) => item.variant === "equivalent_rewrite"),
+  };
+  const metrics: DeterministicGateCalibrationMetrics = {
+    recall: expectedBlocks.length ? trueBlocks / expectedBlocks.length : 0,
+    specificity: expectedPasses.length ? (expectedPasses.length - falseBlocks) / expectedPasses.length : 0,
+    precision: observedBlocks.length ? trueBlocks / observedBlocks.length : expectedBlocks.length === 0 ? 1 : 0,
+    falseBlocks,
+    missedBlocks: expectedBlocks.length - trueBlocks,
+    unsupportedCases: evaluated.filter(({ result }) => result.applicability !== "checked" && result.applicability !== "not_applicable").length,
+    hardGateBypasses: expectedBlocks.filter(({ item, result }) => !result.blocking && item.submitted === true).length,
+    e2eRate: cases.length ? cases.filter((item) => item.e2eCorrect === true).length / cases.length : 0,
+    nonDeliveryRate: cases.length ? cases.filter((item) => item.submitted === false).length / cases.length : 0,
+    timeoutRate: cases.length ? cases.filter((item) => item.timedOut === true).length / cases.length : 0,
+    averageLatencyMs: average(cases.map((item) => item.durationMs ?? 0)),
+    scannedRows: cases.reduce((sum, item) => sum + (item.scannedRows ?? 0), 0),
+    averageCost: average(cases.map((item) => item.cost ?? 0)),
+  };
+  return {
+    gate,
+    dialect,
+    identity,
+    sampleSize: cases.length,
+    caseIds: cases.map((item) => item.caseId),
+    metrics,
+    fixtureCoverage,
+    thresholds: DETERMINISTIC_GATE_CALIBRATION_THRESHOLDS,
+    eligibleForEnforce: metrics.specificity >= DETERMINISTIC_GATE_CALIBRATION_THRESHOLDS.specificity
+      && metrics.precision >= DETERMINISTIC_GATE_CALIBRATION_THRESHOLDS.precision
+      && metrics.recall >= DETERMINISTIC_GATE_CALIBRATION_THRESHOLDS.recall
+      && metrics.unsupportedCases === 0
+      && metrics.hardGateBypasses === 0
+      && Object.values(fixtureCoverage).every(Boolean),
+  };
+}
 
 export function createCalibrationReport(cases: readonly CalibrationCase[]): CalibrationReport {
   if (cases.length === 0) throw new Error("CALIBRATION_CASES_EMPTY");

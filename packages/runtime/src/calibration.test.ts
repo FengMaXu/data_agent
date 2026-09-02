@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createCalibrationReport, DEFAULT_CALIBRATION_THRESHOLDS, type CalibrationCase } from "./calibration.js";
+import { createCalibrationReport, createDeterministicGateCalibrationReport, DEFAULT_CALIBRATION_THRESHOLDS, type CalibrationCase, type DeterministicGateCalibrationCase } from "./calibration.js";
+import { createQueryDigestCompiler } from "./query-digest.js";
 
 const base = (overrides: Partial<CalibrationCase>): CalibrationCase => ({
   caseId: "case-1",
@@ -34,6 +35,25 @@ describe("Review Calibration", () => {
     expect(report.metrics.mismatchPrecision).toBe(0.5);
     expect(report.metrics.netE2ECorrect).toBe(-1);
     expect(report.passes).toMatchObject({ mismatchPrecision: false, correctQuerySpecificity: false });
+  });
+
+  it("replays frozen deterministic inputs instead of accepting observed labels", () => {
+    const identity = { ...base({}).identity, dialect: "sqlite", gatePolicyVersion: "1", gateApplicabilityVersion: "1" };
+    const compiler = createQueryDigestCompiler();
+    const spec = (columns: readonly string[]) => ({ taskId: "task", specVersion: "1", question: "return answer", answerContract: { output: { value: { columns, rowMode: "scalar" as const }, binding: "hard" as const, provenance: { authority: "request_wording" as const, source: "question" } } }, hardConstraints: [], hypotheses: [], ambiguities: [], provenance: [] });
+    const make = (caseId: string, variant: DeterministicGateCalibrationCase["variant"], expected: DeterministicGateCalibrationCase["expected"], actualColumn: string): DeterministicGateCalibrationCase => {
+      const digest = { ...compiler.compile({ sql: `SELECT 1 AS ${actualColumn}`, dialect: "sqlite" }), parserEngine: "sqlglot" as const };
+      return { caseId, dialect: "sqlite", gate: "g1_shape", expected, variant, candidate: { queryArtifactId: caseId, normalizedSqlHash: digest.normalizedSqlHash }, identity, input: { spec: spec(["answer"]), digest, metadata: { columns: [actualColumn], rowCount: 1 }, gatePolicyVersion: "1", gateApplicabilityVersion: "1" } };
+    };
+    const report = createDeterministicGateCalibrationReport([
+      make("correct", "positive", "pass", "answer"),
+      make("error", "neighbor_negative", "block", "wrong"),
+      make("rewrite", "equivalent_rewrite", "pass", "answer"),
+    ]);
+    expect(report.metrics).toMatchObject({ recall: 1, specificity: 1, precision: 1, hardGateBypasses: 0 });
+    expect(report.fixtureCoverage).toEqual({ positive: true, neighbor_negative: true, equivalent_rewrite: true });
+    expect(report.identity).toEqual(identity);
+    expect(report.eligibleForEnforce).toBe(true);
   });
 
   it("reports repeat agreement, fixed denominator delivery delta, p95 and cost deltas", () => {

@@ -26,6 +26,12 @@ describe("ExportCandidateStore", () => {
         rowCount: 2,
         truncated: false,
         nullCounts: { id: 0, value: 1 },
+        resultEvidence: {
+          completeness: "partial",
+          numericCompleteness: "complete",
+          numericColumns: ["id"],
+          numericRows: [[1], [2]],
+        },
       });
       expect(candidate.path).toContain(".query-assurance/candidates/");
       expect(await workspace.list()).not.toContain(candidate.path);
@@ -34,6 +40,38 @@ describe("ExportCandidateStore", () => {
       await store.publish(candidate, "exports/result.csv");
       expect(await readFile(join(root, "exports/result.csv"), "utf8")).toBe("id,value\n1,\"a\"\n2,");
       await expect(readFile(join(root, candidate.path), "utf8")).rejects.toThrow();
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("treats an empty candidate column contract as unknown instead of expecting zero columns", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-candidate-empty-columns-"));
+    const workspace = new WorkspaceStore(root);
+    const store = new ExportCandidateStore(workspace);
+    try {
+      const candidate = await store.create({
+        taskId: "task-1",
+        queryArtifactId: "artifact-1",
+        artifactColumns: [],
+        batches: (async function* () { yield { columns: ["answer"], rows: [[1]] }; })(),
+      });
+      expect(candidate.metadata.columns).toEqual(["answer"]);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a streamed row-width change before publication", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-candidate-width-"));
+    const workspace = new WorkspaceStore(root);
+    const store = new ExportCandidateStore(workspace);
+    try {
+      await expect(store.create({
+        taskId: "task-1",
+        queryArtifactId: "artifact-1",
+        batches: (async function* () { yield { columns: ["id"], rows: [[1, 2]] }; })(),
+      })).rejects.toThrow("CANDIDATE_ROW_WIDTH_MISMATCH");
     } finally {
       await rm(root, { recursive: true, force: true });
     }

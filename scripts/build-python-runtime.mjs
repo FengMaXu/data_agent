@@ -9,17 +9,18 @@ await rm(output, { recursive: true, force: true });
 await mkdir(output, { recursive: true });
 await cp(source, output, { recursive: true, force: true });
 const hash = createHash("sha256");
+const requiredSqlglotVersion = "30.17.0";
 const executableRelative = process.platform === "win32" ? (await readFile(path.join(output, "python.exe")).then(() => "python.exe").catch(() => "Scripts/python.exe")) : "bin/python";
 const executable = path.join(output, executableRelative);
 const files = await readFile(executable);
 // The manifest must describe an executable capability, not an intended one.
 // Fail the pack build if the visual dependencies are absent or unimportable.
-const visualCheck = spawnSync(executable, ["-c", "import matplotlib, numpy, pandas; print('matplotlib='+matplotlib.__version__)"], { encoding: "utf8" });
-if (visualCheck.status !== 0) {
-  console.error(`Python data/visual pack is incomplete: numpy, pandas, and matplotlib must import successfully\\n${visualCheck.stderr || visualCheck.stdout}`);
+const visualCheck = spawnSync(executable, ["-c", "import matplotlib, numpy, pandas, sqlglot; print('matplotlib='+matplotlib.__version__); print('sqlglot='+sqlglot.__version__)"], { encoding: "utf8" });
+if (visualCheck.status !== 0 || !visualCheck.stdout.includes(`sqlglot=${requiredSqlglotVersion}`)) {
+  console.error(`Python data/visual/query pack is incomplete: numpy, pandas, matplotlib, and sqlglot ${requiredSqlglotVersion} must import successfully\\n${visualCheck.stderr || visualCheck.stdout}`);
   process.exit(1);
 }
 hash.update(files);
-const manifest = { runtimeId: `python-data-${process.platform}-${process.arch}`, pythonVersion: process.env.PYTHON_VERSION ?? "3.13.x", platform: process.platform, arch: process.arch, packs: ["base", "data", "visual"], sha256: hash.digest("hex") };
+const manifest = { runtimeId: `python-data-${process.platform}-${process.arch}`, pythonVersion: process.env.PYTHON_VERSION ?? "3.13.x", platform: process.platform, arch: process.arch, packs: ["base", "data", "visual", "sqlglot"], sha256: hash.digest("hex") };
 await writeFile(path.join(output, "manifest.json"), JSON.stringify(manifest, null, 2), "utf8");
 console.log(JSON.stringify(manifest));

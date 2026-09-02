@@ -8,6 +8,7 @@ import { WorkspaceStore } from "./workspace.js";
 
 const candidate = (id: string): ExportCandidate => ({
   candidateId: id,
+  schemaVersion: 2,
   taskId: "task-1",
   queryArtifactId: "artifact-1",
   path: `.query-assurance/candidates/${id}.csv`,
@@ -29,7 +30,7 @@ describe("PublicationRegistry", () => {
     ]);
 
     expect(receipts[0]).toEqual(receipts[1]);
-    expect(receipts[0]).toMatchObject({ status: "published_approved", taskId: "task-1", queryArtifactId: "artifact-1", candidateId: "candidate-1" });
+    expect(receipts[0]).toMatchObject({ status: "published_with_disagreement", taskId: "task-1", queryArtifactId: "artifact-1", candidateId: "candidate-1" });
     await expect(registry.publish(token, candidate("candidate-1"), "exports/other.csv")).resolves.toEqual(receipts[0]);
     await expect(registry.publish(token, { ...candidate("candidate-1"), normalizedSqlHash: "different" } as ExportCandidate & { normalizedSqlHash: string }, "exports/other.csv")).rejects.toThrow("REVIEW_TOKEN_CANDIDATE_MISMATCH");
     const secondToken = registry.issueToken({ taskId: "task-1", queryArtifactId: "artifact-1", normalizedSqlHash: "sql-1", specVersion: "spec-1", schemaEvidenceFingerprint: "schema-1", candidate: candidate("candidate-2"), outcome: approved });
@@ -39,13 +40,22 @@ describe("PublicationRegistry", () => {
     await expect(registry.publish(differentToken, differentArtifact, "exports/different.csv")).rejects.toThrow("PUBLICATION_TASK_ALREADY_COMPLETE");
   });
 
+  it("does not promote a token issued in one delivery mode after a mode switch", async () => {
+    let mode: "shadow" | "enforce" = "shadow";
+    const registry = new PublicationRegistry({ mode: "shadow", modeFor: () => mode, specVersionFor: () => "spec-1" });
+    const value = candidate("mode-stale");
+    const token = registry.issueToken({ taskId: "task-1", queryArtifactId: "artifact-1", normalizedSqlHash: "sql-1", specVersion: "spec-1", schemaEvidenceFingerprint: "schema-1", candidate: value, outcome: approved, issuedMode: "shadow" });
+    mode = "enforce";
+    await expect(registry.publish(token, value, "exports/mode-stale.csv")).rejects.toThrow("REVIEW_TOKEN_MODE_STALE");
+  });
+
   it("requires Publication Authorization to disclose exactly the rejected Semantic Diffs", async () => {
     const registry = new PublicationRegistry({ mode: "enforce", specVersionFor: () => "spec-1" });
     const diff = { aspect: "grain", required: "one", observed: "many", evidence: { constraintId: "HC-1", digestPath: "groupBy" } };
     const outcome = { availability: "available", decision: { status: "rejected", diffs: [diff] } } as const;
     const value = candidate("candidate-1");
     const token = registry.issueToken({ taskId: "task-1", queryArtifactId: "artifact-1", normalizedSqlHash: "sql-1", specVersion: "spec-1", schemaEvidenceFingerprint: "schema-1", candidate: value, outcome });
-    const authorization = { taskId: "task-1", queryArtifactId: "artifact-1", normalizedSqlHash: "sql-1", specVersion: "spec-1", candidateId: "candidate-1", candidatePath: value.path, contentSha256: value.contentSha256, semanticDiffHashes: [] } satisfies PublicationAuthorization;
+    const authorization = { schemaVersion: 2, taskId: "task-1", queryArtifactId: "artifact-1", normalizedSqlHash: "sql-1", specVersion: "spec-1", candidateId: "candidate-1", candidatePath: value.path, contentSha256: value.contentSha256, semanticDiffHashes: [] } satisfies PublicationAuthorization;
     await expect(registry.publish(token, value, "exports/result.csv", authorization)).rejects.toThrow("PUBLICATION_AUTHORIZATION_MISMATCH");
     await expect(registry.publish(token, value, "exports/result.csv", { ...authorization, semanticDiffHashes: [semanticDiffHash(diff)] })).resolves.toMatchObject({ status: "published_with_disagreement" });
   });
@@ -68,6 +78,17 @@ describe("PublicationRegistry", () => {
     const fresh = new PublicationRegistry({ mode: "shadow", specVersionFor: () => "spec-1" });
     const freshToken = fresh.issueToken({ taskId: "task-1", queryArtifactId: "artifact-1", normalizedSqlHash: "sql-1", specVersion: "spec-1", schemaEvidenceFingerprint: "schema-1", candidate: candidate("candidate-1"), outcome: approved });
     await expect(fresh.publish(freshToken, candidate("candidate-2"), "exports/result.csv")).rejects.toThrow("REVIEW_TOKEN_CANDIDATE_MISMATCH");
+  });
+
+  it("restores tokens and receipts without allowing a second artifact publication", async () => {
+    const first = new PublicationRegistry({ mode: "shadow", specVersionFor: () => "spec-1" });
+    const value = candidate("candidate-restore");
+    const token = first.issueToken({ taskId: "task-1", queryArtifactId: "artifact-1", normalizedSqlHash: "sql-1", specVersion: "spec-1", schemaEvidenceFingerprint: "schema-1", candidate: value, outcome: approved });
+    const receipt = await first.publish(token, value, "exports/restore.csv");
+    const restored = new PublicationRegistry({ mode: "shadow", specVersionFor: () => "spec-1" });
+    restored.restore(first.snapshot());
+    await expect(restored.publish(token, value, "exports/other.csv")).resolves.toEqual(receipt);
+    expect(restored.receiptForTask("task-1")).toEqual(receipt);
   });
 
   it("can atomically publish the exact candidate through ExportCandidateStore", async () => {

@@ -56,12 +56,12 @@ export function createMcpQueryExecutor(options: McpQueryExecutorOptions) {
       const raw = await (await connect()).callTool({ name: "execute_query_preview", arguments: { sql, limit: effectiveLimit } });
       const result = parseResult(raw);
       if (result.isError) throw new Error(`MCP_TOOL_ERROR: ${result.text.slice(0, 300)}`);
-      let payload: { error?: { code: string; message?: string }; rows?: unknown[]; truncated?: boolean };
+      let payload: { error?: { code: string; message?: string }; columns?: string[]; rows?: unknown[]; truncated?: boolean };
       try { payload = JSON.parse(result.text) as typeof payload; }
       catch { throw new Error(`MCP_QUERY_BAD_RESPONSE: ${result.text.slice(0, 300)}`); }
       if (payload.error) throw new Error(`${payload.error.code}${payload.error.message ? `: ${payload.error.message}` : ""}`);
       const rows = (payload.rows ?? []) as Record<string, unknown>[];
-      const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
+      const columns = payload.columns ?? (rows.length > 0 ? Object.keys(rows[0]) : []);
       return {
         columns,
         rows: rows.map((row) => columns.map((column) => row[column])),
@@ -69,22 +69,42 @@ export function createMcpQueryExecutor(options: McpQueryExecutorOptions) {
       };
     },
 
-    async getSchema(): Promise<{ connectionId: string; dialect: "mysql"; tables: Array<{ name: string; columns: string[] }> }> {
+    async explain(sql: string, signal?: AbortSignal): Promise<McpQueryResult> {
+      if (signal?.aborted) throw new Error("EXPORT_CANCELLED");
+      const result = parseResult(await (await connect()).callTool({ name: "explain_query", arguments: { sql } }));
+      if (result.isError) throw new Error(`MCP_TOOL_ERROR: ${result.text.slice(0, 300)}`);
+      let payload: { error?: { code: string; message?: string }; columns?: string[]; rows?: unknown[]; truncated?: boolean };
+      try { payload = JSON.parse(result.text) as typeof payload; }
+      catch { throw new Error(`MCP_EXPLAIN_BAD_RESPONSE: ${result.text.slice(0, 300)}`); }
+      if (payload.error) throw new Error(`${payload.error.code}${payload.error.message ? `: ${payload.error.message}` : ""}`);
+      const rows = (payload.rows ?? []) as Record<string, unknown>[];
+      const columns = payload.columns ?? (rows.length > 0 ? Object.keys(rows[0]) : []);
+      return { columns, rows: rows.map((row) => columns.map((column) => row[column])), truncated: Boolean(payload.truncated) };
+    },
+
+    async getSchema(): Promise<{ connectionId: string; dialect: "mysql"; tables: Array<{ name: string; columns: string[]; primaryKey?: string[]; uniqueKeys?: string[][]; foreignKeys?: Array<{ columns: string[]; references: { table: string; columns: string[] } }> }> }> {
       const result = parseResult(await (await connect()).callTool({ name: "get_schema", arguments: {} }));
       if (result.isError) throw new Error(`MCP_TOOL_ERROR: ${result.text.slice(0, 300)}`);
-      let payload: { schema?: Array<{ table?: unknown; columns?: Array<{ name?: unknown }> }> };
+      let payload: { schema?: Array<{ table?: unknown; columns?: Array<{ name?: unknown }>; primaryKey?: unknown; uniqueKeys?: unknown; foreignKeys?: unknown }> };
       try { payload = JSON.parse(result.text) as typeof payload; }
       catch { throw new Error(`MCP_SCHEMA_BAD_RESPONSE: ${result.text.slice(0, 300)}`); }
       return {
         connectionId: `mysql:${String(options.env?.DATA_AGENT_MYSQL_DATABASE ?? "configured")}`,
         dialect: "mysql",
-        tables: (payload.schema ?? []).flatMap((table) => typeof table.table === "string" ? [{ name: table.table, columns: (table.columns ?? []).flatMap((column) => typeof column.name === "string" ? [column.name] : []) }] : []),
+        tables: (payload.schema ?? []).flatMap((table) => typeof table.table === "string" ? [{
+          name: table.table,
+          columns: (table.columns ?? []).flatMap((column) => typeof column.name === "string" ? [column.name] : []),
+          ...(Array.isArray(table.primaryKey) ? { primaryKey: table.primaryKey.filter((column): column is string => typeof column === "string") } : {}),
+          ...(Array.isArray(table.uniqueKeys) ? { uniqueKeys: table.uniqueKeys.filter((key): key is string[] => Array.isArray(key) && key.every((column) => typeof column === "string")) } : {}),
+          ...(Array.isArray(table.foreignKeys) ? { foreignKeys: table.foreignKeys.filter((key): key is { columns: string[]; references: { table: string; columns: string[] } } => Boolean(key && typeof key === "object" && Array.isArray((key as any).columns) && (key as any).references && typeof (key as any).references.table === "string" && Array.isArray((key as any).references.columns))).map((key) => ({ columns: key.columns, references: key.references })) } : {}),
+        }] : []),
       };
     },
 
     async *stream(sql: string, signal?: AbortSignal): AsyncGenerator<McpQueryExportBatch> {
       const client = await connect();
       const batchSize = 1000;
+      let previousColumns: string[] | undefined;
       for (let offset = 0; offset < 100000; offset += batchSize) {
         if (signal?.aborted) throw new Error("EXPORT_CANCELLED");
         const raw = await client.callTool({ name: "execute_query_export_batch", arguments: { sql, offset, limit: batchSize, maxRows: 100000 } });
@@ -95,9 +115,15 @@ export function createMcpQueryExecutor(options: McpQueryExecutorOptions) {
         catch { throw new Error(`MCP_QUERY_BAD_RESPONSE: ${result.text.slice(0, 300)}`); }
         if (payload.error) throw new Error(`${payload.error.code}${payload.error.message ? `: ${payload.error.message}` : ""}`);
         const rows = (payload.rows ?? []) as Record<string, unknown>[];
-        const columns = payload.columns ?? (rows.length > 0 ? Object.keys(rows[0]) : []);
+        const reportedColumns = payload.columns?.length ? payload.columns : rows.length > 0 ? Object.keys(rows[0]) : [];
+        if (previousColumns && reportedColumns.length === 0 && rows.length === 0 && payload.done) return;
+        const columns = reportedColumns.length > 0 ? reportedColumns : previousColumns ?? [];
         const values = rows.map((row) => columns.map((column) => row[column]));
-        if (values.length > 0) yield { columns, rows: values };
+        // Preserve an empty first batch with column metadata for header-only
+        // CSV publication, but do not expose a terminal empty batch without
+        // columns after a complete batch boundary.
+        if (columns.length > 0) previousColumns = [...columns];
+        yield { columns, rows: values };
         if (payload.done || values.length < batchSize) return;
       }
       throw new Error("EXPORT_ROW_LIMIT_EXCEEDED");

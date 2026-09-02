@@ -76,9 +76,11 @@ export class KnowledgeIndex {
 
   private hash(text: string): number { let h = 2166136261; for (let i = 0; i < text.length; i++) { h ^= text.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
 
-  search(query: string, limit = 8): KnowledgeHit[] {
+  search(query: string, limit = 8, pathFilter?: (relativePath: string) => boolean): KnowledgeHit[] {
     const queryTokens = tokenize(query);
-    const all = [...this.docs.entries()].flatMap(([relative, doc]) => doc.chunks.map(chunk => ({ relative, doc, chunk })));
+    const all = [...this.docs.entries()]
+      .filter(([relative]) => pathFilter?.(relative) ?? true)
+      .flatMap(([relative, doc]) => doc.chunks.map(chunk => ({ relative, doc, chunk })));
     if (all.length === 0) return [];
     const N = all.length; const avg = this.avgLength() || 1; const k1 = 1.5; const b = 0.75;
     const df = new Map<string, number>();

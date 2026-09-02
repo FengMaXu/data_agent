@@ -17,12 +17,17 @@ describe("MCP query executor", () => {
     db.close();
 
     const serverScript = path.resolve("dist/reference-sqlite-mcp.js");
-    const executor = createMcpQueryExecutor({ command: process.execPath, args: [serverScript, dbPath] });
+    const executor = createMcpQueryExecutor({ command: process.execPath, args: [serverScript, dbPath], dialect: "sqlite" });
     try {
       const result = await executor.run("SELECT n FROM t ORDER BY n", 10);
       expect(result.columns).toEqual(["n"]);
       expect(result.rows).toEqual([[1], [2]]);
       expect(result.truncated).toBe(false);
+      const schema = await executor.getSchema();
+      expect(schema).toMatchObject({ dialect: "sqlite", tables: [{ name: "t", columns: ["n"] }] });
+      const plan = await executor.explain!("SELECT n FROM t ORDER BY n");
+      expect(plan.columns).toContain("detail");
+      expect(plan.rows.length).toBeGreaterThan(0);
       const emptyBatches = [];
       for await (const batch of executor.stream("SELECT n FROM t WHERE 1 = 0")) emptyBatches.push(batch);
       expect(emptyBatches).toEqual([{ columns: ["n"], rows: [] }]);

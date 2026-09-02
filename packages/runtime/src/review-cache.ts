@@ -8,11 +8,22 @@ export interface ReviewCacheIdentity {
   readonly schemaEvidenceFingerprint: string;
   readonly normalizedSqlHash: string;
   readonly queryDigestVersion: string;
+  readonly parserEngine: "sqlglot" | "deterministic-tokenizer";
+  readonly dialect: string;
   readonly reviewerModel: string;
   readonly reviewerPromptVersion: string;
   readonly reviewPolicyVersion: string;
+  readonly hardConstraintAdmissionPolicy: string;
   readonly reviewCoverageSchemaVersion: string;
   readonly parserVersion: string;
+  readonly gatePolicyVersion?: string;
+  readonly gateApplicabilityVersion?: string;
+  readonly probeTemplateVersion?: string;
+  readonly evidenceAdmissionPolicyVersion?: string;
+  /** Runtime-selected business evidence is part of the review context. */
+  readonly semanticEvidenceFingerprint: string;
+  /** Result values are part of review evidence; identical SQL may yield a different result later. */
+  readonly resultEvidenceHash: string;
 }
 
 export interface ReviewCacheEntry {

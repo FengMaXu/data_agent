@@ -112,6 +112,7 @@ export function registerDesktopCapabilities(
     dialog?: ElectronDialogLike;
     autoUpdater?: ElectronUpdateServiceLike;
     workspace?: WorkspaceBytesLike;
+    onSecretsChanged?: () => void | Promise<void>;
   },
 ): () => void {
   const secretPath = path.join(options.userDataDir, "secrets.json");
@@ -136,6 +137,7 @@ export function registerDesktopCapabilities(
       encrypted[field] = options.safeStorage.encryptString(value).toString("base64");
     }
     writeEncryptedSecretRecord(secretPath, encrypted);
+    await options.onSecretsChanged?.();
     return { ok: true };
   });
   handle("data-agent:select-python-executable", async () => {
@@ -294,6 +296,7 @@ function createElectronQueryExecutor(
 
   return {
     run: (sql: string, rowLimit: number) => resolveExecutor().then((current) => current.run(sql, rowLimit)),
+    explain: (sql: string, signal?: AbortSignal) => resolveExecutor().then((current) => current.explain(sql, signal)),
     getSchema: () => resolveExecutor().then((current) => current.getSchema()),
     async *stream(sql: string, signal?: AbortSignal) {
       yield* (await resolveExecutor()).stream(sql, signal);
@@ -435,7 +438,15 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
     createAgentHarnessResolver,
     createDataAgentHarness,
     createProfileConversationBlindReviewer,
+    createProfileAnswerSpecGenerator,
     createQueryAssurance,
+    createSqlglotQueryDigestCompiler,
+    resolveQueryDigestParserVersion,
+    CONVERSATION_BLIND_REVIEWER_PROMPT_VERSION,
+    REVIEW_COVERAGE_SCHEMA_VERSION,
+    QUERY_DIGEST_VERSION,
+    DETERMINISTIC_GATE_NAMES,
+    calibrationRecordFromReports,
     ReviewModeController,
   } = await import("@data-agent/runtime");
   const { registerElectronRuntimeIpc } = await import("./index.js");
@@ -473,9 +484,28 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
       pythonExecutable = pythonConfig.executable;
     }
   }
+  // The strict Query Digest runs in the same managed Python environment as
+  // plotting. A missing sqlglot package is surfaced as unavailable rather than
+  // silently granting tokenizer coverage.
+  const digestCompiler = pythonExecutable
+    ? createSqlglotQueryDigestCompiler({ executable: pythonExecutable })
+    : undefined;
+  const digestParserVersion = resolveQueryDigestParserVersion(digestCompiler, "mysql");
 
   const secretPath = path.join(paths.userDataDir, "secrets.json");
   const startupStoredSecrets = readStoredSecrets(secretPath, deps.safeStorage);
+  const reviewerAvailableForConfig = (config: unknown, secrets: StoredLLMSecrets = startupStoredSecrets): boolean => {
+    const cfg = isRecord(config) ? config : {};
+    const provider = typeof cfg.provider === "string" && cfg.provider ? cfg.provider : (secrets.anthropic_api_key ? "anthropic" : "openai");
+    const apiKey = firstString(
+      cfg.api_key,
+      provider === "anthropic" ? cfg.anthropic_api_key : cfg.openai_api_key,
+      secrets.anthropic_api_key && provider === "anthropic" ? secrets.anthropic_api_key : undefined,
+      secrets.openai_api_key && provider !== "anthropic" ? secrets.openai_api_key : undefined,
+    );
+    const model = firstString(cfg.model, secrets.default_model);
+    return cfg.llm_enabled !== false && Boolean(apiKey && model);
+  };
   const resolveConfiguredProfile = async () => {
     const saved = await metadata.getConfig("ui.settings");
     const cfg = isRecord(saved) ? saved : {};
@@ -502,6 +532,15 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
       return reviewerCache.reviewer.review(input, signal);
     },
   };
+  let plannerCache: { key: string; planner: ReturnType<typeof createProfileAnswerSpecGenerator> } | undefined;
+  const planner = {
+    generate: async (input: import("@data-agent/runtime").AnswerSpecInput, signal: AbortSignal) => {
+      const profile = await resolveConfiguredProfile();
+      const key = JSON.stringify([profile.provider, profile.model, profile.apiFormat, profile.baseUrl]);
+      if (!plannerCache || plannerCache.key !== key) plannerCache = { key, planner: createProfileAnswerSpecGenerator(profile) };
+      return plannerCache.planner.generate(input, signal);
+    },
+  };
   const configuredAssuranceMode = isRecord(savedConfig) && ["off", "shadow", "enforce"].includes(String(savedConfig.query_assurance_mode))
     ? String(savedConfig.query_assurance_mode) as "off" | "shadow" | "enforce"
     : "shadow";
@@ -510,39 +549,65 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
     : isRecord(savedConfig) && savedConfig.query_assurance_calibrated === true
       ? { eligible: true }
       : undefined;
-  const configuredReviewerAvailable = (isRecord(savedConfig) ? savedConfig.llm_enabled !== false : true)
-    && Boolean(firstString(isRecord(savedConfig) ? savedConfig.api_key : undefined, isRecord(savedConfig) ? savedConfig.openai_api_key : undefined, isRecord(savedConfig) ? savedConfig.anthropic_api_key : undefined, startupStoredSecrets.openai_api_key, startupStoredSecrets.anthropic_api_key))
-    && Boolean(firstString(isRecord(savedConfig) ? savedConfig.model : undefined, startupStoredSecrets.default_model));
+  const configuredReviewerAvailable = reviewerAvailableForConfig(savedConfig);
   const reviewerModel = firstString(isRecord(savedConfig) ? savedConfig.model : undefined, startupStoredSecrets.default_model) ?? "configured";
+  // Raw categorical rows are opt-in because they may contain personal data.
+  // Keep preview and export review evidence policies identical.
+  const reviewEvidence = {
+    includeRows: isRecord(savedConfig) && savedConfig.query_assurance_include_rows === true,
+  };
   const calibrationIdentity = {
     reviewerModel,
-    reviewerPromptVersion: "1",
-    queryDigestVersion: "1",
-    parserVersion: "query-digest-tokenizer-1",
-    reviewCoverageSchemaVersion: "1",
-    reviewPolicyVersion: "1",
-    hardConstraintAdmissionPolicy: "1",
+    reviewerPromptVersion: CONVERSATION_BLIND_REVIEWER_PROMPT_VERSION,
+    queryDigestVersion: QUERY_DIGEST_VERSION,
+    parserVersion: digestParserVersion,
+    reviewCoverageSchemaVersion: REVIEW_COVERAGE_SCHEMA_VERSION,
+    reviewPolicyVersion: "2",
+    hardConstraintAdmissionPolicy: "2",
+    gatePolicyVersion: "1",
+    gateApplicabilityVersion: "1",
+    probeTemplateVersion: "1",
+    evidenceAdmissionPolicyVersion: "1",
+    dialect: "mysql",
   };
-  const modeController = configuredAssuranceMode === "enforce"
-    ? new ReviewModeController({
-      requestedMode: configuredAssuranceMode,
-      reviewerAvailable: configuredReviewerAvailable,
-      ...(savedAssuranceConfig ? {
-        calibration: {
-          eligible: savedAssuranceConfig.eligible === true,
-          identity: { ...calibrationIdentity, ...(isRecord(savedAssuranceConfig.identity) ? savedAssuranceConfig.identity : {}) },
-        },
-      } : {}),
-      currentCalibrationIdentity: calibrationIdentity,
-    })
-    : undefined;
+  let trustedCalibration;
+  try {
+    trustedCalibration = Array.isArray(savedAssuranceConfig?.reports)
+      ? calibrationRecordFromReports(calibrationIdentity, savedAssuranceConfig.reports as never[])
+      : undefined;
+  } catch {
+    trustedCalibration = undefined;
+  }
+  // A plain eligible/gateEligibility flag is not calibration evidence. Only a
+  // report-derived record can grant Enforce; missing reviewer capability stays
+  // in Shadow so protected publication remains fail-closed.
+  const modeController = new ReviewModeController({
+    requestedMode: configuredAssuranceMode,
+    reviewerAvailable: configuredReviewerAvailable,
+    ...(configuredAssuranceMode === "enforce" ? { requiredGateNames: DETERMINISTIC_GATE_NAMES } : {}),
+    ...(trustedCalibration ? { calibration: trustedCalibration } : {}),
+    currentCalibrationIdentity: calibrationIdentity,
+  });
   // Query Assurance is explicitly wired for product sessions. Until a
   // calibrated reviewer is configured, unavailable review remains fail-closed.
   const queryAssurance = createQueryAssurance({
     mode: configuredAssuranceMode,
     ...(modeController ? { modeController } : {}),
     reviewer,
+    ...(digestCompiler ? { digestCompiler } : {}),
+    parserVersion: digestParserVersion,
+    ...(configuredAssuranceMode !== "off" && (!isRecord(savedConfig) || savedConfig.query_assurance_planner !== false) ? { specGenerator: planner } : {}),
     reviewerModel,
+    reviewerPromptVersion: CONVERSATION_BLIND_REVIEWER_PROMPT_VERSION,
+    reviewCoverageSchemaVersion: REVIEW_COVERAGE_SCHEMA_VERSION,
+    gatePolicyVersion: "1",
+    gateApplicabilityVersion: "1",
+    probeTemplateVersion: "1",
+    evidenceAdmissionPolicyVersion: "1",
+    dialect: "mysql",
+    reviewEvidence,
+    statePath: path.join(paths.userDataDir, "metadata", "query-assurance-state.json"),
+    shadowDelivery: isRecord(savedConfig) && savedConfig.query_assurance_shadow_delivery === "record_only" ? "record_only" : "publish_with_disagreement",
     allowUnavailablePublication: false,
   });
 
@@ -566,6 +631,11 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
     semanticProjectDir,
     skillRoots: [path.join(developmentRoot, ".agents", "skills"), path.join(packagedRoot, ".agents", "skills")],
   });
+  const refreshReviewerCapability = async (config?: Record<string, unknown>): Promise<void> => {
+    const latestConfig = config ?? await metadata.getConfig("ui.settings");
+    modeController.setReviewerAvailable(reviewerAvailableForConfig(latestConfig, readStoredSecrets(secretPath, deps.safeStorage)));
+  };
+  runtime.onConfigSaved = (config) => refreshReviewerCapability(config);
   runtime.ingestJob = {
     async getStatus() {
       const { readdir } = await import("node:fs/promises");
@@ -588,9 +658,14 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
     async retry() { return { accepted: true }; },
   };
 
+  const mysqlMcpScript = [
+    path.join(__dirname, "mcp-mysql.cjs"),
+    path.resolve(__dirname, "../../../frontend/electron-host/mcp-mysql.cjs"),
+    path.resolve(process.cwd(), "frontend/electron-host/mcp-mysql.cjs"),
+  ].find((candidate, index, candidates) => existsSync(candidate) || index === candidates.length - 1)!;
   const mcpProcess = {
     command: process.execPath,
-    args: [path.join(__dirname, "mcp-mysql.cjs")],
+    args: [mysqlMcpScript],
     baseEnv: { ELECTRON_RUN_AS_NODE: "1" },
   };
   const testers = createElectronHostTesters(mcpProcess);
@@ -604,6 +679,7 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
     dialog: deps.dialog,
     autoUpdater: deps.autoUpdater,
     workspace,
+    onSecretsChanged: refreshReviewerCapability,
   });
   const unregisterRuntimeIpc = registerElectronRuntimeIpc(deps.ipcMain as never, runtime);
 
@@ -638,6 +714,7 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
         }),
         queryExecutor,
         queryAssurance,
+        reviewEvidence,
         enforceDeliveryReceipt: true,
         clarifications: runtime.clarificationManager,
         session: persistentSession,

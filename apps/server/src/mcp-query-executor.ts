@@ -5,6 +5,8 @@ export interface McpQueryExecutorOptions {
   command: string;
   args?: string[];
   env?: Record<string, string>;
+  dialect?: "sqlite" | "mysql" | "postgres" | "bigquery" | "snowflake";
+  connectionId?: string;
 }
 
 export interface McpQueryResult {
@@ -20,8 +22,14 @@ export interface McpQueryExportBatch {
 
 export interface McpSchemaEvidence {
   connectionId: string;
-  dialect: "mysql";
-  tables: Array<{ name: string; columns: string[] }>;
+  dialect: "sqlite" | "mysql" | "postgres" | "bigquery" | "snowflake";
+  tables: Array<{
+    name: string;
+    columns: string[];
+    primaryKey?: string[];
+    uniqueKeys?: string[][];
+    foreignKeys?: Array<{ columns: string[]; references: { table: string; columns: string[] } }>;
+  }>;
 }
 
 /**
@@ -68,24 +76,45 @@ export function createMcpQueryExecutor(options: McpQueryExecutorOptions) {
         truncated: Boolean(payload.truncated),
       };
     },
+    async explain(sql: string): Promise<McpQueryResult> {
+      const c = await connect();
+      const result = await c.callTool({ name: "explain_query", arguments: { sql } }) as { isError?: boolean; content?: Array<{ type: string; text?: string }> };
+      const text = result.content?.find((part) => part.type === "text")?.text;
+      if (!text) throw new Error("MCP_EXPLAIN_EMPTY_RESPONSE");
+      if (result.isError) throw new Error(`MCP_TOOL_ERROR: ${text.slice(0, 300)}`);
+      let payload: { error?: { code: string; message?: string }; columns?: string[]; rows?: unknown[]; truncated?: boolean };
+      try { payload = JSON.parse(text) as typeof payload; }
+      catch { throw new Error(`MCP_EXPLAIN_BAD_RESPONSE: ${text.slice(0, 300)}`); }
+      if (payload.error) throw new Error(`${payload.error.code}${payload.error.message ? `: ${payload.error.message}` : ""}`);
+      const rows = (payload.rows ?? []) as Record<string, unknown>[];
+      const columns = payload.columns ?? (rows.length > 0 ? Object.keys(rows[0]) : []);
+      return { columns, rows: rows.map((row) => columns.map((column) => row[column])), truncated: Boolean(payload.truncated) };
+    },
     async getSchema(): Promise<McpSchemaEvidence> {
       const c = await connect();
       const result = await c.callTool({ name: "get_schema", arguments: {} }) as { isError?: boolean; content?: Array<{ type: string; text?: string }> };
       const text = result.content?.find((part) => part.type === "text")?.text;
       if (!text) throw new Error("MCP_SCHEMA_EMPTY_RESPONSE");
       if (result.isError) throw new Error(`MCP_TOOL_ERROR: ${text.slice(0, 300)}`);
-      let payload: { schema?: Array<{ table?: unknown; columns?: Array<{ name?: unknown }> }> };
+      let payload: { schema?: Array<{ table?: unknown; columns?: Array<{ name?: unknown; type?: unknown }>; primaryKey?: unknown; uniqueKeys?: unknown; foreignKeys?: unknown }> };
       try { payload = JSON.parse(text) as typeof payload; }
       catch { throw new Error(`MCP_SCHEMA_BAD_RESPONSE: ${text.slice(0, 300)}`); }
       return {
-        connectionId: `mysql:${String(options.env?.DATA_AGENT_MYSQL_DATABASE ?? "configured")}`,
-        dialect: "mysql",
-        tables: (payload.schema ?? []).flatMap((table) => typeof table.table === "string" ? [{ name: table.table, columns: (table.columns ?? []).flatMap((column) => typeof column.name === "string" ? [column.name] : []) }] : []),
+        connectionId: options.connectionId ?? `${options.dialect ?? "mysql"}:${String(options.env?.DATA_AGENT_MYSQL_DATABASE ?? "configured")}`,
+        dialect: options.dialect ?? "mysql",
+        tables: (payload.schema ?? []).flatMap((table) => typeof table.table === "string" ? [{
+          name: table.table,
+          columns: (table.columns ?? []).flatMap((column) => typeof column.name === "string" ? [column.name] : []),
+          ...(Array.isArray(table.primaryKey) ? { primaryKey: table.primaryKey.filter((column): column is string => typeof column === "string") } : {}),
+          ...(Array.isArray(table.uniqueKeys) ? { uniqueKeys: table.uniqueKeys.filter((key): key is string[] => Array.isArray(key) && key.every((column) => typeof column === "string")) } : {}),
+          ...(Array.isArray(table.foreignKeys) ? { foreignKeys: table.foreignKeys.filter((key): key is { columns: string[]; references: { table: string; columns: string[] } } => Boolean(key && typeof key === "object" && Array.isArray((key as any).columns) && (key as any).references && typeof (key as any).references.table === "string" && Array.isArray((key as any).references.columns))).map((key) => ({ columns: key.columns, references: key.references })) } : {}),
+        }] : []),
       };
     },
     async *stream(sql: string, signal?: AbortSignal): AsyncGenerator<McpQueryExportBatch> {
       const c = await connect();
       const batchSize = 1000;
+      let previousColumns: string[] | undefined;
       for (let offset = 0; offset < 100000; offset += batchSize) {
         if (signal?.aborted) throw new Error("EXPORT_CANCELLED");
         const result = await c.callTool({ name: "execute_query_export_batch", arguments: { sql, offset, limit: batchSize, maxRows: 100000 } }) as { isError?: boolean; content?: Array<{ type: string; text?: string }> };
@@ -97,10 +126,14 @@ export function createMcpQueryExecutor(options: McpQueryExecutorOptions) {
         catch { throw new Error(`MCP_QUERY_BAD_RESPONSE: ${text.slice(0, 300)}`); }
         if (payload.error) throw new Error(`${payload.error.code}${payload.error.message ? `: ${payload.error.message}` : ""}`);
         const rows = (payload.rows ?? []) as Record<string, unknown>[];
-        const columns = payload.columns ?? (rows.length > 0 ? Object.keys(rows[0]) : []);
+        const reportedColumns = payload.columns?.length ? payload.columns : rows.length > 0 ? Object.keys(rows[0]) : [];
+        if (previousColumns && reportedColumns.length === 0 && rows.length === 0 && payload.done) return;
+        const columns = reportedColumns.length > 0 ? reportedColumns : previousColumns ?? [];
         const values = rows.map((row) => columns.map((column) => row[column]));
         // Preserve an empty first batch with its column metadata so an empty
-        // result still produces a header-only CSV.
+        // result still produces a header-only CSV, but suppress the terminal
+        // schema-less batch some MCP servers emit at an exact boundary.
+        if (columns.length > 0) previousColumns = [...columns];
         yield { columns, rows: values };
         if (payload.done || values.length < batchSize) return;
       }

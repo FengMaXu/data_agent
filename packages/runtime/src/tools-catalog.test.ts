@@ -27,12 +27,14 @@ describe("canonical tool surface", () => {
     expect(schema.properties).not.toHaveProperty("expected_columns");
   });
 
-  it("documents explicit validation purposes for database previews", () => {
-    const queryTool = canonicalLocalTools().find((tool) => tool.name === "query_database")!;
+  it("keeps Solver verification purposes out of the model-visible query surface", () => {
+    const tools = canonicalLocalTools();
+    const queryTool = tools.find((tool) => tool.name === "query_database")!;
     const schema = queryTool.parameters as { properties?: Record<string, any> };
-    expect(schema.properties).toHaveProperty("purpose");
-    expect(queryTool.description).toContain("purpose=reconciliation");
-    expect(queryTool.description).toContain("purpose=verification");
+    expect(schema.properties).not.toHaveProperty("purpose");
+    expect(queryTool.description).not.toMatch(/reconciliation|verification/i);
+    expect(tools.map((tool) => tool.name)).not.toContain("semantic_validate");
+    expect(tools.map((tool) => tool.name)).not.toContain("sql_validate");
   });
 
   it("keeps SYSTEM.md tool references aligned with canonical or documented conditional tools", async () => {
@@ -46,7 +48,7 @@ describe("canonical tool surface", () => {
       .filter((name) => toolVerb.test(name) && !operationValues.has(name));
     const unresolved = [...new Set(references)].filter((name) => !registered.has(name) && !documentedConditional.has(name));
     expect(unresolved).toEqual([]);
-    expect(prompt).toContain("### KTX 语义层（按需可用）");
+    expect(prompt).toContain("### KTX 语义层");
     for (const name of documentedConditional) expect(prompt).toContain(`\`${name}\``);
   });
 

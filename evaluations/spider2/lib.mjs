@@ -159,7 +159,7 @@ export async function resolveLocalDatabase(config, spider2LiteRoot, instance) {
 }
 
 export function buildAgentPrompt(instance) {
-  return `${instance.question}\n\nBefore the first database query, derive a compact answer contract from the question: requested entities and filters, row grain and row mode/count, exact output columns, units/rounding, and ordering. Do not invent thresholds, defaults, date baselines, or unit conversions. If the question is ambiguous and ask_user_clarification is unavailable, use the most literal reading and state the assumption. For a JOIN with aggregation, run a different successful query_database call with purpose=reconciliation to check join cardinality or measure totals before export; for a complex formula, window, or recursive calculation, use purpose=verification for an independent value check when available. These checks must not replace the final SQL. After a successful final query_database call, use export_query with its exact queryArtifactId to export only the minimal final result needed to answer the question to ${instance.instance_id}.csv. Do not submit a different SQL string or solver-declared expected shape. (The product may use publish_query_result for small results; this Spider2 runner requires the CSV export.) Do not export intermediate data, diagnostic columns, candidate rows, or a complete ranking unless the question explicitly requests them.`;
+  return `${instance.question}\n\n请完成原始题目，并将最终成果导出为 CSV。只导出回答题目所需的最终结果，不要导出中间结果、候选数据或诊断字段；本次评测需要使用 export_query 生成 CSV，不要用 publish_query_result 代替。`;
 }
 
 export function classifyProviderFailure(message) {
@@ -194,27 +194,49 @@ export function parseCorrectIdsCsv(text) {
 }
 
 export function buildEvaluationGuardrails(limits, getTurnCount) {
+  const explorationQueryBudget = limits?.maxExploratoryQueries == null
+    ? undefined
+    : Number(limits.maxExploratoryQueries);
+  const maxTurns = limits?.maxTurns == null ? 0 : Number(limits.maxTurns);
   return {
-    explorationQueryBudget: Number(limits?.maxExploratoryQueries ?? 6),
-    requireJoinReconciliation: limits?.requireJoinReconciliation !== false,
-    taskProgress: () => ({ turnCount: Number(getTurnCount?.() ?? 0), maxTurns: Number(limits?.maxTurns ?? 20) }),
+    ...(explorationQueryBudget === undefined ? {} : { explorationQueryBudget }),
+    taskProgress: () => ({ turnCount: Number(getTurnCount?.() ?? 0), maxTurns }),
   };
 }
 
-export function needsDeliveryFollowUp(toolCalls, turnCount, maxTurns, options = {}) {
-  if (Number(turnCount) >= Number(maxTurns)) return false;
-  const completed = toolCalls.filter((call) => call.finishedAt && !call.isError);
-  if (completed.some((call) => call.toolName === "export_query")) return false;
-  if (!options.requireExport && completed.some((call) => call.toolName === "publish_query_result")) return false;
-  return completed.some((call) => (call.toolName === "query_database" || (options.requireExport && call.toolName === "publish_query_result"))
-    && call.result?.details?.warning !== "EXPLORATION_BUDGET_EXCEEDED"
-    && call.result?.details?.exploratory !== true
-    && call.result?.details?.purpose !== "reconciliation"
-    && call.result?.details?.purpose !== "verification");
+export function exceedsTurnBudget(turnCount, maxTurns) {
+  if (maxTurns == null || !Number.isFinite(Number(maxTurns)) || Number(maxTurns) <= 0) return false;
+  return Number(turnCount) > Number(maxTurns);
 }
 
-export function exceedsTurnBudget(turnCount, maxTurns) {
-  return Number(turnCount) > Number(maxTurns);
+export function deterministicGateCasesFromLabels(labels) {
+  if (!Array.isArray(labels)) throw new Error("DETERMINISTIC_GATE_LABELS_INVALID");
+  return labels.flatMap((label) => {
+    if (!label || typeof label.caseId !== "string") throw new Error("DETERMINISTIC_GATE_LABEL_CASE_REQUIRED");
+    const entries = label.gates ?? label.deterministicGates ?? [];
+    if (!Array.isArray(entries)) throw new Error(`DETERMINISTIC_GATE_LABELS_INVALID:${label.caseId}`);
+    return entries.map((entry) => {
+      const gate = entry?.gate;
+      const expected = entry?.expected;
+      const dialect = entry?.dialect ?? label.dialect;
+      if (!["g1_shape", "g2_population", "g3_fanout", "g4_candidate"].includes(gate)) throw new Error(`DETERMINISTIC_GATE_GATE_REQUIRED:${label.caseId}`);
+      if (!["pass", "block"].includes(expected)) throw new Error(`DETERMINISTIC_GATE_EXPECTED_REQUIRED:${label.caseId}`);
+      if (typeof dialect !== "string" || !dialect.trim()) throw new Error(`DETERMINISTIC_GATE_DIALECT_REQUIRED:${label.caseId}`);
+      const applicability = entry?.applicability ?? "checked";
+      if (!["checked", "not_applicable", "unsupported", "inconclusive"].includes(applicability)) throw new Error(`DETERMINISTIC_GATE_APPLICABILITY_INVALID:${label.caseId}`);
+      return {
+        caseId: `${label.caseId}:${gate}`,
+        sourceCaseId: label.caseId,
+        dialect,
+        gate,
+        expected,
+        variant: entry?.variant ?? (expected === "block" ? "neighbor_negative" : "positive"),
+        // Diagnostic only. Calibration must replace this with a frozen Runtime
+        // input and replay evaluateGates; labels never grant observed status.
+        result: { gate, applicability, blocking: Boolean(entry?.blocking) },
+      };
+    });
+  });
 }
 
 export function fixedDenominatorScore(correct, expectedTotal, submittedTotal = expectedTotal) {
@@ -229,25 +251,32 @@ export function fixedDenominatorScore(correct, expectedTotal, submittedTotal = e
   };
 }
 
-export function selectFinalSql(toolCalls) {
+export function selectFinalSql(toolCalls, options = {}) {
   const completed = toolCalls.filter((call) => call.finishedAt && !call.isError);
   const successfulQueries = completed.filter((call) => call.toolName === "query_database"
     && call.result?.details?.warning !== "EXPLORATION_BUDGET_EXCEEDED"
     && call.result?.details?.exploratory !== true
-    && call.result?.details?.purpose !== "reconciliation"
-    && call.result?.details?.purpose !== "verification"
     && typeof call.args?.sql === "string"
     && call.args.sql.trim());
-  const exports = completed.filter((call) => call.toolName === "export_query");
-  const lastExport = exports.at(-1);
+  // An attempted export is the delivery decision. Never fall back to a prior
+  // query when that export was blocked, unavailable, or otherwise did not
+  // produce a completed publication; doing so would submit SQL rejected by
+  // Query Assurance under a different mode.
+  const exportAttempts = toolCalls.filter((call) => call.toolName === "export_query" && call.finishedAt);
+  const lastExport = exportAttempts.at(-1);
   if (lastExport) {
+    if (lastExport.isError || lastExport.result?.details?.taskComplete !== true) return undefined;
     const artifactId = lastExport.args?.queryArtifactId;
     const query = typeof artifactId === "string"
       ? successfulQueries.filter((call) => call.result?.details?.queryArtifactId === artifactId).at(-1)
       : undefined;
     if (query) return { sql: query.args.sql.trim(), toolCallId: lastExport.toolCallId, toolName: "export_query", queryArtifactId: artifactId };
-    if (typeof lastExport.args?.sql === "string" && lastExport.args.sql.trim()) return { sql: lastExport.args.sql.trim(), toolCallId: lastExport.toolCallId, toolName: "export_query" };
+    return undefined;
   }
+  // Baseline Review Off preserves the legacy evaluation path. Any assurance
+  // mode requires an actual Publication Receipt and may never submit the last
+  // successful preview merely because the Agent omitted publication.
+  if ((options.assuranceMode ?? "off") !== "off") return undefined;
   const lastQuery = successfulQueries.at(-1);
   if (!lastQuery) return undefined;
   return { sql: lastQuery.args.sql.trim(), toolCallId: lastQuery.toolCallId, toolName: "query_database", ...(typeof lastQuery.result?.details?.queryArtifactId === "string" ? { queryArtifactId: lastQuery.result.details.queryArtifactId } : {}) };
@@ -393,7 +422,9 @@ export function createRecorder(harness, limits) {
       };
       calls.push(call);
       callsById.set(call.toolCallId, call);
-      if (calls.length > limits.maxToolCalls) stopForLimit("max_tool_calls");
+      if (limits.maxToolCalls != null && Number.isFinite(Number(limits.maxToolCalls)) && Number(limits.maxToolCalls) > 0 && calls.length > Number(limits.maxToolCalls)) {
+        stopForLimit("max_tool_calls");
+      }
     }
     if (event?.type === "tool_execution_end") {
       const call = callsById.get(event.toolCallId);

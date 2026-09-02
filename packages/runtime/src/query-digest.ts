@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 
-export type SqlDialect = "sqlite" | "mysql" | "bigquery" | "snowflake";
+export type SqlDialect = "sqlite" | "mysql" | "postgres" | "bigquery" | "snowflake";
 export type DigestCoverageStatus = "checked" | "not_applicable" | "unsupported" | "insufficient_evidence";
 
 export interface SchemaForeignKey {
@@ -32,14 +32,44 @@ export interface DigestSource {
 
 export interface DigestJoin {
   readonly type: string;
+  /** Immediate left relation when the authoritative parser can identify it. */
+  readonly left?: DigestSource;
   readonly source: DigestSource;
   readonly condition?: string;
+}
+
+export type PopulationEffectKind = "filter" | "having" | "qualify" | "inner_join" | "semi_join" | "anti_join" | "distinct" | "set_operation" | "structural" | "unknown";
+export type PopulationEffectStatus = "authorized" | "structural" | "disputed" | "unresolved";
+
+export interface PopulationEffectNode {
+  readonly path: string;
+  readonly kind: PopulationEffectKind;
+  readonly expression: string;
+  readonly value?: string;
+  readonly source?: string;
+  readonly status?: PopulationEffectStatus;
+}
+
+export type CardinalityEvidenceStatus = "one_to_one" | "one_to_many" | "many_to_one" | "fanout" | "many_to_many" | "unknown";
+
+export interface DigestCardinalityEvidence {
+  readonly left: string;
+  readonly right: string;
+  readonly status: CardinalityEvidenceStatus;
+  readonly fanoutFactor?: number;
+  readonly source: "formal" | "observed_snapshot";
+  readonly snapshotId?: string;
+  readonly duplicatedSide?: "left" | "right";
+  readonly duplicateKeys?: readonly string[];
 }
 
 export interface DigestMeasure {
   readonly function: string;
   readonly expression: string;
   readonly output?: string;
+  readonly inputRelations?: readonly string[];
+  readonly aggregationLevel?: readonly string[];
+  readonly distinct?: boolean;
 }
 
 export interface DigestProjection {
@@ -57,6 +87,8 @@ export interface DigestWindow {
   readonly function: string;
   readonly partitionBy: readonly string[];
   readonly orderBy: readonly string[];
+  /** Select-list alias used by QUALIFY, when the parser can bind one. */
+  readonly output?: string;
   readonly frame?: string;
 }
 
@@ -71,6 +103,8 @@ export interface QueryDigest {
   readonly sources: readonly DigestSource[];
   readonly joins: readonly DigestJoin[];
   readonly filters: readonly string[];
+  /** Independent top-level QUALIFY expression; filters also retain it for compatibility. */
+  readonly qualify?: string;
   readonly measures: readonly DigestMeasure[];
   readonly groupBy: readonly string[];
   readonly projections: readonly DigestProjection[];
@@ -80,6 +114,8 @@ export interface QueryDigest {
   readonly limit?: number;
   readonly setOperations: readonly string[];
   readonly nullHandling: readonly string[];
+  readonly populationEffects?: readonly PopulationEffectNode[];
+  readonly cardinalityEvidence?: readonly DigestCardinalityEvidence[];
   readonly coverage: Readonly<Record<string, DigestCoverageStatus>>;
   readonly unsupportedNodes: readonly string[];
   readonly lineageCompleteness: "complete" | "partial" | "unsupported";
@@ -100,14 +136,78 @@ export interface SqlglotQueryDigestCompilerOptions {
   readonly timeoutMs?: number;
 }
 
-const PARSER_VERSION = "query-digest-tokenizer-1";
+export const QUERY_DIGEST_PARSER_VERSION = "query-digest-tokenizer-3";
+/** The managed parser version calibrated for authoritative Query Digests. */
+export const SQLGLOT_RUNTIME_VERSION = "30.17.0";
 const SQLGLOT_SCRIPT = [
   "import json, sys, sqlglot",
+  "from sqlglot import exp",
   "payload = json.loads(sys.stdin.read())",
   "expression = sqlglot.parse_one(payload['sql'], read=payload['dialect'])",
-  "print(json.dumps({'version': getattr(sqlglot, '__version__', 'unknown'), 'sql': expression.sql()}, ensure_ascii=False))",
-].join("; ");
-const QUERY_DIGEST_VERSION = "1";
+  "def sql(node): return node.sql() if node is not None else ''",
+  "def source(node): return {'name': node.name, **({'alias': node.alias} if node.alias else {})}",
+  "sources = [source(node) for node in expression.find_all(exp.Table)]",
+  "select = expression if isinstance(expression, exp.Select) else next(iter(expression.find_all(exp.Select)), expression)",
+  "ctes = list(expression.find_all(exp.CTE))",
+  "projections = []",
+  "lineage = []",
+  "for node in getattr(select, 'expressions', []):",
+  "    output = node.alias_or_name or sql(node)",
+  "    body = node.this if isinstance(node, exp.Alias) else node",
+  "    columns = list(dict.fromkeys(sql(column) for column in body.find_all(exp.Column)))",
+  "    projections.append({'output': output, 'expression': sql(body)})",
+  "    lineage.append({'output': output, 'expression': sql(body), 'columns': columns})",
+  "group = select.args.get('group')",
+  "group_by = [sql(node) for node in group.expressions] if group is not None else []",
+  "measures = []",
+  "for node in expression.find_all(exp.AggFunc):",
+  "    inputs = list(dict.fromkeys(column.table for column in node.find_all(exp.Column) if column.table))",
+  "    measures.append({'function': node.key.upper(), 'expression': sql(node), 'inputRelations': inputs, 'aggregationLevel': group_by, 'distinct': bool(node.args.get('distinct'))})",
+  "joins = []",
+  "from_clause = select.args.get('from_') or select.args.get('from')",
+  "current_relation = from_clause.this if from_clause is not None else None",
+  "for node in select.args.get('joins') or []:",
+  "    target = node.this",
+  "    kind = (node.args.get('side') or node.args.get('kind') or 'INNER').upper()",
+  "    join = {'type': kind, 'source': source(target) if isinstance(target, exp.Table) else {'name': sql(target)}}",
+  "    if isinstance(current_relation, exp.Table): join['left'] = source(current_relation)",
+  "    if node.args.get('on') is not None: join['condition'] = sql(node.args['on'])",
+  "    elif node.args.get('using'): join['condition'] = 'USING (' + ', '.join(sql(item) for item in node.args['using']) + ')'",
+  "    joins.append(join)",
+  "    current_relation = target",
+  "def clause(name):",
+  "    node = select.args.get(name)",
+  "    return sql(node.this if hasattr(node, 'this') else node) if node is not None else ''",
+  "qualify = clause('qualify')",
+  "filters = [value for value in [clause('where'), clause('having'), qualify] if value]",
+  "group = select.args.get('group')",
+  "group_by = [sql(node) for node in group.expressions] if group is not None else []",
+  "order = select.args.get('order')",
+  "order_by = [sql(node) for node in order.expressions] if order is not None else []",
+  "limit = select.args.get('limit')",
+  "limit_value = int(limit.expression.name) if limit is not None and limit.expression is not None and str(limit.expression.name).isdigit() else None",
+  "windows = []",
+  "for projection in getattr(select, 'expressions', []):",
+  "    output = projection.alias_or_name or sql(projection)",
+  "    body = projection.this if isinstance(projection, exp.Alias) else projection",
+  "    for node in body.find_all(exp.Window):",
+  "        windows.append({'function': (node.this.sql_name().upper() if node.this is not None else 'WINDOW'), 'partitionBy': [sql(item) for item in node.args.get('partition_by', [])], 'orderBy': [sql(item) for item in (node.args.get('order') or exp.Order()).expressions], 'output': output})",
+  "set_operations = [node.key.upper() + (' ALL' if node.args.get('distinct') is False else '') for node in expression.find_all((exp.Union, exp.Intersect, exp.Except))]",
+  "null_handling = list(dict.fromkeys(node.key.upper() for node in expression.find_all(exp.Func) if node.key.upper() in {'COALESCE', 'NULLIF'}))",
+  "unsupported = []",
+  "if ctes: unsupported.append('cte')",
+  "if set_operations: unsupported.append('set_operation')",
+  "if any(isinstance(node, exp.Case) for node in expression.walk()): unsupported.append('case_expression')",
+  "if any(isinstance(node, exp.Subquery) for node in expression.walk()): unsupported.append('subquery')",
+  "population_effects = [{'path': f'filters[{index}]', 'kind': 'filter', 'expression': value} for index, value in enumerate(filters)]",
+  "population_effects += [{'path': f'joins[{index}]', 'kind': 'inner_join', 'expression': join.get('condition', ''), 'source': join['source']['name']} for index, join in enumerate(joins) if join['type'] == 'INNER']",
+  "if select.args.get('distinct') is not None: population_effects.append({'path': 'distinct', 'kind': 'distinct', 'expression': 'DISTINCT'})",
+  "population_effects += [{'path': f'setOperations[{index}]', 'kind': 'set_operation', 'expression': value} for index, value in enumerate(set_operations)]",
+  "coverage = {key: ('unsupported' if unsupported and (any(item in unsupported for item in {'cte', 'set_operation', 'case_expression', 'subquery'}) or key in {'outputLineage', 'sources', 'joins', 'measures', 'groupBy'}) else ('checked' if value else 'not_applicable')) for key, value in {'sources': sources, 'joins': joins, 'filters': filters, 'qualify': qualify, 'measures': measures, 'groupBy': group_by, 'projections': projections, 'outputLineage': lineage, 'windows': windows, 'orderBy': order_by, 'setOperations': set_operations, 'nullHandling': null_handling}.items()}",
+  "digest = {'sources': sources, 'joins': joins, 'filters': filters, 'qualify': qualify, 'measures': measures, 'groupBy': group_by, 'projections': projections, 'outputLineage': lineage, 'windows': windows, 'orderBy': order_by, 'limit': limit_value, 'setOperations': set_operations, 'nullHandling': null_handling, 'populationEffects': population_effects, 'coverage': coverage, 'unsupportedNodes': unsupported, 'lineageCompleteness': 'partial' if unsupported else 'complete'}",
+  "print(json.dumps({'version': getattr(sqlglot, '__version__', 'unknown'), 'sql': expression.sql(), 'digest': digest}, ensure_ascii=False))",
+].join("\n");
+export const QUERY_DIGEST_VERSION = "3";
 const AGGREGATE_FUNCTIONS = new Set(["COUNT", "SUM", "AVG", "MIN", "MAX", "TOTAL", "GROUP_CONCAT"]);
 const CLAUSE_WORDS = new Set(["WHERE", "GROUP", "HAVING", "ORDER", "LIMIT", "UNION", "INTERSECT", "EXCEPT", "FETCH", "QUALIFY", "JOIN", "LEFT", "RIGHT", "FULL", "INNER", "CROSS"]);
 const IDENTIFIER_STOP_WORDS = new Set([
@@ -299,7 +399,7 @@ function aliasAndExpression(tokens: readonly Token[]): { expression: string; out
   const asIndex = tokens.findIndex((token, index) => index > 0 && sameWord(token, "AS"));
   if (asIndex >= 0 && tokens[asIndex + 1]) return { expression: render(tokens.slice(0, asIndex)), output: tokens[asIndex + 1].value };
   const last = tokens.at(-1);
-  if (tokens.length > 1 && last?.kind === "word" && !SQL_KEYWORDS.has(upper(last))) {
+  if (tokens.length > 1 && last?.kind === "word" && !SQL_KEYWORDS.has(upper(last)) && tokens[tokens.length - 2]?.value !== ".") {
     return { expression: render(tokens.slice(0, -1)), output: last.value };
   }
   return { expression: render(tokens), output: render(tokens) };
@@ -332,15 +432,19 @@ function parseProjection(tokens: readonly Token[], start: number, end: number): 
       const functionName = upper(item[index]);
       if (item[index].kind === "word" && AGGREGATE_FUNCTIONS.has(functionName) && item[index + 1].value === "(") {
         const close = matchingParen(item, index + 1);
-        measures.push({ function: functionName, expression: close > index ? render(item.slice(index + 1, close + 1)) : parsed.expression, ...(parsed.output !== parsed.expression ? { output: parsed.output } : {}) });
+        const expression = close > index ? render(item.slice(index + 1, close + 1)) : parsed.expression;
+        measures.push({ function: functionName, expression, distinct: /\bDISTINCT\b/i.test(expression), ...(parsed.output !== parsed.expression ? { output: parsed.output } : {}) });
       }
     }
   }
   return { projections, measures, lineage };
 }
 
-function parseWindows(tokens: readonly Token[]): DigestWindow[] {
+function parseWindows(tokens: readonly Token[], projectionStart = -1, projectionEnd = tokens.length): DigestWindow[] {
   const windows: DigestWindow[] = [];
+  const projectionItems = projectionStart >= 0 && projectionEnd > projectionStart
+    ? splitTopLevel(tokens, projectionStart, projectionEnd)
+    : [];
   for (let index = 0; index < tokens.length; index += 1) {
     if (!sameWord(tokens[index], "OVER") || tokens[index + 1]?.value !== "(") continue;
     const close = matchingParen(tokens, index + 1);
@@ -369,10 +473,13 @@ function parseWindows(tokens: readonly Token[]): DigestWindow[] {
     const orderStart = relativeOrder >= 0 ? relativeOrder + 2 : -1;
     const frameStart = orderStart >= 0 ? body.findIndex((token, position) => position >= orderStart && ["ROWS", "RANGE", "GROUPS"].includes(upper(token))) : -1;
     const orderEnd = frameStart >= 0 ? frameStart : body.length;
+    const projection = projectionItems.find((item) => item.includes(tokens[index]));
+    const output = projection ? aliasAndExpression(projection).output : undefined;
     windows.push({
       function: functionName,
       partitionBy: partitionStart >= 0 ? splitTopLevel(body, partitionStart, partitionEnd).map(render) : [],
       orderBy: orderStart >= 0 ? splitTopLevel(body, orderStart, orderEnd).map(render) : [],
+      ...(output ? { output } : {}),
       ...(frameStart >= 0 ? { frame: render(body.slice(frameStart)) } : {}),
     });
     index = close;
@@ -425,6 +532,7 @@ function parseSources(tokens: readonly Token[]): { sources: DigestSource[]; join
     const isFrom = sameWord(tokens[index], "FROM");
     const isJoin = sameWord(tokens[index], "JOIN");
     if (!isFrom && !isJoin) continue;
+    const leftSource = isJoin ? sources.at(-1) : undefined;
     let next = addFromSource(index + 1);
     if (isFrom) {
       // A comma-separated FROM list is a set of independent sources, not a
@@ -449,7 +557,7 @@ function parseSources(tokens: readonly Token[]): { sources: DigestSource[]; join
         const condition = conditionIndex >= 0 && conditionIndex < clauseEnd(tokens, parsed.next)
           ? render(tokens.slice(conditionIndex + (conditionIndex === onIndex ? 1 : 0), clauseEnd(tokens, conditionIndex)))
           : undefined;
-        joins.push({ type, source: parsed.source, ...(condition ? { condition } : {}) });
+        joins.push({ type, ...(leftSource ? { left: leftSource } : {}), source: parsed.source, ...(condition ? { condition } : {}) });
       }
     }
     index = Math.max(index, next - 1);
@@ -457,17 +565,42 @@ function parseSources(tokens: readonly Token[]): { sources: DigestSource[]; join
   return { sources, joins, unsupported };
 }
 
+function parseClauseExpression(tokens: readonly Token[], word: string): string | undefined {
+  const start = findTopLevel(tokens, word);
+  if (start < 0) return undefined;
+  const end = clauseEnd(tokens, start + 1);
+  const value = render(tokens.slice(start + 1, end));
+  return value || undefined;
+}
+
 function parseFilters(tokens: readonly Token[]): string[] {
-  const filters: string[] = [];
-  for (const word of ["WHERE", "HAVING", "QUALIFY"]) {
+  return ["WHERE", "HAVING", "QUALIFY"]
+    .map((word) => parseClauseExpression(tokens, word))
+    .filter((value): value is string => Boolean(value));
+}
+
+function parsePopulationEffects(tokens: readonly Token[], joins: readonly DigestJoin[]): PopulationEffectNode[] {
+  const effects: PopulationEffectNode[] = [];
+  for (const word of ["WHERE", "HAVING", "QUALIFY"] as const) {
     const start = findTopLevel(tokens, word);
-    if (start >= 0) {
-      const end = clauseEnd(tokens, start + 1);
-      const value = render(tokens.slice(start + 1, end));
-      if (value) filters.push(value);
+    if (start < 0) continue;
+    const end = clauseEnd(tokens, start + 1);
+    const expression = render(tokens.slice(start + 1, end));
+    if (expression) {
+      const structural = /^(?:1\s*=\s*1|TRUE)$/i.test(expression.trim());
+      effects.push({ path: `filters[${effects.length}]`, kind: structural ? "structural" : word === "WHERE" ? "filter" : word.toLowerCase() as PopulationEffectKind, expression });
     }
   }
-  return filters;
+  joins.forEach((join, index) => {
+    const type = join.type.toUpperCase();
+    if (type === "INNER") effects.push({ path: `joins[${index}]`, kind: "inner_join", expression: join.condition ?? "", source: join.source.name });
+  });
+  if (tokens.some((token) => sameWord(token, "DISTINCT"))) effects.push({ path: "projections", kind: "distinct", expression: "DISTINCT" });
+  for (const operation of ["UNION", "INTERSECT", "EXCEPT"] as const) {
+    const index = tokens.findIndex((token) => sameWord(token, operation));
+    if (index >= 0) effects.push({ path: "setOperations", kind: "set_operation", expression: `${operation}${sameWord(tokens[index + 1], "ALL") ? " ALL" : ""}` });
+  }
+  return effects;
 }
 
 function parseListClause(tokens: readonly Token[], first: string, second?: string): string[] {
@@ -561,6 +694,11 @@ export function schemaEvidenceFromDdl(connectionId: string, dialect: SqlDialect,
   return { connectionId, dialect, tables };
 }
 
+/**
+ * Deterministic tokenizer diagnostics for tests and Shadow observability.
+ * QueryAssurance's authoritative gate policy rejects this parserEngine; hosts
+ * must inject createSqlglotQueryDigestCompiler for publish-time coverage.
+ */
 export function createQueryDigestCompiler(): QueryDigestCompiler {
   return {
     compile(input) {
@@ -571,7 +709,9 @@ export function createQueryDigestCompiler(): QueryDigestCompiler {
       const projectionEnd = fromIndex >= 0 ? fromIndex : tokens.length;
       const parsedProjection = selectIndex >= 0 ? parseProjection(tokens, selectIndex + 1, projectionEnd) : { projections: [], measures: [], lineage: [] };
       const parsedSources = parseSources(tokens);
-      const windows = parseWindows(tokens);
+      const populationEffects = parsePopulationEffects(tokens, parsedSources.joins);
+      const qualify = parseClauseExpression(tokens, "QUALIFY");
+      const windows = parseWindows(tokens, selectIndex >= 0 ? selectIndex + 1 : -1, projectionEnd);
       const unbalancedParentheses = (() => {
         let depth = 0;
         for (const token of tokens) {
@@ -590,11 +730,15 @@ export function createQueryDigestCompiler(): QueryDigestCompiler {
         ...(tokens.some((token) => sameWord(token, "RECURSIVE")) ? ["recursive_cte"] : []),
         ...(tokens.some((token, index) => sameWord(token, "SELECT") && depthAt(tokens, index) > 0) ? ["subquery"] : []),
       ])];
-      const wildcard = tokens.some((token) => token.value === "*");
+      // A multiplication operator is not a wildcard projection. Restrict the
+      // unsupported wildcard marker to a SELECT item whose expression ends in
+      // `*` (optionally qualified by a table name).
+      const wildcard = parsedProjection.projections.some((projection) => /(?:^|\.)\*$/.test(projection.expression.trim()));
       const coverage: Record<string, DigestCoverageStatus> = {
         sources: parsedSources.sources.length ? "checked" : "insufficient_evidence",
         joins: parsedSources.joins.length ? "checked" : "not_applicable",
         filters: parseFilters(tokens).length ? "checked" : "not_applicable",
+        qualify: qualify ? "checked" : "not_applicable",
         measures: parsedProjection.measures.length ? "checked" : "not_applicable",
         groupBy: parseListClause(tokens, "GROUP", "BY").length ? "checked" : "not_applicable",
         projections: parsedProjection.projections.length ? "checked" : "insufficient_evidence",
@@ -614,13 +758,14 @@ export function createQueryDigestCompiler(): QueryDigestCompiler {
         normalizedSql,
         normalizedSqlHash: digestHash(normalizedSql),
         dialect: input.dialect,
-        parserVersion: PARSER_VERSION,
+        parserVersion: QUERY_DIGEST_PARSER_VERSION,
         parserEngine: "deterministic-tokenizer",
         queryDigestVersion: QUERY_DIGEST_VERSION,
         schemaEvidenceFingerprint: schemaFingerprint(input, parsedSources.sources),
         sources: parsedSources.sources,
         joins: parsedSources.joins,
         filters: parseFilters(tokens),
+        ...(qualify ? { qualify } : {}),
         measures: parsedProjection.measures,
         groupBy: parseListClause(tokens, "GROUP", "BY"),
         projections: parsedProjection.projections,
@@ -630,6 +775,7 @@ export function createQueryDigestCompiler(): QueryDigestCompiler {
         ...(parseLimit(tokens) !== undefined ? { limit: parseLimit(tokens) } : {}),
         setOperations: parseSetOperations(tokens),
         nullHandling: parseNullHandling(tokens),
+        populationEffects,
         coverage,
         unsupportedNodes,
         lineageCompleteness,
@@ -645,6 +791,15 @@ export function createQueryDigestCompiler(): QueryDigestCompiler {
  * QueryAssurance coordinator may record that failure with an explicitly
  * unsupported fallback digest rather than treating it as full coverage.
  */
+export function resolveQueryDigestParserVersion(compiler: QueryDigestCompiler | undefined, dialect: SqlDialect): string {
+  if (!compiler) return QUERY_DIGEST_PARSER_VERSION;
+  try {
+    return compiler.compile({ sql: "SELECT 1", dialect }).parserVersion;
+  } catch {
+    return "sqlglot-unavailable";
+  }
+}
+
 export function createSqlglotQueryDigestCompiler(options: SqlglotQueryDigestCompilerOptions): QueryDigestCompiler {
   return {
     compile(input) {
@@ -656,11 +811,30 @@ export function createSqlglotQueryDigestCompiler(options: SqlglotQueryDigestComp
       });
       if (result.error) throw new Error(`SQLGLOT_UNAVAILABLE:${result.error.message}`);
       if (result.status !== 0) throw new Error(`SQLGLOT_PARSE_FAILED:${(result.stderr || result.stdout || "unknown error").trim().slice(0, 500)}`);
-      let payload: { version?: string; sql?: string };
+      let payload: { version?: string; sql?: string; digest?: Partial<QueryDigest> };
       try { payload = JSON.parse(result.stdout) as typeof payload; } catch { throw new Error("SQLGLOT_BAD_RESPONSE"); }
-      if (!payload.sql || !payload.version) throw new Error("SQLGLOT_BAD_RESPONSE");
-      const digest = createQueryDigestCompiler().compile({ ...input, sql: payload.sql });
-      return { ...digest, parserVersion: `sqlglot-${payload.version}`, parserEngine: "sqlglot" };
+      if (!payload.sql || !payload.version || !payload.digest) throw new Error("SQLGLOT_AST_DIGEST_REQUIRED");
+      if (payload.version !== SQLGLOT_RUNTIME_VERSION) throw new Error(`SQLGLOT_VERSION_UNCALIBRATED:expected=${SQLGLOT_RUNTIME_VERSION}:actual=${payload.version}`);
+      const fallback = createQueryDigestCompiler().compile({ ...input, sql: payload.sql });
+      const supplied = payload.digest;
+      const digest: QueryDigest = {
+        ...fallback,
+        ...supplied,
+        normalizedSql: fallback.normalizedSql,
+        normalizedSqlHash: fallback.normalizedSqlHash,
+        parserVersion: `sqlglot-${payload.version}`,
+        parserEngine: "sqlglot",
+        queryDigestVersion: QUERY_DIGEST_VERSION,
+        schemaEvidenceFingerprint: schemaFingerprint({ ...input, sql: payload.sql }, supplied.sources ?? fallback.sources),
+        // The tokenizer is diagnostic-only. In particular, do not import its
+        // population effects into an AST digest or an unsupported nested query
+        // could be treated as a checked G2 reduction.
+        populationEffects: supplied.populationEffects ?? [],
+        coverage: supplied.coverage ?? fallback.coverage,
+        unsupportedNodes: supplied.unsupportedNodes ?? fallback.unsupportedNodes,
+        lineageCompleteness: supplied.lineageCompleteness ?? fallback.lineageCompleteness,
+      };
+      return digest;
     },
   };
 }

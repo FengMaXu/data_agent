@@ -59,6 +59,49 @@ describe("Answer Spec Authority", () => {
     });
   });
 
+  it("retains source conflicts as a separate record instead of silently selecting one", () => {
+    const spec = createAnswerSpec({
+      taskId: "task-conflict",
+      question: "Which population?",
+      conflicts: [{
+        conflictId: "conflict-1",
+        scope: "population",
+        evidenceRefs: [{ authority: "task_document", source: "business.md", evidenceId: "doc-1" }, { authority: "request_wording", source: "question", evidenceId: "question-1" }],
+        authorityLevels: ["task_document", "request_wording"],
+        conflictKind: "population_definition",
+        resolution: "unresolved",
+        status: "open",
+      }],
+    });
+    expect(spec.conflicts).toMatchObject([{ conflictId: "conflict-1", resolution: "unresolved", status: "open" }]);
+  });
+
+  it("resolves a conflict into a new spec version and records user clarification", () => {
+    const authority = createSpecAuthority();
+    const initial = authority.prepare({
+      taskId: "task-conflict-resolution",
+      question: "Which population?",
+      conflicts: [{
+        conflictId: "conflict-1",
+        scope: "population",
+        evidenceRefs: [{ authority: "task_document", source: "business.md" }, { authority: "request_wording", source: "question" }],
+        authorityLevels: ["task_document", "request_wording"],
+        conflictKind: "population_definition",
+        resolution: "unresolved",
+        status: "open",
+      }],
+    });
+    const resolved = authority.resolveConflict(initial.taskId, initial.specVersion, {
+      conflictId: "conflict-1",
+      resolution: "user_clarification",
+      clarification: "Use the population stated by the user",
+    });
+    expect(resolved.specVersion).toBe("2");
+    expect(resolved.conflicts?.[0]).toMatchObject({ status: "resolved", resolution: "user_clarification" });
+    expect(resolved.hardConstraints.at(-1)?.provenance.authority).toBe("user_clarification");
+    expect(initial.conflicts?.[0].status).toBe("open");
+  });
+
   it("normalizes output, grain, measure, and denominator into typed contract facets", () => {
     const spec = createAnswerSpec({
       taskId: "task-contract",
@@ -119,6 +162,23 @@ describe("Answer Spec Authority", () => {
     expect(next.specVersion).toBe("2");
     expect(initial.hardConstraints).toHaveLength(0);
     expect(next.hardConstraints.at(-1)?.statement).toBe("Include refunds in revenue");
+    expect(authority.get("task-1", "1")).toEqual(initial);
+  });
+
+  it("admits a Solver proposal only after a trusted evidence reference is resolved", () => {
+    const evidence = { evidenceId: "doc-1", authority: "task_document" as const, source: "business.md", contentHash: "hash-1" };
+    const authority = createSpecAuthority({ evidenceStore: { get: (id) => id === "doc-1" ? evidence : undefined } });
+    const initial = authority.prepare({ taskId: "task-1", question: "Top customers" });
+    const accepted = authority.submitProposal({
+      taskId: "task-1",
+      baseSpecVersion: initial.specVersion,
+      statement: "Use the documented customer population",
+      authority: "model_inference",
+      scope: "population",
+      evidence: [evidence],
+    });
+
+    expect(accepted).toMatchObject({ accepted: true, spec: { specVersion: "2", hardConstraints: [{ statement: "Use the documented customer population" }] } });
     expect(authority.get("task-1", "1")).toEqual(initial);
   });
 
