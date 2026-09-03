@@ -90,6 +90,24 @@ function probeObservations(input: DetectorInput): AnomalyObservation[] {
       distinctCount: divergence.distinctCountValue,
       key: divergence.duplicateKeys ?? [],
     }, "Runtime 探针观测到 COUNT 与 COUNT(DISTINCT key) 的实际值不一致。"));
+  } else if (input.digest && input.rows.length === 1) {
+    // Some SQLite adapters cannot obtain a second probe while the query is
+    // being observed. When the candidate itself returns both scalar measures,
+    // preserve the same deterministic observation without guessing which one
+    // is the business metric.
+    const plain = input.digest.measures.find((measure) => /^COUNT$/i.test(measure.function) && !measure.distinct);
+    const distinct = input.digest.measures.find((measure) => /^COUNT$/i.test(measure.function) && measure.distinct);
+    const plainIndex = plain?.output ? input.columns.indexOf(plain.output) : -1;
+    const distinctIndex = distinct?.output ? input.columns.indexOf(distinct.output) : -1;
+    const count = plainIndex >= 0 ? Number(input.rows[0][plainIndex]) : Number.NaN;
+    const distinctCount = distinctIndex >= 0 ? Number(input.rows[0][distinctIndex]) : Number.NaN;
+    if (Number.isFinite(count) && Number.isFinite(distinctCount) && count !== distinctCount) {
+      result.push(observation("count_distinct_divergence", "measure", input, {
+        count,
+        distinctCount,
+        key: distinct?.expression ?? "unknown", 
+      }, "候选结果同时观测到 COUNT 与 COUNT(DISTINCT key) 的值不一致。"));
+    }
   }
   if (input.entityPopulation && input.entityPopulation.factDistinct !== input.entityPopulation.entityRows) {
     result.push(observation("entity_population_mismatch", "population", input, {

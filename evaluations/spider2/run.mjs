@@ -285,6 +285,7 @@ async function backendExecutor(instance, config, createMcpQueryExecutor) {
         command: process.execPath,
         args: [path.join(projectRoot, "apps", "server", "dist", "reference-sqlite-mcp.js"), databasePath],
         dialect: "sqlite",
+        requestTimeoutMs: Number(config.limits?.mcpRequestTimeoutMs ?? 60_000),
       }),
       databasePath,
     };

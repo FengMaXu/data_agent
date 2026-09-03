@@ -8,6 +8,8 @@ export interface McpQueryExecutorOptions {
   env?: Record<string, string>;
   dialect?: "sqlite" | "mysql" | "postgres" | "bigquery" | "snowflake";
   connectionId?: string;
+  /** Per-request MCP timeout; timed-out stdio workers are replaced. */
+  requestTimeoutMs?: number;
 }
 
 export interface McpQueryResult {
@@ -50,6 +52,7 @@ export interface McpSchemaEvidence {
  */
 export function createMcpQueryExecutor(options: McpQueryExecutorOptions) {
   let client: Client | null = null;
+  let activeTransport: StdioClientTransport | null = null;
   const connect = async (): Promise<Client> => {
     if (client) return client;
     const transport = new StdioClientTransport({
@@ -57,9 +60,14 @@ export function createMcpQueryExecutor(options: McpQueryExecutorOptions) {
       args: options.args ?? [],
       env: options.env ? { ...options.env } : undefined,
     });
+    activeTransport = transport;
     transport.onerror = (error) => console.error("[mcp-query-executor] transport error:", error.message);
     // Note: client.connect(transport) invokes start(); do not call it here.
-    transport.onclose = () => console.error("[mcp-query-executor] transport closed");
+    transport.onclose = () => {
+      if (activeTransport === transport) activeTransport = null;
+      client = null;
+      console.error("[mcp-query-executor] transport closed");
+    };
     client = new Client({ name: "data-agent-query-executor", version: "1.0.0" });
     await client.connect(transport);
     return client;
@@ -70,7 +78,13 @@ export function createMcpQueryExecutor(options: McpQueryExecutorOptions) {
       // mcp-mysql caps preview rows at 200 (MAX_PREVIEW_LIMIT); exceeding it
       // fails server-side schema validation with an opaque -32602.
       const effectiveLimit = Math.min(Math.max(1, Math.floor(rowLimit)), 200);
-      const result = await c.callTool({ name: "execute_query_preview", arguments: { sql, limit: effectiveLimit } }) as { isError?: boolean; content?: Array<{ type: string; text?: string }> };
+      let result: { isError?: boolean; content?: Array<{ type: string; text?: string }> };
+      try {
+        result = await c.callTool({ name: "execute_query_preview", arguments: { sql, limit: effectiveLimit } }, undefined, { timeout: Math.max(1, Math.floor(options.requestTimeoutMs ?? 60_000)) }) as unknown as typeof result;
+      } catch (error) {
+        if (/timed out|timeout|RequestTimeout/i.test(error instanceof Error ? error.message : String(error))) await this.resetConnection();
+        throw error;
+      }
       const text = result.content?.find((part) => part.type === "text")?.text;
       if (!text) throw new Error("MCP_QUERY_EMPTY_RESPONSE");
       if (result.isError) throw new Error(`MCP_TOOL_ERROR: ${text.slice(0, 300)}`);
@@ -206,8 +220,14 @@ export function createMcpQueryExecutor(options: McpQueryExecutorOptions) {
       }
       throw new Error("EXPORT_ROW_LIMIT_EXCEEDED");
     },
+    async resetConnection(): Promise<void> {
+      const transport = activeTransport;
+      client = null;
+      activeTransport = null;
+      await transport?.close().catch(() => undefined);
+    },
     async close(): Promise<void> {
-      if (client) { await client.close(); client = null; }
+      await this.resetConnection();
     },
   };
 }

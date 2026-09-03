@@ -26,6 +26,20 @@ describe("deterministic anomaly observations", () => {
     expect(anomalies.map((item) => item.detector)).toEqual(expect.arrayContaining(["join_fanout", "count_distinct_divergence", "entity_population_mismatch", "cross_period_set_mismatch"]));
   });
 
+  it("detects a candidate that exposes divergent COUNT and COUNT(DISTINCT) measures", () => {
+    const spec = createAnswerSpec({ taskId: "task-count-divergence", question: "How many orders?", rowMode: "scalar", rowCount: 1 });
+    const digest = {
+      ...compiler.compile({ sql: "SELECT COUNT(*) AS n, COUNT(DISTINCT order_id) AS unique_n FROM orders", dialect: "sqlite" }),
+      parserEngine: "sqlglot" as const,
+      measures: [
+        { function: "COUNT", expression: "(*)", output: "n", distinct: false },
+        { function: "COUNT", expression: "(DISTINCT order_id)", output: "unique_n", distinct: true },
+      ],
+    };
+    const anomalies = detectAnomalies({ spec, digest, columns: ["n", "unique_n"], rows: [[4, 2]], rowCount: 1, truncated: false, sql: digest.normalizedSql });
+    expect(anomalies).toEqual(expect.arrayContaining([expect.objectContaining({ detector: "count_distinct_divergence", slot: "measure" })]));
+  });
+
   it("does not flag a signed derived change amount as an invalid negative amount", () => {
     const spec = createAnswerSpec({ taskId: "task-derived-amount", question: "Return the change amount" });
     const digest = {
