@@ -1,12 +1,7 @@
-import type {
-  AgentHarness,
-  ContextEvent,
-  ToolCallEvent,
-  ToolCallResult,
-  ToolResultEvent,
-  ToolResultPatch,
-  Skill,
-} from "@earendil-works/pi-agent-core";
+import { createCustomMessage, type AgentHarness, type ContextEvent, type ToolCallEvent, type ToolCallResult, type ToolResultEvent, type ToolResultPatch, type Skill } from "@earendil-works/pi-agent-core";
+import type { AnomalyRecord, AnomalyRegistry, SpecSlot } from "../anomaly-registry.js";
+import type { AnswerSpec } from "../answer-spec.js";
+import type { SchemaEvidence } from "../query-digest.js";
 
 export interface HookFiredEvent {
   readonly type: "hook_fired";
@@ -23,9 +18,34 @@ export interface AssuranceHooks {
   prepareNextTurnWithContext?: (event: ContextEvent) => { messages: ContextEvent["messages"] } | Promise<{ messages: ContextEvent["messages"] } | undefined> | undefined;
 }
 
+export interface InterpretationItem {
+  readonly id: string;
+  readonly statement: string;
+  readonly evidence?: { readonly type: "question_span"; readonly quote: string } | null;
+}
+
+export interface InterpretationPlan {
+  readonly slot: SpecSlot;
+  readonly interpretations: readonly InterpretationItem[];
+}
+
+export type InterpretationPlanner = (input: {
+  readonly taskId: string;
+  readonly question: string;
+  readonly answerSpec?: AnswerSpec;
+  readonly schema?: SchemaEvidence;
+  readonly anomalies: readonly AnomalyRecord[];
+}) => Promise<InterpretationPlan | undefined>;
+
 export interface AssuranceHookOptions extends AssuranceHooks {
   readonly onHookFired?: (event: HookFiredEvent) => void | Promise<void>;
   readonly taskId?: () => string | undefined;
+  readonly anomalyRegistry?: AnomalyRegistry;
+  readonly interpretationPlanner?: InterpretationPlanner;
+  readonly getTaskQuestion?: (taskId: string) => string | undefined;
+  readonly getTaskAnswerSpec?: (taskId: string, specVersion?: string) => AnswerSpec | undefined;
+  readonly getTaskSchema?: (taskId: string) => SchemaEvidence | undefined;
+  readonly observeQuery?: (event: ToolResultEvent) => ToolResultPatch | Promise<ToolResultPatch | undefined> | undefined;
 }
 
 function isSuccessfulPublication(event: ToolResultEvent): boolean {
@@ -83,10 +103,68 @@ export function wireAssuranceHooks<TContext extends object | undefined, TSkill e
 }
 
 /** Phase 2's non-semantic hook: stop the loop after a successful publication. */
-export function createAssuranceHooks(options: Omit<AssuranceHookOptions, "afterToolCall"> = {}): AssuranceHookOptions {
+export function createAssuranceHooks(options: Omit<AssuranceHookOptions, "afterToolCall" | "prepareNextTurnWithContext"> = {}): AssuranceHookOptions {
+  const injected = new Set<string>();
   return {
     ...options,
-    afterToolCall: (event) => isSuccessfulPublication(event) ? { terminate: true } : undefined,
+    afterToolCall: async (event) => {
+      let observed: ToolResultPatch | undefined;
+      try {
+        observed = event.toolName === "query_database" ? await options.observeQuery?.(event) : undefined;
+      } catch {
+        // An observation failure must never turn a successful read into a failed tool call.
+        observed = undefined;
+      }
+      const terminate = isSuccessfulPublication(event);
+      return observed || terminate ? { ...(observed ?? {}), ...(terminate ? { terminate: true } : {}) } : undefined;
+    },
+    prepareNextTurnWithContext: async (event) => {
+      const taskId = options.taskId?.();
+      if (!taskId || !options.anomalyRegistry || !options.interpretationPlanner) return undefined;
+      const question = options.getTaskQuestion?.(taskId) ?? "";
+      const pending = options.anomalyRegistry.unresolved(taskId).filter((record) => !injected.has(record.id));
+      if (!pending.length) return undefined;
+      const groups = [...new Set(pending.map((record) => record.slot))].map((slot) => pending.filter((record) => record.slot === slot));
+      const sections: string[] = [];
+      const anomalyIds: string[] = [];
+      for (const group of groups) {
+        let plan: InterpretationPlan | undefined;
+        try {
+          plan = await options.interpretationPlanner({
+            taskId,
+            question,
+            answerSpec: options.getTaskAnswerSpec?.(taskId, group[0].specVersion),
+            schema: options.getTaskSchema?.(taskId),
+            anomalies: group,
+          });
+        } catch {
+          continue;
+        }
+        if (!plan || plan.slot !== group[0].slot || plan.interpretations.length < 2) continue;
+        const interpretations = plan.interpretations
+          .filter((item) => item.id.trim() && item.statement.trim())
+          .map((item) => ({ ...item, evidence: item.evidence?.quote && question.includes(item.evidence.quote) ? item.evidence : null }));
+        if (interpretations.length < 2) continue;
+        for (const record of group) {
+          injected.add(record.id);
+          anomalyIds.push(record.id);
+          sections.push([
+            `[INTERPRETATIONS for ${record.id} / slot=${record.slot}]`,
+            ...interpretations.map((item) => `${item.id}: ${item.statement}${item.evidence?.quote ? ` — evidence: question "${item.evidence.quote}"` : " — evidence: none"}`),
+            `Observed: ${record.note}`,
+            `Required: submit one candidate per interpretation via query_database.`,
+            `Digest must differ on slot=${record.slot}. Then choose one for export and state which interpretation it implements.`,
+          ].join("\\n"));
+        }
+      }
+      if (!sections.length) return undefined;
+      return {
+        messages: [
+          ...event.messages,
+          createCustomMessage("assurance_interpretations", sections.join("\n\n"), true, { anomalyIds }, new Date().toISOString()),
+        ],
+      };
+    },
   };
 }
 

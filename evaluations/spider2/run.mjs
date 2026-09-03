@@ -447,6 +447,7 @@ async function createCaseRunner(config, runDir) {
     let assurance;
     let auditStore;
     let hookEvents = [];
+    let anomalyRegistry;
     let modeController;
     try {
       prepared = await prepareKnowledge(instance, config, caseRoot, runtime.KnowledgeIndex, runtime.WorkspaceStore);
@@ -455,6 +456,7 @@ async function createCaseRunner(config, runDir) {
       const sessionStore = new runtime.PiJsonlSessionStore(path.join(runDir, "transcripts", instance.instance_id));
       const session = await sessionStore.create({ instanceId: instance.instance_id, runId: path.basename(runDir) });
       auditStore = new runtime.InMemoryAssuranceAuditStore();
+      anomalyRegistry = new runtime.AnomalyRegistry();
       const ddl = await readFile(path.join(prepared.metadataDir, "DDL.csv"), "utf8");
       const schemaEvidence = runtime.schemaEvidenceFromDdl(instance.instance_id, backendForCase(instance), ddlCsvToSql(ddl));
       const reviewer = createEvaluationReviewer(runtime, reviewerProfile, config);
@@ -536,6 +538,8 @@ async function createCaseRunner(config, runDir) {
         projectRoot,
         systemPromptRoots: [prepared.knowledgeRoot, projectRoot],
         onHookFired: (event) => hookEvents.push(event),
+        anomalyRegistry,
+        ...(config.assurance?.planner !== false ? { interpretationPlanner: runtime.createProfileInterpretationPlanner(plannerProfile) } : {}),
       }, profile);
       recorder = createRecorder(harness, config.limits);
       await runPromptWithTimeout(harness, buildAgentPrompt(instance), config.limits.timeoutMs, recorder);
@@ -554,6 +558,8 @@ async function createCaseRunner(config, runDir) {
       recorder?.unsubscribe();
       await executor?.close().catch(() => undefined);
     }
+    const recordedAnomalies = anomalyRegistry?.list() ?? [];
+    const metricTaskId = recordedAnomalies[0]?.taskId ?? auditStore?.list()[0]?.taskId;
     const result = {
       instanceId: instance.instance_id,
       db: instance.db,
@@ -573,10 +579,17 @@ async function createCaseRunner(config, runDir) {
       publicationStatus: publicationStatusFor(recorder, auditStore),
       assuranceAuditRecords: auditStore?.list() ?? [],
       hookEvents,
+      anomalies: anomalyRegistry?.list() ?? [],
+      anomalyMetrics: anomalyRegistry ? {
+        total: anomalyRegistry.list().length,
+        byDetector: Object.fromEntries([...new Set(anomalyRegistry.list().map((item) => item.detector))].map((detector) => [detector, anomalyRegistry.list().filter((item) => item.detector === detector).length])),
+        distinctFingerprintsBySlot: Object.fromEntries(["measure", "grain", "population", "filter", "final_shape"].map((slot) => [slot, metricTaskId ? anomalyRegistry.distinctFingerprintCount(metricTaskId, slot) : 0])),
+        interpretationHookCount: hookEvents.filter((event) => event.hookName === "prepareNextTurnWithContext" && event.action === "patch").length,
+      } : null,
     };
     await Promise.all([
       writeFile(path.join(caseRoot, "result.json"), JSON.stringify(result, null, 2), "utf8"),
-      writeFile(path.join(caseRoot, "trace.json"), JSON.stringify({ events: recorder?.events ?? [], toolCalls: recorder?.calls ?? [], assuranceAuditRecords: auditStore?.list() ?? [], hookEvents }, null, 2), "utf8"),
+      writeFile(path.join(caseRoot, "trace.json"), JSON.stringify({ events: recorder?.events ?? [], toolCalls: recorder?.calls ?? [], assuranceAuditRecords: auditStore?.list() ?? [], hookEvents, anomalies: anomalyRegistry?.list() ?? [] }, null, 2), "utf8"),
     ]);
     return result;
   };
@@ -981,6 +994,8 @@ async function writeSummary(runDir, results) {
     csvCoverage: results.length ? results.filter((item) => item.csvGenerated).length / results.length : 0,
     averageDurationMs: results.length ? Math.round(results.reduce((sum, item) => sum + item.durationMs, 0) / results.length) : 0,
     averageToolCalls: results.length ? results.reduce((sum, item) => sum + item.toolCalls, 0) / results.length : 0,
+    anomalyCount: results.reduce((sum, item) => sum + Number(item.anomalyMetrics?.total ?? 0), 0),
+    interpretationHookCount: results.reduce((sum, item) => sum + Number(item.anomalyMetrics?.interpretationHookCount ?? 0), 0),
   };
   await writeFile(path.join(runDir, "summary.json"), JSON.stringify(summary, null, 2), "utf8");
   return summary;
@@ -1006,6 +1021,8 @@ async function reportCommand(config, options) {
     `- Publication statuses: ${Object.entries(summary.publicationStatuses).map(([key, value]) => `${key}=${value}`).join(", ") || "none"}`,
     `- Average latency: ${summary.averageDurationMs} ms`,
     `- Average tool calls: ${summary.averageToolCalls.toFixed(2)}`,
+    `- Registered anomalies: ${summary.anomalyCount}`,
+    `- Interpretation Hook injections: ${summary.interpretationHookCount}`,
     ...(official ? [
       `- Official SQL EX (submitted only): ${official.sql?.score ?? "not available"} (${official.sql?.correct ?? 0}/${official.sql?.total ?? 0})`,
       `- SQL EX (fixed run denominator): ${official.sql?.fixedDenominator?.score ?? "not available"} (${official.sql?.fixedDenominator?.correct ?? 0}/${official.sql?.fixedDenominator?.total ?? summary.total})`,

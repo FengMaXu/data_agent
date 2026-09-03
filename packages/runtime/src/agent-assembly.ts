@@ -21,10 +21,13 @@ import { emitWidgetUpdate, validateWidgetSpec, widgetLegacyText, type WidgetLife
 import { createReviewOffQueryAssurance, type PreparedQueryTask, type QueryAssurance } from "./query-assurance.js";
 import { ExportCandidateStore, type ExportCandidate } from "./export-candidate.js";
 import type { DigestCardinalityEvidence, SchemaEvidence } from "./query-digest.js";
+import { candidateSemanticFingerprintForClaim } from "./query-gates.js";
 import { createAnswerSpec, type AmbiguityInput, type AnswerContractInput, type AnswerRowMode, type AnswerSpecGenerator, type AnswerSpecInput, type ConstraintInput, type EvidenceAuthority, type HypothesisInput, type SemanticEvidenceExcerpt } from "./answer-spec.js";
 import { createConversationBlindReviewer, type ConversationBlindReviewer, type ConversationBlindReviewerInput } from "./conversation-blind-reviewer.js";
 import type { ResultEvidenceOptions } from "./result-evidence.js";
-import { createAssuranceHooks, wireAssuranceHooks, type HookFiredEvent, type AssuranceHooks } from "./hooks/assurance-hooks.js";
+import { createAssuranceHooks, wireAssuranceHooks, type HookFiredEvent, type AssuranceHooks, type InterpretationItem, type InterpretationPlanner } from "./hooks/assurance-hooks.js";
+import { detectAnomalies, type DetectorInput } from "./detectors.js";
+import { formatAnomalies, type AnomalyRegistry } from "./anomaly-registry.js";
 
 export interface QueryExportBatch {
   columns: string[];
@@ -43,6 +46,12 @@ export interface QueryExecutor {
   getSchema?(): Promise<SchemaEvidence>;
   /** Optional Runtime-owned same-snapshot cardinality evidence provider. */
   getCardinalityEvidence?(sql: string, schema?: SchemaEvidence, signal?: AbortSignal): Promise<readonly DigestCardinalityEvidence[]>;
+  /** Optional bounded probe provider for population and cross-period evidence. */
+  getProbeEvidence?(sql: string, schema?: SchemaEvidence, signal?: AbortSignal): Promise<{
+    cardinalityEvidence?: readonly DigestCardinalityEvidence[];
+    entityPopulation?: DetectorInput["entityPopulation"];
+    crossPeriodSet?: DetectorInput["crossPeriodSet"];
+  }>;
 }
 
 export type NativeSkillInvoker = (name: string, additionalInstructions?: string) => Promise<unknown>;
@@ -98,6 +107,10 @@ export interface AgentAssemblyDeps {
   assuranceHooks?: AssuranceHooks;
   /** Receives non-sensitive lifecycle telemetry from the Hook adapter. */
   onHookFired?: (event: HookFiredEvent) => void | Promise<void>;
+  /** Optional task-scoped anomaly registry used by the query observation Hook. */
+  anomalyRegistry?: AnomalyRegistry;
+  /** Optional independent planner for anomaly-triggered interpretation enumeration. */
+  interpretationPlanner?: InterpretationPlanner;
   /** Maximum metadata/sample queries allowed per session before final SQL is required. */
   explorationQueryBudget?: number;
   /** Require a Publication Receipt before a query task can complete. */
@@ -620,6 +633,45 @@ export function createProfileAnswerSpecGenerator(profile: AgentModelProfile): An
   };
 }
 
+const INTERPRETATION_PLANNER_SYSTEM_PROMPT = `You enumerate alternative interpretations for one detected SQL semantic anomaly. You are independent of the Solver: use only the supplied question, read-only Answer Spec, and observed anomaly evidence. Return exactly one JSON object with keys slot and interpretations. interpretations must contain at least two materially different alternatives for the same slot. Each item has id, statement, and optional evidence; evidence must be null unless quote is an exact substring of the question. Do not write SQL, choose a winner, or invent database facts.`;
+
+/** Independent anomaly planner used by prepareNextTurnWithContext; it never receives Solver history. */
+export function createProfileInterpretationPlanner(profile: AgentModelProfile): InterpretationPlanner {
+  const model = buildModel(profile);
+  return async (input) => {
+    const response = await completeSimple(model, {
+      systemPrompt: INTERPRETATION_PLANNER_SYSTEM_PROMPT,
+      messages: [{
+        role: "user",
+        content: JSON.stringify({
+          taskId: input.taskId,
+          question: input.question,
+          answerSpec: input.answerSpec,
+          schema: input.schema,
+          anomalies: input.anomalies.map((item) => ({ id: item.id, detector: item.detector, slot: item.slot, observed: item.observed, note: item.note })),
+        }),
+        timestamp: Date.now(),
+      }],
+    }, { temperature: 0, maxTokens: 1536, signal: undefined, apiKey: profile.apiKey });
+    const raw = parseReviewerJson(response.content.filter((item) => item.type === "text").map((item) => item.text).join("\\n"));
+    if (!raw || typeof raw !== "object") return undefined;
+    const record = raw as Record<string, unknown>;
+    const slots = new Set(["measure", "grain", "population", "filter", "final_shape"]);
+    const slot = typeof record.slot === "string" && slots.has(record.slot) ? record.slot as Parameters<InterpretationPlanner>[0]["anomalies"][number]["slot"] : undefined;
+    const items = Array.isArray(record.interpretations) ? record.interpretations.flatMap((item): InterpretationItem[] => {
+      if (!item || typeof item !== "object") return [];
+      const value = item as Record<string, unknown>;
+      if (typeof value.id !== "string" || !value.id.trim() || typeof value.statement !== "string" || !value.statement.trim()) return [];
+      const evidence = value.evidence && typeof value.evidence === "object" ? value.evidence as Record<string, unknown> : null;
+      const quote = evidence && evidence.type === "question_span" && typeof evidence.quote === "string" && input.question.includes(evidence.quote)
+        ? { type: "question_span" as const, quote: evidence.quote } : null;
+      return [{ id: value.id.trim(), statement: value.statement.trim(), evidence: quote }];
+    }) : [];
+    if (!slot || items.length < 2) return undefined;
+    return { slot, interpretations: items };
+  };
+}
+
 function buildModel(profile: AgentModelProfile): Model<any> {
   const anthropic = profile.provider === "anthropic";
   const openrouter = profile.provider === "openrouter";
@@ -775,14 +827,28 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
     queryAssurance: QueryAssurance;
     previewResults: Map<string, { columns: string[]; rows: unknown[][]; truncated: boolean }>;
     exploratoryCount: number;
+    probeCount: number;
     hasExported: boolean;
   };
   const queryTaskStates = new Map<string, QueryTaskState>();
+  const publicationMetadataFor = (taskId: string, queryArtifactId: string, interpretationId?: string, interpretationQuote?: string) => {
+    const anomalies = deps.anomalyRegistry?.unresolved(taskId) ?? [];
+    const alternatives = [...new Set(anomalies.flatMap((record) => record.boundCandidateIds).filter((id) => id !== queryArtifactId))];
+    const question = queryAssurance.getTaskEvidence?.(taskId)?.question ?? "";
+    const chosenInterpretation = interpretationId?.trim()
+      ? { id: interpretationId.trim(), evidence: interpretationQuote && question.includes(interpretationQuote) ? { type: "question_span" as const, quote: interpretationQuote } : null }
+      : undefined;
+    return {
+      ...(chosenInterpretation ? { chosenInterpretation } : {}),
+      ...(alternatives.length ? { alternativeCandidateIds: alternatives } : {}),
+      ...(anomalies.length && (!chosenInterpretation || !chosenInterpretation.evidence) ? { disclosure: "unresolved_interpretation" as const } : {}),
+    };
+  };
   const queryTaskStateFor = (native: NativeToolExecution): QueryTaskState => {
     const key = queryTaskKeyFor(native);
     const existing = queryTaskStates.get(key);
     if (existing) return existing;
-    const created: QueryTaskState = { queryAssurance, previewResults: new Map(), exploratoryCount: 0, hasExported: false };
+    const created: QueryTaskState = { queryAssurance, previewResults: new Map(), exploratoryCount: 0, probeCount: 0, hasExported: false };
     queryTaskStates.set(key, created);
     return created;
   };
@@ -1063,7 +1129,7 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
         }
         let receipt;
         try {
-          receipt = await queryAssurance.publishCandidate({ reviewToken: outcome.reviewToken, candidate: candidateForReview, targetPath: target, promote: () => candidateStore.publish(storedCandidate, target) }, signal);
+          receipt = await queryAssurance.publishCandidate({ reviewToken: outcome.reviewToken, candidate: candidateForReview, targetPath: target, promote: () => candidateStore.publish(storedCandidate, target), metadata: publicationMetadataFor(taskId, candidateForReview.queryArtifactId, params.interpretationId, params.interpretationQuote) }, signal);
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           if (/REVIEW_UNAVAILABLE|REVIEW_TIMEOUT/.test(message)) {
@@ -1170,7 +1236,7 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
       }
       let receipt;
       try {
-        receipt = await queryAssurance.publishCandidate({ reviewToken: outcome.reviewToken, candidate, targetPath: candidate.path }, signal);
+        receipt = await queryAssurance.publishCandidate({ reviewToken: outcome.reviewToken, candidate, targetPath: candidate.path, metadata: publicationMetadataFor(taskId, candidate.queryArtifactId, params.interpretationId, params.interpretationQuote) }, signal);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         if (/REVIEW_UNAVAILABLE|REVIEW_TIMEOUT/.test(message)) {
@@ -1203,7 +1269,7 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
       defineTool("query_database", canonicalTool("query_database").description, QUERY_DATABASE_PARAMETERS, async (p, native) => withToolFailureGuidance("query_database", native, async () => {
         let state = queryTaskStateFor(native);
         if (state.hasExported) {
-          state = { queryAssurance, previewResults: new Map(), exploratoryCount: 0, hasExported: false };
+          state = { queryAssurance, previewResults: new Map(), exploratoryCount: 0, probeCount: 0, hasExported: false };
           queryTaskStates.set(queryTaskKeyFor(native), state);
         }
         const exploratory = isExploratoryQuery(p.sql);
@@ -1229,12 +1295,23 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
             return undefined;
           });
         }
-        const cardinalityEvidence = !exploratory && deps.queryExecutor!.getCardinalityEvidence
-          ? await deps.queryExecutor!.getCardinalityEvidence(p.sql, schemaEvidence, signal).catch((error) => {
-            console.warn("[data-agent] cardinality evidence unavailable:", error instanceof Error ? error.message : String(error));
-            return undefined;
-          })
-          : undefined;
+        let probeEvidence: Awaited<ReturnType<NonNullable<QueryExecutor["getProbeEvidence"]>>> | undefined;
+        if (!exploratory && state.probeCount < 5) {
+          state.probeCount++;
+          if (deps.queryExecutor!.getProbeEvidence) {
+            probeEvidence = await deps.queryExecutor!.getProbeEvidence(p.sql, schemaEvidence, signal).catch((error) => {
+              console.warn("[data-agent] bounded probe evidence unavailable:", error instanceof Error ? error.message : String(error));
+              return undefined;
+            });
+          } else if (deps.queryExecutor!.getCardinalityEvidence) {
+            const cardinalityEvidence = await deps.queryExecutor!.getCardinalityEvidence(p.sql, schemaEvidence, signal).catch((error) => {
+              console.warn("[data-agent] cardinality evidence unavailable:", error instanceof Error ? error.message : String(error));
+              return undefined;
+            });
+            probeEvidence = cardinalityEvidence ? { cardinalityEvidence } : undefined;
+          }
+        }
+        const cardinalityEvidence = probeEvidence?.cardinalityEvidence;
         const artifact = taskId && queryAssurance.recordPreview
           ? await queryAssurance.recordPreview({
             task: { taskId, mode: queryAssurance.mode, ...(specVersionFor(native) ? { specVersion: specVersionFor(native) } : {}) },
@@ -1267,6 +1344,19 @@ export function buildAgentTools(deps: AgentAssemblyDeps): AgentHarnessTool<Agent
             queryArtifactId: artifact.queryArtifactId,
             normalizedSqlHash: artifact.normalizedSqlHash,
             previewMetadata: artifact.previewMetadata,
+            ...(taskId && queryAssurance.getAnswerSpec?.(taskId, artifact.specVersion) ? {
+              assuranceObservation: {
+                spec: queryAssurance.getAnswerSpec!(taskId, artifact.specVersion),
+                digest: artifact.queryDigest,
+                columns: result.columns,
+                rows: result.rows,
+                rowCount: result.rows.length,
+                truncated: result.truncated,
+                sql: artifact.normalizedSql,
+                entityPopulation: probeEvidence?.entityPopulation,
+                crossPeriodSet: probeEvidence?.crossPeriodSet,
+              },
+            } : {}),
             expiresAt: artifact.expiresAt,
             ...(artifact.specStatus ? { specStatus: artifact.specStatus } : {}),
           } : {}),
@@ -1463,10 +1553,92 @@ export async function createDataAgentHarness(deps: AgentAssemblyDeps, profile: A
       && queryAssurance.hasInternalEvidence?.(task.taskId)
       && !queryAssurance.hasPublication?.(task.taskId),
   ));
-  const assuranceHooks = deps.assuranceHooks ?? createAssuranceHooks({
+  const diversityNotified = new Set<string>();
+  const builtInAssuranceHooks = createAssuranceHooks({
     taskId: () => activeTask?.taskId,
     onHookFired: deps.onHookFired,
+    observeQuery: async (event) => {
+      const details = event.details && typeof event.details === "object" ? event.details as Record<string, unknown> : undefined;
+      const input = details?.assuranceObservation as DetectorInput | undefined;
+      const taskId = typeof details?.taskId === "string" ? details.taskId : activeTask?.taskId;
+      if (!input || !taskId || !deps.anomalyRegistry) return undefined;
+      const observations = detectAnomalies(input);
+      const fresh = deps.anomalyRegistry.register(taskId, observations, { specVersion: input.spec.specVersion, queryArtifactId: typeof details?.queryArtifactId === "string" ? details.queryArtifactId : undefined });
+      const artifactId = typeof details?.queryArtifactId === "string" ? details.queryArtifactId : undefined;
+      const fingerprints = input.digest ? {
+        measure: candidateSemanticFingerprintForClaim(input.digest, "measure"),
+        grain: candidateSemanticFingerprintForClaim(input.digest, "grain"),
+        population: candidateSemanticFingerprintForClaim(input.digest, "population"),
+        filter: candidateSemanticFingerprintForClaim(input.digest, "filter"),
+        final_shape: candidateSemanticFingerprintForClaim(input.digest, "shape"),
+      } : {};
+      const unchanged = artifactId ? deps.anomalyRegistry.bindCandidate(taskId, artifactId, fingerprints) : [];
+      const newlyRegistered = [...fresh, ...unchanged];
+      const diversityWarnings: string[] = [];
+      for (const record of deps.anomalyRegistry.unresolved(taskId)) {
+        const key = `${taskId}:${record.slot}`;
+        if (record.boundCandidateIds.length >= 2 && deps.anomalyRegistry.distinctFingerprintCount(taskId, record.slot) < 2 && !diversityNotified.has(key)) {
+          diversityNotified.add(key);
+          diversityWarnings.push(`[ANOMALY ${record.id} candidate diversity unresolved] slot=${record.slot}; 当前候选指纹仍未产生至少两个不同值。`);
+        }
+      }
+      if (!newlyRegistered.length && !diversityWarnings.length) return undefined;
+      const disclosure = [...newlyRegistered.map((record) => formatAnomalies([record])), ...diversityWarnings].join("\\n\\n");
+      return {
+        content: [...event.content, { type: "text" as const, text: `\\n\\n${disclosure}` }],
+        details: { ...details, anomalyIds: newlyRegistered.map((record) => record.id), ...(diversityWarnings.length ? { diversityWarnings } : {}) },
+      };
+    },
+    beforeToolCall: async (event) => {
+      if (event.toolName !== "export_query" && event.toolName !== "publish_query_result") return undefined;
+      const taskId = activeTask?.taskId;
+      const artifactId = typeof event.input.queryArtifactId === "string" ? event.input.queryArtifactId : undefined;
+      if (!taskId || !artifactId || !queryAssurance.getArtifact) return undefined;
+      const artifact = await queryAssurance.getArtifact(taskId, artifactId, new AbortController().signal);
+      const latestArtifactId = queryAssurance.latestArtifactId?.(taskId);
+      if (!artifact || (latestArtifactId && latestArtifactId !== artifactId)) return { block: true, reason: `[INTEGRITY_ARTIFACT_MISMATCH] ${JSON.stringify({ taskId, expectedQueryArtifactId: latestArtifactId, receivedQueryArtifactId: artifactId })}` };
+      const spec = queryAssurance.getAnswerSpec?.(taskId, artifact.specVersion);
+      if (!spec || artifact.previewMetadata.truncated) return undefined;
+      const rowMode = spec.answerContract.output?.binding === "hard"
+        ? spec.answerContract.output.value.rowMode
+        : spec.rowMode;
+      const expectedRows = spec.answerContract.output?.binding === "hard"
+        ? spec.answerContract.output.value.rowCount
+        : spec.rowCount;
+      const shapeMismatch = rowMode === "scalar" && artifact.previewMetadata.rowCount > 1
+        || rowMode === "top_n" && expectedRows !== undefined && artifact.previewMetadata.rowCount !== expectedRows;
+      return shapeMismatch
+        ? { block: true, reason: `[SHAPE_ZERO_SCORE] ${JSON.stringify({ expected: { rowMode, rows: expectedRows }, observed: { rows: artifact.previewMetadata.rowCount, columns: artifact.previewMetadata.columns }, queryArtifactId: artifactId })}` }
+        : undefined;
+    },
+    anomalyRegistry: deps.anomalyRegistry,
+    interpretationPlanner: deps.interpretationPlanner,
+    getTaskQuestion: (taskId) => queryAssurance.getTaskEvidence?.(taskId)?.question,
+    getTaskAnswerSpec: (taskId, specVersion) => queryAssurance.getAnswerSpec?.(taskId, specVersion),
+    getTaskSchema: (taskId) => queryAssurance.getTaskEvidence?.(taskId)?.schema,
   });
+  const assuranceHooks: AssuranceHooks = deps.assuranceHooks ? {
+    ...deps.assuranceHooks,
+    beforeToolCall: async (event) => {
+      const builtIn = await builtInAssuranceHooks.beforeToolCall?.(event);
+      if (builtIn?.block) return builtIn;
+      // Application hooks may observe calls, but cannot introduce a third hard-block class.
+      try { await deps.assuranceHooks!.beforeToolCall?.(event); } catch { /* observer hooks cannot block the tool */ }
+      return undefined;
+    },
+    afterToolCall: async (event) => {
+      const builtIn = await builtInAssuranceHooks.afterToolCall?.(event);
+      const custom = await deps.assuranceHooks!.afterToolCall?.(event);
+      return builtIn || custom ? { ...(custom ?? {}), ...(builtIn ?? {}) } : undefined;
+    },
+    prepareNextTurnWithContext: async (event) => {
+      const builtIn = await builtInAssuranceHooks.prepareNextTurnWithContext?.(event);
+      const custom = await deps.assuranceHooks!.prepareNextTurnWithContext?.(event);
+      if (!builtIn) return custom;
+      if (!custom) return builtIn;
+      return { messages: [...builtIn.messages, ...custom.messages.slice(event.messages.length)] };
+    },
+  } : builtInAssuranceHooks;
   wireAssuranceHooks(harness, assuranceHooks);
   harness.subscribe((event) => {
     if (event?.type !== "tool_execution_end" || !event.isError) return;

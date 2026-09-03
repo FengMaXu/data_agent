@@ -61,6 +61,9 @@ export interface DigestCardinalityEvidence {
   readonly snapshotId?: string;
   readonly duplicatedSide?: "left" | "right";
   readonly duplicateKeys?: readonly string[];
+  /** Optional Runtime-owned count comparison; absent means no D2 claim is made. */
+  readonly countValue?: number;
+  readonly distinctCountValue?: number;
 }
 
 export interface DigestMeasure {

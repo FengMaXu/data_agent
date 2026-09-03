@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
@@ -16,6 +17,15 @@ export interface McpQueryResult {
 export interface McpQueryExportBatch {
   columns: string[];
   rows: unknown[][];
+}
+
+function probeTableNames(sql: string): string[] {
+  const names: string[] = [];
+  for (const match of sql.matchAll(/\b(?:FROM|JOIN)\s+([`\"\w.]+)/gi)) {
+    const name = match[1].replace(/[`\"]/g, "");
+    if (/^[A-Za-z_][A-Za-z0-9_$]*(?:\.[A-Za-z_][A-Za-z0-9_$]*)?$/.test(name)) names.push(name);
+  }
+  return [...new Set(names)];
 }
 
 /**
@@ -67,6 +77,21 @@ export function createMcpQueryExecutor(options: McpQueryExecutorOptions) {
         rows: rows.map((row) => columns.map((column) => row[column])),
         truncated: Boolean(payload.truncated),
       };
+    },
+
+    async getCardinalityEvidence(sql: string, _schema?: unknown, signal?: AbortSignal) {
+      if (signal?.aborted) throw new Error("PROBE_CANCELLED");
+      const tables = probeTableNames(sql);
+      if (tables.length < 2 || !/\bJOIN\b/i.test(sql)) return [];
+      const cleanSql = sql.replace(/;\s*$/, "");
+      const boundedCount = async (query: string) => Number((await this.run(`SELECT COUNT(*) FROM (SELECT 1 FROM (${query}) AS _data_agent_count_source LIMIT 2000001) AS _data_agent_count`, 1)).rows[0]?.[0]);
+      const counts = await Promise.all(tables.slice(0, 8).map(async (table) => [table, await boundedCount(`SELECT 1 FROM ${table}`)] as const));
+      if (counts.some(([, count]) => !Number.isFinite(count) || count > 2_000_000)) return [];
+      const joinedRows = await boundedCount(cleanSql);
+      if (!Number.isFinite(joinedRows) || joinedRows > 2_000_000) return [];
+      const maxSide = Math.max(...counts.map(([, count]) => count));
+      if (joinedRows <= maxSide) return [];
+      return [{ left: tables[0], right: tables[1], status: "fanout" as const, fanoutFactor: maxSide > 0 ? joinedRows / maxSide : undefined, source: "observed_snapshot" as const, snapshotId: createHash("sha256").update(cleanSql, "utf8").digest("hex").slice(0, 16) }];
     },
 
     async explain(sql: string, signal?: AbortSignal): Promise<McpQueryResult> {

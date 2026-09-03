@@ -2,6 +2,8 @@ import { Type } from "typebox";
 
 export const PUBLISH_QUERY_RESULT_PARAMETERS = Type.Object({
   queryArtifactId: Type.String({ minLength: 1 }),
+  interpretationId: Type.Optional(Type.String({ minLength: 1 })),
+  interpretationQuote: Type.Optional(Type.String({ minLength: 1 })),
 });
 
 export const SHOW_WIDGET_PARAMETERS = Type.Object({
@@ -17,6 +19,8 @@ export const QUERY_DATABASE_PARAMETERS = Type.Object({
 export const EXPORT_QUERY_PARAMETERS = Type.Object({
   queryArtifactId: Type.String({ minLength: 1 }),
   filename: Type.Optional(Type.String()),
+  interpretationId: Type.Optional(Type.String({ minLength: 1 })),
+  interpretationQuote: Type.Optional(Type.String({ minLength: 1 })),
 });
 
 export interface CanonicalTool {

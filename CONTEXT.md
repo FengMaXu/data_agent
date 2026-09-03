@@ -13,7 +13,7 @@ One database-answering request with its own identity, Answer Spec version chain,
 _Avoid_: Session, tool call
 
 **Query Assurance**:
-The process that prepares semantic evidence, assesses candidate queries, and authorizes or refuses publication according to Delivery Policy.
+The process that prepares semantic evidence, detects and informs about candidate anomalies, records interpretation choices, and publishes results under integrity rules.
 _Avoid_: SQL validation, export gate
 
 **Answer Spec**:
@@ -35,6 +35,18 @@ _Avoid_: Rule, fact
 **Ambiguity**:
 An unresolved choice between plausible interpretations for which current evidence does not establish one authoritative answer.
 _Avoid_: Error, model uncertainty
+
+**Anomaly Record**:
+A task-scoped record of a deterministic observation that may affect interpretation, bound to one Answer Spec slot and one or more candidate artifacts. It reports evidence and status; it does not by itself decide delivery.
+_Avoid_: Gate verdict, semantic error
+
+**Interpretation**:
+One explicit, auditable way to read an ambiguous Answer Spec slot. Multiple interpretations may remain visible until the delivered candidate records which one it implements.
+_Avoid_: Correct answer, reviewer decision
+
+**Disclosure**:
+The publication record of unresolved observations, alternatives, or unavailable review that remain visible when a result is delivered.
+_Avoid_: Approval, waiver
 
 **Query Digest**:
 A structured account of what a query expresses, including its sources, filters, measures, grouping, ranking, windows, and output lineage, together with explicit coverage and unsupported areas.

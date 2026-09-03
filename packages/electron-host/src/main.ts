@@ -439,6 +439,8 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
     createDataAgentHarness,
     createProfileConversationBlindReviewer,
     createProfileAnswerSpecGenerator,
+    createProfileInterpretationPlanner,
+    AnomalyRegistry,
     createQueryAssurance,
     createSqlglotQueryDigestCompiler,
     resolveQueryDigestParserVersion,
@@ -659,6 +661,15 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
     async retry() { return { accepted: true }; },
   };
 
+  const anomalyRegistry = new AnomalyRegistry();
+  let interpretationPlannerCache: { key: string; planner: ReturnType<typeof createProfileInterpretationPlanner> } | undefined;
+  const interpretationPlanner = async (input: Parameters<ReturnType<typeof createProfileInterpretationPlanner>>[0]) => {
+    const profile = await resolveConfiguredProfile();
+    const key = JSON.stringify([profile.provider, profile.model, profile.apiFormat, profile.baseUrl]);
+    if (!interpretationPlannerCache || interpretationPlannerCache.key !== key) interpretationPlannerCache = { key, planner: createProfileInterpretationPlanner(profile) };
+    return interpretationPlannerCache.planner(input);
+  };
+
   const mysqlMcpScript = [
     path.join(__dirname, "mcp-mysql.cjs"),
     path.resolve(__dirname, "../../../frontend/electron-host/mcp-mysql.cjs"),
@@ -715,6 +726,8 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
         }),
         queryExecutor,
         queryAssurance,
+        anomalyRegistry,
+        interpretationPlanner,
         reviewEvidence,
         enforceDeliveryReceipt: true,
         clarifications: runtime.clarificationManager,

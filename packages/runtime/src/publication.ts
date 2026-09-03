@@ -74,6 +74,12 @@ export interface PublicationAuthorization {
   readonly semanticDiffHashes: readonly string[];
 }
 
+export interface PublicationMetadata {
+  readonly chosenInterpretation?: { readonly id: string; readonly evidence?: { readonly type: "question_span"; readonly quote: string } | null };
+  readonly alternativeCandidateIds?: readonly string[];
+  readonly disclosure?: "unresolved_interpretation";
+}
+
 export interface PublicationReceipt {
   readonly receiptId: string;
   readonly schemaVersion?: number;
@@ -84,6 +90,9 @@ export interface PublicationReceipt {
   readonly contentSha256: string;
   readonly status: PublicationStatus;
   readonly reviewOutcome: ReviewOutcome;
+  readonly chosenInterpretation?: PublicationMetadata["chosenInterpretation"];
+  readonly alternativeCandidateIds?: readonly string[];
+  readonly disclosure?: PublicationMetadata["disclosure"];
   readonly queryDigestVersion?: string;
   readonly parserVersion?: string;
   readonly parserEngine?: "sqlglot" | "deterministic-tokenizer";
@@ -231,7 +240,7 @@ export class PublicationRegistry {
     return clonePublicationValue(stored);
   }
 
-  async publish(token: ReviewToken, candidate: ExportCandidate, targetPath: string, authorization?: PublicationAuthorization, promote?: () => Promise<void>): Promise<PublicationReceipt> {
+  async publish(token: ReviewToken, candidate: ExportCandidate, targetPath: string, authorization?: PublicationAuthorization, promote?: () => Promise<void>, metadata?: PublicationMetadata): Promise<PublicationReceipt> {
     const known = this.tokens.get(token.tokenId);
     if (!known) throw new Error("REVIEW_TOKEN_UNKNOWN");
     if (known.schemaVersion !== PUBLICATION_SCHEMA_VERSION) throw new Error("PUBLICATION_SCHEMA_MIGRATION_REQUIRED");
@@ -259,7 +268,7 @@ export class PublicationRegistry {
     this.validateAuthorization(known, authorization);
     if (this.activeTasks.has(token.taskId)) throw new Error("PUBLICATION_TASK_BUSY");
     this.activeTasks.add(token.taskId);
-    const operation = this.publishOnce(known, candidate, targetPath, authorization, promote).then((receipt) => {
+    const operation = this.publishOnce(known, candidate, targetPath, authorization, promote, metadata).then((receipt) => {
       const stored = clonePublicationValue(receipt);
       this.artifactReceipts.set(artifactKey, stored);
       this.taskReceipts.set(stored.taskId, stored);
@@ -289,7 +298,7 @@ export class PublicationRegistry {
       || [...authorization.semanticDiffHashes].sort().some((hash, index) => hash !== [...token.semanticDiffHashes].sort()[index])) throw new Error("PUBLICATION_AUTHORIZATION_MISMATCH");
   }
 
-  private async publishOnce(token: ReviewToken, candidate: ExportCandidate, targetPath: string, authorization?: PublicationAuthorization, promote?: () => Promise<void>): Promise<PublicationReceipt> {
+  private async publishOnce(token: ReviewToken, candidate: ExportCandidate, targetPath: string, authorization?: PublicationAuthorization, promote?: () => Promise<void>, metadata?: PublicationMetadata): Promise<PublicationReceipt> {
     const mode = this.options.modeFor?.() ?? this.options.mode;
     if (token.issuedMode && token.issuedMode !== mode) throw new Error("REVIEW_TOKEN_MODE_STALE");
     const policy = new DeliveryPolicy(mode, { allowUnavailablePublication: this.options.allowUnavailablePublication, shadowDelivery: this.options.shadowDelivery });
@@ -308,6 +317,9 @@ export class PublicationRegistry {
       ...(candidate.dataSnapshot ? { dataSnapshot: candidate.dataSnapshot } : {}),
       status: delivery.status,
       reviewOutcome: token.outcome,
+      ...(metadata?.chosenInterpretation ? { chosenInterpretation: metadata.chosenInterpretation } : {}),
+      ...(metadata?.alternativeCandidateIds?.length ? { alternativeCandidateIds: [...metadata.alternativeCandidateIds] } : {}),
+      ...(metadata?.disclosure ? { disclosure: metadata.disclosure } : {}),
       ...(token.queryDigestVersion ? { queryDigestVersion: token.queryDigestVersion } : {}),
       ...(token.parserVersion ? { parserVersion: token.parserVersion } : {}),
       ...(token.parserEngine ? { parserEngine: token.parserEngine } : {}),

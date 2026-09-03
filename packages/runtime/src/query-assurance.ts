@@ -3,7 +3,7 @@ import { createSpecAuthority, type AmbiguityInput, type AnswerContractInput, typ
 import { createQueryDigestCompiler, QUERY_DIGEST_PARSER_VERSION, QUERY_DIGEST_VERSION, type DigestCardinalityEvidence, type QueryDigest, type QueryDigestCompiler, type SchemaEvidence, type SqlDialect } from "./query-digest.js";
 import { CONVERSATION_BLIND_REVIEWER_PROMPT_VERSION, deriveReviewCoverageRequirements, validateReviewDecision, REVIEW_COVERAGE_SCHEMA_VERSION, type ConversationBlindReviewer, type ConversationBlindReviewerInput, type ReviewCoverage, type SemanticDiff } from "./conversation-blind-reviewer.js";
 import type { ExportCandidate } from "./export-candidate.js";
-import { PublicationRegistry, type PublicationAuthorization, type PublicationReceipt, type ReviewToken } from "./publication.js";
+import { PublicationRegistry, type PublicationAuthorization, type PublicationMetadata, type PublicationReceipt, type ReviewToken } from "./publication.js";
 import { ReviewCache, type ReviewCacheIdentity } from "./review-cache.js";
 import { type AssuranceMetrics, type ReviewModeController } from "./review-policy.js";
 import { InMemoryAssuranceAuditStore, type AssuranceAuditRecord, type AssuranceAuditStore, type SpecGenerationFailure } from "./assurance-audit.js";
@@ -152,13 +152,14 @@ export interface QueryAssurance {
   prepareTask(input: TaskEvidence, signal: AbortSignal): Promise<PreparedQueryTask>;
   recordPreview?(input: QueryPreviewRegistration, signal: AbortSignal): Promise<ValidatedQueryArtifact>;
   getArtifact?(taskId: string, queryArtifactId: string, signal: AbortSignal): Promise<ValidatedQueryArtifact | undefined>;
+  latestArtifactId?(taskId: string): string | undefined;
   getAnswerSpec?(taskId: string, specVersion?: string): AnswerSpec | undefined;
   getTaskEvidence?(taskId: string): TaskEvidence | undefined;
   getTaskStatus?(taskId: string): QueryTaskLifecycleStatus | undefined;
   applyClarification?(taskId: string, baseSpecVersion: string, clarification: string): AnswerSpec;
   submitSpecChange?(proposal: Parameters<SpecAuthority["submitProposal"]>[0]): ReturnType<SpecAuthority["submitProposal"]>;
   reviewForPublication(input: PublicationReviewRequest, signal: AbortSignal): Promise<ReviewOutcome>;
-  publishCandidate?(input: { reviewToken: ReviewToken; candidate: ExportCandidate; targetPath: string; authorization?: PublicationAuthorization; promote?: () => Promise<void> }, signal: AbortSignal): Promise<PublicationReceipt>;
+  publishCandidate?(input: { reviewToken: ReviewToken; candidate: ExportCandidate; targetPath: string; authorization?: PublicationAuthorization; promote?: () => Promise<void>; metadata?: PublicationMetadata }, signal: AbortSignal): Promise<PublicationReceipt>;
   hasInternalEvidence?(taskId: string): boolean;
   hasPublication?(taskId: string): boolean;
   publicationForArtifact?(taskId: string, queryArtifactId: string): PublicationReceipt | undefined;
@@ -770,6 +771,12 @@ export class InMemoryQueryAssurance implements QueryAssurance {
     return cloneTaskEvidence(storedArtifact);
   }
 
+  latestArtifactId(taskId: string): string | undefined {
+    const artifacts = [...(this.artifacts.get(taskId)?.values() ?? [])].filter((artifact) => artifact.exploratory !== true);
+    artifacts.sort((left, right) => left.createdAt.localeCompare(right.createdAt));
+    return artifacts.at(-1)?.queryArtifactId;
+  }
+
   async getArtifact(taskId: string, queryArtifactId: string, signal: AbortSignal): Promise<ValidatedQueryArtifact | undefined> {
     throwIfAborted(signal);
     const artifact = this.artifacts.get(taskId)?.get(queryArtifactId);
@@ -1038,7 +1045,7 @@ export class InMemoryQueryAssurance implements QueryAssurance {
     this.persistState();
   }
 
-  async publishCandidate(input: { reviewToken: ReviewToken; candidate: ExportCandidate; targetPath: string; authorization?: PublicationAuthorization; promote?: () => Promise<void> }, signal: AbortSignal): Promise<PublicationReceipt> {
+  async publishCandidate(input: { reviewToken: ReviewToken; candidate: ExportCandidate; targetPath: string; authorization?: PublicationAuthorization; promote?: () => Promise<void>; metadata?: PublicationMetadata }, signal: AbortSignal): Promise<PublicationReceipt> {
     throwIfAborted(signal);
     const artifact = await this.getArtifact(input.reviewToken.taskId, input.reviewToken.queryArtifactId, signal);
     if (!artifact) throw new Error("REVIEW_UNAVAILABLE: QUERY_ARTIFACT_NOT_FOUND_OR_EXPIRED");
@@ -1048,7 +1055,7 @@ export class InMemoryQueryAssurance implements QueryAssurance {
       if (!currentArtifact) throw new Error("REVIEW_UNAVAILABLE: QUERY_ARTIFACT_NOT_FOUND_OR_EXPIRED");
       await input.promote!();
     } : undefined;
-    const receipt = await this.publicationRegistry.publish(input.reviewToken, input.candidate, input.targetPath, input.authorization, promote);
+    const receipt = await this.publicationRegistry.publish(input.reviewToken, input.candidate, input.targetPath, input.authorization, promote, input.metadata);
     this.taskStatuses.set(receipt.taskId, "published");
     if (this.auditStore) this.auditStore.append({
       taskId: receipt.taskId,
