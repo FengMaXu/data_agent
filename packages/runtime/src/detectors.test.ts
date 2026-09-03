@@ -26,6 +26,17 @@ describe("deterministic anomaly observations", () => {
     expect(anomalies.map((item) => item.detector)).toEqual(expect.arrayContaining(["join_fanout", "count_distinct_divergence", "entity_population_mismatch", "cross_period_set_mismatch"]));
   });
 
+  it("does not flag a signed derived change amount as an invalid negative amount", () => {
+    const spec = createAnswerSpec({ taskId: "task-derived-amount", question: "Return the change amount" });
+    const digest = {
+      ...compiler.compile({ sql: "SELECT before_amount - after_amount AS change_amount FROM effects", dialect: "sqlite" }),
+      parserEngine: "sqlglot" as const,
+      outputLineage: [{ output: "change_amount", expression: "before_amount - after_amount", columns: ["before_amount", "after_amount"] }],
+    };
+    const anomalies = detectAnomalies({ spec, digest, columns: ["change_amount"], rows: [[-10]], rowCount: 1, truncated: false, sql: digest.normalizedSql });
+    expect(anomalies.some((item) => item.detector === "physical_bound_violation")).toBe(false);
+  });
+
   it("deduplicates observations and records an unchanged candidate fingerprint", () => {
     const registry = new AnomalyRegistry();
     const observation = { detector: "join_fanout" as const, slot: "measure" as const, observed: { joinedRows: 3 }, note: "fanout", fingerprint: "same" };

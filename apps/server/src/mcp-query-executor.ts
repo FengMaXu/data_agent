@@ -86,15 +86,27 @@ export function createMcpQueryExecutor(options: McpQueryExecutorOptions) {
         truncated: Boolean(payload.truncated),
       };
     },
-    async getCardinalityEvidence(sql: string, _schema?: McpSchemaEvidence, signal?: AbortSignal) {
+    async getCardinalityEvidence(sql: string, schema?: McpSchemaEvidence, signal?: AbortSignal) {
       if (signal?.aborted) throw new Error("PROBE_CANCELLED");
-      const tables = probeTableNames(sql);
+      const knownTables = schema ? new Set(schema.tables.map((table) => table.name)) : undefined;
+      const tables = probeTableNames(sql).filter((table) => !knownTables || knownTables.has(table));
       if (tables.length < 2 || !/\bJOIN\b/i.test(sql)) return [];
+      // Count the pre-aggregation join population, not the grouped preview rows.
+      // CTEs are deliberately skipped because their aliases are not standalone
+      // physical relations for this lightweight adapter.
+      if (/^\s*WITH\b/i.test(sql) || /\bFROM\s*\(/i.test(sql)) return [];
       const cleanSql = sql.replace(/;\s*$/, "");
-      const boundedCount = async (query: string) => Number((await this.run(`SELECT COUNT(*) FROM (SELECT 1 FROM (${query}) AS _data_agent_count_source LIMIT 2000001) AS _data_agent_count`, 1)).rows[0]?.[0]);
-      const counts = await Promise.all(tables.slice(0, 8).map(async (table) => [table, await boundedCount(`SELECT 1 FROM ${table}`)] as const));
+      const fromIndex = cleanSql.search(/\bFROM\b/i);
+      if (fromIndex < 0) return [];
+      const joinSource = cleanSql.slice(fromIndex).replace(/\s+(?:GROUP\s+BY|ORDER\s+BY|HAVING|LIMIT|WINDOW|QUALIFY|UNION)\b[\s\S]*$/i, "");
+      const boundedCount = async (query: string) => Number((await this.run(`SELECT COUNT(*) FROM (SELECT 1 ${query} LIMIT 2000001) AS _data_agent_count`, 1)).rows[0]?.[0]);
+      const counts: Array<readonly [string, number]> = [];
+      for (const table of tables.slice(0, 8)) {
+        if (signal?.aborted) throw new Error("PROBE_CANCELLED");
+        counts.push([table, await boundedCount(`FROM ${table}`)]);
+      }
       if (counts.some(([, count]) => !Number.isFinite(count) || count > 2_000_000)) return [];
-      const joinedRows = await boundedCount(cleanSql);
+      const joinedRows = await boundedCount(joinSource);
       if (!Number.isFinite(joinedRows) || joinedRows > 2_000_000) return [];
       const snapshotId = createHash("sha256").update(cleanSql, "utf8").digest("hex").slice(0, 16);
       const maxSide = Math.max(...counts.map(([, count]) => count));

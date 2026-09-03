@@ -126,9 +126,11 @@ function physicalBoundObservations(input: DetectorInput): AnomalyObservation[] {
     for (const row of input.rows) {
       const value = typeof row[index] === "number" ? row[index] as number : Number(row[index]);
       if (!Number.isFinite(value)) continue;
+      const lineage = input.digest?.outputLineage?.find((item) => item.output.toLowerCase() === input.columns[index].toLowerCase());
+      const isDerivedSignedValue = Boolean(lineage && /(?:-|change|delta|diff|variance)/i.test(`${lineage.output} ${lineage.expression}`));
       const invalid = /lat|latitude/.test(column) && (value < -90 || value > 90)
         || /lng|longitude|lon/.test(column) && (value < -180 || value > 180)
-        || /quantity|amount|count|number/.test(column) && value < 0;
+        || /quantity|amount|count|number/.test(column) && value < 0 && !isDerivedSignedValue;
       if (invalid) violations.push({ column: input.columns[index], value });
     }
   }
