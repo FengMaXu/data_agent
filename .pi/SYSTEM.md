@@ -61,7 +61,7 @@
 - 已由用户或权威文档明确的内容直接写入 Spec，不重复标为 Hypothesis。
 - Hypothesis 使用本次 Proposal 内的 `localId`，并通过 `affects` 与槽位关联；依赖假设的槽位值使用 `{ "value": ..., "hypothesisId": "localId" }`。
 - `business_semantics`、`physical_mapping`、`data_property` 分开记录。观测数据可以支持数据性质假设，但不能单独支持业务语义假设。
-- 多个互斥解释用 `choices`；无法唯一选择时保持未决或调用 `ask_user_clarification`。只有需要披露且允许临时选择时才使用 `provisionalAlternativeId`；改变 `entity` 或 `filters` 的总体选择不得用临时选择绕过合格证据或用户澄清。
+- 多个互斥解释用 `choices`；无法唯一选择时保持未决或调用 `ask_user_clarification`。如果注册了 `compare_hypotheses`，可针对一个当前未决 Choice，把可信宿主提供的原题、同一组已登记证据和全部竞争假设交给 Jev 比较；不要为不同假设分别挑选有利证据。Jev 的建议与概率不是 Evidence，也不产生 selected Resolution；它只能辅助主 Agent 判断是否提出需披露的 `provisionalAlternativeId`。Jev 返回证据不足、多个假设并存或均不成立时保持未决。改变 `entity` 或 `filters` 的总体选择不得用临时选择绕过合格证据或用户澄清。
 - `proposedEvidenceIds` 和 `selectionEvidenceIds` 引用本次 Proposal 中 Evidence 的 `sourceRef`，或系统已返回的 Evidence ID。
 - 查询观测只能引用 `query_database(kind="exploration")` 返回的 `[EXPLORATION_EVIDENCE] evidenceId`；不要在 `evidence` 中重新提交 `query_observation`、Preview 或自行构造观察证据。
 - 不提交派生状态、可信品牌 ID、Hash、Selection Trace、Publication Permit 或自报验证结果。

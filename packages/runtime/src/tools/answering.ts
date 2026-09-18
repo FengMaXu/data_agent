@@ -22,6 +22,11 @@ import type {
   UntrustedEvidenceInput,
 } from "../answering/public.js";
 import { isFacetName, isHypothesisKind, isEvidenceKind } from "../answering/public.js";
+import type {
+  HypothesisChoiceAdvisor,
+  HypothesisChoiceEvidence,
+  HypothesisChoiceOption,
+} from "../judgment/hypothesis-choice.js";
 
 /**
  * The only application state carried into a model tool invocation. Query task
@@ -211,10 +216,18 @@ export const ANSWERING_INSPECT_PARAMETERS = Type.Object({
   taskId: Type.String({ minLength: 1 }),
 }, { additionalProperties: false });
 
+export const HYPOTHESIS_COMPARISON_PARAMETERS = Type.Object({
+  taskId: Type.String({ minLength: 1 }),
+  revisionId: Type.String({ minLength: 1 }),
+  choiceId: Type.String({ minLength: 1 }),
+  evidenceRefs: Type.Optional(Type.Array(Type.String({ minLength: 1 }), { minItems: 1, maxItems: 32 })),
+}, { additionalProperties: false });
+
 type UpdateAnswerInput = Static<typeof UPDATE_ANSWER_PARAMETERS>;
 type QueryInput = Static<typeof ANSWERING_QUERY_PARAMETERS>;
 type PublishInput = Static<typeof ANSWERING_PUBLISH_PARAMETERS>;
 type InspectInput = Static<typeof ANSWERING_INSPECT_PARAMETERS>;
+export type HypothesisComparisonInput = Static<typeof HYPOTHESIS_COMPARISON_PARAMETERS>;
 
 type ToolContext = DataAgentToolContext | undefined;
 
@@ -391,6 +404,59 @@ export interface PublishedContentReader {
   resolve(publicationId: string, context: BusinessContext): Promise<{ readonly content: string }>;
 }
 
+export interface HypothesisComparisonContext {
+  readonly originalQuestion: string;
+  readonly hypotheses: readonly HypothesisChoiceOption[];
+  readonly evidence: readonly HypothesisChoiceEvidence[];
+  readonly omittedEvidenceRefs: readonly string[];
+}
+
+export interface HypothesisComparisonContextReader {
+  read(input: HypothesisComparisonInput, context: BusinessContext): Promise<HypothesisComparisonContext>;
+}
+
+export interface HypothesisComparisonToolOptions {
+  readonly advisor: HypothesisChoiceAdvisor;
+  readonly contextReader: HypothesisComparisonContextReader;
+}
+
+function hypothesisComparisonTool(options: HypothesisComparisonToolOptions): AgentHarnessTool<DataAgentToolContext> {
+  return {
+    name: "compare_hypotheses",
+    label: "compare_hypotheses",
+    description: "Ask the configured Jev advisor to compare one unresolved Choice's competing hypotheses against the trusted original request and registered evidence. The result is advisory only: it never revises the Answer Spec or authorizes publication.",
+    replay: "safe",
+    parameters: HYPOTHESIS_COMPARISON_PARAMETERS,
+    async execute(toolCallId, input, _onUpdate, toolContext, invocation, context) {
+      void toolCallId;
+      const value = checked(HYPOTHESIS_COMPARISON_PARAMETERS, input) as HypothesisComparisonInput;
+      const business = trustedContext(toolContext, invocation, context);
+      const comparison = await options.contextReader.read(value, business);
+      const evidence: HypothesisChoiceEvidence[] = [{
+        id: `request:${value.taskId}`,
+        kind: "request_wording",
+        authority: "request_wording",
+        authorityRank: 3,
+        sourceRef: `request:${value.taskId}`,
+        content: comparison.originalQuestion,
+      }, ...comparison.evidence];
+      const signature = json({ value, originalQuestion: comparison.originalQuestion, hypotheses: comparison.hypotheses, evidence });
+      const memo = fromMemoJson(await invocation.getMemo("answering.hypothesis-comparison"));
+      if (memo && typeof memo === "object" && !Array.isArray(memo)) {
+        const record = memo as Record<string, unknown>;
+        if (record.signature !== signature) throw new Error("HYPOTHESIS_COMPARISON_INVOCATION_CONFLICT");
+        if (record.assessment) {
+          return result(`[HYPOTHESIS_COMPARISON_ADVISORY]\n${json(record.assessment)}\nThis recommendation is not evidence and may only inform a disclosed provisional choice unless the underlying evidence independently qualifies.`, record.assessment);
+        }
+      }
+      const assessment = await options.advisor.compare({ originalQuestion: comparison.originalQuestion, hypotheses: comparison.hypotheses, evidence }, { ...(context.abortSignal ? { signal: context.abortSignal } : {}) });
+      const details = { ...assessment, omittedEvidenceRefs: comparison.omittedEvidenceRefs };
+      await invocation.setMemo("answering.hypothesis-comparison", memoJson({ signature, assessment: details }));
+      return result(`[HYPOTHESIS_COMPARISON_ADVISORY]\n${json(details)}\nThis recommendation is not evidence and may only inform a disclosed provisional choice unless the underlying evidence independently qualifies.`, details);
+    },
+  };
+}
+
 function publishTool(answering: Answering, contentReader: PublishedContentReader | undefined, name: "publish_query_result" | "export_query"): AgentHarnessTool<DataAgentToolContext> {
   return {
     name,
@@ -436,10 +502,15 @@ function inspectTool(answering: Answering): AgentHarnessTool<DataAgentToolContex
  * Static model-tool registry for Answering. Inline and CSV delivery names
  * share one publish implementation and one authorization policy.
  */
-export function createAnsweringAgentTools(answering: Answering, contentReader?: PublishedContentReader): readonly AgentHarnessTool<DataAgentToolContext>[] {
+export function createAnsweringAgentTools(
+  answering: Answering,
+  contentReader?: PublishedContentReader,
+  hypothesisComparison?: HypothesisComparisonToolOptions,
+): readonly AgentHarnessTool<DataAgentToolContext>[] {
   return [
     updateTool(answering),
     queryTool(answering),
+    ...(hypothesisComparison ? [hypothesisComparisonTool(hypothesisComparison)] : []),
     publishTool(answering, contentReader, "publish_query_result"),
     publishTool(answering, contentReader, "export_query"),
     inspectTool(answering),

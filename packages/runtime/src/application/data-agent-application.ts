@@ -14,6 +14,7 @@ import {
   type HostRequestContext,
 } from "./host.js";
 import type { ApplicationAuthService, ApplicationCommandHost, ApplicationEventFilter } from "./protocol-host.js";
+import { JevHypothesisChoiceAdvisor } from "../adapters/jev-hypothesis-choice-advisor.js";
 
 export interface DataAgentApplicationOptions {
   readonly dataRoot: string;
@@ -36,6 +37,13 @@ export interface DataAgentApplicationOptions {
   readonly enableSubagents?: boolean | ((context: HostRequestContext, application: DataAgentApplication) => boolean | Promise<boolean>);
   /** Exact relative Markdown paths delegated children may inspect. */
   readonly delegationKnowledgePaths?: readonly string[];
+  /** Opt-in Jev advisor; the key stays in the trusted host composition path. */
+  readonly jevHypothesisComparison?: {
+    readonly apiKey: string;
+    readonly model?: string;
+    readonly endpoint?: string;
+    readonly timeoutMs?: number;
+  };
 }
 
 export interface IngestJobPort {
@@ -93,6 +101,9 @@ export class DataAgentApplication implements ApplicationCommandHost {
     const initialPythonExecutable = configuredPython || (typeof options.pythonExecutable === "function" ? options.pythonExecutable() : options.pythonExecutable);
     let application!: DataAgentApplication;
     const subagentPolicy = options.enableSubagents;
+    const hypothesisChoiceAdvisor = options.jevHypothesisComparison
+      ? new JevHypothesisChoiceAdvisor(options.jevHypothesisComparison)
+      : undefined;
     const sessions = new DataAgentSessionApplication({
       sessionRoot: path.join(dataRoot, "sessions"),
       workspace,
@@ -105,6 +116,7 @@ export class DataAgentApplication implements ApplicationCommandHost {
         return typeof port === "function" ? port() : port;
       },
       resultRoot: path.join(dataRoot, "results"),
+      ...(hypothesisChoiceAdvisor ? { hypothesisChoiceAdvisor } : {}),
       resolveProfile: (context) => options.resolveProfile(context, application),
       ...(options.systemPrompt ? { systemPrompt: options.systemPrompt } : {}),
       ...(options.systemPromptRoots ? { systemPromptRoots: options.systemPromptRoots } : {}),
