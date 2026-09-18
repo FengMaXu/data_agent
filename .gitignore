@@ -1,3 +1,8 @@
+# Local secrets: keep only the template under version control
+/.env
+/.env.*
+!/.env.example
+
 # JavaScript dependencies
 node_modules/
 
