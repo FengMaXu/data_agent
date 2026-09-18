@@ -1,4 +1,4 @@
-import { describe, expect, it, afterAll } from "vitest";
+import { describe, expect, it, afterAll, vi } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 import { PGLiteSocketServer } from "@electric-sql/pglite-socket";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -7,7 +7,6 @@ import { createPgReferenceServer } from "./index.js";
 
 const db = new PGlite();
 const serverSocket = new PGLiteSocketServer({ db, host: "127.0.0.1", port: 0 });
-let port: number;
 
 afterAll(async () => {
   await serverSocket.stop();
@@ -36,11 +35,13 @@ describe("PostgreSQL Reference MCP Server contract", () => {
     expect(payload.contractVersion).toBe(1);
     expect(payload.columns).toEqual(["id", "region", "amount"]);
 
-    const emptyExport = await client.callTool({ name: "execute_query_export_batch", arguments: { sql: "SELECT * FROM contract_sales WHERE 1 = 0" } });
-    const emptyPayload = JSON.parse((emptyExport.content as any)[0].text);
-    expect(emptyPayload.columns).toEqual(["id", "region", "amount"]);
-    expect(emptyPayload.rows).toEqual([]);
-    expect(emptyPayload.done).toBe(true);
+    const querySpy = vi.spyOn(pool, "query");
+    const exportResult = await client.callTool({ name: "execute_query_export", arguments: { sql: "SELECT * FROM contract_sales ORDER BY id" } });
+    const exportPayload = JSON.parse((exportResult.content as any)[0].text);
+    expect(exportPayload.columns).toEqual(["id", "region", "amount"]);
+    expect(exportPayload.rows).toHaveLength(2);
+    expect(exportPayload.truncated).toBe(false);
+    expect(querySpy.mock.calls.filter(([sql]) => typeof sql === "string" && sql.includes("__result"))).toHaveLength(1);
 
     const dangerous = await client.callTool({ name: "execute_query_preview", arguments: { sql: "DELETE FROM contract_sales" } });
     expect(JSON.parse((dangerous.content as any)[0].text).error.code).toBe("FORBIDDEN_SQL");

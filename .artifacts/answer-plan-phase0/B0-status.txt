@@ -1,0 +1,95 @@
+ M .gitignore
+ M .pi/SYSTEM.md
+ M CONTEXT.md
+ M apps/server/src/mcp-query-executor.test.ts
+ M apps/server/src/mcp-query-executor.ts
+ M "docs/Spider2\347\254\25411\350\275\256\344\277\256\345\244\215\350\256\241\345\210\222-\346\213\206\351\231\244\350\243\201\345\206\263\345\261\202\344\270\216Hook\351\207\215\346\216\245.md"
+ M evaluations/spider2/README.md
+ M evaluations/spider2/config.example.json
+ M evaluations/spider2/lib.mjs
+ M evaluations/spider2/lib.test.mjs
+ M evaluations/spider2/run.mjs
+ M package.json
+ M packages/electron-host/src/main.ts
+ M packages/electron-host/src/mcp-query-executor.ts
+ M packages/runtime/src/agent-assembly.test.ts
+ M packages/runtime/src/agent-assembly.ts
+ M packages/runtime/src/anomaly-registry.ts
+ M packages/runtime/src/answer-spec.test.ts
+ M packages/runtime/src/answer-spec.ts
+ M packages/runtime/src/assurance-audit.ts
+ M packages/runtime/src/detectors.test.ts
+ M packages/runtime/src/detectors.ts
+ M packages/runtime/src/export-candidate.ts
+ M packages/runtime/src/hooks/assurance-hooks.test.ts
+ M packages/runtime/src/hooks/assurance-hooks.ts
+ M packages/runtime/src/index.ts
+ M packages/runtime/src/publication.test.ts
+ M packages/runtime/src/publication.ts
+ M packages/runtime/src/query-assurance-store.ts
+ M packages/runtime/src/query-assurance.test.ts
+ M packages/runtime/src/query-assurance.ts
+ M packages/runtime/src/tools-catalog.test.ts
+ M packages/runtime/src/tools-catalog.ts
+ M scripts/start-web-host.mjs
+?? .artifacts/answer-plan-phase0/B0-head.txt
+?? .artifacts/answer-plan-phase0/B0-status.txt
+?? .artifacts/answer-plan-phase0/B0-working-tree.patch
+?? .artifacts/bounded-query-gates-spec.md
+?? .artifacts/bounded-query-gates-ticket-map.json
+?? .artifacts/grill-with-docs-round1-research.evidence.md
+?? .artifacts/grill-with-docs-round1-research.md
+?? .artifacts/implementation-gap-audit.md
+?? .artifacts/publish_bounded_tickets.py
+?? .pi/system0904.md
+?? 2502.18448v2.pdf
+?? Practical_guide_for_agentic_analytics.pdf
+?? "docs/AnswerSpec\344\270\203\346\247\275\344\275\215\344\270\216QueryAssurance\346\224\271\351\200\240\350\275\254\344\272\244\346\226\207\346\241\243.md"
+?? "docs/AnswerSpec\344\270\203\346\247\275\344\275\215\344\270\216SQL\345\210\206\346\265\201\345\256\236\346\226\275\351\252\214\346\224\266\346\212\245\345\221\212.md"
+?? "docs/AnswerSpec\344\270\203\346\247\275\344\275\215\344\270\216\346\216\242\347\264\242-\347\273\223\346\236\234SQL\345\210\206\346\265\201\346\224\271\345\212\250\346\226\271\346\241\210.md"
+?? docs/DSL.md
+?? "docs/Spider2\344\270\203\346\247\275\344\275\215Phase5\345\220\214\351\205\215\347\275\256AB\350\257\204\344\274\260.json"
+?? "docs/Spider2\344\270\203\346\247\275\344\275\215Phase5\345\220\214\351\205\215\347\275\256AB\350\257\204\344\274\260.md"
+?? "docs/Spider2\344\270\216Query Assurance\346\265\213\350\257\204\350\275\254\344\272\244\346\226\207\346\241\243.md"
+?? "docs/Spider2\344\270\232\345\212\241\345\201\207\350\256\276\351\224\231\350\257\257\351\232\217\346\234\272\346\212\275\346\237\245\346\212\245\345\221\212.md"
+?? "docs/Spider2\347\254\25410\350\275\256\350\257\204\346\265\213\345\256\236\351\252\214\346\212\245\345\221\212.md"
+?? "docs/Spider2\347\254\25411\350\275\256\351\205\215\345\257\271\346\212\275\346\240\267\345\256\236\351\252\214\346\226\271\346\241\210.md"
+?? "docs/Spider2\347\254\25411\350\275\256\351\205\215\345\257\271\346\212\275\346\240\267\346\212\245\345\221\212.md"
+?? "docs/Spider2\347\254\25411\350\275\256\351\230\266\346\256\2656\344\270\216\347\254\2544\350\275\256\351\224\231\351\242\230\345\257\271\346\257\224\345\210\206\346\236\220\346\212\245\345\221\212.md"
+?? "docs/Spider2\347\254\25411\350\275\256\351\230\266\346\256\2656\347\241\256\350\256\244\346\212\245\345\221\212.md"
+?? "docs/Spider2\347\254\25411\350\275\256\351\230\266\346\256\265F-smoke\346\212\245\345\221\212.md"
+?? "docs/Spider2\347\254\2545\350\275\256DeepSeek\346\225\260\346\215\256\344\270\216\345\275\242\345\274\217\351\224\231\350\257\257\351\200\220\351\242\230\345\210\206\346\236\220\346\212\245\345\221\212.md"
+?? "docs/Spider2\347\254\2545\350\275\256\345\205\250\351\207\217\350\257\204\346\265\213\346\212\245\345\221\212.md"
+?? "docs/Spider2\347\254\2545\350\275\256\346\234\252\351\200\232\350\277\207\351\242\230\346\250\241\345\274\217\345\210\206\346\236\220.md"
+?? "docs/Spider2\347\254\2545\350\275\256\347\211\210\346\234\2542\345\256\232\345\220\221\345\244\215\346\265\213\345\210\206\346\236\220\346\212\245\345\221\212.md"
+?? "docs/Spider2\347\254\2546\350\275\256GLM5.3Flash\345\205\250\351\207\217\350\257\204\346\265\213\346\212\245\345\221\212.md"
+?? "docs/Spider2\347\254\2549\350\275\25610\351\242\230Trace\351\200\220\351\242\230\351\224\231\350\257\257\345\210\206\346\236\220\346\212\245\345\221\212.md"
+?? "docs/Spider2\350\257\255\344\271\211\351\224\231\350\257\257\346\236\266\346\236\204\347\272\247\350\247\243\346\263\225-\344\273\216\350\207\252\346\210\221\351\252\214\350\257\201\345\210\260\350\201\214\350\264\243\345\210\206\347\246\273.md"
+?? "docs/Spider2\350\257\255\344\271\211\351\224\231\350\257\257\346\236\266\346\236\204\347\272\247\350\247\243\346\263\225\345\256\241\351\230\205\346\204\217\350\247\201.md"
+?? "docs/Spider2\351\242\230\351\235\242Spec\344\272\272\345\267\245\346\240\207\347\255\276\350\247\204\350\214\203.md"
+?? "docs/Spider2\351\242\230\351\235\242Spec\346\217\220\345\217\226\345\231\250\344\277\256\345\244\215\345\206\263\347\255\226\346\212\245\345\221\212-135\351\242\230.md"
+?? "docs/Spider2\351\242\230\351\235\242Spec\346\217\220\345\217\226\350\264\250\351\207\217-135\351\242\230-\346\247\275\344\275\215\345\237\272\347\272\277.json"
+?? "docs/Spider2\351\242\230\351\235\242Spec\346\217\220\345\217\226\350\264\250\351\207\217-135\351\242\230-\346\247\275\344\275\215\345\237\272\347\272\277.md"
+?? "docs/Spider2\351\242\230\351\235\242Spec\346\217\220\345\217\226\350\264\250\351\207\217\345\237\272\347\272\277-135\351\242\230.json"
+?? "docs/Spider2\351\242\230\351\235\242Spec\346\217\220\345\217\226\350\264\250\351\207\217\345\237\272\347\272\277-135\351\242\230.md"
+?? "docs/Spider2\351\242\230\351\235\242Spec\346\240\207\347\255\276\345\200\231\351\200\211-135\351\242\230.jsonl"
+?? "docs/Spider2\351\242\230\351\235\242Spec\346\240\207\347\255\276\345\244\215\346\240\270\345\200\231\351\200\211-135\351\242\230.jsonl"
+?? "docs/Spider2\351\242\230\351\235\242Spec\346\240\207\347\255\276\345\256\241\345\256\232\345\200\231\351\200\211-135\351\242\230.jsonl"
+?? "docs/Spider2\351\242\230\351\235\242Spec\346\240\207\347\255\276\350\215\211\347\250\277-135\351\242\230.jsonl"
+?? "docs/Spider2\351\242\230\351\235\242Spec\346\240\207\347\255\276\350\243\201\345\206\263\350\256\260\345\275\225-135\351\242\230.md"
+?? "docs/Spider2\351\242\230\351\235\242Spec\346\240\207\347\255\276\350\257\225\346\240\207-P5-10\351\242\230.jsonl"
+?? "docs/\345\215\225\344\276\213\351\242\230\346\217\220\347\244\272\350\257\215\351\201\265\345\276\252\345\272\246-DeepSeek-vs-GPT5.5-local003.md"
+?? "docs/\350\257\201\346\215\256\351\251\261\345\212\250\347\255\224\346\241\210\350\256\241\345\210\222\346\224\271\351\200\240\346\226\271\346\241\210\344\270\216\345\210\206\351\230\266\346\256\265\351\252\214\346\224\266.md"
+?? "docs/\350\257\204\346\265\213\345\273\272\350\256\276\346\226\271\346\241\210.md"
+?? evaluations/spider2/phase5-ab.mjs
+?? evaluations/spider2/phase5-ab.test.mjs
+?? evaluations/spider2/round5-v2-failed-ids.txt
+?? evaluations/spider2/round8-shadow10-ids.txt
+?? evaluations/spider2/spec-quality-labels.jsonl
+?? evaluations/spider2/spec-quality-labels.schema.json
+?? evaluations/spider2/spec-quality.mjs
+?? evaluations/spider2/spec-quality.test.mjs
+?? index.pdf
+?? packages/runtime/src/fanout-probe.test.ts
+?? packages/runtime/src/fanout-probe.ts
+?? "\350\257\204\346\265\213\345\273\272\350\256\276\346\226\271\346\241\210.md"

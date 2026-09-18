@@ -1,0 +1,156 @@
+{
+  "common": 57,
+  "metrics": {
+    "legacy": {
+      "observations": 57,
+      "correctness": 0.45614035087719296,
+      "deliveredRate": 0.8771929824561403,
+      "meanToolCalls": 23.035087719298247,
+      "meanTurns": 14.68421052631579,
+      "meanTokens": 235960.80701754385,
+      "meanReportedCost": 0,
+      "meanLatencyMs": 124157.84210526316,
+      "p95LatencyMs": 307480,
+      "statuses": {
+        "completed": 46,
+        "max_turns": 4,
+        "timeout": 3,
+        "provider_error": 4
+      },
+      "disclosure": {
+        "applicable": false,
+        "candidates": null,
+        "misses": null,
+        "missRate": null
+      },
+      "ambiguity": {
+        "labeledPositive": 25,
+        "predictedPositive": 0,
+        "tp": 0,
+        "fp": 0,
+        "fn": 25,
+        "recall": 0,
+        "precision": null
+      }
+    },
+    "newOff": {
+      "observations": 57,
+      "correctness": 0.47368421052631576,
+      "deliveredRate": 0.9122807017543859,
+      "meanToolCalls": 24.140350877192983,
+      "meanTurns": 14.56140350877193,
+      "meanTokens": 233173.94736842104,
+      "meanReportedCost": 0,
+      "meanLatencyMs": 120895.22807017544,
+      "p95LatencyMs": 228591,
+      "statuses": {
+        "completed": 52,
+        "max_turns": 3,
+        "provider_error": 2
+      },
+      "disclosure": {
+        "applicable": true,
+        "candidates": 109,
+        "misses": 0,
+        "missRate": 0
+      },
+      "ambiguity": {
+        "labeledPositive": 25,
+        "predictedPositive": 4,
+        "tp": 1,
+        "fp": 3,
+        "fn": 24,
+        "recall": 0.04,
+        "precision": 0.25
+      }
+    },
+    "newOn": {
+      "observations": 57,
+      "correctness": 0.43859649122807015,
+      "deliveredRate": 0.9122807017543859,
+      "meanToolCalls": 23.105263157894736,
+      "meanTurns": 14.368421052631579,
+      "meanTokens": 225774.7894736842,
+      "meanReportedCost": 0,
+      "meanLatencyMs": 122838.14035087719,
+      "p95LatencyMs": 262888,
+      "statuses": {
+        "completed": 52,
+        "timeout": 1,
+        "max_turns": 2,
+        "provider_error": 2
+      },
+      "disclosure": {
+        "applicable": true,
+        "candidates": 110,
+        "misses": 0,
+        "missRate": 0
+      },
+      "ambiguity": {
+        "labeledPositive": 25,
+        "predictedPositive": 5,
+        "tp": 3,
+        "fp": 2,
+        "fn": 22,
+        "recall": 0.12,
+        "precision": 0.6
+      }
+    }
+  },
+  "comparisons": {
+    "architectureLegacyVsNewOff": {
+      "correctnessDifference": 0.017543859649122806,
+      "correctnessDifferenceCi": {
+        "lower": -0.07017543859649122,
+        "upper": 0.10526315789473684,
+        "point": 0.017543859649122806,
+        "iterations": 10000,
+        "clusters": 57
+      },
+      "deliveredDifference": 0.03508771929824561,
+      "deliveredDifferenceCi": {
+        "lower": -0.05263157894736842,
+        "upper": 0.14035087719298245,
+        "point": 0.03508771929824561,
+        "iterations": 10000,
+        "clusters": 57
+      }
+    },
+    "ablationNewOffVsNewOn": {
+      "correctnessDifference": -0.03508771929824561,
+      "correctnessDifferenceCi": {
+        "lower": -0.14035087719298245,
+        "upper": 0.07017543859649122,
+        "point": -0.03508771929824561,
+        "iterations": 10000,
+        "clusters": 57
+      },
+      "deliveredDifference": 0,
+      "deliveredDifferenceCi": {
+        "lower": -0.05263157894736842,
+        "upper": 0.05263157894736842,
+        "point": 0,
+        "iterations": 10000,
+        "clusters": 57
+      }
+    },
+    "finalLegacyVsNewOn": {
+      "correctnessDifference": -0.017543859649122806,
+      "correctnessDifferenceCi": {
+        "lower": -0.08771929824561403,
+        "upper": 0.03508771929824561,
+        "point": -0.017543859649122806,
+        "iterations": 10000,
+        "clusters": 57
+      },
+      "deliveredDifference": 0.03508771929824561,
+      "deliveredDifferenceCi": {
+        "lower": -0.05263157894736842,
+        "upper": 0.14035087719298245,
+        "point": 0.03508771929824561,
+        "iterations": 10000,
+        "clusters": 57
+      }
+    }
+  }
+}

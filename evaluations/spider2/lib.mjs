@@ -4,6 +4,35 @@ import path from "node:path";
 
 export const BACKENDS = ["sqlite", "bigquery", "snowflake"];
 
+/** Selects one credential-free model profile from local evaluation config. */
+export function selectModelProfile(config, profileName) {
+  if (!profileName) return config;
+  const profiles = config?.modelProfiles;
+  const selected = profiles?.[profileName];
+  if (!selected || typeof selected !== "object" || Array.isArray(selected)) {
+    const available = profiles && typeof profiles === "object" ? Object.keys(profiles).sort().join(",") : "";
+    throw new Error(`MODEL_PROFILE_NOT_FOUND:${profileName}${available ? `:available=${available}` : ""}`);
+  }
+  const llm = selected.llm && typeof selected.llm === "object" && !Array.isArray(selected.llm) ? selected.llm : selected;
+  if (typeof llm.model !== "string" || !llm.model.trim()) throw new Error(`MODEL_PROFILE_INVALID:${profileName}:model_required`);
+  if (llm.apiKey !== undefined) throw new Error(`MODEL_PROFILE_INVALID:${profileName}:inline_api_key_forbidden`);
+  if (typeof llm.apiKeyEnv !== "string" || !llm.apiKeyEnv.trim()) throw new Error(`MODEL_PROFILE_INVALID:${profileName}:api_key_env_required`);
+  const selectedLlm = { ...(config.llm ?? {}), ...llm };
+  const profileAssurance = selected.assurance && typeof selected.assurance === "object" && !Array.isArray(selected.assurance) ? selected.assurance : {};
+  const assurance = {
+    ...(config.assurance ?? {}),
+    ...profileAssurance,
+    reviewerModel: profileAssurance.reviewerModel ?? selectedLlm.model,
+    plannerLlm: profileAssurance.plannerLlm ?? selectedLlm,
+    enumerator: {
+      ...(config.assurance?.enumerator ?? {}),
+      ...(profileAssurance.enumerator ?? {}),
+      model: profileAssurance.enumerator?.model ?? selectedLlm.model,
+    },
+  };
+  return { ...config, llm: selectedLlm, assurance, selectedModelProfile: profileName };
+}
+
 export function backendForCase(instance) {
   const id = String(instance?.instance_id ?? "");
   if (id.startsWith("local")) return "sqlite";
@@ -166,7 +195,7 @@ export function classifyProviderFailure(message) {
   if (typeof message !== "string" || !message.trim()) return undefined;
   const statusMatch = /(?:API error|HTTP|status)\s*\(?\s*(\d{3})\s*\)?/i.exec(message);
   const status = statusMatch ? Number(statusMatch[1]) : undefined;
-  const providerLike = status !== undefined || /insufficient balance|invalid api key|authentication|rate limit|provider/i.test(message);
+  const providerLike = status !== undefined || /insufficient balance|invalid api key|authentication|rate limit|provider|connection error|stream ended|network|fetch failed|request failed|econn/i.test(message);
   if (!providerLike) return undefined;
   return {
     status: status ?? null,
@@ -193,14 +222,15 @@ export function parseCorrectIdsCsv(text) {
   return rows.slice(1).map((row) => row[0]?.trim()).filter(Boolean).map((id) => id.startsWith("sf_local") ? id.slice(3) : id);
 }
 
-export function buildEvaluationGuardrails(limits, getTurnCount) {
+export function buildEvaluationGuardrails(limits, getTurnCount, getToolCallCount) {
   const explorationQueryBudget = limits?.maxExploratoryQueries == null
     ? undefined
     : Number(limits.maxExploratoryQueries);
   const maxTurns = limits?.maxTurns == null ? 0 : Number(limits.maxTurns);
+  const maxToolCalls = limits?.maxToolCalls == null ? undefined : Number(limits.maxToolCalls);
   return {
     ...(explorationQueryBudget === undefined ? {} : { explorationQueryBudget }),
-    taskProgress: () => ({ turnCount: Number(getTurnCount?.() ?? 0), maxTurns }),
+    taskProgress: () => ({ turnCount: Number(getTurnCount?.() ?? 0), maxTurns, toolCallCount: Number(getToolCallCount?.() ?? 0), ...(maxToolCalls === undefined ? {} : { maxToolCalls }) }),
   };
 }
 
@@ -252,34 +282,104 @@ export function fixedDenominatorScore(correct, expectedTotal, submittedTotal = e
 }
 
 export function selectFinalSql(toolCalls, options = {}) {
-  const completed = toolCalls.filter((call) => call.finishedAt && !call.isError);
-  const successfulQueries = completed.filter((call) => call.toolName === "query_database"
-    && call.result?.details?.warning !== "EXPLORATION_BUDGET_EXCEEDED"
-    && call.result?.details?.exploratory !== true
-    && typeof call.args?.sql === "string"
-    && call.args.sql.trim());
-  // An attempted export is the delivery decision. Never fall back to a prior
-  // query when that export was blocked, unavailable, or otherwise did not
-  // produce a completed publication; doing so would submit SQL rejected by
-  // Query Assurance under a different mode.
-  const exportAttempts = toolCalls.filter((call) => call.toolName === "export_query" && call.finishedAt);
-  const lastExport = exportAttempts.at(-1);
-  if (lastExport) {
-    if (lastExport.isError || lastExport.result?.details?.taskComplete !== true) return undefined;
-    const artifactId = lastExport.args?.queryArtifactId;
-    const query = typeof artifactId === "string"
-      ? successfulQueries.filter((call) => call.result?.details?.queryArtifactId === artifactId).at(-1)
-      : undefined;
-    if (query) return { sql: query.args.sql.trim(), toolCallId: lastExport.toolCallId, toolName: "export_query", queryArtifactId: artifactId };
-    return undefined;
+  // The current Application Host exposes only opaque Answering handles. A
+  // published branch is valid only when its Receipt binds the same candidate
+  // and ResultRef as exactly one successful result query.
+  const currentQueries = toolCalls.filter((call) => {
+    const details = call.result?.details ?? {};
+    const artifact = details.artifact;
+    return call.finishedAt && !call.isError && call.toolName === "query_database"
+      && artifact?.kind === "candidate"
+      && typeof artifact.candidateId === "string"
+      && typeof artifact.resultRef === "string"
+      && typeof call.args?.sql === "string"
+      && call.args.sql.trim();
+  });
+  const currentDeliveries = toolCalls.filter((call) => {
+    const details = call.result?.details ?? {};
+    const receipt = details.receiptId && details.candidateId ? details : details.publicationReceipt;
+    return call.finishedAt && !call.isError
+      && (call.toolName === "export_query" || call.toolName === "publish_query_result")
+      && receipt && typeof receipt === "object"
+      && typeof receipt.receiptId === "string"
+      && typeof receipt.candidateId === "string"
+      && typeof receipt.resultRef === "string";
+  });
+  if (currentQueries.length > 0 || currentDeliveries.length > 0) {
+    if (currentDeliveries.length !== 1) return undefined;
+    const delivery = currentDeliveries[0];
+    const details = delivery.result?.details ?? {};
+    const receipt = details.receiptId && details.candidateId ? details : details.publicationReceipt;
+    const queryMatches = currentQueries.filter((call) => {
+      const artifact = call.result?.details?.artifact;
+      return artifact?.candidateId === receipt.candidateId && artifact?.resultRef === receipt.resultRef;
+    });
+    if (queryMatches.length !== 1) return undefined;
+    return { sql: queryMatches[0].args.sql.trim(), toolCallId: delivery.toolCallId, toolName: delivery.toolName, queryArtifactId: receipt.candidateId, candidateId: receipt.candidateId, resultRef: receipt.resultRef };
   }
-  // Baseline Review Off preserves the legacy evaluation path. Any assurance
-  // mode requires an actual Publication Receipt and may never submit the last
-  // successful preview merely because the Agent omitted publication.
-  if ((options.assuranceMode ?? "off") !== "off") return undefined;
-  const lastQuery = successfulQueries.at(-1);
-  if (!lastQuery) return undefined;
-  return { sql: lastQuery.args.sql.trim(), toolCallId: lastQuery.toolCallId, toolName: "query_database", ...(typeof lastQuery.result?.details?.queryArtifactId === "string" ? { queryArtifactId: lastQuery.result.details.queryArtifactId } : {}) };
+
+  const completed = toolCalls.filter((call) => call.finishedAt && !call.isError);
+  const successfulQueries = completed.filter((call) => {
+    if (call.toolName !== "query_database" || call.result?.details?.warning === "EXPLORATION_BUDGET_EXCEEDED") return false;
+    const details = call.result?.details ?? {};
+    // New runs carry an explicit artifact kind. Old runs are accepted only by
+    // their legacy exploratory=false flag during the migration window.
+    return (details.artifactKind === "result_candidate"
+      || details.artifactKind === undefined && details.exploratory !== true)
+      && typeof call.args?.sql === "string"
+      && call.args.sql.trim();
+  });
+  // Publication is the delivery decision for every assurance mode. Never
+  // fall back to an un-published preview: it may be exploration SQL, an old
+  // candidate, or a result that did not pass the exact Artifact identity path.
+  const deliveryAttempts = toolCalls.filter((call) => (call.toolName === "export_query" || call.toolName === "publish_query_result" || call.toolName === "query_database" && call.args?.deliverIfEligible === true) && call.finishedAt);
+  const successfulDeliveries = deliveryAttempts.flatMap((call) => {
+    const details = call.result?.details ?? {};
+    const receipt = details.publicationReceipt;
+    // Current model tools expose the Query Artifact as an opaque candidateId;
+    // queryArtifactId remains an internal/legacy replay field only. A delivery
+    // may never mix both model-facing handles, even when their values match.
+    const mixedHandles = call.args?.candidateId !== undefined && call.args?.queryArtifactId !== undefined;
+    const artifactId = call.args?.candidateId ?? call.args?.queryArtifactId ?? details.queryArtifactId;
+    return !mixedHandles && !call.isError && details.taskComplete === true && receipt && typeof receipt === "object" && typeof artifactId === "string" && receipt.queryArtifactId === artifactId ? [{ call, details, receipt, artifactId }] : [];
+  });
+  // Current protocol permits exactly one successful published branch. Failed
+  // attempts do not mask it, but multiple successful branches are ambiguous
+  // and must never be resolved by call/file order.
+  if (successfulDeliveries.length !== 1) return undefined;
+  const [{ call: delivery, receipt, artifactId }] = successfulDeliveries;
+  const matchingQueries = successfulQueries.filter((call) => (call.result?.details?.candidateId ?? call.result?.details?.queryArtifactId) === artifactId);
+  if (matchingQueries.length !== 1) return undefined;
+  const query = matchingQueries[0];
+  const queryDetails = query.result?.details ?? {};
+  const currentProtocol = queryDetails.planProtocolVersion === "evidence-plan-v2";
+  const artifactDecisionRefs = queryDetails.selectedDecisionRefs ?? [];
+  const artifactSelectionHashes = queryDetails.decisionSelectionInputHashes ?? [];
+  const decisionBinding = receipt.decisionBinding;
+  if (currentProtocol && (!decisionBinding || !Array.isArray(decisionBinding.selectedDecisionRefs) || !Array.isArray(decisionBinding.selectionInputHashes))) return undefined;
+  const receiptDecisionRefs = decisionBinding?.selectedDecisionRefs;
+  const receiptSelectionHashes = decisionBinding?.selectionInputHashes;
+  // Legacy traces expose Artifact binding arrays and can be compared directly.
+  // The current opaque-handle protocol intentionally keeps those internal;
+  // its immutable Publication Receipt is the authoritative delivery binding.
+  const artifactRefsVisible = Array.isArray(queryDetails.selectedDecisionRefs);
+  const artifactHashesVisible = Array.isArray(queryDetails.decisionSelectionInputHashes);
+  if (currentProtocol && artifactRefsVisible !== artifactHashesVisible) return undefined;
+  const artifactBindingVisible = artifactRefsVisible && artifactHashesVisible;
+  if (artifactBindingVisible && Array.isArray(receiptDecisionRefs) && JSON.stringify(receiptDecisionRefs) !== JSON.stringify(artifactDecisionRefs)) return undefined;
+  if (artifactBindingVisible && !Array.isArray(receiptDecisionRefs) && artifactDecisionRefs.length > 0) return undefined;
+  if (artifactBindingVisible && Array.isArray(receiptSelectionHashes) && JSON.stringify(receiptSelectionHashes) !== JSON.stringify(artifactSelectionHashes)) return undefined;
+  if (artifactBindingVisible && !Array.isArray(receiptSelectionHashes) && artifactSelectionHashes.length > 0) return undefined;
+  return { sql: query.args.sql.trim(), toolCallId: delivery.toolCallId, toolName: delivery.toolName, queryArtifactId: artifactId };
+}
+
+export function publishedCsvPath(finalSql, toolCalls) {
+  if (!finalSql) return undefined;
+  const call = toolCalls.find((item) => item.toolCallId === finalSql.toolCallId);
+  const details = call?.result?.details ?? {};
+  const resultPath = details.relativePath ?? details.publicationReceipt?.targetPath;
+  const requestedPath = finalSql.toolName === "export_query" && typeof call?.args?.filename === "string" ? call.args.filename : undefined;
+  return resultPath ?? requestedPath;
 }
 
 export function parseCsvRows(text) {
@@ -411,15 +511,29 @@ export function createRecorder(harness, limits) {
   let terminalReason = "completed";
   let limitError;
   let providerFailure;
+  let abortPromise;
+  let abortFailure;
+  const requestAbort = (reason) => {
+    terminalReason = reason;
+    if (!abortPromise) {
+      abortPromise = Promise.resolve()
+        .then(() => harness.abort())
+        .catch((error) => { abortFailure = error; });
+    }
+    return abortPromise;
+  };
   const stopForLimit = (reason) => {
     if (limitError) return;
-    terminalReason = reason;
     limitError = new Error(reason.toUpperCase());
-    harness.abort();
+    void requestAbort(reason);
   };
   const unsubscribe = harness.subscribe((event) => {
     if (isCanonicalTraceEvent(event)) events.push(JSON.parse(safeJson(event)));
-    providerFailure ??= extractProviderFailure(event);
+    const detectedProviderFailure = extractProviderFailure(event);
+    if (!providerFailure && detectedProviderFailure) {
+      providerFailure = detectedProviderFailure;
+      if (terminalReason === "completed") terminalReason = "provider_error";
+    }
     if (event?.type === "message_start" && event.message?.role === "assistant") {
       turnCount += 1;
       if (exceedsTurnBudget(turnCount, limits.maxTurns)) stopForLimit("max_turns");
@@ -457,6 +571,48 @@ export function createRecorder(harness, limits) {
     get limitError() { return limitError; },
     get providerFailure() { return providerFailure; },
     unsubscribe,
+    requestAbort,
+    async waitForAbort() {
+      await abortPromise;
+      if (abortFailure) throw abortFailure;
+    },
     setTerminalReason(value) { terminalReason = value; },
   };
+}
+
+export async function runPromptWithTimeout(harness, prompt, timeoutMs, recorder) {
+  let timer;
+  let primaryError;
+  const hasTaskTimeout = Number.isFinite(Number(timeoutMs)) && Number(timeoutMs) > 0;
+  try {
+    const execution = hasTaskTimeout
+      ? Promise.race([
+        harness.prompt(prompt),
+        new Promise((_resolve, reject) => {
+          timer = setTimeout(() => {
+            void recorder.requestAbort("timeout");
+            reject(new Error("TASK_TIMEOUT"));
+          }, Number(timeoutMs));
+        }),
+      ])
+      : harness.prompt(prompt);
+    await execution;
+    if (recorder.limitError) throw recorder.limitError;
+    if (recorder.providerFailure && recorder.calls.length === 0) {
+      const providerError = new Error(recorder.providerFailure.message);
+      providerError.name = "ProviderError";
+      providerError.providerFailure = recorder.providerFailure;
+      throw providerError;
+    }
+  } catch (error) {
+    primaryError = error;
+    throw error;
+  } finally {
+    if (timer) clearTimeout(timer);
+    try {
+      await recorder.waitForAbort();
+    } catch (abortError) {
+      if (!primaryError) throw abortError;
+    }
+  }
 }

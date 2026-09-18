@@ -3,7 +3,7 @@
   "runsRoot": "C:/data-agent-eval/runs",
   "pythonExecutable": "python",
   "localDatabasePackSha256": null,
-  "concurrency": 1,
+  "concurrency": 3,
   "scoreWorkers": 4,
   "assurance": {
     "mode": "shadow",
@@ -22,6 +22,37 @@
     "planner": true,
     "reviewer": { "enabled": false },
     "shadowDelivery": "publish_with_disagreement",
+    "hooks": {
+      "informOnQuery": true,
+      "informOnUnresolvedHypotheses": false,
+      "interpretationsOnAnomaly": true,
+      "integrityBlocks": true,
+      "terminateAfterExport": true
+    },
+    "detectors": {
+      "enabled": true,
+      "tierA": ["join_fanout", "unauthorized_filter", "intermediate_candidate", "empty_after_filter"],
+      "tierB": ["count_distinct_divergence", "entity_population_mismatch", "cross_period_set_mismatch", "physical_bound_violation", "null_like_member_in_filter", "shape_mismatch", "fingerprint_unchanged"],
+      "disabled": []
+    },
+    "interpretations": {
+      "triggerTiers": ["A"],
+      "maxCyclesPerTask": 1,
+      "minRemainingTurns": 6,
+      "minRemainingToolCalls": 10
+    },
+    "dirtyDataAction": "multi_candidate",
+    "delivery": "deliver_with_disclosure",
+    "fewshot": true,
+    "profile": {
+      "schema": { "enabled": true, "cacheTtlHours": 24 },
+      "candidate": { "enabled": true, "p99SampleRows": 200000 }
+    },
+    "enumerator": {
+      "model": "gpt-4o-mini",
+      "trigger": "on_anomaly",
+      "cacheKey": ["questionHash", "slot", "detector"]
+    },
     "includeResultRows": true,
     "maxResultRows": 2000,
     "maxResultBytes": 262144,
@@ -38,11 +69,37 @@
     "baseUrlEnv": "OPENAI_BASE_URL",
     "apiFormat": "responses"
   },
+  "modelProfiles": {
+    "deepseek": {
+      "llm": {
+        "provider": "openai",
+        "model": "deepseek-chat",
+        "apiKeyEnv": "DEEPSEEK_API_KEY",
+        "baseUrlEnv": "DEEPSEEK_BASE_URL",
+        "apiFormat": "chat",
+        "reasoning": true,
+        "maxTokens": 10240,
+        "thinkingLevel": "high",
+        "thinkingLevelMap": {
+          "high": "high"
+        }
+      }
+    },
+    "gpt-5.5": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5.5",
+        "apiKeyEnv": "GPT55_API_KEY",
+        "baseUrlEnv": "GPT55_BASE_URL",
+        "apiFormat": "chat"
+      }
+    }
+  },
   "limits": {
-    "timeoutMs": null,
+    "timeoutMs": 300000,
     "providerTimeoutMs": 30000,
-    "maxTurns": null,
-    "maxToolCalls": null,
+    "maxTurns": 30,
+    "maxToolCalls": 50,
     "maxExploratoryQueries": null
   },
   "backends": {

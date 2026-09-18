@@ -6,24 +6,37 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { pipeline } from "node:stream/promises";
 import { parseDataAgentCommandEnvelope, type DataAgentCommandEnvelope, type DataAgentEventEnvelope, type RequestContext } from "@data-agent/contracts";
-import { DataAgentRuntime, DataAgentRuntimeError, LocalAuthService, WorkspaceStore } from "@data-agent/runtime";
+import type { ApplicationAuthService, ApplicationCommandHost } from "@data-agent/runtime";
+
+interface WorkspaceHost {
+  assertAccess(context: RequestContext): void;
+  readBytesWithLegacyFallback(relativePath: string): Promise<Uint8Array>;
+  scoped(sessionId: string): Promise<WorkspaceHost>;
+  upload(tempPath: string, relativePath: string): Promise<{ readonly size: number }>;
+}
 
 export interface RuntimeServerOptions {
   contextFactory?: (request: FastifyRequest) => RequestContext | Promise<RequestContext>;
-  authService?: LocalAuthService;
-  workspace?: WorkspaceStore;
+  authService?: ApplicationAuthService;
+  workspace?: WorkspaceHost;
   /** Injected MCP-backed executor for dashboard.evaluate; Runtime never touches business DBs directly. */
-  queryExecutor?: { run(sql: string, rowLimit: number): Promise<{ columns: string[]; rows: unknown[][]; truncated: boolean }> };
+  queryExecutor?: { run(sql: string, rowLimit: number, options?: { readonly idempotencyKey?: string }): Promise<{ columns: string[]; rows: unknown[][]; truncated: boolean }> };
+  /** Authoritative SessionDirectory check used by workspace artifact routes. */
+  authorizeSession?: (userId: string, sessionId: string) => boolean | Promise<boolean>;
+  /** Receipt-only publication reader supplied by the Application Host. */
+  publicationReader?: {
+    readPublication(publicationId: string, context: { readonly sessionId: string; readonly userId: string }): Promise<{ readonly summary: { readonly format: "inline" | "csv"; readonly contentHash: string }; readonly content: string }>;
+  };
 }
 
 export async function createRuntimeServer(
-  runtime: DataAgentRuntime,
+  runtime: ApplicationCommandHost,
   options: RuntimeServerOptions = {},
 ): Promise<FastifyInstance> {
   if (options.queryExecutor) runtime.queryExecutor = options.queryExecutor;
   const app = Fastify({ logger: false });
   await app.register(multipart, { limits: { fileSize: 100 * 1024 * 1024 } });
-  const auth = options.authService ?? new LocalAuthService(runtime.metadataStore);
+  const auth = options.authService ?? runtime.authService;
   const publicUser = (user: { id: string; username: string; displayName: string }) => ({ id: user.id, username: user.username, display_name: user.displayName });
   app.post("/auth/register", async (request, reply) => {
     const body = request.body as { username?: string; password?: string; displayName?: string; display_name?: string };
@@ -72,6 +85,7 @@ export async function createRuntimeServer(
       try {
         options.workspace!.assertAccess(context);
         const workspacePath = query.path ?? "";
+        await assertSessionPathAccess(options.authorizeSession, context.userId, workspacePath);
         const bytes = await options.workspace!.readBytesWithLegacyFallback(workspacePath);
         return reply.type(workspaceContentType(workspacePath)).send(Buffer.from(bytes));
       } catch {
@@ -86,6 +100,7 @@ export async function createRuntimeServer(
         const part = await request.file();
         if (!part) return reply.code(400).send({ error: { code: "WORKSPACE_FILE_REQUIRED" } });
         const query = request.query as { session_id?: string };
+        if (query.session_id && !(await options.authorizeSession?.(context.userId, query.session_id) ?? true)) return reply.code(403).send({ error: { code: "SESSION_ACCESS_DENIED" } });
         const targetWorkspace = query.session_id ? await options.workspace!.scoped(query.session_id) : options.workspace!;
         const tempDir = await mkdtemp(path.join(tmpdir(), "data-agent-upload-"));
         const tempPath = path.join(tempDir, "upload");
@@ -103,10 +118,31 @@ export async function createRuntimeServer(
     });
   }
 
+  if (options.publicationReader) {
+    app.get("/api/runtime/publications/:publicationId", async (request, reply) => {
+      const context = await resolveContext(request, reply);
+      if (!context) return;
+      const params = request.params as { publicationId?: string };
+      const query = request.query as { session_id?: string };
+      if (!params.publicationId || !query.session_id) return reply.code(400).send({ error: { code: "PUBLICATION_CONTEXT_REQUIRED" } });
+      if (options.authorizeSession && !(await options.authorizeSession(context.userId, query.session_id))) return reply.code(403).send({ error: { code: "SESSION_ACCESS_DENIED" } });
+      try {
+        const artifact = await options.publicationReader!.readPublication(params.publicationId, { userId: context.userId, sessionId: query.session_id });
+        if (artifact.summary.format === "csv") reply.header("Content-Disposition", `attachment; filename="${params.publicationId}.csv"`);
+        return reply.type(artifact.summary.format === "csv" ? "text/csv; charset=utf-8" : "application/json; charset=utf-8").send(artifact.content);
+      } catch {
+        return reply.code(404).send({ error: { code: "PUBLICATION_NOT_FOUND" } });
+      }
+    });
+  }
+
   app.get("/api/runtime/events", async (request, reply) => {
     const context = await resolveContext(request, reply);
     if (!context) return;
     const query = request.query as { session_id?: string; after_sequence?: string };
+    if (query.session_id && options.authorizeSession && !(await options.authorizeSession(context.userId, query.session_id))) {
+      return reply.code(403).send({ error: { code: "SESSION_ACCESS_DENIED" } });
+    }
     const headerCursor = request.headers["last-event-id"];
     const rawCursor = query.after_sequence ?? (Array.isArray(headerCursor) ? headerCursor[0] : headerCursor);
     const hasCursor = typeof rawCursor === "string" && /^\d+$/.test(rawCursor);
@@ -128,9 +164,9 @@ export async function createRuntimeServer(
     unsubscribe = runtime.subscribe((envelope) => {
       if (replaying) pending.push(envelope);
       else send(envelope);
-    });
+    }, { userId: context.userId, ...(query.session_id ? { sessionId: query.session_id } : {}) });
     if (hasCursor) {
-      for (const envelope of runtime.eventsAfter(afterSequence)) send(envelope);
+      for (const envelope of runtime.eventsAfter(afterSequence, { userId: context.userId, ...(query.session_id ? { sessionId: query.session_id } : {}) })) send(envelope);
     }
     replaying = false;
     for (const envelope of pending) send(envelope);
@@ -142,6 +178,9 @@ export async function createRuntimeServer(
     if (!context) return;
     try {
       const command: DataAgentCommandEnvelope = parseDataAgentCommandEnvelope(request.body);
+      if (command.sessionId && options.authorizeSession && !(await options.authorizeSession(context.userId, command.sessionId))) {
+        return reply.code(403).send({ error: { code: "SESSION_ACCESS_DENIED" } });
+      }
       const effectiveContext = context.sessionId || !command.sessionId
         ? context
         : { ...context, sessionId: command.sessionId };
@@ -158,6 +197,19 @@ export async function createRuntimeServer(
   });
 
   return app;
+}
+
+async function assertSessionPathAccess(
+  authorizeSession: RuntimeServerOptions["authorizeSession"],
+  userId: string,
+  relativePath: string,
+): Promise<void> {
+  if (!authorizeSession) return;
+  const parts = relativePath.replaceAll("\\", "/").split("/").filter(Boolean);
+  // Session-scoped artifacts are addressed as <sessionId>/<path>. A path with
+  // a second segment is never treated as a root-relative escape when an
+  // authoritative SessionDirectory is available.
+  if (parts.length >= 2 && !(await authorizeSession(userId, parts[0]))) throw new Error("SESSION_ACCESS_DENIED");
 }
 
 function safeUploadFileName(fileName: string): string {
@@ -205,11 +257,17 @@ function parseEventCursor(value: unknown): number {
   return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : 0;
 }
 
-function toRuntimeError(error: unknown): DataAgentRuntimeError {
-  if (error instanceof DataAgentRuntimeError) return error;
-  if (error instanceof TypeError) {
-    return new DataAgentRuntimeError("INVALID_COMMAND", error.message);
+type RuntimeErrorCode = "INVALID_COMMAND" | "UNSUPPORTED_PROTOCOL_VERSION" | "INVALID_CONTEXT";
+interface RuntimeErrorShape { readonly code: RuntimeErrorCode; readonly message: string; }
+
+function toRuntimeError(error: unknown): RuntimeErrorShape {
+  if (error && typeof error === "object" && "code" in error && (error as { code?: unknown }).code === "UNSUPPORTED_PROTOCOL_VERSION") {
+    return { code: "UNSUPPORTED_PROTOCOL_VERSION", message: error instanceof Error ? error.message : String(error) };
   }
+  if (error && typeof error === "object" && "code" in error && (error as { code?: unknown }).code === "INVALID_CONTEXT") {
+    return { code: "INVALID_CONTEXT", message: error instanceof Error ? error.message : String(error) };
+  }
+  if (error instanceof TypeError) return { code: "INVALID_COMMAND", message: error.message };
   if (process.env.DATA_AGENT_DEBUG_ERRORS === "1") console.error("[data-agent] command failed:", error);
-  return new DataAgentRuntimeError("INVALID_COMMAND", "DataAgent command failed");
+  return { code: "INVALID_COMMAND", message: "DataAgent command failed" };
 }

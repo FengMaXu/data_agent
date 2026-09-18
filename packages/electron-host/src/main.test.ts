@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 import path from "node:path";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { MetadataStore } from "@data-agent/runtime";
-import { registerDesktopCapabilities, resolveRuntimePaths, startElectronHost } from "./main.js";
+import { MetadataStore } from "@data-agent/runtime/testing";
+import { registerApplicationProtocol, registerDesktopCapabilities, resolveRuntimePaths, startElectronHost } from "./main.js";
 
 describe("resolveRuntimePaths", () => {
   it("resolves the renderer dist relative to the frontend root in dev layout", () => {
@@ -21,7 +21,27 @@ describe("resolveRuntimePaths", () => {
     expect(paths.rendererDist).toBe(path.join("C:", "app", "resources", "app.asar", "dist"));
   });
 
-  it("starts the desktop Runtime with a workspace and host testers", async () => {
+  it("serves publications only through a Receipt-aware application callback", async () => {
+    let handler: ((request: { url: string }) => Promise<Response>) | undefined;
+    await registerApplicationProtocol({
+      handle: async (_scheme, next) => { handler = next; },
+      unhandle: () => undefined,
+    }, {
+      writeBytes: async () => undefined,
+      readBytesWithLegacyFallback: async () => new Uint8Array(),
+    }, async (_userId, sessionId) => sessionId === "session-1", async (publicationId, context) => {
+      expect(publicationId).toBe("publication-1");
+      expect(context).toEqual({ userId: "local", sessionId: "session-1" });
+      return { summary: { format: "csv" }, content: "value\n1\n" };
+    });
+    const denied = await handler?.({ url: "data-agent://publication/runtime/publications/guess?session_id=session-2" });
+    expect(denied?.status).toBe(404);
+    const published = await handler?.({ url: "data-agent://publication/runtime/publications/publication-1?session_id=session-1" });
+    expect(published?.headers.get("content-type")).toContain("text/csv");
+    expect(await published?.text()).toBe("value\n1\n");
+  });
+
+  it("starts the desktop Application with a workspace and host testers", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "electron-start-"));
     const metadata = new MetadataStore(path.join(root, "metadata", "app.db"));
     await metadata.setConfig("ui.settings", { provider: "openai", model: "test-model", api_key: "test-key" });

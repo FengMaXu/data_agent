@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
     isWorkspaceRelativePath,
+    resolveInternalUrl,
     resolveWorkspaceAssetUrl,
     resolveWorkspaceDownloadUrl,
     resolveWorkspacePreviewUrl,
@@ -36,6 +37,19 @@ describe('workspace markdown link resolution', () => {
     it('resolves a bare generated image inside the active session workspace', () => {
         const url = new URL(resolveWorkspaceAssetUrl('chart1_trend.png', undefined, 'session-123'));
         expect(url.searchParams.get('path')).toBe('session-123/chart1_trend.png');
+    });
+
+    it('routes Receipt-authorized publications through the Electron application protocol', () => {
+        window.dataAgentRuntime = { invokeRuntimeCommand: async () => ({}), subscribeRuntimeEvents: () => () => undefined };
+        try {
+            const url = new URL(resolveInternalUrl('/api/runtime/publications/publication-1?session_id=session-123'));
+            expect(url.protocol).toBe('data-agent:');
+            expect(url.hostname).toBe('publication');
+            expect(url.pathname).toBe('/runtime/publications/publication-1');
+            expect(url.searchParams.get('session_id')).toBe('session-123');
+        } finally {
+            delete window.dataAgentRuntime;
+        }
     });
 
     it('uses the Electron workspace protocol instead of file:// HTTP paths', () => {

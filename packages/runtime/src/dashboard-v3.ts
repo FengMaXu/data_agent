@@ -139,13 +139,15 @@ export function seriesForView(view: DashboardV3View, dataset: DashboardV3Dataset
 }
 
 function datasetFor(view: DashboardV3View, datasets: DashboardV3Dataset[]): DashboardV3Dataset {
-  return datasets.find((dataset) => dataset.id === view.dataset) ?? datasets[0];
+  const dataset = datasets.find((item) => item.id === view.dataset) ?? datasets[0];
+  if (!dataset) throw new Error("DASHBOARD_DATASET_MISSING");
+  return dataset;
 }
 
 function chartOption(view: DashboardV3View, dataset: DashboardV3Dataset): Record<string, unknown> {
   const xField = view.x?.field ?? view.xField ?? "";
   const legacySeries = !view.series?.length && (view.xField || view.yField) ? seriesForView(view, dataset) : undefined;
-  const categories = legacySeries
+  const categories = legacySeries?.[0]
     ? legacySeries[0].points.map((point) => point.name)
     : [...new Set(dataset.rows.map((row) => String(row[xField] ?? "")))];
   const axes = (view.axes ?? []).filter((axis) => axis.orient === "y");
@@ -160,8 +162,11 @@ function chartOption(view: DashboardV3View, dataset: DashboardV3Dataset): Record
   const valuesFor = (field: string | undefined, rows: Array<Record<string, unknown>>) => categories.map((category) => rows
     .filter((row) => String(row[xField] ?? "") === category)
     .reduce((sum, row) => sum + Number(row[field ?? ""] ?? 0), 0));
-  const baseSeries = view.series ?? [{ name: view.title, field: view.yField, mark: view.type === "line" ? "line" as const : "bar" as const }];
-  const descriptors = view.series_by?.field && baseSeries.length === 1
+  type SeriesDescriptor = { name?: string | undefined; field?: string | undefined; mark?: "bar" | "line" | "scatter" | undefined; axis?: string | undefined; where?: Record<string, unknown> | undefined; color?: string | undefined };
+  const baseSeries: SeriesDescriptor[] = view.series
+    ? view.series.map((series) => ({ name: series.name, field: series.field, mark: series.mark, axis: series.axis, where: series.where }))
+    : [{ ...(view.title ? { name: view.title } : {}), ...(view.yField ? { field: view.yField } : {}), mark: view.type === "line" ? "line" : "bar" }];
+  const descriptors: SeriesDescriptor[] = view.series_by?.field && baseSeries.length === 1
     ? (() => {
       const groupField = view.series_by!.field!;
       const observed = [...new Set(dataset.rows.map((row) => String(row[groupField] ?? "")))];
@@ -173,7 +178,7 @@ function chartOption(view: DashboardV3View, dataset: DashboardV3Dataset): Record
     name: item.name ?? item.field ?? `series-${index + 1}`,
     type: item.mark ?? (view.type === "line" ? "line" : "bar"),
     yAxisIndex: axisIndex(item.axis),
-    data: legacySeries && index === 0 ? legacySeries[0].points.map((point) => point.value) : valuesFor(item.field, rowsFor(item.where)),
+    data: legacySeries?.[0] && index === 0 ? legacySeries[0].points.map((point) => point.value) : valuesFor(item.field, rowsFor(item.where)),
     smooth: item.mark === "line",
     itemStyle: { color: "color" in item && typeof item.color === "string" ? item.color : palette[index % palette.length] },
   }));
@@ -214,7 +219,7 @@ export function compileDashboardView(view: DashboardV3View, datasets: DashboardV
   return { kind: "chart", option: chartOption(view, dataset) };
 }
 
-/** Backward-compatible compiler used by Runtime command tests and adapters. */
+/** Compile a validated V3 view into its ECharts option. */
 export function compileEChartsOptions(view: DashboardV3View, datasets: DashboardV3Dataset[]): unknown {
   const compiled = compileDashboardView(view, datasets);
   if (compiled.kind === "metric_cards") {

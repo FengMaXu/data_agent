@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Agent 后端架构与内外双层循环 - 交互式高清看板</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.8/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --bg-color: #0b0f19;
+      --card-bg: #151d30;
+      --border-color: #243049;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #38bdf8;
+      --primary-hover: #0ea5e9;
+      --accent: #818cf8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* 顶部导航与控制栏 */
+    header {
+      background-color: var(--card-bg);
+      border-bottom: 1px solid var(--border-color);
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 100;
+      flex-shrink: 0;
+    }
+
+    .title-area {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .title-area h1 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: -0.01em;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 6px;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 6px 13px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s ease-in-out;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-main);
+      border-color: var(--primary);
+    }
+
+    .tab-btn.active {
+      background: var(--primary);
+      color: #0b0f19;
+      font-weight: 700;
+      border-color: var(--primary);
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tool-btn {
+      background: #243049;
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s;
+    }
+
+    .tool-btn:hover {
+      background: #334155;
+      border-color: var(--primary);
+    }
+
+    .zoom-level {
+      font-size: 13px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      color: var(--primary);
+      min-width: 48px;
+      text-align: center;
+    }
+
+    /* 画布视口区域 */
+    #viewport {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      cursor: grab;
+      background: radial-gradient(#1e293b 1px, transparent 1px);
+      background-size: 28px 28px;
+      background-color: var(--bg-color);
+    }
+
+    #viewport.dragging {
+      cursor: grabbing;
+    }
+
+    /* 画布主容器（移除 padding 确保数学坐标严谨对应） */
+    #canvas-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      transform-origin: 0 0;
+    }
+
+    .diagram-panel {
+      display: none;
+    }
+
+    .diagram-panel.active {
+      display: block;
+    }
+
+    /* 悬浮提示 */
+    .hint-badge {
+      position: absolute;
+      bottom: 16px;
+      left: 20px;
+      background: rgba(21, 29, 48, 0.9);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      font-size: 12px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      pointer-events: none;
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* 强制所有 SVG 矢量保持极致清晰，阻断模糊光栅化 */
+    svg {
+      shape-rendering: geometricPrecision !important;
+      text-rendering: geometricPrecision !important;
+      max-width: none !important;
+      height: auto !important;
+      display: block;
+    }
+
+    svg text {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+      letter-spacing: 0.01em;
+    }
+
+    /* 强化时序图文字与线条的对比度 */
+    .messageText {
+      stroke: none !important;
+      font-size: 14px !important;
+      font-weight: 500 !important;
+      fill: #f8fafc !important;
+    }
+
+    .actor text {
+      font-size: 14px !important;
+      font-weight: 700 !important;
+      fill: #f8fafc !important;
+    }
+
+    .actor rect {
+      fill: #1e293b !important;
+      stroke: #38bdf8 !important;
+      stroke-width: 2px !important;
+    }
+
+    .noteText {
+      font-size: 13px !important;
+      font-weight: 500 !important;
+      fill: #f8fafc !important;
+    }
+
+    .note {
+      fill: #1e293b !important;
+      stroke: #818cf8 !important;
+      stroke-width: 1.5px !important;
+    }
+
+    .loopText {
+      font-weight: 600 !important;
+      fill: #38bdf8 !important;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="title-area">
+      <h1>Data Agent 架构全景看板</h1>
+      <div class="tabs">
+        <button class="tab-btn active" id="btn-arch" onclick="switchTab('arch')">1. 后端全景架构图</button>
+        <button class="tab-btn" id="btn-dualloop" onclick="switchTab('dualloop')">2. Answering 内外双层循环</button>
+        <button class="tab-btn" id="btn-seq" onclick="switchTab('seq')">3. 请求执行时序图 (高清重构)</button>
+        <button class="tab-btn" id="btn-subagent" onclick="switchTab('subagent')">4. 子Agent与澄清机制</button>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <button class="tool-btn" onclick="zoomIn()" title="放大 (滚轮向上)">放大 ➕</button>
+      <span class="zoom-level" id="zoomText">100%</span>
+      <button class="tool-btn" onclick="zoomOut()" title="缩小 (滚轮向下)">缩小 ➖</button>
+      <button class="tool-btn" onclick="resetView()" title="重置 100%">重置 ⟲</button>
+      <button class="tool-btn" onclick="fitView()" title="适应屏幕">适应屏幕 ⛶</button>
+      <button class="tool-btn" onclick="openSvgNewTab()" title="在新标签页以纯SVG打开">独立SVG ↗</button>
+    </div>
+  </header>
+
+  <div id="viewport">
+    <div id="canvas-container">
+      <div id="panel-arch" class="diagram-panel active"></div>
+      <div id="panel-dualloop" class="diagram-panel"></div>
+      <div id="panel-seq" class="diagram-panel"></div>
+      <div id="panel-subagent" class="diagram-panel"></div>
+    </div>
+  </div>
+
+  <div class="hint-badge">
+    <span>💡 交互指南：</span>
+    <span>按住鼠标左键可任意拖拽平移</span>
+    <span>•</span>
+    <span>滚轮向上放大 / 向下缩小 (以指针为中心)</span>
+    <span>•</span>
+    <span>点击右上角「独立SVG ↗」可单独在新标签页查看</span>
+  </div>
+
+  <!-- ============================================================= -->
+  <!-- 源码仓（按需延迟渲染，彻底规避 display:none 尺寸为0崩溃报错）  -->
+  <!-- ============================================================= -->
+
+  <!-- 1. 全景架构图源码 -->
+  <script type="text/plain" id="src-arch">
+graph TD
+    subgraph Presentation["1. 表现层 (Presentation Layer)"]
+        UI_Elec["Electron Renderer (桌面端 React/Vite)"]
+        UI_Web["Web Browser UI (Web 端 React/Vite)"]
+    end
+
+    subgraph HostLayer["2. 宿主与传输层 (Transport & Host Layer)"]
+        Contracts["@data-agent/contracts (Protocol v1)<br/>• DataAgentCommandEnvelope (强类型命令)<br/>• DataAgentEventEnvelope (SSE/IPC 事件流)<br/>• RequestContext (userId, host, sessionId)"]
+        ElecHost["Electron Main Host (packages/electron-host)<br/>• IPC 路由 (desktopIpc)<br/>• safeStorage 凭证加密<br/>• data-agent:// 协议通道"]
+        WebServer["Web Server Host (apps/server)<br/>• Fastify REST API (/api/runtime/command)<br/>• SSE 流式总线 (/api/events)<br/>• 工作区文件上传下载 (/api/workspace/*)"]
+    end
+
+    subgraph AppHost["3. 应用控制层 (Application Host)"]
+        DataAgentApp["DataAgentApplication (全局调度门面)"]
+        SessionDir["SessionDirectory<br/>(按 userId + sessionId 单例缓存与生命周期管理)"]
+        MetaStore["MetadataStore (SQLite: app.db)<br/>配置、用户、会话元数据"]
+    end
+
+    subgraph SessionHostLayer["4. 会话宿主与内核层 (Data Agent Session Host)"]
+        
+        subgraph PiKernel["Pi AgentHarness 执行内核 (@earendil-works/pi-agent-core)"]
+            PiSession["Pi Session (不可变 Entry Tree、状态快照、Token Ledger)"]
+            AgentLane["AgentLane ('main' 执行泳道)<br/>• ordered inbox 消息队列<br/>• accept / drive / requestAbort / resume"]
+            PiOperation["Operation 运行实例<br/>(可持久化程序计数器，崩溃可恢复)"]
+        end
+
+        subgraph Facets["面向表现层的只读投影与控制 (Chord Session Facets)"]
+            AgentCtrl["AgentController (prompt, steer, followUp, abort)"]
+            TranscriptFacet["PiTranscriptFacet (消息流、思考链、工具状态投影)"]
+            QueryProj["QueryTaskProjection (Query Task / Revision 读模型)"]
+            ArtifactDir["ArtifactDirectory (已发布结果寻址与安全读取)"]
+            ClarifyFacet["ClarificationDialogs (用户澄清问答挂起/唤醒)"]
+        end
+
+        subgraph Capabilities["Data Agent 业务模块 (Business Capabilities)"]
+            AnsweringDomain["Answering 答案问答内核<br/>• 7 槽位 AnswerSpec<br/>• 证据资格链 (Evidence Authority)<br/>• 假设/选择判定 (Hypothesis/Choice)<br/>• 候选集校验 (Candidate Checks)"]
+            WorkspaceCap["Workspace (会话工作区文件读写/切片)"]
+            KnowledgeCap["Knowledge (Markdown 语义知识库检索/写入)"]
+            PythonCap["Python Runner (runPythonJob 沙箱执行)"]
+            DashboardCap["Dashboard Compiler (v3 静态 / v4 语义 HTML)"]
+            SkillsCap["Skills (动态 Skill 加载与工具白名单)"]
+            DelegationCap["NativeDelegation (子 Agent 委托调度与并发看门狗)"]
+        end
+
+        subgraph Tools["模型工具适配层 (AgentHarness Tools)"]
+            AnsweringTools["Answering Tools:<br/>• update_answer_spec<br/>• query_database<br/>• publish_query_result / export_query<br/>• inspect_answer"]
+            CoreTools["Core Tools:<br/>• list_workspace / read_file / write_file<br/>• search_knowledge / read_knowledge<br/>• run_python<br/>• generate_dashboard / show_widget<br/>• ask_user_clarification / load_skill"]
+            SubagentTool["Subagent Tool:<br/>• subagent (派发 explorer / reviewer)"]
+        end
+    end
+
+    subgraph ExternalAdapters["5. 外部适配器与存储层 (Adapters & Infrastructure)"]
+        Models["LLM Providers (Anthropic, OpenAI, DeepSeek, OpenRouter)"]
+        McpExec["McpQueryExecutor (MCP 客户端路由)"]
+        McpServers["MCP Servers (mcp-mysql, mcp-pg, sqlite-mcp)"]
+        Stores["持久化存储:<br/>• FileResultStore (大结果私有缓存)<br/>• Pi Session Store (JSONL/Memory)<br/>• Workspace Files (.csv, .html, .py)"]
+    end
+
+    UI_Elec -->|IPC 消息| ElecHost
+    UI_Web -->|HTTP / SSE| WebServer
+    ElecHost --> Contracts
+    WebServer --> Contracts
+    Contracts --> DataAgentApp
+    DataAgentApp --> SessionDir
+    DataAgentApp --> MetaStore
+    SessionDir -->|resolve / attach| SessionHostLayer
+
+    AgentCtrl --> AgentLane
+    AgentLane --> PiOperation
+    PiOperation --> Models
+    PiOperation --> Tools
+
+    Tools --> Capabilities
+    AnsweringTools --> AnsweringDomain
+    CoreTools --> WorkspaceCap
+    CoreTools --> KnowledgeCap
+    CoreTools --> PythonCap
+    CoreTools --> DashboardCap
+    CoreTools --> SkillsCap
+    CoreTools --> ClarifyFacet
+    SubagentTool --> DelegationCap
+
+    AnsweringDomain --> McpExec
+    AnsweringDomain --> Stores
+    McpExec --> McpServers
+    DelegationCap -.->|派生独立沙箱| PiKernel
+    PiSession --> Stores
+
+    PiKernel -.->|发布事件| Facets
+    Facets -.->|组装 EventEnvelope| Contracts
+  </script>
+
+  <!-- 2. 内外双层循环源码（拓扑流向严密排列） -->
+  <script type="text/plain" id="src-dualloop">
+flowchart TD
+    UserRequest([用户请求 / 业务问题]) --> OuterStart
+
+    subgraph OuterLoop["1. 外层业务循环 (Outer Loop: 业务语义与 AnswerSpec 规格收敛)"]
+        direction TB
+        OuterStart["1. 意图解析与七槽位提取<br/>• entity (分析主体)<br/>• metric (计算口径)<br/>• filters (筛选切片)<br/>• groupBy (聚合粒度)<br/>• time (时间边界)<br/>• ranking (排序与 Top-N)<br/>• output (输出形态)"]
+        HypoMgr["2. 假设推演与证据确权 (Hypothesis & Evidence)<br/>• 结合知识库、Schema 事实、题面信息<br/>• 证据等级: user > reviewed_def > doc > wording > schema > observation"]
+        ClarifyCheck{"存在不可消解的<br/>业务歧义?"}
+        AskUser["触发人机澄清交互<br/>(ask_user_clarification)"]
+        ResolveHypo["3. 假设裁决与收敛<br/>• 关键假设均 handled (supported/selected)<br/>• 记录审计披露项 (Disclosures)"]
+        FreezeSpec["4. 冻结当前目标规格<br/>生成强类型版本凭据: ReadyRevisionId"]
+
+        OuterStart --> HypoMgr
+        HypoMgr --> ClarifyCheck
+        ClarifyCheck -->|是| AskUser
+        AskUser -->|用户确权答复| HypoMgr
+        ClarifyCheck -->|否| ResolveHypo
+        ResolveHypo --> FreezeSpec
+    end
+
+    %% 跨层传递契约
+    FreezeSpec ==>|"下发只读契约 ReadyRevision"| InnerStart
+
+    subgraph InnerLoop["2. 内层技术循环 (Inner Loop: SQL 生成、探针质检与技术自愈)"]
+        direction TB
+        InnerStart["1. 依据 ReadyRevision 生成候选 SQL<br/>严格对照 7 槽位语义与物理表 Schema"]
+        SqlExec["2. SQL 执行并私有暂存<br/>• 写入 FileResultStore 生成 PrivateResultRef<br/>• 记录执行元数据 (行数, 列名, 耗时)"]
+        CheckShape["3.1 形态检查 (Shape Check)<br/>• scalar 要求单行<br/>• top_n 要求 N 行<br/>• 列名别名严格匹配"]
+        CheckFanout["3.2 JOIN 膨胀探针 (join_fanout Probe)<br/>• 伴随执行比值校验:<br/>COUNT(key) vs COUNT(DISTINCT key)<br/>• 阻断笛卡尔积度量放大"]
+        CheckQuality["3.3 数据完整性 (Data Quality Check)<br/>• 检查未预期空结果<br/>• 检查结果截断<br/>• 极值与 Null 异常"]
+        GateCheck{"质检网全部通过?"}
+        ClassifyDefect{"失败归因分类"}
+        TechFix["纯技术实现错误:<br/>• JOIN 膨胀 -> 改用 CTE 预聚合或 DISTINCT<br/>• 列名不符 -> 调整 SELECT 别名<br/>• 语法错误 -> 调整方言规范<br/>【红线】严禁在技术修复中修改外层 AnswerSpec!"]
+        BudgetTest{"自愈预算超限 (大于3次)?"}
+        EscalateNotice["抛出结构化 Escalation Finding:<br/>• 物理字段缺失 / 过滤后必然 0 行<br/>• 说明技术路径无法满足当前 Spec"]
+
+        InnerStart --> SqlExec
+        SqlExec --> CheckShape
+        CheckShape --> CheckFanout
+        CheckFanout --> CheckQuality
+        CheckQuality --> GateCheck
+        GateCheck -->|"否 (发现缺陷)"| ClassifyDefect
+        ClassifyDefect -->|技术可自愈| TechFix
+        TechFix --> BudgetTest
+        BudgetTest -->|预算内| InnerStart
+        BudgetTest -->|预算耗尽| EscalateNotice
+        ClassifyDefect -->|物理或业务矛盾| EscalateNotice
+    end
+
+    %% 升级上抛说明（解耦循环引用，确保外层与内层拓扑上下秩序完美）
+    EscalateNotice -->|"技术无法自愈"| EscalateOut["升级上抛至外层业务判断<br/>(Escalation Finding: 物理缺失/口径矛盾，驱动外层重新裁决)"]
+
+    GateCheck ==>|"是 (全部通过)"| SignReceipt["5. 签署不可篡改收据 (PublicationReceipt)<br/>绑定 CandidateId、RevisionId、ContentHash"]
+    SignReceipt ==> Delivery([安全交付: 生产级下载链接 / 受控 Inline 预览])
+  </script>
+
+  <!-- 3. 高清时序图源码 -->
+  <script type="text/plain" id="src-seq">
+sequenceDiagram
+    autonumber
+    actor User as 用户 (Frontend)
+    participant Host as 宿主 (Electron/Fastify)
+    participant Lane as Pi 运行内核 (AgentLane)
+    participant Model as 大语言模型 (LLM)
+    participant Answering as Answering 业务领域
+
+    Note over User, Host: 阶段 1: 提交意图与持久化入队 (Accept)
+    User->>Host: 提交分析指令: agent.prompt(text)
+    Host->>Lane: accept(prompt, context)
+    Lane-->>Host: 返回 operationId (意图已持久化入队)
+    Host-->>User: 推送确认: agent.prompt.accepted
+
+    Note over Lane, Model: 阶段 2: 驱动执行泳道与推理流 (Drive)
+    Lane->>Lane: 启动或恢复 drive 运行循环
+    Lane->>Model: 发起推理 (附带 SystemPrompt, History, Tools)
+    loop 流式输出思考链与正文
+        Model-->>Lane: stream text_delta / thinking_delta
+        Lane-->>Host: 广播增量事件
+        Host-->>User: SSE / IPC 实时渲染气泡与思考流
+    end
+
+    Note over Model, Answering: 阶段 3: 业务工具调用与门控验证
+    Model->>Lane: 产生 ToolCall: query_database
+    Lane-->>User: 推送 agent.tool_started 状态
+    Lane->>Answering: execute(input, trustedContext)
+    
+    Note over Answering: 执行 SQL -> 运行伴随探针 -> 验证候选门禁
+    Answering-->>Lane: 返回 AgentToolResult (安全文本预览 + 详情)
+    Lane-->>User: 推送 agent.tool_finished 状态
+
+    Lane->>Model: 将 ToolResult 馈入模型继续下一步思考
+    Model-->>Lane: 最终业务洞察与总结文本
+    Lane-->>User: 推送 agent.completed 运行完成
+  </script>
+
+  <!-- 4. 子Agent与澄清机制源码（顶底分支并列架构） -->
+  <script type="text/plain" id="src-subagent">
+flowchart TD
+    MainAgent["🤖 主 Agent (统筹推进内外双层业务循环)"]
+
+    MainAgent -->|"按需派发探索或审阅任务"| CallSubagent
+    MainAgent -->|"发现业务歧义且缺乏客观证据"| AskClarify
+
+    subgraph DelegationSystem["1. 子 Agent 委托机制 (Delegation Flow)"]
+        direction TB
+        CallSubagent["调用 subagent 工具<br/>(按需委派，不拥有某一层循环)"]
+        NativeDelegation["NativeDelegation 调度控制<br/>• 资源限额与超时看门狗<br/>• 派生独立沙箱 ChildSession"]
+        
+        RoleFork{"根据 role 分配"}
+        
+        ExpRole["Explorer 沙箱子 Agent<br/>• 受限只读 SQL 与知识库工具<br/>• 负责局部探索与证据收集"]
+        ExpReport["产出 Explorer Finding 报告<br/>(含不透明证据 ID，无权修改 Spec)"]
+        
+        RevRole["Reviewer 沙箱子 Agent<br/>• 纯盲审：无任何外部工具权限<br/>• 对照权威证据审核 Candidate 一致性"]
+        RevReport["产出 Reviewer Finding 报告<br/>(结构化差异与未检项，无权发布)"]
+        
+        Ledger["PiSessionDelegationLedger 记账<br/>(持久化 Token 消耗与审计记录)"]
+        DelegComplete(["返回主 Agent 决策闭环<br/>(沉淀客观证据与审阅发现)"])
+
+        CallSubagent --> NativeDelegation
+        NativeDelegation --> RoleFork
+        RoleFork -->|role: explorer| ExpRole
+        ExpRole --> ExpReport
+        RoleFork -->|role: reviewer| RevRole
+        RevRole --> RevReport
+        ExpReport --> Ledger
+        RevReport --> Ledger
+        Ledger --> DelegComplete
+    end
+
+    subgraph ClarificationSystem["2. 用户交互澄清机制 (Clarification Flow)"]
+        direction TB
+        AskClarify["调用 ask_user_clarification<br/>(构建单选/多选澄清卡片)"]
+        HangPromise["挂起未决 Promise<br/>触发 clarification.request 事件"]
+        FrontendCard["前端弹出交互式选择卡片"]
+        UserClick["用户点击选中明确口径"]
+        AnswerCmd["提交 clarification.answer 命令"]
+        WakePromise["唤醒挂起 Promise 并记录证据<br/>(user_confirmation 权威最高)"]
+        ClarifyComplete(["恢复主 Agent 规格收敛<br/>(消除歧义，继续推进外层循环)"])
+
+        AskClarify --> HangPromise
+        HangPromise --> FrontendCard
+        FrontendCard --> UserClick
+        UserClick --> AnswerCmd
+        AnswerCmd --> WakePromise
+        WakePromise --> ClarifyComplete
+    end
+  </script>
+
+  <!-- ============================================================= -->
+  <!-- 交互逻辑与按需渲染控制器                                      -->
+  <!-- ============================================================= -->
+  <script>
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'dark',
+      securityLevel: 'loose',
+      themeVariables: {
+        darkMode: true,
+        background: '#0b0f19',
+        primaryColor: '#1e293b',
+        primaryBorderColor: '#38bdf8',
+        primaryTextColor: '#f8fafc',
+        lineColor: '#38bdf8',
+        secondaryColor: '#334155',
+        tertiaryColor: '#151d30'
+      },
+      flowchart: {
+        useMaxWidth: false,
+        htmlLabels: true,
+        curve: 'basis'
+      },
+      sequence: {
+        useMaxWidth: false,
+        boxMargin: 10,
+        boxTextMargin: 5,
+        noteMargin: 10,
+        messageMargin: 35,
+        mirrorActors: false
+      }
+    });
+
+    const renderedTabs = new Set();
+    let currentTab = 'arch';
+    let scale = 1.0;
+    let panX = 0;
+    let panY = 0;
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+
+    const viewport = document.getElementById('viewport');
+    const container = document.getElementById('canvas-container');
+    const zoomText = document.getElementById('zoomText');
+
+    function updateTransform() {
+      container.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+      zoomText.innerText = `${Math.round(scale * 100)}%`;
+    }
+
+    // 智能获取 SVG 原始几何尺寸（优先解析 viewBox，绝对精确且不受父容器缩放影响）
+    function getSvgDimensions(svg) {
+      const vb = svg.getAttribute('viewBox');
+      if (vb) {
+        const parts = vb.trim().split(/[\s,]+/).map(Number);
+        if (parts.length === 4 && parts[2] > 0 && parts[3] > 0) {
+          return { width: parts[2], height: parts[3] };
+        }
+      }
+      try {
+        const bbox = svg.getBBox();
+        if (bbox && bbox.width > 0 && bbox.height > 0) {
+          return { width: bbox.width, height: bbox.height };
+        }
+      } catch (e) {}
+      return { width: svg.clientWidth || 1000, height: svg.clientHeight || 800 };
+    }
+
+    // 智能自适应视图：长图宽度优先与顶部对齐；常规图全局居中
+    function fitView() {
+      const activePanel = document.querySelector('.diagram-panel.active');
+      if (!activePanel) return;
+      const svg = activePanel.querySelector('svg');
+      if (!svg) return;
+
+      const { width: naturalW, height: naturalH } = getSvgDimensions(svg);
+      const vRect = viewport.getBoundingClientRect();
+
+      const padX = 60;
+      const padY = 50;
+      const availW = Math.max(vRect.width - padX * 2, 200);
+      const availH = Math.max(vRect.height - padY * 2, 200);
+
+      const scaleX = availW / naturalW;
+      const scaleY = availH / naturalH;
+
+      let bestScale = Math.min(scaleX, scaleY);
+      // 若全局缩放比小于 0.65 且宽度允许，则以宽度自适应呈现，顶部对齐便于直接自上而下阅读
+      if (bestScale < 0.65 && scaleX >= 0.45) {
+        scale = Math.min(scaleX, 0.95);
+        panX = Math.round((vRect.width - naturalW * scale) / 2);
+        panY = 35;
+      } else {
+        scale = Math.min(bestScale, 1.2);
+        panX = Math.round((vRect.width - naturalW * scale) / 2);
+        panY = Math.max(25, Math.round((vRect.height - naturalH * scale) / 2));
+      }
+      updateTransform();
+    }
+
+    function resetView() {
+      scale = 1.0;
+      panX = 60;
+      panY = 50;
+      updateTransform();
+    }
+
+    function zoomIn() {
+      scale = Math.min(scale * 1.25, 6.0);
+      updateTransform();
+    }
+
+    function zoomOut() {
+      scale = Math.max(scale * 0.8, 0.15);
+      updateTransform();
+    }
+
+    // 滚轮精准缩放：以鼠标指针所在坐标为固定锚点
+    viewport.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const zoomFactor = e.deltaY < 0 ? 1.15 : 0.87;
+      const rect = viewport.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      const newScale = Math.min(Math.max(scale * zoomFactor, 0.15), 6.0);
+      panX = mouseX - (mouseX - panX) * (newScale / scale);
+      panY = mouseY - (mouseY - panY) * (newScale / scale);
+      scale = newScale;
+      updateTransform();
+    }, { passive: false });
+
+    // 鼠标拖拽平移
+    viewport.addEventListener('mousedown', (e) => {
+      if (e.button !== 0) return;
+      isDragging = true;
+      startX = e.clientX - panX;
+      startY = e.clientY - panY;
+      viewport.classList.add('dragging');
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      panX = e.clientX - startX;
+      panY = e.clientY - startY;
+      updateTransform();
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (isDragging) {
+        isDragging = false;
+        viewport.classList.remove('dragging');
+      }
+    });
+
+    // 独立新标签页打开当前纯矢量 SVG
+    function openSvgNewTab() {
+      const activeSvg = document.querySelector('.diagram-panel.active svg');
+      if (!activeSvg) return;
+      const svgData = new XMLSerializer().serializeToString(activeSvg);
+      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+      const svgUrl = URL.createObjectURL(svgBlob);
+      window.open(svgUrl, '_blank');
+    }
+
+    // Tab 按需延迟加载与激活
+    async function switchTab(tabId) {
+      currentTab = tabId;
+
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = document.getElementById(`btn-${tabId}`);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      document.querySelectorAll('.diagram-panel').forEach(panel => panel.classList.remove('active'));
+      const targetPanel = document.getElementById(`panel-${tabId}`);
+      targetPanel.classList.add('active');
+
+      // 仅在面板已变为 display:block 后才调用 mermaid.render，从根源上规避 DOM 隐藏测量报错
+      if (!renderedTabs.has(tabId)) {
+        const srcEl = document.getElementById(`src-${tabId}`);
+        if (srcEl) {
+          try {
+            const code = srcEl.textContent.trim();
+            const renderId = `svg-chart-${tabId}-${Date.now()}`;
+            const { svg, bindFunctions } = await mermaid.render(renderId, code);
+            targetPanel.innerHTML = svg;
+            if (typeof bindFunctions === 'function') {
+              bindFunctions(targetPanel);
+            }
+            renderedTabs.add(tabId);
+          } catch (err) {
+            console.error('Failed to render tab:', tabId, err);
+            targetPanel.innerHTML = `<div style="padding:40px;color:#f43f5e;font-size:15px;background:#1e1b4b;border:1px solid #e11d48;border-radius:8px;"><strong>图表渲染失败：</strong>${err.message}</div>`;
+          }
+        }
+      }
+
+      requestAnimationFrame(() => {
+        fitView();
+      });
+    }
+
+    window.addEventListener('resize', () => {
+      fitView();
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      switchTab('arch');
+    });
+  </script>
+</body>
+</html>

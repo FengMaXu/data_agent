@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeAll, afterAll } from "vitest";
+import { describe, expect, it } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -28,6 +28,12 @@ describe("Reference SQLite MCP Server", () => {
     expect(payload.truncated).toBe(true);
     expect(payload.contractVersion).toBe(1);
 
+    const exportResult = await client.callTool({ name: "execute_query_export", arguments: { sql: "SELECT * FROM sales ORDER BY id" } });
+    const exportPayload = JSON.parse((exportResult.content as any)[0].text);
+    expect(exportPayload.rows).toHaveLength(2);
+    expect(exportPayload.columns).toEqual(["id", "region", "amount"]);
+    expect(exportPayload.truncated).toBe(false);
+
     const explain = await client.callTool({ name: "explain_query", arguments: { sql: "SELECT * FROM sales WHERE amount > 10" } });
     const explainPayload = JSON.parse((explain.content as any)[0].text);
     expect(explainPayload.columns).toContain("detail");
@@ -50,6 +56,7 @@ describe("Reference SQLite MCP Server", () => {
     expect(schemaPayload.schema[0].primaryKey).toEqual(["id"]);
 
     const listedTools = await client.listTools();
+    expect(listedTools.tools.some((tool) => tool.name === "execute_query_export_batch")).toBe(false);
     expect(listedTools.tools.some((tool) => tool.name === "export_query")).toBe(false);
     const forbiddenExport = await client.callTool({ name: "export_query", arguments: { sql: "SELECT * FROM sales" } });
     expect(forbiddenExport.isError).toBe(true);

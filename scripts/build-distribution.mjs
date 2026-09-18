@@ -65,6 +65,11 @@ run("npm run build --workspace=frontend");
   if (result.status !== 0) { console.error("mcp-mysql bundle failed"); process.exit(1); }
   normalizeGeneratedBundle("frontend/electron-host/mcp-mysql.cjs");
 }
+
+// The generated Electron entry is the shipped production path. Run the same
+// architecture gate against source and bundle so stale legacy output cannot be
+// packaged after a successful TypeScript build.
+run("node scripts/verify-backend-architecture.mjs");
 copyFileSync(path.join(root, "packages/electron-host/preload.cjs"), path.join(root, "frontend/electron/preload.cjs"));
 
 // Sanity checks: renderer + host outputs exist; python web backend not required.

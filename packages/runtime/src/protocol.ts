@@ -1,0 +1,599 @@
+import {
+  DataAgentEventEnvelopeSchema,
+  DataAgentResponseEnvelopeSchema,
+  ProtocolVersion,
+  RequestContextSchema,
+  type DataAgentCommandEnvelope,
+  type DataAgentEventEnvelope,
+  type DataAgentResponseEnvelope,
+  type RequestContext,
+} from "@data-agent/contracts";
+import { Value } from "typebox/value";
+import { MetadataStore } from "./metadata.js";
+import { randomUUID } from "node:crypto";
+import path from "node:path";
+import { WorkspaceStore } from "./workspace.js";
+import { runPythonJob } from "./python-job.js";
+import { KnowledgeIndex } from "./knowledge.js";
+import { ClarificationManager } from "./clarification.js";
+import { materializeDashboardV3Spec, renderStandaloneDashboardHtml, validateDashboardV3Spec } from "./dashboard-v3.js";
+import { renderSemanticDashboardHtml, validateDashboardV4Spec } from "./dashboard-v4.js";
+import { loadSkillsFromRoots, resolveSkillRoots } from "./skills.js";
+import { LocalAuthService } from "./auth.js";
+import type { ApplicationAgentEvent } from "./application/host.js";
+import type { ApplicationCommandHost, ApplicationEventFilter } from "./application/protocol-host.js";
+import type { TranscriptMessage } from "./facets/transcript.js";
+import { readBoundedFile } from "./bounded-read.js";
+
+export class DataAgentRuntimeError extends Error {
+  readonly code: "INVALID_COMMAND" | "UNSUPPORTED_PROTOCOL_VERSION" | "INVALID_CONTEXT" | "SESSION_ACCESS_DENIED";
+  readonly details?: unknown;
+
+  constructor(
+    code: DataAgentRuntimeError["code"],
+    message: string,
+    details?: unknown,
+  ) {
+    super(message);
+    this.name = "DataAgentRuntimeError";
+    this.code = code;
+    this.details = details;
+  }
+}
+
+export type DataAgentEventListener = (event: DataAgentEventEnvelope) => void;
+type EventSubscription = { readonly listener: DataAgentEventListener; readonly filter?: ApplicationEventFilter };
+
+export interface RuntimeSessionStore {
+  create?(metadata?: Record<string, unknown>): Promise<unknown>;
+  list(): Promise<readonly unknown[]>;
+  open(metadata: unknown): Promise<{ getEntries(): Promise<readonly unknown[]> }>;
+}
+
+type RuntimeAgentContext = { sessionId?: string; operationId?: string; requestId?: string; userId?: string };
+
+type RuntimeAgent = {
+  prompt(text: string, context?: RuntimeAgentContext): Promise<unknown>;
+  steer?(text: string, context?: RuntimeAgentContext): void | Promise<unknown>;
+  followUp?(text: string, context?: RuntimeAgentContext): void | Promise<unknown>;
+  abort?(context?: RuntimeAgentContext): void | Promise<unknown>;
+  requestAbort?(operationId: string, context?: RuntimeAgentContext): void | Promise<unknown>;
+  subscribe?(listener: (event: ApplicationAgentEvent) => void): () => void;
+  getTranscript?(context?: RuntimeAgentContext): Promise<readonly TranscriptMessage[]>;
+  answerClarification?(clarificationId: string, answer: string, context?: RuntimeAgentContext): Promise<boolean>;
+  getResources?(): { skills?: readonly unknown[]; promptTemplates?: readonly unknown[] };
+  setResources?(resources: { skills?: readonly unknown[]; promptTemplates?: readonly unknown[] }): Promise<void>;
+};
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return typeof value === "object" && value !== null ? value as Record<string, unknown> : undefined;
+}
+
+const DESKTOP_SECRET_CONFIG_FIELDS = ["api_key", "openai_api_key", "anthropic_api_key"] as const;
+
+function sanitizeConfigForHost(value: unknown, host: RequestContext["host"]): Record<string, unknown> {
+  const config = typeof value === "object" && value !== null ? { ...(value as Record<string, unknown>) } : {};
+  if (host === "electron") {
+    for (const field of DESKTOP_SECRET_CONFIG_FIELDS) delete config[field];
+  }
+  return config;
+}
+
+export class DataAgentRuntime implements ApplicationCommandHost {
+  private readonly listeners = new Set<EventSubscription>();
+  private readonly eventBuffer: DataAgentEventEnvelope[] = [];
+  private readonly eventOwners = new Map<number, string | undefined>();
+  private readonly sessionOwners = new Map<string, string>();
+  private readonly metadata: MetadataStore | undefined;
+  /** Auth is owned by the command host and injected into transports through a narrow seam. */
+  readonly authService: LocalAuthService;
+  /** Exposed only on the protocol adapter for host-level metadata wiring. */
+  get metadataStore(): MetadataStore | undefined { return this.metadata; }
+  private sessions: RuntimeSessionStore | undefined;
+  private readonly workspace: WorkspaceStore | undefined;
+  private pythonExecutable: string | undefined;
+  private readonly bundledPythonExecutable: string | undefined;
+  private readonly knowledge: KnowledgeIndex | undefined;
+  private readonly knowledgeRoot: string | undefined;
+  private readonly semanticProjectDir: string | undefined;
+  private readonly skillRoots: string[];
+  queryExecutor?: { run(sql: string, rowLimit: number, options?: { readonly idempotencyKey?: string }): Promise<{ columns: string[]; rows: unknown[][]; truncated: boolean }> };
+  dbTester?: { test(connection: Record<string, unknown>): Promise<{ success: boolean; message: string; details?: unknown }> };
+  llmTester?: { test(profile: Record<string, unknown>): Promise<{ success: boolean; message: string; details?: unknown }> };
+  /** Host callback for capability controllers after onboarding/config changes. */
+  onConfigSaved?: (config: Record<string, unknown>, context: RequestContext) => void | Promise<void>;
+  mcpSupervisor?: { status(): Promise<Array<{ name: string; enabled: boolean; connected: boolean; toolCount: number; hostManaged: boolean }>>; test(name: string): Promise<{ ok: boolean; message: string }>; restart(name: string): Promise<{ ok: boolean }> };
+  ingestJob?: { getStatus(): Promise<{ status: string; jobId: string | null; summary: { updated: number; unchanged: number; failed: number; skipped: number }; errorCode: string | null }>; retry(): Promise<{ accepted: boolean }> };
+  private readonly clarifications: ClarificationManager;
+  /** Host composition seam for wiring native AgentHarness tools. */
+  get clarificationManager(): ClarificationManager { return this.clarifications; }
+  /** Correlation only: Pi owns the operation lifecycle and durable state. */
+  private nextSequence = 1;
+  private agent: RuntimeAgent | undefined;
+
+  constructor(options: { metadata?: MetadataStore; sessions?: RuntimeSessionStore; workspace?: WorkspaceStore; pythonExecutable?: string; bundledPythonExecutable?: string; knowledge?: KnowledgeIndex; knowledgeRoot?: string; semanticProjectDir?: string; skillRoots?: string[]; projectRoot?: string; packagedRoot?: string; clarifications?: ClarificationManager; agent?: RuntimeAgent } = {}) {
+    this.metadata = options.metadata;
+    this.authService = new LocalAuthService(this.metadata);
+    this.sessions = options.sessions;
+    this.workspace = options.workspace;
+    this.pythonExecutable = options.pythonExecutable;
+    this.bundledPythonExecutable = options.bundledPythonExecutable ?? options.pythonExecutable;
+    this.knowledge = options.knowledge;
+    this.knowledgeRoot = options.knowledgeRoot;
+    this.semanticProjectDir = (options as { semanticProjectDir?: string }).semanticProjectDir;
+    this.skillRoots = options.skillRoots ?? resolveSkillRoots({
+      ...(options.projectRoot ? { projectRoot: options.projectRoot } : {}),
+      ...(options.packagedRoot ? { packagedRoot: options.packagedRoot } : {}),
+    });
+    this.clarifications = options.clarifications ?? new ClarificationManager();
+    this.clarifications.onAsked = (request) => {
+      this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: "clarification", timestamp: Date.now(), sessionId: request.sessionId, event: { type: "clarification.request", clarificationId: request.clarificationId, question: request.question, options: request.options } }, this.sessionOwners.get(request.sessionId));
+    };
+    this.clarifications.onSettled = (clarificationId, outcome, settledContext) => {
+      this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: "clarification", timestamp: Date.now(), ...(settledContext?.sessionId ? { sessionId: settledContext.sessionId } : {}), event: { type: "clarification.settled", clarificationId, outcome } }, settledContext?.sessionId ? this.sessionOwners.get(settledContext.sessionId) : undefined);
+    };
+    this.agent = options.agent;
+    this.agent?.subscribe?.((event) => this.receiveApplicationEvent(event));
+  }
+
+  get pythonExecutablePath(): string | undefined { return this.pythonExecutable; }
+
+  eventsAfter(sequence: number, filter?: ApplicationEventFilter): readonly DataAgentEventEnvelope[] {
+    return this.eventBuffer.filter((event) => event.sequence > sequence && this.eventVisible(event, filter));
+  }
+
+  subscribe(listener: DataAgentEventListener, filter?: ApplicationEventFilter): () => void {
+    const subscription: EventSubscription = { listener, ...(filter ? { filter } : {}) };
+    this.listeners.add(subscription);
+    return () => this.listeners.delete(subscription);
+  }
+
+  async dispatch(
+    command: DataAgentCommandEnvelope,
+    context: RequestContext,
+  ): Promise<DataAgentResponseEnvelope> {
+    this.assertContext(context);
+    if (context.sessionId) {
+      const owner = this.sessionOwners.get(context.sessionId);
+      if (owner && owner !== context.userId) throw new DataAgentRuntimeError("SESSION_ACCESS_DENIED", "Session belongs to another user");
+      this.sessionOwners.set(context.sessionId, context.userId);
+    }
+
+    if (command.protocolVersion !== ProtocolVersion) {
+      throw new DataAgentRuntimeError(
+        "UNSUPPORTED_PROTOCOL_VERSION",
+        `Unsupported protocol version: ${command.protocolVersion}`,
+        { supported: ProtocolVersion },
+      );
+    }
+
+    if (command.command.type === "workspace.list" || command.command.type === "workspace.read" || command.command.type === "workspace.write" || command.command.type === "workspace.delete") {
+      if (!this.workspace) throw new DataAgentRuntimeError("INVALID_COMMAND", "Workspace is not configured");
+      this.workspace.assertAccess(context);
+      if (command.command.type === "workspace.list") return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "workspace.result", operation: "list", files: await this.workspace.list() } };
+      if (command.command.type === "workspace.read") {
+        try {
+          const result = await this.workspace.readRange(command.command.path, {
+            ...(command.command.startLine !== undefined ? { startLine: command.command.startLine } : {}),
+            ...(command.command.endLine !== undefined ? { endLine: command.command.endLine } : {}),
+          });
+          return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "workspace.result", operation: "read", path: command.command.path, content: result.content } };
+        } catch (error) {
+          if (error instanceof Error && error.message.startsWith("INVALID_LINE_RANGE:")) throw new DataAgentRuntimeError("INVALID_COMMAND", error.message);
+          throw error;
+        }
+      }
+      if (command.command.type === "workspace.delete") { await this.workspace.delete(command.command.path); return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "workspace.result", operation: "write", path: command.command.path } }; }
+      await this.workspace.write(command.command.path, command.command.content);
+      this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, ...(context.sessionId ? { sessionId: context.sessionId } : {}), timestamp: Date.now(), event: { type: "workspace.artifact.created", path: command.command.path, kind: "file" } }, context.userId);
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "workspace.result", operation: "write", path: command.command.path } };
+    }
+
+    if (command.command.type === "dashboard.generate") {
+      if (!this.workspace) throw new DataAgentRuntimeError("INVALID_COMMAND", "Workspace is not configured");
+      this.workspace.assertAccess(context);
+      const c = command.command;
+      if (c.version === "v3" && c.mode === "static") {
+        const materialized = await materializeDashboardV3Spec(c.spec, this.workspace);
+        const validated = validateDashboardV3Spec(materialized);
+        if (!validated.ok || c.operation === "validate") {
+          return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "dashboard.result", valid: validated.ok, errors: validated.ok ? [] : validated.errors } };
+        }
+        const target = c.editPath ?? `dashboards/${Date.now()}.html`;
+        const html = await renderStandaloneDashboardHtml(validated.spec);
+        await this.workspace.write(target, html);
+        this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, ...(context.sessionId ? { sessionId: context.sessionId } : {}), timestamp: Date.now(), event: { type: "workspace.artifact.created", path: target, kind: "file" } }, context.userId);
+        return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "dashboard.result", valid: true, errors: [], path: target, bytes: html.length } };
+      }
+      if (c.version === "v4" && c.mode === "semantic") {
+        const validated = validateDashboardV4Spec(c.spec);
+        if (!validated.ok || c.operation === "validate") {
+          return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "dashboard.result", valid: validated.ok, errors: validated.ok ? [] : validated.errors } };
+        }
+        const target = c.editPath ?? `dashboards/${Date.now()}-semantic.html`;
+        const nonce = randomUUID();
+        const html = renderSemanticDashboardHtml(validated.spec, { nonce, expectedOrigin: "https://data-agent.local" });
+        await this.workspace.write(target, html);
+        this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, ...(context.sessionId ? { sessionId: context.sessionId } : {}), timestamp: Date.now(), event: { type: "workspace.artifact.created", path: target, kind: "file" } }, context.userId);
+        return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "dashboard.result", valid: true, errors: [], path: target, bytes: html.length } };
+      }
+      throw new DataAgentRuntimeError("INVALID_COMMAND", "Unsupported dashboard mode/version combination");
+    }
+
+    if (command.command.type === "clarification.answer") {
+      const answered = this.agent?.answerClarification
+        ? await this.agent.answerClarification(command.command.clarificationId, command.command.answer, { ...(context.sessionId ? { sessionId: context.sessionId } : {}), userId: context.userId })
+        : this.clarifications.answer(command.command.clarificationId, command.command.answer);
+      if (!answered) throw new DataAgentRuntimeError("INVALID_COMMAND", "Unknown or already settled clarification");
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "runtime.probe.result", service: "data-agent-runtime", runtimeVersion: "0.1.0" } };
+    }
+
+    if (command.command.type === "semantic.sources.list" && this.semanticProjectDir) {
+      const { resolve: resolvePath2 } = await import("node:path");
+      const fs = await import("node:fs/promises");
+      const base = resolvePath2(this.semanticProjectDir);
+      const sources: Array<{ connectionId: string; sourceName: string; definition: unknown; updatedAt: number }> = [];
+      // Both supported semantic source layouts are read without re-ingestion.
+      const seen = new Set<string>();
+      for (const segment of ["business-semantic", "semantic-layer"]) {
+        let connections: string[] = [];
+        try { connections = await fs.readdir(resolvePath2(base, segment)); } catch { connections = []; }
+        for (const connectionId of connections) {
+          const connDir = resolvePath2(base, segment, connectionId);
+          let entries: any[] = [];
+          try { entries = await fs.readdir(connDir, { withFileTypes: true }); } catch { continue; }
+          for (const entry of entries) {
+            if (!entry.isFile() || !(entry.name.endsWith(".yaml") || entry.name.endsWith(".yml"))) continue;
+            const sourceName = entry.name.replace(/\.ya?ml$/i, "");
+            const key = `${connectionId}/${sourceName}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            const full = resolvePath2(connDir, entry.name);
+            const info = await fs.stat(full);
+            sources.push({ connectionId, sourceName, definition: {}, updatedAt: info.mtimeMs });
+          }
+        }
+      }
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "semantic.sources.result", sources } };
+    }
+    if (command.command.type === "semantic.sources.get" && this.semanticProjectDir) {
+      const { resolve: resolvePath2 } = await import("node:path");
+      const fs = await import("node:fs/promises");
+      const getCmd = command.command as { connectionId: string; sourceName: string };
+      const segments = ["business-semantic", "semantic-layer"];
+      const candidates = segments.flatMap((segment) => [".yaml", ".yml"].map((ext) => resolvePath2(this.semanticProjectDir as string, segment, getCmd.connectionId, getCmd.sourceName + ext)));
+      let rawYaml: string | null = null;
+      for (const candidate of candidates) { try { rawYaml = await fs.readFile(candidate, "utf8"); break; } catch { /* next */ } }
+      if (rawYaml === null) throw new DataAgentRuntimeError("INVALID_COMMAND", "SEMANTIC_SOURCE_NOT_FOUND");
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "semantic.source.result", source: { connectionId: getCmd.connectionId, sourceName: getCmd.sourceName, definition: { rawYaml }, updatedAt: Date.now() } } };
+    }
+    if (command.command.type === "semantic.sources.list") {
+      const rows = (await this.metadata!.listSemanticSources()) ?? [];
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "semantic.sources.result", sources: rows.map((r: any) => ({ connectionId: String(r.connectionId), sourceName: String(r.sourceName), definition: JSON.parse(String(r.definitionJson)), updatedAt: r.updatedAt })) } };
+    }
+    if (command.command.type === "semantic.sources.get") {
+      const row = await this.metadata!.getSemanticSource(command.command.connectionId, command.command.sourceName);
+      if (!row) throw new DataAgentRuntimeError("INVALID_COMMAND", "SEMANTIC_SOURCE_NOT_FOUND");
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "semantic.source.result", source: { connectionId: String(row.connectionId), sourceName: String(row.sourceName), definition: JSON.parse(String(row.definitionJson)), updatedAt: row.updatedAt } } };
+    }
+    if (command.command.type === "mcp.config.get" || command.command.type === "mcp.config.save") {
+      if (command.command.type === "mcp.config.save") await this.metadata!.setConfig("mcp.config", (command.command as { config: unknown }).config);
+      const config = (await this.metadata!.getConfig("mcp.config")) ?? null;
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "mcp.config.result", config } };
+    }
+    if (command.command.type === "skills.list") {
+      const roots = this.skillRoots;
+      const loaded = await loadSkillsFromRoots(roots);
+      for (const item of loaded.diagnostics) console.warn(`[data-agent] Skill diagnostic (${item.code ?? "warning"}) ${item.path}: ${item.message}`);
+      if (this.agent?.setResources) {
+        const previous = this.agent.getResources?.() ?? {};
+        await this.agent.setResources({ ...previous, skills: loaded.skills });
+      }
+      const skills: Array<{ name: string; description: string; tools: string[] }> = loaded.skills.map((skill) => ({
+        name: skill.name,
+        description: skill.description,
+        tools: skill.allowedTools ?? [],
+      }));
+      const diagnostics = loaded.diagnostics.map((item) => ({ path: item.path, message: item.message }));
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "skills.list.result", skills, diagnostics } };
+    }
+    if (command.command.type === "dashboard.migrate") {
+      if (!this.workspace) throw new DataAgentRuntimeError("INVALID_COMMAND", "Workspace is not configured");
+      this.workspace.assertAccess(context);
+      const root = this.workspace.root as string;
+      const { migrateDashboardFiles } = await import("./dashboard-migration.js");
+      const report = await migrateDashboardFiles(command.command.paths, { root });
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "dashboard.migrate.result", ...report } };
+    }
+
+    if (command.command.type === "dashboard.evaluate") {
+      if (!this.queryExecutor) throw new DataAgentRuntimeError("INVALID_COMMAND", "QUERY_EXECUTOR_NOT_CONFIGURED");
+      const limit = Math.min(command.command.rowLimit ?? 1000, 10000);
+      const guarded = /\b(drop|delete|insert|update|alter|create|truncate)\b/i.test(command.command.sql);
+      if (guarded) throw new DataAgentRuntimeError("INVALID_COMMAND", "FORBIDDEN_SQL_IN_EVALUATE");
+      const result = await this.queryExecutor.run(command.command.sql, limit);
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "dashboard.evaluate.result", columns: result.columns, rows: result.rows, rowCount: result.rows.length, truncated: result.truncated } };
+    }
+    if (command.command.type === "semantic.ingest.status") {
+      if (!this.ingestJob) throw new DataAgentRuntimeError("INVALID_COMMAND", "INGEST_JOB_NOT_CONFIGURED");
+      const status = await this.ingestJob.getStatus();
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "semantic.ingest.status.result", ...status } };
+    }
+    if (command.command.type === "semantic.ingest.retry") {
+      if (!this.ingestJob) throw new DataAgentRuntimeError("INVALID_COMMAND", "INGEST_JOB_NOT_CONFIGURED");
+      const result = await this.ingestJob.retry();
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "semantic.ingest.retry.result", accepted: result.accepted } };
+    }
+    if (command.command.type === "dashboard.v3.data") {
+      if (!this.workspace) throw new DataAgentRuntimeError("INVALID_COMMAND", "WORKSPACE_NOT_CONFIGURED");
+      const html = await this.workspace.read(command.command.path);
+      const match = /window\.__DASHBOARD__=(\{[\s\S]*?\});<\/script>/.exec(html);
+      const payload = match?.[1];
+      if (!payload) throw new DataAgentRuntimeError("INVALID_COMMAND", "LEGACY_DASHBOARD_REQUIRES_REGENERATION");
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "dashboard.v3.data.result", payload: JSON.parse(payload) } };
+    }
+    if (command.command.type === "config.get" || command.command.type === "config.save") {
+      if (command.command.type === "config.save") {
+        const current = sanitizeConfigForHost(await this.metadata!.getConfig("ui.settings"), context.host);
+        const patch = { ...((command.command as { patch: Record<string, unknown> }).patch) };
+        for (const field of DESKTOP_SECRET_CONFIG_FIELDS) {
+          if (typeof patch[field] === "string" && patch[field].trim() === "" && typeof current[field] === "string" && current[field] !== "") {
+            delete patch[field];
+          }
+        }
+        const next: Record<string, unknown> = { ...current, ...patch };
+        if (context.host === "electron") {
+          for (const field of DESKTOP_SECRET_CONFIG_FIELDS) delete next[field];
+        }
+        await this.metadata!.setConfig("ui.settings", next);
+        const pythonConfig = asRecord(patch.python_runtime);
+        if (pythonConfig) {
+          this.pythonExecutable = pythonConfig.mode === "external" && typeof pythonConfig.executable === "string" && pythonConfig.executable.trim()
+            ? pythonConfig.executable
+            : this.bundledPythonExecutable;
+        }
+        await this.onConfigSaved?.(next, context);
+      }
+      const config = sanitizeConfigForHost(await this.metadata!.getConfig("ui.settings"), context.host);
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "config.get.result", config } };
+    }
+    if (command.command.type === "python.runtime.test") {
+      const { execFile } = await import("node:child_process");
+      const { promisify } = await import("node:util");
+      const execFileAsync = promisify(execFile);
+      const executable = (command.command as { executable?: string }).executable || this.pythonExecutable || "python";
+      try {
+        const { stdout } = await execFileAsync(executable, ["--version"], { timeout: 15000 });
+        return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "test.result", success: true, message: stdout.trim() } };
+      } catch (error) {
+        return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "test.result", success: false, message: error instanceof Error ? error.message : String(error) } };
+      }
+    }
+    if (command.command.type === "db.test") {
+      if (!this.dbTester) throw new DataAgentRuntimeError("INVALID_COMMAND", "DB_TESTER_NOT_CONFIGURED");
+      const result = await this.dbTester.test((command.command as { connection: Record<string, unknown> }).connection);
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "test.result", success: result.success, message: result.message } };
+    }
+    if (command.command.type === "llm.test") {
+      if (!this.llmTester) throw new DataAgentRuntimeError("INVALID_COMMAND", "LLM_TESTER_NOT_CONFIGURED");
+      const result = await this.llmTester.test((command.command as { profile: Record<string, unknown> }).profile);
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "test.result", success: result.success, message: result.message, details: result.details } };
+    }
+    if (command.command.type === "mcp.servers.status") {
+      if (!this.mcpSupervisor) throw new DataAgentRuntimeError("INVALID_COMMAND", "MCP_SUPERVISOR_NOT_CONFIGURED");
+      const servers = await this.mcpSupervisor.status();
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "mcp.servers.status.result", servers } };
+    }
+    if (command.command.type === "mcp.server.test" || command.command.type === "mcp.server.restart") {
+      if (!this.mcpSupervisor) throw new DataAgentRuntimeError("INVALID_COMMAND", "MCP_SUPERVISOR_NOT_CONFIGURED");
+      if (command.command.type === "mcp.server.test") {
+        const result = await this.mcpSupervisor.test((command.command as { name: string }).name);
+        return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "mcp.server.test.result", ok: result.ok, message: result.message } };
+      }
+      const result = await this.mcpSupervisor.restart((command.command as { name: string }).name);
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "mcp.server.restart.result", ok: result.ok } };
+    }
+    if (command.command.type === "session.transcript") {
+      if (!this.agent?.getTranscript) throw new DataAgentRuntimeError("INVALID_COMMAND", "SESSION_TRANSCRIPT_NOT_CONFIGURED");
+      const transcript = await this.agent.getTranscript({ sessionId: command.command.sessionId, userId: context.userId });
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "session.transcript.result", messages: [...transcript] } };
+    }
+    if (command.command.type === "session.prepare") {
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "runtime.probe.result", service: "data-agent-runtime", runtimeVersion: "0.1.0" } };
+    }
+    if (command.command.type === "python.run") {
+      if (!this.pythonExecutable) throw new DataAgentRuntimeError("INVALID_COMMAND", "Python runtime is not configured");
+      if (!context.sessionId) throw new DataAgentRuntimeError("INVALID_CONTEXT", "Python jobs require a session workspace");
+      const result = await runPythonJob(command.command.code, { workspace: context.sessionId, executable: this.pythonExecutable });
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "python.result", jobId: result.jobId, status: result.status, exitCode: result.exitCode, stdout: result.stdout, stderr: result.stderr, scriptPath: result.scriptPath, durationMs: result.durationMs } };
+    }
+
+    if (command.command.type === "knowledge.search" || command.command.type === "knowledge.read" || command.command.type === "knowledge.list" || command.command.type === "knowledge.save") {
+      if (command.command.type === "knowledge.save" && !this.knowledgeRoot) throw new DataAgentRuntimeError("INVALID_COMMAND", "Knowledge root is not configured");
+      if (!this.knowledgeRoot && command.command.type !== "knowledge.save") throw new DataAgentRuntimeError("INVALID_COMMAND", "Knowledge index is not configured");
+      const { resolve: resolvePath, join: joinPath } = await import("node:path");
+      if (this.knowledge) await this.knowledge.loadDirectory(this.knowledgeRoot as string);
+      if (command.command.type === "knowledge.search") return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "knowledge.search.result", hits: this.knowledge!.search(command.command.query) } };
+      if (command.command.type === "knowledge.list") {
+        const { readdir, stat } = await import("node:fs/promises");
+        const files: Array<{ path: string; size: number; modifiedAt: number }> = [];
+        const walk = async (dir: string): Promise<void> => {
+          for (const entry of await readdir(dir, { withFileTypes: true })) {
+            const full = dir + "/" + entry.name;
+            if (entry.isDirectory()) await walk(full);
+            else if (entry.name.endsWith(".md")) {
+              const info = await stat(full);
+              files.push({ path: full.slice((this.knowledgeRoot as string).length + 1), size: info.size, modifiedAt: info.mtimeMs });
+            }
+          }
+        };
+        await walk(this.knowledgeRoot as string);
+        return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "knowledge.list.result", files } };
+      }
+      if (command.command.type === "knowledge.save") {
+        const requestedPath = command.command.path.replaceAll("\\", "/");
+        if (requestedPath === ".pi" || requestedPath.startsWith(".pi/")) {
+          throw new DataAgentRuntimeError("INVALID_COMMAND", "SYSTEM_PROMPT_IMMUTABLE");
+        }
+        const { writeFile, mkdir } = await import("node:fs/promises");
+        const root = resolvePath(this.knowledgeRoot as string);
+        const target = resolvePath(joinPath(root, command.command.path));
+        if (target !== root && !target.startsWith(`${root}${path.sep}`)) {
+          throw new DataAgentRuntimeError("INVALID_COMMAND", "Knowledge path escapes root");
+        }
+        await mkdir(path.dirname(target), { recursive: true });
+        await writeFile(target, command.command.content, "utf8");
+        return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "knowledge.save.result", path: command.command.path } };
+      }
+      const root = resolvePath(this.knowledgeRoot as string);
+      const target = resolvePath(joinPath(root, command.command.path));
+      if (target !== root && !target.startsWith(`${root}${path.sep}`)) throw new DataAgentRuntimeError("INVALID_COMMAND", "Knowledge path escapes root");
+      try {
+        const result = await readBoundedFile(root, command.command.path, {
+          ...(command.command.startLine !== undefined ? { startLine: command.command.startLine } : {}),
+          ...(command.command.endLine !== undefined ? { endLine: command.command.endLine } : {}),
+        });
+        return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "knowledge.read.result", path: command.command.path, content: result.content } };
+      } catch (error) {
+        if (error instanceof Error && error.message.startsWith("INVALID_LINE_RANGE:")) throw new DataAgentRuntimeError("INVALID_COMMAND", error.message);
+        throw error;
+      }
+    }
+
+    if (command.command.type === "agent.steer" || command.command.type === "agent.follow_up") {
+      if (!this.agent) throw new DataAgentRuntimeError("INVALID_COMMAND", "Pi Agent is not configured");
+      const method = command.command.type === "agent.steer" ? this.agent.steer : this.agent.followUp;
+      if (!method) throw new DataAgentRuntimeError("INVALID_COMMAND", "Agent queue operation is not configured");
+      await method.call(this.agent, command.command.prompt, { ...(context.sessionId ? { sessionId: context.sessionId } : {}), userId: context.userId });
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "agent.prompt.accepted", runId: "queued" } };
+    }
+    if (command.command.type === "agent.stop") {
+      if (!this.agent) throw new DataAgentRuntimeError("INVALID_COMMAND", "Pi Agent is not configured");
+      if (command.command.operationId && this.agent.requestAbort) {
+        await this.agent.requestAbort(command.command.operationId, { ...(context.sessionId ? { sessionId: context.sessionId } : {}), operationId: command.command.operationId, userId: context.userId });
+        return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "agent.prompt.accepted", runId: command.command.operationId } };
+      }
+      if (!this.agent.abort) throw new DataAgentRuntimeError("INVALID_COMMAND", "Agent abort operation is not configured");
+      await this.agent.abort({ ...(context.sessionId ? { sessionId: context.sessionId } : {}), userId: context.userId });
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "agent.prompt.accepted", runId: "stopped" } };
+    }
+
+    if (command.command.type === "agent.prompt") {
+      if (!this.agent) throw new DataAgentRuntimeError("INVALID_COMMAND", "Pi Agent is not configured");
+      const result = await this.agent.prompt(command.command.prompt, { ...(context.sessionId ? { sessionId: context.sessionId } : {}), requestId: command.requestId, userId: context.userId });
+      const operationId = asRecord(result)?.operationId;
+      if (typeof operationId !== "string" || !operationId) throw new DataAgentRuntimeError("INVALID_COMMAND", "Agent did not return an operation identity");
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "agent.prompt.accepted", runId: operationId } };
+    }
+
+    if (command.command.type !== "runtime.probe") {
+      if (!this.metadata) throw new DataAgentRuntimeError("INVALID_COMMAND", "Metadata store is not configured");
+      const c = command.command;
+      const userId = context.userId;
+      if (c.type === "task.create") return this.mutation(command.requestId, "task", await this.metadata.call(c.type, userId, { idValue: MetadataStore.createId(), name: c.name }));
+      if (c.type === "task.list") return this.list(command.requestId, "task", await this.metadata.call(c.type, userId));
+      if (c.type === "task.rename" || c.type === "task.delete") return this.mutation(command.requestId, "task", await this.metadata.call(c.type, userId, c));
+      if (c.type === "session.create") {
+        const item = await this.metadata.call(c.type, userId, { ...c, idValue: MetadataStore.createId() });
+        if (this.sessions?.create) await this.sessions.create({ userId, taskId: c.taskId, sessionId: item.id });
+        await this.metadata.call("outbox.enqueue", userId, { sessionId: item.id, sequence: 0 });
+        return this.mutation(command.requestId, "session", item);
+      }
+      if (c.type === "session.list") return this.list(command.requestId, "session", await this.metadata.call(c.type, userId, c));
+      if (c.type === "session.rename" || c.type === "session.delete") return this.mutation(command.requestId, "session", await this.metadata.call(c.type, userId, c));
+      throw new DataAgentRuntimeError("INVALID_COMMAND", "Unsupported DataAgent command");
+    }
+
+    const response: DataAgentResponseEnvelope = {
+      protocolVersion: ProtocolVersion,
+      requestId: command.requestId,
+      response: {
+        type: "runtime.probe.result",
+        service: "data-agent-runtime",
+        runtimeVersion: "0.1.0",
+      },
+    };
+
+    if (!Value.Check(DataAgentResponseEnvelopeSchema, response)) {
+      throw new DataAgentRuntimeError("INVALID_COMMAND", "Runtime produced an invalid response");
+    }
+
+    this.emit({
+      protocolVersion: ProtocolVersion,
+      sequence: this.nextSequence++,
+      requestId: command.requestId,
+      ...(context.sessionId ? { sessionId: context.sessionId } : {}),
+      timestamp: Date.now(),
+      event: {
+        type: "runtime.probe.completed",
+        service: "data-agent-runtime",
+      },
+    }, context.userId);
+
+    return response;
+  }
+
+  /** Tools call this to suspend the run until the user answers or timeout hits. */
+  askClarification(sessionId: string, question: string, options: string[], timeoutMs?: number): { clarificationId: string; promise: Promise<string> } {
+    // ClarificationManager.onAsked is wired to the Runtime event stream in the
+    // constructor; emitting here as well would duplicate every request.
+    return this.clarifications.ask(sessionId, question, options, timeoutMs);
+  }
+
+  cancelSessionClarifications(sessionId: string): void { this.clarifications.cancel(sessionId, "cancelled"); }
+
+  /**
+   * The protocol adapter only republishes already-projected Presentation
+   * events. Pi events, operation ownership and transcript interpretation stay
+   * inside the Session Host; this class has no operation-state mirror.
+   */
+  private receiveApplicationEvent(event: ApplicationAgentEvent): void {
+    if (event.type !== "presentation.event" || !event.envelope) return;
+    this.emit({ ...event.envelope, sequence: this.nextSequence++, ...(event.sessionId ? { sessionId: event.sessionId } : {}) }, event.userId);
+  }
+
+  /** Attach an agent adapter after construction; lifecycle remains Pi-owned. */
+  attachSessionStore(store: RuntimeSessionStore): void { this.sessions = store; }
+
+  attachAgent(agent: RuntimeAgent): void {
+    this.agent = agent;
+    agent.subscribe?.((event) => this.receiveApplicationEvent(event));
+  }
+
+  private mutation(requestId: string, entity: "task" | "session", item: unknown): DataAgentResponseEnvelope { return { protocolVersion: ProtocolVersion, requestId, response: { type: "mutation.result", entity, item: item as never } }; }
+  private list(requestId: string, entity: "task" | "session", items: unknown): DataAgentResponseEnvelope { return { protocolVersion: ProtocolVersion, requestId, response: { type: "list.result", entity, items: items as never[] } }; }
+
+  private assertContext(context: RequestContext): void {
+    if (!Value.Check(RequestContextSchema, context)) {
+      throw new DataAgentRuntimeError("INVALID_CONTEXT", "Invalid request context");
+    }
+  }
+
+  private eventVisible(event: DataAgentEventEnvelope, filter?: ApplicationEventFilter): boolean {
+    if (!filter) return true;
+    const owner = this.eventOwners.get(event.sequence);
+    if (filter.userId && owner !== filter.userId) return false;
+    return !filter.sessionId || event.sessionId === filter.sessionId;
+  }
+
+  private emit(event: DataAgentEventEnvelope, ownerId?: string): void {
+    if (!Value.Check(DataAgentEventEnvelopeSchema, event)) {
+      throw new DataAgentRuntimeError("INVALID_COMMAND", "Runtime produced an invalid event");
+    }
+    this.eventBuffer.push(event);
+    this.eventOwners.set(event.sequence, ownerId);
+    if (this.eventBuffer.length > 256) {
+      const removed = this.eventBuffer.shift();
+      if (removed) this.eventOwners.delete(removed.sequence);
+    }
+    for (const subscription of this.listeners) {
+      if (this.eventVisible(event, subscription.filter)) subscription.listener(event);
+    }
+  }
+}
+
+/** Test-only entrypoint for the protocol adapter and its storage fixtures. */
+export { WorkspaceStore } from "./workspace.js";
+export { MetadataStore } from "./metadata.js";
+export { KnowledgeIndex } from "./knowledge.js";
+export { DataAgentSessionApplication } from "./application/host.js";

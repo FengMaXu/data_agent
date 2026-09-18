@@ -1,0 +1,19 @@
+{
+  "runId": "spider2-gold109-deepseek-flash-retry40-max-001",
+  "scope": "partial-25-results-only",
+  "completedCaseArtifacts": 25,
+  "submittedSql": 9,
+  "submittedCsv": 9,
+  "correctSql": 2,
+  "correctCsv": 2,
+  "correctIds": [
+    "local065",
+    "local157"
+  ],
+  "submissionPassRate": 0.2222222222222222,
+  "strictObservedDenominatorPassRate": 0.08,
+  "deliveryRate": 0.36,
+  "remainingUnstarted": 15,
+  "provisional": true,
+  "note": "Official Spider2 evaluator was run on copies of the 9 available SQL/CSV submissions. This is a partial diagnostic, not the final 40-case score."
+}

@@ -20,6 +20,7 @@ data_agent.log
 workspace/
 /eval_results_spider2/
 /evaluations/spider2/config.local.json
+/evaluations/spider2/.env.local
 test_output.txt
 *.png
 *.mp4

@@ -2,10 +2,7 @@ import {
   parseDataAgentCommandEnvelope,
   type RequestContext,
 } from "@data-agent/contracts";
-import {
-  DataAgentRuntime,
-  DataAgentRuntimeError,
-} from "@data-agent/runtime";
+import type { ApplicationCommandHost } from "@data-agent/runtime";
 
 export interface IpcMainLike {
   handle(
@@ -32,7 +29,7 @@ export interface ElectronRuntimeHostOptions {
 
 export function registerElectronRuntimeIpc(
   ipcMain: IpcMainLike,
-  runtime: DataAgentRuntime,
+  runtime: ApplicationCommandHost,
   options: ElectronRuntimeHostOptions = {},
 ): () => void {
   const contextFactory = options.contextFactory ?? (() => ({ userId: "local", host: "electron" as const }));
@@ -63,6 +60,7 @@ export function registerElectronRuntimeIpc(
     if (!sender) return;
     removeSender(sender);
     const sessionId = getSessionId(payload);
+    const context = contextFactory(event);
     const unsubscribe = runtime.subscribe((envelope) => {
       if (sessionId && envelope.sessionId !== sessionId) return;
       try {
@@ -70,7 +68,7 @@ export function registerElectronRuntimeIpc(
       } catch {
         removeSender(sender);
       }
-    });
+    }, { userId: context.userId, ...(sessionId ? { sessionId } : {}) });
     eventSubscriptions.set(sender, { sessionId, unsubscribe });
   };
 
@@ -105,11 +103,6 @@ function getIpcSender(event: unknown): IpcSenderLike | undefined {
 }
 
 function toIpcError(error: unknown): Error {
-  if (error instanceof DataAgentRuntimeError) return error;
-  if (error instanceof TypeError) {
-    return new DataAgentRuntimeError("INVALID_COMMAND", error.message);
-  }
-  return new DataAgentRuntimeError("INVALID_COMMAND", "DataAgent command failed", {
-    cause: error instanceof Error ? error.message : String(error),
-  });
+  if (error instanceof TypeError) return error;
+  return new Error(error instanceof Error ? error.message : "DataAgent command failed");
 }

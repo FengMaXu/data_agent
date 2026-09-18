@@ -4,11 +4,17 @@ import { z } from "zod";
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 import path from "node:path";
-import { SqlGuard } from "@data-agent/runtime";
 
 const DATABASE_MCP_CONTRACT_VERSION = 1;
 const DEFAULT_PREVIEW_LIMIT = 20;
-const MAX_PREVIEW_LIMIT = 200;
+const MAX_PREVIEW_LIMIT = 10_000;
+const FORBIDDEN_SQL = /\b(drop|truncate|delete|insert|update|alter|grant|revoke|call|replace|attach|detach|vacuum|pragma)\b/i;
+
+function readonlySql(sql: string): { allowed: true } | { allowed: false; reason: string } {
+  if (FORBIDDEN_SQL.test(sql)) return { allowed: false, reason: "Statement contains a high-risk SQL operation" };
+  if (sql.includes(";")) return { allowed: false, reason: "Multiple SQL statements are not supported" };
+  return { allowed: true };
+}
 export interface ReferenceSqliteServerOptions { databasePath: string; maxPreviewRows?: number }
 
 function forbiddenSql(reason: string) {
@@ -20,51 +26,62 @@ export function createReferenceSqliteServer(options: ReferenceSqliteServerOption
   const require_ = createRequire(import.meta.url);
   const Database = require_("better-sqlite3");
   const db = new (Database as any)(options.databasePath, { readonly: false });
-  const maxRows = Math.min(options.maxPreviewRows ?? DEFAULT_PREVIEW_LIMIT, MAX_PREVIEW_LIMIT);
+  const maxRows = Math.min(options.maxPreviewRows ?? MAX_PREVIEW_LIMIT, MAX_PREVIEW_LIMIT);
 
   const server = new McpServer(
     { name: "data-agent-sqlite-reference", version: "1.0.0" },
     { capabilities: { resources: {} } },
   );
 
-  const previewShape = { sql: z.string().min(1), limit: z.number().int().positive().max(MAX_PREVIEW_LIMIT).optional() };
+  const previewShape = {
+    sql: z.string().min(1),
+    limit: z.number().int().positive().max(MAX_PREVIEW_LIMIT).optional(),
+    maxBytes: z.number().int().positive().max(64 * 1024).optional(),
+  };
   server.tool(
     "execute_query_preview",
     "Run a read-only SQLite query and return a bounded preview",
     previewShape,
-    async ({ sql, limit }) => {
+    async ({ sql, limit, maxBytes }, extra) => {
       const trimmed = sql.trim().replace(/;+\s*$/, "");
-      const guard = new SqlGuard().check(trimmed);
+      const guard = readonlySql(trimmed);
       if (!guard.allowed) return forbiddenSql(guard.reason);
       if (!/^(?:SELECT|WITH)\b/i.test(trimmed)) return forbiddenSql("Only SELECT/WITH statements are supported");
-      const effectiveLimit = Math.min(limit ?? maxRows, maxRows);
+      if (extra.signal?.aborted) return { content: [{ type: "text" as const, text: JSON.stringify({ error: { code: "QUERY_CANCELLED" } }) }] };
+      const effectiveLimit = Math.min(limit ?? DEFAULT_PREVIEW_LIMIT, maxRows);
       const statement = db.prepare(`SELECT * FROM (${trimmed}) __preview LIMIT ?`);
       const columns: string[] = statement.columns().map((column: { name: string }) => column.name);
-      const rows = statement.all(effectiveLimit + 1) as any[];
-      const truncated = rows.length > effectiveLimit;
-      return { content: [{ type: "text", text: JSON.stringify({ columns, rows: rows.slice(0, effectiveLimit), totalRows: rows.length, truncated, serverLimit: maxRows, contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
+      const rows: any[] = [];
+      let truncated = false;
+      const byteLimit = maxBytes === undefined ? undefined : Math.max(1_024, maxBytes - 512);
+      for (const row of statement.iterate(effectiveLimit + 1) as Iterable<any>) {
+        if (extra.signal?.aborted) return { content: [{ type: "text" as const, text: JSON.stringify({ error: { code: "QUERY_CANCELLED" } }) }] };
+        const candidate = [...rows, row];
+        if (candidate.length > effectiveLimit || (byteLimit !== undefined && Buffer.byteLength(JSON.stringify({ columns, rows: candidate }), "utf8") > byteLimit)) {
+          truncated = true;
+          break;
+        }
+        rows.push(row);
+      }
+      return { content: [{ type: "text", text: JSON.stringify({ columns, rows, totalRows: rows.length + (truncated ? 1 : 0), truncated, serverLimit: maxRows, contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
     },
   );
 
   server.tool(
-    "execute_query_export_batch",
-    "Run one bounded batch of a read-only SQLite export",
-    { sql: z.string().min(1), offset: z.number().int().nonnegative().max(100000).optional(), limit: z.number().int().positive().max(1000).optional(), maxRows: z.number().int().positive().max(100000).optional() },
-    async ({ sql, offset, limit, maxRows: requestedMaxRows }) => {
+    "execute_query_export",
+    "Run one complete bounded read-only SQLite result query",
+    { sql: z.string().min(1), maxRows: z.number().int().positive().max(100000).optional() },
+    async ({ sql, maxRows: requestedMaxRows }) => {
       const trimmed = sql.trim().replace(/;+\s*$/, "");
-      const guard = new SqlGuard().check(trimmed);
+      const guard = readonlySql(trimmed);
       if (!guard.allowed) return forbiddenSql(guard.reason);
       if (!/^(?:SELECT|WITH)\b/i.test(trimmed)) return forbiddenSql("Only SELECT/WITH statements are supported");
-      const start = offset ?? 0;
-      const batchLimit = Math.min(limit ?? 1000, 1000);
       const rowLimit = Math.min(requestedMaxRows ?? 100000, 100000);
-      if (start >= rowLimit) return { content: [{ type: "text", text: JSON.stringify({ rows: [], columns: [], done: true, contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
-      const statement = db.prepare(`SELECT * FROM (${trimmed}) __export LIMIT ? OFFSET ?`);
+      const statement = db.prepare(`SELECT * FROM (${trimmed}) __result LIMIT ?`);
       const columns: string[] = statement.columns().map((column: { name: string }) => column.name);
-      const rows = statement.all(Math.min(batchLimit + 1, rowLimit - start + 1), start) as Record<string, unknown>[];
-      if (rows.length > batchLimit && start + batchLimit >= rowLimit) return { content: [{ type: "text", text: JSON.stringify({ error: { code: "EXPORT_ROW_LIMIT_EXCEEDED", rowLimit } }) }] };
-      const values = rows.slice(0, batchLimit);
-      return { content: [{ type: "text", text: JSON.stringify({ rows: values, columns, done: values.length < batchLimit, contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
+      const rows = statement.all(rowLimit + 1) as Record<string, unknown>[];
+      if (rows.length > rowLimit) return { content: [{ type: "text", text: JSON.stringify({ error: { code: "EXPORT_ROW_LIMIT_EXCEEDED", rowLimit } }) }] };
+      return { content: [{ type: "text", text: JSON.stringify({ rows, columns, truncated: false, contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
     },
   );
 
@@ -74,7 +91,7 @@ export function createReferenceSqliteServer(options: ReferenceSqliteServerOption
     { sql: z.string().min(1) },
     async ({ sql }) => {
       const trimmed = sql.trim().replace(/;+\s*$/, "");
-      const guard = new SqlGuard().check(trimmed);
+      const guard = readonlySql(trimmed);
       if (!guard.allowed) return forbiddenSql(guard.reason);
       try {
         const statement = db.prepare(`EXPLAIN QUERY PLAN ${trimmed}`);
@@ -115,9 +132,8 @@ export function createReferenceSqliteServer(options: ReferenceSqliteServerOption
     },
   );
 
-  // The database MCP server deliberately has no raw export_query(sql) tool.
-  // Full publication is owned by the Query Assurance Runtime, which binds a
-  // Query Artifact, Candidate, Review Outcome and Publication Receipt.
+  // Publication remains an Answering operation; this tool only returns the
+  // complete bounded rows needed to seal one immutable Result Candidate.
   return { server, db, close: () => db.close(), contractVersion: DATABASE_MCP_CONTRACT_VERSION, maxRows };
 }
 

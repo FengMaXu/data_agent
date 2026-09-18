@@ -1,4 +1,19 @@
+---
+knowledgeId: business-definitions
+name: 业务定义
+description: 提供业务指标、枚举、阈值和已知业务约束；内容未明确时不得用通用经验补造业务定义。
+---
+
 # Business Knowledge
+
+## 历史状态枚举（待确认适用范围）
+
+以下内容从旧版 `doc/rules.md` 的“状态值定义（生产业务规则）”迁移，避免将具体业务编码混入通用 SQL 规范。原文未标明所属连接、表或版本；当前 `doc/db_schema.md` 未列出对应用户/订单表，因此迁移不代表已验证其适用于当前数据库。
+
+- 用户状态 `status`：`1=正常`、`2=冻结`、`3=注销`。
+- 订单状态 `order_status`：`pending=待付款`、`paid=已付款`、`shipped=已发货`、`completed=已完成`、`cancelled=已取消`、`refunded=已退款`。
+
+使用前确认对应数据源、表字段、编码与业务定义；范围未确认时仅作为待核实线索，不能自动新增状态过滤或作为 Hard Constraint。
 
 ## 业务指标定义
 

@@ -415,7 +415,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
     const handleStop = async () => {
         if (!isStreaming) return;
         try {
-            await stopAgentViaRuntime();
+            await stopAgentViaRuntime(currentSession.id);
         } catch (err) {
             console.error('Failed to stop agent:', err);
         }
@@ -480,7 +480,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
         if (isStreaming) {
             flushAllBuffers();
             try {
-                await steerAgentViaRuntime(content);
+                await steerAgentViaRuntime(content, currentSession.id);
             } catch (err) {
                 console.error('Failed to steer agent:', err);
             }
@@ -871,7 +871,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
             };
             setMessages((prev) => [...prev, userMsg]);
             setClarificationInput('');
-            await answerClarificationViaRuntime(pendingClarification.clarification_id, answer);
+            await answerClarificationViaRuntime(pendingClarification.clarification_id, answer, currentSession.id);
         } catch (err) {
             console.error('Failed to answer clarification:', err);
         } finally {

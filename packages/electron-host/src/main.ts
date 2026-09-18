@@ -1,20 +1,18 @@
-import type { AgentEvent } from "@earendil-works/pi-agent-core";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { createMcpQueryExecutor } from "./mcp-query-executor.js";
+import { createMcpQueryExecutor, type McpQueryExecutionOptions } from "./mcp-query-executor.js";
 
 /**
  * Production Electron main entry for the TypeScript stack.
  *
  * Responsibilities:
- * - create the per-user data directories (metadata DB, Pi sessions, workspace, knowledge)
- * - construct the shared DataAgentRuntime over those paths
- * - register the versioned command channel on ipcMain
- * - open a BrowserWindow that loads the built Renderer (dist/index.html)
+ * - create the per-user data directories
+ * - construct the shared DataAgentApplication
+ * - register IPC and application publication protocols
+ * - load the Renderer
  *
- * The legacy Python backend is never spawned. The bundled Python runtime pack
- * and KTX semantic context are consumed from extraResources at runtime by the
- * Runtime itself.
+ * Python runs only through the isolated capability pack. Semantic resources
+ * are resolved from the packaged application resources.
  */
 
 export interface ElectronMainRuntimePaths {
@@ -29,14 +27,12 @@ declare const __dirname: string;
 export function resolveRuntimePaths(options: { userDataDir: string; appDir?: string }): ElectronMainRuntimePaths {
   let appDir = options.appDir;
   if (!appDir && typeof __dirname !== "undefined") {
-    // Both generated entry layouts keep the renderer one directory above the
-    // host: frontend/electron-host in development and app.asar/electron-host
-    // after packaging.
+    // Generated entry layouts place the renderer one directory above the host.
     appDir = path.resolve(__dirname, "..");
   }
   return {
     userDataDir: options.userDataDir,
-    // Renderer output lives in <app>/dist when packaged via electron-builder files config
+    // Renderer output is packaged at <app>/dist.
     rendererDist: path.join(appDir ?? process.cwd(), "dist"),
   };
 }
@@ -179,11 +175,6 @@ function firstString(...values: unknown[]): string | undefined {
   return values.find((value): value is string => typeof value === "string" && value.trim().length > 0)?.trim();
 }
 
-function isRuntimeAgentEvent(value: unknown): value is AgentEvent {
-  if (!isRecord(value) || typeof value.type !== "string") return false;
-  return ["message_start", "message_update", "tool_execution_start", "tool_execution_update", "tool_execution_end"].includes(value.type);
-}
-
 function readEncryptedSecretRecord(secretPath: string): Partial<Record<SecretField, string>> {
   try {
     const parsed = JSON.parse(readFileSync(secretPath, "utf8")) as unknown;
@@ -237,14 +228,28 @@ function safeSessionSegment(sessionId: string): string {
   return sessionId;
 }
 
-async function registerWorkspaceProtocol(protocol: ElectronProtocolLike | undefined, workspace: WorkspaceBytesLike & { readBytesWithLegacyFallback(relativePath: string): Promise<Uint8Array> }): Promise<() => void> {
+export async function registerApplicationProtocol(
+  protocol: ElectronProtocolLike | undefined,
+  workspace: WorkspaceBytesLike & { readBytesWithLegacyFallback(relativePath: string): Promise<Uint8Array> },
+  authorizeSession?: (userId: string, sessionId: string) => boolean | Promise<boolean>,
+  readPublication?: (publicationId: string, context: { readonly userId: string; readonly sessionId: string }) => Promise<{ readonly summary: { readonly format: "inline" | "csv" }; readonly content: string }>,
+): Promise<() => void> {
   if (!protocol) return () => undefined;
   await protocol.handle("data-agent", async (request) => {
     try {
       const url = new URL(request.url);
+      if (url.hostname === "publication" && url.pathname.startsWith("/runtime/publications/")) {
+        const publicationId = decodeURIComponent(url.pathname.slice("/runtime/publications/".length));
+        const sessionId = url.searchParams.get("session_id") ?? "";
+        if (!publicationId || !sessionId || !readPublication || (authorizeSession && !(await authorizeSession("local", sessionId)))) return new Response("Not found", { status: 404 });
+        const artifact = await readPublication(publicationId, { userId: "local", sessionId });
+        return new Response(artifact.content, { headers: { "Content-Type": artifact.summary.format === "csv" ? "text/csv; charset=utf-8" : "application/json; charset=utf-8", "Cache-Control": "no-store" } });
+      }
       if (url.hostname !== "workspace" || !url.pathname.startsWith("/workspace/files/")) return new Response("Not found", { status: 404 });
       const relativePath = url.searchParams.get("path") ?? "";
       if (!relativePath) return new Response("File path is required", { status: 400 });
+      const parts = relativePath.replaceAll("\\", "/").split("/").filter(Boolean);
+      if (parts.length >= 2 && authorizeSession && !(await authorizeSession("local", parts[0]))) return new Response("Not found", { status: 404 });
       const bytes = await workspace.readBytesWithLegacyFallback(relativePath);
       return new Response(Buffer.from(bytes), { headers: { "Content-Type": contentTypeFor(relativePath), "Cache-Control": "no-store" } });
     } catch {
@@ -274,7 +279,7 @@ function contentTypeFor(relativePath: string): string {
 
 function createElectronQueryExecutor(
   metadata: { getConfig(key: string): Promise<unknown> },
-  options: { command: string; args: string[]; baseEnv?: Record<string, string> },
+  options: { command: string; args: string[]; baseEnv?: Record<string, string>; scopedExploration?: { readonly scopeId: string; readonly connectionId: string } },
 ) {
   let executor: ReturnType<typeof createMcpQueryExecutor> | undefined;
   let executorKey = "";
@@ -289,18 +294,23 @@ function createElectronQueryExecutor(
     const nextKey = JSON.stringify(env);
     if (executor && executorKey === nextKey) return executor;
     if (executor) await executor.close();
-    executor = createMcpQueryExecutor({ command: options.command, args: options.args, env });
+    executor = createMcpQueryExecutor({ command: options.command, args: options.args, env, ...(options.scopedExploration ? { scopedExploration: options.scopedExploration } : {}) });
     executorKey = nextKey;
     return executor;
   };
 
+  const scopedExploration = options.scopedExploration ? {
+    scope: options.scopedExploration,
+    run: (sql: string, rowLimit: number, execution: McpQueryExecutionOptions) => resolveExecutor().then((current) => {
+      if (!current.scopedExploration) throw new Error("SCOPED_EXPLORATION_NOT_SUPPORTED");
+      return current.scopedExploration.run(sql, rowLimit, execution);
+    }),
+  } : undefined;
   return {
-    run: (sql: string, rowLimit: number) => resolveExecutor().then((current) => current.run(sql, rowLimit)),
+    run: (sql: string, rowLimit: number, execution?: McpQueryExecutionOptions) => resolveExecutor().then((current) => current.run(sql, rowLimit, execution)),
+    ...(scopedExploration ? { scopedExploration } : {}),
     explain: (sql: string, signal?: AbortSignal) => resolveExecutor().then((current) => current.explain(sql, signal)),
     getSchema: () => resolveExecutor().then((current) => current.getSchema()),
-    async *stream(sql: string, signal?: AbortSignal) {
-      yield* (await resolveExecutor()).stream(sql, signal);
-    },
     async close(): Promise<void> {
       if (!executor) return;
       const current = executor;
@@ -388,19 +398,25 @@ async function runPackagedRendererSmoke(window: { webContents?: { executeJavaScr
       const envelope = (requestId, command, sessionId) => ({ protocolVersion: 1, requestId, ...(sessionId ? { sessionId } : {}), command });
       const probe = await invoke(envelope("smoke-probe", { type: "runtime.probe" }));
       const config = await invoke(envelope("smoke-config", { type: "config.get" }));
-      const artifact = await upload({ fileName: "smoke-renderer.txt", bytes: new Uint8Array([115, 109, 111, 107, 101]), sessionId: "smoke-session" });
+      const task = await invoke(envelope("smoke-task", { type: "task.create", name: "Smoke" }));
+      const taskId = task?.response?.item?.id;
+      const session = await invoke(envelope("smoke-session", { type: "session.create", taskId, name: "Smoke" }));
+      const sessionId = session?.response?.item?.id;
+      if (!sessionId) throw new Error("SMOKE_SESSION_CREATE_FAILED");
+      const artifact = await upload({ fileName: "smoke-renderer.txt", bytes: new Uint8Array([115, 109, 111, 107, 101]), sessionId });
       let unsubscribe = () => undefined;
       const completed = new Promise((resolve, reject) => {
         const timer = setTimeout(() => { unsubscribe(); reject(new Error("SMOKE_CHAT_TIMEOUT")); }, 10000);
         unsubscribe = subscribe((event) => {
-          if (event?.sessionId === "smoke-session" && event?.event?.type === "agent.completed") {
+          if (event?.sessionId === sessionId && event?.event?.type === "agent.completed") {
             clearTimeout(timer);
             unsubscribe();
             resolve(true);
           }
-        }, "smoke-session");
+        }, sessionId);
       });
-      const chat = await invoke(envelope("smoke-chat", { type: "agent.prompt", prompt: "smoke" }, "smoke-session"));
+      const chat = await invoke(envelope("smoke-chat", { type: "agent.prompt", prompt: "smoke" }, sessionId));
+      await invoke(envelope("smoke-stop", { type: "agent.stop", operationId: chat?.response?.runId }, sessionId));
       await completed;
       return {
         probe: probe?.response?.type,
@@ -429,28 +445,7 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
     scheme: "data-agent",
     privileges: { secure: true, standard: true, supportFetchAPI: true, stream: true },
   }]);
-  const {
-    DataAgentRuntime,
-    MetadataStore,
-    PiJsonlSessionStore,
-    KnowledgeIndex,
-    WorkspaceStore,
-    createAgentHarnessResolver,
-    createDataAgentHarness,
-    createProfileConversationBlindReviewer,
-    createProfileAnswerSpecGenerator,
-    createProfileInterpretationPlanner,
-    AnomalyRegistry,
-    createQueryAssurance,
-    createSqlglotQueryDigestCompiler,
-    resolveQueryDigestParserVersion,
-    CONVERSATION_BLIND_REVIEWER_PROMPT_VERSION,
-    REVIEW_COVERAGE_SCHEMA_VERSION,
-    QUERY_DIGEST_VERSION,
-    DETERMINISTIC_GATE_NAMES,
-    calibrationRecordFromReports,
-    ReviewModeController,
-  } = await import("@data-agent/runtime");
+  const { createDataAgentApplication } = await import("@data-agent/runtime");
   const { registerElectronRuntimeIpc } = await import("./index.js");
 
   const paths = resolveRuntimePaths({ userDataDir: deps.app.getPath("userData") });
@@ -462,54 +457,15 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
   const effectiveResources = overrides.resourcesPath ?? deps.resourcesPath;
   const bundledPython = path.join(effectiveResources ?? "", "python-runtime", "Scripts", "python.exe");
   const bundledPythonExecutable = effectiveResources && existsSync(bundledPython) ? bundledPython : undefined;
-  let pythonExecutable = bundledPythonExecutable;
-
   for (const dir of ["metadata", "sessions", "workspace", "knowledge"]) {
     mkdirSync(path.join(paths.userDataDir, dir), { recursive: true });
   }
 
-  const metadata = new MetadataStore(path.join(paths.userDataDir, "metadata", "app.db"));
-  const sessions = new PiJsonlSessionStore(path.join(paths.userDataDir, "sessions"));
   const knowledgeRoot = path.join(paths.userDataDir, "knowledge");
-  const workspace = new WorkspaceStore(path.join(paths.userDataDir, "workspace"), { userId: "local" });
-  let knowledge: InstanceType<typeof KnowledgeIndex> | undefined;
-  try {
-    knowledge = new (KnowledgeIndex as unknown as new (root?: string) => InstanceType<typeof KnowledgeIndex>)(knowledgeRoot);
-  } catch {
-    knowledge = undefined;
-  }
-
-  const savedConfig = await metadata.getConfig("ui.settings");
-  if (isRecord(savedConfig)) {
-    const pythonConfig = savedConfig.python_runtime;
-    if (isRecord(pythonConfig) && pythonConfig.mode === "external" && typeof pythonConfig.executable === "string" && pythonConfig.executable.trim()) {
-      pythonExecutable = pythonConfig.executable;
-    }
-  }
-  // The strict Query Digest runs in the same managed Python environment as
-  // plotting. A missing sqlglot package is surfaced as unavailable rather than
-  // silently granting tokenizer coverage.
-  const digestCompiler = pythonExecutable
-    ? createSqlglotQueryDigestCompiler({ executable: pythonExecutable })
-    : undefined;
-  const digestParserVersion = resolveQueryDigestParserVersion(digestCompiler, "mysql");
-
   const secretPath = path.join(paths.userDataDir, "secrets.json");
-  const startupStoredSecrets = readStoredSecrets(secretPath, deps.safeStorage);
-  const reviewerAvailableForConfig = (config: unknown, secrets: StoredLLMSecrets = startupStoredSecrets): boolean => {
-    const cfg = isRecord(config) ? config : {};
-    const provider = typeof cfg.provider === "string" && cfg.provider ? cfg.provider : (secrets.anthropic_api_key ? "anthropic" : "openai");
-    const apiKey = firstString(
-      cfg.api_key,
-      provider === "anthropic" ? cfg.anthropic_api_key : cfg.openai_api_key,
-      secrets.anthropic_api_key && provider === "anthropic" ? secrets.anthropic_api_key : undefined,
-      secrets.openai_api_key && provider !== "anthropic" ? secrets.openai_api_key : undefined,
-    );
-    const model = firstString(cfg.model, secrets.default_model);
-    return cfg.llm_enabled !== false && Boolean(apiKey && model);
-  };
-  const resolveConfiguredProfile = async () => {
-    const saved = await metadata.getConfig("ui.settings");
+  const resolveConfiguredProfile = async (_context: unknown, application: { getConfig(key: string): Promise<unknown> }) => {
+    if (process.env.DATA_AGENT_SMOKE === "1") return { provider: "openai", model: "smoke", apiKey: "smoke", baseUrl: "http://127.0.0.1:9", apiFormat: "responses" as const };
+    const saved = await application.getConfig("ui.settings");
     const cfg = isRecord(saved) ? saved : {};
     const stored = readStoredSecrets(secretPath, deps.safeStorage);
     const provider = typeof cfg.provider === "string" && cfg.provider ? cfg.provider : (stored.anthropic_api_key ? "anthropic" : "openai");
@@ -525,95 +481,6 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
     const apiFormat = cfg.api_format === "chat" || cfg.apiFormat === "chat" ? "chat" : "responses";
     return { provider, model, apiKey, apiFormat, ...(baseUrl ? { baseUrl } : {}) } as const;
   };
-  let reviewerCache: { key: string; reviewer: ReturnType<typeof createProfileConversationBlindReviewer> } | undefined;
-  const reviewer = {
-    review: async (input: import("@data-agent/runtime").ConversationBlindReviewerInput, signal: AbortSignal) => {
-      const profile = await resolveConfiguredProfile();
-      const key = JSON.stringify([profile.provider, profile.model, profile.apiFormat, profile.baseUrl]);
-      if (!reviewerCache || reviewerCache.key !== key) reviewerCache = { key, reviewer: createProfileConversationBlindReviewer(profile) };
-      return reviewerCache.reviewer.review(input, signal);
-    },
-  };
-  let plannerCache: { key: string; planner: ReturnType<typeof createProfileAnswerSpecGenerator> } | undefined;
-  const planner = {
-    generate: async (input: import("@data-agent/runtime").AnswerSpecInput, signal: AbortSignal) => {
-      const profile = await resolveConfiguredProfile();
-      const key = JSON.stringify([profile.provider, profile.model, profile.apiFormat, profile.baseUrl]);
-      if (!plannerCache || plannerCache.key !== key) plannerCache = { key, planner: createProfileAnswerSpecGenerator(profile) };
-      return plannerCache.planner.generate(input, signal);
-    },
-  };
-  const configuredAssuranceMode = isRecord(savedConfig) && ["off", "shadow", "enforce"].includes(String(savedConfig.query_assurance_mode))
-    ? String(savedConfig.query_assurance_mode) as "off" | "shadow" | "enforce"
-    : "shadow";
-  const savedAssuranceConfig = isRecord(savedConfig) && isRecord(savedConfig.query_assurance_calibration)
-    ? savedConfig.query_assurance_calibration
-    : isRecord(savedConfig) && savedConfig.query_assurance_calibrated === true
-      ? { eligible: true }
-      : undefined;
-  const reviewerRuntimeEnabled = isRecord(savedConfig) && savedConfig.query_assurance_reviewer_enabled === true;
-  const configuredReviewerAvailable = reviewerRuntimeEnabled && reviewerAvailableForConfig(savedConfig);
-  const reviewerModel = firstString(isRecord(savedConfig) ? savedConfig.model : undefined, startupStoredSecrets.default_model) ?? "configured";
-  // Raw categorical rows are opt-in because they may contain personal data.
-  // Keep preview and export review evidence policies identical.
-  const reviewEvidence = {
-    includeRows: isRecord(savedConfig) && savedConfig.query_assurance_include_rows === true,
-  };
-  const calibrationIdentity = {
-    reviewerModel,
-    reviewerPromptVersion: CONVERSATION_BLIND_REVIEWER_PROMPT_VERSION,
-    queryDigestVersion: QUERY_DIGEST_VERSION,
-    parserVersion: digestParserVersion,
-    reviewCoverageSchemaVersion: REVIEW_COVERAGE_SCHEMA_VERSION,
-    reviewPolicyVersion: "2",
-    hardConstraintAdmissionPolicy: "2",
-    gatePolicyVersion: "1",
-    gateApplicabilityVersion: "2",
-    probeTemplateVersion: "1",
-    evidenceAdmissionPolicyVersion: "1",
-    dialect: "mysql",
-  };
-  let trustedCalibration;
-  try {
-    trustedCalibration = Array.isArray(savedAssuranceConfig?.reports)
-      ? calibrationRecordFromReports(calibrationIdentity, savedAssuranceConfig.reports as never[], savedAssuranceConfig.reviewerCalibration as never)
-      : undefined;
-  } catch {
-    trustedCalibration = undefined;
-  }
-  // A plain eligible/gateEligibility flag is not calibration evidence. Only a
-  // report-derived record can grant Enforce; missing reviewer capability stays
-  // in Shadow so protected publication remains fail-closed.
-  const modeController = new ReviewModeController({
-    requestedMode: configuredAssuranceMode,
-    reviewerAvailable: configuredReviewerAvailable,
-    ...(configuredAssuranceMode === "enforce" ? { requiredGateNames: DETERMINISTIC_GATE_NAMES } : {}),
-    ...(trustedCalibration ? { calibration: trustedCalibration } : {}),
-    currentCalibrationIdentity: calibrationIdentity,
-  });
-  // Query Assurance is explicitly wired for product sessions. Until a
-  // calibrated reviewer is configured, unavailable review remains fail-closed.
-  const queryAssurance = createQueryAssurance({
-    mode: configuredAssuranceMode,
-    ...(modeController ? { modeController } : {}),
-    ...(reviewerRuntimeEnabled ? { reviewer } : {}),
-    ...(digestCompiler ? { digestCompiler } : {}),
-    parserVersion: digestParserVersion,
-    ...(configuredAssuranceMode !== "off" && (!isRecord(savedConfig) || savedConfig.query_assurance_planner !== false) ? { specGenerator: planner } : {}),
-    reviewerModel,
-    reviewerPromptVersion: CONVERSATION_BLIND_REVIEWER_PROMPT_VERSION,
-    reviewCoverageSchemaVersion: REVIEW_COVERAGE_SCHEMA_VERSION,
-    gatePolicyVersion: "1",
-    gateApplicabilityVersion: "2",
-    probeTemplateVersion: "1",
-    evidenceAdmissionPolicyVersion: "1",
-    dialect: "mysql",
-    reviewEvidence,
-    statePath: path.join(paths.userDataDir, "metadata", "query-assurance-state.json"),
-    shadowDelivery: isRecord(savedConfig) && savedConfig.query_assurance_shadow_delivery === "record_only" ? "record_only" : "publish_with_disagreement",
-    allowUnavailablePublication: false,
-  });
-
   // Semantic sources live in a KTX project under the user data dir; the
   // runtime scans business-semantic/ and semantic-layer/ layouts there.
   // DATA_AGENT_SEMANTIC_PROJECT_DIR overrides (e.g. to reuse an existing project).
@@ -623,23 +490,25 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
   const applicationRoot = path.dirname(paths.rendererDist);
   const developmentRoot = applicationRoot.includes(`${path.sep}app.asar`) ? applicationRoot : path.resolve(applicationRoot, "..");
   const packagedRoot = effectiveResources ?? applicationRoot;
-  const runtime = new DataAgentRuntime({
-    metadata,
-    sessions,
-    workspace,
+  const application = await createDataAgentApplication({
+    dataRoot: paths.userDataDir,
+    host: "electron",
+    defaultUserId: "local",
     knowledgeRoot,
-    knowledge,
-    pythonExecutable,
-    bundledPythonExecutable,
     semanticProjectDir,
+    pythonExecutable: bundledPythonExecutable,
+    bundledPythonExecutable,
+    resolveProfile: resolveConfiguredProfile,
+    // Enable bounded reviewer and authorized knowledge exploration. Delegated
+    // SQL stays unavailable until a database-enforced scoped executor is supplied.
+    enableSubagents: true,
+    delegationKnowledgePaths: ["doc/semantic_guide.md", "doc/rules.md", "doc/business.md", "doc/learning.md"],
+    systemPromptRoots: [knowledgeRoot, developmentRoot, packagedRoot],
+    projectRoot: developmentRoot,
+    packagedRoot,
     skillRoots: [path.join(developmentRoot, ".agents", "skills"), path.join(packagedRoot, ".agents", "skills")],
   });
-  const refreshReviewerCapability = async (config?: Record<string, unknown>): Promise<void> => {
-    const latestConfig = config ?? await metadata.getConfig("ui.settings");
-    modeController.setReviewerAvailable(reviewerAvailableForConfig(latestConfig, readStoredSecrets(secretPath, deps.safeStorage)));
-  };
-  runtime.onConfigSaved = (config) => refreshReviewerCapability(config);
-  runtime.ingestJob = {
+  application.setIngestJob({
     async getStatus() {
       const { readdir } = await import("node:fs/promises");
       let count = 0;
@@ -659,16 +528,7 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
       };
     },
     async retry() { return { accepted: true }; },
-  };
-
-  const anomalyRegistry = new AnomalyRegistry();
-  let interpretationPlannerCache: { key: string; planner: ReturnType<typeof createProfileInterpretationPlanner> } | undefined;
-  const interpretationPlanner = async (input: Parameters<ReturnType<typeof createProfileInterpretationPlanner>>[0]) => {
-    const profile = await resolveConfiguredProfile();
-    const key = JSON.stringify([profile.provider, profile.model, profile.apiFormat, profile.baseUrl]);
-    if (!interpretationPlannerCache || interpretationPlannerCache.key !== key) interpretationPlannerCache = { key, planner: createProfileInterpretationPlanner(profile) };
-    return interpretationPlannerCache.planner(input);
-  };
+  });
 
   const mysqlMcpScript = [
     path.join(__dirname, "mcp-mysql.cjs"),
@@ -681,95 +541,33 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
     baseEnv: { ELECTRON_RUN_AS_NODE: "1" },
   };
   const testers = createElectronHostTesters(mcpProcess);
-  runtime.dbTester = testers.dbTester;
-  runtime.llmTester = testers.llmTester;
-  const queryExecutor = createElectronQueryExecutor(metadata, mcpProcess);
-  runtime.queryExecutor = queryExecutor;
+  application.setHostTesters(testers);
+  const queryExecutor = createElectronQueryExecutor(application, mcpProcess);
+  application.setQueryExecutor(queryExecutor);
   const unregisterDesktopCapabilities = registerDesktopCapabilities(deps.ipcMain as DesktopIpcLike, {
     userDataDir: paths.userDataDir,
     safeStorage: deps.safeStorage,
     dialog: deps.dialog,
     autoUpdater: deps.autoUpdater,
-    workspace,
-    onSecretsChanged: refreshReviewerCapability,
+    workspace: application.workspace,
   });
-  const unregisterRuntimeIpc = registerElectronRuntimeIpc(deps.ipcMain as never, runtime);
-
-  // Keep the Electron host composition identical to the Web Host: the
-  // Runtime owns the protocol while a lazily refreshed native Pi Harness owns
-  // model/tool execution. Missing onboarding config only affects the request,
-  // not host startup.
-  type HarnessLike = {
-    prompt(text: string): Promise<unknown>;
-    steer?(text: string): void;
-    followUp?(text: string): void;
-    abort(): void;
-    subscribe?(listener: (event: unknown) => void): () => void;
-    getResources?(): { skills?: unknown[]; promptTemplates?: unknown[] };
-    setResources?(resources: { skills?: unknown[]; promptTemplates?: unknown[] }): Promise<void>;
-  };
-  let agentHarness: HarnessLike | undefined;
-  const agentListeners = new Set<(event: unknown) => void>();
-  const agentHarnessResolver = createAgentHarnessResolver({
-    getProfile: resolveConfiguredProfile,
-    create: async (profile, sessionId) => {
-      const persistentSession = sessionId ? await sessions.openByAppSessionId(sessionId) : undefined;
-      const harness = await createDataAgentHarness({
-        workspace,
-        knowledge,
-        knowledgeRoot,
-        pythonExecutable: () => runtime.pythonExecutablePath,
-        databaseDialect: "mysql",
-        schemaEvidence: await queryExecutor.getSchema().catch((error) => {
-          console.warn("[data-agent-electron] schema evidence unavailable:", error instanceof Error ? error.message : String(error));
-          return undefined;
-        }),
-        queryExecutor,
-        queryAssurance,
-        anomalyRegistry,
-        interpretationPlanner,
-        reviewEvidence,
-        enforceDeliveryReceipt: true,
-        clarifications: runtime.clarificationManager,
-        session: persistentSession,
-        systemPromptRoots: [knowledgeRoot, developmentRoot, packagedRoot],
-        projectRoot: developmentRoot,
-        packagedRoot,
-        toolContext: { sessionId },
-      }, profile);
-      for (const listener of agentListeners) harness.subscribe?.(listener);
-      agentHarness = harness as unknown as HarnessLike;
-      return harness;
-    },
-  });
-  const resolveAgentHarness = (sessionId?: string) => agentHarnessResolver.resolve(sessionId);
-  runtime.attachAgent({
-    prompt: async (text, context) => (await resolveAgentHarness(context?.sessionId)).prompt(text),
-    steer: (text, context) => { void resolveAgentHarness(context?.sessionId).then((agent) => agent.steer?.(text)); },
-    followUp: (text, context) => { void resolveAgentHarness(context?.sessionId).then((agent) => agent.followUp?.(text)); },
-    abort: () => { agentHarness?.abort(); },
-    getResources: () => agentHarness?.getResources?.() ?? {},
-    setResources: async (resources) => { if (agentHarness?.setResources) await agentHarness.setResources(resources); },
-    subscribe: (listener) => {
-      const forward = (event: unknown): void => { if (isRuntimeAgentEvent(event)) listener(event); };
-      agentListeners.add(forward);
-      return () => agentListeners.delete(forward);
-    },
-  });
-  agentHarnessResolver.warmup((error) => console.warn("[data-agent-electron] agent warm-up unavailable:", error instanceof Error ? error.message : error));
-
+  const unregisterRuntimeIpc = registerElectronRuntimeIpc(deps.ipcMain as never, application);
   await deps.app.whenReady();
-  const unregisterWorkspaceProtocol = await registerWorkspaceProtocol(deps.protocol, workspace);
+  const unregisterWorkspaceProtocol = await registerApplicationProtocol(
+    deps.protocol,
+    application.workspace,
+    async (userId, sessionId) => (await application.authorizeSession(userId, sessionId)) === "owned",
+    (publicationId, context) => application.readPublication(publicationId, context),
+  );
   let disposed = false;
   const dispose = async (): Promise<void> => {
     if (disposed) return;
     disposed = true;
-    agentHarness?.abort();
+    await application.close();
     unregisterWorkspaceProtocol();
     unregisterDesktopCapabilities();
     unregisterRuntimeIpc();
     await queryExecutor.close();
-    await metadata.close();
   };
   const window = new deps.BrowserWindow({
     width: 1440,
@@ -790,7 +588,7 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
     await runPackagedRendererSmoke(window);
     writeFileSync(path.join(paths.userDataDir, "smoke.ok"), "renderer-runtime-config-upload-chat");
   }
-  return { runtime, dispose };
+  return { runtime: application, dispose };
 }
 
 // This module is only loaded as an Electron main entry (tests import

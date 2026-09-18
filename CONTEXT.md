@@ -32,6 +32,22 @@ _Avoid_: Business rule, inferred grain
 A provisional semantic interpretation with stated evidence and confidence that requires validation before it can become a Hard Constraint.
 _Avoid_: Rule, fact
 
+**Hypothesis Handling Status**:
+A Runtime-derived binary lifecycle label. `unhandled` means the hypothesis has no qualifying Verification, rejection, user confirmation, or qualifying selected provisional Decision; every other disposition is `handled`. A material population tie ordered only for reproducibility is not a qualifying selection. The label is not model-writable and does not assert semantic correctness.
+_Avoid_: Solver acknowledgment, verified flag
+
+**Observation Evidence Handle**:
+An opaque, task-scoped identifier returned for a Runtime-registered exploration Query Artifact. It can bind an observed phenomenon to a Claim or Decision, but observed data alone cannot establish the intended business interpretation.
+_Avoid_: Candidate ID, proof, business rule
+
+**Assumption Profile**:
+A normalized per-alternative inventory of stable assumption identifiers grouped by frozen semantic dimension. Runtime derives the Assumption Vector from profile cardinalities; the profile proves representation consistency, not semantic classification correctness.
+_Avoid_: Confidence score, model rationale
+
+**Material Population Decision**:
+A material interpretation choice that changes entity eligibility or a downstream denominator. If substantive selection stages remain tied, stable ordering may order alternatives but cannot select one or mark its Hypothesis handled.
+_Avoid_: Filter warning, row-count anomaly
+
 **Ambiguity**:
 An unresolved choice between plausible interpretations for which current evidence does not establish one authoritative answer.
 _Avoid_: Error, model uncertainty
@@ -43,6 +59,18 @@ _Avoid_: Gate verdict, semantic error
 **Interpretation**:
 One explicit, auditable way to read an ambiguous Answer Spec slot. Multiple interpretations may remain visible until the delivered candidate records which one it implements.
 _Avoid_: Correct answer, reviewer decision
+
+**Schema Profile**:
+Runtime-owned, cached structural statistics for a database, such as table row counts, key cardinalities, null rates, and numeric bounds. It is detector evidence, not a model-callable tool and not a business definition.
+_Avoid_: Data quality verdict, business rule
+
+**Candidate Profile**:
+Runtime-owned statistics limited to columns used by one candidate's Digest for ordering, extrema, averages, distance, or difference expressions. It is disclosed only when relevant to an Anomaly Record or output dependency.
+_Avoid_: Full-table exploration, filtering instruction
+
+**Interpretation Enumerator**:
+An independent planner that lists materially different readings of one anomalous Answer Spec slot. It may provide exact question-span evidence but has no authority to approve, reject, mutate the Spec, or choose the delivered candidate.
+_Avoid_: Reviewer, semantic judge
 
 **Disclosure**:
 The publication record of unresolved observations, alternatives, or unavailable review that remain visible when a result is delivered.
@@ -137,7 +165,7 @@ The evidence that one exact query result was published under a specific Review O
 _Avoid_: Export result, task-complete flag
 
 **Publication Status**:
-The delivery record distinguishing approved publication, publication with known disagreement, rejection without publication, and review unavailability without publication.
+The delivery record distinguishing approved publication from publication with disclosed disagreement. Runner-level non-publication labels separately identify no export call, export failure, provider failure, and integrity blocking.
 _Avoid_: Task complete, export success
 
 **Assurance Audit Record**:
@@ -165,5 +193,5 @@ The control that removes blocking authority and returns Enforced Review to Shado
 _Avoid_: Reviewer retry, automatic approval
 
 **Delivery Policy**:
-The environment-specific rule applied after a Review Decision. Product delivery requires confirmation for unresolved disagreement and otherwise fails closed; Spider2 may submit with disagreement but must not label the submission Approved.
+The environment-specific rule applied after a Review Decision. The default is deliver with disclosure; product integrations may explicitly choose fail closed or ask the user for a dirty-data choice. Spider2 may submit with disagreement but must not label the submission Approved.
 _Avoid_: Reviewer verdict, retry policy

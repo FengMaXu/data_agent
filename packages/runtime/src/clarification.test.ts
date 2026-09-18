@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { DataAgentRuntime, ClarificationManager } from "./index.js";
+import { DataAgentRuntime } from "./protocol.js";
+import { ClarificationManager } from "./clarification.js";
 
 describe("clarification flow", () => {
   const context = { userId: "local", host: "electron" as const };
@@ -16,6 +17,15 @@ describe("clarification flow", () => {
     await expect(first.promise).resolves.toBe("");
     await runtime.dispatch({ protocolVersion: 1, requestId: "a", command: { type: "clarification.answer", clarificationId: second.clarificationId, answer: "north" } }, context);
     await expect(second.promise).resolves.toBe("north");
+  });
+
+  it("retains and consumes the exact answered Host event once", async () => {
+    const manager = new ClarificationManager(5000);
+    const { clarificationId, promise } = manager.ask("session", "Which mapping?", [], undefined, { taskId: "task-1", baseRevisionId: "1", hypothesisId: "H1" });
+    expect(manager.answer(clarificationId, "Use done")).toBe(true);
+    await expect(promise).resolves.toBe("Use done");
+    expect(manager.consumeAnswered(clarificationId)).toMatchObject({ clarificationId, taskId: "task-1", baseRevisionId: "1", hypothesisId: "H1", answer: "Use done", outcome: "answered" });
+    expect(manager.consumeAnswered(clarificationId)).toBeUndefined();
   });
 
   it("expires pending clarifications after the timeout", async () => {

@@ -177,6 +177,7 @@ export function sendChatViaRuntime(
   sessionId?: string,
 ): RuntimeChatHandle {
   let activeMessageId = "";
+  let operationId: string | undefined;
   let isDone = false;
   const toolArgumentsById = new Map<string, unknown>();
 
@@ -218,11 +219,19 @@ export function sendChatViaRuntime(
   }, sessionId);
   const finished = (async () => {
     try {
-      await getRuntimeClient().dispatch({ type: "agent.prompt", prompt }, sessionId);
+      const accepted = await getRuntimeClient().dispatch({ type: "agent.prompt", prompt }, sessionId);
+      if (accepted.response.type === "agent.prompt.accepted") operationId = accepted.response.runId;
     } catch (err) {
       onError(err);
       handleFinish();
     }
   })();
-  return { cancel: () => { unsubscribe(); handleFinish(); }, finished };
+  return {
+    cancel: () => {
+      if (operationId) void getRuntimeClient().dispatch({ type: "agent.stop", operationId }, sessionId).catch(() => undefined);
+      unsubscribe();
+      handleFinish();
+    },
+    finished,
+  };
 }

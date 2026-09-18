@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-07T09:42:41.158Z",
+  "runPath": "C:\\data-agent-eval\\runs\\answer-plan-phase0-b1-local032-001",
+  "runId": "answer-plan-phase0-b1-local032-001",
+  "identities": {
+    "agentCommit": "0117a658f4a2401d304a68d71162f7c8980e4ea0",
+    "spider2Commit": "c2521ae94a8da35776c408885f00c081687d1c84",
+    "datasetSha256": "67309a9c6517489fbb6d6b425d45ada79dd62d63b6b3476c84ddf9d4b02b67d9",
+    "evaluatorSha256": "78b13bd1be942b6e8026feab1d0a636f8798eaea0ffb1be23152edc70ff37118",
+    "systemPromptSha256": "9335eb1152ae2085eff0cd72246c339a68e197d51957dee8dca4e44a29a88b25",
+    "manifestSha256": "a4f9ef797722676ab9914a5739998532a8994e10e14e252ad1f0d39d1633b33d"
+  },
+  "denominator": [
+    "local032"
+  ],
+  "deliveredSet": [
+    "local032"
+  ],
+  "correctSet": [],
+  "deliveredAndCorrectSet": [],
+  "deliveredButIncorrectSet": [
+    "local032"
+  ],
+  "notDeliveredSet": [],
+  "missingCaseResults": [],
+  "publicationByCase": {
+    "local032": "published_with_disagreement"
+  },
+  "metrics": {
+    "total": 1,
+    "delivered": 1,
+    "correct": 0,
+    "deliveredCoverage": 1,
+    "fixedDenominatorScore": 0,
+    "missingSubmissions": 0,
+    "summarySqlCoverage": 1,
+    "summaryCsvCoverage": 1
+  }
+}

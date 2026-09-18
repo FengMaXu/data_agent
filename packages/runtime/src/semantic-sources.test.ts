@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { DataAgentRuntime } from "./index.js";
+import { DataAgentRuntime } from "./protocol.js";
 
 const ctx = { userId: "local", host: "electron" as const };
 

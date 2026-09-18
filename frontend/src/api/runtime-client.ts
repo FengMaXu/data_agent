@@ -127,12 +127,12 @@ export async function readKnowledgeViaRuntime(path: string): Promise<string> {
   return result.content;
 }
 
-export async function stopAgentViaRuntime(): Promise<void> {
-  await getRuntimeClient().dispatch({ type: "agent.stop" });
+export async function stopAgentViaRuntime(sessionId?: string, operationId?: string): Promise<void> {
+  await getRuntimeClient().dispatch({ type: "agent.stop", ...(operationId ? { operationId } : {}) }, sessionId);
 }
 
-export async function steerAgentViaRuntime(prompt: string): Promise<void> {
-  await getRuntimeClient().dispatch({ type: "agent.steer", prompt });
+export async function steerAgentViaRuntime(prompt: string, sessionId?: string): Promise<void> {
+  await getRuntimeClient().dispatch({ type: "agent.steer", prompt }, sessionId);
 }
 
 export async function renameSessionViaRuntime(sessionId: string, name: string): Promise<void> {
@@ -227,8 +227,8 @@ export async function retryIngestViaRuntime(): Promise<void> {
   if (envelope.response.type !== "semantic.ingest.retry.result") throw new Error("UNEXPECTED_RESPONSE");
 }
 
-export async function answerClarificationViaRuntime(clarificationId: string, answer: string): Promise<void> {
-  await getRuntimeClient().dispatch({ type: "clarification.answer", clarificationId, answer });
+export async function answerClarificationViaRuntime(clarificationId: string, answer: string, sessionId?: string): Promise<void> {
+  await getRuntimeClient().dispatch({ type: "clarification.answer", clarificationId, answer }, sessionId);
 }
 
 export function subscribeRuntimeEvents(
@@ -322,18 +322,6 @@ export async function testMcpServerViaRuntime(name: string): Promise<{ ok: boole
 export async function restartMcpServerViaRuntime(name: string): Promise<void> {
   const envelope = await getRuntimeClient().dispatch({ type: "mcp.server.restart", name });
   if (envelope.response.type !== "mcp.server.restart.result") throw new Error("UNEXPECTED_RESPONSE");
-}
-
-export async function listLlmProfilesViaRuntime(): Promise<Array<Record<string, unknown>>> {
-  const envelope = await getRuntimeClient().dispatch({ type: "config.llm.list" });
-  const result = envelope.response;
-  if (result.type !== "config.llm.list.result") throw new Error("UNEXPECTED_RESPONSE");
-  return result.profiles as Array<Record<string, unknown>>;
-}
-
-export async function saveLlmProfileViaRuntime(profile: { id?: string; provider: string; model: string; apiKey?: string }): Promise<void> {
-  const envelope = await getRuntimeClient().dispatch({ type: "config.llm.save", profile });
-  if (envelope.response.type !== "config.llm.save.result") throw new Error("UNEXPECTED_RESPONSE");
 }
 
 export async function getConfigViaRuntime(): Promise<Record<string, unknown>> {

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { DataAgentRuntime } from "@data-agent/runtime";
+import { DataAgentRuntime } from "@data-agent/runtime/testing";
 import { registerElectronRuntimeIpc, type IpcMainLike } from "./index.js";
 
  describe("Electron IPC Host", () => {
   it("dispatches the runtime probe without trusting renderer identity", async () => {
-    const runtime = new DataAgentRuntime({ agent: { prompt: async () => undefined, abort: () => undefined } });
+    const runtime = new DataAgentRuntime({ agent: { prompt: async () => ({ operationId: "test-operation" }), abort: () => undefined } });
     const handlers = new Map<string, (event: unknown, payload: unknown) => Promise<unknown>>();
     const eventListeners = new Map<string, (event: unknown) => void>();
     const ipcMain: IpcMainLike = {
@@ -39,7 +39,7 @@ import { registerElectronRuntimeIpc, type IpcMainLike } from "./index.js";
     expect(handlers.has("data-agent:command")).toBe(false);
   });
 
-  it("filters IPC runtime events by the renderer's requested session", () => {
+  it("filters IPC runtime events by the renderer's requested session", async () => {
     const runtime = new DataAgentRuntime();
     const eventListeners = new Map<string, (event: unknown, payload?: unknown) => void>();
     const ipcMain: IpcMainLike = {
@@ -52,6 +52,7 @@ import { registerElectronRuntimeIpc, type IpcMainLike } from "./index.js";
     const sender = { send: (_channel: string, payload: unknown) => sent.push(payload) };
     const unregister = registerElectronRuntimeIpc(ipcMain, runtime);
     eventListeners.get("data-agent:events:subscribe")?.({ sender }, { sessionId: "session-1" });
+    await runtime.dispatch({ protocolVersion: 1, requestId: "bind-session", sessionId: "session-1", command: { type: "runtime.probe" } }, { userId: "local", host: "electron", sessionId: "session-1" });
 
     runtime.askClarification("session-2", "other", []);
     runtime.askClarification("session-1", "wanted", []);
@@ -96,12 +97,13 @@ import { registerElectronRuntimeIpc, type IpcMainLike } from "./index.js";
   });
 });
 
-import { MetadataStore, PiJsonlSessionStore } from "@data-agent/runtime";
+import { MetadataStore } from "@data-agent/runtime/testing";
+import { PiJsonlSessionStore } from "../../runtime/src/session-store.js";
 import { mkdtemp, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-describe("Electron IPC Host: migrated capabilities", () => {
+describe("Electron IPC Application Host", () => {
   it("dispatches task/session/knowledge/config commands over IPC", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "ipc-e2e-"));
     await mkdir(path.join(root, "knowledge"), { recursive: true });

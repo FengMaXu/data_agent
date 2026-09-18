@@ -5,9 +5,8 @@ import type { Pool } from "pg";
 
 export const DATABASE_MCP_CONTRACT_VERSION = 1;
 const DEFAULT_PREVIEW_LIMIT = 20;
-const MAX_PREVIEW_LIMIT = 200;
+const MAX_PREVIEW_LIMIT = 10_000;
 const MAX_EXPORT_ROWS = 100_000;
-const MAX_EXPORT_BATCH = 1_000;
 
 export interface PgReferenceServerOptions {
   pool: Pool;
@@ -22,7 +21,7 @@ const FORBIDDEN = /\b(drop|truncate|delete|insert|update|alter|grant|revoke|call
 
 export async function createPgReferenceServer(options: PgReferenceServerOptions) {
   const pool = options.pool;
-  const maxRows = Math.min(options.maxPreviewRows ?? DEFAULT_PREVIEW_LIMIT, MAX_PREVIEW_LIMIT);
+  const maxPreviewRows = Math.min(options.maxPreviewRows ?? MAX_PREVIEW_LIMIT, MAX_PREVIEW_LIMIT);
 
   const server = new McpServer({ name: "data-agent-pg-reference", version: "1.0.0" });
 
@@ -32,16 +31,27 @@ export async function createPgReferenceServer(options: PgReferenceServerOptions)
     {
       sql: z.string().min(1),
       limit: z.number().int().positive().max(MAX_PREVIEW_LIMIT).optional(),
+      maxBytes: z.number().int().positive().max(64 * 1024).optional(),
     },
-    async ({ sql, limit }) => {
+    async ({ sql, limit, maxBytes }) => {
       const trimmed = sql.trim().replace(/;+\s*$/, "");
       if (FORBIDDEN.test(trimmed)) {
         return { content: [{ type: "text", text: JSON.stringify({ error: { code: "FORBIDDEN_SQL" } }) }] };
       }
-      const effectiveLimit = Math.min(limit ?? maxRows, maxRows);
+      const effectiveLimit = Math.min(limit ?? DEFAULT_PREVIEW_LIMIT, maxPreviewRows);
       try {
         const result = await pool.query(`SELECT * FROM (${trimmed}) __preview LIMIT ${effectiveLimit + 1}`);
-        return { content: [{ type: "text", text: JSON.stringify({ rows: result.rows.slice(0, effectiveLimit), columns: result.fields.map((field) => field.name), totalRows: result.rows.length, truncated: result.rows.length > effectiveLimit, serverLimit: maxRows, contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
+        const columns = result.fields.map((field) => field.name);
+        let rows = result.rows.slice(0, effectiveLimit);
+        let truncated = result.rows.length > effectiveLimit;
+        if (maxBytes !== undefined) {
+          while (rows.length > 0 && Buffer.byteLength(JSON.stringify({ rows, columns }), "utf8") > maxBytes) {
+            rows = rows.slice(0, -1);
+            truncated = true;
+          }
+          if (Buffer.byteLength(JSON.stringify({ rows, columns }), "utf8") > maxBytes) throw new Error("QUERY_PREVIEW_BYTES_EXCEEDED");
+        }
+        return { content: [{ type: "text", text: JSON.stringify({ rows, columns, totalRows: result.rows.length, truncated, serverLimit: maxPreviewRows, contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
       } catch (error) {
         return { content: [{ type: "text", text: JSON.stringify({ error: { code: "QUERY_FAILED", message: redact(`${(error as Error).message} in ${redact(trimmed)}`) } }) }] };
       }
@@ -66,28 +76,21 @@ export async function createPgReferenceServer(options: PgReferenceServerOptions)
   );
 
   server.tool(
-    "execute_query_export_batch",
-    "Run one bounded batch of a read-only PostgreSQL export",
+    "execute_query_export",
+    "Run one complete bounded read-only PostgreSQL result query",
     {
       sql: z.string().min(1),
-      offset: z.number().int().nonnegative().max(MAX_EXPORT_ROWS).optional(),
-      limit: z.number().int().positive().max(MAX_EXPORT_BATCH).optional(),
       maxRows: z.number().int().positive().max(MAX_EXPORT_ROWS).optional(),
     },
-    async ({ sql, offset, limit, maxRows: requestedMaxRows }) => {
+    async ({ sql, maxRows: requestedMaxRows }) => {
       const trimmed = sql.trim().replace(/;+\s*$/, "");
       if (FORBIDDEN.test(trimmed)) return { content: [{ type: "text", text: JSON.stringify({ error: { code: "FORBIDDEN_SQL" } }) }] };
-      const start = offset ?? 0;
-      const batchLimit = Math.min(limit ?? MAX_EXPORT_BATCH, MAX_EXPORT_BATCH);
       const rowLimit = Math.min(requestedMaxRows ?? MAX_EXPORT_ROWS, MAX_EXPORT_ROWS);
-      if (start >= rowLimit) return { content: [{ type: "text", text: JSON.stringify({ rows: [], columns: [], done: true, contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
       try {
-        const result = await pool.query(`SELECT * FROM (${trimmed}) __export LIMIT ${Math.min(batchLimit + 1, rowLimit - start + 1)} OFFSET ${start}`);
+        const result = await pool.query(`SELECT * FROM (${trimmed}) __result LIMIT ${rowLimit + 1}`);
+        if (result.rows.length > rowLimit) return { content: [{ type: "text", text: JSON.stringify({ error: { code: "EXPORT_ROW_LIMIT_EXCEEDED", rowLimit } }) }] };
         const columns = result.fields.map((field) => field.name);
-        const tooMany = result.rows.length > batchLimit && start + batchLimit >= rowLimit;
-        if (tooMany) return { content: [{ type: "text", text: JSON.stringify({ error: { code: "EXPORT_ROW_LIMIT_EXCEEDED", rowLimit } }) }] };
-        const rows = result.rows.slice(0, batchLimit);
-        return { content: [{ type: "text", text: JSON.stringify({ rows, columns, done: rows.length < batchLimit, contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
+        return { content: [{ type: "text", text: JSON.stringify({ rows: result.rows, columns, truncated: false, contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
       } catch (error) {
         return { content: [{ type: "text", text: JSON.stringify({ error: { code: "QUERY_FAILED", message: redact(`${(error as Error).message} in ${redact(trimmed)}`).slice(0, 500) } }) }] };
       }

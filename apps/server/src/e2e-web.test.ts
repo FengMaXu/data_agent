@@ -3,9 +3,10 @@ import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { createRuntimeServer } from "./index.js";
-import { DataAgentRuntime, MetadataStore, PiJsonlSessionStore } from "@data-agent/runtime";
+import { DataAgentRuntime, MetadataStore } from "@data-agent/runtime/testing";
+import { PiJsonlSessionStore } from "../../../packages/runtime/src/session-store.js";
 
-describe("Web host end-to-end: migrated capabilities", () => {
+describe("Web Application Host end-to-end", () => {
   let app: Awaited<ReturnType<typeof createRuntimeServer>>;
   let root = "";
   let token = "";
@@ -24,7 +25,7 @@ describe("Web host end-to-end: migrated capabilities", () => {
     const knowledgeRoot = path.join(root, "knowledge");
     await mkdir(knowledgeRoot, { recursive: true });
     const sessions = new PiJsonlSessionStore(path.join(root, "sessions"));
-    const runtime = new DataAgentRuntime({ metadata, sessions, knowledgeRoot, semanticProjectDir: root } as never);
+    const runtime = new DataAgentRuntime({ metadata, sessions, knowledgeRoot, semanticProjectDir: root, agent: { prompt: async () => ({ operationId: "test-operation" }), getTranscript: async () => [] } } as never);
     app = await createRuntimeServer(runtime);
     await app.ready();
   });

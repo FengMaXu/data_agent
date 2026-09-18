@@ -1,0 +1,3429 @@
+session=session_cbc0b4fd-b15c-4718-814c-d37769d80486
+name=08月13日_使用KTX，查询2025年12月批发零售餐饮三大行业的累计销售额和同比增速
+updated=2026-08-13T01:55:11.307534+00:00
+started=2026-08-13T01:49:52.828082+00:00
+
+
+===== ITEM 0 role=user id=user-1786585792742 =====
+CONTENT:
+使用KTX，查询2025年12月批发零售餐饮三大行业的累计销售额和同比增速
+
+===== ITEM 1 role=agent id=local-msg_a7cdb5f6fbc448d2a4dbc922 =====
+CONTENT:
+
+REASONING:
+The user wants to use KTX (semantic layer) to query 2025年12月 (December 2025) cumulative sales and year-over-year growth rates for the three major industries: 批发 (wholesale), 零售 (retail), and 餐饮 (catering/restaurant).
+
+Per the instructions, for KTX work:
+1. Start with `semantic_sl_discover` without `connectionId`.
+2. Use only a `connectionId` returned by that call.
+3. During queries, first search through `query_patterns.md`, `business.md`, and `learning.md`.
+
+Let me start by searching for the KTX tools and reading knowledge files.
+
+Let me use tool_search with multiple queries at once.
+TOOL CALLS (1):
+
+-- TOOL 0 name=tool_search status=done --
+ARGS:
+{
+  "queries": [
+    "select:semantic_sl_discover,semantic_sl_read_source,semantic_sl_query",
+    "search knowledge query patterns business learning",
+    "search_knowledge"
+  ]
+}
+RESULT:
+{
+  "query": "select:semantic_sl_discover,semantic_sl_read_source,semantic_sl_query",
+  "queries": [
+    "select:semantic_sl_discover,semantic_sl_read_source,semantic_sl_query",
+    "search knowledge query patterns business learning",
+    "search_knowledge"
+  ],
+  "matched_tools": [
+    {
+      "name": "semantic_sl_discover",
+      "label": "[semantic] sl_discover",
+      "description": "[MCP server: semantic; description: Bundled ktx semantic context MCP; tags: semantic, host-only-ingest] Discover semantic sources, measures, joins, and canonical connection IDs. Call with no arguments first. Never guess connectionId values.",
+      "parameter_names": [
+        "connectionId"
+      ],
+      "score": 1000.0,
+      "reason": "select",
+      "matched_query": "select:semantic_sl_discover,semantic_sl_read_source,semantic_sl_query",
+      "already_loaded": false
+    },
+    {
+      "name": "semantic_sl_read_source",
+      "label": "[semantic] sl_read_source",
+      "description": "[MCP server: semantic; description: Bundled ktx semantic context MCP; tags: semantic, host-only-ingest] Read one semantic-layer YAML source. Omit connectionId when only one connection is configured; otherwise use an exact ID returned by sl_discover. Never guess connection IDs.",
+      "parameter_names": [
+        "connectionId",
+        "sourceName"
+      ],
+      "score": 1000.0,
+      "reason": "select",
+      "matched_query": "select:semantic_sl_discover,semantic_sl_read_source,semantic_sl_query",
+      "already_loaded": false
+    },
+    {
+      "name": "semantic_sl_query",
+      "label": "[semantic] sl_query",
+      "description": "[MCP server: semantic; description: Bundled ktx semantic context MCP; tags: semantic, host-only-ingest] Execute a bounded read-only semantic query using approved catalog references. Omit connectionId when only one connection is configured; otherwise use an exact ID returned by sl_discover. Never guess connection IDs.",
+      "parameter_names": [
+        "connectionId",
+        "measures",
+        "dimensions",
+        "filters",
+        "segments",
+        "orderBy",
+        "limit",
+        "includeEmpty",
+        "maxRows"
+      ],
+      "score": 1000.0,
+      "reason": "select",
+      "matched_query": "select:semantic_sl_discover,semantic_sl_read_source,semantic_sl_query",
+      "already_loaded": false
+    },
+    {
+      "name": "search_query_patterns",
+      "label": "检索查询模板",
+      "description": "直接在 knowledge/doc/query_patterns.md 中检索最相关的查询模板片段。 适用于单值查询、单指标查询、单月累计值查询等快速路径场景。 返回最匹配的模板标题、适用片段、命中关键词和示例 SQL。 命中后应优先直接改写模板并执行 SQL，而不是先 search_knowledge 再 read_knowledge_file。",
+      "parameter_names": [
+        "query",
+        "max_results"
+      ],
+      "score": 92.0,
+      "reason": "catalog_term,name_term",
+      "matched_query": "search knowledge query patterns business learning",
+      "already_loaded": false
+    },
+    {
+      "name": "search_knowledge",
+      "label": "搜索知识库",
+      "description": "在 knowledge/ 下的 Markdown 文档中搜索内容。 默认使用智能关键词模式，适合自然语言查询；也支持 regex 模式做 grep 风格精确搜索。 返回文件路径、行号和上下文，适用于查找业务规则、表结构、SQL 模板、历史经验等。",
+      "parameter_names": [
+        "query",
+        "context_lines",
+        "max_results",
+        "mode"
+      ],
+      "score": 64.0,
+      "reason": "name_term,catalog_term",
+      "matched_query": "search knowledge query patterns business learning",
+      "already_loaded": false
+    },
+    {
+      "name": "search_business_context",
+      "label": "搜索业务知识",
+      "description": "搜索企业业务标注知识库，获取业务指标定义、计算规则和常见陷阱。当用户提到模糊的业务术语（如'大客户'、'净收入'、'活跃用户'）时，应先调用此工具确认其精确定义，避免误解。不传 query 参数时返回全部业务知识。",
+      "parameter_names": [
+        "query"
+      ],
+      "score": 64.0,
+      "reason": "name_term,catalog_term",
+      "matched_query": "search knowledge query patterns business learning",
+      "already_loaded": false
+    },
+    {
+      "name": "read_knowledge_file",
+      "label": "读取知识文件",
+      "description": "读取知识库中的指定文件完整内容。 不传 path 时返回知识库文件清单。 可用文件如: doc/business.md, doc/rules.md, doc/db_schema.md, doc/query_patterns.md, doc/learning.md, agent.md",
+      "parameter_names": [
+        "path"
+      ],
+      "score": 60.0,
+      "reason": "name_term,catalog_term",
+      "matched_query": "search knowledge query patterns business learning",
+      "already_loaded": false
+    },
+    {
+      "name": "search_past_learnings",
+      "label": "搜索历史教训",
+      "description": "搜索历史错题本，查找之前犯过的 SQL 错误和修正经验。 在编写涉及特定表的 SQL 前，应先搜索该表相关的历史教训。 可按关键词或表名搜索。",
+      "parameter_names": [
+        "query",
+        "tables"
+      ],
+      "score": 40.0,
+      "reason": "name_term,catalog_term,catalog_substring",
+      "matched_query": "search knowledge query patterns business learning",
+      "already_loaded": false
+    },
+    {
+      "name": "qcc-company_get_company_by_query",
+      "label": "[qcc-company] get_company_by_query",
+      "description": "[MCP server: qcc-company; description: 企查查 MCP Server; tags: qcc] 根据用户输入的搜索关键词，对企业当前名称、企业简称、品牌名称、股票简称等维度进行模糊搜索，返回唯一精确匹配（自动锁定）或最多 5 个候选主体清单（人工选定）。适用场景：KYB / AML / IC Memo 等所有风控/尽调 SKILL 的实体锚定前置环节、用户输入企业简称、股票简称等模糊关键字时的多候选引导、业务工具返回无匹配项时的反向衔接（先调本工具锁定实体，再重试业务工具）、降低实体歧义导致的错误尽调风险。 【结果处理】 - 唯一精确匹配：直接用统一社会信用代码调下游工具 - 多候选：必须将候选列表完整展示给用户，等待用户明确选定后再调用下游工具。自动选择排名第一的候选项是...",
+      "parameter_names": [
+        "searchKey"
+      ],
+      "score": 36.0,
+      "reason": "catalog_term,name_term",
+      "matched_query": "search knowledge query patterns business learning",
+      "already_loaded": false
+    },
+    {
+      "name": "write_knowledge_file",
+      "label": "更新知识文件",
+      "description": "写入或更新知识库中的 .md 文件。 用途：更新业务规则、补充表结构注释、记录新的SQL模板等。 支持覆盖写入(overwrite)和追加写入(append)两种模式。",
+      "parameter_names": [
+        "path",
+        "content",
+        "mode"
+      ],
+      "score": 28.0,
+      "reason": "name_term",
+      "matched_query": "search_knowledge",
+      "already_loaded": false
+    },
+    {
+      "name": "edit_knowledge_file",
+      "label": "编辑知识文件",
+      "description": "局部编辑知识库中的 .md 文件。 通过精确匹配 old_text 并替换为 new_text，实现定点修改。 old_text 必须在文件中唯一匹配（出现恰好 1 次）。 适用于：修改某条业务定义、更新某段规则、修正错误内容等。 如需追加内容，使用 write_knowledge_file 的 append 模式。",
+      "parameter_names": [
+        "path",
+        "old_text",
+        "new_text"
+      ],
+      "score": 28.0,
+      "reason": "name_term",
+      "matched_query": "search_knowledge",
+      "already_loaded": false
+    }
+  ],
+  "newly_loaded_tools": [
+    "semantic_sl_discover",
+    "semantic_sl_read_source",
+    "semantic_sl_query",
+    "search_query_patterns",
+    "search_knowledge",
+    "search_business_context",
+    "read_knowledge_file",
+    "search_past_learnings",
+    "qcc-company_get_company_by_query",
+    "write_knowledge_file",
+    "edit_knowledge_file"
+  ],
+  "loaded_tool_count": 11,
+  "deferred_tool_count": 33,
+  "total_tool_count": 44,
+  "unmatched_names": [],
+  "unmatched_by_query": {},
+  "omitted_names": [],
+  "omitted_by_query": {},
+  "next_step": "Matched tools are loaded for the next model turn. Call the loaded tools directly if they are relevant. Use queries:[...] or select:<tool_name,...> to load multiple tools in a single future call."
+}
+
+===== ITEM 2 role=agent id=local-msg_d5acd1de1f874522838c7b68 =====
+CONTENT:
+
+REASONING:
+Let me start KTX work. First, discover the semantic layer sources, and simultaneously search knowledge for query patterns and business context on 批发零售餐饮.
+TOOL CALLS (3):
+
+-- TOOL 0 name=semantic_sl_discover status=done --
+ARGS:
+{}
+RESULT:
+{
+  "connections": [
+    {
+      "connectionId": "default-mysql",
+      "sources": [
+        {
+          "name": "dim_company",
+          "columnCount": 4,
+          "measureCount": 1,
+          "joinCount": 0
+        },
+        {
+          "name": "dim_company_monthly_snapshot",
+          "columnCount": 7,
+          "measureCount": 1,
+          "joinCount": 0
+        },
+        {
+          "name": "dim_industry",
+          "columnCount": 12,
+          "measureCount": 1,
+          "joinCount": 0
+        },
+        {
+          "name": "fact_retail_monthly",
+          "columnCount": 7,
+          "measureCount": 1,
+          "joinCount": 0
+        },
+        {
+          "name": "fact_sales_monthly",
+          "columnCount": 20,
+          "measureCount": 1,
+          "joinCount": 0
+        },
+        {
+          "name": "int_company_industry",
+          "columnCount": 10,
+          "measureCount": 1,
+          "joinCount": 0
+        },
+        {
+          "name": "int_industry_sales",
+          "columnCount": 13,
+          "measureCount": 1,
+          "joinCount": 0
+        },
+        {
+          "name": "int_industry_sales_metrics",
+          "columnCount": 30,
+          "measureCount": 1,
+          "joinCount": 0
+        },
+        {
+          "name": "int_social_retail",
+          "columnCount": 18,
+          "measureCount": 1,
+          "joinCount": 0
+        },
+        {
+          "name": "mart_industry_sales_detail",
+          "columnCount": 26,
+          "measureCount": 1,
+          "joinCount": 0
+        },
+        {
+          "name": "mart_industry_sales_summary",
+          "columnCount": 7,
+          "measureCount": 5,
+          "joinCount": 0
+        },
+        {
+          "name": "mart_industry_sales_top50",
+          "columnCount": 20,
+          "measureCount": 1,
+          "joinCount": 0
+        },
+        {
+          "name": "mart_social_retail_detail",
+          "columnCount": 18,
+          "measureCount": 1,
+          "joinCount": 0
+        },
+        {
+          "name": "mart_social_retail_district_summary",
+          "columnCount": 5,
+          "measureCount": 1,
+          "joinCount": 0
+        },
+        {
+          "name": "mart_social_retail_industry_summary",
+          "columnCount": 4,
+          "measureCount": 1,
+          "joinCount": 0
+        },
+        {
+          "name": "mart_social_retail_special_summary",
+          "columnCount": 7,
+          "measureCount": 1,
+          "joinCount": 0
+        },
+        {
+          "name": "raw_accommodation_catering_monthly",
+          "columnCount": 16,
+          "measureCount": 1,
+          "joinCount": 0
+        },
+        {
+          "name": "raw_company_monthly",
+          "columnCount": 11,
+          "measureCount": 1,
+          "joinCount": 0
+        },
+        {
+          "name": "raw_industry_codes",
+          "columnCount": 7,
+          "measureCount": 1,
+          "joinCount": 0
+        },
+        {
+          "name": "raw_wholesale_retail_monthly",
+          "columnCount": 21,
+          "measureCount": 1,
+          "joinCount": 0
+        },
+        {
+          "name": "stg_accommodation_catering_monthly",
+          "columnCount": 14,
+          "measureCount": 1,
+          "joinCount": 0
+        },
+        {
+          "name": "stg_company_monthly",
+          "columnCount": 8,
+          "measureCount": 1,
+          "joinCount": 0
+        },
+        {
+          "name": "stg_industry_codes",
+          "columnCount": 5,
+          "measureCount": 1,
+          "joinCount": 0
+        },
+        {
+          "name": "stg_wholesale_retail_monthly",
+          "columnCount": 18,
+          "measureCount": 1,
+          "joinCount": 0
+        },
+        {
+          "name": "temp_company",
+          "columnCount": 3,
+          "measureCount": 1,
+          "joinCount": 0
+        }
+      ]
+    }
+  ]
+}
+
+-- TOOL 1 name=search_query_patterns status=done --
+ARGS:
+{
+  "query": "批发零售餐饮 累计销售额 同比增速"
+}
+RESULT:
+# 查询模板检索结果
+
+问题: "批发零售餐饮 累计销售额 同比增速"
+命中模板数: 3
+
+使用建议: 若命中模板足够贴近，直接改写 SQL 并执行；不要先做通用知识搜索。
+
+## 1. 查询指定行业大类在指定月份的累计销售额和同比增速 (评分 23)
+来源: doc/query_patterns.md
+命中关键词: 累计销售额, 同比增速
+适用片段:
+```
+```sql
+-- 查询指定行业大类在指定月份的累计销售额和同比增速
+-- 参数说明：
+--   @industry_code_large: 行业大类代码（如：'51' 表示批发业）
+--   @target_month: 目标月份（格式：'YYYY-MM-01'）
+SELECT
+    di.industry_name_large as 行业大类,
+    f.snapshot_month as 月份,
+    ROUND(SUM(f.sales_ytd), 4) as 本年累计销售额_亿元,
+    ROUND(SUM(f.sales_ytd_last_year), 4) as 上年同期累计销售额_亿元,
+    ROUND((SUM(f.sales_ytd) - SUM(f.sales_ytd_last_year)) / SUM(f.sales_ytd_last_year) * 100, 2) as 同比增速_百分比
+FROM fact_sales_monthly f
+JOIN dim_company_monthly_snapshot s ON f.company_id = s.company_id AND f.snapshot_month = s.snapshot_month
+JOIN dim_industry di ON s.industry_code = di.industry_code
+... [片段已截断]
+```
+示例 SQL:
+```sql
+-- 查询指定行业大类在指定月份的累计销售额和同比增速
+-- 参数说明：
+--   @industry_code_large: 行业大类代码（如：'51' 表示批发业）
+--   @target_month: 目标月份（格式：'YYYY-MM-01'）
+
+SELECT
+    di.industry_name_large as 行业大类,
+    f.snapshot_month as 月份,
+    ROUND(SUM(f.sales_ytd), 4) as 本年累计销售额_亿元,
+    ROUND(SUM(f.sales_ytd_last_year), 4) as 上年同期累计销售额_亿元,
+    ROUND((SUM(f.sales_ytd) - SUM(f.sales_ytd_last_year)) / SUM(f.sales_ytd_last_year) * 100, 2) as 同比增速_百分比
+FROM fact_sales_monthly f
+JOIN dim_company_monthly_snapshot s ON f.company_id = s.company_id AND f.snapshot_month = s.snapshot_month
+JOIN dim_industry di ON s.industry_code = di.industry_code
+WHERE di.industry_code_large = '51'  -- 替换为实际行业大类代码
+    AND f.snapshot_month = '2025-12-01'  -- 替换为目标月份
+GROUP BY di.industry_name_large, f.snapshot_month
+```
+
+## 2. 查询特定企业月度累计销售额和增速 (评分 18)
+来源: doc/query_patterns.md
+命中关键词: 累计销售额, 同比增速
+适用片段:
+```
+```sql
+-- 查询特定企业月度累计销售额和增速
+-- 参数说明：
+--   @company_name: 企业名称（支持模糊匹配）
+--   @start_month: 开始月份（格式：'YYYY-MM-01'）
+--   @end_month: 结束月份（格式：'YYYY-MM-01'）
+-- 第一步：先查找企业ID
+SELECT company_id, company_name
+FROM dim_company
+WHERE company_name LIKE '%春晓花开%'  -- 替换为实际企业名称关键词
+   OR company_name LIKE '%春晓%'
+   OR company_name LIKE '%花开%';
+-- 第二步：查询企业月度累计销售额和增速（使用上一步找到的company_id）
+SELECT
+... [片段已截断]
+```
+示例 SQL:
+```sql
+-- 查询特定企业月度累计销售额和增速
+-- 参数说明：
+--   @company_name: 企业名称（支持模糊匹配）
+--   @start_month: 开始月份（格式：'YYYY-MM-01'）
+--   @end_month: 结束月份（格式：'YYYY-MM-01'）
+
+-- 第一步：先查找企业ID
+SELECT company_id, company_name
+FROM dim_company
+WHERE company_name LIKE '%春晓花开%'  -- 替换为实际企业名称关键词
+   OR company_name LIKE '%春晓%'
+   OR company_name LIKE '%花开%';
+
+-- 第二步：查询企业月度累计销售额和增速（使用上一步找到的company_id）
+SELECT
+    DATE_FORMAT(snapshot_month, '%Y-%m') as 月份,
+    sales_ytd as 累计销售额_亿元,
+    yoy_growth_rate as 同比增速_百分比
+FROM fact_sales_monthly
+WHERE company_id = 262497  -- 替换为实际企业ID
+    AND snapshot_month >= '2025-02-01'  -- 替换为开始月份
+    AND snapshot_month <= '2025-12-01'  -- 替换为结束月份
+ORDER BY snapshot_month;
+
+-- 或者使用企业名称直接查询（一步完成）
+SELECT
+    DATE_FORMAT(f.snapshot_month, '%Y-%m') as 月份,
+    f.sales_ytd as 累计销售额_亿元,
+    f.yoy_growth_rate as 同比增速_百分比,
+    c.company_name as 企业名称
+FROM fact_sales_monthly f
+JOIN dim_company c ON f.company_id = c.company_id
+WHERE c.company_name LIKE '%春晓花开%'  -- 替换为实际企业名称
+    AND f.snapshot_month >= '2025-02-01'  -- 替换为开始月份
+    AND f.snapshot_month <= '2025-12-01'  -- 替换为结束月份
+ORDER BY f.snapshot_month;
+```
+
+## 3. 查询行业大类全年各月累计销售额趋势 (评分 18)
+来源: doc/query_patterns.md
+命中关键词: 累计销售额, 同比增速
+适用片段:
+```
+```sql
+-- 查询行业大类全年各月累计销售额趋势
+-- 参数说明：
+--   @industry_code_large: 行业大类代码
+--   @year: 目标年份
+SELECT
+    f.snapshot_month as 月份,
+    ROUND(SUM(f.sales_ytd), 4) as 本年累计销售额_亿元,
+    ROUND(SUM(f.sales_ytd_last_year), 4) as 上年同期累计销售额_亿元,
+    ROUND((SUM(f.sales_ytd) - SUM(f.sales_ytd_last_year)) / SUM(f.sales_ytd_last_year) * 100, 2) as 同比增速_百分比
+FROM fact_sales_monthly f
+JOIN dim_company_monthly_snapshot s ON f.company_id = s.company_id AND f.snapshot_month = s.snapshot_month
+JOIN dim_industry di ON s.industry_code = di.industry_code
+WHERE di.industry_code_large = '51'  -- 替换为实际行业大类代码
+... [片段已截断]
+```
+示例 SQL:
+```sql
+-- 查询行业大类全年各月累计销售额趋势
+-- 参数说明：
+--   @industry_code_large: 行业大类代码
+--   @year: 目标年份
+
+SELECT
+    f.snapshot_month as 月份,
+    ROUND(SUM(f.sales_ytd), 4) as 本年累计销售额_亿元,
+    ROUND(SUM(f.sales_ytd_last_year), 4) as 上年同期累计销售额_亿元,
+    ROUND((SUM(f.sales_ytd) - SUM(f.sales_ytd_last_year)) / SUM(f.sales_ytd_last_year) * 100, 2) as 同比增速_百分比
+FROM fact_sales_monthly f
+JOIN dim_company_monthly_snapshot s ON f.company_id = s.company_id AND f.snapshot_month = s.snapshot_month
+JOIN dim_industry di ON s.industry_code = di.industry_code
+WHERE di.industry_code_large = '51'  -- 替换为实际行业大类代码
+    AND f.snapshot_month >= '2025-01-01'  -- 替换为年份开始
+    AND f.snapshot_month <= '2025-12-01'  -- 替换为年份结束
+GROUP BY f.snapshot_month
+ORDER BY f.snapshot_month
+```
+
+若这些模板仍不足以回答，再回退到 search_knowledge / read_knowledge_file / schema 工具。
+
+-- TOOL 2 name=search_knowledge status=done --
+ARGS:
+{
+  "query": "批发 零售 餐饮 累计销售额 同比"
+}
+RESULT:
+# 知识库搜索结果
+
+查询: "批发 零售 餐饮 累计销售额 同比"
+模式: 智能关键词
+匹配: 8 处
+
+## 1. doc\query_patterns.md (第 116 行, 评分 14)
+小节: 统计多个行业大类的正增长企业数量及累计销售额增量
+命中关键词: 批发, 零售, 餐饮, 累计销售额
+```
+      113 | ```sql
+      114 | -- 统计多个行业大类的正增长企业数量及累计销售额合计增量
+      115 | -- 参数说明：
+ >>>  116 | --   @industry_codes: 行业大类代码列表（如：'51','52','62' 表示批发业、零售业、餐饮业）
+      117 | --   @start_month: 开始月份（格式：'YYYY-MM-01'）
+      118 | --   @end_month: 结束月份（格式：'YYYY-MM-01'）
+      119 | 
+```
+
+## 2. doc\query_patterns.md (第 174 行, 评分 14)
+小节: 统计多个行业大类的新纳统企业数量及累计销售额增量
+命中关键词: 批发, 零售, 餐饮, 累计销售额
+```
+      171 | ```sql
+      172 | -- 统计多个行业大类的新纳统企业数量及累计销售额合计增量
+      173 | -- 参数说明：
+ >>>  174 | --   @industry_codes: 行业大类代码列表（如：'51','52','62' 表示批发业、零售业、餐饮业）
+      175 | --   @base_month: 基准月份（格式：'YYYY-MM-01'，如：'2025-12-01'）
+      176 | --   @target_month: 目标月份（格式：'YYYY-MM-01'，如：'2026-02-01'）
+      177 | 
+```
+
+## 3. doc\query_patterns.md (第 365 行, 评分 12)
+小节: 批量查询多个行业大类新增四上企业
+命中关键词: 批发, 零售, 餐饮
+```
+      362 | ```sql
+      363 | -- 批量查询多个行业大类新增四上企业
+      364 | -- 参数说明：
+ >>>  365 | --   @industry_codes: 行业大类代码列表（如：'51','52','62' 表示批发业、零售业、餐饮业）
+      366 | --   @base_month: 基准月份（格式：'YYYY-MM-01'）
+      367 | --   @target_month: 目标月份（格式：'YYYY-MM-01'）
+      368 | 
+```
+
+## 4. doc\query_patterns.md (第 403 行, 评分 12)
+小节: 批量查询多个行业大类减少四上企业（含转行业情况和销售额指标）
+命中关键词: 批发, 零售, 餐饮
+```
+      400 | ```sql
+      401 | -- 批量查询多个行业大类减少四上企业（含转行业情况和销售额指标）
+      402 | -- 参数说明：
+ >>>  403 | --   @industry_codes: 行业大类代码列表（如：'51','52','62' 表示批发业、零售业、餐饮业）
+      404 | --   @base_month: 基准月份（格式：'YYYY-MM-01'）
+      405 | --   @target_month: 目标月份（格式：'YYYY-MM-01'）
+      406 | 
+```
+
+## 5. doc\business.md (第 11 行, 评分 10)
+小节: 同比增速 (Year-over-Year Growth Rate)
+命中关键词: 批发, 累计销售额, 同比
+```
+        8 | - **正确计算方式**: `(SUM(本年累计值) - SUM(上年同期累计值)) / SUM(上年同期累计值) * 100`
+        9 | - **错误做法**: 不能直接对各个企业的增速进行平均（AVG(yoy_growth_rate)）
+       10 | - **示例**:
+ >>>   11 |   - 批发业2025年12月累计销售额: 7,276.5712亿元
+       12 |   - 批发业2024年12月累计销售额: 9,492.5824亿元
+       13 |   - 正确增速: `(7276.5712 - 9492.5824) / 9492.5824 * 100 = -23.34%`
+       14 |   - 错误增速: `AVG(yoy_growth_rate) = 23.59%` (完全错误!)
+```
+
+## 6. doc\query_patterns.md (第 5 行, 评分 8)
+小节: 查询指定行业大类在指定月份的累计销售额和同比增速
+命中关键词: 累计销售额, 同比
+```
+        2 | 
+        3 | ## 行业大类累计销售额查询模板
+        4 | 
+ >>>    5 | ### 查询指定行业大类在指定月份的累计销售额和同比增速
+        6 | ```sql
+        7 | -- 查询指定行业大类在指定月份的累计销售额和同比增速
+        8 | -- 参数说明：
+```
+
+## 7. doc\query_patterns.md (第 9 行, 评分 8)
+小节: 查询指定行业大类在指定月份的累计销售额和同比增速
+命中关键词: 批发, 累计销售额, 同比
+```
+        6 | ```sql
+        7 | -- 查询指定行业大类在指定月份的累计销售额和同比增速
+        8 | -- 参数说明：
+ >>>    9 | --   @industry_code_large: 行业大类代码（如：'51' 表示批发业）
+       10 | --   @target_month: 目标月份（格式：'YYYY-MM-01'）
+       11 | 
+       12 | SELECT 
+```
+
+## 8. doc\query_patterns.md (第 15 行, 评分 6)
+小节: 查询指定行业大类在指定月份的累计销售额和同比增速
+命中关键词: 累计销售额, 同比
+```
+       12 | SELECT 
+       13 |     di.industry_name_large as 行业大类,
+       14 |     f.snapshot_month as 月份,
+ >>>   15 |     ROUND(SUM(f.sales_ytd), 4) as 本年累计销售额_亿元,
+       16 |     ROUND(SUM(f.sales_ytd_last_year), 4) as 上年同期累计销售额_亿元,
+       17 |     ROUND((SUM(f.sales_ytd) - SUM(f.sales_ytd_last_year)) / SUM(f.sales_ytd_last_year) * 100, 2) as 同比增速_百分比
+       18 | FROM fact_sales_monthly f
+```
+
+===== ITEM 3 role=agent id=local-msg_99a4776135614e29b1234e56 =====
+CONTENT:
+
+REASONING:
+The user wants to use KTX (semantic layer) to query this data. I need to look at the semantic layer sources. The relevant sources might be:
+- `fact_sales_monthly` (20 columns)
+- `int_industry_sales` (13 columns)
+- `int_industry_sales_metrics` (30 columns)
+- `mart_industry_sales_summary` (7 columns, 5 measures)
+- `mart_industry_sales_detail` (26 columns)
+
+Since the user explicitly wants KTX, I should use semantic_sl_read_source and semantic_sl_query only. Let me read the relevant sources to understand measures.
+
+The discover returned one connection: "default-mysql". Since there's exactly one connection, I can omit connectionId per instructions (or use it since it's known). Let me read the sources that seem most relevant: `mart_industry_sales_summary` (has 5 measures), `int_industry_sales_metrics`, `fact_sales_monthly`, `int_industry_sales`.
+
+Let me read those sources.
+TOOL CALLS (4):
+
+-- TOOL 0 name=semantic_sl_read_source status=done --
+ARGS:
+{
+  "sourceName": "mart_industry_sales_summary"
+}
+RESULT:
+{
+  "connectionId": "default-mysql",
+  "sourceName": "mart_industry_sales_summary",
+  "yaml": "name: mart_industry_sales_summary\ntable: qianhai_data_analysis.mart_industry_sales_summary\ngrain:\n  - snapshot_month\n  - large_industry_name\n  - medium_industry_name\ncolumns:\n  - name: snapshot_month\n    type: time\n    role: time\n    descriptions:\n      ktx: Column snapshot month from mart_industry_sales_summary.\n  - name: large_industry_name\n    type: string\n    descriptions:\n      ktx: Column large industry name from mart_industry_sales_summary.\n  - name: medium_industry_name\n    type: string\n    descriptions:\n      ktx: Column medium industry name from mart_industry_sales_summary.\n  - name: sales_ytd\n    type: number\n    descriptions:\n      ktx: Column sales ytd from mart_industry_sales_summary.\n  - name: sales_ytd_last_year\n    type: number\n    descriptions:\n      ktx: Column sales ytd last year from mart_industry_sales_summary.\n  - name: industry_proportion\n    type: number\n    descriptions:\n      ktx: Column industry proportion from mart_industry_sales_summary.\n  - name: yoy_growth_rate\n    type: number\n    descriptions:\n      ktx: Column yoy growth rate from mart_industry_sales_summary.\njoins: []\nmeasures:\n  - name: row_count\n    expr: count(*)\n    description: Number of rows in this source.\n  - name: sales_ytd_total\n    expr: sum(sales_ytd)\n    description: 累计销售额，亿元。\n  - name: sales_ytd_last_year_total\n    expr: sum(sales_ytd_last_year)\n    description: 上年同期累计销售额，亿元。\n  - name: sales_ytd_increment\n    expr: sum(sales_ytd - sales_ytd_last_year)\n    description: 累计销售额增量，亿元。\n  - name: yoy_growth_rate\n    expr: (sum(sales_ytd) / nullif(sum(sales_ytd_last_year), 0) - 1) * 100\n    description: 汇总后计算的累计销售额同比增速，百分比。\ndescriptions:\n  ktx: Semantic-layer source for mart_industry_sales_summary backed by qianhai_data_analysis.mart_industry_sales_summary.\n"
+}
+
+-- TOOL 1 name=semantic_sl_read_source status=done --
+ARGS:
+{
+  "sourceName": "int_industry_sales_metrics"
+}
+RESULT:
+{
+  "connectionId": "default-mysql",
+  "sourceName": "int_industry_sales_metrics",
+  "yaml": "name: int_industry_sales_metrics\ndescriptions:\n  db: VIEW\ntable: qianhai_data_analysis.int_industry_sales_metrics\ngrain:\n  - snapshot_month\n  - source_row_number\ncolumns:\n  - name: snapshot_month\n    type: time\n    role: time\n    descriptions:\n      ktx: Column snapshot month from int_industry_sales_metrics.\n  - name: source_row_number\n    type: number\n    descriptions:\n      ktx: Column source row number from int_industry_sales_metrics.\n  - name: unified_social_credit_code\n    type: string\n    descriptions:\n      ktx: Column unified social credit code from int_industry_sales_metrics.\n  - name: company_name\n    type: string\n    descriptions:\n      ktx: Column company name from int_industry_sales_metrics.\n  - name: category_name\n    type: string\n    descriptions:\n      ktx: Column category name from int_industry_sales_metrics.\n  - name: large_industry_name\n    type: string\n    descriptions:\n      ktx: Column large industry name from int_industry_sales_metrics.\n  - name: medium_industry_name\n    type: string\n    descriptions:\n      ktx: Column medium industry name from int_industry_sales_metrics.\n  - name: small_industry_name\n    type: string\n    descriptions:\n      ktx: Column small industry name from int_industry_sales_metrics.\n  - name: district\n    type: string\n    descriptions:\n      ktx: Column district from int_industry_sales_metrics.\n  - name: sales_ytd\n    type: number\n    descriptions:\n      ktx: Column sales ytd from int_industry_sales_metrics.\n  - name: sales_ytd_last_year\n    type: number\n    descriptions:\n      ktx: Column sales ytd last year from int_industry_sales_metrics.\n  - name: sales_current_month\n    type: number\n    descriptions:\n      ktx: Column sales current month from int_industry_sales_metrics.\n  - name: sales_same_month_last_year\n    type: number\n    descriptions:\n      ktx: Column sales same month last year from int_industry_sales_metrics.\n  - name: sales_ytd_previous_month\n    type: number\n    descriptions:\n      ktx: Column sales ytd previous month from int_industry_sales_metrics.\n  - name: sales_ytd_previous_month_last_year\n    type: number\n    descriptions:\n      ktx: Column sales ytd previous month last year from int_industry_sales_metrics.\n  - name: total_sales_ytd\n    type: number\n    descriptions:\n      ktx: Column total sales ytd from int_industry_sales_metrics.\n  - name: total_sales_ytd_last_year\n    type: number\n    descriptions:\n      ktx: Column total sales ytd last year from int_industry_sales_metrics.\n  - name: total_sales_ytd_previous_month_last_year\n    type: number\n    descriptions:\n      ktx: Column total sales ytd previous month last year from int_industry_sales_metrics.\n  - name: medium_sales_ytd\n    type: number\n    descriptions:\n      ktx: Column medium sales ytd from int_industry_sales_metrics.\n  - name: medium_sales_ytd_last_year\n    type: number\n    descriptions:\n      ktx: Column medium sales ytd last year from int_industry_sales_metrics.\n  - name: medium_sales_ytd_previous_month_last_year\n    type: number\n    descriptions:\n      ktx: Column medium sales ytd previous month last year from int_industry_sales_metrics.\n  - name: yoy_growth_rate\n    type: number\n    descriptions:\n      ktx: Column yoy growth rate from int_industry_sales_metrics.\n  - name: current_month_growth_rate\n    type: number\n    descriptions:\n      ktx: Column current month growth rate from int_industry_sales_metrics.\n  - name: previous_month_yoy_growth_rate\n    type: number\n    descriptions:\n      ktx: Column previous month yoy growth rate from int_industry_sales_metrics.\n  - name: large_category_pull_effect\n    type: number\n    descriptions:\n      ktx: Column large category pull effect from int_industry_sales_metrics.\n  - name: large_category_pull_effect_previous_month\n    type: number\n    descriptions:\n      ktx: Column large category pull effect previous month from int_industry_sales_metrics.\n  - name: medium_category_pull_effect\n    type: number\n    descriptions:\n      ktx: Column medium category pull effect from int_industry_sales_metrics.\n  - name: medium_category_pull_effect_previous_month\n    type: number\n    descriptions:\n      ktx: Column medium category pull effect previous month from int_industry_sales_metrics.\n  - name: sub_industry_proportion\n    type: number\n    descriptions:\n      ktx: Column sub industry proportion from int_industry_sales_metrics.\n  - name: industry_proportion\n    type: number\n    descriptions:\n      ktx: Column industry proportion from int_industry_sales_metrics.\njoins: []\nmeasures:\n  - name: row_count\n    expr: count(*)\n    description: Number of rows in this source.\n"
+}
+
+-- TOOL 2 name=semantic_sl_read_source status=done --
+ARGS:
+{
+  "sourceName": "fact_sales_monthly"
+}
+RESULT:
+{
+  "connectionId": "default-mysql",
+  "sourceName": "fact_sales_monthly",
+  "yaml": "name: fact_sales_monthly\ndescriptions:\n  db: 企业月度销售额事实表（亿元）\nsource_type: table\ntable: qianhai_data_analysis.fact_sales_monthly\ngrain:\n  - fact_id\ncolumns:\n  - name: fact_id\n    type: number\n    descriptions:\n      db: 主键。\n  - name: company_id\n    type: number\n    descriptions:\n      db: 外键，关联到 dim_company。\n  - name: snapshot_month\n    type: time\n    role: time\n    descriptions:\n      db: 关联的快照月份。\n  - name: sales_ytd\n    type: number\n    descriptions:\n      db: 商品销售额_本年1月至本月累计。\n  - name: sales_ytd_last_year\n    type: number\n    descriptions:\n      db: 商品销售额_上年1月至本月累计。\n  - name: sales_current_month\n    type: number\n    descriptions:\n      db: 商品销售额_本月。\n  - name: sales_same_month_last_year\n    type: number\n    descriptions:\n      db: 商品销售额_上年同月。\n  - name: sales_ytd_prev_month\n    type: number\n    descriptions:\n      db: 商品销售额_本年1月至上月累计。\n  - name: sales_ytd_prev_month_last_year\n    type: number\n    descriptions:\n      db: 商品销售额_上年1月至上月累计。\n  - name: yoy_growth_rate\n    type: number\n    descriptions:\n      db: 同比增速。\n  - name: yoy_growth_rate_prev_month\n    type: number\n    descriptions:\n      db: 上月同比增速。\n  - name: yoy_narrowing\n    type: number\n    descriptions:\n      db: 同比收窄幅度。\n  - name: large_category_pull_effect\n    type: number\n    descriptions:\n      db: 本月大类拉动效应。\n  - name: large_category_pull_effect_prev_month\n    type: number\n    descriptions:\n      db: 上月大类拉动效应。\n  - name: pull_effect_increment\n    type: number\n    descriptions:\n      db: 拉动增量。\n  - name: medium_category_pull_effect\n    type: number\n    descriptions:\n      db: 本月中类拉动效应。\n  - name: medium_category_pull_effect_prev_month\n    type: number\n    descriptions:\n      db: 上月中类拉动效应。\n  - name: medium_category_pull_increment\n    type: number\n    descriptions:\n      db: 中类拉动增量。\n  - name: sub_industry_proportion\n    type: number\n    descriptions:\n      db: 细分行业占比。\n  - name: proportion\n    type: number\n    descriptions:\n      db: 占比。\njoins: []\nmeasures:\n  - name: row_count\n    expr: count(*)\n    description: Number of rows in this source.\n"
+}
+
+-- TOOL 3 name=semantic_sl_read_source status=done --
+ARGS:
+{
+  "sourceName": "int_industry_sales"
+}
+RESULT:
+{
+  "connectionId": "default-mysql",
+  "sourceName": "int_industry_sales",
+  "yaml": "name: int_industry_sales\ntable: qianhai_data_analysis.int_industry_sales\ngrain:\n  - snapshot_month\n  - source_row_number\ncolumns:\n  - name: snapshot_month\n    type: time\n    role: time\n    descriptions:\n      ktx: Column snapshot month from int_industry_sales.\n  - name: source_row_number\n    type: number\n    descriptions:\n      ktx: Column source row number from int_industry_sales.\n  - name: unified_social_credit_code\n    type: string\n    descriptions:\n      ktx: Column unified social credit code from int_industry_sales.\n  - name: company_name\n    type: string\n    descriptions:\n      ktx: Column company name from int_industry_sales.\n  - name: category_name\n    type: string\n    descriptions:\n      ktx: Column category name from int_industry_sales.\n  - name: large_industry_name\n    type: string\n    descriptions:\n      ktx: Column large industry name from int_industry_sales.\n  - name: medium_industry_name\n    type: string\n    descriptions:\n      ktx: Column medium industry name from int_industry_sales.\n  - name: small_industry_name\n    type: string\n    descriptions:\n      ktx: Column small industry name from int_industry_sales.\n  - name: district\n    type: string\n    descriptions:\n      ktx: Column district from int_industry_sales.\n  - name: sales_ytd\n    type: number\n    descriptions:\n      ktx: Column sales ytd from int_industry_sales.\n  - name: sales_ytd_last_year\n    type: number\n    descriptions:\n      ktx: Column sales ytd last year from int_industry_sales.\n  - name: sales_current_month\n    type: number\n    descriptions:\n      ktx: Column sales current month from int_industry_sales.\n  - name: sales_same_month_last_year\n    type: number\n    descriptions:\n      ktx: Column sales same month last year from int_industry_sales.\njoins: []\nmeasures:\n  - name: row_count\n    expr: count(*)\n    description: Number of rows in this source.\ndescriptions:\n  ktx: Semantic-layer source for int_industry_sales backed by qianhai_data_analysis.int_industry_sales.\n"
+}
+
+===== ITEM 4 role=agent id=local-msg_66bebc73fd6e4f41afb14e30 =====
+CONTENT:
+
+REASONING:
+The most relevant semantic source is `mart_industry_sales_summary`, which has:
+- `snapshot_month` (time)
+- `large_industry_name` (string)
+- `medium_industry_name` (string)
+- Measures: `sales_ytd_total` (累计销售额), `sales_ytd_last_year_total` (上年同期累计销售额), `sales_ytd_increment` (累计销售额增量), `yoy_growth_rate` (汇总后计算的同比增速)
+
+The user wants 批发零售餐饮 three industries' cumulative sales and YoY growth for Dec 2025.
+
+I need to know the industry names. The knowledge says '51' 批发业, '52' 零售业, '62' 餐饮业 in industry_code terms, but in this source the dimension is `large_industry_name` (string names like '批发业', '零售业', '餐饮业').
+
+Let me first check what values `large_industry_name` has. I can query with dimensions snapshot_month, large_industry_name, medium_industry_name and measure sales_ytd_total with a filter on snapshot_month = 2025-12-01. Actually let me first explore to see distinct large_industry_name values.
+
+Let me query mart_industry_sales_summary for snapshot_month 2025-12-01, grouped by large_industry_name and medium_industry_name, with measures sales_ytd_total, sales_ytd_last_year_total, yoy_growth_rate.
+
+Actually, the grain is snapshot_month + large_industry_name + medium_industry_name. So a query with dimensions snapshot_month, large_industry_name, medium_industry_name and measures should give rows. But it may give many rows if there are many medium industries. Let me filter for the three large industries.
+
+But I don't know exact string names. Let me first discover distinct large_industry_name values. Use semantic_sl_query with dimensions [snapshot_month, large_industry_name] and a measure. Filter snapshot_month = '2025-12-01'.
+
+Let me run that exploratory query.
+TOOL CALLS (1):
+
+-- TOOL 0 name=semantic_sl_query status=done --
+ARGS:
+{
+  "connectionId": "default-mysql",
+  "measures": [
+    "mart_industry_sales_summary.sales_ytd_total"
+  ],
+  "dimensions": [
+    "mart_industry_sales_summary.snapshot_month",
+    "mart_industry_sales_summary.large_industry_name"
+  ],
+  "filters": [
+    {
+      "field": "mart_industry_sales_summary.snapshot_month",
+      "operator": "eq",
+      "value": "2025-12-01"
+    }
+  ],
+  "limit": 100
+}
+RESULT:
+{
+  "error": "semantic_query_failed"
+}
+
+===== ITEM 5 role=agent id=local-msg_6a5ae7f118ee4b67ba330f7d =====
+CONTENT:
+查询遇到错误，我先调整参数重试：
+REASONING:
+The query failed. Let me try a simpler query to see what's happening. Maybe the filter date format issue. Let me try without filter or with different approach.
+
+Let me try querying with snapshot_month dimension and measure row_count first.
+TOOL CALLS (1):
+
+-- TOOL 0 name=semantic_sl_query status=done --
+ARGS:
+{
+  "connectionId": "default-mysql",
+  "dimensions": [
+    "mart_industry_sales_summary.snapshot_month",
+    "mart_industry_sales_summary.large_industry_name"
+  ],
+  "limit": 50,
+  "measures": [
+    "mart_industry_sales_summary.row_count"
+  ]
+}
+RESULT:
+{
+  "connectionId": "default-mysql",
+  "dialect": "mysql",
+  "sql": "SELECT mart_industry_sales_summary.snapshot_month AS snapshot_month, mart_industry_sales_summary.large_industry_name AS large_industry_name, COUNT(*) AS row_count FROM qianhai_data_analysis.mart_industry_sales_summary AS mart_industry_sales_summary GROUP BY mart_industry_sales_summary.snapshot_month, mart_industry_sales_summary.large_industry_name ORDER BY 1, 2 LIMIT 50",
+  "headers": [
+    "snapshot_month",
+    "large_industry_name",
+    "row_count"
+  ],
+  "rows": [
+    [
+      "2026-05-31T16:00:00.000Z",
+      "批发业",
+      9
+    ],
+    [
+      "2026-05-31T16:00:00.000Z",
+      "零售业",
+      8
+    ],
+    [
+      "2026-05-31T16:00:00.000Z",
+      "餐饮业",
+      5
+    ]
+  ],
+  "totalRows": 3,
+  "plan": {
+    "sources_used": [
+      "mart_industry_sales_summary"
+    ],
+    "join_paths": [],
+    "joins": [],
+    "anchor_source": "mart_industry_sales_summary",
+    "anchor_grain": [
+      "mart_industry_sales_summary.snapshot_month",
+      "mart_industry_sales_summary.large_industry_name"
+    ],
+    "fan_out_description": "No fanout",
+    "has_fan_out": false,
+    "measure_groups": [],
+    "aggregate_locality": [],
+    "where_filters": [],
+    "having_filters": [],
+    "columns": [
+      {
+        "name": "snapshot_month",
+        "provenance": "dimension",
+        "expr": "mart_industry_sales_summary.snapshot_month",
+        "description": null,
+        "granularity": null
+      },
+      {
+        "name": "large_industry_name",
+        "provenance": "dimension",
+        "expr": "mart_industry_sales_summary.large_industry_name",
+        "description": null,
+        "granularity": null
+      },
+      {
+        "name": "row_count",
+        "provenance": "verified",
+        "expr": "COUNT(*)",
+        "description": "Number of rows in this source.",
+        "granularity": null
+      }
+    ],
+    "measures": [
+      {
+        "name": "row_count",
+        "expr": "COUNT(*)",
+        "source_name": "mart_industry_sales_summary",
+        "original_name": "row_count",
+        "qualified_ref": "mart_industry_sales_summary.row_count",
+        "filter": null,
+        "provenance": "verified",
+        "is_derived": false,
+        "depends_on": [],
+        "description": "Number of rows in this source."
+      }
+    ],
+    "dimensions": [
+      {
+        "field": "mart_industry_sales_summary.snapshot_month",
+        "granularity": null
+      },
+      {
+        "field": "mart_industry_sales_summary.large_industry_name",
+        "granularity": null
+      }
+    ],
+    "order_by": [],
+    "limit": 50,
+    "include_empty": true,
+    "execution": {
+      "mode": "executed",
+      "driver": "mysql",
+      "maxRows": 1000,
+      "rowCount": 3
+    }
+  }
+}
+
+===== ITEM 6 role=agent id=local-msg_646eeb561d6642a6a354f168 =====
+CONTENT:
+
+REASONING:
+Interesting. The query works. The data is stored in UTC. `2026-05-31T16:00:00.000Z` corresponds to `2026-06-01` in local time (China, UTC+8). Hmm, but the user wants 2025年12月 (December 2025).
+
+Wait — the data returned snapshot_month = 2026-05-31T16:00:00.000Z, which is 2026-06-01 00:00 in UTC+8. So the latest snapshot month in the source is 2026-06-01. Interesting. The user wants 2025年12月. But the data in mart_industry_sales_summary only has one month? Let me check the months available.
+
+Actually the query returned only 1 distinct snapshot_month value: 2026-05-31T16:00:00.000Z. Hmm, that's odd — maybe there's only one month in the summary table. Or maybe the query limit truncated... no, totalRows = 3.
+
+Wait, that seems strange. Let me check what snapshot months exist. Maybe the mart_industry_sales_summary only stores the latest month. Let me query without filter to see all months. Actually the above query had no filter and only returned one month (2026-06-01 local). So the summary table only has data for that one month.
+
+Hmm, but the user asks for 2025年12月. Perhaps the summary table only contains the most recent month snapshot. But the user specifically wants Dec 2025. Let me check other sources like int_industry_sales_metrics or fact_sales_monthly which may have multiple months.
+
+Wait — but the timezone conversion: the stored snapshot_month is a date '2026-06-01'. The KTX semantic layer returned it as '2026-05-31T16:00:00.000Z' meaning it's stored in UTC. Filtering on '2025-12-01' would produce a timezone mismatch. The previous query with filter snapshot_month = '2025-12-01' failed with semantic_query_failed error. Perhaps the filter value needs to be in a specific format like '2025-12-01' converted... Actually the error might be due to timezone. Hmm.
+
+Let me check what months exist in the data. Let me query int_industry_sales_metrics or fact_sales_monthly for distinct snapshot_month values. Actually, fact_sales_monthly is a fact table with companies. Let me query distinct snapshot_month from fact_sales_monthly.
+
+Actually wait — maybe mart_industry_sales_summary only has one snapshot month because it's a "summary" mart that gets rebuilt. But user wants Dec 2025 cumulative sales. If the summary only has June 2026 data, we can't get Dec 2025 from it.
+
+Let me check other sources. Let me look at raw_wholesale_retail_monthly, raw_accommodation_catering_monthly, stg_* tables, and mart_industry_sales_detail (26 columns). Also mart_social_retail_industry_summary.
+
+Let me read the sources that might contain multiple months: mart_industry_sales_detail, stg_wholesale_retail_monthly, stg_accommodation_catering_monthly, mart_social_retail_industry_summary.
+TOOL CALLS (4):
+
+-- TOOL 0 name=semantic_sl_read_source status=done --
+ARGS:
+{
+  "sourceName": "mart_industry_sales_detail"
+}
+RESULT:
+{
+  "connectionId": "default-mysql",
+  "sourceName": "mart_industry_sales_detail",
+  "yaml": "name: mart_industry_sales_detail\ntable: qianhai_data_analysis.mart_industry_sales_detail\ngrain:\n  - snapshot_month\n  - unified_social_credit_code\ncolumns:\n  - name: snapshot_month\n    type: time\n    role: time\n    descriptions:\n      ktx: Column snapshot month from mart_industry_sales_detail.\n  - name: unified_social_credit_code\n    type: string\n    descriptions:\n      ktx: Column unified social credit code from mart_industry_sales_detail.\n  - name: company_name\n    type: string\n    descriptions:\n      ktx: Column company name from mart_industry_sales_detail.\n  - name: category_name\n    type: string\n    descriptions:\n      ktx: Column category name from mart_industry_sales_detail.\n  - name: large_industry_name\n    type: string\n    descriptions:\n      ktx: Column large industry name from mart_industry_sales_detail.\n  - name: medium_industry_name\n    type: string\n    descriptions:\n      ktx: Column medium industry name from mart_industry_sales_detail.\n  - name: small_industry_name\n    type: string\n    descriptions:\n      ktx: Column small industry name from mart_industry_sales_detail.\n  - name: district\n    type: string\n    descriptions:\n      ktx: Column district from mart_industry_sales_detail.\n  - name: sales_ytd\n    type: number\n    descriptions:\n      ktx: Column sales ytd from mart_industry_sales_detail.\n  - name: sales_ytd_last_year\n    type: number\n    descriptions:\n      ktx: Column sales ytd last year from mart_industry_sales_detail.\n  - name: sales_current_month\n    type: number\n    descriptions:\n      ktx: Column sales current month from mart_industry_sales_detail.\n  - name: sales_same_month_last_year\n    type: number\n    descriptions:\n      ktx: Column sales same month last year from mart_industry_sales_detail.\n  - name: sales_ytd_previous_month\n    type: number\n    descriptions:\n      ktx: Column sales ytd previous month from mart_industry_sales_detail.\n  - name: sales_ytd_previous_month_last_year\n    type: number\n    descriptions:\n      ktx: Column sales ytd previous month last year from mart_industry_sales_detail.\n  - name: yoy_growth_rate\n    type: number\n    descriptions:\n      ktx: Column yoy growth rate from mart_industry_sales_detail.\n  - name: previous_month_yoy_growth_rate\n    type: number\n    descriptions:\n      ktx: Column previous month yoy growth rate from mart_industry_sales_detail.\n  - name: yoy_narrowing\n    type: number\n    descriptions:\n      ktx: Column yoy narrowing from mart_industry_sales_detail.\n  - name: current_month_growth_rate\n    type: number\n    descriptions:\n      ktx: Column current month growth rate from mart_industry_sales_detail.\n  - name: large_category_pull_effect\n    type: number\n    descriptions:\n      ktx: Column large category pull effect from mart_industry_sales_detail.\n  - name: large_category_pull_effect_previous_month\n    type: number\n    descriptions:\n      ktx: Column large category pull effect previous month from mart_industry_sales_detail.\n  - name: pull_effect_increment\n    type: number\n    descriptions:\n      ktx: Column pull effect increment from mart_industry_sales_detail.\n  - name: medium_category_pull_effect\n    type: number\n    descriptions:\n      ktx: Column medium category pull effect from mart_industry_sales_detail.\n  - name: medium_category_pull_effect_previous_month\n    type: number\n    descriptions:\n      ktx: Column medium category pull effect previous month from mart_industry_sales_detail.\n  - name: medium_pull_effect_increment\n    type: number\n    descriptions:\n      ktx: Column medium pull effect increment from mart_industry_sales_detail.\n  - name: sub_industry_proportion\n    type: number\n    descriptions:\n      ktx: Column sub industry proportion from mart_industry_sales_detail.\n  - name: industry_proportion\n    type: number\n    descriptions:\n      ktx: Column industry proportion from mart_industry_sales_detail.\njoins: []\nmeasures:\n  - name: row_count\n    expr: count(*)\n    description: Number of rows in this source.\ndescriptions:\n  ktx: Semantic-layer source for mart_industry_sales_detail backed by qianhai_data_analysis.mart_industry_sales_detail.\n"
+}
+
+-- TOOL 1 name=semantic_sl_read_source status=done --
+ARGS:
+{
+  "sourceName": "mart_social_retail_industry_summary"
+}
+RESULT:
+{
+  "connectionId": "default-mysql",
+  "sourceName": "mart_social_retail_industry_summary",
+  "yaml": "name: mart_social_retail_industry_summary\ntable: qianhai_data_analysis.mart_social_retail_industry_summary\ngrain:\n  - snapshot_month\n  - large_industry_name\ncolumns:\n  - name: snapshot_month\n    type: time\n    role: time\n    natural_granularity: month\n    descriptions:\n      ktx: Column snapshot month from mart_social_retail_industry_summary.\n  - name: large_industry_name\n    type: string\n    descriptions:\n      ktx: Column large industry name from mart_social_retail_industry_summary.\n  - name: retail_sales_ytd\n    type: number\n    descriptions:\n      ktx: Column retail sales ytd from mart_social_retail_industry_summary.\n  - name: retail_sales_ytd_last_year\n    type: number\n    descriptions:\n      ktx: Column retail sales ytd last year from mart_social_retail_industry_summary.\njoins: []\nmeasures:\n  - name: row_count\n    expr: count(*)\n    description: Number of rows in this source.\nsegments: []\ndescriptions:\n  ktx: Semantic-layer source for mart_social_retail_industry_summary backed by qianhai_data_analysis.mart_social_retail_industry_summary.\n"
+}
+
+-- TOOL 2 name=semantic_sl_read_source status=done --
+ARGS:
+{
+  "sourceName": "stg_wholesale_retail_monthly"
+}
+RESULT:
+{
+  "connectionId": "default-mysql",
+  "sourceName": "stg_wholesale_retail_monthly",
+  "yaml": "name: stg_wholesale_retail_monthly\ntable: qianhai_data_analysis.stg_wholesale_retail_monthly\ngrain:\n  - snapshot_month\n  - source_row_number\ncolumns:\n  - name: snapshot_month\n    type: time\n    role: time\n    descriptions:\n      ktx: Column snapshot month from stg_wholesale_retail_monthly.\n  - name: source_row_number\n    type: number\n    descriptions:\n      ktx: Column source row number from stg_wholesale_retail_monthly.\n  - name: unified_social_credit_code\n    type: string\n    descriptions:\n      ktx: Column unified social credit code from stg_wholesale_retail_monthly.\n  - name: company_name\n    type: string\n    descriptions:\n      ktx: Column company name from stg_wholesale_retail_monthly.\n  - name: sales_current_month\n    type: number\n    descriptions:\n      ktx: Column sales current month from stg_wholesale_retail_monthly.\n  - name: sales_ytd\n    type: number\n    descriptions:\n      ktx: Column sales ytd from stg_wholesale_retail_monthly.\n  - name: sales_same_month_last_year\n    type: number\n    descriptions:\n      ktx: Column sales same month last year from stg_wholesale_retail_monthly.\n  - name: sales_ytd_last_year\n    type: number\n    descriptions:\n      ktx: Column sales ytd last year from stg_wholesale_retail_monthly.\n  - name: retail_sales_current_month\n    type: number\n    descriptions:\n      ktx: Column retail sales current month from stg_wholesale_retail_monthly.\n  - name: retail_sales_ytd\n    type: number\n    descriptions:\n      ktx: Column retail sales ytd from stg_wholesale_retail_monthly.\n  - name: retail_sales_same_month_last_year\n    type: number\n    descriptions:\n      ktx: Column retail sales same month last year from stg_wholesale_retail_monthly.\n  - name: retail_sales_ytd_last_year\n    type: number\n    descriptions:\n      ktx: Column retail sales ytd last year from stg_wholesale_retail_monthly.\n  - name: online_retail_sales_ytd\n    type: number\n    descriptions:\n      ktx: Column online retail sales ytd from stg_wholesale_retail_monthly.\n  - name: online_retail_sales_ytd_last_year\n    type: number\n    descriptions:\n      ktx: Column online retail sales ytd last year from stg_wholesale_retail_monthly.\n  - name: auto_retail_sales_current_month\n    type: number\n    descriptions:\n      ktx: Column auto retail sales current month from stg_wholesale_retail_monthly.\n  - name: auto_retail_sales_same_month_last_year\n    type: number\n    descriptions:\n      ktx: Column auto retail sales same month last year from stg_wholesale_retail_monthly.\n  - name: auto_retail_sales_ytd\n    type: number\n    descriptions:\n      ktx: Column auto retail sales ytd from stg_wholesale_retail_monthly.\n  - name: auto_retail_sales_ytd_last_year\n    type: number\n    descriptions:\n      ktx: Column auto retail sales ytd last year from stg_wholesale_retail_monthly.\njoins: []\nmeasures:\n  - name: row_count\n    expr: count(*)\n    description: Number of rows in this source.\ndescriptions:\n  ktx: Semantic-layer source for stg_wholesale_retail_monthly backed by qianhai_data_analysis.stg_wholesale_retail_monthly.\n"
+}
+
+-- TOOL 3 name=semantic_sl_read_source status=done --
+ARGS:
+{
+  "sourceName": "stg_accommodation_catering_monthly"
+}
+RESULT:
+{
+  "connectionId": "default-mysql",
+  "sourceName": "stg_accommodation_catering_monthly",
+  "yaml": "name: stg_accommodation_catering_monthly\ntable: qianhai_data_analysis.stg_accommodation_catering_monthly\ngrain:\n  - snapshot_month\n  - source_row_number\ncolumns:\n  - name: snapshot_month\n    type: time\n    role: time\n    descriptions:\n      db: Snapshot month for the accommodation & catering monthly statistic\n  - name: source_row_number\n    type: number\n    descriptions:\n      ktx: Column source row number from stg_accommodation_catering_monthly.\n  - name: unified_social_credit_code\n    type: string\n    descriptions:\n      ktx: Column unified social credit code from stg_accommodation_catering_monthly.\n  - name: company_name\n    type: string\n    descriptions:\n      ktx: Column company name from stg_accommodation_catering_monthly.\n  - name: turnover_current_month\n    type: number\n    descriptions:\n      ktx: Column turnover current month from stg_accommodation_catering_monthly.\n  - name: turnover_ytd\n    type: number\n    descriptions:\n      ktx: Column turnover ytd from stg_accommodation_catering_monthly.\n  - name: turnover_same_month_last_year\n    type: number\n    descriptions:\n      ktx: Column turnover same month last year from stg_accommodation_catering_monthly.\n  - name: turnover_ytd_last_year\n    type: number\n    descriptions:\n      ktx: Column turnover ytd last year from stg_accommodation_catering_monthly.\n  - name: product_sales_current_month\n    type: number\n    descriptions:\n      ktx: Column product sales current month from stg_accommodation_catering_monthly.\n  - name: product_sales_ytd\n    type: number\n    descriptions:\n      ktx: Column product sales ytd from stg_accommodation_catering_monthly.\n  - name: product_sales_same_month_last_year\n    type: number\n    descriptions:\n      ktx: Column product sales same month last year from stg_accommodation_catering_monthly.\n  - name: product_sales_ytd_last_year\n    type: number\n    descriptions:\n      ktx: Column product sales ytd last year from stg_accommodation_catering_monthly.\n  - name: meal_income_ytd\n    type: number\n    descriptions:\n      ktx: Column meal income ytd from stg_accommodation_catering_monthly.\n  - name: meal_income_ytd_last_year\n    type: number\n    descriptions:\n      ktx: Column meal income ytd last year from stg_accommodation_catering_monthly.\njoins: []\nmeasures:\n  - name: row_count\n    expr: count(*)\n    description: Number of rows in this source.\ndescriptions:\n  ktx: Semantic-layer source for stg_accommodation_catering_monthly backed by qianhai_data_analysis.stg_accommodation_catering_monthly.\n"
+}
+
+===== ITEM 7 role=agent id=local-msg_eb4d17efe65d4a2f87a79438 =====
+CONTENT:
+需要确认数据中可用的月份范围。让我查询明细表的月份分布：
+REASONING:
+The `mart_industry_sales_summary` table appears to only have data for one snapshot month (2026-06-01 local). But the user wants December 2025. Let me check what months are available in `mart_industry_sales_detail` or `fact_sales_monthly`. 
+
+Wait, the summary table query returned only 2026-05-31T16:00:00Z (= 2026-06-01 in local time presumably). Hmm, that's odd for a "2025年12月" query. Let me check available months in the data.
+
+Actually wait — the returned timestamp "2026-05-31T16:00:00.000Z" corresponds to 2026-06-01 in UTC+8. So the summary table only has one month (June 2026)? That seems weird. Maybe the snapshot_month stored is actually '2025-12-01' but the timezone conversion shows it differently? Let me check: 2025-12-01 00:00:00 +08:00 = 2025-11-30T16:00:00Z. That would show as 2025-11-30T16:00:00.000Z. But we got 2026-05-31T16:00:00.000Z which is 2026-06-01.
+
+Hmm, so the summary table only has data for snapshot month 2026-06-01? That's strange given the user is asking for 2025-12. Maybe the source data has multiple months but the GROUP BY returned only one because... no, it returned all rows (totalRows: 3). 
+
+Wait, maybe the mart summary table was only built for the latest month. Let me check the detail table `mart_industry_sales_detail` or `int_industry_sales_metrics` which may have multiple months. Let me check what months are available.
+
+Let me query distinct snapshot_month values from mart_industry_sales_detail, and also from fact_sales_monthly (but fact_sales_monthly has no industry name dimension; it needs join with dim_company_monthly_snapshot, but semantic source has no joins defined).
+
+Let me query available months in mart_industry_sales_detail.
+TOOL CALLS (1):
+
+-- TOOL 0 name=semantic_sl_query status=done --
+ARGS:
+{
+  "connectionId": "default-mysql",
+  "dimensions": [
+    "mart_industry_sales_detail.snapshot_month"
+  ],
+  "limit": 100,
+  "measures": [
+    "mart_industry_sales_detail.row_count"
+  ]
+}
+RESULT:
+{
+  "connectionId": "default-mysql",
+  "dialect": "mysql",
+  "sql": "SELECT mart_industry_sales_detail.snapshot_month AS snapshot_month, COUNT(*) AS row_count FROM qianhai_data_analysis.mart_industry_sales_detail AS mart_industry_sales_detail GROUP BY mart_industry_sales_detail.snapshot_month ORDER BY 1 LIMIT 100",
+  "headers": [
+    "snapshot_month",
+    "row_count"
+  ],
+  "rows": [
+    [
+      "2026-05-31T16:00:00.000Z",
+      1685
+    ]
+  ],
+  "totalRows": 1,
+  "plan": {
+    "sources_used": [
+      "mart_industry_sales_detail"
+    ],
+    "join_paths": [],
+    "joins": [],
+    "anchor_source": "mart_industry_sales_detail",
+    "anchor_grain": [
+      "mart_industry_sales_detail.snapshot_month"
+    ],
+    "fan_out_description": "No fanout",
+    "has_fan_out": false,
+    "measure_groups": [],
+    "aggregate_locality": [],
+    "where_filters": [],
+    "having_filters": [],
+    "columns": [
+      {
+        "name": "snapshot_month",
+        "provenance": "dimension",
+        "expr": "mart_industry_sales_detail.snapshot_month",
+        "description": null,
+        "granularity": null
+      },
+      {
+        "name": "row_count",
+        "provenance": "verified",
+        "expr": "COUNT(*)",
+        "description": "Number of rows in this source.",
+        "granularity": null
+      }
+    ],
+    "measures": [
+      {
+        "name": "row_count",
+        "expr": "COUNT(*)",
+        "source_name": "mart_industry_sales_detail",
+        "original_name": "row_count",
+        "qualified_ref": "mart_industry_sales_detail.row_count",
+        "filter": null,
+        "provenance": "verified",
+        "is_derived": false,
+        "depends_on": [],
+        "description": "Number of rows in this source."
+      }
+    ],
+    "dimensions": [
+      {
+        "field": "mart_industry_sales_detail.snapshot_month",
+        "granularity": null
+      }
+    ],
+    "order_by": [],
+    "limit": 100,
+    "include_empty": true,
+    "execution": {
+      "mode": "executed",
+      "driver": "mysql",
+      "maxRows": 1000,
+      "rowCount": 1
+    }
+  }
+}
+
+===== ITEM 8 role=agent id=local-msg_0a5a60e08152420886fe4316 =====
+CONTENT:
+mart 汇总表似乎只有一个月的数据（2026-06）。让我检查其他来源的月份分布，确认是否有 2025-12 的数据：
+REASONING:
+The mart tables only contain data for one snapshot month, which appears to be 2026-06-01 (or the latest month). The user asked for 2025年12月 (December 2025). 
+
+Wait, the snapshot_month returned is "2026-05-31T16:00:00.000Z" which is UTC. In China time (UTC+8) that's 2026-06-01 00:00. So the mart tables seem to only have data for 2026-06. Hmm, that's strange. Maybe the mart table only contains the latest month.
+
+Let me check the fact_sales_monthly and other raw/stg tables which may have multiple months. Let me check raw_wholesale_retail_monthly, raw_accommodation_catering_monthly, and raw_company_monthly for months available.
+
+Actually wait — the user asked for 2025年12月. But mart_industry_sales_summary only has 2026-06 data? That's odd. Let me check the other sources to see if there are multiple months available. Let me query fact_sales_monthly for distinct months, stg_wholesale_retail_monthly, stg_accommodation_catering_monthly.
+
+Also check mart_social_retail_industry_summary which has snapshot_month with natural granularity month.
+
+Let me query the months in various sources.
+TOOL CALLS (4):
+
+-- TOOL 0 name=semantic_sl_query status=done --
+ARGS:
+{
+  "connectionId": "default-mysql",
+  "dimensions": [
+    "fact_sales_monthly.snapshot_month"
+  ],
+  "limit": 100,
+  "measures": [
+    "fact_sales_monthly.row_count"
+  ]
+}
+RESULT:
+{
+  "connectionId": "default-mysql",
+  "dialect": "mysql",
+  "sql": "SELECT fact_sales_monthly.snapshot_month AS snapshot_month, COUNT(*) AS row_count FROM qianhai_data_analysis.fact_sales_monthly AS fact_sales_monthly GROUP BY fact_sales_monthly.snapshot_month ORDER BY 1 LIMIT 100",
+  "headers": [
+    "snapshot_month",
+    "row_count"
+  ],
+  "rows": [
+    [
+      "2025-01-31T16:00:00.000Z",
+      1525
+    ],
+    [
+      "2025-02-28T16:00:00.000Z",
+      1521
+    ],
+    [
+      "2025-03-31T16:00:00.000Z",
+      1525
+    ],
+    [
+      "2025-04-30T16:00:00.000Z",
+      1526
+    ],
+    [
+      "2025-05-31T16:00:00.000Z",
+      1536
+    ],
+    [
+      "2025-06-30T16:00:00.000Z",
+      1541
+    ],
+    [
+      "2025-07-31T16:00:00.000Z",
+      1542
+    ],
+    [
+      "2025-08-31T16:00:00.000Z",
+      1535
+    ],
+    [
+      "2025-09-30T16:00:00.000Z",
+      1538
+    ],
+    [
+      "2025-10-31T16:00:00.000Z",
+      1564
+    ],
+    [
+      "2025-11-30T16:00:00.000Z",
+      1573
+    ],
+    [
+      "2026-01-31T16:00:00.000Z",
+      1623
+    ],
+    [
+      "2026-02-28T16:00:00.000Z",
+      1671
+    ],
+    [
+      "2026-03-31T16:00:00.000Z",
+      1674
+    ],
+    [
+      "2026-04-30T16:00:00.000Z",
+      1676
+    ],
+    [
+      "2026-05-31T16:00:00.000Z",
+      1685
+    ]
+  ],
+  "totalRows": 16,
+  "plan": {
+    "sources_used": [
+      "fact_sales_monthly"
+    ],
+    "join_paths": [],
+    "joins": [],
+    "anchor_source": "fact_sales_monthly",
+    "anchor_grain": [
+      "fact_sales_monthly.snapshot_month"
+    ],
+    "fan_out_description": "No fanout",
+    "has_fan_out": false,
+    "measure_groups": [],
+    "aggregate_locality": [],
+    "where_filters": [],
+    "having_filters": [],
+    "columns": [
+      {
+        "name": "snapshot_month",
+        "provenance": "dimension",
+        "expr": "fact_sales_monthly.snapshot_month",
+        "description": null,
+        "granularity": null
+      },
+      {
+        "name": "row_count",
+        "provenance": "verified",
+        "expr": "COUNT(*)",
+        "description": "Number of rows in this source.",
+        "granularity": null
+      }
+    ],
+    "measures": [
+      {
+        "name": "row_count",
+        "expr": "COUNT(*)",
+        "source_name": "fact_sales_monthly",
+        "original_name": "row_count",
+        "qualified_ref": "fact_sales_monthly.row_count",
+        "filter": null,
+        "provenance": "verified",
+        "is_derived": false,
+        "depends_on": [],
+        "description": "Number of rows in this source."
+      }
+    ],
+    "dimensions": [
+      {
+        "field": "fact_sales_monthly.snapshot_month",
+        "granularity": null
+      }
+    ],
+    "order_by": [],
+    "limit": 100,
+    "include_empty": true,
+    "execution": {
+      "mode": "executed",
+      "driver": "mysql",
+      "maxRows": 1000,
+      "rowCount": 16
+    }
+  }
+}
+
+-- TOOL 1 name=semantic_sl_query status=done --
+ARGS:
+{
+  "connectionId": "default-mysql",
+  "dimensions": [
+    "stg_wholesale_retail_monthly.snapshot_month"
+  ],
+  "limit": 100,
+  "measures": [
+    "stg_wholesale_retail_monthly.row_count"
+  ]
+}
+RESULT:
+{
+  "connectionId": "default-mysql",
+  "dialect": "mysql",
+  "sql": "SELECT stg_wholesale_retail_monthly.snapshot_month AS snapshot_month, COUNT(*) AS row_count FROM qianhai_data_analysis.stg_wholesale_retail_monthly AS stg_wholesale_retail_monthly GROUP BY stg_wholesale_retail_monthly.snapshot_month ORDER BY 1 LIMIT 100",
+  "headers": [
+    "snapshot_month",
+    "row_count"
+  ],
+  "rows": [
+    [
+      "2026-05-31T16:00:00.000Z",
+      1477
+    ]
+  ],
+  "totalRows": 1,
+  "plan": {
+    "sources_used": [
+      "stg_wholesale_retail_monthly"
+    ],
+    "join_paths": [],
+    "joins": [],
+    "anchor_source": "stg_wholesale_retail_monthly",
+    "anchor_grain": [
+      "stg_wholesale_retail_monthly.snapshot_month"
+    ],
+    "fan_out_description": "No fanout",
+    "has_fan_out": false,
+    "measure_groups": [],
+    "aggregate_locality": [],
+    "where_filters": [],
+    "having_filters": [],
+    "columns": [
+      {
+        "name": "snapshot_month",
+        "provenance": "dimension",
+        "expr": "stg_wholesale_retail_monthly.snapshot_month",
+        "description": null,
+        "granularity": null
+      },
+      {
+        "name": "row_count",
+        "provenance": "verified",
+        "expr": "COUNT(*)",
+        "description": "Number of rows in this source.",
+        "granularity": null
+      }
+    ],
+    "measures": [
+      {
+        "name": "row_count",
+        "expr": "COUNT(*)",
+        "source_name": "stg_wholesale_retail_monthly",
+        "original_name": "row_count",
+        "qualified_ref": "stg_wholesale_retail_monthly.row_count",
+        "filter": null,
+        "provenance": "verified",
+        "is_derived": false,
+        "depends_on": [],
+        "description": "Number of rows in this source."
+      }
+    ],
+    "dimensions": [
+      {
+        "field": "stg_wholesale_retail_monthly.snapshot_month",
+        "granularity": null
+      }
+    ],
+    "order_by": [],
+    "limit": 100,
+    "include_empty": true,
+    "execution": {
+      "mode": "executed",
+      "driver": "mysql",
+      "maxRows": 1000,
+      "rowCount": 1
+    }
+  }
+}
+
+-- TOOL 2 name=semantic_sl_query status=done --
+ARGS:
+{
+  "connectionId": "default-mysql",
+  "dimensions": [
+    "stg_accommodation_catering_monthly.snapshot_month"
+  ],
+  "limit": 100,
+  "measures": [
+    "stg_accommodation_catering_monthly.row_count"
+  ]
+}
+RESULT:
+{
+  "connectionId": "default-mysql",
+  "dialect": "mysql",
+  "sql": "SELECT stg_accommodation_catering_monthly.snapshot_month AS snapshot_month, COUNT(*) AS row_count FROM qianhai_data_analysis.stg_accommodation_catering_monthly AS stg_accommodation_catering_monthly GROUP BY stg_accommodation_catering_monthly.snapshot_month ORDER BY 1 LIMIT 100",
+  "headers": [
+    "snapshot_month",
+    "row_count"
+  ],
+  "rows": [
+    [
+      "2026-05-31T16:00:00.000Z",
+      293
+    ]
+  ],
+  "totalRows": 1,
+  "plan": {
+    "sources_used": [
+      "stg_accommodation_catering_monthly"
+    ],
+    "join_paths": [],
+    "joins": [],
+    "anchor_source": "stg_accommodation_catering_monthly",
+    "anchor_grain": [
+      "stg_accommodation_catering_monthly.snapshot_month"
+    ],
+    "fan_out_description": "No fanout",
+    "has_fan_out": false,
+    "measure_groups": [],
+    "aggregate_locality": [],
+    "where_filters": [],
+    "having_filters": [],
+    "columns": [
+      {
+        "name": "snapshot_month",
+        "provenance": "dimension",
+        "expr": "stg_accommodation_catering_monthly.snapshot_month",
+        "description": null,
+        "granularity": null
+      },
+      {
+        "name": "row_count",
+        "provenance": "verified",
+        "expr": "COUNT(*)",
+        "description": "Number of rows in this source.",
+        "granularity": null
+      }
+    ],
+    "measures": [
+      {
+        "name": "row_count",
+        "expr": "COUNT(*)",
+        "source_name": "stg_accommodation_catering_monthly",
+        "original_name": "row_count",
+        "qualified_ref": "stg_accommodation_catering_monthly.row_count",
+        "filter": null,
+        "provenance": "verified",
+        "is_derived": false,
+        "depends_on": [],
+        "description": "Number of rows in this source."
+      }
+    ],
+    "dimensions": [
+      {
+        "field": "stg_accommodation_catering_monthly.snapshot_month",
+        "granularity": null
+      }
+    ],
+    "order_by": [],
+    "limit": 100,
+    "include_empty": true,
+    "execution": {
+      "mode": "executed",
+      "driver": "mysql",
+      "maxRows": 1000,
+      "rowCount": 1
+    }
+  }
+}
+
+-- TOOL 3 name=semantic_sl_query status=done --
+ARGS:
+{
+  "connectionId": "default-mysql",
+  "dimensions": [
+    "mart_social_retail_industry_summary.snapshot_month"
+  ],
+  "limit": 100,
+  "measures": [
+    "mart_social_retail_industry_summary.row_count"
+  ]
+}
+RESULT:
+{
+  "connectionId": "default-mysql",
+  "dialect": "mysql",
+  "sql": "SELECT mart_social_retail_industry_summary.snapshot_month AS snapshot_month, COUNT(*) AS row_count FROM qianhai_data_analysis.mart_social_retail_industry_summary AS mart_social_retail_industry_summary GROUP BY mart_social_retail_industry_summary.snapshot_month ORDER BY 1 LIMIT 100",
+  "headers": [
+    "snapshot_month",
+    "row_count"
+  ],
+  "rows": [
+    [
+      "2026-05-31T16:00:00.000Z",
+      4
+    ]
+  ],
+  "totalRows": 1,
+  "plan": {
+    "sources_used": [
+      "mart_social_retail_industry_summary"
+    ],
+    "join_paths": [],
+    "joins": [],
+    "anchor_source": "mart_social_retail_industry_summary",
+    "anchor_grain": [
+      "mart_social_retail_industry_summary.snapshot_month"
+    ],
+    "fan_out_description": "No fanout",
+    "has_fan_out": false,
+    "measure_groups": [],
+    "aggregate_locality": [],
+    "where_filters": [],
+    "having_filters": [],
+    "columns": [
+      {
+        "name": "snapshot_month",
+        "provenance": "dimension",
+        "expr": "mart_social_retail_industry_summary.snapshot_month",
+        "description": null,
+        "granularity": null
+      },
+      {
+        "name": "row_count",
+        "provenance": "verified",
+        "expr": "COUNT(*)",
+        "description": "Number of rows in this source.",
+        "granularity": null
+      }
+    ],
+    "measures": [
+      {
+        "name": "row_count",
+        "expr": "COUNT(*)",
+        "source_name": "mart_social_retail_industry_summary",
+        "original_name": "row_count",
+        "qualified_ref": "mart_social_retail_industry_summary.row_count",
+        "filter": null,
+        "provenance": "verified",
+        "is_derived": false,
+        "depends_on": [],
+        "description": "Number of rows in this source."
+      }
+    ],
+    "dimensions": [
+      {
+        "field": "mart_social_retail_industry_summary.snapshot_month",
+        "granularity": null
+      }
+    ],
+    "order_by": [],
+    "limit": 100,
+    "include_empty": true,
+    "execution": {
+      "mode": "executed",
+      "driver": "mysql",
+      "maxRows": 1000,
+      "rowCount": 1
+    }
+  }
+}
+
+===== ITEM 9 role=agent id=local-msg_a2e95f8db0d74d2ba6619a3c =====
+CONTENT:
+数据月份分布需要进一步确认。让我检查更多来源的月份情况：
+REASONING:
+The timestamps are in UTC. The stored dates seem to be month-start dates. Let's interpret:
+- fact_sales_monthly has months from 2025-01-31T16:00:00Z (= 2025-02-01 local) ... wait. Actually, the timestamp "2025-01-31T16:00:00.000Z" is UTC = 2025-02-01 00:00 in China (UTC+8). Hmm, that means fact_sales_monthly has snapshot months from Feb 2025 to Jun 2026. But wait, there is no "2025-12-01" in the list. Let me check:
+  - 2025-01-31T16:00:00Z = 2025-02-01 CST
+  - 2025-02-28T16:00:00Z = 2025-03-01 CST
+  - 2025-03-31T16:00:00Z = 2025-04-01 CST
+  - 2025-04-30T16:00:00Z = 2025-05-01 CST
+  - 2025-05-31T16:00:00Z = 2025-06-01 CST
+  - 2025-06-30T16:00:00Z = 2025-07-01 CST
+  - 2025-07-31T16:00:00Z = 2025-08-01 CST
+  - 2025-08-31T16:00:00Z = 2025-09-01 CST
+  - 2025-09-30T16:00:00Z = 2025-10-01 CST
+  - 2025-10-31T16:00:00Z = 2025-11-01 CST
+  - 2025-11-30T16:00:00Z = 2025-12-01 CST
+  - 2026-01-31T16:00:00Z = 2026-02-01 CST
+  - ...
+
+So "2025-11-30T16:00:00.000Z" corresponds to 2025-12-01 in China Standard Time. Hmm, that's odd - is the data stored in UTC? Or is the stored date "2025-12-01" and the KTX layer interprets it as UTC, displaying 2025-11-30T16:00Z? 
+
+Actually wait. The DB stores snapshot_month as DATE '2025-12-01' presumably. The KTX semantic layer interprets time columns as UTC. So when it returns "2025-11-30T16:00:00.000Z", that means the underlying value is 2025-12-01 (if we interpret as UTC+8 conversion) OR it's actually stored as 2025-11-30 16:00... 
+
+Hmm. Let me think. The mart tables only have "2026-05-31T16:00:00.000Z" which in CST would be 2026-06-01. So the mart tables only have data for the latest month (June 2026 in CST). But wait, the user asked for 2025年12月 (December 2025). 
+
+Hmm, but there might be a discrepancy. Let me reconsider. Maybe the underlying stored dates are the last day of month at 00:00? No...
+
+Actually, the key question: is the DB storing 'YYYY-MM-01' dates, and KTX displays them with -8h offset (interpreting them as UTC)? Let's check: for the mart tables, only one value: 2026-05-31T16:00:00Z. If DB stores 2026-06-01, then as UTC that would be 2026-06-01T00:00Z, but shown as 2026-05-31T16:00Z means there's an 8-hour subtraction, meaning KTX treats the stored value as CST and converts to UTC (CST 2026-06-01 00:00 = UTC 2026-05-31 16:00). Yes! That makes sense: stored value '2026-06-01' (interpreted as local China time) = UTC 2026-05-31T16:00Z.
+
+So fact_sales_monthly months in CST are: 2025-02-01 ... 2026-06-01. Wait but then where's 2025-01 and 2025-12?
+
+CST conversion of each:
+- 2025-01-31T16:00Z = 2025-02-01 CST
+- 2025-02-28T16:00Z = 2025-03-01
+- 2025-03-31T16:00Z = 2025-04-01
+- 2025-04-30T16:00Z = 2025-05-01
+- 2025-05-31T16:00Z = 2025-06-01
+- 2025-06-30T16:00Z = 2025-07-01
+- 2025-07-31T16:00Z = 2025-08-01
+- 2025-08-31T16:00Z = 2025-09-01
+- 2025-09-30T16:00Z = 2025-10-01
+- 2025-10-31T16:00Z = 2025-11-01
+- 2025-11-30T16:00Z = 2025-12-01  ← This is December 2025!
+- 2026-01-31T16:00Z = 2026-02-01
+- 2026-02-28T16:00Z = 2026-03-01
+- 2026-03-31T16:00Z = 2026-04-01
+- 2026-04-30T16:00Z = 2026-05-01
+- 2026-05-31T16:00Z = 2026-06-01
+
+So fact_sales_monthly has months Feb 2025 through Jun 2026 in CST, but missing Jan 2025 and Dec 2025. Hmm wait, that's weird. Missing 2025-01-01 and 2025-12-01? Let me check again. The list:
+1. 2025-01-31T16:00Z → 2025-02-01
+2. 2025-02-28T16:00Z → 2025-03-01
+3. 2025-03-31T16:00Z → 2025-04-01
+4. 2025-04-30T16:00Z → 2025-05-01
+5. 2025-05-31T16:00Z → 2025-06-01
+6. 2025-06-30T16:00Z → 2025-07-01
+7. 2025-07-31T16:00Z → 2025-08-01
+8. 2025-08-31T16:00Z → 2025-09-01
+9. 2025-09-30T16:00Z → 2025-10-01
+10. 2025-10-31T16:00Z → 2025-11-01
+11. 2025-11-30T16:00Z → 2025-12-01
+12. 2026-01-31T16:00Z → 2026-02-01
+...
+
+Hmm, that means there's a "month" for each from Feb 2025 through Jun 2026, but missing... wait, that skips 2025-01 and 2025-12? Let me recount. The stored values go from 2025-01-31 to 2026-05-31 in UTC. CST = UTC+8 means CST dates are:
+- 2025-02-01 (from 01-31 UTC)
+- 2025-03-01
+- 2025-04-01
+- 2025-05-01
+- 2025-06-01
+- 2025-07-01
+- 2025-08-01
+- 2025-09-01
+- 2025-10-01
+- 2025-11-01
+- 2025-12-01
+- 2026-02-01 (from 2026-01-31 UTC)
+- 2026-03-01
+- 2026-04-01
+- 2026-05-01
+- 2026-06-01
+
+Wait, that's weird - it would skip 2026-01-01 and 2025-01-01. That doesn't make sense for a month series. Hmm.
+
+Alternatively, maybe the stored value is the LAST day of the month (e.g., '2025-01-31', '2025-02-28', etc.) interpreted directly as UTC, and KTX shows as-is? No wait, then values would be exactly 2025-01-31T00:00Z not 2025-01-31T16:00Z.
+
+Alternatively the stored values are month-end dates in CST: '2025-02-01'? Hmm.
+
+Let me think differently. Perhaps the DB stores snapshot_month as e.g. '2025-12-01' (first of month). KTX interprets the value as UTC. It shows '2025-12-01T00:00Z'. But we got '2025-11-30T16:00Z'. So the DB must store '2025-11-30 16:00' or the value is interpreted with an offset.
+
+Actually more likely: the DB stores DATE values like '2025-12-01'. The KTX MCP server runs in a timezone where it converts DB date to UTC by interpreting the date as local (UTC+8? No...). If it interprets '2025-12-01' as UTC+8 local midnight, then UTC would be 2025-11-30T16:00Z. So effectively each month's display shifted.
+
+OK regardless of the exact internal representation, the mapping is consistent: displayed UTC values correspond to CST month-start dates = display + 8h. The fact_sales_monthly months in CST: 2025-02, 2025-03, ..., 2025-12, 2026-02, ..., 2026-06. That's strange to skip 2025-01 and 2026-01.
+
+Hmm, actually maybe not. Let me reconsider - maybe the display offset interpretation is wrong. Alternative: DB stores '2025-01-31', '2025-02-28', ..., i.e., month-END dates, and KTX converts them to UTC by subtracting 8h (interpreting stored date as CST midnight)? Then:
+- stored '2025-01-31' as CST → UTC 2025-01-30T16:00. But we see 2025-01-31T16:00. Doesn't match either.
+
+Alternative: KTX adds 8 hours? No.
+
+Actually, let me just test directly: query fact_sales_monthly with a filter on snapshot_month = '2025-12-01' (or the returned value) and see. Earlier, my filter attempt with '2025-12-01' failed with semantic_query_failed error. That might have been because the filter value format was wrong, or because 2025-12-01 doesn't exist as a value.
+
+Let me query fact_sales_monthly filtered with the raw value. The safest approach: use the query pattern from knowledge which uses fact_sales_monthly joined with dim_company_monthly_snapshot and dim_industry. But semantic layer has no joins configured in these sources... Actually joins: [] for all. So we can't join through semantic layer across sources.
+
+Hmm, but mart_industry_sales_summary has large_industry_name and snapshot_month and measures sales_ytd_total, sales_ytd_last_year_total, yoy_growth_rate. That's the perfect source. But it only has one month (2026-06-01 CST presumably). The user asked for 2025-12. 
+
+Wait, maybe the filter failed because I used snapshot_month filter with value '2025-12-01'. The semantic query might require date format matching the internal representation. Let me try filter with the exact string representation as displayed: '2025-11-30T16:00:00.000Z'? That might not work either.
+
+Let me reconsider the data. The fact_sales_monthly has months. mart_industry_sales_summary only has 1 month = the latest = 2026-06-01 CST (displayed 2026-05-31T16:00Z). So the mart table only contains the most recent snapshot month. The fact table contains multiple months.
+
+The user wants 2025年12月 cumulative sales and YoY. The mart_industry_sales_summary doesn't have 2025-12 data. But maybe the query filter for 2025-12 should be applied to mart_industry_sales_summary... it has only one month. So no.
+
+Wait, but maybe I misread. Let me reconsider: maybe the DB stores the last day of each month, and the displayed UTC is direct (no offset). So stored dates: 2025-01-31, 2025-02-28, ..., 2025-11-30, 2026-01-31, ..., 2026-05-31. But displayed as 2025-01-31T16:00Z = stored value with 16:00 time? If stored as DATE type, no time part. So there must be a timezone offset applied by KTX.
+
+OK let me just try filtering on '2025-12-01' in fact_sales_monthly, but with the correct internal format. Maybe the filter needs the exact UTC string. Let me try both: filter with '2025-11-30T16:00:00.000Z' won't parse probably. Let me try using the value as displayed but truncated to date: '2025-11-30'?
+
+Actually, better approach: don't filter on snapshot_month with eq. Instead use granularity month on the dimension and filter... Hmm.
+
+Actually, wait. Let me reconsider whether 2025-12 data exists. In fact_sales_monthly list:
+- 2025-11-30T16:00:00.000Z → this likely corresponds to snapshot month 2025-12-01 (CST). 
+
+If so, then December 2025 IS in fact_sales_monthly. And the mart summary tables only have the latest month (2026-06).
+
+So to answer the user's question for Dec 2025, we'd need fact_sales_monthly joined with industry info. But semantic layer sources have no joins configured! fact_sales_monthly has company_id, but no industry. dim_company_monthly_snapshot has industry_code. dim_industry has industry_code and industry_name. But no joins in semantic layer.
+
+Hmm, wait — maybe the semantic layer supports joins that aren't listed? No, joins: []. 
+
+Alternatively, int_industry_sales_metrics has large_industry_name, medium_industry_name, snapshot_month, sales_ytd, sales_ytd_last_year, etc. That's per-company detail with industry names, but only one month (2026-06) probably. Let me check months in int_industry_sales_metrics and int_industry_sales.
+
+Actually, let me check the months in int_industry_sales_metrics and int_industry_sales.
+
+Also, let me reconsider whether the KTX query with the filter failed for a different reason. The error was "semantic_query_failed" with no detail. Perhaps the filter value needs to be a date string in the format the system expects (e.g., '2025-12-01'). But maybe the column is stored as DATETIME in UTC, so filtering '2025-12-01' works if data exists. Since the mart summary only has one month (2026-06 CST = 2026-05-31T16:00Z UTC), filtering 2025-12-01 returns no rows → maybe error. Hmm, but "includeEmpty" default true, so it should return empty not error.
+
+Let me check months in int_industry_sales_metrics and int_industry_sales, and mart_industry_sales_top50. Let me also check the raw tables raw_wholesale_retail_monthly and raw_accommodation_catering_monthly months.
+
+Let me query those.
+TOOL CALLS (4):
+
+-- TOOL 0 name=semantic_sl_query status=done --
+ARGS:
+{
+  "connectionId": "default-mysql",
+  "dimensions": [
+    "int_industry_sales_metrics.snapshot_month"
+  ],
+  "limit": 100,
+  "measures": [
+    "int_industry_sales_metrics.row_count"
+  ]
+}
+RESULT:
+{
+  "connectionId": "default-mysql",
+  "dialect": "mysql",
+  "sql": "SELECT int_industry_sales_metrics.snapshot_month AS snapshot_month, COUNT(*) AS row_count FROM qianhai_data_analysis.int_industry_sales_metrics AS int_industry_sales_metrics GROUP BY int_industry_sales_metrics.snapshot_month ORDER BY 1 LIMIT 100",
+  "headers": [
+    "snapshot_month",
+    "row_count"
+  ],
+  "rows": [
+    [
+      "2026-05-31T16:00:00.000Z",
+      1685
+    ]
+  ],
+  "totalRows": 1,
+  "plan": {
+    "sources_used": [
+      "int_industry_sales_metrics"
+    ],
+    "join_paths": [],
+    "joins": [],
+    "anchor_source": "int_industry_sales_metrics",
+    "anchor_grain": [
+      "int_industry_sales_metrics.snapshot_month"
+    ],
+    "fan_out_description": "No fanout",
+    "has_fan_out": false,
+    "measure_groups": [],
+    "aggregate_locality": [],
+    "where_filters": [],
+    "having_filters": [],
+    "columns": [
+      {
+        "name": "snapshot_month",
+        "provenance": "dimension",
+        "expr": "int_industry_sales_metrics.snapshot_month",
+        "description": null,
+        "granularity": null
+      },
+      {
+        "name": "row_count",
+        "provenance": "verified",
+        "expr": "COUNT(*)",
+        "description": "Number of rows in this source.",
+        "granularity": null
+      }
+    ],
+    "measures": [
+      {
+        "name": "row_count",
+        "expr": "COUNT(*)",
+        "source_name": "int_industry_sales_metrics",
+        "original_name": "row_count",
+        "qualified_ref": "int_industry_sales_metrics.row_count",
+        "filter": null,
+        "provenance": "verified",
+        "is_derived": false,
+        "depends_on": [],
+        "description": "Number of rows in this source."
+      }
+    ],
+    "dimensions": [
+      {
+        "field": "int_industry_sales_metrics.snapshot_month",
+        "granularity": null
+      }
+    ],
+    "order_by": [],
+    "limit": 100,
+    "include_empty": true,
+    "execution": {
+      "mode": "executed",
+      "driver": "mysql",
+      "maxRows": 1000,
+      "rowCount": 1
+    }
+  }
+}
+
+-- TOOL 1 name=semantic_sl_query status=done --
+ARGS:
+{
+  "connectionId": "default-mysql",
+  "dimensions": [
+    "int_industry_sales.snapshot_month"
+  ],
+  "limit": 100,
+  "measures": [
+    "int_industry_sales.row_count"
+  ]
+}
+RESULT:
+{
+  "connectionId": "default-mysql",
+  "dialect": "mysql",
+  "sql": "SELECT int_industry_sales.snapshot_month AS snapshot_month, COUNT(*) AS row_count FROM qianhai_data_analysis.int_industry_sales AS int_industry_sales GROUP BY int_industry_sales.snapshot_month ORDER BY 1 LIMIT 100",
+  "headers": [
+    "snapshot_month",
+    "row_count"
+  ],
+  "rows": [
+    [
+      "2026-05-31T16:00:00.000Z",
+      1685
+    ]
+  ],
+  "totalRows": 1,
+  "plan": {
+    "sources_used": [
+      "int_industry_sales"
+    ],
+    "join_paths": [],
+    "joins": [],
+    "anchor_source": "int_industry_sales",
+    "anchor_grain": [
+      "int_industry_sales.snapshot_month"
+    ],
+    "fan_out_description": "No fanout",
+    "has_fan_out": false,
+    "measure_groups": [],
+    "aggregate_locality": [],
+    "where_filters": [],
+    "having_filters": [],
+    "columns": [
+      {
+        "name": "snapshot_month",
+        "provenance": "dimension",
+        "expr": "int_industry_sales.snapshot_month",
+        "description": null,
+        "granularity": null
+      },
+      {
+        "name": "row_count",
+        "provenance": "verified",
+        "expr": "COUNT(*)",
+        "description": "Number of rows in this source.",
+        "granularity": null
+      }
+    ],
+    "measures": [
+      {
+        "name": "row_count",
+        "expr": "COUNT(*)",
+        "source_name": "int_industry_sales",
+        "original_name": "row_count",
+        "qualified_ref": "int_industry_sales.row_count",
+        "filter": null,
+        "provenance": "verified",
+        "is_derived": false,
+        "depends_on": [],
+        "description": "Number of rows in this source."
+      }
+    ],
+    "dimensions": [
+      {
+        "field": "int_industry_sales.snapshot_month",
+        "granularity": null
+      }
+    ],
+    "order_by": [],
+    "limit": 100,
+    "include_empty": true,
+    "execution": {
+      "mode": "executed",
+      "driver": "mysql",
+      "maxRows": 1000,
+      "rowCount": 1
+    }
+  }
+}
+
+-- TOOL 2 name=semantic_sl_query status=done --
+ARGS:
+{
+  "connectionId": "default-mysql",
+  "dimensions": [
+    "raw_wholesale_retail_monthly.snapshot_month"
+  ],
+  "limit": 100,
+  "measures": [
+    "raw_wholesale_retail_monthly.row_count"
+  ]
+}
+RESULT:
+{
+  "connectionId": "default-mysql",
+  "dialect": "mysql",
+  "sql": "SELECT raw_wholesale_retail_monthly.snapshot_month AS snapshot_month, COUNT(*) AS row_count FROM qianhai_data_analysis.raw_wholesale_retail_monthly AS raw_wholesale_retail_monthly GROUP BY raw_wholesale_retail_monthly.snapshot_month ORDER BY 1 LIMIT 100",
+  "headers": [
+    "snapshot_month",
+    "row_count"
+  ],
+  "rows": [
+    [
+      "2026-05-31T16:00:00.000Z",
+      1477
+    ]
+  ],
+  "totalRows": 1,
+  "plan": {
+    "sources_used": [
+      "raw_wholesale_retail_monthly"
+    ],
+    "join_paths": [],
+    "joins": [],
+    "anchor_source": "raw_wholesale_retail_monthly",
+    "anchor_grain": [
+      "raw_wholesale_retail_monthly.snapshot_month"
+    ],
+    "fan_out_description": "No fanout",
+    "has_fan_out": false,
+    "measure_groups": [],
+    "aggregate_locality": [],
+    "where_filters": [],
+    "having_filters": [],
+    "columns": [
+      {
+        "name": "snapshot_month",
+        "provenance": "dimension",
+        "expr": "raw_wholesale_retail_monthly.snapshot_month",
+        "description": null,
+        "granularity": null
+      },
+      {
+        "name": "row_count",
+        "provenance": "verified",
+        "expr": "COUNT(*)",
+        "description": "Number of rows in this source.",
+        "granularity": null
+      }
+    ],
+    "measures": [
+      {
+        "name": "row_count",
+        "expr": "COUNT(*)",
+        "source_name": "raw_wholesale_retail_monthly",
+        "original_name": "row_count",
+        "qualified_ref": "raw_wholesale_retail_monthly.row_count",
+        "filter": null,
+        "provenance": "verified",
+        "is_derived": false,
+        "depends_on": [],
+        "description": "Number of rows in this source."
+      }
+    ],
+    "dimensions": [
+      {
+        "field": "raw_wholesale_retail_monthly.snapshot_month",
+        "granularity": null
+      }
+    ],
+    "order_by": [],
+    "limit": 100,
+    "include_empty": true,
+    "execution": {
+      "mode": "executed",
+      "driver": "mysql",
+      "maxRows": 1000,
+      "rowCount": 1
+    }
+  }
+}
+
+-- TOOL 3 name=semantic_sl_query status=done --
+ARGS:
+{
+  "_raw": "{\"connectionId\": \"default-mysql\", \"dimensions\": [\"raw_accommodation_catering_monthly.snapshot_month\"], \""
+}
+RESULT:
+MCP error -32602: Input validation error: Invalid arguments for tool sl_query: [
+  {
+    "expected": "array",
+    "code": "invalid_type",
+    "path": [
+      "measures"
+    ],
+    "message": "Invalid input: expected array, received undefined"
+  }
+]
+
+===== ITEM 10 role=agent id=local-msg_4001eb1f44aa444084072e4e =====
+CONTENT:
+时间戳存在时区偏移，需要确认 2025年12月的正确过滤方式。让我测试一下过滤条件：
+REASONING:
+Interesting. The semantic layer sources have data. But the mart_industry_sales_summary only has snapshot_month 2026-05-31T16:00:00.000Z which is 2026-06-01 in local time (China UTC+8). The user asked for 2025年12月 (December 2025).
+
+Wait, the fact_sales_monthly table has snapshot months from 2025-01-31T16:00:00.000Z (= 2025-02-01 local) through 2026-05-31T16:00:00.000Z (= 2026-06-01 local). Hmm, let me interpret: the timestamps are in UTC. 2025-01-31T16:00:00.000Z + 8 hours = 2025-02-01 00:00 local. So snapshot months in local time are 2025-02 through 2026-06? Wait, but there's no 2025-12 in that list? Let me check.
+
+List from fact_sales_monthly:
+- 2025-01-31T16:00:00.000Z → local 2025-02-01
+- 2025-02-28T16:00:00.000Z → local 2025-03-01
+- 2025-03-31T16:00:00.000Z → local 2025-04-01
+- 2025-04-30T16:00:00.000Z → local 2025-05-01
+- 2025-05-31T16:00:00.000Z → local 2025-06-01
+- 2025-06-30T16:00:00.000Z → local 2025-07-01
+- 2025-07-31T16:00:00.000Z → local 2025-08-01
+- 2025-08-31T16:00:00.000Z → local 2025-09-01
+- 2025-09-30T16:00:00.000Z → local 2025-10-01
+- 2025-10-31T16:00:00.000Z → local 2025-11-01
+- 2025-11-30T16:00:00.000Z → local 2025-12-01 ✓ (December 2025!)
+- 2026-01-31T16:00:00.000Z → local 2026-02-01
+- 2026-02-28T16:00:00.000Z → local 2026-03-01
+- 2026-03-31T16:00:00.000Z → local 2026-04-01
+- 2026-04-30T16:00:00.000Z → local 2026-05-01
+- 2026-05-31T16:00:00.000Z → local 2026-06-01
+
+Hmm, so there's a gap: no 2025-01 and no 2026-01? The list seems to skip 2025-01-01 and 2026-01-01. Interesting. The data has snapshots from 2025-02 to 2026-06 (local). So 2025-12 local exists as 2025-11-30T16:00:00.000Z in UTC.
+
+Wait, actually that's confusing. Maybe snapshot_month is stored as 'YYYY-MM-01' but displayed in UTC offset -8? Let's just think: the raw stored value might be '2025-12-01' but KTX interprets as UTC? No, if it returned 2025-11-30T16:00Z then the stored value is likely a DATE '2025-12-01' that when interpreted in local time (UTC+8) and converted to UTC gives 2025-11-30T16:00Z. That means the DB stores dates and the semantic layer interprets them as local timezone dates.
+
+Actually more likely: the DB stores snapshot_month as '2025-12-01' (date). The KTX layer treats date as local midnight then converts to UTC → 2025-11-30T16:00:00Z. So to filter for December 2025, I should filter snapshot_month = '2025-12-01'... but earlier my filter for '2025-12-01' failed with error "semantic_query_failed". Hmm.
+
+Wait, the first query failed with filter snapshot_month eq '2025-12-01'. The error was semantic_query_failed. Maybe the filter value format needs to be a full ISO timestamp, or perhaps the filter comparison with a DATE column requires a specific format. Let me try filtering with the value '2025-11-30T16:00:00.000Z'? That seems weird.
+
+Actually, let me reconsider. The user wants 2025年12月累计销售额 and 同比增速 for 批发零售餐饮 three industries. The mart_industry_sales_summary has snapshot_month, large_industry_name, and measures sales_ytd_total, sales_ytd_last_year_total, yoy_growth_rate. But it only has ONE snapshot month (2026-06 local). So this summary table only contains the latest month.
+
+But fact_sales_monthly has multiple months. To get industry-level data by month, I'd need to join with dim_company_monthly_snapshot and dim_industry, but the semantic layer sources have joins: [] (no joins defined). So we can't join through semantic layer!
+
+Hmm. The mart_industry_sales_summary only has 1 month. The mart_industry_sales_detail has 1 month too (1685 rows). The fact_sales_monthly has 16 months but no industry dimension.
+
+So to answer "2025年12月批发零售餐饮三大行业累计销售额和同比增速" via KTX, we need a source with industry dimension and that month. The available sources with large_industry_name: mart_industry_sales_summary, mart_industry_sales_detail, int_industry_sales, int_industry_sales_metrics, mart_social_retail_industry_summary. All of these seem to have only 2026-06 data.
+
+Wait, but maybe I misread the timestamps. Let me reconsider: maybe the timestamps are NOT offset. Maybe the DB actually stores '2026-06-01' as the snapshot month, and the semantic layer displays it as 2026-05-31T16:00:00Z because it converts date to UTC using a -8h offset (i.e., treats stored date as UTC and subtracts). That doesn't quite work either.
+
+Actually, a more common setup: DB stores DATETIME/TIMESTAMP in UTC. So stored value 2025-12-01 00:00:00 UTC would display as 2025-12-01T00:00:00Z. But we see 2025-11-30T16:00:00Z for December. So the DB stores local time (UTC+8) as naive datetime, and KTX interprets it as UTC directly? Then 2025-12-01 00:00 local stored as '2025-12-01 00:00:00' would display as 2025-12-01T00:00:00Z. Not matching either.
+
+Hmm, but we see 2025-11-30T16:00:00Z. If DB stores '2025-11-30 16:00:00' as a naive value... that doesn't make sense for monthly snapshot.
+
+Alternatively, maybe the snapshot_month is stored as DATE '2025-12-01', and the semantic layer treats DATE as a UTC timestamp at 00:00 but then applies an 8-hour offset for display? Confusing.
+
+Regardless, the practical approach: I can determine the correct filter value by querying. The fact_sales_monthly shows months from 2025-01-31T16:00Z to 2026-05-31T16:00Z. The row for "December 2025" in business terms is presumably the snapshot_month that is the 12th month of 2025. Given the returned values, the local month (China UTC+8) of 2025-11-30T16:00Z is 2025-12-01. So "2025-12-01" is the value to filter on.
+
+But wait — my filter query with '2025-12-01' failed. Why? Maybe because filter value for a time column expects an ISO date string like '2025-12-01T00:00:00Z' or '2025-12-01 00:00:00'? Or maybe it needs '2025-12-01T00:00:00.000Z'.
+
+Let me test the filter on fact_sales_monthly with the value '2025-12-01' and see. Actually the earlier failure was on mart_industry_sales_summary with filter snapshot_month='2025-12-01'. Maybe there's no row in that table for that month, so it returned error? No, an empty result wouldn't be an error.
+
+Let me try a filter with a raw value that exists: snapshot_month eq '2026-05-31T16:00:00.000Z' on mart_industry_sales_summary, or try '2026-06-01'. Let me test a few filter value formats on fact_sales_monthly.
+
+Actually, let me reconsider the whole picture. The user asked specifically for 2025年12月. But data only exists for fact_sales_monthly at multiple months, while industry-level summary tables only have the latest month (2026-06). If mart tables only have the latest snapshot, we cannot answer 2025-12 at industry level via KTX unless fact_sales_monthly can be joined with industry dimensions... but joins are empty in semantic layer.
+
+Hmm wait, maybe I should check the raw tables. raw_wholesale_retail_monthly only has 1 month (1477 rows). raw_accommodation_catering_monthly - let me check. Let me also check raw_company_monthly, dim_company_monthly_snapshot, temp_company.
+
+Actually the fact_sales_monthly has 16 months! That's the key table with historical months. And dim_company_monthly_snapshot has industry_code. But no joins in semantic layer.
+
+Let me read the remaining sources to understand what's available: dim_company_monthly_snapshot, dim_industry, mart_industry_sales_top50, mart_social_retail_detail, raw_accommodation_catering_monthly, raw_company_monthly.
+
+Actually, wait. Let me reconsider the timestamps. fact_sales_monthly returned 16 rows:
+1. 2025-01-31T16:00Z 
+2. 2025-02-28T16:00Z
+3. 2025-03-31T16:00Z
+4. 2025-04-30T16:00Z
+5. 2025-05-31T16:00Z
+6. 2025-06-30T16:00Z
+7. 2025-07-31T16:00Z
+8. 2025-08-31T16:00Z
+9. 2025-09-30T16:00Z
+10. 2025-10-31T16:00Z
+11. 2025-11-30T16:00Z
+12. 2026-01-31T16:00Z
+13. 2026-02-28T16:00Z
+14. 2026-03-31T16:00Z
+15. 2026-04-30T16:00Z
+16. 2026-05-31T16:00Z
+
+These are month-ends (31/28/30) at 16:00 UTC. If we add 8h: 2025-02-01 00:00, 2025-03-01 00:00, ..., these are the first days of months. So months present: 2025-02 through 2025-12, then 2026-02 through 2026-06. Missing 2025-01 and 2026-01. Interesting.
+
+So the stored dates are first-of-month dates, e.g. '2025-12-01'. The semantic layer displays them as UTC = local - 8h, i.e., 2025-11-30T16:00Z for 2025-12-01. That means the DB stores dates and KTX interprets them with a +8 timezone offset when converting to UTC? Actually if DB stores '2025-12-01 00:00:00' as a DATETIME in UTC+8 local, and KTX converts it assuming it's in a timezone... whatever.
+
+The practical takeaway: to filter for December 2025, I should use filter value '2025-12-01' (as the natural date). But that failed. Let me test on fact_sales_monthly.
+
+Let me try a filter eq '2025-12-01' on fact_sales_monthly snapshot_month. If it errors, try '2025-11-30T16:00:00.000Z' or '2025-11-30'.
+
+Actually, let me think about what error "semantic_query_failed" means. It might be a validation error in SQL generation. The filter value '2025-12-01' might get rendered into SQL as '2025-12-01' compared to a DATETIME column - that should work in MySQL. Hmm.
+
+Actually maybe the issue: snapshot_month is a DATE column. Filter '2025-12-01' on mart_industry_sales_summary - there might be no data for that month so maybe the engine errored on empty group? No...
+
+Let me just test on fact_sales_monthly with '2025-12-01'.
+
+Actually, I realize the earlier filter query had limit 100 and includeEmpty default true. The error was "semantic_query_failed" which is generic. Let me try again with a different approach: use granularity "month" on the snapshot_month dimension in the filter, or use the value '2025-12-01'.
+
+Let me try the query on fact_sales_monthly with filter snapshot_month eq '2025-12-01'.
+TOOL CALLS (2):
+
+-- TOOL 0 name=semantic_sl_query status=done --
+ARGS:
+{
+  "connectionId": "default-mysql",
+  "dimensions": [
+    "fact_sales_monthly.snapshot_month"
+  ],
+  "filters": [
+    {
+      "field": "fact_sales_monthly.snapshot_month",
+      "operator": "eq",
+      "value": "2025-12-01"
+    }
+  ],
+  "limit": 10,
+  "measures": [
+    "fact_sales_monthly.row_count"
+  ]
+}
+RESULT:
+{
+  "connectionId": "default-mysql",
+  "dialect": "mysql",
+  "sql": "SELECT fact_sales_monthly.snapshot_month AS snapshot_month, COUNT(*) AS row_count FROM qianhai_data_analysis.fact_sales_monthly AS fact_sales_monthly WHERE fact_sales_monthly.snapshot_month = '2025-12-01' GROUP BY fact_sales_monthly.snapshot_month ORDER BY 1 LIMIT 10",
+  "headers": [
+    "snapshot_month",
+    "row_count"
+  ],
+  "rows": [
+    [
+      "2025-11-30T16:00:00.000Z",
+      1573
+    ]
+  ],
+  "totalRows": 1,
+  "plan": {
+    "sources_used": [
+      "fact_sales_monthly"
+    ],
+    "join_paths": [],
+    "joins": [],
+    "anchor_source": "fact_sales_monthly",
+    "anchor_grain": [
+      "fact_sales_monthly.snapshot_month"
+    ],
+    "fan_out_description": "No fanout",
+    "has_fan_out": false,
+    "measure_groups": [],
+    "aggregate_locality": [],
+    "where_filters": [
+      "fact_sales_monthly.snapshot_month = '2025-12-01'"
+    ],
+    "having_filters": [],
+    "columns": [
+      {
+        "name": "snapshot_month",
+        "provenance": "dimension",
+        "expr": "fact_sales_monthly.snapshot_month",
+        "description": null,
+        "granularity": null
+      },
+      {
+        "name": "row_count",
+        "provenance": "verified",
+        "expr": "COUNT(*)",
+        "description": "Number of rows in this source.",
+        "granularity": null
+      }
+    ],
+    "measures": [
+      {
+        "name": "row_count",
+        "expr": "COUNT(*)",
+        "source_name": "fact_sales_monthly",
+        "original_name": "row_count",
+        "qualified_ref": "fact_sales_monthly.row_count",
+        "filter": null,
+        "provenance": "verified",
+        "is_derived": false,
+        "depends_on": [],
+        "description": "Number of rows in this source."
+      }
+    ],
+    "dimensions": [
+      {
+        "field": "fact_sales_monthly.snapshot_month",
+        "granularity": null
+      }
+    ],
+    "order_by": [],
+    "limit": 10,
+    "include_empty": true,
+    "execution": {
+      "mode": "executed",
+      "driver": "mysql",
+      "maxRows": 1000,
+      "rowCount": 1
+    }
+  }
+}
+
+-- TOOL 1 name=semantic_sl_query status=done --
+ARGS:
+{
+  "connectionId": "default-mysql",
+  "dimensions": [
+    "fact_sales_monthly.snapshot_month"
+  ],
+  "filters": [
+    {
+      "field": "fact_sales_monthly.snapshot_month",
+      "operator": "eq",
+      "value": "2025-12-01T00:00:00"
+    }
+  ],
+  "limit": 10,
+  "measures": [
+    "fact_sales_monthly.row_count"
+  ]
+}
+RESULT:
+{
+  "connectionId": "default-mysql",
+  "dialect": "mysql",
+  "sql": "SELECT fact_sales_monthly.snapshot_month AS snapshot_month, COUNT(*) AS row_count FROM qianhai_data_analysis.fact_sales_monthly AS fact_sales_monthly WHERE fact_sales_monthly.snapshot_month = '2025-12-01T00:00:00' GROUP BY fact_sales_monthly.snapshot_month ORDER BY 1 LIMIT 10",
+  "headers": [
+    "snapshot_month",
+    "row_count"
+  ],
+  "rows": [
+    [
+      "2025-11-30T16:00:00.000Z",
+      1573
+    ]
+  ],
+  "totalRows": 1,
+  "plan": {
+    "sources_used": [
+      "fact_sales_monthly"
+    ],
+    "join_paths": [],
+    "joins": [],
+    "anchor_source": "fact_sales_monthly",
+    "anchor_grain": [
+      "fact_sales_monthly.snapshot_month"
+    ],
+    "fan_out_description": "No fanout",
+    "has_fan_out": false,
+    "measure_groups": [],
+    "aggregate_locality": [],
+    "where_filters": [
+      "fact_sales_monthly.snapshot_month = '2025-12-01T00:00:00'"
+    ],
+    "having_filters": [],
+    "columns": [
+      {
+        "name": "snapshot_month",
+        "provenance": "dimension",
+        "expr": "fact_sales_monthly.snapshot_month",
+        "description": null,
+        "granularity": null
+      },
+      {
+        "name": "row_count",
+        "provenance": "verified",
+        "expr": "COUNT(*)",
+        "description": "Number of rows in this source.",
+        "granularity": null
+      }
+    ],
+    "measures": [
+      {
+        "name": "row_count",
+        "expr": "COUNT(*)",
+        "source_name": "fact_sales_monthly",
+        "original_name": "row_count",
+        "qualified_ref": "fact_sales_monthly.row_count",
+        "filter": null,
+        "provenance": "verified",
+        "is_derived": false,
+        "depends_on": [],
+        "description": "Number of rows in this source."
+      }
+    ],
+    "dimensions": [
+      {
+        "field": "fact_sales_monthly.snapshot_month",
+        "granularity": null
+      }
+    ],
+    "order_by": [],
+    "limit": 10,
+    "include_empty": true,
+    "execution": {
+      "mode": "executed",
+      "driver": "mysql",
+      "maxRows": 1000,
+      "rowCount": 1
+    }
+  }
+}
+
+===== ITEM 11 role=agent id=local-msg_e97ea9c3016343a29ae763bc =====
+CONTENT:
+mart 行业汇总表只有最新月份的数据，但 fact_sales_monthly 有 2025-12 的数据。让我检查其他来源的月份覆盖情况：
+REASONING:
+So the filter '2025-12-01' works on fact_sales_monthly. The earlier mart_industry_sales_summary query with filter failed — maybe because mart_industry_sales_summary only has data for 2026-06 (latest month), and filtering 2025-12 returns nothing, or perhaps the query error was something else.
+
+Wait, actually the earlier filter query on mart_industry_sales_summary failed with "semantic_query_failed". Let me retry with the filter on the summary table. Actually, maybe the issue is that mart_industry_sales_summary only has one snapshot month (2026-06-01), so no 2025-12 data there.
+
+The fact_sales_monthly has data for months: 2025-02 through 2025-12 and 2026-02 through 2026-06... wait let me re-examine. The returned timestamps are UTC. "2025-01-31T16:00:00.000Z" corresponds to 2025-02-01 00:00:00 in China time (UTC+8). So snapshot months in local time are 2025-02, 2025-03, ..., 2025-12, then 2026-02 ... 2026-06.
+
+Wait, "2025-11-30T16:00:00.000Z" = 2025-12-01 in local. Yes. So fact_sales_monthly has snapshot_month 2025-12-01. Good.
+
+But mart_industry_sales_summary only has one snapshot: 2026-05-31T16:00:00Z = 2026-06-01 local. So the summary mart table only contains the latest month.
+
+The user wants 2025年12月 (December 2025). We need industry-level summary for Dec 2025. mart_industry_sales_summary only has 2026-06 data. But fact_sales_monthly has 2025-12 data with company_id, and we'd need industry mapping.
+
+Hmm, but the user explicitly asked to use KTX (semantic layer). We have sources:
+- mart_industry_sales_summary: only 2026-06 data
+- mart_industry_sales_detail: only 2026-06 (1685 rows)
+- int_industry_sales: only 2026-06
+- int_industry_sales_metrics: only 2026-06
+- fact_sales_monthly: has 2025-12 data, but needs industry join
+
+Wait, but there's also mart_industry_sales_top50, mart_social_retail_detail, mart_social_retail_district_summary, etc. Let me check mart_social_retail_industry_summary — only 2026-06.
+
+Hmm. So semantic sources may only have the latest month except fact_sales_monthly. But fact_sales_monthly lacks industry names directly; it has company_id, and dim_company_monthly_snapshot has industry_code, and dim_industry has industry names. But semantic sources have no joins defined (joins: []).
+
+Wait, the task says: use KTX. Let me check if we can still query. The fact_sales_monthly doesn't have industry dimension. But int_industry_sales and int_industry_sales_metrics DO have large_industry_name but only for 2026-06.
+
+Hmm, so for 2025-12 data, we might not be able to get industry-level data through KTX because the industry-level semantic sources only have the latest month (2026-06).
+
+Wait — maybe I need to reconsider. Perhaps there is data in raw tables with more months. Let me check raw_wholesale_retail_monthly and raw_accommodation_catering_monthly months. raw_wholesale_retail_monthly returned only 2026-06. Let me check raw_accommodation_catering_monthly.
+
+Actually, the fourth query failed due to invalid args (I sent a malformed one). Let me check raw_accommodation_catering_monthly months, raw_company_monthly, and also mart_industry_sales_top50 and mart_social_retail_detail months.
+
+Actually, let me reconsider. fact_sales_monthly has months from 2025-02 to 2026-06 (16 months). That's the fact table with company-level data. The industry tables (int/mart) only have the latest month snapshot. So for Dec 2025 industry-level cumulative sales, we would need to aggregate fact_sales_monthly by industry. But fact_sales_monthly doesn't have industry info, and semantic layer has no joins.
+
+However, we could query fact_sales_monthly aggregated over all companies for 2025-12 to get total. But we need industry breakdown.
+
+Hmm, let me check the stg_wholesale_retail_monthly and stg_accommodation_catering_monthly: only 2026-06. dim_company_monthly_snapshot — check months. raw_company_monthly — check months. temp_company — check.
+
+Let me check those sources for month coverage. Also check mart_industry_sales_top50 and mart_social_retail_detail and mart_social_retail_special_summary.
+
+Actually, the more efficient approach: check dim_company_monthly_snapshot months (has industry_code + snapshot_month) and see if fact_sales_monthly 2025-12 can be joined via company. But semantic layer joins are empty. Hmm.
+
+Wait — maybe I can't do joins in semantic layer. The sources show joins: [] for all. So KTX querying supports only single-source queries.
+
+So to get industry breakdown for Dec 2025, we need a source that has both industry and 2025-12 data. Let me check all remaining sources' months:
+- dim_company_monthly_snapshot
+- dim_company
+- dim_industry
+- mart_industry_sales_top50
+- mart_social_retail_detail
+- mart_social_retail_district_summary
+- mart_social_retail_special_summary
+- raw_accommodation_catering_monthly
+- raw_company_monthly
+- raw_industry_codes
+- temp_company
+
+Let me check these. dim_company_monthly_snapshot has 7 columns; let me read it. Also check months in dim_company_monthly_snapshot and mart_industry_sales_top50.
+TOOL CALLS (3):
+
+-- TOOL 0 name=semantic_sl_read_source status=done --
+ARGS:
+{
+  "sourceName": "dim_company_monthly_snapshot"
+}
+RESULT:
+{
+  "connectionId": "default-mysql",
+  "sourceName": "dim_company_monthly_snapshot",
+  "yaml": "name: dim_company_monthly_snapshot\ndescriptions:\n  db: 企业月度快照维度表：记录企业每月的动态属性。\ntable: qianhai_data_analysis.dim_company_monthly_snapshot\ngrain:\n  - snapshot_id\ncolumns:\n  - name: snapshot_id\n    type: number\n    descriptions:\n      db: 主键。快照记录的唯一ID。\n  - name: company_id\n    type: number\n    descriptions:\n      db: 外键，关联到 dim_company。\n  - name: industry_code\n    type: string\n    descriptions:\n      db: 外键，关联到 dim_industry。\n  - name: snapshot_month\n    type: time\n    role: time\n    descriptions:\n      db: 快照月份，格式为 YYYY-MM-01。\n    natural_granularity: month\n  - name: is_four_above\n    type: number\n    descriptions:\n      db: 该企业在本月是否为\"四上\"企业 (1:是, 0:否)。\n  - name: operating_address\n    type: string\n    descriptions:\n      db: 企业在本月的实际经营地址。\n  - name: district\n    type: string\n    descriptions:\n      db: 企业在本月所属的片区。\njoins: []\nmeasures:\n  - name: row_count\n    expr: count(*)\n    description: Number of rows in this source.\n"
+}
+
+-- TOOL 1 name=semantic_sl_read_source status=done --
+ARGS:
+{
+  "sourceName": "mart_industry_sales_top50"
+}
+RESULT:
+{
+  "connectionId": "default-mysql",
+  "sourceName": "mart_industry_sales_top50",
+  "yaml": "name: mart_industry_sales_top50\ntable: qianhai_data_analysis.mart_industry_sales_top50\ngrain:\n  - snapshot_month\n  - large_industry_name\n  - row_type\n  - unified_social_credit_code\ncolumns:\n  - name: snapshot_month\n    type: time\n    role: time\n    descriptions:\n      en: Snapshot month of the industry sales ranking.\n  - name: large_industry_name\n    type: string\n    descriptions:\n      en: \"Large industry category. Observed values: 批发业 (wholesale), 零售业 (retail), 餐饮业 (catering).\"\n  - name: row_type\n    type: string\n    descriptions:\n      en: \"Row kind: 企业 (individual company), 20强合计 (top-20 aggregate), 50强合计 (top-50 aggregate), 整体行业 (whole-industry aggregate).\"\n  - name: company_rank\n    type: number\n    descriptions:\n      en: Company sales rank within the industry snapshot (1-50 for 企业 rows).\n  - name: unified_social_credit_code\n    type: string\n    descriptions:\n      en: Company unified social credit code (empty for aggregate rows).\n  - name: company_name\n    type: string\n    descriptions:\n      en: Company name (null for aggregate rows).\n  - name: district\n    type: string\n    descriptions:\n      en: District of the company.\n  - name: sales_ytd\n    type: number\n    descriptions:\n      en: Year-to-date sales.\n  - name: sales_ytd_last_year\n    type: number\n    descriptions:\n      en: Year-to-date sales for the previous year.\n  - name: sales_current_month\n    type: number\n    descriptions:\n      en: Sales in the current snapshot month.\n  - name: sales_same_month_last_year\n    type: number\n    descriptions:\n      en: Sales in the same month of the previous year.\n  - name: sales_ytd_previous_month\n    type: number\n    descriptions:\n      en: Year-to-date sales as of the previous month.\n  - name: sales_ytd_previous_month_last_year\n    type: number\n    descriptions:\n      en: Year-to-date sales as of the previous month of the previous year.\n  - name: yoy_growth_rate\n    type: number\n    descriptions:\n      en: Year-over-year growth rate (%).\n  - name: previous_month_yoy_growth_rate\n    type: number\n    descriptions:\n      en: Year-over-year growth rate as of the previous month.\n  - name: yoy_narrowing\n    type: number\n    descriptions:\n      en: Change in the year-over-year growth rate vs the previous month (narrowing/widening).\n  - name: current_month_growth_rate\n    type: number\n    descriptions:\n      en: Growth rate of the current snapshot month.\n  - name: large_category_pull_effect\n    type: number\n    descriptions:\n      en: Pull effect of the large industry category on aggregate growth.\n  - name: large_category_pull_effect_previous_month\n    type: number\n    descriptions:\n      en: Large-industry pull effect as of the previous month.\n  - name: industry_proportion\n    type: number\n    descriptions:\n      en: Share of the industry or company within the aggregate.\njoins: []\nmeasures:\n  - name: row_count\n    expr: count(*)\n    description: Number of rows in this source.\ndescriptions:\n  ktx: Semantic-layer source for mart_industry_sales_top50 backed by qianhai_data_analysis.mart_industry_sales_top50.\n"
+}
+
+-- TOOL 2 name=semantic_sl_read_source status=done --
+ARGS:
+{
+  "sourceName": "raw_accommodation_catering_monthly"
+}
+RESULT:
+{
+  "connectionId": "default-mysql",
+  "sourceName": "raw_accommodation_catering_monthly",
+  "yaml": "name: raw_accommodation_catering_monthly\nsource_type: table\ntable: qianhai_data_analysis.raw_accommodation_catering_monthly\ngrain:\n  - snapshot_month\n  - source_row_number\ncolumns:\n  - name: snapshot_month\n    type: time\n    role: time\n    descriptions:\n      ktx: Column snapshot month from raw_accommodation_catering_monthly.\n  - name: source_row_number\n    type: number\n    descriptions:\n      ktx: Column source row number from raw_accommodation_catering_monthly.\n  - name: unified_social_credit_code\n    type: string\n    descriptions:\n      ktx: Column unified social credit code from raw_accommodation_catering_monthly.\n  - name: company_name\n    type: string\n    descriptions:\n      ktx: Column company name from raw_accommodation_catering_monthly.\n  - name: turnover_current_month\n    type: number\n    descriptions:\n      ktx: Column turnover current month from raw_accommodation_catering_monthly.\n  - name: turnover_ytd\n    type: number\n    descriptions:\n      ktx: Column turnover ytd from raw_accommodation_catering_monthly.\n  - name: turnover_same_month_last_year\n    type: number\n    descriptions:\n      ktx: Column turnover same month last year from raw_accommodation_catering_monthly.\n  - name: turnover_ytd_last_year\n    type: number\n    descriptions:\n      ktx: Column turnover ytd last year from raw_accommodation_catering_monthly.\n  - name: product_sales_current_month\n    type: number\n    descriptions:\n      ktx: Column product sales current month from raw_accommodation_catering_monthly.\n  - name: product_sales_ytd\n    type: number\n    descriptions:\n      ktx: Column product sales ytd from raw_accommodation_catering_monthly.\n  - name: product_sales_same_month_last_year\n    type: number\n    descriptions:\n      ktx: Column product sales same month last year from raw_accommodation_catering_monthly.\n  - name: product_sales_ytd_last_year\n    type: number\n    descriptions:\n      ktx: Column product sales ytd last year from raw_accommodation_catering_monthly.\n  - name: meal_income_ytd\n    type: number\n    descriptions:\n      ktx: Column meal income ytd from raw_accommodation_catering_monthly.\n  - name: meal_income_ytd_last_year\n    type: number\n    descriptions:\n      ktx: Column meal income ytd last year from raw_accommodation_catering_monthly.\n  - name: raw_payload\n    type: string\n    descriptions:\n      ktx: Column raw payload from raw_accommodation_catering_monthly.\n  - name: loaded_at\n    type: time\n    role: time\n    descriptions:\n      ktx: Column loaded at from raw_accommodation_catering_monthly.\njoins: []\nmeasures:\n  - name: row_count\n    expr: count(*)\n    description: Number of rows in this source.\ndescriptions:\n  ktx: Semantic-layer source for raw_accommodation_catering_monthly backed by qianhai_data_analysis.raw_accommodation_catering_monthly.\n"
+}
+
+===== ITEM 12 role=agent id=local-msg_c58dbd0de84f42caa8f2b0e6 =====
+CONTENT:
+mart 行业汇总表似乎只包含最新月份的数据。让我确认各 mart 表可用的月份，以及 retry 之前失败的查询：
+REASONING:
+The semantic layer sources with industry names (mart_industry_sales_summary, int_industry_sales, int_industry_sales_metrics, mart_industry_sales_detail, mart_industry_sales_top50) only have the latest month (2026-06-01). The user asks for 2025-12.
+
+The fact_sales_monthly table has data for multiple months including 2025-12-01. But fact_sales_monthly doesn't have industry name directly; it has company_id. And dim_company_monthly_snapshot has industry_code for each company/month. And dim_industry maps industry_code to industry names.
+
+But the semantic layer joins are empty — there are no joins defined between sources. So in KTX I can't join fact_sales_monthly with dim_company_monthly_snapshot to get industry.
+
+Wait, but maybe I can query fact_sales_monthly joined via the int tables? Actually, int_industry_sales and int_industry_sales_metrics have large_industry_name plus sales_ytd per company but only for the latest month.
+
+Hmm, the user asks specifically for 2025年12月 (December 2025) cumulative sales and YoY growth for the three industries (批发、零售、餐饮). 
+
+Wait — but the data in mart tables is only for 2026-06-01 (i.e., snapshot month 2026-06-01 local, displayed as 2026-05-31T16:00Z). Hmm, actually that seems odd. The user asks for 2025-12. Maybe the underlying data actually stores month as '2025-12-01' but displayed as UTC timestamp? Let me check: snapshot_month for mart tables shows 2026-05-31T16:00:00.000Z. Converting to UTC+8: 2026-06-01 00:00:00. So it's the latest month 2026-06.
+
+For fact_sales_monthly, the months displayed include 2025-01-31T16:00Z (= 2025-02-01 local), 2025-02-28T16:00Z (= 2025-03-01 local)... wait, these are month-end timestamps. Hmm.
+
+Actually the stored value is probably a DATE 'YYYY-MM-01' but being returned in UTC with offset. 2025-01-31T16:00:00Z = 2025-02-01 00:00 UTC+8. That would be snapshot month 2025-02-01 local. But there's no 2025-12-01 in the list! Let me look at the list again:
+
+- 2025-01-31T16:00:00.000Z → local 2025-02-01
+- 2025-02-28T16:00:00.000Z → local 2025-03-01
+- 2025-03-31T16:00:00.000Z → local 2025-04-01
+- 2025-04-30T16:00:00.000Z → local 2025-05-01
+- 2025-05-31T16:00:00.000Z → local 2025-06-01
+- 2025-06-30T16:00:00.000Z → local 2025-07-01
+- 2025-07-31T16:00:00.000Z → local 2025-08-01
+- 2025-08-31T16:00:00.000Z → local 2025-09-01
+- 2025-09-30T16:00:00.000Z → local 2025-10-01
+- 2025-10-31T16:00:00.000Z → local 2025-11-01
+- 2025-11-30T16:00:00.000Z → local 2025-12-01  ← this is December 2025!
+- 2026-01-31T16:00:00.000Z → local 2026-02-01
+- ...
+
+So fact_sales_monthly has data for 2025-12-01 (displayed as 2025-11-30T16:00Z). Good. But it doesn't have industry names. 
+
+Now, the user wants industry-level aggregate. The semantic layer sources that have industry names only have the latest month. Hmm.
+
+Wait — but maybe I should check whether the mart tables actually have more months but the query only returned one month because... no, the query returned only one distinct month with 1685 rows. So the mart tables only have latest month data.
+
+Hmm, but wait. Maybe the mart tables are rebuilt to latest month only. So for 2025-12, the only semantic-layer source that can give industry-level data is fact_sales_monthly + joins... but no joins defined.
+
+Let me reconsider. Perhaps the semantic layer supports joins between sources but they're not defined. The joins array is empty for all sources. So KTX can't join.
+
+However, maybe there is a way: the fact_sales_monthly table has company_id and snapshot_month. dim_company_monthly_snapshot has company_id, industry_code, snapshot_month. dim_industry has industry_code and industry names. Since joins aren't defined, I can't do this via semantic layer.
+
+Hold on. Let me re-read the user request: "使用KTX，查询2025年12月批发零售餐饮三大行业的累计销售额和同比增速". They want KTX. The instruction says when the user explicitly asks to use KTX or semantic-layer querying, use only semantic_sl_discover, semantic_sl_read_source, semantic_sl_query; do not fall back to Database tools.
+
+So I must use semantic queries only. Let me check whether the industry-level sources (mart_industry_sales_summary etc.) contain 2025-12 data. They showed only 2026-06. But maybe the filter value format matters. The earlier filter query on mart_industry_sales_summary with snapshot_month = '2025-12-01' failed with error "semantic_query_failed". Hmm, that error may have been because that source doesn't have that month and includeEmpty... no, that shouldn't error.
+
+Wait, the earlier failed query was:
+```
+measures: ["mart_industry_sales_summary.sales_ytd_total"]
+dimensions: [snapshot_month, large_industry_name]
+filters: [snapshot_month eq '2025-12-01']
+```
+It returned error "semantic_query_failed". Odd. Maybe the filter value format for the time column needs to be something else, or maybe because the summary table has no 2025-12 data at all.
+
+Actually the filter worked on fact_sales_monthly with '2025-12-01'. So the filter format is fine. For mart_industry_sales_summary it failed possibly because... hmm, maybe because the column type differs. Or maybe it was a transient issue.
+
+Let me reconsider: maybe I should just query mart_industry_sales_summary with a filter and see. But if it only has 2026-06 data, filtering 2025-12 returns no rows.
+
+Actually, wait. Let me reconsider the timezone. The fact_sales_monthly query showed months stored as e.g. 2025-01-31T16:00Z which equals 2025-02-01 in UTC+8. But what if the stored value is actually '2025-01-31' (end of month)? The DB description says "快照月份，格式为 YYYY-MM-01" for dim_company_monthly_snapshot. So stored as first of month. But fact_sales_monthly shows 2025-01-31T16:00Z. If stored as '2025-02-01' DATE and interpreted as UTC+8 midnight, then UTC display = 2025-01-31T16:00Z. Yes, that's consistent: stored '2025-02-01' displayed as UTC-8h.
+
+So fact_sales_monthly has snapshot months from 2025-02 through 2026-06 (missing 2025-01 and 2026-01? let me check: list has 2025-01-31(→02-01), 2025-02-28(→03-01), ..., 2025-11-30(→12-01), 2026-01-31(→02-01)...). So 2025-12-01 is present (displayed as 2025-11-30T16:00Z).
+
+But the mart/industry tables only have the latest month (2026-06). So how do I get 2025-12 industry-level data via KTX?
+
+Hmm, but wait. Maybe the mart tables DO have 2025-12 data but the semantic layer's snapshot_month column is indexed/interpreted differently. Let me query mart_industry_sales_summary without a date filter but grouped by month — earlier I did that and got only 2026-06. So it truly only has one month.
+
+OK so the question becomes: can I get industry-level cumulative sales for Dec 2025 through semantic layer? The only source containing 2025-12 data is fact_sales_monthly (company-level, no industry). 
+
+Alternatively maybe I misread and there are other months in int_industry_sales etc. Let me check: int_industry_sales_metrics and int_industry_sales both had only 2026-06. mart_industry_sales_top50 — check its months? It probably also only has latest month.
+
+Hmm. Wait, maybe I should reconsider whether the user wants the "latest" available month which happens to be displayed as 2026-06. But they said 2025年12月 explicitly.
+
+Let me check mart_industry_sales_top50 and mart_social_retail sources for months, and also check the raw/stg tables for months. raw_wholesale_retail_monthly and stg_wholesale_retail_monthly only had 2026-06. raw_accommodation_catering_monthly — check.
+
+Actually, let me reconsider. The filter '2025-12-01' failed on mart_industry_sales_summary with a generic error. Maybe it actually failed because there's no data and the engine errored? That seems unlikely; an empty result is fine.
+
+Let me try the query again with a different approach: query mart_industry_sales_summary with filter snapshot_month eq '2025-11-30T16:00:00.000Z' (the UTC display value). Maybe the filter needs the stored UTC representation.
+
+Actually, when I filtered fact_sales_monthly.snapshot_month = '2025-12-01', the SQL generated was `WHERE snapshot_month = '2025-12-01'`, and it returned the row displayed as 2025-11-30T16:00Z. So the stored value in DB is '2025-12-01' and MySQL matched it. So filtering with '2025-12-01' works on fact_sales_monthly.
+
+So why did it fail on mart_industry_sales_summary? Let me retry that exact query to see. Maybe it was a transient issue.
+
+Actually, maybe the issue: mart_industry_sales_summary only has one month and the filter matched nothing, and includeEmpty with dimensions caused error? Unlikely.
+
+Let me just retry and see. Also let me check the months available in mart_industry_sales_top50 and mart_social_retail sources. Let me query them.
+TOOL CALLS (3):
+
+-- TOOL 0 name=semantic_sl_query status=done --
+ARGS:
+{
+  "connectionId": "default-mysql",
+  "dimensions": [
+    "mart_industry_sales_top50.snapshot_month"
+  ],
+  "limit": 100,
+  "measures": [
+    "mart_industry_sales_top50.row_count"
+  ]
+}
+RESULT:
+{
+  "connectionId": "default-mysql",
+  "dialect": "mysql",
+  "sql": "SELECT mart_industry_sales_top50.snapshot_month AS snapshot_month, COUNT(*) AS row_count FROM qianhai_data_analysis.mart_industry_sales_top50 AS mart_industry_sales_top50 GROUP BY mart_industry_sales_top50.snapshot_month ORDER BY 1 LIMIT 100",
+  "headers": [
+    "snapshot_month",
+    "row_count"
+  ],
+  "rows": [
+    [
+      "2026-05-31T16:00:00.000Z",
+      159
+    ]
+  ],
+  "totalRows": 1,
+  "plan": {
+    "sources_used": [
+      "mart_industry_sales_top50"
+    ],
+    "join_paths": [],
+    "joins": [],
+    "anchor_source": "mart_industry_sales_top50",
+    "anchor_grain": [
+      "mart_industry_sales_top50.snapshot_month"
+    ],
+    "fan_out_description": "No fanout",
+    "has_fan_out": false,
+    "measure_groups": [],
+    "aggregate_locality": [],
+    "where_filters": [],
+    "having_filters": [],
+    "columns": [
+      {
+        "name": "snapshot_month",
+        "provenance": "dimension",
+        "expr": "mart_industry_sales_top50.snapshot_month",
+        "description": null,
+        "granularity": null
+      },
+      {
+        "name": "row_count",
+        "provenance": "verified",
+        "expr": "COUNT(*)",
+        "description": "Number of rows in this source.",
+        "granularity": null
+      }
+    ],
+    "measures": [
+      {
+        "name": "row_count",
+        "expr": "COUNT(*)",
+        "source_name": "mart_industry_sales_top50",
+        "original_name": "row_count",
+        "qualified_ref": "mart_industry_sales_top50.row_count",
+        "filter": null,
+        "provenance": "verified",
+        "is_derived": false,
+        "depends_on": [],
+        "description": "Number of rows in this source."
+      }
+    ],
+    "dimensions": [
+      {
+        "field": "mart_industry_sales_top50.snapshot_month",
+        "granularity": null
+      }
+    ],
+    "order_by": [],
+    "limit": 100,
+    "include_empty": true,
+    "execution": {
+      "mode": "executed",
+      "driver": "mysql",
+      "maxRows": 1000,
+      "rowCount": 1
+    }
+  }
+}
+
+-- TOOL 1 name=semantic_sl_query status=done --
+ARGS:
+{
+  "connectionId": "default-mysql",
+  "dimensions": [
+    "mart_social_retail_industry_summary.snapshot_month",
+    "mart_social_retail_industry_summary.large_industry_name"
+  ],
+  "limit": 50,
+  "measures": [
+    "mart_social_retail_industry_summary.row_count"
+  ]
+}
+RESULT:
+{
+  "connectionId": "default-mysql",
+  "dialect": "mysql",
+  "sql": "SELECT mart_social_retail_industry_summary.snapshot_month AS snapshot_month, mart_social_retail_industry_summary.large_industry_name AS large_industry_name, COUNT(*) AS row_count FROM qianhai_data_analysis.mart_social_retail_industry_summary AS mart_social_retail_industry_summary GROUP BY mart_social_retail_industry_summary.snapshot_month, mart_social_retail_industry_summary.large_industry_name ORDER BY 1, 2 LIMIT 50",
+  "headers": [
+    "snapshot_month",
+    "large_industry_name",
+    "row_count"
+  ],
+  "rows": [
+    [
+      "2026-05-31T16:00:00.000Z",
+      "住宿业",
+      1
+    ],
+    [
+      "2026-05-31T16:00:00.000Z",
+      "批发业",
+      1
+    ],
+    [
+      "2026-05-31T16:00:00.000Z",
+      "零售业",
+      1
+    ],
+    [
+      "2026-05-31T16:00:00.000Z",
+      "餐饮业",
+      1
+    ]
+  ],
+  "totalRows": 4,
+  "plan": {
+    "sources_used": [
+      "mart_social_retail_industry_summary"
+    ],
+    "join_paths": [],
+    "joins": [],
+    "anchor_source": "mart_social_retail_industry_summary",
+    "anchor_grain": [
+      "mart_social_retail_industry_summary.snapshot_month",
+      "mart_social_retail_industry_summary.large_industry_name"
+    ],
+    "fan_out_description": "No fanout",
+    "has_fan_out": false,
+    "measure_groups": [],
+    "aggregate_locality": [],
+    "where_filters": [],
+    "having_filters": [],
+    "columns": [
+      {
+        "name": "snapshot_month",
+        "provenance": "dimension",
+        "expr": "mart_social_retail_industry_summary.snapshot_month",
+        "description": null,
+        "granularity": null
+      },
+      {
+        "name": "large_industry_name",
+        "provenance": "dimension",
+        "expr": "mart_social_retail_industry_summary.large_industry_name",
+        "description": null,
+        "granularity": null
+      },
+      {
+        "name": "row_count",
+        "provenance": "verified",
+        "expr": "COUNT(*)",
+        "description": "Number of rows in this source.",
+        "granularity": null
+      }
+    ],
+    "measures": [
+      {
+        "name": "row_count",
+        "expr": "COUNT(*)",
+        "source_name": "mart_social_retail_industry_summary",
+        "original_name": "row_count",
+        "qualified_ref": "mart_social_retail_industry_summary.row_count",
+        "filter": null,
+        "provenance": "verified",
+        "is_derived": false,
+        "depends_on": [],
+        "description": "Number of rows in this source."
+      }
+    ],
+    "dimensions": [
+      {
+        "field": "mart_social_retail_industry_summary.snapshot_month",
+        "granularity": null
+      },
+      {
+        "field": "mart_social_retail_industry_summary.large_industry_name",
+        "granularity": null
+      }
+    ],
+    "order_by": [],
+    "limit": 50,
+    "include_empty": true,
+    "execution": {
+      "mode": "executed",
+      "driver": "mysql",
+      "maxRows": 1000,
+      "rowCount": 4
+    }
+  }
+}
+
+-- TOOL 2 name=semantic_sl_query status=done --
+ARGS:
+{
+  "connectionId": "default-mysql",
+  "dimensions": [
+    "mart_industry_sales_summary.snapshot_month",
+    "mart_industry_sales_summary.large_industry_name"
+  ],
+  "filters": [
+    {
+      "field": "mart_industry_sales_summary.snapshot_month",
+      "operator": "eq",
+      "value": "2025-12-01"
+    }
+  ],
+  "limit": 50,
+  "measures": [
+    "mart_industry_sales_summary.sales_ytd_total"
+  ]
+}
+RESULT:
+{
+  "error": "semantic_query_failed"
+}
+
+===== ITEM 13 role=agent id=local-msg_c5492d505d3e4cf0b10b4fe7 =====
+CONTENT:
+mart 行业表仅包含最新月份数据，而 fact_sales_monthly 有 2025-12 的数据但缺少行业维度。让我检查语义层是否有跨表关联能力，以及知识库中的 KTX 用法经验：
+REASONING:
+Interesting. The mart tables only have the latest month data (2026-06-01 local, displayed as 2026-05-31T16:00:00Z). The user is asking for 2025-12.
+
+However, fact_sales_monthly has multiple months including 2025-12-01 (which displayed as 2025-11-30T16:00:00Z, meaning stored value is 2025-12-01 but timezone-shifted display). Wait, actually the filter '2025-12-01' matched and returned snapshot_month displayed as "2025-11-30T16:00:00.000Z". Hmm, this is confusing.
+
+Let me think about the timezone. The filter was `fact_sales_monthly.snapshot_month = '2025-12-01'` and returned a row displayed as `2025-11-30T16:00:00.000Z`. The stored value in DB is probably `2025-12-01` (a DATE or DATETIME), and the semantic layer displays it in UTC as `2025-11-30T16:00:00Z` (i.e., 2025-12-01 00:00 in +08:00 timezone = 2025-11-30 16:00 UTC). So the display is UTC but the filter is on the actual date value `2025-12-01`. So the filter worked.
+
+So fact_sales_monthly has data for 2025-12-01. Good.
+
+Now the issue: mart_industry_sales_summary only contains data for the latest month (2026-06-01 local, displayed as 2026-05-31T16:00Z). But that's a future date relative to 2025-12. Wait — the user asked for 2025年12月. But the mart tables only have the latest month, which is 2026-06-01. Hmm, but fact_sales_monthly has months up to 2026-06-01 too (displayed 2026-05-31T16:00Z).
+
+Wait, the fact_sales_monthly months list:
+- 2025-01-31T16:00Z → local 2025-02-01
+- 2025-02-28T16:00Z → local 2025-03-01
+- ...
+- 2025-11-30T16:00Z → local 2025-12-01
+- 2026-01-31T16:00Z → local 2026-02-01
+- ...
+- 2026-05-31T16:00Z → local 2026-06-01
+
+Wait, that means snapshot months in local are 2025-02-01 through 2025-12-01, then 2026-02-01 through 2026-06-01? Let me map again carefully.
+
+Actually, the displayed values in the result:
+1. 2025-01-31T16:00:00Z = local +8 → 2025-02-01 00:00 local
+2. 2025-02-28T16:00:00Z = 2025-03-01 00:00 local
+3. 2025-03-31T16:00:00Z = 2025-04-01
+4. 2025-04-30T16:00:00Z = 2025-05-01
+5. 2025-05-31T16:00:00Z = 2025-06-01
+6. 2025-06-30T16:00:00Z = 2025-07-01
+7. 2025-07-31T16:00:00Z = 2025-08-01
+8. 2025-08-31T16:00:00Z = 2025-09-01
+9. 2025-09-30T16:00:00Z = 2025-10-01
+10. 2025-10-31T16:00:00Z = 2025-11-01
+11. 2025-11-30T16:00:00Z = 2025-12-01
+12. 2026-01-31T16:00:00Z = 2026-02-01
+13. 2026-02-28T16:00:00Z = 2026-03-01
+14. 2026-03-31T16:00:00Z = 2026-04-01
+15. 2026-04-30T16:00:00Z = 2026-05-01
+16. 2026-05-31T16:00:00Z = 2026-06-01
+
+Hmm, that's odd — it skips 2025-01 and 2026-01. Wait, there's no 2025-01-01 in the list and no 2026-01-01. The first is 2025-02-01 local, last is 2026-06-01 local. Interesting, months start from 2025-02. Hmm, but the filter for '2025-12-01' returned 1573 rows which matches row 11 in the list. Good.
+
+So fact_sales_monthly has snapshot data for local months 2025-02 through 2026-06 (skipping 2026-01? No wait: 2026-01-31T16:00Z = local 2026-02-01, so 2026-01 local is missing but 2026-02 through 2026-06 present). Anyway, 2025-12 exists.
+
+But the mart industry tables (mart_industry_sales_summary, mart_industry_sales_detail, mart_industry_sales_top50, int_industry_sales, int_industry_sales_metrics) only contain the latest month (2026-06-01 local). So for 2025-12, I cannot use these mart tables to get industry-level aggregation.
+
+However, fact_sales_monthly is a company-level fact table with 20 columns including sales_ytd and yoy_growth_rate. But it doesn't have industry dimension directly. It has company_id. To get industry aggregation, we'd need to join with dim_company_monthly_snapshot (which has industry_code) and dim_industry (which maps code to name). But the semantic layer sources have `joins: []` — no joins defined! So we cannot join via semantic layer.
+
+Wait, the user explicitly asked to use KTX. The instructions say: "When the user explicitly asks to use KTX or semantic-layer querying, use only semantic_sl_discover, semantic_sl_read_source, and semantic_sl_query; do not fall back to Database tools."
+
+So I must use semantic layer only. Let me check whether there is any semantic source that has both industry dimension and 2025-12 data. 
+
+From the sources:
+- mart_industry_sales_summary: has large_industry_name + measures, but only 2026-06 data
+- mart_social_retail_industry_summary: has large_industry_name + retail_sales_ytd, retail_sales_ytd_last_year, but only 2026-06 data
+- int_industry_sales / int_industry_sales_metrics: only 2026-06
+- fact_sales_monthly: has multiple months including 2025-12, but no industry dimension and no joins
+
+Hmm. So via KTX, we cannot get industry-level sales for 2025-12 because the only source with multi-month data (fact_sales_monthly) has no industry dimension and no joins defined.
+
+Wait, but maybe dim_company_monthly_snapshot has multi-month data? Let me check. It has company_id, industry_code, snapshot_month. If it has 2025-12 data, and fact_sales_monthly has 2025-12 data, we still can't join them in semantic layer since joins are empty.
+
+Hmm, but the query patterns found in the knowledge base use SQL joins across these tables. But those are SQL patterns (for database tools). The user explicitly asked for KTX.
+
+Let me reconsider. Maybe the semantic layer does allow cross-source queries using qualified references but joins are auto-created? The discover output says joinCount: 0 for all. Let me check if there are any other sources that have industry names AND multiple months.
+
+Let me check dim_company_monthly_snapshot months, and also check if int_industry_sales has multiple months (it showed only 2026-06). 
+
+Actually, maybe the mart tables are only built for the latest month, but the int_industry_sales_metrics table is a VIEW — maybe it has multiple months but the query returned only one because... no, the query grouped by snapshot_month and returned only one row (1685). So only one month.
+
+Hmm, wait. Actually the data seems weird: the latest month in fact_sales_monthly is 2026-06, and the user is asking about 2025-12. The business report example in business.md mentioned "批发业2025年12月累计销售额: 7,276.5712亿元". So 2025-12 data should exist.
+
+Let me check whether fact_sales_monthly joined with dim tables would be needed. Since KTX has no joins, maybe the intended approach is to use a source that has everything. Let me check all sources' column availability again:
+
+Sources with large_industry_name: 
+- mart_industry_sales_summary (7 cols, 5 measures)
+- mart_industry_sales_detail (26 cols)
+- mart_industry_sales_top50 (20 cols)
+- int_industry_sales (13 cols)
+- int_industry_sales_metrics (30 cols)
+- mart_social_retail_industry_summary (4 cols)
+
+All only have 2026-06 data.
+
+Wait, but maybe I need to check if the filter for 2025-12 on mart_industry_sales_summary fails because there's no data (semantic_query_failed might be a timezone-related filter issue). Let me verify the mart tables genuinely lack 2025-12 by checking what months exist. We did: mart_industry_sales_summary has only 2026-06 (row_count 3 total, one month). Confirmed.
+
+So the only source with 2025-12 data is fact_sales_monthly, plus probably dim_company_monthly_snapshot and dim_industry (dimension tables may have data for that month).
+
+Since we cannot join in semantic layer, maybe we can still use fact_sales_monthly directly? No, it has company_id, not industry.
+
+Hmm, let me reconsider whether KTX supports joins implicitly through some join path. The discover says joinCount 0. The plan output in queries shows "joins": [] and "join_paths": []. So no.
+
+Wait, maybe I'm wrong about the semantic layer. Let me check the dim_company_monthly_snapshot months to see if 2025-12 exists there, and check whether there's a way. Actually, maybe I should check whether fact_sales_monthly has an industry_code column? No — its columns are fact_id, company_id, snapshot_month, sales_*, yoy_*, etc. No industry.
+
+Hmm. Let me look at the int_industry_sales_metrics source more carefully — it's a VIEW with 30 columns. It has snapshot_month, company info, large_industry_name, medium_industry_name, small_industry_name, district, sales_ytd, sales_ytd_last_year, etc. Only 2026-06 data though.
+
+So the situation: KTX semantic layer sources for industry-level aggregation only contain the latest month (2026-06). The user asks for 2025-12. 
+
+Wait, maybe the data was refreshed such that mart tables only keep latest month, but the fact table retains all months. The user wants December 2025 cumulative. 
+
+Option 1: Use fact_sales_monthly + dim_company_monthly_snapshot + dim_industry via joins — but semantic layer has no joins. This would require SQL via database tools, but the user explicitly asked for KTX and instructions forbid falling back to DB tools when user asks KTX.
+
+Option 2: Maybe there IS a source with multi-month industry data I haven't checked: raw_wholesale_retail_monthly (21 cols, only 2026-06), raw_accommodation_catering_monthly (16 cols), raw_company_monthly (11 cols), dim_company (4 cols), dim_industry (12 cols), stg_company_monthly, temp_company...
+
+Let me check dim_company_monthly_snapshot months and dim_industry content. And maybe there's a source I can query per industry without joins.
+
+Actually wait — the fact_sales_monthly has yoy_growth_rate per company, and sales_ytd. If we can't join to industry, we can't sum by industry.
+
+Hmm, but wait. Let me re-examine: maybe the semantic layer DOES support joins but the discover just shows the current sources' declared joins. Let me try querying with a dimension from a different source (e.g., dimension on dim_company_monthly_snapshot.industry_code while measures on fact_sales_monthly). Actually the semantic query requires a single "anchor source"? The query uses qualified refs like source.column. Let me try a cross-source query to see if it auto-joins.
+
+Actually, maybe I should check whether the semantic layer exposes joins automatically based on FK relationships. The discover returned joinCount: 0 for all sources, suggesting no joins configured. But let me try a query referencing fact_sales_monthly measure and dim_company_monthly_snapshot dimension — if it works, there are implicit joins.
+
+Actually, let me first check dim_company_monthly_snapshot month coverage to confirm 2025-12 exists.
+
+Let me also reconsider: maybe the user actually wants the latest available month data but phrased it as "2025年12月". Given the business.md example cites 2025-12 cumulative values, it's clearly expected data exists.
+
+Let me check if maybe there are more months in int_industry_sales_metrics (a view) — but the query returned only 2026-06. Hmm.
+
+OK let me step back. Perhaps the semantic layer supports joins defined in the catalog but discover shows joinCount 0 because no joins are declared in YAML. In that case, cross-source queries won't work. 
+
+Let me test a cross-source query: measures fact_sales_monthly.row_count with dimension dim_company_monthly_snapshot.snapshot_month. If it errors, no joins.
+
+Actually, better: check the knowledge base query_patterns for the exact KTX/SL query approach. There might be SL-specific templates. Let me search knowledge for semantic layer / KTX usage.
+
+Also search learning for any past mistakes with KTX.
+
+Let me do that.
+TOOL CALLS (3):
+
+-- TOOL 0 name=semantic_sl_query status=done --
+ARGS:
+{
+  "connectionId": "default-mysql",
+  "dimensions": [
+    "dim_company_monthly_snapshot.snapshot_month"
+  ],
+  "limit": 100,
+  "measures": [
+    "dim_company_monthly_snapshot.row_count"
+  ]
+}
+RESULT:
+{
+  "connectionId": "default-mysql",
+  "dialect": "mysql",
+  "sql": "SELECT dim_company_monthly_snapshot.snapshot_month AS snapshot_month, COUNT(*) AS row_count FROM qianhai_data_analysis.dim_company_monthly_snapshot AS dim_company_monthly_snapshot GROUP BY dim_company_monthly_snapshot.snapshot_month ORDER BY 1 LIMIT 100",
+  "headers": [
+    "snapshot_month",
+    "row_count"
+  ],
+  "rows": [
+    [
+      "2025-01-31T16:00:00.000Z",
+      90153
+    ],
+    [
+      "2025-02-28T16:00:00.000Z",
+      89829
+    ],
+    [
+      "2025-03-31T16:00:00.000Z",
+      89504
+    ],
+    [
+      "2025-04-30T16:00:00.000Z",
+      89175
+    ],
+    [
+      "2025-05-31T16:00:00.000Z",
+      88842
+    ],
+    [
+      "2025-06-30T16:00:00.000Z",
+      88493
+    ],
+    [
+      "2025-07-31T16:00:00.000Z",
+      88180
+    ],
+    [
+      "2025-08-31T16:00:00.000Z",
+      87860
+    ],
+    [
+      "2025-09-30T16:00:00.000Z",
+      87559
+    ],
+    [
+      "2025-10-31T16:00:00.000Z",
+      87344
+    ],
+    [
+      "2025-11-30T16:00:00.000Z",
+      86263
+    ],
+    [
+      "2026-01-31T16:00:00.000Z",
+      85398
+    ],
+    [
+      "2026-02-28T16:00:00.000Z",
+      85158
+    ],
+    [
+      "2026-03-31T16:00:00.000Z",
+      84932
+    ],
+    [
+      "2026-04-30T16:00:00.000Z",
+      84671
+    ],
+    [
+      "2026-05-31T16:00:00.000Z",
+      84377
+    ]
+  ],
+  "totalRows": 16,
+  "plan": {
+    "sources_used": [
+      "dim_company_monthly_snapshot"
+    ],
+    "join_paths": [],
+    "joins": [],
+    "anchor_source": "dim_company_monthly_snapshot",
+    "anchor_grain": [
+      "dim_company_monthly_snapshot.snapshot_month"
+    ],
+    "fan_out_description": "No fanout",
+    "has_fan_out": false,
+    "measure_groups": [],
+    "aggregate_locality": [],
+    "where_filters": [],
+    "having_filters": [],
+    "columns": [
+      {
+        "name": "snapshot_month",
+        "provenance": "dimension",
+        "expr": "dim_company_monthly_snapshot.snapshot_month",
+        "description": null,
+        "granularity": null
+      },
+      {
+        "name": "row_count",
+        "provenance": "verified",
+        "expr": "COUNT(*)",
+        "description": "Number of rows in this source.",
+        "granularity": null
+      }
+    ],
+    "measures": [
+      {
+        "name": "row_count",
+        "expr": "COUNT(*)",
+        "source_name": "dim_company_monthly_snapshot",
+        "original_name": "row_count",
+        "qualified_ref": "dim_company_monthly_snapshot.row_count",
+        "filter": null,
+        "provenance": "verified",
+        "is_derived": false,
+        "depends_on": [],
+        "description": "Number of rows in this source."
+      }
+    ],
+    "dimensions": [
+      {
+        "field": "dim_company_monthly_snapshot.snapshot_month",
+        "granularity": null
+      }
+    ],
+    "order_by": [],
+    "limit": 100,
+    "include_empty": true,
+    "execution": {
+      "mode": "executed",
+      "driver": "mysql",
+      "maxRows": 1000,
+      "rowCount": 16
+    }
+  }
+}
+
+-- TOOL 1 name=search_knowledge status=done --
+ARGS:
+{
+  "query": "KTX 语义层 semantic query 跨表 join"
+}
+RESULT:
+# 知识库搜索结果
+
+查询: "KTX 语义层 semantic query 跨表 join"
+模式: 智能关键词
+匹配: 8 处
+
+## 1. agent.md (第 11 行, 评分 12)
+小节: Task Execution
+命中关键词: ktx, semantic, query
+```
+        8 | 
+        9 | 1. The user will primarily ask you to complete data analysis tasks; including data querying, data exporting, data analysis, chart rendering, and dashboard generation.
+       10 | 2. Data querying must be completed as quickly as possible while ensuring accuracy.
+ >>>   11 |    - When the user explicitly asks to use KTX or semantic-layer querying, use only `semantic_sl_discover`, `semantic_sl_read_source`, and `semantic_sl_query`; do not fall back to Database tools.
+       12 |    - Start KTX work with `semantic_sl_discover` without `connectionId`. Use only a `connectionId` returned by that call. Never guess connection IDs or ask the user to configure a separate KTX platform connection; Data Agent projects managed database connections into KTX automatically.
+       13 |    - When exactly one KTX connection exists, omit `connectionId` from `semantic_sl_read_source` and `semantic_sl_query` unless the discovered canonical ID is already known.
+       14 |    - During queries, first use keywords to search through `query_patterens.md`, `business.md`, and `learing.md`.
+```
+
+## 2. doc\query_patterns.md (第 19 行, 评分 5)
+小节: 查询指定行业大类在指定月份的累计销售额和同比增速
+命中关键词: join, query
+```
+       16 |     ROUND(SUM(f.sales_ytd_last_year), 4) as 上年同期累计销售额_亿元,
+       17 |     ROUND((SUM(f.sales_ytd) - SUM(f.sales_ytd_last_year)) / SUM(f.sales_ytd_last_year) * 100, 2) as 同比增速_百分比
+       18 | FROM fact_sales_monthly f
+ >>>   19 | JOIN dim_company_monthly_snapshot s ON f.company_id = s.company_id AND f.snapshot_month = s.snapshot_month
+       20 | JOIN dim_industry di ON s.industry_code = di.industry_code
+       21 | WHERE di.industry_code_large = '51'  -- 替换为实际行业大类代码
+       22 |     AND f.snapshot_month = '2025-12-01'  -- 替换为目标月份
+```
+
+## 3. doc\query_patterns.md (第 39 行, 评分 5)
+小节: 查询行业大类全年各月累计销售额趋势
+命中关键词: join, query
+```
+       36 |     ROUND(SUM(f.sales_ytd_last_year), 4) as 上年同期累计销售额_亿元,
+       37 |     ROUND((SUM(f.sales_ytd) - SUM(f.sales_ytd_last_year)) / SUM(f.sales_ytd_last_year) * 100, 2) as 同比增速_百分比
+       38 | FROM fact_sales_monthly f
+ >>>   39 | JOIN dim_company_monthly_snapshot s ON f.company_id = s.company_id AND f.snapshot_month = s.snapshot_month
+       40 | JOIN dim_industry di ON s.industry_code = di.industry_code
+       41 | WHERE di.industry_code_large = '51'  -- 替换为实际行业大类代码
+       42 |     AND f.snapshot_month >= '2025-01-01'  -- 替换为年份开始
+```
+
+## 4. doc\query_patterns.md (第 61 行, 评分 5)
+小节: 查询所有行业大类在指定月份的销售额排名
+命中关键词: join, query
+```
+       58 |     ROUND((SUM(f.sales_ytd) - SUM(f.sales_ytd_last_year)) / SUM(f.sales_ytd_last_year) * 100, 2) as 同比增速_百分比,
+       59 |     ROUND(SUM(f.sales_ytd) / (SELECT SUM(sales_ytd) FROM fact_sales_monthly WHERE snapshot_month = '2025-12-01') * 100, 2) as 占比_百分比
+       60 | FROM fact_sales_monthly f
+ >>>   61 | JOIN dim_company_monthly_snapshot s ON f.company_id = s.company_id AND f.snapshot_month = s.snapshot_month
+       62 | JOIN dim_industry di ON s.industry_code = di.industry_code
+       63 | WHERE f.snapshot_month = '2025-12-01'  -- 替换为目标月份
+       64 |     AND di.industry_code_large IS NOT NULL
+```
+
+## 5. doc\query_patterns.md (第 104 行, 评分 5)
+小节: 查询特定企业月度累计销售额和增速
+命中关键词: join, query
+```
+      101 |     f.yoy_growth_rate as 同比增速_百分比,
+      102 |     c.company_name as 企业名称
+      103 | FROM fact_sales_monthly f
+ >>>  104 | JOIN dim_company c ON f.company_id = c.company_id
+      105 | WHERE c.company_name LIKE '%春晓花开%'  -- 替换为实际企业名称
+      106 |     AND f.snapshot_month >= '2025-02-01'  -- 替换为开始月份
+      107 |     AND f.snapshot_month <= '2025-12-01'  -- 替换为结束月份
+```
+
+## 6. doc\query_patterns.md (第 125 行, 评分 5)
+小节: 统计多个行业大类的正增长企业数量及累计销售额增量
+命中关键词: join, query
+```
+      122 |     COUNT(DISTINCT CASE WHEN s.sales_ytd > s.sales_ytd_last_year THEN s.company_id END) AS 正增长企业数量,
+      123 |     ROUND(SUM(CASE WHEN s.sales_ytd > s.sales_ytd_last_year THEN s.sales_ytd - s.sales_ytd_last_year ELSE 0 END), 4) AS 累计销售额合计增量_亿元
+      124 | FROM fact_sales_monthly s
+ >>>  125 | JOIN dim_company_monthly_snapshot cs 
+      126 |     ON s.company_id = cs.company_id 
+      127 |     AND s.snapshot_month = cs.snapshot_month
+      128 | JOIN dim_industry i ON cs.industry_code = i.industry_code
+```
+
+## 7. doc\query_patterns.md (第 156 行, 评分 5)
+小节: 统计行业大类月度正增长企业详细数据
+命中关键词: join, query
+```
+      153 |     ROUND(SUM(s.sales_ytd - s.sales_ytd_last_year), 4) AS 总增量_亿元,
+      154 |     ROUND(COUNT(DISTINCT CASE WHEN s.sales_ytd > s.sales_ytd_last_year THEN s.company_id END) * 100.0 / COUNT(DISTINCT s.company_id), 2) AS 正增长企业占比_百分比
+      155 | FROM fact_sales_monthly s
+ >>>  156 | JOIN dim_company_monthly_snapshot cs 
+      157 |     ON s.company_id = cs.company_id 
+      158 |     AND s.snapshot_month = cs.snapshot_month
+      159 | JOIN dim_industry i ON cs.industry_code = i.industry_code
+```
+
+## 8. doc\query_patterns.md (第 183 行, 评分 5)
+小节: 统计多个行业大类的新纳统企业数量及累计销售额增量
+命中关键词: join, query
+```
+      180 |     COUNT(DISTINCT cs_target.company_id) AS 新纳统企业数量,
+      181 |     ROUND(SUM(s.sales_ytd - s.sales_ytd_last_year), 4) AS 累计销售额合计增量_亿元
+      182 | FROM dim_company_monthly_snapshot cs_target
+ >>>  183 | JOIN dim_industry i ON cs_target.industry_code = i.industry_code
+      184 | LEFT JOIN (
+      185 |     SELECT company_id 
+      186 |     FROM dim_company_monthly_snapshot 
+```
+
+-- TOOL 2 name=search_past_learnings status=done --
+ARGS:
+{
+  "query": "semantic 语义层 snapshot_month 时区"
+}
+RESULT:
+# ⚠️ 历史教训（请务必避免重复犯错！）
+
+## 教训 1: logic
+**错误 SQL**:
+```sql
+-- 我的错误查询（使用了上年同月销售额而非上年同期累计销售额）
+SELECT 
+    DATE_FORMAT(f.snapshot_month, '%Y-%m') as 月份,
+    c.company_name as 企业名称,
+    ROUND(f.sales_current_month, 4) as 本月销售额_亿元,
+    ROUND(f.sales_ytd, 4) as 本月累计销售额_亿元,
+    ROUND(f.sales_same_month_last_year, 4) as 去年同期__亿元,   -- ❌ 误用上年同月
+    ROUND(f.yoy_growth_rate, 2) as 同比增速_百分比
+FROM fact_sales_monthly f
+JOIN dim_company c ON f.company_id = c.company_id
+WHERE f.company_id = 262497
+    AND f.snapshot_month >= '2025-02-01'
+    AND f.snapshot_month <= '2025-04-01'
+ORDER BY f.snapshot_month
+```
+**报错**: 用户要查询"去年同期"时，我自行判断为"上年同月销售额"（sales_same_month_last_year），但用户实际指的是"上年同期累计销售额"（sales_ytd_last_year）。在"本月销售额、本月累计销售额、去年同期、同比增速"这个并列语境中，"去年同期"应理解为累计值的去年同期即sales_ytd_last_year，不应擅自猜测。
+**正确 SQL**:
+```sql
+SELECT 
+    DATE_FORMAT(f.snapshot_month, '%Y-%m') as 月份,
+    c.company_name as 企业名称,
+    ROUND(f.sales_current_month, 4) as 本月销售额_亿元,
+    ROUND(f.sales_ytd, 4) as 本月累计销售额_亿元,
+    ROUND(f.sales_ytd_last_year, 4) as 去年同期累计销售额_亿元,   -- ✅ 使用上年同期累计
+    ROUND(f.yoy_growth_rate, 2) as 同比增速_百分比
+FROM fact_sales_monthly f
+JOIN dim_company c ON f.company_id = c.company_id
+WHERE f.company_id = 262497
+    AND f.snapshot_month >= '2025-02-01'
+    AND f.snapshot_month <= '2025-04-01'
+ORDER BY f.snapshot_month
+```
+**教训**: 用户问"本月销售额、本月累计销售额、去年同期、同比增速"，这里的"去年同期"与"本月累计销售额"对应，应使用sales_ytd_last_year（上年同期累计销售额），而非sales_same_month_last_year（上年同月销售额）。当字段含义存在二义性时，不应自行猜测，而应向用户确认后执行。
+
+
+===== ITEM 14 role=agent id=local-msg_28ba1bfac30b4b6886b70bfe =====
+CONTENT:
+需要进一步确认哪些语义层来源包含 2025-12 且带行业信息。让我读取剩余相关来源：
+REASONING:
+让我梳理一下情况：
+
+1. 用户要求使用 KTX（语义层）查询 2025年12月批发零售餐饮三大行业的累计销售额和同比增速。
+
+2. 语义层的 mart 表（mart_industry_sales_summary, mart_industry_sales_detail, mart_industry_sales_top50, int_industry_sales, int_industry_sales_metrics）都只有最新月份（2026-06）的数据，没有 2025-12 的数据。
+
+3. fact_sales_monthly 有 2025-12 的数据，但没有行业维度列（只有 company_id）。
+
+4. dim_company_monthly_snapshot 有月份、company_id、industry_code，但语义层中所有源的 joins 都是空的（joinCount: 0），无法跨表关联。
+
+5. 知识库中的查询模板使用的是 SQL 直接查询（fact_sales_monthly JOIN dim_company_monthly_snapshot JOIN dim_industry），但那是 SQL 路径，不是 KTX。
+
+用户明确要求"使用KTX"。根据规则，必须只使用 semantic_sl_discover、semantic_sl_read_source、semantic_sl_query，不能回退到 Database 工具。
+
+那么问题来了：KTX 语义层中哪个源能同时提供"2025-12 月份 + 行业维度 + 累计销售额"？
+
+从我的探索看：
+- mart_industry_sales_summary: 有行业维度、有 sales_ytd_total 和 yoy_growth_rate 指标，但只有 2026-06 一个月。
+- fact_sales_monthly: 有 2025-12，但无行业维度。
+- dim_company_monthly_snapshot: 有 2025-12 和 industry_code，但无销售额。
+
+嗯，等等。dim_company_monthly_snapshot 只有 2025-12 吗？让我再仔细看。它的月份有 2025-01 到 2026-05（显示为 UTC 2025-01-31 到 2026-05-31），这些是 UTC 值，实际上 2025-11-30T16:00:00Z = 2025-12-01 北京时间。所以有 2025-12。
+
+但 dim_company_monthly_snapshot 只有 company_id, industry_code 等，没有销售额。
+
+那是否语义层允许在查询中跨源引用？joinCount 都是 0，没有定义 joins。所以不能用 semantic_sl_query 做跨表 join。
+
+让我再确认一下：mart_industry_sales_summary 是否真的只有一个月数据。之前查询 mart_industry_sales_summary 按 snapshot_month + large_industry_name 分组只返回 2026-06（2026-05-31T16:00Z）三行。那说明该表确实只有最新月份的数据。
+
+那我需要检查是否有其他表包含 2025-12 的行业级数据。raw_wholesale_retail_monthly 和 stg_wholesale_retail_monthly 也只有 2026-06。
+
+嗯，但是等等。用户可能实际上要的就是最新可用数据？不对，用户明确说"2025年12月"。
+
+或者：fact_sales_monthly 有 2025-12 数据，dim_company_monthly_snapshot 有 2025-12 数据（industry_code），dim_industry 有行业名称。虽然语义层未定义 joins，但也许可以通过某种方式？让我读一下 dim_industry 看看。实际上，语义层没有 joins，这意味着无法在单个查询中跨表。
+
+不过，也许我可以分别查询：
+1. 从 fact_sales_monthly 查询 2025-12 所有企业的 sales_ytd 和 sales_ytd_last_year
+2. 从 dim_company_monthly_snapshot 查询 2025-12 企业的 industry_code
+
+但语义层查询结果如何关联？两个查询结果都有 company_id（fact_sales_monthly 有 company_id），但 semantic_sl_query 返回的列包含 company_id 吗？company_id 在 fact_sales_monthly 中是普通列不是维度，但可以在 dimensions 中指定 fact_sales_monthly.company_id。可以返回。
+
+但这样要导出大量数据再在本地 join。fact_sales_monthly 2025-12 有 1573 行，dim_company_monthly_snapshot 2025-12 有 86263 行。dim_company_monthly_snapshot 是所有企业的快照（包括非四上），而 fact_sales_monthly 只有四上企业。可以 join company_id。
+
+嗯，但这样太复杂了，而且语义层的维度引用是否允许普通列？dimensions 参数模式是 field: `source.column`。company_id 在 fact_sales_monthly 中是普通列，可以用作 dimension 吗？也许可以。
+
+其实，让我重新考虑。也许有其他更合适的源。让我看看 dim_industry 和 temp_company。还有 int_company_industry。
+
+另外，也许 KTX 语义层查询支持在 dimensions 中使用多个源的字段实现隐式 join？不太可能，因为没有定义 joins。
+
+让我先检查 int_company_industry 的月份覆盖。以及 dim_industry 内容。
+
+实际上，我怀疑数据仓库的设计是：mart 表只保留最新月份（当前是 2026-06），而用户问的 2025-12 只能通过 fact_sales_monthly + dim_company_monthly_snapshot + dim_industry 来算。
+
+但如果语义层不支持 join，那 KTX 无法完成这个查询，除非用户接受"最新月份"。
+
+等等，让我重新检查一下 mart_industry_sales_summary。也许我查询时 snapshot_month 过滤有问题（'2025-12-01' 报错 semantic_query_failed），也许那个表其实有更多月份，只是我按月份分组时没看到？不，我第一次查询 mart_industry_sales_summary 按 snapshot_month + large_industry_name 分组（无过滤），只返回了 3 行，全部是 2026-06。所以确实只有一个月。
+
+嗯，那我是不是需要确认数据到底有哪些月份？fact_sales_monthly 有 2025-01 到 2026-06 的数据（显示为 UTC 2025-01-31 到 2026-05-31），对应本地月份 2025-02 到 2026-06？不对。
+
+让我仔细分析时区。fact_sales_monthly 的月份显示为 "2025-01-31T16:00:00.000Z"，这是 UTC 时间。如果数据库存的是 DATE '2025-02-01'，而语义层以 UTC 解释，那么本地 +8 时区是 2025-02-01 08:00？不对。
+
+实际上存储值可能是 'YYYY-MM-01' 的日期。显示为 "2025-01-31T16:00:00.000Z" = UTC 2025-01-31 16:00 = 北京时间 2025-02-01 00:00。所以存储的 snapshot_month = '2025-02-01'（本地日期），语义层转换成 UTC 显示时减了 8 小时。
+
+那么 fact_sales_monthly 的实际月份（本地）= 2025-02-01, 2025-03-01, ..., 2025-12-01, 2026-02-01, ..., 2026-06-01？
+
+看列表：
+- 2025-01-31T16:00Z → 本地 2025-02-01
+- 2025-02-28T16:00Z → 本地 2025-03-01
+- 2025-03-31T16:00Z → 本地 2025-04-01
+- 2025-04-30T16:00Z → 本地 2025-05-01
+- 2025-05-31T16:00Z → 本地 2025-06-01
+- 2025-06-30T16:00Z → 本地 2025-07-01
+- 2025-07-31T16:00Z → 本地 2025-08-01
+- 2025-08-31T16:00Z → 本地 2025-09-01
+- 2025-09-30T16:00Z → 本地 2025-10-01
+- 2025-10-31T16:00Z → 本地 2025-11-01
+- 2025-11-30T16:00Z → 本地 2025-12-01 ✓ 这就是 2025年12月！
+- 2026-01-31T16:00Z → 本地 2026-02-01
+- ...
+- 2026-05-31T16:00Z → 本地 2026-06-01
+
+所以 fact_sales_monthly 有本地月份 2025-02 到 2026-06（中间连续），有 2025-12。而且我之前过滤 snapshot_month = '2025-12-01' 成功返回了 1573 行。所以 fact_sales_monthly 有 2025-12 的数据。
+
+而 mart 行业表只有本地 2026-06 一个月。这很奇怪——为什么 mart 表只有一个月？可能是因为这个演示环境的 mart 表只保留最新快照。
+
+那么，为了回答用户的"2025年12月批发零售餐饮三大行业累计销售额和同比增速"，通过 KTX：
+
+方案 A：使用 fact_sales_monthly + dim_company_monthly_snapshot + dim_industry 做 join。但语义层无 join 支持。可能无法。
+
+方案 B：查看是否有别的源包含月份+行业+销售额。让我检查 int_company_industry、dim_industry、temp_company 等。
+
+让我读一下这些源。
+
+其实等一下，还有一个思路：semantic_sl_query 的 dimensions 支持指定 field（如 "fact_sales_monthly.company_id"）。即使没有显式 joins，也许可以在一次查询中传多个源？不行，anchor source 只能有一个。
+
+那也许我可以在两个查询中分别取数据然后在 Python 中 join？但这是数据查询任务，KTX 的查询结果可以返回列。我可以：
+1. 查询 fact_sales_monthly 2025-12，按 company_id 返回 sales_ytd, sales_ytd_last_year（1573行）
+2. 查询 dim_company_monthly_snapshot 2025-12，按 company_id 返回 industry_code
+3. 查询 dim_industry 获取 industry_code → industry_name
+
+然后本地 join。这满足"只使用语义层"约束。虽然 86263 行的 dim_company_monthly_snapshot 2025-12 太多，但其中只有四上企业（fact_sales_monthly 中的）需要 industry_code。不过我们无法过滤"只在 fact_sales_monthly 中出现的 company_id"。我们可以让 dim_company_monthly_snapshot 只返回四上企业 is_four_above=1？但那也可能有几千行。
+
+嗯，不过这个方案数据量较大，且语义层查询返回行数有限制（maxRows 10000）。1573 行没问题。dim_company_monthly_snapshot 全表 2025-12 有 86263 行，但我们只需要 fact 中的企业。
+
+也许更好的方案：先看看有没有现成的源包含 2025-12 行业级数据。让我检查 int_company_industry 和 dim_industry。
+
+让我读 int_company_industry、dim_industry、temp_company、dim_company。
+
+其实，让我重新审视：也许 mart 表只有最新月是预期行为，而知识库中的业务模板（business.md）提到"批发业2025年12月累计销售额: 7,276.5712亿元"，说明 SQL 路径曾经查询过 2025-12 的数据，通过 fact_sales_monthly + dim_company_monthly_snapshot + dim_industry。所以数据是存在的。
+
+但现在用户明确要求"使用KTX"。我必须在语义层内完成。
+
+让我先检查剩余源：int_company_industry、dim_industry、mart_social_retail_detail、mart_social_retail_district_summary、mart_social_retail_special_summary、raw_company_monthly、stg_company_monthly、temp_company。
+
+其中可能 mart_social_retail_industry_summary 只有最新月。让我读 int_company_industry 和 dim_industry 看看有没有月份和行业名。
+TOOL CALLS (3):
+
+-- TOOL 0 name=semantic_sl_read_source status=done --
+ARGS:
+{
+  "sourceName": "int_company_industry"
+}
+RESULT:
+{
+  "connectionId": "default-mysql",
+  "sourceName": "int_company_industry",
+  "yaml": "name: int_company_industry\ntable: qianhai_data_analysis.int_company_industry\ngrain:\n  - snapshot_month\n  - unified_social_credit_code\n  - industry_code\ncolumns:\n  - name: snapshot_month\n    type: time\n    role: time\n    descriptions:\n      user: Snapshot month of the company-industry record (one row per company, industry, and month).\n  - name: unified_social_credit_code\n    type: string\n    descriptions:\n      user: Company unified social credit code (Chinese business registration identifier).\n  - name: company_name\n    type: string\n    descriptions:\n      user: Company name.\n  - name: industry_code\n    type: string\n    descriptions:\n      user: Industry classification code for the company in the snapshot month.\n  - name: category_name\n    type: string\n    descriptions:\n      user: Top-level industry category name (e.g. 信息传输、软件和信息技术服务业).\n  - name: large_industry_name\n    type: string\n    descriptions:\n      user: Large industry (大类) name for the industry code.\n  - name: medium_industry_name\n    type: string\n    descriptions:\n      user: Medium industry (中类) name for the industry code.\n  - name: small_industry_name\n    type: string\n    descriptions:\n      user: Small industry (小类) name for the industry code.\n  - name: district\n    type: string\n    descriptions:\n      user: District/area of the company (e.g. 南山片区).\n  - name: is_four_above\n    type: number\n    descriptions:\n      user: Flag (0/1) indicating whether the company has four-above (四上) enterprise status in the snapshot month.\njoins: []\nmeasures:\n  - name: row_count\n    expr: count(*)\n    description: Number of rows in this source.\ndescriptions:\n  ktx: Semantic-layer source for int_company_industry backed by qianhai_data_analysis.int_company_industry.\n"
+}
+
+-- TOOL 1 name=semantic_sl_read_source status=done --
+ARGS:
+{
+  "sourceName": "dim_industry"
+}
+RESULT:
+{
+  "connectionId": "default-mysql",
+  "sourceName": "dim_industry",
+  "yaml": "name: dim_industry\ntable: qianhai_data_analysis.dim_industry\ngrain:\n  - industry_code\ncolumns:\n  - name: industry_code\n    type: string\n    descriptions:\n      db: 主键。行业小类代码，唯一标识一个行业细分。\n  - name: industry_name_small\n    type: string\n    descriptions:\n      db: 行业小类名称。\n  - name: industry_code_medium\n    type: string\n    descriptions:\n      db: 行业中类代码。\n  - name: industry_name_medium\n    type: string\n    descriptions:\n      db: 行业中类名称。\n  - name: industry_code_large\n    type: string\n    descriptions:\n      db: 行业大类代码。\n  - name: industry_name_large\n    type: string\n    descriptions:\n      db: 行业大类名称。\n  - name: industry_code_category\n    type: string\n    descriptions:\n      db: 行业门类代码。\n  - name: industry_name_category\n    type: string\n    descriptions:\n      db: 行业门类名称。\n  - name: gdp_industry_code\n    type: string\n    descriptions:\n      db: GDP行业分类代码。\n  - name: gdp_industry_name\n    type: string\n    descriptions:\n      db: GDP行业分类名称。\n  - name: tertiary_industry_code\n    type: string\n    descriptions:\n      db: 三次产业代码。\n  - name: tertiary_industry_name\n    type: string\n    descriptions:\n      db: 三次产业划分名称。\njoins: []\nmeasures:\n  - name: row_count\n    expr: count(*)\n    description: Number of rows in this source.\ndescriptions:\n  ktx: Semantic-layer source for dim_industry backed by qianhai_data_analysis.dim_industry.\n"
+}
+
+-- TOOL 2 name=semantic_sl_read_source status=done --
+ARGS:
+{
+  "sourceName": "mart_social_retail_detail"
+}
+RESULT:
+{
+  "connectionId": "default-mysql",
+  "sourceName": "mart_social_retail_detail",
+  "yaml": "name: mart_social_retail_detail\ntable: qianhai_data_analysis.mart_social_retail_detail\ngrain:\n  - snapshot_month\n  - source_type\n  - source_row_number\ncolumns:\n  - name: snapshot_month\n    type: time\n    role: time\n    descriptions:\n      ktx: Column snapshot month from mart_social_retail_detail.\n  - name: source_type\n    type: string\n    descriptions:\n      ktx: Column source type from mart_social_retail_detail.\n  - name: source_row_number\n    type: number\n    descriptions:\n      ktx: Column source row number from mart_social_retail_detail.\n  - name: unified_social_credit_code\n    type: string\n    descriptions:\n      ktx: Column unified social credit code from mart_social_retail_detail.\n  - name: company_name\n    type: string\n    descriptions:\n      ktx: Column company name from mart_social_retail_detail.\n  - name: large_industry_name\n    type: string\n    descriptions:\n      ktx: Column large industry name from mart_social_retail_detail.\n  - name: medium_industry_name\n    type: string\n    descriptions:\n      ktx: Column medium industry name from mart_social_retail_detail.\n  - name: district\n    type: string\n    descriptions:\n      ktx: Column district from mart_social_retail_detail.\n  - name: retail_sales_ytd\n    type: number\n    descriptions:\n      ktx: Column retail sales ytd from mart_social_retail_detail.\n  - name: retail_sales_ytd_last_year\n    type: number\n    descriptions:\n      ktx: Column retail sales ytd last year from mart_social_retail_detail.\n  - name: online_retail_sales_ytd\n    type: number\n    descriptions:\n      ktx: Column online retail sales ytd from mart_social_retail_detail.\n  - name: online_retail_sales_ytd_last_year\n    type: number\n    descriptions:\n      ktx: Column online retail sales ytd last year from mart_social_retail_detail.\n  - name: auto_retail_sales_current_month\n    type: number\n    descriptions:\n      ktx: Column auto retail sales current month from mart_social_retail_detail.\n  - name: auto_retail_sales_same_month_last_year\n    type: number\n    descriptions:\n      ktx: Column auto retail sales same month last year from mart_social_retail_detail.\n  - name: auto_retail_sales_ytd\n    type: number\n    descriptions:\n      ktx: Column auto retail sales ytd from mart_social_retail_detail.\n  - name: auto_retail_sales_ytd_last_year\n    type: number\n    descriptions:\n      ktx: Column auto retail sales ytd last year from mart_social_retail_detail.\n  - name: meal_income_ytd\n    type: number\n    descriptions:\n      ktx: Column meal income ytd from mart_social_retail_detail.\n  - name: meal_income_ytd_last_year\n    type: number\n    descriptions:\n      ktx: Column meal income ytd last year from mart_social_retail_detail.\njoins: []\nmeasures:\n  - name: row_count\n    expr: count(*)\n    description: Number of rows in this source.\ndescriptions:\n  ktx: Semantic-layer source for mart_social_retail_detail backed by qianhai_data_analysis.mart_social_retail_detail.\n"
+}
+
+===== ITEM 15 role=agent id=local-msg_cd2f2f2473e74c62945b1f19 =====
+CONTENT:
+需要确认 mart 行业表是否包含 2025-12 的数据。让我做几组针对性测试：
+REASONING:
+Let me check the months available in int_company_industry, which has both snapshot_month and large_industry_name. Also check if it has sales data — no, int_company_industry has no sales columns. Only is_four_above.
+
+The issue: The user wants 2025年12月 wholesale/retail/catering cumulative sales and YoY growth. The semantic layer sources:
+
+- mart_industry_sales_summary: has industry names + sales_ytd measures, but only for the latest month (2026-06-01 in local time).
+- int_industry_sales_metrics / int_industry_sales / mart_industry_sales_detail: also only latest month (2026-06).
+- fact_sales_monthly: has multiple months including 2025-12, but no industry name columns. It has company_id.
+- dim_company_monthly_snapshot: has company_id, industry_code, snapshot_month - multiple months including 2025-12.
+- dim_industry: industry_code -> industry names.
+- int_company_industry: has company, industry, snapshot_month - no sales data.
+
+Wait, but the semantic layer has no joins defined. All joins: []. So we cannot join fact_sales_monthly to dim_company_monthly_snapshot within the semantic layer.
+
+Hmm. But maybe the user just wants the latest data? Actually, wait. Let me re-examine. The timestamps are displayed in UTC: "2025-01-31T16:00:00.000Z" corresponds to 2025-02-01 in UTC+8. Wait, that's interesting. So snapshot_month stored as 'YYYY-MM-01' is being returned as the last day of previous month at 16:00 UTC = first day of month at 00:00 +08:00. So the stored dates are first-of-month dates.
+
+Let me reconsider: the user asks for 2025年12月 (December 2025). fact_sales_monthly has snapshot months from 2025-02-01 through 2026-06-01 (displayed as 2025-01-31T16:00Z to 2026-05-31T16:00Z). Wait, actually there's no 2025-12 in the display? Let me look again:
+
+fact_sales_monthly snapshot months (UTC display):
+- 2025-01-31T16:00 = 2025-02-01 (+08)
+- 2025-02-28T16:00 = 2025-03-01
+- 2025-03-31T16:00 = 2025-04-01
+- 2025-04-30T16:00 = 2025-05-01
+- 2025-05-31T16:00 = 2025-06-01
+- 2025-06-30T16:00 = 2025-07-01
+- 2025-07-31T16:00 = 2025-08-01
+- 2025-08-31T16:00 = 2025-09-01
+- 2025-09-30T16:00 = 2025-10-01
+- 2025-10-31T16:00 = 2025-11-01
+- 2025-11-30T16:00 = 2025-12-01 ✓  (December 2025!)
+- 2026-01-31T16:00 = 2026-02-01
+- 2026-02-28T16:00 = 2026-03-01
+- ...
+- 2026-05-31T16:00 = 2026-06-01
+
+So fact_sales_monthly has 2025-12-01 data (shown as 2025-11-30T16:00Z). Good.
+
+But the filter query `fact_sales_monthly.snapshot_month = '2025-12-01'` returned a row displayed as 2025-11-30T16:00Z with 1573 rows. So filtering on '2025-12-01' works.
+
+Now, the challenge: to get industry-level (批发/零售/餐饮) cumulative sales for Dec 2025, we need industry info joined with sales. The semantic layer sources that have industry names only have the latest month (2026-06). The fact table has all months but no industry.
+
+However, wait — maybe mart_industry_sales_summary only has the latest month because it's a summary mart that gets rebuilt. Let me check int_company_industry months. int_company_industry has snapshot_month, unified_social_credit_code, industry info but no sales. Hmm.
+
+Actually, let me check the months available in int_company_industry. If it has 2025-12, we still can't join with sales because no joins.
+
+Hmm, but wait — maybe there is a semantic-layer "measure" approach: mart_industry_sales_summary only has latest month. So the only way to get 2025-12 industry-level data via KTX is:
+
+Option A: Use fact_sales_monthly grouped... but no industry column. Not possible without join.
+
+Option B: Maybe mart tables actually contain 2025-12 data but the group by returned only latest? No, group by returns all distinct months. It returned only one month (2026-06). So mart tables only have one month of data.
+
+Hmm, this is a problem. The user explicitly asked to use KTX (semantic layer). But the semantic layer's industry-level sources only contain the latest month (2026-06). The fact table with 2025-12 data doesn't have industry names, and no joins are defined in the semantic layer.
+
+Wait, let me reconsider. Maybe I should check whether the mart tables have more months but the values were displayed only... No, totalRows=1 for mart_industry_sales_detail (1685 rows for one month). mart_industry_sales_summary had 3 rows for one month. So indeed only one month.
+
+Hmm, but that's odd. Perhaps the "latest month" is what the mart tables contain. The user asked for 2025年12月. Maybe the user's actual database currently has the latest data as 2026-06? That seems to be a synthetic/future date.
+
+Wait, maybe I'm misinterpreting the timestamps. The semantic layer returns timestamp values as UTC. Stored DATE '2025-12-01' would be displayed as... hmm, it displayed '2025-11-30T16:00:00.000Z' for the filter '2025-12-01'. That means stored date '2025-12-01' is interpreted as UTC 2025-12-01T00:00 then converted to the local timezone? No wait.
+
+Actually if stored as DATE '2025-12-01' and the semantic layer treats it as a timestamp in UTC and returns it in some timezone... The filter `= '2025-12-01'` matched the row displayed as '2025-11-30T16:00:00.000Z'. If displayed as UTC, then the stored value corresponds to 2025-11-30T16:00Z, which is 2025-12-01 00:00 in UTC+8. So the stored dates are actually '2025-12-01' interpreted as local (UTC+8) time, and the semantic layer converts to UTC (subtracting 8h) for display. So when I filter with '2025-12-01', it matches.
+
+OK so the situation: semantic layer's industry-level sources (mart_industry_sales_summary, mart_industry_sales_detail, int_industry_sales, int_industry_sales_metrics, mart_industry_sales_top50, mart_social_retail_industry_summary, mart_social_retail_detail) all contain only the latest snapshot month 2026-06 (displayed as 2026-05-31T16:00Z = 2026-06-01 local).
+
+Hmm wait, that doesn't seem right either. Let me check int_company_industry months and mart_social_retail_detail months. Maybe some of these tables DO have multiple months.
+
+Actually, let me reconsider: maybe I should query mart_industry_sales_summary for month = '2025-12-01' filter. Earlier I tried filtering mart_industry_sales_summary.snapshot_month = '2025-12-01' and got "semantic_query_failed" error. That error might be because the filter on a DATE column with a date-only value works differently. Wait, but for fact_sales_monthly the same filter worked. So maybe the mart table simply has no 2025-12 data and the semantic engine errored? Unlikely — it should return empty.
+
+Actually, "semantic_query_failed" happened when I queried mart_industry_sales_summary with sales_ytd_total measure + snapshot_month filter '2025-12-01'. Maybe because the mart table has no data for that month and something fails. Or maybe the filter caused an issue with the time dimension.
+
+Let me try again but with limit and the filter differently, or without filter to see what months exist. I already did group by without filter and got only 2026-06 (displayed 2026-05-31T16:00Z). So mart_industry_sales_summary has data only for the latest month.
+
+Hmm. So how do we get Dec 2025 data through KTX?
+
+Option: fact_sales_monthly has all months. dim_company_monthly_snapshot has company industry codes for all months. But semantic layer has no joins. So can't combine.
+
+BUT - maybe the semantic layer allows specifying dimensions/measures across sources and auto-detects joins via grain? The plan showed "join_paths": [], "joins": [], anchor_source etc. If I reference two sources, maybe it can't join.
+
+Let me test: query measures from fact_sales_monthly with dimension from dim_company_monthly_snapshot.industry_code? That would require a join. Let me try a cross-source query to see if the semantic layer can resolve joins.
+
+Actually, the sources all have joins: []. So no join paths. Cross-source query would fail.
+
+Hmm, but wait. Maybe there's another interpretation. Perhaps the user is testing and the "2025年12月" data exists in fact_sales_monthly, and the industry mapping is via dim_company_monthly_snapshot. But the user explicitly said "使用KTX" (use KTX/semantic layer). The system prompt says when user asks to use KTX, only use semantic_sl_* tools; don't fall back to database tools.
+
+But if the semantic layer can't join, then we can't compute industry-level for Dec 2025. Unless... mart tables with industry names have ONLY the latest month. Hmm.
+
+Wait, let me reconsider. Maybe I should check mart_industry_sales_top50 more carefully. It has 159 rows for one month. That's the top50 across 3 industries + aggregates. Only latest month.
+
+Let me double check that mart tables only have one month by querying the mart_social_retail_detail and int_company_industry month distributions. int_company_industry might have multiple months.
+
+Actually, let me think about what data sources have multi-month + industry name:
+- int_company_industry: snapshot_month + large_industry_name, but no sales measures.
+- dim_company_monthly_snapshot: snapshot_month + industry_code, no sales.
+
+So the only multi-month source with sales is fact_sales_monthly (no industry).
+
+Hmm, this is a real limitation. But wait — maybe I should try the cross-source query anyway. The semantic layer might support implicit joins based on grain/foreign keys even if joins array is empty? Unlikely but worth testing. Let me try a query with measures from fact_sales_monthly and dimension from dim_company_monthly_snapshot.
+
+Actually, hold on. Let me reconsider the user's request. "查询2025年12月批发零售餐饮三大行业的累计销售额和同比增速" - they want cumulative sales (YTD) and YoY growth for the three large industries for December 2025.
+
+Given the semantic layer has mart_industry_sales_summary with measures sales_ytd_total, sales_ytd_last_year_total, yoy_growth_rate, and large_industry_name dimension, but only for the latest month... If data only exists for the latest month, then maybe the latest month is what's expected? No, the user explicitly said 2025年12月.
+
+Wait, wait. Let me re-read the mart_industry_sales_summary query result. It returned snapshot_month "2026-05-31T16:00:00.000Z" for 批发业(9), 零售业(8), 餐饮业(5). Hmm, that's 2026-06-01 in +08. 
+
+Hold on, maybe there IS 2025-12 data in the mart tables but my group-by query earlier failed to show it because... no, group by returns all months.
+
+Let me try filtering mart_industry_sales_summary for '2025-12-01' again but simpler - maybe the error was transient or related to combining measures. Actually let me try with just sales_ytd_total and filter. Or maybe filter needs the exact UTC form '2025-11-30T16:00:00.000Z'?
+
+Actually when I filtered fact_sales_monthly with '2025-12-01', the SQL generated was `WHERE fact_sales_monthly.snapshot_month = '2025-12-01'` and it worked (returned the 2025-11-30T16:00Z row). So the engine passes date strings directly. For mart_industry_sales_summary, the same filter should work IF data exists. It errored with "semantic_query_failed" — meaning likely no data or some other issue. Hmm, but an empty result shouldn't error.
+
+Actually, maybe the mart table query error is because sales_ytd_total measure sum over zero rows with a time filter on a DATE column... no.
+
+Let me try again to be thorough. Try mart_industry_sales_summary with filter '2025-12-01' using row_count instead of sales_ytd_total.
+TOOL CALLS (2):
+
+-- TOOL 0 name=semantic_sl_query status=running --
+ARGS:
+{}
+
+-- TOOL 1 name=semantic_sl_query status=running --
+ARGS:
+{}

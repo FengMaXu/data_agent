@@ -11,6 +11,7 @@ import { API_BASE_URL, getAuthToken } from '../api/client';
 const INTERNAL_PREFIXES = ['/workspace/', '/api/'];
 const SESSION_RELATIVE_WORKSPACE_ROOTS = ['data', 'output', 'dashboards', 'reports'];
 const WORKSPACE_FILE_ENDPOINT = '/workspace/files/';
+const PUBLICATION_ENDPOINT = '/api/runtime/publications/';
 
 export function isInternalApiPath(href: string | undefined): href is string {
     return !!href && INTERNAL_PREFIXES.some((prefix) => href.startsWith(prefix));
@@ -112,6 +113,12 @@ export function resolveInternalUrl(href: string | undefined, currentSessionId?: 
                 if (isWorkspaceFileEndpoint(url.pathname)) {
                     const endpoint = url.pathname.endsWith('/preview') ? 'preview' : 'download';
                     return buildDesktopWorkspaceUrl(endpoint, workspaceFilePath(url));
+                }
+                if (url.pathname.startsWith(PUBLICATION_ENDPOINT)) {
+                    const publicationUrl = new URL(`data-agent://publication${url.pathname.slice('/api'.length)}`);
+                    const sessionId = url.searchParams.get('session_id') || currentSessionId;
+                    if (sessionId) publicationUrl.searchParams.set('session_id', sessionId);
+                    return publicationUrl.toString();
                 }
             } catch {
                 // Fall through to the legacy URL for non-workspace paths.

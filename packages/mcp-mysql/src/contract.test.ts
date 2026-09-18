@@ -25,6 +25,11 @@ describe.runIf(enabled)("MySQL Reference MCP Server contract", () => {
     expect(payload.truncated).toBe(true);
     expect(payload.contractVersion).toBe(1);
 
+    const exportResult = await client.callTool({ name: "execute_query_export", arguments: { sql: "SELECT * FROM contract_sales ORDER BY id" } });
+    const exportPayload = JSON.parse((exportResult.content as any)[0].text);
+    expect(exportPayload.rows.length).toBeGreaterThan(1);
+    expect(exportPayload.truncated).toBe(false);
+
     const showTables = await client.callTool({ name: "execute_query_preview", arguments: { sql: "SHOW TABLES" } });
     const showTablesPayload = JSON.parse((showTables.content as any)[0].text);
     expect(showTablesPayload.error).toBeUndefined();

@@ -1,0 +1,35 @@
+{
+  "schemaId": "data-agent.phase-checkpoint",
+  "schemaVersion": 1,
+  "phase": "Phase 0",
+  "checkpoint": "B1",
+  "status": "closed",
+  "gitHead": "0117a658f4a2401d304a68d71162f7c8980e4ea0",
+  "recordedAt": "2026-09-07T14:40:45.161806+00:00",
+  "sourceIdentity": {
+    "implementationPatchSha256": "0a001b19ead419d836879819170bb745091efddca87b85262f334c5c9d440d01",
+    "workingTreeStatusSha256": "c476996f0da81536b7dde7bc0ed4321be39a3a641a8057456bcda3a861846dbf"
+  },
+  "smokeRuns": [
+    {
+      "runId": "answer-plan-phase0-b1-local032-001",
+      "manifestSha256": "a4f9ef797722676ab9914a5739998532a8994e10e14e252ad1f0d39d1633b33d",
+      "delivered": 1,
+      "correct": 0
+    },
+    {
+      "runId": "answer-plan-phase0-b1-shadow10-001",
+      "manifestSha256": "3f0b7ec4d89cf4e4ce34ae1e7aa631a31b701b64d27a9400b4fcc9e72a6205c0",
+      "delivered": 10,
+      "correct": 0
+    }
+  ],
+  "review": {
+    "runId": "272396c9-d731-4384-8bb2-02c066dbed89",
+    "verdict": "OK"
+  },
+  "notes": [
+    "Checkpoint hashes precede closure metadata to avoid self-reference.",
+    "Correct Set remains empty and is not represented as an accuracy improvement."
+  ]
+}

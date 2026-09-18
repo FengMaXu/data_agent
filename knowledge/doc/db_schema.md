@@ -1,3 +1,9 @@
+---
+knowledgeId: database-schema
+name: 数据库结构
+description: 提供表、列、类型及正式结构信息，用于物理映射；字段存在不自动证明业务含义。
+---
+
 # 数据库 Schema 文档
 
 ## 数据库概览

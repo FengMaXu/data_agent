@@ -29,7 +29,7 @@ if (!import_node_worker_threads.parentPort)
   throw new Error("metadata worker requires a parent port");
 var db = new import_better_sqlite3.default(import_node_worker_threads.workerData.path);
 db.pragma("journal_mode = WAL");
-db.exec(`CREATE TABLE IF NOT EXISTS knowledge_cache (path TEXT PRIMARY KEY, revision INTEGER NOT NULL, payload TEXT NOT NULL, updated_at REAL NOT NULL); CREATE TABLE IF NOT EXISTS tasks (id TEXT NOT NULL, user_id TEXT NOT NULL, name TEXT NOT NULL, created_at REAL NOT NULL, updated_at REAL NOT NULL, deleted_at REAL, PRIMARY KEY(user_id,id)); CREATE TABLE IF NOT EXISTS session_projection_outbox (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT NOT NULL, session_id TEXT NOT NULL, target_sequence INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'pending', attempts INTEGER NOT NULL DEFAULT 0, error TEXT, created_at REAL NOT NULL, updated_at REAL NOT NULL); CREATE TABLE IF NOT EXISTS app_config (key TEXT PRIMARY KEY, value_json TEXT NOT NULL, updated_at REAL NOT NULL); CREATE TABLE IF NOT EXISTS semantic_sources (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT NOT NULL, connection_id TEXT NOT NULL, source_name TEXT NOT NULL, definition_json TEXT NOT NULL, updated_at REAL NOT NULL, UNIQUE(user_id, connection_id, source_name)); CREATE TABLE IF NOT EXISTS auth_users (username TEXT PRIMARY KEY, user_id TEXT NOT NULL, display_name TEXT NOT NULL, salt TEXT NOT NULL, hash TEXT NOT NULL, created_at REAL NOT NULL); CREATE TABLE IF NOT EXISTS auth_tokens (token TEXT PRIMARY KEY, user_id TEXT NOT NULL, username TEXT NOT NULL, display_name TEXT NOT NULL, created_at REAL NOT NULL); CREATE TABLE IF NOT EXISTS chat_sessions (id TEXT NOT NULL, user_id TEXT NOT NULL, task_id TEXT NOT NULL, name TEXT NOT NULL, created_at REAL NOT NULL, updated_at REAL NOT NULL, deleted_at REAL, PRIMARY KEY(user_id,id));`);
+db.exec(`CREATE TABLE IF NOT EXISTS knowledge_cache (path TEXT PRIMARY KEY, revision INTEGER NOT NULL, payload TEXT NOT NULL, updated_at REAL NOT NULL); CREATE TABLE IF NOT EXISTS tasks (id TEXT NOT NULL, user_id TEXT NOT NULL, name TEXT NOT NULL, created_at REAL NOT NULL, updated_at REAL NOT NULL, deleted_at REAL, PRIMARY KEY(user_id,id)); CREATE TABLE IF NOT EXISTS session_projection_outbox (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT NOT NULL, session_id TEXT NOT NULL, target_sequence INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'pending', attempts INTEGER NOT NULL DEFAULT 0, error TEXT, created_at REAL NOT NULL, updated_at REAL NOT NULL); CREATE TABLE IF NOT EXISTS app_config (key TEXT PRIMARY KEY, value_json TEXT NOT NULL, updated_at REAL NOT NULL); CREATE TABLE IF NOT EXISTS semantic_sources (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT NOT NULL, connection_id TEXT NOT NULL, source_name TEXT NOT NULL, definition_json TEXT NOT NULL, updated_at REAL NOT NULL, UNIQUE(user_id, connection_id, source_name)); CREATE TABLE IF NOT EXISTS auth_users (username TEXT PRIMARY KEY, user_id TEXT NOT NULL, display_name TEXT NOT NULL, salt TEXT NOT NULL, hash TEXT NOT NULL, created_at REAL NOT NULL); CREATE TABLE IF NOT EXISTS auth_tokens (token TEXT PRIMARY KEY, user_id TEXT NOT NULL, username TEXT NOT NULL, display_name TEXT NOT NULL, created_at REAL NOT NULL); CREATE TABLE IF NOT EXISTS chat_sessions (id TEXT NOT NULL, user_id TEXT NOT NULL, task_id TEXT NOT NULL, name TEXT NOT NULL, created_at REAL NOT NULL, updated_at REAL NOT NULL, deleted_at REAL, PRIMARY KEY(user_id,id)); CREATE UNIQUE INDEX IF NOT EXISTS uq_chat_sessions_global_id ON chat_sessions(id);`);
 var now = () => Date.now();
 import_node_worker_threads.parentPort.on("message", (message) => {
   try {
@@ -90,6 +90,14 @@ import_node_worker_threads.parentPort.on("message", (message) => {
         db.prepare("UPDATE chat_sessions SET deleted_at=?,updated_at=? WHERE user_id=? AND id=?").run(t2, t2, message.userId, message.sessionId);
         return { id: message.sessionId };
       }
+      if (message.op === "session.authorize") {
+        const active = db.prepare("SELECT DISTINCT user_id userId FROM chat_sessions WHERE id=? AND deleted_at IS NULL").all(message.sessionId);
+        if (active.length === 0)
+          return "missing";
+        if (active.length !== 1)
+          return "forbidden";
+        return active[0]?.userId === message.userId ? "owned" : "forbidden";
+      }
       if (message.op === "config.get")
         return db.prepare("SELECT value_json AS value FROM app_config WHERE key=?").get(message.configKey) ?? null;
       if (message.op === "config.set") {
@@ -132,7 +140,7 @@ import_node_worker_threads.parentPort.on("message", (message) => {
         return { saved: true };
       }
       if (message.op === "skills.list") {
-        const { readdirSync, statSync } = require("node:fs");
+        const { readdirSync } = require("node:fs");
         const root = message.skillsRoot;
         try {
           return readdirSync(root, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => ({ name: e.name }));

@@ -6,7 +6,7 @@ import type { Pool } from "mysql2/promise";
 
 export const DATABASE_MCP_CONTRACT_VERSION = 1;
 const DEFAULT_PREVIEW_LIMIT = 20;
-const MAX_PREVIEW_LIMIT = 200;
+const MAX_PREVIEW_LIMIT = 10_000;
 
 export interface MysqlReferenceServerOptions {
   host?: string;
@@ -52,22 +52,23 @@ export async function createMysqlReferenceServer(options: MysqlReferenceServerOp
     {
       sql: z.string().min(1),
       limit: z.number().int().positive().max(MAX_PREVIEW_LIMIT).optional(),
+      maxBytes: z.number().int().positive().max(64 * 1024).optional(),
     },
-    async ({ sql, limit }) => {
+    async ({ sql, limit, maxBytes }, extra) => {
       const trimmed = sql.trim().replace(/;+\s*$/, "");
       if (FORBIDDEN.test(trimmed)) {
         return { content: [{ type: "text", text: JSON.stringify({ error: { code: "FORBIDDEN_SQL" } }) }] };
       }
-      const effectiveLimit = Math.min(limit ?? maxRows(), maxRows());
+      const effectiveLimit = Math.min(limit ?? DEFAULT_PREVIEW_LIMIT, MAX_PREVIEW_LIMIT);
       // MySQL does not allow SHOW/DESCRIBE statements inside a derived table.
       // Stream these read-only introspection statements directly so a large SHOW
       // result is never buffered in full by the promise client.
       const isIntrospectionQuery = /^(?:show|describe|desc)\b/i.test(trimmed);
       try {
         const result = isIntrospectionQuery
-          ? await readIntrospectionPreview(trimmed, effectiveLimit)
-          : await readQueryPreview(trimmed, effectiveLimit);
-        return { content: [{ type: "text", text: JSON.stringify({ rows: result.rows, columns: result.columns, totalRows: result.totalRows, truncated: result.truncated, serverLimit: maxRows(), contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
+          ? await readIntrospectionPreview(trimmed, effectiveLimit, maxBytes, extra.signal)
+          : await readQueryPreview(trimmed, effectiveLimit, maxBytes, extra.signal);
+        return { content: [{ type: "text", text: JSON.stringify({ rows: result.rows, columns: result.columns, totalRows: result.totalRows, truncated: result.truncated, serverLimit: MAX_PREVIEW_LIMIT, contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
       } catch (error) {
         return { content: [{ type: "text", text: JSON.stringify({ error: { code: "QUERY_FAILED", message: redact(`${(error as Error).message} in ${redact(trimmed)}`).slice(0, 500) } }) }] };
       }
@@ -92,14 +93,53 @@ export async function createMysqlReferenceServer(options: MysqlReferenceServerOp
     },
   );
 
-  async function readQueryPreview(sql: string, limit: number) {
-    const [rows, fields] = await pool.query(`SELECT * FROM (${sql}) __preview LIMIT ${limit + 1}`);
-    const list = rows as any[];
-    const columns = (fields as Array<{ name: string }> | undefined)?.map((field) => field.name) ?? (list.length > 0 ? Object.keys(list[0]) : []);
-    return { rows: list.slice(0, limit), columns, totalRows: list.length, truncated: list.length > limit };
+  function readQueryPreview(sql: string, limit: number, maxBytes?: number, signal?: AbortSignal): Promise<{ rows: any[]; columns: string[]; totalRows: number; truncated: boolean }> {
+    return new Promise((resolve, reject) => {
+      const rows: any[] = [];
+      let settled = false;
+      let columns: string[] = [];
+      const query = introspectionPool.query(`SELECT * FROM (${sql}) __preview`) as any;
+      query.on("fields", (fields: Array<{ name: string }>) => { columns = fields.map((field) => field.name); });
+      const queryStream = query.stream({ highWaterMark: 1 });
+      let onAbort = () => undefined;
+      const finish = (result: { rows: any[]; columns: string[]; totalRows: number; truncated: boolean }) => {
+        if (settled) return;
+        settled = true;
+        signal?.removeEventListener("abort", onAbort);
+        queryStream.destroy();
+        resolve(result);
+      };
+      onAbort = () => {
+        if (settled) return;
+        settled = true;
+        queryStream.destroy();
+        reject(new Error("QUERY_CANCELLED"));
+      };
+      signal?.addEventListener("abort", onAbort, { once: true });
+      if (signal?.aborted) onAbort();
+      queryStream.on("data", (row: any) => {
+        if (settled) return;
+        const candidate = [...rows, row];
+        const overRows = candidate.length > limit;
+        const overBytes = maxBytes !== undefined && Buffer.byteLength(JSON.stringify({ rows: candidate, columns }), "utf8") > maxBytes;
+        if (overRows || overBytes) {
+          finish({ rows, columns, totalRows: rows.length + 1, truncated: true });
+          return;
+        }
+        rows.push(row);
+      });
+      queryStream.on("end", () => finish({ rows, columns, totalRows: rows.length, truncated: false }));
+      queryStream.on("error", (error: Error) => {
+        if (!settled) {
+          settled = true;
+          signal?.removeEventListener("abort", onAbort);
+          reject(error);
+        }
+      });
+    });
   }
 
-  function readIntrospectionPreview(sql: string, limit: number): Promise<{ rows: any[]; columns: string[]; totalRows: number; truncated: boolean }> {
+  function readIntrospectionPreview(sql: string, limit: number, maxBytes?: number, signal?: AbortSignal): Promise<{ rows: any[]; columns: string[]; totalRows: number; truncated: boolean }> {
     return new Promise((resolve, reject) => {
       const rows: any[] = [];
       let settled = false;
@@ -107,55 +147,58 @@ export async function createMysqlReferenceServer(options: MysqlReferenceServerOp
       const query = introspectionPool.query(sql) as any;
       query.on("fields", (fields: Array<{ name: string }>) => { columns = fields.map((field) => field.name); });
       const queryStream = query.stream({ highWaterMark: 1 });
+      let onAbort = () => undefined;
       const finish = (result: { rows: any[]; columns: string[]; totalRows: number; truncated: boolean }) => {
         if (settled) return;
         settled = true;
+        signal?.removeEventListener("abort", onAbort);
         queryStream.destroy();
         resolve(result);
       };
+      onAbort = () => {
+        if (settled) return;
+        settled = true;
+        queryStream.destroy();
+        reject(new Error("QUERY_CANCELLED"));
+      };
+      signal?.addEventListener("abort", onAbort, { once: true });
+      if (signal?.aborted) onAbort();
       queryStream.on("data", (row: any) => {
         if (settled) return;
         rows.push(row);
-        if (rows.length > limit) {
-          finish({ rows: rows.slice(0, limit), columns, totalRows: rows.length, truncated: true });
+        if (rows.length > limit || (maxBytes !== undefined && Buffer.byteLength(JSON.stringify({ rows, columns }), "utf8") > maxBytes)) {
+          finish({ rows: rows.slice(0, Math.min(rows.length, limit)), columns, totalRows: rows.length, truncated: true });
         }
       });
       queryStream.on("end", () => finish({ rows, columns, totalRows: rows.length, truncated: false }));
       queryStream.on("error", (error: Error) => {
         if (!settled) {
           settled = true;
+          signal?.removeEventListener("abort", onAbort);
           reject(error);
         }
       });
     });
   }
 
-  function maxRows() { return DEFAULT_PREVIEW_LIMIT; }
-
   server.tool(
-    "execute_query_export_batch",
-    "Run one bounded batch of a read-only MySQL export",
+    "execute_query_export",
+    "Run one complete bounded read-only MySQL result query",
     {
       sql: z.string().min(1),
-      offset: z.number().int().nonnegative().max(100000).optional(),
-      limit: z.number().int().positive().max(1000).optional(),
       maxRows: z.number().int().positive().max(100000).optional(),
     },
-    async ({ sql, offset, limit, maxRows: requestedMaxRows }) => {
+    async ({ sql, maxRows: requestedMaxRows }) => {
       const trimmed = sql.trim().replace(/;+\s*$/, "");
       if (FORBIDDEN.test(trimmed)) return { content: [{ type: "text", text: JSON.stringify({ error: { code: "FORBIDDEN_SQL" } }) }] };
-      const start = offset ?? 0;
-      const batchLimit = Math.min(limit ?? 1000, 1000);
       const rowLimit = Math.min(requestedMaxRows ?? 100000, 100000);
-      if (start >= rowLimit) return { content: [{ type: "text", text: JSON.stringify({ rows: [], columns: [], done: true, contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
       try {
-        const [rows, fields] = await pool.query(`SELECT * FROM (${trimmed}) __export LIMIT ${Math.min(batchLimit + 1, rowLimit - start + 1)} OFFSET ${start}`);
+        // One database statement produces the complete sealed Candidate input.
+        const [rows, fields] = await pool.query(`SELECT * FROM (${trimmed}) __result LIMIT ${rowLimit + 1}`);
         const list = rows as Record<string, unknown>[];
+        if (list.length > rowLimit) return { content: [{ type: "text", text: JSON.stringify({ error: { code: "EXPORT_ROW_LIMIT_EXCEEDED", rowLimit } }) }] };
         const columns = (fields as Array<{ name: string }> | undefined)?.map((field) => field.name) ?? (list.length > 0 ? Object.keys(list[0]) : []);
-        const tooMany = list.length > batchLimit && start + batchLimit >= rowLimit;
-        if (tooMany) return { content: [{ type: "text", text: JSON.stringify({ error: { code: "EXPORT_ROW_LIMIT_EXCEEDED", rowLimit } }) }] };
-        const values = list.slice(0, batchLimit);
-        return { content: [{ type: "text", text: JSON.stringify({ rows: values, columns, done: values.length < batchLimit, contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
+        return { content: [{ type: "text", text: JSON.stringify({ rows: list, columns, truncated: false, contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
       } catch (error) {
         return { content: [{ type: "text", text: JSON.stringify({ error: { code: "QUERY_FAILED", message: redact(`${(error as Error).message} in ${redact(trimmed)}`).slice(0, 500) } }) }] };
       }

@@ -1,0 +1,1350 @@
+{
+  "unresolved-hypothesis-hook-control-001": {
+    "config": {
+      "model": {
+        "provider": "openai",
+        "model": "deepseek-v4.1-flash-expires-on-0910",
+        "apiFormat": "chat",
+        "profile": "deepseek"
+      },
+      "hooks": {
+        "informOnQuery": true,
+        "informOnUnresolvedHypotheses": false,
+        "interpretationsOnAnomaly": true,
+        "integrityBlocks": true,
+        "terminateAfterExport": true
+      },
+      "limits": {
+        "timeoutMs": null,
+        "maxTurns": null,
+        "maxToolCalls": null,
+        "maxExploratoryQueries": null
+      },
+      "ids": [
+        "local003",
+        "local010",
+        "local025",
+        "local029",
+        "local032",
+        "local034",
+        "local035",
+        "local037",
+        "local050",
+        "local061"
+      ]
+    },
+    "aggregate": {
+      "n": 10,
+      "delivered": 8,
+      "published": 8,
+      "meanTurns": 14.3,
+      "p95Turns": 19,
+      "meanTools": 25.5,
+      "meanDurationMs": 116542.4,
+      "meanTokens": 346048.6,
+      "totalTokens": 3460486.0,
+      "totalCost": 0.0,
+      "reminderInjections": 0,
+      "reminderHypothesisIds": 0,
+      "receiptDispositionCases": 8,
+      "unresolvedDispositions": 34
+    },
+    "cases": [
+      {
+        "id": "local003",
+        "status": "completed",
+        "delivered": true,
+        "published": true,
+        "publicationStatus": "published_with_disagreement",
+        "turns": 12,
+        "tools": 19,
+        "durationMs": 103514,
+        "tokens": 298820.0,
+        "cost": 0.0,
+        "reminderCount": 0,
+        "reminderIds": [],
+        "dispositions": [
+          {
+            "hypothesisId": "H1",
+            "revisionId": "3",
+            "status": "unresolved",
+            "facetPaths": [
+              "/metric",
+              "/output"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H2",
+            "revisionId": "3",
+            "status": "unresolved",
+            "facetPaths": [
+              "/time"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H3",
+            "revisionId": "3",
+            "status": "unresolved",
+            "facetPaths": [
+              "/metric"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H4",
+            "revisionId": "3",
+            "status": "unresolved",
+            "facetPaths": [
+              "/ranking"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H5",
+            "revisionId": "3",
+            "status": "unresolved",
+            "facetPaths": [
+              "/groupBy"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          }
+        ]
+      },
+      {
+        "id": "local010",
+        "status": "completed",
+        "delivered": true,
+        "published": true,
+        "publicationStatus": "published_with_disagreement",
+        "turns": 13,
+        "tools": 28,
+        "durationMs": 98286,
+        "tokens": 335128.0,
+        "cost": 0.0,
+        "reminderCount": 0,
+        "reminderIds": [],
+        "dispositions": [
+          {
+            "hypothesisId": "H1",
+            "revisionId": "2",
+            "status": "unresolved",
+            "facetPaths": [
+              "/metric"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H2",
+            "revisionId": "2",
+            "status": "unresolved",
+            "facetPaths": [
+              "/entity",
+              "/groupBy/0"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H3",
+            "revisionId": "2",
+            "status": "unresolved",
+            "facetPaths": [
+              "/groupBy/1",
+              "/ranking"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H4",
+            "revisionId": "2",
+            "status": "unresolved",
+            "facetPaths": [
+              "/filters/0"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          }
+        ]
+      },
+      {
+        "id": "local025",
+        "status": "completed",
+        "delivered": false,
+        "published": false,
+        "publicationStatus": "not_published_no_export_call",
+        "turns": 3,
+        "tools": 7,
+        "durationMs": 57234,
+        "tokens": 46472.0,
+        "cost": 0.0,
+        "reminderCount": 0,
+        "reminderIds": [],
+        "dispositions": []
+      },
+      {
+        "id": "local029",
+        "status": "completed",
+        "delivered": true,
+        "published": true,
+        "publicationStatus": "published_with_disagreement",
+        "turns": 17,
+        "tools": 27,
+        "durationMs": 192811,
+        "tokens": 421031.0,
+        "cost": 0.0,
+        "reminderCount": 0,
+        "reminderIds": [],
+        "dispositions": [
+          {
+            "hypothesisId": "H1",
+            "revisionId": "3",
+            "status": "unresolved",
+            "facetPaths": [
+              "/filters/0"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H2",
+            "revisionId": "3",
+            "status": "unresolved",
+            "facetPaths": [
+              "/metric"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H3",
+            "revisionId": "3",
+            "status": "unresolved",
+            "facetPaths": [
+              "/groupBy/0",
+              "/output"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H4",
+            "revisionId": "3",
+            "status": "unresolved",
+            "facetPaths": [
+              "/ranking"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          }
+        ]
+      },
+      {
+        "id": "local032",
+        "status": "completed",
+        "delivered": true,
+        "published": true,
+        "publicationStatus": "published_with_disagreement",
+        "turns": 18,
+        "tools": 28,
+        "durationMs": 112415,
+        "tokens": 390455.0,
+        "cost": 0.0,
+        "reminderCount": 0,
+        "reminderIds": [],
+        "dispositions": [
+          {
+            "hypothesisId": "H2",
+            "revisionId": "3",
+            "status": "unresolved",
+            "facetPaths": [
+              "/metric"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H3",
+            "revisionId": "3",
+            "status": "unresolved",
+            "facetPaths": [
+              "/metric"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          }
+        ]
+      },
+      {
+        "id": "local034",
+        "status": "completed",
+        "delivered": true,
+        "published": true,
+        "publicationStatus": "published_with_disagreement",
+        "turns": 15,
+        "tools": 25,
+        "durationMs": 121568,
+        "tokens": 385473.0,
+        "cost": 0.0,
+        "reminderCount": 0,
+        "reminderIds": [],
+        "dispositions": [
+          {
+            "hypothesisId": "H1",
+            "revisionId": "3",
+            "status": "unresolved",
+            "facetPaths": [
+              "/metric"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H2",
+            "revisionId": "3",
+            "status": "unresolved",
+            "facetPaths": [
+              "/entity"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H3",
+            "revisionId": "3",
+            "status": "unresolved",
+            "facetPaths": [
+              "/entity"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H4",
+            "revisionId": "3",
+            "status": "unresolved",
+            "facetPaths": [
+              "/groupBy"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          }
+        ]
+      },
+      {
+        "id": "local035",
+        "status": "completed",
+        "delivered": true,
+        "published": true,
+        "publicationStatus": "published_with_disagreement",
+        "turns": 14,
+        "tools": 22,
+        "durationMs": 123934,
+        "tokens": 339745.0,
+        "cost": 0.0,
+        "reminderCount": 0,
+        "reminderIds": [],
+        "dispositions": [
+          {
+            "hypothesisId": "H1",
+            "revisionId": "2",
+            "status": "unresolved",
+            "facetPaths": [
+              "/entity"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H2",
+            "revisionId": "2",
+            "status": "unresolved",
+            "facetPaths": [
+              "/metric",
+              "/ranking"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H3",
+            "revisionId": "2",
+            "status": "unresolved",
+            "facetPaths": [
+              "/output"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          }
+        ]
+      },
+      {
+        "id": "local037",
+        "status": "completed",
+        "delivered": true,
+        "published": true,
+        "publicationStatus": "published_with_disagreement",
+        "turns": 17,
+        "tools": 27,
+        "durationMs": 99584,
+        "tokens": 382951.0,
+        "cost": 0.0,
+        "reminderCount": 0,
+        "reminderIds": [],
+        "dispositions": [
+          {
+            "hypothesisId": "H1",
+            "revisionId": "3",
+            "status": "unresolved",
+            "facetPaths": [
+              "/metric"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H2",
+            "revisionId": "3",
+            "status": "unresolved",
+            "facetPaths": [
+              "/groupBy/0",
+              "/metric"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H3",
+            "revisionId": "3",
+            "status": "unresolved",
+            "facetPaths": [
+              "/groupBy/0",
+              "/output"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H4",
+            "revisionId": "3",
+            "status": "unresolved",
+            "facetPaths": [
+              "/ranking"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          }
+        ]
+      },
+      {
+        "id": "local050",
+        "status": "completed",
+        "delivered": false,
+        "published": false,
+        "publicationStatus": "not_published_no_export_call",
+        "turns": 15,
+        "tools": 36,
+        "durationMs": 141165,
+        "tokens": 360973.0,
+        "cost": 0.0,
+        "reminderCount": 0,
+        "reminderIds": [],
+        "dispositions": []
+      },
+      {
+        "id": "local061",
+        "status": "completed",
+        "delivered": true,
+        "published": true,
+        "publicationStatus": "published_with_disagreement",
+        "turns": 19,
+        "tools": 36,
+        "durationMs": 114913,
+        "tokens": 499438.0,
+        "cost": 0.0,
+        "reminderCount": 0,
+        "reminderIds": [],
+        "dispositions": [
+          {
+            "hypothesisId": "H1",
+            "revisionId": "3",
+            "status": "unresolved",
+            "facetPaths": [
+              "/entity",
+              "/filters/0"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H2",
+            "revisionId": "3",
+            "status": "unresolved",
+            "facetPaths": [
+              "/filters/1"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H3",
+            "revisionId": "3",
+            "status": "unresolved",
+            "facetPaths": [
+              "/filters/2"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H4",
+            "revisionId": "3",
+            "status": "unresolved",
+            "facetPaths": [
+              "/filters/3",
+              "/time"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H5",
+            "revisionId": "3",
+            "status": "unresolved",
+            "facetPaths": [
+              "/metric"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H6",
+            "revisionId": "3",
+            "status": "unresolved",
+            "facetPaths": [
+              "/groupBy/0",
+              "/output"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H7",
+            "revisionId": "3",
+            "status": "unresolved",
+            "facetPaths": [
+              "/metric"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H8",
+            "revisionId": "3",
+            "status": "unresolved",
+            "facetPaths": [
+              "/metric"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          }
+        ]
+      }
+    ]
+  },
+  "unresolved-hypothesis-hook-treatment-001": {
+    "config": {
+      "model": {
+        "provider": "openai",
+        "model": "deepseek-v4.1-flash-expires-on-0910",
+        "apiFormat": "chat",
+        "profile": "deepseek"
+      },
+      "hooks": {
+        "informOnQuery": true,
+        "informOnUnresolvedHypotheses": true,
+        "interpretationsOnAnomaly": true,
+        "integrityBlocks": true,
+        "terminateAfterExport": true
+      },
+      "limits": {
+        "timeoutMs": null,
+        "maxTurns": null,
+        "maxToolCalls": null,
+        "maxExploratoryQueries": null
+      },
+      "ids": [
+        "local003",
+        "local010",
+        "local025",
+        "local029",
+        "local032",
+        "local034",
+        "local035",
+        "local037",
+        "local050",
+        "local061"
+      ]
+    },
+    "aggregate": {
+      "n": 10,
+      "delivered": 9,
+      "published": 10,
+      "meanTurns": 18.9,
+      "p95Turns": 29,
+      "meanTools": 31.3,
+      "meanDurationMs": 188721.7,
+      "meanTokens": 577966.3,
+      "totalTokens": 5779663.0,
+      "totalCost": 0.0,
+      "reminderInjections": 28,
+      "reminderHypothesisIds": 48,
+      "receiptDispositionCases": 10,
+      "unresolvedDispositions": 25
+    },
+    "cases": [
+      {
+        "id": "local003",
+        "status": "completed",
+        "delivered": true,
+        "published": true,
+        "publicationStatus": "published_with_disagreement",
+        "turns": 21,
+        "tools": 29,
+        "durationMs": 227127,
+        "tokens": 692572.0,
+        "cost": 0.0,
+        "reminderCount": 4,
+        "reminderIds": [
+          "H1",
+          "H2",
+          "H3",
+          "H4",
+          "HY-5"
+        ],
+        "dispositions": [
+          {
+            "hypothesisId": "H1",
+            "revisionId": "6",
+            "status": "provisional_selected",
+            "facetPaths": [
+              "/metric"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": [
+              {
+                "decisionId": "D1",
+                "alternativeId": "ALT-632e5e4109a5c991c74acb81"
+              }
+            ]
+          },
+          {
+            "hypothesisId": "H2",
+            "revisionId": "6",
+            "status": "provisional_selected",
+            "facetPaths": [
+              "/time"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": [
+              {
+                "decisionId": "D5",
+                "alternativeId": "ALT-8172ef053f209ea841ff679b"
+              }
+            ]
+          },
+          {
+            "hypothesisId": "H3",
+            "revisionId": "6",
+            "status": "provisional_selected",
+            "facetPaths": [
+              "/ranking"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": [
+              {
+                "decisionId": "D2",
+                "alternativeId": "ALT-1c261410823db3c276fa1525"
+              }
+            ]
+          },
+          {
+            "hypothesisId": "H4",
+            "revisionId": "6",
+            "status": "provisional_selected",
+            "facetPaths": [
+              "/metric"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": [
+              {
+                "decisionId": "D3",
+                "alternativeId": "ALT-0006c9aa12eab06a92615666"
+              }
+            ]
+          },
+          {
+            "hypothesisId": "HY-5",
+            "revisionId": "6",
+            "status": "provisional_selected",
+            "facetPaths": [
+              "/groupBy"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": [
+              {
+                "decisionId": "D4",
+                "alternativeId": "ALT-19d4c606b3885a4e0bef5375"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "local010",
+        "status": "completed",
+        "delivered": true,
+        "published": true,
+        "publicationStatus": "published_with_disagreement",
+        "turns": 22,
+        "tools": 37,
+        "durationMs": 271309,
+        "tokens": 632922.0,
+        "cost": 0.0,
+        "reminderCount": 3,
+        "reminderIds": [
+          "H1",
+          "H2",
+          "H3",
+          "H4",
+          "H5"
+        ],
+        "dispositions": [
+          {
+            "hypothesisId": "H1",
+            "revisionId": "5",
+            "status": "provisional_selected",
+            "facetPaths": [
+              "/metric"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": [
+              {
+                "decisionId": "D1_coordinate_source",
+                "alternativeId": "ALT-4131dadd045df8c0d25424bb"
+              }
+            ]
+          },
+          {
+            "hypothesisId": "H4",
+            "revisionId": "5",
+            "status": "provisional_selected",
+            "facetPaths": [
+              "/filters/0"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": [
+              {
+                "decisionId": "D2_denominator_weighting",
+                "alternativeId": "ALT-d8b1539fbe29870ca646c3f3"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "local025",
+        "status": "completed",
+        "delivered": true,
+        "published": true,
+        "publicationStatus": "published_with_disagreement",
+        "turns": 29,
+        "tools": 45,
+        "durationMs": 300577,
+        "tokens": 1171406.0,
+        "cost": 0.0,
+        "reminderCount": 4,
+        "reminderIds": [
+          "H1",
+          "H2",
+          "H3",
+          "H4",
+          "H5",
+          "H6"
+        ],
+        "dispositions": [
+          {
+            "hypothesisId": "H1",
+            "revisionId": "5",
+            "status": "unresolved",
+            "facetPaths": [
+              "/groupBy",
+              "/ranking"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H2",
+            "revisionId": "5",
+            "status": "unresolved",
+            "facetPaths": [
+              "/ranking"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H3",
+            "revisionId": "5",
+            "status": "unresolved",
+            "facetPaths": [
+              "/output"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H4",
+            "revisionId": "5",
+            "status": "unresolved",
+            "facetPaths": [
+              "/metric"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H5",
+            "revisionId": "5",
+            "status": "unresolved",
+            "facetPaths": [
+              "/entity",
+              "/metric"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H6",
+            "revisionId": "5",
+            "status": "unresolved",
+            "facetPaths": [
+              "/output"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          }
+        ]
+      },
+      {
+        "id": "local029",
+        "status": "completed",
+        "delivered": false,
+        "published": true,
+        "publicationStatus": "published_with_disagreement",
+        "turns": 23,
+        "tools": 34,
+        "durationMs": 253373,
+        "tokens": 782069.0,
+        "cost": 0.0,
+        "reminderCount": 3,
+        "reminderIds": [
+          "H1",
+          "H2",
+          "H3",
+          "H4",
+          "H5"
+        ],
+        "dispositions": [
+          {
+            "hypothesisId": "H1",
+            "revisionId": "5",
+            "status": "provisional_selected",
+            "facetPaths": [
+              "/filters/0"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": [
+              {
+                "decisionId": "D4-delivered-definition",
+                "alternativeId": "ALT-ecd118157cc70e28a61deb61"
+              }
+            ]
+          },
+          {
+            "hypothesisId": "H2",
+            "revisionId": "5",
+            "status": "provisional_selected",
+            "facetPaths": [
+              "/metric"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": [
+              {
+                "decisionId": "D2-avg-payment-aggregation",
+                "alternativeId": "ALT-08f5ba1b5dc79264a23c4c5a"
+              }
+            ]
+          },
+          {
+            "hypothesisId": "H3",
+            "revisionId": "5",
+            "status": "provisional_selected",
+            "facetPaths": [
+              "/output"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": [
+              {
+                "decisionId": "D5-customer-location-source",
+                "alternativeId": "ALT-d6bcff03b5f561b5473f7d62"
+              }
+            ]
+          },
+          {
+            "hypothesisId": "H4",
+            "revisionId": "5",
+            "status": "provisional_selected",
+            "facetPaths": [
+              "/ranking"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": [
+              {
+                "decisionId": "D3-third-place-tie",
+                "alternativeId": "ALT-a75d5fed53f4118986fe635e"
+              }
+            ]
+          },
+          {
+            "hypothesisId": "H5",
+            "revisionId": "5",
+            "status": "provisional_selected",
+            "facetPaths": [
+              "/metric"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": [
+              {
+                "decisionId": "D1-avg-payment-scope",
+                "alternativeId": "ALT-814e3197f1f605c481ba421d"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "local032",
+        "status": "completed",
+        "delivered": true,
+        "published": true,
+        "publicationStatus": "published_with_disagreement",
+        "turns": 14,
+        "tools": 27,
+        "durationMs": 79195,
+        "tokens": 288132.0,
+        "cost": 0.0,
+        "reminderCount": 2,
+        "reminderIds": [
+          "H1",
+          "H2",
+          "H3",
+          "H4"
+        ],
+        "dispositions": [
+          {
+            "hypothesisId": "H1",
+            "revisionId": "3",
+            "status": "unresolved",
+            "facetPaths": [
+              "/filters/0"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H2",
+            "revisionId": "3",
+            "status": "unresolved",
+            "facetPaths": [
+              "/metric"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H3",
+            "revisionId": "3",
+            "status": "unresolved",
+            "facetPaths": [
+              "/metric"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H4",
+            "revisionId": "3",
+            "status": "unresolved",
+            "facetPaths": [
+              "/ranking"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          }
+        ]
+      },
+      {
+        "id": "local034",
+        "status": "completed",
+        "delivered": true,
+        "published": true,
+        "publicationStatus": "published_with_disagreement",
+        "turns": 21,
+        "tools": 33,
+        "durationMs": 228222,
+        "tokens": 564938.0,
+        "cost": 0.0,
+        "reminderCount": 3,
+        "reminderIds": [
+          "H1",
+          "H2",
+          "H3"
+        ],
+        "dispositions": [
+          {
+            "hypothesisId": "H1",
+            "revisionId": "4",
+            "status": "unresolved",
+            "facetPaths": [
+              "/metric"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H2",
+            "revisionId": "4",
+            "status": "unresolved",
+            "facetPaths": [
+              "/entity"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          }
+        ]
+      },
+      {
+        "id": "local035",
+        "status": "completed",
+        "delivered": true,
+        "published": true,
+        "publicationStatus": "published_with_disagreement",
+        "turns": 10,
+        "tools": 17,
+        "durationMs": 112992,
+        "tokens": 257471.0,
+        "cost": 0.0,
+        "reminderCount": 2,
+        "reminderIds": [
+          "H1",
+          "H2",
+          "H3",
+          "H4"
+        ],
+        "dispositions": [
+          {
+            "hypothesisId": "H2",
+            "revisionId": "4",
+            "status": "provisional_selected",
+            "facetPaths": [
+              "/groupBy",
+              "/ranking"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": [
+              {
+                "decisionId": "D1",
+                "alternativeId": "ALT-3b7f0bfa73c195ccc1417923"
+              }
+            ]
+          },
+          {
+            "hypothesisId": "H3",
+            "revisionId": "4",
+            "status": "provisional_selected",
+            "facetPaths": [
+              "/entity",
+              "/output"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": [
+              {
+                "decisionId": "D2",
+                "alternativeId": "ALT-0fb3771bb7ce55033d590533"
+              }
+            ]
+          },
+          {
+            "hypothesisId": "H4",
+            "revisionId": "4",
+            "status": "provisional_selected",
+            "facetPaths": [
+              "/ranking"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": [
+              {
+                "decisionId": "D3",
+                "alternativeId": "ALT-a80d15bd5af0a00fcd52036e"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "local037",
+        "status": "completed",
+        "delivered": true,
+        "published": true,
+        "publicationStatus": "published_with_disagreement",
+        "turns": 17,
+        "tools": 30,
+        "durationMs": 177662,
+        "tokens": 447201.0,
+        "cost": 0.0,
+        "reminderCount": 4,
+        "reminderIds": [
+          "H1",
+          "H2",
+          "H3",
+          "H4",
+          "H5"
+        ],
+        "dispositions": [
+          {
+            "hypothesisId": "H1",
+            "revisionId": "5",
+            "status": "unresolved",
+            "facetPaths": [
+              "/entity",
+              "/metric"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H2",
+            "revisionId": "5",
+            "status": "unresolved",
+            "facetPaths": [
+              "/metric"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H3",
+            "revisionId": "5",
+            "status": "provisional_selected",
+            "facetPaths": [
+              "/metric"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": [
+              {
+                "decisionId": "D1_payment_count_basis",
+                "alternativeId": "ALT-3e2509a9d1350fb36a5c5596"
+              }
+            ]
+          },
+          {
+            "hypothesisId": "H4",
+            "revisionId": "5",
+            "status": "provisional_selected",
+            "facetPaths": [
+              "/output"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": [
+              {
+                "decisionId": "D2_output_category_language",
+                "alternativeId": "ALT-335db88edbc0c41e19626ff0"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "local050",
+        "status": "completed",
+        "delivered": true,
+        "published": true,
+        "publicationStatus": "published_with_disagreement",
+        "turns": 18,
+        "tools": 33,
+        "durationMs": 159067,
+        "tokens": 637976.0,
+        "cost": 0.0,
+        "reminderCount": 2,
+        "reminderIds": [
+          "H1",
+          "H2",
+          "H3",
+          "H4",
+          "HY-5"
+        ],
+        "dispositions": [
+          {
+            "hypothesisId": "H1",
+            "revisionId": "3",
+            "status": "unresolved",
+            "facetPaths": [
+              "/entity"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H2",
+            "revisionId": "3",
+            "status": "unresolved",
+            "facetPaths": [
+              "/filters/1",
+              "/filters/2"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H3",
+            "revisionId": "3",
+            "status": "unresolved",
+            "facetPaths": [
+              "/metric",
+              "/time"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H4",
+            "revisionId": "3",
+            "status": "unresolved",
+            "facetPaths": [
+              "/groupBy/0",
+              "/groupBy/1",
+              "/metric"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "HY-5",
+            "revisionId": "3",
+            "status": "unresolved",
+            "facetPaths": [
+              "/output"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          }
+        ]
+      },
+      {
+        "id": "local061",
+        "status": "completed",
+        "delivered": true,
+        "published": true,
+        "publicationStatus": "published_with_disagreement",
+        "turns": 14,
+        "tools": 28,
+        "durationMs": 77693,
+        "tokens": 304976.0,
+        "cost": 0.0,
+        "reminderCount": 1,
+        "reminderIds": [
+          "H1",
+          "H2",
+          "H3",
+          "H4",
+          "H5",
+          "H6"
+        ],
+        "dispositions": [
+          {
+            "hypothesisId": "H1",
+            "revisionId": "2",
+            "status": "unresolved",
+            "facetPaths": [
+              "/entity"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H2",
+            "revisionId": "2",
+            "status": "unresolved",
+            "facetPaths": [
+              "/filters/1"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H3",
+            "revisionId": "2",
+            "status": "unresolved",
+            "facetPaths": [
+              "/filters/2"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H4",
+            "revisionId": "2",
+            "status": "unresolved",
+            "facetPaths": [
+              "/metric"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H5",
+            "revisionId": "2",
+            "status": "unresolved",
+            "facetPaths": [
+              "/groupBy/1",
+              "/metric"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          },
+          {
+            "hypothesisId": "H6",
+            "revisionId": "2",
+            "status": "unresolved",
+            "facetPaths": [
+              "/groupBy/0",
+              "/time"
+            ],
+            "verificationRefs": [],
+            "selectedDecisionRefs": []
+          }
+        ]
+      }
+    ]
+  }
+}

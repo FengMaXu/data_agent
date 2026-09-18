@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { DataAgentRuntime } from "@data-agent/runtime";
+import { DataAgentRuntime } from "@data-agent/runtime/testing";
 import { createRuntimeServer } from "./index.js";
-import { WorkspaceStore } from "@data-agent/runtime";
+import { WorkspaceStore } from "@data-agent/runtime/testing";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -112,8 +112,47 @@ import { join } from "node:path";
     await app.close(); await rm(root, { recursive: true, force: true });
   });
 
+  it("authorizes every session-scoped command before Runtime dispatch", async () => {
+    let prompts = 0;
+    const runtime = new DataAgentRuntime({ agent: { prompt: async () => { prompts += 1; return { operationId: "must-not-run" }; } } });
+    const app = await createRuntimeServer(runtime, { ...trustedWebContext, authorizeSession: async () => false });
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/runtime/command",
+      payload: { protocolVersion: 1, requestId: "denied", sessionId: "other-users-session", command: { type: "agent.prompt", prompt: "hello" } },
+    });
+    expect(response.statusCode).toBe(403);
+    expect(response.json()).toEqual({ error: { code: "SESSION_ACCESS_DENIED" } });
+    expect(prompts).toBe(0);
+    await app.close();
+  });
+
+  it("downloads an immutable publication only through its Receipt and Session", async () => {
+    let reads = 0;
+    const app = await createRuntimeServer(new DataAgentRuntime(), {
+      ...trustedWebContext,
+      authorizeSession: async (_userId, sessionId) => sessionId === "session-A",
+      publicationReader: {
+        readPublication: async (publicationId, context) => {
+          reads += 1;
+          expect(publicationId).toBe("publication-1");
+          expect(context).toEqual({ userId: "web-dev", sessionId: "session-A" });
+          return { summary: { format: "csv", contentHash: "sealed-hash" }, content: "value\n1\n" };
+        },
+      },
+    });
+    const denied = await app.inject({ method: "GET", url: "/api/runtime/publications/publication-1?session_id=session-B" });
+    expect(denied.statusCode).toBe(403);
+    const response = await app.inject({ method: "GET", url: "/api/runtime/publications/publication-1?session_id=session-A" });
+    expect(response.statusCode).toBe(200);
+    expect(response.headers["content-type"]).toContain("text/csv");
+    expect(response.body).toBe("value\n1\n");
+    expect(reads).toBe(1);
+    await app.close();
+  });
+
   it("starts an agent prompt through the HTTP Host", async () => {
-    const app = await createRuntimeServer(new DataAgentRuntime({ agent: { prompt: async () => undefined, abort: () => undefined } }), trustedWebContext);
+    const app = await createRuntimeServer(new DataAgentRuntime({ agent: { prompt: async () => ({ operationId: "test-operation" }), abort: () => undefined } }), trustedWebContext);
     const response = await app.inject({ method: "POST", url: "/api/runtime/command", payload: { protocolVersion: 1, requestId: "prompt", command: { type: "agent.prompt", prompt: "hello" } } });
     expect(response.statusCode).toBe(200);
     expect(response.json().response.type).toBe("agent.prompt.accepted");

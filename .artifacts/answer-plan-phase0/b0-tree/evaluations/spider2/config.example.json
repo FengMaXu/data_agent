@@ -1,0 +1,59 @@
+{
+  "spider2Repo": "C:/data-agent-eval/Spider2",
+  "runsRoot": "C:/data-agent-eval/runs",
+  "pythonExecutable": "python",
+  "localDatabasePackSha256": null,
+  "concurrency": 1,
+  "scoreWorkers": 4,
+  "assurance": {
+    "mode": "shadow",
+    "reviewerModel": "gpt-4o",
+    "sqlglotExecutable": "python",
+    "reviewerLlm": null,
+    "plannerLlm": null,
+    "reviewerPromptVersion": "5",
+    "reviewPolicyVersion": "2",
+    "hardConstraintAdmissionPolicy": "2",
+    "reviewCoverageSchemaVersion": "4",
+    "gatePolicyVersion": "1",
+    "gateApplicabilityVersion": "2",
+    "probeTemplateVersion": "1",
+    "evidenceAdmissionPolicyVersion": "1",
+    "planner": true,
+    "reviewer": { "enabled": false },
+    "shadowDelivery": "publish_with_disagreement",
+    "includeResultRows": true,
+    "maxResultRows": 2000,
+    "maxResultBytes": 262144,
+    "maxNumericRows": 10000,
+    "calibration": {
+      "eligible": false,
+      "gateEligibility": { "g1_shape": false, "g2_population": false, "g3_fanout": false, "g4_candidate": false }
+    }
+  },
+  "llm": {
+    "provider": "openai",
+    "model": "gpt-4o",
+    "apiKeyEnv": "OPENAI_API_KEY",
+    "baseUrlEnv": "OPENAI_BASE_URL",
+    "apiFormat": "responses"
+  },
+  "limits": {
+    "timeoutMs": null,
+    "providerTimeoutMs": 30000,
+    "maxTurns": null,
+    "maxToolCalls": null,
+    "maxExploratoryQueries": null
+  },
+  "backends": {
+    "sqlite": {
+      "databaseDir": "C:/data-agent-eval/Spider2/spider2-lite/resource/databases"
+    },
+    "bigquery": {
+      "mcp": null
+    },
+    "snowflake": {
+      "mcp": null
+    }
+  }
+}

@@ -1,0 +1,86 @@
+[
+  {
+    "key": "t1",
+    "number": 57,
+    "title": "分离 Candidate 列完整性与 Answer Contract",
+    "url": "https://github.com/FengMaXu/data_agent/issues/57"
+  },
+  {
+    "key": "t2",
+    "number": 58,
+    "title": "用 SQLite 标量查询打通首个有界 G1 门",
+    "url": "https://github.com/FengMaXu/data_agent/issues/58"
+  },
+  {
+    "key": "t3",
+    "number": 59,
+    "title": "完成 G1 最终形状合同门",
+    "url": "https://github.com/FengMaXu/data_agent/issues/59"
+  },
+  {
+    "key": "t4",
+    "number": 60,
+    "title": "阻断有确定性证据的未授权总体缩减",
+    "url": "https://github.com/FengMaXu/data_agent/issues/60"
+  },
+  {
+    "key": "t5",
+    "number": 61,
+    "title": "绑定失败 Candidate、一次修复与实质变化",
+    "url": "https://github.com/FengMaXu/data_agent/issues/61"
+  },
+  {
+    "key": "t6",
+    "number": 62,
+    "title": "阻断可证明的 JOIN fanout",
+    "url": "https://github.com/FengMaXu/data_agent/issues/62"
+  },
+  {
+    "key": "t7",
+    "number": 63,
+    "title": "完成复杂 SQL 的有界适用与 unavailable 策略",
+    "url": "https://github.com/FengMaXu/data_agent/issues/63"
+  },
+  {
+    "key": "t8",
+    "number": 64,
+    "title": "断代移除 Solver 自报合同与自助验证",
+    "url": "https://github.com/FengMaXu/data_agent/issues/64"
+  },
+  {
+    "key": "t9",
+    "number": 65,
+    "title": "持久化可信门控状态与版本身份",
+    "url": "https://github.com/FengMaXu/data_agent/issues/65"
+  },
+  {
+    "key": "t10",
+    "number": 66,
+    "title": "生成确定性门 replay 与校准报告",
+    "url": "https://github.com/FengMaXu/data_agent/issues/66"
+  },
+  {
+    "key": "t11",
+    "number": 67,
+    "title": "完成 SQLite 首个 Enforce 资格闭环",
+    "url": "https://github.com/FengMaXu/data_agent/issues/67"
+  },
+  {
+    "key": "t12",
+    "number": 68,
+    "title": "将有界确定性门控扩展到 MySQL",
+    "url": "https://github.com/FengMaXu/data_agent/issues/68"
+  },
+  {
+    "key": "t13",
+    "number": 69,
+    "title": "将有界确定性门控扩展到 BigQuery",
+    "url": "https://github.com/FengMaXu/data_agent/issues/69"
+  },
+  {
+    "key": "t14",
+    "number": 70,
+    "title": "将有界确定性门控扩展到 Snowflake",
+    "url": "https://github.com/FengMaXu/data_agent/issues/70"
+  }
+]

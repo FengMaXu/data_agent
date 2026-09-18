@@ -3,7 +3,6 @@ import path from "node:path";
 
 /** The maximum UTF-8 payload returned by any bounded text read. */
 export const MAX_TEXT_BYTES = 50 * 1024;
-
 export interface LineRange {
   startLine?: number;
   endLine?: number;
@@ -14,7 +13,7 @@ export interface BoundedReadResult {
   truncated: boolean;
 }
 
-export function validateLineRange({ startLine, endLine }: LineRange): void {
+function validateLineRange({ startLine, endLine }: LineRange): void {
   for (const [name, value] of [["startLine", startLine], ["endLine", endLine]] as const) {
     if (value !== undefined && (!Number.isInteger(value) || value < 1)) {
       throw new Error(`INVALID_LINE_RANGE:${name}`);
@@ -38,8 +37,7 @@ function truncateUtf8(content: string): BoundedReadResult {
 
 export function boundTextByLines(content: string, range: LineRange = {}): BoundedReadResult {
   validateLineRange(range);
-  // Keep the exact legacy payload when no slicing was requested (including
-  // its original line endings), while still applying the server-side cap.
+  // Preserve exact text and line endings when no line range is requested.
   if (range.startLine === undefined && range.endLine === undefined) return truncateUtf8(content);
   const lines = content.split(/\r?\n/);
   const start = range.startLine ?? 1;

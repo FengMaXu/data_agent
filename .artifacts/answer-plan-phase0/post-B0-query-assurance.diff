@@ -1,0 +1,726 @@
+--- .artifacts/answer-plan-phase0/b0-tree/packages/runtime/src/query-assurance.ts	2026-09-03 16:03:58.000000000 +0800
++++ packages/runtime/src/query-assurance.ts	2026-09-07 16:15:28.859297400 +0800
+@@ -1,5 +1,5 @@
+ import { createHash, randomUUID } from "node:crypto";
+-import { createSpecAuthority, type AmbiguityInput, type AnswerContractInput, type AnswerRowMode, type AnswerSpec, type AnswerSpecGenerator, type ConstraintInput, type HypothesisInput, type PhysicalMappingEvidence, type SemanticEvidenceExcerpt, type SpecAuthority } from "./answer-spec.js";
++import { createSpecAuthority, getAnswerSpecHash, type AmbiguityInput, type AnswerContractInput, type AnswerRowMode, type AnswerSpec, type AnswerSpecGenerator, type AnswerSpecRef, type ConstraintInput, type HypothesisBinding, type HypothesisInput, type PhysicalMappingEvidence, type SemanticEvidenceExcerpt, type SevenFacetSpec, type SevenFacetSpecRevision, type AnswerSpecFacetStatus, type SpecAuthority } from "./answer-spec.js";
+ import { createQueryDigestCompiler, QUERY_DIGEST_PARSER_VERSION, QUERY_DIGEST_VERSION, type DigestCardinalityEvidence, type QueryDigest, type QueryDigestCompiler, type SchemaEvidence, type SqlDialect } from "./query-digest.js";
+ import { CONVERSATION_BLIND_REVIEWER_PROMPT_VERSION, deriveReviewCoverageRequirements, validateReviewDecision, REVIEW_COVERAGE_SCHEMA_VERSION, type ConversationBlindReviewer, type ConversationBlindReviewerInput, type ReviewCoverage, type SemanticDiff } from "./conversation-blind-reviewer.js";
+ import type { ExportCandidate } from "./export-candidate.js";
+@@ -15,6 +15,10 @@
+ /** Runtime modes are explicit so Review Off cannot be confused with Shadow Review. */
+ export type QueryAssuranceMode = "off" | "shadow" | "enforce";
+ 
++/** Purpose of a database preview; only result candidates may be published. */
++export type QueryExecutionMode = "exploration" | "result";
++export type QueryArtifactKind = "exploration" | "result_candidate";
++
+ /**
+  * Evidence available while preparing a free-SQL Query Task.
+  *
+@@ -24,6 +28,10 @@
+  */
+ export interface TaskEvidence {
+   readonly question: string;
++  readonly facets?: Partial<SevenFacetSpec>;
++  readonly sevenFacets?: Partial<SevenFacetSpec>;
++  readonly facetStatus?: Partial<Record<keyof SevenFacetSpec, AnswerSpecFacetStatus>>;
++  readonly hypothesisBindings?: readonly HypothesisBinding[];
+   readonly clarifications?: readonly string[];
+   readonly constraints?: readonly ConstraintInput[];
+   readonly hypotheses?: readonly HypothesisInput[];
+@@ -48,6 +56,7 @@
+   readonly taskId: string;
+   readonly mode: QueryAssuranceMode;
+   readonly specVersion?: string;
++  readonly specHash?: string;
+   readonly specStatus?: "available" | "unavailable";
+   /** Indicates that the basic request-only Spec was used after planner failure. */
+   readonly specGenerationStatus?: "generated" | "fallback";
+@@ -79,8 +88,12 @@
+   readonly task: PreparedQueryTask;
+   readonly sql: string;
+   readonly result: QueryPreviewResult;
+-  /** Runtime classification; Solver cannot override exploration status. */
++  /** Explicit SQL purpose. The model-facing tool defaults to exploration. */
++  readonly mode?: QueryExecutionMode;
++  /** Compatibility flag for non-tool callers; mode takes precedence. */
+   readonly exploratory?: boolean;
++  readonly specRef?: AnswerSpecRef;
++  readonly hypothesisRefs?: readonly string[];
+   readonly cardinalityEvidence?: readonly DigestCardinalityEvidence[];
+   readonly dataSnapshot?: string;
+   readonly dialect?: SqlDialect;
+@@ -95,7 +108,12 @@
+   readonly previewMetadata: ResultMetadata;
+   readonly queryDigest?: QueryDigest;
+   readonly schemaEvidence?: SchemaEvidence;
++  /** Missing on pre-mode persisted/manual artifacts; such artifacts are not publishable. */
++  readonly kind?: QueryArtifactKind;
++  readonly publishable?: boolean;
+   readonly specVersion?: string;
++  readonly specHash?: string;
++  readonly hypothesisRefs?: readonly string[];
+   readonly specStatus?: "available" | "unavailable";
+   readonly preflightOutcomes?: readonly ProbeOutcome[];
+   readonly preflightInstances?: readonly ProbeInstance[];
+@@ -133,10 +151,58 @@
+   readonly deterministicGates?: readonly GateResult[];
+ }
+ 
++export const REVIEW_BINDING_FAILURE_CODES = [
++  "CANDIDATE_ARTIFACT_MISSING",
++  "CANDIDATE_TASK_MISMATCH",
++  "CANDIDATE_ARTIFACT_ID_MISMATCH",
++  "CANDIDATE_ARTIFACT_SPEC_VERSION_MISMATCH",
++  "CANDIDATE_SQL_HASH_MISMATCH",
++  "CANDIDATE_SPEC_VERSION_MISMATCH",
++  "CANDIDATE_SPEC_HASH_MISMATCH",
++  "CANDIDATE_SCHEMA_FINGERPRINT_MISMATCH",
++  "CANDIDATE_DATA_SNAPSHOT_MISMATCH",
++  "CANDIDATE_PATH_MISSING",
++  "CANDIDATE_CONTENT_HASH_MISSING",
++  "CANDIDATE_METADATA_MISSING",
++  "CANDIDATE_COLUMN_COUNT_MISMATCH",
++  "CANDIDATE_COLUMNS_MISMATCH",
++  "REVIEW_INPUT_ARTIFACT_MISSING",
++  "REVIEW_INPUT_MISSING",
++  "REVIEW_INPUT_SQL_HASH_MISMATCH",
++  "REVIEW_INPUT_DIGEST_SQL_HASH_MISMATCH",
++  "REVIEW_INPUT_SCHEMA_FINGERPRINT_MISMATCH",
++  "REVIEW_INPUT_DIGEST_MISMATCH",
++  "REVIEW_INPUT_QUESTION_MISMATCH",
++  "REVIEW_INPUT_TASK_MISMATCH",
++  "REVIEW_INPUT_SPEC_VERSION_MISMATCH",
++  "REVIEW_INPUT_STORED_SPEC_MISSING",
++  "REVIEW_INPUT_SPEC_MISMATCH",
++  "REVIEW_INPUT_SCHEMA_MISMATCH",
++  "REVIEW_INPUT_CANDIDATE_METADATA_MISSING",
++  "REVIEW_INPUT_METADATA_MISMATCH",
++  "REVIEW_INPUT_COLUMN_COUNT_MISMATCH",
++  "REVIEW_INPUT_COLUMNS_MISMATCH",
++  "REVIEW_INPUT_METADATA_EVIDENCE_HASH_MISMATCH",
++  "REVIEW_INPUT_EVIDENCE_HASH_MISMATCH",
++] as const;
++
++export type ReviewBindingFailureCode = typeof REVIEW_BINDING_FAILURE_CODES[number];
++
++/** One non-sensitive, stable failed predicate at the Candidate/Artifact boundary. */
++export interface ReviewBindingFailure {
++  readonly code: ReviewBindingFailureCode;
++  /** Versions, hashes, or fingerprints only; never SQL or result values. */
++  readonly expected?: string;
++  /** Versions, hashes, or fingerprints only; never SQL or result values. */
++  readonly actual?: string;
++}
++
+ export interface ReviewFailure {
+   readonly code: string;
+   readonly message: string;
+   readonly retryable: boolean;
++  /** Field-level Candidate/Artifact diagnostics without SQL or result values. */
++  readonly bindingFailures?: readonly ReviewBindingFailure[];
+   /** True when required deterministic coverage, rather than a provider, failed. */
+   readonly deterministic?: boolean;
+   readonly deterministicGates?: readonly GateResult[];
+@@ -156,6 +222,7 @@
+   getAnswerSpec?(taskId: string, specVersion?: string): AnswerSpec | undefined;
+   getTaskEvidence?(taskId: string): TaskEvidence | undefined;
+   getTaskStatus?(taskId: string): QueryTaskLifecycleStatus | undefined;
++  reviseSevenFacets?(taskId: string, baseSpecVersion: string, revision: SevenFacetSpecRevision): AnswerSpec;
+   applyClarification?(taskId: string, baseSpecVersion: string, clarification: string): AnswerSpec;
+   submitSpecChange?(proposal: Parameters<SpecAuthority["submitProposal"]>[0]): ReturnType<SpecAuthority["submitProposal"]>;
+   reviewForPublication(input: PublicationReviewRequest, signal: AbortSignal): Promise<ReviewOutcome>;
+@@ -216,6 +283,26 @@
+   return sql.trim().replace(/;\s*$/, "").replace(/\s+/g, " ");
+ }
+ 
++/** Resolves the low-level compatibility flag; the model-facing tool supplies an explicit mode. */
++export function normalizeQueryExecutionMode(input: { readonly mode?: QueryExecutionMode; readonly exploratory?: boolean }): QueryExecutionMode {
++  if (input.mode === "exploration" || input.mode === "result") return input.mode;
++  if (input.mode !== undefined) throw new Error("QUERY_MODE_INVALID");
++  if (input.exploratory === true) return "exploration";
++  // Direct callers from the pre-mode interface are treated as result previews;
++  // the model-visible query tool defaults missing mode to exploration.
++  return "result";
++}
++
++function validSpecRef(ref: AnswerSpecRef | undefined): ref is AnswerSpecRef {
++  return Boolean(ref
++    && typeof ref.specVersion === "string" && ref.specVersion.trim()
++    && typeof ref.specHash === "string" && /^[a-f0-9]{64}$/i.test(ref.specHash));
++}
++
++function missingArtifactIntegrityError(taskId: string, requestedQueryArtifactId: string, latestQueryArtifactId?: string): Error {
++  return new Error(`INTEGRITY_QUERY_ARTIFACT_NOT_FOUND_OR_EXPIRED: ${JSON.stringify({ taskId, requestedQueryArtifactId, latestQueryArtifactId: latestQueryArtifactId ?? null })}`);
++}
++
+ function throwIfAborted(signal: AbortSignal): void {
+   if (signal.aborted) throw new QueryAssuranceAbortError();
+ }
+@@ -284,6 +371,27 @@
+   return `{${Object.keys(record).sort().map((key) => `${JSON.stringify(key)}:${stable(record[key])}`).join(",")}}`;
+ }
+ 
++type BindingCondition = ReviewBindingFailure & { readonly matches: boolean };
++type BindingDiagnostic = { readonly valid: boolean; readonly failures: readonly ReviewBindingFailure[] };
++
++function bindingFingerprint(value: unknown): string {
++  return hash(stable(value) ?? "undefined");
++}
++
++function diagnosticHash(value: string): string {
++  return /^[a-f0-9]{64}$/i.test(value) ? value.toLowerCase() : bindingFingerprint(value);
++}
++
++/** Pure reduction used by both binding layers so every failed predicate remains observable. */
++function diagnoseBinding(conditions: readonly BindingCondition[]): BindingDiagnostic {
++  const failures = conditions.filter((condition) => !condition.matches).map(({ code, expected, actual }) => ({
++    code,
++    ...(expected !== undefined ? { expected } : {}),
++    ...(actual !== undefined ? { actual } : {}),
++  }));
++  return { valid: failures.length === 0, failures };
++}
++
+ function mergeStableItems<T>(trusted: readonly T[] | undefined, generated: readonly T[] | undefined): readonly T[] | undefined {
+   if (trusted === undefined && generated === undefined) return undefined;
+   const result: T[] = [];
+@@ -293,6 +401,36 @@
+   return result;
+ }
+ 
++function mergeSevenFacets(
++  trusted: Partial<SevenFacetSpec> | undefined,
++  generated: Partial<SevenFacetSpec> | undefined,
++  trustedStatus: Partial<Record<keyof SevenFacetSpec, AnswerSpecFacetStatus>> | undefined,
++): Partial<SevenFacetSpec> | undefined {
++  if (!trusted && !generated) return undefined;
++  const authoritative = (name: keyof SevenFacetSpec): boolean => trustedStatus?.[name] === "explicit" || trustedStatus?.[name] === "evidence_supported";
++  const chooseScalar = (name: "entity" | "metric" | "time" | "ranking" | "output"): string | null | undefined => {
++    const trustedValue = trusted?.[name];
++    const generatedValue = generated?.[name];
++    if (authoritative(name) && typeof trustedValue === "string" && trustedValue.trim()) return trustedValue;
++    if (typeof generatedValue === "string" && generatedValue.trim()) return generatedValue;
++    return trustedValue ?? generatedValue;
++  };
++  const chooseList = (name: "filters" | "groupBy"): readonly string[] | undefined => {
++    const trustedValue = trusted?.[name];
++    if (authoritative(name) && trustedValue?.length) return trustedValue;
++    return generated?.[name]?.length ? generated[name] : trustedValue ?? generated?.[name];
++  };
++  return {
++    entity: chooseScalar("entity") ?? null,
++    metric: chooseScalar("metric") ?? null,
++    filters: chooseList("filters") ?? [],
++    groupBy: chooseList("groupBy") ?? [],
++    time: chooseScalar("time") ?? null,
++    ranking: chooseScalar("ranking") ?? null,
++    output: chooseScalar("output") ?? null,
++  };
++}
++
+ /** Clone task evidence at the authority boundary so later caller mutation cannot
+  * change what the planner/reviewer sees for an existing Query Task. */
+ function cloneTaskEvidence<T>(value: T): T {
+@@ -369,6 +507,11 @@
+       allowUnavailablePublication: this.allowUnavailablePublication,
+       shadowDelivery: this.shadowDelivery,
+       specVersionFor: (taskId) => this.specAuthority.get(taskId)?.specVersion,
++      specHashFor: (taskId, specVersion) => {
++        const spec = this.specAuthority.get(taskId, specVersion);
++        return spec ? getAnswerSpecHash(spec) : undefined;
++      },
++      requireSpecBinding: true,
+     });
+     this.reviewCache = options.reviewCache ?? new ReviewCache();
+     this.reviewerModel = options.reviewerModel ?? "unknown";
+@@ -407,6 +550,8 @@
+       deliveryMode: this.mode,
+       shadowDelivery: this.shadowDelivery,
+       allowUnavailablePublication: this.allowUnavailablePublication,
++      answerSpecSchemaVersion: "seven-facet-v1",
++      artifactPurposeSchemaVersion: "explicit-mode-v1",
+     };
+   }
+ 
+@@ -491,6 +636,10 @@
+     const specInput = {
+       taskId,
+       question: taskEvidence.question,
++      facets: taskEvidence.facets,
++      sevenFacets: taskEvidence.sevenFacets,
++      facetStatus: taskEvidence.facetStatus,
++      hypothesisBindings: taskEvidence.hypothesisBindings,
+       clarifications: taskEvidence.clarifications,
+       constraints: taskEvidence.constraints,
+       hypotheses: taskEvidence.hypotheses,
+@@ -507,7 +656,7 @@
+       const prepared = this.specAuthority.prepare(specInput);
+       this.taskStatuses.set(taskId, "exploration");
+       this.persistState();
+-      return { taskId, mode: this.mode, specVersion: prepared.specVersion, specStatus: "available", answerSpec: prepared };
++      return { taskId, mode: this.mode, specVersion: prepared.specVersion, specHash: getAnswerSpecHash(prepared), specStatus: "available", answerSpec: prepared };
+     }
+ 
+     try {
+@@ -516,10 +665,14 @@
+       // replace trusted task evidence that the Runtime supplied at creation.
+       const hypotheses = mergeStableItems(taskEvidence.hypotheses, generated.hypotheses);
+       const ambiguities = mergeStableItems(taskEvidence.ambiguities, generated.ambiguities);
++      const facets = mergeSevenFacets(taskEvidence.facets ?? taskEvidence.sevenFacets, generated.facets ?? generated.sevenFacets, taskEvidence.facetStatus);
+       const prepared = this.specAuthority.prepare({
+         ...generated,
+         taskId,
+         question: input.question,
++        ...(facets ? { facets } : {}),
++        ...(taskEvidence.facetStatus ? { facetStatus: taskEvidence.facetStatus } : {}),
++        ...(taskEvidence.hypothesisBindings ? { hypothesisBindings: taskEvidence.hypothesisBindings } : {}),
+         ...(taskEvidence.clarifications ? { clarifications: taskEvidence.clarifications } : {}),
+         ...(hypotheses ? { hypotheses } : {}),
+         ...(ambiguities ? { ambiguities } : {}),
+@@ -534,7 +687,7 @@
+       });
+       this.taskStatuses.set(taskId, "exploration");
+       this.persistState();
+-      return { taskId, mode: this.mode, specVersion: prepared.specVersion, specStatus: "available", specGenerationStatus: "generated", answerSpec: prepared };
++      return { taskId, mode: this.mode, specVersion: prepared.specVersion, specHash: getAnswerSpecHash(prepared), specStatus: "available", specGenerationStatus: "generated", answerSpec: prepared };
+     } catch (error) {
+       // A planner is an enrichment step, not an authority boundary. Preserve
+       // cancellation, but never make a valid database task unpublishable just
+@@ -554,7 +707,7 @@
+         });
+         this.taskStatuses.set(taskId, "exploration");
+         this.persistState();
+-        return { taskId, mode: this.mode, specVersion: fallback.specVersion, specStatus: "available", specGenerationStatus: "fallback", answerSpec: fallback };
++        return { taskId, mode: this.mode, specVersion: fallback.specVersion, specHash: getAnswerSpecHash(fallback), specStatus: "available", specGenerationStatus: "fallback", answerSpec: fallback };
+       } catch (fallbackError) {
+         // This should only be reachable for invalid task evidence (for
+         // example, an empty question). Keep the original planner failure and
+@@ -584,7 +737,10 @@
+     return evidence ? cloneTaskEvidence(evidence) : undefined;
+   }
+   getTaskStatus(taskId: string): QueryTaskLifecycleStatus | undefined { return this.taskStatuses.get(taskId); }
+-  hasInternalEvidence(taskId: string): boolean { return (this.artifacts.get(taskId)?.size ?? 0) > 0; }
++  /** Only a result candidate creates delivery pressure; exploration remains internal. */
++  hasInternalEvidence(taskId: string): boolean {
++    return [...(this.artifacts.get(taskId)?.values() ?? [])].some((artifact) => artifact.kind === "result_candidate" && artifact.publishable === true);
++  }
+   hasPublication(taskId: string): boolean { return this.publicationRegistry.hasReceipt(taskId); }
+   publicationForArtifact(taskId: string, queryArtifactId: string): PublicationReceipt | undefined {
+     const receipt = this.publicationRegistry.receiptForArtifact(taskId, queryArtifactId);
+@@ -651,6 +807,13 @@
+     }
+   }
+ 
++  reviseSevenFacets(taskId: string, baseSpecVersion: string, revision: SevenFacetSpecRevision): AnswerSpec {
++    const next = this.specAuthority.reviseSevenFacets(taskId, baseSpecVersion, revision);
++    this.taskStatuses.set(taskId, "exploration");
++    this.persistState();
++    return next;
++  }
++
+   applyClarification(taskId: string, baseSpecVersion: string, clarification: string): AnswerSpec {
+     const next = this.specAuthority.applyClarification(taskId, baseSpecVersion, clarification);
+     this.taskStatuses.set(taskId, "exploration");
+@@ -669,6 +832,42 @@
+ 
+   async recordPreview(input: QueryPreviewRegistration, signal: AbortSignal): Promise<ValidatedQueryArtifact> {
+     throwIfAborted(signal);
++    const mode = normalizeQueryExecutionMode(input);
++    const taskSpec = input.task.specVersion
++      ? this.getAnswerSpec(input.task.taskId, input.task.specVersion) ?? input.task.answerSpec
++      : input.task.answerSpec;
++    const taskSpecVersion = input.task.specVersion ?? taskSpec?.specVersion;
++    let specRef = input.specRef;
++    let boundHypothesisRefs: readonly string[] | undefined;
++    if (mode === "exploration") {
++      if (input.specRef) throw new Error("EXPLORATION_SPEC_REF_FORBIDDEN");
++      if (input.hypothesisRefs?.length) throw new Error("EXPLORATION_HYPOTHESIS_REF_FORBIDDEN");
++    } else {
++      // Preserve the pre-mode low-level interface for existing product adapters;
++      // an explicitly selected result mode must always carry its own binding.
++      if (!input.mode && !specRef && taskSpec && taskSpecVersion) specRef = { specVersion: taskSpecVersion, specHash: getAnswerSpecHash(taskSpec) };
++      if (!validSpecRef(specRef)) throw new Error("RESULT_SPEC_BINDING_REQUIRED");
++      if (!taskSpec || !taskSpecVersion || specRef.specVersion !== taskSpecVersion) throw new Error("RESULT_SPEC_BINDING_STALE");
++      if (getAnswerSpecHash(taskSpec).toLowerCase() !== specRef.specHash.toLowerCase()) throw new Error("RESULT_SPEC_BINDING_STALE");
++      const hypotheses = new Map(taskSpec.hypotheses.map((hypothesis) => [hypothesis.id, hypothesis]));
++      for (const hypothesisId of input.hypothesisRefs ?? []) {
++        const hypothesis = hypotheses.get(hypothesisId);
++        if (!hypothesis) throw new Error("RESULT_HYPOTHESIS_REF_UNKNOWN");
++        if (hypothesis.status === "rejected") throw new Error("RESULT_HYPOTHESIS_REF_REJECTED");
++      }
++      const required = [...new Set((taskSpec.hypothesisBindings ?? []).flatMap((binding) => {
++        const hypothesis = hypotheses.get(binding.hypothesisId);
++        const supportsHypothesisFacet = binding.paths.some((path) => {
++          const facet = /^\/(entity|metric|filters|groupBy|time|ranking|output)(?:\/\d+)?$/.exec(path)?.[1] as keyof SevenFacetSpec | undefined;
++          return facet ? taskSpec.facetStatus?.[facet] === "hypothesis" : false;
++        });
++        return hypothesis?.status === "candidate" && supportsHypothesisFacet ? [binding.hypothesisId] : [];
++      }))];
++      const suppliedRefs = [...new Set(input.hypothesisRefs ?? [])];
++      const missingRefs = required.filter((hypothesisId) => !suppliedRefs.includes(hypothesisId));
++      if (missingRefs.length) throw new Error(`RESULT_HYPOTHESIS_REFS_REQUIRED:${missingRefs.join(",")}`);
++      boundHypothesisRefs = suppliedRefs.length ? suppliedRefs : undefined;
++    }
+     const normalizedSql = normalizeQuerySql(input.sql);
+     const createdAtMs = this.now();
+     const taskContext = this.taskEvidence.get(input.task.taskId);
+@@ -693,6 +892,7 @@
+     }
+     if (digest && input.cardinalityEvidence?.length) digest = { ...digest, cardinalityEvidence: input.cardinalityEvidence };
+     const queryArtifactId = randomUUID();
++    const kind: QueryArtifactKind = mode === "exploration" ? "exploration" : "result_candidate";
+     let artifact: ValidatedQueryArtifact = {
+       taskId: input.task.taskId,
+       queryArtifactId,
+@@ -701,15 +901,19 @@
+       previewMetadata: resultMetadata(input.result, this.reviewEvidence),
+       ...(digest ? { queryDigest: digest } : {}),
+       ...(schema ? { schemaEvidence: schema } : {}),
+-      ...(input.task.specVersion ? { specVersion: input.task.specVersion } : {}),
+-      ...(input.task.specStatus ? { specStatus: input.task.specStatus } : {}),
+-      ...(input.exploratory ? { exploratory: true } : {}),
++      kind,
++      publishable: kind === "result_candidate",
++      ...(kind === "result_candidate" && specRef ? { specVersion: specRef.specVersion, specHash: specRef.specHash, ...(boundHypothesisRefs?.length ? { hypothesisRefs: boundHypothesisRefs } : {}) } : {}),
++      ...(kind === "result_candidate" && input.task.specStatus ? { specStatus: input.task.specStatus } : {}),
++      ...(kind === "exploration" ? { exploratory: true } : {}),
+       ...((input.dataSnapshot ?? input.result.dataSnapshot) ? { dataSnapshot: input.dataSnapshot ?? input.result.dataSnapshot } : {}),
+       internalEvidence: true,
+       createdAt: new Date(createdAtMs).toISOString(),
+       expiresAt: new Date(createdAtMs + this.artifactTtlMs).toISOString(),
+     };
+-    const spec = this.getAnswerSpec(input.task.taskId, input.task.specVersion);
++    const spec = kind === "result_candidate" && specRef
++      ? this.getAnswerSpec(input.task.taskId, specRef.specVersion) ?? input.task.answerSpec
++      : undefined;
+     if (this.invariantProbes && spec) {
+       const preflightInstances = this.invariantProbes.ids().map((id) => this.invariantProbes!.createInstance(id, {
+         claimId: id,
+@@ -741,12 +945,14 @@
+     }
+     const storedArtifact = cloneTaskEvidence(artifact);
+     taskArtifacts.set(artifact.queryArtifactId, storedArtifact);
+-    this.taskStatuses.set(artifact.taskId, artifact.exploratory ? "exploration" : "candidate_review");
++    this.taskStatuses.set(artifact.taskId, artifact.kind === "exploration" ? "exploration" : "candidate_review");
+     this.auditStore?.append({
+       taskId: artifact.taskId,
+       queryArtifactId: artifact.queryArtifactId,
+       sqlHash: artifact.normalizedSqlHash,
+       ...(artifact.specVersion ? { specVersion: artifact.specVersion } : {}),
++      ...(artifact.specHash ? { specHash: artifact.specHash } : {}),
++      ...(artifact.kind ? { artifactKind: artifact.kind, publishable: artifact.publishable } : {}),
+       ...(artifact.queryDigest ? { queryDigestVersion: artifact.queryDigest.queryDigestVersion, parserVersion: artifact.queryDigest.parserVersion, parserEngine: artifact.queryDigest.parserEngine, dialect: artifact.queryDigest.dialect } : {}),
+       reviewCoverageSchemaVersion: this.reviewCoverageSchemaVersion,
+       hardConstraintAdmissionPolicy: this.hardConstraintAdmissionPolicy,
+@@ -772,7 +978,7 @@
+   }
+ 
+   latestArtifactId(taskId: string): string | undefined {
+-    const artifacts = [...(this.artifacts.get(taskId)?.values() ?? [])].filter((artifact) => artifact.exploratory !== true);
++    const artifacts = [...(this.artifacts.get(taskId)?.values() ?? [])].filter((artifact) => artifact.kind === "result_candidate" && artifact.publishable === true);
+     artifacts.sort((left, right) => left.createdAt.localeCompare(right.createdAt));
+     return artifacts.at(-1)?.queryArtifactId;
+   }
+@@ -791,14 +997,16 @@
+   async reviewForPublication(input: PublicationReviewRequest, signal: AbortSignal): Promise<ReviewOutcome> {
+     throwIfAborted(signal);
+     const startedAt = this.now();
+-    const candidate = input.candidate as Partial<ExportCandidate> & { normalizedSqlHash?: string; specVersion?: string; schemaEvidenceFingerprint?: string; dataSnapshot?: string };
++    const candidate = input.candidate as Partial<ExportCandidate> & { normalizedSqlHash?: string; specVersion?: string; specHash?: string; schemaEvidenceFingerprint?: string; dataSnapshot?: string };
+     const candidateArtifact = typeof candidate?.queryArtifactId === "string"
+       ? await this.getArtifact(input.task.taskId, candidate.queryArtifactId, signal)
+       : undefined;
++    if (candidateArtifact && (candidateArtifact.kind !== "result_candidate" || candidateArtifact.publishable !== true)) throw new Error("EXPLORATORY_ARTIFACT_NOT_PUBLISHABLE");
+     const hasCandidateBinding = Boolean(candidate && typeof candidate.candidateId === "string");
+     const expectedSchemaFingerprint = candidateArtifact?.queryDigest?.schemaEvidenceFingerprint ?? "unknown";
+     const expectedSpecVersion = candidateArtifact?.specVersion ?? input.task.specVersion ?? "1";
+     const storedSpec = this.getAnswerSpec(input.task.taskId, expectedSpecVersion);
++    const expectedSpecHash = candidateArtifact?.specHash ?? (storedSpec ? getAnswerSpecHash(storedSpec) : undefined);
+     const expectedReviewSchema = candidateArtifact?.schemaEvidence ?? (candidateArtifact?.queryDigest ? { connectionId: "unknown", dialect: candidateArtifact.queryDigest.dialect, tables: [] } : undefined);
+     const candidateMetadata = candidate?.metadata;
+     const suppliedReviewInput = input.reviewInput;
+@@ -813,42 +1021,167 @@
+         coverageRequirements: deriveReviewCoverageRequirements(suppliedReviewInput),
+       }
+       : suppliedReviewInput;
+-    const reviewInputBindingValid = !hasCandidateBinding || this.mode === "off" || (
+-      candidateArtifact !== undefined
+-      && reviewInput !== undefined
+-      && normalizeQuerySql(reviewInput.sql) === candidateArtifact.normalizedSql
+-      && reviewInput.digest.normalizedSqlHash === candidateArtifact.normalizedSqlHash
+-      && reviewInput.digest.schemaEvidenceFingerprint === expectedSchemaFingerprint
+-      && stable(reviewInput.digest) === stable(candidateArtifact.queryDigest)
+-      && reviewInput.question === (storedSpec?.question ?? reviewInput.question)
+-      && reviewInput.answerSpec.taskId === input.task.taskId
+-      && reviewInput.answerSpec.specVersion === expectedSpecVersion
+-      && storedSpec !== undefined
+-      && stable(reviewInput.answerSpec) === stable(storedSpec)
+-      && (!expectedReviewSchema || stable(reviewInput.schema) === stable(expectedReviewSchema))
+-      && candidateMetadata !== undefined
+-      && stable(reviewInput.resultMetadata) === stable(candidateMetadata)
+-      && reviewInput.resultMetadata.columns.length === candidateArtifact.previewMetadata.columns.length
+-      && reviewInput.resultMetadata.columns.every((column, index) => column === candidateArtifact.previewMetadata.columns[index])
+-      && (!candidateMetadata?.resultEvidence || reviewInput.resultMetadata.resultEvidence?.evidenceHash === candidateMetadata.resultEvidence.evidenceHash)
+-      && (!candidateMetadata?.resultEvidence || reviewInput.resultEvidence?.evidenceHash === candidateMetadata.resultEvidence.evidenceHash)
+-    );
+-    const candidateBindingValid = !hasCandidateBinding || (
+-      candidateArtifact !== undefined
+-      && candidate.taskId === input.task.taskId
+-      && candidate.queryArtifactId === candidateArtifact.queryArtifactId
+-      && candidateArtifact.specVersion === (input.task.specVersion ?? candidateArtifact.specVersion)
+-      && candidate.normalizedSqlHash === candidateArtifact.normalizedSqlHash
+-      && candidate.specVersion === expectedSpecVersion
+-      && candidate.schemaEvidenceFingerprint === expectedSchemaFingerprint
+-      && (!candidateArtifact.dataSnapshot || candidate.dataSnapshot === candidateArtifact.dataSnapshot)
+-      && typeof candidate.path === "string"
+-      && typeof candidate.contentSha256 === "string"
+-      && candidateMetadata !== undefined
+-      && candidateMetadata.columns.length === candidateArtifact.previewMetadata.columns.length
+-      && candidateMetadata.columns.every((column, index) => column === candidateArtifact.previewMetadata.columns[index])
+-      && reviewInputBindingValid
+-    );
++    const reviewInputBinding = !hasCandidateBinding || this.mode === "off"
++      ? { valid: true, failures: [] } satisfies BindingDiagnostic
++      : diagnoseBinding([
++        { code: "REVIEW_INPUT_ARTIFACT_MISSING", matches: candidateArtifact !== undefined },
++        { code: "REVIEW_INPUT_MISSING", matches: reviewInput !== undefined },
++        {
++          code: "REVIEW_INPUT_SQL_HASH_MISMATCH",
++          matches: reviewInput !== undefined && candidateArtifact !== undefined && normalizeQuerySql(reviewInput.sql) === candidateArtifact.normalizedSql,
++          ...(candidateArtifact ? { expected: candidateArtifact.normalizedSqlHash } : {}),
++          ...(reviewInput ? { actual: hash(normalizeQuerySql(reviewInput.sql)) } : {}),
++        },
++        {
++          code: "REVIEW_INPUT_DIGEST_SQL_HASH_MISMATCH",
++          matches: reviewInput?.digest.normalizedSqlHash === candidateArtifact?.normalizedSqlHash,
++          ...(candidateArtifact ? { expected: candidateArtifact.normalizedSqlHash } : {}),
++          ...(reviewInput ? { actual: diagnosticHash(reviewInput.digest.normalizedSqlHash) } : {}),
++        },
++        {
++          code: "REVIEW_INPUT_SCHEMA_FINGERPRINT_MISMATCH",
++          matches: reviewInput?.digest.schemaEvidenceFingerprint === expectedSchemaFingerprint,
++          expected: expectedSchemaFingerprint,
++          ...(reviewInput ? { actual: diagnosticHash(reviewInput.digest.schemaEvidenceFingerprint) } : {}),
++        },
++        {
++          code: "REVIEW_INPUT_DIGEST_MISMATCH",
++          matches: reviewInput !== undefined && stable(reviewInput.digest) === stable(candidateArtifact?.queryDigest),
++          ...(candidateArtifact ? { expected: bindingFingerprint(candidateArtifact.queryDigest) } : {}),
++          ...(reviewInput ? { actual: bindingFingerprint(reviewInput.digest) } : {}),
++        },
++        {
++          code: "REVIEW_INPUT_QUESTION_MISMATCH",
++          matches: reviewInput !== undefined && reviewInput.question === (storedSpec?.question ?? reviewInput.question),
++          ...(storedSpec ? { expected: bindingFingerprint(storedSpec.question) } : {}),
++          ...(reviewInput ? { actual: bindingFingerprint(reviewInput.question) } : {}),
++        },
++        {
++          code: "REVIEW_INPUT_TASK_MISMATCH",
++          matches: reviewInput?.answerSpec.taskId === input.task.taskId,
++          expected: bindingFingerprint(input.task.taskId),
++          ...(reviewInput ? { actual: bindingFingerprint(reviewInput.answerSpec.taskId) } : {}),
++        },
++        {
++          code: "REVIEW_INPUT_SPEC_VERSION_MISMATCH",
++          matches: reviewInput?.answerSpec.specVersion === expectedSpecVersion,
++          expected: expectedSpecVersion,
++          ...(reviewInput ? { actual: reviewInput.answerSpec.specVersion } : {}),
++        },
++        { code: "REVIEW_INPUT_STORED_SPEC_MISSING", matches: storedSpec !== undefined, expected: expectedSpecVersion },
++        {
++          code: "REVIEW_INPUT_SPEC_MISMATCH",
++          matches: reviewInput !== undefined && storedSpec !== undefined && stable(reviewInput.answerSpec) === stable(storedSpec),
++          ...(expectedSpecHash ? { expected: expectedSpecHash } : {}),
++          ...(reviewInput ? { actual: getAnswerSpecHash(reviewInput.answerSpec) } : {}),
++        },
++        {
++          code: "REVIEW_INPUT_SCHEMA_MISMATCH",
++          matches: !expectedReviewSchema || (reviewInput !== undefined && stable(reviewInput.schema) === stable(expectedReviewSchema)),
++          ...(expectedReviewSchema ? { expected: bindingFingerprint(expectedReviewSchema) } : {}),
++          ...(reviewInput ? { actual: bindingFingerprint(reviewInput.schema) } : {}),
++        },
++        { code: "REVIEW_INPUT_CANDIDATE_METADATA_MISSING", matches: candidateMetadata !== undefined },
++        {
++          code: "REVIEW_INPUT_METADATA_MISMATCH",
++          matches: reviewInput !== undefined && candidateMetadata !== undefined && stable(reviewInput.resultMetadata) === stable(candidateMetadata),
++          ...(candidateMetadata ? { expected: bindingFingerprint(candidateMetadata) } : {}),
++          ...(reviewInput ? { actual: bindingFingerprint(reviewInput.resultMetadata) } : {}),
++        },
++        {
++          code: "REVIEW_INPUT_COLUMN_COUNT_MISMATCH",
++          matches: reviewInput !== undefined && candidateArtifact !== undefined && reviewInput.resultMetadata.columns.length === candidateArtifact.previewMetadata.columns.length,
++          ...(candidateArtifact ? { expected: String(candidateArtifact.previewMetadata.columns.length) } : {}),
++          ...(reviewInput ? { actual: String(reviewInput.resultMetadata.columns.length) } : {}),
++        },
++        {
++          code: "REVIEW_INPUT_COLUMNS_MISMATCH",
++          matches: reviewInput !== undefined && candidateArtifact !== undefined && reviewInput.resultMetadata.columns.every((column, index) => column === candidateArtifact.previewMetadata.columns[index]),
++          ...(candidateArtifact ? { expected: bindingFingerprint(candidateArtifact.previewMetadata.columns) } : {}),
++          ...(reviewInput ? { actual: bindingFingerprint(reviewInput.resultMetadata.columns) } : {}),
++        },
++        {
++          code: "REVIEW_INPUT_METADATA_EVIDENCE_HASH_MISMATCH",
++          matches: !candidateMetadata?.resultEvidence || reviewInput?.resultMetadata.resultEvidence?.evidenceHash === candidateMetadata.resultEvidence.evidenceHash,
++          ...(candidateMetadata?.resultEvidence ? { expected: diagnosticHash(candidateMetadata.resultEvidence.evidenceHash) } : {}),
++          ...(reviewInput?.resultMetadata.resultEvidence ? { actual: diagnosticHash(reviewInput.resultMetadata.resultEvidence.evidenceHash) } : {}),
++        },
++        {
++          code: "REVIEW_INPUT_EVIDENCE_HASH_MISMATCH",
++          matches: !candidateMetadata?.resultEvidence || reviewInput?.resultEvidence?.evidenceHash === candidateMetadata.resultEvidence.evidenceHash,
++          ...(candidateMetadata?.resultEvidence ? { expected: diagnosticHash(candidateMetadata.resultEvidence.evidenceHash) } : {}),
++          ...(reviewInput?.resultEvidence ? { actual: diagnosticHash(reviewInput.resultEvidence.evidenceHash) } : {}),
++        },
++      ]);
++    const candidateBinding = !hasCandidateBinding
++      ? { valid: true, failures: [] } satisfies BindingDiagnostic
++      : diagnoseBinding([
++        { code: "CANDIDATE_ARTIFACT_MISSING", matches: candidateArtifact !== undefined },
++        {
++          code: "CANDIDATE_TASK_MISMATCH",
++          matches: candidate.taskId === input.task.taskId,
++          expected: bindingFingerprint(input.task.taskId),
++          ...(typeof candidate.taskId === "string" ? { actual: bindingFingerprint(candidate.taskId) } : {}),
++        },
++        {
++          code: "CANDIDATE_ARTIFACT_ID_MISMATCH",
++          matches: candidate.queryArtifactId === candidateArtifact?.queryArtifactId,
++          ...(candidateArtifact ? { expected: bindingFingerprint(candidateArtifact.queryArtifactId) } : {}),
++          ...(typeof candidate.queryArtifactId === "string" ? { actual: bindingFingerprint(candidate.queryArtifactId) } : {}),
++        },
++        {
++          code: "CANDIDATE_ARTIFACT_SPEC_VERSION_MISMATCH",
++          matches: candidateArtifact !== undefined && candidateArtifact.specVersion === (input.task.specVersion ?? candidateArtifact.specVersion),
++          ...(input.task.specVersion ? { expected: input.task.specVersion } : {}),
++          ...(candidateArtifact?.specVersion ? { actual: candidateArtifact.specVersion } : {}),
++        },
++        {
++          code: "CANDIDATE_SQL_HASH_MISMATCH",
++          matches: candidate.normalizedSqlHash === candidateArtifact?.normalizedSqlHash,
++          ...(candidateArtifact ? { expected: candidateArtifact.normalizedSqlHash } : {}),
++          ...(typeof candidate.normalizedSqlHash === "string" ? { actual: diagnosticHash(candidate.normalizedSqlHash) } : {}),
++        },
++        {
++          code: "CANDIDATE_SPEC_VERSION_MISMATCH",
++          matches: candidate.specVersion === expectedSpecVersion,
++          expected: expectedSpecVersion,
++          ...(typeof candidate.specVersion === "string" ? { actual: candidate.specVersion } : {}),
++        },
++        {
++          code: "CANDIDATE_SPEC_HASH_MISMATCH",
++          matches: candidate.specHash === undefined || candidate.specHash === expectedSpecHash,
++          ...(expectedSpecHash ? { expected: expectedSpecHash } : {}),
++          ...(typeof candidate.specHash === "string" ? { actual: diagnosticHash(candidate.specHash) } : {}),
++        },
++        {
++          code: "CANDIDATE_SCHEMA_FINGERPRINT_MISMATCH",
++          matches: candidate.schemaEvidenceFingerprint === expectedSchemaFingerprint,
++          expected: expectedSchemaFingerprint,
++          ...(typeof candidate.schemaEvidenceFingerprint === "string" ? { actual: diagnosticHash(candidate.schemaEvidenceFingerprint) } : {}),
++        },
++        {
++          code: "CANDIDATE_DATA_SNAPSHOT_MISMATCH",
++          matches: !candidateArtifact?.dataSnapshot || candidate.dataSnapshot === candidateArtifact.dataSnapshot,
++          ...(candidateArtifact?.dataSnapshot ? { expected: bindingFingerprint(candidateArtifact.dataSnapshot) } : {}),
++          ...(candidate.dataSnapshot ? { actual: bindingFingerprint(candidate.dataSnapshot) } : {}),
++        },
++        { code: "CANDIDATE_PATH_MISSING", matches: typeof candidate.path === "string" },
++        { code: "CANDIDATE_CONTENT_HASH_MISSING", matches: typeof candidate.contentSha256 === "string" },
++        { code: "CANDIDATE_METADATA_MISSING", matches: candidateMetadata !== undefined },
++        {
++          code: "CANDIDATE_COLUMN_COUNT_MISMATCH",
++          matches: candidateMetadata !== undefined && candidateArtifact !== undefined && candidateMetadata.columns.length === candidateArtifact.previewMetadata.columns.length,
++          ...(candidateArtifact ? { expected: String(candidateArtifact.previewMetadata.columns.length) } : {}),
++          ...(candidateMetadata ? { actual: String(candidateMetadata.columns.length) } : {}),
++        },
++        {
++          code: "CANDIDATE_COLUMNS_MISMATCH",
++          matches: candidateMetadata !== undefined && candidateArtifact !== undefined && candidateMetadata.columns.every((column, index) => column === candidateArtifact.previewMetadata.columns[index]),
++          ...(candidateArtifact ? { expected: bindingFingerprint(candidateArtifact.previewMetadata.columns) } : {}),
++          ...(candidateMetadata ? { actual: bindingFingerprint(candidateMetadata.columns) } : {}),
++        },
++        ...reviewInputBinding.failures.map((failure) => ({ ...failure, matches: false })),
++      ]);
+     const candidateFingerprint = candidateArtifact
+       ? (() => {
+         const digestFingerprint = candidateSemanticFingerprint(candidateArtifact.queryDigest);
+@@ -885,8 +1218,8 @@
+       evidence: { digestPath: "projections" },
+     }] : []);
+     let outcome: ReviewOutcome;
+-    if (hasCandidateBinding && !candidateBindingValid) {
+-      outcome = { availability: "unavailable", failure: { code: "REVIEW_CANDIDATE_BINDING_INVALID", message: "Candidate identity does not match the Validated Query Artifact", retryable: false } };
++    if (hasCandidateBinding && !candidateBinding.valid) {
++      outcome = { availability: "unavailable", failure: { code: "REVIEW_CANDIDATE_BINDING_INVALID", message: "Candidate identity does not match the Validated Query Artifact", retryable: false, bindingFailures: candidateBinding.failures } };
+     } else if (this.mode === "off") {
+       outcome = {
+         availability: "unavailable",
+@@ -955,7 +1288,7 @@
+         ? { ...outcome, decision: { ...outcome.decision, deterministicGates } }
+         : { ...outcome, failure: { ...outcome.failure, deterministicGates } };
+     }
+-    if (!candidateBindingValid) {
++    if (!candidateBinding.valid) {
+       this.recordReviewAudit(input, outcome, candidate, startedAt);
+       return outcome;
+     }
+@@ -981,6 +1314,7 @@
+         queryArtifactId: candidate.queryArtifactId,
+         normalizedSqlHash: candidate.normalizedSqlHash,
+         specVersion: candidate.specVersion,
++        ...(expectedSpecHash ? { specHash: expectedSpecHash } : {}),
+         schemaEvidenceFingerprint: candidate.schemaEvidenceFingerprint,
+         candidate: candidate as ExportCandidate,
+         outcome,
+@@ -1003,16 +1337,17 @@
+     return outcome;
+   }
+ 
+-  private recordReviewAudit(input: PublicationReviewRequest, outcome: ReviewOutcome, candidate: Partial<ExportCandidate> & { normalizedSqlHash?: string; specVersion?: string; schemaEvidenceFingerprint?: string; dataSnapshot?: string }, startedAt: number): void {
++  private recordReviewAudit(input: PublicationReviewRequest, outcome: ReviewOutcome, candidate: Partial<ExportCandidate> & { normalizedSqlHash?: string; specVersion?: string; specHash?: string; schemaEvidenceFingerprint?: string; dataSnapshot?: string }, startedAt: number): void {
+     if (!this.auditStore) return;
+     const decision = outcome.availability === "available" ? outcome.decision : undefined;
+     const semanticEvidence = this.taskEvidence.get(input.task.taskId)?.semanticEvidence;
+     this.auditStore.append({
+       taskId: input.task.taskId,
+       ...(typeof candidate.queryArtifactId === "string" ? { queryArtifactId: candidate.queryArtifactId } : {}),
+-      ...(typeof candidate.normalizedSqlHash === "string" ? { sqlHash: candidate.normalizedSqlHash } : {}),
++      ...(typeof candidate.normalizedSqlHash === "string" ? { sqlHash: diagnosticHash(candidate.normalizedSqlHash) } : {}),
+       ...(typeof candidate.specVersion === "string" ? { specVersion: candidate.specVersion } : {}),
+-      ...(typeof candidate.schemaEvidenceFingerprint === "string" ? { schemaEvidenceFingerprint: candidate.schemaEvidenceFingerprint } : {}),
++      ...(typeof candidate.specHash === "string" ? { specHash: diagnosticHash(candidate.specHash) } : {}),
++      ...(typeof candidate.schemaEvidenceFingerprint === "string" ? { schemaEvidenceFingerprint: diagnosticHash(candidate.schemaEvidenceFingerprint) } : {}),
+       ...(semanticEvidence?.length ? { semanticEvidenceFingerprint: hash(stable(semanticEvidence)) } : {}),
+       ...(input.reviewInput?.digest ? { queryDigestVersion: input.reviewInput.digest.queryDigestVersion, parserVersion: input.reviewInput.digest.parserVersion, parserEngine: input.reviewInput.digest.parserEngine, dialect: input.reviewInput.digest.dialect } : {}),
+       gatePolicyVersion: this.gatePolicyVersion,
+@@ -1048,11 +1383,16 @@
+   async publishCandidate(input: { reviewToken: ReviewToken; candidate: ExportCandidate; targetPath: string; authorization?: PublicationAuthorization; promote?: () => Promise<void>; metadata?: PublicationMetadata }, signal: AbortSignal): Promise<PublicationReceipt> {
+     throwIfAborted(signal);
+     const artifact = await this.getArtifact(input.reviewToken.taskId, input.reviewToken.queryArtifactId, signal);
+-    if (!artifact) throw new Error("REVIEW_UNAVAILABLE: QUERY_ARTIFACT_NOT_FOUND_OR_EXPIRED");
++    if (!artifact) throw missingArtifactIntegrityError(input.reviewToken.taskId, input.reviewToken.queryArtifactId, this.latestArtifactId(input.reviewToken.taskId));
++    if (artifact.kind !== "result_candidate" || artifact.publishable !== true) throw new Error("EXPLORATORY_ARTIFACT_NOT_PUBLISHABLE");
++    const currentSpec = this.getAnswerSpec(input.reviewToken.taskId);
++    if (!currentSpec || !artifact.specVersion || currentSpec.specVersion !== artifact.specVersion || !artifact.specHash || artifact.specHash !== getAnswerSpecHash(currentSpec)) throw new Error("RESULT_SPEC_BINDING_STALE");
++    const candidateBinding = input.candidate as ExportCandidate & { specVersion?: string; specHash?: string };
++    if (candidateBinding.specVersion !== artifact.specVersion || candidateBinding.specHash !== artifact.specHash) throw new Error("RESULT_SPEC_BINDING_STALE");
+     const promote = input.promote ? async (): Promise<void> => {
+       throwIfAborted(signal);
+       const currentArtifact = await this.getArtifact(input.reviewToken.taskId, input.reviewToken.queryArtifactId, signal);
+-      if (!currentArtifact) throw new Error("REVIEW_UNAVAILABLE: QUERY_ARTIFACT_NOT_FOUND_OR_EXPIRED");
++      if (!currentArtifact) throw missingArtifactIntegrityError(input.reviewToken.taskId, input.reviewToken.queryArtifactId, this.latestArtifactId(input.reviewToken.taskId));
+       await input.promote!();
+     } : undefined;
+     const receipt = await this.publicationRegistry.publish(input.reviewToken, input.candidate, input.targetPath, input.authorization, promote, input.metadata);
+@@ -1060,6 +1400,10 @@
+     if (this.auditStore) this.auditStore.append({
+       taskId: receipt.taskId,
+       queryArtifactId: receipt.queryArtifactId,
++      artifactKind: "result_candidate",
++      publishable: true,
++      ...(receipt.specVersion ? { specVersion: receipt.specVersion } : {}),
++      ...(receipt.specHash ? { specHash: receipt.specHash } : {}),
+       publicationStatus: receipt.status,
+       ...(this.taskEvidence.get(receipt.taskId)?.semanticEvidence?.length ? { semanticEvidenceFingerprint: hash(stable(this.taskEvidence.get(receipt.taskId)!.semanticEvidence)) } : {}),
+       reviewAvailability: receipt.reviewOutcome.availability === "unavailable" ? "unavailable" : "available",

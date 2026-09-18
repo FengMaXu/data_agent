@@ -1,0 +1,119 @@
+{
+  "spider2Repo": "C:/data-agent-eval/Spider2",
+  "runsRoot": "C:/data-agent-eval/runs",
+  "pythonExecutable": "C:/data-agent-eval/.venv/Scripts/python.exe",
+  "concurrency": 2,
+  "scoreWorkers": 4,
+  "assurance": {
+    "mode": "shadow",
+    "reviewerModel": "${DEFAULT_MODEL}",
+    "reviewerPromptVersion": "4",
+    "reviewPolicyVersion": "2",
+    "reviewCoverageSchemaVersion": "4",
+    "planner": true,
+    "shadowDelivery": "publish_with_disagreement",
+    "hooks": {
+      "informOnQuery": true,
+      "interpretationsOnAnomaly": true,
+      "integrityBlocks": true,
+      "terminateAfterExport": true
+    },
+    "detectors": {
+      "enabled": true,
+      "tierA": [
+        "join_fanout",
+        "unauthorized_filter",
+        "intermediate_candidate",
+        "empty_after_filter"
+      ],
+      "tierB": [
+        "count_distinct_divergence",
+        "entity_population_mismatch",
+        "cross_period_set_mismatch",
+        "physical_bound_violation",
+        "null_like_member_in_filter",
+        "shape_mismatch",
+        "fingerprint_unchanged"
+      ],
+      "disabled": []
+    },
+    "interpretations": {
+      "triggerTiers": [
+        "A"
+      ],
+      "maxCyclesPerTask": 1,
+      "minRemainingTurns": 6,
+      "minRemainingToolCalls": 10
+    },
+    "dirtyDataAction": "multi_candidate",
+    "delivery": "deliver_with_disclosure",
+    "profile": {
+      "schema": {
+        "enabled": true,
+        "cacheTtlHours": 24
+      },
+      "candidate": {
+        "enabled": true,
+        "p99SampleRows": 200000
+      }
+    },
+    "enumerator": {
+      "model": "${DEFAULT_MODEL}",
+      "trigger": "on_anomaly",
+      "cacheKey": [
+        "questionHash",
+        "slot",
+        "detector"
+      ]
+    },
+    "calibration": {
+      "eligible": false
+    },
+    "counterevidenceProbeBudget": 5
+  },
+  "llm": {
+    "provider": "openai",
+    "model": "${DEFAULT_MODEL}",
+    "apiKeyEnv": "OPENAI_API_KEY",
+    "baseUrlEnv": "OPENAI_BASE_URL",
+    "apiFormat": "chat"
+  },
+  "limits": {
+    "timeoutMs": 300000,
+    "maxTurns": 20,
+    "maxToolCalls": 50,
+    "maxExploratoryQueries": 6
+  },
+  "backends": {
+    "sqlite": {
+      "databaseDir": "C:/data-agent-eval/Spider2/spider2-lite/resource/databases"
+    },
+    "bigquery": {
+      "mcp": null
+    },
+    "snowflake": {
+      "mcp": null
+    }
+  },
+  "localDatabasePackSha256": "d97fc0f3f6bc3f1a83548ad2b32c646bfc67433c23a0c499d3450796196b2776",
+  "modelProfiles": {
+    "deepseek": {
+      "llm": {
+        "provider": "openai",
+        "model": "deepseek-chat",
+        "apiKeyEnv": "OPENAI_API_KEY",
+        "baseUrlEnv": "OPENAI_BASE_URL",
+        "apiFormat": "chat"
+      }
+    },
+    "gpt-5.5": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5.5",
+        "apiKeyEnv": "DEROUTER_API_KEY",
+        "baseUrlEnv": "DEROUTER_BASE_URL",
+        "apiFormat": "chat"
+      }
+    }
+  }
+}

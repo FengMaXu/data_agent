@@ -97,12 +97,13 @@ export function migrateV3SpecToV4(spec: DashboardV3Spec): SpecMigrationResult {
       continue;
     }
     if (!isMigratableViewType(view.type)) continue;
-    views.push({ id: viewId, type: view.type, title: view.title, query: queryFor(view), fieldMapping: fieldMappingFor(view) });
+    const migratedView = { id: viewId, type: view.type, ...(view.title ? { title: view.title } : {}), query: queryFor(view), fieldMapping: fieldMappingFor(view) };
+    views.push(migratedView);
     // View-level filters also become parameters (view binding kept in fieldMapping).
     const viewFilters = (view as { filters?: Record<string, unknown> }).filters;
     for (const [name, value] of Object.entries(viewFilters ?? {})) {
       parameters[name] = { type: typeof value === "number" ? "number" : "string", default: value };
-      views[views.length - 1].fieldMapping![`filter:${name}`] = String(value);
+      migratedView.fieldMapping[`filter:${name}`] = String(value);
     }
     viewResults.push({ viewId, status: "converted", reasons: [] });
   }
