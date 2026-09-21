@@ -7,6 +7,8 @@ import { composeKnowledgeCatalogPrompt, composeSubagentSystemPrompt, createDataA
 import type { BusinessContext } from "../answering/model.js";
 import { KnowledgeIndex } from "../knowledge.js";
 import type { CompareHypothesesInput, HypothesisChoiceAdvisor } from "../judgment/hypothesis-choice.js";
+import { facetNames, type SpecAlignmentAssessor } from "../judgment/spec-alignment.js";
+import type { SpecFeedbackAssessment } from "../answering/model.js";
 
 const profile: DataAgentModelProfile = { provider: "openai", model: "test-model", apiKey: "test" };
 const spec = { entity: "orders", metric: "count", filters: [], groupBy: [], time: { state: "not_applicable" }, ranking: { state: "not_applicable" }, output: { rowMode: "scalar", rowCount: 1 } };
@@ -35,9 +37,9 @@ describe("Session Runtime scoped query composition", () => {
   it("tells the main agent when to delegate and how to consume or reject child outcomes", () => {
     const prompt = composeSubagentSystemPrompt("BASE");
     expect(prompt).toContain("Delegate only when an independent bounded investigation");
-    expect(prompt).toContain("never add or remove prefixes");
-    expect(prompt).toContain("failed, timed_out, budget_exhausted, invalid_output, stale, or unavailable");
     expect(prompt).toContain("they never authorize result execution or publication");
+    expect(prompt).toContain("declared coverage is structurally complete");
+    expect(prompt).not.toContain("failed, timed_out, budget_exhausted");
   });
 
   it("registers Jev comparison only by explicit configuration and binds it to the current unresolved Choice", async () => {
@@ -88,8 +90,14 @@ describe("Session Runtime scoped query composition", () => {
       const tool = host.tools.find((item) => item.name === "compare_hypotheses");
       if (!tool) throw new Error("compare_hypotheses missing");
       const memo = new Map<string, unknown>();
-      await tool.execute("call-jev", { taskId: begun.taskId, revisionId: begun.revisionId, choiceId }, undefined, {
-        sessionId: "session-1", principalId: "user-1", requestMessageId: "current-message",
+      await tool.execute("call-jev", {
+        hypotheses: [
+          { id: "calendar", statement: "按十二个月计算" },
+          { id: "observed", statement: "按有记录月份计算" },
+        ],
+        evidence: [{ content: "无收入月份按零计算", sourceRef: "metric.md" }],
+      }, undefined, {
+        sessionId: "session-1", principalId: "user-1", requestMessageId,
       }, {
         invocationId: "invoke-jev", operationId: "operation-1", turnId: "turn-1",
         getMemo: async (key: string) => memo.get(key),
@@ -104,9 +112,81 @@ describe("Session Runtime scoped query composition", () => {
         hypotheses: [{ statement: "按十二个月计算" }, { statement: "按有记录月份计算" }],
         evidence: [
           { kind: "request_wording", content: "年度月均收入如何计算？" },
-          { kind: "reviewed_definition", sourceRef: "metric.md", content: "无收入月份按零计算" },
+          { content: "无收入月份按零计算", sourceRef: "metric.md" },
         ],
       });
+    } finally {
+      await host.close();
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("injects the post-commit Spec assessor with the exact Session request", async () => {
+    const root = await mkdtemp(path.join(process.cwd(), ".tmp-session-runtime-spec-feedback-"));
+    let observed: string | undefined;
+    const assessment: SpecFeedbackAssessment = {
+      model: "jev-test",
+      ruleVersion: "spec-alignment-v1",
+      facets: facetNames().map((facet) => ({
+        facet,
+        relation: { choice: "supported", probabilities: { supported: 1, contradicted: 0, not_established: 0, not_applicable: 0 }, confidence: 0.9 },
+        coverage: { choice: "complete", probabilities: { complete: 1, partial: 0, missing: 0, not_applicable: 0 }, confidence: 0.9 },
+      })),
+    };
+    const assessor: SpecAlignmentAssessor = {
+      assess: async (input) => { observed = input.originalQuestion; return assessment; },
+    };
+    const session = await new MemorySessionRepo().create({ id: "session-spec-feedback" }, TODO_CONTEXT);
+    const branch = await session.createBranch("main", null, TODO_CONTEXT);
+    const requestMessageId = await branch.appendMessage({ role: "user", content: "只统计已完成订单", timestamp: Date.now() }, TODO_CONTEXT);
+    const host = await createDataAgentSessionHost({
+      session,
+      sessionId: "session-spec-feedback",
+      principalId: "user-1",
+      workspace: new WorkspaceStore(path.join(root, "workspace")),
+      profile,
+      systemPrompt: "You are Data Agent.",
+      specAlignmentAssessor: assessor,
+    });
+    try {
+      const begun = await host.answering.begin({ requestMessageId, requestId: "begin-spec-feedback", spec }, business("begin-spec-feedback"));
+      expect(observed).toBe("只统计已完成订单");
+      expect(begun.specFeedback).toMatchObject({ status: "completed", assessment: { model: "jev-test" } });
+    } finally {
+      await host.close();
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("routes the executor Schema and dialect into the Answering fanout check", async () => {
+    const root = await mkdtemp(path.join(process.cwd(), ".tmp-session-runtime-fanout-"));
+    const calls: string[] = [];
+    const session = await new MemorySessionRepo().create({ id: "session-fanout" }, TODO_CONTEXT);
+    const host = await createDataAgentSessionHost({
+      session,
+      sessionId: "session-fanout",
+      principalId: "user-1",
+      workspace: new WorkspaceStore(path.join(root, "workspace")),
+      profile,
+      systemPrompt: "You are Data Agent.",
+      queryExecutor: {
+        dialect: "sqlite",
+        getSchema: async () => ({ dialect: "sqlite", tables: [
+          { name: "customers", columns: ["customer_id"], primaryKey: ["customer_id"] },
+          { name: "rental", columns: ["rental_id", "customer_id"], primaryKey: ["rental_id"] },
+        ] }),
+        run: async (sql, _limit, options) => {
+          calls.push(options?.kind ?? "unknown");
+          if (sql.includes("_data_agent_source_keys")) return { columns: ["source_rows", "source_non_null_keys", "source_distinct_keys", "joined_rows", "joined_non_null_keys", "joined_distinct_keys"], rows: [[1, 1, 1, 2, 2, 1]], truncated: false };
+          return { columns: ["n"], rows: [[2]], truncated: false };
+        },
+      },
+    });
+    try {
+      const begun = await host.answering.begin({ requestMessageId: "request-fanout", requestId: "begin-fanout", spec: { ...spec, entity: "customer", metric: "count", output: { rowMode: "scalar", rowCount: 1, columns: ["n"] } } }, business("begin-fanout"));
+      const result = await host.answering.execute({ kind: "result", taskId: begun.taskId, revisionId: begun.revisionId, sql: "SELECT COUNT(c.customer_id) AS n FROM customers c JOIN rental r ON r.customer_id = c.customer_id" }, business("result-fanout"));
+      expect(result.fanout).toMatchObject({ status: "finding" });
+      expect(calls).toEqual(["result", "exploration"]);
     } finally {
       await host.close();
       await rm(root, { recursive: true, force: true });

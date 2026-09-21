@@ -7,6 +7,7 @@ import type { WorkspaceStore } from "../workspace.js";
 import type { TranscriptMessage } from "../facets/transcript.js";
 import type { AuthorizedArtifact } from "../facets/artifact-directory.js";
 import type { HypothesisChoiceAdvisor } from "../judgment/hypothesis-choice.js";
+import type { SpecAlignmentAssessor } from "../judgment/spec-alignment.js";
 
 export interface HostRequestContext {
   readonly userId: string;
@@ -36,6 +37,7 @@ export interface DataAgentSessionApplicationOptions {
   readonly queryExecutor?: SessionQueryExecutor | (() => SessionQueryExecutor | Promise<SessionQueryExecutor>);
   readonly resultRoot?: string;
   readonly hypothesisChoiceAdvisor?: HypothesisChoiceAdvisor;
+  readonly specAlignmentAssessor?: SpecAlignmentAssessor;
   readonly profile?: DataAgentModelProfile;
   readonly resolveProfile?: (context: HostRequestContext) => DataAgentModelProfile | Promise<DataAgentModelProfile>;
   readonly systemPrompt?: string;
@@ -206,6 +208,7 @@ export class DataAgentSessionApplication {
       ...(queryExecutor ? { queryExecutor } : {}),
       ...(this.options.resultRoot ? { resultRoot: (await import("node:path")).join(this.options.resultRoot, context.sessionId) } : {}),
       ...(this.options.hypothesisChoiceAdvisor ? { hypothesisChoiceAdvisor: this.options.hypothesisChoiceAdvisor } : {}),
+      ...(this.options.specAlignmentAssessor ? { specAlignmentAssessor: this.options.specAlignmentAssessor } : {}),
       ...(this.options.systemPrompt ? { systemPrompt: this.options.systemPrompt } : {}),
       ...(this.options.systemPromptRoots ? { systemPromptRoots: this.options.systemPromptRoots } : {}),
       ...(this.options.projectRoot ? { projectRoot: this.options.projectRoot } : {}),

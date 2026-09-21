@@ -4,6 +4,7 @@ import { createModels } from "@earendil-works/pi-ai";
 import { fauxAssistantMessage, fauxProvider, fauxToolCall } from "@earendil-works/pi-ai/providers/faux";
 import { HarnessChildExecutor } from "./child-harness.js";
 import { MemoryChildSessionRepository } from "./child-session-repo.js";
+import { defineDataAgentTool } from "../tools/tool-definition.js";
 
 function setup(options: Parameters<typeof fauxProvider>[0] = {}) {
   const faux = fauxProvider({ provider: `child-test-${Math.random()}`, models: [{ id: "child-model" }], ...options });
@@ -21,7 +22,7 @@ const request = (overrides: Record<string, unknown> = {}) => ({
   role: "reviewer" as const,
   prompt: "Review only TARGET_MARKER.",
   systemPrompt: "Return JSON.",
-  tools: [],
+  toolDefinitions: [],
   timeoutMs: 1_000,
   ...overrides,
 });
@@ -47,6 +48,7 @@ describe("HarnessChildExecutor", () => {
     expect(accepted).toHaveLength(1);
     expect(providerContext).toContain("TARGET_MARKER");
     expect(providerContext).not.toContain("PARENT_HISTORY_SECRET");
+    expect(providerContext).not.toContain("## 当前可用工具");
     await executor.close();
   });
 
@@ -179,6 +181,7 @@ describe("HarnessChildExecutor", () => {
   it("executes at most eight child tools even when one response requests more", async () => {
     const { faux, executor } = setup();
     let calls = 0;
+    let providerPrompt = "";
     const probe = {
       name: "probe",
       label: "probe",
@@ -187,9 +190,13 @@ describe("HarnessChildExecutor", () => {
       parameters: Type.Object({}, { additionalProperties: false }),
       async execute() { calls += 1; return { content: [{ type: "text" as const, text: "ok" }] }; },
     };
-    faux.setResponses([fauxAssistantMessage(Array.from({ length: 9 }, (_, index) => fauxToolCall("probe", {}, { id: `probe-${index}` })), { stopReason: "toolUse" })]);
-    await executor.execute(request({ tools: [probe] }));
+    faux.setResponses([async (context) => {
+      providerPrompt = context.systemPrompt ?? "";
+      return fauxAssistantMessage(Array.from({ length: 9 }, (_, index) => fauxToolCall("probe", {}, { id: `probe-${index}` })), { stopReason: "toolUse" });
+    }]);
+    await executor.execute(request({ toolDefinitions: [defineDataAgentTool(probe, { promptSnippet: "执行有界测试探针。", promptGuidelines: [] })] }));
     expect(calls).toBe(8);
+    expect(providerPrompt).toContain("`probe`：执行有界测试探针。");
     await executor.close();
   });
 

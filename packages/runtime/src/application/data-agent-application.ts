@@ -15,6 +15,7 @@ import {
 } from "./host.js";
 import type { ApplicationAuthService, ApplicationCommandHost, ApplicationEventFilter } from "./protocol-host.js";
 import { JevHypothesisChoiceAdvisor } from "../adapters/jev-hypothesis-choice-advisor.js";
+import { JevSpecAlignmentAssessor } from "../adapters/jev-spec-alignment-assessor.js";
 
 export interface DataAgentApplicationOptions {
   readonly dataRoot: string;
@@ -39,6 +40,13 @@ export interface DataAgentApplicationOptions {
   readonly delegationKnowledgePaths?: readonly string[];
   /** Opt-in Jev advisor; the key stays in the trusted host composition path. */
   readonly jevHypothesisComparison?: {
+    readonly apiKey: string;
+    readonly model?: string;
+    readonly endpoint?: string;
+    readonly timeoutMs?: number;
+  };
+  /** Explicit opt-in; this does not follow jevHypothesisComparison implicitly. */
+  readonly jevSpecAlignment?: {
     readonly apiKey: string;
     readonly model?: string;
     readonly endpoint?: string;
@@ -104,6 +112,9 @@ export class DataAgentApplication implements ApplicationCommandHost {
     const hypothesisChoiceAdvisor = options.jevHypothesisComparison
       ? new JevHypothesisChoiceAdvisor(options.jevHypothesisComparison)
       : undefined;
+    const specAlignmentAssessor = options.jevSpecAlignment
+      ? new JevSpecAlignmentAssessor(options.jevSpecAlignment)
+      : undefined;
     const sessions = new DataAgentSessionApplication({
       sessionRoot: path.join(dataRoot, "sessions"),
       workspace,
@@ -117,6 +128,7 @@ export class DataAgentApplication implements ApplicationCommandHost {
       },
       resultRoot: path.join(dataRoot, "results"),
       ...(hypothesisChoiceAdvisor ? { hypothesisChoiceAdvisor } : {}),
+      ...(specAlignmentAssessor ? { specAlignmentAssessor } : {}),
       resolveProfile: (context) => options.resolveProfile(context, application),
       ...(options.systemPrompt ? { systemPrompt: options.systemPrompt } : {}),
       ...(options.systemPromptRoots ? { systemPromptRoots: options.systemPromptRoots } : {}),

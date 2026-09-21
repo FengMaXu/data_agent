@@ -489,6 +489,64 @@ async function waitForApplicationOperation(adapter, operationId, maxWaitMs = Inf
   }
 }
 
+function fanoutMetrics(calls) {
+  const reports = calls.flatMap((call) => {
+    const details = call.result?.details;
+    const report = details && typeof details === "object" && details.fanout && typeof details.fanout === "object" ? details.fanout : undefined;
+    return report ? [report] : [];
+  });
+  const unique = [];
+  const seen = new Set();
+  for (const report of reports) {
+    const key = JSON.stringify(report);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(report);
+  }
+  const targets = unique.flatMap((report) => Array.isArray(report.targets) ? report.targets : []);
+  const findings = targets.filter((target) => target?.status === "finding");
+  const unknown = targets.filter((target) => target?.status === "unknown");
+  const byStatus = Object.fromEntries(["clear", "finding", "not_applicable", "unknown"].map((status) => [status, unique.filter((report) => report.status === status).length]));
+  return {
+    reports: unique,
+    reportCount: unique.length,
+    targetCount: targets.length,
+    findingCount: findings.length,
+    unknownCount: unknown.length,
+    byStatus,
+    enabled: unique.length > 0,
+  };
+}
+
+function specFeedbackMetrics(calls) {
+  const reports = calls.flatMap((call) => {
+    const details = call.result?.details;
+    const report = details && typeof details === "object" && details.specFeedback && typeof details.specFeedback === "object" ? details.specFeedback : undefined;
+    return report ? [report] : [];
+  });
+  const unique = [];
+  const seen = new Set();
+  for (const report of reports) {
+    const key = `${report.taskId ?? ""}:${report.revisionId ?? ""}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(report);
+  }
+  const byStatus = Object.fromEntries(["pending", "completed", "unavailable", "disabled"].map((status) => [status, unique.filter((report) => report.status === status).length]));
+  const deterministicIssueCount = unique.reduce((sum, report) => sum + (Array.isArray(report.deterministicIssues) ? report.deterministicIssues.length : 0), 0);
+  const concernCount = unique.reduce((sum, report) => sum + (Array.isArray(report.assessment?.facets)
+    ? report.assessment.facets.filter((facet) => facet.relation?.choice === "contradicted" || facet.relation?.choice === "not_established" || facet.coverage?.choice === "partial" || facet.coverage?.choice === "missing").length
+    : 0), 0);
+  return {
+    reports: unique,
+    reportCount: unique.length,
+    byStatus,
+    deterministicIssueCount,
+    concernCount,
+    enabled: unique.some((report) => report.status !== "disabled"),
+  };
+}
+
 function knowledgeMetrics(calls, startedAt) {
   const knowledgeCalls = calls.filter((call) => call.toolName === "search_knowledge" || call.toolName === "read_knowledge");
   const contentRefs = knowledgeCalls.flatMap((call) => {
@@ -532,6 +590,20 @@ async function createCaseRunner(config, runDir, _hookSwitches, _detectorPolicy, 
       const backend = await backendExecutor(instance, config, createMcpQueryExecutor);
       executor = backend.executor;
       const sessionId = path.basename(runDir) + "-" + instance.instance_id;
+      const hypothesisChoiceAdvisor = process.env.TYPESAFE_API_KEY?.trim() && protocol.JevHypothesisChoiceAdvisor
+        ? new protocol.JevHypothesisChoiceAdvisor({
+            apiKey: process.env.TYPESAFE_API_KEY.trim(),
+            model: process.env.TYPESAFE_MODEL?.trim() || "jev-1.13.0",
+            ...(process.env.TYPESAFE_ENDPOINT?.trim() ? { endpoint: process.env.TYPESAFE_ENDPOINT.trim() } : {}),
+          })
+        : undefined;
+      const specAlignmentAssessor = process.env.TYPESAFE_SPEC_ALIGNMENT === "1" && process.env.TYPESAFE_API_KEY?.trim() && protocol.JevSpecAlignmentAssessor
+        ? new protocol.JevSpecAlignmentAssessor({
+            apiKey: process.env.TYPESAFE_API_KEY.trim(),
+            model: process.env.TYPESAFE_MODEL?.trim() || "jev-1.13.0",
+            ...(process.env.TYPESAFE_ENDPOINT?.trim() ? { endpoint: process.env.TYPESAFE_ENDPOINT.trim() } : {}),
+          })
+        : undefined;
       application = new protocol.DataAgentSessionApplication({
         sessionRoot: path.join(runDir, "transcripts", instance.instance_id),
         workspace: prepared.workspace,
@@ -541,6 +613,8 @@ async function createCaseRunner(config, runDir, _hookSwitches, _detectorPolicy, 
         queryExecutor: executor,
         resultRoot: path.join(caseRoot, "results"),
         profile,
+        ...(hypothesisChoiceAdvisor ? { hypothesisChoiceAdvisor } : {}),
+        ...(specAlignmentAssessor ? { specAlignmentAssessor } : {}),
         systemPrompt,
         systemPromptRoots: [prepared.knowledgeRoot, projectRoot],
         projectRoot,
@@ -608,6 +682,8 @@ async function createCaseRunner(config, runDir, _hookSwitches, _detectorPolicy, 
       status = "provider_error";
     }
     const recordedKnowledgeMetrics = knowledgeMetrics(recorder?.calls ?? [], startedAt);
+    const recordedFanoutMetrics = fanoutMetrics(recorder?.calls ?? []);
+    const recordedSpecFeedbackMetrics = specFeedbackMetrics(recorder?.calls ?? []);
     const result = {
       instanceId: instance.instance_id,
       db: instance.db,
@@ -623,17 +699,19 @@ async function createCaseRunner(config, runDir, _hookSwitches, _detectorPolicy, 
       csvGenerated: Boolean(artifacts.finalCsv),
       csvError: artifacts.csvError ?? null,
       error: error ?? null,
-      assuranceMode: "off",
-      assuranceManifest: { mode: "off", policyVersion: "answering-publication-v1", reviewerOnline: false, detectorsOnline: false },
+      assuranceMode: "answering-fanout",
+      assuranceManifest: { mode: "answering-fanout", policyVersion: "answering-publication-v1", reviewerOnline: false, detectorsOnline: recordedFanoutMetrics.enabled, fanoutRuleVersion: "answering-fanout-v1", specFeedbackOnline: recordedSpecFeedbackMetrics.enabled, specFeedbackRuleVersion: "spec-feedback-v1" },
       publicationStatus: publicationStatusFor(recorder, status),
       assuranceAuditRecords: [],
       hookEvents: observerEvents,
-      anomalies: [],
-      anomalyMetrics: { total: 0, byDetector: {}, distinctFingerprintsBySlot: {}, interpretationHookCount: 0, unresolvedHypothesisHookCount: 0, unresolvedHypothesisIds: [], interpretationBudgetSkipCount: 0, detectorTiers: { tierA: [], tierB: [], disabled: [], enabled: false } },
+      anomalies: recordedFanoutMetrics.findingCount > 0 ? recordedFanoutMetrics.reports.flatMap((report) => (report.targets ?? []).filter((target) => target.status === "finding").map((target) => ({ detector: "join_fanout", status: "observed", targetId: target.targetId, sourceRelation: target.sourceRelation, sourceKey: target.sourceKey, observation: target.observation }))) : [],
+      fanoutMetrics: recordedFanoutMetrics,
+      specFeedbackMetrics: recordedSpecFeedbackMetrics,
+      anomalyMetrics: { total: recordedFanoutMetrics.findingCount, byDetector: recordedFanoutMetrics.findingCount > 0 ? { join_fanout: recordedFanoutMetrics.findingCount } : {}, distinctFingerprintsBySlot: {}, interpretationHookCount: 0, unresolvedHypothesisHookCount: 0, unresolvedHypothesisIds: [], interpretationBudgetSkipCount: 0, detectorTiers: { tierA: ["join_fanout"], tierB: [], disabled: [], enabled: recordedFanoutMetrics.enabled } },
     };
     await Promise.all([
       writeFile(path.join(caseRoot, "result.json"), JSON.stringify(result, null, 2), "utf8"),
-      writeFile(path.join(caseRoot, "trace.json"), JSON.stringify({ events: recorder?.events ?? [], toolCalls: recorder?.calls ?? [], knowledgeMetrics: recordedKnowledgeMetrics, assuranceAuditRecords: [], hookEvents: observerEvents, anomalies: [] }, null, 2), "utf8"),
+      writeFile(path.join(caseRoot, "trace.json"), JSON.stringify({ events: recorder?.events ?? [], toolCalls: recorder?.calls ?? [], knowledgeMetrics: recordedKnowledgeMetrics, fanoutMetrics: recordedFanoutMetrics, specFeedbackMetrics: recordedSpecFeedbackMetrics, assuranceAuditRecords: [], hookEvents: observerEvents, anomalies: result.anomalies }, null, 2), "utf8"),
     ]);
     return result;
   };
@@ -760,7 +838,8 @@ async function runCommand(config, options) {
       interface: ["begin", "revise", "execute", "publish", "inspect"],
       policyVersion: "answering-publication-v1",
       reviewerOnline: false,
-      detectorsOnline: false,
+      detectorsOnline: true,
+      fanoutRuleVersion: "answering-fanout-v1",
     },
     // Legacy assurance switches remain manifest-only experiment metadata; they
     // do not grant online publication authority in the Application Host.

@@ -5,7 +5,7 @@ import { Value } from "typebox/value";
 import { describe, expect, it } from "vitest";
 import { KnowledgeIndex, MAX_KNOWLEDGE_DOCUMENT_LINES } from "../knowledge.js";
 import { WorkspaceStore } from "../workspace.js";
-import { createCoreAgentTools } from "./core.js";
+import { createCoreAgentToolDefinitions } from "./core.js";
 
 describe("model-facing knowledge tools", () => {
   it("returns bounded search content and uses knowledge/section handles instead of line ranges", async () => {
@@ -15,7 +15,7 @@ describe("model-facing knowledge tools", () => {
       await writeFile(path.join(root, "doc", "schema.md"), "# Players\n\nsecret marker\nfield", "utf8");
       const knowledge = new KnowledgeIndex();
       await knowledge.loadDirectory(root);
-      const tools = createCoreAgentTools({ workspace: new WorkspaceStore(root), knowledge, knowledgeRoot: root });
+      const tools = createCoreAgentToolDefinitions({ workspace: new WorkspaceStore(root), knowledge, knowledgeRoot: root }).map((definition) => definition.tool);
       const search = tools.find((tool) => tool.name === "search_knowledge")!;
       const read = tools.find((tool) => tool.name === "read_knowledge")!;
 
@@ -44,7 +44,7 @@ describe("model-facing knowledge tools", () => {
       await writeFile(path.join(root, "large.md"), lines.join("\n"), "utf8");
       const knowledge = new KnowledgeIndex();
       await knowledge.loadDirectory(root);
-      const tools = createCoreAgentTools({ workspace: new WorkspaceStore(root), knowledge, knowledgeRoot: root });
+      const tools = createCoreAgentToolDefinitions({ workspace: new WorkspaceStore(root), knowledge, knowledgeRoot: root }).map((definition) => definition.tool);
       const search = tools.find((tool) => tool.name === "search_knowledge")!;
       const read = tools.find((tool) => tool.name === "read_knowledge")!;
 
@@ -78,7 +78,7 @@ describe("model-facing knowledge tools", () => {
       await writeFile(path.join(root, "long.md"), `# Long\n${"x".repeat(20 * 1024)}`, "utf8");
       const knowledge = new KnowledgeIndex();
       await knowledge.loadDirectory(root);
-      const read = createCoreAgentTools({ workspace: new WorkspaceStore(root), knowledge, knowledgeRoot: root }).find((tool) => tool.name === "read_knowledge")!;
+      const read = createCoreAgentToolDefinitions({ workspace: new WorkspaceStore(root), knowledge, knowledgeRoot: root }).map((definition) => definition.tool).find((tool) => tool.name === "read_knowledge")!;
       const sectionId = knowledge.getDocument("legacy-long").sections[0]!.sectionId;
       const first = await read.execute("first", { knowledgeId: "legacy-long", sectionId } as never, undefined, undefined, undefined as never, {} as never);
       const token = (first.details as { continuationToken: string }).continuationToken;
@@ -100,7 +100,7 @@ describe("model-facing knowledge tools", () => {
       await writeFile(path.join(root, "doc", "many-sections.md"), Array.from({ length: MAX_KNOWLEDGE_DOCUMENT_LINES }, (_, index) => `# Section ${index + 1}`).join("\n"), "utf8");
       const knowledge = new KnowledgeIndex();
       await knowledge.loadDirectory(root);
-      const tools = createCoreAgentTools({ workspace: new WorkspaceStore(root), knowledge, knowledgeRoot: root });
+      const tools = createCoreAgentToolDefinitions({ workspace: new WorkspaceStore(root), knowledge, knowledgeRoot: root }).map((definition) => definition.tool);
       const read = tools.find((tool) => tool.name === "read_knowledge")!;
 
       const short = await read.execute("short", { knowledgeId: "legacy-doc-short" } as never, undefined, undefined, undefined as never, {} as never);

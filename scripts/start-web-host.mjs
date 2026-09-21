@@ -69,6 +69,13 @@ application = await createDataAgentApplication({
       ...(process.env.TYPESAFE_ENDPOINT?.trim() ? { endpoint: process.env.TYPESAFE_ENDPOINT.trim() } : {}),
     },
   } : {}),
+  ...(process.env.TYPESAFE_SPEC_ALIGNMENT === "1" && process.env.TYPESAFE_API_KEY?.trim() ? {
+    jevSpecAlignment: {
+      apiKey: process.env.TYPESAFE_API_KEY.trim(),
+      model: process.env.TYPESAFE_MODEL?.trim() || "jev-1.13.0",
+      ...(process.env.TYPESAFE_ENDPOINT?.trim() ? { endpoint: process.env.TYPESAFE_ENDPOINT.trim() } : {}),
+    },
+  } : {}),
   // Enable bounded reviewer and authorized knowledge exploration. SQL exploration
   // remains unavailable until the host supplies a database-enforced scoped executor.
   enableSubagents: true,

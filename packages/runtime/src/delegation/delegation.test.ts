@@ -29,7 +29,7 @@ function resolver(state: { current?: boolean } = {}): DelegationTaskResolver {
         targetRef: `query-task:${item.taskId}@${item.revisionId}`,
         prompt: item.task,
         systemPrompt: item.role,
-        tools: [],
+        toolDefinitions: [],
         allowedEvidenceRefs: new Set([`revision:${item.revisionId}`]),
         checkTarget: async () => state.current === false ? { state: "stale", reasons: ["revision changed"] } : { state: "current", reasons: [] },
       };
@@ -229,7 +229,7 @@ describe("NativeDelegation", () => {
           targetRef: `query-task:${item.taskId}@${item.revisionId}`,
           prompt: item.task,
           systemPrompt: item.role,
-          tools: [],
+          toolDefinitions: [],
           allowedEvidenceRefs: new Set(["revision:r1"]),
           checkTarget: async () => ({ state: "current" as const, reasons: [] }),
         };
@@ -253,7 +253,7 @@ describe("NativeDelegation", () => {
           targetRef: `query-task:${item.taskId}@${item.revisionId}`,
           prompt: item.task,
           systemPrompt: item.role,
-          tools: [],
+          toolDefinitions: [],
           allowedEvidenceRefs: new Set([`revision:${item.revisionId}`]),
           checkTarget: async () => {
             reachedCheck();
@@ -302,7 +302,7 @@ describe("NativeDelegation", () => {
     const slowResolver: DelegationTaskResolver = {
       async resolve() {
         await new Promise((resolve) => setTimeout(resolve, 100));
-        return { targetRef: "target", prompt: "slow", systemPrompt: "slow", tools: [], allowedEvidenceRefs: new Set(["revision:r1"]), checkTarget: async () => ({ state: "current" as const, reasons: [] }) };
+        return { targetRef: "target", prompt: "slow", systemPrompt: "slow", toolDefinitions: [], allowedEvidenceRefs: new Set(["revision:r1"]), checkTarget: async () => ({ state: "current" as const, reasons: [] }) };
       },
     };
     const delegation = new NativeDelegation({ executor: new FakeExecutor(), resolver: slowResolver, ledger: new InMemoryDelegationLedger(), timeoutMs: 10_000 });

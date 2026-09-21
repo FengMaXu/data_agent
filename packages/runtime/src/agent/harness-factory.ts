@@ -8,6 +8,7 @@ import type {
 import { InMemoryCredentialStore, type Model, type Models } from "@earendil-works/pi-ai";
 import { builtinModels } from "@earendil-works/pi-ai/providers/all";
 import type { Answering, AnsweringStore, QueryExecutionScope, ResultStore } from "../answering/public.js";
+import type { FanoutDialect, FanoutSchema } from "../answering/fanout-check.js";
 import type { DataAgentToolContext } from "../tools/answering.js";
 import { PiTranscriptFacet, type PresentationAgentEvent, type TranscriptSnapshot } from "../facets/transcript.js";
 import type { ArtifactDirectory } from "../facets/artifact-directory.js";
@@ -15,6 +16,9 @@ import type { ClarificationDialogs } from "../facets/clarification-dialogs.js";
 import type { QueryTaskProjection } from "../facets/query-task-projection.js";
 import { createPiAgentController } from "../facets/agent-controller.js";
 import { unwrapApplicationSession, type SessionInput } from "../session-store.js";
+import { ToolPromptCatalog } from "./tool-prompt-catalog.js";
+import { withToolPromptCatalog } from "./tool-prompt-models.js";
+import type { DataAgentToolDefinition } from "../tools/tool-definition.js";
 
 /** The only Pi/provider configuration owned by the Session Runtime. */
 export interface DataAgentResources {
@@ -38,6 +42,8 @@ export interface ScopedExplorationExecutor {
 }
 
 export interface SessionQueryExecutor {
+  readonly dialect?: FanoutDialect;
+  readonly getSchema?: (signal?: AbortSignal) => Promise<FanoutSchema>;
   run(sql: string, rowLimit: number, options?: QueryExecutionOptions): Promise<{ columns: string[]; rows: unknown[][]; truncated: boolean; columnTypes?: string[]; dataSnapshot?: string }>;
   /** Omitted means delegated SQL exploration is unavailable, by design. */
   readonly scopedExploration?: ScopedExplorationExecutor;
@@ -82,7 +88,8 @@ export interface DataAgentSessionHostOptions {
   readonly session: SessionInput;
   readonly sessionId: string;
   readonly toolContext: DataAgentToolContext;
-  readonly tools: readonly AgentHarnessTool<DataAgentToolContext>[];
+  /** Executable definitions and their trusted prompt metadata. */
+  readonly toolDefinitions: readonly DataAgentToolDefinition<DataAgentToolContext>[];
   readonly answering: Answering;
   readonly answeringStore: AnsweringStore;
   readonly resultStore: ResultStore;
@@ -214,9 +221,11 @@ export async function createPiSessionHost(options: DataAgentSessionHostOptions):
   let requestMessageId = options.toolContext.requestMessageId;
   const nativeSession = unwrapApplicationSession(options.session);
   const skills = [...(options.skills ?? [])];
-  const grantedToolNames = new Set(options.tools.map((tool) => tool.name));
+  const definitions = [...options.toolDefinitions];
+  const sourceTools = definitions.map((definition) => definition.tool);
+  const grantedToolNames = new Set(sourceTools.map((tool) => tool.name));
   let activeLane: AgentLane | undefined;
-  const tools = options.tools.map((tool): AgentHarnessTool<DataAgentToolContext> => {
+  const tools = sourceTools.map((tool): AgentHarnessTool<DataAgentToolContext> => {
     const parameters = tool.parameters && typeof tool.parameters === "object" && !("type" in tool.parameters)
       ? { type: "object", ...tool.parameters }
       : tool.parameters;
@@ -239,12 +248,18 @@ export async function createPiSessionHost(options: DataAgentSessionHostOptions):
       },
     };
   });
+  const effectiveDefinitions = definitions.map((definition, index) => ({
+    ...definition,
+    tool: tools[index]!,
+  }));
+  const models = withToolPromptCatalog(piRuntime.models, new ToolPromptCatalog(effectiveDefinitions));
   const created = await AgentHarness.create({
     session: nativeSession,
-    models: piRuntime.models,
+    models,
     model: piRuntime.model,
     thinkingLevel: options.profile.thinkingLevel ?? "off",
     tools,
+    activeToolNames: [...grantedToolNames],
     resources: { skills },
     toolContext: () => ({ ...options.toolContext, ...(requestMessageId ? { requestMessageId } : {}) }),
     systemPrompt: options.systemPrompt,

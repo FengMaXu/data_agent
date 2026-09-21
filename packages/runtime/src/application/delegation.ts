@@ -1,7 +1,7 @@
 import path from "node:path";
 import { Type } from "typebox";
 import { Value } from "typebox/value";
-import { withAbortSignal, type AgentHarnessTool, type AgentToolResult, type JsonValue, type Session } from "@earendil-works/pi-agent-core";
+import { withAbortSignal, type AgentToolResult, type JsonValue, type Session } from "@earendil-works/pi-agent-core";
 import type { Answering, BusinessContext, QueryExecutionScope } from "../answering/public.js";
 import type { Evidence } from "../answering/model.js";
 import { DEFAULT_KNOWLEDGE_RESULTS, formatKnowledgeSearchResults, MAX_KNOWLEDGE_RESULTS, renderKnowledgeCatalog, type KnowledgeIndex } from "../knowledge.js";
@@ -13,6 +13,7 @@ import type {
   TrustedDelegationContext,
 } from "../delegation/index.js";
 import { processExplorationConcurrency } from "../delegation/concurrency.js";
+import { defineDataAgentTool, type DataAgentToolDefinition } from "../tools/tool-definition.js";
 
 const explorationParameters = Type.Object({
   sql: Type.String({ minLength: 1, maxLength: 32 * 1024 }),
@@ -192,14 +193,14 @@ export function createQueryTaskDelegationResolver(options: QueryTaskDelegationRe
       const serialized = JSON.stringify(material);
       if (Buffer.byteLength(serialized, "utf8") > 32 * 1024) throw new Error("SUBAGENT_MATERIAL_TOO_LARGE");
 
-      const tools: AgentHarnessTool<ChildToolContext>[] = [];
+      const toolDefinitions: DataAgentToolDefinition<ChildToolContext>[] = [];
       const knowledge = options.knowledge;
       const knowledgeRoot = options.knowledgeRoot;
       const allowedKnowledgePaths = new Set((options.knowledgePaths ?? []).map((item) => normalizeKnowledgePath(item)));
       const knowledgeChecks = new Map<string, () => Promise<boolean>>();
       if (task.role === "explorer") {
         const explorationScope = options.explorationScope;
-        if (explorationScope) tools.push({
+        if (explorationScope) toolDefinitions.push(defineDataAgentTool({
           name: "explore_parent_task",
           label: "explore_parent_task",
           description: "Execute one bounded read-only exploration query against the already-authorized parent Query Task.",
@@ -232,9 +233,12 @@ export function createQueryTaskDelegationResolver(options: QueryTaskDelegationRe
             allowedEvidenceRefs.add(evidenceRef);
             return text(json({ evidenceRef, preview: execution.preview }), { evidenceRef });
           },
-        });
+        }, {
+          promptSnippet: "在父 Query Task 授权范围内执行一次有界只读探索。",
+          promptGuidelines: ["只能产生探索 Evidence；遵守父任务预算，不执行结果查询、写入或发布。"],
+        }));
         if (knowledge && knowledgeRoot && allowedKnowledgePaths.size > 0) {
-          tools.push({
+          toolDefinitions.push(defineDataAgentTool({
             name: "search_knowledge",
             label: "search_knowledge",
             description: "Search authorized knowledge sources and return bounded relevant content with source, section, location, score, and content reference.",
@@ -261,8 +265,11 @@ export function createQueryTaskDelegationResolver(options: QueryTaskDelegationRe
               }
               return text(json(formatted), formatted);
             },
-          });
-          tools.push({
+          }, {
+            promptSnippet: "检索已授权知识来源中的相关章节和有界正文。",
+            promptGuidelines: ["只访问授权路径；先搜索并按需读取，搜索结果足够时不要重复请求相同内容。"],
+          }));
+          toolDefinitions.push(defineDataAgentTool({
             name: "read_knowledge",
             label: "read_knowledge",
             description: "Read a short knowledge document or one named section. Large documents require a sectionId; do not calculate line ranges.",
@@ -285,9 +292,12 @@ export function createQueryTaskDelegationResolver(options: QueryTaskDelegationRe
               }
               return text(json(read), read);
             },
-          });
+          }, {
+            promptSnippet: "读取已授权的短知识文档或指定章节。",
+            promptGuidelines: ["遵守 500 行边界和 sectionId/continuationToken 读取规则；不要自行计算行号分页。"],
+          }));
         }
-        if (tools.length === 0) throw new Error("SUBAGENT_EXPLORATION_CAPABILITY_UNAVAILABLE");
+        if (toolDefinitions.length === 0) throw new Error("SUBAGENT_EXPLORATION_CAPABILITY_UNAVAILABLE");
       }
 
       return {
@@ -296,7 +306,7 @@ export function createQueryTaskDelegationResolver(options: QueryTaskDelegationRe
           ? renderKnowledgeCatalog(options.knowledge.catalog((relativePath) => allowedKnowledgePaths.has(normalizeKnowledgePath(relativePath))))
           : ""),
         prompt: `Perform the assigned ${task.role} task.\nUNTRUSTED_DATA\n${serialized}\nEND_UNTRUSTED_DATA`,
-        tools,
+        toolDefinitions,
         allowedEvidenceRefs,
         async checkTarget(checkSignal) {
           try {

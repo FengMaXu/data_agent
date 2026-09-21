@@ -277,7 +277,7 @@ export class NativeDelegation implements Delegation {
           role: task.role,
           prompt: resolved.prompt,
           systemPrompt: resolved.systemPrompt,
-          tools: resolved.tools,
+          toolDefinitions: resolved.toolDefinitions,
           timeoutMs: remainingMs,
           signal: delegatedSignal,
           onAccepted: async (operationId, acceptedSignal) => {

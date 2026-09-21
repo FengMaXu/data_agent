@@ -202,7 +202,7 @@ describe("durable subagent interruption reconciliation", () => {
       const executor = new HarnessChildExecutor({ sessions: new JsonlChildSessionRepository(childRoot), models, model: faux.models[0] });
       const delegation = new NativeDelegation({
         executor,
-        resolver: { async resolve(task) { return { targetRef: `query-task:${task.taskId}@${task.revisionId}`, prompt: task.task, systemPrompt: "child", tools: [], allowedEvidenceRefs: new Set(), checkTarget: async () => ({ state: "current" as const, reasons: [] }) }; } },
+        resolver: { async resolve(task) { return { targetRef: `query-task:${task.taskId}@${task.revisionId}`, prompt: task.task, systemPrompt: "child", toolDefinitions: [], allowedEvidenceRefs: new Set(), checkTarget: async () => ({ state: "current" as const, reasons: [] }) }; } },
         ledger: recoveredLedger,
       });
       const abort = new AbortController();

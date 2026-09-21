@@ -10,6 +10,8 @@ import {
 import type { Model, Models } from "@earendil-works/pi-ai";
 import { AssistantMessageEventStream } from "@earendil-works/pi-ai/utils/event-stream";
 import type { ChildExecutionRequest, ChildExecutor, ChildRecovery, ChildUsage, DelegationLedgerRecord, RawChildExecution } from "./index.js";
+import { ToolPromptCatalog } from "../agent/tool-prompt-catalog.js";
+import { withToolPromptCatalog } from "../agent/tool-prompt-models.js";
 
 const MAX_MODEL_REQUESTS = 6;
 const MAX_TOOL_CALLS = 8;
@@ -271,13 +273,15 @@ export class HarnessChildExecutor implements ChildExecutor {
         outcome = { status: timedOut ? "timed_out" : this.closing ? "interrupted" : "cancelled", terminalConfirmed: true, usage: nullUsage() };
         return outcome;
       }
+      const tools = request.toolDefinitions.map((definition) => definition.tool);
+      const models = withToolPromptCatalog(boundedModels(this.options.models), new ToolPromptCatalog(request.toolDefinitions));
       const created = await AgentHarness.create({
         session,
-        models: boundedModels(this.options.models),
+        models,
         model: this.options.model,
         thinkingLevel: "low",
-        tools: [...request.tools],
-        activeToolNames: request.tools.map((tool) => tool.name),
+        tools,
+        activeToolNames: tools.map((tool) => tool.name),
         toolContext: { childSessionId: request.childSessionId, runId: request.runId, role: request.role },
         systemPrompt: request.systemPrompt,
         toolExecution: "sequential",

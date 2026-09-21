@@ -8,6 +8,7 @@ import type {
   Context,
 } from "@earendil-works/pi-agent-core";
 import { AnsweringError } from "../answering/public.js";
+import { renderSpecFeedback } from "../answering/spec-feedback.js";
 import type {
   Answering,
   AnswerSpecProposal,
@@ -25,8 +26,8 @@ import { isFacetName, isHypothesisKind, isEvidenceKind } from "../answering/publ
 import type {
   HypothesisChoiceAdvisor,
   HypothesisChoiceEvidence,
-  HypothesisChoiceOption,
 } from "../judgment/hypothesis-choice.js";
+import { defineDataAgentTool, type DataAgentToolDefinition } from "./tool-definition.js";
 
 /**
  * The only application state carried into a model tool invocation. Query task
@@ -217,10 +218,14 @@ export const ANSWERING_INSPECT_PARAMETERS = Type.Object({
 }, { additionalProperties: false });
 
 export const HYPOTHESIS_COMPARISON_PARAMETERS = Type.Object({
-  taskId: Type.String({ minLength: 1 }),
-  revisionId: Type.String({ minLength: 1 }),
-  choiceId: Type.String({ minLength: 1 }),
-  evidenceRefs: Type.Optional(Type.Array(Type.String({ minLength: 1 }), { minItems: 1, maxItems: 32 })),
+  hypotheses: Type.Array(Type.Object({
+    id: Type.String({ minLength: 1 }),
+    statement: Type.String({ minLength: 1 }),
+  }, { additionalProperties: false }), { minItems: 2, maxItems: 32 }),
+  evidence: Type.Optional(Type.Array(Type.Object({
+    content: Type.String({ minLength: 1 }),
+    sourceRef: Type.Optional(Type.String({ minLength: 1 })),
+  }, { additionalProperties: false }), { maxItems: 32 })),
 }, { additionalProperties: false });
 
 type UpdateAnswerInput = Static<typeof UPDATE_ANSWER_PARAMETERS>;
@@ -316,12 +321,24 @@ function proposalChoices(value: readonly Static<typeof choiceSchema>[] | undefin
   });
 }
 
+function fanoutText(view: Awaited<ReturnType<Answering["execute"]>>): string {
+  const report = view.fanout;
+  if (!report || report.status === "not_applicable") return "";
+  const findings = report.targets.filter((target) => target.status === "finding").map((target) => {
+    const observation = target.observation;
+    return `${target.sourceRelation}.${target.sourceKey} joined=${observation?.joinedNonNullKeys ?? "?"} distinct=${observation?.joinedDistinctKeys ?? "?"}`;
+  });
+  const reason = report.unsupportedReasons?.length ? ` reasons=${report.unsupportedReasons.join(",")}` : "";
+  return `[FANOUT_CHECK] status=${report.status}${reason}\n${findings.length ? `Observed source-key duplication: ${findings.join("; ")}. This is a bounded metric-copy observation, not a business-semantic verdict.` : "No source-key duplication was observed within the supported probe coverage."}`;
+}
+
 function queryText(view: Awaited<ReturnType<Answering["execute"]>>): string {
   const artifact = view.artifact.kind === "exploration"
     ? `[EXPLORATION_EVIDENCE] evidenceId=${view.artifact.evidenceId}\nReference this evidenceId from proposedEvidenceIds or selectionEvidenceIds; do not resubmit the observation body.`
     : `[RESULT_CANDIDATE] candidateId=${view.artifact.candidateId} revisionId=${view.artifact.revisionId}`;
   const preview = `${view.preview.columns.join(" | ")}\n${view.preview.rows.map((row) => row.map((cell) => cell === null || cell === undefined ? "NULL" : String(cell)).join(" | ")).join("\n")}${view.preview.truncated ? "\n(truncated preview)" : ""}`;
-  return `${artifact}\n${preview}`;
+  const fanout = fanoutText(view);
+  return `${artifact}${fanout ? `\n${fanout}` : ""}\n${preview}`;
 }
 
 function updateTool(answering: Answering): AgentHarnessTool<DataAgentToolContext> {
@@ -353,7 +370,8 @@ function updateTool(answering: Answering): AgentHarnessTool<DataAgentToolContext
           ...(evidence ? { evidence } : {}),
         };
         const view = await answering.begin(begin, business);
-        return result(`[ANSWER_SPEC_STARTED] taskId=${view.taskId} revisionId=${view.revisionId}\n${json(view)}`, view);
+        const feedback = renderSpecFeedback(view.specFeedback);
+        return result(`[ANSWER_SPEC_STARTED] taskId=${view.taskId} revisionId=${view.revisionId}${feedback ? `\n${feedback}` : ""}\n${json(view)}`, view);
       }
       const hypotheses = proposalHypotheses(value.hypotheses);
       const choices = proposalChoices(value.choices);
@@ -368,7 +386,8 @@ function updateTool(answering: Answering): AgentHarnessTool<DataAgentToolContext
         ...(evidence ? { evidence } : {}),
       };
       const view = await answering.revise(revise, business);
-      return result(`[ANSWER_SPEC_REVISED] taskId=${view.taskId} revisionId=${view.revisionId}\n${json(view)}`, view);
+      const feedback = renderSpecFeedback(view.specFeedback);
+      return result(`[ANSWER_SPEC_REVISED] taskId=${view.taskId} revisionId=${view.revisionId}${feedback ? `\n${feedback}` : ""}\n${json(view)}`, view);
     },
   };
 }
@@ -404,43 +423,34 @@ export interface PublishedContentReader {
   resolve(publicationId: string, context: BusinessContext): Promise<{ readonly content: string }>;
 }
 
-export interface HypothesisComparisonContext {
-  readonly originalQuestion: string;
-  readonly hypotheses: readonly HypothesisChoiceOption[];
-  readonly evidence: readonly HypothesisChoiceEvidence[];
-  readonly omittedEvidenceRefs: readonly string[];
-}
-
-export interface HypothesisComparisonContextReader {
-  read(input: HypothesisComparisonInput, context: BusinessContext): Promise<HypothesisComparisonContext>;
-}
-
 export interface HypothesisComparisonToolOptions {
   readonly advisor: HypothesisChoiceAdvisor;
-  readonly contextReader: HypothesisComparisonContextReader;
+  readonly getOriginalQuestion: (requestMessageId?: string) => Promise<string>;
 }
 
 function hypothesisComparisonTool(options: HypothesisComparisonToolOptions): AgentHarnessTool<DataAgentToolContext> {
   return {
     name: "compare_hypotheses",
     label: "compare_hypotheses",
-    description: "Ask the configured Jev advisor to compare one unresolved Choice's competing hypotheses against the trusted original request and registered evidence. The result is advisory only: it never revises the Answer Spec or authorizes publication.",
+    description: "Ask the configured Jev advisor to compare competing hypotheses against the original user request and optional evidence. Pass the hypotheses you want compared and any supporting evidence as text. The result is advisory only: it never revises the Answer Spec or authorizes publication.",
     replay: "safe",
     parameters: HYPOTHESIS_COMPARISON_PARAMETERS,
     async execute(toolCallId, input, _onUpdate, toolContext, invocation, context) {
       void toolCallId;
       const value = checked(HYPOTHESIS_COMPARISON_PARAMETERS, input) as HypothesisComparisonInput;
-      const business = trustedContext(toolContext, invocation, context);
-      const comparison = await options.contextReader.read(value, business);
-      const evidence: HypothesisChoiceEvidence[] = [{
-        id: `request:${value.taskId}`,
-        kind: "request_wording",
-        authority: "request_wording",
-        authorityRank: 3,
-        sourceRef: `request:${value.taskId}`,
-        content: comparison.originalQuestion,
-      }, ...comparison.evidence];
-      const signature = json({ value, originalQuestion: comparison.originalQuestion, hypotheses: comparison.hypotheses, evidence });
+      const originalQuestion = await options.getOriginalQuestion(toolContext?.requestMessageId);
+      const evidence: HypothesisChoiceEvidence[] = [
+        { id: "request", kind: "request_wording", authority: "request_wording", authorityRank: 3, sourceRef: "user_request", content: originalQuestion },
+        ...(value.evidence ?? []).map((item, index) => ({
+          id: `inline_${index}`,
+          kind: "observation" as const,
+          authority: "observation" as const,
+          authorityRank: 5,
+          sourceRef: item.sourceRef ?? `inline_${index}`,
+          content: item.content.slice(0, 8_000),
+        })),
+      ];
+      const signature = json({ hypotheses: value.hypotheses, evidence });
       const memo = fromMemoJson(await invocation.getMemo("answering.hypothesis-comparison"));
       if (memo && typeof memo === "object" && !Array.isArray(memo)) {
         const record = memo as Record<string, unknown>;
@@ -449,10 +459,9 @@ function hypothesisComparisonTool(options: HypothesisComparisonToolOptions): Age
           return result(`[HYPOTHESIS_COMPARISON_ADVISORY]\n${json(record.assessment)}\nThis recommendation is not evidence and may only inform a disclosed provisional choice unless the underlying evidence independently qualifies.`, record.assessment);
         }
       }
-      const assessment = await options.advisor.compare({ originalQuestion: comparison.originalQuestion, hypotheses: comparison.hypotheses, evidence }, { ...(context.abortSignal ? { signal: context.abortSignal } : {}) });
-      const details = { ...assessment, omittedEvidenceRefs: comparison.omittedEvidenceRefs };
-      await invocation.setMemo("answering.hypothesis-comparison", memoJson({ signature, assessment: details }));
-      return result(`[HYPOTHESIS_COMPARISON_ADVISORY]\n${json(details)}\nThis recommendation is not evidence and may only inform a disclosed provisional choice unless the underlying evidence independently qualifies.`, details);
+      const assessment = await options.advisor.compare({ originalQuestion, hypotheses: value.hypotheses, evidence }, { ...(context.abortSignal ? { signal: context.abortSignal } : {}) });
+      await invocation.setMemo("answering.hypothesis-comparison", memoJson({ signature, assessment }));
+      return result(`[HYPOTHESIS_COMPARISON_ADVISORY]\n${json(assessment)}\nThis recommendation is not evidence and may only inform a disclosed provisional choice unless the underlying evidence independently qualifies.`, assessment);
     },
   };
 }
@@ -476,7 +485,8 @@ function publishTool(answering: Answering, contentReader: PublishedContentReader
         ? (await contentReader.resolve(view.receiptId, business)).content
         : undefined;
       const link = `[download](${view.publicRef})`;
-      return result(`[PUBLISHED] ${view.format} ${link}${inline ? `\n${inline}` : ""}`, view);
+      const disclosure = view.disclosure ? `\n[DISCLOSURE] ${view.disclosure.summary}` : "";
+      return result(`[PUBLISHED] ${view.format} ${link}${disclosure}${inline ? `\n${inline}` : ""}`, view);
     },
   };
 }
@@ -502,17 +512,35 @@ function inspectTool(answering: Answering): AgentHarnessTool<DataAgentToolContex
  * Static model-tool registry for Answering. Inline and CSV delivery names
  * share one publish implementation and one authorization policy.
  */
-export function createAnsweringAgentTools(
+export function createAnsweringAgentToolDefinitions(
   answering: Answering,
   contentReader?: PublishedContentReader,
   hypothesisComparison?: HypothesisComparisonToolOptions,
-): readonly AgentHarnessTool<DataAgentToolContext>[] {
+): readonly DataAgentToolDefinition<DataAgentToolContext>[] {
   return [
-    updateTool(answering),
-    queryTool(answering),
-    ...(hypothesisComparison ? [hypothesisComparisonTool(hypothesisComparison)] : []),
-    publishTool(answering, contentReader, "publish_query_result"),
-    publishTool(answering, contentReader, "export_query"),
-    inspectTool(answering),
+    defineDataAgentTool(updateTool(answering), {
+      promptSnippet: "开始或修订唯一的七槽位 Answer Spec。",
+      promptGuidelines: ["提交完整 Proposal 和当前不透明句柄；SpecFeedback 只提供核对信息，不能替代业务证据或静默改变口径。"],
+    }),
+    defineDataAgentTool(queryTool(answering), {
+      promptSnippet: "执行有界探索或当前版本的一次结果查询。",
+      promptGuidelines: ["探索产物不可发布；结果查询必须绑定当前 Ready Revision，遇到实现障碍先按分类修复或回到取证，不要盲目重跑未知结果。"],
+    }),
+    ...(hypothesisComparison ? [defineDataAgentTool(hypothesisComparisonTool(hypothesisComparison), {
+      promptSnippet: "比较互斥假说并请求 Jev 提供建议。",
+      promptGuidelines: ["提交全部竞争假说及相关依据；建议不是 Evidence 或 Resolution，不能单独解除未决总体选择。"],
+    })] : []),
+    defineDataAgentTool(publishTool(answering, contentReader, "publish_query_result"), {
+      promptSnippet: "发布当前不可变 Candidate 的小结果。",
+      promptGuidelines: ["只使用当前 Candidate；行数不超过 10 时使用 inline，不重跑 SQL，Publication Receipt 才授权读取。"],
+    }),
+    defineDataAgentTool(publishTool(answering, contentReader, "export_query"), {
+      promptSnippet: "导出当前不可变 Candidate 的完整 CSV。",
+      promptGuidelines: ["只使用当前 Candidate；完整结果超过 10 行时使用 csv，不从 Preview 拼接或重跑 SQL。"],
+    }),
+    defineDataAgentTool(inspectTool(answering), {
+      promptSnippet: "读取 Query Task 的只读投影。",
+      promptGuidelines: ["投影不是第二份可写状态；修改定义只能使用 Answering 修订流程。"],
+    }),
   ];
 }

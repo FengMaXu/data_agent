@@ -115,6 +115,7 @@ export function createMcpQueryExecutor(options: McpQueryExecutorOptions) {
     run: (sql: string, rowLimit: number, execution: McpQueryExecutionOptions) => run(sql, rowLimit, { ...execution, kind: "exploration", scope: options.scopedExploration }),
   } : undefined;
   return {
+    dialect: options.dialect ?? "mysql",
     run,
     ...(scopedExploration ? { scopedExploration } : {}),
     async getSchema(): Promise<McpSchemaEvidence> {

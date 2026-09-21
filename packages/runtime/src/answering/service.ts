@@ -22,6 +22,7 @@ import {
   type ChoiceResolution,
   type Evidence,
   type Facet,
+  type Finding,
   type FacetName,
   type FilterSpec,
   type GroupingSpec,
@@ -38,11 +39,14 @@ import {
   type QueryExecutionScope,
   type QueryAttemptRecord,
   type QueryAttemptKind,
+  type QueryAttemptPurpose,
   type QueryBudgetPolicy,
+  type FanoutReport,
   type QueryBudgetState,
   type ResultCandidateRecord,
   type ReviseAnswer,
   type RevisionId,
+  type SpecFeedback,
   type TaskId,
   type ExecuteQuery,
   type UntrustedEvidenceInput,
@@ -59,6 +63,27 @@ import {
 } from "./qualification.js";
 import { InMemoryResultStore, type PrivateResultObject, type ResultStore } from "./result-store.js";
 import { candidateCheckFailure, evaluateCandidateCheckReport } from "./candidate-checks.js";
+import {
+  checkFanout,
+  hasPotentialFanout,
+  type FanoutDialect,
+  type FanoutProbeRequest,
+  type FanoutProbeResult,
+  type FanoutSchema,
+} from "./fanout-check.js";
+import type { SpecAlignmentAssessor } from "../judgment/spec-alignment.js";
+import {
+  assembleSpecFeedbackInput,
+  completedSpecFeedback,
+  initialSpecFeedback,
+  SPEC_FEEDBACK_CHECK_ID,
+  SPEC_FEEDBACK_DEFAULT_TIMEOUT_MS,
+  SPEC_FEEDBACK_MAX_INPUT_BYTES,
+  specFeedbackCoverage,
+  specFeedbackDisclosureSummary,
+  unavailableSpecFeedback,
+  type SpecFeedbackAssembly,
+} from "./spec-feedback.js";
 
 export interface SqlQueryResult {
   readonly columns: readonly string[];
@@ -85,6 +110,8 @@ export class SqlExecutionError extends Error {
 }
 
 export interface AnsweringSqlExecutor {
+  readonly dialect?: FanoutDialect;
+  readonly getSchema?: (signal?: AbortSignal) => Promise<FanoutSchema>;
   run(sql: string, rowLimit: number, options: {
     readonly kind: "exploration" | "result";
     readonly idempotencyKey: string;
@@ -94,6 +121,26 @@ export interface AnsweringSqlExecutor {
     readonly scope?: QueryExecutionScope;
   }): Promise<SqlQueryResult>;
 }
+
+export interface FanoutAnsweringOptions {
+  readonly enabled?: boolean;
+  readonly dialect?: FanoutDialect;
+  readonly schema?: FanoutSchema;
+  readonly maxTargets?: number;
+  readonly maxInputRows?: number;
+}
+
+export interface SpecFeedbackOptions {
+  readonly assessor: SpecAlignmentAssessor;
+  readonly getOriginalQuestion: (requestMessageId: string, options?: { readonly signal?: AbortSignal }) => Promise<string | undefined>;
+  readonly timeoutMs?: number;
+  readonly maxInputBytes?: number;
+}
+
+type ResolvedSpecFeedbackOptions = Omit<SpecFeedbackOptions, "timeoutMs" | "maxInputBytes"> & {
+  readonly timeoutMs: number;
+  readonly maxInputBytes: number;
+};
 
 export interface Answering {
   begin(input: BeginAnswer, context: BusinessContext): Promise<AnswerRevisionView>;
@@ -201,11 +248,13 @@ function makeAttempt(
   sqlExecuted: boolean,
   obstacleKind?: ImplementationObstacleKind,
   queryHash?: string,
+  purpose?: QueryAttemptPurpose,
 ): QueryAttemptRecord {
   return {
     attemptId: makeInternalId("attempt"),
     taskId,
     kind,
+    ...(purpose ? { purpose } : {}),
     revisionId,
     invocationId,
     ...(queryHash ? { queryHash } : {}),
@@ -263,12 +312,13 @@ function reserveAttempt(
   revisionId: RevisionId,
   invocationId: string,
   queryHash?: string,
+  purpose?: QueryAttemptPurpose,
 ): { readonly task: QueryTaskRecord; readonly attempt?: QueryAttemptRecord; readonly obstacle?: ImplementationObstacle } {
   const at = Date.now();
   const budget = taskBudget(task, policy);
   const reason = budgetFailure(budget, kind, at);
   if (reason) {
-    const blocked = makeAttempt(task.taskId, kind, revisionId, invocationId, now(), "blocked", "not_started", false, "budget_exhausted", queryHash);
+    const blocked = makeAttempt(task.taskId, kind, revisionId, invocationId, now(), "blocked", "not_started", false, "budget_exhausted", queryHash, purpose);
     tx.putAttempt(blocked);
     const current = { ...task, budget, updatedAt: blocked.updatedAt };
     tx.putTask(current);
@@ -288,7 +338,7 @@ function reserveAttempt(
     : kind === "exploration"
       ? { ...budget, explorationAttempts: budget.explorationAttempts + 1 }
       : { ...budget, resultAttempts: budget.resultAttempts + 1 };
-  const started = makeAttempt(task.taskId, kind, revisionId, invocationId, now(), "started", "not_started", false, undefined, queryHash);
+  const started = makeAttempt(task.taskId, kind, revisionId, invocationId, now(), "started", "not_started", false, undefined, queryHash, purpose);
   const current = { ...task, budget: nextBudget, updatedAt: started.updatedAt };
   tx.putTask(current);
   tx.putAttempt(started);
@@ -547,6 +597,7 @@ function viewFromRevision(taskId: TaskId, revision: AnswerRevisionRecord): Answe
     unresolvedFacets: unresolvedFacets(revision.spec),
     unresolvedHypotheses: unresolvedHypotheses(revision.hypotheses, revision.resolutions),
     unresolvedChoices: unresolvedChoices(revision.choices, revision.choiceResolutions),
+    ...(revision.specFeedback ? { specFeedback: clone(revision.specFeedback) } : {}),
   };
 }
 
@@ -591,6 +642,50 @@ function resultExecutionMemo(value: unknown): ResultExecutionMemo | undefined {
   return { state: "started", taskId: record.taskId, revisionId: record.revisionId, queryHash: record.queryHash };
 }
 
+interface FanoutExecutionMemo {
+  readonly state: "started" | "settled";
+  readonly taskId: string;
+  readonly revisionId: string;
+  readonly queryHash: string;
+  readonly report?: FanoutReport;
+}
+
+function fanoutExecutionMemo(value: unknown): FanoutExecutionMemo | undefined {
+  const record = asRecord(value);
+  if (!record || (record.state !== "started" && record.state !== "settled") || typeof record.taskId !== "string" || typeof record.revisionId !== "string" || typeof record.queryHash !== "string") return undefined;
+  const report = record.report as FanoutReport | undefined;
+  if (record.state === "settled" && (!report || typeof report !== "object")) return undefined;
+  return { state: record.state, taskId: record.taskId, revisionId: record.revisionId, queryHash: record.queryHash, ...(report ? { report } : {}) };
+}
+
+function unknownFanoutReport(reason: string): FanoutReport {
+  return { ruleVersion: "answering-fanout-v1", status: "unknown", snapshotScope: "unbound", targets: [], unsupportedReasons: [reason] };
+}
+
+function fanoutCoverage(report: FanoutReport): CheckCoverage {
+  const reason = report.status === "finding"
+    ? "A bounded probe observed a source key repeated after a JOIN. This is an observational metric-copy risk, not a business semantic verdict."
+    : report.unsupportedReasons?.join(", ")
+      ?? (report.status === "clear" ? "Supported JOIN aggregate targets were checked without observed source-key duplication." : undefined);
+  return { checkId: "join_fanout", outcome: report.status === "not_applicable" ? "not_applicable" : report.status === "clear" ? "clear" : report.status === "finding" ? "finding" : "unknown", ...(reason ? { reason } : {}) };
+}
+
+function fanoutFindings(report: FanoutReport): readonly Finding[] {
+  return report.targets.filter((target) => target.status === "finding").map((target) => ({
+    id: `finding_join_fanout_${randomUUID()}`,
+    kind: "join_fanout" as const,
+    blocking: false,
+    checkId: "join_fanout",
+    message: `JOIN fanout observed for ${target.aggregateFunctions.join("/")}(${target.aggregateExpressions.join(", ")}) from ${target.sourceRelation}.${target.sourceKey}; source distinct keys=${target.observation?.sourceDistinctKeys ?? "unknown"}, joined rows=${target.observation?.joinedRows ?? "unknown"}, joined distinct keys=${target.observation?.joinedDistinctKeys ?? "unknown"}. This is a bounded observation, not a business-semantic decision.`,
+  }));
+}
+
+function fanoutDisclosureSummary(report: FanoutReport): string {
+  if (report.status === "finding") return "JOIN fanout 检查观察到来源键在连接后重复；这表示度量复制风险，不等于已裁决业务口径。";
+  if (report.status === "unknown") return `JOIN fanout 检查未能完整完成：${report.unsupportedReasons?.join(", ") ?? "coverage unavailable"}。`;
+  return "";
+}
+
 function inferType(value: unknown): string {
   if (value === null || value === undefined) return "NULL";
   if (typeof value === "bigint") return "BIGINT";
@@ -607,6 +702,23 @@ export interface InMemoryAnsweringOptions {
   readonly maxResultRows?: number;
   /** Versioned task budget; revision/delegation work must not reset it. */
   readonly budgetPolicy?: QueryBudgetPolicy;
+  /** Optional bounded JOIN fanout diagnostics; enabled by default when applicable. */
+  readonly fanout?: FanoutAnsweringOptions;
+  /** Optional post-commit, advisory Spec alignment feedback. */
+  readonly specFeedback?: SpecFeedbackOptions;
+}
+
+interface RevisionFeedbackTarget {
+  readonly taskId: TaskId;
+  readonly revisionId: RevisionId;
+  readonly requestMessageId: string;
+  /** Evidence frozen in the same transaction that created the Revision. */
+  readonly evidence: readonly Evidence[];
+}
+
+interface RevisionSubmissionOutcome {
+  readonly view: AnswerRevisionView;
+  readonly feedbackTarget?: RevisionFeedbackTarget;
 }
 
 /**
@@ -617,6 +729,10 @@ export class InMemoryAnswering implements Answering {
   private readonly resultStore: ResultStore;
   private readonly maxResultRows: number;
   private readonly budgetPolicy: QueryBudgetPolicy;
+  private readonly fanoutOptions: FanoutAnsweringOptions;
+  private readonly specFeedbackOptions: ResolvedSpecFeedbackOptions | undefined;
+  private fanoutSchema: FanoutSchema | undefined;
+  private fanoutSchemaLoaded = false;
   /** Ephemeral coalescing only; Pi Invocation remains the durable replay authority. */
   private readonly invocationExecutions = new Map<string, { signature: string; promise: Promise<QueryExecutionView> }>();
   /** Coalesce equivalent final executions even when a transport retry receives a new invocation id. */
@@ -626,19 +742,37 @@ export class InMemoryAnswering implements Answering {
     this.resultStore = options.resultStore ?? new InMemoryResultStore();
     this.maxResultRows = Math.max(1, Math.trunc(options.maxResultRows ?? MAX_RESULT_ROWS));
     this.budgetPolicy = validateBudgetPolicy(options.budgetPolicy ?? DEFAULT_QUERY_BUDGET_POLICY);
+    this.fanoutOptions = { ...(options.fanout ?? {}) };
+    const specFeedbackTimeout = options.specFeedback?.timeoutMs ?? SPEC_FEEDBACK_DEFAULT_TIMEOUT_MS;
+    const specFeedbackMaxInputBytes = options.specFeedback?.maxInputBytes ?? SPEC_FEEDBACK_MAX_INPUT_BYTES;
+    if (options.specFeedback && (!Number.isSafeInteger(specFeedbackTimeout) || specFeedbackTimeout <= 0)) {
+      throw new AnsweringError("INVALID_REQUEST", "Invalid Spec feedback timeout");
+    }
+    if (options.specFeedback && (!Number.isSafeInteger(specFeedbackMaxInputBytes) || specFeedbackMaxInputBytes <= 0)) {
+      throw new AnsweringError("INVALID_REQUEST", "Invalid Spec feedback input byte limit");
+    }
+    this.specFeedbackOptions = options.specFeedback ? {
+      ...options.specFeedback,
+      timeoutMs: specFeedbackTimeout,
+      maxInputBytes: specFeedbackMaxInputBytes,
+    } : undefined;
+    if (options.fanout?.schema) {
+      this.fanoutSchema = options.fanout.schema;
+      this.fanoutSchemaLoaded = true;
+    }
   }
 
   async begin(input: BeginAnswer, context: BusinessContext): Promise<AnswerRevisionView> {
     assertContext(context);
     const requestMessageId = localId(input.requestMessageId, "requestMessageId");
     const requestId = localId(input.requestId, "requestId");
-    return this.options.store.transact(async (tx) => {
+    const outcome = await this.options.store.transact(async (tx) => {
       const existing = tx.findTaskByRequest(context.sessionId, requestId);
       if (existing) {
         assertTaskAccess(existing, context);
         const revision = tx.getCurrentRevision(existing.taskId);
         if (!revision) throw new AnsweringError("REVISION_NOT_FOUND", "Existing task has no current revision");
-        return viewFromRevision(existing.taskId, revision);
+        return { view: viewFromRevision(existing.taskId, revision) } as const;
       }
       const taskId = makeInternalId("task") as unknown as TaskId;
       const revisionId = makeInternalId("revision") as unknown as RevisionId;
@@ -650,12 +784,17 @@ export class InMemoryAnswering implements Answering {
       const choices = createChoices(input.choices ?? [], evidence);
       const spec = buildSpec(input.spec, hypotheses.byLocalId, requestEvidence.id);
       const createdAt = now();
-      const revision: AnswerRevisionRecord = { taskId, revisionId, requestId, spec, hypotheses: hypotheses.hypotheses, choices: choices.choices, resolutions: hypotheses.resolutions, choiceResolutions: choices.resolutions, state: { state: "draft", revisionId }, createdAt };
+      const baseRevision: AnswerRevisionRecord = { taskId, revisionId, requestId, spec, hypotheses: hypotheses.hypotheses, choices: choices.choices, resolutions: hypotheses.resolutions, choiceResolutions: choices.resolutions, state: { state: "draft", revisionId }, createdAt };
+      const revision: AnswerRevisionRecord = { ...baseRevision, specFeedback: initialSpecFeedback(baseRevision, evidence, Boolean(this.specFeedbackOptions), createdAt) };
       const task: QueryTaskRecord = { taskId, sessionId: context.sessionId, principalId: context.principal.id, requestMessageId, requestId, currentRevisionId: revisionId, lifecycle: "open", budget: newBudget(this.budgetPolicy, createdAt), createdAt, updatedAt: createdAt };
       tx.putRevision(revision);
       tx.putTask(task);
-      return viewFromRevision(taskId, revision);
+      return {
+        view: viewFromRevision(taskId, revision),
+        feedbackTarget: { taskId, revisionId, requestMessageId, evidence: clone(evidence) },
+      } as const;
     }, context);
+    return this.finishRevisionSubmission(outcome, context);
   }
 
   async revise(input: ReviseAnswer, context: BusinessContext): Promise<AnswerRevisionView> {
@@ -680,7 +819,8 @@ export class InMemoryAnswering implements Answering {
       const choices = createChoices(input.choices ?? [], allEvidence);
       const requestEvidence = allEvidence.find((item) => item.kind === "request_wording") ?? makeEvidence({ kind: "request_wording", sourceRef: task.requestMessageId }, requestEvidenceId(task.requestMessageId), now());
       const revisionId = makeInternalId("revision") as unknown as RevisionId;
-      const revision: AnswerRevisionRecord = { taskId, revisionId, parentRevisionId: previous.revisionId, requestId, spec: buildSpec(input.spec, hypotheses.byLocalId, requestEvidence.id), hypotheses: hypotheses.hypotheses, choices: choices.choices, resolutions: hypotheses.resolutions, choiceResolutions: choices.resolutions, state: { state: "draft", revisionId }, createdAt: now() };
+      const baseRevision: AnswerRevisionRecord = { taskId, revisionId, parentRevisionId: previous.revisionId, requestId, spec: buildSpec(input.spec, hypotheses.byLocalId, requestEvidence.id), hypotheses: hypotheses.hypotheses, choices: choices.choices, resolutions: hypotheses.resolutions, choiceResolutions: choices.resolutions, state: { state: "draft", revisionId }, createdAt: now() };
+      const revision: AnswerRevisionRecord = { ...baseRevision, specFeedback: initialSpecFeedback(baseRevision, allEvidence, Boolean(this.specFeedbackOptions), baseRevision.createdAt) };
       tx.putRevision(revision);
       const { latestCandidateId: _latestCandidateId, publicationId: _publicationId, ...taskWithoutResults } = task;
       const revisedTask: QueryTaskRecord = { ...taskWithoutResults, currentRevisionId: revisionId, lifecycle: "open", updatedAt: revision.createdAt };
@@ -692,12 +832,145 @@ export class InMemoryAnswering implements Answering {
         updatedAt: revision.createdAt,
       });
       tx.putTask(revisedTask);
-      return { view: viewFromRevision(taskId, revision) } as const;
+      return { view: viewFromRevision(taskId, revision), feedbackTarget: { taskId, revisionId, requestMessageId: task.requestMessageId, evidence: clone(allEvidence) } } as const;
     }, context);
     if ("obstacle" in outcome) {
       throw new AnsweringError("IMPLEMENTATION_BUDGET_EXHAUSTED", outcome.obstacle.message, obstacleDetails(undefined, outcome.obstacle));
     }
-    return outcome.view;
+    return this.finishRevisionSubmission(outcome, context);
+  }
+
+  private async finishRevisionSubmission(outcome: RevisionSubmissionOutcome, context: BusinessContext): Promise<AnswerRevisionView> {
+    const target = outcome.feedbackTarget;
+    if (!target || !this.specFeedbackOptions) return outcome.view;
+    const feedback = await this.evaluateSpecFeedback(target, context);
+    let persisted: SpecFeedback | undefined;
+    try {
+      persisted = await this.persistSpecFeedback(target, feedback, context);
+    } catch (error) {
+      // The Revision is already committed. A failed feedback write must not be
+      // presented as completed; inspect/recovery can still observe pending.
+      if (context.signal?.aborted) throw error;
+      return outcome.view;
+    }
+    if (!persisted) return outcome.view;
+    try {
+      const revision = await this.options.store.transact((tx) => tx.getRevision(target.revisionId), context);
+      return revision ? viewFromRevision(target.taskId, revision) : outcome.view;
+    } catch (error) {
+      if (context.signal?.aborted) throw error;
+      return outcome.view;
+    }
+  }
+
+  private async evaluateSpecFeedback(target: RevisionFeedbackTarget, context: BusinessContext): Promise<SpecFeedback> {
+    const options = this.specFeedbackOptions!;
+    const startedAt = now();
+    const startedAtMs = Date.now();
+    const snapshot = await this.options.store.transact((tx) => {
+      const task = tx.getTask(target.taskId);
+      assertTaskAccess(task, context);
+      const revision = tx.getRevision(target.revisionId);
+      if (!revision) throw new AnsweringError("REVISION_NOT_FOUND", `Revision ${target.revisionId} was not found`);
+      return { task, revision };
+    }, context);
+    const evidence = target.evidence;
+    const base = snapshot.revision.specFeedback ?? initialSpecFeedback(snapshot.revision, evidence, true, startedAt);
+    const configuredTimeout = options.timeoutMs;
+    const budget = taskBudget(snapshot.task, this.budgetPolicy);
+    const taskDeadline = Date.parse(budget.startedAt) + budget.policy.maxElapsedMs;
+    const externalDeadline = context.deadlineAt ?? Number.POSITIVE_INFINITY;
+    const feedbackDeadline = Math.min(startedAtMs + configuredTimeout, taskDeadline, externalDeadline);
+    const unavailable = (reason: string, assembly?: SpecFeedbackAssembly): SpecFeedback => unavailableSpecFeedback(
+      snapshot.revision,
+      base,
+      reason,
+      {
+        ...(assembly?.inputHash ? { inputHash: assembly.inputHash } : {}),
+        ...(assembly?.evidenceIds ? { evidenceIds: assembly.evidenceIds } : {}),
+        ...(assembly?.limitations ? { limitations: assembly.limitations } : {}),
+        startedAt,
+        completedAt: now(),
+      },
+    );
+    if (feedbackDeadline <= Date.now()) return unavailable("task_time_budget_exhausted");
+
+    const controller = new AbortController();
+    let timedOut = false;
+    let rejectDeadline: ((reason?: unknown) => void) | undefined;
+    const deadlinePromise = new Promise<never>((_, reject) => { rejectDeadline = reject; });
+    let rejectCancelled: ((reason?: unknown) => void) | undefined;
+    const cancellationPromise = new Promise<never>((_, reject) => { rejectCancelled = reject; });
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+      rejectDeadline?.(new Error("SPEC_FEEDBACK_TIMEOUT"));
+    }, Math.max(1, feedbackDeadline - Date.now()));
+    const forwardAbort = () => {
+      controller.abort();
+      rejectCancelled?.(new Error("SPEC_FEEDBACK_CANCELLED"));
+    };
+    if (context.signal?.aborted) {
+      clearTimeout(timeout);
+      throw new AnsweringError("ANSWERING_CONTEXT_INVALID", "Answering operation was cancelled");
+    }
+    context.signal?.addEventListener("abort", forwardAbort, { once: true });
+    let assembly: SpecFeedbackAssembly | undefined;
+    try {
+      const originalQuestion = await Promise.race([
+        options.getOriginalQuestion(target.requestMessageId, { signal: controller.signal }),
+        deadlinePromise,
+        cancellationPromise,
+      ]);
+      if (!originalQuestion) throw new Error("ORIGINAL_QUESTION_UNAVAILABLE");
+      if (context.signal?.aborted) throw new AnsweringError("ANSWERING_CONTEXT_INVALID", "Answering operation was cancelled");
+      if (timedOut) return unavailable("timeout", assembly);
+      assembly = assembleSpecFeedbackInput(snapshot.revision, evidence, originalQuestion, options.maxInputBytes);
+      if (context.signal?.aborted) throw new AnsweringError("ANSWERING_CONTEXT_INVALID", "Answering operation was cancelled");
+      if (timedOut) return unavailable("timeout", assembly);
+      const assessment = await Promise.race([
+        options.assessor.assess(assembly.input, { signal: controller.signal }),
+        deadlinePromise,
+        cancellationPromise,
+      ]);
+      if (context.signal?.aborted) throw new AnsweringError("ANSWERING_CONTEXT_INVALID", "Answering operation was cancelled");
+      if (timedOut) return unavailable("timeout", assembly);
+      const completedAt = now();
+      return completedSpecFeedback(snapshot.revision, base, assessment, assembly.inputHash, assembly.evidenceIds, assembly.limitations, startedAt, completedAt);
+    } catch (error) {
+      if (context.signal?.aborted) throw error;
+      const code = error && typeof error === "object" && "code" in error ? String((error as { code?: unknown }).code) : "";
+      const message = error instanceof Error ? error.message : String(error);
+      const reason = timedOut || code === "TIMEOUT" ? "timeout"
+        : code === "ABORTED" ? "cancelled"
+          : code === "input_too_large" || message.includes("exceeds") ? "input_too_large"
+            : code === "original_question_unavailable" || message.includes("ORIGINAL_QUESTION_UNAVAILABLE") ? "original_question_unavailable"
+              : code === "INVALID_RESPONSE" || message.startsWith("INVALID_SPEC_FEEDBACK_ASSESSMENT") ? "invalid_provider_response"
+                : code === "INVALID_INPUT" || code === "invalid_input" ? "invalid_assessor_input"
+                  : code === "HTTP_ERROR" ? "provider_http_error"
+                    : "provider_unavailable";
+      return unavailable(reason, assembly);
+    } finally {
+      clearTimeout(timeout);
+      context.signal?.removeEventListener("abort", forwardAbort);
+    }
+  }
+
+  private async persistSpecFeedback(target: RevisionFeedbackTarget, feedback: SpecFeedback, context: BusinessContext): Promise<SpecFeedback | undefined> {
+    return this.options.store.transact((tx) => {
+      const revision = tx.getRevision(target.revisionId);
+      if (!revision) return undefined;
+      const existing = revision.specFeedback;
+      if (!existing || existing.status !== "pending") return existing;
+      const task = tx.getTask(target.taskId);
+      assertTaskAccess(task, context);
+      const stale = task.currentRevisionId !== target.revisionId;
+      const persisted: SpecFeedback = stale
+        ? { ...feedback, stale: true, currentRevisionId: task.currentRevisionId }
+        : feedback;
+      tx.putRevision({ ...revision, specFeedback: persisted });
+      return persisted;
+    }, context);
   }
 
   async execute(input: ExecuteQuery, context: BusinessContext): Promise<QueryExecutionView> {
@@ -1029,6 +1302,10 @@ export class InMemoryAnswering implements Answering {
       throw new AnsweringError("CANDIDATE_CHECK_FAILED", details.message, obstacleDetails({ findings: checkReport.findings, coverage: checkReport.coverage }, details));
     }
 
+    const fanout = await this.evaluateFanout(taskId, revisionId, queryHash, input.sql.trim(), context);
+    const combinedCoverage: readonly CheckCoverage[] = [...checkReport.coverage, fanoutCoverage(fanout)];
+    const combinedFindings = [...checkReport.findings, ...fanoutFindings(fanout)];
+
     const budgetAfterResult = await this.options.store.transact((tx) => {
       const current = tx.getTask(taskId);
       assertTaskAccess(current, context);
@@ -1043,7 +1320,7 @@ export class InMemoryAnswering implements Answering {
           sqlExecuted: true,
           executionOutcome: "succeeded",
           queryHash,
-          coverage: checkReport.coverage,
+          coverage: combinedCoverage,
         });
       }
       tx.putTask({ ...current, budget: { ...budget, observedRows: budget.observedRows + privateResult.rowCount }, updatedAt: now() });
@@ -1055,7 +1332,7 @@ export class InMemoryAnswering implements Answering {
       throw new AnsweringError("IMPLEMENTATION_BUDGET_EXHAUSTED", budgetAfterResult.message, obstacleDetails(undefined, budgetAfterResult));
     }
 
-    const candidate: ResultCandidateRecord = {
+    const baseCandidate: ResultCandidateRecord = {
       candidateId: makeInternalId("candidate") as unknown as ResultCandidateRecord["candidateId"],
       taskId,
       revisionId,
@@ -1065,8 +1342,9 @@ export class InMemoryAnswering implements Answering {
       contentHash: privateResult.contentHash,
       sql: input.sql.trim(),
       queryHash,
-      findings: checkReport.findings,
-      coverage: checkReport.coverage,
+      findings: combinedFindings,
+      coverage: combinedCoverage,
+      fanout,
       ...(attempt ? { attemptId: attempt.attemptId } : {}),
       createdByInvocationId: context.invocationId,
       createdAt: now(),
@@ -1081,6 +1359,14 @@ export class InMemoryAnswering implements Answering {
         if (currentTask.currentRevisionId !== revisionId) throw new AnsweringError("REVISION_STALE", "Revision changed while the result was executing");
         const prior = tx.findCandidateByInvocation(taskId, context.invocationId) ?? tx.findCandidateByQuery(taskId, revisionId, queryHash);
         if (prior) return prior;
+        // Feedback is read in the same transaction that freezes the Candidate,
+        // so a later report write cannot mutate this Candidate or its Receipt.
+        const latestRevision = tx.getRevision(revisionId);
+        const feedbackCoverage = specFeedbackCoverage(latestRevision?.specFeedback);
+        const candidate: ResultCandidateRecord = {
+          ...baseCandidate,
+          coverage: [...combinedCoverage, feedbackCoverage],
+        };
         tx.putCandidate(candidate);
         tx.putTask({ ...currentTask, latestCandidateId: candidate.candidateId, updatedAt: candidate.createdAt });
         return candidate;
@@ -1094,8 +1380,118 @@ export class InMemoryAnswering implements Answering {
       if (recovered) return this.resultView(recovered, context);
       throw error;
     }
-    if (committed.candidateId !== candidate.candidateId) await this.resultStore.discard(privateResult.resultRef, context);
+    if (committed.candidateId !== baseCandidate.candidateId) await this.resultStore.discard(privateResult.resultRef, context);
     return this.resultView(committed, context);
+  }
+
+  private async loadFanoutSchema(context: BusinessContext): Promise<FanoutSchema | undefined> {
+    if (this.fanoutOptions.schema) return this.fanoutOptions.schema;
+    if (this.fanoutSchemaLoaded) return this.fanoutSchema;
+    this.fanoutSchemaLoaded = true;
+    if (!this.options.sqlExecutor.getSchema) return undefined;
+    try {
+      this.fanoutSchema = await this.options.sqlExecutor.getSchema(context.signal);
+      return this.fanoutSchema;
+    } catch (error) {
+      if (context.signal?.aborted) throw error;
+      return undefined;
+    }
+  }
+
+  private async runFanoutProbe(
+    taskId: TaskId,
+    revisionId: RevisionId,
+    request: FanoutProbeRequest,
+    context: BusinessContext,
+  ): Promise<FanoutProbeResult> {
+    const queryHash = contentHash({ taskId, revisionId, targetId: request.targetId, sql: request.sql });
+    let reservation: ReturnType<typeof reserveAttempt>;
+    try {
+      reservation = await this.options.store.transact((tx) => {
+        const current = tx.getTask(taskId);
+        assertTaskAccess(current, context);
+        if (current.currentRevisionId !== revisionId) throw new AnsweringError("REVISION_STALE", "Fanout probe target Revision is stale", { currentRevisionId: current.currentRevisionId });
+        return reserveAttempt(tx, current, this.budgetPolicy, "exploration", revisionId, context.invocationId, queryHash, "fanout_probe");
+      }, context);
+    } catch (error) {
+      if (error instanceof AnsweringError) Object.assign(error, { fanoutFatal: true });
+      throw error;
+    }
+    if (reservation.obstacle) throw new Error("probe_budget_exhausted");
+    const attempt = reservation.attempt!;
+    let sqlStarted = false;
+    try {
+      sqlStarted = true;
+      const raw = await this.options.sqlExecutor.run(request.sql, 1, {
+        kind: "exploration",
+        idempotencyKey: `fanout:${queryHash}`,
+        ...(request.signal ? { signal: request.signal } : {}),
+        ...(request.deadlineAt ? { deadlineAt: request.deadlineAt } : {}),
+        ...(context.queryScope ? { scope: context.queryScope } : {}),
+      });
+      const post = await this.options.store.transact((tx) => {
+        const current = tx.getTask(taskId);
+        assertTaskAccess(current, context);
+        const budget = taskBudget(current, this.budgetPolicy);
+        const observedRows = raw.rows.length;
+        if (budget.observedRows + observedRows > budget.policy.maxObservedRows) {
+          const charged = { ...current, budget: { ...budget, observedRows: budget.observedRows + observedRows }, updatedAt: now() };
+          tx.putTask(charged);
+          updateAttempt(tx, attempt, "failed", "succeeded", true, "budget_exhausted");
+          return true;
+        }
+        tx.putTask({ ...current, budget: { ...budget, observedRows: budget.observedRows + observedRows }, updatedAt: now() });
+        updateAttempt(tx, attempt, "succeeded", "succeeded", true);
+        return false;
+      }, context);
+      if (post) throw new Error("probe_budget_exhausted");
+      return { columns: raw.columns, rows: raw.rows, truncated: raw.truncated };
+    } catch (error) {
+      if (error instanceof AnsweringError) Object.assign(error, { fanoutFatal: true });
+      if (context.signal?.aborted || request.signal?.aborted) throw error;
+      const unknown = error instanceof SqlExecutionError && error.outcome === "unknown";
+      await this.options.store.transact((tx) => {
+        const current = tx.getTask(taskId);
+        assertTaskAccess(current, context);
+        updateAttempt(tx, attempt, unknown ? "unknown" : "failed", unknown ? "unknown" : "failed", sqlStarted, unknown ? "execution_outcome_unknown" : /budget/i.test(error instanceof Error ? error.message : String(error)) ? "budget_exhausted" : "technical_failure");
+      }, context).catch(() => undefined);
+      throw error;
+    }
+  }
+
+  private async evaluateFanout(
+    taskId: TaskId,
+    revisionId: RevisionId,
+    queryHash: string,
+    sql: string,
+    context: BusinessContext,
+  ): Promise<FanoutReport> {
+    const potential = hasPotentialFanout(sql);
+    if (!potential) {
+      return { ruleVersion: "answering-fanout-v1", status: "not_applicable", snapshotScope: "unbound", targets: [] };
+    }
+    if (this.fanoutOptions.enabled === false) return unknownFanoutReport("check_disabled");
+    const memo = fanoutExecutionMemo(await context.memo?.get("answering.fanout-check"));
+    if (memo && (memo.taskId !== taskId || memo.revisionId !== revisionId || memo.queryHash !== queryHash)) {
+      throw new AnsweringError("INVALID_REQUEST", "FANOUT_INVOCATION_IDEMPOTENCY_CONFLICT");
+    }
+    if (memo?.state === "settled" && memo.report) return memo.report;
+    if (memo?.state === "started") return unknownFanoutReport("probe_outcome_unknown");
+    await context.memo?.set("answering.fanout-check", { state: "started", taskId, revisionId, queryHash });
+    const schema = await this.loadFanoutSchema(context);
+    const resolvedDialect = this.fanoutOptions.dialect ?? this.options.sqlExecutor.dialect ?? schema?.dialect;
+    const report = await checkFanout({
+      sql,
+      ...(schema ? { schema } : {}),
+      ...(resolvedDialect ? { dialect: resolvedDialect } : {}),
+      runProbe: (request) => this.runFanoutProbe(taskId, revisionId, request, context),
+      ...(context.signal ? { signal: context.signal } : {}),
+      ...(context.deadlineAt ? { deadlineAt: context.deadlineAt } : {}),
+      ...(this.fanoutOptions.maxTargets !== undefined ? { maxTargets: this.fanoutOptions.maxTargets } : {}),
+      ...(this.fanoutOptions.maxInputRows !== undefined ? { maxInputRows: this.fanoutOptions.maxInputRows } : {}),
+    });
+    await context.memo?.set("answering.fanout-check", { state: "settled", taskId, revisionId, queryHash, report });
+    return report;
   }
 
   private async markCandidateCorrupt(candidate: ResultCandidateRecord, context: BusinessContext): Promise<void> {
@@ -1118,6 +1514,7 @@ export class InMemoryAnswering implements Answering {
         preview,
         findings: candidate.findings,
         ...(candidate.coverage ? { coverage: candidate.coverage } : {}),
+        ...(candidate.fanout ? { fanout: candidate.fanout } : {}),
         ...(candidate.attemptId ? { attemptId: candidate.attemptId } : {}),
       };
     } catch {
@@ -1146,8 +1543,21 @@ export class InMemoryAnswering implements Answering {
       const provisionalChoiceIds = revision.choiceResolutions
         .filter((resolution) => resolution.outcome === "provisional")
         .map((resolution) => resolution.choiceId);
-      const disclosure: PublicationDisclosure | undefined = provisionalChoiceIds.length > 0
-        ? { required: true, provisionalChoiceIds, summary: "结果包含按字面解释选择的口径；该选择未被权威证据唯一确定。" }
+      const fanoutDisclosure = candidate.fanout && (candidate.fanout.status === "finding" || candidate.fanout.status === "unknown")
+        ? fanoutDisclosureSummary(candidate.fanout)
+        : "";
+      const feedbackDisclosure = specFeedbackDisclosureSummary(candidate.coverage?.find((coverage) => coverage.checkId === SPEC_FEEDBACK_CHECK_ID));
+      const disclosure: PublicationDisclosure | undefined = provisionalChoiceIds.length > 0 || fanoutDisclosure || feedbackDisclosure
+        ? {
+            required: true,
+            provisionalChoiceIds,
+            summary: [
+              ...(provisionalChoiceIds.length > 0 ? ["结果包含按字面解释选择的口径；该选择未被权威证据唯一确定。"] : []),
+              ...(fanoutDisclosure ? [fanoutDisclosure] : []),
+              ...(feedbackDisclosure ? [feedbackDisclosure] : []),
+            ].join(" "),
+            ...(fanoutDisclosure && candidate.fanout ? { fanoutStatus: candidate.fanout.status } : {}),
+          }
         : undefined;
       return { candidate, task, revision, existing, disclosure };
     }, context);
@@ -1198,6 +1608,7 @@ export class InMemoryAnswering implements Answering {
       contentHash: permit.contentHash,
       presentationContentHash: encoded.contentHash,
       ...(taskAndCandidate.candidate.coverage ? { coverage: taskAndCandidate.candidate.coverage } : {}),
+      ...(taskAndCandidate.candidate.fanout ? { fanout: taskAndCandidate.candidate.fanout } : {}),
       ...(taskAndCandidate.disclosure ? { disclosure: taskAndCandidate.disclosure } : {}),
       policyVersion: permit.policyVersion,
       createdByInvocationId: context.invocationId,

@@ -41,6 +41,7 @@ export type ImplementationObstacleKind =
 export type ExecutionOutcome = "not_started" | "failed" | "succeeded" | "unknown";
 
 export type QueryAttemptKind = "revision" | "exploration" | "result";
+export type QueryAttemptPurpose = "user_exploration" | "fanout_probe";
 export type QueryAttemptState = "blocked" | "started" | "succeeded" | "failed" | "unknown";
 
 export interface QueryBudgetPolicy {
@@ -70,6 +71,7 @@ export interface QueryAttemptRecord {
   readonly attemptId: string;
   readonly taskId: TaskId;
   readonly kind: QueryAttemptKind;
+  readonly purpose?: QueryAttemptPurpose;
   readonly revisionId: RevisionId;
   readonly invocationId: string;
   readonly queryHash?: string;
@@ -83,8 +85,99 @@ export interface QueryAttemptRecord {
 
 export interface CheckCoverage {
   readonly checkId: string;
+  readonly ruleVersion?: string;
   readonly outcome: "clear" | "finding" | "not_applicable" | "unknown";
   readonly reason?: string;
+}
+
+export type SpecFeedbackStatus = "pending" | "completed" | "unavailable" | "disabled";
+export type SpecFeedbackRelation = "supported" | "contradicted" | "not_established" | "not_applicable";
+export type SpecFeedbackCoverage = "complete" | "partial" | "missing" | "not_applicable";
+export type SpecFeedbackRelationProbability = Readonly<Record<SpecFeedbackRelation, number>>;
+export type SpecFeedbackCoverageProbability = Readonly<Record<SpecFeedbackCoverage, number>>;
+
+export interface SpecFeedbackChoice<TChoice extends string, TProbabilities extends Readonly<Record<TChoice, number>>> {
+  readonly choice: TChoice;
+  readonly probabilities: TProbabilities;
+  /** Concentration of this Choice distribution; not calibrated correctness. */
+  readonly confidence: number;
+}
+
+export interface SpecFeedbackFacetAssessment {
+  readonly facet: FacetName;
+  readonly relation: SpecFeedbackChoice<SpecFeedbackRelation, SpecFeedbackRelationProbability>;
+  readonly coverage: SpecFeedbackChoice<SpecFeedbackCoverage, SpecFeedbackCoverageProbability>;
+}
+
+export interface SpecFeedbackAssessment {
+  readonly model: string;
+  readonly ruleVersion: string;
+  readonly facets: readonly SpecFeedbackFacetAssessment[];
+}
+
+export interface SpecFeedbackDeterministicIssue {
+  readonly code: "scalar_row_count_conflict" | "strict_top_n_row_count_conflict";
+  readonly facets: NonEmpty<FacetName>;
+  readonly message: string;
+  readonly actual?: number;
+  readonly expected?: number;
+}
+
+export interface SpecFeedback {
+  readonly taskId: TaskId;
+  readonly revisionId: RevisionId;
+  readonly ruleVersion: string;
+  readonly status: SpecFeedbackStatus;
+  readonly deterministicIssues: readonly SpecFeedbackDeterministicIssue[];
+  readonly assessment?: SpecFeedbackAssessment;
+  readonly inputHash?: string;
+  readonly evidenceIds: readonly EvidenceId[];
+  readonly limitations: readonly string[];
+  readonly reason?: string;
+  readonly startedAt?: string;
+  readonly completedAt?: string;
+  readonly durationMs?: number;
+  /** The report was bound to an older Revision when it was persisted. */
+  readonly stale?: true;
+  readonly currentRevisionId?: RevisionId;
+}
+
+export interface FanoutProbeObservation {
+  readonly sourceRows: number;
+  readonly sourceNonNullKeys: number;
+  readonly sourceDistinctKeys: number;
+  readonly joinedRows: number;
+  readonly joinedNonNullKeys: number;
+  readonly joinedDistinctKeys: number;
+  readonly complete: boolean;
+  readonly fanoutFactor?: number;
+  readonly sourceRelation: string;
+  readonly sourceKey: string;
+}
+
+export interface FanoutTargetReport {
+  readonly targetId: string;
+  readonly blockDepth: number;
+  readonly aggregateExpressions: readonly string[];
+  readonly aggregateFunctions: readonly ("COUNT" | "SUM")[];
+  readonly sourceRelation: string;
+  readonly sourceAlias: string;
+  readonly sourceKey: string;
+  readonly sourceKeySql: string;
+  readonly sourceSql: string;
+  readonly joinedRelation?: string;
+  readonly fromSql: string;
+  readonly status: "clear" | "finding" | "unknown";
+  readonly reason?: string;
+  readonly observation?: FanoutProbeObservation;
+}
+
+export interface FanoutReport {
+  readonly ruleVersion: string;
+  readonly status: "clear" | "finding" | "not_applicable" | "unknown";
+  readonly snapshotScope: "probe_statement" | "result_snapshot" | "unbound";
+  readonly targets: readonly FanoutTargetReport[];
+  readonly unsupportedReasons?: readonly string[];
 }
 
 export interface ImplementationObstacle {
@@ -309,7 +402,7 @@ export type QueryArtifact =
 
 export interface Finding {
   readonly id: string;
-  readonly kind: "shape_conflict" | "result_incomplete" | "integrity_conflict";
+  readonly kind: "shape_conflict" | "result_incomplete" | "integrity_conflict" | "join_fanout";
   readonly message: string;
   readonly blocking: boolean;
   readonly checkId?: string;
@@ -343,6 +436,8 @@ export interface AnswerRevisionRecord {
   readonly choiceResolutions: readonly ChoiceResolution[];
   readonly state: RevisionState;
   readonly createdAt: string;
+  /** Advisory report attached to this Revision; it never changes qualification. */
+  readonly specFeedback?: SpecFeedback;
 }
 
 export interface ResultCandidateRecord {
@@ -359,6 +454,8 @@ export interface ResultCandidateRecord {
   readonly findings: readonly Finding[];
   /** Check coverage is retained even when no blocking Finding was produced. */
   readonly coverage?: readonly CheckCoverage[];
+  /** Immutable bounded JOIN fanout evidence for this exact candidate. */
+  readonly fanout?: FanoutReport;
   readonly attemptId?: string;
   readonly createdByInvocationId: string;
   readonly createdAt: string;
@@ -370,6 +467,7 @@ export interface PublicationDisclosure {
   readonly required: true;
   readonly provisionalChoiceIds: readonly ChoiceId[];
   readonly summary: string;
+  readonly fanoutStatus?: FanoutReport["status"];
 }
 
 /** Internal typestate. No model/HTTP caller can construct this permit. */
@@ -400,6 +498,8 @@ export interface PublicationReceipt {
   readonly policyVersion: "answering-publication-v1";
   /** Coverage is not a semantic approval; it records checks that were unavailable or inapplicable. */
   readonly coverage?: readonly CheckCoverage[];
+  /** Immutable fanout evidence is disclosed with the exact published Candidate. */
+  readonly fanout?: FanoutReport;
   /** Published bytes/rows remain in ResultStore and are read only through this Receipt. */
   readonly createdByInvocationId: string;
   readonly requestId: string;
@@ -424,6 +524,7 @@ export interface AnswerRevisionView {
   readonly unresolvedFacets: readonly FacetName[];
   readonly unresolvedHypotheses: readonly HypothesisId[];
   readonly unresolvedChoices: readonly ChoiceId[];
+  readonly specFeedback?: SpecFeedback;
 }
 
 export interface QueryExecutionView {
@@ -432,6 +533,7 @@ export interface QueryExecutionView {
   readonly preview: BoundedResult;
   readonly findings: readonly Finding[];
   readonly coverage?: readonly CheckCoverage[];
+  readonly fanout?: FanoutReport;
   readonly attemptId?: string;
 }
 

@@ -7,8 +7,8 @@ import { InMemoryAnsweringStore } from "../answering/answering-store.js";
 import { InMemoryResultStore } from "../answering/result-store.js";
 import { createQueryTaskDelegationResolver } from "../application/delegation.js";
 import { createPiSessionHost } from "../agent/harness-factory.js";
-import { createAnsweringAgentTools } from "../tools/answering.js";
-import { createSubagentTool } from "../tools/subagent.js";
+import { createAnsweringAgentToolDefinitions } from "../tools/answering.js";
+import { createSubagentToolDefinition } from "../tools/subagent.js";
 import { HarnessChildExecutor } from "./child-harness.js";
 import { MemoryChildSessionRepository } from "./child-session-repo.js";
 import { NativeDelegation } from "./delegation.js";
@@ -56,7 +56,7 @@ describe("main AgentHarness to child AgentHarness", () => {
       session: parentSession,
       sessionId: "parent-host-request",
       toolContext: { sessionId: "parent-host-request", principalId: "user-1" },
-      tools: [...createAnsweringAgentTools(answering), createSubagentTool(delegation)],
+      toolDefinitions: [...createAnsweringAgentToolDefinitions(answering), createSubagentToolDefinition(delegation)],
       answering,
       answeringStore,
       resultStore,
@@ -104,7 +104,7 @@ describe("main AgentHarness to child AgentHarness", () => {
       resolver: createQueryTaskDelegationResolver({ answering, ownerSession: parentSession, principalId: "user-1", ownerSessionId: "parent-session" }),
       ledger,
     });
-    const subagent = createSubagentTool(delegation);
+    const subagent = createSubagentToolDefinition(delegation).tool;
     let initialParentContext = "";
     let childContext = "";
     let finalParentContext = "";
@@ -165,12 +165,12 @@ describe("main AgentHarness to child AgentHarness", () => {
       executor: new HarnessChildExecutor({ sessions: new MemoryChildSessionRepository(), models, model: faux.models[0] }),
       resolver: {
         async resolve(task) {
-          return { targetRef: `query-task:${task.taskId}@${task.revisionId}`, prompt: task.task, systemPrompt: "Return the required report JSON.", tools: [], allowedEvidenceRefs: new Set(["revision:r1"]), checkTarget: async () => ({ state: "current" as const, reasons: [] }) };
+          return { targetRef: `query-task:${task.taskId}@${task.revisionId}`, prompt: task.task, systemPrompt: "Return the required report JSON.", toolDefinitions: [], allowedEvidenceRefs: new Set(["revision:r1"]), checkTarget: async () => ({ state: "current" as const, reasons: [] }) };
         },
       },
       ledger: new PiSessionDelegationLedger(parentSession),
     });
-    const tool = createSubagentTool(delegation) as any;
+    const tool = createSubagentToolDefinition(delegation).tool as any;
     const memo = new Map<string, unknown>();
     const result = await tool.execute("delegate", { tasks: [
       { key: "one", role: "reviewer", task: "first", taskId: "task", revisionId: "r1" },
@@ -231,7 +231,7 @@ describe("main AgentHarness to child AgentHarness", () => {
       models,
       model: faux.models[0],
       systemPrompt: "You are the main Data Agent.",
-      tools: [createSubagentTool(delegation)],
+      tools: [createSubagentToolDefinition(delegation).tool],
       activeToolNames: ["subagent"],
       toolContext: { sessionId: "parent-explorer", principalId: "user-1" },
     }, TODO_CONTEXT);

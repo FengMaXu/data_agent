@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Value } from "typebox/value";
-import { ANSWERING_QUERY_PARAMETERS, UPDATE_ANSWER_PARAMETERS, createAnsweringAgentTools } from "../tools/answering.js";
+import { ANSWERING_QUERY_PARAMETERS, UPDATE_ANSWER_PARAMETERS, createAnsweringAgentToolDefinitions } from "../tools/answering.js";
 import { InMemoryAnsweringStore, type AnsweringStore, type AnsweringTransaction } from "./answering-store.js";
 import { InMemoryAnswering } from "./service.js";
 import { InMemoryResultStore } from "./result-store.js";
@@ -94,7 +94,7 @@ describe("Answering architecture boundaries", () => {
       sqlExecutor: { run: async () => ({ columns: ["value"], rows: [[1]], truncated: false }) },
     });
     const begun = await answering.begin({ requestMessageId: "message-handles", requestId: "begin-handles", spec: scalarSpec }, context("begin-handles"));
-    const query = createAnsweringAgentTools(answering).find((tool) => tool.name === "query_database")!;
+    const query = createAnsweringAgentToolDefinitions(answering).map((definition) => definition.tool).find((tool) => tool.name === "query_database")!;
     const invocation = (invocationId: string) => ({
       operationId: "operation-handles",
       invocationId,

@@ -1,6 +1,6 @@
 import { Type } from "typebox";
 import { randomUUID } from "node:crypto";
-import type { AgentHarnessTool, AgentToolResult } from "@earendil-works/pi-agent-core";
+import type { AgentToolResult } from "@earendil-works/pi-agent-core";
 import { DEFAULT_KNOWLEDGE_RESULTS, formatKnowledgeSearchResults, MAX_KNOWLEDGE_RESULTS, type KnowledgeIndex } from "../knowledge.js";
 import { materializeDashboardV3Spec, renderStandaloneDashboardHtml, validateDashboardV3Spec } from "../dashboard-v3.js";
 import { renderSemanticDashboardHtml, validateDashboardV4Spec } from "../dashboard-v4.js";
@@ -9,6 +9,7 @@ import { runPythonJob } from "../python-job.js";
 import type { WorkspaceStore } from "../workspace.js";
 import { validateWidgetSpec, widgetLegacyText, type WidgetPayload } from "../widget.js";
 import type { DataAgentToolContext } from "./answering.js";
+import { defineDataAgentTool, type DataAgentToolDefinition } from "./tool-definition.js";
 import type { ClarificationDialogs } from "../facets/clarification-dialogs.js";
 
 function text(content: string, details?: unknown): AgentToolResult<unknown> {
@@ -31,17 +32,20 @@ function executableOf(source: CoreToolOptions["pythonExecutable"]): string | und
 }
 
 
-export function createCoreAgentTools(options: CoreToolOptions): readonly AgentHarnessTool<DataAgentToolContext>[] {
-  const tools: AgentHarnessTool<DataAgentToolContext>[] = [
-    {
+export function createCoreAgentToolDefinitions(options: CoreToolOptions): readonly DataAgentToolDefinition<DataAgentToolContext>[] {
+  const definitions: DataAgentToolDefinition<DataAgentToolContext>[] = [
+    defineDataAgentTool({
       name: "list_workspace",
       label: "list_workspace",
       description: "List files in the current session workspace.",
       replay: "safe",
       parameters: Type.Object({}, { additionalProperties: false }),
       async execute() { return text((await options.workspace.list()).join("\n") || "(workspace empty)"); },
-    },
-    {
+    }, {
+      promptSnippet: "列出当前会话工作区中的文件。",
+      promptGuidelines: ["只说明当前工作区，不暗示可以浏览全系统文件。"],
+    }),
+    defineDataAgentTool({
       name: "read_file",
       label: "read_file",
       description: "Read a workspace file with an optional one-based inclusive line range.",
@@ -55,8 +59,11 @@ export function createCoreAgentTools(options: CoreToolOptions): readonly AgentHa
         });
         return text(read.content, { path: value.path, truncated: read.truncated });
       },
-    },
-    {
+    }, {
+      promptSnippet: "读取工作区文件，可选一基包含的行区间。",
+      promptGuidelines: ["遵守一基包含边界；披露截断，并按现有读取能力继续读取，不自行假定未返回内容。"],
+    }),
+    defineDataAgentTool({
       name: "write_file",
       label: "write_file",
       description: "Write a file inside the current session workspace.",
@@ -67,13 +74,16 @@ export function createCoreAgentTools(options: CoreToolOptions): readonly AgentHa
         await options.workspace.write(value.path, value.content);
         return text(`written ${value.path} (${value.content.length} bytes)`);
       },
-    },
+    }, {
+      promptSnippet: "写入当前会话工作区中的文件。",
+      promptGuidelines: ["明确这是覆盖式写入且受路径范围约束；不要声称写入会自动发布或改变查询发布授权。"],
+    }),
   ];
 
   if (options.knowledge) {
     const knowledge = options.knowledge;
-    tools.push(
-      {
+    definitions.push(
+      defineDataAgentTool({
         name: "search_knowledge",
         label: "search_knowledge",
         description: "Search the selected Markdown knowledge sources and return bounded relevant content. Search results include source, section, location, score, and content reference; use read_knowledge only when more context is needed.",
@@ -95,8 +105,11 @@ export function createCoreAgentTools(options: CoreToolOptions): readonly AgentHa
           const formatted = formatKnowledgeSearchResults(hits, requestedResults);
           return text(JSON.stringify(formatted), formatted);
         },
-      },
-      {
+      }, {
+        promptSnippet: "检索相关知识章节及有界正文。",
+        promptGuidelines: ["先搜索并按需选择来源；搜索结果已经足够时不要为了形式流程重复读取相同 contentRef。"],
+      }),
+      defineDataAgentTool({
         name: "read_knowledge",
         label: "read_knowledge",
         description: "Read a knowledge document or one named section. Short documents may be returned in full; large documents require a sectionId. Do not calculate line ranges.",
@@ -111,11 +124,14 @@ export function createCoreAgentTools(options: CoreToolOptions): readonly AgentHa
           const read = knowledge.read(value);
           return text(JSON.stringify(read), read);
         },
-      },
+      }, {
+        promptSnippet: "读取短知识文档或指定章节。",
+        promptGuidelines: ["遵守 500 行边界，按 knowledgeId/sectionId 和 continuationToken 读取；不要自行计算行号分页。"],
+      }),
     );
     if (options.knowledgeRoot) {
       const writer = new KnowledgeWriter(options.knowledgeRoot);
-      tools.push({
+      definitions.push(defineDataAgentTool({
         name: "update_knowledge",
         label: "update_knowledge",
         description: "Append learning or write a knowledge draft through the scoped knowledge capability.",
@@ -126,12 +142,15 @@ export function createCoreAgentTools(options: CoreToolOptions): readonly AgentHa
           const written = await writer.write(value.operation, value.path, value.content);
           return text(`${written.operation} -> ${written.path} (${written.bytesWritten} bytes)`);
         },
-      });
+      }, {
+        promptSnippet: "追加学习记录或写入受限知识内容。",
+        promptGuidelines: ["不要把草稿、学习记录或 schema 更新冒充为已审核业务定义。"],
+      }));
     }
   }
 
   if (options.pythonExecutable) {
-    tools.push({
+    definitions.push(defineDataAgentTool({
       name: "run_python",
       label: "run_python",
       description: "Execute Python analysis in the current session workspace.",
@@ -144,11 +163,14 @@ export function createCoreAgentTools(options: CoreToolOptions): readonly AgentHa
         const job = await runPythonJob(value.code, { workspace: options.workspace.root, executable, timeoutMs: 120_000, ...(context.abortSignal ? { signal: context.abortSignal } : {}) });
         return text(job.stdout || job.stderr || "(no output)", { status: job.status, jobId: job.jobId, artifacts: job.artifacts, sessionId: toolContext?.sessionId });
       },
-    });
+    }, {
+      promptSnippet: "在配置的 Python 环境中执行当前工作区分析。",
+      promptGuidelines: ["区分统计分析与绘图请求；披露实际工作区、超时和失败语义，不承诺这是安全沙箱。"],
+    }));
   }
 
   if (options.clarifications) {
-    tools.push({
+    definitions.push(defineDataAgentTool({
       name: "ask_user_clarification",
       label: "ask_user_clarification",
       description: "Ask the user one structured clarification and wait for the Session-owned answer.",
@@ -160,10 +182,13 @@ export function createCoreAgentTools(options: CoreToolOptions): readonly AgentHa
         const answer = await request.promise;
         return text(answer, { clarificationId: request.clarificationId });
       },
-    });
+    }, {
+      promptSnippet: "请求并等待一个结构化的用户澄清。",
+      promptGuidelines: ["当影响口径的歧义无法由合格证据、反驳或允许的临时选择处置时才请求用户澄清；不能用工具建议或模型推断冒充确认。"],
+    }));
   }
 
-  tools.push({
+  definitions.push(defineDataAgentTool({
     name: "load_skill",
     label: "load_skill",
     description: "Load a discovered skill without starting a nested Agent operation.",
@@ -175,10 +200,13 @@ export function createCoreAgentTools(options: CoreToolOptions): readonly AgentHa
       if (!skill) throw new Error(`SKILL_NOT_FOUND: ${name}`);
       return text(skill.content, { nativeSkill: name });
     },
-  });
+  }, {
+    promptSnippet: "加载已经发现的技能。",
+    promptGuidelines: ["只加载现存技能；技能 allowlist 只筛选已有能力，不授予新的工具或权限。"],
+  }));
 
   if (options.enableDashboards !== false) {
-    tools.push({
+    definitions.push(defineDataAgentTool({
       name: "generate_dashboard",
       label: "generate_dashboard",
       description: "Validate or generate a dashboard in the current workspace.",
@@ -207,11 +235,14 @@ export function createCoreAgentTools(options: CoreToolOptions): readonly AgentHa
         await options.workspace.write(fileName, html);
         return text(`[DASHBOARD_CREATED] ${fileName}`, { relativePath: fileName, fileType: "html" });
       },
-    });
+    }, {
+      promptSnippet: "验证或生成当前工作区中的看板。",
+      promptGuidelines: ["仅在看板需求和 dashboard Skill 已授权时使用；只支持现有 mode/version 组合，以运行时 validator 为准，不把提示摘要当作 Schema 修复。"],
+    }));
   }
 
   if (options.enableWidgets !== false) {
-    tools.push({
+    definitions.push(defineDataAgentTool({
       name: "show_widget",
       label: "show_widget",
       description: "Render a structured widget for the Presentation layer.",
@@ -224,8 +255,11 @@ export function createCoreAgentTools(options: CoreToolOptions): readonly AgentHa
         const widget: WidgetPayload = { ...validation.spec, widget_id: `widget-${toolCallId}`, kind: value.kind, title: typeof validation.spec.title === "string" && validation.spec.title.trim() ? validation.spec.title : `${value.kind} widget`, tool_call_id: toolCallId };
         return text(widgetLegacyText(widget), { widgetEvent: "widget", widgetId: `widget-${toolCallId}`, toolCallId, toolName: "show_widget", widget });
       },
-    });
+    }, {
+      promptSnippet: "输出结构化展示部件。",
+      promptGuidelines: ["只在获得可视化授权且 kind 受现有实现支持时使用；不能绕过查询结果的发布授权。"],
+    }));
   }
 
-  return tools;
+  return definitions;
 }

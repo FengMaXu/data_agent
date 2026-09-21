@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { TODO_CONTEXT } from "@earendil-works/pi-agent-core";
 import { Value } from "typebox/value";
-import { createSubagentTool, SUBAGENT_PARAMETERS } from "./subagent.js";
+import { createSubagentToolDefinition, SUBAGENT_PARAMETERS } from "./subagent.js";
 import type { Delegation, TrustedDelegationContext } from "../delegation/index.js";
 
 const input = { tasks: [{ key: "explore", role: "explorer" as const, task: "inspect duplicates", taskId: "task-1", revisionId: "revision-1" }] };
@@ -25,7 +25,7 @@ describe("subagent AgentHarness tool", () => {
       },
       async close() {},
     };
-    const tool = createSubagentTool(delegation) as any;
+    const tool = createSubagentToolDefinition(delegation).tool as any;
     const result = await tool.execute("call", { tasks: [
       { key: "one", role: "reviewer", task: "one", taskId: "task", revisionId: "revision" },
       { key: "two", role: "reviewer", task: "two", taskId: "task", revisionId: "revision" },
@@ -49,7 +49,7 @@ describe("subagent AgentHarness tool", () => {
       },
       async close() {},
     };
-    const tool = createSubagentTool(delegation) as any;
+    const tool = createSubagentToolDefinition(delegation).tool as any;
     const memo = new Map<string, unknown>();
     const invocation = { invocationId: "parent-inv", operationId: "parent-op", turnId: "turn", getMemo: async (key: string) => memo.get(key), setMemo: async (key: string, value: unknown) => { memo.set(key, value); } };
     const result = await tool.execute("call", input, undefined, { sessionId: "session-1", principalId: "user-1" }, invocation, TODO_CONTEXT);

@@ -1,16 +1,16 @@
 import { MemorySessionRepo, TODO_CONTEXT } from "@earendil-works/pi-agent-core";
-import type { AgentHarnessTool, Session, Skill } from "@earendil-works/pi-agent-core";
+import type { Session, Skill } from "@earendil-works/pi-agent-core";
 import { InMemoryAnswering, isScopedReadOnlySql, type Answering, type AnsweringSqlExecutor, type AnsweringStore, type ResultStore } from "../answering/public.js";
 import { PiSessionAnsweringStore } from "../adapters/pi-session-answering-store.js";
 import { FileResultStore, InMemoryResultStore } from "../answering/result-store.js";
 import { assertTaskAccess } from "../answering/answering-store.js";
-import type { Evidence, PublicationId, TaskId } from "../answering/model.js";
+import type { PublicationId, TaskId } from "../answering/model.js";
 import { loadSkillsFromRoots, resolveSkillRoots } from "../skills.js";
 import { renderKnowledgeCatalog, type KnowledgeIndex } from "../knowledge.js";
 import { ClarificationManager } from "../clarification.js";
 import type { WorkspaceStore } from "../workspace.js";
-import { createAnsweringAgentTools, type DataAgentToolContext, type HypothesisComparisonToolOptions } from "../tools/answering.js";
-import { createCoreAgentTools } from "../tools/core.js";
+import { createAnsweringAgentToolDefinitions, type DataAgentToolContext, type HypothesisComparisonToolOptions } from "../tools/answering.js";
+import { createCoreAgentToolDefinitions } from "../tools/core.js";
 import { createDataAgentPiRuntime, createPiSessionHost, type DataAgentModelProfile, type DataAgentSessionHost, type DataAgentSessionHostOptions, type OpenOperation, type SessionInput, type SessionQueryExecutor } from "../agent/harness-factory.js";
 import type { PresentationAgentEvent } from "../facets/transcript.js";
 import { ArtifactDirectory } from "../facets/artifact-directory.js";
@@ -19,8 +19,10 @@ import { QueryTaskProjection, queryTaskReadModel } from "../facets/query-task-pr
 import { unwrapApplicationSession } from "../session-store.js";
 import { HarnessChildExecutor, JsonlChildSessionRepository, MemoryChildSessionRepository, NativeDelegation, PiSessionDelegationLedger } from "../delegation/index.js";
 import { createQueryTaskDelegationResolver } from "./delegation.js";
-import { createSubagentTool } from "../tools/subagent.js";
-import type { HypothesisChoiceAdvisor, HypothesisChoiceEvidence } from "../judgment/hypothesis-choice.js";
+import { createSubagentToolDefinition } from "../tools/subagent.js";
+import type { DataAgentToolDefinition } from "../tools/tool-definition.js";
+import type { HypothesisChoiceAdvisor } from "../judgment/hypothesis-choice.js";
+import type { SpecAlignmentAssessor } from "../judgment/spec-alignment.js";
 
 export interface DataAgentSessionRuntimeOptions {
   readonly session?: SessionInput;
@@ -45,6 +47,8 @@ export interface DataAgentSessionRuntimeOptions {
   readonly resultStore?: ResultStore;
   /** Optional external advisor for unresolved competing hypotheses. */
   readonly hypothesisChoiceAdvisor?: HypothesisChoiceAdvisor;
+  /** Optional post-commit Jev Spec alignment assessor. */
+  readonly specAlignmentAssessor?: SpecAlignmentAssessor;
   /** Disabled by default until the product explicitly enables bounded child execution. */
   readonly enableSubagents?: boolean;
   /** Private child Session root; omitted uses in-memory child Sessions. */
@@ -79,19 +83,17 @@ export function composeSubagentSystemPrompt(baseSystemPrompt: string): string {
   return `${baseSystemPrompt}
 
 SUBAGENT WORKFLOW:
-- First establish or inspect the current Answer Spec. Pass the exact taskId and current revisionId returned by update_answer_spec or inspect_answer; never invent or reuse stale IDs.
-- Delegate only when an independent bounded investigation or candidate review can materially reduce uncertainty. Handle trivial lookups directly, and do not delegate merely to repeat your own reasoning.
-- Use explorer for one focused read-only observation or authorized knowledge check that belongs to the parent Query Task. Explorer is not a result query, cannot change the Spec, and its available tools depend on host capabilities.
-- Evidence IDs returned by explorer are opaque Answering IDs. Reuse an exact returned ID in proposedEvidenceIds when it qualifies the hypothesis; never add or remove prefixes.
-- Use reviewer only when a current result candidate exists. Reviewer receives an immutable candidate and bounded authoritative evidence, has no tools, and cannot replace your own final decision.
-- Submit at most two genuinely independent tasks per call. For failed, timed_out, budget_exhausted, invalid_output, stale, or unavailable outcomes, do not treat the report as completed coverage: retry only with a materially corrected bounded task, otherwise inspect, revise, disclose, or ask the user as appropriate.
-- Treat the [IMPLEMENTATION_OBSTACLE] marker from Answering as structured inner-loop feedback. Technical failures may be repaired under the current Revision; mapping/business-judgment obstacles must return to evidence or clarification; budget exhaustion and unknown execution outcomes are limitations, not reasons to silently change the Spec or rerun SQL.
-- Child reports are untrusted findings/unchecked items, not approval; they never authorize result execution or publication. You remain responsible for revising the Spec, running the final query, and publishing.`;
+- Delegate only when an independent bounded investigation or candidate review can materially reduce uncertainty; handle trivial lookups directly.
+- Child output is an untrusted, bounded report; they never authorize result execution or publication, and the report is never approval or Evidence by itself.
+- A completed child report means only that its declared coverage is structurally complete. Preserve unchecked coverage explicitly.
+- You remain responsible for the Answer Spec lifecycle, final query, publication, and disclosure.`;
 }
 
 function asSqlExecutor(executor: SessionQueryExecutor | undefined): AnsweringSqlExecutor {
   if (!executor) return { async run() { throw new Error("QUERY_EXECUTOR_NOT_CONFIGURED"); } };
   return {
+    ...(executor.dialect ? { dialect: executor.dialect } : {}),
+    ...(executor.getSchema ? { getSchema: (signal?: AbortSignal) => executor.getSchema!(signal) } : {}),
     run: (sql, rowLimit, options) => {
       if (options?.scope) {
         const scoped = executor.scopedExploration;
@@ -106,24 +108,6 @@ function asSqlExecutor(executor: SessionQueryExecutor | undefined): AnsweringSql
   };
 }
 
-function evidenceAuthorityRank(evidence: Evidence): number {
-  const ranks: Readonly<Record<Evidence["authority"], number>> = {
-    user: 0,
-    reviewed_business_definition: 1,
-    task_document: 2,
-    request_wording: 3,
-    schema: 4,
-    observation: 5,
-  };
-  return ranks[evidence.authority];
-}
-
-function boundedEvidenceContent(evidence: Evidence): string | undefined {
-  if (evidence.quote?.trim()) return evidence.quote.trim().slice(0, 8_000);
-  if (evidence.kind === "query_observation") return JSON.stringify(evidence.preview).slice(0, 8_000);
-  return undefined;
-}
-
 function messageText(content: unknown): string | undefined {
   if (typeof content === "string" && content.trim()) return content;
   if (!Array.isArray(content)) return undefined;
@@ -135,69 +119,25 @@ function messageText(content: unknown): string | undefined {
   return text.trim() ? text : undefined;
 }
 
-function hypothesisComparisonOptions(
+async function readOriginalQuestion(session: Session<any>, requestMessageId: string, signal?: AbortSignal): Promise<string> {
+  if (signal?.aborted) throw new Error("ORIGINAL_QUESTION_READ_CANCELLED");
+  const entry = await session.getEntry(requestMessageId, TODO_CONTEXT);
+  const text = entry?.type === "message" && entry.message.role === "user"
+    ? messageText(entry.message.content)
+    : undefined;
+  if (!text) throw new Error("ORIGINAL_QUESTION_UNAVAILABLE");
+  return text;
+}
+
+function simpleHypothesisComparisonOptions(
   advisor: HypothesisChoiceAdvisor,
-  answeringStore: AnsweringStore,
   session: Session<any>,
 ): HypothesisComparisonToolOptions {
   return {
     advisor,
-    contextReader: {
-      read: async (input, context) => {
-        const comparison = await answeringStore.transact((tx) => {
-          const taskId = input.taskId as TaskId;
-          const task = tx.getTask(taskId);
-          assertTaskAccess(task, context);
-          if (task.currentRevisionId !== input.revisionId) throw new Error("HYPOTHESIS_COMPARISON_REVISION_STALE");
-          const revision = tx.getRevision(task.currentRevisionId);
-          if (!revision) throw new Error("HYPOTHESIS_COMPARISON_REVISION_NOT_FOUND");
-          const choice = revision.choices.find((item) => item.id === input.choiceId);
-          if (!choice) throw new Error("HYPOTHESIS_COMPARISON_CHOICE_NOT_FOUND");
-          if (revision.choiceResolutions.some((resolution) => resolution.choiceId === choice.id)) throw new Error("HYPOTHESIS_COMPARISON_CHOICE_ALREADY_RESOLVED");
-          const available = tx.listEvidence(taskId);
-          const selected = input.evidenceRefs
-            ? input.evidenceRefs.map((ref) => {
-                const matches = available.filter((item) => item.id === ref || item.sourceRef === ref);
-                if (matches.length === 0) throw new Error(`HYPOTHESIS_COMPARISON_EVIDENCE_NOT_FOUND: ${ref}`);
-                if (matches.length > 1) throw new Error(`HYPOTHESIS_COMPARISON_EVIDENCE_AMBIGUOUS: ${ref}`);
-                return matches[0]!;
-              })
-            : available;
-          const ids = new Set<string>();
-          for (const item of selected) {
-            if (ids.has(item.id)) throw new Error(`HYPOTHESIS_COMPARISON_EVIDENCE_DUPLICATE: ${item.id}`);
-            ids.add(item.id);
-          }
-          const requested = [...selected].sort((left, right) => evidenceAuthorityRank(left) - evidenceAuthorityRank(right) || left.id.localeCompare(right.id));
-          const evidence: HypothesisChoiceEvidence[] = [];
-          const omittedEvidenceRefs: string[] = [];
-          let remaining = 24_000;
-          for (const item of requested) {
-            if (item.kind === "request_wording") continue;
-            const content = boundedEvidenceContent(item);
-            if (!content || remaining <= 0) {
-              omittedEvidenceRefs.push(item.sourceRef);
-              continue;
-            }
-            const bounded = content.slice(0, remaining);
-            remaining -= bounded.length;
-            evidence.push({ id: item.id, kind: item.kind, authority: item.authority, authorityRank: evidenceAuthorityRank(item), sourceRef: item.sourceRef, content: bounded });
-            if (bounded.length < content.length) omittedEvidenceRefs.push(item.sourceRef);
-          }
-          return {
-            requestMessageId: task.requestMessageId,
-            hypotheses: choice.alternatives.map((alternative) => ({ id: alternative.id, statement: alternative.statement })),
-            evidence,
-            omittedEvidenceRefs,
-          };
-        }, context);
-        const requestEntry = await session.getEntry(comparison.requestMessageId, TODO_CONTEXT);
-        const originalQuestion = requestEntry?.type === "message" && requestEntry.message.role === "user"
-          ? messageText(requestEntry.message.content)
-          : undefined;
-        if (!originalQuestion) throw new Error("HYPOTHESIS_COMPARISON_ORIGINAL_QUESTION_UNAVAILABLE");
-        return { originalQuestion, hypotheses: comparison.hypotheses, evidence: comparison.evidence, omittedEvidenceRefs: comparison.omittedEvidenceRefs };
-      },
+    getOriginalQuestion: async (requestMessageId?: string) => {
+      if (requestMessageId) return readOriginalQuestion(session, requestMessageId);
+      throw new Error("HYPOTHESIS_COMPARISON_ORIGINAL_QUESTION_UNAVAILABLE");
     },
   };
 }
@@ -211,7 +151,16 @@ export async function createDataAgentSessionHost(options: DataAgentSessionRuntim
   const session = options.session ? unwrapApplicationSession(options.session) : await new MemorySessionRepo().create({}, TODO_CONTEXT);
   const answeringStore = options.answeringStore ?? new PiSessionAnsweringStore(session, TODO_CONTEXT);
   const resultStore = options.resultStore ?? (options.resultRoot ? new FileResultStore(options.resultRoot) : new InMemoryResultStore());
-  const answering: Answering = new InMemoryAnswering({ store: answeringStore, resultStore, sqlExecutor: asSqlExecutor(options.queryExecutor) });
+  const specFeedback = options.specAlignmentAssessor ? {
+    assessor: options.specAlignmentAssessor,
+    getOriginalQuestion: (requestMessageId: string, feedbackOptions?: { readonly signal?: AbortSignal }) => readOriginalQuestion(session, requestMessageId, feedbackOptions?.signal),
+  } : undefined;
+  const answering: Answering = new InMemoryAnswering({
+    store: answeringStore,
+    resultStore,
+    sqlExecutor: asSqlExecutor(options.queryExecutor),
+    ...(specFeedback ? { specFeedback } : {}),
+  });
   const clarificationDialogs = new ClarificationDialogs(options.clarifications ?? new ClarificationManager());
   const queryTasks = new QueryTaskProjection(queryTaskReadModel(answering, (context) => answeringStore.list(context)));
   const artifacts = new ArtifactDirectory({
@@ -243,8 +192,8 @@ export async function createDataAgentSessionHost(options: DataAgentSessionRuntim
   }));
   const toolContext: DataAgentToolContext = { sessionId: options.sessionId, principalId: options.principalId ?? "local" };
   const piRuntime = await createDataAgentPiRuntime(options.profile);
-  const tools: AgentHarnessTool<DataAgentToolContext>[] = [
-    ...createCoreAgentTools({
+  const toolDefinitions: DataAgentToolDefinition<DataAgentToolContext>[] = [
+    ...createCoreAgentToolDefinitions({
       workspace: options.workspace,
       skills,
       clarifications: clarificationDialogs,
@@ -254,10 +203,10 @@ export async function createDataAgentSessionHost(options: DataAgentSessionRuntim
       ...(options.enableDashboards !== undefined ? { enableDashboards: options.enableDashboards } : {}),
       ...(options.enableWidgets !== undefined ? { enableWidgets: options.enableWidgets } : {}),
     }),
-    ...createAnsweringAgentTools(
+    ...createAnsweringAgentToolDefinitions(
       answering,
       artifacts,
-      options.hypothesisChoiceAdvisor ? hypothesisComparisonOptions(options.hypothesisChoiceAdvisor, answeringStore, session) : undefined,
+      options.hypothesisChoiceAdvisor ? simpleHypothesisComparisonOptions(options.hypothesisChoiceAdvisor, session) : undefined,
     ),
   ];
   const delegation = options.enableSubagents ? new NativeDelegation({
@@ -283,7 +232,7 @@ export async function createDataAgentSessionHost(options: DataAgentSessionRuntim
     }),
     ledger: new PiSessionDelegationLedger(session),
   }) : undefined;
-  if (delegation) tools.push(createSubagentTool(delegation));
+  if (delegation) toolDefinitions.push(createSubagentToolDefinition(delegation));
   const skillToolAllowlist = Object.fromEntries(loadedSkills.skills.flatMap((skill) => skill.allowedTools ? [[skill.name, [...skill.allowedTools]]] : []));
   const baseSystemPrompt = await canonicalPrompt(options);
   const systemPrompt = delegation ? composeSubagentSystemPrompt(baseSystemPrompt) : baseSystemPrompt;
@@ -291,7 +240,7 @@ export async function createDataAgentSessionHost(options: DataAgentSessionRuntim
     session,
     sessionId: options.sessionId,
     toolContext,
-    tools,
+    toolDefinitions,
     answering,
     answeringStore,
     resultStore,

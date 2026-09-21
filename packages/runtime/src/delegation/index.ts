@@ -1,4 +1,5 @@
-import type { AgentHarnessTool, Context, JsonValue } from "@earendil-works/pi-agent-core";
+import type { Context, JsonValue } from "@earendil-works/pi-agent-core";
+import type { DataAgentToolDefinition } from "../tools/tool-definition.js";
 
 export type ChildRole = "explorer" | "reviewer";
 
@@ -92,7 +93,7 @@ export interface ResolvedChildTask {
   readonly targetRef: string;
   readonly prompt: string;
   readonly systemPrompt: string;
-  readonly tools: readonly AgentHarnessTool<ChildToolContext>[];
+  readonly toolDefinitions: readonly DataAgentToolDefinition<ChildToolContext>[];
   readonly allowedEvidenceRefs: Set<string>;
   checkTarget(signal?: AbortSignal): Promise<{ readonly state: "current" | "stale" | "unavailable"; readonly reasons: readonly string[] }>;
 }
@@ -117,7 +118,7 @@ export interface ChildExecutionRequest {
   readonly role: ChildRole;
   readonly prompt: string;
   readonly systemPrompt: string;
-  readonly tools: readonly AgentHarnessTool<ChildToolContext>[];
+  readonly toolDefinitions: readonly DataAgentToolDefinition<ChildToolContext>[];
   readonly timeoutMs: number;
   readonly signal?: AbortSignal;
   readonly onAccepted?: (operationId: string, signal: AbortSignal) => void | Promise<void>;

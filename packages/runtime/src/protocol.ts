@@ -597,3 +597,5 @@ export { WorkspaceStore } from "./workspace.js";
 export { MetadataStore } from "./metadata.js";
 export { KnowledgeIndex } from "./knowledge.js";
 export { DataAgentSessionApplication } from "./application/host.js";
+export { JevHypothesisChoiceAdvisor } from "./adapters/jev-hypothesis-choice-advisor.js";
+export { JevSpecAlignmentAssessor } from "./adapters/jev-spec-alignment-assessor.js";

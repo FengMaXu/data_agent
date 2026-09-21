@@ -1,5 +1,22 @@
 export { AnsweringError, InMemoryAnswering, SqlExecutionError, DEFAULT_QUERY_BUDGET_POLICY } from "./service.js";
-export type { Answering, AnsweringSqlExecutor, InMemoryAnsweringOptions, SqlQueryResult } from "./service.js";
+export type { Answering, AnsweringSqlExecutor, FanoutAnsweringOptions, InMemoryAnsweringOptions, SpecFeedbackOptions, SqlQueryResult } from "./service.js";
+export {
+  checkFanout,
+  hasPotentialFanout,
+  planFanoutTargets,
+  FANOUT_DEFAULT_MAX_INPUT_ROWS,
+  FANOUT_DEFAULT_MAX_TARGETS,
+  FANOUT_RULE_VERSION,
+  type FanoutCheckInput,
+  type FanoutDialect,
+  type FanoutProbeRequest,
+  type FanoutProbeResult,
+  type FanoutProbeRunner,
+  type FanoutSchema,
+  type FanoutSchemaTable,
+  type FanoutTarget,
+  type FanoutPlan,
+} from "./fanout-check.js";
 export { InMemoryAnsweringStore, type AnsweringStore } from "./answering-store.js";
 export { InMemoryResultStore, type ResultStore } from "./result-store.js";
 export {
@@ -7,10 +24,14 @@ export {
   type BeginAnswer,
   type BusinessContext,
   type CheckCoverage,
+  type FanoutProbeObservation,
+  type FanoutReport,
+  type FanoutTargetReport,
   type ImplementationObstacle,
   type ImplementationObstacleKind,
   type QueryAttemptRecord,
   type QueryAttemptKind,
+  type QueryAttemptPurpose,
   type QueryAttemptState,
   type QueryBudgetPolicy,
   type QueryBudgetState,
@@ -22,9 +43,20 @@ export {
   type PublicationReceipt,
   type PublishCandidate,
   type ReviseAnswer,
+  type SpecFeedback,
+  type SpecFeedbackAssessment,
+  type SpecFeedbackChoice,
+  type SpecFeedbackCoverage,
+  type SpecFeedbackDeterministicIssue,
+  type SpecFeedbackFacetAssessment,
+  type SpecFeedbackRelation,
+  type SpecFeedbackRelationProbability,
+  type SpecFeedbackCoverageProbability,
+  type SpecFeedbackStatus,
   type UntrustedEvidenceInput,
   isEvidenceKind,
   isFacetName,
   isHypothesisKind,
   isScopedReadOnlySql,
 } from "./model.js";
+export type { SpecAlignmentAssessor, SpecAlignmentEvidence, SpecAlignmentInput } from "../judgment/spec-alignment.js";
