@@ -66,6 +66,8 @@ describe("Subagent delegation resolver", () => {
     expect(resolved.systemPrompt).toContain("You are assigned exactly one question");
     expect(resolved.systemPrompt).toContain("Omit every section that has no content");
     expect(resolved.systemPrompt).toContain("do not repeat 关键事实");
+    expect(resolved.systemPrompt).toContain("## 查询模板");
+    expect(resolved.systemPrompt).toContain("search the verified query patterns (knowledgeId query-patterns)");
     const sql = tools(resolved).find((tool) => tool.name === "explore_sql")!;
     await expect(sql.execute("forged", { kind: "result", sql: "SELECT 1" }, undefined, childContext, childInvocation("forged"), TODO_CONTEXT)).rejects.toThrow("SUBAGENT_EXPLORATION_INPUT_INVALID");
     await expect(sql.execute("write", { sql: "DELETE FROM orders" }, undefined, childContext, childInvocation("write"), TODO_CONTEXT)).rejects.toThrow("Only one read-only SELECT/WITH statement is allowed");
@@ -192,6 +194,7 @@ describe("Subagent delegation resolver", () => {
     await (await session.createBranch("private-notes", null, TODO_CONTEXT)).appendMessage({ role: "assistant", content: [{ type: "text", text: "SOLVER_PRIVATE_REASONING" }], api: "test", provider: "test", model: "test", usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } }, stopReason: "stop", timestamp: Date.now() }, TODO_CONTEXT);
     const resolved = await resolver.resolve({ key: "review", role: "reviewer", task: "review SQL", taskId: begun.taskId }, { runId: "run-review", childSessionId: "child-review" }, trusted);
     expect(resolved.toolDefinitions).toEqual([]);
+    expect(resolved.systemPrompt).not.toContain("knowledgeId query-patterns");
     expect(resolved.prompt).toContain("SELECT COUNT(*) FROM orders");
     expect(resolved.prompt).toContain("Count completed orders");
     expect(resolved.prompt).not.toContain("SOLVER_PRIVATE_REASONING");

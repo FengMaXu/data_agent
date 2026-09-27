@@ -82,7 +82,7 @@ application = await createDataAgentApplication({
   // Enable bounded reviewer and authorized knowledge exploration. SQL exploration
   // remains unavailable until the host supplies a database-enforced scoped executor.
   enableSubagents: true,
-  delegationKnowledgePaths: ["doc/semantic_guide.md", "doc/rules.md", "doc/business.md", "doc/learning.md"],
+  delegationKnowledgePaths: ["doc/business.md", "doc/db_schema.md", "doc/query_patterns.md", "doc/learning.md", "doc/rules.md", "doc/semantic_guide.md"],
   resolveProfile: async (_context, app) => {
     const saved = (await app.getConfig("ui.settings")) ?? {};
     const config = saved && typeof saved === "object" ? saved : {};

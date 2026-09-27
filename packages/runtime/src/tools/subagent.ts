@@ -94,7 +94,7 @@ export function createSubagentToolDefinition(delegation: Delegation): DataAgentT
   }, {
     promptSnippet: "并行委派 1–4 个信息收集子任务，子 Agent 以 Markdown 报告返回。",
     promptGuidelines: [
-      "查业务定义、表结构、数据取值（枚举、范围、样例、基数）时优先委派 explorer，避免把大段知识和探索结果放进主上下文。",
+      "查业务定义、表结构、数据取值（枚举、范围、样例、基数）或已验证查询模板（query-patterns）时优先委派 explorer，避免把大段知识和探索结果放进主上下文。",
       "派发前按 MECE 原则拆分信息需求：子任务之间互不重叠，合起来覆盖所需信息；每个子 Agent 只执行一个子任务，每个子任务只问一个问题，并写明需要的粒度（如只要列名和类型、只要某字段的取值清单）。explorer 不需要 taskId。",
       "报告只提供信息，口径和 Spec 由你决定；引用业务定义作为证据时使用报告中的逐字引文和 knowledgeId，需要数据观测证据时自己执行一次探索查询。",
     ],
