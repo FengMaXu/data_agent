@@ -8,7 +8,7 @@ import SubagentProgressLines from '../SubagentProgressLines';
 import { LanguageProvider } from '../../context/LanguageContext';
 
 const zh: Record<string, string> = {
-    'chat.subagentLine': 'subagent：{name}  {task}  {tool}/{count}  {elapsed}  产物：{output}',
+    'chat.subagentLine': 'subagent：{name}  工具：{tool}/{count}  用时：{elapsed}  产物：{output}',
     'chat.subagentOutputPending': '待输出',
     'chat.subagentOutputProduced': '已输出',
     'chat.subagentOutputNone': '未输出（{status}）',
@@ -20,9 +20,9 @@ const running: SubagentChildProgress = { key: 'schema', role: 'explorer', task: 
 
 describe('subagent progress presentation', () => {
     it('formats one child in the agreed layout, ticking while running and frozen once ended', () => {
-        expect(formatSubagentLine(running, 22_500, t)).toBe('subagent：schema（explorer）  列出 orders 的列  describe_table/3  12s  产物：待输出');
-        expect(formatSubagentLine({ ...running, currentTool: null, toolCalls: 0 }, 10_000, t)).toContain('—/0  0s');
-        expect(formatSubagentLine({ ...running, status: 'completed', output: 'produced', endedAt: 75_000 }, 999_999, t)).toContain('1m05s  产物：已输出');
+        expect(formatSubagentLine(running, 22_500, t)).toBe('subagent：schema（explorer）  工具：describe_table/3  用时：12s  产物：待输出');
+        expect(formatSubagentLine({ ...running, currentTool: null, toolCalls: 0 }, 10_000, t)).toContain('工具：—/0  用时：0s');
+        expect(formatSubagentLine({ ...running, status: 'completed', output: 'produced', endedAt: 75_000 }, 999_999, t)).toContain('用时：1m05s  产物：已输出');
         expect(formatSubagentLine({ ...running, status: 'timed_out', output: 'none', endedAt: 20_000 }, 30_000, t)).toContain('产物：未输出（超时）');
     });
 
