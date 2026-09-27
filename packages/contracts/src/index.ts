@@ -58,7 +58,16 @@ const RuntimeProbeResponseSchema = Type.Object({ type: Type.Literal("runtime.pro
 const AgentPromptResponseSchema = Type.Object({ type: Type.Literal("agent.prompt.accepted"), runId: Type.String({ minLength: 1 }) });
 const KnowledgeSearchResponseSchema = Type.Object({ type: Type.Literal("knowledge.search.result"), hits: Type.Array(Type.Object({ path: Type.String(), title: Type.String(), category: Type.String(), chunkId: Type.String(), startLine: Type.Integer(), endLine: Type.Integer(), score: Type.Number(), revision: Type.Integer(), snippet: Type.Optional(Type.String()) })) });
 const KnowledgeReadResponseSchema = Type.Object({ type: Type.Literal("knowledge.read.result"), path: Type.String(), content: Type.String() });
-const KnowledgeListResponseSchema = Type.Object({ type: Type.Literal("knowledge.list.result"), files: Type.Array(Type.Object({ path: Type.String(), size: Type.Number(), modifiedAt: Type.Number() })) });
+const KnowledgeListResponseSchema = Type.Object({ type: Type.Literal("knowledge.list.result"), files: Type.Array(Type.Object({
+  path: Type.String(),
+  size: Type.Number(),
+  modifiedAt: Type.Number(),
+  /** Catalog metadata from the document's frontmatter, when it has any. */
+  knowledgeId: Type.Optional(Type.String()),
+  name: Type.Optional(Type.String()),
+  description: Type.Optional(Type.String()),
+  usage: Type.Optional(Type.Union([Type.Literal("method"), Type.Literal("fact")])),
+})) });
 const KnowledgeSaveResponseSchema = Type.Object({ type: Type.Literal("knowledge.save.result"), path: Type.String() });
 const SemanticSourcesResponseSchema = Type.Object({ type: Type.Literal("semantic.sources.result"), sources: Type.Array(Type.Object({ connectionId: Type.String(), sourceName: Type.String(), definition: Type.Unknown(), updatedAt: Type.Number() })) });
 const SemanticSourceResponseSchema = Type.Object({ type: Type.Literal("semantic.source.result"), source: Type.Object({ connectionId: Type.String(), sourceName: Type.String(), definition: Type.Unknown(), updatedAt: Type.Number() }) });

@@ -442,14 +442,22 @@ export class DataAgentRuntime implements ApplicationCommandHost {
       if (command.command.type === "knowledge.search") return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "knowledge.search.result", hits: this.knowledge!.search(command.command.query) } };
       if (command.command.type === "knowledge.list") {
         const { readdir, stat } = await import("node:fs/promises");
-        const files: Array<{ path: string; size: number; modifiedAt: number }> = [];
+        const files: Array<{ path: string; size: number; modifiedAt: number; knowledgeId?: string; name?: string; description?: string; usage?: "method" | "fact" }> = [];
+        const catalog = new Map((this.knowledge?.catalog() ?? []).map((entry) => [entry.path.split(path.sep).join("/"), entry]));
         const walk = async (dir: string): Promise<void> => {
           for (const entry of await readdir(dir, { withFileTypes: true })) {
             const full = dir + "/" + entry.name;
             if (entry.isDirectory()) await walk(full);
             else if (entry.name.endsWith(".md")) {
               const info = await stat(full);
-              files.push({ path: full.slice((this.knowledgeRoot as string).length + 1), size: info.size, modifiedAt: info.mtimeMs });
+              const relativePath = full.slice((this.knowledgeRoot as string).length + 1).split(path.sep).join("/");
+              const entry = catalog.get(relativePath);
+              files.push({
+                path: relativePath,
+                size: info.size,
+                modifiedAt: info.mtimeMs,
+                ...(entry ? { knowledgeId: entry.knowledgeId, name: entry.name, description: entry.description, usage: entry.usage ?? "fact" } : {}),
+              });
             }
           }
         };

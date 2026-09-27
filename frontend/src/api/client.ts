@@ -1017,6 +1017,10 @@ export interface KnowledgeFile {
     size: number;
     modified_at: string;
     type: 'file' | 'directory';
+    /** Catalog name and description from the document's frontmatter. */
+    title?: string;
+    description?: string;
+    knowledgeId?: string;
 }
 
 export interface KnowledgeListResponse {

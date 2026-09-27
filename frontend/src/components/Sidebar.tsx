@@ -112,7 +112,16 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
         setLoadingKnowledge(true);
         try {
             const runtimeFiles = await listKnowledgeViaRuntime();
-            const response = { files: runtimeFiles.map((f) => ({ name: f.path.split('/').pop() || f.path, path: f.path, size: f.size, modified_at: new Date(f.modifiedAt).toISOString(), type: 'file' as const })) };
+            const response = { files: runtimeFiles.map((f) => ({
+                name: f.path.split('/').pop() || f.path,
+                path: f.path,
+                size: f.size,
+                modified_at: new Date(f.modifiedAt).toISOString(),
+                type: 'file' as const,
+                ...(f.name ? { title: f.name } : {}),
+                ...(f.description ? { description: f.description } : {}),
+                ...(f.knowledgeId ? { knowledgeId: f.knowledgeId } : {}),
+            })) };
             setKnowledgeFiles(response.files);
         } catch {
             showToast(t('knowledge.loadFailed') || '加载知识库失败', 'error');
@@ -355,13 +364,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
                     className={`knowledge-file-node ${isDirectory ? 'directory' : 'file'}`}
                     style={{ paddingLeft: `${12 + level * 16}px` }}
                     aria-expanded={isDirectory || children.length > 0 ? expanded : undefined}
+                    title={isDirectory ? item.path : [item.title, item.description, item.path].filter(Boolean).join('\n')}
                     onClick={() => isDirectory || children.length > 0 ? toggleKnowledgePath(item.path) : void openKnowledgeFile(item)}
                 >
                     {isDirectory || children.length > 0 ? (
                         <span className="expand-icon">{expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}</span>
                     ) : <span className="expand-icon" />}
                     {isDirectory ? <Folder size={14} className="file-icon" /> : <FileText size={14} className="file-icon" />}
-                    <span className="file-name">{item.name}</span>
+                    <span className="file-name">{item.title ?? item.name}</span>
                 </button>
                 {expanded && children.map(renderKnowledgeNode)}
             </div>
@@ -642,7 +652,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
                 <div ref={editorOverlayRef} className="editor-modal-overlay" onClick={closeEditor}>
                     <div ref={editorModalRef} className="editor-modal" onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="editor-modal-title" tabIndex={-1}>
                         <div className="editor-modal-header">
-                            <div className="editor-title" id="editor-modal-title"><FileText size={16} aria-hidden="true" /><span>{selectedFile.name}</span></div>
+                            <div className="editor-title" id="editor-modal-title"><FileText size={16} aria-hidden="true" /><span>{selectedFile.title ? `${selectedFile.title}（${selectedFile.name}）` : selectedFile.name}</span></div>
                             <div className="editor-actions">
                                 {isMarkdown && !isEditing && <button type="button" className="action-btn" onClick={() => setIsEditing(true)} title={t('editor.edit')} aria-label={t('editor.edit')}><Edit3 size={14} aria-hidden="true" /></button>}
                                 {isEditing && <button type="button" className="action-btn save" onClick={handleSave} disabled={saving} title={t('editor.save')} aria-label={t('editor.save')}><Save size={14} aria-hidden="true" /></button>}
