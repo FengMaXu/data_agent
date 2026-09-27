@@ -142,7 +142,8 @@ describe("Session Runtime scoped query composition", () => {
   it("routes fact gathering to explorers while the main agent keeps every decision", () => {
     const prompt = composeSubagentSystemPrompt("BASE");
     expect(prompt.startsWith("BASE")).toBe(true);
-    expect(prompt).toContain("业务定义、表结构、数据取值");
+    expect(prompt).toContain("业务定义（business-definitions）、数据库结构（database-schema）");
+    expect(prompt).toContain("已验证查询模版（query-patterns）");
     expect(prompt).toContain("由你决定");
     expect(prompt).toContain("方法类知识");
     expect(prompt).toContain("MECE");

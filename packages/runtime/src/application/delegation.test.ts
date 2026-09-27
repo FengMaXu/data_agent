@@ -66,8 +66,8 @@ describe("Subagent delegation resolver", () => {
     expect(resolved.systemPrompt).toContain("You are assigned exactly one question");
     expect(resolved.systemPrompt).toContain("Omit every section that has no content");
     expect(resolved.systemPrompt).toContain("do not repeat 关键事实");
-    expect(resolved.systemPrompt).toContain("## 查询模板");
-    expect(resolved.systemPrompt).toContain("search the verified query patterns (knowledgeId query-patterns)");
+    expect(resolved.systemPrompt).toContain("## 查询模版");
+    expect(resolved.systemPrompt).toContain("search 已验证查询模版 (knowledgeId query-patterns)");
     const sql = tools(resolved).find((tool) => tool.name === "explore_sql")!;
     await expect(sql.execute("forged", { kind: "result", sql: "SELECT 1" }, undefined, childContext, childInvocation("forged"), TODO_CONTEXT)).rejects.toThrow("SUBAGENT_EXPLORATION_INPUT_INVALID");
     await expect(sql.execute("write", { sql: "DELETE FROM orders" }, undefined, childContext, childInvocation("write"), TODO_CONTEXT)).rejects.toThrow("Only one read-only SELECT/WITH statement is allowed");

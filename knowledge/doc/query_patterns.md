@@ -1,6 +1,6 @@
 ---
 knowledgeId: query-patterns
-name: 已验证查询模式
+name: 已验证查询模版
 description: 提供可复用的查询结构和适用前提；只有当前口径与前提匹配时才能复用。
 ---
 

@@ -113,11 +113,11 @@ export function composeSubagentSystemPrompt(baseSystemPrompt: string): string {
 
 ## 子 Agent 分工
 
-- 信息收集优先交给 \`subagent\` 的 explorer：业务定义、表结构、数据取值（枚举、范围、样例、基数）、已验证查询模板（query-patterns），主上下文只保留报告。
+- 信息收集优先交给 \`subagent\` 的 explorer：业务定义（business-definitions）、数据库结构（database-schema）、数据取值（枚举、范围、样例、基数）、已验证查询模版（query-patterns），主上下文只保留报告。
 - 按 MECE 原则派发：子任务互不重叠、合起来覆盖所需信息；每个子 Agent 只执行一个子任务，每个子任务只回答一个问题。
 - 子 Agent 只提供信息，报告是 Markdown 文档；口径、Answer Spec、最终查询和发布由你决定。
-- 需要计算某个指标时，可让 explorer 查找 query-patterns 中匹配的已验证查询模板，报告会逐字给出模板 SQL 与适用前提；模板只有在当前口径与前提一致时才能复用，是否复用由你判断。
-- 方法类知识（如 semantic-guide、sql-rules）用于指导你的推理，由你自己按需加载；业务文档中的计算公式或计算方法说明同样自己读原文，不依赖子 Agent 的转述。`;
+- 需要计算某个指标时，可让 explorer 在已验证查询模版（query-patterns）中查找匹配的模版，报告会逐字给出模版 SQL 与适用前提；模版只有在当前口径与前提一致时才能复用，是否复用由你判断。
+- 方法类知识（如数据分析语义理解指引（semantic-guide）、SQL 生成规范（sql-rules））用于指导你的推理，由你自己按需加载；业务文档中的计算公式或计算方法说明同样自己读原文，不依赖子 Agent 的转述。`;
 }
 
 /**

@@ -4504,6 +4504,28 @@ body {
   flex: 1;
 }
 
+/* Catalog name, with the knowledgeId the prompts use beneath it. */
+.knowledge-file-node .knowledge-entry-name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  text-align: left;
+  line-height: 1.3;
+}
+
+.knowledge-file-node .knowledge-entry-title,
+.knowledge-file-node .knowledge-entry-id {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.knowledge-file-node .knowledge-entry-id {
+  font-size: 0.7rem;
+  color: var(--text-tertiary);
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+}
+
 /* Sidebar Toast */
 .sidebar-toast {
   position: absolute;
