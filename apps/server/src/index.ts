@@ -149,6 +149,8 @@ export async function createRuntimeServer(
     const hasCursor = typeof rawCursor === "string" && /^\d+$/.test(rawCursor);
     const afterSequence = parseEventCursor(rawCursor);
     reply.raw.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" });
+    // Flush headers now: once the client sees the response, its subscription exists.
+    reply.raw.write(": connected\n\n");
     let replaying = true;
     let closed = false;
     const pending: DataAgentEventEnvelope[] = [];
@@ -167,7 +169,10 @@ export async function createRuntimeServer(
       else send(envelope);
     }, { userId: context.userId, ...(query.session_id ? { sessionId: query.session_id } : {}) });
     if (hasCursor) {
-      for (const envelope of runtime.eventsAfter(afterSequence, { userId: context.userId, ...(query.session_id ? { sessionId: query.session_id } : {}) })) send(envelope);
+      const replay = runtime.replayAfter(afterSequence, { userId: context.userId, ...(query.session_id ? { sessionId: query.session_id } : {}) });
+      // A partial replay would splice a hole into the client's state; it reloads a snapshot instead.
+      if (replay.complete) for (const envelope of replay.events) send(envelope);
+      else if (!closed) reply.raw.write(`event: resync\ndata: ${JSON.stringify({ afterSequence })}\n\n`);
     }
     replaying = false;
     for (const envelope of pending) send(envelope);

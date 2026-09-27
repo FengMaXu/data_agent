@@ -4,6 +4,8 @@ import type { SSEEvent, WidgetSpec } from "./client";
 
 export interface RuntimeChatHandle { cancel: () => void; finished: Promise<void> }
 
+const STREAM_CONNECT_WAIT_MS = 5_000;
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
@@ -186,6 +188,7 @@ export function sendChatViaRuntime(
   onError: (err: unknown) => void,
   onFinish: () => void,
   sessionId?: string,
+  onResync?: () => void,
 ): RuntimeChatHandle {
   let activeMessageId = "";
   let operationId: string | undefined;
@@ -199,6 +202,9 @@ export function sendChatViaRuntime(
     onFinish();
   };
 
+  // The prompt is sent only once the stream is subscribed, so the run's first events cannot be missed.
+  let markConnected!: () => void;
+  const connected = new Promise<void>((resolve) => { markConnected = resolve; });
   const unsubscribe = subscribeRuntimeEvents((raw) => {
     const envelope = readRuntimeEnvelope(raw);
     if (!envelope) return;
@@ -227,9 +233,15 @@ export function sendChatViaRuntime(
     onEvent(adapted);
     if (event.type === "agent.tool_finished") toolArgumentsById.delete(toolCallId);
     if (event.type === "agent.completed") handleFinish();
-  }, sessionId);
+  }, sessionId, { onConnected: () => markConnected(), ...(onResync ? { onResync } : {}) });
   const finished = (async () => {
     try {
+      // A stream that cannot connect must not block the prompt; its failure surfaces on dispatch.
+      await new Promise<void>((resolve) => {
+        const timer = setTimeout(resolve, STREAM_CONNECT_WAIT_MS);
+        void connected.then(() => { clearTimeout(timer); resolve(); });
+      });
+      if (isDone) return;
       const accepted = await getRuntimeClient().dispatch({ type: "agent.prompt", prompt }, sessionId);
       if (accepted.response.type === "agent.prompt.accepted") operationId = accepted.response.runId;
     } catch (err) {

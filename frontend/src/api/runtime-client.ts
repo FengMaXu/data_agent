@@ -231,13 +231,26 @@ export async function answerClarificationViaRuntime(clarificationId: string, ans
   await getRuntimeClient().dispatch({ type: "clarification.answer", clarificationId, answer }, sessionId);
 }
 
+export interface RuntimeEventStreamOptions {
+  /** The server subscription exists; events emitted from now on will arrive. */
+  readonly onConnected?: () => void;
+  /** Events after the cursor were lost; the subscriber must reload a snapshot. */
+  readonly onResync?: () => void;
+}
+
 export function subscribeRuntimeEvents(
   listener: (envelope: unknown) => void,
   sessionId?: string,
+  options: RuntimeEventStreamOptions = {},
 ): () => void {
   if (typeof window === "undefined") return () => undefined;
   const runtimeClient = getRuntimeClient();
-  if (runtimeClient.onEvent) return runtimeClient.onEvent(listener, sessionId);
+  if (runtimeClient.onEvent) {
+    // The Electron bridge subscribes synchronously and never drops events.
+    const unsubscribe = runtimeClient.onEvent(listener, sessionId);
+    options.onConnected?.();
+    return unsubscribe;
+  }
 
   const configuredBase = import.meta.env.VITE_API_BASE_URL;
   const base = typeof configuredBase === "string" ? configuredBase.trim().replace(/\/$/, "") : "";
@@ -254,6 +267,7 @@ export function subscribeRuntimeEvents(
     try {
       const response = await apiFetch(endpoint, { headers: { Accept: "text/event-stream" }, signal: controller.signal });
       if (!response.ok || !response.body) throw new Error(`Runtime event stream failed: ${response.status}`);
+      options.onConnected?.();
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
@@ -265,8 +279,12 @@ export function subscribeRuntimeEvents(
         while (boundary >= 0) {
           const block = buffer.slice(0, boundary);
           buffer = buffer.slice(boundary + 2);
-          const data = block.split("\n").filter((line) => line.startsWith("data:")).map((line) => line.slice(5).trimStart()).join("\n");
-          if (data) {
+          const lines = block.split("\n");
+          const eventName = lines.find((line) => line.startsWith("event:"))?.slice(6).trim();
+          const data = lines.filter((line) => line.startsWith("data:")).map((line) => line.slice(5).trimStart()).join("\n");
+          if (eventName === "resync") {
+            options.onResync?.();
+          } else if (data) {
             try {
               const payload = JSON.parse(data) as unknown;
               if (payload && typeof payload === "object" && typeof (payload as { sequence?: unknown }).sequence === "number") {

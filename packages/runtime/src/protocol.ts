@@ -21,7 +21,7 @@ import { renderSemanticDashboardHtml, validateDashboardV4Spec } from "./dashboar
 import { loadSkillsFromRoots, resolveSkillRoots } from "./skills.js";
 import { LocalAuthService } from "./auth.js";
 import type { ApplicationAgentEvent } from "./application/host.js";
-import type { ApplicationCommandHost, ApplicationEventFilter } from "./application/protocol-host.js";
+import type { ApplicationCommandHost, ApplicationEventFilter, EventReplay } from "./application/protocol-host.js";
 import type { TranscriptMessage } from "./facets/transcript.js";
 import { readBoundedFile } from "./bounded-read.js";
 
@@ -138,8 +138,17 @@ export class DataAgentRuntime implements ApplicationCommandHost {
 
   get pythonExecutablePath(): string | undefined { return this.pythonExecutable; }
 
-  eventsAfter(sequence: number, filter?: ApplicationEventFilter): readonly DataAgentEventEnvelope[] {
-    return this.eventBuffer.filter((event) => event.sequence > sequence && this.eventVisible(event, filter));
+  /**
+   * Replays buffered events after a cursor. The buffer is bounded, so a cursor
+   * older than its first retained event means events were lost; `complete`
+   * then tells the transport to have the client resynchronize from a snapshot.
+   */
+  replayAfter(sequence: number, filter?: ApplicationEventFilter): EventReplay {
+    const first = this.eventBuffer[0]?.sequence ?? this.nextSequence;
+    return {
+      events: this.eventBuffer.filter((event) => event.sequence > sequence && this.eventVisible(event, filter)),
+      complete: sequence >= first - 1,
+    };
   }
 
   subscribe(listener: DataAgentEventListener, filter?: ApplicationEventFilter): () => void {

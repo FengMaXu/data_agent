@@ -15,8 +15,20 @@ describe("protocol application host", () => {
     const result = await runtime.dispatch({ protocolVersion: 1, requestId: "req-1", command: { type: "runtime.probe" } }, context);
     expect(result.response.type).toBe("runtime.probe.result");
     expect(events).toHaveLength(1);
-    expect(runtime.eventsAfter(0, { userId: "local" })).toHaveLength(1);
-    expect(runtime.eventsAfter(1, { userId: "local" })).toHaveLength(0);
+    expect(runtime.replayAfter(0, { userId: "local" })).toMatchObject({ events: [expect.anything()], complete: true });
+    expect(runtime.replayAfter(1, { userId: "local" })).toEqual({ events: [], complete: true });
+  });
+
+  it("reports an incomplete replay once events after the cursor were evicted", async () => {
+    const runtime = new DataAgentRuntime();
+    for (let index = 0; index < 300; index += 1) {
+      await runtime.dispatch({ protocolVersion: 1, requestId: `req-${index}`, command: { type: "runtime.probe" } }, context);
+    }
+    const stale = runtime.replayAfter(10, { userId: "local" });
+    expect(stale.complete).toBe(false);
+    expect(stale.events).toHaveLength(256);
+    expect(runtime.replayAfter(44, { userId: "local" }).complete).toBe(true);
+    expect(runtime.replayAfter(300, { userId: "local" })).toEqual({ events: [], complete: true });
   });
 
   it("requires a native Application Agent adapter to return an operation identity", async () => {

@@ -12,7 +12,7 @@ export {
   type DataAgentApplicationOptions,
   type HostRequestContext,
 } from "./application/data-agent-application.js";
-export type { ApplicationAuthService, ApplicationAuthUser, ApplicationCommandHost, ApplicationEventFilter } from "./application/protocol-host.js";
+export type { ApplicationAuthService, ApplicationAuthUser, ApplicationCommandHost, ApplicationEventFilter, EventReplay } from "./application/protocol-host.js";
 
 export type {
   DataAgentCommand,

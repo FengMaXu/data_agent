@@ -20,7 +20,7 @@ import {
     type AgentTerminalReason,
 } from '../api/client';
 import { clearSessionViaRuntime } from '../api/runtime-client';
-import { answerClarificationViaRuntime, steerAgentViaRuntime, stopAgentViaRuntime } from '../api/runtime-client';
+import { answerClarificationViaRuntime, getTranscriptViaRuntime, steerAgentViaRuntime, stopAgentViaRuntime } from '../api/runtime-client';
 import { sendChatViaRuntime } from '../api/chat-events';
 import type { ToolData } from './ToolPanel';
 import { useSession, type Session, type Task } from '../hooks/useSession';
@@ -261,10 +261,9 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
         onUpdateToolsRef.current = onUpdateTools;
     }, [onUpdateTools]);
 
-    useEffect(() => {
-        isRestoringRef.current = true;
-        currentSessionIdRef.current = currentSession.id;
-        const restoredMessages = currentTranscript.map(fromSnapshotMessage);
+    /** Replace the rendered conversation with a server snapshot and rebuild the live buffers from it. */
+    const replaceWithSnapshot = useCallback((snapshot: SessionSnapshotMessage[]) => {
+        const restoredMessages = snapshot.map(fromSnapshotMessage);
         setMessages(restoredMessages);
         activeAgentMessageIdRef.current = null;
         pendingAgentMessageIdRef.current = null;
@@ -280,13 +279,33 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                 };
             }
         });
+    }, []);
+
+    /**
+     * Live events were lost (the stream fell behind the server's buffer). Reload
+     * what the server has committed; the message still streaming is only
+     * complete once committed, so the caller reloads again when the run ends.
+     */
+    const resyncFromServer = useCallback(async (sessionId: string) => {
+        try {
+            const snapshot = await getTranscriptViaRuntime(sessionId);
+            if (currentSessionIdRef.current === sessionId) replaceWithSnapshot(snapshot);
+        } catch (error) {
+            console.error('Failed to resynchronize the session transcript', error);
+        }
+    }, [replaceWithSnapshot]);
+
+    useEffect(() => {
+        isRestoringRef.current = true;
+        currentSessionIdRef.current = currentSession.id;
+        replaceWithSnapshot(currentTranscript);
         setIsStreaming(false);
         setRunReason(null);
         setPendingClarification(null);
         setClarificationInput('');
         setIsSubmittingClarification(false);
         onUpdateToolsRef.current?.([]);
-    }, [currentSession.id]);
+    }, [currentSession.id, replaceWithSnapshot]);
 
     useEffect(() => {
         if (isRestoringRef.current) {
@@ -521,6 +540,8 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
             }
         };
 
+        const runSessionId = currentSession.id;
+        let streamLostEvents = false;
         streamHandleRef.current = await sendChatViaRuntime(
             content,
             (event: SSEEvent) => {
@@ -836,8 +857,13 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                 activeAgentMessageIdRef.current = null;
                 pendingAgentMessageIdRef.current = null;
                 streamHandleRef.current = null;
+                if (streamLostEvents) void resyncFromServer(runSessionId);
             },
-            currentSession.id,
+            runSessionId,
+            () => {
+                streamLostEvents = true;
+                void resyncFromServer(runSessionId);
+            },
         );
     };
 

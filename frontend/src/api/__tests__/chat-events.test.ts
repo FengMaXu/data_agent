@@ -3,6 +3,8 @@ import { mapRuntimeEvent, sendChatViaRuntime } from '../chat-events';
 import { mergeToolResultState } from '../../components/tool-event-state';
 
 let runtimeListener: ((event: unknown) => void) | undefined;
+let runtimeOptions: { onConnected?: () => void; onResync?: () => void } | undefined;
+let connectImmediately = true;
 let runtimeSequence = 0;
 const unsubscribe = vi.fn();
 const dispatch = vi.fn(async () => ({
@@ -10,7 +12,9 @@ const dispatch = vi.fn(async () => ({
 }));
 
 vi.mock('../runtime-client', () => ({
-    subscribeRuntimeEvents: vi.fn((listener: (event: unknown) => void) => {
+    subscribeRuntimeEvents: vi.fn((listener: (event: unknown) => void, _sessionId?: string, options?: { onConnected?: () => void; onResync?: () => void }) => {
+        runtimeOptions = options;
+        if (connectImmediately) options?.onConnected?.();
         runtimeListener = (raw) => {
             const value = raw && typeof raw === 'object' ? raw as { sessionId?: unknown; event?: unknown } : {};
             listener({
@@ -103,8 +107,35 @@ describe('runtime chat event replay', () => {
     beforeEach(() => {
         runtimeListener = undefined;
         runtimeSequence = 0;
+        connectImmediately = true;
         unsubscribe.mockReset();
         dispatch.mockClear();
+    });
+
+    it('sends the prompt only after the event stream is subscribed', async () => {
+        connectImmediately = false;
+        const handle = sendChatViaRuntime('hello', vi.fn(), vi.fn(), vi.fn());
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        expect(dispatch).not.toHaveBeenCalled();
+        runtimeOptions?.onConnected?.();
+        await handle.finished;
+        expect(dispatch).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not send the prompt when cancelled before the stream connects', async () => {
+        connectImmediately = false;
+        const handle = sendChatViaRuntime('hello', vi.fn(), vi.fn(), vi.fn());
+        handle.cancel();
+        runtimeOptions?.onConnected?.();
+        await handle.finished;
+        expect(dispatch).not.toHaveBeenCalled();
+    });
+
+    it('forwards a resync request to the chat', () => {
+        const onResync = vi.fn();
+        sendChatViaRuntime('hello', vi.fn(), vi.fn(), vi.fn(), 'session-1', onResync);
+        runtimeOptions?.onResync?.();
+        expect(onResync).toHaveBeenCalledTimes(1);
     });
 
     it('replays message and tool events with session identity and original arguments', async () => {

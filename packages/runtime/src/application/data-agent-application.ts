@@ -13,7 +13,7 @@ import {
   type ApplicationResources,
   type HostRequestContext,
 } from "./host.js";
-import type { ApplicationAuthService, ApplicationCommandHost, ApplicationEventFilter } from "./protocol-host.js";
+import type { ApplicationAuthService, ApplicationCommandHost, ApplicationEventFilter, EventReplay } from "./protocol-host.js";
 import { JevHypothesisChoiceAdvisor } from "../adapters/jev-hypothesis-choice-advisor.js";
 import { JevSpecAlignmentAssessor } from "../adapters/jev-spec-alignment-assessor.js";
 
@@ -188,7 +188,7 @@ export class DataAgentApplication implements ApplicationCommandHost {
     return this.runtime.dispatch(command, context);
   }
   subscribe(listener: (event: DataAgentEventEnvelope) => void, filter?: ApplicationEventFilter): () => void { return this.runtime.subscribe(listener, filter); }
-  eventsAfter(sequence: number, filter?: ApplicationEventFilter): readonly DataAgentEventEnvelope[] { return this.runtime.eventsAfter(sequence, filter); }
+  replayAfter(sequence: number, filter?: ApplicationEventFilter): EventReplay { return this.runtime.replayAfter(sequence, filter); }
 
   getConfig(key: string): Promise<unknown> { return this.metadata.getConfig(key); }
   setConfig(key: string, value: unknown): Promise<void> { return this.metadata.setConfig(key, value); }

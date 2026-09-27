@@ -25,10 +25,16 @@ export interface ApplicationEventFilter {
   readonly sessionId?: string;
 }
 
+/** Buffered events after a cursor; `complete` is false when some were already evicted. */
+export interface EventReplay {
+  readonly events: readonly DataAgentEventEnvelope[];
+  readonly complete: boolean;
+}
+
 export interface ApplicationCommandHost {
   dispatch(command: DataAgentCommandEnvelope, context: RequestContext): Promise<DataAgentResponseEnvelope>;
   subscribe(listener: (event: DataAgentEventEnvelope) => void, filter?: ApplicationEventFilter): () => void;
-  eventsAfter(sequence: number, filter?: ApplicationEventFilter): readonly DataAgentEventEnvelope[];
+  replayAfter(sequence: number, filter?: ApplicationEventFilter): EventReplay;
   readonly authService: ApplicationAuthService;
   queryExecutor?: {
     run(sql: string, rowLimit: number, options?: { readonly idempotencyKey?: string }): Promise<{ readonly columns: string[]; readonly rows: unknown[][]; readonly truncated: boolean }>;
