@@ -19,7 +19,8 @@ import { unwrapApplicationSession, type SessionInput } from "../session-store.js
 import { ToolPromptCatalog } from "./tool-prompt-catalog.js";
 import { withToolPromptCatalog } from "./tool-prompt-models.js";
 import { isSkillAvailable, renderSkillCatalog, type SkillCatalogEntry } from "./skill-prompt-catalog.js";
-import { LengthContinuationGuard } from "./length-continuation.js";
+import { LENGTH_CONTINUATION_PROMPT, LengthContinuationGuard } from "./length-continuation.js";
+import { RUNTIME_INJECTED_LABEL } from "../runtime-injected.js";
 import { infrastructureFailureOf } from "./infrastructure-failure.js";
 import type { DataAgentToolDefinition } from "../tools/tool-definition.js";
 
@@ -283,10 +284,22 @@ export async function createPiSessionHost(options: DataAgentSessionHostOptions):
   const harness = created.harness;
   // A reply that fills the output limit while still thinking would otherwise end the run silently.
   const lengthContinuation = new LengthContinuationGuard();
+  const pendingContinuations = new Set<string>();
   harness.hooks.on("before_run_end", (event) => {
     const followUp = lengthContinuation.followUp(event.runId, event.messages);
+    if (followUp) pendingContinuations.add(event.runId);
+    else pendingContinuations.delete(event.runId);
     return followUp ? { followUp } : undefined;
   }, { id: "data-agent-length-continuation" });
+  // Pi commits the follow-up verbatim as a user-role entry of the same run.
+  // Label that entry so it is never shown or admitted as the user's words.
+  harness.events.on("message_end", (event) => {
+    if (!event.runId || !event.entryId || !pendingContinuations.has(event.runId)) return;
+    if (event.message.role !== "user" || event.message.content !== LENGTH_CONTINUATION_PROMPT) return;
+    pendingContinuations.delete(event.runId);
+    void harness.setLabel(event.entryId, RUNTIME_INJECTED_LABEL, TODO_CONTEXT)
+      .catch((error) => console.error("[data-agent] failed to label runtime-injected message", error));
+  });
   const lane = await harness.lane("main", TODO_CONTEXT);
   activeLane = lane;
   // A lost database is terminal for the operation; the Agent must not work around it.

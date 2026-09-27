@@ -6,6 +6,8 @@ import { InMemoryAnswering } from "../answering/service.js";
 import { InMemoryAnsweringStore } from "../answering/answering-store.js";
 import { InMemoryResultStore } from "../answering/result-store.js";
 import { createPiSessionHost } from "./harness-factory.js";
+import { createEvidenceSource } from "../application/session-runtime.js";
+import { RUNTIME_INJECTED_LABEL } from "../runtime-injected.js";
 import { LENGTH_CONTINUATION_PROMPT, LengthContinuationGuard, MAX_LENGTH_CONTINUATIONS, endedByOutputLimit } from "./length-continuation.js";
 
 describe("length continuation guard", () => {
@@ -53,7 +55,7 @@ async function hostWith(responses: Parameters<ReturnType<typeof fauxProvider>["s
     clarificationDialogs: { subscribe: () => () => undefined } as never,
     piRuntime: { models, model: faux.models[0] },
   });
-  return { faux, host };
+  return { faux, host, session };
 }
 
 /** A reply that genuinely reaches the output limit: Pi treats it as final, not as overflow. */
@@ -93,5 +95,74 @@ describe("main agent length continuation", () => {
       await host.close();
     }
     expect(endedByOutputLimit([{ role: "assistant", stopReason: "length", content: [fauxToolCall("x", {}, { id: "t" })] }])).toBe(false);
+  });
+});
+
+describe("runtime-injected continuation messages", () => {
+  async function userEntries(session: Awaited<ReturnType<typeof hostWith>>["session"]) {
+    const entries = await session.findEntries({ type: "message" }, TODO_CONTEXT);
+    const users = entries.filter((entry) => entry.type === "message" && entry.message.role === "user");
+    return Promise.all(users.map(async (entry) => ({ id: entry.id, label: await session.getLabel(entry.id, TODO_CONTEXT) })));
+  }
+
+  it.each([1, 2])("keeps %i continuation(s) in the model context but out of the user's transcript", async (continuations) => {
+    let fallback = 0;
+    const cut = async (_context: Context, options?: { maxTokens?: number }) => limitReached(options?.maxTokens, fallback);
+    const { faux, host, session } = await hostWith([
+      ...Array.from({ length: continuations }, () => cut),
+      async (context) => {
+        expect(JSON.stringify(context.messages)).toContain(LENGTH_CONTINUATION_PROMPT);
+        return fauxAssistantMessage("Continued and finished.");
+      },
+    ]);
+    fallback = faux.models[0].maxTokens;
+    try {
+      const accepted = await host.controller.prompt("Count orders.");
+      await host.lane.drive({ operationId: accepted.operationId }, TODO_CONTEXT);
+      const messages = await host.facets.transcript.messages();
+      expect(messages.filter((message) => message.role === "user").map((message) => message.content)).toEqual(["Count orders."]);
+      const labels = (await userEntries(session)).map((entry) => entry.label);
+      expect(labels.filter((label) => label === RUNTIME_INJECTED_LABEL)).toHaveLength(continuations);
+    } finally {
+      await host.close();
+    }
+  });
+
+  it("shows a real user message whose text equals the continuation prompt", async () => {
+    let fallback = 0;
+    const { faux, host } = await hostWith([
+      async (_context, options) => limitReached(options?.maxTokens, fallback),
+      fauxAssistantMessage("Continued and finished."),
+    ]);
+    fallback = faux.models[0].maxTokens;
+    try {
+      const accepted = await host.controller.prompt(LENGTH_CONTINUATION_PROMPT);
+      await host.lane.drive({ operationId: accepted.operationId }, TODO_CONTEXT);
+      const users = (await host.facets.transcript.messages()).filter((message) => message.role === "user");
+      expect(users.map((message) => message.content)).toEqual([LENGTH_CONTINUATION_PROMPT]);
+    } finally {
+      await host.close();
+    }
+  });
+
+  it("is never admitted as a user message", async () => {
+    let fallback = 0;
+    const { faux, host, session } = await hostWith([
+      async (_context, options) => limitReached(options?.maxTokens, fallback),
+      fauxAssistantMessage("Continued and finished."),
+    ]);
+    fallback = faux.models[0].maxTokens;
+    try {
+      const accepted = await host.controller.prompt("Count orders.");
+      await host.lane.drive({ operationId: accepted.operationId }, TODO_CONTEXT);
+      const entries = await userEntries(session);
+      const injected = entries.find((entry) => entry.label === RUNTIME_INJECTED_LABEL)!;
+      const request = entries.find((entry) => entry.label === undefined)!;
+      const source = createEvidenceSource({ session, sessionId: "length-session" });
+      await expect(source.readUserMessage("length-session", injected.id)).resolves.toBeUndefined();
+      await expect(source.readUserMessage("length-session", request.id)).resolves.toBe("Count orders.");
+    } finally {
+      await host.close();
+    }
   });
 });

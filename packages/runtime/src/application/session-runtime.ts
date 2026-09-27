@@ -23,6 +23,7 @@ import { createSubagentToolDefinition } from "../tools/subagent.js";
 import type { DataAgentToolDefinition } from "../tools/tool-definition.js";
 import type { HypothesisChoiceAdvisor } from "../judgment/hypothesis-choice.js";
 import type { SpecAlignmentAssessor } from "../judgment/spec-alignment.js";
+import { isRuntimeInjected } from "../runtime-injected.js";
 
 export interface DataAgentSessionRuntimeOptions {
   readonly session?: SessionInput;
@@ -166,9 +167,10 @@ function messageText(content: unknown): string | undefined {
 async function readUserMessageText(session: Session<any>, messageId: string, signal?: AbortSignal): Promise<string | undefined> {
   if (signal?.aborted) throw new Error("ORIGINAL_QUESTION_READ_CANCELLED");
   const entry = await session.getEntry(messageId, TODO_CONTEXT);
-  return entry?.type === "message" && entry.message.role === "user"
-    ? messageText(entry.message.content)
-    : undefined;
+  if (entry?.type !== "message" || entry.message.role !== "user") return undefined;
+  // A Runtime-injected follow-up is user-role in Pi but was never said by the user.
+  if (isRuntimeInjected(await session.getLabel(messageId, TODO_CONTEXT))) return undefined;
+  return messageText(entry.message.content);
 }
 
 async function readOriginalQuestion(session: Session<any>, requestMessageId: string, signal?: AbortSignal): Promise<string> {

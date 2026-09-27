@@ -2,6 +2,7 @@ import type { DataAgentEventEnvelope, DataAgentEvent } from "@data-agent/contrac
 import type { AgentHarness, HarnessEvent } from "@earendil-works/pi-agent-core";
 import { TODO_CONTEXT } from "@earendil-works/pi-agent-core";
 import { isWidgetLifecycleDetails, validateWidgetSpec } from "../widget.js";
+import { isRuntimeInjected } from "../runtime-injected.js";
 
 export interface ProjectedOperation {
   readonly requestId: string;
@@ -95,8 +96,12 @@ function timestampFromEntry(value: unknown): number {
   return 0;
 }
 
-/** Compile a Pi lane snapshot into the stable wire transcript projection. */
-export function transcriptMessagesFromSnapshot(snapshot: TranscriptSnapshot): readonly TranscriptMessage[] {
+/**
+ * Compile a Pi lane snapshot into the stable wire transcript projection.
+ * `hiddenEntryIds` names Runtime-injected user-role entries: they stay in the
+ * model context but are not something the user said.
+ */
+export function transcriptMessagesFromSnapshot(snapshot: TranscriptSnapshot, hiddenEntryIds: ReadonlySet<string> = new Set()): readonly TranscriptMessage[] {
   const messages: TranscriptMessage[] = [];
   const toolOwners = new Map<string, { snapshot: TranscriptMessage; tool: Record<string, unknown> }>();
   const entries = [...snapshot.transcript].sort((left, right) => {
@@ -112,6 +117,7 @@ export function transcriptMessagesFromSnapshot(snapshot: TranscriptSnapshot): re
     const entryId = typeof entry.id === "string" ? entry.id : "entry";
     const timestamp = timestampFromEntry(entry.timestamp);
     if (message.role === "user") {
+      if (hiddenEntryIds.has(entryId)) continue;
       const content = textFromContent(message.content);
       if (content) messages.push({ id: entryId, role: "user", content, timestamp });
       continue;
@@ -443,7 +449,14 @@ export class PiTranscriptFacet {
   }
 
   async messages(): Promise<readonly TranscriptMessage[]> {
-    return transcriptMessagesFromSnapshot(await this.snapshot());
+    const snapshot = await this.snapshot();
+    const userEntryIds = snapshot.transcript.flatMap((value) => {
+      const entry = asRecord(value);
+      return entry?.type === "message" && asRecord(entry.message)?.role === "user" && typeof entry.id === "string" ? [entry.id] : [];
+    });
+    const labels = await Promise.all(userEntryIds.map((id) => this.harness.getLabel(id, TODO_CONTEXT)));
+    const hidden = new Set(userEntryIds.filter((_, index) => isRuntimeInjected(labels[index])));
+    return transcriptMessagesFromSnapshot(snapshot, hidden);
   }
 
   close(): void {
