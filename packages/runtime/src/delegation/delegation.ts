@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type {
+  ChildProgressEvent,
   ChildExecutor,
   ChildOutcome,
   ChildOutcomeStatus,
@@ -203,11 +204,18 @@ export class NativeDelegation implements Delegation {
           throw error;
         }
       }
+      const progress = (event: ChildProgressEvent): void => {
+        try { context.onProgress?.(event); } catch { /* presentation must not affect delegation */ }
+      };
       return await Promise.all(assigned.map(async ({ task, base }) => {
+        const settle = (outcome: ChildOutcome): ChildOutcome => {
+          progress({ key: task.key, type: "settled", status: outcome.status, reported: outcome.report !== undefined, at: Date.now() });
+          return outcome;
+        };
         try {
-          return await this.runOne(task, base, context, effectiveSignal);
+          return settle(await this.runOne(task, base, context, effectiveSignal, progress));
         } catch (error) {
-          return {
+          return settle({
             key: task.key,
             runId: base.runId,
             childSessionId: base.childSessionId,
@@ -218,7 +226,7 @@ export class NativeDelegation implements Delegation {
             terminalConfirmed: false,
             usage: { inputTokens: null, outputTokens: null, cost: null },
             error: boundedError(error),
-          };
+          });
         }
       }));
     } finally {
@@ -228,9 +236,10 @@ export class NativeDelegation implements Delegation {
     }
   }
 
-  private async runOne(task: SubagentTask, base: DelegationLedgerRecord, context: TrustedDelegationContext, signal?: AbortSignal): Promise<ChildOutcome> {
+  private async runOne(task: SubagentTask, base: DelegationLedgerRecord, context: TrustedDelegationContext, signal?: AbortSignal, progress: (event: ChildProgressEvent) => void = () => undefined): Promise<ChildOutcome> {
     let targetRef = initialTargetRef(task);
     const startedAt = Date.now();
+    progress({ key: task.key, type: "started", at: startedAt });
     let deadlineExpired = false;
     let parentLease: ConcurrencyLease | undefined;
     const runController = new AbortController();
@@ -285,6 +294,7 @@ export class NativeDelegation implements Delegation {
           toolDefinitions: resolved.toolDefinitions,
           timeoutMs: remainingMs,
           signal: delegatedSignal,
+          onToolStarted: (toolName) => progress({ key: task.key, type: "tool_started", toolName, at: Date.now() }),
           onAccepted: async (operationId, acceptedSignal) => {
             await this.options.ledger.append({ ...base, state: "accepted", operationId, recordedAt: now() }, acceptedSignal);
             if (context.memo) await awaitWithSignal(context.memo.set(`subagent-${base.runId}`, { childSessionId: base.childSessionId, operationId }), acceptedSignal);

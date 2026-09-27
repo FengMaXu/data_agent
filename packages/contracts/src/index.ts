@@ -108,12 +108,42 @@ const WidgetEventFields = {
   widgetId: Type.String({ minLength: 1 }),
 };
 
+/** One delegated child as shown while a `subagent` call runs; never carries SQL, reports or tool arguments. */
+export const SubagentChildProgressSchema = Type.Object({
+  key: Type.String({ minLength: 1, maxLength: 128 }),
+  role: Type.Union([Type.Literal("explorer"), Type.Literal("reviewer")]),
+  task: Type.String({ maxLength: 512 }),
+  currentTool: Type.Union([Type.String({ maxLength: 128 }), Type.Null()]),
+  toolCalls: Type.Integer({ minimum: 0 }),
+  startedAt: Type.Integer({ minimum: 0 }),
+  endedAt: Type.Optional(Type.Integer({ minimum: 0 })),
+  status: Type.Union([
+    Type.Literal("running"),
+    Type.Literal("completed"),
+    Type.Literal("failed"),
+    Type.Literal("cancelled"),
+    Type.Literal("interrupted"),
+    Type.Literal("timed_out"),
+    Type.Literal("budget_exhausted"),
+    Type.Literal("invalid_output"),
+    Type.Literal("abort_unconfirmed"),
+  ]),
+  output: Type.Union([Type.Literal("pending"), Type.Literal("produced"), Type.Literal("none")]),
+}, { additionalProperties: false });
+export type SubagentChildProgress = Static<typeof SubagentChildProgressSchema>;
+export const ToolProgressSchema = Type.Union([
+  Type.Object({ kind: Type.Literal("subagent"), children: Type.Array(SubagentChildProgressSchema, { maxItems: 4 }) }, { additionalProperties: false }),
+]);
+export type ToolProgress = Static<typeof ToolProgressSchema>;
+export function isToolProgress(value: unknown): value is ToolProgress { return Value.Check(ToolProgressSchema, value); }
+
 export const DataAgentEventSchema = Type.Union([
   Type.Object({ type: Type.Literal("runtime.probe.completed"), service: Type.Literal("data-agent-runtime") }),
   Type.Object({ type: Type.Literal("agent.text_delta"), delta: Type.String() }),
   Type.Object({ type: Type.Literal("agent.thinking_delta"), delta: Type.String() }),
   Type.Object({ type: Type.Literal("agent.message_started"), messageId: Type.String() }),
   Type.Object({ type: Type.Literal("agent.tool_started"), toolCallId: Type.String(), toolName: Type.String(), args: Type.Unknown() }),
+  Type.Object({ type: Type.Literal("agent.tool_progress"), toolCallId: Type.String(), toolName: Type.String(), progress: ToolProgressSchema }),
   Type.Object({ type: Type.Literal("agent.tool_finished"), toolCallId: Type.String(), toolName: Type.String(), args: Type.Optional(Type.Unknown()), result: Type.Unknown(), isError: Type.Boolean() }),
   Type.Object({ type: Type.Literal("widget"), ...WidgetEventFields, toolName: Type.Literal("show_widget"), widget: WidgetRecordSchema }),
   Type.Object({ type: Type.Literal("widget_patch"), ...WidgetEventFields, toolName: Type.Literal("show_widget"), patch: WidgetRecordSchema }),

@@ -1,4 +1,4 @@
-import type { DataAgentEventEnvelope, DataAgentEvent } from "@data-agent/contracts";
+import { isToolProgress, type DataAgentEventEnvelope, type DataAgentEvent } from "@data-agent/contracts";
 import type { AgentHarness, HarnessEvent } from "@earendil-works/pi-agent-core";
 import { TODO_CONTEXT } from "@earendil-works/pi-agent-core";
 import { isWidgetLifecycleDetails, validateWidgetSpec } from "../widget.js";
@@ -273,7 +273,13 @@ export class TranscriptProjector {
       const partialResult = event.partialResult && typeof event.partialResult === "object" ? event.partialResult as { details?: unknown } : undefined;
       const details = isWidgetLifecycleDetails(partialResult?.details) ? partialResult.details : undefined;
       const call = projection.widgetCalls.get(event.toolCallId);
-      if (!call) return;
+      if (!call) {
+        const progress = asRecord(partialResult?.details)?.toolProgress;
+        if (isNonEmptyString(event.toolCallId) && isNonEmptyString(event.toolName) && isToolProgress(progress)) {
+          this.emit(base(), { type: "agent.tool_progress", toolCallId: event.toolCallId, toolName: event.toolName, progress });
+        }
+        return;
+      }
       const common = { messageId: call.messageId, toolCallId: event.toolCallId, widgetId: call.widgetId, toolName: "show_widget" as const };
       const emitWidgetError = (error: string): void => {
         if (call.doneEmitted || call.errorEmitted) return;

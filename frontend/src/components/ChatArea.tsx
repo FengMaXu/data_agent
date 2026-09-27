@@ -29,7 +29,8 @@ import WidgetRenderer from './widgets/WidgetRenderer';
 import AgentOrbitIcon from './AgentOrbitIcon';
 import AgentMarkdown from './AgentMarkdown';
 import { isAgentMessageEmpty, visibleAgentContent } from '../utils/agent-message';
-import { mergeToolResultState, type ToolCallState } from './tool-event-state';
+import { mergeToolResultState, subagentChildrenOf, type ToolCallState } from './tool-event-state';
+import SubagentProgressLines from './SubagentProgressLines';
 
 interface SkillActivation {
     name: string;
@@ -698,6 +699,18 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                     return;
                 }
 
+                if (event.type === 'subagent_progress') {
+                    const existing = message.toolCallsById[event.tool_call_id] || {
+                        toolCallId: event.tool_call_id,
+                        name: event.name,
+                        arguments: {},
+                        status: 'running' as const,
+                    };
+                    message.toolCallsById[event.tool_call_id] = { ...existing, subagentChildren: event.children };
+                    scheduleFlush(targetMessageId, true);
+                    return;
+                }
+
                 if (event.type === 'widget_patch') {
                     const activeMessage = agentBufferRef.current[targetMessageId] || message;
                     const existing = activeMessage.widgetsById[event.widget_id] || {
@@ -1040,18 +1053,20 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                                     {(Object.values(msg.toolCallsById).length > 0 || msg.skillActivations.length > 0) && (
                                         <div className="agent-hint-list">
                                             {Object.values(msg.toolCallsById).map((tool) => (
-                                                <button
-                                                    type="button"
-                                                    key={tool.toolCallId}
-                                                    className={`agent-hint-line ${tool.status === 'error' ? 'is-error' : ''}`}
-                                                    onClick={onOpenToolPanel}
-                                                    disabled={!onOpenToolPanel}
-                                                    aria-label={getToolHintLabel(tool, t)}
-                                                    style={{ cursor: onOpenToolPanel ? 'pointer' : 'default', background: 'none', border: 'none', padding: 0, textAlign: 'left' }}
-                                                >
-                                                    <span className="agent-hint-dot" aria-hidden="true" />
-                                                    <span>{getToolHintLabel(tool, t)}</span>
-                                                </button>
+                                                <React.Fragment key={tool.toolCallId}>
+                                                    <button
+                                                        type="button"
+                                                        className={`agent-hint-line ${tool.status === 'error' ? 'is-error' : ''}`}
+                                                        onClick={onOpenToolPanel}
+                                                        disabled={!onOpenToolPanel}
+                                                        aria-label={getToolHintLabel(tool, t)}
+                                                        style={{ cursor: onOpenToolPanel ? 'pointer' : 'default', background: 'none', border: 'none', padding: 0, textAlign: 'left' }}
+                                                    >
+                                                        <span className="agent-hint-dot" aria-hidden="true" />
+                                                        <span>{getToolHintLabel(tool, t)}</span>
+                                                    </button>
+                                                    <SubagentProgressLines progress={subagentChildrenOf(tool)} />
+                                                </React.Fragment>
                                             ))}
                                             {msg.skillActivations.map((skill) => (
                                                 <div

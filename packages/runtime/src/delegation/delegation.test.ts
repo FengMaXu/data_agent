@@ -3,7 +3,7 @@ import { TODO_CONTEXT } from "@earendil-works/pi-agent-core";
 import { NativeDelegation } from "./delegation.js";
 import { InMemoryDelegationLedger } from "./ledger.js";
 import { BoundedConcurrencyLimiter, BoundedKeyedConcurrencyLimiter } from "./concurrency.js";
-import type { ChildExecutor, ChildRecovery, DelegationLedger, DelegationLedgerRecord, DelegationTaskResolver, RawChildExecution, TrustedDelegationContext } from "./index.js";
+import type { ChildExecutor, ChildProgressEvent, ChildRecovery, DelegationLedger, DelegationLedgerRecord, DelegationTaskResolver, RawChildExecution, TrustedDelegationContext } from "./index.js";
 
 const report = (summary: string) => `## 结论\n\n${summary}`;
 
@@ -99,6 +99,29 @@ class StallingReconcileExecutor extends FakeExecutor {
 }
 
 describe("NativeDelegation", () => {
+  it("reports each child's start, tool starts and settlement, and ignores a throwing listener", async () => {
+    const executor = new FakeExecutor();
+    const original = executor.execute.bind(executor);
+    executor.execute = async (request: any) => {
+      request.onToolStarted?.("describe_table");
+      request.onToolStarted?.("query_database");
+      return original(request);
+    };
+    const events: ChildProgressEvent[] = [];
+    const delegation = new NativeDelegation({ executor, resolver: resolver(), ledger: new InMemoryDelegationLedger() });
+    const outcomes = await delegation.run({ tasks: [task("a"), task("bad")] }, {
+      ...context(),
+      onProgress: (event) => {
+        events.push(event);
+        throw new Error("listener failure");
+      },
+    });
+    expect(outcomes.map((item) => item.status)).toEqual(["completed", "completed"]);
+    const forA = events.filter((event) => event.key === "a").map((event) => event.type === "tool_started" ? event.toolName : event.type);
+    expect(forA).toEqual(["started", "describe_table", "query_database", "settled"]);
+    expect(events.find((event) => event.key === "a" && event.type === "settled")).toMatchObject({ status: "completed", reported: true });
+  });
+
   it("runs two isolated child requests and returns bounded structured outcomes", async () => {
     const executor = new FakeExecutor();
     const ledger = new InMemoryDelegationLedger();

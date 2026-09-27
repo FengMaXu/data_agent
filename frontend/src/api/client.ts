@@ -4,6 +4,7 @@
  */
 
 import type { SemanticSourceViewDto, SemanticSourcesResponse } from '../components/semantic-viewer/types';
+import type { SubagentChildProgress } from '@data-agent/contracts';
 
 const ENV_API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim();
 
@@ -542,6 +543,7 @@ export type SSEEvent =
     | { type: 'reasoning_delta'; session_id?: string; message_id: string; content: string }
     | { type: 'tool_call'; session_id?: string; message_id: string; tool_call_id: string; widget_id?: string | null; name: string; arguments: unknown }
     | { type: 'tool_progress'; session_id?: string; message_id: string; tool_call_id: string; name: string; phase: 'validating_sql' | 'running_query' | 'running' | 'done' | 'error'; elapsed_ms?: number | null }
+    | { type: 'subagent_progress'; session_id?: string; message_id: string; tool_call_id: string; name: string; children: SubagentChildProgress[] }
     | { type: 'widget_patch'; session_id?: string; message_id: string; tool_call_id: string; widget_id: string; tool_name: string; patch: Partial<WidgetSpec> }
     | { type: 'widget'; session_id?: string; message_id: string; tool_call_id: string; widget_id: string; tool_name: string; widget: WidgetSpec }
     | { type: 'widget_done'; session_id?: string; message_id: string; tool_call_id: string; widget_id: string }

@@ -3,6 +3,7 @@ import { Value } from "typebox/value";
 import type { ChildOutcome, Delegation, SubagentInput } from "../delegation/index.js";
 import type { DataAgentToolContext } from "./answering.js";
 import { defineDataAgentTool, type DataAgentToolDefinition } from "./tool-definition.js";
+import { SubagentProgressTracker } from "./subagent-progress.js";
 
 export const SUBAGENT_PARAMETERS = Type.Object({
   tasks: Type.Array(Type.Object({
@@ -55,23 +56,40 @@ export function createSubagentToolDefinition(delegation: Delegation): DataAgentT
     description: "Delegate one to four information-gathering tasks to fresh-context children that run in parallel. An explorer reads business definitions from knowledge, describes table schema, and observes data values with read-only SQL; it needs no taskId. A reviewer reviews the current Result Candidate of taskId. Each child returns a Markdown report; the main Agent decides what to do with it.",
     replay: "never",
     parameters: SUBAGENT_PARAMETERS,
-    async execute(_toolCallId, input, _onUpdate, toolContext, invocation, context) {
+    async execute(_toolCallId, input, onUpdate, toolContext, invocation, context) {
       if (!Value.Check(SUBAGENT_PARAMETERS, input)) throw new Error("SUBAGENT_INPUT_INVALID");
       const principalId = toolContext?.principalId?.trim();
       const ownerSessionId = toolContext?.sessionId?.trim();
       if (!principalId || !ownerSessionId) throw new Error("SUBAGENT_CONTEXT_INVALID");
       const requestMessageId = toolContext?.requestMessageId?.trim();
-      const outcomes = await delegation.run(normalizeInput(input as Input), {
-        principalId,
-        ownerSessionId,
-        parentOperationId: invocation.operationId,
-        parentInvocationId: invocation.invocationId,
-        ...(requestMessageId ? { requestMessageId } : {}),
-        memo: { get: (name) => invocation.getMemo(name), set: (name, value) => invocation.setMemo(name, value) },
-        context,
-      }, context.abortSignal);
+      const normalized = normalizeInput(input as Input);
+      // Partial updates carry presentation progress only; final details stay the outcome list.
+      const progress = new SubagentProgressTracker(normalized, (toolProgress) => onUpdate?.({ content: [], details: { toolProgress } } as never));
+      progress.start();
+      let outcomes: readonly ChildOutcome[];
+      try {
+        outcomes = await delegation.run(normalized, {
+          principalId,
+          ownerSessionId,
+          parentOperationId: invocation.operationId,
+          parentInvocationId: invocation.invocationId,
+          ...(requestMessageId ? { requestMessageId } : {}),
+          memo: { get: (name) => invocation.getMemo(name), set: (name, value) => invocation.setMemo(name, value) },
+          context,
+          onProgress: (event) => progress.apply(event),
+        }, context.abortSignal);
+      } catch (error) {
+        progress.close();
+        throw error;
+      }
+      const final = progress.finish(outcomes);
       const rendered = outcomes.map((outcome) => renderOutcome(outcome, input as Input)).join("\n\n---\n\n");
-      return { content: [{ type: "text", text: rendered }], details: outcomes };
+      // Each outcome keeps its fields; `progress` lets a restored transcript show the final row.
+      const details = outcomes.map((outcome) => {
+        const childProgress = final.get(outcome.key);
+        return childProgress ? { ...outcome, progress: childProgress } : outcome;
+      });
+      return { content: [{ type: "text", text: rendered }], details };
     },
   }, {
     promptSnippet: "并行委派 1–4 个信息收集子任务，子 Agent 以 Markdown 报告返回。",

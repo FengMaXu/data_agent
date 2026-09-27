@@ -1,3 +1,4 @@
+import { isToolProgress, type SubagentChildProgress } from '@data-agent/contracts';
 import type { SSEEvent } from '../api/client';
 
 export interface ToolCallState {
@@ -11,6 +12,8 @@ export interface ToolCallState {
     widgetId?: string | null;
     status: 'calling' | 'running' | 'done' | 'error';
     progressText?: string;
+    /** Live per-child progress of a running `subagent` call. */
+    subagentChildren?: SubagentChildProgress[];
 }
 
 /** Completion events may omit args (or carry an empty object); in both cases
@@ -41,4 +44,20 @@ export function mergeToolResultState(
         widgetId: event.widget_id ?? current.widgetId,
         status: event.is_error ? 'error' : 'done',
     };
+}
+
+/**
+ * Per-child rows of a `subagent` call: the final progress stored with each
+ * outcome once the tool finished (also after a restore), otherwise live progress.
+ */
+export function subagentChildrenOf(tool: ToolCallState): SubagentChildProgress[] {
+    if (tool.name !== 'subagent') return [];
+    if (Array.isArray(tool.details)) {
+        const children = tool.details.flatMap((outcome) => {
+            const progress = outcome && typeof outcome === 'object' ? (outcome as { progress?: unknown }).progress : undefined;
+            return progress !== undefined && isToolProgress({ kind: 'subagent', children: [progress] }) ? [progress as SubagentChildProgress] : [];
+        });
+        if (children.length > 0) return children;
+    }
+    return tool.subagentChildren ?? [];
 }

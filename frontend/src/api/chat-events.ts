@@ -68,6 +68,17 @@ export function mapRuntimeEvent(event: DataAgentEvent, activeMessageId: string):
           arguments: event.args,
         },
       };
+    case "agent.tool_progress":
+      if (event.progress.kind !== "subagent") return null;
+      return {
+        event: {
+          type: "subagent_progress",
+          message_id: activeMessageId,
+          tool_call_id: event.toolCallId,
+          name: event.toolName,
+          children: event.progress.children,
+        },
+      };
     case "widget":
       if (!isWidgetSpec(event.widget)) return null;
       return {

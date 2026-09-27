@@ -331,6 +331,10 @@ export class HarnessChildExecutor implements ChildExecutor {
         }
         return undefined;
       }, { id: "data-agent-subagent-infrastructure-failure" });
+      if (request.onToolStarted) {
+        const onToolStarted = request.onToolStarted;
+        harness.events.on("tool_start", (event) => onToolStarted(event.toolName));
+      }
       lane = await harness.lane("main", operationContext);
       if (executionAbort.signal.aborted) {
         outcome = { status: timedOut ? "timed_out" : this.closing ? "interrupted" : "cancelled", terminalConfirmed: true, usage: nullUsage() };

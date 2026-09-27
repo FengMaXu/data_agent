@@ -2587,6 +2587,18 @@ body {
   color: #b91c1c;
 }
 
+.agent-hint-subline {
+  padding-left: 13px;
+  min-width: 0;
+}
+
+.agent-hint-subline-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: pre;
+}
+
 .agent-hint-dot {
   width: 5px;
   height: 5px;

@@ -59,6 +59,12 @@ export interface ChildOutcome {
   readonly error?: string;
 }
 
+/** Observational child lifecycle facts for presentation; they never steer execution. */
+export type ChildProgressEvent =
+  | { readonly key: string; readonly type: "started"; readonly at: number }
+  | { readonly key: string; readonly type: "tool_started"; readonly toolName: string; readonly at: number }
+  | { readonly key: string; readonly type: "settled"; readonly status: ChildOutcomeStatus; readonly reported: boolean; readonly at: number };
+
 export interface DelegationMemo {
   get(name: string): Promise<JsonValue | undefined>;
   set(name: string, value: JsonValue | undefined): Promise<void>;
@@ -82,6 +88,8 @@ export interface TrustedDelegationContext {
   readonly queryScope?: DelegationQueryScope;
   /** Host-supplied user message of the parent operation, shown to children as context. */
   readonly requestMessageId?: string;
+  /** Receives child progress; a throwing listener is ignored. */
+  readonly onProgress?: (event: ChildProgressEvent) => void;
 }
 
 export interface ChildToolContext {
@@ -122,6 +130,8 @@ export interface ChildExecutionRequest {
   readonly timeoutMs: number;
   readonly signal?: AbortSignal;
   readonly onAccepted?: (operationId: string, signal: AbortSignal) => void | Promise<void>;
+  /** Called when the child starts a tool call. */
+  readonly onToolStarted?: (toolName: string) => void;
 }
 
 export interface ChildRecovery {

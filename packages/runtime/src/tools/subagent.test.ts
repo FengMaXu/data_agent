@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { isToolProgress } from "@data-agent/contracts";
 import { TODO_CONTEXT } from "@earendil-works/pi-agent-core";
 import { Value } from "typebox/value";
 import { createSubagentToolDefinition, SUBAGENT_PARAMETERS } from "./subagent.js";
@@ -55,6 +56,28 @@ describe("subagent AgentHarness tool", () => {
     expect(text).toContain("SQL_ERROR");
     expect(text).not.toContain("UNTRUSTED");
     expect(text).not.toContain("mayAuthorizePublication");
+  });
+
+  it("publishes child progress through onUpdate and keeps final details an outcome list", async () => {
+    const delegation: Delegation = {
+      async run(_input, context) {
+        context.onProgress?.({ key: "schema", type: "tool_started", toolName: "describe_table", at: Date.now() });
+        context.onProgress?.({ key: "schema", type: "settled", status: "completed", reported: true, at: Date.now() });
+        return [outcome("schema")];
+      },
+      async close() {},
+    };
+    const updates: any[] = [];
+    const tool = createSubagentToolDefinition(delegation).tool as any;
+    const result = await tool.execute("call", { tasks: [{ key: "schema", role: "explorer", task: "列出 orders 的列" }] }, (update: unknown) => updates.push(update), { sessionId: "session-1", principalId: "user-1" }, invocation, TODO_CONTEXT);
+    expect(updates.length).toBeGreaterThanOrEqual(2);
+    for (const update of updates) {
+      expect(update.content).toEqual([]);
+      expect(isToolProgress(update.details.toolProgress)).toBe(true);
+    }
+    expect(updates.at(-1).details.toolProgress.children[0]).toMatchObject({ key: "schema", currentTool: "describe_table", toolCalls: 1, status: "completed", output: "produced" });
+    expect(Array.isArray(result.details)).toBe(true);
+    expect(result.details[0]).toMatchObject({ key: "schema", status: "completed", childSessionId: "child-schema", progress: { toolCalls: 1, output: "produced" } });
   });
 
   it("ignores an explorer taskId and unknown fields, and never takes identity from arguments", async () => {

@@ -233,9 +233,11 @@ describe("HarnessChildExecutor", () => {
       fauxAssistantMessage([{ type: "text", text: "I'll start by exploring the schema." }, fauxToolCall("probe", {}, { id: "probe-1" })], { stopReason: "toolUse" }),
       fauxAssistantMessage("Let me write the final report.\n\n## 结论\n\nFINAL_REPORT_MARKER"),
     ]);
-    const result = await executor.execute(request({ timeoutMs: 10_000, toolDefinitions: [defineDataAgentTool(probe, { promptSnippet: "执行有界测试探针。", promptGuidelines: [] })] }));
+    const started: string[] = [];
+    const result = await executor.execute(request({ timeoutMs: 10_000, onToolStarted: (toolName: string) => started.push(toolName), toolDefinitions: [defineDataAgentTool(probe, { promptSnippet: "执行有界测试探针。", promptGuidelines: [] })] }));
     expect(result).toMatchObject({ status: "completed", text: expect.stringContaining("FINAL_REPORT_MARKER") });
     expect(result.text).not.toContain("I'll start by exploring");
+    expect(started).toEqual(["probe"]);
     await executor.close();
   });
 
