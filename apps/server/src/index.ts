@@ -23,6 +23,8 @@ export interface RuntimeServerOptions {
   queryExecutor?: { run(sql: string, rowLimit: number, options?: { readonly idempotencyKey?: string }): Promise<{ columns: string[]; rows: unknown[][]; truncated: boolean }> };
   /** Authoritative SessionDirectory check used by workspace artifact routes. */
   authorizeSession?: (userId: string, sessionId: string) => boolean | Promise<boolean>;
+  /** Interval of SSE comment heartbeats that keep idle event streams open through proxies. */
+  eventHeartbeatMs?: number;
   /** Receipt-only publication reader supplied by the Application Host. */
   publicationReader?: {
     readPublication(publicationId: string, context: { readonly sessionId: string; readonly userId: string }): Promise<{ readonly summary: { readonly format: "inline" | "csv"; readonly contentHash: string }; readonly content: string }>;
@@ -176,7 +178,13 @@ export async function createRuntimeServer(
     }
     replaying = false;
     for (const envelope of pending) send(envelope);
-    request.raw.on("close", () => { closed = true; unsubscribe(); });
+    // Long silent phases (a subagent, a long model thought) must not look like a dead connection.
+    const heartbeat = setInterval(() => {
+      if (closed) return;
+      try { reply.raw.write(": heartbeat\n\n"); } catch { closed = true; unsubscribe(); }
+    }, options.eventHeartbeatMs ?? 15_000);
+    heartbeat.unref?.();
+    request.raw.on("close", () => { closed = true; clearInterval(heartbeat); unsubscribe(); });
   });
 
   app.post("/api/runtime/command", async (request, reply) => {

@@ -236,6 +236,8 @@ export interface RuntimeEventStreamOptions {
   readonly onConnected?: () => void;
   /** Events after the cursor were lost; the subscriber must reload a snapshot. */
   readonly onResync?: () => void;
+  /** The stream (re)connected, or dropped and is about to reconnect. */
+  readonly onConnectionChange?: (state: "connected" | "reconnecting") => void;
 }
 
 export function subscribeRuntimeEvents(
@@ -268,6 +270,7 @@ export function subscribeRuntimeEvents(
       const response = await apiFetch(endpoint, { headers: { Accept: "text/event-stream" }, signal: controller.signal });
       if (!response.ok || !response.body) throw new Error(`Runtime event stream failed: ${response.status}`);
       options.onConnected?.();
+      options.onConnectionChange?.("connected");
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
@@ -285,26 +288,38 @@ export function subscribeRuntimeEvents(
           if (eventName === "resync") {
             options.onResync?.();
           } else if (data) {
-            try {
-              const payload = JSON.parse(data) as unknown;
-              if (payload && typeof payload === "object" && typeof (payload as { sequence?: unknown }).sequence === "number") {
-                lastSequence = Math.max(lastSequence, (payload as { sequence: number }).sequence);
-              }
-              listener(payload);
-            } catch {
-              // Ignore malformed payloads; the chat adapter validates envelopes.
-            }
+            deliver(data);
           }
           boundary = buffer.indexOf("\n\n");
         }
       }
     } catch (error) {
-      if (!disposed && !(error instanceof DOMException && error.name === "AbortError")) {
-        reconnectTimer = setTimeout(() => { void connect(); }, 500);
-      }
+      if (!disposed && !(error instanceof DOMException && error.name === "AbortError")) scheduleReconnect();
       return;
     }
-    if (!disposed) reconnectTimer = setTimeout(() => { void connect(); }, 500);
+    if (!disposed) scheduleReconnect();
+  };
+  const scheduleReconnect = (): void => {
+    options.onConnectionChange?.("reconnecting");
+    reconnectTimer = setTimeout(() => { void connect(); }, 500);
+  };
+  /** The cursor advances only past events the listener accepted, so a failed one is replayed on reconnect. */
+  const deliver = (data: string): void => {
+    let payload: unknown;
+    try {
+      payload = JSON.parse(data) as unknown;
+    } catch {
+      return; // Malformed payload; the chat adapter validates envelopes anyway.
+    }
+    try {
+      listener(payload);
+    } catch (error) {
+      console.error("[runtime-events] event listener failed", error);
+      return;
+    }
+    if (payload && typeof payload === "object" && typeof (payload as { sequence?: unknown }).sequence === "number") {
+      lastSequence = Math.max(lastSequence, (payload as { sequence: number }).sequence);
+    }
   };
   void connect();
   return () => {

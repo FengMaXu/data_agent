@@ -237,6 +237,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
     const [inputValue, setInputValue] = useState('');
     const [messages, setMessages] = useState<ChatMessage[]>(() => currentTranscript.map(fromSnapshotMessage));
     const [isStreaming, setIsStreaming] = useState(false);
+    const [isStreamReconnecting, setIsStreamReconnecting] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
     const [runReason, setRunReason] = useState<'completed' | 'stopped' | 'error' | null>(null);
@@ -300,6 +301,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
         currentSessionIdRef.current = currentSession.id;
         replaceWithSnapshot(currentTranscript);
         setIsStreaming(false);
+        setIsStreamReconnecting(false);
         setRunReason(null);
         setPendingClarification(null);
         setClarificationInput('');
@@ -857,12 +859,16 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                 activeAgentMessageIdRef.current = null;
                 pendingAgentMessageIdRef.current = null;
                 streamHandleRef.current = null;
+                setIsStreamReconnecting(false);
                 if (streamLostEvents) void resyncFromServer(runSessionId);
             },
             runSessionId,
-            () => {
-                streamLostEvents = true;
-                void resyncFromServer(runSessionId);
+            {
+                onResync: () => {
+                    streamLostEvents = true;
+                    void resyncFromServer(runSessionId);
+                },
+                onConnectionChange: (state) => setIsStreamReconnecting(state === 'reconnecting'),
             },
         );
     };
@@ -947,7 +953,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
     const latestAgentMessage = [...messages].reverse().find((message): message is AgentMessage => message.role === 'agent');
     const liveStatus = runReason === 'error'
         ? `${t('chat.requestFailed')} ${t('chat.retryHint')}`
-        : latestAgentMessage?.statusNotice || latestAgentMessage?.retryNotice || (semanticBlocked && messages.length === 0 ? t('chat.semanticWaiting') : '');
+        : (isStreaming && isStreamReconnecting ? t('chat.streamReconnecting') : '') || latestAgentMessage?.statusNotice || latestAgentMessage?.retryNotice || (semanticBlocked && messages.length === 0 ? t('chat.semanticWaiting') : '');
 
     return (
         <main id="main-content" className="chat-area" data-semantic-blocked={semanticBlocked || undefined} aria-labelledby="chat-page-title">
@@ -1062,6 +1068,12 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                                     {msg.retryNotice && (
                                         <div className="agent-thinking-line">
                                             <span>{msg.retryNotice}</span>
+                                        </div>
+                                    )}
+
+                                    {isStreaming && isStreamReconnecting && msg === latestAgentMessage && (
+                                        <div className="agent-thinking-line">
+                                            <span>{t('chat.streamReconnecting')}</span>
                                         </div>
                                     )}
 

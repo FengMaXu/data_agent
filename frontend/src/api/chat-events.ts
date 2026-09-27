@@ -1,5 +1,5 @@
 import { isDataAgentEventEnvelope, type DataAgentEvent } from "@data-agent/contracts";
-import { subscribeRuntimeEvents, getRuntimeClient } from "./runtime-client";
+import { subscribeRuntimeEvents, getRuntimeClient, type RuntimeEventStreamOptions } from "./runtime-client";
 import type { SSEEvent, WidgetSpec } from "./client";
 
 export interface RuntimeChatHandle { cancel: () => void; finished: Promise<void> }
@@ -188,7 +188,7 @@ export function sendChatViaRuntime(
   onError: (err: unknown) => void,
   onFinish: () => void,
   sessionId?: string,
-  onResync?: () => void,
+  stream: Pick<RuntimeEventStreamOptions, "onResync" | "onConnectionChange"> = {},
 ): RuntimeChatHandle {
   let activeMessageId = "";
   let operationId: string | undefined;
@@ -233,7 +233,7 @@ export function sendChatViaRuntime(
     onEvent(adapted);
     if (event.type === "agent.tool_finished") toolArgumentsById.delete(toolCallId);
     if (event.type === "agent.completed") handleFinish();
-  }, sessionId, { onConnected: () => markConnected(), ...(onResync ? { onResync } : {}) });
+  }, sessionId, { ...stream, onConnected: () => markConnected() });
   const finished = (async () => {
     try {
       // A stream that cannot connect must not block the prompt; its failure surfaces on dispatch.

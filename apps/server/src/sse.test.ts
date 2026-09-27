@@ -70,6 +70,21 @@ describe("runtime event stream", () => {
     }
   });
 
+  it("keeps an idle stream alive with comment heartbeats", async () => {
+    const runtime = new DataAgentRuntime();
+    const app = await createRuntimeServer(runtime, { ...trustedWebContext, eventHeartbeatMs: 20 });
+    const address = await app.listen({ port: 0, host: "127.0.0.1" });
+    try {
+      const response = await fetch(`${address}/api/runtime/events`);
+      const reader = response.body!.getReader();
+      const text = await readUntil(reader, (value) => value.split(": heartbeat").length > 2);
+      expect(text.split(": heartbeat").length).toBeGreaterThan(2);
+      await reader.cancel();
+    } finally {
+      await app.close();
+    }
+  });
+
   it("broadcasts emitted events to SSE subscribers", async () => {
     const runtime = new DataAgentRuntime();
     const app = await createRuntimeServer(runtime, trustedWebContext);

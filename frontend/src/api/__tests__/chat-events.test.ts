@@ -133,7 +133,7 @@ describe('runtime chat event replay', () => {
 
     it('forwards a resync request to the chat', () => {
         const onResync = vi.fn();
-        sendChatViaRuntime('hello', vi.fn(), vi.fn(), vi.fn(), 'session-1', onResync);
+        sendChatViaRuntime('hello', vi.fn(), vi.fn(), vi.fn(), 'session-1', { onResync });
         runtimeOptions?.onResync?.();
         expect(onResync).toHaveBeenCalledTimes(1);
     });
