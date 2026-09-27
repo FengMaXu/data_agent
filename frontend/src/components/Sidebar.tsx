@@ -429,15 +429,17 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins, collap
     return (
         <>
             <nav id="workspace-sidebar" className={`sidebar ${collapsed ? 'is-rail' : ''}`} aria-label={t('sidebar.navigation')}>
+                <div className="sidebar-header">
+                    {collapsed ? (
+                        <button type="button" className="sidebar-logo sidebar-logo-mark" onClick={onExpand} title={t('sidebar.open')} aria-label={t('sidebar.open')}>
+                            Y
+                        </button>
+                    ) : (
+                        <div className="sidebar-logo">YourDB</div>
+                    )}
+                </div>
                 <div className="nav-menu scrollable-area">
                     <div className="nav-section">
-                        {collapsed ? (
-                            <button type="button" className="sidebar-logo sidebar-logo-mark" onClick={onExpand} title={t('sidebar.open')} aria-label={t('sidebar.open')}>
-                                Y
-                            </button>
-                        ) : (
-                            <div className="sidebar-logo">YourDB</div>
-                        )}
 
                         <button type="button" className="nav-item sidebar-primary-action" title={t('sidebar.newTask')} aria-label={t('sidebar.newTask')} onClick={() => {
                             createTask();
