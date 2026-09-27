@@ -7,6 +7,10 @@ export interface SkillDefinition {
   readonly content: string;
   readonly filePath: string;
   readonly allowedTools?: string[];
+  /** Tools that must be granted for the Skill to be listed or loaded (e.g. Answering protocol Skills). */
+  readonly requiredTools?: string[];
+  /** Model-visible trigger rendered in the Skill catalog next to the description. */
+  readonly whenToUse?: string;
   readonly disableModelInvocation?: boolean;
 }
 
@@ -21,7 +25,8 @@ const CANONICAL_TOOLS = new Set([
   "search_knowledge", "read_knowledge", "update_knowledge",
   "load_skill", "generate_dashboard", "show_widget",
   "query_database", "publish_query_result", "ask_user_clarification",
-  "export_query",
+  "export_query", "begin_answer_spec", "revise_answer_spec", "begin_query_task", "inspect_answer",
+  "compare_hypotheses", "subagent",
 ]);
 
 export interface SkillRootOptions {
@@ -52,36 +57,47 @@ function scalar(frontmatter: string, key: string): string | undefined {
   return match?.[1]?.trim().replace(/^['"]|['"]$/g, "");
 }
 
-function parseToolMetadata(frontmatter: string, filePath: string): { allowedTools?: string[]; disableModelInvocation?: boolean; diagnostics: SkillDiagnostic[] } {
-  const diagnostics: SkillDiagnostic[] = [];
-  const key = /^allowed-tools\s*:/mi.exec(frontmatter) ?? /^allowedTools\s*:/mi.exec(frontmatter);
-  let allowedTools: string[] | undefined;
-  if (key) {
-    const line = key[0];
-    const colon = line.indexOf(":");
-    const inline = line.slice(colon + 1).trim();
-    const values: string[] = [];
-    if (inline) {
-      if (!inline.startsWith("[") || !inline.endsWith("]")) {
-        diagnostics.push(diagnostic(filePath, "allowed-tools must be a list", "invalid_metadata"));
-      } else {
-        values.push(...inline.slice(1, -1).split(",").map((value) => value.trim().replace(/^['"]|['"]$/g, "")).filter(Boolean));
-      }
-    } else {
-      const start = frontmatter.slice((key.index ?? 0) + key[0].length);
-      for (const item of start.split("\n")) {
-        if (/^\s*-\s*/.test(item)) {
-          const value = /^\s*-\s*(\S.*?)\s*$/.exec(item)?.[1];
-          if (value) values.push(value.replace(/^['"]|['"]$/g, ""));
-        } else if (item.trim() && !/^\s/.test(item)) break;
-      }
-    }
-    allowedTools = values;
-    const unknown = values.filter((tool) => !CANONICAL_TOOLS.has(tool));
-    if (unknown.length > 0) diagnostics.push(diagnostic(filePath, `unknown tool names: ${unknown.join(", ")}`, "unknown_tool"));
+function parseToolList(frontmatter: string, keys: readonly string[], label: string, filePath: string, diagnostics: SkillDiagnostic[]): string[] | undefined {
+  let key: RegExpExecArray | null = null;
+  for (const candidate of keys) {
+    key = new RegExp(`^${candidate}\\s*:`, "mi").exec(frontmatter);
+    if (key) break;
   }
+  if (!key) return undefined;
+  const line = frontmatter.slice(key.index).split("\n")[0] ?? "";
+  const inline = line.slice(line.indexOf(":") + 1).trim();
+  const values: string[] = [];
+  if (inline) {
+    if (!inline.startsWith("[") || !inline.endsWith("]")) {
+      diagnostics.push(diagnostic(filePath, `${label} must be a list`, "invalid_metadata"));
+    } else {
+      values.push(...inline.slice(1, -1).split(",").map((value) => value.trim().replace(/^['"]|['"]$/g, "")).filter(Boolean));
+    }
+  } else {
+    const start = frontmatter.slice(key.index + key[0].length);
+    for (const item of start.split("\n")) {
+      if (/^\s*-\s*/.test(item)) {
+        const value = /^\s*-\s*(\S.*?)\s*$/.exec(item)?.[1];
+        if (value) values.push(value.replace(/^['"]|['"]$/g, ""));
+      } else if (item.trim() && !/^\s/.test(item)) break;
+    }
+  }
+  const unknown = values.filter((tool) => !CANONICAL_TOOLS.has(tool));
+  if (unknown.length > 0) diagnostics.push(diagnostic(filePath, `unknown tool names: ${unknown.join(", ")}`, "unknown_tool"));
+  return values;
+}
+
+function parseToolMetadata(frontmatter: string, filePath: string): { allowedTools?: string[]; requiredTools?: string[]; disableModelInvocation?: boolean; diagnostics: SkillDiagnostic[] } {
+  const diagnostics: SkillDiagnostic[] = [];
+  const allowedTools = parseToolList(frontmatter, ["allowed-tools", "allowedTools"], "allowed-tools", filePath, diagnostics);
+  const requiredTools = parseToolList(frontmatter, ["requires-tools", "requiredTools"], "requires-tools", filePath, diagnostics);
   const disabled = scalar(frontmatter, "disable-model-invocation") ?? scalar(frontmatter, "disableModelInvocation");
-  return { ...(allowedTools ? { allowedTools } : {}), ...(disabled === "true" ? { disableModelInvocation: true } : {}), diagnostics };
+  return {
+    ...(allowedTools ? { allowedTools } : {}),
+    ...(requiredTools ? { requiredTools } : {}),
+    ...(disabled === "true" ? { disableModelInvocation: true } : {}),
+    diagnostics,
+  };
 }
 
 function parseSkill(raw: string, filePath: string): { skill?: SkillDefinition; diagnostics: SkillDiagnostic[] } {
@@ -96,6 +112,7 @@ function parseSkill(raw: string, filePath: string): { skill?: SkillDefinition; d
   if (!name || !description) return { diagnostics: [diagnostic(filePath, "name and description are required", "invalid_metadata")] };
   const metadata = parseToolMetadata(frontmatter, filePath);
   diagnostics.push(...metadata.diagnostics);
+  const whenToUse = scalar(frontmatter, "when_to_use") ?? scalar(frontmatter, "whenToUse");
   const body = normalized.slice(marker + 4).replace(/^\n/, "").trim();
   return {
     skill: {
@@ -104,6 +121,8 @@ function parseSkill(raw: string, filePath: string): { skill?: SkillDefinition; d
       content: body,
       filePath,
       ...(metadata.allowedTools ? { allowedTools: metadata.allowedTools } : {}),
+      ...(metadata.requiredTools ? { requiredTools: metadata.requiredTools } : {}),
+      ...(whenToUse ? { whenToUse } : {}),
       ...(metadata.disableModelInvocation ? { disableModelInvocation: true } : {}),
     },
     diagnostics,

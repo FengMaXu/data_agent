@@ -33,7 +33,7 @@ A provisional semantic interpretation with stated evidence and confidence that r
 _Avoid_: Rule, fact
 
 **Hypothesis Handling Status**:
-A Runtime-derived binary lifecycle label. `unhandled` means the hypothesis has no qualifying Verification, rejection, user confirmation, or qualifying selected provisional Decision; every other disposition is `handled`. A material population tie ordered only for reproducibility is not a qualifying selection. The label is not model-writable and does not assert semantic correctness.
+A Runtime-derived binary lifecycle label. `unhandled` means the hypothesis has no qualifying Verification, rejection, user confirmation, or qualifying selected provisional Decision, and it stays `unhandled` across Revisions until a Disposition or Supersession handles it; every other disposition is `handled`. A material population tie ordered only for reproducibility is not a qualifying selection. The label is not model-writable and does not assert semantic correctness.
 _Avoid_: Solver acknowledgment, verified flag
 
 **Observation Evidence Handle**:
@@ -105,12 +105,56 @@ A structured difference between the requested semantics and the semantics expres
 _Avoid_: Validation error, SQL error
 
 **Spec Authority**:
-The authority that versions an Answer Spec and decides whether new evidence promotes, preserves, or weakens a Hypothesis. A solver can propose evidence but cannot mutate the Answer Spec directly.
+The Runtime role that versions an Answer Spec, applies every state transition to a copy of the current Revision, and admits evidence. A solver drafts the initial Spec and proposes deltas, but never replaces the Revision state or decides evidence authority (ADR-0004).
 _Avoid_: Planner, spec editor
 
 **Spec Change Proposal**:
-A solver-submitted claim and its evidence requesting a versioned change to an Answer Spec.
-_Avoid_: Spec update, contract rewrite
+A solver-submitted revision delta: a facet patch, new Hypotheses or Choices, Dispositions of existing items, and evidence to admit. Anything it omits carries forward unchanged.
+_Avoid_: Spec update, contract rewrite, full proposal
+
+**Disposition**:
+An explicit Runtime-applied handling of an existing Hypothesis or Choice: support or refute a Hypothesis with qualifying evidence, decide a Choice, mark a Choice equivalent, or Supersession. Omission is never a Disposition.
+_Avoid_: Dropping, resubmission
+
+**Supersession**:
+The only way an item leaves an Answer Spec Revision: named replacements that together cover every facet the item affected, with a recorded reason. Replacements carry the obligation forward.
+_Avoid_: Deletion, cleanup
+
+**Evidence Admission**:
+The Runtime check that binds text evidence to a trusted source and verifies its quote verbatim before registration. Request wording binds to the task's request, a user confirmation to a later user message supplied by the Host, and documents only to composition-authorized knowledge ids whose authority the composition root configures. Admission proves the text exists, not that it supports a proposition.
+_Avoid_: Citation, self-reported source
+
+**Inferred Facet**:
+A specified Answer Spec facet whose basis is model inference rather than a Hypothesis or admitted evidence. It does not block a result query and is disclosed at publication.
+_Avoid_: Request-backed facet, assumption-free facet
+
+**Choice Decision**:
+The single model-facing way to settle a Choice: an alternative plus a rationale and optional evidence. The Runtime records it as verified (selected) when the cited evidence qualifies the alternative, otherwise as unverified (provisional) and disclosed. An unverified decision on the material population is accepted only when the session has no clarification path.
+_Avoid_: Select vs provisional choice, tentative selection
+
+**Choice Probe**:
+One exploration run as a Choice alternative, computing the final output under that alternative. The Runtime records its Result Fingerprint on the Query Task; a Choice is decided only after every alternative has a probe or a declared waiver.
+_Avoid_: Sample query, alternative preview
+
+**Result Fingerprint**:
+Output identity that ignores column names, column order and row order and compares numbers at two decimals. Equal fingerprints mean two queries give the same answer.
+_Avoid_: Result hash, content hash
+
+**Equivalent Choice**:
+A Choice whose every alternative produced the same Result Fingerprint. It is resolved as equivalent without rationale, advice or disclosure.
+_Avoid_: Trivial choice, ignored ambiguity
+
+**Advisory Ledger**:
+The Runtime's record of the latest compare_hypotheses advice per Choice. A decision that departs from the advice's clear lean must carry an override reason and evidence; the advice itself is never evidence.
+_Avoid_: Advice cache, recommendation store
+
+**Choice Realization**:
+The requirement that a result does not reproduce the probe output of an alternative the Revision did not adopt. A result that does is rejected as CHOICE_NOT_REALIZED.
+_Avoid_: Choice consistency check
+
+**Decision Point**:
+One of eight fixed decisions every query makes (population, join multiplicity, time field, count grain, denominator, window, ties, output shape). Each is declared as fixed by the request, not applicable, decided by a Choice or assumed by a Hypothesis before a result query.
+_Avoid_: Checklist item, ambiguity category
 
 **Business Definition Proposal**:
 A candidate cross-task business rule produced from user correction or task evidence that requires business review before becoming authoritative.

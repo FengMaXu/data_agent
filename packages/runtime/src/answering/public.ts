@@ -1,5 +1,7 @@
 export { AnsweringError, InMemoryAnswering, SqlExecutionError, DEFAULT_QUERY_BUDGET_POLICY } from "./service.js";
-export type { Answering, AnsweringSqlExecutor, FanoutAnsweringOptions, InMemoryAnsweringOptions, SpecFeedbackOptions, SqlQueryResult } from "./service.js";
+export { DATABASE_UNAVAILABLE, isDatabaseUnavailable } from "./errors.js";
+export { InMemoryAdvisoryLedger, leanOf, type AdvisoryLedger, type ChoiceAdvisory } from "./advisory-ledger.js";
+export type { Answering, AnsweringSqlExecutor, FanoutAnsweringOptions, InMemoryAnsweringOptions, SemanticQualificationMode, SpecFeedbackOptions, SqlQueryResult } from "./service.js";
 export {
   checkFanout,
   hasPotentialFanout,
@@ -18,9 +20,14 @@ export {
   type FanoutPlan,
 } from "./fanout-check.js";
 export { InMemoryAnsweringStore, type AnsweringStore } from "./answering-store.js";
+export { DECISION_POINTS, type DecisionPointName } from "./decision-points.js";
+export { quoteAppearsIn, type AuthorizedEvidenceDocument, type EvidenceSource } from "./evidence-admission.js";
 export { InMemoryResultStore, type ResultStore } from "./result-store.js";
 export {
   type AnswerSpecProposal,
+  type AnswerTaskView,
+  type ChoiceProbeRecord,
+  type ProbeWaiverProposal,
   type BeginAnswer,
   type BusinessContext,
   type CheckCoverage,
@@ -37,7 +44,12 @@ export {
   type QueryBudgetState,
   type QueryExecutionScope,
   type ChoiceProposal,
+  type ChoiceView,
+  type DispositionProposal,
+  type EvidenceVerification,
   type ExecuteQuery,
+  type HypothesisView,
+  type Supersession,
   type HypothesisProposal,
   type InspectAnswer,
   type PublicationReceipt,

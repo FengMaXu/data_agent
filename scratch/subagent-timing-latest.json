@@ -1,0 +1,174 @@
+{
+  "sessionId": "81e2577b-c165-41de-865c-fde76c3b5a0f",
+  "parent": {
+    "file": ".data_agent\\runtime-web\\sessions\\--D--data_agent-.data_agent-runtime-web-sessions--\\2026-09-27T02-22-03-280Z_81e2577b-c165-41de-865c-fde76c3b5a0f.jsonl",
+    "start": "10:22:38.967",
+    "end": "10:29:58.742",
+    "wall_s": 439.775,
+    "tool_batch_wait_s": 239.826,
+    "outside_tool_batches_s": 199.949,
+    "model_responses": 18,
+    "tool_results": 20,
+    "tools": {
+      "load_skill": 1,
+      "read_knowledge": 1,
+      "subagent": 2,
+      "search_knowledge": 2,
+      "begin_answer_spec": 5,
+      "query_database": 5,
+      "compare_hypotheses": 1,
+      "revise_answer_spec": 2,
+      "publish_query_result": 1
+    },
+    "tool_errors": {
+      "entity facet references unknown evidence def-ind51; use a returned Evidence id or a localI": 3,
+      "Validation failed for tool \"begin_answer_spec\"": 1,
+      "support hypothesis_aa55c24d-cdce-4333-9b71-ed837ca0169f": 1
+    },
+    "status": "completed",
+    "final_report_chars": 1198,
+    "final_response_output_tokens": 974,
+    "last_tool_to_final_message_s": 7.081
+  },
+  "subagent_call_durations_s": [
+    57.094,
+    179.232
+  ],
+  "children": [
+    {
+      "file": ".data_agent\\runtime-web\\subagents\\81e2577b-c165-41de-865c-fde76c3b5a0f\\--D--data_agent-.data_agent-runtime-web-subagents-81e2577b-c165-41de-865c-fde76c3b5a0f--\\2026-09-27T02-22-49-250Z_subagent-46249dc9-3f13-46db-87ba-6043cda7e336.jsonl",
+      "start": "10:22:49.305",
+      "end": "10:23:18.490",
+      "wall_s": 29.185,
+      "tool_batch_wait_s": 0.526,
+      "outside_tool_batches_s": 28.659,
+      "model_responses": 5,
+      "tool_results": 7,
+      "tools": {
+        "search_knowledge": 4,
+        "read_knowledge": 2,
+        "describe_schema": 1
+      },
+      "tool_errors": {},
+      "status": "completed",
+      "final_report_chars": 6448,
+      "final_response_output_tokens": 3651,
+      "last_tool_to_final_message_s": 18.435,
+      "key": "biz-def"
+    },
+    {
+      "file": ".data_agent\\runtime-web\\subagents\\81e2577b-c165-41de-865c-fde76c3b5a0f\\--D--data_agent-.data_agent-runtime-web-subagents-81e2577b-c165-41de-865c-fde76c3b5a0f--\\2026-09-27T02-22-49-251Z_subagent-13d328f2-d473-4b4d-a278-d18f51d339bf.jsonl",
+      "start": "10:22:49.308",
+      "end": "10:23:46.203",
+      "wall_s": 56.895,
+      "tool_batch_wait_s": 15.113,
+      "outside_tool_batches_s": 41.782,
+      "model_responses": 7,
+      "tool_results": 33,
+      "tools": {
+        "describe_schema": 1,
+        "search_knowledge": 1,
+        "explore_sql": 31
+      },
+      "tool_errors": {
+        "QUERY_FAILED": 2,
+        "SUBAGENT_TOOL_CALL_BUDGET_EXHAUSTED": 3
+      },
+      "status": "completed",
+      "final_report_chars": 5181,
+      "final_response_output_tokens": 3565,
+      "last_tool_to_final_message_s": 15.197,
+      "key": "data-values"
+    },
+    {
+      "file": ".data_agent\\runtime-web\\subagents\\81e2577b-c165-41de-865c-fde76c3b5a0f\\--D--data_agent-.data_agent-runtime-web-subagents-81e2577b-c165-41de-865c-fde76c3b5a0f--\\2026-09-27T02-22-49-251Z_subagent-cb586da0-b5f8-4bea-9b92-9058181009a0.jsonl",
+      "start": "10:22:49.309",
+      "end": "10:23:38.333",
+      "wall_s": 49.024,
+      "tool_batch_wait_s": 8.732,
+      "outside_tool_batches_s": 40.292,
+      "model_responses": 6,
+      "tool_results": 10,
+      "tools": {
+        "search_knowledge": 3,
+        "describe_schema": 2,
+        "read_knowledge": 1,
+        "explore_sql": 4
+      },
+      "tool_errors": {
+        "SUBAGENT_KNOWLEDGE_PATH_NOT_AUTHORIZED": 1
+      },
+      "status": "completed",
+      "final_report_chars": 9599,
+      "final_response_output_tokens": 4507,
+      "last_tool_to_final_message_s": 22.744,
+      "key": "schema"
+    },
+    {
+      "file": ".data_agent\\runtime-web\\subagents\\81e2577b-c165-41de-865c-fde76c3b5a0f\\--D--data_agent-.data_agent-runtime-web-subagents-81e2577b-c165-41de-865c-fde76c3b5a0f--\\2026-09-27T02-24-28-810Z_subagent-24efe02f-a2ec-46bc-880c-689f8cf00bd9.jsonl",
+      "start": "10:24:28.859",
+      "end": "10:25:32.832",
+      "wall_s": 63.973,
+      "tool_batch_wait_s": 40.112,
+      "outside_tool_batches_s": 23.861,
+      "model_responses": 5,
+      "tool_results": 7,
+      "tools": {
+        "describe_schema": 1,
+        "search_knowledge": 1,
+        "explore_sql": 5
+      },
+      "tool_errors": {},
+      "status": "completed",
+      "final_report_chars": 3574,
+      "final_response_output_tokens": 1845,
+      "last_tool_to_final_message_s": 11.493,
+      "key": "e1-fact-2025-12"
+    },
+    {
+      "file": ".data_agent\\runtime-web\\subagents\\81e2577b-c165-41de-865c-fde76c3b5a0f\\--D--data_agent-.data_agent-runtime-web-subagents-81e2577b-c165-41de-865c-fde76c3b5a0f--\\2026-09-27T02-24-28-810Z_subagent-dad78a11-3262-44b8-91ba-86711f6003c7.jsonl",
+      "start": "10:24:28.863",
+      "end": "10:27:27.989",
+      "wall_s": 179.126,
+      "tool_batch_wait_s": 79.64,
+      "outside_tool_batches_s": 99.486,
+      "model_responses": 10,
+      "tool_results": 31,
+      "tools": {
+        "describe_schema": 3,
+        "search_knowledge": 2,
+        "explore_sql": 26
+      },
+      "tool_errors": {
+        "QUERY_FAILED": 2,
+        "SUBAGENT_TOOL_CALL_BUDGET_EXHAUSTED": 1
+      },
+      "status": "completed",
+      "final_report_chars": 13263,
+      "final_response_output_tokens": 8094,
+      "last_tool_to_final_message_s": 50.931,
+      "key": "e3-catering-source"
+    },
+    {
+      "file": ".data_agent\\runtime-web\\subagents\\81e2577b-c165-41de-865c-fde76c3b5a0f\\--D--data_agent-.data_agent-runtime-web-subagents-81e2577b-c165-41de-865c-fde76c3b5a0f--\\2026-09-27T02-24-28-811Z_subagent-4fd5f684-bfa4-4cb9-9f3f-479367288bb0.jsonl",
+      "start": "10:24:28.862",
+      "end": "10:26:22.076",
+      "wall_s": 113.214,
+      "tool_batch_wait_s": 62.286,
+      "outside_tool_batches_s": 50.928,
+      "model_responses": 7,
+      "tool_results": 14,
+      "tools": {
+        "describe_schema": 1,
+        "search_knowledge": 1,
+        "explore_sql": 12
+      },
+      "tool_errors": {},
+      "status": "completed",
+      "final_report_chars": 8919,
+      "final_response_output_tokens": 5227,
+      "last_tool_to_final_message_s": 26.656,
+      "key": "e2-mart-months"
+    }
+  ]
+}

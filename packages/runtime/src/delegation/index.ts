@@ -3,28 +3,27 @@ import type { DataAgentToolDefinition } from "../tools/tool-definition.js";
 
 export type ChildRole = "explorer" | "reviewer";
 
+/**
+ * One information-gathering assignment. Children only supply information; the
+ * main Agent makes every decision. An explorer is not bound to a Query Task
+ * or Revision. A reviewer names the Query Task whose current Candidate it reads.
+ */
 export interface SubagentTask {
   readonly key: string;
   readonly role: ChildRole;
   readonly task: string;
-  readonly taskId: string;
-  readonly revisionId: string;
+  /** Required only for a reviewer; ignored by an explorer. */
+  readonly taskId?: string;
 }
 
 export interface SubagentInput {
   readonly tasks: readonly SubagentTask[];
 }
 
-export interface ChildReportFinding {
-  readonly statement: string;
-  readonly evidenceRefs: readonly string[];
-}
-
+/** A child's Markdown information report, bounded before it reaches the parent context. */
 export interface ChildReport {
-  readonly summary: string;
-  readonly findings: readonly ChildReportFinding[];
-  readonly unchecked: readonly string[];
-  readonly questions: readonly string[];
+  readonly markdown: string;
+  readonly truncated: boolean;
 }
 
 export type ChildOutcomeStatus =
@@ -81,6 +80,8 @@ export interface TrustedDelegationContext {
   readonly deadlineAt?: number;
   /** Optional host-issued scoped exploration capability. */
   readonly queryScope?: DelegationQueryScope;
+  /** Host-supplied user message of the parent operation, shown to children as context. */
+  readonly requestMessageId?: string;
 }
 
 export interface ChildToolContext {
@@ -94,7 +95,6 @@ export interface ResolvedChildTask {
   readonly prompt: string;
   readonly systemPrompt: string;
   readonly toolDefinitions: readonly DataAgentToolDefinition<ChildToolContext>[];
-  readonly allowedEvidenceRefs: Set<string>;
   checkTarget(signal?: AbortSignal): Promise<{ readonly state: "current" | "stale" | "unavailable"; readonly reasons: readonly string[] }>;
 }
 

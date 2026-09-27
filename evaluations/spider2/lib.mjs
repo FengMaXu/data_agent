@@ -503,6 +503,17 @@ function isCanonicalTraceEvent(event) {
   return true;
 }
 
+/** Mirrors the runtime marker for an unrecoverable database loss in tool result text. */
+export function infrastructureFailureOf(result) {
+  const content = Array.isArray(result?.content) ? result.content : [];
+  for (const part of content) {
+    const text = part?.type === "text" && typeof part.text === "string" ? part.text : "";
+    const start = text.indexOf("DATABASE_UNAVAILABLE:");
+    if (start >= 0) return text.slice(start).split(/\r?\n/, 1)[0].slice(0, 500);
+  }
+  return undefined;
+}
+
 export function createRecorder(harness, limits) {
   const events = [];
   const calls = [];
@@ -511,6 +522,7 @@ export function createRecorder(harness, limits) {
   let terminalReason = "completed";
   let limitError;
   let providerFailure;
+  let infraFailure;
   let abortPromise;
   let abortFailure;
   const requestAbort = (reason) => {
@@ -561,6 +573,11 @@ export function createRecorder(harness, limits) {
         call.result = JSON.parse(safeJson(event.result ?? null));
         call.isError = Boolean(event.isError);
       }
+      const failure = infrastructureFailureOf(event.result);
+      if (failure && !infraFailure) {
+        infraFailure = failure;
+        void requestAbort("infra_error");
+      }
     }
   });
   return {
@@ -570,6 +587,8 @@ export function createRecorder(harness, limits) {
     get terminalReason() { return terminalReason; },
     get limitError() { return limitError; },
     get providerFailure() { return providerFailure; },
+    /** A lost database (DATABASE_UNAVAILABLE); the case is an infrastructure failure, not a wrong answer. */
+    get infraFailure() { return infraFailure; },
     unsubscribe,
     requestAbort,
     async waitForAbort() {

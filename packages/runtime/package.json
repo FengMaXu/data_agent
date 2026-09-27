@@ -13,7 +13,7 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && node ../../scripts/write-build-provenance.mjs .",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "typecheck:negative": "tsc -p tsconfig.type-tests.json",
     "test": "vitest run"

@@ -1,33 +1,25 @@
 import { describe, expect, it } from "vitest";
-import { parseChildReport } from "./report.js";
+import { MAX_CHILD_REPORT_BYTES, parseChildReport } from "./report.js";
 
-const valid = JSON.stringify({
-  summary: "checked",
-  findings: [{ statement: "Observed mismatch", evidenceRefs: ["revision:r1"] }],
-  unchecked: [],
-  questions: [],
-});
-
-describe("subagent report protocol", () => {
-  it("accepts only bounded reports whose evidence references were authorized", () => {
-    expect(parseChildReport(valid, new Set(["revision:r1"]))).toEqual({
-      summary: "checked",
-      findings: [{ statement: "Observed mismatch", evidenceRefs: ["revision:r1"] }],
-      unchecked: [],
-      questions: [],
-    });
-    expect(() => parseChildReport(valid, new Set())).toThrow("SUBAGENT_REPORT_EVIDENCE_REF_INVALID");
+describe("subagent Markdown report", () => {
+  it("accepts a Markdown document and strips one outer fence", () => {
+    expect(parseChildReport("## 结论\n\norders.status 取值为 A/B")).toEqual({ markdown: "## 结论\n\norders.status 取值为 A/B", truncated: false });
+    expect(parseChildReport("```markdown\n## 结论\n\n- x\n```")).toEqual({ markdown: "## 结论\n\n- x", truncated: false });
   });
 
-  it("rejects malformed, extra-field and oversized output", () => {
-    expect(() => parseChildReport("not-json", new Set())).toThrow("SUBAGENT_REPORT_INVALID_JSON");
-    expect(() => parseChildReport(JSON.stringify({ summary: "x", findings: [], unchecked: [], questions: [], approved: true }), new Set())).toThrow("SUBAGENT_REPORT_INVALID_SHAPE");
-    expect(() => parseChildReport(JSON.stringify({ summary: "x".repeat(9_000), findings: [], unchecked: [], questions: [] }), new Set())).toThrow("SUBAGENT_REPORT_TOO_LARGE_OR_EMPTY");
+  it("drops a conversational preamble before the first heading", () => {
+    expect(parseChildReport("I have all the information needed. Let me write the final report.\n\n## 结论\n\nx").markdown).toBe("## 结论\n\nx");
+    expect(parseChildReport("No headings, just an answer.").markdown).toBe("No headings, just an answer.");
   });
 
-  it("does not treat an empty finding list as approval", () => {
-    const report = parseChildReport(JSON.stringify({ summary: "No mismatch found in supplied material", findings: [], unchecked: ["business intent"], questions: [] }), new Set());
-    expect(report.unchecked).toEqual(["business intent"]);
-    expect(report).not.toHaveProperty("approved");
+  it("rejects an empty report", () => {
+    expect(() => parseChildReport("   ")).toThrow("SUBAGENT_REPORT_EMPTY");
+  });
+
+  it("truncates an oversized report instead of discarding it", () => {
+    const report = parseChildReport(`## 数据取值\n\n${"值".repeat(MAX_CHILD_REPORT_BYTES)}`);
+    expect(report.truncated).toBe(true);
+    expect(Buffer.byteLength(report.markdown, "utf8")).toBeLessThan(MAX_CHILD_REPORT_BYTES + 128);
+    expect(report.markdown).toContain("已截断");
   });
 });

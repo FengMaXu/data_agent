@@ -44,7 +44,7 @@ describe("HarnessChildExecutor", () => {
     expect(result.usage.outputTokens).toBeTypeOf("number");
     expect(result.usage.totalTokens).toBe(result.usage.inputTokens! + result.usage.outputTokens!);
     expect(result.usage.cost).toBeNull();
-    expect(maxTokens).toBe(2_048);
+    expect(maxTokens).toBe(10_240);
     expect(accepted).toHaveLength(1);
     expect(providerContext).toContain("TARGET_MARKER");
     expect(providerContext).not.toContain("PARENT_HISTORY_SECRET");
@@ -169,16 +169,16 @@ describe("HarnessChildExecutor", () => {
     await expect(running).resolves.toMatchObject({ status: "interrupted", terminalConfirmed: true });
   });
 
-  it("stops before a seventh child model request", async () => {
+  it("stops before an eleventh child model request", async () => {
     const { faux, executor } = setup();
-    faux.setResponses(Array.from({ length: 7 }, (_, index) => fauxAssistantMessage(fauxToolCall("missing_tool", {}, { id: `missing-${index}` }), { stopReason: "toolUse" })));
-    const result = await executor.execute(request());
-    expect(faux.state.callCount).toBe(6);
+    faux.setResponses(Array.from({ length: 11 }, (_, index) => fauxAssistantMessage(fauxToolCall("missing_tool", {}, { id: `missing-${index}` }), { stopReason: "toolUse" })));
+    const result = await executor.execute(request({ timeoutMs: 10_000 }));
+    expect(faux.state.callCount).toBe(10);
     expect(result).toMatchObject({ status: "failed", terminalConfirmed: true, error: expect.stringContaining("SUBAGENT_MODEL_REQUEST_BUDGET_EXHAUSTED") });
     await executor.close();
   });
 
-  it("executes at most eight child tools even when one response requests more", async () => {
+  it("executes at most thirty child tools even when one response requests more", async () => {
     const { faux, executor } = setup();
     let calls = 0;
     let providerPrompt = "";
@@ -192,11 +192,61 @@ describe("HarnessChildExecutor", () => {
     };
     faux.setResponses([async (context) => {
       providerPrompt = context.systemPrompt ?? "";
-      return fauxAssistantMessage(Array.from({ length: 9 }, (_, index) => fauxToolCall("probe", {}, { id: `probe-${index}` })), { stopReason: "toolUse" });
+      return fauxAssistantMessage(Array.from({ length: 31 }, (_, index) => fauxToolCall("probe", {}, { id: `probe-${index}` })), { stopReason: "toolUse" });
     }]);
     await executor.execute(request({ toolDefinitions: [defineDataAgentTool(probe, { promptSnippet: "执行有界测试探针。", promptGuidelines: [] })] }));
-    expect(calls).toBe(8);
+    expect(calls).toBe(30);
     expect(providerPrompt).toContain("`probe`：执行有界测试探针。");
+    await executor.close();
+  });
+
+  it("turns the last allowed request into a tool-less final report", async () => {
+    const { faux, executor } = setup();
+    let finalTools: number | undefined;
+    let finalPrompt = "";
+    faux.setResponses([
+      ...Array.from({ length: 9 }, (_, index) => fauxAssistantMessage(fauxToolCall("missing_tool", {}, { id: `missing-${index}` }), { stopReason: "toolUse" })),
+      async (context) => {
+        finalTools = context.tools?.length ?? 0;
+        finalPrompt = context.systemPrompt ?? "";
+        return fauxAssistantMessage("## 结论\n\nBUDGET_REPORT_MARKER");
+      },
+    ]);
+    const result = await executor.execute(request({ timeoutMs: 10_000 }));
+    expect(finalTools).toBe(0);
+    expect(finalPrompt).toContain("Write the final Markdown report now");
+    expect(result).toMatchObject({ status: "completed", text: expect.stringContaining("BUDGET_REPORT_MARKER") });
+    await executor.close();
+  });
+
+  it("returns the final report, not the first reply's preamble, from a multi-turn child", async () => {
+    const { faux, executor } = setup();
+    const probe = {
+      name: "probe",
+      label: "probe",
+      description: "bounded probe",
+      replay: "safe" as const,
+      parameters: Type.Object({}, { additionalProperties: false }),
+      async execute() { return { content: [{ type: "text" as const, text: "ok" }] }; },
+    };
+    faux.setResponses([
+      fauxAssistantMessage([{ type: "text", text: "I'll start by exploring the schema." }, fauxToolCall("probe", {}, { id: "probe-1" })], { stopReason: "toolUse" }),
+      fauxAssistantMessage("Let me write the final report.\n\n## 结论\n\nFINAL_REPORT_MARKER"),
+    ]);
+    const result = await executor.execute(request({ timeoutMs: 10_000, toolDefinitions: [defineDataAgentTool(probe, { promptSnippet: "执行有界测试探针。", promptGuidelines: [] })] }));
+    expect(result).toMatchObject({ status: "completed", text: expect.stringContaining("FINAL_REPORT_MARKER") });
+    expect(result.text).not.toContain("I'll start by exploring");
+    await executor.close();
+  });
+
+  it("keeps a report cut at the output cap instead of misreading it as a context overflow", async () => {
+    const { faux, executor } = setup();
+    faux.setResponses([async (_context, options) => fauxAssistantMessage(`## 结论
+
+${"x".repeat((options?.maxTokens ?? 0) * 4)}`, { stopReason: "length" })]);
+    const result = await executor.execute(request({ timeoutMs: 10_000 }));
+    expect(result.error ?? "").not.toContain("context window");
+    expect(result).toMatchObject({ status: "completed", text: expect.stringContaining("## 结论") });
     await executor.close();
   });
 

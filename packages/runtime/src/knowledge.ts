@@ -11,10 +11,18 @@ const MAX_KNOWLEDGE_READ_CONTENT_BYTES = 12 * 1024;
 export const MAX_KNOWLEDGE_DOCUMENT_LINES = 500;
 const MAX_HEADINGLESS_SECTION_LINES = 100;
 
+/**
+ * `method` documents guide how the main Agent reasons and writes SQL; every
+ * other document is treated as facts (definitions, schema, data notes). The
+ * value only routes access in prompts, never evidence authority.
+ */
+export type KnowledgeUsage = "method" | "fact";
+
 interface KnowledgeMetadata {
   readonly knowledgeId: string;
   readonly name: string;
   readonly description: string;
+  readonly usage?: KnowledgeUsage;
 }
 
 export interface KnowledgeDiagnostic {
@@ -181,11 +189,13 @@ function parseFrontmatter(text: string, relativePath: string, requireMetadata: b
   if (!knowledgeId || !/^[a-z][a-z0-9-]{1,63}$/.test(knowledgeId)) throw new Error(`KNOWLEDGE_METADATA_INVALID_ID:${relativePath}`);
   if (!name) throw new Error(`KNOWLEDGE_METADATA_NAME_REQUIRED:${relativePath}`);
   if (!description) throw new Error(`KNOWLEDGE_METADATA_DESCRIPTION_REQUIRED:${relativePath}`);
+  const usage = values.get("usage");
+  if (usage !== undefined && usage !== "method" && usage !== "fact") throw new Error(`KNOWLEDGE_METADATA_INVALID_USAGE:${relativePath}`);
   const contentLines = lines.slice(closing + 1);
   // A blank line after the closing marker is formatting, not document content.
   const body = contentLines[0] === "" ? contentLines.slice(1) : contentLines;
   return {
-    metadata: { knowledgeId, name, description },
+    metadata: { knowledgeId, name, description, ...(usage ? { usage } : {}) },
     contentLines: body,
     contentStartLine: closing + (contentLines[0] === "" ? 3 : 2),
   };

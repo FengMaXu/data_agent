@@ -243,7 +243,7 @@ export async function registerApplicationProtocol(
         const sessionId = url.searchParams.get("session_id") ?? "";
         if (!publicationId || !sessionId || !readPublication || (authorizeSession && !(await authorizeSession("local", sessionId)))) return new Response("Not found", { status: 404 });
         const artifact = await readPublication(publicationId, { userId: "local", sessionId });
-        return new Response(artifact.content, { headers: { "Content-Type": artifact.summary.format === "csv" ? "text/csv; charset=utf-8" : "application/json; charset=utf-8", "Cache-Control": "no-store" } });
+        return new Response(`﻿${artifact.content}`, { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="${publicationId}.csv"`, "Cache-Control": "no-store" } });
       }
       if (url.hostname !== "workspace" || !url.pathname.startsWith("/workspace/files/")) return new Response("Not found", { status: 404 });
       const relativePath = url.searchParams.get("path") ?? "";

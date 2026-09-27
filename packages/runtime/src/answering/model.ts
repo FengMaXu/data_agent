@@ -1,3 +1,4 @@
+import type { DecisionPointName, DecisionPointProposal, DecisionPoints } from "./decision-points.js";
 import { createHash } from "node:crypto";
 
 /**
@@ -41,7 +42,7 @@ export type ImplementationObstacleKind =
 export type ExecutionOutcome = "not_started" | "failed" | "succeeded" | "unknown";
 
 export type QueryAttemptKind = "revision" | "exploration" | "result";
-export type QueryAttemptPurpose = "user_exploration" | "fanout_probe";
+export type QueryAttemptPurpose = "user_exploration" | "fanout_probe" | "choice_probe";
 export type QueryAttemptState = "blocked" | "started" | "succeeded" | "failed" | "unknown";
 
 export interface QueryBudgetPolicy {
@@ -239,7 +240,9 @@ export type Facet<T> =
       readonly value: T;
       readonly basis:
         | { readonly kind: "evidence"; readonly evidenceIds: NonEmpty<EvidenceId> }
-        | { readonly kind: "hypothesis"; readonly hypothesisId: HypothesisId };
+        | { readonly kind: "hypothesis"; readonly hypothesisId: HypothesisId }
+        /** Model inference without a bound Hypothesis or qualifying Evidence; disclosed, not blocking. */
+        | { readonly kind: "inference" };
     };
 
 export interface AnswerSpec {
@@ -273,6 +276,21 @@ export interface EvidenceBase {
   readonly queryHash?: string;
   readonly quote?: string;
   readonly observedAt: string;
+  /** Set only by Runtime Evidence Admission after the quote was found in a trusted source text. */
+  readonly verification?: EvidenceVerification;
+}
+
+export interface EvidenceVerification {
+  readonly method: "user_message_quote" | "document_quote";
+  /** Hash of the complete trusted source text at admission time. */
+  readonly sourceContentHash: string;
+}
+
+/** Evidence kinds whose authority comes from a quoted text and therefore require verification. */
+export type TextEvidenceKind = "user_confirmation" | "reviewed_definition" | "task_document" | "request_wording";
+
+export function isTextEvidenceKind(kind: EvidenceKind): kind is TextEvidenceKind {
+  return kind === "user_confirmation" || kind === "reviewed_definition" || kind === "task_document" || kind === "request_wording";
 }
 
 export type EvidenceKind =
@@ -335,7 +353,13 @@ export interface ChoiceProposal {
   readonly alternatives: readonly { readonly localId: string; readonly statement: string }[];
   readonly selectedAlternativeId?: string;
   readonly selectionEvidenceIds?: readonly string[];
+  /** Required with selectedAlternativeId: why the cited evidence rules out every other alternative. */
+  readonly selectionRationale?: string;
   readonly provisionalAlternativeId?: string;
+  /** Decide at creation (ADR-0006); verification is derived from decisionEvidenceIds. */
+  readonly decidedAlternativeId?: string;
+  readonly decisionRationale?: string;
+  readonly decisionEvidenceIds?: readonly string[];
 }
 
 export type Resolution =
@@ -350,10 +374,16 @@ export type Resolution =
       readonly proof: NonEmpty<QualifiedEvidenceId>;
     }
   | {
+      /**
+       * Supported, but no cited evidence qualifies it (ADR-0006 applied to
+       * Hypotheses): unverified and disclosed at publication. Legacy snapshots
+       * carry the Choice that settled it instead of cited evidence.
+       */
       readonly outcome: "provisional";
       readonly hypothesisId: HypothesisId;
-      readonly choiceId: ChoiceId;
+      readonly choiceId?: ChoiceId;
       readonly disclosureRequired: true;
+      readonly citedEvidenceIds?: readonly EvidenceId[];
     };
 
 export type ChoiceResolution =
@@ -362,13 +392,128 @@ export type ChoiceResolution =
       readonly choiceId: ChoiceId;
       readonly alternativeId: AlternativeId;
       readonly proof: NonEmpty<QualifiedEvidenceId>;
+      /** Discriminating argument recorded at selection; absent on legacy snapshots. */
+      readonly rationale?: string;
+      readonly adviceOverride?: AdviceOverride;
     }
   | {
       readonly outcome: "provisional";
       readonly choiceId: ChoiceId;
       readonly alternativeId: AlternativeId;
       readonly disclosureRequired: true;
+      /** Required when Choice governance is on (ADR-0005); absent on legacy snapshots. */
+      readonly rationale?: string;
+      readonly adviceOverride?: AdviceOverride;
+      /** Evidence the decision cited that did not qualify it (ADR-0006); disclosed with the decision. */
+      readonly citedEvidenceIds?: readonly EvidenceId[];
+    }
+  | {
+      /** Every alternative's probe produced the same output; no decision or disclosure is needed. */
+      readonly outcome: "equivalent";
+      readonly choiceId: ChoiceId;
     };
+
+/** Why a decision departs from compare_hypotheses' clear lean, with the evidence that outweighs it. */
+export interface AdviceOverride {
+  readonly reason: string;
+  readonly evidenceIds: NonEmpty<EvidenceId>;
+}
+
+export interface AdviceOverrideProposal {
+  readonly reason: string;
+  readonly evidenceIds: readonly string[];
+}
+
+/** An alternative that cannot be executed on its own; recorded instead of a probe (ADR-0005). */
+export interface ProbeWaiver {
+  readonly choiceId: ChoiceId;
+  readonly alternativeId: AlternativeId;
+  readonly reason: string;
+}
+
+export interface ProbeWaiverProposal {
+  /** Existing Choice id, or the localId of a Choice added in the same call. */
+  readonly choiceId: string;
+  /** Existing alternative id, or the localId of an alternative added in the same call. */
+  readonly alternativeId: string;
+  readonly reason: string;
+}
+
+/**
+ * Runtime record of one exploration executed as an alternative's probe. The
+ * fingerprint compares complete outputs the way the answer will be judged.
+ */
+export interface ChoiceProbeRecord {
+  readonly choiceId: ChoiceId;
+  readonly alternativeId: AlternativeId;
+  readonly revisionId: RevisionId;
+  readonly evidenceId: EvidenceId;
+  readonly rowCount: number;
+  readonly outcome:
+    | { readonly state: "available"; readonly fingerprint: string }
+    | { readonly state: "unavailable"; readonly reason: string };
+  readonly probedAt: string;
+}
+
+/**
+ * Explicit handling of an existing Hypothesis or Choice in a revision. Runtime
+ * applies it to the carried-forward state; omission is never a disposition.
+ */
+export type DispositionProposal =
+  | {
+      readonly action: "support" | "refute";
+      readonly hypothesisId: string;
+      readonly evidenceIds: readonly string[];
+    }
+  | {
+      readonly action: "select";
+      readonly choiceId: string;
+      readonly alternativeId: string;
+      readonly evidenceIds: readonly string[];
+      /** Why the cited evidence rules out every other alternative; quoting the request alone is not enough. */
+      readonly rationale: string;
+      /** Required when the decision departs from compare_hypotheses' clear lean. */
+      readonly adviceOverride?: AdviceOverrideProposal;
+    }
+  | {
+      readonly action: "provisional";
+      readonly choiceId: string;
+      readonly alternativeId: string;
+      /** Why this alternative fits the request best; required when Choice governance is on. */
+      readonly rationale?: string;
+      readonly adviceOverride?: AdviceOverrideProposal;
+    }
+  | {
+      /**
+       * The one model-facing decision (ADR-0006). Runtime records it as
+       * selected when the cited evidence qualifies, otherwise as a disclosed
+       * provisional decision.
+       */
+      readonly action: "decide";
+      readonly choiceId: string;
+      readonly alternativeId: string;
+      readonly rationale: string;
+      readonly evidenceIds?: readonly string[];
+      readonly adviceOverride?: AdviceOverrideProposal;
+    }
+  | {
+      /** Accepted only when every alternative's probe produced the same output. */
+      readonly action: "equivalent";
+      readonly choiceId: string;
+    }
+  | {
+      readonly action: "supersede";
+      readonly targetId: string;
+      /** New item localIds from this revision or existing item ids that take over every affected facet. */
+      readonly replacementIds: readonly string[];
+      readonly reason: string;
+    };
+
+export interface Supersession {
+  readonly targetId: HypothesisId | ChoiceId;
+  readonly replacementIds: NonEmpty<HypothesisId | ChoiceId>;
+  readonly reason: string;
+}
 
 export interface DraftRevision {
   readonly state: "draft";
@@ -420,6 +565,8 @@ export interface QueryTaskRecord {
   readonly lifecycle: "open" | "published" | "closed";
   /** Persisted task budget; omitted only for legacy snapshots and normalized on read/write. */
   readonly budget?: QueryBudgetState;
+  /** Latest probe per Choice alternative; Choice ids are stable across revisions. */
+  readonly choiceProbes?: readonly ChoiceProbeRecord[];
   readonly createdAt: string;
   readonly updatedAt: string;
 }
@@ -436,8 +583,14 @@ export interface AnswerRevisionRecord {
   readonly choiceResolutions: readonly ChoiceResolution[];
   readonly state: RevisionState;
   readonly createdAt: string;
+  /** Items removed from this Revision by explicit supersession; absent on legacy snapshots. */
+  readonly supersessions?: readonly Supersession[];
   /** Advisory report attached to this Revision; it never changes qualification. */
   readonly specFeedback?: SpecFeedback;
+  /** Alternatives declared not probeable; carried forward like other revision items. */
+  readonly probeWaivers?: readonly ProbeWaiver[];
+  /** Declared decision points (ADR-0005); absent on legacy revisions, which are exempt. */
+  readonly decisionPoints?: DecisionPoints;
 }
 
 export interface ResultCandidateRecord {
@@ -466,6 +619,10 @@ export interface ResultCandidateRecord {
 export interface PublicationDisclosure {
   readonly required: true;
   readonly provisionalChoiceIds: readonly ChoiceId[];
+  /** Hypotheses supported without qualifying evidence (ADR-0006 applied to Hypotheses). */
+  readonly provisionalHypothesisIds?: readonly HypothesisId[];
+  /** Specified facets whose basis is model inference rather than a Hypothesis or qualifying Evidence. */
+  readonly inferredFacets?: readonly FacetName[];
   readonly summary: string;
   readonly fanoutStatus?: FanoutReport["status"];
 }
@@ -517,13 +674,64 @@ export interface AnswerTaskView {
   readonly publication?: PublicationReceipt;
 }
 
+export interface HypothesisView {
+  readonly id: HypothesisId;
+  readonly kind: HypothesisKind;
+  readonly statement: string;
+  readonly affects: NonEmpty<FacetName>;
+  /** provisional: supported without qualifying evidence; resolved, and disclosed at publication. */
+  readonly status: "unresolved" | "supported" | "provisional" | "refuted";
+}
+
+export interface ChoiceView {
+  readonly id: ChoiceId;
+  readonly affects: NonEmpty<FacetName>;
+  readonly alternatives: NonEmpty<ChoiceAlternative>;
+  readonly status: "unresolved" | "selected" | "provisional" | "equivalent";
+  readonly alternativeId?: AlternativeId;
+  readonly rationale?: string;
+  /** Present when probes are tracked: per-alternative probe state and whether outputs differ. */
+  readonly probes?: readonly ChoiceProbeView[];
+  readonly outputs?: ChoiceOutputs;
+  /** Latest compare_hypotheses advice for this Choice; advisory only. */
+  readonly advice?: ChoiceAdviceView;
+  readonly adviceOverride?: AdviceOverride;
+}
+
+export interface ChoiceAdviceView {
+  readonly recommendation: "alternative" | "insufficient_evidence" | "multiple_plausible" | "none_supported";
+  readonly probabilities: readonly { readonly alternativeId: string; readonly probability: number }[];
+  readonly lean?: { readonly alternativeId: string; readonly probability: number };
+}
+
+/** identical: every alternative produced the same output; distinct: at least two differ; incomplete: some output unknown. */
+export type ChoiceOutputs = "identical" | "distinct" | "incomplete";
+
+export interface ChoiceProbeView {
+  readonly alternativeId: AlternativeId;
+  readonly state: "missing" | "available" | "unavailable" | "waived";
+  readonly rowCount?: number;
+  /** Short fingerprint prefix; equal prefixes mean equal outputs. */
+  readonly output?: string;
+  readonly reason?: string;
+}
+
 export interface AnswerRevisionView {
   readonly taskId: TaskId;
   readonly revisionId: RevisionId;
+  readonly parentRevisionId?: RevisionId;
   readonly spec: AnswerSpec;
+  /** Stable Runtime ids; a revision references these instead of resubmitting items. */
+  readonly hypotheses: readonly HypothesisView[];
+  readonly choices: readonly ChoiceView[];
   readonly unresolvedFacets: readonly FacetName[];
   readonly unresolvedHypotheses: readonly HypothesisId[];
   readonly unresolvedChoices: readonly ChoiceId[];
+  /** Specified facets based on model inference; disclosed at publication, not blocking. */
+  readonly inferredFacets: readonly FacetName[];
+  /** Declared decision points and the ones still undeclared; present when decision points are tracked. */
+  readonly decisionPoints?: DecisionPoints;
+  readonly undeclaredDecisionPoints?: readonly DecisionPointName[];
   readonly specFeedback?: SpecFeedback;
 }
 
@@ -535,6 +743,8 @@ export interface QueryExecutionView {
   readonly coverage?: readonly CheckCoverage[];
   readonly fanout?: FanoutReport;
   readonly attemptId?: string;
+  /** Set when the exploration ran as a Choice probe. */
+  readonly probe?: ChoiceProbeView & { readonly choiceId: ChoiceId };
 }
 
 export interface BeginAnswer {
@@ -542,23 +752,39 @@ export interface BeginAnswer {
   readonly spec: AnswerSpecProposal;
   readonly hypotheses?: readonly HypothesisProposal[];
   readonly choices?: readonly ChoiceProposal[];
+  readonly notProbeable?: readonly ProbeWaiverProposal[];
+  readonly decisionPoints?: readonly DecisionPointProposal[];
   readonly evidence?: readonly UntrustedEvidenceInput[];
   readonly requestId: string;
 }
 
+/**
+ * A delta against the current Revision. Runtime copies the base Revision and
+ * applies only what is listed here; omitted facets and items carry forward.
+ */
 export interface ReviseAnswer {
   readonly taskId: string;
   readonly baseRevisionId: string;
-  readonly spec: AnswerSpecProposal;
-  readonly hypotheses?: readonly HypothesisProposal[];
-  readonly choices?: readonly ChoiceProposal[];
+  /** Facet patch: only present keys are replaced; filters/groupBy replace the whole list. */
+  readonly spec?: AnswerSpecProposal;
+  readonly addHypotheses?: readonly HypothesisProposal[];
+  readonly addChoices?: readonly ChoiceProposal[];
+  readonly notProbeable?: readonly ProbeWaiverProposal[];
+  readonly decisionPoints?: readonly DecisionPointProposal[];
+  readonly dispositions?: readonly DispositionProposal[];
   readonly evidence?: readonly UntrustedEvidenceInput[];
   readonly requestId: string;
 }
 
 export interface UntrustedEvidenceInput {
+  /** Caller-local handle for references inside the same begin/revise call. */
+  readonly localId?: string;
   readonly kind: EvidenceKind;
-  readonly sourceRef: string;
+  /**
+   * Document kinds: authorized knowledge id. request_wording: ignored, Runtime
+   * binds the task request message. user_confirmation: set by the trusted Host.
+   */
+  readonly sourceRef?: string;
   readonly contentHash?: string;
   readonly quote?: string;
   readonly preview?: BoundedResult;
@@ -570,6 +796,8 @@ export type ExecuteQuery =
       readonly taskId: string;
       readonly sql: string;
       readonly limit?: number;
+      /** Run this exploration as the probe of one Choice alternative (ADR-0005). */
+      readonly probe?: { readonly choiceId: string; readonly alternativeId: string };
       /** Host-owned serialized preview cap; model-facing tools do not expose it. */
       readonly maxPreviewBytes?: number;
       readonly requestId?: string;

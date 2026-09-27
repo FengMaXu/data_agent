@@ -144,7 +144,7 @@ export function createCoreAgentToolDefinitions(options: CoreToolOptions): readon
         },
       }, {
         promptSnippet: "追加学习记录或写入受限知识内容。",
-        promptGuidelines: ["不要把草稿、学习记录或 schema 更新冒充为已审核业务定义。"],
+        promptGuidelines: ["仅在复杂查询完成或用户纠错后记录可复用经验；不要把草稿、学习记录或 schema 更新冒充为已审核业务定义。"],
       }));
     }
   }
@@ -153,7 +153,7 @@ export function createCoreAgentToolDefinitions(options: CoreToolOptions): readon
     definitions.push(defineDataAgentTool({
       name: "run_python",
       label: "run_python",
-      description: "Execute Python analysis in the current session workspace.",
+      description: "Execute Python analysis confined to the current session workspace.",
       replay: "never",
       parameters: Type.Object({ code: Type.String({ minLength: 1 }), description: Type.Optional(Type.String()) }, { additionalProperties: false }),
       async execute(_toolCallId, input, _onUpdate, toolContext, _invocation, context) {
@@ -165,7 +165,7 @@ export function createCoreAgentToolDefinitions(options: CoreToolOptions): readon
       },
     }, {
       promptSnippet: "在配置的 Python 环境中执行当前工作区分析。",
-      promptGuidelines: ["区分统计分析与绘图请求；披露实际工作区、超时和失败语义，不承诺这是安全沙箱。"],
+      promptGuidelines: ["只能读写当前工作区，访问其他路径、启动子进程都会被拒绝；数据库数据请用 query_database 获取。区分统计分析与绘图请求；披露实际工作区、超时和失败语义，不承诺这是安全沙箱。"],
     }));
   }
 

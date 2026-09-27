@@ -25,6 +25,17 @@ for (const pkg of ["@data-agent/transport", "@data-agent/electron-host", "@data-
 }
 run("npm run build --workspace=frontend");
 
+// The bundles under frontend/electron-host/ are generated and gitignored. They
+// ship with external source maps (chained through the tsc .js.map files) so
+// stack traces point at the original .ts sources; sourcesContent is omitted to
+// keep app.asar small. esbuild places the banner above its own "use strict",
+// so the banner repeats the directive to keep the bundle in strict mode.
+const bundleArgs = [
+  "--bundle", "--platform=node", "--format=cjs",
+  "--sourcemap", "--sources-content=false",
+  "--banner:js=\"use strict\";process.setSourceMapsEnabled(true);",
+];
+
 // Bundle the TS Electron host into a single CJS entry so no workspace
 // node_modules are needed at runtime; better-sqlite3 stays external and is
 // unpacked via asarUnpack.
@@ -32,7 +43,7 @@ run("npm run build --workspace=frontend");
   const args = [
     "node_modules/esbuild/bin/esbuild",
     "packages/electron-host/dist/main.js",
-    "--bundle", "--platform=node", "--format=cjs",
+    ...bundleArgs,
     "--external:electron", "--external:better-sqlite3", "--external:mysql2", "--external:@modelcontextprotocol/sdk",
     "--define:import.meta.url=undefined",
     "--outfile=frontend/electron-host/main.cjs",
@@ -45,7 +56,7 @@ run("npm run build --workspace=frontend");
   const args = [
     "node_modules/esbuild/bin/esbuild",
     "packages/runtime/dist/metadata-worker.js",
-    "--bundle", "--platform=node", "--format=cjs",
+    ...bundleArgs,
     "--external:better-sqlite3",
     "--outfile=frontend/electron-host/metadata-worker.cjs",
   ];
@@ -57,7 +68,7 @@ run("npm run build --workspace=frontend");
   const args = [
     "node_modules/esbuild/bin/esbuild",
     "packages/mcp-mysql/dist/cli.js",
-    "--bundle", "--platform=node", "--format=cjs",
+    ...bundleArgs,
     "--external:mysql2",
     "--outfile=frontend/electron-host/mcp-mysql.cjs",
   ];

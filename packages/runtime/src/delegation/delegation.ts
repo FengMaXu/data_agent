@@ -58,7 +58,12 @@ function validateTask(task: SubagentTask, keys: Set<string>): void {
   keys.add(task.key);
   if (task.role !== "explorer" && task.role !== "reviewer") throw new Error("SUBAGENT_ROLE_INVALID");
   if (!task.task.trim() || byteLength(task.task) > 8 * 1024) throw new Error("SUBAGENT_TASK_INVALID");
-  if (!task.taskId.trim() || !task.revisionId.trim() || byteLength(task.taskId) > 256 || byteLength(task.revisionId) > 256) throw new Error("SUBAGENT_TARGET_REQUIRED");
+  if (task.taskId !== undefined && (!task.taskId.trim() || byteLength(task.taskId) > 256)) throw new Error("SUBAGENT_TARGET_INVALID");
+  if (task.role === "reviewer" && !task.taskId?.trim()) throw new Error("SUBAGENT_REVIEW_TASK_REQUIRED");
+}
+
+function initialTargetRef(task: SubagentTask): string {
+  return task.role === "reviewer" && task.taskId ? `query-task:${task.taskId}` : `subagent:${task.key}`;
 }
 
 function terminalRecord(base: DelegationLedgerRecord, outcome: ChildOutcome): DelegationLedgerRecord {
@@ -83,9 +88,9 @@ export class NativeDelegation implements Delegation {
   private closed = false;
 
   constructor(private readonly options: NativeDelegationOptions) {
-    this.timeoutMs = options.timeoutMs ?? 120_000;
-    this.maxBatch = options.maxBatch ?? 2;
-    this.maxChildrenPerOperation = options.maxChildrenPerOperation ?? 4;
+    this.timeoutMs = options.timeoutMs ?? 180_000;
+    this.maxBatch = options.maxBatch ?? 4;
+    this.maxChildrenPerOperation = options.maxChildrenPerOperation ?? 16;
     if (![this.timeoutMs, this.maxBatch, this.maxChildrenPerOperation].every((value) => Number.isSafeInteger(value) && value > 0)) throw new Error("SUBAGENT_LIMIT_INVALID");
     const initializationController = new AbortController();
     this.runControllers.add(initializationController);
@@ -156,7 +161,7 @@ export class NativeDelegation implements Delegation {
       key: task.key,
       runId: base.runId,
       childSessionId: base.childSessionId,
-      targetRef: `query-task:${task.taskId}@${task.revisionId}`,
+      targetRef: initialTargetRef(task),
       targetState: "unavailable",
       staleReasons: ["delegation stopped before child admission"],
       status: forcedStatus ?? (isDeadlineAbort(effectiveSignal) ? "timed_out" : this.closed ? "interrupted" : "cancelled"),
@@ -179,7 +184,7 @@ export class NativeDelegation implements Delegation {
         key: task.key,
         runId: base.runId,
         childSessionId: base.childSessionId,
-        targetRef: `query-task:${task.taskId}@${task.revisionId}`,
+        targetRef: initialTargetRef(task),
         targetState: "unavailable",
         staleReasons: ["delegation budget exhausted"],
         status: "budget_exhausted",
@@ -206,7 +211,7 @@ export class NativeDelegation implements Delegation {
             key: task.key,
             runId: base.runId,
             childSessionId: base.childSessionId,
-            targetRef: `query-task:${task.taskId}@${task.revisionId}`,
+            targetRef: initialTargetRef(task),
             targetState: "unavailable" as const,
             staleReasons: ["child outcome could not be durably recorded"],
             status: "failed" as const,
@@ -224,7 +229,7 @@ export class NativeDelegation implements Delegation {
   }
 
   private async runOne(task: SubagentTask, base: DelegationLedgerRecord, context: TrustedDelegationContext, signal?: AbortSignal): Promise<ChildOutcome> {
-    let targetRef = `query-task:${task.taskId}@${task.revisionId}`;
+    let targetRef = initialTargetRef(task);
     const startedAt = Date.now();
     let deadlineExpired = false;
     let parentLease: ConcurrencyLease | undefined;
@@ -294,7 +299,7 @@ export class NativeDelegation implements Delegation {
       let report;
       let error = raw.error;
       if (status === "completed") {
-        try { report = parseChildReport(raw.text ?? "", resolved.allowedEvidenceRefs); }
+        try { report = parseChildReport(raw.text ?? ""); }
         catch (parseError) { status = "invalid_output"; error = boundedError(parseError); }
       }
       const outcome: ChildOutcome = {

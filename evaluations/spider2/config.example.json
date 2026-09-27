@@ -4,7 +4,12 @@
   "pythonExecutable": "python",
   "localDatabasePackSha256": null,
   "concurrency": 3,
+  "specFeedback": false,
   "scoreWorkers": 4,
+  "answering": {
+    "semanticSpecMode": "required",
+    "fanout": { "enabled": true }
+  },
   "assurance": {
     "mode": "shadow",
     "reviewerModel": "gpt-4o",
@@ -78,7 +83,7 @@
         "baseUrlEnv": "DEEPSEEK_BASE_URL",
         "apiFormat": "chat",
         "reasoning": true,
-        "maxTokens": 10240,
+        "maxTokens": 32768,
         "thinkingLevel": "high",
         "thinkingLevelMap": {
           "high": "high"
@@ -93,10 +98,19 @@
         "baseUrlEnv": "GPT55_BASE_URL",
         "apiFormat": "chat"
       }
+    },
+    "gpt-6-luna": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-6-luna",
+        "apiKeyEnv": "DEROUTER_API_KEY",
+        "baseUrlEnv": "DEROUTER_BASE_URL",
+        "apiFormat": "chat"
+      }
     }
   },
   "limits": {
-    "timeoutMs": 300000,
+    "timeoutMs": 480000,
     "providerTimeoutMs": 30000,
     "maxTurns": 30,
     "maxToolCalls": 50,

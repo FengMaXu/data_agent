@@ -21,12 +21,23 @@ interface JevResponse {
   readonly answers: { readonly best_hypothesis: JevChoiceAnswer };
 }
 
+export interface JevHypothesisChoiceObservation {
+  readonly type: "jev_request";
+  readonly kind: "hypothesis_choice";
+  readonly model: string;
+  readonly startedAt: number;
+  readonly endedAt: number;
+  readonly outcome: "completed" | "failed" | "unknown";
+  readonly usage: null;
+}
+
 export interface JevHypothesisChoiceAdvisorOptions {
   readonly apiKey: string;
   readonly model?: string;
   readonly endpoint?: string;
   readonly timeoutMs?: number;
   readonly fetch?: typeof fetch;
+  readonly onObservation?: (observation: JevHypothesisChoiceObservation) => void;
 }
 
 export class JevHypothesisChoiceError extends Error {
@@ -119,6 +130,7 @@ export class JevHypothesisChoiceAdvisor implements HypothesisChoiceAdvisor {
   private readonly endpoint: string;
   private readonly timeoutMs: number;
   private readonly fetcher: typeof fetch;
+  private readonly onObservation: ((observation: JevHypothesisChoiceObservation) => void) | undefined;
 
   constructor(options: JevHypothesisChoiceAdvisorOptions) {
     this.apiKey = trimmed(options.apiKey, "apiKey");
@@ -126,6 +138,7 @@ export class JevHypothesisChoiceAdvisor implements HypothesisChoiceAdvisor {
     this.endpoint = options.endpoint?.trim() || "https://api.typesafe.ai/v1/systemone";
     this.timeoutMs = options.timeoutMs ?? 15_000;
     this.fetcher = options.fetch ?? fetch;
+    this.onObservation = options.onObservation;
     if (!Number.isSafeInteger(this.timeoutMs) || this.timeoutMs <= 0) throw new JevHypothesisChoiceError("INVALID_INPUT", "timeoutMs must be a positive integer");
   }
 
@@ -143,8 +156,15 @@ export class JevHypothesisChoiceAdvisor implements HypothesisChoiceAdvisor {
       evidence: input.evidence.map((item) => ({ id: item.id, kind: item.kind, authority: item.authority, authority_rank: item.authorityRank, source_ref: item.sourceRef, content: item.content })),
       hypotheses: input.hypotheses.map((item, index) => ({ option: keys[index], statement: item.statement })),
     };
+    const startedAt = Date.now();
     const controller = new AbortController();
     let timedOut = false;
+    let observed = false;
+    const observe = (outcome: JevHypothesisChoiceObservation["outcome"]) => {
+      if (observed) return;
+      observed = true;
+      this.onObservation?.({ type: "jev_request", kind: "hypothesis_choice", model: this.model, startedAt, endedAt: Date.now(), outcome, usage: null });
+    };
     const timer = setTimeout(() => { timedOut = true; controller.abort(); }, this.timeoutMs);
     const forwardAbort = () => controller.abort();
     if (options.signal?.aborted) controller.abort();
@@ -171,8 +191,11 @@ export class JevHypothesisChoiceAdvisor implements HypothesisChoiceAdvisor {
       let decoded: unknown;
       try { decoded = JSON.parse(text); }
       catch { throw new JevHypothesisChoiceError("INVALID_RESPONSE", "Jev returned invalid JSON"); }
-      return parseResponse(decoded, keys, input);
+      const assessment = parseResponse(decoded, keys, input);
+      observe("completed");
+      return assessment;
     } catch (error) {
+      observe(timedOut ? "unknown" : "failed");
       if (error instanceof JevHypothesisChoiceError) throw error;
       if (timedOut) throw new JevHypothesisChoiceError("TIMEOUT", `Jev request exceeded ${this.timeoutMs}ms`);
       throw error;

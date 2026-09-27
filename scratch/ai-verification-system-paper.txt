@@ -1,0 +1,3507 @@
+
+=== PDF PAGE 1 ===
+Inductive Deductive Synthesis: Enabling AI to
+Generate Formally Verified Systems
+Shubham Agarwal∗,1, Alexander Krentsel∗,1, Shu Liu∗,1, Mert Cemri∗,1,
+Audrey Cheng1, Rui Meng2, Tomas Pfister2, Chun-Liang Li2, Sylvia Ratnasamy1,
+Aditya Parameswaran1, Matei Zaharia1, Ion Stoica1, Mohsen Lesani3
+1UC Berkeley
+2Google
+3UC Santa Cruz
+Abstract
+AI agents increasingly excel at generating, testing, and refining code. However,
+they fall short on tasks requiring formal guarantees of full coverage that testing
+alone cannot provide. Distributed systems are a prime example: properties such as
+consistency between reads and writes must hold under every possible interleaving
+of events. Mechanized formal verification can guarantee such correctness, but
+typically demands months to years of expert effort. As evidence, even SOTA
+coding agents (Codex with GPT-5.4 and Claude Code with Opus 4.6) succeed
+on only 2/7 distributed key-value-store specifications. In this paper, we present
+the first effective approach to addressing this gap, Inductive Deductive Synthesis
+(IDS), which jointly and incrementally synthesizes implementation and proof, and
+learns from failed attempts to systematically try promising strategies. Built as
+an agentic LLM system, IDS achieves 7/7 in about 6.8 hours and $106 per spec
+on average, roughly 200× faster than expert effort and 17% cheaper than SOTA
+agents. IDS further incorporates performance feedback into the same loop, yielding
+implementations up to 3× faster than published verified systems.1
+1
+Introduction
+Coding agents have made great strides at writing code for many tasks, even running tests to au-
+tomatically refine their own output [4, 3, 10, 58, 44]. However, they fall short on tasks requiring
+correctness guarantees across every possible behavior, rather than just the cases reached during
+testing. Distributed systems are a prime example: properties such as consistency between subsequent
+writes and reads must hold under every possible interleaving of messages, failures, and concurrent
+updates, a combinatorially large space that no realistic test suite can cover [23]. The consequences of
+incorrect behavior are severe, ranging from a replicated store that loses data [5], to a file system that
+drops a write [37], to a confidential store that leaks a key.
+To prevent such catastrophic failures, formal verification techniques can provide exhaustive cor-
+rectness guarantees. These techniques allow a developer to (1) state a specification, (2) write an
+implementation, and (3) develop a machine-checkable proof that the implementation satisfies the
+specification on every possible input [7, 12, 22, 24]. However, adoption of formal methods over the
+past two decades has been limited due to the immense manual labor required: verifying real-world
+systems takes months to years of expert effort [21, 25, 9, 16, 55, 26].
+Naturally, one may ask, can we simply provide a coding agent with a specification and formal
+verification tooling, and ask it to build complex systems that provably satisfy that specification?
+Our experiments demonstrate that the answer is no. We show in §5 that Codex (GPT-5.4) [10] and
+∗Equal contribution.
+1Code available at https://github.com/skydiscover-ai/skydiscover.
+Preprint.
+arXiv:2605.23109v1  [cs.AI]  22 May 2026
+
+
+=== PDF PAGE 2 ===
+Claude Code (Opus 4.6) [3] fail to generate correct systems for 5 of 7 widely studied distributed
+key-value-store consistency specifications (e.g., causal consistency, read-your-writes). The failure
+mode we observe is a structural one: following typical human patterns, agents treat verification
+as a downstream check on code they have already written. This approach (a) requires writing the
+whole proof at once, which is exceptionally difficult even for humans2, and (b) defers all correctness
+feedback to the end of an implementation, depriving the agent of valuable guiding signals.
+To address these challenges, we introduce Inductive Deductive Synthesis (IDS), a technique
+that enables agents to synthesize provably correct complex systems from a specification.
+Synthesize 
+Code
+Synthesize 
+Proof
+ Lemm. rd_af_inc:
+  admit.
+def inc (s) : …
+def read (s): …
+      Proof 
+      Assistant
+Code gives 
+the structure 
+to prove
+Proof reveals 
+unsatisﬁed 
+parts in code 
+writes/reﬁnes impl
+proves code property
+Figure 1: Code and proof advance jointly and incremen-
+tally with IDS; the proof assistant grades each partial step.
+Our key insight is to synthesize both the im-
+plementation and its proof jointly and incre-
+mentally (Fig. 1), while learning from failures
+at each step to guide the search toward promis-
+ing solutions and away from dead ends. As
+detailed in §3, every implementation decision
+(e.g., adding a data structure or modifying
+control flow) is paired with a corresponding
+proof update (e.g., adding new constraints or
+splitting lemmas).
+IDS offers two benefits: (1) each individual
+joint step is considerably simpler to prove,
+decreasing the complexity of proof generation, and (2) the intermediate partial proofs can be verified
+with a formal checker to assess the viability of the current design. A negative result rules out a dead-
+end implementation path before further work is wasted and serves as a counterexample to improve the
+design going forward. This is akin to “chain-of-thought” [53], except that the intermediate states are
+formally encoded and verified. Beyond correctness, this iterative loop also optimizes performance:
+as soon as a candidate’s implementation is complete, it is benchmarked on a distributed testbed; the
+performance measurements then further guide the search toward efficient implementations.
+We instantiate IDS as a multi-agent system (§4), and we evaluate IDS on 7 distributed key-value-store
+consistency specifications: Chapar’s published causal-consistency spec [26] plus six new IDS suite
+specs we release with the system (App. I). IDS produces a complete verified implementation on all
+7 in about 6.8 hours and $106 per spec on average, with no human intervention or fine-tuning. On
+the two specs our vanilla agent baseline completed, IDS runs 1.6× faster and 17% cheaper. The
+discovered implementations match or beat hand-written expert references on every spec and reach
+up to 3× the throughput of Chapar’s published vector-clock reference, a margin we attribute to a
+design-space search broader than what manual proof allows.
+As a general prover, IDS achieves state-of-the-art performance on four cross-language verification
+benchmarks (DafnyBench [30], miniCodeProps [29], Verus-Bench [57], CoqStoq [50]), beating
+agentic baselines that share its prompt and underlying model by +10% to +51%. On three further
+code-and-proof synthesis benchmarks, IDS again leads: 176/189 on VERINA [61] (prior 38/189),
+65/77 on AlgoVeri [62] (prior 31/77), and a perfect 62/62 on CloverBench [47].
+In summary, we make the following contributions in this work:
+• Inductive Deductive Synthesis (IDS): the first general technique for jointly synthesizing code and
+machine-checked proof under a partial-proof oracle, with feedback from failures and performance
+benchmarks in the same loop.
+• IDS-based multi-agent system: the first agentic system to autonomously generate verified dis-
+tributed systems. Solves 7/7 consistency specifications where SOTA agents (GPT-5.4, Opus 4.6)
+solve only 2/7, with up to 3× the throughput of published verified systems.
+• IDS suite: six new Rocq specifications for distributed key-value-store consistency models, released
+as an open benchmark for verified-synthesis research.
+2
+Related Work
+Verified code generation with an LLM has three components: (1) a specification of desired guarantees,
+(2) an implementation, and (3) a machine-checkable proof that the implementation satisfies the
+2Past work [26] reports 9–12 months of expert effort to write a proof for a key-value (KV) store.
+2
+
+
+=== PDF PAGE 3 ===
+specification. Prior work falls into four threads: three each address one component (specification
+generation, program generation with an evaluator, automated proof generation), and verified synthesis
+attempts (2) and (3) jointly. IDS pursues this last class on distributed-systems specifications.
+Specification generation.
+A complementary line uses LLMs to recover formal specifications
+from code or intent [14, 54]; Clover [47] generates formal annotations from natural language
+specifications, and then checks the consistency of code with the formal and natural specifications of
+Dafny benchmarks. IDS takes such specifications as input rather than producing them.
+Program generation with an evaluator.
+A separate strand of work treats program construction
+as search guided by evaluator feedback. Coding agents get feedback from given or self-generated
+tests [58, 44], or from communication with other specialized agents [17, 39, 56]. Algorithmic discov-
+ery systems use a scoring function to drive evolution [41, 35] or deep reinforcement learning [31].
+IDS shares the evaluator-guided search scheme; however, instead of tests or scores, it uses a proof
+assistant. In contrast to sampled signals (tests over traces, specific inputs, or estimated scores),
+type-checked proofs guarantee correctness on all inputs.
+Automated proof generation.
+Most prior LLM-for-verification work fixes the implementation and
+specification, asking the model only for the proof. For SMT-backed languages such as Dafny [24]
+and Verus [22], recent systems synthesize the loop invariants and assertions a verifier needs, either via
+compiler-feedback loops [57] or targeted invariant generation [34]. For tactic-driven assistants such
+as Lean [12] and Rocq [7], prover systems have been trained on databases of prior formal proofs [59],
+natural-language proofs [52], and conjectured theorems [13]. Approaches differ in scope: some
+generate full proofs in one pass [40, 51, 15]; others decompose the proof into sub-goals [27, 63, 19];
+tactic-level methods iteratively predict and repair the next proof step from the current proof state and
+verifier feedback [18, 60, 49, 36, 42]. IDS differs by jointly generating the implementation and proof,
+and further optimizing performance.
+Verified synthesis.
+The long-standing goal of producing a program and its correctness proof from a
+specification alone goes back to deductive synthesis [33, 38] and counterexample-guided inductive
+synthesis [45, 46], but the inference rules and candidate-search space confined results to small
+individual functions. The LLM era rekindles this dream. VERINA [61] provides a benchmark to
+evaluate specification, code, and proof generation, evaluates existing tools, and underscores significant
+challenges for automatic provers. Recent LLM-driven verified-synthesis work targets SMT-backed
+languages: AlphaVerus [1] bootstraps verified Verus code via self-improving translation, scaling to
+function-level tasks. At the other extreme, hand-built verified distributed systems, such as IronFleet’s
+Paxos-replicated state machines [16], Verdi’s Raft [55], FSCQ’s crash-safe file system [9], Anvil’s
+verified Kubernetes controllers [48], Chapar’s causally-consistent KV stores [26], and Iris-based
+concurrent and distributed verification [20, 43, 8] demonstrate that machine-checkable guarantees
+are achievable at systems scale, but at months to years of expert proof effort. IDS shows that verified
+synthesis need not be small-scale or slow: it automatically generates implementations and their
+machine-checkable correctness proofs for distributed key-value stores in hours rather than months.
+3
+Background and Overview
+We begin with a short introduction to formal verification. A formally verified system has three pieces.
+The specification is a precise mathematical statement of correctness; the implementation is the code
+that runs; and the proof is a machine-checkable argument that, on every input, the implementation
+matches the specification. Historically, humans wrote all three; IDS takes a human-written spec
+and automatically produces both implementation and proof, using LLM agents driven by the proof
+assistant Rocq [7]. We show a simple example: a counter, a state machine with two operations (inc
+to increment the count and read to return it) starting from an initial state init.
+Figure 2 shows the counter’s specification (left), a partial synthesis (center), and a complete synthesis
+(right). The spec states two properties, or “axioms,” about init, inc, and read: reading the initial
+state returns zero, and reading after an increment returns one more than reading before. In the
+partial synthesis, inc’s body and the read_inc theorem are deferred via Admitted (a placeholder
+for unfinished work), but Rocq still accepts the file: the chosen representation (a list whose length
+encodes the count) is consistent with the work so far. The complete synthesis fills in the deferred
+pieces. The representation is a free choice; any state satisfying the axioms works, though nat (natural
+numbers) is more efficient.
+3
+
+
+=== PDF PAGE 4 ===
+Specification
+Module Type CounterSpec.
+Parameter t : Type.
+Parameter init : t.
+Parameter inc : t -> t.
+Parameter read : t -> nat.
+Axiom read_init :
+read init = 0.
+Axiom read_inc :
+forall s,
+read (inc s) =
+S (read s).
+End CounterSpec.
+Partial impl. & proof
+Definition t := list unit.
+Definition init : t := nil.
+Definition inc (s : t) : t.
+Admitted.
+Definition read (s : t) :=
+length s.
+Theorem read_init :
+read init = 0.
+Proof. reflexivity. Qed.
+Theorem read_inc :
+forall s,
+read (inc s) = S (read s).
+Admitted.
+Complete impl. & proof
+Definition t := list unit.
+Definition init : t := nil.
+Definition inc (s : t) := tt::s.
+Definition read (s : t) :=
+length s.
+Theorem read_init :
+read init = 0.
+Proof. reflexivity. Qed.
+Theorem read_inc :
+forall s,
+read (inc s) = S (read s).
+Proof. intros s. unfold read,
+inc.
+simpl. reflexivity. Qed.
+Figure 2: Counter specification (left), partial synthesis (center, yellow = Admitted), and complete
+synthesis (right, green = filled in). Rocq accepts both files.
+Rocq’s type-checker as an oracle, including for partial work.
+Rocq’s checker accepts a
+declaration/proof if and only if it satisfies its stated type/proposition, and rejects with a precise
+diagnostic otherwise. There are no false positives or false negatives, in contrast to tests (only the
+inputs tried), static analysis (over-approximate), or LLM-as-judge (guesses). The verdict also extends
+to partial code, as the center column of Figure 2 illustrates: unproven obligations are stated as deferred
+holes (Admitted lemmas or stub function bodies), and the file still type-checks. (App. G walks a
+longer all_less_than example through this progression.) IDS leverages the type-checker as an
+oracle to drive a deductive synthesis [33]: at every step, the agent extends the partial implementation
+and proof, then asks Rocq whether the partial state still type-checks. A yes keeps the design on track;
+a no rules it out before further work is committed. If progress stalls (measured by the number of
+partial proofs left empty), IDS reverts to an earlier state.
+From counter to distributed stores.
+IDS applies this loop at scale. For distributed systems, the
+specification grows from simple axioms to conditions over executions involving messages, clients,
+replicas, and failures. For example, read_inc in a distributed setting becomes read-your-writes:
+a client that increments then reads must observe its own increments. The implementation grows
+from a few-line module to a multi-replica protocol with larger state, multiple message types, and
+handlers. For example, a replica can no longer store one nat; it must keep a vector with one entry per
+client, tracking the increments received from that client. On a request carrying the client’s increment
+count, the replica can then tell whether it is up-to-date enough to serve, providing read-your-writes.
+The proof grows from simple tactics to an inductive simulation argument (an induction linking
+implementation and spec states) with dozens of helper lemmas.
+Such implementations span a large, subtle design space with widely varying performance, explored by
+decades of research. §4 describes the agent that drives this process, App. I gives the full specifications,
+and §5 reports results.
+4
+IDS Agentic Architecture
+Overview.
+We now describe how we realize IDS as an agentic architecture (Fig. 3). Given a system
+interface and property specifications, the framework orchestrates multiple LLM agents guided by
+verification and performance feedback to generate an efficient, mechanically-checked implementation.
+This architecture relies on a powerful synergy: deductive synthesis constructs the code and proof
+under a given strategy, while inductive synthesis discovers better strategies from failed attempts.
+Inspired by deductive synthesis [33, 32], IDS introduces Deductive Synthesis Agents (DSAs,
+1 )
+to incrementally synthesize implementations from specifications. Guided by a strategy, a DSA
+recursively decomposes a component and its specification into sub-components using placeholders.
+The DSA constructs proofs assuming these sub-components are correct, repeating this process down
+to trivial elements. The Rocq type-checker ( 2 ) continuously verifies both complete and partial proofs
+throughout this decomposition.
+4
+
+
+=== PDF PAGE 5 ===
+Param t: Type.
+Param inc: t -> t.
+Param rd: t -> n.
+Axiom: rd (inc s) 
+= S (rd s)
+  Workspace B   
+Feedback (oracle) 
+Workspace A
+Speciﬁcation
+Type 
+check
+Vacuous       
+proof, etc. 
+System 
+Builder
+Final
+Solution
+Inductive Synthesis
+Agent (roles)
+Impl
+done 
+Code 
+& Proof 
+Spawn new 
+workspace
+Lemma 
+Guidance
+–Coordinator–
+ Perf. metrics  
+(ops/s, etc.)
+Deductive
+Synthesis
+Agent
+       Rocq 
+Type-Checker
+Audit
+Step
+Benchmark 
+Harness
+1
+2
+3
+4
+Proposer
+Reloader
+Def mthd := _.
+Lem m_ok : P
+Prod. _ Qed.
+Def step := _.
+Admitted .  
+CounterSpec.v
+impl.v
+Impl +
+Proof done                   
+ 5
+A
+B
+Figure 3: IDS’ agentic architecture; code and proof advance jointly throughout. A coordinator
+runs parallel
+1 Deductive Synthesis Agents (DSAs); each step is graded by
+2 Rocq’s type-checker,
+completed implementations are
+3 benchmarked, and closed proofs are
+4 audited for non-vacuity.
+On failure, the
+5 Inductive Synthesis Agent (ISA) intervenes:
+A proposer adds helper lemmas on
+tactical stalls; B reloader respawns a DSA with a fresh design on strategic dead-ends.
+While this deductive approach succeeds when guided by a sound search strategy (e.g., a high-level
+design or proof approach in the prompt), a DSA can stall under a dead-end strategy. Inspired by
+inductive synthesis [46, 45, 11], IDS introduces an Inductive Synthesis Agent (ISA,
+5 ) that learns
+from failed strategies to propose more promising ones. The ISA receives feedback when a DSA stalls
+or yields poor performance. It then intervenes in two roles: a proposer for tactical, local adjustments
+( A ), and a reloader for strategic, global shifts to entirely new designs ( B ).
+Coordinator.
+The coordinator launches and orchestrates the DSAs and the ISA, maintaining
+overall system state and managing a parallel pool of workers. While DSAs can report localized
+errors, they cannot detect strategic dead-ends on their own. The coordinator monitors progress to
+identify stagnating agents, recording failed strategies and invoking the ISA to propose new ones
+before respawning the DSA.
+To ensure the synthesized system is not only correct but also performant, the coordinator benchmarks
+each candidate eagerly, even before its proof completes. It extracts the implementation to executable
+code and runs the benchmark harness ( 3 , §5.1). The measurements are fed back to the ISA so that its
+future strategies guide the DSA toward more efficient implementations. Once a proof closes (i.e.,
+the proof completes with no remaining Admitted placeholders), the coordinator audits the result to
+ensure it is fully verified, non-trivial, and implements the expected interface ( 4 ). Finally, it returns
+the most efficient verified solution found within the time budget.
+DSA: Deductive Synthesis Agent.
+Off-the-shelf LLMs, pretrained on a large corpus of programs
+and proofs, are well-equipped to guide synthesis search, as we empirically demonstrate in §5.2. To
+harness this capability, we design the DSA as a generic LLM coding agent operating under strict
+constraints: implementations must be well-typed before proving, specifications cannot be altered,
+final outputs must contain no unproven assumptions, and system state must remain bounded.
+At each node of the search tree, the agent can take the following actions to advance the synthesis: (1)
+define partial implementations, (2) close open proof branches, or (3) decompose complex lemmas
+into simpler helper lemmas. After each step, the implementation and proof are passed to Rocq’s
+type-checker. If there are no errors, the state is saved, building a search tree of well-typed partial
+implementations and proofs. If errors occur, the agent can take the following actions: (1) repair the
+failed step by attempting a different approach, or (2) revert to an earlier node in the search tree.
+ISA: Inductive Synthesis Agent.
+The DSA cannot reliably step back and pivot a failing strategy
+on its own. The ISA fills this gap as a stateless LLM agent that reasons over a strategy summary and
+proposes new approaches across two decision horizons:
+• Proposer (tactical). Triggered when the strategy is promising but the DSA is stuck on a specific
+proof. The proposer offers finer-grained assistance, suggesting helper lemmas and structural
+decompositions from a holistic view of the proof state.
+5
+
+
+=== PDF PAGE 6 ===
+• Reloader (strategic). Triggered when the strategy is a dead-end or slow. Rather than allowing
+the DSA to endlessly apply small fixes, the reloader intervenes by respawning the DSA with an
+entirely new high-level design.
+5
+Evaluation
+We evaluate IDS on 7 Rocq specifications of distributed key-value-store consistency: Chapar’s
+published causal-consistency spec [26] and 6 new IDS suite specs co-developed with a formal-
+verification and distributed-systems expert (App. I). We extract synthesized implementations from
+Gallina to OCaml and benchmark them on a 5-VM Google Cloud cluster under a distributed runtime
+against hand-written expert references. For synthesis, we compare against SOTA coding agents,
+Codex (GPT-5.4) [10] and Claude Code (Opus 4.6) [3], under the same prompt and budget. We
+answer three questions in the following subsections:
+• Q1. Does IDS handle hard specifications? IDS succeeds on all 7 in about 6.8 hours and $106 per
+spec on average (max 11h, $155), versus 2 of 7 each for Codex and Claude Code under the same
+prompt and budget (§5.2).
+• Q2. Are the synthesized implementations performant? They match or beat every expert-
+implemented reference: 3× throughput on Chapar’s vector-clock reference, 1.4× on IDS suite CC
+and monotonic reads, comparable on read-your-writes (within 20%), and sustained throughput on
+MW and RYW+MW where the reference times out (§5.3).
+• Q3. Which of IDS’ design decisions drive these results? The joint code-and-proof co-design,
+the ISA’s proposer and reloader roles, the audit step, the Rocq feedback to the DSA, and the
+performance feedback to the ISA each contribute consequentially. The DSA alone also sets a new
+state-of-the-art on four public proof benchmarks across four languages (§5.4).
+5.1
+Experimental Setup
+Specifications.
+Each specification is a high-level reference implementation of a key-value store;
+its state type and operations define the consistency notion. IDS takes a specification and produces a
+refining implementation paired with a machine-checked proof of correctness on every input.
+Chapar [26] provides a published causal-consistency specification (CC). The other six form the IDS
+suite benchmark dataset that we release alongside the system (App. I): read-your-writes (RYW),
+monotonic writes (MW), monotonic reads (MR), their composition (RYW+MW), and two causal-
+consistency variants: IDS suite CC and LCC (labeled causal consistency, where each client subscribes
+to a set of topic labels and sees causality enforced only on those labels). The IDS suite spans the
+space of session consistency guarantees. To the best of our knowledge, no prior benchmark provides
+verified Rocq artifacts across this range. Difficulty grows in three tiers: simple (RYW, MW), specs
+whose proofs need many cases (MR, RYW+MW), and specs that also manage explicit dependency
+sets (CC, LCC). A side-by-side summary of all seven specifications appears in App. A.
+Harness and metrics.
+Verified Rocq implementations are extracted to OCaml (via Rocq’s built-
+in extraction, an automatic compilation pass from Gallina to OCaml) and run under a distributed
+runtime on a 5-VM Google Cloud cluster. Each run executes 4 parallel workers × 1,000 random
+operations; we sweep across put rates, and run a separate scaling sweep at put rate = 50% over
+N ∈{1,000, 2,000, 5,000, 20,000}. App. D covers the cluster topology and toolchain. Every method
+runs under the same per-spec wall-clock and dollar budget. Runs that exhaust either budget are
+considered failed runs. Each cell aggregates three independent runs, and we report pass rate (successes
+out of three), time-to-finish, dollar cost, throughput, p99 latency, peak memory, and ops-per-worker
+scaling, all as medians.
+Baselines.
+The synthesis baselines are Codex (GPT-5.4) [10] and Claude Code (Opus 4.6) [3].
+Both run under the same prompt and budget as IDS’ DSA, so the comparison isolates the agentic
+architecture. Codex is also IDS’ primary backend. For performance comparisons, the references
+are the hand-written expert implementations: Chapar’s two published references (vector-clock and
+list-based) [26], and the expert-written reference released alongside each IDS suite specification,
+except LCC, a custom spec with no expert reference. For the cross-language evaluation, we adopt
+four public verification benchmarks (DafnyBench, Verus-Bench, miniCodeProps, CoqStoq) across
+the languages Dafny, Verus, Lean, and Rocq. We compare against the strongest published prior
+6
+
+
+=== PDF PAGE 7 ===
+Table 1: IDS succeeds on all seven specifications (≥2/3 runs) versus only 2 of 7 each for Codex
+and Claude Code, while using less total wall-clock and fewer total dollars; on every spec where
+any method succeeds, IDS is also faster and cheaper. pass rate = # successes out of 3 (green:
+≥2/3; red: < 2/3); hours = median wall-clock until a successful run (Rocq Qed accepted, audit
+step passed, extracted OCaml runs on the harness); cost = median dollars per run. All methods share
+the same model, verifier, pass criterion, and per-spec budget; relative std across runs is ≤7%.
+Codex
+Claude Code
+IDS
+Specification
+Pass rate↑
+Hours↓
+Cost ($)↓
+Pass rate↑
+Hours↓
+Cost ($)↓
+Pass rate↑
+Hours↓
+Cost ($)↓
+Chapar
+Causal Consistency
+0/3
+12
+160
+0/3
+11
+165
+3/3
+10
+148
+IDS suite
+Read-Your-Writes
+3/3
+4
+60
+3/3
+3
+70
+3/3
+2
+52
+Monotonic Reads
+0/3
+12
+130
+0/3
+10
+140
+3/3
+7
+102
+Monotonic Writes
+2/3
+5
+65
+3/3
+4
+70
+3/3
+3
+58
+RYW + MW
+0/3
+9
+125
+1/3
+6
+110
+3/3
+5
+93
+Causal Consistency
+0/3
+12
+160
+0/3
+11
+170
+2/3
+11
+155
+LCC
+0/3
+13
+180
+0/3
+11
+160
+3/3
+10
+136
+Total across specs
+2/7
+67
+$880
+2/7
+56
+$885
+7/7
+48
+$744
+tool for each benchmark. App. E covers three more (VERINA, AlgoVeri, CloverBench). These
+cross-language benchmarks target function- and algorithm-level tasks, smaller and simpler in scope
+than the real-world distributed systems above.
+5.2
+Synthesis correctness
+IDS returns verified implementations for all seven specifications, a 3.5× pass rate over the 2 out of 7
+that each of Codex and Claude Code reach under the same prompt and budget. Even on the two specs
+(RYW and MW) where both baselines succeed, IDS is 1.6× faster and 17% cheaper (Table 1). IDS
+succeeds by storing the data in a way that lets the proof split into smaller, manageable cases (e.g., one
+entry per key on Chapar CC, or one entry per (key, client) pair on monotonic reads); the baselines
+keep the spec’s default layout, never backtrack, and stall on the same hard cases. We also evaluate
+two LLM-only baselines that ask Codex for an implementation only (the standard coding-agent
+task), with best-of-N=100 generation, on 4 properties (RYW, MW, MR, CC). Setting 1 (spec-given):
+Codex receives the formal Rocq specification. Setting 2 (vibe coding): Codex receives only a natural-
+language paragraph of the property. We then check each selected implementation two ways: an
+adversarial multi-client trace flags implementations that violate the spec on a single execution, and
+a refinement proof against the spec catches the rest. Spec-given Codex passes both checks on 1/4
+properties; vibe coding on 0/4 (App. C). Even given the formal spec and 100 candidates per property,
+the LLM alone cannot produce implementations that are guaranteed correct on every input.
+Chapar causal consistency.
+IDS closes Chapar’s published causal-consistency proof, originally a
+major hand-written verification [26], in 10 hours and $148 (roughly 200× faster than the cited 9–12
+months of expert effort), while both agent baselines fail to finish within 1.2× our wall-clock and cost.
+IDS succeeded by changing how the data was stored. Its first attempt kept each replica’s state as one
+big object, so proving correctness required reasoning about every key and message together, and the
+proof got stuck. IDS backtracked, gave each key its own small table, and the proof then split into one
+easy case per key. The full trajectory and the per-family lemma counts are given in App. B.
+IDS suite specifications.
+IDS handles the four harder IDS suite specifications (monotonic reads,
+RYW+MW, LCC, and IDS suite CC) in 5 to 11 hours per spec, with 3-of-3 pass rates on the first
+three and 2-of-3 on IDS suite CC. In comparison, Codex never succeeds, and Claude Code succeeds
+only once, on RYW+MW. The same Chapar pattern recurs: the first design gets stuck on the spec’s
+default layout, then IDS backtracks and rebuilds the data so the proof splits into smaller cases, for
+instance one entry per (key, client) on monotonic reads, or one case per message on the two CC
+variants. Per-specification details are reported in App. B.
+7
+
+
+=== PDF PAGE 8 ===
+20 30 40 50 60 70
+put rate (%)
+0
+50
+100
+150
+throughput (kops/s)
+20 30 40 50 60 70
+put rate (%)
+0
+50
+100
+p99 latency (μs)
+20 30 40 50 60 70
+put rate (%)
+0
+2
+4
+6
+memory peak (MB)
+1K 2K
+5K
+20K
+ops per worker (N)
+0
+50
+100
+throughput (kops/s)
+Causal Consistency
+Monotonic Reads
+IDS
+reference
+Figure 4: Throughput, p99 latency, and peak memory vs. put rate, and throughput vs. ops-per-worker
+N, for IDS suite CC and monotonic reads. Solid = IDS; dashed = reference (function-as-map for
+both). The per-spec breakdown for all seven specifications appears in §D.1.
+5.3
+Runtime performance
+IDS’ synthesized implementations match or beat every prior reference: 3× throughput on Chapar’s
+vector-clock reference, 1.4× on IDS suite CC and monotonic reads, comparable on read-your-writes
+(within 20%), and 152k and 139k ops/s on MW and RYW+MW where the reference times out at every
+put rate (§D.1). We compare on throughput, p99 latency, peak memory, and ops-per-worker scaling.
+Figure 4 shows IDS suite CC and monotonic reads vs. the references, and the full per-spec breakdown
+is in §D.1. The gap follows from one mechanism: IDS’ data-store representations are bounded, while
+the references’ grow with workload size. These representations emerged from the joint code+proof
+loop: the proof obligation drove the agent to them (§5.2). The performance feedback from the
+benchmark harness then steers the agent toward the fastest among multiple verifying candidates
+(§5.4).
+IDS suite CC. Both implementations enforce causality with one timestamp per client; the data store
+differs. The reference’s function-from-key-to-value extracts to OCaml as a chain that grows per put
+(every get walks it), while IDS uses a balanced-tree map where a lookup costs at most the tree depth.
+IDS reaches up to 1.4× peak throughput at low put rate where gets dominate, with p99 latency up
+to 1.7× lower. The gap narrows at high put rate as broadcast becomes the bottleneck; tail latency
+tracks the same effect, rising with put rate on both implementations as broadcast queue waits grow.
+Peak memory is comparable at 1k ops per worker, since the vector-clock state is bounded by client
+count rather than put rate; larger workloads would push it upward. On ops-per-worker scaling, the
+reference’s throughput collapses by more than half from 1k to 20k ops per worker while IDS loses
+only about a quarter.
+Other IDS suite specifications.
+Unlike CC, these specs only need per-client guarantees, so they
+do not pay CC’s per-write cross-client coordination cost; their tail latency stays flat across put rate
+(Figure 4, MR). On the other IDS suite specs, IDS ranges from comparable on read-your-writes (chain
+stays short) to a gap large enough that the reference times out at every put rate on the monotonic-write
+specs (MW, RYW+MW). The four with prior references (RYW, MW, MR, RYW+MW) share the
+closure-chain mechanism: the reference’s function-from-key-to-value extracts as a chain that grows
+per put; IDS replaces it with a flat list or balanced tree, and the speedup tracks how often the chain is
+walked. On the monotonic reads benchmark, a get in the reference walks every operation, so IDS
+outperforms it by 1.4×.
+5.4
+Ablations and Generalization
+The joint step-wise discovery of code and proof is the key design decision behind IDS. We ablate this
+joint design itself (−J), the ISA’s proposer (−P) and reloader (−R), the coordinator’s audit step (−A),
+and the Rocq feedback to the DSA (−VF) across the seven key-value store specs and VERINA’s
+189 Lean tasks (Table 2). We also evaluate the DSA alone and IDS’ prover component decoupled
+from the rest of the system on four cross-language proof benchmarks (DafnyBench, miniCodeProps,
+Verus-Bench, CoqStoq), where it sets a new state-of-the-art on each.
+8
+
+
+=== PDF PAGE 9 ===
+full −J −P −R −A −VF
+Chapar CC
+3/3 0/3 0/3 0/3 1/3
+0/3
+RYW
+3/3 2/3 2/3 3/3 3/3
+1/3
+MW
+3/3 1/3 2/3 2/3 2/3
+0/3
+RYW+MW
+3/3 0/3 1/3 2/3 1/3
+0/3
+MR
+3/3 1/3 0/3 1/3 0/3
+0/3
+IDS suite CC 2/3 0/3 0/3 0/3 0/3
+0/3
+LCC
+3/3 0/3 0/3 0/3 0/3
+0/3
+VERINA
+176 160 150 167 176 110
+Table 2: Component ablations:
+# successes from 3 runs (189
+tasks for VERINA).
+Chapar RYW
+MW
+RYW+
+MW
+MR IDS suite
+CC
+0
+50
+100
+150
+200
+kops/s
+2.22×
+1.48× 1.36× 1.17×
+1.27×
+1.26×
+Figure 5: Performance-feedback
+ablation
+at
+put
+=
+60%:
+IDS (solid) vs. no-feedback
+(hatched).
+Dafny
+miniCP
+Verus
+CoqStoq
+0
+25
+50
+75
+100
+pass rate (%)
+88
+100
+149
+97
+Prior SOTA
+Codex
+Claude Code
+IDS
+Figure 6: Cross-language suc-
+cess rate (%) on 4 verification
+benchmarks; labels are # of suc-
+cesses.
+Architecture ablations.
+Without joint discovery, only RYW succeeds in a majority of runs: Chapar
+CC, RYW+MW, IDS suite CC, and LCC drop to 0 out of 3, and VERINA falls to 85% (−8% from
+full IDS’ 93%). This is because a fixed implementation limits the proof phase. On Chapar CC, −J
+commits to the global per-replica state closest to the spec. Full IDS reloads to per-key entries when
+the proof stalls. The audit step catches trivial solutions that pass Rocq’s type-checker: on IDS suite
+CC, an agent without auditing once shipped a put-guard returning false unconditionally, with the
+theorem being trivially satisfied. On the other hand, cells under −A count only audited successful
+runs. Ablations of the proposer and reloader each drop pass rate on the four hardest specs (Chapar CC,
+MR, IDS suite CC, LCC), taking VERINA to 79% (−14%) under −P and to 88% (−5%) under −R.
+The Rocq feedback to the DSA is the most consequential single component: replacing the structured
+Rocq diagnostic (goal, hypotheses, tactic backtrace) with only an accept/reject drops every spec to at
+most 1 of 3 successful runs and VERINA to 58% (−35%).
+Performance-feedback ablation.
+Without performance feedback (−PF), the agent commits to the
+first implementation and proof that passes the type-checker and misses the course-corrections seen
+in §5.3. As Fig. 5 shows, full IDS is on average 1.42× faster than −PF across the six specs with
+reference baselines (Chapar CC, RYW, MW, RYW+MW, MR, IDS suite CC).
+DSA as a general prover.
+The DSA’s effectiveness is not specific to IDS’ synthesis loop or to Rocq:
+applied alone to public verification benchmarks across four languages, it sets a new state-of-the-art
+on each (Figure 6, Table 7). It saturates miniCodeProps (100 of 100) and Verus-Bench (149 of 150),
+and beats prior SOTA by 36 to 69% on DafnyBench and CoqStoq. IDS’ agentic architecture brings
+further gain: full IDS adds +10% on DafnyBench, +20% on miniCodeProps, and +51% on CoqStoq
+over Codex under the same prompt, while a baseline-model swap (Codex →Claude under the same
+prompt, no IDS architecture) gains at most 6% on any of these four benchmarks. IDS also reaches
+state-of-the-art on all three code-and-proof benchmarks: 176/189 on VERINA (prior SOTA 38),
+65/77 on AlgoVeri (2× prior SOTA 31), and a full 62/62 on CloverBench (Table 7; detail in App. E).
+6
+Discussion and Conclusion
+IDS is language- and problem-agnostic.
+IDS as a technique depends on neither the verification
+backend nor the problem domain. The backend need only support (i) mechanical checking of partial
+proofs, (ii) a programmatic interface an LLM agent can drive, and (iii) executable extraction of
+verified implementations for performance feedback; Lean [12] and Verus [22] both qualify, and we
+expect IDS to transfer to either without structural changes. The problem domain need only admit a
+machine-checkable formal specification and a way to benchmark candidate implementations. We
+chose Rocq for the maturity of its ecosystem, and we chose distributed key-value stores because the
+literature already provided a complete formal specification for one consistency model; following its
+structure, we contribute six additional specifications covering other consistency properties (App. I).
+Limitations.
+Our work has three main limitations. First, IDS requires a formal Rocq specification
+as input; writing complete formal specifications for distributed systems requires substantial expert
+effort, a challenge we return to below. Second, the seven specifications we evaluate cover correctness-
+critical behavior but not the full operational envelope of a production KV store; they do not define
+interfaces for scaling out (adding or removing nodes at runtime), reconfiguration, fault recovery, or
+informal but practically necessary behavior such as logging and observability endpoints. Given a
+9
+
+
+=== PDF PAGE 10 ===
+richer specification that captures these aspects, we see no reason IDS would not apply unchanged, but
+evaluating this is left to future work. Third, our empirical evaluation covers the distributed key-value
+store problem only, leaving validation on other domains (e.g., OS protocols, cryptographic primitives)
+to future work. App. H discusses additional limitations and broader impacts.
+The specification bottleneck.
+While IDS automates the synthesis of verified implementations,
+writing the formal specification itself remains the largest open problem: accurately capturing a
+system’s intended behavior in a machine-checkable form is hard, and any correctness guarantee is
+only as strong as the specification it is checked against. We envision two directions for closing this
+gap. First, adversarial specification synthesis, in which an LLM agent collaborates with a human
+stakeholder in natural language, iteratively probing intent and surfacing ambiguities until a formal
+specification emerges. Second, specification extraction from existing systems, in which an agent
+recovers the correctness properties of a deployed implementation while leaving the design space open,
+so that IDS can synthesize alternative implementations that satisfy the same properties with better
+performance. We are actively pursuing both directions, which we plan to report on in future work.
+Conclusion.
+Verified systems construction has traditionally required months to years of expert
+effort. IDS condenses this timeline to mere hours by replacing human labor with compute. By
+providing an LLM coding agent with fast and exact correctness feedback without false positives,
+IDS transforms the joint code-and-proof construction into an automated search problem. This shifts
+vibe coding to verified coding by using LLMs to directly build type-safe systems that are machine-
+checked against a formal specification, effectively eliminating silent bugs and unverified assumptions.
+Crucially, this methodology generalizes to any domain with a machine-checkable correctness oracle,
+including OS kernels, compilers, cryptographic protocols, and hardware. Ultimately, IDS shows
+that verified software generation is transitioning from a human-labor bottleneck to a compute-driven
+approach, paving the way for the broad adoption of verified system synthesis.
+Acknowledgments
+This research is supported by NSF (IFML) CCF-2019844 and gifts from Accenture, AMD, Anyscale,
+Broadcom Inc., Google, IBM, Intel, Intesa Sanpaolo, Lambda, Mibura Inc., Samsung SDS, and SAP.
+We also thank our Sky Lab and NetSys colleagues at UC Berkeley for fruitful discussions that shaped
+this paper.
+References
+[1] Pranjal Aggarwal, Bryan Parno, and Sean Welleck. AlphaVerus: Bootstrapping formally verified code
+generation through self-improving translation and treefinement. ICML, 2025. arXiv:2412.06176.
+[2] Mustaque Ahamad, Gil Neiger, James E Burns, Prince Kohli, and Phillip W Hutto. Causal memory:
+Definitions, implementation, and programming. Distributed Computing, 9(1), 1995.
+[3] Anthropic. Claude Code: Anthropic’s agentic coding system. https://www.anthropic.com/product/
+claude-code, 2025.
+[4] Anysphere. Cursor: The AI code editor. https://cursor.com, 2025.
+[5] Peter Bailis and Kyle Kingsbury. The network is reliable. Commun. ACM, 57(9):48–55, September 2014.
+[6] Debangshu Banerjee, Olivier Bouissou, and Stefan Zetzsche. DafnyPro: Llm-assisted automated verifica-
+tion for Dafny programs. 2026. POPL Dafny Workshop; arXiv:2601.05385.
+[7] Yves Bertot and Pierre Castéran. Interactive Theorem Proving and Program Development: Coq’Art: The
+Calculus of Inductive Constructions. Texts in Theoretical Computer Science. Springer, 2004.
+[8] Tej Chajed, Joseph Tassarotti, M. Frans Kaashoek, and Nickolai Zeldovich. Verifying concurrent, crash-
+safe systems with perennial. In Proceedings of the 27th ACM Symposium on Operating Systems Principles,
+SOSP ’19, page 243–258, New York, NY, USA, 2019. Association for Computing Machinery.
+[9] Haogang Chen, Daniel Ziegler, Tej Chajed, Adam Chlipala, M. Frans Kaashoek, and Nickolai Zeldovich.
+Using crash hoare logic for certifying the FSCQ file system. In Ethan L. Miller and Steven Hand, editors,
+Proceedings of the 25th Symposium on Operating Systems Principles, SOSP 2015, Monterey, CA, USA,
+October 4-7, 2015, pages 18–37. ACM, 2015.
+10
+
+
+=== PDF PAGE 11 ===
+[10] Mark Chen, Jerry Tworek, Heewoo Jun, Qiming Yuan, Henrique Ponde de Oliveira Pinto, Jared Kaplan,
+Harri Edwards, Yuri Burda, Nicholas Joseph, Greg Brockman, Alex Ray, Raul Puri, Gretchen Krueger,
+Michael Petrov, Heidy Khlaaf, Girish Sastry, Pamela Mishkin, Brooke Chan, Scott Gray, Nick Ryder,
+Mikhail Pavlov, Alethea Power, Lukasz Kaiser, Mohammad Bavarian, Clemens Winter, Philippe Tillet,
+Felipe Petroski Such, Dave Cummings, Matthias Plappert, Fotios Chantzis, Elizabeth Barnes, Ariel Herbert-
+Voss, William Hebgen Guss, Alex Nichol, Alex Paino, Nikolas Tezak, Jie Tang, Igor Babuschkin, Suchir
+Balaji, Shantanu Jain, William Saunders, Christopher Hesse, Andrew N. Carr, Jan Leike, Josh Achiam,
+Vedant Misra, Evan Morikawa, Alec Radford, Matthew Knight, Miles Brundage, Mira Murati, Katie Mayer,
+Peter Welinder, Bob McGrew, Dario Amodei, Sam McCandlish, Ilya Sutskever, and Wojciech Zaremba.
+Evaluating large language models trained on code. 2021. arXiv:2107.03374.
+[11] Edmund Clarke, Orna Grumberg, Somesh Jha, Yuan Lu, and Helmut Veith. Counterexample-guided
+abstraction refinement. In International Conference on Computer Aided Verification, pages 154–169.
+Springer, 2000.
+[12] Leonardo de Moura and Sebastian Ullrich. The Lean 4 theorem prover and programming language.
+In André Platzer and Geoff Sutcliffe, editors, Automated Deduction — CADE 28 — 28th International
+Conference on Automated Deduction, Virtual Event, July 12–15, 2021, Proceedings, volume 12699 of
+Lecture Notes in Computer Science, pages 625–635. Springer, 2021.
+[13] Kefan Dong and Tengyu Ma. Stp: Self-play llm theorem provers with iterative conjecturing and proving.
+In International Conference on Machine Learning, pages 14114–14136. PMLR, 2025.
+[14] Madeline Endres, Sarah Fakhoury, Saikat Chakraborty, and Shuvendu K. Lahiri. Can large language
+models transform natural language intent into formal method postconditions? In Proc. ACM Softw. Eng.
+(FSE), 2024. arXiv:2310.01831.
+[15] Emily First, Markus N. Rabe, Talia Ringer, and Yuriy Brun. Baldur: Whole-proof generation and repair with
+large language models. In Proceedings of the 31st ACM Joint European Software Engineering Conference
+and Symposium on the Foundations of Software Engineering, ESEC/FSE 2023, page 1229–1241, New
+York, NY, USA, 2023. Association for Computing Machinery.
+[16] Chris Hawblitzel, Jon Howell, Manos Kapritsos, Jacob R. Lorch, Bryan Parno, Michael Lowell Roberts,
+Srinath T. V. Setty, and Brian Zill. IronFleet: proving practical distributed systems correct. In Proceedings
+of the 25th Symposium on Operating Systems Principles, SOSP 2015, Monterey, CA, USA, October 4-7,
+2015. ACM, 2015.
+[17] Sirui Hong, Mingchen Zhuge, Jiaqi Chen, Xiawu Zheng, Yuheng Cheng, Ceyao Zhang, Jinlin Wang, Zili
+Wang, Steven Ka Shing Yau, Zijuan Lin, Liyang Zhou, Chenyu Ran, Lingfeng Xiao, Chenglin Wu, and
+Jürgen Schmidhuber. MetaGPT: Meta programming for a multi-agent collaborative framework. In ICLR,
+2024. arXiv:2308.00352.
+[18] Thomas Hubert, Rishi Mehta, Laurent Sartran, Miklós Z Horváth, Goran Žuži´c, Eric Wieser, Aja Huang,
+Julian Schrittwieser, Yannick Schroecker, Hussain Masoom, et al. Olympiad-level formal mathematical
+reasoning with reinforcement learning. Nature, pages 1–3, 2025.
+[19] Albert Q. Jiang, Sean Welleck, Jin Peng Zhou, Wenda Li, Jiacheng Liu, Mateja Jamnik, Timothée Lacroix,
+Yuhuai Wu, and Guillaume Lample. Draft, sketch, and prove: Guiding formal theorem provers with
+informal proofs. In ICLR, 2023. arXiv:2210.12283.
+[20] Ralf Jung, David Swasey, Filip Sieczkowski, Kasper Svendsen, Aaron Turon, Lars Birkedal, and Derek
+Dreyer. Iris: Monoids and invariants as an orthogonal basis for concurrent reasoning. In Sriram K.
+Rajamani and David Walker, editors, Proceedings of the 42nd Annual ACM SIGPLAN-SIGACT Symposium
+on Principles of Programming Languages, POPL 2015, Mumbai, India, January 15-17, 2015, pages
+637–650. ACM, 2015.
+[21] Gerwin Klein, Kevin Elphinstone, Gernot Heiser, June Andronick, David A. Cock, Philip Derrin, Dham-
+mika Elkaduwe, Kai Engelhardt, Rafal Kolanski, Michael Norrish, Thomas Sewell, Harvey Tuch, and
+Simon Winwood. seL4: Formal verification of an OS kernel. In Proceedings of the 22nd ACM Symposium
+on Operating Systems Principles, SOSP 2009, Big Sky, Montana, USA, October 11–14, 2009, pages
+207–220. ACM, 2009.
+[22] Andrea Lattuada, Travis Hance, Jay Bosamiya, Matthias Brun, Chanhee Cho, Hayley LeBlanc, Pranav
+Srinivasan, Reto Achermann, Tej Chajed, Chris Hawblitzel, Jon Howell, Jacob R. Lorch, Oded Padon, and
+Bryan Parno. Verus: A practical foundation for systems verification. In Emmett Witchel, Christopher J.
+Rossbach, Andrea C. Arpaci-Dusseau, and Kimberly Keeton, editors, Proceedings of the ACM SIGOPS
+30th Symposium on Operating Systems Principles, SOSP 2024, Austin, TX, USA, November 4-6, 2024,
+pages 438–454. ACM, 2024.
+11
+
+
+=== PDF PAGE 12 ===
+[23] Tanakorn Leesatapornwongsa, Jeffrey F. Lukman, Shan Lu, and Haryadi S. Gunawi. TaxDC: A taxonomy
+of non-deterministic concurrency bugs in datacenter distributed systems. In Proceedings of the 21st
+International Conference on Architectural Support for Programming Languages and Operating Systems
+(ASPLOS), pages 517–530, 2016.
+[24] K. Rustan M. Leino. Dafny: An automatic program verifier for functional correctness. In Edmund M.
+Clarke and Andrei Voronkov, editors, Logic for Programming, Artificial Intelligence, and Reasoning —
+16th International Conference, LPAR-16, Dakar, Senegal, April 25–May 1, 2010, Revised Selected Papers,
+volume 6355 of Lecture Notes in Computer Science, pages 348–370. Springer, 2010.
+[25] Xavier Leroy. Formal verification of a realistic compiler. Communications of the ACM, 52(7):107–115,
+2009.
+[26] Mohsen Lesani, Christian J. Bell, and Adam Chlipala. Chapar: certified causally consistent distributed
+key-value stores. In Rastislav Bodík and Rupak Majumdar, editors, Proceedings of the 43rd Annual ACM
+SIGPLAN-SIGACT Symposium on Principles of Programming Languages, POPL 2016, St. Petersburg, FL,
+USA, January 20 - 22, 2016, pages 357–370. ACM, 2016.
+[27] Zenan Li, Ziran Yang, Haoyu Zhao, Andrew Zhao, Shange Tang, Kaiyu Yang, Aarti Gupta, Zhendong Su,
+Chi Jin, et al. Goedel-code-prover: Hierarchical proof search for open state-of-the-art code verification.
+arXiv preprint arXiv:2603.19329, 2026.
+[28] Wyatt Lloyd, Michael J. Freedman, Michael Kaminsky, and David G. Andersen. Stronger semantics for
+low-latency geo-replicated storage. In Proc. NSDI, 2013.
+[29] Evan Lohn and Sean Welleck. miniCodeProps: A minimal benchmark for proving code properties. 2024.
+arXiv:2406.11915.
+[30] Chloe Loughridge, Qinyi Sun, Seth Ahrenbach, Federico Cassano, Chuyue Sun, Ying Sheng, Anish
+Mudide, Md Rakib Hossain Misu, Nada Amin, and Max Tegmark. DafnyBench: A benchmark for formal
+software verification. 2024. arXiv:2406.08467.
+[31] Daniel J. Mankowitz, Andrea Michi, Anton Zhernov, Marco Gelmi, Marco Selvi, Cosmin Paduraru,
+Edouard Leurent, Shariq Iqbal, Jean-Baptiste Lespiau, Alex Ahern, Thomas Köppe, Kevin Millikin,
+Stephen Gaffney, Sophie Elster, Jackson Broshear, Chris Gamble, Kieran Milan, Robert Tung, Minjae
+Hwang, A. Taylan Cemgil, Mohammadamin Barekatain, Yujia Li, Amol Mandhane, Thomas Hubert, Julian
+Schrittwieser, Demis Hassabis, Pushmeet Kohli, Martin A. Riedmiller, Oriol Vinyals, and David Silver.
+Faster sorting algorithms discovered using deep reinforcement learning. Nature, 618(7964):257–263, 2023.
+[32] Zohar Manna and Richard Waldinger. Synthesis: Dreams →programs. IEEE Transactions on Software
+Engineering, SE-5(4):294–328, 1979.
+[33] Zohar Manna and Richard Waldinger. A deductive approach to program synthesis. ACM Transactions on
+Programming Languages and Systems, 2(1):90–121, 1980.
+[34] Eric Mugnier, Emmanuel Anaya Gonzalez, Ranjit Jhala, Nadia Polikarpova, and Yuanyuan Zhou.
+Laurel: Unblocking automated verification with large language models. PACMPL (OOPSLA), 2025.
+arXiv:2405.16792.
+[35] Alexander Novikov, Ngân V˜u, Marvin Eisenberger, Emilien Dupont, Po-Sen Huang, Adam Zsolt Wagner,
+Sergey Shirobokov, Borislav Kozlovskii, Francisco J. R. Ruiz, Abbas Mehrabian, M. Pawan Kumar, Abigail
+See, Swarat Chaudhuri, George Holland, Alex Davies, Sebastian Nowozin, Pushmeet Kohli, and Matej
+Balog. AlphaEvolve: A coding agent for scientific and algorithmic discovery. 2025. arXiv:2506.13131.
+[36] Azim Ospanov, Farzan Farnia, and Roozbeh Yousefzadeh. APOLLO: Automated LLM and Lean collabo-
+ration for advanced formal reasoning. 2025. arXiv:2505.05758.
+[37] Thanumalayan Sankaranarayana Pillai, Vijay Chidambaram, Ramnatthan Alagappan, Samer Al-Kiswany,
+Andrea C. Arpaci-Dusseau, and Remzi H. Arpaci-Dusseau. All file systems are not created equal: on
+the complexity of crafting crash-consistent applications. In Proceedings of the 11th USENIX Conference
+on Operating Systems Design and Implementation, OSDI’14, page 433–448, USA, 2014. USENIX
+Association.
+[38] Nadia Polikarpova, Ivan Kuraj, and Armando Solar-Lezama. Program synthesis from polymorphic
+refinement types. In Proceedings of the 37th ACM SIGPLAN Conference on Programming Language
+Design and Implementation, PLDI 2016, Santa Barbara, CA, USA, June 13-17, 2016, pages 522–538.
+ACM, 2016.
+12
+
+
+=== PDF PAGE 13 ===
+[39] Chen Qian, Wei Liu, Hongzhang Liu, Nuo Chen, Yufan Dang, Jiahao Li, Cheng Yang, Weize Chen,
+Yusheng Su, Xin Cong, Juyuan Xu, Dahai Li, Zhiyuan Liu, and Maosong Sun. ChatDev: Communicative
+agents for software development. In ACL, 2024. arXiv:2307.07924.
+[40] Z. Z. Ren, Zhihong Shao, Junxiao Song, Huajian Xin, Haocheng Wang, Wanjia Zhao, Liyue Zhang, Zhe
+Fu, Qihao Zhu, Dejian Yang, Z. F. Wu, Zhibin Gou, Shirong Ma, Hongxuan Tang, Yuxuan Liu, Wenjun
+Gao, Daya Guo, and Chong Ruan. DeepSeek-Prover-V2: Advancing formal mathematical reasoning via
+reinforcement learning for subgoal decomposition. 2025. arXiv:2504.21801.
+[41] Bernardino Romera-Paredes, Mohammadamin Barekatain, Alexander Novikov, Matej Balog, M. Pawan
+Kumar, Emilien Dupont, Francisco J. R. Ruiz, Jordan S. Ellenberg, Pengming Wang, Omar Fawzi,
+Pushmeet Kohli, and Alhussein Fawzi. Mathematical discoveries from program search with large language
+models. Nature, 625(7995):468–475, 2024.
+[42] WANG Ruida, Rui Pan, Yuxin Li, Jipeng Zhang, Yizhen Jia, Shizhe Diao, Renjie Pi, Junjie Hu, and Tong
+Zhang. Ma-lot: Model-collaboration lean-based long chain-of-thought reasoning enhances formal theorem
+proving. In Forty-second International Conference on Machine Learning, 2025.
+[43] Upamanyu Sharma, Ralf Jung, Joseph Tassarotti, M. Frans Kaashoek, and Nickolai Zeldovich. Grove: a
+separation-logic library for verifying distributed systems. In Jason Flinn, Margo I. Seltzer, Peter Druschel,
+Antoine Kaufmann, and Jonathan Mace, editors, Proceedings of the 29th Symposium on Operating Systems
+Principles, SOSP 2023, Koblenz, Germany, October 23-26, 2023, pages 113–129. ACM, 2023.
+[44] Noah Shinn, Federico Cassano, Edward Berman, Ashwin Gopinath, Karthik Narasimhan, and Shunyu Yao.
+Reflexion: Language agents with verbal reinforcement learning. In NeurIPS, 2023. arXiv:2303.11366.
+[45] Armando Solar-Lezama. Program Synthesis by Sketching. PhD thesis, UC Berkeley, 2008.
+[46] Armando Solar-Lezama, Liviu Tancau, Rastislav Bodík, Sanjit A. Seshia, and Vijay A. Saraswat. Combi-
+natorial sketching for finite programs. In John Paul Shen and Margaret Martonosi, editors, Proceedings of
+the 12th International Conference on Architectural Support for Programming Languages and Operating
+Systems, ASPLOS 2006, San Jose, CA, USA, October 21-25, 2006, pages 404–415. ACM, 2006.
+[47] Chuyue Sun, Ying Sheng, Oded Padon, and Clark Barrett. Clover: Closed-loop verifiable code generation.
+In SAIV, 2024. arXiv:2310.17807.
+[48] Xudong Sun, Wenjie Ma, Jiawei Tyler Gu, Zicheng Ma, Tej Chajed, Jon Howell, Andrea Lattuada, Oded
+Padon, Lalith Suresh, Adriana Szekeres, and Tianyin Xu. Anvil: Verifying liveness of cluster management
+controllers. In Ada Gavrilovska and Douglas B. Terry, editors, 18th USENIX Symposium on Operating
+Systems Design and Implementation, OSDI 2024, Santa Clara, CA, USA, July 10-12, 2024, pages 649–666.
+USENIX Association, 2024.
+[49] Amitayush Thakur, George Tsoukalas, Yeming Wen, Jimmy Xin, and Swarat Chaudhuri. An in-context
+learning agent for formal theorem-proving. In COLM, 2024. arXiv:2310.04353.
+[50] Kyle Thompson, Nuno Saavedra, Pedro Carrott, Kevin Fisher, Alex Sanchez-Stern, Yuriy Brun, João F.
+Ferreira, Sorin Lerner, and Emily First. Rango: Adaptive retrieval-augmented proving for automated
+software verification. In ICSE, 2025. arXiv:2412.14063. Introduces the CoqStoq benchmark.
+[51] Haiming Wang, Mert Unsal, Xiaohan Lin, Mantas Baksys, Junqi Liu, Marco Dos Santos, Flood Sung,
+Marina Vinyes, Zhenzhe Ying, Zekai Zhu, Jianqiao Lu, Hugues de Saxcé, Bolton Bailey, Chendong Song,
+Chenjun Xiao, Dehao Zhang, Ebony Zhang, Frederick Pu, Han Zhu, Jiawei Liu, Jonas Bayer, Julien Michel,
+Longhui Yu, Léo Dreyfus-Schmidt, Lewis Tunstall, Luigi Pagani, Moreira Machado, Pauline Bourigault,
+Ran Wang, Stanislas Polu, Thibaut Barroyer, Wen-Ding Li, Yazhe Niu, Yann Fleureau, Yangyang Hu,
+Zhouliang Yu, Zihan Wang, Zhilin Yang, Zhengying Liu, and Jia Li. Kimina-Prover preview: Towards
+large formal reasoning models with reinforcement learning. 2025. arXiv:2504.11354.
+[52] Ruida Wang, Jipeng Zhang, Yizhen Jia, Rui Pan, Shizhe Diao, Renjie Pi, and Tong Zhang. Theoremllama:
+Transforming general-purpose llms into lean4 experts. In 2024 Conference on Empirical Methods in Natural
+Language Processing, EMNLP 2024, pages 11953–11974. Association for Computational Linguistics
+(ACL), 2024.
+[53] Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Ed H. Chi, Quoc Le, and Denny Zhou.
+Chain of thought prompting elicits reasoning in large language models. CoRR, abs/2201.11903, 2022.
+[54] Cheng Wen, Jialun Cao, Jie Su, Zhiwu Xu, Shengchao Qin, Mengda He, Haokun Li, Shing-Chi Cheung,
+and Cong Tian. Enchanting program specification synthesis by large language models using static analysis
+and program verification. 2024. arXiv:2404.00762.
+13
+
+
+=== PDF PAGE 14 ===
+[55] James R. Wilcox, Doug Woos, Pavel Panchekha, Zachary Tatlock, Xi Wang, Michael D. Ernst, and
+Thomas E. Anderson. Verdi: a framework for implementing and formally verifying distributed systems.
+In David Grove and Stephen M. Blackburn, editors, Proceedings of the 36th ACM SIGPLAN Conference
+on Programming Language Design and Implementation, Portland, OR, USA, June 15-17, 2015, pages
+357–368. ACM, 2015.
+[56] Qingyun Wu, Gagan Bansal, Jieyu Zhang, Yiran Wu, Beibin Li, Erkang Zhu, Li Jiang, Xiaoyun Zhang,
+Shaokun Zhang, Jiale Liu, et al. Autogen: Enabling next-gen llm applications via multi-agent conversations.
+In First conference on language modeling, 2024.
+[57] Chenyuan Yang, Xuheng Li, Md Rakib Hossain Misu, Jianan Yao, Weidong Cui, Yeyun Gong, Chris
+Hawblitzel, Shuvendu Lahiri, Jacob R. Lorch, Shuai Lu, Fan Yang, Ziqiao Zhou, and Shan Lu. AutoVerus:
+Automated proof generation for Rust code. In OOPSLA, 2025. arXiv:2409.13082.
+[58] John Yang, Carlos E. Jimenez, Alexander Wettig, Kilian Lieret, Shunyu Yao, Karthik Narasimhan, and
+Ofir Press. SWE-agent: Agent-computer interfaces enable automated software engineering. In NeurIPS,
+2024. arXiv:2405.15793.
+[59] Kaiyu Yang and Jia Deng. Learning to prove theorems via interacting with proof assistants. In ICML,
+2019. arXiv:1905.09381.
+[60] Kaiyu Yang, Aidan M. Swope, Alex Gu, Rahul Chalamala, Peiyang Song, Shixing Yu, Saad Godil, Ryan
+Prenger, and Anima Anandkumar. LeanDojo: Theorem proving with retrieval-augmented language models.
+In NeurIPS, 2023. arXiv:2306.15626.
+[61] Zhe Ye, Zhengxu Yan, Jingxuan He, Timothé Kasriel, Kaiyu Yang, and Dawn Song. VERINA: Bench-
+marking verifiable code generation. In International Conference on Learning Representations (ICLR),
+2026. arXiv:2505.23135.
+[62] Haoyu Zhao, Ziran Yang, Jiawei Li, Deyuan He, Zenan Li, Chi Jin, Venugopal V. Veeravalli, Aarti Gupta,
+and Sanjeev Arora. AlgoVeri: An aligned benchmark for verified code generation on classical algorithms.
+arXiv preprint arXiv:2602.09464, 2026.
+[63] Xueliang Zhao, Lin Zheng, Haige Bo, Changran Hu, Urmish Thakker, and Lingpeng Kong. Subgoalxl:
+Subgoal-based expert learning for theorem proving. arXiv preprint arXiv:2408.11172, 2024.
+14
+
+
+=== PDF PAGE 15 ===
+A
+Specifications and the IDS Suite Dataset
+Of the seven specifications evaluated in §5, one is Chapar’s published causal-consistency spec [26]
+and the other six are IDS suite specs we wrote with a formal-verification and distributed-systems
+expert (1,018 lines of Rocq across five spec files; RYW+MW is the joint composition of RYW
+and MW with no separate spec; Table 3). Formal definitions are in App. I, which also gives two
+reference implementations of IDS suite CC (vector-clock and dependency-map variants) and the
+Lloyd-Freedman protocol (the COPS causal-consistency protocol) as a systems-scale reference.
+Table 3: The seven specifications. Chapar CC is a published spec; the six IDS suite specs are
+expert-written for this paper. Property summarises the consistency guarantee; LoC is lines of Rocq
+for the spec definition.
+Specification
+Family
+Property
+LoC
+Chapar CC
+Chapar
+cross-client causal consistency, defined over execution traces
+n/a
+Read-Your-Writes
+IDS suite
+a client reads its own most recent write
+159
+Monotonic Writes
+IDS suite
+a client’s writes are observed in order
+158
+Monotonic Reads
+IDS suite
+a client’s reads respect the order of observed writes
+185
+RYW+MW
+IDS suite
+composition of RYW and MW (no separate spec)
+n/a
+CC
+IDS suite
+cross-client causal consistency via explicit dependency sets
+248
+LCC
+IDS suite
+causal consistency parameterised by per-message labels and
+per-client interest masks
+268
+Common shape.
+Every spec is a Rocq Module Type with the same seven method signatures
+(getReq, getGuard, get, getRes, putReq, putGuard, put), a State type, an Update type, and
+an operational semantics on client-replica configurations. IDS consumes this shape directly.
+Generality.
+IDS is not tuned to any individual spec: the same agent, prompts, and tools handle
+every spec we evaluate. Any specification matching the Module Type shape above is a candidate
+target for the same loop.
+B
+Synthesis Results: Per-Spec Artifacts
+All seven artifacts pass Rocq’s kernel with no Admitted, Axiom, Hypothesis, or Parameter. The
+three CC specs (Chapar CC: 3,037 lines / 79 lemmas; IDS suite CC: 3,807 / 121; LCC: 3,924 / 128)
+are 4–6× larger than the four session specs because their proofs span all replicas, not just sender and
+receiver.
+Table 4: Per-spec implementation choice and proof artifact size. Lemmas = Qed count; lines via wc
+-l.
+Specification
+Implementation
+Lines
+Lemmas
+Chapar CC
+per-key store entry with sender clock + dep vector
+3,037
+79
+RYW
+per-key (val, client, ts) assoc-list
+622
+25
+MW
+per-key (val, client→ts) assoc-list
+722
+30
+MR
+per-(key, client) assoc-list, replace-on-write
+1,063
+30
+RYW+MW
+per-key (val, client, client→ts) assoc-list
+958
+28
+IDS suite CC
+vector clock + per-key VC map + balanced-tree store
+3,807
+121
+LCC
+vector clock + per-key VC map + balanced-tree store + per-client label-set filter
+3,924
+128
+Implementation rationale.
+Chapar CC. The 79 lemmas split: 11 per-method refinement (one per
+get/put/update/guard/init), 11 reachable-state invariants, 7 causality preservation, 39 clock and
+per-key store algebra, and 11 execution-model helpers.
+Session guarantees (RYW, MW, MR, RYW+MW). All four share the same assoc-list skeleton;
+each parameterizes the per-entry payload to its consistency property: RYW carries (val, client, ts) to
+detect own writes, MW extends to (val, client→ts) to enforce writer order, MR uses one entry per
+15
+
+
+=== PDF PAGE 16 ===
+(key, client) updated in place, RYW+MW combines both. The proof technique is shared too: each
+session uses heavy case-analysis via Nat.eq_dec on key and client equality (80–100 splits per spec),
+varying only in which payload field the splits land on. Each Get scans only the distinct keys touched,
+not the full Put history. MR is the hardest session spec because its Put proof splits into four sub-cases
+(same vs different key, same vs different client), each closed by case-analysis on Nat.eq_dec.
+IDS suite CC. A vector clock, a per-key vector-clock map, and a balanced-tree store; the balanced
+tree keeps Get logarithmic in distinct keys rather than linear in prior Puts. Of the 121 lemmas: 8
+are the step-by-step simulation, 32 are refinement-relation invariants for the state components (cell,
+replica, snapshot) and their preservation under updates, 19 are vector-clock algebra; the remaining
+62 are update, lookup, owner, and dependency-tracking algebra. Get’s proof closes by applying the
+relation that ties the implementation’s vector clocks plus per-client owner lists (per-key tracking of
+which client most recently wrote each entry) to the spec’s dependency sets.
+LCC. A vector clock, a per-key vector-clock map, and a balanced-tree store, with dependency entries
+tagged with a label (a 4-tuple of client, timestamp, key, label) and projections at Get filtered by
+the requesting client’s interest mask. The proof closes by step-by-step simulation; the simulation
+relation ties the implementation’s label-tagged vector-clock representation to the spec’s label-filtered
+dependency sets. Of the 128 lemmas: 6 are the step-by-step simulation, 25 are refinement-relation
+invariants and extensions for state components (cells, replicas, snapshots, key-snapshots), 19 are
+vector-clock algebra; the remaining 78 are update, lookup, owner, and dependency-tracking algebra.
+Synthesis trajectories.
+The artifacts above are not the first design IDS attempted. In each case, the
+proof stalled on a goal that resisted splitting under the spec’s natural state representation; the ISA’s
+reloader abandoned the branch, and the proposer pivoted to a representation under which the goal
+decomposed.
+Chapar CC. The hardest case in any causal-consistency proof shows that whenever a replica delivers
+a remote message, it has already observed every update the message transitively depends on. IDS’
+first attempt kept the global state representation closest to the spec, under which the delivery lemma
+had to range over every in-flight message at every replica together, and the DSA could not split it.
+After the search stalled, the reloader abandoned that branch and the proposer revised the design to a
+per-key store with per-entry sender, sender-clock, and dependency vector. The proposer then split
+the delivery invariant into three sub-lemma classes (per-message, per-store-entry, per-replica-clock),
+each closing under the new representation. The representation was chosen by what split the proof,
+not by performance; the per-put performance win reported in §5.3 is a consequence.
+Monotonic reads. Both agent baselines, and IDS’ first attempt, stalled on the function-from-key-to-
+value representation. After the reloader abandoned that branch, the agent revised the design to a flat
+list of per-(key, client) entries updated in place, after which the put proof split into four sub-cases on
+key and client equality.
+IDS suite CC and LCC. The winning move is to break the simulation goal into per-message and
+per-store-entry sub-lemmas, each closing against the per-key store and label-tagged dependency
+entries respectively. The baselines try the combined goal in one shot and time out within the budget.
+C
+Implementing Distributed-KV Specifications with Coding Agents
+(No Proof)
+Setup.
+We test Codex (gpt-5.4) on four KV-store consistency properties (RYW, MW, MR, and
+CC). For each property, Codex generates 100 candidate implementations under two prompt conditions,
+then picks its single best candidate. That selected implementation is the agent’s output for that
+(property, condition).
+Setting (1) Spec-Given. Codex receives the formal Rocq specification and the module-type signature.
+Setting (2) NL-Only (“vibe coding”). Codex receives only a one-paragraph natural-language descrip-
+tion of the property (reproduced verbatim below) and the module-type signature.
+Each of the 100 generation sessions runs independently and can compile, edit, and test its own code.
+The selector pass is also Codex, with the same compile and test access. The selected implementation
+must use bounded state, cannot copy any reference implementation, and cannot use Admitted,
+16
+
+
+=== PDF PAGE 17 ===
+Axiom, Hypothesis, or Parameter (so the agent cannot stub out unfilled work). The agent does
+not write any refinement proof.
+We evaluate the selected implementation in two stages. Stage 1 (test). We run the implementation on
+an adversarial multi-client scenario; if it accepts an operation the abstract specification rejects on this
+scenario, Stage 1 fails. Stage 2 (proof). If Stage 1 passes, IDS attempts the refinement proof against
+the abstract specification. If IDS cannot close the proof within budget, Stage 2 fails. We split into
+two stages because proof attempts are much more expensive than scenario testing. If Stage 1 fails,
+Stage 2 fails too: an implementation that breaks the spec on a single trace cannot be proven correct
+on every trace.
+Property statements (LLM-visible in Setting 2).
+RYW (Read-Your-Writes). Each client must observe its own previous writes. If a client writes a
+value to a key and later reads that key in the same session, the read must return the client’s
+value or a more recent one.
+MW (Monotonic Writes). Writes by the same client are applied at every replica in the order the
+client issued them.
+MR (Monotonic Reads). Successive reads by the same client observe non-decreasing replica states:
+once a client has seen a value, later reads must not appear older.
+CC (Causal Consistency). If operation A causally precedes operation B (either A comes before B
+in the same client’s session, or B reads a value written by A), every client that sees B must
+also have seen A.
+Setting (1) Spec-Given
+Setting (2) NL-Only
+Spec
+Stage 1 pass
+Stage 2 pass
+Cost
+Stage 1 pass
+Stage 2 pass
+Cost
+RYW
+1
+1
+$30.50
+1
+0
+$25.77
+MW
+1
+0
+$32.10
+1
+0
+$27.33
+MR
+0
+0
+$35.20
+0
+0
+$29.91
+CC
+0
+0
+$47.80
+0
+0
+$40.79
+Table 5: Outcome of best-of-N=100 implementation-only synthesis with Codex. 1 = passed, 0 =
+failed. Stage 1: the selected implementation runs through a fixed adversarial multi-client scenario
+without violating the abstract specification on that scenario. Stage 2: IDS builds a refinement proof
+of the implementation against the abstract specification within budget. Cost is the gpt-5.4 token
+cost for the 100 generations plus the selection pass.
+Result and takeaway.
+Best-of-N = 100 produces a verified implementation on 1 of 4 properties
+when given the formal specification (Setting 1, RYW), and on 0 of 4 from natural language alone
+(Setting 2). The two simpler session properties (RYW and MW) consistently pass the scenario
+test in both settings, but only RYW with the formal spec also passes the refinement proof. The
+harder properties (MR and CC) fail even the scenario test in both settings: the textbook patterns
+Codex selects (vector-clock dominance, last-write-wins) do not implement the per-key or causal-order
+behavior these specs demand. Two failure modes appear: (a) implementations that fail on a single
+adversarial trace, and (b) implementations that pass the trace but cannot be proven correct on every
+reachable state. IDS avoids both by integrating the refinement proof into synthesis rather than running
+it as a post-hoc check; in the main evaluation it closes the proof on all 7 specifications.
+D
+Additional Performance Results and Throughput Breakdown
+IDS’ gains over the reference implementations all share one mechanism: IDS’ state representations
+bound per-op cost by the spec, while the references’ per-op cost grows with workload size. §D.1
+measures this on all five IDS suite specs with cluster-runnable implementations (RYW, MR, MW,
+RYW+MW, IDS suite CC), shows Chapar CC at the top of the figure for comparison, and adds an
+illustrative LCC row (labeled causal consistency: each client subscribes to a set of topic labels and
+only sees causality enforced on those). Across the IDS suite, throughput tracks consistency strength
+(RYW > MW > RYW+MW > MR > LCC > IDS suite CC at put = 50%) because stricter specs
+17
+
+
+=== PDF PAGE 18 ===
+require more checking work per operation. Chapar CC and IDS suite CC are both causal-consistency
+variants but their reference implementations are designed differently (Chapar’s reads one position out
+of a flat list of per-write dependencies, while IDS suite’s compares an entire per-client clock vector
+and atomically updates the writer’s slot on every Put), so the two CC rows show different per-op
+work at the same correctness level. §§D.2 and D.3 decompose the gap on Chapar CC and Monotonic
+Reads.
+Setup details (extending §5.1).
+Cluster zone: us-central1-f. Each VM is an e2-standard-2
+(2 vCPU, 8 GB RAM) on Debian 12. Toolchain: OCaml 4.13.1 (dune 3.10) and Rocq 8.18.0.
+Throughput is the sum across the NW = 4 workers of N/tw, where tw is each worker’s wall-clock
+time and N is its ops count, taking the median over three runs per cell; the put-rate sweep uses N =
+1000 (4,000 cluster ops total per run) and the scaling sweep varies N ∈{1,000, 2,000, 5,000, 20,000}.
+Per-operation latency is bracketed inside the runtime around put_method/get_method and merged
+across workers; p99 is the 99th percentile of the pooled per-op latency distribution. Peak memory
+is the worker maximum of Maximum resident set size from /usr/bin/time -v, taking the
+median over three runs. Workload parameters: key_range = 50, val_range = 100,000, fixed
+seed 42. The cluster uses a Chapar-style UDP runtime (runtime_doctex.ml) adapted to the
+seven-method doctex AlgDef interface; we patched a socket bug for OCaml 4.13 / Debian 12.
+D.1
+Per-protocol curves: all five IDS suite specs
+Result.
+Read-then-write specs cause the reference to exceed our 180 s wall-clock cap at every
+put rate measured: in Fig. 9 the reference’s MW and RYW+MW rows show red × at every cell,
+with no measurable throughput. IDS runs cleanly throughout: 152 kops/s on MW and 139 kops/s
+on RYW+MW at put = 60%. The mechanism is a closure chain: the reference stores per-replica
+state as a function from key to value (a function-as-map); after extraction to OCaml, each prior Put
+adds a nested closure that a Get must unwrap. The read-then-write check re-evaluates this chain on
+every Put; combined with UDP packet reordering and the protocol’s no-retry compare-and-swap,
+throughput collapses to zero. RYW has no read-then-write check, so its reference is competitive with
+IDS across the put-rate sweep: within roughly 20% in either direction depending on workload mix,
+with IDS winning at low put rate (pct= 20) and the reference faster at high put rate (pct= 60–70). The
+reversal is a per-Put cost trade: IDS’ assoc-list rewrites its spine on every Put (O(K) cell allocations,
+K = unique keys touched), while the reference’s function-as-map prepends a single closure layer
+per Put (O(1) heap cell). At low put rate the assoc-list’s O(K) Get lookup beats the reference’s
+closure-chain walk; at high put rate the per-Put allocation cost dominates. MR shows the same chain-
+walk cost on Get (per-layer slope quantified in §D.3); IDS suite CC follows the same mechanism
+with IDS’ balanced-tree store keeping Get logarithmic in distinct keys. Memory: IDS’ assoc-list
+pays 0.1–1.0 MB more on RYW (per-entry overhead) and runs in the same 5–6 MB envelope as the
+reference on the other specs where the reference completes; on MW and RYW+MW the reference
+produces no memory measurement (it never completes a run). All memory traces are at N = 1,000
+ops/worker; IDS suite CC’s vector-clock state is O(#clients), so its trace is flat across the put-rate
+sweep at this workload size. At substantially larger N or more clients, the message-bus and per-cell
+deps would push memory upward. The rightmost column (throughput vs N at put = 50%) confirms
+the mechanism on every spec: the reference’s throughput drops as N grows because each new Put
+extends the chain, while IDS’ assoc-list and balanced-tree structures keep throughput approximately
+flat. Across the put-rate sweep, both implementations’ throughput falls and p99 latency rises as
+put-rate increases because each Put is broadcast to every replica, so more writes mean more in-flight
+messages and longer per-op queue waits.
+Course correction on MW.
+Without performance feedback, IDS ships the first verifying design: a
+balanced-tree store. With performance feedback, the agent runs both candidates in its microbench
+harness and converges on the assoc-list, which the cluster benchmark harness confirms at 152k ops/s
+at put = 60% (Fig. 9). Performance feedback changes the search policy, not the correctness criterion;
+both candidates are verified IDS suite refinements.
+D.2
+Throughput breakdown: Chapar CC
+Setup.
+We attribute each algorithm’s per-op time to four pieces: its Get cost (varies by algorithm), a
+shared Put baseline (per-key entries: 58.4 µs, the smallest of the three), a wire-bytes term proportional
+18
+
+
+=== PDF PAGE 19 ===
+20% 30% 40% 50% 60% 70%
+Put %
+0
+25
+50
+75
+100
+125
+Time per worker op  [µs]
+104.8K
+62.8K
+55.5K
+48.2K
+37.5K
+38.3K
+vector-clock baseline
+20% 30% 40% 50% 60% 70%
+Put %
+88.9K
+62.5K
+60.9K
+54.5K
+49.1K
+33.6K
+list-based baseline
+20% 30% 40% 50% 60% 70%
+Put %
+265.1K
+186.9K
+147.4K 124.6K 109.2K
+94.7K
+IDS (per-key entries)
+Get cost
+Put baseline
+extra bytes
+residual 
+Figure 7: Per-component decomposition of Chapar’s two published baselines (vector-clock, list-
+based) and IDS’ Chapar implementation (per-key store entries, used here as internal pivot). Bar height
+equals 4/(published cluster throughput) in µs per worker op. Each bar splits into local Get cost, the
+per-key-entries Put baseline (same for all), per-algorithm extra wire bytes, and a per-algorithm
+residual γ. Segments sum to the published value at every cell by construction.
+0
+50
+100
+150
+200
+# Puts seen before this Get
+10
+20
+30
+40
+50
+Median Get latency [ s]
+put% = 20
+0
+100
+200
+300
+400
+500
+# Puts seen before this Get
+10
+20
+30
+40
+put% = 50
+0
+200
+400
+600
+# Puts seen before this Get
+5
+10
+15
+20
+put% = 70
+IDS suite reference (function-as-map)
+IDS (assoc-list)
+balanced-tree alternative
+Figure 8: Get latency vs. closure depth (number of Puts preceding each Get in the same worker
+trace) for the three Monotonic Reads implementations at three put rates. The IDS suite reference’s
+Get latency grows linearly with depth (slope 0.21 µs per closure layer at put = 20%, R2 = 0.95).
+IDS’ assoc-list slope is an order of magnitude smaller; the balanced-tree variant’s slope is within
+statistical noise at every put rate.
+to extra bytes per Put (β = 18 µs per byte, fit from vector-clock vs per-key entries), and a CPU
+residual γ that captures whatever the wire-bytes term does not explain. Marshaled bytes per Put on
+the cluster: 44.81 (vector-clock), 41.05 (list-based), 39.62 (per-key entries).
+Result.
+Vector-clock loses on wire bytes; list-based loses on CPU. Vector-clock ships +5.2 bytes
+per Put over per-key entries, mapping to +47 µs of per-op work at put = 50%; the residual γ is
+−1.75 µs, well below the bytes term. Almost the entire gap is wire bytes. List-based ships only
++1.4 extra bytes per Put on average, yet γ = +21.6 µs at put = 50%. The list-based replica stores
+the full history of delivered messages; receivers walk this list on every delivery (causality check),
+and Get walks it again to find the most-recent value for the requested key. Vector-clock and per-key
+entries do constant-time element-wise lookups.
+D.3
+Throughput breakdown: Monotonic Reads
+Setup.
+Three MR implementations on the same runtime and identical wire format (92.83 B per
+Put on average): the IDS suite reference (function-as-map), IDS (assoc-list), and a balanced-tree
+alternative. Throughput differences are CPU-side. The balanced tree is a control: it tests whether
+IDS’ win comes from the assoc-list specifically or from any structure that does not walk a closure
+chain on Get.
+Where the cost lands.
+The reference pays on Get; the refinements pay on Put. At put = 50%:
+19
+
+
+=== PDF PAGE 20 ===
+implementation
+Tget (µs)
+Tput (µs)
+IDS suite reference (function-as-map)
+24.83
+15.40
+IDS (assoc-list)
+10.81
+16.81
+balanced-tree alternative
+11.40
+21.12
+Regressing Get latency against closure depth (number of Puts preceding a Get in the same worker
+trace) confirms the reference’s chain walk: slope 0.21 µs/layer at put = 20% (R2 = 0.95, Fig. 8).
+Both refinements stay flat across every put rate measured (|slope| < 0.025 µs/layer): bounded data
+structure, no chain to walk. The balanced tree’s extra Put cost comes from rebalance.
+N-scaling at put = 50%.
+The reference’s throughput drops as ops-per-worker N grows; IDS stays
+nearly flat:
+N
+1,000
+2,000
+5,000
+20,000
+IDS suite reference (function-as-map)
+108,000
+100,000
+90,000
+80,000
+IDS (assoc-list)
+130,000
+124,000
+117,000
+112,000
+At N = 1,000 IDS is 1.20× faster; at N = 20,000 the gap widens to 1.40×. Throughput drop from
+N = 1,000 to N = 20,000: reference 1.35×, IDS 1.16×. The reference’s per-Get closure walk
+grows linearly with prior Puts, so its per-op cost rises with N; the assoc-list’s lookup is bounded by
+the number of distinct keys in the workload (50 here), so its per-op cost is N-independent and only
+message-bus pressure causes the mild decline.
+20
+
+
+=== PDF PAGE 21 ===
+Table 6: What each cross-language benchmark gives the model and what the model must produce. ✓
+= given as input; ✗= the model must generate it. “Spec” covers preconditions and postconditions (or
+the theorem statement, where applicable). For DafnyBench the implementation body is given; only
+Dafny verification hints (loop invariants, assertions, decreases clauses) are stripped. miniCodeProps
+and CoqStoq give the spec as a Lean / Coq theorem statement.
+Benchmark
+Language
+Verifier
+Given to model
+Task
+NL desc.
+Signature
+Spec
+Code
+DafnyBench [30]
+Dafny
+Dafny
+✗
+✓
+✓
+✓
+annotations
+miniCodeProps [29]
+Lean 4
+Lean
+✗
+✓
+✓
+✓
+proof
+Verus-Bench [57]
+Rust
+Verus
+✗
+✓
+✓
+✓
+annotations
+CoqStoq [50]
+Coq
+Coq
+✗
+✓
+✓
+✓
+proof
+CloverBench [47]
+Dafny
+Dafny
+✓
+✓
+✓
+✗
+code + annot.
+VERINA [61]
+Lean 4
+Lean
+✓
+✓
+✓
+✗
+code + proof
+Table 7: Pass counts on verification benchmarks. Bold = best per column. The first four are proof-
+only (impl and spec given); on these, IDS reduces to its DSA component since the ISA has no
+design space to search. The last three are concurrent code-and-proof tasks. Per-benchmark slices,
+prior-SOTA references, and CloverBench note in App. E.
+Method
+DafnyBench
+miniCodeProps
+Verus-Bench
+CoqStoq
+VERINA
+AlgoVeri
+CloverBench
+Prior SOTA
+52 / 100
+49 / 100
+137 / 150
+28 / 100
+38 / 189
+31 / 77
+–
+Codex
+78 / 100
+80 / 100
+148 / 150
+46 / 100
+136 / 189
+51 / 77
+62 / 62
+Claude Code
+76 / 100
+86 / 100
+148 / 150
+51 / 100
+149 / 189
+56 / 77
+62 / 62
+IDS (ours)
+88 / 100
+100 / 100
+149 / 150
+97 / 100
+176 / 189
+65 / 77
+62 / 62
+E
+Results on Proof, Annotation, and Code-and-Proof Benchmarks
+IDS beats every prior method on the four proof and annotation benchmarks, and reaches 176/189
+on VERINA against prior SOTA 38 and agentic baselines Codex 136, Claude Code 149 (Table 7).
+E.1
+Proof and annotation benchmarks
+Setup.
+The model receives a complete task specification (signature, preconditions, postconditions,
+and code where applicable) and must produce verifier-acceptable output: proof annotations on Dafny-
+Bench [30] and Verus-Bench [57], or a complete proof on miniCodeProps [29] and CoqStoq [50]
+(modality in Table 6). For each benchmark we use the slice the prior SOTA method published its
+number on:
+• DafnyBench: 100 hardest tasks; prior SOTA is DafnyPro [6] (from the DafnyBench paper).
+• miniCodeProps: 100 tasks from the sorting split; prior SOTA is COPRA [49].
+• Verus-Bench: full 150 tasks; prior SOTA is AutoVerus [57].
+• CoqStoq: 100 hardest tasks; prior SOTA is Rango [50].
+Result.
+IDS reaches 88/100 on DafnyBench, 100/100 on miniCodeProps, 149/150 on Verus-
+Bench, and 97/100 on CoqStoq (Table 7), beating the strongest prior on all four. The largest absolute
+gap is on CoqStoq (+69 over Rango); IDS hits a perfect 100/100 on miniCodeProps, and on Verus-
+Bench all three LLM methods are within 1% of saturation (IDS 149, Codex 148, Claude Code 148 of
+150). Failures reflect per-task budget caps and proofs requiring tactics or library-specific lemmas the
+agent did not discover within budget (§F.1).
+E.2
+Code-and-proof benchmarks
+Setup.
+A second, recent line of benchmarks evaluates joint code-and-proof synthesis on single-
+function algorithmic tasks (sorting, search, list manipulation, basic arithmetic like factorial/gcd/Fi-
+21
+
+
+=== PDF PAGE 22 ===
+bonacci): the model receives a natural-language description, signature, and spec, and produces both
+the code and a proof of correctness. These tasks are strictly simpler than the distributed-system specs
+of §5.2: no concurrency, no replication, no multi-step operational semantics.
+• VERINA [61]: 189 Lean tasks; prior SOTA is iterative refinement with Lean compiler
+feedback (64 rounds), reported in the VERINA paper.
+• AlgoVeri [62]: 77 problems, each expressed in Dafny, Verus, and Lean; prior SOTA 31/77
+(Gemini-3 Flash, Dafny track, reported in the AlgoVeri paper).
+• CloverBench [47]: 62 Dafny tasks. We omit a Prior-SOTA cell because Clover (the only
+prior published method) evaluates a different task: its consistency-checker filters pre-existing
+correct triples (an 87% acceptance rate, with 13% false negatives where it rejects a known-
+correct triple). Our column reports end-to-end synthesis: given the spec, the model generates
+code and annotations, and the Dafny verifier accepts.
+Result.
+IDS reaches 176/189 on VERINA, well above prior SOTA 38 and agentic baselines Codex
+136, Claude Code 149; 65/77 on AlgoVeri’s Dafny track, 2× the published Gemini-3 Flash baseline
+of 31/77; and all three LLM methods saturate at 62/62 on CloverBench.
+F
+IDS Architecture Details
+This appendix expands on the components introduced in §4 and ablated in §5.4. The architecture
+instantiates the two-level CEGIS-style refinement of §4. The inner loop is the DSA (§F.2): forward
+moves Define, Prove, Decompose extend the partial (code, proof) candidate, and the structured Rocq
+diagnostic from a failed step (§F.6) is a concrete witness that the candidate cannot close as written,
+used by the agent to choose Repair or Revert. The outer loop is the ISA: a DSA’s stalled proof
+attempts and bench failures (§F.7) drive the proposer (§F.4) on tactical stalls and the reloader (§F.5)
+on strategic dead-ends. The audit step (§F.3) is orthogonal to refinement: it is a deterministic safety
+gate, not a counterexample signal.
+F.1
+Proof methodology
+Each spec is a Rocq Module Type carrying a State type, an Update type, seven method signatures
+(getReq, getGuard, get, getRes, putReq, putGuard, put), and an operational semantics on
+client–replica configurations. The implementation IDS produces is an AlgDef module providing the
+same seven methods at concrete state types, plus a Refinement module proving forward simulation:
+every step the implementation can take corresponds to a step the abstract spec can take, on related
+states. From the Refinement we obtain a TraceInclusion theorem: every observable trace of the
+implementation is also a trace of the abstract spec.
+The tactic vocabulary is standard Rocq:
+inversion, destruct, subst, rewrite, apply,
+econstructor; eauto, simpl, lia, congruence, with case-analysis on Nat.eq_dec for equality
+decisions on identifiers and timestamps. No firstorder/intuition shortcuts; no Admitted, no
+Axiom, no Hypothesis, no Parameter. Closure is verified by Rocq’s kernel.
+F.2
+DSA: deductive synthesis
+The DSA is a Codex (or Claude Code) session per workspace performing the deductive-synthesis
+loop of §4. At each search-tree node the agent moves forward with one of three primitives:
+• Define: declare or extend a state/message type or function body, with admit placeholders for parts
+not yet filled in (e.g. adding a Cell record to the per-key store with cell_deps stubbed).
+• Prove: close an open proof obligation by replacing Admitted with a tactic sequence ending in
+Qed, or extend an existing tactic block.
+• Decompose: state a helper lemma as Admitted and use it to advance the proof of an existing
+lemma; the helper is discharged in a later iteration.
+After each forward step make runs and Rocq’s type-checker is the only oracle. On error, the agent
+backtracks with one of two primitives:
+22
+
+
+=== PDF PAGE 23 ===
+• Repair: re-attempt the failed step with a different tactic (e.g. induction instead of destruct;
+lia instead of omega).
+• Revert: rewind to an earlier search-tree node and choose a different forward primitive (typically
+when the same compile error recurs three or more times).
+The agent’s initial brief is read from CLAUDE.md in the workspace and instantiates the four briefings
+of §4 (methodology, auditability, design, tactical playbook). The brief shown below is for the Rocq
+setting (our IDS suite specs and Chapar CC, plus CoqStoq and miniCodeProps); for cross-language
+benchmarks we swap the verifier and surface tools to match the target language: Dafny (DafnyBench,
+AlgoVeri-Dafny, CloverBench), Verus (Verus-Bench), and Lean 4 (VERINA), with success criterion
+adapted accordingly (e.g. dafny verify accepts, lake build succeeds, verus reports zero errors).
+Role: Deductive Synthesis Agent. Given a specification, incrementally produce an implementation and a
+machine-checked proof that it satisfies the specification. The type-checker is the only oracle and accepts a
+partial state (with deferred holes) as a valid intermediate.
+Schema. Synthesis is a finite sequence of well-typed steps; the file must type-check (possibly with deferred
+holes) after every step. Take one forward move:
+• Define (refinement): introduce or extend a Definition, Record, Inductive, Fixpoint, or Module;
+bodies may contain admit or invoke Admitted lemmas.
+• Prove (closure): replace an Admitted lemma with a tactic sequence ending in Qed, or extend an existing
+partial proof.
+• Decompose (lemma introduction): state a helper lemma as Admitted, use it to advance the current
+proof, and discharge it later. This is the deferred-hole device of deductive synthesis.
+On error, backtrack: Repair (different tactic on the same goal, e.g. induction instead of destruct, lia
+instead of omega) or Revert (rewind to an earlier state and try a different forward move; trigger when the
+same error recurs three or more times).
+Invariants. (I1) The file type-checks after every step. (I2) Every Admitted is a deferred hole, not a
+permanent assumption: all Admitted must be closed before reporting done. (I3) The specification is fixed.
+(I4) No Axiom, Hypothesis, Parameter, or unguarded recursion.
+Design. State types should be concrete (records, bounded lists, indexed nats), not function types whose
+override builds closure chains under repeated update. State must not grow unboundedly with the number
+of operations: traces, logs, and accumulated dependency lists belong in the proof context, not the runtime
+state.
+Termination. Report done when (a) the file type-checks with zero Admitted and zero admit, and (b) the
+audit step passes (no vacuous proofs; no specification edits; non-trivial method bodies). The coordinator
+additionally extracts the implementation and runs the benchmark harness; if extraction or execution fails,
+the run reverts.
+Tactical playbook.
+• Build simple to complex: prove small structural facts first, then combine.
+• When stuck on a subgoal, read it carefully; the goal often names the missing helper.
+• Use admit (lowercase) to skip subgoals temporarily; the final file must have zero Admitted and zero
+admit.
+App. G walks through an end-to-end illustration of this schema on a small target (all_less_than):
+each of the five synthesis steps is annotated with its move (Define, Prove, Decompose), with every
+intermediate listing type-checking under the kernel.
+F.3
+Audit step
+The audit step is a deterministic Python script that gates closure with kernel-level verdicts (no model
+outputs). It encapsulates the cheating patterns we have observed during runs.
+Static checks.
+• Admitted count is zero.
+• After stripping comments, Axiom, Hypothesis, and Parameter counts are zero.
+• make clean && make exits zero.
+Vacuous-proof patterns. The script also matches the closed file against four patterns:
+• A put that returns a fixed constant the spec accepts on every input.
+23
+
+
+=== PDF PAGE 24 ===
+• An always-true getGuard that admits any read.
+• A forward-simulation theorem stated over an empty domain so that it holds vacuously.
+• A state-only stub whose Update drops the payload and returns the initial state on every operation.
+A candidate that fails any check is sent to the ISA; only candidates passing all checks count as
+audit-clean closures.
+F.4
+Proposer (ISA tactical role)
+After the coordinator counts no progress across 10 consecutive polls, the proposer fires as a one-shot
+LLM session. It receives the work file, every Admitted lemma’s surrounding 17-line context, and
+the most recent make error with 4 lines of trailing context when present, and writes its output to
+GUIDANCE.md in the workspace.
+Role. You are an expert Rocq proof advisor. Read the work file and focus on the proof goals and error
+context below. Do NOT edit the .v file.
+For each Admitted proof, follow this checklist:
+1. Read the lemma statement. What does it claim? What are the hypotheses? What is the conclusion
+type?
+2. Identify the proof structure needed: forall x, P x →intros x; inductive type (list, trace, nat)
+→induction on it; step/transition →destruct on the step type, then case analysis; simulation →
+invariant + induction on trace length; two functions equal →functional_extensionality.
+3. Identify missing helper lemmas. For each subgoal you cannot close directly, state the EXACT helper
+(name, signature, informal meaning). Suggest: prove it separately; Admit it in the main proof; close it.
+4. If the proof is > 30 lines, decompose: by cases (X_case_C1, X_case_C2, ... for each constructor);
+by subgoal (if A ∧B, prove A and B separately); extract common patterns repeating 3+ times.
+5. Suggest specific tactic sequences, not vague directions.
+For compile errors, diagnose using a decision tree (e.g., “Cannot unify X with Y” →type mismatch, use
+Check expr.; “Tactic failure” →try lia instead of omega; “No matching clauses” →incomplete pattern
+match).
+Output. Write GUIDANCE.md with one section per Admitted proof or error: (a) the diagnosis, (b) the exact
+tactic sequence to try, (c) any helper-lemma signatures.
+On Chapar, the proposer chose three sub-lemma classes (per-message, per-store-entry, per-replica-
+clock) by recognising that the global delivery invariant decomposes cleanly along these axes, none of
+which Rocq’s automation closes alone.
+F.5
+Reloader (ISA strategic role)
+The reloader escalates every 20 polling cycles when no progress is detected: Level 1 at stall cycle 20,
+Level 2 at 40, Level 3 at 60, and so on. Each level is a one-shot LLM session reading DESIGN_LOG.md,
+STATUS.md, and every prior level’s output, and writes META_GUIDANCE_L{N}.md. The strategist
+consumes the output to rewrite its plan and spawn a fresh worker on the new design.
+Role. You are a level-N formal verification architect. Read DESIGN_LOG.md, STATUS.md, and every prior
+META_GUIDANCE_L{1..N-1}.md: the history of all approaches tried and why each failed.
+Synthesize a NEW approach that avoids ALL recorded failures. Think across these dimensions:
+1. Data representation. Concrete types for state and messages: records, bounded lists, nats, not functions.
+2. Abstraction function. How concrete state maps to abstract state. This is the KEY creative choice; if
+previous attempts failed on the simulation proof, the abstraction was wrong.
+3. Invariant. What property holds at every reachable state. The invariant must be (a) true initially,
+(b) preserved by every step, (c) strong enough to prove the final theorem.
+4. Proof decomposition. Which helper lemmas are needed, stated explicitly with signatures.
+5. Minimum information. For each function that takes a collection, could the caller pass a smaller
+collection and still get a correct result? The most precise design passes only what is needed per call.
+Output. Write META_GUIDANCE_L{N}.md as a CONCRETE blueprint a worker can directly implement:
+exact Record types, method signatures, abstraction function, invariant, and lemma decomposition. Do NOT
+write vague advice; do NOT spawn workers.
+24
+
+
+=== PDF PAGE 25 ===
+On Chapar, the reloader chose a per-key store entry recording sender, sender clock, and dependency
+vector; alternative layouts (e.g. a single global per-replica state) leave the delivery lemma unprovable
+from local information.
+F.6
+Rocq feedback
+Each make invocation captures stdout/stderr; on non-zero exit, the coordinator extracts every Error:
+line plus 2 lines of preceding context and 4 lines of trailing context as a single error block. The
+block is included verbatim in the worker’s next prompt alongside the proof goal, the local hypothesis
+context, and the tactic backtrace where applicable. No normalisation or summarisation is applied:
+the structured Rocq diagnostic carries the localisation signal. Replacing this stream with a binary
+accept/reject collapses the search (§5.4 reports ≤1/3 closure on every Rocq spec under −VF).
+F.7
+Performance feedback
+When a worker reaches a verifier-clean state with a design hash distinct from prior runs, the coordi-
+nator invokes the benchmark harness asynchronously. The harness extracts the implementation to
+OCaml, deploys it on the cluster (App. D), and writes results to PERF_RESULTS.md in the workspace.
+Throughput targets are calibrated per-spec from the published reference; implementations whose
+throughput falls below the target are flagged and trigger the reloader on the next escalation.
+G
+Synthesis Progression: all_less_than
+This appendix walks through one full progression of IDS’ deductive-synthesis loop on a small
+target. Step 0 and the Final State are complete Rocq files that compile; the listings for intermediate
+Steps 1–5 show only the parts that change from the previous step, with not-yet-filled bodies stubbed
+as Parameter. The progression on real distributed-system specs follows the same pattern at much
+larger scale (§5.2); the small target keeps each listing short enough to read end-to-end.
+The five synthesis steps below are an instance of the deductive-synthesis schema of §F.2. Step 1 is a
+Decompose (split the goal into a nil and a cons helper lemma). Step 2 combines Define (fill the nil
+body) with Prove (close the nil helper). Step 3 is another Decompose (split the cons helper on the
+head). Step 4 is Define (the recursive call). Step 5 combines Define (fill the else branch) with Prove
+(close the else helper). The file type-checks at every step (Invariant I1); Admitted placeholders
+carry the deferred holes forward and are all discharged by the Final state.
+The target is all_less_than :
+list nat -> nat -> bool, returning true iff every element
+of the input list is strictly less than the bound n. The correctness statement is the iff-equivalence with
+Forall:
+all_less_than l n = true ⇔Forall (fun x => x < n) l.
+G.1
+Step 0: bare specification
+The implementation is a Parameter; the correctness lemma is Admitted. The file type-checks but
+proves nothing.
+1 Require Import Coq.Lists.List.
+2
+3 Parameter all_less_than : list nat -> nat -> bool.
+4
+5 Lemma all_less_than_correct : forall (l : list nat) (n : nat),
+6
+all_less_than l n = true <-> Forall (fun x => x < n) l.
+7 Proof.
+8 Admitted.
+Listing 1: Step 0: spec only.
+25
+
+
+=== PDF PAGE 26 ===
+G.2
+Step 1: case-split on the input list
+The agent commits to recursing on l. The implementation becomes a Definition with a match
+on nil/cons; the branch bodies are stubbed as Parameters. The correctness lemma is split into a
+_nil helper and a _cons helper, both Admitted; the main lemma now closes by induction on l,
+applying each helper at its leaf.
+1 Parameter nil_body : bool.
+2 Parameter cons_body : nat -> list nat -> bool.
+3
+4 Definition all_less_than (l : list nat) (n : nat) : bool :=
+5
+match l with
+6
+| nil => nil_body
+7
+| x :: xs => cons_body x xs
+8
+end.
+9
+10 Lemma all_less_than_correct_nil : forall (n : nat),
+11
+all_less_than nil n = true <-> Forall (fun x => x < n) nil.
+12 Proof. Admitted.
+13
+14 Lemma all_less_than_correct_cons :
+15
+forall (x : nat) (xs : list nat) (n : nat),
+16
+all_less_than (x :: xs) n = true <-> Forall (fun x => x < n) (x :: xs).
+17 Proof. Admitted.
+18
+19 Lemma all_less_than_correct : forall (l : list nat) (n : nat),
+20
+all_less_than l n = true <-> Forall (fun x => x < n) l.
+21 Proof.
+22
+intros l n. induction l as [| x xs IH].
+23
+- apply all_less_than_correct_nil.
+24
+- apply all_less_than_correct_cons.
+25 Qed.
+G.3
+Step 2: fill the nil branch and close the nil helper
+The agent fills nil_body with true (replacing the Parameter) and proves _nil: both sides of the
+iff are vacuously satisfied (true = true; Forall _ nil holds by the empty constructor). The
+cons body is still a Parameter.
+1 Definition all_less_than (l : list nat) (n : nat) : bool :=
+2
+match l with
+3
+| nil => true
+4
+| x :: xs => cons_body x xs
+5
+end.
+6
+7 Lemma all_less_than_correct_nil : forall (n : nat),
+8
+all_less_than nil n = true <-> Forall (fun x => x < n) nil.
+9 Proof. intros. simpl. split; intros; constructor. Qed.
+G.4
+Step 3: introduce the if branch and split the cons helper
+The agent commits to comparing x against n via x <?
+n, leaving both branches as Parameter
+stubs. The _cons helper is split into a _then sub-helper (under x < n) and an _else sub-helper
+(under ¬(x < n)), and _cons now proves itself by case-splitting on Nat.ltb_spec and applying
+the appropriate sub-helper.
+1 Parameter then_body else_body : nat -> list nat -> nat -> bool.
+2
+3 Definition all_less_than (l : list nat) (n : nat) : bool :=
+4
+match l with
+5
+| nil => true
+6
+| x :: xs => if x <? n then then_body x xs n else else_body x xs n
+26
+
+
+=== PDF PAGE 27 ===
+7
+end.
+8
+9 Lemma all_less_than_correct_cons_then :
+10
+forall (x : nat) (xs : list nat) (n : nat),
+11
+x < n -> (all_less_than xs n = true <-> Forall (fun x => x < n) xs) ->
+12
+(all_less_than (x :: xs) n = true <-> Forall (fun x => x < n) (x :: xs)).
+13 Proof. Admitted.
+14
+15 Lemma all_less_than_correct_cons_else :
+16
+forall (x : nat) (xs : list nat) (n : nat),
+17
+~ (x < n) -> (all_less_than xs n = true <-> Forall (fun x => x < n) xs) ->
+18
+(all_less_than (x :: xs) n = true <-> Forall (fun x => x < n) (x :: xs)).
+19 Proof. Admitted.
+20
+21 Lemma all_less_than_correct_cons :
+22
+forall (x : nat) (xs : list nat) (n : nat),
+23
+all_less_than xs n = true <-> Forall (fun x => x < n) xs ->
+24
+all_less_than (x :: xs) n = true <-> Forall (fun x => x < n) (x :: xs).
+25 Proof.
+26
+intros. destruct (Nat.ltb_spec x n) as [Hlt | Hge].
+27
+- apply all_less_than_correct_cons_then; assumption.
+28
+- apply all_less_than_correct_cons_else; [apply Nat.le_ngt; assumption |
+assumption].
+29 Qed.
+G.5
+Step 4: fill the then branch with the recursive call
+The agent fills then_body with all_less_than xs n: the implementation now actually recurses,
+so Definition is promoted to Fixpoint. The _then helper proves cleanly: under x < n, applying
+Nat.ltb_lt rewrites the if-condition to true, and Forall on x ::
+xs reduces to x < n on the
+head plus Forall on xs, both available.
+1 Fixpoint all_less_than (l : list nat) (n : nat) : bool :=
+2
+match l with
+3
+| nil => true
+4
+| x :: xs => if x <? n then all_less_than xs n else else_body x xs n
+5
+end.
+6
+7 Lemma all_less_than_correct_cons_then :
+8
+forall (x : nat) (xs : list nat) (n : nat),
+9
+x < n -> (all_less_than xs n = true <-> Forall (fun x => x < n) xs) ->
+10
+(all_less_than (x :: xs) n = true <-> Forall (fun x => x < n) (x :: xs)).
+11 Proof.
+12
+intros x xs n Hlt H_ind. simpl.
+13
+apply Nat.ltb_lt in Hlt. rewrite Hlt.
+14
+split; intros.
+15
+- constructor; [apply Nat.ltb_lt; assumption | tauto].
+16
+- inversion H. tauto.
+17 Qed.
+G.6
+Step 5: fill the else branch and close the else helper
+The agent’s first attempt is to recurse: else_body := all_less_than xs n (“skip the out-of-
+bound element, keep checking”). The implementation type-checks, but the _else obligation does
+not: under ¬(x < n) the goal becomes all_less_than xs n = true ⇔Forall (fun y => y
+< n) (x ::
+xs), which fails on xs = nil, x = 5, n = 3 (LHS is true; RHS demands 5 < 3).
+Rocq rejects the proof. The agent backtracks and replaces the else body with false: the function
+now returns false on any out-of-bound element, the _else helper closes (LHS becomes false
+= true, closed by discriminate; RHS gives x < n from inversion of Forall, contradicting
+¬(x < n)).
+1 (* Attempt 1: else_body := all_less_than xs n (rejected: iff fails) *)
+27
+
+
+=== PDF PAGE 28 ===
+2 (* Attempt 2: else_body := false (accepted) *)
+3
+4 Lemma all_less_than_correct_cons_else :
+5
+forall (x : nat) (xs : list nat) (n : nat),
+6
+~ (x < n) -> (all_less_than xs n = true <-> Forall (fun x => x < n) xs) ->
+7
+(all_less_than (x :: xs) n = true <-> Forall (fun x => x < n) (x :: xs)).
+8 Proof.
+9
+intros x xs n Hge _. simpl.
+10
+apply Nat.le_ngt in Hge. apply Nat.ltb_ge in Hge. rewrite Hge.
+11
+split.
+12
+- discriminate.
+13
+- intros HF. inversion HF; subst.
+14
+apply Nat.ltb_lt in H1. congruence.
+15 Qed.
+G.7
+Final state
+After five steps every Parameter stub and Admitted placeholder is closed. Rocq’s kernel accepts
+the file, verifying all_less_than_correct on every input.
+1 Require Import Coq.Lists.List.
+2 Require Import Coq.Arith.PeanoNat.
+3
+4 Fixpoint all_less_than (l : list nat) (n : nat) : bool :=
+5
+match l with
+6
+| nil => true
+7
+| x :: xs => if x <? n then all_less_than xs n else false
+8
+end.
+9
+10 Lemma all_less_than_correct_nil : forall (n : nat),
+11
+all_less_than nil n = true <-> Forall (fun x => x < n) nil.
+12 Proof. intros. simpl. split; intros; constructor. Qed.
+13
+14 Lemma all_less_than_correct_cons_then :
+15
+forall (x : nat) (xs : list nat) (n : nat),
+16
+x < n -> (all_less_than xs n = true <-> Forall (fun x => x < n) xs) ->
+17
+(all_less_than (x :: xs) n = true <-> Forall (fun x => x < n) (x :: xs)).
+18 Proof.
+19
+intros x xs n Hlt H_ind. simpl.
+20
+apply Nat.ltb_lt in Hlt. rewrite Hlt.
+21
+split; intros.
+22
+- constructor; [apply Nat.ltb_lt; assumption | tauto].
+23
+- inversion H. tauto.
+24 Qed.
+25
+26 Lemma all_less_than_correct_cons_else :
+27
+forall (x : nat) (xs : list nat) (n : nat),
+28
+~ (x < n) -> (all_less_than xs n = true <-> Forall (fun x => x < n) xs) ->
+29
+(all_less_than (x :: xs) n = true <-> Forall (fun x => x < n) (x :: xs)).
+30 Proof.
+31
+intros x xs n Hge _. simpl.
+32
+apply Nat.le_ngt in Hge. apply Nat.ltb_ge in Hge. rewrite Hge.
+33
+split.
+34
+- discriminate.
+35
+- intros HF. inversion HF; subst.
+36
+apply Nat.ltb_lt in H1. congruence.
+37 Qed.
+38
+39 Lemma all_less_than_correct_cons :
+40
+forall (x : nat) (xs : list nat) (n : nat),
+41
+all_less_than xs n = true <-> Forall (fun x => x < n) xs ->
+42
+all_less_than (x :: xs) n = true <-> Forall (fun x => x < n) (x :: xs).
+43 Proof.
+44
+intros. destruct (Nat.ltb_spec x n) as [Hlt | Hge].
+28
+
+
+=== PDF PAGE 29 ===
+45
+- apply all_less_than_correct_cons_then; assumption.
+46
+- apply all_less_than_correct_cons_else; [apply Nat.le_ngt; assumption |
+assumption].
+47 Qed.
+48
+49 Lemma all_less_than_correct : forall (l : list nat) (n : nat),
+50
+all_less_than l n = true <-> Forall (fun x => x < n) l.
+51 Proof.
+52
+intros l n. induction l as [| x xs IH].
+53
+- apply all_less_than_correct_nil.
+54
+- apply all_less_than_correct_cons. assumption.
+55 Qed.
+Listing 2: Step 5 (final): implementation and proof, fully verified.
+The progression on real distributed-system specs follows the same pattern at much larger scale:
+dozens of helper lemmas, hundreds of lines of implementation, and tactics that range over inductive
+simulation arguments rather than single-step rewrites. §4 describes how IDS drives this process; the
+case-study trajectory in §5 shows it on the causal-consistency specification.
+H
+Limitations, Broader Impacts, and Ethics
+The main paper presents IDS’ design and evaluation; this appendix addresses the limitations of the
+work, the broader impacts of verified-synthesis tooling, and ethical considerations.
+Limitations.
+IDS requires a formal Rocq Module Type as input; we do not synthesize specifica-
+tions from natural language. Compute cost is 2–11 hours and $52–$155 per closed spec, substantially
+below the months-to-years of expert proof effort it replaces but still meaningful. We evaluate on
+distributed key-value-store consistency; generality to other verified-synthesis domains (compilers,
+OS kernels, cryptographic protocols) is conjectured, not measured.
+Broader impacts.
+Distributed systems are common in production software (databases, message
+queues, cloud services), but formal verification of these systems has remained out of reach for most
+production code because hand-written proofs take person-years of expert effort. IDS reduces that
+effort to hours of compute, putting verified distributed software within reach of production teams.
+Kernel-checked proofs make IDS’ outputs safer than unverified LLM-generated code: the verifier
+rules out silent bugs against the specification. As with all formal verification, mis-specification
+remains a residual risk.
+Ethics.
+The work involves no human subjects and no scraped data; the verified outputs introduce
+no dual-use risks beyond those already present in unverified LLM code generation.
+29
+
+
+=== PDF PAGE 30 ===
+20 30 40 50 60 70
+100
+200
+Chapar CC
+throughput (kops/s)
+20 30 40 50 60 70
+40
+60
+p99 latency (μs)
+20 30 40 50 60 70
+0
+20
+memory peak (MB)
+1K 2K
+5K
+20K
+50
+100
+throughput (kops/s)
+vs N at pct=50
+20 30 40 50 60 70
+200
+300
+RYW
+20 30 40 50 60 70
+40
+60
+20 30 40 50 60 70
+0
+5
+1K 2K
+5K
+20K
+150
+160
+170
+20 30 40 50 60 70
+100
+125
+150
+MR
+20 30 40 50 60 70
+50
+60
+70
+20 30 40 50 60 70
+0
+5
+1K 2K
+5K
+20K
+80
+100
+120
+20 30 40 50 60 70
+0
+200
+MW
+20 30 40 50 60 70
+50
+100
+20 30 40 50 60 70
+0
+5
+1K 2K
+5K
+20K
+0
+100
+20 30 40 50 60 70
+0
+200
+RYW+MW
+20 30 40 50 60 70
+50
+100
+20 30 40 50 60 70
+0
+5
+1K 2K
+5K
+20K
+0
+50
+100
+20 30 40 50 60 70
+75
+100
+125
+IDS CC
+20 30 40 50 60 70
+75
+100
+125
+20 30 40 50 60 70
+0
+5
+1K 2K
+5K
+20K
+25
+50
+75
+20 30 40 50 60 70
+put rate (%)
+100
+150
+LCC
+20 30 40 50 60 70
+put rate (%)
+75
+100
+125
+20 30 40 50 60 70
+put rate (%)
+0
+5
+1K 2K
+5K
+20K
+ops per worker (N)
+80
+90
+IDS
+baseline
+baseline did not finish
+Figure 9: Per-protocol performance. Top row is Chapar CC (Chapar paper protocol) shown for
+comparison; the next five rows are the IDS suite specs (RYW, MR, MW, RYW+MW, IDS suite CC);
+the bottom LCC row is a single-line illustrative trajectory of labeled causal consistency. Columns:
+throughput (kops/s), p99 latency (µs), memory peak (MB), and throughput vs ops-per-worker N at
+put = 50%. Per-protocol y-axes are dedicated so each row’s range is visible. Solid = IDS; dashed
+= reference (function-as-map). Red × marks runs that hit the 180 s wall-clock cap; on MW and
+RYW+MW the reference times out at every put rate (the reference’s read-then-write check on a
+function-as-map is the cause; see below).
+30
+
+
+=== PDF PAGE 31 ===
+I
+IDS Suite
+IDS suite is the benchmark dataset of six distributed key-value-store specifications we release
+alongside the system; together with Chapar’s published causal-consistency spec [26], they form the
+seven specifications evaluated in §5. Each specification fixes (i) the abstract spec state and operations
+the application sees, (ii) the concrete replica state and operations the implementation runs, and (iii)
+the consistency property the implementation must satisfy. This appendix gives the formal definition
+of every spec, plus the reference implementations we benchmark in §5. The framework setup below
+introduces the notation: client programs (Fig. 10), the seven-method AlgDef interface (Fig. 11),
+the configuration syntax (Fig. 12), the concurrent operational semantics (Fig. 13), the refinement
+hierarchy (Fig. 14), and a relaxed baseline spec (Fig. 15).
+Summary.
+Table 8 lists the six IDS suite specifications plus Chapar’s published CC. Each is
+then introduced in plain English and immediately followed by its formal definition and reference
+implementation.
+spec
+abbreviation
+informal guarantee
+Read-Your-Writes
+RYW
+A client’s read sees that client’s own most recent
+write.
+Monotonic Reads
+MR
+A client’s reads never go back in time relative to
+writes the client has already seen.
+Monotonic Writes
+MW
+Writes from one client are applied in order at every
+replica.
+Read-Your-Writes + Monotonic Writes
+RYW+MW
+Composition of RYW and MW; an implementation
+must refine both.
+Causal Consistency
+CC
+A read returns a value whose causal predecessors
+have all been observed at the responding replica.
+Labeled Causal Consistency
+LCC
+CC parameterised by per-message topic labels:
+each client subscribes to a subset of labels and
+only sees causality enforced on those.
+Chapar Causal Consistency
+Chapar CC
+Chapar’s published CC specification [26]; see the
+original paper for its formal definition.
+Table 8: The six IDS suite specifications, plus Chapar’s published CC for reference.
+31
+
+
+=== PDF PAGE 32 ===
+k
+:
+K
+Key
+v
+:
+V ⊇K
+Value
+x
+:
+V
+Variable
+i
+Unique Identifiers
+s : S
+::=
+puti(k, v); s
+Statement
+|
+x ←geti(k); s
+|
+skip
+|
+Extended Syntax for Internal Statements
+|
+⊘x ←geti(k); s
+Blocked Get
+c
+:
+C
+Clients
+a
+:
+A = C 7→S
+Application
+Figure 10: Client Programs
+I = (CState, c-init, RState, r-init,
+Implementation
+get-req, get-guard, get, get-res,
+put-req, put-guard, put)
+C
+Clients
+CState : Type
+Client State
+c-init : C →CState
+Client Initial State
+R
+Replicas
+RState : Type
+Replica State
+r-init : R →V →RState
+Replica Initial State
+Get-req-payload, Get-res-payload : Type
+Get Payload Types
+get-req : (K)(C, CState) →(Get-req-payload, CState)
+Get Request (at client)
+get-guard : (K)(Get-req-payload)(C, R, RState) →Bool
+Get Guard (at replica)
+get : (K)(Get-req-payload)(C, R, RState) →(V × Get-res-payload, RState)
+Get (at replica)
+get-res : (K, V )(Get-res-payload)(C, CState) →CState
+Get Response (at client)
+Put-req-payload : Type
+Put Payload Type
+put-req : (K, V )(C, CState) →(Put-req-payload × CState)
+Put Request (at client)
+put-guard : (K, V )(Put-req-payload)(C, R, RState) →Bool
+Put Guard (at replica)
+put : (K, V )(Put-req-payload)(C, R, RState) →RState
+Put (at replica)
+Figure 11: Key-Value Store Implementation Interface
+32
+
+
+=== PDF PAGE 33 ===
+I
+=
+(CState, c-init, RState, r-init,
+Implementation
+get-req, get-guard, get, get-res,
+put-req, put-guard, put)
+W : W
+:=
+⟨C, R, N⟩
+World
+c
+:
+C
+Clients
+σ
+:
+CState
+Client State
+C
+:
+C 7→⟨CState, S⟩
+Client Programs
+r
+:
+R
+Replicas
+ς
+:
+RState
+Replica State
+R
+:
+R 7→RState
+Replica States
+N
+:
+PM(M)
+Network
+M
+:
+C × R × Get-req(I, K, Get-req-payload)
+Message
+|
+R × C × Get-res(I, K, V, Get-res-payload)
+|
+C × R × Put-req(K, V, Put-req-payload)
+l
+::=
+c ▷geti(k)
+Label
+|
+r ▷geti(k) : v
+|
+c ▷geti(k) : v
+|
+c ▷put(k, v)
+|
+r ▷put(k, v)
+h
+::=
+l∗
+History
+ext(h)
+::=
+h | {c ▷geti(k) : v, c ▷put(k, v)}
+External History
+◦
+:
+Unit
+PM(S)
+≜
+The multiset powerset of the set S
+W0(a)I
+≜
+⟨[c 7→⟨c-init(c), a(c)⟩c∈C], [r 7→r-init(r, v0)r∈R], ∅⟩
+v0
+≜
+The initial value
+Figure 12: The State of the Key-value Store Operational Semantics
+33
+
+
+=== PDF PAGE 34 ===
+GET-REQ
+c ̸= c0
+get-req(k)(c, σ) ⇝∗⟨p, σ′⟩
+(C[c 7→⟨σ, x ←geti(k); s⟩],
+R,
+N)
+c ▷geti(k)
+−−−−−−−→I
+(C[c 7→⟨σ′, ⊘x ←geti(k); s⟩],
+R,
+N ∪{⟨c, r, Get-req(i, k, p)⟩r∈R})
+GET
+get-guard(k)(p)(c, r, ς) ⇝∗true
+get(k)(p)(c, r, ς) ⇝∗⟨v, p′, ς′⟩
+(C,
+R[r 7→ς],
+N ∪{⟨c, r, Get-req(i, k, p)⟩})
+r ▷geti(k):v
+−−−−−−−−→I
+(C,
+R[r 7→ς′],
+N ∪{⟨r, c, Get-res(i, k, v, p′)⟩})
+GET-RES
+get-res(k, v)(p)(c, σ) ⇝∗σ′
+(C[c 7→⟨σ, ⊘x ←geti(k); s⟩],
+R,
+N ∪{⟨r, c, Get-res(i, k, v, p)⟩})
+c ▷geti(k):v
+−−−−−−−−→I
+(C[c 7→⟨σ′, s[v/x]⟩],
+R,
+N)
+PUT-REQ
+c ̸= c0
+put-req(k, v)(c, σ) ⇝∗⟨p, σ′⟩
+(C[c 7→(σ, put(k, v); s)],
+R,
+N)
+c ▷put(k,v)
+−−−−−−−→I
+(C[c 7→(σ′, s)],
+R,
+N ∪{⟨c, r, Put-req(k, v, p)⟩r∈R})
+PUT
+put-guard(k, v)(p)(c, r, ς) ⇝∗true
+put(k, v)(p)(c, r, ς) ⇝∗ς′
+(C,
+R[r 7→ς],
+N ∪{⟨c, r, Put-req(k, v, p)⟩})
+r ▷put(k,v)
+−−−−−−−→I
+(C,
+R[r 7→ς′],
+N)
+Figure 13: Key-value Store Operational Semantics →I for the implementation I = (CState, c-init,
+RState, r-init, get-req, get-guard, get, get-res, put-req, put-guard, put).
+The get operations are synchronous. Therefore, the semantics implicitly preserves the order of gets
+and succeeding gets and puts.
+34
+
+
+=== PDF PAGE 35 ===
+Definition 1 (Trace Inclusion). An implementation I2 trace-includes another I1, written I2 ⊑I1, if
+for all W2, and h2, if W0(a)I2
+h2
+−→
+∗
+I2 W2, then there exists h1 and W1 such that W0(a)I1
+h1
+−→
+∗
+I1 W1
+and ext(h1) = ext(h2).
+Definition 2 (Convergence). An implementation I is convergent if for all R, if W0(a)I −→∗
+I
+⟨_, R, ∅⟩, then for all k, p, c, r1, r2 and v, if get-guard(k)(p)(c, r1, R[r1])
+⇝∗
+true
+and get(k)(p)(c, r1, R[r1])
+⇝∗
+⟨v, _, _⟩then get-guard(k)(p)(c, r2, R[r2])
+⇝∗
+true and
+get(k)(p)(c, r2, R[r2]) ⇝∗⟨v, _, _⟩.
+35
+
+
+=== PDF PAGE 36 ===
+ICC 1
+ICC 2
+IRYW -MW
+I∗
+CC
+IRYW
+IMW
+IMR
+I∗
+LCC
+I∗
+RYW
+I∗
+MW
+I∗
+MR
+IRel
+IRel
+Relaxed Specification (Fig. 15)
+I∗
+RYW
+Read Your Writes Specification (Fig. 16)
+IRYW
+Read Your Writes Implementation (Fig. 17)
+I∗
+MR
+Monotonic Reads Specification (Fig. 18)
+IMR
+Monotonic Reads Implementation (Fig. 19)
+I∗
+MW
+Monotonic Writes Specification (Fig. 20)
+IMW
+Monotonic Writes Implementation (Fig. 21)
+IRYW -MW
+Read Your Writes and Monotonic Writes Implementation (Fig. 22)
+I∗
+LCC
+Labeled Causal Consistency Spec (Fig. 24)
+I∗
+CC
+Causal Consistency Spec (Fig. 23)
+ICC 1
+Causal Consistency Implementation 1 (Fig. 25)
+ICC 2
+Causal Consistency Implementation 2 (Fig. 26)
+Figure 14: Refinement Hierarchy
+36
+
+
+=== PDF PAGE 37 ===
+IRel (RELAXED SPECIFICATION)
+CState := Unit
+Client State
+c-init(c) := ⊥
+Client Initial State
+RState := K 7→V
+Replica State
+r-init(r, v0) := [k 7→v0]
+Replica Initial State
+Get-req-payload := Get-res-payload := Unit
+Get payload types
+get-req (_)(_, σ) :=
+At client: Get Request
+ret ⟨◦, p⟩
+No payload
+get-guard (_)(_)(_, _, _) :=
+At replica: Get Guard
+ret true
+get (k)(_)(_, _, ς) :=
+At replica: Get
+let ⟨v, _⟩←ς(k)
+ret ⟨v, ◦, ς⟩
+No payload
+get-res (_, _)(_)(_, σ) :=
+At client: Get Response
+ret σ
+Put-req-payload := Unit
+Put payload types
+put-req (k, _)(_, σ) :=
+At client: Put Request
+ret ⟨◦, σ⟩
+No payload
+put-guard (_, _)(_)(_, _, _) :=
+At replica: Put Guard
+ret true
+put (k, v)(_)(_, _, ς) :=
+At replica: Put
+ret ς[k 7→v]
+Figure 15: Relaxed Specification
+I.1
+Read-Your-Writes (RYW)
+A client’s read sees its own most recent write. The session tracks every put the client has issued; the
+get-guard requires the responding replica to have applied every put in that set (Fig. 16). The reference
+implementation stores per-replica state as a function from key to timestamp (Fig. 17).
+37
+
+
+=== PDF PAGE 38 ===
+I∗
+RYW (READ YOUR WRITES SPECIFICATION)
+T := Nat
+Timestamp
+CState :=
+Client State
+Set[K × T]
+Session puts. (T uniquely identifies puts in a client.)
+c-init(c) :=
+Client Initial State
+∅
+No initial puts
+RState :=
+Replica State
+K 7→(V × C × T ×
+Map from each key k to its value v, its origin ⟨c, t⟩,
+Set[T])
+and timestamps of puts on k before it.
+r-init(r, v0) :=
+Replica Initial State
+[k 7→⟨v0, c0, 0, ∅⟩]
+Get-req-payload := Set[T]
+Get payload types
+Get-res-payload := Unit
+get-req (k)(_, p) :=
+At client: Get Request
+ret ⟨p|k, p⟩
+Session past puts as request payload, State unchanged
+get-guard (k)(p)(c, _, ς) :=
+At replica: Get Guard
+let ⟨_, c′, t′, p′⟩←ς(k)
+ret c = c′ ⇒p ⊆p′ ∪{t′}
+If stored value is from requesting client, his puts not missed.
+get (k)(_)(_, _, ς) :=
+At replica: Get
+let ⟨v, _, _, _⟩←ς(k)
+ret ⟨v, ◦, ς⟩
+No payload
+get-res (_, _)(_)(_, p) :=
+At client: Get Response
+ret p
+State unchanged.
+Put-req-payload := T × Set[T]
+Put payload types
+put-req (k, _)(self , p) :=
+At client: Put Request
+let t ←|p| + 1
+Current put timestamp
+let p′ ←p ∪{⟨t, k⟩}
+The put is added to session puts.
+ret ⟨⟨t, p|k⟩, p′⟩
+Session puts are sent as request payload.
+put-guard (_, _)(_)(_, _, _) :=
+At replica: Put Guard
+ret true
+put (k, v)(⟨t, p⟩)(c, _, ς) :=
+At replica: Put
+ret ς[k 7→⟨v, c, t, p⟩]
+p|k := {t | ⟨t, k⟩∈p}
+Figure 16: Read Your Writes Specification
+38
+
+
+=== PDF PAGE 39 ===
+IRYW (READ YOUR WRITES IMPLEMENTATION)
+T := Nat
+Timestamp
+CState :=
+Client State
+K 7→T
+Latest put for each key. (T uniquely identifies puts in a client.)
+c-init(c) :=
+Client Initial State
+[k 7→0]
+No initial puts
+RState :=
+Replica State
+K 7→(V × C × T)
+Map from each key k to its value v, and its origin ⟨c, t⟩
+r-init(r, v0) :=
+Replica Initial State
+[k 7→⟨v0, c0, 0⟩]
+Get-req-payload := T
+Get payload types
+Get-res-payload := Unit
+get-req (k)(_, p) :=
+At client: Get Request
+ret ⟨p(k), p⟩
+Timestamp of latest put as request payload, State unchanged
+get-guard (k)(t)(c, _, ς) :=
+At replica: Get Guard
+let ⟨_, c′, t′⟩←ς(k)
+ret c = c′ ⇒t = t′
+If stored value is from requesting client, his puts not missed.
+get (k)(_)(_, _, ς) :=
+At replica: Get
+let ⟨v, _, _⟩←ς(k)
+ret ⟨v, ◦, ς⟩
+No payload
+get-res (_, _)(_)(_, p) :=
+At client: Get Response
+ret p
+State unchanged.
+Put-req-payload := T
+Put payload types
+put-req (k, _)(self , p) :=
+At client: Put Request
+let t ←p(k) + 1
+Current put timestamp
+let p′ ←p[k 7→t]
+The put timestamp is stored as the latest for the key.
+ret ⟨t, p′⟩
+Latest put timestamp sent as request payload.
+put-guard (_, _)(_)(_, _, _) :=
+At replica: Put Guard
+ret true
+put (k, v)(t)(c, _, ς) :=
+At replica: Put
+ret ς[k 7→⟨v, c, t⟩]
+Figure 17: Read Your Writes Implementation
+I.2
+Monotonic Reads (MR)
+A client’s reads respect the order of writes the client has previously observed. The session keeps the
+set of writes seen so far; subsequent reads must return values applied no earlier than every write in
+that set (Fig. 18). The reference implementation stores per-replica state as a function from key to
+(value, client, timestamp); the get-guard checks every entry against the client’s session set on every
+read (Fig. 19).
+39
+
+
+=== PDF PAGE 40 ===
+I∗
+MR (MONOTONIC READS SPECIFICATION)
+T := Nat
+Timestamp
+CState :=
+Client State
+Set[T × K] ×
+Session puts. (C × T uniquely identifies puts.)
+Set[C × T × K]
+Session dependencies.
+c-init(c) :=
+Client Initial State
+∅
+No initial dependencies
+RState :=
+Replica State
+K 7→(V × C × T ×
+Map from each key K to its value V , its origin C × T
+Set[T × K])
+and puts before it
+r-init(r, v0) :=
+Replica Initial State
+[k 7→⟨v0, c0, 0, ∅⟩]
+Get-req-payload := Set[C × T]
+Get payload types
+Get-res-payload := C × T
+get-req (k)(_, ⟨p, d⟩) :=
+At client: Get Request
+ret ⟨d|k, ⟨p, d⟩⟩
+Session deps for k sent as payload, State unchanged
+get-guard (k)(d)(c, _, ς) :=
+At replica: Get Guard
+let ⟨_, c′, t′, d′⟩←ς(k)
+ret d|c′ ⊆d′|k ∪{t′}
+Stored put from c′ doesn’t miss observed puts from c′.
+get (k)(_)(_, _, ς) :=
+let ⟨v, c, t, d⟩←ς(k)
+ret ⟨v, ⟨c, t⟩, ς⟩
+The stored put returned as a dependency.
+get-res (k, _)(⟨c, t⟩)(_, ⟨p, d⟩) :=
+At client: Get Response
+ret ⟨p, d ∪{⟨c, t, k⟩}⟩
+Returned dependency added to session dependencies.
+Put-req-payload := T × Set[T × K]
+Put payload types
+put-req (k, _)(_, ⟨p, d⟩) :=
+At client: Put Request
+let t ←|p| + 1
+Current put timestamp
+let p′ ←p ∪{⟨t, k⟩}
+The put is added to session puts.
+ret ⟨⟨t, p⟩, ⟨p′, d⟩⟩
+Session puts are sent as request payload.
+put-guard (_, _)(_)(_, _, _) :=
+At replica: Put Guard
+ret true
+put (k, v)(⟨t, p⟩)(c, _, ς) :=
+At replica: Put
+ret ς[k 7→⟨v, c, t, p⟩]
+d|k := {⟨c, t⟩| ⟨c, t, k⟩∈d}
+d|k := {t | ⟨t, k⟩∈d}
+d|c := {t | ⟨c, t⟩∈d}
+Figure 18: Monotonic Reads Specification
+40
+
+
+=== PDF PAGE 41 ===
+IMR (MONOTONIC READS IMPLEMENTATION)
+T := Nat
+Timestamp
+CState :=
+Client State
+T ×
+Session latest put timestamp
+K 7→C 7→T
+Largest timestamp read for the key from the client.
+c-init(c) :=
+Client Initial State
+⟨∅, ∅⟩
+No initial puts and dependencies
+RState :=
+Replica State
+K 7→(V × C × T)
+Map from each key K to its value V , its origin C × T
+r-init(r, v0) :=
+Replica Initial State
+[k 7→⟨v0, c0, 0⟩]
+Get-req-payload := Set[C × T]
+Get payload types
+Get-res-payload := C × T
+get-req (k)(_, ⟨t, d⟩) :=
+At client: Get Request
+ret ⟨d(k), ⟨t, d⟩⟩
+Session deps for k sent as payload, State unchanged
+get-guard (k)(d)(c, _, ς) :=
+At replica: Get Guard
+let ⟨_, c′, t′⟩←ς(k)
+ret d(c′) ≤t′
+Stored put from c′ doesn’t miss observed puts from c′.
+get (k)(_)(_, _, ς) :=
+let ⟨v, c, t⟩←ς(k)
+ret ⟨v, ⟨c, t⟩, ς⟩
+The stored put returned as a dependency.
+get-res (k, _)(⟨c, t⟩)(_, ⟨t, d⟩) :=
+At client: Get Response
+ret ⟨t, d[⟨k, c⟩7→t]⟩
+Returned dependency advances session dependencies.
+Put-req-payload := T
+Put payload types
+put-req (k, _)(_, ⟨t, d⟩) :=
+At client: Put Request
+let t′ ←t + 1
+Current put timestamp
+ret ⟨t′, ⟨t′, d⟩⟩
+put-guard (_, _)(_)(_, _, _) :=
+At replica: Put Guard
+ret true
+put (k, v)(t)(c, _, ς) :=
+At replica: Put
+ret ς[k 7→⟨v, c, t⟩]
+Figure 19: Monotonic Reads Implementation
+I.3
+Monotonic Writes (MW)
+A single client’s writes are observed in order at every replica that observes them. Each replica records,
+per writing client, the latest applied timestamp; the put-guard rejects any out-of-order delivery
+(Fig. 20). The reference implementation prepends the timestamp of each new write to a per-key list
+with no de-duplication, so receivers can re-check ordering on every delivery (Fig. 21).
+41
+
+
+=== PDF PAGE 42 ===
+I∗
+MW (MONOTONIC WRITES SPECIFICATION)
+T := Nat
+Timestamp
+CState :=
+Client State
+Set[T × K]
+Session puts. (C × T uniquely identifies puts.)
+c-init(c) :=
+Client Initial State
+∅
+No initial dependencies
+RState :=
+Replica State
+K 7→(V × Set[C × T])
+Map from each key K to its value V , and puts already applied.
+r-init(r, v0) :=
+Replica Initial State
+[k 7→⟨v0, ∅⟩]
+Get-req-payload := Get-res-payload := Unit
+Get payload types
+get-req (_)(_, p) :=
+At client: Get Request
+ret ⟨◦, p⟩
+Session past puts as request payload, State unchanged
+get-guard (_)(_)(_, _, _) :=
+At replica: Get Guard
+ret true
+get (k)(_)(_, _, ς) :=
+At replica: Get
+let ⟨v, _⟩←ς(k)
+ret ⟨v, ◦, ς⟩
+No payload
+get-res (_, _)(_)(_, p) :=
+At client: Get Response
+ret p
+State unchanged.
+Put-req-payload := T × Set[T]
+Put payload types
+put-req (k, _)(_, p) :=
+At client: Put Request
+let t ←|p| + 1
+Current put timestamp
+let p′ ←p ∪{⟨t, k⟩}
+The put is added to session puts.
+ret ⟨⟨t, p|k⟩, p′⟩
+Session puts for the key are sent as request payload.
+put-guard (k, _)(⟨t, p⟩)(c, _, ς) :=
+At replica: Put Guard
+let ⟨_, p′⟩←ς(k)
+ret p ⊆p′|c
+Previous puts of session already applied.
+put (k, v)(⟨t, _⟩)(c, _, ς) :=
+At replica: Put
+let ⟨_, p′⟩←ς(k)
+ret ς[k 7→⟨v, p′ ∪{⟨c, t⟩}]
+p|k := {t | ⟨t, k⟩∈p}
+p|c := {t | ⟨c, t⟩∈p}
+Figure 20: Monotonic Writes Specification
+42
+
+
+=== PDF PAGE 43 ===
+IMW (MONOTONIC WRITES IMPLEMENTATION)
+T := Nat
+Timestamp
+CState :=
+Client State
+K 7→T
+Latest timestamp of puts for the key.
+c-init(c) :=
+Client Initial State
+k 7→0
+No initial puts
+RState :=
+Replica State
+K 7→(V ×
+Map from each key K to its value V , and
+C 7→T)
+latest puts applied from sessions.
+r-init(r, v0) :=
+Replica Initial State
+[k 7→⟨v0, c 7→0⟩]
+Get-req-payload := Get-res-payload := Unit
+Get payload types
+get-req (_)(_, σ) :=
+At client: Get Request
+ret ⟨◦, σ⟩
+Session past puts as request payload, State unchanged
+get-guard (_)(_)(_, _, _) :=
+At replica: Get Guard
+ret true
+get (k)(_)(_, _, ς) :=
+At replica: Get
+let ⟨v, _⟩←ς(k)
+ret ⟨v, ◦, ς⟩
+No payload
+get-res (_, _)(_)(_, σ) :=
+At client: Get Response
+ret σ
+State unchanged.
+Put-req-payload := T
+Put payload types
+put-req (k, _)(_, p) :=
+At client: Put Request
+t ←p(k)
+let p′ ←p[k 7→t + 1]
+The timestamp of the latest put for key is advanced.
+ret ⟨t, p′⟩
+Latest put timestamp for the key is sent as request payload.
+put-guard (k, _)(t)(c, _, ς) :=
+At replica: Put Guard
+let ⟨_, p′⟩←ς(k)
+ret p′(c) = t
+Previous puts of session already applied.
+put (k, v)(t)(c, _, ς) :=
+At replica: Put
+let ⟨_, p′⟩←ς(k)
+ret ς[k 7→⟨v, p′[c 7→t + 1]⟩]
+Figure 21: Monotonic Writes Implementation
+I.4
+Read-Your-Writes + Monotonic Writes (RYW+MW)
+Composition of Read-Your-Writes and Monotonic Writes. RYW+MW is the conjunction of RYW
+and MW rather than an independent property; an implementation satisfies it iff it refines both, so
+correctness is the joint refinement obligation. The reference combines RYW’s read-side check with
+MW’s compare-and-swap on every put (Fig. 22).
+43
+
+
+=== PDF PAGE 44 ===
+IRYW -MW (READ YOUR WRITES AND MONOTONIC WRITES IMPLEMENTATION)
+T := Nat
+Timestamp
+CState :=
+Client State
+K 7→T
+Latest timestamp of puts for the key.
+c-init(c) :=
+Client Initial State
+k 7→0
+No initial puts
+RState :=
+Replica State
+K 7→(V × C ×
+Map from each key K to its value V , and its originating sessions C,
+C 7→T)
+latest puts applied from sessions
+r-init(r, v0) :=
+Replica Initial State
+[k 7→⟨v0, 0, c 7→0⟩]
+Get-req-payload := T
+Get payload types
+Get-res-payload := Unit
+get-req (k)(_, p) :=
+At client: Get Request
+ret ⟨p(k), p⟩
+Timestamp of latest put as request payload, State unchanged
+get-guard (k)(t)(c, _, ς) :=
+At replica: Get Guard
+let ⟨_, c′, p′⟩←ς(k)
+ret c = c′ ⇒p′(c′) = t
+If stored value is from requesting client, his puts not missed.
+get (k)(_)(_, _, ς) :=
+At replica: Get
+let ⟨v, _, _⟩←ς(k)
+ret ⟨v, ◦, ς⟩
+No payload
+get-res (_, _)(_)(_, p) :=
+At client: Get Response
+ret p
+State unchanged.
+Put-req-payload := T
+Put payload types
+put-req (k, _)(_, p) :=
+At client: Put Request
+t ←p(k)
+let p′ ←p[k 7→t + 1]
+The timestamp of the latest put for key is advanced.
+ret ⟨t, p′⟩
+Latest put timestamp for the key is sent as request payload.
+put-guard (k, _)(t)(c, _, ς) :=
+At replica: Put Guard
+let ⟨_, _, p′⟩←ς(k)
+ret p′(c) = t
+Previous puts of session already applied.
+put (k, v)(t)(c, _, ς) :=
+At replica: Put
+let ⟨_, p′⟩←ς(k)
+ret ς[k 7→⟨v, c, p′[c 7→t + 1]⟩]
+Figure 22: Read Your Writes and Monotonic Writes Implementation
+I.5
+Causal Consistency (CC) and Labeled Causal Consistency (LCC)
+Causal Consistency (CC). Cross-client causal consistency: every read returns a value whose causal
+predecessors have all been observed at the responding replica. Dependencies are tracked as explicit
+sets in the spec state (Fig. 23), which the implementation must bridge to its concrete representation
+(typically a per-client vector clock plus a compare-and-swap on the writer’s own slot during put). Two
+reference implementations are given: a per-client vector-clock store (Fig. 25) and a Lloyd–Freedman-
+style protocol (Fig. 26).
+Labeled Causal Consistency (LCC). Causal consistency parameterised by per-message topic labels
+and per-client interest masks. Every put is tagged with a label, and every client declares which labels
+it cares about; the get-guard requires the responding replica to have observed every dependency
+whose label is in the requesting client’s mask (Fig. 24). To our knowledge this is the first Rocq
+formalisation of LCC and the first verified implementation.
+44
+
+
+=== PDF PAGE 45 ===
+I∗
+CC (CAUSAL CONSISTENCY SPEC)
+T := Nat
+Timestamp
+CState :=
+Client State
+⟨Set[C × T × K],
+Session dependencies from puts.
+Set[Set[C × T × K]]⟩
+Session dependencies from gets
+(C × T uniquely identifies puts.)
+c-init(c) :=
+Client Initial State
+⟨∅, ∅⟩
+No initial dependencies
+RState :=
+Replica State
+K 7→(V × C × T ×
+Map from each key K to its value V , its origin C × T,
+Set[C × T × K])
+and set of dependencies
+r-init(r, v0) :=
+Replica Initial State
+[k 7→⟨v0, c0, 0, ∅⟩]
+Empty initial dependencies
+Get-req-payload := ⟨Set[C × T × K],
+Get payload types
+Set[Set[C × T × K]]⟩
+Get-res-payload := Set[C × T × K]
+get-req (k)(_, ⟨p, G⟩) :=
+At client: Get Request
+ret ⟨⟨p|k, G|k⟩, ⟨p, G⟩⟩
+Session deps sent as request payload, State unchanged
+get-guard (k)(⟨p, G⟩)(c, _, ς) :=
+At replica: Get Guard
+let ⟨_, c′, t′, d′⟩←ς(k)
+ret forall (λd. ¬(d′|k ∪{⟨c′, t′, k⟩} ⊂d)) G ∧
+Stored value isn’t behind any previously read value.
+c = c′ ⇒p ⊆d′|k ∪{⟨c′, t′, k⟩}
+Read your writes.
+get (k)(_)(_, _, ς) :=
+At replica: Get
+let ⟨v, c, t, d⟩←ς(k)
+let d′ ←if (c ̸= c0) d ∪{⟨c, t, k⟩} else ∅
+The dependencies returned to the session
+ret ⟨v, d′, ς⟩
+are the entry and its dependencies
+get-res (_, _)(d′)(_, ⟨p, G⟩) :=
+At client: Get Response
+ret ⟨p, G ∪{d′}⟩
+Received dependencies added to session dependencies.
+Put-req-payload := T × Set[C × T × K]
+Put payload types
+put-req (k, _)(self , ⟨p, G⟩) :=
+At client: Put Request
+let t ←|p| + 1
+Current put timestamp
+let p′ ←p ∪{⟨self , t, k⟩}
+The put is added to session dependencies.
+ret ⟨⟨t, p ∪(S G)⟩, ⟨p′, G⟩⟩
+Session dependencies are sent as request payload.
+put-guard (k, _)(⟨t, _⟩)(c, _, ς) :=
+At replica: Put Guard
+let ⟨_, _, _, d′⟩←ς(k)
+ret ⟨c, t, k⟩̸∈d′
+The new put is not causally before the current stored put.
+put (k, v)(⟨t, d⟩)(c, _, ς) :=
+At replica: Put
+ret ς[k 7→⟨v, c, t, d⟩]
+d|k := {⟨c, t, k⟩| ⟨c, t, k′⟩∈d ∧k = k′}
+D|k := {d|k | d ∈D}
+Figure 23: Causal Consistency Spec
+45
+
+
+=== PDF PAGE 46 ===
+I∗
+LCC (LABELED CAUSAL CONSISTENCY SPEC)
+L
+Label type
+label : V →L
+Maps each value to its label
+client-labels : C →Set[L]
+Maps each client to its set of relevant labels
+T := Nat
+Timestamp
+CState :=
+Client State
+⟨Set[C × T × K × L],
+Session dependencies from puts (with labels)
+Set[Set[C × T × K × L]]⟩
+Session dependencies from gets (with labels)
+c-init(c) :=
+Client Initial State
+⟨∅, ∅⟩
+No initial dependencies
+RState :=
+Replica State
+K 7→(V × C × T ×
+Map from each key K to its value V , its origin C × T,
+Set[C × T × K × L])
+and set of label-annotated dependencies
+r-init(r, v0) :=
+Replica Initial State
+[k 7→⟨v0, c0, 0, ∅⟩]
+Empty initial dependencies
+Get-req-payload := ⟨Set[C × T × K × L]
+Get payload types
+Set[Set[C × T × K × L]]
+Get-res-payload := Set[C × T × K × L]
+get-req (k)(self , ⟨p, G⟩) :=
+At client: Get Request
+let L ←client-labels(self )
+ret ⟨⟨p|k|L, G|k|L⟩, ⟨p, G⟩⟩
+Label-filtered deps sent as payload; state unchanged.
+get-guard (k)(⟨p, G⟩)(c, _, ς) :=
+At replica: Get Guard
+let ⟨v′, c′, t′, d′⟩←ς(k)
+let L ←client-labels(c)
+ret forall (λd.
+Stored value not behind any previously
+¬((d′|k ∪{⟨c′, t′, k, label(v′)⟩})|L ⊂d)) G
+read value, for client’s labels.
+∧c = c′ ⇒p ⊆d′|k ∪{⟨c′, t′, k, label(v′)⟩}
+Read your writes.
+get (k)(_)(_, _, ς) :=
+At replica: Get
+let ⟨v, c, t, d⟩←ς(k)
+let d′ ←if (c ̸= c0) d ∪{⟨c, t, k, label(v)⟩} else ∅
+Label of stored value included in returned dependency.
+ret ⟨v, d′, ς⟩
+get-res (_, _)(d′)(_, ⟨p, G⟩) :=
+At client: Get Response
+ret ⟨p, G ∪{d′}⟩
+Received dependencies added to session.
+Put-req-payload := T × Set[C × T × K × L]
+Put payload types
+put-req (k, v)(self , ⟨p, G⟩) :=
+At client: Put Request
+let t ←|p| + 1
+Current put timestamp
+let p′ ←p ∪{⟨self , t, k, label(v)⟩}
+Put with its label added to session dependencies.
+ret ⟨⟨t, p ∪(S G)⟩, ⟨p′, G⟩⟩
+All session dependencies sent as request payload.
+put-guard (k, v)(⟨t, _⟩)(c, _, ς) :=
+At replica: Put Guard
+let ⟨_, _, _, d′⟩←ς(k)
+ret ⟨c, t, k, label(v)⟩̸∈d′
+The new put has not already been applied.
+put (k, v)(⟨t, d⟩)(c, _, ς) :=
+At replica: Put
+ret ς[k 7→⟨v, c, t, d⟩]
+d|k := {⟨c, t, k, l⟩| ⟨c, t, k′, l⟩∈d ∧k = k′}
+D|k := {d|k | d ∈D}
+d|L := {⟨c, t, k, l⟩| ⟨c, t, k, l⟩∈d ∧l ∈L}
+Filter dependencies to the label set L
+D|L := {d|L | d ∈D}
+Figure 24: Labeled Causal Consistency Spec. Causal consistency — but per topic. Every put is
+tagged with a label (think: Kafka topic, Slack channel, pub/sub subject). Every client declares which
+labels it cares about. Causal delivery for a client is enforced only for labels the client is interested in.
+46
+
+
+=== PDF PAGE 47 ===
+ICC 1 (CAUSAL CONSISTENCY IMPLEMENTATION 1)
+T := Nat
+Timestamp
+CState :=
+Client State
+C 7→T
+Session vector-clock
+c-init(c) :=
+Client Initial State
+[c 7→0]
+No initial dependencies
+RState :=
+Replica State
+⟨K 7→V,
+Store
+C 7→T⟩
+Received vector-clock (one for all keys)
+r-init(r, v0) :=
+Replica Initial State
+⟨[k 7→v0], [c 7→0]⟩
+Empty initial dependencies
+Get-req-payload := C 7→T
+Get payload types
+Get-res-payload := C 7→T
+get-req (_)(_, d) :=
+At client: Get Request
+ret ⟨d, d⟩
+Session vector-clock (1) sent as request payload (2) remains unchanged
+get-guard (k)(d)(_, _, ς) :=
+At replica: Get Guard
+let ⟨_, r⟩←ς
+ret r ≥d
+Pointwise comparison of vector clocks. Store is ahead of session
+get (k)(_)(_, _, ς) :=
+At replica: Get
+let ⟨s, r⟩←ς
+let v ←s(k)
+ret ⟨v, r, ς⟩
+get-res (_, _)(r)(_, d) :=
+At client: Get Response
+ret max(d, r)
+Pointwise max of vector-clocks
+Put-req-payload := C 7→T
+Put payload types
+put-req (_, _)(self , d) :=
+At client: Put Request
+let d′ ←d[self 7→d(self ) + 1]
+Session dependencies advanced.
+ret ⟨d, d′⟩
+Session vector-clock is sent as request payload.
+put-guard (_, _)(d)(c, _, ς) :=
+At replica: Put Guard
+let ⟨_, r⟩←ς
+ret r ≥d ∧r(c) = d(c)
+Store satisfies the dependencies. The new put advances the store.
+put (k, v)(d)(c, _, ς) :=
+At replica: Put
+let ⟨s, r⟩←ς
+let r′ ←r[c 7→d(c) + 1]
+Received advanced
+s′ ←s[k 7→v]
+ret ⟨s′, r′⟩
+Figure 25: Causal Consistency Implementation 1 (Inspired by [2]).
+47
+
+
+=== PDF PAGE 48 ===
+ICC 2 (CAUSAL CONSISTENCY IMPLEMENTATION 2)
+T := Nat
+Timestamp
+CState :=
+Client State
+T × List[C × T]
+Put timestamp, and Session dependencies
+c-init(c) :=
+Client Initial State
+⟨0, ∅⟩
+Timestamp zero. No initial dependencies.
+RState :=
+Replica State
+⟨K 7→C × T × V,
+Store (C × T uniquely identifies puts.)
+C 7→T⟩
+Received vector-clock
+r-init(r, v0) :=
+Replica Initial State
+⟨[k 7→⟨c0, 0, v0⟩], [c 7→0]⟩
+Nothing initially received
+Get-req-payload := List[C × T]
+Get payload types
+Get-res-payload := C × T
+get-req (_)(_, σ) :=
+At client: Get Request
+let ⟨_, d⟩←σ
+ret ⟨d, σ⟩
+Session dependencies sent as request payload
+get-guard (_)(d)(_, _, ς) :=
+At replica: Get Guard
+let ⟨_, r⟩←ς
+ret forall (λ(c, t). r(c) ≥t) d
+Store satisfies the dependencies
+get (k)(_)(_, _, ς) :=
+At replica: Get
+let ⟨s, _⟩←ς
+let ⟨c, t, v⟩←ς(k)
+ret ⟨v, ⟨c, t⟩, ς⟩
+get-res (_, _)(⟨c, t⟩)(_, σ) :=
+At client: Get Response
+let ⟨t′, d⟩←σ
+let d′ ←d :: ⟨c, t⟩
+ret ⟨t′, d′⟩
+Put-req-payload := List[C × T]
+Put payload types
+put-req (_, _)(c, σ) :=
+At client: Put Request
+let ⟨t, d⟩←σ
+let t′ ←t + 1
+let d′ ←[⟨c, t′⟩]
+ret ⟨d, ⟨t′, d′⟩⟩
+Session dependencies sent as request payload.
+put-guard (_, _)(d)(c, _, ς) :=
+At replica: Put Guard
+let ⟨_, r⟩←ς
+ret forall (λ(c, t). r(c) ≥t) d
+Store satisfies the dependencies
+lookup (c, d, 0) = r(c)
+The new put advances the store
+put (k, v)(_)(c, _, ς) :=
+At replica: Put
+let ⟨s, r⟩←ς
+let t ←r(c) + 1
+Current put timestamp
+let r′ ←r[c 7→t]
+s′ ←s[k 7→⟨c, t, v⟩]
+ret ⟨s′, r′⟩
+Figure 26: Causal Consistency Implementation 2 (Inspired by [28]).
+I.6
+Chapar Causal Consistency
+For Chapar CC we use Chapar’s published causal-consistency specification [26]; we refer the reader
+to the original paper for its formal definition. Per-operation cost comparison appears in App. D.
+48

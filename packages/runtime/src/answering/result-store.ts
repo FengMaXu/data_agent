@@ -1,7 +1,6 @@
 import {
   contentHash,
   clone,
-  type BoundedResult,
   type BusinessContext,
   type PrivateResultRef,
   type PublicationReceipt,
@@ -35,7 +34,6 @@ export interface ResultStore {
   /** Remove only private objects not referenced by durable Candidate records. */
   reconcile(referenced: readonly PrivateResultRef[], context: BusinessContext): Promise<readonly PrivateResultRef[]>;
   encodeCsv(ref: PrivateResultRef, context: BusinessContext): Promise<{ readonly content: string; readonly contentHash: string }>;
-  encodeInline(ref: PrivateResultRef, context: BusinessContext): Promise<{ readonly content: string; readonly contentHash: string }>;
 }
 
 function inferType(value: unknown): string {
@@ -173,14 +171,6 @@ export class InMemoryResultStore implements ResultStore {
     const content = `${result.columns.map(csvField).join(",")}\n${result.rows.map((row) => row.map(csvField).join(",")).join("\n")}${result.rows.length ? "\n" : ""}`;
     return { content, contentHash: contentHash(content) };
   }
-
-  async encodeInline(ref: PrivateResultRef, context: BusinessContext): Promise<{ readonly content: string; readonly contentHash: string }> {
-    const result = await this.openPrivate(ref, context);
-    if (!result) throw new Error("RESULT_NOT_FOUND");
-    const bounded: BoundedResult = { columns: result.columns, columnTypes: result.columnTypes, rows: result.rows, rowCount: result.rowCount, truncated: result.truncated };
-    const content = encodeStored(bounded);
-    return { content, contentHash: contentHash(content) };
-  }
 }
 
 /**
@@ -247,14 +237,6 @@ export class FileResultStore implements ResultStore {
     const result = await this.openPrivate(ref, context);
     if (!result) throw new Error("RESULT_NOT_FOUND");
     const content = `${result.columns.map(csvField).join(",")}\n${result.rows.map((row) => row.map(csvField).join(",")).join("\n")}${result.rows.length ? "\n" : ""}`;
-    return { content, contentHash: contentHash(content) };
-  }
-
-  async encodeInline(ref: PrivateResultRef, context: BusinessContext): Promise<{ readonly content: string; readonly contentHash: string }> {
-    const result = await this.openPrivate(ref, context);
-    if (!result) throw new Error("RESULT_NOT_FOUND");
-    const bounded: BoundedResult = { columns: result.columns, columnTypes: result.columnTypes, rows: result.rows, rowCount: result.rowCount, truncated: result.truncated };
-    const content = encodeStored(bounded);
     return { content, contentHash: contentHash(content) };
   }
 }

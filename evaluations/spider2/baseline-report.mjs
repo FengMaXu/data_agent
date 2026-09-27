@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 import { createHash } from "node:crypto";
-import { access, readFile, writeFile } from "node:fs/promises";
+import { access, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { buildEvaluationReport } from "./evaluation.mjs";
 import { fileURLToPath } from "node:url";
 
 async function readJson(filePath) {
@@ -17,7 +18,7 @@ function sha256(value) {
 }
 
 function published(status) {
-  return status === "published_approved" || status === "published_with_disagreement";
+  return status === "published" || status === "published_approved" || status === "published_with_disagreement";
 }
 
 function validHex(value, length) {
@@ -25,6 +26,7 @@ function validHex(value, length) {
 }
 
 function assertManifestIdentity(manifest) {
+  if (manifest.experimentId && manifest.schemaVersion === 1 && manifest.inputs && manifest.scoring) return;
   if (!validHex(manifest.agentCommit, 40)) throw new Error("BASELINE_AGENT_COMMIT_INVALID");
   if (!validHex(manifest.spider2Commit, 40)) throw new Error("BASELINE_SPIDER2_COMMIT_INVALID");
   for (const field of ["datasetSha256", "evaluatorSha256", "systemPromptSha256"]) {
@@ -33,6 +35,10 @@ function assertManifestIdentity(manifest) {
 }
 
 function exactPublication(result, trace) {
+  const episode = result.episodeRecord ?? trace.episodeRecord;
+  if (episode?.publication?.state === "published") {
+    return Boolean(episode.publication.receiptId && result.finalSql?.queryArtifactId && episode.publication.candidateId === result.finalSql.queryArtifactId);
+  }
   if (!published(result.publicationStatus) || !result.finalSql?.queryArtifactId || !result.finalSql?.toolCallId) return false;
   const call = (trace.toolCalls ?? []).find((item) => item.toolCallId === result.finalSql.toolCallId);
   const receipt = call?.result?.details?.publicationReceipt;
@@ -56,6 +62,31 @@ function sorted(values) {
   return [...values].map(String).sort();
 }
 
+async function latestEpisode(runPath, instanceId, attemptId) {
+  if (attemptId) {
+    const canonical = path.join(runPath, "cases", instanceId, "attempts", attemptId);
+    const episodePath = path.join(canonical, "episode.json");
+    if (await exists(episodePath)) return readJson(episodePath);
+    const resultPath = path.join(canonical, "result.json");
+    if (await exists(resultPath)) {
+      const result = await readJson(resultPath);
+      if (result.episodeRecord) return result.episodeRecord;
+    }
+  }
+  const direct = path.join(runPath, "cases", instanceId, "result.json");
+  if (await exists(direct)) {
+    const result = await readJson(direct);
+    if (result.episodeRecord) return result.episodeRecord;
+  }
+  const attemptsRoot = path.join(runPath, "cases", instanceId, "attempts");
+  const entries = await readdir(attemptsRoot, { withFileTypes: true }).catch(() => []);
+  for (const entry of entries.filter((item) => item.isDirectory()).sort((left, right) => right.name.localeCompare(left.name))) {
+    const episodePath = path.join(attemptsRoot, entry.name, "episode.json");
+    if (await exists(episodePath)) return readJson(episodePath);
+  }
+  return undefined;
+}
+
 export async function buildBaselineReport(runPath) {
   const manifestPath = path.join(runPath, "manifest.json");
   const summaryPath = path.join(runPath, "summary.json");
@@ -70,16 +101,22 @@ export async function buildBaselineReport(runPath) {
   const delivered = [];
   const missingCaseResults = [];
   const publicationByCase = {};
+  const episodeRecords = [];
+  const selectedAttemptId = manifest.attemptPolicy?.selectedAttemptId;
   for (const instanceId of instanceIds) {
-    const resultPath = path.join(runPath, "cases", instanceId, "result.json");
+    const canonicalRoot = selectedAttemptId ? path.join(runPath, "cases", instanceId, "attempts", selectedAttemptId) : undefined;
+    const resultPath = canonicalRoot && await exists(path.join(canonicalRoot, "result.json")) ? path.join(canonicalRoot, "result.json") : path.join(runPath, "cases", instanceId, "result.json");
     if (!await exists(resultPath)) {
       missingCaseResults.push(instanceId);
       continue;
     }
     const result = await readJson(resultPath);
-    publicationByCase[instanceId] = result.publicationStatus ?? null;
-    const tracePath = path.join(runPath, "cases", instanceId, "trace.json");
-    if (await exists(tracePath) && exactPublication(result, await readJson(tracePath))) delivered.push(instanceId);
+    const canonicalEpisode = result.episodeRecord ?? await latestEpisode(runPath, instanceId, selectedAttemptId);
+    if (canonicalEpisode) episodeRecords.push(canonicalEpisode);
+    publicationByCase[instanceId] = canonicalEpisode?.publication?.state ?? result.publicationStatus ?? null;
+    const tracePath = canonicalRoot && await exists(path.join(canonicalRoot, "trace.json")) ? path.join(canonicalRoot, "trace.json") : path.join(runPath, "cases", instanceId, "trace.json");
+    if (canonicalEpisode?.publication?.state === "published" && canonicalEpisode.publication.format === "csv" && !canonicalEpisode.publication.readError) delivered.push(instanceId);
+    else if (await exists(tracePath) && exactPublication(result, await readJson(tracePath))) delivered.push(instanceId);
   }
 
   const scoreSection = official.execResult ?? official.sql;
@@ -130,6 +167,7 @@ export async function buildBaselineReport(runPath) {
     notDeliveredSet: sorted(instanceIds.filter((id) => !deliveredSet.has(id))),
     missingCaseResults: sorted(missingCaseResults),
     publicationByCase,
+    episodeEvaluation: episodeRecords.length ? buildEvaluationReport(episodeRecords, scoreSection.caseScores ?? {}, { denominatorIds: instanceIds }) : null,
     metrics: {
       total: instanceIds.length,
       delivered: deliveredSet.size,

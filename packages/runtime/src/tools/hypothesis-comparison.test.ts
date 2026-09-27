@@ -3,78 +3,134 @@ import { TODO_CONTEXT } from "@earendil-works/pi-agent-core";
 import { InMemoryAnswering } from "../answering/service.js";
 import { InMemoryAnsweringStore } from "../answering/answering-store.js";
 import { InMemoryResultStore } from "../answering/result-store.js";
+import { InMemoryAdvisoryLedger } from "../answering/advisory-ledger.js";
 import { createAnsweringAgentToolDefinitions, HYPOTHESIS_COMPARISON_PARAMETERS } from "./answering.js";
 import { Value } from "typebox/value";
 
-const answering = () => new InMemoryAnswering({
-  store: new InMemoryAnsweringStore(),
-  resultStore: new InMemoryResultStore(),
-  sqlExecutor: { run: async () => ({ columns: ["value"], rows: [[1]], truncated: false }) },
-});
+const spec = { entity: "orders", metric: "count", filters: [], groupBy: [], time: { state: "not_applicable" }, ranking: { state: "not_applicable" }, output: { rowMode: "scalar", rowCount: 1 } };
+const business = (invocationId: string) => ({ principal: { id: "user-1" }, sessionId: "session-1", lane: "main", operationId: "operation-1", invocationId });
+
+async function setup() {
+  const outputs: Record<string, { columns: string[]; rows: unknown[][]; truncated: boolean }> = {
+    "SELECT purchase": { columns: ["n"], rows: [[265]], truncated: false },
+    "SELECT delivered": { columns: ["n"], rows: [[205]], truncated: false },
+  };
+  const ledger = new InMemoryAdvisoryLedger();
+  const answering = new InMemoryAnswering({
+    store: new InMemoryAnsweringStore(),
+    resultStore: new InMemoryResultStore(),
+    sqlExecutor: { run: async (sql) => outputs[sql]! },
+    choiceProbes: true,
+    advisoryLedger: ledger,
+    requireAdvice: true,
+  });
+  const view = await answering.begin({
+    requestMessageId: "current-message",
+    requestId: "begin",
+    spec,
+    choices: [{ localId: "time", affects: ["time"], alternatives: [{ localId: "purchase", statement: "按下单月份统计" }, { localId: "delivered", statement: "按送达月份统计" }] }],
+  } as never, business("begin"));
+  const choice = view.choices[0]!;
+  const [purchase, delivered] = choice.alternatives.map((alternative) => alternative.id);
+  await answering.execute({ kind: "exploration", taskId: view.taskId, sql: "SELECT purchase", probe: { choiceId: choice.id, alternativeId: purchase! } }, business("probe-1"));
+  await answering.execute({ kind: "exploration", taskId: view.taskId, sql: "SELECT delivered", probe: { choiceId: choice.id, alternativeId: delivered! } }, business("probe-2"));
+  return { answering, ledger, view, choiceId: choice.id, purchase: purchase!, delivered: delivered! };
+}
+
+function invocationFor(memo: Map<string, unknown>) {
+  return {
+    invocationId: "invocation-1",
+    operationId: "operation-1",
+    turnId: "turn-1",
+    getMemo: async (key: string) => memo.get(key),
+    setMemo: async (key: string, value: unknown) => { memo.set(key, value); },
+  };
+}
 
 describe("compare_hypotheses tool", () => {
-  it("uses trusted request wording, accepts direct hypotheses/evidence, and memoizes advisory output", async () => {
+  it("compares the alternatives of one Choice, adds probe outputs, records the lean and memoizes", async () => {
+    const { answering, ledger, view, choiceId, purchase, delivered } = await setup();
     const compare = vi.fn(async () => ({
       model: "jev-1.13.0",
-      recommendation: { kind: "hypothesis" as const, hypothesisId: "alternative-1" },
+      recommendation: { kind: "insufficient_evidence" as const },
       probabilities: [
-        { hypothesisId: "alternative-1", probability: 0.8 },
-        { hypothesisId: "alternative-2", probability: 0.05 },
+        { hypothesisId: purchase, probability: 0 },
+        { hypothesisId: delivered, probability: 0.25 },
       ],
-      abstentionProbabilities: { insufficientEvidence: 0.1, multiplePlausible: 0.03, noneSupported: 0.02 },
-      confidence: 0.7,
+      abstentionProbabilities: { insufficientEvidence: 0.43, multiplePlausible: 0.32, noneSupported: 0 },
+      confidence: 0.27,
     }));
-    const tools = createAnsweringAgentToolDefinitions(answering(), undefined, {
+    const tool = createAnsweringAgentToolDefinitions(answering, undefined, {
       advisor: { compare },
-      getOriginalQuestion: async () => "年度月均收入如何计算？",
-    }).map((definition) => definition.tool);
-    const tool = tools.find((item) => item.name === "compare_hypotheses");
-    if (!tool) throw new Error("compare_hypotheses not registered");
+      getOriginalQuestion: async () => "每月已送达订单数",
+      ledger,
+    }).map((definition) => definition.tool).find((item) => item.name === "compare_hypotheses")!;
     const memo = new Map<string, unknown>();
-    const invocation = {
-      invocationId: "invocation-1",
-      operationId: "operation-1",
-      turnId: "turn-1",
-      getMemo: async (key: string) => memo.get(key),
-      setMemo: async (key: string, value: unknown) => { memo.set(key, value); },
-    };
     const toolContext = { sessionId: "session-1", principalId: "user-1", requestMessageId: "current-message" };
-    const input = {
-      hypotheses: [
-        { id: "alternative-1", statement: "按十二个月计算" },
-        { id: "alternative-2", statement: "按有记录月份计算" },
-      ],
-      evidence: [
-        { content: "无收入月份按零计算", sourceRef: "metric.md" },
-      ],
-    };
+    const input = { taskId: view.taskId, choiceId, evidence: [{ content: "送达事件以 delivered_date 记录", sourceRef: "schema" }] };
 
-    const first = await tool.execute("call-1", input, undefined, toolContext, invocation, TODO_CONTEXT);
-    const second = await tool.execute("call-1", input, undefined, toolContext, invocation, TODO_CONTEXT);
+    const first = await tool.execute("call-1", input, undefined, toolContext, invocationFor(memo), TODO_CONTEXT);
+    const second = await tool.execute("call-1", input, undefined, toolContext, invocationFor(memo), TODO_CONTEXT);
 
     expect(compare).toHaveBeenCalledTimes(1);
     expect(compare.mock.calls[0]![0]).toMatchObject({
-      originalQuestion: "年度月均收入如何计算？",
-      hypotheses: [{ id: "alternative-1" }, { id: "alternative-2" }],
+      originalQuestion: "每月已送达订单数",
+      hypotheses: [{ id: purchase, statement: "按下单月份统计" }, { id: delivered, statement: "按送达月份统计" }],
       evidence: [
-        { id: "request", kind: "request_wording", content: "年度月均收入如何计算？" },
-        { id: "inline_0", kind: "observation", content: "无收入月份按零计算", sourceRef: "metric.md" },
+        { id: "request", kind: "request_wording" },
+        { id: "probe_outputs", content: expect.stringContaining("alternative 1: 1 output rows") },
+        { id: "inline_0", content: "送达事件以 delivered_date 记录" },
       ],
     });
-    expect(first.content[0]).toMatchObject({ type: "text", text: expect.stringContaining("not evidence") });
+    expect(ledger.latest(view.taskId, choiceId)).toMatchObject({ recommendation: "insufficient_evidence", lean: { alternativeId: delivered, probability: 0.25 } });
+    expect(first.content[0]).toMatchObject({ type: "text", text: expect.stringContaining(`[ADVICE_LEAN] alternativeId=${delivered}`) });
     expect(second.details).toEqual(first.details);
   });
 
-  it("validates that hypotheses requires at least 2 items", () => {
-    expect(Value.Check(HYPOTHESIS_COMPARISON_PARAMETERS, {
-      hypotheses: [{ id: "h1", statement: "single" }],
-    })).toBe(false);
+  it("rejects a Choice that is not in the current Revision", async () => {
+    const { answering, ledger, view } = await setup();
+    const tool = createAnsweringAgentToolDefinitions(answering, undefined, { advisor: { compare: vi.fn() }, getOriginalQuestion: async () => "q", ledger })
+      .map((definition) => definition.tool).find((item) => item.name === "compare_hypotheses")!;
+    await expect(tool.execute("call-1", { taskId: view.taskId, choiceId: "choice_missing" }, undefined, { sessionId: "session-1", principalId: "user-1", requestMessageId: "current-message" }, invocationFor(new Map()), TODO_CONTEXT))
+      .rejects.toMatchObject({ code: "INVALID_REQUEST" });
+  });
 
-    expect(Value.Check(HYPOTHESIS_COMPARISON_PARAMETERS, {
-      hypotheses: [
-        { id: "h1", statement: "first" },
-        { id: "h2", statement: "second" },
-      ],
-    })).toBe(true);
+  it("takes a task and Choice id instead of free-form hypotheses", () => {
+    expect(Value.Check(HYPOTHESIS_COMPARISON_PARAMETERS, { taskId: "task", choiceId: "choice" })).toBe(true);
+    expect(Value.Check(HYPOTHESIS_COMPARISON_PARAMETERS, { hypotheses: [{ id: "h1", statement: "a" }, { id: "h2", statement: "b" }] })).toBe(false);
+  });
+});
+
+describe("deciding against advice (ADR-0005)", () => {
+  const rationale = "The request counts orders when they are purchased";
+
+  it("requires advice before deciding a decisive Choice on a core facet", async () => {
+    const { answering, view, choiceId, purchase } = await setup();
+    await expect(answering.revise({ taskId: view.taskId, baseRevisionId: view.revisionId, requestId: "decide", dispositions: [{ action: "provisional", choiceId, alternativeId: purchase, rationale }] }, business("decide")))
+      .rejects.toMatchObject({ code: "SPEC_TRANSITION_INVALID", message: expect.stringContaining("call compare_hypotheses") });
+  });
+
+  it("requires a reason and evidence to decide against a clear lean", async () => {
+    const { answering, ledger, view, choiceId, purchase, delivered } = await setup();
+    ledger.record({ taskId: view.taskId, choiceId, alternativeIds: [purchase, delivered], model: "jev", probabilities: [{ alternativeId: purchase, probability: 0.04 }, { alternativeId: delivered, probability: 0.53 }], recommendation: "alternative", recommendedAlternativeId: delivered, lean: { alternativeId: delivered, probability: 0.53 }, recordedAt: "now" });
+    await expect(answering.revise({ taskId: view.taskId, baseRevisionId: view.revisionId, requestId: "against", dispositions: [{ action: "provisional", choiceId, alternativeId: purchase, rationale }] }, business("against")))
+      .rejects.toMatchObject({ code: "SPEC_TRANSITION_INVALID", message: expect.stringContaining(`leaned to alternative ${delivered} (p=0.53)`) });
+    const inspected = await answering.inspect({ taskId: view.taskId }, business("inspect"));
+    const observation = inspected.task.choiceProbes!.find((probe) => probe.alternativeId === purchase)!.evidenceId;
+    const overridden = await answering.revise({
+      taskId: view.taskId,
+      baseRevisionId: view.revisionId,
+      requestId: "override",
+      dispositions: [{ action: "provisional", choiceId, alternativeId: purchase, rationale, adviceOverride: { reason: "Only the purchase month is defined for every order in 2016", evidenceIds: [observation] } }],
+    }, business("override"));
+    expect(overridden.choices[0]).toMatchObject({ status: "provisional", rationale, advice: { lean: { alternativeId: delivered } }, adviceOverride: { evidenceIds: [observation] } });
+  });
+
+  it("accepts the leaned alternative without an override", async () => {
+    const { answering, ledger, view, choiceId, purchase, delivered } = await setup();
+    ledger.record({ taskId: view.taskId, choiceId, alternativeIds: [purchase, delivered], model: "jev", probabilities: [{ alternativeId: purchase, probability: 0 }, { alternativeId: delivered, probability: 0.25 }], recommendation: "insufficient_evidence", lean: { alternativeId: delivered, probability: 0.25 }, recordedAt: "now" });
+    const decided = await answering.revise({ taskId: view.taskId, baseRevisionId: view.revisionId, requestId: "follow", dispositions: [{ action: "provisional", choiceId, alternativeId: delivered, rationale: "Delivered orders are counted in the month of delivery" }] }, business("follow"));
+    expect(decided.choices[0]).toMatchObject({ status: "provisional", alternativeId: delivered });
+    expect(decided.choices[0]).not.toHaveProperty("adviceOverride");
   });
 });

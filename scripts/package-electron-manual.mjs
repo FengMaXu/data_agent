@@ -78,9 +78,13 @@ writeFileSync(path.join(staging, "package.json"), JSON.stringify(appPkg, null, 2
 cpSync(path.join(frontend, "dist"), path.join(staging, "dist"), { recursive: true });
 cpSync(path.join(frontend, "electron"), path.join(staging, "electron"), { recursive: true });
 mkdirSync(path.join(staging, "electron-host"), { recursive: true });
-cpSync(path.join(frontend, "electron-host", "main.cjs"), path.join(staging, "electron-host", "main.cjs"));
-cpSync(path.join(frontend, "electron-host", "metadata-worker.cjs"), path.join(staging, "electron-host", "metadata-worker.cjs"));
-cpSync(path.join(frontend, "electron-host", "mcp-mysql.cjs"), path.join(staging, "electron-host", "mcp-mysql.cjs"));
+for (const name of ["main.cjs", "metadata-worker.cjs", "mcp-mysql.cjs"]) {
+  for (const file of [name, `${name}.map`]) {
+    if (existsSync(path.join(frontend, "electron-host", file))) {
+      cpSync(path.join(frontend, "electron-host", file), path.join(staging, "electron-host", file));
+    }
+  }
+}
 
 // Native module + its runtime deps ship inside the archive but with *.node unpacked.
 // npm may hoist better-sqlite3 to the workspace root, so probe both locations.
@@ -124,6 +128,7 @@ const pythonRuntimeExecutable = path.resolve(frontend, "../dist/python-runtime/S
 for (const required of [
   "../dist/python-runtime/Scripts/python.exe",
   "../.agents/skills/analysis/SKILL.md",
+  "../.agents/skills/answer-spec/SKILL.md",
   "../.pi/SYSTEM.md",
 ]) {
   const source = path.resolve(frontend, required);

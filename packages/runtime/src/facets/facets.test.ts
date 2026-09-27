@@ -70,7 +70,7 @@ describe("Session Facets", () => {
       findPublication: async (publicationId, caller) => publicationId === "publication-1" && caller.principal.id === receipt.principalId && caller.sessionId === receipt.sessionId ? receipt : undefined,
       readAuthorized: async (authorized, caller) => {
         await resultStore.openAuthorized(authorized.resultRef, authorized, caller);
-        const encoded = await resultStore.encodeInline(authorized.resultRef, caller);
+        const encoded = await resultStore.encodeCsv(authorized.resultRef, caller);
         return { ...encoded, contentHash: authorized.presentationContentHash ?? encoded.contentHash };
       },
     });

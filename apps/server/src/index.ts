@@ -128,8 +128,9 @@ export async function createRuntimeServer(
       if (options.authorizeSession && !(await options.authorizeSession(context.userId, query.session_id))) return reply.code(403).send({ error: { code: "SESSION_ACCESS_DENIED" } });
       try {
         const artifact = await options.publicationReader!.readPublication(params.publicationId, { userId: context.userId, sessionId: query.session_id });
-        if (artifact.summary.format === "csv") reply.header("Content-Disposition", `attachment; filename="${params.publicationId}.csv"`);
-        return reply.type(artifact.summary.format === "csv" ? "text/csv; charset=utf-8" : "application/json; charset=utf-8").send(artifact.content);
+        // Publications are always CSV; the BOM lets Excel detect UTF-8 (Chinese headers/values).
+        reply.header("Content-Disposition", `attachment; filename="${params.publicationId}.csv"`);
+        return reply.type("text/csv; charset=utf-8").send(`﻿${artifact.content}`);
       } catch {
         return reply.code(404).send({ error: { code: "PUBLICATION_NOT_FOUND" } });
       }

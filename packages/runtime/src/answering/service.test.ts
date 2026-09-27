@@ -197,6 +197,28 @@ describe("Answering vertical slice", () => {
     });
   });
 
+  it("leads the obstacle with the declared and actual columns when they differ", async () => {
+    const service = answering(async () => ({ columns: ["industry", "cumulative_sales_yi"], rows: [["批发业", 1]], truncated: false }));
+    const spec = { ...simpleSpec, output: { rowMode: "grouped", columns: ["行业", "累计销售额(亿元)"] } };
+    const first = await service.begin({ requestMessageId: "message-columns", requestId: "begin-columns", spec }, context("begin-columns"));
+    await expect(service.execute({ kind: "result", taskId: first.taskId, revisionId: first.revisionId, sql: "select 1" }, context("result-columns"))).rejects.toMatchObject({
+      code: "CANDIDATE_CHECK_FAILED",
+      details: { obstacle: { message: 'The result failed an online CandidateCheck: Result columns do not match the declared output shape: declared ["行业","累计销售额(亿元)"], result ["industry","cumulative_sales_yi"]. Alias the SQL columns to the declared names in the same order, or revise output.columns if the declaration is wrong' } },
+    });
+  });
+
+  it("checks a declared grouped row count and leaves an undeclared one alone", async () => {
+    const rows = [["批发业", 1], ["零售业", 2]];
+    const service = answering(async () => ({ columns: ["industry", "sales"], rows, truncated: false }));
+    const declared = await service.begin({ requestMessageId: "message-grouped", requestId: "begin-grouped", spec: { ...simpleSpec, output: { rowMode: "grouped", rowCount: 3 } } }, context("begin-grouped"));
+    await expect(service.execute({ kind: "result", taskId: declared.taskId, revisionId: declared.revisionId, sql: "select 1" }, context("result-grouped"))).rejects.toMatchObject({
+      code: "CANDIDATE_CHECK_FAILED",
+      details: { obstacle: { message: expect.stringContaining("Expected 3 grouped rows but received 2") } },
+    });
+    const open = await service.begin({ requestMessageId: "message-grouped-open", requestId: "begin-grouped-open", spec: { ...simpleSpec, output: { rowMode: "grouped" } } }, context("begin-grouped-open"));
+    await expect(service.execute({ kind: "result", taskId: open.taskId, revisionId: open.revisionId, sql: "select 1" }, context("result-grouped-open"))).resolves.toMatchObject({ artifact: { kind: "candidate" } });
+  });
+
   it("never promotes a truncated result into a Candidate", async () => {
     const service = answering(async () => ({ columns: ["value"], rows: [[1]], truncated: true }));
     const first = await service.begin({ requestMessageId: "message-truncated", requestId: "begin-truncated", spec: simpleSpec }, context("begin-truncated"));
@@ -280,6 +302,22 @@ describe("Answering vertical slice", () => {
     expect(inspected.currentRevision.spec).toEqual(expect.objectContaining({ metric: expect.objectContaining({ state: "specified" }) }));
   });
 
+  it("ends the operation instead of returning an obstacle when the database is unavailable", async () => {
+    const unavailable = Object.assign(new Error("DATABASE_UNAVAILABLE: database process unavailable after 3 reconnects (Connection closed)"), { code: "DATABASE_UNAVAILABLE" });
+    const service = answering(async () => { throw unavailable; });
+    const first = await service.begin({ requestMessageId: "message-db-down", requestId: "begin-db-down", spec: simpleSpec }, context("begin-db-down"));
+    for (const request of [
+      { kind: "exploration" as const, taskId: first.taskId, sql: "select 1" },
+      { kind: "result" as const, taskId: first.taskId, revisionId: first.revisionId, sql: "select 1" },
+    ]) {
+      const failure = await service.execute(request, context(`db-down-${request.kind}`)).catch((error: unknown) => error);
+      expect(failure).toMatchObject({ code: "DATABASE_UNAVAILABLE", message: expect.stringMatching(/^DATABASE_UNAVAILABLE: /) });
+      expect((failure as { obstacle?: unknown }).obstacle).toBeUndefined();
+    }
+    const inspected = await service.inspect({ taskId: first.taskId }, context("inspect-db-down"));
+    expect(inspected.attempts.filter((attempt) => attempt.state === "failed")).toHaveLength(2);
+  });
+
   it("does not retry a result whose external execution outcome is unknown", async () => {
     let calls = 0;
     const memoValues = new Map<string, unknown>();
@@ -332,5 +370,98 @@ describe("Answering vertical slice", () => {
     });
     expect(calls).toBe(1);
     await expect(service.inspect({ taskId: first.taskId }, context("inspect-budget"))).resolves.toMatchObject({ task: { budget: { resultAttempts: 1, revisionCount: 1 } } });
+  });
+});
+
+describe("Answering revision ownership (ADR-0004)", () => {
+  const requestText = "统计每年各销售员订单金额与年度配额";
+  const evidenceSource = {
+    readUserMessage: async (_sessionId: string, messageId: string) => messageId === "message-141" ? requestText : undefined,
+  };
+  const serviceWithSource = (run: () => Promise<{ columns: string[]; rows: unknown[][]; truncated: boolean }>) => {
+    let calls = 0;
+    const store = new InMemoryAnsweringStore();
+    const service = new InMemoryAnswering({
+      store,
+      resultStore: new InMemoryResultStore(),
+      evidenceSource,
+      sqlExecutor: { run: async () => { calls += 1; return run(); } },
+    });
+    const evidenceCount = (taskId: string) => store.transact((tx) => tx.listEvidence(taskId as never).length, context("evidence-count"));
+    return { service, calls: () => calls, evidenceCount };
+  };
+  const salesSpec = { ...simpleSpec, metric: { value: { kind: "sum", expression: "SUM(subtotal)" }, hypothesisId: "amount" }, output: { rowMode: "grouped" } };
+  const beginLocal141 = (service: InMemoryAnswering) => service.begin({
+    requestMessageId: "message-141",
+    requestId: "begin-141",
+    spec: salesSpec,
+    hypotheses: [{ localId: "amount", kind: "business_semantics", statement: "subtotal is the order amount", affects: ["metric"], basis: "column name", impact: "changes totals" }],
+    choices: [{ localId: "quota", affects: ["metric"], alternatives: [{ localId: "sum", statement: "SUM annual quota" }, { localId: "max", statement: "MAX annual quota" }] }],
+  }, context("begin-141"));
+
+  it("keeps omitted unresolved items so the final query stays blocked (local141 replay)", async () => {
+    const { service, calls } = serviceWithSource(async () => ({ columns: ["value"], rows: [[1]], truncated: false }));
+    const first = await beginLocal141(service);
+    expect(first.unresolvedHypotheses).toHaveLength(1);
+    expect(first.unresolvedChoices).toHaveLength(1);
+    await service.execute({ kind: "exploration", taskId: first.taskId, sql: "select max(quota) from q", limit: 5 }, context("explore-141"));
+    const revised = await service.revise({ taskId: first.taskId, baseRevisionId: first.revisionId, requestId: "revise-141", spec: { groupBy: [{ value: "year" }, { value: "salesperson" }] } }, context("revise-141"));
+    expect(revised.unresolvedHypotheses).toEqual(first.unresolvedHypotheses);
+    expect(revised.unresolvedChoices).toEqual(first.unresolvedChoices);
+    expect(revised.hypotheses.map((item) => item.id)).toEqual(first.hypotheses.map((item) => item.id));
+    await expect(service.execute({ kind: "result", taskId: first.taskId, revisionId: revised.revisionId, sql: "select 1" }, context("result-141"))).rejects.toMatchObject({ code: "UNRESOLVED_ASSUMPTIONS" });
+    expect(calls()).toBe(1);
+  });
+
+  it("rolls back a rejected revision without charging budget or registering evidence", async () => {
+    const { service, evidenceCount } = serviceWithSource(async () => ({ columns: ["value"], rows: [[1]], truncated: false }));
+    const first = await beginLocal141(service);
+    const before = await service.inspect({ taskId: first.taskId }, context("inspect-before"));
+    const evidenceBefore = await evidenceCount(first.taskId);
+    await expect(service.revise({
+      taskId: first.taskId,
+      baseRevisionId: first.revisionId,
+      requestId: "revise-bad",
+      evidence: [{ localId: "q", kind: "request_wording", quote: "年度配额" }],
+      dispositions: [{ action: "support", hypothesisId: first.hypotheses[0]!.id, evidenceIds: ["message-141"] }],
+    }, context("revise-bad"))).rejects.toMatchObject({ code: "EVIDENCE_REJECTED" });
+    const after = await service.inspect({ taskId: first.taskId }, context("inspect-after"));
+    expect(after.task.currentRevisionId).toBe(first.revisionId);
+    expect(after.task.budget?.revisionCount).toBe(before.task.budget?.revisionCount);
+    expect(await evidenceCount(first.taskId)).toBe(evidenceBefore);
+  });
+
+  it("publishes after verified dispositions and discloses inferred facets and provisional choices", async () => {
+    const { service } = serviceWithSource(async () => ({ columns: ["value"], rows: [[1]], truncated: false }));
+    const first = await beginLocal141(service);
+    const choice = first.choices[0]!;
+    const revised = await service.revise({
+      taskId: first.taskId,
+      baseRevisionId: first.revisionId,
+      requestId: "revise-good",
+      evidence: [{ localId: "amount-quote", kind: "request_wording", quote: "订单金额" }],
+      dispositions: [
+        { action: "support", hypothesisId: first.hypotheses[0]!.id, evidenceIds: ["amount-quote"] },
+        { action: "provisional", choiceId: choice.id, alternativeId: choice.alternatives[1].id },
+      ],
+    }, context("revise-good"));
+    expect(revised.unresolvedHypotheses).toEqual([]);
+    expect(revised.unresolvedChoices).toEqual([]);
+    expect(revised.inferredFacets).toEqual(expect.arrayContaining(["entity", "output"]));
+    const execution = await service.execute({ kind: "result", taskId: first.taskId, revisionId: revised.revisionId, sql: "select 1" }, context("result-good"));
+    if (execution.artifact.kind !== "candidate") throw new Error("expected candidate");
+    const receipt = await service.publish({ candidateId: execution.artifact.candidateId, format: "inline", requestId: "publish-good" }, context("publish-good"));
+    expect(receipt.disclosure).toMatchObject({ required: true, provisionalChoiceIds: [choice.id], inferredFacets: expect.arrayContaining(["entity"]) });
+    expect(receipt.disclosure?.summary).toContain("模型推断");
+  });
+
+  it("rejects a request quote that is not in the original request", async () => {
+    const { service } = serviceWithSource(async () => ({ columns: ["value"], rows: [[1]], truncated: false }));
+    await expect(service.begin({
+      requestMessageId: "message-141",
+      requestId: "begin-forged-quote",
+      spec: simpleSpec,
+      evidence: [{ localId: "q", kind: "request_wording", quote: "按最大值计算配额" }],
+    }, context("begin-forged-quote"))).rejects.toMatchObject({ code: "EVIDENCE_REJECTED" });
   });
 });

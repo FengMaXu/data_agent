@@ -8,7 +8,10 @@ const toUrl = (value) => { const normalized = value.split(path.sep).join("/"); r
 const dataDir = process.env.DATA_AGENT_DATA_DIR
   ? path.resolve(process.env.DATA_AGENT_DATA_DIR)
   : path.join(root, ".data_agent", "runtime-web");
-const knowledgeRoot = path.join(dataDir, "knowledge");
+// The repository knowledge/ is the single source of truth; a per-data-dir copy silently drifts out of date.
+const knowledgeRoot = process.env.DATA_AGENT_KNOWLEDGE_DIR
+  ? path.resolve(process.env.DATA_AGENT_KNOWLEDGE_DIR)
+  : path.join(root, "knowledge");
 const semanticProjectDir = process.env.DATA_AGENT_SEMANTIC_PROJECT_DIR
   ? path.resolve(process.env.DATA_AGENT_SEMANTIC_PROJECT_DIR)
   : path.resolve(dataDir, "..", "semantic-context");
@@ -141,4 +144,5 @@ const host = process.env.DATA_AGENT_HOST ?? "127.0.0.1";
 await app.listen({ port, host });
 console.log(`[data-agent-web] listening on http://${host}:${port}`);
 console.log(`[data-agent-web] data dir: ${dataDir}`);
+console.log(`[data-agent-web] knowledge dir: ${knowledgeRoot} (${application.knowledge.catalog().length} documents)`);
 console.log(`[data-agent-web] semantic project dir: ${semanticProjectDir}${existsSync(semanticProjectDir) ? "" : " (not created yet)"}`);

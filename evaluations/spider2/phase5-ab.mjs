@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { access, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { stableStringify } from "./record.mjs";
 
 const DEFAULT_CONTROL = "C:/data-agent-eval/runs/round11-paired-040-control";
 const DEFAULT_TREATMENT = "C:/data-agent-eval/runs/round11-paired-040-hooks";
@@ -22,8 +23,64 @@ async function exists(filePath) {
   try { await access(filePath); return true; } catch { return false; }
 }
 
+function normalizedObservedInputs(observedInputs) {
+  if (!observedInputs) return observedInputs;
+  const databases = Array.isArray(observedInputs.databases)
+    ? observedInputs.databases
+      .map(({ path: _path, ...identity }) => identity)
+      .sort((left, right) => stableStringify(left).localeCompare(stableStringify(right)))
+    : observedInputs.databases;
+  return { ...observedInputs, ...(databases !== undefined ? { databases } : {}) };
+}
+
+function hasCompleteObservedDatabaseEvidence(manifest, instanceIds) {
+  const databases = normalizedObservedInputs(manifest.observedInputs)?.databases;
+  if (!Array.isArray(databases) || databases.length !== instanceIds.length) return false;
+  const expected = new Set(instanceIds.map(String));
+  const observed = new Set();
+  for (const database of databases) {
+    const caseId = String(database?.caseId ?? "");
+    if (!expected.has(caseId) || observed.has(caseId) || database?.state !== "known" || typeof database.sha256 !== "string" || !database.sha256) return false;
+    observed.add(caseId);
+  }
+  return observed.size === expected.size;
+}
+
+/** Semantic-Spec arm tools; the ablation arm uses begin_query_task instead. */
+const SPEC_TOOLS = ["begin_answer_spec", "revise_answer_spec"];
+
+function sameValue(left, right) {
+  return stableStringify(left) === stableStringify(right);
+}
+
 function withoutRunIdentity(manifest) {
-  const assurance = manifest.assurance ?? {};
+  if (manifest.experimentId && manifest.schemaVersion === 1) {
+    const { systemPrompt: _systemPrompt, ...fixedInputs } = manifest.inputs ?? {};
+    const { semanticSpec: _semanticSpec, tools: _tools, ...fixedCapabilities } = manifest.capabilities ?? {};
+    const { semanticSpecMode: _semanticSpecMode, promptProfile: _promptProfile, ...fixedAnswering } = manifest.answering ?? {};
+    return {
+      suite: manifest.suite,
+      subject: manifest.subject,
+      model: manifest.model,
+      fixedInputs,
+      scoring: manifest.scoring,
+      budgets: manifest.budgets,
+      limits: manifest.limits,
+      concurrency: manifest.concurrency,
+      attemptPolicy: manifest.attemptPolicy,
+      comparisonPolicy: manifest.comparisonPolicy,
+      fixedCapabilities,
+      fixedAnswering,
+      assuranceObserver: manifest.assuranceObserver,
+      agentCommit: manifest.agentCommit,
+      spider2Commit: manifest.spider2Commit,
+      datasetSha256: manifest.datasetSha256,
+      evaluatorSha256: manifest.evaluatorSha256,
+      runnerSha256: manifest.runnerSha256,
+      observedInputs: normalizedObservedInputs(manifest.observedInputs),
+    };
+  }
+  const assurance = manifest.assurance ?? manifest.assuranceObserver ?? {};
   const hooks = assurance.hooks ?? {};
   const detectors = assurance.detectors ?? {};
   return {
@@ -44,24 +101,27 @@ function withoutRunIdentity(manifest) {
   };
 }
 
-async function traceMetrics(runPath, instanceIds) {
+async function traceMetrics(runPath, instanceIds, attemptId) {
   const metrics = { queryCalls: 0, explorationQueries: 0, resultQueries: 0, unclassifiedQueries: 0, explorationArtifacts: 0, resultArtifacts: 0, traceFiles: 0, missingTraceFiles: 0 };
   for (const instanceId of instanceIds) {
     try {
-      const trace = await readJson(path.join(runPath, "cases", String(instanceId), "trace.json"));
+      const canonical = attemptId ? path.join(runPath, "cases", String(instanceId), "attempts", attemptId, "trace.json") : undefined;
+      const target = canonical && await exists(canonical) ? canonical : path.join(runPath, "cases", String(instanceId), "trace.json");
+      const trace = await readJson(target);
       metrics.traceFiles += 1;
       for (const call of trace.toolCalls ?? []) {
         if (call.toolName !== "query_database") continue;
         metrics.queryCalls += 1;
         const args = call.args ?? {};
         const details = call.result?.details ?? {};
-        const exploration = args.mode === "exploration" || details.artifactKind === "exploration";
-        const result = args.mode === "result" || details.artifactKind === "result_candidate";
+        const artifactKind = details.artifactKind ?? details.artifact?.kind;
+        const exploration = (args.kind ?? args.mode) === "exploration" || artifactKind === "exploration";
+        const result = (args.kind ?? args.mode) === "result" || artifactKind === "result_candidate" || artifactKind === "candidate";
         if (exploration) metrics.explorationQueries += 1;
         else if (result) metrics.resultQueries += 1;
         else metrics.unclassifiedQueries += 1;
-        if (details.artifactKind === "exploration") metrics.explorationArtifacts += 1;
-        if (details.artifactKind === "result_candidate") metrics.resultArtifacts += 1;
+        if (artifactKind === "exploration") metrics.explorationArtifacts += 1;
+        if (artifactKind === "result_candidate" || artifactKind === "candidate") metrics.resultArtifacts += 1;
       }
     } catch {
       metrics.missingTraceFiles += 1;
@@ -74,7 +134,7 @@ function summaryMetrics(summary, official, trace) {
   const fixed = official?.execResult?.fixedDenominator ?? official?.sql?.fixedDenominator;
   const publicationStatuses = summary.publicationStatuses ?? {};
   const published = Object.entries(publicationStatuses)
-    .filter(([status]) => status === "published_approved" || status === "published_with_disagreement")
+    .filter(([status]) => status === "published" || status === "published_approved" || status === "published_with_disagreement")
     .reduce((total, [, count]) => total + Number(count), 0);
   return {
     total: summary.total,
@@ -101,19 +161,57 @@ function caseScores(official) {
   return official?.execResult?.caseScores ?? official?.sql?.caseScores ?? {};
 }
 
-function compareCaseScores(control, treatment) {
-  const ids = [...new Set([...Object.keys(control), ...Object.keys(treatment)])].sort();
+function semanticSpecMode(manifest) {
+  return manifest.answering?.semanticSpecMode ?? manifest.capabilities?.semanticSpec?.resolved;
+}
+
+function isSemanticSpecAblation(control, treatment, hookDifferences) {
+  const modes = new Set([semanticSpecMode(control), semanticSpecMode(treatment)]);
+  if (modes.size !== 2 || !modes.has("required") || !modes.has("disabled") || hookDifferences.length !== 0) return false;
+  const { semanticSpec: _controlSemanticSpec, tools: _controlTools, ...controlFixedCapabilities } = control.capabilities ?? {};
+  const { semanticSpec: _treatmentSemanticSpec, tools: _treatmentTools, ...treatmentFixedCapabilities } = treatment.capabilities ?? {};
+  if (!sameValue(controlFixedCapabilities, treatmentFixedCapabilities)) return false;
+  if (!control.baselineLockSha256 || !treatment.baselineLockSha256 || control.baselineLockSha256 === treatment.baselineLockSha256) return false;
+  if (!sameValue(control.assuranceObserver ?? {}, treatment.assuranceObserver ?? {})) return false;
+  if (control.capabilities?.specFeedback?.resolved !== false || treatment.capabilities?.specFeedback?.resolved !== false) return false;
+  const manifests = [control, treatment];
+  for (const manifest of manifests) {
+    const mode = semanticSpecMode(manifest);
+    if (manifest.answering?.promptProfile !== `semantic-spec-${mode}`) return false;
+    if (typeof manifest.systemPromptSha256 !== "string" || manifest.systemPromptSha256 !== manifest.inputs?.systemPrompt?.sha256) return false;
+    if (manifest.observedCapabilities?.tools?.state !== "observed" || manifest.observedCapabilities?.tools?.coverage !== "complete") return false;
+    const expectedCases = (manifest.instanceIds ?? manifest.suite?.instanceIds ?? []).length;
+    if (manifest.observedCapabilities.tools.observedCases !== expectedCases || manifest.observedCapabilities.tools.expectedCases !== expectedCases) return false;
+    const declared = [...(manifest.capabilities?.tools?.resolved ?? [])].sort();
+    const observed = [...(manifest.observedCapabilities?.tools?.resolved ?? [])].sort();
+    if (!sameValue(declared, observed)) return false;
+    const selected = mode === "required" ? SPEC_TOOLS : ["begin_query_task"];
+    const excluded = mode === "required" ? ["begin_query_task"] : SPEC_TOOLS;
+    if (!selected.every((tool) => observed.includes(tool)) || excluded.some((tool) => observed.includes(tool))) return false;
+  }
+  if (control.systemPromptSha256 === treatment.systemPromptSha256) return false;
+  const controlTools = new Set(control.observedCapabilities.tools.resolved);
+  const treatmentTools = new Set(treatment.observedCapabilities.tools.resolved);
+  const differing = [...new Set([...controlTools, ...treatmentTools])].filter((tool) => controlTools.has(tool) !== treatmentTools.has(tool)).sort();
+  // compare_hypotheses may differ too: it only exists alongside the semantic Spec.
+  return sameValue(differing.filter((tool) => tool !== "compare_hypotheses"), ["begin_query_task", ...SPEC_TOOLS].sort());
+}
+
+function compareCaseScores(control, treatment, denominatorIds = []) {
+  const ids = [...new Set([...denominatorIds, ...Object.keys(control), ...Object.keys(treatment)])].sort();
   const improved = [];
   const regressed = [];
   const unchanged = [];
+  const missingBoth = [];
   for (const id of ids) {
+    if (!Object.hasOwn(control, id) && !Object.hasOwn(treatment, id)) missingBoth.push(id);
     const left = Number(control[id] ?? 0);
     const right = Number(treatment[id] ?? 0);
     if (right > left) improved.push(id);
     else if (right < left) regressed.push(id);
     else unchanged.push(id);
   }
-  return { improved, regressed, unchanged };
+  return { improved, regressed, unchanged, missingBoth };
 }
 
 function percent(value) {
@@ -146,6 +244,7 @@ function renderMarkdown(report) {
     `- control：${report.arms.control.runPath}`,
     `- treatment：${report.arms.treatment.runPath}`,
     `- 同数据集/模型/预算/题目：${report.comparison.sameExperimentalInputs ? "是" : "否"}`,
+    `- 逐题数据库身份覆盖完整：${report.comparison.databaseEvidenceComplete ? "是" : "否"}`,
     `- 仅预期开关不同：${report.comparison.onlyExpectedDifferences ? "是" : "否"}`,
     `- SQL 用途路由证据完整：${report.comparison.routingEvidenceComplete ? "是" : "否"}`,
     "",
@@ -170,7 +269,7 @@ function renderMarkdown(report) {
     "", 
     `- 提升：${comparison.caseScoreDelta.improved.length} 题（${comparison.caseScoreDelta.improved.join(", ") || "无"}）`,
     `- 回退：${comparison.caseScoreDelta.regressed.length} 题（${comparison.caseScoreDelta.regressed.join(", ") || "无"}）`,
-    `- 不变：${comparison.caseScoreDelta.unchanged.length} 题`,
+    `- 不变：${comparison.caseScoreDelta.unchanged.length} 题（其中两组均未提交：${comparison.caseScoreDelta.missingBoth.length} 题）`,
     "",
     "## 4. 方案验收判断",
     "",
@@ -197,26 +296,40 @@ export async function buildPhase5Report(controlPath, treatmentPath, specReportPa
     readJson(path.join(treatmentPath, "summary.json")),
   ]);
   const [controlOfficial, treatmentOfficial, specReport] = await Promise.all([
-    exists(path.join(controlPath, "official_score", "summary.json")) ? readJson(path.join(controlPath, "official_score", "summary.json")) : undefined,
-    exists(path.join(treatmentPath, "official_score", "summary.json")) ? readJson(path.join(treatmentPath, "official_score", "summary.json")) : undefined,
-    exists(specReportPath) ? readJson(specReportPath) : undefined,
+    await exists(path.join(controlPath, "official_score", "summary.json")) ? readJson(path.join(controlPath, "official_score", "summary.json")) : undefined,
+    await exists(path.join(treatmentPath, "official_score", "summary.json")) ? readJson(path.join(treatmentPath, "official_score", "summary.json")) : undefined,
+    await exists(specReportPath) ? readJson(specReportPath) : undefined,
   ]);
   const controlIds = [...(controlManifest.instanceIds ?? [])].map(String).sort();
   const treatmentIds = [...(treatmentManifest.instanceIds ?? [])].map(String).sort();
-  const sameExperimentalInputs = JSON.stringify(withoutRunIdentity(controlManifest)) === JSON.stringify(withoutRunIdentity(treatmentManifest))
-    && JSON.stringify(controlIds) === JSON.stringify(treatmentIds)
-    && controlManifest.datasetSha256 === treatmentManifest.datasetSha256;
-  const controlAssurance = controlManifest.assurance ?? {};
-  const treatmentAssurance = treatmentManifest.assurance ?? {};
-  const onlyExpectedDifferences = controlAssurance.detectors?.enabled === false
-    && treatmentAssurance.detectors?.enabled === true
-    && controlAssurance.hooks?.interpretationsOnAnomaly === false
-    && treatmentAssurance.hooks?.interpretationsOnAnomaly === true
-    && controlAssurance.hooks?.integrityBlocks === treatmentAssurance.hooks?.integrityBlocks
-    && controlAssurance.hooks?.terminateAfterExport === treatmentAssurance.hooks?.terminateAfterExport;
+  const semanticModes = new Set([semanticSpecMode(controlManifest), semanticSpecMode(treatmentManifest)]);
+  const semanticSpecPair = semanticModes.size === 2 && semanticModes.has("required") && semanticModes.has("disabled");
+  const databaseEvidenceComplete = !semanticSpecPair || (
+    hasCompleteObservedDatabaseEvidence(controlManifest, controlIds)
+    && hasCompleteObservedDatabaseEvidence(treatmentManifest, treatmentIds)
+  );
+  const sameExperimentalInputs = sameValue(withoutRunIdentity(controlManifest), withoutRunIdentity(treatmentManifest))
+    && sameValue(controlIds, treatmentIds)
+    && controlManifest.datasetSha256 === treatmentManifest.datasetSha256
+    && databaseEvidenceComplete;
+  const controlAssurance = controlManifest.assurance ?? controlManifest.assuranceObserver ?? {};
+  const treatmentAssurance = treatmentManifest.assurance ?? treatmentManifest.assuranceObserver ?? {};
+  const controlHooks = controlAssurance.hooks ?? {};
+  const treatmentHooks = treatmentAssurance.hooks ?? {};
+  const hookDifferences = [...new Set([...Object.keys(controlHooks), ...Object.keys(treatmentHooks)])].filter((key) => controlHooks[key] !== treatmentHooks[key]);
+  const semanticSpecAblation = isSemanticSpecAblation(controlManifest, treatmentManifest, hookDifferences);
+  const expectedFactorDifference = controlManifest.experimentId || treatmentManifest.experimentId
+    ? semanticSpecAblation || (hookDifferences.length === 1 && hookDifferences[0] === "informOnUnresolvedHypotheses" && controlHooks.informOnUnresolvedHypotheses === false && treatmentHooks.informOnUnresolvedHypotheses === true)
+    : controlAssurance.detectors?.enabled === false
+      && treatmentAssurance.detectors?.enabled === true
+      && controlAssurance.hooks?.interpretationsOnAnomaly === false
+      && treatmentAssurance.hooks?.interpretationsOnAnomaly === true
+      && controlAssurance.hooks?.integrityBlocks === treatmentAssurance.hooks?.integrityBlocks
+      && controlAssurance.hooks?.terminateAfterExport === treatmentAssurance.hooks?.terminateAfterExport;
+  const onlyExpectedDifferences = sameExperimentalInputs && expectedFactorDifference;
   const [controlTrace, treatmentTrace] = await Promise.all([
-    traceMetrics(controlPath, controlIds),
-    traceMetrics(treatmentPath, treatmentIds),
+    traceMetrics(controlPath, controlIds, controlManifest.attemptPolicy?.selectedAttemptId),
+    traceMetrics(treatmentPath, treatmentIds, treatmentManifest.attemptPolicy?.selectedAttemptId),
   ]);
   const controlMetrics = summaryMetrics(controlSummary, controlOfficial, controlTrace);
   const treatmentMetrics = summaryMetrics(treatmentSummary, treatmentOfficial, treatmentTrace);
@@ -228,7 +341,10 @@ export async function buildPhase5Report(controlPath, treatmentPath, specReportPa
     methodology: {
       offlineSpecReport: specReportPath,
       offlineSpecReportSha256: specReport ? sha256(await readFile(specReportPath)) : null,
-      experimentalUnit: "同一 40 个 SQLite instance_id；control 与 treatment 使用同一模型、数据集、预算和评测器，仅切换 detectors.enabled 与 interpretationsOnAnomaly",
+      experimentalUnit: semanticSpecAblation
+        ? "同一批 instance_id；control 与 treatment 使用同一模型、数据集、预算和评测器，仅切换 semanticSpecMode=disabled|required 及对应 begin_query_task/update_answer_spec 工具和系统提示"
+        : "同一批 instance_id；control 与 treatment 使用同一模型、数据集、预算和评测器，仅切换预注册的 assurance hook",
+      experimentFactor: semanticSpecAblation ? "semantic_spec_mode" : "assurance_hook",
       correctnessSource: "官方 exec_result fixedDenominator；未提交题目计入固定分母",
     },
     specQuality: specReport?.aggregate?.sevenFacetSlots
@@ -240,7 +356,9 @@ export async function buildPhase5Report(controlPath, treatmentPath, specReportPa
     },
     comparison: {
       sameExperimentalInputs,
+      databaseEvidenceComplete,
       onlyExpectedDifferences,
+      semanticSpecAblation,
       sameInstanceCount: controlIds.length === treatmentIds.length,
       csvCoverageNonDecreasing: Number(treatmentMetrics.csvCoverage ?? 0) >= Number(controlMetrics.csvCoverage ?? 0),
       accuracyNonDecreasing: controlAccuracy !== null && controlAccuracy !== undefined && treatmentAccuracy !== null && treatmentAccuracy !== undefined
@@ -248,7 +366,7 @@ export async function buildPhase5Report(controlPath, treatmentPath, specReportPa
         : null,
       routingEvidenceComplete: controlMetrics.trace.missingTraceFiles === 0 && treatmentMetrics.trace.missingTraceFiles === 0
         && controlMetrics.trace.unclassifiedQueries === 0 && treatmentMetrics.trace.unclassifiedQueries === 0,
-      caseScoreDelta: compareCaseScores(caseScores(controlOfficial), caseScores(treatmentOfficial)),
+      caseScoreDelta: compareCaseScores(caseScores(controlOfficial), caseScores(treatmentOfficial), [...new Set([...controlIds, ...treatmentIds])]),
     },
   };
   return { json: report, markdown: renderMarkdown(report) };

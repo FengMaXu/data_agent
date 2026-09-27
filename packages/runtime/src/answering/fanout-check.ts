@@ -9,8 +9,11 @@ export type FanoutDialect = "sqlite" | "mysql" | "postgres" | "bigquery" | "snow
 export interface FanoutSchemaTable {
   readonly name: string;
   readonly columns: readonly string[];
+  /** Declared type per column name, when the executor reports it. */
+  readonly columnTypes?: Readonly<Record<string, string>>;
   readonly primaryKey?: readonly string[];
   readonly uniqueKeys?: readonly (readonly string[])[];
+  readonly foreignKeys?: readonly { readonly columns: readonly string[]; readonly references: { readonly table: string; readonly columns: readonly string[] } }[];
 }
 
 export interface FanoutSchema {

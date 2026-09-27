@@ -39,6 +39,10 @@ test_output.txt
 # Generated frontend packages
 /frontend/release-final/
 
+# Generated Electron bundles (scripts/build-distribution.mjs)
+/frontend/electron-host/
+/frontend/electron/preload.cjs
+
 # Test-generated workspaces and retained pytest output
 /.dashboard_grouped_workspace/
 /.html_dashboard_provider_workspace/

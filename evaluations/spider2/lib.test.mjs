@@ -66,6 +66,7 @@ test("selectModelProfile switches the main model and assurance planners without 
     modelProfiles: {
       deepseek: { llm: { provider: "openai", model: "deepseek-chat", apiKeyEnv: "DEEPSEEK_KEY", baseUrlEnv: "DEEPSEEK_URL", apiFormat: "chat" } },
       "gpt-5.5": { llm: { provider: "openai", model: "gpt-5.5", apiKeyEnv: "GPT55_KEY", baseUrlEnv: "GPT55_URL", apiFormat: "chat" } },
+      "gpt-6-luna": { llm: { provider: "openai", model: "gpt-6-luna", apiKeyEnv: "DEROUTER_API_KEY", baseUrlEnv: "DEROUTER_BASE_URL", apiFormat: "chat" } },
     },
   };
   const selected = selectModelProfile(base, "gpt-5.5");
@@ -75,8 +76,22 @@ test("selectModelProfile switches the main model and assurance planners without 
   assert.equal(selected.assurance.plannerLlm.model, "gpt-5.5");
   assert.equal(selected.assurance.enumerator.model, "gpt-5.5");
   assert.equal(selected.assurance.enumerator.trigger, "on_anomaly");
+  const luna = selectModelProfile(base, "gpt-6-luna");
+  assert.deepEqual(luna.llm, { provider: "openai", model: "gpt-6-luna", apiKeyEnv: "DEROUTER_API_KEY", baseUrlEnv: "DEROUTER_BASE_URL", apiFormat: "chat" });
+  assert.equal(luna.assurance.plannerLlm.model, "gpt-6-luna");
+  assert.equal(luna.assurance.enumerator.model, "gpt-6-luna");
   assert.throws(() => selectModelProfile(base, "missing"), /MODEL_PROFILE_NOT_FOUND:missing/);
   assert.throws(() => selectModelProfile({ modelProfiles: { unsafe: { llm: { model: "x", apiKey: "secret", apiKeyEnv: "KEY" } } } }, "unsafe"), /inline_api_key_forbidden/);
+});
+
+test("the example Spider2 config exposes gpt-6-luna via Derouter environment variables", async () => {
+  const config = JSON.parse(await readFile(new URL("./config.example.json", import.meta.url), "utf8"));
+  const selected = selectModelProfile(config, "gpt-6-luna");
+  assert.equal(selected.llm.model, "gpt-6-luna");
+  assert.equal(selected.llm.provider, "openai");
+  assert.equal(selected.llm.apiFormat, "chat");
+  assert.equal(selected.llm.apiKeyEnv, "DEROUTER_API_KEY");
+  assert.equal(selected.llm.baseUrlEnv, "DEROUTER_BASE_URL");
 });
 
 test("selectCases filters, sorts, and limits deterministically", () => {
@@ -289,6 +304,20 @@ test("official evaluator validation rejects hard-coded GBK decoding", () => {
     () => validateOfficialEvaluatorSource("payload.decode ( 'GBK' )"),
     /EVALUATOR_HARDCODED_GBK_DECODE/,
   );
+});
+
+test("createRecorder marks a lost database as an infrastructure failure and aborts once", async () => {
+  let subscriber;
+  let aborts = 0;
+  const recorder = createRecorder({ subscribe: (fn) => { subscriber = fn; return () => {}; }, abort: () => { aborts += 1; } }, { maxTurns: 20, maxToolCalls: 50 });
+  subscriber({ type: "tool_execution_start", toolCallId: "call_1", toolName: "query_database", args: {} });
+  subscriber({ type: "tool_execution_end", toolCallId: "call_1", result: { content: [{ type: "text", text: "DATABASE_UNAVAILABLE: database process unavailable after 3 reconnects (Connection closed)" }] }, isError: true });
+  subscriber({ type: "tool_execution_start", toolCallId: "call_2", toolName: "subagent", args: {} });
+  subscriber({ type: "tool_execution_end", toolCallId: "call_2", result: { content: [{ type: "text", text: ["## probe", "", "子任务未完成：DATABASE_UNAVAILABLE: again"].join("\n") }] }, isError: false });
+  await recorder.waitForAbort();
+  assert.equal(recorder.infraFailure, "DATABASE_UNAVAILABLE: database process unavailable after 3 reconnects (Connection closed)");
+  assert.equal(recorder.terminalReason, "infra_error");
+  assert.equal(aborts, 1);
 });
 
 test("createRecorder stores each completed message and tool payload exactly once", () => {

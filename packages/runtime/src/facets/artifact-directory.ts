@@ -14,9 +14,18 @@ export interface AuthorizedArtifact {
   readonly content: string;
 }
 
+export interface AuthorizedPublicationSql {
+  readonly receiptId: string;
+  readonly candidateId: string;
+  readonly queryHash: string;
+  readonly sql: string;
+}
+
 export interface ArtifactReadModel {
   findPublication(publicationId: string, context: BusinessContext): Promise<PublicationReceipt | undefined>;
   readAuthorized(receipt: PublicationReceipt, context: BusinessContext): Promise<{ readonly content: string; readonly contentHash: string }>;
+  /** Optional authorized SQL projection; it must resolve through the Receipt. */
+  readSqlAuthorized?(receipt: PublicationReceipt, context: BusinessContext): Promise<{ readonly sql: string; readonly queryHash: string }>;
 }
 
 /**
@@ -25,6 +34,15 @@ export interface ArtifactReadModel {
  */
 export class ArtifactDirectory {
   constructor(private readonly source: ArtifactReadModel) {}
+
+  async resolveSql(publicationId: string, context: BusinessContext): Promise<AuthorizedPublicationSql> {
+    const receipt = await this.source.findPublication(publicationId, context);
+    if (!receipt) throw new Error("PUBLICATION_NOT_FOUND");
+    if (!this.source.readSqlAuthorized) throw new Error("PUBLICATION_SQL_PROJECTION_UNAVAILABLE");
+    const projected = await this.source.readSqlAuthorized(receipt, context);
+    if (!projected.sql.trim() || !projected.queryHash) throw new Error("PUBLICATION_SQL_INTEGRITY_MISMATCH");
+    return { receiptId: receipt.receiptId, candidateId: receipt.candidateId, queryHash: projected.queryHash, sql: projected.sql };
+  }
 
   async resolve(publicationId: string, context: BusinessContext): Promise<AuthorizedArtifact> {
     const receipt = await this.source.findPublication(publicationId, context);

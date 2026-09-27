@@ -1,13 +1,15 @@
-import type { DataAgentModelProfile, DataAgentSessionHost, DataAgentSessionRuntimeOptions, OpenOperation, SessionQueryExecutor, PresentationAgentEvent } from "./session-runtime.js";
+import type { AnsweringEvidenceDocuments, DataAgentModelProfile, DataAgentSessionHost, DataAgentSessionRuntimeOptions, OpenOperation, SessionQueryExecutor, PresentationAgentEvent } from "./session-runtime.js";
 import { createDataAgentSessionHost } from "./session-runtime.js";
 import { PiJsonlSessionStore, type SessionInput } from "../session-store.js";
 import type { KnowledgeIndex } from "../knowledge.js";
 import type { ClarificationManager } from "../clarification.js";
 import type { WorkspaceStore } from "../workspace.js";
-import type { TranscriptMessage } from "../facets/transcript.js";
-import type { AuthorizedArtifact } from "../facets/artifact-directory.js";
+import type { RuntimeExecutionSnapshot, RuntimeObservation, TranscriptMessage } from "../facets/transcript.js";
+import type { AuthorizedArtifact, AuthorizedPublicationSql } from "../facets/artifact-directory.js";
 import type { HypothesisChoiceAdvisor } from "../judgment/hypothesis-choice.js";
+import type { FanoutAnsweringOptions, QueryBudgetPolicy } from "../answering/public.js";
 import type { SpecAlignmentAssessor } from "../judgment/spec-alignment.js";
+import type { SemanticSpecMode } from "../tools/answering.js";
 
 export interface HostRequestContext {
   readonly userId: string;
@@ -38,6 +40,12 @@ export interface DataAgentSessionApplicationOptions {
   readonly resultRoot?: string;
   readonly hypothesisChoiceAdvisor?: HypothesisChoiceAdvisor;
   readonly specAlignmentAssessor?: SpecAlignmentAssessor;
+  /** Evaluation-only; ordinary product sessions use the required semantic Spec. */
+  readonly semanticSpecMode?: SemanticSpecMode;
+  readonly answeringBudgetPolicy?: QueryBudgetPolicy;
+  readonly answeringFanout?: FanoutAnsweringOptions;
+  /** Knowledge ids admitted as business evidence and their authority (ADR-0004). */
+  readonly answeringEvidenceDocuments?: AnsweringEvidenceDocuments;
   readonly profile?: DataAgentModelProfile;
   readonly resolveProfile?: (context: HostRequestContext) => DataAgentModelProfile | Promise<DataAgentModelProfile>;
   readonly systemPrompt?: string;
@@ -48,6 +56,8 @@ export interface DataAgentSessionApplicationOptions {
   readonly enableDashboards?: boolean;
   readonly enableWidgets?: boolean;
   readonly clarifications?: ClarificationManager;
+  /** Evaluation-only headless switch; omitted means the normal product tool remains available. */
+  readonly enableClarificationTool?: boolean;
   readonly enableSubagents?: boolean | ((context: HostRequestContext) => boolean | Promise<boolean>);
   readonly delegationRoot?: string;
   /** Exact relative Markdown paths delegated children may inspect. */
@@ -72,12 +82,16 @@ export interface ApplicationAgentAdapter {
   followUp(text: string, context?: { readonly sessionId?: string; readonly userId?: string }): Promise<void>;
   abort(context?: { readonly sessionId?: string; readonly userId?: string }): Promise<void>;
   getOpenOperations(context?: { readonly sessionId?: string; readonly userId?: string }): Promise<readonly OpenOperation[]>;
+  getExecutionSnapshot(context?: { readonly sessionId?: string; readonly userId?: string }): Promise<RuntimeExecutionSnapshot>;
+  getActiveTools(context?: { readonly sessionId?: string; readonly userId?: string }): Promise<readonly string[]>;
   getTranscript(context?: { readonly sessionId?: string; readonly userId?: string }): Promise<readonly TranscriptMessage[]>;
   answerClarification(clarificationId: string, answer: string, context?: { readonly sessionId?: string; readonly userId?: string }): Promise<boolean>;
   readPublication(publicationId: string, context?: { readonly sessionId?: string; readonly userId?: string }): Promise<AuthorizedArtifact>;
+  readPublicationSql(publicationId: string, context?: { readonly sessionId?: string; readonly userId?: string }): Promise<AuthorizedPublicationSql>;
   getResources(): ApplicationResources;
   setResources(resources: ApplicationResources): Promise<void>;
   subscribe(listener: (event: ApplicationAgentEvent) => void, context?: { readonly sessionId?: string; readonly userId?: string }): () => void;
+  subscribeObservations(listener: (observation: RuntimeObservation) => void, context?: { readonly sessionId?: string; readonly userId?: string }): () => void;
 }
 
 type HostKey = string;
@@ -209,6 +223,10 @@ export class DataAgentSessionApplication {
       ...(this.options.resultRoot ? { resultRoot: (await import("node:path")).join(this.options.resultRoot, context.sessionId) } : {}),
       ...(this.options.hypothesisChoiceAdvisor ? { hypothesisChoiceAdvisor: this.options.hypothesisChoiceAdvisor } : {}),
       ...(this.options.specAlignmentAssessor ? { specAlignmentAssessor: this.options.specAlignmentAssessor } : {}),
+      ...(this.options.semanticSpecMode ? { semanticSpecMode: this.options.semanticSpecMode } : {}),
+      ...(this.options.answeringBudgetPolicy ? { answeringBudgetPolicy: this.options.answeringBudgetPolicy } : {}),
+      ...(this.options.answeringFanout ? { answeringFanout: this.options.answeringFanout } : {}),
+      ...(this.options.answeringEvidenceDocuments ? { answeringEvidenceDocuments: this.options.answeringEvidenceDocuments } : {}),
       ...(this.options.systemPrompt ? { systemPrompt: this.options.systemPrompt } : {}),
       ...(this.options.systemPromptRoots ? { systemPromptRoots: this.options.systemPromptRoots } : {}),
       ...(this.options.projectRoot ? { projectRoot: this.options.projectRoot } : {}),
@@ -217,6 +235,7 @@ export class DataAgentSessionApplication {
       ...(this.options.enableDashboards !== undefined ? { enableDashboards: this.options.enableDashboards } : {}),
       ...(this.options.enableWidgets !== undefined ? { enableWidgets: this.options.enableWidgets } : {}),
       ...(this.options.clarifications ? { clarifications: this.options.clarifications } : {}),
+      ...(this.options.enableClarificationTool !== undefined ? { enableClarificationTool: this.options.enableClarificationTool } : {}),
       ...(enableSubagents !== undefined ? { enableSubagents } : {}),
       ...(this.options.delegationRoot ? { delegationRoot: (await import("node:path")).join(this.options.delegationRoot, context.sessionId) } : {}),
       ...(this.options.delegationKnowledgePaths ? { delegationKnowledgePaths: this.options.delegationKnowledgePaths } : {}),
@@ -264,6 +283,8 @@ export class DataAgentSessionApplication {
           return (await pending).controller.getOpenOperations().then((operations) => operations.map((operation) => ({ ...operation, sessionId })));
         }))).flat();
       },
+      getExecutionSnapshot: async (context) => (await getHost(context)).getExecutionSnapshot(),
+      getActiveTools: async (context) => (await getHost(context)).getActiveTools(),
       getTranscript: async (context) => (await getHost(context)).facets.transcript.messages(),
       answerClarification: async (clarificationId, answer, context) => (await getHost(context)).facets.clarifications.answer(clarificationId, answer),
       readPublication: async (publicationId, context) => {
@@ -275,6 +296,17 @@ export class DataAgentSessionApplication {
           lane: "presentation",
           operationId: `publication-read:${publicationId}`,
           invocationId: `publication-read:${publicationId}`,
+        });
+      },
+      readPublicationSql: async (publicationId, context) => {
+        const resolved = contextFor(context);
+        const host = await this.session(resolved);
+        return host.facets.artifacts.resolveSql(publicationId, {
+          principal: { id: resolved.userId },
+          sessionId: resolved.sessionId,
+          lane: "presentation",
+          operationId: `publication-sql-read:${publicationId}`,
+          invocationId: `publication-sql-read:${publicationId}`,
         });
       },
       getResources: () => this.resources,
@@ -291,6 +323,22 @@ export class DataAgentSessionApplication {
           if (requestedSession && event.sessionId !== requestedSession) return;
           listener(event);
         });
+      },
+      subscribeObservations: (listener, context) => {
+        const requestedSession = context?.sessionId ?? defaultContext?.sessionId;
+        let stopped = false;
+        let unsubscribe: (() => void) | undefined;
+        void this.session(contextFor(context)).then((host) => {
+          if (stopped) return;
+          unsubscribe = host.subscribeObservations((observation) => {
+            if (requestedSession && observation.sessionId !== requestedSession) return;
+            listener(observation);
+          });
+        }).catch(() => undefined);
+        return () => {
+          stopped = true;
+          unsubscribe?.();
+        };
       },
     };
   }

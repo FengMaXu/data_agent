@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
-import { access, appendFile, copyFile, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { access, copyFile, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
@@ -9,34 +9,31 @@ import { promisify } from "node:util";
 import {
   backendForCase,
   buildAgentPrompt,
-  buildEvaluationGuardrails,
   buildEvaluationLearning,
   buildEvaluationRules,
   classifyProviderFailure,
   createRecorder,
   ddlCsvToMarkdown,
-  ddlCsvToSql,
-  deterministicGateCasesFromLabels,
-  extractProviderFailure,
-  exceedsTurnBudget,
   fixedDenominatorScore,
   loadCases,
   parseCorrectIdsCsv,
   parseOfficialCaseScores,
   parseOfficialScore,
-  publishedCsvPath,
   resolveExternalKnowledge,
   resolveLocalDatabase,
   resolveMetadataDirectory,
   runPromptWithTimeout,
   safeJson,
   selectCases,
-  selectFinalSql,
   selectModelProfile,
   sha256File,
   sha256Tree,
   validateOfficialEvaluatorSource,
 } from "./lib.mjs";
+import { manifestFromExperiment, resolveExperiment, resolveSemanticSpecMode, validateExperimentConfig } from "./experiment.mjs";
+import { buildEvaluationReport, loadEpisodeRecord, persistScoreRecord } from "./evaluation.mjs";
+import { attemptDirectory, createAttemptDescriptor, createAttemptLayout, writeAttemptStatus } from "./episode.mjs";
+import { openAttemptRecorder, publicationFromReceipt, spanIdForIdentity, summarizeUsage } from "./record.mjs";
 
 const execFileAsync = promisify(execFile);
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -156,12 +153,13 @@ async function loadConfig(explicitPath) {
     // relabel it as an older calibrated prompt.
     reviewerPromptVersion: "5",
   };
+  validateExperimentConfig(config);
   return config;
 }
 
 const DEFAULT_TIER_A_DETECTORS = [];
 const DEFAULT_TIER_B_DETECTORS = [];
-const ASSURANCE_HOOK_NAMES = ["integrityBlocks", "terminateAfterExport"];
+const ASSURANCE_HOOK_NAMES = ["informOnQuery", "informOnUnresolvedHypotheses", "interpretationsOnAnomaly", "integrityBlocks", "terminateAfterExport"];
 
 // These values are retained only as explicit offline-observer metadata. They
 // never alter the Application Host or grant a Reviewer/Detector publish power.
@@ -176,7 +174,7 @@ function assuranceHookSwitches(config, options = {}) {
 function detectorPolicyFromConfig(config) {
   const configured = config.assurance?.detectors ?? {};
   return {
-    enabled: false,
+    enabled: configured.enabled !== false,
     tierA: Array.isArray(configured.tierA) ? configured.tierA.map(String) : DEFAULT_TIER_A_DETECTORS,
     tierB: Array.isArray(configured.tierB) ? configured.tierB.map(String) : DEFAULT_TIER_B_DETECTORS,
     disabled: Array.isArray(configured.disabled) ? configured.disabled.map(String) : [],
@@ -303,6 +301,7 @@ function withKnowledgeMetadata(content, metadata) {
     `knowledgeId: ${metadata.knowledgeId}`,
     `name: ${metadata.name}`,
     `description: ${metadata.description}`,
+    ...(metadata.usage ? [`usage: ${metadata.usage}`] : []),
     "---",
     "",
     source.replace(/^\s+/, ""),
@@ -341,10 +340,10 @@ async function prepareKnowledge(instance, config, caseRoot, KnowledgeIndex, Work
     await copyFile(source, path.join(workspaceDocs, "external", name));
   }
   await writeFile(path.join(knowledgeDoc, "business.md"), withKnowledgeMetadata(businessSections.join("\n"), { knowledgeId: "business-definitions", name: "业务定义", description: "提供业务指标、枚举、阈值和已知业务约束；内容未明确时不得用通用经验补造业务定义。" }), "utf8");
-  await writeFile(path.join(knowledgeDoc, "semantic_guide.md"), withKnowledgeMetadata(baseSemanticGuide || "# Semantic Guide\n\nNo semantic guide is configured.\n", { knowledgeId: "semantic-guide", name: "数据分析语义理解指引", description: "用于拆解问题、建立七槽位，并按专题处理总体、连接权重、多级聚合、时间、排名、事件序列和状态歧义；不提供具体业务枚举。" }), "utf8");
-  await writeFile(path.join(knowledgeDoc, "rules.md"), withKnowledgeMetadata(buildEvaluationRules(baseRules, instance), { knowledgeId: "sql-rules", name: "SQL 生成规范", description: "用于把当前 Answer Spec 实现为安全、符合目标方言的 SQL，包括聚合、精度、NULL 和方言规则；不负责决定业务口径。" }), "utf8");
+  await writeFile(path.join(knowledgeDoc, "semantic_guide.md"), withKnowledgeMetadata(baseSemanticGuide || "# Semantic Guide\n\nNo semantic guide is configured.\n", { knowledgeId: "semantic-guide", usage: "method", name: "数据分析语义理解指引", description: "用于拆解问题、建立七槽位，并按专题处理总体、连接权重、多级聚合、时间、排名、事件序列和状态歧义；不提供具体业务枚举。" }), "utf8");
+  await writeFile(path.join(knowledgeDoc, "rules.md"), withKnowledgeMetadata(buildEvaluationRules(baseRules, instance), { knowledgeId: "sql-rules", usage: "method", name: "SQL 生成规范", description: "用于把当前 Answer Spec 实现为安全、符合目标方言的 SQL，包括聚合、精度、NULL 和方言规则；不负责决定业务口径。" }), "utf8");
   await writeFile(path.join(knowledgeDoc, "query_patterns.md"), withKnowledgeMetadata("# Verified Query Patterns\n\nNo benchmark-specific query patterns are provided.\n", { knowledgeId: "query-patterns", name: "已验证查询模式", description: "提供可复用的查询结构和适用前提；只有当前口径与前提匹配时才能复用。" }), "utf8");
-  await writeFile(path.join(knowledgeDoc, "learning.md"), withKnowledgeMetadata(buildEvaluationLearning(baseLearning), { knowledgeId: "learning-notes", name: "历史纠错与经验", description: "提供历史错误、方言陷阱和可复用经验；证据等级低于用户、业务定义和正式 Schema。" }), "utf8");
+  await writeFile(path.join(knowledgeDoc, "learning.md"), withKnowledgeMetadata(buildEvaluationLearning(baseLearning), { knowledgeId: "learning-notes", usage: "method", name: "历史纠错与经验", description: "提供历史错误、方言陷阱和可复用经验；证据等级低于用户、业务定义和正式 Schema。" }), "utf8");
 
   const knowledge = new KnowledgeIndex({ requireMetadata: true });
   await knowledge.loadDirectory(knowledgeRoot);
@@ -359,65 +358,60 @@ async function prepareKnowledge(instance, config, caseRoot, KnowledgeIndex, Work
 }
 
 
-async function collectArtifacts(instance, runDir, workspace, recorder) {
-  const caseRoot = path.join(runDir, "cases", instance.instance_id);
-  const finalSql = selectFinalSql(recorder.calls);
-  const sqlDir = path.join(runDir, "submissions", "sql");
-  const csvDir = path.join(runDir, "submissions", "csv");
-  await Promise.all([mkdir(sqlDir, { recursive: true }), mkdir(csvDir, { recursive: true })]);
-  if (finalSql) await writeFile(path.join(sqlDir, `${instance.instance_id}.sql`), `${finalSql.sql}\n`, "utf8");
+function authorizedDeliveryFromCalls(calls) {
+  for (const call of [...(calls ?? [])].reverse()) {
+    if (call.isError || !["export_query", "publish_query_result", "query_database"].includes(call.toolName)) continue;
+    const details = call.result?.details ?? {};
+    const receipt = details.receiptId && details.candidateId ? details : details.publicationReceipt;
+    if (!receipt?.receiptId || !receipt.candidateId) continue;
+    const handle = call.args?.candidateId ?? call.args?.queryArtifactId ?? details.queryArtifactId ?? receipt.candidateId ?? receipt.queryArtifactId;
+    const mixedHandles = call.args?.candidateId !== undefined && call.args?.queryArtifactId !== undefined;
+    if (mixedHandles || !handle || handle !== (receipt.candidateId ?? receipt.queryArtifactId ?? details.queryArtifactId)) continue;
+    if (call.toolName === "query_database" && call.args?.deliverIfEligible !== true && call.args?.mode !== "result") continue;
+    return { call, receipt, candidateId: handle };
+  }
+  return undefined;
+}
 
+async function collectArtifacts(instance, attemptRoot, adapter, recorder) {
+  const delivery = authorizedDeliveryFromCalls(recorder.calls);
+  const sqlDir = path.join(attemptRoot, "submissions", "sql");
+  const csvDir = path.join(attemptRoot, "submissions", "csv");
+  await Promise.all([mkdir(sqlDir, { recursive: true }), mkdir(csvDir, { recursive: true })]);
+
+  let finalSql;
   let finalCsv;
   let csvError;
-  if (finalSql) {
-    const relativePath = publishedCsvPath(finalSql, recorder.calls);
-    const deliveryCall = recorder.calls.find((call) => call.toolCallId === finalSql.toolCallId);
-    const receipt = deliveryCall?.result?.details?.receiptId && deliveryCall.result.details?.candidateId
-      ? deliveryCall.result.details
-      : deliveryCall?.result?.details?.publicationReceipt;
+  const receipt = delivery?.receipt;
+  if (delivery) {
     try {
-      if (receipt?.format === "csv" && typeof receipt.content === "string") {
-        if (!receipt.content.length) throw new Error("CSV_EMPTY_FILE");
-        finalCsv = path.join(csvDir, `${instance.instance_id}.csv`);
-        await writeFile(finalCsv, receipt.content, "utf8");
-      } else if (receipt?.resultRef) {
-        const resultFile = path.join(caseRoot, "results", receipt.sessionId ?? `${path.basename(runDir)}-${instance.instance_id}`, `${receipt.resultRef}.json`);
-        if (await exists(resultFile)) {
-          const stored = JSON.parse(await readFile(resultFile, "utf8"));
-          const csvText = [
-            stored.columns.join(","),
-            ...stored.rows.map((row) => row.map((cell) => cell === null || cell === undefined ? "" : /[",\r\n]/.test(String(cell)) ? `"${String(cell).replaceAll('"', '""')}"` : String(cell)).join(","))
-          ].join("\n");
-          if (!csvText.length) throw new Error("CSV_EMPTY_FILE");
-          finalCsv = path.join(csvDir, `${instance.instance_id}.csv`);
-          await writeFile(finalCsv, csvText, "utf8");
-        } else if (relativePath) {
-          const bytes = await workspace.readBytes(relativePath);
-          if (bytes.byteLength === 0) throw new Error("CSV_EMPTY_FILE");
-          finalCsv = path.join(csvDir, `${instance.instance_id}.csv`);
-          await writeFile(finalCsv, bytes);
-        } else {
-          throw new Error("CSV_PATH_MISSING");
-        }
-      } else if (relativePath) {
-        const bytes = await workspace.readBytes(relativePath);
-        if (bytes.byteLength === 0) throw new Error("CSV_EMPTY_FILE");
-        finalCsv = path.join(csvDir, `${instance.instance_id}.csv`);
-        await writeFile(finalCsv, bytes);
-      } else {
-        throw new Error("CSV_PATH_MISSING");
-      }
+      if (!receipt?.receiptId) throw new Error("PUBLICATION_RECEIPT_MISSING");
+      const authorizedSql = await adapter.readPublicationSql(receipt.receiptId);
+      finalSql = { sql: authorizedSql.sql, toolCallId: delivery.call.toolCallId, toolName: delivery.call.toolName, queryArtifactId: delivery.candidateId, queryHash: authorizedSql.queryHash };
+      await writeFile(path.join(sqlDir, `${instance.instance_id}.sql`), `${authorizedSql.sql}\n`, "utf8");
+      const authorized = await adapter.readPublication(receipt.receiptId);
+      if (authorized.summary.format !== "csv") throw new Error(`PUBLISHED_FORMAT_NOT_CSV:${authorized.summary.format}`);
+      if (!authorized.content.length) throw new Error("CSV_EMPTY_FILE");
+      finalCsv = path.join(csvDir, `${instance.instance_id}.csv`);
+      await writeFile(finalCsv, authorized.content, "utf8");
     } catch (caught) {
-      // Delivery failure is recorded separately from SQL correctness.
+      // Delivery read failure is separate from the fact that a Receipt exists.
       csvError = caught instanceof Error ? caught.message : String(caught);
     }
   }
-  return { finalSql, finalCsv, csvError };
+  return { finalSql, finalCsv, csvError, receipt };
 }
 
 async function evaluationSystemPrompt(config) {
+  const semanticSpecMode = resolveSemanticSpecMode(config);
+  const noClarification = config.enableClarificationTool === false
+    ? "\n\nHeadless evaluation: ask_user_clarification is unavailable. Do not call it or substitute another user-input tool. Use available task evidence; if a material ambiguity remains unresolved, explain the limitation rather than inventing a business rule or result.\n"
+    : "";
+  if (semanticSpecMode === "disabled") {
+    return `${await readFile(path.join(here, "prompts", "semantic-spec-disabled.md"), "utf8")}${noClarification}`;
+  }
   const source = await readFile(path.join(projectRoot, ".pi", "SYSTEM.md"), "utf8");
-  if (config.assurance?.fewshot !== false) return source;
+  if (config.assurance?.fewshot !== false) return `${source}${noClarification}`;
   const supportedSections = [
     { start: "\n### 1.5 口径推导示范", end: "\n---\n\n## 2. 输出与交付" },
     { start: "\n#### 口径推导与 SQL 示例", end: "\n---\n\n### 4. 预览结果并导出" },
@@ -425,7 +419,7 @@ async function evaluationSystemPrompt(config) {
   for (const boundary of supportedSections) {
     const sectionStart = source.indexOf(boundary.start);
     const sectionEnd = source.indexOf(boundary.end, sectionStart);
-    if (sectionStart >= 0 && sectionEnd >= 0) return `${source.slice(0, sectionStart)}${source.slice(sectionEnd)}`;
+    if (sectionStart >= 0 && sectionEnd >= 0) return `${source.slice(0, sectionStart)}${source.slice(sectionEnd)}${noClarification}`;
   }
   throw new Error("FEWSHOT_SECTION_BOUNDARY_NOT_FOUND");
 }
@@ -465,28 +459,47 @@ function publicationStatusFor(recorder, status) {
   return `not_published_export_failed:${code}`;
 }
 
-function nativeEventFromPresentation(event) {
-  const envelope = event?.type === "presentation.event" ? event.envelope : undefined;
-  const semantic = envelope?.event;
-  if (!semantic || typeof semantic.type !== "string") return undefined;
-  const runId = event.operationId ?? envelope.runId;
-  if (semantic.type === "agent.message_started") return { type: "message_start", runId, message: { role: "assistant", id: semantic.messageId } };
-  if (semantic.type === "agent.text_delta") return { type: "message_update", runId, assistantMessageEvent: { type: "text_delta", delta: semantic.delta } };
-  if (semantic.type === "agent.thinking_delta") return { type: "message_update", runId, assistantMessageEvent: { type: "thinking_delta", delta: semantic.delta } };
-  if (semantic.type === "agent.tool_started") return { type: "tool_execution_start", runId, toolCallId: semantic.toolCallId, toolName: semantic.toolName, args: semantic.args };
-  if (semantic.type === "agent.tool_finished") return { type: "tool_execution_end", runId, toolCallId: semantic.toolCallId, toolName: semantic.toolName, result: semantic.result, isError: semantic.isError === true, args: semantic.args };
-  if (semantic.type === "agent.completed") return { type: "agent_end", runId, messages: [] };
+function nativeEventFromObservation(observation) {
+  const event = observation?.event;
+  if (!event || typeof event.type !== "string") return undefined;
+  if (event.type === "run_start") return { type: "agent_start", runId: event.runId };
+  if (event.type === "message_start") return { type: "message_start", runId: event.runId, message: event.message };
+  if (event.type === "message_update") return { type: "message_update", runId: event.runId, assistantMessageEvent: event.event };
+  if (event.type === "message_end") return { type: "message_end", runId: event.runId, message: event.message };
+  if (event.type === "tool_start") return { type: "tool_execution_start", runId: event.runId, toolCallId: event.toolCallId, toolName: event.toolName, args: event.args };
+  if (event.type === "tool_update") return { type: "tool_execution_update", runId: event.runId, toolCallId: event.toolCallId, toolName: event.toolName, partialResult: event.partialResult };
+  if (event.type === "tool_end") return { type: "tool_execution_end", runId: event.runId, toolCallId: event.toolCallId, toolName: event.toolName, result: event.result, isError: event.isError === true };
+  if (event.type === "run_end" && event.status === "failed") return { type: "message_end", runId: event.runId, message: { role: "assistant", stopReason: "error", errorMessage: event.error?.message ?? "Pi operation failed" } };
+  if (event.type === "run_end") return { type: "agent_end", runId: event.runId, messages: [] };
   return undefined;
 }
 
 async function waitForApplicationOperation(adapter, operationId, maxWaitMs = Infinity) {
   const startedAt = Date.now();
   while (true) {
+    const snapshot = await adapter.getExecutionSnapshot?.();
+    if (snapshot?.lastResult?.operationId === operationId) return snapshot;
     const open = await adapter.getOpenOperations();
-    if (!open.some((operation) => operation.operationId === operationId)) return;
-    if (Date.now() - startedAt >= maxWaitMs) return;
+    if (!open.some((operation) => operation.operationId === operationId)) return snapshot;
+    if (Date.now() - startedAt >= maxWaitMs) return snapshot;
     await new Promise((resolve) => setTimeout(resolve, 20));
   }
+}
+
+function requireKnownOperationTerminal(snapshot, operationId) {
+  if (snapshot?.lastResult?.operationId !== operationId) {
+    const error = new Error("OPERATION_TERMINAL_UNKNOWN");
+    error.name = "OperationTerminalUnknownError";
+    throw error;
+  }
+  if (["failed", "error"].includes(snapshot.lastResult.status)) {
+    const error = new Error(snapshot.lastResult.error?.message ?? "Pi operation failed");
+    error.name = "PiOperationError";
+    error.nativeStatus = snapshot.lastResult.status;
+    error.nativeError = snapshot.lastResult.error;
+    throw error;
+  }
+  return snapshot;
 }
 
 function fanoutMetrics(calls) {
@@ -547,6 +560,45 @@ function specFeedbackMetrics(calls) {
   };
 }
 
+async function recordInternalCallSpans(attemptRecorder, call, index, traceId, toolSpanId) {
+  const callId = call.toolCallId ?? `tool-${index + 1}`;
+  const finishedAt = call.finishedAt ?? call.startedAt;
+  if (call.toolName === "query_database") {
+    const queryKind = call.args?.kind ?? call.args?.mode;
+    await attemptRecorder.recordEvent({
+      eventId: `${callId}:database`,
+      type: queryKind === "result" ? "db.result_query" : "db.exploration_query",
+      occurredAt: finishedAt,
+      traceId,
+      parentSpanId: toolSpanId,
+      payload: { invocationId: `${callId}:database`, startedAt: call.startedAt, endedAt: finishedAt, status: call.isError ? "failed" : "completed", isError: call.isError },
+    });
+  }
+  const fanout = call.result?.details?.fanout;
+  if (!fanout || typeof fanout !== "object") return;
+  const fanoutIdentity = `${callId}:fanout`;
+  const fanoutSpanId = spanIdForIdentity(traceId, `fanout:${fanoutIdentity}`);
+  await attemptRecorder.recordEvent({
+    eventId: fanoutIdentity,
+    type: "answering.fanout",
+    occurredAt: finishedAt,
+    traceId,
+    parentSpanId: toolSpanId,
+    payload: { invocationId: fanoutIdentity, endedAt: finishedAt, status: fanout.status === "unknown" ? "unknown" : "completed" },
+  });
+  for (const [targetIndex, target] of (Array.isArray(fanout.targets) ? fanout.targets : []).entries()) {
+    const targetIdentity = `${fanoutIdentity}:probe:${target.targetId ?? targetIndex + 1}`;
+    await attemptRecorder.recordEvent({
+      eventId: targetIdentity,
+      type: "db.probe",
+      occurredAt: finishedAt,
+      traceId,
+      parentSpanId: fanoutSpanId,
+      payload: { invocationId: targetIdentity, targetId: target.targetId, endedAt: finishedAt, status: target.status === "unknown" ? "unknown" : "completed" },
+    });
+  }
+}
+
 function knowledgeMetrics(calls, startedAt) {
   const knowledgeCalls = calls.filter((call) => call.toolName === "search_knowledge" || call.toolName === "read_knowledge");
   const contentRefs = knowledgeCalls.flatMap((call) => {
@@ -567,45 +619,85 @@ function knowledgeMetrics(calls, startedAt) {
   };
 }
 
-async function createCaseRunner(config, runDir, _hookSwitches, _detectorPolicy, _interpretationPolicy, systemPrompt) {
-  const runtime = await import("@data-agent/runtime");
+async function createCaseRunner(config, runDir, systemPrompt, attemptId = "attempt-001", experimentId = "legacy", attemptMode = "run", queryBudgetPolicy, retryOfAttemptId, fanoutEnabled = true, semanticSpecMode = "required") {
   const protocol = await import("@data-agent/runtime/testing");
   const { createMcpQueryExecutor } = await import("../../apps/server/dist/mcp-query-executor.js");
   const profile = profileFromConfig(config);
+  const specFeedbackConfigured = semanticSpecMode === "required" && specFeedbackRequested(config) && Boolean(process.env.TYPESAFE_API_KEY?.trim());
   return async (instance) => {
     const startedAt = Date.now();
-    const caseRoot = path.join(runDir, "cases", instance.instance_id);
-    await mkdir(caseRoot, { recursive: true });
+    const legacyCaseRoot = path.join(runDir, "cases", instance.instance_id);
+    const caseRoot = attemptDirectory(runDir, instance.instance_id, attemptId);
+    await Promise.all([mkdir(legacyCaseRoot, { recursive: true }), mkdir(caseRoot, { recursive: true })]);
     let executor;
     let application;
+    let adapter;
+    let stopObservations;
+    let attemptRecorder;
+    let attemptLayout;
+    // Streaming observations carry the partial message so far; retaining all of them grows
+    // quadratically with reply length. Keep only the count and the run_end facts we read.
+    const nativeObservations = {
+      count: 0,
+      types: [],
+      lastRunEnd: undefined,
+      lastFailedRunEnd: undefined,
+      push(observation) {
+        this.count += 1;
+        if (observation?.event?.type) this.types.push(observation.event.type);
+        if (observation?.event?.type !== "run_end") return;
+        this.lastRunEnd = observation;
+        if (observation.event?.status === "failed") this.lastFailedRunEnd = observation;
+      },
+    };
+    const jevObservations = [];
+    let activeTools = [];
+    let databaseIdentity = { state: "unknown", backend: backendForCase(instance) };
     let harness;
     let recorder;
     let prepared;
     let status = "completed";
     let error;
     let artifacts = {};
-    const observerEvents = [];
+    const cleanupErrors = [];
     try {
+      attemptLayout = await createAttemptLayout(runDir, createAttemptDescriptor({
+        runId: path.basename(runDir),
+        caseId: instance.instance_id,
+        attemptId,
+        experimentId,
+        traceId: `${path.basename(runDir)}:${instance.instance_id}:${attemptId}`,
+        mode: attemptMode,
+        inputIdentity: { experimentId, caseId: instance.instance_id },
+        budgetSnapshot: queryBudgetPolicy ?? null,
+        ...(attemptMode === "retry" && retryOfAttemptId ? { retryOf: retryOfAttemptId } : {}),
+        ...(attemptMode === "continue" && retryOfAttemptId ? { continuesFrom: retryOfAttemptId } : {}),
+      }));
       prepared = await prepareKnowledge(instance, config, caseRoot, protocol.KnowledgeIndex, protocol.WorkspaceStore);
       const backend = await backendExecutor(instance, config, createMcpQueryExecutor);
       executor = backend.executor;
-      const sessionId = path.basename(runDir) + "-" + instance.instance_id;
+      databaseIdentity = backend.databasePath
+        ? { state: "known", backend: backendForCase(instance), path: backend.databasePath, sha256: await sha256File(backend.databasePath) }
+        : { state: "unknown", backend: backendForCase(instance), reason: "external_backend_snapshot_not_exposed" };
+      const sessionId = `${path.basename(runDir)}-${instance.instance_id}-${attemptId}`;
       const hypothesisChoiceAdvisor = process.env.TYPESAFE_API_KEY?.trim() && protocol.JevHypothesisChoiceAdvisor
         ? new protocol.JevHypothesisChoiceAdvisor({
             apiKey: process.env.TYPESAFE_API_KEY.trim(),
             model: process.env.TYPESAFE_MODEL?.trim() || "jev-1.13.0",
             ...(process.env.TYPESAFE_ENDPOINT?.trim() ? { endpoint: process.env.TYPESAFE_ENDPOINT.trim() } : {}),
+            onObservation: (observation) => jevObservations.push(observation),
           })
         : undefined;
-      const specAlignmentAssessor = process.env.TYPESAFE_SPEC_ALIGNMENT === "1" && process.env.TYPESAFE_API_KEY?.trim() && protocol.JevSpecAlignmentAssessor
+      const specAlignmentAssessor = semanticSpecMode === "required" && specFeedbackRequested(config) && process.env.TYPESAFE_API_KEY?.trim() && protocol.JevSpecAlignmentAssessor
         ? new protocol.JevSpecAlignmentAssessor({
             apiKey: process.env.TYPESAFE_API_KEY.trim(),
             model: process.env.TYPESAFE_MODEL?.trim() || "jev-1.13.0",
             ...(process.env.TYPESAFE_ENDPOINT?.trim() ? { endpoint: process.env.TYPESAFE_ENDPOINT.trim() } : {}),
+            onObservation: (observation) => jevObservations.push(observation),
           })
         : undefined;
       application = new protocol.DataAgentSessionApplication({
-        sessionRoot: path.join(runDir, "transcripts", instance.instance_id),
+        sessionRoot: path.join(caseRoot, "session"),
         workspace: prepared.workspace,
         knowledge: prepared.knowledge,
         knowledgeRoot: prepared.knowledgeRoot,
@@ -615,11 +707,21 @@ async function createCaseRunner(config, runDir, _hookSwitches, _detectorPolicy, 
         profile,
         ...(hypothesisChoiceAdvisor ? { hypothesisChoiceAdvisor } : {}),
         ...(specAlignmentAssessor ? { specAlignmentAssessor } : {}),
+        ...(queryBudgetPolicy ? { answeringBudgetPolicy: queryBudgetPolicy } : {}),
+        semanticSpecMode,
+        enableClarificationTool: config.enableClarificationTool !== false,
+        answeringFanout: { enabled: fanoutEnabled },
+        // Spider2 external knowledge is task-supplied, not a reviewed business definition.
+        answeringEvidenceDocuments: { "business-definitions": "task_document" },
         systemPrompt,
         systemPromptRoots: [prepared.knowledgeRoot, projectRoot],
         projectRoot,
+        // Product Skills plus evaluation-only protocol Skills; requires-tools keeps each arm's protocol Skill exclusive.
+        skillRoots: [path.join(projectRoot, ".agents", "skills"), path.join(here, "skills")],
         createMissingSessions: true,
-        enableSubagents: true,
+        enableWidgets: config.enableWidgets === true,
+        enableDashboards: config.enableDashboards === true,
+        enableSubagents: config.enableSubagents !== false,
         delegationRoot: path.join(caseRoot, "subagents"),
         delegationKnowledgePaths: [
           "doc/business.md",
@@ -630,19 +732,30 @@ async function createCaseRunner(config, runDir, _hookSwitches, _detectorPolicy, 
           "doc/semantic_guide.md",
         ],
       });
-      const adapter = application.createAgentAdapter({ userId: "evaluation", host: "web", sessionId });
+      adapter = application.createAgentAdapter({ userId: "evaluation", host: "web", sessionId });
+      activeTools = [...await adapter.getActiveTools()];
+      stopObservations = adapter.subscribeObservations((observation) => {
+        nativeObservations.push(observation);
+      }, { userId: "evaluation", sessionId });
+      attemptRecorder = await openAttemptRecorder(adapter, path.join(caseRoot, "record"), {
+        runId: path.basename(runDir),
+        caseId: instance.instance_id,
+        attemptId,
+        traceId: `${path.basename(runDir)}:${instance.instance_id}:${attemptId}`,
+      });
       let currentOperationId;
       harness = {
         subscribe(listener) {
-          return adapter.subscribe((event) => {
-            const nativeEvent = nativeEventFromPresentation(event);
+          return adapter.subscribeObservations((observation) => {
+            const nativeEvent = nativeEventFromObservation(observation);
             if (nativeEvent) listener(nativeEvent);
-          });
+          }, { userId: "evaluation", sessionId });
         },
         async prompt(text) {
           const accepted = await adapter.prompt(text, { sessionId, userId: "evaluation", requestId: sessionId + ":prompt" });
           currentOperationId = accepted.operationId;
-          await waitForApplicationOperation(adapter, accepted.operationId);
+          const snapshot = await waitForApplicationOperation(adapter, accepted.operationId);
+          requireKnownOperationTerminal(snapshot, accepted.operationId);
           return accepted;
         },
         async abort() {
@@ -654,7 +767,20 @@ async function createCaseRunner(config, runDir, _hookSwitches, _detectorPolicy, 
         },
       };
       recorder = createRecorder(harness, config.limits);
-      await runPromptWithTimeout(harness, buildAgentPrompt(instance), config.limits.timeoutMs, recorder);
+      if (attemptMode === "continue") {
+        const snapshot = await adapter.getExecutionSnapshot({ userId: "evaluation", sessionId });
+        const open = await adapter.getOpenOperations({ userId: "evaluation", sessionId });
+        if (open.length === 0 && snapshot?.lastResult?.operationId !== currentOperationId) {
+          if (snapshot?.lastResult?.operationId) currentOperationId = snapshot.lastResult.operationId;
+          else throw new Error("CONTINUE_OPERATION_NOT_OPEN");
+        }
+        currentOperationId = open[0]?.operationId ?? snapshot?.lastResult?.operationId ?? currentOperationId;
+        if (!currentOperationId) throw new Error("CONTINUE_OPERATION_ID_REQUIRED");
+        const continued = await waitForApplicationOperation(adapter, currentOperationId, config.limits.timeoutMs ?? Infinity);
+        requireKnownOperationTerminal(continued, currentOperationId);
+      } else {
+        await runPromptWithTimeout(harness, buildAgentPrompt(instance), config.limits.timeoutMs, recorder);
+      }
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : String(caught);
       const limitFailure = Boolean(recorder?.limitError) || message === "MAX_TURNS" || message === "MAX_TOOL_CALLS" || message === "TASK_TIMEOUT";
@@ -663,16 +789,36 @@ async function createCaseRunner(config, runDir, _hookSwitches, _detectorPolicy, 
       if (providerFailure) error.provider = providerFailure;
       status = providerFailure ? "provider_error"
         : error.message === "TASK_TIMEOUT" ? "timeout"
-          : error.message?.startsWith("LOCAL_DATABASE_NOT_FOUND") || error.message?.startsWith("METADATA_DIR_NOT_FOUND") || error.message?.startsWith("DDL_NOT_FOUND") || error.message?.includes("EXTERNAL_KNOWLEDGE")
-            ? "resource_error" : "error";
+          : error.message === "OPERATION_TERMINAL_UNKNOWN" ? "unknown"
+            : error.message?.startsWith("LOCAL_DATABASE_NOT_FOUND") || error.message?.startsWith("METADATA_DIR_NOT_FOUND") || error.message?.startsWith("DDL_NOT_FOUND") || error.message?.includes("EXTERNAL_KNOWLEDGE")
+              ? "resource_error" : "error";
+      const nativeFailure = nativeObservations.lastFailedRunEnd;
+      if (!limitFailure && nativeFailure && status === "completed") {
+        status = "error";
+        error ??= { name: "PiOperationError", message: nativeFailure.event?.error?.message ?? "Pi operation failed" };
+      }
       if (recorder && status === "error" && recorder.terminalReason !== "completed") status = recorder.terminalReason;
     } finally {
       await recorder?.waitForAbort?.().catch(() => undefined);
       await harness?.waitForIdle?.().catch(() => undefined);
-      if (prepared && recorder) artifacts = await collectArtifacts(instance, runDir, prepared.workspace, recorder).catch(() => artifacts);
+      if (prepared && recorder && adapter) artifacts = await collectArtifacts(instance, caseRoot, adapter, recorder).catch((caught) => ({ ...artifacts, csvError: caught instanceof Error ? caught.message : String(caught) }));
+      await attemptRecorder?.flush?.();
+      stopObservations?.();
       recorder?.unsubscribe();
-      try { await application?.close().catch(() => undefined); } catch {}
-      try { await executor?.close().catch(() => undefined); } catch {}
+      try { await application?.close(); } catch (caught) { cleanupErrors.push(caught instanceof Error ? { name: caught.name, message: caught.message } : { message: String(caught) }); }
+      try { await executor?.close(); } catch (caught) { cleanupErrors.push(caught instanceof Error ? { name: caught.name, message: caught.message } : { message: String(caught) }); }
+    }
+    const nativeFailure = nativeObservations.lastFailedRunEnd;
+    if (nativeFailure && status === "completed") {
+      const nativeMessage = nativeFailure.event?.error?.message ?? "Pi operation failed";
+      const nativeProviderFailure = classifyProviderFailure(nativeMessage);
+      status = nativeProviderFailure ? "provider_error" : "error";
+      error ??= { name: nativeProviderFailure ? "ProviderError" : "PiOperationError", message: nativeMessage };
+      if (nativeProviderFailure) error.provider = nativeProviderFailure;
+    }
+    if (recorder?.infraFailure) {
+      status = "infra_error";
+      error = { name: "InfrastructureError", message: recorder.infraFailure };
     }
     const limitTerminated = Boolean(recorder?.limitError) || ["timeout", "max_turns", "max_tool_calls"].includes(status);
     if (recorder?.providerFailure && !artifacts.finalCsv && !limitTerminated && status === "completed") {
@@ -699,20 +845,131 @@ async function createCaseRunner(config, runDir, _hookSwitches, _detectorPolicy, 
       csvGenerated: Boolean(artifacts.finalCsv),
       csvError: artifacts.csvError ?? null,
       error: error ?? null,
+      ...(attemptRecorder?.persistenceError ? { recordIncomplete: true, recordPersistenceError: attemptRecorder.persistenceError } : {}),
+      semanticSpecMode,
       assuranceMode: "answering-fanout",
       assuranceManifest: { mode: "answering-fanout", policyVersion: "answering-publication-v1", reviewerOnline: false, detectorsOnline: recordedFanoutMetrics.enabled, fanoutRuleVersion: "answering-fanout-v1", specFeedbackOnline: recordedSpecFeedbackMetrics.enabled, specFeedbackRuleVersion: "spec-feedback-v1" },
       publicationStatus: publicationStatusFor(recorder, status),
       assuranceAuditRecords: [],
-      hookEvents: observerEvents,
       anomalies: recordedFanoutMetrics.findingCount > 0 ? recordedFanoutMetrics.reports.flatMap((report) => (report.targets ?? []).filter((target) => target.status === "finding").map((target) => ({ detector: "join_fanout", status: "observed", targetId: target.targetId, sourceRelation: target.sourceRelation, sourceKey: target.sourceKey, observation: target.observation }))) : [],
       fanoutMetrics: recordedFanoutMetrics,
       specFeedbackMetrics: recordedSpecFeedbackMetrics,
       anomalyMetrics: { total: recordedFanoutMetrics.findingCount, byDetector: recordedFanoutMetrics.findingCount > 0 ? { join_fanout: recordedFanoutMetrics.findingCount } : {}, distinctFingerprintsBySlot: {}, interpretationHookCount: 0, unresolvedHypothesisHookCount: 0, unresolvedHypothesisIds: [], interpretationBudgetSkipCount: 0, detectorTiers: { tierA: ["join_fanout"], tierB: [], disabled: [], enabled: recordedFanoutMetrics.enabled } },
+      nativeObservationCount: nativeObservations.count,
+      activeTools,
+      databaseIdentity,
+      jevObservationCount: jevObservations.length,
+      ...(cleanupErrors.length ? { cleanupErrors, cleanupFailed: true } : {}),
+      nativeTerminalStatus: nativeObservations.lastRunEnd?.event?.status ?? "unknown",
     };
-    await Promise.all([
+    if (attemptRecorder) {
+      for (const [index, call] of (recorder?.calls ?? []).entries()) {
+        await attemptRecorder.recordEvent({
+          eventId: `${call.toolCallId ?? `tool-${index + 1}`}:start`,
+          type: "tool_start",
+          occurredAt: call.startedAt,
+          traceId: `${path.basename(runDir)}:${instance.instance_id}:${attemptId}`,
+          payload: { toolCallId: call.toolCallId ?? `tool-${index + 1}`, toolName: call.toolName, args: call.args },
+        });
+        if (call.finishedAt !== undefined) await attemptRecorder.recordEvent({
+          eventId: `${call.toolCallId ?? `tool-${index + 1}`}:end`,
+          type: "tool_end",
+          occurredAt: call.finishedAt,
+          traceId: `${path.basename(runDir)}:${instance.instance_id}:${attemptId}`,
+          payload: { toolCallId: call.toolCallId ?? `tool-${index + 1}`, toolName: call.toolName, isError: call.isError, result: call.result },
+        });
+        const traceId = `${path.basename(runDir)}:${instance.instance_id}:${attemptId}`;
+        const toolSpanId = spanIdForIdentity(traceId, `tool:${call.toolCallId ?? `tool-${index + 1}`}`);
+        await recordInternalCallSpans(attemptRecorder, call, index, traceId, toolSpanId);
+        const childOutcomes = call.toolName === "subagent" && Array.isArray(call.result?.details) ? call.result.details : [];
+        for (const outcome of childOutcomes) {
+          if (!outcome?.runId) continue;
+          const parentSpanId = toolSpanId;
+          await attemptRecorder.recordEvent({
+            eventId: `${outcome.runId}:start`,
+            type: "child_operation_start",
+            occurredAt: call.startedAt,
+            traceId,
+            parentSpanId,
+            payload: { runId: outcome.runId, key: outcome.key, operationId: outcome.operationId, status: "running" },
+          });
+          await attemptRecorder.recordEvent({
+            eventId: `${outcome.runId}:end`,
+            type: "child_operation_end",
+            occurredAt: call.finishedAt ?? call.startedAt,
+            traceId,
+            parentSpanId,
+            payload: { runId: outcome.runId, key: outcome.key, operationId: outcome.operationId, status: outcome.status, usage: outcome.usage },
+          });
+        }
+      }
+      const traceId = `${path.basename(runDir)}:${instance.instance_id}:${attemptId}`;
+      for (const [index, observation] of jevObservations.entries()) {
+        await attemptRecorder.recordEvent({
+          eventId: `jev-${index + 1}-${observation.kind}`,
+          type: "jev_request",
+          occurredAt: observation.startedAt,
+          traceId,
+          payload: observation,
+        });
+      }
+      const sealedAt = Date.now();
+      const sealed = await attemptRecorder.seal({
+        execution: {
+          state: status === "completed" ? "completed" : status === "provider_error" ? "provider_failed" : status === "timeout" ? "budget_exhausted" : status,
+          startedAt,
+          endedAt: sealedAt,
+          sourceRefs: attemptRecorder.events.map((fact) => fact.eventId),
+          observationCoverage: Boolean(nativeObservations.lastRunEnd) ? { state: "complete" } : { state: "partial", reason: "run_end_missing" },
+        },
+        publication: artifacts.receipt
+          ? publicationFromReceipt(artifacts.receipt, artifacts.csvError ? { readError: artifacts.csvError } : {})
+          : {
+              state: (recorder?.calls ?? []).some((call) => call.toolName === "export_query" || call.toolName === "publish_query_result") ? "invalid" : "not_published",
+              observationCoverage: { state: "complete", reason: "no_publication_receipt" },
+            },
+        coverage: {
+          state: Boolean(nativeObservations.lastRunEnd) && !attemptRecorder.persistenceError && cleanupErrors.length === 0 ? "complete" : "partial",
+          nativeObservationCount: nativeObservations.count,
+          ...(attemptRecorder.persistenceError ? { recordPersistenceError: attemptRecorder.persistenceError } : {}),
+          ...(cleanupErrors.length ? { cleanupErrors } : {}),
+          ...(artifacts.csvError ? { publicationReadError: artifacts.csvError } : {}),
+        },
+        deliveryRequirement: { format: "csv", satisfied: artifacts.receipt?.format === "csv" && Boolean(artifacts.finalCsv) },
+        process: {
+          turns: recorder?.turnCount ?? 0,
+          toolCalls: recorder?.calls.length ?? 0,
+          explorationQueries: (recorder?.calls ?? []).filter((call) => call.toolName === "query_database" && (call.args?.kind ?? call.args?.mode) === "exploration").length,
+          resultQueries: (recorder?.calls ?? []).filter((call) => call.toolName === "query_database" && (call.args?.kind ?? call.args?.mode) === "result").length,
+          fanoutProbes: recordedFanoutMetrics.targetCount,
+          revisions: (recorder?.calls ?? []).filter((call) => call.toolName === "revise_answer_spec").length,
+        },
+        capabilities: {
+          semanticSpec: { configured: true, executed: (recorder?.calls ?? []).some((call) => call.toolName === (semanticSpecMode === "required" ? "begin_answer_spec" : "begin_query_task")), coverage: semanticSpecMode },
+          fanout: { configured: fanoutEnabled, executed: recordedFanoutMetrics.reportCount > 0, coverage: recordedFanoutMetrics.reportCount > 0 ? "observed" : fanoutEnabled ? "not_observed" : "disabled" },
+          specFeedback: { configured: specFeedbackConfigured, executed: recordedSpecFeedbackMetrics.enabled, coverage: recordedSpecFeedbackMetrics.enabled ? "observed" : specFeedbackConfigured ? "not_observed" : "disabled" },
+        },
+      });
+      result.episodeRecord = sealed.episode;
+      result.usage = summarizeUsage(sealed.projection.spans);
+    }
+    const trace = { events: recorder?.events ?? [], toolCalls: recorder?.calls ?? [], nativeEventTypes: nativeObservations.types, knowledgeMetrics: recordedKnowledgeMetrics, fanoutMetrics: recordedFanoutMetrics, specFeedbackMetrics: recordedSpecFeedbackMetrics, assuranceAuditRecords: [], anomalies: result.anomalies, episodeRecord: result.episodeRecord ?? null };
+    const writes = [
       writeFile(path.join(caseRoot, "result.json"), JSON.stringify(result, null, 2), "utf8"),
-      writeFile(path.join(caseRoot, "trace.json"), JSON.stringify({ events: recorder?.events ?? [], toolCalls: recorder?.calls ?? [], knowledgeMetrics: recordedKnowledgeMetrics, fanoutMetrics: recordedFanoutMetrics, specFeedbackMetrics: recordedSpecFeedbackMetrics, assuranceAuditRecords: [], hookEvents: observerEvents, anomalies: result.anomalies }, null, 2), "utf8"),
-    ]);
+      writeFile(path.join(caseRoot, "trace.json"), JSON.stringify(trace, null, 2), "utf8"),
+    ];
+    // Compatibility projections are read-only views for the existing report
+    // scripts; never overwrite the first projection when a Retry is appended.
+    if (attemptId === "attempt-001" || !(await exists(path.join(legacyCaseRoot, "result.json")))) {
+      writes.push(writeFile(path.join(legacyCaseRoot, "result.json"), JSON.stringify(result, null, 2), "utf8"));
+      writes.push(writeFile(path.join(legacyCaseRoot, "trace.json"), JSON.stringify(trace, null, 2), "utf8"));
+    }
+    await Promise.all(writes);
+    if (attemptLayout) await writeAttemptStatus(attemptLayout, status, {
+      finishedAt: new Date().toISOString(),
+      ...(result.recordIncomplete ? { recordIncomplete: true } : {}),
+      ...(cleanupErrors.length ? { cleanupFailed: true, cleanupErrors } : {}),
+    });
     return result;
   };
 }
@@ -726,22 +983,48 @@ function timestampId() {
   return new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z").replace("T", "-");
 }
 
-function sameIdentity(left, right) {
-  const keys = new Set([...Object.keys(left ?? {}), ...Object.keys(right ?? {})]);
-  return [...keys].every((key) => left?.[key] === right?.[key]);
+function endpointIdentity(value) {
+  if (typeof value !== "string" || !value.trim()) return null;
+  try {
+    const url = new URL(value);
+    return `${url.origin}${url.pathname}`;
+  } catch {
+    return `sha256:${sha256Text(value)}`;
+  }
+}
+
+const EVALUATION_ADAPTER_FILES = ["run.mjs", "lib.mjs", "experiment.mjs", "episode.mjs", "record.mjs", "evaluation.mjs", "adapters/legacy-record.mjs", "baseline-report.mjs", "phase5-ab.mjs", "phase6-evaluate.mjs"];
+
+async function evaluationAdapterSha256() {
+  const hash = createHash("sha256");
+  for (const name of EVALUATION_ADAPTER_FILES) {
+    hash.update(name);
+    hash.update("\0");
+    hash.update(await readFile(path.join(here, name)));
+    hash.update("\0");
+  }
+  return hash.digest("hex");
 }
 
 async function currentBaselineSurface(config) {
+  const systemPrompt = await evaluationSystemPrompt(config);
   return {
     agentCommit: await gitCommit(projectRoot),
-    systemPromptSha256: await sha256File(path.join(projectRoot, ".pi", "SYSTEM.md")),
+    systemPromptSha256: sha256Text(systemPrompt),
+    semanticSpecMode: resolveSemanticSpecMode(config),
+    enableClarificationTool: config.enableClarificationTool !== false,
     runtimeDistSha256: await sha256Tree(path.join(projectRoot, "packages", "runtime", "dist")),
+    runtimeSourceSha256: await sha256Tree(path.join(projectRoot, "packages", "runtime", "src")),
+    runtimeBuildProvenanceSha256: await sha256File(path.join(projectRoot, "packages", "runtime", "dist", "build-provenance.json")),
     skillsSha256: await sha256Tree(path.join(projectRoot, ".agents", "skills")),
+    evaluationSkillsSha256: await sha256Tree(path.join(here, "skills")),
     sqliteMcpSha256: await sha256File(path.join(projectRoot, "apps", "server", "dist", "reference-sqlite-mcp.js")),
     queryExecutorSha256: await sha256File(path.join(projectRoot, "apps", "server", "dist", "mcp-query-executor.js")),
+    serverSourceSha256: await sha256Tree(path.join(projectRoot, "apps", "server", "src")),
+    serverBuildProvenanceSha256: await sha256File(path.join(projectRoot, "apps", "server", "dist", "build-provenance.json")),
     evaluationAdapter: {
-      runnerSha256: await sha256File(path.join(here, "run.mjs")),
-      librarySha256: await sha256File(path.join(here, "lib.mjs")),
+      sourceSha256: await evaluationAdapterSha256(),
+      files: EVALUATION_ADAPTER_FILES,
     },
     spider2: {
       commit: await gitCommit(config.spider2Repo),
@@ -752,7 +1035,7 @@ async function currentBaselineSurface(config) {
       provider: config.llm?.provider ?? "openai",
       model: config.llm?.model,
       apiFormat: config.llm?.apiFormat,
-      baseUrl: config.llm?.baseUrlEnv ? process.env[config.llm.baseUrlEnv] : config.llm?.baseUrl,
+      baseUrl: endpointIdentity(config.llm?.baseUrlEnv ? process.env[config.llm.baseUrlEnv] : config.llm?.baseUrl),
       ...(config.selectedModelProfile ? { profile: config.selectedModelProfile } : {}),
     },
     limits: config.limits,
@@ -761,10 +1044,16 @@ async function currentBaselineSurface(config) {
   };
 }
 
+function baselineLockPath(config) {
+  const mode = resolveSemanticSpecMode(config);
+  return path.join(config.runsRoot, "_baseline", mode === "required" ? "agent-surface-lock.json" : `agent-surface-lock.semantic-spec-${mode}.json`);
+}
+
 async function freezeCommand(config) {
   await assertFormalCompatibility(config);
-  const lockDir = path.join(config.runsRoot, "_baseline");
-  const lockPath = path.join(lockDir, "agent-surface-lock.json");
+  await assertBuildProvenance();
+  const lockPath = baselineLockPath(config);
+  const lockDir = path.dirname(lockPath);
   await mkdir(lockDir, { recursive: true });
   const lock = { version: 1, frozenAt: new Date().toISOString(), surface: await currentBaselineSurface(config) };
   await writeFile(lockPath, JSON.stringify(lock, null, 2), "utf8");
@@ -774,12 +1063,28 @@ async function freezeCommand(config) {
 }
 
 async function assertBaselineFrozen(config) {
-  const lockPath = path.join(config.runsRoot, "_baseline", "agent-surface-lock.json");
+  const lockPath = baselineLockPath(config);
   if (!(await exists(lockPath))) throw new Error("BASELINE_SURFACE_NOT_FROZEN");
   const expected = JSON.parse(await readFile(lockPath, "utf8")).surface;
   const actual = await currentBaselineSurface(config);
   if (JSON.stringify(expected) !== JSON.stringify(actual)) throw new Error("BASELINE_SURFACE_CHANGED");
   return lockPath;
+}
+
+async function assertBuildProvenance() {
+  const packages = [
+    [path.join(projectRoot, "packages", "runtime"), path.join(projectRoot, "packages", "runtime", "dist", "build-provenance.json")],
+    [path.join(projectRoot, "apps", "server"), path.join(projectRoot, "apps", "server", "dist", "build-provenance.json")],
+  ];
+  const checked = [];
+  for (const [packageRoot, provenancePath] of packages) {
+    if (!(await exists(provenancePath))) throw new Error(`BUILD_PROVENANCE_MISSING:${provenancePath}`);
+    const provenance = JSON.parse(await readFile(provenancePath, "utf8"));
+    const sourceSha256 = await sha256Tree(path.join(packageRoot, "src"));
+    if (provenance.sourceSha256 !== sourceSha256) throw new Error(`BUILD_PROVENANCE_STALE:${packageRoot}`);
+    checked.push({ package: provenance.package, sourceSha256, provenancePath });
+  }
+  return checked;
 }
 
 async function assertFormalCompatibility(config) {
@@ -793,12 +1098,18 @@ async function assertFormalCompatibility(config) {
   }
 }
 
+/** Advisory Spec coverage feedback (Jev) is on when the config asks for it or the legacy env flag is set. */
+function specFeedbackRequested(config) {
+  return config.specFeedback === true || process.env.TYPESAFE_SPEC_ALIGNMENT === "1";
+}
+
 function resumeStatusesFromOptions(options) {
-  const value = options.resumeStatuses ?? options.resumeStatus ?? "error,provider_error,timeout";
+  const value = options.resumeStatuses ?? options.resumeStatus ?? "error,provider_error,infra_error,timeout";
   return new Set(String(value).split(",").map((s) => s.trim()).filter(Boolean));
 }
 
 async function runCommand(config, options) {
+  await assertBuildProvenance();
   if (options.formal || options.baseline) await assertFormalCompatibility(config);
   const hookSwitches = assuranceHookSwitches(config, options);
   const detectorPolicy = detectorPolicyFromConfig(config);
@@ -817,28 +1128,57 @@ async function runCommand(config, options) {
   if (selected.length === 0) throw new Error("NO_CASES_SELECTED");
   const runId = options.runId || `spider2-${options.backend ?? "mixed"}-${timestampId()}`;
   const runDir = path.join(config.runsRoot, runId);
-  if (await exists(runDir) && !options.resume) throw new Error(`RUN_ALREADY_EXISTS:${runDir}`);
+  if (await exists(runDir) && !options.resume && !options.continue && !options.retry) throw new Error(`RUN_ALREADY_EXISTS:${runDir}`);
   const previousManifestPath = path.join(runDir, "manifest.json");
-  const previousManifest = options.resume && await exists(previousManifestPath)
+  const previousManifest = (options.resume || options.continue || options.retry) && await exists(previousManifestPath)
     ? JSON.parse(await readFile(previousManifestPath, "utf8"))
     : undefined;
+  if (options.resume && !options.continue && !options.retry) throw new Error("RESUME_SEMANTICS_EXPLICIT_CONTINUE_OR_RETRY");
   await mkdir(runDir, { recursive: true });
   const systemPrompt = await evaluationSystemPrompt(config);
+  const experiment = await resolveExperiment({
+    config,
+    instanceIds: selected.map((item) => item.instance_id),
+    inputs: {
+      systemPrompt,
+      paths: {
+        runtimeBuild: path.join(projectRoot, "packages", "runtime", "dist"),
+        runtimeSource: path.join(projectRoot, "packages", "runtime", "src"),
+        serverBuild: path.join(projectRoot, "apps", "server", "dist"),
+        skills: path.join(projectRoot, ".agents", "skills"),
+        knowledge: path.join(projectRoot, "knowledge"),
+        toolPromptCatalog: path.join(projectRoot, "packages", "runtime", "src", "agent", "tool-prompt-catalog.ts"),
+        runner: fileURLToPath(import.meta.url),
+        library: path.join(projectRoot, "evaluations", "spider2", "lib.mjs"),
+      },
+    },
+  });
 
+  const attemptMode = options.retry ? "retry" : options.continue ? "continue" : "run";
+  if (attemptMode === "continue" && !previousManifest) throw new Error("CONTINUE_SOURCE_MANIFEST_REQUIRED");
+  if (attemptMode === "retry" && !previousManifest) throw new Error("RETRY_SOURCE_MANIFEST_REQUIRED");
+  if ((attemptMode === "continue" || attemptMode === "retry") && previousManifest?.experimentId && previousManifest.experimentId !== experiment.experimentId) throw new Error(`${attemptMode.toUpperCase()}_EXPERIMENT_MISMATCH`);
+  if (attemptMode === "continue" && JSON.stringify(previousManifest?.budgets) !== JSON.stringify(experiment.budgets)) throw new Error("CONTINUE_BUDGET_RESET");
+  const attemptId = options.attemptId ?? (attemptMode === "continue" ? previousManifest?.attemptPolicy?.selectedAttemptId ?? "attempt-001" : attemptMode === "retry" ? `attempt-${timestampId()}` : "attempt-001");
   const manifest = {
+    ...manifestFromExperiment(experiment),
     runId,
+    attemptPolicy: { ...experiment.attemptPolicy, selectedMode: attemptMode, selectedAttemptId: attemptId, ...(attemptMode === "retry" && previousManifest?.attemptPolicy?.selectedAttemptId ? { retryOf: previousManifest.attemptPolicy.selectedAttemptId } : {}) },
     agentCommit: await gitCommit(projectRoot),
     spider2Commit: await gitCommit(config.spider2Repo),
     datasetSha256: await sha256File(config.datasetPath),
     evaluatorSha256: await sha256File(path.join(config.evaluationSuite, "evaluate.py")),
-    runnerSha256: sha256Text(`${await readFile(fileURLToPath(import.meta.url), "utf8")}\n${await readFile(path.join(projectRoot, "evaluations", "spider2", "lib.mjs"), "utf8")}`),
+    runnerSha256: await evaluationAdapterSha256(),
     systemPromptSha256: sha256Text(systemPrompt),
     model: { provider: config.llm?.provider ?? "openai", model: config.llm?.model, apiFormat: config.llm?.apiFormat, ...(config.llm?.contextWindow !== undefined ? { contextWindow: Number(config.llm.contextWindow) } : {}), ...(config.llm?.maxTokens !== undefined ? { maxTokens: Number(config.llm.maxTokens) } : {}), ...(config.llm?.thinkingLevel ? { thinkingLevel: config.llm.thinkingLevel } : {}), ...(config.selectedModelProfile ? { profile: config.selectedModelProfile } : {}) },
     answering: {
+      semanticSpecMode: experiment.capabilities.semanticSpec.resolved,
+      enableClarificationTool: experiment.capabilities.clarification.resolved,
+      promptProfile: `semantic-spec-${experiment.capabilities.semanticSpec.resolved}`,
       interface: ["begin", "revise", "execute", "publish", "inspect"],
       policyVersion: "answering-publication-v1",
       reviewerOnline: false,
-      detectorsOnline: true,
+      detectorsOnline: experiment.capabilities.fanout.resolved,
       fanoutRuleVersion: "answering-fanout-v1",
     },
     // Legacy assurance switches remain manifest-only experiment metadata; they
@@ -862,9 +1202,9 @@ async function runCommand(config, options) {
   };
   await writeFile(path.join(runDir, "manifest.json"), JSON.stringify(manifest, null, 2), "utf8");
 
-  const runCase = await createCaseRunner(config, runDir, hookSwitches, detectorPolicy, interpretationPolicy, systemPrompt);
+  const runCase = await createCaseRunner(config, runDir, systemPrompt, attemptId, experiment.experimentId, attemptMode, experiment.budgets.queryTask, previousManifest?.attemptPolicy?.selectedAttemptId, experiment.capabilities.fanout.resolved, experiment.capabilities.semanticSpec.resolved);
   const resultById = new Map();
-  if (options.resume) {
+  if (options.resume || options.continue || options.retry) {
     const priorIds = previousManifest?.instanceIds ?? selected.map((item) => item.instance_id);
     for (const instanceId of priorIds) {
       const resultPath = path.join(runDir, "cases", instanceId, "result.json");
@@ -894,16 +1234,36 @@ async function runCommand(config, options) {
       const result = await runCase(instance);
       resultById.set(instance.instance_id, result);
       console.log(`  ${result.status} ${result.durationMs}ms sql=${Boolean(result.finalSql)} csv=${result.csvGenerated}`);
-      if (result.status === "provider_error" || ((options.formal || options.baseline) && ["error", "resource_error"].includes(result.status))) {
+      if (result.status === "provider_error" || result.status === "infra_error" || ((options.formal || options.baseline) && ["error", "resource_error"].includes(result.status))) {
         abortResult ??= result;
       }
     }
   });
   await Promise.all(workers);
   const results = [...resultById.values()].sort((a, b) => a.instanceId.localeCompare(b.instanceId));
+  const observedToolSets = results.filter((result) => Array.isArray(result.activeTools)).map((result) => JSON.stringify([...result.activeTools].sort()));
+  if (observedToolSets.length) {
+    const distinctToolSets = [...new Set(observedToolSets)];
+    const toolCoverageComplete = observedToolSets.length === results.length && distinctToolSets.length === 1;
+    manifest.observedCapabilities = {
+      ...(manifest.observedCapabilities ?? {}),
+      tools: {
+        state: "observed",
+        resolved: JSON.parse(distinctToolSets[0]),
+        coverage: toolCoverageComplete ? "complete" : "partial",
+        observedCases: observedToolSets.length,
+        expectedCases: results.length,
+        ...(distinctToolSets.length > 1 ? { observedVariants: distinctToolSets.map((value) => JSON.parse(value)) } : {}),
+      },
+    };
+  }
+  const observedDatabaseIdentities = results.filter((result) => result.databaseIdentity).map((result) => JSON.stringify({ caseId: result.instanceId, ...result.databaseIdentity }));
+  if (observedDatabaseIdentities.length) {
+    manifest.observedInputs = { ...(manifest.observedInputs ?? {}), databases: [...new Set(observedDatabaseIdentities)].map((value) => JSON.parse(value)) };
+  }
   await writeFile(path.join(runDir, "cases.jsonl"), `${results.map(safeJson).join("\n")}\n`, "utf8");
   await writeSummary(runDir, results);
-  const infrastructureFailures = results.filter((item) => ["provider_error", "resource_error", "error"].includes(item.status));
+  const infrastructureFailures = results.filter((item) => ["provider_error", "resource_error", "error", "unknown"].includes(item.status));
   const expectedCases = previousManifest?.instanceIds?.length ?? selected.length;
   const complete = results.length === expectedCases && infrastructureFailures.length === 0;
   manifest.status = complete ? "completed" : "incomplete";
@@ -916,7 +1276,7 @@ async function runCommand(config, options) {
     throw new Error(`RUN_INCOMPLETE:${reason}`);
   }
   console.log(`Run completed: ${runDir}`);
-  if (options.score) await scoreCommand(config, { run: runId });
+  if (options.score) await scoreCommand(config, { run: runId, attempt: manifest.attemptPolicy.selectedAttemptId });
   return runDir;
 }
 
@@ -959,6 +1319,37 @@ async function runEvaluator(config, resultDir, mode, outputDir) {
   }
 }
 
+async function loadAttemptEpisodes(runDir, manifest, attemptId) {
+  const records = [];
+  for (const instanceId of manifest?.instanceIds ?? []) {
+    const canonical = attemptId && attemptId !== "legacy" ? path.join(runDir, "cases", instanceId, "attempts", attemptId) : undefined;
+    const legacyEpisode = path.join(runDir, "cases", instanceId, "result.json");
+    try {
+      if (canonical && await exists(path.join(canonical, "episode.json"))) records.push(await loadEpisodeRecord(canonical));
+      else if (await exists(legacyEpisode)) {
+        const result = JSON.parse(await readFile(legacyEpisode, "utf8"));
+        if (result.episodeRecord) records.push(result.episodeRecord);
+      }
+    } catch {
+      // Missing/corrupt EpisodeRecord is disclosed by the evaluation report.
+    }
+  }
+  return records;
+}
+
+async function submissionDirectoryForRun(runDir, manifest, mode, attemptId) {
+  const extension = mode === "sql" ? "sql" : "csv";
+  const target = path.join(runDir, "official_score", "inputs", attemptId ?? "legacy", mode);
+  await mkdir(target, { recursive: true });
+  for (const instanceId of manifest?.instanceIds ?? []) {
+    const attemptSource = attemptId ? path.join(runDir, "cases", instanceId, "attempts", attemptId, "submissions", mode, `${instanceId}.${extension}`) : undefined;
+    const legacySource = path.join(runDir, "submissions", mode, `${instanceId}.${extension}`);
+    const source = attemptSource && await exists(attemptSource) ? attemptSource : legacySource;
+    if (await exists(source)) await copyFile(source, path.join(target, `${instanceId}.${extension}`));
+  }
+  return target;
+}
+
 async function scoreCommand(config, options) {
   if (!options.run) throw new Error("--run is required");
   const runDir = path.join(config.runsRoot, options.run);
@@ -973,23 +1364,70 @@ async function scoreCommand(config, options) {
   }
   const outputDir = path.join(runDir, "official_score");
   await mkdir(outputDir, { recursive: true });
+  const attemptId = options.attempt ?? manifest?.attemptPolicy?.selectedAttemptId ?? "legacy";
+  const sqlSubmissionDir = await submissionDirectoryForRun(runDir, manifest, "sql", attemptId === "legacy" ? undefined : attemptId);
+  const csvSubmissionDir = await submissionDirectoryForRun(runDir, manifest, "csv", attemptId === "legacy" ? undefined : attemptId);
   // Older official evaluators share a fixed `temp/` directory, so SQL and
   // exec-result modes must run sequentially to avoid cross-mode corruption.
-  const sql = await runEvaluator(config, path.join(runDir, "submissions", "sql"), "sql", outputDir);
-  const execResult = await runEvaluator(config, path.join(runDir, "submissions", "csv"), "exec_result", outputDir);
+  const scoreStartedAt = new Date().toISOString();
+  const sql = await runEvaluator(config, sqlSubmissionDir, "sql", outputDir);
+  const execResult = await runEvaluator(config, csvSubmissionDir, "exec_result", outputDir);
   const expectedTotal = manifest?.instanceIds?.length;
   if (Number.isInteger(expectedTotal)) {
     sql.fixedDenominator = fixedDenominatorScore(sql.correct, expectedTotal, sql.total);
     execResult.fixedDenominator = fixedDenominatorScore(execResult.correct, expectedTotal, execResult.total);
   }
-  const result = { sql, execResult, scoredAt: new Date().toISOString() };
+  const episodes = await loadAttemptEpisodes(runDir, manifest, attemptId);
+  const evaluation = buildEvaluationReport(episodes, execResult.caseScores ?? {}, { experimentId: manifest?.experimentId ?? null, denominatorIds: manifest?.instanceIds ?? [] });
+  const scoreRunId = `score-${Date.now()}`;
+  const scoreOutcome = [sql, execResult].some((item) => item.error) ? "failed" : [sql, execResult].every((item) => item.skipped) ? "unknown" : "completed";
+  const scoreFinishedAt = new Date().toISOString();
+  const scoreTraceId = `score-trace:${scoreRunId}`;
+  const scoreRecord = {
+    schemaVersion: 1,
+    scoreRunId,
+    scoreTraceId,
+    attemptId,
+    scorer: "official-spider2-evaluator",
+    sourceRefs: episodes.map((episode) => episode.traceId).filter(Boolean),
+    correctnessByCase: execResult.caseScores ?? {},
+    evaluation,
+    span: {
+      schemaVersion: 1,
+      spanId: `score-span:${scoreRunId}`,
+      traceId: scoreTraceId,
+      kind: "scorer",
+      name: "official-spider2-evaluator",
+      lifecycle: "ended",
+      outcome: scoreOutcome,
+      startedAt: scoreStartedAt,
+      endedAt: scoreFinishedAt,
+      sourceRefs: episodes.map((episode) => episode.traceId).filter(Boolean),
+    },
+    createdAt: scoreFinishedAt,
+  };
+  const result = { sql, execResult, attemptId, episodeCount: episodes.length, scoredAt: new Date().toISOString() };
   await writeFile(path.join(outputDir, "summary.json"), JSON.stringify(result, null, 2), "utf8");
+  await writeFile(path.join(outputDir, "evaluation.json"), JSON.stringify(evaluation, null, 2), "utf8");
+  await persistScoreRecord(scoreRecord, path.join(outputDir, "score-record.json"));
   console.log(JSON.stringify(result, null, 2));
   await reportCommand(config, options);
   return result;
 }
 
-async function loadCaseResults(runDir) {
+async function loadCaseResults(runDir, manifest, attemptId) {
+  const selected = [];
+  for (const instanceId of manifest?.instanceIds ?? []) {
+    const attemptResult = attemptId && attemptId !== "legacy"
+      ? path.join(runDir, "cases", instanceId, "attempts", attemptId, "result.json")
+      : undefined;
+    const legacyResult = path.join(runDir, "cases", instanceId, "result.json");
+    const source = attemptResult && await exists(attemptResult) ? attemptResult : legacyResult;
+    if (await exists(source)) {
+      try { selected.push(JSON.parse(await readFile(source, "utf8"))); } catch { /* report exposes the missing/corrupt case through denominator limits */ }
+    }
+  }
+  if (selected.length || manifest?.instanceIds?.length) return selected;
   const target = path.join(runDir, "cases.jsonl");
   if (!(await exists(target))) return [];
   return (await readFile(target, "utf8")).split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line));
@@ -1026,10 +1464,15 @@ async function writeSummary(runDir, results) {
 async function reportCommand(config, options) {
   if (!options.run) throw new Error("--run is required");
   const runDir = path.join(config.runsRoot, options.run);
-  const results = await loadCaseResults(runDir);
+  const manifestPath = path.join(runDir, "manifest.json");
+  const manifest = await exists(manifestPath) ? JSON.parse(await readFile(manifestPath, "utf8")) : undefined;
+  const attemptId = options.attempt ?? manifest?.attemptPolicy?.selectedAttemptId ?? "legacy";
+  const results = await loadCaseResults(runDir, manifest, attemptId);
   const summary = await writeSummary(runDir, results);
   const officialPath = path.join(runDir, "official_score", "summary.json");
   const official = await exists(officialPath) ? JSON.parse(await readFile(officialPath, "utf8")) : null;
+  const evaluationPath = path.join(runDir, "official_score", "evaluation.json");
+  const evaluation = await exists(evaluationPath) ? JSON.parse(await readFile(evaluationPath, "utf8")) : null;
   const sqlCaseScores = official?.sql?.caseScores ?? {};
   const csvCaseScores = official?.execResult?.caseScores ?? {};
   const failures = results.filter((item) => item.status !== "completed" || !item.finalSql || !item.csvGenerated || sqlCaseScores[item.instanceId] === 0 || csvCaseScores[item.instanceId] === 0);
@@ -1047,6 +1490,7 @@ async function reportCommand(config, options) {
     `- Interpretation Hook injections: ${summary.interpretationHookCount}`,
     `- Unresolved-hypothesis Hook injections: ${summary.unresolvedHypothesisHookCount} (${summary.unresolvedHypothesisCount} hypothesis IDs)`,
     `- Interpretation budget skips: ${summary.interpretationBudgetSkipCount}`,
+    ...(evaluation ? [`- EpisodeRecord evaluation: ${evaluation.metrics?.total ?? 0} denominator cases; unknown limitations=${evaluation.limitations?.join(",") || "none"}`] : []),
     ...(official ? [
       `- Official SQL EX (submitted only): ${official.sql?.score ?? "not available"} (${official.sql?.correct ?? 0}/${official.sql?.total ?? 0})`,
       `- SQL EX (fixed run denominator): ${official.sql?.fixedDenominator?.score ?? "not available"} (${official.sql?.fixedDenominator?.correct ?? 0}/${official.sql?.fixedDenominator?.total ?? summary.total})`,
@@ -1121,6 +1565,9 @@ async function preflightCommand(config, options) {
     maxCases: options.maxCases ? Number(options.maxCases) : undefined,
   });
   const issues = [];
+  let buildProvenance;
+  try { buildProvenance = await assertBuildProvenance(); }
+  catch (error) { issues.push(error instanceof Error ? error.message : String(error)); }
   for (const instance of selected) {
     try {
       await resolveMetadataDirectory(config.spider2LiteRoot, instance);
@@ -1148,6 +1595,7 @@ async function preflightCommand(config, options) {
     counts,
     checkedCases: selected.length,
     issues: issues.slice(0, 100),
+    ...(buildProvenance ? { buildProvenance } : {}),
     ...(goldCompatibility ? { goldCompatibility } : {}),
     ...(modelCanary ? { modelCanary } : {}),
     llmKeyAvailable: Boolean(process.env[config.llm?.apiKeyEnv ?? "OPENAI_API_KEY"]),
@@ -1159,10 +1607,13 @@ async function preflightCommand(config, options) {
 
 function usage() {
   return [
-    "Usage: node evaluations/spider2/run.mjs <preflight|freeze|run|score|report> [options]",
+    "Usage: node evaluations/spider2/run.mjs <preflight|freeze|run|score|rescore|report> [options]",
     "",
     "Safety: `run` executes model/database work. Always pass an explicit --run-id and case selector.",
     "Use `<command> --help` only for this usage text; it never loads credentials or starts work.",
+    "`run --continue` keeps an existing attempt; `run --retry` appends a new attempt without replacing canonical evidence.",
+    "Use `--semantic-spec-mode required|disabled` only for a pre-registered semantic-spec ablation; disabled keeps Query Task/Candidate/Receipt semantics.",
+    "Use `--disable-clarification` for both headless A/B arms to remove the blocking clarification tool without changing product defaults.",
   ].join("\n");
 }
 
@@ -1177,11 +1628,14 @@ async function main() {
     await loadEnvironmentFile(path.join(projectRoot, ".env"));
     await loadEnvironmentFile(path.join(here, ".env.local"));
   }
-  const config = selectModelProfile(await loadConfig(options.config), options.modelProfile);
+  let config = selectModelProfile(await loadConfig(options.config), options.modelProfile);
+  if (options.semanticSpecMode) config = { ...config, answering: { ...(config.answering ?? {}), semanticSpecMode: String(options.semanticSpecMode) } };
+  if (options.disableClarification) config = { ...config, enableClarificationTool: false };
+  validateExperimentConfig(config);
   if (command === "preflight") await preflightCommand(config, options);
   else if (command === "freeze") await freezeCommand(config);
   else if (command === "run") await runCommand(config, options);
-  else if (command === "score") await scoreCommand(config, options);
+  else if (command === "score" || command === "rescore") await scoreCommand(config, options);
   else if (command === "report") await reportCommand(config, options);
   else throw new Error(`UNKNOWN_COMMAND:${command}`);
 }

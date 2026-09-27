@@ -93,6 +93,6 @@ export class BoundedKeyedConcurrencyLimiter implements KeyedConcurrencyLimiter {
 }
 
 /** Process-wide guards shared by every Data Agent Session Host. */
-export const processParentOperationConcurrency = new BoundedKeyedConcurrencyLimiter(2);
-export const processChildConcurrency = new BoundedConcurrencyLimiter(4);
-export const processExplorationConcurrency = new BoundedConcurrencyLimiter(4);
+export const processParentOperationConcurrency = new BoundedKeyedConcurrencyLimiter(4);
+export const processChildConcurrency = new BoundedConcurrencyLimiter(12);
+export const processExplorationConcurrency = new BoundedConcurrencyLimiter(12);

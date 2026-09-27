@@ -1,5 +1,5 @@
 import type { DataAgentEventEnvelope, DataAgentEvent } from "@data-agent/contracts";
-import type { AgentHarness } from "@earendil-works/pi-agent-core";
+import type { AgentHarness, HarnessEvent } from "@earendil-works/pi-agent-core";
 import { TODO_CONTEXT } from "@earendil-works/pi-agent-core";
 import { isWidgetLifecycleDetails, validateWidgetSpec } from "../widget.js";
 
@@ -10,6 +10,34 @@ export interface ProjectedOperation {
 }
 
 export type AgentRuntimeEvent = Record<string, any> & { type: string };
+
+/**
+ * Read-only facts emitted by Pi before the presentation projector can remove
+ * lifecycle and usage information. Consumers must treat the payload as
+ * observational evidence, not as an execution control surface.
+ */
+export interface RuntimeObservation {
+  readonly schemaVersion: 1;
+  readonly sessionId: string;
+  readonly observedAt: number;
+  readonly event: HarnessEvent;
+}
+
+export interface RuntimeExecutionSnapshot {
+  readonly sessionId: string;
+  readonly lane: string;
+  readonly tipId: string | null;
+  readonly current: TranscriptSnapshot["operation"];
+  readonly lastOperationId: string | null;
+  readonly lastResult?: {
+    readonly operationId: string;
+    readonly status: string;
+    readonly startedAt: number;
+    readonly endedAt: number;
+    readonly error?: unknown;
+  };
+  readonly faulted: boolean;
+}
 
 export interface TranscriptMessage {
   readonly id: string;
@@ -323,6 +351,7 @@ export interface PresentationAgentEvent {
 }
 
 type PresentationListener = (event: PresentationAgentEvent) => void;
+type ObservationListener = (observation: RuntimeObservation) => void;
 
 type OperationBinding = ProjectedOperation & { readonly operationId: string };
 
@@ -334,6 +363,7 @@ type OperationBinding = ProjectedOperation & { readonly operationId: string };
 export class PiTranscriptFacet {
   private readonly bindings = new Map<string, OperationBinding>();
   private readonly listeners = new Set<PresentationListener>();
+  private readonly observationListeners = new Set<ObservationListener>();
   private readonly projector: TranscriptProjector;
   private readonly unsubscribe: Array<() => void> = [];
   private sequence = 1;
@@ -391,6 +421,11 @@ export class PiTranscriptFacet {
     return () => this.listeners.delete(listener);
   }
 
+  subscribeObservations(listener: ObservationListener): () => void {
+    this.observationListeners.add(listener);
+    return () => this.observationListeners.delete(listener);
+  }
+
   async snapshot(): Promise<TranscriptSnapshot> {
     const lane = await this.harness.lane("main", TODO_CONTEXT);
     const watch = await lane.watch(TODO_CONTEXT);
@@ -414,22 +449,66 @@ export class PiTranscriptFacet {
   close(): void {
     for (const unsubscribe of this.unsubscribe.splice(0)) unsubscribe();
     this.listeners.clear();
+    this.observationListeners.clear();
     this.projector.clear();
     this.bindings.clear();
   }
 
   private attachNativeEvents(): void {
     this.unsubscribe.push(this.harness.events.on("run_start", (event) => {
+      this.observe(event);
       if (!this.bindings.has(event.runId)) this.bindOperation(event.runId);
     }));
-    this.unsubscribe.push(this.harness.events.on("message_start", (event) => this.project({ type: "message_start", runId: event.runId, message: event.message })));
-    this.unsubscribe.push(this.harness.events.on("message_update", (event) => this.project({ type: "message_update", runId: event.runId, message: event.message, assistantMessageEvent: event.event })));
-    this.unsubscribe.push(this.harness.events.on("tool_start", (event) => this.project({ type: "tool_execution_start", runId: event.runId, toolCallId: event.toolCallId, toolName: event.toolName, args: event.args })));
-    this.unsubscribe.push(this.harness.events.on("tool_update", (event) => this.project({ type: "tool_execution_update", runId: event.runId, toolCallId: event.toolCallId, toolName: event.toolName, partialResult: event.partialResult })));
-    this.unsubscribe.push(this.harness.events.on("tool_end", (event) => this.project({ type: "tool_execution_end", runId: event.runId, toolCallId: event.toolCallId, toolName: event.toolName, result: event.result, isError: event.isError, args: undefined })));
-    this.unsubscribe.push(this.harness.events.on("run_end", (event) => this.project(event.status === "failed"
-      ? { type: "agent_error", runId: event.runId, error: event.error.message }
-      : { type: "agent_end", runId: event.runId })));
+    this.unsubscribe.push(this.harness.events.on("run_resume", (event) => this.observe(event)));
+    this.unsubscribe.push(this.harness.events.on("run_suspend", (event) => this.observe(event)));
+    this.unsubscribe.push(this.harness.events.on("operation_abort", (event) => this.observe(event)));
+    this.unsubscribe.push(this.harness.events.on("turn_start", (event) => this.observe(event)));
+    this.unsubscribe.push(this.harness.events.on("turn_end", (event) => this.observe(event)));
+    this.unsubscribe.push(this.harness.events.on("message_start", (event) => {
+      this.observe(event);
+      this.project({ type: "message_start", runId: event.runId, message: event.message });
+    }));
+    this.unsubscribe.push(this.harness.events.on("message_update", (event) => {
+      this.observe(event);
+      this.project({ type: "message_update", runId: event.runId, message: event.message, assistantMessageEvent: event.event });
+    }));
+    this.unsubscribe.push(this.harness.events.on("message_end", (event) => this.observe(event)));
+    this.unsubscribe.push(this.harness.events.on("tool_start", (event) => {
+      this.observe(event);
+      this.project({ type: "tool_execution_start", runId: event.runId, toolCallId: event.toolCallId, toolName: event.toolName, args: event.args });
+    }));
+    this.unsubscribe.push(this.harness.events.on("tool_update", (event) => {
+      this.observe(event);
+      this.project({ type: "tool_execution_update", runId: event.runId, toolCallId: event.toolCallId, toolName: event.toolName, partialResult: event.partialResult });
+    }));
+    this.unsubscribe.push(this.harness.events.on("tool_end", (event) => {
+      this.observe(event);
+      this.project({ type: "tool_execution_end", runId: event.runId, toolCallId: event.toolCallId, toolName: event.toolName, result: event.result, isError: event.isError, args: undefined });
+    }));
+    this.unsubscribe.push(this.harness.events.on("usage", (event) => this.observe(event)));
+    this.unsubscribe.push(this.harness.events.on("entry_added", (event) => this.observe(event)));
+    this.unsubscribe.push(this.harness.events.on("queue_update", (event) => this.observe(event)));
+    this.unsubscribe.push(this.harness.events.on("retry_scheduled", (event) => this.observe(event)));
+    this.unsubscribe.push(this.harness.events.on("retry_start", (event) => this.observe(event)));
+    this.unsubscribe.push(this.harness.events.on("retry_end", (event) => this.observe(event)));
+    this.unsubscribe.push(this.harness.events.on("fault", (event) => this.observe(event)));
+    this.unsubscribe.push(this.harness.events.on("handler_error", (event) => this.observe(event)));
+    this.unsubscribe.push(this.harness.events.on("run_end", (event) => {
+      this.observe(event);
+      this.project(event.status === "failed"
+        ? { type: "agent_error", runId: event.runId, error: event.error.message }
+        : { type: "agent_end", runId: event.runId });
+    }));
+  }
+
+  private observe(event: HarnessEvent): void {
+    const observation: RuntimeObservation = {
+      schemaVersion: 1,
+      sessionId: this.sessionId,
+      observedAt: Date.now(),
+      event,
+    };
+    for (const listener of this.observationListeners) listener(observation);
   }
 
   private project(event: AgentRuntimeEvent): void {

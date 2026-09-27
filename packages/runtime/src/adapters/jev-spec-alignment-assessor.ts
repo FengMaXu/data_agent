@@ -24,12 +24,23 @@ interface JevResponse {
   readonly answers?: Record<string, unknown>;
 }
 
+export interface JevSpecAlignmentObservation {
+  readonly type: "jev_request";
+  readonly kind: "spec_alignment";
+  readonly model: string;
+  readonly startedAt: number;
+  readonly endedAt: number;
+  readonly outcome: "completed" | "failed" | "unknown";
+  readonly usage: null;
+}
+
 export interface JevSpecAlignmentAssessorOptions {
   readonly apiKey: string;
   readonly model?: string;
   readonly endpoint?: string;
   readonly timeoutMs?: number;
   readonly fetch?: typeof fetch;
+  readonly onObservation?: (observation: JevSpecAlignmentObservation) => void;
 }
 
 export class JevSpecAlignmentError extends Error {
@@ -135,6 +146,7 @@ export class JevSpecAlignmentAssessor implements SpecAlignmentAssessor {
   private readonly endpoint: string;
   private readonly timeoutMs: number;
   private readonly fetcher: typeof fetch;
+  private readonly onObservation: ((observation: JevSpecAlignmentObservation) => void) | undefined;
 
   constructor(options: JevSpecAlignmentAssessorOptions) {
     this.apiKey = trimmed(options.apiKey, "apiKey");
@@ -142,6 +154,7 @@ export class JevSpecAlignmentAssessor implements SpecAlignmentAssessor {
     this.endpoint = options.endpoint?.trim() || "https://api.typesafe.ai/v1/systemone";
     this.timeoutMs = options.timeoutMs ?? 15_000;
     this.fetcher = options.fetch ?? fetch;
+    this.onObservation = options.onObservation;
     if (!Number.isSafeInteger(this.timeoutMs) || this.timeoutMs <= 0) throw new JevSpecAlignmentError("INVALID_INPUT", "timeoutMs must be a positive integer");
   }
 
@@ -179,6 +192,13 @@ export class JevSpecAlignmentAssessor implements SpecAlignmentAssessor {
       limitations: input.limitations,
     };
     if (options.signal?.aborted) throw new JevSpecAlignmentError("ABORTED", "Spec alignment assessment was cancelled");
+    const startedAt = Date.now();
+    let observed = false;
+    const observe = (outcome: JevSpecAlignmentObservation["outcome"]) => {
+      if (observed) return;
+      observed = true;
+      this.onObservation?.({ type: "jev_request", kind: "spec_alignment", model: this.model, startedAt, endedAt: Date.now(), outcome, usage: null });
+    };
     const controller = new AbortController();
     let timedOut = false;
     let rejectCancellation: ((reason: JevSpecAlignmentError) => void) | undefined;
@@ -216,8 +236,11 @@ export class JevSpecAlignmentAssessor implements SpecAlignmentAssessor {
       let decoded: unknown;
       try { decoded = JSON.parse(text); }
       catch { throw new JevSpecAlignmentError("INVALID_RESPONSE", "Jev returned invalid JSON"); }
-      return parseResponse(decoded);
+      const assessment = parseResponse(decoded);
+      observe("completed");
+      return assessment;
     } catch (error) {
+      observe(timedOut ? "unknown" : options.signal?.aborted ? "unknown" : "failed");
       if (timedOut) throw new JevSpecAlignmentError("TIMEOUT", `Jev request exceeded ${this.timeoutMs}ms`);
       if (options.signal?.aborted) throw new JevSpecAlignmentError("ABORTED", "Spec alignment assessment was cancelled");
       if (error instanceof JevSpecAlignmentError) throw error;

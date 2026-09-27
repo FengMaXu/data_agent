@@ -2,13 +2,14 @@
 knowledgeId: sql-rules
 name: SQL 生成规范
 description: 用于把当前 Answer Spec 实现为安全、符合目标方言的 SQL，包括聚合、精度、NULL 和方言规则；不负责决定业务口径。
+usage: method
 ---
 
 # SQL 生成规范
 
 > 职责：将当前 Answer Spec 中的口径实现为安全、可读、符合目标方言的 SQL；本文件不负责确定业务口径。
-> 输入：当前 Spec、[数据库 Schema](./db_schema.md)及适用的[业务定义](./business.md)。实体、分母、时间、并列或缺失政策未确定时，回到[语义理解指引](./semantic_guide.md)，按系统提示词澄清或记录解释，不能用默认 SQL 写法替代。
-> 边界：Spec 版本、查询模式、候选身份和发布流程由系统提示词与 Runtime 管理，本文件不定义门控裁决或发布权限。
+> 输入：当前 Spec、[数据库 Schema](./db_schema.md)及适用的[业务定义](./business.md)。实体、分母、时间、并列或缺失政策未确定时，回到[语义理解指引](./semantic_guide.md)，按任务流程澄清或记录解释，不能用默认 SQL 写法替代。
+> 边界：Spec 版本、查询模式、候选身份和发布流程由任务流程 Skill 与 Runtime 管理，本文件不定义门控裁决或发布权限。
 
 ## 1. 安全与方言
 

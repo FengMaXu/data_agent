@@ -2,6 +2,7 @@
 knowledgeId: learning-notes
 name: 历史纠错与经验
 description: 提供历史错误、方言陷阱和可复用经验；证据等级低于用户、业务定义和正式 Schema。
+usage: method
 ---
 
 # Learnings

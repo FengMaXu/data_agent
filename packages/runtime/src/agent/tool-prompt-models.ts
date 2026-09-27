@@ -33,16 +33,27 @@ function appendCatalog(systemPrompt: string | undefined, catalog: string): strin
   return systemPrompt?.trim() ? `${systemPrompt}\n\n${catalog}` : catalog;
 }
 
+export interface PromptCatalogOptions {
+  /**
+   * Additional request-local section rendered before the tool directory, e.g.
+   * the Skill catalog. It receives the exact active tool names of the request.
+   */
+  readonly renderPreamble?: (activeToolNames: readonly string[]) => string;
+}
+
 /**
- * Add the request-local tool directory at the Models seam. The adapter reads
- * only Context.tools from this exact request and leaves every other Models
- * method and stream option untouched.
+ * Add the request-local Skill and tool directories at the Models seam. The
+ * adapter reads only Context.tools from this exact request and leaves every
+ * other Models method and stream option untouched.
  */
-export function withToolPromptCatalog(source: Models, catalog: ToolPromptCatalog): Models {
+export function withToolPromptCatalog(source: Models, catalog: ToolPromptCatalog, catalogOptions: PromptCatalogOptions = {}): Models {
   const streamSimple: Models["streamSimple"] = (model, context, options) => {
     let rendered: string;
     try {
-      rendered = catalog.render(context.tools?.map((tool) => tool.name) ?? []);
+      const activeToolNames = context.tools?.map((tool) => tool.name) ?? [];
+      rendered = [catalogOptions.renderPreamble?.(activeToolNames) ?? "", catalog.render(activeToolNames)]
+        .filter((section) => section.trim())
+        .join("\n\n");
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       return configurationErrorStream(model, message);

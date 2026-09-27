@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { MemorySessionRepo, TODO_CONTEXT } from "@earendil-works/pi-agent-core";
 import { PiSessionAnsweringStore } from "../adapters/pi-session-answering-store.js";
-import { InMemoryAnswering, InMemoryAnsweringStore, InMemoryResultStore, type BusinessContext } from "./public.js";
+import { InMemoryAnswering, InMemoryAnsweringStore, InMemoryResultStore, type BusinessContext, type EvidenceSource } from "./public.js";
 import type { AnsweringStore, AnsweringTransaction } from "./answering-store.js";
 import { facetNames, type SpecAlignmentAssessor, type SpecAlignmentInput } from "../judgment/spec-alignment.js";
 import type { SpecFeedbackAssessment } from "./model.js";
@@ -23,6 +23,15 @@ const simpleSpec = {
   time: { state: "not_applicable" },
   ranking: { state: "not_applicable" },
   output: { rowMode: "scalar", rowCount: 1 },
+};
+
+/** Trusted test documents; Evidence Admission verifies quotes against this text. */
+const documentSource: EvidenceSource = {
+  readUserMessage: async () => undefined,
+  readDocument: async (sourceRef) => ({
+    "metric.md": { kind: "reviewed_definition" as const, content: "口径：订单数按订单实体计数。" },
+    "later.md": { kind: "task_document" as const, content: "Appendix: later evidence for the task." },
+  } as Record<string, { kind: "reviewed_definition" | "task_document"; content: string }>)[sourceRef],
 };
 
 function assessment(relation: "supported" | "contradicted" = "supported"): SpecFeedbackAssessment {
@@ -54,6 +63,7 @@ function serviceWithFeedback(
     store: new InMemoryAnsweringStore(),
     resultStore: new InMemoryResultStore(),
     sqlExecutor: { run: async () => ({ columns: ["value"], rows: [[1], [2], [3]], truncated: false }) },
+    evidenceSource: documentSource,
     specFeedback: { assessor, getOriginalQuestion, ...options },
   });
 }
@@ -114,6 +124,7 @@ describe("Answering Spec feedback", () => {
       store,
       resultStore: new InMemoryResultStore(),
       sqlExecutor: { run: async () => ({ columns: ["value"], rows: [[1]], truncated: false }) },
+      evidenceSource: documentSource,
       specFeedback: {
         getOriginalQuestion: async () => "原题",
         assessor: { assess: async (value) => { inputs.push(value); return assessment(); } },

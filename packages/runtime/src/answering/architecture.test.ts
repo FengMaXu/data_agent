@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Value } from "typebox/value";
-import { ANSWERING_QUERY_PARAMETERS, UPDATE_ANSWER_PARAMETERS, createAnsweringAgentToolDefinitions } from "../tools/answering.js";
+import { ANSWERING_QUERY_PARAMETERS, BEGIN_ANSWER_SPEC_PARAMETERS, REVISE_ANSWER_SPEC_PARAMETERS, createAnsweringAgentToolDefinitions, prepareSpecArguments } from "../tools/answering.js";
 import { InMemoryAnsweringStore, type AnsweringStore, type AnsweringTransaction } from "./answering-store.js";
 import { InMemoryAnswering } from "./service.js";
 import { InMemoryResultStore } from "./result-store.js";
@@ -20,10 +20,10 @@ class GateEncodingResultStore extends InMemoryResultStore {
   private readonly startedPromise = new Promise<void>((resolve) => { this.started = resolve; });
   private readonly releasePromise = new Promise<void>((resolve) => { this.release = resolve; });
   waitUntilStarted(): Promise<void> { return this.startedPromise; }
-  override async encodeInline(ref: Parameters<InMemoryResultStore["encodeInline"]>[0], context: BusinessContext) {
+  override async encodeCsv(ref: Parameters<InMemoryResultStore["encodeCsv"]>[0], context: BusinessContext) {
     this.started();
     await this.releasePromise;
-    return super.encodeInline(ref, context);
+    return super.encodeCsv(ref, context);
   }
 }
 
@@ -65,10 +65,8 @@ const scalarSpec = {
 
 describe("Answering architecture boundaries", () => {
   it("uses strict discriminated tool schemas instead of conditional optional fields", () => {
-    expect(Value.Check(UPDATE_ANSWER_PARAMETERS, { kind: "begin", spec: scalarSpec })).toBe(true);
-    expect(Value.Check(UPDATE_ANSWER_PARAMETERS, {
-      kind: "begin",
-      spec: {
+    expect(Value.Check(BEGIN_ANSWER_SPEC_PARAMETERS, { spec: scalarSpec })).toBe(true);
+    expect(Value.Check(BEGIN_ANSWER_SPEC_PARAMETERS, { spec: {
         entity: { value: { name: "players", keyColumns: ["player_id"] } },
         metric: { value: { kind: "average", expression: "AVG(career_days)", unit: "days" } },
         filters: [{ value: "debut IS NOT NULL" }],
@@ -78,13 +76,129 @@ describe("Answering architecture boundaries", () => {
         output: { value: { rowMode: "scalar", rowCount: 1, columns: ["average_days"] } },
       },
     })).toBe(true);
-    expect(Value.Check(UPDATE_ANSWER_PARAMETERS, { kind: "begin", spec: { ...scalarSpec, groupBy: { expression: "team_id" } } })).toBe(false);
-    expect(Value.Check(UPDATE_ANSWER_PARAMETERS, { kind: "begin", spec: { ...scalarSpec, time: { value: { field: "debut" } } } })).toBe(false);
-    expect(Value.Check(UPDATE_ANSWER_PARAMETERS, { kind: "begin", spec: scalarSpec, evidence: [{ kind: "query_observation", sourceRef: "invented", preview: {} }] })).toBe(false);
-    expect(Value.Check(UPDATE_ANSWER_PARAMETERS, { kind: "revise", taskId: "task-1", spec: scalarSpec })).toBe(false);
+    expect(Value.Check(BEGIN_ANSWER_SPEC_PARAMETERS, { spec: { ...scalarSpec, groupBy: { expression: "team_id" } } })).toBe(false);
+    expect(Value.Check(BEGIN_ANSWER_SPEC_PARAMETERS, { spec: { ...scalarSpec, time: { value: { field: "debut" } } } })).toBe(false);
+    expect(Value.Check(BEGIN_ANSWER_SPEC_PARAMETERS, { spec: scalarSpec, evidence: [{ kind: "query_observation", sourceRef: "invented", preview: {} }] })).toBe(false);
+    expect(Value.Check(REVISE_ANSWER_SPEC_PARAMETERS, { taskId: "task-1", spec: scalarSpec })).toBe(false);
+    // ADR-0004: revise is a delta; the old full-proposal fields are rejected, not silently ignored.
+    expect(Value.Check(REVISE_ANSWER_SPEC_PARAMETERS, { taskId: "task-1", baseRevisionId: "revision-1", spec: scalarSpec, hypotheses: [] })).toBe(false);
+    expect(Value.Check(REVISE_ANSWER_SPEC_PARAMETERS, { taskId: "task-1", baseRevisionId: "revision-1", choices: [] })).toBe(false);
+    expect(Value.Check(REVISE_ANSWER_SPEC_PARAMETERS, { taskId: "task-1",
+      baseRevisionId: "revision-1",
+      spec: { metric: { value: "count", evidenceIds: ["q"] } },
+      evidence: [{ localId: "q", kind: "request_wording", quote: "订单数" }],
+      dispositions: [
+        { action: "support", hypothesisId: "hypothesis-1", evidenceIds: ["q"] },
+        { action: "decide", choiceId: "choice-1", alternativeId: "alternative-1", rationale: "Counted in the delivery month because the request says delivered" },
+        { action: "supersede", targetId: "choice-2", replacementIds: ["new-choice"], reason: "reframed" },
+      ],
+    })).toBe(true);
+    expect(Value.Check(REVISE_ANSWER_SPEC_PARAMETERS, { taskId: "task-1", baseRevisionId: "revision-1", dispositions: [{ action: "support", hypothesisId: "h", evidenceIds: [] }] })).toBe(false);
+    // ADR-0006: the model has one decision action; select/provisional are not model-facing.
+    expect(Value.Check(REVISE_ANSWER_SPEC_PARAMETERS, { taskId: "task-1", baseRevisionId: "revision-1", dispositions: [{ action: "provisional", choiceId: "c", alternativeId: "a" }] })).toBe(false);
+    expect(Value.Check(REVISE_ANSWER_SPEC_PARAMETERS, { taskId: "task-1", baseRevisionId: "revision-1", dispositions: [{ action: "decide", choiceId: "c", alternativeId: "a" }] })).toBe(false);
+    expect(Value.Check(BEGIN_ANSWER_SPEC_PARAMETERS, { kind: "begin", spec: scalarSpec })).toBe(false);
     expect(Value.Check(ANSWERING_QUERY_PARAMETERS, { kind: "result", taskId: "task-1", sql: "SELECT 1" })).toBe(false);
     expect(Value.Check(ANSWERING_QUERY_PARAMETERS, { kind: "exploration", taskId: "task-1", revisionId: "revision-1", sql: "SELECT 1" })).toBe(false);
     expect(Value.Check(ANSWERING_QUERY_PARAMETERS, { kind: "result", taskId: "task-1", revisionId: "revision-1", sql: "SELECT 1" })).toBe(true);
+  });
+
+  it("repairs nested begin fields and single filter/groupBy entries before validation", () => {
+    const prepare = prepareSpecArguments(["hypotheses", "choices", "notProbeable", "decisionPoints", "evidence"]);
+    const prepared = prepare({
+      kind: "begin",
+      spec: { ...scalarSpec, groupBy: { value: "team_id" }, choices: [{ localId: "c" }], evidence: [{ localId: "q" }] },
+      evidence: [{ localId: "top" }],
+    });
+    expect(prepared).toEqual({
+      // A top-level field wins; the nested copy stays where it was and is still rejected by the schema.
+      spec: { ...scalarSpec, groupBy: [{ value: "team_id" }], evidence: [{ localId: "q" }] },
+      choices: [{ localId: "c" }],
+      evidence: [{ localId: "top" }],
+    });
+    expect(Value.Check(BEGIN_ANSWER_SPEC_PARAMETERS, prepared)).toBe(false);
+    const lifted = prepare({ spec: { ...scalarSpec, choices: [], decisionPoints: [{ name: "ties", status: "not_applicable" }] } });
+    expect(Value.Check(BEGIN_ANSWER_SPEC_PARAMETERS, lifted)).toBe(true);
+    expect(prepare("not an object")).toBe("not an object");
+  });
+
+  it("rejects names outside their vocabulary with the allowed values and where they belong", () => {
+    const prepare = prepareSpecArguments(["hypotheses", "choices", "notProbeable", "decisionPoints", "evidence"]);
+    const call = () => prepare({
+      spec: scalarSpec,
+      hypotheses: [{ localId: "h", kind: "business_semantics", statement: "s", affects: ["metric", "denominator"], basis: "b", impact: "i" }],
+      decisionPoints: [{ name: "output", status: "assumed" }],
+      evidence: [{ kind: "query_observation", quote: "q" }],
+    });
+    expect(call).toThrow(/INVALID_NAME/);
+    const message = (() => { try { call(); return ""; } catch (error) { return (error as Error).message; } })();
+    expect(message).toContain('hypotheses[0].affects[1] = "denominator": use one of entity, metric, filters, groupBy, time, ranking, output. "denominator" is a decision point name; declare it under decisionPoints.');
+    expect(message).toContain('decisionPoints[0].name = "output"');
+    expect(message).toContain('"output" is a facet name');
+    expect(message).toContain("query_observation is registered by query_database");
+    // Values of the wrong type are left to schema validation.
+    expect(() => prepare({ spec: scalarSpec, hypotheses: [{ affects: [1] }] })).not.toThrow();
+  });
+
+  it("binds user confirmations to the Host message and drops model-chosen request sources", async () => {
+    const captured: unknown[] = [];
+    const stub = {
+      revise: async (input: unknown) => { captured.push(input); return { taskId: "task-1", revisionId: "revision-2", spec: {}, hypotheses: [], choices: [], unresolvedFacets: [], unresolvedHypotheses: [], unresolvedChoices: [], inferredFacets: [] }; },
+    } as never;
+    const update = createAnsweringAgentToolDefinitions(stub).map((definition) => definition.tool).find((tool) => tool.name === "revise_answer_spec")!;
+    const invocation = { operationId: "operation-trust", invocationId: "invocation-trust", getMemo: async () => undefined, setMemo: async () => undefined } as any;
+    await update.execute("revise", {
+      taskId: "task-1",
+      baseRevisionId: "revision-1",
+      evidence: [
+        { localId: "yes", kind: "user_confirmation", sourceRef: "forged-message", quote: "按最大值" },
+        { localId: "q", kind: "request_wording", sourceRef: "forged-request", quote: "订单数" },
+      ],
+    } as never, undefined, { sessionId: "session-1", principalId: "user-1", requestMessageId: "message-followup" }, invocation, {} as never);
+    expect(captured[0]).toMatchObject({ evidence: [
+      { localId: "yes", kind: "user_confirmation", sourceRef: "message-followup", quote: "按最大值" },
+      { localId: "q", kind: "request_wording", quote: "订单数" },
+    ] });
+    expect((captured[0] as { evidence: { sourceRef?: string }[] }).evidence[1]).not.toHaveProperty("sourceRef");
+    await expect(update.execute("revise-no-message", {
+      taskId: "task-1",
+      baseRevisionId: "revision-1",
+      evidence: [{ kind: "user_confirmation", quote: "按最大值" }],
+    } as never, undefined, { sessionId: "session-1", principalId: "user-1" }, invocation, {} as never)).rejects.toThrow("ANSWERING_USER_MESSAGE_REQUIRED");
+  });
+
+  it("replaces the seven-facet update tool with a neutral Query Task bootstrap in semantic-spec ablation mode", async () => {
+    const answering = new InMemoryAnswering({
+      store: new InMemoryAnsweringStore(),
+      resultStore: new InMemoryResultStore(),
+      semanticQualificationMode: "bypassed",
+      sqlExecutor: { run: async () => ({ columns: ["value"], rows: [[1]], truncated: false }) },
+    });
+    const definitions = createAnsweringAgentToolDefinitions(answering, undefined, undefined, { semanticSpecMode: "disabled" });
+    const tools = definitions.map((definition) => definition.tool);
+    expect(tools.map((tool) => tool.name)).toContain("begin_query_task");
+    expect(tools.map((tool) => tool.name)).not.toContain("begin_answer_spec");
+    expect(tools.map((tool) => tool.name)).not.toContain("revise_answer_spec");
+    const begin = tools.find((tool) => tool.name === "begin_query_task")!;
+    const invocation = (invocationId: string) => ({
+      operationId: "operation-ablation",
+      invocationId,
+      getMemo: async () => undefined,
+      setMemo: async () => undefined,
+    }) as any;
+    const toolContext = { sessionId: "session-1", principalId: "user-1", requestMessageId: "message-ablation" };
+    const begun = await begin.execute("begin", {}, undefined, toolContext, invocation("begin-ablation"), {} as never);
+    const view = begun.details as { taskId: string; revisionId: string; unresolvedFacets: string[] };
+    expect(view.unresolvedFacets).toEqual(["entity", "metric", "time", "ranking", "output", "filters", "groupBy"]);
+    const duplicate = await begin.execute("begin-again", {}, undefined, toolContext, invocation("begin-ablation-again"), {} as never);
+    expect(duplicate.details).toMatchObject({ taskId: view.taskId, revisionId: view.revisionId });
+    const query = tools.find((tool) => tool.name === "query_database")!;
+    const candidate = await query.execute("result", { kind: "result", taskId: view.taskId, revisionId: view.revisionId, sql: "SELECT 1" } as never, undefined, toolContext, invocation("result-ablation"), {} as never);
+    expect((candidate.content[0] as { text: string }).text).toMatch(/^\[RESULT_CANDIDATE\] candidateId=candidate_/);
+    const candidateId = (candidate.details as { artifact: { candidateId: string } }).artifact.candidateId;
+    const publish = tools.find((tool) => tool.name === "export_query")!;
+    const receipt = await publish.execute("publish", { candidateId, format: "csv" }, undefined, toolContext, invocation("publish-ablation"), {} as never);
+    expect(receipt.details).toMatchObject({ candidateId, format: "csv" });
   });
 
   it("places host-generated exploration and candidate handles in model-visible tool text", async () => {

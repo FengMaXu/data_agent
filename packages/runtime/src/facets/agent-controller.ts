@@ -100,8 +100,21 @@ export class PiAgentController implements AgentController {
     return { operationId: admission.value.operationId, status: "accepted" };
   }
 
+  /**
+   * Drives the operation to a terminal result. Pi reports a scheduled retry
+   * (or other deferred work) as `waiting`; the retry only happens when the
+   * caller drives again, so keep driving until the operation settles.
+   */
   private async drive(admission: OperationAdmission, context: AgentControllerContext): Promise<DriveOutcome | undefined> {
-    const driven = await (await this.lane()).drive({ operationId: admission.operationId }, context.pi);
+    const lane = await this.lane();
+    let driven = await lane.drive({ operationId: admission.operationId }, context.pi);
+    while (driven.ok && driven.value.kind === "waiting") {
+      const delay = driven.value.reason === "retry"
+        ? Math.max(0, driven.value.notBefore - Date.now())
+        : Math.max(10, driven.value.deferred.pollAfterMs ?? 250);
+      await new Promise<void>((resolve) => setTimeout(resolve, Math.min(delay, 1_000)));
+      driven = await lane.drive({ operationId: admission.operationId }, context.pi);
+    }
     if (!driven.ok) {
       const error = new AgentControllerError("DRIVE_REJECTED", resultError(driven));
       this.onDriveError?.(error);

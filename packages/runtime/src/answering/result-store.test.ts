@@ -19,10 +19,9 @@ describe("immutable ResultStore", () => {
     try {
       const reopened = await store.openPrivate(typed.resultRef, context);
       expect(reopened?.rows[0]).toEqual([1234567890123456789n, "10.20", null, "", new Date("2026-01-01T08:00:00.000Z")]);
-      const inline = await store.encodeInline(typed.resultRef, context);
       const csv = await store.encodeCsv(typed.resultRef, context);
-      expect(inline.content).toContain("1234567890123456789");
-      expect(inline.content).toContain("10.20");
+      expect(csv.content).toContain("1234567890123456789");
+      expect(csv.content).toContain("10.20");
       expect(csv.content).toContain('""');
       expect(csv.content).toContain("2026-01-01T08:00:00.000Z");
     } finally {

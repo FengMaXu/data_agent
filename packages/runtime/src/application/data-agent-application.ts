@@ -127,6 +127,8 @@ export class DataAgentApplication implements ApplicationCommandHost {
         return typeof port === "function" ? port() : port;
       },
       resultRoot: path.join(dataRoot, "results"),
+      // doc/business.md is a canonical, model-unwritable document; its id cannot be reused by drafts.
+      answeringEvidenceDocuments: { "business-definitions": "reviewed_definition" },
       ...(hypothesisChoiceAdvisor ? { hypothesisChoiceAdvisor } : {}),
       ...(specAlignmentAssessor ? { specAlignmentAssessor } : {}),
       resolveProfile: (context) => options.resolveProfile(context, application),

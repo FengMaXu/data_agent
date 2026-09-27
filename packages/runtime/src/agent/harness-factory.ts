@@ -10,7 +10,7 @@ import { builtinModels } from "@earendil-works/pi-ai/providers/all";
 import type { Answering, AnsweringStore, QueryExecutionScope, ResultStore } from "../answering/public.js";
 import type { FanoutDialect, FanoutSchema } from "../answering/fanout-check.js";
 import type { DataAgentToolContext } from "../tools/answering.js";
-import { PiTranscriptFacet, type PresentationAgentEvent, type TranscriptSnapshot } from "../facets/transcript.js";
+import { PiTranscriptFacet, type PresentationAgentEvent, type RuntimeExecutionSnapshot, type RuntimeObservation, type TranscriptSnapshot } from "../facets/transcript.js";
 import type { ArtifactDirectory } from "../facets/artifact-directory.js";
 import type { ClarificationDialogs } from "../facets/clarification-dialogs.js";
 import type { QueryTaskProjection } from "../facets/query-task-projection.js";
@@ -18,11 +18,14 @@ import { createPiAgentController } from "../facets/agent-controller.js";
 import { unwrapApplicationSession, type SessionInput } from "../session-store.js";
 import { ToolPromptCatalog } from "./tool-prompt-catalog.js";
 import { withToolPromptCatalog } from "./tool-prompt-models.js";
+import { isSkillAvailable, renderSkillCatalog, type SkillCatalogEntry } from "./skill-prompt-catalog.js";
+import { LengthContinuationGuard } from "./length-continuation.js";
+import { infrastructureFailureOf } from "./infrastructure-failure.js";
 import type { DataAgentToolDefinition } from "../tools/tool-definition.js";
 
 /** The only Pi/provider configuration owned by the Session Runtime. */
 export interface DataAgentResources {
-  readonly skills?: readonly { readonly name: string; readonly description: string; readonly content: string; readonly filePath?: string; readonly disableModelInvocation?: boolean }[];
+  readonly skills?: readonly { readonly name: string; readonly description: string; readonly content: string; readonly filePath?: string; readonly disableModelInvocation?: boolean; readonly whenToUse?: string; readonly requiredTools?: readonly string[] }[];
   readonly promptTemplates?: readonly { readonly name: string; readonly description?: string; readonly content: string }[];
 }
 
@@ -75,7 +78,9 @@ export interface DataAgentPiRuntime {
  */
 const CONTROL_PLANE_TOOL_NAMES = new Set([
   "load_skill",
-  "update_answer_spec",
+  "begin_query_task",
+  "begin_answer_spec",
+  "revise_answer_spec",
   "query_database",
   "publish_query_result",
   "export_query",
@@ -205,6 +210,9 @@ export interface DataAgentSessionHost {
   };
   readonly openOperations: readonly OpenOperation[];
   subscribe(listener: (event: PresentationAgentEvent) => void): () => void;
+  subscribeObservations(listener: (observation: RuntimeObservation) => void): () => void;
+  getActiveTools(): Promise<readonly string[]>;
+  getExecutionSnapshot(): Promise<RuntimeExecutionSnapshot>;
   snapshotTranscript(): Promise<TranscriptSnapshot>;
   getResources(): DataAgentResources;
   setResources(resources: DataAgentResources): Promise<void>;
@@ -225,6 +233,9 @@ export async function createPiSessionHost(options: DataAgentSessionHostOptions):
   const sourceTools = definitions.map((definition) => definition.tool);
   const grantedToolNames = new Set(sourceTools.map((tool) => tool.name));
   let activeLane: AgentLane | undefined;
+  // Current resources; setResources replaces the Skill list without rebuilding the Models seam.
+  let resources: DataAgentResources = { skills };
+  const currentSkills = (): readonly SkillCatalogEntry[] => (resources.skills ?? []) as readonly SkillCatalogEntry[];
   const tools = sourceTools.map((tool): AgentHarnessTool<DataAgentToolContext> => {
     const parameters = tool.parameters && typeof tool.parameters === "object" && !("type" in tool.parameters)
       ? { type: "object", ...tool.parameters }
@@ -234,8 +245,11 @@ export async function createPiSessionHost(options: DataAgentSessionHostOptions):
       ...tool,
       parameters,
       async execute(toolCallId, input, onUpdate, toolContext, invocation, context) {
-        const result = await tool.execute(toolCallId, input, onUpdate, toolContext, invocation, context);
         const skillName = input && typeof input === "object" && "name" in input ? String(input.name) : "";
+        // A Skill whose required tools are not granted is neither listed nor loadable.
+        const requested = currentSkills().find((skill) => skill.name === skillName);
+        if (requested && !isSkillAvailable(requested, grantedToolNames)) throw new Error(`SKILL_NOT_FOUND: ${skillName}`);
+        const result = await tool.execute(toolCallId, input, onUpdate, toolContext, invocation, context);
         const allowed = options.skillToolAllowlist?.[skillName];
         if (allowed) {
           const selected = new Set([
@@ -252,7 +266,9 @@ export async function createPiSessionHost(options: DataAgentSessionHostOptions):
     ...definition,
     tool: tools[index]!,
   }));
-  const models = withToolPromptCatalog(piRuntime.models, new ToolPromptCatalog(effectiveDefinitions));
+  const models = withToolPromptCatalog(piRuntime.models, new ToolPromptCatalog(effectiveDefinitions), {
+    renderPreamble: (activeToolNames) => renderSkillCatalog(currentSkills(), activeToolNames, grantedToolNames),
+  });
   const created = await AgentHarness.create({
     session: nativeSession,
     models,
@@ -265,9 +281,21 @@ export async function createPiSessionHost(options: DataAgentSessionHostOptions):
     systemPrompt: options.systemPrompt,
   }, TODO_CONTEXT);
   const harness = created.harness;
+  // A reply that fills the output limit while still thinking would otherwise end the run silently.
+  const lengthContinuation = new LengthContinuationGuard();
+  harness.hooks.on("before_run_end", (event) => {
+    const followUp = lengthContinuation.followUp(event.runId, event.messages);
+    return followUp ? { followUp } : undefined;
+  }, { id: "data-agent-length-continuation" });
   const lane = await harness.lane("main", TODO_CONTEXT);
   activeLane = lane;
-  let resources: DataAgentResources = { skills };
+  // A lost database is terminal for the operation; the Agent must not work around it.
+  harness.hooks.on("after_tool", (event) => {
+    const failure = infrastructureFailureOf(event.content);
+    if (!failure) return undefined;
+    void lane.abort(TODO_CONTEXT).catch(() => undefined);
+    return { terminate: true };
+  }, { id: "data-agent-infrastructure-failure" });
   const transcript = new PiTranscriptFacet(harness, options.sessionId, created.open);
   const stopClarificationProjection = options.clarificationDialogs.subscribe((event) => {
     transcript.publish(event.type === "request"
@@ -334,6 +362,31 @@ export async function createPiSessionHost(options: DataAgentSessionHostOptions):
     facets: { transcript, queryTasks: options.queryTaskProjection, artifacts: options.artifactDirectory, clarifications: options.clarificationDialogs },
     openOperations: created.open as readonly OpenOperation[],
     subscribe: transcript.subscribe.bind(transcript),
+    subscribeObservations: transcript.subscribeObservations.bind(transcript),
+    getActiveTools: () => activeLane?.getActiveTools(TODO_CONTEXT) ?? Promise.resolve([]),
+    getExecutionSnapshot: async () => {
+      const snapshot = await transcript.snapshot();
+      const watch = await controller.watch();
+      const laneSnapshot = watch.snapshot;
+      watch.unsubscribe();
+      return {
+        sessionId: options.sessionId,
+        lane: snapshot.lane,
+        tipId: snapshot.tipId,
+        current: snapshot.operation,
+        lastOperationId: laneSnapshot.lastResult?.operationId ?? laneSnapshot.operation?.id ?? null,
+        ...(laneSnapshot.lastResult ? {
+          lastResult: {
+            operationId: laneSnapshot.lastResult.operationId,
+            status: laneSnapshot.lastResult.status,
+            startedAt: laneSnapshot.lastResult.startedAt,
+            endedAt: laneSnapshot.lastResult.endedAt,
+            ...(laneSnapshot.lastResult.error ? { error: laneSnapshot.lastResult.error } : {}),
+          },
+        } : {}),
+        faulted: snapshot.faulted,
+      };
+    },
     snapshotTranscript: () => transcript.snapshot(),
     getResources: () => resources,
     setResources: async (nextResources) => {

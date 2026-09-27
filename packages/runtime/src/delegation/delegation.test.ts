@@ -5,12 +5,7 @@ import { InMemoryDelegationLedger } from "./ledger.js";
 import { BoundedConcurrencyLimiter, BoundedKeyedConcurrencyLimiter } from "./concurrency.js";
 import type { ChildExecutor, ChildRecovery, DelegationLedger, DelegationLedgerRecord, DelegationTaskResolver, RawChildExecution, TrustedDelegationContext } from "./index.js";
 
-const report = (summary: string, evidenceRef = "revision:r1") => JSON.stringify({
-  summary,
-  findings: [{ statement: summary, evidenceRefs: [evidenceRef] }],
-  unchecked: [],
-  questions: [],
-});
+const report = (summary: string) => `## 结论\n\n${summary}`;
 
 const context = (operation = "parent-op"): TrustedDelegationContext => ({
   principalId: "user-1",
@@ -20,17 +15,16 @@ const context = (operation = "parent-op"): TrustedDelegationContext => ({
   context: TODO_CONTEXT,
 });
 
-const task = (key: string, role: "explorer" | "reviewer" = "explorer") => ({ key, role, task: `do ${key}`, taskId: "task-1", revisionId: "r1" });
+const task = (key: string, role: "explorer" | "reviewer" = "explorer") => ({ key, role, task: `do ${key}`, taskId: "task-1" });
 
 function resolver(state: { current?: boolean } = {}): DelegationTaskResolver {
   return {
     async resolve(item) {
       return {
-        targetRef: `query-task:${item.taskId}@${item.revisionId}`,
+        targetRef: `subagent:${item.key}`,
         prompt: item.task,
         systemPrompt: item.role,
         toolDefinitions: [],
-        allowedEvidenceRefs: new Set([`revision:${item.revisionId}`]),
         checkTarget: async () => state.current === false ? { state: "stale", reasons: ["revision changed"] } : { state: "current", reasons: [] },
       };
     },
@@ -111,7 +105,7 @@ describe("NativeDelegation", () => {
     const delegation = new NativeDelegation({ executor, resolver: resolver(), ledger });
     const outcomes = await delegation.run({ tasks: [task("a"), task("b", "reviewer")] }, context());
     expect(outcomes.map((item) => item.status)).toEqual(["completed", "completed"]);
-    expect(outcomes.map((item) => item.report?.summary)).toEqual(["a", "b"]);
+    expect(outcomes.map((item) => item.report?.markdown)).toEqual(["## 结论\n\na", "## 结论\n\nb"]);
     expect(new Set(outcomes.map((item) => item.childSessionId)).size).toBe(2);
     expect((await ledger.list()).filter((item) => item.state === "settled")).toHaveLength(2);
   });
@@ -226,11 +220,10 @@ describe("NativeDelegation", () => {
       async resolve(item) {
         await new Promise((resolve) => setTimeout(resolve, 100));
         return {
-          targetRef: `query-task:${item.taskId}@${item.revisionId}`,
+          targetRef: `subagent:${item.key}`,
           prompt: item.task,
           systemPrompt: item.role,
           toolDefinitions: [],
-          allowedEvidenceRefs: new Set(["revision:r1"]),
           checkTarget: async () => ({ state: "current" as const, reasons: [] }),
         };
       },
@@ -250,11 +243,10 @@ describe("NativeDelegation", () => {
     const stalledResolver: DelegationTaskResolver = {
       async resolve(item) {
         return {
-          targetRef: `query-task:${item.taskId}@${item.revisionId}`,
+          targetRef: `subagent:${item.key}`,
           prompt: item.task,
           systemPrompt: item.role,
           toolDefinitions: [],
-          allowedEvidenceRefs: new Set([`revision:${item.revisionId}`]),
           checkTarget: async () => {
             reachedCheck();
             return new Promise<never>(() => undefined);
@@ -302,7 +294,7 @@ describe("NativeDelegation", () => {
     const slowResolver: DelegationTaskResolver = {
       async resolve() {
         await new Promise((resolve) => setTimeout(resolve, 100));
-        return { targetRef: "target", prompt: "slow", systemPrompt: "slow", toolDefinitions: [], allowedEvidenceRefs: new Set(["revision:r1"]), checkTarget: async () => ({ state: "current" as const, reasons: [] }) };
+        return { targetRef: "target", prompt: "slow", systemPrompt: "slow", toolDefinitions: [], checkTarget: async () => ({ state: "current" as const, reasons: [] }) };
       },
     };
     const delegation = new NativeDelegation({ executor: new FakeExecutor(), resolver: slowResolver, ledger: new InMemoryDelegationLedger(), timeoutMs: 10_000 });

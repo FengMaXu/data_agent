@@ -49,8 +49,9 @@ describe("Pi Session Answering production seam", () => {
       expect(recovered.publication).toEqual(receipt);
       expect(receipt.resultRef).toBe(candidate.artifact.resultRef);
       expect(receipt.publicRef).toBe(`/api/runtime/publications/${receipt.receiptId}?session_id=session-1`);
-      const encoded = await results.encodeInline(receipt.resultRef, context("read-published"));
-      expect(encoded.content).toContain("BIGINT");
+      const encoded = await results.encodeCsv(receipt.resultRef, context("read-published"));
+      expect(encoded.content).toBe("count\n1\n");
+      expect(receipt.presentationContentHash).toBe(encoded.contentHash);
       expect(receipt).not.toHaveProperty("content");
     } finally {
       await rm(root, { recursive: true, force: true });

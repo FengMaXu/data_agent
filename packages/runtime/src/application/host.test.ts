@@ -60,6 +60,12 @@ describe("DataAgent Session Application production composition", () => {
       const first = await application.session({ userId: "user-1", host: "web", sessionId: "session-1" });
       const same = await application.session({ userId: "user-1", host: "web", sessionId: "session-1" });
       expect(same).toBe(first);
+      const observations = [];
+      const adapter = application.createAgentAdapter({ userId: "user-1", host: "web", sessionId: "session-1" });
+      const stopObservations = adapter.subscribeObservations((observation) => observations.push(observation));
+      await expect(adapter.getExecutionSnapshot()).resolves.toMatchObject({ sessionId: "session-1", current: null, lastOperationId: null });
+      stopObservations();
+      expect(observations).toEqual([]);
       expect(first.tools.map((tool) => tool.name)).not.toContain("subagent");
       await expect(application.session({ userId: "user-2", host: "web", sessionId: "session-1" })).rejects.toThrow("SESSION_ACCESS_DENIED");
       await application.close();
@@ -124,7 +130,8 @@ describe("DataAgent Session Application production composition", () => {
       const active = await host.lane.getActiveTools(TODO_CONTEXT);
       expect(active).toEqual(expect.arrayContaining([
         "load_skill",
-        "update_answer_spec",
+        "begin_answer_spec",
+        "revise_answer_spec",
         "query_database",
         "publish_query_result",
         "export_query",
@@ -161,9 +168,61 @@ describe("DataAgent Session Application production composition", () => {
       for (const name of ["dashboard", "analysis", "demo-report"]) {
         await loadSkill.execute(`load-${name}`, { name }, undefined, { sessionId: "session-1", principalId: "user-1" }, invocation(`load-${name}`), TODO_CONTEXT);
         const active = await host.lane.getActiveTools(TODO_CONTEXT);
-        expect(active).toEqual(expect.arrayContaining(["load_skill", "update_answer_spec", "query_database", "publish_query_result", "export_query", "inspect_answer", "ask_user_clarification", "subagent"]));
+        expect(active).toEqual(expect.arrayContaining(["load_skill", "begin_answer_spec", "revise_answer_spec", "query_database", "publish_query_result", "export_query", "inspect_answer", "ask_user_clarification", "subagent"]));
         expect(active).not.toContain("list_workspace");
       }
+    } finally {
+      await application.close();
+      await sessionStore.close().catch(() => undefined);
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("exposes the neutral Query Task bootstrap only for the semantic-spec ablation arm", async () => {
+    const root = await mkdtemp(join(process.cwd(), ".tmp-application-semantic-spec-ablation-"));
+    const sessionStore = new PiJsonlSessionStore(join(root, "sessions"));
+    await sessionStore.create({ sessionId: "session-1" });
+    const application = new DataAgentSessionApplication({
+      sessionStore,
+      workspace: new WorkspaceStore(join(root, "workspace")),
+      profile,
+      systemPrompt: "You are Data Agent.",
+      semanticSpecMode: "disabled",
+      enableClarificationTool: false,
+      createMissingSessions: false,
+      authorizeSession: async () => true,
+    });
+    try {
+      const host = await application.session({ userId: "user-1", host: "web", sessionId: "session-1" });
+      const names = host.tools.map((tool) => tool.name);
+      expect(names).toContain("begin_query_task");
+      expect(names).not.toContain("begin_answer_spec");
+      expect(names).not.toContain("ask_user_clarification");
+    } finally {
+      await application.close();
+      await sessionStore.close().catch(() => undefined);
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("omits the clarification tool in headless evaluation while keeping the query tools", async () => {
+    const root = await mkdtemp(join(process.cwd(), ".tmp-application-headless-clarification-"));
+    const sessionStore = new PiJsonlSessionStore(join(root, "sessions"));
+    await sessionStore.create({ sessionId: "session-1" });
+    const application = new DataAgentSessionApplication({
+      sessionStore,
+      workspace: new WorkspaceStore(join(root, "workspace")),
+      profile,
+      systemPrompt: "You are Data Agent.",
+      enableClarificationTool: false,
+      createMissingSessions: false,
+      authorizeSession: async () => true,
+    });
+    try {
+      const host = await application.session({ userId: "user-1", host: "web", sessionId: "session-1" });
+      const active = await host.lane.getActiveTools(TODO_CONTEXT);
+      expect(active).not.toContain("ask_user_clarification");
+      expect(active).toEqual(expect.arrayContaining(["begin_answer_spec", "revise_answer_spec", "query_database", "export_query"]));
     } finally {
       await application.close();
       await sessionStore.close().catch(() => undefined);
@@ -190,15 +249,16 @@ describe("DataAgent Session Application production composition", () => {
     try {
       const host = await application.session({ userId: "user-1", host: "web", sessionId: "session-1" });
       const names = host.tools.map((tool) => tool.name);
-      expect(names).toContain("update_answer_spec");
+      expect(names).toContain("begin_answer_spec");
+      expect(names).toContain("revise_answer_spec");
       expect(names).toContain("query_database");
       expect(names).toContain("publish_query_result");
       expect(names).toContain("export_query");
       const context = { sessionId: "session-1", principalId: "user-1", requestMessageId: "user-message-1" };
-      const update = host.tools.find((tool) => tool.name === "update_answer_spec")! as any;
+      const update = host.tools.find((tool) => tool.name === "begin_answer_spec")! as any;
       const query = host.tools.find((tool) => tool.name === "query_database")! as any;
       const publish = host.tools.find((tool) => tool.name === "publish_query_result")! as any;
-      const began = await update.execute("call-begin", { kind: "begin", spec }, undefined, context, invocation("call-begin"), TODO_CONTEXT);
+      const began = await update.execute("call-begin", { spec, decisionPoints: ["population", "join_multiplicity", "time_field", "count_grain", "denominator", "window", "ties", "output_shape"].map((name) => ({ name, status: "not_applicable" })) }, undefined, context, invocation("call-begin"), TODO_CONTEXT);
       expect(began.details.taskId).toMatch(/^task_/);
       const execution = await query.execute("call-result", { kind: "result", taskId: began.details.taskId, revisionId: began.details.revisionId, sql: "SELECT COUNT(*) FROM orders" }, undefined, context, invocation("call-result"), TODO_CONTEXT);
       expect(execution.details.artifact.kind).toBe("candidate");
@@ -206,9 +266,13 @@ describe("DataAgent Session Application production composition", () => {
       expect(receipt.details.format).toBe("inline");
       expect(receipt.details).not.toHaveProperty("content");
       expect(receipt.content[0].text).toContain("count");
-      const published = await application.createAgentAdapter({ userId: "user-1", host: "web", sessionId: "session-1" }).readPublication(receipt.details.receiptId);
+      const publicationAdapter = application.createAgentAdapter({ userId: "user-1", host: "web", sessionId: "session-1" });
+      const published = await publicationAdapter.readPublication(receipt.details.receiptId);
+      const publishedSql = await publicationAdapter.readPublicationSql(receipt.details.receiptId);
       expect(published.summary.publicationId).toBe(receipt.details.receiptId);
       expect(published.content).toContain("count");
+      expect(publishedSql.candidateId).toBe(execution.details.artifact.candidateId);
+      expect(publishedSql.sql).toContain("SELECT COUNT(*)");
       expect(calls).toBe(1);
       await application.close();
       await sessionStore.close();

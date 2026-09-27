@@ -39,16 +39,16 @@ describe("main AgentHarness to child AgentHarness", () => {
     let childContext = "";
     const lastToolResult = (context: { messages: readonly any[] }) => context.messages.filter((message) => message.role === "toolResult").at(-1);
     faux.setResponses([
-      fauxAssistantMessage(fauxToolCall("update_answer_spec", { kind: "begin", spec }, { id: "begin-call" }), { stopReason: "toolUse" }),
+      fauxAssistantMessage(fauxToolCall("begin_answer_spec", { spec }, { id: "begin-call" }), { stopReason: "toolUse" }),
       async (context) => {
         begun = lastToolResult(context)?.details;
         if (!begun?.taskId || !begun.revisionId) throw new Error("TEST_ANSWER_SPEC_MISSING");
         return fauxAssistantMessage(fauxToolCall("query_database", { kind: "result", taskId: begun.taskId, revisionId: begun.revisionId, sql: "SELECT COUNT(*) FROM orders" }, { id: "result-call" }), { stopReason: "toolUse" });
       },
-      async () => fauxAssistantMessage(fauxToolCall("subagent", { tasks: [{ key: "review", role: "reviewer", task: "Review the exact candidate", taskId: begun!.taskId, revisionId: begun!.revisionId }] }, { id: "delegate-call" }), { stopReason: "toolUse" }),
+      async () => fauxAssistantMessage(fauxToolCall("subagent", { tasks: [{ key: "review", role: "reviewer", task: "Review the exact candidate", taskId: begun!.taskId }] }, { id: "delegate-call" }), { stopReason: "toolUse" }),
       async (context) => {
         childContext = JSON.stringify(context);
-        return fauxAssistantMessage(JSON.stringify({ summary: "Candidate reviewed", findings: [], unchecked: ["business intent"], questions: [] }));
+        return fauxAssistantMessage("## 结论\n\nCandidate reviewed");
       },
       fauxAssistantMessage("Main agent retained the bounded review."),
     ]);
@@ -111,11 +111,11 @@ describe("main AgentHarness to child AgentHarness", () => {
     faux.setResponses([
       async (context) => {
         initialParentContext = JSON.stringify(context);
-        return fauxAssistantMessage(fauxToolCall("subagent", { tasks: [{ key: "review", role: "reviewer", task: "Review the exact candidate", taskId: begun.taskId, revisionId: begun.revisionId }] }, { id: "delegate-call" }), { stopReason: "toolUse" });
+        return fauxAssistantMessage(fauxToolCall("subagent", { tasks: [{ key: "review", role: "reviewer", task: "Review the exact candidate", taskId: begun.taskId }] }, { id: "delegate-call" }), { stopReason: "toolUse" });
       },
       async (context) => {
         childContext = JSON.stringify(context);
-        return fauxAssistantMessage(JSON.stringify({ summary: "Candidate matches the supplied scalar shape", findings: [], unchecked: ["business intent"], questions: [] }));
+        return fauxAssistantMessage("## 结论\n\nCandidate matches the supplied scalar shape");
       },
       async (context) => {
         finalParentContext = JSON.stringify(context);
@@ -158,14 +158,14 @@ describe("main AgentHarness to child AgentHarness", () => {
     models.setProvider(faux.provider);
     const parentSession = await new MemorySessionRepo().create({ id: "parent-two" }, TODO_CONTEXT);
     faux.setResponses([
-      fauxAssistantMessage(JSON.stringify({ summary: "first child", findings: [{ statement: "checked", evidenceRefs: ["revision:r1"] }], unchecked: [], questions: [] })),
-      fauxAssistantMessage(JSON.stringify({ summary: "second child", findings: [{ statement: "checked", evidenceRefs: ["revision:r1"] }], unchecked: [], questions: [] })),
+      fauxAssistantMessage("## 结论\n\nfirst child"),
+      fauxAssistantMessage("## 结论\n\nsecond child"),
     ]);
     const delegation = new NativeDelegation({
       executor: new HarnessChildExecutor({ sessions: new MemoryChildSessionRepository(), models, model: faux.models[0] }),
       resolver: {
         async resolve(task) {
-          return { targetRef: `query-task:${task.taskId}@${task.revisionId}`, prompt: task.task, systemPrompt: "Return the required report JSON.", toolDefinitions: [], allowedEvidenceRefs: new Set(["revision:r1"]), checkTarget: async () => ({ state: "current" as const, reasons: [] }) };
+          return { targetRef: `subagent:${task.key}`, prompt: task.task, systemPrompt: "Return a Markdown report.", toolDefinitions: [], checkTarget: async () => ({ state: "current" as const, reasons: [] }) };
         },
       },
       ledger: new PiSessionDelegationLedger(parentSession),
@@ -173,8 +173,8 @@ describe("main AgentHarness to child AgentHarness", () => {
     const tool = createSubagentToolDefinition(delegation).tool as any;
     const memo = new Map<string, unknown>();
     const result = await tool.execute("delegate", { tasks: [
-      { key: "one", role: "reviewer", task: "first", taskId: "task", revisionId: "r1" },
-      { key: "two", role: "reviewer", task: "second", taskId: "task", revisionId: "r1" },
+      { key: "one", role: "explorer", task: "first" },
+      { key: "two", role: "explorer", task: "second" },
     ] }, undefined, { sessionId: "parent-two", principalId: "user-1" }, {
       invocationId: "main-tool-invocation", operationId: "main-operation", turnId: "turn",
       getMemo: async (name: string) => memo.get(name),
@@ -188,7 +188,7 @@ describe("main AgentHarness to child AgentHarness", () => {
     await parentSession.close(TODO_CONTEXT);
   });
 
-  it("lets the main agent delegate exploration without receiving the raw child tool trace", async () => {
+  it("lets the main agent delegate exploration without a Query Task or the raw child tool trace", async () => {
     const faux = fauxProvider({ provider: "main-child-explorer-e2e", models: [{ id: "model" }] });
     const models = createModels();
     models.setProvider(faux.provider);
@@ -200,26 +200,23 @@ describe("main AgentHarness to child AgentHarness", () => {
     const answering = new InMemoryAnswering({
       store: new InMemoryAnsweringStore(),
       resultStore: new InMemoryResultStore(),
-      sqlExecutor: { run: async () => { queryCalls += 1; return { columns: ["raw"], rows: [[rawTrace]], truncated: false, columnTypes: ["TEXT"] }; } },
+      sqlExecutor: { run: async () => { throw new Error("ANSWERING_MUST_NOT_RUN"); } },
     });
-    const business = (invocationId: string) => ({ principal: { id: "user-1" }, sessionId: "parent-explorer", lane: "main", operationId: "setup", invocationId });
-    const begun = await answering.begin({ requestMessageId, requestId: "begin", spec }, business("begin"));
+    const sqlExplorer = { run: async () => { queryCalls += 1; return { columns: ["raw"], rows: [[rawTrace]], truncated: false, columnTypes: ["TEXT"] }; } };
     const ledger = new PiSessionDelegationLedger(parentSession);
     const delegation = new NativeDelegation({
       executor: new HarnessChildExecutor({ sessions: new MemoryChildSessionRepository(), models, model: faux.models[0] }),
-      resolver: createQueryTaskDelegationResolver({ answering, ownerSession: parentSession, principalId: "user-1", ownerSessionId: "parent-explorer", explorationScope: { scopeId: "test-scope", connectionId: "test-connection" } }),
+      resolver: createQueryTaskDelegationResolver({ answering, ownerSession: parentSession, principalId: "user-1", ownerSessionId: "parent-explorer", sqlExplorer }),
       ledger,
     });
     let childAfterToolContext = "";
     let finalParentContext = "";
     faux.setResponses([
-      fauxAssistantMessage(fauxToolCall("subagent", { tasks: [{ key: "explore", role: "explorer", task: "Run a bounded count observation", taskId: begun.taskId, revisionId: begun.revisionId }] }, { id: "delegate-explore" }), { stopReason: "toolUse" }),
-      fauxAssistantMessage(fauxToolCall("explore_parent_task", { sql: "SELECT COUNT(*) FROM orders", limit: 50 }, { id: "explore-call" }), { stopReason: "toolUse" }),
+      fauxAssistantMessage(fauxToolCall("subagent", { tasks: [{ key: "explore", role: "explorer", task: "Run a bounded count observation" }] }, { id: "delegate-explore" }), { stopReason: "toolUse" }),
+      fauxAssistantMessage(fauxToolCall("explore_sql", { sql: "SELECT COUNT(*) FROM orders", limit: 50 }, { id: "explore-call" }), { stopReason: "toolUse" }),
       async (context) => {
         childAfterToolContext = JSON.stringify(context);
-        const evidenceRef = childAfterToolContext.match(/evidence_[A-Za-z0-9_-]+/)?.[0];
-        if (!evidenceRef) throw new Error("TEST_EVIDENCE_REF_MISSING");
-        return fauxAssistantMessage(JSON.stringify({ summary: "Exploration produced a bounded observation", findings: [{ statement: "One bounded row was returned", evidenceRefs: [evidenceRef] }], unchecked: ["business intent"], questions: [] }));
+        return fauxAssistantMessage("## 结论\n\nExploration produced a bounded observation");
       },
       async (context) => {
         finalParentContext = JSON.stringify(context);
@@ -233,7 +230,7 @@ describe("main AgentHarness to child AgentHarness", () => {
       systemPrompt: "You are the main Data Agent.",
       tools: [createSubagentToolDefinition(delegation).tool],
       activeToolNames: ["subagent"],
-      toolContext: { sessionId: "parent-explorer", principalId: "user-1" },
+      toolContext: { sessionId: "parent-explorer", principalId: "user-1", requestMessageId },
     }, TODO_CONTEXT);
     const lane = await created.harness.lane("main", TODO_CONTEXT);
     const accepted = await lane.accept({ kind: "prompt", prompt: "Delegate exploration then finish." }, TODO_CONTEXT);
@@ -242,6 +239,7 @@ describe("main AgentHarness to child AgentHarness", () => {
     expect(driven.ok).toBe(true);
     expect(queryCalls).toBe(1);
     expect(childAfterToolContext).toContain("LARGE_CHILD_TOOL_TRACE_");
+    expect(childAfterToolContext).toContain("Inspect order count");
     expect(finalParentContext).toContain("Exploration produced a bounded observation");
     expect(finalParentContext).not.toContain("LARGE_CHILD_TOOL_TRACE_");
     expect((await ledger.list()).some((item) => item.state === "settled" && item.status === "completed")).toBe(true);

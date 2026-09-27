@@ -44,11 +44,14 @@ const shapeCheck: CandidateCheck = {
     if (output.rowMode === "scalar" && input.result.rowCount !== 1) {
       return { kind: "confirmed", finding: finding("shape_conflict", `Expected one scalar row but received ${input.result.rowCount}`, true, "result_shape") };
     }
-    if (output.rowMode === "top_n" && output.rowCount !== undefined && input.result.rowCount !== output.rowCount) {
-      return { kind: "confirmed", finding: finding("shape_conflict", `Expected ${output.rowCount} rows but received ${input.result.rowCount}`, true, "result_shape") };
+    // A declared count is a promise for top_n and for grouped (e.g. "the three industries"); full/detail stay unchecked.
+    if ((output.rowMode === "top_n" || output.rowMode === "grouped") && output.rowCount !== undefined && input.result.rowCount !== output.rowCount) {
+      return { kind: "confirmed", finding: finding("shape_conflict", `Expected ${output.rowCount} ${output.rowMode} rows but received ${input.result.rowCount}. Fix the query if groups are missing or duplicated, or revise output.rowCount if the declaration is wrong`, true, "result_shape") };
     }
     if (output.columns && (output.columns.length !== input.result.columns.length || output.columns.some((column, index) => column !== input.result.columns[index]))) {
-      return { kind: "confirmed", finding: finding("shape_conflict", "Result columns do not match the declared output shape", true, "result_shape") };
+      // Name both lists: the fix is either SQL aliases or the declared columns, and only the pair shows which.
+      const message = `Result columns do not match the declared output shape: declared ${JSON.stringify(output.columns)}, result ${JSON.stringify(input.result.columns)}. Alias the SQL columns to the declared names in the same order, or revise output.columns if the declaration is wrong`;
+      return { kind: "confirmed", finding: finding("shape_conflict", message, true, "result_shape") };
     }
     return { kind: "clear" };
   },

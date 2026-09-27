@@ -12,10 +12,14 @@ import { AssistantMessageEventStream } from "@earendil-works/pi-ai/utils/event-s
 import type { ChildExecutionRequest, ChildExecutor, ChildRecovery, ChildUsage, DelegationLedgerRecord, RawChildExecution } from "./index.js";
 import { ToolPromptCatalog } from "../agent/tool-prompt-catalog.js";
 import { withToolPromptCatalog } from "../agent/tool-prompt-models.js";
+import { infrastructureFailureOf } from "../agent/infrastructure-failure.js";
 
-const MAX_MODEL_REQUESTS = 6;
-const MAX_TOOL_CALLS = 8;
-const MAX_OUTPUT_TOKENS = 2_048;
+/** Explorers answer bounded fact questions; fewer turns keep the parent waiting less. */
+const MAX_MODEL_REQUESTS = 10;
+const MAX_TOOL_CALLS = 30;
+const FINAL_REPORT_INSTRUCTION = "Tool budget reached: do not call tools. Write the final Markdown report now from the information you have gathered, and list what remains unverified.";
+/** Per-response output cap, including reasoning tokens of reasoning models. */
+const MAX_OUTPUT_TOKENS = 10_240;
 
 export interface ChildSessionRepository {
   create(input: { readonly id: string; readonly parentSessionId: string; readonly signal?: AbortSignal }): Promise<Session<any>>;
@@ -34,9 +38,9 @@ interface RunningChild {
   abort(reason: "cancel" | "close" | "timeout"): Promise<void>;
 }
 
-function finalAssistantText(entries: readonly Entry[]): string | undefined {
-  for (let index = entries.length - 1; index >= 0; index -= 1) {
-    const entry = entries[index];
+/** Entries must be ordered newest first; the latest assistant text is the child's report. */
+function finalAssistantText(newestFirst: readonly Entry[]): string | undefined {
+  for (const entry of newestFirst) {
     if (entry?.type !== "message" || entry.message.role !== "assistant") continue;
     const text = entry.message.content
       .filter((item) => item.type === "text")
@@ -88,6 +92,16 @@ function modelBudgetError(model: Model<any>): AssistantMessageEventStream {
   return stream;
 }
 
+/**
+ * The child model must declare the same output limit that boundedModels
+ * enforces. Otherwise Pi sees a length stop below the declared limit and
+ * misclassifies it as a context overflow.
+ */
+function childModel(model: Model<any>): Model<any> {
+  const declared = model.maxTokens > 0 ? model.maxTokens : MAX_OUTPUT_TOKENS;
+  return { ...model, maxTokens: Math.min(declared, MAX_OUTPUT_TOKENS) };
+}
+
 function boundedModels(source: Models): Models {
   let requests = 0;
   const streamSimple: Models["streamSimple"] = (model, context, options) => {
@@ -95,11 +109,22 @@ function boundedModels(source: Models): Models {
     if (requests > MAX_MODEL_REQUESTS) return modelBudgetError(model);
     const requested = options?.maxTokens ?? model.maxTokens;
     const maxTokens = requested > 0 ? Math.min(requested, MAX_OUTPUT_TOKENS) : MAX_OUTPUT_TOKENS;
-    return source.streamSimple(model, context, { ...options, maxTokens });
+    // The last allowed request has no tools, so gathered information always becomes a report.
+    const finalContext = requests === MAX_MODEL_REQUESTS
+      ? { ...context, tools: [], systemPrompt: `${context.systemPrompt ?? ""}\n\n${FINAL_REPORT_INSTRUCTION}` }
+      : context;
+    return source.streamSimple(model, finalContext, { ...options, maxTokens });
+  };
+  // Pi resolves the generation model through the registry and derives the
+  // intended output limit from it, so the cap must be visible here too.
+  const getModel: Models["getModel"] = (provider, modelId) => {
+    const model = source.getModel(provider, modelId);
+    return model ? childModel(model) : model;
   };
   return new Proxy(source, {
     get(target, property) {
       if (property === "streamSimple") return streamSimple;
+      if (property === "getModel") return getModel;
       const member = Reflect.get(target, property);
       return typeof member === "function" ? member.bind(target) : member;
     },
@@ -144,7 +169,7 @@ export class HarnessChildExecutor implements ChildExecutor {
       const created = await AgentHarness.create({
         session,
         models: boundedModels(this.options.models),
-        model: this.options.model,
+        model: childModel(this.options.model),
         thinkingLevel: "low",
         tools: [],
         activeToolNames: [],
@@ -183,7 +208,7 @@ export class HarnessChildExecutor implements ChildExecutor {
       const created = await AgentHarness.create({
         session,
         models: boundedModels(this.options.models),
-        model: this.options.model,
+        model: childModel(this.options.model),
         thinkingLevel: "low",
         tools: [],
         activeToolNames: [],
@@ -246,6 +271,7 @@ export class HarnessChildExecutor implements ChildExecutor {
     const executionAbort = new AbortController();
     let lane: AgentLane | undefined;
     let abortPromise: Promise<void> | undefined;
+    let infrastructureFailure: string | undefined;
 
     const abort = (reason: "timeout" | "cancel" | "close"): Promise<void> => {
       if (reason === "timeout") timedOut = true;
@@ -278,13 +304,14 @@ export class HarnessChildExecutor implements ChildExecutor {
       const created = await AgentHarness.create({
         session,
         models,
-        model: this.options.model,
-        thinkingLevel: "low",
+        model: childModel(this.options.model),
+        // Fact gathering needs tool results, not long reasoning; independent reads run in parallel.
+        thinkingLevel: "off",
         tools,
         activeToolNames: tools.map((tool) => tool.name),
         toolContext: { childSessionId: request.childSessionId, runId: request.runId, role: request.role },
         systemPrompt: request.systemPrompt,
-        toolExecution: "sequential",
+        toolExecution: "parallel",
         streamOptions: { maxRetries: 0 },
       }, operationContext);
       harness = created.harness;
@@ -295,6 +322,15 @@ export class HarnessChildExecutor implements ChildExecutor {
           ? { block: { reason: "SUBAGENT_TOOL_CALL_BUDGET_EXHAUSTED", terminate: true } }
           : undefined;
       }, { id: "data-agent-subagent-tool-budget" });
+      // A lost database ends the child; its failure text carries the code to the parent.
+      harness.hooks.on("after_tool", (event) => {
+        const failure = infrastructureFailureOf(event.content);
+        if (failure && !infrastructureFailure) {
+          infrastructureFailure = failure;
+          void abort("cancel");
+        }
+        return undefined;
+      }, { id: "data-agent-subagent-infrastructure-failure" });
       lane = await harness.lane("main", operationContext);
       if (executionAbort.signal.aborted) {
         outcome = { status: timedOut ? "timed_out" : this.closing ? "interrupted" : "cancelled", terminalConfirmed: true, usage: nullUsage() };
@@ -366,11 +402,13 @@ export class HarnessChildExecutor implements ChildExecutor {
           error: driven.value.outcome.error?.message ?? `SUBAGENT_${driven.value.outcome.status.toUpperCase()}`,
         };
       } else {
-        const childText = finalAssistantText(await lane.findEntries(undefined, TODO_CONTEXT));
+        // Explicit order: the default scan order is not part of this contract.
+        const childText = finalAssistantText(await lane.findEntries({ type: "message", order: "newestFirst" }, TODO_CONTEXT));
         outcome = childText
           ? { status: "completed", terminalConfirmed: true, operationId, text: childText, usage }
           : { status: "failed", terminalConfirmed: true, operationId, usage, error: "SUBAGENT_FINAL_TEXT_MISSING" };
       }
+      if (infrastructureFailure) outcome = { status: "failed", terminalConfirmed: outcome.terminalConfirmed, operationId, usage, error: infrastructureFailure };
       return outcome;
     } catch (error) {
       if (operationId) await abort(this.closing ? "close" : request.signal?.aborted ? "cancel" : "close");
