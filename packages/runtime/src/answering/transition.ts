@@ -336,7 +336,40 @@ function resolveEvidenceRefs(refs: readonly string[], resolve: EvidenceResolver,
   });
 }
 
-type HypothesisResolver = (ref: string) => Hypothesis | undefined;
+/** `known` describes what a reference could have named, for the error when it names nothing. */
+type HypothesisResolver = ((ref: string) => Hypothesis | undefined) & { readonly known?: () => string };
+
+interface ReferenceCatalog {
+  readonly added: ReadonlyMap<string, { readonly statement?: string; readonly alternatives?: readonly { readonly statement: string }[] }>;
+  readonly existing: readonly (Hypothesis | Choice)[];
+}
+
+function itemLabel(item: { readonly statement?: string; readonly alternatives?: readonly { readonly statement: string }[] }): string {
+  const text = item.statement ?? item.alternatives?.map((alternative) => alternative.statement).join(" | ") ?? "";
+  return text.length > 60 ? `${text.slice(0, 60)}…` : text;
+}
+
+/**
+ * A reference that resolves to nothing is usually a localId from an earlier
+ * call, which the Runtime has since replaced with an id. Listing both sides,
+ * with each item's statement, lets the model map the one to the other.
+ */
+function describeReferences(catalog: ReferenceCatalog): string {
+  const added = [...catalog.added].map(([local, item]) => `${local} (${itemLabel(item)})`);
+  return [
+    added.length > 0 ? `localIds added in this call: ${added.join("; ")}` : "this call adds no localIds",
+    describeExisting(catalog.existing),
+  ].join(". ");
+}
+
+function describeExisting(items: readonly (Hypothesis | Choice)[]): string {
+  const existing = items.map((item) => `${item.id} (${itemLabel(item)})`);
+  return `${existing.length > 0 ? `existing ids: ${existing.join("; ")}` : "no existing items"}. A localId from an earlier call is not valid now; use the id it was given`;
+}
+
+function hypothesisResolver(resolve: (ref: string) => Hypothesis | undefined, catalog: ReferenceCatalog): HypothesisResolver {
+  return Object.assign(resolve, { known: () => describeReferences(catalog) });
+}
 
 function proposalFacet<T>(value: unknown, facet: FacetName, hypothesisRef: HypothesisResolver, resolveEvidence: EvidenceResolver): Facet<T> {
   if (value === undefined || value === null || value === "") return { state: "unknown" };
@@ -351,7 +384,7 @@ function proposalFacet<T>(value: unknown, facet: FacetName, hypothesisRef: Hypot
   if (hypothesisLocalId && evidenceIds) invalid(`${facet} facet cannot bind both a hypothesis and evidence`);
   if (hypothesisLocalId) {
     const hypothesis = hypothesisRef(hypothesisLocalId);
-    if (!hypothesis) invalid(`Unknown hypothesis ${hypothesisLocalId} for ${facet}`);
+    if (!hypothesis) invalid(`Unknown hypothesis ${hypothesisLocalId} for ${facet}${hypothesisRef.known ? `; ${hypothesisRef.known()}` : ""}`);
     return { state: "specified", value: normalizeFacetValue<T>(facet, raw), basis: { kind: "hypothesis", hypothesisId: hypothesis.id } };
   }
   if (evidenceIds) {
@@ -657,7 +690,7 @@ function assertFacetBindings(body: RevisionBody): void {
 
 export function beginTransition(input: BeginTransitionInput, resolveEvidence: EvidenceResolver, governance?: ChoiceGovernance): RevisionBody {
   const created = createItems(input.hypotheses ?? [], input.choices ?? [], resolveEvidence, { hypotheses: [], choices: [] }, governance?.populationDecisions);
-  const spec = buildSpec(input.spec, (ref) => created.hypothesesByLocalId.get(ref), resolveEvidence);
+  const spec = buildSpec(input.spec, hypothesisResolver((ref) => created.hypothesesByLocalId.get(ref), { added: created.hypothesesByLocalId, existing: [] }), resolveEvidence);
   const probeWaivers = applyWaivers(input.notProbeable ?? [], [], created.choices, created);
   assertCreatedDecisionsCovered(created, governance, probeWaivers, resolveEvidence);
   const decisionPoints = nextDecisionPoints(undefined, input.decisionPoints, governance, { choices: created.choices, hypotheses: created.hypotheses, resolutions: created.resolutions }, created, resolveEvidence);
@@ -706,7 +739,7 @@ export function reviseTransition(previous: RevisionBody, input: ReviseTransition
   for (const disposition of dispositions) {
     if (disposition.action !== "supersede") continue;
     const target = requiredLocalId(disposition.targetId, "supersede.targetId");
-    if (!previousHypotheses.has(target) && !previousChoices.has(target)) transitionInvalid(`Cannot supersede unknown item ${target}`);
+    if (!previousHypotheses.has(target) && !previousChoices.has(target)) transitionInvalid(`Cannot supersede unknown item ${target}; ${describeExisting([...previous.hypotheses, ...previous.choices])}`);
     claimTarget(target);
     superseded.add(target);
   }
@@ -734,7 +767,10 @@ export function reviseTransition(previous: RevisionBody, input: ReviseTransition
     if (superseded.has(ref)) transitionInvalid(`${ref} is superseded in this revision and cannot replace another item`);
     const existing = previousHypotheses.get(ref) ?? previousChoices.get(ref);
     if (existing) return { id: existing.id, affects: existing.affects };
-    return transitionInvalid(`Unknown replacement ${ref}; use a localId added in this revision or an existing id`);
+    return transitionInvalid(`Unknown replacement ${ref}; ${describeReferences({
+      added: new Map<string, Hypothesis | Choice>([...created.hypothesesByLocalId, ...created.choicesByLocalId]),
+      existing: [...carriedHypotheses, ...carriedChoices],
+    })}`);
   };
 
   for (const disposition of dispositions) {
@@ -746,7 +782,7 @@ export function reviseTransition(previous: RevisionBody, input: ReviseTransition
         if (!hypothesis && created.hypothesesByLocalId.has(id)) {
           transitionInvalid(`Cannot ${disposition.action} ${id}: it is added in this same call, and dispositions act only on existing ids. Put its evidence ids in addHypotheses proposedEvidenceIds instead, or dispose of its returned id in a later call`);
         }
-        if (!hypothesis) transitionInvalid(`Cannot ${disposition.action} unknown hypothesis ${id}`);
+        if (!hypothesis) transitionInvalid(`Cannot ${disposition.action} unknown hypothesis ${id}; ${describeExisting(previous.hypotheses)}`);
         claimTarget(id);
         if (resolvedHypotheses.has(id)) transitionInvalid(`Hypothesis ${id} is already resolved; supersede it to reopen`);
         resolutions.push(disposition.action === "support"
@@ -759,7 +795,7 @@ export function reviseTransition(previous: RevisionBody, input: ReviseTransition
       case "provisional": {
         const id = requiredLocalId(disposition.choiceId, `${disposition.action}.choiceId`);
         const choice = previousChoices.get(id);
-        if (!choice) transitionInvalid(`Cannot ${disposition.action} unknown choice ${id}`);
+        if (!choice) transitionInvalid(`Cannot ${disposition.action} unknown choice ${id}; ${describeExisting(previous.choices)}`);
         claimTarget(id);
         if (resolvedChoices.has(id)) transitionInvalid(`Choice ${id} is already resolved; supersede it to reopen`);
         const alternativeId = requiredLocalId(disposition.alternativeId, `${disposition.action}.alternativeId`);
@@ -784,7 +820,7 @@ export function reviseTransition(previous: RevisionBody, input: ReviseTransition
         if (!choice && created.choicesByLocalId.has(id)) {
           transitionInvalid(`Cannot decide ${id}: it is added in this same call, and dispositions act only on existing ids. Use addChoices decidedAlternativeId instead, or decide its returned id in a later call`);
         }
-        if (!choice) transitionInvalid(`Cannot decide unknown choice ${id}`);
+        if (!choice) transitionInvalid(`Cannot decide unknown choice ${id}; ${describeExisting(previous.choices)}`);
         claimTarget(id);
         if (resolvedChoices.has(id)) transitionInvalid(`Choice ${id} is already resolved; supersede it to reopen`);
         const alternativeId = requiredLocalId(disposition.alternativeId, "decide.alternativeId");
@@ -798,7 +834,7 @@ export function reviseTransition(previous: RevisionBody, input: ReviseTransition
       case "equivalent": {
         const id = requiredLocalId(disposition.choiceId, "equivalent.choiceId");
         const choice = previousChoices.get(id);
-        if (!choice) transitionInvalid(`Cannot mark unknown choice ${id} equivalent`);
+        if (!choice) transitionInvalid(`Cannot mark unknown choice ${id} equivalent; ${describeExisting(previous.choices)}`);
         claimTarget(id);
         if (resolvedChoices.has(id)) transitionInvalid(`Choice ${id} is already resolved; supersede it to reopen`);
         const outputs = governance ? summarizeChoiceProbes(choice, governance.probes, probeWaivers).outputs : "incomplete";
@@ -830,7 +866,10 @@ export function reviseTransition(previous: RevisionBody, input: ReviseTransition
   const hypotheses = [...carriedHypotheses, ...created.hypotheses];
   const choices = [...carriedChoices, ...created.choices];
   const currentHypotheses = new Map(hypotheses.map((item) => [item.id as string, item]));
-  const hypothesisRef: HypothesisResolver = (ref) => created.hypothesesByLocalId.get(ref) ?? currentHypotheses.get(ref);
+  const hypothesisRef = hypothesisResolver(
+    (ref) => created.hypothesesByLocalId.get(ref) ?? currentHypotheses.get(ref),
+    { added: created.hypothesesByLocalId, existing: carriedHypotheses },
+  );
   const spec = input.spec ? patchSpec(previous.spec, input.spec, hypothesisRef, resolveEvidence) : previous.spec;
   const decisionPoints = nextDecisionPoints(previous.decisionPoints, input.decisionPoints, governance, { choices, hypotheses, resolutions }, created, resolveEvidence);
   const next: RevisionTransition = { spec, hypotheses, choices, resolutions, choiceResolutions, supersessions, ...(probeWaivers.length > 0 ? { probeWaivers } : {}), ...(decisionPoints ? { decisionPoints } : {}) };

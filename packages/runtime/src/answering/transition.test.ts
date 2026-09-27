@@ -109,6 +109,26 @@ describe("Runtime-owned Answer Spec transitions (ADR-0004)", () => {
       .toThrow(expect.objectContaining({ message: expect.stringContaining("added in this same call") }));
   });
 
+  it("maps a stale localId to the id it was given when a facet or replacement cannot resolve it", () => {
+    const first = local141Begin();
+    const [hypothesis] = first.hypotheses;
+    // local031: a facet still binds the localId the hypothesis had in the begin call.
+    expect(() => reviseTransition(first, { spec: { filters: [{ value: "status = 'delivered'", hypothesisId: "metric-column" }] } }, resolve))
+      .toThrow(expect.objectContaining({ message: expect.stringContaining(`existing ids: ${hypothesis!.id} (subtotal is the sales amount)`) }));
+    // local212: a supersede names a replacement that is neither added nor existing.
+    const error = (() => {
+      try {
+        reviseTransition(first, {
+          addHypotheses: [{ localId: "h-total", kind: "business_semantics", statement: "totaldue is the sales amount", affects: ["metric"], basis: "b", impact: "i" }],
+          dispositions: [{ action: "supersede", targetId: hypothesis!.id, replacementIds: ["h-dup"], reason: "wrong column" }],
+        }, resolve);
+        return "";
+      } catch (caught) { return (caught as Error).message; }
+    })();
+    expect(error).toContain("Unknown replacement h-dup; localIds added in this call: h-total (totaldue is the sales amount)");
+    expect(error).toContain("A localId from an earlier call is not valid now");
+  });
+
   it("resolves a hypothesis with verified request wording and carries the resolution forward", () => {
     const first = local141Begin();
     const supported = reviseTransition(first, { dispositions: [{ action: "support", hypothesisId: first.hypotheses[0]!.id, evidenceIds: ["evidence_request_quote"] }] }, resolve);

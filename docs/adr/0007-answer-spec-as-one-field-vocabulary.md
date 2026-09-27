@@ -59,6 +59,8 @@ status: proposed
 
    决定一个待定字段，就把它改写为某个候选的值并附 `rationale`；探针、比较建议和偏离说明仍按 ADR-0005 执行。
 
+   **普通歧义与重要歧义的区分不变。** 区分依据是探针输出，不是字段结构：待定字段的每个候选仍各自绑定一次探针；全部候选输出相同的字段可声明为等价，不需要理由、建议和披露；输出不同或未知的字段按决定性处理。原来由 `affects` 决定的两条规则改由字段路径推导：路径的第一段就是它影响的槽位（`metric.denominator` 影响 `metric`）；`source` 视为同时影响 `entity`、`metric`、`filters`。因此"决定性 Choice 影响核心槽位时须先有比较建议"（ADR-0005）与"未证实的决定不得确定统计总体"（ADR-0006）的适用范围与现在相同。
+
 3. **引用只剩服务端 ID。** 文本证据在引用处就地附引文，由运行时就地核验；取消模型可写的 `localId`。观测证据仍按 `query_database` 返回的 ID 引用。
 
 4. **假设种类由字段路径决定。** 例如 `filters.population` 与 `metric.denominator` 为业务语义，`entity.joinMultiplicity` 与 `source` 为物理映射。模型不再声明种类，是否已证实按 ADR-0006（含补充）由运行时判定；ADR-0006 的统计总体规则作用于 `filters.population` 与 `entity`。
