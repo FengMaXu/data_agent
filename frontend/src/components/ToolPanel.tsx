@@ -1,11 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     X,
     ChevronUp,
     ChevronDown,
     Hammer,
     Code,
-    ListTree,
     Copy,
     Check,
     FileCode,
@@ -143,98 +142,95 @@ const ResultRenderer: React.FC<{ result?: string }> = ({ result }) => {
     return <pre className="formatted-text">{result}</pre>;
 };
 
-const ToolCard: React.FC<{ tool: ToolData; copiedKey: string | null; onCopy: (text: string, key: string) => void }> = ({ tool, copiedKey, onCopy }) => {
+type ThreadSectionProps = {
+    label: string;
+    copyText?: string;
+    copyKey: string;
+    copiedKey: string | null;
+    onCopy: (text: string, key: string) => void;
+    scroll?: boolean;
+    children: React.ReactNode;
+};
+
+const ThreadSection: React.FC<ThreadSectionProps> = ({ label, copyText, copyKey, copiedKey, onCopy, scroll, children }) => {
     const { t } = useLanguage();
-    const [collapsed, setCollapsed] = useState(false);
-    const cardContentId = `tool-card-content-${tool.toolCallId}`;
+    return (
+        <section className="thread-section">
+            <div className="thread-section-label">
+                <span>{label}</span>
+                {copyText && (
+                    <button type="button" className="copy-btn" onClick={() => onCopy(copyText, copyKey)} title={t('tools.copy')} aria-label={t('tools.copy')}>
+                        {copiedKey === copyKey ? <Check size={12} color="#10b981" /> : <Copy size={12} />}
+                    </button>
+                )}
+            </div>
+            <div className={`thread-section-body ${scroll ? 'is-scroll' : ''}`}>{children}</div>
+        </section>
+    );
+};
+
+type ThreadItemProps = {
+    tool: ToolData;
+    index: number;
+    open: boolean;
+    onToggle: () => void;
+    copiedKey: string | null;
+    onCopy: (text: string, key: string) => void;
+};
+
+const ThreadItem: React.FC<ThreadItemProps> = ({ tool, index, open, onToggle, copiedKey, onCopy }) => {
+    const { t } = useLanguage();
+    const contentId = `tool-thread-content-${tool.toolCallId}`;
     const argsText = typeof tool.args === 'string' ? tool.args : JSON.stringify(tool.args, null, 2);
     const detailsText = tool.details ? JSON.stringify(tool.details, null, 2) : '';
+    const tone = tool.status === 'error' ? 'error' : tool.status === 'done' ? 'success' : 'running';
+    const statusLabel = tool.status === 'error' ? t('tools.statusError') : tool.status === 'done' ? t('tools.statusDone') : t('tools.statusRunning');
 
     return (
-        <div className={`tool-card ${collapsed ? 'collapsed' : ''}`}>
+        <li className={`thread-item is-${tone} ${open ? 'is-open' : ''}`}>
+            <span className="thread-node" aria-hidden="true" />
             <button
                 type="button"
-                className="tool-card-header"
-                aria-expanded={!collapsed}
-                aria-controls={cardContentId}
-                onClick={() => setCollapsed(!collapsed)}
+                className="thread-head"
+                aria-expanded={open}
+                aria-controls={contentId}
+                onClick={onToggle}
             >
-                <span className="tool-card-header-main">
-                    {getToolIcon(tool.name)}
-                    <span>{tool.name}</span>
-                </span>
-                <span className="tool-card-header-status">
-                    <span className={`tool-status-badge ${tool.status === 'error' ? 'error' : tool.status === 'done' ? 'success' : 'running'}`}>
-                        {tool.status === 'error' ? t('tools.statusError') : tool.status === 'done' ? t('tools.statusDone') : t('tools.statusRunning')}
-                    </span>
-                    {collapsed ? <ChevronDown size={16} color="#6b7280" aria-hidden="true" /> : <ChevronUp size={16} color="#6b7280" aria-hidden="true" />}
+                <span className="thread-index">{String(index + 1).padStart(2, '0')}</span>
+                <span className="thread-icon" aria-hidden="true">{getToolIcon(tool.name)}</span>
+                <span className="thread-name" title={tool.name}>{tool.name}</span>
+                <span className={`thread-status is-${tone}`}>{statusLabel}</span>
+                <span className="thread-chevron" aria-hidden="true">
+                    {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                 </span>
             </button>
 
-            {!collapsed && (
-                <div id={cardContentId}>
+            {open && (
+                <div id={contentId} className="thread-body">
                     {tool.args && (
-                        <div className="tool-card-section">
-                            <div className="section-title">
-                                <Code size={14} aria-hidden="true" />
-                                <span>{t('tools.args')}</span>
-                                <button type="button" className="copy-btn" onClick={() => onCopy(argsText, `args-${tool.toolCallId}`)} title={t('tools.copy')} aria-label={t('tools.copy')}>
-                                    {copiedKey === `args-${tool.toolCallId}` ? <Check size={13} color="#10b981" /> : <Copy size={13} />}
-                                </button>
-                            </div>
-                            <div className="code-block-formatted">
-                                <ArgsRenderer args={tool.args} />
-                            </div>
-                        </div>
+                        <ThreadSection label={t('tools.args')} copyText={argsText} copyKey={`args-${tool.toolCallId}`} copiedKey={copiedKey} onCopy={onCopy}>
+                            <ArgsRenderer args={tool.args} />
+                        </ThreadSection>
                     )}
 
                     {tool.widget && (
-                        <div className="tool-card-section">
-                            <div className="section-title">
-                                <ListTree size={14} />
-                                <span>Widget Spec</span>
-                                <button type="button" className="copy-btn" onClick={() => onCopy(JSON.stringify(tool.widget, null, 2), `widget-${tool.toolCallId}`)} title={t('tools.copy')} aria-label={t('tools.copy')}>
-                                    {copiedKey === `widget-${tool.toolCallId}` ? <Check size={13} color="#10b981" /> : <Copy size={13} />}
-                                </button>
-                            </div>
-                            <div className="code-block-formatted result-block">
-                                <JsonHighlight data={tool.widget} />
-                            </div>
-                        </div>
+                        <ThreadSection label="Widget Spec" copyText={JSON.stringify(tool.widget, null, 2)} copyKey={`widget-${tool.toolCallId}`} copiedKey={copiedKey} onCopy={onCopy} scroll>
+                            <JsonHighlight data={tool.widget} />
+                        </ThreadSection>
                     )}
 
                     {tool.details && !tool.widget && (
-                        <div className="tool-card-section">
-                            <div className="section-title">
-                                <ListTree size={14} />
-                                <span>{t('tools.details')}</span>
-                                <button type="button" className="copy-btn" onClick={() => onCopy(detailsText, `details-${tool.toolCallId}`)} title={t('tools.copy')} aria-label={t('tools.copy')}>
-                                    {copiedKey === `details-${tool.toolCallId}` ? <Check size={13} color="#10b981" /> : <Copy size={13} />}
-                                </button>
-                            </div>
-                            <div className="code-block-formatted result-block">
-                                <JsonHighlight data={tool.details} />
-                            </div>
-                        </div>
+                        <ThreadSection label={t('tools.details')} copyText={detailsText} copyKey={`details-${tool.toolCallId}`} copiedKey={copiedKey} onCopy={onCopy} scroll>
+                            <JsonHighlight data={tool.details} />
+                        </ThreadSection>
                     )}
 
-                    <div className="tool-card-section">
-                        <div className="section-title">
-                            <ListTree size={14} />
-                            <span>{t('tools.result')}</span>
-                            {tool.result && (
-                                <button type="button" className="copy-btn" onClick={() => onCopy(tool.result || '', `result-${tool.toolCallId}`)} title={t('tools.copy')} aria-label={t('tools.copy')}>
-                                    {copiedKey === `result-${tool.toolCallId}` ? <Check size={13} color="#10b981" /> : <Copy size={13} />}
-                                </button>
-                            )}
-                        </div>
-                        <div className="code-block-formatted result-block">
-                            <ResultRenderer result={tool.result} />
-                        </div>
-                    </div>
+                    <ThreadSection label={t('tools.result')} copyText={tool.result || undefined} copyKey={`result-${tool.toolCallId}`} copiedKey={copiedKey} onCopy={onCopy} scroll>
+                        <ResultRenderer result={tool.result} />
+                    </ThreadSection>
                 </div>
             )}
-        </div>
+        </li>
     );
 };
 
@@ -242,21 +238,24 @@ const ToolPanel: React.FC<ToolPanelProps> = ({ tools = [], onClose }) => {
     const { t } = useLanguage();
     const { copiedKey, copy } = useCopy();
     const contentRef = useRef<HTMLDivElement>(null);
-    const orderedTools = useMemo(() => [...tools].reverse(), [tools]);
+    // Explicit open/closed choices; untouched steps default to open only when latest or failed.
+    const [openOverrides, setOpenOverrides] = useState<Record<string, boolean>>({});
+    const lastToolId = tools[tools.length - 1]?.toolCallId;
 
+    // The thread reads top-down in call order, so follow it to the newest step.
     useEffect(() => {
         if (!contentRef.current) {
             return;
         }
-        contentRef.current.scrollTop = 0;
-    }, [orderedTools]);
+        contentRef.current.scrollTop = contentRef.current.scrollHeight;
+    }, [tools.length]);
 
     return (
         <aside className="tool-panel">
             <div className="tool-panel-header">
                 <div className="tool-panel-header-main">
                     <span className="tool-panel-title">{t('tools.details')}</span>
-                    <span className="tool-panel-count">{orderedTools.length}</span>
+                    <span className="tool-panel-count">{tools.length}</span>
                 </div>
                 <button type="button" className="close-btn" onClick={onClose} aria-label={t('common.close')} title={t('common.close')}>
                     <X size={16} aria-hidden="true" />
@@ -264,21 +263,29 @@ const ToolPanel: React.FC<ToolPanelProps> = ({ tools = [], onClose }) => {
             </div>
 
             <div ref={contentRef} className="tool-panel-content scrollable-area">
-                {orderedTools.length === 0 && (
+                {tools.length === 0 ? (
                     <div className="tool-panel-empty">
                         <strong>{t('tools.noCalls')}</strong>
                         <span>{t('tools.noCallsHint')}</span>
                     </div>
+                ) : (
+                    <ol className="tool-thread">
+                        {tools.map((tool, index) => {
+                            const open = openOverrides[tool.toolCallId] ?? (tool.toolCallId === lastToolId || tool.status === 'error');
+                            return (
+                                <ThreadItem
+                                    key={tool.toolCallId}
+                                    tool={tool}
+                                    index={index}
+                                    open={open}
+                                    onToggle={() => setOpenOverrides((prev) => ({ ...prev, [tool.toolCallId]: !open }))}
+                                    copiedKey={copiedKey}
+                                    onCopy={copy}
+                                />
+                            );
+                        })}
+                    </ol>
                 )}
-
-                {orderedTools.map((tool) => (
-                    <ToolCard
-                        key={tool.toolCallId}
-                        tool={tool}
-                        copiedKey={copiedKey}
-                        onCopy={copy}
-                    />
-                ))}
             </div>
         </aside>
     );

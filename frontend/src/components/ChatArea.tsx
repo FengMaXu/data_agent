@@ -6,7 +6,6 @@ import {
     Trash2,
     Square,
     Paperclip,
-    ListTree,
     Plus,
 } from './icons/Typicons';
 import {
@@ -26,6 +25,7 @@ import { useSession, type Session, type Task } from '../hooks/useSession';
 import { useLanguage } from '../context/LanguageContext';
 import WidgetRenderer from './widgets/WidgetRenderer';
 import AgentOrbitIcon from './AgentOrbitIcon';
+import { RiInfoCard } from './icons/RemixIcons';
 import AgentMarkdown from './AgentMarkdown';
 import { isAgentMessageEmpty, visibleAgentContent } from '../utils/agent-message';
 import { mergeToolResultState, subagentChildrenOf, type ToolCallState } from './tool-event-state';
@@ -1031,20 +1031,20 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                         onClick={onToggleToolPanel}
                         aria-pressed={isToolPanelOpen}
                         disabled={!hasTools && !isToolPanelOpen}
-                        title={isToolPanelOpen ? t('chat.closeDetails') : t('chat.openDetails')}
                         aria-label={isToolPanelOpen ? t('chat.closeDetails') : t('chat.openDetails')}
                     >
-                        <ListTree size={14} aria-hidden="true" />
-                        <span>{t('chat.details')}</span>
+                        <RiInfoCard size={17} aria-hidden="true" />
+                        <span className="header-icon-label" aria-hidden="true">{t('chat.details')}</span>
                     </button>
                     <button
                         type="button"
                         className={`chat-clear-btn ${messages.length === 0 ? 'is-muted' : ''}`}
                         onClick={handleClearSession}
                         disabled={isStreaming}
+                        aria-label={t('chat.clearChat')}
                     >
-                        <Trash2 size={14} />
-                        <span>{t('chat.clearChat')}</span>
+                        <Trash2 size={17} aria-hidden="true" />
+                        <span className="header-icon-label" aria-hidden="true">{t('chat.clearChat')}</span>
                     </button>
                 </div>
             </header>

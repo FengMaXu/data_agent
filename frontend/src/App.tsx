@@ -33,7 +33,7 @@ const DESKTOP_MENU_ITEMS = [
 ];
 
 const TOOL_PANEL_MIN_WIDTH = 300;
-const DEFAULT_CHAT_RATIO = 0.62;
+const DEFAULT_CHAT_RATIO = 0.64;
 const CHAT_PANEL_MIN_WIDTH = 560;
 
 const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState, onRetryStartup }) => {
@@ -61,7 +61,7 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState, onRe
   }, []);
 
   const getAvailablePaneWidth = useCallback(() => {
-    const sidebarWidth = sidebarShellRef.current?.getBoundingClientRect().width ?? 220;
+    const sidebarWidth = sidebarShellRef.current?.getBoundingClientRect().width ?? 176;
     const chromeAllowance = 40;
     return Math.max(
       CHAT_PANEL_MIN_WIDTH + TOOL_PANEL_MIN_WIDTH,
@@ -216,6 +216,8 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState, onRe
             <Sidebar
               onOpenSettings={() => setIsSettingsOpen(true)}
               onOpenPlugins={(tab) => setPluginsModalTab(tab)}
+              collapsed={!isSidebarOpen}
+              onExpand={() => setIsSidebarOpen(true)}
             />
           </div>
 

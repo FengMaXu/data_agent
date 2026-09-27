@@ -1,4 +1,17 @@
 import React from 'react';
+import {
+    RiArrowDown,
+    RiClose,
+    RiDeleteBin2,
+    RiEyeLine,
+    RiLinkM,
+    RiLoginBox,
+    RiLogoutBox,
+    RiSendPlane,
+    RiSettings4,
+    RiTranslate,
+    RiUser3,
+} from './RemixIcons';
 
 type TypiconProps = Omit<React.SVGProps<SVGSVGElement>, 'height' | 'width'> & {
     size?: number | string;
@@ -92,10 +105,8 @@ export const Code = makeIcon(bodies.code);
 export const Copy = makeIcon(bodies.clipboard);
 export const Cpu = makeIcon(bodies.deviceDesktop);
 export const Database = makeIcon(bodies.database);
-export const Download = makeIcon(bodies.download);
 export const Edit3 = makeIcon(bodies.edit);
 export const ExternalLink = makeIcon(bodies.export);
-export const Eye = makeIcon(bodies.eye);
 export const File = makeIcon(bodies.document);
 export const FileCode = makeIcon(bodies.code);
 export const FileCode2 = makeIcon(bodies.code);
@@ -109,33 +120,37 @@ export const Image = makeIcon(bodies.image);
 export const Info = makeIcon(bodies.info);
 export const Key = makeIcon(bodies.key);
 export const KeyRound = makeIcon(bodies.key);
-export const Languages = makeIcon(bodies.globe);
 export const LineChart = makeIcon(bodies.chartLine);
 export const Link = makeIcon(bodies.link);
 export const ListTree = makeIcon(bodies.tree);
 export const Loader2 = makeIcon(bodies.arrowSync);
 export const LockKeyhole = makeIcon(bodies.lockClosed);
-export const LogIn = makeIcon(bodies.arrowForward);
-export const LogOut = makeIcon(bodies.export);
 export const MessageSquare = makeIcon(bodies.message);
 export const Network = makeIcon(bodies.flowChildren);
 export const Package = makeIcon(bodies.archive);
-export const Paperclip = makeIcon(bodies.attachment);
 export const PenTool = makeIcon(bodies.pencil);
 export const PlugZap = makeIcon(bodies.plug);
 export const Plus = makeIcon(bodies.plus);
 export const RefreshCw = makeIcon(bodies.refresh);
 export const Save = makeIcon(bodies.download);
 export const Search = makeIcon(bodies.zoom);
-export const Send = makeIcon(bodies.arrowForward);
 export const Server = makeIcon(bodies.database);
-export const Settings = makeIcon(bodies.cog);
 export const ShieldCheck = makeIcon(bodies.tick);
 export const Sparkles = makeIcon(bodies.star);
 export const Square = makeIcon(bodies.mediaStop);
 export const Terminal = makeIcon(bodies.deviceDesktop);
-export const Trash2 = makeIcon(bodies.trash);
-export const User = makeIcon(bodies.user);
 export const UserPlus = makeIcon(bodies.userAdd);
 export const Wand2 = makeIcon(bodies.brush);
-export const X = makeIcon(bodies.times);
+
+// Remix Icon replacements for app-wide concepts.
+export const Download = RiArrowDown;
+export const Eye = RiEyeLine;
+export const Languages = RiTranslate;
+export const LogIn = RiLoginBox;
+export const LogOut = RiLogoutBox;
+export const Paperclip = RiLinkM;
+export const Send = RiSendPlane;
+export const Settings = RiSettings4;
+export const Trash2 = RiDeleteBin2;
+export const User = RiUser3;
+export const X = RiClose;

@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    Settings as SettingsIcon, Cpu, Server, X,
-    Database, User, Key, Activity, Link, Eye, ExternalLink, Loader2, Terminal, Package, Save
+    Settings as SettingsIcon, X,
+    User, Link, Eye, ExternalLink, Loader2, Terminal, Save
 } from './icons/Typicons';
+import { RiCloud, RiComputer, RiDatabaseLine, RiKey2, RiRobot2, RiUsb } from './icons/RemixIcons';
 import {
     type AIConfig,
     type PythonRuntimeConfig,
@@ -36,9 +37,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     }, [onClose]);
 
     const menuItems = [
-        { id: '模型', icon: Cpu },
-        { id: '数据库', icon: Database },
-        { id: '环境', icon: Package },
+        { id: '模型', icon: RiRobot2 },
+        { id: '数据库', icon: RiDatabaseLine },
+        { id: '环境', icon: RiComputer },
     ];
 
     const PROVIDER_REGISTRY: Record<string, { label: string; letter: string; baseUrl: string; models: string[]; apiKeyUrl: string }> = {
@@ -610,7 +611,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     <div className="settings-form-row" style={{ display: 'flex', gap: '24px', marginBottom: '24px' }}>
                                         <div style={{ flex: 1 }}>
                                             <label htmlFor="settings-db-host" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', fontSize: '0.9rem', fontWeight: 600, color: '#1f2937' }}>
-                                                <Server size={18} aria-hidden="true" />
+                                                <RiCloud size={18} aria-hidden="true" />
                                                 <span>{t('settings.dbHost')}</span>
                                             </label>
                                             <div className="settings-input-wrapper" style={{ margin: 0, borderRadius: '12px', padding: '14px 16px' }}>
@@ -619,7 +620,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         </div>
                                         <div style={{ flex: 1 }}>
                                             <label htmlFor="settings-db-port" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', fontSize: '0.9rem', fontWeight: 600, color: '#1f2937' }}>
-                                                <Activity size={18} aria-hidden="true" />
+                                                <RiUsb size={18} aria-hidden="true" />
                                                 <span>{t('settings.dbPort')}</span>
                                             </label>
                                             <div className="settings-input-wrapper" style={{ margin: 0, borderRadius: '12px', padding: '14px 16px' }}>
@@ -641,7 +642,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         </div>
                                         <div style={{ flex: 1 }}>
                                             <label htmlFor="settings-db-password" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', fontSize: '0.9rem', fontWeight: 600, color: '#1f2937' }}>
-                                                <Key size={18} aria-hidden="true" />
+                                                <RiKey2 size={18} aria-hidden="true" />
                                                 <span>{t('settings.dbPassword')}</span>
                                             </label>
                                             <div className="settings-input-wrapper" style={{ margin: 0, borderRadius: '12px', padding: '14px 16px', background: '#eef2ff' }}>

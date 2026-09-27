@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-    BookOpen,
     Settings,
     Languages,
     ChevronDown,
@@ -11,18 +10,15 @@ import {
     Save,
     Edit3,
     Trash2,
-    Box,
     Database,
-    Server,
-    Sparkles,
     MessageSquare,
     Check,
-    History,
     User,
     LogOut,
     Plus,
     RefreshCw,
 } from './icons/Typicons';
+import { RiBookShelf, RiBrain4, RiConnector, RiFlowChart, RiListCheck3, RiPuzzle2, RiTaskLine } from './icons/RemixIcons';
 import {
     type KnowledgeFile,
 } from '../api/client';
@@ -38,6 +34,9 @@ import { SemanticAssetViewer, SourceKindBadge, type SemanticConnection, type Sem
 interface SidebarProps {
     onOpenSettings: () => void;
     onOpenPlugins?: (tab: 'MCP' | 'Skills') => void;
+    /** Collapsed to an icon rail: labels and section contents hide, icons stay. */
+    collapsed?: boolean;
+    onExpand?: () => void;
 }
 
 interface KnowledgeFileNode {
@@ -51,7 +50,7 @@ const knowledgeLabel = (file: KnowledgeFile): string => (
     file.knowledgeId ? `${file.title ?? file.name}（${file.knowledgeId}）` : file.name
 );
 
-const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
+const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins, collapsed = false, onExpand }) => {
     const {
         tasks,
         sessions,
@@ -195,10 +194,13 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
     }, [editorOpen, semanticViewerOpen]);
 
     const toggleExclusiveSection = (section: 'tasks' | 'knowledge' | 'semantic' | 'plugins') => {
-        setTasksExpanded(section === 'tasks' ? !tasksExpanded : false);
-        setKnowledgeExpanded(section === 'knowledge' ? !knowledgeExpanded : false);
-        setSemanticExpanded(section === 'semantic' ? !semanticExpanded : false);
-        setPluginsExpanded(section === 'plugins' ? !pluginsExpanded : false);
+        // From the icon rail, a section icon expands the sidebar straight into that section.
+        const open = (current: boolean) => (collapsed ? true : !current);
+        if (collapsed) onExpand?.();
+        setTasksExpanded(section === 'tasks' ? open(tasksExpanded) : false);
+        setKnowledgeExpanded(section === 'knowledge' ? open(knowledgeExpanded) : false);
+        setSemanticExpanded(section === 'semantic' ? open(semanticExpanded) : false);
+        setPluginsExpanded(section === 'plugins' ? open(pluginsExpanded) : false);
     };
 
     const toggleTask = (taskId: string) => {
@@ -426,25 +428,31 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
 
     return (
         <>
-            <nav id="workspace-sidebar" className="sidebar" aria-label={t('sidebar.navigation')}>
+            <nav id="workspace-sidebar" className={`sidebar ${collapsed ? 'is-rail' : ''}`} aria-label={t('sidebar.navigation')}>
                 <div className="nav-menu scrollable-area">
                     <div className="nav-section">
-                        <div className="sidebar-logo">YourDB</div>
+                        {collapsed ? (
+                            <button type="button" className="sidebar-logo sidebar-logo-mark" onClick={onExpand} title={t('sidebar.open')} aria-label={t('sidebar.open')}>
+                                Y
+                            </button>
+                        ) : (
+                            <div className="sidebar-logo">YourDB</div>
+                        )}
 
                         <button type="button" className="nav-item sidebar-primary-action" title={t('sidebar.newTask')} aria-label={t('sidebar.newTask')} onClick={() => {
                             createTask();
                             showToast(t('task.created') || '新任务创建成功');
                         }}>
-                            <Edit3 className="nav-item-icon" size={18} />
+                            <RiTaskLine className="nav-item-icon" size={18} />
                             <span className="nav-item-text">{t('sidebar.newTask')}</span>
                         </button>
 
                         <button type="button" className={`nav-item ${tasksExpanded ? 'expanded' : ''}`} title={t('sidebar.currentTask')} aria-label={t('sidebar.currentTask')} onClick={() => toggleExclusiveSection('tasks')}>
-                            <History className="nav-item-icon" size={18} />
+                            <RiListCheck3 className="nav-item-icon" size={18} />
                             <span className="nav-item-text">{t('sidebar.currentTask')}</span>
                         </button>
 
-                        {tasksExpanded && (
+                        {!collapsed && tasksExpanded && (
                             <div className="task-tree">
                                 {tasks.map((task) => {
                                     const expanded = expandedTaskIds.has(task.id);
@@ -552,10 +560,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
                         )}
 
                         <button type="button" className={`nav-item ${knowledgeExpanded ? 'expanded' : ''}`} title={t('sidebar.knowledge')} aria-label={t('sidebar.knowledge')} onClick={() => toggleExclusiveSection('knowledge')}>
-                            <BookOpen className="nav-item-icon" size={18} />
+                            <RiBookShelf className="nav-item-icon" size={18} />
                             <span className="nav-item-text">{t('sidebar.knowledge')}</span>
                         </button>
-                        {knowledgeExpanded && (
+                        {!collapsed && knowledgeExpanded && (
                             <div className="knowledge-file-list">
                                 <div className="knowledge-actions" style={{ display: 'flex', gap: 6, padding: '4px 12px 8px' }}>
                                     <button type="button" className="nav-item sidebar-plugin-item" title={t('common.knowledgeNew')} aria-label={t('common.knowledgeNew')} onClick={handleNewKnowledgeFile} style={{ flex: 1, justifyContent: 'center' }}>
@@ -587,10 +595,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
                         )}
 
                         <button type="button" className={`nav-item ${semanticExpanded ? 'expanded' : ''}`} title={t('sidebar.semantic')} aria-label={t('sidebar.semantic')} onClick={() => toggleExclusiveSection('semantic')}>
-                            <Database className="nav-item-icon" size={18} />
+                            <RiBrain4 className="nav-item-icon" size={18} />
                             <span className="nav-item-text">{t('sidebar.semantic')}</span>
                         </button>
-                        {semanticExpanded && (
+                        {!collapsed && semanticExpanded && (
                             <div className="semantic-asset-list">
                                 <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '4px 12px' }}>
                                     <button type="button" className="tree-action-btn" title={t('common.semanticRefresh')} aria-label={t('common.semanticRefresh')} onClick={() => { void loadSemanticSources(); }}>
@@ -609,17 +617,17 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins }) => {
                         )}
 
                         <button type="button" className={`nav-item ${pluginsExpanded ? 'expanded' : ''}`} title={t('sidebar.plugins')} aria-label={t('sidebar.plugins')} onClick={() => toggleExclusiveSection('plugins')}>
-                            <Box className="nav-item-icon" size={18} />
+                            <RiPuzzle2 className="nav-item-icon" size={18} />
                             <span className="nav-item-text">{t('sidebar.plugins')}</span>
                         </button>
-                        {pluginsExpanded && (
+                        {!collapsed && pluginsExpanded && (
                             <div className="sidebar-plugin-list">
                                 <button type="button" className="nav-item sidebar-plugin-item" title="MCP" aria-label="MCP" onClick={() => onOpenPlugins?.('MCP')}>
-                                    <Server className="nav-item-icon" size={16} />
+                                    <RiConnector className="nav-item-icon" size={16} />
                                     <span className="nav-item-text sidebar-plugin-text">MCP</span>
                                 </button>
                                 <button type="button" className="nav-item sidebar-plugin-item" title="Skills" aria-label="Skills" onClick={() => onOpenPlugins?.('Skills')}>
-                                    <Sparkles className="nav-item-icon" size={16} />
+                                    <RiFlowChart className="nav-item-icon" size={16} />
                                     <span className="nav-item-text sidebar-plugin-text">Skills</span>
                                 </button>
                             </div>
