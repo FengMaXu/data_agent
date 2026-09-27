@@ -27,6 +27,13 @@ export interface PendingClarification {
   context?: ClarificationContext;
 }
 
+type ClarificationOutcome = "answered" | "expired" | "cancelled";
+
+export interface ClarificationListener {
+  asked?(request: { clarificationId: string; sessionId: string; question: string; options: string[] }): void;
+  settled?(clarificationId: string, outcome: ClarificationOutcome, context: { sessionId: string }): void;
+}
+
 /**
  * One pending clarification per session. Waits live in the runtime (surviving
  * renderer disconnects), expires on timeout, and is cancelled by stop/abort.
@@ -36,6 +43,7 @@ export interface PendingClarification {
 export class ClarificationManager {
   private readonly pending = new Map<string, PendingClarification>();
   private readonly answered = new Map<string, AnsweredClarificationEvent>();
+  private readonly listeners = new Set<ClarificationListener>();
 
   constructor(private readonly defaultTimeoutMs = 10 * 60 * 1000) {}
 
@@ -49,15 +57,33 @@ export class ClarificationManager {
       if (this.pending.get(clarificationId) !== entry) return;
       this.pending.delete(clarificationId);
       resolve("");
-      this.onSettled?.(clarificationId, "expired", { sessionId: entry.sessionId });
+      this.notifySettled(clarificationId, "expired", { sessionId: entry.sessionId });
     }, timeoutMs ?? this.defaultTimeoutMs);
     this.pending.set(clarificationId, entry);
-    this.onAsked?.({ clarificationId, sessionId, question, options });
+    for (const listener of this.listeners) listener.asked?.({ clarificationId, sessionId, question, options });
     return { clarificationId, promise };
   }
 
-  onSettled?: (clarificationId: string, outcome: "answered" | "expired" | "cancelled", context?: { sessionId: string }) => void;
-  onAsked?: (request: { clarificationId: string; sessionId: string; question: string; options: string[] }) => void;
+  /**
+   * The manager is shared by every Session of an application, so observers
+   * register instead of assigning a single hook one Session could overwrite.
+   */
+  subscribe(listener: ClarificationListener): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
+  /** The clarification a Session is currently waiting on, if any. */
+  pendingFor(sessionId: string): { readonly clarificationId: string; readonly question: string; readonly options: readonly string[] } | undefined {
+    for (const entry of this.pending.values()) {
+      if (entry.sessionId === sessionId) return { clarificationId: entry.clarificationId, question: entry.question, options: [...entry.options] };
+    }
+    return undefined;
+  }
+
+  private notifySettled(clarificationId: string, outcome: ClarificationOutcome, context: { sessionId: string }): void {
+    for (const listener of this.listeners) listener.settled?.(clarificationId, outcome, context);
+  }
 
   answer(clarificationId: string, answer: string): boolean {
     const entry = this.pending.get(clarificationId);
@@ -66,7 +92,7 @@ export class ClarificationManager {
     this.pending.delete(clarificationId);
     this.answered.set(clarificationId, { clarificationId, sessionId: entry.sessionId, question: entry.question, answer, outcome: "answered", settledAt: new Date().toISOString(), ...entry.context });
     entry.resolve(answer);
-    this.onSettled?.(clarificationId, "answered", { sessionId: entry.sessionId });
+    this.notifySettled(clarificationId, "answered", { sessionId: entry.sessionId });
     return true;
   }
 
@@ -95,7 +121,7 @@ export class ClarificationManager {
     clearTimeout(entry.timer);
     this.pending.delete(clarificationId);
     entry.resolve("");
-    this.onSettled?.(clarificationId, outcome, { sessionId: entry.sessionId });
+    this.notifySettled(clarificationId, outcome, { sessionId: entry.sessionId });
     return true;
   }
 
@@ -117,7 +143,7 @@ export class ClarificationManager {
       clearTimeout(entry.timer);
       this.pending.delete(id);
       entry.resolve("");
-      this.onSettled?.(id, "cancelled", { sessionId: entry.sessionId });
+      this.notifySettled(id, "cancelled", { sessionId: entry.sessionId });
     }
   }
 }

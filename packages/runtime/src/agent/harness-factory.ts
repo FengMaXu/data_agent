@@ -310,11 +310,6 @@ export async function createPiSessionHost(options: DataAgentSessionHostOptions):
     return { terminate: true };
   }, { id: "data-agent-infrastructure-failure" });
   const transcript = new PiTranscriptFacet(harness, options.sessionId, created.open);
-  const stopClarificationProjection = options.clarificationDialogs.subscribe((event) => {
-    transcript.publish(event.type === "request"
-      ? { type: "clarification.request", clarificationId: event.clarificationId, question: event.question, options: [...event.options] }
-      : { type: "clarification.settled", clarificationId: event.clarificationId, outcome: event.outcome }, "clarification");
-  });
   const nativeController = await createPiAgentController(harness, { pi: TODO_CONTEXT }, "main", [...grantedToolNames], undefined, async (admission, controllerContext) => {
     const stored = await nativeSession.getValue(operationMeta(admission.operationId), controllerContext.pi);
     const promptEntryIds = stored?.value.intent.kind === "run" ? stored.value.intent.promptEntryIds : [];
@@ -410,7 +405,7 @@ export async function createPiSessionHost(options: DataAgentSessionHostOptions):
       }, TODO_CONTEXT);
     },
     resumeOpenOperations,
-    close: async () => { stopClarificationProjection(); transcript.close(); await harness.close(TODO_CONTEXT); },
+    close: async () => { transcript.close(); await harness.close(TODO_CONTEXT); },
   };
 }
 

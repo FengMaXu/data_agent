@@ -2,7 +2,13 @@ import { isDataAgentEventEnvelope, type DataAgentEvent } from "@data-agent/contr
 import { subscribeRuntimeEvents, getRuntimeClient, type RuntimeEventStreamOptions } from "./runtime-client";
 import type { SSEEvent, WidgetSpec } from "./client";
 
-export interface RuntimeChatHandle { cancel: () => void; finished: Promise<void> }
+export interface RuntimeChatHandle {
+  /** Stop the run and the stream. */
+  cancel: () => void;
+  /** Stop following the stream only; the run continues on the server. */
+  detach: () => void;
+  finished: Promise<void>;
+}
 
 const STREAM_CONNECT_WAIT_MS = 5_000;
 
@@ -177,6 +183,8 @@ function readRuntimeEnvelope(raw: unknown): { event: DataAgentEvent; sessionId?:
   };
 }
 
+export type ChatStreamOptions = Pick<RuntimeEventStreamOptions, "onResync" | "onConnectionChange">;
+
 /**
  * Transitional bridge: consumes versioned runtime event envelopes over the
  * shared transport and adapts them to the renderer's chat event model. The
@@ -188,8 +196,42 @@ export function sendChatViaRuntime(
   onError: (err: unknown) => void,
   onFinish: () => void,
   sessionId?: string,
-  stream: Pick<RuntimeEventStreamOptions, "onResync" | "onConnectionChange"> = {},
+  stream: ChatStreamOptions = {},
 ): RuntimeChatHandle {
+  return streamRuntimeChat({ onEvent, onError, onFinish, sessionId, stream }, async () => {
+    const accepted = await getRuntimeClient().dispatch({ type: "agent.prompt", prompt }, sessionId);
+    return accepted.response.type === "agent.prompt.accepted" ? accepted.response.runId : undefined;
+  });
+}
+
+/**
+ * Follows a run that was already running when the session was opened: events
+ * resume after the snapshot's cursor and the run is stoppable by its id.
+ */
+export function attachRunViaRuntime(
+  runId: string,
+  afterSequence: number,
+  onEvent: (event: SSEEvent) => void,
+  onError: (err: unknown) => void,
+  onFinish: () => void,
+  sessionId?: string,
+  stream: ChatStreamOptions = {},
+): RuntimeChatHandle {
+  return streamRuntimeChat({ onEvent, onError, onFinish, sessionId, stream, afterSequence }, async () => runId);
+}
+
+function streamRuntimeChat(
+  handlers: {
+    readonly onEvent: (event: SSEEvent) => void;
+    readonly onError: (err: unknown) => void;
+    readonly onFinish: () => void;
+    readonly sessionId?: string;
+    readonly stream: ChatStreamOptions;
+    readonly afterSequence?: number;
+  },
+  start: () => Promise<string | undefined>,
+): RuntimeChatHandle {
+  const { onEvent, onError, onFinish, sessionId, stream } = handlers;
   let activeMessageId = "";
   let operationId: string | undefined;
   let isDone = false;
@@ -202,7 +244,7 @@ export function sendChatViaRuntime(
     onFinish();
   };
 
-  // The prompt is sent only once the stream is subscribed, so the run's first events cannot be missed.
+  // The run starts only once the stream is subscribed, so its first events cannot be missed.
   let markConnected!: () => void;
   const connected = new Promise<void>((resolve) => { markConnected = resolve; });
   const unsubscribe = subscribeRuntimeEvents((raw) => {
@@ -233,7 +275,11 @@ export function sendChatViaRuntime(
     onEvent(adapted);
     if (event.type === "agent.tool_finished") toolArgumentsById.delete(toolCallId);
     if (event.type === "agent.completed") handleFinish();
-  }, sessionId, { ...stream, onConnected: () => markConnected() });
+  }, sessionId, {
+    ...stream,
+    ...(handlers.afterSequence !== undefined ? { afterSequence: handlers.afterSequence } : {}),
+    onConnected: () => markConnected(),
+  });
   const finished = (async () => {
     try {
       // A stream that cannot connect must not block the prompt; its failure surfaces on dispatch.
@@ -242,8 +288,7 @@ export function sendChatViaRuntime(
         void connected.then(() => { clearTimeout(timer); resolve(); });
       });
       if (isDone) return;
-      const accepted = await getRuntimeClient().dispatch({ type: "agent.prompt", prompt }, sessionId);
-      if (accepted.response.type === "agent.prompt.accepted") operationId = accepted.response.runId;
+      operationId = await start();
     } catch (err) {
       onError(err);
       handleFinish();
@@ -254,6 +299,11 @@ export function sendChatViaRuntime(
       if (operationId) void getRuntimeClient().dispatch({ type: "agent.stop", operationId }, sessionId).catch(() => undefined);
       unsubscribe();
       handleFinish();
+    },
+    detach: () => {
+      if (isDone) return;
+      isDone = true;
+      unsubscribe();
     },
     finished,
   };

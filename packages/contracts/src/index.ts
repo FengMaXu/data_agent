@@ -80,7 +80,14 @@ const SessionTranscriptResponseSchema = Type.Object({ type: Type.Literal("sessio
   currentStage: Type.Optional(Type.String()),
   visitedStages: Type.Optional(Type.Array(Type.String())),
   terminalReason: Type.Optional(Type.Union([Type.String(), Type.Null()])),
-})) });
+})),
+  /** The Session's run still in progress when the snapshot was taken; its runId matches event envelopes. */
+  inProgressRun: Type.Optional(Type.Union([Type.Object({ runId: Type.String(), startedAt: Type.Number() }), Type.Null()])),
+  /** The clarification the Session is waiting on, if any. */
+  pendingClarification: Type.Optional(Type.Union([Type.Object({ clarificationId: Type.String(), question: Type.String(), options: Type.Array(Type.String()) }), Type.Null()])),
+  /** Last event sequence emitted before the snapshot; a client resumes the event stream after it. */
+  eventSequence: Type.Optional(Type.Integer({ minimum: 0 })),
+});
 const DashboardV3DataResponseSchema = Type.Object({ type: Type.Literal("dashboard.v3.data.result"), payload: Type.Unknown() });
 const ConfigGetResponseSchema = Type.Object({ type: Type.Literal("config.get.result"), config: Type.Unknown() });
 const ConfigSaveResponseSchema = Type.Object({ type: Type.Literal("config.save.result"), saved: Type.Boolean() });

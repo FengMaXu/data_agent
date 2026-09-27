@@ -60,6 +60,7 @@ type RuntimeAgent = {
   requestAbort?(operationId: string, context?: RuntimeAgentContext): void | Promise<unknown>;
   subscribe?(listener: (event: ApplicationAgentEvent) => void): () => void;
   getTranscript?(context?: RuntimeAgentContext): Promise<readonly TranscriptMessage[]>;
+  getExecutionSnapshot?(context?: RuntimeAgentContext): Promise<{ readonly current: { readonly id: string; readonly startedAt: number } | null }>;
   answerClarification?(clarificationId: string, answer: string, context?: RuntimeAgentContext): Promise<boolean>;
   getResources?(): { skills?: readonly unknown[]; promptTemplates?: readonly unknown[] };
   setResources?(resources: { skills?: readonly unknown[]; promptTemplates?: readonly unknown[] }): Promise<void>;
@@ -126,12 +127,14 @@ export class DataAgentRuntime implements ApplicationCommandHost {
       ...(options.packagedRoot ? { packagedRoot: options.packagedRoot } : {}),
     });
     this.clarifications = options.clarifications ?? new ClarificationManager();
-    this.clarifications.onAsked = (request) => {
-      this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: "clarification", timestamp: Date.now(), sessionId: request.sessionId, event: { type: "clarification.request", clarificationId: request.clarificationId, question: request.question, options: request.options } }, this.sessionOwners.get(request.sessionId));
-    };
-    this.clarifications.onSettled = (clarificationId, outcome, settledContext) => {
-      this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: "clarification", timestamp: Date.now(), ...(settledContext?.sessionId ? { sessionId: settledContext.sessionId } : {}), event: { type: "clarification.settled", clarificationId, outcome } }, settledContext?.sessionId ? this.sessionOwners.get(settledContext.sessionId) : undefined);
-    };
+    this.clarifications.subscribe({
+      asked: (request) => {
+        this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: "clarification", timestamp: Date.now(), sessionId: request.sessionId, event: { type: "clarification.request", clarificationId: request.clarificationId, question: request.question, options: request.options } }, this.sessionOwners.get(request.sessionId));
+      },
+      settled: (clarificationId, outcome, settledContext) => {
+        this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: "clarification", timestamp: Date.now(), ...(settledContext?.sessionId ? { sessionId: settledContext.sessionId } : {}), event: { type: "clarification.settled", clarificationId, outcome } }, settledContext?.sessionId ? this.sessionOwners.get(settledContext.sessionId) : undefined);
+      },
+    });
     this.agent = options.agent;
     this.agent?.subscribe?.((event) => this.receiveApplicationEvent(event));
   }
@@ -404,8 +407,22 @@ export class DataAgentRuntime implements ApplicationCommandHost {
     }
     if (command.command.type === "session.transcript") {
       if (!this.agent?.getTranscript) throw new DataAgentRuntimeError("INVALID_COMMAND", "SESSION_TRANSCRIPT_NOT_CONFIGURED");
-      const transcript = await this.agent.getTranscript({ sessionId: command.command.sessionId, userId: context.userId });
-      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "session.transcript.result", messages: [...transcript] } };
+      const agentContext = { sessionId: command.command.sessionId, userId: context.userId };
+      // Read the cursor first: events after it are delivered to a resuming client, so nothing between is lost.
+      const eventSequence = this.nextSequence - 1;
+      const [transcript, execution] = await Promise.all([
+        this.agent.getTranscript(agentContext),
+        this.agent.getExecutionSnapshot?.(agentContext),
+      ]);
+      const current = execution?.current;
+      const pending = this.clarifications.pendingFor(command.command.sessionId);
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: {
+        type: "session.transcript.result",
+        messages: [...transcript],
+        inProgressRun: current ? { runId: current.id, startedAt: current.startedAt } : null,
+        pendingClarification: pending ? { clarificationId: pending.clarificationId, question: pending.question, options: [...pending.options] } : null,
+        eventSequence,
+      } };
     }
     if (command.command.type === "session.prepare") {
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "runtime.probe.result", service: "data-agent-runtime", runtimeVersion: "0.1.0" } };
@@ -544,8 +561,8 @@ export class DataAgentRuntime implements ApplicationCommandHost {
 
   /** Tools call this to suspend the run until the user answers or timeout hits. */
   askClarification(sessionId: string, question: string, options: string[], timeoutMs?: number): { clarificationId: string; promise: Promise<string> } {
-    // ClarificationManager.onAsked is wired to the Runtime event stream in the
-    // constructor; emitting here as well would duplicate every request.
+    // The constructor subscribes the Runtime event stream to the manager;
+    // emitting here as well would duplicate every request.
     return this.clarifications.ask(sessionId, question, options, timeoutMs);
   }
 

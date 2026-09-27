@@ -11,7 +11,6 @@ import {
 } from './icons/Typicons';
 import {
     uploadWorkspaceFile,
-    type ChatStreamHandle,
     type SSEEvent,
     type WidgetSpec,
     type SessionSnapshotMessage,
@@ -20,8 +19,8 @@ import {
     type AgentTerminalReason,
 } from '../api/client';
 import { clearSessionViaRuntime } from '../api/runtime-client';
-import { answerClarificationViaRuntime, getTranscriptViaRuntime, steerAgentViaRuntime, stopAgentViaRuntime } from '../api/runtime-client';
-import { sendChatViaRuntime } from '../api/chat-events';
+import { answerClarificationViaRuntime, getSessionStateViaRuntime, getTranscriptViaRuntime, steerAgentViaRuntime, stopAgentViaRuntime } from '../api/runtime-client';
+import { attachRunViaRuntime, sendChatViaRuntime, type ChatStreamOptions, type RuntimeChatHandle } from '../api/chat-events';
 import type { ToolData } from './ToolPanel';
 import { useSession, type Session, type Task } from '../hooks/useSession';
 import { useLanguage } from '../context/LanguageContext';
@@ -173,6 +172,14 @@ const fromSnapshotMessage = (message: SessionSnapshotMessage): ChatMessage => {
     };
 };
 
+type RunStreamStarter = (
+    onEvent: (event: SSEEvent) => void,
+    onError: (err: unknown) => void,
+    onFinish: () => void,
+    sessionId: string,
+    stream: ChatStreamOptions,
+) => RuntimeChatHandle;
+
 const dedupeSkillActivations = (skills: SkillActivation[]) => {
     const seen = new Set<string>();
     return skills.filter((skill) => {
@@ -255,7 +262,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
     const chatContainerRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const streamHandleRef = useRef<ChatStreamHandle | null>(null);
+    const streamHandleRef = useRef<RuntimeChatHandle | null>(null);
     const isRestoringRef = useRef(false);
 
     useEffect(() => {
@@ -297,6 +304,9 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
     }, [replaceWithSnapshot]);
 
     useEffect(() => {
+        // Stop following the previous session's run; it keeps running on the server.
+        streamHandleRef.current?.detach();
+        streamHandleRef.current = null;
         isRestoringRef.current = true;
         currentSessionIdRef.current = currentSession.id;
         replaceWithSnapshot(currentTranscript);
@@ -307,6 +317,28 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
         setClarificationInput('');
         setIsSubmittingClarification(false);
         onUpdateToolsRef.current?.([]);
+
+        // A run may still be going (or waiting on a clarification): resume following it.
+        const sessionId = currentSession.id;
+        let superseded = false;
+        void getSessionStateViaRuntime(sessionId).then((state) => {
+            if (superseded || currentSessionIdRef.current !== sessionId || streamHandleRef.current) return;
+            if (state.pendingClarification) {
+                setPendingClarification({
+                    clarification_id: state.pendingClarification.clarificationId,
+                    question: state.pendingClarification.question,
+                    options: state.pendingClarification.options,
+                });
+            }
+            if (!state.inProgressRun) return;
+            const runId = state.inProgressRun.runId;
+            replaceWithSnapshot(state.messages);
+            setIsStreaming(true);
+            followRun(sessionId, (onEvent, onError, onFinish, streamSessionId, stream) => (
+                attachRunViaRuntime(runId, state.eventSequence, onEvent, onError, onFinish, streamSessionId, stream)
+            ), true);
+        }).catch((error) => console.error('Failed to read the session state', error));
+        return () => { superseded = true; };
     }, [currentSession.id, replaceWithSnapshot]);
 
     useEffect(() => {
@@ -518,6 +550,15 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
         promoteStage(pendingAgentMessageIdRef.current, 'sent');
         flushBufferedMessage(pendingAgentMessageIdRef.current);
 
+        followRun(currentSession.id, (onEvent, onError, onFinish, sessionId, stream) => sendChatViaRuntime(content, onEvent, onError, onFinish, sessionId, stream));
+    };
+
+    /**
+     * Streams one run into the conversation: a new prompt, or a run that was
+     * already running when the session was opened. `lostEvents` means the
+     * live view starts incomplete, so the transcript is reloaded when it ends.
+     */
+    const followRun = (runSessionId: string, start: RunStreamStarter, lostEvents = false) => {
         let lastUpdateTime = Date.now();
         let flushTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -542,10 +583,8 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
             }
         };
 
-        const runSessionId = currentSession.id;
-        let streamLostEvents = false;
-        streamHandleRef.current = await sendChatViaRuntime(
-            content,
+        let streamLostEvents = lostEvents;
+        streamHandleRef.current = start(
             (event: SSEEvent) => {
                 if (event.session_id && event.session_id !== currentSessionIdRef.current) {
                     return;

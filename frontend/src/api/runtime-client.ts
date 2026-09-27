@@ -238,6 +238,8 @@ export interface RuntimeEventStreamOptions {
   readonly onResync?: () => void;
   /** The stream (re)connected, or dropped and is about to reconnect. */
   readonly onConnectionChange?: (state: "connected" | "reconnecting") => void;
+  /** Resume after this event sequence, e.g. the cursor of a session snapshot. */
+  readonly afterSequence?: number;
 }
 
 export function subscribeRuntimeEvents(
@@ -259,7 +261,7 @@ export function subscribeRuntimeEvents(
   let disposed = false;
   let controller: AbortController | undefined;
   let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
-  let lastSequence = 0;
+  let lastSequence = options.afterSequence ?? 0;
   const connect = async (): Promise<void> => {
     if (disposed) return;
     const endpoint = new URL(`${base}/api/runtime/events`, window.location.href);
@@ -402,6 +404,26 @@ export async function getTranscriptViaRuntime(sessionId: string): Promise<Runtim
   const envelope = await getRuntimeClient().dispatch({ type: "session.transcript", sessionId });
   if (envelope.response.type !== "session.transcript.result") throw new Error("UNEXPECTED_RESPONSE");
   return (envelope.response as unknown as { messages: RuntimeTranscriptMessage[] }).messages;
+}
+
+export interface RuntimeSessionState {
+  readonly messages: RuntimeTranscriptMessage[];
+  readonly inProgressRun: { readonly runId: string; readonly startedAt: number } | null;
+  readonly pendingClarification: { readonly clarificationId: string; readonly question: string; readonly options: string[] } | null;
+  readonly eventSequence: number;
+}
+
+/** The transcript plus what is still in progress: a running run and the clarification it waits on. */
+export async function getSessionStateViaRuntime(sessionId: string): Promise<RuntimeSessionState> {
+  const envelope = await getRuntimeClient().dispatch({ type: "session.transcript", sessionId });
+  if (envelope.response.type !== "session.transcript.result") throw new Error("UNEXPECTED_RESPONSE");
+  const response = envelope.response as unknown as Partial<RuntimeSessionState> & { messages: RuntimeTranscriptMessage[] };
+  return {
+    messages: response.messages,
+    inProgressRun: response.inProgressRun ?? null,
+    pendingClarification: response.pendingClarification ?? null,
+    eventSequence: response.eventSequence ?? 0,
+  };
 }
 
 export async function getDashboardV3DataViaRuntime(path: string): Promise<unknown> {

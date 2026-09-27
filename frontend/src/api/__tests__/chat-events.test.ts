@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { mapRuntimeEvent, sendChatViaRuntime } from '../chat-events';
+import { attachRunViaRuntime, mapRuntimeEvent, sendChatViaRuntime } from '../chat-events';
 import { mergeToolResultState } from '../../components/tool-event-state';
 
 let runtimeListener: ((event: unknown) => void) | undefined;
-let runtimeOptions: { onConnected?: () => void; onResync?: () => void } | undefined;
+let runtimeOptions: { onConnected?: () => void; onResync?: () => void; afterSequence?: number } | undefined;
 let connectImmediately = true;
 let runtimeSequence = 0;
 const unsubscribe = vi.fn();
@@ -12,7 +12,7 @@ const dispatch = vi.fn(async () => ({
 }));
 
 vi.mock('../runtime-client', () => ({
-    subscribeRuntimeEvents: vi.fn((listener: (event: unknown) => void, _sessionId?: string, options?: { onConnected?: () => void; onResync?: () => void }) => {
+    subscribeRuntimeEvents: vi.fn((listener: (event: unknown) => void, _sessionId?: string, options?: { onConnected?: () => void; onResync?: () => void; afterSequence?: number }) => {
         runtimeOptions = options;
         if (connectImmediately) options?.onConnected?.();
         runtimeListener = (raw) => {
@@ -129,6 +129,35 @@ describe('runtime chat event replay', () => {
         runtimeOptions?.onConnected?.();
         await handle.finished;
         expect(dispatch).not.toHaveBeenCalled();
+    });
+
+    it('follows an already running run from the snapshot cursor without sending a prompt', async () => {
+        const events: unknown[] = [];
+        const onFinish = vi.fn();
+        const handle = attachRunViaRuntime('run-7', 41, (event) => events.push(event), vi.fn(), onFinish, 'session-1');
+        await handle.finished;
+        expect(runtimeOptions?.afterSequence).toBe(41);
+        expect(dispatch).not.toHaveBeenCalled();
+        runtimeListener?.({ sessionId: 'session-1', event: { type: 'agent.text_delta', delta: 'tail' } });
+        runtimeListener?.({ sessionId: 'session-1', event: { type: 'agent.completed' } });
+        expect(events).toContainEqual({ type: 'done', reason: 'completed', session_id: 'session-1' });
+        expect(onFinish).toHaveBeenCalledTimes(1);
+    });
+
+    it('stops a followed run by its id, and detaching leaves it running', async () => {
+        const stopped = attachRunViaRuntime('run-7', 0, vi.fn(), vi.fn(), vi.fn(), 'session-1');
+        await stopped.finished;
+        stopped.cancel();
+        expect(dispatch).toHaveBeenCalledWith({ type: 'agent.stop', operationId: 'run-7' }, 'session-1');
+
+        dispatch.mockClear();
+        const onFinish = vi.fn();
+        const detached = attachRunViaRuntime('run-8', 0, vi.fn(), vi.fn(), onFinish, 'session-1');
+        await detached.finished;
+        detached.detach();
+        expect(dispatch).not.toHaveBeenCalled();
+        expect(onFinish).not.toHaveBeenCalled();
+        expect(unsubscribe).toHaveBeenCalled();
     });
 
     it('forwards a resync request to the chat', () => {
