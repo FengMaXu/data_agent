@@ -8,20 +8,20 @@ status: proposed
 
 ## 背景
 
-ADR-0008 决策 4 要求图表数据通过数据集引用获取，由 Runtime 检查交付资格。这对报告和看板是新增要求，而不是现状：
+ADR-0008 决策 4 要求图表数据通过数据集引用获取，由 Runtime 检查交付资格。这对所有画图路径都是新增要求，而不是现状：
 
 - `demo-report` skill 允许的工具只有 `query_database`、`run_python`、`write_file`、`read_file`，不含 `publish_query_result`；报告数据以 CSV 写入工作区后交给 Python。
-- v3 看板通过 `dashboard.v3.data` 命令按工作区路径读取数据，不经过发布记录。
-- 聊天图表已要求先发布（`show_widget` 的提示为“不能绕过查询结果的发布授权”），不受影响。
+- v3 看板由 `materializeDashboardV3Spec` 按 dataset 的 `source.path` 读取工作区 CSV，或直接使用 spec 内联的 `rows`；dashboard skill 允许的工具不含发布工具。
+- 聊天图表的数据由模型写入 `show_widget` 的 spec；“不能绕过查询结果的发布授权”只是工具提示，没有强制校验。
 
-报告改为逐图发布后，一份含 N 张图的报告需要 N 次完整的 Answer Spec。ADR-0007 记录的数据显示，该接口成功调用平均参数 4.8 KB，19 次调用中 11 次失败。
+聊天图表通常一图一查询，改为先发布只多一步。报告与看板改为逐图发布后，一份含 N 张图的报告需要 N 次完整的 Answer Spec；本 ADR 针对的是这一场景。ADR-0007 记录的数据显示，该接口成功调用平均参数 4.8 KB，19 次调用中 11 次失败。
 
 曾考虑以并发降低这一成本。核查结果表明并发大多已经具备，且不作用于主要成本：
 
 | 层 | 现状 | 依据 |
 | --- | --- | --- |
 | 主 agent 工具执行 | 同一条助手消息中的多个工具调用并行执行 | `harness-factory.ts` 创建 `AgentHarness` 时未设置 `toolExecution`，Pi 0.85.1 默认 `"parallel"`；`runParallel` 依次准备调用后并发执行，不读取单个工具的 `executionMode` |
-| answering 存储 | 每个会话的事务串行排队，但事务很短；SQL 在事务之外执行 | `PiSessionAnsweringStore.transact` 的队列；`result-execution.ts` 先执行查询与检查、再开事务写入 Candidate |
+| answering 存储 | 每个会话的事务串行排队，但事务很短；SQL 在事务之外执行 | `PiSessionAnsweringStore.transact` 的队列；`result-execution.ts` 与 `exploration.ts` 中的 `sqlExecutor.run` 调用均不在 `transact` 回调内 |
 | 多任务 | 一个会话可以有多个 Query Task，工具调用显式携带 `taskId` | CONTEXT.md“Query Task”；`tools/answering.ts` |
 | 数据库 | MySQL MCP 查询连接池上限 3；Postgres 连接池由调用方注入 | `mcp-mysql/src/index.ts`；`mcp-pg/src/index.ts` |
 | 子 agent | explorer 全局并发上限 12，子 agent 内部工具并行 | `delegation/concurrency.ts`；`child-harness.ts` |

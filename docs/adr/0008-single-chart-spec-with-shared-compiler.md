@@ -12,21 +12,22 @@ status: proposed
 
 | 场景 | 当前路径 | 问题 |
 | --- | --- | --- |
-| 聊天图表 | `show_widget` 只接受 `kpi`、`chart`、`table`、`steps`（`packages/runtime/src/tools/core.ts`）；前端 `WidgetRenderer` 另保留 `echarts` 分支并直接 `setOption(widget.config)`，`raw_svg`、`raw_html` 仅存在于类型声明 | 模型当前不可达 `echarts` kind，但前端仍有一条不经校验的 option 兼容入口；表格格式化会在语义文本命中时按“绝对值 ≤ 1”推断百分比尺度 |
-| 静态看板 | `dashboard-v3.ts::chartOption` | 只支持 bar/line/scatter 加一个写死的 pie；显式 series 路径按类别求和，缺失值按 0 计入；旧路径虽可配置 `aggregate`，但聚合仍发生在绘图层；标签无布局策略 |
-| 实时看板 | `dashboard-v4.ts` 声明 line/bar/pie/kpi/table 五种视图 | 当前 HTML 主要是语义刷新桥接壳，未实现完整视图渲染；与 v3 各自一套描述 |
+| 聊天图表 | `show_widget` 只接受 `kpi`、`chart`、`table`、`steps`（`packages/runtime/src/tools/core.ts`），数据由模型直接写在 `spec.data` 或 `spec.series` 中，`validateWidgetSpec` 只检查形状；前端 `WidgetRenderer` 另保留 `echarts` 分支并直接 `setOption(widget.config)`，`raw_svg`、`raw_html` 仅存在于类型声明 | widget 事件只能由 `show_widget` 产生，runtime 当前不会产出 `echarts` kind，但前端事件映射（`chat-events.ts`）仍接受它，是一条不经校验的 option 兼容入口；表格格式化会在语义文本命中时按“绝对值 ≤ 1”推断百分比尺度 |
+| 静态看板 | `generate_dashboard`（mode `static`、version `v3`）经 `materializeDashboardV3Spec` 读取数据，再由 `dashboard-v3.ts::chartOption` 编译 | 只支持 bar/line/scatter 加一个写死的 pie；显式 series 路径按类别求和，缺失值按 0 计入；旧路径虽可配置 `aggregate`，但聚合仍发生在绘图层；标签无布局策略。dataset 可携带 `schema`（字段类型、角色、单位），但编译器不使用；spec 接受 `filters`、`interactions`，但渲染器没有实现 |
+| 实时看板 | `generate_dashboard`（mode `semantic`、version `v4`）经 `dashboard-v4.ts` 校验，视图为 line/bar/pie/kpi/table 五种，每个视图带一个语义查询字符串 | 当前 HTML 只是语义刷新桥接壳，未实现视图渲染；与 v3 各自一套描述。dashboard skill 描述的 v4（KTX `data` 节点、参数、构建时快照）与 `dashboard-v4.ts` 的实现结构不一致 |
 | 报告 | `demo-report`、`analysis` skill 经 `run_python` 用 matplotlib 出 PNG | 项目没有统一记录绘图代码、依赖、数据来源和展示处理规则；样式与字体由模型临场决定，难以复现和披露 |
 
-四条路径的数据来源也不一致。Query Assurance 在产品路径上以 answering 模块运行（`semanticSpecMode` 默认为 `required`，查询经 `begin_answer_spec`、`query_database`、`publish_query_result`/`export_query`），但只有聊天图表要求先发布（`show_widget` 的提示为“不能绕过查询结果的发布授权”）：
+四条路径都不强制经过发布。Query Assurance 在产品路径上以 answering 模块运行（`semanticSpecMode` 默认为 `required`，查询经 `begin_answer_spec`、`query_database`、`publish_query_result`/`export_query`），但图表数据都由模型自行提供：
 
-- `demo-report` skill 允许的工具只有 `query_database`、`run_python`、`write_file`、`read_file`，不含发布工具；报告数据以 CSV 写入工作区后交给 Python。
-- v3 看板通过 `dashboard.v3.data` 命令按工作区路径读取数据，不经过发布记录。
+- **聊天图表**：`show_widget` 的提示写有“不能绕过查询结果的发布授权”，但这只是提示；工具不接收发布记录，数据由模型写入 spec。`analysis` skill 允许的工具不含发布工具。
+- **报告**：`demo-report` skill 允许的工具只有 `query_database`、`run_python`、`write_file`、`read_file`；数据以 CSV 写入工作区后交给 Python。
+- **静态看板**：`materializeDashboardV3Spec` 按 dataset 的 `source.path` 读取工作区 CSV，或直接使用 spec 中内联的 `rows`。dashboard skill 要求“数据先落盘”，允许的工具同样不含发布工具。（`dashboard.v3.data` 命令只是从已生成的 HTML 中取回嵌入的数据，不是数据来源。）
 
-因此，看板和报告中的图表数据目前可以不经过发布资格检查，数据身份也只是可被覆盖的文件路径。
+因此，所有图表数据目前都可以不经过发布资格检查，数据身份是模型写入的内容或可被覆盖的文件路径。
 
 此外，`renderStandaloneDashboardHtml` 把编译后的 option 经 JSON 序列化嵌入 HTML，option 中的函数（tooltip、轴标签截断、时间格式化等 formatter）会被静默丢弃。任何产出函数型 formatter 的编译器（包括候选的 Flint）在这条路径上都会退化。
 
-Flint Chart（microsoft/flint-chart，MIT，评估版本 0.5.1）提供语义类型驱动的模板与布局计算，其 ECharts 后端有 33 个模板。评估见 `docs/research/flint-chart-dashboard-fit.md`。它的 ECharts assembler 会按编码聚合、在溢出时筛选绘图数据，不消费 `theme_spec`，且 0.x 版本 schema 尚不稳定。
+Flint Chart（microsoft/flint-chart，MIT，评估版本 0.5.1）提供语义类型驱动的模板与布局计算，其 ECharts 后端注册了 37 个模板定义（`echarts/templates/index.ts`）。评估见 `docs/research/flint-chart-dashboard-fit.md`。它的 ECharts assembler 会按编码聚合、在溢出时筛选绘图数据，不消费 `theme_spec`，且 0.x 版本 schema 尚不稳定。
 
 ## 决策
 
@@ -45,7 +46,7 @@ Flint Chart（microsoft/flint-chart，MIT，评估版本 0.5.1）提供语义类
    - **完整**：参与构成的集合完整，不得与 Top-N 等数据选择同时使用；
    - **非负**：参与构成的值不含负数。
 3. **数值语义必须显式声明，不依赖猜测。** 字段须声明存储尺度与显示尺度（如 ratio 存储、percent 显示），以及单位；日期须声明粒度，渲染不得因浏览器与 Node 的时区差异产生偏移；空值保持为空值，不转为零；度量须声明是否可加（第 2 条部分与整体图种的前提）。这些信息分两层提供：
-   - **物理画像**：answering 在发布时为每列生成物理类型、空值数与数值范围，作为发布记录的可选字段。它只陈述事实，不决定尺度或可加性，用于一致性检测。这是本 ADR 对 answering 的唯一改动，不涉及模型接口与 Answer Spec。
+   - **物理画像**：answering 在发布时扫描全部行，为每列生成物理类型、空值数与数值范围，作为发布记录的可选字段。不沿用 `columnTypes`：产品查询执行器不返回列类型，`columnTypes` 由 `inferType` 按首行值推断，首行为空或 DECIMAL 以字符串返回时都会误判。画像只陈述事实，不决定尺度或可加性，用于一致性检测。这是本 ADR 对 answering 的唯一改动，不涉及模型接口与 Answer Spec。
    - **数据集注解**：字段语义存放在 answering 之外，以数据集引用为键，只追加、每条带依据（业务定义、模型声明、迁移推断）。同一列有多条注解时按 CONTEXT.md 的证据权威取最高者；同级冲突返回结构化错误，不自动选择。ChartSpec 中模型声明的字段语义由 Runtime 转存为注解，随图表交付提示其来源；图表编译时记录所采用的注解版本，以便按第 9 条重现。
 
    语义缺失时返回结构化错误，不按数值大小推断尺度，也不按列名推断可加性。编译器只做声明范围内的显示单位换算，不做业务指标计算。具体结构见 `docs/ChartSpec契约设计草案.md` 第 4 节。
@@ -54,7 +55,7 @@ Flint Chart（microsoft/flint-chart，MIT，评估版本 0.5.1）提供语义类
 
 4. **数据引用与交付资格由 Runtime 负责。** 图表块通过数据集引用取数，而不是由模型直接提供 rows。Runtime 解析引用、检查交付资格，再把数据交给编译器；编译器不承担发布授权。静态交付绑定不可变的数据版本，而不是可被覆盖的文件路径。Python 派生数据须保留输入结果引用与计算来源，不得冒充原始已发布查询结果。上游结果的 Disclosure 与第 6 条的展示提示一并交付，后者不能替代前者。
 
-   这对看板和报告是新增要求，而不是对现状的描述：二者的每个图表查询都须先完成 Answer Spec 与发布，才能作为图表数据。由此产生的逐查询口径成本及其缓解方式见 ADR-0009。
+   这对全部四条路径（包括聊天图表）都是新增要求，而不是对现状的描述：每个图表查询都须先完成 Answer Spec 与发布，才能作为图表数据。由此产生的逐查询口径成本，以及报告场景的缓解方式，见 ADR-0009。
 
 ### 编译与展示
 
@@ -114,7 +115,7 @@ Flint Chart（microsoft/flint-chart，MIT，评估版本 0.5.1）提供语义类
 需先解决的技术约束：
 
 - **中文文本测量**：Node 端 SSR 默认只能估算文本宽度，须通过 `echarts.setPlatformAPI({ measureText })` 注入基于真实字体的度量。
-- **字体分发**：resvg 需显式传入字体文件；随应用分发 CJK 字体子集，不依赖系统字体。
+- **字体分发**：随应用分发 CJK 字体子集，渲染时显式指定，不依赖系统字体，保证跨机器一致。resvg-js 的字体加载方式尚未在本项目中验证。
 - **原生依赖**：resvg 及可能使用的 canvas 模块是 napi 二进制，须纳入 electron-builder 打包与 `smoke-electron` 冒烟测试。
 
 ## 考虑过的方案
@@ -132,8 +133,8 @@ Flint Chart（microsoft/flint-chart，MIT，评估版本 0.5.1）提供语义类
 - 模型需要学习的绘图接口减为一种，且不再编写 ECharts option、HTML 或绘图代码。
 - 字段语义需要新的数据集注解存储及其取值规则；发布记录只增加一个可选的物理画像字段，Answer Spec 与模型的查询接口不变。首期多数注解来自模型声明，按证据权威属于最低一级，须随图表提示来源，直到业务定义或 ADR-0007 的字段能提供更高权威的来源。
 - 已交付报告需额外存储导出产物与版本信息。
-- 报告与看板的工作流多出“先发布再画图”一步：含 N 张图的报告需要 N 次 Answer Spec 与发布，模型轮次和口径出错机会随之增加。ADR-0009 实施前，这一成本按原样承担。
+- 所有画图工作流都多出“先发布再画图”一步：聊天图表每张需要一次发布，含 N 张图的报告或看板需要 N 次 Answer Spec 与发布，模型轮次和口径出错机会随之增加。ADR-0009 实施前，这一成本按原样承担。
 - Python 运行时可在迁移完成后移除 matplotlib，缩小分发体积。
-- 新增 napi 原生依赖与字体资产，增加打包与冒烟测试负担；独立 HTML 看板需内联编译器，体积比只内联 ECharts 时更大。
+- 新增 napi 原生依赖与字体资产，增加打包与冒烟测试负担；独立 HTML 看板需内联 ECharts 与编译器，文件体积显著增大（当前 `generate_dashboard` 生成的 HTML 未内联 ECharts）。
 - ChartSpec 的表达力有意受限；超出其范围的图需扩展契约与模板，而不是让模型绕过契约。
 - CONTEXT.md 需在本 ADR 接受时补充 ChartSpec、数据集引用与展示提示（Presentation Notice）三个术语，并注明展示提示与 Disclosure 的区别。

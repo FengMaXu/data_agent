@@ -18,7 +18,7 @@
 
 **结论三：数值语义没有现成来源，应放在 answering 之外。** 已发布结果以 `PublicationReceipt` 的 `receiptId` 与 `contentHash` 提供不可变的数据身份，满足 ADR 决策 4。但语义信息几乎为空：
 
-- `ResultStore` 的结果对象带有 `columnTypes`（来自数据库驱动，缺失时按首行值推断），而 `ResultCandidateRecord.resultSchema` 只转存了列名；
+- `ResultStore` 的结果对象带有 `columnTypes`，但产品查询执行器（`apps/server`、`electron-host` 的 `mcp-query-executor.ts`）不返回列类型，`columnTypes` 实际由 `inferType` 按首行值推断：首行为空时整列判为 `NULL`，mysql2 默认以字符串返回的 DECIMAL 判为 `TEXT`。`ResultCandidateRecord.resultSchema` 只转存了列名；
 - Answer Spec 的 `MetricSpec` 只有 `kind`、`expression`、`unit`，不描述每个输出列；
 - runtime 中没有 Query Digest 实现（`candidate-checks.ts` 仅有 `digest_unavailable` 原因码），因此不存在可用于推导可加性的输出列谱系。
 
@@ -116,10 +116,10 @@ type Magnitude = 1 | 1e3 | 1e4 | 1e6 | 1e8;
 
 **第一层：物理画像（Physical Profile），由 answering 在发布时生成。** 这是本设计对 answering 唯一的改动：
 
-- 发布时基于已打开的结果对象，为每列计算物理类型（沿用 `columnTypes`）、空值数、数值列的最小值与最大值，写入 `PublicationReceipt` 的一个可选字段；
+- 发布时基于已打开的结果对象扫描全部行，为每列计算物理类型、空值数、数值列的最小值与最大值，写入 `PublicationReceipt` 的一个可选字段；不沿用 `columnTypes`（原因见结论三），规格见 issue #78；
 - 只增不改：字段可选，旧发布记录缺失该字段时按“无画像”处理，不影响现有读取方（`answering-store`、`service`、`facets/artifact-directory`、`result-store`）；
 - 不涉及模型接口与 Answer Spec，与 ADR-0007 不冲突；
-- 派生数据集由 Runtime 在登记时生成同结构的画像。
+- 派生数据集应由 Runtime 在登记时生成同结构的画像；目前还没有派生数据集的登记路径，这部分随派生数据集一并设计。
 
 物理画像只陈述事实，不回答“0.12 是比率还是百分比”“能否相加”。它的用途是为第二层提供一致性检测的依据。
 
@@ -196,11 +196,12 @@ type Viewport = { mode: "scroll" | "zoom"; window: number };
 | 旧路径 `aggregate` | 不支持，聚合移入查询 | 返回结构化说明；原图只读保留 |
 | pie | `pie` | 自动迁移；数据含负值或度量不可加时返回说明 |
 | kpi、table、metric_cards | 不属于 ChartSpec | 由看板规格的 KPI、Table 视图承接，共用 FieldMeta |
-| 所有字段语义 | v3 无 | 迁移时写入 `migrated` 注解，随图交付提示 |
+| dataset `schema`（`type`、`role`、`unit`） | FieldMeta 的一部分 | v3 编译器目前不使用 `schema`；迁移时把 `type`、`unit` 写入 `migrated` 注解。`storage` 与 `additivity` 在 v3 中不存在，缺失时按 `SEMANTICS_MISSING` 返回说明，不猜测 |
+| `filters`、`interactions`（下钻） | 不属于 ChartSpec | v3 spec 接受但渲染器未实现，迁移不涉及；筛选与下钻由看板规格另行决定 |
 
 ## 9. 未决问题
 
-1. **物理画像的 issue**：第 4.1 节对 answering 的改动（发布记录新增可选的物理画像）量小且只增不改，建议单独立 issue，可先于 ChartSpec 其余部分落地。
-2. **注解模块的归属**：数据集注解放在 `@data-agent/charts` 内，还是作为独立的数据集模块供表格、KPI 共用。倾向后者，因为 `WidgetRenderer` 表格的百分比推断也应改用同一套字段语义，需要与看板规格一起确定。
-3. **颜色覆盖**：`series.colors` 允许按值指定颜色，是否应改为只允许引用主题中的语义色（如“正向”“负向”），以免模型写出不可访问的配色。
+1. **注解模块的归属**：数据集注解放在 `@data-agent/charts` 内，还是作为独立的数据集模块供表格、KPI 共用。倾向后者，因为 `WidgetRenderer` 表格的百分比推断也应改用同一套字段语义，需要与看板规格一起确定。
+2. **颜色覆盖**：`series.colors` 允许按值指定颜色，是否应改为只允许引用主题中的语义色（如“正向”“负向”），以免模型写出不可访问的配色。
+3. **dashboard skill 与实现不一致**：skill 描述的 v4（KTX `data` 节点、参数、构建时快照）与 `dashboard-v4.ts` 的实现结构不同，v3 的筛选与下钻也未实现。这不属于 ChartSpec 本身，但合并 v3/v4 看板规格前需要先厘清以哪一方为准。
 4. **Answer Spec 扩展**：是否把字段语义并入 Answer Spec，待 ADR-0007 落地后再评估；按第 4.1 节的衔接方式，预计不需要。
