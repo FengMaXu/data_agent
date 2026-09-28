@@ -239,3 +239,23 @@ _Avoid_: Reviewer retry, automatic approval
 **Delivery Policy**:
 The environment-specific rule applied after a Review Decision. The default is deliver with disclosure; product integrations may explicitly choose fail closed or ask the user for a dirty-data choice. Spider2 may submit with disagreement but must not label the submission Approved.
 _Avoid_: Reviewer verdict, retry policy
+
+**ChartSpec**:
+The versioned, serializable description of one chart shared by chat widgets, dashboards and reports: mark, field encodings, ordering, titles, and any declared data selection. It contains no data transformation or aggregation and reads its data through a Dataset Reference; the compiled rendering option is never persisted (ADR-0008).
+_Avoid_: Chart config, ECharts option, view spec
+
+**Dataset Reference**:
+An opaque reference to immutable chart data, either a Publication Receipt or a registered derived dataset, that Runtime resolves and checks for delivery eligibility before compilation. Model-supplied rows and overwritable file paths are not Dataset References.
+_Avoid_: Data path, inline rows
+
+**Physical Profile**:
+The per-column observed facts, such as physical kind, null count and numeric range, that Runtime attaches to a Publication Receipt at publication by scanning every stored row. It states facts only and never decides scale, unit or additivity.
+_Avoid_: Column types, field semantics
+
+**Dataset Annotation**:
+An append-only statement of one column's field semantics, such as storage and display scale, unit, additivity and temporal grain, keyed by Dataset Reference and carrying its basis. Annotations resolve by Evidence Authority; conflicting annotations of equal authority are reported, not chosen.
+_Avoid_: Metadata override, field config
+
+**Presentation Notice**:
+A record of how a chart presents its data: a layout adjustment, a viewport, or a declared data selection. It is delivered with the chart and recomputed on refresh, export or resize. It is distinct from Disclosure, which records unresolved observations about the published result; both are shown together at delivery.
+_Avoid_: Disclosure, chart warning

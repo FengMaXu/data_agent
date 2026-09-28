@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 ---
 
 # 统一 ChartSpec 与同构编译器，按目标选择渲染器
@@ -137,4 +137,4 @@ Flint Chart（microsoft/flint-chart，MIT，评估版本 0.5.1）提供语义类
 - Python 运行时可在迁移完成后移除 matplotlib，缩小分发体积。
 - 新增 napi 原生依赖与字体资产，增加打包与冒烟测试负担；独立 HTML 看板需内联 ECharts 与编译器，文件体积显著增大（当前 `generate_dashboard` 生成的 HTML 未内联 ECharts）。
 - ChartSpec 的表达力有意受限；超出其范围的图需扩展契约与模板，而不是让模型绕过契约。
-- CONTEXT.md 需在本 ADR 接受时补充 ChartSpec、数据集引用与展示提示（Presentation Notice）三个术语，并注明展示提示与 Disclosure 的区别。
+- CONTEXT.md 随本 ADR 的接受补充了 ChartSpec、Dataset Reference（数据集引用）、Physical Profile（物理画像）、Dataset Annotation（数据集注解）与 Presentation Notice（展示提示）五个术语，并注明展示提示与 Disclosure 的区别。
