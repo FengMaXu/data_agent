@@ -8324,3 +8324,352 @@ body {
 .markdown-content pre code {
   background: transparent;
 }
+
+/* Close buttons: one bare × everywhere (tool panel, settings, plugins, semantic viewer) */
+.close-btn,
+.modal-close-btn,
+.plugins-modal .plugins-modal-close,
+.semantic-modal-close {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  box-shadow: none;
+  color: #78716c;
+  cursor: pointer;
+  transition: color var(--duration-quick) var(--ease-out);
+}
+
+.close-btn:hover,
+.modal-close-btn:hover,
+.plugins-modal .plugins-modal-close:hover,
+.semantic-modal-close:hover {
+  background: transparent !important;
+  color: #1f2937;
+}
+
+.close-btn:focus-visible,
+.modal-close-btn:focus-visible,
+.plugins-modal .plugins-modal-close:focus-visible,
+.semantic-modal-close:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+
+/* Frameless icon actions whose label slides out on hover (refresh, add) */
+.icon-reveal-btn {
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  color: #78716c;
+  font: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--duration-quick) var(--ease-out);
+}
+
+.icon-reveal-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.icon-reveal-btn:not(:disabled):hover {
+  color: #1f2937;
+}
+
+.icon-reveal-btn:not(:disabled):hover .header-icon-label,
+.icon-reveal-btn:focus-visible .header-icon-label {
+  max-width: 8em;
+  margin-left: 6px;
+  opacity: 1;
+}
+
+.icon-reveal-btn:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Settings form actions: compact gray buttons */
+.form-action-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hairline);
+}
+
+.form-action-btn {
+  min-width: 64px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 14px;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  background: var(--bubble-bg);
+  color: #1f2937;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--duration-quick) var(--ease-out), border-color var(--duration-quick) var(--ease-out);
+}
+
+.form-action-btn:not(:disabled):hover {
+  background: #ecebe8;
+  border-color: #dedcd8;
+}
+
+.form-action-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.form-action-btn:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+
+/* ──────── Sidebar trees: one row style for tasks, knowledge, semantic models and plugins ──────── */
+
+:root {
+  --tree-indent: 16px;
+  --tree-inset: 12px;
+  --tree-row-bg: var(--frame-rail);
+  --tree-row-hover: #f2f1ef;
+  --tree-row-active: #ecebe8;
+  --tree-guide: #d6d3ce;
+}
+
+/* Section header with its actions on the same row */
+.nav-group {
+  position: relative;
+}
+
+.nav-group.has-actions .nav-item {
+  padding-right: 64px;
+}
+
+.nav-group-actions {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  display: flex;
+  transform: translateY(-50%);
+}
+
+.tree {
+  margin: 2px 0 8px;
+}
+
+.tree-row {
+  --row-bg: var(--tree-row-bg);
+  position: relative;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  border-radius: 8px;
+  background: transparent;
+  transition: background-color var(--duration-quick) var(--ease-out);
+}
+
+.tree-row:hover,
+.tree-row:focus-within {
+  --row-bg: var(--tree-row-hover);
+  background: var(--row-bg);
+}
+
+.tree-row.is-active {
+  --row-bg: var(--tree-row-active);
+  background: var(--row-bg);
+}
+
+.tree-row-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px 0 calc(var(--tree-inset) + var(--depth) * var(--tree-indent));
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.82rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tree-row-main:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: -2px;
+}
+
+.tree-row:hover .tree-row-main,
+.tree-row.is-active .tree-row-main {
+  color: var(--text-primary);
+}
+
+.tree-row.is-active .tree-row-main {
+  font-weight: 500;
+}
+
+.tree-chevron {
+  flex: 0 0 14px;
+  display: inline-flex;
+  color: var(--thread-muted);
+  transition: transform var(--duration-quick) var(--ease-out);
+}
+
+.tree-chevron.is-open {
+  transform: rotate(90deg);
+}
+
+.tree-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  color: #78716c;
+}
+
+.tree-row.is-active .tree-icon {
+  color: var(--accent-strong);
+}
+
+.tree-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-secondary {
+  margin-left: 6px;
+  color: var(--thread-muted);
+  font-family: var(--font-code);
+  font-size: 0.7rem;
+  font-weight: 400;
+}
+
+.tree-meta {
+  flex: 0 0 auto;
+  max-width: 5em;
+  overflow: hidden;
+  color: var(--thread-muted);
+  font-family: var(--font-code);
+  font-size: 0.68rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Row actions overlay the right edge, so they never squeeze the label */
+.tree-actions {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  display: flex;
+  padding-left: 14px;
+  background: linear-gradient(90deg, transparent, var(--row-bg) 14px);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-50%);
+  transition: opacity var(--duration-quick) var(--ease-out);
+}
+
+.tree-row:hover .tree-actions,
+.tree-row:focus-within .tree-actions,
+.tree-row.is-editing .tree-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.tree-action {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #78716c;
+  cursor: pointer;
+  transition: color var(--duration-quick) var(--ease-out);
+}
+
+.tree-action:hover {
+  color: var(--text-primary);
+}
+
+.tree-action.is-danger:hover {
+  color: var(--status-error);
+}
+
+.tree-action:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: -2px;
+}
+
+/* Children hang off a guide line under the parent's chevron */
+.tree-group {
+  position: relative;
+}
+
+.tree-group::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 4px;
+  left: calc(var(--tree-inset) + var(--depth) * var(--tree-indent) + 7px);
+  width: 1px;
+  background: var(--tree-guide);
+}
+
+.tree-note {
+  padding: 6px 8px 6px calc(var(--tree-inset) + var(--depth) * var(--tree-indent) + 20px);
+  color: var(--thread-muted);
+  font-size: 0.76rem;
+}
+
+.tree-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 24px;
+  margin-right: 30px;
+  padding: 0 6px;
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  background: var(--frame-surface);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.82rem;
+  outline: none;
+}
+
+.tree-input:focus {
+  border-color: rgba(194, 65, 12, 0.45);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tree-chevron,
+  .tree-actions {
+    transition: none;
+  }
+}

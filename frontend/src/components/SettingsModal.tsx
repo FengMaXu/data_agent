@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
     Settings as SettingsIcon, X,
-    User, Link, Eye, ExternalLink, Loader2, Terminal, Save
+    User, Link, Eye, ExternalLink, Loader2, Terminal
 } from './icons/Typicons';
 import { RiCloud, RiComputer, RiDatabaseLine, RiKey2, RiRobot2, RiUsb } from './icons/RemixIcons';
 import {
@@ -671,18 +671,18 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     )}
 
                                     {/* Buttons at bottom right */}
-                                    <div className="settings-action-row" style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end', marginTop: '48px', paddingTop: '24px', borderTop: '1px solid #f3f4f6' }}>
+                                    <div className="settings-action-row form-action-row">
                                         <button type="button"
+                                            className="form-action-btn"
                                             onClick={handleTestDB}
-                                            disabled={isTestingDB}
-                                            style={{ width: '180px', padding: '12px 24px', background: '#f3f4f6', color: '#1f2937', border: '1px solid #e5e7eb', borderRadius: '8px', fontWeight: 600, cursor: isTestingDB ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                            disabled={isTestingDB}>
                                             {isTestingDB ? <Loader2 size={16} className="animate-spin" /> : null}
                                             {isTestingDB ? t('settings.testing') : t('settings.dbTest')}
                                         </button>
-                                        <button
+                                        <button type="button"
+                                            className="form-action-btn"
                                             onClick={handleSaveDB}
-                                            disabled={isSavingDB}
-                                            style={{ width: '180px', padding: '12px 24px', background: '#1f2937', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: isSavingDB ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                            disabled={isSavingDB}>
                                             {isSavingDB ? <Loader2 size={16} className="animate-spin" /> : null}
                                             {t('settings.save')}
                                         </button>
@@ -721,9 +721,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             <div style={{ fontSize: '0.9rem', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{pythonTestResult.message}</div>
                                         </div>
                                     )}
-                                    <div className="settings-action-row" style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end', marginTop: '48px', paddingTop: '24px', borderTop: '1px solid #f3f4f6' }}>
-                                        <button type="button" onClick={handleTestPython} disabled={isTestingPython || (pythonRuntime.mode === 'external' && !pythonExecutable.trim())} style={{ width: '180px', padding: '12px 24px', background: '#f3f4f6', color: '#1f2937', border: '1px solid #e5e7eb', borderRadius: '8px', fontWeight: 600, cursor: isTestingPython ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>{isTestingPython ? <Loader2 size={16} className="animate-spin" /> : null}{isTestingPython ? t('settings.testingPython') : t('settings.testPython')}</button>
-                                        <button type="button" onClick={handleSavePython} disabled={isSavingPython || (pythonRuntime.mode === 'external' && !pythonExecutable.trim())} style={{ width: '180px', padding: '12px 24px', background: '#1f2937', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: isSavingPython ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>{isSavingPython ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} {t('settings.savePython')}</button>
+                                    <div className="settings-action-row form-action-row">
+                                        <button type="button" onClick={handleTestPython} className="form-action-btn" disabled={isTestingPython || (pythonRuntime.mode === 'external' && !pythonExecutable.trim())}>{isTestingPython ? <Loader2 size={16} className="animate-spin" /> : null}{isTestingPython ? t('settings.testingPython') : t('settings.testPython')}</button>
+                                        <button type="button" onClick={handleSavePython} className="form-action-btn" disabled={isSavingPython || (pythonRuntime.mode === 'external' && !pythonExecutable.trim())}>{isSavingPython ? <Loader2 size={16} className="animate-spin" /> : null}{t('settings.savePython')}</button>
                                     </div>
                                 </div>
                             </div>

@@ -3,6 +3,7 @@ import {
     RiArrowDown,
     RiClose,
     RiDeleteBin2,
+    RiFileEdit,
     RiEyeLine,
     RiLinkM,
     RiLoginBox,
@@ -105,7 +106,6 @@ export const Code = makeIcon(bodies.code);
 export const Copy = makeIcon(bodies.clipboard);
 export const Cpu = makeIcon(bodies.deviceDesktop);
 export const Database = makeIcon(bodies.database);
-export const Edit3 = makeIcon(bodies.edit);
 export const ExternalLink = makeIcon(bodies.export);
 export const File = makeIcon(bodies.document);
 export const FileCode = makeIcon(bodies.code);
@@ -144,6 +144,7 @@ export const Wand2 = makeIcon(bodies.brush);
 
 // Remix Icon replacements for app-wide concepts.
 export const Download = RiArrowDown;
+export const Edit3 = RiFileEdit;
 export const Eye = RiEyeLine;
 export const Languages = RiTranslate;
 export const LogIn = RiLoginBox;

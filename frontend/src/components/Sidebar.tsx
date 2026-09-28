@@ -2,23 +2,18 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     Settings,
     Languages,
-    ChevronDown,
-    ChevronRight,
     FileText,
-    Folder,
     X,
     Save,
     Edit3,
     Trash2,
     Database,
-    MessageSquare,
     Check,
     User,
     LogOut,
-    Plus,
-    RefreshCw,
 } from './icons/Typicons';
-import { RiBookShelf, RiBrain4, RiConnector, RiFlowChart, RiListCheck3, RiPuzzle2, RiTaskLine } from './icons/RemixIcons';
+import { RiAdd, RiBookShelf, RiBrain4, RiChat3, RiConnector, RiDatabase2, RiFileEdit, RiFileText, RiFileUpload, RiFlowChart, RiFolder3, RiListCheck3, RiPuzzle2, RiRefresh, RiTaskLine } from './icons/RemixIcons';
+import { SectionHeader, TreeAction, TreeGroup, TreeNote, TreeRow } from './SidebarTree';
 import {
     type KnowledgeFile,
 } from '../api/client';
@@ -363,30 +358,24 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins, collap
     const renderKnowledgeNode = (node: KnowledgeFileNode): React.ReactNode => {
         const { item, children, level } = node;
         const isDirectory = item.type === 'directory';
+        const hasChildren = isDirectory || children.length > 0;
         const expanded = knowledgeExpandedPaths.has(item.path);
         return (
-            <div key={item.path}>
-                <button
-                    type="button"
-                    className={`knowledge-file-node ${isDirectory ? 'directory' : 'file'}`}
-                    style={{ paddingLeft: `${12 + level * 16}px` }}
-                    aria-expanded={isDirectory || children.length > 0 ? expanded : undefined}
+            <React.Fragment key={item.path}>
+                <TreeRow
+                    depth={level}
+                    icon={isDirectory ? <RiFolder3 size={15} /> : <RiFileText size={15} />}
+                    label={item.knowledgeId ? (item.title ?? item.name) : item.name}
+                    secondary={item.knowledgeId}
                     title={isDirectory ? item.path : [knowledgeLabel(item), item.description, item.path].filter(Boolean).join('\n')}
-                    onClick={() => isDirectory || children.length > 0 ? toggleKnowledgePath(item.path) : void openKnowledgeFile(item)}
-                >
-                    {isDirectory || children.length > 0 ? (
-                        <span className="expand-icon">{expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}</span>
-                    ) : <span className="expand-icon" />}
-                    {isDirectory ? <Folder size={14} className="file-icon" /> : <FileText size={14} className="file-icon" />}
-                    {item.knowledgeId ? (
-                        <span className="file-name knowledge-entry-name">
-                            <span className="knowledge-entry-title">{item.title ?? item.name}</span>
-                            <span className="knowledge-entry-id">{item.knowledgeId}</span>
-                        </span>
-                    ) : <span className="file-name">{item.name}</span>}
-                </button>
-                {expanded && children.map(renderKnowledgeNode)}
-            </div>
+                    expanded={hasChildren ? expanded : undefined}
+                    active={!isDirectory && editorOpen && selectedFile?.path === item.path}
+                    onSelect={() => hasChildren ? toggleKnowledgePath(item.path) : void openKnowledgeFile(item)}
+                />
+                {expanded && children.length > 0 && (
+                    <TreeGroup depth={level}>{children.map(renderKnowledgeNode)}</TreeGroup>
+                )}
+            </React.Fragment>
         );
     };
 
@@ -396,33 +385,33 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins, collap
     const renderSemanticConnection = (connection: SemanticConnection) => {
         const expanded = semanticExpandedConnections.has(connection.connectionId);
         return (
-            <div className="semantic-connection" key={connection.connectionId}>
-                <button type="button" className="semantic-connection-node" onClick={() => toggleSemanticConnection(connection.connectionId)}>
-                    {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-                    <Database size={14} />
-                    <span title={connection.connectionId}>{connection.connectionId}</span>
-                    <span className="semantic-connection-count">{connection.sources.length}</span>
-                </button>
+            <React.Fragment key={connection.connectionId}>
+                <TreeRow
+                    depth={0}
+                    icon={<RiDatabase2 size={15} />}
+                    label={connection.connectionId}
+                    title={connection.connectionId}
+                    meta={connection.sources.length}
+                    expanded={expanded}
+                    onSelect={() => toggleSemanticConnection(connection.connectionId)}
+                />
                 {expanded && (
-                    <div className="semantic-source-list">
+                    <TreeGroup depth={0}>
                         {connection.sources.map((source) => (
-                            <button
-                                type="button"
-                                className="semantic-source-node"
+                            <TreeRow
                                 key={source.sourceName}
-                                onClick={() => void openSemanticSource(connection.connectionId, source.sourceName)}
+                                depth={1}
+                                icon={<RiFileText size={15} />}
+                                label={source.title || source.sourceName}
                                 title={source.description || source.sourceName}
-                            >
-                                <FileText size={13} />
-                                <span className="semantic-source-name">{source.title || source.sourceName}</span>
-                                {source.assetType === 'business_knowledge' && (
-                                    <span className="semantic-asset-type-badge">{t('semantic.businessKnowledge')}</span>
-                                )}
-                            </button>
+                                meta={source.assetType === 'business_knowledge' ? t('semantic.businessKnowledge') : undefined}
+                                active={semanticViewerOpen && semanticDetail?.connectionId === connection.connectionId && semanticDetail?.sourceName === source.sourceName}
+                                onSelect={() => void openSemanticSource(connection.connectionId, source.sourceName)}
+                            />
                         ))}
-                    </div>
+                    </TreeGroup>
                 )}
-            </div>
+            </React.Fragment>
         );
     };
 
@@ -449,40 +438,34 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins, collap
                             <span className="nav-item-text">{t('sidebar.newTask')}</span>
                         </button>
 
-                        <button type="button" className={`nav-item ${tasksExpanded ? 'expanded' : ''}`} title={t('sidebar.currentTask')} aria-label={t('sidebar.currentTask')} onClick={() => toggleExclusiveSection('tasks')}>
-                            <RiListCheck3 className="nav-item-icon" size={18} />
-                            <span className="nav-item-text">{t('sidebar.currentTask')}</span>
-                        </button>
-
+                        <SectionHeader
+                            icon={<RiListCheck3 className="nav-item-icon" size={18} />}
+                            label={t('sidebar.currentTask')}
+                            expanded={tasksExpanded}
+                            onToggle={() => toggleExclusiveSection('tasks')}
+                        />
                         {!collapsed && tasksExpanded && (
-                            <div className="task-tree">
+                            <div className="tree">
                                 {tasks.map((task) => {
                                     const expanded = expandedTaskIds.has(task.id);
-                                    const active = currentTask?.id === task.id && !currentSession;
+                                    const editing = editingTaskId === task.id;
                                     const taskSessions = sessions.filter((session) => session.taskId === task.id);
                                     return (
-                                        <div className="task-tree-item" key={task.id}>
-                                            <div className={`task-row ${active ? 'active' : ''}`}>
-                                                <button
-                                                    type="button"
-                                                    className="task-select-btn"
-                                                    onClick={() => {
-                                                        switchTask(task.id);
-                                                        toggleTask(task.id);
-                                                    }}
-                                                    aria-label={task.name}
-                                                    aria-expanded={expanded}
-                                                    aria-current={active ? 'page' : undefined}
-                                                >
-                                                    <span className="task-expand-indicator" aria-hidden="true">
-                                                        {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-                                                    </span>
-                                                    <Folder size={14} aria-hidden="true" />
-                                                    {editingTaskId !== task.id && <span className="task-name" title={task.name}>{task.name}</span>}
-                                                </button>
-                                                {editingTaskId === task.id && (
+                                        <React.Fragment key={task.id}>
+                                            <TreeRow
+                                                depth={0}
+                                                icon={<RiFolder3 size={15} />}
+                                                label={task.name}
+                                                title={task.name}
+                                                expanded={expanded}
+                                                active={currentTask?.id === task.id && !currentSession}
+                                                onSelect={() => {
+                                                    switchTask(task.id);
+                                                    toggleTask(task.id);
+                                                }}
+                                                editor={editing ? (
                                                     <input
-                                                        className="task-name-input"
+                                                        className="tree-input"
                                                         value={editTaskName}
                                                         onChange={(event) => setEditTaskName(event.target.value)}
                                                         onKeyDown={(event) => {
@@ -493,145 +476,124 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins, collap
                                                         autoFocus
                                                         aria-label={task.name}
                                                     />
-                                                )}
-                                                <div className="task-actions">
-                                                    <button type="button" className="tree-action-btn" onClick={() => {
-                                                        setExpandedTaskIds((prev) => new Set(prev).add(task.id));
-                                                        createSession(task.id);
-                                                    }} title={t('session.create')} aria-label={t('session.create')}>
-                                                        <Plus size={11} aria-hidden="true" />
-                                                    </button>
-                                                    {editingTaskId === task.id ? (
-                                                        <button type="button" className="tree-action-btn" onMouseDown={(event) => event.preventDefault()} onClick={() => commitTaskName(task.id)} title={t('common.save')} aria-label={t('common.save')}>
-                                                            <Check size={11} aria-hidden="true" />
-                                                        </button>
-                                                    ) : (
-                                                        <button type="button" className="tree-action-btn" onClick={() => { setEditTaskName(task.name); setEditingTaskId(task.id); }} title={t('common.edit')} aria-label={t('common.edit')}>
-                                                            <Edit3 size={11} aria-hidden="true" />
-                                                        </button>
-                                                    )}
-                                                    <button
-                                                        type="button"
-                                                        className="tree-action-btn delete"
-                                                        onClick={() => {
+                                                ) : undefined}
+                                                actions={editing ? (
+                                                    <TreeAction label={t('common.save')} onClick={() => commitTaskName(task.id)} preventBlur>
+                                                        <Check size={14} aria-hidden="true" />
+                                                    </TreeAction>
+                                                ) : (
+                                                    <>
+                                                        <TreeAction label={t('session.create')} onClick={() => {
+                                                            setExpandedTaskIds((prev) => new Set(prev).add(task.id));
+                                                            createSession(task.id);
+                                                        }}>
+                                                            <RiAdd size={14} aria-hidden="true" />
+                                                        </TreeAction>
+                                                        <TreeAction label={t('common.edit')} onClick={() => { setEditTaskName(task.name); setEditingTaskId(task.id); }}>
+                                                            <Edit3 size={14} aria-hidden="true" />
+                                                        </TreeAction>
+                                                        <TreeAction label={t('common.delete')} tone="danger" onClick={() => {
                                                             if (window.confirm(t('task.confirmDelete').replace('{name}', task.name))) deleteTask(task.id);
-                                                        }}
-                                                        title={t('common.delete')}
-                                                        aria-label={t('common.delete')}
-                                                    >
-                                                        <Trash2 size={11} aria-hidden="true" />
-                                                    </button>
-                                                </div>
-                                            </div>
-
+                                                        }}>
+                                                            <Trash2 size={14} aria-hidden="true" />
+                                                        </TreeAction>
+                                                    </>
+                                                )}
+                                            />
                                             {expanded && (
-                                                <div className="task-session-list">
-                                                    {taskSessions.length === 0 && (
-                                                        <div className="task-empty-sessions">{t('session.empty')}</div>
-                                                    )}
+                                                <TreeGroup depth={0}>
+                                                    {taskSessions.length === 0 && <TreeNote depth={1}>{t('session.empty')}</TreeNote>}
                                                     {taskSessions.map((session) => (
-                                                        <div key={session.id} className={`session-row ${currentSession?.id === session.id ? 'active' : ''}`}>
-                                                            <button
-                                                                type="button"
-                                                                className="session-select-btn"
-                                                                onClick={() => switchSession(session.id)}
-                                                                aria-current={currentSession?.id === session.id ? 'page' : undefined}
-                                                            >
-                                                                <MessageSquare size={13} aria-hidden="true" />
-                                                                <span className="session-name" title={session.name}>{session.name}</span>
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                className="tree-action-btn session-delete-btn"
-                                                                onClick={() => {
+                                                        <TreeRow
+                                                            key={session.id}
+                                                            depth={1}
+                                                            icon={<RiChat3 size={15} />}
+                                                            label={session.name}
+                                                            title={session.name}
+                                                            active={currentSession?.id === session.id}
+                                                            onSelect={() => switchSession(session.id)}
+                                                            actions={(
+                                                                <TreeAction label={t('common.delete')} tone="danger" onClick={() => {
                                                                     if (window.confirm(t('session.confirmDelete').replace('{name}', session.name))) deleteSession(session.id);
-                                                                }}
-                                                                title={t('common.delete')}
-                                                                aria-label={t('common.delete')}
-                                                            >
-                                                                <Trash2 size={11} aria-hidden="true" />
-                                                            </button>
-                                                        </div>
+                                                                }}>
+                                                                    <Trash2 size={14} aria-hidden="true" />
+                                                                </TreeAction>
+                                                            )}
+                                                        />
                                                     ))}
-                                                </div>
+                                                </TreeGroup>
                                             )}
-                                        </div>
+                                        </React.Fragment>
                                     );
                                 })}
                             </div>
                         )}
 
-                        <button type="button" className={`nav-item ${knowledgeExpanded ? 'expanded' : ''}`} title={t('sidebar.knowledge')} aria-label={t('sidebar.knowledge')} onClick={() => toggleExclusiveSection('knowledge')}>
-                            <RiBookShelf className="nav-item-icon" size={18} />
-                            <span className="nav-item-text">{t('sidebar.knowledge')}</span>
-                        </button>
+                        <SectionHeader
+                            icon={<RiBookShelf className="nav-item-icon" size={18} />}
+                            label={t('sidebar.knowledge')}
+                            expanded={knowledgeExpanded}
+                            onToggle={() => toggleExclusiveSection('knowledge')}
+                            actions={!collapsed && (
+                                <>
+                                    <TreeAction label={t('common.knowledgeNew')} onClick={handleNewKnowledgeFile}>
+                                        <RiFileEdit size={15} aria-hidden="true" />
+                                    </TreeAction>
+                                    <TreeAction label={t('common.knowledgeImport')} onClick={() => knowledgeImportInputRef.current?.click()}>
+                                        <RiFileUpload size={15} aria-hidden="true" />
+                                    </TreeAction>
+                                </>
+                            )}
+                        />
+                        <input
+                            ref={knowledgeImportInputRef}
+                            type="file"
+                            multiple
+                            accept=".md,.markdown,.txt"
+                            hidden
+                            onChange={(event) => { void handleImportKnowledge(event); }}
+                        />
                         {!collapsed && knowledgeExpanded && (
-                            <div className="knowledge-file-list">
-                                <div className="knowledge-actions" style={{ display: 'flex', gap: 6, padding: '4px 12px 8px' }}>
-                                    <button type="button" className="nav-item sidebar-plugin-item" title={t('common.knowledgeNew')} aria-label={t('common.knowledgeNew')} onClick={handleNewKnowledgeFile} style={{ flex: 1, justifyContent: 'center' }}>
-                                        <Plus size={14} className="file-icon" />
-                                        <span className="sidebar-plugin-text">{t('common.knowledgeNew')}</span>
-                                    </button>
-                                    <button type="button" className="nav-item sidebar-plugin-item" title={t('common.knowledgeImport')} aria-label={t('common.knowledgeImport')} onClick={() => knowledgeImportInputRef.current?.click()} style={{ flex: 1, justifyContent: 'center' }}>
-                                        <FileText size={14} className="file-icon" />
-                                        <span className="sidebar-plugin-text">{t('common.knowledgeImport')}</span>
-                                    </button>
-                                    <input
-                                        ref={knowledgeImportInputRef}
-                                        type="file"
-                                        multiple
-                                        accept=".md,.markdown,.txt"
-                                        style={{ display: 'none' }}
-                                        onChange={(event) => { void handleImportKnowledge(event); }}
-                                    />
-                                </div>
+                            <div className="tree">
                                 {loadingKnowledge && knowledgeFiles.length === 0 ? (
-                                    <div className="loading-state" role="status">{t('common.loading')}</div>
+                                    <TreeNote depth={0} role="status">{t('common.loading')}</TreeNote>
                                 ) : knowledgeFileTree.length === 0 ? (
-                                    <div className="empty-state sidebar-empty-state">
-                                        <strong>{t('common.noKnowledgeFiles')}</strong>
-                                        <span>{t('common.noKnowledgeFilesHint')}</span>
-                                    </div>
+                                    <TreeNote depth={0}>{t('common.noKnowledgeFiles')}</TreeNote>
                                 ) : knowledgeFileTree.map(renderKnowledgeNode)}
                             </div>
                         )}
 
-                        <button type="button" className={`nav-item ${semanticExpanded ? 'expanded' : ''}`} title={t('sidebar.semantic')} aria-label={t('sidebar.semantic')} onClick={() => toggleExclusiveSection('semantic')}>
-                            <RiBrain4 className="nav-item-icon" size={18} />
-                            <span className="nav-item-text">{t('sidebar.semantic')}</span>
-                        </button>
+                        <SectionHeader
+                            icon={<RiBrain4 className="nav-item-icon" size={18} />}
+                            label={t('sidebar.semantic')}
+                            expanded={semanticExpanded}
+                            onToggle={() => toggleExclusiveSection('semantic')}
+                            actions={!collapsed && (
+                                <TreeAction label={t('common.semanticRefresh')} onClick={() => { void loadSemanticSources(); }}>
+                                    <RiRefresh size={15} aria-hidden="true" />
+                                </TreeAction>
+                            )}
+                        />
                         {!collapsed && semanticExpanded && (
-                            <div className="semantic-asset-list">
-                                <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '4px 12px' }}>
-                                    <button type="button" className="tree-action-btn" title={t('common.semanticRefresh')} aria-label={t('common.semanticRefresh')} onClick={() => { void loadSemanticSources(); }}>
-                                        <RefreshCw size={12} aria-hidden="true" />
-                                    </button>
-                                </div>
+                            <div className="tree">
                                 {loadingSemantic && semanticConnections.length === 0 ? (
-                                    <div className="loading-state" role="status">{t('common.loading')}</div>
+                                    <TreeNote depth={0} role="status">{t('common.loading')}</TreeNote>
                                 ) : semanticConnections.length === 0 ? (
-                                    <div className="empty-state sidebar-empty-state">
-                                        <strong>{t('common.noSemanticAssets')}</strong>
-                                        <span>{t('common.noSemanticAssetsHint')}</span>
-                                    </div>
+                                    <TreeNote depth={0}>{t('common.noSemanticAssets')}</TreeNote>
                                 ) : semanticConnections.map(renderSemanticConnection)}
                             </div>
                         )}
 
-                        <button type="button" className={`nav-item ${pluginsExpanded ? 'expanded' : ''}`} title={t('sidebar.plugins')} aria-label={t('sidebar.plugins')} onClick={() => toggleExclusiveSection('plugins')}>
-                            <RiPuzzle2 className="nav-item-icon" size={18} />
-                            <span className="nav-item-text">{t('sidebar.plugins')}</span>
-                        </button>
+                        <SectionHeader
+                            icon={<RiPuzzle2 className="nav-item-icon" size={18} />}
+                            label={t('sidebar.plugins')}
+                            expanded={pluginsExpanded}
+                            onToggle={() => toggleExclusiveSection('plugins')}
+                        />
                         {!collapsed && pluginsExpanded && (
-                            <div className="sidebar-plugin-list">
-                                <button type="button" className="nav-item sidebar-plugin-item" title="MCP" aria-label="MCP" onClick={() => onOpenPlugins?.('MCP')}>
-                                    <RiConnector className="nav-item-icon" size={16} />
-                                    <span className="nav-item-text sidebar-plugin-text">MCP</span>
-                                </button>
-                                <button type="button" className="nav-item sidebar-plugin-item" title="Skills" aria-label="Skills" onClick={() => onOpenPlugins?.('Skills')}>
-                                    <RiFlowChart className="nav-item-icon" size={16} />
-                                    <span className="nav-item-text sidebar-plugin-text">Skills</span>
-                                </button>
+                            <div className="tree">
+                                <TreeRow depth={0} icon={<RiConnector size={15} />} label="MCP" title="MCP" onSelect={() => onOpenPlugins?.('MCP')} />
+                                <TreeRow depth={0} icon={<RiFlowChart size={15} />} label="Skills" title="Skills" onSelect={() => onOpenPlugins?.('Skills')} />
                             </div>
                         )}
                     </div>

@@ -358,17 +358,20 @@ const PluginsModal: React.FC<PluginsModalProps> = ({ initialTab = 'MCP', onClose
                                     <div style={{ color: '#4b5563', fontSize: '0.9rem' }}>
                                         {t('plugins.mcpDesc')}
                                     </div>
-                                    <div style={{ display: 'flex', gap: '12px' }}>
+                                    <div style={{ display: 'flex', gap: '4px' }}>
                                         <button
+                                            type="button"
+                                            className="icon-reveal-btn"
                                             onClick={() => void loadMCPData()}
                                             disabled={isLoadingMCP}
-                                            style={{ background: '#fff', color: '#1f2937', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 14px', display: 'flex', alignItems: 'center', gap: '8px', cursor: isLoadingMCP ? 'not-allowed' : 'pointer' }}
+                                            aria-label={t('plugins.refresh')}
                                         >
-                                            {isLoadingMCP ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
-                                            {t('plugins.refresh')}
+                                            {isLoadingMCP ? <Loader2 size={17} className="animate-spin" aria-hidden="true" /> : <RefreshCw size={17} aria-hidden="true" />}
+                                            <span className="header-icon-label" aria-hidden="true">{t('plugins.refresh')}</span>
                                         </button>
-                                        <button onClick={addMcpServer} style={{ background: '#1f2937', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                                            <Plus size={16} /> {t('plugins.add')}
+                                        <button type="button" className="icon-reveal-btn" onClick={addMcpServer} aria-label={t('plugins.add')}>
+                                            <Plus size={17} aria-hidden="true" />
+                                            <span className="header-icon-label" aria-hidden="true">{t('plugins.add')}</span>
                                         </button>
                                     </div>
                                 </div>
@@ -702,8 +705,9 @@ const PluginsModal: React.FC<PluginsModalProps> = ({ initialTab = 'MCP', onClose
                                         <Search size={16} color="#9ca3af" style={{ marginRight: '8px' }} />
                                         <input placeholder={t('plugins.searchSkill') || "搜索 Skill"} value={skillQuery} onChange={e => setSkillQuery(e.target.value)} aria-label={t('plugins.searchSkill') || '搜索 Skill'} style={{ border: 'none', background: 'transparent', outline: 'none', width: '100%', fontSize: '0.85rem' }} />
                                     </div>
-                                    <button onClick={loadSkills} style={{ background: '#1f2937', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                                        <RefreshCw size={16} /> {t('plugins.refresh')}
+                                    <button type="button" className="icon-reveal-btn" onClick={loadSkills} aria-label={t('plugins.refresh')}>
+                                        <RefreshCw size={17} aria-hidden="true" />
+                                        <span className="header-icon-label" aria-hidden="true">{t('plugins.refresh')}</span>
                                     </button>
                                 </div>
 
