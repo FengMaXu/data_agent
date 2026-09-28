@@ -8223,3 +8223,104 @@ body {
   background: #f5f5f4;
   box-shadow: none;
 }
+
+/* Message avatars line up with the header icons: agent under the orbit, user under the trash */
+.chat-message-list {
+  padding-left: 24px;
+  padding-right: 28px;
+  scrollbar-gutter: stable;
+}
+
+@media (max-width: 720px) {
+  .chat-message-list {
+    padding-left: 12px;
+    padding-right: 16px;
+  }
+}
+
+/* Detail pass: shared error red, gray rounded blocks, active section in the toolbar accent */
+:root {
+  --status-error: #dc2626;
+  --bubble-bg: #f5f5f4;
+  --bubble-radius: 10px;
+}
+
+.agent-hint-line.is-error,
+.thread-status.is-error {
+  color: var(--status-error);
+}
+
+.agent-hint-line.is-error .agent-hint-dot {
+  opacity: 1;
+}
+
+.thread-item.is-error .thread-node {
+  background: var(--status-error);
+}
+
+.user-message-body {
+  border-radius: var(--bubble-radius);
+  background: var(--bubble-bg);
+}
+
+.agent-reasoning-block,
+.agent-reasoning-block.is-streaming {
+  border-left: 0;
+  border-radius: var(--bubble-radius);
+  background: var(--bubble-bg);
+}
+
+.agent-reasoning-block {
+  padding: 10px 14px;
+}
+
+.thread-section-body {
+  background: var(--bubble-bg);
+}
+
+.nav-item.expanded,
+.sidebar .nav-item.expanded {
+  color: var(--accent-strong);
+}
+
+/* Avatars sit on the midline of the first line of their message */
+.message.user .user-avatar {
+  margin-top: 7.5px;
+}
+
+.message.agent:has(> .message-content-wrapper > .agent-reasoning-block:first-child) .agent-icon-red {
+  margin-top: 9px;
+}
+
+/* Tool arguments: a key column sized to the longest key, so long keys never run into values */
+.thread-section-body .args-fields {
+  display: grid;
+  grid-template-columns: fit-content(40%) minmax(0, 1fr);
+  column-gap: 14px;
+  row-gap: 6px;
+}
+
+.thread-section-body .arg-field {
+  display: contents;
+}
+
+.thread-section-body .arg-label {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.thread-section-body .arg-value {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+/* Inline code in answers shares the user-bubble gray */
+.markdown-content code {
+  background: var(--bubble-bg);
+}
+
+.markdown-content pre code {
+  background: transparent;
+}

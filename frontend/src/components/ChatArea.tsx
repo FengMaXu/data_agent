@@ -3,7 +3,6 @@ import {
     PenTool,
     Loader2,
     Send,
-    Trash2,
     Square,
     Paperclip,
     Plus,
@@ -17,7 +16,6 @@ import {
     type AgentProgressStage,
     type AgentTerminalReason,
 } from '../api/client';
-import { clearSessionViaRuntime } from '../api/runtime-client';
 import { answerClarificationViaRuntime, getSessionStateViaRuntime, getTranscriptViaRuntime, steerAgentViaRuntime, stopAgentViaRuntime } from '../api/runtime-client';
 import { attachRunViaRuntime, sendChatViaRuntime, type ChatStreamOptions, type RuntimeChatHandle } from '../api/chat-events';
 import type { ToolData } from './ToolPanel';
@@ -235,8 +233,6 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
         attachedFiles,
         setAttachedFiles,
         setCurrentTranscript,
-        clearCurrentTranscript,
-        clearAttachedFiles,
     } = useSession();
 
     const { t } = useLanguage();
@@ -912,27 +908,6 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
         );
     };
 
-    const handleClearSession = async () => {
-        if (isStreaming) return;
-        setMessages([]);
-        clearCurrentTranscript(currentSessionIdRef.current);
-        clearAttachedFiles();
-        activeAgentMessageIdRef.current = null;
-        pendingAgentMessageIdRef.current = null;
-        agentBufferRef.current = {};
-        onUpdateToolsRef.current?.([]);
-        setRunReason(null);
-        setPendingClarification(null);
-        setClarificationInput('');
-        try {
-            await clearSessionViaRuntime(currentSession.id);
-            window.dispatchEvent(new CustomEvent('workspace_updated'));
-            window.dispatchEvent(new CustomEvent('session_cleared', { detail: { oldId: currentSession.id } }));
-        } catch (e) {
-            console.error('Failed to clear session on backend', e);
-        }
-    };
-
     const handlePrimaryAction = async () => {
         if (isStreaming && !inputValue.trim()) {
             await handleStop();
@@ -1035,16 +1010,6 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                     >
                         <RiInfoCard size={17} aria-hidden="true" />
                         <span className="header-icon-label" aria-hidden="true">{t('chat.details')}</span>
-                    </button>
-                    <button
-                        type="button"
-                        className={`chat-clear-btn ${messages.length === 0 ? 'is-muted' : ''}`}
-                        onClick={handleClearSession}
-                        disabled={isStreaming}
-                        aria-label={t('chat.clearChat')}
-                    >
-                        <Trash2 size={17} aria-hidden="true" />
-                        <span className="header-icon-label" aria-hidden="true">{t('chat.clearChat')}</span>
                     </button>
                 </div>
             </header>

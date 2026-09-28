@@ -64,7 +64,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins, collap
         deleteSession,
         updateTaskName,
     } = useSession();
-    const { t, language, toggleLanguage } = useLanguage();
+    const { t, toggleLanguage } = useLanguage();
     const { user, logout } = useAuth();
     const displayName = user?.display_name || user?.username || 'User';
 
@@ -644,7 +644,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins, collap
                     </div>
                     <button type="button" className="nav-item sidebar-footer-settings" onClick={toggleLanguage} title={t('sidebar.langToggle')} aria-label={t('sidebar.langToggle')}>
                         <Languages className="nav-item-icon" size={18} />
-                        <span className="nav-item-text">{language === 'zh' ? 'EN' : '中文'}</span>
+                        <span className="nav-item-text">{t('sidebar.language')}</span>
                     </button>
                     <button type="button" className="nav-item sidebar-footer-settings" onClick={onOpenSettings} title={t('sidebar.settings')} aria-label={t('sidebar.settings')}>
                         <Settings className="nav-item-icon" size={18} />

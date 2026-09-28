@@ -22,7 +22,8 @@ const translations: Translations = {
         'sidebar.metrics': 'Metrics',
         'sidebar.settings': 'Settings',
         'sidebar.langToggle': 'Switch to Chinese',
-        'sidebar.semantic': 'Business semantic model',
+        'sidebar.semantic': 'Semantic model',
+        'sidebar.language': 'Language',
         'sidebar.logout': 'Sign out',
 
         'accessibility.skipToContent': 'Skip to main content',
@@ -284,7 +285,6 @@ const translations: Translations = {
 
         'chat.workspaceEmpty': 'No files attached.',
         'chat.attachHint': 'Use the paperclip to attach files to this query',
-        'chat.clearChat': 'Clear Chat',
         'chat.stop': 'Stop',
         'chat.send': 'Send',
         'chat.placeholder': 'Enter your request or question here...',
@@ -454,8 +454,9 @@ const translations: Translations = {
         'sidebar.metrics': '指标',
         'sidebar.settings': '设置',
         'sidebar.langToggle': 'Switch to English',
-        'sidebar.semantic': '业务语义模型',
-        'sidebar.logout': '退出登录',
+        'sidebar.semantic': '语义模型',
+        'sidebar.language': '语言',
+        'sidebar.logout': '退出',
 
         'accessibility.skipToContent': '跳转到主要内容',
         'common.loading': '加载中…',
@@ -716,7 +717,6 @@ const translations: Translations = {
 
         'chat.workspaceEmpty': '当前未附加文件',
         'chat.attachHint': '点击回形针上传并附加文件到本次提问',
-        'chat.clearChat': '清空对话',
         'chat.stop': '停止生成',
         'chat.send': '发送消息',
         'chat.placeholder': '在这里输入您的问题或请求...',
