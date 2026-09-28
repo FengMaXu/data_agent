@@ -89,3 +89,8 @@ frontend/release2/
 frontend/rel-*/
 .tmp/
 *.tsbuildinfo
+
+# Local experiment snapshots, scratch work and reference papers
+.artifacts/
+scratch/
+/*.pdf
