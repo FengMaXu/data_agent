@@ -783,6 +783,13 @@ function publishTool(answering: Answering, contentReader: PublishedContentReader
   };
 }
 
+/** The Physical Profile serves chart compilation, not the model; keep it out of model-visible text. */
+function modelVisibleTaskView(view: AnswerTaskView): AnswerTaskView {
+  if (!view.publication?.physicalProfile) return view;
+  const { physicalProfile: _profile, ...publication } = view.publication;
+  return { ...view, publication };
+}
+
 function inspectTool(answering: Answering): AgentHarnessTool<DataAgentToolContext> {
   return {
     name: "inspect_answer",
@@ -795,7 +802,7 @@ function inspectTool(answering: Answering): AgentHarnessTool<DataAgentToolContex
       const value = checked(ANSWERING_INSPECT_PARAMETERS, input) as InspectInput;
       const business = trustedContext(toolContext, invocation, context);
       const view = await answering.inspect(value as InspectAnswer, business);
-      return result(json(view), view);
+      return result(json(modelVisibleTaskView(view)), view);
     },
   };
 }

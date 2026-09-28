@@ -657,10 +657,37 @@ export interface PublicationReceipt {
   readonly coverage?: readonly CheckCoverage[];
   /** Immutable fanout evidence is disclosed with the exact published Candidate. */
   readonly fanout?: FanoutReport;
+  /** Observed column facts of the published rows; absent on Receipts published before profiling existed. */
+  readonly physicalProfile?: PhysicalProfile;
   /** Published bytes/rows remain in ResultStore and are read only through this Receipt. */
   readonly createdByInvocationId: string;
   readonly requestId: string;
   readonly createdAt: string;
+}
+
+/**
+ * Facts observed by scanning every stored row of one column. It never decides
+ * scale, unit or additivity; those belong to Dataset Annotations (ADR-0008).
+ */
+export interface ColumnProfile {
+  readonly name: string;
+  readonly kind: "integer" | "decimal" | "text" | "boolean" | "json" | "null" | "mixed";
+  /** Wire encoding of a numeric column, when every value shares one; DECIMAL text is "string". */
+  readonly encodedAs?: "number" | "bigint" | "string";
+  readonly nullCount: number;
+  /** Exact number of distinct non-null values, omitted once it exceeds the counting limit. */
+  readonly distinctCount?: number;
+  /** Numeric columns only, as plain decimal text so no precision is lost. */
+  readonly min?: string;
+  readonly max?: string;
+}
+
+export interface PhysicalProfile {
+  readonly version: 1;
+  readonly rowCount: number;
+  /** When true, the profile describes only the stored rows, not the full query result. */
+  readonly truncated: boolean;
+  readonly columns: readonly ColumnProfile[];
 }
 
 export interface AnswerTaskView {
