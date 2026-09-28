@@ -67,7 +67,19 @@ Flint Chart（microsoft/flint-chart，MIT，评估版本 0.5.1）提供语义类
 
 按以下顺序推进，每步独立可交付：
 
-1. 定义 ChartSpec schema，建立 `@data-agent/charts`，先覆盖现有 bar、line、pie、scatter，并逐项列出 v3 表达能力的保留情况。
+1. 定义 ChartSpec schema，建立 `@data-agent/charts`。首期实现只覆盖现有三条路径图种的并集 bar、line、pie、scatter（含 v3 已支持的多系列、混合 mark 与双轴），并逐项列出 v3 表达能力的保留情况。
+
+   首期实现范围窄，但 schema 设计不能只按这四种图推导：它们同属“一个类别或时间轴加若干数值”的结构，只按它们设计会把编码通道固化为 x/y/series，此后每新增一类图都要对持久化契约做不兼容修改。schema 定稿前，须用以下图种做纸面推演，确认各自有不破坏契约的表达方式：
+
+   | 图种 | 需确认的问题 |
+   | --- | --- |
+   | 热力图 | 两个类别轴加一个颜色通道 |
+   | 箱线图 | 四分位数由查询预先算好，spec 如何声明各列的统计角色 |
+   | 直方图 | 分箱属于数据变换，由查询完成还是由 spec 声明，如何与第 2 条相容 |
+   | 桑基图、树图 | 节点与边、父子层级等非平表的数据形态 |
+   | 瀑布图 | 累计值由谁计算，如何与第 2 条相容 |
+
+   推演结论随 schema 一并记录；推演中发现的契约调整在首期完成，不留到扩展图种时再做破坏性修改。
 2. 报告静态出图改走 SSR，替换 `demo-report` 与 `analysis` skill 中的 matplotlib 路径。
 3. 聊天 widget 改用 ChartSpec，执行第 11 条，并把 `WidgetRenderer` 的百分比尺度推断改为第 3 条的显式声明。
 4. 合并 v3/v4 看板为单一看板规格：views 由 ChartSpec、Table、KPI 组成。实时数据绑定（数据版本、更新时间、刷新后的重新校验与提示更新）另立 ADR。
