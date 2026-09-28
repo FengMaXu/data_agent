@@ -17,6 +17,13 @@ status: proposed
 | 实时看板 | `dashboard-v4.ts` 声明 line/bar/pie/kpi/table 五种视图 | 当前 HTML 主要是语义刷新桥接壳，未实现完整视图渲染；与 v3 各自一套描述 |
 | 报告 | `demo-report`、`analysis` skill 经 `run_python` 用 matplotlib 出 PNG | 项目没有统一记录绘图代码、依赖、数据来源和展示处理规则；样式与字体由模型临场决定，难以复现和披露 |
 
+四条路径的数据来源也不一致。Query Assurance 在产品路径上以 answering 模块运行（`semanticSpecMode` 默认为 `required`，查询经 `begin_answer_spec`、`query_database`、`publish_query_result`/`export_query`），但只有聊天图表要求先发布（`show_widget` 的提示为“不能绕过查询结果的发布授权”）：
+
+- `demo-report` skill 允许的工具只有 `query_database`、`run_python`、`write_file`、`read_file`，不含发布工具；报告数据以 CSV 写入工作区后交给 Python。
+- v3 看板通过 `dashboard.v3.data` 命令按工作区路径读取数据，不经过发布记录。
+
+因此，看板和报告中的图表数据目前可以不经过发布资格检查，数据身份也只是可被覆盖的文件路径。
+
 此外，`renderStandaloneDashboardHtml` 把编译后的 option 经 JSON 序列化嵌入 HTML，option 中的函数（tooltip、轴标签截断、时间格式化等 formatter）会被静默丢弃。任何产出函数型 formatter 的编译器（包括候选的 Flint）在这条路径上都会退化。
 
 Flint Chart（microsoft/flint-chart，MIT，评估版本 0.5.1）提供语义类型驱动的模板与布局计算，其 ECharts 后端有 33 个模板。评估见 `docs/research/flint-chart-dashboard-fit.md`。它的 ECharts assembler 会按编码聚合、在溢出时筛选绘图数据，不消费 `theme_spec`，且 0.x 版本 schema 尚不稳定。
@@ -42,6 +49,8 @@ Flint Chart（microsoft/flint-chart，MIT，评估版本 0.5.1）提供语义类
 ### 数据身份
 
 4. **数据引用与交付资格由 Runtime 负责。** 图表块通过数据集引用取数，而不是由模型直接提供 rows。Runtime 解析引用、检查交付资格，再把数据交给编译器；编译器不承担发布授权。静态交付绑定不可变的数据版本，而不是可被覆盖的文件路径。Python 派生数据须保留输入结果引用与计算来源，不得冒充原始已发布查询结果。上游结果的 Disclosure 与第 6 条的展示提示一并交付，后者不能替代前者。
+
+   这对看板和报告是新增要求，而不是对现状的描述：二者的每个图表查询都须先完成 Answer Spec 与发布，才能作为图表数据。由此产生的逐查询口径成本及其缓解方式见 ADR-0009。
 
 ### 编译与展示
 
@@ -119,6 +128,7 @@ Flint Chart（microsoft/flint-chart，MIT，评估版本 0.5.1）提供语义类
 - 模型需要学习的绘图接口减为一种，且不再编写 ECharts option、HTML 或绘图代码。
 - 数据集元数据需要承载尺度与单位信息，这给查询结果发布增加了元数据责任。
 - 已交付报告需额外存储导出产物与版本信息。
+- 报告与看板的工作流多出“先发布再画图”一步：含 N 张图的报告需要 N 次 Answer Spec 与发布，模型轮次和口径出错机会随之增加。ADR-0009 实施前，这一成本按原样承担。
 - Python 运行时可在迁移完成后移除 matplotlib，缩小分发体积。
 - 新增 napi 原生依赖与字体资产，增加打包与冒烟测试负担；独立 HTML 看板需内联编译器，体积比只内联 ECharts 时更大。
 - ChartSpec 的表达力有意受限；超出其范围的图需扩展契约与模板，而不是让模型绕过契约。
