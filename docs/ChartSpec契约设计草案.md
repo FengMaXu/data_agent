@@ -15,7 +15,13 @@
 
 除此之外，编译器显示的每一个数（坐标、标签、tooltip）都必须能在数据集中找到对应单元格。累计值、区间端点、统计量一律由查询提供。
 
-**结论三：数值语义必须挂在字段上，而当前发布记录没有这一层。** `PublicationReceipt` 以 `receiptId` 与 `contentHash` 提供了不可变的数据身份，满足 ADR 决策 4；但 `ResultCandidateRecord.resultSchema` 只有列名，没有类型、尺度、单位和可加性。第 4 节给出首期的处理办法。
+**结论三：数值语义没有现成来源，应放在 answering 之外。** 已发布结果以 `PublicationReceipt` 的 `receiptId` 与 `contentHash` 提供不可变的数据身份，满足 ADR 决策 4。但语义信息几乎为空：
+
+- `ResultStore` 的结果对象带有 `columnTypes`（来自数据库驱动，缺失时按首行值推断），而 `ResultCandidateRecord.resultSchema` 只转存了列名；
+- Answer Spec 的 `MetricSpec` 只有 `kind`、`expression`、`unit`，不描述每个输出列；
+- runtime 中没有 Query Digest 实现（`candidate-checks.ts` 仅有 `digest_unavailable` 原因码），因此不存在可用于推导可加性的输出列谱系。
+
+把尺度、单位、可加性加进 Answer Spec 会扩大模型在核心查询路径上的接口，与 ADR-0007 收敛该接口的方向相反；Python 派生数据也根本不经过 answering。第 4 节采用“answering 只补物理画像，语义注解独立存放”的结构。
 
 ## 2. 顶层结构
 
@@ -25,7 +31,7 @@ type ChartSpec = {
   title?: string;
   subtitle?: string;
   data: DatasetRef;
-  fields?: Record<string, FieldMeta>;   // 只补充数据集元数据缺失的字段，见第 4 节
+  fields?: Record<string, FieldMeta>;   // 模型对字段语义的声明，Runtime 转存为数据集注解，见第 4 节
   chart: Mark;                          // 按 mark 区分的联合类型
   selection?: Selection;                // 数据选择，见第 6 节
   viewport?: Viewport;                  // 仅交互目标生效，见第 6 节
@@ -103,26 +109,44 @@ type Magnitude = 1 | 1e3 | 1e4 | 1e6 | 1e8;
 - **空值** 不在 FieldMeta 里配置，规则固定：空值永不转为零；折线在空值处断开；柱图该位置留空；两者都产生一条布局类展示提示。
 - **来自 Flint 的借鉴：** 热力图的 `midpoint` 沿用 Flint `divergingMidpoint` 的思路，即发散中点是对比问题的判断，必须声明而不能推断。Flint 的 `aggregationDefault`、`binningSuggested` 不引入，因为它们属于变换。
 
-**字段语义从哪里来。** 按证据权威从高到低取值：
+### 4.1 语义从哪里来：物理画像 + 数据集注解
 
-1. 语义模型或已审定业务定义中对该字段的声明；
-2. 发布记录上的字段元数据（当前不存在，见下）；
-3. ChartSpec 内联的 `fields`（模型声明）。
+字段信息分两层，分别由不同模块负责：
 
-首期发布记录没有字段元数据，所以实际只有第 3 项可用。模型声明按 CONTEXT.md 的证据权威属于“模型推断”，因此：
+**第一层：物理画像（Physical Profile），由 answering 在发布时生成。** 这是本设计对 answering 唯一的改动：
 
-- Runtime 记录每个字段语义的来源；来源为模型声明时，随图表交付一条提示；
-- Runtime 可以做结构一致性检测，例如声明 `storage: "ratio"` 而多数值绝对值大于 1、声明 `additive` 而列名命中“率/均/占比”，按 ADR-0003 告知而不阻断，也不改写声明。
+- 发布时基于已打开的结果对象，为每列计算物理类型（沿用 `columnTypes`）、空值数、数值列的最小值与最大值，写入 `PublicationReceipt` 的一个可选字段；
+- 只增不改：字段可选，旧发布记录缺失该字段时按“无画像”处理，不影响现有读取方（`answering-store`、`service`、`facets/artifact-directory`、`result-store`）；
+- 不涉及模型接口与 Answer Spec，与 ADR-0007 不冲突；
+- 派生数据集由 Runtime 在登记时生成同结构的画像。
 
-长期方案是在发布时生成字段元数据并挂在发布记录上，由 Query Digest 的输出列谱系提供可加性等信息。这需要改动 answering 模块，应作为单独议题。
+物理画像只陈述事实，不回答“0.12 是比率还是百分比”“能否相加”。它的用途是为第二层提供一致性检测的依据。
+
+**第二层：数据集注解（Dataset Annotation），独立于 answering。** 字段语义存放在图表或数据集模块自己的存储中：
+
+- 以 `DatasetRef`（`receiptId` 或 `derivedId`）为键，每条注解针对一列，只追加不修改；
+- 每条注解记录依据：`definition`（语义模型或已审定业务定义）、`model_declared`（ChartSpec 的 `fields`）、`migrated`（v3 迁移推断）；
+- 发布记录保持不可变。注解与发布记录分离，因此画图时声明或修正语义，不需要改动已发布的结果；
+- answering 对注解无感知，注解模块只通过已有的发布读取接口（`findPublication`）确认引用有效。
+
+**取值规则。** 同一列有多条注解时，按 CONTEXT.md 的证据权威取最高者：`definition` 高于 `model_declared`，`model_declared` 高于 `migrated`。同级注解冲突时返回 `SEMANTICS_CONFLICT`，不自动选择。
+
+**模型声明的处理。** ChartSpec 的 `fields` 在提交时被 Runtime 转存为 `model_declared` 注解。按证据权威它属于模型推断，因此：
+
+- 随图表交付一条提示，说明哪些字段的语义来自模型声明；
+- Runtime 用物理画像做一致性检测，例如声明 `storage: "ratio"` 而数值范围明显超出 [-1, 1]、声明 `additive` 而列名命中“率/均/占比”。检测按 ADR-0003 告知而不阻断，也不改写声明。
+
+**与持久化的关系。** 注解只追加，后续可能出现更高权威的注解，因此图表编译时须记录所采用的注解版本（每列注解的 ID）。已交付的图表按记录的版本重现，满足 ADR 决策 9；更高权威注解出现后，是否重新渲染由交付方决定，不自动变更已交付内容。
+
+**与 ADR-0007 的衔接。** ADR-0007 落地后，Answer Spec 中 `metric.unit`、`metric.denominator` 等字段可以作为 `definition` 或更接近 `definition` 的来源，由注解模块单向读取。届时不需要反向改动 answering，也不需要把字段语义并入 Answer Spec。
 
 ## 5. 校验规则
 
 | 代码 | 触发条件 | 适用 |
 | --- | --- | --- |
 | `FIELD_NOT_FOUND` | 通道引用的列不在数据集中 | 全部 |
-| `SEMANTICS_MISSING` | 被引用的度量字段缺少 `storage` 或 `additivity` | 全部 |
-| `SEMANTICS_CONFLICT` | 多个来源对同一字段给出不同语义且无更高权威来源 | 全部 |
+| `SEMANTICS_MISSING` | 被引用的度量字段在所有注解中都缺少 `storage` 或 `additivity` | 全部 |
+| `SEMANTICS_CONFLICT` | 同一列存在同级且相互矛盾的注解 | 全部 |
 | `DUPLICATE_KEY` | cartesian 中同一层、同一 x、同一系列有多行（scatter 且声明了 `id` 时除外）；heatmap 同一 (x, y) 有多行；pie 同一类别有多行 | 按图种 |
 | `NON_ADDITIVE_PART_OF_WHOLE` | 不可加度量用于 pie、treemap、sankey 或 `stack` 非 none | 部分与整体 |
 | `NEGATIVE_IN_PART_OF_WHOLE` | 部分与整体图种出现负值 | 部分与整体 |
@@ -171,11 +195,12 @@ type Viewport = { mode: "scroll" | "zoom"; window: number };
 | 旧路径 `aggregate` | 不支持，聚合移入查询 | 返回结构化说明；原图只读保留 |
 | pie | `pie` | 自动迁移；数据含负值或度量不可加时返回说明 |
 | kpi、table、metric_cards | 不属于 ChartSpec | 由看板规格的 KPI、Table 视图承接，共用 FieldMeta |
-| 所有字段语义 | v3 无 | 迁移时标注来源为“迁移推断”，随图交付提示 |
+| 所有字段语义 | v3 无 | 迁移时写入 `migrated` 注解，随图交付提示 |
 
 ## 9. 未决问题
 
-1. **字段元数据挂在发布记录上**：需要 answering 模块在发布时产出字段语义，并确定与 Query Digest 输出谱系的关系。建议单独立 issue。
-2. **Table 与 KPI 共用 FieldMeta**：`WidgetRenderer` 表格的百分比推断应改用同一套字段语义；这会把 FieldMeta 的使用范围扩展到图表之外，放在 contracts 中的位置需要与看板规格一起确定。
+1. **物理画像的 issue**：第 4.1 节对 answering 的改动（发布记录新增可选的物理画像）量小且只增不改，建议单独立 issue，可先于 ChartSpec 其余部分落地。
+2. **注解模块的归属**：数据集注解放在 `@data-agent/charts` 内，还是作为独立的数据集模块供表格、KPI 共用。倾向后者，因为 `WidgetRenderer` 表格的百分比推断也应改用同一套字段语义，需要与看板规格一起确定。
 3. **颜色覆盖**：`series.colors` 允许按值指定颜色，是否应改为只允许引用主题中的语义色（如“正向”“负向”），以免模型写出不可访问的配色。
 4. **ADR 回写**：结论二是否在 ADR-0008 接受前并入决策 2。
+5. **Answer Spec 扩展**：是否把字段语义并入 Answer Spec，待 ADR-0007 落地后再评估；按第 4.1 节的衔接方式，预计不需要。
