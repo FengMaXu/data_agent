@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "frozenBeforeFormalRuns": true,
+  "dataset": {
+    "developmentIdsFile": "evaluations/spider2/phase6-development-35-ids.txt",
+    "holdoutIdsFile": "evaluations/spider2/phase6-frozen-100-ids.txt",
+    "holdoutSize": 100,
+    "repetitions": 3,
+    "clusterUnit": "instance_id"
+  },
+  "budget": { "maxTurns": 20, "maxToolCalls": 50, "maxExploratoryQueries": 6, "timeoutMs": 300000 },
+  "architecture": {
+    "integrityNegativeContractPassRate": 1,
+    "maximumUnauthorizedConfirmations": 0,
+    "maximumExplorationPublications": 0,
+    "maximumWrongVersionDeliveries": 0,
+    "maximumIdentifiedAdoptedUnconfirmedDisclosureMissRate": 0,
+    "minimumPairedE2EDifferenceCiLower": -0.03,
+    "maximumCoverageDrop": 0.02,
+    "maximumNewSystematicPublicationFailures": 0,
+    "maximumMeanToolCallIncrease": 0.15,
+    "maximumMeanTokenCostIncrease": 0.15,
+    "maximumP95LatencyIncrease": 0.20,
+    "maximumTimeoutRatePointIncrease": 0
+  },
+  "semantic": {
+    "ambiguityRecallMustImprove": true,
+    "precisionMustNotDecrease": true,
+    "minimumAnnotators": 2,
+    "requiresAdjudication": true
+  },
+  "fastPath": { "minimumSerialRoundTrips": 2, "maximumSerialRoundTrips": 3, "maximumNewRequiredRoundTrips": 0 },
+  "rollout": {
+    "initialAudience": "internal_read_only",
+    "initialPercentage": 5,
+    "observationWindowDays": 7,
+    "assignment": "stable_task_hash",
+    "pauseOn": ["wrong_candidate_delivery", "false_user_confirmation", "identified_adopted_unconfirmed_disclosure_miss"],
+    "rollbackTarget": "previous_trusted_identity_enforcing_version"
+  }
+}

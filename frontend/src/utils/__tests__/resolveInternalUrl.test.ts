@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
     isWorkspaceRelativePath,
+    resolveInternalUrl,
+    resolveWorkspaceAssetUrl,
     resolveWorkspaceDownloadUrl,
     resolveWorkspacePreviewUrl,
 } from '../resolveInternalUrl';
@@ -20,9 +22,46 @@ describe('workspace markdown link resolution', () => {
         expect(url.searchParams.get('path')).toBe('session-123/data/industry_sales_2026_h1.csv');
     });
 
+    it('converts an internal preview path to the real web file endpoint', () => {
+        const url = new URL(resolveWorkspacePreviewUrl('/workspace/files/preview?path=session-123%2Fdata%2Fresult.csv', 'session-123'));
+        expect(url.pathname).toBe('/api/workspace/download');
+        expect(url.searchParams.get('path')).toBe('session-123/data/result.csv');
+    });
+
     it('converts a relative asset to the authenticated preview endpoint', () => {
         const url = new URL(resolveWorkspacePreviewUrl('data/industry_sales_2026_h1.csv', 'session-123'));
         expect(url.pathname).toBe('/api/workspace/download');
         expect(url.searchParams.get('path')).toBe('session-123/data/industry_sales_2026_h1.csv');
+    });
+
+    it('resolves a bare generated image inside the active session workspace', () => {
+        const url = new URL(resolveWorkspaceAssetUrl('chart1_trend.png', undefined, 'session-123'));
+        expect(url.searchParams.get('path')).toBe('session-123/chart1_trend.png');
+    });
+
+    it('routes Receipt-authorized publications through the Electron application protocol', () => {
+        window.dataAgentRuntime = { invokeRuntimeCommand: async () => ({}), subscribeRuntimeEvents: () => () => undefined };
+        try {
+            const url = new URL(resolveInternalUrl('/api/runtime/publications/publication-1?session_id=session-123'));
+            expect(url.protocol).toBe('data-agent:');
+            expect(url.hostname).toBe('publication');
+            expect(url.pathname).toBe('/runtime/publications/publication-1');
+            expect(url.searchParams.get('session_id')).toBe('session-123');
+        } finally {
+            delete window.dataAgentRuntime;
+        }
+    });
+
+    it('uses the Electron workspace protocol instead of file:// HTTP paths', () => {
+        window.dataAgentRuntime = { invokeRuntimeCommand: async () => ({}), subscribeRuntimeEvents: () => () => undefined };
+        try {
+            const url = new URL(resolveWorkspacePreviewUrl('data/result.csv', 'session-123'));
+            expect(url.protocol).toBe('data-agent:');
+            expect(url.hostname).toBe('workspace');
+            expect(url.pathname).toBe('/workspace/files/preview');
+            expect(url.searchParams.get('path')).toBe('session-123/data/result.csv');
+        } finally {
+            delete window.dataAgentRuntime;
+        }
     });
 });

@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    Settings as SettingsIcon, Cpu, Server, X,
-    Database, User, Key, Activity, Link, Eye, ExternalLink, Loader2, Terminal, Package, Save
+    Settings as SettingsIcon, X,
+    User, Link, Eye, ExternalLink, Loader2, Terminal
 } from './icons/Typicons';
+import { RiCloud, RiComputer, RiDatabaseLine, RiKey2, RiRobot2, RiUsb } from './icons/RemixIcons';
 import {
     type AIConfig,
     type PythonRuntimeConfig,
@@ -36,9 +37,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     }, [onClose]);
 
     const menuItems = [
-        { id: '模型', icon: Cpu },
-        { id: '数据库', icon: Database },
-        { id: '环境', icon: Package },
+        { id: '模型', icon: RiRobot2 },
+        { id: '数据库', icon: RiDatabaseLine },
+        { id: '环境', icon: RiComputer },
     ];
 
     const PROVIDER_REGISTRY: Record<string, { label: string; letter: string; baseUrl: string; models: string[]; apiKeyUrl: string }> = {
@@ -55,12 +56,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     };
     const providerIds = Object.keys(PROVIDER_REGISTRY);
 
-    // Detect which provider is active based on current base_url
-    const detectActiveProvider = (baseUrl: string | undefined): string | null => {
-        if (!baseUrl) return null;
-        for (const [id, reg] of Object.entries(PROVIDER_REGISTRY)) {
-            if (baseUrl.startsWith(reg.baseUrl) || reg.baseUrl.startsWith(baseUrl)) return id;
+    // Detect which provider is active based on current base_url or provider
+    const detectActiveProvider = (baseUrl: string | undefined, provider?: string): string | null => {
+        if (provider === 'anthropic') return 'Anthropic';
+        if (baseUrl) {
+            for (const [id, reg] of Object.entries(PROVIDER_REGISTRY)) {
+                if (baseUrl.startsWith(reg.baseUrl) || reg.baseUrl.startsWith(baseUrl)) return id;
+            }
         }
+        if (provider === 'openai') return 'OpenAI';
         return null;
     };
 
@@ -147,38 +151,38 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
             try {
                 const initialConfig: AIConfig = await getConfigViaRuntime() as unknown as AIConfig;
                 setConfig(initialConfig);
-                setDbHost(initialConfig.mysql_host || 'localhost');
-                setDbPort(initialConfig.mysql_port || 3306);
-                setDbUser(initialConfig.mysql_user || 'root');
-                setDbName(initialConfig.mysql_database || '');
+                setDbHost(initialConfig.host || 'localhost');
+                setDbPort(initialConfig.port || 3306);
+                setDbUser(initialConfig.user || 'root');
+                setDbPassword(initialConfig.password || '');
+                setDbName(initialConfig.database || '');
                 const runtime = initialConfig.python_runtime || { mode: 'bundled' as const };
                 setPythonRuntime(runtime);
                 setPythonExecutable(runtime.executable || '');
                 const desktopSecrets = await window.dataAgent?.getStoredSecrets();
 
                 // Determine active provider
-                const activeId = detectActiveProvider(initialConfig.openai_base_url);
-                if (activeId) {
+                const activeId = detectActiveProvider(initialConfig.base_url, initialConfig.provider);
+                if (activeId && initialConfig.llm_enabled !== false) {
                     setProviderConfigs(prev => {
                         const next = { ...prev };
                         const pConfig = { ...next[activeId] };
                         pConfig.enabled = true;
-                        pConfig.baseUrl = initialConfig.openai_base_url || pConfig.baseUrl;
+                        pConfig.baseUrl = initialConfig.base_url || pConfig.baseUrl;
                         
-                        // Just check if we have a key configured, we can't get the actual key from backend
-                        if (initialConfig.openai_api_key === '[configured]') {
-                             // Keep what's in local storage if we have one, otherwise it's just a placeholder placeholder
-                             if (!pConfig.apiKey) pConfig.apiKey = '[configured_in_backend]';
+                        if (initialConfig.api_key) {
+                            pConfig.apiKey = initialConfig.api_key;
                         }
-                        if (desktopSecrets?.openai_api_key && activeId !== 'Anthropic') {
+                        if ((activeId === 'Anthropic' && desktopSecrets?.anthropic_api_key)
+                            || (activeId !== 'Anthropic' && desktopSecrets?.openai_api_key)) {
                             pConfig.apiKey = '[configured_in_desktop]';
                         }
                         
                         // Handle custom model if it's not in the list
-                        if (initialConfig.default_model) {
-                            pConfig.selectedModel = initialConfig.default_model;
-                            if (!pConfig.models.includes(initialConfig.default_model)) {
-                                pConfig.models = [...pConfig.models, initialConfig.default_model];
+                        if (initialConfig.model) {
+                            pConfig.selectedModel = initialConfig.model;
+                            if (!pConfig.models.includes(initialConfig.model)) {
+                                pConfig.models = [...pConfig.models, initialConfig.model];
                             }
                         }
                         next[activeId] = pConfig;
@@ -226,29 +230,31 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
 
                 const provider = providerId === 'Anthropic' ? 'anthropic' : 'openai';
                 if (window.dataAgent && apikeyToSend) {
-                    await window.dataAgent.saveSecrets({
+                    const stored = await window.dataAgent.saveSecrets({
                         openai_api_key: provider === 'openai' ? apikeyToSend : undefined,
                         anthropic_api_key: provider === 'anthropic' ? apikeyToSend : undefined,
                         default_model: configToSave.selectedModel,
                         openai_base_url: provider === 'openai' ? configToSave.baseUrl : undefined,
                     });
+                    if (!stored.ok) throw new Error(t('settings.saveFailed'));
                 }
 
                 await saveConfigViaRuntime({
                     provider,
+                    llm_enabled: true,
                     api_key: apikeyToSend,
-                    openai_api_key: provider === 'openai' ? apikeyToSend : undefined,
-                    anthropic_api_key: provider === 'anthropic' ? apikeyToSend : undefined,
-                    base_url: provider === 'openai' ? configToSave.baseUrl : undefined,
+                    base_url: configToSave.baseUrl,
                     model: configToSave.selectedModel
                 });
                 
                 // Update top-level config to reflect changes
                 setConfig(prev => prev ? { 
                     ...prev, 
-                    openai_base_url: configToSave.baseUrl, 
-                    default_model: configToSave.selectedModel,
-                    openai_api_key: apikeyToSend ? '[configured]' : prev.openai_api_key
+                    provider,
+                    llm_enabled: true,
+                    base_url: configToSave.baseUrl, 
+                    model: configToSave.selectedModel,
+                    api_key: apikeyToSend || prev.api_key
                 } : null);
                 
                 setSaveFeedback(`✓ ${t('settings.saveSuccess')}`);
@@ -264,6 +270,25 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
             } finally {
                 setIsSavingLLM(false);
             }
+            return;
+        }
+
+        setIsSavingLLM(true);
+        setSaveFeedback(null);
+        try {
+            await saveConfigViaRuntime({ llm_enabled: false });
+            setConfig(prev => prev ? { ...prev, llm_enabled: false } : null);
+            setSaveFeedback(`✓ ${t('settings.saveSuccess')}`);
+            setTimeout(() => setSaveFeedback(null), 2000);
+        } catch (e: unknown) {
+            console.error('Failed to disable provider:', e);
+            setSaveFeedback(`✗ ${t('settings.saveFailed')}`);
+            setProviderConfigs(prev => ({
+                ...prev,
+                [providerId]: { ...prev[providerId], enabled: true }
+            }));
+        } finally {
+            setIsSavingLLM(false);
         }
     };
 
@@ -429,7 +454,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 <input
                                                     id="settings-default-model"
                                                     style={{ flex: 1, fontSize: '0.9rem', border: 'none', outline: 'none', background: 'transparent', cursor: 'not-allowed', color: '#6b7280' }}
-                                                    value={config?.default_model || ''}
+                                                    value={config?.model || ''}
                                                     readOnly
                                                     placeholder={t('settings.notSet')}
                                                 />
@@ -586,7 +611,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     <div className="settings-form-row" style={{ display: 'flex', gap: '24px', marginBottom: '24px' }}>
                                         <div style={{ flex: 1 }}>
                                             <label htmlFor="settings-db-host" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', fontSize: '0.9rem', fontWeight: 600, color: '#1f2937' }}>
-                                                <Server size={18} aria-hidden="true" />
+                                                <RiCloud size={18} aria-hidden="true" />
                                                 <span>{t('settings.dbHost')}</span>
                                             </label>
                                             <div className="settings-input-wrapper" style={{ margin: 0, borderRadius: '12px', padding: '14px 16px' }}>
@@ -595,7 +620,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         </div>
                                         <div style={{ flex: 1 }}>
                                             <label htmlFor="settings-db-port" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', fontSize: '0.9rem', fontWeight: 600, color: '#1f2937' }}>
-                                                <Activity size={18} aria-hidden="true" />
+                                                <RiUsb size={18} aria-hidden="true" />
                                                 <span>{t('settings.dbPort')}</span>
                                             </label>
                                             <div className="settings-input-wrapper" style={{ margin: 0, borderRadius: '12px', padding: '14px 16px' }}>
@@ -617,7 +642,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         </div>
                                         <div style={{ flex: 1 }}>
                                             <label htmlFor="settings-db-password" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', fontSize: '0.9rem', fontWeight: 600, color: '#1f2937' }}>
-                                                <Key size={18} aria-hidden="true" />
+                                                <RiKey2 size={18} aria-hidden="true" />
                                                 <span>{t('settings.dbPassword')}</span>
                                             </label>
                                             <div className="settings-input-wrapper" style={{ margin: 0, borderRadius: '12px', padding: '14px 16px', background: '#eef2ff' }}>
@@ -646,18 +671,18 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     )}
 
                                     {/* Buttons at bottom right */}
-                                    <div className="settings-action-row" style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end', marginTop: '48px', paddingTop: '24px', borderTop: '1px solid #f3f4f6' }}>
+                                    <div className="settings-action-row form-action-row">
                                         <button type="button"
+                                            className="form-action-btn"
                                             onClick={handleTestDB}
-                                            disabled={isTestingDB}
-                                            style={{ width: '180px', padding: '12px 24px', background: '#f3f4f6', color: '#1f2937', border: '1px solid #e5e7eb', borderRadius: '8px', fontWeight: 600, cursor: isTestingDB ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                            disabled={isTestingDB}>
                                             {isTestingDB ? <Loader2 size={16} className="animate-spin" /> : null}
                                             {isTestingDB ? t('settings.testing') : t('settings.dbTest')}
                                         </button>
-                                        <button
+                                        <button type="button"
+                                            className="form-action-btn"
                                             onClick={handleSaveDB}
-                                            disabled={isSavingDB}
-                                            style={{ width: '180px', padding: '12px 24px', background: '#1f2937', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: isSavingDB ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                            disabled={isSavingDB}>
                                             {isSavingDB ? <Loader2 size={16} className="animate-spin" /> : null}
                                             {t('settings.save')}
                                         </button>
@@ -696,9 +721,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             <div style={{ fontSize: '0.9rem', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{pythonTestResult.message}</div>
                                         </div>
                                     )}
-                                    <div className="settings-action-row" style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end', marginTop: '48px', paddingTop: '24px', borderTop: '1px solid #f3f4f6' }}>
-                                        <button type="button" onClick={handleTestPython} disabled={isTestingPython || (pythonRuntime.mode === 'external' && !pythonExecutable.trim())} style={{ width: '180px', padding: '12px 24px', background: '#f3f4f6', color: '#1f2937', border: '1px solid #e5e7eb', borderRadius: '8px', fontWeight: 600, cursor: isTestingPython ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>{isTestingPython ? <Loader2 size={16} className="animate-spin" /> : null}{isTestingPython ? t('settings.testingPython') : t('settings.testPython')}</button>
-                                        <button type="button" onClick={handleSavePython} disabled={isSavingPython || (pythonRuntime.mode === 'external' && !pythonExecutable.trim())} style={{ width: '180px', padding: '12px 24px', background: '#1f2937', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: isSavingPython ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>{isSavingPython ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} {t('settings.savePython')}</button>
+                                    <div className="settings-action-row form-action-row">
+                                        <button type="button" onClick={handleTestPython} className="form-action-btn" disabled={isTestingPython || (pythonRuntime.mode === 'external' && !pythonExecutable.trim())}>{isTestingPython ? <Loader2 size={16} className="animate-spin" /> : null}{isTestingPython ? t('settings.testingPython') : t('settings.testPython')}</button>
+                                        <button type="button" onClick={handleSavePython} className="form-action-btn" disabled={isSavingPython || (pythonRuntime.mode === 'external' && !pythonExecutable.trim())}>{isSavingPython ? <Loader2 size={16} className="animate-spin" /> : null}{t('settings.savePython')}</button>
                                     </div>
                                 </div>
                             </div>

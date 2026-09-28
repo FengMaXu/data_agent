@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "fixtureFrozenAt": "2026-09-08T04:10:00Z",
+  "denominator": 6,
+  "correct": 6,
+  "selectionAccuracy": 1,
+  "selectedSubmissionCount": 5,
+  "noEligibleCount": 1,
+  "frozenDefaultFallbackCount": 0,
+  "frozenDefaultFallbackRate": 0,
+  "stableOrderFallbackCount": 0,
+  "stableOrderFallbackRate": 0,
+  "disclosureCompleteCount": 6,
+  "outcomes": [
+    {
+      "name": "customer totals are averaged without order-count weighting",
+      "selectionState": "selected",
+      "selectedStatement": "customer equal",
+      "correct": true,
+      "usedFrozenDefault": false,
+      "usedStableOrderFallback": false,
+      "disclosedAlternativeCount": 1
+    },
+    {
+      "name": "base amount excludes additional tax",
+      "selectionState": "selected",
+      "selectedStatement": "exclude tax",
+      "correct": true,
+      "usedFrozenDefault": false,
+      "usedStableOrderFallback": false,
+      "disclosedAlternativeCount": 1
+    },
+    {
+      "name": "base amount excludes additional freight",
+      "selectionState": "selected",
+      "selectedStatement": "exclude freight",
+      "correct": true,
+      "usedFrozenDefault": false,
+      "usedStableOrderFallback": false,
+      "disclosedAlternativeCount": 1
+    },
+    {
+      "name": "request time is used without payment-time substitution",
+      "selectionState": "selected",
+      "selectedStatement": "order time",
+      "correct": true,
+      "usedFrozenDefault": false,
+      "usedStableOrderFallback": false,
+      "disclosedAlternativeCount": 1
+    },
+    {
+      "name": "NTILE row buckets do not add a boundary tie rule",
+      "selectionState": "selected",
+      "selectedStatement": "NTILE row buckets",
+      "correct": true,
+      "usedFrozenDefault": false,
+      "usedStableOrderFallback": false,
+      "disclosedAlternativeCount": 1
+    },
+    {
+      "name": "all qualified interpretations are rejected",
+      "selectionState": "no_eligible_alternative",
+      "selectedStatement": null,
+      "correct": true,
+      "usedFrozenDefault": false,
+      "usedStableOrderFallback": false,
+      "disclosedAlternativeCount": 2
+    }
+  ]
+}

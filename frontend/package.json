@@ -11,8 +11,8 @@
     "electron:dev": "electron . --dev",
     "build": "tsc -b && vite build",
     "build:semantic-context": "pnpm --dir ../ktx run package:semantic-context",
-    "build:unpacked": "npm run build && electron-builder --dir",
-    "build:installer": "npm run build && electron-builder",
+    "build:unpacked": "npm --prefix .. run build:distribution && electron-builder --dir",
+    "build:installer": "npm --prefix .. run build:distribution && electron-builder",
     "build:desktop": "npm run build:installer",
     "lint": "eslint .",
     "test": "vitest run",
@@ -21,11 +21,13 @@
   "dependencies": {
     "@data-agent/contracts": "0.1.0",
     "@data-agent/transport": "0.1.0",
+    "@modelcontextprotocol/sdk": "1.29.0",
     "better-sqlite3": "^12.11.1",
     "echarts": "^6.0.0",
     "electron-updater": "^6.8.3",
     "js-yaml": "^4.3.1",
     "lucide-react": "^0.577.0",
+    "mysql2": "3.22.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-markdown": "^10.1.0",
@@ -77,6 +79,20 @@
         "to": "python-runtime",
         "filter": [
           "**/*"
+        ]
+      },
+      {
+        "from": "../.agents/skills",
+        "to": ".agents/skills",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "../.pi",
+        "to": ".pi",
+        "filter": [
+          "SYSTEM.md"
         ]
       }
     ],

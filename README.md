@@ -59,7 +59,7 @@ node apps/server/dist/index.js
 ### Electron 桌面端（开发）
 
 ```bash
-node scripts/build-distribution.mjs
+node scripts/build-distribution.mjs   # 生成 frontend/electron-host/*.cjs（构建产物，不入库）
 cd frontend
 npx electron electron-host/main.cjs
 ```

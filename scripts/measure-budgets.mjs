@@ -53,34 +53,37 @@ metrics.budgets = {
 };
 metrics.budgetsPass = Object.values(metrics.budgets).every((b) => b.actual !== null && b.actual <= b.limit);
 
-// --- Runtime command round-trip latency (p50/p95) ---
-// Drives the real DataAgentRuntime in-process over the same dispatch seam the
-// hosts use, so the numbers reflect the production path without transport noise.
+// --- Application command round-trip latency (p50/p95) ---
+// Measures the product Application boundary without transport overhead.
 async function measureLatencies() {
   const script = `
     const { performance } = require("node:perf_hooks");
-    const { mkdtemp } = require("node:fs/promises");
+    const { mkdtemp, rm } = require("node:fs/promises");
     const { tmpdir } = require("node:os");
+    const { pathToFileURL } = require("node:url");
     const path = require("node:path");
     (async () => {
-      const { DataAgentRuntime } = require("./packages/runtime/dist/index.js");
-      const { MetadataStore } = require("./packages/runtime/dist/index.js");
+      const { createDataAgentApplication } = await import(pathToFileURL(path.resolve("packages/runtime/dist/index.js")).href);
       const dir = await mkdtemp(path.join(tmpdir(), "gate-lat-"));
-      const runtime = new DataAgentRuntime({ metadata: new MetadataStore(path.join(dir, "meta.db")) });
+      const application = await createDataAgentApplication({ dataRoot: dir, host: "web", systemPrompt: "You are Data Agent.", resolveProfile: () => ({ provider: "openai", model: "gate-model" }) });
       const ctx = { userId: "gate", host: "web" };
       const samples = [];
-      // Warm-up: first dispatches pay worker-thread spawn cost; exclude from the baseline.
-      for (let w = 0; w < 10; w++) {
-        await runtime.dispatch({ protocolVersion: 1, requestId: "w" + w, command: { type: "task.list" } }, ctx);
-      }
-      for (let i = 0; i < 100; i++) {
-        const t0 = performance.now();
-        await runtime.dispatch({ protocolVersion: 1, requestId: "r" + i, command: { type: "task.list" } }, ctx);
-        samples.push(performance.now() - t0);
+      try {
+        for (let w = 0; w < 10; w++) {
+          await application.dispatch({ protocolVersion: 1, requestId: "w" + w, command: { type: "task.list" } }, ctx);
+        }
+        for (let i = 0; i < 100; i++) {
+          const t0 = performance.now();
+          await application.dispatch({ protocolVersion: 1, requestId: "r" + i, command: { type: "task.list" } }, ctx);
+          samples.push(performance.now() - t0);
+        }
+      } finally {
+        await application.close();
+        await rm(dir, { recursive: true, force: true });
       }
       samples.sort((a, b) => a - b);
       const p = (q) => Math.round(samples[Math.floor(samples.length * q)] * 100) / 10;
-      process.stdout.write(JSON.stringify({ p50: p(0.5), p95: p(0.95), n: samples.length, warmup: 10 })); process.exit(0);
+      process.stdout.write(JSON.stringify({ p50: p(0.5), p95: p(0.95), n: samples.length, warmup: 10 }));
     })().catch((e) => { console.error(e); process.exit(1); });
   `;
   const out = execFileSync(process.execPath, ["-e", script], { cwd: root, encoding: "utf8", timeout: 120_000 });

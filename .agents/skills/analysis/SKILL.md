@@ -1,7 +1,7 @@
 ---
 name: analysis
-description: 数据分析与可视化 — ECharts 交互图表或 matplotlib 文件输出
-when_to_use: 当用户要求画图、趋势图、折线图、柱状图、饼图、可视化、保存图表、下载图表时使用
+description: 交互图表渲染 — 仅当用户明确要求画图或可视化时使用
+when_to_use: 仅当用户明确要求“画图”“图表”“可视化”“趋势图”“折线图”“柱状图”“饼图”“保存图表”或“下载图表”时使用。纯数据查询、统计计算或 CSV 导出不要加载此 Skill。
 allowed-tools:
   - query_database
   - show_widget
@@ -11,58 +11,64 @@ allowed-tools:
   - read_knowledge
 ---
 
-# 数据分析与可视化
+# 交互图表渲染
+
+本 Skill 只处理用户明确要求的图表或可视化，不是所有数据分析任务的默认步骤。先完成用户要求的数据查询，再选择一种输出路径。
 
 ## 路径选择
 
 | 用户意图 | 路径 |
 |---------|------|
-| "画图"、"趋势图"、"折线图"、"柱状图"、"饼图"、"可视化" | 路径 A：内联 ECharts |
-| "保存图表"、"下载"、"发给我"（单图） | 路径 B：文件输出 |
+| 明确要求聊天内图表或可视化 | 路径 A：内联 Widget |
+| 明确要求保存或下载图像文件 | 路径 B：Python 文件输出（仅当 `run_python` 在当前工具列表中） |
 
-默认使用路径 A（内联 ECharts），除非用户需要可下载文件。
+不要因为用户使用“分析”“计算”“平均”“报告”或“CSV”这些词就加载本 Skill。
 
-## 路径 A：内联 ECharts（聊天气泡内交互图表）
+## 路径 A：内联 Widget
 
-1. `query_database` → 提取数据
-2. `show_widget(kind="echarts", config={完整 ECharts option})` → 渲染交互图表
-3. 输出分析结论
+1. `query_database` → 提取并验证图表数据
+2. `show_widget(kind="chart", spec={...})` → 渲染图表
+3. 输出简短的图表结论
 
-ECharts config 示例（折线图）：
+`show_widget` 的当前合同只有以下 kind：`kpi`、`chart`、`table`、`steps`。参数名是 `spec`，不是 `config`。
+
+最小合法示例：
+
 ```json
 {
-  "tooltip": {"trigger": "axis"},
-  "legend": {"data": ["销售额"]},
-  "xAxis": {"type": "category", "data": ["1月","2月","3月"]},
-  "yAxis": {"type": "value", "name": "亿元"},
-  "series": [{"name": "销售额", "type": "line", "data": [100, 120, 95]}]
+  "kind": "chart",
+  "spec": {
+    "title": "月度销售额",
+    "data": [
+      {"month": "1月", "sales": 100},
+      {"month": "2月", "sales": 120}
+    ],
+    "series": [
+      {"name": "销售额", "data": [100, 120]}
+    ]
+  }
 }
 ```
 
-**ECharts 规范**：
-- `config` 字段传完整的 ECharts option 对象（含 xAxis、yAxis、series、tooltip、legend）
-- 数据直接内嵌在 `config.series[].data` 中，不使用 show_widget 的 data/series/columns 字段
-- 支持所有 ECharts 图表类型：line / bar / pie / scatter / radar 等
-- 用户可点击图表元素进行下钻分析
+- `kpi`：`spec` 至少包含数值型或字符串型 `value`，也可以使用 `data` 数组。
+- `chart`：`spec` 使用 `data` 数组，或使用 `series` 数组。
+- `table`、`steps`：`spec` 必须包含 `data` 数组。
+- 不要把自然语言结论塞进 `data`；结论放在普通回答中。
 
-## 路径 B：文件输出（需要可下载文件时）
+## 路径 B：保存图像文件
 
-1. `search_knowledge` → 检索业务规则
-2. `query_database` → 提取原始数据
-3. `write_file` → 将结果保存为 CSV（**禁止用 JSON 中转**）
-4. `run_python` → 用 pandas 读取 CSV，分步执行：
-   - 第一步：`pd.read_csv()` 加载 + 清洗
-   - 第二步：统计计算
-   - 第三步：绘制图表（保存到 OUTPUT_DIR，图表风格参考 `doc/business.md` 的"图表风格"）
-5. 输出分析结论 + 业务建议
+1. `search_knowledge` → 检索业务规则和图表风格
+2. `query_database` → 提取并验证数据
+3. `write_file` → 必要时保存 CSV 中间文件
+4. `run_python` → 用 pandas 读取 CSV，清洗、统计并用 matplotlib 绘图
+5. `write_file` 或 Python 输出 → 将图像保存到用户指定位置
+6. 输出图像文件链接和简短结论
 
-**图表规范**：
-- 使用 `plt.savefig()` 保存，**不要** `plt.show()`
-- 文件名使用 OUTPUT_DIR：`os.environ['OUTPUT_DIR']`
-- 配色专业、标注清晰、标题简洁
+如果当前工具列表没有 `run_python`，不要调用或重试它；改用已可用的查询工具，或说明无法生成文件图表。
 
-## 数据传递原则
+## 图表规范
 
-- SQL 结果 → CSV 文件 → pandas 读取，**全程 CSV，不走 JSON**
-- CSV 比 JSON 节省 3-4 倍 token，加载速度更快
-- 导出给用户的文件也用 CSV 格式（带 UTF-8 BOM 兼容 Excel）
+- 使用 `plt.savefig()` 保存，不使用 `plt.show()`。
+- 配色专业、标注清晰、标题简洁。
+- 图表数据必须来自已验证的查询结果。
+- 文件下载链接使用普通 Markdown 链接，不用 Widget 代替文件交付。

@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeAll, afterAll } from "vitest";
+import { describe, expect, it } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -17,7 +17,7 @@ describe("Reference SQLite MCP Server", () => {
     seed.prepare("INSERT INTO sales (region, amount) VALUES (?, ?)").run("south", 20);
     seed.close();
 
-    const { server, exports_, close } = createReferenceSqliteServer({ databasePath: dbPath });
+    const { server, close } = createReferenceSqliteServer({ databasePath: dbPath });
     const client = new Client({ name: "data-agent-test", version: "1.0.0" });
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
     await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
@@ -28,22 +28,39 @@ describe("Reference SQLite MCP Server", () => {
     expect(payload.truncated).toBe(true);
     expect(payload.contractVersion).toBe(1);
 
+    const exportResult = await client.callTool({ name: "execute_query_export", arguments: { sql: "SELECT * FROM sales ORDER BY id" } });
+    const exportPayload = JSON.parse((exportResult.content as any)[0].text);
+    expect(exportPayload.rows).toHaveLength(2);
+    expect(exportPayload.columns).toEqual(["id", "region", "amount"]);
+    expect(exportPayload.truncated).toBe(false);
+
+    const explain = await client.callTool({ name: "explain_query", arguments: { sql: "SELECT * FROM sales WHERE amount > 10" } });
+    const explainPayload = JSON.parse((explain.content as any)[0].text);
+    expect(explainPayload.columns).toContain("detail");
+    expect(explainPayload.rows.length).toBeGreaterThan(0);
+
     const dangerous = await client.callTool({ name: "execute_query_preview", arguments: { sql: "DROP TABLE sales" } });
-    expect(JSON.parse((dangerous.content as any)[0].text).error.code).toBe("FORBIDDEN_SQL");
+    const dangerousPayload = JSON.parse((dangerous.content as any)[0].text);
+    expect(dangerousPayload.error.code).toBe("FORBIDDEN_SQL");
+    expect(dangerousPayload.error.message).toContain("high-risk");
+    const pragma = await client.callTool({ name: "execute_query_preview", arguments: { sql: "PRAGMA user_version" } });
+    expect(JSON.parse((pragma.content as any)[0].text).error.code).toBe("FORBIDDEN_SQL");
+
+    const union = await client.callTool({ name: "execute_query_preview", arguments: { sql: "SELECT region FROM sales UNION ALL SELECT region FROM sales" } });
+    expect(JSON.parse((union.content as any)[0].text).rows).toHaveLength(4);
 
     const schema = await client.callTool({ name: "get_schema", arguments: {} });
-    expect(JSON.parse((schema.content as any)[0].text).schema[0].table).toBe("sales");
+    const schemaPayload = JSON.parse((schema.content as any)[0].text);
+    expect(schemaPayload.schema[0].table).toBe("sales");
+    expect(schemaPayload.schema[0].columns[0].name).toBe("id");
+    expect(schemaPayload.schema[0].primaryKey).toEqual(["id"]);
 
-    const exportResult = await client.callTool({ name: "export_query", arguments: { sql: "SELECT * FROM sales ORDER BY id" } });
-    const exportPayload = JSON.parse((exportResult.content as any)[0].text);
-    expect(exportPayload.resourceUri).toMatch(/^sqlite:\/\/exports\/.+\.csv$/);
-    expect(exportPayload.rowCount).toBe(2);
-    const resources = await client.listResources();
-    expect(resources.resources.some(r => r.uri === exportPayload.resourceUri)).toBe(true);
-    const read = await client.readResource({ uri: exportPayload.resourceUri });
-    const blob = (read.contents[0] as any).blob as string;
-    expect(Buffer.from(blob, "base64").toString("utf8")).toContain("north");
-    expect(exports_.size).toBe(1);
+    const listedTools = await client.listTools();
+    expect(listedTools.tools.some((tool) => tool.name === "execute_query_export_batch")).toBe(false);
+    expect(listedTools.tools.some((tool) => tool.name === "export_query")).toBe(false);
+    const forbiddenExport = await client.callTool({ name: "export_query", arguments: { sql: "SELECT * FROM sales" } });
+    expect(forbiddenExport.isError).toBe(true);
+    expect((forbiddenExport.content as any)[0].text).toContain("Tool export_query not found");
 
     await client.close();
     await close();

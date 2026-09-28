@@ -8,12 +8,14 @@ import {
   createIpcTransport,
   type DataAgentTransport,
   type ElectronCommandBridge,
+  type FetchLike,
 } from "@data-agent/transport";
 import type {
   DataAgentCommand,
   DataAgentCommandEnvelope,
   DataAgentResponseEnvelope,
 } from "@data-agent/contracts";
+import { apiFetch, type SessionSnapshotMessage } from "./client";
 
 let sequence = 0;
 
@@ -22,26 +24,28 @@ function envelope(command: DataAgentCommand, sessionId?: string): DataAgentComma
   return {
     protocolVersion: 1,
     requestId: `renderer-${Date.now()}-${sequence}`,
+    ...(sessionId ? { sessionId } : {}),
     command,
-    ...(sessionId ? {} : {}),
   } as DataAgentCommandEnvelope;
 }
 
 export interface RuntimeClient {
   dispatch(command: DataAgentCommand, sessionId?: string): Promise<DataAgentResponseEnvelope>;
   /** Subscribe to runtime events via the Host bridge (Electron) or SSE (Web). */
-  onEvent?(listener: (event: unknown) => void): () => void;
+  onEvent?(listener: (event: unknown) => void, sessionId?: string): () => void;
 }
 
 export function createElectronRuntimeClient(bridge: ElectronCommandBridge): RuntimeClient {
   const transport: DataAgentTransport = createIpcTransport(bridge);
-  return {
+  const client: RuntimeClient = {
     dispatch: (command, sessionId) => transport.dispatch(envelope(command, sessionId)) as unknown as Promise<DataAgentResponseEnvelope>,
   };
+  if (bridge.subscribe) client.onEvent = (listener, sessionId) => bridge.subscribe!(listener, sessionId);
+  return client;
 }
 
-export function createHttpRuntimeClient(baseUrl: string, fetchLike: typeof fetch = fetch): RuntimeClient {
-  const transport: DataAgentTransport = createHttpTransport(baseUrl, fetchLike as any);
+export function createHttpRuntimeClient(baseUrl: string, fetchLike: typeof fetch = apiFetch): RuntimeClient {
+  const transport: DataAgentTransport = createHttpTransport(baseUrl, fetchLike as unknown as FetchLike);
   return {
     dispatch: (command, sessionId) => transport.dispatch(envelope(command, sessionId)) as unknown as Promise<DataAgentResponseEnvelope>,
   };
@@ -55,14 +59,18 @@ export function selectRuntimeClient(options: { electronBridge?: ElectronCommandB
 
 let selected: RuntimeClient | undefined;
 
-/** Process-lifetime client: Electron bridge when window.dataAgent exists, else HTTP. */
+/** Process-lifetime client: Electron bridge when window.dataAgentRuntime exists, else HTTP. */
 export function getRuntimeClient(): RuntimeClient {
   if (selected) return selected;
-  const bridge = (window as any).dataAgent;
+  const bridge = window.dataAgentRuntime;
   if (bridge && typeof bridge.invokeRuntimeCommand === "function") {
-    selected = createElectronRuntimeClient({ invoke: (channel, payload) => bridge.invokeRuntimeCommand(channel, payload) });
+    selected = createElectronRuntimeClient({
+      invoke: (_channel, payload) => bridge.invokeRuntimeCommand(payload),
+      subscribe: bridge.subscribeRuntimeEvents,
+    });
   } else {
-    const base = (import.meta as any).env?.VITE_API_BASE_URL?.trim()?.replace(/\/$/, "") ?? "";
+    const configuredBase = import.meta.env.VITE_API_BASE_URL;
+    const base = typeof configuredBase === "string" ? configuredBase.trim().replace(/\/$/, "") : "";
     selected = createHttpRuntimeClient(base);
   }
   return selected;
@@ -91,11 +99,11 @@ export async function listSessionsViaRuntime(taskId?: string): Promise<Array<{ i
   return result.items as Array<{ id: string; taskId?: string; name: string }>;
 }
 
-export async function createSessionViaRuntime(taskId: string, name?: string): Promise<{ id: string }> {
+export async function createSessionViaRuntime(taskId: string, name?: string): Promise<{ id: string; taskId?: string; name?: string; createdAt?: number }> {
   const envelope = await getRuntimeClient().dispatch({ type: "session.create", taskId, ...(name ? { name } : {}) });
   const result = envelope.response;
   if (result.type !== "mutation.result") throw new Error("UNEXPECTED_RESPONSE");
-  return result.item as { id: string };
+  return result.item as { id: string; taskId?: string; name?: string; createdAt?: number };
 }
 
 export async function listWorkspaceViaRuntime(): Promise<string[]> {
@@ -119,12 +127,12 @@ export async function readKnowledgeViaRuntime(path: string): Promise<string> {
   return result.content;
 }
 
-export async function stopAgentViaRuntime(): Promise<void> {
-  await getRuntimeClient().dispatch({ type: "agent.stop" });
+export async function stopAgentViaRuntime(sessionId?: string, operationId?: string): Promise<void> {
+  await getRuntimeClient().dispatch({ type: "agent.stop", ...(operationId ? { operationId } : {}) }, sessionId);
 }
 
-export async function steerAgentViaRuntime(prompt: string): Promise<void> {
-  await getRuntimeClient().dispatch({ type: "agent.steer", prompt });
+export async function steerAgentViaRuntime(prompt: string, sessionId?: string): Promise<void> {
+  await getRuntimeClient().dispatch({ type: "agent.steer", prompt }, sessionId);
 }
 
 export async function renameSessionViaRuntime(sessionId: string, name: string): Promise<void> {
@@ -157,7 +165,7 @@ export async function writeWorkspaceFileViaRuntime(path: string, content: string
   await getRuntimeClient().dispatch({ type: "workspace.write", path, content });
 }
 
-export async function listKnowledgeViaRuntime(): Promise<Array<{ path: string; size: number; modifiedAt: number }>> {
+export async function listKnowledgeViaRuntime(): Promise<Array<{ path: string; size: number; modifiedAt: number; knowledgeId?: string; name?: string; description?: string; usage?: "method" | "fact" }>> {
   const envelope = await getRuntimeClient().dispatch({ type: "knowledge.list" });
   const result = envelope.response;
   if (result.type !== "knowledge.list.result") throw new Error("UNEXPECTED_RESPONSE");
@@ -219,49 +227,112 @@ export async function retryIngestViaRuntime(): Promise<void> {
   if (envelope.response.type !== "semantic.ingest.retry.result") throw new Error("UNEXPECTED_RESPONSE");
 }
 
-export async function answerClarificationViaRuntime(clarificationId: string, answer: string): Promise<void> {
-  await getRuntimeClient().dispatch({ type: "clarification.answer", clarificationId, answer });
+export async function answerClarificationViaRuntime(clarificationId: string, answer: string, sessionId?: string): Promise<void> {
+  await getRuntimeClient().dispatch({ type: "clarification.answer", clarificationId, answer }, sessionId);
 }
 
-export function subscribeRuntimeEvents(listener: (envelope: unknown) => void): () => void {
+export interface RuntimeEventStreamOptions {
+  /** The server subscription exists; events emitted from now on will arrive. */
+  readonly onConnected?: () => void;
+  /** Events after the cursor were lost; the subscriber must reload a snapshot. */
+  readonly onResync?: () => void;
+  /** The stream (re)connected, or dropped and is about to reconnect. */
+  readonly onConnectionChange?: (state: "connected" | "reconnecting") => void;
+  /** Resume after this event sequence, e.g. the cursor of a session snapshot. */
+  readonly afterSequence?: number;
+}
+
+export function subscribeRuntimeEvents(
+  listener: (envelope: unknown) => void,
+  sessionId?: string,
+  options: RuntimeEventStreamOptions = {},
+): () => void {
   if (typeof window === "undefined") return () => undefined;
-  const base = (import.meta as { env?: Record<string, string> }).env?.VITE_API_BASE_URL ?? "";
-  const source = new EventSource(`${base}/api/runtime/events`);
-  source.onmessage = (message) => {
-    try { listener(JSON.parse(message.data)); } catch { /* ignore malformed */ }
-  };
-  return () => source.close();
-}
+  const runtimeClient = getRuntimeClient();
+  if (runtimeClient.onEvent) {
+    // The Electron bridge subscribes synchronously and never drops events.
+    const unsubscribe = runtimeClient.onEvent(listener, sessionId);
+    options.onConnected?.();
+    return unsubscribe;
+  }
 
-export interface RuntimeChatHandle { cancel: () => void; finished: Promise<void> }
-
-/**
- * Chat streaming over the shared transport: dispatches agent.prompt and
- * consumes versioned runtime events (agent.text_delta / agent.tool_started /
- * agent.tool_finished / agent.completed). The legacy SSE DTO adapter lives in
- * ChatArea and will be dissolved when the component consumes versioned
- * events natively.
- */
-export function sendChatViaRuntime(
-  prompt: string,
-  onEvent: (envelope: any) => void,
-  onError: (err: unknown) => void,
-  onFinish: () => void,
-): RuntimeChatHandle {
-  const unsubscribe = subscribeRuntimeEvents((envelope) => onEvent(envelope));
-  const controller = new AbortController();
-  const finished = (async () => {
+  const configuredBase = import.meta.env.VITE_API_BASE_URL;
+  const base = typeof configuredBase === "string" ? configuredBase.trim().replace(/\/$/, "") : "";
+  let disposed = false;
+  let controller: AbortController | undefined;
+  let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
+  let lastSequence = options.afterSequence ?? 0;
+  const connect = async (): Promise<void> => {
+    if (disposed) return;
+    const endpoint = new URL(`${base}/api/runtime/events`, window.location.href);
+    if (sessionId) endpoint.searchParams.set("session_id", sessionId);
+    if (lastSequence > 0) endpoint.searchParams.set("after_sequence", String(lastSequence));
+    controller = new AbortController();
     try {
-      await getRuntimeClient().dispatch({ type: "agent.prompt", prompt });
-      onFinish();
-    } catch (err) {
-      if ((err as Error)?.name === "AbortError") { onFinish(); return; }
-      onError(err);
-      onFinish();
+      const response = await apiFetch(endpoint, { headers: { Accept: "text/event-stream" }, signal: controller.signal });
+      if (!response.ok || !response.body) throw new Error(`Runtime event stream failed: ${response.status}`);
+      options.onConnected?.();
+      options.onConnectionChange?.("connected");
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      while (!disposed) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true }).replaceAll("\r\n", "\n");
+        let boundary = buffer.indexOf("\n\n");
+        while (boundary >= 0) {
+          const block = buffer.slice(0, boundary);
+          buffer = buffer.slice(boundary + 2);
+          const lines = block.split("\n");
+          const eventName = lines.find((line) => line.startsWith("event:"))?.slice(6).trim();
+          const data = lines.filter((line) => line.startsWith("data:")).map((line) => line.slice(5).trimStart()).join("\n");
+          if (eventName === "resync") {
+            options.onResync?.();
+          } else if (data) {
+            deliver(data);
+          }
+          boundary = buffer.indexOf("\n\n");
+        }
+      }
+    } catch (error) {
+      if (!disposed && !(error instanceof DOMException && error.name === "AbortError")) scheduleReconnect();
+      return;
     }
-  })();
-  return { cancel: () => { controller.abort(); unsubscribe(); }, finished };
+    if (!disposed) scheduleReconnect();
+  };
+  const scheduleReconnect = (): void => {
+    options.onConnectionChange?.("reconnecting");
+    reconnectTimer = setTimeout(() => { void connect(); }, 500);
+  };
+  /** The cursor advances only past events the listener accepted, so a failed one is replayed on reconnect. */
+  const deliver = (data: string): void => {
+    let payload: unknown;
+    try {
+      payload = JSON.parse(data) as unknown;
+    } catch {
+      return; // Malformed payload; the chat adapter validates envelopes anyway.
+    }
+    try {
+      listener(payload);
+    } catch (error) {
+      console.error("[runtime-events] event listener failed", error);
+      return;
+    }
+    if (payload && typeof payload === "object" && typeof (payload as { sequence?: unknown }).sequence === "number") {
+      lastSequence = Math.max(lastSequence, (payload as { sequence: number }).sequence);
+    }
+  };
+  void connect();
+  return () => {
+    disposed = true;
+    if (reconnectTimer) clearTimeout(reconnectTimer);
+    controller?.abort();
+    controller = undefined;
+  };
 }
+
+export { sendChatViaRuntime, type RuntimeChatHandle } from "./chat-events";
 
 export async function prepareSessionViaRuntime(sessionId: string): Promise<void> {
   await getRuntimeClient().dispatch({ type: "session.prepare", sessionId });
@@ -286,18 +357,6 @@ export async function testMcpServerViaRuntime(name: string): Promise<{ ok: boole
 export async function restartMcpServerViaRuntime(name: string): Promise<void> {
   const envelope = await getRuntimeClient().dispatch({ type: "mcp.server.restart", name });
   if (envelope.response.type !== "mcp.server.restart.result") throw new Error("UNEXPECTED_RESPONSE");
-}
-
-export async function listLlmProfilesViaRuntime(): Promise<Array<Record<string, unknown>>> {
-  const envelope = await getRuntimeClient().dispatch({ type: "config.llm.list" });
-  const result = envelope.response;
-  if (result.type !== "config.llm.list.result") throw new Error("UNEXPECTED_RESPONSE");
-  return result.profiles as Array<Record<string, unknown>>;
-}
-
-export async function saveLlmProfileViaRuntime(profile: { id?: string; provider: string; model: string; apiKey?: string }): Promise<void> {
-  const envelope = await getRuntimeClient().dispatch({ type: "config.llm.save", profile });
-  if (envelope.response.type !== "config.llm.save.result") throw new Error("UNEXPECTED_RESPONSE");
 }
 
 export async function getConfigViaRuntime(): Promise<Record<string, unknown>> {
@@ -339,12 +398,32 @@ export async function clearSessionViaRuntime(sessionId: string): Promise<string>
   return created.id;
 }
 
-export interface RuntimeTranscriptMessage { id: string; role: string; content: string; timestamp: number }
+export type RuntimeTranscriptMessage = SessionSnapshotMessage & { timestamp?: number };
 
 export async function getTranscriptViaRuntime(sessionId: string): Promise<RuntimeTranscriptMessage[]> {
   const envelope = await getRuntimeClient().dispatch({ type: "session.transcript", sessionId });
   if (envelope.response.type !== "session.transcript.result") throw new Error("UNEXPECTED_RESPONSE");
   return (envelope.response as unknown as { messages: RuntimeTranscriptMessage[] }).messages;
+}
+
+export interface RuntimeSessionState {
+  readonly messages: RuntimeTranscriptMessage[];
+  readonly inProgressRun: { readonly runId: string; readonly startedAt: number } | null;
+  readonly pendingClarification: { readonly clarificationId: string; readonly question: string; readonly options: string[] } | null;
+  readonly eventSequence: number;
+}
+
+/** The transcript plus what is still in progress: a running run and the clarification it waits on. */
+export async function getSessionStateViaRuntime(sessionId: string): Promise<RuntimeSessionState> {
+  const envelope = await getRuntimeClient().dispatch({ type: "session.transcript", sessionId });
+  if (envelope.response.type !== "session.transcript.result") throw new Error("UNEXPECTED_RESPONSE");
+  const response = envelope.response as unknown as Partial<RuntimeSessionState> & { messages: RuntimeTranscriptMessage[] };
+  return {
+    messages: response.messages,
+    inProgressRun: response.inProgressRun ?? null,
+    pendingClarification: response.pendingClarification ?? null,
+    eventSequence: response.eventSequence ?? 0,
+  };
 }
 
 export async function getDashboardV3DataViaRuntime(path: string): Promise<unknown> {

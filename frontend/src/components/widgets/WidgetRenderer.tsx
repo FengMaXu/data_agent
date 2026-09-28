@@ -5,7 +5,7 @@ import { usePreview } from '../../context/PreviewContext';
 import { resolveInternalUrl, resolveWorkspacePreviewUrl } from '../../utils/resolveInternalUrl';
 import { Download, Eye, File, FileCode, FileSpreadsheet, FileText, Image } from '../icons/Typicons';
 
-export type WidgetKind = 'metric_cards' | 'table' | 'chart' | 'steps' | 'rich_text' | 'echarts' | 'file_link';
+export type WidgetKind = 'kpi' | 'metric_cards' | 'table' | 'chart' | 'steps' | 'rich_text' | 'echarts' | 'file_link';
 
 const PREVIEWABLE_FILE_TYPES = new Set(['csv', 'gif', 'htm', 'html', 'jpeg', 'jpg', 'json', 'md', 'markdown', 'png', 'svg', 'txt', 'webp']);
 
@@ -15,6 +15,8 @@ export interface WidgetSpec {
     title: string;
     subtitle?: string;
     data?: any[];
+    value?: string | number;
+    label?: string;
     series?: any[];
     columns?: any[];
     actions?: any[];
@@ -22,6 +24,7 @@ export interface WidgetSpec {
     raw_html?: string;
     raw_svg?: string;
     config?: Record<string, any>;
+    xAxis?: { data?: unknown[]; [key: string]: unknown };
     file_path?: string;
     download_url?: string;
     file_type?: string;
@@ -63,6 +66,27 @@ const getColumnKey = (column: any, index: number) => (
 const getColumnLabel = (column: any, key: string) => (
     column?.label ?? column?.headerName ?? column?.title ?? key
 );
+
+const toDisplayText = (value: unknown, fallback = ''): string => {
+    if (value === null || value === undefined) return fallback;
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+        return String(value);
+    }
+    if (Array.isArray(value)) return value.map((item) => toDisplayText(item)).filter(Boolean).join(', ');
+    if (typeof value === 'object') {
+        const record = value as Record<string, unknown>;
+        for (const key of ['text', 'name', 'label', 'title', 'value']) {
+            const candidate = record[key];
+            if (typeof candidate === 'string' || typeof candidate === 'number') return String(candidate);
+        }
+        try {
+            return JSON.stringify(value);
+        } catch {
+            return fallback;
+        }
+    }
+    return fallback;
+};
 
 const normalizeColumns = (widget: WidgetSpec, rows: any[]) => {
     if (Array.isArray(widget.columns) && widget.columns.length > 0) {
@@ -218,15 +242,19 @@ const formatTableCell = (value: unknown, column: any, t: (key: string) => string
 };
 
 const renderMetricCards = (widget: WidgetSpec, t: (key: string) => string) => {
-    const items = Array.isArray(widget.data) ? widget.data : [];
+    const items = Array.isArray(widget.data)
+        ? widget.data
+        : widget.value !== undefined
+            ? [{ label: widget.label, value: widget.value }]
+            : [];
     return (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
             {items.map((item, index) => (
                 <div key={index} style={{ ...cardStyle, background: '#f9fafb' }}>
-                    <div style={{ fontSize: '12px', color: '#6b7280' }}>{item.label ?? item.name ?? `${t('widgets.metric')} ${index + 1}`}</div>
-                    <div style={{ fontSize: '24px', fontWeight: 700, color: '#111827', marginTop: '6px' }}>{item.value ?? '--'}</div>
+                    <div style={{ fontSize: '12px', color: '#6b7280' }}>{toDisplayText(item.label ?? item.name, `${t('widgets.metric')} ${index + 1}`)}</div>
+                    <div style={{ fontSize: '24px', fontWeight: 700, color: '#111827', marginTop: '6px' }}>{toDisplayText(item.value, '--')}</div>
                     {(item.change ?? item.description) && (
-                        <div style={{ fontSize: '12px', color: '#4b5563', marginTop: '6px' }}>{item.change ?? item.description}</div>
+                        <div style={{ fontSize: '12px', color: '#4b5563', marginTop: '6px' }}>{toDisplayText(item.change ?? item.description)}</div>
                     )}
                 </div>
             ))}
@@ -267,8 +295,35 @@ const renderTable = (widget: WidgetSpec, t: (key: string) => string) => {
 };
 
 
+const normalizeChartPoints = (widget: WidgetSpec) => {
+    const data = Array.isArray(widget.data) ? widget.data : undefined;
+    const series = Array.isArray(widget.series) ? widget.series : undefined;
+    if (data && data.length > 0) return data;
+    if (!series) return [];
+
+    // `chart` widgets may contain ECharts-style series definitions rather than
+    // the point-shaped data used by the lightweight renderer. Flatten those
+    // definitions so replaying a saved widget cannot put a config object into
+    // a React text node (for example label: { show, formatter, position }).
+    const xAxis = widget.xAxis;
+    const axisData = Array.isArray(xAxis?.data) ? xAxis.data : [];
+    if (series.some((item: any) => Array.isArray(item?.data))) {
+        return series.flatMap((item: any) => (
+            Array.isArray(item?.data) ? item.data.map((value: unknown, index: number) => ({
+                label: axisData[index] !== undefined
+                    ? `${toDisplayText(item.name, 'Series')} · ${toDisplayText(axisData[index], String(index + 1))}`
+                    : toDisplayText(item.name, `Data point ${index + 1}`),
+                value: value && typeof value === 'object'
+                    ? (value as Record<string, unknown>).value ?? (value as Record<string, unknown>).y ?? value
+                    : value,
+            })) : []
+        ));
+    }
+    return series;
+};
+
 const renderChart = (widget: WidgetSpec, t: (key: string) => string) => {
-    const points = Array.isArray(widget.data) ? widget.data : [];
+    const points = normalizeChartPoints(widget);
     const values = points
         .map((point) => Number(point.value ?? point.y ?? 0))
         .filter((value) => Number.isFinite(value));
@@ -282,8 +337,8 @@ const renderChart = (widget: WidgetSpec, t: (key: string) => string) => {
                 return (
                     <div key={index} style={{ display: 'grid', gap: '4px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#4b5563' }}>
-                            <span>{point.label ?? point.x ?? `${t('widgets.dataPoint')} ${index + 1}`}</span>
-                            <span>{Number.isFinite(value) ? value : point.value ?? point.y ?? '--'}</span>
+                            <span>{toDisplayText(point.label ?? point.x ?? point.name, `${t('widgets.dataPoint')} ${index + 1}`)}</span>
+                            <span>{Number.isFinite(value) ? value : toDisplayText(point.value ?? point.y, '--')}</span>
                         </div>
                         <div style={{ height: '10px', background: '#f3f4f6', borderRadius: '999px', overflow: 'hidden' }}>
                             <div style={{ width, height: '100%', background: '#2563eb', borderRadius: '999px' }} />
@@ -301,9 +356,9 @@ const renderSteps = (widget: WidgetSpec, t: (key: string) => string) => {
         <ol style={{ margin: 0, paddingLeft: '20px', display: 'grid', gap: '10px' }}>
             {steps.map((step, index) => (
                 <li key={index} style={{ color: '#111827' }}>
-                    <div style={{ fontWeight: 600 }}>{step.title ?? step.label ?? `${t('widgets.step')} ${index + 1}`}</div>
+                    <div style={{ fontWeight: 600 }}>{toDisplayText(step.title ?? step.label, `${t('widgets.step')} ${index + 1}`)}</div>
                     {(step.description ?? step.content) && (
-                        <div style={{ fontSize: '13px', color: '#4b5563', marginTop: '4px' }}>{step.description ?? step.content}</div>
+                        <div style={{ fontSize: '13px', color: '#4b5563', marginTop: '4px' }}>{toDisplayText(step.description ?? step.content)}</div>
                     )}
                 </li>
             ))}
@@ -562,6 +617,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = ({ widget, drillPath, onDr
         }
 
         switch (widget.kind) {
+            case 'kpi':
             case 'metric_cards':
                 return renderMetricCards(widget, t);
             case 'table':

@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import Database from "better-sqlite3";
 import { PiJsonlSessionStore } from "./session-store.js";
 
-export interface MigrationReport { migrationId: string; migrated: number; skipped: number; warnings: string[]; backupPath: string }
+export interface MigrationReport { migrationVersion: 1; migrationId: string; migrated: number; skipped: number; warnings: string[]; backupPath: string }
 
 export interface RollbackReport { rolledBack: boolean; migrationId?: string; restoredFrom?: string }
 
@@ -56,7 +56,7 @@ export async function migrateLegacyData(sourceRoot: string, targetRoot: string, 
   try { return JSON.parse(await readFile(marker, "utf8")) as MigrationReport; } catch { /* first migration */ }
   const migrationId = randomUUID(); const backupPath = path.join(target, "migration-backup", migrationId);
   await mkdir(backupPath, { recursive: true }); await cp(source, backupPath, { recursive: true, force: true });
-  const report: MigrationReport = { migrationId, migrated: 0, skipped: 0, warnings: [], backupPath };
+  const report: MigrationReport = { migrationVersion: 1, migrationId, migrated: 0, skipped: 0, warnings: [], backupPath };
   const databases = await findFiles(source, "app.sqlite3");
   for (const databasePath of databases) {
     let db: InstanceType<typeof Database> | undefined;

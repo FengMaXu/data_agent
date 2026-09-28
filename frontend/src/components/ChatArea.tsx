@@ -3,15 +3,12 @@ import {
     PenTool,
     Loader2,
     Send,
-    Trash2,
     Square,
     Paperclip,
-    ListTree,
     Plus,
 } from './icons/Typicons';
 import {
     uploadWorkspaceFile,
-    type ChatStreamHandle,
     type SSEEvent,
     type WidgetSpec,
     type SessionSnapshotMessage,
@@ -19,15 +16,18 @@ import {
     type AgentProgressStage,
     type AgentTerminalReason,
 } from '../api/client';
-import { clearSessionViaRuntime } from '../api/runtime-client';
-import { answerClarificationViaRuntime, steerAgentViaRuntime, stopAgentViaRuntime } from '../api/runtime-client';
-import { sendChatViaRuntime } from '../api/chat-events';
+import { answerClarificationViaRuntime, getSessionStateViaRuntime, getTranscriptViaRuntime, steerAgentViaRuntime, stopAgentViaRuntime } from '../api/runtime-client';
+import { attachRunViaRuntime, sendChatViaRuntime, type ChatStreamOptions, type RuntimeChatHandle } from '../api/chat-events';
 import type { ToolData } from './ToolPanel';
 import { useSession, type Session, type Task } from '../hooks/useSession';
 import { useLanguage } from '../context/LanguageContext';
 import WidgetRenderer from './widgets/WidgetRenderer';
 import AgentOrbitIcon from './AgentOrbitIcon';
+import { RiInfoCard } from './icons/RemixIcons';
 import AgentMarkdown from './AgentMarkdown';
+import { isAgentMessageEmpty, visibleAgentContent } from '../utils/agent-message';
+import { mergeToolResultState, subagentChildrenOf, type ToolCallState } from './tool-event-state';
+import SubagentProgressLines from './SubagentProgressLines';
 
 interface SkillActivation {
     name: string;
@@ -41,19 +41,6 @@ interface SkillActivation {
     source?: string;
     command_text?: string;
     skill_dir?: string;
-}
-
-interface ToolCallState {
-    toolCallId: string;
-    name: string;
-    arguments: any;
-    partialArguments?: string;
-    result?: string;
-    details?: any;
-    isError?: boolean;
-    widgetId?: string | null;
-    status: 'calling' | 'running' | 'done' | 'error';
-    progressText?: string;
 }
 
 interface AgentMessage {
@@ -183,6 +170,14 @@ const fromSnapshotMessage = (message: SessionSnapshotMessage): ChatMessage => {
     };
 };
 
+type RunStreamStarter = (
+    onEvent: (event: SSEEvent) => void,
+    onError: (err: unknown) => void,
+    onFinish: () => void,
+    sessionId: string,
+    stream: ChatStreamOptions,
+) => RuntimeChatHandle;
+
 const dedupeSkillActivations = (skills: SkillActivation[]) => {
     const seen = new Set<string>();
     return skills.filter((skill) => {
@@ -195,9 +190,17 @@ const dedupeSkillActivations = (skills: SkillActivation[]) => {
     });
 };
 
-const getToolHintLabel = (tool: ToolCallState, t: (key: string) => string) => {
+export const getToolHintLabel = (tool: ToolCallState, t: (key: string) => string) => {
     if (tool.progressText) {
         return tool.progressText;
+    }
+    if (tool.name === 'load_skill' && tool.status === 'done' && tool.isError !== true) {
+        const details = tool.details && typeof tool.details === 'object' && !Array.isArray(tool.details)
+            ? tool.details as { nativeSkill?: unknown }
+            : undefined;
+        if (typeof details?.nativeSkill === 'string' && details.nativeSkill.trim()) {
+            return t('chat.skillLoaded').replace('{name}', details.nativeSkill);
+        }
     }
     const key = tool.status === 'done' ? 'chat.toolCompleted' : tool.status === 'error' ? 'chat.toolFailed' : 'chat.toolCalling';
     return t(key).replace('{name}', tool.name);
@@ -205,22 +208,8 @@ const getToolHintLabel = (tool: ToolCallState, t: (key: string) => string) => {
 
 const getSkillHintLabel = (skill: SkillActivation, t: (key: string) => string) => t('chat.skillActivated').replace('{name}', skill.name);
 
-const IMMEDIATE_FEEDBACK_TEXT = '收到，我正在分析请求并检索可用工具…';
 const THINKING_STATUS_TEXT = '思考中';
 const REASONING_DONE_TEXT = '思考内容';
-
-const isAgentMessageEmpty = (message: AgentMessage) => (
-    message.content.trim().length === 0 &&
-    message.transientContent.trim().length === 0 &&
-    message.reasoningContent.trim().length === 0
-);
-
-const visibleAgentContent = (message: AgentMessage) => {
-    const normalizedContent = message.content.trimStart().startsWith(IMMEDIATE_FEEDBACK_TEXT)
-        ? message.content.trimStart().slice(IMMEDIATE_FEEDBACK_TEXT.length).trimStart()
-        : message.content;
-    return normalizedContent || message.transientContent;
-};
 
 interface ActiveChatAreaProps extends ChatAreaProps {
     activeTask: Task;
@@ -244,8 +233,6 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
         attachedFiles,
         setAttachedFiles,
         setCurrentTranscript,
-        clearCurrentTranscript,
-        clearAttachedFiles,
     } = useSession();
 
     const { t } = useLanguage();
@@ -253,6 +240,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
     const [inputValue, setInputValue] = useState('');
     const [messages, setMessages] = useState<ChatMessage[]>(() => currentTranscript.map(fromSnapshotMessage));
     const [isStreaming, setIsStreaming] = useState(false);
+    const [isStreamReconnecting, setIsStreamReconnecting] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
     const [runReason, setRunReason] = useState<'completed' | 'stopped' | 'error' | null>(null);
@@ -270,17 +258,16 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
     const chatContainerRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const streamHandleRef = useRef<ChatStreamHandle | null>(null);
+    const streamHandleRef = useRef<RuntimeChatHandle | null>(null);
     const isRestoringRef = useRef(false);
 
     useEffect(() => {
         onUpdateToolsRef.current = onUpdateTools;
     }, [onUpdateTools]);
 
-    useEffect(() => {
-        isRestoringRef.current = true;
-        currentSessionIdRef.current = currentSession.id;
-        const restoredMessages = currentTranscript.map(fromSnapshotMessage);
+    /** Replace the rendered conversation with a server snapshot and rebuild the live buffers from it. */
+    const replaceWithSnapshot = useCallback((snapshot: SessionSnapshotMessage[]) => {
+        const restoredMessages = snapshot.map(fromSnapshotMessage);
         setMessages(restoredMessages);
         activeAgentMessageIdRef.current = null;
         pendingAgentMessageIdRef.current = null;
@@ -296,13 +283,59 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                 };
             }
         });
+    }, []);
+
+    /**
+     * Live events were lost (the stream fell behind the server's buffer). Reload
+     * what the server has committed; the message still streaming is only
+     * complete once committed, so the caller reloads again when the run ends.
+     */
+    const resyncFromServer = useCallback(async (sessionId: string) => {
+        try {
+            const snapshot = await getTranscriptViaRuntime(sessionId);
+            if (currentSessionIdRef.current === sessionId) replaceWithSnapshot(snapshot);
+        } catch (error) {
+            console.error('Failed to resynchronize the session transcript', error);
+        }
+    }, [replaceWithSnapshot]);
+
+    useEffect(() => {
+        // Stop following the previous session's run; it keeps running on the server.
+        streamHandleRef.current?.detach();
+        streamHandleRef.current = null;
+        isRestoringRef.current = true;
+        currentSessionIdRef.current = currentSession.id;
+        replaceWithSnapshot(currentTranscript);
         setIsStreaming(false);
+        setIsStreamReconnecting(false);
         setRunReason(null);
         setPendingClarification(null);
         setClarificationInput('');
         setIsSubmittingClarification(false);
         onUpdateToolsRef.current?.([]);
-    }, [currentSession.id]);
+
+        // A run may still be going (or waiting on a clarification): resume following it.
+        const sessionId = currentSession.id;
+        let superseded = false;
+        void getSessionStateViaRuntime(sessionId).then((state) => {
+            if (superseded || currentSessionIdRef.current !== sessionId || streamHandleRef.current) return;
+            if (state.pendingClarification) {
+                setPendingClarification({
+                    clarification_id: state.pendingClarification.clarificationId,
+                    question: state.pendingClarification.question,
+                    options: state.pendingClarification.options,
+                });
+            }
+            if (!state.inProgressRun) return;
+            const runId = state.inProgressRun.runId;
+            replaceWithSnapshot(state.messages);
+            setIsStreaming(true);
+            followRun(sessionId, (onEvent, onError, onFinish, streamSessionId, stream) => (
+                attachRunViaRuntime(runId, state.eventSequence, onEvent, onError, onFinish, streamSessionId, stream)
+            ), true);
+        }).catch((error) => console.error('Failed to read the session state', error));
+        return () => { superseded = true; };
+    }, [currentSession.id, replaceWithSnapshot]);
 
     useEffect(() => {
         if (isRestoringRef.current) {
@@ -397,8 +430,12 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
         };
         setMessages((prev) => {
             const index = prev.findIndex((msg) => msg.role === 'agent' && msg.messageId === messageId);
+            const empty = isAgentMessageEmpty(snapshot);
             if (index === -1) {
-                return [...prev, snapshot];
+                return empty ? prev : [...prev, snapshot];
+            }
+            if (empty) {
+                return prev.filter((msg) => !(msg.role === 'agent' && msg.messageId === messageId));
             }
             const next = [...prev];
             next[index] = snapshot;
@@ -428,7 +465,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
     const handleStop = async () => {
         if (!isStreaming) return;
         try {
-            await stopAgentViaRuntime();
+            await stopAgentViaRuntime(currentSession.id);
         } catch (err) {
             console.error('Failed to stop agent:', err);
         }
@@ -493,7 +530,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
         if (isStreaming) {
             flushAllBuffers();
             try {
-                await steerAgentViaRuntime(content);
+                await steerAgentViaRuntime(content, currentSession.id);
             } catch (err) {
                 console.error('Failed to steer agent:', err);
             }
@@ -509,6 +546,15 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
         promoteStage(pendingAgentMessageIdRef.current, 'sent');
         flushBufferedMessage(pendingAgentMessageIdRef.current);
 
+        followRun(currentSession.id, (onEvent, onError, onFinish, sessionId, stream) => sendChatViaRuntime(content, onEvent, onError, onFinish, sessionId, stream));
+    };
+
+    /**
+     * Streams one run into the conversation: a new prompt, or a run that was
+     * already running when the session was opened. `lostEvents` means the
+     * live view starts incomplete, so the transcript is reloaded when it ends.
+     */
+    const followRun = (runSessionId: string, start: RunStreamStarter, lostEvents = false) => {
         let lastUpdateTime = Date.now();
         let flushTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -533,8 +579,8 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
             }
         };
 
-        streamHandleRef.current = await sendChatViaRuntime(
-            content,
+        let streamLostEvents = lostEvents;
+        streamHandleRef.current = start(
             (event: SSEEvent) => {
                 if (event.session_id && event.session_id !== currentSessionIdRef.current) {
                     return;
@@ -646,7 +692,9 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                     return;
                 }
 
-                const targetMessageId = 'message_id' in event ? event.message_id : activeAgentMessageIdRef.current;
+                const targetMessageId = ('message_id' in event && event.message_id)
+                    ? event.message_id
+                    : (activeAgentMessageIdRef.current || pendingAgentMessageIdRef.current);
                 if (!targetMessageId) return;
 
                 const message = ensureBufferedAgentMessage(targetMessageId);
@@ -705,6 +753,18 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                         status: event.phase === 'done' ? 'done' : event.phase === 'error' ? 'error' : 'running',
                         progressText: `${phaseText[event.phase]}: ${event.name}`,
                     };
+                    scheduleFlush(targetMessageId, true);
+                    return;
+                }
+
+                if (event.type === 'subagent_progress') {
+                    const existing = message.toolCallsById[event.tool_call_id] || {
+                        toolCallId: event.tool_call_id,
+                        name: event.name,
+                        arguments: {},
+                        status: 'running' as const,
+                    };
+                    message.toolCallsById[event.tool_call_id] = { ...existing, subagentChildren: event.children };
                     scheduleFlush(targetMessageId, true);
                     return;
                 }
@@ -786,22 +846,10 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                 }
 
                 if (event.type === 'tool_result') {
-                    const existing = message.toolCallsById[event.tool_call_id] || {
-                        toolCallId: event.tool_call_id,
-                        name: event.name,
-                        arguments: event.arguments || {},
-                        status: 'done' as const,
-                    };
-                    message.toolCallsById[event.tool_call_id] = {
-                        ...existing,
-                        name: event.name,
-                        arguments: event.arguments ?? existing.arguments,
-                        result: event.content,
-                        details: event.details,
-                        isError: event.is_error,
-                        widgetId: event.widget_id ?? existing.widgetId,
-                        status: event.is_error ? 'error' : 'done',
-                    };
+                    message.toolCallsById[event.tool_call_id] = mergeToolResultState(
+                        message.toolCallsById[event.tool_call_id],
+                        event,
+                    );
                     scheduleFlush(targetMessageId, true);
                     return;
                 }
@@ -846,29 +894,18 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                 activeAgentMessageIdRef.current = null;
                 pendingAgentMessageIdRef.current = null;
                 streamHandleRef.current = null;
+                setIsStreamReconnecting(false);
+                if (streamLostEvents) void resyncFromServer(runSessionId);
+            },
+            runSessionId,
+            {
+                onResync: () => {
+                    streamLostEvents = true;
+                    void resyncFromServer(runSessionId);
+                },
+                onConnectionChange: (state) => setIsStreamReconnecting(state === 'reconnecting'),
             },
         );
-    };
-
-    const handleClearSession = async () => {
-        if (isStreaming) return;
-        setMessages([]);
-        clearCurrentTranscript(currentSessionIdRef.current);
-        clearAttachedFiles();
-        activeAgentMessageIdRef.current = null;
-        pendingAgentMessageIdRef.current = null;
-        agentBufferRef.current = {};
-        onUpdateToolsRef.current?.([]);
-        setRunReason(null);
-        setPendingClarification(null);
-        setClarificationInput('');
-        try {
-            await clearSessionViaRuntime(currentSession.id);
-            window.dispatchEvent(new CustomEvent('workspace_updated'));
-            window.dispatchEvent(new CustomEvent('session_cleared', { detail: { oldId: currentSession.id } }));
-        } catch (e) {
-            console.error('Failed to clear session on backend', e);
-        }
     };
 
     const handlePrimaryAction = async () => {
@@ -893,7 +930,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
             };
             setMessages((prev) => [...prev, userMsg]);
             setClarificationInput('');
-            await answerClarificationViaRuntime(pendingClarification.clarification_id, answer);
+            await answerClarificationViaRuntime(pendingClarification.clarification_id, answer, currentSession.id);
         } catch (err) {
             console.error('Failed to answer clarification:', err);
         } finally {
@@ -930,7 +967,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
     const latestAgentMessage = [...messages].reverse().find((message): message is AgentMessage => message.role === 'agent');
     const liveStatus = runReason === 'error'
         ? `${t('chat.requestFailed')} ${t('chat.retryHint')}`
-        : latestAgentMessage?.statusNotice || latestAgentMessage?.retryNotice || (semanticBlocked && messages.length === 0 ? t('chat.semanticWaiting') : '');
+        : (isStreaming && isStreamReconnecting ? t('chat.streamReconnecting') : '') || latestAgentMessage?.statusNotice || latestAgentMessage?.retryNotice || (semanticBlocked && messages.length === 0 ? t('chat.semanticWaiting') : '');
 
     return (
         <main id="main-content" className="chat-area" data-semantic-blocked={semanticBlocked || undefined} aria-labelledby="chat-page-title">
@@ -969,20 +1006,10 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                         onClick={onToggleToolPanel}
                         aria-pressed={isToolPanelOpen}
                         disabled={!hasTools && !isToolPanelOpen}
-                        title={isToolPanelOpen ? t('chat.closeDetails') : t('chat.openDetails')}
                         aria-label={isToolPanelOpen ? t('chat.closeDetails') : t('chat.openDetails')}
                     >
-                        <ListTree size={14} aria-hidden="true" />
-                        <span>{t('chat.details')}</span>
-                    </button>
-                    <button
-                        type="button"
-                        className={`chat-clear-btn ${messages.length === 0 ? 'is-muted' : ''}`}
-                        onClick={handleClearSession}
-                        disabled={isStreaming}
-                    >
-                        <Trash2 size={14} />
-                        <span>{t('chat.clearChat')}</span>
+                        <RiInfoCard size={17} aria-hidden="true" />
+                        <span className="header-icon-label" aria-hidden="true">{t('chat.details')}</span>
                     </button>
                 </div>
             </header>
@@ -1001,7 +1028,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                     </div>
                 )}
 
-                {messages.map((msg) => (
+                {messages.filter((msg) => msg.role === 'user' || !isAgentMessageEmpty(msg)).map((msg) => (
                     <React.Fragment key={msg.id}>
                         {msg.role === 'user' ? (
                             <div className="message user">
@@ -1048,6 +1075,12 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                                         </div>
                                     )}
 
+                                    {isStreaming && isStreamReconnecting && msg === latestAgentMessage && (
+                                        <div className="agent-thinking-line">
+                                            <span>{t('chat.streamReconnecting')}</span>
+                                        </div>
+                                    )}
+
                                     {Object.values(msg.widgetsById).map((widget) => (
                                         <WidgetRenderer
                                             key={widget.tool_call_id || widget.widget_id}
@@ -1062,18 +1095,20 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                                     {(Object.values(msg.toolCallsById).length > 0 || msg.skillActivations.length > 0) && (
                                         <div className="agent-hint-list">
                                             {Object.values(msg.toolCallsById).map((tool) => (
-                                                <button
-                                                    type="button"
-                                                    key={tool.toolCallId}
-                                                    className={`agent-hint-line ${tool.status === 'error' ? 'is-error' : ''}`}
-                                                    onClick={onOpenToolPanel}
-                                                    disabled={!onOpenToolPanel}
-                                                    aria-label={getToolHintLabel(tool, t)}
-                                                    style={{ cursor: onOpenToolPanel ? 'pointer' : 'default', background: 'none', border: 'none', padding: 0, textAlign: 'left' }}
-                                                >
-                                                    <span className="agent-hint-dot" aria-hidden="true" />
-                                                    <span>{getToolHintLabel(tool, t)}</span>
-                                                </button>
+                                                <React.Fragment key={tool.toolCallId}>
+                                                    <button
+                                                        type="button"
+                                                        className={`agent-hint-line ${tool.status === 'error' ? 'is-error' : ''}`}
+                                                        onClick={onOpenToolPanel}
+                                                        disabled={!onOpenToolPanel}
+                                                        aria-label={getToolHintLabel(tool, t)}
+                                                        style={{ cursor: onOpenToolPanel ? 'pointer' : 'default', background: 'none', border: 'none', padding: 0, textAlign: 'left' }}
+                                                    >
+                                                        <span className="agent-hint-dot" aria-hidden="true" />
+                                                        <span>{getToolHintLabel(tool, t)}</span>
+                                                    </button>
+                                                    <SubagentProgressLines progress={subagentChildrenOf(tool)} />
+                                                </React.Fragment>
                                             ))}
                                             {msg.skillActivations.map((skill) => (
                                                 <div

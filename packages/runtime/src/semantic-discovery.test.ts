@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { DataAgentRuntime } from "./index.js";
+import { DataAgentRuntime } from "./protocol.js";
 
 /**
  * Semantic source auto-discovery (#29 UX): the runtime scans both canonical
@@ -43,7 +43,7 @@ describe("semantic.sources.list dual-layout discovery", () => {
   it("falls back to metadata-store sources when no project dir is configured", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "semantic-meta-"));
     try {
-      const { MetadataStore } = await import("./index.js");
+      const { MetadataStore } = await import("./metadata.js");
       const metadata = new MetadataStore(path.join(root, "meta.db"));
       await metadata.upsertSemanticSource("default-mysql", "manual_model", { name: "manual_model" });
       const runtime = new DataAgentRuntime({ metadata });

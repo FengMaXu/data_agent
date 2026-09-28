@@ -1,3 +1,8 @@
+# Local secrets: keep only the template under version control
+/.env
+/.env.*
+!/.env.example
+
 # JavaScript dependencies
 node_modules/
 
@@ -18,6 +23,9 @@ data_agent.log
 
 # Workspace and temporary outputs
 workspace/
+/eval_results_spider2/
+/evaluations/spider2/config.local.json
+/evaluations/spider2/.env.local
 test_output.txt
 *.png
 *.mp4
@@ -30,6 +38,10 @@ test_output.txt
 
 # Generated frontend packages
 /frontend/release-final/
+
+# Generated Electron bundles (scripts/build-distribution.mjs)
+/frontend/electron-host/
+/frontend/electron/preload.cjs
 
 # Test-generated workspaces and retained pytest output
 /.dashboard_grouped_workspace/
@@ -77,3 +89,8 @@ frontend/release2/
 frontend/rel-*/
 .tmp/
 *.tsbuildinfo
+
+# Local experiment snapshots, scratch work and reference papers
+.artifacts/
+scratch/
+/*.pdf

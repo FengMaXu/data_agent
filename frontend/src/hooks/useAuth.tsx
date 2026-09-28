@@ -20,8 +20,9 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-    const [status, setStatus] = useState<AuthContextType['status']>('checking');
-    const [user, setUser] = useState<AuthUser | null>(null);
+    const isDesktop = typeof window !== 'undefined' && Boolean(window.dataAgentRuntime);
+    const [status, setStatus] = useState<AuthContextType['status']>(() => isDesktop ? 'authenticated' : 'checking');
+    const [user, setUser] = useState<AuthUser | null>(() => isDesktop ? { id: 'local', username: 'local', display_name: 'Local user' } : null);
     const [registrationOpen, setRegistrationOpen] = useState(false);
 
     const refresh = useCallback(async () => {
@@ -36,8 +37,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, []);
 
     useEffect(() => {
-        void refresh();
-    }, [refresh]);
+        if (isDesktop) return;
+        const timer = window.setTimeout(() => { void refresh(); }, 0);
+        return () => window.clearTimeout(timer);
+    }, [isDesktop, refresh]);
 
     const login = useCallback(async (username: string, password: string) => {
         const payload = await apiLogin(username, password);
@@ -53,10 +56,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const logout = useCallback(async () => {
+        if (isDesktop) return;
         await apiLogout();
         setUser(null);
         setStatus('anonymous');
-    }, []);
+    }, [isDesktop]);
 
     const value = useMemo(() => ({
         status,

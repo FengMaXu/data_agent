@@ -11,6 +11,7 @@ import { API_BASE_URL, getAuthToken } from '../api/client';
 const INTERNAL_PREFIXES = ['/workspace/', '/api/'];
 const SESSION_RELATIVE_WORKSPACE_ROOTS = ['data', 'output', 'dashboards', 'reports'];
 const WORKSPACE_FILE_ENDPOINT = '/workspace/files/';
+const PUBLICATION_ENDPOINT = '/api/runtime/publications/';
 
 export function isInternalApiPath(href: string | undefined): href is string {
     return !!href && INTERNAL_PREFIXES.some((prefix) => href.startsWith(prefix));
@@ -39,6 +40,16 @@ function toAbsoluteApiUrl(href: string): URL {
 function isWorkspaceFileEndpoint(pathname: string): boolean {
     return pathname.endsWith(`${WORKSPACE_FILE_ENDPOINT}download`)
         || pathname.endsWith(`${WORKSPACE_FILE_ENDPOINT}preview`);
+}
+
+function isDesktopRuntime(): boolean {
+    return typeof window !== 'undefined' && Boolean(window.dataAgentRuntime);
+}
+
+function buildDesktopWorkspaceUrl(endpoint: 'download' | 'preview', path: string): string {
+    const url = new URL(`data-agent://workspace${WORKSPACE_FILE_ENDPOINT}${endpoint}`);
+    url.searchParams.set('path', path);
+    return url.toString();
 }
 
 function workspaceFilePath(url: URL): string {
@@ -80,7 +91,8 @@ function resolveRelativeWorkspacePath(value: string, sourceUrl?: string, current
     return normalizePathSegments([...basePath, ...assetParts]);
 }
 
-function buildWorkspaceFileUrl(_endpoint: 'download' | 'preview', path: string): string {
+function buildWorkspaceFileUrl(endpoint: 'download' | 'preview', path: string): string {
+    if (isDesktopRuntime()) return buildDesktopWorkspaceUrl(endpoint, path);
     const url = new URL(`${API_BASE_URL}/api/workspace/download`, API_BASE_URL || window.location.origin);
     url.searchParams.set('path', path);
     return appendAuthTokenWithoutDuplicate(url);
@@ -95,6 +107,23 @@ export function resolveInternalUrl(href: string | undefined, currentSessionId?: 
 
     if (isInternalApiPath(href)) {
         const normalizedHref = normalizeWorkspaceDownloadPath(href, currentSessionId);
+        if (isDesktopRuntime()) {
+            try {
+                const url = new URL(normalizedHref, 'http://data-agent.local');
+                if (isWorkspaceFileEndpoint(url.pathname)) {
+                    const endpoint = url.pathname.endsWith('/preview') ? 'preview' : 'download';
+                    return buildDesktopWorkspaceUrl(endpoint, workspaceFilePath(url));
+                }
+                if (url.pathname.startsWith(PUBLICATION_ENDPOINT)) {
+                    const publicationUrl = new URL(`data-agent://publication${url.pathname.slice('/api'.length)}`);
+                    const sessionId = url.searchParams.get('session_id') || currentSessionId;
+                    if (sessionId) publicationUrl.searchParams.set('session_id', sessionId);
+                    return publicationUrl.toString();
+                }
+            } catch {
+                // Fall through to the legacy URL for non-workspace paths.
+            }
+        }
         return appendAuthToken(`${API_BASE_URL}${normalizedHref}`);
     }
 
@@ -116,6 +145,7 @@ export function resolveWorkspaceDownloadUrl(href: string | undefined, currentSes
             return resolveInternalUrl(value, currentSessionId);
         }
         const normalizedPath = normalizeWorkspacePath(workspaceFilePath(url), currentSessionId);
+        if (isDesktopRuntime()) return buildDesktopWorkspaceUrl('download', normalizedPath);
         url.pathname = url.pathname.replace(/\/(?:download|preview)$/, '/download');
         url.searchParams.set('path', normalizedPath);
         return appendAuthTokenWithoutDuplicate(url);
@@ -139,9 +169,12 @@ export function resolveWorkspacePreviewUrl(href: string | undefined, currentSess
             return resolveInternalUrl(value, currentSessionId);
         }
         const normalizedPath = normalizeWorkspacePath(workspaceFilePath(url), currentSessionId);
-        url.pathname = url.pathname.replace(/\/download$/, '/preview');
-        url.searchParams.set('path', normalizedPath);
-        return appendAuthTokenWithoutDuplicate(url);
+        if (isDesktopRuntime()) return buildDesktopWorkspaceUrl('preview', normalizedPath);
+        // The web server intentionally exposes one authenticated byte endpoint
+        // for both downloads and previews. Do not leave `/workspace/files/preview`
+        // in the browser URL: that path is handled by the SPA fallback and
+        // returns index.html instead of the requested workspace file.
+        return buildWorkspaceFileUrl('preview', normalizedPath);
     } catch {
         return resolveInternalUrl(value, currentSessionId);
     }

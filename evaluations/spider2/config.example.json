@@ -1,0 +1,130 @@
+{
+  "spider2Repo": "C:/data-agent-eval/Spider2",
+  "runsRoot": "C:/data-agent-eval/runs",
+  "pythonExecutable": "python",
+  "localDatabasePackSha256": null,
+  "concurrency": 3,
+  "specFeedback": false,
+  "scoreWorkers": 4,
+  "answering": {
+    "semanticSpecMode": "required",
+    "fanout": { "enabled": true }
+  },
+  "assurance": {
+    "mode": "shadow",
+    "reviewerModel": "gpt-4o",
+    "sqlglotExecutable": "python",
+    "reviewerLlm": null,
+    "plannerLlm": null,
+    "reviewerPromptVersion": "5",
+    "reviewPolicyVersion": "2",
+    "hardConstraintAdmissionPolicy": "2",
+    "reviewCoverageSchemaVersion": "4",
+    "gatePolicyVersion": "1",
+    "gateApplicabilityVersion": "2",
+    "probeTemplateVersion": "1",
+    "evidenceAdmissionPolicyVersion": "1",
+    "planner": true,
+    "reviewer": { "enabled": false },
+    "shadowDelivery": "publish_with_disagreement",
+    "hooks": {
+      "informOnQuery": true,
+      "informOnUnresolvedHypotheses": false,
+      "interpretationsOnAnomaly": true,
+      "integrityBlocks": true,
+      "terminateAfterExport": true
+    },
+    "detectors": {
+      "enabled": true,
+      "tierA": ["join_fanout", "unauthorized_filter", "intermediate_candidate", "empty_after_filter"],
+      "tierB": ["count_distinct_divergence", "entity_population_mismatch", "cross_period_set_mismatch", "physical_bound_violation", "null_like_member_in_filter", "shape_mismatch", "fingerprint_unchanged"],
+      "disabled": []
+    },
+    "interpretations": {
+      "triggerTiers": ["A"],
+      "maxCyclesPerTask": 1,
+      "minRemainingTurns": 6,
+      "minRemainingToolCalls": 10
+    },
+    "dirtyDataAction": "multi_candidate",
+    "delivery": "deliver_with_disclosure",
+    "fewshot": true,
+    "profile": {
+      "schema": { "enabled": true, "cacheTtlHours": 24 },
+      "candidate": { "enabled": true, "p99SampleRows": 200000 }
+    },
+    "enumerator": {
+      "model": "gpt-4o-mini",
+      "trigger": "on_anomaly",
+      "cacheKey": ["questionHash", "slot", "detector"]
+    },
+    "includeResultRows": true,
+    "maxResultRows": 2000,
+    "maxResultBytes": 262144,
+    "maxNumericRows": 10000,
+    "calibration": {
+      "eligible": false,
+      "gateEligibility": { "g1_shape": false, "g2_population": false, "g3_fanout": false, "g4_candidate": false }
+    }
+  },
+  "llm": {
+    "provider": "openai",
+    "model": "gpt-4o",
+    "apiKeyEnv": "OPENAI_API_KEY",
+    "baseUrlEnv": "OPENAI_BASE_URL",
+    "apiFormat": "responses"
+  },
+  "modelProfiles": {
+    "deepseek": {
+      "llm": {
+        "provider": "openai",
+        "model": "deepseek-chat",
+        "apiKeyEnv": "DEEPSEEK_API_KEY",
+        "baseUrlEnv": "DEEPSEEK_BASE_URL",
+        "apiFormat": "chat",
+        "reasoning": true,
+        "maxTokens": 32768,
+        "thinkingLevel": "high",
+        "thinkingLevelMap": {
+          "high": "high"
+        }
+      }
+    },
+    "gpt-5.5": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5.5",
+        "apiKeyEnv": "GPT55_API_KEY",
+        "baseUrlEnv": "GPT55_BASE_URL",
+        "apiFormat": "chat"
+      }
+    },
+    "gpt-6-luna": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-6-luna",
+        "apiKeyEnv": "DEROUTER_API_KEY",
+        "baseUrlEnv": "DEROUTER_BASE_URL",
+        "apiFormat": "chat"
+      }
+    }
+  },
+  "limits": {
+    "timeoutMs": 480000,
+    "providerTimeoutMs": 30000,
+    "maxTurns": 30,
+    "maxToolCalls": 50,
+    "maxExploratoryQueries": null
+  },
+  "backends": {
+    "sqlite": {
+      "databaseDir": "C:/data-agent-eval/Spider2/spider2-lite/resource/databases"
+    },
+    "bigquery": {
+      "mcp": null
+    },
+    "snowflake": {
+      "mcp": null
+    }
+  }
+}

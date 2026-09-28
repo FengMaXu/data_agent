@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "frozenAt": "2026-09-08T04:10:00Z",
+  "description": "Phase-2 manual mechanism holdout; not Spider2 Gold and not a claim of natural-language recall.",
+  "cases": [
+    {
+      "name": "customer totals are averaged without order-count weighting",
+      "decision": { "decisionId": "weighting", "facetPaths": ["/metric"], "materiality": "material", "alternatives": [
+        { "statement": "order weighted", "assumptionVector": { "unsupportedPopulationExclusions": 0, "unsupportedAmountComponentAdditions": 0, "unsupportedWeightingRules": 1, "unsupportedDenominatorRules": 0, "otherUnsupportedAssumptions": 0 } },
+        { "statement": "customer equal", "assumptionVector": { "unsupportedPopulationExclusions": 0, "unsupportedAmountComponentAdditions": 0, "unsupportedWeightingRules": 0, "unsupportedDenominatorRules": 0, "otherUnsupportedAssumptions": 0 } }
+      ] }, "evidence": [], "expectedStatement": "customer equal"
+    },
+    {
+      "name": "base amount excludes additional tax",
+      "decision": { "decisionId": "tax", "facetPaths": ["/metric"], "materiality": "material", "alternatives": [
+        { "statement": "include tax", "assumptionVector": { "unsupportedPopulationExclusions": 0, "unsupportedAmountComponentAdditions": 1, "unsupportedWeightingRules": 0, "unsupportedDenominatorRules": 0, "otherUnsupportedAssumptions": 0 } },
+        { "statement": "exclude tax", "assumptionVector": { "unsupportedPopulationExclusions": 0, "unsupportedAmountComponentAdditions": 0, "unsupportedWeightingRules": 0, "unsupportedDenominatorRules": 0, "otherUnsupportedAssumptions": 0 } }
+      ] }, "evidence": [], "expectedStatement": "exclude tax"
+    },
+    {
+      "name": "base amount excludes additional freight",
+      "decision": { "decisionId": "freight", "facetPaths": ["/metric"], "materiality": "material", "alternatives": [
+        { "statement": "include freight", "assumptionVector": { "unsupportedPopulationExclusions": 0, "unsupportedAmountComponentAdditions": 1, "unsupportedWeightingRules": 0, "unsupportedDenominatorRules": 0, "otherUnsupportedAssumptions": 0 } },
+        { "statement": "exclude freight", "assumptionVector": { "unsupportedPopulationExclusions": 0, "unsupportedAmountComponentAdditions": 0, "unsupportedWeightingRules": 0, "unsupportedDenominatorRules": 0, "otherUnsupportedAssumptions": 0 } }
+      ] }, "evidence": [], "expectedStatement": "exclude freight"
+    },
+    {
+      "name": "request time is used without payment-time substitution",
+      "decision": { "decisionId": "time", "facetPaths": ["/time"], "materiality": "material", "alternatives": [
+        { "statement": "payment time", "assumptionVector": { "unsupportedPopulationExclusions": 0, "unsupportedAmountComponentAdditions": 0, "unsupportedWeightingRules": 0, "unsupportedDenominatorRules": 0, "otherUnsupportedAssumptions": 1 } },
+        { "statement": "order time", "assumptionVector": { "unsupportedPopulationExclusions": 0, "unsupportedAmountComponentAdditions": 0, "unsupportedWeightingRules": 0, "unsupportedDenominatorRules": 0, "otherUnsupportedAssumptions": 0 } }
+      ] }, "evidence": [], "expectedStatement": "order time"
+    },
+    {
+      "name": "NTILE row buckets do not add a boundary tie rule",
+      "decision": { "decisionId": "tie", "facetPaths": ["/ranking"], "materiality": "material", "alternatives": [
+        { "statement": "preserve boundary ties", "assumptionVector": { "unsupportedPopulationExclusions": 0, "unsupportedAmountComponentAdditions": 0, "unsupportedWeightingRules": 0, "unsupportedDenominatorRules": 0, "otherUnsupportedAssumptions": 1 } },
+        { "statement": "NTILE row buckets", "assumptionVector": { "unsupportedPopulationExclusions": 0, "unsupportedAmountComponentAdditions": 0, "unsupportedWeightingRules": 0, "unsupportedDenominatorRules": 0, "otherUnsupportedAssumptions": 0 } }
+      ] }, "evidence": [], "expectedStatement": "NTILE row buckets"
+    },
+    {
+      "name": "all qualified interpretations are rejected",
+      "decision": { "decisionId": "none", "facetPaths": ["/metric"], "materiality": "material", "alternatives": [
+        { "statement": "include tax", "refutingEvidenceRefs": ["rule-a"], "assumptionVector": { "unsupportedPopulationExclusions": 0, "unsupportedAmountComponentAdditions": 0, "unsupportedWeightingRules": 0, "unsupportedDenominatorRules": 0, "otherUnsupportedAssumptions": 0 } },
+        { "statement": "exclude tax", "refutingEvidenceRefs": ["rule-b"], "assumptionVector": { "unsupportedPopulationExclusions": 0, "unsupportedAmountComponentAdditions": 0, "unsupportedWeightingRules": 0, "unsupportedDenominatorRules": 0, "otherUnsupportedAssumptions": 0 } }
+      ] }, "evidence": [
+        { "evidenceId": "rule-a", "authority": "task_document", "result": "refuted", "applicable": true },
+        { "evidenceId": "rule-b", "authority": "task_document", "result": "refuted", "applicable": true }
+      ], "expectedState": "no_eligible_alternative"
+    }
+  ]
+}

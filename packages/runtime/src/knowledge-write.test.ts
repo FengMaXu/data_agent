@@ -12,9 +12,14 @@ describe("KnowledgeWriter", () => {
     const writer = new KnowledgeWriter(root);
     await writer.write("append_learning", "doc/learning.md", "wrong join caused duplicate rows");
     expect(await readFile(join(root, "doc", "learning.md"), "utf8")).toContain("duplicate rows");
+    const learningBlock = "### 错误: duplicate join\n\n**说明**: remove repeated business entities before joining";
+    await writer.write("append_learning", "doc/learning.md", learningBlock);
+    const duplicate = await writer.write("append_learning", "doc/learning.md", learningBlock.replace(/\n/g, "\r\n"));
+    expect(duplicate.bytesWritten).toBe(0);
+    expect((await readFile(join(root, "doc", "learning.md"), "utf8")).split("duplicate join")).toHaveLength(2);
     await writer.write("write_draft", "drafts/note.md", "draft text");
     expect(await readFile(join(root, "drafts", "note.md"), "utf8")).toBe("draft text");
-    expect(await readAuditLog(writer.auditPath)).toHaveLength(2);
+    expect(await readAuditLog(writer.auditPath)).toHaveLength(4);
     await rm(root, { recursive: true, force: true });
   });
 

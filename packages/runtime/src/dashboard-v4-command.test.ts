@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { DataAgentRuntime } from "./index.js";
+import { DataAgentRuntime } from "./protocol.js";
 import { WorkspaceStore } from "./workspace.js";
 
 const semanticSpec = {

@@ -12,6 +12,19 @@ export class KnowledgeWriteDeniedError extends Error {
 
 export interface KnowledgeWriteResult { operation: KnowledgeWriteOperation; path: string; bytesWritten: number }
 
+function normalizeLearning(value: string): string {
+  return value.replace(/\r\n/g, "\n").replace(/\s+/g, " ").trim();
+}
+
+function learningAlreadyExists(previous: string, candidate: string): boolean {
+  const normalizedCandidate = normalizeLearning(candidate);
+  if (!normalizedCandidate) return false;
+  if (previous.includes(candidate.trim())) return true;
+  return previous
+    .split(/\n(?=### )|\n---+\s*\n/)
+    .some((block) => normalizeLearning(block) === normalizedCandidate);
+}
+
 export class KnowledgeWriter {
   readonly root: string;
   private readonly auditPath: string;
@@ -29,6 +42,10 @@ export class KnowledgeWriter {
     await mkdir(path.dirname(target), { recursive: true });
     if (operation === "append_learning") {
       let previous = ""; try { previous = await readFile(target, "utf8"); } catch { /* new file */ }
+      if (learningAlreadyExists(previous, content)) {
+        await this.audit(operation, relativePath);
+        return { operation, path: relativePath, bytesWritten: 0 };
+      }
       await writeFile(target, previous + (previous.endsWith("\n") || previous === "" ? "" : "\n") + content + "\n", "utf8");
       await this.audit(operation, relativePath);
       return { operation, path: relativePath, bytesWritten: content.length };

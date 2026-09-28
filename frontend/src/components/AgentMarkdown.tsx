@@ -24,6 +24,14 @@ const PREVIEWABLE_FILE_TYPES = new Set([
     'csv', 'gif', 'htm', 'html', 'jpeg', 'jpg', 'json', 'md', 'markdown', 'png', 'svg', 'txt', 'webp',
 ]);
 
+const PUBLICATION_PATH = /\/api\/runtime\/publications\/([^/?#]+)/;
+
+/** Publications are always served as CSV, but their URL carries no extension. */
+function getPublicationFileName(href: string | undefined): string {
+    const match = href?.match(PUBLICATION_PATH);
+    return match ? `${decodeURIComponent(match[1])}.csv` : '';
+}
+
 function getWorkspaceDownloadPath(href: string | undefined): string {
     if (!href) return '';
     try {
@@ -57,7 +65,72 @@ function getImagePreviewType(src: string | undefined): string {
     return sourceName.split('.').pop()?.toLowerCase() || 'png';
 }
 
-const createMarkdownComponents = (
+function renderFileActions(
+    href: string,
+    children: React.ReactNode,
+    currentSessionId: string | undefined,
+    openPreview: ((url: string, title: string, fileType: string) => void) | undefined,
+    t: ((key: string) => string) | undefined,
+    linkProps: React.AnchorHTMLAttributes<HTMLAnchorElement> = {},
+): React.ReactElement {
+    const resolved = resolveWorkspaceDownloadUrl(href, currentSessionId);
+    const previewUrl = resolveWorkspacePreviewUrl(href, currentSessionId);
+    const filePath = getPublicationFileName(href) || getWorkspaceDownloadPath(resolved) || href;
+    const fileType = getFileTypeFromPath(filePath);
+    const canPreview = PREVIEWABLE_FILE_TYPES.has(fileType);
+    const title = getFileTitle(filePath, children);
+    const previewLabel = t?.('widgets.preview') || '查看';
+    const downloadLabel = t?.('widgets.download') || '下载';
+    const triggerDownload = (event: React.MouseEvent<HTMLElement>) => {
+        event.preventDefault();
+        const link = document.createElement('a');
+        link.href = resolved;
+        link.download = title;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    };
+
+    return (
+        <span className="agent-file-action-row">
+            <a
+                href={resolved}
+                download={title}
+                className="agent-file-label agent-file-label-link"
+                {...linkProps}
+            >
+                {children}
+            </a>
+            <span className="agent-file-actions">
+                {canPreview && openPreview && previewUrl && (
+                    <button
+                        type="button"
+                        className="agent-file-action-btn"
+                        onClick={(event) => {
+                            event.preventDefault();
+                            openPreview(previewUrl, title, fileType);
+                        }}
+                        title={previewLabel}
+                        aria-label={previewLabel}
+                    >
+                        <Eye size={15} strokeWidth={2} />
+                    </button>
+                )}
+                <button
+                    type="button"
+                    className="agent-file-action-btn"
+                    onClick={triggerDownload}
+                    title={downloadLabel}
+                    aria-label={downloadLabel}
+                >
+                    <Download size={15} strokeWidth={2} />
+                </button>
+            </span>
+        </span>
+    );
+}
+
+export const createMarkdownComponents = (
     currentSessionId?: string,
     openPreview?: (url: string, title: string, fileType: string) => void,
     t?: (key: string) => string,
@@ -100,64 +173,17 @@ const createMarkdownComponents = (
             );
         }
 
-        const resolved = resolveWorkspaceDownloadUrl(href, currentSessionId);
-        const previewUrl = resolveWorkspacePreviewUrl(href, currentSessionId);
-        const workspacePath = getWorkspaceDownloadPath(resolved);
-        const fileType = getFileTypeFromPath(workspacePath);
-        const canPreview = PREVIEWABLE_FILE_TYPES.has(fileType);
-        const title = getFileTitle(workspacePath, children);
-        const previewLabel = t?.('widgets.preview') || '查看';
-        const downloadLabel = t?.('widgets.download') || '下载';
-        const triggerDownload = (event: React.MouseEvent<HTMLElement>) => {
-            event.preventDefault();
-            const link = document.createElement('a');
-            link.href = resolved;
-            link.download = title;
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-        };
-        const downloadButton = (
-            <button
-                type="button"
-                className="agent-file-action-btn"
-                onClick={triggerDownload}
-                title={downloadLabel}
-                aria-label={downloadLabel}
-            >
-                <Download size={15} strokeWidth={2} />
-            </button>
-        );
-
-        return (
-            <span className="agent-file-action-row">
-                <a
-                    href={resolved}
-                    download={title}
-                    className="agent-file-label agent-file-label-link"
-                    {...props}
-                >
-                    {children}
-                </a>
-                <span className="agent-file-actions">
-                    {canPreview && openPreview && previewUrl && (
-                        <button
-                            type="button"
-                            className="agent-file-action-btn"
-                            onClick={(event) => {
-                                event.preventDefault();
-                                openPreview(previewUrl, title, fileType);
-                            }}
-                            title={previewLabel}
-                            aria-label={previewLabel}
-                        >
-                            <Eye size={15} strokeWidth={2} />
-                        </button>
-                    )}
-                    {downloadButton}
-                </span>
-            </span>
-        );
+        return renderFileActions(href, children, currentSessionId, openPreview, t, props);
+    },
+    code: ({ className, children, node: _node, ...props }) => {
+        // Agents often name a produced file as inline code (`dashboards/x.html`) rather than a link;
+        // give those the same preview and download actions.
+        const text = typeof children === 'string' ? children.trim() : '';
+        const isInlinePath = !className && text && !text.includes('\n') && isWorkspaceRelativePath(text);
+        if (isInlinePath && PREVIEWABLE_FILE_TYPES.has(getFileTypeFromPath(text))) {
+            return renderFileActions(text, <code>{text}</code>, currentSessionId, openPreview, t);
+        }
+        return <code className={className} {...props}>{children}</code>;
     },
 });
 

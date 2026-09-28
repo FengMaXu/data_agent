@@ -1,6 +1,6 @@
 # Data Agent Frontend
 
-React + Vite 渲染层，通过版本化 envelope 与共享 DataAgentRuntime 通信（Electron IPC 桥或 Fastify Web Host）。
+React + Vite 渲染层，通过版本化 envelope 与共享 DataAgentApplication 通信（Electron IPC 桥或 Fastify Web Host）。
 
 ## 开发启动
 

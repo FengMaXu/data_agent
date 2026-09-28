@@ -186,6 +186,11 @@ const GlobalPreviewModal: React.FC = () => {
         fetch(url, { signal: controller.signal })
             .then(async (response) => {
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const contentType = response.headers.get('content-type')?.split(';', 1)[0].trim().toLowerCase() || '';
+                // A missing preview route commonly falls through to the SPA and
+                // returns index.html. Never feed that HTML shell to a CSV,
+                // Markdown, JSON, or text renderer based only on the filename.
+                if (!isHtml && contentType === 'text/html') throw new Error('PREVIEW_CONTENT_TYPE_MISMATCH');
                 return response.text();
             })
             .then((text) => setFileContent(text))

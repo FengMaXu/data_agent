@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DataAgentRuntime } from "./index.js";
+import { DataAgentRuntime } from "./protocol.js";
 
 const ctx = { userId: "local", host: "electron" as const };
 
