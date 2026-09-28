@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { WorkspaceStore } from "./workspace.js";
-import { compileEChartsOptions, materializeDashboardV3Spec, renderStandaloneDashboardHtml, validateDashboardV3Spec } from "./dashboard-v3.js";
+import { compileEChartsOptions, materializeDashboardV3Spec, renderStandaloneDashboardHtml, resolveEchartsAssetPath, validateDashboardV3Spec } from "./dashboard-v3.js";
 
 const spec = {
   title: "销售看板",
@@ -65,7 +65,45 @@ describe("Dashboard V3", () => {
     expect(html).toContain("__DASHBOARD__");
     expect(html).toContain("销售看板");
     expect(html).toContain("月度销售额");
-    // No network dependency: no external script/image references.
-    expect(html).not.toMatch(/https?:\/\//);
+    // No network dependency: no external script/image references. (The inlined ECharts
+    // build mentions XML namespace and license URLs as plain strings, which load nothing.)
+    expect(html).not.toMatch(/\b(?:src|href)\s*=\s*["']?https?:/i);
+  });
+
+  it("inlines ECharts so charts render without a network", async () => {
+    const html = await renderStandaloneDashboardHtml(spec);
+    expect(resolveEchartsAssetPath()).toMatch(/echarts\.min\.js$/);
+    expect(html).not.toContain("__DATA_AGENT_OFFLINE__");
+    expect(html).toContain("echarts.init(el)");
+    // The library precedes the renderer that calls it.
+    expect(html.indexOf("window.__DASHBOARD__")).toBeGreaterThan(html.indexOf("</script>"));
+    expect(html.length).toBeGreaterThan(500_000);
+  });
+
+  it("falls back to a readable note instead of raw chart config when ECharts is missing", async () => {
+    const root = await mkdtemp(join(tmpdir(), "echarts-"));
+    try {
+      const html = await renderStandaloneDashboardHtml(spec, { echartsAssetPath: join(root, "missing.js") }).catch(() => "");
+      expect(html).toBe("");
+      const offline = await renderStandaloneDashboardHtml(spec, { echartsAssetPath: "" });
+      expect(offline).toContain("__DATA_AGENT_OFFLINE__");
+      expect(offline).toContain("图表组件未加载");
+      expect(offline).not.toContain("JSON.stringify(v.option)");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("keeps a closing script tag inside the library from ending the inline script", async () => {
+    const root = await mkdtemp(join(tmpdir(), "echarts-"));
+    try {
+      const asset = join(root, "echarts.js");
+      await writeFile(asset, 'window.echarts={init:function(){}};var s="</script><b>";');
+      const html = await renderStandaloneDashboardHtml(spec, { echartsAssetPath: asset });
+      expect(html).toContain('var s="<\\/script><b>"');
+      expect(html.match(/<\/script>/g)).toHaveLength(2);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 });

@@ -1,4 +1,7 @@
+declare const __filename: string;
+
 import { readFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import type { WorkspaceStore } from "./workspace.js";
 
 export interface DashboardV3Dataset {
@@ -238,16 +241,45 @@ function safeJson(value: unknown): string {
   return JSON.stringify(value).replaceAll("<", "\\u003c");
 }
 
+const ECHARTS_ASSET = "echarts/dist/echarts.min.js";
+
+/**
+ * Locates the ECharts build that standalone dashboards inline, so they render charts offline.
+ * Works both as native ESM and inside an esbuild CJS bundle where import.meta.url is defined away.
+ */
+export function resolveEchartsAssetPath(): string | undefined {
+  try {
+    const base = typeof import.meta.url === "string" ? import.meta.url : __filename;
+    return createRequire(base).resolve(ECHARTS_ASSET);
+  } catch {
+    return undefined;
+  }
+}
+
+const echartsSources = new Map<string, Promise<string>>();
+
+function readEchartsSource(assetPath: string): Promise<string> {
+  let source = echartsSources.get(assetPath);
+  if (!source) {
+    // Keep a stray "</script" in the library from closing the inline tag early.
+    source = readFile(assetPath, "utf8").then((text) => text.replace(/<\/script/gi, "<\\/script"));
+    source.catch(() => echartsSources.delete(assetPath));
+    echartsSources.set(assetPath, source);
+  }
+  return source;
+}
+
 /** Renders a standalone HTML document backed by embedded data. */
 export async function renderStandaloneDashboardHtml(spec: DashboardV3Spec, options: { echartsAssetPath?: string } = {}): Promise<string> {
   const views = spec.views.map((view) => ({ id: view.id ?? view.title ?? view.type, title: view.title ?? "", subtitle: view.subtitle ?? "", ...compileDashboardView(view, spec.datasets) }));
   const payload = safeJson({ title: spec.title, views });
-  const echartsScript = options.echartsAssetPath
-    ? `<script>${await readFile(options.echartsAssetPath, "utf8")}</script>`
+  const echartsAssetPath = options.echartsAssetPath ?? resolveEchartsAssetPath();
+  const echartsScript = echartsAssetPath
+    ? `<script>${await readEchartsSource(echartsAssetPath)}</script>`
     : "<script>window.__DATA_AGENT_OFFLINE__=true;</script>";
   return `<!DOCTYPE html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(spec.title)}</title>
-<style>body{margin:0;background:#f5f6f8;color:#243142;font-family:"Segoe UI","Microsoft YaHei",sans-serif}.shell{max-width:1440px;margin:auto;padding:28px}.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}.panel{grid-column:span 6;background:#fff;border:1px solid #e4e8ee;border-radius:12px;padding:18px;min-height:160px;box-shadow:0 4px 18px rgba(35,49,66,.05)}.panel.wide{grid-column:span 12}.chart{height:380px}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}.card{background:#f7f9fb;border-radius:9px;padding:16px}.label{color:#697586;font-size:13px}.value{font-size:28px;font-weight:700;margin-top:8px}.change{color:#638b66;margin-top:5px}table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid #e8ebef;text-align:left}th{background:#f7f9fb}@media(max-width:800px){.panel{grid-column:span 12}.shell{padding:14px}}</style></head>
+<style>body{margin:0;background:#f5f6f8;color:#243142;font-family:"Segoe UI","Microsoft YaHei",sans-serif}.shell{max-width:1440px;margin:auto;padding:28px}.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}.panel{grid-column:span 6;background:#fff;border:1px solid #e4e8ee;border-radius:12px;padding:18px;min-height:160px;box-shadow:0 4px 18px rgba(35,49,66,.05)}.panel.wide{grid-column:span 12}.chart{height:380px}.chart-unavailable{display:flex;align-items:center;justify-content:center;color:#697586;font-size:13px;background:#f7f9fb;border-radius:9px}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}.card{background:#f7f9fb;border-radius:9px;padding:16px}.label{color:#697586;font-size:13px}.value{font-size:28px;font-weight:700;margin-top:8px}.change{color:#638b66;margin-top:5px}table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid #e8ebef;text-align:left}th{background:#f7f9fb}@media(max-width:800px){.panel{grid-column:span 12}.shell{padding:14px}}</style></head>
 <body><main class="shell"><h1>${escapeHtml(spec.title)}</h1><div id="dashboard" class="grid"></div></main>${echartsScript}
-<script>window.__DASHBOARD__=${payload};(function(){var host=document.getElementById('dashboard');window.__DASHBOARD__.views.forEach(function(v){var p=document.createElement('section');p.className='panel'+(v.kind==='table'?' wide':'');p.innerHTML='<h2></h2>'+(v.subtitle?'<p class="label"></p>':'');p.querySelector('h2').textContent=v.title;if(v.subtitle)p.querySelector('p').textContent=v.subtitle;if(v.kind==='metric_cards'){var cards=document.createElement('div');cards.className='cards';(v.cards||[]).forEach(function(c){var d=document.createElement('div');d.className='card';d.innerHTML='<div class="label"></div><div class="value"></div><div class="change"></div>';d.children[0].textContent=c.label||'';d.children[1].textContent=String(c.value??'');d.children[2].textContent=String(c.change??'');cards.appendChild(d)});p.appendChild(cards)}else if(v.kind==='table'){var table=document.createElement('table'),thead=document.createElement('thead'),tr=document.createElement('tr');(v.columns||[]).forEach(function(c){var th=document.createElement('th');th.textContent=c.label;tr.appendChild(th)});thead.appendChild(tr);table.appendChild(thead);var tb=document.createElement('tbody');(v.rows||[]).forEach(function(r){var row=document.createElement('tr');v.columns.forEach(function(c){var td=document.createElement('td');td.textContent=String(r[c.field]??'');row.appendChild(td)});tb.appendChild(row)});table.appendChild(tb);p.appendChild(table)}else{var el=document.createElement('div');el.className='chart';p.appendChild(el);if(window.echarts){var chart=echarts.init(el);chart.setOption(v.option);window.addEventListener('resize',function(){chart.resize()})}else{el.textContent=JSON.stringify(v.option)}}host.appendChild(p)})})();</script></body></html>`;
+<script>window.__DASHBOARD__=${payload};(function(){var host=document.getElementById('dashboard');window.__DASHBOARD__.views.forEach(function(v){var p=document.createElement('section');p.className='panel'+(v.kind==='table'?' wide':'');p.innerHTML='<h2></h2>'+(v.subtitle?'<p class="label"></p>':'');p.querySelector('h2').textContent=v.title;if(v.subtitle)p.querySelector('p').textContent=v.subtitle;if(v.kind==='metric_cards'){var cards=document.createElement('div');cards.className='cards';(v.cards||[]).forEach(function(c){var d=document.createElement('div');d.className='card';d.innerHTML='<div class="label"></div><div class="value"></div><div class="change"></div>';d.children[0].textContent=c.label||'';d.children[1].textContent=String(c.value??'');d.children[2].textContent=String(c.change??'');cards.appendChild(d)});p.appendChild(cards)}else if(v.kind==='table'){var table=document.createElement('table'),thead=document.createElement('thead'),tr=document.createElement('tr');(v.columns||[]).forEach(function(c){var th=document.createElement('th');th.textContent=c.label;tr.appendChild(th)});thead.appendChild(tr);table.appendChild(thead);var tb=document.createElement('tbody');(v.rows||[]).forEach(function(r){var row=document.createElement('tr');v.columns.forEach(function(c){var td=document.createElement('td');td.textContent=String(r[c.field]??'');row.appendChild(td)});tb.appendChild(row)});table.appendChild(tb);p.appendChild(table)}else{var el=document.createElement('div');el.className='chart';p.appendChild(el);if(window.echarts){var chart=echarts.init(el);chart.setOption(v.option);window.addEventListener('resize',function(){chart.resize()})}else{el.className='chart chart-unavailable';el.textContent='图表组件未加载，无法渲染此图表。'}}host.appendChild(p)})})();</script></body></html>`;
 }
