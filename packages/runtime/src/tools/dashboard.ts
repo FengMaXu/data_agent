@@ -6,7 +6,7 @@ import { CHART_RENDERER_VERSIONS, datasetKey, validateDashboard, type ChartDatas
 import { CHARTS_BROWSER_SOURCE } from "@data-agent/charts/browser-source";
 import { checkDashboardSpec, dashboardViewData, type DashboardSpec, type DatasetRef } from "@data-agent/contracts";
 import { renderDashboardHtml, type DashboardDataSource } from "../dashboard.js";
-import { readEchartsSource, resolveEchartsAssetPath } from "../dashboard-v3.js";
+import { readEchartsSource, resolveEchartsAssetPath } from "../echarts-asset.js";
 import type { ArtifactDirectory } from "../facets/artifact-directory.js";
 import type { PublicationReceipt } from "../answering/public.js";
 import type { WorkspaceStore } from "../workspace.js";

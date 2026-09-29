@@ -16,7 +16,6 @@ import { WorkspaceStore } from "./workspace.js";
 import { runPythonJob } from "./python-job.js";
 import { KnowledgeIndex } from "./knowledge.js";
 import { ClarificationManager } from "./clarification.js";
-import { materializeDashboardV3Spec, renderStandaloneDashboardHtml, validateDashboardV3Spec } from "./dashboard-v3.js";
 import { renderSemanticDashboardHtml, validateDashboardV4Spec } from "./dashboard-v4.js";
 import { loadSkillsFromRoots, resolveSkillRoots } from "./skills.js";
 import { LocalAuthService } from "./auth.js";
@@ -205,17 +204,9 @@ export class DataAgentRuntime implements ApplicationCommandHost {
       if (!this.workspace) throw new DataAgentRuntimeError("INVALID_COMMAND", "Workspace is not configured");
       this.workspace.assertAccess(context);
       const c = command.command;
-      if (c.version === "v3" && c.mode === "static") {
-        const materialized = await materializeDashboardV3Spec(c.spec, this.workspace);
-        const validated = validateDashboardV3Spec(materialized);
-        if (!validated.ok || c.operation === "validate") {
-          return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "dashboard.result", valid: validated.ok, errors: validated.ok ? [] : validated.errors } };
-        }
-        const target = c.editPath ?? `dashboards/${Date.now()}.html`;
-        const html = await renderStandaloneDashboardHtml(validated.spec);
-        await this.workspace.write(target, html);
-        this.emit({ protocolVersion: ProtocolVersion, sequence: this.nextSequence++, requestId: command.requestId, ...(context.sessionId ? { sessionId: context.sessionId } : {}), timestamp: Date.now(), event: { type: "workspace.artifact.created", path: target, kind: "file" } }, context.userId);
-        return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "dashboard.result", valid: true, errors: [], path: target, bytes: html.length } };
+      if (c.version === "v3") {
+        // v3 read workspace CSVs or inline rows and bypassed publication; the agent's generate_dashboard builds snapshot dashboards instead.
+        throw new DataAgentRuntimeError("INVALID_COMMAND", "DASHBOARD_V3_RETIRED: v3 dashboards are no longer generated; ask the agent, whose generate_dashboard builds dashboards from published results");
       }
       if (c.version === "v4" && c.mode === "semantic") {
         const validated = validateDashboardV4Spec(c.spec);
@@ -335,14 +326,6 @@ export class DataAgentRuntime implements ApplicationCommandHost {
       if (!this.ingestJob) throw new DataAgentRuntimeError("INVALID_COMMAND", "INGEST_JOB_NOT_CONFIGURED");
       const result = await this.ingestJob.retry();
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "semantic.ingest.retry.result", accepted: result.accepted } };
-    }
-    if (command.command.type === "dashboard.v3.data") {
-      if (!this.workspace) throw new DataAgentRuntimeError("INVALID_COMMAND", "WORKSPACE_NOT_CONFIGURED");
-      const html = await this.workspace.read(command.command.path);
-      const match = /window\.__DASHBOARD__=(\{[\s\S]*?\});<\/script>/.exec(html);
-      const payload = match?.[1];
-      if (!payload) throw new DataAgentRuntimeError("INVALID_COMMAND", "LEGACY_DASHBOARD_REQUIRES_REGENERATION");
-      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "dashboard.v3.data.result", payload: JSON.parse(payload) } };
     }
     if (command.command.type === "config.get" || command.command.type === "config.save") {
       if (command.command.type === "config.save") {
