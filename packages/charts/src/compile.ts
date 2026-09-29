@@ -1,6 +1,6 @@
 import { checkChartSpec, type CartesianChart, type ChartLayer, type ChartSpec, type FieldMeta, type PieChart } from "@data-agent/contracts";
 import type { ChartCompileOptions, ChartCompileResult, ChartDataset, ChartError, ChartOption, PresentationNotice } from "./types.js";
-import { PALETTE, axisTitle, categoryLabel, displayScale, fieldTitle, formatValue, numericCell, type QuantitativeMeta } from "./semantics.js";
+import { PALETTE, axisTitle, categoryLabel, displayScale, fieldTitle, formatValue, isPercentDisplay, numericCell, type QuantitativeMeta } from "./semantics.js";
 
 const DEFAULT_WIDTH = 800;
 const DEFAULT_HEIGHT = 480;
@@ -134,7 +134,8 @@ function valueAxis(meta: QuantitativeMeta, field: string, share: boolean): Recor
     type: "value",
     name: share ? `${fieldTitle(field, meta)}占比（%）` : axisTitle(field, meta),
     ...(share ? { max: 100 } : {}),
-    axisLabel: { formatter: (value: number) => (share ? `${value}%` : formatValue(value, meta)) },
+    // The axis name carries the unit; ticks show numbers, keeping % for percent display.
+    axisLabel: { formatter: (value: number) => (share || isPercentDisplay(meta) ? `${value}%` : value.toLocaleString("zh-CN", { maximumFractionDigits: 4 })) },
   };
 }
 
@@ -196,6 +197,8 @@ function planLayers(context: CompileContext, chart: CartesianChart, valueX: bool
     if (layer.type === "scatter" && stack !== "none") context.fail({ code: "INVALID_ENCODING", message: "scatter 不能堆叠", path: `${path}/stack` });
     if (layer.type !== "scatter" && (layer.size || layer.id)) context.fail({ code: "INVALID_ENCODING", message: "size 与 id 只用于 scatter", path });
     if (chart.orientation === "horizontal" && layer.y.axis === "right") context.fail({ code: "INVALID_ENCODING", message: "横向图不支持右侧数值轴", path: `${path}/y/axis` });
+    // Horizontal swaps only category bars and lines; points would need their coordinates swapped too.
+    if (chart.orientation === "horizontal" && (layer.type === "scatter" || valueX)) context.fail({ code: "INVALID_ENCODING", message: "横向图只支持类目 x 轴上的 bar 与 line", path: "/chart/orientation" });
     if (valueX && layer.type === "bar") context.fail({ code: "INVALID_ENCODING", message: "x 字段声明为 quantitative 时只能使用 line 或 scatter，bar 需要类目 x 轴", path: `${path}/type` });
     if (valueX && stack !== "none") context.fail({ code: "INVALID_ENCODING", message: "数值 x 轴不支持堆叠", path: `${path}/stack` });
     const y = context.measure(layer.y.field, `${path}/y/field`);
@@ -356,7 +359,7 @@ function compileCartesian(context: CompileContext, chart: CartesianChart): Chart
   let xAxis: unknown;
   let yAxis: unknown;
   if (valueX) {
-    xAxis = { type: "value", name: xMeta?.type === "quantitative" ? axisTitle(chart.x.field, xMeta) : chart.x.field, scale: true, axisLabel: { formatter: (value: number) => (xMeta?.type === "quantitative" ? formatValue(value, xMeta) : String(value)) } };
+    xAxis = { type: "value", name: xMeta?.type === "quantitative" ? axisTitle(chart.x.field, xMeta) : chart.x.field, scale: true, axisLabel: { formatter: (value: number) => (xMeta?.type === "quantitative" && isPercentDisplay(xMeta) ? `${value}%` : value.toLocaleString("zh-CN", { maximumFractionDigits: 4 })) } };
     yAxis = valueAxes;
   } else {
     const axis = categoryAxis(context, categories, horizontal, chart.x.field);

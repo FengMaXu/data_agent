@@ -146,6 +146,22 @@ describe("Axes and layers", () => {
     expect(codes(compileChart(right, regions, { target: "interactive" }))).toEqual(["INVALID_ENCODING"]);
   });
 
+  it("rejects horizontal orientation where points would be drawn with swapped coordinates", () => {
+    const horizontalScatter = { ...cartesian([]), chart: { mark: "cartesian", x: { field: "region" }, layers: [{ type: "scatter", y: { field: "sales" } }], orientation: "horizontal" } } as ChartSpec;
+    expect(codes(compileChart(horizontalScatter, regions, { target: "interactive" }))).toEqual(["INVALID_ENCODING"]);
+    const fields = { sales: additive, price: { type: "quantitative", storage: "raw", additivity: "non_additive" } as FieldMeta };
+    const horizontalValueX = { version: 1, data, fields, chart: { mark: "cartesian", x: { field: "price" }, layers: [{ type: "line", y: { field: "sales" } }], orientation: "horizontal" } } as ChartSpec;
+    expect(codes(compileChart(horizontalValueX, { columns: ["price", "sales"], rows: [[1, 2]] }, { target: "interactive" }))).toEqual(["INVALID_ENCODING"]);
+  });
+
+  it("labels value-axis ticks with numbers only, leaving the unit to the axis name", () => {
+    const spec = { ...cartesian([{ type: "bar", y: { field: "sales" } }]), fields: { sales: { type: "quantitative", storage: "raw", unit: "元", magnitude: { stored: 1, shown: 1e8 }, additivity: "additive" } as FieldMeta } };
+    const tick = (axis(ok(compileChart(spec, regions, { target: "interactive" })).option, "yAxis")[0]!.axisLabel as { formatter: (value: number) => string }).formatter;
+    expect(tick(12000)).toBe("12,000");
+    const ratio = { ...spec, fields: { sales: { type: "quantitative", storage: "ratio", additivity: "non_additive" } as FieldMeta } };
+    expect((axis(ok(compileChart(ratio, regions, { target: "interactive" })).option, "yAxis")[0]!.axisLabel as { formatter: (value: number) => string }).formatter(12)).toBe("12%");
+  });
+
   it("draws lines over a numeric x as points sorted by x and rejects bars there", () => {
     const fields = { sales: additive, price: { type: "quantitative", storage: "raw", additivity: "non_additive" } as FieldMeta };
     const dataset = { columns: ["price", "sales"], rows: [[3, 30], [1, 10], [2, null]] };
