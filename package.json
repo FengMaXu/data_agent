@@ -19,6 +19,8 @@
     "build": "npm run build:contracts && npm run build:charts && npm run build:runtime && npm run build:transport && npm run build:electron-host && npm run build:server && npm run build:frontend",
     "build:distribution": "node scripts/build-distribution.mjs",
     "verify:architecture": "node scripts/verify-backend-architecture.mjs",
+    "check:affected": "node scripts/check-affected.mjs",
+    "test:scripts": "node --test scripts/check-affected.test.mjs",
     "verify:backend": "npm run verify:architecture && npm run typecheck && npm run typecheck:negative --workspace=@data-agent/runtime && npm test && npm run build:distribution && node scripts/smoke-web-host.mjs",
     "verify:backend:packaged": "npm run verify:backend && node scripts/package-electron-manual.mjs frontend/release-final/win-unpacked && node scripts/smoke-electron.mjs frontend/release-final/win-unpacked",
     "eval:spider2": "node evaluations/spider2/run.mjs",

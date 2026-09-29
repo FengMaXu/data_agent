@@ -1,8 +1,8 @@
 name: CI
 
 on:
+  # Every PR, including ones stacked on another feature branch.
   pull_request:
-    branches: [develop, master]
   push:
     branches: [develop, master]
 
@@ -40,6 +40,9 @@ jobs:
 
       - name: Architecture gate
         run: npm run verify:architecture
+
+      - name: Script tests
+        run: npm run test:scripts
 
       # Build once; the root typecheck/test scripts would each rebuild everything.
       - name: Build
