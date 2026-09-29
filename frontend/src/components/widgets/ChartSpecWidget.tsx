@@ -54,7 +54,8 @@ const ChartSpecWidget: React.FC<{ widget: ChartSpecWidgetData }> = ({ widget }) 
             <div ref={containerRef} data-testid="chart-spec-canvas" style={{ width: '100%', height: '360px' }} />
             {(notices.length > 0 || widget.disclosure || (widget.declaredFields?.length ?? 0) > 0) && (
                 <div style={{ marginTop: '8px', display: 'grid', gap: '2px' }}>
-                    {notices.map((notice) => <div key={notice.code} style={noteStyle}>{notice.message}</div>)}
+                    {/* The compiler keeps one notice per code and field, so the code alone is not unique. */}
+                    {notices.map((notice) => <div key={`${notice.code}:${notice.field ?? ''}`} style={noteStyle}>{notice.message}</div>)}
                     {widget.disclosure && <div style={noteStyle}>{widget.disclosure}</div>}
                     {(widget.declaredFields?.length ?? 0) > 0 && (
                         <div style={noteStyle}>字段语义来自模型声明，未经业务定义核实：{widget.declaredFields!.join('、')}</div>
