@@ -69,6 +69,26 @@ describe("Cross-target consistency", () => {
     expect(cellsOf(staticChart.option)).toEqual(cellsOf(interactive.option));
   });
 
+  it("histogram and boxplot: interactive and static show the same values", () => {
+    const money = { type: "quantitative", storage: "raw", unit: "元", magnitude: { stored: 1, shown: 1e4 }, additivity: "non_additive" };
+    const histogram = { version: 1, data, fields: { lo: money, hi: money, n: { type: "quantitative", storage: "raw", additivity: "additive" } }, chart: { mark: "histogram", start: { field: "lo" }, end: { field: "hi" }, value: { field: "n" } } };
+    const boxplot = { version: 1, data, fields: { a: money, b: money, c: money, d: money, e: money }, chart: { mark: "boxplot", category: { field: "region" }, min: { field: "a" }, q1: { field: "b" }, median: { field: "c" }, q3: { field: "d" }, max: { field: "e" }, whisker: "min_max" } };
+    const pairs: [unknown, ChartDataset][] = [
+      [histogram, { columns: ["lo", "hi", "n"], rows: [[10000, 20000, 4], [0, 10000, 2]] }],
+      [boxplot, { columns: ["region", "a", "b", "c", "d", "e"], rows: [["华东", 10000, 20000, 30000, 40000, 50000]] }],
+    ];
+    for (const [spec, rows] of pairs) {
+      const interactive = compileChart(spec, rows, { target: "interactive" });
+      const staticChart = compileChart(spec, rows, { target: "static" });
+      if (!interactive.ok || !staticChart.ok) throw new Error(JSON.stringify([interactive, staticChart]));
+      const shown = readable(interactive.option);
+      expect((shown.series[0]!.data as unknown[]).length).toBeGreaterThan(0);
+      expect(readable(staticChart.option)).toEqual(shown);
+    }
+    const hist = compileChart(histogram, pairs[0]![1], { target: "interactive" });
+    expect(hist.ok && readable(hist.option)).toMatchObject({ categories: ["0–1", "1–2"], series: [{ data: [2, 4] }] });
+  });
+
   it("chat widgets and dashboards embed the same rows for one published result", async () => {
     const context = (invocationId: string): BusinessContext => ({ principal: { id: "user-1" }, sessionId: "session-1", lane: "main", operationId: "operation-1", invocationId });
     const invocation = (invocationId: string) => ({ operationId: "operation-1", invocationId, getMemo: async () => undefined, setMemo: async () => undefined }) as never;

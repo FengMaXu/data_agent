@@ -20,7 +20,7 @@ allowed-tools:
 
 | 支持 | 暂不支持（不要写进 spec，也不要向用户承诺） |
 | --- | --- |
-| KPI 卡片、柱形、折线、散点、柱线组合、双 y 轴、堆叠、横向条形、环形饼图、热力图、表格 | 页面筛选器、点击下钻、交叉联动 |
+| KPI 卡片、柱形、折线、散点、柱线组合、双 y 轴、堆叠、横向条形、环形饼图、热力图、直方图、箱线图、表格 | 页面筛选器、点击下钻、交叉联动 |
 | 图表 tooltip、图例、随窗口缩放；视图半宽或整行 | 自定义高度、导出按钮 |
 | 按完整 spec 重新生成并覆盖已有看板 | 读取已有看板后局部修改 |
 | — | 实时刷新、语义查询绑定 |
@@ -181,6 +181,49 @@ generate_dashboard(operation, spec, editPath?)
 }
 ```
 
+分布用直方图或箱线图，分箱与统计量都在查询中算好，工具不分箱、不计算统计量：
+
+```json dashboard-view
+{
+  "id": "order_amount_hist",
+  "type": "chart",
+  "chart": {
+    "version": 1,
+    "title": "订单金额分布",
+    "data": { "kind": "publication", "receiptId": "<receiptId>" },
+    "fields": {
+      "bin_start": { "type": "quantitative", "storage": "raw", "unit": "元", "additivity": "additive", "label": "订单金额" },
+      "bin_end": { "type": "quantitative", "storage": "raw", "unit": "元", "additivity": "additive" },
+      "orders": { "type": "quantitative", "storage": "raw", "unit": "单", "additivity": "additive", "label": "订单数" }
+    },
+    "chart": { "mark": "histogram", "start": { "field": "bin_start" }, "end": { "field": "bin_end" }, "value": { "field": "orders" } }
+  }
+}
+```
+
+```json dashboard-view
+{
+  "id": "price_box",
+  "type": "chart",
+  "chart": {
+    "version": 1,
+    "title": "各区域单价分布",
+    "data": { "kind": "publication", "receiptId": "<receiptId>" },
+    "fields": {
+      "p_min": { "type": "quantitative", "storage": "raw", "unit": "元", "additivity": "non_additive" },
+      "p_q1": { "type": "quantitative", "storage": "raw", "unit": "元", "additivity": "non_additive" },
+      "p_median": { "type": "quantitative", "storage": "raw", "unit": "元", "additivity": "non_additive", "label": "单价" },
+      "p_q3": { "type": "quantitative", "storage": "raw", "unit": "元", "additivity": "non_additive" },
+      "p_max": { "type": "quantitative", "storage": "raw", "unit": "元", "additivity": "non_additive" }
+    },
+    "chart": { "mark": "boxplot", "category": { "field": "region" }, "min": { "field": "p_min" }, "q1": { "field": "p_q1" }, "median": { "field": "p_median" }, "q3": { "field": "p_q3" }, "max": { "field": "p_max" }, "whisker": "min_max" }
+  }
+}
+```
+
+- 直方图每行一个分箱（左闭右开、互不重叠），区间重叠返回 `BIN_OVERLAP`。
+- 箱线图每个类目一行，五个统计量须满足 最小值 ≤ Q1 ≤ 中位数 ≤ Q3 ≤ 最大值，否则返回 `STAT_ORDER_VIOLATION`；`whisker` 必须写明须线含义（`min_max` 或 `iqr_1_5`），会随图说明。
+
 图表约束（工具以结构化错误返回，不会自行修复）：
 
 - **同一个 x 值（或 x 加系列值）只能有一行**，否则返回 `DUPLICATE_KEY`。在查询中聚合到图表粒度；散点图允许重复坐标。
@@ -253,6 +296,8 @@ generate_dashboard(operation, spec, editPath?)
 | 不超过 5 类的完整构成 | `chart`：`pie` |
 | 类目与数值的关系、逐项分布 | `chart`：`scatter` 图层 |
 | 两个维度交叉的一个指标（行业 × 月份） | `chart`：`heatmap` |
+| 一个数值的分布 | `chart`：`histogram`（分箱由查询给出） |
+| 多组数值分布的比较 | `chart`：`boxplot`（统计量由查询给出） |
 | 可核对的明细、带多个指标的排名 | `table` |
 
 ## 配色

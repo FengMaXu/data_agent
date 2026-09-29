@@ -38,6 +38,9 @@ const month = { type: "temporal", grain: "month", zone: "floating" };
 const industries = { columns: ["industry", "sales", "yoy"], rows: [["批发业", "6710.25", -0.2512], ["零售业（含网上零售和无店铺零售）", "499.88", 0.1646], ["住宿和餐饮业", "66.44", null]] };
 const trend = { columns: ["month", "industry", "yoy"], rows: ["01", "02", "03", "04"].flatMap((m, i) => [[`2025-${m}-01`, "批发业", -0.1 - i * 0.02], [`2025-${m}-01`, "零售业", 0.05 + i * 0.02]]) };
 const totals = { columns: ["total_sales", "yoy"], rows: [["7276.57", -0.2334]] };
+const bins = { columns: ["lo", "hi", "n"], rows: [[0, 100, 12], [100, 200, 30], [200, 300, 22]] };
+const boxes = { columns: ["region", "a", "b", "c", "d", "e"], rows: [["华东", 10, 25, 40, 55, 90], ["华南", 5, 18, 30, 42, 70]] };
+const price = { type: "quantitative", storage: "raw", unit: "元", additivity: "non_additive", label: "单价" };
 const barSpec = { version: 1, title: "三大行业累计销售额与同比增速", data: ref("p_ind"), fields: { sales, yoy }, chart: { mark: "cartesian", x: { field: "industry" }, layers: [{ type: "bar", y: { field: "sales" } }, { type: "line", y: { field: "yoy", axis: "right" } }] } };
 const dashboardSpec = {
   version: 1, title: "三大行业经营分析 <A&B>", views: [
@@ -45,6 +48,8 @@ const dashboardSpec = {
     { id: "bar", type: "chart", chart: barSpec },
     { id: "trend", type: "chart", chart: { version: 1, title: "同比增速走势", data: ref("p_trend"), fields: { yoy, month }, chart: { mark: "cartesian", x: { field: "month" }, layers: [{ type: "line", y: { field: "yoy" }, series: { field: "industry" } }] } } },
     { id: "heat", type: "chart", chart: { version: 1, title: "同比增速热力图", data: ref("p_trend"), fields: { yoy, month }, chart: { mark: "heatmap", x: { field: "month" }, y: { field: "industry" }, color: { field: "yoy", scale: "diverging", midpoint: 0 } } } },
+    { id: "hist", type: "chart", chart: { version: 1, title: "订单金额分布", data: ref("p_bins"), fields: { lo: price, hi: price, n: sales }, chart: { mark: "histogram", start: { field: "lo" }, end: { field: "hi" }, value: { field: "n" } } } },
+    { id: "box", type: "chart", chart: { version: 1, title: "单价分布", data: ref("p_boxes"), fields: { a: price, b: price, c: price, d: price, e: price }, chart: { mark: "boxplot", category: { field: "region" }, min: { field: "a" }, q1: { field: "b" }, median: { field: "c" }, q3: { field: "d" }, max: { field: "e" }, whisker: "min_max" } } },
     { id: "share", type: "chart", chart: { version: 1, title: "构成", data: ref("p_ind"), fields: { sales }, chart: { mark: "pie", category: { field: "industry" }, value: { field: "sales" } } } },
     { id: "detail", type: "table", title: "明细", data: ref("p_ind"), fields: { sales, yoy } },
   ],
@@ -161,7 +166,7 @@ try {
   await svgPage.close();
 
   // 2. Snapshot dashboard inside the app preview's iframe (GlobalPreviewModal: srcDoc + this sandbox).
-  const datasets = { [datasetKey(ref("p_ind"))]: industries, [datasetKey(ref("p_trend"))]: trend, [datasetKey(ref("p_total"))]: totals };
+  const datasets = { [datasetKey(ref("p_ind"))]: industries, [datasetKey(ref("p_trend"))]: trend, [datasetKey(ref("p_total"))]: totals, [datasetKey(ref("p_bins"))]: bins, [datasetKey(ref("p_boxes"))]: boxes };
   const validated = validateDashboard(dashboardSpec, datasets);
   if (!validated.ok) throw new Error(JSON.stringify(validated.errors));
   const sources = Object.fromEntries(Object.keys(datasets).map((key) => [key, { kind: "publication", id: key.split(":")[1], label: `发布记录 ${key.split(":")[1]}`, contentHash: "0123456789abcdef", disclosures: [] }]));
@@ -187,7 +192,7 @@ try {
     title: document.title,
   }))()`, true);
   check("dashboard renders every view in the preview sandbox", dashboard.panels === dashboardSpec.views.length, JSON.stringify(dashboard));
-  check("dashboard draws every chart with ECharts", dashboard.drawn === 4 && dashboard.unavailable === 0, JSON.stringify(dashboard));
+  check("dashboard draws every chart with ECharts", dashboard.drawn === 6 && dashboard.unavailable === 0, JSON.stringify(dashboard));
   check("dashboard KPI and table use declared semantics", dashboard.kpi === "7,276.57 亿元" && dashboard.rows === 3, JSON.stringify(dashboard));
   check("dashboard title stays escaped", dashboard.title === "三大行业经营分析 <A&B>", dashboard.title);
   check("dashboard raises no script error", dashboardPage.errors.length === 0, dashboardPage.errors.join(" | "));
