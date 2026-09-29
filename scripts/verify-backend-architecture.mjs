@@ -11,6 +11,7 @@ const root = process.cwd();
 const sourceRoots = [
   "packages/runtime/src",
   "packages/contracts/src",
+  "packages/charts/src",
   "packages/electron-host/src",
   "packages/mcp-mysql/src",
   "packages/mcp-pg/src",
@@ -68,6 +69,8 @@ for (const file of productionFiles) {
   const isDelegation = rel.startsWith("packages/runtime/src/delegation/");
   const isFacets = rel.startsWith("packages/runtime/src/facets/");
   const isContracts = rel.startsWith("packages/contracts/src/");
+  // The chart compiler runs in browsers and Node alike (ADR-0008 decision 5).
+  const isCharts = rel.startsWith("packages/charts/src/");
   const isPresentation = rel.startsWith("frontend/src/");
   const isElectronOrServer = rel.startsWith("packages/electron-host/src/") || rel.startsWith("apps/server/src/") || rel === "scripts/start-web-host.mjs";
 
@@ -79,6 +82,7 @@ for (const file of productionFiles) {
     if (isDelegation && hasAny(normalized, ["pi-coding-agent", "pi-tui", "pi-subagents", "/application/", "/answering/"])) fail(`${rel}: Delegation core imports forbidden host/business dependency ${specifier}`);
     if (isFacets && hasAny(normalized, ["/answering/answering-store", "/answering/result-store"])) fail(`${rel}: Facet imports concrete Answering store ${specifier}`);
     if (isContracts && hasAny(normalized, ["pi-agent", "chord", "better-sqlite", "sqlite"])) fail(`${rel}: contracts imports infrastructure ${specifier}`);
+    if (isCharts && !normalized.startsWith(".") && normalized !== "@data-agent/contracts") fail(`${rel}: isomorphic chart compiler imports ${specifier}`);
     if (isElectronOrServer && hasAny(normalized, ["@earendil-works/pi-agent-core", "AgentHarness", "AgentEvent"])) fail(`${rel}: transport Host imports Pi internals ${specifier}`);
     if (isElectronOrServer && hasAny(normalized, ["@data-agent/runtime/protocol", "packages/runtime/dist/protocol", "packages/runtime/src/protocol"])) fail(`${rel}: transport Host imports Runtime protocol internals ${specifier}`);
     if (isPresentation && hasAny(normalized, ["@earendil-works/pi-agent-core", "@data-agent/runtime", "better-sqlite", "mysql", "sqlExecutor", "credentials"])) fail(`${rel}: Presentation imports backend authority ${specifier}`);
