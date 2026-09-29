@@ -4,7 +4,7 @@
  */
 
 /** Bump when the option compiled from the same spec and dataset changes. */
-export const CHART_COMPILER_VERSION = 5;
+export const CHART_COMPILER_VERSION = 6;
 
 /** Bump when palette, fonts or spacing change, including the static font stack and background in the runtime renderer. */
 export const CHART_THEME_VERSION = 1;
