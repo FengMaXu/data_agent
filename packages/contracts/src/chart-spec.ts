@@ -5,7 +5,8 @@ import { Value } from "typebox/value";
  * ChartSpec v1 (ADR-0008): one serializable chart description shared by chat
  * widgets, dashboards and reports. It carries no data transformation or
  * aggregation and reads its data through a Dataset Reference. v1 implements
- * the cartesian (bar/line/scatter layers), pie, heatmap, histogram, boxplot and waterfall marks; further marks are
+ * the cartesian (bar/line/scatter layers), pie, heatmap, histogram, boxplot, waterfall, sankey
+ * and treemap marks; further marks are
  * added to the `chart` union without changing existing members.
  */
 export const CHART_SPEC_VERSION = 1 as const;
@@ -136,6 +137,23 @@ export const WaterfallChartSchema = Type.Object({
 }, Strict);
 export type WaterfallChart = Static<typeof WaterfallChartSchema>;
 
+/** An edge table: one row per (source, target) flow. Node totals are the visual sum of their flows. */
+export const SankeyChartSchema = Type.Object({
+  mark: Type.Literal("sankey"),
+  source: FieldRefSchema,
+  target: FieldRefSchema,
+  value: FieldRefSchema,
+}, Strict);
+export type SankeyChart = Static<typeof SankeyChartSchema>;
+
+/** Leaf rows only, each with its full path; parent areas are the visual sum of their leaves. */
+export const TreemapChartSchema = Type.Object({
+  mark: Type.Literal("treemap"),
+  path: Type.Array(FieldRefSchema, { minItems: 1, maxItems: 4 }),
+  value: FieldRefSchema,
+}, Strict);
+export type TreemapChart = Static<typeof TreemapChartSchema>;
+
 export const ChartSelectionSchema = Type.Object({
   kind: Type.Literal("top_n"),
   by: Name,
@@ -157,7 +175,7 @@ export const ChartSpecSchema = Type.Object({
   data: DatasetRefSchema,
   /** Model-declared field semantics; Runtime records them as Dataset Annotations. */
   fields: Type.Optional(Type.Record(Type.String(), FieldMetaSchema)),
-  chart: Type.Union([CartesianChartSchema, PieChartSchema, HeatmapChartSchema, HistogramChartSchema, BoxplotChartSchema, WaterfallChartSchema]),
+  chart: Type.Union([CartesianChartSchema, PieChartSchema, HeatmapChartSchema, HistogramChartSchema, BoxplotChartSchema, WaterfallChartSchema, SankeyChartSchema, TreemapChartSchema]),
   selection: Type.Optional(ChartSelectionSchema),
   viewport: Type.Optional(ChartViewportSchema),
 }, Strict);
@@ -168,7 +186,7 @@ export interface ChartSpecSchemaError {
   readonly message: string;
 }
 
-const CHART_SCHEMAS = { cartesian: CartesianChartSchema, pie: PieChartSchema, heatmap: HeatmapChartSchema, histogram: HistogramChartSchema, boxplot: BoxplotChartSchema, waterfall: WaterfallChartSchema } as const;
+const CHART_SCHEMAS = { cartesian: CartesianChartSchema, pie: PieChartSchema, heatmap: HeatmapChartSchema, histogram: HistogramChartSchema, boxplot: BoxplotChartSchema, waterfall: WaterfallChartSchema, sankey: SankeyChartSchema, treemap: TreemapChartSchema } as const;
 
 /**
  * Structural validation only; semantic checks against data live in @data-agent/charts.
