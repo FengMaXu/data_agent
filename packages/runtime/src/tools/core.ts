@@ -2,7 +2,7 @@ import { Type } from "typebox";
 import { Value } from "typebox/value";
 import { randomUUID } from "node:crypto";
 import { FieldMetaSchema } from "@data-agent/contracts";
-import { compileChart } from "@data-agent/charts";
+import { CHART_RENDERER_VERSIONS, compileChart } from "@data-agent/charts";
 import type { BusinessContext } from "../answering/public.js";
 import type { ArtifactDirectory } from "../facets/artifact-directory.js";
 import { MAX_WIDGET_ROWS, declaredFields, formatChartErrors, jsonSafeRows, publicationRef } from "./charts.js";
@@ -44,6 +44,8 @@ async function chartWidget(options: CoreToolOptions, spec: unknown, widgetId: st
     ...(compiled.spec.subtitle ? { subtitle: compiled.spec.subtitle } : {}),
     tool_call_id: toolCallId,
     contractVersion: CHART_WIDGET_CONTRACT_VERSION,
+    // For tracing only: the browser always recompiles with its current compiler.
+    renderer: CHART_RENDERER_VERSIONS,
     receiptId,
     chartSpec: compiled.spec,
     dataset,

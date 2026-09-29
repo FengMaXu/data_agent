@@ -1,20 +1,24 @@
 import { createHash } from "node:crypto";
 import * as echarts from "echarts";
-import { compileChart, type ChartCompileOptions, type ChartDataset, type ChartError, type PresentationNotice } from "@data-agent/charts";
+import type { ChartSpec } from "@data-agent/contracts";
+import { CHART_RENDERER_VERSIONS, compileChart, type ChartCompileOptions, type ChartDataset, type ChartError, type ChartRendererVersions, type PresentationNotice } from "@data-agent/charts";
 
 /**
  * Font stack for static charts. ECharts SSR estimates text width without a
  * canvas: CJK characters count as one em, which matches full-width glyphs in
  * these fonts; Latin characters use ECharts' built-in width table.
+ * Part of the chart theme: changing it bumps CHART_THEME_VERSION.
  */
 // Single quotes: ECharts SSR writes this into a double-quoted style attribute without escaping.
 export const STATIC_CHART_FONT_FAMILY = "'Microsoft YaHei', 'PingFang SC', 'Noto Sans SC', 'Source Han Sans SC', sans-serif";
+/** Part of the chart theme, like the font stack. */
+export const STATIC_CHART_BACKGROUND = "#ffffff";
 
 const DEFAULT_WIDTH = 800;
 const DEFAULT_HEIGHT = 480;
 
 export type StaticChartResult =
-  | { readonly ok: true; readonly svg: string; readonly notices: readonly PresentationNotice[]; readonly width: number; readonly height: number }
+  | { readonly ok: true; readonly svg: string; readonly spec: ChartSpec; readonly notices: readonly PresentationNotice[]; readonly width: number; readonly height: number; readonly renderer: ChartRendererVersions }
   | { readonly ok: false; readonly errors: readonly ChartError[] };
 
 // Only where zrender writes ids: attributes, url(#...) references and CSS class selectors.
@@ -44,8 +48,8 @@ export function renderChartSvg(spec: unknown, dataset: ChartDataset, options: Om
   if (!compiled.ok) return compiled;
   const chart = echarts.init(null, null, { renderer: "svg", ssr: true, width, height });
   try {
-    chart.setOption({ ...compiled.option, backgroundColor: "#ffffff", textStyle: { fontFamily: STATIC_CHART_FONT_FAMILY } });
-    return { ok: true, svg: stabilizeIds(chart.renderToSVGString()), notices: compiled.notices, width, height };
+    chart.setOption({ ...compiled.option, backgroundColor: STATIC_CHART_BACKGROUND, textStyle: { fontFamily: STATIC_CHART_FONT_FAMILY } });
+    return { ok: true, svg: stabilizeIds(chart.renderToSVGString()), spec: compiled.spec, notices: compiled.notices, width, height, renderer: CHART_RENDERER_VERSIONS };
   } finally {
     chart.dispose();
   }
