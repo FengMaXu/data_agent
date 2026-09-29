@@ -23,7 +23,9 @@ async function jsonExamples(): Promise<Array<{ tag: string; body: string; line: 
 function sampleDataset(view: DashboardView): ChartDataset {
   const fields: Record<string, FieldMeta> = (view.type === "chart" ? view.chart.fields : view.fields) ?? {};
   const referenced = view.type === "chart"
-    ? (view.chart.chart.mark === "pie" ? [view.chart.chart.category.field, view.chart.chart.value.field] : [view.chart.chart.x.field, ...view.chart.chart.layers.flatMap((layer) => [layer.y.field, ...(layer.series ? [layer.series.field] : [])])])
+    ? (view.chart.chart.mark === "pie" ? [view.chart.chart.category.field, view.chart.chart.value.field]
+      : view.chart.chart.mark === "heatmap" ? [view.chart.chart.x.field, view.chart.chart.y.field, view.chart.chart.color.field]
+        : [view.chart.chart.x.field, ...view.chart.chart.layers.flatMap((layer) => [layer.y.field, ...(layer.series ? [layer.series.field] : [])])])
     : view.type === "table" ? (view.columns ?? []).map((column) => column.field)
       : view.cards.flatMap((card) => [card.value.field, ...(card.delta ? [card.delta.field] : []), ...Object.keys(card.where ?? {})]);
   const columns = [...new Set([...referenced, ...Object.keys(fields)])];

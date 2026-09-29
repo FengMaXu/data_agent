@@ -44,6 +44,7 @@ const dashboardSpec = {
     { id: "kpi", type: "kpi", title: "核心指标", data: ref("p_total"), fields: { total_sales: sales, yoy }, cards: [{ value: { field: "total_sales" }, delta: { field: "yoy", label: "同比" } }] },
     { id: "bar", type: "chart", chart: barSpec },
     { id: "trend", type: "chart", chart: { version: 1, title: "同比增速走势", data: ref("p_trend"), fields: { yoy, month }, chart: { mark: "cartesian", x: { field: "month" }, layers: [{ type: "line", y: { field: "yoy" }, series: { field: "industry" } }] } } },
+    { id: "heat", type: "chart", chart: { version: 1, title: "同比增速热力图", data: ref("p_trend"), fields: { yoy, month }, chart: { mark: "heatmap", x: { field: "month" }, y: { field: "industry" }, color: { field: "yoy", scale: "diverging", midpoint: 0 } } } },
     { id: "share", type: "chart", chart: { version: 1, title: "构成", data: ref("p_ind"), fields: { sales }, chart: { mark: "pie", category: { field: "industry" }, value: { field: "sales" } } } },
     { id: "detail", type: "table", title: "明细", data: ref("p_ind"), fields: { sales, yoy } },
   ],
@@ -174,20 +175,19 @@ try {
   const dashboard = await dashboardPage.evaluate(`(() => ({
     panels: document.querySelectorAll("section.panel").length,
     // Drawn means the canvas holds non-background pixels, not merely that a canvas exists.
-    drawn: [...document.querySelectorAll(".chart canvas")].filter((canvas) => {
+    drawn: [...document.querySelectorAll(".chart")].filter((chart) => [...chart.querySelectorAll("canvas")].some((canvas) => {
       if (canvas.width === 0 || canvas.height === 0) return false;
       const data = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data;
       for (let i = 0; i < data.length; i += 4) if (data[i + 3] > 0 && (data[i] < 240 || data[i + 1] < 240 || data[i + 2] < 240)) return true;
       return false;
-    }).length,
-    sizes: [...document.querySelectorAll(".chart canvas")].map((canvas) => canvas.width + "x" + canvas.height),
+    })).length,
     unavailable: document.querySelectorAll(".chart-unavailable").length,
     kpi: document.querySelector("#view-kpi .value")?.textContent,
     rows: document.querySelectorAll("#view-detail tbody tr").length,
     title: document.title,
   }))()`, true);
   check("dashboard renders every view in the preview sandbox", dashboard.panels === dashboardSpec.views.length, JSON.stringify(dashboard));
-  check("dashboard draws every chart with ECharts", dashboard.drawn === 3 && dashboard.unavailable === 0, JSON.stringify(dashboard));
+  check("dashboard draws every chart with ECharts", dashboard.drawn === 4 && dashboard.unavailable === 0, JSON.stringify(dashboard));
   check("dashboard KPI and table use declared semantics", dashboard.kpi === "7,276.57 亿元" && dashboard.rows === 3, JSON.stringify(dashboard));
   check("dashboard title stays escaped", dashboard.title === "三大行业经营分析 <A&B>", dashboard.title);
   check("dashboard raises no script error", dashboardPage.errors.length === 0, dashboardPage.errors.join(" | "));
