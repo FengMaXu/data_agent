@@ -5,9 +5,11 @@ import { ExternalLink, X } from '../icons/Typicons';
 import { useLanguage } from '../../context/LanguageContext';
 import { usePreview } from '../../context/PreviewContext';
 import { resolveWorkspaceAssetUrl } from '../../utils/resolveInternalUrl';
-import { getDashboardV3DataViaRuntime } from '../../api/runtime-client';
 
-const SUPPORTED_MESSAGE_TYPES = new Set(['drill_down', 'navigate_back', 'dashboard_parameters_changed']);
+import { refreshDashboardViaRuntime } from '../../api/runtime-client';
+import { dashboardBridgeTarget, handleDashboardMessage } from './dashboardBridge';
+
+const SUPPORTED_MESSAGE_TYPES = new Set(['drill_down', 'navigate_back']);
 const MARKDOWN_TYPES = new Set(['md', 'markdown']);
 const CSV_TYPES = new Set(['csv']);
 const TEXT_TYPES = new Set(['json', 'txt', 'log']);
@@ -21,13 +23,6 @@ interface PreviewRect {
     top: number;
     width: number;
     height: number;
-}
-
-interface DashboardParameterChangedMessage {
-    type: 'dashboard_parameters_changed';
-    requestId: string;
-    parameters?: Record<string, unknown>;
-    changed?: string[] | null;
 }
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
@@ -109,7 +104,6 @@ const GlobalPreviewModal: React.FC = () => {
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const bodyRef = useRef<HTMLDivElement>(null);
     const dragRef = useRef<{ mode: 'move' | 'resize'; startX: number; startY: number; rect: PreviewRect } | null>(null);
-    const dashboardRequestRef = useRef<AbortController | null>(null);
     const [rect, setRect] = useState<PreviewRect>(() => ({ left: 56, top: 42, width: 980, height: 720 }));
     const [bodySize, setBodySize] = useState({ width: 0, height: 0 });
     const [fileContent, setFileContent] = useState('');
@@ -123,49 +117,6 @@ const GlobalPreviewModal: React.FC = () => {
     const isText = TEXT_TYPES.has(normalizedType);
     const isImage = IMAGE_TYPES.has(normalizedType);
     const needsTextFetch = isHtml || isMarkdown || isCsv || isText;
-
-    const handleDashboardParametersChanged = useCallback(async (message: DashboardParameterChangedMessage) => {
-        const frame = iframeRef.current;
-        if (!frame?.contentWindow || !url || !message.requestId) return;
-        let dashboardPath = '';
-        try {
-            dashboardPath = new URL(url, window.location.href).searchParams.get('path') || '';
-        } catch {
-            dashboardPath = '';
-        }
-        if (!dashboardPath) {
-            frame.contentWindow.postMessage({
-                type: 'dashboard_data_error',
-                requestId: message.requestId,
-                message: '无法确定当前看板文件路径',
-            }, '*');
-            return;
-        }
-        dashboardRequestRef.current?.abort();
-        const controller = new AbortController();
-        dashboardRequestRef.current = controller;
-        try {
-            const payload = await getDashboardV3DataViaRuntime(dashboardPath);
-            const charts = (payload as { charts?: Array<{ viewId?: string }> }).charts ?? [];
-            const result = {
-                requestId: message.requestId,
-                parameters: message.parameters || {},
-                data: {} as Record<string, { rows: unknown[] }>,
-                errors: {} as Record<string, { code: string; message: string }>,
-            };
-            void charts;
-            if (dashboardRequestRef.current !== controller || iframeRef.current?.contentWindow !== frame.contentWindow) return;
-            frame.contentWindow.postMessage({ type: 'dashboard_data_patch', ...result }, '*');
-        } catch (error: unknown) {
-            if ((error instanceof DOMException && error.name === 'AbortError') || controller.signal.aborted) return;
-            if (dashboardRequestRef.current !== controller || iframeRef.current?.contentWindow !== frame.contentWindow) return;
-            frame.contentWindow.postMessage({
-                type: 'dashboard_data_error',
-                requestId: message.requestId,
-                message: error instanceof Error ? error.message : '看板刷新失败',
-            }, '*');
-        }
-    }, [url]);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -201,19 +152,18 @@ const GlobalPreviewModal: React.FC = () => {
         return () => controller.abort();
     }, [isOpen, needsTextFetch, t, url]);
 
+    // A live dashboard the app generated can ask for a refresh; its nonce ties the page to this file.
+    const dashboardTarget = useMemo(() => (isHtml && url && fileContent ? dashboardBridgeTarget(fileContent, url) : null), [fileContent, isHtml, url]);
+
     useEffect(() => {
         if (!isOpen || !url) return undefined;
         const handleMessage = (event: MessageEvent) => {
-            if (event.source !== iframeRef.current?.contentWindow) return;
+            const frame = iframeRef.current?.contentWindow;
+            if (!frame || event.source !== frame) return;
             const data = event.data;
             if (!data || typeof data !== 'object') return;
-            if (data.type === 'dashboard_parameters_changed' && typeof data.requestId === 'string') {
-                void handleDashboardParametersChanged({
-                    type: 'dashboard_parameters_changed',
-                    requestId: data.requestId,
-                    parameters: data.parameters && typeof data.parameters === 'object' ? data.parameters as Record<string, unknown> : {},
-                    changed: Array.isArray(data.changed) ? data.changed.filter((item: unknown): item is string => typeof item === 'string') : null,
-                });
+            if (dashboardTarget && typeof data.kind === 'string' && data.kind.startsWith('dashboard.')) {
+                void handleDashboardMessage(dashboardTarget, data, (message) => frame.postMessage(message, '*'), refreshDashboardViaRuntime);
                 return;
             }
             if (SUPPORTED_MESSAGE_TYPES.has(data.type)) {
@@ -223,10 +173,8 @@ const GlobalPreviewModal: React.FC = () => {
         window.addEventListener('message', handleMessage);
         return () => {
             window.removeEventListener('message', handleMessage);
-            dashboardRequestRef.current?.abort();
-            dashboardRequestRef.current = null;
         };
-    }, [emitPreviewMessage, handleDashboardParametersChanged, isOpen, url]);
+    }, [dashboardTarget, emitPreviewMessage, isOpen, url]);
     useEffect(() => {
         if (!isOpen) return undefined;
         const handleKeyDown = (event: KeyboardEvent) => {

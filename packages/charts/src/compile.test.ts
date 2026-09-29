@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ChartSpec, FieldMeta } from "@data-agent/contracts";
-import { compileChart, validateChart, type ChartCompileResult, type ChartDataset } from "./index.js";
+import { compileChart, formatFieldValue, validateChart, type ChartCompileResult, type ChartDataset } from "./index.js";
 
 const additive: FieldMeta = { type: "quantitative", storage: "raw", additivity: "additive" };
 const data = { kind: "publication", receiptId: "publication_1" } as const;
@@ -275,5 +275,213 @@ describe("formatFieldValue", () => {
     expect(formatFieldValue(0.12, undefined)).toBeUndefined();
     expect(formatFieldValue(0.12, { type: "nominal" })).toBeUndefined();
     expect(formatFieldValue("n/a", { type: "quantitative", storage: "raw", additivity: "additive" })).toBeUndefined();
+  });
+});
+
+describe("Temporal fields", () => {
+  const monthly = (zone: string, grain: "month" | "day" | "quarter" | "hour" = "month"): ChartSpec => ({
+    version: 1, data, fields: { sales: additive, month: { type: "temporal", grain, zone } },
+    chart: { mark: "cartesian", x: { field: "month" }, layers: [{ type: "line", y: { field: "sales" } }] },
+  } as ChartSpec);
+  const xData = (result: ChartCompileResult) => (axis(ok(result).option, "xAxis")[0]!.data as string[]);
+
+  it("cuts calendar text to the declared grain without shifting it", () => {
+    const dates = { columns: ["month", "sales"], rows: [["2025-12-01", 2], ["2025-11-01", 1]] };
+    expect(xData(compileChart(monthly("floating"), dates, { target: "interactive" }))).toEqual(["2025-11", "2025-12"]);
+    expect(xData(compileChart(monthly("floating", "day"), dates, { target: "interactive" }))).toEqual(["2025-11-01", "2025-12-01"]);
+    expect(xData(compileChart(monthly("floating", "quarter"), { columns: ["month", "sales"], rows: [["2025-12-01", 2], ["2025-08-01", 1]] }, { target: "interactive" }))).toEqual(["2025-Q3", "2025-Q4"]);
+    const times = { columns: ["month", "sales"], rows: [["2025-12-01 08:30:00", 1]] };
+    expect(xData(compileChart(monthly("floating", "hour"), times, { target: "interactive" }))).toEqual(["2025-12-01 08:00"]);
+  });
+
+  it("rejects two rows that fall in one period instead of merging them", () => {
+    const days = { columns: ["month", "sales"], rows: [["2025-12-01", 1], ["2025-12-15", 2]] };
+    expect(codes(compileChart(monthly("floating"), days, { target: "interactive" }))).toEqual(["DUPLICATE_KEY"]);
+  });
+
+  it("places instants in the declared zone, whatever zone the process runs in", () => {
+    // DATE '2025-12-01' read at local midnight in UTC+8 and serialised as UTC.
+    const instants = { columns: ["month", "sales"], rows: [["2025-11-30T16:00:00.000Z", 1], [new Date("2025-12-31T16:00:00.000Z"), 2]] };
+    const original = process.env.TZ;
+    try {
+      const options = ["UTC", "Asia/Shanghai", "America/New_York"].map((zone) => {
+        process.env.TZ = zone;
+        return JSON.stringify(ok(compileChart(monthly("Asia/Shanghai", "day"), instants, { target: "static" })).option);
+      });
+      expect(new Set(options).size).toBe(1);
+      expect(xData(compileChart(monthly("Asia/Shanghai", "day"), instants, { target: "interactive" }))).toEqual(["2025-12-01", "2026-01-01"]);
+    } finally {
+      if (original === undefined) delete process.env.TZ; else process.env.TZ = original;
+    }
+  });
+
+  it("shows zoned values of a floating field as written, with a notice", () => {
+    const result = ok(compileChart(monthly("floating", "day"), { columns: ["month", "sales"], rows: [["2025-11-30T16:00:00.000Z", 1]] }, { target: "interactive" }));
+    expect(axis(result.option, "xAxis")[0]!.data).toEqual(["2025-11-30T16:00:00.000Z"]);
+    expect(result.notices.map((notice) => notice.code)).toContain("TEMPORAL_ZONED_VALUE");
+  });
+
+  it("formats temporal cells for tables by grain", () => {
+    expect(formatFieldValue("2025-12-01", { type: "temporal", grain: "month", zone: "floating" })).toBe("2025-12");
+    expect(formatFieldValue(null, { type: "temporal", grain: "month", zone: "floating" })).toBeUndefined();
+    expect(formatFieldValue("2025年12月", { type: "temporal", grain: "month", zone: "floating" })).toBe("2025年12月");
+  });
+});
+
+describe("Heatmap", () => {
+  const growth: FieldMeta = { type: "quantitative", storage: "ratio", additivity: "non_additive", label: "同比" };
+  const heat = (color: Record<string, unknown> = { field: "growth" }, extra: Partial<ChartSpec> = {}) =>
+    ({ version: 1, data, fields: { growth, month: { type: "temporal", grain: "month", zone: "floating" } }, chart: { mark: "heatmap", x: { field: "month" }, y: { field: "region" }, color }, ...extra }) as ChartSpec;
+  const cells: ChartDataset = { columns: ["region", "month", "growth"], rows: [["东", "2025-02-01", 0.3], ["东", "2025-01-01", 0.1], ["西", "2025-01-01", -0.2], ["西", "2025-02-01", null]] };
+
+  it("places one row per cell on two category axes, blanks for nulls", () => {
+    const { option, notices } = ok(compileChart(heat(), cells, { target: "interactive" }));
+    expect(axis(option, "xAxis")[0]!.data).toEqual(["2025-01", "2025-02"]);
+    expect(axis(option, "yAxis")[0]!.data).toEqual(["东", "西"]);
+    expect(seriesOf(option)[0]!.data).toEqual([[1, 0, 30], [0, 0, 10], [0, 1, -20], [1, 1, "-"]]);
+    expect(notices.map((notice) => notice.code)).toContain("NULL_VALUES");
+  });
+
+  it("rejects two rows in one cell instead of summing them", () => {
+    const duplicated = { columns: cells.columns, rows: [["东", "2025-01-01", 0.1], ["东", "2025-01-01", 0.3]] };
+    expect(codes(compileChart(heat(), duplicated, { target: "interactive" }))).toEqual(["DUPLICATE_KEY"]);
+  });
+
+  it("leaves absent combinations blank and says so", () => {
+    const sparse = { columns: cells.columns, rows: [["东", "2025-01-01", 0.1], ["西", "2025-02-01", 0.2]] };
+    const { option, notices } = ok(compileChart(heat(), sparse, { target: "interactive" }));
+    expect(seriesOf(option)[0]!.data).toHaveLength(2);
+    expect(notices.map((notice) => notice.code)).toContain("EMPTY_CELLS");
+  });
+
+  it("needs a declared midpoint for a diverging scale, and centres the scale on it", () => {
+    expect(codes(compileChart(heat({ field: "growth", scale: "diverging" }), cells, { target: "interactive" }))).toEqual(["INVALID_ENCODING"]);
+    expect(codes(compileChart(heat({ field: "growth", midpoint: 0 }), cells, { target: "interactive" }))).toEqual(["INVALID_ENCODING"]);
+    const { option } = ok(compileChart(heat({ field: "growth", scale: "diverging", midpoint: 0 }), cells, { target: "interactive" }));
+    expect(option.visualMap).toMatchObject({ min: -30, max: 30 });
+  });
+
+  it("requires colour semantics and refuses data selection", () => {
+    expect(codes(compileChart({ ...heat(), fields: {} } as ChartSpec, cells, { target: "interactive" }))).toEqual(["SEMANTICS_MISSING"]);
+    expect(codes(compileChart(heat({ field: "growth" }, { selection: { kind: "top_n", by: "growth", n: 1, order: "desc" } }), cells, { target: "interactive" }))).toEqual(["INVALID_SELECTION"]);
+  });
+
+  it("refuses more columns than a static canvas can show", () => {
+    const wide = { columns: cells.columns, rows: Array.from({ length: 60 }, (_, index) => ["东", `c${index}`, 0.1]) };
+    const spec = { ...heat(), fields: { growth } } as ChartSpec;
+    expect(codes(compileChart(spec, wide, { target: "static" }))).toEqual(["CAPACITY_EXCEEDED"]);
+  });
+});
+
+describe("Histogram", () => {
+  const amount: FieldMeta = { type: "quantitative", storage: "raw", unit: "元", additivity: "additive", label: "订单金额" };
+  const count: FieldMeta = { type: "quantitative", storage: "raw", unit: "单", additivity: "additive", label: "订单数" };
+  const histogram = (): ChartSpec => ({ version: 1, data, fields: { lo: amount, hi: amount, n: count }, chart: { mark: "histogram", start: { field: "lo" }, end: { field: "hi" }, value: { field: "n" } } } as ChartSpec);
+  const bins = (rows: unknown[][]): ChartDataset => ({ columns: ["lo", "hi", "n"], rows });
+
+  it("draws the query's bins in order as adjacent bars, never binning itself", () => {
+    const { option } = ok(compileChart(histogram(), bins([[100, 200, 7], [0, 100, 3], [200, 300, null]]), { target: "interactive" }));
+    expect(axis(option, "xAxis")[0]!.data).toEqual(["0–100", "100–200", "200–300"]);
+    expect(axis(option, "xAxis")[0]!.name).toBe("订单金额（元）");
+    expect(seriesOf(option)[0]!).toMatchObject({ type: "bar", barCategoryGap: "0%", data: [3, 7, null] });
+  });
+
+  it("rejects overlapping or inverted bins, and notes gaps", () => {
+    expect(codes(compileChart(histogram(), bins([[0, 150, 3], [100, 200, 7]]), { target: "interactive" }))).toEqual(["BIN_OVERLAP"]);
+    expect(codes(compileChart(histogram(), bins([[100, 100, 3]]), { target: "interactive" }))).toEqual(["BIN_OVERLAP"]);
+    const gap = ok(compileChart(histogram(), bins([[0, 100, 3], [200, 300, 1]]), { target: "interactive" }));
+    expect(gap.notices.map((notice) => notice.code)).toContain("BIN_GAPS");
+  });
+});
+
+describe("Boxplot", () => {
+  const price: FieldMeta = { type: "quantitative", storage: "raw", unit: "元", additivity: "non_additive", label: "单价" };
+  const boxplot = (whisker = "iqr_1_5"): ChartSpec => ({ version: 1, data, fields: { mn: price, q1: price, md: price, q3: price, mx: price }, chart: { mark: "boxplot", category: { field: "region" }, min: { field: "mn" }, q1: { field: "q1" }, median: { field: "md" }, q3: { field: "q3" }, max: { field: "mx" }, whisker } } as ChartSpec);
+  const stats = (rows: unknown[][]): ChartDataset => ({ columns: ["region", "mn", "q1", "md", "q3", "mx"], rows });
+
+  it("draws the five statistics the query computed and states the whisker definition", () => {
+    const { option, notices } = ok(compileChart(boxplot(), stats([["东", 1, 2, 3, 4, 5], ["西", 2, 3, "3.5", 5, 9]]), { target: "static" }));
+    expect(seriesOf(option)[0]!).toMatchObject({ type: "boxplot", data: [[1, 2, 3, 4, 5], [2, 3, 3.5, 5, 9]] });
+    expect(notices.find((notice) => notice.code === "WHISKER_DEFINITION")?.message).toContain("1.5 倍四分位距");
+  });
+
+  it("rejects statistics out of order, missing, or repeated per category", () => {
+    expect(codes(compileChart(boxplot(), stats([["东", 1, 3, 2, 4, 5]]), { target: "interactive" }))).toEqual(["STAT_ORDER_VIOLATION"]);
+    expect(codes(compileChart(boxplot(), stats([["东", 1, 2, null, 4, 5]]), { target: "interactive" }))).toEqual(["STAT_ORDER_VIOLATION"]);
+    expect(codes(compileChart(boxplot(), stats([["东", 1, 2, 3, 4, 5], ["东", 1, 2, 3, 4, 6]]), { target: "interactive" }))).toEqual(["DUPLICATE_KEY"]);
+    expect(new Set(codes(compileChart(boxplot("tukey"), stats([["东", 1, 2, 3, 4, 5]]), { target: "interactive" })))).toEqual(new Set(["SCHEMA_INVALID"]));
+  });
+});
+
+describe("Waterfall", () => {
+  const profit: FieldMeta = { type: "quantitative", storage: "raw", unit: "万元", additivity: "non_additive", label: "利润" };
+  const waterfall = (): ChartSpec => ({ version: 1, data, fields: { s: profit, e: profit }, chart: { mark: "waterfall", step: { field: "step" }, start: { field: "s" }, end: { field: "e" }, total: { field: "is_total" } } } as ChartSpec);
+  const steps = (rows: unknown[][]): ChartDataset => ({ columns: ["step", "s", "e", "is_total"], rows });
+  const bridge = [["期初", 0, 100, true], ["收入", 100, 160, false], ["成本", 160, 90, false], ["期末", 0, 90, "合计"]];
+
+  it("draws the query's running totals in row order, labelled with their end values", () => {
+    const { option } = ok(compileChart(waterfall(), steps(bridge), { target: "static" }));
+    expect(axis(option, "xAxis")[0]!.data).toEqual(["期初", "收入", "成本", "期末"]);
+    const [base, bars] = seriesOf(option);
+    expect(base!.data).toEqual([0, 100, 90, 0]);
+    expect((bars!.data as { value: number; itemStyle: { color: string } }[]).map((bar) => bar.value)).toEqual([100, 60, 70, 90]);
+    expect((bars!.data as { itemStyle: { color: string } }[]).map((bar) => bar.itemStyle.color)).toEqual(["#4F6980", "#638B66", "#B66353", "#4F6980"]);
+  });
+
+  it("rejects steps that do not continue from the previous end, and totals that disagree", () => {
+    const broken = bridge.map((row) => [...row]);
+    broken[2]![1] = 150;
+    expect(codes(compileChart(waterfall(), steps(broken), { target: "interactive" }))).toEqual(["RANGE_INCONSISTENT"]);
+    const wrongTotal = bridge.map((row) => [...row]);
+    wrongTotal[3]![2] = 95;
+    expect(codes(compileChart(waterfall(), steps(wrongTotal), { target: "interactive" }))).toEqual(["RANGE_INCONSISTENT"]);
+    const floating = bridge.map((row) => [...row]);
+    floating[3]![1] = 10;
+    expect(codes(compileChart(waterfall(), steps(floating), { target: "interactive" }))).toEqual(["RANGE_INCONSISTENT"]);
+    expect(codes(compileChart(waterfall(), steps([["期初", 0, null, true]]), { target: "interactive" }))).toEqual(["RANGE_INCONSISTENT"]);
+  });
+});
+
+describe("Sankey", () => {
+  const flow: FieldMeta = { type: "quantitative", storage: "raw", unit: "人", additivity: "additive", label: "人数" };
+  const sankey = (extra: Partial<ChartSpec> = {}): ChartSpec => ({ version: 1, data, fields: { n: flow }, chart: { mark: "sankey", source: { field: "from" }, target: { field: "to" }, value: { field: "n" } }, ...extra } as ChartSpec);
+  const edges = (rows: unknown[][]): ChartDataset => ({ columns: ["from", "to", "n"], rows });
+
+  it("draws one link per row and names node totals as a visual sum", () => {
+    const { option, notices } = ok(compileChart(sankey(), edges([["访问", "注册", 60], ["访问", "离开", 40], ["注册", "付费", 12]]), { target: "static" }));
+    const series = seriesOf(option)[0]!;
+    expect(series.links).toEqual([{ source: "访问", target: "注册", value: 60 }, { source: "访问", target: "离开", value: 40 }, { source: "注册", target: "付费", value: 12 }]);
+    expect((series.data as { name: string }[]).map((node) => node.name)).toEqual(["访问", "注册", "离开", "付费"]);
+    expect(notices.map((notice) => notice.code)).toContain("VISUAL_SUM");
+  });
+
+  it("rejects cycles, repeated flows and non-part-of-whole measures", () => {
+    expect(codes(compileChart(sankey(), edges([["A", "B", 1], ["B", "C", 1], ["C", "A", 1]]), { target: "interactive" }))).toEqual(["FLOW_CYCLE"]);
+    expect(codes(compileChart(sankey(), edges([["A", "A", 1]]), { target: "interactive" }))).toEqual(["FLOW_CYCLE"]);
+    expect(codes(compileChart(sankey(), edges([["A", "B", 1], ["A", "B", 2]]), { target: "interactive" }))).toEqual(["DUPLICATE_KEY"]);
+    expect(codes(compileChart(sankey(), edges([["A", "B", -1]]), { target: "interactive" }))).toEqual(["NEGATIVE_IN_PART_OF_WHOLE"]);
+    expect(codes(compileChart(sankey(), edges([["A", "B", null]]), { target: "interactive" }))).toEqual(["INCOMPLETE_PART_OF_WHOLE"]);
+    expect(codes(compileChart({ ...sankey(), fields: { n: { ...flow, additivity: "non_additive" } } } as ChartSpec, edges([["A", "B", 1]]), { target: "interactive" }))).toEqual(["NON_ADDITIVE_PART_OF_WHOLE"]);
+  });
+});
+
+describe("Treemap", () => {
+  const sales: FieldMeta = { type: "quantitative", storage: "raw", unit: "亿元", additivity: "additive", label: "销售额" };
+  const treemap = (path = ["sector", "industry"]): ChartSpec => ({ version: 1, data, fields: { v: sales }, chart: { mark: "treemap", path: path.map((field) => ({ field })), value: { field: "v" } } } as ChartSpec);
+  const leaves = (rows: unknown[][]): ChartDataset => ({ columns: ["sector", "industry", "v"], rows });
+
+  it("nests leaf rows by path; only leaves carry values", () => {
+    const { option, notices } = ok(compileChart(treemap(), leaves([["批发零售", "批发", 60], ["批发零售", "零售", 30], ["住宿餐饮", "餐饮", 10]]), { target: "static" }));
+    expect(seriesOf(option)[0]!.data).toEqual([
+      { name: "批发零售", children: [{ name: "批发", value: 60 }, { name: "零售", value: 30 }] },
+      { name: "住宿餐饮", children: [{ name: "餐饮", value: 10 }] },
+    ]);
+    expect(notices.map((notice) => notice.code)).toContain("VISUAL_SUM");
+  });
+
+  it("rejects repeated paths, top-n, and measures that cannot form a whole", () => {
+    expect(codes(compileChart(treemap(), leaves([["A", "a", 1], ["A", "a", 2]]), { target: "interactive" }))).toEqual(["DUPLICATE_KEY"]);
+    expect(codes(compileChart({ ...treemap(), selection: { kind: "top_n", by: "v", n: 1, order: "desc" } } as ChartSpec, leaves([["A", "a", 1]]), { target: "interactive" }))).toContain("INVALID_SELECTION");
+    expect(codes(compileChart(treemap(), leaves([["A", "a", -1]]), { target: "interactive" }))).toEqual(["NEGATIVE_IN_PART_OF_WHOLE"]);
   });
 });

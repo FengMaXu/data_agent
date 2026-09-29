@@ -34,7 +34,10 @@ allowed-tools:
 ### 第三步：统计分析（可选）
 
 - 需要回归、检验等统计计算时，用 `run_python` 读取导出的 CSV。
-- Python 算出的数据目前不能直接画图；需要画的量应在 SQL 中算出并发布。
+- 能在 SQL 中算出的量，优先在查询中算好并发布。只能用 Python 算的量（回归拟合值、检验统计量等），用 `run_python` 的 `derive` 登记为派生数据集后再画图：
+  - `derive.inputs` 列出要读的 `receiptId`，脚本从 `inputs/<receiptId>.json`（`{"columns": [...], "rows": [[...]]}`）读取；
+  - `derive.outputs` 声明输出 `derived/<name>.json`，脚本写入 `{"columns": [...], "rows": [[...]]}`（或 pandas `to_json(orient="split")`）；
+  - 返回的 `[DERIVED] ... derivedId=...` 用作图表数据 `{ "kind": "derived", "derivedId": "<derivedId>" }`，并把 `[DERIVED]` 一并写进图注。
 
 ### 第四步：出图
 
@@ -42,6 +45,7 @@ allowed-tools:
 - `spec.data` 引用第二步的 `receiptId`；度量字段在 `spec.fields` 中声明数值语义。
 - 返回 `CHART_SPEC_INVALID` 时，按错误码与建议修改查询或 spec，不要绕过。
 - 返回的 `[NOTICE]`、`[DISCLOSURE]`、`[SEMANTICS]` 都要写进该图的图注。
+- 返回 `[CHECK]` 时，先核对对应字段的 `storage`、`additivity` 声明：有误就改正 spec 重新渲染；确认无误才使用该图。
 
 ### 第五步：撰写报告
 

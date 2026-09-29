@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import * as echarts from 'echarts';
-import { compileChart, type ChartDataset, type PresentationNotice } from '@data-agent/charts';
+import { compileChart, type ChartDataset, type PresentationNotice, type SemanticsCheck } from '@data-agent/charts';
 
 export interface ChartSpecWidgetData {
     readonly chartSpec: unknown;
@@ -8,9 +8,14 @@ export interface ChartSpecWidgetData {
     readonly notices?: readonly PresentationNotice[];
     readonly disclosure?: string;
     readonly declaredFields?: readonly string[];
+    /** Declared semantics the published result's profile makes doubtful. */
+    readonly semanticChecks?: readonly SemanticsCheck[];
+    /** Set when the rows are a derived dataset: what it was computed from. */
+    readonly derivedFrom?: string;
 }
 
 const noteStyle: React.CSSProperties = { fontSize: '12px', color: '#64748b', lineHeight: 1.6 };
+const checkStyle: React.CSSProperties = { ...noteStyle, color: '#b45309' };
 
 /**
  * A chat chart built by the Runtime: a ChartSpec plus the published rows it was
@@ -49,13 +54,16 @@ const ChartSpecWidget: React.FC<{ widget: ChartSpecWidgetData }> = ({ widget }) 
     }
 
     const notices = compiled.notices;
+    const checks = widget.semanticChecks ?? [];
     return (
         <div>
             <div ref={containerRef} data-testid="chart-spec-canvas" style={{ width: '100%', height: '360px' }} />
-            {(notices.length > 0 || widget.disclosure || (widget.declaredFields?.length ?? 0) > 0) && (
+            {(notices.length > 0 || checks.length > 0 || widget.derivedFrom || widget.disclosure || (widget.declaredFields?.length ?? 0) > 0) && (
                 <div style={{ marginTop: '8px', display: 'grid', gap: '2px' }}>
                     {/* The compiler keeps one notice per code and field, so the code alone is not unique. */}
                     {notices.map((notice) => <div key={`${notice.code}:${notice.field ?? ''}`} style={noteStyle}>{notice.message}</div>)}
+                    {checks.map((check) => <div key={`check:${check.code}:${check.field}`} style={checkStyle}>{check.message}</div>)}
+                    {widget.derivedFrom && <div style={noteStyle}>{widget.derivedFrom}</div>}
                     {widget.disclosure && <div style={noteStyle}>{widget.disclosure}</div>}
                     {(widget.declaredFields?.length ?? 0) > 0 && (
                         <div style={noteStyle}>字段语义来自模型声明，未经业务定义核实：{widget.declaredFields!.join('、')}</div>

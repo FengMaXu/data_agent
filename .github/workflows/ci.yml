@@ -1,8 +1,8 @@
 name: CI
 
 on:
+  # Every PR, including ones stacked on another feature branch.
   pull_request:
-    branches: [develop, master]
   push:
     branches: [develop, master]
 
@@ -41,6 +41,9 @@ jobs:
       - name: Architecture gate
         run: npm run verify:architecture
 
+      - name: Script tests
+        run: npm run test:scripts
+
       # Build once; the root typecheck/test scripts would each rebuild everything.
       - name: Build
         run: npm run build
@@ -53,3 +56,17 @@ jobs:
 
       - name: Test
         run: npm run test --workspaces --if-present
+
+      # The rest of verify:backend, before a release: the shipped bundles and a web host start-up.
+      - name: Distribution build
+        if: github.base_ref == 'master' || github.ref == 'refs/heads/master'
+        run: npm run build:distribution
+
+      - name: Web host smoke
+        if: github.base_ref == 'master' || github.ref == 'refs/heads/master'
+        run: node scripts/smoke-web-host.mjs
+
+      # Charts in a real browser: SVG preview, dashboard in the app's preview sandbox, chat widget.
+      - name: Chart browser smoke
+        if: github.base_ref == 'master' || github.ref == 'refs/heads/master'
+        run: node scripts/smoke-charts-browser.mjs

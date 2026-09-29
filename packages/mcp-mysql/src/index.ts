@@ -34,15 +34,18 @@ function redact(sql: string): string {
 const FORBIDDEN = /\b(drop|truncate|delete|insert|update|alter|grant|revoke|call|replace|load_file|into\s+outfile)\b/i;
 
 export async function createMysqlReferenceServer(options: MysqlReferenceServerOptions) {
+  // dateStrings: DATE, DATETIME and TIMESTAMP arrive as the text MySQL sends. Parsed into a Date they
+  // would sit at local midnight and serialise as UTC, so on a UTC+8 host DATE '2025-12-01' became
+  // "2025-11-30T16:00:00.000Z". TIMESTAMP text is in the session time zone.
   const pool: Pool = mysql.createPool({
     host: options.host, port: options.port, user: options.user, password: options.password,
-    database: options.database, connectionLimit: 3, enableKeepAlive: true,
+    database: options.database, connectionLimit: 3, enableKeepAlive: true, dateStrings: true,
   });
   // Promise queries buffer their complete result. Introspection uses a callback
   // pool so the response path can stop reading after the bounded preview.
   const introspectionPool = mysqlCallback.createPool({
     host: options.host, port: options.port, user: options.user, password: options.password,
-    database: options.database, connectionLimit: 1, enableKeepAlive: true,
+    database: options.database, connectionLimit: 1, enableKeepAlive: true, dateStrings: true,
   });
   const server = new McpServer({ name: "data-agent-mysql-reference", version: "1.0.0" });
 

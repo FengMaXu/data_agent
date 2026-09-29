@@ -24,6 +24,7 @@ describe('Versioned widgets', () => {
             widget_id: 'w1', kind: 'chart', title: '行业销售额', contractVersion: 2, chartSpec,
             dataset: { columns: ['industry', 'sales'], rows: [['批发业', '5234.00'], ['零售业', null]] },
             disclosure: '以下槽位为模型推断', declaredFields: ['sales'],
+            semanticChecks: [{ code: 'RATIO_OUT_OF_RANGE', field: 'sales', message: '销售额 声明为比率，但数值范围为 [499.88, 5234.00]' }],
         }} />);
         expect(setOption).toHaveBeenCalledTimes(1);
         const option = setOption.mock.calls[0]![0] as { xAxis: { data: string[] }; series: { data: unknown[] }[] };
@@ -32,6 +33,7 @@ describe('Versioned widgets', () => {
         expect(screen.getByText(/按空白显示，未按 0 绘制/)).toBeInTheDocument();
         expect(screen.getByText('以下槽位为模型推断')).toBeInTheDocument();
         expect(screen.getByText(/字段语义来自模型声明/)).toBeInTheDocument();
+        expect(screen.getByText(/声明为比率，但数值范围为/)).toBeInTheDocument();
     });
 
     it('shows compiler errors instead of drawing an altered chart', () => {
@@ -46,6 +48,14 @@ describe('Versioned widgets', () => {
     it('keeps the legacy renderer for charts replayed from earlier sessions', () => {
         render(<WidgetRenderer widget={{ widget_id: 'w3', kind: 'chart', title: 'Sales', data: [{ label: 'North', value: 10 }] }} />);
         expect(screen.getByText('North')).toBeInTheDocument();
+        expect(setOption).not.toHaveBeenCalled();
+    });
+
+    it('never draws a raw ECharts option, from a new event or an earlier session', () => {
+        render(<WidgetRenderer widget={{
+            widget_id: 'e1', kind: 'echarts', title: 'Raw', config: { xAxis: { data: ['a'] }, series: [{ type: 'bar', data: [1] }] },
+        }} />);
+        expect(screen.getByRole('note')).toHaveTextContent(/早期版本|earlier version/);
         expect(setOption).not.toHaveBeenCalled();
     });
 

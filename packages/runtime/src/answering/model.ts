@@ -659,6 +659,8 @@ export interface PublicationReceipt {
   readonly fanout?: FanoutReport;
   /** Observed column facts of the published rows; absent on Receipts published before profiling existed. */
   readonly physicalProfile?: PhysicalProfile;
+  /** Set on a refresh: the Receipt whose query this one ran again. That Receipt is unchanged. */
+  readonly refreshes?: PublicationId;
   /** Published bytes/rows remain in ResultStore and are read only through this Receipt. */
   readonly createdByInvocationId: string;
   readonly requestId: string;
@@ -840,6 +842,12 @@ export type ExecuteQuery =
 export interface PublishCandidate {
   readonly candidateId: string;
   readonly format: "auto" | "inline" | "csv";
+  readonly requestId: string;
+}
+
+/** Run a published result's query again and publish the new rows as a new Receipt (ADR-0010). */
+export interface RefreshPublication {
+  readonly receiptId: string;
   readonly requestId: string;
 }
 

@@ -75,6 +75,13 @@ export class ArtifactDirectory {
     };
   }
 
+  /** The Receipt itself, if this context may read it. */
+  async resolveReceipt(publicationId: string, context: BusinessContext): Promise<PublicationReceipt> {
+    const receipt = await this.source.findPublication(publicationId, context);
+    if (!receipt) throw new Error("PUBLICATION_NOT_FOUND");
+    return receipt;
+  }
+
   /** Typed rows of one publication, checked against the Receipt's content hash. */
   async resolveRows(publicationId: string, context: BusinessContext): Promise<AuthorizedPublishedRows> {
     const receipt = await this.source.findPublication(publicationId, context);

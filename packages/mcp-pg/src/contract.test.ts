@@ -41,7 +41,8 @@ describe("PostgreSQL Reference MCP Server contract", () => {
     expect(exportPayload.columns).toEqual(["id", "region", "amount"]);
     expect(exportPayload.rows).toHaveLength(2);
     expect(exportPayload.truncated).toBe(false);
-    expect(querySpy.mock.calls.filter(([sql]) => typeof sql === "string" && sql.includes("__result"))).toHaveLength(1);
+    const queryText = (query: unknown) => (typeof query === "string" ? query : (query as { text?: string }).text ?? "");
+    expect(querySpy.mock.calls.filter(([query]) => queryText(query).includes("__result"))).toHaveLength(1);
 
     const dangerous = await client.callTool({ name: "execute_query_preview", arguments: { sql: "DELETE FROM contract_sales" } });
     expect(JSON.parse((dangerous.content as any)[0].text).error.code).toBe("FORBIDDEN_SQL");
@@ -50,6 +51,13 @@ describe("PostgreSQL Reference MCP Server contract", () => {
     const schemaPayload = JSON.parse((schema.content as any)[0].text);
     expect(schemaPayload.schema[0].table).toBe("contract_sales");
     expect(schemaPayload.schema[0].primaryKey).toEqual(["id"]);
+
+    // Calendar values keep the text PostgreSQL sends; a parsed DATE would serialise as the previous day east of UTC.
+    const calendarSql = "SELECT DATE '2025-12-01' AS d, TIMESTAMP '2025-12-01 08:30:00' AS ts, TIME '08:30:00' AS t";
+    for (const name of ["execute_query_preview", "execute_query_export"]) {
+      const calendar = await client.callTool({ name, arguments: { sql: calendarSql } });
+      expect(JSON.parse((calendar.content as any)[0].text).rows[0]).toEqual({ d: "2025-12-01", ts: "2025-12-01 08:30:00", t: "08:30:00" });
+    }
 
     await client.close();
     await close();

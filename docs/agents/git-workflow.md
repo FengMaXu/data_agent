@@ -70,17 +70,24 @@ gh pr create --base master --head develop
 | 时机 | 运行 |
 | --- | --- |
 | 开发过程中 | 改动所在包的测试与类型检查，例如在包目录下运行 `npx vitest run`、`npx tsc -p tsconfig.json --noEmit` |
-| 开 PR 到 `develop` 之前 | 全仓库 `npm run typecheck` 与 `npm test`；改动后端时加 `npm run verify:architecture` |
-| 开 PR 从 `develop` 到 `master` 之前 | `npm run verify:backend`：以上各项，加负向类型测试、分发构建与 web host 冒烟测试 |
+| 推送、开 PR 之前 | `npm run check:affected`：架构检查，加上改动的 workspace 及其全部下游的类型检查与测试 |
+| PR 上 | CI 跑全量，作为合并门槛 |
+| 开 PR 从 `develop` 到 `master` 之前 | `npm run verify:backend`：全量，加负向类型测试、分发构建与 web host 冒烟测试 |
 
-改动只涉及文档时，可以跳过测试与类型检查。
+`check:affected` 以与 `origin/develop` 的合并基点比较（包括未提交与未跟踪的文件），按各 workspace `package.json` 中的依赖关系向下游展开，只构建所需的上游包。规则：
+
+- `docs/`、根目录 `*.md`、`.github/`、`evaluations/` 不触发检查；`.agents/` 算作 runtime（其测试读取 skill）。
+- 根目录的 `package.json`、`package-lock.json`、`scripts/` 及其他不属于任何 workspace 的文件退回全量。
+- `--dry-run` 只打印计划；`--all` 强制全量；`--base <ref>` 指定比较基点。
+
+本地不再跑全仓 `npm run typecheck` 与 `npm test`：根脚本的 `pretypecheck`、`pretest` 各自会完整构建一次，而全量已由 CI 覆盖。改动只涉及文档时，`check:affected` 不执行任何检查。
 
 ### CI
 
-`.github/workflows/ci.yml` 在目标为 `develop` 或 `master` 的 PR、以及对这两个分支的推送上自动运行：架构检查、一次完整构建、各 workspace 类型检查、runtime 负向类型测试、各 workspace 测试（Windows runner，Node 22）。
+`.github/workflows/ci.yml` 在所有 PR（包括叠加在其他功能分支上的 PR）、以及对 `develop`、`master` 的推送上自动运行：架构检查、脚本测试、一次完整构建、各 workspace 类型检查、runtime 负向类型测试、各 workspace 测试（Windows runner，Node 22）。
 
 - CI 失败的 PR 不合并。
-- CI 不运行 `verify:backend` 中的分发构建与 web host 冒烟测试，合入 `master` 前仍须在本地运行。
+- 目标为 `master` 的 PR 与对 `master` 的推送上，CI 另外运行分发构建与 web host 冒烟测试；其他 PR 上跳过。Electron 打包冒烟（`verify:backend:packaged`）仍只在本地运行。
 - MySQL 契约测试需要 `DATA_AGENT_TEST_MYSQL=1` 和可用的数据库，CI 中跳过，需要时在本地运行。
 
 ## 合并

@@ -10,6 +10,9 @@ import { renderKnowledgeCatalog, type KnowledgeIndex } from "../knowledge.js";
 import { ClarificationManager } from "../clarification.js";
 import type { WorkspaceStore } from "../workspace.js";
 import { createChartToolDefinitions } from "../tools/charts.js";
+import { createDashboardToolDefinitions } from "../tools/dashboard.js";
+import { DerivedDatasets, FileDerivedDatasetStore, InMemoryDerivedDatasetStore } from "../facets/derived-datasets.js";
+import { DashboardRefresher } from "../facets/dashboard-refresh.js";
 import { createAnsweringAgentToolDefinitions, type DataAgentToolContext, type HypothesisComparisonToolOptions, type SemanticSpecMode } from "../tools/answering.js";
 import { createCoreAgentToolDefinitions } from "../tools/core.js";
 import { createDataAgentPiRuntime, createPiSessionHost, type DataAgentModelProfile, type DataAgentSessionHost, type DataAgentSessionHostOptions, type OpenOperation, type SessionInput, type SessionQueryExecutor } from "../agent/harness-factory.js";
@@ -268,6 +271,8 @@ export async function createDataAgentSessionHost(options: DataAgentSessionRuntim
   });
   const clarificationDialogs = new ClarificationDialogs(options.clarifications ?? new ClarificationManager());
   const queryTasks = new QueryTaskProjection(queryTaskReadModel(answering, (context) => answeringStore.list(context)));
+  // Derived datasets sit beside the session's results, outside its workspace, so no workspace write can alter them.
+  const derivedDatasets = new DerivedDatasets(options.resultRoot ? new FileDerivedDatasetStore(`${options.resultRoot}/derived`) : new InMemoryDerivedDatasetStore());
   const artifacts = new ArtifactDirectory({
     findPublication: (publicationId, context) => answeringStore.transact((tx) => {
       const receipt = tx.getReceipt(publicationId as PublicationId);
@@ -312,11 +317,11 @@ export async function createDataAgentSessionHost(options: DataAgentSessionRuntim
       workspace: options.workspace,
       skills,
       publishedRows: artifacts,
+      derivedDatasets,
       ...(options.enableClarificationTool !== false ? { clarifications: clarificationDialogs } : {}),
       ...(options.knowledge ? { knowledge: options.knowledge } : {}),
       ...(options.knowledgeRoot ? { knowledgeRoot: options.knowledgeRoot } : {}),
       ...(options.pythonExecutable ? { pythonExecutable: options.pythonExecutable } : {}),
-      ...(options.enableDashboards !== undefined ? { enableDashboards: options.enableDashboards } : {}),
       ...(options.enableWidgets !== undefined ? { enableWidgets: options.enableWidgets } : {}),
     }),
     ...createAnsweringAgentToolDefinitions(
@@ -326,7 +331,8 @@ export async function createDataAgentSessionHost(options: DataAgentSessionRuntim
       options.hypothesisChoiceAdvisor && options.semanticSpecMode !== "disabled" ? simpleHypothesisComparisonOptions(options.hypothesisChoiceAdvisor, session, advisoryLedger) : undefined,
       { semanticSpecMode: options.semanticSpecMode ?? "required" },
     ),
-    ...createChartToolDefinitions({ workspace: options.workspace, artifacts }),
+    ...createChartToolDefinitions({ workspace: options.workspace, artifacts, derived: derivedDatasets }),
+    ...(options.enableDashboards !== false ? createDashboardToolDefinitions({ workspace: options.workspace, artifacts, derived: derivedDatasets }) : []),
   ];
   const delegation = options.enableSubagents ? new NativeDelegation({
     executor: new HarnessChildExecutor({
@@ -365,6 +371,7 @@ export async function createDataAgentSessionHost(options: DataAgentSessionRuntim
     queryTaskProjection: queryTasks,
     artifactDirectory: artifacts,
     clarificationDialogs,
+    dashboardRefresher: new DashboardRefresher({ workspace: options.workspace, answering, artifacts }),
     piRuntime,
   };
   const host = await createPiSessionHost(hostOptions);

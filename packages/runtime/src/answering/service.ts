@@ -11,6 +11,7 @@ import {
   type InspectAnswer,
   type PublicationReceipt,
   type PublishCandidate,
+  type RefreshPublication,
   type QueryExecutionView,
   type ReviseAnswer,
   type RevisionId,
@@ -28,6 +29,7 @@ import { executeExploration } from "./exploration.js";
 import { executeResult } from "./result-execution.js";
 import { createFanoutSchemaLoader } from "./fanout-execution.js";
 import { publishCandidate } from "./publication.js";
+import { refreshPublication } from "./refresh.js";
 import type { AnsweringDeps, FanoutAnsweringOptions, SemanticQualificationMode, SpecFeedbackOptions } from "./deps.js";
 import type { AnsweringSqlExecutor } from "./sql-execution.js";
 
@@ -42,6 +44,8 @@ export interface Answering {
   revise(input: ReviseAnswer, context: BusinessContext): Promise<AnswerRevisionView>;
   execute(input: ExecuteQuery, context: BusinessContext): Promise<QueryExecutionView>;
   publish(input: PublishCandidate, context: BusinessContext): Promise<PublicationReceipt>;
+  /** Re-run a published result's query and publish the rows as a new Receipt (ADR-0010). */
+  refresh(input: RefreshPublication, context: BusinessContext): Promise<PublicationReceipt>;
   inspect(input: InspectAnswer, context: BusinessContext): Promise<AnswerTaskView>;
 }
 
@@ -202,6 +206,11 @@ export class InMemoryAnswering implements Answering {
   async publish(input: PublishCandidate, context: BusinessContext): Promise<PublicationReceipt> {
     assertContext(context);
     return publishCandidate(this.deps, input, context);
+  }
+
+  async refresh(input: RefreshPublication, context: BusinessContext): Promise<PublicationReceipt> {
+    assertContext(context);
+    return refreshPublication(this.deps, input, context);
   }
 
   async inspect(input: InspectAnswer, context: BusinessContext): Promise<AnswerTaskView> {

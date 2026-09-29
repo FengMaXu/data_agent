@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import type { Pool } from "pg";
+import pg, { type Pool, type CustomTypesConfig } from "pg";
 
 export const DATABASE_MCP_CONTRACT_VERSION = 1;
 const DEFAULT_PREVIEW_LIMIT = 20;
@@ -16,6 +16,16 @@ export interface PgReferenceServerOptions {
 function redact(sql: string): string {
   return sql.replace(/'[^']*'/g, "'<REDACTED>'").slice(0, 200);
 }
+
+/**
+ * DATE, TIME, TIMESTAMP and TIMETZ keep the text PostgreSQL sends. The default
+ * parser turns DATE into local midnight, which serialises as the previous day
+ * on hosts east of UTC. TIMESTAMPTZ names an instant and keeps its default.
+ */
+const CALENDAR_OIDS = new Set([1082, 1083, 1114, 1266]);
+const calendarTypes: CustomTypesConfig = {
+  getTypeParser: ((oid: number, format?: "text" | "binary") => (CALENDAR_OIDS.has(oid) ? (value: string) => value : pg.types.getTypeParser(oid, format as "text"))) as CustomTypesConfig["getTypeParser"],
+};
 
 const FORBIDDEN = /\b(drop|truncate|delete|insert|update|alter|grant|revoke|call|replace|copy)\b/i;
 
@@ -40,7 +50,7 @@ export async function createPgReferenceServer(options: PgReferenceServerOptions)
       }
       const effectiveLimit = Math.min(limit ?? DEFAULT_PREVIEW_LIMIT, maxPreviewRows);
       try {
-        const result = await pool.query(`SELECT * FROM (${trimmed}) __preview LIMIT ${effectiveLimit + 1}`);
+        const result = await pool.query({ text: `SELECT * FROM (${trimmed}) __preview LIMIT ${effectiveLimit + 1}`, types: calendarTypes });
         const columns = result.fields.map((field) => field.name);
         let rows = result.rows.slice(0, effectiveLimit);
         let truncated = result.rows.length > effectiveLimit;
@@ -87,7 +97,7 @@ export async function createPgReferenceServer(options: PgReferenceServerOptions)
       if (FORBIDDEN.test(trimmed)) return { content: [{ type: "text", text: JSON.stringify({ error: { code: "FORBIDDEN_SQL" } }) }] };
       const rowLimit = Math.min(requestedMaxRows ?? MAX_EXPORT_ROWS, MAX_EXPORT_ROWS);
       try {
-        const result = await pool.query(`SELECT * FROM (${trimmed}) __result LIMIT ${rowLimit + 1}`);
+        const result = await pool.query({ text: `SELECT * FROM (${trimmed}) __result LIMIT ${rowLimit + 1}`, types: calendarTypes });
         if (result.rows.length > rowLimit) return { content: [{ type: "text", text: JSON.stringify({ error: { code: "EXPORT_ROW_LIMIT_EXCEEDED", rowLimit } }) }] };
         const columns = result.fields.map((field) => field.name);
         return { content: [{ type: "text", text: JSON.stringify({ rows: result.rows, columns, truncated: false, contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };

@@ -13,6 +13,7 @@ import type { DataAgentToolContext } from "../tools/answering.js";
 import { PiTranscriptFacet, type PresentationAgentEvent, type RuntimeExecutionSnapshot, type RuntimeObservation, type TranscriptSnapshot } from "../facets/transcript.js";
 import type { ArtifactDirectory } from "../facets/artifact-directory.js";
 import type { ClarificationDialogs } from "../facets/clarification-dialogs.js";
+import type { DashboardRefresher } from "../facets/dashboard-refresh.js";
 import type { QueryTaskProjection } from "../facets/query-task-projection.js";
 import { createPiAgentController } from "../facets/agent-controller.js";
 import { unwrapApplicationSession, type SessionInput } from "../session-store.js";
@@ -106,6 +107,7 @@ export interface DataAgentSessionHostOptions {
   readonly queryTaskProjection: QueryTaskProjection;
   readonly artifactDirectory: ArtifactDirectory;
   readonly clarificationDialogs: ClarificationDialogs;
+  readonly dashboardRefresher: DashboardRefresher;
   readonly piRuntime?: DataAgentPiRuntime;
 }
 
@@ -208,6 +210,7 @@ export interface DataAgentSessionHost {
     readonly queryTasks: QueryTaskProjection;
     readonly artifacts: ArtifactDirectory;
     readonly clarifications: ClarificationDialogs;
+    readonly dashboards: DashboardRefresher;
   };
   readonly openOperations: readonly OpenOperation[];
   subscribe(listener: (event: PresentationAgentEvent) => void): () => void;
@@ -367,7 +370,7 @@ export async function createPiSessionHost(options: DataAgentSessionHostOptions):
     answeringStore: options.answeringStore,
     resultStore: options.resultStore,
     tools,
-    facets: { transcript, queryTasks: options.queryTaskProjection, artifacts: options.artifactDirectory, clarifications: options.clarificationDialogs },
+    facets: { transcript, queryTasks: options.queryTaskProjection, artifacts: options.artifactDirectory, clarifications: options.clarificationDialogs, dashboards: options.dashboardRefresher },
     openOperations: created.open as readonly OpenOperation[],
     subscribe: transcript.subscribe.bind(transcript),
     subscribeObservations: transcript.subscribeObservations.bind(transcript),
