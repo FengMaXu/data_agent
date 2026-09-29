@@ -356,24 +356,28 @@ function compileCartesian(context: CompileContext, chart: CartesianChart): Chart
     const entry = axisMeta.get(side)!;
     return { ...valueAxis(entry.meta, entry.field, entry.share), ...(side === "right" ? { position: "right" } : {}) };
   });
+  // A value axis along the bottom names itself under its centre; at the axis end the name runs off the canvas.
+  const bottomName = { nameLocation: "middle", nameGap: 28 };
   let xAxis: unknown;
   let yAxis: unknown;
   if (valueX) {
-    xAxis = { type: "value", name: xMeta?.type === "quantitative" ? axisTitle(chart.x.field, xMeta) : chart.x.field, scale: true, axisLabel: { formatter: (value: number) => (xMeta?.type === "quantitative" && isPercentDisplay(xMeta) ? `${value}%` : value.toLocaleString("zh-CN", { maximumFractionDigits: 4 })) } };
+    xAxis = { type: "value", name: xMeta?.type === "quantitative" ? axisTitle(chart.x.field, xMeta) : chart.x.field, ...bottomName, scale: true, axisLabel: { formatter: (value: number) => (xMeta?.type === "quantitative" && isPercentDisplay(xMeta) ? `${value}%` : value.toLocaleString("zh-CN", { maximumFractionDigits: 4 })) } };
     yAxis = valueAxes;
   } else {
     const axis = categoryAxis(context, categories, horizontal, chart.x.field);
     if (!axis) return undefined;
-    xAxis = horizontal ? valueAxes[0] : axis;
+    xAxis = horizontal ? { ...valueAxes[0], ...bottomName } : axis;
     yAxis = horizontal ? axis : valueAxes;
   }
+  const namedBottom = valueX || horizontal;
   const zoom = valueX ? undefined : viewportZoom(context, categories.length, horizontal);
   return {
     color: [...PALETTE],
     ...(context.options.target === "static" ? { animation: false } : {}),
     tooltip: { trigger: onlyScatter || valueX ? "item" : "axis" },
     ...(series.length > 1 ? { legend: { top: 0 } } : {}),
-    grid: { left: 16, right: sides.includes("right") ? 48 : 24, top: series.length > 1 ? 40 : 24, bottom: zoom ? 48 : 16, containLabel: true },
+    // The top margin holds the value-axis names (and the legend when there is one).
+    grid: { left: 16, right: sides.includes("right") ? 48 : 24, top: series.length > 1 ? 48 : 36, bottom: (zoom ? 48 : 16) + (namedBottom ? 28 : 0), containLabel: true },
     xAxis,
     yAxis,
     ...(zoom ? { dataZoom: zoom } : {}),
@@ -406,9 +410,11 @@ function compilePie(context: CompileContext, chart: PieChart): ChartOption | und
     series: [{
       type: "pie",
       name: fieldTitle(value.field, value.meta),
-      radius: chart.donut === false ? "70%" : ["42%", "70%"],
+      // Leave room around the ring so labels wrap instead of being cut off.
+      radius: chart.donut === false ? "60%" : ["36%", "60%"],
       data,
-      label: { formatter: "{b}：{d}%" },
+      // Name and share on separate lines, wrapping long names: a truncated label would hide the share.
+      label: { formatter: "{b}\n{d}%", overflow: "break", lineHeight: 16 },
     }],
   };
 }
