@@ -140,4 +140,18 @@ describe("generate_dashboard", () => {
     await expect(large.call({ operation: "validate", spec: dashboardSpec(large.receipts) })).rejects.toThrow("DASHBOARD_TOO_MANY_ROWS");
     await large.cleanup();
   });
+
+  it("shows doubtful declarations on the page and in the text", async () => {
+    const { receipts, root, call, cleanup } = await setup({ industries, totals });
+    const spec = dashboardSpec(receipts);
+    // Growth stored as a ratio, declared as percent points.
+    const views = [{ ...spec.views[2], fields: { sales, growth: { ...growth, storage: "percent" } } }];
+    const result = await call({ operation: "create", spec: { ...spec, views } });
+    expect((result.content[0] as { text: string }).text).toContain("[CHECK] detail: 同比增速 声明为百分数");
+    const page = openPage(await readFile(join(root, "dashboards", "industry.html"), "utf8"));
+    expect(page.errors).toEqual([]);
+    expect(page.document.querySelector("#view-detail .notes")?.textContent).toContain("可能是比率");
+    page.close();
+    await cleanup();
+  });
 });

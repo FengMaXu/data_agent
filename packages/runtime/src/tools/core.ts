@@ -4,7 +4,7 @@ import { FieldMetaSchema } from "@data-agent/contracts";
 import { CHART_RENDERER_VERSIONS, compileChart } from "@data-agent/charts";
 import type { BusinessContext } from "../answering/public.js";
 import type { ArtifactDirectory } from "../facets/artifact-directory.js";
-import { MAX_WIDGET_ROWS, declaredFields, formatChartErrors, jsonSafeRows, publicationRef } from "./charts.js";
+import { MAX_WIDGET_ROWS, declaredFields, formatChartErrors, jsonSafeRows, publicationRef, semanticChecks } from "./charts.js";
 import type { AgentToolResult } from "@earendil-works/pi-agent-core";
 import { DEFAULT_KNOWLEDGE_RESULTS, formatKnowledgeSearchResults, MAX_KNOWLEDGE_RESULTS, type KnowledgeIndex } from "../knowledge.js";
 import { KnowledgeWriter } from "../knowledge-write.js";
@@ -34,6 +34,7 @@ async function chartWidget(options: CoreToolOptions, spec: unknown, widgetId: st
   if (!compiled.ok) throw new Error(formatChartErrors(compiled.errors));
   const disclosure = published.receipt.disclosure?.summary;
   const declared = declaredFields(spec);
+  const checks = semanticChecks(compiled.spec.fields, published.receipt);
   return {
     widget_id: widgetId,
     kind: "chart",
@@ -49,6 +50,7 @@ async function chartWidget(options: CoreToolOptions, spec: unknown, widgetId: st
     notices: compiled.notices,
     ...(disclosure ? { disclosure } : {}),
     ...(declared.length > 0 ? { declaredFields: declared } : {}),
+    ...(checks.length > 0 ? { semanticChecks: checks } : {}),
   };
 }
 
@@ -56,10 +58,12 @@ async function chartWidget(options: CoreToolOptions, spec: unknown, widgetId: st
 function chartWidgetText(widget: WidgetPayload): string {
   const notices = Array.isArray(widget.notices) ? widget.notices as { message?: string }[] : [];
   const declared = Array.isArray(widget.declaredFields) ? widget.declaredFields as string[] : [];
+  const checks = Array.isArray(widget.semanticChecks) ? widget.semanticChecks as { message?: string }[] : [];
   const rows = (widget.dataset as { rows?: unknown[] } | undefined)?.rows?.length ?? 0;
   return [
     `[widget:chart] ${widget.title} (receiptId=${String(widget.receiptId)}, ${rows} 行)`,
     ...notices.map((notice) => `[NOTICE] ${notice.message ?? ""}`),
+    ...checks.map((check) => `[CHECK] ${check.message ?? ""}`),
     ...(typeof widget.disclosure === "string" ? [`[DISCLOSURE] ${widget.disclosure}`] : []),
     ...(declared.length > 0 ? [`[SEMANTICS] 以下字段的语义来自模型声明，未经业务定义核实：${declared.join("、")}`] : []),
   ].join("\n");
@@ -284,6 +288,7 @@ export function createCoreAgentToolDefinitions(options: CoreToolOptions): readon
       promptGuidelines: [
         "只在获得可视化授权且 kind 受现有实现支持时使用；不能绕过查询结果的发布授权。",
         "kind=\"chart\" 的 spec 是 ChartSpec v1，spec.data 为 { kind: \"publication\", receiptId }，引用已发布的结果；不要把数据行写进 spec。",
+        "chart 返回 [CHECK] 时，说明字段声明与数据不符的可能：核对 storage、additivity，有误就改正后重新调用。",
         "kind=\"table\" 的数值列需要百分比、单位或量级换算时，在 spec.fields 中按列名声明字段语义；未声明的数值按原样显示，不会被猜测为百分比。",
       ],
     }));

@@ -42,6 +42,7 @@ allowed-tools:
 - `spec.data` 引用第二步的 `receiptId`；度量字段在 `spec.fields` 中声明数值语义。
 - 返回 `CHART_SPEC_INVALID` 时，按错误码与建议修改查询或 spec，不要绕过。
 - 返回的 `[NOTICE]`、`[DISCLOSURE]`、`[SEMANTICS]` 都要写进该图的图注。
+- 返回 `[CHECK]` 时，先核对对应字段的 `storage`、`additivity` 声明：有误就改正 spec 重新渲染；确认无误才使用该图。
 
 ### 第五步：撰写报告
 

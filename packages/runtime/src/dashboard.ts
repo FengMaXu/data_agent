@@ -1,4 +1,4 @@
-import type { ChartRendererVersions, DashboardDatasets } from "@data-agent/charts";
+import type { ChartRendererVersions, DashboardDatasets, SemanticsCheck } from "@data-agent/charts";
 import type { DashboardSpec } from "@data-agent/contracts";
 
 /**
@@ -21,6 +21,8 @@ export interface DashboardRenderInput {
   /** JSON-safe rows keyed by `datasetKey`. */
   readonly datasets: DashboardDatasets;
   readonly sources: Readonly<Record<string, DashboardDataSource>>;
+  /** Per view id: declared semantics the Physical Profile makes doubtful. */
+  readonly checks: Readonly<Record<string, readonly SemanticsCheck[]>>;
   readonly renderer: ChartRendererVersions;
   /** Fields whose semantics only the model declared. */
   readonly declaredFields: readonly string[];
@@ -81,6 +83,7 @@ D.spec.views.forEach(function(v){
     C.resolveKpiCards(v,data).forEach(function(c){var d=el("div","card");d.appendChild(el("div","label",c.label));d.appendChild(el("div","value",c.value));if(c.delta)d.appendChild(el("div","delta",(c.delta.label?c.delta.label+" ":"")+c.delta.value));cards.appendChild(d)});
     p.appendChild(cards);
   }
+  (D.checks[v.id]||[]).forEach(function(c){notes.push(c.message)});
   if(source.disclosure)notes.push(source.disclosure);
   if(notes.length){var ul=el("ul","notes");notes.forEach(function(n){ul.appendChild(el("li",null,n))});p.appendChild(ul)}
   host.appendChild(p);
@@ -89,7 +92,7 @@ D.spec.views.forEach(function(v){
 
 export function renderDashboardHtml(input: DashboardRenderInput, assets: DashboardAssets): string {
   const { spec } = input;
-  const payload = scriptJson({ spec, datasets: input.datasets, sources: input.sources, renderer: input.renderer });
+  const payload = scriptJson({ spec, datasets: input.datasets, sources: input.sources, checks: input.checks, renderer: input.renderer });
   const sources = Object.values(input.sources).map((source) => `<li>发布记录 ${escapeHtml(source.receiptId)}（内容哈希 ${escapeHtml(source.contentHash.slice(0, 12))}）</li>`).join("");
   const semantics = input.declaredFields.length > 0 ? `<p>以下字段的语义来自模型声明，未经业务定义核实：${escapeHtml(input.declaredFields.join("、"))}</p>` : "";
   const echarts = assets.echartsSource ? `<script>${assets.echartsSource}</script>` : "";
