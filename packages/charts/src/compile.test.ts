@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ChartSpec, FieldMeta } from "@data-agent/contracts";
-import { compileChart, validateChart, type ChartCompileResult, type ChartDataset } from "./index.js";
+import { compileChart, formatFieldValue, validateChart, type ChartCompileResult, type ChartDataset } from "./index.js";
 
 const additive: FieldMeta = { type: "quantitative", storage: "raw", additivity: "additive" };
 const data = { kind: "publication", receiptId: "publication_1" } as const;
@@ -275,5 +275,55 @@ describe("formatFieldValue", () => {
     expect(formatFieldValue(0.12, undefined)).toBeUndefined();
     expect(formatFieldValue(0.12, { type: "nominal" })).toBeUndefined();
     expect(formatFieldValue("n/a", { type: "quantitative", storage: "raw", additivity: "additive" })).toBeUndefined();
+  });
+});
+
+describe("Temporal fields", () => {
+  const monthly = (zone: string, grain: "month" | "day" | "quarter" | "hour" = "month"): ChartSpec => ({
+    version: 1, data, fields: { sales: additive, month: { type: "temporal", grain, zone } },
+    chart: { mark: "cartesian", x: { field: "month" }, layers: [{ type: "line", y: { field: "sales" } }] },
+  } as ChartSpec);
+  const xData = (result: ChartCompileResult) => (axis(ok(result).option, "xAxis")[0]!.data as string[]);
+
+  it("cuts calendar text to the declared grain without shifting it", () => {
+    const dates = { columns: ["month", "sales"], rows: [["2025-12-01", 2], ["2025-11-01", 1]] };
+    expect(xData(compileChart(monthly("floating"), dates, { target: "interactive" }))).toEqual(["2025-11", "2025-12"]);
+    expect(xData(compileChart(monthly("floating", "day"), dates, { target: "interactive" }))).toEqual(["2025-11-01", "2025-12-01"]);
+    expect(xData(compileChart(monthly("floating", "quarter"), { columns: ["month", "sales"], rows: [["2025-12-01", 2], ["2025-08-01", 1]] }, { target: "interactive" }))).toEqual(["2025-Q3", "2025-Q4"]);
+    const times = { columns: ["month", "sales"], rows: [["2025-12-01 08:30:00", 1]] };
+    expect(xData(compileChart(monthly("floating", "hour"), times, { target: "interactive" }))).toEqual(["2025-12-01 08:00"]);
+  });
+
+  it("rejects two rows that fall in one period instead of merging them", () => {
+    const days = { columns: ["month", "sales"], rows: [["2025-12-01", 1], ["2025-12-15", 2]] };
+    expect(codes(compileChart(monthly("floating"), days, { target: "interactive" }))).toEqual(["DUPLICATE_KEY"]);
+  });
+
+  it("places instants in the declared zone, whatever zone the process runs in", () => {
+    // DATE '2025-12-01' read at local midnight in UTC+8 and serialised as UTC.
+    const instants = { columns: ["month", "sales"], rows: [["2025-11-30T16:00:00.000Z", 1], [new Date("2025-12-31T16:00:00.000Z"), 2]] };
+    const original = process.env.TZ;
+    try {
+      const options = ["UTC", "Asia/Shanghai", "America/New_York"].map((zone) => {
+        process.env.TZ = zone;
+        return JSON.stringify(ok(compileChart(monthly("Asia/Shanghai", "day"), instants, { target: "static" })).option);
+      });
+      expect(new Set(options).size).toBe(1);
+      expect(xData(compileChart(monthly("Asia/Shanghai", "day"), instants, { target: "interactive" }))).toEqual(["2025-12-01", "2026-01-01"]);
+    } finally {
+      if (original === undefined) delete process.env.TZ; else process.env.TZ = original;
+    }
+  });
+
+  it("shows zoned values of a floating field as written, with a notice", () => {
+    const result = ok(compileChart(monthly("floating", "day"), { columns: ["month", "sales"], rows: [["2025-11-30T16:00:00.000Z", 1]] }, { target: "interactive" }));
+    expect(axis(result.option, "xAxis")[0]!.data).toEqual(["2025-11-30T16:00:00.000Z"]);
+    expect(result.notices.map((notice) => notice.code)).toContain("TEMPORAL_ZONED_VALUE");
+  });
+
+  it("formats temporal cells for tables by grain", () => {
+    expect(formatFieldValue("2025-12-01", { type: "temporal", grain: "month", zone: "floating" })).toBe("2025-12");
+    expect(formatFieldValue(null, { type: "temporal", grain: "month", zone: "floating" })).toBeUndefined();
+    expect(formatFieldValue("2025年12月", { type: "temporal", grain: "month", zone: "floating" })).toBe("2025年12月");
   });
 });

@@ -69,6 +69,15 @@ describe("Static chart rendering", () => {
       .toEqual({ theme: 1, font: "'Microsoft YaHei', 'PingFang SC', 'Noto Sans SC', 'Source Han Sans SC', sans-serif", background: "#ffffff" });
   });
 
+  it("shows calendar dates at their grain, never a day earlier", () => {
+    const monthly = { ...spec, fields: { ...spec.fields, month: { type: "temporal", grain: "month", zone: "floating" } }, chart: { mark: "cartesian", x: { field: "month" }, layers: [{ type: "line", y: { field: "sales" } }] } };
+    const result = renderChartSvg(monthly, { columns: ["month", "sales"], rows: [["2025-11-01", 1], ["2025-12-01", 2]] });
+    if (!result.ok) throw new Error(JSON.stringify(result.errors));
+    expect(result.svg).toContain(">2025-11<");
+    expect(result.svg).toContain(">2025-12<");
+    expect(result.svg).not.toContain("2025-10");
+  });
+
   it("returns compiler errors instead of drawing an altered chart", () => {
     const duplicated = { columns: ["industry", "sales"], rows: [["批发业", 1], ["批发业", 2]] };
     const result = renderChartSvg(spec, duplicated);
