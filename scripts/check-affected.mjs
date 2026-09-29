@@ -22,7 +22,7 @@ const SCRIPT_CHECKS = [
   [/^scripts\/verify-backend-architecture\.mjs$/, { scripts: [] }],
   [/^scripts\/check-affected(\.test)?\.mjs$/, { scripts: ["test:scripts"] }],
   // Release-only scripts: typecheck and tests do not run them; verify:backend does.
-  [/^scripts\/(build-distribution|smoke-web-host|smoke-electron|smoke-python-runtime|build-python-runtime|package-electron-manual|measure-budgets|write-build-provenance|run-clean-env-gates|start-web-host)\.mjs$/, { scripts: [], hint: "release scripts changed: run npm run verify:backend before merging develop into master" }],
+  [/^scripts\/(build-distribution|smoke-web-host|smoke-electron|smoke-python-runtime|build-python-runtime|package-electron-manual|measure-budgets|write-build-provenance|run-clean-env-gates|start-web-host|smoke-charts-browser)\.mjs$/, { scripts: [], hint: "release scripts changed: run npm run verify:backend before merging develop into master" }],
 ];
 
 /** Workspaces from the root package.json globs, with their in-repo dependencies. */
