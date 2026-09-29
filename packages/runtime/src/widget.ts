@@ -2,6 +2,12 @@ import type { AgentToolResult, AgentToolUpdateCallback } from "@earendil-works/p
 
 export type WidgetKind = "kpi" | "chart" | "table" | "steps";
 
+/**
+ * Widgets built by the current Runtime carry this version. Widgets without it
+ * are replays of earlier sessions and keep their original rendering (ADR-0008 decision 11).
+ */
+export const CHART_WIDGET_CONTRACT_VERSION = 2;
+
 export interface WidgetSpecInput {
   [key: string]: unknown;
 }
@@ -47,6 +53,12 @@ export function validateWidgetSpec(kind: WidgetKind, value: unknown): WidgetVali
     const hasValue = typeof value.value === "string" || typeof value.value === "number";
     if (!hasValue && !Array.isArray(value.data)) {
       return { ok: false, error: "kpi spec requires a scalar value or data array" };
+    }
+  } else if (kind === "chart" && value.contractVersion === CHART_WIDGET_CONTRACT_VERSION) {
+    // A Runtime-built ChartSpec widget: the spec plus the published rows it was resolved against.
+    const dataset = isObject(value.dataset) ? value.dataset : undefined;
+    if (!isObject(value.chartSpec) || !dataset || !Array.isArray(dataset.columns) || !Array.isArray(dataset.rows)) {
+      return { ok: false, error: "chart widget requires chartSpec and a resolved dataset" };
     }
   } else if (!Array.isArray(value.data) && !(kind === "chart" && Array.isArray(value.series))) {
     return { ok: false, error: `${kind} spec requires a data array${kind === "chart" ? " or series array" : ""}` };

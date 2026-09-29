@@ -8,8 +8,10 @@ import { InMemoryAnswering } from "../answering/service.js";
 import type { BusinessContext, PublicationId } from "../answering/model.js";
 import { ArtifactDirectory } from "../facets/artifact-directory.js";
 import { WorkspaceStore } from "../workspace.js";
+import { validateWidgetSpec } from "../widget.js";
 import { createAnsweringAgentToolDefinitions } from "./answering.js";
-import { createChartToolDefinitions } from "./charts.js";
+import { MAX_WIDGET_ROWS, createChartToolDefinitions } from "./charts.js";
+import { createCoreAgentToolDefinitions } from "./core.js";
 
 const context = (invocationId: string): BusinessContext => ({ principal: { id: "user-1" }, sessionId: "session-1", lane: "main", operationId: "operation-1", invocationId });
 const invocation = (invocationId: string) => ({ operationId: "operation-1", invocationId, getMemo: async () => undefined, setMemo: async () => undefined }) as never;
@@ -36,12 +38,13 @@ async function setup(rows: unknown[][]) {
   const root = await mkdtemp(join(tmpdir(), "data-agent-charts-"));
   const workspace = new WorkspaceStore(root, { userId: "user-1", sessionId: "session-1" });
   const tool = createChartToolDefinitions({ workspace, artifacts })[0]!.tool;
+  const showWidget = createCoreAgentToolDefinitions({ workspace, publishedRows: artifacts }).map((definition) => definition.tool).find((item) => item.name === "show_widget")!;
   const publishText = async () => {
     const publish = createAnsweringAgentToolDefinitions(answering, artifacts).map((definition) => definition.tool).find((item) => item.name === "publish_query_result")!;
     const result = await publish.execute("publish", { candidateId: execution.artifact.candidateId, format: "auto" } as never, undefined, toolContext, invocation("publish-2"), {} as never);
     return (result.content[0] as { text: string }).text;
   };
-  return { receipt, root, tool, publishText, cleanup: () => rm(root, { recursive: true, force: true }) };
+  return { receipt, root, tool, showWidget, publishText, cleanup: () => rm(root, { recursive: true, force: true }) };
 }
 
 function chartSpec(receiptId: string, extra: Record<string, unknown> = {}) {
@@ -99,5 +102,54 @@ describe("render_chart", () => {
       readRowsAuthorized: async () => ({ columns: ["industry", "sales"], rows: [["批发业", 999]], contentHash: "forged" }),
     });
     await expect(tampered.resolveRows(receipt.receiptId, context("tampered"))).rejects.toThrow("PUBLICATION_INTEGRITY_MISMATCH");
+  });
+});
+
+describe("show_widget chart", () => {
+  const call = (showWidget: Awaited<ReturnType<typeof setup>>["showWidget"], kind: string, spec: unknown, id: string) =>
+    showWidget.execute(id, { kind, spec } as never, undefined, toolContext, invocation(id), {} as never);
+
+  it("builds a versioned widget from a published result and keeps the rows out of the model text", async () => {
+    const { receipt, showWidget, cleanup } = await setup([["批发业", 9007199254740993n], ["零售业", null]]);
+    const result = await call(showWidget, "chart", chartSpec(receipt.receiptId, { title: "行业销售额" }), "widget-chart");
+    const widget = (result.details as { widget: Record<string, unknown> }).widget;
+    expect(widget).toMatchObject({ kind: "chart", title: "行业销售额", contractVersion: 2, receiptId: receipt.receiptId });
+    // bigint survives as exact decimal text so the persisted widget stays JSON.
+    expect((widget.dataset as { rows: unknown[][] }).rows).toEqual([["批发业", "9007199254740993"], ["零售业", null]]);
+    expect(() => JSON.stringify(result.details)).not.toThrow();
+    const text = (result.content[0] as { text: string }).text;
+    expect(text).toMatch(/^\[widget:chart\] 行业销售额 \(receiptId=.+, 2 行\)/);
+    expect(text).toContain("[NOTICE]");
+    expect(text).not.toContain("9007199254740993");
+    expect(validateWidgetSpec("chart", widget).ok).toBe(true);
+    await cleanup();
+  });
+
+  it("no longer accepts model-written chart rows", async () => {
+    const { showWidget, cleanup } = await setup([["批发业", 1]]);
+    await expect(call(showWidget, "chart", { title: "Sales", data: [{ label: "North", value: 10 }] }, "widget-legacy")).rejects.toThrow("CHART_DATA_UNSUPPORTED");
+    await cleanup();
+  });
+
+  it("still validates widgets replayed from earlier sessions", () => {
+    expect(validateWidgetSpec("chart", { title: "Sales", data: [{ label: "North", value: 10 }] }).ok).toBe(true);
+    expect(validateWidgetSpec("chart", { title: "Sales", contractVersion: 2 }).ok).toBe(false);
+  });
+
+  it("returns compiler errors and bounds the rows a chat chart may hold", async () => {
+    const duplicated = await setup([["批发业", 1], ["批发业", 2]]);
+    await expect(call(duplicated.showWidget, "chart", chartSpec(duplicated.receipt.receiptId), "widget-dup")).rejects.toThrow(/CHART_SPEC_INVALID[\s\S]*DUPLICATE_KEY/);
+    await duplicated.cleanup();
+    const large = await setup(Array.from({ length: MAX_WIDGET_ROWS + 1 }, (_, index) => [`r${index}`, index]));
+    await expect(call(large.showWidget, "chart", chartSpec(large.receipt.receiptId), "widget-large")).rejects.toThrow("WIDGET_CHART_TOO_MANY_ROWS");
+    await large.cleanup();
+  });
+
+  it("validates declared table semantics and versions new tables", async () => {
+    const { showWidget, cleanup } = await setup([["批发业", 1]]);
+    await expect(call(showWidget, "table", { title: "T", data: [{ rate: 0.1 }], fields: { rate: { type: "quantitative", storage: "ratio" } } }, "table-bad")).rejects.toThrow("WIDGET_SPEC_INVALID");
+    const ok = await call(showWidget, "table", { title: "T", data: [{ rate: 0.1 }], fields: { rate: { type: "quantitative", storage: "ratio", additivity: "non_additive" } } }, "table-ok");
+    expect((ok.details as { widget: Record<string, unknown> }).widget).toMatchObject({ kind: "table", contractVersion: 2 });
+    await cleanup();
   });
 });

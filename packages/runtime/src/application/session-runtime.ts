@@ -311,6 +311,7 @@ export async function createDataAgentSessionHost(options: DataAgentSessionRuntim
     ...createCoreAgentToolDefinitions({
       workspace: options.workspace,
       skills,
+      publishedRows: artifacts,
       ...(options.enableClarificationTool !== false ? { clarifications: clarificationDialogs } : {}),
       ...(options.knowledge ? { knowledge: options.knowledge } : {}),
       ...(options.knowledgeRoot ? { knowledgeRoot: options.knowledgeRoot } : {}),

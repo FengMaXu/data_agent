@@ -58,3 +58,15 @@ export function formatValue(value: number, meta: QuantitativeMeta): string {
   const unit = unitText(meta);
   return unit === "%" ? `${text}%` : unit ? `${text} ${unit}` : text;
 }
+
+/**
+ * Display text for one value under declared semantics, for table cells and tooltips.
+ * Undefined when the field is not declared quantitative or the value is not numeric,
+ * so callers show the raw value instead of guessing a scale.
+ */
+export function formatFieldValue(value: unknown, meta: FieldMeta | undefined): string | undefined {
+  if (meta?.type !== "quantitative") return undefined;
+  const number = numericCell(value);
+  if (number === null || number === undefined) return undefined;
+  return formatValue(number * displayScale(meta), meta);
+}

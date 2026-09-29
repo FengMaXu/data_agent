@@ -1,0 +1,69 @@
+import React, { useEffect, useMemo, useRef } from 'react';
+import * as echarts from 'echarts';
+import { compileChart, type ChartDataset, type PresentationNotice } from '@data-agent/charts';
+
+export interface ChartSpecWidgetData {
+    readonly chartSpec: unknown;
+    readonly dataset: ChartDataset;
+    readonly notices?: readonly PresentationNotice[];
+    readonly disclosure?: string;
+    readonly declaredFields?: readonly string[];
+}
+
+const noteStyle: React.CSSProperties = { fontSize: '12px', color: '#64748b', lineHeight: 1.6 };
+
+/**
+ * A chat chart built by the Runtime: a ChartSpec plus the published rows it was
+ * resolved against. It compiles in the browser for the interactive target, so
+ * formatters and viewports work without any option crossing the wire.
+ */
+const ChartSpecWidget: React.FC<{ widget: ChartSpecWidgetData }> = ({ widget }) => {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const chartRef = useRef<echarts.ECharts | null>(null);
+    const compiled = useMemo(() => compileChart(widget.chartSpec, widget.dataset, { target: 'interactive' }), [widget.chartSpec, widget.dataset]);
+
+    useEffect(() => {
+        if (!compiled.ok || !containerRef.current) return;
+        chartRef.current ??= echarts.init(containerRef.current, null, { renderer: 'canvas' });
+        chartRef.current.setOption(compiled.option, true);
+    }, [compiled]);
+
+    useEffect(() => {
+        if (!containerRef.current) return;
+        const observer = new ResizeObserver(() => chartRef.current?.resize());
+        observer.observe(containerRef.current);
+        return () => observer.disconnect();
+    }, []);
+
+    useEffect(() => () => {
+        chartRef.current?.dispose();
+        chartRef.current = null;
+    }, []);
+
+    if (!compiled.ok) {
+        return (
+            <div role="alert" style={{ color: '#b91c1c', fontSize: '13px' }}>
+                {compiled.errors.map((error, index) => <div key={index}>[{error.code}] {error.message}</div>)}
+            </div>
+        );
+    }
+
+    const notices = compiled.notices;
+    return (
+        <div>
+            <div ref={containerRef} data-testid="chart-spec-canvas" style={{ width: '100%', height: '360px' }} />
+            {(notices.length > 0 || widget.disclosure || (widget.declaredFields?.length ?? 0) > 0) && (
+                <div style={{ marginTop: '8px', display: 'grid', gap: '2px' }}>
+                    {/* The compiler keeps one notice per code and field, so the code alone is not unique. */}
+                    {notices.map((notice) => <div key={`${notice.code}:${notice.field ?? ''}`} style={noteStyle}>{notice.message}</div>)}
+                    {widget.disclosure && <div style={noteStyle}>{widget.disclosure}</div>}
+                    {(widget.declaredFields?.length ?? 0) > 0 && (
+                        <div style={noteStyle}>字段语义来自模型声明，未经业务定义核实：{widget.declaredFields!.join('、')}</div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+};
+
+export default ChartSpecWidget;
