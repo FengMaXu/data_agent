@@ -57,9 +57,11 @@ jobs:
       - name: Test
         run: npm run test --workspaces --if-present
 
-      # The rest of verify:backend: the shipped bundles and a web host start-up.
+      # The rest of verify:backend, before a release: the shipped bundles and a web host start-up.
       - name: Distribution build
+        if: github.base_ref == 'master' || github.ref == 'refs/heads/master'
         run: npm run build:distribution
 
       - name: Web host smoke
+        if: github.base_ref == 'master' || github.ref == 'refs/heads/master'
         run: node scripts/smoke-web-host.mjs
