@@ -104,8 +104,11 @@ describe("render_chart", () => {
 
   it("only reads published results", async () => {
     const { tool, cleanup } = await setup([["批发业", 1]]);
+    const inline = { ...chartSpec("x"), data: { kind: "inline", rows: [["批发业", 1]] } };
+    await expect(tool.execute("render", { spec: inline } as never, undefined, toolContext, invocation("render-inline"), {} as never)).rejects.toThrow("CHART_DATA_UNSUPPORTED");
+    // A host without a derived store cannot serve derived datasets.
     const derived = { ...chartSpec("x"), data: { kind: "derived", derivedId: "d1" } };
-    await expect(tool.execute("render", { spec: derived } as never, undefined, toolContext, invocation("render-derived"), {} as never)).rejects.toThrow("CHART_DATA_UNSUPPORTED");
+    await expect(tool.execute("render", { spec: derived } as never, undefined, toolContext, invocation("render-derived"), {} as never)).rejects.toThrow("DERIVED_DATASET_UNAVAILABLE");
     await expect(tool.execute("render", { spec: chartSpec("publication_missing") } as never, undefined, toolContext, invocation("render-missing"), {} as never)).rejects.toThrow("PUBLICATION_NOT_FOUND");
     await cleanup();
   });
