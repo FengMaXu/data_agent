@@ -6,6 +6,10 @@ on:
   push:
     branches: [develop, master]
 
+# CI only reads the repository.
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
