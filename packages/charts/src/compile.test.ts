@@ -372,3 +372,43 @@ describe("Heatmap", () => {
     expect(codes(compileChart(spec, wide, { target: "static" }))).toEqual(["CAPACITY_EXCEEDED"]);
   });
 });
+
+describe("Histogram", () => {
+  const amount: FieldMeta = { type: "quantitative", storage: "raw", unit: "元", additivity: "additive", label: "订单金额" };
+  const count: FieldMeta = { type: "quantitative", storage: "raw", unit: "单", additivity: "additive", label: "订单数" };
+  const histogram = (): ChartSpec => ({ version: 1, data, fields: { lo: amount, hi: amount, n: count }, chart: { mark: "histogram", start: { field: "lo" }, end: { field: "hi" }, value: { field: "n" } } } as ChartSpec);
+  const bins = (rows: unknown[][]): ChartDataset => ({ columns: ["lo", "hi", "n"], rows });
+
+  it("draws the query's bins in order as adjacent bars, never binning itself", () => {
+    const { option } = ok(compileChart(histogram(), bins([[100, 200, 7], [0, 100, 3], [200, 300, null]]), { target: "interactive" }));
+    expect(axis(option, "xAxis")[0]!.data).toEqual(["0–100", "100–200", "200–300"]);
+    expect(axis(option, "xAxis")[0]!.name).toBe("订单金额（元）");
+    expect(seriesOf(option)[0]!).toMatchObject({ type: "bar", barCategoryGap: "0%", data: [3, 7, null] });
+  });
+
+  it("rejects overlapping or inverted bins, and notes gaps", () => {
+    expect(codes(compileChart(histogram(), bins([[0, 150, 3], [100, 200, 7]]), { target: "interactive" }))).toEqual(["BIN_OVERLAP"]);
+    expect(codes(compileChart(histogram(), bins([[100, 100, 3]]), { target: "interactive" }))).toEqual(["BIN_OVERLAP"]);
+    const gap = ok(compileChart(histogram(), bins([[0, 100, 3], [200, 300, 1]]), { target: "interactive" }));
+    expect(gap.notices.map((notice) => notice.code)).toContain("BIN_GAPS");
+  });
+});
+
+describe("Boxplot", () => {
+  const price: FieldMeta = { type: "quantitative", storage: "raw", unit: "元", additivity: "non_additive", label: "单价" };
+  const boxplot = (whisker = "iqr_1_5"): ChartSpec => ({ version: 1, data, fields: { mn: price, q1: price, md: price, q3: price, mx: price }, chart: { mark: "boxplot", category: { field: "region" }, min: { field: "mn" }, q1: { field: "q1" }, median: { field: "md" }, q3: { field: "q3" }, max: { field: "mx" }, whisker } } as ChartSpec);
+  const stats = (rows: unknown[][]): ChartDataset => ({ columns: ["region", "mn", "q1", "md", "q3", "mx"], rows });
+
+  it("draws the five statistics the query computed and states the whisker definition", () => {
+    const { option, notices } = ok(compileChart(boxplot(), stats([["东", 1, 2, 3, 4, 5], ["西", 2, 3, "3.5", 5, 9]]), { target: "static" }));
+    expect(seriesOf(option)[0]!).toMatchObject({ type: "boxplot", data: [[1, 2, 3, 4, 5], [2, 3, 3.5, 5, 9]] });
+    expect(notices.find((notice) => notice.code === "WHISKER_DEFINITION")?.message).toContain("1.5 倍四分位距");
+  });
+
+  it("rejects statistics out of order, missing, or repeated per category", () => {
+    expect(codes(compileChart(boxplot(), stats([["东", 1, 3, 2, 4, 5]]), { target: "interactive" }))).toEqual(["STAT_ORDER_VIOLATION"]);
+    expect(codes(compileChart(boxplot(), stats([["东", 1, 2, null, 4, 5]]), { target: "interactive" }))).toEqual(["STAT_ORDER_VIOLATION"]);
+    expect(codes(compileChart(boxplot(), stats([["东", 1, 2, 3, 4, 5], ["东", 1, 2, 3, 4, 6]]), { target: "interactive" }))).toEqual(["DUPLICATE_KEY"]);
+    expect(new Set(codes(compileChart(boxplot("tukey"), stats([["东", 1, 2, 3, 4, 5]]), { target: "interactive" })))).toEqual(new Set(["SCHEMA_INVALID"]));
+  });
+});

@@ -1,4 +1,4 @@
-import { checkChartSpec, type CartesianChart, type ChartLayer, type ChartSpec, type FieldMeta, type HeatmapChart, type PieChart } from "@data-agent/contracts";
+import { checkChartSpec, type BoxplotChart, type CartesianChart, type ChartLayer, type ChartSpec, type FieldMeta, type HeatmapChart, type HistogramChart, type PieChart } from "@data-agent/contracts";
 import type { ChartCompileOptions, ChartCompileResult, ChartDataset, ChartError, ChartOption, PresentationNotice } from "./types.js";
 import { PALETTE, axisTitle, categoryLabel, displayScale, fieldLabel, fieldTitle, formatValue, isPercentDisplay, isZonedTemporal, numericCell, type QuantitativeMeta } from "./semantics.js";
 
@@ -532,6 +532,126 @@ function compileHeatmap(context: CompileContext, chart: HeatmapChart): ChartOpti
   };
 }
 
+/** Marks outside cartesian charts take neither data selection nor a viewport: they show every row as given. */
+function refuseSelection(context: CompileContext, name: string): void {
+  if (context.spec.selection) context.fail({ code: "INVALID_SELECTION", message: `${name}不支持 top_n`, path: "/selection", hint: "在查询中筛选" });
+  if (context.spec.viewport) context.fail({ code: "INVALID_ENCODING", message: `${name}不支持 viewport`, path: "/viewport" });
+}
+
+function compileHistogram(context: CompileContext, chart: HistogramChart): ChartOption | undefined {
+  refuseSelection(context, "直方图");
+  const start = context.measure(chart.start.field, "/chart/start/field");
+  const end = context.measure(chart.end.field, "/chart/end/field");
+  const value = context.measure(chart.value.field, "/chart/value/field");
+  if (!start || !end || !value || context.errors.length > 0) return undefined;
+  const bins = start.values.map((low, index) => ({ low, high: end.values[index] ?? null, count: value.values[index] ?? null, row: index + 1 }));
+  const incomplete = bins.find((bin) => bin.low === null || bin.high === null);
+  if (incomplete) {
+    context.fail({ code: "BIN_OVERLAP", message: `第 ${incomplete.row} 行的区间缺少起点或终点`, path: "/chart/start/field", hint: "在查询中为每个分箱给出起点与终点" });
+    return undefined;
+  }
+  const sorted = [...bins].sort((left, right) => left.low! - right.low!);
+  for (const [index, bin] of sorted.entries()) {
+    if (bin.high! <= bin.low!) {
+      context.fail({ code: "BIN_OVERLAP", message: `第 ${bin.row} 行的区间 [${bin.low}, ${bin.high}) 终点不大于起点`, path: "/chart/end/field" });
+      return undefined;
+    }
+    const next = sorted[index + 1];
+    if (next && next.low! < bin.high!) {
+      context.fail({ code: "BIN_OVERLAP", message: `区间 [${bin.low}, ${bin.high}) 与 [${next.low}, ${next.high}) 重叠；一个值只能落在一个分箱`, path: "/chart/start/field", hint: "在查询中使用左闭右开、互不重叠的分箱" });
+      return undefined;
+    }
+  }
+  const gaps = sorted.filter((bin, index) => index > 0 && bin.low! > sorted[index - 1]!.high!).length;
+  if (gaps > 0) context.notice({ kind: "layout", code: "BIN_GAPS", message: `${gaps} 处分箱之间有间隔，按查询给出的区间显示`, field: start.field });
+  const nulls = sorted.filter((bin) => bin.count === null).length;
+  if (nulls > 0) context.notice({ kind: "layout", code: "NULL_VALUES", message: `${nulls} 个分箱缺少数值，按空白显示，未按 0 绘制`, field: value.field });
+  const boundScale = displayScale(start.meta);
+  // The axis name carries the unit, so bin bounds show numbers only.
+  const bound = (number: number) => (number * boundScale).toLocaleString("zh-CN", { maximumFractionDigits: 4 });
+  const labels = sorted.map((bin) => `${bound(bin.low!)}–${bound(bin.high!)}`);
+  const axis = categoryAxis(context, labels, false, start.field);
+  if (!axis) return undefined;
+  const rotated = Boolean((axis.axisLabel as { rotate?: number }).rotate);
+  const countScale = displayScale(value.meta);
+  return {
+    color: [...PALETTE],
+    ...(context.options.target === "static" ? { animation: false } : {}),
+    tooltip: { trigger: "axis", valueFormatter: (shown: number) => formatValue(shown, value.meta) },
+    // Rotated labels need room below them before the axis name.
+    grid: { left: 16, right: 24, top: 36, bottom: rotated ? 64 : 44, containLabel: true },
+    xAxis: { ...axis, name: axisTitle(start.field, start.meta), nameLocation: "middle", nameGap: rotated ? 60 : 28 },
+    yAxis: valueAxis(value.meta, value.field, false),
+    series: [{
+      type: "bar",
+      name: fieldTitle(value.field, value.meta),
+      // Adjacent bars: bins are intervals on one continuous scale.
+      barCategoryGap: gaps > 0 ? "8%" : "0%",
+      data: sorted.map((bin) => (bin.count === null ? null : bin.count * countScale)),
+      itemStyle: { borderColor: "#ffffff", borderWidth: 1 },
+    }],
+  };
+}
+
+const WHISKER_TEXT = { min_max: "须线为最小值与最大值", iqr_1_5: "须线为 1.5 倍四分位距以内的最远观测值" } as const;
+
+function compileBoxplot(context: CompileContext, chart: BoxplotChart): ChartOption | undefined {
+  refuseSelection(context, "箱线图");
+  const categoryIndex = context.column(chart.category.field, "/chart/category/field");
+  const roles = (["min", "q1", "median", "q3", "max"] as const).map((role) => context.measure(chart[role].field, `/chart/${role}/field`));
+  if (categoryIndex === undefined || roles.some((role) => !role) || context.errors.length > 0) return undefined;
+  const stats = roles as Measure[];
+  const categoryMeta = context.meta(chart.category.field);
+  const labels = context.dataset.rows.map((row) => fieldLabel(row[categoryIndex], categoryMeta));
+  temporalNotice(context, chart.category.field, context.dataset.rows.map((row) => row[categoryIndex]));
+  const duplicate = labels.find((label, index) => labels.indexOf(label) !== index);
+  if (duplicate !== undefined) {
+    context.fail({ code: "DUPLICATE_KEY", message: `类目 ${duplicate} 有多行统计量；编译器不合并观测`, path: "/chart/category/field", field: chart.category.field, hint: "在查询中每个类目算一组统计量" });
+    return undefined;
+  }
+  // All five share one axis, so they must share one scale.
+  const scale = displayScale(stats[0]!.meta);
+  if (stats.some((stat) => displayScale(stat.meta) !== scale)) {
+    context.fail({ code: "INVALID_ENCODING", message: "五个统计量的存储尺度与量级须一致", path: "/fields" });
+    return undefined;
+  }
+  for (const [rowIndex, label] of labels.entries()) {
+    const values = stats.map((stat) => stat.values[rowIndex] ?? null);
+    if (values.some((value) => value === null)) {
+      context.fail({ code: "STAT_ORDER_VIOLATION", message: `类目 ${label} 缺少统计量，无法画出箱体`, path: "/chart", hint: "在查询中为每个类目给出完整的五个统计量" });
+      return undefined;
+    }
+    const numbers = values as number[];
+    if (numbers.some((value, index) => index > 0 && value < numbers[index - 1]!)) {
+      context.fail({ code: "STAT_ORDER_VIOLATION", message: `类目 ${label} 的统计量不满足 最小值 ≤ Q1 ≤ 中位数 ≤ Q3 ≤ 最大值：${numbers.join(", ")}`, path: "/chart", hint: "核对查询中各统计量的计算与列对应关系" });
+      return undefined;
+    }
+  }
+  context.notice({ kind: "layout", code: "WHISKER_DEFINITION", message: `${WHISKER_TEXT[chart.whisker]}；统计量由查询计算`, field: stats[2]!.field });
+  const order = orderCategories(labels, categoryMeta);
+  const axis = categoryAxis(context, order, false, chart.category.field);
+  if (!axis) return undefined;
+  const meta = stats[2]!.meta;
+  const names = ["最小值", "Q1", "中位数", "Q3", "最大值"];
+  return {
+    color: [...PALETTE],
+    ...(context.options.target === "static" ? { animation: false } : {}),
+    tooltip: {
+      trigger: "item",
+      formatter: (params: { name: string; value: number[] }) => [params.name, ...params.value.slice(-5).map((shown, index) => `${names[index]}：${formatValue(shown, meta)}`)].join("<br/>"),
+    },
+    grid: { left: 16, right: 24, top: 36, bottom: 16, containLabel: true },
+    xAxis: axis,
+    yAxis: { ...valueAxis(meta, stats[2]!.field, false), scale: true },
+    series: [{
+      type: "boxplot",
+      name: fieldTitle(stats[2]!.field, meta),
+      data: order.map((label) => stats.map((stat) => stat.values[labels.indexOf(label)]! * scale)),
+      itemStyle: { color: "#EEF2F6", borderColor: PALETTE[0] },
+    }],
+  };
+}
+
 /**
  * Compile a ChartSpec against its resolved dataset. The compiler never
  * aggregates, merges observations or drops data on its own; everything it
@@ -542,7 +662,11 @@ export function compileChart(input: unknown, dataset: ChartDataset, options: Cha
   if (!checked.ok) return { ok: false, errors: checked.errors.map((error) => ({ code: "SCHEMA_INVALID", message: error.message, path: error.path })) };
   const context = new CompileContext(checked.spec, dataset, options);
   const chart = checked.spec.chart;
-  const option = chart.mark === "pie" ? compilePie(context, chart) : chart.mark === "heatmap" ? compileHeatmap(context, chart) : compileCartesian(context, chart);
+  const option = chart.mark === "pie" ? compilePie(context, chart)
+    : chart.mark === "heatmap" ? compileHeatmap(context, chart)
+      : chart.mark === "histogram" ? compileHistogram(context, chart)
+        : chart.mark === "boxplot" ? compileBoxplot(context, chart)
+          : compileCartesian(context, chart);
   if (context.errors.length > 0 || !option) return { ok: false, errors: context.errors };
   return { ok: true, spec: checked.spec, option, notices: context.notices };
 }

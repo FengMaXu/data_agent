@@ -27,7 +27,9 @@ export type ChartErrorCode =
   | "NEGATIVE_IN_PART_OF_WHOLE"
   | "INCOMPLETE_PART_OF_WHOLE"
   | "INVALID_SELECTION"
-  | "CAPACITY_EXCEEDED";
+  | "CAPACITY_EXCEEDED"
+  | "BIN_OVERLAP"
+  | "STAT_ORDER_VIOLATION";
 
 export interface ChartError {
   readonly code: ChartErrorCode;

@@ -5,7 +5,7 @@ import { Value } from "typebox/value";
  * ChartSpec v1 (ADR-0008): one serializable chart description shared by chat
  * widgets, dashboards and reports. It carries no data transformation or
  * aggregation and reads its data through a Dataset Reference. v1 implements
- * the cartesian (bar/line/scatter layers), pie and heatmap marks; further marks are
+ * the cartesian (bar/line/scatter layers), pie, heatmap, histogram and boxplot marks; further marks are
  * added to the `chart` union without changing existing members.
  */
 export const CHART_SPEC_VERSION = 1 as const;
@@ -100,6 +100,29 @@ export const HeatmapChartSchema = Type.Object({
 }, Strict);
 export type HeatmapChart = Static<typeof HeatmapChartSchema>;
 
+/** Bins computed by the query: one row per bin with its bounds and count. The compiler never bins. */
+export const HistogramChartSchema = Type.Object({
+  mark: Type.Literal("histogram"),
+  start: FieldRefSchema,
+  end: FieldRefSchema,
+  value: FieldRefSchema,
+}, Strict);
+export type HistogramChart = Static<typeof HistogramChartSchema>;
+
+/** Five statistics per category, computed by the query. The whisker definition travels with the chart. */
+export const BoxplotChartSchema = Type.Object({
+  mark: Type.Literal("boxplot"),
+  category: FieldRefSchema,
+  min: FieldRefSchema,
+  q1: FieldRefSchema,
+  median: FieldRefSchema,
+  q3: FieldRefSchema,
+  max: FieldRefSchema,
+  /** What the whiskers mean: the data's extremes, or the furthest point within 1.5 IQR. */
+  whisker: Type.Union([Type.Literal("min_max"), Type.Literal("iqr_1_5")]),
+}, Strict);
+export type BoxplotChart = Static<typeof BoxplotChartSchema>;
+
 export const ChartSelectionSchema = Type.Object({
   kind: Type.Literal("top_n"),
   by: Name,
@@ -121,7 +144,7 @@ export const ChartSpecSchema = Type.Object({
   data: DatasetRefSchema,
   /** Model-declared field semantics; Runtime records them as Dataset Annotations. */
   fields: Type.Optional(Type.Record(Type.String(), FieldMetaSchema)),
-  chart: Type.Union([CartesianChartSchema, PieChartSchema, HeatmapChartSchema]),
+  chart: Type.Union([CartesianChartSchema, PieChartSchema, HeatmapChartSchema, HistogramChartSchema, BoxplotChartSchema]),
   selection: Type.Optional(ChartSelectionSchema),
   viewport: Type.Optional(ChartViewportSchema),
 }, Strict);
@@ -132,7 +155,7 @@ export interface ChartSpecSchemaError {
   readonly message: string;
 }
 
-const CHART_SCHEMAS = { cartesian: CartesianChartSchema, pie: PieChartSchema, heatmap: HeatmapChartSchema } as const;
+const CHART_SCHEMAS = { cartesian: CartesianChartSchema, pie: PieChartSchema, heatmap: HeatmapChartSchema, histogram: HistogramChartSchema, boxplot: BoxplotChartSchema } as const;
 
 /**
  * Structural validation only; semantic checks against data live in @data-agent/charts.
