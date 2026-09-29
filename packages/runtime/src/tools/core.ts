@@ -219,7 +219,7 @@ export function createCoreAgentToolDefinitions(options: CoreToolOptions): readon
       },
     }, {
       promptSnippet: "在配置的 Python 环境中执行当前工作区分析。",
-      promptGuidelines: ["只能读写当前工作区，访问其他路径、启动子进程都会被拒绝；数据库数据请用 query_database 获取。区分统计分析与绘图请求；披露实际工作区、超时和失败语义，不承诺这是安全沙箱。"],
+      promptGuidelines: ["只能读写当前工作区，访问其他路径、启动子进程都会被拒绝；数据库数据请用 query_database 获取。运行时不提供绘图库（如 matplotlib），需要图表时用 render_chart、show_widget 或 generate_dashboard；披露实际工作区、超时和失败语义，不承诺这是安全沙箱。"],
     }));
   }
 
