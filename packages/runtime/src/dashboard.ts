@@ -63,6 +63,8 @@ function el(tag,cls,text){var e=document.createElement(tag);if(cls)e.className=c
 D.spec.views.forEach(function(v){
   var ref=v.type==="chart"?v.chart.data:v.data,key=C.datasetKey(ref),data=D.datasets[key],source=D.sources[key]||{};
   var p=el("section","panel"+((v.width||(v.type==="chart"?"half":"full"))==="full"?" wide":""));p.id="view-"+v.id;
+  // Attach first: ECharts sizes a chart from its container, and a detached one measures zero.
+  host.appendChild(p);
   var title=v.type==="chart"?v.chart.title:v.title,subtitle=v.type==="chart"?v.chart.subtitle:v.subtitle,notes=[];
   if(title)p.appendChild(el("h2",null,title));if(subtitle)p.appendChild(el("p","subtitle",subtitle));
   if(v.type==="chart"){
@@ -86,7 +88,6 @@ D.spec.views.forEach(function(v){
   (D.checks[v.id]||[]).forEach(function(c){notes.push(c.message)});
   if(source.disclosure)notes.push(source.disclosure);
   if(notes.length){var ul=el("ul","notes");notes.forEach(function(n){ul.appendChild(el("li",null,n))});p.appendChild(ul)}
-  host.appendChild(p);
 });
 })();`;
 
