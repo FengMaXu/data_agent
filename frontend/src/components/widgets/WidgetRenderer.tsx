@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import * as echarts from 'echarts';
-import { formatFieldValue, type ChartDataset } from '@data-agent/charts';
+import { formatFieldValue, type ChartDataset, type SemanticsCheck } from '@data-agent/charts';
 import type { FieldMeta } from '@data-agent/contracts';
 import ChartSpecWidget from './ChartSpecWidget';
 import { useLanguage } from '../../context/LanguageContext';
@@ -39,6 +39,7 @@ export interface WidgetSpec {
     dataset?: ChartDataset;
     disclosure?: string;
     declaredFields?: string[];
+    semanticChecks?: SemanticsCheck[];
     /** Declared semantics of table columns, keyed by column. */
     fields?: Record<string, FieldMeta>;
 }
@@ -657,7 +658,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = ({ widget, drillPath, onDr
             case 'chart':
                 // Runtime-built ChartSpec widgets; charts replayed from earlier sessions keep the legacy renderer.
                 return widget.contractVersion === CURRENT_WIDGET_CONTRACT && widget.chartSpec && widget.dataset
-                    ? <ChartSpecWidget widget={{ chartSpec: widget.chartSpec, dataset: widget.dataset, ...(widget.disclosure ? { disclosure: widget.disclosure } : {}), ...(widget.declaredFields ? { declaredFields: widget.declaredFields } : {}) }} />
+                    ? <ChartSpecWidget widget={{ chartSpec: widget.chartSpec, dataset: widget.dataset, ...(widget.disclosure ? { disclosure: widget.disclosure } : {}), ...(widget.declaredFields ? { declaredFields: widget.declaredFields } : {}), ...(widget.semanticChecks ? { semanticChecks: widget.semanticChecks } : {}) }} />
                     : renderChart(widget, t);
             case 'steps':
                 return renderSteps(widget, t);

@@ -2,15 +2,16 @@ import { createHash } from "node:crypto";
 import { Type, type Static } from "typebox";
 import { Value } from "typebox/value";
 import type { AgentHarnessTool, AgentToolResult } from "@earendil-works/pi-agent-core";
-import { CHART_RENDERER_VERSIONS, datasetKey, validateDashboard, type ChartDataset, type DashboardError } from "@data-agent/charts";
+import { CHART_RENDERER_VERSIONS, datasetKey, validateDashboard, type ChartDataset, type DashboardError, type SemanticsCheck } from "@data-agent/charts";
 import { CHARTS_BROWSER_SOURCE } from "@data-agent/charts/browser-source";
 import { checkDashboardSpec, dashboardViewData, type DashboardSpec, type DatasetRef } from "@data-agent/contracts";
 import { renderDashboardHtml, type DashboardDataSource } from "../dashboard.js";
 import { readEchartsSource, resolveEchartsAssetPath } from "../dashboard-v3.js";
 import type { ArtifactDirectory } from "../facets/artifact-directory.js";
+import type { PublicationReceipt } from "../answering/public.js";
 import type { WorkspaceStore } from "../workspace.js";
 import { trustedContext, type DataAgentToolContext } from "./answering.js";
-import { MAX_WIDGET_ROWS, jsonSafeRows } from "./charts.js";
+import { MAX_WIDGET_ROWS, jsonSafeRows, semanticChecks } from "./charts.js";
 import { defineDataAgentTool, type DataAgentToolDefinition } from "./tool-definition.js";
 
 export const GENERATE_DASHBOARD_PARAMETERS = Type.Object({
@@ -65,6 +66,7 @@ function generateDashboardTool(options: DashboardToolOptions): AgentHarnessTool<
       const business = trustedContext(toolContext, invocation, context);
       const datasets: Record<string, ChartDataset> = {};
       const sources: Record<string, DashboardDataSource> = {};
+      const receipts: Record<string, PublicationReceipt> = {};
       const refs = new Map<string, DatasetRef>(spec.views.map((view) => [datasetKey(dashboardViewData(view)), dashboardViewData(view)]));
       for (const [key, ref] of refs) {
         if (ref.kind !== "publication") throw new Error("CHART_DATA_UNSUPPORTED: dashboards only read published results; set each view's data to { \"kind\": \"publication\", \"receiptId\": \"<receiptId from publish_query_result or export_query>\" }");
@@ -73,6 +75,7 @@ function generateDashboardTool(options: DashboardToolOptions): AgentHarnessTool<
           throw new Error(`DASHBOARD_TOO_MANY_ROWS: ${ref.receiptId} has ${published.rows.length} rows and a dashboard view holds at most ${MAX_DASHBOARD_DATASET_ROWS}; aggregate in the query, or use export_query for the detail`);
         }
         datasets[key] = { columns: [...published.columns], rows: jsonSafeRows(published.rows) };
+        receipts[key] = published.receipt;
         const disclosure = published.receipt.disclosure?.summary;
         sources[key] = { receiptId: ref.receiptId, contentHash: published.receipt.contentHash, ...(disclosure ? { disclosure } : {}) };
       }
@@ -81,8 +84,14 @@ function generateDashboardTool(options: DashboardToolOptions): AgentHarnessTool<
       const validated = validateDashboard(spec, datasets);
       if (!validated.ok) throw new Error(formatDashboardErrors(validated.errors));
       const declared = declaredFields(spec);
+      const checks: Record<string, SemanticsCheck[]> = {};
+      for (const view of spec.views) {
+        const found = semanticChecks(view.type === "chart" ? view.chart.fields : view.fields, receipts[datasetKey(dashboardViewData(view))]!);
+        if (found.length > 0) checks[view.id] = found;
+      }
       const summary = [
         ...validated.notices.map(({ viewId, notice }) => `[NOTICE] ${viewId}: ${notice.message}`),
+        ...Object.entries(checks).flatMap(([viewId, found]) => found.map((check) => `[CHECK] ${viewId}: ${check.message}`)),
         ...Object.values(sources).flatMap((source) => (source.disclosure ? [`[DISCLOSURE] ${source.receiptId}: ${source.disclosure}`] : [])),
         ...(declared.length > 0 ? [`[SEMANTICS] 以下字段的语义来自模型声明，未经业务定义核实：${declared.join("、")}`] : []),
       ];
@@ -92,7 +101,7 @@ function generateDashboardTool(options: DashboardToolOptions): AgentHarnessTool<
       const relativePath = value.editPath ?? `dashboards/${spec.filename ?? `dashboard-${specHash}`}.html`;
       const echartsSource = await (options.echartsSource ?? defaultEchartsSource)();
       const html = renderDashboardHtml(
-        { spec, datasets, sources, renderer: CHART_RENDERER_VERSIONS, declaredFields: declared },
+        { spec, datasets, sources, checks, renderer: CHART_RENDERER_VERSIONS, declaredFields: declared },
         { chartsSource: CHARTS_BROWSER_SOURCE, ...(echartsSource ? { echartsSource } : {}) },
       );
       await options.workspace.write(relativePath, html);
@@ -100,7 +109,8 @@ function generateDashboardTool(options: DashboardToolOptions): AgentHarnessTool<
         `[DASHBOARD_CREATED] ${relativePath}`,
         ...summary,
         ...(echartsSource ? [] : ["[WARNING] ECharts 未找到，看板中的图表无法渲染。"]),
-        "看板页面已显示 [NOTICE] 与 [DISCLOSURE]；答复用户时如实转述。",
+        ...(Object.keys(checks).length > 0 ? ["[CHECK] 是对字段声明的核对提示：声明有误就改正 spec 后用 edit 重建看板。"] : []),
+        "看板页面已显示 [NOTICE]、[CHECK] 与 [DISCLOSURE]；答复用户时如实转述。",
       ].join("\n");
       return {
         content: [{ type: "text", text }],

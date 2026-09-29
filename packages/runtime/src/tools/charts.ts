@@ -3,7 +3,9 @@ import { Type, type Static } from "typebox";
 import { Value } from "typebox/value";
 import type { AgentHarnessTool, AgentToolResult } from "@earendil-works/pi-agent-core";
 import type { ChartSpec } from "@data-agent/contracts";
-import type { ChartError, ChartRendererVersions, PresentationNotice } from "@data-agent/charts";
+import { checkDeclaredSemantics, type ChartError, type ChartRendererVersions, type PresentationNotice, type SemanticsCheck } from "@data-agent/charts";
+import type { FieldMeta } from "@data-agent/contracts";
+import type { PublicationReceipt } from "../answering/public.js";
 import { renderChartSvg } from "../chart-render.js";
 import type { ArtifactDirectory } from "../facets/artifact-directory.js";
 import type { WorkspaceStore } from "../workspace.js";
@@ -41,6 +43,13 @@ export interface ChartRenderRecord {
   readonly width: number;
   readonly height: number;
   readonly notices: readonly PresentationNotice[];
+  /** Declared semantics the result's Physical Profile makes doubtful. */
+  readonly checks: readonly SemanticsCheck[];
+}
+
+/** Declared field semantics checked against the published result's Physical Profile; informs, never blocks. */
+export function semanticChecks(fields: Readonly<Record<string, FieldMeta>> | undefined, receipt: Pick<PublicationReceipt, "physicalProfile">): SemanticsCheck[] {
+  return checkDeclaredSemantics(fields, receipt.physicalProfile?.columns);
 }
 
 /** Chat widgets persist their rows in the session, so they are bounded; larger results belong in render_chart or export_query. */
@@ -92,6 +101,7 @@ function renderChartTool(options: ChartToolOptions): AgentHarnessTool<DataAgentT
       const baseName = value.fileName ?? `chart-${specHash}`;
       const relativePath = `charts/${baseName}.svg`;
       const recordPath = `charts/${baseName}.chart.json`;
+      const checks = semanticChecks(rendered.spec.fields, published.receipt);
       const record: ChartRenderRecord = {
         version: CHART_RENDER_RECORD_VERSION,
         svg: `${baseName}.svg`,
@@ -102,6 +112,7 @@ function renderChartTool(options: ChartToolOptions): AgentHarnessTool<DataAgentT
         width: rendered.width,
         height: rendered.height,
         notices: rendered.notices,
+        checks,
       };
       await options.workspace.write(relativePath, rendered.svg);
       await options.workspace.write(recordPath, `${JSON.stringify(record, null, 2)}\n`);
@@ -110,13 +121,15 @@ function renderChartTool(options: ChartToolOptions): AgentHarnessTool<DataAgentT
       const text = [
         `[CHART_RENDERED] ${relativePath} (${rendered.width}×${rendered.height})`,
         ...rendered.notices.map((notice) => `[NOTICE] ${notice.message}`),
+        ...checks.map((check) => `[CHECK] ${check.message}`),
         ...(disclosure ? [`[DISCLOSURE] ${disclosure}`] : []),
         ...(declared.length > 0 ? [`[SEMANTICS] 以下字段的语义来自模型声明，未经业务定义核实：${declared.join("、")}`] : []),
+        ...(checks.length > 0 ? ["[CHECK] 是对字段声明的核对提示：声明有误就改正 spec 重新渲染；确认无误再使用此图。"] : []),
         `在报告中用 ![标题](${relativePath}) 引用，并把 [NOTICE]、[DISCLOSURE] 写进图注。`,
       ].join("\n");
       return {
         content: [{ type: "text", text }],
-        details: { relativePath, recordPath, fileType: "svg", receiptId, renderer: rendered.renderer, notices: rendered.notices, ...(disclosure ? { disclosure } : {}) },
+        details: { relativePath, recordPath, fileType: "svg", receiptId, renderer: rendered.renderer, notices: rendered.notices, checks, ...(disclosure ? { disclosure } : {}) },
       };
     },
   };
@@ -129,6 +142,7 @@ export function createChartToolDefinitions(options: ChartToolOptions): readonly 
       "spec 必须是 ChartSpec v1，spec.data 为 { kind: \"publication\", receiptId }；先用 publish_query_result 或 export_query 发布结果，再引用返回的 receiptId。",
       "度量字段在 spec.fields 中声明 type: \"quantitative\" 以及 storage 与 additivity；工具不聚合、不补零，出错时按返回的错误与建议修改查询或 spec。",
       "把返回的 [NOTICE]、[DISCLOSURE]、[SEMANTICS] 写进报告的图注，不要省略。",
+      "返回 [CHECK] 时先核对对应字段的 storage、additivity 声明；有误就改正后重新渲染，不要忽略。",
     ],
   })];
 }

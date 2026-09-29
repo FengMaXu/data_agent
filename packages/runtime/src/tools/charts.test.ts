@@ -90,6 +90,7 @@ describe("render_chart", () => {
       width: 640,
       height: 360,
       notices: [expect.objectContaining({ code: "NULL_VALUES" })],
+      checks: [],
     });
     expect(text).not.toContain("5234.00");
     await cleanup();
@@ -125,6 +126,31 @@ describe("render_chart", () => {
       readRowsAuthorized: async () => ({ columns: ["industry", "sales"], rows: [["批发业", 999]], contentHash: "forged" }),
     });
     await expect(tampered.resolveRows(receipt.receiptId, context("tampered"))).rejects.toThrow("PUBLICATION_INTEGRITY_MISMATCH");
+  });
+});
+
+describe("Declared semantics against the Physical Profile", () => {
+  // Sales in the hundreds declared as a ratio: the profile makes the declaration doubtful.
+  const misdeclared = (receiptId: string) => chartSpec(receiptId, { fields: { sales: { type: "quantitative", storage: "ratio", additivity: "additive", label: "销售额" } } });
+
+  it("reports doubtful declarations from render_chart, in the text and the record, without blocking", async () => {
+    const { receipt, root, tool, cleanup } = await setup([["批发业", "5234.00"], ["零售业", "499.88"]]);
+    const result = await tool.execute("render", { spec: misdeclared(receipt.receiptId), fileName: "misdeclared" } as never, undefined, toolContext, invocation("render-check"), {} as never);
+    const text = (result.content[0] as { text: string }).text;
+    expect(text).toMatch(/^\[CHART_RENDERED\]/);
+    expect(text).toContain("[CHECK] 销售额 声明为比率（0.12 表示 12%），但数值范围为 [499.88, 5234.00]");
+    const record = JSON.parse(await readFile(join(root, "charts", "misdeclared.chart.json"), "utf8")) as ChartRenderRecord;
+    expect(record.checks.map((check) => check.code)).toEqual(["RATIO_OUT_OF_RANGE"]);
+    await cleanup();
+  });
+
+  it("reports them from show_widget in the widget and the model text", async () => {
+    const { receipt, showWidget, cleanup } = await setup([["批发业", "5234.00"]]);
+    const result = await showWidget.execute("widget-check", { kind: "chart", spec: misdeclared(receipt.receiptId) } as never, undefined, toolContext, invocation("widget-check"), {} as never);
+    const widget = (result.details as { widget: Record<string, unknown> }).widget;
+    expect(widget.semanticChecks).toEqual([expect.objectContaining({ code: "RATIO_OUT_OF_RANGE", field: "sales" })]);
+    expect((result.content[0] as { text: string }).text).toContain("[CHECK] 销售额 声明为比率");
+    await cleanup();
   });
 });
 
