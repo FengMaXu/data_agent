@@ -71,6 +71,8 @@ for (const file of productionFiles) {
   const isContracts = rel.startsWith("packages/contracts/src/");
   // The chart compiler runs in browsers and Node alike (ADR-0008 decision 5).
   const isCharts = rel.startsWith("packages/charts/src/");
+  // The dashboard renderer is a pure function of spec and datasets; the tool resolves data (ADR-0008 step 4).
+  const isDashboardRenderer = rel === "packages/runtime/src/dashboard.ts";
   const isPresentation = rel.startsWith("frontend/src/");
   const isElectronOrServer = rel.startsWith("packages/electron-host/src/") || rel.startsWith("apps/server/src/") || rel === "scripts/start-web-host.mjs";
 
@@ -83,6 +85,7 @@ for (const file of productionFiles) {
     if (isFacets && hasAny(normalized, ["/answering/answering-store", "/answering/result-store"])) fail(`${rel}: Facet imports concrete Answering store ${specifier}`);
     if (isContracts && hasAny(normalized, ["pi-agent", "chord", "better-sqlite", "sqlite"])) fail(`${rel}: contracts imports infrastructure ${specifier}`);
     if (isCharts && !normalized.startsWith(".") && normalized !== "@data-agent/contracts") fail(`${rel}: isomorphic chart compiler imports ${specifier}`);
+    if (isDashboardRenderer && normalized !== "@data-agent/charts" && normalized !== "@data-agent/contracts") fail(`${rel}: pure dashboard renderer imports ${specifier}`);
     if (isElectronOrServer && hasAny(normalized, ["@earendil-works/pi-agent-core", "AgentHarness", "AgentEvent"])) fail(`${rel}: transport Host imports Pi internals ${specifier}`);
     if (isElectronOrServer && hasAny(normalized, ["@data-agent/runtime/protocol", "packages/runtime/dist/protocol", "packages/runtime/src/protocol"])) fail(`${rel}: transport Host imports Runtime protocol internals ${specifier}`);
     if (isPresentation && hasAny(normalized, ["@earendil-works/pi-agent-core", "@data-agent/runtime", "better-sqlite", "mysql", "sqlExecutor", "credentials"])) fail(`${rel}: Presentation imports backend authority ${specifier}`);

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Builds the complete TypeScript distribution:
- * contracts -> runtime -> electron-host/web host packages -> Renderer (vite).
+ * contracts -> charts -> runtime -> electron-host/web host packages -> Renderer (vite).
  * Verifies no legacy Python backend artifacts are referenced.
  */
 import { execSync, spawnSync } from "node:child_process";
@@ -19,6 +19,8 @@ function normalizeGeneratedBundle(file) {
 }
 
 run("npm run build:contracts");
+// Runtime and the renderer depend on charts, including its browser bundle for dashboards.
+run("npm run build:charts");
 run("npm run build:runtime");
 for (const pkg of ["@data-agent/transport", "@data-agent/electron-host", "@data-agent/server", "@data-agent/mcp-mysql", "@data-agent/mcp-pg"]) {
   run(`npm run build --workspace=${pkg}`);
@@ -88,6 +90,7 @@ copyFileSync(path.join(root, "packages/electron-host/preload.cjs"), path.join(ro
 // Sanity checks: renderer + host outputs exist; python web backend not required.
 for (const p of [
   "packages/contracts/dist/index.js",
+  "packages/charts/dist/browser-source.js",
   "packages/runtime/dist/index.js",
   "packages/electron-host/dist/main.js",
   "packages/runtime/dist/metadata-worker.js",
