@@ -258,7 +258,7 @@ export function resolveEchartsAssetPath(): string | undefined {
 
 const echartsSources = new Map<string, Promise<string>>();
 
-function readEchartsSource(assetPath: string): Promise<string> {
+export function readEchartsSource(assetPath: string): Promise<string> {
   let source = echartsSources.get(assetPath);
   if (!source) {
     // Keep a stray "</script" in the library from closing the inline tag early.

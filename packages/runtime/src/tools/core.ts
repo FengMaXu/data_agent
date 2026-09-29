@@ -1,6 +1,5 @@
 import { Type } from "typebox";
 import { Value } from "typebox/value";
-import { randomUUID } from "node:crypto";
 import { FieldMetaSchema } from "@data-agent/contracts";
 import { CHART_RENDERER_VERSIONS, compileChart } from "@data-agent/charts";
 import type { BusinessContext } from "../answering/public.js";
@@ -8,8 +7,6 @@ import type { ArtifactDirectory } from "../facets/artifact-directory.js";
 import { MAX_WIDGET_ROWS, declaredFields, formatChartErrors, jsonSafeRows, publicationRef } from "./charts.js";
 import type { AgentToolResult } from "@earendil-works/pi-agent-core";
 import { DEFAULT_KNOWLEDGE_RESULTS, formatKnowledgeSearchResults, MAX_KNOWLEDGE_RESULTS, type KnowledgeIndex } from "../knowledge.js";
-import { materializeDashboardV3Spec, renderStandaloneDashboardHtml, validateDashboardV3Spec } from "../dashboard-v3.js";
-import { renderSemanticDashboardHtml, validateDashboardV4Spec } from "../dashboard-v4.js";
 import { KnowledgeWriter } from "../knowledge-write.js";
 import { runPythonJob } from "../python-job.js";
 import type { WorkspaceStore } from "../workspace.js";
@@ -74,7 +71,6 @@ export interface CoreToolOptions {
   readonly knowledgeRoot?: string;
   readonly pythonExecutable?: string | (() => string | undefined);
   readonly skills?: readonly { readonly name: string; readonly description: string; readonly content: string }[];
-  readonly enableDashboards?: boolean;
   readonly enableWidgets?: boolean;
   readonly clarifications?: Pick<ClarificationDialogs, "ask">;
   /** Receipt-bound rows for chart widgets; without it show_widget cannot draw charts. */
@@ -258,42 +254,6 @@ export function createCoreAgentToolDefinitions(options: CoreToolOptions): readon
     promptSnippet: "加载已经发现的技能。",
     promptGuidelines: ["只加载现存技能；技能 allowlist 只筛选已有能力，不授予新的工具或权限。"],
   }));
-
-  if (options.enableDashboards !== false) {
-    definitions.push(defineDataAgentTool({
-      name: "generate_dashboard",
-      label: "generate_dashboard",
-      description: "Validate or generate a dashboard in the current workspace.",
-      replay: "never",
-      parameters: Type.Object({ operation: Type.Union([Type.Literal("create"), Type.Literal("edit"), Type.Literal("validate")]), mode: Type.Union([Type.Literal("static"), Type.Literal("semantic")]), version: Type.Union([Type.Literal("v3"), Type.Literal("v4")]), spec: Type.Unknown(), editPath: Type.Optional(Type.String({ minLength: 1 })) }, { additionalProperties: false }),
-      async execute(_toolCallId, input) {
-        const value = input as { operation: "create" | "edit" | "validate"; mode: "static" | "semantic"; version: "v3" | "v4"; spec: unknown; editPath?: string };
-        let html: string;
-        let fileName: string;
-        if (value.mode === "static" && value.version === "v3") {
-          const materialized = await materializeDashboardV3Spec(value.spec, options.workspace);
-          const validated = validateDashboardV3Spec(materialized);
-          if (!validated.ok) throw new Error(`DASHBOARD_SPEC_INVALID: ${validated.errors.join("; ")}`);
-          if (value.operation === "validate") return text("dashboard spec valid");
-          fileName = value.editPath ?? `dashboards/${validated.spec.filename?.replace(/\.html$/i, "") || Date.now()}.html`;
-          html = await renderStandaloneDashboardHtml(validated.spec);
-        } else if (value.mode === "semantic" && value.version === "v4") {
-          const validated = validateDashboardV4Spec(value.spec);
-          if (!validated.ok) throw new Error(`DASHBOARD_SPEC_INVALID: ${validated.errors.join("; ")}`);
-          if (value.operation === "validate") return text("dashboard spec valid");
-          fileName = value.editPath ?? `dashboards/${Date.now()}-semantic.html`;
-          html = renderSemanticDashboardHtml(validated.spec, { nonce: randomUUID().replaceAll("-", ""), expectedOrigin: "https://data-agent.local" });
-        } else {
-          throw new Error("DASHBOARD_MODE_VERSION_MISMATCH");
-        }
-        await options.workspace.write(fileName, html);
-        return text(`[DASHBOARD_CREATED] ${fileName}`, { relativePath: fileName, fileType: "html" });
-      },
-    }, {
-      promptSnippet: "验证或生成当前工作区中的看板。",
-      promptGuidelines: ["仅在看板需求和 dashboard Skill 已授权时使用；只支持现有 mode/version 组合，以运行时 validator 为准，不把提示摘要当作 Schema 修复。"],
-    }));
-  }
 
   if (options.enableWidgets !== false) {
     definitions.push(defineDataAgentTool({

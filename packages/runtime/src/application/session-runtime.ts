@@ -10,6 +10,7 @@ import { renderKnowledgeCatalog, type KnowledgeIndex } from "../knowledge.js";
 import { ClarificationManager } from "../clarification.js";
 import type { WorkspaceStore } from "../workspace.js";
 import { createChartToolDefinitions } from "../tools/charts.js";
+import { createDashboardToolDefinitions } from "../tools/dashboard.js";
 import { createAnsweringAgentToolDefinitions, type DataAgentToolContext, type HypothesisComparisonToolOptions, type SemanticSpecMode } from "../tools/answering.js";
 import { createCoreAgentToolDefinitions } from "../tools/core.js";
 import { createDataAgentPiRuntime, createPiSessionHost, type DataAgentModelProfile, type DataAgentSessionHost, type DataAgentSessionHostOptions, type OpenOperation, type SessionInput, type SessionQueryExecutor } from "../agent/harness-factory.js";
@@ -316,7 +317,6 @@ export async function createDataAgentSessionHost(options: DataAgentSessionRuntim
       ...(options.knowledge ? { knowledge: options.knowledge } : {}),
       ...(options.knowledgeRoot ? { knowledgeRoot: options.knowledgeRoot } : {}),
       ...(options.pythonExecutable ? { pythonExecutable: options.pythonExecutable } : {}),
-      ...(options.enableDashboards !== undefined ? { enableDashboards: options.enableDashboards } : {}),
       ...(options.enableWidgets !== undefined ? { enableWidgets: options.enableWidgets } : {}),
     }),
     ...createAnsweringAgentToolDefinitions(
@@ -327,6 +327,7 @@ export async function createDataAgentSessionHost(options: DataAgentSessionRuntim
       { semanticSpecMode: options.semanticSpecMode ?? "required" },
     ),
     ...createChartToolDefinitions({ workspace: options.workspace, artifacts }),
+    ...(options.enableDashboards !== false ? createDashboardToolDefinitions({ workspace: options.workspace, artifacts }) : []),
   ];
   const delegation = options.enableSubagents ? new NativeDelegation({
     executor: new HarnessChildExecutor({
