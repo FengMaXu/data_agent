@@ -52,6 +52,8 @@ export {
   type Supersession,
   type HypothesisProposal,
   type InspectAnswer,
+  type ColumnProfile,
+  type PhysicalProfile,
   type PublicationReceipt,
   type PublishCandidate,
   type ReviseAnswer,

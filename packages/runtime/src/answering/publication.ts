@@ -14,6 +14,7 @@ import { inferredFacets } from "./qualification.js";
 import { fanoutDisclosureSummary } from "./fanout-execution.js";
 import { SPEC_FEEDBACK_CHECK_ID, specFeedbackDisclosureSummary } from "./spec-feedback.js";
 import { markCandidateCorrupt } from "./result-execution.js";
+import { buildPhysicalProfile } from "./physical-profile.js";
 import type { PrivateResultObject } from "./result-store.js";
 import { now } from "./support.js";
 import type { AnsweringDeps } from "./deps.js";
@@ -124,6 +125,8 @@ export async function publishCandidate(deps: AnsweringDeps, input: PublishCandid
     ...(taskAndCandidate.candidate.coverage ? { coverage: taskAndCandidate.candidate.coverage } : {}),
     ...(taskAndCandidate.candidate.fanout ? { fanout: taskAndCandidate.candidate.fanout } : {}),
     ...(taskAndCandidate.disclosure ? { disclosure: taskAndCandidate.disclosure } : {}),
+    // Profiled from the integrity-checked object; it is not part of either content hash.
+    physicalProfile: buildPhysicalProfile(result),
     policyVersion: permit.policyVersion,
     createdByInvocationId: context.invocationId,
     requestId: input.requestId,
