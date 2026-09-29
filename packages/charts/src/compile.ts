@@ -1,6 +1,6 @@
 import { checkChartSpec, type CartesianChart, type ChartLayer, type ChartSpec, type FieldMeta, type PieChart } from "@data-agent/contracts";
 import type { ChartCompileOptions, ChartCompileResult, ChartDataset, ChartError, ChartOption, PresentationNotice } from "./types.js";
-import { PALETTE, axisTitle, categoryLabel, displayScale, fieldTitle, formatValue, isPercentDisplay, numericCell, type QuantitativeMeta } from "./semantics.js";
+import { PALETTE, axisTitle, categoryLabel, displayScale, fieldLabel, fieldTitle, formatValue, isPercentDisplay, isZonedTemporal, numericCell, type QuantitativeMeta } from "./semantics.js";
 
 const DEFAULT_WIDTH = 800;
 const DEFAULT_HEIGHT = 480;
@@ -71,6 +71,15 @@ class CompileContext {
     }
     return { field, index, meta, values };
   }
+}
+
+/** A floating calendar field whose cells carry a zone cannot be placed on a date; say so instead of guessing one. */
+function temporalNotice(context: CompileContext, field: string, values: readonly unknown[]): void {
+  const meta = context.meta(field);
+  if (meta?.type !== "temporal" || meta.zone !== "floating") return;
+  const zoned = values.find(isZonedTemporal);
+  if (zoned === undefined) return;
+  context.notice({ kind: "layout", code: "TEMPORAL_ZONED_VALUE", message: `${fieldTitle(field, meta)} 声明为不带时区的日期，但值带有时区（如 ${fieldLabel(zoned, undefined)}），按原文显示；请在查询中输出不带时区的日期文本，或声明时区`, field });
 }
 
 /** Categories in the order the field semantics call for: declared order, time order, or first appearance. */
@@ -226,7 +235,8 @@ function compileCartesian(context: CompileContext, chart: CartesianChart): Chart
   if (xIndex === undefined || context.errors.length > 0) return undefined;
 
   const rows = context.dataset.rows;
-  const xLabels = rows.map((row) => categoryLabel(row[xIndex]));
+  const xLabels = rows.map((row) => fieldLabel(row[xIndex], xMeta));
+  temporalNotice(context, chart.x.field, rows.map((row) => row[xIndex]));
   let xNumbers: readonly (number | null)[] = [];
   if (valueX) {
     const measured = context.measure(chart.x.field, "/chart/x/field");
@@ -255,7 +265,8 @@ function compileCartesian(context: CompileContext, chart: CartesianChart): Chart
     if (!axisMeta.has(side)) axisMeta.set(side, { meta: y.meta, field: y.field, share: stack === "percent" });
     const onAxis = axisIndex(side) > 0 ? { yAxisIndex: axisIndex(side) } : {};
     const scale = displayScale(y.meta);
-    const groupLabels = rows.map((row) => (plan.seriesIndex === undefined ? "" : categoryLabel(row[plan.seriesIndex])));
+    const seriesMeta = plan.layer.series ? context.meta(plan.layer.series.field) : undefined;
+    const groupLabels = rows.map((row) => (plan.seriesIndex === undefined ? "" : fieldLabel(row[plan.seriesIndex], seriesMeta)));
     const groups = plan.seriesIndex === undefined ? [""] : seriesGroups(groupLabels, layer.series?.order);
     const baseName = layer.name ?? fieldTitle(y.field, y.meta);
     const labelOf = (rowIndex: number) => (plan.labelIndex === undefined ? undefined : categoryLabel(rows[rowIndex]![plan.labelIndex]));
@@ -390,7 +401,9 @@ function compilePie(context: CompileContext, chart: PieChart): ChartOption | und
   const value = context.measure(chart.value.field, "/chart/value/field");
   if (categoryIndex === undefined || !value) return undefined;
   checkPartOfWhole(context, value, value.values, "/chart/value/field");
-  const labels = context.dataset.rows.map((row) => categoryLabel(row[categoryIndex]));
+  const categoryMeta = context.meta(chart.category.field);
+  const labels = context.dataset.rows.map((row) => fieldLabel(row[categoryIndex], categoryMeta));
+  temporalNotice(context, chart.category.field, context.dataset.rows.map((row) => row[categoryIndex]));
   const duplicate = labels.find((label, index) => labels.indexOf(label) !== index);
   if (duplicate !== undefined) {
     context.fail({ code: "DUPLICATE_KEY", message: `类目 ${duplicate} 有多行；编译器不合并观测`, path: "/chart/category/field", field: chart.category.field, hint: "在查询中按类目聚合，每个类目一行" });

@@ -9,6 +9,8 @@ import { CHART_COMPILER_VERSION, CHART_THEME_VERSION, compileChart, type ChartCo
  */
 const OUTPUT_FINGERPRINTS: Readonly<Record<string, string>> = {
   "1.1": "9e2dcdfc",
+  // 2: temporal fields shown at their declared grain and zone.
+  "2.1": "014da502",
 };
 
 const data = { kind: "publication", receiptId: "publication_1" } as const;
@@ -21,6 +23,7 @@ const samples: readonly [unknown, ChartDataset, ChartCompileOptions][] = [
   [{ version: 1, data, fields: { sales }, chart: { mark: "cartesian", x: { field: "region" }, layers: [{ type: "bar", y: { field: "sales" } }], orientation: "horizontal" } }, regions, { target: "static", width: 640, height: 360 }],
   [{ version: 1, data, fields: { sales }, chart: { mark: "pie", category: { field: "region" }, value: { field: "sales" } } }, { columns: ["region", "sales"], rows: [["华东地区", 3], ["华南", 1]] }, { target: "static" }],
   [{ version: 1, data, fields: { sales, growth }, chart: { mark: "cartesian", x: { field: "growth" }, layers: [{ type: "scatter", y: { field: "sales" } }] } }, regions, { target: "interactive" }],
+  [{ version: 1, data, fields: { sales, month: { type: "temporal", grain: "month", zone: "Asia/Shanghai" } }, chart: { mark: "cartesian", x: { field: "month" }, layers: [{ type: "line", y: { field: "sales" } }] } }, { columns: ["month", "sales"], rows: [["2025-10-31T16:00:00.000Z", 1], ["2025-12-01", 2]] }, { target: "interactive" }],
 ];
 
 /** Stable text of an option, formatter functions included by source with whitespace collapsed (CRLF and LF checkouts agree). */
