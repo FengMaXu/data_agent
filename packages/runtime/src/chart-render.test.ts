@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { SaxesParser } from "saxes";
-import { STATIC_CHART_FONT_FAMILY, renderChartSvg } from "./chart-render.js";
+import { CHART_COMPILER_VERSION, CHART_THEME_VERSION } from "@data-agent/charts";
+import { STATIC_CHART_BACKGROUND, STATIC_CHART_FONT_FAMILY, renderChartSvg } from "./chart-render.js";
 
 /** Standalone .svg files are parsed as XML, which is stricter than an inline <svg> in HTML. */
 function expectWellFormedXml(svg: string): void {
@@ -56,6 +57,16 @@ describe("Static chart rendering", () => {
     const other = renderChartSvg(spec, { ...dataset, rows: dataset.rows.slice(0, 2) });
     const idPrefix = (svg: string) => /dac-[0-9a-f]{8}/.exec(svg)?.[0];
     expect(other.ok && idPrefix(other.svg)).not.toBe(idPrefix(first.svg));
+  });
+
+  it("reports the recorded versions, whose theme covers the static font stack and background", () => {
+    const result = renderChartSvg(spec, dataset);
+    if (!result.ok) throw new Error(JSON.stringify(result.errors));
+    expect(result.renderer).toEqual({ compiler: CHART_COMPILER_VERSION, theme: CHART_THEME_VERSION });
+    expect(result.spec).toMatchObject({ version: 1, data: spec.data });
+    // Changing either value is a theme change: bump CHART_THEME_VERSION and pin the new pair here.
+    expect({ theme: CHART_THEME_VERSION, font: STATIC_CHART_FONT_FAMILY, background: STATIC_CHART_BACKGROUND })
+      .toEqual({ theme: 1, font: "'Microsoft YaHei', 'PingFang SC', 'Noto Sans SC', 'Source Han Sans SC', sans-serif", background: "#ffffff" });
   });
 
   it("returns compiler errors instead of drawing an altered chart", () => {

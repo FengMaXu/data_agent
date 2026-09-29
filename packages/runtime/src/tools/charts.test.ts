@@ -10,7 +10,8 @@ import { ArtifactDirectory } from "../facets/artifact-directory.js";
 import { WorkspaceStore } from "../workspace.js";
 import { validateWidgetSpec } from "../widget.js";
 import { createAnsweringAgentToolDefinitions } from "./answering.js";
-import { MAX_WIDGET_ROWS, createChartToolDefinitions } from "./charts.js";
+import { CHART_COMPILER_VERSION, CHART_THEME_VERSION } from "@data-agent/charts";
+import { MAX_WIDGET_ROWS, createChartToolDefinitions, type ChartRenderRecord } from "./charts.js";
 import { createCoreAgentToolDefinitions } from "./core.js";
 
 const context = (invocationId: string): BusinessContext => ({ principal: { id: "user-1" }, sessionId: "session-1", lane: "main", operationId: "operation-1", invocationId });
@@ -72,6 +73,28 @@ describe("render_chart", () => {
     await cleanup();
   });
 
+  it("records the spec, data identity and versions next to the SVG, without rows", async () => {
+    const { receipt, root, tool, cleanup } = await setup([["批发业", "5234.00"], ["住宿和餐饮业", null]]);
+    const spec = chartSpec(receipt.receiptId, { title: "行业销售额" });
+    const result = await tool.execute("render", { spec, fileName: "行业销售额", width: 640, height: 360 } as never, undefined, toolContext, invocation("render-record"), {} as never);
+    expect(result.details).toMatchObject({ relativePath: "charts/行业销售额.svg", recordPath: "charts/行业销售额.chart.json", renderer: { compiler: CHART_COMPILER_VERSION, theme: CHART_THEME_VERSION } });
+    const text = await readFile(join(root, "charts", "行业销售额.chart.json"), "utf8");
+    const record = JSON.parse(text) as ChartRenderRecord;
+    expect(record).toEqual({
+      version: 1,
+      svg: "行业销售额.svg",
+      chartSpec: spec,
+      data: { kind: "publication", receiptId: receipt.receiptId, contentHash: receipt.contentHash },
+      renderer: { compiler: CHART_COMPILER_VERSION, theme: CHART_THEME_VERSION },
+      target: "static",
+      width: 640,
+      height: 360,
+      notices: [expect.objectContaining({ code: "NULL_VALUES" })],
+    });
+    expect(text).not.toContain("5234.00");
+    await cleanup();
+  });
+
   it("names the receipt explicitly in publish tool text so charts can cite it", async () => {
     const { receipt, publishText, cleanup } = await setup([["批发业", 1]]);
     expect(await publishText()).toContain(`receiptId=${receipt.receiptId}`);
@@ -113,7 +136,7 @@ describe("show_widget chart", () => {
     const { receipt, showWidget, cleanup } = await setup([["批发业", 9007199254740993n], ["零售业", null]]);
     const result = await call(showWidget, "chart", chartSpec(receipt.receiptId, { title: "行业销售额" }), "widget-chart");
     const widget = (result.details as { widget: Record<string, unknown> }).widget;
-    expect(widget).toMatchObject({ kind: "chart", title: "行业销售额", contractVersion: 2, receiptId: receipt.receiptId });
+    expect(widget).toMatchObject({ kind: "chart", title: "行业销售额", contractVersion: 2, renderer: { compiler: CHART_COMPILER_VERSION, theme: CHART_THEME_VERSION }, receiptId: receipt.receiptId });
     // bigint survives as exact decimal text so the persisted widget stays JSON.
     expect((widget.dataset as { rows: unknown[][] }).rows).toEqual([["批发业", "9007199254740993"], ["零售业", null]]);
     expect(() => JSON.stringify(result.details)).not.toThrow();
