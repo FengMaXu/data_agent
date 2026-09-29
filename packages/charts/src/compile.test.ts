@@ -412,3 +412,32 @@ describe("Boxplot", () => {
     expect(new Set(codes(compileChart(boxplot("tukey"), stats([["东", 1, 2, 3, 4, 5]]), { target: "interactive" })))).toEqual(new Set(["SCHEMA_INVALID"]));
   });
 });
+
+describe("Waterfall", () => {
+  const profit: FieldMeta = { type: "quantitative", storage: "raw", unit: "万元", additivity: "non_additive", label: "利润" };
+  const waterfall = (): ChartSpec => ({ version: 1, data, fields: { s: profit, e: profit }, chart: { mark: "waterfall", step: { field: "step" }, start: { field: "s" }, end: { field: "e" }, total: { field: "is_total" } } } as ChartSpec);
+  const steps = (rows: unknown[][]): ChartDataset => ({ columns: ["step", "s", "e", "is_total"], rows });
+  const bridge = [["期初", 0, 100, true], ["收入", 100, 160, false], ["成本", 160, 90, false], ["期末", 0, 90, "合计"]];
+
+  it("draws the query's running totals in row order, labelled with their end values", () => {
+    const { option } = ok(compileChart(waterfall(), steps(bridge), { target: "static" }));
+    expect(axis(option, "xAxis")[0]!.data).toEqual(["期初", "收入", "成本", "期末"]);
+    const [base, bars] = seriesOf(option);
+    expect(base!.data).toEqual([0, 100, 90, 0]);
+    expect((bars!.data as { value: number; itemStyle: { color: string } }[]).map((bar) => bar.value)).toEqual([100, 60, 70, 90]);
+    expect((bars!.data as { itemStyle: { color: string } }[]).map((bar) => bar.itemStyle.color)).toEqual(["#4F6980", "#638B66", "#B66353", "#4F6980"]);
+  });
+
+  it("rejects steps that do not continue from the previous end, and totals that disagree", () => {
+    const broken = bridge.map((row) => [...row]);
+    broken[2]![1] = 150;
+    expect(codes(compileChart(waterfall(), steps(broken), { target: "interactive" }))).toEqual(["RANGE_INCONSISTENT"]);
+    const wrongTotal = bridge.map((row) => [...row]);
+    wrongTotal[3]![2] = 95;
+    expect(codes(compileChart(waterfall(), steps(wrongTotal), { target: "interactive" }))).toEqual(["RANGE_INCONSISTENT"]);
+    const floating = bridge.map((row) => [...row]);
+    floating[3]![1] = 10;
+    expect(codes(compileChart(waterfall(), steps(floating), { target: "interactive" }))).toEqual(["RANGE_INCONSISTENT"]);
+    expect(codes(compileChart(waterfall(), steps([["期初", 0, null, true]]), { target: "interactive" }))).toEqual(["RANGE_INCONSISTENT"]);
+  });
+});
