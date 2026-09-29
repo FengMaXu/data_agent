@@ -11,13 +11,13 @@ const fallbackExecutable = path.join(root, "Scripts", "python.exe");
 const resolvedExecutable = await access(executable).then(() => executable).catch(() => fallbackExecutable);
 await access(resolvedExecutable);
 await new Promise((resolve, reject) => {
-  const child = spawn(resolvedExecutable, ["-c", "import matplotlib, numpy, pandas, sqlglot; print('data-agent-python-runtime-ok'); print('matplotlib='+matplotlib.__version__); print('sqlglot='+sqlglot.__version__)"], { cwd: root, stdio: ["ignore", "pipe", "pipe"] });
+  const child = spawn(resolvedExecutable, ["-c", "import importlib.util, numpy, pandas, sqlglot; print('data-agent-python-runtime-ok'); print('matplotlib=' + ('present' if importlib.util.find_spec('matplotlib') else 'absent')); print('sqlglot='+sqlglot.__version__)"], { cwd: root, stdio: ["ignore", "pipe", "pipe"] });
   let output = "";
   let error = "";
   child.stdout.on("data", chunk => output += chunk);
   child.stderr.on("data", chunk => error += chunk);
   child.on("error", reject);
-  child.on("close", code => code === 0 && output.includes("data-agent-python-runtime-ok") && output.includes("matplotlib=") && output.includes(`sqlglot=${requiredSqlglotVersion}`)
+  child.on("close", code => code === 0 && output.includes("data-agent-python-runtime-ok") && output.includes("matplotlib=absent") && output.includes(`sqlglot=${requiredSqlglotVersion}`)
     ? resolve()
     : reject(new Error(`runtime smoke failed: ${code}: ${error || output}`)));
 });
