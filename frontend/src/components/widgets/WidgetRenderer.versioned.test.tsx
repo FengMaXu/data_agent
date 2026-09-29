@@ -51,6 +51,14 @@ describe('Versioned widgets', () => {
         expect(setOption).not.toHaveBeenCalled();
     });
 
+    it('never draws a raw ECharts option, from a new event or an earlier session', () => {
+        render(<WidgetRenderer widget={{
+            widget_id: 'e1', kind: 'echarts', title: 'Raw', config: { xAxis: { data: ['a'] }, series: [{ type: 'bar', data: [1] }] },
+        }} />);
+        expect(screen.getByRole('note')).toHaveTextContent(/早期版本|earlier version/);
+        expect(setOption).not.toHaveBeenCalled();
+    });
+
     it('formats versioned tables only by declared semantics', () => {
         render(<WidgetRenderer widget={{
             widget_id: 't1', kind: 'table', title: 'T', contractVersion: 2,
