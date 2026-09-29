@@ -247,7 +247,6 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
     const [pendingClarification, setPendingClarification] = useState<ClarificationRequest | null>(null);
     const [clarificationInput, setClarificationInput] = useState('');
     const [isSubmittingClarification, setIsSubmittingClarification] = useState(false);
-    const [drillPaths, setDrillPaths] = useState<Record<string, string[]>>({});
 
     const currentSessionIdRef = useRef(currentSession.id);
     const activeAgentMessageIdRef = useRef<string | null>(null);
@@ -495,22 +494,6 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
             event.target.value = '';
         }
     };
-
-    const handleDrillDown = useCallback((dimension: string, value: string, title: string, widgetId: string) => {
-        setDrillPaths(prev => ({
-            ...prev,
-            [widgetId]: [...(prev[widgetId] || [title]), value],
-        }));
-        const drillMessage = `请下钻分析"${title}"中【${value}】的明细数据，按 ${dimension} 维度展开`;
-        setInputValue(drillMessage);
-    }, []);
-
-    const handleBreadcrumbNavigate = useCallback((widgetId: string, index: number) => {
-        const path = drillPaths[widgetId] || [];
-        const targetLevel = path[index];
-        setDrillPaths(prev => ({ ...prev, [widgetId]: prev[widgetId].slice(0, index + 1) }));
-        setInputValue(`返回查看"${targetLevel}"层级的数据概览`);
-    }, [drillPaths]);
 
     const handleSend = async (overrideContent?: string) => {
         const content = (overrideContent ?? inputValue).trim();
@@ -1085,9 +1068,6 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                                         <WidgetRenderer
                                             key={widget.tool_call_id || widget.widget_id}
                                             widget={widget}
-                                            drillPath={drillPaths[widget.widget_id]}
-                                            onDrillDown={handleDrillDown}
-                                            onBreadcrumbNavigate={handleBreadcrumbNavigate}
                                             currentSessionId={currentSession.id}
                                         />
                                     ))}

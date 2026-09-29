@@ -1,5 +1,4 @@
-import React, { useEffect, useRef } from 'react';
-import * as echarts from 'echarts';
+import React from 'react';
 import { formatFieldValue, type ChartDataset, type SemanticsCheck } from '@data-agent/charts';
 import type { FieldMeta } from '@data-agent/contracts';
 import ChartSpecWidget from './ChartSpecWidget';
@@ -49,9 +48,6 @@ const CURRENT_WIDGET_CONTRACT = 2;
 
 interface WidgetRendererProps {
     widget: WidgetSpec;
-    drillPath?: string[];
-    onDrillDown?: (dimension: string, value: string, widgetTitle: string, widgetId: string) => void;
-    onBreadcrumbNavigate?: (widgetId: string, index: number) => void;
     currentSessionId?: string;
 }
 
@@ -442,98 +438,6 @@ const renderRichText = (widget: WidgetSpec, t: (key: string) => string) => {
     );
 };
 
-// ─── ECharts Widget ────────────────────────────────────────────────────────────
-
-interface EChartsWidgetProps {
-    widget: WidgetSpec;
-    onDrill?: (dimension: string, value: string) => void;
-}
-
-const EChartsWidget: React.FC<EChartsWidgetProps> = ({ widget, onDrill }) => {
-    const containerRef = useRef<HTMLDivElement>(null);
-    const chartRef = useRef<echarts.ECharts | null>(null);
-
-    // init / update chart option
-    useEffect(() => {
-        if (!containerRef.current) return;
-        if (!chartRef.current) {
-            chartRef.current = echarts.init(containerRef.current, null, { renderer: 'canvas' });
-        }
-        chartRef.current.setOption(widget.config || {}, true);
-
-        chartRef.current.off('click');
-        chartRef.current.on('click', (params: any) => {
-            onDrill?.(
-                params.seriesName || params.dimensionNames?.[0] || 'value',
-                String(params.name),
-            );
-        });
-    }, [widget.config, onDrill]);
-
-    // resize observer
-    useEffect(() => {
-        if (!containerRef.current) return;
-        const ro = new ResizeObserver(() => chartRef.current?.resize());
-        ro.observe(containerRef.current);
-        return () => ro.disconnect();
-    }, []);
-
-    // cleanup on unmount
-    useEffect(() => {
-        return () => {
-            chartRef.current?.dispose();
-            chartRef.current = null;
-        };
-    }, []);
-
-    return <div style={{ width: '100%', height: '360px' }} ref={containerRef} />;
-};
-
-// ─── Breadcrumb ────────────────────────────────────────────────────────────────
-
-interface BreadcrumbProps {
-    path: string[];
-    onNavigate: (index: number) => void;
-}
-
-const Breadcrumb: React.FC<BreadcrumbProps> = ({ path, onNavigate }) => {
-    if (path.length <= 1) return null;
-    return (
-        <nav aria-label="Breadcrumb" style={{ fontSize: 12, color: '#888', marginBottom: 8, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-            {path.map((item, i) => (
-                <span key={i} style={{ display: 'flex', alignItems: 'center' }}>
-                    {i > 0 && <span aria-hidden="true" style={{ margin: '0 4px', color: '#ccc' }}>›</span>}
-                    {i < path.length - 1 ? (
-                        <button
-                            type="button"
-                            onClick={() => onNavigate(i)}
-                            style={{
-                                cursor: 'pointer',
-                                color: '#4e9cf7',
-                                fontWeight: 400,
-                                background: 'none',
-                                border: 'none',
-                                padding: 0,
-                                font: 'inherit',
-                                fontSize: 'inherit',
-                            }}
-                        >
-                            {item}
-                        </button>
-                    ) : (
-                        <span
-                            style={{ color: '#333', fontWeight: 600 }}
-                            aria-current="page"
-                        >
-                            {item}
-                        </span>
-                    )}
-                </span>
-            ))}
-        </nav>
-    );
-};
-
 // ─── FileLinkWidget ────────────────────────────────────────────────────────────
 
 interface FileLinkWidgetProps {
@@ -637,7 +541,7 @@ const FileLinkWidget: React.FC<FileLinkWidgetProps> = ({ widget, t, currentSessi
 
 // ─── WidgetRenderer ────────────────────────────────────────────────────────────
 
-const WidgetRenderer: React.FC<WidgetRendererProps> = ({ widget, drillPath, onDrillDown, onBreadcrumbNavigate, currentSessionId }) => {
+const WidgetRenderer: React.FC<WidgetRendererProps> = ({ widget, currentSessionId }) => {
     const { t } = useLanguage();
 
     if (widget.status === 'previewing') {
@@ -665,18 +569,8 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = ({ widget, drillPath, onDr
             case 'rich_text':
                 return renderRichText(widget, t);
             case 'echarts':
-                return (
-                    <>
-                        <Breadcrumb
-                            path={drillPath && drillPath.length > 0 ? drillPath : [widget.title]}
-                            onNavigate={(i) => onBreadcrumbNavigate?.(widget.widget_id, i)}
-                        />
-                        <EChartsWidget
-                            widget={widget}
-                            onDrill={(dim, val) => onDrillDown?.(dim, val, widget.title, widget.widget_id)}
-                        />
-                    </>
-                );
+                // A raw ECharts option from an earlier Runtime; its contents were never checked, so it is not drawn (ADR-0008 decision 11).
+                return <div role="note" style={{ color: '#64748b', fontSize: '13px' }}>{t('widgets.legacyEcharts')}</div>;
             case 'file_link':
                 return <FileLinkWidget widget={widget} t={t} currentSessionId={currentSessionId} />;
             default:
