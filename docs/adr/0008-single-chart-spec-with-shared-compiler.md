@@ -75,6 +75,11 @@ Flint Chart（microsoft/flint-chart，MIT，评估版本 0.5.1）提供语义类
    - **独立 HTML 看板**：内联打包后的编译器与 ECharts，页面嵌入 ChartSpec 与数据，而不是 option。
    - **静态（报告、缩略图）**：首选 Node 端 ECharts SSR（`renderer: "svg"`、`ssr: true`、`renderToSVGString()`）输出 SVG，需要位图时用 `@resvg/resvg-js` 转 PNG，不依赖浏览器或 Python。该方案以中文字体、长标签、固定尺寸和目标图种的实测通过为接受条件。
 9. **不以 ECharts option 作为持久化源。** 持久化的是版本化 ChartSpec、不可变数据身份，以及编译器与主题的版本信息。已交付的报告同时保存导出的 SVG/PNG 产物，不因主题或编译器升级而静默变化。ChartSpec 契约版本与编译实现版本分别管理。重现保障的是数值与语义一致，不承诺跨画布、跨目标的像素级一致。
+
+   落地方式：
+   - **版本来源**：`@data-agent/charts` 导出编译器版本与主题版本两个常量，与 ChartSpec 的 `version` 以及包的 `package.json` 版本相互独立。同一输入的 option 输出发生变化时递增编译器版本；配色、字体、间距变化时递增主题版本。静态渲染的字体栈与背景色（`packages/runtime/src/chart-render.ts`）视为主题的一部分。
+   - **静态产物**：`render_chart` 在每个 SVG 旁写一个同名旁路记录 `charts/<name>.chart.json`，包含记录格式版本、ChartSpec、数据身份（`receiptId` 与 `contentHash`）、编译器与主题版本、画布尺寸和展示提示，不含行数据。SVG 本身不嵌入这些信息，以免影响其确定性输出与体积。
+   - **聊天 widget**：负载在 `contractVersion` 之外记录生成时的编译器与主题版本。浏览器仍按当前编译器重新编译（不持久化 option），记录的版本用于追溯，不用于锁定旧实现。
 10. **报告由文档块与图表块组成。** 图表块为 `{ chart: ChartSpec, dataset: <数据集引用> }`，导出 md/docx/pdf 时由 runtime 统一渲染，并把 Disclosure 与展示提示写成图注。Python 仅负责统计计算，其输出按第 4 条作为派生数据集交给 ChartSpec，不再绘图。
 
 ### 迁移与边界
@@ -114,8 +119,8 @@ Flint Chart（microsoft/flint-chart，MIT，评估版本 0.5.1）提供语义类
 
 需先解决的技术约束：
 
-- **中文文本测量**：Node 端 SSR 默认只能估算文本宽度，须通过 `echarts.setPlatformAPI({ measureText })` 注入基于真实字体的度量。
-- **字体分发**：随应用分发 CJK 字体子集，渲染时显式指定，不依赖系统字体，保证跨机器一致。resvg-js 的字体加载方式尚未在本项目中验证。
+- **中文文本测量**：已按实测结论处理，不注入 `echarts.setPlatformAPI({ measureText })`。Node 端 SSR 没有 canvas 时，ECharts 把汉字按 1em 估算，拉丁字符查内置宽度表；这与静态字体栈中 CJK 字体的全角字形一致。第 2 步用中文长标签、横向条形、双轴组合、环形饼图与散点渲染 SVG 并截图检查，没有发现溢出或重叠。若日后改用的字体使估算明显偏离，或 PNG 输出（resvg）实测出现偏差，再引入真实度量。
+- **字体分发**：SVG 输出只写字体栈，由查看方的系统字体渲染，不保证跨机器逐像素一致（与第 9 条的重现范围相符）。PNG 输出须随应用分发 CJK 字体子集并在 resvg 中显式加载，不依赖系统字体。resvg-js 的字体加载方式尚未在本项目中验证。
 - **原生依赖**：resvg 及可能使用的 canvas 模块是 napi 二进制，须纳入 electron-builder 打包与 `smoke-electron` 冒烟测试。
 
 ## 考虑过的方案
