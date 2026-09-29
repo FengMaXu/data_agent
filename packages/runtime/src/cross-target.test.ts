@@ -69,13 +69,14 @@ describe("Cross-target consistency", () => {
     expect(cellsOf(staticChart.option)).toEqual(cellsOf(interactive.option));
   });
 
-  it("histogram and boxplot: interactive and static show the same values", () => {
+  it("histogram, boxplot and waterfall: interactive and static show the same values", () => {
     const money = { type: "quantitative", storage: "raw", unit: "元", magnitude: { stored: 1, shown: 1e4 }, additivity: "non_additive" };
     const histogram = { version: 1, data, fields: { lo: money, hi: money, n: { type: "quantitative", storage: "raw", additivity: "additive" } }, chart: { mark: "histogram", start: { field: "lo" }, end: { field: "hi" }, value: { field: "n" } } };
     const boxplot = { version: 1, data, fields: { a: money, b: money, c: money, d: money, e: money }, chart: { mark: "boxplot", category: { field: "region" }, min: { field: "a" }, q1: { field: "b" }, median: { field: "c" }, q3: { field: "d" }, max: { field: "e" }, whisker: "min_max" } };
     const pairs: [unknown, ChartDataset][] = [
       [histogram, { columns: ["lo", "hi", "n"], rows: [[10000, 20000, 4], [0, 10000, 2]] }],
       [boxplot, { columns: ["region", "a", "b", "c", "d", "e"], rows: [["华东", 10000, 20000, 30000, 40000, 50000]] }],
+      [{ version: 1, data, fields: { s: money, e: money }, chart: { mark: "waterfall", step: { field: "step" }, start: { field: "s" }, end: { field: "e" } } }, { columns: ["step", "s", "e"], rows: [["期初", 0, 50000], ["增加", 50000, 80000], ["减少", 80000, 60000]] }],
     ];
     for (const [spec, rows] of pairs) {
       const interactive = compileChart(spec, rows, { target: "interactive" });

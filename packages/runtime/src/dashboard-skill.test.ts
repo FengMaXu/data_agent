@@ -26,6 +26,7 @@ function sampleDataset(view: DashboardView): ChartDataset {
     ? (view.chart.chart.mark === "pie" ? [view.chart.chart.category.field, view.chart.chart.value.field]
       : view.chart.chart.mark === "heatmap" ? [view.chart.chart.x.field, view.chart.chart.y.field, view.chart.chart.color.field]
         : view.chart.chart.mark === "histogram" ? [view.chart.chart.start.field, view.chart.chart.end.field, view.chart.chart.value.field]
+          : view.chart.chart.mark === "waterfall" ? [view.chart.chart.step.field, view.chart.chart.start.field, view.chart.chart.end.field, ...(view.chart.chart.total ? [view.chart.chart.total.field] : [])]
           : view.chart.chart.mark === "boxplot" ? [view.chart.chart.category.field, view.chart.chart.min.field, view.chart.chart.q1.field, view.chart.chart.median.field, view.chart.chart.q3.field, view.chart.chart.max.field]
         : [view.chart.chart.x.field, ...view.chart.chart.layers.flatMap((layer) => [layer.y.field, ...(layer.series ? [layer.series.field] : [])])])
     : view.type === "table" ? (view.columns ?? []).map((column) => column.field)
@@ -42,6 +43,11 @@ function sampleDataset(view: DashboardView): ChartDataset {
     const box = view.chart.chart;
     const order = [box.category.field, box.min.field, box.q1.field, box.median.field, box.q3.field, box.max.field];
     return { columns, rows: [["v0", 1, 2, 3, 4, 5], ["v1", 2, 3, 4, 5, 6]].map((row) => columns.map((column) => row[order.indexOf(column)])) };
+  }
+  if (view.type === "chart" && view.chart.chart.mark === "waterfall") {
+    const flow = view.chart.chart;
+    const order = [flow.step.field, flow.start.field, flow.end.field, flow.total?.field];
+    return { columns, rows: [["v0", 0, 100, true], ["v1", 100, 130, false], ["v2", 0, 130, true]].map((row) => columns.map((column) => row[order.indexOf(column)])) };
   }
   if (view.type === "kpi") {
     // One row per card, carrying the values its where selects.

@@ -29,7 +29,8 @@ export type ChartErrorCode =
   | "INVALID_SELECTION"
   | "CAPACITY_EXCEEDED"
   | "BIN_OVERLAP"
-  | "STAT_ORDER_VIOLATION";
+  | "STAT_ORDER_VIOLATION"
+  | "RANGE_INCONSISTENT";
 
 export interface ChartError {
   readonly code: ChartErrorCode;

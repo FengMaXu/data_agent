@@ -41,6 +41,7 @@ const totals = { columns: ["total_sales", "yoy"], rows: [["7276.57", -0.2334]] }
 const bins = { columns: ["lo", "hi", "n"], rows: [[0, 100, 12], [100, 200, 30], [200, 300, 22]] };
 const boxes = { columns: ["region", "a", "b", "c", "d", "e"], rows: [["华东", 10, 25, 40, 55, 90], ["华南", 5, 18, 30, 42, 70]] };
 const price = { type: "quantitative", storage: "raw", unit: "元", additivity: "non_additive", label: "单价" };
+const bridge = { columns: ["step", "s", "e", "t"], rows: [["期初", 0, 100, true], ["收入", 100, 160, false], ["成本", 160, 90, false], ["期末", 0, 90, true]] };
 const barSpec = { version: 1, title: "三大行业累计销售额与同比增速", data: ref("p_ind"), fields: { sales, yoy }, chart: { mark: "cartesian", x: { field: "industry" }, layers: [{ type: "bar", y: { field: "sales" } }, { type: "line", y: { field: "yoy", axis: "right" } }] } };
 const dashboardSpec = {
   version: 1, title: "三大行业经营分析 <A&B>", views: [
@@ -50,6 +51,7 @@ const dashboardSpec = {
     { id: "heat", type: "chart", chart: { version: 1, title: "同比增速热力图", data: ref("p_trend"), fields: { yoy, month }, chart: { mark: "heatmap", x: { field: "month" }, y: { field: "industry" }, color: { field: "yoy", scale: "diverging", midpoint: 0 } } } },
     { id: "hist", type: "chart", chart: { version: 1, title: "订单金额分布", data: ref("p_bins"), fields: { lo: price, hi: price, n: sales }, chart: { mark: "histogram", start: { field: "lo" }, end: { field: "hi" }, value: { field: "n" } } } },
     { id: "box", type: "chart", chart: { version: 1, title: "单价分布", data: ref("p_boxes"), fields: { a: price, b: price, c: price, d: price, e: price }, chart: { mark: "boxplot", category: { field: "region" }, min: { field: "a" }, q1: { field: "b" }, median: { field: "c" }, q3: { field: "d" }, max: { field: "e" }, whisker: "min_max" } } },
+    { id: "bridge", type: "chart", chart: { version: 1, title: "利润变动拆解", data: ref("p_bridge"), fields: { s: price, e: price }, chart: { mark: "waterfall", step: { field: "step" }, start: { field: "s" }, end: { field: "e" }, total: { field: "t" } } } },
     { id: "share", type: "chart", chart: { version: 1, title: "构成", data: ref("p_ind"), fields: { sales }, chart: { mark: "pie", category: { field: "industry" }, value: { field: "sales" } } } },
     { id: "detail", type: "table", title: "明细", data: ref("p_ind"), fields: { sales, yoy } },
   ],
@@ -166,7 +168,7 @@ try {
   await svgPage.close();
 
   // 2. Snapshot dashboard inside the app preview's iframe (GlobalPreviewModal: srcDoc + this sandbox).
-  const datasets = { [datasetKey(ref("p_ind"))]: industries, [datasetKey(ref("p_trend"))]: trend, [datasetKey(ref("p_total"))]: totals, [datasetKey(ref("p_bins"))]: bins, [datasetKey(ref("p_boxes"))]: boxes };
+  const datasets = { [datasetKey(ref("p_ind"))]: industries, [datasetKey(ref("p_trend"))]: trend, [datasetKey(ref("p_total"))]: totals, [datasetKey(ref("p_bins"))]: bins, [datasetKey(ref("p_boxes"))]: boxes, [datasetKey(ref("p_bridge"))]: bridge };
   const validated = validateDashboard(dashboardSpec, datasets);
   if (!validated.ok) throw new Error(JSON.stringify(validated.errors));
   const sources = Object.fromEntries(Object.keys(datasets).map((key) => [key, { kind: "publication", id: key.split(":")[1], label: `发布记录 ${key.split(":")[1]}`, contentHash: "0123456789abcdef", disclosures: [] }]));
@@ -192,7 +194,7 @@ try {
     title: document.title,
   }))()`, true);
   check("dashboard renders every view in the preview sandbox", dashboard.panels === dashboardSpec.views.length, JSON.stringify(dashboard));
-  check("dashboard draws every chart with ECharts", dashboard.drawn === 6 && dashboard.unavailable === 0, JSON.stringify(dashboard));
+  check("dashboard draws every chart with ECharts", dashboard.drawn === 7 && dashboard.unavailable === 0, JSON.stringify(dashboard));
   check("dashboard KPI and table use declared semantics", dashboard.kpi === "7,276.57 亿元" && dashboard.rows === 3, JSON.stringify(dashboard));
   check("dashboard title stays escaped", dashboard.title === "三大行业经营分析 <A&B>", dashboard.title);
   check("dashboard raises no script error", dashboardPage.errors.length === 0, dashboardPage.errors.join(" | "));

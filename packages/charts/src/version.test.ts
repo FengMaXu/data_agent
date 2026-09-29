@@ -15,6 +15,8 @@ const OUTPUT_FINGERPRINTS: Readonly<Record<string, string>> = {
   "3.1": "2c1b8a96",
   // 4: histogram and boxplot marks.
   "4.1": "44229561",
+  // 5: the waterfall mark.
+  "5.1": "2f02dc39",
 };
 
 const data = { kind: "publication", receiptId: "publication_1" } as const;
@@ -31,6 +33,7 @@ const samples: readonly [unknown, ChartDataset, ChartCompileOptions][] = [
   [{ version: 1, data, fields: { growth }, chart: { mark: "heatmap", x: { field: "region" }, y: { field: "sales" }, color: { field: "growth", scale: "diverging", midpoint: 0 } } }, regions, { target: "static" }],
   [{ version: 1, data, fields: { lo: sales, hi: sales, n: sales }, chart: { mark: "histogram", start: { field: "lo" }, end: { field: "hi" }, value: { field: "n" } } }, { columns: ["lo", "hi", "n"], rows: [[0, 100, 3], [100, 200, null], [300, 400, 1]] }, { target: "static" }],
   [{ version: 1, data, fields: { mn: sales, q1: sales, md: sales, q3: sales, mx: sales }, chart: { mark: "boxplot", category: { field: "region" }, min: { field: "mn" }, q1: { field: "q1" }, median: { field: "md" }, q3: { field: "q3" }, max: { field: "mx" }, whisker: "min_max" } }, { columns: ["region", "mn", "q1", "md", "q3", "mx"], rows: [["华东地区", 1, 2, 3, 4, 5]] }, { target: "interactive" }],
+  [{ version: 1, data, fields: { s: sales, e: sales }, chart: { mark: "waterfall", step: { field: "step" }, start: { field: "s" }, end: { field: "e" }, total: { field: "t" } } }, { columns: ["step", "s", "e", "t"], rows: [["期初", 0, 100, true], ["收入", 100, 160, false], ["成本", 160, 90, false], ["期末", 0, 90, true]] }, { target: "static" }],
 ];
 
 /** Stable text of an option, formatter functions included by source with whitespace collapsed (CRLF and LF checkouts agree). */

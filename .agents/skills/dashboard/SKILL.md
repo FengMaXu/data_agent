@@ -20,7 +20,7 @@ allowed-tools:
 
 | 支持 | 暂不支持（不要写进 spec，也不要向用户承诺） |
 | --- | --- |
-| KPI 卡片、柱形、折线、散点、柱线组合、双 y 轴、堆叠、横向条形、环形饼图、热力图、直方图、箱线图、表格 | 页面筛选器、点击下钻、交叉联动 |
+| KPI 卡片、柱形、折线、散点、柱线组合、双 y 轴、堆叠、横向条形、环形饼图、热力图、直方图、箱线图、瀑布图、表格 | 页面筛选器、点击下钻、交叉联动 |
 | 图表 tooltip、图例、随窗口缩放；视图半宽或整行 | 自定义高度、导出按钮 |
 | 按完整 spec 重新生成并覆盖已有看板 | 读取已有看板后局部修改 |
 | — | 实时刷新、语义查询绑定 |
@@ -224,6 +224,27 @@ generate_dashboard(operation, spec, editPath?)
 - 直方图每行一个分箱（左闭右开、互不重叠），区间重叠返回 `BIN_OVERLAP`。
 - 箱线图每个类目一行，五个统计量须满足 最小值 ≤ Q1 ≤ 中位数 ≤ Q3 ≤ 最大值，否则返回 `STAT_ORDER_VIOLATION`；`whisker` 必须写明须线含义（`min_max` 或 `iqr_1_5`），会随图说明。
 
+从期初到期末的增减拆解用瀑布图：每一步的起点 `start` 与终点 `end` 都由查询算好（累计在 SQL 中完成），按行顺序衔接；合计行（`total` 列为 true）从 0 开始：
+
+```json dashboard-view
+{
+  "id": "profit_bridge",
+  "type": "chart",
+  "chart": {
+    "version": 1,
+    "title": "利润变动拆解",
+    "data": { "kind": "publication", "receiptId": "<receiptId>" },
+    "fields": {
+      "run_start": { "type": "quantitative", "storage": "raw", "unit": "万元", "additivity": "non_additive" },
+      "run_end": { "type": "quantitative", "storage": "raw", "unit": "万元", "additivity": "non_additive", "label": "利润" }
+    },
+    "chart": { "mark": "waterfall", "step": { "field": "item" }, "start": { "field": "run_start" }, "end": { "field": "run_end" }, "total": { "field": "is_total" } }
+  }
+}
+```
+
+- 每一步的 `start` 须等于上一步的 `end`，合计行须从 0 开始且等于上一步的 `end`，否则返回 `RANGE_INCONSISTENT`。柱上标注的是查询给出的 `end`。
+
 图表约束（工具以结构化错误返回，不会自行修复）：
 
 - **同一个 x 值（或 x 加系列值）只能有一行**，否则返回 `DUPLICATE_KEY`。在查询中聚合到图表粒度；散点图允许重复坐标。
@@ -298,6 +319,7 @@ generate_dashboard(operation, spec, editPath?)
 | 两个维度交叉的一个指标（行业 × 月份） | `chart`：`heatmap` |
 | 一个数值的分布 | `chart`：`histogram`（分箱由查询给出） |
 | 多组数值分布的比较 | `chart`：`boxplot`（统计量由查询给出） |
+| 期初到期末的增减拆解 | `chart`：`waterfall`（累计由查询给出） |
 | 可核对的明细、带多个指标的排名 | `table` |
 
 ## 配色
