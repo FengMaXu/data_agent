@@ -266,3 +266,14 @@ describe("Selection, capacity and viewport", () => {
     expect(validateChart(cartesian([{ type: "bar", y: { field: "sales" } }]), regions, { target: "static" })).toEqual({ ok: true, notices: [] });
   });
 });
+
+describe("formatFieldValue", () => {
+  it("formats values only under declared quantitative semantics", async () => {
+    const { formatFieldValue } = await import("./index.js");
+    expect(formatFieldValue(0.1234, { type: "quantitative", storage: "ratio", additivity: "non_additive" })).toBe("12.34%");
+    expect(formatFieldValue("250000000", { type: "quantitative", storage: "raw", unit: "元", magnitude: { stored: 1, shown: 1e8 }, additivity: "additive" })).toBe("2.5 亿元");
+    expect(formatFieldValue(0.12, undefined)).toBeUndefined();
+    expect(formatFieldValue(0.12, { type: "nominal" })).toBeUndefined();
+    expect(formatFieldValue("n/a", { type: "quantitative", storage: "raw", additivity: "additive" })).toBeUndefined();
+  });
+});
