@@ -10,7 +10,8 @@ const TAGS = ["dashboard-v3-spec", "dashboard-v3-view", "dashboard-v4-spec"] as 
 type Tag = (typeof TAGS)[number];
 
 async function jsonExamples(): Promise<Array<{ tag: string; body: string; line: number }>> {
-  const text = await readFile(SKILL_PATH, "utf8");
+  // Normalise line endings: a Windows checkout may turn the file into CRLF.
+  const text = (await readFile(SKILL_PATH, "utf8")).replace(/\r\n/g, "\n");
   const examples: Array<{ tag: string; body: string; line: number }> = [];
   const fence = /^```json([^\n]*)\n([\s\S]*?)^```/gm;
   for (let match = fence.exec(text); match; match = fence.exec(text)) {

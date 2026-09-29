@@ -19,6 +19,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@data-agent/charts": "0.1.0",
     "@data-agent/contracts": "0.1.0",
     "@earendil-works/chord": "0.85.1",
     "@earendil-works/pi-agent-core": "0.85.1",
@@ -31,6 +32,7 @@
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "24.10.1",
+    "saxes": "6.0.0",
     "typescript": "5.9.3",
     "vitest": "3.2.7"
   }

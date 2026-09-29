@@ -5,7 +5,7 @@ when_to_use: 仅当用户明确要求“画图”“图表”“可视化”“�
 allowed-tools:
   - query_database
   - show_widget
-  - run_python
+  - render_chart
   - write_file
   - search_knowledge
   - read_knowledge
@@ -20,7 +20,7 @@ allowed-tools:
 | 用户意图 | 路径 |
 |---------|------|
 | 明确要求聊天内图表或可视化 | 路径 A：内联 Widget |
-| 明确要求保存或下载图像文件 | 路径 B：Python 文件输出（仅当 `run_python` 在当前工具列表中） |
+| 明确要求保存或下载图像文件 | 路径 B：`render_chart` 输出 SVG 文件 |
 
 不要因为用户使用“分析”“计算”“平均”“报告”或“CSV”这些词就加载本 Skill。
 
@@ -55,20 +55,31 @@ allowed-tools:
 - `table`、`steps`：`spec` 必须包含 `data` 数组。
 - 不要把自然语言结论塞进 `data`；结论放在普通回答中。
 
-## 路径 B：保存图像文件
+## 路径 B：保存图表文件
 
 1. `search_knowledge` → 检索业务规则和图表风格
-2. `query_database` → 提取并验证数据
-3. `write_file` → 必要时保存 CSV 中间文件
-4. `run_python` → 用 pandas 读取 CSV，清洗、统计并用 matplotlib 绘图
-5. `write_file` 或 Python 输出 → 将图像保存到用户指定位置
-6. 输出图像文件链接和简短结论
+2. `query_database` → 按 answer-spec 流程取数，在查询中把数据聚合到图表需要的粒度
+3. `publish_query_result` 或 `export_query` → 发布结果，记下返回的 `receiptId`
+4. `render_chart(spec, fileName)` → 渲染为 `charts/<fileName>.svg`
+5. 输出文件链接、图注和简短结论
 
-如果当前工具列表没有 `run_python`，不要调用或重试它；改用已可用的查询工具，或说明无法生成文件图表。
+最小合法示例：
+
+```json chart-spec
+{
+  "version": 1,
+  "data": { "kind": "publication", "receiptId": "<receiptId>" },
+  "fields": { "sales": { "type": "quantitative", "label": "销售额", "storage": "raw", "unit": "元", "additivity": "additive" } },
+  "chart": { "mark": "cartesian", "x": { "field": "month" }, "layers": [{ "type": "line", "y": { "field": "sales" } }] }
+}
+```
+
+- 度量字段必须声明 `type: "quantitative"`、`storage` 与 `additivity`；工具不聚合、不补零，出错时按返回的错误码与建议修改查询或 spec。
+- 返回的 `[NOTICE]`、`[DISCLOSURE]`、`[SEMANTICS]` 写进图注。
+- 不使用 Python 绘图。
 
 ## 图表规范
 
-- 使用 `plt.savefig()` 保存，不使用 `plt.show()`。
-- 配色专业、标注清晰、标题简洁。
-- 图表数据必须来自已验证的查询结果。
+- 标注清晰、标题简洁；配色由工具统一提供，不要自行指定。
+- 图表数据必须来自已发布的查询结果。
 - 文件下载链接使用普通 Markdown 链接，不用 Widget 代替文件交付。

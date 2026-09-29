@@ -448,7 +448,7 @@ function fromMemoJson(value: unknown): unknown {
   return value;
 }
 
-function trustedContext(
+export function trustedContext(
   toolContext: ToolContext,
   invocation: AgentHarnessToolInvocation,
   context: Context,
@@ -778,7 +778,8 @@ function publishTool(answering: Answering, contentReader: PublishedContentReader
         : undefined;
       const link = `[download](${view.publicRef})`;
       const disclosure = view.disclosure ? `\n[DISCLOSURE] ${view.disclosure.summary}` : "";
-      return result(`[PUBLISHED] ${view.format} ${link}${disclosure}${inline ? `\n${inline}` : ""}`, view);
+      // receiptId is the Dataset Reference charts cite; it must not have to be parsed out of the link.
+      return result(`[PUBLISHED] ${view.format} ${link} receiptId=${view.receiptId}${disclosure}${inline ? `\n${inline}` : ""}`, view);
     },
   };
 }
