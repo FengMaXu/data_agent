@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 ---
 
 # 看板实时刷新：重新执行已发布的查询，生成新的发布记录

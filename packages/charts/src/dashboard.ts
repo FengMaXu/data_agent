@@ -24,7 +24,7 @@ export type DashboardValidation =
 
 /** Key of a Dataset Reference in the map a dashboard embeds, shared by the Runtime and the page. */
 export function datasetKey(ref: DatasetRef): string {
-  return ref.kind === "publication" ? `publication:${ref.receiptId}` : `derived:${ref.derivedId}`;
+  return ref.kind === "derived" ? `derived:${ref.derivedId}` : `${ref.kind}:${ref.receiptId}`;
 }
 
 export type DashboardDatasets = Readonly<Record<string, ChartDataset>>;

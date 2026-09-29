@@ -56,6 +56,7 @@ export {
   type PhysicalProfile,
   type PublicationReceipt,
   type PublishCandidate,
+  type RefreshPublication,
   type ReviseAnswer,
   type SpecFeedback,
   type SpecFeedbackAssessment,

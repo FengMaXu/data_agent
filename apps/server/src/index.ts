@@ -19,7 +19,7 @@ export interface RuntimeServerOptions {
   contextFactory?: (request: FastifyRequest) => RequestContext | Promise<RequestContext>;
   authService?: ApplicationAuthService;
   workspace?: WorkspaceHost;
-  /** Injected MCP-backed executor for dashboard.evaluate; Runtime never touches business DBs directly. */
+  /** Injected MCP-backed query executor; Runtime never touches business DBs directly. */
   queryExecutor?: { run(sql: string, rowLimit: number, options?: { readonly idempotencyKey?: string }): Promise<{ columns: string[]; rows: unknown[][]; truncated: boolean }> };
   /** Authoritative SessionDirectory check used by workspace artifact routes. */
   authorizeSession?: (userId: string, sessionId: string) => boolean | Promise<boolean>;

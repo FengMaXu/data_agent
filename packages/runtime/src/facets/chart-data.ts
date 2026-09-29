@@ -5,7 +5,8 @@ import type { DerivedDatasets, DerivedInput } from "./derived-datasets.js";
 
 /** Where a chart's rows came from, as delivered charts record and show it. */
 export type ChartDataSource =
-  | { readonly kind: "publication"; readonly receiptId: string; readonly contentHash: string }
+  /** `live` marks a published result the app may refresh (ADR-0010); every delivery still reads one Receipt. */
+  | { readonly kind: "publication"; readonly receiptId: string; readonly contentHash: string; readonly live?: true; readonly publishedAt?: string }
   | { readonly kind: "derived"; readonly derivedId: string; readonly name: string; readonly contentHash: string; readonly inputs: readonly DerivedInput[]; readonly scriptSha256: string };
 
 export interface ResolvedChartData {
@@ -27,13 +28,13 @@ export class ChartDataResolver {
   constructor(private readonly options: ChartDataResolverOptions) {}
 
   async resolve(ref: DatasetRef, context: BusinessContext): Promise<ResolvedChartData> {
-    if (ref.kind === "publication") {
+    if (ref.kind === "publication" || ref.kind === "live") {
       const published = await this.options.publications.resolveRows(ref.receiptId, context);
       const disclosure = published.receipt.disclosure?.summary;
       return {
         columns: published.columns,
         rows: published.rows,
-        source: { kind: "publication", receiptId: ref.receiptId, contentHash: published.receipt.contentHash },
+        source: { kind: "publication", receiptId: ref.receiptId, contentHash: published.receipt.contentHash, ...(ref.kind === "live" ? { live: true as const, publishedAt: published.receipt.createdAt } : {}) },
         ...(published.receipt.physicalProfile ? { physicalProfile: published.receipt.physicalProfile } : {}),
         disclosures: disclosure ? [disclosure] : [],
       };
@@ -58,7 +59,7 @@ export class ChartDataResolver {
 
 /** One line naming a chart's data source, for tool text, captions and pages. */
 export function describeSource(source: ChartDataSource): string {
-  if (source.kind === "publication") return `发布记录 ${source.receiptId}`;
+  if (source.kind === "publication") return source.live ? `实时数据：发布记录 ${source.receiptId}（发布于 ${source.publishedAt ?? "未知时间"}）` : `发布记录 ${source.receiptId}`;
   const inputs = source.inputs.map((input) => input.receiptId).join("、") || "无";
   return `派生数据集 ${source.derivedId}（${source.name}，由脚本 ${source.scriptSha256.slice(0, 12)} 计算，输入：${inputs}）`;
 }

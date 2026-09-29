@@ -426,3 +426,11 @@ export async function getSessionStateViaRuntime(sessionId: string): Promise<Runt
   };
 }
 
+/** Refresh live views of a dashboard in the session's workspace (ADR-0010); the Runtime reads the file itself. */
+export async function refreshDashboardViaRuntime(path: string, viewIds: string[], sessionId: string): Promise<{ datasets: unknown; sources: unknown; checks: unknown }> {
+  const envelope = await getRuntimeClient().dispatch({ type: "dashboard.refresh", path, viewIds }, sessionId);
+  if (envelope.response.type !== "dashboard.refresh.result") throw new Error("UNEXPECTED_RESPONSE");
+  const response = envelope.response as unknown as { datasets: unknown; sources: unknown; checks: unknown };
+  return { datasets: response.datasets, sources: response.sources, checks: response.checks };
+}
+

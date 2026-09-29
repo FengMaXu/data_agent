@@ -6,6 +6,7 @@ import type { ClarificationManager } from "../clarification.js";
 import type { WorkspaceStore } from "../workspace.js";
 import type { RuntimeExecutionSnapshot, RuntimeObservation, TranscriptMessage } from "../facets/transcript.js";
 import type { AuthorizedArtifact, AuthorizedPublicationSql } from "../facets/artifact-directory.js";
+import type { DashboardRefreshRequest, DashboardRefreshResult } from "../facets/dashboard-refresh.js";
 import type { HypothesisChoiceAdvisor } from "../judgment/hypothesis-choice.js";
 import type { FanoutAnsweringOptions, QueryBudgetPolicy } from "../answering/public.js";
 import type { SpecAlignmentAssessor } from "../judgment/spec-alignment.js";
@@ -88,6 +89,7 @@ export interface ApplicationAgentAdapter {
   answerClarification(clarificationId: string, answer: string, context?: { readonly sessionId?: string; readonly userId?: string }): Promise<boolean>;
   readPublication(publicationId: string, context?: { readonly sessionId?: string; readonly userId?: string }): Promise<AuthorizedArtifact>;
   readPublicationSql(publicationId: string, context?: { readonly sessionId?: string; readonly userId?: string }): Promise<AuthorizedPublicationSql>;
+  refreshDashboard(request: DashboardRefreshRequest, context?: { readonly sessionId?: string; readonly userId?: string }): Promise<DashboardRefreshResult>;
   getResources(): ApplicationResources;
   setResources(resources: ApplicationResources): Promise<void>;
   subscribe(listener: (event: ApplicationAgentEvent) => void, context?: { readonly sessionId?: string; readonly userId?: string }): () => void;
@@ -307,6 +309,17 @@ export class DataAgentSessionApplication {
           lane: "presentation",
           operationId: `publication-sql-read:${publicationId}`,
           invocationId: `publication-sql-read:${publicationId}`,
+        });
+      },
+      refreshDashboard: async (request, context) => {
+        const resolved = contextFor(context);
+        const host = await this.session(resolved);
+        return host.facets.dashboards.refresh(request, {
+          principal: { id: resolved.userId },
+          sessionId: resolved.sessionId,
+          lane: "presentation",
+          operationId: `dashboard-refresh:${request.requestId}`,
+          invocationId: `dashboard-refresh:${request.requestId}`,
         });
       },
       getResources: () => this.resources,

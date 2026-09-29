@@ -6,6 +6,9 @@ import { useLanguage } from '../../context/LanguageContext';
 import { usePreview } from '../../context/PreviewContext';
 import { resolveWorkspaceAssetUrl } from '../../utils/resolveInternalUrl';
 
+import { refreshDashboardViaRuntime } from '../../api/runtime-client';
+import { dashboardBridgeTarget, handleDashboardMessage } from './dashboardBridge';
+
 const SUPPORTED_MESSAGE_TYPES = new Set(['drill_down', 'navigate_back']);
 const MARKDOWN_TYPES = new Set(['md', 'markdown']);
 const CSV_TYPES = new Set(['csv']);
@@ -149,12 +152,20 @@ const GlobalPreviewModal: React.FC = () => {
         return () => controller.abort();
     }, [isOpen, needsTextFetch, t, url]);
 
+    // A live dashboard the app generated can ask for a refresh; its nonce ties the page to this file.
+    const dashboardTarget = useMemo(() => (isHtml && url && fileContent ? dashboardBridgeTarget(fileContent, url) : null), [fileContent, isHtml, url]);
+
     useEffect(() => {
         if (!isOpen || !url) return undefined;
         const handleMessage = (event: MessageEvent) => {
-            if (event.source !== iframeRef.current?.contentWindow) return;
+            const frame = iframeRef.current?.contentWindow;
+            if (!frame || event.source !== frame) return;
             const data = event.data;
             if (!data || typeof data !== 'object') return;
+            if (dashboardTarget && typeof data.kind === 'string' && data.kind.startsWith('dashboard.')) {
+                void handleDashboardMessage(dashboardTarget, data, (message) => frame.postMessage(message, '*'), refreshDashboardViaRuntime);
+                return;
+            }
             if (SUPPORTED_MESSAGE_TYPES.has(data.type)) {
                 emitPreviewMessage(data);
             }
@@ -163,7 +174,7 @@ const GlobalPreviewModal: React.FC = () => {
         return () => {
             window.removeEventListener('message', handleMessage);
         };
-    }, [emitPreviewMessage, isOpen, url]);
+    }, [dashboardTarget, emitPreviewMessage, isOpen, url]);
     useEffect(() => {
         if (!isOpen) return undefined;
         const handleKeyDown = (event: KeyboardEvent) => {

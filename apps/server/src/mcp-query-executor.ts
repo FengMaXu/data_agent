@@ -81,8 +81,8 @@ export interface McpSchemaEvidence {
 
 /**
  * Infrastructure adapter: connects to a Data Agent contract MCP database
- * server (stdio) and executes read-only preview queries for the
- * dashboard.evaluate runtime command. The Runtime never touches business
+ * server (stdio) and executes read-only queries for the Runtime.
+ * The Runtime never touches business
  * databases directly; all SQL flows through this MCP client.
  */
 export function createMcpQueryExecutor(options: McpQueryExecutorOptions) {

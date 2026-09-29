@@ -16,6 +16,8 @@ const Name = Type.String({ minLength: 1 });
 export const DatasetRefSchema = Type.Union([
   Type.Object({ kind: Type.Literal("publication"), receiptId: Name }, Strict),
   Type.Object({ kind: Type.Literal("derived"), derivedId: Name }, Strict),
+  /** A published result whose query the app may run again on request, publishing each refresh as a new Receipt (ADR-0010). */
+  Type.Object({ kind: Type.Literal("live"), receiptId: Name }, Strict),
 ]);
 export type DatasetRef = Static<typeof DatasetRefSchema>;
 
