@@ -30,7 +30,8 @@ export type ChartErrorCode =
   | "CAPACITY_EXCEEDED"
   | "BIN_OVERLAP"
   | "STAT_ORDER_VIOLATION"
-  | "RANGE_INCONSISTENT";
+  | "RANGE_INCONSISTENT"
+  | "FLOW_CYCLE";
 
 export interface ChartError {
   readonly code: ChartErrorCode;

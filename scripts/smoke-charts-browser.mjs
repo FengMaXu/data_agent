@@ -41,6 +41,8 @@ const totals = { columns: ["total_sales", "yoy"], rows: [["7276.57", -0.2334]] }
 const bins = { columns: ["lo", "hi", "n"], rows: [[0, 100, 12], [100, 200, 30], [200, 300, 22]] };
 const boxes = { columns: ["region", "a", "b", "c", "d", "e"], rows: [["华东", 10, 25, 40, 55, 90], ["华南", 5, 18, 30, 42, 70]] };
 const price = { type: "quantitative", storage: "raw", unit: "元", additivity: "non_additive", label: "单价" };
+const flows = { columns: ["a", "b", "n"], rows: [["访问", "注册", 60], ["访问", "离开", 40], ["注册", "付费", 12]] };
+const tree = { columns: ["a", "b", "n"], rows: [["批发零售", "批发", 60], ["批发零售", "零售", 30], ["住宿餐饮", "餐饮", 10]] };
 const bridge = { columns: ["step", "s", "e", "t"], rows: [["期初", 0, 100, true], ["收入", 100, 160, false], ["成本", 160, 90, false], ["期末", 0, 90, true]] };
 const barSpec = { version: 1, title: "三大行业累计销售额与同比增速", data: ref("p_ind"), fields: { sales, yoy }, chart: { mark: "cartesian", x: { field: "industry" }, layers: [{ type: "bar", y: { field: "sales" } }, { type: "line", y: { field: "yoy", axis: "right" } }] } };
 const dashboardSpec = {
@@ -52,6 +54,8 @@ const dashboardSpec = {
     { id: "hist", type: "chart", chart: { version: 1, title: "订单金额分布", data: ref("p_bins"), fields: { lo: price, hi: price, n: sales }, chart: { mark: "histogram", start: { field: "lo" }, end: { field: "hi" }, value: { field: "n" } } } },
     { id: "box", type: "chart", chart: { version: 1, title: "单价分布", data: ref("p_boxes"), fields: { a: price, b: price, c: price, d: price, e: price }, chart: { mark: "boxplot", category: { field: "region" }, min: { field: "a" }, q1: { field: "b" }, median: { field: "c" }, q3: { field: "d" }, max: { field: "e" }, whisker: "min_max" } } },
     { id: "bridge", type: "chart", chart: { version: 1, title: "利润变动拆解", data: ref("p_bridge"), fields: { s: price, e: price }, chart: { mark: "waterfall", step: { field: "step" }, start: { field: "s" }, end: { field: "e" }, total: { field: "t" } } } },
+    { id: "flow", type: "chart", chart: { version: 1, title: "流向", data: ref("p_flows"), fields: { n: sales }, chart: { mark: "sankey", source: { field: "a" }, target: { field: "b" }, value: { field: "n" } } } },
+    { id: "tree", type: "chart", chart: { version: 1, title: "构成", data: ref("p_tree"), fields: { n: sales }, chart: { mark: "treemap", path: [{ field: "a" }, { field: "b" }], value: { field: "n" } } } },
     { id: "share", type: "chart", chart: { version: 1, title: "构成", data: ref("p_ind"), fields: { sales }, chart: { mark: "pie", category: { field: "industry" }, value: { field: "sales" } } } },
     { id: "detail", type: "table", title: "明细", data: ref("p_ind"), fields: { sales, yoy } },
   ],
@@ -124,7 +128,7 @@ async function openPage(browser, url) {
   await browser.send("Target.setAutoAttach", { autoAttach: true, waitForDebuggerOnStart: false, flatten: true }, sessionId);
   await browser.send("Runtime.enable", {}, sessionId);
   await browser.send("Page.enable", {}, sessionId);
-  await browser.send("Emulation.setDeviceMetricsOverride", { width: 1280, height: 1600, deviceScaleFactor: 1, mobile: false }, sessionId);
+  await browser.send("Emulation.setDeviceMetricsOverride", { width: 1280, height: 2800, deviceScaleFactor: 1, mobile: false }, sessionId);
   await browser.send("Page.navigate", { url }, sessionId);
   await new Promise((resolve) => setTimeout(resolve, 3000));
   /** Evaluate in the main frame, or in the child frame when `inFrame` is set. */
@@ -168,14 +172,14 @@ try {
   await svgPage.close();
 
   // 2. Snapshot dashboard inside the app preview's iframe (GlobalPreviewModal: srcDoc + this sandbox).
-  const datasets = { [datasetKey(ref("p_ind"))]: industries, [datasetKey(ref("p_trend"))]: trend, [datasetKey(ref("p_total"))]: totals, [datasetKey(ref("p_bins"))]: bins, [datasetKey(ref("p_boxes"))]: boxes, [datasetKey(ref("p_bridge"))]: bridge };
+  const datasets = { [datasetKey(ref("p_ind"))]: industries, [datasetKey(ref("p_trend"))]: trend, [datasetKey(ref("p_total"))]: totals, [datasetKey(ref("p_bins"))]: bins, [datasetKey(ref("p_boxes"))]: boxes, [datasetKey(ref("p_bridge"))]: bridge, [datasetKey(ref("p_flows"))]: flows, [datasetKey(ref("p_tree"))]: tree };
   const validated = validateDashboard(dashboardSpec, datasets);
   if (!validated.ok) throw new Error(JSON.stringify(validated.errors));
   const sources = Object.fromEntries(Object.keys(datasets).map((key) => [key, { kind: "publication", id: key.split(":")[1], label: `发布记录 ${key.split(":")[1]}`, contentHash: "0123456789abcdef", disclosures: [] }]));
   const echartsPath = resolveEchartsAssetPath();
   if (!echartsPath) throw new Error("echarts asset not found");
   const html = renderDashboardHtml({ spec: dashboardSpec, datasets, sources, checks: {}, renderer: CHART_RENDERER_VERSIONS, declaredFields: ["sales", "yoy"], nonce: "smoke-snapshot" }, { chartsSource: CHARTS_BROWSER_SOURCE, echartsSource: await readEchartsSource(echartsPath) });
-  await writeFile(path.join(work, "preview.html"), `<!doctype html><meta charset="utf-8"><body style="margin:0"><iframe id="preview" sandbox="allow-scripts allow-downloads allow-forms allow-popups" style="width:1280px;height:1560px;border:0"></iframe>
+  await writeFile(path.join(work, "preview.html"), `<!doctype html><meta charset="utf-8"><body style="margin:0"><iframe id="preview" sandbox="allow-scripts allow-downloads allow-forms allow-popups" style="width:1280px;height:2760px;border:0"></iframe>
 <script src="dashboard.js" charset="utf-8"></script></body>`);
   await writeFile(path.join(work, "dashboard.js"), `document.getElementById("preview").srcdoc = ${JSON.stringify(html)};`);
   const dashboardPage = await openPage(browser, pathToFileURL(path.join(work, "preview.html")).href);
@@ -194,7 +198,7 @@ try {
     title: document.title,
   }))()`, true);
   check("dashboard renders every view in the preview sandbox", dashboard.panels === dashboardSpec.views.length, JSON.stringify(dashboard));
-  check("dashboard draws every chart with ECharts", dashboard.drawn === 7 && dashboard.unavailable === 0, JSON.stringify(dashboard));
+  check("dashboard draws every chart with ECharts", dashboard.drawn === 9 && dashboard.unavailable === 0, JSON.stringify(dashboard));
   check("dashboard KPI and table use declared semantics", dashboard.kpi === "7,276.57 亿元" && dashboard.rows === 3, JSON.stringify(dashboard));
   check("dashboard title stays escaped", dashboard.title === "三大行业经营分析 <A&B>", dashboard.title);
   check("dashboard raises no script error", dashboardPage.errors.length === 0, dashboardPage.errors.join(" | "));

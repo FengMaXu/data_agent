@@ -441,3 +441,47 @@ describe("Waterfall", () => {
     expect(codes(compileChart(waterfall(), steps([["期初", 0, null, true]]), { target: "interactive" }))).toEqual(["RANGE_INCONSISTENT"]);
   });
 });
+
+describe("Sankey", () => {
+  const flow: FieldMeta = { type: "quantitative", storage: "raw", unit: "人", additivity: "additive", label: "人数" };
+  const sankey = (extra: Partial<ChartSpec> = {}): ChartSpec => ({ version: 1, data, fields: { n: flow }, chart: { mark: "sankey", source: { field: "from" }, target: { field: "to" }, value: { field: "n" } }, ...extra } as ChartSpec);
+  const edges = (rows: unknown[][]): ChartDataset => ({ columns: ["from", "to", "n"], rows });
+
+  it("draws one link per row and names node totals as a visual sum", () => {
+    const { option, notices } = ok(compileChart(sankey(), edges([["访问", "注册", 60], ["访问", "离开", 40], ["注册", "付费", 12]]), { target: "static" }));
+    const series = seriesOf(option)[0]!;
+    expect(series.links).toEqual([{ source: "访问", target: "注册", value: 60 }, { source: "访问", target: "离开", value: 40 }, { source: "注册", target: "付费", value: 12 }]);
+    expect((series.data as { name: string }[]).map((node) => node.name)).toEqual(["访问", "注册", "离开", "付费"]);
+    expect(notices.map((notice) => notice.code)).toContain("VISUAL_SUM");
+  });
+
+  it("rejects cycles, repeated flows and non-part-of-whole measures", () => {
+    expect(codes(compileChart(sankey(), edges([["A", "B", 1], ["B", "C", 1], ["C", "A", 1]]), { target: "interactive" }))).toEqual(["FLOW_CYCLE"]);
+    expect(codes(compileChart(sankey(), edges([["A", "A", 1]]), { target: "interactive" }))).toEqual(["FLOW_CYCLE"]);
+    expect(codes(compileChart(sankey(), edges([["A", "B", 1], ["A", "B", 2]]), { target: "interactive" }))).toEqual(["DUPLICATE_KEY"]);
+    expect(codes(compileChart(sankey(), edges([["A", "B", -1]]), { target: "interactive" }))).toEqual(["NEGATIVE_IN_PART_OF_WHOLE"]);
+    expect(codes(compileChart(sankey(), edges([["A", "B", null]]), { target: "interactive" }))).toEqual(["INCOMPLETE_PART_OF_WHOLE"]);
+    expect(codes(compileChart({ ...sankey(), fields: { n: { ...flow, additivity: "non_additive" } } } as ChartSpec, edges([["A", "B", 1]]), { target: "interactive" }))).toEqual(["NON_ADDITIVE_PART_OF_WHOLE"]);
+  });
+});
+
+describe("Treemap", () => {
+  const sales: FieldMeta = { type: "quantitative", storage: "raw", unit: "亿元", additivity: "additive", label: "销售额" };
+  const treemap = (path = ["sector", "industry"]): ChartSpec => ({ version: 1, data, fields: { v: sales }, chart: { mark: "treemap", path: path.map((field) => ({ field })), value: { field: "v" } } } as ChartSpec);
+  const leaves = (rows: unknown[][]): ChartDataset => ({ columns: ["sector", "industry", "v"], rows });
+
+  it("nests leaf rows by path; only leaves carry values", () => {
+    const { option, notices } = ok(compileChart(treemap(), leaves([["批发零售", "批发", 60], ["批发零售", "零售", 30], ["住宿餐饮", "餐饮", 10]]), { target: "static" }));
+    expect(seriesOf(option)[0]!.data).toEqual([
+      { name: "批发零售", children: [{ name: "批发", value: 60 }, { name: "零售", value: 30 }] },
+      { name: "住宿餐饮", children: [{ name: "餐饮", value: 10 }] },
+    ]);
+    expect(notices.map((notice) => notice.code)).toContain("VISUAL_SUM");
+  });
+
+  it("rejects repeated paths, top-n, and measures that cannot form a whole", () => {
+    expect(codes(compileChart(treemap(), leaves([["A", "a", 1], ["A", "a", 2]]), { target: "interactive" }))).toEqual(["DUPLICATE_KEY"]);
+    expect(codes(compileChart({ ...treemap(), selection: { kind: "top_n", by: "v", n: 1, order: "desc" } } as ChartSpec, leaves([["A", "a", 1]]), { target: "interactive" }))).toContain("INVALID_SELECTION");
+    expect(codes(compileChart(treemap(), leaves([["A", "a", -1]]), { target: "interactive" }))).toEqual(["NEGATIVE_IN_PART_OF_WHOLE"]);
+  });
+});

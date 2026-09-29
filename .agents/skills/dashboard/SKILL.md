@@ -20,7 +20,7 @@ allowed-tools:
 
 | 支持 | 暂不支持（不要写进 spec，也不要向用户承诺） |
 | --- | --- |
-| KPI 卡片、柱形、折线、散点、柱线组合、双 y 轴、堆叠、横向条形、环形饼图、热力图、直方图、箱线图、瀑布图、表格 | 页面筛选器、点击下钻、交叉联动 |
+| KPI 卡片、柱形、折线、散点、柱线组合、双 y 轴、堆叠、横向条形、环形饼图、热力图、直方图、箱线图、瀑布图、桑基图、树图、表格 | 页面筛选器、点击下钻、交叉联动 |
 | 图表 tooltip、图例、随窗口缩放；视图半宽或整行 | 自定义高度、导出按钮 |
 | 按完整 spec 重新生成并覆盖已有看板 | 读取已有看板后局部修改 |
 | 实时数据：视图引用 `{ "kind": "live", "receiptId": ... }`，在应用内打开时可点击刷新 | 定时自动刷新、参数化查询 |
@@ -253,6 +253,39 @@ generate_dashboard(operation, spec, editPath?)
 
 - 每一步的 `start` 须等于上一步的 `end`，合计行须从 0 开始且等于上一步的 `end`，否则返回 `RANGE_INCONSISTENT`。柱上标注的是查询给出的 `end`。
 
+流向（如转化路径）用桑基图，层级构成用树图。两者都属于部分与整体，度量须可加、完整、非负：
+
+```json dashboard-view
+{
+  "id": "funnel_flow",
+  "type": "chart",
+  "chart": {
+    "version": 1,
+    "title": "访问到付费的流向",
+    "data": { "kind": "publication", "receiptId": "<receiptId>" },
+    "fields": { "users": { "type": "quantitative", "storage": "raw", "unit": "人", "additivity": "additive", "label": "人数" } },
+    "chart": { "mark": "sankey", "source": { "field": "from_stage" }, "target": { "field": "to_stage" }, "value": { "field": "users" } }
+  }
+}
+```
+
+```json dashboard-view
+{
+  "id": "sales_tree",
+  "type": "chart",
+  "chart": {
+    "version": 1,
+    "title": "行业销售额构成",
+    "data": { "kind": "publication", "receiptId": "<receiptId>" },
+    "fields": { "sales": { "type": "quantitative", "storage": "raw", "unit": "亿元", "additivity": "additive", "label": "销售额" } },
+    "chart": { "mark": "treemap", "path": [{ "field": "sector" }, { "field": "industry" }], "value": { "field": "sales" } }
+  }
+}
+```
+
+- 桑基图每条流向（来源、去向）一行；流向成环返回 `FLOW_CYCLE`。节点大小是连线之和。
+- 树图只接受叶子行，每行带完整路径（最多 4 层）；上层面积是叶子之和。路径重复返回 `DUPLICATE_KEY`。
+
 图表约束（工具以结构化错误返回，不会自行修复）：
 
 - **同一个 x 值（或 x 加系列值）只能有一行**，否则返回 `DUPLICATE_KEY`。在查询中聚合到图表粒度；散点图允许重复坐标。
@@ -328,6 +361,8 @@ generate_dashboard(operation, spec, editPath?)
 | 一个数值的分布 | `chart`：`histogram`（分箱由查询给出） |
 | 多组数值分布的比较 | `chart`：`boxplot`（统计量由查询给出） |
 | 期初到期末的增减拆解 | `chart`：`waterfall`（累计由查询给出） |
+| 阶段之间的流向与转化 | `chart`：`sankey` |
+| 多层级的完整构成 | `chart`：`treemap` |
 | 可核对的明细、带多个指标的排名 | `table` |
 
 ## 配色

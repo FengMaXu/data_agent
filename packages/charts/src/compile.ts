@@ -1,4 +1,4 @@
-import { checkChartSpec, type BoxplotChart, type CartesianChart, type ChartLayer, type ChartSpec, type FieldMeta, type HeatmapChart, type HistogramChart, type PieChart, type WaterfallChart } from "@data-agent/contracts";
+import { checkChartSpec, type BoxplotChart, type CartesianChart, type ChartLayer, type ChartSpec, type FieldMeta, type HeatmapChart, type HistogramChart, type PieChart, type SankeyChart, type TreemapChart, type WaterfallChart } from "@data-agent/contracts";
 import type { ChartCompileOptions, ChartCompileResult, ChartDataset, ChartError, ChartOption, PresentationNotice } from "./types.js";
 import { PALETTE, axisTitle, categoryLabel, displayScale, fieldLabel, fieldTitle, formatValue, isPercentDisplay, isZonedTemporal, numericCell, type QuantitativeMeta } from "./semantics.js";
 
@@ -10,6 +10,13 @@ const MIN_CATEGORY_PX = 16;
 const LABEL_CHAR_PX = 12;
 const MAX_LABEL_CHARS = 16;
 const MAX_STATIC_PIE_SLICES = 12;
+/** Beyond these a static canvas cannot keep nodes or tiles and their labels legible. */
+const MAX_STATIC_SANKEY_NODES = 40;
+const MAX_STATIC_TREEMAP_LEAVES = 60;
+/** Node names wider than this are truncated beside the node. */
+const SANKEY_LABEL_CHARS = 7;
+/** A tile below this share of the whole usually cannot show its name and value. */
+const SMALL_TILE_SHARE = 0.02;
 /** Cell labels stay readable up to about this many cells; past it values show in the tooltip only. */
 const MAX_LABELLED_CELLS = 150;
 /** Light end of a sequential scale and centre of a diverging one. */
@@ -148,6 +155,8 @@ function valueAxis(meta: QuantitativeMeta, field: string, share: boolean): Recor
     type: "value",
     name: share ? `${fieldTitle(field, meta)}占比（%）` : axisTitle(field, meta),
     ...(share ? { max: 100 } : {}),
+    // Starts at the axis and runs inward: centred on it, a long name is cut off when tick labels are short.
+    nameTextStyle: { align: "left" },
     // The axis name carries the unit; ticks show numbers, keeping % for percent display.
     axisLabel: { formatter: (value: number) => (share || isPercentDisplay(meta) ? `${value}%` : value.toLocaleString("zh-CN", { maximumFractionDigits: 4 })) },
   };
@@ -370,10 +379,10 @@ function compileCartesian(context: CompileContext, chart: CartesianChart): Chart
 
   const valueAxes = sides.map((side) => {
     const entry = axisMeta.get(side)!;
-    return { ...valueAxis(entry.meta, entry.field, entry.share), ...(side === "right" ? { position: "right" } : {}) };
+    return { ...valueAxis(entry.meta, entry.field, entry.share), ...(side === "right" ? { position: "right", nameTextStyle: { align: "right" } } : {}) };
   });
   // A value axis along the bottom names itself under its centre; at the axis end the name runs off the canvas.
-  const bottomName = { nameLocation: "middle", nameGap: 28 };
+  const bottomName = { nameLocation: "middle", nameGap: 28, nameTextStyle: { align: "center" } };
   let xAxis: unknown;
   let yAxis: unknown;
   if (valueX) {
@@ -518,7 +527,8 @@ function compileHeatmap(context: CompileContext, chart: HeatmapChart): ChartOpti
       orient: "horizontal",
       left: "center",
       bottom: 0,
-      text: [format(range.max), format(range.min)],
+      // Interactive handles label the range themselves; end labels would repeat it.
+      ...(context.options.target === "interactive" ? {} : { text: [format(range.max), format(range.min)] }),
       inRange: { color: range.colors },
       formatter: (value: number) => format(value),
     },
@@ -736,6 +746,149 @@ function compileWaterfall(context: CompileContext, chart: WaterfallChart): Chart
   };
 }
 
+function compileSankey(context: CompileContext, chart: SankeyChart): ChartOption | undefined {
+  refuseSelection(context, "桑基图");
+  const sourceIndex = context.column(chart.source.field, "/chart/source/field");
+  const targetIndex = context.column(chart.target.field, "/chart/target/field");
+  const value = context.measure(chart.value.field, "/chart/value/field");
+  if (sourceIndex === undefined || targetIndex === undefined || !value) return undefined;
+  checkPartOfWhole(context, value, value.values, "/chart/value/field");
+  if (context.errors.length > 0) return undefined;
+  const rows = context.dataset.rows;
+  const sources = rows.map((row) => fieldLabel(row[sourceIndex], context.meta(chart.source.field)));
+  const targets = rows.map((row) => fieldLabel(row[targetIndex], context.meta(chart.target.field)));
+  const edges = new Set<string>();
+  const next = new Map<string, string[]>();
+  for (const [index, source] of sources.entries()) {
+    const target = targets[index]!;
+    const key = JSON.stringify([source, target]);
+    if (edges.has(key)) {
+      context.fail({ code: "DUPLICATE_KEY", message: `流向 ${source} → ${target} 有多行；编译器不合并观测`, path: "/chart/value/field", field: value.field, hint: "在查询中按来源与去向聚合，每条流向一行" });
+      return undefined;
+    }
+    edges.add(key);
+    next.set(source, [...(next.get(source) ?? []), target]);
+  }
+  // Flows must run one way: a cycle has no left-to-right layout and double-counts node totals.
+  const state = new Map<string, "visiting" | "done">();
+  const cycle = (node: string, trail: string[]): string[] | undefined => {
+    if (state.get(node) === "visiting") return [...trail.slice(trail.indexOf(node)), node];
+    if (state.get(node) === "done") return undefined;
+    state.set(node, "visiting");
+    for (const target of next.get(node) ?? []) {
+      const found = cycle(target, [...trail, node]);
+      if (found) return found;
+    }
+    state.set(node, "done");
+    return undefined;
+  };
+  for (const node of next.keys()) {
+    const found = cycle(node, []);
+    if (found) {
+      context.fail({ code: "FLOW_CYCLE", message: `流向构成环：${found.join(" → ")}`, path: "/chart", hint: "桑基图只表示单向流动；拆分阶段或去掉回流" });
+      return undefined;
+    }
+  }
+  const nodes = [...new Set([...sources, ...targets])];
+  if (context.options.target === "static" && nodes.length > MAX_STATIC_SANKEY_NODES) {
+    context.fail({ code: "CAPACITY_EXCEEDED", message: `${nodes.length} 个节点超过静态图上限 ${MAX_STATIC_SANKEY_NODES}`, field: chart.source.field, hint: "在查询中合并次要节点（由查询返回“其他”），或拆成多张图" });
+    return undefined;
+  }
+  const scale = displayScale(value.meta);
+  const format = (shown: number) => formatValue(shown, value.meta);
+  context.notice({ kind: "layout", code: "VISUAL_SUM", message: "节点大小为其流入或流出之和，由连线相加得到", field: value.field });
+  if (nodes.some((name) => name.length > SANKEY_LABEL_CHARS)) {
+    context.notice({ kind: "layout", code: "LABELS_TRUNCATED", message: `过长的节点名称截断显示为前 ${SANKEY_LABEL_CHARS} 个字符左右，完整名称见提示框或数据集`, field: chart.source.field });
+  }
+  return {
+    color: [...PALETTE],
+    ...(context.options.target === "static" ? { animation: false } : {}),
+    tooltip: {
+      trigger: "item",
+      formatter: (params: { dataType: string; name: string; value: number; data: { source?: string; target?: string } }) =>
+        params.dataType === "edge" ? `${params.data.source} → ${params.data.target}：${format(params.value)}` : `${params.name}：${format(params.value)}`,
+    },
+    series: [{
+      type: "sankey",
+      name: fieldTitle(value.field, value.meta),
+      left: 16, right: 96, top: 24, bottom: 24,
+      emphasis: { focus: "adjacency" },
+      nodeGap: 12,
+      data: nodes.map((name) => ({ name })),
+      links: sources.map((source, index) => ({ source, target: targets[index]!, value: value.values[index]! * scale })),
+      lineStyle: { color: "gradient", opacity: 0.35 },
+      label: { overflow: "truncate", width: SANKEY_LABEL_CHARS * LABEL_CHAR_PX },
+    }],
+  };
+}
+
+interface TreeNode { name: string; value?: number; children?: TreeNode[] }
+
+function compileTreemap(context: CompileContext, chart: TreemapChart): ChartOption | undefined {
+  refuseSelection(context, "树图");
+  const levels = chart.path.map((level, index) => ({ field: level.field, index: context.column(level.field, `/chart/path/${index}/field`) }));
+  const value = context.measure(chart.value.field, "/chart/value/field");
+  if (levels.some((level) => level.index === undefined) || !value) return undefined;
+  checkPartOfWhole(context, value, value.values, "/chart/value/field");
+  if (context.errors.length > 0) return undefined;
+  const rows = context.dataset.rows;
+  const paths = rows.map((row) => levels.map((level) => fieldLabel(row[level.index!], context.meta(level.field))));
+  const seen = new Set<string>();
+  for (const path of paths) {
+    const key = JSON.stringify(path);
+    if (seen.has(key)) {
+      context.fail({ code: "DUPLICATE_KEY", message: `路径 ${path.join(" / ")} 有多行；编译器不合并观测`, path: "/chart/value/field", field: value.field, hint: "在查询中按完整路径聚合，每个叶子一行" });
+      return undefined;
+    }
+    seen.add(key);
+  }
+  if (context.options.target === "static" && rows.length > MAX_STATIC_TREEMAP_LEAVES) {
+    context.fail({ code: "CAPACITY_EXCEEDED", message: `${rows.length} 个叶子超过静态图上限 ${MAX_STATIC_TREEMAP_LEAVES}`, field: value.field, hint: "减少路径层级，或在查询中合并次要叶子（由查询返回“其他”）" });
+    return undefined;
+  }
+  const scale = displayScale(value.meta);
+  const root: TreeNode = { name: "", children: [] };
+  for (const [rowIndex, path] of paths.entries()) {
+    let node = root;
+    for (const [depth, name] of path.entries()) {
+      node.children ??= [];
+      let child = node.children.find((item) => item.name === name);
+      if (!child) {
+        child = { name };
+        node.children.push(child);
+      }
+      if (depth === path.length - 1) child.value = value.values[rowIndex]! * scale;
+      node = child;
+    }
+  }
+  if (levels.length > 1) context.notice({ kind: "layout", code: "VISUAL_SUM", message: "上层区块的面积为其下叶子之和", field: value.field });
+  // Only a static image lacks the tooltip that names a small tile; the share is used for this notice, never shown.
+  const whole = value.values.reduce<number>((sum, item) => sum + (item ?? 0), 0);
+  const small = whole > 0 ? value.values.filter((item) => (item ?? 0) / whole < SMALL_TILE_SHARE).length : 0;
+  if (context.options.target === "static" && small > 0) {
+    context.notice({ kind: "layout", code: "SMALL_TILES", message: `${small} 个区块面积过小，名称与数值可能无法完整显示，完整数据见数据集`, field: value.field });
+  }
+  const format = (shown: number) => formatValue(shown, value.meta);
+  return {
+    color: [...PALETTE],
+    ...(context.options.target === "static" ? { animation: false } : {}),
+    tooltip: { formatter: (params: { treePathInfo: { name: string }[]; value: number }) => `${params.treePathInfo.slice(1).map((item) => item.name).join(" / ")}：${format(params.value)}` },
+    series: [{
+      type: "treemap",
+      name: fieldTitle(value.field, value.meta),
+      left: 8, right: 8, top: 8, bottom: context.options.target === "interactive" && levels.length > 1 ? 32 : 8,
+      roam: false,
+      nodeClick: context.options.target === "interactive" && levels.length > 1 ? "zoomToNode" : false,
+      breadcrumb: { show: context.options.target === "interactive" && levels.length > 1 },
+      data: root.children,
+      label: { formatter: (params: { name: string; value: number }) => `${params.name}\n${format(params.value)}`, overflow: "break" },
+      upperLabel: { show: levels.length > 1, height: 22 },
+      // Level 0 is the whole, named after the series; only real parents get a header.
+      levels: [{ upperLabel: { show: false }, itemStyle: { borderColor: "#ffffff", borderWidth: 2, gapWidth: 2 } }, { itemStyle: { borderColor: "#ffffff", borderWidth: 2, gapWidth: 2 } }, { itemStyle: { borderColor: "#ffffff", borderWidth: 1, gapWidth: 1 }, colorSaturation: [0.35, 0.6] }],
+    }],
+  };
+}
+
 /**
  * Compile a ChartSpec against its resolved dataset. The compiler never
  * aggregates, merges observations or drops data on its own; everything it
@@ -751,7 +904,9 @@ export function compileChart(input: unknown, dataset: ChartDataset, options: Cha
       : chart.mark === "histogram" ? compileHistogram(context, chart)
         : chart.mark === "boxplot" ? compileBoxplot(context, chart)
           : chart.mark === "waterfall" ? compileWaterfall(context, chart)
-            : compileCartesian(context, chart);
+            : chart.mark === "sankey" ? compileSankey(context, chart)
+              : chart.mark === "treemap" ? compileTreemap(context, chart)
+                : compileCartesian(context, chart);
   if (context.errors.length > 0 || !option) return { ok: false, errors: context.errors };
   return { ok: true, spec: checked.spec, option, notices: context.notices };
 }
