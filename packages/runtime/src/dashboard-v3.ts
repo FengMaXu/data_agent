@@ -1,7 +1,6 @@
 declare const __filename: string;
 
-import { readFile } from "node:fs/promises";
-import { createRequire } from "node:module";
+import { readEchartsSource, resolveEchartsAssetPath } from "./echarts-asset.js";
 import type { WorkspaceStore } from "./workspace.js";
 
 export interface DashboardV3Dataset {
@@ -241,33 +240,8 @@ function safeJson(value: unknown): string {
   return JSON.stringify(value).replaceAll("<", "\\u003c");
 }
 
-const ECHARTS_ASSET = "echarts/dist/echarts.min.js";
-
-/**
- * Locates the ECharts build that standalone dashboards inline, so they render charts offline.
- * Works both as native ESM and inside an esbuild CJS bundle where import.meta.url is defined away.
- */
-export function resolveEchartsAssetPath(): string | undefined {
-  try {
-    const base = typeof import.meta.url === "string" ? import.meta.url : __filename;
-    return createRequire(base).resolve(ECHARTS_ASSET);
-  } catch {
-    return undefined;
-  }
-}
-
-const echartsSources = new Map<string, Promise<string>>();
-
-export function readEchartsSource(assetPath: string): Promise<string> {
-  let source = echartsSources.get(assetPath);
-  if (!source) {
-    // Keep a stray "</script" in the library from closing the inline tag early.
-    source = readFile(assetPath, "utf8").then((text) => text.replace(/<\/script/gi, "<\\/script"));
-    source.catch(() => echartsSources.delete(assetPath));
-    echartsSources.set(assetPath, source);
-  }
-  return source;
-}
+// The asset helpers moved to echarts-asset.ts; re-exported for this frozen module's callers.
+export { readEchartsSource, resolveEchartsAssetPath } from "./echarts-asset.js";
 
 /** Renders a standalone HTML document backed by embedded data. */
 export async function renderStandaloneDashboardHtml(spec: DashboardV3Spec, options: { echartsAssetPath?: string } = {}): Promise<string> {

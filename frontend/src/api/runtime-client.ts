@@ -426,8 +426,3 @@ export async function getSessionStateViaRuntime(sessionId: string): Promise<Runt
   };
 }
 
-export async function getDashboardV3DataViaRuntime(path: string): Promise<unknown> {
-  const envelope = await getRuntimeClient().dispatch({ type: "dashboard.v3.data", path });
-  if (envelope.response.type !== "dashboard.v3.data.result") throw new Error("UNEXPECTED_RESPONSE");
-  return (envelope.response as unknown as { payload: unknown }).payload;
-}

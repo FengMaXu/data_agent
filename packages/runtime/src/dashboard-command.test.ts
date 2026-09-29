@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DataAgentRuntime } from "./protocol.js";
@@ -11,27 +11,25 @@ const spec = {
   views: [{ type: "line" as const, dataset: "sales", xField: "month", yField: "amount" }],
 };
 
-describe("generate_dashboard command", () => {
+describe("dashboard.generate command", () => {
   const context = { userId: "local", host: "electron" as const, sessionId: "s1" };
 
-  it("validates and creates a standalone v3 dashboard artifact", async () => {
+  it("no longer builds v3 dashboards, which bypassed publication", async () => {
     const root = await mkdtemp(join(tmpdir(), "data-agent-dashboard-"));
-    const runtime = new DataAgentRuntime({ workspace: new WorkspaceStore(root, { userId: "local", sessionId: "s1" }) });
-    const events: any[] = [];
-    runtime.subscribe((event) => events.push(event));
+    try {
+      const runtime = new DataAgentRuntime({ workspace: new WorkspaceStore(root, { userId: "local", sessionId: "s1" }) });
+      for (const operation of ["validate", "create", "edit"] as const) {
+        await expect(runtime.dispatch({ protocolVersion: 1, requestId: operation, command: { type: "dashboard.generate", operation, mode: "static", version: "v3", spec, ...(operation === "edit" ? { editPath: "dashboards/old.html" } : {}) } }, context))
+          .rejects.toThrow("DASHBOARD_V3_RETIRED");
+      }
+      expect(await readdir(root)).toEqual([]);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
 
-    const invalid = await runtime.dispatch({ protocolVersion: 1, requestId: "v", command: { type: "dashboard.generate", operation: "validate", mode: "static", version: "v3", spec: { title: "" } } }, context);
-    expect((invalid.response as { valid: boolean }).valid).toBe(false);
-
-    const created = await runtime.dispatch({ protocolVersion: 1, requestId: "c", command: { type: "dashboard.generate", operation: "create", mode: "static", version: "v3", spec } }, context);
-    const path = (created.response as { path?: string }).path!;
-    expect(path).toMatch(/dashboards\/.+\.html$/);
-    const html = await readFile(join(root, path), "utf8");
-    expect(html).toContain("销售看板");
-    expect(events.some((e) => e.event.type === "workspace.artifact.created")).toBe(true);
-
-    const edited = await runtime.dispatch({ protocolVersion: 1, requestId: "e", command: { type: "dashboard.generate", operation: "edit", mode: "static", version: "v3", spec: { ...spec, title: "改版" }, editPath: path } }, context);
-    expect((edited.response as { path?: string }).path).toBe(path);
-    await rm(root, { recursive: true, force: true });
+  it("no longer serves the v3 data command", async () => {
+    const runtime = new DataAgentRuntime({});
+    await expect(runtime.dispatch({ protocolVersion: 1, requestId: "d", command: { type: "dashboard.v3.data", path: "dashboards/old.html" } } as never, context)).rejects.toThrow();
   });
 });
