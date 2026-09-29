@@ -8,7 +8,9 @@ import { checkDashboardSpec, dashboardViewData, type DashboardSpec, type Dataset
 import { renderDashboardHtml, type DashboardDataSource } from "../dashboard.js";
 import { readEchartsSource, resolveEchartsAssetPath } from "../echarts-asset.js";
 import type { ArtifactDirectory } from "../facets/artifact-directory.js";
-import type { PublicationReceipt } from "../answering/public.js";
+import type { PhysicalProfile } from "../answering/public.js";
+import { ChartDataResolver, describeSource } from "../facets/chart-data.js";
+import type { DerivedDatasets } from "../facets/derived-datasets.js";
 import type { WorkspaceStore } from "../workspace.js";
 import { trustedContext, type DataAgentToolContext } from "./answering.js";
 import { MAX_WIDGET_ROWS, jsonSafeRows, semanticChecks } from "./charts.js";
@@ -25,7 +27,9 @@ type GenerateDashboardInput = Static<typeof GENERATE_DASHBOARD_PARAMETERS>;
 
 export interface DashboardToolOptions {
   readonly workspace: WorkspaceStore;
-  readonly artifacts: Pick<ArtifactDirectory, "resolveRows">;
+  readonly artifacts: Pick<ArtifactDirectory, "resolveRows" | "resolveReceipt">;
+  /** Derived datasets registered by run_python; without it views read published results only. */
+  readonly derived?: Pick<DerivedDatasets, "resolve">;
   /** ECharts source to inline; defaults to the installed echarts build. */
   readonly echartsSource?: () => Promise<string | undefined>;
 }
@@ -66,18 +70,18 @@ function generateDashboardTool(options: DashboardToolOptions): AgentHarnessTool<
       const business = trustedContext(toolContext, invocation, context);
       const datasets: Record<string, ChartDataset> = {};
       const sources: Record<string, DashboardDataSource> = {};
-      const receipts: Record<string, PublicationReceipt> = {};
+      const profiles: Record<string, PhysicalProfile | undefined> = {};
+      const resolver = new ChartDataResolver({ publications: options.artifacts, ...(options.derived ? { derived: options.derived } : {}) });
       const refs = new Map<string, DatasetRef>(spec.views.map((view) => [datasetKey(dashboardViewData(view)), dashboardViewData(view)]));
       for (const [key, ref] of refs) {
-        if (ref.kind !== "publication") throw new Error("CHART_DATA_UNSUPPORTED: dashboards only read published results; set each view's data to { \"kind\": \"publication\", \"receiptId\": \"<receiptId from publish_query_result or export_query>\" }");
-        const published = await options.artifacts.resolveRows(ref.receiptId, business);
-        if (published.rows.length > MAX_DASHBOARD_DATASET_ROWS) {
-          throw new Error(`DASHBOARD_TOO_MANY_ROWS: ${ref.receiptId} has ${published.rows.length} rows and a dashboard view holds at most ${MAX_DASHBOARD_DATASET_ROWS}; aggregate in the query, or use export_query for the detail`);
+        const data = await resolver.resolve(ref, business);
+        const label = describeSource(data.source);
+        if (data.rows.length > MAX_DASHBOARD_DATASET_ROWS) {
+          throw new Error(`DASHBOARD_TOO_MANY_ROWS: ${label} has ${data.rows.length} rows and a dashboard view holds at most ${MAX_DASHBOARD_DATASET_ROWS}; aggregate in the query, or use export_query for the detail`);
         }
-        datasets[key] = { columns: [...published.columns], rows: jsonSafeRows(published.rows) };
-        receipts[key] = published.receipt;
-        const disclosure = published.receipt.disclosure?.summary;
-        sources[key] = { receiptId: ref.receiptId, contentHash: published.receipt.contentHash, ...(disclosure ? { disclosure } : {}) };
+        datasets[key] = { columns: [...data.columns], rows: jsonSafeRows(data.rows) };
+        profiles[key] = data.physicalProfile;
+        sources[key] = { kind: data.source.kind, id: data.source.kind === "publication" ? data.source.receiptId : data.source.derivedId, label, contentHash: data.source.contentHash, disclosures: [...data.disclosures] };
       }
 
       // Validated on the same JSON-safe rows the page reads.
@@ -86,13 +90,16 @@ function generateDashboardTool(options: DashboardToolOptions): AgentHarnessTool<
       const declared = declaredFields(spec);
       const checks: Record<string, SemanticsCheck[]> = {};
       for (const view of spec.views) {
-        const found = semanticChecks(view.type === "chart" ? view.chart.fields : view.fields, receipts[datasetKey(dashboardViewData(view))]!);
+        const found = semanticChecks(view.type === "chart" ? view.chart.fields : view.fields, profiles[datasetKey(dashboardViewData(view))]);
         if (found.length > 0) checks[view.id] = found;
       }
       const summary = [
         ...validated.notices.map(({ viewId, notice }) => `[NOTICE] ${viewId}: ${notice.message}`),
         ...Object.entries(checks).flatMap(([viewId, found]) => found.map((check) => `[CHECK] ${viewId}: ${check.message}`)),
-        ...Object.values(sources).flatMap((source) => (source.disclosure ? [`[DISCLOSURE] ${source.receiptId}: ${source.disclosure}`] : [])),
+        ...Object.values(sources).flatMap((source) => [
+          ...(source.kind === "derived" ? [`[DERIVED] ${source.label}`] : []),
+          ...source.disclosures.map((disclosure) => `[DISCLOSURE] ${source.id}: ${disclosure}`),
+        ]),
         ...(declared.length > 0 ? [`[SEMANTICS] 以下字段的语义来自模型声明，未经业务定义核实：${declared.join("、")}`] : []),
       ];
       if (value.operation === "validate") return { content: [{ type: "text", text: ["dashboard spec valid", ...summary].join("\n") }], details: null };
@@ -114,7 +121,7 @@ function generateDashboardTool(options: DashboardToolOptions): AgentHarnessTool<
       ].join("\n");
       return {
         content: [{ type: "text", text }],
-        details: { relativePath, fileType: "html", receiptIds: Object.values(sources).map((source) => source.receiptId), renderer: CHART_RENDERER_VERSIONS },
+        details: { relativePath, fileType: "html", receiptIds: Object.values(sources).filter((source) => source.kind === "publication").map((source) => source.id), sources: Object.values(sources).map(({ kind, id, contentHash }) => ({ kind, id, contentHash })), renderer: CHART_RENDERER_VERSIONS },
       };
     },
   };
