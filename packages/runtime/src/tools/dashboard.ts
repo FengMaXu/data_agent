@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { Type, type Static } from "typebox";
 import { Value } from "typebox/value";
 import type { AgentHarnessTool, AgentToolResult } from "@earendil-works/pi-agent-core";
@@ -81,7 +81,14 @@ function generateDashboardTool(options: DashboardToolOptions): AgentHarnessTool<
         }
         datasets[key] = { columns: [...data.columns], rows: jsonSafeRows(data.rows) };
         profiles[key] = data.physicalProfile;
-        sources[key] = { kind: data.source.kind, id: data.source.kind === "publication" ? data.source.receiptId : data.source.derivedId, label, contentHash: data.source.contentHash, disclosures: [...data.disclosures] };
+        sources[key] = {
+          kind: data.source.kind,
+          id: data.source.kind === "publication" ? data.source.receiptId : data.source.derivedId,
+          label,
+          contentHash: data.source.contentHash,
+          disclosures: [...data.disclosures],
+          ...(data.source.kind === "publication" && data.source.live ? { live: true, ...(data.source.publishedAt ? { publishedAt: data.source.publishedAt } : {}) } : {}),
+        };
       }
 
       // Validated on the same JSON-safe rows the page reads.
@@ -108,7 +115,7 @@ function generateDashboardTool(options: DashboardToolOptions): AgentHarnessTool<
       const relativePath = value.editPath ?? `dashboards/${spec.filename ?? `dashboard-${specHash}`}.html`;
       const echartsSource = await (options.echartsSource ?? defaultEchartsSource)();
       const html = renderDashboardHtml(
-        { spec, datasets, sources, checks, renderer: CHART_RENDERER_VERSIONS, declaredFields: declared },
+        { spec, datasets, sources, checks, renderer: CHART_RENDERER_VERSIONS, declaredFields: declared, nonce: randomUUID() },
         { chartsSource: CHARTS_BROWSER_SOURCE, ...(echartsSource ? { echartsSource } : {}) },
       );
       await options.workspace.write(relativePath, html);

@@ -74,6 +74,8 @@ export function chartDataRef(spec: unknown): DatasetRef {
   const ref = data && typeof data === "object" ? data as { kind?: unknown; receiptId?: unknown; derivedId?: unknown } : undefined;
   if (ref?.kind === "publication" && typeof ref.receiptId === "string" && ref.receiptId) return { kind: "publication", receiptId: ref.receiptId };
   if (ref?.kind === "derived" && typeof ref.derivedId === "string" && ref.derivedId) return { kind: "derived", derivedId: ref.derivedId };
+  // A live reference reads its current Receipt like any publication; only an app-hosted dashboard refreshes it.
+  if (ref?.kind === "live" && typeof ref.receiptId === "string" && ref.receiptId) return { kind: "live", receiptId: ref.receiptId };
   throw new Error("CHART_DATA_UNSUPPORTED: charts read published results or derived datasets; set spec.data to { \"kind\": \"publication\", \"receiptId\": \"<receiptId from publish_query_result or export_query>\" } or { \"kind\": \"derived\", \"derivedId\": \"<derivedId from run_python>\" }");
 }
 

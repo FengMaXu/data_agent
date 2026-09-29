@@ -12,6 +12,7 @@ import type { WorkspaceStore } from "../workspace.js";
 import { createChartToolDefinitions } from "../tools/charts.js";
 import { createDashboardToolDefinitions } from "../tools/dashboard.js";
 import { DerivedDatasets, FileDerivedDatasetStore, InMemoryDerivedDatasetStore } from "../facets/derived-datasets.js";
+import { DashboardRefresher } from "../facets/dashboard-refresh.js";
 import { createAnsweringAgentToolDefinitions, type DataAgentToolContext, type HypothesisComparisonToolOptions, type SemanticSpecMode } from "../tools/answering.js";
 import { createCoreAgentToolDefinitions } from "../tools/core.js";
 import { createDataAgentPiRuntime, createPiSessionHost, type DataAgentModelProfile, type DataAgentSessionHost, type DataAgentSessionHostOptions, type OpenOperation, type SessionInput, type SessionQueryExecutor } from "../agent/harness-factory.js";
@@ -370,6 +371,7 @@ export async function createDataAgentSessionHost(options: DataAgentSessionRuntim
     queryTaskProjection: queryTasks,
     artifactDirectory: artifacts,
     clarificationDialogs,
+    dashboardRefresher: new DashboardRefresher({ workspace: options.workspace, answering, artifacts }),
     piRuntime,
   };
   const host = await createPiSessionHost(hostOptions);

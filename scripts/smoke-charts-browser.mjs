@@ -178,7 +178,7 @@ try {
   const sources = Object.fromEntries(Object.keys(datasets).map((key) => [key, { kind: "publication", id: key.split(":")[1], label: `发布记录 ${key.split(":")[1]}`, contentHash: "0123456789abcdef", disclosures: [] }]));
   const echartsPath = resolveEchartsAssetPath();
   if (!echartsPath) throw new Error("echarts asset not found");
-  const html = renderDashboardHtml({ spec: dashboardSpec, datasets, sources, checks: {}, renderer: CHART_RENDERER_VERSIONS, declaredFields: ["sales", "yoy"] }, { chartsSource: CHARTS_BROWSER_SOURCE, echartsSource: await readEchartsSource(echartsPath) });
+  const html = renderDashboardHtml({ spec: dashboardSpec, datasets, sources, checks: {}, renderer: CHART_RENDERER_VERSIONS, declaredFields: ["sales", "yoy"], nonce: "smoke-snapshot" }, { chartsSource: CHARTS_BROWSER_SOURCE, echartsSource: await readEchartsSource(echartsPath) });
   await writeFile(path.join(work, "preview.html"), `<!doctype html><meta charset="utf-8"><body style="margin:0"><iframe id="preview" sandbox="allow-scripts allow-downloads allow-forms allow-popups" style="width:1280px;height:2760px;border:0"></iframe>
 <script src="dashboard.js" charset="utf-8"></script></body>`);
   await writeFile(path.join(work, "dashboard.js"), `document.getElementById("preview").srcdoc = ${JSON.stringify(html)};`);
@@ -204,6 +204,48 @@ try {
   check("dashboard raises no script error", dashboardPage.errors.length === 0, dashboardPage.errors.join(" | "));
   await dashboardPage.screenshot("dashboard");
   await dashboardPage.close();
+
+  // 2b. Live refresh bridge (ADR-0010): this host page plays the app, answering the handshake and one refresh.
+  const liveKey = datasetKey({ kind: "live", receiptId: "p_live" });
+  const liveSpec = { version: 1, title: "实时", views: [{ id: "live", type: "table", data: { kind: "live", receiptId: "p_live" }, fields: { v: sales } }] };
+  const liveHtml = renderDashboardHtml({
+    spec: liveSpec,
+    datasets: { [liveKey]: { columns: ["region", "v"], rows: [["华东", "10"]] } },
+    sources: { [liveKey]: { kind: "publication", id: "p_live", label: "实时数据：发布记录 p_live", contentHash: "0123456789abcdef", disclosures: [], live: true } },
+    checks: {}, renderer: CHART_RENDERER_VERSIONS, declaredFields: [], nonce: "smoke-live",
+  }, { chartsSource: CHARTS_BROWSER_SOURCE });
+  await writeFile(path.join(work, "live.html"), liveHtml);
+  await writeFile(path.join(work, "live-host.js"), `const frame = document.getElementById("preview");
+window.addEventListener("message", (event) => {
+  const message = event.data || {};
+  if (event.source !== frame.contentWindow || message.nonce !== "smoke-live") return;
+  if (message.kind === "dashboard.ready") frame.contentWindow.postMessage({ kind: "dashboard.host", nonce: message.nonce }, "*");
+  if (message.kind === "dashboard.refresh") {
+    window.__requests = (window.__requests || []).concat([message]);
+    frame.contentWindow.postMessage({ kind: "dashboard.refreshed", nonce: message.nonce, requestId: message.requestId,
+      datasets: { ${JSON.stringify(liveKey)}: { columns: ["region", "v"], rows: [["华东", "12"], ["华南", "5"]] } },
+      sources: { ${JSON.stringify(liveKey)}: { kind: "publication", id: "p_live_2", label: "实时数据：发布记录 p_live_2", contentHash: "fedcba9876543210", disclosures: [], live: true } },
+      checks: {} }, "*");
+  }
+});
+frame.srcdoc = ${JSON.stringify(liveHtml)};`);
+  await writeFile(path.join(work, "live-host.html"), `<!doctype html><meta charset="utf-8"><iframe id="preview" sandbox="allow-scripts allow-downloads allow-forms allow-popups" style="width:900px;height:400px;border:0"></iframe><script src="live-host.js" charset="utf-8"></script>`);
+  const livePage = await openPage(browser, pathToFileURL(path.join(work, "live-host.html")).href);
+  const before = await livePage.evaluate(`(() => ({ hosted: document.body.classList.contains("hosted"), button: getComputedStyle(document.querySelector("#view-live .version button")).display, cells: [...document.querySelectorAll("#view-live tbody td")].map((td) => td.textContent) }))()`, true);
+  check("live view shows its refresh control once the app answers", before.hosted && before.button !== "none", JSON.stringify(before));
+  await livePage.evaluate(`document.querySelector("#view-live .version button").click()`, true);
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  const after = await livePage.evaluate(`(() => ({ cells: [...document.querySelectorAll("#view-live tbody td")].map((td) => td.textContent), version: document.querySelector("#view-live .version span").textContent }))()`, true);
+  const requests = await livePage.evaluate("window.__requests || []");
+  check("refresh asks for view ids only", requests.length === 1 && JSON.stringify(Object.keys(requests[0]).sort()) === JSON.stringify(["kind", "nonce", "requestId", "viewIds"]) && requests[0].viewIds[0] === "live", JSON.stringify(requests));
+  check("refreshed rows and data version replace the old ones", after.cells.join(",") === "华东,12 亿元,华南,5 亿元" && after.version.includes("p_live_2"), JSON.stringify(after));
+  check("live page raises no script error", livePage.errors.length === 0, livePage.errors.join(" | "));
+  await livePage.close();
+  // Opened on its own there is no app: no refresh control, only the snapshot.
+  const standalone = await openPage(browser, pathToFileURL(path.join(work, "live.html")).href);
+  const alone = await standalone.evaluate(`getComputedStyle(document.querySelector("#view-live .version button")).display`);
+  check("outside the app the live view is a snapshot without refresh", alone === "none", alone);
+  await standalone.close();
 
   // 3. The chat ChartSpecWidget, bundled from the frontend source and drawn by real ECharts.
   const bundle = await build({
