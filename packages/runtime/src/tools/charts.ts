@@ -2,7 +2,8 @@ import { createHash } from "node:crypto";
 import { Type, type Static } from "typebox";
 import { Value } from "typebox/value";
 import type { AgentHarnessTool, AgentToolResult } from "@earendil-works/pi-agent-core";
-import type { ChartError } from "@data-agent/charts";
+import type { ChartSpec } from "@data-agent/contracts";
+import type { ChartError, ChartRendererVersions, PresentationNotice } from "@data-agent/charts";
 import { renderChartSvg } from "../chart-render.js";
 import type { ArtifactDirectory } from "../facets/artifact-directory.js";
 import type { WorkspaceStore } from "../workspace.js";
@@ -21,6 +22,25 @@ type RenderChartInput = Static<typeof RENDER_CHART_PARAMETERS>;
 export interface ChartToolOptions {
   readonly workspace: WorkspaceStore;
   readonly artifacts: Pick<ArtifactDirectory, "resolveRows">;
+}
+
+export const CHART_RENDER_RECORD_VERSION = 1;
+
+/**
+ * Written next to each static chart as `<name>.chart.json` so the delivered SVG
+ * can be traced and re-rendered (ADR-0008 decision 9). Rows stay behind the Receipt.
+ */
+export interface ChartRenderRecord {
+  readonly version: typeof CHART_RENDER_RECORD_VERSION;
+  /** The SVG this record describes, relative to the record. */
+  readonly svg: string;
+  readonly chartSpec: ChartSpec;
+  readonly data: { readonly kind: "publication"; readonly receiptId: string; readonly contentHash: string };
+  readonly renderer: ChartRendererVersions;
+  readonly target: "static";
+  readonly width: number;
+  readonly height: number;
+  readonly notices: readonly PresentationNotice[];
 }
 
 /** Chat widgets persist their rows in the session, so they are bounded; larger results belong in render_chart or export_query. */
@@ -69,8 +89,22 @@ function renderChartTool(options: ChartToolOptions): AgentHarnessTool<DataAgentT
       });
       if (!rendered.ok) throw new Error(formatChartErrors(rendered.errors));
       const specHash = createHash("sha256").update(JSON.stringify(value.spec)).digest("hex").slice(0, 8);
-      const relativePath = `charts/${value.fileName ?? `chart-${specHash}`}.svg`;
+      const baseName = value.fileName ?? `chart-${specHash}`;
+      const relativePath = `charts/${baseName}.svg`;
+      const recordPath = `charts/${baseName}.chart.json`;
+      const record: ChartRenderRecord = {
+        version: CHART_RENDER_RECORD_VERSION,
+        svg: `${baseName}.svg`,
+        chartSpec: rendered.spec,
+        data: { kind: "publication", receiptId, contentHash: published.receipt.contentHash },
+        renderer: rendered.renderer,
+        target: "static",
+        width: rendered.width,
+        height: rendered.height,
+        notices: rendered.notices,
+      };
       await options.workspace.write(relativePath, rendered.svg);
+      await options.workspace.write(recordPath, `${JSON.stringify(record, null, 2)}\n`);
       const declared = declaredFields(value.spec);
       const disclosure = published.receipt.disclosure?.summary;
       const text = [
@@ -82,7 +116,7 @@ function renderChartTool(options: ChartToolOptions): AgentHarnessTool<DataAgentT
       ].join("\n");
       return {
         content: [{ type: "text", text }],
-        details: { relativePath, fileType: "svg", receiptId, notices: rendered.notices, ...(disclosure ? { disclosure } : {}) },
+        details: { relativePath, recordPath, fileType: "svg", receiptId, renderer: rendered.renderer, notices: rendered.notices, ...(disclosure ? { disclosure } : {}) },
       };
     },
   };
