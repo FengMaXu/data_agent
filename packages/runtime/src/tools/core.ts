@@ -1,10 +1,14 @@
+import { mkdir } from "node:fs/promises";
+import path from "node:path";
 import { Type } from "typebox";
 import { Value } from "typebox/value";
 import { FieldMetaSchema } from "@data-agent/contracts";
 import { CHART_RENDERER_VERSIONS, compileChart } from "@data-agent/charts";
 import type { BusinessContext } from "../answering/public.js";
 import type { ArtifactDirectory } from "../facets/artifact-directory.js";
-import { MAX_WIDGET_ROWS, declaredFields, formatChartErrors, jsonSafeRows, publicationRef, semanticChecks } from "./charts.js";
+import { MAX_WIDGET_ROWS, chartDataRef, declaredFields, formatChartErrors, jsonSafeRows, semanticChecks } from "./charts.js";
+import { ChartDataResolver, describeSource } from "../facets/chart-data.js";
+import { MAX_DERIVED_ROWS, type DerivedDatasets, type DerivedInput } from "../facets/derived-datasets.js";
 import type { AgentToolResult } from "@earendil-works/pi-agent-core";
 import { DEFAULT_KNOWLEDGE_RESULTS, formatKnowledgeSearchResults, MAX_KNOWLEDGE_RESULTS, type KnowledgeIndex } from "../knowledge.js";
 import { KnowledgeWriter } from "../knowledge-write.js";
@@ -23,18 +27,17 @@ const TableFieldsSchema = Type.Record(Type.String(), FieldMetaSchema);
 
 async function chartWidget(options: CoreToolOptions, spec: unknown, widgetId: string, toolCallId: string, business: BusinessContext): Promise<WidgetPayload> {
   if (!options.publishedRows) throw new Error("WIDGET_CHART_UNAVAILABLE: this host cannot read published results for charts");
-  const receiptId = publicationRef(spec);
-  const published = await options.publishedRows.resolveRows(receiptId, business);
-  if (published.rows.length > MAX_WIDGET_ROWS) {
-    throw new Error(`WIDGET_CHART_TOO_MANY_ROWS: the published result has ${published.rows.length} rows and chat charts hold at most ${MAX_WIDGET_ROWS}; aggregate in the query, or use render_chart or export_query`);
+  const data = await new ChartDataResolver({ publications: options.publishedRows, ...(options.derivedDatasets ? { derived: options.derivedDatasets } : {}) }).resolve(chartDataRef(spec), business);
+  if (data.rows.length > MAX_WIDGET_ROWS) {
+    throw new Error(`WIDGET_CHART_TOO_MANY_ROWS: the data has ${data.rows.length} rows and chat charts hold at most ${MAX_WIDGET_ROWS}; aggregate in the query, or use render_chart or export_query`);
   }
   // The rows travel with the widget so a replayed session renders without re-reading the result.
-  const dataset = { columns: [...published.columns], rows: jsonSafeRows(published.rows) };
+  const dataset = { columns: [...data.columns], rows: jsonSafeRows(data.rows) };
   const compiled = compileChart(spec, dataset, { target: "interactive" });
   if (!compiled.ok) throw new Error(formatChartErrors(compiled.errors));
-  const disclosure = published.receipt.disclosure?.summary;
+  const disclosure = data.disclosures.join("；");
   const declared = declaredFields(spec);
-  const checks = semanticChecks(compiled.spec.fields, published.receipt);
+  const checks = semanticChecks(compiled.spec.fields, data.physicalProfile);
   return {
     widget_id: widgetId,
     kind: "chart",
@@ -44,7 +47,8 @@ async function chartWidget(options: CoreToolOptions, spec: unknown, widgetId: st
     contractVersion: CHART_WIDGET_CONTRACT_VERSION,
     // For tracing only: the browser always recompiles with its current compiler.
     renderer: CHART_RENDERER_VERSIONS,
-    receiptId,
+    ...(data.source.kind === "publication" ? { receiptId: data.source.receiptId } : { derivedId: data.source.derivedId, derivedFrom: describeSource(data.source) }),
+    dataSource: data.source,
     chartSpec: compiled.spec,
     dataset,
     notices: compiled.notices,
@@ -61,7 +65,8 @@ function chartWidgetText(widget: WidgetPayload): string {
   const checks = Array.isArray(widget.semanticChecks) ? widget.semanticChecks as { message?: string }[] : [];
   const rows = (widget.dataset as { rows?: unknown[] } | undefined)?.rows?.length ?? 0;
   return [
-    `[widget:chart] ${widget.title} (receiptId=${String(widget.receiptId)}, ${rows} 行)`,
+    `[widget:chart] ${widget.title} (${typeof widget.derivedId === "string" ? `derivedId=${widget.derivedId}` : `receiptId=${String(widget.receiptId)}`}, ${rows} 行)`,
+    ...(typeof widget.derivedFrom === "string" ? [`[DERIVED] ${widget.derivedFrom}`] : []),
     ...notices.map((notice) => `[NOTICE] ${notice.message ?? ""}`),
     ...checks.map((check) => `[CHECK] ${check.message ?? ""}`),
     ...(typeof widget.disclosure === "string" ? [`[DISCLOSURE] ${widget.disclosure}`] : []),
@@ -78,7 +83,29 @@ export interface CoreToolOptions {
   readonly enableWidgets?: boolean;
   readonly clarifications?: Pick<ClarificationDialogs, "ask">;
   /** Receipt-bound rows for chart widgets; without it show_widget cannot draw charts. */
-  readonly publishedRows?: Pick<ArtifactDirectory, "resolveRows">;
+  readonly publishedRows?: Pick<ArtifactDirectory, "resolveRows" | "resolveReceipt">;
+  /** Where run_python registers derived datasets and charts read them; without it run_python cannot derive. */
+  readonly derivedDatasets?: Pick<DerivedDatasets, "register" | "resolve">;
+}
+
+/** Declared outputs are JSON under derived/, so a registration names a file the job itself wrote. */
+const DERIVED_OUTPUT_PATH = /^derived\/[A-Za-z0-9_\-\u4e00-\u9fa5]{1,80}\.json$/;
+
+/** Rows of a job output: `{ columns, rows }`, or pandas `to_json(orient="split")` (`{ columns, data }`). */
+function derivedTable(text: string, path: string): { columns: string[]; rows: unknown[][] } {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new Error(`DERIVED_OUTPUT_INVALID: ${path} is not JSON`);
+  }
+  const value = parsed && typeof parsed === "object" ? parsed as { columns?: unknown; rows?: unknown; data?: unknown } : {};
+  const rows = Array.isArray(value.rows) ? value.rows : value.data;
+  if (!Array.isArray(value.columns) || !value.columns.every((column) => typeof column === "string") || !Array.isArray(rows) || !rows.every(Array.isArray)) {
+    throw new Error(`DERIVED_OUTPUT_INVALID: ${path} must hold { "columns": [...], "rows": [[...], ...] } or pandas to_json(orient="split")`);
+  }
+  if (rows.length > MAX_DERIVED_ROWS) throw new Error(`DERIVED_OUTPUT_TOO_LARGE: ${path} has ${rows.length} rows; at most ${MAX_DERIVED_ROWS}`);
+  return { columns: value.columns as string[], rows: rows as unknown[][] };
 }
 
 function executableOf(source: CoreToolOptions["pythonExecutable"]): string | undefined {
@@ -209,17 +236,51 @@ export function createCoreAgentToolDefinitions(options: CoreToolOptions): readon
       label: "run_python",
       description: "Execute Python analysis confined to the current session workspace.",
       replay: "never",
-      parameters: Type.Object({ code: Type.String({ minLength: 1 }), description: Type.Optional(Type.String()) }, { additionalProperties: false }),
-      async execute(_toolCallId, input, _onUpdate, toolContext, _invocation, context) {
+      parameters: Type.Object({
+        code: Type.String({ minLength: 1 }),
+        description: Type.Optional(Type.String()),
+        /** Compute chartable data from published results: inputs are materialized, outputs registered as derived datasets. */
+        derive: Type.Optional(Type.Object({
+          inputs: Type.Array(Type.String({ minLength: 1 }), { maxItems: 10 }),
+          outputs: Type.Array(Type.Object({ name: Type.String({ minLength: 1, maxLength: 80 }), path: Type.String() }, { additionalProperties: false }), { minItems: 1, maxItems: 10 }),
+        }, { additionalProperties: false })),
+      }, { additionalProperties: false }),
+      async execute(_toolCallId, input, _onUpdate, toolContext, invocation, context) {
         const executable = executableOf(options.pythonExecutable);
         if (!executable) throw new Error("PYTHON_RUNTIME_NOT_AVAILABLE");
-        const value = input as { code: string; description?: string };
+        const value = input as { code: string; description?: string; derive?: { inputs: string[]; outputs: { name: string; path: string }[] } };
+        const derive = value.derive;
+        const inputs: DerivedInput[] = [];
+        let business: BusinessContext | undefined;
+        if (derive) {
+          if (!options.derivedDatasets || !options.publishedRows) throw new Error("DERIVED_DATASET_UNAVAILABLE: this host does not keep derived datasets");
+          const bad = derive.outputs.find((output) => !DERIVED_OUTPUT_PATH.test(output.path));
+          if (bad) throw new Error(`DERIVED_OUTPUT_INVALID: ${bad.path} must be derived/<name>.json`);
+          business = trustedContext(toolContext, invocation, context);
+          // Inputs are read through their Receipts before the job runs, so an unreadable one stops it early.
+          for (const receiptId of [...new Set(derive.inputs)]) {
+            const published = await options.publishedRows.resolveRows(receiptId, business);
+            await options.workspace.write(`inputs/${receiptId}.json`, JSON.stringify({ columns: published.columns, rows: jsonSafeRows(published.rows) }));
+            inputs.push({ receiptId, contentHash: published.receipt.contentHash });
+          }
+          // Outputs are written here by the job; the folder exists so scripts need not create it.
+          await mkdir(path.join(options.workspace.root, "derived"), { recursive: true });
+        }
         const job = await runPythonJob(value.code, { workspace: options.workspace.root, executable, timeoutMs: 120_000, ...(context.abortSignal ? { signal: context.abortSignal } : {}) });
-        return text(job.stdout || job.stderr || "(no output)", { status: job.status, jobId: job.jobId, artifacts: job.artifacts, sessionId: toolContext?.sessionId });
+        const output = job.stdout || job.stderr || "(no output)";
+        if (!derive || job.status !== "success") return text(output, { status: job.status, jobId: job.jobId, artifacts: job.artifacts, sessionId: toolContext?.sessionId });
+        const derived = [];
+        for (const declared of derive.outputs) {
+          const table = derivedTable(await options.workspace.read(declared.path), declared.path);
+          const record = await options.derivedDatasets!.register({ name: declared.name, columns: table.columns, rows: table.rows, inputs, script: value.code, jobId: job.jobId }, business!);
+          derived.push({ name: declared.name, derivedId: record.derivedId, rows: record.rows.length });
+        }
+        const lines = derived.map((item) => `[DERIVED] ${item.name} derivedId=${item.derivedId}（${item.rows} 行，派生自 ${inputs.map((item) => item.receiptId).join("、") || "无输入"}）`);
+        return text([output, ...lines].join("\n"), { status: job.status, jobId: job.jobId, artifacts: job.artifacts, sessionId: toolContext?.sessionId, derived });
       },
     }, {
       promptSnippet: "在配置的 Python 环境中执行当前工作区分析。",
-      promptGuidelines: ["只能读写当前工作区，访问其他路径、启动子进程都会被拒绝；数据库数据请用 query_database 获取。运行时不提供绘图库（如 matplotlib），需要图表时用 render_chart、show_widget 或 generate_dashboard；披露实际工作区、超时和失败语义，不承诺这是安全沙箱。"],
+      promptGuidelines: ["只能读写当前工作区，访问其他路径、启动子进程都会被拒绝；数据库数据请用 query_database 获取。运行时不提供绘图库（如 matplotlib），需要图表时用 render_chart、show_widget 或 generate_dashboard；要把计算结果画成图，用 derive 声明输入的 receiptId（脚本从 inputs/<receiptId>.json 读取 {columns, rows}）与输出 derived/<name>.json（写入 {columns, rows} 或 pandas to_json(orient=\"split\")），返回的 derivedId 作为图表的 { kind: \"derived\", derivedId }；披露实际工作区、超时和失败语义，不承诺这是安全沙箱。"],
     }));
   }
 

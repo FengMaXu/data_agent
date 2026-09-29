@@ -163,7 +163,7 @@ try {
   const datasets = { [datasetKey(ref("p_ind"))]: industries, [datasetKey(ref("p_trend"))]: trend, [datasetKey(ref("p_total"))]: totals };
   const validated = validateDashboard(dashboardSpec, datasets);
   if (!validated.ok) throw new Error(JSON.stringify(validated.errors));
-  const sources = Object.fromEntries(Object.keys(datasets).map((key) => [key, { receiptId: key.split(":")[1], contentHash: "0123456789abcdef" }]));
+  const sources = Object.fromEntries(Object.keys(datasets).map((key) => [key, { kind: "publication", id: key.split(":")[1], label: `发布记录 ${key.split(":")[1]}`, contentHash: "0123456789abcdef", disclosures: [] }]));
   const echartsPath = resolveEchartsAssetPath();
   if (!echartsPath) throw new Error("echarts asset not found");
   const html = renderDashboardHtml({ spec: dashboardSpec, datasets, sources, checks: {}, renderer: CHART_RENDERER_VERSIONS, declaredFields: ["sales", "yoy"] }, { chartsSource: CHARTS_BROWSER_SOURCE, echartsSource: await readEchartsSource(echartsPath) });

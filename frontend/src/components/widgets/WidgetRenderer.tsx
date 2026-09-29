@@ -39,6 +39,7 @@ export interface WidgetSpec {
     disclosure?: string;
     declaredFields?: string[];
     semanticChecks?: SemanticsCheck[];
+    derivedFrom?: string;
     /** Declared semantics of table columns, keyed by column. */
     fields?: Record<string, FieldMeta>;
 }
@@ -562,7 +563,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = ({ widget, currentSessionI
             case 'chart':
                 // Runtime-built ChartSpec widgets; charts replayed from earlier sessions keep the legacy renderer.
                 return widget.contractVersion === CURRENT_WIDGET_CONTRACT && widget.chartSpec && widget.dataset
-                    ? <ChartSpecWidget widget={{ chartSpec: widget.chartSpec, dataset: widget.dataset, ...(widget.disclosure ? { disclosure: widget.disclosure } : {}), ...(widget.declaredFields ? { declaredFields: widget.declaredFields } : {}), ...(widget.semanticChecks ? { semanticChecks: widget.semanticChecks } : {}) }} />
+                    ? <ChartSpecWidget widget={{ chartSpec: widget.chartSpec, dataset: widget.dataset, ...(widget.disclosure ? { disclosure: widget.disclosure } : {}), ...(widget.declaredFields ? { declaredFields: widget.declaredFields } : {}), ...(widget.semanticChecks ? { semanticChecks: widget.semanticChecks } : {}), ...(widget.derivedFrom ? { derivedFrom: widget.derivedFrom } : {}) }} />
                     : renderChart(widget, t);
             case 'steps':
                 return renderSteps(widget, t);

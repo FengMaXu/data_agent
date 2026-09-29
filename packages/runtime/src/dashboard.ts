@@ -11,9 +11,14 @@ import type { DashboardSpec } from "@data-agent/contracts";
 
 /** Where a dataset came from, shown on the page and kept for tracing. */
 export interface DashboardDataSource {
-  readonly receiptId: string;
+  readonly kind: "publication" | "derived";
+  /** receiptId or derivedId. */
+  readonly id: string;
+  /** How the page names the source, e.g. "发布记录 …" or "派生数据集 …（…）". */
+  readonly label: string;
   readonly contentHash: string;
-  readonly disclosure?: string;
+  /** Disclosure summaries of the results behind the source. */
+  readonly disclosures: readonly string[];
 }
 
 export interface DashboardRenderInput {
@@ -86,7 +91,8 @@ D.spec.views.forEach(function(v){
     p.appendChild(cards);
   }
   (D.checks[v.id]||[]).forEach(function(c){notes.push(c.message)});
-  if(source.disclosure)notes.push(source.disclosure);
+  if(source.kind==="derived")notes.push(source.label);
+  (source.disclosures||[]).forEach(function(d){notes.push(d)});
   if(notes.length){var ul=el("ul","notes");notes.forEach(function(n){ul.appendChild(el("li",null,n))});p.appendChild(ul)}
 });
 })();`;
@@ -94,7 +100,7 @@ D.spec.views.forEach(function(v){
 export function renderDashboardHtml(input: DashboardRenderInput, assets: DashboardAssets): string {
   const { spec } = input;
   const payload = scriptJson({ spec, datasets: input.datasets, sources: input.sources, checks: input.checks, renderer: input.renderer });
-  const sources = Object.values(input.sources).map((source) => `<li>发布记录 ${escapeHtml(source.receiptId)}（内容哈希 ${escapeHtml(source.contentHash.slice(0, 12))}）</li>`).join("");
+  const sources = Object.values(input.sources).map((source) => `<li>${escapeHtml(source.label)}（内容哈希 ${escapeHtml(source.contentHash.slice(0, 12))}）</li>`).join("");
   const semantics = input.declaredFields.length > 0 ? `<p>以下字段的语义来自模型声明，未经业务定义核实：${escapeHtml(input.declaredFields.join("、"))}</p>` : "";
   const echarts = assets.echartsSource ? `<script>${assets.echartsSource}</script>` : "";
   return `<!DOCTYPE html>

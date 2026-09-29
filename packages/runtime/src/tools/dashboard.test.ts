@@ -123,7 +123,8 @@ describe("generate_dashboard", () => {
     const { receipts, call, cleanup } = await setup({ industries, totals });
     const spec = dashboardSpec(receipts);
     const derived = { ...spec, views: [{ ...spec.views[2], data: { kind: "derived", derivedId: "d1" } }] };
-    await expect(call({ operation: "create", spec: derived })).rejects.toThrow("CHART_DATA_UNSUPPORTED");
+    // This host keeps no derived store; the derived tests cover a host that does.
+    await expect(call({ operation: "create", spec: derived })).rejects.toThrow("DERIVED_DATASET_UNAVAILABLE");
     const missing = { ...spec, views: [{ ...spec.views[2], data: { kind: "publication", receiptId: "publication_missing" } }] };
     await expect(call({ operation: "create", spec: missing })).rejects.toThrow("PUBLICATION_NOT_FOUND");
     await expect(call({ operation: "create", spec: { ...spec, views: [{ id: "v3", type: "chart", dataset: "x" }] } })).rejects.toThrow(/DASHBOARD_SPEC_INVALID[\s\S]*SCHEMA_INVALID/);
