@@ -29,7 +29,7 @@ test("docs alone check nothing; skills count as runtime", () => {
 });
 
 test("root manifests and unknown paths fall back to a full run", () => {
-  for (const file of ["package-lock.json", "package.json", "scripts/build-distribution.mjs", "tsconfig.base.json"]) {
+  for (const file of ["package-lock.json", "package.json", "scripts/some-new-tool.mjs", "tsconfig.base.json"]) {
     const plan = planChecks(workspaces, [file]);
     assert.equal(plan.full, true, file);
     assert.equal(plan.check.length, workspaces.length);
@@ -39,4 +39,18 @@ test("root manifests and unknown paths fall back to a full run", () => {
 test("runtime keeps its negative type tests", () => {
   const runtime = planChecks(workspaces, ["packages/runtime/src/index.ts"]).check.find((item) => item.name === "@data-agent/runtime");
   assert.deepEqual(runtime.scripts, ["typecheck", "typecheck:negative", "test"]);
+});
+
+test("root scripts map to what actually checks them", () => {
+  const architecture = planChecks(workspaces, ["scripts/verify-backend-architecture.mjs"]);
+  assert.equal(architecture.full, false);
+  assert.deepEqual(architecture.check, []);
+  assert.deepEqual(architecture.rootScripts, []);
+  const self = planChecks(workspaces, ["scripts/check-affected.mjs"]);
+  assert.deepEqual(self.check, []);
+  assert.deepEqual(self.rootScripts, ["test:scripts"]);
+  const release = planChecks(workspaces, ["scripts/build-distribution.mjs", "scripts/smoke-web-host.mjs"]);
+  assert.equal(release.full, false);
+  assert.deepEqual(release.check, []);
+  assert.equal(release.hints.length, 1);
 });

@@ -16,6 +16,14 @@ import { fileURLToPath } from "node:url";
 const IGNORED = [/^docs\//, /^[^/]+\.md$/, /^\.github\//, /^evaluations\//, /^\.gitignore$/, /^\.gitattributes$/];
 /** Paths outside a workspace that a workspace's tests do read. */
 const READ_BY = [[/^\.agents\//, "@data-agent/runtime"]];
+/** Root scripts checked by something narrower than a full run; anything else under scripts/ falls back to full. */
+const SCRIPT_CHECKS = [
+  // The architecture gate always runs.
+  [/^scripts\/verify-backend-architecture\.mjs$/, { scripts: [] }],
+  [/^scripts\/check-affected(\.test)?\.mjs$/, { scripts: ["test:scripts"] }],
+  // Release-only scripts: typecheck and tests do not run them; verify:backend does.
+  [/^scripts\/(build-distribution|smoke-web-host|smoke-electron|smoke-python-runtime|build-python-runtime|package-electron-manual|measure-budgets|write-build-provenance|run-clean-env-gates|start-web-host)\.mjs$/, { scripts: [], hint: "release scripts changed: run npm run verify:backend before merging develop into master" }],
+];
 
 /** Workspaces from the root package.json globs, with their in-repo dependencies. */
 export function loadWorkspaces(root) {
@@ -64,11 +72,17 @@ function closure(start, next) {
 export function planChecks(workspaces, changedFiles, { all = false } = {}) {
   const touched = new Set();
   const fullBecause = [];
+  const rootScripts = new Set();
+  const hints = new Set();
   for (const file of changedFiles) {
     const owner = workspaces.find((workspace) => file.startsWith(`${workspace.dir}/`));
+    const scriptCheck = SCRIPT_CHECKS.find(([pattern]) => pattern.test(file));
     if (owner) touched.add(owner.name);
     else if (IGNORED.some((pattern) => pattern.test(file))) continue;
-    else {
+    else if (scriptCheck) {
+      for (const script of scriptCheck[1].scripts) rootScripts.add(script);
+      if (scriptCheck[1].hint) hints.add(scriptCheck[1].hint);
+    } else {
       const reader = READ_BY.find(([pattern]) => pattern.test(file));
       if (reader) touched.add(reader[1]);
       else fullBecause.push(file);
@@ -83,6 +97,8 @@ export function planChecks(workspaces, changedFiles, { all = false } = {}) {
   return {
     full,
     fullBecause,
+    rootScripts: full ? ["test:scripts"] : [...rootScripts],
+    hints: [...hints],
     build: order.filter((workspace) => built.has(workspace.name) && workspace.scripts.includes("build")).map((workspace) => workspace.name),
     check: order.filter((workspace) => affected.has(workspace.name)).map((workspace) => ({
       name: workspace.name,
@@ -127,11 +143,14 @@ function main() {
   if (plan.full) console.log(`Full run${plan.fullBecause.length > 0 ? `, because of: ${plan.fullBecause.slice(0, 5).join(", ")}${plan.fullBecause.length > 5 ? ", ..." : ""}` : " (--all)"}`);
   console.log(`Build: ${plan.build.join(", ") || "(none)"}`);
   console.log(`Check: ${plan.check.map((item) => `${item.name} [${item.scripts.join(", ")}]`).join("; ") || "(none)"}`);
+  if (plan.rootScripts.length > 0) console.log(`Root scripts: ${plan.rootScripts.join(", ")}`);
+  for (const hint of plan.hints) console.log(`Note: ${hint}`);
   if (argv.includes("--dry-run")) return;
 
   run(root, ["run", "verify:architecture"]);
   for (const name of plan.build) run(root, ["run", "build", `--workspace=${name}`]);
   for (const item of plan.check) for (const script of item.scripts) run(root, ["run", script, `--workspace=${item.name}`]);
+  for (const script of plan.rootScripts) run(root, ["run", script]);
   console.log("\ncheck:affected OK");
 }
 

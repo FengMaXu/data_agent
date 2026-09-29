@@ -56,3 +56,10 @@ jobs:
 
       - name: Test
         run: npm run test --workspaces --if-present
+
+      # The rest of verify:backend: the shipped bundles and a web host start-up.
+      - name: Distribution build
+        run: npm run build:distribution
+
+      - name: Web host smoke
+        run: node scripts/smoke-web-host.mjs
