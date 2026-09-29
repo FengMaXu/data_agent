@@ -327,3 +327,48 @@ describe("Temporal fields", () => {
     expect(formatFieldValue("2025年12月", { type: "temporal", grain: "month", zone: "floating" })).toBe("2025年12月");
   });
 });
+
+describe("Heatmap", () => {
+  const growth: FieldMeta = { type: "quantitative", storage: "ratio", additivity: "non_additive", label: "同比" };
+  const heat = (color: Record<string, unknown> = { field: "growth" }, extra: Partial<ChartSpec> = {}) =>
+    ({ version: 1, data, fields: { growth, month: { type: "temporal", grain: "month", zone: "floating" } }, chart: { mark: "heatmap", x: { field: "month" }, y: { field: "region" }, color }, ...extra }) as ChartSpec;
+  const cells: ChartDataset = { columns: ["region", "month", "growth"], rows: [["东", "2025-02-01", 0.3], ["东", "2025-01-01", 0.1], ["西", "2025-01-01", -0.2], ["西", "2025-02-01", null]] };
+
+  it("places one row per cell on two category axes, blanks for nulls", () => {
+    const { option, notices } = ok(compileChart(heat(), cells, { target: "interactive" }));
+    expect(axis(option, "xAxis")[0]!.data).toEqual(["2025-01", "2025-02"]);
+    expect(axis(option, "yAxis")[0]!.data).toEqual(["东", "西"]);
+    expect(seriesOf(option)[0]!.data).toEqual([[1, 0, 30], [0, 0, 10], [0, 1, -20], [1, 1, "-"]]);
+    expect(notices.map((notice) => notice.code)).toContain("NULL_VALUES");
+  });
+
+  it("rejects two rows in one cell instead of summing them", () => {
+    const duplicated = { columns: cells.columns, rows: [["东", "2025-01-01", 0.1], ["东", "2025-01-01", 0.3]] };
+    expect(codes(compileChart(heat(), duplicated, { target: "interactive" }))).toEqual(["DUPLICATE_KEY"]);
+  });
+
+  it("leaves absent combinations blank and says so", () => {
+    const sparse = { columns: cells.columns, rows: [["东", "2025-01-01", 0.1], ["西", "2025-02-01", 0.2]] };
+    const { option, notices } = ok(compileChart(heat(), sparse, { target: "interactive" }));
+    expect(seriesOf(option)[0]!.data).toHaveLength(2);
+    expect(notices.map((notice) => notice.code)).toContain("EMPTY_CELLS");
+  });
+
+  it("needs a declared midpoint for a diverging scale, and centres the scale on it", () => {
+    expect(codes(compileChart(heat({ field: "growth", scale: "diverging" }), cells, { target: "interactive" }))).toEqual(["INVALID_ENCODING"]);
+    expect(codes(compileChart(heat({ field: "growth", midpoint: 0 }), cells, { target: "interactive" }))).toEqual(["INVALID_ENCODING"]);
+    const { option } = ok(compileChart(heat({ field: "growth", scale: "diverging", midpoint: 0 }), cells, { target: "interactive" }));
+    expect(option.visualMap).toMatchObject({ min: -30, max: 30 });
+  });
+
+  it("requires colour semantics and refuses data selection", () => {
+    expect(codes(compileChart({ ...heat(), fields: {} } as ChartSpec, cells, { target: "interactive" }))).toEqual(["SEMANTICS_MISSING"]);
+    expect(codes(compileChart(heat({ field: "growth" }, { selection: { kind: "top_n", by: "growth", n: 1, order: "desc" } }), cells, { target: "interactive" }))).toEqual(["INVALID_SELECTION"]);
+  });
+
+  it("refuses more columns than a static canvas can show", () => {
+    const wide = { columns: cells.columns, rows: Array.from({ length: 60 }, (_, index) => ["东", `c${index}`, 0.1]) };
+    const spec = { ...heat(), fields: { growth } } as ChartSpec;
+    expect(codes(compileChart(spec, wide, { target: "static" }))).toEqual(["CAPACITY_EXCEEDED"]);
+  });
+});

@@ -20,7 +20,7 @@ allowed-tools:
 
 | 支持 | 暂不支持（不要写进 spec，也不要向用户承诺） |
 | --- | --- |
-| KPI 卡片、柱形、折线、散点、柱线组合、双 y 轴、堆叠、横向条形、环形饼图、表格 | 页面筛选器、点击下钻、交叉联动 |
+| KPI 卡片、柱形、折线、散点、柱线组合、双 y 轴、堆叠、横向条形、环形饼图、热力图、表格 | 页面筛选器、点击下钻、交叉联动 |
 | 图表 tooltip、图例、随窗口缩放；视图半宽或整行 | 自定义高度、导出按钮 |
 | 按完整 spec 重新生成并覆盖已有看板 | 读取已有看板后局部修改 |
 | — | 实时刷新、语义查询绑定 |
@@ -161,6 +161,26 @@ generate_dashboard(operation, spec, editPath?)
 }
 ```
 
+两个维度交叉比较一个指标时用热力图：每个 (x, y) 单元格一行，缺失的组合留白。颜色有正负含义时用 `scale: "diverging"` 并声明中点 `midpoint`（与数据同单位，如同比的 0），否则用默认的顺序色阶：
+
+```json dashboard-view
+{
+  "id": "growth_heatmap",
+  "type": "chart",
+  "width": "full",
+  "chart": {
+    "version": 1,
+    "title": "各行业月度同比增速",
+    "data": { "kind": "publication", "receiptId": "<receiptId>" },
+    "fields": {
+      "yoy": { "type": "quantitative", "storage": "ratio", "additivity": "non_additive", "label": "同比增速" },
+      "month": { "type": "temporal", "grain": "month", "zone": "floating" }
+    },
+    "chart": { "mark": "heatmap", "x": { "field": "month" }, "y": { "field": "industry" }, "color": { "field": "yoy", "scale": "diverging", "midpoint": 0 } }
+  }
+}
+```
+
 图表约束（工具以结构化错误返回，不会自行修复）：
 
 - **同一个 x 值（或 x 加系列值）只能有一行**，否则返回 `DUPLICATE_KEY`。在查询中聚合到图表粒度；散点图允许重复坐标。
@@ -232,6 +252,7 @@ generate_dashboard(operation, spec, editPath?)
 | 围绕零点的正负值 | `chart`：`bar` 图层 |
 | 不超过 5 类的完整构成 | `chart`：`pie` |
 | 类目与数值的关系、逐项分布 | `chart`：`scatter` 图层 |
+| 两个维度交叉的一个指标（行业 × 月份） | `chart`：`heatmap` |
 | 可核对的明细、带多个指标的排名 | `table` |
 
 ## 配色

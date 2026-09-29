@@ -58,6 +58,17 @@ describe("Cross-target consistency", () => {
     });
   }
 
+  it("heatmap: interactive and static place the same values in the same cells", () => {
+    const spec = { version: 1, data, fields: { growth: { type: "quantitative", storage: "ratio", additivity: "non_additive", label: "同比" } }, chart: { mark: "heatmap", x: { field: "month" }, y: { field: "region" }, color: { field: "growth", scale: "diverging", midpoint: 0 } } };
+    const cells: ChartDataset = { columns: ["region", "month", "growth"], rows: [["华东", "1月", 0.12], ["华东", "2月", null], ["华南", "1月", -0.03]] };
+    const interactive = compileChart(spec, cells, { target: "interactive" });
+    const staticChart = compileChart(spec, cells, { target: "static" });
+    if (!interactive.ok || !staticChart.ok) throw new Error(JSON.stringify([interactive, staticChart]));
+    const cellsOf = (option: Option) => ({ x: list(option.xAxis)[0]!.data, y: list(option.yAxis)[0]!.data, data: list(option.series)[0]!.data, range: [(option.visualMap as Option).min, (option.visualMap as Option).max] });
+    expect(cellsOf(interactive.option)).toEqual({ x: ["1月", "2月"], y: ["华东", "华南"], data: [[0, 0, 12], [1, 0, "-"], [0, 1, -3]], range: [-12, 12] });
+    expect(cellsOf(staticChart.option)).toEqual(cellsOf(interactive.option));
+  });
+
   it("chat widgets and dashboards embed the same rows for one published result", async () => {
     const context = (invocationId: string): BusinessContext => ({ principal: { id: "user-1" }, sessionId: "session-1", lane: "main", operationId: "operation-1", invocationId });
     const invocation = (invocationId: string) => ({ operationId: "operation-1", invocationId, getMemo: async () => undefined, setMemo: async () => undefined }) as never;

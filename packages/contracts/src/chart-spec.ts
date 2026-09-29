@@ -5,7 +5,7 @@ import { Value } from "typebox/value";
  * ChartSpec v1 (ADR-0008): one serializable chart description shared by chat
  * widgets, dashboards and reports. It carries no data transformation or
  * aggregation and reads its data through a Dataset Reference. v1 implements
- * the cartesian (bar/line/scatter layers) and pie marks; further marks are
+ * the cartesian (bar/line/scatter layers), pie and heatmap marks; further marks are
  * added to the `chart` union without changing existing members.
  */
 export const CHART_SPEC_VERSION = 1 as const;
@@ -85,6 +85,21 @@ export const PieChartSchema = Type.Object({
 }, Strict);
 export type PieChart = Static<typeof PieChartSchema>;
 
+/** Two category axes and a colour measure; each (x, y) cell holds at most one row. */
+export const HeatmapChartSchema = Type.Object({
+  mark: Type.Literal("heatmap"),
+  x: FieldRefSchema,
+  y: FieldRefSchema,
+  color: Type.Object({
+    field: Name,
+    /** "diverging" colours both sides of a midpoint, which must be declared: it is a judgement, never inferred. */
+    scale: Type.Optional(Type.Union([Type.Literal("sequential"), Type.Literal("diverging")])),
+    /** In the field's stored units, like the data. */
+    midpoint: Type.Optional(Type.Number()),
+  }, Strict),
+}, Strict);
+export type HeatmapChart = Static<typeof HeatmapChartSchema>;
+
 export const ChartSelectionSchema = Type.Object({
   kind: Type.Literal("top_n"),
   by: Name,
@@ -106,7 +121,7 @@ export const ChartSpecSchema = Type.Object({
   data: DatasetRefSchema,
   /** Model-declared field semantics; Runtime records them as Dataset Annotations. */
   fields: Type.Optional(Type.Record(Type.String(), FieldMetaSchema)),
-  chart: Type.Union([CartesianChartSchema, PieChartSchema]),
+  chart: Type.Union([CartesianChartSchema, PieChartSchema, HeatmapChartSchema]),
   selection: Type.Optional(ChartSelectionSchema),
   viewport: Type.Optional(ChartViewportSchema),
 }, Strict);
@@ -117,7 +132,7 @@ export interface ChartSpecSchemaError {
   readonly message: string;
 }
 
-const CHART_SCHEMAS = { cartesian: CartesianChartSchema, pie: PieChartSchema } as const;
+const CHART_SCHEMAS = { cartesian: CartesianChartSchema, pie: PieChartSchema, heatmap: HeatmapChartSchema } as const;
 
 /**
  * Structural validation only; semantic checks against data live in @data-agent/charts.
