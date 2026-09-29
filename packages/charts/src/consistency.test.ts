@@ -21,6 +21,8 @@ describe("Declared semantics against the Physical Profile", () => {
 
   it("questions additive measures named like rates or averages, by column or label", () => {
     expect(codes({ avg_price: additive, amount: { ...additive, label: "毛利率" }, sales: additive }, [numeric("avg_price", "1", "9"), numeric("amount", "0", "1"), numeric("sales", "1", "2")])).toEqual(["ADDITIVE_NAME_SUGGESTS_RATE:avg_price", "ADDITIVE_NAME_SUGGESTS_RATE:amount"]);
+    // English terms count only as whole tokens.
+    expect(codes({ corporate_sales: additive, operator_amount: additive, meaningful_total: additive, growthRate: additive }, [numeric("corporate_sales", "1", "2"), numeric("operator_amount", "1", "2"), numeric("meaningful_total", "1", "2"), numeric("growthRate", "1", "2")])).toEqual([]);
   });
 
   it("questions a numeric declaration over a text column", () => {

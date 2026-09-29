@@ -25,7 +25,8 @@ export interface SemanticsCheck {
 
 const NON_NUMERIC_KINDS = new Set(["text", "boolean", "json", "mixed"]);
 // Names that usually denote rates, shares or averages; only ever used to raise a question.
-const RATE_NAME = /率|均|占比|比例|比重|单价|rate|ratio|avg|average|mean|pct|percent|share/i;
+// English terms must stand as their own token, so "corporate" or "meaning" do not match.
+const RATE_NAME = /率|均|占比|比例|比重|单价|(?<![a-z])(?:rate|ratio|avg|average|mean|pct|percent|share)(?![a-z])/i;
 
 /**
  * Compare model-declared field semantics with a result's Physical Profile.
