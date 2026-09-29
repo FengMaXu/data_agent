@@ -83,7 +83,7 @@ describe("MCP query executor", () => {
       await expect(executor.run("SELECT value FROM values_table", 100, { kind: "result", idempotencyKey: "result-too-large" })).rejects.toThrow("EXPORT_ROW_LIMIT_EXCEEDED");
     } finally {
       await executor.close();
-      await rm(root, { recursive: true, force: true });
+      await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
     }
   }, 30_000);
 
@@ -110,7 +110,7 @@ describe("MCP query executor", () => {
       expect(lookup.rows).toEqual([["order_id", "INTEGER"], ["status", "TEXT"], ["amount", "REAL"]]);
     } finally {
       await executor.close();
-      await rm(root, { recursive: true, force: true });
+      await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
     }
   }, 30_000);
   it("replaces a lost database process and retries the query", async () => {
@@ -122,7 +122,7 @@ describe("MCP query executor", () => {
       await expect(executor.getSchema()).resolves.toEqual(expect.objectContaining({ tables: [expect.objectContaining({ name: "t" })] }));
     } finally {
       await executor.close();
-      await rm(root, { recursive: true, force: true });
+      await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
     }
   }, 30_000);
 
@@ -136,7 +136,7 @@ describe("MCP query executor", () => {
       expect((failure as Error).message).toMatch(/^DATABASE_UNAVAILABLE: database process unavailable after 3 reconnects/);
     } finally {
       await executor.close();
-      await rm(root, { recursive: true, force: true });
+      await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
     }
   }, 30_000);
 });
