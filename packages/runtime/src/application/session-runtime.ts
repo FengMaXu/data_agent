@@ -9,6 +9,7 @@ import { loadSkillsFromRoots, resolveSkillRoots } from "../skills.js";
 import { renderKnowledgeCatalog, type KnowledgeIndex } from "../knowledge.js";
 import { ClarificationManager } from "../clarification.js";
 import type { WorkspaceStore } from "../workspace.js";
+import { createChartToolDefinitions } from "../tools/charts.js";
 import { createAnsweringAgentToolDefinitions, type DataAgentToolContext, type HypothesisComparisonToolOptions, type SemanticSpecMode } from "../tools/answering.js";
 import { createCoreAgentToolDefinitions } from "../tools/core.js";
 import { createDataAgentPiRuntime, createPiSessionHost, type DataAgentModelProfile, type DataAgentSessionHost, type DataAgentSessionHostOptions, type OpenOperation, type SessionInput, type SessionQueryExecutor } from "../agent/harness-factory.js";
@@ -278,6 +279,10 @@ export async function createDataAgentSessionHost(options: DataAgentSessionRuntim
       await resultStore.openAuthorized(receipt.resultRef, receipt, context);
       return resultStore.encodeCsv(receipt.resultRef, context);
     },
+    readRowsAuthorized: async (receipt, context) => {
+      const result = await resultStore.openAuthorized(receipt.resultRef, receipt, context);
+      return { columns: result.columns, rows: result.rows, contentHash: result.contentHash };
+    },
     readSqlAuthorized: (receipt, context) => answeringStore.transact((tx) => {
       const candidate = tx.getCandidate(receipt.candidateId);
       if (!candidate || candidate.taskId !== receipt.taskId || candidate.revisionId !== receipt.revisionId) throw new Error("PUBLICATION_SQL_NOT_FOUND");
@@ -306,6 +311,7 @@ export async function createDataAgentSessionHost(options: DataAgentSessionRuntim
     ...createCoreAgentToolDefinitions({
       workspace: options.workspace,
       skills,
+      publishedRows: artifacts,
       ...(options.enableClarificationTool !== false ? { clarifications: clarificationDialogs } : {}),
       ...(options.knowledge ? { knowledge: options.knowledge } : {}),
       ...(options.knowledgeRoot ? { knowledgeRoot: options.knowledgeRoot } : {}),
@@ -320,6 +326,7 @@ export async function createDataAgentSessionHost(options: DataAgentSessionRuntim
       options.hypothesisChoiceAdvisor && options.semanticSpecMode !== "disabled" ? simpleHypothesisComparisonOptions(options.hypothesisChoiceAdvisor, session, advisoryLedger) : undefined,
       { semanticSpecMode: options.semanticSpecMode ?? "required" },
     ),
+    ...createChartToolDefinitions({ workspace: options.workspace, artifacts }),
   ];
   const delegation = options.enableSubagents ? new NativeDelegation({
     executor: new HarnessChildExecutor({

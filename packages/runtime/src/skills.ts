@@ -23,7 +23,7 @@ export interface SkillDiagnostic {
 const CANONICAL_TOOLS = new Set([
   "list_workspace", "read_file", "write_file", "run_python",
   "search_knowledge", "read_knowledge", "update_knowledge",
-  "load_skill", "generate_dashboard", "show_widget",
+  "load_skill", "generate_dashboard", "show_widget", "render_chart",
   "query_database", "publish_query_result", "ask_user_clarification",
   "export_query", "begin_answer_spec", "revise_answer_spec", "begin_query_task", "inspect_answer",
   "compare_hypotheses", "subagent",
@@ -162,8 +162,9 @@ export async function loadSkillsFromRoots(roots: string[]): Promise<{ skills: Sk
     }
   }
   const candidates: SkillDefinition[] = [];
-  for (const root of normalizedRoots) {
-    if (!trustedRoots.some((trusted) => path.resolve(trusted) === path.resolve(root))) continue;
+  // Scan each root by its canonical path: a root reached through a junction, a symlink or an
+  // 8.3 short name (C:\Users\RUNNER~1) differs from its realpath but is still the same root.
+  for (const root of [...new Set(trustedRoots)]) {
     for (const filePath of await skillFiles(root, diagnostics)) {
       let canonicalFilePath: string;
       try {

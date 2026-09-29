@@ -5,7 +5,7 @@
  * Verifies no legacy Python backend artifacts are referenced.
  */
 import { execSync, spawnSync } from "node:child_process";
-import { copyFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 const root = path.resolve(new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
@@ -81,6 +81,8 @@ const bundleArgs = [
 // architecture gate against source and bundle so stale legacy output cannot be
 // packaged after a successful TypeScript build.
 run("node scripts/verify-backend-architecture.mjs");
+// frontend/electron/ holds only this generated, gitignored file, so a fresh checkout has no such directory.
+mkdirSync(path.join(root, "frontend/electron"), { recursive: true });
 copyFileSync(path.join(root, "packages/electron-host/preload.cjs"), path.join(root, "frontend/electron/preload.cjs"));
 
 // Sanity checks: renderer + host outputs exist; python web backend not required.

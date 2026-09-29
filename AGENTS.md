@@ -8,6 +8,10 @@ Issues and specs live in the GitHub repository `FengMaXu/data_agent`. Use `gh` f
 
 Use the repository's canonical labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, and `wontfix`. See `docs/agents/triage-labels.md`.
 
+### Git workflow
+
+Branch as `type/task-description` from `develop`, open PRs against `develop`, and merge `develop` into `master` in batches. PRs need a green CI run before merging. See `docs/agents/git-workflow.md`.
+
 ### Domain docs
 
 This is a single-context repository. Read `CONTEXT.md` and relevant ADRs under `docs/adr/` when they exist. See `docs/agents/domain.md`.

@@ -5,7 +5,7 @@ when_to_use: 仅当用户明确要求“画图”“图表”“可视化”“�
 allowed-tools:
   - query_database
   - show_widget
-  - run_python
+  - render_chart
   - write_file
   - search_knowledge
   - read_knowledge
@@ -20,55 +20,61 @@ allowed-tools:
 | 用户意图 | 路径 |
 |---------|------|
 | 明确要求聊天内图表或可视化 | 路径 A：内联 Widget |
-| 明确要求保存或下载图像文件 | 路径 B：Python 文件输出（仅当 `run_python` 在当前工具列表中） |
+| 明确要求保存或下载图像文件 | 路径 B：`render_chart` 输出 SVG 文件 |
 
 不要因为用户使用“分析”“计算”“平均”“报告”或“CSV”这些词就加载本 Skill。
 
 ## 路径 A：内联 Widget
 
-1. `query_database` → 提取并验证图表数据
-2. `show_widget(kind="chart", spec={...})` → 渲染图表
-3. 输出简短的图表结论
+1. `query_database` → 按 answer-spec 流程取数，在查询中把数据聚合到图表需要的粒度
+2. `publish_query_result` 或 `export_query` → 发布结果，记下返回的 `receiptId`
+3. `show_widget(kind="chart", spec=<ChartSpec>)` → 渲染交互图表
+4. 输出简短的图表结论，并写明返回的 `[NOTICE]`、`[DISCLOSURE]`、`[SEMANTICS]`
 
 `show_widget` 的当前合同只有以下 kind：`kpi`、`chart`、`table`、`steps`。参数名是 `spec`，不是 `config`。
 
-最小合法示例：
+`chart` 的 `spec` 是 ChartSpec v1，数据通过 `receiptId` 引用已发布的结果，不要把数据行写进 spec。最小合法示例：
 
-```json
+```json chart-spec
 {
-  "kind": "chart",
-  "spec": {
-    "title": "月度销售额",
-    "data": [
-      {"month": "1月", "sales": 100},
-      {"month": "2月", "sales": 120}
-    ],
-    "series": [
-      {"name": "销售额", "data": [100, 120]}
-    ]
-  }
+  "version": 1,
+  "title": "月度销售额",
+  "data": { "kind": "publication", "receiptId": "<receiptId>" },
+  "fields": { "sales": { "type": "quantitative", "label": "销售额", "storage": "raw", "unit": "元", "additivity": "additive" } },
+  "chart": { "mark": "cartesian", "x": { "field": "month" }, "layers": [{ "type": "bar", "y": { "field": "sales" } }] }
 }
 ```
 
+- `chart`：聊天图表最多容纳 5000 行；更大的结果先在查询中聚合，或改用路径 B。类目很多时可以加 `"viewport": { "mode": "scroll", "window": 20 }`，让图表可以滚动查看。
 - `kpi`：`spec` 至少包含数值型或字符串型 `value`，也可以使用 `data` 数组。
-- `chart`：`spec` 使用 `data` 数组，或使用 `series` 数组。
-- `table`、`steps`：`spec` 必须包含 `data` 数组。
+- `table`、`steps`：`spec` 必须包含 `data` 数组。表格的数值列需要显示为百分比、带单位或换算量级时，在 `spec.fields` 中按列名声明字段语义（与 ChartSpec 的 `fields` 写法相同）；未声明的数值按原样显示。
 - 不要把自然语言结论塞进 `data`；结论放在普通回答中。
 
-## 路径 B：保存图像文件
+## 路径 B：保存图表文件
 
 1. `search_knowledge` → 检索业务规则和图表风格
-2. `query_database` → 提取并验证数据
-3. `write_file` → 必要时保存 CSV 中间文件
-4. `run_python` → 用 pandas 读取 CSV，清洗、统计并用 matplotlib 绘图
-5. `write_file` 或 Python 输出 → 将图像保存到用户指定位置
-6. 输出图像文件链接和简短结论
+2. `query_database` → 按 answer-spec 流程取数，在查询中把数据聚合到图表需要的粒度
+3. `publish_query_result` 或 `export_query` → 发布结果，记下返回的 `receiptId`
+4. `render_chart(spec, fileName)` → 渲染为 `charts/<fileName>.svg`
+5. 输出文件链接、图注和简短结论
 
-如果当前工具列表没有 `run_python`，不要调用或重试它；改用已可用的查询工具，或说明无法生成文件图表。
+最小合法示例：
+
+```json chart-spec
+{
+  "version": 1,
+  "data": { "kind": "publication", "receiptId": "<receiptId>" },
+  "fields": { "sales": { "type": "quantitative", "label": "销售额", "storage": "raw", "unit": "元", "additivity": "additive" } },
+  "chart": { "mark": "cartesian", "x": { "field": "month" }, "layers": [{ "type": "line", "y": { "field": "sales" } }] }
+}
+```
+
+- 度量字段必须声明 `type: "quantitative"`、`storage` 与 `additivity`；工具不聚合、不补零，出错时按返回的错误码与建议修改查询或 spec。
+- 返回的 `[NOTICE]`、`[DISCLOSURE]`、`[SEMANTICS]` 写进图注。
+- 不使用 Python 绘图。
 
 ## 图表规范
 
-- 使用 `plt.savefig()` 保存，不使用 `plt.show()`。
-- 配色专业、标注清晰、标题简洁。
-- 图表数据必须来自已验证的查询结果。
+- 标注清晰、标题简洁；配色由工具统一提供，不要自行指定。
+- 图表数据必须来自已发布的查询结果。
 - 文件下载链接使用普通 Markdown 链接，不用 Widget 代替文件交付。
