@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mkdtemp, mkdir, writeFile, rm, access } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile, rm, access, realpath, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve as resolvePath } from "node:path";
 import { loadSkillsFromRoots, resolveSkillRoots } from "./skills.js";
@@ -45,8 +45,23 @@ describe("Skills", () => {
     const result = await loadSkillsFromRoots([windowsRoot]);
     expect(result.diagnostics).toEqual([]);
     expect(result.skills.map((skill) => skill.name)).toEqual(["windows"]);
-    expect(result.skills[0].filePath).toBe(resolvePath(root, "windows", "SKILL.md"));
+    // Loaded paths are canonical; a temp root may itself be an 8.3 short name such as RUNNER~1.
+    expect(result.skills[0].filePath).toBe(join(await realpath(root), "windows", "SKILL.md"));
     await rm(root, { recursive: true, force: true });
+  });
+
+  it("loads a root reached through a junction or symlink", async () => {
+    const real = await mkdtemp(join(tmpdir(), "data-agent-real-skills-"));
+    await mkdir(join(real, "linked"), { recursive: true });
+    await writeFile(join(real, "linked", "SKILL.md"), "---\nname: linked\ndescription: via link\n---\nbody", "utf8");
+    const parent = await mkdtemp(join(tmpdir(), "data-agent-link-parent-"));
+    const link = join(parent, "skills");
+    await symlink(real, link, "junction");
+    const result = await loadSkillsFromRoots([link]);
+    expect(result.skills.map((skill) => skill.name)).toEqual(["linked"]);
+    expect(result.skills[0].filePath).toBe(join(await realpath(real), "linked", "SKILL.md"));
+    await rm(parent, { recursive: true, force: true });
+    await rm(real, { recursive: true, force: true });
   });
 
   it("uses the native loader, skips malformed Skills, and never executes their body", async () => {

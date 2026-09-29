@@ -162,8 +162,9 @@ export async function loadSkillsFromRoots(roots: string[]): Promise<{ skills: Sk
     }
   }
   const candidates: SkillDefinition[] = [];
-  for (const root of normalizedRoots) {
-    if (!trustedRoots.some((trusted) => path.resolve(trusted) === path.resolve(root))) continue;
+  // Scan each root by its canonical path: a root reached through a junction, a symlink or an
+  // 8.3 short name (C:\Users\RUNNER~1) differs from its realpath but is still the same root.
+  for (const root of [...new Set(trustedRoots)]) {
     for (const filePath of await skillFiles(root, diagnostics)) {
       let canonicalFilePath: string;
       try {
