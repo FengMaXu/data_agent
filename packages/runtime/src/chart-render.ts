@@ -17,7 +17,9 @@ export type StaticChartResult =
   | { readonly ok: true; readonly svg: string; readonly notices: readonly PresentationNotice[]; readonly width: number; readonly height: number }
   | { readonly ok: false; readonly errors: readonly ChartError[] };
 
-const ZRENDER_TOKEN = /zr\d+-(?:cls-\d+|[a-z]+\d+)/g;
+// Only where zrender writes ids: attributes, url(#...) references and CSS class selectors.
+// Label text that happens to read "zr0-c0" must never be rewritten.
+const ZRENDER_TOKEN = /(?<=id="|class="|url\(#|href="#|\.)zr\d+-(?:cls-\d+|[a-z]+\d+)/g;
 
 /**
  * zrender names clip paths and style classes with a per-instance counter

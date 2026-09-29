@@ -29,6 +29,14 @@ describe("Static chart rendering", () => {
     expectWellFormedXml(result.svg);
   });
 
+  it("renames only generated ids, never label text that looks like one", () => {
+    const lookalike = renderChartSvg(spec, { columns: ["industry", "sales"], rows: [["zr0-c0", 1], ["zr12-cls-3", 2]] });
+    if (!lookalike.ok) throw new Error(JSON.stringify(lookalike.errors));
+    expect(lookalike.svg).toContain(">zr0-c0<");
+    expect(lookalike.svg).toContain(">zr12-cls-3<");
+    expect(lookalike.svg).not.toMatch(/(?:id="|class="|url\(#)zr\d+-/);
+  });
+
   it("stays well-formed XML when labels carry markup characters", () => {
     const markup = { ...spec, fields: { sales: { ...spec.fields.sales, label: "A&B <v> \"q\"" } } };
     const bar = renderChartSvg(markup, { columns: ["industry", "sales"], rows: [["R&D <部门> \"甲\" 'x'", 1], ["b]]>c", 2]] });
