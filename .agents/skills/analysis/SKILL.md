@@ -26,33 +26,28 @@ allowed-tools:
 
 ## 路径 A：内联 Widget
 
-1. `query_database` → 提取并验证图表数据
-2. `show_widget(kind="chart", spec={...})` → 渲染图表
-3. 输出简短的图表结论
+1. `query_database` → 按 answer-spec 流程取数，在查询中把数据聚合到图表需要的粒度
+2. `publish_query_result` 或 `export_query` → 发布结果，记下返回的 `receiptId`
+3. `show_widget(kind="chart", spec=<ChartSpec>)` → 渲染交互图表
+4. 输出简短的图表结论，并写明返回的 `[NOTICE]`、`[DISCLOSURE]`、`[SEMANTICS]`
 
 `show_widget` 的当前合同只有以下 kind：`kpi`、`chart`、`table`、`steps`。参数名是 `spec`，不是 `config`。
 
-最小合法示例：
+`chart` 的 `spec` 是 ChartSpec v1，数据通过 `receiptId` 引用已发布的结果，不要把数据行写进 spec。最小合法示例：
 
-```json
+```json chart-spec
 {
-  "kind": "chart",
-  "spec": {
-    "title": "月度销售额",
-    "data": [
-      {"month": "1月", "sales": 100},
-      {"month": "2月", "sales": 120}
-    ],
-    "series": [
-      {"name": "销售额", "data": [100, 120]}
-    ]
-  }
+  "version": 1,
+  "title": "月度销售额",
+  "data": { "kind": "publication", "receiptId": "<receiptId>" },
+  "fields": { "sales": { "type": "quantitative", "label": "销售额", "storage": "raw", "unit": "元", "additivity": "additive" } },
+  "chart": { "mark": "cartesian", "x": { "field": "month" }, "layers": [{ "type": "bar", "y": { "field": "sales" } }] }
 }
 ```
 
+- `chart`：聊天图表最多容纳 5000 行；更大的结果先在查询中聚合，或改用路径 B。类目很多时可以加 `"viewport": { "mode": "scroll", "window": 20 }`，让图表可以滚动查看。
 - `kpi`：`spec` 至少包含数值型或字符串型 `value`，也可以使用 `data` 数组。
-- `chart`：`spec` 使用 `data` 数组，或使用 `series` 数组。
-- `table`、`steps`：`spec` 必须包含 `data` 数组。
+- `table`、`steps`：`spec` 必须包含 `data` 数组。表格的数值列需要显示为百分比、带单位或换算量级时，在 `spec.fields` 中按列名声明字段语义（与 ChartSpec 的 `fields` 写法相同）；未声明的数值按原样显示。
 - 不要把自然语言结论塞进 `data`；结论放在普通回答中。
 
 ## 路径 B：保存图表文件

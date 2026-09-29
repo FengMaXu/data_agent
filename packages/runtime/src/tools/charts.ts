@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { Type, type Static } from "typebox";
 import { Value } from "typebox/value";
 import type { AgentHarnessTool, AgentToolResult } from "@earendil-works/pi-agent-core";
+import type { ChartError } from "@data-agent/charts";
 import { renderChartSvg } from "../chart-render.js";
 import type { ArtifactDirectory } from "../facets/artifact-directory.js";
 import type { WorkspaceStore } from "../workspace.js";
@@ -22,7 +23,20 @@ export interface ChartToolOptions {
   readonly artifacts: Pick<ArtifactDirectory, "resolveRows">;
 }
 
-function publicationRef(spec: unknown): string {
+/** Chat widgets persist their rows in the session, so they are bounded; larger results belong in render_chart or export_query. */
+export const MAX_WIDGET_ROWS = 5000;
+
+/** JSON-safe copy of published rows: bigint as decimal text and Date as ISO text, both of which the compiler reads back. */
+export function jsonSafeRows(rows: readonly (readonly unknown[])[]): unknown[][] {
+  return rows.map((row) => row.map((cell) => (typeof cell === "bigint" ? cell.toString() : cell instanceof Date ? cell.toISOString() : cell === undefined ? null : cell)));
+}
+
+export function formatChartErrors(errors: readonly ChartError[]): string {
+  const lines = errors.map((error) => `[${error.code}] ${error.message}${error.path ? ` (${error.path})` : ""}${error.hint ? `；建议：${error.hint}` : ""}`);
+  return `CHART_SPEC_INVALID\n${lines.join("\n")}`;
+}
+
+export function publicationRef(spec: unknown): string {
   const data = spec && typeof spec === "object" ? (spec as { data?: unknown }).data : undefined;
   const ref = data && typeof data === "object" ? data as { kind?: unknown; receiptId?: unknown } : undefined;
   if (ref?.kind !== "publication" || typeof ref.receiptId !== "string" || !ref.receiptId) {
@@ -31,7 +45,7 @@ function publicationRef(spec: unknown): string {
   return ref.receiptId;
 }
 
-function declaredFields(spec: unknown): string[] {
+export function declaredFields(spec: unknown): string[] {
   const fields = spec && typeof spec === "object" ? (spec as { fields?: unknown }).fields : undefined;
   return fields && typeof fields === "object" ? Object.keys(fields) : [];
 }
@@ -53,10 +67,7 @@ function renderChartTool(options: ChartToolOptions): AgentHarnessTool<DataAgentT
         ...(value.width ? { width: value.width } : {}),
         ...(value.height ? { height: value.height } : {}),
       });
-      if (!rendered.ok) {
-        const lines = rendered.errors.map((error) => `[${error.code}] ${error.message}${error.path ? ` (${error.path})` : ""}${error.hint ? `；建议：${error.hint}` : ""}`);
-        throw new Error(`CHART_SPEC_INVALID\n${lines.join("\n")}`);
-      }
+      if (!rendered.ok) throw new Error(formatChartErrors(rendered.errors));
       const specHash = createHash("sha256").update(JSON.stringify(value.spec)).digest("hex").slice(0, 8);
       const relativePath = `charts/${value.fileName ?? `chart-${specHash}`}.svg`;
       await options.workspace.write(relativePath, rendered.svg);

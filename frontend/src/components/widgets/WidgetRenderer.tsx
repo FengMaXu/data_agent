@@ -1,5 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import * as echarts from 'echarts';
+import { formatFieldValue, type ChartDataset } from '@data-agent/charts';
+import type { FieldMeta } from '@data-agent/contracts';
+import ChartSpecWidget from './ChartSpecWidget';
 import { useLanguage } from '../../context/LanguageContext';
 import { usePreview } from '../../context/PreviewContext';
 import { resolveInternalUrl, resolveWorkspacePreviewUrl } from '../../utils/resolveInternalUrl';
@@ -30,7 +33,18 @@ export interface WidgetSpec {
     file_type?: string;
     status?: 'previewing' | 'ready' | 'error';
     error?: string;
+    /** Set by the current Runtime; absent on widgets replayed from earlier sessions. */
+    contractVersion?: number;
+    chartSpec?: unknown;
+    dataset?: ChartDataset;
+    disclosure?: string;
+    declaredFields?: string[];
+    /** Declared semantics of table columns, keyed by column. */
+    fields?: Record<string, FieldMeta>;
 }
+
+/** Mirrors CHART_WIDGET_CONTRACT_VERSION in the Runtime's widget contract. */
+const CURRENT_WIDGET_CONTRACT = 2;
 
 interface WidgetRendererProps {
     widget: WidgetSpec;
@@ -241,6 +255,21 @@ const formatTableCell = (value: unknown, column: any, t: (key: string) => string
     return String(value);
 };
 
+/**
+ * Cells of a table built by the current Runtime: declared field semantics decide
+ * scale, magnitude and unit; nothing is inferred from column names or value ranges.
+ * Undeclared numbers get digit grouping only, and text (including DECIMAL text and codes) is shown as written.
+ */
+const formatVersionedCell = (value: unknown, meta: FieldMeta | undefined, t: (key: string) => string) => {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'boolean') return value ? t('widgets.true') : t('widgets.false');
+    const declared = formatFieldValue(value, meta);
+    if (declared !== undefined) return declared;
+    if (typeof value === 'number' && Number.isFinite(value)) return new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 4 }).format(value);
+    if (Array.isArray(value) || typeof value === 'object') return JSON.stringify(value);
+    return String(value);
+};
+
 const renderMetricCards = (widget: WidgetSpec, t: (key: string) => string) => {
     const items = Array.isArray(widget.data)
         ? widget.data
@@ -265,6 +294,9 @@ const renderMetricCards = (widget: WidgetSpec, t: (key: string) => string) => {
 const renderTable = (widget: WidgetSpec, t: (key: string) => string) => {
     const rows = Array.isArray(widget.data) ? widget.data : [];
     const columns = normalizeColumns(widget, rows);
+    // Tables replayed from earlier sessions keep the inference they were first shown with.
+    const versioned = widget.contractVersion === CURRENT_WIDGET_CONTRACT;
+    const cell = (value: unknown, column: any) => (versioned ? formatVersionedCell(value, widget.fields?.[column.key], t) : formatTableCell(value, column, t));
 
     return (
         <div style={{ overflowX: 'auto' }}>
@@ -283,7 +315,7 @@ const renderTable = (widget: WidgetSpec, t: (key: string) => string) => {
                         <tr key={rowIndex}>
                             {columns.map((column: any, colIndex: number) => (
                                 <td key={colIndex} style={{ padding: '8px 10px', borderBottom: '1px solid #f3f4f6', color: '#111827' }}>
-                                    {formatTableCell(row[column.key], column, t)}
+                                    {cell(row[column.key], column)}
                                 </td>
                             ))}
                         </tr>
@@ -623,7 +655,10 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = ({ widget, drillPath, onDr
             case 'table':
                 return renderTable(widget, t);
             case 'chart':
-                return renderChart(widget, t);
+                // Runtime-built ChartSpec widgets; charts replayed from earlier sessions keep the legacy renderer.
+                return widget.contractVersion === CURRENT_WIDGET_CONTRACT && widget.chartSpec && widget.dataset
+                    ? <ChartSpecWidget widget={{ chartSpec: widget.chartSpec, dataset: widget.dataset, ...(widget.disclosure ? { disclosure: widget.disclosure } : {}), ...(widget.declaredFields ? { declaredFields: widget.declaredFields } : {}) }} />
+                    : renderChart(widget, t);
             case 'steps':
                 return renderSteps(widget, t);
             case 'rich_text':

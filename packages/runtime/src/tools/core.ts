@@ -1,5 +1,11 @@
 import { Type } from "typebox";
+import { Value } from "typebox/value";
 import { randomUUID } from "node:crypto";
+import { FieldMetaSchema } from "@data-agent/contracts";
+import { compileChart } from "@data-agent/charts";
+import type { BusinessContext } from "../answering/public.js";
+import type { ArtifactDirectory } from "../facets/artifact-directory.js";
+import { MAX_WIDGET_ROWS, declaredFields, formatChartErrors, jsonSafeRows, publicationRef } from "./charts.js";
 import type { AgentToolResult } from "@earendil-works/pi-agent-core";
 import { DEFAULT_KNOWLEDGE_RESULTS, formatKnowledgeSearchResults, MAX_KNOWLEDGE_RESULTS, type KnowledgeIndex } from "../knowledge.js";
 import { materializeDashboardV3Spec, renderStandaloneDashboardHtml, validateDashboardV3Spec } from "../dashboard-v3.js";
@@ -7,13 +13,57 @@ import { renderSemanticDashboardHtml, validateDashboardV4Spec } from "../dashboa
 import { KnowledgeWriter } from "../knowledge-write.js";
 import { runPythonJob } from "../python-job.js";
 import type { WorkspaceStore } from "../workspace.js";
-import { validateWidgetSpec, widgetLegacyText, type WidgetPayload } from "../widget.js";
-import type { DataAgentToolContext } from "./answering.js";
+import { CHART_WIDGET_CONTRACT_VERSION, validateWidgetSpec, widgetLegacyText, type WidgetPayload } from "../widget.js";
+import { trustedContext, type DataAgentToolContext } from "./answering.js";
 import { defineDataAgentTool, type DataAgentToolDefinition } from "./tool-definition.js";
 import type { ClarificationDialogs } from "../facets/clarification-dialogs.js";
 
 function text(content: string, details?: unknown): AgentToolResult<unknown> {
   return { content: [{ type: "text", text: content }], details: details ?? null };
+}
+
+const TableFieldsSchema = Type.Record(Type.String(), FieldMetaSchema);
+
+async function chartWidget(options: CoreToolOptions, spec: unknown, widgetId: string, toolCallId: string, business: BusinessContext): Promise<WidgetPayload> {
+  if (!options.publishedRows) throw new Error("WIDGET_CHART_UNAVAILABLE: this host cannot read published results for charts");
+  const receiptId = publicationRef(spec);
+  const published = await options.publishedRows.resolveRows(receiptId, business);
+  if (published.rows.length > MAX_WIDGET_ROWS) {
+    throw new Error(`WIDGET_CHART_TOO_MANY_ROWS: the published result has ${published.rows.length} rows and chat charts hold at most ${MAX_WIDGET_ROWS}; aggregate in the query, or use render_chart or export_query`);
+  }
+  // The rows travel with the widget so a replayed session renders without re-reading the result.
+  const dataset = { columns: [...published.columns], rows: jsonSafeRows(published.rows) };
+  const compiled = compileChart(spec, dataset, { target: "interactive" });
+  if (!compiled.ok) throw new Error(formatChartErrors(compiled.errors));
+  const disclosure = published.receipt.disclosure?.summary;
+  const declared = declaredFields(spec);
+  return {
+    widget_id: widgetId,
+    kind: "chart",
+    title: compiled.spec.title ?? "图表",
+    ...(compiled.spec.subtitle ? { subtitle: compiled.spec.subtitle } : {}),
+    tool_call_id: toolCallId,
+    contractVersion: CHART_WIDGET_CONTRACT_VERSION,
+    receiptId,
+    chartSpec: compiled.spec,
+    dataset,
+    notices: compiled.notices,
+    ...(disclosure ? { disclosure } : {}),
+    ...(declared.length > 0 ? { declaredFields: declared } : {}),
+  };
+}
+
+/** Model-visible summary of a chart widget; the rows stay in the widget, out of the model context. */
+function chartWidgetText(widget: WidgetPayload): string {
+  const notices = Array.isArray(widget.notices) ? widget.notices as { message?: string }[] : [];
+  const declared = Array.isArray(widget.declaredFields) ? widget.declaredFields as string[] : [];
+  const rows = (widget.dataset as { rows?: unknown[] } | undefined)?.rows?.length ?? 0;
+  return [
+    `[widget:chart] ${widget.title} (receiptId=${String(widget.receiptId)}, ${rows} 行)`,
+    ...notices.map((notice) => `[NOTICE] ${notice.message ?? ""}`),
+    ...(typeof widget.disclosure === "string" ? [`[DISCLOSURE] ${widget.disclosure}`] : []),
+    ...(declared.length > 0 ? [`[SEMANTICS] 以下字段的语义来自模型声明，未经业务定义核实：${declared.join("、")}`] : []),
+  ].join("\n");
 }
 
 export interface CoreToolOptions {
@@ -25,6 +75,8 @@ export interface CoreToolOptions {
   readonly enableDashboards?: boolean;
   readonly enableWidgets?: boolean;
   readonly clarifications?: Pick<ClarificationDialogs, "ask">;
+  /** Receipt-bound rows for chart widgets; without it show_widget cannot draw charts. */
+  readonly publishedRows?: Pick<ArtifactDirectory, "resolveRows">;
 }
 
 function executableOf(source: CoreToolOptions["pythonExecutable"]): string | undefined {
@@ -248,16 +300,30 @@ export function createCoreAgentToolDefinitions(options: CoreToolOptions): readon
       description: "Render a structured widget for the Presentation layer.",
       replay: "never",
       parameters: Type.Object({ kind: Type.Union([Type.Literal("kpi"), Type.Literal("chart"), Type.Literal("table"), Type.Literal("steps")]), spec: Type.Unknown() }, { additionalProperties: false }),
-      async execute(toolCallId, input) {
+      async execute(toolCallId, input, _onUpdate, toolContext, invocation, context) {
         const value = input as { kind: WidgetPayload["kind"]; spec: unknown };
+        const widgetId = `widget-${toolCallId}`;
+        const lifecycle = (widget: WidgetPayload) => ({ widgetEvent: "widget", widgetId, toolCallId, toolName: "show_widget", widget });
+        if (value.kind === "chart") {
+          const widget = await chartWidget(options, value.spec, widgetId, toolCallId, trustedContext(toolContext, invocation, context));
+          return text(chartWidgetText(widget), lifecycle(widget));
+        }
         const validation = validateWidgetSpec(value.kind, value.spec);
         if (!validation.ok) throw new Error(`WIDGET_SPEC_INVALID: ${validation.error}`);
-        const widget: WidgetPayload = { ...validation.spec, widget_id: `widget-${toolCallId}`, kind: value.kind, title: typeof validation.spec.title === "string" && validation.spec.title.trim() ? validation.spec.title : `${value.kind} widget`, tool_call_id: toolCallId };
-        return text(widgetLegacyText(widget), { widgetEvent: "widget", widgetId: `widget-${toolCallId}`, toolCallId, toolName: "show_widget", widget });
+        const fields = validation.spec.fields;
+        if (value.kind === "table" && fields !== undefined && !Value.Check(TableFieldsSchema, fields)) {
+          throw new Error("WIDGET_SPEC_INVALID: table fields must map column names to ChartSpec field semantics (type, storage, additivity, ...)");
+        }
+        const widget: WidgetPayload = { ...validation.spec, widget_id: widgetId, kind: value.kind, title: typeof validation.spec.title === "string" && validation.spec.title.trim() ? validation.spec.title : `${value.kind} widget`, tool_call_id: toolCallId, contractVersion: CHART_WIDGET_CONTRACT_VERSION };
+        return text(widgetLegacyText(widget), lifecycle(widget));
       },
     }, {
       promptSnippet: "输出结构化展示部件。",
-      promptGuidelines: ["只在获得可视化授权且 kind 受现有实现支持时使用；不能绕过查询结果的发布授权。"],
+      promptGuidelines: [
+        "只在获得可视化授权且 kind 受现有实现支持时使用；不能绕过查询结果的发布授权。",
+        "kind=\"chart\" 的 spec 是 ChartSpec v1，spec.data 为 { kind: \"publication\", receiptId }，引用已发布的结果；不要把数据行写进 spec。",
+        "kind=\"table\" 的数值列需要百分比、单位或量级换算时，在 spec.fields 中按列名声明字段语义；未声明的数值按原样显示，不会被猜测为百分比。",
+      ],
     }));
   }
 
