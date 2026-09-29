@@ -26,6 +26,19 @@ export interface ArtifactReadModel {
   readAuthorized(receipt: PublicationReceipt, context: BusinessContext): Promise<{ readonly content: string; readonly contentHash: string }>;
   /** Optional authorized SQL projection; it must resolve through the Receipt. */
   readSqlAuthorized?(receipt: PublicationReceipt, context: BusinessContext): Promise<{ readonly sql: string; readonly queryHash: string }>;
+  /** Optional typed rows of the published result; it must resolve through the Receipt. */
+  readRowsAuthorized?(receipt: PublicationReceipt, context: BusinessContext): Promise<PublishedRows>;
+}
+
+/** Published rows with their original types (numbers, bigints, NULL), as charts need them. */
+export interface PublishedRows {
+  readonly columns: readonly string[];
+  readonly rows: readonly (readonly unknown[])[];
+  readonly contentHash: string;
+}
+
+export interface AuthorizedPublishedRows extends Omit<PublishedRows, "contentHash"> {
+  readonly receipt: PublicationReceipt;
 }
 
 /**
@@ -60,5 +73,15 @@ export class ArtifactDirectory {
       },
       content: encoded.content,
     };
+  }
+
+  /** Typed rows of one publication, checked against the Receipt's content hash. */
+  async resolveRows(publicationId: string, context: BusinessContext): Promise<AuthorizedPublishedRows> {
+    const receipt = await this.source.findPublication(publicationId, context);
+    if (!receipt) throw new Error("PUBLICATION_NOT_FOUND");
+    if (!this.source.readRowsAuthorized) throw new Error("PUBLICATION_ROWS_PROJECTION_UNAVAILABLE");
+    const published = await this.source.readRowsAuthorized(receipt, context);
+    if (published.contentHash !== receipt.contentHash) throw new Error("PUBLICATION_INTEGRITY_MISMATCH");
+    return { receipt, columns: published.columns, rows: published.rows };
   }
 }
