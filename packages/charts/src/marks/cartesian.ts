@@ -23,8 +23,8 @@ function planLayers(context: CompileContext, chart: CartesianChart, valueX: bool
     if (layer.type !== "scatter" && (layer.size || layer.id)) context.fail({ code: "INVALID_ENCODING", message: "size 与 id 只用于 scatter", path });
     if (chart.orientation === "horizontal" && layer.y.axis === "right") context.fail({ code: "INVALID_ENCODING", message: "横向图不支持右侧数值轴", path: `${path}/y/axis` });
     // Horizontal swaps only category bars and lines; points would need their coordinates swapped too.
-    if (chart.orientation === "horizontal" && (layer.type === "scatter" || valueX)) context.fail({ code: "INVALID_ENCODING", message: "横向图只支持类目 x 轴上的 bar 与 line", path: "/chart/orientation" });
-    if (valueX && layer.type === "bar") context.fail({ code: "INVALID_ENCODING", message: "x 字段声明为 quantitative 时只能使用 line 或 scatter，bar 需要类目 x 轴", path: `${path}/type` });
+    if (chart.orientation === "horizontal" && (layer.type === "scatter" || layer.type === "area" || valueX)) context.fail({ code: "INVALID_ENCODING", message: "横向图只支持类目 x 轴上的 bar 与 line", path: "/chart/orientation" });
+    if (valueX && layer.type === "bar") context.fail({ code: "INVALID_ENCODING", message: "x 字段声明为 quantitative 时只能使用 line、area 或 scatter，bar 需要类目 x 轴", path: `${path}/type` });
     if (valueX && stack !== "none") context.fail({ code: "INVALID_ENCODING", message: "数值 x 轴不支持堆叠", path: `${path}/stack` });
     const y = context.measure(layer.y.field, `${path}/y/field`);
     const seriesIndex = layer.series ? context.column(layer.series.field, `${path}/series/field`) : undefined;
@@ -88,6 +88,11 @@ function compileCartesian(context: CompileContext, chart: CartesianChart): Chart
     const labelOf = (rowIndex: number) => (plan.labelIndex === undefined ? undefined : categoryLabel(rows[rowIndex]![plan.labelIndex]));
     const label = plan.labelIndex === undefined ? {} : { label: { show: true, position: horizontal ? "right" : "top", formatter: (params: { data?: { labelText?: string } }) => params.data?.labelText ?? "" } };
 
+    // An area is a line filled to the axis; it follows the line's rules and adds only its fill.
+    const isLine = layer.type === "line" || layer.type === "area";
+    const echartsType = layer.type === "area" ? "line" : layer.type;
+    const area = layer.type === "area" ? { areaStyle: { opacity: stack === "none" ? 0.25 : 0.85 } } : {};
+
     // Points: every scatter, and lines over a numeric x. Repeated coordinates are kept, never merged.
     if (layer.type === "scatter" || valueX) {
       const sizes = plan.size ? plan.size.values.filter((value): value is number => value !== null).map(Math.abs) : [];
@@ -102,7 +107,7 @@ function compileCartesian(context: CompileContext, chart: CartesianChart): Chart
           if (x === null || value === null) {
             missing += 1;
             // A line keeps the gap at a known x; a point without both coordinates is not drawn.
-            if (layer.type === "line" && x !== null) points.push({ value: [x, null] });
+            if (isLine && x !== null) points.push({ value: [x, null] });
             return;
           }
           const text = labelOf(rowIndex);
@@ -112,12 +117,13 @@ function compileCartesian(context: CompileContext, chart: CartesianChart): Chart
             ...(text !== undefined ? { labelText: text } : {}),
           });
         });
-        if (layer.type === "line") points.sort((left, right) => Number(left.value[0]) - Number(right.value[0]));
+        if (isLine) points.sort((left, right) => Number(left.value[0]) - Number(right.value[0]));
         const name = seriesName(baseName, group, plans.length);
         series.push({
-          type: layer.type,
+          type: echartsType,
           name,
           data: points,
+          ...area,
           ...onAxis,
           ...label,
           itemStyle: { color: nextColor(layer, group) },
@@ -164,12 +170,13 @@ function compileCartesian(context: CompileContext, chart: CartesianChart): Chart
         return text === undefined || shown === null ? shown : { value: shown, labelText: text };
       });
       series.push({
-        type: layer.type,
+        type: echartsType,
         name: seriesName(baseName, group, plans.length),
         data,
+        ...area,
         ...onAxis,
         ...(stack !== "none" ? { stack: `layer-${plan.index}` } : {}),
-        ...(layer.type === "line" ? { showSymbol: categories.length <= 60 } : {}),
+        ...(isLine ? { showSymbol: categories.length <= 60 } : {}),
         ...label,
         itemStyle: { color: nextColor(layer, group) },
         tooltip: { valueFormatter: (value: number | null) => (typeof value !== "number" ? "—" : stack === "percent" ? `${value.toFixed(1)}%` : formatValue(value, y.meta)) },

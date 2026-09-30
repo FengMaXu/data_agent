@@ -1,7 +1,7 @@
-import { type TreemapChart } from "@data-agent/contracts";
+import { type SunburstChart, type TreemapChart } from "@data-agent/contracts";
 import type { ChartOption } from "../types.js";
 import { PALETTE, displayScale, fieldLabel, fieldTitle, formatValue } from "../semantics.js";
-import { CompileContext, checkPartOfWhole, refuseSelection } from "./shared.js";
+import { type Measure, CompileContext, checkPartOfWhole, refuseSelection } from "./shared.js";
 import type { MarkDefinition } from "./types.js";
 
 const MAX_STATIC_TREEMAP_LEAVES = 60;
@@ -9,10 +9,22 @@ const MAX_STATIC_TREEMAP_LEAVES = 60;
 /** A tile below this share of the whole usually cannot show its name and value. */
 const SMALL_TILE_SHARE = 0.02;
 
-interface TreeNode { name: string; value?: number; children?: TreeNode[] }
+export interface TreeNode { name: string; value?: number; children?: TreeNode[] }
 
-function compileTreemap(context: CompileContext, chart: TreemapChart): ChartOption | undefined {
-  refuseSelection(context, "树图");
+export interface LeafTree {
+  readonly root: TreeNode;
+  readonly depth: number;
+  readonly value: Measure;
+  /** How many leaves are below the given share of the whole; used for notices, never shown. */
+  smallLeaves(share: number): number;
+}
+
+/**
+ * Leaf rows with full paths, checked and nested: part-of-whole, one row per
+ * path, and a static capacity. Treemap and sunburst draw the same tree.
+ */
+export function leafTree(context: CompileContext, chart: TreemapChart | SunburstChart, name: string, maxStaticLeaves: number): LeafTree | undefined {
+  refuseSelection(context, name);
   const levels = chart.path.map((level, index) => ({ field: level.field, index: context.column(level.field, `/chart/path/${index}/field`) }));
   const value = context.measure(chart.value.field, "/chart/value/field");
   if (levels.some((level) => level.index === undefined) || !value) return undefined;
@@ -29,29 +41,37 @@ function compileTreemap(context: CompileContext, chart: TreemapChart): ChartOpti
     }
     seen.add(key);
   }
-  if (context.options.target === "static" && rows.length > MAX_STATIC_TREEMAP_LEAVES) {
-    context.fail({ code: "CAPACITY_EXCEEDED", message: `${rows.length} 个叶子超过静态图上限 ${MAX_STATIC_TREEMAP_LEAVES}`, field: value.field, hint: "减少路径层级，或在查询中合并次要叶子（由查询返回“其他”）" });
+  if (context.options.target === "static" && rows.length > maxStaticLeaves) {
+    context.fail({ code: "CAPACITY_EXCEEDED", message: `${rows.length} 个叶子超过静态图上限 ${maxStaticLeaves}`, field: value.field, hint: "减少路径层级，或在查询中合并次要叶子（由查询返回“其他”）" });
     return undefined;
   }
   const scale = displayScale(value.meta);
   const root: TreeNode = { name: "", children: [] };
   for (const [rowIndex, path] of paths.entries()) {
     let node = root;
-    for (const [depth, name] of path.entries()) {
+    for (const [depth, part] of path.entries()) {
       node.children ??= [];
-      let child = node.children.find((item) => item.name === name);
+      let child = node.children.find((item) => item.name === part);
       if (!child) {
-        child = { name };
+        child = { name: part };
         node.children.push(child);
       }
       if (depth === path.length - 1) child.value = value.values[rowIndex]! * scale;
       node = child;
     }
   }
-  if (levels.length > 1) context.notice({ kind: "layout", code: "VISUAL_SUM", message: "上层区块的面积为其下叶子之和", field: value.field });
-  // Only a static image lacks the tooltip that names a small tile; the share is used for this notice, never shown.
   const whole = value.values.reduce<number>((sum, item) => sum + (item ?? 0), 0);
-  const small = whole > 0 ? value.values.filter((item) => (item ?? 0) / whole < SMALL_TILE_SHARE).length : 0;
+  return { root, depth: levels.length, value, smallLeaves: (share) => (whole > 0 ? value.values.filter((item) => (item ?? 0) / whole < share).length : 0) };
+}
+
+function compileTreemap(context: CompileContext, chart: TreemapChart): ChartOption | undefined {
+  const tree = leafTree(context, chart, "树图", MAX_STATIC_TREEMAP_LEAVES);
+  if (!tree) return undefined;
+  const { root, value } = tree;
+  const levels = chart.path;
+  if (levels.length > 1) context.notice({ kind: "layout", code: "VISUAL_SUM", message: "上层区块的面积为其下叶子之和", field: value.field });
+  // Only a static image lacks the tooltip that names a small tile.
+  const small = tree.smallLeaves(SMALL_TILE_SHARE);
   if (context.options.target === "static" && small > 0) {
     context.notice({ kind: "layout", code: "SMALL_TILES", message: `${small} 个区块面积过小，名称与数值可能无法完整显示，完整数据见数据集`, field: value.field });
   }

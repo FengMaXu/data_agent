@@ -3,10 +3,12 @@ import type { ChartDataset } from "../types.js";
 import type { MarkDefinition } from "./types.js";
 import { boxplotMark } from "./boxplot.js";
 import { cartesianMark } from "./cartesian.js";
+import { funnelMark } from "./funnel.js";
 import { heatmapMark } from "./heatmap.js";
 import { histogramMark } from "./histogram.js";
 import { pieMark } from "./pie.js";
 import { sankeyMark } from "./sankey.js";
+import { sunburstMark } from "./sunburst.js";
 import { treemapMark } from "./treemap.js";
 import { waterfallMark } from "./waterfall.js";
 
@@ -20,6 +22,8 @@ export const MARKS: { readonly [Mark in ChartMarkName]: MarkDefinition<Extract<C
   waterfall: waterfallMark,
   sankey: sankeyMark,
   treemap: treemapMark,
+  funnel: funnelMark,
+  sunburst: sunburstMark,
 };
 
 /** The definition for a chart's own mark. */
