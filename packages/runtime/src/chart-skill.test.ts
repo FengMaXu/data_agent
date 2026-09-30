@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { exampleDataset } from "@data-agent/charts";
 import { checkChartSpec, type ChartSpec } from "@data-agent/contracts";
 import { renderChartSvg } from "./chart-render.js";
 
@@ -16,17 +17,6 @@ async function chartExamples(skill: string): Promise<{ body: string; line: numbe
   return examples;
 }
 
-/** Two sample rows whose columns are the fields the spec references: numbers for measures, text otherwise. */
-function sampleRows(spec: ChartSpec) {
-  const chart = spec.chart;
-  const fields = chart.mark === "pie"
-    ? [chart.category.field, chart.value.field]
-    : [chart.x.field, ...chart.layers.flatMap((layer) => [layer.y.field, ...(layer.series ? [layer.series.field] : [])])];
-  const columns = [...new Set(fields)];
-  const measure = (field: string) => spec.fields?.[field]?.type === "quantitative";
-  return { columns, rows: [0, 1].map((index) => columns.map((field) => (measure(field) ? index + 1 : `v${index}`))) };
-}
-
 describe("Chart examples in Skills", () => {
   for (const skill of SKILLS) {
     it(`${skill}: every chart-spec example passes the schema and renders`, async () => {
@@ -37,7 +27,7 @@ describe("Chart examples in Skills", () => {
         const checked = checkChartSpec(JSON.parse(example.body));
         expect(checked.ok ? [] : checked.errors, where).toEqual([]);
         const spec = (checked as { spec: ChartSpec }).spec;
-        const rendered = renderChartSvg(spec, sampleRows(spec));
+        const rendered = renderChartSvg(spec, exampleDataset(spec));
         expect(rendered.ok ? [] : rendered.errors, where).toEqual([]);
       }
     });
