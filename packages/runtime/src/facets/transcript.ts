@@ -1,7 +1,7 @@
 import { isToolProgress, type DataAgentEventEnvelope, type DataAgentEvent } from "@data-agent/contracts";
 import type { AgentHarness, HarnessEvent } from "@earendil-works/pi-agent-core";
 import { TODO_CONTEXT } from "@earendil-works/pi-agent-core";
-import { isWidgetLifecycleDetails, validateWidgetSpec } from "../widget.js";
+import { isWidgetLifecycleDetails, validateWidgetSpec, type WidgetPayload } from "../widget.js";
 import { isRuntimeInjected } from "../runtime-injected.js";
 
 export interface ProjectedOperation {
@@ -68,6 +68,8 @@ interface WidgetCall {
   toolName: "show_widget";
   errorEmitted: boolean;
   doneEmitted: boolean;
+  /** Presentation-only deduplication; cleared with the tool call. */
+  widgetJson?: string;
 }
 
 interface OperationProjectionState {
@@ -291,14 +293,10 @@ export class TranscriptProjector {
         return;
       }
       if (details.widgetEvent === "widget" && details.widget) {
-        const validation = validateWidgetSpec(details.widget.kind, details.widget);
-        if (!validation.ok) {
-          emitWidgetError(validation.error);
-          return;
-        }
-        const widget = { ...details.widget, widget_id: call.widgetId, tool_call_id: event.toolCallId };
-        this.emit(base(), { type: "widget", ...common, widget });
+        this.emitWidget(base, call, event.toolCallId, details.widget);
       } else if (details.widgetEvent === "widget_patch" && details.patch) {
+        // A later full result must replace the preview even if it matches an earlier payload.
+        delete call.widgetJson;
         this.emit(base(), { type: "widget_patch", ...common, patch: details.patch });
       } else if (details.widgetEvent === "widget_done") {
         if (!call.errorEmitted && !call.doneEmitted) {
@@ -306,6 +304,7 @@ export class TranscriptProjector {
           this.emit(base(), { type: "widget_done", ...common });
         }
       } else if (details.widgetEvent === "widget_remove") {
+        delete call.widgetJson;
         this.emit(base(), { type: "widget_remove", ...common });
       } else if (details.widgetEvent === "widget_error" && !call.doneEmitted && !call.errorEmitted) {
         call.errorEmitted = true;
@@ -325,8 +324,21 @@ export class TranscriptProjector {
         call.errorEmitted = true;
         this.emit(base(), { type: "widget_error", messageId: call.messageId, toolCallId, widgetId: call.widgetId, toolName: "show_widget", error: readableToolResult(event.result, "Widget execution failed") });
       } else if (call && !event.isError && !call.errorEmitted && !call.doneEmitted) {
-        call.doneEmitted = true;
-        this.emit(base(), { type: "widget_done", messageId: call.messageId, toolCallId, widgetId: call.widgetId, toolName: "show_widget" });
+        const result = asRecord(event.result);
+        const rawDetails = asRecord(result?.details);
+        // Final tool results keep readable text in content rather than legacyText.
+        // Adapt that envelope to the same lifecycle guard used for streaming updates.
+        const details = { ...rawDetails, legacyText: textFromContent(result?.content) };
+        if (isWidgetLifecycleDetails(details) && details.widgetEvent === "widget" && details.widget) {
+          this.emitWidget(base, call, toolCallId, details.widget);
+        } else if (rawDetails || call.widgetJson === undefined) {
+          call.errorEmitted = true;
+          this.emit(base(), { type: "widget_error", messageId: call.messageId, toolCallId, widgetId: call.widgetId, toolName: "show_widget", error: "Invalid Widget result" });
+        }
+        if (!call.errorEmitted) {
+          call.doneEmitted = true;
+          this.emit(base(), { type: "widget_done", messageId: call.messageId, toolCallId, widgetId: call.widgetId, toolName: "show_widget" });
+        }
       }
       this.emit(base(), { type: "agent.tool_finished", toolCallId, toolName: event.toolName, ...(completionArgs !== undefined ? { args: completionArgs } : {}), result: event.result ?? null, isError: Boolean(event.isError || call?.errorEmitted) });
       projection.widgetCalls.delete(toolCallId);
@@ -337,6 +349,22 @@ export class TranscriptProjector {
   clear(operationId?: string): void {
     if (operationId) this.state.delete(operationId);
     else this.state.clear();
+  }
+
+  private emitWidget(base: () => Omit<DataAgentEventEnvelope, "event">, call: WidgetCall, toolCallId: string, payload: WidgetPayload): void {
+    const common = { messageId: call.messageId, toolCallId, widgetId: call.widgetId, toolName: "show_widget" as const };
+    const validation = validateWidgetSpec(payload.kind, payload);
+    if (!validation.ok) {
+      call.errorEmitted = true;
+      this.emit(base(), { type: "widget_error", ...common, error: validation.error });
+      return;
+    }
+    const widget = { ...payload, widget_id: call.widgetId, tool_call_id: toolCallId };
+    const widgetJson = JSON.stringify(widget);
+    if (call.widgetJson !== widgetJson) {
+      this.emit(base(), { type: "widget", ...common, widget });
+      call.widgetJson = widgetJson;
+    }
   }
 
   private emit(base: Omit<DataAgentEventEnvelope, "event">, event: DataAgentEvent): void {
