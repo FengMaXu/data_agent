@@ -3,7 +3,9 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { JSDOM, VirtualConsole } from "jsdom";
-import { CHART_COMPILER_VERSION, CHART_THEME_VERSION } from "@data-agent/charts";
+import { CHART_COMPILER_VERSION, CHART_RENDERER_VERSIONS, CHART_THEME_VERSION } from "@data-agent/charts";
+import { CHARTS_BROWSER_SOURCE } from "@data-agent/charts/browser-source";
+import { renderDashboardHtml } from "../dashboard.js";
 import { InMemoryAnsweringStore } from "../answering/answering-store.js";
 import { InMemoryResultStore } from "../answering/result-store.js";
 import { InMemoryAnswering } from "../answering/service.js";
@@ -97,14 +99,36 @@ describe("generate_dashboard", () => {
     expect(page.errors).toEqual([]);
     expect(page.options.map((entry) => entry.id)).toEqual(["view-sales_bar"]);
     expect(JSON.stringify(page.options[0]!.option.xAxis)).toContain("零售业");
-    expect(page.document.querySelector("#view-kpi .value")?.textContent).toBe("5,733.88 亿元");
-    expect(page.document.querySelector("#view-kpi .delta")?.textContent).toBe("同比 10%");
+    // The number and its unit are set apart; a change carries its direction.
+    expect(page.document.querySelector("#view-kpi .value")?.firstChild?.textContent).toBe("5,733.88");
+    expect(page.document.querySelector("#view-kpi .value .unit")?.textContent).toBe("亿元");
+    expect(page.document.querySelector("#view-kpi .delta.up")?.textContent).toBe("同比 ▲ +10%");
+    const headers = [...page.document.querySelectorAll("#view-detail th")].map((cell) => cell.textContent);
+    expect(headers).toEqual(["行业", "销售额（亿元）", "同比增速"]);
     const cells = [...page.document.querySelectorAll("#view-detail tbody tr")].map((row) => [...row.querySelectorAll("td")].map((cell) => cell.textContent));
-    expect(cells).toEqual([["批发业", "5,234 亿元", "12%"], ["零售业", "499.88 亿元", ""], ["住宿和餐饮业", "", "5%"]]);
+    expect(cells).toEqual([["批发业", "5,234.00", "12%"], ["零售业", "499.88", ""], ["住宿和餐饮业", "", "5%"]]);
     expect(page.document.querySelector("#view-sales_bar .notes")?.textContent).toBeTruthy();
     expect(page.document.querySelector("footer")?.textContent).toContain(receipts.industries);
     page.close();
     await cleanup();
+  });
+
+  it("shows each disclosure once in the footer, not under every view", () => {
+    const data = { kind: "publication", receiptId: "r1" } as const;
+    const spec = { version: 1 as const, title: "t", views: [
+      { id: "a", type: "table" as const, data },
+      { id: "b", type: "table" as const, data },
+    ] };
+    const disclosure = "结果包含按字面解释选择的口径。";
+    const html = renderDashboardHtml(
+      { spec, datasets: { "publication:r1": { columns: ["n"], rows: [[1]] } }, sources: { "publication:r1": { kind: "publication", id: "r1", label: "发布记录 r1", contentHash: "abc", disclosures: [disclosure] } }, checks: {}, renderer: CHART_RENDERER_VERSIONS, declaredFields: [], nonce: "n" },
+      { chartsSource: CHARTS_BROWSER_SOURCE, echartsSource: ECHARTS_STUB },
+    );
+    const page = openPage(html);
+    expect(page.errors).toEqual([]);
+    expect(page.document.querySelectorAll(".panel .notes")).toHaveLength(0);
+    expect([...page.document.querySelectorAll("#data-notes li")].map((item) => item.textContent)).toEqual([disclosure]);
+    page.close();
   });
 
   it("validates without writing and overwrites on edit", async () => {

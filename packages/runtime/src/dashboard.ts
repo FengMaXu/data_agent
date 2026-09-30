@@ -65,10 +65,10 @@ const STYLE = `body{margin:0;background:#f5f6f8;color:#243142;font-family:"Segoe
 .panel.wide{grid-column:span 12}.panel h2{margin:0;font-size:16px}.subtitle{margin:4px 0 0;color:#697586;font-size:13px}
 .chart{height:380px;margin-top:12px}.chart-unavailable{display:flex;align-items:center;justify-content:center;color:#697586;font-size:13px;background:#f7f9fb;border-radius:9px;padding:12px;text-align:center}
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:12px}.card{background:#f7f9fb;border-radius:9px;padding:16px}
-.label{color:#697586;font-size:13px}.value{font-size:28px;font-weight:700;margin-top:8px}.delta{color:#4f6980;margin-top:5px;font-size:13px}
-.table-wrap{overflow-x:auto;margin-top:12px}table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:9px 10px;border-bottom:1px solid #e8ebef;text-align:left;white-space:nowrap}th{background:#f7f9fb}th.num,td.num{text-align:right;font-variant-numeric:tabular-nums}
+.label{color:#697586;font-size:13px}.value{font-size:28px;font-weight:700;margin-top:8px;font-variant-numeric:tabular-nums}.value .unit{margin-left:4px;font-size:14px;font-weight:600;color:#697586}.delta{color:#697586;margin-top:5px;font-size:13px;font-variant-numeric:tabular-nums}.delta.up b{color:#c0392b}.delta.down b{color:#2e8b57}.delta b{font-weight:600}
+.table-wrap{overflow:auto;max-height:480px;margin-top:12px}table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:9px 10px;border-bottom:1px solid #e8ebef;text-align:left;white-space:nowrap}th{background:#f7f9fb;position:sticky;top:0}th.num,td.num{text-align:right;font-variant-numeric:tabular-nums}
 .notes{margin:10px 0 0;padding-left:18px;color:#697586;font-size:12px}
-.version{margin:10px 0 0;display:flex;gap:10px;align-items:center;color:#697586;font-size:12px}.version button{display:none;border:1px solid #c9d1db;background:#fff;border-radius:6px;padding:2px 10px;color:#243142;cursor:pointer}.hosted .version button{display:inline-block}.version .error{color:#b66353}footer{margin-top:24px;color:#697586;font-size:12px;line-height:1.7}
+.version{margin:10px 0 0;display:flex;gap:10px;align-items:center;color:#697586;font-size:12px}.version button{display:none;border:1px solid #c9d1db;background:#fff;border-radius:6px;padding:2px 10px;color:#243142;cursor:pointer}.hosted .version button{display:inline-block}.version .error{color:#b66353}footer{margin-top:24px;color:#697586;font-size:12px;line-height:1.7}footer h3{margin:0 0 4px;font-size:13px;color:#243142}footer ul{margin:0 0 12px;padding-left:18px}
 @media(max-width:800px){.panel{grid-column:span 12}.shell{padding:14px}}`;
 
 // Plain ES2020 so it runs wherever the dashboard is opened; all data logic lives in DataAgentCharts.
@@ -87,22 +87,24 @@ function render(v){
     var compiled=C.compileChart(v.chart,data,{target:"interactive"});
     if(!compiled.ok){box.className="chart chart-unavailable";box.textContent="图表无法编译："+compiled.errors.map(function(e){return e.message}).join("；")}
     else if(!window.echarts){box.className="chart chart-unavailable";box.textContent="图表组件未加载，无法渲染此图表。"}
-    else{charts[v.id]=echarts.init(box);charts[v.id].setOption(compiled.option);compiled.notices.forEach(function(n){notes.push(n.message)})}
+    else{charts[v.id]=echarts.init(box);charts[v.id].setOption(compiled.option);C.readerNotices(compiled.notices).forEach(function(n){notes.push(n.message)})}
   }else if(v.type==="table"){
-    var cols=v.columns||data.columns.map(function(f){return{field:f}}),fields=v.fields||{},index=cols.map(function(c){return data.columns.indexOf(c.field)});
-    var wrap=el("div","table-wrap"),table=el("table"),head=el("tr"),thead=el("thead"),body=el("tbody");
-    cols.forEach(function(c){var meta=fields[c.field];head.appendChild(el("th",meta&&meta.type==="quantitative"?"num":null,c.label||(meta&&meta.label)||c.field))});
+    var shown=C.resolveTable(v,data),wrap=el("div","table-wrap"),table=el("table"),head=el("tr"),thead=el("thead"),body=el("tbody");
+    shown.headers.forEach(function(h){head.appendChild(el("th",h.numeric?"num":null,h.label))});
     thead.appendChild(head);table.appendChild(thead);
-    data.rows.forEach(function(r){var tr=el("tr");cols.forEach(function(c,i){var meta=fields[c.field];tr.appendChild(el("td",meta&&meta.type==="quantitative"?"num":null,C.formatDashboardCell(r[index[i]],meta)))});body.appendChild(tr)});
+    shown.rows.forEach(function(r){var tr=el("tr");r.forEach(function(text,i){tr.appendChild(el("td",shown.headers[i].numeric?"num":null,text))});body.appendChild(tr)});
     table.appendChild(body);wrap.appendChild(table);p.appendChild(wrap);
   }else{
     var cards=el("div","cards");
-    C.resolveKpiCards(v,data).forEach(function(c){var d=el("div","card");d.appendChild(el("div","label",c.label));d.appendChild(el("div","value",c.value));if(c.delta)d.appendChild(el("div","delta",(c.delta.label?c.delta.label+" ":"")+c.delta.value));cards.appendChild(d)});
+    C.resolveKpiCards(v,data).forEach(function(c){
+      var d=el("div","card"),value=el("div","value",c.value);d.appendChild(el("div","label",c.label));
+      if(c.unit)value.appendChild(el("span","unit",c.unit));d.appendChild(value);
+      if(c.delta){var delta=el("div","delta"+(c.delta.direction?" "+c.delta.direction:""),c.delta.label?c.delta.label+" ":"");
+        delta.appendChild(el("b",null,(c.delta.direction==="up"?"▲ ":c.delta.direction==="down"?"▼ ":"")+c.delta.value));d.appendChild(delta)}
+      cards.appendChild(d)});
     p.appendChild(cards);
   }
   (D.checks[v.id]||[]).forEach(function(c){notes.push(c.message)});
-  if(source.kind==="derived")notes.push(source.label);
-  (source.disclosures||[]).forEach(function(d){notes.push(d)});
   if(notes.length){var ul=el("ul","notes");notes.forEach(function(n){ul.appendChild(el("li",null,n))});p.appendChild(ul)}
   if(source.live){
     var version=el("div","version");version.appendChild(el("span",null,"数据版本："+source.label));
@@ -111,6 +113,15 @@ function render(v){
     p.appendChild(version);
   }
 }
+// Caveats of the data behind the page, once each, instead of under every view that reads it.
+function renderDataNotes(){
+  var box=document.getElementById("data-notes"),seen={},items=[];
+  Object.keys(D.sources).forEach(function(k){var s=D.sources[k];
+    (s.kind==="derived"?[s.label]:[]).concat(s.disclosures||[]).forEach(function(n){if(!seen[n]){seen[n]=1;items.push(n)}})});
+  box.textContent="";if(!items.length)return;
+  box.appendChild(el("h3",null,"数据说明"));var ul=el("ul");items.forEach(function(n){ul.appendChild(el("li",null,n))});box.appendChild(ul);
+}
+renderDataNotes();
 D.spec.views.forEach(function(v){
   var p=el("section","panel"+((v.width||(v.type==="chart"?"half":"full"))==="full"?" wide":""));p.id="view-"+v.id;
   // Attach first: ECharts sizes a chart from its container, and a detached one measures zero.
@@ -132,6 +143,7 @@ window.addEventListener("message",function(event){
     Object.keys(m.checks||{}).forEach(function(id){D.checks[id]=m.checks[id]});
     var changed=Object.keys(m.datasets||{});
     D.spec.views.forEach(function(v){if(changed.indexOf(keyOf(v))>=0){delete errors[v.id];render(v)}});
+    renderDataNotes();
   }else if(m.kind==="dashboard.refresh_error"){
     viewIds.forEach(function(id){errors[id]=m.code||"REFRESH_FAILED"});
     D.spec.views.forEach(function(v){if(viewIds.indexOf(v.id)>=0)render(v)});
@@ -149,7 +161,7 @@ export function renderDashboardHtml(input: DashboardRenderInput, assets: Dashboa
   return `<!DOCTYPE html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(spec.title)}</title><style>${STYLE}</style></head>
 <body><main class="shell"><h1>${escapeHtml(spec.title)}</h1>${spec.subtitle ? `<p class="lead">${escapeHtml(spec.subtitle)}</p>` : ""}<div id="dashboard" class="grid"></div>
-<footer><div>${Object.values(input.sources).some((source) => source.live) ? "数据来自（实时数据在应用内可刷新，离开应用后为快照）：" : "数据快照，来自："}</div><ul>${sources}</ul>${semantics}</footer></main>
+<footer><section id="data-notes"></section><div>${Object.values(input.sources).some((source) => source.live) ? "数据来自（实时数据在应用内可刷新，离开应用后为快照）：" : "数据快照，来自："}</div><ul>${sources}</ul>${semantics}</footer></main>
 ${echarts}<script>${assets.chartsSource}</script>
 <script>window.__DATA_AGENT_DASHBOARD__=${payload};</script>
 <script>${PAGE_SCRIPT}</script></body></html>`;

@@ -335,11 +335,16 @@ generate_dashboard(operation, spec, editPath?)
 ```
 
 - 卡片最多 8 张。`label` 缺省时用字段的 `label` 或列名。
+- 数值按声明的单位显示（大号数字 + 小号单位），`delta` 带正负号与升降箭头；所以 `value` 与 `delta` 都要在 `fields` 中声明语义，未声明的按原值显示。
 - 匹配不到行返回 `KPI_ROW_NOT_FOUND`，匹配到多行返回 `KPI_ROW_AMBIGUOUS`。
 
 ### 表格（`table`）
 
-表格显示结果的全部行（每个结果最多 5000 行）。`columns` 省略时显示全部列；在 `fields` 中声明的数值列按语义格式化并右对齐，未声明的按原值显示：
+表格显示结果的全部行（每个结果最多 5000 行），表头固定、超过一屏时在表内滚动。`columns` 省略时显示全部列；在 `fields` 中声明的数值列按语义格式化并右对齐：同一列小数位一致，单位写在表头（百分号留在单元格）。未声明的按原值显示，所以：
+
+- 日期、月份列必须声明 `{ "type": "temporal", "grain": "month", "zone": "floating" }` 这类语义，否则 `2025-12` 会显示成 `2025-12-01`，返回中出现 `[NOTICE] … TEMPORAL_UNDECLARED`。
+- 列的 `label` 不要再写单位，表头会自动加上。
+
 
 ```json dashboard-view
 {
@@ -349,10 +354,12 @@ generate_dashboard(operation, spec, editPath?)
   "data": { "kind": "publication", "receiptId": "<receiptId>" },
   "columns": [
     { "field": "industry_name", "label": "行业中类" },
+    { "field": "month", "label": "月份" },
     { "field": "sales", "label": "销售额" },
     { "field": "yoy", "label": "同比增速" }
   ],
   "fields": {
+    "month": { "type": "temporal", "grain": "month", "zone": "floating" },
     "sales": { "type": "quantitative", "storage": "raw", "unit": "亿元", "additivity": "additive" },
     "yoy": { "type": "quantitative", "storage": "ratio", "additivity": "non_additive" }
   }
@@ -419,6 +426,6 @@ generate_dashboard(operation, spec, editPath?)
 ## 最终答复格式
 
 1. 看板 HTML 链接。
-2. 数据来源和口径摘要，包括所做的假设；把返回中的 `[NOTICE]`、`[DISCLOSURE]`、`[SEMANTICS]` 如实转述。
+2. 数据来源和口径摘要，包括所做的假设；把返回中有关数据的 `[NOTICE]`、`[DISCLOSURE]`、`[SEMANTICS]` 如实转述。标签旋转、截断和 `TEMPORAL_UNDECLARED` 是给你调整 spec 的提示，不显示在页面上；能改就改 spec 重建，不必转述。
 3. 核心发现 2 到 4 条。
 4. 已执行的校验。

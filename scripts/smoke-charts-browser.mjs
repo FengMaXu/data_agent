@@ -197,13 +197,14 @@ try {
       return false;
     })).length,
     unavailable: document.querySelectorAll(".chart-unavailable").length,
+    // Number and unit are separate elements, so the text runs together.
     kpi: document.querySelector("#view-kpi .value")?.textContent,
     rows: document.querySelectorAll("#view-detail tbody tr").length,
     title: document.title,
   }))()`, true);
   check("dashboard renders every view in the preview sandbox", dashboard.panels === dashboardSpec.views.length, JSON.stringify(dashboard));
   check("dashboard draws every chart with ECharts", dashboard.drawn === 12 && dashboard.unavailable === 0, JSON.stringify(dashboard));
-  check("dashboard KPI and table use declared semantics", dashboard.kpi === "7,276.57 亿元" && dashboard.rows === 3, JSON.stringify(dashboard));
+  check("dashboard KPI and table use declared semantics", dashboard.kpi === "7,276.57亿元" && dashboard.rows === 3, JSON.stringify(dashboard));
   check("dashboard title stays escaped", dashboard.title === "三大行业经营分析 <A&B>", dashboard.title);
   check("dashboard raises no script error", dashboardPage.errors.length === 0, dashboardPage.errors.join(" | "));
   await dashboardPage.screenshot("dashboard");
@@ -239,10 +240,10 @@ frame.srcdoc = ${JSON.stringify(liveHtml)};`);
   check("live view shows its refresh control once the app answers", before.hosted && before.button !== "none", JSON.stringify(before));
   await livePage.evaluate(`document.querySelector("#view-live .version button").click()`, true);
   await new Promise((resolve) => setTimeout(resolve, 500));
-  const after = await livePage.evaluate(`(() => ({ cells: [...document.querySelectorAll("#view-live tbody td")].map((td) => td.textContent), version: document.querySelector("#view-live .version span").textContent }))()`, true);
+  const after = await livePage.evaluate(`(() => ({ cells: [...document.querySelectorAll("#view-live tbody td")].map((td) => td.textContent), version: document.querySelector("#view-live .version span").textContent, header: document.querySelectorAll("#view-live th")[1]?.textContent }))()`, true);
   const requests = await livePage.evaluate("window.__requests || []");
   check("refresh asks for view ids only", requests.length === 1 && JSON.stringify(Object.keys(requests[0]).sort()) === JSON.stringify(["kind", "nonce", "requestId", "viewIds"]) && requests[0].viewIds[0] === "live", JSON.stringify(requests));
-  check("refreshed rows and data version replace the old ones", after.cells.join(",") === "华东,12 亿元,华南,5 亿元" && after.version.includes("p_live_2"), JSON.stringify(after));
+  check("refreshed rows and data version replace the old ones", after.cells.join(",") === "华东,12,华南,5" && after.header.endsWith("（亿元）") && after.version.includes("p_live_2"), JSON.stringify(after));
   check("live page raises no script error", livePage.errors.length === 0, livePage.errors.join(" | "));
   await livePage.close();
   // Opened on its own there is no app: no refresh control, only the snapshot.

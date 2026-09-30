@@ -124,7 +124,7 @@ function generateDashboardTool(options: DashboardToolOptions): AgentHarnessTool<
         ...summary,
         ...(echartsSource ? [] : ["[WARNING] ECharts 未找到，看板中的图表无法渲染。"]),
         ...(Object.keys(checks).length > 0 ? ["[CHECK] 是对字段声明的核对提示：声明有误就改正 spec 后用 edit 重建看板。"] : []),
-        "看板页面已显示 [NOTICE]、[CHECK] 与 [DISCLOSURE]；答复用户时如实转述。",
+        "看板页面在各视图下显示有关数据的 [NOTICE] 与 [CHECK]，在页尾“数据说明”中显示 [DISCLOSURE] 与派生来源；标签旋转、截断与未声明日期等 [NOTICE] 只给你调整 spec 用，不显示给读者。答复用户时如实转述数据相关的提示。",
       ].join("\n");
       return {
         content: [{ type: "text", text }],

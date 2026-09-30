@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { DashboardKpiView, FieldMeta } from "@data-agent/contracts";
-import { datasetKey, formatDashboardCell, resolveKpiCards, validateDashboard, type ChartDataset } from "./index.js";
+import type { DashboardKpiView, DashboardTableView, FieldMeta } from "@data-agent/contracts";
+import { datasetKey, formatDashboardCell, readerNotices, resolveKpiCards, resolveTable, validateDashboard, type ChartDataset } from "./index.js";
 
 const sales: FieldMeta = { type: "quantitative", storage: "raw", unit: "亿元", additivity: "additive", label: "销售额" };
 const growth: FieldMeta = { type: "quantitative", storage: "ratio", additivity: "non_additive", label: "同比增速" };
@@ -67,7 +67,42 @@ describe("Dashboard validation", () => {
 describe("Dashboard display", () => {
   it("formats KPI cells from declared semantics", () => {
     const view = spec.views[0] as DashboardKpiView;
-    expect(resolveKpiCards(view, datasets[datasetKey(total)]!)).toEqual([{ label: "销售额", value: "5,733.88 亿元", delta: { label: "同比", value: "10%" } }]);
+    expect(resolveKpiCards(view, datasets[datasetKey(total)]!)).toEqual([{ label: "销售额", value: "5,733.88", unit: "亿元", delta: { label: "同比", value: "+10%", direction: "up" } }]);
+    const falling = { columns: ["sales", "growth"], rows: [["7276.5712", -0.2334]] };
+    expect(resolveKpiCards(view, falling)).toEqual([{ label: "销售额", value: "7,276.57", unit: "亿元", delta: { label: "同比", value: "-23.34%", direction: "down" } }]);
+  });
+
+  it("gives a table column one decimal count and its unit in the header", () => {
+    const view = { id: "t", type: "table", data: byIndustry, fields: { sales, growth }, columns: [{ field: "industry", label: "行业" }, { field: "sales" }, { field: "growth" }] } as DashboardTableView;
+    const rows = { columns: ["industry", "sales", "growth"], rows: [["批发业", "7276.5712", 0.14], ["零售业", "499.88", 0.102], ["餐饮业", "49.7", 0.1394]] };
+    expect(resolveTable(view, rows)).toEqual({
+      headers: [{ label: "行业", numeric: false }, { label: "销售额（亿元）", numeric: true }, { label: "同比增速", numeric: true }],
+      rows: [["批发业", "7,276.57", "14.00%"], ["零售业", "499.88", "10.20%"], ["餐饮业", "49.70", "13.94%"]],
+    });
+    const labelled = { ...view, columns: [{ field: "sales", label: "销售额（亿元）" }] } as DashboardTableView;
+    expect(resolveTable(labelled, rows).headers).toEqual([{ label: "销售额（亿元）", numeric: true }]);
+    const counts = { columns: ["n"], rows: [[12000], [900]] };
+    expect(resolveTable({ id: "c", type: "table", data: byIndustry } as DashboardTableView, counts).rows).toEqual([["12,000"], ["900"]]);
+  });
+
+  it("keeps small values' magnitude when rounding", () => {
+    expect(formatDashboardCell(0.001234, { ...sales })).toBe("0.00123 亿元");
+    expect(formatDashboardCell(1234.5678, undefined)).toBe("1,234.57");
+  });
+
+  it("shows readers the notices about data, not label layout", () => {
+    const notices = [{ kind: "layout", code: "LABELS_ROTATED", message: "rotated" }, { kind: "layout", code: "NULL_VALUES", message: "nulls" }] as const;
+    expect(readerNotices(notices).map((notice) => notice.code)).toEqual(["NULL_VALUES"]);
+  });
+
+  it("tells the model when a table shows undeclared dates", () => {
+    const monthly = { kind: "publication", receiptId: "publication_monthly" } as const;
+    const rows = { [datasetKey(monthly)]: { columns: ["month", "sales"], rows: [["2025-12-01", 1], ["2026-02-01", 2]] } };
+    const table = { id: "m", type: "table", data: monthly };
+    const undeclared = validateDashboard({ ...spec, views: [table] }, rows);
+    expect(undeclared.ok ? undeclared.notices.map(({ notice }) => notice.code) : []).toEqual(["TEMPORAL_UNDECLARED"]);
+    const declared = validateDashboard({ ...spec, views: [{ ...table, fields: { month: { type: "temporal", grain: "month", zone: "floating" } } }] }, rows);
+    expect(declared.ok ? declared.notices : undefined).toEqual([]);
   });
 
   it("shows undeclared values as stored and nulls as blank", () => {

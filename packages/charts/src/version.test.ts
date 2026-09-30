@@ -21,6 +21,9 @@ const OUTPUT_FINGERPRINTS: Readonly<Record<string, string>> = {
   "6.1": "a6b17e41",
   // 7: area layers, funnel and sunburst marks.
   "7.1": "91989973",
+  // 8: values show two decimals (three significant digits below 1) instead of up to four.
+  // Formatters call formatValue by name, so their sources, and this fingerprint, did not change.
+  "8.1": "91989973",
 };
 
 const data = { kind: "publication", receiptId: "publication_1" } as const;
