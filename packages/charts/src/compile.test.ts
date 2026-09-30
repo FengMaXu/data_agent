@@ -485,3 +485,60 @@ describe("Treemap", () => {
     expect(codes(compileChart(treemap(), leaves([["A", "a", -1]]), { target: "interactive" }))).toEqual(["NEGATIVE_IN_PART_OF_WHOLE"]);
   });
 });
+
+describe("Area layers", () => {
+  const area = (stack?: string): ChartSpec => ({ version: 1, data, fields: { sales: additive, growth: { type: "quantitative", storage: "ratio", additivity: "non_additive" } }, chart: { mark: "cartesian", x: { field: "region" }, layers: [{ type: "area", y: { field: "sales" }, ...(stack ? { stack, series: { field: "kind" } } : {}) }] } } as ChartSpec);
+  const stacked: ChartDataset = { columns: ["region", "kind", "sales"], rows: [["east", "a", 1], ["east", "b", 2], ["west", "a", 3], ["west", "b", 4]] };
+
+  it("draws a filled line, breaking at nulls like a line", () => {
+    const { option, notices } = ok(compileChart(area(), { columns: ["region", "sales"], rows: [["east", 1], ["west", null], ["north", 3]] }, { target: "interactive" }));
+    expect(seriesOf(option)[0]).toMatchObject({ type: "line", areaStyle: { opacity: 0.25 }, data: [1, null, 3] });
+    expect(notices.map((notice) => notice.code)).toContain("NULL_VALUES");
+  });
+
+  it("stacks as part of a whole, with the same rules as bars and lines", () => {
+    const { option } = ok(compileChart(area("stacked"), stacked, { target: "interactive" }));
+    expect(seriesOf(option).map((series) => series.stack)).toEqual(["layer-0", "layer-0"]);
+    expect(codes(compileChart({ ...area("stacked"), fields: { sales: { ...additive, additivity: "non_additive" } } } as ChartSpec, stacked, { target: "interactive" }))).toContain("NON_ADDITIVE_PART_OF_WHOLE");
+    expect(codes(compileChart({ ...area(), chart: { ...(area().chart as object), orientation: "horizontal" } } as ChartSpec, { columns: ["region", "sales"], rows: [["east", 1]] }, { target: "interactive" }))).toEqual(["INVALID_ENCODING"]);
+  });
+});
+
+describe("Funnel", () => {
+  const users: FieldMeta = { type: "quantitative", storage: "raw", unit: "人", additivity: "additive", label: "人数" };
+  const funnel = (): ChartSpec => ({ version: 1, data, fields: { n: users }, chart: { mark: "funnel", stage: { field: "stage" }, value: { field: "n" } } } as ChartSpec);
+  const stages = (rows: unknown[][]): ChartDataset => ({ columns: ["stage", "n"], rows });
+
+  it("keeps stage order and shows each stage's own value", () => {
+    const { option, notices } = ok(compileChart(funnel(), stages([["访问", 1000], ["注册", 300], ["付费", 45]]), { target: "static" }));
+    expect(seriesOf(option)[0]).toMatchObject({ type: "funnel", sort: "none", data: [{ name: "访问", value: 1000 }, { name: "注册", value: 300 }, { name: "付费", value: 45 }] });
+    expect(notices).toEqual([]);
+    const rising = ok(compileChart(funnel(), stages([["访问", 100], ["注册", 120]]), { target: "static" }));
+    expect(rising.notices.map((notice) => notice.code)).toEqual(["FUNNEL_NOT_MONOTONIC"]);
+  });
+
+  it("refuses repeated stages and values it cannot draw", () => {
+    expect(codes(compileChart(funnel(), stages([["访问", 1], ["访问", 2]]), { target: "interactive" }))).toEqual(["DUPLICATE_KEY"]);
+    expect(codes(compileChart(funnel(), stages([["访问", 10], ["注册", null]]), { target: "interactive" }))).toEqual(["VALUE_OUT_OF_DOMAIN"]);
+    expect(codes(compileChart(funnel(), stages([["访问", -1]]), { target: "interactive" }))).toEqual(["VALUE_OUT_OF_DOMAIN"]);
+  });
+});
+
+describe("Sunburst", () => {
+  const sales: FieldMeta = { type: "quantitative", storage: "raw", unit: "亿元", additivity: "additive" };
+  const sunburst = (): ChartSpec => ({ version: 1, data, fields: { v: sales }, chart: { mark: "sunburst", path: [{ field: "sector" }, { field: "industry" }], value: { field: "v" } } } as ChartSpec);
+  const leaves = (rows: unknown[][]): ChartDataset => ({ columns: ["sector", "industry", "v"], rows });
+
+  it("draws the treemap's tree as rings, one per level", () => {
+    const { option, notices } = ok(compileChart(sunburst(), leaves([["批发零售", "批发", 60], ["批发零售", "零售", 30], ["住宿餐饮", "餐饮", 10]]), { target: "interactive" }));
+    const series = seriesOf(option)[0]!;
+    expect(series.data).toEqual([{ name: "批发零售", children: [{ name: "批发", value: 60 }, { name: "零售", value: 30 }] }, { name: "住宿餐饮", children: [{ name: "餐饮", value: 10 }] }]);
+    expect((series.levels as unknown[]).length).toBe(3);
+    expect(notices.map((notice) => notice.code)).toContain("VISUAL_SUM");
+  });
+
+  it("applies the treemap's rules", () => {
+    expect(codes(compileChart(sunburst(), leaves([["A", "a", 1], ["A", "a", 2]]), { target: "interactive" }))).toEqual(["DUPLICATE_KEY"]);
+    expect(codes(compileChart(sunburst(), leaves([["A", "a", -1]]), { target: "interactive" }))).toEqual(["NEGATIVE_IN_PART_OF_WHOLE"]);
+  });
+});

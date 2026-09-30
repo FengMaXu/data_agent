@@ -14,6 +14,8 @@ const minimal: Record<string, Record<string, unknown>> = {
   waterfall: { mark: "waterfall", step: { field: "c" }, start: { field: "a" }, end: { field: "v" }, total: { field: "t" } },
   sankey: { mark: "sankey", source: { field: "c" }, target: { field: "d" }, value: { field: "v" } },
   treemap: { mark: "treemap", path: [{ field: "c" }, { field: "d" }], value: { field: "v" } },
+  funnel: { mark: "funnel", stage: { field: "c" }, value: { field: "v" } },
+  sunburst: { mark: "sunburst", path: [{ field: "c" }, { field: "d" }], value: { field: "v" } },
 };
 
 describe("Mark registry", () => {

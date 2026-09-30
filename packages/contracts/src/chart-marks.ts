@@ -18,7 +18,8 @@ const SeriesRefSchema = Type.Object({
 }, Strict);
 
 export const ChartLayerSchema = Type.Object({
-  type: Type.Union([Type.Literal("bar"), Type.Literal("line"), Type.Literal("scatter")]),
+  /** "area" is a line filled down to the axis; stacked, it shows a total over time. */
+  type: Type.Union([Type.Literal("bar"), Type.Literal("line"), Type.Literal("area"), Type.Literal("scatter")]),
   y: PositionRefSchema,
   /** Splits a long table into one series per value of this field. */
   series: Type.Optional(SeriesRefSchema),
@@ -26,7 +27,7 @@ export const ChartLayerSchema = Type.Object({
   id: Type.Optional(FieldRefSchema),
   size: Type.Optional(FieldRefSchema),
   label: Type.Optional(FieldRefSchema),
-  /** Only bar and line. Any value but "none" is part-of-whole and must be additive, complete and non-negative. */
+  /** Only bar, line and area. Any value but "none" is part-of-whole and must be additive, complete and non-negative. */
   stack: Type.Optional(Type.Union([Type.Literal("none"), Type.Literal("stacked"), Type.Literal("percent")])),
   name: Type.Optional(Name),
 }, Strict);
@@ -116,6 +117,25 @@ export const TreemapChartSchema = Type.Object({
 }, Strict);
 export type TreemapChart = Static<typeof TreemapChartSchema>;
 
+/**
+ * Stages in row order with the count that reached each. Widths follow the
+ * values; no conversion rate is computed or shown.
+ */
+export const FunnelChartSchema = Type.Object({
+  mark: Type.Literal("funnel"),
+  stage: FieldRefSchema,
+  value: FieldRefSchema,
+}, Strict);
+export type FunnelChart = Static<typeof FunnelChartSchema>;
+
+/** The treemap's data as rings: leaf rows with their full path; parent angles are the visual sum of their leaves. */
+export const SunburstChartSchema = Type.Object({
+  mark: Type.Literal("sunburst"),
+  path: Type.Array(FieldRefSchema, { minItems: 1, maxItems: 4 }),
+  value: FieldRefSchema,
+}, Strict);
+export type SunburstChart = Static<typeof SunburstChartSchema>;
+
 /** Every mark. The ChartSpec union and the per-mark schema check both come from this list. */
 export const CHART_MARK_SCHEMAS = [
   CartesianChartSchema,
@@ -126,6 +146,8 @@ export const CHART_MARK_SCHEMAS = [
   WaterfallChartSchema,
   SankeyChartSchema,
   TreemapChartSchema,
+  FunnelChartSchema,
+  SunburstChartSchema,
 ] as const;
 
 export const ChartMarkSchema = Type.Union([...CHART_MARK_SCHEMAS]);

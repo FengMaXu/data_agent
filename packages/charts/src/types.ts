@@ -31,7 +31,8 @@ export type ChartErrorCode =
   | "BIN_OVERLAP"
   | "STAT_ORDER_VIOLATION"
   | "RANGE_INCONSISTENT"
-  | "FLOW_CYCLE";
+  | "FLOW_CYCLE"
+  | "VALUE_OUT_OF_DOMAIN";
 
 export interface ChartError {
   readonly code: ChartErrorCode;
