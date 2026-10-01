@@ -63,4 +63,49 @@ describe.runIf(enabled)("MySQL Reference MCP Server contract", () => {
     await client.close();
     await close();
   });
+
+  // A read-only statement slow enough to outlive the limits below, on any database.
+  const SLOW = "SELECT COUNT(*) AS n FROM information_schema.COLUMNS a, information_schema.COLUMNS b, information_schema.COLUMNS c";
+  const running = async (client: Client, marker: string) => {
+    const result = await client.callTool({ name: "execute_query_preview", arguments: { sql: `SELECT COUNT(*) AS n FROM information_schema.PROCESSLIST WHERE COMMAND = 'Query' AND INFO LIKE '%${marker}%' AND INFO NOT LIKE '%PROCESSLIST%'` } });
+    return Number(JSON.parse((result.content as any)[0].text).rows[0].n);
+  };
+  const connected = async () => {
+    const { server, close } = await createMysqlReferenceServer(config);
+    const client = new Client({ name: "data-agent-test", version: "1.0.0" });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
+    return { client, close: async () => { await client.close(); await close(); } };
+  };
+
+  it("lets MySQL stop a statement at its time limit and says so", async () => {
+    const { client, close } = await connected();
+    try {
+      for (const name of ["execute_query_preview", "execute_query_export"]) {
+        const started = Date.now();
+        const result = await client.callTool({ name, arguments: { sql: SLOW, timeoutMs: 500 } });
+        expect(JSON.parse((result.content as any)[0].text).error?.code).toBe("QUERY_TIMEOUT");
+        expect(Date.now() - started).toBeLessThan(10_000);
+      }
+    } finally {
+      await close();
+    }
+  }, 30_000);
+
+  it("stops a cancelled preview on the server instead of leaving it running", async () => {
+    const { client, close } = await connected();
+    try {
+      const marker = `cancel_${Date.now()}`;
+      const controller = new AbortController();
+      const call = client.callTool({ name: "execute_query_preview", arguments: { sql: `${SLOW} WHERE '${marker}' = '${marker}'` } }, undefined, { signal: controller.signal });
+      await new Promise((resolve) => setTimeout(resolve, 1_000));
+      expect(await running(client, marker)).toBe(1);
+      controller.abort();
+      await expect(call).rejects.toThrow();
+      await new Promise((resolve) => setTimeout(resolve, 1_000));
+      expect(await running(client, marker)).toBe(0);
+    } finally {
+      await close();
+    }
+  }, 30_000);
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import Database from "better-sqlite3";
@@ -48,7 +48,59 @@ async function flakyExecutor(root: string, mode: string) {
   });
 }
 
+/**
+ * Minimal MCP database server for the time-limit contract: it records each
+ * call's timeoutMs, and a "SLOW" statement waits until the call is cancelled,
+ * recording the cancellation and the serving process id.
+ */
+const RECORDING_SERVER = [
+  'import fs from "node:fs";',
+  'import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";',
+  'import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";',
+  'import { z } from "zod";',
+  'const log = process.argv[2];',
+  'const record = (entry) => fs.appendFileSync(log, JSON.stringify({ ...entry, pid: process.pid }) + "\\n");',
+  'const server = new McpServer({ name: "recording", version: "1.0.0" });',
+  'server.tool("execute_query_preview", "preview", { sql: z.string(), limit: z.number().optional(), maxBytes: z.number().optional(), timeoutMs: z.number().optional() }, async ({ sql, timeoutMs }, extra) => {',
+  '  record({ event: "call", timeoutMs });',
+  '  if (sql.includes("SLOW")) await new Promise((resolve) => extra.signal.addEventListener("abort", () => { record({ event: "cancelled" }); resolve(); }, { once: true }));',
+  '  return { content: [{ type: "text", text: JSON.stringify({ columns: ["v"], rows: [{ v: 1 }], truncated: false }) }] };',
+  '});',
+  'await server.connect(new StdioServerTransport());',
+].join("\n");
+
 describe("MCP query executor", () => {
+  it("gives the server the statement's time limit and leaves a cancelled call to the server", async () => {
+    // Under the package so the script resolves the MCP SDK and zod.
+    const root = await mkdtemp(path.join(process.cwd(), ".tmp-mcp-time-limit-"));
+    const serverPath = path.join(root, "recording.mjs");
+    const log = path.join(root, "calls.log");
+    await writeFile(serverPath, RECORDING_SERVER, "utf8");
+    const executor = createMcpQueryExecutor({ command: process.execPath, args: [serverPath, log], dialect: "mysql" });
+    const entries = async () => (await readFile(log, "utf8")).trim().split("\n").map((line) => JSON.parse(line) as { event: string; timeoutMs?: number; pid: number });
+    try {
+      // The limit is what remains of the deadline when the call is made; starting the server takes some of it.
+      await executor.run("SELECT 1", 10, { kind: "exploration", deadlineAt: Date.now() + 20_000 });
+      const [first] = await entries();
+      expect(first!.timeoutMs).toBeGreaterThan(10_000);
+      expect(first!.timeoutMs).toBeLessThanOrEqual(20_000);
+
+      const controller = new AbortController();
+      const slow = executor.run("SELECT SLOW", 10, { kind: "exploration", signal: controller.signal });
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      controller.abort();
+      await expect(slow).rejects.toThrow();
+      await executor.run("SELECT 1", 10, { kind: "exploration" });
+      const recorded = await entries();
+      // The cancellation reached the server, and the same process serves the next call.
+      expect(recorded.some((entry) => entry.event === "cancelled")).toBe(true);
+      expect(new Set(recorded.map((entry) => entry.pid)).size).toBe(1);
+    } finally {
+      await executor.close();
+      await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+    }
+  }, 30_000);
+
   it("uses bounded preview for exploration and one complete query for a result", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "mcp-executor-"));
     const databasePath = path.join(root, "test.db");

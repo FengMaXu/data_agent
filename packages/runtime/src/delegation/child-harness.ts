@@ -17,7 +17,18 @@ import { infrastructureFailureOf } from "../agent/infrastructure-failure.js";
 /** Explorers answer bounded fact questions; fewer turns keep the parent waiting less. */
 const MAX_MODEL_REQUESTS = 10;
 const MAX_TOOL_CALLS = 30;
-const FINAL_REPORT_INSTRUCTION = "Tool budget reached: do not call tools. Write the final Markdown report now from the information you have gathered, and list what remains unverified.";
+const FINAL_REPORT_INSTRUCTION = "Budget reached: do not call tools. Write the final Markdown report now from the information you have gathered, and list what remains unverified.";
+/**
+ * Time kept for the final report before the deadline: at the wrap-up moment
+ * tools stop and the next request writes the report, so a child that ran out
+ * of time still returns what it found instead of nothing.
+ */
+const WRAP_UP_RESERVE_MS = 30_000;
+
+/** Shared by a child's model wrapper and its tool hook: once set, the next request is the report. */
+interface ChildBudget {
+  wrapUp: boolean;
+}
 /** Per-response output cap, including reasoning tokens of reasoning models. */
 const MAX_OUTPUT_TOKENS = 10_240;
 
@@ -102,15 +113,15 @@ function childModel(model: Model<any>): Model<any> {
   return { ...model, maxTokens: Math.min(declared, MAX_OUTPUT_TOKENS) };
 }
 
-function boundedModels(source: Models): Models {
+function boundedModels(source: Models, budget: ChildBudget = { wrapUp: false }): Models {
   let requests = 0;
   const streamSimple: Models["streamSimple"] = (model, context, options) => {
     requests += 1;
     if (requests > MAX_MODEL_REQUESTS) return modelBudgetError(model);
     const requested = options?.maxTokens ?? model.maxTokens;
     const maxTokens = requested > 0 ? Math.min(requested, MAX_OUTPUT_TOKENS) : MAX_OUTPUT_TOKENS;
-    // The last allowed request has no tools, so gathered information always becomes a report.
-    const finalContext = requests === MAX_MODEL_REQUESTS
+    // The last allowed request, or the first after wrap-up, has no tools, so gathered information always becomes a report.
+    const finalContext = requests === MAX_MODEL_REQUESTS || budget.wrapUp
       ? { ...context, tools: [], systemPrompt: `${context.systemPrompt ?? ""}\n\n${FINAL_REPORT_INSTRUCTION}` }
       : context;
     return source.streamSimple(model, finalContext, { ...options, maxTokens });
@@ -291,6 +302,11 @@ export class HarnessChildExecutor implements ChildExecutor {
     request.signal?.addEventListener("abort", onAbort, { once: true });
     const timer = setTimeout(() => { void abort("timeout"); }, request.timeoutMs);
     timer.unref?.();
+    const budget: ChildBudget = { wrapUp: false };
+    const wrapUpAfter = Math.max(0, request.timeoutMs - Math.min(WRAP_UP_RESERVE_MS, Math.floor(request.timeoutMs / 4)));
+    const wrapUpAt = Date.now() + wrapUpAfter;
+    const wrapUpTimer = setTimeout(() => { budget.wrapUp = true; }, wrapUpAfter);
+    wrapUpTimer.unref?.();
     const operationContext = withAbortSignal(executionAbort.signal, TODO_CONTEXT);
 
     try {
@@ -300,7 +316,7 @@ export class HarnessChildExecutor implements ChildExecutor {
         return outcome;
       }
       const tools = request.toolDefinitions.map((definition) => definition.tool);
-      const models = withToolPromptCatalog(boundedModels(this.options.models), new ToolPromptCatalog(request.toolDefinitions));
+      const models = withToolPromptCatalog(boundedModels(this.options.models, budget), new ToolPromptCatalog(request.toolDefinitions));
       const created = await AgentHarness.create({
         session,
         models,
@@ -309,7 +325,7 @@ export class HarnessChildExecutor implements ChildExecutor {
         thinkingLevel: "off",
         tools,
         activeToolNames: tools.map((tool) => tool.name),
-        toolContext: { childSessionId: request.childSessionId, runId: request.runId, role: request.role },
+        toolContext: { childSessionId: request.childSessionId, runId: request.runId, role: request.role, wrapUpAt },
         systemPrompt: request.systemPrompt,
         toolExecution: "parallel",
         streamOptions: { maxRetries: 0 },
@@ -317,6 +333,8 @@ export class HarnessChildExecutor implements ChildExecutor {
       harness = created.harness;
       let toolCalls = 0;
       harness.hooks.on("before_tool", () => {
+        // After wrap-up a call is refused, not run: the model's next request writes the report.
+        if (budget.wrapUp) return { block: { reason: "SUBAGENT_TIME_BUDGET_REACHED: write the final report now" } };
         toolCalls += 1;
         return toolCalls > MAX_TOOL_CALLS
           ? { block: { reason: "SUBAGENT_TOOL_CALL_BUDGET_EXHAUSTED", terminate: true } }
@@ -428,6 +446,7 @@ export class HarnessChildExecutor implements ChildExecutor {
       return outcome;
     } finally {
       clearTimeout(timer);
+      clearTimeout(wrapUpTimer);
       request.signal?.removeEventListener("abort", onAbort);
       this.running.delete(request.runId);
       if (harness) await harness.close(TODO_CONTEXT).catch(() => undefined);

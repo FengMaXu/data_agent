@@ -219,6 +219,43 @@ describe("HarnessChildExecutor", () => {
     await executor.close();
   });
 
+  it("writes its report at wrap-up instead of losing it to the deadline", async () => {
+    const { faux, executor } = setup();
+    let wrapUpAt: number | undefined;
+    let reportTools: number | undefined;
+    let reportPrompt = "";
+    // Slow work that runs past the wrap-up moment, as a long query would.
+    const slow = {
+      name: "slow",
+      label: "slow",
+      description: "slow probe",
+      replay: "safe" as const,
+      parameters: Type.Object({}, { additionalProperties: false }),
+      async execute(_id: string, _input: unknown, _update: unknown, context: { wrapUpAt?: number }) {
+        wrapUpAt = context.wrapUpAt;
+        await new Promise((resolve) => setTimeout(resolve, 1_700));
+        return { content: [{ type: "text" as const, text: "partial facts" }] };
+      },
+    };
+    faux.setResponses([
+      fauxAssistantMessage(fauxToolCall("slow", {}, { id: "slow-1" }), { stopReason: "toolUse" }),
+      async (context) => {
+        reportTools = context.tools?.length ?? 0;
+        reportPrompt = context.systemPrompt ?? "";
+        return fauxAssistantMessage("## 结论\n\nWRAP_UP_REPORT_MARKER");
+      },
+    ]);
+    const started = Date.now();
+    const result = await executor.execute(request({ timeoutMs: 2_000, toolDefinitions: [defineDataAgentTool(slow as never, { promptSnippet: "执行慢速测试探针。", promptGuidelines: [] })] }));
+    // The tool learned when to stop: a quarter of a short deadline is kept for the report.
+    expect(wrapUpAt! - started).toBeGreaterThanOrEqual(1_400);
+    expect(wrapUpAt! - started).toBeLessThanOrEqual(1_600);
+    expect(reportTools).toBe(0);
+    expect(reportPrompt).toContain("Write the final Markdown report now");
+    expect(result).toMatchObject({ status: "completed", text: expect.stringContaining("WRAP_UP_REPORT_MARKER") });
+    await executor.close();
+  });
+
   it("returns the final report, not the first reply's preamble, from a multi-turn child", async () => {
     const { faux, executor } = setup();
     const probe = {

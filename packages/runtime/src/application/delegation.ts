@@ -224,7 +224,7 @@ export function createQueryTaskDelegationResolver(options: QueryTaskDelegationRe
         description: "Execute one bounded read-only SELECT/WITH query and return the observed rows.",
         replay: "safe",
         parameters: explorationParameters,
-        async execute(_toolCallId, input, _onUpdate, _toolContext, invocation, childContext) {
+        async execute(_toolCallId, input, _onUpdate, toolContext, invocation, childContext) {
           if (!Value.Check(explorationParameters, input)) throw new Error("SUBAGENT_EXPLORATION_INPUT_INVALID");
           const value = input as { sql: string; limit?: number };
           if (!isScopedReadOnlySql(value.sql)) throw new Error("Only one read-only SELECT/WITH statement is allowed");
@@ -233,6 +233,8 @@ export function createQueryTaskDelegationResolver(options: QueryTaskDelegationRe
             const result = await sql.run(value.sql, Math.min(value.limit ?? EXPLORATION_DEFAULT_ROWS, EXPLORATION_MAX_ROWS), {
               idempotencyKey: `${run.childSessionId}:${invocation.invocationId}`,
               ...(childContext.abortSignal ? { signal: childContext.abortSignal } : {}),
+              // The statement must end by the child's wrap-up; MySQL stops it there.
+              ...(toolContext?.wrapUpAt ? { deadlineAt: toolContext.wrapUpAt } : {}),
             });
             return text(json({ columns: result.columns, columnTypes: result.columnTypes, rows: result.rows, rowCount: result.rows.length, truncated: result.truncated }));
           } finally {
