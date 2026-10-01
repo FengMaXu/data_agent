@@ -157,6 +157,12 @@ export async function createMysqlReferenceServer(options: MysqlReferenceServerOp
           reject(connectionError);
           return;
         }
+        // Cancelled while waiting for a connection: nobody wants the result, so the statement never starts.
+        if (signal?.aborted) {
+          connection.release();
+          reject(new Error("QUERY_CANCELLED"));
+          return;
+        }
         const rows: any[] = [];
         let settled = false;
         let columns: string[] = [];
