@@ -140,7 +140,7 @@ describe("Answering architecture boundaries", () => {
     expect(() => prepare({ spec: scalarSpec, hypotheses: [{ affects: [1] }] })).not.toThrow();
   });
 
-  it("binds user confirmations to the Host message and drops model-chosen request sources", async () => {
+  it("binds user confirmations to the Host message or a named clarification, never a model-chosen message", async () => {
     const captured: unknown[] = [];
     const stub = {
       revise: async (input: unknown) => { captured.push(input); return { taskId: "task-1", revisionId: "revision-2", spec: {}, hypotheses: [], choices: [], unresolvedFacets: [], unresolvedHypotheses: [], unresolvedChoices: [], inferredFacets: [] }; },
@@ -151,15 +151,18 @@ describe("Answering architecture boundaries", () => {
       taskId: "task-1",
       baseRevisionId: "revision-1",
       evidence: [
-        { localId: "yes", kind: "user_confirmation", sourceRef: "forged-message", quote: "按最大值" },
+        { localId: "yes", kind: "user_confirmation", quote: "按最大值" },
+        // A model-supplied ref can only name a clarification; Admission verifies it against the Session's record.
+        { localId: "answer", kind: "user_confirmation", sourceRef: "forged-message", quote: "按最大值" },
         { localId: "q", kind: "request_wording", sourceRef: "forged-request", quote: "订单数" },
       ],
     } as never, undefined, { sessionId: "session-1", principalId: "user-1", requestMessageId: "message-followup" }, invocation, {} as never);
     expect(captured[0]).toMatchObject({ evidence: [
       { localId: "yes", kind: "user_confirmation", sourceRef: "message-followup", quote: "按最大值" },
+      { localId: "answer", kind: "user_confirmation", sourceRef: "clarification:forged-message", quote: "按最大值" },
       { localId: "q", kind: "request_wording", quote: "订单数" },
     ] });
-    expect((captured[0] as { evidence: { sourceRef?: string }[] }).evidence[1]).not.toHaveProperty("sourceRef");
+    expect((captured[0] as { evidence: { sourceRef?: string }[] }).evidence[2]).not.toHaveProperty("sourceRef");
     await expect(update.execute("revise-no-message", {
       taskId: "task-1",
       baseRevisionId: "revision-1",
