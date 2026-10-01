@@ -135,4 +135,12 @@ describe('ChatArea clarification', () => {
         fireEvent.click(screen.getByRole('button', { name: '提交' }));
         await waitFor(() => expect(answerClarificationViaRuntime).toHaveBeenCalledWith('c-1', '累计，含退款', 'session-1'));
     });
+
+    it('sends the answer without adding it to the conversation', async () => {
+        renderChat();
+        fireEvent.click(await screen.findByRole('radio', { name: '当月' }));
+        fireEvent.click(screen.getByRole('button', { name: '提交' }));
+        await waitFor(() => expect(answerClarificationViaRuntime).toHaveBeenCalledWith('c-1', '当月', 'session-1'));
+        expect(document.querySelectorAll('.message.user')).toHaveLength(1);
+    });
 });

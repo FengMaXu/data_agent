@@ -902,14 +902,9 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
 
         setIsSubmittingClarification(true);
         try {
-            const userMsg: UserMessage = {
-                id: `user-clarification-${Date.now()}`,
-                role: 'user',
-                content: answer,
-            };
-            setMessages((prev) => [...prev, userMsg]);
-            setClarificationInput('');
+            // The answer reaches the agent as the tool result; it is not a chat turn.
             await answerClarificationViaRuntime(pendingClarification.clarification_id, answer, currentSession.id);
+            setClarificationInput('');
         } catch (err) {
             console.error('Failed to answer clarification:', err);
         } finally {
