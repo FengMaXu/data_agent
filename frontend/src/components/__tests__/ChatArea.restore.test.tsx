@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 type Listener = (raw: unknown) => void;
 const runtime = vi.hoisted(() => ({
@@ -49,6 +49,7 @@ vi.mock('../../hooks/useSession', () => ({
 }));
 
 import ChatArea from '../ChatArea';
+import { answerClarificationViaRuntime } from '../../api/runtime-client';
 import { LanguageProvider } from '../../context/LanguageContext';
 import { PreviewProvider } from '../../context/PreviewContext';
 
@@ -106,5 +107,32 @@ describe('ChatArea restoring a session', () => {
         await waitFor(() => expect(screen.getByText('三行业指标')).toBeTruthy());
         await act(async () => { await Promise.resolve(); });
         expect(runtime.subscribeCalls).toBe(0);
+    });
+});
+
+describe('ChatArea clarification', () => {
+    beforeEach(() => {
+        runtime.listener = undefined;
+        runtime.state = {
+            messages: [{ id: 'u1', role: 'user', content: '三行业指标' }],
+            inProgressRun: { runId: 'run-1', startedAt: 1 },
+            pendingClarification: { clarificationId: 'c-1', question: '按哪个口径统计？', options: ['累计', '当月'] },
+            eventSequence: 7,
+        };
+        vi.mocked(answerClarificationViaRuntime).mockReset().mockResolvedValue(undefined);
+        Element.prototype.scrollTo = vi.fn();
+        Element.prototype.scrollIntoView = vi.fn();
+    });
+
+    it('puts a chosen option in the answer box for editing instead of sending it', async () => {
+        renderChat();
+        fireEvent.click(await screen.findByRole('radio', { name: '累计' }));
+        expect(answerClarificationViaRuntime).not.toHaveBeenCalled();
+        const input = screen.getByRole('textbox', { name: '输入你的回答...' });
+        expect((input as HTMLTextAreaElement).value).toBe('累计');
+
+        fireEvent.change(input, { target: { value: '累计，含退款' } });
+        fireEvent.click(screen.getByRole('button', { name: '提交' }));
+        await waitFor(() => expect(answerClarificationViaRuntime).toHaveBeenCalledWith('c-1', '累计，含退款', 'session-1'));
     });
 });

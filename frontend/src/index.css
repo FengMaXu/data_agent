@@ -8541,3 +8541,127 @@ body {
     padding: 16px;
   }
 }
+
+/* Clarification: an agent message asking the user to pick or write an answer */
+.clarification-card {
+  padding: 12px 14px;
+  border-radius: var(--bubble-radius);
+  background: var(--bubble-bg);
+}
+
+.clarification-title {
+  margin-bottom: 4px;
+  font-size: var(--font-size-caption);
+  font-weight: 600;
+  color: var(--accent-strong);
+}
+
+.clarification-question {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.clarification-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.clarification-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  background: var(--frame-surface);
+  color: var(--text-primary);
+  font-size: var(--font-size-body-sm);
+  line-height: 1.5;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--duration-quick) var(--ease-out), background-color var(--duration-quick) var(--ease-out);
+}
+
+.clarification-option:not(:disabled):hover {
+  border-color: var(--border-medium);
+}
+
+.clarification-option.is-selected {
+  border-color: rgba(194, 65, 12, 0.36);
+}
+
+.clarification-option:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.clarification-option-mark {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  margin-top: 3px;
+  border: 1.5px solid var(--border-medium);
+  border-radius: 50%;
+  transition: border-color var(--duration-quick) var(--ease-out), border-width var(--duration-quick) var(--ease-out);
+}
+
+.clarification-option.is-selected .clarification-option-mark {
+  border: 4px solid var(--accent-strong);
+}
+
+.clarification-answer {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 6px 6px 6px 12px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  background: var(--frame-surface);
+  transition: border-color var(--duration-ui) var(--ease-out), box-shadow var(--duration-ui) var(--ease-out);
+}
+
+.clarification-answer:focus-within {
+  border-color: rgba(194, 65, 12, 0.36);
+  box-shadow: var(--shadow-ring);
+}
+
+.clarification-input {
+  flex: 1;
+  min-height: 36px;
+  max-height: 160px;
+  padding: 7px 0;
+  border: none;
+  outline: none;
+  resize: none;
+  field-sizing: content;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--font-size-body-sm);
+  line-height: 1.5;
+}
+
+.clarification-input::placeholder {
+  color: var(--text-placeholder);
+}
+
+.clarification-answer .chat-send-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clarification-option,
+  .clarification-option-mark,
+  .clarification-answer {
+    transition: none;
+  }
+}
