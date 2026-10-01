@@ -229,6 +229,16 @@ export function specFeedbackCoverage(feedback: SpecFeedback | undefined): CheckC
       reason: `Advisory Spec feedback risks: ${risks.join("; ")}${limitations.length ? `; limitations: ${limitations.join(", ")}` : ""}. This does not change qualification or authorize a revision.`,
     };
   }
+  // No assessor in this deployment: nothing was observed about this result, so it is recorded here and
+  // reported once at startup, not disclosed with every result. Deterministic risks above still disclose.
+  if (feedback.status === "disabled") {
+    return {
+      checkId: SPEC_FEEDBACK_CHECK_ID,
+      ruleVersion: feedback.ruleVersion,
+      outcome: "not_applicable",
+      reason: `Spec feedback assessor is not configured in this deployment${limitations.length ? `; limitations: ${limitations.join(", ")}` : ""}.`,
+    };
+  }
   if (feedback.status !== "completed" || limitations.length > 0 || concerns.length > 0) {
     return {
       checkId: SPEC_FEEDBACK_CHECK_ID,

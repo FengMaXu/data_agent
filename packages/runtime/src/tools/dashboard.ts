@@ -116,7 +116,8 @@ function generateDashboardTool(options: DashboardToolOptions): AgentHarnessTool<
       const relativePath = value.editPath ?? `dashboards/${spec.filename ?? `dashboard-${specHash}`}.html`;
       const echartsSource = await (options.echartsSource ?? defaultEchartsSource)();
       const html = renderDashboardHtml(
-        { spec, datasets, sources, checks, renderer: CHART_RENDERER_VERSIONS, declaredFields: declared, nonce: randomUUID() },
+        // The local calendar day, as the reader of the page counts it.
+        { spec, datasets, sources, checks, renderer: CHART_RENDERER_VERSIONS, builtOn: new Date().toLocaleDateString("sv-SE"), nonce: randomUUID() },
         { chartsSource: CHARTS_BROWSER_SOURCE, ...(echartsSource ? { echartsSource } : {}) },
       );
       await options.workspace.write(relativePath, html);
@@ -125,7 +126,7 @@ function generateDashboardTool(options: DashboardToolOptions): AgentHarnessTool<
         ...summary,
         ...(echartsSource ? [] : ["[WARNING] ECharts 未找到，看板中的图表无法渲染。"]),
         ...(Object.keys(checks).length > 0 ? ["[CHECK] 是对字段声明的核对提示：声明有误就改正 spec 后用 edit 重建看板。"] : []),
-        "看板页面已显示 [NOTICE]、[CHECK] 与 [DISCLOSURE]；答复用户时如实转述。",
+        "看板页面只显示数据，以及各视图下有关数据的 [NOTICE] 与 [CHECK]；[DISCLOSURE]、[SEMANTICS] 与派生来源不印在页面上，答复用户时必须如实转述。标签旋转、截断与未声明日期等 [NOTICE] 只给你调整 spec 用，能改就改 spec 重建，不必转述。",
       ].join("\n");
       return {
         content: [{ type: "text", text }],

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { DashboardKpiView, FieldMeta } from "@data-agent/contracts";
-import { compileChart, dashboardRows, datasetKey, formatDashboardCell, formatTableCell, resolveKpiCards, tableColumnHeader, validateDashboard, type ChartDataset } from "./index.js";
+import type { DashboardKpiView, DashboardTableView, FieldMeta } from "@data-agent/contracts";
+import { compileChart, dashboardRows, datasetKey, formatDashboardCell, readerNotices, resolveKpiCards, resolveTable, validateDashboard, type ChartDataset } from "./index.js";
 
 const sales: FieldMeta = { type: "quantitative", storage: "raw", unit: "亿元", additivity: "additive", label: "销售额" };
 const growth: FieldMeta = { type: "quantitative", storage: "ratio", additivity: "non_additive", label: "同比增速" };
@@ -105,20 +105,43 @@ describe("Dashboard layout", () => {
 describe("Dashboard display", () => {
   it("formats KPI cells from declared semantics", () => {
     const view = spec.views[0] as DashboardKpiView;
-    // Headline precision on the tile, the full value for its tooltip, and the delta's direction.
-    expect(resolveKpiCards(view, datasets[datasetKey(total)]!)).toEqual([{ label: "销售额", value: "5,734 亿元", fullValue: "5,733.88 亿元", delta: { label: "同比", value: "+10.0%", trend: "up" } }]);
+    // Headline precision on the tile, the full value for its tooltip.
+    expect(resolveKpiCards(view, datasets[datasetKey(total)]!)).toEqual([{ label: "销售额", value: "5,734", unit: "亿元", fullValue: "5,733.88 亿元", delta: { label: "同比", value: "+10.0%", direction: "up" } }]);
     const falling = { columns: ["sales", "growth"], rows: [["49.7407", -0.2334]] };
-    expect(resolveKpiCards(view, falling)[0]).toMatchObject({ value: "49.74 亿元", delta: { value: "-23.3%", trend: "down" } });
-    expect(resolveKpiCards(view, { columns: ["sales", "growth"], rows: [["1", null]] })[0]!.delta).toEqual({ label: "同比", value: "—" });
+    expect(resolveKpiCards(view, falling)).toEqual([{ label: "销售额", value: "49.74", unit: "亿元", fullValue: "49.74 亿元", delta: { label: "同比", value: "-23.3%", direction: "down" } }]);
   });
 
-  it("names a table column's unit once and shows bare numbers in its cells", () => {
-    expect(tableColumnHeader("累计销售额", sales)).toBe("累计销售额（亿元）");
-    expect(tableColumnHeader("行业", undefined)).toBe("行业");
-    expect(formatTableCell("7276.5712", sales)).toBe("7,276.57");
-    expect(formatTableCell(-0.2334, growth)).toBe("-23.34");
-    expect(formatTableCell(0.14, growth)).toBe("14.00");
-    expect(formatTableCell("批发业", undefined)).toBe("批发业");
+  it("gives a table column one decimal count and its unit in the header", () => {
+    const view = { id: "t", type: "table", data: byIndustry, fields: { sales, growth }, columns: [{ field: "industry", label: "行业" }, { field: "sales" }, { field: "growth" }] } as DashboardTableView;
+    const rows = { columns: ["industry", "sales", "growth"], rows: [["批发业", "7276.5712", 0.14], ["零售业", "499.88", 0.102], ["餐饮业", "49.7", 0.1394]] };
+    expect(resolveTable(view, rows)).toEqual({
+      headers: [{ label: "行业", numeric: false }, { label: "销售额（亿元）", numeric: true }, { label: "同比增速", numeric: true }],
+      rows: [["批发业", "7,276.57", "14.00%"], ["零售业", "499.88", "10.20%"], ["餐饮业", "49.70", "13.94%"]],
+    });
+    const labelled = { ...view, columns: [{ field: "sales", label: "销售额（亿元）" }] } as DashboardTableView;
+    expect(resolveTable(labelled, rows).headers).toEqual([{ label: "销售额（亿元）", numeric: true }]);
+    const counts = { columns: ["n"], rows: [[12000], [900]] };
+    expect(resolveTable({ id: "c", type: "table", data: byIndustry } as DashboardTableView, counts).rows).toEqual([["12,000"], ["900"]]);
+  });
+
+  it("keeps small values' magnitude when rounding", () => {
+    expect(formatDashboardCell(0.001234, { ...sales })).toBe("0.00123 亿元");
+    expect(formatDashboardCell(1234.5678, undefined)).toBe("1,234.57");
+  });
+
+  it("shows readers the notices about data, not label layout", () => {
+    const notices = [{ kind: "layout", code: "LABELS_ROTATED", message: "rotated" }, { kind: "layout", code: "NULL_VALUES", message: "nulls" }] as const;
+    expect(readerNotices(notices).map((notice) => notice.code)).toEqual(["NULL_VALUES"]);
+  });
+
+  it("tells the model when a table shows undeclared dates", () => {
+    const monthly = { kind: "publication", receiptId: "publication_monthly" } as const;
+    const rows = { [datasetKey(monthly)]: { columns: ["month", "sales"], rows: [["2025-12-01", 1], ["2026-02-01", 2]] } };
+    const table = { id: "m", type: "table", data: monthly };
+    const undeclared = validateDashboard({ ...spec, views: [table] }, rows);
+    expect(undeclared.ok ? undeclared.notices.map(({ notice }) => notice.code) : []).toEqual(["TEMPORAL_UNDECLARED"]);
+    const declared = validateDashboard({ ...spec, views: [{ ...table, fields: { month: { type: "temporal", grain: "month", zone: "floating" } } }] }, rows);
+    expect(declared.ok ? declared.notices : undefined).toEqual([]);
   });
 
   it("labels bars with a declared measure at headline precision", () => {

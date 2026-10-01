@@ -125,26 +125,13 @@ generate_dashboard(operation, spec, editPath?)
         },
         "chart": { "mark": "cartesian", "orientation": "horizontal", "x": { "field": "sub_industry" }, "layers": [{ "type": "bar", "y": { "field": "sales" }, "label": { "field": "yoy" } }] }
       }
-    },
-    {
-      "id": "detail",
-      "type": "table",
-      "title": "三大行业分月明细",
-      "data": { "kind": "publication", "receiptId": "<receiptId>" },
-      "fields": {
-        "sales": { "type": "quantitative", "storage": "raw", "unit": "亿元", "additivity": "additive", "label": "累计销售额" },
-        "yoy": { "type": "quantitative", "storage": "ratio", "additivity": "non_additive", "label": "同比增速" },
-        "month": { "type": "temporal", "grain": "month", "zone": "floating" }
-      },
-      "columns": [{ "field": "industry", "label": "行业" }, { "field": "month", "label": "月份" }, { "field": "sales" }, { "field": "yoy" }]
     }
   ],
   "layout": {
     "rows": [
       { "views": ["kpi_latest"] },
       { "views": ["growth_trend", "sales_share"], "widths": [2, 1] },
-      { "views": ["wholesale_rank", "retail_rank"] },
-      { "views": ["detail"] }
+      { "views": ["wholesale_rank", "retail_rank"] }
     ]
   }
 }
@@ -166,19 +153,19 @@ generate_dashboard(operation, spec, editPath?)
 
 ### 组织方式
 
-按“总览 → 趋势 → 分解 → 明细”从上到下排：
+按“总览 → 趋势 → 分解”从上到下排；用户要求明细时再在最后加一行表格：
 
 | 行 | 放什么 | 写法 |
 | --- | --- | --- |
 | 第 1 行 KPI | 3–6 个头部指标：最新一期数值 + 同比/环比/目标差 | 一个 `kpi` 视图独占一行 |
 | 第 2 行 趋势 | 主趋势图 + 一张补充图（构成、当期对比） | `widths: [2, 1]` 或 `[3, 2]`；只有一张趋势图时可独占一行 |
 | 第 3 行 分解 | 2–3 张排名、构成或分布图 | 等宽；3 张时用 `compact` 或 `standard` |
-| 最后一行 明细（可选） | 可核对的明细或带多个指标的排名 | `table` 独占一行；放汇总或 Top N，长明细用 `export_query` 提供下载 |
+| 最后一行 明细（仅在用户要求时） | 可核对的明细或带多个指标的排名 | `table` 独占一行；放汇总或 Top N，长明细用 `export_query` 提供下载 |
 
 - 第一屏（约 1440×900）应能看到 KPI 行和趋势行。
 - **整行图最多一张**，通常是主趋势图。多张图各占一行会把看板拉成报告，工具会返回 `[LAYOUT]`。
 - 一张看板 4–8 个视图、不超过 4 行图表。结论更多时拆成两张看板，不要往下堆。
-- 明细表放在所有图表之后。
+- 默认不放表格；用户要求明细时，表格放在所有图表之后。
 
 ### 格子容量
 
@@ -208,7 +195,7 @@ generate_dashboard(operation, spec, editPath?)
 - `type: "quantitative"`，`storage`：存储值的含义（`raw` 原值、`ratio` 0.12 表示 12%、`percent` 12 表示 12%），`additivity`：`additive` 或 `non_additive`（比率、均值、单价都是不可加）。
 - 可选 `unit`（如 `"亿元"`）、`label`、`magnitude`（如 `{ "stored": 1, "shown": 100000000 }` 把元显示为亿元）。
 - 空值保持为空：折线断开、柱留空、表格单元格留白，不会按 0 画。
-- 字段语义由你声明，工具会在看板页脚和返回中如实标注“来自模型声明，未经业务定义核实”。
+- 字段语义由你声明，工具在返回中以 `[SEMANTICS]` 标注“来自模型声明，未经业务定义核实”；看板页面不印这条，由你在答复中转述。
 - 工具会用发布时扫描得到的数值范围核对声明，可疑时返回 `[CHECK]`（例如声明为比率却出现 5234）并显示在视图下方。先核对声明：有误就改正 spec，用 `edit` 重建看板。
 
 ## 视图写法
@@ -445,13 +432,20 @@ generate_dashboard(operation, spec, editPath?)
 ```
 
 - 卡片最多 8 张，头部 KPI 行放 3–6 张。`label` 缺省时用字段的 `label` 或列名。
-- 工具自动把数值显示为约四位有效数字（如 4,872 亿元），完整值在悬停提示里；数值型 `delta` 带正负号和 ▲▼ 箭头。不要为了好看在查询里四舍五入。
+- 数值显示为约四位有效数字的大号数字加小号单位（如 4,872 亿元），完整值在悬停提示里；`delta` 带正负号与升降箭头（升为红、降为绿）。所以 `value` 与 `delta` 都要在 `fields` 中声明语义，未声明的按原值显示。不要为了好看在查询里四舍五入。
 - 每张卡都给一个对比：同比、环比或与目标的差。没有对比的数字回答不了“好还是不好”。
 - 匹配不到行返回 `KPI_ROW_NOT_FOUND`，匹配到多行返回 `KPI_ROW_AMBIGUOUS`。
 
 ### 表格（`table`）
 
-表格显示结果的全部行（每个结果最多 5000 行）。`columns` 省略时显示全部列；在 `fields` 中声明的数值列右对齐、保留两位小数，单位写在列头（如“销售额（亿元）”），未声明的按原值显示。日期列声明 `temporal` 才会按粒度显示（如 2026-07）。看板里的表格放汇总或 Top N，一般不超过 20 行：
+**看板默认不放表格。** 只有用户要求明细、清单或可核对的数字时才加 `table`，放在所有图表之后。
+
+表格显示结果的全部行（每个结果最多 5000 行），表头固定、超过一屏时在表内滚动。`columns` 省略时显示全部列；在 `fields` 中声明的数值列右对齐：同一列小数位一致，单位写在表头（百分号留在单元格）。未声明的按原值显示，所以：
+
+- 日期、月份列必须声明 `{ "type": "temporal", "grain": "month", "zone": "floating" }` 这类语义，否则 `2025-12` 会显示成 `2025-12-01`，返回中出现 `[NOTICE] … TEMPORAL_UNDECLARED`。
+- 列的 `label` 不要再写单位，表头会自动加上。
+- 看板里的表格放汇总或 Top N，一般不超过 20 行；长明细用 `export_query` 提供下载。
+
 
 ```json dashboard-view
 {
@@ -461,10 +455,12 @@ generate_dashboard(operation, spec, editPath?)
   "data": { "kind": "publication", "receiptId": "<receiptId>" },
   "columns": [
     { "field": "industry_name", "label": "行业中类" },
+    { "field": "month", "label": "月份" },
     { "field": "sales", "label": "销售额" },
     { "field": "yoy", "label": "同比增速" }
   ],
   "fields": {
+    "month": { "type": "temporal", "grain": "month", "zone": "floating" },
     "sales": { "type": "quantitative", "storage": "raw", "unit": "亿元", "additivity": "additive" },
     "yoy": { "type": "quantitative", "storage": "ratio", "additivity": "non_additive" }
   }
@@ -503,7 +499,7 @@ generate_dashboard(operation, spec, editPath?)
 | 多层级的完整构成 | `chart`：`treemap` 或 `sunburst` |
 | 累积总量随时间的构成 | `chart`：`area` 图层加 `stack` |
 | 逐级转化 | `chart`：`funnel` |
-| 可核对的明细、带多个指标的排名 | `table` |
+| 用户要求的明细、清单 | `table`（默认不加） |
 
 ## 配色
 
@@ -521,7 +517,7 @@ generate_dashboard(operation, spec, editPath?)
 - 每个 `view.id` 唯一；引用的列都在对应结果中。
 - 图表数据已在查询中聚合到图表粒度；KPI 引用的是查询算好的单元格。
 - `validate` 返回 `dashboard spec valid`，且没有 `[LAYOUT]` 建议；确有理由保留某条建议时，在最终答复中说明。
-- 版面：第一行是 KPI，整行图不超过一张，明细表在最后。
+- 版面：第一行是 KPI，整行图不超过一张；没有用户要求时不放表格，有表格时放在最后。
 
 生成后：
 
@@ -539,6 +535,6 @@ generate_dashboard(operation, spec, editPath?)
 ## 最终答复格式
 
 1. 看板 HTML 链接。
-2. 数据来源和口径摘要，包括所做的假设；把返回中的 `[NOTICE]`、`[DISCLOSURE]`、`[SEMANTICS]` 如实转述。
+2. 数据来源和口径摘要，包括所做的假设；把返回中有关数据的 `[NOTICE]`、`[DISCLOSURE]`、`[SEMANTICS]` 如实转述。看板页面只给读者看数据，`[DISCLOSURE]` 与 `[SEMANTICS]` 不印在页面上，你的答复是它们到达用户的唯一途径。标签旋转、截断和 `TEMPORAL_UNDECLARED` 是给你调整 spec 的提示，不显示在页面上；能改就改 spec 重建，不必转述。
 3. 核心发现 2 到 4 条。
 4. 已执行的校验。

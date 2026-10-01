@@ -95,7 +95,7 @@ function compileCartesian(context: CompileContext, chart: CartesianChart): Chart
       const number = numericCell(cell);
       if (number === null || number === undefined) return number === null ? "" : categoryLabel(cell);
       const shown = number * displayScale(labelMeta);
-      return formatValue(shown, labelMeta, { digits: headlineDigits(shown, labelMeta), fixed: true });
+      return formatValue(shown, labelMeta, { decimals: headlineDigits(shown, labelMeta) });
     };
     const label = plan.labelIndex === undefined ? {} : { label: { show: true, position: horizontal ? "right" : "top", formatter: (params: { data?: { labelText?: string } }) => params.data?.labelText ?? "" } };
 

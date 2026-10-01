@@ -8,6 +8,11 @@ import type { DashboardSpec } from "@data-agent/contracts";
  * embeds the spec and rows, not ECharts options, and compiles each chart in the
  * browser with the inlined @data-agent/charts bundle.
  *
+ * The page shows readers the data: tiles, their data notices and the snapshot
+ * date. Provenance (Receipts, content hashes, Disclosures, model-declared
+ * semantics) travels in the embedded payload and in the tool's answer to the
+ * model, which relays it; it is not printed on the page.
+ *
  * Views over live data can ask the hosting app for a refresh. The page only
  * names views; the app reads the spec from the file, refreshes through the
  * Runtime and answers with new rows. Opened outside the app, it is a snapshot.
@@ -36,8 +41,8 @@ export interface DashboardRenderInput {
   /** Per view id: declared semantics the Physical Profile makes doubtful. */
   readonly checks: Readonly<Record<string, readonly SemanticsCheck[]>>;
   readonly renderer: ChartRendererVersions;
-  /** Fields whose semantics only the model declared. */
-  readonly declaredFields: readonly string[];
+  /** Day the snapshot was built, shown in the page header, e.g. "2026-10-01". */
+  readonly builtOn: string;
   /** Ties refresh messages to this document; the app checks it against the file it opened. */
   readonly nonce: string;
 }
@@ -59,7 +64,7 @@ function scriptJson(value: unknown): string {
 }
 
 // A BI page: a header, rows of tiles, then sources and data notes. Tile sizes come from the spec's layout rows.
-const STYLE = `:root{--bg:#f3f4f6;--tile:#ffffff;--rule:#e5e7eb;--ink:#1f2937;--muted:#6b7280;--up:#2f7d4f;--down:#c2410c}
+const STYLE = `:root{--bg:#f3f4f6;--tile:#ffffff;--rule:#e5e7eb;--ink:#1f2937;--muted:#6b7280;--up:#c0392b;--down:#2e8b57;--error:#b66353}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif}
 .shell{max-width:1440px;margin:auto;padding:20px 24px 28px}
 .page-head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:14px}
@@ -72,14 +77,13 @@ h1{margin:0;font-size:20px;font-weight:700}.lead{margin:4px 0 0;color:var(--mute
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
 .card{background:var(--tile);border:1px solid var(--rule);border-radius:10px;padding:12px 16px}
 .tile .cards{grid-template-columns:1fr;gap:0;margin-top:6px}.tile .card{border:0;border-top:1px solid var(--rule);border-radius:0;padding:10px 0}.tile .card:first-child{border-top:0}
-.label{color:var(--muted);font-size:12px}.value{font-size:26px;font-weight:700;margin-top:4px;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
-.delta{margin-top:4px;font-size:12px;color:var(--muted)}.trend{font-weight:600;margin-right:4px}.trend.up{color:var(--up)}.trend.down{color:var(--down)}
-.table-wrap{overflow:auto;margin-top:8px}table{width:100%;border-collapse:collapse;font-size:12.5px}
-th,td{padding:7px 10px;border-bottom:1px solid #f0f1f3;text-align:left;white-space:nowrap}th{color:var(--muted);font-weight:600;border-bottom:1px solid var(--rule)}
+.label{color:var(--muted);font-size:12px}.value{font-size:26px;font-weight:700;margin-top:4px;letter-spacing:-.01em;font-variant-numeric:tabular-nums}.value .unit{margin-left:4px;font-size:13px;font-weight:600;color:var(--muted)}
+.delta{margin-top:4px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}.delta b{font-weight:600;margin-left:4px}.delta.up b{color:var(--up)}.delta.down b{color:var(--down)}
+.table-wrap{overflow:auto;max-height:480px;margin-top:8px}table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{padding:7px 10px;border-bottom:1px solid #f0f1f3;text-align:left;white-space:nowrap}th{color:var(--muted);font-weight:600;border-bottom:1px solid var(--rule);background:var(--tile);position:sticky;top:0}
 th.num,td.num{text-align:right;font-variant-numeric:tabular-nums}
 .notes{margin-top:6px;color:var(--muted);font-size:11.5px}.notes summary{cursor:pointer}.notes ul{margin:4px 0 0;padding-left:18px}
-.version{margin-top:8px;display:flex;gap:10px;align-items:center;color:var(--muted);font-size:12px}.version button{display:none;border:1px solid #d1d5db;background:#fff;border-radius:6px;padding:2px 10px;color:var(--ink);cursor:pointer}.hosted .version button{display:inline-block}.version .error{color:var(--down)}
-footer{margin-top:18px;color:var(--muted);font-size:11.5px;line-height:1.7}footer ul{margin:2px 0 8px;padding-left:18px}
+.version{margin-top:8px;display:flex;gap:10px;align-items:center;color:var(--muted);font-size:12px}.version button{display:none;border:1px solid #d1d5db;background:#fff;border-radius:6px;padding:2px 10px;color:var(--ink);cursor:pointer}.hosted .version button{display:inline-block}.version .error{color:var(--error)}
 @media(max-width:900px){.row{grid-template-columns:1fr!important}.shell{padding:12px}.page-head{flex-direction:column;align-items:flex-start}}`;
 
 // Plain ES2020 so it runs wherever the dashboard is opened; all data logic lives in DataAgentCharts.
@@ -92,14 +96,14 @@ function cards(v,data,p){
   var box=el("div","cards");
   C.resolveKpiCards(v,data).forEach(function(c){
     var d=el("div","card"),value=el("div","value",c.value);value.title=c.fullValue;
-    d.appendChild(el("div","label",c.label));d.appendChild(value);
-    if(c.delta){var line=el("div","delta"),trend=el("span","trend"+(c.delta.trend?" "+c.delta.trend:""),(c.delta.trend==="up"?"▲ ":c.delta.trend==="down"?"▼ ":"")+c.delta.value);line.appendChild(trend);if(c.delta.label)line.appendChild(el("span",null,c.delta.label));d.appendChild(line)}
+    d.appendChild(el("div","label",c.label));if(c.unit)value.appendChild(el("span","unit",c.unit));d.appendChild(value);
+    if(c.delta){var line=el("div","delta"+(c.delta.direction?" "+c.delta.direction:""),c.delta.label||null);line.appendChild(el("b",null,(c.delta.direction==="up"?"▲ ":c.delta.direction==="down"?"▼ ":"")+c.delta.value));d.appendChild(line)}
     box.appendChild(d);
   });
   p.appendChild(box);
 }
 function render(v){
-  var key=keyOf(v),data=D.datasets[key],source=D.sources[key]||{},p=panels[v.id],notes=[],checks=D.checks[v.id]||[];
+  var data=D.datasets[keyOf(v)],source=D.sources[keyOf(v)]||{},p=panels[v.id],notes=[],checks=D.checks[v.id]||[];
   if(charts[v.id]){charts[v.id].dispose();delete charts[v.id]}
   p.textContent="";
   var title=v.type==="chart"?v.chart.title:v.title,subtitle=v.type==="chart"?v.chart.subtitle:v.subtitle;
@@ -110,17 +114,15 @@ function render(v){
     var compiled=C.compileChart(v.chart,data,{target:"interactive",density:"compact",width:box.clientWidth||undefined,height:heights[v.id]});
     if(!compiled.ok){box.className="chart chart-unavailable";box.textContent="图表无法编译："+compiled.errors.map(function(e){return e.message}).join("；")}
     else if(!window.echarts){box.className="chart chart-unavailable";box.textContent="图表组件未加载，无法渲染此图表。"}
-    else{charts[v.id]=echarts.init(box);charts[v.id].setOption(compiled.option);compiled.notices.forEach(function(n){notes.push(n.message)})}
+    else{charts[v.id]=echarts.init(box);charts[v.id].setOption(compiled.option);C.readerNotices(compiled.notices).forEach(function(n){notes.push(n.message)})}
   }else if(v.type==="table"){
-    var cols=v.columns||data.columns.map(function(f){return{field:f}}),fields=v.fields||{},index=cols.map(function(c){return data.columns.indexOf(c.field)});
-    var wrap=el("div","table-wrap"),table=el("table"),head=el("tr"),thead=el("thead"),body=el("tbody");
-    cols.forEach(function(c){var meta=fields[c.field];head.appendChild(el("th",meta&&meta.type==="quantitative"?"num":null,C.tableColumnHeader(c.label||(meta&&meta.label)||c.field,meta)))});
+    var shown=C.resolveTable(v,data),wrap=el("div","table-wrap"),table=el("table"),head=el("tr"),thead=el("thead"),body=el("tbody");
+    shown.headers.forEach(function(h){head.appendChild(el("th",h.numeric?"num":null,h.label))});
     thead.appendChild(head);table.appendChild(thead);
-    data.rows.forEach(function(r){var tr=el("tr");cols.forEach(function(c,i){var meta=fields[c.field];tr.appendChild(el("td",meta&&meta.type==="quantitative"?"num":null,C.formatTableCell(r[index[i]],meta)))});body.appendChild(tr)});
+    shown.rows.forEach(function(r){var tr=el("tr");r.forEach(function(text,i){tr.appendChild(el("td",shown.headers[i].numeric?"num":null,text))});body.appendChild(tr)});
     table.appendChild(body);wrap.appendChild(table);p.appendChild(wrap);
   }else cards(v,data,p);
   checks.forEach(function(c){notes.push(c.message)});
-  if(source.kind==="derived")notes.push(source.label);
   if(notes.length){
     // Collapsed so tiles stay compact; a doubtful declaration opens it, since it changes how the numbers read.
     var details=el("details","notes"),ul=el("ul");if(checks.length)details.open=true;
@@ -133,14 +135,6 @@ function render(v){
     p.appendChild(version);
   }
 }
-// Disclosures of the results behind the page, listed once instead of under every tile that reads them.
-function renderDataNotes(){
-  var box=document.getElementById("data-notes"),seen={},list=[];box.textContent="";
-  Object.keys(D.sources).forEach(function(k){(D.sources[k].disclosures||[]).forEach(function(d){if(!seen[d]){seen[d]=[];list.push(d)}seen[d].push(D.sources[k].id)})});
-  if(!list.length)return;
-  box.appendChild(el("div",null,"数据说明："));var ul=el("ul");
-  list.forEach(function(d){ul.appendChild(el("li",null,d+"（"+seen[d].join("、")+"）"))});box.appendChild(ul);
-}
 C.dashboardRows(D.spec).forEach(function(row){
   var strip=row.views.length===1&&byId[row.views[0]].type==="kpi",line=el("div","row");
   line.style.gridTemplateColumns=strip?"1fr":row.widths.map(function(w){return w+"fr"}).join(" ");
@@ -152,7 +146,6 @@ C.dashboardRows(D.spec).forEach(function(row){
   });
 });
 D.spec.views.forEach(function(v){if(panels[v.id])render(v)});
-renderDataNotes();
 window.addEventListener("resize",function(){Object.keys(charts).forEach(function(id){charts[id].resize()})});
 // Refresh bridge: only a hosting app that answers the handshake with this document's nonce can refresh it.
 var pending={};
@@ -169,7 +162,6 @@ window.addEventListener("message",function(event){
     Object.keys(m.checks||{}).forEach(function(id){D.checks[id]=m.checks[id]});
     var changed=Object.keys(m.datasets||{});
     D.spec.views.forEach(function(v){if(changed.indexOf(keyOf(v))>=0){delete errors[v.id];render(v)}});
-    renderDataNotes();
   }else if(m.kind==="dashboard.refresh_error"){
     viewIds.forEach(function(id){errors[id]=m.code||"REFRESH_FAILED"});
     D.spec.views.forEach(function(v){if(viewIds.indexOf(v.id)>=0)render(v)});
@@ -181,16 +173,13 @@ if(window.parent!==window&&D.spec.views.some(function(v){return (D.sources[keyOf
 export function renderDashboardHtml(input: DashboardRenderInput, assets: DashboardAssets): string {
   const { spec } = input;
   const payload = scriptJson({ spec, datasets: input.datasets, sources: input.sources, checks: input.checks, renderer: input.renderer, nonce: input.nonce });
-  const sourceList = Object.values(input.sources);
-  const sources = sourceList.map((source) => `<li>${escapeHtml(source.label)}（内容哈希 ${escapeHtml(source.contentHash.slice(0, 12))}）</li>`).join("");
-  const semantics = input.declaredFields.length > 0 ? `<p>以下字段的语义来自模型声明，未经业务定义核实：${escapeHtml(input.declaredFields.join("、"))}</p>` : "";
-  const live = sourceList.some((source) => source.live);
+  const live = Object.values(input.sources).some((source) => source.live);
+  const stamp = live ? `实时数据 · ${input.builtOn} 生成，应用内可刷新` : `数据快照 · ${input.builtOn}`;
   const echarts = assets.echartsSource ? `<script>${assets.echartsSource}</script>` : "";
   return `<!DOCTYPE html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(spec.title)}</title><style>${STYLE}</style></head>
-<body><main class="shell"><header class="page-head"><div><h1>${escapeHtml(spec.title)}</h1>${spec.subtitle ? `<p class="lead">${escapeHtml(spec.subtitle)}</p>` : ""}</div><div class="stamp">${live ? "实时数据" : "数据快照"} · ${sourceList.length} 个数据来源</div></header>
-<div id="dashboard" class="board"></div>
-<footer><div id="data-notes"></div><div>${live ? "数据来自（实时数据在应用内可刷新，离开应用后为快照）：" : "数据快照，来自："}</div><ul>${sources}</ul>${semantics}</footer></main>
+<body><main class="shell"><header class="page-head"><div><h1>${escapeHtml(spec.title)}</h1>${spec.subtitle ? `<p class="lead">${escapeHtml(spec.subtitle)}</p>` : ""}</div><div class="stamp">${escapeHtml(stamp)}</div></header>
+<div id="dashboard" class="board"></div></main>
 ${echarts}<script>${assets.chartsSource}</script>
 <script>window.__DATA_AGENT_DASHBOARD__=${payload};</script>
 <script>${PAGE_SCRIPT}</script></body></html>`;

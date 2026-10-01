@@ -1,6 +1,6 @@
-import { checkDashboardSpec, dashboardViewData, type DashboardKpiCard, type DashboardKpiView, type DashboardRowHeight, type DashboardSpec, type DatasetRef, type FieldMeta } from "@data-agent/contracts";
+import { checkDashboardSpec, dashboardViewData, type DashboardKpiCard, type DashboardKpiView, type DashboardRowHeight, type DashboardSpec, type DashboardTableView, type DatasetRef, type FieldMeta } from "@data-agent/contracts";
 import { compileChart } from "./compile.js";
-import { displayScale, formatFieldValue, formatValue, headlineDigits, numericCell, unitText } from "./semantics.js";
+import { columnDecimals, displayScale, formatFieldValue, formatValue, headlineDigits, numericCell, unitText, valueDecimals, type FormatOptions } from "./semantics.js";
 import type { ChartDataset, ChartErrorCode, PresentationNotice } from "./types.js";
 
 export type DashboardErrorCode =
@@ -151,52 +151,84 @@ function kpiRows(card: DashboardKpiCard, dataset: ChartDataset): readonly (reado
 }
 
 /** Display text for one cell: declared semantics first, then the stored value as is. */
-export function formatDashboardCell(value: unknown, meta: FieldMeta | undefined): string {
+export function formatDashboardCell(value: unknown, meta: FieldMeta | undefined, options: FormatOptions = {}): string {
   if (value === null || value === undefined) return "";
-  const declared = formatFieldValue(value, meta);
+  const declared = formatFieldValue(value, meta, options);
   if (declared !== undefined) return declared;
   if (typeof value === "boolean") return value ? "是" : "否";
-  if (typeof value === "number" && Number.isFinite(value)) return value.toLocaleString("zh-CN", { maximumFractionDigits: 4 });
+  if (typeof value === "number" && Number.isFinite(value)) {
+    const decimals = options.decimals ?? valueDecimals(value);
+    return value.toLocaleString("zh-CN", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  }
   if (typeof value === "object") return JSON.stringify(value);
   return String(value);
 }
 
-/** Column header naming the unit once, so cells show bare numbers: "累计销售额（亿元）". */
-export function tableColumnHeader(label: string, meta: FieldMeta | undefined): string {
-  const unit = meta?.type === "quantitative" ? unitText(meta) : "";
-  return unit ? `${label}（${unit}）` : label;
+/**
+ * Notices that only tell the model how the chart was laid out; the page does
+ * not show them to readers, whose tooltips already carry the full labels.
+ */
+const LAYOUT_ONLY_NOTICES: ReadonlySet<string> = new Set(["LABELS_ROTATED", "LABELS_TRUNCATED", "TEMPORAL_UNDECLARED"]);
+
+/** The notices a dashboard reader sees: those about the data, not about label layout. */
+export function readerNotices(notices: readonly PresentationNotice[]): PresentationNotice[] {
+  return notices.filter((notice) => !LAYOUT_ONLY_NOTICES.has(notice.code));
 }
 
-/** A table cell: numbers at two decimals, aligned, without the unit the header names; other cells as declared. */
-export function formatTableCell(value: unknown, meta: FieldMeta | undefined): string {
-  if (meta?.type === "quantitative") {
-    const text = formatFieldValue(value, meta, { digits: 2, fixed: true, unit: false });
-    if (text !== undefined) return text;
-  }
-  return formatDashboardCell(value, meta);
+export interface DashboardTableDisplay {
+  readonly headers: readonly { readonly label: string; readonly numeric: boolean }[];
+  readonly rows: readonly (readonly string[])[];
 }
 
-/** A headline number at about four significant digits, with the full value kept for its tooltip. */
-function headline(value: unknown, meta: FieldMeta | undefined, signed: boolean): { text: string; full: string; sign?: number } {
-  const full = formatDashboardCell(value, meta);
-  const number = numericCell(value);
-  if (meta?.type !== "quantitative" || number === null || number === undefined) return { text: full, full };
-  const shown = number * displayScale(meta);
-  const text = formatValue(shown, meta, { digits: headlineDigits(shown, meta), fixed: true });
-  return { text: signed && shown > 0 ? `+${text}` : text, full, sign: Math.sign(shown) };
+/** Values of one column as shown, before formatting; undefined for cells that are not numbers. */
+function shownNumbers(dataset: ChartDataset, index: number, meta: FieldMeta | undefined): number[] {
+  const scale = meta?.type === "quantitative" ? displayScale(meta) : 1;
+  return dataset.rows.flatMap((row) => {
+    const number = numericCell(row[index]);
+    return typeof number === "number" && (meta?.type === "quantitative" || typeof row[index] === "number") ? [number * scale] : [];
+  });
+}
+
+/**
+ * A table view as shown: every numeric column with one decimal count, and a
+ * declared unit in the header instead of every cell (percent signs stay).
+ */
+export function resolveTable(view: DashboardTableView, dataset: ChartDataset): DashboardTableDisplay {
+  const columns = view.columns ?? dataset.columns.map((field) => ({ field, label: undefined }));
+  const fields = view.fields ?? {};
+  const layout = columns.map((column) => {
+    const meta = fields[column.field];
+    const index = dataset.columns.indexOf(column.field);
+    const numbers = shownNumbers(dataset, index, meta);
+    const numeric = meta?.type === "quantitative" || (meta === undefined && numbers.length > 0 && dataset.rows.every((row) => row[index] === null || row[index] === undefined || typeof row[index] === "number"));
+    const title = column.label ?? meta?.label ?? column.field;
+    const unit = meta?.type === "quantitative" ? unitText(meta) : "";
+    const headerUnit = unit && unit !== "%" && !title.includes(unit) ? `（${unit}）` : "";
+    return { index, meta, numeric, decimals: numeric ? columnDecimals(numbers) : undefined, header: { label: `${title}${headerUnit}`, numeric } };
+  });
+  return {
+    headers: layout.map((column) => column.header),
+    rows: dataset.rows.map((row) => layout.map((column) => formatDashboardCell(row[column.index], column.meta, column.numeric ? { decimals: column.decimals, unit: false } : {}))),
+  };
 }
 
 export interface KpiCardDisplay {
   readonly label: string;
+  /** The number at headline precision, without its unit; a percent sign stays. */
   readonly value: string;
-  /** The value at full precision, for the tile's tooltip. */
+  /** Declared unit shown beside the number. */
+  readonly unit?: string;
+  /** The value at full precision with its unit, for the tile's tooltip. */
   readonly fullValue: string;
-  readonly delta?: {
-    readonly label?: string;
-    readonly value: string;
-    /** Direction of a numeric delta; absent when the delta is not a number. */
-    readonly trend?: "up" | "down" | "flat";
-  };
+  readonly delta?: { readonly label?: string; readonly value: string; readonly direction?: "up" | "down" | "flat" };
+}
+
+/** A headline number: about four significant digits, so a tile reads 4,872 rather than 4,871.7356. */
+function headlineText(value: unknown, meta: FieldMeta | undefined, unit: boolean): string {
+  const number = numericCell(value);
+  if (meta?.type !== "quantitative" || typeof number !== "number") return formatDashboardCell(value, meta, unit ? {} : { unit: false });
+  const shown = number * displayScale(meta);
+  return formatValue(shown, meta, { decimals: headlineDigits(shown, meta), unit });
 }
 
 /** The cells a validated KPI view shows. Values are read, never aggregated. */
@@ -204,17 +236,25 @@ export function resolveKpiCards(view: DashboardKpiView, dataset: ChartDataset): 
   return view.cards.map((card) => {
     const row = kpiRows(card, dataset)[0];
     const cell = (field: string) => row?.[dataset.columns.indexOf(field)];
-    const value = headline(cell(card.value.field), view.fields?.[card.value.field], false);
-    const delta = card.delta ? headline(cell(card.delta.field), view.fields?.[card.delta.field], true) : undefined;
-    const trend = delta?.sign === undefined ? undefined : delta.sign > 0 ? "up" : delta.sign < 0 ? "down" : "flat";
+    const meta = view.fields?.[card.value.field];
+    const unit = meta?.type === "quantitative" ? unitText(meta) : "";
+    const value = headlineText(cell(card.value.field), meta, false);
+    const deltaCell = card.delta ? cell(card.delta.field) : undefined;
+    const deltaNumber = numericCell(deltaCell);
+    const direction = typeof deltaNumber === "number" ? (deltaNumber > 0 ? "up" : deltaNumber < 0 ? "down" : "flat") : undefined;
+    const deltaText = card.delta ? headlineText(deltaCell, view.fields?.[card.delta.field], true) : "";
     return {
-      label: card.label ?? view.fields?.[card.value.field]?.label ?? card.value.field,
-      value: value.text || "—",
-      fullValue: value.full || "—",
-      ...(card.delta && delta ? { delta: { ...(card.delta.label ? { label: card.delta.label } : {}), value: delta.text || "—", ...(trend ? { trend } : {}) } } : {}),
+      label: card.label ?? meta?.label ?? card.value.field,
+      value: value || "—",
+      ...(value && unit && unit !== "%" ? { unit } : {}),
+      fullValue: formatDashboardCell(cell(card.value.field), meta) || "—",
+      ...(card.delta ? { delta: { ...(card.delta.label ? { label: card.delta.label } : {}), value: deltaText ? `${direction === "up" ? "+" : ""}${deltaText}` : "—", ...(direction ? { direction } : {}) } } : {}),
     };
   });
 }
+
+/** Calendar text such as 2025-12-01 or 2025-12-01T00:00:00, the shape SQL dates arrive in. */
+const DATE_TEXT = /^\d{4}-\d{2}-\d{2}(?:[ T]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?)?$/;
 
 /**
  * Checks a dashboard against the datasets its views reference: the schema,
@@ -261,6 +301,13 @@ export function validateDashboard(value: unknown, datasets: DashboardDatasets): 
     for (const field of Object.keys(view.fields ?? {})) missing(field, `/fields/${field}`);
     if (view.type === "table") {
       view.columns?.forEach((column, columnIndex) => missing(column.field, `/columns/${columnIndex}/field`));
+      // Undeclared dates are shown as stored ("2025-12-01" for a month); only a declared grain shortens them.
+      for (const field of (view.columns ?? []).map((column) => column.field).concat(view.columns ? [] : dataset.columns)) {
+        const index = dataset.columns.indexOf(field);
+        const values = dataset.rows.map((row) => row[index]).filter((cell) => cell !== null && cell !== undefined);
+        if (index < 0 || view.fields?.[field] || values.length === 0 || !values.every((cell) => typeof cell === "string" && DATE_TEXT.test(cell))) continue;
+        notices.push({ viewId, notice: { kind: "layout", code: "TEMPORAL_UNDECLARED", message: `列 "${field}" 是日期但未声明语义，按原样显示；在 fields 中声明 { type: "temporal", grain, zone } 后按粒度显示（如月份显示为 2025-12）`, field } });
+      }
       return;
     }
 

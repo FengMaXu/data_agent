@@ -115,6 +115,8 @@ export class DataAgentApplication implements ApplicationCommandHost {
     const specAlignmentAssessor = options.jevSpecAlignment
       ? new JevSpecAlignmentAssessor(options.jevSpecAlignment)
       : undefined;
+    // A deployment fact, said once here rather than disclosed with every published result.
+    if (!specAlignmentAssessor) console.info("[data-agent] Answer Spec feedback assessor is not configured; results are published without Spec feedback.");
     const sessions = new DataAgentSessionApplication({
       sessionRoot: path.join(dataRoot, "sessions"),
       workspace,
