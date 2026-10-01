@@ -175,4 +175,5 @@ export function parseDataAgentCommandEnvelope(value: unknown): DataAgentCommandE
 export function parseDataAgentResponseEnvelope(value: unknown): DataAgentResponseEnvelope { if (!Value.Check(DataAgentResponseEnvelopeSchema, value)) throw new TypeError("Invalid DataAgent response envelope"); return value; }
 
 export * from "./chart-spec.js";
+export * from "./chart-marks.js";
 export * from "./dashboard-spec.js";

@@ -19,6 +19,8 @@ const OUTPUT_FINGERPRINTS: Readonly<Record<string, string>> = {
   "5.1": "2f02dc39",
   // 6: sankey and treemap marks; value-axis names start at the axis instead of centring on it.
   "6.1": "a6b17e41",
+  // 7: area layers, funnel and sunburst marks.
+  "7.1": "91989973",
 };
 
 const data = { kind: "publication", receiptId: "publication_1" } as const;
@@ -38,6 +40,9 @@ const samples: readonly [unknown, ChartDataset, ChartCompileOptions][] = [
   [{ version: 1, data, fields: { s: sales, e: sales }, chart: { mark: "waterfall", step: { field: "step" }, start: { field: "s" }, end: { field: "e" }, total: { field: "t" } } }, { columns: ["step", "s", "e", "t"], rows: [["期初", 0, 100, true], ["收入", 100, 160, false], ["成本", 160, 90, false], ["期末", 0, 90, true]] }, { target: "static" }],
   [{ version: 1, data, fields: { n: sales }, chart: { mark: "sankey", source: { field: "a" }, target: { field: "b" }, value: { field: "n" } } }, { columns: ["a", "b", "n"], rows: [["访问", "注册", 60], ["访问", "离开", 40], ["注册", "付费", 12]] }, { target: "static" }],
   [{ version: 1, data, fields: { n: sales }, chart: { mark: "treemap", path: [{ field: "a" }, { field: "b" }], value: { field: "n" } } }, { columns: ["a", "b", "n"], rows: [["批发零售", "批发", 60], ["批发零售", "零售", 30], ["住宿餐饮", "餐饮", 10]] }, { target: "interactive" }],
+  [{ version: 1, data, fields: { sales }, chart: { mark: "cartesian", x: { field: "region" }, layers: [{ type: "area", y: { field: "sales" } }] } }, regions, { target: "static" }],
+  [{ version: 1, data, fields: { n: sales }, chart: { mark: "funnel", stage: { field: "a" }, value: { field: "n" } } }, { columns: ["a", "n"], rows: [["访问", 1000], ["注册", 300], ["付费", 45]] }, { target: "static" }],
+  [{ version: 1, data, fields: { n: sales }, chart: { mark: "sunburst", path: [{ field: "a" }, { field: "b" }], value: { field: "n" } } }, { columns: ["a", "b", "n"], rows: [["批发零售", "批发", 60], ["批发零售", "零售", 30], ["住宿餐饮", "餐饮", 10]] }, { target: "interactive" }],
 ];
 
 /** Stable text of an option, formatter functions included by source with whitespace collapsed (CRLF and LF checkouts agree). */

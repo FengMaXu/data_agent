@@ -75,8 +75,6 @@ interface ChatAreaProps {
     isToolPanelOpen?: boolean;
     hasTools?: boolean;
     semanticBlocked?: boolean;
-    isSidebarOpen?: boolean;
-    onToggleSidebar?: () => void;
 }
 
 const STAGE_ORDER: AgentProgressStage[] = [
@@ -225,8 +223,6 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
     isToolPanelOpen = false,
     hasTools = false,
     semanticBlocked = false,
-    isSidebarOpen = true,
-    onToggleSidebar,
 }) => {
     const {
         currentTranscript,
@@ -957,24 +953,13 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
             <header className="breadcrumb-header">
                 <h1 id="chat-page-title" className="sr-only">{t('chat.pageTitle')}</h1>
                 <div className="breadcrumb-main">
-                    <button
-                        type="button"
-                        className="breadcrumb-toggle"
-                        onClick={(event) => {
-                            event.stopPropagation();
-                            onToggleSidebar?.();
-                        }}
-                        aria-expanded={isSidebarOpen}
-                        data-sidebar-toggle="true"
-                        aria-label={isSidebarOpen ? t('sidebar.close') : t('sidebar.open')}
-                        title={isSidebarOpen ? t('sidebar.close') : t('sidebar.open')}
-                    >
+                    <span className="breadcrumb-mark" aria-hidden="true">
                         <AgentOrbitIcon
                             size={32}
                             className={`breadcrumb-icon ${isStreaming ? 'is-running' : 'is-idle'}`}
                             animated={isStreaming}
                         />
-                    </button>
+                    </span>
                     <span className="breadcrumb-title">{t('chat.agents')}</span>
                     <span className="breadcrumb-separator">/</span>
                     <span className="breadcrumb-task">{currentTask.name}</span>
@@ -1250,20 +1235,9 @@ const ChatArea: React.FC<ChatAreaProps> = (props) => {
             <header className="breadcrumb-header">
                 <h1 id="chat-page-title" className="sr-only">{t('chat.pageTitle')}</h1>
                 <div className="breadcrumb-main">
-                    <button
-                        type="button"
-                        className="breadcrumb-toggle"
-                        onClick={(event) => {
-                            event.stopPropagation();
-                            props.onToggleSidebar?.();
-                        }}
-                        aria-expanded={props.isSidebarOpen ?? true}
-                        data-sidebar-toggle="true"
-                        aria-label={(props.isSidebarOpen ?? true) ? t('sidebar.close') : t('sidebar.open')}
-                        title={(props.isSidebarOpen ?? true) ? t('sidebar.close') : t('sidebar.open')}
-                    >
+                    <span className="breadcrumb-mark" aria-hidden="true">
                         <AgentOrbitIcon size={32} className="breadcrumb-icon is-idle" animated={false} />
-                    </button>
+                    </span>
                     <span className="breadcrumb-title">{t('chat.agents')}</span>
                     {currentTask && (
                         <>

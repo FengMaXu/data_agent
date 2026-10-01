@@ -78,6 +78,9 @@ describe("Cross-target consistency", () => {
       [boxplot, { columns: ["region", "a", "b", "c", "d", "e"], rows: [["华东", 10000, 20000, 30000, 40000, 50000]] }],
       [{ version: 1, data, fields: { n: { type: "quantitative", storage: "raw", additivity: "additive" } }, chart: { mark: "sankey", source: { field: "a" }, target: { field: "b" }, value: { field: "n" } } }, { columns: ["a", "b", "n"], rows: [["访问", "注册", 60], ["注册", "付费", 12]] }],
       [{ version: 1, data, fields: { n: { type: "quantitative", storage: "raw", additivity: "additive" } }, chart: { mark: "treemap", path: [{ field: "a" }, { field: "b" }], value: { field: "n" } } }, { columns: ["a", "b", "n"], rows: [["甲", "子", 3], ["甲", "丑", 2]] }],
+      [{ version: 1, data, fields: { n: { type: "quantitative", storage: "raw", additivity: "additive" } }, chart: { mark: "funnel", stage: { field: "a" }, value: { field: "n" } } }, { columns: ["a", "n"], rows: [["访问", 100], ["注册", 30]] }],
+      [{ version: 1, data, fields: { n: { type: "quantitative", storage: "raw", additivity: "additive" } }, chart: { mark: "sunburst", path: [{ field: "a" }, { field: "b" }], value: { field: "n" } } }, { columns: ["a", "b", "n"], rows: [["甲", "子", 3], ["甲", "丑", 2]] }],
+      [{ version: 1, data, fields: { n: { type: "quantitative", storage: "raw", additivity: "additive" } }, chart: { mark: "cartesian", x: { field: "a" }, layers: [{ type: "area", y: { field: "n" }, stack: "stacked", series: { field: "b" } }] } }, { columns: ["a", "b", "n"], rows: [["一", "甲", 1], ["一", "乙", 2], ["二", "甲", 3], ["二", "乙", 4]] }],
       [{ version: 1, data, fields: { s: money, e: money }, chart: { mark: "waterfall", step: { field: "step" }, start: { field: "s" }, end: { field: "e" } } }, { columns: ["step", "s", "e"], rows: [["期初", 0, 50000], ["增加", 50000, 80000], ["减少", 80000, 60000]] }],
     ];
     for (const [spec, rows] of pairs) {
