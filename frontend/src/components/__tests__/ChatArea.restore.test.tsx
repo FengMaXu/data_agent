@@ -143,4 +143,23 @@ describe('ChatArea clarification', () => {
         await waitFor(() => expect(answerClarificationViaRuntime).toHaveBeenCalledWith('c-1', '当月', 'session-1'));
         expect(document.querySelectorAll('.message.user')).toHaveLength(1);
     });
+
+    it('closes the card once the answer is sent, while the run goes on', async () => {
+        renderChat();
+        fireEvent.click(await screen.findByRole('radio', { name: '累计' }));
+        fireEvent.click(screen.getByRole('button', { name: '提交' }));
+        await waitFor(() => expect(screen.queryByText('按哪个口径统计？')).toBeNull());
+        emit({ type: 'agent.message_started', messageId: 'm-after' });
+        emit({ type: 'agent.text_delta', delta: '按累计口径继续' });
+        await waitFor(() => expect(screen.getByText(/按累计口径继续/)).toBeTruthy());
+        expect(screen.queryByText('按哪个口径统计？')).toBeNull();
+    });
+
+    it('closes the card when the runtime settles the clarification', async () => {
+        renderChat();
+        await screen.findByText('按哪个口径统计？');
+        await waitFor(() => expect(runtime.listener).toBeDefined());
+        emit({ type: 'clarification.settled', clarificationId: 'c-1', outcome: 'expired' });
+        await waitFor(() => expect(screen.queryByText('按哪个口径统计？')).toBeNull());
+    });
 });

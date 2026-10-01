@@ -581,7 +581,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                     return;
                 }
 
-                if (event.type === 'clarification_answered') {
+                if (event.type === 'clarification_settled') {
                     setPendingClarification((current) => (
                         current?.clarification_id === event.clarification_id ? null : current
                     ));
@@ -904,6 +904,9 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
         try {
             // The answer reaches the agent as the tool result; it is not a chat turn.
             await answerClarificationViaRuntime(pendingClarification.clarification_id, answer, currentSession.id);
+            setPendingClarification((current) => (
+                current?.clarification_id === pendingClarification.clarification_id ? null : current
+            ));
             setClarificationInput('');
         } catch (err) {
             console.error('Failed to answer clarification:', err);
