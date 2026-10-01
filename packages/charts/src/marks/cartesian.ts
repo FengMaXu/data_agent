@@ -1,6 +1,6 @@
 import { type CartesianChart, type ChartLayer } from "@data-agent/contracts";
 import type { ChartOption } from "../types.js";
-import { PALETTE, axisTitle, categoryLabel, displayScale, fieldLabel, fieldTitle, formatValue, isPercentDisplay, type QuantitativeMeta } from "../semantics.js";
+import { PALETTE, axisTitle, categoryLabel, displayScale, fieldLabel, fieldTitle, formatValue, headlineDigits, isPercentDisplay, numericCell, type QuantitativeMeta } from "../semantics.js";
 import { type Measure, CompileContext, temporalNotice, orderCategories, seriesGroups, categoryAxis, viewportZoom, valueAxis, checkPartOfWhole, applySelection } from "./shared.js";
 import type { MarkDefinition } from "./types.js";
 
@@ -85,7 +85,18 @@ function compileCartesian(context: CompileContext, chart: CartesianChart): Chart
     const groupLabels = rows.map((row) => (plan.seriesIndex === undefined ? "" : fieldLabel(row[plan.seriesIndex], seriesMeta)));
     const groups = plan.seriesIndex === undefined ? [""] : seriesGroups(groupLabels, layer.series?.order);
     const baseName = layer.name ?? fieldTitle(y.field, y.meta);
-    const labelOf = (rowIndex: number) => (plan.labelIndex === undefined ? undefined : categoryLabel(rows[rowIndex]![plan.labelIndex]));
+    const labelMeta = layer.label ? context.meta(layer.label.field) : undefined;
+    // A declared measure reads as a headline number ("+53.5%" style precision, with its unit); other cells as their labels.
+    const labelOf = (rowIndex: number) => {
+      if (plan.labelIndex === undefined) return undefined;
+      const cell = rows[rowIndex]![plan.labelIndex];
+      if (labelMeta?.type !== "quantitative") return fieldLabel(cell, labelMeta);
+      // A missing measure leaves its bar unlabelled, as a missing value leaves it blank.
+      const number = numericCell(cell);
+      if (number === null || number === undefined) return number === null ? "" : categoryLabel(cell);
+      const shown = number * displayScale(labelMeta);
+      return formatValue(shown, labelMeta, { digits: headlineDigits(shown, labelMeta), fixed: true });
+    };
     const label = plan.labelIndex === undefined ? {} : { label: { show: true, position: horizontal ? "right" : "top", formatter: (params: { data?: { labelText?: string } }) => params.data?.labelText ?? "" } };
 
     // An area is a line filled to the axis; it follows the line's rules and adds only its fill.

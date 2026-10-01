@@ -34,7 +34,7 @@ function sampleDataset(view: DashboardView): ChartDataset {
   return { columns, rows: [0, 1].map((index) => columns.map((column) => cell(column, index))) };
 }
 
-function assertDashboard(raw: { views: DashboardView[] } & Record<string, unknown>, where: string): void {
+function assertDashboard(raw: { views: DashboardView[] } & Record<string, unknown>, where: string, layoutClean = false): void {
   // Give each view its own sample result.
   const views = raw.views.map((view, index) => {
     const data = { kind: "publication", receiptId: `example_${index}` } as const;
@@ -43,6 +43,8 @@ function assertDashboard(raw: { views: DashboardView[] } & Record<string, unknow
   const datasets = Object.fromEntries(views.map((view) => [datasetKey(view.type === "chart" ? view.chart.data : view.data), sampleDataset(view as DashboardView)]));
   const validated = validateDashboard({ ...raw, views }, datasets);
   expect(validated.ok ? [] : validated.errors, where).toEqual([]);
+  // A whole-dashboard example is what the model copies, so it must already read as a BI page.
+  if (layoutClean && validated.ok) expect(validated.advice.map((advice) => advice.message), where).toEqual([]);
 }
 
 describe("dashboard Skill examples", () => {
@@ -56,7 +58,7 @@ describe("dashboard Skill examples", () => {
     for (const example of await jsonExamples()) {
       const where = `SKILL.md line ${example.line} (${example.tag})`;
       const raw = JSON.parse(example.body) as Record<string, unknown>;
-      if (example.tag === "dashboard-spec") assertDashboard(raw as { views: DashboardView[] }, where);
+      if (example.tag === "dashboard-spec") assertDashboard(raw as { views: DashboardView[] }, where, true);
       else assertDashboard({ version: 1, title: "example", views: [raw as unknown as DashboardView] }, where);
     }
   });

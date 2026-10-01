@@ -97,10 +97,17 @@ describe("generate_dashboard", () => {
     expect(page.errors).toEqual([]);
     expect(page.options.map((entry) => entry.id)).toEqual(["view-sales_bar"]);
     expect(JSON.stringify(page.options[0]!.option.xAxis)).toContain("零售业");
-    expect(page.document.querySelector("#view-kpi .value")?.textContent).toBe("5,733.88 亿元");
-    expect(page.document.querySelector("#view-kpi .delta")?.textContent).toBe("同比 10%");
+    // KPI tiles read at headline precision, with the full value as the tooltip and the delta's direction.
+    const value = page.document.querySelector("#view-kpi .value");
+    expect([value?.textContent, value?.getAttribute("title")]).toEqual(["5,734 亿元", "5,733.88 亿元"]);
+    expect(page.document.querySelector("#view-kpi .trend.up")?.textContent).toBe("▲ +10.0%");
+    expect(page.document.querySelector("#view-kpi .delta")?.textContent).toBe("▲ +10.0%同比");
+    // Tables name the unit once in the header and align bare numbers.
+    expect([...page.document.querySelectorAll("#view-detail th")].map((cell) => cell.textContent)).toEqual(["行业", "销售额（亿元）", "同比增速（%）"]);
     const cells = [...page.document.querySelectorAll("#view-detail tbody tr")].map((row) => [...row.querySelectorAll("td")].map((cell) => cell.textContent));
-    expect(cells).toEqual([["批发业", "5,234 亿元", "12%"], ["零售业", "499.88 亿元", ""], ["住宿和餐饮业", "", "5%"]]);
+    expect(cells).toEqual([["批发业", "5,234.00", "12.00"], ["零售业", "499.88", ""], ["住宿和餐饮业", "", "5.00"]]);
+    // Without a layout, KPI and the table take full rows and the chart its own half row.
+    expect([...page.document.querySelectorAll(".row")].map((row) => [...row.querySelectorAll("section.panel")].map((panel) => panel.id))).toEqual([["view-kpi"], ["view-sales_bar"], ["view-detail"]]);
     expect(page.document.querySelector("#view-sales_bar .notes")?.textContent).toBeTruthy();
     expect(page.document.querySelector("footer")?.textContent).toContain(receipts.industries);
     page.close();

@@ -101,6 +101,7 @@ function generateDashboardTool(options: DashboardToolOptions): AgentHarnessTool<
         if (found.length > 0) checks[view.id] = found;
       }
       const summary = [
+        ...validated.advice.map((advice) => `[LAYOUT] ${advice.message}`),
         ...validated.notices.map(({ viewId, notice }) => `[NOTICE] ${viewId}: ${notice.message}`),
         ...Object.entries(checks).flatMap(([viewId, found]) => found.map((check) => `[CHECK] ${viewId}: ${check.message}`)),
         ...Object.values(sources).flatMap((source) => [
@@ -138,8 +139,8 @@ export function createDashboardToolDefinitions(options: DashboardToolOptions): r
   return [defineDataAgentTool(generateDashboardTool(options), {
     promptSnippet: "用已发布的查询结果生成独立 HTML 快照看板。",
     promptGuidelines: [
-      "仅在看板需求和 dashboard Skill 已授权时使用。spec 为 DashboardSpec v1：views 由 chart（ChartSpec）、table、kpi 组成，每个视图的数据引用 { kind: \"publication\", receiptId }。",
-      "先 operation=\"validate\"，通过后 \"create\"；edit 需要完整 spec 和 editPath。工具不聚合、不补零，KPI 只显示一个单元格；出错时按返回的错误修改查询或 spec。",
+      "仅在看板需求和 dashboard Skill 已授权时使用。spec 为 DashboardSpec v1：views 由 chart（ChartSpec）、table、kpi 组成，每个视图的数据引用 { kind: \"publication\", receiptId }；layout.rows 把视图排成一行 1–4 个格子。",
+      "先 operation=\"validate\"，通过后 \"create\"；edit 需要完整 spec 和 editPath。工具不聚合、不补零，KPI 只显示一个单元格；出错时按返回的错误修改查询或 spec，有 [LAYOUT] 建议时调整 layout 再生成。",
     ],
   })];
 }

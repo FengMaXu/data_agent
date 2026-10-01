@@ -2,6 +2,7 @@ import { checkChartSpec } from "@data-agent/contracts";
 import type { ChartCompileOptions, ChartCompileResult, ChartDataset, ChartError, PresentationNotice } from "./types.js";
 import { markOf } from "./marks/index.js";
 import { CompileContext } from "./marks/shared.js";
+import { applyCompactDensity } from "./density.js";
 
 /**
  * Compile a ChartSpec against its resolved dataset. The compiler never
@@ -15,7 +16,7 @@ export function compileChart(input: unknown, dataset: ChartDataset, options: Cha
   const chart = checked.spec.chart;
   const option = markOf(chart).compile(context, chart);
   if (context.errors.length > 0 || !option) return { ok: false, errors: context.errors };
-  return { ok: true, spec: checked.spec, option, notices: context.notices };
+  return { ok: true, spec: checked.spec, option: options.density === "compact" ? applyCompactDensity(option) : option, notices: context.notices };
 }
 
 /** Validate a ChartSpec against its dataset without keeping the compiled option. */

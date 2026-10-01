@@ -111,9 +111,19 @@ export function axisTitle(field: string, meta: QuantitativeMeta): string {
   return unit ? `${fieldTitle(field, meta)}（${unit}）` : fieldTitle(field, meta);
 }
 
-export function formatValue(value: number, meta: QuantitativeMeta): string {
-  const text = value.toLocaleString("zh-CN", { maximumFractionDigits: 4 });
-  const unit = unitText(meta);
+export interface ValueFormat {
+  /** Most decimals shown; 4 by default. */
+  readonly digits?: number;
+  /** Always show `digits` decimals, so headline numbers side by side keep one precision (38.0%, 13.9%). */
+  readonly fixed?: boolean;
+  /** False when the unit is stated once elsewhere, such as in a column header. */
+  readonly unit?: boolean;
+}
+
+export function formatValue(value: number, meta: QuantitativeMeta, format: ValueFormat = {}): string {
+  const digits = format.digits ?? 4;
+  const text = value.toLocaleString("zh-CN", { maximumFractionDigits: digits, ...(format.fixed ? { minimumFractionDigits: digits } : {}) });
+  const unit = format.unit === false ? "" : unitText(meta);
   return unit === "%" ? `${text}%` : unit ? `${text} ${unit}` : text;
 }
 
@@ -123,10 +133,20 @@ export function formatValue(value: number, meta: QuantitativeMeta): string {
  * Undefined for other fields, nulls and non-numeric measures, so callers show the
  * raw value instead of guessing a scale.
  */
-export function formatFieldValue(value: unknown, meta: FieldMeta | undefined): string | undefined {
+export function formatFieldValue(value: unknown, meta: FieldMeta | undefined, format: ValueFormat = {}): string | undefined {
   if (meta?.type === "temporal") return value === null || value === undefined ? undefined : temporalLabel(value, meta);
   if (meta?.type !== "quantitative") return undefined;
   const number = numericCell(value);
   if (number === null || number === undefined) return undefined;
-  return formatValue(number * displayScale(meta), meta);
+  return formatValue(number * displayScale(meta), meta, format);
+}
+
+/**
+ * Decimals for a headline number: about four significant digits, so a tile
+ * reads 7,277 亿元 rather than 7,276.5712 亿元. The cell keeps its full value.
+ */
+export function headlineDigits(shown: number, meta: QuantitativeMeta): number {
+  if (isPercentDisplay(meta)) return 1;
+  const size = Math.abs(shown);
+  return size >= 1000 ? 0 : size >= 100 ? 1 : 2;
 }

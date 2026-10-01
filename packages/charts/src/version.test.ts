@@ -21,6 +21,10 @@ const OUTPUT_FINGERPRINTS: Readonly<Record<string, string>> = {
   "6.1": "a6b17e41",
   // 7: area layers, funnel and sunburst marks.
   "7.1": "91989973",
+  // 8: layer labels read declared semantics (a measure at headline precision with its unit, a date at its grain);
+  //    axis-label rotation measures ASCII characters at about half the width of CJK ones.
+  // Theme 2: compact density for dashboard tiles. Neither changes these fixtures.
+  "8.2": "91989973",
 };
 
 const data = { kind: "publication", receiptId: "publication_1" } as const;
