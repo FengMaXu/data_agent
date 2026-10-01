@@ -69,6 +69,7 @@ export {
   type SpecFeedbackCoverageProbability,
   type SpecFeedbackStatus,
   type UntrustedEvidenceInput,
+  CLARIFICATION_SOURCE_PREFIX,
   isEvidenceKind,
   isFacetName,
   isHypothesisKind,

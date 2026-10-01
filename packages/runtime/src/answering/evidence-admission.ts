@@ -1,4 +1,5 @@
 import {
+  CLARIFICATION_SOURCE_PREFIX,
   contentHash,
   type EvidenceKind,
   type EvidenceVerification,
@@ -13,6 +14,8 @@ import {
 export interface EvidenceSource {
   /** Text of a user-authored message in this Session; undefined when absent or not user-authored. */
   readUserMessage(sessionId: string, messageId: string, signal?: AbortSignal): Promise<string | undefined>;
+  /** The user's recorded answer to a clarification this Session asked; undefined when absent or unanswered. */
+  readClarificationAnswer?(sessionId: string, clarificationId: string, signal?: AbortSignal): Promise<string | undefined>;
   /** Only documents explicitly authorized by the composition root resolve here. */
   readDocument?(sourceRef: string, signal?: AbortSignal): Promise<AuthorizedEvidenceDocument | undefined>;
 }
@@ -83,6 +86,14 @@ async function admitOne(input: UntrustedEvidenceInput, scope: AdmissionScope): P
       const quote = requireQuote(input, "user_confirmation");
       const messageId = input.sourceRef?.trim();
       if (!messageId) throw new EvidenceAdmissionError("user_confirmation requires the Host-supplied user message of the current operation");
+      // The user's answer to a clarification is something they said, verified like a message.
+      if (messageId.startsWith(CLARIFICATION_SOURCE_PREFIX)) {
+        const clarificationId = messageId.slice(CLARIFICATION_SOURCE_PREFIX.length);
+        const answer = scope.source?.readClarificationAnswer ? await scope.source.readClarificationAnswer(scope.sessionId, clarificationId, scope.signal) : undefined;
+        if (answer === undefined) throw new EvidenceAdmissionError(`user_confirmation cannot be verified: clarification ${clarificationId} has no recorded answer in this Session`);
+        if (!quoteAppearsIn(quote, answer)) throw new EvidenceAdmissionError(`user_confirmation quote was not found verbatim in the user's answer to clarification ${clarificationId}: ${JSON.stringify(quote)}`);
+        return { ...base, kind: "user_confirmation", sourceRef: messageId, quote, contentHash: contentHash(answer), verification: { method: "clarification_answer_quote", sourceContentHash: contentHash(answer) } };
+      }
       if (messageId === scope.taskRequestMessageId) throw new EvidenceAdmissionError("The original request is request_wording, not a later user confirmation");
       const text = scope.source ? await scope.source.readUserMessage(scope.sessionId, messageId, scope.signal) : undefined;
       if (text === undefined) throw new EvidenceAdmissionError("user_confirmation cannot be verified: the user message is unavailable");
