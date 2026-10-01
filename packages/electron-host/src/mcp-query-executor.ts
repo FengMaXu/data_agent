@@ -22,6 +22,13 @@ export class DatabaseUnavailableError extends Error {
   }
 }
 
+/**
+ * How long past a statement's own time limit the client waits for the server's
+ * report. MySQL stops the statement at the limit (MAX_EXECUTION_TIME) and says
+ * QUERY_TIMEOUT; a server that has not answered by then is unresponsive.
+ */
+const STATEMENT_REPORT_GRACE_MS = 5_000;
+
 const CONNECTION_LOST = /Connection closed|EPIPE|ECONNRESET|Not connected|transport closed|ERR_STREAM_DESTROYED|spawn .*ENOENT/i;
 
 function isConnectionLoss(error: unknown): boolean {
@@ -146,18 +153,22 @@ export function createMcpQueryExecutor(options: McpQueryExecutorOptions) {
       try {
         raw = await withConnection((c) => {
           const remaining = execution?.deadlineAt ? Math.max(1, execution.deadlineAt - Date.now()) : undefined;
+          // The server enforces the statement's limit itself; the client only waits for its answer.
+          const statementMs = Math.max(1, Math.floor(Math.min(60_000, remaining ?? Number.POSITIVE_INFINITY)));
           return c.callTool({
             name: finalResult ? "execute_query_export" : "execute_query_preview",
             arguments: finalResult
-              ? { sql, maxRows: effectiveLimit }
-              : { sql, limit: effectiveLimit, ...(execution?.maxPreviewBytes ? { maxBytes: execution.maxPreviewBytes } : {}) },
+              ? { sql, maxRows: effectiveLimit, timeoutMs: statementMs }
+              : { sql, limit: effectiveLimit, timeoutMs: statementMs, ...(execution?.maxPreviewBytes ? { maxBytes: execution.maxPreviewBytes } : {}) },
           }, undefined, {
-            timeout: Math.max(1, Math.floor(Math.min(60_000, remaining ?? Number.POSITIVE_INFINITY))),
+            timeout: statementMs + STATEMENT_REPORT_GRACE_MS,
             ...(execution?.signal ? { signal: execution.signal } : {}),
           });
         }, execution?.signal);
       } catch (error) {
-        if (execution?.signal?.aborted || /timed out|timeout|AbortError|RequestTimeout/i.test(error instanceof Error ? error.message : String(error))) await resetConnection();
+        // A cancelled call is stopped on the server through MCP cancellation, so the process stays.
+        // Only a server that missed its own time limit and the grace after it is replaced.
+        if (!execution?.signal?.aborted && /timed out|timeout|RequestTimeout/i.test(error instanceof Error ? error.message : String(error))) await resetConnection();
         throw error;
       }
       const result = parseResult(raw);
