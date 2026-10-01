@@ -12,6 +12,7 @@ export const DASHBOARD_SPEC_VERSION = 1 as const;
 const Strict = { additionalProperties: false } as const;
 const Name = Type.String({ minLength: 1 });
 const ViewId = Type.String({ pattern: "^[A-Za-z0-9_\\-]{1,64}$" });
+/** Placement used only when the spec has no `layout`: kept so dashboards built before rows still open and refresh. */
 const Width = Type.Optional(Type.Union([Type.Literal("half"), Type.Literal("full")]));
 const Fields = Type.Optional(Type.Record(Type.String(), FieldMetaSchema));
 
@@ -66,6 +67,25 @@ export type DashboardTableView = Static<typeof DashboardTableViewSchema>;
 export type DashboardKpiView = Static<typeof DashboardKpiViewSchema>;
 export type DashboardView = Static<typeof DashboardViewSchema>;
 
+/** Chart height of a row's tiles; KPI tiles and tables size to their content. */
+export const DashboardRowHeightSchema = Type.Union([Type.Literal("compact"), Type.Literal("standard"), Type.Literal("tall")]);
+export type DashboardRowHeight = Static<typeof DashboardRowHeightSchema>;
+
+/** One row of tiles, left to right: a BI page is a few rows of two to four tiles, not one view per screen. */
+export const DashboardLayoutRowSchema = Type.Object({
+  views: Type.Array(ViewId, { minItems: 1, maxItems: 4 }),
+  /** Relative tile widths, one per view; equal when omitted. */
+  widths: Type.Optional(Type.Array(Type.Integer({ minimum: 1, maximum: 12 }), { minItems: 1, maxItems: 4 })),
+  height: Type.Optional(DashboardRowHeightSchema),
+}, Strict);
+export type DashboardLayoutRow = Static<typeof DashboardLayoutRowSchema>;
+
+export const DashboardLayoutSchema = Type.Object({
+  /** Every view appears in exactly one row. */
+  rows: Type.Array(DashboardLayoutRowSchema, { minItems: 1, maxItems: 20 }),
+}, Strict);
+export type DashboardLayout = Static<typeof DashboardLayoutSchema>;
+
 export const DashboardSpecSchema = Type.Object({
   version: Type.Literal(DASHBOARD_SPEC_VERSION),
   title: Name,
@@ -73,6 +93,8 @@ export const DashboardSpecSchema = Type.Object({
   /** File name under dashboards/, without extension. */
   filename: Type.Optional(Type.String({ pattern: "^[A-Za-z0-9_\\-\\u4e00-\\u9fa5]{1,80}$" })),
   views: Type.Array(DashboardViewSchema, { minItems: 1, maxItems: 40 }),
+  /** Rows of tiles; without it views are laid out in order, KPI and tables full width, charts two per row. */
+  layout: Type.Optional(DashboardLayoutSchema),
 }, Strict);
 export type DashboardSpec = Static<typeof DashboardSpecSchema>;
 

@@ -101,6 +101,7 @@ function generateDashboardTool(options: DashboardToolOptions): AgentHarnessTool<
         if (found.length > 0) checks[view.id] = found;
       }
       const summary = [
+        ...validated.advice.map((advice) => `[LAYOUT] ${advice.message}`),
         ...validated.notices.map(({ viewId, notice }) => `[NOTICE] ${viewId}: ${notice.message}`),
         ...Object.entries(checks).flatMap(([viewId, found]) => found.map((check) => `[CHECK] ${viewId}: ${check.message}`)),
         ...Object.values(sources).flatMap((source) => [
@@ -115,7 +116,8 @@ function generateDashboardTool(options: DashboardToolOptions): AgentHarnessTool<
       const relativePath = value.editPath ?? `dashboards/${spec.filename ?? `dashboard-${specHash}`}.html`;
       const echartsSource = await (options.echartsSource ?? defaultEchartsSource)();
       const html = renderDashboardHtml(
-        { spec, datasets, sources, checks, renderer: CHART_RENDERER_VERSIONS, declaredFields: declared, nonce: randomUUID() },
+        // The local calendar day, as the reader of the page counts it.
+        { spec, datasets, sources, checks, renderer: CHART_RENDERER_VERSIONS, builtOn: new Date().toLocaleDateString("sv-SE"), nonce: randomUUID() },
         { chartsSource: CHARTS_BROWSER_SOURCE, ...(echartsSource ? { echartsSource } : {}) },
       );
       await options.workspace.write(relativePath, html);
@@ -124,7 +126,7 @@ function generateDashboardTool(options: DashboardToolOptions): AgentHarnessTool<
         ...summary,
         ...(echartsSource ? [] : ["[WARNING] ECharts 未找到，看板中的图表无法渲染。"]),
         ...(Object.keys(checks).length > 0 ? ["[CHECK] 是对字段声明的核对提示：声明有误就改正 spec 后用 edit 重建看板。"] : []),
-        "看板页面已显示 [NOTICE]、[CHECK] 与 [DISCLOSURE]；答复用户时如实转述。",
+        "看板页面只显示数据，以及各视图下有关数据的 [NOTICE] 与 [CHECK]；[DISCLOSURE]、[SEMANTICS] 与派生来源不印在页面上，答复用户时必须如实转述。标签旋转、截断与未声明日期等 [NOTICE] 只给你调整 spec 用，能改就改 spec 重建，不必转述。",
       ].join("\n");
       return {
         content: [{ type: "text", text }],
@@ -138,8 +140,8 @@ export function createDashboardToolDefinitions(options: DashboardToolOptions): r
   return [defineDataAgentTool(generateDashboardTool(options), {
     promptSnippet: "用已发布的查询结果生成独立 HTML 快照看板。",
     promptGuidelines: [
-      "仅在看板需求和 dashboard Skill 已授权时使用。spec 为 DashboardSpec v1：views 由 chart（ChartSpec）、table、kpi 组成，每个视图的数据引用 { kind: \"publication\", receiptId }。",
-      "先 operation=\"validate\"，通过后 \"create\"；edit 需要完整 spec 和 editPath。工具不聚合、不补零，KPI 只显示一个单元格；出错时按返回的错误修改查询或 spec。",
+      "仅在看板需求和 dashboard Skill 已授权时使用。spec 为 DashboardSpec v1：views 由 chart（ChartSpec）、table、kpi 组成，每个视图的数据引用 { kind: \"publication\", receiptId }；layout.rows 把视图排成一行 1–4 个格子。",
+      "先 operation=\"validate\"，通过后 \"create\"；edit 需要完整 spec 和 editPath。工具不聚合、不补零，KPI 只显示一个单元格；出错时按返回的错误修改查询或 spec，有 [LAYOUT] 建议时调整 layout 再生成。",
     ],
   })];
 }

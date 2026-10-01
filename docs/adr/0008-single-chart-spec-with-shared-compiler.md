@@ -148,3 +148,12 @@ Flint Chart（microsoft/flint-chart，MIT，评估版本 0.5.1）提供语义类
 - 新增 napi 原生依赖与字体资产，增加打包与冒烟测试负担；独立 HTML 看板需内联 ECharts 与编译器，文件体积显著增大（当前 `generate_dashboard` 生成的 HTML 未内联 ECharts）。
 - ChartSpec 的表达力有意受限；超出其范围的图需扩展契约与模板，而不是让模型绕过契约。
 - CONTEXT.md 随本 ADR 的接受补充了 ChartSpec、Dataset Reference（数据集引用）、Physical Profile（物理画像）、Dataset Annotation（数据集注解）与 Presentation Notice（展示提示）五个术语，并注明展示提示与 Disclosure 的区别。
+
+## 修订（2026-10-01）：看板页面只给读者看数据
+
+第 4、6 条要求 Disclosure 与展示提示“随图表交付”，原实现把它们连同发布记录、内容哈希和“字段语义来自模型声明”一起印在看板页面上。看板的读者是业务人员，这些是审计与溯源信息。看板（独立 HTML）的交付因此分为两层：
+
+- **页面**：数据，各视图下有关数据的展示提示（空值、视口、数据选择）与 `[CHECK]`，以及快照日期。标签旋转、截断等纯布局提示只告诉模型。
+- **随交付但不印在页面上**：Disclosure、派生来源与模型声明的字段语义由 `generate_dashboard` 返回给模型，模型在答复中如实转述；发布记录与内容哈希嵌在页面数据中，满足第 9 条的重现要求。
+
+聊天图表与报告的交付方式不变。

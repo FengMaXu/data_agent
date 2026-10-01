@@ -8,6 +8,11 @@ import type { DashboardSpec } from "@data-agent/contracts";
  * embeds the spec and rows, not ECharts options, and compiles each chart in the
  * browser with the inlined @data-agent/charts bundle.
  *
+ * The page shows readers the data: tiles, their data notices and the snapshot
+ * date. Provenance (Receipts, content hashes, Disclosures, model-declared
+ * semantics) travels in the embedded payload and in the tool's answer to the
+ * model, which relays it; it is not printed on the page.
+ *
  * Views over live data can ask the hosting app for a refresh. The page only
  * names views; the app reads the spec from the file, refreshes through the
  * Runtime and answers with new rows. Opened outside the app, it is a snapshot.
@@ -36,8 +41,8 @@ export interface DashboardRenderInput {
   /** Per view id: declared semantics the Physical Profile makes doubtful. */
   readonly checks: Readonly<Record<string, readonly SemanticsCheck[]>>;
   readonly renderer: ChartRendererVersions;
-  /** Fields whose semantics only the model declared. */
-  readonly declaredFields: readonly string[];
+  /** Day the snapshot was built, shown in the page header, e.g. "2026-10-01". */
+  readonly builtOn: string;
   /** Ties refresh messages to this document; the app checks it against the file it opened. */
   readonly nonce: string;
 }
@@ -58,52 +63,71 @@ function scriptJson(value: unknown): string {
   return JSON.stringify(value).replace(/</g, "\\u003c").replace(/[\u2028\u2029]/g, (c) => (c === "\u2028" ? "\\u2028" : "\\u2029"));
 }
 
-const STYLE = `body{margin:0;background:#f5f6f8;color:#243142;font-family:"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif}
-.shell{max-width:1440px;margin:auto;padding:28px}h1{margin:0 0 4px;font-size:24px}.lead{margin:0 0 20px;color:#697586}
-.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
-.panel{grid-column:span 6;min-width:0;background:#fff;border:1px solid #e4e8ee;border-radius:12px;padding:18px;box-shadow:0 4px 18px rgba(35,49,66,.05)}
-.panel.wide{grid-column:span 12}.panel h2{margin:0;font-size:16px}.subtitle{margin:4px 0 0;color:#697586;font-size:13px}
-.chart{height:380px;margin-top:12px}.chart-unavailable{display:flex;align-items:center;justify-content:center;color:#697586;font-size:13px;background:#f7f9fb;border-radius:9px;padding:12px;text-align:center}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:12px}.card{background:#f7f9fb;border-radius:9px;padding:16px}
-.label{color:#697586;font-size:13px}.value{font-size:28px;font-weight:700;margin-top:8px}.delta{color:#4f6980;margin-top:5px;font-size:13px}
-.table-wrap{overflow-x:auto;margin-top:12px}table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:9px 10px;border-bottom:1px solid #e8ebef;text-align:left;white-space:nowrap}th{background:#f7f9fb}th.num,td.num{text-align:right;font-variant-numeric:tabular-nums}
-.notes{margin:10px 0 0;padding-left:18px;color:#697586;font-size:12px}
-.version{margin:10px 0 0;display:flex;gap:10px;align-items:center;color:#697586;font-size:12px}.version button{display:none;border:1px solid #c9d1db;background:#fff;border-radius:6px;padding:2px 10px;color:#243142;cursor:pointer}.hosted .version button{display:inline-block}.version .error{color:#b66353}footer{margin-top:24px;color:#697586;font-size:12px;line-height:1.7}
-@media(max-width:800px){.panel{grid-column:span 12}.shell{padding:14px}}`;
+// A BI page: a header, rows of tiles, then sources and data notes. Tile sizes come from the spec's layout rows.
+const STYLE = `:root{--bg:#f3f4f6;--tile:#ffffff;--rule:#e5e7eb;--ink:#1f2937;--muted:#6b7280;--up:#c0392b;--down:#2e8b57;--error:#b66353}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif}
+.shell{max-width:1440px;margin:auto;padding:20px 24px 28px}
+.page-head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:14px}
+h1{margin:0;font-size:20px;font-weight:700}.lead{margin:4px 0 0;color:var(--muted);font-size:12.5px;line-height:1.6}.stamp{color:var(--muted);font-size:12px;white-space:nowrap}
+.board{display:flex;flex-direction:column;gap:12px}.row{display:grid;gap:12px;align-items:stretch}.panel{min-width:0}
+.tile{background:var(--tile);border:1px solid var(--rule);border-radius:10px;padding:14px 16px 12px;display:flex;flex-direction:column}
+.tile h2{margin:0;font-size:14px;font-weight:600;line-height:1.4}.subtitle{margin:2px 0 0;color:var(--muted);font-size:12px;line-height:1.5}
+.chart{margin-top:8px;flex:none}.chart-unavailable{display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;background:#f9fafb;border-radius:8px;padding:12px;text-align:center}
+.kpi-caption{margin:0 0 6px;color:var(--muted);font-size:12px;font-weight:600}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.card{background:var(--tile);border:1px solid var(--rule);border-radius:10px;padding:12px 16px}
+.tile .cards{grid-template-columns:1fr;gap:0;margin-top:6px}.tile .card{border:0;border-top:1px solid var(--rule);border-radius:0;padding:10px 0}.tile .card:first-child{border-top:0}
+.label{color:var(--muted);font-size:12px}.value{font-size:26px;font-weight:700;margin-top:4px;letter-spacing:-.01em;font-variant-numeric:tabular-nums}.value .unit{margin-left:4px;font-size:13px;font-weight:600;color:var(--muted)}
+.delta{margin-top:4px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}.delta b{font-weight:600;margin-left:4px}.delta.up b{color:var(--up)}.delta.down b{color:var(--down)}
+.table-wrap{overflow:auto;max-height:480px;margin-top:8px}table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{padding:7px 10px;border-bottom:1px solid #f0f1f3;text-align:left;white-space:nowrap}th{color:var(--muted);font-weight:600;border-bottom:1px solid var(--rule);background:var(--tile);position:sticky;top:0}
+th.num,td.num{text-align:right;font-variant-numeric:tabular-nums}
+.notes{margin-top:6px;color:var(--muted);font-size:11.5px}.notes summary{cursor:pointer}.notes ul{margin:4px 0 0;padding-left:18px}
+.version{margin-top:8px;display:flex;gap:10px;align-items:center;color:var(--muted);font-size:12px}.version button{display:none;border:1px solid #d1d5db;background:#fff;border-radius:6px;padding:2px 10px;color:var(--ink);cursor:pointer}.hosted .version button{display:inline-block}.version .error{color:var(--error)}
+@media(max-width:900px){.row{grid-template-columns:1fr!important}.shell{padding:12px}.page-head{flex-direction:column;align-items:flex-start}}`;
 
 // Plain ES2020 so it runs wherever the dashboard is opened; all data logic lives in DataAgentCharts.
 const PAGE_SCRIPT = `(function(){
-var D=window.__DATA_AGENT_DASHBOARD__,C=window.DataAgentCharts,host=document.getElementById("dashboard"),charts={},panels={},errors={};
+var D=window.__DATA_AGENT_DASHBOARD__,C=window.DataAgentCharts,host=document.getElementById("dashboard"),charts={},panels={},heights={},strips={},errors={},byId={};
+D.spec.views.forEach(function(v){byId[v.id]=v});
 function el(tag,cls,text){var e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e}
 function keyOf(v){return C.datasetKey(v.type==="chart"?v.chart.data:v.data)}
+function cards(v,data,p){
+  var box=el("div","cards");
+  C.resolveKpiCards(v,data).forEach(function(c){
+    var d=el("div","card"),value=el("div","value",c.value);value.title=c.fullValue;
+    d.appendChild(el("div","label",c.label));if(c.unit)value.appendChild(el("span","unit",c.unit));d.appendChild(value);
+    if(c.delta){var line=el("div","delta"+(c.delta.direction?" "+c.delta.direction:""),c.delta.label||null);line.appendChild(el("b",null,(c.delta.direction==="up"?"▲ ":c.delta.direction==="down"?"▼ ":"")+c.delta.value));d.appendChild(line)}
+    box.appendChild(d);
+  });
+  p.appendChild(box);
+}
 function render(v){
-  var key=keyOf(v),data=D.datasets[key],source=D.sources[key]||{},p=panels[v.id];
+  var data=D.datasets[keyOf(v)],source=D.sources[keyOf(v)]||{},p=panels[v.id],notes=[],checks=D.checks[v.id]||[];
   if(charts[v.id]){charts[v.id].dispose();delete charts[v.id]}
   p.textContent="";
-  var title=v.type==="chart"?v.chart.title:v.title,subtitle=v.type==="chart"?v.chart.subtitle:v.subtitle,notes=[];
-  if(title)p.appendChild(el("h2",null,title));if(subtitle)p.appendChild(el("p","subtitle",subtitle));
+  var title=v.type==="chart"?v.chart.title:v.title,subtitle=v.type==="chart"?v.chart.subtitle:v.subtitle;
+  if(strips[v.id]){if(title)p.appendChild(el("p","kpi-caption",title+(subtitle?" · "+subtitle:"")))}
+  else{if(title)p.appendChild(el("h2",null,title));if(subtitle)p.appendChild(el("p","subtitle",subtitle))}
   if(v.type==="chart"){
-    var box=el("div","chart");p.appendChild(box);
-    var compiled=C.compileChart(v.chart,data,{target:"interactive"});
+    var box=el("div","chart");box.style.height=heights[v.id]+"px";p.appendChild(box);
+    var compiled=C.compileChart(v.chart,data,{target:"interactive",density:"compact",width:box.clientWidth||undefined,height:heights[v.id]});
     if(!compiled.ok){box.className="chart chart-unavailable";box.textContent="图表无法编译："+compiled.errors.map(function(e){return e.message}).join("；")}
     else if(!window.echarts){box.className="chart chart-unavailable";box.textContent="图表组件未加载，无法渲染此图表。"}
-    else{charts[v.id]=echarts.init(box);charts[v.id].setOption(compiled.option);compiled.notices.forEach(function(n){notes.push(n.message)})}
+    else{charts[v.id]=echarts.init(box);charts[v.id].setOption(compiled.option);C.readerNotices(compiled.notices).forEach(function(n){notes.push(n.message)})}
   }else if(v.type==="table"){
-    var cols=v.columns||data.columns.map(function(f){return{field:f}}),fields=v.fields||{},index=cols.map(function(c){return data.columns.indexOf(c.field)});
-    var wrap=el("div","table-wrap"),table=el("table"),head=el("tr"),thead=el("thead"),body=el("tbody");
-    cols.forEach(function(c){var meta=fields[c.field];head.appendChild(el("th",meta&&meta.type==="quantitative"?"num":null,c.label||(meta&&meta.label)||c.field))});
+    var shown=C.resolveTable(v,data),wrap=el("div","table-wrap"),table=el("table"),head=el("tr"),thead=el("thead"),body=el("tbody");
+    shown.headers.forEach(function(h){head.appendChild(el("th",h.numeric?"num":null,h.label))});
     thead.appendChild(head);table.appendChild(thead);
-    data.rows.forEach(function(r){var tr=el("tr");cols.forEach(function(c,i){var meta=fields[c.field];tr.appendChild(el("td",meta&&meta.type==="quantitative"?"num":null,C.formatDashboardCell(r[index[i]],meta)))});body.appendChild(tr)});
+    shown.rows.forEach(function(r){var tr=el("tr");r.forEach(function(text,i){tr.appendChild(el("td",shown.headers[i].numeric?"num":null,text))});body.appendChild(tr)});
     table.appendChild(body);wrap.appendChild(table);p.appendChild(wrap);
-  }else{
-    var cards=el("div","cards");
-    C.resolveKpiCards(v,data).forEach(function(c){var d=el("div","card");d.appendChild(el("div","label",c.label));d.appendChild(el("div","value",c.value));if(c.delta)d.appendChild(el("div","delta",(c.delta.label?c.delta.label+" ":"")+c.delta.value));cards.appendChild(d)});
-    p.appendChild(cards);
+  }else cards(v,data,p);
+  checks.forEach(function(c){notes.push(c.message)});
+  if(notes.length){
+    // Collapsed so tiles stay compact; a doubtful declaration opens it, since it changes how the numbers read.
+    var details=el("details","notes"),ul=el("ul");if(checks.length)details.open=true;
+    details.appendChild(el("summary",null,"说明 "+notes.length));notes.forEach(function(n){ul.appendChild(el("li",null,n))});details.appendChild(ul);p.appendChild(details);
   }
-  (D.checks[v.id]||[]).forEach(function(c){notes.push(c.message)});
-  if(source.kind==="derived")notes.push(source.label);
-  (source.disclosures||[]).forEach(function(d){notes.push(d)});
-  if(notes.length){var ul=el("ul","notes");notes.forEach(function(n){ul.appendChild(el("li",null,n))});p.appendChild(ul)}
   if(source.live){
     var version=el("div","version");version.appendChild(el("span",null,"数据版本："+source.label));
     var button=el("button",null,"刷新数据");button.type="button";button.onclick=function(){refresh([v.id])};version.appendChild(button);
@@ -111,11 +135,17 @@ function render(v){
     p.appendChild(version);
   }
 }
-D.spec.views.forEach(function(v){
-  var p=el("section","panel"+((v.width||(v.type==="chart"?"half":"full"))==="full"?" wide":""));p.id="view-"+v.id;
-  // Attach first: ECharts sizes a chart from its container, and a detached one measures zero.
-  host.appendChild(p);panels[v.id]=p;render(v);
+C.dashboardRows(D.spec).forEach(function(row){
+  var strip=row.views.length===1&&byId[row.views[0]].type==="kpi",line=el("div","row");
+  line.style.gridTemplateColumns=strip?"1fr":row.widths.map(function(w){return w+"fr"}).join(" ");
+  host.appendChild(line);
+  row.views.forEach(function(id){
+    var p=el("section","panel "+(strip?"kpi-strip":"tile"));p.id="view-"+id;
+    // Attach first: ECharts sizes a chart from its container, and a detached one measures zero.
+    line.appendChild(p);panels[id]=p;heights[id]=C.ROW_CHART_HEIGHTS[row.height];if(strip)strips[id]=true;
+  });
 });
+D.spec.views.forEach(function(v){if(panels[v.id])render(v)});
 window.addEventListener("resize",function(){Object.keys(charts).forEach(function(id){charts[id].resize()})});
 // Refresh bridge: only a hosting app that answers the handshake with this document's nonce can refresh it.
 var pending={};
@@ -143,13 +173,13 @@ if(window.parent!==window&&D.spec.views.some(function(v){return (D.sources[keyOf
 export function renderDashboardHtml(input: DashboardRenderInput, assets: DashboardAssets): string {
   const { spec } = input;
   const payload = scriptJson({ spec, datasets: input.datasets, sources: input.sources, checks: input.checks, renderer: input.renderer, nonce: input.nonce });
-  const sources = Object.values(input.sources).map((source) => `<li>${escapeHtml(source.label)}（内容哈希 ${escapeHtml(source.contentHash.slice(0, 12))}）</li>`).join("");
-  const semantics = input.declaredFields.length > 0 ? `<p>以下字段的语义来自模型声明，未经业务定义核实：${escapeHtml(input.declaredFields.join("、"))}</p>` : "";
+  const live = Object.values(input.sources).some((source) => source.live);
+  const stamp = live ? `实时数据 · ${input.builtOn} 生成，应用内可刷新` : `数据快照 · ${input.builtOn}`;
   const echarts = assets.echartsSource ? `<script>${assets.echartsSource}</script>` : "";
   return `<!DOCTYPE html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(spec.title)}</title><style>${STYLE}</style></head>
-<body><main class="shell"><h1>${escapeHtml(spec.title)}</h1>${spec.subtitle ? `<p class="lead">${escapeHtml(spec.subtitle)}</p>` : ""}<div id="dashboard" class="grid"></div>
-<footer><div>${Object.values(input.sources).some((source) => source.live) ? "数据来自（实时数据在应用内可刷新，离开应用后为快照）：" : "数据快照，来自："}</div><ul>${sources}</ul>${semantics}</footer></main>
+<body><main class="shell"><header class="page-head"><div><h1>${escapeHtml(spec.title)}</h1>${spec.subtitle ? `<p class="lead">${escapeHtml(spec.subtitle)}</p>` : ""}</div><div class="stamp">${escapeHtml(stamp)}</div></header>
+<div id="dashboard" class="board"></div></main>
 ${echarts}<script>${assets.chartsSource}</script>
 <script>window.__DATA_AGENT_DASHBOARD__=${payload};</script>
 <script>${PAGE_SCRIPT}</script></body></html>`;

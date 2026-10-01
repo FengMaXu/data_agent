@@ -16,6 +16,14 @@ export const LABEL_CHAR_PX = 12;
 
 export const MAX_LABEL_CHARS = 16;
 
+/** Approximate width of one ASCII character (digits, Latin, punctuation) in an axis label. */
+const ASCII_CHAR_PX = 7;
+
+/** Estimated pixel width of an axis label as shown: CJK characters are full width, ASCII about half. */
+export function labelWidth(label: string): number {
+  return [...truncate(label)].reduce((width, character) => width + (character.charCodeAt(0) < 128 ? ASCII_CHAR_PX : LABEL_CHAR_PX), 0);
+}
+
 export interface Measure {
   readonly field: string;
   readonly index: number;
@@ -118,11 +126,11 @@ export function categoryAxis(context: CompileContext, categories: readonly strin
     });
     return undefined;
   }
-  const longest = Math.max(0, ...categories.map((label) => Math.min(label.length, MAX_LABEL_CHARS)));
+  const longest = Math.max(0, ...categories.map(labelWidth));
   if (categories.some((label) => label.length > MAX_LABEL_CHARS)) {
     context.notice({ kind: "layout", code: "LABELS_TRUNCATED", message: `过长的类目标签截断显示为前 ${MAX_LABEL_CHARS - 1} 个字符，完整名称见提示框`, field });
   }
-  const rotate = !horizontal && longest * LABEL_CHAR_PX > (viewport ? extent / viewport.window : band);
+  const rotate = !horizontal && longest > (viewport ? extent / viewport.window : band);
   if (rotate) context.notice({ kind: "layout", code: "LABELS_ROTATED", message: "类目标签旋转 45° 显示", field });
   return {
     type: "category",
