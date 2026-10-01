@@ -2,8 +2,9 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import Sidebar from './components/Sidebar';
 import ChatArea from './components/ChatArea';
 import ToolPanel, { type ToolData } from './components/ToolPanel';
-import SettingsModal from './components/SettingsModal';
-import PluginsModal from './components/PluginsModal';
+import SettingsPanel from './components/SettingsPanel';
+import PluginsPanel from './components/PluginsPanel';
+import { CHAT_VIEW, type WorkspaceView } from './components/workspace-view';
 import LandingPage from './components/LandingPage';
 import Onboarding from './components/Onboarding';
 import { SessionProvider } from './hooks/useSession';
@@ -35,18 +36,24 @@ const DESKTOP_MENU_ITEMS = [
 const TOOL_PANEL_MIN_WIDTH = 300;
 const DEFAULT_CHAT_RATIO = 0.64;
 const CHAT_PANEL_MIN_WIDTH = 560;
+// Hovering the collapsed rail peeks the full sidebar, pushing the page right; short delays keep a passing pointer from flickering it.
+const SIDEBAR_PEEK_OPEN_DELAY = 80;
+const SIDEBAR_PEEK_CLOSE_DELAY = 180;
 
 const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState, onRetryStartup }) => {
   const { t } = useLanguage();
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [tools, setTools] = useState<ToolData[]>([]);
   const [isToolPanelOpen, setIsToolPanelOpen] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [pluginsModalTab, setPluginsModalTab] = useState<'MCP' | 'Skills' | null>(null);
+  // The sidebar follows the tool panel (closed while it is open, open otherwise).
+  // A manual toggle overrides that only until the tool panel next opens or closes.
+  const [sidebarOverride, setSidebarOverride] = useState<boolean | null>(null);
+  const isSidebarOpen = sidebarOverride ?? !isToolPanelOpen;
+  const [isSidebarPeeking, setIsSidebarPeeking] = useState(false);
+  const [activeView, setActiveView] = useState<WorkspaceView>(CHAT_VIEW);
+  const sidebarPeekTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { status: semanticStatus, retrying: semanticRetrying, retry: retrySemantic } = useSemanticStartupStatus();
 
   const previousToolsRef = useRef<ToolData[]>([]);
-  const sidebarShellRef = useRef<HTMLDivElement>(null);
   const chatPanelShellRef = useRef<HTMLDivElement>(null);
   const chatMainPaneRef = useRef<HTMLDivElement>(null);
   const chatResizeStartRef = useRef<{ startX: number; startWidth: number } | null>(null);
@@ -55,19 +62,41 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState, onRe
   const isDesktop = typeof window !== 'undefined' && Boolean(window.dataAgent);
   const semanticBlocked = !semanticStatus || ['checking', 'ingesting', 'failed'].includes(semanticStatus.status);
 
+  const scheduleSidebarPeek = useCallback((peek: boolean) => {
+    if (sidebarPeekTimerRef.current) clearTimeout(sidebarPeekTimerRef.current);
+    sidebarPeekTimerRef.current = setTimeout(() => {
+      sidebarPeekTimerRef.current = null;
+      setIsSidebarPeeking(peek);
+    }, peek ? SIDEBAR_PEEK_OPEN_DELAY : SIDEBAR_PEEK_CLOSE_DELAY);
+  }, []);
+
+  const toggleSidebarPinned = useCallback(() => {
+    if (sidebarPeekTimerRef.current) clearTimeout(sidebarPeekTimerRef.current);
+    sidebarPeekTimerRef.current = null;
+    setIsSidebarPeeking(false);
+    setSidebarOverride(!isSidebarOpen);
+  }, [isSidebarOpen]);
+
+  useEffect(() => () => {
+    if (sidebarPeekTimerRef.current) clearTimeout(sidebarPeekTimerRef.current);
+  }, []);
+
   const handleUpdateTools = useCallback((newTools: ToolData[]) => {
     setTools(newTools);
     previousToolsRef.current = newTools;
   }, []);
 
   const getAvailablePaneWidth = useCallback(() => {
-    const sidebarWidth = sidebarShellRef.current?.getBoundingClientRect().width ?? 176;
+    // Read the width the sidebar is settling to, not its mid-transition box.
+    const sidebarWidth = parseFloat(
+      getComputedStyle(document.documentElement).getPropertyValue(isSidebarOpen ? '--sidebar-width' : '--sidebar-rail-width'),
+    ) || (isSidebarOpen ? 184 : 64);
     const chromeAllowance = 40;
     return Math.max(
       CHAT_PANEL_MIN_WIDTH + TOOL_PANEL_MIN_WIDTH,
       window.innerWidth - sidebarWidth - chromeAllowance,
     );
-  }, []);
+  }, [isSidebarOpen]);
 
   const getMaxChatPaneWidth = useCallback(() => (
     Math.max(CHAT_PANEL_MIN_WIDTH, getAvailablePaneWidth() - TOOL_PANEL_MIN_WIDTH)
@@ -81,11 +110,15 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState, onRe
   }, [getMaxChatPaneWidth]);
 
   const openToolPanel = useCallback(() => {
+    // Clicking a tool row while the panel is already open must not undo a manual sidebar toggle.
+    if (isToolPanelOpen) return;
     recordChatPaneWidth(getAvailablePaneWidth() * DEFAULT_CHAT_RATIO);
+    setSidebarOverride(null);
     setIsToolPanelOpen(true);
-  }, [getAvailablePaneWidth, recordChatPaneWidth]);
+  }, [getAvailablePaneWidth, isToolPanelOpen, recordChatPaneWidth]);
 
   const closeToolPanel = useCallback(() => {
+    setSidebarOverride(null);
     setIsToolPanelOpen(false);
   }, []);
 
@@ -212,18 +245,27 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState, onRe
         <SemanticStartupStatus status={semanticStatus} retrying={semanticRetrying} onRetry={retrySemantic} />
 
         <div className="app-container">
-          <div ref={sidebarShellRef} className={`sidebar-shell ${isSidebarOpen ? '' : 'is-collapsed'}`}>
+          <div
+            className={`sidebar-shell ${isSidebarOpen ? '' : 'is-collapsed'} ${!isSidebarOpen && isSidebarPeeking ? 'is-peeking' : ''}`}
+            // Tracked while open too, so the hover state is never stale when the sidebar auto-collapses.
+            onMouseEnter={() => scheduleSidebarPeek(true)}
+            onMouseLeave={() => scheduleSidebarPeek(false)}
+          >
             <Sidebar
-              onOpenSettings={() => setIsSettingsOpen(true)}
-              onOpenPlugins={(tab) => setPluginsModalTab(tab)}
-              collapsed={!isSidebarOpen}
-              onExpand={() => setIsSidebarOpen(true)}
+              activeView={activeView}
+              onNavigate={setActiveView}
+              collapsed={!isSidebarOpen && !isSidebarPeeking}
+              pinned={isSidebarOpen}
+              onExpand={() => setSidebarOverride(true)}
+              onTogglePinned={toggleSidebarPinned}
             />
           </div>
 
+          {/* The chat stays mounted behind settings pages so a running turn keeps streaming. */}
           <div
             ref={chatPanelShellRef}
             className={`chat-panel-shell ${isToolPanelOpen ? 'has-tool-panel' : ''}`}
+            hidden={activeView.kind !== 'chat'}
           >
             <div
               ref={chatMainPaneRef}
@@ -253,20 +295,18 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState, onRe
                 isToolPanelOpen={isToolPanelOpen}
                 hasTools={tools.length > 0}
                 semanticBlocked={semanticBlocked}
-                isSidebarOpen={isSidebarOpen}
-                onToggleSidebar={() => setIsSidebarOpen((open) => !open)}
               />
             </div>
 
             {isToolPanelOpen && <ToolPanel tools={tools} onClose={closeToolPanel} />}
           </div>
 
-          {isSettingsOpen && (
-            <SettingsModal onClose={() => setIsSettingsOpen(false)} />
-          )}
-
-          {pluginsModalTab && (
-            <PluginsModal initialTab={pluginsModalTab} onClose={() => setPluginsModalTab(null)} />
+          {activeView.kind !== 'chat' && (
+            <div className="workspace-page-shell">
+              {activeView.kind === 'plugins'
+                ? <PluginsPanel tab={activeView.tab} />
+                : <SettingsPanel section={activeView.section} />}
+            </div>
           )}
         </div>
       </div>

@@ -12,7 +12,7 @@ import {
     User,
     LogOut,
 } from './icons/Typicons';
-import { RiAdd, RiBookShelf, RiBrain4, RiChat3, RiConnector, RiDatabase2, RiFileEdit, RiFileText, RiFileUpload, RiFlowChart, RiFolder3, RiListCheck3, RiPuzzle2, RiRefresh, RiTaskLine } from './icons/RemixIcons';
+import { RiAdd, RiBookShelf, RiBrain4, RiChat3, RiComputer, RiConnector, RiDatabase2, RiDatabaseLine, RiFileEdit, RiFileText, RiFileUpload, RiFlowChart, RiFolder3, RiLayoutLeft2, RiListCheck3, RiPuzzle2, RiRefresh, RiRobot2, RiTaskLine } from './icons/RemixIcons';
 import { SectionHeader, TreeAction, TreeGroup, TreeNote, TreeRow } from './SidebarTree';
 import {
     type KnowledgeFile,
@@ -25,14 +25,27 @@ import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../hooks/useAuth';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { SemanticAssetViewer, SourceKindBadge, type SemanticConnection, type SemanticSourceViewDto } from './semantic-viewer';
+import { CHAT_VIEW, type WorkspaceView } from './workspace-view';
+import type { PluginsTab } from './PluginsPanel';
+import type { SettingsSection } from './SettingsPanel';
 
 interface SidebarProps {
-    onOpenSettings: () => void;
-    onOpenPlugins?: (tab: 'MCP' | 'Skills') => void;
+    /** The page the main pane shows; sidebar rows that open it render active. */
+    activeView: WorkspaceView;
+    onNavigate: (view: WorkspaceView) => void;
     /** Collapsed to an icon rail: labels and section contents hide, icons stay. */
     collapsed?: boolean;
+    /** Pinned open (true) or collapsed to the rail (false), independent of hover peeking. */
+    pinned?: boolean;
     onExpand?: () => void;
+    onTogglePinned?: () => void;
 }
+
+const SETTINGS_SECTIONS: { id: SettingsSection; icon: React.FC<{ size?: number }> }[] = [
+    { id: 'model', icon: RiRobot2 },
+    { id: 'database', icon: RiDatabaseLine },
+    { id: 'environment', icon: RiComputer },
+];
 
 interface KnowledgeFileNode {
     item: KnowledgeFile;
@@ -45,7 +58,7 @@ const knowledgeLabel = (file: KnowledgeFile): string => (
     file.knowledgeId ? `${file.title ?? file.name}（${file.knowledgeId}）` : file.name
 );
 
-const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins, collapsed = false, onExpand }) => {
+const Sidebar: React.FC<SidebarProps> = ({ activeView, onNavigate, collapsed = false, pinned = true, onExpand, onTogglePinned }) => {
     const {
         tasks,
         sessions,
@@ -70,6 +83,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins, collap
     const [knowledgeExpanded, setKnowledgeExpanded] = useState(false);
     const [semanticExpanded, setSemanticExpanded] = useState(false);
     const [pluginsExpanded, setPluginsExpanded] = useState(false);
+    const [settingsExpanded, setSettingsExpanded] = useState(false);
     const [knowledgeFiles, setKnowledgeFiles] = useState<KnowledgeFile[]>([]);
     const [semanticConnections, setSemanticConnections] = useState<SemanticConnection[]>([]);
     const [loadingSemantic, setLoadingSemantic] = useState(false);
@@ -197,6 +211,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins, collap
         setSemanticExpanded(section === 'semantic' ? open(semanticExpanded) : false);
         setPluginsExpanded(section === 'plugins' ? open(pluginsExpanded) : false);
     };
+
+    const toggleSettings = () => {
+        if (collapsed) onExpand?.();
+        setSettingsExpanded((current) => (collapsed ? true : !current));
+    };
+
+    const isPluginsView = (tab: PluginsTab) => activeView.kind === 'plugins' && activeView.tab === tab;
+    const isSettingsView = (section: SettingsSection) => activeView.kind === 'settings' && activeView.section === section;
 
     const toggleTask = (taskId: string) => {
         setExpandedTaskIds((prev) => {
@@ -420,11 +442,22 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins, collap
             <nav id="workspace-sidebar" className={`sidebar ${collapsed ? 'is-rail' : ''}`} aria-label={t('sidebar.navigation')}>
                 <div className="sidebar-header">
                     {collapsed ? (
-                        <button type="button" className="sidebar-logo sidebar-logo-mark" onClick={onExpand} title={t('sidebar.open')} aria-label={t('sidebar.open')}>
-                            Y
-                        </button>
+                        <div className="sidebar-logo sidebar-logo-compact">YourDB</div>
                     ) : (
-                        <div className="sidebar-logo">YourDB</div>
+                        <>
+                            <div className="sidebar-logo">YourDB</div>
+                            <button
+                                type="button"
+                                className="sidebar-collapse-toggle"
+                                onClick={onTogglePinned}
+                                aria-expanded={pinned}
+                                aria-controls="workspace-sidebar"
+                                title={pinned ? t('sidebar.close') : t('sidebar.open')}
+                                aria-label={pinned ? t('sidebar.close') : t('sidebar.open')}
+                            >
+                                <RiLayoutLeft2 size={18} />
+                            </button>
+                        </>
                     )}
                 </div>
                 <div className="nav-menu scrollable-area">
@@ -432,6 +465,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins, collap
 
                         <button type="button" className="nav-item sidebar-primary-action" title={t('sidebar.newTask')} aria-label={t('sidebar.newTask')} onClick={() => {
                             createTask();
+                            onNavigate(CHAT_VIEW);
                             showToast(t('task.created') || '新任务创建成功');
                         }}>
                             <RiTaskLine className="nav-item-icon" size={18} />
@@ -458,9 +492,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins, collap
                                                 label={task.name}
                                                 title={task.name}
                                                 expanded={expanded}
-                                                active={currentTask?.id === task.id && !currentSession}
+                                                active={activeView.kind === 'chat' && currentTask?.id === task.id && !currentSession}
                                                 onSelect={() => {
                                                     switchTask(task.id);
+                                                    onNavigate(CHAT_VIEW);
                                                     toggleTask(task.id);
                                                 }}
                                                 editor={editing ? (
@@ -486,6 +521,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins, collap
                                                         <TreeAction label={t('session.create')} onClick={() => {
                                                             setExpandedTaskIds((prev) => new Set(prev).add(task.id));
                                                             createSession(task.id);
+                                                            onNavigate(CHAT_VIEW);
                                                         }}>
                                                             <RiAdd size={14} aria-hidden="true" />
                                                         </TreeAction>
@@ -510,8 +546,11 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins, collap
                                                             icon={<RiChat3 size={15} />}
                                                             label={session.name}
                                                             title={session.name}
-                                                            active={currentSession?.id === session.id}
-                                                            onSelect={() => switchSession(session.id)}
+                                                            active={activeView.kind === 'chat' && currentSession?.id === session.id}
+                                                            onSelect={() => {
+                                                                switchSession(session.id);
+                                                                onNavigate(CHAT_VIEW);
+                                                            }}
                                                             actions={(
                                                                 <TreeAction label={t('common.delete')} tone="danger" onClick={() => {
                                                                     if (window.confirm(t('session.confirmDelete').replace('{name}', session.name))) deleteSession(session.id);
@@ -592,8 +631,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins, collap
                         />
                         {!collapsed && pluginsExpanded && (
                             <div className="tree">
-                                <TreeRow depth={0} icon={<RiConnector size={15} />} label="MCP" title="MCP" onSelect={() => onOpenPlugins?.('MCP')} />
-                                <TreeRow depth={0} icon={<RiFlowChart size={15} />} label="Skills" title="Skills" onSelect={() => onOpenPlugins?.('Skills')} />
+                                <TreeRow depth={0} icon={<RiConnector size={15} />} label="MCP" title="MCP" active={isPluginsView('MCP')} onSelect={() => onNavigate({ kind: 'plugins', tab: 'MCP' })} />
+                                <TreeRow depth={0} icon={<RiFlowChart size={15} />} label="Skills" title="Skills" active={isPluginsView('Skills')} onSelect={() => onNavigate({ kind: 'plugins', tab: 'Skills' })} />
                             </div>
                         )}
                     </div>
@@ -608,10 +647,32 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenPlugins, collap
                         <Languages className="nav-item-icon" size={18} />
                         <span className="nav-item-text">{t('sidebar.language')}</span>
                     </button>
-                    <button type="button" className="nav-item sidebar-footer-settings" onClick={onOpenSettings} title={t('sidebar.settings')} aria-label={t('sidebar.settings')}>
+                    <button
+                        type="button"
+                        className={`nav-item sidebar-footer-settings ${settingsExpanded ? 'expanded' : ''}`}
+                        onClick={toggleSettings}
+                        aria-expanded={settingsExpanded}
+                        title={t('sidebar.settings')}
+                        aria-label={t('sidebar.settings')}
+                    >
                         <Settings className="nav-item-icon" size={18} />
                         <span className="nav-item-text">{t('sidebar.settings')}</span>
                     </button>
+                    {!collapsed && settingsExpanded && (
+                        <div className="tree sidebar-settings-tree">
+                            {SETTINGS_SECTIONS.map(({ id, icon: Icon }) => (
+                                <TreeRow
+                                    key={id}
+                                    depth={0}
+                                    icon={<Icon size={15} />}
+                                    label={t(`settings.${id}`)}
+                                    title={t(`settings.${id}`)}
+                                    active={isSettingsView(id)}
+                                    onSelect={() => onNavigate({ kind: 'settings', section: id })}
+                                />
+                            ))}
+                        </div>
+                    )}
                     <button type="button" className="nav-item sidebar-footer-settings" onClick={() => void logout()} title={t('sidebar.logout')} aria-label={t('sidebar.logout')}>
                         <LogOut className="nav-item-icon" size={18} />
                         <span className="nav-item-text">{t('sidebar.logout')}</span>
