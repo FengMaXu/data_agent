@@ -7,7 +7,7 @@ import type {
   AgentToolResult,
   Context,
 } from "@earendil-works/pi-agent-core";
-import { AnsweringError } from "../answering/public.js";
+import { AnsweringError, CLARIFICATION_SOURCE_PREFIX } from "../answering/public.js";
 import { renderSpecFeedback } from "../answering/spec-feedback.js";
 import { leanOf, type AdvisoryLedger, type ChoiceAdvisory } from "../answering/public.js";
 import type {
@@ -31,7 +31,7 @@ import type {
   HypothesisChoiceAssessment,
   HypothesisChoiceEvidence,
 } from "../judgment/hypothesis-choice.js";
-import { defineDataAgentTool, type DataAgentToolDefinition } from "./tool-definition.js";
+import { defineDataAgentTool, type DataAgentToolDefinition, type ToolPromptMetadata } from "./tool-definition.js";
 
 /**
  * The only application state carried into a model tool invocation. Query task
@@ -169,7 +169,11 @@ const proposalSchema = Type.Object({
 const evidenceSchema = Type.Object({
   localId: Type.Optional(nonEmptyStringSchema),
   kind: modelEvidenceKindSchema,
-  /** Document kinds: knowledgeId. schema_fact: schema reference. Ignored for request_wording/user_confirmation. */
+  /**
+   * Document kinds: knowledgeId. schema_fact: schema reference. user_confirmation:
+   * the clarificationId of an answered ask_user_clarification, or omitted for the
+   * user's current message. Ignored for request_wording.
+   */
   sourceRef: Type.Optional(nonEmptyStringSchema),
   quote: Type.Optional(nonEmptyStringSchema),
 }, { additionalProperties: false });
@@ -476,6 +480,16 @@ export function trustedContext(
  * current operation, and request wording is bound by Answering to the task's
  * original request. Model-supplied sourceRefs for either are discarded.
  */
+/**
+ * Where a user_confirmation was said: the clarification answer the model names
+ * by id, or the Host's current user message. Admission verifies either against
+ * text the Host recorded; the model only points.
+ */
+function confirmationSource(named: string | undefined, currentUserMessageId: string | undefined): string | undefined {
+  const clarificationId = named?.trim().replace(CLARIFICATION_SOURCE_PREFIX, "");
+  return clarificationId ? `${CLARIFICATION_SOURCE_PREFIX}${clarificationId}` : currentUserMessageId;
+}
+
 function proposalEvidence(
   value: readonly { readonly localId?: string; readonly kind: string; readonly sourceRef?: string; readonly quote?: string }[] | undefined,
   currentUserMessageId: string | undefined,
@@ -484,7 +498,7 @@ function proposalEvidence(
   return value.map((item) => {
     if (!isEvidenceKind(item.kind) || item.kind === "query_observation") throw new Error("ANSWERING_TOOL_INPUT_INVALID");
     const sourceRef = item.kind === "user_confirmation"
-      ? currentUserMessageId
+      ? confirmationSource(item.sourceRef, currentUserMessageId)
       : item.kind === "request_wording" ? undefined : item.sourceRef;
     if (item.kind === "user_confirmation" && !sourceRef) throw new Error("ANSWERING_USER_MESSAGE_REQUIRED");
     return {
@@ -812,6 +826,15 @@ function inspectTool(answering: Answering): AgentHarnessTool<DataAgentToolContex
  * Static model-tool registry for Answering. Inline and CSV delivery names
  * share one publish implementation and one authorization policy.
  */
+/**
+ * An Answering protocol tool. Pinned: the protocol can require any of them at
+ * any step (compare_hypotheses before a decision, inspect_answer to recover
+ * ids), so a Skill's tool allowlist must not hide them.
+ */
+function protocolTool(tool: AgentHarnessTool<DataAgentToolContext>, metadata: ToolPromptMetadata): DataAgentToolDefinition<DataAgentToolContext> {
+  return defineDataAgentTool(tool, metadata, { pinned: true });
+}
+
 export function createAnsweringAgentToolDefinitions(
   answering: Answering,
   contentReader?: PublishedContentReader,
@@ -820,33 +843,33 @@ export function createAnsweringAgentToolDefinitions(
 ): readonly DataAgentToolDefinition<DataAgentToolContext>[] {
   const semanticSpecMode = options.semanticSpecMode ?? "required";
   return [
-    ...(semanticSpecMode === "required" ? [defineDataAgentTool(beginSpecTool(answering), {
+    ...(semanticSpecMode === "required" ? [protocolTool(beginSpecTool(answering), {
       promptSnippet: "为当前请求建立唯一的七槽位 Answer Spec。",
       promptGuidelines: ["每个请求只建立一次；证据须附逐字引文，由系统核验。", "同时声明 8 个决策点（population、join_multiplicity、time_field、count_grain、denominator、window、ties、output_shape）；fixed_by_request 须引用原题逐字片段。", "会相互排斥的解释建成 Choice；Choice 要先探针再决定，建立时一般不直接决定。"],
-    }), defineDataAgentTool(reviseSpecTool(answering), {
+    }), protocolTool(reviseSpecTool(answering), {
       promptSnippet: "增量修订当前 Answer Spec 并处置已有项。",
       promptGuidelines: ["只提交变化，用返回的 ID 处置已有项；未提及的内容保留。", "Choice 的每个候选先做探针：输出相同的处置为 equivalent；否则用 decide，必须写 rationale，可附 evidenceIds；证据不够格时自动记为未证实并披露，不会失败。", "decide 的结果不是 compare_hypotheses 的明显倾向时，须附 adviceOverride（理由与至少一条证据）。", "SpecFeedback 只提供核对信息，不能替代业务证据或静默改变口径。"],
-    })] : [defineDataAgentTool(beginQueryTaskTool(answering), {
+    })] : [protocolTool(beginQueryTaskTool(answering), {
       promptSnippet: "为语义规格消融实验创建一个不含模型七槽位定义的 Query Task。",
       promptGuidelines: ["每个问题只调用一次；精确复用返回的 taskId/revisionId，仍须区分 exploration 与 result，并通过 Candidate/Receipt 发布。"],
     })]),
-    defineDataAgentTool(queryTool(answering), {
+    protocolTool(queryTool(answering), {
       promptSnippet: "执行有界探索或当前版本的一次结果查询。",
       promptGuidelines: ["探索产物不可发布；结果查询必须绑定当前 Ready Revision，遇到实现障碍先按分类修复或回到取证，不要盲目重跑未知结果。", "探针：exploration 加 probe={choiceId, alternativeId}，SQL 按该候选口径计算最终输出；输出标识相同表示答案相同。探针不占探索次数。", "结果与未采纳候选的探针输出相同时会被 CHOICE_NOT_REALIZED 拒绝：改 SQL 实现已采纳的候选，或带理由修订处置。"],
     }),
-    ...(hypothesisComparison ? [defineDataAgentTool(hypothesisComparisonTool(answering, hypothesisComparison), {
+    ...(hypothesisComparison ? [protocolTool(hypothesisComparisonTool(answering, hypothesisComparison), {
       promptSnippet: "请求 Jev 比较一个 Choice 的全部候选。",
       promptGuidelines: ["传入 taskId 和 choiceId，候选由系统从 Answer Spec 读取；先给每个候选做探针，输出相同的 Choice 直接处置为 equivalent，无需比较。建议不是 Evidence，不能单独处置 Choice；处置结果偏离建议的明显倾向时，须附 adviceOverride（理由与证据）。"],
     })] : []),
-    defineDataAgentTool(publishTool(answering, contentReader, "publish_query_result"), {
+    protocolTool(publishTool(answering, contentReader, "publish_query_result"), {
       promptSnippet: "发布当前不可变 Candidate 的小结果。",
       promptGuidelines: ["只使用当前 Candidate；行数不超过 10 时使用 inline，不重跑 SQL，Publication Receipt 才授权读取。"],
     }),
-    defineDataAgentTool(publishTool(answering, contentReader, "export_query"), {
+    protocolTool(publishTool(answering, contentReader, "export_query"), {
       promptSnippet: "导出当前不可变 Candidate 的完整 CSV。",
       promptGuidelines: ["只使用当前 Candidate；完整结果超过 10 行时使用 csv，不从 Preview 拼接或重跑 SQL。"],
     }),
-    defineDataAgentTool(inspectTool(answering), {
+    protocolTool(inspectTool(answering), {
       promptSnippet: "读取 Query Task 的只读投影。",
       promptGuidelines: ["投影不是第二份可写状态；修改定义只能使用 Answering 修订流程。"],
     }),

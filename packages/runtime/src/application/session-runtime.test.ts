@@ -6,6 +6,8 @@ import { WorkspaceStore } from "../workspace.js";
 import { composeKnowledgeCatalogPrompt, composeSubagentSystemPrompt, createDataAgentSessionHost, type DataAgentModelProfile } from "./session-runtime.js";
 import type { BusinessContext } from "../answering/model.js";
 import { KnowledgeIndex } from "../knowledge.js";
+import { ClarificationManager } from "../clarification.js";
+import { InMemoryAnsweringStore } from "../answering/answering-store.js";
 import type { CompareHypothesesInput, HypothesisChoiceAdvisor } from "../judgment/hypothesis-choice.js";
 import { facetNames, type SpecAlignmentAssessor } from "../judgment/spec-alignment.js";
 import type { SpecFeedbackAssessment } from "../answering/model.js";
@@ -149,6 +151,57 @@ describe("Session Runtime scoped query composition", () => {
     expect(prompt).toContain("MECE");
     expect(prompt).toContain("每个子任务只回答一个问题");
     expect(prompt).not.toContain("untrusted");
+  });
+
+  it("lets the user's answer to a clarification confirm the Spec, verified against the answer the Session recorded", async () => {
+    const root = await mkdtemp(path.join(process.cwd(), ".tmp-session-runtime-clarification-"));
+    const manager = new ClarificationManager(5000);
+    const answeringStore = new InMemoryAnsweringStore();
+    const session = await new MemorySessionRepo().create({ id: "session-clarification" }, TODO_CONTEXT);
+    const branch = await session.createBranch("main", null, TODO_CONTEXT);
+    const requestMessageId = await branch.appendMessage({ role: "user", content: "统计订单量", timestamp: Date.now() }, TODO_CONTEXT);
+    const host = await createDataAgentSessionHost({
+      session,
+      sessionId: "session-1",
+      principalId: "user-1",
+      workspace: new WorkspaceStore(path.join(root, "workspace")),
+      profile,
+      systemPrompt: "You are Data Agent.",
+      clarifications: manager,
+      answeringStore,
+    });
+    const toolContext = { sessionId: "session-1", principalId: "user-1", requestMessageId };
+    const memo = new Map<string, unknown>();
+    const call = (id: string) => ({
+      invocationId: id, operationId: "operation-1", turnId: "turn-1",
+      getMemo: async (key: string) => memo.get(key),
+      setMemo: async (key: string, value: unknown) => { memo.set(key, value); },
+    });
+    try {
+      const begun = await host.answering.begin({ requestMessageId, requestId: "begin-clarification", spec }, business("begin-clarification"));
+      const ask = host.tools.find((item) => item.name === "ask_user_clarification")!;
+      const asking = ask.execute("call-ask", { question: "订单量按哪种订单统计？", options: ["全部下单订单", "仅已送达订单"] }, undefined, toolContext, call("invoke-ask"), TODO_CONTEXT);
+      const pending = manager.pendingFor("session-1");
+      if (!pending) throw new Error("clarification not asked");
+      manager.answer(pending.clarificationId, "全部下单订单");
+      const answered = await asking;
+      // The answer and the id to cite it by come back together.
+      expect(JSON.stringify(answered.content)).toContain(`clarificationId=${pending.clarificationId}`);
+
+      const revise = host.tools.find((item) => item.name === "revise_answer_spec")!;
+      const evidence = (quote: string) => ({ taskId: begun.taskId, baseRevisionId: begun.revisionId, evidence: [{ localId: "answer", kind: "user_confirmation", sourceRef: pending.clarificationId, quote }] });
+      await expect(revise.execute("call-wrong", evidence("仅已送达订单"), undefined, toolContext, call("invoke-wrong"), TODO_CONTEXT)).rejects.toThrow(/not found verbatim in the user's answer/);
+      await revise.execute("call-revise", evidence("全部下单订单"), undefined, toolContext, call("invoke-revise"), TODO_CONTEXT);
+      const admitted = await answeringStore.transact((state) => state.listEvidence(begun.taskId), business("read-evidence"));
+      expect(admitted).toEqual(expect.arrayContaining([expect.objectContaining({
+        kind: "user_confirmation",
+        sourceRef: `clarification:${pending.clarificationId}`,
+        quote: "全部下单订单",
+        verification: expect.objectContaining({ method: "clarification_answer_quote" }),
+      })]));
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 
   it("registers Jev comparison only by explicit configuration and binds it to the current unresolved Choice", async () => {

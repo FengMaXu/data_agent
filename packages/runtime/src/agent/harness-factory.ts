@@ -78,18 +78,6 @@ export interface DataAgentPiRuntime {
  * factory only installs them into a native Harness; it does not construct or
  * own Answering state, ResultStore implementations, or capability services.
  */
-const CONTROL_PLANE_TOOL_NAMES = new Set([
-  "load_skill",
-  "begin_query_task",
-  "begin_answer_spec",
-  "revise_answer_spec",
-  "query_database",
-  "publish_query_result",
-  "export_query",
-  "inspect_answer",
-  "ask_user_clarification",
-  "subagent",
-]);
 
 export interface DataAgentSessionHostOptions {
   readonly session: SessionInput;
@@ -236,6 +224,8 @@ export async function createPiSessionHost(options: DataAgentSessionHostOptions):
   const definitions = [...options.toolDefinitions];
   const sourceTools = definitions.map((definition) => definition.tool);
   const grantedToolNames = new Set(sourceTools.map((tool) => tool.name));
+  // Tools a Runtime protocol may require at any step; a Skill's allowlist narrows only the rest.
+  const pinnedToolNames = definitions.filter((definition) => definition.pinned).map((definition) => definition.tool.name);
   let activeLane: AgentLane | undefined;
   // Current resources; setResources replaces the Skill list without rebuilding the Models seam.
   let resources: DataAgentResources = { skills };
@@ -256,10 +246,7 @@ export async function createPiSessionHost(options: DataAgentSessionHostOptions):
         const result = await tool.execute(toolCallId, input, onUpdate, toolContext, invocation, context);
         const allowed = options.skillToolAllowlist?.[skillName];
         if (allowed) {
-          const selected = new Set([
-            ...[...CONTROL_PLANE_TOOL_NAMES].filter((name) => grantedToolNames.has(name)),
-            ...allowed.filter((name) => grantedToolNames.has(name)),
-          ]);
+          const selected = new Set([...pinnedToolNames, ...allowed.filter((name) => grantedToolNames.has(name))]);
           await activeLane?.setActiveTools([...selected], context);
         }
         return result;

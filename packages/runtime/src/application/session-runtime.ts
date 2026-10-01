@@ -2,6 +2,7 @@ import { MemorySessionRepo, TODO_CONTEXT } from "@earendil-works/pi-agent-core";
 import type { Session, Skill } from "@earendil-works/pi-agent-core";
 import { InMemoryAdvisoryLedger, InMemoryAnswering, isScopedReadOnlySql, type AdvisoryLedger, type Answering, type AnsweringSqlExecutor, type AnsweringStore, type EvidenceSource, type FanoutAnsweringOptions, type QueryBudgetPolicy, type ResultStore } from "../answering/public.js";
 import { PiSessionAnsweringStore } from "../adapters/pi-session-answering-store.js";
+import { PiSessionClarificationLedger } from "../adapters/pi-session-clarification-ledger.js";
 import { FileResultStore, InMemoryResultStore } from "../answering/result-store.js";
 import { assertTaskAccess } from "../answering/answering-store.js";
 import type { PublicationId } from "../answering/model.js";
@@ -18,7 +19,7 @@ import { createCoreAgentToolDefinitions } from "../tools/core.js";
 import { createDataAgentPiRuntime, createPiSessionHost, type DataAgentModelProfile, type DataAgentSessionHost, type DataAgentSessionHostOptions, type OpenOperation, type SessionInput, type SessionQueryExecutor } from "../agent/harness-factory.js";
 import type { PresentationAgentEvent } from "../facets/transcript.js";
 import { ArtifactDirectory } from "../facets/artifact-directory.js";
-import { ClarificationDialogs } from "../facets/clarification-dialogs.js";
+import { ClarificationDialogs, type ClarificationLedger } from "../facets/clarification-dialogs.js";
 import { QueryTaskProjection, queryTaskReadModel } from "../facets/query-task-projection.js";
 import { unwrapApplicationSession } from "../session-store.js";
 import { HarnessChildExecutor, JsonlChildSessionRepository, MemoryChildSessionRepository, NativeDelegation, PiSessionDelegationLedger } from "../delegation/index.js";
@@ -185,8 +186,9 @@ async function readOriginalQuestion(session: Session<any>, requestMessageId: str
 }
 
 /**
- * Trusted Evidence Admission sources. User text comes only from user-role
- * entries of this Session; documents resolve only when the composition root
+ * Trusted Evidence Admission sources. User text comes only from what the user
+ * said in this Session: user-role entries, and answers to its clarifications
+ * as the Host recorded them. Documents resolve only when the composition root
  * authorized their knowledgeId, with the configured authority.
  */
 export function createEvidenceSource(options: {
@@ -194,9 +196,17 @@ export function createEvidenceSource(options: {
   readonly sessionId: string;
   readonly knowledge?: KnowledgeIndex;
   readonly documents?: AnsweringEvidenceDocuments;
+  readonly clarifications?: Pick<ClarificationLedger, "read">;
 }): EvidenceSource {
   const documents = options.documents ?? {};
+  const clarifications = options.clarifications;
   return {
+    ...(clarifications ? {
+      async readClarificationAnswer(sessionId: string, clarificationId: string) {
+        if (sessionId !== options.sessionId) return undefined;
+        return (await clarifications.read(clarificationId))?.answer;
+      },
+    } : {}),
     async readUserMessage(sessionId, messageId, signal) {
       if (sessionId !== options.sessionId) return undefined;
       try {
@@ -241,6 +251,8 @@ function simpleHypothesisComparisonOptions(
 export async function createDataAgentSessionHost(options: DataAgentSessionRuntimeOptions): Promise<DataAgentSessionHost> {
   const session = options.session ? unwrapApplicationSession(options.session) : await new MemorySessionRepo().create({}, TODO_CONTEXT);
   const answeringStore = options.answeringStore ?? new PiSessionAnsweringStore(session, TODO_CONTEXT);
+  // The user's clarification answers live in this Session, where Evidence Admission reads them.
+  const clarificationLedger = new PiSessionClarificationLedger(session, TODO_CONTEXT);
   const resultStore = options.resultStore ?? (options.resultRoot ? new FileResultStore(options.resultRoot) : new InMemoryResultStore());
   const specFeedback = options.specAlignmentAssessor ? {
     assessor: options.specAlignmentAssessor,
@@ -267,9 +279,10 @@ export async function createDataAgentSessionHost(options: DataAgentSessionRuntim
       sessionId: options.sessionId,
       ...(options.knowledge ? { knowledge: options.knowledge } : {}),
       ...(options.answeringEvidenceDocuments ? { documents: options.answeringEvidenceDocuments } : {}),
+      clarifications: clarificationLedger,
     }),
   });
-  const clarificationDialogs = new ClarificationDialogs(options.clarifications ?? new ClarificationManager());
+  const clarificationDialogs = new ClarificationDialogs(options.clarifications ?? new ClarificationManager(), clarificationLedger);
   const queryTasks = new QueryTaskProjection(queryTaskReadModel(answering, (context) => answeringStore.list(context)));
   // Derived datasets sit beside the session's results, outside its workspace, so no workspace write can alter them.
   const derivedDatasets = new DerivedDatasets(options.resultRoot ? new FileDerivedDatasetStore(`${options.resultRoot}/derived`) : new InMemoryDerivedDatasetStore());

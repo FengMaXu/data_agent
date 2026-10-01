@@ -90,7 +90,7 @@ requires-tools:
 | 种类 | 填写 | 核验 | 可支持 |
 | --- | --- | --- | --- |
 | `request_wording` | `quote` | 必须是原始问题中的逐字片段 | 业务语义 |
-| `user_confirmation` | `quote` | 必须是用户本轮消息中的逐字片段；原始问题不算确认 | 业务语义 |
+| `user_confirmation` | `quote`；引用澄清回答时加 `sourceRef` | 用户本轮消息中的逐字片段，或 `ask_user_clarification` 回答中的逐字片段（`sourceRef` 填返回的 `clarificationId`）；原始问题不算确认 | 业务语义 |
 | `task_document` / `reviewed_definition` | `sourceRef`=knowledgeId，`quote` | 只接受系统授权的业务文档，引文逐字出现在文档中 | 业务语义；已审核定义还可支持物理映射 |
 | `schema_fact` | `sourceRef`，可附 `quote` | 不核验 | 物理映射、数据性质 |
 | 探索观测 | 引用 `[EXPLORATION_EVIDENCE] evidenceId` | 由探索查询登记 | 数据性质 |

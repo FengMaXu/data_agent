@@ -5,8 +5,28 @@ export interface ClarificationDialog {
   readonly sessionId: string;
   readonly question: string;
   readonly options: readonly string[];
+  /** The user's answer, already recorded in the ledger; empty when the question expired or was cancelled. */
   readonly promise: Promise<string>;
   cancel(): boolean;
+}
+
+/** A question the user answered: what they were asked and what they said. */
+export interface AnsweredClarification {
+  readonly clarificationId: string;
+  readonly question: string;
+  readonly options: readonly string[];
+  readonly answer: string;
+  readonly answeredAt: string;
+}
+
+/**
+ * Durable record of the user's answers in the asking Session. An answer is
+ * something the user said, so Evidence Admission can verify a confirmation
+ * against it the way it verifies one against a chat message.
+ */
+export interface ClarificationLedger {
+  record(answered: AnsweredClarification): Promise<void>;
+  read(clarificationId: string): Promise<AnsweredClarification | undefined>;
 }
 
 /**
@@ -17,19 +37,28 @@ export interface ClarificationDialog {
 export class ClarificationDialogs {
   private readonly dialogs = new Map<string, ClarificationDialog>();
 
-  constructor(private readonly manager: ClarificationManager) {}
+  constructor(
+    private readonly manager: ClarificationManager,
+    private readonly ledger?: ClarificationLedger,
+  ) {}
 
   ask(sessionId: string, question: string, options: readonly string[] = [], timeoutMs?: number): ClarificationDialog {
     const request = this.manager.ask(sessionId, question, [...options], timeoutMs);
+    const clarificationId = request.clarificationId;
+    // Recorded before the asker sees the answer, so anything it cites already exists.
+    const answered = request.promise.then(async (answer) => {
+      if (answer && this.ledger) await this.ledger.record({ clarificationId, question, options: [...options], answer, answeredAt: new Date().toISOString() });
+      return answer;
+    });
     const dialog: ClarificationDialog = {
-      clarificationId: request.clarificationId,
+      clarificationId,
       sessionId,
       question,
       options: [...options],
-      promise: request.promise.finally(() => this.dialogs.delete(request.clarificationId)),
-      cancel: () => this.manager.cancelById(request.clarificationId, "cancelled"),
+      promise: answered.finally(() => this.dialogs.delete(clarificationId)),
+      cancel: () => this.manager.cancelById(clarificationId, "cancelled"),
     };
-    this.dialogs.set(dialog.clarificationId, dialog);
+    this.dialogs.set(clarificationId, dialog);
     return dialog;
   }
 
@@ -44,5 +73,9 @@ export class ClarificationDialogs {
   list(sessionId?: string): readonly ClarificationDialog[] {
     return [...this.dialogs.values()].filter((dialog) => !sessionId || dialog.sessionId === sessionId);
   }
-}
 
+  /** An answer this Session recorded; undefined for unknown, unanswered or foreign ids. */
+  read(clarificationId: string): Promise<AnsweredClarification | undefined> {
+    return this.ledger?.read(clarificationId) ?? Promise.resolve(undefined);
+  }
+}

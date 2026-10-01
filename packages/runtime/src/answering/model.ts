@@ -281,7 +281,7 @@ export interface EvidenceBase {
 }
 
 export interface EvidenceVerification {
-  readonly method: "user_message_quote" | "document_quote";
+  readonly method: "user_message_quote" | "clarification_answer_quote" | "document_quote";
   /** Hash of the complete trusted source text at admission time. */
   readonly sourceContentHash: string;
 }
@@ -805,13 +805,20 @@ export interface ReviseAnswer {
   readonly requestId: string;
 }
 
+/**
+ * user_confirmation sourceRef naming the user's answer to a clarification
+ * (`clarification:<clarificationId>`); any other ref is a chat message id.
+ */
+export const CLARIFICATION_SOURCE_PREFIX = "clarification:";
+
 export interface UntrustedEvidenceInput {
   /** Caller-local handle for references inside the same begin/revise call. */
   readonly localId?: string;
   readonly kind: EvidenceKind;
   /**
    * Document kinds: authorized knowledge id. request_wording: ignored, Runtime
-   * binds the task request message. user_confirmation: set by the trusted Host.
+   * binds the task request message. user_confirmation: the Host's current user
+   * message, or a recorded clarification answer (CLARIFICATION_SOURCE_PREFIX).
    */
   readonly sourceRef?: string;
   readonly contentHash?: string;

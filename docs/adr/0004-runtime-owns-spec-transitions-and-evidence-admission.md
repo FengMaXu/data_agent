@@ -54,3 +54,11 @@ status: accepted
 - 旧快照中没有核验记录的文本证据不再具备资格，不会被追溯提升；已经封存的 Revision 和已发布的 Receipt 不受影响。
 - 剩余风险：`schema_fact` 暂不核验来源，但只能支持物理映射和数据性质假设；引文与命题的相关性不做确定性判定。
 - 取代 `df6d74b` 中"修订提交完整 Proposal"和"模型可登记任意种类证据"的做法；ADR-0001 中 Solver 不得直接修改 Spec 的职责分离意图，改由"增量提议 + Runtime 转移"实现。
+
+## 修订（2026-10-01）：用户对澄清的回答可作为 `user_confirmation`
+
+决策中“`user_confirmation` 只能引用 Host 提供的当前操作用户消息”漏掉了 `ask_user_clarification`：用户的回答在同一操作内作为工具结果返回，不是新的用户消息，于是唯一可引用的消息只剩原始请求，而原始请求不算确认。需要澄清的统计总体决定因此永远无法被证实，模型只能反复追问。
+
+- 用户回答澄清时，Host 把“问题、选项、回答”记录在发起提问的 Session 中（每个 clarificationId 一条），先于模型看到回答。模型不能写入这份记录。
+- `user_confirmation` 的来源可以是当前操作的用户消息，也可以是一条已记录的澄清回答：模型以 `clarificationId` 指名，Runtime 读取该 Session 的记录并逐字核验引文。未回答、超时、其他 Session 的澄清以及不在回答原文中的引文一律拒绝。
+- 核验方式记为 `clarification_answer_quote`，与 `user_message_quote` 同属用户权威。原始请求仍然只能作为 `request_wording`。
