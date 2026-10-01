@@ -36,7 +36,7 @@ const DESKTOP_MENU_ITEMS = [
 const TOOL_PANEL_MIN_WIDTH = 300;
 const DEFAULT_CHAT_RATIO = 0.64;
 const CHAT_PANEL_MIN_WIDTH = 560;
-// Hovering the collapsed rail peeks the full sidebar over the page; short delays keep a passing pointer from flickering it.
+// Hovering the collapsed rail peeks the full sidebar, pushing the page right; short delays keep a passing pointer from flickering it.
 const SIDEBAR_PEEK_OPEN_DELAY = 80;
 const SIDEBAR_PEEK_CLOSE_DELAY = 180;
 
@@ -247,8 +247,9 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState, onRe
         <div className="app-container">
           <div
             className={`sidebar-shell ${isSidebarOpen ? '' : 'is-collapsed'} ${!isSidebarOpen && isSidebarPeeking ? 'is-peeking' : ''}`}
-            onMouseEnter={isSidebarOpen ? undefined : () => scheduleSidebarPeek(true)}
-            onMouseLeave={isSidebarOpen ? undefined : () => scheduleSidebarPeek(false)}
+            // Tracked while open too, so the hover state is never stale when the sidebar auto-collapses.
+            onMouseEnter={() => scheduleSidebarPeek(true)}
+            onMouseLeave={() => scheduleSidebarPeek(false)}
           >
             <Sidebar
               activeView={activeView}
