@@ -79,10 +79,11 @@ describe("MCP query executor", () => {
     const executor = createMcpQueryExecutor({ command: process.execPath, args: [serverPath, log], dialect: "mysql" });
     const entries = async () => (await readFile(log, "utf8")).trim().split("\n").map((line) => JSON.parse(line) as { event: string; timeoutMs?: number; pid: number });
     try {
-      await executor.run("SELECT 1", 10, { kind: "exploration", deadlineAt: Date.now() + 2_000 });
+      // The limit is what remains of the deadline when the call is made; starting the server takes some of it.
+      await executor.run("SELECT 1", 10, { kind: "exploration", deadlineAt: Date.now() + 20_000 });
       const [first] = await entries();
-      expect(first!.timeoutMs).toBeGreaterThan(1_000);
-      expect(first!.timeoutMs).toBeLessThanOrEqual(2_000);
+      expect(first!.timeoutMs).toBeGreaterThan(10_000);
+      expect(first!.timeoutMs).toBeLessThanOrEqual(20_000);
 
       const controller = new AbortController();
       const slow = executor.run("SELECT SLOW", 10, { kind: "exploration", signal: controller.signal });
