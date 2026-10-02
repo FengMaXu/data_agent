@@ -551,7 +551,7 @@ export type SSEEvent =
     | { type: 'widget_error'; session_id?: string; message_id: string; tool_call_id: string; widget_id: string; error: string }
     | { type: 'tool_result'; session_id?: string; message_id: string; tool_call_id: string; widget_id?: string | null; name: string; arguments?: unknown; content: string; details?: unknown; is_error?: boolean }
     | { type: 'clarification_request'; session_id?: string; clarification_id: string; question: string; options: string[] }
-    | { type: 'clarification_answered'; session_id?: string; clarification_id: string; answer: string }
+    | { type: 'clarification_settled'; session_id?: string; clarification_id: string; outcome: 'answered' | 'expired' | 'cancelled' }
     | { type: 'skill_activated'; session_id?: string; skill: SkillInfo & { source?: string; command_text?: string; granted_permissions?: string[]; model_override?: string | null; ui_message?: string } }
     | { type: 'workspace_updated'; session_id?: string; tool: string }
     | { type: 'error'; session_id?: string; error: string }

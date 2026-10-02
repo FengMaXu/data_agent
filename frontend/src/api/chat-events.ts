@@ -166,6 +166,14 @@ export function mapRuntimeEvent(event: DataAgentEvent, activeMessageId: string):
           options: event.options,
         },
       };
+    case "clarification.settled":
+      return {
+        event: {
+          type: "clarification_settled",
+          clarification_id: event.clarificationId,
+          outcome: event.outcome,
+        },
+      };
     case "workspace.artifact.created":
       return { event: { type: "workspace_updated", tool: "" } };
     case "agent.completed":

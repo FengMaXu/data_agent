@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 type Listener = (raw: unknown) => void;
 const runtime = vi.hoisted(() => ({
@@ -49,6 +49,7 @@ vi.mock('../../hooks/useSession', () => ({
 }));
 
 import ChatArea from '../ChatArea';
+import { answerClarificationViaRuntime } from '../../api/runtime-client';
 import { LanguageProvider } from '../../context/LanguageContext';
 import { PreviewProvider } from '../../context/PreviewContext';
 
@@ -106,5 +107,69 @@ describe('ChatArea restoring a session', () => {
         await waitFor(() => expect(screen.getByText('三行业指标')).toBeTruthy());
         await act(async () => { await Promise.resolve(); });
         expect(runtime.subscribeCalls).toBe(0);
+    });
+});
+
+describe('ChatArea clarification', () => {
+    beforeEach(() => {
+        runtime.listener = undefined;
+        runtime.state = {
+            messages: [{ id: 'u1', role: 'user', content: '三行业指标' }],
+            inProgressRun: { runId: 'run-1', startedAt: 1 },
+            pendingClarification: { clarificationId: 'c-1', question: '按哪个口径统计？', options: ['累计', '当月'] },
+            eventSequence: 7,
+        };
+        vi.mocked(answerClarificationViaRuntime).mockReset().mockResolvedValue(undefined);
+        Element.prototype.scrollTo = vi.fn();
+        Element.prototype.scrollIntoView = vi.fn();
+    });
+
+    it('puts a chosen option in the answer box for editing instead of sending it', async () => {
+        renderChat();
+        fireEvent.click(await screen.findByRole('radio', { name: '累计' }));
+        expect(answerClarificationViaRuntime).not.toHaveBeenCalled();
+        const input = screen.getByRole('textbox', { name: '输入你的回答...' });
+        expect((input as HTMLTextAreaElement).value).toBe('累计');
+
+        fireEvent.change(input, { target: { value: '累计，含退款' } });
+        fireEvent.click(screen.getByRole('button', { name: '提交' }));
+        await waitFor(() => expect(answerClarificationViaRuntime).toHaveBeenCalledWith('c-1', '累计，含退款', 'session-1'));
+    });
+
+    it('sends the answer without adding it to the conversation', async () => {
+        renderChat();
+        fireEvent.click(await screen.findByRole('radio', { name: '当月' }));
+        fireEvent.click(screen.getByRole('button', { name: '提交' }));
+        await waitFor(() => expect(answerClarificationViaRuntime).toHaveBeenCalledWith('c-1', '当月', 'session-1'));
+        expect(document.querySelectorAll('.message.user')).toHaveLength(1);
+    });
+
+    it('closes the card once the answer is sent, while the run goes on', async () => {
+        renderChat();
+        fireEvent.click(await screen.findByRole('radio', { name: '累计' }));
+        fireEvent.click(screen.getByRole('button', { name: '提交' }));
+        await waitFor(() => expect(screen.queryByText('按哪个口径统计？')).toBeNull());
+        emit({ type: 'agent.message_started', messageId: 'm-after' });
+        emit({ type: 'agent.text_delta', delta: '按累计口径继续' });
+        await waitFor(() => expect(screen.getByText(/按累计口径继续/)).toBeTruthy());
+        expect(screen.queryByText('按哪个口径统计？')).toBeNull();
+    });
+
+    it('closes the card when the runtime settles the clarification', async () => {
+        renderChat();
+        await screen.findByText('按哪个口径统计？');
+        await waitFor(() => expect(runtime.listener).toBeDefined());
+        emit({ type: 'clarification.settled', clarificationId: 'c-1', outcome: 'expired' });
+        await waitFor(() => expect(screen.queryByText('按哪个口径统计？')).toBeNull());
+    });
+
+    it('does not send while an IME is composing, and sends on a plain Enter', async () => {
+        renderChat();
+        const input = await screen.findByRole('textbox', { name: '输入你的回答...' });
+        fireEvent.change(input, { target: { value: '当月' } });
+        fireEvent.keyDown(input, { key: 'Enter', isComposing: true });
+        expect(answerClarificationViaRuntime).not.toHaveBeenCalled();
+        fireEvent.keyDown(input, { key: 'Enter' });
+        await waitFor(() => expect(answerClarificationViaRuntime).toHaveBeenCalledWith('c-1', '当月', 'session-1'));
     });
 });
