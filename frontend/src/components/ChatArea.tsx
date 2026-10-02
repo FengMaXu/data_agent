@@ -916,7 +916,8 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
+        // Enter that confirms an IME candidate (pinyin and the like) is not a send.
+        if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
             e.preventDefault();
             if (inputValue.trim()) {
                 void handleSend();
@@ -925,7 +926,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
     };
 
     const handleClarificationKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
+        if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
             e.preventDefault();
             void handleSubmitClarification();
         }

@@ -162,4 +162,14 @@ describe('ChatArea clarification', () => {
         emit({ type: 'clarification.settled', clarificationId: 'c-1', outcome: 'expired' });
         await waitFor(() => expect(screen.queryByText('按哪个口径统计？')).toBeNull());
     });
+
+    it('does not send while an IME is composing, and sends on a plain Enter', async () => {
+        renderChat();
+        const input = await screen.findByRole('textbox', { name: '输入你的回答...' });
+        fireEvent.change(input, { target: { value: '当月' } });
+        fireEvent.keyDown(input, { key: 'Enter', isComposing: true });
+        expect(answerClarificationViaRuntime).not.toHaveBeenCalled();
+        fireEvent.keyDown(input, { key: 'Enter' });
+        await waitFor(() => expect(answerClarificationViaRuntime).toHaveBeenCalledWith('c-1', '当月', 'session-1'));
+    });
 });
