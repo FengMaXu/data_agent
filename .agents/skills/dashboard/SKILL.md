@@ -20,7 +20,7 @@ allowed-tools:
 
 | 支持 | 暂不支持（不要写进 spec，也不要向用户承诺） |
 | --- | --- |
-| KPI 卡片、柱形、折线、散点、柱线组合、双 y 轴、堆叠、横向条形、环形饼图、热力图、直方图、箱线图、瀑布图、桑基图、树图、旭日图、面积与堆叠面积、漏斗图、表格；柱形、折线、散点上的重点高亮、参考线与区间标注 | 页面筛选器、点击下钻、交叉联动 |
+| KPI 卡片、柱形、折线、散点、柱线组合、双 y 轴、堆叠、横向条形、环形饼图、热力图、直方图、箱线图、瀑布图、桑基图、树图、旭日图、面积与堆叠面积、漏斗图、表格；柱形、折线、散点上的重点高亮、参考线与区间标注；结论（`insights`）、KPI 趋势线、表格单元格条形与高低着色 | 页面筛选器、点击下钻、交叉联动 |
 | 按行排版：每行 1–4 个格子，可设宽度比例与行高（`compact`、`standard`、`tall`）；图表 tooltip、图例、随窗口缩放；手机上自动单列 | 任意像素尺寸、拖拽排版、导出按钮 |
 | 按完整 spec 重新生成并覆盖已有看板 | 读取已有看板后局部修改 |
 | 实时数据：视图引用 `{ "kind": "live", "receiptId": ... }`，在应用内打开时可点击刷新 | 定时自动刷新、参数化查询 |
@@ -54,6 +54,17 @@ generate_dashboard(operation, spec, editPath?)
   "subtitle": "本年1月至当月累计销售额 · 三大行业 2026-02~07，细分行业为 2026-07 · 单位：亿元 / %",
   "filename": "industry_dashboard",
   "views": [
+    {
+      "id": "key_findings",
+      "type": "insights",
+      "title": "本期结论",
+      "data": { "kind": "publication", "receiptId": "<receiptId>" },
+      "fields": { "value": { "type": "quantitative", "storage": "ratio", "additivity": "non_additive" } },
+      "items": [
+        { "value": { "field": "value" }, "where": { "finding": "retail_yoy" }, "tone": "good", "text": "零售业同比增速 7 月升至 38%，三大行业中最快" },
+        { "value": { "field": "value" }, "where": { "finding": "wholesale_share" }, "text": "批发业贡献了三大行业累计销售额的九成，决定整体走势" }
+      ]
+    },
     {
       "id": "kpi_latest",
       "type": "kpi",
@@ -129,6 +140,7 @@ generate_dashboard(operation, spec, editPath?)
   ],
   "layout": {
     "rows": [
+      { "views": ["key_findings"] },
       { "views": ["kpi_latest"] },
       { "views": ["growth_trend", "sales_share"], "widths": [2, 1] },
       { "views": ["wholesale_rank", "retail_rank"] }
@@ -138,7 +150,7 @@ generate_dashboard(operation, spec, editPath?)
 ```
 
 - 必填：`version: 1`、`title`、至少一个视图。`filename` 省略时按内容生成文件名。
-- 每个视图有唯一的 `id`（字母、数字、`_`、`-`）和 `type`：`chart`、`table`、`kpi`。
+- 每个视图有唯一的 `id`（字母、数字、`_`、`-`）和 `type`：`insights`、`kpi`、`chart`、`table`。
 - 数据一律是 `{ "kind": "publication", "receiptId": "<receiptId>" }`，引用已发布的结果。不要把数据行写进 spec，也不要引用工作区里的 CSV。
 - `title` 写看板回答的业务问题，`subtitle` 写口径、时间范围和单位：每个格子不再重复这些信息。`subtitle` 的各部分用 ` · ` 分隔，页头把每部分显示为一个短标签，所以每部分写短（如 `2017-01–2018-08 · 有效订单 · 单位：% / 天`），不要写成一整句。
 - 新看板一律写 `layout`。视图上的旧字段 `width`（`"half"`/`"full"`）只在没有 `layout` 时生效，用于旧看板；不要再写。
@@ -157,12 +169,13 @@ generate_dashboard(operation, spec, editPath?)
 
 | 行 | 放什么 | 写法 |
 | --- | --- | --- |
-| 第 1 行 KPI | 3–6 个头部指标：最新一期数值 + 同比/环比/目标差 | 一个 `kpi` 视图独占一行 |
+| 第 1 行 结论 | 2–4 条结论，每条一个数字 + 一句话 | 一个 `insights` 视图独占一行，或与一个带趋势线的 `kpi` 同行（`widths: [2, 1]`） |
+| 第 2 行 KPI | 3–6 个头部指标：最新一期数值 + 同比/环比/目标差 | 一个 `kpi` 视图独占一行 |
 | 第 2 行 趋势 | 主趋势图 + 一张补充图（构成、当期对比） | `widths: [2, 1]` 或 `[3, 2]`；只有一张趋势图时可独占一行 |
 | 第 3 行 分解 | 2–3 张排名、构成或分布图 | 等宽；3 张时用 `compact` 或 `standard` |
 | 最后一行 明细（仅在用户要求时） | 可核对的明细或带多个指标的排名 | `table` 独占一行；放汇总或 Top N，长明细用 `export_query` 提供下载 |
 
-- 第一屏（约 1440×900）应能看到 KPI 行和趋势行。
+- 第一屏（约 1440×900）应能看到结论、KPI 行和趋势行。
 - **整行图最多一张**，通常是主趋势图。多张图各占一行会把看板拉成报告，工具会返回 `[LAYOUT]`。
 - 一张看板 4–8 个视图、不超过 4 行图表。结论更多时拆成两张看板，不要往下堆。
 - 默认不放表格；用户要求明细时，表格放在所有图表之后。
@@ -445,6 +458,29 @@ generate_dashboard(operation, spec, editPath?)
 - `bands`：在类目 x 轴上标出一段区间（如大促月份），`from`、`to` 写 x 轴上显示的值（月份写 `2017-11`），`to` 省略时只标一个类目。
 - 一张图最多一个重点：同时点名多个类目时，它们应是同一个结论（如“发往 SP 的三条线路”）。
 
+### 结论（`insights`）
+
+看板第一行给出答案。每条结论是**一个数字加一句话**：数字读自已发布结果的一个单元格（与 KPI 卡片一样只读、不聚合），句子由你撰写，说明这个数字意味着什么、该做什么。
+
+```json dashboard-view
+{
+  "id": "key_findings",
+  "type": "insights",
+  "title": "本期结论",
+  "data": { "kind": "publication", "receiptId": "<receiptId>" },
+  "fields": { "value": { "type": "quantitative", "storage": "ratio", "additivity": "non_additive" } },
+  "items": [
+    { "value": { "field": "value" }, "where": { "finding": "late_share_of_negatives" }, "tone": "bad", "text": "延迟送达只占订单的 6.7%，却贡献了 32.6% 的差评；优先治理延迟 3 天以上的订单" },
+    { "value": { "field": "value" }, "where": { "finding": "on_time_share_of_negatives" }, "text": "三分之二的差评来自准时订单：物流只解释一部分，商品与描述需要单独排查" }
+  ]
+}
+```
+
+- 结论的数字在查询中算好并发布：常见做法是一个“发现”结果，每行一条（`finding` 列标识、`value` 列取值），用 `where` 选出。不同单位的结论放在不同列，分别在 `fields` 中声明。
+- 句子只复述已发布结果中的数字，**不引入新数字**；写清对象、比较对象和含义，最好带一个动作。每句不超过 160 字。
+- `tone`：`bad` 问题、`good` 改善、`focus` 中性重点，缺省为正文色。
+- 2–4 条，按重要性排序。好结论来自拆解：先问“这个指标由哪几部分组成、哪部分贡献最大、与基准差多少”，再取数。只是重复 KPI 数值的句子不算结论。
+
 ### KPI 卡片（`kpi`）
 
 每张卡片显示结果中**一个单元格**，不做求和或平均。结果只有一行时直接引用字段；有多行时用 `where` 选出唯一的一行。增速、占比等要在查询中算好，放在 `delta` 字段：
@@ -469,7 +505,23 @@ generate_dashboard(operation, spec, editPath?)
 - 卡片最多 8 张，头部 KPI 行放 3–6 张。`label` 缺省时用字段的 `label` 或列名。
 - 数值显示为约四位有效数字的大号数字加小号单位（如 4,872 亿元），完整值在悬停提示里；`delta` 带正负号与升降箭头（升为红、降为绿）。所以 `value` 与 `delta` 都要在 `fields` 中声明语义，未声明的按原值显示。不要为了好看在查询里四舍五入。
 - 每张卡都给一个对比：同比、环比或与目标的差。没有对比的数字回答不了“好还是不好”。
-- 匹配不到行返回 `KPI_ROW_NOT_FOUND`，匹配到多行返回 `KPI_ROW_AMBIGUOUS`。
+- 匹配不到行返回 `KPI_ROW_NOT_FOUND`；匹配到多行时，这些行在显示的单元格上取值必须相同（如每个月份行都带同一个全期合计），否则返回 `KPI_ROW_AMBIGUOUS`。
+- `trend`：在卡片上画一条趋势线，读取该视图结果的**全部行**，按 `x` 排序取 `y`。做法是发布一个按期一行的结果，卡片的数值放在每行都相同的列里：
+
+```json dashboard-view
+{
+  "id": "kpi_negative_rate",
+  "type": "kpi",
+  "data": { "kind": "publication", "receiptId": "<receiptId>" },
+  "fields": {
+    "period_rate": { "type": "quantitative", "storage": "ratio", "additivity": "non_additive", "label": "差评率" },
+    "monthly_rate": { "type": "quantitative", "storage": "ratio", "additivity": "non_additive" }
+  },
+  "cards": [{ "label": "差评率（1–2 星）", "value": { "field": "period_rate" }, "trend": { "x": { "field": "month" }, "y": { "field": "monthly_rate" } } }]
+}
+```
+
+  每个 `x` 只能有一行（否则 `DUPLICATE_KEY`），`y` 要声明数值语义。有趋势线的卡片与结论同行时，趋势线占满格子宽度。
 
 ### 表格（`table`）
 
@@ -480,6 +532,7 @@ generate_dashboard(operation, spec, editPath?)
 - 日期、月份列必须声明 `{ "type": "temporal", "grain": "month", "zone": "floating" }` 这类语义，否则 `2025-12` 会显示成 `2025-12-01`，返回中出现 `[NOTICE] … TEMPORAL_UNDECLARED`。
 - 列的 `label` 不要再写单位，表头会自动加上。
 - 看板里的表格放汇总或 Top N，一般不超过 20 行；长明细用 `export_query` 提供下载。
+- 列可加 `"bar": true`，在单元格里画出按本列最大值缩放的条形；加 `"compare": { "field": "<同一行的基准列>", "above": "bad" }`，高于基准的单元格着色（`bad` 红、`good` 绿）。基准列（如全站均值）在查询中输出到每一行。两者都要求该列在 `fields` 中声明为数值。
 
 
 ```json dashboard-view
@@ -492,12 +545,13 @@ generate_dashboard(operation, spec, editPath?)
     { "field": "industry_name", "label": "行业中类" },
     { "field": "month", "label": "月份" },
     { "field": "sales", "label": "销售额" },
-    { "field": "yoy", "label": "同比增速" }
+    { "field": "yoy", "label": "同比增速", "bar": true, "compare": { "field": "industry_yoy", "above": "good" } }
   ],
   "fields": {
     "month": { "type": "temporal", "grain": "month", "zone": "floating" },
     "sales": { "type": "quantitative", "storage": "raw", "unit": "亿元", "additivity": "additive" },
-    "yoy": { "type": "quantitative", "storage": "ratio", "additivity": "non_additive" }
+    "yoy": { "type": "quantitative", "storage": "ratio", "additivity": "non_additive" },
+    "industry_yoy": { "type": "quantitative", "storage": "ratio", "additivity": "non_additive" }
   }
 }
 ```
@@ -552,7 +606,8 @@ generate_dashboard(operation, spec, editPath?)
 - 每个 `view.id` 唯一；引用的列都在对应结果中。
 - 图表数据已在查询中聚合到图表粒度；KPI 引用的是查询算好的单元格。
 - `validate` 返回 `dashboard spec valid`，且没有 `[LAYOUT]` 建议；确有理由保留某条建议时，在最终答复中说明。
-- 版面：第一行是 KPI，整行图不超过一张；没有用户要求时不放表格，有表格时放在最后。
+- 版面：第一行是结论（或结论加带趋势线的 KPI），然后是 KPI 行，整行图不超过一张；没有用户要求时不放表格，有表格时放在最后。
+- 每张结论句子里的数字都能在已发布结果中找到。
 
 生成后：
 

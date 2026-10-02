@@ -23,13 +23,19 @@ async function jsonExamples(): Promise<Array<{ tag: string; body: string; line: 
 function sampleDataset(view: DashboardView): ChartDataset {
   if (view.type === "chart") return exampleDataset(view.chart);
   const fields: Record<string, FieldMeta> = view.fields ?? {};
-  const referenced = view.type === "table" ? (view.columns ?? []).map((column) => column.field)
-    : view.cards.flatMap((card) => [card.value.field, ...(card.delta ? [card.delta.field] : []), ...Object.keys(card.where ?? {})]);
+  const cards = view.type === "kpi" ? view.cards : view.type === "insights" ? view.items : [];
+  const trend = view.type === "kpi" ? view.cards.find((card) => card.trend)?.trend : undefined;
+  const referenced = view.type === "table" ? (view.columns ?? []).flatMap((column) => [column.field, ...(column.compare ? [column.compare.field] : [])])
+    : cards.flatMap((card) => [card.value.field, ...("delta" in card && card.delta ? [card.delta.field] : []), ...Object.keys(card.where ?? {})]).concat(trend ? [trend.x.field, trend.y.field] : []);
   const columns = [...new Set([...referenced, ...Object.keys(fields)])];
   const cell = (column: string, index: number) => (fields[column]?.type === "quantitative" ? index + 1 : `v${index}`);
-  if (view.type === "kpi") {
-    // One row per card, carrying the values its where selects.
-    return { columns, rows: view.cards.map((card, index) => columns.map((column) => (card.where && column in card.where ? card.where[column] : cell(column, index)))) };
+  if (trend) {
+    // A series: one row per period, the card's own cells repeated on each.
+    return { columns, rows: [0, 1, 2].map((index) => columns.map((column) => (column === trend.x.field ? `p${index}` : column === trend.y.field ? index + 1 : cell(column, 0)))) };
+  }
+  if (view.type === "kpi" || view.type === "insights") {
+    // One row per card or finding, carrying the values its where selects.
+    return { columns, rows: cards.map((card, index) => columns.map((column) => (card.where && column in card.where ? card.where[column] : cell(column, index)))) };
   }
   return { columns, rows: [0, 1].map((index) => columns.map((column) => cell(column, index))) };
 }

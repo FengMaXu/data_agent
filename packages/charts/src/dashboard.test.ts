@@ -114,7 +114,7 @@ describe("Dashboard display", () => {
   it("gives a table column one decimal count and its unit in the header", () => {
     const view = { id: "t", type: "table", data: byIndustry, fields: { sales, growth }, columns: [{ field: "industry", label: "行业" }, { field: "sales" }, { field: "growth" }] } as DashboardTableView;
     const rows = { columns: ["industry", "sales", "growth"], rows: [["批发业", "7276.5712", 0.14], ["零售业", "499.88", 0.102], ["餐饮业", "49.7", 0.1394]] };
-    expect(resolveTable(view, rows)).toEqual({
+    expect(resolveTable(view, rows)).toMatchObject({
       headers: [{ label: "行业", numeric: false }, { label: "销售额（亿元）", numeric: true }, { label: "同比增速", numeric: true }],
       rows: [["批发业", "7,276.57", "14.00%"], ["零售业", "499.88", "10.20%"], ["餐饮业", "49.70", "13.94%"]],
     });
