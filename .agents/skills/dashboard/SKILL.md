@@ -140,7 +140,7 @@ generate_dashboard(operation, spec, editPath?)
 - 必填：`version: 1`、`title`、至少一个视图。`filename` 省略时按内容生成文件名。
 - 每个视图有唯一的 `id`（字母、数字、`_`、`-`）和 `type`：`chart`、`table`、`kpi`。
 - 数据一律是 `{ "kind": "publication", "receiptId": "<receiptId>" }`，引用已发布的结果。不要把数据行写进 spec，也不要引用工作区里的 CSV。
-- `title` 写看板回答的业务问题，`subtitle` 写口径、时间范围和单位：每个格子不再重复这些信息。
+- `title` 写看板回答的业务问题，`subtitle` 写口径、时间范围和单位：每个格子不再重复这些信息。`subtitle` 的各部分用 ` · ` 分隔，页头把每部分显示为一个短标签，所以每部分写短（如 `2017-01–2018-08 · 有效订单 · 单位：% / 天`），不要写成一整句。
 - 新看板一律写 `layout`。视图上的旧字段 `width`（`"half"`/`"full"`）只在没有 `layout` 时生效，用于旧看板；不要再写。
 
 ## 版面

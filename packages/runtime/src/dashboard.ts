@@ -1,4 +1,4 @@
-import type { ChartRendererVersions, DashboardDatasets, SemanticsCheck } from "@data-agent/charts";
+import { THEME, type ChartRendererVersions, type DashboardDatasets, type SemanticsCheck } from "@data-agent/charts";
 import type { DashboardSpec } from "@data-agent/contracts";
 
 /**
@@ -64,27 +64,29 @@ function scriptJson(value: unknown): string {
 }
 
 // A BI page: a header, rows of tiles, then sources and data notes. Tile sizes come from the spec's layout rows.
-const STYLE = `:root{--bg:#f3f4f6;--tile:#ffffff;--rule:#e5e7eb;--ink:#1f2937;--muted:#6b7280;--up:#c0392b;--down:#2e8b57;--error:#b66353}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif}
-.shell{max-width:1440px;margin:auto;padding:20px 24px 28px}
-.page-head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:14px}
-h1{margin:0;font-size:20px;font-weight:700}.lead{margin:4px 0 0;color:var(--muted);font-size:12.5px;line-height:1.6}.stamp{color:var(--muted);font-size:12px;white-space:nowrap}
-.board{display:flex;flex-direction:column;gap:12px}.row{display:grid;gap:12px;align-items:stretch}.panel{min-width:0}
-.tile{background:var(--tile);border:1px solid var(--rule);border-radius:10px;padding:14px 16px 12px;display:flex;flex-direction:column}
-.tile h2{margin:0;font-size:14px;font-weight:600;line-height:1.4}.subtitle{margin:2px 0 0;color:var(--muted);font-size:12px;line-height:1.5}
-.chart{margin-top:8px;flex:none}.chart-unavailable{display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;background:#f9fafb;border-radius:8px;padding:12px;text-align:center}
-.kpi-caption{margin:0 0 6px;color:var(--muted);font-size:12px;font-weight:600}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
-.card{background:var(--tile);border:1px solid var(--rule);border-radius:10px;padding:12px 16px}
-.tile .cards{grid-template-columns:1fr;gap:0;margin-top:6px}.tile .card{border:0;border-top:1px solid var(--rule);border-radius:0;padding:10px 0}.tile .card:first-child{border-top:0}
-.label{color:var(--muted);font-size:12px}.value{font-size:26px;font-weight:700;margin-top:4px;letter-spacing:-.01em;font-variant-numeric:tabular-nums}.value .unit{margin-left:4px;font-size:13px;font-weight:600;color:var(--muted)}
+// Colours are the chart theme's, so the chrome around a chart matches the chart (ADR-0008 decision 5).
+const STYLE = `:root{--bg:${THEME.page};--tile:${THEME.surface};--rule:${THEME.rule};--ink:${THEME.ink};--ink-soft:${THEME.inkSoft};--muted:${THEME.muted};--up:${THEME.bad};--down:${THEME.good};--error:${THEME.bad};--shadow:0 1px 2px rgba(31,35,40,.04),0 8px 24px -16px rgba(31,35,40,.14)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:${THEME.font};-webkit-font-smoothing:antialiased}
+.shell{max-width:1440px;margin:auto;padding:28px 32px 40px}
+.page-head{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin-bottom:20px}
+h1{margin:0;font-size:24px;font-weight:700;letter-spacing:-.01em}.stamp{color:var(--muted);font-size:12px;white-space:nowrap}
+.scope{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0;padding:0;list-style:none}.scope li{font-size:12px;color:var(--ink-soft);background:var(--tile);border:1px solid var(--rule);border-radius:999px;padding:3px 10px}
+.board{display:flex;flex-direction:column;gap:16px}.row{display:grid;gap:16px;align-items:stretch}.panel{min-width:0}
+.tile{background:var(--tile);border-radius:12px;box-shadow:var(--shadow);padding:18px 22px 16px;display:flex;flex-direction:column}
+.tile h2{margin:0;font-size:15px;font-weight:600;line-height:1.45}.subtitle{margin:4px 0 0;color:var(--muted);font-size:12px;line-height:1.5}
+.chart{margin-top:10px;flex:none}.chart-unavailable{display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;background:var(--bg);border-radius:8px;padding:12px;text-align:center}
+.kpi-caption{margin:0 0 8px;color:var(--muted);font-size:12px;font-weight:600}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+.card{background:var(--tile);border-radius:12px;box-shadow:var(--shadow);padding:16px 20px}
+.tile .cards{grid-template-columns:1fr;gap:0;margin-top:6px}.tile .card{box-shadow:none;border-top:1px solid var(--rule);border-radius:0;padding:12px 0}.tile .card:first-child{border-top:0}
+.label{color:var(--ink-soft);font-size:13px}.value{font-size:28px;font-weight:700;margin-top:4px;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.2}.value .unit{margin-left:3px;font-size:13px;font-weight:500;color:var(--muted);letter-spacing:0}
 .delta{margin-top:4px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}.delta b{font-weight:600;margin-left:4px}.delta.up b{color:var(--up)}.delta.down b{color:var(--down)}
-.table-wrap{overflow:auto;max-height:480px;margin-top:8px}table{width:100%;border-collapse:collapse;font-size:12.5px}
-th,td{padding:7px 10px;border-bottom:1px solid #f0f1f3;text-align:left;white-space:nowrap}th{color:var(--muted);font-weight:600;border-bottom:1px solid var(--rule);background:var(--tile);position:sticky;top:0}
-th.num,td.num{text-align:right;font-variant-numeric:tabular-nums}
-.notes{margin-top:6px;color:var(--muted);font-size:11.5px}.notes summary{cursor:pointer}.notes ul{margin:4px 0 0;padding-left:18px}
-.version{margin-top:8px;display:flex;gap:10px;align-items:center;color:var(--muted);font-size:12px}.version button{display:none;border:1px solid #d1d5db;background:#fff;border-radius:6px;padding:2px 10px;color:var(--ink);cursor:pointer}.hosted .version button{display:inline-block}.version .error{color:var(--error)}
-@media(max-width:900px){.row{grid-template-columns:1fr!important}.shell{padding:12px}.page-head{flex-direction:column;align-items:flex-start}}`;
+.table-wrap{overflow:auto;max-height:480px;margin-top:10px}table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:9px 10px;border-bottom:1px solid var(--bg);text-align:left;white-space:nowrap}th{color:var(--muted);font-weight:500;font-size:12px;border-bottom:1px solid var(--rule);background:var(--tile);position:sticky;top:0}
+tbody tr:hover td{background:var(--bg)}th.num,td.num{text-align:right;font-variant-numeric:tabular-nums}
+.notes{margin-top:8px;color:var(--muted);font-size:11.5px}.notes summary{cursor:pointer}.notes ul{margin:4px 0 0;padding-left:18px}
+.version{margin-top:8px;display:flex;gap:10px;align-items:center;color:var(--muted);font-size:12px}.version button{display:none;border:1px solid var(--rule);background:var(--tile);border-radius:6px;padding:2px 10px;color:var(--ink);cursor:pointer}.hosted .version button{display:inline-block}.version .error{color:var(--error)}
+@media(max-width:900px){.row{grid-template-columns:1fr!important}.shell{padding:16px}.page-head{flex-direction:column;align-items:flex-start}}`;
 
 // Plain ES2020 so it runs wherever the dashboard is opened; all data logic lives in DataAgentCharts.
 const PAGE_SCRIPT = `(function(){
@@ -170,6 +172,12 @@ window.addEventListener("message",function(event){
 if(window.parent!==window&&D.spec.views.some(function(v){return (D.sources[keyOf(v)]||{}).live}))post({kind:"dashboard.ready"});
 })();`;
 
+/** The subtitle's scope parts (data, period, basis, units) as chips; the skill writes them joined by " · ". */
+function scopeList(subtitle: string | undefined): string {
+  const parts = (subtitle ?? "").split(/\s*·\s*/).filter((part) => part.length > 0);
+  return parts.length > 0 ? `<ul class="scope">${parts.map((part) => `<li>${escapeHtml(part)}</li>`).join("")}</ul>` : "";
+}
+
 export function renderDashboardHtml(input: DashboardRenderInput, assets: DashboardAssets): string {
   const { spec } = input;
   const payload = scriptJson({ spec, datasets: input.datasets, sources: input.sources, checks: input.checks, renderer: input.renderer, nonce: input.nonce });
@@ -178,7 +186,7 @@ export function renderDashboardHtml(input: DashboardRenderInput, assets: Dashboa
   const echarts = assets.echartsSource ? `<script>${assets.echartsSource}</script>` : "";
   return `<!DOCTYPE html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(spec.title)}</title><style>${STYLE}</style></head>
-<body><main class="shell"><header class="page-head"><div><h1>${escapeHtml(spec.title)}</h1>${spec.subtitle ? `<p class="lead">${escapeHtml(spec.subtitle)}</p>` : ""}</div><div class="stamp">${escapeHtml(stamp)}</div></header>
+<body><main class="shell"><header class="page-head"><div><h1>${escapeHtml(spec.title)}</h1>${scopeList(spec.subtitle)}</div><div class="stamp">${escapeHtml(stamp)}</div></header>
 <div id="dashboard" class="board"></div></main>
 ${echarts}<script>${assets.chartsSource}</script>
 <script>window.__DATA_AGENT_DASHBOARD__=${payload};</script>
