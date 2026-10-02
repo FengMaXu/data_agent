@@ -67,16 +67,22 @@ function compileCartesian(context: CompileContext, chart: CartesianChart): Chart
   // Focus + Context: highlighted categories, or scatter points by id, take the tone; the other bars and points the context colour.
   const highlight = chart.highlight;
   const highlightable = (plan: LayerPlan) => plan.layer.type === "bar" || plan.layer.type === "scatter";
+  const targetLayer = highlight?.layer;
+  /** The layers whose bars or points the highlight colours; with `layer`, the other bar and scatter layers are a backdrop. */
+  const isTarget = (plan: LayerPlan) => highlight !== undefined && highlightable(plan) && (targetLayer === undefined || plan.index === targetLayer);
+  const isBackdrop = (plan: LayerPlan) => highlight !== undefined && targetLayer !== undefined && highlightable(plan) && plan.index !== targetLayer;
   const keyOf = (plan: LayerPlan, rowIndex: number) => (plan.idIndex !== undefined ? categoryLabel(rows[rowIndex]![plan.idIndex]) : xLabels[rowIndex]!);
   if (highlight) {
     if (plans.some((plan) => plan.seriesIndex !== undefined)) {
       context.fail({ code: "INVALID_ENCODING", message: "highlight 只用于单系列图；多系列用 series.colors 区分", path: "/chart/highlight" });
     } else if (!plans.some(highlightable)) {
       context.fail({ code: "INVALID_ENCODING", message: "highlight 需要 bar 或 scatter 图层", path: "/chart/highlight" });
-    } else if (valueX && plans.some((plan) => highlightable(plan) && plan.idIndex === undefined)) {
+    } else if (targetLayer !== undefined && !plans.some((plan) => plan.index === targetLayer && highlightable(plan))) {
+      context.fail({ code: "INVALID_ENCODING", message: `highlight.layer ${targetLayer} 不是 bar 或 scatter 图层`, path: "/chart/highlight/layer", hint: `图层下标从 0 开始，共 ${chart.layers.length} 层` });
+    } else if (valueX && plans.some((plan) => isTarget(plan) && plan.idIndex === undefined)) {
       context.fail({ code: "INVALID_ENCODING", message: "数值 x 轴上的散点用图层的 id 指明要突出的点", path: "/chart/highlight", hint: "给 scatter 图层加 id: { field: <标识列> }，highlight.values 写该列的值" });
     } else {
-      const domain = new Set(plans.filter(highlightable).flatMap((plan) => rows.map((_row, rowIndex) => keyOf(plan, rowIndex))));
+      const domain = new Set(plans.filter(isTarget).flatMap((plan) => rows.map((_row, rowIndex) => keyOf(plan, rowIndex))));
       highlight.values.forEach((value, index) => {
         if (!domain.has(value)) context.fail({ code: "VALUE_OUT_OF_DOMAIN", message: `highlight 的值 ${value} 不在数据中`, path: `/chart/highlight/values/${index}`, hint: `可选值：${[...domain].slice(0, 12).join("、")}` });
       });
@@ -86,7 +92,8 @@ function compileCartesian(context: CompileContext, chart: CartesianChart): Chart
   const toneColor = THEME[highlight?.tone ?? "focus"];
   // Context recedes (lighter, per the palette document) so the focus is read first.
   const contextStyle = { color: THEME.context, opacity: CONTEXT_OPACITY };
-  const emphasisOf = (plan: LayerPlan, key: string) => (highlight && highlightable(plan) ? { itemStyle: focused.has(key) ? { color: toneColor, opacity: 1 } : contextStyle } : {});
+  const backdropStyle = { color: THEME.context, opacity: BACKDROP_OPACITY };
+  const emphasisOf = (plan: LayerPlan, key: string) => (isTarget(plan) ? { itemStyle: focused.has(key) ? { color: toneColor, opacity: 1 } : contextStyle } : {});
 
   if (!valueX && xLabels.includes("（空值）")) context.notice({ kind: "layout", code: "NULL_CATEGORY", message: `${fieldTitle(chart.x.field, xMeta)} 为空的行显示为“（空值）”`, field: chart.x.field });
 
@@ -100,6 +107,7 @@ function compileCartesian(context: CompileContext, chart: CartesianChart): Chart
   let missing = 0;
   let paletteIndex = 0;
   const nextColor = (layer: ChartLayer, group: string) => layer.series?.colors?.[group] ?? PALETTE[paletteIndex++ % PALETTE.length];
+  const layerStyle = (plan: LayerPlan, group: string) => (isTarget(plan) ? contextStyle : isBackdrop(plan) ? backdropStyle : { color: nextColor(plan.layer, group) });
   const onlyScatter = plans.every((plan) => plan.layer.type === "scatter");
 
   for (const plan of plans) {
@@ -167,7 +175,7 @@ function compileCartesian(context: CompileContext, chart: CartesianChart): Chart
           ...area,
           ...onAxis,
           ...label,
-          itemStyle: highlight && highlightable(plan) ? contextStyle : { color: nextColor(layer, group) },
+          itemStyle: layerStyle(plan, group),
           ...(plan.size ? { symbolSize: (value: number[]) => 6 + 24 * Math.sqrt(Math.abs(value[2] ?? 0) / maxSize) } : {}),
           tooltip: {
             formatter: (params: { name?: string; value: (number | string | null)[] }) => {
@@ -222,7 +230,7 @@ function compileCartesian(context: CompileContext, chart: CartesianChart): Chart
         ...(stack !== "none" ? { stack: `layer-${plan.index}` } : {}),
         ...(isLine ? { showSymbol: categories.length <= 60 } : {}),
         ...label,
-        itemStyle: highlight && highlightable(plan) ? contextStyle : { color: nextColor(layer, group) },
+        itemStyle: layerStyle(plan, group),
         tooltip: { valueFormatter: (value: number | null) => (typeof value !== "number" ? "—" : stack === "percent" ? `${value.toFixed(1)}%` : formatValue(value, y.meta)) },
       });
       seriesSides.push(side);
@@ -235,7 +243,12 @@ function compileCartesian(context: CompileContext, chart: CartesianChart): Chart
 
   const valueAxes = sides.map((side) => {
     const entry = axisMeta.get(side)!;
-    return { ...valueAxis(entry.meta, entry.field, entry.share), ...(side === "right" ? { position: "right", nameTextStyle: { align: "right" } } : {}) };
+    const axis = valueAxis(entry.meta, entry.field, entry.share);
+    // Several measures on one axis are named by the legend; a single field name would claim the axis for one of them.
+    const measures = new Set(plans.filter((plan) => (plan.layer.y.axis ?? "left") === side).map((plan) => plan.y.field));
+    const unit = unitText(entry.meta);
+    const shared = measures.size > 1 && !entry.share ? { name: unit ? `（${unit}）` : "" } : {};
+    return { ...axis, ...shared, ...(side === "right" ? { position: "right", nameTextStyle: { align: "right" } } : {}) };
   });
   // A value axis along the bottom names itself under its centre; at the axis end the name runs off the canvas.
   const bottomName = { nameLocation: "middle", nameGap: 28, nameTextStyle: { align: "center" } };
@@ -347,6 +360,9 @@ function addBands(context: CompileContext, chart: CartesianChart, positions: Rea
 
 /** Opacity of the bars and points a highlight puts in context. */
 const CONTEXT_OPACITY = 0.6;
+
+/** Opacity of a whole layer behind the highlighted one, lighter than its context so the two layers stay apart. */
+const BACKDROP_OPACITY = 0.3;
 
 /** The neutral reference colour as a wash light enough to sit behind data. */
 const BAND_FILL = `rgba(${[1, 3, 5].map((offset) => parseInt(THEME.neutral.slice(offset, offset + 2), 16)).join(", ")}, 0.1)`;

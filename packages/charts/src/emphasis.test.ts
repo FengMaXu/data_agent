@@ -34,6 +34,23 @@ describe("Chart emphasis", () => {
     expect(bar!.itemStyle).toEqual({ color: THEME.context, opacity: 0.6 });
   });
 
+  it("highlights one layer of a paired chart and keeps the other as a backdrop", () => {
+    const share: FieldMeta = { type: "quantitative", storage: "ratio", additivity: "non_additive" };
+    const spec = { version: 1, data, fields: { order_share: share, neg_share: share }, chart: { mark: "cartesian", x: { field: "bucket" },
+      layers: [{ type: "bar", y: { field: "order_share" } }, { type: "bar", y: { field: "neg_share" } }], highlight: { values: ["late"], tone: "bad", layer: 1 } } } as ChartSpec;
+    const dataset = { columns: ["bucket", "order_share", "neg_share"], rows: [["early", 0.92, 0.66], ["late", 0.03, 0.18]] };
+    const compiled = compileChart(spec, dataset, { target: "interactive" });
+    const [orders, negatives] = series(compiled);
+    // Two measures share the axis, so it is named by its unit; the legend names the measures.
+    expect((ok(compiled).option.yAxis as { name: string }[])[0]!.name).toBe("（%）");
+    // The backdrop layer is one lighter colour throughout; only the target layer marks its focus.
+    expect(orders!.itemStyle).toEqual({ color: THEME.context, opacity: 0.3 });
+    expect(orders!.data).toEqual([0.92 * 100, 0.03 * 100]);
+    expect((negatives!.data as { itemStyle: Record<string, unknown> }[]).map((point) => point.itemStyle)).toEqual([{ color: THEME.context, opacity: 0.6 }, { color: THEME.bad, opacity: 1 }]);
+    const lineLayer = { ...spec, chart: { ...spec.chart, layers: [{ type: "bar", y: { field: "order_share" } }, { type: "line", y: { field: "neg_share" } }] } } as ChartSpec;
+    expect(compileChart(lineLayer, dataset, { target: "interactive" })).toMatchObject({ ok: false, errors: [{ code: "INVALID_ENCODING", path: "/chart/highlight/layer" }] });
+  });
+
   it("highlights scatter points by their id", () => {
     const spec = { version: 1, data, fields: { delay_rate: rate, orders }, chart: { mark: "cartesian", x: { field: "delay_rate" }, layers: [{ type: "scatter", y: { field: "orders" }, id: { field: "route" } }], highlight: { values: ["CE->SP"] } } } as ChartSpec;
     const [points] = series(compileChart(spec, routes, { target: "interactive" }));
