@@ -65,7 +65,7 @@ function scriptJson(value: unknown): string {
 
 // A BI page: a header, rows of tiles, then sources and data notes. Tile sizes come from the spec's layout rows.
 // Colours are the chart theme's, so the chrome around a chart matches the chart (ADR-0008 decision 5).
-const STYLE = `:root{--bg:${THEME.page};--tile:${THEME.surface};--rule:${THEME.rule};--ink:${THEME.ink};--ink-soft:${THEME.inkSoft};--muted:${THEME.muted};--up:${THEME.bad};--down:${THEME.good};--error:${THEME.bad};--shadow:0 1px 2px rgba(31,35,40,.04),0 8px 24px -16px rgba(31,35,40,.14)}
+const STYLE = `:root{--bg:${THEME.page};--tile:${THEME.surface};--rule:${THEME.rule};--ink:${THEME.ink};--ink-soft:${THEME.inkSoft};--muted:${THEME.muted};--up:${THEME.bad};--down:${THEME.good};--error:${THEME.bad};--bad:${THEME.bad};--good:${THEME.good};--focus:${THEME.focus};--context:${THEME.context};--shadow:0 1px 2px rgba(31,35,40,.04),0 8px 24px -16px rgba(31,35,40,.14)}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:${THEME.font};-webkit-font-smoothing:antialiased}
 .shell{max-width:1440px;margin:auto;padding:28px 32px 40px}
 .page-head{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin-bottom:20px}
@@ -86,7 +86,14 @@ th,td{padding:9px 10px;border-bottom:1px solid var(--bg);text-align:left;white-s
 tbody tr:hover td{background:var(--bg)}th.num,td.num{text-align:right;font-variant-numeric:tabular-nums}
 .notes{margin-top:8px;color:var(--muted);font-size:11.5px}.notes summary{cursor:pointer}.notes ul{margin:4px 0 0;padding-left:18px}
 .version{margin-top:8px;display:flex;gap:10px;align-items:center;color:var(--muted);font-size:12px}.version button{display:none;border:1px solid var(--rule);background:var(--tile);border-radius:6px;padding:2px 10px;color:var(--ink);cursor:pointer}.hosted .version button{display:inline-block}.version .error{color:var(--error)}
-@media(max-width:900px){.row{grid-template-columns:1fr!important}.shell{padding:16px}.page-head{flex-direction:column;align-items:flex-start}}`;
+.value-row{display:flex;align-items:flex-end;justify-content:space-between;gap:8px}.spark{width:96px;height:32px;flex:none}.spark path{fill:none;stroke:var(--ink-soft);stroke-width:1.5;stroke-linejoin:round;stroke-linecap:round}.spark circle{fill:var(--focus)}.spark path{vector-effect:non-scaling-stroke}
+.tile .value-row{flex-direction:column;align-items:stretch}.tile .spark{width:100%;height:96px;margin-top:12px}.tile .spark circle{display:none}
+.findings{display:flex;flex-direction:column;margin-top:2px}.finding{display:grid;grid-template-columns:128px 1fr;gap:16px;align-items:baseline;padding:14px 0;border-top:1px solid var(--rule)}.finding:first-child{border-top:0;padding-top:6px}
+.finding-value{font-size:30px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.2}.finding-value .unit{margin-left:3px;font-size:13px;font-weight:500;color:var(--muted);letter-spacing:0}.finding-value.bad{color:var(--bad)}.finding-value.good{color:var(--good)}.finding-value.focus{color:var(--focus)}
+.finding-text{margin:0;font-size:14px;line-height:1.65;color:var(--ink-soft)}
+.bar-cell{display:flex;align-items:center;justify-content:flex-end;gap:10px}.bar-track{flex:1;max-width:200px;height:8px;background:var(--bg);border-radius:4px;overflow:hidden}.bar-fill{display:block;height:100%;background:var(--context);opacity:.6;border-radius:4px}.bar-text{min-width:56px;text-align:right}
+td.bad{color:var(--bad);font-weight:600}td.good{color:var(--good);font-weight:600}td.bad .bar-fill{background:var(--bad);opacity:1}td.good .bar-fill{background:var(--good);opacity:1}
+@media(max-width:900px){.row{grid-template-columns:1fr!important}.shell{padding:16px}.page-head{flex-direction:column;align-items:flex-start}.finding{grid-template-columns:1fr;gap:2px}}`;
 
 // Plain ES2020 so it runs wherever the dashboard is opened; all data logic lives in DataAgentCharts.
 const PAGE_SCRIPT = `(function(){
@@ -97,12 +104,28 @@ function keyOf(v){return C.datasetKey(v.type==="chart"?v.chart.data:v.data)}
 function cards(v,data,p){
   var box=el("div","cards");
   C.resolveKpiCards(v,data).forEach(function(c){
-    var d=el("div","card"),value=el("div","value",c.value);value.title=c.fullValue;
-    d.appendChild(el("div","label",c.label));if(c.unit)value.appendChild(el("span","unit",c.unit));d.appendChild(value);
-    if(c.delta){var line=el("div","delta"+(c.delta.direction?" "+c.delta.direction:""),c.delta.label||null);line.appendChild(el("b",null,(c.delta.direction==="up"?"▲ ":c.delta.direction==="down"?"▼ ":"")+c.delta.value));d.appendChild(line)}
+    var d=el("div","card"),value=el("div","value",c.value),line=el("div","value-row");value.title=c.fullValue;
+    d.appendChild(el("div","label",c.label));if(c.unit)value.appendChild(el("span","unit",c.unit));line.appendChild(value);
+    if(c.trend){var sp=C.sparklinePath(c.trend,96,32);if(sp.d)line.appendChild(spark(sp))}
+    d.appendChild(line);
+    if(c.delta){var delta=el("div","delta"+(c.delta.direction?" "+c.delta.direction:""),c.delta.label||null);delta.appendChild(el("b",null,(c.delta.direction==="up"?"▲ ":c.delta.direction==="down"?"▼ ":"")+c.delta.value));d.appendChild(delta)}
     box.appendChild(d);
   });
   p.appendChild(box);
+}
+function spark(sp){
+  var NS="http://www.w3.org/2000/svg",svg=document.createElementNS(NS,"svg"),path=document.createElementNS(NS,"path");
+  svg.setAttribute("class","spark");svg.setAttribute("viewBox","0 0 96 32");svg.setAttribute("preserveAspectRatio","none");svg.setAttribute("aria-hidden","true");path.setAttribute("d",sp.d);svg.appendChild(path);
+  if(sp.last){var dot=document.createElementNS(NS,"circle");dot.setAttribute("cx",sp.last[0]);dot.setAttribute("cy",sp.last[1]);dot.setAttribute("r","2.5");svg.appendChild(dot)}
+  return svg;
+}
+function findings(v,data,p){
+  var list=el("div","findings");
+  C.resolveInsights(v,data).forEach(function(f){
+    var row=el("div","finding"),num=el("div","finding-value"+(f.tone?" "+f.tone:""),f.value);num.title=f.fullValue;
+    if(f.unit)num.appendChild(el("span","unit",f.unit));row.appendChild(num);row.appendChild(el("p","finding-text",f.text));list.appendChild(row);
+  });
+  p.appendChild(list);
 }
 function render(v){
   var data=D.datasets[keyOf(v)],source=D.sources[keyOf(v)]||{},p=panels[v.id],notes=[],checks=D.checks[v.id]||[];
@@ -121,9 +144,14 @@ function render(v){
     var shown=C.resolveTable(v,data),wrap=el("div","table-wrap"),table=el("table"),head=el("tr"),thead=el("thead"),body=el("tbody");
     shown.headers.forEach(function(h){head.appendChild(el("th",h.numeric?"num":null,h.label))});
     thead.appendChild(head);table.appendChild(thead);
-    shown.rows.forEach(function(r){var tr=el("tr");r.forEach(function(text,i){tr.appendChild(el("td",shown.headers[i].numeric?"num":null,text))});body.appendChild(tr)});
+    shown.rows.forEach(function(r,ri){var tr=el("tr");r.forEach(function(text,i){
+      var m=shown.marks[ri][i],td=el("td",[shown.headers[i].numeric?"num":"",m&&m.tone?m.tone:""].join(" ").trim()||null);
+      if(m&&m.bar!=null){var cell=el("div","bar-cell"),track=el("span","bar-track"),fill=el("span","bar-fill");fill.style.width=(m.bar*100).toFixed(1)+"%";track.appendChild(fill);cell.appendChild(track);cell.appendChild(el("span","bar-text",text));td.appendChild(cell)}
+      else td.textContent=text;
+      tr.appendChild(td)});body.appendChild(tr)});
     table.appendChild(body);wrap.appendChild(table);p.appendChild(wrap);
-  }else cards(v,data,p);
+  }else if(v.type==="insights")findings(v,data,p);
+  else cards(v,data,p);
   checks.forEach(function(c){notes.push(c.message)});
   if(notes.length){
     // Collapsed so tiles stay compact; a doubtful declaration opens it, since it changes how the numbers read.

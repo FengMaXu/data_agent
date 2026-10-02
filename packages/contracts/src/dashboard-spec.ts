@@ -4,7 +4,7 @@ import { ChartSpecSchema, DatasetRefSchema, FieldMetaSchema, checkChartSpec, typ
 
 /**
  * DashboardSpec v1 (ADR-0008 step 4): a snapshot dashboard whose views are
- * ChartSpecs, tables and KPI cards. Every view reads one Dataset Reference;
+ * ChartSpecs, tables, KPI cards and findings. Every view reads one Dataset Reference;
  * a live binding is added later as another DatasetRef kind, not a new spec.
  */
 export const DASHBOARD_SPEC_VERSION = 1 as const;
@@ -31,7 +31,14 @@ export const DashboardTableViewSchema = Type.Object({
   subtitle: Type.Optional(Name),
   data: DatasetRefSchema,
   /** Shown in this order; all columns when omitted. */
-  columns: Type.Optional(Type.Array(Type.Object({ field: Name, label: Type.Optional(Name) }, Strict), { minItems: 1 })),
+  columns: Type.Optional(Type.Array(Type.Object({
+    field: Name,
+    label: Type.Optional(Name),
+    /** A bar in the cell, scaled to the column's largest absolute value; declared measures only. */
+    bar: Type.Optional(Type.Boolean()),
+    /** Cells above the same row's `field` take the tone, e.g. a category rate above the site average is "bad". */
+    compare: Type.Optional(Type.Object({ field: Name, above: Type.Union([Type.Literal("bad"), Type.Literal("good")]) }, Strict)),
+  }, Strict), { minItems: 1 })),
   /** Declared semantics format numeric columns; undeclared values are shown as stored. */
   fields: Fields,
   width: Width,
@@ -45,8 +52,10 @@ export const DashboardKpiCardSchema = Type.Object({
   value: Type.Object({ field: Name }, Strict),
   /** A second cell of the same row, such as a change rate computed by the query. */
   delta: Type.Optional(Type.Object({ field: Name, label: Type.Optional(Name) }, Strict)),
-  /** Picks exactly one row by column values; without it the result must have exactly one row. */
+  /** Picks one row by column values; rows it matches must agree on the cells shown. */
   where: Type.Optional(Type.Record(Type.String(), CellValue)),
+  /** A small line of `y` over every row of the view's result, ordered by `x`, such as the monthly series behind the value. */
+  trend: Type.Optional(Type.Object({ x: Type.Object({ field: Name }, Strict), y: Type.Object({ field: Name }, Strict) }, Strict)),
 }, Strict);
 export type DashboardKpiCard = Static<typeof DashboardKpiCardSchema>;
 
@@ -61,10 +70,34 @@ export const DashboardKpiViewSchema = Type.Object({
   width: Width,
 }, Strict);
 
-export const DashboardViewSchema = Type.Union([DashboardChartViewSchema, DashboardTableViewSchema, DashboardKpiViewSchema]);
+/**
+ * Findings: each pairs a number read from one cell of the result (never aggregated, like a KPI card) with a
+ * sentence the model writes about it. The sentence is the only model-written text on the page (ADR-0008
+ * amendment 2026-10-02); it restates published numbers and does not introduce new ones.
+ */
+export const DashboardInsightSchema = Type.Object({
+  value: Type.Object({ field: Name }, Strict),
+  where: Type.Optional(Type.Record(Type.String(), CellValue)),
+  text: Type.String({ minLength: 1, maxLength: 160 }),
+  tone: Type.Optional(Type.Union([Type.Literal("focus"), Type.Literal("bad"), Type.Literal("good")])),
+}, Strict);
+export type DashboardInsight = Static<typeof DashboardInsightSchema>;
+
+export const DashboardInsightsViewSchema = Type.Object({
+  id: ViewId,
+  type: Type.Literal("insights"),
+  title: Type.Optional(Name),
+  data: DatasetRefSchema,
+  items: Type.Array(DashboardInsightSchema, { minItems: 1, maxItems: 4 }),
+  fields: Fields,
+  width: Width,
+}, Strict);
+
+export const DashboardViewSchema = Type.Union([DashboardChartViewSchema, DashboardTableViewSchema, DashboardKpiViewSchema, DashboardInsightsViewSchema]);
 export type DashboardChartView = Static<typeof DashboardChartViewSchema>;
 export type DashboardTableView = Static<typeof DashboardTableViewSchema>;
 export type DashboardKpiView = Static<typeof DashboardKpiViewSchema>;
+export type DashboardInsightsView = Static<typeof DashboardInsightsViewSchema>;
 export type DashboardView = Static<typeof DashboardViewSchema>;
 
 /** Chart height of a row's tiles; KPI tiles and tables size to their content. */
@@ -103,7 +136,7 @@ export interface DashboardSpecSchemaError {
   readonly message: string;
 }
 
-const VIEW_SCHEMAS = { chart: DashboardChartViewSchema, table: DashboardTableViewSchema, kpi: DashboardKpiViewSchema } as const;
+const VIEW_SCHEMAS = { chart: DashboardChartViewSchema, table: DashboardTableViewSchema, kpi: DashboardKpiViewSchema, insights: DashboardInsightsViewSchema } as const;
 
 /**
  * Structural validation only; checks against data live in @data-agent/charts.
@@ -120,7 +153,7 @@ export function checkDashboardSpec(value: unknown): { readonly ok: true; readonl
     const prefix = `/views/${index}`;
     const type = view && typeof view === "object" ? (view as { type?: unknown }).type : undefined;
     const schema = typeof type === "string" && Object.hasOwn(VIEW_SCHEMAS, type) ? VIEW_SCHEMAS[type as keyof typeof VIEW_SCHEMAS] : undefined;
-    if (!schema) return Value.Check(DashboardViewSchema, view) ? [] : [{ path: `${prefix}/type`, message: "must be one of chart, table, kpi" }];
+    if (!schema) return Value.Check(DashboardViewSchema, view) ? [] : [{ path: `${prefix}/type`, message: "must be one of chart, table, kpi, insights" }];
     if (Value.Check(schema, view)) return [];
     const errors = Value.Errors(schema, view).filter((error) => type !== "chart" || (error.instancePath !== "/chart" && !error.instancePath.startsWith("/chart/"))).map(toError(prefix));
     if (type !== "chart") return errors;

@@ -1,4 +1,4 @@
-import { checkDashboardSpec, dashboardViewData, type DashboardKpiCard, type DashboardKpiView, type DashboardRowHeight, type DashboardSpec, type DashboardTableView, type DatasetRef, type FieldMeta } from "@data-agent/contracts";
+import { checkDashboardSpec, dashboardViewData, type DashboardInsightsView, type DashboardKpiCard, type DashboardKpiView, type DashboardRowHeight, type DashboardSpec, type DashboardTableView, type DatasetRef, type FieldMeta } from "@data-agent/contracts";
 import { compileChart } from "./compile.js";
 import { categoryLabel, columnDecimals, displayScale, formatFieldValue, formatValue, headlineDigits, numericCell, unitText, valueDecimals, type FormatOptions } from "./semantics.js";
 import type { ChartDataset, ChartErrorCode, PresentationNotice } from "./types.js";
@@ -29,7 +29,7 @@ export interface DashboardViewNotice {
 
 /** Advice on how the page reads as a BI dashboard; never blocks a build. */
 export interface DashboardLayoutAdvice {
-  readonly code: "KPI_NOT_FIRST" | "LONE_CHART_ROWS" | "TABLE_BEFORE_CHARTS" | "LABELS_ROTATED_IN_TILE";
+  readonly code: "KPI_NOT_FIRST" | "LONE_CHART_ROWS" | "TABLE_BEFORE_CHARTS" | "LABELS_ROTATED_IN_TILE" | "INSIGHTS_NOT_FIRST" | "KPI_WITHOUT_COMPARISON";
   readonly message: string;
   readonly viewId?: string;
 }
@@ -117,12 +117,23 @@ function layoutErrors(spec: DashboardSpec): DashboardError[] {
   return errors;
 }
 
-/** How the page reads as a BI dashboard: a KPI row first, charts sharing rows, detail last. */
+/** How the page reads as a BI dashboard: findings and a KPI row first, charts sharing rows, detail last. */
 function layoutAdvice(spec: DashboardSpec, rows: readonly DashboardRow[], rotated: ReadonlySet<string>): DashboardLayoutAdvice[] {
   const advice: DashboardLayoutAdvice[] = [];
   const typeOf = new Map(spec.views.map((view) => [view.id, view.type]));
-  const firstKpi = rows.findIndex((row) => row.views.some((viewId) => typeOf.get(viewId) === "kpi"));
-  if (firstKpi > 0) advice.push({ code: "KPI_NOT_FIRST", message: "KPI 不在第一行；BI 看板先给头部指标，再给图表" });
+  const rowHas = (row: DashboardRow, type: string) => row.views.some((viewId) => typeOf.get(viewId) === type);
+  // Findings may lead the page; only they may come before the KPI row.
+  const firstKpi = rows.findIndex((row) => rowHas(row, "kpi"));
+  if (firstKpi > 0 && rows.slice(0, firstKpi).some((row) => row.views.some((viewId) => typeOf.get(viewId) !== "insights"))) {
+    advice.push({ code: "KPI_NOT_FIRST", message: "KPI 不在第一行；BI 看板先给结论与头部指标，再给图表" });
+  }
+  const firstInsights = rows.findIndex((row) => rowHas(row, "insights"));
+  if (firstInsights > 0 && firstInsights > firstKpi + 1) advice.push({ code: "INSIGHTS_NOT_FIRST", message: "结论（insights）放在第一行，与 KPI 同行或在其上方；读者先看到答案" });
+  for (const view of spec.views) {
+    if (view.type !== "kpi") continue;
+    const bare = view.cards.filter((card) => !card.delta && !card.trend).map((card) => card.label ?? card.value.field);
+    if (bare.length > 0) advice.push({ code: "KPI_WITHOUT_COMPARISON", message: `${view.id} 的卡片 ${bare.join("、")} 没有对比；给 delta（同比、环比、与目标或均值的差）或 trend（趋势线），否则读者判断不了好坏`, viewId: view.id });
+  }
   const lone = rows.filter((row) => row.views.length === 1 && typeOf.get(row.views[0]!) === "chart");
   if (lone.length > 1) {
     advice.push({ code: "LONE_CHART_ROWS", message: `${lone.length} 张图各占一整行（${lone.map((row) => row.views[0]).join("、")}），页面会拉长成报告；把图两三张一行放进 layout.rows，只给主趋势图整行` });
@@ -144,10 +155,24 @@ function cellMatches(cell: unknown, expected: string | number | boolean | null):
   return cell !== null && cell !== undefined && String(cell) === String(expected);
 }
 
-/** Rows a KPI card reads: those matching `where`, or every row when it has none. */
-function kpiRows(card: DashboardKpiCard, dataset: ChartDataset): readonly (readonly unknown[])[] {
+/** Rows a KPI card or finding reads: those matching `where`, or every row when it has none. */
+function kpiRows(card: Pick<DashboardKpiCard, "where">, dataset: ChartDataset): readonly (readonly unknown[])[] {
   const conditions = Object.entries(card.where ?? {}).map(([field, expected]) => [dataset.columns.indexOf(field), expected] as const);
   return dataset.rows.filter((row) => conditions.every(([index, expected]) => cellMatches(row[index], expected)));
+}
+
+/**
+ * Errors for a card or finding that shows `fields` of the rows `where` picks. Several rows may match when
+ * they agree on every shown cell, such as a period total repeated on each monthly row: showing it is not
+ * aggregating. Rows that disagree would need an aggregate, which a card never computes.
+ */
+function cellErrors(card: Pick<DashboardKpiCard, "where">, fields: readonly string[], dataset: ChartDataset, path: string, viewId: string): DashboardError[] {
+  const rows = kpiRows(card, dataset);
+  if (rows.length === 0) return [{ code: "KPI_ROW_NOT_FOUND", message: card.where ? "no row matches the card's where" : "the result has no rows", path, viewId, hint: "check the where values against the published result" }];
+  const indexes = fields.map((field) => dataset.columns.indexOf(field));
+  const differ = indexes.some((index) => new Set(rows.map((row) => JSON.stringify(row[index] ?? null))).size > 1);
+  if (!differ) return [];
+  return [{ code: "KPI_ROW_AMBIGUOUS", message: `${rows.length} rows match with different values; a card shows exactly one cell and never aggregates`, path, viewId, hint: card.where ? "narrow where to one row" : "add where to pick one row, or aggregate in the query" }];
 }
 
 /** Display text for one cell: declared semantics first, then the stored value as is. */
@@ -175,9 +200,17 @@ export function readerNotices(notices: readonly PresentationNotice[]): Presentat
   return notices.filter((notice) => !LAYOUT_ONLY_NOTICES.has(notice.code));
 }
 
+/** How a table cell is drawn besides its text: a bar of its share of the column's largest value, a tone. */
+export interface DashboardCellMark {
+  readonly bar?: number;
+  readonly tone?: "bad" | "good";
+}
+
 export interface DashboardTableDisplay {
   readonly headers: readonly { readonly label: string; readonly numeric: boolean }[];
   readonly rows: readonly (readonly string[])[];
+  /** Per cell, aligned with `rows`; undefined where a cell is plain text. */
+  readonly marks: readonly (readonly (DashboardCellMark | undefined)[])[];
 }
 
 /** Values of one column as shown, before formatting; undefined for cells that are not numbers. */
@@ -194,7 +227,7 @@ function shownNumbers(dataset: ChartDataset, index: number, meta: FieldMeta | un
  * declared unit in the header instead of every cell (percent signs stay).
  */
 export function resolveTable(view: DashboardTableView, dataset: ChartDataset): DashboardTableDisplay {
-  const columns = view.columns ?? dataset.columns.map((field) => ({ field, label: undefined }));
+  const columns: NonNullable<DashboardTableView["columns"]> = view.columns ?? dataset.columns.map((field) => ({ field }));
   const fields = view.fields ?? {};
   const layout = columns.map((column) => {
     const meta = fields[column.field];
@@ -204,10 +237,21 @@ export function resolveTable(view: DashboardTableView, dataset: ChartDataset): D
     const title = column.label ?? meta?.label ?? column.field;
     const unit = meta?.type === "quantitative" ? unitText(meta) : "";
     const headerUnit = unit && unit !== "%" && !title.includes(unit) ? `（${unit}）` : "";
-    return { index, meta, numeric, decimals: numeric ? columnDecimals(numbers) : undefined, header: { label: `${title}${headerUnit}`, numeric } };
+    const largest = Math.max(0, ...numbers.map(Math.abs));
+    const compareIndex = column.compare ? dataset.columns.indexOf(column.compare.field) : -1;
+    const markOf = (row: readonly unknown[]): DashboardCellMark | undefined => {
+      const number = numericCell(row[index]);
+      if (typeof number !== "number") return undefined;
+      const bar = column.bar && largest > 0 ? Math.abs(number * (meta?.type === "quantitative" ? displayScale(meta) : 1)) / largest : undefined;
+      const against = compareIndex >= 0 ? numericCell(row[compareIndex]) : undefined;
+      const tone = column.compare && typeof against === "number" && number > against ? column.compare.above : undefined;
+      return bar === undefined && tone === undefined ? undefined : { ...(bar !== undefined ? { bar } : {}), ...(tone ? { tone } : {}) };
+    };
+    return { index, meta, numeric, markOf, decimals: numeric ? columnDecimals(numbers) : undefined, header: { label: `${title}${headerUnit}`, numeric } };
   });
   return {
     headers: layout.map((column) => column.header),
+    marks: dataset.rows.map((row) => layout.map((column) => column.markOf(row))),
     // A missing number stays blank, as charts leave a gap; a missing label reads as charts name it, not as an unnamed row.
     rows: dataset.rows.map((row) => layout.map((column) => (column.numeric
       ? formatDashboardCell(row[column.index], column.meta, { decimals: column.decimals, unit: false })
@@ -224,6 +268,8 @@ export interface KpiCardDisplay {
   /** The value at full precision with its unit, for the tile's tooltip. */
   readonly fullValue: string;
   readonly delta?: { readonly label?: string; readonly value: string; readonly direction?: "up" | "down" | "flat" };
+  /** The trend's shown values in x order; null where a value is missing. */
+  readonly trend?: readonly (number | null)[];
 }
 
 /** A headline number: about four significant digits, so a tile reads 4,872 rather than 4,871.7356. */
@@ -252,6 +298,79 @@ export function resolveKpiCards(view: DashboardKpiView, dataset: ChartDataset): 
       ...(value && unit && unit !== "%" ? { unit } : {}),
       fullValue: formatDashboardCell(cell(card.value.field), meta) || "—",
       ...(card.delta ? { delta: { ...(card.delta.label ? { label: card.delta.label } : {}), value: deltaText ? `${direction === "up" ? "+" : ""}${deltaText}` : "—", ...(direction ? { direction } : {}) } } : {}),
+      ...(card.trend ? { trend: trendValues(card.trend, view.fields?.[card.trend.y.field], dataset) } : {}),
+    };
+  });
+}
+
+/** Rows ordered by x: numbers by value, other cells (dates, months) by their text. */
+function orderedByX(xIndex: number, dataset: ChartDataset): (readonly unknown[])[] {
+  const rows = [...dataset.rows];
+  const numeric = rows.every((row) => typeof numericCell(row[xIndex]) === "number");
+  return rows.sort((left, right) => (numeric ? numericCell(left[xIndex])! - numericCell(right[xIndex])! : String(left[xIndex]).localeCompare(String(right[xIndex]))));
+}
+
+function trendValues(trend: NonNullable<DashboardKpiCard["trend"]>, meta: FieldMeta | undefined, dataset: ChartDataset): (number | null)[] {
+  const xIndex = dataset.columns.indexOf(trend.x.field);
+  const yIndex = dataset.columns.indexOf(trend.y.field);
+  const scale = meta?.type === "quantitative" ? displayScale(meta) : 1;
+  return orderedByX(xIndex, dataset).map((row) => {
+    const number = numericCell(row[yIndex]);
+    return typeof number === "number" ? number * scale : null;
+  });
+}
+
+/**
+ * SVG path of a sparkline in a width × height box, and where its last value sits, for a dot. Missing
+ * values break the line rather than being drawn as zero.
+ */
+export function sparklinePath(values: readonly (number | null)[], width: number, height: number): { readonly d: string; readonly last?: readonly [number, number] } {
+  const known = values.filter((value): value is number => value !== null);
+  if (known.length < 2) return { d: "" };
+  const low = Math.min(...known);
+  const span = Math.max(...known) - low || 1;
+  const pad = 3;
+  const step = (width - pad * 2) / (values.length - 1);
+  let d = "";
+  let pen = false;
+  let last: [number, number] | undefined;
+  values.forEach((value, index) => {
+    if (value === null) {
+      pen = false;
+      return;
+    }
+    const x = pad + index * step;
+    const y = pad + (1 - (value - low) / span) * (height - pad * 2);
+    d += `${pen ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`;
+    pen = true;
+    last = [x, y];
+  });
+  return { d, ...(last ? { last } : {}) };
+}
+
+export interface InsightDisplay {
+  /** The number at headline precision, without its unit; a percent sign stays. */
+  readonly value: string;
+  readonly unit?: string;
+  readonly fullValue: string;
+  readonly text: string;
+  readonly tone?: "focus" | "bad" | "good";
+}
+
+/** The findings a validated insights view shows: one cell each, never aggregated. */
+export function resolveInsights(view: DashboardInsightsView, dataset: ChartDataset): InsightDisplay[] {
+  return view.items.map((item) => {
+    const row = kpiRows(item, dataset)[0];
+    const cell = row?.[dataset.columns.indexOf(item.value.field)];
+    const meta = view.fields?.[item.value.field];
+    const unit = meta?.type === "quantitative" ? unitText(meta) : "";
+    const value = headlineText(cell, meta, false);
+    return {
+      value: value || "—",
+      ...(value && unit && unit !== "%" ? { unit } : {}),
+      fullValue: formatDashboardCell(cell, meta) || "—",
+      text: item.text,
+      ...(item.tone ? { tone: item.tone } : {}),
     };
   });
 }
@@ -303,7 +422,14 @@ export function validateDashboard(value: unknown, datasets: DashboardDatasets): 
 
     for (const field of Object.keys(view.fields ?? {})) missing(field, `/fields/${field}`);
     if (view.type === "table") {
-      view.columns?.forEach((column, columnIndex) => missing(column.field, `/columns/${columnIndex}/field`));
+      view.columns?.forEach((column, columnIndex) => {
+        const at = `/columns/${columnIndex}`;
+        missing(column.field, `${at}/field`);
+        if (column.compare) missing(column.compare.field, `${at}/compare/field`);
+        if ((column.bar || column.compare) && view.fields?.[column.field]?.type !== "quantitative") {
+          errors.push({ code: "SEMANTICS_MISSING", message: `column "${column.field}" draws a bar or comparison but is not declared quantitative`, path: `${path}${at}/field`, viewId, hint: "declare it in fields with type \"quantitative\", storage and additivity" });
+        }
+      });
       // Undeclared dates are shown as stored ("2025-12-01" for a month); only a declared grain shortens them.
       for (const field of (view.columns ?? []).map((column) => column.field).concat(view.columns ? [] : dataset.columns)) {
         const index = dataset.columns.indexOf(field);
@@ -314,15 +440,39 @@ export function validateDashboard(value: unknown, datasets: DashboardDatasets): 
       return;
     }
 
+    if (view.type === "insights") {
+      view.items.forEach((item, itemIndex) => {
+        const at = `/items/${itemIndex}`;
+        missing(item.value.field, `${at}/value/field`);
+        for (const field of Object.keys(item.where ?? {})) missing(field, `${at}/where/${field}`);
+        if (errors.some((error) => error.path?.startsWith(`${path}${at}/`))) return;
+        errors.push(...cellErrors(item, [item.value.field], dataset, `${path}${at}`, viewId));
+      });
+      return;
+    }
+
     view.cards.forEach((card, cardIndex) => {
       const at = `/cards/${cardIndex}`;
       missing(card.value.field, `${at}/value/field`);
       if (card.delta) missing(card.delta.field, `${at}/delta/field`);
       for (const field of Object.keys(card.where ?? {})) missing(field, `${at}/where/${field}`);
+      if (card.trend) {
+        missing(card.trend.x.field, `${at}/trend/x/field`);
+        missing(card.trend.y.field, `${at}/trend/y/field`);
+      }
       if (errors.some((error) => error.path?.startsWith(`${path}${at}/`))) return;
-      const matched = kpiRows(card, dataset).length;
-      if (matched === 0) errors.push({ code: "KPI_ROW_NOT_FOUND", message: card.where ? "no row matches the card's where" : "the result has no rows", path: `${path}${at}`, viewId, hint: "check the where values against the published result" });
-      else if (matched > 1) errors.push({ code: "KPI_ROW_AMBIGUOUS", message: `${matched} rows match; a card shows exactly one cell and never aggregates`, path: `${path}${at}`, viewId, hint: card.where ? "narrow where to one row" : "add where to pick one row, or aggregate in the query" });
+      errors.push(...cellErrors(card, [card.value.field, ...(card.delta ? [card.delta.field] : [])], dataset, `${path}${at}`, viewId));
+      if (!card.trend) return;
+      const xIndex = dataset.columns.indexOf(card.trend.x.field);
+      const yIndex = dataset.columns.indexOf(card.trend.y.field);
+      if (view.fields?.[card.trend.y.field]?.type !== "quantitative") {
+        errors.push({ code: "SEMANTICS_MISSING", message: `trend field "${card.trend.y.field}" is not declared quantitative`, path: `${path}${at}/trend/y/field`, viewId, hint: "declare it in fields with type \"quantitative\", storage and additivity" });
+      } else if (dataset.rows.some((row) => numericCell(row[yIndex]) === undefined)) {
+        errors.push({ code: "VALUE_NOT_NUMERIC", message: `trend field "${card.trend.y.field}" holds values that are not numbers`, path: `${path}${at}/trend/y/field`, viewId });
+      }
+      const xs = dataset.rows.map((row) => JSON.stringify(row[xIndex] ?? null));
+      if (new Set(xs).size !== xs.length) errors.push({ code: "DUPLICATE_KEY", message: `trend x "${card.trend.x.field}" repeats a value; a trend has one row per x`, path: `${path}${at}/trend/x/field`, viewId, hint: "publish one row per period for the view" });
+      else if (xs.length < 2) errors.push({ code: "KPI_ROW_NOT_FOUND", message: "a trend needs at least two rows", path: `${path}${at}/trend`, viewId });
     });
   });
 
