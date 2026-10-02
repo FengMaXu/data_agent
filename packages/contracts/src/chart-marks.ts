@@ -33,11 +33,39 @@ export const ChartLayerSchema = Type.Object({
 }, Strict);
 export type ChartLayer = Static<typeof ChartLayerSchema>;
 
+/**
+ * Focus + Context (设计原则及配色方案.md): the named x categories, or scatter points by `id`, take the tone's
+ * colour and every other bar or point the context colour. Single-series charts only; series have their colours.
+ */
+export const ChartHighlightSchema = Type.Object({
+  values: Type.Array(Name, { minItems: 1, maxItems: 5 }),
+  tone: Type.Optional(Type.Union([Type.Literal("focus"), Type.Literal("bad"), Type.Literal("good")])),
+}, Strict);
+export type ChartHighlight = Static<typeof ChartHighlightSchema>;
+
+/**
+ * A reference line on a value axis, read from a column that holds one value in every row, such as a
+ * site-wide average the query computes alongside each category. The spec never carries the number.
+ */
+export const ChartReferenceSchema = Type.Object({
+  field: Name,
+  label: Type.Optional(Name),
+  axis: Type.Optional(Type.Union([Type.Literal("left"), Type.Literal("right")])),
+}, Strict);
+export type ChartReference = Static<typeof ChartReferenceSchema>;
+
+/** A labelled span of x categories, such as a promotion period; `to` defaults to `from`. */
+export const ChartBandSchema = Type.Object({ from: Name, to: Type.Optional(Name), label: Name }, Strict);
+export type ChartBand = Static<typeof ChartBandSchema>;
+
 export const CartesianChartSchema = Type.Object({
   mark: Type.Literal("cartesian"),
   x: FieldRefSchema,
   layers: Type.Array(ChartLayerSchema, { minItems: 1 }),
   orientation: Type.Optional(Type.Union([Type.Literal("vertical"), Type.Literal("horizontal")])),
+  highlight: Type.Optional(ChartHighlightSchema),
+  references: Type.Optional(Type.Array(ChartReferenceSchema, { minItems: 1, maxItems: 3 })),
+  bands: Type.Optional(Type.Array(ChartBandSchema, { minItems: 1, maxItems: 4 })),
 }, Strict);
 export type CartesianChart = Static<typeof CartesianChartSchema>;
 

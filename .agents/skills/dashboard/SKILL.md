@@ -20,7 +20,7 @@ allowed-tools:
 
 | 支持 | 暂不支持（不要写进 spec，也不要向用户承诺） |
 | --- | --- |
-| KPI 卡片、柱形、折线、散点、柱线组合、双 y 轴、堆叠、横向条形、环形饼图、热力图、直方图、箱线图、瀑布图、桑基图、树图、旭日图、面积与堆叠面积、漏斗图、表格 | 页面筛选器、点击下钻、交叉联动 |
+| KPI 卡片、柱形、折线、散点、柱线组合、双 y 轴、堆叠、横向条形、环形饼图、热力图、直方图、箱线图、瀑布图、桑基图、树图、旭日图、面积与堆叠面积、漏斗图、表格；柱形、折线、散点上的重点高亮、参考线与区间标注 | 页面筛选器、点击下钻、交叉联动 |
 | 按行排版：每行 1–4 个格子，可设宽度比例与行高（`compact`、`standard`、`tall`）；图表 tooltip、图例、随窗口缩放；手机上自动单列 | 任意像素尺寸、拖拽排版、导出按钮 |
 | 按完整 spec 重新生成并覆盖已有看板 | 读取已有看板后局部修改 |
 | 实时数据：视图引用 `{ "kind": "live", "receiptId": ... }`，在应用内打开时可点击刷新 | 定时自动刷新、参数化查询 |
@@ -410,6 +410,41 @@ generate_dashboard(operation, spec, editPath?)
 - 类别太多时用 ChartSpec 的 `selection: { "kind": "top_n", ... }` 显式声明 Top-N，或在查询中筛选；不能与饼图、堆叠同时使用。
 - 同一张图不超过 2 个量纲（左右两个 y 轴）；超过时拆成多张图。
 
+### 突出重点、参考线与区间
+
+一张图只讲一个结论时，让读者一眼看到结论所在：用 `highlight` 点名重点，用 `references` 给出比较基准，用 `bands` 标出时间段。三者都写在 cartesian 图的 `chart` 里。
+
+```json dashboard-view
+{
+  "id": "route_delay",
+  "type": "chart",
+  "chart": {
+    "version": 1,
+    "title": "发往 SP 的线路延迟最严重，RJ→SP 量大且延迟率 14.1%",
+    "subtitle": "订单量 Top 20 线路中延迟率最高的 5 条 · 虚线为全站延迟率 · 标签为订单量",
+    "data": { "kind": "publication", "receiptId": "<receiptId>" },
+    "fields": {
+      "delay_rate": { "type": "quantitative", "storage": "ratio", "additivity": "non_additive", "label": "延迟率" },
+      "site_delay_rate": { "type": "quantitative", "storage": "ratio", "additivity": "non_additive", "label": "全站延迟率" },
+      "orders": { "type": "quantitative", "storage": "raw", "unit": "单", "additivity": "additive" }
+    },
+    "chart": {
+      "mark": "cartesian",
+      "orientation": "horizontal",
+      "x": { "field": "route" },
+      "layers": [{ "type": "bar", "y": { "field": "delay_rate" }, "label": { "field": "orders" } }],
+      "highlight": { "values": ["RJ->SP"], "tone": "bad" },
+      "references": [{ "field": "site_delay_rate", "label": "全站" }]
+    }
+  }
+}
+```
+
+- `highlight.values`：要突出的 x 类目（散点图写图层 `id` 列的值），最多 5 个。被点名的柱或点用 `tone` 的颜色，其余退为浅灰褐背景色。`tone`：`focus`（默认，橙红，中性的“看这里”）、`bad`（铁锈红，问题、未达标）、`good`（深灰绿，达标、改善）。只用于单系列图；值不在数据中返回 `VALUE_OUT_OF_DOMAIN`。
+- `references`：参考线的值**来自数据集里的一列**，这一列每行都是同一个数，例如在查询里用窗口函数或子查询把全站均值、目标值输出到每一行（`AVG(x) OVER ()`）。spec 里不写数字。参考线画在 `axis`（默认 `left`）所在的数值轴上，字段的语义要与该轴的度量一致；各行取值不同或单位不同返回 `INVALID_ENCODING`。
+- `bands`：在类目 x 轴上标出一段区间（如大促月份），`from`、`to` 写 x 轴上显示的值（月份写 `2017-11`），`to` 省略时只标一个类目。
+- 一张图最多一个重点：同时点名多个类目时，它们应是同一个结论（如“发往 SP 的三条线路”）。
+
 ### KPI 卡片（`kpi`）
 
 每张卡片显示结果中**一个单元格**，不做求和或平均。结果只有一行时直接引用字段；有多行时用 `where` 选出唯一的一行。增速、占比等要在查询中算好，放在 `delta` 字段：
@@ -507,7 +542,7 @@ generate_dashboard(operation, spec, editPath?)
 
 `#4F6980` 深蓝灰、`#F47942` 橙红、`#638B66` 深灰绿、`#FBB04E` 橘黄、`#B66353` 铁锈红、`#849DB1` 浅蓝灰、`#B9AA97` 浅灰褐、`#7E756D` 深灰褐。
 
-一张看板只用这一套色板。单系列图不需要图例，也不要为单系列逐柱换色；颜色只用来区分有意义的系列或标出一个重点。需要按维度值固定颜色时，在图层的 `series.colors` 中指定（如 `{ "批发业": "#4F6980" }`）。同一个维度值在不同图中要保持同一颜色：在每张图中写相同的映射，或让系列顺序保持一致。语义映射：达标/盈利用 `#638B66`，未达标/亏损用 `#B66353` 或 `#F47942`，中性基准用 `#7E756D`。
+一张看板只用这一套色板。单系列图不需要图例，也不要为单系列逐柱换色；颜色只用来区分有意义的系列或标出一个重点，标重点用 `highlight`（见“突出重点、参考线与区间”），不要手写颜色。需要按维度值固定颜色时，在图层的 `series.colors` 中指定（如 `{ "批发业": "#4F6980" }`）。同一个维度值在不同图中要保持同一颜色：在每张图中写相同的映射，或让系列顺序保持一致。语义映射：达标/盈利用 `#638B66`，未达标/亏损用 `#B66353` 或 `#F47942`，中性基准用 `#7E756D`。
 
 ## 验收
 
