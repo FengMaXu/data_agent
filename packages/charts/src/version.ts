@@ -7,7 +7,7 @@
 export const CHART_COMPILER_VERSION = 9;
 
 /** Bump when palette, fonts or spacing change, including the static font stack and background in the runtime renderer. */
-export const CHART_THEME_VERSION = 2;
+export const CHART_THEME_VERSION = 3;
 
 export interface ChartRendererVersions {
   readonly compiler: number;

@@ -27,6 +27,9 @@ const OUTPUT_FINGERPRINTS: Readonly<Record<string, string>> = {
   "8.2": "91989973",
   // 9: a ratio x axis places points at their shown percent; a legend sits above the value-axis names.
   "9.2": "6051fa59",
+  // Theme 3: dashboard chrome and compact density from shared THEME tokens (quiet value axes, rounded bar ends,
+  //          dark tooltips). These fixtures compile at standard density, so they did not change.
+  "9.3": "6051fa59",
 };
 
 const data = { kind: "publication", receiptId: "publication_1" } as const;
