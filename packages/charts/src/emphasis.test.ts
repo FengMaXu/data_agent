@@ -65,11 +65,23 @@ describe("Chart emphasis", () => {
     const [bar] = series(compileChart(bars({ bands: [{ from: "CE->SP", to: "RJ->PR", label: "南线" }] }), routes, { target: "interactive" }));
     expect((bar!.markArea as { data: unknown[] }).data).toEqual([[{ name: "南线", xAxis: "CE->SP" }, { xAxis: "RJ->PR" }]]);
     expect(codes(compileChart(bars({ bands: [{ from: "RJ->PR", to: "RJ->SP", label: "x" }] }), routes, { target: "interactive" }))).toEqual(["INVALID_ENCODING"]);
+    // A single category has no width on a line's axis: it is marked with a line, beside any reference line.
+    const [single] = series(compileChart(bars({ bands: [{ from: "CE->SP", label: "单点" }], references: [{ field: "site_rate" }] }), routes, { target: "interactive" }));
+    expect((single!.markLine as { data: Record<string, unknown>[] }).data.map((line) => line.xAxis ?? line.yAxis)).toEqual([7.89, "CE->SP"]);
+    expect(single!.markArea).toBeUndefined();
     expect(codes(compileChart(bars({ bands: [{ from: "2017-11", label: "黑五" }] }), routes, { target: "interactive" }))).toEqual(["VALUE_OUT_OF_DOMAIN", "VALUE_OUT_OF_DOMAIN"]);
   });
 
   it("gives documentation examples rows that satisfy highlight, references and bands", () => {
     const spec = bars({ highlight: { values: ["RJ->SP"] }, references: [{ field: "site_rate" }], bands: [{ from: "RJ->SP", label: "x" }] });
     expect(compileChart(spec, exampleDataset(spec), { target: "interactive" }).ok).toBe(true);
+  });
+
+  it("thins a crowded time axis instead of rotating it", () => {
+    const months = Array.from({ length: 20 }, (_value, index) => `20${17 + Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, "0")}`);
+    const spec = { version: 1, data, fields: { month: { type: "temporal", grain: "month", zone: "floating" }, orders }, chart: { mark: "cartesian", x: { field: "month" }, layers: [{ type: "line", y: { field: "orders" } }] } } as ChartSpec;
+    const result = ok(compileChart(spec, { columns: ["month", "orders"], rows: months.map((month, index) => [month, index]) }, { target: "interactive", width: 420 }));
+    expect(result.notices.map((notice) => notice.code)).not.toContain("LABELS_ROTATED");
+    expect((result.option.xAxis as { axisLabel: Record<string, unknown> }).axisLabel).toMatchObject({ interval: "auto", hideOverlap: true });
   });
 });

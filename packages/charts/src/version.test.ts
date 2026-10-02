@@ -30,6 +30,8 @@ const OUTPUT_FINGERPRINTS: Readonly<Record<string, string>> = {
   // Theme 3: dashboard chrome and compact density from shared THEME tokens (quiet value axes, rounded bar ends,
   //          dark tooltips). These fixtures compile at standard density, so they did not change.
   "9.3": "6051fa59",
+  // 10: a crowded time axis thins its labels instead of rotating them.
+  "10.3": "f47a2cc9",
 };
 
 const data = { kind: "publication", receiptId: "publication_1" } as const;

@@ -130,13 +130,17 @@ export function categoryAxis(context: CompileContext, categories: readonly strin
   if (categories.some((label) => label.length > MAX_LABEL_CHARS)) {
     context.notice({ kind: "layout", code: "LABELS_TRUNCATED", message: `过长的类目标签截断显示为前 ${MAX_LABEL_CHARS - 1} 个字符，完整名称见提示框`, field });
   }
-  const rotate = !horizontal && longest > (viewport ? extent / viewport.window : band);
+  // A time axis reads in order, so labels that do not fit are thinned, never rotated: 2017-01, 2017-04, ...
+  // Categories have no such order and keep every label.
+  const temporal = context.meta(field)?.type === "temporal";
+  const rotate = !horizontal && !temporal && longest > (viewport ? extent / viewport.window : band);
   if (rotate) context.notice({ kind: "layout", code: "LABELS_ROTATED", message: "类目标签旋转 45° 显示", field });
+  const thinned = temporal && !horizontal && longest + 8 > (viewport ? extent / viewport.window : band);
   return {
     type: "category",
     data: categories,
     ...(horizontal ? { inverse: true } : {}),
-    axisLabel: { interval: 0, ...(rotate ? { rotate: 45 } : {}), formatter: (value: string) => truncate(value) },
+    axisLabel: { interval: thinned ? "auto" : 0, hideOverlap: thinned, ...(rotate ? { rotate: 45 } : {}), formatter: (value: string) => truncate(value) },
   };
 }
 

@@ -318,6 +318,7 @@ function addBands(context: CompileContext, chart: CartesianChart, positions: Rea
   }
   const key = horizontal ? "yAxis" : "xAxis";
   const areas: unknown[] = [];
+  const markers: Record<string, unknown>[] = [];
   chart.bands.forEach((band, index) => {
     const path = `/chart/bands/${index}`;
     const to = band.to ?? band.from;
@@ -331,10 +332,16 @@ function addBands(context: CompileContext, chart: CartesianChart, positions: Rea
       context.fail({ code: "INVALID_ENCODING", message: `bands 的 from（${band.from}）应在 to（${to}）之前`, path });
       return;
     }
-    areas.push([{ name: band.label, [key]: band.from }, { [key]: to }]);
+    // One category has no width on a line's axis, so it is marked with a line instead of an area.
+    if (start === end) markers.push({ [key]: band.from, label: { formatter: band.label, position: horizontal ? "insideStartTop" : "end", color: THEME.muted } });
+    else areas.push([{ name: band.label, [key]: band.from }, { [key]: to }]);
   });
-  if (series[0] && areas.length > 0) {
-    series[0].markArea = { silent: true, itemStyle: { color: BAND_FILL }, label: { color: THEME.muted, fontSize: 11, position: horizontal ? "insideLeft" : "insideTop" }, data: areas };
+  const target = series[0];
+  if (!target) return;
+  if (areas.length > 0) target.markArea = { silent: true, itemStyle: { color: BAND_FILL }, label: { color: THEME.muted, fontSize: 11, position: horizontal ? "insideLeft" : "insideTop" }, data: areas };
+  if (markers.length > 0) {
+    const existing: Record<string, unknown> & { data?: unknown[] } = (target.markLine as Record<string, unknown> & { data?: unknown[] } | undefined) ?? { symbol: "none", silent: true, lineStyle: { color: THEME.neutral, type: "dashed", width: 1 }, label: { color: THEME.neutral, fontSize: 11 } };
+    target.markLine = { ...existing, data: [...(existing.data ?? []), ...markers.map((marker) => ({ ...marker, lineStyle: { color: THEME.context, type: "solid", width: 1 } }))] };
   }
 }
 
