@@ -159,4 +159,18 @@ describe("Dashboard display", () => {
     expect(formatDashboardCell(null, growth)).toBe("");
     expect(formatDashboardCell("9007199254740993", undefined)).toBe("9007199254740993");
   });
+
+  it("shows whole counts without decimals on tiles and bar labels", () => {
+    const count: FieldMeta = { type: "quantitative", storage: "raw", unit: "家", additivity: "additive" };
+    const view = { id: "k", type: "kpi", data: total, fields: { n: count }, cards: [{ value: { field: "n" } }] } as DashboardKpiView;
+    expect(resolveKpiCards(view, { columns: ["n"], rows: [[64]] })[0]!.value).toBe("64");
+    expect(resolveKpiCards(view, { columns: ["n"], rows: [["967"]] })[0]!.value).toBe("967");
+    expect(resolveKpiCards(view, { columns: ["n"], rows: [["3.1816"]] })[0]!.value).toBe("3.18");
+  });
+
+  it("names a missing label in a table instead of leaving the row unnamed", () => {
+    const view = { id: "t", type: "table", data: byIndustry, fields: { growth }, columns: [{ field: "industry" }, { field: "growth" }] } as DashboardTableView;
+    const rows = { columns: ["industry", "growth"], rows: [[null, 0.186], ["零售业", null]] };
+    expect(resolveTable(view, rows).rows).toEqual([["（空值）", "18.6%"], ["零售业", ""]]);
+  });
 });

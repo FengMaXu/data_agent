@@ -104,6 +104,15 @@ describe("Observations are never merged or zero-filled", () => {
     expect((seriesOf(option)[0]!.data as unknown[]).length).toBe(2);
   });
 
+  it("places points on a ratio x axis at their shown percent", () => {
+    const rate: FieldMeta = { type: "quantitative", storage: "ratio", additivity: "non_additive", label: "逾期率" };
+    const spec = { version: 1, data, fields: { rate, sales: additive }, chart: { mark: "cartesian", x: { field: "rate" }, layers: [{ type: "scatter", y: { field: "sales" } }] } } as ChartSpec;
+    const { option } = ok(compileChart(spec, { columns: ["rate", "sales"], rows: [["0.5652", 17], [0.2, 3]] }, { target: "interactive" }));
+    expect((seriesOf(option)[0]!.data as { value: number[] }[]).map((point) => point.value[0])).toEqual([56.52, 20]);
+    const formatter = (axis(option, "xAxis")[0]!.axisLabel as { formatter: (value: number) => string }).formatter;
+    expect(formatter(50)).toBe("50%");
+  });
+
   it("draws NULL and missing combinations as gaps and says so", () => {
     const dataset = { columns: ["region", "industry", "sales"], rows: [["east", "retail", 1], ["west", "retail", null], ["east", "food", 3]] };
     const spec = cartesian([{ type: "bar", y: { field: "sales" }, series: { field: "industry" } }]);

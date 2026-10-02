@@ -57,7 +57,9 @@ function compileCartesian(context: CompileContext, chart: CartesianChart): Chart
   if (valueX) {
     const measured = context.measure(chart.x.field, "/chart/x/field");
     if (!measured) return undefined;
-    xNumbers = measured.values;
+    // Shown values, as for y: the axis labels and tooltip read them with the field's unit.
+    const xScale = displayScale(measured.meta);
+    xNumbers = measured.values.map((value) => (value === null ? null : value * xScale));
   }
   const categories = valueX ? [] : applySelection(context, orderCategories(xLabels, xMeta), xLabels);
   const categoryPosition = new Map(categories.map((label, position) => [label, position]));
@@ -221,8 +223,9 @@ function compileCartesian(context: CompileContext, chart: CartesianChart): Chart
     ...(context.options.target === "static" ? { animation: false } : {}),
     tooltip: { trigger: onlyScatter || valueX ? "item" : "axis" },
     ...(series.length > 1 ? { legend: { top: 0 } } : {}),
-    // The top margin holds the value-axis names (and the legend when there is one).
-    grid: { left: 16, right: sides.includes("right") ? 48 : 24, top: series.length > 1 ? 48 : 36, bottom: (zoom ? 48 : 16) + (namedBottom ? 28 : 0), containLabel: true },
+    // The top margin holds the value-axis names, and above them the legend when there is one: on one
+    // line the legend runs into a right-hand axis name.
+    grid: { left: 16, right: sides.includes("right") ? 48 : 24, top: series.length > 1 ? 60 : 36, bottom: (zoom ? 48 : 16) + (namedBottom ? 28 : 0), containLabel: true },
     xAxis,
     yAxis,
     ...(zoom ? { dataZoom: zoom } : {}),

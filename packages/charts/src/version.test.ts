@@ -25,6 +25,8 @@ const OUTPUT_FINGERPRINTS: Readonly<Record<string, string>> = {
   //    declared semantics at headline precision; axis-label rotation measures ASCII at about half a CJK character.
   // Theme 2: compact density for dashboard tiles. Formatters call formatValue by name, so these fixtures did not change.
   "8.2": "91989973",
+  // 9: a ratio x axis places points at their shown percent; a legend sits above the value-axis names.
+  "9.2": "6051fa59",
 };
 
 const data = { kind: "publication", receiptId: "publication_1" } as const;

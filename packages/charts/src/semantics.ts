@@ -166,6 +166,8 @@ export function formatFieldValue(value: unknown, meta: FieldMeta | undefined, op
  */
 export function headlineDigits(shown: number, meta: QuantitativeMeta): number {
   if (isPercentDisplay(meta)) return 1;
+  // A count stays a count: 64 家, never 64.00 家.
+  if (Number.isInteger(shown)) return 0;
   const size = Math.abs(shown);
   return size >= 1000 ? 0 : size >= 100 ? 1 : 2;
 }

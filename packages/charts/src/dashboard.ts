@@ -1,6 +1,6 @@
 import { checkDashboardSpec, dashboardViewData, type DashboardKpiCard, type DashboardKpiView, type DashboardRowHeight, type DashboardSpec, type DashboardTableView, type DatasetRef, type FieldMeta } from "@data-agent/contracts";
 import { compileChart } from "./compile.js";
-import { columnDecimals, displayScale, formatFieldValue, formatValue, headlineDigits, numericCell, unitText, valueDecimals, type FormatOptions } from "./semantics.js";
+import { categoryLabel, columnDecimals, displayScale, formatFieldValue, formatValue, headlineDigits, numericCell, unitText, valueDecimals, type FormatOptions } from "./semantics.js";
 import type { ChartDataset, ChartErrorCode, PresentationNotice } from "./types.js";
 
 export type DashboardErrorCode =
@@ -208,7 +208,10 @@ export function resolveTable(view: DashboardTableView, dataset: ChartDataset): D
   });
   return {
     headers: layout.map((column) => column.header),
-    rows: dataset.rows.map((row) => layout.map((column) => formatDashboardCell(row[column.index], column.meta, column.numeric ? { decimals: column.decimals, unit: false } : {}))),
+    // A missing number stays blank, as charts leave a gap; a missing label reads as charts name it, not as an unnamed row.
+    rows: dataset.rows.map((row) => layout.map((column) => (column.numeric
+      ? formatDashboardCell(row[column.index], column.meta, { decimals: column.decimals, unit: false })
+      : row[column.index] === null || row[column.index] === undefined ? categoryLabel(null) : formatDashboardCell(row[column.index], column.meta)))),
   };
 }
 
