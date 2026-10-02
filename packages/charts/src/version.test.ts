@@ -32,6 +32,8 @@ const OUTPUT_FINGERPRINTS: Readonly<Record<string, string>> = {
   "9.3": "6051fa59",
   // 10: a crowded time axis thins its labels instead of rotating them.
   "10.3": "f47a2cc9",
+  // 11: highlight.layer; an axis shared by several measures is named by its unit. No fixture uses either.
+  "11.3": "f47a2cc9",
 };
 
 const data = { kind: "publication", receiptId: "publication_1" } as const;

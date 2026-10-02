@@ -40,6 +40,11 @@ export type ChartLayer = Static<typeof ChartLayerSchema>;
 export const ChartHighlightSchema = Type.Object({
   values: Type.Array(Name, { minItems: 1, maxItems: 5 }),
   tone: Type.Optional(Type.Union([Type.Literal("focus"), Type.Literal("bad"), Type.Literal("good")])),
+  /**
+   * Index of the one layer the highlight is on; the chart's other bar and scatter layers become a lighter
+   * backdrop, as in a paired "share of orders vs share of complaints" chart. All of them when omitted.
+   */
+  layer: Type.Optional(Type.Integer({ minimum: 0 })),
 }, Strict);
 export type ChartHighlight = Static<typeof ChartHighlightSchema>;
 
