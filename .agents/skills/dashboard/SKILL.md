@@ -80,9 +80,9 @@ generate_dashboard(operation, spec, editPath?)
         "yoy": { "type": "quantitative", "storage": "ratio", "additivity": "non_additive", "label": "同比增速" }
       },
       "cards": [
-        { "label": "批发业", "value": { "field": "sales" }, "delta": { "field": "yoy", "label": "同比" }, "where": { "industry": "批发业" } },
-        { "label": "零售业", "value": { "field": "sales" }, "delta": { "field": "yoy", "label": "同比" }, "where": { "industry": "零售业" } },
-        { "label": "餐饮业", "value": { "field": "sales" }, "delta": { "field": "yoy", "label": "同比" }, "where": { "industry": "餐饮业" } }
+        { "label": "批发业", "value": { "field": "sales" }, "delta": { "field": "yoy", "label": "同比", "polarity": "up_good" }, "where": { "industry": "批发业" } },
+        { "label": "零售业", "value": { "field": "sales" }, "delta": { "field": "yoy", "label": "同比", "polarity": "up_good" }, "where": { "industry": "零售业" } },
+        { "label": "餐饮业", "value": { "field": "sales" }, "delta": { "field": "yoy", "label": "同比", "polarity": "up_good" }, "where": { "industry": "餐饮业" } }
       ]
     },
     {
@@ -464,6 +464,25 @@ generate_dashboard(operation, spec, editPath?)
 - `bands`：在类目 x 轴上标出一段区间（如大促月份），`from`、`to` 写 x 轴上显示的值（月份写 `2017-11`），`to` 省略时只标一个类目。
 - 一张图最多一个重点：同时点名多个类目时，它们应是同一个结论（如“发往 SP 的三条线路”）。
 
+构成悬殊时，用横向条形加 `highlight` 代替饼图，并在 KPI 卡片上用 `secondary` 给出占比：
+
+```json dashboard-view
+{
+  "id": "status_kpi",
+  "type": "kpi",
+  "title": "配送单状态",
+  "data": { "kind": "publication", "receiptId": "<receiptId>" },
+  "fields": {
+    "orders": { "type": "quantitative", "storage": "raw", "unit": "单", "additivity": "additive" },
+    "share": { "type": "quantitative", "storage": "percent", "additivity": "non_additive" }
+  },
+  "cards": [
+    { "label": "已送达", "value": { "field": "orders" }, "secondary": { "field": "share", "label": "占比" }, "where": { "status": "DELIVERED" } },
+    { "label": "已取消", "value": { "field": "orders" }, "secondary": { "field": "share", "label": "占比" }, "where": { "status": "CANCELLED" } }
+  ]
+}
+```
+
 ### 结论（`insights`）
 
 看板第一行给出答案。每条结论是**一个数字加一句话**：数字读自已发布结果的一个单元格（与 KPI 卡片一样只读、不聚合），句子由你撰写，说明这个数字意味着什么、该做什么。
@@ -502,14 +521,16 @@ generate_dashboard(operation, spec, editPath?)
     "yoy": { "type": "quantitative", "storage": "ratio", "additivity": "non_additive" }
   },
   "cards": [
-    { "label": "批发业", "value": { "field": "sales" }, "delta": { "field": "yoy", "label": "同比" }, "where": { "industry": "批发业" } },
-    { "label": "零售业", "value": { "field": "sales" }, "delta": { "field": "yoy", "label": "同比" }, "where": { "industry": "零售业" } }
+    { "label": "批发业", "value": { "field": "sales" }, "delta": { "field": "yoy", "label": "同比", "polarity": "up_good" }, "where": { "industry": "批发业" } },
+    { "label": "零售业", "value": { "field": "sales" }, "delta": { "field": "yoy", "label": "同比", "polarity": "up_good" }, "where": { "industry": "零售业" } }
   ]
 }
 ```
 
 - 卡片最多 8 张，头部 KPI 行放 3–6 张。`label` 缺省时用字段的 `label` 或列名。
-- 数值显示为约四位有效数字的大号数字加小号单位（如 4,872 亿元），完整值在悬停提示里；`delta` 带正负号与升降箭头（升为红、降为绿）。所以 `value` 与 `delta` 都要在 `fields` 中声明语义，未声明的按原值显示。不要为了好看在查询里四舍五入。
+- 数值显示为约四位有效数字的大号数字加小号单位（如 4,872 亿元），完整值在悬停提示里；`delta` 带正负号与升降箭头。所以 `value` 与 `delta` 都要在 `fields` 中声明语义，未声明的按原值显示。不要为了好看在查询里四舍五入。
+- **`delta.polarity` 必写**，说明上升是好是坏：销售额、完成率写 `up_good`（升为绿、降为红），差评率、超期率、成本写 `up_bad`（升为红、降为绿），无所谓好坏写 `neutral`。不写时箭头不着色。颜色表达的是好坏，与结论 `tone` 的 good/bad 一致，同一页面上同一个数字不能一处绿、一处红。
+- **`delta` 只放变化**（同比、环比、与目标或均值的差）。占比、份额、排名等不是变化的数值放 `secondary: { "field": ..., "label": "占比" }`，显示为不带箭头的灰色小字；放进 `delta` 会显示成“▲ +98.0%”的上涨。
 - 每张卡都给一个对比：同比、环比或与目标的差。没有对比的数字回答不了“好还是不好”。
 - 匹配不到行返回 `KPI_ROW_NOT_FOUND`；匹配到多行时，这些行在显示的单元格上取值必须相同（如每个月份行都带同一个全期合计），否则返回 `KPI_ROW_AMBIGUOUS`。
 - `trend`：在卡片上画一条趋势线，读取该视图结果的**全部行**，按 `x` 排序取 `y`。做法是发布一个按期一行的结果，卡片的数值放在每行都相同的列里：
@@ -573,7 +594,7 @@ generate_dashboard(operation, spec, editPath?)
 7. **对比要有参照。** 趋势图给出比较对象（多个系列、同比或目标）；KPI 卡给出 delta 或 trend；排名和分布图用 `references` 画出均值或目标线。
 8. **一张图一个重点。** 结论落在某个类目或某个点上时用 `highlight` 点名它，其余自动退为背景色；不要所有柱子同色、让读者自己找。时间上的事件（大促、政策）用 `bands` 标出。
 9. **类目用读者的语言。** 编码、外文或带排序前缀的值（如 `1_提前送达`、`moveis_escritorio`）不要直接上图：有字典表时在查询中关联出中文名；类目有固定顺序时在 `fields` 中声明 `{ "type": "ordinal", "order": [...] }`，不要在值前加序号。空值在查询中改写为“未分类”等可读名称。
-10. 图表不诚实时拒绝：占比类别超过 5 个时改用排序后的条形图或表格；超过 6 个系列时拆图。
+10. 图表不诚实时拒绝：占比类别超过 5 个时改用排序后的条形图或表格；超过 6 个系列时拆图。构成悬殊时（最大一类超过 80%，或有类目不足 3%）不用饼图：小扇区看不见，改用横向条形加 `highlight` 点名要讲的类目。
 11. 一张看板回答一个业务问题；简约胜于炫技，优先 KPI、折线、横向条形、环形、表格。
 
 | 数据形状 | 视图 |
@@ -586,7 +607,7 @@ generate_dashboard(operation, spec, editPath?)
 | 2–3 个可比系列 | `chart`：`bar` 图层加 `series`，或多个 `bar` 图层 |
 | 绝对量 + 比率 | `chart`：`bar` 图层 + `line` 图层（`axis: "right"`） |
 | 围绕零点的正负值 | `chart`：`bar` 图层 |
-| 不超过 5 类的完整构成 | `chart`：`pie` |
+| 不超过 5 类、占比不悬殊的完整构成 | `chart`：`pie`（要讲某一类时加 `highlight`） |
 | 类目与数值的关系、逐项分布 | `chart`：`scatter` 图层 |
 | 两个维度交叉的一个指标（行业 × 月份） | `chart`：`heatmap` |
 | 一个数值的分布 | `chart`：`histogram`（分箱由查询给出） |
@@ -604,7 +625,13 @@ generate_dashboard(operation, spec, editPath?)
 
 `#4F6980` 深蓝灰、`#F47942` 橙红、`#638B66` 深灰绿、`#FBB04E` 橘黄、`#B66353` 铁锈红、`#849DB1` 浅蓝灰、`#B9AA97` 浅灰褐、`#7E756D` 深灰褐。
 
-一张看板只用这一套色板。单系列图不需要图例，也不要为单系列逐柱换色；颜色只用来区分有意义的系列或标出一个重点，标重点用 `highlight`（见“突出重点、参考线与区间”），不要手写颜色。需要按维度值固定颜色时，在图层的 `series.colors` 中指定（如 `{ "批发业": "#4F6980" }`）。同一个维度值在不同图中要保持同一颜色：在每张图中写相同的映射，或让系列顺序保持一致。语义映射：达标/盈利用 `#638B66`，未达标/亏损用 `#B66353` 或 `#F47942`，中性基准用 `#7E756D`。
+一张看板只用这一套色板，每种颜色在整页只有一个含义：
+
+- **橙红 `#F47942` 只表示重点。** 看板上的系列、扇区、节点按顺序取色时跳过它，并先用中性色（深蓝灰、橘黄、浅蓝灰、深灰褐），超过 4 类才轮到表示好坏的颜色；要标重点用 `highlight`（柱、点、饼图扇区都支持），不要在 `series.colors` 里手写橙红。
+- **深灰绿 `#638B66` 表示好，铁锈红 `#B66353` 表示坏**：`highlight.tone`、结论 `tone` 与 KPI `delta.polarity` 都按这个映射着色。手写 `series.colors` 时不要拿它们表示普通类别。
+- 浅灰褐 `#B9AA97` 是 `highlight` 的背景色，深灰褐 `#7E756D` 用于参考线。
+
+单系列图不需要图例，也不要为单系列逐柱换色。需要按维度值固定颜色时，在图层的 `series.colors` 中指定（如 `{ "批发业": "#4F6980" }`）。同一个维度值在不同图中要保持同一颜色：在每张图中写相同的映射，或让系列顺序保持一致。
 
 ## 验收
 
