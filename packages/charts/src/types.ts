@@ -14,6 +14,11 @@ export interface ChartCompileOptions {
   readonly height?: number;
   /** "compact" restyles for small dashboard tiles; layout decisions still follow width and height. */
   readonly density?: "standard" | "compact";
+  /**
+   * Keep the focus colour for highlights: categorical series, slices and nodes skip it. Dashboards set
+   * it so that orange means "look here" on every chart of a page, never just "the second category".
+   */
+  readonly reserveFocus?: boolean;
   /** Resolved field semantics (Dataset Annotations). Defaults to the spec's own declarations. */
   readonly fields?: Readonly<Record<string, FieldMeta>>;
 }

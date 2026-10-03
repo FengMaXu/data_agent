@@ -1,6 +1,7 @@
 import { type ChartSpec, type FieldMeta } from "@data-agent/contracts";
 import type { ChartCompileOptions, ChartDataset, ChartError, PresentationNotice } from "../types.js";
-import { axisTitle, categoryLabel, fieldLabel, fieldTitle, isPercentDisplay, isZonedTemporal, numericCell, type QuantitativeMeta } from "../semantics.js";
+import { PALETTE, axisTitle, categoryLabel, fieldLabel, fieldTitle, isPercentDisplay, isZonedTemporal, numericCell, type QuantitativeMeta } from "../semantics.js";
+import { THEME } from "../theme.js";
 
 /** Compile context and helpers shared by every mark. */
 
@@ -36,6 +37,8 @@ export class CompileContext {
   readonly notices: PresentationNotice[] = [];
   readonly width: number;
   readonly height: number;
+  /** Colours for categorical series, slices and nodes, in order. */
+  readonly palette: readonly string[];
   private readonly columnIndex = new Map<string, number>();
   private readonly fields: Readonly<Record<string, FieldMeta>>;
 
@@ -44,6 +47,7 @@ export class CompileContext {
     this.fields = options.fields ?? spec.fields ?? {};
     this.width = options.width ?? DEFAULT_WIDTH;
     this.height = options.height ?? DEFAULT_HEIGHT;
+    this.palette = options.reserveFocus ? PALETTE.filter((colour) => colour !== THEME.focus) : PALETTE;
   }
 
   fail(error: ChartError): void {

@@ -34,6 +34,9 @@ const OUTPUT_FINGERPRINTS: Readonly<Record<string, string>> = {
   "10.3": "f47a2cc9",
   // 11: highlight.layer; an axis shared by several measures is named by its unit. No fixture uses either.
   "11.3": "f47a2cc9",
+  // Theme 4: dashboards keep the focus colour out of categorical colours; KPI changes are coloured only by a
+  //          declared polarity. These fixtures compile outside a dashboard, so they did not change.
+  "11.4": "f47a2cc9",
 };
 
 const data = { kind: "publication", receiptId: "publication_1" } as const;

@@ -1,6 +1,6 @@
 import { type HistogramChart } from "@data-agent/contracts";
 import type { ChartOption } from "../types.js";
-import { PALETTE, axisTitle, displayScale, fieldTitle, formatValue } from "../semantics.js";
+import { axisTitle, displayScale, fieldTitle, formatValue } from "../semantics.js";
 import { CompileContext, categoryAxis, valueAxis, refuseSelection } from "./shared.js";
 import type { MarkDefinition } from "./types.js";
 
@@ -41,7 +41,7 @@ function compileHistogram(context: CompileContext, chart: HistogramChart): Chart
   const rotated = Boolean((axis.axisLabel as { rotate?: number }).rotate);
   const countScale = displayScale(value.meta);
   return {
-    color: [...PALETTE],
+    color: [...context.palette],
     ...(context.options.target === "static" ? { animation: false } : {}),
     tooltip: { trigger: "axis", valueFormatter: (shown: number) => formatValue(shown, value.meta) },
     // Rotated labels need room below them before the axis name.
