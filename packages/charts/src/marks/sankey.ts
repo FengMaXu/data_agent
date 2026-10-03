@@ -1,6 +1,6 @@
 import { type SankeyChart } from "@data-agent/contracts";
 import type { ChartOption } from "../types.js";
-import { PALETTE, displayScale, fieldLabel, fieldTitle, formatValue } from "../semantics.js";
+import { displayScale, fieldLabel, fieldTitle, formatValue } from "../semantics.js";
 import { LABEL_CHAR_PX, CompileContext, checkPartOfWhole, refuseSelection } from "./shared.js";
 import type { MarkDefinition } from "./types.js";
 
@@ -65,7 +65,7 @@ function compileSankey(context: CompileContext, chart: SankeyChart): ChartOption
     context.notice({ kind: "layout", code: "LABELS_TRUNCATED", message: `过长的节点名称截断显示为前 ${SANKEY_LABEL_CHARS} 个字符左右，完整名称见提示框或数据集`, field: chart.source.field });
   }
   return {
-    color: [...PALETTE],
+    color: [...context.palette],
     ...(context.options.target === "static" ? { animation: false } : {}),
     tooltip: {
       trigger: "item",

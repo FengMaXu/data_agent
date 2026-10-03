@@ -65,7 +65,7 @@ function scriptJson(value: unknown): string {
 
 // A BI page: a header, rows of tiles, then sources and data notes. Tile sizes come from the spec's layout rows.
 // Colours are the chart theme's, so the chrome around a chart matches the chart (ADR-0008 decision 5).
-const STYLE = `:root{--bg:${THEME.page};--tile:${THEME.surface};--rule:${THEME.rule};--ink:${THEME.ink};--ink-soft:${THEME.inkSoft};--muted:${THEME.muted};--up:${THEME.bad};--down:${THEME.good};--error:${THEME.bad};--bad:${THEME.bad};--good:${THEME.good};--focus:${THEME.focus};--context:${THEME.context};--shadow:0 1px 2px rgba(31,35,40,.04),0 8px 24px -16px rgba(31,35,40,.14)}
+const STYLE = `:root{--bg:${THEME.page};--tile:${THEME.surface};--rule:${THEME.rule};--ink:${THEME.ink};--ink-soft:${THEME.inkSoft};--muted:${THEME.muted};--error:${THEME.bad};--bad:${THEME.bad};--good:${THEME.good};--focus:${THEME.focus};--context:${THEME.context};--shadow:0 1px 2px rgba(31,35,40,.04),0 8px 24px -16px rgba(31,35,40,.14)}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:${THEME.font};-webkit-font-smoothing:antialiased}
 .shell{max-width:1440px;margin:auto;padding:28px 32px 40px}
 .page-head{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin-bottom:20px}
@@ -80,7 +80,7 @@ h1{margin:0;font-size:24px;font-weight:700;letter-spacing:-.01em}.stamp{color:va
 .card{background:var(--tile);border-radius:12px;box-shadow:var(--shadow);padding:16px 20px}
 .tile .cards{grid-template-columns:1fr;gap:0;margin-top:6px}.tile .card{box-shadow:none;border-top:1px solid var(--rule);border-radius:0;padding:12px 0}.tile .card:first-child{border-top:0}
 .label{color:var(--ink-soft);font-size:13px}.value{font-size:28px;font-weight:700;margin-top:4px;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.2}.value .unit{margin-left:3px;font-size:13px;font-weight:500;color:var(--muted);letter-spacing:0}
-.delta{margin-top:4px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}.delta b{font-weight:600;margin-left:4px}.delta.up b{color:var(--up)}.delta.down b{color:var(--down)}
+.delta{margin-top:4px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}.delta b{font-weight:600;margin-left:4px}.delta.good b{color:var(--good)}.delta.bad b{color:var(--bad)}.secondary{margin-top:4px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}.secondary b{font-weight:600;color:var(--ink-soft);margin-left:4px}
 .table-wrap{overflow:auto;max-height:480px;margin-top:10px}table{width:100%;border-collapse:collapse;font-size:13px}
 th,td{padding:9px 10px;border-bottom:1px solid var(--bg);text-align:left;white-space:nowrap}th{color:var(--muted);font-weight:500;font-size:12px;border-bottom:1px solid var(--rule);background:var(--tile);position:sticky;top:0}
 tbody tr:hover td{background:var(--bg)}th.num,td.num{text-align:right;font-variant-numeric:tabular-nums}
@@ -108,7 +108,8 @@ function cards(v,data,p){
     d.appendChild(el("div","label",c.label));if(c.unit)value.appendChild(el("span","unit",c.unit));line.appendChild(value);
     if(c.trend){var sp=C.sparklinePath(c.trend,96,32);if(sp.d)line.appendChild(spark(sp))}
     d.appendChild(line);
-    if(c.delta){var delta=el("div","delta"+(c.delta.direction?" "+c.delta.direction:""),c.delta.label||null);delta.appendChild(el("b",null,(c.delta.direction==="up"?"▲ ":c.delta.direction==="down"?"▼ ":"")+c.delta.value));d.appendChild(delta)}
+    if(c.secondary){var second=el("div","secondary",c.secondary.label||null);second.appendChild(el("b",null,c.secondary.value));d.appendChild(second)}
+    if(c.delta){var delta=el("div","delta"+(c.delta.tone?" "+c.delta.tone:""),c.delta.label||null);delta.appendChild(el("b",null,(c.delta.direction==="up"?"▲ ":c.delta.direction==="down"?"▼ ":"")+c.delta.value));d.appendChild(delta)}
     box.appendChild(d);
   });
   p.appendChild(box);
@@ -136,7 +137,7 @@ function render(v){
   else{if(title)p.appendChild(el("h2",null,title));if(subtitle)p.appendChild(el("p","subtitle",subtitle))}
   if(v.type==="chart"){
     var box=el("div","chart");box.style.height=heights[v.id]+"px";p.appendChild(box);
-    var compiled=C.compileChart(v.chart,data,{target:"interactive",density:"compact",width:box.clientWidth||undefined,height:heights[v.id]});
+    var compiled=C.compileChart(v.chart,data,{target:"interactive",density:"compact",reserveFocus:true,width:box.clientWidth||undefined,height:heights[v.id]});
     if(!compiled.ok){box.className="chart chart-unavailable";box.textContent="图表无法编译："+compiled.errors.map(function(e){return e.message}).join("；")}
     else if(!window.echarts){box.className="chart chart-unavailable";box.textContent="图表组件未加载，无法渲染此图表。"}
     else{charts[v.id]=echarts.init(box);charts[v.id].setOption(compiled.option);C.readerNotices(compiled.notices).forEach(function(n){notes.push(n.message)})}

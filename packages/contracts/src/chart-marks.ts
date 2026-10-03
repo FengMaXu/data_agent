@@ -37,9 +37,12 @@ export type ChartLayer = Static<typeof ChartLayerSchema>;
  * Focus + Context (设计原则及配色方案.md): the named x categories, or scatter points by `id`, take the tone's
  * colour and every other bar or point the context colour. Single-series charts only; series have their colours.
  */
+const HighlightValues = Type.Array(Name, { minItems: 1, maxItems: 5 });
+const HighlightTone = Type.Optional(Type.Union([Type.Literal("focus"), Type.Literal("bad"), Type.Literal("good")]));
+
 export const ChartHighlightSchema = Type.Object({
-  values: Type.Array(Name, { minItems: 1, maxItems: 5 }),
-  tone: Type.Optional(Type.Union([Type.Literal("focus"), Type.Literal("bad"), Type.Literal("good")])),
+  values: HighlightValues,
+  tone: HighlightTone,
   /**
    * Index of the one layer the highlight is on; the chart's other bar and scatter layers become a lighter
    * backdrop, as in a paired "share of orders vs share of complaints" chart. All of them when omitted.
@@ -79,6 +82,8 @@ export const PieChartSchema = Type.Object({
   category: FieldRefSchema,
   value: FieldRefSchema,
   donut: Type.Optional(Type.Boolean()),
+  /** Focus + Context on slices: the named categories take the tone, the others the context colour. */
+  highlight: Type.Optional(Type.Object({ values: HighlightValues, tone: HighlightTone }, Strict)),
 }, Strict);
 export type PieChart = Static<typeof PieChartSchema>;
 

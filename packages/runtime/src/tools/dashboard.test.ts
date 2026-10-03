@@ -102,7 +102,9 @@ describe("generate_dashboard", () => {
     // A headline number beside its unit, the full value as the tooltip, and a signed change with its direction.
     const value = page.document.querySelector("#view-kpi .value");
     expect([value?.firstChild?.textContent, value?.querySelector(".unit")?.textContent, value?.getAttribute("title")]).toEqual(["5,734", "亿元", "5,733.88 亿元"]);
-    expect(page.document.querySelector("#view-kpi .delta.up")?.textContent).toBe("同比▲ +10.0%");
+    // Without a declared polarity the change shows its arrow but is not judged good or bad.
+    const delta = page.document.querySelector("#view-kpi .delta");
+    expect([delta?.textContent, delta?.className]).toEqual(["同比▲ +10.0%", "delta"]);
     // A table column shares one decimal count and names its unit in the header.
     const headers = [...page.document.querySelectorAll("#view-detail th")].map((cell) => cell.textContent);
     expect(headers).toEqual(["行业", "销售额（亿元）", "同比增速"]);

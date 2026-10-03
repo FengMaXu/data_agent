@@ -1,6 +1,6 @@
 import { type FunnelChart } from "@data-agent/contracts";
 import type { ChartOption } from "../types.js";
-import { PALETTE, displayScale, fieldLabel, fieldTitle, formatValue } from "../semantics.js";
+import { displayScale, fieldLabel, fieldTitle, formatValue } from "../semantics.js";
 import { LABEL_CHAR_PX, CompileContext, refuseSelection } from "./shared.js";
 import type { MarkDefinition } from "./types.js";
 
@@ -42,7 +42,7 @@ function compileFunnel(context: CompileContext, chart: FunnelChart): ChartOption
   const widest = Math.max(0, ...numbers);
   const format = (shown: number) => formatValue(shown, value.meta);
   return {
-    color: [...PALETTE],
+    color: [...context.palette],
     ...(context.options.target === "static" ? { animation: false } : {}),
     tooltip: { trigger: "item", formatter: (params: { name: string; value: number }) => `${params.name}：${format(params.value)}` },
     series: [{

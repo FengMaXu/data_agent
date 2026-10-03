@@ -1,6 +1,6 @@
 import { type SunburstChart, type TreemapChart } from "@data-agent/contracts";
 import type { ChartOption } from "../types.js";
-import { PALETTE, displayScale, fieldLabel, fieldTitle, formatValue } from "../semantics.js";
+import { displayScale, fieldLabel, fieldTitle, formatValue } from "../semantics.js";
 import { type Measure, CompileContext, checkPartOfWhole, refuseSelection } from "./shared.js";
 import type { MarkDefinition } from "./types.js";
 
@@ -77,7 +77,7 @@ function compileTreemap(context: CompileContext, chart: TreemapChart): ChartOpti
   }
   const format = (shown: number) => formatValue(shown, value.meta);
   return {
-    color: [...PALETTE],
+    color: [...context.palette],
     ...(context.options.target === "static" ? { animation: false } : {}),
     tooltip: { formatter: (params: { treePathInfo: { name: string }[]; value: number }) => `${params.treePathInfo.slice(1).map((item) => item.name).join(" / ")}：${format(params.value)}` },
     series: [{

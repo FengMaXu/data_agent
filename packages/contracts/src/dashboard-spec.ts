@@ -51,7 +51,17 @@ export const DashboardKpiCardSchema = Type.Object({
   /** The cell shown; never aggregated. */
   value: Type.Object({ field: Name }, Strict),
   /** A second cell of the same row, such as a change rate computed by the query. */
-  delta: Type.Optional(Type.Object({ field: Name, label: Type.Optional(Name) }, Strict)),
+  delta: Type.Optional(Type.Object({
+    field: Name,
+    label: Type.Optional(Name),
+    /**
+     * Whether a rise is good news: it colours the change, so a falling complaint rate reads green and a
+     * falling sales figure red. Neutral (the default) shows the arrow without judging it.
+     */
+    polarity: Type.Optional(Type.Union([Type.Literal("up_good"), Type.Literal("up_bad"), Type.Literal("neutral")])),
+  }, Strict)),
+  /** Another cell of the same row shown plainly beside the value, such as its share of the total; not a change. */
+  secondary: Type.Optional(Type.Object({ field: Name, label: Type.Optional(Name) }, Strict)),
   /** Picks one row by column values; rows it matches must agree on the cells shown. */
   where: Type.Optional(Type.Record(Type.String(), CellValue)),
   /** A small line of `y` over every row of the view's result, ordered by `x`, such as the monthly series behind the value. */

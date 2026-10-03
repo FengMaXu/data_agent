@@ -45,7 +45,7 @@ function compileBoxplot(context: CompileContext, chart: BoxplotChart): ChartOpti
   const meta = stats[2]!.meta;
   const names = ["最小值", "Q1", "中位数", "Q3", "最大值"];
   return {
-    color: [...PALETTE],
+    color: [...context.palette],
     ...(context.options.target === "static" ? { animation: false } : {}),
     tooltip: {
       trigger: "item",

@@ -267,7 +267,10 @@ export interface KpiCardDisplay {
   readonly unit?: string;
   /** The value at full precision with its unit, for the tile's tooltip. */
   readonly fullValue: string;
-  readonly delta?: { readonly label?: string; readonly value: string; readonly direction?: "up" | "down" | "flat" };
+  /** `tone` judges the change by the card's polarity; absent when the change is neutral or flat. */
+  readonly delta?: { readonly label?: string; readonly value: string; readonly direction?: "up" | "down" | "flat"; readonly tone?: "good" | "bad" };
+  /** A plain second value, such as a share; never coloured. */
+  readonly secondary?: { readonly label?: string; readonly value: string };
   /** The trend's shown values in x order; null where a value is missing. */
   readonly trend?: readonly (number | null)[];
 }
@@ -292,12 +295,15 @@ export function resolveKpiCards(view: DashboardKpiView, dataset: ChartDataset): 
     const deltaNumber = numericCell(deltaCell);
     const direction = typeof deltaNumber === "number" ? (deltaNumber > 0 ? "up" : deltaNumber < 0 ? "down" : "flat") : undefined;
     const deltaText = card.delta ? headlineText(deltaCell, view.fields?.[card.delta.field], true) : "";
+    const polarity = card.delta?.polarity ?? "neutral";
+    const tone = polarity === "neutral" || (direction !== "up" && direction !== "down") ? undefined : (direction === "up") === (polarity === "up_good") ? "good" as const : "bad" as const;
     return {
       label: card.label ?? meta?.label ?? card.value.field,
       value: value || "—",
       ...(value && unit && unit !== "%" ? { unit } : {}),
       fullValue: formatDashboardCell(cell(card.value.field), meta) || "—",
-      ...(card.delta ? { delta: { ...(card.delta.label ? { label: card.delta.label } : {}), value: deltaText ? `${direction === "up" ? "+" : ""}${deltaText}` : "—", ...(direction ? { direction } : {}) } } : {}),
+      ...(card.delta ? { delta: { ...(card.delta.label ? { label: card.delta.label } : {}), value: deltaText ? `${direction === "up" ? "+" : ""}${deltaText}` : "—", ...(direction ? { direction } : {}), ...(tone ? { tone } : {}) } } : {}),
+      ...(card.secondary ? { secondary: { ...(card.secondary.label ? { label: card.secondary.label } : {}), value: headlineText(cell(card.secondary.field), view.fields?.[card.secondary.field], true) || "—" } } : {}),
       ...(card.trend ? { trend: trendValues(card.trend, view.fields?.[card.trend.y.field], dataset) } : {}),
     };
   });
@@ -410,7 +416,7 @@ export function validateDashboard(value: unknown, datasets: DashboardDatasets): 
 
     if (view.type === "chart") {
       // Compiled at the tile's estimated size, so layout notices match what the page will show.
-      const compiled = compileChart(view.chart, dataset, { target: "interactive", density: "compact", ...(tiles.get(viewId) ?? {}) });
+      const compiled = compileChart(view.chart, dataset, { target: "interactive", density: "compact", reserveFocus: true, ...(tiles.get(viewId) ?? {}) });
       if (!compiled.ok) {
         for (const error of compiled.errors) errors.push({ ...error, path: `${path}/chart${error.path && error.path !== "/" ? error.path : ""}`, viewId });
       } else {
@@ -455,13 +461,14 @@ export function validateDashboard(value: unknown, datasets: DashboardDatasets): 
       const at = `/cards/${cardIndex}`;
       missing(card.value.field, `${at}/value/field`);
       if (card.delta) missing(card.delta.field, `${at}/delta/field`);
+      if (card.secondary) missing(card.secondary.field, `${at}/secondary/field`);
       for (const field of Object.keys(card.where ?? {})) missing(field, `${at}/where/${field}`);
       if (card.trend) {
         missing(card.trend.x.field, `${at}/trend/x/field`);
         missing(card.trend.y.field, `${at}/trend/y/field`);
       }
       if (errors.some((error) => error.path?.startsWith(`${path}${at}/`))) return;
-      errors.push(...cellErrors(card, [card.value.field, ...(card.delta ? [card.delta.field] : [])], dataset, `${path}${at}`, viewId));
+      errors.push(...cellErrors(card, [card.value.field, ...(card.delta ? [card.delta.field] : []), ...(card.secondary ? [card.secondary.field] : [])], dataset, `${path}${at}`, viewId));
       if (!card.trend) return;
       const xIndex = dataset.columns.indexOf(card.trend.x.field);
       const yIndex = dataset.columns.indexOf(card.trend.y.field);

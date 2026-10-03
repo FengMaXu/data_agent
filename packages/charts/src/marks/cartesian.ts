@@ -1,6 +1,6 @@
 import { type CartesianChart, type ChartLayer } from "@data-agent/contracts";
 import type { ChartOption } from "../types.js";
-import { PALETTE, axisTitle, categoryLabel, displayScale, fieldLabel, fieldTitle, formatValue, headlineDigits, isPercentDisplay, numericCell, unitText, type QuantitativeMeta } from "../semantics.js";
+import { axisTitle, categoryLabel, displayScale, fieldLabel, fieldTitle, formatValue, headlineDigits, isPercentDisplay, numericCell, unitText, type QuantitativeMeta } from "../semantics.js";
 import { THEME } from "../theme.js";
 import { type Measure, CompileContext, temporalNotice, orderCategories, seriesGroups, categoryAxis, viewportZoom, valueAxis, checkPartOfWhole, applySelection } from "./shared.js";
 import type { MarkDefinition } from "./types.js";
@@ -106,7 +106,7 @@ function compileCartesian(context: CompileContext, chart: CartesianChart): Chart
   const seriesSides: ("left" | "right")[] = [];
   let missing = 0;
   let paletteIndex = 0;
-  const nextColor = (layer: ChartLayer, group: string) => layer.series?.colors?.[group] ?? PALETTE[paletteIndex++ % PALETTE.length];
+  const nextColor = (layer: ChartLayer, group: string) => layer.series?.colors?.[group] ?? context.palette[paletteIndex++ % context.palette.length]!;
   const layerStyle = (plan: LayerPlan, group: string) => (isTarget(plan) ? contextStyle : isBackdrop(plan) ? backdropStyle : { color: nextColor(plan.layer, group) });
   const onlyScatter = plans.every((plan) => plan.layer.type === "scatter");
 
@@ -266,7 +266,7 @@ function compileCartesian(context: CompileContext, chart: CartesianChart): Chart
   const namedBottom = valueX || horizontal;
   const zoom = valueX ? undefined : viewportZoom(context, categories.length, horizontal);
   return {
-    color: [...PALETTE],
+    color: [...context.palette],
     ...(context.options.target === "static" ? { animation: false } : {}),
     tooltip: { trigger: onlyScatter || valueX ? "item" : "axis" },
     ...(series.length > 1 ? { legend: { top: 0 } } : {}),

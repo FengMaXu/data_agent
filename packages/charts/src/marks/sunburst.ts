@@ -1,6 +1,6 @@
 import { type SunburstChart } from "@data-agent/contracts";
 import type { ChartOption } from "../types.js";
-import { PALETTE, fieldTitle, formatValue } from "../semantics.js";
+import { fieldTitle, formatValue } from "../semantics.js";
 import { LABEL_CHAR_PX, CompileContext } from "./shared.js";
 import { leafTree, type TreeNode } from "./treemap.js";
 import type { MarkDefinition } from "./types.js";
@@ -32,7 +32,7 @@ function compileSunburst(context: CompileContext, chart: SunburstChart): ChartOp
   const inner = 12;
   const band = (88 - inner) / depth;
   return {
-    color: [...PALETTE],
+    color: [...context.palette],
     ...(context.options.target === "static" ? { animation: false } : {}),
     tooltip: { formatter: (params: { treePathInfo: { name: string }[]; value: number }) => `${params.treePathInfo.slice(1).map((item) => item.name).join(" / ")}：${format(params.value)}` },
     series: [{
