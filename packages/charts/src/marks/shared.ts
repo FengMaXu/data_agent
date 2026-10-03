@@ -32,6 +32,17 @@ export interface Measure {
   readonly values: readonly (number | null)[];
 }
 
+/**
+ * Categorical colours on a dashboard, where each colour keeps one meaning across the page: never the focus
+ * colour, and the colours that mean good, bad and context only once a chart has more categories than the
+ * neutral ones, so a second or fourth category does not read as "good" or "bad".
+ */
+const SEMANTIC: readonly string[] = [THEME.focus, THEME.good, THEME.bad, THEME.context];
+export const DASHBOARD_PALETTE: readonly string[] = [
+  ...PALETTE.filter((colour) => !SEMANTIC.includes(colour)),
+  ...[THEME.good, THEME.bad, THEME.context].filter((colour) => PALETTE.includes(colour as (typeof PALETTE)[number])),
+];
+
 export class CompileContext {
   readonly errors: ChartError[] = [];
   readonly notices: PresentationNotice[] = [];
@@ -47,7 +58,7 @@ export class CompileContext {
     this.fields = options.fields ?? spec.fields ?? {};
     this.width = options.width ?? DEFAULT_WIDTH;
     this.height = options.height ?? DEFAULT_HEIGHT;
-    this.palette = options.reserveFocus ? PALETTE.filter((colour) => colour !== THEME.focus) : PALETTE;
+    this.palette = options.reserveFocus ? DASHBOARD_PALETTE : PALETTE;
   }
 
   fail(error: ChartError): void {

@@ -20,7 +20,9 @@ describe("Colour meaning on a dashboard", () => {
     expect(PALETTE).toContain(THEME.focus);
     const reserved = ok(compileChart(pie(), statuses, { target: "interactive", reserveFocus: true })).option.color as string[];
     expect(reserved).not.toContain(THEME.focus);
-    expect(reserved[0]).toBe(PALETTE[0]);
+    // Neutral colours first: the second and fourth categories do not read as "good" or "bad".
+    expect(reserved.slice(0, 4)).toEqual(["#4F6980", "#FBB04E", "#849DB1", "#7E756D"]);
+    expect(reserved.slice(4)).toEqual([THEME.good, THEME.bad, THEME.context]);
     // Chat charts stand alone and keep the whole palette.
     expect(ok(compileChart(pie(), statuses, { target: "interactive" })).option.color).toEqual([...PALETTE]);
   });
