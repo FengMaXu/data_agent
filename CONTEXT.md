@@ -267,3 +267,19 @@ _Avoid_: Metadata override, field config
 **Presentation Notice**:
 A record of how a chart presents its data: a layout adjustment, a viewport, or a declared data selection. It is delivered with the chart and recomputed on refresh, export or resize. It is distinct from Disclosure, which records unresolved observations about the published result; both are shown together at delivery.
 _Avoid_: Disclosure, chart warning
+
+**Channel**:
+An adapter for one external platform or trigger source (an IM, a scheduler, an MCP Events server) that turns its inbound events into Submissions and renders Deliverables back. It speaks only the versioned protocol and never reaches Answering, tools or the agent harness (ADR-0011).
+_Avoid_: Gateway, bot, integration
+
+**Submission**:
+The single inbound shape a Channel hands the Runtime: a deduplicated request id, a Conversation Address, a verified actor and an input or a clarification answer.
+_Avoid_: Message, webhook payload
+
+**Conversation Address**:
+Where a conversation lives on a Channel (tenant, chat, optional thread) and who can see it there (direct or group). One Address holds one Session per speaking user; Sessions keep a single owner.
+_Avoid_: Chat id, channel session
+
+**Deliverable**:
+What may leave the system through a Channel: a Question, a Publication delivery (by Receipt) or a Notice. Deliverables are persisted before delivery and keyed for idempotency; run progress is not a Deliverable and may be dropped.
+_Avoid_: Outbound message, notification
