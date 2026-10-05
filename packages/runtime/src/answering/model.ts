@@ -818,7 +818,8 @@ export interface UntrustedEvidenceInput {
   /**
    * Document kinds: authorized knowledge id. request_wording: ignored, Runtime
    * binds the task request message. user_confirmation: the Host's current user
-   * message, or a recorded clarification answer (CLARIFICATION_SOURCE_PREFIX).
+   * message id, or a recorded clarification answer (CLARIFICATION_SOURCE_PREFIX);
+   * the tool layer resolves the model's ref to one of these.
    */
   readonly sourceRef?: string;
   readonly contentHash?: string;
