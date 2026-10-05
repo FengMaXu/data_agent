@@ -25,7 +25,7 @@ const CANONICAL_TOOLS = new Set([
   "search_knowledge", "read_knowledge", "update_knowledge",
   "load_skill", "generate_dashboard", "show_widget", "render_chart",
   "query_database", "publish_query_result", "ask_user_clarification",
-  "export_query", "begin_answer_spec", "revise_answer_spec", "begin_query_task", "inspect_answer",
+  "export_query", "begin_answer_spec", "revise_answer_spec", "set_answer_spec", "begin_query_task", "inspect_answer",
   "compare_hypotheses", "subagent",
 ]);
 

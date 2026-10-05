@@ -107,3 +107,13 @@ status: proposed
 **待定 4：一个任务只有一个输出形状，每个 Revision 只能发布一次。** `output.shape` 每个任务只有一个；同一 Revision 已有 Receipt 时，发布另一个候选被拒（`publication.ts`），而 `reviseAnswer` 产生新 Revision 时清除任务的 `publicationId`（`revision.ts`），所以同一任务可以“修订 → 结果查询 → 发布”多次。逐个视图这样做会消耗 Revision 预算（默认 8 次），一个任务能承载的视图数因此有上限。看板会话中模型把多张图塞进一个任务（`metric.kind: "composite"`、`output.columns: ["view", "dimension", "metric_value"]`），随后 4 条结果查询全部未通过 `result_shape` 检查，并行发布的 4 个候选中 3 个被拒。多输出由 ADR-0009 解决，本 ADR 不扩展字段表。
 
 **待定 5：数据质量不进入字段表。** 2026-10-01 会话所用的 olist 各表每行都存了两份（`olist_orders` 每个 `order_id` 恰好 2 行；`olist_order_items` 225,300 行，整行去重后 112,650 行）。模型把“各表先整行去重”写进 `filters`，在每个子查询中使用 `SELECT DISTINCT *`，导致 10 次 60 秒超时并耗尽任务时间预算。整行重复不是业务口径，不应由 Answer Spec 的字段承载，也不应由每条查询各自补偿；它属于数据层缺陷，应在数据源修复。CONTEXT.md 定义的 Schema Profile（含键基数）目前没有实现；实现后它可以把“声明键不唯一”作为结构事实报告给 solver，但修复仍在数据层。
+
+## 第一阶段实施记录（2026-10-05）
+
+第一阶段按“实施与验证”在开关后实现（`specInterface: "fields"`，默认 `legacy`）。与上文决策相比，有三处实现上的取舍：
+
+- **一次调用落一个 Revision。** 决策 5 的“每个路径独立校验、独立生效”保留，但各路径作为同一次调用的有序步骤依次应用到上一步的结果上，被拒的步骤跳过，成功的步骤合并为一个 Revision，只计一次 Revision 预算。若每个路径各产生一个 Revision，写十几个字段就会耗尽预算（默认 8 次），且每次写入都使未发布的候选失效。后果一节“一次调用可能产生多个 Revision”因此不再成立。
+- **槽位的“假定”记为推断。** 七个槽位写 `basis: "assumed"` 或直接写值时，记为推断槽位（Inferred Facet），发布时披露，不建 Hypothesis。这样 ADR-0006 统计总体规则的适用范围与旧接口相同；若槽位假定也建业务语义 Hypothesis，`entity`、`filters` 的假定在有澄清工具时会被拒绝，比现在更严。子字段与 `source` 的值都编译为 Hypothesis，`filters.population` 的假定仍受该规则约束。
+- **文档引文不要求模型区分文档种类。** `cite` 的 `knowledge:<id>` 按组合根为该文档配置的种类（任务文档或已审核定义）准入。
+
+A/B 由维护者执行（Spider2 运行器的 `--spec-interface legacy|fields`）。

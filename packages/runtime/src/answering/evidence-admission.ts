@@ -101,15 +101,18 @@ async function admitOne(input: UntrustedEvidenceInput, scope: AdmissionScope): P
       return { ...base, kind: "user_confirmation", sourceRef: messageId, quote, contentHash: contentHash(text), verification: { method: "user_message_quote", sourceContentHash: contentHash(text) } };
     }
     case "task_document":
-    case "reviewed_definition": {
-      const quote = requireQuote(input, input.kind);
+    case "reviewed_definition":
+    case "document": {
+      const label = input.kind === "document" ? "document" : input.kind;
+      const quote = requireQuote(input, label);
       const sourceRef = input.sourceRef?.trim();
-      if (!sourceRef) throw new EvidenceAdmissionError(`${input.kind} requires the knowledgeId of an authorized document`);
+      if (!sourceRef) throw new EvidenceAdmissionError(`${label} requires the knowledgeId of an authorized document`);
       const document = scope.source?.readDocument ? await scope.source.readDocument(sourceRef, scope.signal) : undefined;
       if (!document) throw new EvidenceAdmissionError(`${sourceRef} is not an authorized business evidence document`);
-      if (document.kind !== input.kind) throw new EvidenceAdmissionError(`${sourceRef} is configured as ${document.kind}, not ${input.kind}`);
-      if (!quoteAppearsIn(quote, document.content)) throw new EvidenceAdmissionError(`${input.kind} quote was not found verbatim in ${sourceRef}: ${JSON.stringify(quote)}`);
-      return { ...base, kind: input.kind, sourceRef, quote, contentHash: contentHash(document.content), verification: { method: "document_quote", sourceContentHash: contentHash(document.content) } };
+      // "document" takes the authority the composition root configured; a named kind must match it.
+      if (input.kind !== "document" && document.kind !== input.kind) throw new EvidenceAdmissionError(`${sourceRef} is configured as ${document.kind}, not ${input.kind}`);
+      if (!quoteAppearsIn(quote, document.content)) throw new EvidenceAdmissionError(`${label} quote was not found verbatim in ${sourceRef}: ${JSON.stringify(quote)}`);
+      return { ...base, kind: document.kind, sourceRef, quote, contentHash: contentHash(document.content), verification: { method: "document_quote", sourceContentHash: contentHash(document.content) } };
     }
     case "schema_fact": {
       const sourceRef = input.sourceRef?.trim();

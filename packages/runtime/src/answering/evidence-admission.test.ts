@@ -58,6 +58,10 @@ describe("Evidence Admission (ADR-0004)", () => {
     await expect(admitEvidence([{ kind: "task_document", sourceRef: "business-definitions", quote: "SUM(totaldue)" }], scope)).rejects.toMatchObject({ code: "EVIDENCE_REJECTED" });
     const [admitted] = await admitEvidence([{ kind: "task_document", sourceRef: "business-definitions", quote: "SUM(subtotal) excluding tax" }], scope);
     expect(admitted).toMatchObject({ kind: "task_document", verification: { method: "document_quote" } });
+    // "document" leaves the authority to the composition root instead of the caller.
+    const [unnamed] = await admitEvidence([{ kind: "document", sourceRef: "business-definitions", quote: "SUM(subtotal) excluding tax" }], scope);
+    expect(unnamed).toMatchObject({ kind: "task_document", sourceRef: "business-definitions", verification: { method: "document_quote" } });
+    await expect(admitEvidence([{ kind: "document", sourceRef: "semantic-guide", quote: "SUM(subtotal)" }], scope)).rejects.toMatchObject({ code: "EVIDENCE_REJECTED" });
   });
 
   it("rejects text evidence when no trusted source is configured", async () => {

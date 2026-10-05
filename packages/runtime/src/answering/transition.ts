@@ -456,8 +456,8 @@ function qualifyAll(hypothesis: Hypothesis, refs: readonly string[], resolve: Ev
  * meaning, so an unverified business-semantics support of the population is
  * still rejected there.
  */
-function supportHypothesis(hypothesis: Hypothesis, refs: readonly string[], populationDecisions: PopulationDecisions, resolve: EvidenceResolver, label: string): Resolution {
-  if (refs.length === 0) evidenceRejected(`${label} requires at least one evidence reference`);
+function supportHypothesis(hypothesis: Hypothesis, refs: readonly string[], populationDecisions: PopulationDecisions, resolve: EvidenceResolver, label: string, assumed = false): Resolution {
+  if (refs.length === 0 && !assumed) evidenceRejected(`${label} requires at least one evidence reference`);
   const cited = resolveEvidenceRefs(refs, resolve, label);
   const reasons: string[] = [];
   const proof = cited.flatMap((evidence) => {
@@ -471,7 +471,7 @@ function supportHypothesis(hypothesis: Hypothesis, refs: readonly string[], popu
   });
   if (proof.length > 0) return { outcome: "supported", hypothesisId: hypothesis.id, proof: proof as unknown as NonEmpty<QualifiedEvidenceId> };
   if (populationDecisions === "require_evidence" && hypothesis.kind === "business_semantics" && hypothesis.affects.some((facet) => POPULATION_FACETS.has(facet))) {
-    transitionInvalid(`${label} settles the material population and none of the cited evidence qualifies it (${reasons.join("; ")}); cite a verbatim request, business document or user confirmation, or ask the user`);
+    transitionInvalid(`${label} settles the material population and none of the cited evidence qualifies it${reasons.length > 0 ? ` (${reasons.join("; ")})` : ""}; cite a verbatim request, business document or user confirmation, or ask the user`);
   }
   return { outcome: "provisional", hypothesisId: hypothesis.id, disclosureRequired: true, citedEvidenceIds: cited.map((evidence) => evidence.id) };
 }
@@ -563,8 +563,8 @@ function createItems(
       impact: input.impact.trim(),
     };
     hypothesesByLocalId.set(local, hypothesis);
-    if (input.proposedEvidenceIds && input.proposedEvidenceIds.length > 0) {
-      resolutions.push(supportHypothesis(hypothesis, input.proposedEvidenceIds, populationDecisions, resolveEvidence, `Hypothesis ${local}`));
+    if ((input.proposedEvidenceIds && input.proposedEvidenceIds.length > 0) || input.assumed === true) {
+      resolutions.push(supportHypothesis(hypothesis, input.proposedEvidenceIds ?? [], populationDecisions, resolveEvidence, `Hypothesis ${local}`, input.assumed === true));
     }
   }
 
