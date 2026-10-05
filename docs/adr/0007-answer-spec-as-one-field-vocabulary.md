@@ -104,6 +104,6 @@ status: proposed
 
 **待定 3：逐路径生效与结果候选的关系。** 结果查询与发布都要求候选所属的 Revision 是当前 Revision（`result-execution.ts`、`publication.ts`）。决策 5 让每个路径独立产生 Revision，因此任何字段写入都会使此前未发布的候选失效。保留这一规则：结果候选只对应一个完整的 Revision；工具返回的状态表应在存在失效候选时明确列出。
 
-**待定 4：一个任务只有一个输出形状，也只能发布一次。** `output.shape` 每个任务只有一个；发布时只要任务已有 Receipt 且候选不同就拒绝（`publication.ts` 检查 `task.publicationId`），即一个 Query Task 一生只发布一次，而不是报错文字所说的“每个 revision 一次”。看板会话中模型把多张图塞进一个任务（`metric.kind: "composite"`、`output.columns: ["view", "dimension", "metric_value"]`），随后 4 条结果查询全部未通过 `result_shape` 检查，并行发布的 4 个候选中 3 个被拒。多输出由 ADR-0009 解决，本 ADR 不扩展字段表；报错文字应改为“每个 Query Task 只发布一次”。
+**待定 4：一个任务只有一个输出形状，每个 Revision 只能发布一次。** `output.shape` 每个任务只有一个；同一 Revision 已有 Receipt 时，发布另一个候选被拒（`publication.ts`），而 `reviseAnswer` 产生新 Revision 时清除任务的 `publicationId`（`revision.ts`），所以同一任务可以“修订 → 结果查询 → 发布”多次。逐个视图这样做会消耗 Revision 预算（默认 8 次），一个任务能承载的视图数因此有上限。看板会话中模型把多张图塞进一个任务（`metric.kind: "composite"`、`output.columns: ["view", "dimension", "metric_value"]`），随后 4 条结果查询全部未通过 `result_shape` 检查，并行发布的 4 个候选中 3 个被拒。多输出由 ADR-0009 解决，本 ADR 不扩展字段表。
 
 **待定 5：数据质量不进入字段表。** 2026-10-01 会话所用的 olist 各表每行都存了两份（`olist_orders` 每个 `order_id` 恰好 2 行；`olist_order_items` 225,300 行，整行去重后 112,650 行）。模型把“各表先整行去重”写进 `filters`，在每个子查询中使用 `SELECT DISTINCT *`，导致 10 次 60 秒超时并耗尽任务时间预算。整行重复不是业务口径，不应由 Answer Spec 的字段承载，也不应由每条查询各自补偿；它属于数据层缺陷，应在数据源修复。CONTEXT.md 定义的 Schema Profile（含键基数）目前没有实现；实现后它可以把“声明键不唯一”作为结构事实报告给 solver，但修复仍在数据层。
