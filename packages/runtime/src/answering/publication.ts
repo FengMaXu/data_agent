@@ -11,6 +11,7 @@ import { assertTaskAccess } from "./answering-store.js";
 import { AnsweringError } from "./errors.js";
 import { makeInternalId } from "./internal-ids.js";
 import { inferredFacets } from "./qualification.js";
+import { assertDeliverable } from "./report.js";
 import { fanoutDisclosureSummary } from "./fanout-execution.js";
 import { SPEC_FEEDBACK_CHECK_ID, specFeedbackDisclosureSummary } from "./spec-feedback.js";
 import { markCandidateCorrupt } from "./result-execution.js";
@@ -41,7 +42,8 @@ export function composeDisclosure(revision: AnswerRevisionRecord, candidate: Res
     : "";
   const feedbackDisclosure = specFeedbackDisclosureSummary(candidate.coverage?.find((coverage) => coverage.checkId === SPEC_FEEDBACK_CHECK_ID));
   const inferred = inferredFacets(revision.spec);
-  if (provisionalChoiceIds.length === 0 && provisionalHypothesisIds.length === 0 && inferred.length === 0 && !fanoutDisclosure && !feedbackDisclosure) return undefined;
+  const deviations = revision.deviations ?? [];
+  if (provisionalChoiceIds.length === 0 && provisionalHypothesisIds.length === 0 && inferred.length === 0 && deviations.length === 0 && !fanoutDisclosure && !feedbackDisclosure) return undefined;
   return {
     required: true,
     provisionalChoiceIds,
@@ -51,10 +53,12 @@ export function composeDisclosure(revision: AnswerRevisionRecord, candidate: Res
       ...(provisionalChoiceIds.length > 0 ? ["结果包含按字面解释选择的口径；该选择未被权威证据唯一确定。"] : []),
       ...(provisionalHypothesisIds.length > 0 ? [`以下槽位依赖未被合格证据证实的假设：${provisionalFacets.join(", ")}。`] : []),
       ...(inferred.length > 0 ? [`以下槽位为模型推断、未绑定合格证据：${inferred.join(", ")}。`] : []),
+      ...(deviations.length > 0 ? [`以下字段偏离报告任务的共享口径：${deviations.map((item) => `${item.path}（${item.reason}）`).join("；")}。`] : []),
       ...(fanoutDisclosure ? [fanoutDisclosure] : []),
       ...(feedbackDisclosure ? [feedbackDisclosure] : []),
     ].join(" "),
     ...(fanoutDisclosure && candidate.fanout ? { fanoutStatus: candidate.fanout.status } : {}),
+    ...(deviations.length > 0 ? { deviations } : {}),
   };
 }
 
@@ -67,6 +71,7 @@ export async function publishCandidate(deps: AnsweringDeps, input: PublishCandid
     const task = tx.getTask(candidate.taskId);
     assertTaskAccess(task, context);
     if (task.currentRevisionId !== candidate.revisionId) throw new AnsweringError("PUBLICATION_STALE", "Candidate belongs to an old revision");
+    assertDeliverable(tx, task);
     if (candidate.status !== "ready" || !candidate.publishable) throw new AnsweringError("RESULT_INTEGRITY_MISMATCH", "Corrupt Result Candidate cannot be published");
     const revision = tx.getRevision(candidate.revisionId);
     if (!revision || revision.state.state !== "ready") throw new AnsweringError("PUBLICATION_STALE", "Candidate revision is not sealed for publication");
@@ -138,6 +143,8 @@ export async function publishCandidate(deps: AnsweringDeps, input: PublishCandid
     if (currentTask.currentRevisionId !== receipt.revisionId) throw new AnsweringError("PUBLICATION_STALE", "Revision changed during publication");
     const existing = tx.findReceiptByRequest(receipt.taskId, receipt.requestId) ?? tx.findReceiptByCandidate(receipt.taskId, receipt.candidateId);
     if (existing) return existing;
+    // The Report Task may have changed while the bytes were encoded.
+    assertDeliverable(tx, currentTask);
     tx.putReceipt(receipt);
     tx.putTask({ ...currentTask, publicationId: receipt.receiptId, lifecycle: "published", updatedAt: receipt.createdAt });
     return receipt;
