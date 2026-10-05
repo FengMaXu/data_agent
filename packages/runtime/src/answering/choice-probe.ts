@@ -43,3 +43,18 @@ export function summarizeChoiceProbes(choice: Choice, probes: readonly ChoicePro
     : new Set(fingerprints.values()).size === 1 ? "identical" : "distinct";
   return { probes: views, outputs, covered: missing.length === 0, missing, fingerprints };
 }
+
+/**
+ * Unresolved Choices whose every alternative produced the same output. The
+ * Runtime treats them as equivalent without a disposition: the answer does
+ * not depend on the Choice, and the fingerprints are the Runtime's own record.
+ */
+export function equivalentChoiceIds(
+  revision: { readonly choices: readonly Choice[]; readonly choiceResolutions: readonly { readonly choiceId: string }[]; readonly probeWaivers?: readonly ProbeWaiver[] },
+  probes: readonly ChoiceProbeRecord[],
+): ReadonlySet<string> {
+  const resolved = new Set(revision.choiceResolutions.map((resolution) => resolution.choiceId));
+  return new Set(revision.choices
+    .filter((choice) => !resolved.has(choice.id) && summarizeChoiceProbes(choice, probes, revision.probeWaivers ?? []).outputs === "identical")
+    .map((choice) => choice.id));
+}

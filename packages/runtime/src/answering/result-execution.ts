@@ -19,6 +19,7 @@ import { makeInternalId } from "./internal-ids.js";
 import { makeAttempt, obstacle, obstacleDetails, reserveAttempt, taskBudget, throwExecutionFailure, updateAttempt } from "./budget.js";
 import { sealForResult } from "./qualification.js";
 import { assertDeliverable } from "./report.js";
+import { equivalentChoiceIds } from "./choice-probe.js";
 import { candidateCheckFailure, evaluateCandidateCheckReport } from "./candidate-checks.js";
 import { evaluateFanout, fanoutCoverage, fanoutFindings } from "./fanout-execution.js";
 import { specFeedbackCoverage } from "./spec-feedback.js";
@@ -91,7 +92,7 @@ async function sealRevision(deps: AnsweringDeps, input: ResultInput, taskId: Tas
     const revision = tx.getRevision(revisionId);
     if (!revision) throw new AnsweringError("REVISION_NOT_FOUND", `Revision ${input.revisionId} was not found`);
     const result = deps.semanticQualificationMode === "required"
-      ? sealForResult(revision)
+      ? sealForResult(revision, equivalentChoiceIds(revision, currentTask.choiceProbes ?? []))
       : {
           ok: true as const,
           revision: {

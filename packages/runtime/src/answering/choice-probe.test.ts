@@ -135,6 +135,34 @@ describe("Choice probes", () => {
     expect(equivalent.unresolvedChoices).toEqual([]);
   });
 
+  it("treats a Choice whose probes all match as equivalent without a disposition", async () => {
+    const { answering } = service({ ...outputs, "SELECT result": { columns: ["n"], rows: [[265]], truncated: false } });
+    const { view, choiceId, purchase, delivered } = await begin(answering);
+    await answering.execute({ kind: "exploration", taskId: view.taskId, sql: "SELECT purchase", probe: { choiceId, alternativeId: purchase } }, context("probe-purchase"));
+    // One output known: still unresolved, and the result query is blocked.
+    await expect(answering.execute({ kind: "result", taskId: view.taskId, revisionId: view.revisionId, sql: "SELECT result" }, context("result-early")))
+      .rejects.toMatchObject({ code: "UNRESOLVED_ASSUMPTIONS" });
+    await answering.execute({ kind: "exploration", taskId: view.taskId, sql: "SELECT delivered again", probe: { choiceId, alternativeId: delivered } }, context("probe-delivered"));
+    const inspected = await answering.inspect({ taskId: view.taskId }, context("inspect"));
+    expect(inspected.unresolvedChoices).toEqual([]);
+    expect(inspected.currentRevision.revisionId).toBe(view.revisionId);
+    const result = await answering.execute({ kind: "result", taskId: view.taskId, revisionId: view.revisionId, sql: "SELECT result" }, context("result"));
+    expect(result.artifact.kind).toBe("candidate");
+    const receipt = await answering.publish({ candidateId: (result.artifact as { candidateId: string }).candidateId, format: "inline", requestId: "publish" }, context("publish"));
+    expect(receipt.disclosure?.provisionalChoiceIds ?? []).toEqual([]);
+  });
+
+  it("keeps a Choice unresolved while its probe outputs differ", async () => {
+    const { answering } = service({ ...outputs, "SELECT result": { columns: ["n"], rows: [[265]], truncated: false } });
+    const { view, choiceId, purchase, delivered } = await begin(answering);
+    await answering.execute({ kind: "exploration", taskId: view.taskId, sql: "SELECT purchase", probe: { choiceId, alternativeId: purchase } }, context("probe-purchase"));
+    await answering.execute({ kind: "exploration", taskId: view.taskId, sql: "SELECT delivered", probe: { choiceId, alternativeId: delivered } }, context("probe-delivered"));
+    const inspected = await answering.inspect({ taskId: view.taskId }, context("inspect"));
+    expect(inspected.unresolvedChoices).toEqual([choiceId]);
+    await expect(answering.execute({ kind: "result", taskId: view.taskId, revisionId: view.revisionId, sql: "SELECT result" }, context("result")))
+      .rejects.toMatchObject({ code: "UNRESOLVED_ASSUMPTIONS" });
+  });
+
   it("marks an over-cap probe output unavailable but counts it as probed", async () => {
     const { answering } = service({ ...outputs, "SELECT big": { columns: ["n"], rows: [[1]], truncated: true } });
     const { view, choiceId, purchase, delivered } = await begin(answering);
