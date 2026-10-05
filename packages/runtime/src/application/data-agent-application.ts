@@ -198,7 +198,7 @@ export class DataAgentApplication implements ApplicationCommandHost {
   setConfig(key: string, value: unknown): Promise<void> { return this.metadata.setConfig(key, value); }
   authorizeSession(userId: string, sessionId: string): Promise<"owned" | "missing" | "forbidden"> { return this.metadata.authorizeSession(userId, sessionId); }
   /** The channel boundary over this Application's protocol seam and metadata (ADR-0011). */
-  createChannelHub(options: Omit<ChannelHubOptions, "host" | "store"> = {}): ChannelHub { return new ChannelHub({ ...options, host: this, store: new MetadataChannelStore(this.metadata) }); }
+  createChannelHub(options: Omit<ChannelHubOptions, "host" | "store"> = {}): ChannelHub { return new ChannelHub({ ...options, host: this, store: new MetadataChannelStore(this.metadata), publications: { read: (receiptId, context) => this.readPublication(receiptId, context) } }); }
   readPublication(publicationId: string, context: { readonly sessionId: string; readonly userId: string }) { return this.agent.readPublication(publicationId, context); }
 
   setQueryExecutor(executor: NonNullable<DataAgentApplicationOptions["queryExecutor"]>): void {

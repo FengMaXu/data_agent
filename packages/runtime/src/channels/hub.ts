@@ -7,14 +7,14 @@ import {
   type DataAgentCommand,
   type DataAgentEventEnvelope,
   type DataAgentResponseEnvelope,
-  type Deliverable,
+  type DeliveryContent,
   type DeliveryTarget,
   type ProgressView,
   type RequestContext,
   type Submission,
 } from "@data-agent/contracts";
 import type { ApplicationCommandHost } from "../application/protocol-host.js";
-import type { BoundSession, ChannelSessionBinding, ChannelStore } from "./store.js";
+import type { BoundSession, ChannelSessionBinding, ChannelStore, OutboxItem } from "./store.js";
 
 export type SubmitOutcome = "dispatched" | "duplicate" | "rejected";
 
@@ -24,6 +24,8 @@ export interface ChannelHubOptions {
   readonly store: ChannelStore;
   /** Groups whose members may all see published results. Others get them privately (ADR-0011 decision 5). */
   readonly allowGroupDelivery?: (address: ConversationAddress) => boolean;
+  /** Reads a published result as CSV with the asking user's authority. */
+  readonly publications?: { read(receiptId: string, context: { readonly userId: string; readonly sessionId: string }): Promise<{ readonly content: string }> };
   readonly retry?: { readonly baseMs?: number; readonly maxMs?: number; readonly maxAttempts?: number; readonly pollMs?: number };
   readonly progressIntervalMs?: number;
   readonly now?: () => number;
@@ -31,7 +33,7 @@ export interface ChannelHubOptions {
   readonly onError?: (error: unknown) => void;
 }
 
-type ProgressState = { address: ConversationAddress; runId?: string; text: string; activeTool?: string; timer?: ReturnType<typeof setTimeout> };
+type ProgressState = { target: DeliveryTarget; runId?: string; text: string; activeTool?: string; timer?: ReturnType<typeof setTimeout> };
 
 const PROGRESS_TEXT_LIMIT = 4000;
 const OUTBOX_BATCH = 50;
@@ -224,26 +226,34 @@ export class ChannelHub {
       return;
     }
     if (event.type === "publication.delivered") {
-      const publication: Deliverable = { kind: "publication", publication: event };
-      if (bound.address.audience === "group" && !(this.options.allowGroupDelivery?.(bound.address) ?? false)) {
-        await this.options.store.enqueue(channelId, `publication:${event.receiptId}`, { kind: "actor", actor: bound.actor }, publication, this.now());
+      const target = this.resultTarget(bound);
+      await this.options.store.enqueue(channelId, `publication:${event.receiptId}`, target, { kind: "publication", publication: event }, this.now(), sessionId);
+      if (target.kind === "actor") {
         await this.options.store.enqueue(channelId, `notice:redirected:${event.receiptId}`, addressTarget(bound.address), { kind: "notice", code: "GROUP_DELIVERY_REDIRECTED", text: NOTICE_TEXT.GROUP_DELIVERY_REDIRECTED }, this.now());
-      } else {
-        await this.options.store.enqueue(channelId, `publication:${event.receiptId}`, addressTarget(bound.address), publication, this.now());
       }
       void this.flush();
       return;
     }
-    this.track(sessionId, bound.address, envelope);
+    this.track(sessionId, bound, envelope);
+  }
+
+  /**
+   * Where anything carrying result data goes: published rows, and the run's
+   * narrative, which quotes them. A group not allowed group delivery gets
+   * neither; the asker gets both privately (ADR-0011 decision 5).
+   */
+  private resultTarget(bound: BoundSession): DeliveryTarget {
+    if (bound.address.audience === "group" && !(this.options.allowGroupDelivery?.(bound.address) ?? false)) return { kind: "actor", actor: bound.actor };
+    return addressTarget(bound.address);
   }
 
   /** Progress is the latest view only: coalesced on a timer, sent at once when the run completes. */
-  private track(sessionId: string, address: ConversationAddress, envelope: DataAgentEventEnvelope): void {
-    const channel = this.channels.get(address.channel);
+  private track(sessionId: string, bound: BoundSession, envelope: DataAgentEventEnvelope): void {
+    const channel = this.channels.get(bound.address.channel);
     if (!channel?.progress) return;
     const event = envelope.event;
     if (event.type !== "agent.text_delta" && event.type !== "agent.tool_started" && event.type !== "agent.tool_finished" && event.type !== "agent.completed") return;
-    const state = this.progress.get(sessionId) ?? { address, text: "" };
+    const state = this.progress.get(sessionId) ?? { target: this.resultTarget(bound), text: "" };
     this.progress.set(sessionId, state);
     if (envelope.runId) state.runId = envelope.runId;
     if (event.type === "agent.text_delta") state.text = (state.text + event.delta).slice(-PROGRESS_TEXT_LIMIT);
@@ -261,7 +271,7 @@ export class ChannelHub {
     if (state.timer) clearTimeout(state.timer);
     delete state.timer;
     const view: ProgressView = { state: phase, text: state.text, ...(state.runId ? { runId: state.runId } : {}), ...(state.activeTool ? { activeTool: state.activeTool } : {}) };
-    channel.progress?.(state.address, view).catch((error: unknown) => this.report(error));
+    channel.progress?.(state.target, view).catch((error: unknown) => this.report(error));
   }
 
   private async deliverDue(): Promise<void> {
@@ -272,7 +282,7 @@ export class ChannelHub {
       if (!channel) continue;
       const attempts = item.attempts + 1;
       try {
-        await channel.deliver(item.target, item.deliverable, item.idempotencyKey);
+        await channel.deliver(item.target, item.deliverable, item.idempotencyKey, this.content(item));
         await this.options.store.settle(item.id, { status: "delivered", attempts }, this.now());
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
@@ -285,6 +295,20 @@ export class ChannelHub {
         }
       }
     }
+  }
+
+  /** Published rows are read only when a Channel asks, as the asker, and never stored in the outbox. */
+  private content(item: OutboxItem): DeliveryContent | undefined {
+    const publications = this.options.publications;
+    const { deliverable, sessionId } = item;
+    if (!publications || !sessionId || deliverable.kind !== "publication") return undefined;
+    return {
+      readPublication: async () => {
+        const bound = await this.options.store.boundSession(sessionId);
+        if (!bound) throw new Error("CHANNEL_SESSION_UNBOUND");
+        return (await publications.read(deliverable.publication.receiptId, { userId: bound.userId, sessionId })).content;
+      },
+    };
   }
 
   private now(): number { return this.options.now?.() ?? Date.now(); }
