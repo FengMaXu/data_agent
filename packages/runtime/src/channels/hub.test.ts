@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
-import type { Channel, ConversationAddress, DataAgentEvent, Deliverable, DeliveryTarget, ProgressView, Submission } from "@data-agent/contracts";
+import type { Channel, ConversationAddress, DataAgentEvent, Deliverable, DeliveryContent, DeliveryTarget, ProgressView, Submission } from "@data-agent/contracts";
 import { DataAgentRuntime } from "../protocol.js";
 import { MetadataStore } from "../metadata.js";
 import { ClarificationManager } from "../clarification.js";
@@ -14,19 +14,22 @@ class MemoryChannel implements Channel {
   readonly capabilities = { editableMessages: true, actions: true, files: false };
   readonly delivered: { target: DeliveryTarget; deliverable: Deliverable; key: string }[] = [];
   readonly progressViews: ProgressView[] = [];
+  readonly progressTargets: DeliveryTarget[] = [];
+  readonly contents: (DeliveryContent | undefined)[] = [];
   failures = 0;
   sink: ((submission: Submission) => Promise<void>) | undefined;
 
   constructor(readonly id = "im") {}
   async start(sink: (submission: Submission) => Promise<void>): Promise<void> { this.sink = sink; }
-  async deliver(target: DeliveryTarget, deliverable: Deliverable, key: string): Promise<void> {
+  async deliver(target: DeliveryTarget, deliverable: Deliverable, key: string, content?: DeliveryContent): Promise<void> {
+    this.contents.push(content);
     if (this.failures > 0) {
       this.failures -= 1;
       throw new Error("platform unavailable");
     }
     this.delivered.push({ target, deliverable, key });
   }
-  async progress(_address: ConversationAddress, view: ProgressView): Promise<void> { this.progressViews.push(view); }
+  async progress(target: DeliveryTarget, view: ProgressView): Promise<void> { this.progressTargets.push(target); this.progressViews.push(view); }
   async stop(): Promise<void> {}
 }
 
@@ -64,7 +67,7 @@ afterEach(async () => {
   for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true });
 });
 
-async function setup(options: { allowGroupDelivery?: (address: ConversationAddress) => boolean; dbPath?: string; clarificationTimeoutMs?: number } = {}) {
+async function setup(options: { allowGroupDelivery?: (address: ConversationAddress) => boolean; dbPath?: string; clarificationTimeoutMs?: number; publications?: { read(receiptId: string, context: { userId: string; sessionId: string }): Promise<{ content: string }> } } = {}) {
   let dbPath = options.dbPath;
   if (!dbPath) {
     const root = await mkdtemp(join(process.cwd(), ".tmp-channel-hub-"));
@@ -85,6 +88,7 @@ async function setup(options: { allowGroupDelivery?: (address: ConversationAddre
     retry: { baseMs: 100, maxMs: 1_000, maxAttempts: 3, pollMs: 3_600_000 },
     progressIntervalMs: 5,
     ...(options.allowGroupDelivery ? { allowGroupDelivery: options.allowGroupDelivery } : {}),
+    ...(options.publications ? { publications: options.publications } : {}),
   });
   const channel = new MemoryChannel();
   let closed = false;
@@ -279,5 +283,29 @@ describe("ChannelHub deliverables", () => {
     fake.emit(sessionId, { type: "agent.completed" });
     await hub.idle();
     expect(channel.progressViews.at(-1)).toEqual({ state: "completed", runId: "run-1", text: "正在查询" });
+    expect(channel.progressTargets.at(-1)).toEqual({ kind: "address", address: direct });
+  });
+
+  it("sends a group run's narrative to the asker privately, because it quotes the results", async () => {
+    const { hub, fake, channel } = await setup();
+    await hub.submit("im", input("evt-1", group, alice));
+    const sessionId = fake.calls[0]!.sessionId!;
+    fake.emit(sessionId, { type: "agent.text_delta", delta: "上月销售额为 100 万" });
+    fake.emit(sessionId, { type: "agent.completed" });
+    await hub.idle();
+    expect(channel.progressTargets).toEqual([{ kind: "actor", actor: alice }]);
+  });
+
+  it("lets a channel read a published CSV as the asker, only when it asks", async () => {
+    const reads: { receiptId: string; userId: string; sessionId: string }[] = [];
+    const { hub, fake, channel } = await setup({ publications: { read: async (receiptId, context) => { reads.push({ receiptId, ...context }); return { content: "销售额,100" }; } } });
+    await hub.submit("im", input("evt-1", direct));
+    const { sessionId, userId } = fake.calls[0]!;
+    fake.emit(sessionId!, publication("pub-1"));
+    await hub.idle();
+    await hub.flush();
+    expect(reads).toHaveLength(0);
+    await expect(channel.contents[0]!.readPublication!()).resolves.toBe("销售额,100");
+    expect(reads).toEqual([{ receiptId: "pub-1", userId, sessionId }]);
   });
 });

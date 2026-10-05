@@ -18,6 +18,8 @@ export interface OutboxItem {
   readonly idempotencyKey: string;
   readonly target: DeliveryTarget;
   readonly deliverable: Deliverable;
+  /** The Session whose event produced it; content is read with its owner's authority. */
+  readonly sessionId?: string;
   readonly attempts: number;
 }
 
@@ -40,7 +42,7 @@ export interface ChannelStore {
   bindSession(address: ConversationAddress, actor: ChannelActor, userId: string, binding: ChannelSessionBinding): Promise<ChannelSessionBinding>;
   boundSession(sessionId: string): Promise<BoundSession | undefined>;
   /** False when a Deliverable with this key was already queued for the channel. It is due at `at`. */
-  enqueue(channel: string, idempotencyKey: string, target: DeliveryTarget, deliverable: Deliverable, at: number): Promise<boolean>;
+  enqueue(channel: string, idempotencyKey: string, target: DeliveryTarget, deliverable: Deliverable, at: number, sessionId?: string): Promise<boolean>;
   due(now: number, channel?: string, limit?: number): Promise<readonly OutboxItem[]>;
   settle(id: number, settlement: OutboxSettlement, at: number): Promise<void>;
 }
@@ -86,14 +88,14 @@ export class MetadataChannelStore implements ChannelStore {
     return row ? { userId: row.userId, address: JSON.parse(row.addressJson) as ConversationAddress, actor: JSON.parse(row.actorJson) as ChannelActor } : undefined;
   }
 
-  async enqueue(channel: string, idempotencyKey: string, target: DeliveryTarget, deliverable: Deliverable, at: number): Promise<boolean> {
-    const result = await this.metadata.call("channel.outbox.enqueue", "system", { channel, idempotencyKey, targetJson: JSON.stringify(target), deliverableJson: JSON.stringify(deliverable), at }) as { queued: boolean };
+  async enqueue(channel: string, idempotencyKey: string, target: DeliveryTarget, deliverable: Deliverable, at: number, sessionId?: string): Promise<boolean> {
+    const result = await this.metadata.call("channel.outbox.enqueue", "system", { channel, idempotencyKey, targetJson: JSON.stringify(target), deliverableJson: JSON.stringify(deliverable), at, ...(sessionId ? { sessionId } : {}) }) as { queued: boolean };
     return result.queued;
   }
 
   async due(now: number, channel?: string, limit?: number): Promise<readonly OutboxItem[]> {
-    const rows = await this.metadata.call("channel.outbox.due", "system", { now, ...(channel ? { channel } : {}), ...(limit ? { limit } : {}) }) as { id: number; channel: string; idempotencyKey: string; targetJson: string; deliverableJson: string; attempts: number }[];
-    return rows.map((row) => ({ id: row.id, channel: row.channel, idempotencyKey: row.idempotencyKey, target: JSON.parse(row.targetJson) as DeliveryTarget, deliverable: JSON.parse(row.deliverableJson) as Deliverable, attempts: row.attempts }));
+    const rows = await this.metadata.call("channel.outbox.due", "system", { now, ...(channel ? { channel } : {}), ...(limit ? { limit } : {}) }) as { id: number; channel: string; idempotencyKey: string; targetJson: string; deliverableJson: string; sessionId: string | null; attempts: number }[];
+    return rows.map((row) => ({ id: row.id, channel: row.channel, idempotencyKey: row.idempotencyKey, target: JSON.parse(row.targetJson) as DeliveryTarget, deliverable: JSON.parse(row.deliverableJson) as Deliverable, ...(row.sessionId ? { sessionId: row.sessionId } : {}), attempts: row.attempts }));
   }
 
   async settle(id: number, settlement: OutboxSettlement, at: number): Promise<void> {

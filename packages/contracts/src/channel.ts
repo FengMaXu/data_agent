@@ -98,17 +98,24 @@ export interface ChannelCapabilities {
   readonly files: boolean;
 }
 
+/** Content the core reads on the Channel's behalf, with the asker's authority, only when asked. */
+export interface DeliveryContent {
+  /** The published result as CSV; present for publication Deliverables. */
+  readonly readPublication?: () => Promise<string>;
+}
+
 /**
  * One platform adapter. `start` hands the Channel a sink for verified inbound
  * events; `deliver` must be idempotent on `idempotencyKey`, because the core
- * delivers at least once.
+ * delivers at least once. Progress follows the same audience rule as
+ * publications, so it is addressed by target too.
  */
 export interface Channel {
   readonly id: string;
   readonly capabilities: ChannelCapabilities;
   start(sink: (submission: Submission) => Promise<void>): Promise<void>;
-  deliver(target: DeliveryTarget, deliverable: Deliverable, idempotencyKey: string): Promise<void>;
-  progress?(address: ConversationAddress, view: ProgressView): Promise<void>;
+  deliver(target: DeliveryTarget, deliverable: Deliverable, idempotencyKey: string, content?: DeliveryContent): Promise<void>;
+  progress?(target: DeliveryTarget, view: ProgressView): Promise<void>;
   stop(): Promise<void>;
 }
 
