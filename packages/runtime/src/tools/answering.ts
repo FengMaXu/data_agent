@@ -858,7 +858,7 @@ export function createAnsweringAgentToolDefinitions(
       promptGuidelines: ["每个请求只建立一次；证据须附逐字引文，由系统核验。", "同时声明 8 个决策点（population、join_multiplicity、time_field、count_grain、denominator、window、ties、output_shape）；fixed_by_request 须引用原题逐字片段。", "会相互排斥的解释建成 Choice；Choice 要先探针再决定，建立时一般不直接决定。"],
     }), protocolTool(reviseSpecTool(answering), {
       promptSnippet: "增量修订当前 Answer Spec 并处置已有项。",
-      promptGuidelines: ["只提交变化，用返回的 ID 处置已有项；未提及的内容保留。", "Choice 的每个候选先做探针：输出相同的处置为 equivalent；否则用 decide，必须写 rationale，可附 evidenceIds；证据不够格时自动记为未证实并披露，不会失败。", "decide 的结果不是 compare_hypotheses 的明显倾向时，须附 adviceOverride（理由与至少一条证据）。", "SpecFeedback 只提供核对信息，不能替代业务证据或静默改变口径。"],
+      promptGuidelines: ["只提交变化，用返回的 ID 处置已有项；未提及的内容保留。", "Choice 的每个候选先做探针：输出全部相同的 Choice 由系统视为等价，不用处置；否则用 decide，必须写 rationale，可附 evidenceIds；证据不够格时自动记为未证实并披露，不会失败。", "decide 的结果不是 compare_hypotheses 的明显倾向时，须附 adviceOverride（理由与至少一条证据）。", "SpecFeedback 只提供核对信息，不能替代业务证据或静默改变口径。"],
     })] : [protocolTool(beginQueryTaskTool(answering), {
       promptSnippet: "为语义规格消融实验创建一个不含模型七槽位定义的 Query Task。",
       promptGuidelines: ["每个问题只调用一次；精确复用返回的 taskId/revisionId，仍须区分 exploration 与 result，并通过 Candidate/Receipt 发布。"],
@@ -869,7 +869,7 @@ export function createAnsweringAgentToolDefinitions(
     }),
     ...(hypothesisComparison ? [protocolTool(hypothesisComparisonTool(answering, hypothesisComparison), {
       promptSnippet: "请求 Jev 比较一个 Choice 的全部候选。",
-      promptGuidelines: ["传入 taskId 和 choiceId，候选由系统从 Answer Spec 读取；先给每个候选做探针，输出相同的 Choice 直接处置为 equivalent，无需比较。建议不是 Evidence，不能单独处置 Choice；处置结果偏离建议的明显倾向时，须附 adviceOverride（理由与证据）。"],
+      promptGuidelines: ["传入 taskId 和 choiceId，候选由系统从 Answer Spec 读取；先给每个候选做探针，输出全部相同的 Choice 由系统视为等价，无需比较或处置。建议不是 Evidence，不能单独处置 Choice；处置结果偏离建议的明显倾向时，须附 adviceOverride（理由与证据）。"],
     })] : []),
     protocolTool(publishTool(answering, contentReader, "publish_query_result"), {
       promptSnippet: "发布当前不可变 Candidate 的小结果。",

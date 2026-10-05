@@ -80,12 +80,14 @@ export function unresolvedHypotheses(
   return hypotheses.filter((hypothesis) => !resolved.has(hypothesis.id)).map((hypothesis) => hypothesis.id);
 }
 
+/** `equivalent` lists Choices the Runtime derived as equivalent from identical probe outputs. */
 export function unresolvedChoices(
   choices: readonly Choice[],
   resolutions: readonly ChoiceResolution[],
+  equivalent: ReadonlySet<string> = new Set(),
 ): readonly ChoiceId[] {
   const resolved = new Set(resolutions.map((resolution) => resolution.choiceId));
-  return choices.filter((choice) => !resolved.has(choice.id)).map((choice) => choice.id);
+  return choices.filter((choice) => !resolved.has(choice.id) && !equivalent.has(choice.id)).map((choice) => choice.id);
 }
 
 /**
@@ -172,13 +174,13 @@ export function assertContinuity(
   }
 }
 
-/** Seal only after all hypotheses, choices, seven-facet slots and decision points are handled. */
-export function sealForResult(revision: AnswerRevisionRecord):
+/** Seal only after all hypotheses, choices, seven-facet slots and decision points are handled; derived-equivalent Choices count as handled. */
+export function sealForResult(revision: AnswerRevisionRecord, equivalent: ReadonlySet<string> = new Set()):
   | { readonly ok: true; readonly revision: ReadyRevision }
   | { readonly ok: false; readonly unresolvedFacets: readonly FacetName[]; readonly unresolvedHypotheses: readonly HypothesisId[]; readonly unresolvedChoices: readonly ChoiceId[]; readonly undeclaredDecisionPoints: readonly DecisionPointName[] } {
   const facets = unresolvedFacets(revision.spec);
   const unresolved = unresolvedHypotheses(revision.hypotheses, revision.resolutions);
-  const choices = unresolvedChoices(revision.choices, revision.choiceResolutions);
+  const choices = unresolvedChoices(revision.choices, revision.choiceResolutions, equivalent);
   const undeclared = undeclaredDecisionPoints(revision);
   if (facets.length > 0 || unresolved.length > 0 || choices.length > 0 || undeclared.length > 0) {
     return { ok: false, unresolvedFacets: facets, unresolvedHypotheses: unresolved, unresolvedChoices: choices, undeclaredDecisionPoints: undeclared };
