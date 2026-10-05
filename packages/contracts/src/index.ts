@@ -1,8 +1,9 @@
 import { Type, type Static } from "typebox";
 import { Value } from "typebox/value";
+import { PublicationDeliveredSchema } from "./channel.js";
 
 export const ProtocolVersion = 1 as const;
-export const RequestContextSchema = Type.Object({ userId: Type.String({ minLength: 1 }), host: Type.Union([Type.Literal("electron"), Type.Literal("web")]), sessionId: Type.Optional(Type.String({ minLength: 1 })) });
+export const RequestContextSchema = Type.Object({ userId: Type.String({ minLength: 1 }), host: Type.Union([Type.Literal("electron"), Type.Literal("web"), Type.Literal("channel")]), sessionId: Type.Optional(Type.String({ minLength: 1 })) });
 export type RequestContext = Static<typeof RequestContextSchema>;
 
 const RuntimeProbeCommandSchema = Type.Object({ type: Type.Literal("runtime.probe") });
@@ -163,6 +164,7 @@ export const DataAgentEventSchema = Type.Union([
   Type.Object({ type: Type.Literal("agent.completed") }),
   Type.Object({ type: Type.Literal("workspace.artifact.created"), path: Type.String(), kind: Type.Literal("file") }),
   Type.Object({ type: Type.Literal("clarification.request"), clarificationId: Type.String(), question: Type.String(), options: Type.Array(Type.String()) }),
+  PublicationDeliveredSchema,
   Type.Object({ type: Type.Literal("clarification.settled"), clarificationId: Type.String(), outcome: Type.Union([Type.Literal("answered"), Type.Literal("expired"), Type.Literal("cancelled")]) }),
 ]);
 export type DataAgentEvent = Static<typeof DataAgentEventSchema>;
@@ -174,6 +176,7 @@ export function isDataAgentEventEnvelope(value: unknown): value is DataAgentEven
 export function parseDataAgentCommandEnvelope(value: unknown): DataAgentCommandEnvelope { if (!isDataAgentCommandEnvelope(value)) throw new TypeError("Invalid DataAgent command envelope"); return value; }
 export function parseDataAgentResponseEnvelope(value: unknown): DataAgentResponseEnvelope { if (!Value.Check(DataAgentResponseEnvelopeSchema, value)) throw new TypeError("Invalid DataAgent response envelope"); return value; }
 
+export * from "./channel.js";
 export * from "./chart-spec.js";
 export * from "./chart-marks.js";
 export * from "./dashboard-spec.js";
