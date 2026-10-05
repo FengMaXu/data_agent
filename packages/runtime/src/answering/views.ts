@@ -9,7 +9,7 @@ import {
   type TaskId,
 } from "./model.js";
 import { inferredFacets, unresolvedChoices, unresolvedFacets, unresolvedHypotheses } from "./qualification.js";
-import { summarizeChoiceProbes } from "./choice-probe.js";
+import { equivalentChoiceIds, summarizeChoiceProbes } from "./choice-probe.js";
 import { undeclaredDecisionPoints } from "./decision-points.js";
 import type { ChoiceAdvisory } from "./advisory-ledger.js";
 import type { AnsweringDeps } from "./deps.js";
@@ -37,6 +37,7 @@ function hypothesisViews(revision: AnswerRevisionRecord): readonly HypothesisVie
 
 function choiceViews(revision: AnswerRevisionRecord, choiceContext: ChoiceContext | undefined): readonly ChoiceView[] {
   const resolutions = new Map(revision.choiceResolutions.map((item) => [item.choiceId as string, item]));
+  const equivalent = equivalentChoiceIds(revision, choiceContext?.probes ?? []);
   return revision.choices.map((choice) => {
     const resolution = resolutions.get(choice.id);
     const summary = choiceContext ? summarizeChoiceProbes(choice, choiceContext.probes, revision.probeWaivers ?? []) : undefined;
@@ -45,7 +46,7 @@ function choiceViews(revision: AnswerRevisionRecord, choiceContext: ChoiceContex
       id: choice.id,
       affects: choice.affects,
       alternatives: choice.alternatives,
-      status: resolution?.outcome ?? "unresolved",
+      status: resolution?.outcome ?? (equivalent.has(choice.id) ? "equivalent" : "unresolved"),
       ...(resolution && resolution.outcome !== "equivalent" ? { alternativeId: resolution.alternativeId } : {}),
       ...(resolution && resolution.outcome !== "equivalent" && resolution.rationale ? { rationale: resolution.rationale } : {}),
       ...(resolution && resolution.outcome !== "equivalent" && resolution.adviceOverride ? { adviceOverride: resolution.adviceOverride } : {}),
@@ -73,7 +74,7 @@ export function viewFromRevision(taskId: TaskId, revision: AnswerRevisionRecord,
     choices: clone(choiceViews(revision, choiceContext)),
     unresolvedFacets: unresolvedFacets(revision.spec),
     unresolvedHypotheses: unresolvedHypotheses(revision.hypotheses, revision.resolutions),
-    unresolvedChoices: unresolvedChoices(revision.choices, revision.choiceResolutions),
+    unresolvedChoices: unresolvedChoices(revision.choices, revision.choiceResolutions, equivalentChoiceIds(revision, choiceContext?.probes ?? [])),
     inferredFacets: inferredFacets(revision.spec),
     ...(revision.decisionPoints ? { decisionPoints: clone(revision.decisionPoints), undeclaredDecisionPoints: undeclaredDecisionPoints(revision) } : {}),
     ...(revision.specFeedback ? { specFeedback: clone(revision.specFeedback) } : {}),
