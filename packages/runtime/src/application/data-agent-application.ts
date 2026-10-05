@@ -3,6 +3,8 @@ import type { DataAgentCommandEnvelope, DataAgentEventEnvelope, DataAgentRespons
 import { ClarificationManager } from "../clarification.js";
 import { KnowledgeIndex } from "../knowledge.js";
 import { MetadataStore } from "../metadata.js";
+import { ChannelHub, type ChannelHubOptions } from "../channels/hub.js";
+import { MetadataChannelStore } from "../channels/store.js";
 import { DataAgentRuntime } from "../protocol.js";
 import { WorkspaceStore } from "../workspace.js";
 import type { DataAgentModelProfile, SessionQueryExecutor } from "./session-runtime.js";
@@ -195,6 +197,8 @@ export class DataAgentApplication implements ApplicationCommandHost {
   getConfig(key: string): Promise<unknown> { return this.metadata.getConfig(key); }
   setConfig(key: string, value: unknown): Promise<void> { return this.metadata.setConfig(key, value); }
   authorizeSession(userId: string, sessionId: string): Promise<"owned" | "missing" | "forbidden"> { return this.metadata.authorizeSession(userId, sessionId); }
+  /** The channel boundary over this Application's protocol seam and metadata (ADR-0011). */
+  createChannelHub(options: Omit<ChannelHubOptions, "host" | "store"> = {}): ChannelHub { return new ChannelHub({ ...options, host: this, store: new MetadataChannelStore(this.metadata) }); }
   readPublication(publicationId: string, context: { readonly sessionId: string; readonly userId: string }) { return this.agent.readPublication(publicationId, context); }
 
   setQueryExecutor(executor: NonNullable<DataAgentApplicationOptions["queryExecutor"]>): void {

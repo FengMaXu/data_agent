@@ -13,6 +13,7 @@ export {
   type HostRequestContext,
 } from "./application/data-agent-application.js";
 export type { ApplicationAuthService, ApplicationAuthUser, ApplicationCommandHost, ApplicationEventFilter, EventReplay } from "./application/protocol-host.js";
+export { ChannelHub, type ChannelHubOptions, type SubmitOutcome } from "./channels/hub.js";
 
 export type {
   DataAgentCommand,
