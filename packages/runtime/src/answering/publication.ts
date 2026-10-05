@@ -74,7 +74,6 @@ export async function publishCandidate(deps: AnsweringDeps, input: PublishCandid
     const task = tx.getTask(candidate.taskId);
     assertTaskAccess(task, context);
     if (task.currentRevisionId !== candidate.revisionId) throw new AnsweringError("PUBLICATION_STALE", "Candidate belongs to an old revision");
-    assertDeliverable(tx, task);
     if (candidate.status !== "ready" || !candidate.publishable) throw new AnsweringError("RESULT_INTEGRITY_MISMATCH", "Corrupt Result Candidate cannot be published");
     const revision = tx.getRevision(candidate.revisionId);
     if (!revision || revision.state.state !== "ready") throw new AnsweringError("PUBLICATION_STALE", "Candidate revision is not sealed for publication");
@@ -83,6 +82,8 @@ export async function publishCandidate(deps: AnsweringDeps, input: PublishCandid
       throw new AnsweringError("PUBLICATION_ALREADY_EXISTS", "A Query Task already has a publication receipt for this revision", { receiptId: existingForTask.receiptId, candidateId: existingForTask.candidateId });
     }
     const existing = tx.findReceiptByRequest(candidate.taskId, input.requestId) ?? tx.findReceiptByCandidate(candidate.taskId, candidate.candidateId) ?? existingForTask;
+    // A replay returns the Receipt already made; only a new publication needs a deliverable Report Task (ADR-0009).
+    if (!existing) assertDeliverable(tx, task);
     return { candidate, task, revision, existing, disclosure: composeDisclosure(revision, candidate) };
   }, context);
   if (taskAndCandidate.existing) {
