@@ -14,7 +14,8 @@ import {
   type RevisionId,
   type TaskId,
 } from "./model.js";
-import { unresolvedFacets } from "./qualification.js";
+import { unresolvedChoices as unresolvedChoicesOf, unresolvedFacets } from "./qualification.js";
+import { equivalentChoiceIds } from "./choice-probe.js";
 
 export interface AnsweringTransaction {
   getTask(taskId: TaskId): QueryTaskRecord | undefined;
@@ -185,9 +186,7 @@ export class InMemoryAnsweringStore implements AnsweringStore {
     const unresolvedHypotheses = currentRevision.hypotheses
       .filter((hypothesis) => !currentRevision.resolutions.some((resolution) => resolution.hypothesisId === hypothesis.id))
       .map((hypothesis) => hypothesis.id);
-    const unresolvedChoices = currentRevision.choices
-      .filter((choice) => !currentRevision.choiceResolutions.some((resolution) => resolution.choiceId === choice.id))
-      .map((choice) => choice.id);
+    const unresolvedChoices = unresolvedChoicesOf(currentRevision.choices, currentRevision.choiceResolutions, equivalentChoiceIds(currentRevision, task.choiceProbes ?? []));
     const candidate = task.latestCandidateId ? this.state.candidates.get(task.latestCandidateId) : undefined;
     const publication = task.publicationId ? this.state.receipts.get(task.publicationId) : undefined;
     return clone({ task, currentRevision, unresolvedFacets: unresolvedFacetsForRevision, unresolvedHypotheses, unresolvedChoices, attempts, ...(candidate ? { candidate } : {}), ...(publication ? { publication } : {}) });
