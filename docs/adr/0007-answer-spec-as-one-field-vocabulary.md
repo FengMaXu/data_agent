@@ -91,3 +91,19 @@ status: proposed
 - 每个路径独立生效意味着一次调用可能产生多个 Revision；Revision 数量增加，但每个 Revision 都满足 ADR-0004 的连续性不变量。
 - ADR-0004 第 4 条"证据引用只能使用 Runtime 发放的 Evidence ID 或同一次调用内的 `localId`"改为"只能使用 Runtime 发放的 ID 或就地引文"；ADR-0005 第 5 条的决策点声明改为由字段状态推导，阻断规则不变。
 - 字段路径表是固定、有限的；它和决策点清单一样让遗漏可见，但不保证声明正确。
+
+## 补充（2026-10-05）：对照代码与看板会话的待定设计
+
+本 ADR 仍未实施：代码中没有 `set_answer_spec`，模型接口仍是 `begin_answer_spec`/`revise_answer_spec`。以下事实对照 `develop`（#125 之后）的代码与 2026-10-01/02 三个看板会话的 transcript 核实。
+
+**新的度量。** 三个会话中 `begin_answer_spec`/`revise_answer_spec` 共 58 次调用、19 次失败（按工具返回的错误文本统计，为近似值），失败类别与本 ADR 背景一致：引用未知 Choice、决策点引用已移除的假设、决定统计总体的 Choice 缺少合格证据、用户确认无法核实。
+
+**待定 1：用户确认在字段状态中没有写法。** 决策 2 的“有引文依据”只列出 `knowledge:<id>` 与 `schema:<table.column>`。现有准入已经支持两种用户确认：`clarification:<id>` 指向本会话某次澄清的回答，省略来源时绑定 Host 提供的当前用户消息（`evidence-admission.ts`、`tools/answering.ts` 的 `confirmationSource`）。澄清回答按会话查找，因此同一会话的后续 Query Task 可以引用。`cite[].source` 应增加 `clarification:<id>` 与 `message`（当前用户消息）两种取值。现有接口有一个陷阱应一并消除：任何非空 `sourceRef` 都被当作澄清 id，2026-10-01 会话中模型写 `sourceRef: "current request"` 被解析为 `clarification:current request` 而失败。
+
+**待定 2：等价由谁判定。** 决策 2 写“可声明为等价”，没有给出写法。现有转换在模型提交 `equivalent` 处置时检查各候选的探针指纹是否全部相同，不同则拒绝（`transition.ts`）。既然判定完全依据 Runtime 已持有的指纹，字段模型中应由 Runtime 在最后一个候选的探针登记后自动把该字段解析为等价，模型不需要也不能声明。
+
+**待定 3：逐路径生效与结果候选的关系。** 结果查询与发布都要求候选所属的 Revision 是当前 Revision（`result-execution.ts`、`publication.ts`）。决策 5 让每个路径独立产生 Revision，因此任何字段写入都会使此前未发布的候选失效。保留这一规则：结果候选只对应一个完整的 Revision；工具返回的状态表应在存在失效候选时明确列出。
+
+**待定 4：一个任务只有一个输出形状，也只能发布一次。** `output.shape` 每个任务只有一个；发布时只要任务已有 Receipt 且候选不同就拒绝（`publication.ts` 检查 `task.publicationId`），即一个 Query Task 一生只发布一次，而不是报错文字所说的“每个 revision 一次”。看板会话中模型把多张图塞进一个任务（`metric.kind: "composite"`、`output.columns: ["view", "dimension", "metric_value"]`），随后 4 条结果查询全部未通过 `result_shape` 检查，并行发布的 4 个候选中 3 个被拒。多输出由 ADR-0009 解决，本 ADR 不扩展字段表；报错文字应改为“每个 Query Task 只发布一次”。
+
+**待定 5：数据质量不进入字段表。** 2026-10-01 会话所用的 olist 各表每行都存了两份（`olist_orders` 每个 `order_id` 恰好 2 行；`olist_order_items` 225,300 行，整行去重后 112,650 行）。模型把“各表先整行去重”写进 `filters`，在每个子查询中使用 `SELECT DISTINCT *`，导致 10 次 60 秒超时并耗尽任务时间预算。整行重复不是业务口径，不应由 Answer Spec 的字段承载，也不应由每条查询各自补偿；它属于数据层缺陷，应在数据源修复。CONTEXT.md 定义的 Schema Profile（含键基数）目前没有实现；实现后它可以把“声明键不唯一”作为结构事实报告给 solver，但修复仍在数据层。
