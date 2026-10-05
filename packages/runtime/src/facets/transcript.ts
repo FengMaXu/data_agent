@@ -1,4 +1,4 @@
-import { isToolProgress, type DataAgentEventEnvelope, type DataAgentEvent } from "@data-agent/contracts";
+import { isToolProgress, type DataAgentEventEnvelope, type DataAgentEvent, type PublicationDelivered } from "@data-agent/contracts";
 import type { AgentHarness, HarnessEvent } from "@earendil-works/pi-agent-core";
 import { TODO_CONTEXT } from "@earendil-works/pi-agent-core";
 import { isWidgetLifecycleDetails, validateWidgetSpec, type WidgetPayload } from "../widget.js";
@@ -197,6 +197,30 @@ function emptyProjection(): OperationProjectionState {
   return { assistantMessageSequence: 0, widgetCalls: new Map(), toolArgs: new Map() };
 }
 
+const PUBLISH_TOOLS = new Set(["publish_query_result", "export_query"]);
+
+/**
+ * A publish tool's details are its Receipt view. Only a well-formed Receipt
+ * becomes `publication.delivered`; anything else stays a plain tool result.
+ */
+function publicationDelivered(toolName: string, result: unknown): PublicationDelivered | undefined {
+  if (!PUBLISH_TOOLS.has(toolName)) return undefined;
+  const details = asRecord(asRecord(result)?.details);
+  if (!details) return undefined;
+  const { receiptId, taskId, format, publicRef, inlineContent } = details;
+  if (!isNonEmptyString(receiptId) || !isNonEmptyString(taskId) || !isNonEmptyString(publicRef) || (format !== "inline" && format !== "csv")) return undefined;
+  const disclosure = asRecord(details.disclosure)?.summary;
+  return {
+    type: "publication.delivered",
+    receiptId,
+    taskId,
+    format,
+    publicRef,
+    ...(isNonEmptyString(disclosure) ? { disclosure } : {}),
+    ...(isNonEmptyString(inlineContent) ? { inlineContent } : {}),
+  };
+}
+
 /**
  * Presentation-only projection of Pi events. It owns no operation or business
  * state and can be discarded/rebuilt from a Pi lane snapshot after reconnect.
@@ -341,6 +365,8 @@ export class TranscriptProjector {
         }
       }
       this.emit(base(), { type: "agent.tool_finished", toolCallId, toolName: event.toolName, ...(completionArgs !== undefined ? { args: completionArgs } : {}), result: event.result ?? null, isError: Boolean(event.isError || call?.errorEmitted) });
+      const delivered = event.isError ? undefined : publicationDelivered(event.toolName, event.result);
+      if (delivered) this.emit(base(), delivered);
       projection.widgetCalls.delete(toolCallId);
       projection.toolArgs.delete(toolCallId);
     }
