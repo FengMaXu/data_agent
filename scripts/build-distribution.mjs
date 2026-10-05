@@ -22,7 +22,7 @@ run("npm run build:contracts");
 // Runtime and the renderer depend on charts, including its browser bundle for dashboards.
 run("npm run build:charts");
 run("npm run build:runtime");
-for (const pkg of ["@data-agent/transport", "@data-agent/electron-host", "@data-agent/server", "@data-agent/mcp-mysql", "@data-agent/mcp-pg"]) {
+for (const pkg of ["@data-agent/transport", "@data-agent/channel-feishu", "@data-agent/electron-host", "@data-agent/server", "@data-agent/mcp-mysql", "@data-agent/mcp-pg"]) {
   run(`npm run build --workspace=${pkg}`);
 }
 run("npm run build --workspace=frontend");
