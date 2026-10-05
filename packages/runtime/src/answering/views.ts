@@ -78,5 +78,6 @@ export function viewFromRevision(taskId: TaskId, revision: AnswerRevisionRecord,
     ...(revision.decisionPoints ? { decisionPoints: clone(revision.decisionPoints), undeclaredDecisionPoints: undeclaredDecisionPoints(revision) } : {}),
     ...(revision.specFeedback ? { specFeedback: clone(revision.specFeedback) } : {}),
     ...(revision.deviations && revision.deviations.length > 0 ? { deviations: clone(revision.deviations) } : {}),
+    ...(revision.metricRef ? { metricRef: revision.metricRef } : {}),
   };
 }

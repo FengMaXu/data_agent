@@ -32,7 +32,7 @@ import {
 } from "./evidence-admission.js";
 import { beginTransition, reviseTransition, type ChoiceGovernance, type EvidenceResolver, type RevisionBody } from "./transition.js";
 import { QualificationError } from "./qualification.js";
-import { guardInheritance, inheritedFields, overlayInherited } from "./report.js";
+import { applyMetricRef, guardInheritance, inheritedFields, overlayInherited, splitMetricRef, type InheritedFields } from "./report.js";
 import { initialSpecFeedback } from "./spec-feedback.js";
 import { finishRevisionSubmission } from "./spec-feedback-execution.js";
 import { localId, now } from "./support.js";
@@ -161,6 +161,7 @@ async function prepareSteps(deps: AnsweringDeps, steps: readonly SpecStep[], tas
 function applySteps(base: RevisionBody, steps: readonly PreparedStep[], registered: readonly Evidence[], governance: ChoiceGovernance | undefined, createdAt: string, inheritance?: Inheritance) {
   let body = base;
   let deviations = inheritance?.recorded ?? [];
+  let metricRef = inheritance?.metricRef;
   const supersessions: Supersession[] = [];
   const outcomes: StepOutcome[] = [];
   const added: Evidence[] = [];
@@ -172,16 +173,28 @@ function applySteps(base: RevisionBody, steps: readonly PreparedStep[], register
     const { step, label } = prepared;
     const stepEvidence = prepared.admitted.map((item) => ({ ...(item.localId ? { localId: item.localId } : {}), evidence: evidenceFromAdmission(item, createdAt) }));
     try {
-      const { supersessions: replaced, ...next } = reviseTransition(body, {
-        ...(step.spec ? { spec: step.spec } : {}),
+      // A chart query's `metric: { ref }` is resolved against the Report Task, after the transition.
+      const { spec, ref } = inheritance ? splitMetricRef(step.spec) : { spec: step.spec };
+      const { supersessions: replaced, ...transitioned } = reviseTransition(body, {
+        ...(spec ? { spec } : {}),
         ...(step.addHypotheses ? { addHypotheses: step.addHypotheses } : {}),
         ...(step.addChoices ? { addChoices: step.addChoices } : {}),
         ...(step.dispositions ? { dispositions: step.dispositions } : {}),
         ...(step.notProbeable ? { notProbeable: step.notProbeable } : {}),
         ...(step.decisionPoints ? { decisionPoints: step.decisionPoints } : {}),
       }, evidenceResolver([...registered, ...added], stepEvidence), governance);
-      // A chart query changes an inherited field only with a reason (ADR-0009 decision 3).
-      if (inheritance) deviations = guardInheritance(body, next, [...inheritance.proposals, ...(step.deviations ?? [])], deviations);
+      let next: RevisionBody = transitioned;
+      if (inheritance) {
+        // A chart query changes an inherited field only with a reason (ADR-0009 decision 3).
+        deviations = guardInheritance(body, transitioned, [...inheritance.proposals, ...(step.deviations ?? [])], deviations, Object.keys(inheritance.inherited.metrics).length > 0);
+        if (ref !== undefined) {
+          next = applyMetricRef(transitioned, inheritance.inherited, ref);
+          metricRef = ref;
+          deviations = deviations.filter((item) => item.path !== "metric");
+        } else if (spec && Object.prototype.hasOwnProperty.call(spec, "metric")) {
+          metricRef = undefined;
+        }
+      }
       body = next;
       supersessions.push(...replaced);
       added.push(...stepEvidence.map((item) => item.evidence));
@@ -192,7 +205,7 @@ function applySteps(base: RevisionBody, steps: readonly PreparedStep[], register
       outcomes.push(rejected);
     }
   }
-  return { body, deviations, supersessions, outcomes, added, applied: outcomes.some((outcome) => outcome.status === "applied") };
+  return { body, deviations, metricRef, supersessions, outcomes, added, applied: outcomes.some((outcome) => outcome.status === "applied") };
 }
 
 function bodyOf(source: RevisionBody): RevisionBody {
@@ -209,9 +222,11 @@ function bodyOf(source: RevisionBody): RevisionBody {
 
 /** A chart query's inherited fields: the guard applies to every step. */
 interface Inheritance {
+  readonly inherited: InheritedFields;
   readonly recorded: readonly Deviation[];
   /** Deviation reasons given for the whole call. */
   readonly proposals: readonly DeviationProposal[];
+  readonly metricRef?: string;
 }
 
 /** What the view adds about the task itself; attached after SpecFeedback re-reads the view. */
@@ -327,7 +342,10 @@ export async function reviseAnswer(deps: AnsweringDeps, input: ReviseAnswer, con
       ...(input.decisionPoints ? { decisionPoints: input.decisionPoints } : {}),
     }, evidenceResolver([...evidence, ...parentEvidence], added), governanceFor(deps, task));
     const { supersessions, ...body } = transition;
-    const deviations = task.parent ? guardInheritance(previous, body, input.deviations, previous.deviations ?? []) : [];
+    const metricShared = task.parent ? Object.keys(tx.getRevision(tx.getTask(task.parent.taskId)?.currentRevisionId as RevisionId)?.spec.metrics ?? {}).length > 0 : false;
+    const deviations = task.parent ? guardInheritance(previous, body, input.deviations, previous.deviations ?? [], metricShared) : [];
+    // Writing a metric of its own ends a chart query's metric reference.
+    const metricRef = input.spec && Object.prototype.hasOwnProperty.call(input.spec, "metric") ? undefined : previous.metricRef;
     const revisionId = makeInternalId("revision") as unknown as RevisionId;
     const baseRevision: AnswerRevisionRecord = {
       taskId,
@@ -339,6 +357,7 @@ export async function reviseAnswer(deps: AnsweringDeps, input: ReviseAnswer, con
       createdAt,
       ...(supersessions.length > 0 ? { supersessions } : {}),
       ...(deviations.length > 0 ? { deviations } : {}),
+      ...(metricRef ? { metricRef } : {}),
     };
     const revision: AnswerRevisionRecord = { ...baseRevision, specFeedback: initialSpecFeedback(baseRevision, allEvidence, Boolean(deps.specFeedback), baseRevision.createdAt) };
     tx.putRevision(revision);
@@ -390,7 +409,7 @@ async function beginStepped(deps: AnsweringDeps, input: BeginAnswer, context: Bu
     const parent = input.parent ? bindParent(tx, input.parent.taskId, context) : undefined;
     const empty = beginTransition({ spec: {} }, evidenceResolver([requestEvidence], []), governance);
     const start = parent ? overlayInherited(empty, parent.inherited, []) : empty;
-    const stepped = applySteps(start, prepared, [requestEvidence, ...(parent?.evidence ?? [])], governance, createdAt, parent ? { recorded: [], proposals: input.deviations ?? [] } : undefined);
+    const stepped = applySteps(start, prepared, [requestEvidence, ...(parent?.evidence ?? [])], governance, createdAt, parent ? { inherited: parent.inherited, recorded: [], proposals: input.deviations ?? [] } : undefined);
     const evidence = [requestEvidence, ...stepped.added];
     for (const item of evidence) tx.appendEvidence(taskId, item);
     const baseRevision: AnswerRevisionRecord = {
@@ -402,6 +421,7 @@ async function beginStepped(deps: AnsweringDeps, input: BeginAnswer, context: Bu
       createdAt,
       ...(stepped.supersessions.length > 0 ? { supersessions: stepped.supersessions } : {}),
       ...(stepped.deviations.length > 0 ? { deviations: stepped.deviations } : {}),
+      ...(stepped.metricRef ? { metricRef: stepped.metricRef } : {}),
     };
     const revision: AnswerRevisionRecord = { ...baseRevision, specFeedback: initialSpecFeedback(baseRevision, evidence, Boolean(deps.specFeedback), createdAt) };
     const task: QueryTaskRecord = {
@@ -458,10 +478,19 @@ async function reviseStepped(deps: AnsweringDeps, input: ReviseAnswer, context: 
     const parent = existingTask.parent ? bindParent(tx, existingTask.parent.taskId, context) : undefined;
     const rebound = input.rebind && parent && parent.binding.revisionId !== existingTask.parent!.revisionId;
     const recorded = previous.deviations ?? [];
-    const start = rebound ? overlayInherited(previous, parent.inherited, recorded) : previous;
+    let metricRef = previous.metricRef;
+    let start: RevisionBody = rebound ? overlayInherited(previous, parent.inherited, recorded) : previous;
+    if (rebound && metricRef) {
+      // A definition the Report Task no longer has leaves the metric open for this chart query to set.
+      if (parent.inherited.metrics[metricRef]) start = applyMetricRef(start, parent.inherited, metricRef);
+      else {
+        start = { ...start, spec: { ...start.spec, metric: { state: "unknown" } } };
+        metricRef = undefined;
+      }
+    }
     const createdAt = now();
     const evidence = tx.listEvidence(taskId);
-    const stepped = applySteps(start, prepared, [...evidence, ...(parent?.evidence ?? [])], governanceFor(deps, existingTask), createdAt, parent ? { recorded, proposals: input.deviations ?? [] } : undefined);
+    const stepped = applySteps(start, prepared, [...evidence, ...(parent?.evidence ?? [])], governanceFor(deps, existingTask), createdAt, parent ? { inherited: parent.inherited, recorded, proposals: input.deviations ?? [], ...(metricRef ? { metricRef } : {}) } : undefined);
     if (!stepped.applied && !rebound) {
       extras = { steps: stepped.outcomes, ...taskExtras(tx, existingTask) };
       return { view: viewFromRevision(taskId, previous, choiceContextFor(deps, existingTask)) } as const;
@@ -484,6 +513,7 @@ async function reviseStepped(deps: AnsweringDeps, input: ReviseAnswer, context: 
       createdAt,
       ...(stepped.supersessions.length > 0 ? { supersessions: stepped.supersessions } : {}),
       ...(stepped.deviations.length > 0 ? { deviations: stepped.deviations } : {}),
+      ...(stepped.metricRef ? { metricRef: stepped.metricRef } : {}),
     };
     const revision: AnswerRevisionRecord = { ...baseRevision, specFeedback: initialSpecFeedback(baseRevision, allEvidence, Boolean(deps.specFeedback), createdAt) };
     tx.putRevision(revision);
