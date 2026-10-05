@@ -92,6 +92,17 @@ describe("Report Task", () => {
     await expect(result(answering, child.taskId, rebound.revisionId, "fresh")).resolves.toMatchObject({ kind: "result" });
   });
 
+  it("returns an existing Receipt on a publish replay after the Report Task changed", async () => {
+    const answering = service();
+    const parent = await report(answering);
+    const child = await chart(answering, parent.taskId);
+    const candidate = await result(answering, child.taskId, child.revisionId, "result");
+    const publish = { candidateId: (candidate.artifact as { candidateId: string }).candidateId, format: "inline" as const, requestId: "publish" };
+    const receipt = await answering.publish(publish, context("publish"));
+    await answering.revise({ taskId: parent.taskId, baseRevisionId: parent.revisionId, requestId: "parent-2", steps: [{ label: "time", spec: { time: { expression: "2017" } } }] } as never, context("parent-2"));
+    await expect(answering.publish(publish, context("publish-replay"))).resolves.toMatchObject({ receiptId: receipt.receiptId });
+  });
+
   it("keeps a deviated field on rebind", async () => {
     const answering = service();
     const parent = await report(answering);
