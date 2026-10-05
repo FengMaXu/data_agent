@@ -32,11 +32,18 @@ export function resolveSemanticSpecMode(config) {
   return mode;
 }
 
+/** ADR-0007 phase 1 arm: "fields" swaps begin/revise_answer_spec for set_answer_spec. */
+export function resolveSpecInterface(config) {
+  const specInterface = config.answering?.specInterface ?? "legacy";
+  if (specInterface !== "legacy" && specInterface !== "fields") throw new Error("INVALID_SPEC_INTERFACE");
+  return specInterface;
+}
+
 function defaultTools(config, semanticSpecMode) {
   const jevAvailable = Boolean(process.env.TYPESAFE_API_KEY?.trim());
   return [
     ...BASE_TOOLS.filter((tool) => tool !== "ask_user_clarification" || config.enableClarificationTool !== false),
-    ...(semanticSpecMode === "required" ? ["begin_answer_spec", "revise_answer_spec"] : ["begin_query_task"]),
+    ...(semanticSpecMode !== "required" ? ["begin_query_task"] : resolveSpecInterface(config) === "fields" ? ["set_answer_spec"] : ["begin_answer_spec", "revise_answer_spec"]),
     // compare_hypotheses compares Choices of the Answer Spec, so it exists only with a semantic Spec.
     ...(jevAvailable && semanticSpecMode === "required" ? ["compare_hypotheses"] : []),
     ...(config.enableDashboards === true ? ["generate_dashboard"] : []),
@@ -128,6 +135,7 @@ export function validateExperimentConfig(config) {
   if (config.limits?.maxTurns !== undefined && config.limits.maxTurns !== null && (!Number.isSafeInteger(Number(config.limits.maxTurns)) || Number(config.limits.maxTurns) < 1)) throw new Error("INVALID_CONFIG_VALUE:limits.maxTurns");
   if (config.limits?.maxToolCalls !== undefined && config.limits.maxToolCalls !== null && (!Number.isSafeInteger(Number(config.limits.maxToolCalls)) || Number(config.limits.maxToolCalls) < 1)) throw new Error("INVALID_CONFIG_VALUE:limits.maxToolCalls");
   resolveSemanticSpecMode(config);
+  resolveSpecInterface(config);
   if (config.enableClarificationTool !== undefined && typeof config.enableClarificationTool !== "boolean") throw new Error("INVALID_CONFIG_VALUE:enableClarificationTool");
   return config;
 }

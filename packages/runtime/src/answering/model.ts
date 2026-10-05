@@ -334,6 +334,12 @@ export interface HypothesisProposal {
   readonly basis: string;
   readonly impact: string;
   readonly proposedEvidenceIds?: readonly string[];
+  /**
+   * Supported without evidence: the Runtime records it unverified and discloses
+   * it (ADR-0006), unless it settles the material population while a
+   * clarification path exists.
+   */
+  readonly assumed?: boolean;
 }
 
 export interface ChoiceAlternative {
@@ -846,7 +852,8 @@ export const CLARIFICATION_SOURCE_PREFIX = "clarification:";
 export interface UntrustedEvidenceInput {
   /** Caller-local handle for references inside the same begin/revise call. */
   readonly localId?: string;
-  readonly kind: EvidenceKind;
+  /** "document": an authorized knowledge document, admitted with the kind the composition root configured for it. */
+  readonly kind: EvidenceKind | "document";
   /**
    * Document kinds: authorized knowledge id. request_wording: ignored, Runtime
    * binds the task request message. user_confirmation: the Host's current user

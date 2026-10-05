@@ -32,6 +32,7 @@ import type {
   HypothesisChoiceEvidence,
 } from "../judgment/hypothesis-choice.js";
 import { defineDataAgentTool, type DataAgentToolDefinition, type ToolPromptMetadata } from "./tool-definition.js";
+import { FIELD_PATHS, compileFields, fieldStateTable } from "./answer-fields.js";
 
 /**
  * The only application state carried into a model tool invocation. Query task
@@ -53,8 +54,15 @@ export interface DataAgentToolContext {
  */
 export type SemanticSpecMode = "required" | "disabled";
 
+/**
+ * ADR-0007 phase 1 switch: `fields` replaces begin_answer_spec/revise_answer_spec
+ * with set_answer_spec. `legacy` stays the default until the A/B decides.
+ */
+export type SpecInterface = "legacy" | "fields";
+
 export interface AnsweringToolOptions {
   readonly semanticSpecMode?: SemanticSpecMode;
+  readonly specInterface?: SpecInterface;
 }
 
 const facetNameSchema = Type.Union([
@@ -371,6 +379,12 @@ export function prepareSpecArguments(topLevel: readonly string[]): (args: unknow
 
 export const BEGIN_QUERY_TASK_PARAMETERS = Type.Object({}, { additionalProperties: false });
 
+/** set_answer_spec: field values are checked per path by the compiler, so the schema stays open. */
+export const SET_ANSWER_SPEC_PARAMETERS = Type.Object({
+  taskId: Type.Optional(nonEmptyStringSchema),
+  fields: Type.Record(Type.String({ minLength: 1 }), Type.Unknown(), { minProperties: 1 }),
+}, { additionalProperties: false });
+
 export const ANSWERING_QUERY_PARAMETERS = Type.Union([
   Type.Object({
     kind: Type.Literal("exploration"),
@@ -650,6 +664,60 @@ function reviseSpecTool(answering: Answering): AgentHarnessTool<DataAgentToolCon
   };
 }
 
+/**
+ * The single ADR-0007 write: each path compiles to one step of a stepped
+ * begin/revise and succeeds or fails on its own; the call lands as one
+ * Revision. The tool reads the current Revision itself.
+ */
+function setSpecTool(answering: Answering): AgentHarnessTool<DataAgentToolContext> {
+  return {
+    name: "set_answer_spec",
+    label: "set_answer_spec",
+    description: `Set Answer Spec fields by path. Without taskId the call starts the Query Task. Paths: ${FIELD_PATHS.join(", ")}. Each path is checked and applied on its own; the result lists every path's outcome and what is still open, unverified or undeclared.`,
+    replay: "never",
+    parameters: SET_ANSWER_SPEC_PARAMETERS,
+    async execute(toolCallId, input, _onUpdate, toolContext, invocation, context) {
+      void toolCallId;
+      const value = checked(SET_ANSWER_SPEC_PARAMETERS, input) as { taskId?: string; fields: Record<string, unknown> };
+      const business = trustedContext(toolContext, invocation, context);
+      const requestMessageId = toolContext?.requestMessageId?.trim();
+      const before = value.taskId ? await answering.inspect({ taskId: value.taskId }, business) : undefined;
+      const compiled = compileFields(value.fields, before ? { revision: before.currentRevision } : {}, requestMessageId);
+      const steps = compiled.flatMap((item) => item.step ? [item.step] : []);
+      const rejectedEarly = compiled.flatMap((item) => item.error ? [`- ✗ ${item.path}: ${item.error}`] : []);
+      if (steps.length === 0) {
+        return result([`[ANSWER_SPEC_UNCHANGED]${before ? ` taskId=${before.task.taskId} revisionId=${before.task.currentRevisionId}` : ""}`, ...rejectedEarly].join("\n"), { fields: compiled });
+      }
+      let view: Awaited<ReturnType<Answering["revise"]>>;
+      if (!before) {
+        if (!requestMessageId) throw new Error("ANSWERING_REQUEST_MESSAGE_REQUIRED");
+        view = await answering.begin({ requestMessageId, requestId: invocation.invocationId, spec: {}, steps }, business);
+      } else {
+        view = await answering.revise({ taskId: before.task.taskId, baseRevisionId: before.task.currentRevisionId, requestId: invocation.invocationId, steps }, business);
+      }
+      const outcomes = new Map((view.steps ?? []).map((step) => [step.label, step]));
+      const lines = compiled.map((item) => {
+        if (item.error) return `- ✗ ${item.path}: ${item.error}`;
+        const outcome = outcomes.get(item.path);
+        return outcome?.status === "applied" ? `- ✓ ${item.path}` : `- ✗ ${item.path}: ${outcome?.message ?? "not applied"}`;
+      });
+      const stale = before && view.revisionId !== before.task.currentRevisionId && before.candidate && before.publication?.candidateId !== before.candidate.candidateId
+        ? [`- 失效: 上一版的结果候选 ${before.candidate.candidateId} 未发布，已不能发布`]
+        : [];
+      const feedback = renderSpecFeedback(view.specFeedback);
+      return result([
+        `[ANSWER_SPEC_SET] taskId=${view.taskId} revisionId=${view.revisionId}`,
+        ...lines,
+        "状态：",
+        fieldStateTable(view),
+        ...stale,
+        ...(feedback ? [feedback] : []),
+        json({ spec: view.spec }),
+      ].join("\n"), view);
+    },
+  };
+}
+
 function queryTool(answering: Answering): AgentHarnessTool<DataAgentToolContext> {
   return {
     name: "query_database",
@@ -842,17 +910,28 @@ export function createAnsweringAgentToolDefinitions(
   options: AnsweringToolOptions = {},
 ): readonly DataAgentToolDefinition<DataAgentToolContext>[] {
   const semanticSpecMode = options.semanticSpecMode ?? "required";
+  const specInterface = options.specInterface ?? "legacy";
   return [
-    ...(semanticSpecMode === "required" ? [protocolTool(beginSpecTool(answering), {
+    ...(semanticSpecMode === "required" && specInterface === "fields" ? [protocolTool(setSpecTool(answering), {
+      promptSnippet: "按字段路径设置当前请求的 Answer Spec；不带 taskId 时开始任务。",
+      promptGuidelines: [
+        "字段写法：\"n/a\"；{value, basis:\"request\", quote}（原题逐字片段）；{value, cite:[{source, quote}]}（source 为 knowledge:<id>、schema:<表.列>、clarification:<id> 或 message）；{value, evidenceIds}（query_database 返回的观测证据）；{value, basis:\"assumed\", rationale}；{open:[候选,…]}。槽位也可以直接写值，视为推断并在发布时披露。",
+        "子字段（entity.joinMultiplicity、metric.countGrain、metric.denominator、filters.population、time.field、time.window、ranking.ties、output.shape）与 source 的 value 写一句话说明口径；8 个子字段都要声明，不适用的写 \"n/a\"。",
+        "待定字段先用 query_database 的 probe 跑每个候选（choiceId/alternativeId 见返回的状态表）；输出全部相同时系统视为等价；不同时调用 compare_hypotheses，再写 {value:<候选原文>, rationale, evidenceIds?} 决定。",
+        "改写已设置的字段须附 reason；每个路径独立生效，失败的路径不影响其他路径，按返回的 ✗ 原因只重发失败的路径。",
+      ],
+    })] : []),
+    ...(semanticSpecMode === "required" && specInterface === "legacy" ? [protocolTool(beginSpecTool(answering), {
       promptSnippet: "为当前请求建立唯一的七槽位 Answer Spec。",
       promptGuidelines: ["每个请求只建立一次；证据须附逐字引文，由系统核验。", "同时声明 8 个决策点（population、join_multiplicity、time_field、count_grain、denominator、window、ties、output_shape）；fixed_by_request 须引用原题逐字片段。", "会相互排斥的解释建成 Choice；Choice 要先探针再决定，建立时一般不直接决定。"],
     }), protocolTool(reviseSpecTool(answering), {
       promptSnippet: "增量修订当前 Answer Spec 并处置已有项。",
       promptGuidelines: ["只提交变化，用返回的 ID 处置已有项；未提及的内容保留。", "Choice 的每个候选先做探针：输出相同的处置为 equivalent；否则用 decide，必须写 rationale，可附 evidenceIds；证据不够格时自动记为未证实并披露，不会失败。", "decide 的结果不是 compare_hypotheses 的明显倾向时，须附 adviceOverride（理由与至少一条证据）。", "SpecFeedback 只提供核对信息，不能替代业务证据或静默改变口径。"],
-    })] : [protocolTool(beginQueryTaskTool(answering), {
+    })] : []),
+    ...(semanticSpecMode === "disabled" ? [protocolTool(beginQueryTaskTool(answering), {
       promptSnippet: "为语义规格消融实验创建一个不含模型七槽位定义的 Query Task。",
       promptGuidelines: ["每个问题只调用一次；精确复用返回的 taskId/revisionId，仍须区分 exploration 与 result，并通过 Candidate/Receipt 发布。"],
-    })]),
+    })] : []),
     protocolTool(queryTool(answering), {
       promptSnippet: "执行有界探索或当前版本的一次结果查询。",
       promptGuidelines: ["探索产物不可发布；结果查询必须绑定当前 Ready Revision，遇到实现障碍先按分类修复或回到取证，不要盲目重跑未知结果。", "探针：exploration 加 probe={choiceId, alternativeId}，SQL 按该候选口径计算最终输出；输出标识相同表示答案相同。探针不占探索次数。", "结果与未采纳候选的探针输出相同时会被 CHOICE_NOT_REALIZED 拒绝：改 SQL 实现已采纳的候选，或带理由修订处置。"],
