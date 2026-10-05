@@ -205,6 +205,9 @@ export interface MetricSpec {
   readonly kind: string;
   readonly expression?: string;
   readonly unit?: string;
+  /** Report Task metric definitions (ADR-0009): the denominator and count grain a chart query inherits. */
+  readonly denominator?: string;
+  readonly countGrain?: string;
 }
 
 export interface FilterSpec {
@@ -255,12 +258,17 @@ export interface AnswerSpec {
   readonly time: Facet<TimeSpec>;
   readonly ranking: Facet<RankingSpec>;
   readonly output: Facet<OutputSpec>;
+  /** Named metric definitions of a Report Task, referenced by its chart queries (ADR-0009). */
+  readonly metrics?: Readonly<Record<string, Facet<MetricSpec>>>;
 }
 
 /** Minimal, untrusted model/application proposal accepted by begin/revise. */
 export interface AnswerSpecProposal {
   readonly entity?: unknown;
+  /** A chart query may write `{ ref: "<name>" }` to take a Report Task metric definition. */
   readonly metric?: unknown;
+  /** Named metric definitions; a present name replaces its definition, null removes it. */
+  readonly metrics?: Readonly<Record<string, unknown>>;
   readonly filters?: readonly unknown[];
   readonly groupBy?: readonly unknown[];
   readonly time?: unknown;
@@ -617,6 +625,8 @@ export interface AnswerRevisionRecord {
   readonly decisionPoints?: DecisionPoints;
   /** Inherited fields this chart query changed, with reasons; carried forward and disclosed. */
   readonly deviations?: readonly Deviation[];
+  /** The Report Task metric definition this chart query's metric is copied from. */
+  readonly metricRef?: string;
 }
 
 export interface ResultCandidateRecord {
@@ -796,6 +806,8 @@ export interface AnswerRevisionView {
   /** For a chart query: its Report Task, the bound parent Revision and whether that is still current. */
   readonly parent?: ParentBinding & { readonly current: boolean };
   readonly deviations?: readonly Deviation[];
+  /** The Report Task metric definition a chart query's metric is taken from. */
+  readonly metricRef?: string;
 }
 
 export interface QueryExecutionView {

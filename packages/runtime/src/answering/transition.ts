@@ -287,10 +287,13 @@ function normalizeFacetValue<T>(facet: FacetName, value: unknown): T {
     if (typeof value === "string" && value.trim()) return { kind: value.trim() } as T;
     const record = asRecord(value);
     if (record && typeof record.kind === "string" && record.kind.trim()) {
-      const expression = optionalTrimmedString(record.expression);
-      const unit = optionalTrimmedString(record.unit);
-      if ((record.expression !== undefined && !expression) || (record.unit !== undefined && !unit)) invalidFacet(facet);
-      return { kind: record.kind.trim(), ...(expression ? { expression } : {}), ...(unit ? { unit } : {}) } as T;
+      const optional = ["expression", "unit", "denominator", "countGrain"] as const;
+      const values = Object.fromEntries(optional.flatMap((key) => {
+        const value = optionalTrimmedString(record[key]);
+        if (record[key] !== undefined && !value) invalidFacet(facet);
+        return value ? [[key, value]] : [];
+      }));
+      return { kind: record.kind.trim(), ...values } as T;
     }
   }
   if (facet === "filters" || facet === "groupBy") {
@@ -403,7 +406,24 @@ function listFacet<T>(value: unknown, facet: "filters" | "groupBy", hypothesisRe
     : [{ state: "unknown" }];
 }
 
+const METRIC_NAME = /^[A-Za-z0-9_一-鿿-]{1,64}$/;
+
+/** Named metric definitions: a present name replaces its definition, null removes it. */
+function patchMetrics(previous: AnswerSpec["metrics"], patch: unknown, hypothesisRef: HypothesisResolver, resolveEvidence: EvidenceResolver): AnswerSpec["metrics"] {
+  const entries = asRecord(patch);
+  if (!entries) invalid("metrics must map metric names to definitions");
+  const next: Record<string, Facet<MetricSpec>> = { ...(previous ?? {}) };
+  for (const [rawName, value] of Object.entries(entries)) {
+    const name = rawName.trim();
+    if (!METRIC_NAME.test(name)) invalid(`Metric name ${JSON.stringify(rawName)} must be 1-64 letters, digits, _ or -`);
+    if (value === null) delete next[name];
+    else next[name] = proposalFacet<MetricSpec>(value, "metric", hypothesisRef, resolveEvidence);
+  }
+  return Object.keys(next).length > 0 ? next : undefined;
+}
+
 function buildSpec(proposal: AnswerSpecProposal, hypothesisRef: HypothesisResolver, resolveEvidence: EvidenceResolver): AnswerSpec {
+  const metrics = proposal.metrics !== undefined ? patchMetrics(undefined, proposal.metrics, hypothesisRef, resolveEvidence) : undefined;
   return {
     entity: proposalFacet(proposal.entity, "entity", hypothesisRef, resolveEvidence),
     metric: proposalFacet<MetricSpec>(proposal.metric, "metric", hypothesisRef, resolveEvidence),
@@ -412,12 +432,14 @@ function buildSpec(proposal: AnswerSpecProposal, hypothesisRef: HypothesisResolv
     time: proposalFacet(proposal.time, "time", hypothesisRef, resolveEvidence),
     ranking: proposalFacet(proposal.ranking, "ranking", hypothesisRef, resolveEvidence),
     output: proposalFacet(proposal.output, "output", hypothesisRef, resolveEvidence),
+    ...(metrics ? { metrics } : {}),
   };
 }
 
 /** Only keys present in the patch replace the carried facet; omitted keys keep value and basis. */
 function patchSpec(previous: AnswerSpec, patch: AnswerSpecProposal, hypothesisRef: HypothesisResolver, resolveEvidence: EvidenceResolver): AnswerSpec {
   const has = (key: keyof AnswerSpecProposal) => Object.prototype.hasOwnProperty.call(patch, key);
+  const metrics = has("metrics") ? patchMetrics(previous.metrics, patch.metrics, hypothesisRef, resolveEvidence) : previous.metrics;
   return {
     entity: has("entity") ? proposalFacet(patch.entity, "entity", hypothesisRef, resolveEvidence) : previous.entity,
     metric: has("metric") ? proposalFacet<MetricSpec>(patch.metric, "metric", hypothesisRef, resolveEvidence) : previous.metric,
@@ -426,6 +448,7 @@ function patchSpec(previous: AnswerSpec, patch: AnswerSpecProposal, hypothesisRe
     time: has("time") ? proposalFacet(patch.time, "time", hypothesisRef, resolveEvidence) : previous.time,
     ranking: has("ranking") ? proposalFacet(patch.ranking, "ranking", hypothesisRef, resolveEvidence) : previous.ranking,
     output: has("output") ? proposalFacet(patch.output, "output", hypothesisRef, resolveEvidence) : previous.output,
+    ...(metrics ? { metrics } : {}),
   };
 }
 
@@ -673,6 +696,7 @@ function facetsOf(spec: AnswerSpec): readonly [string, Facet<unknown>][] {
     ["time", spec.time],
     ["ranking", spec.ranking],
     ["output", spec.output],
+    ...Object.entries(spec.metrics ?? {}).map(([name, facet]) => [`metrics.${name}`, facet] as [string, Facet<unknown>]),
   ];
 }
 

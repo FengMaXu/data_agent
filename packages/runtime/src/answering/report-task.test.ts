@@ -158,6 +158,52 @@ describe("Report Task", () => {
     await expect(result(answering, parent.taskId, parent.revisionId, "report-result")).rejects.toMatchObject({ code: "REPORT_TASK_NOT_PUBLISHABLE" });
   });
 
+  it("lets a chart query take a named metric definition with its denominator and count grain", async () => {
+    const answering = service();
+    const parent = await answering.begin({ requestMessageId: "message-1", requestId: "report", spec: {}, report: true, steps: [sharedStep, {
+      label: "metrics",
+      spec: { metrics: {
+        negative_rate: { kind: "ratio", expression: "1-2 星订单 / 有评价订单", denominator: "有评价的订单", countGrain: "按订单" },
+        late_rate: { kind: "ratio", expression: "超期送达订单 / 已送达订单" },
+      } },
+    }] } as never, context("report"));
+    const ownWithRef = { ...ownStep, spec: { ...ownStep.spec, metric: { ref: "negative_rate" } }, decisionPoints: ["ties", "output_shape"].map(na) };
+    const child = await chart(answering, parent.taskId, "chart", [ownWithRef]);
+    expect(child.steps).toEqual([{ label: "own", status: "applied" }]);
+    expect(child.metricRef).toBe("negative_rate");
+    expect(child.spec.metric).toMatchObject({ value: { kind: "ratio", denominator: "有评价的订单" }, basis: { kind: "inherited", taskId: parent.taskId } });
+    expect(child.decisionPoints).toMatchObject({ denominator: { status: "inherited" }, count_grain: { status: "inherited" } });
+    expect(child.undeclaredDecisionPoints).toEqual([]);
+
+    const unknown = await chart(answering, parent.taskId, "chart-unknown", [{ ...ownWithRef, spec: { ...ownWithRef.spec, metric: { ref: "gmv" } } }]);
+    expect(unknown.steps?.[0]).toMatchObject({ status: "rejected", message: expect.stringContaining("negative_rate, late_rate") });
+  });
+
+  it("asks for a reason before a chart query uses a metric of its own when the Report Task defines metrics", async () => {
+    const answering = service();
+    const parent = await answering.begin({ requestMessageId: "message-1", requestId: "report", spec: {}, report: true, steps: [sharedStep, { label: "metrics", spec: { metrics: { orders: { kind: "count" } } } }] } as never, context("report"));
+    const refused = await chart(answering, parent.taskId, "chart-own");
+    expect(refused.steps?.[0]).toMatchObject({ status: "rejected", message: expect.stringContaining("metric: { ref }") });
+    const own = await chart(answering, parent.taskId, "chart-own-reason", [{ ...ownStep, deviations: [{ path: "metric", reason: "这张图看 GMV，报告未定义" }] }]);
+    expect(own.steps?.[0]?.status).toBe("applied");
+    expect(own.deviations).toEqual([{ path: "metric", reason: "这张图看 GMV，报告未定义" }]);
+  });
+
+  it("follows a changed definition only after rebinding, and blocks a reference to an unspecified one", async () => {
+    const answering = service();
+    const parent = await answering.begin({ requestMessageId: "message-1", requestId: "report", spec: {}, report: true, steps: [sharedStep, { label: "metrics", spec: { metrics: { orders: { kind: "count", expression: "COUNT(*)" }, late: { state: "unknown" } } } }] } as never, context("report"));
+    const ownWith = (ref: string) => [{ ...ownStep, spec: { ...ownStep.spec, metric: { ref } } }];
+    const orders = await chart(answering, parent.taskId, "chart-orders", ownWith("orders"));
+    const late = await chart(answering, parent.taskId, "chart-late", ownWith("late"));
+    await expect(result(answering, late.taskId, late.revisionId, "late")).rejects.toMatchObject({ code: "PARENT_UNRESOLVED", message: expect.stringContaining("late") });
+    await expect(result(answering, orders.taskId, orders.revisionId, "orders")).resolves.toMatchObject({ kind: "result" });
+
+    await answering.revise({ taskId: parent.taskId, baseRevisionId: parent.revisionId, requestId: "parent-2", steps: [{ label: "metrics", spec: { metrics: { orders: { kind: "count", expression: "COUNT(DISTINCT order_id)" } } } }] } as never, context("parent-2"));
+    const rebound = await answering.revise({ taskId: orders.taskId, baseRevisionId: orders.revisionId, requestId: "rebind", rebind: true } as never, context("rebind"));
+    expect(rebound.spec.metric).toMatchObject({ value: { expression: "COUNT(DISTINCT order_id)" } });
+    expect(rebound.metricRef).toBe("orders");
+  });
+
   it("starts Report Tasks and chart queries only with steps, and only under a Report Task", async () => {
     const answering = service();
     await expect(answering.begin({ requestMessageId: "message-1", requestId: "legacy", spec: {}, report: true } as never, context("legacy"))).rejects.toMatchObject({ code: "INVALID_REQUEST" });
