@@ -171,8 +171,9 @@ const evidenceSchema = Type.Object({
   kind: modelEvidenceKindSchema,
   /**
    * Document kinds: knowledgeId. schema_fact: schema reference. user_confirmation:
-   * the clarificationId of an answered ask_user_clarification, or omitted for the
-   * user's current message. Ignored for request_wording.
+   * omitted or "message" for the user's current message, or the clarificationId of
+   * an answered ask_user_clarification (bare or "clarification:<id>"); anything else
+   * is rejected. Ignored for request_wording.
    */
   sourceRef: Type.Optional(nonEmptyStringSchema),
   quote: Type.Optional(nonEmptyStringSchema),
@@ -480,15 +481,24 @@ export function trustedContext(
  * current operation, and request wording is bound by Answering to the task's
  * original request. Model-supplied sourceRefs for either are discarded.
  */
+const CURRENT_MESSAGE_REF = "message";
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
  * Where a user_confirmation was said: the clarification answer the model names
  * by id, or the Host's current user message. Admission verifies either against
- * text the Host recorded; the model only points.
+ * text the Host recorded; the model only points, and a ref that is neither is
+ * rejected here rather than looked up as a clarification that cannot exist.
  */
 function confirmationSource(named: string | undefined, currentUserMessageId: string | undefined): string | undefined {
-  const clarificationId = named?.trim().replace(CLARIFICATION_SOURCE_PREFIX, "");
-  return clarificationId ? `${CLARIFICATION_SOURCE_PREFIX}${clarificationId}` : currentUserMessageId;
+  const ref = named?.trim();
+  if (!ref || ref === CURRENT_MESSAGE_REF) return currentUserMessageId;
+  if (ref.startsWith(CLARIFICATION_SOURCE_PREFIX) && ref.length > CLARIFICATION_SOURCE_PREFIX.length) return ref;
+  // ask_user_clarification returns UUIDs; any other bare text is a label the model made up.
+  if (UUID.test(ref)) return `${CLARIFICATION_SOURCE_PREFIX}${ref}`;
+  throw new Error(`ANSWERING_TOOL_INPUT_INVALID: user_confirmation sourceRef ${JSON.stringify(ref)} names neither message nor clarification. Omit sourceRef or write "${CURRENT_MESSAGE_REF}" for the user's current message, or give the clarificationId returned by ask_user_clarification (bare or as "${CLARIFICATION_SOURCE_PREFIX}<id>").`);
 }
+
 
 function proposalEvidence(
   value: readonly { readonly localId?: string; readonly kind: string; readonly sourceRef?: string; readonly quote?: string }[] | undefined,
