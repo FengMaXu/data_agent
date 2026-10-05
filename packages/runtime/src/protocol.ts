@@ -15,6 +15,7 @@ import { WorkspaceStore } from "./workspace.js";
 import { runPythonJob } from "./python-job.js";
 import { KnowledgeIndex } from "./knowledge.js";
 import { ClarificationManager } from "./clarification.js";
+import { AgentControllerError } from "./facets/agent-controller.js";
 import { loadSkillsFromRoots, resolveSkillRoots } from "./skills.js";
 import { LocalAuthService } from "./auth.js";
 import type { ApplicationAgentEvent } from "./application/host.js";
@@ -23,7 +24,7 @@ import type { TranscriptMessage } from "./facets/transcript.js";
 import { readBoundedFile } from "./bounded-read.js";
 
 export class DataAgentRuntimeError extends Error {
-  readonly code: "INVALID_COMMAND" | "UNSUPPORTED_PROTOCOL_VERSION" | "INVALID_CONTEXT" | "SESSION_ACCESS_DENIED";
+  readonly code: "INVALID_COMMAND" | "UNSUPPORTED_PROTOCOL_VERSION" | "INVALID_CONTEXT" | "SESSION_ACCESS_DENIED" | "SESSION_BUSY" | "CLARIFICATION_SETTLED";
   readonly details?: unknown;
 
   constructor(
@@ -200,10 +201,14 @@ export class DataAgentRuntime implements ApplicationCommandHost {
     }
 
     if (command.command.type === "clarification.answer") {
+      // An answer counts only from the Session that asked; ids of other Sessions' questions are not a capability.
+      if (context.sessionId && this.clarifications.pendingFor(context.sessionId)?.clarificationId !== command.command.clarificationId) {
+        throw new DataAgentRuntimeError("CLARIFICATION_SETTLED", "No such clarification is pending in this session");
+      }
       const answered = this.agent?.answerClarification
         ? await this.agent.answerClarification(command.command.clarificationId, command.command.answer, { ...(context.sessionId ? { sessionId: context.sessionId } : {}), userId: context.userId })
         : this.clarifications.answer(command.command.clarificationId, command.command.answer);
-      if (!answered) throw new DataAgentRuntimeError("INVALID_COMMAND", "Unknown or already settled clarification");
+      if (!answered) throw new DataAgentRuntimeError("CLARIFICATION_SETTLED", "Unknown or already settled clarification");
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "runtime.probe.result", service: "data-agent-runtime", runtimeVersion: "0.1.0" } };
     }
 
@@ -463,7 +468,14 @@ export class DataAgentRuntime implements ApplicationCommandHost {
 
     if (command.command.type === "agent.prompt") {
       if (!this.agent) throw new DataAgentRuntimeError("INVALID_COMMAND", "Pi Agent is not configured");
-      const result = await this.agent.prompt(command.command.prompt, { ...(context.sessionId ? { sessionId: context.sessionId } : {}), requestId: command.requestId, userId: context.userId });
+      let result: unknown;
+      try {
+        result = await this.agent.prompt(command.command.prompt, { ...(context.sessionId ? { sessionId: context.sessionId } : {}), requestId: command.requestId, userId: context.userId });
+      } catch (error) {
+        // A queued steer or follow-up is the caller's choice, so a busy Session is reported, not queued here.
+        if (error instanceof AgentControllerError && error.busy) throw new DataAgentRuntimeError("SESSION_BUSY", "Session is already running an operation");
+        throw error;
+      }
       const operationId = asRecord(result)?.operationId;
       if (typeof operationId !== "string" || !operationId) throw new DataAgentRuntimeError("INVALID_COMMAND", "Agent did not return an operation identity");
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "agent.prompt.accepted", runId: operationId } };
