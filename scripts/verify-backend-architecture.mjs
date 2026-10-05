@@ -74,6 +74,8 @@ for (const file of productionFiles) {
   // The dashboard renderer is a pure function of spec and datasets; the tool resolves data (ADR-0008 step 4).
   const isDashboardRenderer = rel === "packages/runtime/src/dashboard.ts";
   const isPresentation = rel.startsWith("frontend/src/");
+  // The channel boundary reaches the Runtime only through the versioned protocol (ADR-0011 decisions 1 and 6).
+  const isChannels = rel.startsWith("packages/runtime/src/channels/");
   const isElectronOrServer = rel.startsWith("packages/electron-host/src/") || rel.startsWith("apps/server/src/") || rel === "scripts/start-web-host.mjs";
 
   for (const specifier of modules) {
@@ -88,6 +90,9 @@ for (const file of productionFiles) {
     if (isDashboardRenderer && normalized !== "@data-agent/charts" && normalized !== "@data-agent/contracts") fail(`${rel}: pure dashboard renderer imports ${specifier}`);
     if (isElectronOrServer && hasAny(normalized, ["@earendil-works/pi-agent-core", "AgentHarness", "AgentEvent"])) fail(`${rel}: transport Host imports Pi internals ${specifier}`);
     if (isElectronOrServer && hasAny(normalized, ["@data-agent/runtime/protocol", "packages/runtime/dist/protocol", "packages/runtime/src/protocol"])) fail(`${rel}: transport Host imports Runtime protocol internals ${specifier}`);
+    if (isChannels && !(normalized === "@data-agent/contracts" || normalized.startsWith("node:") || normalized.startsWith("./") || normalized === "../application/protocol-host.js" || normalized === "../metadata.js")) fail(`${rel}: channel boundary imports ${specifier}`);
+    // Only Deliverables leave through channels; no model tool, Answering or agent code may send messages itself.
+    if ((isTools || isAnswering || isAgent || isFacets || isDelegation) && normalized.includes("/channels/")) fail(`${rel}: imports the channel boundary ${specifier}`);
     if (isPresentation && hasAny(normalized, ["@earendil-works/pi-agent-core", "@data-agent/runtime", "better-sqlite", "mysql", "sqlExecutor", "credentials"])) fail(`${rel}: Presentation imports backend authority ${specifier}`);
   }
 
