@@ -51,7 +51,7 @@ status: proposed
    | 进度（Progress） | 现有事件流 | 可丢失、只保留最新状态；渠道断线后从当前状态重画，不补发。渠道自行节流 |
    | 可交付物（Deliverable） | Question（`clarification.request`）、Publication（新增 `publication.delivered`）、Notice | 持久化：先写入渠道交付发件箱，再投递；以幂等键（Publication 用 `receiptId`，Question 用 `clarificationId`）至少送达一次，平台侧再去重 |
 
-   - `publication.delivered { receiptId, taskId, format }` 由会话的 Presentation 投影在发布工具成功结束时发出，Web 与 Electron 也能收到。渠道按 Receipt 以提问人身份读取内容（行数、Disclosure、下载链接），不依赖工具结果的文本。
+   - `publication.delivered { receiptId, taskId, format, publicRef, disclosure?, inlineContent? }` 由会话的 Presentation 投影在发布工具成功结束时发出，Web 与 Electron 也能收到。渠道需要完整结果时，通过 `DeliveryContent.readPublication()` 由核心以提问人身份读取 CSV；发件箱只记录会话，不存数据行。渠道不依赖工具结果的文本。
    - 发件箱是新的表（`channel_delivery_outbox`），不复用 `session_projection_outbox`。
    - 运行时发出事件与渠道写入发件箱之间存在进程崩溃窗口（事件流在内存中）。首期接受这个窗口：Receipt 本身已持久，重新提问会得到同一个结果；需要时再按绑定会话的 Query Task 对账补发。
 
@@ -61,7 +61,7 @@ status: proposed
    - **会话仍然只有一个所有者。** 一个会话对应 `(address, userId)`：群聊里每个发言人在同一个话题中各有自己的会话，Query Task 的归属与鉴权不变。会话归属于每个地址自动建立的一个 `task`。
    - 身份只来自渠道验证过的入站事件，不能从消息内容或模型输出中得到。
 
-5. **交付按受众放行。** 系统没有按用户区分的数据权限，所以首期规则是：`direct` 地址直接交付；`group` 地址只在该群被配置为允许群内交付时，才把 Publication 发到群里，否则私聊发给提问人，并在群里留一条 Notice。以后引入数据权限时，只需要在这一处检查受众。
+5. **交付按受众放行。** 系统没有按用户区分的数据权限，所以首期规则是：`direct` 地址直接交付；`group` 地址只在该群被配置为允许群内交付时，才把 Publication 发到群里，否则私聊发给提问人，并在群里留一条 Notice。**运行进度同样按这条规则投递**：进度文本就是模型的回答正文，会引用结果数字。Question 与 Notice 不含结果数据，发到原地址。以后引入数据权限时，只需要在这一处检查受众。
 
 6. **模型不能直接发消息。** 不提供“发送消息”之类的模型工具；离开系统的只有可交付物，接收方只由 Submission 的地址决定。架构检查固定：工具与 Answering 不得导入渠道模块，渠道只能导入 contracts 与协议宿主接口。
 
@@ -72,8 +72,8 @@ status: proposed
      readonly id: string;
      readonly capabilities: { editableMessages: boolean; actions: boolean; files: boolean };
      start(sink: (submission: Submission) => Promise<void>): Promise<void>;
-     deliver(address: ConversationAddress, message: Deliverable, idempotencyKey: string): Promise<void>;
-     progress?(address: ConversationAddress, view: ProgressView): Promise<void>;
+     deliver(target: DeliveryTarget, message: Deliverable, idempotencyKey: string, content?: DeliveryContent): Promise<void>;
+     progress?(target: DeliveryTarget, view: ProgressView): Promise<void>;
      stop(): Promise<void>;
    }
    ```
