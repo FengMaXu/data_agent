@@ -627,6 +627,8 @@ export interface AnswerRevisionRecord {
   readonly deviations?: readonly Deviation[];
   /** The Report Task metric definition this chart query's metric is copied from. */
   readonly metricRef?: string;
+  /** For a chart query: the parent Revision this Revision's inherited fields came from. */
+  readonly parentBinding?: ParentBinding;
 }
 
 export interface ResultCandidateRecord {
@@ -663,6 +665,14 @@ export interface PublicationDisclosure {
   readonly fanoutStatus?: FanoutReport["status"];
   /** Shared fields this chart query changed from its Report Task. */
   readonly deviations?: readonly Deviation[];
+  /** Set on a refresh when the Report Task has changed since the chart query copied its shared fields. */
+  readonly parentSuperseded?: ParentSupersession;
+}
+
+export interface ParentSupersession {
+  readonly taskId: TaskId;
+  readonly boundRevisionId: RevisionId;
+  readonly currentRevisionId: RevisionId;
 }
 
 /** Internal typestate. No model/HTTP caller can construct this permit. */

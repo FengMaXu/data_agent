@@ -176,6 +176,23 @@ describe("Report Task", () => {
     expect(rebound.metricRef).toBe("orders");
   });
 
+  it("refreshes a chart query after its Report Task changed and says the shared fields moved on", async () => {
+    const answering = service();
+    const parent = await report(answering);
+    const child = await chart(answering, parent.taskId);
+    const candidate = await result(answering, child.taskId, child.revisionId, "result");
+    const receipt = await answering.publish({ candidateId: (candidate.artifact as { candidateId: string }).candidateId, format: "inline", requestId: "publish" }, context("publish"));
+
+    const unchanged = await answering.refresh({ receiptId: receipt.receiptId, requestId: "refresh-1" }, context("refresh-1"));
+    expect(unchanged.disclosure?.parentSuperseded).toBeUndefined();
+
+    const changed = await answering.revise({ taskId: parent.taskId, baseRevisionId: parent.revisionId, requestId: "parent-2", steps: [{ label: "time", spec: { time: { expression: "2017" } } }] } as never, context("parent-2"));
+    const refreshed = await answering.refresh({ receiptId: receipt.receiptId, requestId: "refresh-2" }, context("refresh-2"));
+    expect(refreshed.refreshes).toBe(receipt.receiptId);
+    expect(refreshed.disclosure?.parentSuperseded).toEqual({ taskId: parent.taskId, boundRevisionId: parent.revisionId, currentRevisionId: changed.revisionId });
+    expect(refreshed.disclosure?.summary).toContain("报告任务口径已被修改");
+  });
+
   it("starts Report Tasks and chart queries only with steps, and only under a Report Task", async () => {
     const answering = service();
     await expect(answering.begin({ requestMessageId: "message-1", requestId: "legacy", spec: {}, report: true } as never, context("legacy"))).rejects.toMatchObject({ code: "INVALID_REQUEST" });

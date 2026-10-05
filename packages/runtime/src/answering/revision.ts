@@ -358,6 +358,7 @@ export async function reviseAnswer(deps: AnsweringDeps, input: ReviseAnswer, con
       ...(supersessions.length > 0 ? { supersessions } : {}),
       ...(deviations.length > 0 ? { deviations } : {}),
       ...(metricRef ? { metricRef } : {}),
+      ...(task.parent ? { parentBinding: task.parent } : {}),
     };
     const revision: AnswerRevisionRecord = { ...baseRevision, specFeedback: initialSpecFeedback(baseRevision, allEvidence, Boolean(deps.specFeedback), baseRevision.createdAt) };
     tx.putRevision(revision);
@@ -422,6 +423,7 @@ async function beginStepped(deps: AnsweringDeps, input: BeginAnswer, context: Bu
       ...(stepped.supersessions.length > 0 ? { supersessions: stepped.supersessions } : {}),
       ...(stepped.deviations.length > 0 ? { deviations: stepped.deviations } : {}),
       ...(stepped.metricRef ? { metricRef: stepped.metricRef } : {}),
+      ...(parent ? { parentBinding: parent.binding } : {}),
     };
     const revision: AnswerRevisionRecord = { ...baseRevision, specFeedback: initialSpecFeedback(baseRevision, evidence, Boolean(deps.specFeedback), createdAt) };
     const task: QueryTaskRecord = {
@@ -514,6 +516,7 @@ async function reviseStepped(deps: AnsweringDeps, input: ReviseAnswer, context: 
       ...(stepped.supersessions.length > 0 ? { supersessions: stepped.supersessions } : {}),
       ...(stepped.deviations.length > 0 ? { deviations: stepped.deviations } : {}),
       ...(stepped.metricRef ? { metricRef: stepped.metricRef } : {}),
+      ...(existingTask.parent ? { parentBinding: rebound ? parent.binding : existingTask.parent } : {}),
     };
     const revision: AnswerRevisionRecord = { ...baseRevision, specFeedback: initialSpecFeedback(baseRevision, allEvidence, Boolean(deps.specFeedback), createdAt) };
     tx.putRevision(revision);

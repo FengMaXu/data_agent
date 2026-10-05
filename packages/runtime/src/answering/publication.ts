@@ -1,6 +1,7 @@
 import type {
   AnswerRevisionRecord,
   BusinessContext,
+  ParentSupersession,
   PublicationDisclosure,
   PublicationPermit,
   PublicationReceipt,
@@ -27,7 +28,7 @@ const INLINE_ROW_LIMIT = 10;
  * provisional choices and hypotheses, inferred facets, fanout observations and SpecFeedback.
  * Disclosure is a record, never an approval.
  */
-export function composeDisclosure(revision: AnswerRevisionRecord, candidate: ResultCandidateRecord): PublicationDisclosure | undefined {
+export function composeDisclosure(revision: AnswerRevisionRecord, candidate: ResultCandidateRecord, parentSuperseded?: ParentSupersession): PublicationDisclosure | undefined {
   const provisionalChoiceIds = revision.choiceResolutions
     .filter((resolution) => resolution.outcome === "provisional")
     .map((resolution) => resolution.choiceId);
@@ -43,7 +44,7 @@ export function composeDisclosure(revision: AnswerRevisionRecord, candidate: Res
   const feedbackDisclosure = specFeedbackDisclosureSummary(candidate.coverage?.find((coverage) => coverage.checkId === SPEC_FEEDBACK_CHECK_ID));
   const inferred = inferredFacets(revision.spec);
   const deviations = revision.deviations ?? [];
-  if (provisionalChoiceIds.length === 0 && provisionalHypothesisIds.length === 0 && inferred.length === 0 && deviations.length === 0 && !fanoutDisclosure && !feedbackDisclosure) return undefined;
+  if (provisionalChoiceIds.length === 0 && provisionalHypothesisIds.length === 0 && inferred.length === 0 && deviations.length === 0 && !parentSuperseded && !fanoutDisclosure && !feedbackDisclosure) return undefined;
   return {
     required: true,
     provisionalChoiceIds,
@@ -54,11 +55,13 @@ export function composeDisclosure(revision: AnswerRevisionRecord, candidate: Res
       ...(provisionalHypothesisIds.length > 0 ? [`以下槽位依赖未被合格证据证实的假设：${provisionalFacets.join(", ")}。`] : []),
       ...(inferred.length > 0 ? [`以下槽位为模型推断、未绑定合格证据：${inferred.join(", ")}。`] : []),
       ...(deviations.length > 0 ? [`以下字段偏离报告任务的共享口径：${deviations.map((item) => `${item.path}（${item.reason}）`).join("；")}。`] : []),
+      ...(parentSuperseded ? ["本次只刷新了数据；这张图所依据的报告任务口径已被修改，图仍按修改前的口径计算。"] : []),
       ...(fanoutDisclosure ? [fanoutDisclosure] : []),
       ...(feedbackDisclosure ? [feedbackDisclosure] : []),
     ].join(" "),
     ...(fanoutDisclosure && candidate.fanout ? { fanoutStatus: candidate.fanout.status } : {}),
     ...(deviations.length > 0 ? { deviations } : {}),
+    ...(parentSuperseded ? { parentSuperseded } : {}),
   };
 }
 

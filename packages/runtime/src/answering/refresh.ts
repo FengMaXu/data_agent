@@ -1,4 +1,4 @@
-import type { BusinessContext, PublicationId, PublicationReceipt, RefreshPublication, ResultCandidateRecord } from "./model.js";
+import type { BusinessContext, ParentSupersession, PublicationId, PublicationReceipt, RefreshPublication, ResultCandidateRecord } from "./model.js";
 import { assertTaskAccess } from "./answering-store.js";
 import { AnsweringError } from "./errors.js";
 import { makeInternalId } from "./internal-ids.js";
@@ -32,10 +32,16 @@ export async function refreshPublication(deps: AnsweringDeps, input: RefreshPubl
     const candidate = tx.getCandidate(original.candidateId);
     const revision = tx.getRevision(original.revisionId);
     if (!candidate || !revision) throw new AnsweringError("PUBLICATION_NOT_FOUND", "The refreshed publication no longer has its query");
-    return { original, task, candidate, revision } as const;
+    // ADR-0009: a refresh keeps the chart query's Revision; say so when its Report Task has moved on.
+    const binding = revision.parentBinding;
+    const parentRevisionId = binding ? tx.getTask(binding.taskId)?.currentRevisionId : undefined;
+    const parentSuperseded: ParentSupersession | undefined = binding && parentRevisionId && parentRevisionId !== binding.revisionId
+      ? { taskId: binding.taskId, boundRevisionId: binding.revisionId, currentRevisionId: parentRevisionId }
+      : undefined;
+    return { original, task, candidate, revision, parentSuperseded } as const;
   }, context);
   if ("existing" in loaded) return loaded.existing!;
-  const { original, candidate, revision } = loaded;
+  const { original, candidate, revision, parentSuperseded } = loaded;
 
   const result = boundedResult(await deps.sqlExecutor.run(candidate.sql, deps.maxResultRows, {
     kind: "result",
@@ -70,7 +76,7 @@ export async function refreshPublication(deps: AnsweringDeps, input: RefreshPubl
     status: "ready",
     publishable: true,
   };
-  const disclosure = composeDisclosure(revision, refreshed);
+  const disclosure = composeDisclosure(revision, refreshed, parentSuperseded);
   const encoded = await deps.resultStore.encodeCsv(privateResult.resultRef, context);
   const receiptId = makeInternalId("publication") as unknown as PublicationReceipt["receiptId"];
   const receipt: PublicationReceipt = {
