@@ -18,6 +18,7 @@ import { AnsweringError } from "./errors.js";
 import { makeInternalId } from "./internal-ids.js";
 import { makeAttempt, obstacle, obstacleDetails, reserveAttempt, taskBudget, throwExecutionFailure, updateAttempt } from "./budget.js";
 import { sealForResult } from "./qualification.js";
+import { assertDeliverable } from "./report.js";
 import { equivalentChoiceIds } from "./choice-probe.js";
 import { candidateCheckFailure, evaluateCandidateCheckReport } from "./candidate-checks.js";
 import { evaluateFanout, fanoutCoverage, fanoutFindings } from "./fanout-execution.js";
@@ -86,6 +87,8 @@ async function sealRevision(deps: AnsweringDeps, input: ResultInput, taskId: Tas
     const currentTask = tx.getTask(taskId);
     assertTaskAccess(currentTask, context);
     if (currentTask.currentRevisionId !== revisionId) throw new AnsweringError("REVISION_STALE", "Result query must use the current revision", { currentRevisionId: currentTask.currentRevisionId });
+    // ADR-0009: a Report Task never delivers; a chart query needs a current, handled Report Task.
+    assertDeliverable(tx, currentTask);
     const revision = tx.getRevision(revisionId);
     if (!revision) throw new AnsweringError("REVISION_NOT_FOUND", `Revision ${input.revisionId} was not found`);
     const result = deps.semanticQualificationMode === "required"

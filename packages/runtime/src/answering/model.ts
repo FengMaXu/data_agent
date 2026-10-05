@@ -242,7 +242,9 @@ export type Facet<T> =
         | { readonly kind: "evidence"; readonly evidenceIds: NonEmpty<EvidenceId> }
         | { readonly kind: "hypothesis"; readonly hypothesisId: HypothesisId }
         /** Model inference without a bound Hypothesis or qualifying Evidence; disclosed, not blocking. */
-        | { readonly kind: "inference" };
+        | { readonly kind: "inference" }
+        /** Copied from the bound Revision of the parent Report Task (ADR-0009). */
+        | { readonly kind: "inherited"; readonly taskId: TaskId; readonly revisionId: RevisionId };
     };
 
 export interface AnswerSpec {
@@ -573,8 +575,24 @@ export interface QueryTaskRecord {
   readonly budget?: QueryBudgetState;
   /** Latest probe per Choice alternative; Choice ids are stable across revisions. */
   readonly choiceProbes?: readonly ChoiceProbeRecord[];
+  /** "report": a Report Task that holds shared fields and never publishes (ADR-0009). */
+  readonly role?: "report";
+  /** A chart query's Report Task and the parent Revision its inherited fields were copied from. */
+  readonly parent?: ParentBinding;
   readonly createdAt: string;
   readonly updatedAt: string;
+}
+
+export interface ParentBinding {
+  readonly taskId: TaskId;
+  readonly revisionId: RevisionId;
+}
+
+/** A chart query's change to a field it inherits from its Report Task, with the reason given (ADR-0009 decision 3). */
+export interface Deviation {
+  /** A shared slot or decision point name. */
+  readonly path: string;
+  readonly reason: string;
 }
 
 export interface AnswerRevisionRecord {
@@ -597,6 +615,8 @@ export interface AnswerRevisionRecord {
   readonly probeWaivers?: readonly ProbeWaiver[];
   /** Declared decision points (ADR-0005); absent on legacy revisions, which are exempt. */
   readonly decisionPoints?: DecisionPoints;
+  /** Inherited fields this chart query changed, with reasons; carried forward and disclosed. */
+  readonly deviations?: readonly Deviation[];
 }
 
 export interface ResultCandidateRecord {
@@ -631,6 +651,8 @@ export interface PublicationDisclosure {
   readonly inferredFacets?: readonly FacetName[];
   readonly summary: string;
   readonly fanoutStatus?: FanoutReport["status"];
+  /** Shared fields this chart query changed from its Report Task. */
+  readonly deviations?: readonly Deviation[];
 }
 
 /** Internal typestate. No model/HTTP caller can construct this permit. */
@@ -770,6 +792,10 @@ export interface AnswerRevisionView {
   readonly specFeedback?: SpecFeedback;
   /** Per-step outcome when the call carried `steps`, in call order. */
   readonly steps?: readonly StepOutcome[];
+  readonly role?: "report";
+  /** For a chart query: its Report Task, the bound parent Revision and whether that is still current. */
+  readonly parent?: ParentBinding & { readonly current: boolean };
+  readonly deviations?: readonly Deviation[];
 }
 
 export interface QueryExecutionView {
@@ -799,6 +825,13 @@ export interface SpecStep {
   readonly decisionPoints?: readonly DecisionPointProposal[];
   readonly dispositions?: readonly DispositionProposal[];
   readonly evidence?: readonly UntrustedEvidenceInput[];
+  /** Reasons for changing fields inherited from the Report Task. */
+  readonly deviations?: readonly DeviationProposal[];
+}
+
+export interface DeviationProposal {
+  readonly path: string;
+  readonly reason: string;
 }
 
 export interface StepOutcome {
@@ -821,6 +854,12 @@ export interface BeginAnswer {
   readonly requestId: string;
   /** Stepped begin: create the task from an empty spec, then apply each step (see SpecStep). */
   readonly steps?: readonly SpecStep[];
+  /** Start a Report Task: shared fields only, never a result (ADR-0009). */
+  readonly report?: boolean;
+  /** Start a chart query under this Report Task; it inherits the shared fields. */
+  readonly parent?: { readonly taskId: string };
+  /** Reasons for changing inherited fields in the same call. */
+  readonly deviations?: readonly DeviationProposal[];
 }
 
 /**
@@ -841,6 +880,10 @@ export interface ReviseAnswer {
   readonly requestId: string;
   /** Stepped revise, exclusive with the single-delta fields above (see SpecStep). */
   readonly steps?: readonly SpecStep[];
+  /** Chart query: bind to the Report Task's current Revision and copy its shared fields again. */
+  readonly rebind?: boolean;
+  /** Reasons for changing inherited fields in the same call. */
+  readonly deviations?: readonly DeviationProposal[];
 }
 
 /**
