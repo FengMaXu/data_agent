@@ -114,6 +114,23 @@ describe("Report Task", () => {
     await expect(result(answering, child.taskId, rebound.revisionId, "blocked")).rejects.toMatchObject({ code: "PARENT_UNRESOLVED" });
   });
 
+  it("does not block chart queries on a Report Task Choice whose probes all match", async () => {
+    const answering = service();
+    const parent = await answering.begin({ requestMessageId: "message-1", requestId: "report", spec: {}, report: true, steps: [{
+      ...sharedStep,
+      decisionPoints: ["join_multiplicity", "time_field", "window"].map(na),
+      addChoices: [{ localId: "population", affects: ["filters"], alternatives: [{ localId: "all", statement: "全部订单" }, { localId: "delivered", statement: "已送达订单" }] }],
+    }] } as never, context("report"));
+    const choice = parent.choices[0]!;
+    await answering.revise({ taskId: parent.taskId, baseRevisionId: parent.revisionId, requestId: "point", steps: [{ label: "point", decisionPoints: [{ name: "population", status: "choice", choiceId: choice.id }] }] } as never, context("point"));
+    const child = await chart(answering, parent.taskId);
+    await expect(result(answering, child.taskId, child.revisionId, "before")).rejects.toMatchObject({ code: "PARENT_UNRESOLVED" });
+    for (const alternative of choice.alternatives) {
+      await answering.execute({ kind: "exploration", taskId: parent.taskId, sql: "SELECT 42", probe: { choiceId: choice.id, alternativeId: alternative.id } }, context(`probe-${alternative.id}`));
+    }
+    await expect(result(answering, child.taskId, child.revisionId, "after")).resolves.toMatchObject({ kind: "result" });
+  });
+
   it("lets a chart query cite its Report Task's evidence", async () => {
     const answering = service();
     const parent = await report(answering);
