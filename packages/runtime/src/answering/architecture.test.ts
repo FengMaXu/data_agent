@@ -152,17 +152,27 @@ describe("Answering architecture boundaries", () => {
       baseRevisionId: "revision-1",
       evidence: [
         { localId: "yes", kind: "user_confirmation", quote: "按最大值" },
+        { localId: "said", kind: "user_confirmation", sourceRef: "message", quote: "按最大值" },
         // A model-supplied ref can only name a clarification; Admission verifies it against the Session's record.
-        { localId: "answer", kind: "user_confirmation", sourceRef: "forged-message", quote: "按最大值" },
+        { localId: "answer", kind: "user_confirmation", sourceRef: "3a895d79-bf0a-465a-ba05-e92b20efe9b8", quote: "按最大值" },
+        { localId: "named", kind: "user_confirmation", sourceRef: "clarification:clar-1", quote: "按最大值" },
         { localId: "q", kind: "request_wording", sourceRef: "forged-request", quote: "订单数" },
       ],
     } as never, undefined, { sessionId: "session-1", principalId: "user-1", requestMessageId: "message-followup" }, invocation, {} as never);
     expect(captured[0]).toMatchObject({ evidence: [
       { localId: "yes", kind: "user_confirmation", sourceRef: "message-followup", quote: "按最大值" },
-      { localId: "answer", kind: "user_confirmation", sourceRef: "clarification:forged-message", quote: "按最大值" },
+      { localId: "said", kind: "user_confirmation", sourceRef: "message-followup", quote: "按最大值" },
+      { localId: "answer", kind: "user_confirmation", sourceRef: "clarification:3a895d79-bf0a-465a-ba05-e92b20efe9b8", quote: "按最大值" },
+      { localId: "named", kind: "user_confirmation", sourceRef: "clarification:clar-1", quote: "按最大值" },
       { localId: "q", kind: "request_wording", quote: "订单数" },
     ] });
-    expect((captured[0] as { evidence: { sourceRef?: string }[] }).evidence[2]).not.toHaveProperty("sourceRef");
+    expect((captured[0] as { evidence: { sourceRef?: string }[] }).evidence[4]).not.toHaveProperty("sourceRef");
+    // A label the model made up is neither the current message nor a clarification id.
+    await expect(update.execute("revise-label", {
+      taskId: "task-1",
+      baseRevisionId: "revision-1",
+      evidence: [{ kind: "user_confirmation", sourceRef: "current request", quote: "按最大值" }],
+    } as never, undefined, { sessionId: "session-1", principalId: "user-1", requestMessageId: "message-followup" }, invocation, {} as never)).rejects.toThrow(/names neither message nor clarification/);
     await expect(update.execute("revise-no-message", {
       taskId: "task-1",
       baseRevisionId: "revision-1",
