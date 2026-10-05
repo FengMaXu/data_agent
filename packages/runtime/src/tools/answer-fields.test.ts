@@ -180,6 +180,57 @@ describe("set_answer_spec", () => {
     expect(published.details.disclosure?.provisionalChoiceIds).toEqual([choice.id]);
   });
 
+  it("builds a report: one Report Task, three chart queries in parallel, three publications", async () => {
+    const { run } = setup();
+    const report = await run("set_answer_spec", { report: true, fields: {
+      entity: { value: "orders", basis: "request", quote: "订单" },
+      filters: "n/a",
+      time: { value: "2018 年", basis: "request", quote: "2018 年" },
+      "filters.population": { value: "全部订单", basis: "request", quote: "所有订单" },
+      "entity.joinMultiplicity": "n/a",
+      "time.field": { value: "order_purchase_timestamp", cite: [{ source: "schema:orders.order_purchase_timestamp" }] },
+      "time.window": "n/a",
+      "metrics.orders": { value: { kind: "count", expression: "COUNT(DISTINCT order_id)", countGrain: "按订单" }, basis: "request", quote: "订单量" },
+    } });
+    expect(report.text).toContain("共享字段已处理");
+    const reportId = report.details.taskId as string;
+
+    const chartFields = (groupBy: unknown) => ({
+      metric: { ref: "orders" },
+      groupBy,
+      ranking: "n/a",
+      output: { rowMode: groupBy === "n/a" ? "scalar" : "grouped" },
+      "metric.denominator": "n/a",
+      "ranking.ties": "n/a",
+      "output.shape": "n/a",
+    });
+    const charts = await Promise.all([
+      run("set_answer_spec", { parentTaskId: reportId, fields: chartFields("n/a") }),
+      run("set_answer_spec", { parentTaskId: reportId, fields: chartFields(["customer_state"]) }),
+      run("set_answer_spec", { parentTaskId: reportId, fields: chartFields(["order_month"]) }),
+    ]);
+    for (const chart of charts) {
+      expect(chart.text).toContain("指标取自报告任务的 metrics.orders");
+      expect(chart.text).toContain("可以执行结果查询");
+    }
+    const results = await Promise.all(charts.map((chart) => run("query_database", { kind: "result", taskId: chart.details.taskId, revisionId: chart.details.revisionId, sql: "SELECT orders" })));
+    const receipts = await Promise.all(results.map((item) => run("publish_query_result", { candidateId: item.details.artifact.candidateId, format: "inline" })));
+    expect(new Set(receipts.map((item) => item.details.receiptId)).size).toBe(3);
+
+    // The Report Task changes: a chart query is refused until it rebinds.
+    const changed = await run("set_answer_spec", { taskId: reportId, fields: { time: { value: "2017 年", basis: "assumed", rationale: "对比上一年", reason: "改看 2017 年" } } });
+    expect(changed.text).toContain("✓ time");
+    const first = charts[0]!.details;
+    await expect(run("query_database", { kind: "result", taskId: first.taskId, revisionId: first.revisionId, sql: "SELECT lines" })).rejects.toMatchObject({ code: "PARENT_REVISION_STALE" });
+    const rebound = await run("set_answer_spec", { taskId: first.taskId, fields: {}, rebind: true });
+    expect(rebound.text).toContain(`继承自 ${changed.details.revisionId}`);
+    await expect(run("query_database", { kind: "result", taskId: first.taskId, revisionId: rebound.details.revisionId, sql: "SELECT lines" })).resolves.toMatchObject({ text: expect.stringContaining("[RESULT_CANDIDATE]") });
+
+    // Changing an inherited field in a chart query is a disclosed deviation.
+    const deviated = await run("set_answer_spec", { taskId: charts[1]!.details.taskId, fields: { filters: { value: "order_status = 'delivered'", basis: "assumed", rationale: "这张图只看已送达", reason: "只看已送达订单" } } });
+    expect(deviated.text).toContain("偏离共享口径（发布时披露）: filters（只看已送达订单）");
+  });
+
   it("refuses an assumed population while the user can still be asked, and keeps the other paths", async () => {
     const { run } = setup();
     const first = await run("set_answer_spec", { fields: {

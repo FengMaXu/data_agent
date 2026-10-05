@@ -382,7 +382,13 @@ export const BEGIN_QUERY_TASK_PARAMETERS = Type.Object({}, { additionalPropertie
 /** set_answer_spec: field values are checked per path by the compiler, so the schema stays open. */
 export const SET_ANSWER_SPEC_PARAMETERS = Type.Object({
   taskId: Type.Optional(nonEmptyStringSchema),
-  fields: Type.Record(Type.String({ minLength: 1 }), Type.Unknown(), { minProperties: 1 }),
+  fields: Type.Record(Type.String({ minLength: 1 }), Type.Unknown()),
+  /** ADR-0009: start a Report Task that holds the shared fields of a report or dashboard. */
+  report: Type.Optional(Type.Boolean()),
+  /** ADR-0009: start a chart query under this Report Task. */
+  parentTaskId: Type.Optional(nonEmptyStringSchema),
+  /** ADR-0009: copy the Report Task's current shared fields into this chart query again. */
+  rebind: Type.Optional(Type.Boolean()),
 }, { additionalProperties: false });
 
 export const ANSWERING_QUERY_PARAMETERS = Type.Union([
@@ -678,22 +684,32 @@ function setSpecTool(answering: Answering): AgentHarnessTool<DataAgentToolContex
     parameters: SET_ANSWER_SPEC_PARAMETERS,
     async execute(toolCallId, input, _onUpdate, toolContext, invocation, context) {
       void toolCallId;
-      const value = checked(SET_ANSWER_SPEC_PARAMETERS, input) as { taskId?: string; fields: Record<string, unknown> };
+      const value = checked(SET_ANSWER_SPEC_PARAMETERS, input) as { taskId?: string; fields: Record<string, unknown>; report?: boolean; parentTaskId?: string; rebind?: boolean };
+      if (value.taskId && (value.report || value.parentTaskId)) throw new Error("ANSWERING_TOOL_INPUT_INVALID: report and parentTaskId only start a task; omit taskId");
+      if (!value.taskId && value.rebind) throw new Error("ANSWERING_TOOL_INPUT_INVALID: rebind needs the chart query's taskId");
+      if (Object.keys(value.fields).length === 0 && !value.rebind) throw new Error("ANSWERING_TOOL_INPUT_INVALID: fields must set at least one path");
       const business = trustedContext(toolContext, invocation, context);
       const requestMessageId = toolContext?.requestMessageId?.trim();
       const before = value.taskId ? await answering.inspect({ taskId: value.taskId }, business) : undefined;
       const compiled = compileFields(value.fields, before ? { revision: before.currentRevision } : {}, requestMessageId);
       const steps = compiled.flatMap((item) => item.step ? [item.step] : []);
       const rejectedEarly = compiled.flatMap((item) => item.error ? [`- ✗ ${item.path}: ${item.error}`] : []);
-      if (steps.length === 0) {
+      if (steps.length === 0 && !value.rebind) {
         return result([`[ANSWER_SPEC_UNCHANGED]${before ? ` taskId=${before.task.taskId} revisionId=${before.task.currentRevisionId}` : ""}`, ...rejectedEarly].join("\n"), { fields: compiled });
       }
       let view: Awaited<ReturnType<Answering["revise"]>>;
       if (!before) {
         if (!requestMessageId) throw new Error("ANSWERING_REQUEST_MESSAGE_REQUIRED");
-        view = await answering.begin({ requestMessageId, requestId: invocation.invocationId, spec: {}, steps }, business);
+        view = await answering.begin({
+          requestMessageId,
+          requestId: invocation.invocationId,
+          spec: {},
+          steps,
+          ...(value.report ? { report: true } : {}),
+          ...(value.parentTaskId ? { parent: { taskId: value.parentTaskId } } : {}),
+        }, business);
       } else {
-        view = await answering.revise({ taskId: before.task.taskId, baseRevisionId: before.task.currentRevisionId, requestId: invocation.invocationId, steps }, business);
+        view = await answering.revise({ taskId: before.task.taskId, baseRevisionId: before.task.currentRevisionId, requestId: invocation.invocationId, ...(value.rebind ? { rebind: true } : {}), ...(steps.length > 0 || !value.rebind ? { steps } : {}) }, business);
       }
       const outcomes = new Map((view.steps ?? []).map((step) => [step.label, step]));
       const lines = compiled.map((item) => {
@@ -919,6 +935,7 @@ export function createAnsweringAgentToolDefinitions(
         "子字段（entity.joinMultiplicity、metric.countGrain、metric.denominator、filters.population、time.field、time.window、ranking.ties、output.shape）与 source 的 value 写一句话说明口径；8 个子字段都要声明，不适用的写 \"n/a\"。",
         "待定字段先用 query_database 的 probe 跑每个候选（choiceId/alternativeId 见返回的状态表）；输出全部相同时系统视为等价；不同时调用 compare_hypotheses，再写 {value:<候选原文>, rationale, evidenceIds?} 决定。",
         "改写已设置的字段须附 reason；每个路径独立生效，失败的路径不影响其他路径，按返回的 ✗ 原因只重发失败的路径。",
+        "报告和看板：先用 report: true 建一个报告任务，写共享字段（entity、filters、time、filters.population、entity.joinMultiplicity、time.field、time.window、source）和各指标定义 metrics.<名字>（value 为 {kind, expression, denominator?, countGrain?}）；再为每张图用 parentTaskId 建图表查询，只写 metric: {ref:\"<名字>\"}、groupBy、ranking、output 及其子字段。图表查询改共享字段须附 reason（记为偏离并披露）；报告任务修改后，图表查询先 rebind: true 再查询。",
       ],
     })] : []),
     ...(semanticSpecMode === "required" && specInterface === "legacy" ? [protocolTool(beginSpecTool(answering), {

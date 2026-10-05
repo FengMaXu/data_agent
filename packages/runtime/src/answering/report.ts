@@ -110,6 +110,8 @@ export function guardInheritance(before: RevisionBody, after: RevisionBody, prop
   for (const proposal of proposals ?? []) {
     const path = typeof proposal.path === "string" ? proposal.path.trim() : "";
     const reason = typeof proposal.reason === "string" ? proposal.reason.trim() : "";
+    // A reason for a metric of the chart query's own is harmless when the Report Task defines none.
+    if (path === "metric" && !metricShared) continue;
     if (!shared.has(path)) throw new AnsweringError("INVALID_REQUEST", `Deviation path ${path} is not a shared field; shared fields are ${[...shared].join(", ")}`);
     if (!reason) throw new AnsweringError("INVALID_REQUEST", `Deviation from ${path} needs a reason`);
     reasons.set(path, reason);
