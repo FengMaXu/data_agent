@@ -762,6 +762,8 @@ export interface AnswerRevisionView {
   readonly decisionPoints?: DecisionPoints;
   readonly undeclaredDecisionPoints?: readonly DecisionPointName[];
   readonly specFeedback?: SpecFeedback;
+  /** Per-step outcome when the call carried `steps`, in call order. */
+  readonly steps?: readonly StepOutcome[];
 }
 
 export interface QueryExecutionView {
@@ -776,8 +778,34 @@ export interface QueryExecutionView {
   readonly probe?: ChoiceProbeView & { readonly choiceId: ChoiceId };
 }
 
+/**
+ * One increment of a stepped begin/revise. Each step is checked on its own
+ * against the state the earlier applied steps left; a rejected step is skipped
+ * and the call still lands as one Revision. localIds are scoped to the step.
+ */
+export interface SpecStep {
+  /** Caller's name for the step, echoed in its outcome. */
+  readonly label: string;
+  readonly spec?: AnswerSpecProposal;
+  readonly addHypotheses?: readonly HypothesisProposal[];
+  readonly addChoices?: readonly ChoiceProposal[];
+  readonly notProbeable?: readonly ProbeWaiverProposal[];
+  readonly decisionPoints?: readonly DecisionPointProposal[];
+  readonly dispositions?: readonly DispositionProposal[];
+  readonly evidence?: readonly UntrustedEvidenceInput[];
+}
+
+export interface StepOutcome {
+  readonly label: string;
+  readonly status: "applied" | "rejected";
+  /** Error code and message of a rejected step. */
+  readonly code?: string;
+  readonly message?: string;
+}
+
 export interface BeginAnswer {
   readonly requestMessageId: string;
+  /** Ignored when `steps` is present: the task starts from an empty spec. */
   readonly spec: AnswerSpecProposal;
   readonly hypotheses?: readonly HypothesisProposal[];
   readonly choices?: readonly ChoiceProposal[];
@@ -785,6 +813,8 @@ export interface BeginAnswer {
   readonly decisionPoints?: readonly DecisionPointProposal[];
   readonly evidence?: readonly UntrustedEvidenceInput[];
   readonly requestId: string;
+  /** Stepped begin: create the task from an empty spec, then apply each step (see SpecStep). */
+  readonly steps?: readonly SpecStep[];
 }
 
 /**
@@ -803,6 +833,8 @@ export interface ReviseAnswer {
   readonly dispositions?: readonly DispositionProposal[];
   readonly evidence?: readonly UntrustedEvidenceInput[];
   readonly requestId: string;
+  /** Stepped revise, exclusive with the single-delta fields above (see SpecStep). */
+  readonly steps?: readonly SpecStep[];
 }
 
 /**

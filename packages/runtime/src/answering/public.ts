@@ -58,6 +58,8 @@ export {
   type PublishCandidate,
   type RefreshPublication,
   type ReviseAnswer,
+  type SpecStep,
+  type StepOutcome,
   type SpecFeedback,
   type SpecFeedbackAssessment,
   type SpecFeedbackChoice,
