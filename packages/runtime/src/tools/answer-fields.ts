@@ -44,7 +44,28 @@ const SUBFIELDS: Readonly<Record<string, SubfieldRule>> = {
   source: { affects: ["entity", "metric", "filters"], kind: "physical_mapping" },
 };
 
-export const FIELD_PATHS: readonly string[] = [...SLOTS, ...Object.keys(SUBFIELDS)];
+export const FIELD_PATHS: readonly string[] = [...SLOTS, ...Object.keys(SUBFIELDS), "metrics.<name>"];
+
+/** A Report Task's named metric definitions (ADR-0009); each is set like the metric slot. */
+const METRIC_DEFINITION = /^metrics\.([A-Za-z0-9_一-鿿-]{1,64})$/;
+
+/**
+ * The shared field a chart query deviates on when it changes a path (ADR-0009
+ * decision 3). The field's `reason` is the deviation reason.
+ */
+const DEVIATION_PATHS: Readonly<Record<string, string>> = {
+  entity: "entity",
+  filters: "filters",
+  time: "time",
+  metric: "metric",
+  "filters.population": "population",
+  "entity.joinMultiplicity": "join_multiplicity",
+  "time.field": "time_field",
+  "time.window": "window",
+};
+
+/** Paths a Report Task owns (ADR-0009 decision 2). */
+const REPORT_PATHS = new Set(["entity", "filters", "time", "filters.population", "entity.joinMultiplicity", "time.field", "time.window"]);
 
 const POINT_PATHS = new Map(Object.entries(SUBFIELDS).flatMap(([path, rule]) => rule.point ? [[rule.point, path] as const] : []));
 
@@ -205,21 +226,48 @@ function slotValue(slot: FacetName, value: unknown): unknown {
   return value;
 }
 
-function slotPatch(slot: FacetName, value: unknown, basis: Record<string, unknown>): Record<string, unknown> {
-  const facetValue = slotValue(slot, value);
-  if (slot === "filters" || slot === "groupBy") {
-    const list = facetValue as unknown[];
-    return { [slot]: list.map((item) => Object.keys(basis).length > 0 ? { value: item, ...basis } : item) };
+/** Where a slot-like path writes its facet: a slot of the spec, or one named metric definition. */
+interface SlotTarget {
+  readonly slot: FacetName;
+  readonly set: boolean;
+  readonly patch: (facet: unknown) => Record<string, unknown>;
+  readonly notApplicable: unknown;
+}
+
+function slotTarget(path: string, revision: CompileContext["revision"]): SlotTarget | undefined {
+  if ((SLOTS as readonly string[]).includes(path)) {
+    const slot = path as FacetName;
+    const list = slot === "filters" || slot === "groupBy";
+    return { slot, set: slotIsSet(slot, revision), patch: (facet) => ({ [slot]: facet }), notApplicable: list ? [] : { state: "not_applicable" } };
   }
-  return { [slot]: Object.keys(basis).length > 0 ? { value: facetValue, ...basis } : facetValue };
+  const name = METRIC_DEFINITION.exec(path)?.[1];
+  if (!name) return undefined;
+  // "n/a" removes the definition.
+  return { slot: "metric", set: Boolean(revision?.spec.metrics?.[name]), patch: (facet) => ({ metrics: { [name]: facet } }), notApplicable: null };
+}
+
+function slotPatch(target: SlotTarget, value: unknown, basis: Record<string, unknown>): Record<string, unknown> {
+  const facetValue = slotValue(target.slot, value);
+  const wrap = (item: unknown) => Object.keys(basis).length > 0 ? { value: item, ...basis } : item;
+  const list = target.slot === "filters" || target.slot === "groupBy";
+  return target.patch(list ? (facetValue as unknown[]).map(wrap) : wrap(facetValue));
 }
 
 function compileOne(path: string, input: unknown, context: CompileContext, currentMessageId: string | undefined): SpecStep {
-  const slot = (SLOTS as readonly string[]).includes(path) ? path as FacetName : undefined;
-  const rule = SUBFIELDS[path];
-  if (!slot && !rule) fail(`unknown field path ${path}; use one of ${FIELD_PATHS.join(", ")}`);
-  const { state, reason } = parseState(path, input, Boolean(slot));
+  const step = compileStep(path, input, context, currentMessageId);
+  // On a chart query, the reason for changing an inherited field is its deviation reason.
+  const reason = text(record(input)?.reason);
+  const deviation = DEVIATION_PATHS[path];
+  return reason && deviation ? { ...step, deviations: [{ path: deviation, reason }] } : step;
+}
+
+function compileStep(path: string, input: unknown, context: CompileContext, currentMessageId: string | undefined): SpecStep {
   const revision = context.revision;
+  const target = slotTarget(path, revision);
+  const slot = target?.slot;
+  const rule = SUBFIELDS[path];
+  if (!target && !rule) fail(`unknown field path ${path}; use one of ${FIELD_PATHS.join(", ")}`);
+  const { state, reason } = parseState(path, input, Boolean(target));
   const existing = itemsOf(path, revision);
   const open = openChoice(path, revision);
   const step: { label: string } & Omit<SpecStep, "label"> & Record<string, unknown> = { label: path };
@@ -239,13 +287,13 @@ function compileOne(path: string, input: unknown, context: CompileContext, curre
       ...(state.evidenceIds ? { evidenceIds: state.evidenceIds } : {}),
       ...(state.adviceOverride ? { adviceOverride: state.adviceOverride } : {}),
     });
-    if (slot) Object.assign(step, { spec: slotPatch(slot, state.value, {}) });
+    if (target) Object.assign(step, { spec: slotPatch(target, state.value, {}) });
     return { ...step, dispositions } as SpecStep;
   }
 
   // Rewriting a handled field needs a reason; its items leave only by supersession (ADR-0007 decision 6).
   const owned = [...existing.hypotheses, ...existing.choices];
-  const alreadySet = owned.length > 0 || (slot ? slotIsSet(slot, revision) : Boolean(rule?.point && revision?.decisionPoints?.[rule.point]));
+  const alreadySet = owned.length > 0 || (target ? target.set : Boolean(rule?.point && revision?.decisionPoints?.[rule.point]));
   if (alreadySet && !reason) fail(`${path} is already set; add "reason" to change it, or decide its open candidates with {value, rationale}`);
 
   const replacement = `${path}#item`;
@@ -254,6 +302,7 @@ function compileOne(path: string, input: unknown, context: CompileContext, curre
   };
 
   if (state.kind === "open") {
+    if (target && target.slot !== path) fail(`${path} cannot hold text candidates; a metric definition is an object`);
     if (slot && NO_OPEN_SLOTS.has(slot)) fail(`${path} cannot hold text candidates; leave ${path} to its sub-field (${path}.${slot === "ranking" ? "ties" : "shape"}) or set it directly`);
     const choice: ChoiceProposal = {
       localId: replacement,
@@ -267,21 +316,21 @@ function compileOne(path: string, input: unknown, context: CompileContext, curre
     return { ...step, ...(dispositions.length > 0 ? { dispositions } : {}) } as SpecStep;
   }
 
-  if (slot) {
+  if (target) {
     // A slot records its basis on the facet; replacing a Choice needs a new Choice or a decision.
     if (existing.choices.length > 0) fail(`${path} has candidates; decide one with {value, rationale}, or replace them with {open:[...], reason}`);
-    if (state.kind === "na") return { ...step, spec: { [slot]: slot === "filters" || slot === "groupBy" ? [] : { state: "not_applicable" } } } as SpecStep;
+    if (state.kind === "na") return { ...step, spec: target.patch(target.notApplicable) } as SpecStep;
     if (state.kind === "request") {
       evidence.push(requestEvidence(path, state.quote));
-      return { ...step, evidence, spec: slotPatch(slot, state.value, { evidenceIds: [`${path}#request`] }) } as SpecStep;
+      return { ...step, evidence, spec: slotPatch(target, state.value, { evidenceIds: [`${path}#request`] }) } as SpecStep;
     }
     if (state.kind === "cite") {
       evidence.push(...citeEvidence(path, state.cite, currentMessageId));
-      return { ...step, evidence, spec: slotPatch(slot, state.value, { evidenceIds: evidence.map((item) => item.localId!) }) } as SpecStep;
+      return { ...step, evidence, spec: slotPatch(target, state.value, { evidenceIds: evidence.map((item) => item.localId!) }) } as SpecStep;
     }
-    if (state.kind === "observed") return { ...step, spec: slotPatch(slot, state.value, { evidenceIds: state.evidenceIds }) } as SpecStep;
+    if (state.kind === "observed") return { ...step, spec: slotPatch(target, state.value, { evidenceIds: state.evidenceIds }) } as SpecStep;
     // assumed and inferred: model inference, disclosed at publication.
-    return { ...step, spec: slotPatch(slot, state.value, {}) } as SpecStep;
+    return { ...step, spec: slotPatch(target, state.value, {}) } as SpecStep;
   }
 
   if (state.kind === "na") {
@@ -346,6 +395,13 @@ function pathOf(statement: string): string | undefined {
  */
 export function fieldStateTable(view: AnswerRevisionView): string {
   const lines: string[] = [];
+  const report = view.role === "report";
+  if (report) lines.push("- 报告任务：只设共享字段（entity、filters、time、filters.population、entity.joinMultiplicity、time.field、time.window、source、metrics.<name>），本身不出结果；每张图用 parentTaskId 建一个图表查询");
+  if (view.parent) {
+    lines.push(`- 报告任务 ${view.parent.taskId}：继承自 ${view.parent.revisionId}${view.parent.current ? "" : "；报告任务已修改，先用 rebind: true 重新绑定"}`);
+    if (view.metricRef) lines.push(`- 指标取自报告任务的 metrics.${view.metricRef}`);
+    if (view.deviations && view.deviations.length > 0) lines.push(`- 偏离共享口径（发布时披露）: ${view.deviations.map((item) => `${item.path}（${item.reason}）`).join("；")}`);
+  }
   const open = view.choices.filter((choice) => choice.status === "unresolved");
   for (const choice of open) {
     const path = pathOf(choice.alternatives[0]!.statement) ?? choice.affects.join("+");
@@ -365,12 +421,14 @@ export function fieldStateTable(view: AnswerRevisionView): string {
   if (unverified.length > 0) lines.push(`- 未证实（发布时披露）: ${[...new Set(unverified)].join(", ")}`);
   const pending = view.hypotheses.filter((item) => item.status === "unresolved").map((item) => pathOf(item.statement) ?? item.id);
   if (pending.length > 0) lines.push(`- 未处置的假设: ${pending.join(", ")}`);
+  // A Report Task answers only for its shared fields.
+  const shared = (path: string) => !report || REPORT_PATHS.has(path);
   const undeclared = [
     ...view.unresolvedFacets.filter((facet) => !open.some((choice) => choice.affects.includes(facet))),
     ...(view.undeclaredDecisionPoints ?? []).map((point) => POINT_PATHS.get(point) ?? point),
-  ];
+  ].filter(shared);
   if (undeclared.length > 0) lines.push(`- 未声明: ${[...new Set(undeclared)].join(", ")}`);
   // Unverified fields are disclosed, not blocking.
-  if (open.length === 0 && pending.length === 0 && undeclared.length === 0) lines.push("- 没有待处理的字段，可以执行结果查询");
+  if (open.length === 0 && pending.length === 0 && undeclared.length === 0) lines.push(report ? "- 共享字段已处理，图表查询可以执行结果查询" : "- 没有待处理的字段，可以执行结果查询");
   return lines.join("\n");
 }

@@ -90,7 +90,17 @@ query_database(kind="result", taskId, revisionId, sql)
 - 最终查询绑定状态表所在的当前 `revisionId`，只执行一次，生成不可变的 Result Candidate。CandidateCheck 拒绝时修正 SQL；结果与未采纳候选的探针输出相同时以 `CHOICE_NOT_REALIZED` 拒绝，改 SQL 实现已采纳的候选。
 - `[IMPLEMENTATION_OBSTACLE]` 按 `kind` 判断：技术失败在预算内修 SQL；业务判断、映射不足、预算耗尽或执行结果未知时回到取证、澄清或说明限制。
 
-## 6. 发布
+## 6. 报告与看板
+
+一份报告或看板有多张图时，共用的口径只声明一次：
+
+1. **报告任务**：`set_answer_spec({ report: true, fields })`，只写共享字段——`entity`、`filters`、`time`、`filters.population`、`entity.joinMultiplicity`、`time.field`、`time.window`、`source`——和各指标定义 `metrics.<名字>`，值为 `{ kind, expression, denominator?, countGrain? }`，写法同其他槽位。报告任务本身不执行结果查询、不发布。
+2. **图表查询**：每张图 `set_answer_spec({ parentTaskId, fields })`，共享字段自动继承，只写 `metric: { "ref": "<名字>" }`、`groupBy`、`ranking`、`output` 及 `metric.denominator`、`metric.countGrain`、`ranking.ties`、`output.shape`（指标定义写了分母或计数粒度的，对应子字段已继承）。
+3. 报告任务处理完后，各图表查询的结果查询互不依赖，可以在同一轮里并行发出，再分别发布。
+4. **偏离**：图表查询改共享字段或用自己的指标时须附 `reason`，记为偏离，发布时披露。
+5. **报告任务修改后**，绑定旧版本的图表查询不能再执行结果查询或发布（`PARENT_REVISION_STALE`）：先 `set_answer_spec({ taskId, fields: {}, rebind: true })` 重新继承，偏离过的字段保留。报告任务还有未处理的字段或假设时，所有图表查询的结果查询都被阻断（`PARENT_UNRESOLVED`）。
+
+## 7. 发布
 
 - 行数 ≤ 10：`publish_query_result(candidateId, format="inline")`
 - 行数 > 10：`export_query(candidateId, format="csv")`

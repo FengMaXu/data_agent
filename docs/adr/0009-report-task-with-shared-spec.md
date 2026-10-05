@@ -101,3 +101,13 @@ ADR-0008 决策 4 要求图表数据通过数据集引用获取，由 Runtime �
 6. **刷新与父任务取代。** ADR-0010 的刷新重新执行原 Receipt 所属的同一个已封存 Revision，不检查它是否仍是当前 Revision（`refresh.ts`）。按决策 5，父任务产生新 Revision 后，子任务不能再执行结果查询或发布；刷新属于哪一种需要规定。方向：刷新仍允许（它不改变口径，只更新数据），但新 Receipt 的 Disclosure 须标明所依据的父 Revision 已被取代。
 
 7. **公共基础集合不由父任务承载。** 各子任务重复计算的去重或清洗子查询，不在父任务中以 SQL 片段共享；整行重复这类缺陷在数据层修复（ADR-0007 补充待定 5），`source` 只指向数据库中已存在的关系。
+
+## 实施记录（2026-10-05）
+
+本 ADR 在 ADR-0007 字段接口（`specInterface: "fields"`）之上实现，状态仍由维护者决定。与上文相比的取舍：
+
+- **工具接口**：`set_answer_spec` 增加 `report: true`（建报告任务）、`parentTaskId`（建图表查询）、`rebind: true`（重新继承）。图表查询改共享字段时，字段的 `reason` 即偏离理由。领域层只在逐步写入（`steps`）时接受建立报告任务和图表查询。
+- **共享字段固定为**：`entity`、`filters`、`time` 三个槽位，`population`、`join_multiplicity`、`time_field`、`window` 四个决策点，以及 `metrics.<名字>` 指标定义。`source` 在第一阶段编译为影响实体、指标、过滤的 Hypothesis，写在报告任务上时，其未处理状态按决策 6 阻断全部图表查询。
+- **指标定义的分母与计数粒度写在定义的值里**（`{ kind, expression, denominator?, countGrain? }`），没有单设 `metrics.<名字>.denominator` 子路径；引用了写明分母或计数粒度的定义时，图表查询对应的决策点按继承声明。
+- **每个图表查询的 Revision 记录它继承自哪一个父 Revision**，刷新据此判断补充待定 6 的“父 Revision 已被取代”，而不是看任务当前的绑定。
+
