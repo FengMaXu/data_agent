@@ -887,7 +887,8 @@ function publishTool(answering: Answering, contentReader: PublishedContentReader
       const link = `[download](${view.publicRef})`;
       const disclosure = view.disclosure ? `\n[DISCLOSURE] ${view.disclosure.summary}` : "";
       // receiptId is the Dataset Reference charts cite; it must not have to be parsed out of the link.
-      return result(`[PUBLISHED] ${view.format} ${link} receiptId=${view.receiptId}${disclosure}${inline ? `\n${inline}` : ""}`, view);
+      // Inline content rides in details so Presentation can deliver it without parsing model-facing text.
+      return result(`[PUBLISHED] ${view.format} ${link} receiptId=${view.receiptId}${disclosure}${inline ? `\n${inline}` : ""}`, inline ? { ...view, inlineContent: inline } : view);
     },
   };
 }
