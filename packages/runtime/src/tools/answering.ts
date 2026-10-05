@@ -179,8 +179,9 @@ const evidenceSchema = Type.Object({
   kind: modelEvidenceKindSchema,
   /**
    * Document kinds: knowledgeId. schema_fact: schema reference. user_confirmation:
-   * the clarificationId of an answered ask_user_clarification, or omitted for the
-   * user's current message. Ignored for request_wording.
+   * omitted or "message" for the user's current message, or the clarificationId of
+   * an answered ask_user_clarification (bare or "clarification:<id>"); anything else
+   * is rejected. Ignored for request_wording.
    */
   sourceRef: Type.Optional(nonEmptyStringSchema),
   quote: Type.Optional(nonEmptyStringSchema),
@@ -500,15 +501,24 @@ export function trustedContext(
  * current operation, and request wording is bound by Answering to the task's
  * original request. Model-supplied sourceRefs for either are discarded.
  */
+const CURRENT_MESSAGE_REF = "message";
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
  * Where a user_confirmation was said: the clarification answer the model names
  * by id, or the Host's current user message. Admission verifies either against
- * text the Host recorded; the model only points.
+ * text the Host recorded; the model only points, and a ref that is neither is
+ * rejected here rather than looked up as a clarification that cannot exist.
  */
 function confirmationSource(named: string | undefined, currentUserMessageId: string | undefined): string | undefined {
-  const clarificationId = named?.trim().replace(CLARIFICATION_SOURCE_PREFIX, "");
-  return clarificationId ? `${CLARIFICATION_SOURCE_PREFIX}${clarificationId}` : currentUserMessageId;
+  const ref = named?.trim();
+  if (!ref || ref === CURRENT_MESSAGE_REF) return currentUserMessageId;
+  if (ref.startsWith(CLARIFICATION_SOURCE_PREFIX) && ref.length > CLARIFICATION_SOURCE_PREFIX.length) return ref;
+  // ask_user_clarification returns UUIDs; any other bare text is a label the model made up.
+  if (UUID.test(ref)) return `${CLARIFICATION_SOURCE_PREFIX}${ref}`;
+  throw new Error(`ANSWERING_TOOL_INPUT_INVALID: user_confirmation sourceRef ${JSON.stringify(ref)} names neither message nor clarification. Omit sourceRef or write "${CURRENT_MESSAGE_REF}" for the user's current message, or give the clarificationId returned by ask_user_clarification (bare or as "${CLARIFICATION_SOURCE_PREFIX}<id>").`);
 }
+
 
 function proposalEvidence(
   value: readonly { readonly localId?: string; readonly kind: string; readonly sourceRef?: string; readonly quote?: string }[] | undefined,
@@ -943,7 +953,7 @@ export function createAnsweringAgentToolDefinitions(
       promptGuidelines: ["每个请求只建立一次；证据须附逐字引文，由系统核验。", "同时声明 8 个决策点（population、join_multiplicity、time_field、count_grain、denominator、window、ties、output_shape）；fixed_by_request 须引用原题逐字片段。", "会相互排斥的解释建成 Choice；Choice 要先探针再决定，建立时一般不直接决定。"],
     }), protocolTool(reviseSpecTool(answering), {
       promptSnippet: "增量修订当前 Answer Spec 并处置已有项。",
-      promptGuidelines: ["只提交变化，用返回的 ID 处置已有项；未提及的内容保留。", "Choice 的每个候选先做探针：输出相同的处置为 equivalent；否则用 decide，必须写 rationale，可附 evidenceIds；证据不够格时自动记为未证实并披露，不会失败。", "decide 的结果不是 compare_hypotheses 的明显倾向时，须附 adviceOverride（理由与至少一条证据）。", "SpecFeedback 只提供核对信息，不能替代业务证据或静默改变口径。"],
+      promptGuidelines: ["只提交变化，用返回的 ID 处置已有项；未提及的内容保留。", "Choice 的每个候选先做探针：输出全部相同的 Choice 由系统视为等价，不用处置；否则用 decide，必须写 rationale，可附 evidenceIds；证据不够格时自动记为未证实并披露，不会失败。", "decide 的结果不是 compare_hypotheses 的明显倾向时，须附 adviceOverride（理由与至少一条证据）。", "SpecFeedback 只提供核对信息，不能替代业务证据或静默改变口径。"],
     })] : []),
     ...(semanticSpecMode === "disabled" ? [protocolTool(beginQueryTaskTool(answering), {
       promptSnippet: "为语义规格消融实验创建一个不含模型七槽位定义的 Query Task。",
@@ -955,7 +965,7 @@ export function createAnsweringAgentToolDefinitions(
     }),
     ...(hypothesisComparison ? [protocolTool(hypothesisComparisonTool(answering, hypothesisComparison), {
       promptSnippet: "请求 Jev 比较一个 Choice 的全部候选。",
-      promptGuidelines: ["传入 taskId 和 choiceId，候选由系统从 Answer Spec 读取；先给每个候选做探针，输出相同的 Choice 直接处置为 equivalent，无需比较。建议不是 Evidence，不能单独处置 Choice；处置结果偏离建议的明显倾向时，须附 adviceOverride（理由与证据）。"],
+      promptGuidelines: ["传入 taskId 和 choiceId，候选由系统从 Answer Spec 读取；先给每个候选做探针，输出全部相同的 Choice 由系统视为等价，无需比较或处置。建议不是 Evidence，不能单独处置 Choice；处置结果偏离建议的明显倾向时，须附 adviceOverride（理由与证据）。"],
     })] : []),
     protocolTool(publishTool(answering, contentReader, "publish_query_result"), {
       promptSnippet: "发布当前不可变 Candidate 的小结果。",

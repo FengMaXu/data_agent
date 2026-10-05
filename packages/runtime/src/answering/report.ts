@@ -2,6 +2,7 @@ import type { DecisionPointName, DecisionPoints } from "./decision-points.js";
 import type {
   AnswerRevisionRecord,
   AnswerSpec,
+  ChoiceProbeRecord,
   Deviation,
   DeviationProposal,
   Facet,
@@ -11,6 +12,7 @@ import type {
 } from "./model.js";
 import { AnsweringError } from "./errors.js";
 import { unresolvedChoices, unresolvedHypotheses } from "./qualification.js";
+import { equivalentChoiceIds } from "./choice-probe.js";
 import type { AnsweringTransaction } from "./answering-store.js";
 import type { RevisionBody } from "./transition.js";
 
@@ -131,7 +133,7 @@ export function guardInheritance(before: RevisionBody, after: RevisionBody, prop
 }
 
 /** Shared items the Report Task has not handled: they block every chart query's result (ADR-0009 decision 6). */
-export function reportUnresolved(revision: AnswerRevisionRecord): readonly string[] {
+export function reportUnresolved(revision: AnswerRevisionRecord, probes: readonly ChoiceProbeRecord[] = []): readonly string[] {
   const facets = REPORT_FACETS.filter((facet) => {
     const value = revision.spec[facet];
     return Array.isArray(value) ? value.some((item) => item.state === "unknown") : (value as Facet<unknown>).state === "unknown";
@@ -141,7 +143,8 @@ export function reportUnresolved(revision: AnswerRevisionRecord): readonly strin
     ...facets,
     ...points,
     ...unresolvedHypotheses(revision.hypotheses, revision.resolutions),
-    ...unresolvedChoices(revision.choices, revision.choiceResolutions),
+    // Choices whose probes all match are handled, as at the seal (ADR-0005).
+    ...unresolvedChoices(revision.choices, revision.choiceResolutions, equivalentChoiceIds(revision, probes)),
   ];
 }
 
@@ -168,7 +171,7 @@ function assertParentDeliverable(tx: Pick<AnsweringTransaction, "getTask" | "get
   }
   const revision = tx.getRevision(parent.currentRevisionId);
   if (!revision) throw new AnsweringError("REVISION_NOT_FOUND", `Report Task Revision ${parent.currentRevisionId} was not found`);
-  const unresolved = reportUnresolved(revision);
+  const unresolved = reportUnresolved(revision, parent.choiceProbes ?? []);
   if (unresolved.length > 0) {
     throw new AnsweringError("PARENT_UNRESOLVED", `The Report Task still has unhandled shared items: ${unresolved.join(", ")}; handle them on the Report Task first`, { unresolved });
   }
