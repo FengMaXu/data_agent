@@ -590,6 +590,9 @@ export class DataAgentRuntime implements ApplicationCommandHost {
 /** Test-only entrypoint for the protocol adapter and its storage fixtures. */
 export { WorkspaceStore } from "./workspace.js";
 export { MetadataStore } from "./metadata.js";
+export { MetadataChannelStore } from "./channels/store.js";
+export { ClarificationManager } from "./clarification.js";
+export { AgentControllerError } from "./facets/agent-controller.js";
 export { KnowledgeIndex } from "./knowledge.js";
 export { DataAgentSessionApplication } from "./application/host.js";
 export { JevHypothesisChoiceAdvisor } from "./adapters/jev-hypothesis-choice-advisor.js";
