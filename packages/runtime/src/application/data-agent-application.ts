@@ -229,6 +229,9 @@ export class DataAgentApplication implements ApplicationCommandHost {
       provision: (channelId) => registry.provision(channelId),
       disconnect: (channelId) => registry.disconnect(channelId),
       createLinkCode: (userId) => hub.createLinkCode(userId),
+      access: () => hub.access(),
+      decideAccess: (requestId, decision, decidedBy) => hub.decideAccess(requestId, decision, decidedBy),
+      revokeAccess: (actor) => hub.revokeAccess(actor),
     };
     await registry.start();
     return registry;

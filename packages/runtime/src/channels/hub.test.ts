@@ -464,3 +464,87 @@ describe("ChannelHub access", () => {
     expect(fake.calls).toEqual([expect.objectContaining({ userId: "user-web" })]);
   });
 });
+
+describe("ChannelHub access requests", () => {
+  const carol = { channel: "im", tenant: "t1", externalUserId: "carol" };
+  const aliceChat: ConversationAddress = { channel: "im", tenant: "t1", chatId: "dm-alice-admin", audience: "direct" };
+  const carolChat: ConversationAddress = { channel: "im", tenant: "t1", chatId: "dm-carol", audience: "direct" };
+  const decide = (requestId: string, decision: "allow" | "deny", eventId: string, actor = alice): Submission => ({ requestId: eventId, address: aliceChat, actor, body: { kind: "access_decision", requestId, decision } });
+  const notice = (item: { deliverable: Deliverable }) => item.deliverable.kind === "notice" ? item.deliverable.text : item.deliverable.kind;
+
+  it("turns a stranger's first message into one private request to every linked account, and runs nothing", async () => {
+    const { hub, fake, channel } = await setup();
+    expect(await hub.submit("im", input("evt-1", group, carol, "上月销售额"))).toBe("denied");
+    expect(await hub.submit("im", input("evt-2", group, carol, "还在吗"))).toBe("denied");
+    await hub.flush();
+    expect(fake.calls).toHaveLength(0);
+    const requests = channel.delivered.filter((item) => item.deliverable.kind === "access_request");
+    expect(requests.map((item) => item.target)).toEqual([{ kind: "actor", actor: alice }, { kind: "actor", actor: bob }]);
+    expect(requests[0]!.deliverable).toMatchObject({ requester: carol, audience: "group", text: "上月销售额" });
+    expect(channel.delivered.filter((item) => item.target.kind === "address").map(notice)).toEqual(["已向管理员申请使用权限，批准后会通知你。", "你的使用申请正在等待管理员处理。"]);
+  });
+
+  it("lets the first member's decision count, makes the requester a guest of their own, and tells everyone", async () => {
+    const { hub, fake, channel } = await setup();
+    await hub.submit("im", input("evt-1", direct, carol));
+    await hub.flush();
+    const request = channel.delivered.find((item) => item.deliverable.kind === "access_request")!.deliverable as Extract<Deliverable, { kind: "access_request" }>;
+
+    await hub.submit("im", decide(request.requestId, "allow", "evt-2"));
+    await hub.submit("im", decide(request.requestId, "deny", "evt-3", bob));
+    await hub.flush();
+    expect(channel.delivered.filter((item) => item.deliverable.kind === "notice").slice(-3).map((item) => [item.target.kind === "actor" ? item.target.actor.externalUserId : item.target.address.chatId, notice(item)])).toEqual([
+      ["carol", "管理员已同意你使用数据助手，请重新发送你的问题。"],
+      ["dm-alice-admin", "已允许，对方会收到通知。"],
+      ["dm-alice-admin", "这条申请已经处理过了。"],
+    ]);
+
+    await hub.submit("im", input("evt-4", direct, carol, "上月销售额"));
+    expect(fake.calls).toHaveLength(1);
+    expect(fake.calls[0]!.userId).not.toMatch(/^user-/);
+
+    // A guest uses the bot but cannot let others in.
+    await hub.submit("im", input("evt-5", direct, { channel: "im", tenant: "t1", externalUserId: "dave" }));
+    await hub.flush();
+    const daves = channel.delivered.filter((item) => item.deliverable.kind === "access_request").at(-1)!.deliverable as Extract<Deliverable, { kind: "access_request" }>;
+    await hub.submit("im", { ...decide(daves.requestId, "allow", "evt-6", carol), address: direct });
+    await hub.flush();
+    expect(notice(channel.delivered.at(-1)!)).toBe("只有已绑定账号的成员可以处理使用申请。");
+  });
+
+  it("keeps a refusal for a week, then lets the person ask again", async () => {
+    const { hub, channel, clock } = await setup();
+    await hub.submit("im", input("evt-1", carolChat, carol));
+    await hub.flush();
+    const request = channel.delivered.find((item) => item.deliverable.kind === "access_request")!.deliverable as Extract<Deliverable, { kind: "access_request" }>;
+    await hub.submit("im", decide(request.requestId, "deny", "evt-2"));
+    clock.now += 6 * 24 * 60 * 60_000;
+    await hub.submit("im", input("evt-3", carolChat, carol));
+    clock.now += 2 * 24 * 60 * 60_000;
+    await hub.submit("im", input("evt-4", carolChat, carol));
+    await hub.flush();
+    const toCarol = channel.delivered.filter((item) => item.target.kind === "actor" ? item.target.actor === carol || item.target.actor.externalUserId === "carol" : item.target.address.chatId === carolChat.chatId).map(notice);
+    expect(toCarol).toEqual(["已向管理员申请使用权限，批准后会通知你。", "管理员没有同意你的使用申请。", "管理员没有同意你的使用申请。", "已向管理员申请使用权限，批准后会通知你。"]);
+    expect(channel.delivered.filter((item) => item.deliverable.kind === "access_request")).toHaveLength(4);
+  });
+
+  it("serves the settings page: members and waiting requests, a decision as the signed-in user, and revoking", async () => {
+    const { hub, fake } = await setup();
+    await hub.submit("im", input("evt-1", direct, carol, "请让我用一下"));
+    const before = await hub.access();
+    expect(before.members.map((member) => [member.actor.externalUserId, member.role])).toEqual([["alice", "account"], ["bob", "account"]]);
+    expect(before.requests).toEqual([expect.objectContaining({ requester: carol, audience: "direct", text: "请让我用一下" })]);
+
+    expect(await hub.decideAccess(before.requests[0]!.id, "allow", "user-web")).toBe("allowed");
+    const after = await hub.access();
+    expect(after.requests).toEqual([]);
+    expect(after.members.find((member) => member.actor.externalUserId === "carol")).toMatchObject({ role: "guest" });
+
+    await hub.revokeAccess(carol);
+    expect(await hub.submit("im", input("evt-2", direct, carol))).toBe("denied");
+    expect(fake.calls).toHaveLength(0);
+    expect((await hub.access()).requests).toHaveLength(1);
+    expect(await hub.decideAccess("no-such-request", "allow", "user-web")).toBe("unknown");
+  });
+});
+

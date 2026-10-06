@@ -6,6 +6,9 @@ const api = vi.hoisted(() => ({
     provisionChannelViaRuntime: vi.fn(),
     disconnectChannelViaRuntime: vi.fn(),
     createChannelBindCodeViaRuntime: vi.fn(),
+    listChannelAccessViaRuntime: vi.fn(),
+    decideChannelAccessViaRuntime: vi.fn(),
+    revokeChannelAccessViaRuntime: vi.fn(),
 }));
 vi.mock('../../api/runtime-client', () => api);
 vi.mock('qrcode', () => ({ default: { toDataURL: vi.fn(async (url: string) => `data:image/png;base64,${btoa(url)}`) } }));
@@ -15,7 +18,10 @@ import ChannelsSettings from '../ChannelsSettings';
 const feishu = { id: 'feishu', label: '飞书', provisionable: true };
 
 describe('ChannelsSettings', () => {
-    beforeEach(() => { vi.clearAllMocks(); });
+    beforeEach(() => {
+        vi.clearAllMocks();
+        api.listChannelAccessViaRuntime.mockResolvedValue({ members: [], requests: [] });
+    });
 
     it('scans to connect: shows the QR code, then the connected state with any step left', async () => {
         api.listChannelsViaRuntime.mockResolvedValueOnce([{ ...feishu, state: 'unconfigured' }]);
@@ -54,6 +60,29 @@ describe('ChannelsSettings', () => {
         expect(await screen.findByText('/bind 042195')).toBeInTheDocument();
         expect(screen.getByText(/不要发到群里/)).toBeInTheDocument();
         expect(screen.getByRole('button', { name: '重新获取' })).toBeInTheDocument();
+    });
+
+    it('lets a signed-in user decide waiting requests and revoke members', async () => {
+        const carol = { channel: 'feishu', tenant: 't1', externalUserId: 'ou_ca23d94d08c1f8dd0cd860ecb98e1747' };
+        api.listChannelsViaRuntime.mockResolvedValueOnce([{ ...feishu, state: 'connected' }]);
+        api.listChannelAccessViaRuntime.mockResolvedValue({
+            members: [{ actor: { channel: 'feishu', tenant: 't1', externalUserId: 'ou_admin' }, role: 'account', since: 1 }],
+            requests: [{ id: 'req-1', requester: carol, audience: 'group', text: '上月销售额', at: 2 }],
+        });
+        api.decideChannelAccessViaRuntime.mockResolvedValueOnce({ members: [{ actor: carol, role: 'guest', since: 3 }], requests: [] });
+        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+        render(<ChannelsSettings />);
+        expect(await screen.findByText('“上月销售额”')).toBeInTheDocument();
+        expect(screen.getByText('账号成员')).toBeInTheDocument();
+        await act(async () => { fireEvent.click(screen.getByRole('button', { name: '允许' })); });
+        expect(api.decideChannelAccessViaRuntime).toHaveBeenCalledWith('req-1', 'allow');
+        expect(await screen.findByText('访客')).toBeInTheDocument();
+        expect(screen.getByText('没有待处理的申请。')).toBeInTheDocument();
+
+        api.revokeChannelAccessViaRuntime.mockResolvedValueOnce({ members: [], requests: [] });
+        await act(async () => { fireEvent.click(screen.getByRole('button', { name: '撤销' })); });
+        expect(api.revokeChannelAccessViaRuntime).toHaveBeenCalledWith(carol);
+        confirm.mockRestore();
     });
 
     it('says so when this host has no channels', async () => {

@@ -1,5 +1,5 @@
 import type { ConversationAddress, ProgressView, PublicationDelivered } from "@data-agent/contracts";
-import type { AnswerActionValue } from "./inbound.js";
+import type { AccessActionValue, AnswerActionValue } from "./inbound.js";
 
 /** Card JSON 2.0. `update_multi` lets one card be patched for everyone who sees it. */
 type Card = { schema: "2.0"; config: { update_multi: true }; header?: unknown; body: { elements: unknown[] } };
@@ -83,6 +83,26 @@ export function questionCard(question: string, options: readonly string[], clari
 /** What the question card becomes once someone answered it, so it cannot be answered twice. */
 export function answeredCard(answer: string): Card {
   return card([markdown(`已回答：**${answer}**`)], "需要确认口径", "grey");
+}
+
+/**
+ * Asks a member whether someone may use the bot. `<at>` renders the person's
+ * Feishu name without the contacts permission.
+ */
+export function accessRequestCard(requestId: string, requesterOpenId: string, audience: "direct" | "group", text: string): string {
+  const value = (decision: "allow" | "deny"): AccessActionValue => ({ kind: "access", requestId, decision });
+  const quoted = text.trim() ? `\n\n他发送的内容：${text.replace(/\s+/g, " ")}` : "";
+  return JSON.stringify(card([
+    markdown(`<at id=${requesterOpenId}></at> 在${audience === "group" ? "群聊" : "私聊"}中请求使用数据助手。${quoted}`),
+    note("允许后，他能查询本应用可以访问的全部数据；可以随时在网页端「设置 → 消息渠道」撤销。"),
+    { tag: "button", text: { tag: "plain_text", content: "允许" }, type: "primary", width: "fill", behaviors: [{ type: "callback", value: value("allow") }] },
+    { tag: "button", text: { tag: "plain_text", content: "拒绝" }, type: "danger", width: "fill", behaviors: [{ type: "callback", value: value("deny") }] },
+  ], "使用申请", "orange"));
+}
+
+/** What an approval card becomes once clicked; the outcome follows as a message. */
+export function decisionSubmittedCard(decision: "allow" | "deny"): Card {
+  return card([markdown(`已提交：**${decision === "allow" ? "允许" : "拒绝"}**`)], "使用申请", "grey");
 }
 
 export function publicationCard(publication: PublicationDelivered, rows: { readonly csv?: string; readonly attached: boolean }): string {

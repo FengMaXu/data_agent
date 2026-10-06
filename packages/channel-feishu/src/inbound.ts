@@ -19,6 +19,13 @@ export interface AnswerActionValue {
   readonly threadId?: string;
 }
 
+/** What an approval card's buttons carry back. Approvals always reach members in a private chat. */
+export interface AccessActionValue {
+  readonly kind: "access";
+  readonly requestId: string;
+  readonly decision: "allow" | "deny";
+}
+
 export interface InboundMessage {
   readonly submission: Submission;
   readonly messageId: string;
@@ -78,7 +85,15 @@ export function cardActionSubmission(data: Record<string, unknown>): Submission 
   const tenant = text(data.tenant_key) ?? text(operator?.tenant_key);
   const chatId = text(record(data.context)?.open_chat_id);
   const value = record(record(data.action)?.value);
-  if (!eventId || !openId || !tenant || !chatId || value?.kind !== "answer") return undefined;
+  if (!eventId || !openId || !tenant || !chatId) return undefined;
+  const actor = { channel: FEISHU_CHANNEL_ID, tenant, externalUserId: openId };
+  if (value?.kind === "access") {
+    const requestId = text(value.requestId);
+    const decision = value.decision === "allow" || value.decision === "deny" ? value.decision : undefined;
+    if (!requestId || !decision) return undefined;
+    return { requestId: eventId, address: { channel: FEISHU_CHANNEL_ID, tenant, chatId, audience: "direct" }, actor, body: { kind: "access_decision", requestId, decision } };
+  }
+  if (value?.kind !== "answer") return undefined;
   const clarificationId = text(value.clarificationId);
   const answer = text(value.text);
   const audience = value.audience === "direct" || value.audience === "group" ? value.audience : undefined;
@@ -87,7 +102,7 @@ export function cardActionSubmission(data: Record<string, unknown>): Submission 
   return {
     requestId: eventId,
     address: { channel: FEISHU_CHANNEL_ID, tenant, chatId, ...(threadId ? { threadId } : {}), audience },
-    actor: { channel: FEISHU_CHANNEL_ID, tenant, externalUserId: openId },
+    actor,
     body: { kind: "answer", clarificationId, text: answer },
   };
 }

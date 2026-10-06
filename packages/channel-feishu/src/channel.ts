@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import type { Channel, ConversationAddress, Deliverable, DeliveryContent, DeliveryTarget, ProgressView, Submission } from "@data-agent/contracts";
 import type { FeishuApi, FeishuEvents } from "./api.js";
-import { answeredCard, progressCard, publicationCard, questionCard } from "./cards.js";
+import { accessRequestCard, answeredCard, decisionSubmittedCard, progressCard, publicationCard, questionCard } from "./cards.js";
 import { cardActionSubmission, FEISHU_CHANNEL_ID, messageSubmission } from "./inbound.js";
 
 export interface FeishuChannelOptions {
@@ -74,6 +74,10 @@ export class FeishuChannel implements Channel {
       this.pendingQuestions.set(addressKey(address), deliverable.clarificationId);
       return;
     }
+    if (deliverable.kind === "access_request") {
+      await this.send(target, "interactive", accessRequestCard(deliverable.requestId, deliverable.requester.externalUserId, deliverable.audience, deliverable.text), idempotencyKey);
+      return;
+    }
     if (deliverable.kind === "dashboard") {
       await this.deliverDashboard(target, deliverable.dashboard.path, idempotencyKey, content);
       return;
@@ -144,7 +148,12 @@ export class FeishuChannel implements Channel {
 
   private onCardAction(data: Record<string, unknown>): unknown {
     const submission = cardActionSubmission(data);
-    if (!submission || submission.body.kind !== "answer") return {};
+    if (!submission) return {};
+    if (submission.body.kind === "access_decision") {
+      this.forward(submission);
+      return { toast: { type: "success", content: "已提交" }, card: { type: "raw", data: decisionSubmittedCard(submission.body.decision) } };
+    }
+    if (submission.body.kind !== "answer") return {};
     this.pendingQuestions.delete(addressKey(submission.address));
     this.forward(submission);
     return { toast: { type: "success", content: "已提交" }, card: { type: "raw", data: answeredCard(submission.body.text) } };

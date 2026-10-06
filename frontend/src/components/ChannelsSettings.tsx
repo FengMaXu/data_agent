@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import QRCode from 'qrcode';
-import { createChannelBindCodeViaRuntime, disconnectChannelViaRuntime, listChannelsViaRuntime, provisionChannelViaRuntime, type ChannelStatusView } from '../api/runtime-client';
+import { createChannelBindCodeViaRuntime, decideChannelAccessViaRuntime, disconnectChannelViaRuntime, listChannelAccessViaRuntime, listChannelsViaRuntime, provisionChannelViaRuntime, revokeChannelAccessViaRuntime, type ChannelAccessView, type ChannelStatusView } from '../api/runtime-client';
 
 const STATE_LABEL: Record<ChannelStatusView['state'], { text: string; color: string; background: string }> = {
     unconfigured: { text: '未接入', color: '#6b7280', background: '#f3f4f6' },
@@ -81,7 +81,74 @@ const LinkAccount: React.FC = () => {
     );
 };
 
-/** Settings page section for IM channels: scan to connect, see state, disconnect, link an account. Credentials never reach the page. */
+const PLATFORM: Record<string, string> = { feishu: '飞书' };
+/** IM ids are long and opaque; a short form is enough to tell people apart. */
+const shortId = (id: string) => id.length > 12 ? `${id.slice(0, 7)}…${id.slice(-4)}` : id;
+const when = (at: number) => new Date(at).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+
+/** Who may use the bots, and who is waiting. Deciding here is the same as tapping the card in the IM. */
+const AccessList: React.FC = () => {
+    const [access, setAccess] = useState<ChannelAccessView>();
+    const [failed, setFailed] = useState(false);
+    const apply = async (action: () => Promise<ChannelAccessView>) => {
+        try {
+            setAccess(await action());
+            setFailed(false);
+        } catch {
+            setFailed(true);
+        }
+    };
+    useEffect(() => { void apply(listChannelAccessViaRuntime); }, []);
+    if (failed && !access) return null;
+    const cell: React.CSSProperties = { padding: '8px 12px', borderBottom: '1px solid #f3f4f6', textAlign: 'left', fontSize: '0.9rem' };
+    return (
+        <section aria-label="授权名单" style={{ background: '#fff', borderRadius: '16px', padding: '24px', border: '1px solid #f3f4f6' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <h3 className="settings-section-title" style={{ margin: 0 }}>授权名单</h3>
+                <div style={{ flex: 1 }} />
+                <button type="button" className="form-action-btn" onClick={() => { void apply(listChannelAccessViaRuntime); }}>刷新</button>
+            </div>
+            <p className="settings-section-desc" style={{ margin: '8px 0 16px' }}>没有权限的人给机器人发消息时，会向已绑定账号的成员发出使用申请。账号成员可以审批别人；访客只能使用。</p>
+            {!access ? <Loader2 size={20} className="animate-spin" /> : (
+                <>
+                    <h4 style={{ margin: '0 0 8px', fontSize: '0.95rem' }}>待处理的申请</h4>
+                    {access.requests.length === 0 ? <p className="settings-section-desc">没有待处理的申请。</p> : access.requests.map((request) => (
+                        <div key={request.id} role="group" aria-label={`申请 ${shortId(request.requester.externalUserId)}`} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', borderRadius: '10px', background: '#fffbeb', marginBottom: '8px' }}>
+                            <div style={{ flex: 1, fontSize: '0.9rem', color: '#374151' }}>
+                                <div>{PLATFORM[request.requester.channel] ?? request.requester.channel} · {shortId(request.requester.externalUserId)} · {request.audience === 'group' ? '群聊' : '私聊'} · {when(request.at)}</div>
+                                {request.text && <div style={{ color: '#6b7280', marginTop: '4px', wordBreak: 'break-all' }}>“{request.text}”</div>}
+                            </div>
+                            <button type="button" className="form-action-btn" onClick={() => { if (window.confirm('允许后，对方能查询本应用可以访问的全部数据。确定允许？')) void apply(() => decideChannelAccessViaRuntime(request.id, 'allow')); }}>允许</button>
+                            <button type="button" className="form-action-btn" onClick={() => { void apply(() => decideChannelAccessViaRuntime(request.id, 'deny')); }}>拒绝</button>
+                        </div>
+                    ))}
+                    <h4 style={{ margin: '16px 0 8px', fontSize: '0.95rem' }}>可以使用的人</h4>
+                    {access.members.length === 0 ? <p className="settings-section-desc">还没有人。先用上面的绑定码绑定你自己的 IM 账号。</p> : (
+                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <thead><tr><th style={cell}>平台</th><th style={cell}>IM 账号</th><th style={cell}>身份</th><th style={cell}>开始时间</th><th style={cell} /></tr></thead>
+                            <tbody>
+                                {access.members.map((member) => (
+                                    <tr key={`${member.actor.channel}|${member.actor.tenant}|${member.actor.externalUserId}`}>
+                                        <td style={cell}>{PLATFORM[member.actor.channel] ?? member.actor.channel}</td>
+                                        <td style={cell} title={member.actor.externalUserId}>{shortId(member.actor.externalUserId)}</td>
+                                        <td style={cell}>{member.role === 'account' ? '账号成员' : '访客'}</td>
+                                        <td style={cell}>{when(member.since)}</td>
+                                        <td style={{ ...cell, textAlign: 'right' }}>
+                                            <button type="button" className="form-action-btn" onClick={() => { if (window.confirm('撤销后，对方再发消息需要重新申请。确定撤销？')) void apply(() => revokeChannelAccessViaRuntime(member.actor)); }}>撤销</button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+                    {failed && <div role="alert" style={{ marginTop: '12px', color: '#991b1b' }}>操作没有成功，请刷新后重试。</div>}
+                </>
+            )}
+        </section>
+    );
+};
+
+/** Settings page section for IM channels: scan to connect, see state, disconnect, link an account, decide who may use them. Credentials never reach the page. */
 const ChannelsSettings: React.FC = () => {
     const [channels, setChannels] = useState<ChannelStatusView[]>();
     const [unavailable, setUnavailable] = useState(false);
@@ -125,6 +192,7 @@ const ChannelsSettings: React.FC = () => {
         <div className="settings-tab-content" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <p className="settings-section-desc" style={{ margin: 0 }}>接入后，可以在 IM 里直接向数据智能体提问、接收查询结果和看板。发送 /new 可随时开始新对话。</p>
             <LinkAccount />
+            <AccessList />
             {channels.map((channel) => {
                 const state = STATE_LABEL[channel.state];
                 const working = busy === channel.id;

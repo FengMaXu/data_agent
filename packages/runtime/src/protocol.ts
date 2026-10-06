@@ -104,7 +104,7 @@ export class DataAgentRuntime implements ApplicationCommandHost {
   onConfigSaved?: (config: Record<string, unknown>, context: RequestContext) => void | Promise<void>;
   mcpSupervisor?: { status(): Promise<Array<{ name: string; enabled: boolean; connected: boolean; toolCount: number; hostManaged: boolean }>>; test(name: string): Promise<{ ok: boolean; message: string }>; restart(name: string): Promise<{ ok: boolean }> };
   /** Host-composed channel management (ADR-0011); absent where no channels are enabled. */
-  channelControl?: { list(): import("@data-agent/contracts").ChannelStatus[]; provision(channelId: string): Promise<import("@data-agent/contracts").ChannelStatus[]>; disconnect(channelId: string): Promise<import("@data-agent/contracts").ChannelStatus[]>; createLinkCode(userId: string): Promise<{ code: string; expiresAt: number }> };
+  channelControl?: { list(): import("@data-agent/contracts").ChannelStatus[]; provision(channelId: string): Promise<import("@data-agent/contracts").ChannelStatus[]>; disconnect(channelId: string): Promise<import("@data-agent/contracts").ChannelStatus[]>; createLinkCode(userId: string): Promise<{ code: string; expiresAt: number }>; access(): Promise<import("@data-agent/contracts").ChannelAccess>; decideAccess(requestId: string, decision: "allow" | "deny", decidedBy: string): Promise<unknown>; revokeAccess(actor: import("@data-agent/contracts").ChannelActor): Promise<void> };
   ingestJob?: { getStatus(): Promise<{ status: string; jobId: string | null; summary: { updated: number; unchanged: number; failed: number; skipped: number }; errorCode: string | null }>; retry(): Promise<{ accepted: boolean }> };
   private readonly clarifications: ClarificationManager;
   /** Host composition seam for wiring native AgentHarness tools. */
@@ -346,6 +346,14 @@ export class DataAgentRuntime implements ApplicationCommandHost {
       if (!this.llmTester) throw new DataAgentRuntimeError("INVALID_COMMAND", "LLM_TESTER_NOT_CONFIGURED");
       const result = await this.llmTester.test((command.command as { profile: Record<string, unknown> }).profile);
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "test.result", success: result.success, message: result.message, details: result.details } };
+    }
+    if (command.command.type === "channel.access.list" || command.command.type === "channel.access.decide" || command.command.type === "channel.access.revoke") {
+      if (!this.channelControl) throw new DataAgentRuntimeError("INVALID_COMMAND", "CHANNELS_NOT_CONFIGURED");
+      const c = command.command;
+      // A signed-in user decides as themselves; the transport has authenticated them.
+      if (c.type === "channel.access.decide") await this.channelControl.decideAccess(c.requestId, c.decision, context.userId);
+      if (c.type === "channel.access.revoke") await this.channelControl.revokeAccess(c.actor);
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "channel.access.result", access: await this.channelControl.access() } };
     }
     if (command.command.type === "channel.bind_code") {
       if (!this.channelControl) throw new DataAgentRuntimeError("INVALID_COMMAND", "CHANNELS_NOT_CONFIGURED");
