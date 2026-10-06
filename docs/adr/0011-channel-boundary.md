@@ -35,7 +35,8 @@ status: proposed
      body:
        | { kind: "input"; text: string; whenBusy: "steer" | "follow_up" }
        | { kind: "answer"; clarificationId: string; text: string }
-       | { kind: "new_conversation" };
+       | { kind: "new_conversation" }
+       | { kind: "access_decision"; requestId: string; decision: "allow" | "deny" };
    };
    ```
 
@@ -50,7 +51,7 @@ status: proposed
    | 类别 | 内容 | 语义 |
    |---|---|---|
    | 进度（Progress） | 现有事件流 | 可丢失、只保留最新状态；渠道断线后从当前状态重画，不补发。渠道自行节流 |
-   | 可交付物（Deliverable） | Question（`clarification.request`）、Publication（新增 `publication.delivered`）、Dashboard（新增 `dashboard.delivered`）、Notice | 持久化：先写入渠道交付发件箱，再投递；以幂等键（Publication 用 `receiptId`，Question 用 `clarificationId`）至少送达一次，平台侧再去重 |
+   | 可交付物（Deliverable） | Question（`clarification.request`）、Publication（新增 `publication.delivered`）、Dashboard（新增 `dashboard.delivered`）、Access Request、Notice | 持久化：先写入渠道交付发件箱，再投递；以幂等键（Publication 用 `receiptId`，Question 用 `clarificationId`）至少送达一次，平台侧再去重 |
 
    - `publication.delivered { receiptId, taskId, format, publicRef, disclosure?, inlineContent? }` 由会话的 Presentation 投影在发布工具成功结束时发出，Web 与 Electron 也能收到。渠道需要完整结果时，通过 `DeliveryContent.readPublication()` 由核心以提问人身份读取 CSV；发件箱只记录会话，不存数据行。渠道不依赖工具结果的文本。
    - `dashboard.delivered { path, contentHash, receiptIds }` 在 `generate_dashboard` 创建或编辑看板后发出，以内容哈希为幂等键，同一版只送一次，编辑后的新版另送。看板上的数都来自 Receipt（ADR-0008 决策 4），所以按决策 5 与 Publication 同样放行。渠道通过 `DeliveryContent` 读取页面（只限会话所有者 `dashboards/` 下的文件）；宿主能渲染时还可取得 PNG 截图，IM 端以图片展示，页面作为文件附上。工作区相对链接在 IM 中无法打开，渠道把它们改写为纯文本。
@@ -61,6 +62,7 @@ status: proposed
    - `ConversationAddress { channel, tenant, chatId, threadId?, audience: "direct" | "group" }`。
    - **默认拒绝。** `(channel, tenant, externalUserId)` 只有绑定到一个账号后才能使用渠道；未绑定的发送者什么都不会被执行，只收到获取权限的说明。（最初的“首次见到即自动开户”让任何能给机器人发消息的人都能用宿主的数据库与模型额度查询，已撤销。）
    - **绑定由账号持有者发起。** 已登录的用户获取一次性绑定码（6 位，10 分钟，只能用一次），在与机器人的**私聊**中发送 `/bind <code>`，该 IM 身份即绑定到这个账号。群里出现的绑定码作废且不绑定；同一身份一小时内失败 5 次即锁定。绑定任何人都等于让他能查询这个应用能访问的全部数据，因为系统没有按用户区分的数据权限。
+   - **没有权限的人可以申请，由成员审批。** 未绑定的发送者第一次发消息时，什么都不执行，而是向同一平台、同一租户里所有“账号成员”（用 `/bind` 绑定的身份）私聊发出使用申请（`access_request` 可交付物）；申请待处理期间不重复发出，被拒绝 7 天内不能再申请。第一个决定生效：允许后申请人成为“访客”，拥有自己的内部身份，只能使用、不能审批；访客之后仍可用 `/bind` 升级为账号成员。申请人的原消息不会在批准后自动执行，需要重新发送。成员可以在 IM 卡片上（`access_decision`）或网页设置页（`channel.access.decide`）审批，并通过 `channel.access.list` / `channel.access.revoke` 查看与撤销。
    - **会话仍然只有一个所有者。** 一个地址的每个发言人同一时间只有一个当前会话：群聊里每个发言人在同一个话题中各有自己的会话，Query Task 的归属与鉴权不变。会话归属于每个地址自动建立的一个 `task`。
    - **当前会话会更替。** IM 对话没有尽头，一个会话不能无限增长（实测一个私聊会话的记录增长到 31 MB）。发言人可以用 `new_conversation` 开始新会话；也可以配置闲置时长，超过后的下一条 `input` 开始新会话，并发一条 Notice。`answer` 不触发更替，因为回答属于提问的会话。被替换的会话仍然送达它迟到的结果。
    - 身份只来自渠道验证过的入站事件，不能从消息内容或模型输出中得到。
