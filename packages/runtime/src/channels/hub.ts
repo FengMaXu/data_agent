@@ -26,6 +26,10 @@ export interface ChannelHubOptions {
   readonly allowGroupDelivery?: (address: ConversationAddress) => boolean;
   /** Reads a published result as CSV with the asking user's authority. */
   readonly publications?: { read(receiptId: string, context: { readonly userId: string; readonly sessionId: string }): Promise<{ readonly content: string }> };
+  /** Reads a dashboard page from the asking user's Session workspace. */
+  readonly dashboards?: { read(path: string, context: { readonly userId: string; readonly sessionId: string }): Promise<Uint8Array> };
+  /** Renders a self-contained page to PNG. Optional: without it dashboards go out as files only. */
+  readonly snapshot?: (html: Uint8Array) => Promise<Uint8Array>;
   readonly retry?: { readonly baseMs?: number; readonly maxMs?: number; readonly maxAttempts?: number; readonly pollMs?: number };
   readonly progressIntervalMs?: number;
   readonly now?: () => number;
@@ -234,6 +238,12 @@ export class ChannelHub {
       void this.flush();
       return;
     }
+    if (event.type === "dashboard.delivered") {
+      // A dashboard shows published numbers, so it goes where results may go.
+      await this.options.store.enqueue(channelId, `dashboard:${event.contentHash}`, this.resultTarget(bound), { kind: "dashboard", dashboard: event }, this.now(), sessionId);
+      void this.flush();
+      return;
+    }
     this.track(sessionId, bound, envelope);
   }
 
@@ -299,16 +309,22 @@ export class ChannelHub {
 
   /** Published rows are read only when a Channel asks, as the asker, and never stored in the outbox. */
   private content(item: OutboxItem): DeliveryContent | undefined {
-    const publications = this.options.publications;
     const { deliverable, sessionId } = item;
-    if (!publications || !sessionId || deliverable.kind !== "publication") return undefined;
-    return {
-      readPublication: async () => {
-        const bound = await this.options.store.boundSession(sessionId);
-        if (!bound) throw new Error("CHANNEL_SESSION_UNBOUND");
-        return (await publications.read(deliverable.publication.receiptId, { userId: bound.userId, sessionId })).content;
-      },
+    if (!sessionId) return undefined;
+    const asker = async () => {
+      const bound = await this.options.store.boundSession(sessionId);
+      if (!bound) throw new Error("CHANNEL_SESSION_UNBOUND");
+      return { userId: bound.userId, sessionId };
     };
+    const { publications, dashboards, snapshot } = this.options;
+    if (deliverable.kind === "publication" && publications) {
+      return { readPublication: async () => (await publications.read(deliverable.publication.receiptId, await asker())).content };
+    }
+    if (deliverable.kind === "dashboard" && dashboards) {
+      const readDashboard = async () => dashboards.read(deliverable.dashboard.path, await asker());
+      return { readDashboard, ...(snapshot ? { snapshotDashboard: async () => snapshot(await readDashboard()) } : {}) };
+    }
+    return undefined;
   }
 
   private now(): number { return this.options.now?.() ?? Date.now(); }

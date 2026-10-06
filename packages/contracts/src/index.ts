@@ -1,6 +1,6 @@
 import { Type, type Static } from "typebox";
 import { Value } from "typebox/value";
-import { PublicationDeliveredSchema } from "./channel.js";
+import { DashboardDeliveredSchema, PublicationDeliveredSchema } from "./channel.js";
 
 export const ProtocolVersion = 1 as const;
 export const RequestContextSchema = Type.Object({ userId: Type.String({ minLength: 1 }), host: Type.Union([Type.Literal("electron"), Type.Literal("web"), Type.Literal("channel")]), sessionId: Type.Optional(Type.String({ minLength: 1 })) });
@@ -165,6 +165,7 @@ export const DataAgentEventSchema = Type.Union([
   Type.Object({ type: Type.Literal("workspace.artifact.created"), path: Type.String(), kind: Type.Literal("file") }),
   Type.Object({ type: Type.Literal("clarification.request"), clarificationId: Type.String(), question: Type.String(), options: Type.Array(Type.String()) }),
   PublicationDeliveredSchema,
+  DashboardDeliveredSchema,
   Type.Object({ type: Type.Literal("clarification.settled"), clarificationId: Type.String(), outcome: Type.Union([Type.Literal("answered"), Type.Literal("expired"), Type.Literal("cancelled")]) }),
 ]);
 export type DataAgentEvent = Static<typeof DataAgentEventSchema>;

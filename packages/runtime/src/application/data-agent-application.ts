@@ -198,7 +198,22 @@ export class DataAgentApplication implements ApplicationCommandHost {
   setConfig(key: string, value: unknown): Promise<void> { return this.metadata.setConfig(key, value); }
   authorizeSession(userId: string, sessionId: string): Promise<"owned" | "missing" | "forbidden"> { return this.metadata.authorizeSession(userId, sessionId); }
   /** The channel boundary over this Application's protocol seam and metadata (ADR-0011). */
-  createChannelHub(options: Omit<ChannelHubOptions, "host" | "store"> = {}): ChannelHub { return new ChannelHub({ ...options, host: this, store: new MetadataChannelStore(this.metadata), publications: { read: (receiptId, context) => this.readPublication(receiptId, context) } }); }
+  createChannelHub(options: Omit<ChannelHubOptions, "host" | "store" | "publications" | "dashboards"> = {}): ChannelHub {
+    return new ChannelHub({
+      ...options,
+      host: this,
+      store: new MetadataChannelStore(this.metadata),
+      publications: { read: (receiptId, context) => this.readPublication(receiptId, context) },
+      dashboards: { read: (dashboardPath, context) => this.readDashboard(dashboardPath, context) },
+    });
+  }
+
+  /** A dashboard page of a Session the user owns; nothing outside `dashboards/` is readable this way. */
+  private async readDashboard(dashboardPath: string, context: { readonly userId: string; readonly sessionId: string }): Promise<Uint8Array> {
+    if (!/^dashboards\/[^/\\]+\.html$/.test(dashboardPath)) throw new Error("DASHBOARD_PATH_INVALID");
+    if (await this.metadata.authorizeSession(context.userId, context.sessionId) !== "owned") throw new Error("SESSION_ACCESS_DENIED");
+    return (await this.workspace.scoped(context.sessionId)).readBytes(dashboardPath);
+  }
   readPublication(publicationId: string, context: { readonly sessionId: string; readonly userId: string }) { return this.agent.readPublication(publicationId, context); }
 
   setQueryExecutor(executor: NonNullable<DataAgentApplicationOptions["queryExecutor"]>): void {

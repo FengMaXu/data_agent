@@ -55,6 +55,17 @@ export const PublicationDeliveredSchema = Type.Object({
 }, { additionalProperties: false });
 export type PublicationDelivered = Static<typeof PublicationDeliveredSchema>;
 
+/** A dashboard written to the Session workspace; every number in it comes from a Receipt (ADR-0008). */
+export const DashboardDeliveredSchema = Type.Object({
+  type: Type.Literal("dashboard.delivered"),
+  /** Workspace-relative, under `dashboards/`. */
+  path: Type.String({ minLength: 1, pattern: "^dashboards/[^/\\\\]+\\.html$" }),
+  /** Identity of this version of the page; an edit that changes it is a new Deliverable. */
+  contentHash: Type.String({ minLength: 1 }),
+  receiptIds: Type.Array(Id),
+}, { additionalProperties: false });
+export type DashboardDelivered = Static<typeof DashboardDeliveredSchema>;
+
 export const NoticeCodeSchema = Type.Union([
   /** A Publication for a group that is not allowed group delivery went to the asker privately. */
   Type.Literal("GROUP_DELIVERY_REDIRECTED"),
@@ -69,6 +80,7 @@ export type NoticeCode = Static<typeof NoticeCodeSchema>;
 export const DeliverableSchema = Type.Union([
   Type.Object({ kind: Type.Literal("question"), clarificationId: Id, question: Type.String(), options: Type.Array(Type.String()) }, { additionalProperties: false }),
   Type.Object({ kind: Type.Literal("publication"), publication: PublicationDeliveredSchema }, { additionalProperties: false }),
+  Type.Object({ kind: Type.Literal("dashboard"), dashboard: DashboardDeliveredSchema }, { additionalProperties: false }),
   Type.Object({ kind: Type.Literal("notice"), code: NoticeCodeSchema, text: Type.String() }, { additionalProperties: false }),
 ]);
 export type Deliverable = Static<typeof DeliverableSchema>;
@@ -102,6 +114,10 @@ export interface ChannelCapabilities {
 export interface DeliveryContent {
   /** The published result as CSV; present for publication Deliverables. */
   readonly readPublication?: () => Promise<string>;
+  /** The self-contained dashboard page; present for dashboard Deliverables. */
+  readonly readDashboard?: () => Promise<Uint8Array>;
+  /** A PNG of the rendered page, when the host can render one; it may throw. */
+  readonly snapshotDashboard?: () => Promise<Uint8Array>;
 }
 
 /**

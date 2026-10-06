@@ -67,7 +67,7 @@ afterEach(async () => {
   for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true });
 });
 
-async function setup(options: { allowGroupDelivery?: (address: ConversationAddress) => boolean; dbPath?: string; clarificationTimeoutMs?: number; publications?: { read(receiptId: string, context: { userId: string; sessionId: string }): Promise<{ content: string }> } } = {}) {
+async function setup(options: { allowGroupDelivery?: (address: ConversationAddress) => boolean; dbPath?: string; clarificationTimeoutMs?: number; publications?: { read(receiptId: string, context: { userId: string; sessionId: string }): Promise<{ content: string }> }; dashboards?: { read(path: string, context: { userId: string; sessionId: string }): Promise<Uint8Array> }; snapshot?: (html: Uint8Array) => Promise<Uint8Array> } = {}) {
   let dbPath = options.dbPath;
   if (!dbPath) {
     const root = await mkdtemp(join(process.cwd(), ".tmp-channel-hub-"));
@@ -89,6 +89,8 @@ async function setup(options: { allowGroupDelivery?: (address: ConversationAddre
     progressIntervalMs: 5,
     ...(options.allowGroupDelivery ? { allowGroupDelivery: options.allowGroupDelivery } : {}),
     ...(options.publications ? { publications: options.publications } : {}),
+    ...(options.dashboards ? { dashboards: options.dashboards } : {}),
+    ...(options.snapshot ? { snapshot: options.snapshot } : {}),
   });
   const channel = new MemoryChannel();
   let closed = false;
@@ -307,5 +309,27 @@ describe("ChannelHub deliverables", () => {
     expect(reads).toHaveLength(0);
     await expect(channel.contents[0]!.readPublication!()).resolves.toBe("销售额,100");
     expect(reads).toEqual([{ receiptId: "pub-1", userId, sessionId }]);
+  });
+
+  it("delivers each version of a dashboard once, where results may go, with its page and picture on demand", async () => {
+    const reads: string[] = [];
+    const page = new Uint8Array([60, 104]);
+    const { hub, fake, channel } = await setup({
+      dashboards: { read: async (path, context) => { reads.push(`${path}@${context.sessionId}`); return page; } },
+      snapshot: async (html) => new Uint8Array([html.length]),
+    });
+    await hub.submit("im", input("evt-1", group, alice));
+    const sessionId = fake.calls[0]!.sessionId!;
+    const dashboard = (contentHash: string): DataAgentEvent => ({ type: "dashboard.delivered", path: "dashboards/sales.html", contentHash, receiptIds: ["pub-1"] });
+    fake.emit(sessionId, dashboard("v1"));
+    fake.emit(sessionId, dashboard("v1"));
+    fake.emit(sessionId, dashboard("v2"));
+    await hub.idle();
+    await hub.flush();
+    expect(channel.delivered.map((item) => [item.key, item.target.kind])).toEqual([["dashboard:v1", "actor"], ["dashboard:v2", "actor"]]);
+    expect(reads).toHaveLength(0);
+    await expect(channel.contents[0]!.snapshotDashboard!()).resolves.toEqual(new Uint8Array([2]));
+    await expect(channel.contents[0]!.readDashboard!()).resolves.toBe(page);
+    expect(reads).toEqual([`dashboards/sales.html@${sessionId}`, `dashboards/sales.html@${sessionId}`]);
   });
 });
