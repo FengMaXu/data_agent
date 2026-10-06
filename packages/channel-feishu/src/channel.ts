@@ -132,8 +132,6 @@ export class FeishuChannel implements Channel {
     if (!inbound) return;
     const key = addressKey(inbound.submission.address);
     this.lastMessage.set(key, inbound.messageId);
-    // Starting over leaves any open question behind with the old conversation.
-    if (inbound.submission.body.kind === "new_conversation") this.pendingQuestions.delete(key);
     // A typed reply to an open question is its answer; the core turns it back into input if the wait is over.
     const pending = this.pendingQuestions.get(key);
     let submission = inbound.submission;

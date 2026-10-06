@@ -139,6 +139,39 @@ export interface Channel {
   stop(): Promise<void>;
 }
 
+/** Where a Channel stands, as the settings page shows it. Credentials never appear here. */
+export const ChannelStatusSchema = Type.Object({
+  id: Id,
+  label: Type.String(),
+  state: Type.Union([Type.Literal("unconfigured"), Type.Literal("provisioning"), Type.Literal("connected"), Type.Literal("failed")]),
+  /** The platform supports scan-to-connect. */
+  provisionable: Type.Boolean(),
+  /** While provisioning: the link to scan or open in the platform's app. */
+  provisioning: Type.Optional(Type.Object({ url: Type.String(), expiresAt: Type.Integer() }, { additionalProperties: false })),
+  message: Type.Optional(Type.String()),
+  /** Steps left for the user after connecting, such as settings the platform refused to change for us. */
+  warnings: Type.Optional(Type.Array(Type.String())),
+}, { additionalProperties: false });
+export type ChannelStatus = Static<typeof ChannelStatusSchema>;
+
+/** Saved per Channel by the core and handed back to `create`; it holds credentials and stays out of every response. */
+export type ChannelConfig = Readonly<Record<string, unknown>>;
+
+export interface ChannelProvisioning {
+  /** Opened in the platform's app (shown as a QR code), it creates and authorizes the bot. */
+  readonly ready: Promise<{ readonly url: string; readonly expiresAt: number }>;
+  /** The configuration to save, and anything the user still has to do by hand. */
+  readonly done: Promise<{ readonly config: ChannelConfig; readonly warnings: readonly string[] }>;
+}
+
+/** One platform, as the core manages it: build a Channel from saved configuration, and optionally obtain that configuration by scanning. */
+export interface ChannelProvider {
+  readonly id: string;
+  readonly label: string;
+  create(config: ChannelConfig): Channel;
+  provision?(signal: AbortSignal): ChannelProvisioning;
+}
+
 export function parseSubmission(value: unknown): Submission {
   if (!Value.Check(SubmissionSchema, value)) throw new TypeError("Invalid channel submission");
   return value;
