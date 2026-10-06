@@ -46,9 +46,11 @@ async function system(options: { groupChats?: readonly string[] } = {}) {
   const handlers: { message?: FeishuEventHandler; cardAction?: FeishuEventHandler } = {};
   const events: FeishuEvents = { async connect(next) { Object.assign(handlers, next); }, async disconnect() {} };
 
+  const store = new MetadataChannelStore(metadata);
+  for (const openId of ["ou_alice", "ou_bob"]) await store.link({ channel: "feishu", tenant: "tenant-1", externalUserId: openId }, `user-${openId}`, 0);
   const hub = new ChannelHub({
     host: runtime,
-    store: new MetadataChannelStore(metadata),
+    store,
     allowGroupDelivery: (address) => (options.groupChats ?? []).includes(address.chatId),
     publications: { read: async () => ({ content: "区域,销售额\n华东,100\n华北,80" }) },
     dashboards: { read: async () => new TextEncoder().encode("<!doctype html>") },

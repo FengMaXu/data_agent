@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import QRCode from 'qrcode';
-import { disconnectChannelViaRuntime, listChannelsViaRuntime, provisionChannelViaRuntime, type ChannelStatusView } from '../api/runtime-client';
+import { createChannelBindCodeViaRuntime, disconnectChannelViaRuntime, listChannelsViaRuntime, provisionChannelViaRuntime, type ChannelStatusView } from '../api/runtime-client';
 
 const STATE_LABEL: Record<ChannelStatusView['state'], { text: string; color: string; background: string }> = {
     unconfigured: { text: '未接入', color: '#6b7280', background: '#f3f4f6' },
@@ -38,7 +38,50 @@ const QrLink: React.FC<{ url: string; expiresAt: number }> = ({ url, expiresAt }
     );
 };
 
-/** Settings page section for IM channels: scan to connect, see state, disconnect. Credentials never reach the page. */
+/**
+ * Only IM identities linked to an account may use a bot. The code links whoever
+ * sends it, in a private chat with the bot, to the account signed in here.
+ */
+const LinkAccount: React.FC = () => {
+    const [link, setLink] = useState<{ code: string; expiresAt: number }>();
+    const [failed, setFailed] = useState(false);
+    const [now, setNow] = useState(() => Date.now());
+    useEffect(() => {
+        if (!link) return;
+        const timer = setInterval(() => setNow(Date.now()), 1000);
+        return () => clearInterval(timer);
+    }, [link]);
+    const issue = async () => {
+        setFailed(false);
+        try {
+            setLink(await createChannelBindCodeViaRuntime());
+            setNow(Date.now());
+        } catch {
+            setFailed(true);
+        }
+    };
+    const seconds = link ? Math.max(0, Math.round((link.expiresAt - now) / 1000)) : 0;
+    return (
+        <section aria-label="绑定我的 IM 账号" style={{ background: '#fff', borderRadius: '16px', padding: '24px', border: '1px solid #f3f4f6' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <h3 className="settings-section-title" style={{ margin: 0 }}>绑定我的 IM 账号</h3>
+                <div style={{ flex: 1 }} />
+                <button type="button" className="form-action-btn" onClick={() => { void issue(); }}>{link ? '重新获取' : '获取绑定码'}</button>
+            </div>
+            <p className="settings-section-desc" style={{ margin: '8px 0 0' }}>机器人只回应已绑定账号的人。绑定后，你在 IM 里的对话会出现在这个账号下；查询用的是本应用配置的数据库，绑定任何人都等于让他能查询这些数据。</p>
+            {link && seconds > 0 && (
+                <div style={{ marginTop: '16px', fontSize: '0.95rem', color: '#374151', lineHeight: 1.8 }}>
+                    <div>在与机器人的<strong>私聊</strong>中发送：<code style={{ fontSize: '1.1rem', padding: '2px 8px', background: '#f3f4f6', borderRadius: '6px' }}>/bind {link.code}</code></div>
+                    <div style={{ color: '#6b7280' }}>绑定码只能用一次，{Math.floor(seconds / 60)} 分 {seconds % 60} 秒后过期。不要发到群里。</div>
+                </div>
+            )}
+            {link && seconds === 0 && <div style={{ marginTop: '12px', color: '#6b7280' }}>绑定码已过期，请重新获取。</div>}
+            {failed && <div role="alert" style={{ marginTop: '12px', color: '#991b1b' }}>无法获取绑定码，请稍后重试。</div>}
+        </section>
+    );
+};
+
+/** Settings page section for IM channels: scan to connect, see state, disconnect, link an account. Credentials never reach the page. */
 const ChannelsSettings: React.FC = () => {
     const [channels, setChannels] = useState<ChannelStatusView[]>();
     const [unavailable, setUnavailable] = useState(false);
@@ -81,6 +124,7 @@ const ChannelsSettings: React.FC = () => {
     return (
         <div className="settings-tab-content" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <p className="settings-section-desc" style={{ margin: 0 }}>接入后，可以在 IM 里直接向数据智能体提问、接收查询结果和看板。发送 /new 可随时开始新对话。</p>
+            <LinkAccount />
             {channels.map((channel) => {
                 const state = STATE_LABEL[channel.state];
                 const working = busy === channel.id;

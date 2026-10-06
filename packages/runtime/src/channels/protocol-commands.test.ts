@@ -17,10 +17,12 @@ describe("channel commands", () => {
       list: () => status,
       provision: async (id) => { calls.push(`provision:${id}`); return status; },
       disconnect: async (id) => { calls.push(`disconnect:${id}`); return status; },
+      createLinkCode: async (userId) => { calls.push(`code:${userId}`); return { code: "123456", expiresAt: 9 }; },
     };
     for (const body of [{ type: "channel.list" }, { type: "channel.provision", channelId: "feishu" }, { type: "channel.disconnect", channelId: "feishu" }]) {
       expect((await runtime.dispatch(command(body), context)).response).toEqual({ type: "channel.list.result", channels: status });
     }
-    expect(calls).toEqual(["provision:feishu", "disconnect:feishu"]);
+    expect((await runtime.dispatch(command({ type: "channel.bind_code" }), context)).response).toEqual({ type: "channel.bind_code.result", code: "123456", expiresAt: 9 });
+    expect(calls).toEqual(["provision:feishu", "disconnect:feishu", "code:u"]);
   });
 });

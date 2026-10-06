@@ -5,6 +5,7 @@ const api = vi.hoisted(() => ({
     listChannelsViaRuntime: vi.fn(),
     provisionChannelViaRuntime: vi.fn(),
     disconnectChannelViaRuntime: vi.fn(),
+    createChannelBindCodeViaRuntime: vi.fn(),
 }));
 vi.mock('../../api/runtime-client', () => api);
 vi.mock('qrcode', () => ({ default: { toDataURL: vi.fn(async (url: string) => `data:image/png;base64,${btoa(url)}`) } }));
@@ -43,6 +44,16 @@ describe('ChannelsSettings', () => {
         expect(api.disconnectChannelViaRuntime).toHaveBeenCalledWith('feishu');
         expect(await screen.findByText('未接入')).toBeInTheDocument();
         confirm.mockRestore();
+    });
+
+    it('shows a one-time code to send privately to the bot', async () => {
+        api.listChannelsViaRuntime.mockResolvedValueOnce([{ ...feishu, state: 'connected' }]);
+        api.createChannelBindCodeViaRuntime.mockResolvedValueOnce({ code: '042195', expiresAt: Date.now() + 600_000 });
+        render(<ChannelsSettings />);
+        fireEvent.click(await screen.findByRole('button', { name: '获取绑定码' }));
+        expect(await screen.findByText('/bind 042195')).toBeInTheDocument();
+        expect(screen.getByText(/不要发到群里/)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: '重新获取' })).toBeInTheDocument();
     });
 
     it('says so when this host has no channels', async () => {
