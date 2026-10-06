@@ -49,9 +49,10 @@ status: proposed
    | 类别 | 内容 | 语义 |
    |---|---|---|
    | 进度（Progress） | 现有事件流 | 可丢失、只保留最新状态；渠道断线后从当前状态重画，不补发。渠道自行节流 |
-   | 可交付物（Deliverable） | Question（`clarification.request`）、Publication（新增 `publication.delivered`）、Notice | 持久化：先写入渠道交付发件箱，再投递；以幂等键（Publication 用 `receiptId`，Question 用 `clarificationId`）至少送达一次，平台侧再去重 |
+   | 可交付物（Deliverable） | Question（`clarification.request`）、Publication（新增 `publication.delivered`）、Dashboard（新增 `dashboard.delivered`）、Notice | 持久化：先写入渠道交付发件箱，再投递；以幂等键（Publication 用 `receiptId`，Question 用 `clarificationId`）至少送达一次，平台侧再去重 |
 
    - `publication.delivered { receiptId, taskId, format, publicRef, disclosure?, inlineContent? }` 由会话的 Presentation 投影在发布工具成功结束时发出，Web 与 Electron 也能收到。渠道需要完整结果时，通过 `DeliveryContent.readPublication()` 由核心以提问人身份读取 CSV；发件箱只记录会话，不存数据行。渠道不依赖工具结果的文本。
+   - `dashboard.delivered { path, contentHash, receiptIds }` 在 `generate_dashboard` 创建或编辑看板后发出，以内容哈希为幂等键，同一版只送一次，编辑后的新版另送。看板上的数都来自 Receipt（ADR-0008 决策 4），所以按决策 5 与 Publication 同样放行。渠道通过 `DeliveryContent` 读取页面（只限会话所有者 `dashboards/` 下的文件）；宿主能渲染时还可取得 PNG 截图，IM 端以图片展示，页面作为文件附上。工作区相对链接在 IM 中无法打开，渠道把它们改写为纯文本。
    - 发件箱是新的表（`channel_delivery_outbox`），不复用 `session_projection_outbox`。
    - 运行时发出事件与渠道写入发件箱之间存在进程崩溃窗口（事件流在内存中）。首期接受这个窗口：Receipt 本身已持久，重新提问会得到同一个结果；需要时再按绑定会话的 Query Task 对账补发。
 
