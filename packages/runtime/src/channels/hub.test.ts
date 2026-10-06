@@ -67,7 +67,7 @@ afterEach(async () => {
   for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true });
 });
 
-async function setup(options: { allowGroupDelivery?: (address: ConversationAddress) => boolean; dbPath?: string; clarificationTimeoutMs?: number; publications?: { read(receiptId: string, context: { userId: string; sessionId: string }): Promise<{ content: string }> }; dashboards?: { read(path: string, context: { userId: string; sessionId: string }): Promise<Uint8Array> }; snapshot?: (html: Uint8Array) => Promise<Uint8Array> } = {}) {
+async function setup(options: { allowGroupDelivery?: (address: ConversationAddress) => boolean; dbPath?: string; clarificationTimeoutMs?: number; publications?: { read(receiptId: string, context: { userId: string; sessionId: string }): Promise<{ content: string }> }; dashboards?: { read(path: string, context: { userId: string; sessionId: string }): Promise<Uint8Array> }; snapshot?: (html: Uint8Array) => Promise<Uint8Array>; idleSessionMs?: number } = {}) {
   let dbPath = options.dbPath;
   if (!dbPath) {
     const root = await mkdtemp(join(process.cwd(), ".tmp-channel-hub-"));
@@ -91,6 +91,7 @@ async function setup(options: { allowGroupDelivery?: (address: ConversationAddre
     ...(options.publications ? { publications: options.publications } : {}),
     ...(options.dashboards ? { dashboards: options.dashboards } : {}),
     ...(options.snapshot ? { snapshot: options.snapshot } : {}),
+    ...(options.idleSessionMs !== undefined ? { idleSessionMs: options.idleSessionMs } : {}),
   });
   const channel = new MemoryChannel();
   let closed = false;
@@ -331,5 +332,43 @@ describe("ChannelHub deliverables", () => {
     await expect(channel.contents[0]!.snapshotDashboard!()).resolves.toEqual(new Uint8Array([2]));
     await expect(channel.contents[0]!.readDashboard!()).resolves.toBe(page);
     expect(reads).toEqual([`dashboards/sales.html@${sessionId}`, `dashboards/sales.html@${sessionId}`]);
+  });
+
+  it("starts a new Session on request, while the old one still delivers what it was doing", async () => {
+    const { hub, fake, channel } = await setup();
+    await hub.submit("im", input("evt-1", direct));
+    const first = fake.calls[0]!.sessionId!;
+    expect(await hub.submit("im", { requestId: "evt-2", address: direct, actor: alice, body: { kind: "new_conversation" } })).toBe("dispatched");
+    await hub.submit("im", input("evt-3", direct, alice, "新的问题"));
+    expect(fake.calls).toHaveLength(2);
+    expect(fake.calls[1]!.sessionId).not.toBe(first);
+    expect(fake.calls[1]!.userId).toBe(fake.calls[0]!.userId);
+
+    fake.emit(first, publication("pub-late"));
+    await hub.idle();
+    await hub.flush();
+    expect(channel.delivered.map((item) => item.key)).toEqual(["notice:started:evt-2", "publication:pub-late"]);
+  });
+
+  it("starts a new Session for input after a long quiet, but never for an answer", async () => {
+    const { hub, fake, channel, clock, runtime } = await setup({ idleSessionMs: 60 * 60_000 });
+    await hub.submit("im", input("evt-1", direct));
+    clock.now += 30 * 60_000;
+    await hub.submit("im", input("evt-2", direct, alice, "接着问"));
+    const [first, second] = fake.calls;
+    expect(second!.sessionId).toBe(first!.sessionId);
+
+    clock.now += 61 * 60_000;
+    await hub.submit("im", input("evt-3", direct, alice, "换个问题"));
+    const rotated = fake.calls[2]!.sessionId!;
+    expect(rotated).not.toBe(first!.sessionId);
+    await hub.flush();
+    expect(channel.delivered.at(-1)).toMatchObject({ key: "notice:started:evt-3", deliverable: { kind: "notice", code: "CONVERSATION_STARTED", text: expect.stringContaining("1 小时") } });
+
+    const asked = runtime.askClarification(rotated, "含税吗？", []);
+    clock.now += 3 * 60 * 60_000;
+    await hub.submit("im", { requestId: "evt-4", address: direct, actor: alice, body: { kind: "answer", clarificationId: asked.clarificationId, text: "含税" } });
+    await expect(asked.promise).resolves.toBe("含税");
+    expect(fake.calls).toHaveLength(3);
   });
 });

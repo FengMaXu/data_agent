@@ -31,6 +31,8 @@ export type ChannelActor = Static<typeof ChannelActorSchema>;
 export const SubmissionBodySchema = Type.Union([
   Type.Object({ kind: Type.Literal("input"), text: Type.String({ minLength: 1 }), whenBusy: Type.Union([Type.Literal("steer"), Type.Literal("follow_up")]) }, { additionalProperties: false }),
   Type.Object({ kind: Type.Literal("answer"), clarificationId: Id, text: Type.String({ minLength: 1 }) }, { additionalProperties: false }),
+  /** The speaker asks to start over; earlier context is not carried into the next Session. */
+  Type.Object({ kind: Type.Literal("new_conversation") }, { additionalProperties: false }),
 ]);
 export type SubmissionBody = Static<typeof SubmissionBodySchema>;
 
@@ -73,6 +75,8 @@ export const NoticeCodeSchema = Type.Union([
   Type.Literal("SUBMISSION_INTERRUPTED"),
   /** The Runtime refused a Submission. */
   Type.Literal("SUBMISSION_REJECTED"),
+  /** A new Session began, on request or after the conversation sat idle. */
+  Type.Literal("CONVERSATION_STARTED"),
 ]);
 export type NoticeCode = Static<typeof NoticeCodeSchema>;
 

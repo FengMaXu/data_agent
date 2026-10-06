@@ -231,3 +231,21 @@ describe("FeishuChannel", () => {
     expect(JSON.parse(api.calls[2]!.args[1] as string).body.elements).toEqual([{ tag: "markdown", content: "上月销售额 100 万。" }]);
   });
 });
+
+describe("Feishu new conversation", () => {
+  it("reads /new and 新对话, alone or after the bot mention, as starting over", () => {
+    expect(messageSubmission(textMessage({ text: "/new" }), { botOpenId: BOT })?.submission.body).toEqual({ kind: "new_conversation" });
+    expect(messageSubmission(textMessage({ text: " 新对话 " }), { botOpenId: BOT })?.submission.body).toEqual({ kind: "new_conversation" });
+    expect(messageSubmission(textMessage({ chatType: "group", text: "@_user_1 /NEW", mentions: [botMention] }), { botOpenId: BOT })?.submission.body).toEqual({ kind: "new_conversation" });
+    expect(messageSubmission(textMessage({ text: "/new 上月销售额" }), { botOpenId: BOT })?.submission.body).toMatchObject({ kind: "input" });
+  });
+
+  it("drops an open question when the chat starts over", async () => {
+    const { events, channel, received } = await started();
+    await channel.deliver(toChat(direct), { kind: "question", clarificationId: "clar-1", question: "含税吗？", options: [] }, "question:clar-1");
+    await events.message(textMessage({ eventId: "evt-2", text: "/new" }));
+    await events.message(textMessage({ eventId: "evt-3", text: "含税" }));
+    await tick();
+    expect(received.map((submission) => submission.body.kind)).toEqual(["new_conversation", "input"]);
+  });
+});

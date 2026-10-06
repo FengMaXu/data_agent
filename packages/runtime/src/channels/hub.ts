@@ -12,6 +12,7 @@ import {
   type ProgressView,
   type RequestContext,
   type Submission,
+  type SubmissionBody,
 } from "@data-agent/contracts";
 import type { ApplicationCommandHost } from "../application/protocol-host.js";
 import type { BoundSession, ChannelSessionBinding, ChannelStore, OutboxItem } from "./store.js";
@@ -32,6 +33,8 @@ export interface ChannelHubOptions {
   readonly snapshot?: (html: Uint8Array) => Promise<Uint8Array>;
   readonly retry?: { readonly baseMs?: number; readonly maxMs?: number; readonly maxAttempts?: number; readonly pollMs?: number };
   readonly progressIntervalMs?: number;
+  /** A speaker's next input after this much quiet starts a new Session, so one chat does not grow one context forever. */
+  readonly idleSessionMs?: number;
   readonly now?: () => number;
   readonly createId?: () => string;
   readonly onError?: (error: unknown) => void;
@@ -46,7 +49,16 @@ const NOTICE_TEXT = {
   SUBMISSION_REJECTED: "这条消息没有被处理，请稍后重试。",
   SUBMISSION_INTERRUPTED: "服务重启前收到的一条消息没有被处理，请重新发送。",
   GROUP_DELIVERY_REDIRECTED: "查询结果已私聊发送给提问人。",
+  CONVERSATION_STARTED: "已开始新对话，之前的上下文不会带入。",
 } as const;
+
+function idleNotice(idleMs: number): string {
+  const minutes = Math.round(idleMs / 60_000);
+  const span = minutes >= 60 && minutes % 60 === 0 ? `${minutes / 60} 小时` : `${minutes} 分钟`;
+  return `距上次对话已超过 ${span}，已开始新对话，之前的上下文不会带入。`;
+}
+
+type ConversationBody = Exclude<SubmissionBody, { kind: "new_conversation" }>;
 
 function errorCode(error: unknown): unknown {
   return error && typeof error === "object" ? (error as { code?: unknown }).code : undefined;
@@ -65,7 +77,7 @@ function addressTarget(address: ConversationAddress): DeliveryTarget {
 export class ChannelHub {
   private readonly channels = new Map<string, Channel>();
   private readonly boundSessions = new Map<string, Promise<BoundSession | undefined>>();
-  private readonly sessionCreation = new Map<string, Promise<ChannelSessionBinding>>();
+  private readonly sessionChoices = new Map<string, Promise<unknown>>();
   private readonly eventQueues = new Map<string, Promise<void>>();
   private readonly progress = new Map<string, ProgressState>();
   private readonly unsubscribe: () => void;
@@ -103,8 +115,13 @@ export class ChannelHub {
     if (!(await this.options.store.acceptInbound(channelId, submission, this.now()))) return "duplicate";
     try {
       const userId = await this.options.store.resolveActor(actor, this.createId());
-      const session = await this.ensureSession(submission, userId);
-      await this.dispatchBody(submission, { userId, host: "channel", sessionId: session.sessionId });
+      const { body } = submission;
+      if (body.kind === "new_conversation") await this.startOver(submission, userId);
+      else {
+        const session = await this.ensureSession(submission, body, userId);
+        await this.dispatchBody(submission.requestId, body, { userId, host: "channel", sessionId: session.sessionId });
+        await this.options.store.touchSession(session.sessionId, this.now());
+      }
       await this.options.store.settleInbound(channelId, submission.requestId, "dispatched");
       return "dispatched";
     } catch (error) {
@@ -151,11 +168,10 @@ export class ChannelHub {
     this.channels.clear();
   }
 
-  private async dispatchBody(submission: Submission, context: RequestContext): Promise<void> {
-    const { body } = submission;
+  private async dispatchBody(requestId: string, body: ConversationBody, context: RequestContext): Promise<void> {
     if (body.kind === "answer") {
       try {
-        await this.command({ type: "clarification.answer", clarificationId: body.clarificationId, answer: body.text }, context, submission.requestId);
+        await this.command({ type: "clarification.answer", clarificationId: body.clarificationId, answer: body.text }, context, requestId);
         return;
       } catch (error) {
         if (errorCode(error) !== "CLARIFICATION_SETTLED") throw error;
@@ -163,34 +179,59 @@ export class ChannelHub {
       }
     }
     try {
-      await this.command({ type: "agent.prompt", prompt: body.text }, context, submission.requestId);
+      await this.command({ type: "agent.prompt", prompt: body.text }, context, requestId);
     } catch (error) {
       if (errorCode(error) !== "SESSION_BUSY") throw error;
       const whenBusy = body.kind === "input" ? body.whenBusy : "follow_up";
-      await this.command({ type: whenBusy === "steer" ? "agent.steer" : "agent.follow_up", prompt: body.text }, context, submission.requestId);
+      await this.command({ type: whenBusy === "steer" ? "agent.steer" : "agent.follow_up", prompt: body.text }, context, requestId);
     }
   }
 
-  private async ensureSession(submission: Submission, userId: string): Promise<ChannelSessionBinding> {
+  /** The speaker's current Session; a new one when there is none, or when input arrives after a long quiet. */
+  private ensureSession(submission: Submission, body: ConversationBody, userId: string): Promise<ChannelSessionBinding> {
     const { address, actor } = submission;
-    const key = JSON.stringify([address.channel, address.tenant, address.chatId, address.threadId ?? "", userId]);
-    const pending = this.sessionCreation.get(key);
-    if (pending) return pending;
-    const creation = (async () => {
+    return this.serialized(address, userId, async () => {
       const found = await this.options.store.findSession(address, userId);
-      if (found) return found;
+      const idleMs = this.options.idleSessionMs;
+      // An answer belongs to the Session that asked, however long it took.
+      const idle = found !== undefined && idleMs !== undefined && body.kind === "input" && this.now() - found.lastActiveAt > idleMs;
+      if (found && !idle) return found;
+      if (found && idleMs !== undefined) {
+        await this.options.store.supersedeSession(found.sessionId, this.now());
+        await this.options.store.enqueue(address.channel, `notice:started:${submission.requestId}`, addressTarget(address), { kind: "notice", code: "CONVERSATION_STARTED", text: idleNotice(idleMs) }, this.now());
+        void this.flush();
+      }
       const name = `${address.channel}:${address.chatId}`;
       const taskId = await this.options.store.findTask(address, userId) ?? await this.createEntity({ type: "task.create", name }, userId);
-      const sessionId = await this.createEntity({ type: "session.create", taskId, name: address.threadId ? `${name}:${address.threadId}` : name }, userId);
-      const bound = await this.options.store.bindSession(address, actor, userId, { sessionId, taskId });
+      const started = new Date(this.now()).toLocaleString("sv-SE").slice(5, 16);
+      const sessionId = await this.createEntity({ type: "session.create", taskId, name: `${address.threadId ? `${name}:${address.threadId}` : name} ${started}` }, userId);
+      const bound = await this.options.store.bindSession(address, actor, userId, { sessionId, taskId }, this.now());
       this.boundSessions.set(bound.sessionId, this.options.store.boundSession(bound.sessionId));
       return bound;
-    })();
-    this.sessionCreation.set(key, creation);
+    });
+  }
+
+  /** Ends the current Session on request. The next input opens a new one; a run still going keeps delivering. */
+  private startOver(submission: Submission, userId: string): Promise<void> {
+    const { address } = submission;
+    return this.serialized(address, userId, async () => {
+      const found = await this.options.store.findSession(address, userId);
+      if (found) await this.options.store.supersedeSession(found.sessionId, this.now());
+      await this.options.store.enqueue(address.channel, `notice:started:${submission.requestId}`, addressTarget(address), { kind: "notice", code: "CONVERSATION_STARTED", text: NOTICE_TEXT.CONVERSATION_STARTED }, this.now());
+      void this.flush();
+    });
+  }
+
+  /** Session choices of one address and speaker happen one at a time. */
+  private async serialized<T>(address: ConversationAddress, userId: string, work: () => Promise<T>): Promise<T> {
+    const key = JSON.stringify([address.channel, address.tenant, address.chatId, address.threadId ?? "", userId]);
+    const previous = this.sessionChoices.get(key) ?? Promise.resolve();
+    const next = previous.catch(() => undefined).then(work);
+    this.sessionChoices.set(key, next);
     try {
-      return await creation;
+      return await next;
     } finally {
-      this.sessionCreation.delete(key);
+      if (this.sessionChoices.get(key) === next) this.sessionChoices.delete(key);
     }
   }
 
