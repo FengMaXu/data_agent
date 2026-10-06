@@ -34,7 +34,8 @@ status: proposed
      actor: ChannelActor;          // 渠道验证过的发送者，由决策 4 解析为 userId
      body:
        | { kind: "input"; text: string; whenBusy: "steer" | "follow_up" }
-       | { kind: "answer"; clarificationId: string; text: string };
+       | { kind: "answer"; clarificationId: string; text: string }
+       | { kind: "new_conversation" };
    };
    ```
 
@@ -59,7 +60,8 @@ status: proposed
 4. **地址与身份。**
    - `ConversationAddress { channel, tenant, chatId, threadId?, audience: "direct" | "group" }`。
    - `(channel, tenant, externalUserId)` 绑定到一个 `userId`。首期由渠道首次见到该发送者时自动开户，与 Web 账号的关联以后再做。
-   - **会话仍然只有一个所有者。** 一个会话对应 `(address, userId)`：群聊里每个发言人在同一个话题中各有自己的会话，Query Task 的归属与鉴权不变。会话归属于每个地址自动建立的一个 `task`。
+   - **会话仍然只有一个所有者。** 一个地址的每个发言人同一时间只有一个当前会话：群聊里每个发言人在同一个话题中各有自己的会话，Query Task 的归属与鉴权不变。会话归属于每个地址自动建立的一个 `task`。
+   - **当前会话会更替。** IM 对话没有尽头，一个会话不能无限增长（实测一个私聊会话的记录增长到 31 MB）。发言人可以用 `new_conversation` 开始新会话；也可以配置闲置时长，超过后的下一条 `input` 开始新会话，并发一条 Notice。`answer` 不触发更替，因为回答属于提问的会话。被替换的会话仍然送达它迟到的结果。
    - 身份只来自渠道验证过的入站事件，不能从消息内容或模型输出中得到。
 
 5. **交付按受众放行。** 系统没有按用户区分的数据权限，所以首期规则是：`direct` 地址直接交付；`group` 地址只在该群被配置为允许群内交付时，才把 Publication 发到群里，否则私聊发给提问人，并在群里留一条 Notice。**运行进度同样按这条规则投递**：进度文本就是模型的回答正文，会引用结果数字。Question 与 Notice 不含结果数据，发到原地址。以后引入数据权限时，只需要在这一处检查受众。
