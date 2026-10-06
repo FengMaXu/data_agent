@@ -350,6 +350,21 @@ describe("ChannelHub deliverables", () => {
     expect(channel.delivered.map((item) => item.key)).toEqual(["notice:started:evt-2", "publication:pub-late"]);
   });
 
+  it("reads /new and 新对话 typed alone in any channel as starting over, and an old question's answer as plain input", async () => {
+    const { hub, fake, runtime } = await setup();
+    await hub.submit("im", input("evt-1", direct));
+    const first = fake.calls[0]!.sessionId!;
+    const asked = runtime.askClarification(first, "含税吗？", []);
+    expect(await hub.submit("im", input("evt-2", direct, alice, " /NEW "))).toBe("dispatched");
+    await hub.submit("im", { requestId: "evt-3", address: direct, actor: alice, body: { kind: "answer", clarificationId: asked.clarificationId, text: "含税" } });
+    await hub.submit("im", input("evt-4", direct, alice, "新对话"));
+    await hub.submit("im", input("evt-5", direct, alice, "/new 上月销售额"));
+    expect(fake.calls.map((call) => call.text)).toEqual(["上月销售额是多少？", "含税", "/new 上月销售额"]);
+    expect(fake.calls[1]!.sessionId).not.toBe(first);
+    expect(fake.calls[2]!.sessionId).not.toBe(fake.calls[1]!.sessionId);
+    expect(runtime.clarificationManager.pendingFor(first)?.clarificationId).toBe(asked.clarificationId);
+  });
+
   it("starts a new Session for input after a long quiet, but never for an answer", async () => {
     const { hub, fake, channel, clock, runtime } = await setup({ idleSessionMs: 60 * 60_000 });
     await hub.submit("im", input("evt-1", direct));

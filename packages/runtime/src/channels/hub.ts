@@ -60,6 +60,14 @@ function idleNotice(idleMs: number): string {
 
 type ConversationBody = Exclude<SubmissionBody, { kind: "new_conversation" }>;
 
+/** Typed alone in any channel, these start over instead of being asked as a question. */
+const NEW_CONVERSATION_COMMANDS = new Set(["/new", "/新对话", "新对话"]);
+
+/** Text commands are the core's, so every channel gets them; a channel with a menu can send the body kind directly. */
+function interpreted(body: SubmissionBody): SubmissionBody {
+  return body.kind === "input" && NEW_CONVERSATION_COMMANDS.has(body.text.trim().toLowerCase()) ? { kind: "new_conversation" } : body;
+}
+
 function errorCode(error: unknown): unknown {
   return error && typeof error === "object" ? (error as { code?: unknown }).code : undefined;
 }
@@ -105,6 +113,14 @@ export class ChannelHub {
     await this.flush();
   }
 
+  /** Stops and removes a channel; its undelivered Deliverables wait for it to come back. */
+  async unregister(channelId: string): Promise<void> {
+    const channel = this.channels.get(channelId);
+    if (!channel) return;
+    this.channels.delete(channelId);
+    await channel.stop().catch((error: unknown) => this.report(error));
+  }
+
   /** Accepts one inbound platform event. Throws only for a malformed or foreign Submission. */
   async submit(channelId: string, value: unknown): Promise<SubmitOutcome> {
     const submission = parseSubmission(value);
@@ -115,7 +131,7 @@ export class ChannelHub {
     if (!(await this.options.store.acceptInbound(channelId, submission, this.now()))) return "duplicate";
     try {
       const userId = await this.options.store.resolveActor(actor, this.createId());
-      const { body } = submission;
+      const body = interpreted(submission.body);
       if (body.kind === "new_conversation") await this.startOver(submission, userId);
       else {
         const session = await this.ensureSession(submission, body, userId);

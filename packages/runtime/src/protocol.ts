@@ -103,6 +103,8 @@ export class DataAgentRuntime implements ApplicationCommandHost {
   /** Host callback for capability controllers after onboarding/config changes. */
   onConfigSaved?: (config: Record<string, unknown>, context: RequestContext) => void | Promise<void>;
   mcpSupervisor?: { status(): Promise<Array<{ name: string; enabled: boolean; connected: boolean; toolCount: number; hostManaged: boolean }>>; test(name: string): Promise<{ ok: boolean; message: string }>; restart(name: string): Promise<{ ok: boolean }> };
+  /** Host-composed channel management (ADR-0011); absent where no channels are enabled. */
+  channelControl?: { list(): import("@data-agent/contracts").ChannelStatus[]; provision(channelId: string): Promise<import("@data-agent/contracts").ChannelStatus[]>; disconnect(channelId: string): Promise<import("@data-agent/contracts").ChannelStatus[]> };
   ingestJob?: { getStatus(): Promise<{ status: string; jobId: string | null; summary: { updated: number; unchanged: number; failed: number; skipped: number }; errorCode: string | null }>; retry(): Promise<{ accepted: boolean }> };
   private readonly clarifications: ClarificationManager;
   /** Host composition seam for wiring native AgentHarness tools. */
@@ -345,6 +347,13 @@ export class DataAgentRuntime implements ApplicationCommandHost {
       const result = await this.llmTester.test((command.command as { profile: Record<string, unknown> }).profile);
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "test.result", success: result.success, message: result.message, details: result.details } };
     }
+    if (command.command.type === "channel.list" || command.command.type === "channel.provision" || command.command.type === "channel.disconnect") {
+      if (!this.channelControl) throw new DataAgentRuntimeError("INVALID_COMMAND", "CHANNELS_NOT_CONFIGURED");
+      const c = command.command;
+      const channels = c.type === "channel.list" ? this.channelControl.list() : c.type === "channel.provision" ? await this.channelControl.provision(c.channelId) : await this.channelControl.disconnect(c.channelId);
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "channel.list.result", channels } };
+    }
+
     if (command.command.type === "mcp.servers.status") {
       if (!this.mcpSupervisor) throw new DataAgentRuntimeError("INVALID_COMMAND", "MCP_SUPERVISOR_NOT_CONFIGURED");
       const servers = await this.mcpSupervisor.status();
