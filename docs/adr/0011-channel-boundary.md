@@ -81,6 +81,8 @@ status: proposed
    }
    ```
 
+8. **渠道由核心统一管理。** 每个平台提供一个 `ChannelProvider`：用保存的配置创建渠道，并可选地提供扫码开通。宿主调用 `enableChannels(providers)` 启用；`ChannelRegistry` 连接已保存的配置（环境变量只作为后备），运行扫码流程，保存结果，并通过 `channel.list`、`channel.provision`、`channel.disconnect` 服务设置页。凭证保存在 `config.get` 不读取的配置键下，状态中不出现凭证。文字命令（如 `/new`）由 Hub 识别，各渠道不各自解析。
+
 ## 考虑过的方案
 
 - **为每个平台写一个网关，直接调用运行时内部接口**：最快接通第一个平台，但每个平台都要重新处理身份、去重、交付与澄清，Query Assurance 的交付规则要在每个网关里各写一遍。
