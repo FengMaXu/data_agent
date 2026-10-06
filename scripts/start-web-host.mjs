@@ -154,7 +154,9 @@ const feishuAppSecret = process.env.FEISHU_APP_SECRET?.trim();
 if (feishuAppId && feishuAppSecret) {
   const { createFeishuChannel } = await import(toUrl(path.join(root, "packages/channel-feishu/dist/index.js")));
   const groupChats = new Set((process.env.FEISHU_GROUP_DELIVERY_CHATS ?? "").split(",").map((chatId) => chatId.trim()).filter(Boolean));
-  const channelHub = application.createChannelHub({ allowGroupDelivery: (address) => groupChats.has(address.chatId) });
+  // Dashboards reach phones as a picture; it needs Edge or Chrome on this host, and without one only the page is sent.
+  const { createDashboardSnapshotter } = await import(toUrl(path.join(root, "apps/server/dist/dashboard-snapshot.js")));
+  const channelHub = application.createChannelHub({ allowGroupDelivery: (address) => groupChats.has(address.chatId), snapshot: createDashboardSnapshotter() });
   await channelHub.register(createFeishuChannel({
     appId: feishuAppId,
     appSecret: feishuAppSecret,

@@ -18,6 +18,16 @@ function card(elements: unknown[], title?: string, template = "blue"): Card {
 }
 
 const markdown = (content: string) => ({ tag: "markdown", content: content.length > MARKDOWN_LIMIT ? `…${content.slice(-MARKDOWN_LIMIT)}` : content });
+
+/**
+ * The model links workspace files by relative path, which only the Web app can
+ * open. In Feishu such a link is dead, so it becomes its plain text; the file
+ * itself arrives as its own message when it is a Deliverable.
+ */
+export function withoutLocalLinks(text: string): string {
+  return text.replace(/(!?)\[([^\]]*)\]\(([^)\s]*)\)/g, (link, image: string, label: string, url: string) => /^https?:\/\//i.test(url) ? link : image ? "" : label || url);
+}
+
 const note = (content: string) => ({ tag: "markdown", content, text_size: "notation" });
 
 /** RFC 4180 rows: quoted fields, doubled quotes, CRLF or LF, an optional BOM. */
@@ -86,7 +96,7 @@ export function publicationCard(publication: PublicationDelivered, rows: { reado
 }
 
 export function progressCard(view: ProgressView): string {
-  const text = view.text.trim();
+  const text = withoutLocalLinks(view.text).trim();
   if (view.state === "completed") return JSON.stringify(card([markdown(text || "已完成。")]));
   return JSON.stringify(card([
     markdown(text || "正在思考…"),

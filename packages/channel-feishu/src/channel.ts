@@ -74,6 +74,10 @@ export class FeishuChannel implements Channel {
       this.pendingQuestions.set(addressKey(address), deliverable.clarificationId);
       return;
     }
+    if (deliverable.kind === "dashboard") {
+      await this.deliverDashboard(target, deliverable.dashboard.path, idempotencyKey, content);
+      return;
+    }
     const publication = deliverable.publication;
     if (publication.format === "inline" || !content?.readPublication) {
       await this.send(target, "interactive", publicationCard(publication, publication.inlineContent ? { csv: publication.inlineContent, attached: false } : { attached: false }), idempotencyKey);
@@ -83,6 +87,26 @@ export class FeishuChannel implements Channel {
     await this.send(target, "interactive", publicationCard(publication, { csv: previewCsv(csv), attached: true }), idempotencyKey);
     // The file message has its own uuid, so a retry after the card went out sends only what is missing.
     const fileKey = await this.options.api.uploadFile(`${publication.receiptId}.csv`, Buffer.from(`﻿${csv}`, "utf8"));
+    await this.send(target, "file", JSON.stringify({ file_key: fileKey }), `${idempotencyKey}:file`);
+  }
+
+  /**
+   * A phone cannot open a local page, so a dashboard goes out as a picture to
+   * look at plus the page itself to open in a browser. Without a picture
+   * (no browser on the host) the page still goes out.
+   */
+  private async deliverDashboard(target: DeliveryTarget, dashboardPath: string, idempotencyKey: string, content: DeliveryContent | undefined): Promise<void> {
+    if (!content?.readDashboard) throw new Error("FEISHU_DASHBOARD_UNREADABLE");
+    const name = dashboardPath.slice(dashboardPath.lastIndexOf("/") + 1);
+    if (content.snapshotDashboard) {
+      try {
+        const imageKey = await this.options.api.uploadImage(Buffer.from(await content.snapshotDashboard()));
+        await this.send(target, "image", JSON.stringify({ image_key: imageKey }), `${idempotencyKey}:image`);
+      } catch (error) {
+        this.report(error);
+      }
+    }
+    const fileKey = await this.options.api.uploadFile(name, Buffer.from(await content.readDashboard()));
     await this.send(target, "file", JSON.stringify({ file_key: fileKey }), `${idempotencyKey}:file`);
   }
 

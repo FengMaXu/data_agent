@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ConversationAddress, Deliverable, DeliveryTarget, Submission } from "@data-agent/contracts";
 import type { FeishuApi, FeishuEventHandler, FeishuEvents } from "./api.js";
 import { FeishuChannel } from "./channel.js";
-import { parseCsv, tableElements } from "./cards.js";
+import { parseCsv, progressCard, tableElements, withoutLocalLinks } from "./cards.js";
 import { cardActionSubmission, messageSubmission } from "./inbound.js";
 
 const BOT = "ou_bot";
@@ -71,6 +71,11 @@ describe("Feishu cards", () => {
     expect(parseCsv("﻿区域,备注\r\n华东,\"含\"\"税\"\",合计\"\r\n华北,\n")).toEqual([["区域", "备注"], ["华东", "含\"税\",合计"], ["华北", ""]]);
   });
 
+  it("turns workspace links into plain text and keeps web links", () => {
+    expect(withoutLocalLinks("看板：**[sales.html](dashboards/sales.html)**，口径见[文档](https://example.com/a)。![图](charts/a.png)")).toBe("看板：**sales.html**，口径见[文档](https://example.com/a)。");
+    expect(JSON.parse(progressCard({ state: "completed", text: "见 [看板](dashboards/a.html)" })).body.elements[0].content).toBe("见 看板");
+  });
+
   it("renders a result as a table and says when columns were dropped", () => {
     const header = Array.from({ length: 52 }, (_value, index) => `col${index}`).join(",");
     const elements = tableElements(`${header}\n${Array.from({ length: 52 }, () => "1").join(",")}`) as { tag: string; columns?: unknown[]; content?: string }[];
@@ -92,6 +97,7 @@ function fakeApi(): FeishuApi & { calls: ApiCall[] } {
     async reply(...args) { calls.push({ op: "reply", args }); return `om_sent_${next++}`; },
     async patchCard(...args) { calls.push({ op: "patch", args }); },
     async uploadFile(...args) { calls.push({ op: "upload", args }); return "file_key_1"; },
+    async uploadImage(...args) { calls.push({ op: "uploadImage", args }); return "img_key_1"; },
   };
 }
 
@@ -105,10 +111,10 @@ function fakeEvents(): FeishuEvents & { message: FeishuEventHandler; cardAction:
   return events;
 }
 
-async function started() {
+async function started(onError: (error: unknown) => void = (error) => { throw error; }) {
   const api = fakeApi();
   const events = fakeEvents();
-  const channel = new FeishuChannel({ api, events, onError: (error) => { throw error; } });
+  const channel = new FeishuChannel({ api, events, onError });
   const received: Submission[] = [];
   await channel.start(async (submission) => { received.push(submission); });
   return { api, events, channel, received };
@@ -118,6 +124,7 @@ const direct: ConversationAddress = { channel: "feishu", tenant: "tenant-1", cha
 const group: ConversationAddress = { channel: "feishu", tenant: "tenant-1", chatId: "oc_1", threadId: "omt_1", audience: "group" };
 const toChat = (address: ConversationAddress): DeliveryTarget => ({ kind: "address", address });
 const publication = (format: "inline" | "csv"): Deliverable => ({ kind: "publication", publication: { type: "publication.delivered", receiptId: "pub-1", taskId: "task-1", format, publicRef: "/x", disclosure: "口径按字面解释。", ...(format === "inline" ? { inlineContent: "区域,销售额\n华东,100" } : {}) } });
+const dashboard: Deliverable = { kind: "dashboard", dashboard: { type: "dashboard.delivered", path: "dashboards/sales.html", contentHash: "h1", receiptIds: ["pub-1"] } };
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 describe("FeishuChannel", () => {
@@ -189,6 +196,27 @@ describe("FeishuChannel", () => {
     expect(data.toString("utf8")).toBe(`﻿${csv}`);
     expect(api.calls[2]!.args.slice(2, 4)).toEqual(["file", JSON.stringify({ file_key: "file_key_1" })]);
     expect(api.calls[2]!.args[4]).not.toBe(api.calls[0]!.args[4]);
+  });
+
+  it("sends a dashboard as a picture to look at and the page to open", async () => {
+    const { api, channel } = await started();
+    const page = new TextEncoder().encode("<!doctype html><title>看板</title>");
+    const png = new Uint8Array([137, 80, 78, 71]);
+    await channel.deliver(toChat(direct), dashboard, "dashboard:h1", { readDashboard: async () => page, snapshotDashboard: async () => png });
+    expect(api.calls.map((call) => call.op)).toEqual(["uploadImage", "send", "upload", "send"]);
+    expect(Array.from(api.calls[0]!.args[0] as Buffer)).toEqual(Array.from(png));
+    expect(api.calls[1]!.args.slice(2, 4)).toEqual(["image", JSON.stringify({ image_key: "img_key_1" })]);
+    expect(api.calls[2]!.args[0]).toBe("sales.html");
+    expect(api.calls[3]!.args.slice(2, 4)).toEqual(["file", JSON.stringify({ file_key: "file_key_1" })]);
+    expect(api.calls[1]!.args[4]).not.toBe(api.calls[3]!.args[4]);
+  });
+
+  it("still sends the page when the host cannot render a picture", async () => {
+    const errors: unknown[] = [];
+    const { api, channel } = await started((error) => errors.push(error));
+    await channel.deliver(toChat(direct), dashboard, "dashboard:h1", { readDashboard: async () => new Uint8Array([60]), snapshotDashboard: async () => { throw new Error("DASHBOARD_SNAPSHOT_NO_BROWSER"); } });
+    expect(api.calls.map((call) => call.op)).toEqual(["upload", "send"]);
+    expect(String(errors[0])).toContain("DASHBOARD_SNAPSHOT_NO_BROWSER");
   });
 
   it("posts one progress card per run and patches it until the run completes", async () => {
