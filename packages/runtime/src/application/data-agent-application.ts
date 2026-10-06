@@ -1,9 +1,10 @@
 import path from "node:path";
-import type { DataAgentCommandEnvelope, DataAgentEventEnvelope, DataAgentResponseEnvelope, RequestContext } from "@data-agent/contracts";
+import type { ChannelConfig, ChannelProvider, DataAgentCommandEnvelope, DataAgentEventEnvelope, DataAgentResponseEnvelope, RequestContext } from "@data-agent/contracts";
 import { ClarificationManager } from "../clarification.js";
 import { KnowledgeIndex } from "../knowledge.js";
 import { MetadataStore } from "../metadata.js";
 import { ChannelHub, type ChannelHubOptions } from "../channels/hub.js";
+import { ChannelRegistry, type ChannelConfigStore, type ChannelRegistryOptions } from "../channels/registry.js";
 import { MetadataChannelStore } from "../channels/store.js";
 import { DataAgentRuntime } from "../protocol.js";
 import { WorkspaceStore } from "../workspace.js";
@@ -71,9 +72,13 @@ export interface HostTestPorts {
  * It routes transport commands to Session applications while keeping Pi and
  * concrete Answering stores behind this boundary.
  */
+/** Saved channel configuration; it holds credentials, so no config.get response includes it. */
+const CHANNEL_CONFIG_KEY = "channels";
+
 export class DataAgentApplication implements ApplicationCommandHost {
   private queryExecutorPort: DataAgentApplicationOptions["queryExecutor"];
   private closed = false;
+  private channels: { readonly hub: ChannelHub; readonly registry: ChannelRegistry } | undefined;
 
   private constructor(
     private readonly runtime: DataAgentRuntime,
@@ -198,7 +203,46 @@ export class DataAgentApplication implements ApplicationCommandHost {
   setConfig(key: string, value: unknown): Promise<void> { return this.metadata.setConfig(key, value); }
   authorizeSession(userId: string, sessionId: string): Promise<"owned" | "missing" | "forbidden"> { return this.metadata.authorizeSession(userId, sessionId); }
   /** The channel boundary over this Application's protocol seam and metadata (ADR-0011). */
-  createChannelHub(options: Omit<ChannelHubOptions, "host" | "store"> = {}): ChannelHub { return new ChannelHub({ ...options, host: this, store: new MetadataChannelStore(this.metadata) }); }
+  /**
+   * Enables channels on this host (ADR-0011): a hub over this Application's
+   * protocol seam, and a registry that connects saved or fallback
+   * configuration and serves the channel.* commands for the settings page.
+   */
+  async enableChannels(providers: readonly ChannelProvider[], options: Omit<ChannelHubOptions, "host" | "store" | "publications" | "dashboards"> & { readonly fallback?: ChannelRegistryOptions["fallback"] } = {}): Promise<ChannelRegistry> {
+    if (this.channels) throw new Error("CHANNELS_ALREADY_ENABLED");
+    const { fallback, ...hubOptions } = options;
+    const hub = new ChannelHub({
+      ...hubOptions,
+      host: this,
+      store: new MetadataChannelStore(this.metadata),
+      publications: { read: (receiptId, context) => this.readPublication(receiptId, context) },
+      dashboards: { read: (dashboardPath, context) => this.readDashboard(dashboardPath, context) },
+    });
+    const store: ChannelConfigStore = {
+      load: async () => ((await this.metadata.getConfig(CHANNEL_CONFIG_KEY)) ?? {}) as Record<string, ChannelConfig>,
+      save: (configs) => this.metadata.setConfig(CHANNEL_CONFIG_KEY, configs),
+    };
+    const registry = new ChannelRegistry(hub, store, providers, { ...(fallback ? { fallback } : {}), ...(hubOptions.onError ? { onError: hubOptions.onError } : {}) });
+    this.channels = { hub, registry };
+    this.runtime.channelControl = {
+      list: () => registry.list(),
+      provision: (channelId) => registry.provision(channelId),
+      disconnect: (channelId) => registry.disconnect(channelId),
+      createLinkCode: (userId) => hub.createLinkCode(userId),
+      access: () => hub.access(),
+      decideAccess: (requestId, decision, decidedBy) => hub.decideAccess(requestId, decision, decidedBy),
+      revokeAccess: (actor) => hub.revokeAccess(actor),
+    };
+    await registry.start();
+    return registry;
+  }
+
+  /** A dashboard page of a Session the user owns; nothing outside `dashboards/` is readable this way. */
+  private async readDashboard(dashboardPath: string, context: { readonly userId: string; readonly sessionId: string }): Promise<Uint8Array> {
+    if (!/^dashboards\/[^/\\]+\.html$/.test(dashboardPath)) throw new Error("DASHBOARD_PATH_INVALID");
+    if (await this.metadata.authorizeSession(context.userId, context.sessionId) !== "owned") throw new Error("SESSION_ACCESS_DENIED");
+    return (await this.workspace.scoped(context.sessionId)).readBytes(dashboardPath);
+  }
   readPublication(publicationId: string, context: { readonly sessionId: string; readonly userId: string }) { return this.agent.readPublication(publicationId, context); }
 
   setQueryExecutor(executor: NonNullable<DataAgentApplicationOptions["queryExecutor"]>): void {
@@ -223,6 +267,10 @@ export class DataAgentApplication implements ApplicationCommandHost {
   async close(): Promise<void> {
     if (this.closed) return;
     this.closed = true;
+    if (this.channels) {
+      this.channels.registry.close();
+      await this.channels.hub.close();
+    }
     await this.sessions.close();
     await this.metadata.close();
   }

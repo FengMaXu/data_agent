@@ -31,6 +31,10 @@ export type ChannelActor = Static<typeof ChannelActorSchema>;
 export const SubmissionBodySchema = Type.Union([
   Type.Object({ kind: Type.Literal("input"), text: Type.String({ minLength: 1 }), whenBusy: Type.Union([Type.Literal("steer"), Type.Literal("follow_up")]) }, { additionalProperties: false }),
   Type.Object({ kind: Type.Literal("answer"), clarificationId: Id, text: Type.String({ minLength: 1 }) }, { additionalProperties: false }),
+  /** The speaker asks to start over; earlier context is not carried into the next Session. */
+  Type.Object({ kind: Type.Literal("new_conversation") }, { additionalProperties: false }),
+  /** A member's decision on someone's request to use the bot, from an approval card. */
+  Type.Object({ kind: Type.Literal("access_decision"), requestId: Id, decision: Type.Union([Type.Literal("allow"), Type.Literal("deny")]) }, { additionalProperties: false }),
 ]);
 export type SubmissionBody = Static<typeof SubmissionBodySchema>;
 
@@ -55,6 +59,17 @@ export const PublicationDeliveredSchema = Type.Object({
 }, { additionalProperties: false });
 export type PublicationDelivered = Static<typeof PublicationDeliveredSchema>;
 
+/** A dashboard written to the Session workspace; every number in it comes from a Receipt (ADR-0008). */
+export const DashboardDeliveredSchema = Type.Object({
+  type: Type.Literal("dashboard.delivered"),
+  /** Workspace-relative, under `dashboards/`. */
+  path: Type.String({ minLength: 1, pattern: "^dashboards/[^/\\\\]+\\.html$" }),
+  /** Identity of this version of the page; an edit that changes it is a new Deliverable. */
+  contentHash: Type.String({ minLength: 1 }),
+  receiptIds: Type.Array(Id),
+}, { additionalProperties: false });
+export type DashboardDelivered = Static<typeof DashboardDeliveredSchema>;
+
 export const NoticeCodeSchema = Type.Union([
   /** A Publication for a group that is not allowed group delivery went to the asker privately. */
   Type.Literal("GROUP_DELIVERY_REDIRECTED"),
@@ -62,6 +77,20 @@ export const NoticeCodeSchema = Type.Union([
   Type.Literal("SUBMISSION_INTERRUPTED"),
   /** The Runtime refused a Submission. */
   Type.Literal("SUBMISSION_REJECTED"),
+  /** A new Session began, on request or after the conversation sat idle. */
+  Type.Literal("CONVERSATION_STARTED"),
+  /** The sender is not linked to an account, so nothing was run. */
+  Type.Literal("ACCESS_DENIED"),
+  /** The sender is now linked to an account. */
+  Type.Literal("ACCOUNT_LINKED"),
+  /** A link attempt was refused: wrong, expired or used code, too many tries, or not in a private chat. */
+  Type.Literal("LINK_FAILED"),
+  /** The sender's request to use the bot went to the members who can decide it. */
+  Type.Literal("ACCESS_REQUESTED"),
+  /** The sender may now use the bot. */
+  Type.Literal("ACCESS_GRANTED"),
+  /** What became of a decision a member made. */
+  Type.Literal("ACCESS_DECIDED"),
 ]);
 export type NoticeCode = Static<typeof NoticeCodeSchema>;
 
@@ -69,6 +98,16 @@ export type NoticeCode = Static<typeof NoticeCodeSchema>;
 export const DeliverableSchema = Type.Union([
   Type.Object({ kind: Type.Literal("question"), clarificationId: Id, question: Type.String(), options: Type.Array(Type.String()) }, { additionalProperties: false }),
   Type.Object({ kind: Type.Literal("publication"), publication: PublicationDeliveredSchema }, { additionalProperties: false }),
+  Type.Object({ kind: Type.Literal("dashboard"), dashboard: DashboardDeliveredSchema }, { additionalProperties: false }),
+  /** Asks a member to let someone use the bot; it goes to members privately. */
+  Type.Object({
+    kind: Type.Literal("access_request"),
+    requestId: Id,
+    requester: ChannelActorSchema,
+    audience: Type.Union([Type.Literal("direct"), Type.Literal("group")]),
+    /** What they sent when asking, so the member knows who and why. */
+    text: Type.String(),
+  }, { additionalProperties: false }),
   Type.Object({ kind: Type.Literal("notice"), code: NoticeCodeSchema, text: Type.String() }, { additionalProperties: false }),
 ]);
 export type Deliverable = Static<typeof DeliverableSchema>;
@@ -98,18 +137,80 @@ export interface ChannelCapabilities {
   readonly files: boolean;
 }
 
+/** Content the core reads on the Channel's behalf, with the asker's authority, only when asked. */
+export interface DeliveryContent {
+  /** The published result as CSV; present for publication Deliverables. */
+  readonly readPublication?: () => Promise<string>;
+  /** The self-contained dashboard page; present for dashboard Deliverables. */
+  readonly readDashboard?: () => Promise<Uint8Array>;
+  /** A PNG of the rendered page, when the host can render one; it may throw. */
+  readonly snapshotDashboard?: () => Promise<Uint8Array>;
+}
+
 /**
  * One platform adapter. `start` hands the Channel a sink for verified inbound
  * events; `deliver` must be idempotent on `idempotencyKey`, because the core
- * delivers at least once.
+ * delivers at least once. Progress follows the same audience rule as
+ * publications, so it is addressed by target too.
  */
 export interface Channel {
   readonly id: string;
   readonly capabilities: ChannelCapabilities;
   start(sink: (submission: Submission) => Promise<void>): Promise<void>;
-  deliver(target: DeliveryTarget, deliverable: Deliverable, idempotencyKey: string): Promise<void>;
-  progress?(address: ConversationAddress, view: ProgressView): Promise<void>;
+  deliver(target: DeliveryTarget, deliverable: Deliverable, idempotencyKey: string, content?: DeliveryContent): Promise<void>;
+  progress?(target: DeliveryTarget, view: ProgressView): Promise<void>;
   stop(): Promise<void>;
+}
+
+/** Who may use the channels: linked accounts and approved guests, and requests waiting for a decision. */
+export const ChannelAccessSchema = Type.Object({
+  members: Type.Array(Type.Object({
+    actor: ChannelActorSchema,
+    /** `account`: linked to a signed-in account with /bind, may approve others. `guest`: approved to use the bot only. */
+    role: Type.Union([Type.Literal("account"), Type.Literal("guest")]),
+    since: Type.Integer(),
+  }, { additionalProperties: false })),
+  requests: Type.Array(Type.Object({
+    id: Id,
+    requester: ChannelActorSchema,
+    audience: Type.Union([Type.Literal("direct"), Type.Literal("group")]),
+    text: Type.String(),
+    at: Type.Integer(),
+  }, { additionalProperties: false })),
+}, { additionalProperties: false });
+export type ChannelAccess = Static<typeof ChannelAccessSchema>;
+
+/** Where a Channel stands, as the settings page shows it. Credentials never appear here. */
+export const ChannelStatusSchema = Type.Object({
+  id: Id,
+  label: Type.String(),
+  state: Type.Union([Type.Literal("unconfigured"), Type.Literal("provisioning"), Type.Literal("connected"), Type.Literal("failed")]),
+  /** The platform supports scan-to-connect. */
+  provisionable: Type.Boolean(),
+  /** While provisioning: the link to scan or open in the platform's app. */
+  provisioning: Type.Optional(Type.Object({ url: Type.String(), expiresAt: Type.Integer() }, { additionalProperties: false })),
+  message: Type.Optional(Type.String()),
+  /** Steps left for the user after connecting, such as settings the platform refused to change for us. */
+  warnings: Type.Optional(Type.Array(Type.String())),
+}, { additionalProperties: false });
+export type ChannelStatus = Static<typeof ChannelStatusSchema>;
+
+/** Saved per Channel by the core and handed back to `create`; it holds credentials and stays out of every response. */
+export type ChannelConfig = Readonly<Record<string, unknown>>;
+
+export interface ChannelProvisioning {
+  /** Opened in the platform's app (shown as a QR code), it creates and authorizes the bot. */
+  readonly ready: Promise<{ readonly url: string; readonly expiresAt: number }>;
+  /** The configuration to save, and anything the user still has to do by hand. */
+  readonly done: Promise<{ readonly config: ChannelConfig; readonly warnings: readonly string[] }>;
+}
+
+/** One platform, as the core manages it: build a Channel from saved configuration, and optionally obtain that configuration by scanning. */
+export interface ChannelProvider {
+  readonly id: string;
+  readonly label: string;
+  create(config: ChannelConfig): Channel;
+  provision?(signal: AbortSignal): ChannelProvisioning;
 }
 
 export function parseSubmission(value: unknown): Submission {

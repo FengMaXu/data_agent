@@ -56,4 +56,16 @@ describe("TranscriptProjector publication delivery", () => {
       expect(events().map((event) => event.type)).not.toContain("publication.delivered");
     }
   });
+
+  it("announces a created dashboard by path and content hash, but not a validation", () => {
+    const created = projector();
+    finish(created.instance, "generate_dashboard", { relativePath: "dashboards/sales.html", fileType: "html", contentHash: "abc", receiptIds: ["publication-1"], sources: [] });
+    expect(created.events().at(-1)).toEqual({ type: "dashboard.delivered", path: "dashboards/sales.html", contentHash: "abc", receiptIds: ["publication-1"] });
+
+    for (const details of [null, { relativePath: "../secret.html", contentHash: "abc" }, { relativePath: "dashboards/sales.html" }]) {
+      const { instance, events } = projector();
+      finish(instance, "generate_dashboard", details);
+      expect(events().map((event) => event.type)).not.toContain("dashboard.delivered");
+    }
+  });
 });

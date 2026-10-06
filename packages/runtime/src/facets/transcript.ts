@@ -1,4 +1,4 @@
-import { isToolProgress, type DataAgentEventEnvelope, type DataAgentEvent, type PublicationDelivered } from "@data-agent/contracts";
+import { isToolProgress, type DataAgentEventEnvelope, type DataAgentEvent, type PublicationDelivered, type DashboardDelivered } from "@data-agent/contracts";
 import type { AgentHarness, HarnessEvent } from "@earendil-works/pi-agent-core";
 import { TODO_CONTEXT } from "@earendil-works/pi-agent-core";
 import { isWidgetLifecycleDetails, validateWidgetSpec, type WidgetPayload } from "../widget.js";
@@ -221,6 +221,16 @@ function publicationDelivered(toolName: string, result: unknown): PublicationDel
   };
 }
 
+/** A created or edited dashboard; validate returns no details and stays silent. */
+function dashboardDelivered(toolName: string, result: unknown): DashboardDelivered | undefined {
+  if (toolName !== "generate_dashboard") return undefined;
+  const details = asRecord(asRecord(result)?.details);
+  if (!details) return undefined;
+  const { relativePath, contentHash, receiptIds } = details;
+  if (!isNonEmptyString(relativePath) || !/^dashboards\/[^/\\]+\.html$/.test(relativePath) || !isNonEmptyString(contentHash)) return undefined;
+  return { type: "dashboard.delivered", path: relativePath, contentHash, receiptIds: Array.isArray(receiptIds) ? receiptIds.filter(isNonEmptyString) : [] };
+}
+
 /**
  * Presentation-only projection of Pi events. It owns no operation or business
  * state and can be discarded/rebuilt from a Pi lane snapshot after reconnect.
@@ -365,7 +375,7 @@ export class TranscriptProjector {
         }
       }
       this.emit(base(), { type: "agent.tool_finished", toolCallId, toolName: event.toolName, ...(completionArgs !== undefined ? { args: completionArgs } : {}), result: event.result ?? null, isError: Boolean(event.isError || call?.errorEmitted) });
-      const delivered = event.isError ? undefined : publicationDelivered(event.toolName, event.result);
+      const delivered = event.isError ? undefined : publicationDelivered(event.toolName, event.result) ?? dashboardDelivered(event.toolName, event.result);
       if (delivered) this.emit(base(), delivered);
       projection.widgetCalls.delete(toolCallId);
       projection.toolArgs.delete(toolCallId);

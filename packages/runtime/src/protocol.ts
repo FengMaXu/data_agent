@@ -103,6 +103,8 @@ export class DataAgentRuntime implements ApplicationCommandHost {
   /** Host callback for capability controllers after onboarding/config changes. */
   onConfigSaved?: (config: Record<string, unknown>, context: RequestContext) => void | Promise<void>;
   mcpSupervisor?: { status(): Promise<Array<{ name: string; enabled: boolean; connected: boolean; toolCount: number; hostManaged: boolean }>>; test(name: string): Promise<{ ok: boolean; message: string }>; restart(name: string): Promise<{ ok: boolean }> };
+  /** Host-composed channel management (ADR-0011); absent where no channels are enabled. */
+  channelControl?: { list(): import("@data-agent/contracts").ChannelStatus[]; provision(channelId: string): Promise<import("@data-agent/contracts").ChannelStatus[]>; disconnect(channelId: string): Promise<import("@data-agent/contracts").ChannelStatus[]>; createLinkCode(userId: string): Promise<{ code: string; expiresAt: number }>; access(): Promise<import("@data-agent/contracts").ChannelAccess>; decideAccess(requestId: string, decision: "allow" | "deny", decidedBy: string): Promise<unknown>; revokeAccess(actor: import("@data-agent/contracts").ChannelActor): Promise<void> };
   ingestJob?: { getStatus(): Promise<{ status: string; jobId: string | null; summary: { updated: number; unchanged: number; failed: number; skipped: number }; errorCode: string | null }>; retry(): Promise<{ accepted: boolean }> };
   private readonly clarifications: ClarificationManager;
   /** Host composition seam for wiring native AgentHarness tools. */
@@ -345,6 +347,27 @@ export class DataAgentRuntime implements ApplicationCommandHost {
       const result = await this.llmTester.test((command.command as { profile: Record<string, unknown> }).profile);
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "test.result", success: result.success, message: result.message, details: result.details } };
     }
+    if (command.command.type === "channel.access.list" || command.command.type === "channel.access.decide" || command.command.type === "channel.access.revoke") {
+      if (!this.channelControl) throw new DataAgentRuntimeError("INVALID_COMMAND", "CHANNELS_NOT_CONFIGURED");
+      const c = command.command;
+      // A signed-in user decides as themselves; the transport has authenticated them.
+      if (c.type === "channel.access.decide") await this.channelControl.decideAccess(c.requestId, c.decision, context.userId);
+      if (c.type === "channel.access.revoke") await this.channelControl.revokeAccess(c.actor);
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "channel.access.result", access: await this.channelControl.access() } };
+    }
+    if (command.command.type === "channel.bind_code") {
+      if (!this.channelControl) throw new DataAgentRuntimeError("INVALID_COMMAND", "CHANNELS_NOT_CONFIGURED");
+      // The code links to whoever asked for it; the transport has already authenticated them.
+      const { code, expiresAt } = await this.channelControl.createLinkCode(context.userId);
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "channel.bind_code.result", code, expiresAt } };
+    }
+    if (command.command.type === "channel.list" || command.command.type === "channel.provision" || command.command.type === "channel.disconnect") {
+      if (!this.channelControl) throw new DataAgentRuntimeError("INVALID_COMMAND", "CHANNELS_NOT_CONFIGURED");
+      const c = command.command;
+      const channels = c.type === "channel.list" ? this.channelControl.list() : c.type === "channel.provision" ? await this.channelControl.provision(c.channelId) : await this.channelControl.disconnect(c.channelId);
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "channel.list.result", channels } };
+    }
+
     if (command.command.type === "mcp.servers.status") {
       if (!this.mcpSupervisor) throw new DataAgentRuntimeError("INVALID_COMMAND", "MCP_SUPERVISOR_NOT_CONFIGURED");
       const servers = await this.mcpSupervisor.status();
@@ -590,6 +613,9 @@ export class DataAgentRuntime implements ApplicationCommandHost {
 /** Test-only entrypoint for the protocol adapter and its storage fixtures. */
 export { WorkspaceStore } from "./workspace.js";
 export { MetadataStore } from "./metadata.js";
+export { MetadataChannelStore } from "./channels/store.js";
+export { ClarificationManager } from "./clarification.js";
+export { AgentControllerError } from "./facets/agent-controller.js";
 export { KnowledgeIndex } from "./knowledge.js";
 export { DataAgentSessionApplication } from "./application/host.js";
 export { JevHypothesisChoiceAdvisor } from "./adapters/jev-hypothesis-choice-advisor.js";

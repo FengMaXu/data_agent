@@ -434,3 +434,39 @@ export async function refreshDashboardViaRuntime(path: string, viewIds: string[]
   return { datasets: response.datasets, sources: response.sources, checks: response.checks };
 }
 
+
+// ── Channels (ADR-0011) ───────────────────────────────────────────────────────
+
+export type ChannelStatusView = Extract<DataAgentResponseEnvelope["response"], { type: "channel.list.result" }>["channels"][number];
+
+async function channelCommand(command: Extract<DataAgentCommand, { type: "channel.list" | "channel.provision" | "channel.disconnect" }>): Promise<ChannelStatusView[]> {
+  const result = (await getRuntimeClient().dispatch(command)).response;
+  if (result.type !== "channel.list.result") throw new Error("UNEXPECTED_RESPONSE");
+  return result.channels;
+}
+
+export const listChannelsViaRuntime = () => channelCommand({ type: "channel.list" });
+/** Starts scan-to-connect; the returned status carries the link to show as a QR code. */
+export const provisionChannelViaRuntime = (channelId: string) => channelCommand({ type: "channel.provision", channelId });
+export const disconnectChannelViaRuntime = (channelId: string) => channelCommand({ type: "channel.disconnect", channelId });
+
+/** A one-time code to send to the bot as `/bind <code>`, linking that IM identity to the signed-in account. */
+export async function createChannelBindCodeViaRuntime(): Promise<{ code: string; expiresAt: number }> {
+  const result = (await getRuntimeClient().dispatch({ type: "channel.bind_code" })).response;
+  if (result.type !== "channel.bind_code.result") throw new Error("UNEXPECTED_RESPONSE");
+  return { code: result.code, expiresAt: result.expiresAt };
+}
+
+export type ChannelAccessView = Extract<DataAgentResponseEnvelope["response"], { type: "channel.access.result" }>["access"];
+type ChannelActorView = ChannelAccessView["members"][number]["actor"];
+
+async function accessCommand(command: Extract<DataAgentCommand, { type: "channel.access.list" | "channel.access.decide" | "channel.access.revoke" }>): Promise<ChannelAccessView> {
+  const result = (await getRuntimeClient().dispatch(command)).response;
+  if (result.type !== "channel.access.result") throw new Error("UNEXPECTED_RESPONSE");
+  return result.access;
+}
+
+export const listChannelAccessViaRuntime = () => accessCommand({ type: "channel.access.list" });
+export const decideChannelAccessViaRuntime = (requestId: string, decision: "allow" | "deny") => accessCommand({ type: "channel.access.decide", requestId, decision });
+export const revokeChannelAccessViaRuntime = (actor: ChannelActorView) => accessCommand({ type: "channel.access.revoke", actor });
+

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import ChannelsSettings from './ChannelsSettings';
 import {
     Settings as SettingsIcon,
     User, Link, Eye, ExternalLink, Loader2, Terminal
@@ -12,12 +13,13 @@ import {
 import { getConfigViaRuntime, saveConfigViaRuntime, testDbViaRuntime, testPythonRuntimeViaRuntime } from '../api/runtime-client';
 import { useLanguage } from '../context/LanguageContext';
 
-export type SettingsSection = 'model' | 'database' | 'environment';
+export type SettingsSection = 'model' | 'database' | 'environment' | 'channels';
 
 const SECTION_MENU: Record<SettingsSection, string> = {
     model: '模型',
     database: '数据库',
     environment: '环境',
+    channels: '消息渠道',
 };
 
 interface SettingsPanelProps {
@@ -652,6 +654,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ section }) => {
                     </div>
                 )}
 
+
+                {/* 消息渠道 (Channels) */}
+                {activeMenu === '消息渠道' && <ChannelsSettings />}
 
                 {/* 环境 (Environment) */}
                 {activeMenu === '环境' && (
