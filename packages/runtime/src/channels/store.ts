@@ -6,6 +6,11 @@ export interface ChannelSessionBinding {
   readonly taskId: string;
 }
 
+export interface CurrentSession extends ChannelSessionBinding {
+  /** When a Submission last reached this Session. */
+  readonly lastActiveAt: number;
+}
+
 export interface BoundSession {
   readonly userId: string;
   readonly address: ConversationAddress;
@@ -36,10 +41,15 @@ export interface ChannelStore {
   /** Accepted before `before` and never dispatched: the process stopped in between. */
   interruptedInbound(channel: string, before: number): Promise<readonly { readonly requestId: string; readonly address: ConversationAddress }[]>;
   resolveActor(actor: ChannelActor, newUserId: string): Promise<string>;
-  findSession(address: ConversationAddress, userId: string): Promise<ChannelSessionBinding | undefined>;
+  /** The current Session of this address and speaker; superseded ones are not returned. */
+  findSession(address: ConversationAddress, userId: string): Promise<CurrentSession | undefined>;
   findTask(address: ConversationAddress, userId: string): Promise<string | undefined>;
   /** Returns the binding that won when two submissions raced to create one. */
-  bindSession(address: ConversationAddress, actor: ChannelActor, userId: string, binding: ChannelSessionBinding): Promise<ChannelSessionBinding>;
+  bindSession(address: ConversationAddress, actor: ChannelActor, userId: string, binding: ChannelSessionBinding, at: number): Promise<CurrentSession>;
+  /** Ends a Session as the current one; it keeps routing its own late events. */
+  supersedeSession(sessionId: string, at: number): Promise<void>;
+  touchSession(sessionId: string, at: number): Promise<void>;
+  /** Any Session a channel ever bound, current or superseded. */
   boundSession(sessionId: string): Promise<BoundSession | undefined>;
   /** False when a Deliverable with this key was already queued for the channel. It is due at `at`. */
   enqueue(channel: string, idempotencyKey: string, target: DeliveryTarget, deliverable: Deliverable, at: number, sessionId?: string): Promise<boolean>;
@@ -70,7 +80,7 @@ export class MetadataChannelStore implements ChannelStore {
     return this.metadata.call("channel.actor.resolve", "system", { channel: actor.channel, tenant: actor.tenant, externalUserId: actor.externalUserId, idValue: newUserId });
   }
 
-  async findSession(address: ConversationAddress, userId: string): Promise<ChannelSessionBinding | undefined> {
+  async findSession(address: ConversationAddress, userId: string): Promise<CurrentSession | undefined> {
     return (await this.metadata.call("channel.session.find", "system", { channel: address.channel, tenant: address.tenant, chatId: address.chatId, threadKey: threadKey(address), userId })) ?? undefined;
   }
 
@@ -79,8 +89,16 @@ export class MetadataChannelStore implements ChannelStore {
     return row?.taskId;
   }
 
-  bindSession(address: ConversationAddress, actor: ChannelActor, userId: string, binding: ChannelSessionBinding): Promise<ChannelSessionBinding> {
-    return this.metadata.call("channel.session.bind", "system", { channel: address.channel, tenant: address.tenant, chatId: address.chatId, threadKey: threadKey(address), userId, sessionId: binding.sessionId, taskId: binding.taskId, addressJson: JSON.stringify(address), actorJson: JSON.stringify(actor) });
+  bindSession(address: ConversationAddress, actor: ChannelActor, userId: string, binding: ChannelSessionBinding, at: number): Promise<CurrentSession> {
+    return this.metadata.call("channel.session.bind", "system", { channel: address.channel, tenant: address.tenant, chatId: address.chatId, threadKey: threadKey(address), userId, sessionId: binding.sessionId, taskId: binding.taskId, addressJson: JSON.stringify(address), actorJson: JSON.stringify(actor), at });
+  }
+
+  async supersedeSession(sessionId: string, at: number): Promise<void> {
+    await this.metadata.call("channel.session.supersede", "system", { sessionId, at });
+  }
+
+  async touchSession(sessionId: string, at: number): Promise<void> {
+    await this.metadata.call("channel.session.touch", "system", { sessionId, at });
   }
 
   async boundSession(sessionId: string): Promise<BoundSession | undefined> {

@@ -19,6 +19,9 @@ export interface AnswerActionValue {
   readonly threadId?: string;
 }
 
+/** Typed alone, these start a new conversation instead of being asked as a question. */
+const NEW_CONVERSATION = new Set(["/new", "/新对话", "新对话"]);
+
 export interface InboundMessage {
   readonly submission: Submission;
   readonly messageId: string;
@@ -65,7 +68,7 @@ export function messageSubmission(data: Record<string, unknown>, options: { read
       requestId: eventId,
       address: { channel: FEISHU_CHANNEL_ID, tenant, chatId, ...(threadId ? { threadId } : {}), audience: chatType === "p2p" ? "direct" : "group" },
       actor: { channel: FEISHU_CHANNEL_ID, tenant, externalUserId: openId },
-      body: { kind: "input", text: body, whenBusy: "follow_up" },
+      body: NEW_CONVERSATION.has(body.toLowerCase()) ? { kind: "new_conversation" } : { kind: "input", text: body, whenBusy: "follow_up" },
     },
   };
 }

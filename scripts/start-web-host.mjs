@@ -156,7 +156,13 @@ if (feishuAppId && feishuAppSecret) {
   const groupChats = new Set((process.env.FEISHU_GROUP_DELIVERY_CHATS ?? "").split(",").map((chatId) => chatId.trim()).filter(Boolean));
   // Dashboards reach phones as a picture; it needs Edge or Chrome on this host, and without one only the page is sent.
   const { createDashboardSnapshotter } = await import(toUrl(path.join(root, "apps/server/dist/dashboard-snapshot.js")));
-  const channelHub = application.createChannelHub({ allowGroupDelivery: (address) => groupChats.has(address.chatId), snapshot: createDashboardSnapshotter() });
+  // A chat's next message after this much quiet starts a new conversation; "/new" starts one at any time.
+  const idleMinutes = Number(process.env.DATA_AGENT_CHANNEL_IDLE_MINUTES ?? 120);
+  const channelHub = application.createChannelHub({
+    allowGroupDelivery: (address) => groupChats.has(address.chatId),
+    snapshot: createDashboardSnapshotter(),
+    ...(idleMinutes > 0 ? { idleSessionMs: idleMinutes * 60_000 } : {}),
+  });
   await channelHub.register(createFeishuChannel({
     appId: feishuAppId,
     appSecret: feishuAppSecret,
