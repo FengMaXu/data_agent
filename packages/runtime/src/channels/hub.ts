@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
 import {
   ProtocolVersion,
   parseSubmission,
@@ -17,7 +17,7 @@ import {
 import type { ApplicationCommandHost } from "../application/protocol-host.js";
 import type { BoundSession, ChannelSessionBinding, ChannelStore, OutboxItem } from "./store.js";
 
-export type SubmitOutcome = "dispatched" | "duplicate" | "rejected";
+export type SubmitOutcome = "dispatched" | "duplicate" | "rejected" | "denied";
 
 export interface ChannelHubOptions {
   /** The same versioned protocol seam Web and Electron use; the hub reaches nothing else. */
@@ -50,7 +50,22 @@ const NOTICE_TEXT = {
   SUBMISSION_INTERRUPTED: "服务重启前收到的一条消息没有被处理，请重新发送。",
   GROUP_DELIVERY_REDIRECTED: "查询结果已私聊发送给提问人。",
   CONVERSATION_STARTED: "已开始新对话，之前的上下文不会带入。",
+  ACCESS_DENIED: "你还没有使用权限。请在数据智能体网页端「设置 → 消息渠道」获取绑定码，然后在与我的私聊中发送 /bind 绑定码。",
+  ACCOUNT_LINKED: "已绑定。之后你在这里的对话会出现在数据智能体网页端你的账号下。",
+  LINK_NOT_PRIVATE: "绑定码只能在与我的私聊中发送。这个绑定码已作废，请在网页端重新获取。",
+  LINK_INVALID: "绑定码无效、已过期或已被使用，请在网页端重新获取。",
+  LINK_USAGE: "请发送 /bind 加上网页端给出的 6 位绑定码，例如 /bind 123456。",
+  LINK_LOCKED: "尝试次数过多，请一小时后再试。",
 } as const;
+
+/** A link code is good for this long, once. */
+const LINK_CODE_TTL_MS = 10 * 60_000;
+/** Failed link attempts per IM identity per hour, so six digits cannot be walked. */
+const LINK_ATTEMPTS = 5;
+const LINK_WINDOW_MS = 60 * 60_000;
+
+/** `/bind 123456` (or `/绑定`); a bare or malformed one gets usage help. */
+const LINK_COMMAND = /^\/(?:bind|绑定)(?:\s+(\S+))?$/i;
 
 function idleNotice(idleMs: number): string {
   const minutes = Math.round(idleMs / 60_000);
@@ -63,9 +78,15 @@ type ConversationBody = Exclude<SubmissionBody, { kind: "new_conversation" }>;
 /** Typed alone in any channel, these start over instead of being asked as a question. */
 const NEW_CONVERSATION_COMMANDS = new Set(["/new", "/新对话", "新对话"]);
 
+type Interpreted = SubmissionBody | { kind: "link"; code?: string };
+
 /** Text commands are the core's, so every channel gets them; a channel with a menu can send the body kind directly. */
-function interpreted(body: SubmissionBody): SubmissionBody {
-  return body.kind === "input" && NEW_CONVERSATION_COMMANDS.has(body.text.trim().toLowerCase()) ? { kind: "new_conversation" } : body;
+function interpreted(body: SubmissionBody): Interpreted {
+  if (body.kind !== "input") return body;
+  const text = body.text.trim();
+  if (NEW_CONVERSATION_COMMANDS.has(text.toLowerCase())) return { kind: "new_conversation" };
+  const link = LINK_COMMAND.exec(text);
+  return link ? { kind: "link", ...(link[1] ? { code: link[1] } : {}) } : body;
 }
 
 function errorCode(error: unknown): unknown {
@@ -86,6 +107,7 @@ export class ChannelHub {
   private readonly channels = new Map<string, Channel>();
   private readonly boundSessions = new Map<string, Promise<BoundSession | undefined>>();
   private readonly sessionChoices = new Map<string, Promise<unknown>>();
+  private readonly linkFailures = new Map<string, { count: number; since: number }>();
   private readonly eventQueues = new Map<string, Promise<void>>();
   private readonly progress = new Map<string, ProgressState>();
   private readonly unsubscribe: () => void;
@@ -130,8 +152,19 @@ export class ChannelHub {
     }
     if (!(await this.options.store.acceptInbound(channelId, submission, this.now()))) return "duplicate";
     try {
-      const userId = await this.options.store.resolveActor(actor, this.createId());
       const body = interpreted(submission.body);
+      if (body.kind === "link") {
+        await this.link(submission, body.code);
+        await this.options.store.settleInbound(channelId, submission.requestId, "dispatched");
+        return "dispatched";
+      }
+      // Default deny: only an identity linked to an account may run anything (ADR-0011).
+      const userId = await this.options.store.linkedUser(actor);
+      if (!userId) {
+        await this.notify(address, `notice:denied:${submission.requestId}`, "ACCESS_DENIED", NOTICE_TEXT.ACCESS_DENIED);
+        await this.options.store.settleInbound(channelId, submission.requestId, "denied");
+        return "denied";
+      }
       if (body.kind === "new_conversation") await this.startOver(submission, userId);
       else {
         const session = await this.ensureSession(submission, body, userId);
@@ -147,6 +180,16 @@ export class ChannelHub {
       void this.flush();
       return "rejected";
     }
+  }
+
+  /** A one-time code the signed-in user sends to a bot as `/bind <code>`; good for ten minutes. */
+  async createLinkCode(userId: string): Promise<{ code: string; expiresAt: number }> {
+    const expiresAt = this.now() + LINK_CODE_TTL_MS;
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
+      if (await this.options.store.createLinkCode(code, userId, expiresAt)) return { code, expiresAt };
+    }
+    throw new Error("CHANNEL_LINK_CODE_UNAVAILABLE");
   }
 
   /** Delivers every due Deliverable once; failures are retried with backoff. */
@@ -236,6 +279,39 @@ export class ChannelHub {
       await this.options.store.enqueue(address.channel, `notice:started:${submission.requestId}`, addressTarget(address), { kind: "notice", code: "CONVERSATION_STARTED", text: NOTICE_TEXT.CONVERSATION_STARTED }, this.now());
       void this.flush();
     });
+  }
+
+  /**
+   * Links the sender to the account a code was issued to. Only in a private
+   * chat: a code seen in a group is spent unused. Repeated failures lock the
+   * sender out for an hour.
+   */
+  private async link(submission: Submission, code: string | undefined): Promise<void> {
+    const { address, actor, requestId } = submission;
+    const key = `notice:link:${requestId}`;
+    const failures = `${actor.channel}|${actor.tenant}|${actor.externalUserId}`;
+    const now = this.now();
+    const record = this.linkFailures.get(failures);
+    const recent = record && now - record.since < LINK_WINDOW_MS ? record : undefined;
+    if (recent && recent.count >= LINK_ATTEMPTS) return this.notify(address, key, "LINK_FAILED", NOTICE_TEXT.LINK_LOCKED);
+    if (!code) return this.notify(address, key, "LINK_FAILED", NOTICE_TEXT.LINK_USAGE);
+    if (address.audience !== "direct") {
+      await this.options.store.consumeLinkCode(code, now);
+      return this.notify(address, key, "LINK_FAILED", NOTICE_TEXT.LINK_NOT_PRIVATE);
+    }
+    const userId = await this.options.store.consumeLinkCode(code, now);
+    if (!userId) {
+      this.linkFailures.set(failures, { count: (recent?.count ?? 0) + 1, since: recent?.since ?? now });
+      return this.notify(address, key, "LINK_FAILED", NOTICE_TEXT.LINK_INVALID);
+    }
+    this.linkFailures.delete(failures);
+    await this.options.store.link(actor, userId, now);
+    await this.notify(address, key, "ACCOUNT_LINKED", NOTICE_TEXT.ACCOUNT_LINKED);
+  }
+
+  private async notify(address: ConversationAddress, key: string, code: "ACCESS_DENIED" | "ACCOUNT_LINKED" | "LINK_FAILED", text: string): Promise<void> {
+    await this.options.store.enqueue(address.channel, key, addressTarget(address), { kind: "notice", code, text }, this.now());
+    void this.flush();
   }
 
   /** Session choices of one address and speaker happen one at a time. */

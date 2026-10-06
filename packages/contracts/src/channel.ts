@@ -77,6 +77,12 @@ export const NoticeCodeSchema = Type.Union([
   Type.Literal("SUBMISSION_REJECTED"),
   /** A new Session began, on request or after the conversation sat idle. */
   Type.Literal("CONVERSATION_STARTED"),
+  /** The sender is not linked to an account, so nothing was run. */
+  Type.Literal("ACCESS_DENIED"),
+  /** The sender is now linked to an account. */
+  Type.Literal("ACCOUNT_LINKED"),
+  /** A link attempt was refused: wrong, expired or used code, too many tries, or not in a private chat. */
+  Type.Literal("LINK_FAILED"),
 ]);
 export type NoticeCode = Static<typeof NoticeCodeSchema>;
 

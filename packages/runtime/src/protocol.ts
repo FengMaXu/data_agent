@@ -104,7 +104,7 @@ export class DataAgentRuntime implements ApplicationCommandHost {
   onConfigSaved?: (config: Record<string, unknown>, context: RequestContext) => void | Promise<void>;
   mcpSupervisor?: { status(): Promise<Array<{ name: string; enabled: boolean; connected: boolean; toolCount: number; hostManaged: boolean }>>; test(name: string): Promise<{ ok: boolean; message: string }>; restart(name: string): Promise<{ ok: boolean }> };
   /** Host-composed channel management (ADR-0011); absent where no channels are enabled. */
-  channelControl?: { list(): import("@data-agent/contracts").ChannelStatus[]; provision(channelId: string): Promise<import("@data-agent/contracts").ChannelStatus[]>; disconnect(channelId: string): Promise<import("@data-agent/contracts").ChannelStatus[]> };
+  channelControl?: { list(): import("@data-agent/contracts").ChannelStatus[]; provision(channelId: string): Promise<import("@data-agent/contracts").ChannelStatus[]>; disconnect(channelId: string): Promise<import("@data-agent/contracts").ChannelStatus[]>; createLinkCode(userId: string): Promise<{ code: string; expiresAt: number }> };
   ingestJob?: { getStatus(): Promise<{ status: string; jobId: string | null; summary: { updated: number; unchanged: number; failed: number; skipped: number }; errorCode: string | null }>; retry(): Promise<{ accepted: boolean }> };
   private readonly clarifications: ClarificationManager;
   /** Host composition seam for wiring native AgentHarness tools. */
@@ -346,6 +346,12 @@ export class DataAgentRuntime implements ApplicationCommandHost {
       if (!this.llmTester) throw new DataAgentRuntimeError("INVALID_COMMAND", "LLM_TESTER_NOT_CONFIGURED");
       const result = await this.llmTester.test((command.command as { profile: Record<string, unknown> }).profile);
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "test.result", success: result.success, message: result.message, details: result.details } };
+    }
+    if (command.command.type === "channel.bind_code") {
+      if (!this.channelControl) throw new DataAgentRuntimeError("INVALID_COMMAND", "CHANNELS_NOT_CONFIGURED");
+      // The code links to whoever asked for it; the transport has already authenticated them.
+      const { code, expiresAt } = await this.channelControl.createLinkCode(context.userId);
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "channel.bind_code.result", code, expiresAt } };
     }
     if (command.command.type === "channel.list" || command.command.type === "channel.provision" || command.command.type === "channel.disconnect") {
       if (!this.channelControl) throw new DataAgentRuntimeError("INVALID_COMMAND", "CHANNELS_NOT_CONFIGURED");

@@ -449,3 +449,10 @@ export const listChannelsViaRuntime = () => channelCommand({ type: "channel.list
 /** Starts scan-to-connect; the returned status carries the link to show as a QR code. */
 export const provisionChannelViaRuntime = (channelId: string) => channelCommand({ type: "channel.provision", channelId });
 export const disconnectChannelViaRuntime = (channelId: string) => channelCommand({ type: "channel.disconnect", channelId });
+
+/** A one-time code to send to the bot as `/bind <code>`, linking that IM identity to the signed-in account. */
+export async function createChannelBindCodeViaRuntime(): Promise<{ code: string; expiresAt: number }> {
+  const result = (await getRuntimeClient().dispatch({ type: "channel.bind_code" })).response;
+  if (result.type !== "channel.bind_code.result") throw new Error("UNEXPECTED_RESPONSE");
+  return { code: result.code, expiresAt: result.expiresAt };
+}

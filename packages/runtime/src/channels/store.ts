@@ -37,10 +37,16 @@ export type OutboxSettlement =
 export interface ChannelStore {
   /** False when this platform event was already accepted. */
   acceptInbound(channel: string, submission: Submission, at: number): Promise<boolean>;
-  settleInbound(channel: string, requestId: string, status: "dispatched" | "rejected" | "interrupted"): Promise<void>;
+  settleInbound(channel: string, requestId: string, status: "dispatched" | "rejected" | "interrupted" | "denied"): Promise<void>;
   /** Accepted before `before` and never dispatched: the process stopped in between. */
   interruptedInbound(channel: string, before: number): Promise<readonly { readonly requestId: string; readonly address: ConversationAddress }[]>;
-  resolveActor(actor: ChannelActor, newUserId: string): Promise<string>;
+  /** The account this IM identity is linked to; undefined means it may not use the channel. */
+  linkedUser(actor: ChannelActor): Promise<string | undefined>;
+  link(actor: ChannelActor, userId: string, at: number): Promise<void>;
+  /** False when the code is already taken; the caller draws another. */
+  createLinkCode(code: string, userId: string, expiresAt: number): Promise<boolean>;
+  /** The account a valid, unused code was issued to, spending the code; undefined otherwise. */
+  consumeLinkCode(code: string, at: number): Promise<string | undefined>;
   /** The current Session of this address and speaker; superseded ones are not returned. */
   findSession(address: ConversationAddress, userId: string): Promise<CurrentSession | undefined>;
   findTask(address: ConversationAddress, userId: string): Promise<string | undefined>;
@@ -67,7 +73,7 @@ export class MetadataChannelStore implements ChannelStore {
     return result.accepted;
   }
 
-  async settleInbound(channel: string, requestId: string, status: "dispatched" | "rejected" | "interrupted"): Promise<void> {
+  async settleInbound(channel: string, requestId: string, status: "dispatched" | "rejected" | "interrupted" | "denied"): Promise<void> {
     await this.metadata.call("channel.inbound.settle", "system", { channel, requestId, status });
   }
 
@@ -76,8 +82,20 @@ export class MetadataChannelStore implements ChannelStore {
     return rows.map((row) => ({ requestId: row.requestId, address: JSON.parse(row.addressJson) as ConversationAddress }));
   }
 
-  resolveActor(actor: ChannelActor, newUserId: string): Promise<string> {
-    return this.metadata.call("channel.actor.resolve", "system", { channel: actor.channel, tenant: actor.tenant, externalUserId: actor.externalUserId, idValue: newUserId });
+  async linkedUser(actor: ChannelActor): Promise<string | undefined> {
+    return (await this.metadata.call("channel.link.get", "system", { channel: actor.channel, tenant: actor.tenant, externalUserId: actor.externalUserId })) ?? undefined;
+  }
+
+  async link(actor: ChannelActor, userId: string, at: number): Promise<void> {
+    await this.metadata.call("channel.link.set", "system", { channel: actor.channel, tenant: actor.tenant, externalUserId: actor.externalUserId, userId, at });
+  }
+
+  async createLinkCode(code: string, userId: string, expiresAt: number): Promise<boolean> {
+    return (await this.metadata.call("channel.code.create", "system", { code, userId, expiresAt }) as { created: boolean }).created;
+  }
+
+  async consumeLinkCode(code: string, at: number): Promise<string | undefined> {
+    return (await this.metadata.call("channel.code.consume", "system", { code, at })) ?? undefined;
   }
 
   async findSession(address: ConversationAddress, userId: string): Promise<CurrentSession | undefined> {

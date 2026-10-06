@@ -224,7 +224,12 @@ export class DataAgentApplication implements ApplicationCommandHost {
     };
     const registry = new ChannelRegistry(hub, store, providers, { ...(fallback ? { fallback } : {}), ...(hubOptions.onError ? { onError: hubOptions.onError } : {}) });
     this.channels = { hub, registry };
-    this.runtime.channelControl = registry;
+    this.runtime.channelControl = {
+      list: () => registry.list(),
+      provision: (channelId) => registry.provision(channelId),
+      disconnect: (channelId) => registry.disconnect(channelId),
+      createLinkCode: (userId) => hub.createLinkCode(userId),
+    };
     await registry.start();
     return registry;
   }

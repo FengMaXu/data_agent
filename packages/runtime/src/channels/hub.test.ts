@@ -67,7 +67,7 @@ afterEach(async () => {
   for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true });
 });
 
-async function setup(options: { allowGroupDelivery?: (address: ConversationAddress) => boolean; dbPath?: string; clarificationTimeoutMs?: number; publications?: { read(receiptId: string, context: { userId: string; sessionId: string }): Promise<{ content: string }> }; dashboards?: { read(path: string, context: { userId: string; sessionId: string }): Promise<Uint8Array> }; snapshot?: (html: Uint8Array) => Promise<Uint8Array>; idleSessionMs?: number } = {}) {
+async function setup(options: { allowGroupDelivery?: (address: ConversationAddress) => boolean; dbPath?: string; clarificationTimeoutMs?: number; publications?: { read(receiptId: string, context: { userId: string; sessionId: string }): Promise<{ content: string }> }; dashboards?: { read(path: string, context: { userId: string; sessionId: string }): Promise<Uint8Array> }; snapshot?: (html: Uint8Array) => Promise<Uint8Array>; idleSessionMs?: number; linked?: boolean } = {}) {
   let dbPath = options.dbPath;
   if (!dbPath) {
     const root = await mkdtemp(join(process.cwd(), ".tmp-channel-hub-"));
@@ -75,6 +75,12 @@ async function setup(options: { allowGroupDelivery?: (address: ConversationAddre
     dbPath = join(root, "metadata.db");
   }
   const metadata = new MetadataStore(dbPath);
+  const store = new MetadataChannelStore(metadata);
+  // Most tests speak as people who already linked their IM identity to an account.
+  if (options.linked !== false) {
+    await store.link({ channel: "im", tenant: "t1", externalUserId: "alice" }, "user-alice", 0);
+    await store.link({ channel: "im", tenant: "t1", externalUserId: "bob" }, "user-bob", 0);
+  }
   const fake = fakeAgent();
   const clarifications = new ClarificationManager(options.clarificationTimeoutMs ?? 60_000);
   const runtime = new DataAgentRuntime({ metadata, clarifications, agent: fake.agent });
@@ -82,7 +88,7 @@ async function setup(options: { allowGroupDelivery?: (address: ConversationAddre
   const errors: unknown[] = [];
   const hub = new ChannelHub({
     host: runtime,
-    store: new MetadataChannelStore(metadata),
+    store,
     now: () => clock.now,
     onError: (error) => errors.push(error),
     retry: { baseMs: 100, maxMs: 1_000, maxAttempts: 3, pollMs: 3_600_000 },
@@ -103,7 +109,7 @@ async function setup(options: { allowGroupDelivery?: (address: ConversationAddre
   };
   closers.push(close);
   await hub.register(channel);
-  return { hub, channel, fake, runtime, clarifications, clock, errors, dbPath, close };
+  return { hub, channel, fake, runtime, clarifications, clock, errors, dbPath, close, store };
 }
 
 const group: ConversationAddress = { channel: "im", tenant: "t1", chatId: "chat-1", audience: "group" };
@@ -385,5 +391,76 @@ describe("ChannelHub deliverables", () => {
     await hub.submit("im", { requestId: "evt-4", address: direct, actor: alice, body: { kind: "answer", clarificationId: asked.clarificationId, text: "含税" } });
     await expect(asked.promise).resolves.toBe("含税");
     expect(fake.calls).toHaveLength(3);
+  });
+});
+
+describe("ChannelHub access", () => {
+  const command = (requestId: string, text: string, address: ConversationAddress = direct, actor = alice): Submission => ({ requestId, address, actor, body: { kind: "input", text, whenBusy: "follow_up" } });
+  const notices = (channel: MemoryChannel) => channel.delivered.map((item) => item.deliverable.kind === "notice" ? item.deliverable.code : item.deliverable.kind);
+
+  it("runs nothing for a sender who has not linked an account, whatever they send", async () => {
+    const { hub, fake, channel, runtime } = await setup({ linked: false });
+    expect(await hub.submit("im", input("evt-1", group))).toBe("denied");
+    expect(await hub.submit("im", command("evt-2", "/new"))).toBe("denied");
+    const asked = runtime.askClarification("some-session", "含税吗？", []);
+    expect(await hub.submit("im", { requestId: "evt-3", address: direct, actor: alice, body: { kind: "answer", clarificationId: asked.clarificationId, text: "含税" } })).toBe("denied");
+    await hub.flush();
+    expect(fake.calls).toHaveLength(0);
+    expect(runtime.clarificationManager.pendingFor("some-session")).toBeDefined();
+    expect(notices(channel)).toEqual(["ACCESS_DENIED", "ACCESS_DENIED", "ACCESS_DENIED"]);
+    expect(channel.delivered[0]!.target).toEqual({ kind: "address", address: group });
+  });
+
+  it("links a sender with a one-time code in a private chat, then runs as that account", async () => {
+    const { hub, fake, channel } = await setup({ linked: false });
+    const { code, expiresAt } = await hub.createLinkCode("user-web");
+    expect(code).toMatch(/^[0-9]{6}$/);
+    expect(expiresAt).toBe(1_000 + 10 * 60_000);
+    expect(await hub.submit("im", command("evt-1", `/bind ${code}`))).toBe("dispatched");
+    await hub.submit("im", input("evt-2", direct));
+    expect(fake.calls).toEqual([expect.objectContaining({ kind: "prompt", userId: "user-web" })]);
+
+    // The code is spent: nobody else can link with it.
+    await hub.submit("im", command("evt-3", `/绑定 ${code}`, direct, bob));
+    await hub.flush();
+    expect(notices(channel)).toEqual(["ACCOUNT_LINKED", "LINK_FAILED"]);
+  });
+
+  it("spends a code that was shown in a group without linking anyone", async () => {
+    const { hub, fake, channel } = await setup({ linked: false });
+    const { code } = await hub.createLinkCode("user-web");
+    await hub.submit("im", command("evt-1", `/bind ${code}`, group));
+    await hub.submit("im", command("evt-2", `/bind ${code}`));
+    await hub.submit("im", input("evt-3", direct));
+    await hub.flush();
+    expect(fake.calls).toHaveLength(0);
+    expect(channel.delivered.map((item) => [item.deliverable.kind === "notice" ? item.deliverable.text.slice(0, 6) : "", item.target.kind])).toEqual([
+      ["绑定码只能在", "address"],
+      ["绑定码无效、", "address"],
+      ["你还没有使用", "address"],
+    ]);
+  });
+
+  it("refuses expired codes and locks a sender out for an hour after five wrong tries", async () => {
+    const { hub, fake, channel, clock } = await setup({ linked: false });
+    const stale = await hub.createLinkCode("user-web");
+    clock.now += 11 * 60_000;
+    await hub.submit("im", command("evt-0", `/bind ${stale.code}`));
+    for (let attempt = 1; attempt <= 4; attempt += 1) await hub.submit("im", command(`evt-${attempt}`, "/bind 000000"));
+    const fresh = await hub.createLinkCode("user-web");
+    await hub.submit("im", command("evt-5", `/bind ${fresh.code}`));
+    await hub.submit("im", command("evt-6", "/bind"));
+    await hub.flush();
+    expect(channel.delivered.slice(-2).map((item) => item.deliverable.kind === "notice" ? item.deliverable.text : "")).toEqual(["尝试次数过多，请一小时后再试。", "尝试次数过多，请一小时后再试。"]);
+
+    clock.now += 61 * 60_000;
+    const later = await hub.createLinkCode("user-web");
+    await hub.submit("im", command("evt-7", "/bind"));
+    await hub.submit("im", command("evt-8", `/bind ${later.code}`));
+    await hub.submit("im", input("evt-9", direct));
+    await hub.flush();
+    expect(channel.delivered.slice(-2).map((item) => item.deliverable.kind === "notice" ? item.deliverable.code : "")).toEqual(["LINK_FAILED", "ACCOUNT_LINKED"]);
+    expect(channel.delivered.at(-2)!.deliverable).toMatchObject({ text: expect.stringContaining("/bind 123456") });
+    expect(fake.calls).toEqual([expect.objectContaining({ userId: "user-web" })]);
   });
 });
