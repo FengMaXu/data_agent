@@ -41,6 +41,7 @@ async function system(options: { groupChats?: readonly string[] } = {}) {
     async reply(...args) { calls.push({ op: "reply", args }); return `om_${sent++}`; },
     async patchCard(...args) { calls.push({ op: "patch", args }); },
     async uploadFile(...args) { calls.push({ op: "upload", args }); return "file_1"; },
+    async uploadImage(...args) { calls.push({ op: "uploadImage", args }); return "img_1"; },
   };
   const handlers: { message?: FeishuEventHandler; cardAction?: FeishuEventHandler } = {};
   const events: FeishuEvents = { async connect(next) { Object.assign(handlers, next); }, async disconnect() {} };
@@ -50,6 +51,8 @@ async function system(options: { groupChats?: readonly string[] } = {}) {
     store: new MetadataChannelStore(metadata),
     allowGroupDelivery: (address) => (options.groupChats ?? []).includes(address.chatId),
     publications: { read: async () => ({ content: "区域,销售额\n华东,100\n华北,80" }) },
+    dashboards: { read: async () => new TextEncoder().encode("<!doctype html>") },
+    snapshot: async () => new Uint8Array([137, 80, 78, 71]),
     progressIntervalMs: 5,
     retry: { pollMs: 3_600_000 },
   });
@@ -133,5 +136,19 @@ describe("Feishu channel through the hub", () => {
     await settle();
     expect(prompts.at(-1)).toMatchObject({ kind: "prompt", text: "含税", sessionId: bob!.sessionId });
     expect(runtime.clarificationManager.pendingFor(alice!.sessionId!)?.clarificationId).toBe(asked.clarificationId);
+  });
+
+  it("sends a generated dashboard to the phone as a picture and the page", async () => {
+    const { prompts, emit, calls, handlers, settle } = await system();
+    await handlers.message!(message("evt-1", "做一个三大行业销售看板"));
+    await settle();
+    emit(prompts[0]!.sessionId!, { type: "dashboard.delivered", path: "dashboards/sales.html", contentHash: "v1", receiptIds: ["pub-1"] });
+    await settle();
+    expect(calls.map((call) => [call.op, call.args[0], call.args[2]])).toEqual([
+      ["uploadImage", expect.anything(), undefined],
+      ["send", "chat_id", "image"],
+      ["upload", "sales.html", undefined],
+      ["send", "chat_id", "file"],
+    ]);
   });
 });

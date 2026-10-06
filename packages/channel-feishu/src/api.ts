@@ -8,6 +8,7 @@ export interface FeishuApi {
   reply(messageId: string, msgType: string, content: string, uuid: string, inThread: boolean): Promise<string>;
   patchCard(messageId: string, card: string): Promise<void>;
   uploadFile(fileName: string, data: Buffer): Promise<string>;
+  uploadImage(data: Buffer): Promise<string>;
 }
 
 /** Inbound events as the SDK hands them over: header and event fields merged into one object. */
@@ -56,6 +57,11 @@ export function createLarkApi(credentials: FeishuCredentials): FeishuApi {
       const response = await client.im.v1.file.create({ data: { file_type: "stream", file_name: fileName, file: data } });
       if (!response?.file_key) throw new Error("FEISHU_UPLOAD_FAILED: no file_key");
       return response.file_key;
+    },
+    async uploadImage(data) {
+      const response = await client.im.v1.image.create({ data: { image_type: "message", image: data } });
+      if (!response?.image_key) throw new Error("FEISHU_UPLOAD_FAILED: no image_key");
+      return response.image_key;
     },
   };
 }
