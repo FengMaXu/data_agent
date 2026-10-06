@@ -434,3 +434,18 @@ export async function refreshDashboardViaRuntime(path: string, viewIds: string[]
   return { datasets: response.datasets, sources: response.sources, checks: response.checks };
 }
 
+
+// ── Channels (ADR-0011) ───────────────────────────────────────────────────────
+
+export type ChannelStatusView = Extract<DataAgentResponseEnvelope["response"], { type: "channel.list.result" }>["channels"][number];
+
+async function channelCommand(command: Extract<DataAgentCommand, { type: "channel.list" | "channel.provision" | "channel.disconnect" }>): Promise<ChannelStatusView[]> {
+  const result = (await getRuntimeClient().dispatch(command)).response;
+  if (result.type !== "channel.list.result") throw new Error("UNEXPECTED_RESPONSE");
+  return result.channels;
+}
+
+export const listChannelsViaRuntime = () => channelCommand({ type: "channel.list" });
+/** Starts scan-to-connect; the returned status carries the link to show as a QR code. */
+export const provisionChannelViaRuntime = (channelId: string) => channelCommand({ type: "channel.provision", channelId });
+export const disconnectChannelViaRuntime = (channelId: string) => channelCommand({ type: "channel.disconnect", channelId });

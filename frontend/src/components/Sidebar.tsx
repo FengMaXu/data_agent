@@ -45,6 +45,7 @@ const SETTINGS_SECTIONS: { id: SettingsSection; icon: React.FC<{ size?: number }
     { id: 'model', icon: RiRobot2 },
     { id: 'database', icon: RiDatabaseLine },
     { id: 'environment', icon: RiComputer },
+    { id: 'channels', icon: RiChat3 },
 ];
 
 interface KnowledgeFileNode {
