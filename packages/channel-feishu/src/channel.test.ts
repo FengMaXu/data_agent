@@ -231,3 +231,29 @@ describe("FeishuChannel", () => {
     expect(JSON.parse(api.calls[2]!.args[1] as string).body.elements).toEqual([{ tag: "markdown", content: "上月销售额 100 万。" }]);
   });
 });
+
+describe("Feishu access requests", () => {
+  it("asks a member with the requester's name, what they sent, and allow/deny buttons", async () => {
+    const { api, channel } = await started();
+    const member: DeliveryTarget = { kind: "actor", actor: { channel: "feishu", tenant: "tenant-1", externalUserId: "ou_admin" } };
+    await channel.deliver(member, { kind: "access_request", requestId: "req-1", requester: { channel: "feishu", tenant: "tenant-1", externalUserId: "ou_carol" }, audience: "group", text: "上月\n销售额" }, "access:req-1:ou_admin");
+    const [receiveType, receiveId, msgType, content] = api.calls[0]!.args as string[];
+    expect([receiveType, receiveId, msgType]).toEqual(["open_id", "ou_admin", "interactive"]);
+    const elements = JSON.parse(content!).body.elements;
+    expect(elements[0].content).toBe("<at id=ou_carol></at> 在群聊中请求使用数据助手。\n\n他发送的内容：上月 销售额");
+    expect(elements.filter((element: { tag: string }) => element.tag === "button").map((button: { behaviors: { value: unknown }[] }) => button.behaviors[0]!.value)).toEqual([
+      { kind: "access", requestId: "req-1", decision: "allow" },
+      { kind: "access", requestId: "req-1", decision: "deny" },
+    ]);
+  });
+
+  it("turns a click into the member's decision and closes the card", async () => {
+    const { events, received } = await started();
+    const response = await events.cardAction({ event_id: "evt-7", tenant_key: "tenant-1", operator: { open_id: "ou_admin" }, context: { open_chat_id: "oc_admin" }, action: { value: { kind: "access", requestId: "req-1", decision: "deny" } } });
+    expect(response).toMatchObject({ toast: { type: "success" }, card: { type: "raw", data: { body: { elements: [{ content: "已提交：**拒绝**" }] } } } });
+    await tick();
+    expect(received).toEqual([{ requestId: "evt-7", address: { channel: "feishu", tenant: "tenant-1", chatId: "oc_admin", audience: "direct" }, actor: { channel: "feishu", tenant: "tenant-1", externalUserId: "ou_admin" }, body: { kind: "access_decision", requestId: "req-1", decision: "deny" } }]);
+    expect(cardActionSubmission({ event_id: "e", tenant_key: "t", operator: { open_id: "o" }, context: { open_chat_id: "c" }, action: { value: { kind: "access", requestId: "r", decision: "maybe" } } })).toBeUndefined();
+  });
+});
+

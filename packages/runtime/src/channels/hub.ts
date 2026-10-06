@@ -3,6 +3,8 @@ import {
   ProtocolVersion,
   parseSubmission,
   type Channel,
+  type ChannelAccess,
+  type ChannelActor,
   type ConversationAddress,
   type DataAgentCommand,
   type DataAgentEventEnvelope,
@@ -56,7 +58,23 @@ const NOTICE_TEXT = {
   LINK_INVALID: "绑定码无效、已过期或已被使用，请在网页端重新获取。",
   LINK_USAGE: "请发送 /bind 加上网页端给出的 6 位绑定码，例如 /bind 123456。",
   LINK_LOCKED: "尝试次数过多，请一小时后再试。",
+  ACCESS_REQUESTED: "已向管理员申请使用权限，批准后会通知你。",
+  ACCESS_PENDING: "你的使用申请正在等待管理员处理。",
+  ACCESS_REFUSED: "管理员没有同意你的使用申请。",
+  ACCESS_GRANTED: "管理员已同意你使用数据助手，请重新发送你的问题。",
+  DECIDER_NOT_MEMBER: "只有已绑定账号的成员可以处理使用申请。",
+  DECISION_ALLOWED: "已允许，对方会收到通知。",
+  DECISION_DENIED: "已拒绝，对方会收到通知。",
+  DECISION_SETTLED: "这条申请已经处理过了。",
+  DECISION_UNKNOWN: "找不到这条申请。",
 } as const;
+
+/** A refused request can be made again after this long. */
+const REFUSAL_MS = 7 * 24 * 60 * 60_000;
+/** What a request shows of the message that made it. */
+const REQUEST_TEXT_LIMIT = 200;
+
+export type AccessDecisionOutcome = "allowed" | "denied" | "already_decided" | "unknown";
 
 /** A link code is good for this long, once. */
 const LINK_CODE_TTL_MS = 10 * 60_000;
@@ -73,7 +91,8 @@ function idleNotice(idleMs: number): string {
   return `距上次对话已超过 ${span}，已开始新对话，之前的上下文不会带入。`;
 }
 
-type ConversationBody = Exclude<SubmissionBody, { kind: "new_conversation" }>;
+/** What reaches a Session: a question or an answer. */
+type ConversationBody = Extract<SubmissionBody, { kind: "input" | "answer" }>;
 
 /** Typed alone in any channel, these start over instead of being asked as a question. */
 const NEW_CONVERSATION_COMMANDS = new Set(["/new", "/新对话", "新对话"]);
@@ -158,10 +177,15 @@ export class ChannelHub {
         await this.options.store.settleInbound(channelId, submission.requestId, "dispatched");
         return "dispatched";
       }
-      // Default deny: only an identity linked to an account may run anything (ADR-0011).
-      const userId = await this.options.store.linkedUser(actor);
+      if (body.kind === "access_decision") {
+        await this.decideFromChannel(submission, body.requestId, body.decision);
+        await this.options.store.settleInbound(channelId, submission.requestId, "dispatched");
+        return "dispatched";
+      }
+      // Default deny: only a linked account or an approved guest may run anything (ADR-0011).
+      const userId = (await this.options.store.linkedUser(actor))?.userId;
       if (!userId) {
-        await this.notify(address, `notice:denied:${submission.requestId}`, "ACCESS_DENIED", NOTICE_TEXT.ACCESS_DENIED);
+        await this.requestAccess(submission);
         await this.options.store.settleInbound(channelId, submission.requestId, "denied");
         return "denied";
       }
@@ -180,6 +204,37 @@ export class ChannelHub {
       void this.flush();
       return "rejected";
     }
+  }
+
+  /**
+   * Decides a request to use the bot, from a member's card or the settings
+   * page. Allowing makes the requester a guest with an account of their own;
+   * either way they are told. Only the first decision counts.
+   */
+  async decideAccess(requestId: string, decision: "allow" | "deny", decidedBy: string): Promise<AccessDecisionOutcome> {
+    const request = await this.options.store.request(requestId);
+    if (!request) return "unknown";
+    if (!(await this.options.store.decideRequest(requestId, decision === "allow" ? "approved" : "denied", decidedBy, this.now()))) return "already_decided";
+    const requester: DeliveryTarget = { kind: "actor", actor: request.requester };
+    if (decision === "deny") {
+      await this.notify(requester, `notice:refused:${requestId}`, "ACCESS_DENIED", NOTICE_TEXT.ACCESS_REFUSED);
+      return "denied";
+    }
+    // Someone who linked their own account meanwhile keeps it.
+    if (!(await this.options.store.linkedUser(request.requester))) await this.options.store.link(request.requester, this.createId(), this.now(), "guest");
+    await this.notify(requester, `notice:granted:${requestId}`, "ACCESS_GRANTED", NOTICE_TEXT.ACCESS_GRANTED);
+    return "allowed";
+  }
+
+  /** Who may use the channels, and who is waiting. */
+  async access(): Promise<ChannelAccess> {
+    const [members, requests] = await Promise.all([this.options.store.members(), this.options.store.pendingRequests()]);
+    return { members: members.map((member) => ({ ...member })), requests: requests.map(({ id, requester, audience, text, at }) => ({ id, requester, audience, text, at })) };
+  }
+
+  /** Takes away an identity's access; its next message asks again. */
+  async revokeAccess(actor: ChannelActor): Promise<void> {
+    await this.options.store.unlink(actor);
   }
 
   /** A one-time code the signed-in user sends to a bot as `/bind <code>`; good for ten minutes. */
@@ -293,24 +348,62 @@ export class ChannelHub {
     const now = this.now();
     const record = this.linkFailures.get(failures);
     const recent = record && now - record.since < LINK_WINDOW_MS ? record : undefined;
-    if (recent && recent.count >= LINK_ATTEMPTS) return this.notify(address, key, "LINK_FAILED", NOTICE_TEXT.LINK_LOCKED);
-    if (!code) return this.notify(address, key, "LINK_FAILED", NOTICE_TEXT.LINK_USAGE);
+    const here = addressTarget(address);
+    if (recent && recent.count >= LINK_ATTEMPTS) return this.notify(here, key, "LINK_FAILED", NOTICE_TEXT.LINK_LOCKED);
+    if (!code) return this.notify(here, key, "LINK_FAILED", NOTICE_TEXT.LINK_USAGE);
     if (address.audience !== "direct") {
       await this.options.store.consumeLinkCode(code, now);
-      return this.notify(address, key, "LINK_FAILED", NOTICE_TEXT.LINK_NOT_PRIVATE);
+      return this.notify(here, key, "LINK_FAILED", NOTICE_TEXT.LINK_NOT_PRIVATE);
     }
     const userId = await this.options.store.consumeLinkCode(code, now);
     if (!userId) {
       this.linkFailures.set(failures, { count: (recent?.count ?? 0) + 1, since: recent?.since ?? now });
-      return this.notify(address, key, "LINK_FAILED", NOTICE_TEXT.LINK_INVALID);
+      return this.notify(here, key, "LINK_FAILED", NOTICE_TEXT.LINK_INVALID);
     }
     this.linkFailures.delete(failures);
-    await this.options.store.link(actor, userId, now);
-    await this.notify(address, key, "ACCOUNT_LINKED", NOTICE_TEXT.ACCOUNT_LINKED);
+    await this.options.store.link(actor, userId, now, "account");
+    await this.notify(here, key, "ACCOUNT_LINKED", NOTICE_TEXT.ACCOUNT_LINKED);
   }
 
-  private async notify(address: ConversationAddress, key: string, code: "ACCESS_DENIED" | "ACCOUNT_LINKED" | "LINK_FAILED", text: string): Promise<void> {
-    await this.options.store.enqueue(address.channel, key, addressTarget(address), { kind: "notice", code, text }, this.now());
+  /**
+   * Someone without access asked for something: nothing runs. Their first
+   * message becomes a request to every linked account on that platform and
+   * tenant, privately; while it waits, or within a week of a refusal, they
+   * are only told where things stand. With nobody to ask, they get the link
+   * instructions.
+   */
+  private async requestAccess(submission: Submission): Promise<void> {
+    const { address, actor, body } = submission;
+    const here = addressTarget(address);
+    const key = `notice:access:${submission.requestId}`;
+    const latest = await this.options.store.latestRequest(actor);
+    if (latest?.status === "pending") return this.notify(here, key, "ACCESS_REQUESTED", NOTICE_TEXT.ACCESS_PENDING);
+    if (latest?.status === "denied" && latest.decidedAt !== null && this.now() - latest.decidedAt < REFUSAL_MS) return this.notify(here, key, "ACCESS_DENIED", NOTICE_TEXT.ACCESS_REFUSED);
+    const approvers = (await this.options.store.members()).filter((member) => member.role === "account" && member.actor.channel === actor.channel && member.actor.tenant === actor.tenant);
+    if (approvers.length === 0) return this.notify(here, key, "ACCESS_DENIED", NOTICE_TEXT.ACCESS_DENIED);
+    const text = (body.kind === "input" || body.kind === "answer" ? body.text : "").slice(0, REQUEST_TEXT_LIMIT);
+    const request = { id: this.createId(), requester: actor, audience: address.audience, text, at: this.now() };
+    await this.options.store.createRequest(request);
+    for (const approver of approvers) {
+      await this.options.store.enqueue(actor.channel, `access:${request.id}:${approver.actor.externalUserId}`, { kind: "actor", actor: approver.actor }, { kind: "access_request", requestId: request.id, requester: actor, audience: address.audience, text }, this.now());
+    }
+    await this.notify(here, key, "ACCESS_REQUESTED", NOTICE_TEXT.ACCESS_REQUESTED);
+  }
+
+  /** A decision from an approval card counts only from a linked account, not from a guest. */
+  private async decideFromChannel(submission: Submission, requestId: string, decision: "allow" | "deny"): Promise<void> {
+    const here = addressTarget(submission.address);
+    const key = `notice:decision:${submission.requestId}`;
+    const decider = await this.options.store.linkedUser(submission.actor);
+    if (decider?.role !== "account") return this.notify(here, key, "ACCESS_DECIDED", NOTICE_TEXT.DECIDER_NOT_MEMBER);
+    const outcome = await this.decideAccess(requestId, decision, decider.userId);
+    const text = { allowed: NOTICE_TEXT.DECISION_ALLOWED, denied: NOTICE_TEXT.DECISION_DENIED, already_decided: NOTICE_TEXT.DECISION_SETTLED, unknown: NOTICE_TEXT.DECISION_UNKNOWN }[outcome];
+    await this.notify(here, key, "ACCESS_DECIDED", text);
+  }
+
+  private async notify(target: DeliveryTarget, key: string, code: "ACCESS_DENIED" | "ACCOUNT_LINKED" | "LINK_FAILED" | "ACCESS_REQUESTED" | "ACCESS_GRANTED" | "ACCESS_DECIDED", text: string): Promise<void> {
+    const channel = target.kind === "address" ? target.address.channel : target.actor.channel;
+    await this.options.store.enqueue(channel, key, target, { kind: "notice", code, text }, this.now());
     void this.flush();
   }
 

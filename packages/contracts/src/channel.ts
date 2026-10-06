@@ -33,6 +33,8 @@ export const SubmissionBodySchema = Type.Union([
   Type.Object({ kind: Type.Literal("answer"), clarificationId: Id, text: Type.String({ minLength: 1 }) }, { additionalProperties: false }),
   /** The speaker asks to start over; earlier context is not carried into the next Session. */
   Type.Object({ kind: Type.Literal("new_conversation") }, { additionalProperties: false }),
+  /** A member's decision on someone's request to use the bot, from an approval card. */
+  Type.Object({ kind: Type.Literal("access_decision"), requestId: Id, decision: Type.Union([Type.Literal("allow"), Type.Literal("deny")]) }, { additionalProperties: false }),
 ]);
 export type SubmissionBody = Static<typeof SubmissionBodySchema>;
 
@@ -83,6 +85,12 @@ export const NoticeCodeSchema = Type.Union([
   Type.Literal("ACCOUNT_LINKED"),
   /** A link attempt was refused: wrong, expired or used code, too many tries, or not in a private chat. */
   Type.Literal("LINK_FAILED"),
+  /** The sender's request to use the bot went to the members who can decide it. */
+  Type.Literal("ACCESS_REQUESTED"),
+  /** The sender may now use the bot. */
+  Type.Literal("ACCESS_GRANTED"),
+  /** What became of a decision a member made. */
+  Type.Literal("ACCESS_DECIDED"),
 ]);
 export type NoticeCode = Static<typeof NoticeCodeSchema>;
 
@@ -91,6 +99,15 @@ export const DeliverableSchema = Type.Union([
   Type.Object({ kind: Type.Literal("question"), clarificationId: Id, question: Type.String(), options: Type.Array(Type.String()) }, { additionalProperties: false }),
   Type.Object({ kind: Type.Literal("publication"), publication: PublicationDeliveredSchema }, { additionalProperties: false }),
   Type.Object({ kind: Type.Literal("dashboard"), dashboard: DashboardDeliveredSchema }, { additionalProperties: false }),
+  /** Asks a member to let someone use the bot; it goes to members privately. */
+  Type.Object({
+    kind: Type.Literal("access_request"),
+    requestId: Id,
+    requester: ChannelActorSchema,
+    audience: Type.Union([Type.Literal("direct"), Type.Literal("group")]),
+    /** What they sent when asking, so the member knows who and why. */
+    text: Type.String(),
+  }, { additionalProperties: false }),
   Type.Object({ kind: Type.Literal("notice"), code: NoticeCodeSchema, text: Type.String() }, { additionalProperties: false }),
 ]);
 export type Deliverable = Static<typeof DeliverableSchema>;
@@ -144,6 +161,24 @@ export interface Channel {
   progress?(target: DeliveryTarget, view: ProgressView): Promise<void>;
   stop(): Promise<void>;
 }
+
+/** Who may use the channels: linked accounts and approved guests, and requests waiting for a decision. */
+export const ChannelAccessSchema = Type.Object({
+  members: Type.Array(Type.Object({
+    actor: ChannelActorSchema,
+    /** `account`: linked to a signed-in account with /bind, may approve others. `guest`: approved to use the bot only. */
+    role: Type.Union([Type.Literal("account"), Type.Literal("guest")]),
+    since: Type.Integer(),
+  }, { additionalProperties: false })),
+  requests: Type.Array(Type.Object({
+    id: Id,
+    requester: ChannelActorSchema,
+    audience: Type.Union([Type.Literal("direct"), Type.Literal("group")]),
+    text: Type.String(),
+    at: Type.Integer(),
+  }, { additionalProperties: false })),
+}, { additionalProperties: false });
+export type ChannelAccess = Static<typeof ChannelAccessSchema>;
 
 /** Where a Channel stands, as the settings page shows it. Credentials never appear here. */
 export const ChannelStatusSchema = Type.Object({

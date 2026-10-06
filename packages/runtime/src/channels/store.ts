@@ -1,6 +1,22 @@
 import type { ChannelActor, ConversationAddress, Deliverable, DeliveryTarget, Submission } from "@data-agent/contracts";
 import type { MetadataStore } from "../metadata.js";
 
+/** `account`: linked to a signed-in account with /bind, may approve others. `guest`: approved to use the bot only. */
+export type MemberRole = "account" | "guest";
+
+export interface LinkedUser {
+  readonly userId: string;
+  readonly role: MemberRole;
+}
+
+export interface AccessRequest {
+  readonly id: string;
+  readonly requester: ChannelActor;
+  readonly audience: ConversationAddress["audience"];
+  readonly text: string;
+  readonly at: number;
+}
+
 export interface ChannelSessionBinding {
   readonly sessionId: string;
   readonly taskId: string;
@@ -41,8 +57,17 @@ export interface ChannelStore {
   /** Accepted before `before` and never dispatched: the process stopped in between. */
   interruptedInbound(channel: string, before: number): Promise<readonly { readonly requestId: string; readonly address: ConversationAddress }[]>;
   /** The account this IM identity is linked to; undefined means it may not use the channel. */
-  linkedUser(actor: ChannelActor): Promise<string | undefined>;
-  link(actor: ChannelActor, userId: string, at: number): Promise<void>;
+  linkedUser(actor: ChannelActor): Promise<LinkedUser | undefined>;
+  link(actor: ChannelActor, userId: string, at: number, role?: MemberRole): Promise<void>;
+  unlink(actor: ChannelActor): Promise<void>;
+  members(): Promise<readonly { readonly actor: ChannelActor; readonly role: MemberRole; readonly since: number }[]>;
+  /** The latest request this identity made to use the bot, if any. */
+  latestRequest(actor: ChannelActor): Promise<{ readonly id: string; readonly status: "pending" | "approved" | "denied"; readonly decidedAt: number | null } | undefined>;
+  createRequest(request: AccessRequest): Promise<void>;
+  request(id: string): Promise<(AccessRequest & { readonly status: "pending" | "approved" | "denied" }) | undefined>;
+  pendingRequests(): Promise<readonly AccessRequest[]>;
+  /** False when the request was already decided, possibly by someone else just now. */
+  decideRequest(id: string, status: "approved" | "denied", decidedBy: string, at: number): Promise<boolean>;
   /** False when the code is already taken; the caller draws another. */
   createLinkCode(code: string, userId: string, expiresAt: number): Promise<boolean>;
   /** The account a valid, unused code was issued to, spending the code; undefined otherwise. */
@@ -82,12 +107,44 @@ export class MetadataChannelStore implements ChannelStore {
     return rows.map((row) => ({ requestId: row.requestId, address: JSON.parse(row.addressJson) as ConversationAddress }));
   }
 
-  async linkedUser(actor: ChannelActor): Promise<string | undefined> {
+  async linkedUser(actor: ChannelActor): Promise<LinkedUser | undefined> {
     return (await this.metadata.call("channel.link.get", "system", { channel: actor.channel, tenant: actor.tenant, externalUserId: actor.externalUserId })) ?? undefined;
   }
 
-  async link(actor: ChannelActor, userId: string, at: number): Promise<void> {
-    await this.metadata.call("channel.link.set", "system", { channel: actor.channel, tenant: actor.tenant, externalUserId: actor.externalUserId, userId, at });
+  async link(actor: ChannelActor, userId: string, at: number, role: MemberRole = "account"): Promise<void> {
+    await this.metadata.call("channel.link.set", "system", { channel: actor.channel, tenant: actor.tenant, externalUserId: actor.externalUserId, userId, at, role });
+  }
+
+  async unlink(actor: ChannelActor): Promise<void> {
+    await this.metadata.call("channel.link.remove", "system", { channel: actor.channel, tenant: actor.tenant, externalUserId: actor.externalUserId });
+  }
+
+  async members(): Promise<readonly { readonly actor: ChannelActor; readonly role: MemberRole; readonly since: number }[]> {
+    const rows = await this.metadata.call("channel.link.list", "system") as { channel: string; tenant: string; externalUserId: string; role: MemberRole; linkedAt: number }[];
+    return rows.map((row) => ({ actor: { channel: row.channel, tenant: row.tenant, externalUserId: row.externalUserId }, role: row.role, since: row.linkedAt }));
+  }
+
+  async latestRequest(actor: ChannelActor): Promise<{ readonly id: string; readonly status: "pending" | "approved" | "denied"; readonly decidedAt: number | null } | undefined> {
+    return (await this.metadata.call("channel.request.latest", "system", { channel: actor.channel, tenant: actor.tenant, externalUserId: actor.externalUserId })) ?? undefined;
+  }
+
+  async createRequest(request: AccessRequest): Promise<void> {
+    const { requester } = request;
+    await this.metadata.call("channel.request.create", "system", { requestId: request.id, channel: requester.channel, tenant: requester.tenant, externalUserId: requester.externalUserId, actorJson: JSON.stringify(requester), audience: request.audience, text: request.text, at: request.at });
+  }
+
+  async request(id: string): Promise<(AccessRequest & { readonly status: "pending" | "approved" | "denied" }) | undefined> {
+    const row = await this.metadata.call("channel.request.get", "system", { requestId: id }) as { id: string; actorJson: string; audience: AccessRequest["audience"]; text: string; status: "pending" | "approved" | "denied"; createdAt: number } | null;
+    return row ? { id: row.id, requester: JSON.parse(row.actorJson) as ChannelActor, audience: row.audience, text: row.text, at: row.createdAt, status: row.status } : undefined;
+  }
+
+  async pendingRequests(): Promise<readonly AccessRequest[]> {
+    const rows = await this.metadata.call("channel.request.pending", "system") as { id: string; actorJson: string; audience: AccessRequest["audience"]; text: string; createdAt: number }[];
+    return rows.map((row) => ({ id: row.id, requester: JSON.parse(row.actorJson) as ChannelActor, audience: row.audience, text: row.text, at: row.createdAt }));
+  }
+
+  async decideRequest(id: string, status: "approved" | "denied", decidedBy: string, at: number): Promise<boolean> {
+    return (await this.metadata.call("channel.request.decide", "system", { requestId: id, status, decidedBy, at }) as { decided: boolean }).decided;
   }
 
   async createLinkCode(code: string, userId: string, expiresAt: number): Promise<boolean> {

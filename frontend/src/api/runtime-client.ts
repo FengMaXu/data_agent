@@ -456,3 +456,17 @@ export async function createChannelBindCodeViaRuntime(): Promise<{ code: string;
   if (result.type !== "channel.bind_code.result") throw new Error("UNEXPECTED_RESPONSE");
   return { code: result.code, expiresAt: result.expiresAt };
 }
+
+export type ChannelAccessView = Extract<DataAgentResponseEnvelope["response"], { type: "channel.access.result" }>["access"];
+type ChannelActorView = ChannelAccessView["members"][number]["actor"];
+
+async function accessCommand(command: Extract<DataAgentCommand, { type: "channel.access.list" | "channel.access.decide" | "channel.access.revoke" }>): Promise<ChannelAccessView> {
+  const result = (await getRuntimeClient().dispatch(command)).response;
+  if (result.type !== "channel.access.result") throw new Error("UNEXPECTED_RESPONSE");
+  return result.access;
+}
+
+export const listChannelAccessViaRuntime = () => accessCommand({ type: "channel.access.list" });
+export const decideChannelAccessViaRuntime = (requestId: string, decision: "allow" | "deny") => accessCommand({ type: "channel.access.decide", requestId, decision });
+export const revokeChannelAccessViaRuntime = (actor: ChannelActorView) => accessCommand({ type: "channel.access.revoke", actor });
+
