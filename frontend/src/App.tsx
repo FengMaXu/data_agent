@@ -1,15 +1,16 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+// Chinese text face for the workspace app only; the landing page never loads it.
+import '@fontsource-variable/noto-serif-sc';
 import Sidebar from './components/Sidebar';
 import ChatArea from './components/ChatArea';
 import ToolPanel, { type ToolData } from './components/ToolPanel';
 import SettingsPanel from './components/SettingsPanel';
 import PluginsPanel from './components/PluginsPanel';
 import { CHAT_VIEW, type WorkspaceView } from './components/workspace-view';
-import LandingPage from './components/LandingPage';
 import Onboarding from './components/Onboarding';
 import { SessionProvider } from './hooks/useSession';
 import { AuthProvider, useAuth } from './hooks/useAuth';
-import { LanguageProvider, useLanguage } from './context/LanguageContext';
+import { useLanguage } from './context/LanguageContext';
 import { PreviewProvider } from './context/PreviewContext';
 import { getConfigViaRuntime } from './api/runtime-client';
 import LoginView from './components/LoginView';
@@ -378,21 +379,11 @@ const App: React.FC = () => {
   );
 };
 
-const Root: React.FC = () => {
-  const isDesktopRuntime = typeof window !== 'undefined' && Boolean(window.dataAgent);
-  const isAppRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/app');
+/** The workspace app, loaded lazily by Root for /app and the desktop runtime. */
+const AppRoot: React.FC = () => (
+  <AuthProvider>
+    <App />
+  </AuthProvider>
+);
 
-  return (
-    <LanguageProvider>
-      {isDesktopRuntime || isAppRoute ? (
-        <AuthProvider>
-          <App />
-        </AuthProvider>
-      ) : (
-        <LandingPage />
-      )}
-    </LanguageProvider>
-  );
-};
-
-export default Root;
+export default AppRoot;
