@@ -78,6 +78,27 @@ import { join } from "node:path";
     await app.close(); await rm(root, { recursive: true, force: true });
   });
 
+  it("lets a prompt reference a file uploaded to the same session", async () => {
+    const root = await mkdtemp(join(tmpdir(), "data-agent-server-attachment-"));
+    const workspace = new WorkspaceStore(root);
+    const prompts: string[] = [];
+    const runtime = new DataAgentRuntime({ workspace, agent: { prompt: async (text: string) => { prompts.push(text); return { operationId: "op" }; } } });
+    const app = await createRuntimeServer(runtime, { ...trustedWebContext, workspace });
+    const form = new FormData(); form.append("file", new Blob(["region,amount\nEast,1\n"]), "sales.csv");
+    await app.inject({ method: "POST", url: "/api/workspace/upload?session_id=session-A", payload: form as any, headers: { "content-type": "multipart/form-data" } });
+
+    const command = (sessionId: string) => ({ protocolVersion: 1, requestId: `prompt-${sessionId}`, sessionId, command: { type: "agent.prompt", prompt: "汇总", attachments: [{ path: "sales.csv" }] } });
+    const accepted = await app.inject({ method: "POST", url: "/api/runtime/command", payload: command("session-A") });
+    const elsewhere = await app.inject({ method: "POST", url: "/api/runtime/command", payload: command("session-B") });
+
+    expect(accepted.statusCode).toBe(200);
+    expect(prompts).toHaveLength(1);
+    expect(prompts[0]).toMatch(/^汇总\n\n<attachments>\n[\s\S]*- sales\.csv \(\d+ B\)\n<\/attachments>$/);
+    expect(elsewhere.statusCode).toBe(400);
+    expect(prompts).toHaveLength(1);
+    await app.close(); await rm(root, { recursive: true, force: true });
+  });
+
   it("serves legacy root images through a session URL without changing their bytes", async () => {
     const root = await mkdtemp(join(tmpdir(), "data-agent-server-image-"));
     const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0xff, 0x00, 0xfe]);

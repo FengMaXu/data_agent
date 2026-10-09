@@ -5,7 +5,9 @@ import {
     Square,
     Paperclip,
     Plus,
+    X,
 } from './icons/Typicons';
+import { FileIcon } from './FileIcons';
 import {
     uploadWorkspaceFile,
     type SSEEvent,
@@ -63,6 +65,7 @@ interface UserMessage {
     id: string;
     role: 'user';
     content: string;
+    attachments?: string[];
 }
 
 type ChatMessage = AgentMessage | UserMessage;
@@ -124,6 +127,7 @@ const toSnapshotMessage = (message: ChatMessage): SessionSnapshotMessage => {
             id: message.id,
             role: 'user',
             content: message.content,
+            ...(message.attachments?.length ? { attachments: message.attachments } : {}),
         };
     }
 
@@ -148,6 +152,7 @@ const fromSnapshotMessage = (message: SessionSnapshotMessage): ChatMessage => {
             id: message.id,
             role: 'user',
             content: message.content,
+            ...(message.attachments?.length ? { attachments: message.attachments } : {}),
         };
     }
 
@@ -227,6 +232,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
         currentTranscript,
         attachedFiles,
         setAttachedFiles,
+        clearAttachedFiles,
         setCurrentTranscript,
     } = useSession();
 
@@ -237,6 +243,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
     const [isStreaming, setIsStreaming] = useState(false);
     const [isStreamReconnecting, setIsStreamReconnecting] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    const [uploadError, setUploadError] = useState(false);
     const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
     const [runReason, setRunReason] = useState<'completed' | 'stopped' | 'error' | null>(null);
     const [pendingClarification, setPendingClarification] = useState<ClarificationRequest | null>(null);
@@ -475,17 +482,19 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
         if (!files || files.length === 0) return;
 
         setIsUploading(true);
+        setUploadError(false);
+        const uploadedPaths: string[] = [];
         try {
-            const uploadedPaths: string[] = [];
             for (const file of Array.from(files)) {
                 const uploaded = await uploadWorkspaceFile(file, currentSession.id);
                 uploadedPaths.push(uploaded.relative_path);
             }
-            setAttachedFiles([...attachedFiles, ...uploadedPaths]);
         } catch (err) {
             console.error('Failed to upload files:', err);
-            setRunReason('error');
+            setUploadError(true);
         } finally {
+            // Keep whatever did upload attached, even when a later file failed.
+            if (uploadedPaths.length > 0) setAttachedFiles([...attachedFiles, ...uploadedPaths]);
             setIsUploading(false);
             event.target.value = '';
         }
@@ -496,10 +505,13 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
         if (!content) return;
 
         void currentSession.id;
+        // Attachments go with a new prompt; a steer while running carries text only.
+        const attachments = isStreaming ? [] : [...attachedFiles];
         const userMsg: UserMessage = {
             id: `user-${Date.now()}`,
             role: 'user',
             content,
+            ...(attachments.length > 0 ? { attachments } : {}),
         };
 
         setMessages((prev) => [...prev, userMsg]);
@@ -525,7 +537,8 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
         promoteStage(pendingAgentMessageIdRef.current, 'sent');
         flushBufferedMessage(pendingAgentMessageIdRef.current);
 
-        followRun(currentSession.id, (onEvent, onError, onFinish, sessionId, stream) => sendChatViaRuntime(content, onEvent, onError, onFinish, sessionId, stream));
+        if (attachments.length > 0) clearAttachedFiles();
+        followRun(currentSession.id, (onEvent, onError, onFinish, sessionId, stream) => sendChatViaRuntime(content, onEvent, onError, onFinish, sessionId, stream, attachments));
     };
 
     /**
@@ -999,8 +1012,20 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                     <React.Fragment key={msg.id}>
                         {msg.role === 'user' ? (
                             <div className="message user">
-                                <div className="message-content user-message-body">
-                                    {msg.content}
+                                <div className="user-message-stack">
+                                    <div className="message-content user-message-body">
+                                        {msg.content}
+                                    </div>
+                                    {msg.attachments && msg.attachments.length > 0 && (
+                                        <ul className="message-attachments" aria-label={t('chat.attachedFiles')}>
+                                            {msg.attachments.map((file) => (
+                                                <li key={file} className="attachment-chip" title={file}>
+                                                    <FileIcon filename={file} size={14} />
+                                                    <span>{file}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
                                 </div>
                                 <div className="message-avatar user-avatar">U</div>
                             </div>
@@ -1155,8 +1180,28 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
             </div>
 
             <div className="chat-input-container p-4 border-t border-gray-100 bg-white">
+                {attachedFiles.length > 0 && (
+                    <ul className="chat-attachments" aria-label={t('chat.attachedFiles')}>
+                        {attachedFiles.map((file) => (
+                            <li key={file} className="attachment-chip" title={file}>
+                                <FileIcon filename={file} size={14} />
+                                <span>{file}</span>
+                                <button
+                                    type="button"
+                                    onClick={() => setAttachedFiles(attachedFiles.filter((item) => item !== file))}
+                                    aria-label={t('chat.removeAttachment').replace('{name}', file)}
+                                    title={t('chat.removeAttachment').replace('{name}', file)}
+                                >
+                                    <X size={12} />
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                )}
                 <div className="chat-input-meta">
-                    <span>{isStreaming ? t('chat.steerHint') : t('chat.attachHint')}</span>
+                    {uploadError
+                        ? <span className="chat-input-error" role="alert">{t('chat.uploadFailed')}</span>
+                        : <span>{isStreaming ? t('chat.steerHint') : t('chat.attachHint')}</span>}
                     {runReason && <span>{t('chat.status') || '状态'}：{runReason === 'completed' ? t('tools.statusDone') : runReason === 'stopped' ? t('chat.stopped') || '已停止' : t('tools.statusError')}</span>}
                 </div>
                 <div className="chat-input-wrapper shadow-sm">

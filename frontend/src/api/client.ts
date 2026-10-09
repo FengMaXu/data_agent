@@ -372,6 +372,8 @@ export interface SessionSnapshotMessage {
     id: string;
     role: 'user' | 'agent';
     content: string;
+    /** Workspace paths attached to a user message. */
+    attachments?: string[];
     reasoningContent?: string;
     messageId?: string;
     toolCallsById?: Record<string, SessionSnapshotAgentToolCall>;
