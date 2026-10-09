@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { BrandWordmark } from './Brand';
 import { LockKeyhole, LogIn, UserPlus } from './icons/Typicons';
 import { useAuth } from '../hooks/useAuth';
 import { useLanguage } from '../context/LanguageContext';
@@ -48,7 +49,7 @@ const LoginView: React.FC<LoginViewProps> = ({ embedded = false }) => {
                         <LockKeyhole size={22} />
                     </div>
                     <div>
-                        <h1>YourDB</h1>
+                        <h1><BrandWordmark title="yourDB" /></h1>
                         <p>{isRegister ? t('auth.registerSubtitle') : t('auth.loginSubtitle')}</p>
                     </div>
                 </div>

@@ -12,6 +12,7 @@ import {
     User,
     LogOut,
 } from './icons/Typicons';
+import { BrandWordmark } from './Brand';
 import { RiAdd, RiBookShelf, RiBrain4, RiChat3, RiComputer, RiConnector, RiDatabase2, RiDatabaseLine, RiFileEdit, RiFileText, RiFileUpload, RiFlowChart, RiFolder3, RiLayoutLeft2, RiListCheck3, RiPuzzle2, RiRefresh, RiRobot2, RiTaskLine } from './icons/RemixIcons';
 import { SectionHeader, TreeAction, TreeGroup, TreeNote, TreeRow } from './SidebarTree';
 import {
@@ -442,10 +443,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onNavigate, collapsed = f
             <nav id="workspace-sidebar" className={`sidebar ${collapsed ? 'is-rail' : ''}`} aria-label={t('sidebar.navigation')}>
                 <div className="sidebar-header">
                     {collapsed ? (
-                        <div className="sidebar-logo sidebar-logo-compact">YourDB</div>
+                        <div className="sidebar-logo sidebar-logo-compact"><BrandWordmark title="yourDB" /></div>
                     ) : (
                         <>
-                            <div className="sidebar-logo">YourDB</div>
+                            <div className="sidebar-logo"><BrandWordmark title="yourDB" /></div>
                             <button
                                 type="button"
                                 className="sidebar-collapse-toggle"
