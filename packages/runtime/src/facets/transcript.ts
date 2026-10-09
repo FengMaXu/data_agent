@@ -2,6 +2,7 @@ import { isToolProgress, type DataAgentEventEnvelope, type DataAgentEvent } from
 import type { AgentHarness, HarnessEvent } from "@earendil-works/pi-agent-core";
 import { TODO_CONTEXT } from "@earendil-works/pi-agent-core";
 import { isWidgetLifecycleDetails, validateWidgetSpec, type WidgetPayload } from "../widget.js";
+import { splitPromptAttachments } from "../attachments.js";
 import { isRuntimeInjected } from "../runtime-injected.js";
 
 export interface ProjectedOperation {
@@ -45,6 +46,8 @@ export interface TranscriptMessage {
   readonly role: string;
   readonly content: string;
   readonly timestamp: number;
+  /** Workspace paths attached to a user message. */
+  readonly attachments?: string[];
   readonly reasoningContent?: string;
   readonly messageId?: string;
   readonly toolCallsById?: Record<string, unknown>;
@@ -120,8 +123,8 @@ export function transcriptMessagesFromSnapshot(snapshot: TranscriptSnapshot, hid
     const timestamp = timestampFromEntry(entry.timestamp);
     if (message.role === "user") {
       if (hiddenEntryIds.has(entryId)) continue;
-      const content = textFromContent(message.content);
-      if (content) messages.push({ id: entryId, role: "user", content, timestamp });
+      const { prompt: content, attachments } = splitPromptAttachments(textFromContent(message.content));
+      if (content) messages.push({ id: entryId, role: "user", content, timestamp, ...(attachments.length > 0 ? { attachments } : {}) });
       continue;
     }
     if (message.role === "assistant") {

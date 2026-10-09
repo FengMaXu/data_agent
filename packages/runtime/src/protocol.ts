@@ -12,6 +12,7 @@ import { Value } from "typebox/value";
 import { MetadataStore } from "./metadata.js";
 import path from "node:path";
 import { WorkspaceStore } from "./workspace.js";
+import { formatPromptWithAttachments, type PromptAttachment } from "./attachments.js";
 import { runPythonJob } from "./python-job.js";
 import { KnowledgeIndex } from "./knowledge.js";
 import { ClarificationManager } from "./clarification.js";
@@ -463,7 +464,8 @@ export class DataAgentRuntime implements ApplicationCommandHost {
 
     if (command.command.type === "agent.prompt") {
       if (!this.agent) throw new DataAgentRuntimeError("INVALID_COMMAND", "Pi Agent is not configured");
-      const result = await this.agent.prompt(command.command.prompt, { ...(context.sessionId ? { sessionId: context.sessionId } : {}), requestId: command.requestId, userId: context.userId });
+      const attachments = await this.resolveAttachments(command.command.attachments ?? [], context);
+      const result = await this.agent.prompt(formatPromptWithAttachments(command.command.prompt, attachments), { ...(context.sessionId ? { sessionId: context.sessionId } : {}), requestId: command.requestId, userId: context.userId });
       const operationId = asRecord(result)?.operationId;
       if (typeof operationId !== "string" || !operationId) throw new DataAgentRuntimeError("INVALID_COMMAND", "Agent did not return an operation identity");
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "agent.prompt.accepted", runId: operationId } };
@@ -514,6 +516,23 @@ export class DataAgentRuntime implements ApplicationCommandHost {
     }, context.userId);
 
     return response;
+  }
+
+  /** Checks each attached file exists in the Session workspace; a missing one rejects the prompt rather than reaching the model. */
+  private async resolveAttachments(requested: readonly { path: string }[], context: RequestContext): Promise<PromptAttachment[]> {
+    if (requested.length === 0) return [];
+    if (!this.workspace) throw new DataAgentRuntimeError("INVALID_COMMAND", "Workspace is not configured");
+    if (!context.sessionId) throw new DataAgentRuntimeError("INVALID_CONTEXT", "Attachments require a session workspace");
+    this.workspace.assertAccess(context);
+    const workspace = await this.workspace.scoped(context.sessionId);
+    const paths = [...new Set(requested.map((item) => item.path))];
+    return Promise.all(paths.map(async (path) => {
+      try {
+        return { path, size: (await workspace.artifact(path)).size };
+      } catch {
+        throw new DataAgentRuntimeError("INVALID_COMMAND", `ATTACHMENT_NOT_FOUND: ${path}`);
+      }
+    }));
   }
 
   /** Tools call this to suspend the run until the user answers or timeout hits. */
