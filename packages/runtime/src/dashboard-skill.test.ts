@@ -23,18 +23,24 @@ async function jsonExamples(): Promise<Array<{ tag: string; body: string; line: 
 function sampleDataset(view: DashboardView): ChartDataset {
   if (view.type === "chart") return exampleDataset(view.chart);
   const fields: Record<string, FieldMeta> = view.fields ?? {};
-  const referenced = view.type === "table" ? (view.columns ?? []).map((column) => column.field)
-    : view.cards.flatMap((card) => [card.value.field, ...(card.delta ? [card.delta.field] : []), ...Object.keys(card.where ?? {})]);
+  const cards = view.type === "kpi" ? view.cards : view.type === "insights" ? view.items : [];
+  const trend = view.type === "kpi" ? view.cards.find((card) => card.trend)?.trend : undefined;
+  const referenced = view.type === "table" ? (view.columns ?? []).flatMap((column) => [column.field, ...(column.compare ? [column.compare.field] : [])])
+    : cards.flatMap((card) => [card.value.field, ...("delta" in card && card.delta ? [card.delta.field] : []), ...Object.keys(card.where ?? {})]).concat(trend ? [trend.x.field, trend.y.field] : []);
   const columns = [...new Set([...referenced, ...Object.keys(fields)])];
   const cell = (column: string, index: number) => (fields[column]?.type === "quantitative" ? index + 1 : `v${index}`);
-  if (view.type === "kpi") {
-    // One row per card, carrying the values its where selects.
-    return { columns, rows: view.cards.map((card, index) => columns.map((column) => (card.where && column in card.where ? card.where[column] : cell(column, index)))) };
+  if (trend) {
+    // A series: one row per period, the card's own cells repeated on each.
+    return { columns, rows: [0, 1, 2].map((index) => columns.map((column) => (column === trend.x.field ? `p${index}` : column === trend.y.field ? index + 1 : cell(column, 0)))) };
+  }
+  if (view.type === "kpi" || view.type === "insights") {
+    // One row per card or finding, carrying the values its where selects.
+    return { columns, rows: cards.map((card, index) => columns.map((column) => (card.where && column in card.where ? card.where[column] : cell(column, index)))) };
   }
   return { columns, rows: [0, 1].map((index) => columns.map((column) => cell(column, index))) };
 }
 
-function assertDashboard(raw: { views: DashboardView[] } & Record<string, unknown>, where: string): void {
+function assertDashboard(raw: { views: DashboardView[] } & Record<string, unknown>, where: string, layoutClean = false): void {
   // Give each view its own sample result.
   const views = raw.views.map((view, index) => {
     const data = { kind: "publication", receiptId: `example_${index}` } as const;
@@ -43,6 +49,8 @@ function assertDashboard(raw: { views: DashboardView[] } & Record<string, unknow
   const datasets = Object.fromEntries(views.map((view) => [datasetKey(view.type === "chart" ? view.chart.data : view.data), sampleDataset(view as DashboardView)]));
   const validated = validateDashboard({ ...raw, views }, datasets);
   expect(validated.ok ? [] : validated.errors, where).toEqual([]);
+  // A whole-dashboard example is what the model copies, so it must already read as a BI page.
+  if (layoutClean && validated.ok) expect(validated.advice.map((advice) => advice.message), where).toEqual([]);
 }
 
 describe("dashboard Skill examples", () => {
@@ -56,7 +64,7 @@ describe("dashboard Skill examples", () => {
     for (const example of await jsonExamples()) {
       const where = `SKILL.md line ${example.line} (${example.tag})`;
       const raw = JSON.parse(example.body) as Record<string, unknown>;
-      if (example.tag === "dashboard-spec") assertDashboard(raw as { views: DashboardView[] }, where);
+      if (example.tag === "dashboard-spec") assertDashboard(raw as { views: DashboardView[] }, where, true);
       else assertDashboard({ version: 1, title: "example", views: [raw as unknown as DashboardView] }, where);
     }
   });

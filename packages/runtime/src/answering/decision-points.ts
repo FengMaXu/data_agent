@@ -23,6 +23,8 @@ export type DecisionPoint = (
   | { readonly status: "not_applicable" }
   | { readonly status: "choice"; readonly choiceId: Choice["id"] }
   | { readonly status: "assumed"; readonly hypothesisId: Hypothesis["id"] }
+  /** Declared by the parent Report Task (ADR-0009), which must have handled it. */
+  | { readonly status: "inherited" }
 ) & { readonly observationEvidenceIds?: readonly string[] };
 
 export type DecisionPoints = Readonly<Partial<Record<DecisionPointName, DecisionPoint>>>;

@@ -18,7 +18,7 @@ requires-tools:
 2. 业务定义、表结构、数据取值交给 `subagent` 的 explorer 收集（可在建立 Spec 前进行）：按 MECE 原则拆成互不重叠、合起来覆盖所需信息的子任务，每个子任务只问一个问题，并行派发；据报告形成七槽位。
 3. 按 §6 的决策点清单逐项过一遍，题面没说死的项建成 Choice。
 4. `begin_answer_spec` 建立 Spec，登记假设、Choice、证据和全部 8 个决策点；之后一律用 `revise_answer_spec` 修订。
-5. 每个 Choice 的每个候选各跑一次探针（§7）；输出相同的 Choice 处置为 `equivalent`，输出不同的调用 `compare_hypotheses` 后用 `decide` 决定。
+5. 每个 Choice 的每个候选各跑一次探针（§7）；输出全部相同的 Choice 由系统视为等价，不用处置；输出不同的调用 `compare_hypotheses` 后用 `decide` 决定。
 6. 处置全部未决项、声明全部决策点后，执行一次最终查询，得到 Result Candidate。
 7. 发布 Candidate，并披露未证实的决定、推断槽位和数据限制。
 
@@ -90,7 +90,7 @@ requires-tools:
 | 种类 | 填写 | 核验 | 可支持 |
 | --- | --- | --- | --- |
 | `request_wording` | `quote` | 必须是原始问题中的逐字片段 | 业务语义 |
-| `user_confirmation` | `quote` | 必须是用户本轮消息中的逐字片段；原始问题不算确认 | 业务语义 |
+| `user_confirmation` | `quote`；引用澄清回答时加 `sourceRef` | 用户本轮消息中的逐字片段（`sourceRef` 省略或写 `message`），或 `ask_user_clarification` 回答中的逐字片段（`sourceRef` 填返回的 `clarificationId`）；其他写法会被拒绝；原始问题不算确认 | 业务语义 |
 | `task_document` / `reviewed_definition` | `sourceRef`=knowledgeId，`quote` | 只接受系统授权的业务文档，引文逐字出现在文档中 | 业务语义；已审核定义还可支持物理映射 |
 | `schema_fact` | `sourceRef`，可附 `quote` | 不核验 | 物理映射、数据性质 |
 | 探索观测 | 引用 `[EXPLORATION_EVIDENCE] evidenceId` | 由探索查询登记 | 数据性质 |
@@ -125,7 +125,7 @@ requires-tools:
 | 支持 | `{ "action": "support", "hypothesisId", "evidenceIds" }` | 至少引用一条已登记的证据。有合格证据时记为已证实，否则记为未证实并在发布时披露，证据不够格不会导致失败 |
 | 反驳 | `{ "action": "refute", "hypothesisId", "evidenceIds" }` | 证据必须合格：反驳会让依赖该假设的槽位失效 |
 | 决定 | `{ "action": "decide", "choiceId", "alternativeId", "rationale", "evidenceIds"? }` | `rationale` 必填：写明为什么这个候选最符合题面、什么排除了其他候选。可附证据：有合格证据时记为已证实，否则记为未证实并在发布时披露，证据不够格不会导致失败 |
-| 等价 | `{ "action": "equivalent", "choiceId" }` | 全部候选的探针输出相同才接受；无需理由和披露 |
+| 等价 | `{ "action": "equivalent", "choiceId" }` | 全部候选的探针输出相同才接受；无需理由和披露。通常不必提交：输出全部相同时系统已视为等价 |
 | 取代 | `{ "action": "supersede", "targetId", "replacementIds", "reason" }` | 替代项（新增 `localId` 或已有 ID）的 `affects` 必须覆盖原项 |
 
 - `decide` 的结果不是 `compare_hypotheses` 的明显倾向时，必须加 `"adviceOverride": { "reason", "evidenceIds" }`：写明倾向为什么不对，并引用至少一条已登记的证据（可以是探针或探索观测）。
@@ -169,7 +169,7 @@ requires-tools:
 
 ### 处置 Choice
 
-1. 每个候选跑一次探针（§7）。输出相同的 Choice 直接处置为 `equivalent`，不用再比较或取证。
+1. 每个候选跑一次探针（§7）。输出全部相同的 Choice 由系统视为等价，不用处置、比较或取证。
 2. 输出不同的 Choice，按 `semantic-guide` 的“候选对照”把每个候选放回题面逐词检验，写出哪个短语排除了哪些候选。
 3. 当前工具目录提供 `compare_hypotheses` 时，传入 `taskId` 和 `choiceId` 请求比较；系统会附上各候选的探针输出。建议不是证据，但它的明显倾向（结果中的 `[ADVICE_LEAN]`）是默认答案：采纳它；只有手上有能排除它的具体证据时才改选，并写 `adviceOverride`。
 4. 用 `decide` 决定，`rationale` 写上一步的对照结论；手上有合格证据就一并附上。是否已证实由系统判定，未证实的决定会在发布时披露。影响统计总体的 Choice 在有澄清工具时需要合格证据或用户确认（§5）。

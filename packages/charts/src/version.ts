@@ -4,10 +4,10 @@
  */
 
 /** Bump when the option compiled from the same spec and dataset changes. */
-export const CHART_COMPILER_VERSION = 7;
+export const CHART_COMPILER_VERSION = 11;
 
 /** Bump when palette, fonts or spacing change, including the static font stack and background in the runtime renderer. */
-export const CHART_THEME_VERSION = 1;
+export const CHART_THEME_VERSION = 3;
 
 export interface ChartRendererVersions {
   readonly compiler: number;

@@ -205,6 +205,9 @@ export interface MetricSpec {
   readonly kind: string;
   readonly expression?: string;
   readonly unit?: string;
+  /** Report Task metric definitions (ADR-0009): the denominator and count grain a chart query inherits. */
+  readonly denominator?: string;
+  readonly countGrain?: string;
 }
 
 export interface FilterSpec {
@@ -242,7 +245,9 @@ export type Facet<T> =
         | { readonly kind: "evidence"; readonly evidenceIds: NonEmpty<EvidenceId> }
         | { readonly kind: "hypothesis"; readonly hypothesisId: HypothesisId }
         /** Model inference without a bound Hypothesis or qualifying Evidence; disclosed, not blocking. */
-        | { readonly kind: "inference" };
+        | { readonly kind: "inference" }
+        /** Copied from the bound Revision of the parent Report Task (ADR-0009). */
+        | { readonly kind: "inherited"; readonly taskId: TaskId; readonly revisionId: RevisionId };
     };
 
 export interface AnswerSpec {
@@ -253,12 +258,17 @@ export interface AnswerSpec {
   readonly time: Facet<TimeSpec>;
   readonly ranking: Facet<RankingSpec>;
   readonly output: Facet<OutputSpec>;
+  /** Named metric definitions of a Report Task, referenced by its chart queries (ADR-0009). */
+  readonly metrics?: Readonly<Record<string, Facet<MetricSpec>>>;
 }
 
 /** Minimal, untrusted model/application proposal accepted by begin/revise. */
 export interface AnswerSpecProposal {
   readonly entity?: unknown;
+  /** A chart query may write `{ ref: "<name>" }` to take a Report Task metric definition. */
   readonly metric?: unknown;
+  /** Named metric definitions; a present name replaces its definition, null removes it. */
+  readonly metrics?: Readonly<Record<string, unknown>>;
   readonly filters?: readonly unknown[];
   readonly groupBy?: readonly unknown[];
   readonly time?: unknown;
@@ -281,7 +291,7 @@ export interface EvidenceBase {
 }
 
 export interface EvidenceVerification {
-  readonly method: "user_message_quote" | "document_quote";
+  readonly method: "user_message_quote" | "clarification_answer_quote" | "document_quote";
   /** Hash of the complete trusted source text at admission time. */
   readonly sourceContentHash: string;
 }
@@ -334,6 +344,12 @@ export interface HypothesisProposal {
   readonly basis: string;
   readonly impact: string;
   readonly proposedEvidenceIds?: readonly string[];
+  /**
+   * Supported without evidence: the Runtime records it unverified and discloses
+   * it (ADR-0006), unless it settles the material population while a
+   * clarification path exists.
+   */
+  readonly assumed?: boolean;
 }
 
 export interface ChoiceAlternative {
@@ -567,8 +583,24 @@ export interface QueryTaskRecord {
   readonly budget?: QueryBudgetState;
   /** Latest probe per Choice alternative; Choice ids are stable across revisions. */
   readonly choiceProbes?: readonly ChoiceProbeRecord[];
+  /** "report": a Report Task that holds shared fields and never publishes (ADR-0009). */
+  readonly role?: "report";
+  /** A chart query's Report Task and the parent Revision its inherited fields were copied from. */
+  readonly parent?: ParentBinding;
   readonly createdAt: string;
   readonly updatedAt: string;
+}
+
+export interface ParentBinding {
+  readonly taskId: TaskId;
+  readonly revisionId: RevisionId;
+}
+
+/** A chart query's change to a field it inherits from its Report Task, with the reason given (ADR-0009 decision 3). */
+export interface Deviation {
+  /** A shared slot or decision point name. */
+  readonly path: string;
+  readonly reason: string;
 }
 
 export interface AnswerRevisionRecord {
@@ -591,6 +623,12 @@ export interface AnswerRevisionRecord {
   readonly probeWaivers?: readonly ProbeWaiver[];
   /** Declared decision points (ADR-0005); absent on legacy revisions, which are exempt. */
   readonly decisionPoints?: DecisionPoints;
+  /** Inherited fields this chart query changed, with reasons; carried forward and disclosed. */
+  readonly deviations?: readonly Deviation[];
+  /** The Report Task metric definition this chart query's metric is copied from. */
+  readonly metricRef?: string;
+  /** For a chart query: the parent Revision this Revision's inherited fields came from. */
+  readonly parentBinding?: ParentBinding;
 }
 
 export interface ResultCandidateRecord {
@@ -625,6 +663,16 @@ export interface PublicationDisclosure {
   readonly inferredFacets?: readonly FacetName[];
   readonly summary: string;
   readonly fanoutStatus?: FanoutReport["status"];
+  /** Shared fields this chart query changed from its Report Task. */
+  readonly deviations?: readonly Deviation[];
+  /** Set on a refresh when the Report Task has changed since the chart query copied its shared fields. */
+  readonly parentSuperseded?: ParentSupersession;
+}
+
+export interface ParentSupersession {
+  readonly taskId: TaskId;
+  readonly boundRevisionId: RevisionId;
+  readonly currentRevisionId: RevisionId;
 }
 
 /** Internal typestate. No model/HTTP caller can construct this permit. */
@@ -762,6 +810,14 @@ export interface AnswerRevisionView {
   readonly decisionPoints?: DecisionPoints;
   readonly undeclaredDecisionPoints?: readonly DecisionPointName[];
   readonly specFeedback?: SpecFeedback;
+  /** Per-step outcome when the call carried `steps`, in call order. */
+  readonly steps?: readonly StepOutcome[];
+  readonly role?: "report";
+  /** For a chart query: its Report Task, the bound parent Revision and whether that is still current. */
+  readonly parent?: ParentBinding & { readonly current: boolean };
+  readonly deviations?: readonly Deviation[];
+  /** The Report Task metric definition a chart query's metric is taken from. */
+  readonly metricRef?: string;
 }
 
 export interface QueryExecutionView {
@@ -776,8 +832,41 @@ export interface QueryExecutionView {
   readonly probe?: ChoiceProbeView & { readonly choiceId: ChoiceId };
 }
 
+/**
+ * One increment of a stepped begin/revise. Each step is checked on its own
+ * against the state the earlier applied steps left; a rejected step is skipped
+ * and the call still lands as one Revision. localIds are scoped to the step.
+ */
+export interface SpecStep {
+  /** Caller's name for the step, echoed in its outcome. */
+  readonly label: string;
+  readonly spec?: AnswerSpecProposal;
+  readonly addHypotheses?: readonly HypothesisProposal[];
+  readonly addChoices?: readonly ChoiceProposal[];
+  readonly notProbeable?: readonly ProbeWaiverProposal[];
+  readonly decisionPoints?: readonly DecisionPointProposal[];
+  readonly dispositions?: readonly DispositionProposal[];
+  readonly evidence?: readonly UntrustedEvidenceInput[];
+  /** Reasons for changing fields inherited from the Report Task. */
+  readonly deviations?: readonly DeviationProposal[];
+}
+
+export interface DeviationProposal {
+  readonly path: string;
+  readonly reason: string;
+}
+
+export interface StepOutcome {
+  readonly label: string;
+  readonly status: "applied" | "rejected";
+  /** Error code and message of a rejected step. */
+  readonly code?: string;
+  readonly message?: string;
+}
+
 export interface BeginAnswer {
   readonly requestMessageId: string;
+  /** Ignored when `steps` is present: the task starts from an empty spec. */
   readonly spec: AnswerSpecProposal;
   readonly hypotheses?: readonly HypothesisProposal[];
   readonly choices?: readonly ChoiceProposal[];
@@ -785,6 +874,14 @@ export interface BeginAnswer {
   readonly decisionPoints?: readonly DecisionPointProposal[];
   readonly evidence?: readonly UntrustedEvidenceInput[];
   readonly requestId: string;
+  /** Stepped begin: create the task from an empty spec, then apply each step (see SpecStep). */
+  readonly steps?: readonly SpecStep[];
+  /** Start a Report Task: shared fields only, never a result (ADR-0009). */
+  readonly report?: boolean;
+  /** Start a chart query under this Report Task; it inherits the shared fields. */
+  readonly parent?: { readonly taskId: string };
+  /** Reasons for changing inherited fields in the same call. */
+  readonly deviations?: readonly DeviationProposal[];
 }
 
 /**
@@ -803,15 +900,30 @@ export interface ReviseAnswer {
   readonly dispositions?: readonly DispositionProposal[];
   readonly evidence?: readonly UntrustedEvidenceInput[];
   readonly requestId: string;
+  /** Stepped revise, exclusive with the single-delta fields above (see SpecStep). */
+  readonly steps?: readonly SpecStep[];
+  /** Chart query: bind to the Report Task's current Revision and copy its shared fields again. */
+  readonly rebind?: boolean;
+  /** Reasons for changing inherited fields in the same call. */
+  readonly deviations?: readonly DeviationProposal[];
 }
+
+/**
+ * user_confirmation sourceRef naming the user's answer to a clarification
+ * (`clarification:<clarificationId>`); any other ref is a chat message id.
+ */
+export const CLARIFICATION_SOURCE_PREFIX = "clarification:";
 
 export interface UntrustedEvidenceInput {
   /** Caller-local handle for references inside the same begin/revise call. */
   readonly localId?: string;
-  readonly kind: EvidenceKind;
+  /** "document": an authorized knowledge document, admitted with the kind the composition root configured for it. */
+  readonly kind: EvidenceKind | "document";
   /**
    * Document kinds: authorized knowledge id. request_wording: ignored, Runtime
-   * binds the task request message. user_confirmation: set by the trusted Host.
+   * binds the task request message. user_confirmation: the Host's current user
+   * message id, or a recorded clarification answer (CLARIFICATION_SOURCE_PREFIX);
+   * the tool layer resolves the model's ref to one of these.
    */
   readonly sourceRef?: string;
   readonly contentHash?: string;

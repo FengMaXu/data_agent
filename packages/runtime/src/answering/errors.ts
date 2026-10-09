@@ -35,6 +35,12 @@ export class AnsweringError extends Error {
     | "EVIDENCE_REJECTED"
     /** A revision tried a transition the Runtime state machine does not allow (ADR-0004). */
     | "SPEC_TRANSITION_INVALID"
+    /** A Report Task holds shared fields; it never runs a result query or publishes (ADR-0009). */
+    | "REPORT_TASK_NOT_PUBLISHABLE"
+    /** The chart query's bound parent Revision is no longer the Report Task's current one. */
+    | "PARENT_REVISION_STALE"
+    /** The Report Task still has unhandled shared fields, hypotheses or choices. */
+    | "PARENT_UNRESOLVED"
     /** The database could not be reached even after reconnecting; the operation must end. */
     | "DATABASE_UNAVAILABLE"
     /** The result reproduces the output of a Choice alternative that was not adopted (ADR-0005). */

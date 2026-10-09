@@ -1,6 +1,7 @@
 import { type CartesianChart, type ChartLayer } from "@data-agent/contracts";
 import type { ChartOption } from "../types.js";
-import { PALETTE, axisTitle, categoryLabel, displayScale, fieldLabel, fieldTitle, formatValue, isPercentDisplay, type QuantitativeMeta } from "../semantics.js";
+import { PALETTE, axisTitle, categoryLabel, displayScale, fieldLabel, fieldTitle, formatValue, headlineDigits, isPercentDisplay, numericCell, unitText, type QuantitativeMeta } from "../semantics.js";
+import { THEME } from "../theme.js";
 import { type Measure, CompileContext, temporalNotice, orderCategories, seriesGroups, categoryAxis, viewportZoom, valueAxis, checkPartOfWhole, applySelection } from "./shared.js";
 import type { MarkDefinition } from "./types.js";
 
@@ -57,20 +58,56 @@ function compileCartesian(context: CompileContext, chart: CartesianChart): Chart
   if (valueX) {
     const measured = context.measure(chart.x.field, "/chart/x/field");
     if (!measured) return undefined;
-    xNumbers = measured.values;
+    // Shown values, as for y: the axis labels and tooltip read them with the field's unit.
+    const xScale = displayScale(measured.meta);
+    xNumbers = measured.values.map((value) => (value === null ? null : value * xScale));
   }
   const categories = valueX ? [] : applySelection(context, orderCategories(xLabels, xMeta), xLabels);
   const categoryPosition = new Map(categories.map((label, position) => [label, position]));
+  // Focus + Context: highlighted categories, or scatter points by id, take the tone; the other bars and points the context colour.
+  const highlight = chart.highlight;
+  const highlightable = (plan: LayerPlan) => plan.layer.type === "bar" || plan.layer.type === "scatter";
+  const targetLayer = highlight?.layer;
+  /** The layers whose bars or points the highlight colours; with `layer`, the other bar and scatter layers are a backdrop. */
+  const isTarget = (plan: LayerPlan) => highlight !== undefined && highlightable(plan) && (targetLayer === undefined || plan.index === targetLayer);
+  const isBackdrop = (plan: LayerPlan) => highlight !== undefined && targetLayer !== undefined && highlightable(plan) && plan.index !== targetLayer;
+  const keyOf = (plan: LayerPlan, rowIndex: number) => (plan.idIndex !== undefined ? categoryLabel(rows[rowIndex]![plan.idIndex]) : xLabels[rowIndex]!);
+  if (highlight) {
+    if (plans.some((plan) => plan.seriesIndex !== undefined)) {
+      context.fail({ code: "INVALID_ENCODING", message: "highlight 只用于单系列图；多系列用 series.colors 区分", path: "/chart/highlight" });
+    } else if (!plans.some(highlightable)) {
+      context.fail({ code: "INVALID_ENCODING", message: "highlight 需要 bar 或 scatter 图层", path: "/chart/highlight" });
+    } else if (targetLayer !== undefined && !plans.some((plan) => plan.index === targetLayer && highlightable(plan))) {
+      context.fail({ code: "INVALID_ENCODING", message: `highlight.layer ${targetLayer} 不是 bar 或 scatter 图层`, path: "/chart/highlight/layer", hint: `图层下标从 0 开始，共 ${chart.layers.length} 层` });
+    } else if (valueX && plans.some((plan) => isTarget(plan) && plan.idIndex === undefined)) {
+      context.fail({ code: "INVALID_ENCODING", message: "数值 x 轴上的散点用图层的 id 指明要突出的点", path: "/chart/highlight", hint: "给 scatter 图层加 id: { field: <标识列> }，highlight.values 写该列的值" });
+    } else {
+      const domain = new Set(plans.filter(isTarget).flatMap((plan) => rows.map((_row, rowIndex) => keyOf(plan, rowIndex))));
+      highlight.values.forEach((value, index) => {
+        if (!domain.has(value)) context.fail({ code: "VALUE_OUT_OF_DOMAIN", message: `highlight 的值 ${value} 不在数据中`, path: `/chart/highlight/values/${index}`, hint: `可选值：${[...domain].slice(0, 12).join("、")}` });
+      });
+    }
+  }
+  const focused = new Set(highlight?.values ?? []);
+  const toneColor = THEME[highlight?.tone ?? "focus"];
+  // Context recedes (lighter, per the palette document) so the focus is read first.
+  const contextStyle = { color: THEME.context, opacity: CONTEXT_OPACITY };
+  const backdropStyle = { color: THEME.context, opacity: BACKDROP_OPACITY };
+  const emphasisOf = (plan: LayerPlan, key: string) => (isTarget(plan) ? { itemStyle: focused.has(key) ? { color: toneColor, opacity: 1 } : contextStyle } : {});
+
   if (!valueX && xLabels.includes("（空值）")) context.notice({ kind: "layout", code: "NULL_CATEGORY", message: `${fieldTitle(chart.x.field, xMeta)} 为空的行显示为“（空值）”`, field: chart.x.field });
 
   // Value axes in left-then-right order; a chart whose layers all sit on the right still gets index 0.
   const sides = (["left", "right"] as const).filter((side) => plans.some((plan) => (plan.layer.y.axis ?? "left") === side));
   const axisIndex = (side: "left" | "right") => sides.indexOf(side);
   const axisMeta = new Map<"left" | "right", { meta: QuantitativeMeta; field: string; share: boolean }>();
-  const series: unknown[] = [];
+  const series: Record<string, unknown>[] = [];
+  /** The value axis each series is drawn against, for reference lines. */
+  const seriesSides: ("left" | "right")[] = [];
   let missing = 0;
   let paletteIndex = 0;
   const nextColor = (layer: ChartLayer, group: string) => layer.series?.colors?.[group] ?? PALETTE[paletteIndex++ % PALETTE.length];
+  const layerStyle = (plan: LayerPlan, group: string) => (isTarget(plan) ? contextStyle : isBackdrop(plan) ? backdropStyle : { color: nextColor(plan.layer, group) });
   const onlyScatter = plans.every((plan) => plan.layer.type === "scatter");
 
   for (const plan of plans) {
@@ -85,7 +122,18 @@ function compileCartesian(context: CompileContext, chart: CartesianChart): Chart
     const groupLabels = rows.map((row) => (plan.seriesIndex === undefined ? "" : fieldLabel(row[plan.seriesIndex], seriesMeta)));
     const groups = plan.seriesIndex === undefined ? [""] : seriesGroups(groupLabels, layer.series?.order);
     const baseName = layer.name ?? fieldTitle(y.field, y.meta);
-    const labelOf = (rowIndex: number) => (plan.labelIndex === undefined ? undefined : categoryLabel(rows[rowIndex]![plan.labelIndex]));
+    const labelMeta = layer.label ? context.meta(layer.label.field) : undefined;
+    // A declared measure reads as a headline number ("+53.5%" style precision, with its unit); other cells as their labels.
+    const labelOf = (rowIndex: number) => {
+      if (plan.labelIndex === undefined) return undefined;
+      const cell = rows[rowIndex]![plan.labelIndex];
+      if (labelMeta?.type !== "quantitative") return fieldLabel(cell, labelMeta);
+      // A missing measure leaves its bar unlabelled, as a missing value leaves it blank.
+      const number = numericCell(cell);
+      if (number === null || number === undefined) return number === null ? "" : categoryLabel(cell);
+      const shown = number * displayScale(labelMeta);
+      return formatValue(shown, labelMeta, { decimals: headlineDigits(shown, labelMeta) });
+    };
     const label = plan.labelIndex === undefined ? {} : { label: { show: true, position: horizontal ? "right" : "top", formatter: (params: { data?: { labelText?: string } }) => params.data?.labelText ?? "" } };
 
     // An area is a line filled to the axis; it follows the line's rules and adds only its fill.
@@ -98,7 +146,7 @@ function compileCartesian(context: CompileContext, chart: CartesianChart): Chart
       const sizes = plan.size ? plan.size.values.filter((value): value is number => value !== null).map(Math.abs) : [];
       const maxSize = Math.max(1, ...sizes);
       for (const group of groups) {
-        const points: { value: (number | string | null)[]; name?: string; labelText?: string }[] = [];
+        const points: { value: (number | string | null)[]; name?: string; labelText?: string; itemStyle?: { color: string } }[] = [];
         rows.forEach((row, rowIndex) => {
           if (groupLabels[rowIndex] !== group) return;
           if (!valueX && !categoryPosition.has(xLabels[rowIndex]!)) return;
@@ -115,6 +163,7 @@ function compileCartesian(context: CompileContext, chart: CartesianChart): Chart
             value: [x, value * scale, ...(plan.size ? [plan.size.values[rowIndex] ?? 0] : [])],
             ...(plan.idIndex !== undefined ? { name: categoryLabel(row[plan.idIndex]) } : {}),
             ...(text !== undefined ? { labelText: text } : {}),
+            ...emphasisOf(plan, keyOf(plan, rowIndex)),
           });
         });
         if (isLine) points.sort((left, right) => Number(left.value[0]) - Number(right.value[0]));
@@ -126,7 +175,7 @@ function compileCartesian(context: CompileContext, chart: CartesianChart): Chart
           ...area,
           ...onAxis,
           ...label,
-          itemStyle: { color: nextColor(layer, group) },
+          itemStyle: layerStyle(plan, group),
           ...(plan.size ? { symbolSize: (value: number[]) => 6 + 24 * Math.sqrt(Math.abs(value[2] ?? 0) / maxSize) } : {}),
           tooltip: {
             formatter: (params: { name?: string; value: (number | string | null)[] }) => {
@@ -137,6 +186,7 @@ function compileCartesian(context: CompileContext, chart: CartesianChart): Chart
             },
           },
         });
+        seriesSides.push(side);
       }
       continue;
     }
@@ -167,7 +217,9 @@ function compileCartesian(context: CompileContext, chart: CartesianChart): Chart
         if (value === null) return null;
         const shown = stack === "percent" ? (totals[position] ? (value / totals[position]!) * 100 : null) : value * scale;
         const text = texts[groupPosition]![position];
-        return text === undefined || shown === null ? shown : { value: shown, labelText: text };
+        const emphasis = emphasisOf(plan, categories[position]!);
+        if (shown === null || (text === undefined && !emphasis.itemStyle)) return shown;
+        return { value: shown, ...(text !== undefined ? { labelText: text } : {}), ...emphasis };
       });
       series.push({
         type: echartsType,
@@ -178,17 +230,25 @@ function compileCartesian(context: CompileContext, chart: CartesianChart): Chart
         ...(stack !== "none" ? { stack: `layer-${plan.index}` } : {}),
         ...(isLine ? { showSymbol: categories.length <= 60 } : {}),
         ...label,
-        itemStyle: { color: nextColor(layer, group) },
+        itemStyle: layerStyle(plan, group),
         tooltip: { valueFormatter: (value: number | null) => (typeof value !== "number" ? "—" : stack === "percent" ? `${value.toFixed(1)}%` : formatValue(value, y.meta)) },
       });
+      seriesSides.push(side);
     });
   }
+  addReferences(context, chart, axisMeta, series, seriesSides, horizontal);
+  addBands(context, chart, categoryPosition, series, horizontal, valueX);
   if (context.errors.length > 0) return undefined;
   if (missing > 0) context.notice({ kind: "layout", code: "NULL_VALUES", message: `${missing} 个位置缺少数值，按空白显示，未按 0 绘制` });
 
   const valueAxes = sides.map((side) => {
     const entry = axisMeta.get(side)!;
-    return { ...valueAxis(entry.meta, entry.field, entry.share), ...(side === "right" ? { position: "right", nameTextStyle: { align: "right" } } : {}) };
+    const axis = valueAxis(entry.meta, entry.field, entry.share);
+    // Several measures on one axis are named by the legend; a single field name would claim the axis for one of them.
+    const measures = new Set(plans.filter((plan) => (plan.layer.y.axis ?? "left") === side).map((plan) => plan.y.field));
+    const unit = unitText(entry.meta);
+    const shared = measures.size > 1 && !entry.share ? { name: unit ? `（${unit}）` : "" } : {};
+    return { ...axis, ...shared, ...(side === "right" ? { position: "right", nameTextStyle: { align: "right" } } : {}) };
   });
   // A value axis along the bottom names itself under its centre; at the axis end the name runs off the canvas.
   const bottomName = { nameLocation: "middle", nameGap: 28, nameTextStyle: { align: "center" } };
@@ -210,8 +270,9 @@ function compileCartesian(context: CompileContext, chart: CartesianChart): Chart
     ...(context.options.target === "static" ? { animation: false } : {}),
     tooltip: { trigger: onlyScatter || valueX ? "item" : "axis" },
     ...(series.length > 1 ? { legend: { top: 0 } } : {}),
-    // The top margin holds the value-axis names (and the legend when there is one).
-    grid: { left: 16, right: sides.includes("right") ? 48 : 24, top: series.length > 1 ? 48 : 36, bottom: (zoom ? 48 : 16) + (namedBottom ? 28 : 0), containLabel: true },
+    // The top margin holds the value-axis names, and above them the legend when there is one: on one
+    // line the legend runs into a right-hand axis name.
+    grid: { left: 16, right: sides.includes("right") ? 48 : 24, top: series.length > 1 ? 60 : 36, bottom: (zoom ? 48 : 16) + (namedBottom ? 28 : 0), containLabel: true },
     xAxis,
     yAxis,
     ...(zoom ? { dataZoom: zoom } : {}),
@@ -219,7 +280,104 @@ function compileCartesian(context: CompileContext, chart: CartesianChart): Chart
   };
 }
 
+/**
+ * Reference lines read a column holding one value in every row; the spec never carries the number. Each
+ * line is drawn on the value axis it names, which must show the same unit.
+ */
+function addReferences(context: CompileContext, chart: CartesianChart, axes: ReadonlyMap<"left" | "right", { meta: QuantitativeMeta; share: boolean }>, series: Record<string, unknown>[], sides: readonly ("left" | "right")[], horizontal: boolean): void {
+  const lines = new Map<"left" | "right", unknown[]>();
+  chart.references?.forEach((reference, index) => {
+    const path = `/chart/references/${index}`;
+    const measured = context.measure(reference.field, `${path}/field`);
+    if (!measured) return;
+    const side = reference.axis ?? "left";
+    const axis = axes.get(side);
+    if (!axis) {
+      context.fail({ code: "INVALID_ENCODING", message: `图中没有${side === "left" ? "左" : "右"}侧数值轴`, path: `${path}/axis` });
+      return;
+    }
+    if (axis.share || unitText(measured.meta) !== unitText(axis.meta)) {
+      context.fail({ code: "INVALID_ENCODING", message: `参考线 ${reference.field} 的单位与${side === "left" ? "左" : "右"}侧数值轴不同`, path: `${path}/field`, field: reference.field, hint: "参考线字段的语义（storage、unit）要与它所在数值轴的度量一致" });
+      return;
+    }
+    const distinct = [...new Set(measured.values.filter((value): value is number => value !== null))];
+    if (distinct.length !== 1) {
+      context.fail({
+        code: "INVALID_ENCODING",
+        message: distinct.length === 0 ? `参考线字段 ${reference.field} 没有数值` : `参考线字段 ${reference.field} 在各行取值不同（${distinct.slice(0, 3).join("、")}${distinct.length > 3 ? "…" : ""}）`,
+        path: `${path}/field`,
+        field: reference.field,
+        hint: "在查询中把参考值（如全站均值、目标值）作为一列输出到每一行",
+      });
+      return;
+    }
+    const shown = distinct[0]! * displayScale(measured.meta);
+    const text = `${reference.label ?? fieldTitle(reference.field, measured.meta)} ${formatValue(shown, measured.meta, { decimals: headlineDigits(shown, measured.meta) })}`;
+    lines.set(side, [...(lines.get(side) ?? []), { [horizontal ? "xAxis" : "yAxis"]: shown, label: { formatter: text } }]);
+  });
+  for (const [side, data] of lines) {
+    const target = series[sides.indexOf(side)];
+    // A horizontal chart's category axis runs top down, so a line's start is at the top of the plot.
+    if (target) target.markLine = { symbol: "none", silent: true, lineStyle: { color: THEME.neutral, type: "dashed", width: 1 }, label: { color: THEME.neutral, fontSize: 11, position: horizontal ? "start" : "insideEndTop" }, data };
+  }
+}
+
+/** Shaded spans of x categories, such as promotion periods, behind the first series. */
+function addBands(context: CompileContext, chart: CartesianChart, positions: ReadonlyMap<string, number>, series: Record<string, unknown>[], horizontal: boolean, valueX: boolean): void {
+  if (!chart.bands) return;
+  if (valueX) {
+    context.fail({ code: "INVALID_ENCODING", message: "bands 用于类目 x 轴", path: "/chart/bands" });
+    return;
+  }
+  const key = horizontal ? "yAxis" : "xAxis";
+  const areas: unknown[] = [];
+  const markers: Record<string, unknown>[] = [];
+  chart.bands.forEach((band, index) => {
+    const path = `/chart/bands/${index}`;
+    const to = band.to ?? band.from;
+    for (const [end, value] of [["from", band.from], ["to", to]] as const) {
+      if (!positions.has(value)) context.fail({ code: "VALUE_OUT_OF_DOMAIN", message: `bands 的 ${end} 值 ${value} 不在 x 轴类目中`, path: `${path}/${end}`, hint: `x 轴类目：${[...positions.keys()].slice(0, 12).join("、")}` });
+    }
+    const start = positions.get(band.from);
+    const end = positions.get(to);
+    if (start === undefined || end === undefined) return;
+    if (start > end) {
+      context.fail({ code: "INVALID_ENCODING", message: `bands 的 from（${band.from}）应在 to（${to}）之前`, path });
+      return;
+    }
+    // One category has no width on a line's axis, so it is marked with a line instead of an area.
+    if (start === end) markers.push({ [key]: band.from, label: { formatter: band.label, position: horizontal ? "insideStartTop" : "end", color: THEME.muted } });
+    else areas.push([{ name: band.label, [key]: band.from }, { [key]: to }]);
+  });
+  const target = series[0];
+  if (!target) return;
+  if (areas.length > 0) target.markArea = { silent: true, itemStyle: { color: BAND_FILL }, label: { color: THEME.muted, fontSize: 11, position: horizontal ? "insideLeft" : "insideTop" }, data: areas };
+  if (markers.length > 0) {
+    const existing: Record<string, unknown> & { data?: unknown[] } = (target.markLine as Record<string, unknown> & { data?: unknown[] } | undefined) ?? { symbol: "none", silent: true, lineStyle: { color: THEME.neutral, type: "dashed", width: 1 }, label: { color: THEME.neutral, fontSize: 11 } };
+    target.markLine = { ...existing, data: [...(existing.data ?? []), ...markers.map((marker) => ({ ...marker, lineStyle: { color: THEME.context, type: "solid", width: 1 } }))] };
+  }
+}
+
+/** Opacity of the bars and points a highlight puts in context. */
+const CONTEXT_OPACITY = 0.6;
+
+/** Opacity of a whole layer behind the highlighted one, lighter than its context so the two layers stay apart. */
+const BACKDROP_OPACITY = 0.3;
+
+/** The neutral reference colour as a wash light enough to sit behind data. */
+const BAND_FILL = `rgba(${[1, 3, 5].map((offset) => parseInt(THEME.neutral.slice(offset, offset + 2), 16)).join(", ")}, 0.1)`;
+
+/** Rows whose x (or scatter id) names every highlighted and banded category, and whose reference columns hold one value. */
+function exampleRows(chart: CartesianChart): Record<string, unknown>[] {
+  if (!chart.highlight && !chart.references && !chart.bands) return [{}, {}];
+  const ids = chart.layers.flatMap((layer) => (layer.id ? [layer.id.field] : []));
+  const named = [...new Set([...(chart.highlight?.values ?? []), ...(chart.bands ?? []).flatMap((band) => [band.from, band.to ?? band.from]), "v0", "v1"])];
+  const constant = Object.fromEntries((chart.references ?? []).map((reference) => [reference.field, 1]));
+  return named.map((label) => ({ ...(ids.length > 0 ? Object.fromEntries(ids.map((field) => [field, label])) : { [chart.x.field]: label }), ...constant }));
+}
+
 export const cartesianMark: MarkDefinition<CartesianChart> = {
   compile: compileCartesian,
-  fields: (chart) => [chart.x.field, ...chart.layers.flatMap((layer) => [layer.y.field, ...[layer.series, layer.size, layer.label, layer.id].flatMap((ref) => (ref ? [ref.field] : []))])],
+  fields: (chart) => [chart.x.field, ...chart.layers.flatMap((layer) => [layer.y.field, ...[layer.series, layer.size, layer.label, layer.id].flatMap((ref) => (ref ? [ref.field] : []))]), ...(chart.references ?? []).map((reference) => reference.field)],
+  example: exampleRows,
 };

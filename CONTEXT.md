@@ -12,6 +12,14 @@ _Avoid_: Source priority, truth ranking
 One database-answering request with its own identity, Answer Spec version chain, candidate queries, review history, and final Publication Status. A chat session may contain multiple Query Tasks.
 _Avoid_: Session, tool call
 
+**Report Task**:
+A Query Task that holds the fields every chart query of one report or dashboard shares — entity, population, time, source and named metric definitions — and never runs a result query or publishes itself (ADR-0009).
+_Avoid_: Parent spec, dashboard task
+
+**Chart Query**:
+A Query Task bound to one Revision of a Report Task. It inherits the shared fields, declares only its own (metric reference, grouping, ranking, output shape), and delivers only while that Revision is current and handled. A change to an inherited field is a recorded, disclosed deviation.
+_Avoid_: Child spec, sub-query
+
 **Query Assurance**:
 The process that prepares semantic evidence, detects and informs about candidate anomalies, records interpretation choices, and publishes results under integrity rules.
 _Avoid_: SQL validation, export gate

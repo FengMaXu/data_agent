@@ -1,4 +1,5 @@
 import {
+  CLARIFICATION_SOURCE_PREFIX,
   contentHash,
   type EvidenceKind,
   type EvidenceVerification,
@@ -13,6 +14,8 @@ import {
 export interface EvidenceSource {
   /** Text of a user-authored message in this Session; undefined when absent or not user-authored. */
   readUserMessage(sessionId: string, messageId: string, signal?: AbortSignal): Promise<string | undefined>;
+  /** The user's recorded answer to a clarification this Session asked; undefined when absent or unanswered. */
+  readClarificationAnswer?(sessionId: string, clarificationId: string, signal?: AbortSignal): Promise<string | undefined>;
   /** Only documents explicitly authorized by the composition root resolve here. */
   readDocument?(sourceRef: string, signal?: AbortSignal): Promise<AuthorizedEvidenceDocument | undefined>;
 }
@@ -83,6 +86,14 @@ async function admitOne(input: UntrustedEvidenceInput, scope: AdmissionScope): P
       const quote = requireQuote(input, "user_confirmation");
       const messageId = input.sourceRef?.trim();
       if (!messageId) throw new EvidenceAdmissionError("user_confirmation requires the Host-supplied user message of the current operation");
+      // The user's answer to a clarification is something they said, verified like a message.
+      if (messageId.startsWith(CLARIFICATION_SOURCE_PREFIX)) {
+        const clarificationId = messageId.slice(CLARIFICATION_SOURCE_PREFIX.length);
+        const answer = scope.source?.readClarificationAnswer ? await scope.source.readClarificationAnswer(scope.sessionId, clarificationId, scope.signal) : undefined;
+        if (answer === undefined) throw new EvidenceAdmissionError(`user_confirmation cannot be verified: clarification ${clarificationId} has no recorded answer in this Session`);
+        if (!quoteAppearsIn(quote, answer)) throw new EvidenceAdmissionError(`user_confirmation quote was not found verbatim in the user's answer to clarification ${clarificationId}: ${JSON.stringify(quote)}`);
+        return { ...base, kind: "user_confirmation", sourceRef: messageId, quote, contentHash: contentHash(answer), verification: { method: "clarification_answer_quote", sourceContentHash: contentHash(answer) } };
+      }
       if (messageId === scope.taskRequestMessageId) throw new EvidenceAdmissionError("The original request is request_wording, not a later user confirmation");
       const text = scope.source ? await scope.source.readUserMessage(scope.sessionId, messageId, scope.signal) : undefined;
       if (text === undefined) throw new EvidenceAdmissionError("user_confirmation cannot be verified: the user message is unavailable");
@@ -90,15 +101,18 @@ async function admitOne(input: UntrustedEvidenceInput, scope: AdmissionScope): P
       return { ...base, kind: "user_confirmation", sourceRef: messageId, quote, contentHash: contentHash(text), verification: { method: "user_message_quote", sourceContentHash: contentHash(text) } };
     }
     case "task_document":
-    case "reviewed_definition": {
-      const quote = requireQuote(input, input.kind);
+    case "reviewed_definition":
+    case "document": {
+      const label = input.kind === "document" ? "document" : input.kind;
+      const quote = requireQuote(input, label);
       const sourceRef = input.sourceRef?.trim();
-      if (!sourceRef) throw new EvidenceAdmissionError(`${input.kind} requires the knowledgeId of an authorized document`);
+      if (!sourceRef) throw new EvidenceAdmissionError(`${label} requires the knowledgeId of an authorized document`);
       const document = scope.source?.readDocument ? await scope.source.readDocument(sourceRef, scope.signal) : undefined;
       if (!document) throw new EvidenceAdmissionError(`${sourceRef} is not an authorized business evidence document`);
-      if (document.kind !== input.kind) throw new EvidenceAdmissionError(`${sourceRef} is configured as ${document.kind}, not ${input.kind}`);
-      if (!quoteAppearsIn(quote, document.content)) throw new EvidenceAdmissionError(`${input.kind} quote was not found verbatim in ${sourceRef}: ${JSON.stringify(quote)}`);
-      return { ...base, kind: input.kind, sourceRef, quote, contentHash: contentHash(document.content), verification: { method: "document_quote", sourceContentHash: contentHash(document.content) } };
+      // "document" takes the authority the composition root configured; a named kind must match it.
+      if (input.kind !== "document" && document.kind !== input.kind) throw new EvidenceAdmissionError(`${sourceRef} is configured as ${document.kind}, not ${input.kind}`);
+      if (!quoteAppearsIn(quote, document.content)) throw new EvidenceAdmissionError(`${label} quote was not found verbatim in ${sourceRef}: ${JSON.stringify(quote)}`);
+      return { ...base, kind: document.kind, sourceRef, quote, contentHash: contentHash(document.content), verification: { method: "document_quote", sourceContentHash: contentHash(document.content) } };
     }
     case "schema_fact": {
       const sourceRef = input.sourceRef?.trim();

@@ -173,6 +173,30 @@ describe("Answering Spec feedback", () => {
     expect(inspected.candidate?.coverage).toEqual(expect.arrayContaining([expect.objectContaining({ checkId: "spec_feedback", outcome: "finding" })]));
   });
 
+  it("records an unconfigured assessor without disclosing it on every result; deterministic conflicts still disclose", async () => {
+    const service = (rows: unknown[][]) => new InMemoryAnswering({
+      store: new InMemoryAnsweringStore(),
+      resultStore: new InMemoryResultStore(),
+      sqlExecutor: { run: async () => ({ columns: ["value"], rows, truncated: false }) },
+      evidenceSource: documentSource,
+    });
+    const publish = async (answering: InMemoryAnswering, spec: Record<string, unknown>, sql: string, id: string) => {
+      const begun = await answering.begin({ requestMessageId: `message-${id}`, requestId: `begin-${id}`, spec }, context(`begin-${id}`));
+      const execution = await answering.execute({ kind: "result", taskId: begun.taskId, revisionId: begun.revisionId, sql }, context(`result-${id}`));
+      if (execution.artifact.kind !== "candidate") throw new Error("expected candidate");
+      const receipt = await answering.publish({ candidateId: execution.artifact.candidateId, format: "inline", requestId: `publish-${id}` }, context(`publish-${id}`));
+      return { coverage: execution.coverage.find((coverage) => coverage.checkId === "spec_feedback"), disclosure: receipt.disclosure?.summary ?? "" };
+    };
+
+    const clean = await publish(service([[1]]), simpleSpec, "SELECT 1", "clean");
+    expect(clean.coverage).toMatchObject({ outcome: "not_applicable", reason: expect.stringContaining("not configured") });
+    expect(clean.disclosure).not.toContain("Answer Spec");
+
+    const conflicting = await publish(service([[1], [2], [3]]), { ...simpleSpec, ranking: { n: 2, orderBy: "score", tiePolicy: "strict" }, output: { rowMode: "top_n", rowCount: 3 } }, "SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3", "conflict");
+    expect(conflicting.coverage?.outcome).toBe("finding");
+    expect(conflicting.disclosure).toContain("Answer Spec");
+  });
+
   it("returns unavailable without changing the committed Revision when the original question cannot be read", async () => {
     let calls = 0;
     const service = serviceWithFeedback({ assess: async () => { calls += 1; return assessment(); } }, async () => undefined);

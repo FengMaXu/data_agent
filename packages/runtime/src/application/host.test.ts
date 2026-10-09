@@ -5,6 +5,7 @@ import { PiJsonlSessionStore } from "../session-store.js";
 import { WorkspaceStore } from "../workspace.js";
 import { DataAgentSessionApplication } from "./host.js";
 import type { DataAgentModelProfile } from "../agent/harness-factory.js";
+import type { HypothesisChoiceAdvisor } from "../judgment/hypothesis-choice.js";
 import { TODO_CONTEXT } from "@earendil-works/pi-agent-core";
 
 const profile: DataAgentModelProfile = { provider: "openai", model: "test-model", apiKey: "test" };
@@ -147,7 +148,7 @@ describe("DataAgent Session Application production composition", () => {
     }
   });
 
-  it("keeps control-plane tools while applying each built-in Skill allowlist", async () => {
+  it("keeps pinned protocol tools while applying each built-in Skill allowlist", async () => {
     const root = await mkdtemp(join(process.cwd(), ".tmp-application-built-in-skill-tools-"));
     const sessionStore = new PiJsonlSessionStore(join(root, "sessions"));
     await sessionStore.create({ sessionId: "session-1" });
@@ -159,6 +160,8 @@ describe("DataAgent Session Application production composition", () => {
       skillRoots: [join(process.cwd(), "..", "..", ".agents", "skills")],
       enableSubagents: true,
       delegationRoot: join(root, "subagents"),
+      // With an advisor, Answering requires compare_hypotheses before deciding a Choice, so no Skill may hide it.
+      hypothesisChoiceAdvisor: { compare: async () => { throw new Error("not called"); } } satisfies HypothesisChoiceAdvisor,
       createMissingSessions: false,
       authorizeSession: async () => true,
     });
@@ -168,7 +171,7 @@ describe("DataAgent Session Application production composition", () => {
       for (const name of ["dashboard", "analysis", "demo-report"]) {
         await loadSkill.execute(`load-${name}`, { name }, undefined, { sessionId: "session-1", principalId: "user-1" }, invocation(`load-${name}`), TODO_CONTEXT);
         const active = await host.lane.getActiveTools(TODO_CONTEXT);
-        expect(active).toEqual(expect.arrayContaining(["load_skill", "begin_answer_spec", "revise_answer_spec", "query_database", "publish_query_result", "export_query", "inspect_answer", "ask_user_clarification", "subagent"]));
+        expect(active).toEqual(expect.arrayContaining(["load_skill", "begin_answer_spec", "revise_answer_spec", "query_database", "compare_hypotheses", "publish_query_result", "export_query", "inspect_answer", "ask_user_clarification", "subagent"]));
         expect(active).not.toContain("list_workspace");
       }
     } finally {

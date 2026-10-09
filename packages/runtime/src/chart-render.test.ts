@@ -66,7 +66,7 @@ describe("Static chart rendering", () => {
     expect(result.spec).toMatchObject({ version: 1, data: spec.data });
     // Changing either value is a theme change: bump CHART_THEME_VERSION and pin the new pair here.
     expect({ theme: CHART_THEME_VERSION, font: STATIC_CHART_FONT_FAMILY, background: STATIC_CHART_BACKGROUND })
-      .toEqual({ theme: 1, font: "'Microsoft YaHei', 'PingFang SC', 'Noto Sans SC', 'Source Han Sans SC', sans-serif", background: "#ffffff" });
+      .toEqual({ theme: 3, font: "'Microsoft YaHei', 'PingFang SC', 'Noto Sans SC', 'Source Han Sans SC', sans-serif", background: "#ffffff" });
   });
 
   it("shows calendar dates at their grain, never a day earlier", () => {

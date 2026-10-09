@@ -295,12 +295,13 @@ export function createCoreAgentToolDefinitions(options: CoreToolOptions): readon
         const value = input as { question: string; options?: string[] };
         const request = options.clarifications!.ask(toolContext?.sessionId ?? "", value.question, value.options ?? []);
         const answer = await request.promise;
-        return text(answer, { clarificationId: request.clarificationId });
+        if (!answer) return text("[CLARIFICATION_UNANSWERED] 用户未回答（超时或已取消）。", { clarificationId: request.clarificationId });
+        return text(`${answer}\n[CLARIFICATION_ANSWERED] clarificationId=${request.clarificationId}：以这条回答作为证据时用 kind "user_confirmation"，sourceRef 填此 clarificationId，quote 摘录回答原文。`, { clarificationId: request.clarificationId });
       },
     }, {
       promptSnippet: "请求并等待一个结构化的用户澄清。",
       promptGuidelines: ["当影响口径的歧义无法由合格证据、反驳或允许的临时选择处置时才请求用户澄清；不能用工具建议或模型推断冒充确认。"],
-    }));
+    }, { pinned: true }));
   }
 
   definitions.push(defineDataAgentTool({
@@ -318,7 +319,7 @@ export function createCoreAgentToolDefinitions(options: CoreToolOptions): readon
   }, {
     promptSnippet: "加载已经发现的技能。",
     promptGuidelines: ["只加载现存技能；技能 allowlist 只筛选已有能力，不授予新的工具或权限。"],
-  }));
+  }, { pinned: true }));
 
   if (options.enableWidgets !== false) {
     definitions.push(defineDataAgentTool({

@@ -12,6 +12,8 @@ export interface ChartCompileOptions {
   /** Canvas size in pixels; defaults to 800 x 480. */
   readonly width?: number;
   readonly height?: number;
+  /** "compact" restyles for small dashboard tiles; layout decisions still follow width and height. */
+  readonly density?: "standard" | "compact";
   /** Resolved field semantics (Dataset Annotations). Defaults to the spec's own declarations. */
   readonly fields?: Readonly<Record<string, FieldMeta>>;
 }

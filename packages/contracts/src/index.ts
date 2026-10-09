@@ -6,7 +6,9 @@ export const RequestContextSchema = Type.Object({ userId: Type.String({ minLengt
 export type RequestContext = Static<typeof RequestContextSchema>;
 
 const RuntimeProbeCommandSchema = Type.Object({ type: Type.Literal("runtime.probe") });
-const AgentPromptCommandSchema = Type.Object({ type: Type.Literal("agent.prompt"), prompt: Type.String({ minLength: 1 }) });
+/** Files already uploaded to the Session workspace, referenced by workspace-relative path. */
+const PromptAttachmentSchema = Type.Object({ path: Type.String({ minLength: 1, maxLength: 512 }) });
+const AgentPromptCommandSchema = Type.Object({ type: Type.Literal("agent.prompt"), prompt: Type.String({ minLength: 1 }), attachments: Type.Optional(Type.Array(PromptAttachmentSchema, { maxItems: 20 })) });
 const AgentSteerCommandSchema = Type.Object({ type: Type.Literal("agent.steer"), prompt: Type.String({ minLength: 1 }) });
 const AgentFollowUpCommandSchema = Type.Object({ type: Type.Literal("agent.follow_up"), prompt: Type.String({ minLength: 1 }) });
 const AgentStopCommandSchema = Type.Object({ type: Type.Literal("agent.stop"), operationId: Type.Optional(Type.String({ minLength: 1 })) });
@@ -77,6 +79,8 @@ const SessionTranscriptResponseSchema = Type.Object({ type: Type.Literal("sessio
   role: Type.String(),
   content: Type.String(),
   timestamp: Type.Number(),
+  /** Workspace paths of the files attached to a user message. */
+  attachments: Type.Optional(Type.Array(Type.String())),
   reasoningContent: Type.Optional(Type.String()),
   messageId: Type.Optional(Type.String()),
   toolCallsById: Type.Optional(Type.Record(Type.String(), Type.Unknown())),

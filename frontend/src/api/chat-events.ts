@@ -166,6 +166,14 @@ export function mapRuntimeEvent(event: DataAgentEvent, activeMessageId: string):
           options: event.options,
         },
       };
+    case "clarification.settled":
+      return {
+        event: {
+          type: "clarification_settled",
+          clarification_id: event.clarificationId,
+          outcome: event.outcome,
+        },
+      };
     case "workspace.artifact.created":
       return { event: { type: "workspace_updated", tool: "" } };
     case "agent.completed":
@@ -197,9 +205,14 @@ export function sendChatViaRuntime(
   onFinish: () => void,
   sessionId?: string,
   stream: ChatStreamOptions = {},
+  attachments: readonly string[] = [],
 ): RuntimeChatHandle {
   return streamRuntimeChat({ onEvent, onError, onFinish, sessionId, stream }, async () => {
-    const accepted = await getRuntimeClient().dispatch({ type: "agent.prompt", prompt }, sessionId);
+    const accepted = await getRuntimeClient().dispatch({
+      type: "agent.prompt",
+      prompt,
+      ...(attachments.length > 0 ? { attachments: attachments.map((path) => ({ path })) } : {}),
+    }, sessionId);
     return accepted.response.type === "agent.prompt.accepted" ? accepted.response.runId : undefined;
   });
 }

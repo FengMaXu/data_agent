@@ -3,7 +3,9 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { JSDOM, VirtualConsole } from "jsdom";
-import { CHART_COMPILER_VERSION, CHART_THEME_VERSION } from "@data-agent/charts";
+import { CHART_COMPILER_VERSION, CHART_RENDERER_VERSIONS, CHART_THEME_VERSION } from "@data-agent/charts";
+import { CHARTS_BROWSER_SOURCE } from "@data-agent/charts/browser-source";
+import { renderDashboardHtml } from "../dashboard.js";
 import { InMemoryAnsweringStore } from "../answering/answering-store.js";
 import { InMemoryResultStore } from "../answering/result-store.js";
 import { InMemoryAnswering } from "../answering/service.js";
@@ -97,14 +99,43 @@ describe("generate_dashboard", () => {
     expect(page.errors).toEqual([]);
     expect(page.options.map((entry) => entry.id)).toEqual(["view-sales_bar"]);
     expect(JSON.stringify(page.options[0]!.option.xAxis)).toContain("零售业");
-    expect(page.document.querySelector("#view-kpi .value")?.textContent).toBe("5,733.88 亿元");
-    expect(page.document.querySelector("#view-kpi .delta")?.textContent).toBe("同比 10%");
+    // A headline number beside its unit, the full value as the tooltip, and a signed change with its direction.
+    const value = page.document.querySelector("#view-kpi .value");
+    expect([value?.firstChild?.textContent, value?.querySelector(".unit")?.textContent, value?.getAttribute("title")]).toEqual(["5,734", "亿元", "5,733.88 亿元"]);
+    expect(page.document.querySelector("#view-kpi .delta.up")?.textContent).toBe("同比▲ +10.0%");
+    // A table column shares one decimal count and names its unit in the header.
+    const headers = [...page.document.querySelectorAll("#view-detail th")].map((cell) => cell.textContent);
+    expect(headers).toEqual(["行业", "销售额（亿元）", "同比增速"]);
     const cells = [...page.document.querySelectorAll("#view-detail tbody tr")].map((row) => [...row.querySelectorAll("td")].map((cell) => cell.textContent));
-    expect(cells).toEqual([["批发业", "5,234 亿元", "12%"], ["零售业", "499.88 亿元", ""], ["住宿和餐饮业", "", "5%"]]);
+    expect(cells).toEqual([["批发业", "5,234.00", "12%"], ["零售业", "499.88", ""], ["住宿和餐饮业", "", "5%"]]);
+    // Without a layout, KPI and the table take full rows and the chart its own half row.
+    expect([...page.document.querySelectorAll(".row")].map((row) => [...row.querySelectorAll("section.panel")].map((panel) => panel.id))).toEqual([["view-kpi"], ["view-sales_bar"], ["view-detail"]]);
     expect(page.document.querySelector("#view-sales_bar .notes")?.textContent).toBeTruthy();
-    expect(page.document.querySelector("footer")?.textContent).toContain(receipts.industries);
+    // Readers see the data and its date; Receipts stay in the embedded payload for tracing.
+    expect(page.document.querySelector(".stamp")?.textContent).toMatch(/^数据快照 · \d{4}-\d{2}-\d{2}$/);
+    expect(page.document.querySelector("main")?.textContent).not.toContain(receipts.industries);
+    expect(page.document.querySelector("footer")).toBeNull();
+    expect(html).toContain(receipts.industries);
     page.close();
     await cleanup();
+  });
+
+  it("keeps disclosures off the page; the model relays them", () => {
+    const data = { kind: "publication", receiptId: "r1" } as const;
+    const spec = { version: 1 as const, title: "t", views: [
+      { id: "a", type: "table" as const, data },
+      { id: "b", type: "table" as const, data },
+    ] };
+    const disclosure = "结果包含按字面解释选择的口径。";
+    const html = renderDashboardHtml(
+      { spec, datasets: { "publication:r1": { columns: ["n"], rows: [[1]] } }, sources: { "publication:r1": { kind: "publication", id: "r1", label: "发布记录 r1", contentHash: "abc", disclosures: [disclosure] } }, checks: {}, renderer: CHART_RENDERER_VERSIONS, builtOn: "2026-10-01", nonce: "n" },
+      { chartsSource: CHARTS_BROWSER_SOURCE, echartsSource: ECHARTS_STUB },
+    );
+    const page = openPage(html);
+    expect(page.errors).toEqual([]);
+    expect(page.document.querySelectorAll(".panel .notes")).toHaveLength(0);
+    expect(page.document.querySelector("main")?.textContent).not.toContain(disclosure);
+    page.close();
   });
 
   it("validates without writing and overwrites on edit", async () => {

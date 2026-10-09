@@ -21,6 +21,19 @@ const OUTPUT_FINGERPRINTS: Readonly<Record<string, string>> = {
   "6.1": "a6b17e41",
   // 7: area layers, funnel and sunburst marks.
   "7.1": "91989973",
+  // 8: values show two decimals (three significant digits below 1) instead of up to four; layer labels read
+  //    declared semantics at headline precision; axis-label rotation measures ASCII at about half a CJK character.
+  // Theme 2: compact density for dashboard tiles. Formatters call formatValue by name, so these fixtures did not change.
+  "8.2": "91989973",
+  // 9: a ratio x axis places points at their shown percent; a legend sits above the value-axis names.
+  "9.2": "6051fa59",
+  // Theme 3: dashboard chrome and compact density from shared THEME tokens (quiet value axes, rounded bar ends,
+  //          dark tooltips). These fixtures compile at standard density, so they did not change.
+  "9.3": "6051fa59",
+  // 10: a crowded time axis thins its labels instead of rotating them.
+  "10.3": "f47a2cc9",
+  // 11: highlight.layer; an axis shared by several measures is named by its unit. No fixture uses either.
+  "11.3": "f47a2cc9",
 };
 
 const data = { kind: "publication", receiptId: "publication_1" } as const;

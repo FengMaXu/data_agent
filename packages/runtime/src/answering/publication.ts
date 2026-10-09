@@ -1,6 +1,7 @@
 import type {
   AnswerRevisionRecord,
   BusinessContext,
+  ParentSupersession,
   PublicationDisclosure,
   PublicationPermit,
   PublicationReceipt,
@@ -11,6 +12,7 @@ import { assertTaskAccess } from "./answering-store.js";
 import { AnsweringError } from "./errors.js";
 import { makeInternalId } from "./internal-ids.js";
 import { inferredFacets } from "./qualification.js";
+import { assertDeliverable } from "./report.js";
 import { fanoutDisclosureSummary } from "./fanout-execution.js";
 import { SPEC_FEEDBACK_CHECK_ID, specFeedbackDisclosureSummary } from "./spec-feedback.js";
 import { markCandidateCorrupt } from "./result-execution.js";
@@ -26,7 +28,7 @@ const INLINE_ROW_LIMIT = 10;
  * provisional choices and hypotheses, inferred facets, fanout observations and SpecFeedback.
  * Disclosure is a record, never an approval.
  */
-export function composeDisclosure(revision: AnswerRevisionRecord, candidate: ResultCandidateRecord): PublicationDisclosure | undefined {
+export function composeDisclosure(revision: AnswerRevisionRecord, candidate: ResultCandidateRecord, parentSuperseded?: ParentSupersession): PublicationDisclosure | undefined {
   const provisionalChoiceIds = revision.choiceResolutions
     .filter((resolution) => resolution.outcome === "provisional")
     .map((resolution) => resolution.choiceId);
@@ -41,7 +43,8 @@ export function composeDisclosure(revision: AnswerRevisionRecord, candidate: Res
     : "";
   const feedbackDisclosure = specFeedbackDisclosureSummary(candidate.coverage?.find((coverage) => coverage.checkId === SPEC_FEEDBACK_CHECK_ID));
   const inferred = inferredFacets(revision.spec);
-  if (provisionalChoiceIds.length === 0 && provisionalHypothesisIds.length === 0 && inferred.length === 0 && !fanoutDisclosure && !feedbackDisclosure) return undefined;
+  const deviations = revision.deviations ?? [];
+  if (provisionalChoiceIds.length === 0 && provisionalHypothesisIds.length === 0 && inferred.length === 0 && deviations.length === 0 && !parentSuperseded && !fanoutDisclosure && !feedbackDisclosure) return undefined;
   return {
     required: true,
     provisionalChoiceIds,
@@ -51,10 +54,14 @@ export function composeDisclosure(revision: AnswerRevisionRecord, candidate: Res
       ...(provisionalChoiceIds.length > 0 ? ["结果包含按字面解释选择的口径；该选择未被权威证据唯一确定。"] : []),
       ...(provisionalHypothesisIds.length > 0 ? [`以下槽位依赖未被合格证据证实的假设：${provisionalFacets.join(", ")}。`] : []),
       ...(inferred.length > 0 ? [`以下槽位为模型推断、未绑定合格证据：${inferred.join(", ")}。`] : []),
+      ...(deviations.length > 0 ? [`以下字段偏离报告任务的共享口径：${deviations.map((item) => `${item.path}（${item.reason}）`).join("；")}。`] : []),
+      ...(parentSuperseded ? ["本次只刷新了数据；这张图所依据的报告任务口径已被修改，图仍按修改前的口径计算。"] : []),
       ...(fanoutDisclosure ? [fanoutDisclosure] : []),
       ...(feedbackDisclosure ? [feedbackDisclosure] : []),
     ].join(" "),
     ...(fanoutDisclosure && candidate.fanout ? { fanoutStatus: candidate.fanout.status } : {}),
+    ...(deviations.length > 0 ? { deviations } : {}),
+    ...(parentSuperseded ? { parentSuperseded } : {}),
   };
 }
 
@@ -75,6 +82,8 @@ export async function publishCandidate(deps: AnsweringDeps, input: PublishCandid
       throw new AnsweringError("PUBLICATION_ALREADY_EXISTS", "A Query Task already has a publication receipt for this revision", { receiptId: existingForTask.receiptId, candidateId: existingForTask.candidateId });
     }
     const existing = tx.findReceiptByRequest(candidate.taskId, input.requestId) ?? tx.findReceiptByCandidate(candidate.taskId, candidate.candidateId) ?? existingForTask;
+    // A replay returns the Receipt already made; only a new publication needs a deliverable Report Task (ADR-0009).
+    if (!existing) assertDeliverable(tx, task);
     return { candidate, task, revision, existing, disclosure: composeDisclosure(revision, candidate) };
   }, context);
   if (taskAndCandidate.existing) {
@@ -138,6 +147,8 @@ export async function publishCandidate(deps: AnsweringDeps, input: PublishCandid
     if (currentTask.currentRevisionId !== receipt.revisionId) throw new AnsweringError("PUBLICATION_STALE", "Revision changed during publication");
     const existing = tx.findReceiptByRequest(receipt.taskId, receipt.requestId) ?? tx.findReceiptByCandidate(receipt.taskId, receipt.candidateId);
     if (existing) return existing;
+    // The Report Task may have changed while the bytes were encoded.
+    assertDeliverable(tx, currentTask);
     tx.putReceipt(receipt);
     tx.putTask({ ...currentTask, publicationId: receipt.receiptId, lifecycle: "published", updatedAt: receipt.createdAt });
     return receipt;

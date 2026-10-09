@@ -19,13 +19,21 @@ describe("clarification flow", () => {
     await expect(second.promise).resolves.toBe("north");
   });
 
-  it("retains and consumes the exact answered Host event once", async () => {
+  it("records an answer in the asking Session's ledger before the asker sees it", async () => {
+    const { ClarificationDialogs } = await import("./facets/clarification-dialogs.js");
+    const recorded = new Map<string, import("./facets/clarification-dialogs.js").AnsweredClarification>();
+    const ledger = { record: async (answered: import("./facets/clarification-dialogs.js").AnsweredClarification) => { recorded.set(answered.clarificationId, answered); }, read: async (id: string) => recorded.get(id) };
     const manager = new ClarificationManager(5000);
-    const { clarificationId, promise } = manager.ask("session", "Which mapping?", [], undefined, { taskId: "task-1", baseRevisionId: "1", hypothesisId: "H1" });
-    expect(manager.answer(clarificationId, "Use done")).toBe(true);
-    await expect(promise).resolves.toBe("Use done");
-    expect(manager.consumeAnswered(clarificationId)).toMatchObject({ clarificationId, taskId: "task-1", baseRevisionId: "1", hypothesisId: "H1", answer: "Use done", outcome: "answered" });
-    expect(manager.consumeAnswered(clarificationId)).toBeUndefined();
+    const dialogs = new ClarificationDialogs(manager, ledger);
+    const asked = dialogs.ask("session", "Which mapping?", ["done", "open"]);
+    expect(manager.answer(asked.clarificationId, "done")).toBe(true);
+    await expect(asked.promise).resolves.toBe("done");
+    await expect(dialogs.read(asked.clarificationId)).resolves.toMatchObject({ clarificationId: asked.clarificationId, question: "Which mapping?", options: ["done", "open"], answer: "done" });
+
+    // An expired question records nothing.
+    const expired = new ClarificationDialogs(new ClarificationManager(10), ledger).ask("session", "?");
+    await expect(expired.promise).resolves.toBe("");
+    await expect(dialogs.read(expired.clarificationId)).resolves.toBeUndefined();
   });
 
   it("expires pending clarifications after the timeout", async () => {

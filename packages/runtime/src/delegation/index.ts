@@ -96,6 +96,8 @@ export interface ChildToolContext {
   readonly childSessionId: string;
   readonly runId: string;
   readonly role: ChildRole;
+  /** Epoch ms when the child stops calling tools to write its report; tool work should end by then. */
+  readonly wrapUpAt?: number;
 }
 
 export interface ResolvedChildTask {

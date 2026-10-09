@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-    PenTool,
     Loader2,
     Send,
     Square,
     Paperclip,
     Plus,
+    X,
 } from './icons/Typicons';
+import { FileIcon } from './FileIcons';
 import {
     uploadWorkspaceFile,
     type SSEEvent,
@@ -64,6 +65,7 @@ interface UserMessage {
     id: string;
     role: 'user';
     content: string;
+    attachments?: string[];
 }
 
 type ChatMessage = AgentMessage | UserMessage;
@@ -125,6 +127,7 @@ const toSnapshotMessage = (message: ChatMessage): SessionSnapshotMessage => {
             id: message.id,
             role: 'user',
             content: message.content,
+            ...(message.attachments?.length ? { attachments: message.attachments } : {}),
         };
     }
 
@@ -149,6 +152,7 @@ const fromSnapshotMessage = (message: SessionSnapshotMessage): ChatMessage => {
             id: message.id,
             role: 'user',
             content: message.content,
+            ...(message.attachments?.length ? { attachments: message.attachments } : {}),
         };
     }
 
@@ -228,6 +232,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
         currentTranscript,
         attachedFiles,
         setAttachedFiles,
+        clearAttachedFiles,
         setCurrentTranscript,
     } = useSession();
 
@@ -238,6 +243,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
     const [isStreaming, setIsStreaming] = useState(false);
     const [isStreamReconnecting, setIsStreamReconnecting] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    const [uploadError, setUploadError] = useState(false);
     const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
     const [runReason, setRunReason] = useState<'completed' | 'stopped' | 'error' | null>(null);
     const [pendingClarification, setPendingClarification] = useState<ClarificationRequest | null>(null);
@@ -253,6 +259,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
     const chatContainerRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const clarificationInputRef = useRef<HTMLTextAreaElement>(null);
     const streamHandleRef = useRef<RuntimeChatHandle | null>(null);
     const isRestoringRef = useRef(false);
 
@@ -475,17 +482,19 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
         if (!files || files.length === 0) return;
 
         setIsUploading(true);
+        setUploadError(false);
+        const uploadedPaths: string[] = [];
         try {
-            const uploadedPaths: string[] = [];
             for (const file of Array.from(files)) {
                 const uploaded = await uploadWorkspaceFile(file, currentSession.id);
                 uploadedPaths.push(uploaded.relative_path);
             }
-            setAttachedFiles([...attachedFiles, ...uploadedPaths]);
         } catch (err) {
             console.error('Failed to upload files:', err);
-            setRunReason('error');
+            setUploadError(true);
         } finally {
+            // Keep whatever did upload attached, even when a later file failed.
+            if (uploadedPaths.length > 0) setAttachedFiles([...attachedFiles, ...uploadedPaths]);
             setIsUploading(false);
             event.target.value = '';
         }
@@ -496,10 +505,13 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
         if (!content) return;
 
         void currentSession.id;
+        // Attachments go with a new prompt; a steer while running carries text only.
+        const attachments = isStreaming ? [] : [...attachedFiles];
         const userMsg: UserMessage = {
             id: `user-${Date.now()}`,
             role: 'user',
             content,
+            ...(attachments.length > 0 ? { attachments } : {}),
         };
 
         setMessages((prev) => [...prev, userMsg]);
@@ -525,7 +537,8 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
         promoteStage(pendingAgentMessageIdRef.current, 'sent');
         flushBufferedMessage(pendingAgentMessageIdRef.current);
 
-        followRun(currentSession.id, (onEvent, onError, onFinish, sessionId, stream) => sendChatViaRuntime(content, onEvent, onError, onFinish, sessionId, stream));
+        if (attachments.length > 0) clearAttachedFiles();
+        followRun(currentSession.id, (onEvent, onError, onFinish, sessionId, stream) => sendChatViaRuntime(content, onEvent, onError, onFinish, sessionId, stream, attachments));
     };
 
     /**
@@ -581,7 +594,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                     return;
                 }
 
-                if (event.type === 'clarification_answered') {
+                if (event.type === 'clarification_settled') {
                     setPendingClarification((current) => (
                         current?.clarification_id === event.clarification_id ? null : current
                     ));
@@ -902,14 +915,12 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
 
         setIsSubmittingClarification(true);
         try {
-            const userMsg: UserMessage = {
-                id: `user-clarification-${Date.now()}`,
-                role: 'user',
-                content: answer,
-            };
-            setMessages((prev) => [...prev, userMsg]);
-            setClarificationInput('');
+            // The answer reaches the agent as the tool result; it is not a chat turn.
             await answerClarificationViaRuntime(pendingClarification.clarification_id, answer, currentSession.id);
+            setPendingClarification((current) => (
+                current?.clarification_id === pendingClarification.clarification_id ? null : current
+            ));
+            setClarificationInput('');
         } catch (err) {
             console.error('Failed to answer clarification:', err);
         } finally {
@@ -918,7 +929,8 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
+        // Enter that confirms an IME candidate (pinyin and the like) is not a send.
+        if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
             e.preventDefault();
             if (inputValue.trim()) {
                 void handleSend();
@@ -926,8 +938,8 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
         }
     };
 
-    const handleClarificationKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
+    const handleClarificationKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
             e.preventDefault();
             void handleSubmitClarification();
         }
@@ -1000,8 +1012,20 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                     <React.Fragment key={msg.id}>
                         {msg.role === 'user' ? (
                             <div className="message user">
-                                <div className="message-content user-message-body">
-                                    {msg.content}
+                                <div className="user-message-stack">
+                                    <div className="message-content user-message-body">
+                                        {msg.content}
+                                    </div>
+                                    {msg.attachments && msg.attachments.length > 0 && (
+                                        <ul className="message-attachments" aria-label={t('chat.attachedFiles')}>
+                                            {msg.attachments.map((file) => (
+                                                <li key={file} className="attachment-chip" title={file}>
+                                                    <FileIcon filename={file} size={14} />
+                                                    <span>{file}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
                                 </div>
                                 <div className="message-avatar user-avatar">U</div>
                             </div>
@@ -1093,66 +1117,60 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                 ))}
 
                 {pendingClarification && (
-                    <div role="alert" aria-live="assertive" style={{ display: 'flex', gap: '12px' }}>
-                        <div className="agent-icon-red flex-shrink-0 flex items-center justify-center w-8 h-8 rounded mt-1" style={{ background: '#dbeafe' }}>
-                            <PenTool size={18} color="#2563eb" />
+                    <div className="message agent clarification-message" role="alert" aria-live="assertive">
+                        <div className="agent-icon-red is-idle flex-shrink-0 flex items-center justify-center">
+                            <AgentOrbitIcon size={32} animated={false} className="agent-message-icon" />
                         </div>
-                        <div style={{ flex: 1, minWidth: 0, background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '12px', padding: '14px' }}>
-                            <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#1e40af', marginBottom: '8px' }}>{t('chat.clarificationTitle')}</div>
-                            <div style={{ color: '#1f2937', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{pendingClarification.question}</div>
-                            {pendingClarification.options.length > 0 && (
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px' }}>
-                                    {pendingClarification.options.map((option) => (
-                                        <button
-                                            key={option}
-                                            onClick={() => void handleSubmitClarification(option)}
-                                            disabled={isSubmittingClarification}
-                                            style={{
-                                                border: '1px solid #93c5fd',
-                                                background: '#ffffff',
-                                                color: '#1d4ed8',
-                                                borderRadius: '999px',
-                                                padding: '6px 12px',
-                                                fontSize: '12px',
-                                                cursor: isSubmittingClarification ? 'not-allowed' : 'pointer',
-                                            }}
-                                        >
-                                            {option}
-                                        </button>
-                                    ))}
+                        <div className="message-content-wrapper">
+                            <div className="clarification-card">
+                                <div className="clarification-title">{t('chat.clarificationTitle')}</div>
+                                <div className="clarification-question">{pendingClarification.question}</div>
+                                {pendingClarification.options.length > 0 && (
+                                    <div className="clarification-options" role="radiogroup" aria-label={t('chat.clarificationOptions')}>
+                                        {pendingClarification.options.map((option) => {
+                                            const isSelected = clarificationInput === option;
+                                            return (
+                                                <button
+                                                    key={option}
+                                                    type="button"
+                                                    role="radio"
+                                                    aria-checked={isSelected}
+                                                    className={`clarification-option ${isSelected ? 'is-selected' : ''}`}
+                                                    onClick={() => {
+                                                        setClarificationInput(option);
+                                                        clarificationInputRef.current?.focus();
+                                                    }}
+                                                    disabled={isSubmittingClarification}
+                                                >
+                                                    <span className="clarification-option-mark" aria-hidden="true" />
+                                                    <span>{option}</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                                <div className="clarification-answer">
+                                    <textarea
+                                        ref={clarificationInputRef}
+                                        className="clarification-input"
+                                        rows={1}
+                                        value={clarificationInput}
+                                        onChange={(e) => setClarificationInput(e.target.value)}
+                                        onKeyDown={handleClarificationKeyDown}
+                                        aria-label={t('chat.inputAnswer')}
+                                        placeholder={pendingClarification.options.length > 0 ? t('chat.clarificationEditHint') : t('chat.inputAnswer')}
+                                        disabled={isSubmittingClarification}
+                                    />
+                                    <button
+                                        type="button"
+                                        className={`chat-send-btn ${clarificationInput.trim() ? 'is-ready' : ''}`}
+                                        onClick={() => void handleSubmitClarification()}
+                                        disabled={isSubmittingClarification || !clarificationInput.trim()}
+                                        aria-label={isSubmittingClarification ? t('chat.submitting') : t('chat.submit')}
+                                    >
+                                        <Send size={16} aria-hidden="true" />
+                                    </button>
                                 </div>
-                            )}
-                            <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                                <input
-                                    value={clarificationInput}
-                                    onChange={(e) => setClarificationInput(e.target.value)}
-                                    onKeyDown={handleClarificationKeyDown}
-                                    aria-label={t('chat.inputAnswer')}
-                                    placeholder={t('chat.inputAnswer')}
-                                    disabled={isSubmittingClarification}
-                                    style={{
-                                        flex: 1,
-                                        border: '1px solid #bfdbfe',
-                                        borderRadius: '8px',
-                                        padding: '10px 12px',
-                                        outline: 'none',
-                                        background: '#fff',
-                                    }}
-                                />
-                                <button
-                                    onClick={() => void handleSubmitClarification()}
-                                    disabled={isSubmittingClarification || !clarificationInput.trim()}
-                                    style={{
-                                        background: clarificationInput.trim() ? '#2563eb' : '#bfdbfe',
-                                        color: '#fff',
-                                        border: 'none',
-                                        borderRadius: '8px',
-                                        padding: '0 14px',
-                                        cursor: isSubmittingClarification || !clarificationInput.trim() ? 'not-allowed' : 'pointer',
-                                    }}
-                                >
-                                    {isSubmittingClarification ? t('chat.submitting') : t('chat.submit')}
-                                </button>
                             </div>
                         </div>
                     </div>
@@ -1162,8 +1180,28 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
             </div>
 
             <div className="chat-input-container p-4 border-t border-gray-100 bg-white">
+                {attachedFiles.length > 0 && (
+                    <ul className="chat-attachments" aria-label={t('chat.attachedFiles')}>
+                        {attachedFiles.map((file) => (
+                            <li key={file} className="attachment-chip" title={file}>
+                                <FileIcon filename={file} size={14} />
+                                <span>{file}</span>
+                                <button
+                                    type="button"
+                                    onClick={() => setAttachedFiles(attachedFiles.filter((item) => item !== file))}
+                                    aria-label={t('chat.removeAttachment').replace('{name}', file)}
+                                    title={t('chat.removeAttachment').replace('{name}', file)}
+                                >
+                                    <X size={12} />
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                )}
                 <div className="chat-input-meta">
-                    <span>{isStreaming ? t('chat.steerHint') : t('chat.attachHint')}</span>
+                    {uploadError
+                        ? <span className="chat-input-error" role="alert">{t('chat.uploadFailed')}</span>
+                        : <span>{isStreaming ? t('chat.steerHint') : t('chat.attachHint')}</span>}
                     {runReason && <span>{t('chat.status') || '状态'}：{runReason === 'completed' ? t('tools.statusDone') : runReason === 'stopped' ? t('chat.stopped') || '已停止' : t('tools.statusError')}</span>}
                 </div>
                 <div className="chat-input-wrapper shadow-sm">

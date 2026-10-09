@@ -64,10 +64,13 @@ describe("Skill catalog", () => {
       path.join(repo, ".agents", "skills"),
       path.join(repo, "evaluations", "spider2", "skills"),
     ]);
-    expect(diagnostics.filter((item) => item.path.includes("answer-spec") || item.path.includes("query-task"))).toEqual([]);
+    expect(diagnostics.filter((item) => item.path.includes("answer-spec") || item.path.includes("answer-fields") || item.path.includes("query-task"))).toEqual([]);
     const answerSpec = loaded.find((skill) => skill.name === "answer-spec");
+    const answerFields = loaded.find((skill) => skill.name === "answer-fields");
     const queryTask = loaded.find((skill) => skill.name === "query-task");
     expect(answerSpec).toMatchObject({ requiredTools: ["begin_answer_spec", "revise_answer_spec", "query_database"], whenToUse: expect.any(String) });
+    // The ADR-0007 field interface has its own protocol Skill, so neither arm sees the other's tools.
+    expect(answerFields).toMatchObject({ requiredTools: ["set_answer_spec", "query_database"], whenToUse: expect.any(String) });
     expect(queryTask).toMatchObject({ requiredTools: ["begin_query_task", "query_database"] });
     expect(answerSpec?.allowedTools).toBeUndefined();
   });

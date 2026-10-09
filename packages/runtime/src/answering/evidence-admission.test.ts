@@ -6,8 +6,11 @@ const messages: Record<string, string> = {
   "message-followup": "配额按年度表里的 SalesQuota 取最大值就行。",
 };
 
+const answers: Record<string, string> = { "clar-1": "订单量=全部下单订单；GMV=订单支付金额合计(payment_value)" };
+
 const source: EvidenceSource = {
   readUserMessage: async (sessionId, messageId) => sessionId === "session-1" ? messages[messageId] : undefined,
+  readClarificationAnswer: async (sessionId, clarificationId) => sessionId === "session-1" ? answers[clarificationId] : undefined,
   readDocument: async (sourceRef) => sourceRef === "business-definitions"
     ? { kind: "task_document", content: "Sales amount means SUM(subtotal) excluding tax and freight." }
     : undefined,
@@ -38,12 +41,27 @@ describe("Evidence Admission (ADR-0004)", () => {
     expect(admitted).toMatchObject({ kind: "user_confirmation", sourceRef: "message-followup", verification: { method: "user_message_quote" } });
   });
 
+  it("accepts a user confirmation from the user's recorded answer to a clarification", async () => {
+    const [admitted] = await admitEvidence([{ kind: "user_confirmation", sourceRef: "clarification:clar-1", quote: "订单量=全部下单订单" }], scope);
+    expect(admitted).toMatchObject({ kind: "user_confirmation", sourceRef: "clarification:clar-1", quote: "订单量=全部下单订单", verification: { method: "clarification_answer_quote" } });
+    // Unknown or unanswered clarifications, another Session's answers and words the user did not say are rejected.
+    await expect(admitEvidence([{ kind: "user_confirmation", sourceRef: "clarification:clar-2", quote: "订单量=全部下单订单" }], scope)).rejects.toMatchObject({ code: "EVIDENCE_REJECTED" });
+    await expect(admitEvidence([{ kind: "user_confirmation", sourceRef: "clarification:clar-1", quote: "订单量=全部下单订单" }], { ...scope, sessionId: "session-2" })).rejects.toMatchObject({ code: "EVIDENCE_REJECTED" });
+    await expect(admitEvidence([{ kind: "user_confirmation", sourceRef: "clarification:clar-1", quote: "仅已送达订单" }], scope)).rejects.toMatchObject({ code: "EVIDENCE_REJECTED" });
+    const { readClarificationAnswer: _omitted, ...withoutAnswers } = source;
+    await expect(admitEvidence([{ kind: "user_confirmation", sourceRef: "clarification:clar-1", quote: "订单量=全部下单订单" }], { ...scope, source: withoutAnswers })).rejects.toMatchObject({ code: "EVIDENCE_REJECTED" });
+  });
+
   it("admits only authorized documents with their configured authority", async () => {
     await expect(admitEvidence([{ kind: "task_document", sourceRef: "semantic-guide", quote: "SUM(subtotal)" }], scope)).rejects.toMatchObject({ code: "EVIDENCE_REJECTED" });
     await expect(admitEvidence([{ kind: "reviewed_definition", sourceRef: "business-definitions", quote: "SUM(subtotal)" }], scope)).rejects.toMatchObject({ code: "EVIDENCE_REJECTED" });
     await expect(admitEvidence([{ kind: "task_document", sourceRef: "business-definitions", quote: "SUM(totaldue)" }], scope)).rejects.toMatchObject({ code: "EVIDENCE_REJECTED" });
     const [admitted] = await admitEvidence([{ kind: "task_document", sourceRef: "business-definitions", quote: "SUM(subtotal) excluding tax" }], scope);
     expect(admitted).toMatchObject({ kind: "task_document", verification: { method: "document_quote" } });
+    // "document" leaves the authority to the composition root instead of the caller.
+    const [unnamed] = await admitEvidence([{ kind: "document", sourceRef: "business-definitions", quote: "SUM(subtotal) excluding tax" }], scope);
+    expect(unnamed).toMatchObject({ kind: "task_document", sourceRef: "business-definitions", verification: { method: "document_quote" } });
+    await expect(admitEvidence([{ kind: "document", sourceRef: "semantic-guide", quote: "SUM(subtotal)" }], scope)).rejects.toMatchObject({ code: "EVIDENCE_REJECTED" });
   });
 
   it("rejects text evidence when no trusted source is configured", async () => {

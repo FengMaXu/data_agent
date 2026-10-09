@@ -111,10 +111,38 @@ export function axisTitle(field: string, meta: QuantitativeMeta): string {
   return unit ? `${fieldTitle(field, meta)}（${unit}）` : fieldTitle(field, meta);
 }
 
-export function formatValue(value: number, meta: QuantitativeMeta): string {
-  const text = value.toLocaleString("zh-CN", { maximumFractionDigits: 4 });
+/**
+ * Decimal places a shown value needs: two at or above 1, enough for three
+ * significant digits below it (0.0123), none for whole numbers. Rounding hides
+ * digits a reader cannot use, never a value's order of magnitude.
+ */
+export function valueDecimals(value: number): number {
+  const magnitude = Math.abs(value);
+  if (Number.isInteger(value) || magnitude === 0) return 0;
+  const places = magnitude >= 1 ? 2 : Math.min(8, 2 - Math.floor(Math.log10(magnitude)));
+  // Drop trailing zeros so 10.2 needs one place and 14.0 none.
+  const rounded = value.toFixed(places).replace(/0+$/, "");
+  return rounded.endsWith(".") ? 0 : rounded.length - rounded.indexOf(".") - 1;
+}
+
+/** One decimal count for values read side by side, such as a table column. */
+export function columnDecimals(values: readonly number[]): number {
+  return Math.max(0, ...values.map(valueDecimals));
+}
+
+export interface FormatOptions {
+  /** Fixed decimal places; by default each value takes what `valueDecimals` gives it. */
+  readonly decimals?: number;
+  /** False when the unit is shown elsewhere, as in a table header. Percent signs stay. */
+  readonly unit?: boolean;
+}
+
+export function formatValue(value: number, meta: QuantitativeMeta, options: FormatOptions = {}): string {
+  const decimals = options.decimals ?? valueDecimals(value);
+  const text = value.toLocaleString("zh-CN", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
   const unit = unitText(meta);
-  return unit === "%" ? `${text}%` : unit ? `${text} ${unit}` : text;
+  if (unit === "%") return `${text}%`;
+  return unit && options.unit !== false ? `${text} ${unit}` : text;
 }
 
 /**
@@ -123,10 +151,23 @@ export function formatValue(value: number, meta: QuantitativeMeta): string {
  * Undefined for other fields, nulls and non-numeric measures, so callers show the
  * raw value instead of guessing a scale.
  */
-export function formatFieldValue(value: unknown, meta: FieldMeta | undefined): string | undefined {
+export function formatFieldValue(value: unknown, meta: FieldMeta | undefined, options: FormatOptions = {}): string | undefined {
   if (meta?.type === "temporal") return value === null || value === undefined ? undefined : temporalLabel(value, meta);
   if (meta?.type !== "quantitative") return undefined;
   const number = numericCell(value);
   if (number === null || number === undefined) return undefined;
-  return formatValue(number * displayScale(meta), meta);
+  return formatValue(number * displayScale(meta), meta, options);
+}
+
+/**
+ * Decimals for a headline number such as a KPI tile or a bar label: about four
+ * significant digits, so a tile reads 4,872 亿元 rather than 4,871.7356 亿元.
+ * The cell keeps its full value.
+ */
+export function headlineDigits(shown: number, meta: QuantitativeMeta): number {
+  if (isPercentDisplay(meta)) return 1;
+  // A count stays a count: 64 家, never 64.00 家.
+  if (Number.isInteger(shown)) return 0;
+  const size = Math.abs(shown);
+  return size >= 1000 ? 0 : size >= 100 ? 1 : 2;
 }

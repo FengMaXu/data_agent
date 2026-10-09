@@ -21,6 +21,19 @@ export interface DataAgentToolDefinition<
   readonly tool: AgentHarnessTool<TContext, TParameters, TDetails>;
   readonly promptSnippet: string;
   readonly promptGuidelines: readonly string[];
+  /** See ToolAvailability.pinned. */
+  readonly pinned: boolean;
+}
+
+/** How a tool's availability is governed, declared where the tool is defined. */
+export interface ToolAvailability {
+  /**
+   * Stays active when a Skill narrows the tool set. A pinned tool belongs to a
+   * protocol the Runtime drives (Answering, clarification, skill loading,
+   * delegation): the protocol may require it at any step, so a Skill that hid
+   * it would leave the model told to call a tool it does not have.
+   */
+  readonly pinned?: boolean;
 }
 
 function assertPromptMetadata(metadata: ToolPromptMetadata): void {
@@ -47,12 +60,14 @@ export function defineDataAgentTool<
 >(
   tool: AgentHarnessTool<TContext, TParameters, TDetails>,
   metadata: ToolPromptMetadata,
+  availability: ToolAvailability = {},
 ): DataAgentToolDefinition<TContext, TParameters, TDetails> {
   assertPromptMetadata(metadata);
   return Object.freeze({
     tool,
     promptSnippet: metadata.promptSnippet.trim(),
     promptGuidelines: Object.freeze(metadata.promptGuidelines.map((guideline) => guideline.trim())),
+    pinned: availability.pinned === true,
   });
 }
 
