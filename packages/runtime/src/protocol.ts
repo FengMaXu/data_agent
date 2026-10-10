@@ -388,11 +388,11 @@ export class DataAgentRuntime implements ApplicationCommandHost {
       if (command.command.type === "knowledge.save" && !this.knowledgeRoot) throw new DataAgentRuntimeError("INVALID_COMMAND", "Knowledge root is not configured");
       if (!this.knowledgeRoot && command.command.type !== "knowledge.save") throw new DataAgentRuntimeError("INVALID_COMMAND", "Knowledge index is not configured");
       const { resolve: resolvePath, join: joinPath } = await import("node:path");
-      if (this.knowledge) await this.knowledge.loadDirectory(this.knowledgeRoot as string);
+      if (this.knowledge) await this.knowledge.reload(this.knowledgeRoot as string);
       if (command.command.type === "knowledge.search") return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "knowledge.search.result", hits: this.knowledge!.search(command.command.query) } };
       if (command.command.type === "knowledge.list") {
         const { readdir, stat } = await import("node:fs/promises");
-        const files: Array<{ path: string; size: number; modifiedAt: number; knowledgeId?: string; name?: string; description?: string; usage?: "method" | "fact" }> = [];
+        const files: Array<{ path: string; size: number; modifiedAt: number; knowledgeId?: string; name?: string; description?: string; usage?: "method" | "fact"; readOnly?: boolean; hasContent?: boolean }> = [];
         const catalog = new Map((this.knowledge?.catalog() ?? []).map((entry) => [entry.path.split(path.sep).join("/"), entry]));
         const walk = async (dir: string): Promise<void> => {
           for (const entry of await readdir(dir, { withFileTypes: true })) {
@@ -406,12 +406,20 @@ export class DataAgentRuntime implements ApplicationCommandHost {
                 path: relativePath,
                 size: info.size,
                 modifiedAt: info.mtimeMs,
-                ...(entry ? { knowledgeId: entry.knowledgeId, name: entry.name, description: entry.description, usage: entry.usage ?? "fact" } : {}),
+                ...(entry ? { knowledgeId: entry.knowledgeId, name: entry.name, description: entry.description, usage: entry.usage ?? "fact", hasContent: entry.hasContent } : {}),
               });
             }
           }
         };
         await walk(this.knowledgeRoot as string);
+        // Built-in documents live outside the user root and are listed read-only.
+        for (const entry of catalog.values()) {
+          if (!entry.readOnly) continue;
+          const location = this.knowledge!.locate(entry.path);
+          if (!location) continue;
+          const info = await stat(path.join(location.root, entry.path));
+          files.push({ path: entry.path, size: info.size, modifiedAt: info.mtimeMs, knowledgeId: entry.knowledgeId, name: entry.name, description: entry.description, usage: entry.usage ?? "fact", readOnly: true, hasContent: entry.hasContent });
+        }
         return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "knowledge.list.result", files } };
       }
       if (command.command.type === "knowledge.save") {
@@ -419,6 +427,7 @@ export class DataAgentRuntime implements ApplicationCommandHost {
         if (requestedPath === ".pi" || requestedPath.startsWith(".pi/")) {
           throw new DataAgentRuntimeError("INVALID_COMMAND", "SYSTEM_PROMPT_IMMUTABLE");
         }
+        if (this.knowledge?.isBuiltinPath(requestedPath)) throw new DataAgentRuntimeError("INVALID_COMMAND", "KNOWLEDGE_BUILTIN_READ_ONLY");
         const { writeFile, mkdir } = await import("node:fs/promises");
         const root = resolvePath(this.knowledgeRoot as string);
         const target = resolvePath(joinPath(root, command.command.path));
@@ -429,7 +438,7 @@ export class DataAgentRuntime implements ApplicationCommandHost {
         await writeFile(target, command.command.content, "utf8");
         return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "knowledge.save.result", path: command.command.path } };
       }
-      const root = resolvePath(this.knowledgeRoot as string);
+      const root = resolvePath(this.knowledge?.locate(command.command.path)?.root ?? (this.knowledgeRoot as string));
       const target = resolvePath(joinPath(root, command.command.path));
       if (target !== root && !target.startsWith(`${root}${path.sep}`)) throw new DataAgentRuntimeError("INVALID_COMMAND", "Knowledge path escapes root");
       try {

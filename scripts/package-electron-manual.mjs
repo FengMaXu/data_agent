@@ -129,6 +129,8 @@ for (const required of [
   "../dist/python-runtime/Scripts/python.exe",
   "../.agents/skills/analysis/SKILL.md",
   "../.agents/skills/answer-spec/SKILL.md",
+  "../.agents/knowledge/doc/rules.md",
+  "../.agents/knowledge/doc/semantic_guide.md",
   "../.pi/SYSTEM.md",
 ]) {
   const source = path.resolve(frontend, required);

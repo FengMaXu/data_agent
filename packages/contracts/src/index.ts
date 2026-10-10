@@ -66,6 +66,10 @@ const KnowledgeListResponseSchema = Type.Object({ type: Type.Literal("knowledge.
   name: Type.Optional(Type.String()),
   description: Type.Optional(Type.String()),
   usage: Type.Optional(Type.Union([Type.Literal("method"), Type.Literal("fact")])),
+  /** Built-in documents ship with the application and cannot be saved over. */
+  readOnly: Type.Optional(Type.Boolean()),
+  /** False for a placeholder that has frontmatter but no content yet. */
+  hasContent: Type.Optional(Type.Boolean()),
 })) });
 const KnowledgeSaveResponseSchema = Type.Object({ type: Type.Literal("knowledge.save.result"), path: Type.String() });
 const SemanticSourcesResponseSchema = Type.Object({ type: Type.Literal("semantic.sources.result"), sources: Type.Array(Type.Object({ connectionId: Type.String(), sourceName: Type.String(), definition: Type.Unknown(), updatedAt: Type.Number() })) });

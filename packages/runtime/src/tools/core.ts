@@ -211,7 +211,8 @@ export function createCoreAgentToolDefinitions(options: CoreToolOptions): readon
       }),
     );
     if (options.knowledgeRoot) {
-      const writer = new KnowledgeWriter(options.knowledgeRoot);
+      const knowledge = options.knowledge;
+      const writer = new KnowledgeWriter(options.knowledgeRoot, undefined, knowledge ? { isBuiltin: (relativePath) => knowledge.isBuiltinPath(relativePath) } : {});
       definitions.push(defineDataAgentTool({
         name: "update_knowledge",
         label: "update_knowledge",

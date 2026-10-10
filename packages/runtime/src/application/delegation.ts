@@ -286,7 +286,7 @@ export function createQueryTaskDelegationResolver(options: QueryTaskDelegationRe
             Math.min(requestedResults, MAX_KNOWLEDGE_RESULTS),
             (relativePath, knowledgeId) => knowledgeAllowed(relativePath) && (!requestedIds || requestedIds.has(knowledgeId)),
           );
-          for (const hit of hits) knowledgeChecks.set(hit.knowledgeId, () => knowledge.isCurrent(knowledgeRoot, hit.knowledgeId));
+          for (const hit of hits) knowledgeChecks.set(hit.knowledgeId, () => knowledge.isCurrent(hit.knowledgeId));
           const formatted = formatKnowledgeSearchResults(hits, requestedResults);
           return text(json(formatted), formatted);
         },
@@ -311,7 +311,7 @@ export function createQueryTaskDelegationResolver(options: QueryTaskDelegationRe
           }
           if (!knowledgeAllowed(document.path)) throw new Error("SUBAGENT_KNOWLEDGE_PATH_NOT_AUTHORIZED");
           const read = knowledge.read(value);
-          knowledgeChecks.set(value.knowledgeId, () => knowledge.isCurrent(knowledgeRoot, value.knowledgeId));
+          knowledgeChecks.set(value.knowledgeId, () => knowledge.isCurrent(value.knowledgeId));
           return text(json(read), read);
         },
       }, {

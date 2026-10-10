@@ -1023,6 +1023,10 @@ export interface KnowledgeFile {
     title?: string;
     description?: string;
     knowledgeId?: string;
+    /** Built-in document shipped with the application; it cannot be edited. */
+    readOnly?: boolean;
+    /** False for a placeholder with frontmatter but no content yet. */
+    hasContent?: boolean;
 }
 
 export interface KnowledgeListResponse {
