@@ -1,13 +1,13 @@
 ---
 name: answer-fields
-description: 数据查询的 Answer Spec 流程（字段接口）——按字段路径设置口径、探针与决定、最终查询、发布
+description: 数据查询的 Answer Spec 流程——按字段树路径设置口径、探针与决定、最终查询、发布
 when_to_use: 每个需要从数据库取数、统计、排名或导出的请求，在第一次调用 set_answer_spec 之前加载。口径问答、闲聊和纯结果加工不需要加载。
 requires-tools:
   - set_answer_spec
   - query_database
 ---
 
-# Answer Spec 流程（字段接口）
+# Answer Spec 流程
 
 本 Skill 说明用 `set_answer_spec` 建立和修改 Answer Spec 的方法。语义分析方法（如何拆题、各字段要回答什么问题、各类歧义专题）见知识库 `semantic-guide`；SQL 实现规则见 `sql-rules`。
 
@@ -15,31 +15,42 @@ requires-tools:
 
 1. 按需读取 `semantic-guide`，拆题。
 2. 业务定义、表结构、数据取值交给 `subagent` 的 explorer 收集，每个子任务只问一个问题，并行派发。
-3. 一次 `set_answer_spec`（不带 `taskId`）写下全部字段：7 个槽位、8 个子字段，必要时加 `source`。题面没说死的字段写成待定。
+3. 一次 `set_answer_spec`（不带 `taskId`）按计算顺序写下字段：统计总体 → 度量 → 分组 → 选取 → 输出。题面没说死的字段写成待定。
 4. 每个待定字段的每个候选各跑一次探针（§5）。输出全部相同的字段由系统视为等价，不用处理；输出不同的，调用 `compare_hypotheses` 后写入决定。
 5. 状态表显示“没有待处理的字段”后，执行一次最终查询，得到 Result Candidate。
 6. 发布 Candidate，并披露未证实的字段和数据限制。
 
-## 2. 字段路径
+## 2. 字段树
 
-| 路径 | 内容 |
-| --- | --- |
-| `entity` | 统计实体与业务键 |
-| `metric` | 指标、分子分母与聚合顺序 |
-| `filters` | 过滤条件列表，没有写 `"n/a"` |
-| `groupBy` | 分组列表，没有写 `"n/a"` |
-| `time` | 时间范围与边界 |
-| `ranking` | 排名 `{n, orderBy, tiePolicy?}`，没有写 `"n/a"` |
-| `output` | 输出形态 `{rowMode, rowCount?, columns?}`；`rowMode` 只能取下表的值；写了 `columns` 时，结果列须逐位同名 |
-| `filters.population` | 哪些行和实体算在内；零值、空值实体要不要纳入 |
-| `entity.joinMultiplicity` | 连接后会不会重复计数，要不要去重 |
-| `time.field` | 用哪个事件的时间字段；区间两端含不含 |
-| `metric.countGrain` | 按行、按实体还是按事件计数 |
-| `metric.denominator` | 比率或平均的分母；分母为 0 怎么处理 |
-| `time.window` | 滚动或累计窗口从哪里开始 |
-| `ranking.ties` | 并列时取一个还是全部取 |
-| `output.shape` | 输出几行、几列、什么粒度 |
-| `source` | 同时影响实体、指标、过滤的数据来源不确定性（例如用明细表还是汇总表） |
+| 路径 | 内容 | 值 |
+| --- | --- | --- |
+| `population.entity` | 统计实体与业务键（按名称还是按键、版本是否合并） | 文本，或 `{ name, keyColumns? }` |
+| `population.eligibility` | 零值、空值实体是否纳入（例如没有订单的客户算不算） | 一句话 |
+| `population.conditions` | 资格条件及其作用阶段（WHERE 还是 HAVING） | 条件列表 |
+| `population.source` | 数据来源 | `{ tables: [...], note? }` |
+| `population.time` | 时间范围、端点、参考日、日历与时区 | 文本，或 `{ expression, boundary? }`，`boundary` 取 `inclusive`、`exclusive`、`mixed` |
+| `population.timeField` | 用哪个事件的时间字段 | 一句话 |
+| `population.missing` | 缺期是否补零，相邻观测还是相邻日历期 | 一句话 |
+| `population.joinMultiplicity` | 连接后会不会重复计数，要不要去重 | 一句话 |
+| `measure.formula` | 逐层的运算表达式（§3） | 表达式 |
+| `measure.countGrain` | 按行、按实体还是按事件计数 | 一句话 |
+| `measure.denominator` | 分母的总体；分母为 0 怎么处理 | 一句话 |
+| `measure.window` | 滚动或累计窗口从哪里开始、多长 | 一句话 |
+| `grouping` | 分组键与日历粒度 | 列表 |
+| `selection` | 排名与取对象；argmax、argmin 即 `n = 1` | `{ n, orderBy }`，`orderBy` 写列和方向 |
+| `selection.ties` | 并列政策 | `"strict"`（恰好 n 行）或 `"include_ties"`（保留切点上的全部并列行） |
+| `output` | 行粒度、行数、列、每列的单位与精度 | `{ rowMode?, rowCount?, columns?, units?, decimals? }` |
+
+**必须声明的字段**（不适用写 `"n/a"`）：
+
+- 总是：`population.entity`、`population.eligibility`、`population.conditions`、`population.time`、`measure.formula`、`grouping`、`selection`、`output`。
+- `measure.formula` 任一层为 `count`、`count_distinct`、`avg`、`median`、`ratio`、`percentage`、`change_rate` 时：`measure.countGrain`。
+- 任一层为 `avg`、`ratio`、`percentage`、`change_rate` 时：`measure.denominator`。
+- 任一层为 `cumulative`、`rolling` 时：`measure.window`。
+- `selection` 不是 `"n/a"` 时：`selection.ties`。
+- `population.source` 列出多张表时：`population.joinMultiplicity`。
+
+`population.timeField`、`population.missing` 不强制，题面涉及时再写。返回的“未声明”列出还缺的字段；全部声明之前不能执行最终查询。
 
 `output.rowMode` 的取值（不要用其他词）：
 
@@ -51,9 +62,30 @@ requires-tools:
 | `full` | 完整结果集，行数由数据决定 | 省略 |
 | `detail` | 逐条明细记录 | 省略 |
 
-8 个子字段每次都要声明，不适用的写 `"n/a"`；全部声明之前不能执行最终查询。子字段与 `source` 的 `value` 写一句话说明口径。
+写了 `columns` 时，结果列须逐位同名。`units`、`decimals` 按列名写单位和小数位。
 
-## 3. 字段写法
+## 3. 度量表达式
+
+`measure.formula` 每一层写明运算 `op`、在什么粒度上计算 `per`、作用于什么：
+
+| `op` | 作用于 |
+| --- | --- |
+| `count`、`count_distinct`、`sum`、`avg`、`median`、`min`、`max`、`cumulative`、`rolling` | `of`：列，或内层表达式 |
+| `ratio`（a/b）、`percentage`（100·a/b） | `numerator`、`denominator` |
+| `difference`、`change_rate`、`pp_difference`（百分点差） | `from`、`to`（从 from 变到 to） |
+| `custom`（以上都不适用，例如回归预测） | `description` 必填，`of` 可选 |
+
+嵌套顺序就是聚合顺序；多于一层时每层都写 `per`。例如“各国家球员场均得分的平均值”：
+
+```json
+{ "op": "avg", "per": "country",
+  "of": { "op": "avg", "per": "player",
+          "of": { "op": "sum", "per": "match", "of": "runs" } } }
+```
+
+把三层压成一次 `avg(runs) group by country` 是另一个口径。比率藏在 argmin 或“满足条件的对象”里时（“投球平均值最低的投手”），比率写在度量里，“最低的投手”写在 `selection`。
+
+## 4. 字段写法
 
 | 状态 | 写法 | 系统怎么处理 |
 | --- | --- | --- |
@@ -61,10 +93,8 @@ requires-tools:
 | 题面已规定 | `{ "value", "basis": "request", "quote" }` | `quote` 必须在原题中逐字出现 |
 | 有引文依据 | `{ "value", "cite": [{ "source", "quote" }] }` | 见下表 |
 | 观测依据 | `{ "value", "evidenceIds": ["evidence_…"] }` | 引用 `query_database` 探索返回的 evidenceId |
-| 假定 | `{ "value", "basis": "assumed", "rationale" }` | 记为未证实，发布时披露 |
-| 待定 | `{ "open": ["候选 1", "候选 2"] }` | 系统为每个候选发放探针 ID |
-
-槽位也可以直接写值（如 `"output": { "rowMode": "scalar", "rowCount": 1 }`），视为推断，发布时披露。`ranking`、`output` 的值是对象，不能写成待定；对应的歧义写在 `ranking.ties`、`output.shape`。
+| 假定 | `{ "value", "basis": "assumed", "rationale" }`，或直接写值 | 记为未证实，发布时披露 |
+| 待定 | `{ "open": [候选 1, 候选 2] }` | 系统为每个候选发放 `alternativeId` |
 
 引文来源：
 
@@ -75,44 +105,45 @@ requires-tools:
 | `clarification:<clarificationId>` | `ask_user_clarification` 的回答 | 必填，回答中逐字出现 |
 | `message` | 用户本轮消息 | 必填，消息中逐字出现；原始问题用 `basis: "request"` |
 
-是否已证实由系统按依据判定：业务口径（总体、分母、计数粒度、窗口、并列、输出形状）只认原题、业务文档和用户确认；观测数据和表结构只能证实物理映射与数据性质。依据不够格时记为未证实并披露，不会失败。
+是否已证实由系统按依据判定：语义字段只认原题、业务文档和用户确认；物理字段（`population.source`、`population.timeField`、`population.joinMultiplicity`）只认表结构、业务文档和观测。依据不够格时记为未证实并披露，不会失败。
 
-**统计总体**：`filters.population` 在会话提供澄清工具时不能只靠假定或观测，须引用原题、业务文档或用户确认，或先用 `ask_user_clarification` 询问用户。
+**统计总体**：会话提供澄清工具时，`population.eligibility` 不能只靠假定；`population.entity`、`population.eligibility`、`population.conditions` 的待定也不能在没有合格依据时决定。须引用原题、业务文档或用户确认，或先用 `ask_user_clarification` 询问用户。
 
-## 4. 修改与决定
+## 5. 修改与决定
 
 - **只写要变的路径。** 未写的路径保持不变。每个路径独立校验、独立生效，失败的路径不影响其他路径；按返回的 `✗` 原因只重发失败的路径。
-- **决定待定字段**：写 `{ "value": "<候选原文>", "rationale", "evidenceIds"? }`。`rationale` 写把每个候选放回题面逐词检验的结论（`semantic-guide` 的“候选对照”）。`compare_hypotheses` 的明显倾向（`[ADVICE_LEAN]`）是默认答案；改选时须附 `"adviceOverride": { "reason", "evidenceIds" }`。
-- **改写已设置的字段**须附 `"reason"`，系统记为对原记录的取代。
+- **决定待定字段**：写 `{ "value": <候选原值>, "rationale", "evidenceIds"? }`。`rationale` 写把每个候选放回题面逐词检验的结论（`semantic-guide` 的“候选对照”）。`compare_hypotheses` 的明显倾向（`[ADVICE_LEAN]`）是默认答案；改选时须附 `"adviceOverride": { "reason", "evidenceIds" }`。
+- **无法单独执行的候选**：写 `{ "notProbeable": { "<alternativeId>": "理由" } }` 代替探针。
+- **改写已设置的字段**须附 `"reason"`，系统记录改写理由。
 - 写入任何字段都会产生新的 Revision，上一版未发布的结果候选随之失效；先把字段写完，再执行最终查询。
 
-## 5. 探索、探针与最终查询
+## 6. 探索、探针与最终查询
 
 ```text
 query_database(kind="exploration", taskId, sql, limit?)
-query_database(kind="exploration", taskId, sql, probe={ choiceId, alternativeId })
+query_database(kind="exploration", taskId, sql, probe={ path, alternativeId })
 query_database(kind="result", taskId, revisionId, sql)
 ```
 
-- 待定字段的 `choiceId` 和每个候选的 `alternativeId` 见 `set_answer_spec` 返回的状态表。
-- 探针 SQL 按该候选的口径计算**最终输出**，不是中间量。`[CHOICE_PROBE] output=...` 相同表示两个候选给出同一个答案。探针不占探索次数。
+- 待定字段每个候选的 `alternativeId` 见 `set_answer_spec` 返回的状态表。
+- 探针 SQL 按该候选的口径计算**最终输出**，不是中间量。`[PROBE] output=...` 相同表示两个候选给出同一个答案。探针不占探索次数。
 - 探索只验证可能改变答案的未决点，每次解决一个问题；探索产物不能发布。
-- 最终查询绑定状态表所在的当前 `revisionId`，只执行一次，生成不可变的 Result Candidate。CandidateCheck 拒绝时修正 SQL；结果与未采纳候选的探针输出相同时以 `CHOICE_NOT_REALIZED` 拒绝，改 SQL 实现已采纳的候选。
+- 最终查询绑定状态表所在的当前 `revisionId`，只执行一次，生成不可变的 Result Candidate。CandidateCheck 拒绝时修正 SQL；结果与未采纳候选的探针输出相同时以 `DECISION_NOT_REALIZED` 拒绝，改 SQL 实现已采纳的候选。
 - `[IMPLEMENTATION_OBSTACLE]` 按 `kind` 判断：技术失败在预算内修 SQL；业务判断、映射不足、预算耗尽或执行结果未知时回到取证、澄清或说明限制。
 
-## 6. 报告与看板
+## 7. 报告与看板
 
 一份报告或看板有多张图时，共用的口径只声明一次：
 
-1. **报告任务**：`set_answer_spec({ report: true, fields })`，只写共享字段——`entity`、`filters`、`time`、`filters.population`、`entity.joinMultiplicity`、`time.field`、`time.window`、`source`——和各指标定义 `metrics.<名字>`，值为 `{ kind, expression, denominator?, countGrain? }`，写法同其他槽位。报告任务本身不执行结果查询、不发布。
-2. **图表查询**：每张图 `set_answer_spec({ parentTaskId, fields })`，共享字段自动继承，只写 `metric: { "ref": "<名字>" }`、`groupBy`、`ranking`、`output` 及 `metric.denominator`、`metric.countGrain`、`ranking.ties`、`output.shape`（指标定义写了分母或计数粒度的，对应子字段已继承）。
+1. **报告任务**：`set_answer_spec({ report: true, fields })`，只写共享字段——`population.*`——和各度量定义 `measures.<名字>`，值为 `{ formula, countGrain?, denominator?, window? }`。报告任务本身不执行结果查询、不发布。
+2. **图表查询**：每张图 `set_answer_spec({ parentTaskId, fields })`，`population.*` 自动继承，只写 `measure.formula: { "ref": "<名字>" }`、`grouping`、`selection`、`selection.ties`、`output`（度量定义写了分母、计数粒度或窗口的，对应字段一并继承）。
 3. 报告任务处理完后，各图表查询的结果查询互不依赖，可以在同一轮里并行发出，再分别发布。
-4. **偏离**：图表查询改共享字段或用自己的指标时须附 `reason`，记为偏离，发布时披露。
-5. **报告任务修改后**，绑定旧版本的图表查询不能再执行结果查询或发布（`PARENT_REVISION_STALE`）：先 `set_answer_spec({ taskId, fields: {}, rebind: true })` 重新继承，偏离过的字段保留。报告任务还有未处理的字段或假设时，所有图表查询的结果查询都被阻断（`PARENT_UNRESOLVED`）。
+4. **偏离**：图表查询改 `population.*`，或报告任务有度量定义时用自己的 `measure.formula`，须附 `reason`，记为偏离，发布时披露。
+5. **报告任务修改后**，绑定旧版本的图表查询不能再执行结果查询或发布（`PARENT_REVISION_STALE`）：先 `set_answer_spec({ taskId, fields: {}, rebind: true })` 重新继承，偏离过的字段保留。报告任务还有未处理的共享字段时，所有图表查询的结果查询都被阻断（`PARENT_UNRESOLVED`）。
 
-## 7. 发布
+## 8. 发布
 
 - 行数 ≤ 10：`publish_query_result(candidateId, format="inline")`
 - 行数 > 10：`export_query(candidateId, format="csv")`
 
-发布不会重跑 SQL。回复中说明结果对应的口径，并转述 `[DISCLOSURE]` 中未证实的字段、推断槽位和检查限制。
+发布不会重跑 SQL。回复中说明结果对应的口径，并转述 `[DISCLOSURE]` 中未证实的字段和检查限制。

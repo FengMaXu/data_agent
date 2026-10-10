@@ -346,6 +346,23 @@ output                    行粒度、行数、列、每列的单位与精度（
 3. JEV 适配器、披露、发布与评测脚本改为读取字段记录。
 4. Schema Profile 实现后，物理层字段改由运行时核实填入。
 
+第 1–3 步已实施（见下节），第 4 步待 Schema Profile。
+
+### 第二阶段实施记录（2026-10-10）
+
+领域记录、工具、Skill、JEV 适配器与评测脚本已按上文改为字段记录。Answering 的公开用例改为 `set`、`execute`、`publish`、`refresh`、`inspect`。与上文相比，有以下取舍：
+
+- **可写的路径。** 18 个节点中，`population` 与 `measure` 是分组，不单独写值；其余 16 个节点加上报告任务的 `measures.<name>` 可写。`grouping`、`population.conditions` 的值是列表；`selection` 为 `{ n, orderBy }`；`selection.ties` 取 `strict` 或 `include_ties`，使严格 Top N 的行数检查能读到它。
+- **`population.source` 写成 `{ tables, note? }`。** 必要性规则"来源涉及多表连接"由此判定：列出两张以上的表时要求 `population.joinMultiplicity`。
+- **`op` 枚举加 `custom`。** 回归预测、分箱打分等枚举外的运算写 `custom` 并附 `description`，不触发任何必要性规则。差值类运算（`difference`、`change_rate`、`pp_difference`）的两端写作 `from`、`to`。
+- **统计总体规则的范围。** 会话有澄清途径时，`population.entity`、`population.eligibility`、`population.conditions` 不能由未证实的决定确定；假定只对 `population.eligibility` 拒绝。这与旧接口只拒绝 `filters.population` 假定的严格程度相同，没有把实体和条件的假定一并收紧。
+- **一种"假定"。** 直接写值、`{value}`、`{value, basis:"assumed", rationale}` 都记为假定，发布时披露。`{value, rationale}` 在字段待定时是决定，否则是附理由的值；决定也可以附 `basis:"request"` 或 `cite`，由运行时判定是否已证实。
+- **等价只由运行时推出。** 待定字段的各候选探针输出相同时视为已处理，模型没有"声明等价"的写法。
+- **报告任务。** 共享字段是全部 `population.*` 与 `measures.<name>`。`measure.window` 不再是共享字段，随度量定义一起继承。报告任务有度量定义时，图表查询写自己的 `measure.formula` 记为偏离；图表查询继承的待定字段只通过报告任务阻断。
+- **SpecFeedback 按五段评估。** JEV 评估从 7 个槽位改为 `population`、`measure`、`grouping`、`selection`、`output` 五段，规则版本为 `spec-alignment-v2`、`spec-feedback-v2`。
+- **快照。** 持久化快照带 `version: 2`，其他版本不读取，按空状态处理。
+- **错误码。** 结果复现未采纳候选的探针输出时报 `DECISION_NOT_REALIZED`（原 `CHOICE_NOT_REALIZED`）。
+
 ### 未决
 
 - 没有路径的 `data_property` 假设（例如"每行存了两份"）：本 ADR 补充 2026-10-05 待定 5 已决定数据质量不进字段表；收敛后它们以物理层观测或检测器结论的形式存在，模型不能再假定。Schema Profile 实现之前，这类事实的承载位置待定。

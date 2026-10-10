@@ -455,7 +455,7 @@ const AppReplay: React.FC<{ time: number; scale: number }> = ({ time, scale }) =
                                             <AgentTurn running={time < T.m3}>
                                                 <p className="hd-text">{typed(t('landing.demo.m2'), time, T.m2 + 100, T.spec - 200)}</p>
                                                 <div className="hd-hints">
-                                                    {time >= T.spec && <Hint label={tool('begin_answer_spec', T.spec)} />}
+                                                    {time >= T.spec && <Hint label={tool('set_answer_spec', T.spec)} />}
                                                     {time >= T.q1 && <Hint label={tool('query_database', T.q1)} />}
                                                     {time >= T.q2 && <Hint label={tool('query_database', T.q2)} innerRef={targetRef.queryHint} />}
                                                     {time >= T.q3 && <Hint label={tool('query_database', T.q3)} />}
