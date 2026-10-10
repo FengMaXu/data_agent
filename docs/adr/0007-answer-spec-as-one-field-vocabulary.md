@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 ---
 
 # Answer Spec 收敛为一套字段词汇，由一个动作逐字段更新
@@ -74,8 +74,8 @@ status: proposed
 ## 实施与验证
 
 - **第一阶段，适配层。** `set_answer_spec` 把每个路径编译成对现有 `answering.begin`/`answering.revise` 的增量：假定字段生成 Hypothesis，待定字段生成 Choice，决策点由路径自动声明。领域记录、快照格式、探针、披露与发布不变，旧工具保留在开关后。
-- **A/B。** 在 Spider2 开发集（`phase6-development-35-ids.txt`）上与现有工具对比：spec 工具调用错误率（本 ADR 背景中为 11/19）、到达首个 Ready Revision 的轮次、结果正确率不回退、披露率。
-- **第二阶段，领域收敛。** A/B 成立后，再把领域模型的假设、Choice、决策点三类记录收敛为字段记录，并迁移旧快照。
+- **A/B。** 原定在 Spider2 开发集（`phase6-development-35-ids.txt`）上与现有工具对比：spec 工具调用错误率（本 ADR 背景中为 11/19）、到达首个 Ready Revision 的轮次、结果正确率不回退、披露率。2026-10-10 改为按 10 个开发集用例的结果接受，不再跑 35 题，见"接受与实施方式"。
+- **第二阶段，领域收敛。** 把领域模型的假设、Choice、决策点三类记录收敛为字段记录。不迁移旧快照，见"接受与实施方式"。
 
 ## 考虑过的方案
 
@@ -120,7 +120,7 @@ A/B 由维护者执行（Spider2 运行器的 `--spec-interface legacy|fields`�
 
 ## 补充（2026-10-10）：第二阶段的目标模型
 
-第二阶段把领域记录收敛为字段记录。本节给出收敛的目标：字段树的结构、四个互相独立的维度，以及现有规则在新模型中的位置。状态仍为 proposed；第二阶段在 A/B 结论成立、`fields` 成为默认接口之后实施。
+第二阶段把领域记录收敛为字段记录。本节给出收敛的目标：字段树的结构、四个互相独立的维度，以及现有规则在新模型中的位置。
 
 ### 为什么不能只把记录一对一搬过来
 
@@ -307,7 +307,9 @@ output                    行粒度、行数、列、每列的单位与精度（
 | `output.columns` 声明时结果列须逐位同名 | 本 ADR 决策 7 | 不变；归入 `output` |
 | 报告任务的共享字段继承与偏离 | ADR-0009 | 不变；路径按下节改名 |
 
-### 路径迁移
+### 路径对照
+
+实现时按此表改名，不保留旧路径。
 
 | 第一阶段路径 | 目标路径 |
 | --- | --- |
@@ -318,7 +320,7 @@ output                    行粒度、行数、列、每列的单位与精度（
 | `time` | `population.time` |
 | `time.field` | `population.timeField` |
 | `entity.joinMultiplicity` | `population.joinMultiplicity` |
-| `metric`、`metrics.<name>` | `measure.formula`、`measures.<name>`；原 `kind` 与 `expression` 投影为单层表达式，`kind` 无法映射到 `op` 枚举时保留原文并标为待定 |
+| `metric`、`metrics.<name>` | `measure.formula`、`measures.<name>` |
 | `metric` 的 `unit` | `output` 中对应列的单位 |
 | `metric.countGrain`、`metric.denominator` | `measure.countGrain`、`measure.denominator` |
 | `time.window` | `measure.window` |
@@ -326,16 +328,25 @@ output                    行粒度、行数、列、每列的单位与精度（
 | `ranking`、`ranking.ties` | `selection`、`selection.ties`；度量类型为 argmax / argmin 的，改为 `n = 1` 的 `selection` |
 | `output`、`output.shape` | `output` |
 
-### 实施顺序
+### 接受与实施方式（2026-10-10）
 
-1. A/B 按"实施与验证"在 35 个开发集用例上完成；结论成立后 `fields` 成为默认接口，删除旧工具、`answer-spec` Skill，并更新 `.pi/SYSTEM.md`。
-2. Hypothesis 与 Choice 记录增加显式 `path` 属性，取代第一阶段以 `"<path>: "` 语句前缀识别归属的做法。不迁移数据。
-3. 标准口径检验与历史错题检验已完成（见上两节）：三个待定节点都保留，`timeField`、`missing` 不由规则强制。
-4. 领域记录收敛为字段记录，引入可嵌套的 `measure.formula`、`op` 枚举与必要性规则。旧快照只读，读取时投影为字段视图，不改写历史；JEV 适配器发送前从字段记录投影出现有的 hypotheses / choices 形状，外部接口不变；评测指标提供新旧转换。
-5. Schema Profile 实现后，物理层字段改由运行时核实填入。
+**接受。** 按 10 个开发集用例的 A/B（`adr0007-legacy-dev10-deepseek-flash-20261010` 对 `adr0007-fields-rowmode-dev10-deepseek-flash-20261010`）接受本 ADR：spec 工具整次调用报错率 7/24 → 1/40，到达 Ready 6/10 → 8/10，到达首个 Ready 的中位轮次 13.5 → 11，正确率 4/10 → 5/10（local019 由对变错）。正确率只差 1 题，不足以说明变好，只说明没有明显变差。`fields` 接口仍有 25% 的字段路径被拒，第二阶段改路径时一并处理。不再跑 35 题。
+
+**不做兼容。** 所有设计以字段树为准，不为旧模型保留任何通道：
+
+- 删除 `begin_answer_spec`、`revise_answer_spec`、`answer-spec` Skill 与 `specInterface` 开关，`set_answer_spec` 是唯一的写入工具。
+- 删除第一阶段的适配层（字段编译为 Hypothesis、Choice、决策点与 Inferred Facet）。领域记录直接是字段记录，不再有 Hypothesis、Choice、决策点三类记录，也不加过渡用的 `path` 属性。
+- 旧格式快照不迁移、不投影、不读取。
+- JEV 请求、披露、发布回执与评测指标直接使用字段记录，不再生成 hypotheses / choices 形状，也不提供新旧转换。
+
+**实施顺序。**
+
+1. 领域记录收敛为字段记录：字段树 18 个节点、统一状态机、可嵌套的 `measure.formula` 与 `op` 枚举、必要性规则；规则映射表中的规则改为作用于字段。
+2. `set_answer_spec` 改用目标路径；删除旧工具、旧 Skill、开关与适配层；更新 `answer-fields` Skill、`.pi/SYSTEM.md` 与语义指引。
+3. JEV 适配器、披露、发布与评测脚本改为读取字段记录。
+4. Schema Profile 实现后，物理层字段改由运行时核实填入。
 
 ### 未决
 
-- 没有路径的 `data_property` 假设（例如"每行存了两份"）：本 ADR 补充 2026-10-05 待定 5 已决定数据质量不进字段表；收敛后它们以物理层观测或检测器结论的形式存在，不再是可被模型假定的 Hypothesis。需要确认现有快照中这类记录的投影方式。
-- 一个路径下的多条假设：目标模型中一个字段只有一个值；现有快照中同一路径挂多条 Hypothesis 的情况需要在投影时合并或保留为只读历史。
+- 没有路径的 `data_property` 假设（例如"每行存了两份"）：本 ADR 补充 2026-10-05 待定 5 已决定数据质量不进字段表；收敛后它们以物理层观测或检测器结论的形式存在，模型不能再假定。Schema Profile 实现之前，这类事实的承载位置待定。
 - 字段树是否覆盖评测外的产品场景（看板多视图由 ADR-0009 的报告任务承载，不在本树内）。
