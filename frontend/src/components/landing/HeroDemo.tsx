@@ -485,7 +485,6 @@ const AppReplay: React.FC<{ time: number; scale: number }> = ({ time, scale }) =
                                     </div>
                                 </div>
                                 <div className="hd-input">
-                                    <small>{t('chat.attachHint')}</small>
                                     <div className={`hd-input-box ${time >= T.typeStart - 300 && !sent ? 'is-focused' : ''}`} ref={targetRef.input}>
                                         <RiLinkM size={18} />
                                         <span className={time >= T.typeStart && !sent ? 'is-typing' : 'is-placeholder'}>

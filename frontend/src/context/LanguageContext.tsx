@@ -425,7 +425,6 @@ const translations: Translations = {
         'plugins.error': 'Error',
 
         'chat.workspaceEmpty': 'No files attached.',
-        'chat.attachHint': 'Use the paperclip to attach files to this query',
         'chat.stop': 'Stop',
         'chat.send': 'Send',
         'chat.placeholder': 'Enter your request or question here...',
@@ -1003,7 +1002,6 @@ const translations: Translations = {
         'plugins.error': '异常',
 
         'chat.workspaceEmpty': '当前未附加文件',
-        'chat.attachHint': '点击回形针上传并附加文件到本次提问',
         'chat.stop': '停止生成',
         'chat.send': '发送消息',
         'chat.placeholder': '在这里输入您的问题或请求...',

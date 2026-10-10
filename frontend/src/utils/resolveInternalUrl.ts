@@ -78,12 +78,22 @@ function sourceWorkspacePath(sourceUrl: string | undefined): string {
     }
 }
 
+function decodePathSegment(segment: string): string {
+    try {
+        return decodeURIComponent(segment);
+    } catch {
+        return segment;
+    }
+}
+
 function resolveRelativeWorkspacePath(value: string, sourceUrl?: string, currentSessionId?: string): string {
     const sourcePath = sourceWorkspacePath(sourceUrl);
     const sourceParts = sourcePath ? sourcePath.split('/') : [];
     const sourceSession = sourceParts[0] || currentSessionId || '';
     const sourceDirectory = sourceParts.length > 1 ? sourceParts.slice(0, -1) : [sourceSession];
-    const assetParts = value.split('/');
+    // Markdown renderers percent-encode non-ASCII names (e.g. Chinese chart
+    // filenames); decode so the workspace path is not encoded twice.
+    const assetParts = value.split(/[?#]/)[0].split('/').map(decodePathSegment);
     const firstAssetSegment = assetParts.find((part) => part && part !== '.');
     const basePath = firstAssetSegment && SESSION_RELATIVE_WORKSPACE_ROOTS.includes(firstAssetSegment)
         ? [sourceSession]
