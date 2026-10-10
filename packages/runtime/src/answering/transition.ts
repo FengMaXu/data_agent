@@ -221,7 +221,8 @@ function nextDecisionPoints(
   });
 }
 
-type OutputMode = "scalar" | "top_n" | "grouped" | "full" | "detail";
+const OUTPUT_ROW_MODES = ["scalar", "top_n", "grouped", "full", "detail"] as const;
+type OutputMode = (typeof OUTPUT_ROW_MODES)[number];
 type ItemId = HypothesisId | ChoiceId;
 
 function invalid(message: string): never {
@@ -252,17 +253,19 @@ function optionalTrimmedString(value: unknown): string | undefined {
   return value.trim();
 }
 
-function parseOutput(value: unknown): { rowMode?: OutputMode; rowCount?: number; columns?: readonly string[] } | undefined {
-  if (value === undefined || value === null) return undefined;
+/** Parse the output facet, naming the offending part so the model can fix it in one retry. */
+function parseOutput(value: unknown): { rowMode?: OutputMode; rowCount?: number; columns?: readonly string[] } {
   const body = asRecord(value);
-  if (!body) return undefined;
+  if (!body) invalid("Invalid output facet value: write an object { rowMode?, rowCount?, columns? }");
   const rowMode = body.rowMode;
   const rowCount = body.rowCount;
   const columns = body.columns;
-  if (rowMode !== undefined && !["scalar", "top_n", "grouped", "full", "detail"].includes(String(rowMode))) return undefined;
-  if (rowCount !== undefined && (!Number.isSafeInteger(rowCount) || Number(rowCount) < 0)) return undefined;
-  if (columns !== undefined && (!Array.isArray(columns) || columns.some((item) => typeof item !== "string"))) return undefined;
-  if (rowMode === undefined && rowCount === undefined && columns === undefined) return undefined;
+  if (rowMode !== undefined && !(OUTPUT_ROW_MODES as readonly unknown[]).includes(rowMode)) {
+    invalid(`Invalid output.rowMode ${JSON.stringify(rowMode)}: use one of ${OUTPUT_ROW_MODES.join(", ")}`);
+  }
+  if (rowCount !== undefined && (!Number.isSafeInteger(rowCount) || Number(rowCount) < 0)) invalid(`Invalid output.rowCount ${JSON.stringify(rowCount)}: use a non-negative integer`);
+  if (columns !== undefined && (!Array.isArray(columns) || columns.some((item) => typeof item !== "string"))) invalid("Invalid output.columns: use an array of column-name strings");
+  if (rowMode === undefined && rowCount === undefined && columns === undefined) invalid("Invalid output facet value: set at least one of rowMode, rowCount, columns");
   return {
     ...(rowMode !== undefined ? { rowMode: rowMode as OutputMode } : {}),
     ...(rowCount !== undefined ? { rowCount: Number(rowCount) } : {}),
@@ -318,10 +321,7 @@ function normalizeFacetValue<T>(facet: FacetName, value: unknown): T {
       return { n: Number(record.n), orderBy: record.orderBy.trim(), ...(record.tiePolicy !== undefined ? { tiePolicy: record.tiePolicy as "strict" | "include_ties" | "unspecified" } : {}) } as T;
     }
   }
-  if (facet === "output") {
-    const parsed = parseOutput(value);
-    if (parsed) return parsed as T;
-  }
+  if (facet === "output") return parseOutput(value) as T;
   return invalidFacet(facet);
 }
 

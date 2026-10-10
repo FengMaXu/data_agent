@@ -30,7 +30,7 @@ requires-tools:
 | `groupBy` | 分组列表，没有写 `"n/a"` |
 | `time` | 时间范围与边界 |
 | `ranking` | 排名 `{n, orderBy, tiePolicy?}`，没有写 `"n/a"` |
-| `output` | 输出形态 `{rowMode, rowCount?, columns?}`；写了 `columns` 时，结果列须逐位同名 |
+| `output` | 输出形态 `{rowMode, rowCount?, columns?}`；`rowMode` 只能取下表的值；写了 `columns` 时，结果列须逐位同名 |
 | `filters.population` | 哪些行和实体算在内；零值、空值实体要不要纳入 |
 | `entity.joinMultiplicity` | 连接后会不会重复计数，要不要去重 |
 | `time.field` | 用哪个事件的时间字段；区间两端含不含 |
@@ -40,6 +40,16 @@ requires-tools:
 | `ranking.ties` | 并列时取一个还是全部取 |
 | `output.shape` | 输出几行、几列、什么粒度 |
 | `source` | 同时影响实体、指标、过滤的数据来源不确定性（例如用明细表还是汇总表） |
+
+`output.rowMode` 的取值（不要用其他词）：
+
+| `rowMode` | 含义 | `rowCount` |
+| --- | --- | --- |
+| `scalar` | 只有一行结果 | 1，可省略 |
+| `top_n` | 排名后取前 N 行 | N，会核对结果行数 |
+| `grouped` | 每个分组一行 | 已知组数时写上，会核对结果行数 |
+| `full` | 完整结果集，行数由数据决定 | 省略 |
+| `detail` | 逐条明细记录 | 省略 |
 
 8 个子字段每次都要声明，不适用的写 `"n/a"`；全部声明之前不能执行最终查询。子字段与 `source` 的 `value` 写一句话说明口径。
 
