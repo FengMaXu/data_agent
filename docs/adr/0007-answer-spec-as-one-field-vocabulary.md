@@ -217,14 +217,15 @@ output                    行粒度、行数、列、每列的单位与精度（
 
 | 字段 | 何时必须给出状态 |
 | --- | --- |
-| `population.entity`、`population.eligibility`、`measure.formula`、`grouping`、`output` | 总是 |
+| `population.entity`、`population.eligibility`、`population.conditions`、`population.time`、`measure.formula`、`grouping`、`selection`、`output` | 总是（可以是"不适用"） |
 | `measure.countGrain` | 表达式任一层的 `op` 为 `count`、`count_distinct`、`avg`、`median`、`ratio`、`percentage` 或 `change_rate` |
 | `measure.denominator` | 任一层为 `avg`、`ratio`、`percentage` 或 `change_rate` |
 | `measure.window` | 任一层为 `cumulative` 或 `rolling` |
 | 表达式每一层的 `per` | 表达式超过一层 |
-| `population.timeField`、`population.missing` | `population.time` 或 `grouping` 含时间 |
 | `selection.ties` | `selection` 不是"不适用" |
 | `population.joinMultiplicity` | 来源涉及多表连接 |
+
+`population.timeField`、`population.missing` 保留为可表达的节点，但不由规则强制（依据见"用历史错题检验"）。
 
 规则检查表达式的任一层，而不只是最外层：比率藏在 argmin 或"满足条件的对象"里时（"投球平均值最低的投手"），最外层看不到它。前提是 `op` 成为枚举；目前 `MetricSpec.kind` 是自由字符串，规则无法据此触发。规则只依赖已有状态的字段；被依赖的字段尚未给出状态时，Revision 本来就不能进入 Ready。
 
@@ -260,6 +261,33 @@ output                    行粒度、行数、列、每列的单位与精度（
 - `population.eligibility`、`population.timeField`、`population.missing` 在标注格式中没有对应属性，这份数据既不能证明它们有用，也不能证明无用。
 - `measure.denominator` 初稿漏检的 7 题中，比率藏在内层（例如 local020"投球平均值最低的投手"）；标注只记录最外层类型，因此"检查任一层"能否消除这些漏检，需要在实施后按新表达式重新标注再测。
 - 歧义标注很薄：75 条中 67 条是统一预填的"排名并列"，6 条是标准答案的形状问题，语义歧义只有 2 条（local062、local358）。字段树能否覆盖真实歧义，要靠错题的错因归类检验。
+
+### 用历史错题检验（2026-10-10）
+
+118 道历史错题（其中 55 道从未答对）逐题对照卷宗标注三项：最早分叉节点、错误层、可见性。每条标注引用卷宗原文，引文已逐字校验。标注是单遍的，没有双盲；118 题中 101 题没有 Gold SQL。
+
+**能定性的 74 题**：口径错 60、实现错 8、标准答案有问题 6。另 44 题标准细则不足或 SQL 与结果疑似错配，未定性，不计入以下结论。
+
+**结构。** 74 题全部能落到字段树上，没有"树外"。44 题未定性，所以这只说明没有发现缺口，不证明字段树完整。
+
+**三个待定节点。**
+
+| 节点 | 最早分叉 | 次要分叉 | 处理 |
+| --- | --- | --- | --- |
+| `population.eligibility` | 3（local020、local062 口径错；local131 标准答案有问题） | 1 | 保留，总是必须声明 |
+| `population.timeField` | 0 | 0 | 保留节点，移出必要性规则 |
+| `population.missing` | 0 | 0 | 保留节点，移出必要性规则 |
+
+按原规则，`timeField` 和 `missing` 在 135 道标准口径中有 58 题须声明，但错题中从未在这两处出错，强制声明只增加负担。题面需要时仍可用它们表达。
+
+**必要性规则。** 60 道口径错中：
+
+- **未声明 24 题**，必要性规则最多只能作用于这部分。17 题落在原规则"总是"的节点上；7 题落在原规则未列出的节点上（`selection` 3、`population.conditions` 2、`population.time` 1、`population.source` 1）。这 7 题中有 5 题卷宗的 Spec 快照与决定记录全空，只能说明记录缺失；有记录支撑的漏检是 local157（`population.time`，漏了题面给的日界）和 local309（`population.source`，物理层，留给 Schema Profile）。据此把 `selection`、`population.conditions`、`population.time` 改为总是必须声明，"不适用"也是一种声明。
+- **声明了但值错 36 题**：假定错 23、待定后决定错 7、题面引用错 6。必要性规则对这部分无效，要靠证据核实（Schema Profile、探针）。错题的主因是声明的值错，而不是漏了声明。
+
+**归因口径的缺口。** 可见性的五个类别描述的都是声明错误；13 题声明正确，失分来自 SQL 实现或标准答案，没有类别可用。可见性只应对口径错标注。
+
+标注与校验程序见 `evaluations/spider2/adr0007/relabel-v2/`。
 
 ### 规则映射
 
@@ -302,7 +330,7 @@ output                    行粒度、行数、列、每列的单位与精度（
 
 1. A/B 按"实施与验证"在 35 个开发集用例上完成；结论成立后 `fields` 成为默认接口，删除旧工具、`answer-spec` Skill，并更新 `.pi/SYSTEM.md`。
 2. Hypothesis 与 Choice 记录增加显式 `path` 属性，取代第一阶段以 `"<path>: "` 语句前缀识别归属的做法。不迁移数据。
-3. 标准口径检验已完成（见上节）。再用历史错题的错因归类检验标注覆盖不到的节点（`population.eligibility`、`population.timeField`、`population.missing`），确定是否保留。
+3. 标准口径检验与历史错题检验已完成（见上两节）：三个待定节点都保留，`timeField`、`missing` 不由规则强制。
 4. 领域记录收敛为字段记录，引入可嵌套的 `measure.formula`、`op` 枚举与必要性规则。旧快照只读，读取时投影为字段视图，不改写历史；JEV 适配器发送前从字段记录投影出现有的 hypotheses / choices 形状，外部接口不变；评测指标提供新旧转换。
 5. Schema Profile 实现后，物理层字段改由运行时核实填入。
 
