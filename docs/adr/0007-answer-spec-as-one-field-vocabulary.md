@@ -169,19 +169,43 @@ population                统计总体
   population.timeField      用哪个事件的时间字段（原 time.field）
   population.missing        缺期是否补零，相邻观测还是相邻日历期（新增）
 measure                   度量
-  measure.formula           公式；kind 为枚举（原 metric）
+  measure.formula           可嵌套的运算表达式（原 metric），见下文
   measure.countGrain        计数粒度
   measure.denominator       分母及分母为 0 的处理
-  measure.aggOrder          聚合顺序：先平均再汇总还是先汇总再相除（新增）
   measure.window            滚动或累计窗口（原 time.window）
-  measure.unit              单位，比例还是百分数，舍入阶段（新增）
 grouping                  分组键与日历粒度（原 groupBy）
-selection                 排名：orderBy、n（原 ranking）
+selection                 排名与取对象：orderBy、n（原 ranking）；argmax / argmin 即 n = 1 的排名
   selection.ties            并列政策（原 ranking.ties）
-output                    行粒度、行数、列、精度（原 output 与 output.shape 合并）
+output                    行粒度、行数、列、每列的单位与精度（原 output 与 output.shape 合并）
 ```
 
-另有一个物理层字段 `population.joinMultiplicity`（原 `entity.joinMultiplicity`），见维度 4。字段树控制在 20 个左右的节点：事件顺序与终止（语义指引 S09）、状态与递归（S10）等少见题型不单设节点，用对应节点的待定候选承载。
+另有一个物理层字段 `population.joinMultiplicity`（原 `entity.joinMultiplicity`），见维度 4，合计 18 个节点。事件顺序与终止（语义指引 S09）、状态与递归（S10）等少见题型不单设节点，用对应节点的待定候选承载。
+
+**`measure.formula` 是逐层的表达式，不是一个类型名。** 每一层写明运算（`op`）、在什么粒度上计算（`per`）、作用于什么（`of`：列或内层表达式）。例如"各国家球员场均得分的平均值"：
+
+```json
+{ "op": "avg", "per": "country",
+  "of": { "op": "avg", "per": "player",
+          "of": { "op": "sum", "per": "match", "of": "runs" } } }
+```
+
+先按场次求和，再按球员平均，最后按国家平均；把三层压成一次 `avg(runs) group by country` 是另一个口径。比率写成 `{ "op": "ratio", "numerator": …, "denominator": … }`，分子分母各自是表达式。
+
+嵌套的顺序就是聚合顺序，因此不另设聚合顺序节点。`ratio` 是 a/b 的原值，`percentage` 是 100·a/b，量纲由运算区分；单位与舍入归 `output`，因此不另设单位节点。
+
+`op` 是枚举，取值来自 135 道标准口径实际用到的度量类型：
+
+| 类别 | `op` |
+| --- | --- |
+| 计数 | `count`、`count_distinct` |
+| 求和 | `sum` |
+| 集中趋势 | `avg`、`median` |
+| 极值 | `min`、`max` |
+| 比率 | `ratio`（a/b）、`percentage`（100·a/b） |
+| 变化 | `difference`、`change_rate`、`pp_difference`（百分点差） |
+| 累计与滚动 | `cumulative`、`rolling`（窗口写在 `measure.window`） |
+
+标注中的 `argmax`、`argmin`、`qualifying_*`、`ranked_detail`、`best_match` 描述的是"选出哪些对象"，归 `selection`；`detail`、`summary`、`player_profile`、`string_aggregation` 描述的是输出明细的形式，归 `output`。二者都不是度量运算。
 
 **2. 状态：这个点有多确定。** 所有字段共用一个状态机，取代槽位依据、Hypothesis 结论、Choice 结论与决策点声明四套状态：
 
@@ -194,14 +218,15 @@ output                    行粒度、行数、列、精度（原 output 与 out
 | 字段 | 何时必须给出状态 |
 | --- | --- |
 | `population.entity`、`population.eligibility`、`measure.formula`、`grouping`、`output` | 总是 |
-| `measure.countGrain` | `measure.formula.kind` 含计数 |
-| `measure.denominator`、`measure.aggOrder`、`measure.unit` | `measure.formula.kind` 为比率、占比或平均 |
-| `measure.window` | `measure.formula.kind` 为滚动或累计 |
+| `measure.countGrain` | 表达式任一层的 `op` 为 `count`、`count_distinct`、`avg`、`median`、`ratio`、`percentage` 或 `change_rate` |
+| `measure.denominator` | 任一层为 `avg`、`ratio`、`percentage` 或 `change_rate` |
+| `measure.window` | 任一层为 `cumulative` 或 `rolling` |
+| 表达式每一层的 `per` | 表达式超过一层 |
 | `population.timeField`、`population.missing` | `population.time` 或 `grouping` 含时间 |
 | `selection.ties` | `selection` 不是"不适用" |
 | `population.joinMultiplicity` | 来源涉及多表连接 |
 
-前提是 `measure.formula.kind` 成为枚举（count、sum、average、ratio、share、extreme、rolling、cumulative 等）；目前 `MetricSpec.kind` 是自由字符串，规则无法据此触发。规则只依赖已有状态的字段；被依赖的字段尚未给出状态时，Revision 本来就不能进入 Ready。
+规则检查表达式的任一层，而不只是最外层：比率藏在 argmin 或"满足条件的对象"里时（"投球平均值最低的投手"），最外层看不到它。前提是 `op` 成为枚举；目前 `MetricSpec.kind` 是自由字符串，规则无法据此触发。规则只依赖已有状态的字段；被依赖的字段尚未给出状态时，Revision 本来就不能进入 Ready。
 
 **4. 层：谁来定。**
 
@@ -209,6 +234,32 @@ output                    行粒度、行数、列、精度（原 output 与 out
 - **物理层**（在这个数据库里如何实现）：`population.source`、`population.timeField`、`population.joinMultiplicity`。这些是数据事实，由运行时用 Schema Profile（CONTEXT.md；键基数、空值率等）核实后作为观测证据填入，模型不再假定。Schema Profile 尚未实现；实现之前，物理层字段仍可由模型假定并披露。
 
 层由路径决定，取代 Hypothesis 的 `kind`。旧接口中 `kind` 由模型声明，`fields` 接口已由路径推出（`tools/answer-fields.ts` 的 `SUBFIELDS`）。
+
+### 用标准口径检验（2026-10-10）
+
+用 `evaluations/spider2/spec-quality-labels.jsonl` 的 135 道已裁定标准口径检验字段树。标注记录的是每道题的正确口径，不是错因，因此只能检验"能否表达"与"必要性规则准不准"。
+
+**结构。** 标准口径用到 61 种属性（出现 2683 次），每一种都能落到字段树的某个节点。用到的题数：`population.entity`、`measure.formula`、`output` 各 135；单位（现归 `output`）120；`selection` 80；`grouping` 67；`population.time` 58；`population.conditions` 57；两层以上聚合 44；`measure.denominator` 42；`population.source` 与 `population.joinMultiplicity` 各 21；`measure.countGrain` 18。
+
+**必要性规则。** 本补充初稿的规则只看最外层的类型，与标准口径对照的结果是：
+
+| 字段 | 规则触发 | 实际需要 | 漏检 | 多报 |
+| --- | --- | --- | --- | --- |
+| `selection.ties` | 80 | 79 | 0 | 1 |
+| `population.joinMultiplicity` | 21 | 20 | 0 | 1 |
+| `measure.window` | 3 | 4 | 1 | 0 |
+| `measure.countGrain`（初稿：仅计数） | 33 | 49 | 16 | 0 |
+| `measure.denominator`（初稿：最外层为比率或平均） | 49 | 42 | 7 | 14 |
+| 聚合顺序（初稿：比率或平均时） | 49 | 44 | 17 | 22 |
+| 单位（初稿：比率时） | 49 | 120 | 75 | 4 |
+
+由此做了四处修改：度量改为可嵌套的表达式，聚合顺序由嵌套表达；取消单位节点，量纲由 `op` 区分，单位与精度归 `output`（每题必答）；`measure.countGrain` 的触发扩到平均与比率类，对照结果为漏检 5、多报 27；规则检查任一层的 `op`。`measure.window` 漏检的 local299（逐日累计余额）在标注中记为 `sum`，按新枚举应为 `cumulative`。
+
+**检验不到的部分。**
+
+- `population.eligibility`、`population.timeField`、`population.missing` 在标注格式中没有对应属性，这份数据既不能证明它们有用，也不能证明无用。
+- `measure.denominator` 初稿漏检的 7 题中，比率藏在内层（例如 local020"投球平均值最低的投手"）；标注只记录最外层类型，因此"检查任一层"能否消除这些漏检，需要在实施后按新表达式重新标注再测。
+- 歧义标注很薄：75 条中 67 条是统一预填的"排名并列"，6 条是标准答案的形状问题，语义歧义只有 2 条（local062、local358）。字段树能否覆盖真实歧义，要靠错题的错因归类检验。
 
 ### 规则映射
 
@@ -239,19 +290,20 @@ output                    行粒度、行数、列、精度（原 output 与 out
 | `time` | `population.time` |
 | `time.field` | `population.timeField` |
 | `entity.joinMultiplicity` | `population.joinMultiplicity` |
-| `metric`、`metrics.<name>` | `measure.formula`、`measures.<name>` |
+| `metric`、`metrics.<name>` | `measure.formula`、`measures.<name>`；原 `kind` 与 `expression` 投影为单层表达式，`kind` 无法映射到 `op` 枚举时保留原文并标为待定 |
+| `metric` 的 `unit` | `output` 中对应列的单位 |
 | `metric.countGrain`、`metric.denominator` | `measure.countGrain`、`measure.denominator` |
 | `time.window` | `measure.window` |
 | `groupBy` | `grouping` |
-| `ranking`、`ranking.ties` | `selection`、`selection.ties` |
+| `ranking`、`ranking.ties` | `selection`、`selection.ties`；度量类型为 argmax / argmin 的，改为 `n = 1` 的 `selection` |
 | `output`、`output.shape` | `output` |
 
 ### 实施顺序
 
 1. A/B 按"实施与验证"在 35 个开发集用例上完成；结论成立后 `fields` 成为默认接口，删除旧工具、`answer-spec` Skill，并更新 `.pi/SYSTEM.md`。
 2. Hypothesis 与 Choice 记录增加显式 `path` 属性，取代第一阶段以 `"<path>: "` 语句前缀识别归属的做法。不迁移数据。
-3. 用 Spider2 错题标注（`spec-quality-labels.jsonl`）检验字段树覆盖面，再确定新增节点（`population.missing`、`measure.aggOrder`、`measure.unit`）是否保留。
-4. 领域记录收敛为字段记录，引入必要性规则与 `measure.formula.kind` 枚举。旧快照只读，读取时投影为字段视图，不改写历史；JEV 适配器发送前从字段记录投影出现有的 hypotheses / choices 形状，外部接口不变；评测指标提供新旧转换。
+3. 标准口径检验已完成（见上节）。再用历史错题的错因归类检验标注覆盖不到的节点（`population.eligibility`、`population.timeField`、`population.missing`），确定是否保留。
+4. 领域记录收敛为字段记录，引入可嵌套的 `measure.formula`、`op` 枚举与必要性规则。旧快照只读，读取时投影为字段视图，不改写历史；JEV 适配器发送前从字段记录投影出现有的 hypotheses / choices 形状，外部接口不变；评测指标提供新旧转换。
 5. Schema Profile 实现后，物理层字段改由运行时核实填入。
 
 ### 未决
