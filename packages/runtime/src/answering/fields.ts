@@ -151,6 +151,18 @@ export interface OutputValue {
   readonly decimals?: Readonly<Record<string, number>>;
 }
 
+/** One eligibility condition and the stage it applies at (e.g. WHERE on rows, HAVING on groups, after a window). */
+export interface ConditionValue {
+  readonly condition: string;
+  readonly stage?: string;
+}
+
+/** One grouping key and, for a time key, its calendar grain. */
+export interface GroupingKeyValue {
+  readonly key: string;
+  readonly grain?: string;
+}
+
 /** A Report Task measure definition: the formula and the measure sub-fields a chart query inherits with it. */
 export interface MeasureDefinitionValue {
   readonly formula: MeasureExpression;
@@ -162,7 +174,7 @@ export interface MeasureDefinitionValue {
 export interface FieldValues {
   readonly "population.entity": EntityValue;
   readonly "population.eligibility": string;
-  readonly "population.conditions": readonly string[];
+  readonly "population.conditions": readonly (string | ConditionValue)[];
   readonly "population.source": SourceValue;
   readonly "population.time": TimeValue;
   readonly "population.timeField": string;
@@ -172,7 +184,7 @@ export interface FieldValues {
   readonly "measure.countGrain": string;
   readonly "measure.denominator": string;
   readonly "measure.window": string;
-  readonly grouping: readonly string[];
+  readonly grouping: readonly (string | GroupingKeyValue)[];
   readonly selection: SelectionValue;
   readonly "selection.ties": TiesValue;
   readonly output: OutputValue;
@@ -208,6 +220,24 @@ function textList(value: unknown, label: string): readonly string[] {
   const items = typeof value === "string" ? [value] : value;
   if (!Array.isArray(items) || items.length === 0 || items.some((item) => !text(item))) fail(`${label} must be a non-empty list of non-empty strings`);
   return (items as string[]).map((item) => item.trim());
+}
+
+/**
+ * A list whose items are text or one object naming the item and one optional
+ * qualifier. Aliases the model commonly writes for the item are accepted; an
+ * object without a qualifier collapses to its text.
+ */
+function qualifiedList<T>(value: unknown, label: string, item: readonly string[], qualifier: string, build: (name: string, extra?: string) => T): readonly (string | T)[] {
+  const items = typeof value === "string" || (record(value) !== undefined) ? [value] : value;
+  if (!Array.isArray(items) || items.length === 0) fail(`${label} must be a non-empty list`);
+  return items.map((entry, index) => {
+    if (typeof entry === "string") return text(entry) ?? fail(`${label}[${index}] must not be empty`);
+    const body = record(entry) ?? fail(`${label}[${index}] must be text or {${item[0]}, ${qualifier}?}`);
+    onlyKeys(body, [...item, qualifier], `${label}[${index}]`);
+    const name = item.map((key) => text(body[key])).find(Boolean) ?? fail(`${label}[${index}].${item[0]} is required`);
+    const extra = body[qualifier] === undefined ? undefined : text(body[qualifier]) ?? fail(`${label}[${index}].${qualifier} must not be empty`);
+    return extra ? build(name, extra) : name;
+  });
 }
 
 function sentence(value: unknown, path: string): string {
@@ -321,12 +351,16 @@ export function layersOf(expression: MeasureExpression): readonly MeasureExpress
   return [expression, ...nested(expression).flatMap(layersOf)];
 }
 
-/** A formula of more than one layer states the grain of every layer: flattening layers is another measure. */
+/**
+ * A formula of more than one layer states the grain of every inner layer:
+ * flattening layers is another measure. The outermost layer is computed per
+ * the output grouping, so its "per" may be left out.
+ */
 function parseFormula(value: unknown, label: string): MeasureExpression {
   const expression = parseExpression(value, label);
-  const layers = layersOf(expression);
-  if (layers.length > 1 && layers.some((layer) => !layer.per)) {
-    fail(`${label} has ${layers.length} layers; give every layer "per" (the grain it is computed on), e.g. avg per country of avg per player of sum per match`);
+  const inner = layersOf(expression).slice(1);
+  if (inner.some((layer) => !layer.per)) {
+    fail(`${label} has ${inner.length + 1} layers; give every inner layer "per" (the grain it is computed on), e.g. avg per country of avg per player of sum per match`);
   }
   return expression;
 }
@@ -343,11 +377,11 @@ export function parseFieldValue(path: SpecPath, value: unknown): FieldValue {
   if (MEASURE_DEFINITION.test(path)) return parseMeasureDefinition(value, path);
   switch (path as FieldPath) {
     case "population.entity": return parseEntity(value);
-    case "population.conditions": return textList(value, "population.conditions value");
+    case "population.conditions": return qualifiedList(value, "population.conditions value", ["condition", "expression"], "stage", (condition, stage): ConditionValue => ({ condition, ...(stage ? { stage } : {}) }));
     case "population.source": return parseSource(value);
     case "population.time": return parseTime(value);
     case "measure.formula": return parseFormula(value, "measure.formula");
-    case "grouping": return textList(value, "grouping value");
+    case "grouping": return qualifiedList(value, "grouping value", ["key", "field", "expression"], "grain", (key, grain): GroupingKeyValue => ({ key, ...(grain ? { grain } : {}) }));
     case "selection": return parseSelection(value);
     case "selection.ties": return parseTies(value);
     case "output": return parseOutput(value);

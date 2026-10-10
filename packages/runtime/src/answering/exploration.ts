@@ -29,10 +29,13 @@ type ExplorationInput = Extract<ExecuteQuery, { readonly kind: "exploration" }>;
 export async function executeExploration(
   deps: AnsweringDeps,
   input: ExplorationInput,
-  revisionId: RevisionId,
+  target: RevisionId,
+  /** Delegated work binds to one Revision; an ordinary exploration explores whatever Revision is current. */
+  pinned: boolean,
   limit: number,
   context: BusinessContext,
 ): Promise<QueryExecutionView> {
+  let revisionId = target;
   const taskId = input.taskId as TaskId;
   const probe = input.probe ? { path: input.probe.path.trim() as SpecPath, alternativeId: input.probe.alternativeId.trim() } : undefined;
   if (probe && !deps.fieldProbes) throw new AnsweringError("INVALID_REQUEST", "Probes are not enabled for this Answering instance");
@@ -65,6 +68,8 @@ export async function executeExploration(
   const reservation = await deps.store.transact((tx) => {
     const current = tx.getTask(taskId);
     assertTaskAccess(current, context);
+    // A field write in the same model turn may land first; the exploration then runs against the new Revision.
+    if (!pinned) revisionId = current.currentRevisionId;
     if (current.currentRevisionId !== revisionId) throw new AnsweringError("REVISION_STALE", "Exploration target Revision is stale", { currentRevisionId: current.currentRevisionId });
     if (probe) {
       const field = tx.getRevision(revisionId)?.fields[probe.path];

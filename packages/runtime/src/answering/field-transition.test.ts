@@ -191,12 +191,24 @@ describe("deciding an open field (ADR-0005, ADR-0006)", () => {
 });
 
 describe("field values and necessity (ADR-0007)", () => {
-  it("parses a nested measure and asks for the grain of every layer", () => {
+  it("parses a nested measure and asks for the grain of every inner layer", () => {
     expect(parseFieldValue("measure.formula", { op: "avg", per: "country", of: { op: "avg", per: "player", of: { op: "sum", per: "match", of: "runs" } } })).toMatchObject({ op: "avg" });
-    expect(() => parseFieldValue("measure.formula", { op: "avg", of: { op: "sum", per: "match", of: "runs" } })).toThrow(/give every layer "per"/);
+    // The outermost layer is computed per the output grouping.
+    expect(parseFieldValue("measure.formula", { op: "avg", of: { op: "sum", per: "match", of: "runs" } })).toMatchObject({ op: "avg" });
+    expect(() => parseFieldValue("measure.formula", { op: "avg", per: "country", of: { op: "sum", of: "runs" } })).toThrow(/give every inner layer "per"/);
     expect(() => parseFieldValue("measure.formula", { op: "ratio", of: "x" })).toThrow(/does not take of/);
     expect(() => parseFieldValue("measure.formula", { op: "custom" })).toThrow(/needs a description/);
     expect(parseFieldValue("measure.formula", { op: "custom", description: "linear regression forecast of daily sales" })).toMatchObject({ op: "custom" });
+  });
+
+  it("takes conditions with the stage they apply at and grouping keys with their grain", () => {
+    expect(parseFieldValue("population.conditions", [{ condition: "median income > 0", stage: "WHERE" }, "state = 'NY'", { expression: "COUNT(*) > 4", stage: "HAVING" }]))
+      .toEqual([{ condition: "median income > 0", stage: "WHERE" }, "state = 'NY'", { condition: "COUNT(*) > 4", stage: "HAVING" }]);
+    expect(parseFieldValue("population.conditions", "status = 'delivered'")).toEqual(["status = 'delivered'"]);
+    expect(parseFieldValue("grouping", [{ field: "industry" }, { key: "order_date", grain: "calendar year" }]))
+      .toEqual(["industry", { key: "order_date", grain: "calendar year" }]);
+    expect(() => parseFieldValue("grouping", [{ grain: "month" }])).toThrow(/grouping value\[0\].key is required/);
+    expect(() => parseFieldValue("population.conditions", [{ condition: "x", phase: "WHERE" }])).toThrow(/unknown keys phase/);
   });
 
   it("requires the sub-fields the measure, selection and source call for", () => {

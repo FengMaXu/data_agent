@@ -4,6 +4,7 @@ import {
   InMemoryAnswering,
   InMemoryAnsweringStore,
   InMemoryResultStore,
+  type AnsweringStore,
   type BusinessContext,
 } from "./public.js";
 import { resultFingerprint } from "./result-fingerprint.js";
@@ -195,5 +196,31 @@ describe("Probes of open fields (ADR-0005)", () => {
     await answering.set({ taskId: view.taskId, requestId: "waive", fields: { [PATH]: { notProbeable: { [purchase]: reason, [delivered]: reason } } } }, context("waive"));
     const decided = await decide(answering, view.taskId, DELIVERED);
     await expect(answering.execute({ kind: "result", taskId: view.taskId, revisionId: decided.revisionId, sql: "SELECT final purchase" }, context("result"))).resolves.toMatchObject({ artifact: { kind: "candidate" } });
+  });
+
+  it("runs an exploration issued alongside a field write against the Revision that write created", async () => {
+    const inner = new InMemoryAnsweringStore();
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    let explorationTransactions = 0;
+    const store: AnsweringStore = {
+      transact: async (command, business) => {
+        // Hold the exploration after it read the current Revision, while the field write lands.
+        if (business.invocationId === "explore" && ++explorationTransactions === 2) await gate;
+        return inner.transact(command, business);
+      },
+      inspect: (taskId, business) => inner.inspect(taskId, business),
+      list: (business) => inner.list(business),
+      listReferencedResultRefs: (business) => inner.listReferencedResultRefs(business),
+    };
+    const answering = new InMemoryAnswering({ store, resultStore: new InMemoryResultStore(), sqlExecutor: { run: async () => outputs["SELECT purchase"]! }, fieldProbes: true });
+    const { view } = await begin(answering);
+    const exploring = answering.execute({ kind: "exploration", taskId: view.taskId, sql: "SELECT purchase" }, context("explore"));
+    while (explorationTransactions < 2) await new Promise((resolve) => setTimeout(resolve, 1));
+    const written = await answering.set({ taskId: view.taskId, requestId: "write", fields: { grouping: { value: ["month"], reason: "per month" } } }, context("write"));
+    release();
+    await expect(exploring).resolves.toMatchObject({ kind: "exploration" });
+    const inspected = await answering.inspect({ taskId: view.taskId }, context("inspect"));
+    expect(inspected.attempts.find((attempt) => attempt.kind === "exploration")).toMatchObject({ revisionId: written.revisionId, state: "succeeded" });
   });
 });

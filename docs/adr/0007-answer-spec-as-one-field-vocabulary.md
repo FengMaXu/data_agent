@@ -221,7 +221,7 @@ output                    行粒度、行数、列、每列的单位与精度（
 | `measure.countGrain` | 表达式任一层的 `op` 为 `count`、`count_distinct`、`avg`、`median`、`ratio`、`percentage` 或 `change_rate` |
 | `measure.denominator` | 任一层为 `avg`、`ratio`、`percentage` 或 `change_rate` |
 | `measure.window` | 任一层为 `cumulative` 或 `rolling` |
-| 表达式每一层的 `per` | 表达式超过一层 |
+| 表达式每个内层的 `per` | 表达式超过一层（最外层按 `grouping` 计算，可省略） |
 | `selection.ties` | `selection` 不是"不适用" |
 | `population.joinMultiplicity` | 来源涉及多表连接 |
 
@@ -352,7 +352,7 @@ output                    行粒度、行数、列、每列的单位与精度（
 
 领域记录、工具、Skill、JEV 适配器与评测脚本已按上文改为字段记录。Answering 的公开用例改为 `set`、`execute`、`publish`、`refresh`、`inspect`。与上文相比，有以下取舍：
 
-- **可写的路径。** 18 个节点中，`population` 与 `measure` 是分组，不单独写值；其余 16 个节点加上报告任务的 `measures.<name>` 可写。`grouping`、`population.conditions` 的值是列表；`selection` 为 `{ n, orderBy }`；`selection.ties` 取 `strict` 或 `include_ties`，使严格 Top N 的行数检查能读到它。
+- **可写的路径。** 18 个节点中，`population` 与 `measure` 是分组，不单独写值；其余 16 个节点加上报告任务的 `measures.<name>` 可写。`population.conditions` 的值是列表，每项为文本或 `{ condition, stage? }`，`stage` 写作用阶段；`grouping` 的每项为文本或 `{ key, grain? }`；`selection` 为 `{ n, orderBy }`；`selection.ties` 取 `strict` 或 `include_ties`，使严格 Top N 的行数检查能读到它。
 - **`population.source` 写成 `{ tables, note? }`。** 必要性规则"来源涉及多表连接"由此判定：列出两张以上的表时要求 `population.joinMultiplicity`。
 - **`op` 枚举加 `custom`。** 回归预测、分箱打分等枚举外的运算写 `custom` 并附 `description`，不触发任何必要性规则。差值类运算（`difference`、`change_rate`、`pp_difference`）的两端写作 `from`、`to`。
 - **统计总体规则的范围。** 会话有澄清途径时，`population.entity`、`population.eligibility`、`population.conditions` 不能由未证实的决定确定；假定只对 `population.eligibility` 拒绝。这与旧接口只拒绝 `filters.population` 假定的严格程度相同，没有把实体和条件的假定一并收紧。

@@ -26,7 +26,7 @@ requires-tools:
 | --- | --- | --- |
 | `population.entity` | 统计实体与业务键（按名称还是按键、版本是否合并） | 文本，或 `{ name, keyColumns? }` |
 | `population.eligibility` | 零值、空值实体是否纳入（例如没有订单的客户算不算） | 一句话 |
-| `population.conditions` | 资格条件及其作用阶段（WHERE 还是 HAVING） | 条件列表 |
+| `population.conditions` | 资格条件及其作用阶段（WHERE 还是 HAVING） | 列表，每项为文本或 `{ condition, stage? }` |
 | `population.source` | 数据来源 | `{ tables: [...], note? }` |
 | `population.time` | 时间范围、端点、参考日、日历与时区 | 文本，或 `{ expression, boundary? }`，`boundary` 取 `inclusive`、`exclusive`、`mixed` |
 | `population.timeField` | 用哪个事件的时间字段 | 一句话 |
@@ -36,7 +36,7 @@ requires-tools:
 | `measure.countGrain` | 按行、按实体还是按事件计数 | 一句话 |
 | `measure.denominator` | 分母的总体；分母为 0 怎么处理 | 一句话 |
 | `measure.window` | 滚动或累计窗口从哪里开始、多长 | 一句话 |
-| `grouping` | 分组键与日历粒度 | 列表 |
+| `grouping` | 分组键与日历粒度 | 列表，每项为文本或 `{ key, grain? }` |
 | `selection` | 排名与取对象；argmax、argmin 即 `n = 1` | `{ n, orderBy }`，`orderBy` 写列和方向 |
 | `selection.ties` | 并列政策 | `"strict"`（恰好 n 行）或 `"include_ties"`（保留切点上的全部并列行） |
 | `output` | 行粒度、行数、列、每列的单位与精度 | `{ rowMode?, rowCount?, columns?, units?, decimals? }` |
@@ -75,7 +75,7 @@ requires-tools:
 | `difference`、`change_rate`、`pp_difference`（百分点差） | `from`、`to`（从 from 变到 to） |
 | `custom`（以上都不适用，例如回归预测） | `description` 必填，`of` 可选 |
 
-嵌套顺序就是聚合顺序；多于一层时每层都写 `per`。例如“各国家球员场均得分的平均值”：
+嵌套顺序就是聚合顺序；多于一层时，每个内层都写 `per`。最外层按 `grouping` 计算，`per` 可省略。例如“各国家球员场均得分的平均值”：
 
 ```json
 { "op": "avg", "per": "country",

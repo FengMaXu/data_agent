@@ -192,7 +192,7 @@ export class InMemoryAnswering implements Answering {
       throw new AnsweringError("INVALID_QUERY", details.message, obstacleDetails(undefined, details));
     }
     if (input.kind === "exploration") {
-      return executeExploration(this.deps, input, revisionId, normalizeLimit(input.limit, 50, 10_000), context);
+      return executeExploration(this.deps, input, revisionId, context.expectedRevisionId !== undefined, normalizeLimit(input.limit, 50, 10_000), context);
     }
     return executeResult(this.deps, input, revisionId, this.deps.maxResultRows, context);
   }
