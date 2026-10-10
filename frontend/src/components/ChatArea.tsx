@@ -1201,7 +1201,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                 <div className="chat-input-meta">
                     {uploadError
                         ? <span className="chat-input-error" role="alert">{t('chat.uploadFailed')}</span>
-                        : <span>{isStreaming ? t('chat.steerHint') : t('chat.attachHint')}</span>}
+                        : <span>{isStreaming ? t('chat.steerHint') : null}</span>}
                     {runReason && <span>{t('chat.status') || '状态'}：{runReason === 'completed' ? t('tools.statusDone') : runReason === 'stopped' ? t('chat.stopped') || '已停止' : t('tools.statusError')}</span>}
                 </div>
                 <div className="chat-input-wrapper shadow-sm">
