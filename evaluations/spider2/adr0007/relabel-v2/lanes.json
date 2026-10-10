@@ -1,0 +1,186 @@
+[
+  {
+    "lane": 1,
+    "source_lines": [
+      1,
+      23
+    ],
+    "ids": [
+      "local002",
+      "local003",
+      "local007",
+      "local008",
+      "local009",
+      "local010",
+      "local015",
+      "local017",
+      "local018",
+      "local019",
+      "local020",
+      "local021",
+      "local023",
+      "local024",
+      "local025",
+      "local026",
+      "local028",
+      "local029",
+      "local031",
+      "local032",
+      "local034",
+      "local035",
+      "local037"
+    ],
+    "input": "lane-1-dossiers.jsonl",
+    "output": "lane-1-labels.jsonl"
+  },
+  {
+    "lane": 2,
+    "source_lines": [
+      24,
+      36
+    ],
+    "ids": [
+      "local038",
+      "local039",
+      "local040",
+      "local041",
+      "local049",
+      "local050",
+      "local055",
+      "local056",
+      "local059",
+      "local060",
+      "local061",
+      "local062",
+      "local063"
+    ],
+    "input": "lane-2-dossiers.jsonl",
+    "output": "lane-2-labels.jsonl"
+  },
+  {
+    "lane": 3,
+    "source_lines": [
+      37,
+      59
+    ],
+    "ids": [
+      "local064",
+      "local065",
+      "local066",
+      "local067",
+      "local068",
+      "local070",
+      "local073",
+      "local077",
+      "local078",
+      "local081",
+      "local085",
+      "local096",
+      "local097",
+      "local098",
+      "local099",
+      "local100",
+      "local114",
+      "local130",
+      "local131",
+      "local133",
+      "local141",
+      "local152",
+      "local156"
+    ],
+    "input": "lane-3-dossiers.jsonl",
+    "output": "lane-3-labels.jsonl"
+  },
+  {
+    "lane": 4,
+    "source_lines": [
+      60,
+      80
+    ],
+    "ids": [
+      "local157",
+      "local167",
+      "local168",
+      "local169",
+      "local170",
+      "local171",
+      "local194",
+      "local195",
+      "local196",
+      "local197",
+      "local198",
+      "local201",
+      "local202",
+      "local209",
+      "local212",
+      "local218",
+      "local219",
+      "local220",
+      "local228",
+      "local229",
+      "local230"
+    ],
+    "input": "lane-4-dossiers.jsonl",
+    "output": "lane-4-labels.jsonl"
+  },
+  {
+    "lane": 5,
+    "source_lines": [
+      81,
+      96
+    ],
+    "ids": [
+      "local244",
+      "local253",
+      "local258",
+      "local259",
+      "local262",
+      "local263",
+      "local264",
+      "local269",
+      "local270",
+      "local272",
+      "local273",
+      "local274",
+      "local275",
+      "local277",
+      "local279",
+      "local283"
+    ],
+    "input": "lane-5-dossiers.jsonl",
+    "output": "lane-5-labels.jsonl"
+  },
+  {
+    "lane": 6,
+    "source_lines": [
+      97,
+      118
+    ],
+    "ids": [
+      "local284",
+      "local285",
+      "local286",
+      "local297",
+      "local298",
+      "local299",
+      "local300",
+      "local301",
+      "local302",
+      "local309",
+      "local311",
+      "local329",
+      "local330",
+      "local331",
+      "local335",
+      "local336",
+      "local344",
+      "local354",
+      "local355",
+      "local356",
+      "local358",
+      "local360"
+    ],
+    "input": "lane-6-dossiers.jsonl",
+    "output": "lane-6-labels.jsonl"
+  }
+]

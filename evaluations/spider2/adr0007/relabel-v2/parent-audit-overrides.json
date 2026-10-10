@@ -1,0 +1,211 @@
+[
+  {
+    "instance_id": "local068",
+    "reason": "修正结果引文的role，与实际JSON pointer来源一致，标签不变。",
+    "patch": {
+      "evidence": [
+        {
+          "role": "standard",
+          "path": "/standard_semantics/facets/output/alternatives/0/columnNames/1",
+          "quote": "month_name",
+          "supports": "月名标准"
+        },
+        {
+          "role": "result",
+          "path": "/gold_results/1/csv_info/head/0/4",
+          "quote": "-4.708222811671088",
+          "supports": "标准精度"
+        },
+        {
+          "role": "sql",
+          "path": "/final_sql",
+          "quote": "mo AS month",
+          "supports": "数字月输出"
+        },
+        {
+          "role": "sql",
+          "path": "/final_sql",
+          "quote": "ROUND(100.0 * (cities_added - prev_added) / prev_added, 1)",
+          "supports": "一位精度"
+        },
+        {
+          "role": "spec",
+          "path": "/our_spec_and_decisions/spec_info",
+          "quote": "{}",
+          "supports": "空记录"
+        },
+        {
+          "role": "spec",
+          "path": "/our_spec_and_decisions/decisions",
+          "quote": "[]",
+          "supports": "无决定"
+        }
+      ]
+    }
+  },
+  {
+    "instance_id": "local063",
+    "reason": "标准排序已明确share change ASC，不能因Gold SQL缺失忽略SQL更早的ABS度量变换。",
+    "patch": {
+      "bifurcation_node": "measure.formula",
+      "comparison": {
+        "standard": "合格top20%产品中按share change ASC取百分点变化最小的单个产品名称；不是绝对变化幅度最小。",
+        "actual": "SQL把sh20-sh19包成ABS后计算pp_change并按ABS升序，且只筛top20%而未LIMIT1，附带份额/差值列。",
+        "earliest_reason": "最早可证差异是signed share change被ABS改变：这是度量表达式运算差异，先于遗漏argmin选取及输出扩列。标准排序字段明确share change ASC；不用缺失Gold SQL猜测其他总体问题。",
+        "secondary_nodes": [
+          "selection",
+          "output"
+        ]
+      },
+      "evidence": [
+        {
+          "role": "standard",
+          "path": "/standard_semantics/facets/ranking/alternatives/1/selection",
+          "quote": "smallest share change",
+          "supports": "逐字比较依据"
+        },
+        {
+          "role": "sql",
+          "path": "/final_sql",
+          "quote": "WHERE r.rn * 5 <= r.n\nORDER BY ABS(r.sh20 - r.sh19) ASC, pr.prod_name ASC;",
+          "supports": "逐字比较依据"
+        },
+        {
+          "role": "spec",
+          "path": "/our_spec_and_decisions/decisions/7/args/spec/output",
+          "quote": "占比百分点变化最小的产品名称",
+          "supports": "逐字比较依据"
+        },
+        {
+          "role": "spec",
+          "path": "/our_spec_and_decisions/decisions/6/args/decisionProposals/9/alternatives/0/statement",
+          "quote": "输出单个产品",
+          "supports": "逐字比较依据"
+        },
+        {
+          "role": "spec",
+          "path": "/our_spec_and_decisions/spec_info",
+          "quote": "{\"specVersion\": \"3\", \"hardConstraints\": [], \"hypotheses\": [], \"ambiguities\": [], \"answerContract\": {}}",
+          "supports": "实际快照空约束/空合同，不能声称前轮待定已成功采纳"
+        },
+        {
+          "role": "standard",
+          "path": "/standard_semantics/facets/ranking/alternatives/1/orderBy",
+          "quote": "share change ASC",
+          "supports": "标准以share change本身升序，而不是ABS变化量升序"
+        },
+        {
+          "role": "sql",
+          "path": "/final_sql",
+          "quote": "ROUND(ABS(r.sh20 - r.sh19) * 100, 4) AS pp_change",
+          "supports": "实际度量列把有符号变化改成绝对变化幅度"
+        },
+        {
+          "role": "spec",
+          "path": "/our_spec_and_decisions/decisions/7/args/spec/metric",
+          "quote": "产品销售额占比的百分点变化",
+          "supports": "最后可见参数定义百分点变化，没有绝对值运算"
+        }
+      ],
+      "layer_reason": "按最后可见Spec metric“百分点变化”及output“最小”与标准signed排序比较，SQL额外ABS并漏最终选一，属于实现偏差；工具参数是否成功生效仍无法证明。",
+      "visibility_reason": "完整Spec与8轮decisions中早期曾有绝对差假设/备选，但无选取返回；最后metric“百分点变化”未声明ABS。按最后可见正确字面定义与SQL比较，不能把旧备选当已决定，也不能把此节点说成未声明；五种错误声明类别不能准确表达“声明正确而实现偏差”，保留taxonomy_gap。",
+      "limitations": [
+        "gold_sql=null；实际数据是否所有候选变化同号未知，不量化ABS改变排名的影响。",
+        "早期绝对差假设被末次空hypotheses替代的意图可见，但无返回/选取证据；不能证明成功生效。",
+        "实际spec_info为空业务合同，实施错判断是相对最后可见参数与标准的对比，不是已采纳Spec的运行时认证。"
+      ],
+      "confidence": "medium"
+    }
+  },
+  {
+    "instance_id": "local272",
+    "reason": "不能把可能等价的FIFO需求汇总优化直接判成实际公式错；也没有数据证明同库位存在多个批次。",
+    "patch": {
+      "bifurcation_node": null,
+      "error_layer": null,
+      "visibility": null,
+      "classification_status": "insufficient_evidence",
+      "visibility_status": "insufficient_evidence",
+      "confidence": "low",
+      "comparison": {
+        "standard": "订单423仓库1，按购买日及少量优先，分别尊重多订单行的先后与累计需求。",
+        "actual": "先按product SUM全部orderline.qty成单一need，然后按FIFO库存累计一次分配，订单行身份和先后边界已消失。",
+        "earliest_reason": "SQL先汇总产品需求而不保留订单行；这是可见写法差异，但最终按库位累计的FIFO分配在可加、同序条件下可能与逐订单行区间分配等价。缺少Gold SQL和完整批次/库位记录，不能证明其为最早语义分叉；同库位未再SUM也需要多批次事实才能确认影响。",
+        "secondary_nodes": []
+      },
+      "layer_reason": "能证明逐订单行计算步骤被产品总量替代，但不能证明最终要求的库位分配不同；无法诚实确定四类错误层。",
+      "visibility_reason": "完整7轮参数同时声明orderlines.id实体及product_total_need分配公式。题面q-cum仅支持累计总量，但在公式可能等价时不能认定“题面引用错”；缺成功返回且缺Gold细则，三项待定。",
+      "limitations": [
+        "gold_sql=null；仅有CSV head及元信息，不能逆推隐藏Gold计算。",
+        "decisions仅工具参数，无返回；不宣称提议或处置已成功生效。",
+        "逐行后按location汇总在特定数据可等于产品总量分配；本标签指出显式计算阶段缺失，不把全部CSV数量差异归于它。缺订单/库存全集，不能认定actual超库存或Gold需求正确。",
+        "需Gold逐行累计边界、最终库位汇总粒度、同库位多批次事实及完整结果，核验汇总优化是否语义等价。"
+      ]
+    }
+  },
+  {
+    "instance_id": "local284",
+    "reason": "统一与local099同类的候选/卷宗错配处置，不把最后探测冒充CSV最终业务SQL。",
+    "patch": {
+      "bifurcation_node": null,
+      "error_layer": null,
+      "visibility": null,
+      "classification_status": "insufficient_evidence",
+      "visibility_status": "insufficient_evidence",
+      "confidence": "low",
+      "comparison": {
+        "standard": "以蔬菜商品损耗数据统计平均损耗率及一倍标准差内外商品数量。",
+        "actual": "最后SQL仅计算sqrt(4)和pow(2,3)，未读取商品数据。",
+        "earliest_reason": "给定final_sql是sqrt/pow常量探测，与predicted_result五列损耗摘要不可能属于同一结果形状。可见探测没有业务数据，但不能把它当作已交付CSV的最终SQL来定位业务失败；需先恢复查询与结果绑定。",
+        "secondary_nodes": []
+      },
+      "evidence": [
+        {
+          "role": "standard",
+          "path": "/instruction",
+          "quote": "For veg whsle data, can you generate a summary of our items' loss rates? Include the average loss rate, and also break down the count of items that are below, above, and within one standard deviation from this average.",
+          "supports": "业务数据及指标"
+        },
+        {
+          "role": "sql",
+          "path": "/final_sql",
+          "quote": "SELECT sqrt(4.0) AS sqrt_ok, pow(2.0, 3.0) AS pow_ok",
+          "supports": "常量计算不读取商品"
+        },
+        {
+          "role": "spec",
+          "path": "/our_spec_and_decisions/spec_info",
+          "quote": "{}",
+          "supports": "卷宗Spec缺失"
+        },
+        {
+          "role": "result",
+          "path": "/predicted_result/csv_info/header",
+          "quote": "[\"avg_loss_rate_pct\", \"std_dev_pct\", \"below_1sd_count\", \"within_1sd_count\", \"above_1sd_count\"]",
+          "supports": "CSV为五列损耗统计，与final_sql两列常量探测不对应"
+        }
+      ],
+      "layer_reason": "SQL/CSV绑定不足，无法区分业务错误、导出流程错误或卷宗抽取问题；不强称方言或数据错。",
+      "visibility_reason": "spec_info与decisions为空是记录缺失。真正导出候选尚未恢复，不能对未知业务分叉节点强贴未声明。",
+      "limitations": [
+        "predicted_result损耗CSV列与final_sql常量列不一致；最后SQL可能是探测，不能证明产生交付文件。",
+        "Gold SQL=null；只含结果摘要，不臆造隐藏处理。",
+        "需实际导出CSV对应SQL与候选时间/ID绑定；纯别名差不能解释两列常量与五列损耗的差异。"
+      ]
+    }
+  },
+  {
+    "instance_id": "local279",
+    "reason": "降低无公式Spec时错误层定性的置信，明确结构性实现错误与solver理解不可观察的边界。",
+    "patch": {
+      "confidence": "medium",
+      "layer_reason": "SQL的opening状态递推扣下一月需求、monthly又扣同月需求，是可定位的状态索引/重复扣减实现错误；不代表卷宗证明solver先前已理解正确。",
+      "limitations": [
+        "gold_sql=null；仅有CSV head及元信息，不能逆推隐藏Gold计算。",
+        "decisions仅工具参数，无返回；不宣称提议或处置已成功生效。",
+        "卷宗内未声明不证明运行时从未声明；result_status=timeout，CSV可能不是成功当前候选，标签仅依据final_sql结构。",
+        "Spec并未声明递推公式，无法直接证明作者理解正确；实现错为对SQL自身opening/ending结构的判断，若需严格以正确Spec为前提仍需补对应声明。"
+      ]
+    }
+  }
+]
