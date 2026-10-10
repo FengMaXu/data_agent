@@ -2,83 +2,100 @@ import {
   clone,
   type AnswerRevisionRecord,
   type AnswerRevisionView,
-  type ChoiceProbeRecord,
-  type ChoiceView,
+  type Evidence,
+  type FieldProbeRecord,
+  type FieldRecord,
+  type FieldView,
   type QueryTaskRecord,
-  type HypothesisView,
   type TaskId,
 } from "./model.js";
-import { inferredFacets, unresolvedChoices, unresolvedFacets, unresolvedHypotheses } from "./qualification.js";
-import { equivalentChoiceIds, summarizeChoiceProbes } from "./choice-probe.js";
-import { undeclaredDecisionPoints } from "./decision-points.js";
-import type { ChoiceAdvisory } from "./advisory-ledger.js";
+import { FIELD_PATHS, type SpecPath } from "./fields.js";
+import { openPaths, undeclaredPaths, unverifiedFields } from "./qualification.js";
+import { equivalentPaths, summarizeProbes } from "./probes.js";
+import type { FieldAdvisory } from "./advisory-ledger.js";
 import type { AnsweringDeps } from "./deps.js";
 
-/** What the Runtime knows about Choices beyond the Revision: probes and advice. */
-export interface ChoiceContext {
-  readonly probes: readonly ChoiceProbeRecord[];
-  readonly advice?: (choiceId: string) => ChoiceAdvisory | undefined;
+/** What the Runtime knows about open fields beyond the Revision: probes and advice. */
+export interface ProbeContext {
+  /** Probes are tracked: views show per-alternative probe state and decisions need every output. */
+  readonly tracked: boolean;
+  readonly probes: readonly FieldProbeRecord[];
+  readonly advice?: (path: string) => FieldAdvisory | undefined;
+  /** Registered evidence, to tell a request quote from other evidence. */
+  readonly evidence?: (id: string) => Evidence | undefined;
 }
 
-/** Model-facing Revision projection: stable ids and handling status, never writable state. */
-function hypothesisViews(revision: AnswerRevisionRecord): readonly HypothesisView[] {
-  const outcomes = new Map(revision.resolutions.map((item) => [item.hypothesisId as string, item.outcome]));
-  return revision.hypotheses.map((hypothesis) => {
-    const outcome = outcomes.get(hypothesis.id);
-    return {
-      id: hypothesis.id,
-      kind: hypothesis.kind,
-      statement: hypothesis.statement,
-      affects: hypothesis.affects,
-      status: outcome ?? "unresolved",
-    };
-  });
+/** Tree order first, then measure definitions by name. */
+function ordered(fields: AnswerRevisionRecord["fields"]): readonly [SpecPath, FieldRecord][] {
+  const rank = (path: string) => {
+    const index = (FIELD_PATHS as readonly string[]).indexOf(path);
+    return index < 0 ? FIELD_PATHS.length : index;
+  };
+  return (Object.entries(fields) as [SpecPath, FieldRecord][]).sort(([left], [right]) => rank(left) - rank(right) || left.localeCompare(right));
 }
 
-function choiceViews(revision: AnswerRevisionRecord, choiceContext: ChoiceContext | undefined): readonly ChoiceView[] {
-  const resolutions = new Map(revision.choiceResolutions.map((item) => [item.choiceId as string, item]));
-  const equivalent = equivalentChoiceIds(revision, choiceContext?.probes ?? []);
-  return revision.choices.map((choice) => {
-    const resolution = resolutions.get(choice.id);
-    const summary = choiceContext ? summarizeChoiceProbes(choice, choiceContext.probes, revision.probeWaivers ?? []) : undefined;
-    const advice = choiceContext?.advice?.(choice.id);
-    return {
-      id: choice.id,
-      affects: choice.affects,
-      alternatives: choice.alternatives,
-      status: resolution?.outcome ?? (equivalent.has(choice.id) ? "equivalent" : "unresolved"),
-      ...(resolution && resolution.outcome !== "equivalent" ? { alternativeId: resolution.alternativeId } : {}),
-      ...(resolution && resolution.outcome !== "equivalent" && resolution.rationale ? { rationale: resolution.rationale } : {}),
-      ...(resolution && resolution.outcome !== "equivalent" && resolution.adviceOverride ? { adviceOverride: resolution.adviceOverride } : {}),
-      ...(summary ? { probes: summary.probes, outputs: summary.outputs } : {}),
-      ...(advice ? { advice: { recommendation: advice.recommendation, probabilities: advice.probabilities, ...(advice.lean ? { lean: advice.lean } : {}) } } : {}),
-    };
-  });
+function fieldView(path: SpecPath, field: FieldRecord, equivalent: ReadonlySet<SpecPath>, context: ProbeContext | undefined): FieldView {
+  const inherited = field.inherited ? { inherited: field.inherited } : {};
+  if (field.state === "not_applicable") return { path, status: "not_applicable", ...inherited };
+  if (field.state === "specified") {
+    if (field.basis.kind === "assumed") return { path, status: "assumed", value: field.value, ...(field.basis.rationale ? { rationale: field.basis.rationale } : {}), ...inherited };
+    const ids = field.basis.evidenceIds;
+    const request = context?.evidence ? ids.every((id) => context.evidence!(id)?.kind === "request_wording") : false;
+    return { path, status: request ? "request" : "evidence", value: field.value, evidenceIds: ids, ...inherited };
+  }
+  const summary = context?.tracked ? summarizeProbes(path, field.alternatives, context.probes, field.waivers ?? []) : undefined;
+  const probes = new Map((summary?.probes ?? []).map((probe) => [probe.alternativeId as string, probe]));
+  const alternatives = field.alternatives.map((alternative) => ({ id: alternative.id, value: alternative.value, ...(probes.has(alternative.id) ? { probe: probes.get(alternative.id)! } : {}) }));
+  const advice = context?.advice?.(path);
+  const shared = {
+    alternatives,
+    ...(summary ? { outputs: summary.outputs } : {}),
+    ...(advice ? { advice: { recommendation: advice.recommendation, probabilities: advice.probabilities, ...(advice.lean ? { lean: advice.lean } : {}) } } : {}),
+    ...inherited,
+  };
+  if (field.state === "open") return { path, status: equivalent.has(path) ? "equivalent" : "open", ...shared };
+  return {
+    path,
+    status: "decided",
+    value: field.value,
+    verified: field.basis.kind === "evidence",
+    rationale: field.rationale,
+    ...(field.basis.kind === "evidence" ? { evidenceIds: field.basis.evidenceIds } : {}),
+    ...(field.adviceOverride ? { adviceOverride: field.adviceOverride } : {}),
+    ...shared,
+  };
 }
 
-/** Probes and advice the Runtime holds for a task; undefined when Choice governance is off. */
-export function choiceContextFor(deps: AnsweringDeps, task: Pick<QueryTaskRecord, "taskId" | "choiceProbes">): ChoiceContext | undefined {
-  if (!deps.choiceProbes) return undefined;
+/** Probes and advice the Runtime holds for a task; probes are tracked only when Choice governance is on. */
+export function probeContextFor(deps: AnsweringDeps, task: Pick<QueryTaskRecord, "taskId" | "fieldProbes">, evidence?: readonly Evidence[]): ProbeContext | undefined {
+  if (!deps.fieldProbes) return evidence ? { tracked: false, probes: [], evidence: lookup(evidence) } : undefined;
   const ledger = deps.advisoryLedger;
-  return { probes: task.choiceProbes ?? [], ...(ledger ? { advice: (choiceId: string) => ledger.latest(task.taskId, choiceId) } : {}) };
+  return {
+    tracked: true,
+    probes: task.fieldProbes ?? [],
+    ...(ledger ? { advice: (path: string) => ledger.latest(task.taskId, path) } : {}),
+    ...(evidence ? { evidence: lookup(evidence) } : {}),
+  };
 }
 
-/** `choiceContext` is passed only when the Runtime tracks Choice probes; the view then shows outputs and advice. */
-export function viewFromRevision(taskId: TaskId, revision: AnswerRevisionRecord, choiceContext?: ChoiceContext): AnswerRevisionView {
+function lookup(evidence: readonly Evidence[]): (id: string) => Evidence | undefined {
+  const byId = new Map(evidence.map((item) => [item.id as string, item]));
+  return (id) => byId.get(id);
+}
+
+/** Model-facing Revision projection: field states and what still blocks the result. */
+export function viewFromRevision(taskId: TaskId, revision: AnswerRevisionRecord, context?: ProbeContext, report = false): AnswerRevisionView {
+  const equivalent = equivalentPaths(revision.fields, context?.probes ?? []);
   return {
     taskId,
     revisionId: revision.revisionId,
     ...(revision.parentRevisionId ? { parentRevisionId: revision.parentRevisionId } : {}),
-    spec: clone(revision.spec),
-    hypotheses: clone(hypothesisViews(revision)),
-    choices: clone(choiceViews(revision, choiceContext)),
-    unresolvedFacets: unresolvedFacets(revision.spec),
-    unresolvedHypotheses: unresolvedHypotheses(revision.hypotheses, revision.resolutions),
-    unresolvedChoices: unresolvedChoices(revision.choices, revision.choiceResolutions, equivalentChoiceIds(revision, choiceContext?.probes ?? [])),
-    inferredFacets: inferredFacets(revision.spec),
-    ...(revision.decisionPoints ? { decisionPoints: clone(revision.decisionPoints), undeclaredDecisionPoints: undeclaredDecisionPoints(revision) } : {}),
+    fields: clone(ordered(revision.fields).map(([path, field]) => fieldView(path, field, equivalent, context))),
+    undeclared: undeclaredPaths(revision.fields, report),
+    open: openPaths(revision.fields, equivalent),
+    unverified: unverifiedFields(revision.fields).map((item) => item.path),
     ...(revision.specFeedback ? { specFeedback: clone(revision.specFeedback) } : {}),
     ...(revision.deviations && revision.deviations.length > 0 ? { deviations: clone(revision.deviations) } : {}),
-    ...(revision.metricRef ? { metricRef: revision.metricRef } : {}),
+    ...(revision.measureRef ? { measureRef: revision.measureRef } : {}),
   };
 }

@@ -14,8 +14,8 @@ import {
   type RevisionId,
   type TaskId,
 } from "./model.js";
-import { unresolvedChoices as unresolvedChoicesOf, unresolvedFacets } from "./qualification.js";
-import { equivalentChoiceIds } from "./choice-probe.js";
+import { openPaths, undeclaredPaths } from "./qualification.js";
+import { equivalentPaths } from "./probes.js";
 
 export interface AnsweringTransaction {
   getTask(taskId: TaskId): QueryTaskRecord | undefined;
@@ -58,7 +58,14 @@ type StoreState = {
   receipts: Map<PublicationId, PublicationReceipt>;
 };
 
+/**
+ * Version of the persisted records. Version 2 holds Answer Spec fields
+ * (ADR-0007); a snapshot of any other version is not read.
+ */
+export const ANSWERING_SNAPSHOT_VERSION = 2;
+
 export interface AnsweringStoreSnapshot {
+  readonly version: typeof ANSWERING_SNAPSHOT_VERSION;
   readonly tasks: readonly QueryTaskRecord[];
   readonly revisions: readonly AnswerRevisionRecord[];
   readonly evidence: readonly { readonly taskId: TaskId; readonly items: readonly Evidence[] }[];
@@ -182,14 +189,11 @@ export class InMemoryAnsweringStore implements AnsweringStore {
     const currentRevision = this.state.revisions.get(task.currentRevisionId);
     if (!currentRevision) throw new Error("ANSWERING_REVISION_MISSING");
     const attempts = [...(this.state.attempts.get(taskId)?.values() ?? [])];
-    const unresolvedFacetsForRevision = unresolvedFacets(currentRevision.spec);
-    const unresolvedHypotheses = currentRevision.hypotheses
-      .filter((hypothesis) => !currentRevision.resolutions.some((resolution) => resolution.hypothesisId === hypothesis.id))
-      .map((hypothesis) => hypothesis.id);
-    const unresolvedChoices = unresolvedChoicesOf(currentRevision.choices, currentRevision.choiceResolutions, equivalentChoiceIds(currentRevision, task.choiceProbes ?? []));
+    const undeclared = undeclaredPaths(currentRevision.fields, task.role === "report");
+    const open = openPaths(currentRevision.fields, equivalentPaths(currentRevision.fields, task.fieldProbes ?? []));
     const candidate = task.latestCandidateId ? this.state.candidates.get(task.latestCandidateId) : undefined;
     const publication = task.publicationId ? this.state.receipts.get(task.publicationId) : undefined;
-    return clone({ task, currentRevision, unresolvedFacets: unresolvedFacetsForRevision, unresolvedHypotheses, unresolvedChoices, attempts, ...(candidate ? { candidate } : {}), ...(publication ? { publication } : {}) });
+    return clone({ task, currentRevision, undeclared, open, attempts, ...(candidate ? { candidate } : {}), ...(publication ? { publication } : {}) });
   }
 
   async list(context: BusinessContext): Promise<readonly QueryTaskRecord[]> {
@@ -209,6 +213,7 @@ export class InMemoryAnsweringStore implements AnsweringStore {
   snapshot(): AnsweringStoreSnapshot {
     const state = cloneState(this.state);
     return {
+      version: ANSWERING_SNAPSHOT_VERSION,
       tasks: [...state.tasks.values()],
       revisions: [...state.revisions.values()],
       evidence: [...state.evidence.entries()].map(([taskId, items]) => ({ taskId, items: [...items.values()] })),

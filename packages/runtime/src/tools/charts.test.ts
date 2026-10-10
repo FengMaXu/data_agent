@@ -17,13 +17,13 @@ import { createCoreAgentToolDefinitions } from "./core.js";
 const context = (invocationId: string): BusinessContext => ({ principal: { id: "user-1" }, sessionId: "session-1", lane: "main", operationId: "operation-1", invocationId });
 const invocation = (invocationId: string) => ({ operationId: "operation-1", invocationId, getMemo: async () => undefined, setMemo: async () => undefined }) as never;
 const toolContext = { sessionId: "session-1", principalId: "user-1" } as never;
-const listSpec = { entity: "industries", metric: "sum", filters: [], groupBy: [], time: { state: "not_applicable" }, ranking: { state: "not_applicable" }, output: { rowMode: "full" } };
+const listSpec = { "population.entity": "industries", "population.eligibility": "n/a", "population.conditions": "n/a", "population.time": "n/a", "measure.formula": { op: "sum", of: "sales" }, grouping: "n/a", selection: "n/a", output: { rowMode: "full" } };
 
 async function setup(rows: unknown[][]) {
   const store = new InMemoryAnsweringStore();
   const resultStore = new InMemoryResultStore();
   const answering = new InMemoryAnswering({ store, resultStore, sqlExecutor: { run: async () => ({ columns: ["industry", "sales"], rows, truncated: false }) } });
-  const begun = await answering.begin({ requestMessageId: "message-1", requestId: "begin-1", spec: listSpec }, context("begin-1"));
+  const begun = await answering.set({ requestMessageId: "message-1", requestId: "begin-1", fields: listSpec }, context("begin-1"));
   const execution = await answering.execute({ kind: "result", taskId: begun.taskId, revisionId: begun.revisionId, sql: "SELECT industry, sales FROM t" }, context("execute-1"));
   if (execution.artifact.kind !== "candidate") throw new Error("expected Result Candidate");
   const receipt = await answering.publish({ candidateId: execution.artifact.candidateId, format: "auto", requestId: "publish-1" }, context("publish-1"));

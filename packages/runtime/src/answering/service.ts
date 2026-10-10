@@ -5,7 +5,6 @@ import {
   isReadOnlySql,
   type AnswerRevisionView,
   type AnswerTaskView,
-  type BeginAnswer,
   type BusinessContext,
   type ExecuteQuery,
   type InspectAnswer,
@@ -13,7 +12,7 @@ import {
   type PublishCandidate,
   type RefreshPublication,
   type QueryExecutionView,
-  type ReviseAnswer,
+  type SetAnswerFields,
   type RevisionId,
   type TaskId,
   type QueryBudgetPolicy,
@@ -24,7 +23,7 @@ import { InMemoryResultStore, type ResultStore } from "./result-store.js";
 import type { EvidenceSource } from "./evidence-admission.js";
 import { SPEC_FEEDBACK_DEFAULT_TIMEOUT_MS, SPEC_FEEDBACK_MAX_INPUT_BYTES } from "./spec-feedback.js";
 import { DEFAULT_QUERY_BUDGET_POLICY, obstacle, obstacleDetails, validateBudgetPolicy } from "./budget.js";
-import { beginAnswer, reviseAnswer } from "./revision.js";
+import { setAnswerFields } from "./revision.js";
 import { executeExploration } from "./exploration.js";
 import { executeResult } from "./result-execution.js";
 import { createFanoutSchemaLoader } from "./fanout-execution.js";
@@ -40,8 +39,8 @@ export type { FanoutAnsweringOptions, SemanticQualificationMode, SpecFeedbackOpt
 
 /** The five public Answering use cases; the architecture gate pins this list. */
 export interface Answering {
-  begin(input: BeginAnswer, context: BusinessContext): Promise<AnswerRevisionView>;
-  revise(input: ReviseAnswer, context: BusinessContext): Promise<AnswerRevisionView>;
+  /** Write Answer Spec fields by path; without taskId it starts the Query Task (ADR-0007). */
+  set(input: SetAnswerFields, context: BusinessContext): Promise<AnswerRevisionView>;
   execute(input: ExecuteQuery, context: BusinessContext): Promise<QueryExecutionView>;
   publish(input: PublishCandidate, context: BusinessContext): Promise<PublicationReceipt>;
   /** Re-run a published result's query and publish the rows as a new Receipt (ADR-0010). */
@@ -70,13 +69,13 @@ export interface InMemoryAnsweringOptions {
    */
   readonly evidenceSource?: EvidenceSource;
   /**
-   * Choice probes (ADR-0005): a Choice is decided only after every alternative
+   * Probes (ADR-0005): an open field is decided only after every alternative
    * has a probe or a waiver, and the view shows whether outputs differ.
    */
-  readonly choiceProbes?: boolean;
-  /** Advice recorded by compare_hypotheses; read when deciding a Choice (ADR-0005). */
+  readonly fieldProbes?: boolean;
+  /** Advice recorded by compare_hypotheses; read when deciding an open field (ADR-0005). */
   readonly advisoryLedger?: AdvisoryLedger;
-  /** Set when an advisor is configured: decisive core Choices need advice before a decision. */
+  /** Set when an advisor is configured: decisive open fields need advice before a decision. */
   readonly requireAdvice?: boolean;
   /**
    * ADR-0006: "require_evidence" (default) when the session can ask the user;
@@ -109,7 +108,7 @@ function resolveDeps(options: InMemoryAnsweringOptions): AnsweringDeps {
     budgetPolicy: validateBudgetPolicy(options.budgetPolicy ?? DEFAULT_QUERY_BUDGET_POLICY),
     maxResultRows: Math.max(1, Math.trunc(options.maxResultRows ?? MAX_RESULT_ROWS)),
     semanticQualificationMode: options.semanticQualificationMode ?? "required",
-    choiceProbes: options.choiceProbes === true,
+    fieldProbes: options.fieldProbes === true,
     ...(options.advisoryLedger ? { advisoryLedger: options.advisoryLedger } : {}),
     adviceRequired: options.requireAdvice === true && Boolean(options.advisoryLedger),
     populationDecisions: options.populationDecisions ?? "require_evidence",
@@ -143,14 +142,9 @@ export class InMemoryAnswering implements Answering {
     this.deps = resolveDeps(options);
   }
 
-  async begin(input: BeginAnswer, context: BusinessContext): Promise<AnswerRevisionView> {
+  async set(input: SetAnswerFields, context: BusinessContext): Promise<AnswerRevisionView> {
     assertContext(context);
-    return beginAnswer(this.deps, input, context);
-  }
-
-  async revise(input: ReviseAnswer, context: BusinessContext): Promise<AnswerRevisionView> {
-    assertContext(context);
-    return reviseAnswer(this.deps, input, context);
+    return setAnswerFields(this.deps, input, context);
   }
 
   async execute(input: ExecuteQuery, context: BusinessContext): Promise<QueryExecutionView> {

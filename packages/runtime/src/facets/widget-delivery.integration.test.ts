@@ -20,7 +20,7 @@ describe("native show_widget delivery", () => {
     const resultStore = new InMemoryResultStore();
     const answering = new InMemoryAnswering({ store, resultStore, sqlExecutor: { run: async () => ({ columns: ["industry", "sales"], rows: [["Wholesale", "120.5"], ["Retail", "80"]], truncated: false }) } });
     const business = (invocationId: string) => ({ principal: { id: "user-1" }, sessionId, lane: "main", operationId: "fixture", invocationId });
-    const begun = await answering.begin({ requestMessageId: "fixture-request", requestId: "begin", spec: { entity: "industries", metric: "sales", filters: [], groupBy: [], time: { state: "not_applicable" }, ranking: { state: "not_applicable" }, output: { rowMode: "full" } } }, business("begin"));
+    const begun = await answering.set({ requestMessageId: "fixture-request", requestId: "begin", fields: { "population.entity": "industries", "population.eligibility": "n/a", "population.conditions": "n/a", "population.time": "n/a", "measure.formula": { op: "sum", of: "sales" }, grouping: ["industry"], selection: "n/a", output: { rowMode: "full" } } }, business("begin"));
     const execution = await answering.execute({ kind: "result", taskId: begun.taskId, revisionId: begun.revisionId, sql: "SELECT industry, sales FROM fixture" }, business("execute"));
     if (execution.artifact.kind !== "candidate") throw new Error("expected candidate");
     const receipt = await answering.publish({ candidateId: execution.artifact.candidateId, format: "auto", requestId: "publish" }, business("publish"));

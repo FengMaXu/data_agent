@@ -17,7 +17,7 @@ const invocation = (id: string) => ({
   setMemo: async () => undefined,
 });
 
-const spec = { entity: "orders", metric: "count", filters: [], groupBy: [], time: { state: "not_applicable" }, ranking: { state: "not_applicable" }, output: { rowMode: "scalar", rowCount: 1 } };
+const spec = { "population.entity": "orders", "population.eligibility": "n/a", "population.conditions": "n/a", "population.time": "n/a", "measure.formula": { op: "count", of: "orders" }, "measure.countGrain": "one row per order", grouping: "n/a", selection: "n/a", output: { rowMode: "scalar", rowCount: 1 } };
 
 describe("DataAgent Session Application production composition", () => {
   it("never creates over a corrupt or inaccessible durable Session", async () => {
@@ -131,8 +131,7 @@ describe("DataAgent Session Application production composition", () => {
       const active = await host.lane.getActiveTools(TODO_CONTEXT);
       expect(active).toEqual(expect.arrayContaining([
         "load_skill",
-        "begin_answer_spec",
-        "revise_answer_spec",
+        "set_answer_spec",
         "query_database",
         "publish_query_result",
         "export_query",
@@ -171,7 +170,7 @@ describe("DataAgent Session Application production composition", () => {
       for (const name of ["dashboard", "analysis", "demo-report"]) {
         await loadSkill.execute(`load-${name}`, { name }, undefined, { sessionId: "session-1", principalId: "user-1" }, invocation(`load-${name}`), TODO_CONTEXT);
         const active = await host.lane.getActiveTools(TODO_CONTEXT);
-        expect(active).toEqual(expect.arrayContaining(["load_skill", "begin_answer_spec", "revise_answer_spec", "query_database", "compare_hypotheses", "publish_query_result", "export_query", "inspect_answer", "ask_user_clarification", "subagent"]));
+        expect(active).toEqual(expect.arrayContaining(["load_skill", "set_answer_spec", "query_database", "compare_hypotheses", "publish_query_result", "export_query", "inspect_answer", "ask_user_clarification", "subagent"]));
         expect(active).not.toContain("list_workspace");
       }
     } finally {
@@ -199,7 +198,7 @@ describe("DataAgent Session Application production composition", () => {
       const host = await application.session({ userId: "user-1", host: "web", sessionId: "session-1" });
       const names = host.tools.map((tool) => tool.name);
       expect(names).toContain("begin_query_task");
-      expect(names).not.toContain("begin_answer_spec");
+      expect(names).not.toContain("set_answer_spec");
       expect(names).not.toContain("ask_user_clarification");
     } finally {
       await application.close();
@@ -225,7 +224,7 @@ describe("DataAgent Session Application production composition", () => {
       const host = await application.session({ userId: "user-1", host: "web", sessionId: "session-1" });
       const active = await host.lane.getActiveTools(TODO_CONTEXT);
       expect(active).not.toContain("ask_user_clarification");
-      expect(active).toEqual(expect.arrayContaining(["begin_answer_spec", "revise_answer_spec", "query_database", "export_query"]));
+      expect(active).toEqual(expect.arrayContaining(["set_answer_spec", "query_database", "export_query"]));
     } finally {
       await application.close();
       await sessionStore.close().catch(() => undefined);
@@ -252,16 +251,15 @@ describe("DataAgent Session Application production composition", () => {
     try {
       const host = await application.session({ userId: "user-1", host: "web", sessionId: "session-1" });
       const names = host.tools.map((tool) => tool.name);
-      expect(names).toContain("begin_answer_spec");
-      expect(names).toContain("revise_answer_spec");
+      expect(names).toContain("set_answer_spec");
       expect(names).toContain("query_database");
       expect(names).toContain("publish_query_result");
       expect(names).toContain("export_query");
       const context = { sessionId: "session-1", principalId: "user-1", requestMessageId: "user-message-1" };
-      const update = host.tools.find((tool) => tool.name === "begin_answer_spec")! as any;
+      const update = host.tools.find((tool) => tool.name === "set_answer_spec")! as any;
       const query = host.tools.find((tool) => tool.name === "query_database")! as any;
       const publish = host.tools.find((tool) => tool.name === "publish_query_result")! as any;
-      const began = await update.execute("call-begin", { spec, decisionPoints: ["population", "join_multiplicity", "time_field", "count_grain", "denominator", "window", "ties", "output_shape"].map((name) => ({ name, status: "not_applicable" })) }, undefined, context, invocation("call-begin"), TODO_CONTEXT);
+      const began = await update.execute("call-begin", { fields: spec }, undefined, context, invocation("call-begin"), TODO_CONTEXT);
       expect(began.details.taskId).toMatch(/^task_/);
       const execution = await query.execute("call-result", { kind: "result", taskId: began.details.taskId, revisionId: began.details.revisionId, sql: "SELECT COUNT(*) FROM orders" }, undefined, context, invocation("call-result"), TODO_CONTEXT);
       expect(execution.details.artifact.kind).toBe("candidate");

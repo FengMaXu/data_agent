@@ -3,7 +3,8 @@ import { MemorySessionRepo, TODO_CONTEXT } from "@earendil-works/pi-agent-core";
 import { PiSessionAnsweringStore } from "../adapters/pi-session-answering-store.js";
 import { InMemoryAnswering, InMemoryAnsweringStore, InMemoryResultStore, type BusinessContext, type EvidenceSource } from "./public.js";
 import type { AnsweringStore, AnsweringTransaction } from "./answering-store.js";
-import { facetNames, type SpecAlignmentAssessor, type SpecAlignmentInput } from "../judgment/spec-alignment.js";
+import type { SpecAlignmentAssessor, SpecAlignmentInput } from "../judgment/spec-alignment.js";
+import { FIELD_SECTIONS } from "./fields.js";
 import type { SpecFeedbackAssessment } from "./model.js";
 
 const context = (invocationId: string, signal?: AbortSignal): BusinessContext => ({
@@ -16,14 +17,19 @@ const context = (invocationId: string, signal?: AbortSignal): BusinessContext =>
 });
 
 const simpleSpec = {
-  entity: "orders",
-  metric: "count",
-  filters: [],
-  groupBy: [],
-  time: { state: "not_applicable" },
-  ranking: { state: "not_applicable" },
+  "population.entity": "orders",
+  "population.eligibility": "n/a",
+  "population.conditions": "n/a",
+  "population.time": "n/a",
+  "measure.formula": { op: "count", of: "orders" },
+  "measure.countGrain": "one row per order",
+  grouping: "n/a",
+  selection: "n/a",
   output: { rowMode: "scalar", rowCount: 1 },
 };
+
+/** A strict top N whose declared row count contradicts n. */
+const conflictingTopN = { ...simpleSpec, selection: { n: 2, orderBy: "score DESC" }, "selection.ties": "strict", output: { rowMode: "top_n", rowCount: 3 } };
 
 /** Trusted test documents; Evidence Admission verifies quotes against this text. */
 const documentSource: EvidenceSource = {
@@ -37,9 +43,9 @@ const documentSource: EvidenceSource = {
 function assessment(relation: "supported" | "contradicted" = "supported"): SpecFeedbackAssessment {
   return {
     model: "jev-test",
-    ruleVersion: "spec-alignment-v1",
-    facets: facetNames().map((facet) => ({
-      facet,
+    ruleVersion: "spec-alignment-v2",
+    sections: FIELD_SECTIONS.map((section) => ({
+      section,
       relation: {
         choice: relation,
         probabilities: { supported: relation === "supported" ? 1 : 0, contradicted: relation === "contradicted" ? 1 : 0, not_established: 0, not_applicable: 0 },
@@ -79,21 +85,20 @@ describe("Answering Spec feedback", () => {
       return "请统计订单数";
     });
 
-    const begun = await service.begin({
+    const begun = await service.set({
       requestMessageId: "message-1",
       requestId: "begin-feedback",
-      spec: simpleSpec,
-      evidence: [{ kind: "reviewed_definition", sourceRef: "metric.md", quote: "订单数按订单实体计数" }],
+      fields: { ...simpleSpec, "measure.countGrain": { value: "one row per order", cite: [{ source: "knowledge:metric.md", quote: "订单数按订单实体计数" }] } },
     }, context("begin-feedback"));
 
     expect(calls).toBe(1);
     expect(begun.specFeedback).toMatchObject({ status: "completed", taskId: begun.taskId, revisionId: begun.revisionId, assessment: { model: "jev-test" } });
-    expect(inputs[0]).toMatchObject({ originalQuestion: "请统计订单数", spec: expect.any(Object), evidence: [
+    expect(inputs[0]).toMatchObject({ originalQuestion: "请统计订单数", fields: { "measure.countGrain": { state: "specified", basis: { kind: "evidence" } } }, evidence: [
       { kind: "request_wording", sourceRef: "message-1" },
       { kind: "reviewed_definition", content: "订单数按订单实体计数" },
     ], limitations: [] });
 
-    const replay = await service.begin({ requestMessageId: "message-1", requestId: "begin-feedback", spec: simpleSpec }, context("begin-replay"));
+    const replay = await service.set({ requestMessageId: "message-1", requestId: "begin-feedback", fields: simpleSpec }, context("begin-replay"));
     expect(replay.revisionId).toBe(begun.revisionId);
     expect(calls).toBe(1);
     await expect(service.inspect({ taskId: begun.taskId }, context("inspect-feedback"))).resolves.toMatchObject({ currentRevision: { specFeedback: { status: "completed" } } });
@@ -131,16 +136,14 @@ describe("Answering Spec feedback", () => {
       },
     });
 
-    const begunPromise = service.begin({ requestMessageId: "message-snapshot-race", requestId: "begin-snapshot-race", spec: simpleSpec }, context("begin-snapshot-race"));
+    const begunPromise = service.set({ requestMessageId: "message-snapshot-race", requestId: "begin-snapshot-race", fields: simpleSpec }, context("begin-snapshot-race"));
     await snapshotWaiting;
     const task = (await inner.list(context("list-snapshot-race")))[0];
     if (!task) throw new Error("task missing");
-    await service.revise({
+    await service.set({
       taskId: task.taskId,
-      baseRevisionId: task.currentRevisionId,
       requestId: "revise-snapshot-race",
-      spec: simpleSpec,
-      evidence: [{ kind: "task_document", sourceRef: "later.md", quote: "later evidence" }],
+      fields: { "population.conditions": { value: ["status = 'paid'"], cite: [{ source: "knowledge:later.md", quote: "later evidence" }], reason: "the appendix restricts the orders" } },
     }, context("revise-snapshot-race"));
     releaseSnapshot?.();
     await begunPromise;
@@ -153,19 +156,15 @@ describe("Answering Spec feedback", () => {
 
   it("keeps Jev feedback advisory while deterministic conflicts become Candidate coverage and disclosure", async () => {
     const service = serviceWithFeedback({ assess: async () => assessment() }, async () => "请返回严格 Top N");
-    const begun = await service.begin({
+    const begun = await service.set({
       requestMessageId: "message-top-n",
       requestId: "begin-top-n",
-      spec: {
-        ...simpleSpec,
-        ranking: { n: 2, orderBy: "score", tiePolicy: "strict" },
-        output: { rowMode: "top_n", rowCount: 3 },
-      },
+      fields: conflictingTopN,
     }, context("begin-top-n"));
     expect(begun.specFeedback?.deterministicIssues).toEqual(expect.arrayContaining([expect.objectContaining({ code: "strict_top_n_row_count_conflict" })]));
 
     const execution = await service.execute({ kind: "result", taskId: begun.taskId, revisionId: begun.revisionId, sql: "SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3" }, context("result-top-n"));
-    expect(execution.coverage).toEqual(expect.arrayContaining([expect.objectContaining({ checkId: "spec_feedback", ruleVersion: "spec-feedback-v1", outcome: "finding" })]));
+    expect(execution.coverage).toEqual(expect.arrayContaining([expect.objectContaining({ checkId: "spec_feedback", ruleVersion: "spec-feedback-v2", outcome: "finding" })]));
     if (execution.artifact.kind !== "candidate") throw new Error("expected candidate");
     const receipt = await service.publish({ candidateId: execution.artifact.candidateId, format: "inline", requestId: "publish-top-n" }, context("publish-top-n"));
     expect(receipt.disclosure?.summary).toContain("Answer Spec");
@@ -181,7 +180,7 @@ describe("Answering Spec feedback", () => {
       evidenceSource: documentSource,
     });
     const publish = async (answering: InMemoryAnswering, spec: Record<string, unknown>, sql: string, id: string) => {
-      const begun = await answering.begin({ requestMessageId: `message-${id}`, requestId: `begin-${id}`, spec }, context(`begin-${id}`));
+      const begun = await answering.set({ requestMessageId: `message-${id}`, requestId: `begin-${id}`, fields: spec }, context(`begin-${id}`));
       const execution = await answering.execute({ kind: "result", taskId: begun.taskId, revisionId: begun.revisionId, sql }, context(`result-${id}`));
       if (execution.artifact.kind !== "candidate") throw new Error("expected candidate");
       const receipt = await answering.publish({ candidateId: execution.artifact.candidateId, format: "inline", requestId: `publish-${id}` }, context(`publish-${id}`));
@@ -192,7 +191,7 @@ describe("Answering Spec feedback", () => {
     expect(clean.coverage).toMatchObject({ outcome: "not_applicable", reason: expect.stringContaining("not configured") });
     expect(clean.disclosure).not.toContain("Answer Spec");
 
-    const conflicting = await publish(service([[1], [2], [3]]), { ...simpleSpec, ranking: { n: 2, orderBy: "score", tiePolicy: "strict" }, output: { rowMode: "top_n", rowCount: 3 } }, "SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3", "conflict");
+    const conflicting = await publish(service([[1], [2], [3]]), conflictingTopN, "SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3", "conflict");
     expect(conflicting.coverage?.outcome).toBe("finding");
     expect(conflicting.disclosure).toContain("Answer Spec");
   });
@@ -200,7 +199,7 @@ describe("Answering Spec feedback", () => {
   it("returns unavailable without changing the committed Revision when the original question cannot be read", async () => {
     let calls = 0;
     const service = serviceWithFeedback({ assess: async () => { calls += 1; return assessment(); } }, async () => undefined);
-    const begun = await service.begin({ requestMessageId: "missing-message", requestId: "begin-unavailable", spec: simpleSpec }, context("begin-unavailable"));
+    const begun = await service.set({ requestMessageId: "missing-message", requestId: "begin-unavailable", fields: simpleSpec }, context("begin-unavailable"));
     expect(calls).toBe(0);
     expect(begun.specFeedback).toMatchObject({ status: "unavailable", reason: "original_question_unavailable" });
     expect(begun.taskId).toMatch(/^task_/);
@@ -228,7 +227,7 @@ describe("Answering Spec feedback", () => {
       specFeedback: { getOriginalQuestion: async () => "原题", assessor: { assess: async () => assessment() } },
     });
 
-    const begun = await service.begin({ requestMessageId: "message-write-failure", requestId: "begin-write-failure", spec: simpleSpec }, context("begin-write-failure"));
+    const begun = await service.set({ requestMessageId: "message-write-failure", requestId: "begin-write-failure", fields: simpleSpec }, context("begin-write-failure"));
     expect(begun.specFeedback).toMatchObject({ status: "pending" });
     const inspected = await service.inspect({ taskId: begun.taskId }, context("inspect-write-failure"));
     expect(inspected.currentRevision.specFeedback).toMatchObject({ status: "pending" });
@@ -249,7 +248,7 @@ describe("Answering Spec feedback", () => {
       sqlExecutor: { run: async () => ({ columns: ["value"], rows: [[1]], truncated: false }) },
       ...options,
     });
-    const begun = await first.begin({ requestMessageId: "message-snapshot", requestId: "begin-snapshot", spec: simpleSpec }, context("begin-snapshot"));
+    const begun = await first.set({ requestMessageId: "message-snapshot", requestId: "begin-snapshot", fields: simpleSpec }, context("begin-snapshot"));
     expect(calls).toBe(1);
     const recovered = new InMemoryAnswering({
       store: new PiSessionAnsweringStore(session),
@@ -265,12 +264,12 @@ describe("Answering Spec feedback", () => {
   it("reports input limits and provider timeouts without calling SQL or retrying the assessor", async () => {
     let calls = 0;
     const tooLarge = serviceWithFeedback({ assess: async () => { calls += 1; return assessment(); } }, async () => "原题", { maxInputBytes: 32 });
-    const oversized = await tooLarge.begin({ requestMessageId: "message-large", requestId: "begin-large", spec: simpleSpec }, context("begin-large"));
+    const oversized = await tooLarge.set({ requestMessageId: "message-large", requestId: "begin-large", fields: simpleSpec }, context("begin-large"));
     expect(oversized.specFeedback).toMatchObject({ status: "unavailable", reason: "input_too_large" });
     expect(calls).toBe(0);
 
     const timedOut = serviceWithFeedback({ assess: async () => { calls += 1; return assessment(); } }, async () => new Promise<string>(() => undefined), { timeoutMs: 10 });
-    const timed = await timedOut.begin({ requestMessageId: "message-timeout", requestId: "begin-timeout", spec: simpleSpec }, context("begin-timeout"));
+    const timed = await timedOut.set({ requestMessageId: "message-timeout", requestId: "begin-timeout", fields: simpleSpec }, context("begin-timeout"));
     expect(timed.specFeedback).toMatchObject({ status: "unavailable", reason: "timeout" });
     expect(calls).toBe(0);
   });
@@ -288,7 +287,7 @@ describe("Answering Spec feedback", () => {
         timeoutMs: 5_000,
       },
     });
-    const begun = service.begin({ requestMessageId: "message-cancel", requestId: "begin-cancel", spec: simpleSpec }, context("begin-cancel", controller.signal));
+    const begun = service.set({ requestMessageId: "message-cancel", requestId: "begin-cancel", fields: simpleSpec }, context("begin-cancel", controller.signal));
     let tasks = await store.list(context("list-cancel-wait"));
     while (tasks.length === 0) {
       await new Promise((resolve) => setTimeout(resolve, 1));
@@ -325,12 +324,12 @@ describe("Answering Spec feedback", () => {
         },
       },
     });
-    const begunPromise = service.begin({ requestMessageId: "message-race", requestId: "begin-race", spec: simpleSpec }, context("begin-race"));
+    const begunPromise = service.set({ requestMessageId: "message-race", requestId: "begin-race", fields: simpleSpec }, context("begin-race"));
     while (calls === 0) await new Promise((resolve) => setTimeout(resolve, 1));
     const tasks = await store.list(context("list-race"));
     const task = tasks[0];
     if (!task) throw new Error("task missing");
-    const revised = await service.revise({ taskId: task.taskId, baseRevisionId: task.currentRevisionId, requestId: "revise-race", spec: simpleSpec }, context("revise-race"));
+    const revised = await service.set({ taskId: task.taskId, requestId: "revise-race", fields: { grouping: { value: ["region"], reason: "per region" } } }, context("revise-race"));
     releaseFirst?.();
     const begun = await begunPromise;
     expect(begun.specFeedback).toMatchObject({ status: "completed", stale: true, currentRevisionId: revised.revisionId });
@@ -353,7 +352,7 @@ describe("Answering Spec feedback", () => {
         assessor: { assess: async () => { calls += 1; await blocked; return assessment(); } },
       },
     });
-    const begunPromise = service.begin({ requestMessageId: "message-freeze", requestId: "begin-freeze", spec: simpleSpec }, context("begin-freeze"));
+    const begunPromise = service.set({ requestMessageId: "message-freeze", requestId: "begin-freeze", fields: simpleSpec }, context("begin-freeze"));
     while (calls === 0) await new Promise((resolve) => setTimeout(resolve, 1));
     const tasks = await store.list(context("list-freeze"));
     const task = tasks[0];
@@ -367,14 +366,15 @@ describe("Answering Spec feedback", () => {
     expect(inspected.candidate?.coverage).toEqual(expect.arrayContaining([expect.objectContaining({ checkId: "spec_feedback", outcome: "unknown" })]));
   });
 
-  it("does not invoke the assessor for a failed proposal or an already existing begin", async () => {
+  it("does not invoke the assessor for a call that writes nothing or an already existing begin", async () => {
     let calls = 0;
     const service = serviceWithFeedback({ assess: async () => { calls += 1; return assessment(); } }, async () => "原题");
-    await expect(service.begin({ requestMessageId: "bad", requestId: "bad", spec: { ...simpleSpec, output: { rowMode: "invalid" } } }, context("bad"))).rejects.toMatchObject({ code: "INVALID_REQUEST" });
-    expect(calls).toBe(0);
-    const begun = await service.begin({ requestMessageId: "message-existing", requestId: "begin-existing", spec: simpleSpec }, context("begin-existing"));
+    const begun = await service.set({ requestMessageId: "message-existing", requestId: "begin-existing", fields: simpleSpec }, context("begin-existing"));
     expect(calls).toBe(1);
-    await service.begin({ requestMessageId: "message-existing", requestId: "begin-existing", spec: simpleSpec }, context("begin-existing-replay"));
+    await service.set({ requestMessageId: "message-existing", requestId: "begin-existing", fields: simpleSpec }, context("begin-existing-replay"));
+    expect(calls).toBe(1);
+    const rejected = await service.set({ taskId: begun.taskId, requestId: "bad", fields: { output: { rowMode: "invalid" } } }, context("bad"));
+    expect(rejected.revisionId).toBe(begun.revisionId);
     expect(calls).toBe(1);
     expect(begun.specFeedback?.status).toBe("completed");
   });

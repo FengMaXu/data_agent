@@ -2,6 +2,7 @@ import { setValue, value, type Session } from "@earendil-works/pi-agent-core/har
 import { TODO_CONTEXT, type Context } from "@earendil-works/pi-agent-core/harness/context";
 import type { JsonValue } from "@earendil-works/chord";
 import {
+  ANSWERING_SNAPSHOT_VERSION,
   InMemoryAnsweringStore,
   type AnsweringStore,
   type AnsweringStoreSnapshot,
@@ -22,7 +23,8 @@ function decodeJson(valueToDecode: unknown): unknown {
 function isSnapshot(valueToCheck: unknown): valueToCheck is AnsweringStoreSnapshot {
   if (!valueToCheck || typeof valueToCheck !== "object") return false;
   const record = valueToCheck as Record<string, unknown>;
-  return Array.isArray(record.tasks) && Array.isArray(record.revisions) && Array.isArray(record.evidence)
+  // Records of an earlier Answer Spec model are not read (ADR-0007).
+  return record.version === ANSWERING_SNAPSHOT_VERSION && Array.isArray(record.tasks) && Array.isArray(record.revisions) && Array.isArray(record.evidence)
     && Array.isArray(record.candidates) && Array.isArray(record.receipts);
 }
 

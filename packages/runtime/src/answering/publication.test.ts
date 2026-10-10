@@ -7,18 +7,16 @@ import { InMemoryAnswering } from "./service.js";
 import type { AnswerRevisionRecord, BusinessContext, ResultCandidateRecord } from "./model.js";
 
 const evidenceBasis = { kind: "evidence", evidenceIds: ["evidence_q"] } as const;
-const spec = {
-  entity: { state: "specified", value: { name: "orders" }, basis: evidenceBasis },
-  metric: { state: "specified", value: { kind: "count" }, basis: evidenceBasis },
-  filters: [],
-  groupBy: [],
-  time: { state: "not_applicable" },
-  ranking: { state: "not_applicable" },
+const fields = {
+  "population.entity": { state: "specified", value: { name: "orders" }, basis: evidenceBasis },
+  "measure.formula": { state: "specified", value: { op: "count", of: "orders" }, basis: evidenceBasis },
+  grouping: { state: "not_applicable" },
   output: { state: "specified", value: { rowMode: "scalar" }, basis: evidenceBasis },
 };
+const alternatives = [{ id: "alternative_1", value: "按下单月份" }, { id: "alternative_2", value: "按送达月份" }];
 
-function revision(overrides: Partial<AnswerRevisionRecord> = {}): AnswerRevisionRecord {
-  return { taskId: "task_1", revisionId: "revision_1", requestId: "r", spec, hypotheses: [], choices: [], resolutions: [], choiceResolutions: [], state: { state: "draft", revisionId: "revision_1" }, createdAt: "t", ...overrides } as unknown as AnswerRevisionRecord;
+function revision(overrides: Record<string, unknown> = {}): AnswerRevisionRecord {
+  return { taskId: "task_1", revisionId: "revision_1", requestId: "r", fields, state: { state: "draft", revisionId: "revision_1" }, createdAt: "t", ...overrides } as unknown as AnswerRevisionRecord;
 }
 
 function candidate(overrides: Partial<ResultCandidateRecord> = {}): ResultCandidateRecord {
@@ -26,39 +24,43 @@ function candidate(overrides: Partial<ResultCandidateRecord> = {}): ResultCandid
 }
 
 describe("Publication disclosure", () => {
-  it("discloses nothing when every facet has evidence and nothing is provisional", () => {
+  it("discloses nothing when every field has evidence and nothing is unverified", () => {
     expect(composeDisclosure(revision(), candidate())).toBeUndefined();
   });
 
-  it("discloses provisional choices, inferred facets and fanout findings together", () => {
+  it("discloses unverified decisions, assumptions and fanout findings together", () => {
     const disclosure = composeDisclosure(
       revision({
-        spec: { ...spec, metric: { state: "specified", value: { kind: "count" }, basis: { kind: "inference" } } } as never,
-        choiceResolutions: [{ outcome: "provisional", choiceId: "choice_1", alternativeId: "alternative_1", disclosureRequired: true }] as never,
+        fields: {
+          ...fields,
+          "measure.formula": { state: "specified", value: { op: "count", of: "orders" }, basis: { kind: "assumed" } },
+          "population.timeField": { state: "decided", alternatives, alternativeId: "alternative_1", value: "按下单月份", rationale: "r", basis: { kind: "assumed", rationale: "r" } },
+        },
       }),
       candidate({ fanout: { ruleVersion: "answering-fanout-v1", status: "finding", snapshotScope: "result_snapshot", targets: [] } }),
     );
-    expect(disclosure).toMatchObject({ required: true, provisionalChoiceIds: ["choice_1"], inferredFacets: ["metric"], fanoutStatus: "finding" });
-    expect(disclosure?.summary).toContain("字面解释");
-    expect(disclosure?.summary).toContain("metric");
+    expect(disclosure).toMatchObject({
+      required: true,
+      unverifiedFields: [{ path: "measure.formula", kind: "assumed" }, { path: "population.timeField", kind: "decided" }],
+      fanoutStatus: "finding",
+    });
+    expect(disclosure?.summary).toContain("按字面选择");
+    expect(disclosure?.summary).toContain("population.timeField");
+    expect(disclosure?.summary).toContain("假定，未被合格证据证实：measure.formula");
     expect(disclosure?.summary).toContain("JOIN fanout");
   });
 
-  it("discloses hypotheses supported without qualifying evidence with the facets they affect", () => {
+  it("does not disclose a decision that qualifying evidence settled", () => {
     const disclosure = composeDisclosure(
-      revision({
-        hypotheses: [{ id: "hypothesis_1", kind: "data_property", statement: "amounts are in 亿元", affects: ["metric"], basis: "b", impact: "i" }] as never,
-        resolutions: [{ outcome: "provisional", hypothesisId: "hypothesis_1", disclosureRequired: true, citedEvidenceIds: ["evidence_def"] }] as never,
-      }),
+      revision({ fields: { ...fields, "population.timeField": { state: "decided", alternatives, alternativeId: "alternative_2", value: "按送达月份", rationale: "r", basis: evidenceBasis } } }),
       candidate(),
     );
-    expect(disclosure).toMatchObject({ required: true, provisionalChoiceIds: [], provisionalHypothesisIds: ["hypothesis_1"] });
-    expect(disclosure?.summary).toContain("未被合格证据证实的假设：metric");
+    expect(disclosure).toBeUndefined();
   });
 });
 
 const context = (invocationId: string): BusinessContext => ({ principal: { id: "user-1" }, sessionId: "session-1", lane: "main", operationId: "operation-1", invocationId });
-const listSpec = { entity: "orders", metric: "sum", filters: [], groupBy: [], time: { state: "not_applicable" }, ranking: { state: "not_applicable" }, output: { rowMode: "full" } };
+const listSpec = { "population.entity": "orders", "population.eligibility": "n/a", "population.conditions": "n/a", "population.time": "n/a", "measure.formula": { op: "sum", of: "sales" }, grouping: "n/a", selection: "n/a", output: { rowMode: "full" } };
 
 async function publishedAnswering(store = new InMemoryAnsweringStore(), resultStore = new InMemoryResultStore()) {
   const answering = new InMemoryAnswering({
@@ -67,7 +69,7 @@ async function publishedAnswering(store = new InMemoryAnsweringStore(), resultSt
     // A leading NULL and DECIMAL text are the cases first-row type inference gets wrong.
     sqlExecutor: { run: async () => ({ columns: ["region", "amount"], rows: [["east", null], ["west", "12.50"], ["north", "-3.25"]], truncated: false }) },
   });
-  const begun = await answering.begin({ requestMessageId: "message-1", requestId: "begin-1", spec: listSpec }, context("begin-1"));
+  const begun = await answering.set({ requestMessageId: "message-1", requestId: "begin-1", fields: listSpec }, context("begin-1"));
   const execution = await answering.execute({ kind: "result", taskId: begun.taskId, revisionId: begun.revisionId, sql: "SELECT region, amount FROM orders" }, context("execute-1"));
   if (execution.artifact.kind !== "candidate") throw new Error("expected Result Candidate");
   const candidateHash = (await answering.inspect({ taskId: begun.taskId }, context("inspect-candidate"))).candidate?.contentHash;

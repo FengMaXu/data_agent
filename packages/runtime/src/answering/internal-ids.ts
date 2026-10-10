@@ -2,9 +2,7 @@ import { randomUUID } from "node:crypto";
 import type {
   AlternativeId,
   CandidateId,
-  ChoiceId,
   EvidenceId,
-  HypothesisId,
   Id,
   PrivateResultRef,
   PublicationId,
@@ -17,10 +15,8 @@ import type {
 export function makeInternalId(prefix: "task"): TaskId;
 export function makeInternalId(prefix: "revision"): RevisionId;
 export function makeInternalId(prefix: "ready"): ReadyRevisionId;
-export function makeInternalId(prefix: "hypothesis" | "choice-proof"): HypothesisId;
 export function makeInternalId(prefix: "evidence"): EvidenceId;
 export function makeInternalId(prefix: "attempt"): string;
-export function makeInternalId(prefix: "choice"): ChoiceId;
 export function makeInternalId(prefix: "alternative"): AlternativeId;
 export function makeInternalId(prefix: "candidate"): CandidateId;
 export function makeInternalId(prefix: "result"): PrivateResultRef;

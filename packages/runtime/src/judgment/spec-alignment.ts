@@ -1,17 +1,12 @@
 import type {
-  AnswerSpec,
-  Choice,
-  ChoiceResolution,
   EvidenceAuthority,
   EvidenceKind,
-  FacetName,
-  Hypothesis,
-  Resolution,
   SpecFeedbackAssessment,
+  SpecFields,
 } from "../answering/model.js";
 
-/** Version of the fixed seven-facet, two-axis assessment protocol. */
-export const SPEC_ALIGNMENT_RULE_VERSION = "spec-alignment-v1";
+/** Version of the five-section, two-axis assessment protocol over the field tree (ADR-0007). */
+export const SPEC_ALIGNMENT_RULE_VERSION = "spec-alignment-v2";
 
 /** Lower ranks are stronger and mirror CONTEXT.md Evidence Authority. */
 export const EVIDENCE_AUTHORITY_RANK: Readonly<Record<EvidenceAuthority, number>> = {
@@ -40,11 +35,8 @@ export interface SpecAlignmentEvidence {
  */
 export interface SpecAlignmentInput {
   readonly originalQuestion: string;
-  readonly spec: AnswerSpec;
-  readonly hypotheses: readonly Hypothesis[];
-  readonly choices: readonly Choice[];
-  readonly resolutions: readonly Resolution[];
-  readonly choiceResolutions: readonly ChoiceResolution[];
+  /** The Answer Spec fields by path, with their states, bases and alternatives. */
+  readonly fields: SpecFields;
   readonly evidence: readonly SpecAlignmentEvidence[];
   readonly limitations: readonly string[];
 }
@@ -53,6 +45,3 @@ export interface SpecAlignmentAssessor {
   assess(input: SpecAlignmentInput, options?: { readonly signal?: AbortSignal }): Promise<SpecFeedbackAssessment>;
 }
 
-export function facetNames(): readonly FacetName[] {
-  return ["entity", "metric", "filters", "groupBy", "time", "ranking", "output"];
-}

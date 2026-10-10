@@ -11,19 +11,19 @@ import { withToolPromptCatalog } from "./tool-prompt-models.js";
 
 const skills = [
   { name: "query-task", description: "ablation flow", requiredTools: ["begin_query_task"] },
-  { name: "answer-spec", description: "Answer Spec\n流程", whenToUse: "每个取数请求", requiredTools: ["begin_answer_spec", "query_database"] },
+  { name: "answer-fields", description: "Answer Spec\n流程", whenToUse: "每个取数请求", requiredTools: ["set_answer_spec", "query_database"] },
   { name: "hidden", description: "application only", disableModelInvocation: true },
   { name: "analysis", description: "charting" },
 ];
 
 describe("Skill catalog", () => {
   it("lists only model-invocable Skills whose required tools are granted, in a stable order", () => {
-    const granted = new Set(["load_skill", "begin_answer_spec", "query_database"]);
+    const granted = new Set(["load_skill", "set_answer_spec", "query_database"]);
     expect(renderSkillCatalog(skills, ["load_skill", "query_database"], granted)).toBe([
       "## 可用 Skill",
       "任务匹配时先用 `load_skill(name)` 加载对应 Skill，再按其流程执行。",
       "- `analysis`：charting",
-      "- `answer-spec`：Answer Spec 流程。适用：每个取数请求",
+      "- `answer-fields`：Answer Spec 流程。适用：每个取数请求",
     ].join("\n"));
     expect(isSkillAvailable(skills[0]!, granted)).toBe(false);
   });
@@ -55,7 +55,7 @@ describe("Skill catalog", () => {
     expect(prompt.indexOf("## 可用 Skill")).toBeGreaterThan(0);
     expect(prompt.indexOf("## 可用 Skill")).toBeLessThan(prompt.indexOf("## 当前可用工具"));
     expect(prompt).toContain("`analysis`");
-    expect(prompt).not.toContain("`answer-spec`");
+    expect(prompt).not.toContain("`answer-fields`");
   });
 
   it("ships the protocol Skills with the metadata that keeps each arm exclusive", async () => {
@@ -64,14 +64,12 @@ describe("Skill catalog", () => {
       path.join(repo, ".agents", "skills"),
       path.join(repo, "evaluations", "spider2", "skills"),
     ]);
-    expect(diagnostics.filter((item) => item.path.includes("answer-spec") || item.path.includes("answer-fields") || item.path.includes("query-task"))).toEqual([]);
-    const answerSpec = loaded.find((skill) => skill.name === "answer-spec");
+    expect(diagnostics.filter((item) => item.path.includes("answer-fields") || item.path.includes("query-task"))).toEqual([]);
     const answerFields = loaded.find((skill) => skill.name === "answer-fields");
     const queryTask = loaded.find((skill) => skill.name === "query-task");
-    expect(answerSpec).toMatchObject({ requiredTools: ["begin_answer_spec", "revise_answer_spec", "query_database"], whenToUse: expect.any(String) });
-    // The ADR-0007 field interface has its own protocol Skill, so neither arm sees the other's tools.
+    // The semantic and ablation arms each have their own protocol Skill, so neither sees the other's tools.
     expect(answerFields).toMatchObject({ requiredTools: ["set_answer_spec", "query_database"], whenToUse: expect.any(String) });
     expect(queryTask).toMatchObject({ requiredTools: ["begin_query_task", "query_database"] });
-    expect(answerSpec?.allowedTools).toBeUndefined();
+    expect(answerFields?.allowedTools).toBeUndefined();
   });
 });
