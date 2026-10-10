@@ -1,7 +1,7 @@
 import {
   contentHash,
   type BusinessContext,
-  type ChoiceProbeRecord,
+  type FieldProbeRecord,
   type Evidence,
   type ExecuteQuery,
   type QueryExecutionView,
@@ -15,7 +15,8 @@ import { obstacle, obstacleDetails, reserveAttempt, taskBudget, throwExecutionFa
 import { boundedResult } from "./sql-execution.js";
 import { asRecord, now } from "./support.js";
 import type { AnsweringDeps } from "./deps.js";
-import { CHOICE_PROBE_ROW_LIMIT } from "./choice-probe.js";
+import { PROBE_ROW_LIMIT } from "./probes.js";
+import type { SpecPath } from "./fields.js";
 import { resultFingerprint } from "./result-fingerprint.js";
 
 type ExplorationInput = Extract<ExecuteQuery, { readonly kind: "exploration" }>;
@@ -28,13 +29,16 @@ type ExplorationInput = Extract<ExecuteQuery, { readonly kind: "exploration" }>;
 export async function executeExploration(
   deps: AnsweringDeps,
   input: ExplorationInput,
-  revisionId: RevisionId,
+  target: RevisionId,
+  /** Delegated work binds to one Revision; an ordinary exploration explores whatever Revision is current. */
+  pinned: boolean,
   limit: number,
   context: BusinessContext,
 ): Promise<QueryExecutionView> {
+  let revisionId = target;
   const taskId = input.taskId as TaskId;
-  const probe = input.probe ? { choiceId: input.probe.choiceId.trim(), alternativeId: input.probe.alternativeId.trim() } : undefined;
-  if (probe && !deps.choiceProbes) throw new AnsweringError("INVALID_REQUEST", "Choice probes are not enabled for this Answering instance");
+  const probe = input.probe ? { path: input.probe.path.trim() as SpecPath, alternativeId: input.probe.alternativeId.trim() } : undefined;
+  if (probe && !deps.fieldProbes) throw new AnsweringError("INVALID_REQUEST", "Probes are not enabled for this Answering instance");
   const queryHash = contentHash({ sql: input.sql.trim(), limit, maxPreviewBytes: input.maxPreviewBytes, ...(probe ? { probe } : {}) });
   const prior = await deps.store.transact((tx) => tx.findObservationByInvocation(taskId, context.invocationId), context);
   if (prior?.kind === "query_observation") {
@@ -64,11 +68,13 @@ export async function executeExploration(
   const reservation = await deps.store.transact((tx) => {
     const current = tx.getTask(taskId);
     assertTaskAccess(current, context);
+    // A field write in the same model turn may land first; the exploration then runs against the new Revision.
+    if (!pinned) revisionId = current.currentRevisionId;
     if (current.currentRevisionId !== revisionId) throw new AnsweringError("REVISION_STALE", "Exploration target Revision is stale", { currentRevisionId: current.currentRevisionId });
     if (probe) {
-      const choice = tx.getRevision(revisionId)?.choices.find((item) => item.id === probe.choiceId);
-      if (!choice) throw new AnsweringError("INVALID_REQUEST", `Probe choice ${probe.choiceId} is not part of the current Revision`);
-      if (!choice.alternatives.some((alternative) => alternative.id === probe.alternativeId)) throw new AnsweringError("INVALID_REQUEST", `Probe alternative ${probe.alternativeId} is not part of Choice ${probe.choiceId}`);
+      const field = tx.getRevision(revisionId)?.fields[probe.path];
+      if (!field || (field.state !== "open" && field.state !== "decided")) throw new AnsweringError("INVALID_REQUEST", `Probe path ${probe.path} has no alternatives in the current Revision; open it with {open: [...]} first`);
+      if (!field.alternatives.some((alternative) => alternative.id === probe.alternativeId)) throw new AnsweringError("INVALID_REQUEST", `Probe alternative ${probe.alternativeId} is not an alternative of ${probe.path}`);
     }
     const unknownAttempt = tx.findAttemptByQuery(taskId, revisionId, queryHash, "exploration");
     if (unknownAttempt?.outcome === "unknown") {
@@ -80,7 +86,7 @@ export async function executeExploration(
         queryHash,
       }) };
     }
-    return reserveAttempt(tx, current, deps.budgetPolicy, "exploration", revisionId, context.invocationId, queryHash, probe ? "choice_probe" : undefined);
+    return reserveAttempt(tx, current, deps.budgetPolicy, "exploration", revisionId, context.invocationId, queryHash, probe ? "field_probe" : undefined);
   }, context);
   if (reservation.obstacle) {
     const code = reservation.obstacle.kind === "execution_outcome_unknown" ? "RESULT_EXECUTION_OUTCOME_UNKNOWN" : "IMPLEMENTATION_BUDGET_EXHAUSTED";
@@ -92,7 +98,7 @@ export async function executeExploration(
     await context.memo?.set("answering.exploration-execution", { state: "started", taskId: input.taskId, queryHash });
     sqlStarted = true;
     // A probe reads the whole output (up to the exploration cap) so its fingerprint is complete; the model still sees a bounded preview.
-    const raw = await deps.sqlExecutor.run(input.sql, probe ? Math.max(limit, CHOICE_PROBE_ROW_LIMIT) : limit, {
+    const raw = await deps.sqlExecutor.run(input.sql, probe ? Math.max(limit, PROBE_ROW_LIMIT) : limit, {
       kind: "exploration",
       idempotencyKey: context.invocationId,
       ...(context.signal ? { signal: context.signal } : {}),
@@ -121,21 +127,21 @@ export async function executeExploration(
           queryHash,
         });
       }
-      const probeRecord: ChoiceProbeRecord | undefined = probe ? {
-        choiceId: probe.choiceId as ChoiceProbeRecord["choiceId"],
-        alternativeId: probe.alternativeId as ChoiceProbeRecord["alternativeId"],
+      const probeRecord: FieldProbeRecord | undefined = probe ? {
+        path: probe.path,
+        alternativeId: probe.alternativeId as FieldProbeRecord["alternativeId"],
         revisionId,
         evidenceId,
         rowCount: raw.rows.length,
         outcome: raw.truncated
-          ? { state: "unavailable", reason: `output exceeds ${CHOICE_PROBE_ROW_LIMIT} rows` }
+          ? { state: "unavailable", reason: `output exceeds ${PROBE_ROW_LIMIT} rows` }
           : { state: "available", fingerprint: resultFingerprint(raw.columns, raw.rows) },
         probedAt: now(),
       } : undefined;
-      const choiceProbes = probeRecord
-        ? [...(current.choiceProbes ?? []).filter((item) => item.choiceId !== probeRecord.choiceId || item.alternativeId !== probeRecord.alternativeId), probeRecord]
-        : current.choiceProbes;
-      tx.putTask({ ...current, budget: { ...budget, observedRows: budget.observedRows + observedRows }, ...(choiceProbes ? { choiceProbes } : {}), updatedAt: now() });
+      const fieldProbes = probeRecord
+        ? [...(current.fieldProbes ?? []).filter((item) => item.path !== probeRecord.path || item.alternativeId !== probeRecord.alternativeId), probeRecord]
+        : current.fieldProbes;
+      tx.putTask({ ...current, budget: { ...budget, observedRows: budget.observedRows + observedRows }, ...(fieldProbes ? { fieldProbes } : {}), updatedAt: now() });
       updateAttempt(tx, attempt, "succeeded", "succeeded", true);
       tx.appendEvidence(taskId, observation);
       return undefined;
@@ -145,11 +151,11 @@ export async function executeExploration(
     }
     await context.memo?.set("answering.exploration-execution", { state: "settled", taskId: input.taskId, queryHash, evidenceId });
     const probeView = probe ? {
-      choiceId: probe.choiceId as ChoiceProbeRecord["choiceId"],
-      alternativeId: probe.alternativeId as ChoiceProbeRecord["alternativeId"],
+      path: probe.path,
+      alternativeId: probe.alternativeId as FieldProbeRecord["alternativeId"],
       rowCount: raw.rows.length,
       ...(raw.truncated
-        ? { state: "unavailable" as const, reason: `output exceeds ${CHOICE_PROBE_ROW_LIMIT} rows` }
+        ? { state: "unavailable" as const, reason: `output exceeds ${PROBE_ROW_LIMIT} rows` }
         : { state: "available" as const, output: resultFingerprint(raw.columns, raw.rows).slice(0, 12) }),
     } : undefined;
     return { kind: "exploration", artifact: { kind: "exploration", evidenceId, preview: result }, preview: result, findings: [], attemptId: attempt.attemptId, ...(probeView ? { probe: probeView } : {}) };

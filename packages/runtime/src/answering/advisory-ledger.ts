@@ -1,13 +1,13 @@
 /**
  * Advisory Ledger (ADR-0005): the Runtime's record of what compare_hypotheses
- * advised for a Choice. Only trusted code writes it (the comparison tool after
+ * advised for an open field. Only trusted code writes it (the comparison tool after
  * calling the advisor); Answering reads it to require a reasoned override when
  * a decision departs from a clear lean. Advice is never Evidence.
  */
-export interface ChoiceAdvisory {
+export interface FieldAdvisory {
   readonly taskId: string;
-  readonly choiceId: string;
-  /** Alternative ids in Choice order; advice for a different alternative set does not apply. */
+  readonly path: string;
+  /** Alternative ids in field order; advice for a different alternative set does not apply. */
   readonly alternativeIds: readonly string[];
   readonly model: string;
   readonly probabilities: readonly { readonly alternativeId: string; readonly probability: number }[];
@@ -19,19 +19,19 @@ export interface ChoiceAdvisory {
 }
 
 export interface AdvisoryLedger {
-  record(advisory: ChoiceAdvisory): void;
-  latest(taskId: string, choiceId: string): ChoiceAdvisory | undefined;
+  record(advisory: FieldAdvisory): void;
+  latest(taskId: string, path: string): FieldAdvisory | undefined;
 }
 
 export class InMemoryAdvisoryLedger implements AdvisoryLedger {
-  private readonly entries = new Map<string, ChoiceAdvisory>();
+  private readonly entries = new Map<string, FieldAdvisory>();
 
-  record(advisory: ChoiceAdvisory): void {
-    this.entries.set(`${advisory.taskId}\u0000${advisory.choiceId}`, structuredClone(advisory));
+  record(advisory: FieldAdvisory): void {
+    this.entries.set(`${advisory.taskId}\u0000${advisory.path}`, structuredClone(advisory));
   }
 
-  latest(taskId: string, choiceId: string): ChoiceAdvisory | undefined {
-    const entry = this.entries.get(`${taskId}\u0000${choiceId}`);
+  latest(taskId: string, path: string): FieldAdvisory | undefined {
+    const entry = this.entries.get(`${taskId}\u0000${path}`);
     return entry ? structuredClone(entry) : undefined;
   }
 }
@@ -48,7 +48,7 @@ export const LEAN_MIN_RATIO = 2;
 export function leanOf(
   probabilities: readonly { readonly alternativeId: string; readonly probability: number }[],
   recommendedAlternativeId?: string,
-): ChoiceAdvisory["lean"] {
+): FieldAdvisory["lean"] {
   if (recommendedAlternativeId) {
     const recommended = probabilities.find((item) => item.alternativeId === recommendedAlternativeId);
     return { alternativeId: recommendedAlternativeId, probability: recommended?.probability ?? 0 };

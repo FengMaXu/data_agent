@@ -4,16 +4,16 @@ import {
   type AnswerRevisionRecord,
   type CheckCoverage,
   type Evidence,
-  type FacetName,
   type EvidenceId,
   type SpecFeedback,
   type SpecFeedbackAssessment,
   type SpecFeedbackChoice,
   type SpecFeedbackDeterministicIssue,
 } from "./model.js";
-import { EVIDENCE_AUTHORITY_RANK, facetNames, SPEC_ALIGNMENT_RULE_VERSION, type SpecAlignmentEvidence, type SpecAlignmentInput } from "../judgment/spec-alignment.js";
+import { EVIDENCE_AUTHORITY_RANK, SPEC_ALIGNMENT_RULE_VERSION, type SpecAlignmentEvidence, type SpecAlignmentInput } from "../judgment/spec-alignment.js";
+import { FIELD_SECTIONS, type FieldSection, type OutputValue, type SelectionValue } from "./fields.js";
 
-const SPEC_FEEDBACK_RULE_VERSION = "spec-feedback-v1";
+const SPEC_FEEDBACK_RULE_VERSION = "spec-feedback-v2";
 export const SPEC_FEEDBACK_CHECK_ID = "spec_feedback";
 export const SPEC_FEEDBACK_MAX_INPUT_BYTES = 64 * 1024;
 export const SPEC_FEEDBACK_DEFAULT_TIMEOUT_MS = 15_000;
@@ -33,33 +33,32 @@ function serializedByteLength(value: unknown): number {
   return Buffer.byteLength(jsonText(value), "utf8");
 }
 
-function specified<T>(facet: { readonly state: string; readonly value?: T }): T | undefined {
-  return facet.state === "specified" ? facet.value : undefined;
+function settled<T>(field: AnswerRevisionRecord["fields"][keyof AnswerRevisionRecord["fields"]]): T | undefined {
+  return field && (field.state === "specified" || field.state === "decided") ? field.value as T : undefined;
 }
 
-/** The only deterministic checks in the first feedback version. */
-function deterministicSpecFeedbackIssues(spec: AnswerRevisionRecord["spec"]): readonly SpecFeedbackDeterministicIssue[] {
+/** The only deterministic checks: declared row counts that contradict the declared row mode or selection. */
+function deterministicSpecFeedbackIssues(fields: AnswerRevisionRecord["fields"]): readonly SpecFeedbackDeterministicIssue[] {
   const issues: SpecFeedbackDeterministicIssue[] = [];
-  const output = specified(spec.output);
-  if (output && typeof output === "object" && output.rowMode === "scalar" && output.rowCount !== undefined && output.rowCount !== 1) {
+  const output = settled<OutputValue>(fields.output);
+  if (output && output.rowMode === "scalar" && output.rowCount !== undefined && output.rowCount !== 1) {
     issues.push({
       code: "scalar_row_count_conflict",
-      facets: ["output"],
+      paths: ["output"],
       message: `output.rowMode=scalar requires rowCount=1, but the declared rowCount is ${output.rowCount}.`,
       actual: output.rowCount,
       expected: 1,
     });
   }
-  const ranking = specified(spec.ranking);
-  if (output && ranking && typeof output === "object" && typeof ranking === "object"
-    && output.rowMode === "top_n" && ranking.tiePolicy === "strict"
-    && output.rowCount !== undefined && output.rowCount !== ranking.n) {
+  const selection = settled<SelectionValue>(fields.selection);
+  if (output && selection && output.rowMode === "top_n" && settled<string>(fields["selection.ties"]) === "strict"
+    && output.rowCount !== undefined && output.rowCount !== selection.n) {
     issues.push({
       code: "strict_top_n_row_count_conflict",
-      facets: ["ranking", "output"],
-      message: `strict top_n requires rowCount=${ranking.n}, but the declared rowCount is ${output.rowCount}.`,
+      paths: ["selection", "selection.ties", "output"],
+      message: `strict top_n requires rowCount=${selection.n}, but the declared rowCount is ${output.rowCount}.`,
       actual: output.rowCount,
-      expected: ranking.n,
+      expected: selection.n,
     });
   }
   return issues;
@@ -114,11 +113,7 @@ export function assembleSpecFeedbackInput(
   const limitations = converted.flatMap((item) => item.limitation ? [item.limitation] : []);
   const input: SpecAlignmentInput = {
     originalQuestion,
-    spec: clone(revision.spec),
-    hypotheses: clone(revision.hypotheses),
-    choices: clone(revision.choices),
-    resolutions: clone(revision.resolutions),
-    choiceResolutions: clone(revision.choiceResolutions),
+    fields: clone(revision.fields),
     evidence: converted.map((item) => item.value),
     limitations,
   };
@@ -145,7 +140,7 @@ export function initialSpecFeedback(
     revisionId: revision.revisionId,
     ruleVersion: SPEC_FEEDBACK_RULE_VERSION,
     status: enabled ? "pending" : "disabled",
-    deterministicIssues: deterministicSpecFeedbackIssues(revision.spec),
+    deterministicIssues: deterministicSpecFeedbackIssues(revision.fields),
     evidenceIds: evidence.map((item) => item.id),
     limitations,
     ...(enabled ? {} : { reason: "spec_alignment_assessor_not_configured" }),
@@ -185,41 +180,40 @@ export function validateSpecFeedbackAssessment(value: SpecFeedbackAssessment): S
   if (!value || typeof value.model !== "string" || !value.model.trim() || value.ruleVersion !== SPEC_ALIGNMENT_RULE_VERSION) {
     throw new Error("INVALID_SPEC_FEEDBACK_ASSESSMENT:metadata");
   }
-  const names = facetNames();
-  if (!Array.isArray(value.facets) || value.facets.length !== names.length) throw new Error("INVALID_SPEC_FEEDBACK_ASSESSMENT:facets");
-  const seen = new Set<FacetName>();
-  for (const facet of value.facets) {
-    if (!facet || !names.includes(facet.facet) || seen.has(facet.facet)) throw new Error("INVALID_SPEC_FEEDBACK_ASSESSMENT:facet");
-    seen.add(facet.facet);
-    assertDistribution(facet.relation, ["supported", "contradicted", "not_established", "not_applicable"], `${facet.facet}.relation`);
-    assertDistribution(facet.coverage, ["complete", "partial", "missing", "not_applicable"], `${facet.facet}.coverage`);
+  if (!Array.isArray(value.sections) || value.sections.length !== FIELD_SECTIONS.length) throw new Error("INVALID_SPEC_FEEDBACK_ASSESSMENT:sections");
+  const seen = new Set<FieldSection>();
+  for (const section of value.sections) {
+    if (!section || !FIELD_SECTIONS.includes(section.section) || seen.has(section.section)) throw new Error("INVALID_SPEC_FEEDBACK_ASSESSMENT:section");
+    seen.add(section.section);
+    assertDistribution(section.relation, ["supported", "contradicted", "not_established", "not_applicable"], `${section.section}.relation`);
+    assertDistribution(section.coverage, ["complete", "partial", "missing", "not_applicable"], `${section.section}.coverage`);
   }
   return value;
 }
 
 function assessmentConcerns(assessment: SpecFeedbackAssessment): readonly string[] {
-  return assessment.facets.flatMap((facet) => {
+  return assessment.sections.flatMap((section) => {
     const concerns: string[] = [];
-    if (facet.relation.choice !== "supported" && facet.relation.choice !== "not_applicable") concerns.push(`${facet.facet}.relation=${facet.relation.choice}`);
-    if (facet.coverage.choice !== "complete" && facet.coverage.choice !== "not_applicable") concerns.push(`${facet.facet}.coverage=${facet.coverage.choice}`);
+    if (section.relation.choice !== "supported" && section.relation.choice !== "not_applicable") concerns.push(`${section.section}.relation=${section.relation.choice}`);
+    if (section.coverage.choice !== "complete" && section.coverage.choice !== "not_applicable") concerns.push(`${section.section}.coverage=${section.coverage.choice}`);
     return concerns;
   });
 }
 
 export function specFeedbackCoverage(feedback: SpecFeedback | undefined): CheckCoverage {
   if (!feedback) {
-    return { checkId: SPEC_FEEDBACK_CHECK_ID, ruleVersion: SPEC_FEEDBACK_RULE_VERSION, outcome: "unknown", reason: "Spec feedback was not executed for this Revision (legacy snapshot or unavailable report)." };
+    return { checkId: SPEC_FEEDBACK_CHECK_ID, ruleVersion: SPEC_FEEDBACK_RULE_VERSION, outcome: "unknown", reason: "Spec feedback was not executed for this Revision." };
   }
   const deterministic = feedback.deterministicIssues.map((issue) => issue.message);
   const concerns = feedback.assessment ? assessmentConcerns(feedback.assessment) : [];
-  const relationRisks = feedback.assessment?.facets.flatMap((facet) => facet.relation.choice === "contradicted" ? [`${facet.facet}.relation=contradicted`] : []) ?? [];
-  const requirementRisks = feedback.assessment?.facets.flatMap((facet) => ["partial", "missing"].includes(facet.coverage.choice) ? [`${facet.facet}.coverage=${facet.coverage.choice}`] : []) ?? [];
+  const relationRisks = feedback.assessment?.sections.flatMap((section) => section.relation.choice === "contradicted" ? [`${section.section}.relation=contradicted`] : []) ?? [];
+  const requirementRisks = feedback.assessment?.sections.flatMap((section) => ["partial", "missing"].includes(section.coverage.choice) ? [`${section.section}.coverage=${section.coverage.choice}`] : []) ?? [];
   const risks = [...deterministic, ...relationRisks, ...requirementRisks];
   const limitations = [
     ...feedback.limitations,
     ...(feedback.reason ? [`reason=${feedback.reason}`] : []),
     ...(feedback.status !== "completed" ? [`status=${feedback.status}`] : []),
-    ...feedback.assessment?.facets.flatMap((facet) => facet.relation.choice === "not_established" ? [`${facet.facet}.relation=not_established`] : []) ?? [],
+    ...feedback.assessment?.sections.flatMap((section) => section.relation.choice === "not_established" ? [`${section.section}.relation=not_established`] : []) ?? [],
   ];
   if (risks.length > 0) {
     return {
@@ -265,7 +259,7 @@ export function renderSpecFeedback(feedback: SpecFeedback | undefined): string {
   if (!feedback) return "";
   const lines = [`[SPEC_FEEDBACK] revisionId=${feedback.revisionId} status=${feedback.status} advisory_only=true`];
   const concerns = feedback.assessment ? assessmentConcerns(feedback.assessment) : [];
-  for (const issue of feedback.deterministicIssues) lines.push(`deterministic: code=${issue.code} facets=${issue.facets.join(",")} message=${issue.message}`);
+  for (const issue of feedback.deterministicIssues) lines.push(`deterministic: code=${issue.code} paths=${issue.paths.join(",")} message=${issue.message}`);
   for (const concern of concerns) lines.push(`assessment: ${concern}`);
   if (feedback.status !== "completed" && feedback.reason) lines.push(`reason: ${feedback.reason}`);
   if (feedback.limitations.length > 0) lines.push(`limitations: ${feedback.limitations.join(", ")}`);

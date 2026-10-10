@@ -218,7 +218,7 @@ export const AnswerFlowDiagram: React.FC = () => {
                         <text className="lp-dg-h" x="148" y="262">{t('landing.flowdg.outer')}</text>
                         <text className="lp-dg-sub" x="148" y="288">{t('landing.flowdg.outerDesc')}</text>
                     </g>
-                    <Chips x={148} y={306} maxWidth={384} items={['revise_answer_spec', t('landing.flowdg.evidence'), 'compare_hypotheses · Jev', 'ask_user_clarification']} />
+                    <Chips x={148} y={306} maxWidth={384} items={['set_answer_spec', t('landing.flowdg.evidence'), 'compare_hypotheses · Jev', 'ask_user_clarification']} />
 
                     {/* Inner loop */}
                     <g className="lp-dg-card">
@@ -243,7 +243,7 @@ export const AnswerFlowDiagram: React.FC = () => {
                         <rect x="200" y="468" width="800" height="66" rx="12" />
                         <text className="lp-dg-gate" x="600" y="508" textAnchor="middle">⟳  {t('landing.flowdg.gate')}</text>
                     </g>
-                    <Chips x={600} y={556} maxWidth={760} align="center" items={['sealForResult', 'result_shape', 'result_completeness', 'result_identity', 'fanout', 'CHOICE_NOT_REALIZED']} />
+                    <Chips x={600} y={556} maxWidth={760} align="center" items={['sealForResult', 'result_shape', 'result_completeness', 'result_identity', 'fanout', 'DECISION_NOT_REALIZED']} />
                     <text className="lp-dg-out" x="600" y="624" textAnchor="middle">{t('landing.flowdg.out')}</text>
 
                     {/* Feedback */}

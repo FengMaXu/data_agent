@@ -10,7 +10,7 @@ import type { BusinessContext } from "../answering/model.js";
 import { createQueryTaskDelegationResolver, type DelegationSqlExplorer } from "./delegation.js";
 import { KnowledgeIndex } from "../knowledge.js";
 
-const spec = { entity: "orders", metric: "count", filters: [], groupBy: [], time: { state: "not_applicable" }, ranking: { state: "not_applicable" }, output: { rowMode: "scalar", rowCount: 1 } };
+const spec = { "population.entity": "orders", "population.eligibility": "n/a", "population.conditions": "n/a", "population.time": "n/a", "measure.formula": { op: "count", of: "orders" }, "measure.countGrain": "one row per order", grouping: "n/a", selection: "n/a", output: { rowMode: "scalar", rowCount: 1 } };
 const business = (invocationId: string, principal = "user-1"): BusinessContext => ({ principal: { id: principal }, sessionId: "session-1", lane: "main", operationId: "parent-op", invocationId });
 const childContext = { childSessionId: "child-1", runId: "run-1", role: "explorer" as const };
 const childInvocation = (id: string) => ({ invocationId: id, operationId: "child-op", turnId: "child-turn", getMemo: async () => undefined, setMemo: async () => undefined });
@@ -187,7 +187,7 @@ describe("Subagent delegation resolver", () => {
 
   it("gives a reviewer the current Candidate but not the solver history", async () => {
     const { session, answering, resolver, trusted, requestMessageId } = await setup();
-    const begun = await answering.begin({ requestMessageId, requestId: "begin", spec }, business("begin"));
+    const begun = await answering.set({ requestMessageId, requestId: "begin", fields: spec }, business("begin"));
     await expect(resolver.resolve({ key: "review", role: "reviewer", task: "review SQL", taskId: begun.taskId }, { runId: "run-no-candidate", childSessionId: "child-no-candidate" }, trusted)).rejects.toThrow("SUBAGENT_REVIEW_CANDIDATE_REQUIRED");
     await expect(resolver.resolve({ key: "review", role: "reviewer", task: "review SQL" }, { runId: "run-no-task", childSessionId: "child-no-task" }, trusted)).rejects.toThrow("SUBAGENT_REVIEW_TASK_REQUIRED");
     await answering.execute({ kind: "result", taskId: begun.taskId, revisionId: begun.revisionId, sql: "SELECT COUNT(*) FROM orders" }, business("candidate"));

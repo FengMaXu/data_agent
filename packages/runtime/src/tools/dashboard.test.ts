@@ -17,7 +17,7 @@ import { MAX_DASHBOARD_DATASET_ROWS, createDashboardToolDefinitions } from "./da
 const context = (invocationId: string): BusinessContext => ({ principal: { id: "user-1" }, sessionId: "session-1", lane: "main", operationId: "operation-1", invocationId });
 const invocation = (invocationId: string) => ({ operationId: "operation-1", invocationId, getMemo: async () => undefined, setMemo: async () => undefined }) as never;
 const toolContext = { sessionId: "session-1", principalId: "user-1" } as never;
-const listSpec = { entity: "industries", metric: "sum", filters: [], groupBy: [], time: { state: "not_applicable" }, ranking: { state: "not_applicable" }, output: { rowMode: "full" } };
+const listSpec = { "population.entity": "industries", "population.eligibility": "n/a", "population.conditions": "n/a", "population.time": "n/a", "measure.formula": { op: "sum", of: "sales" }, grouping: "n/a", selection: "n/a", output: { rowMode: "full" } };
 
 /** Records what the page hands ECharts; jsdom has no canvas to draw on. */
 const ECHARTS_STUB = "window.echarts={init:function(el){return{setOption:function(o){(window.__options=window.__options||[]).push({id:el.parentNode.id,option:o})},resize:function(){}}}};";
@@ -32,7 +32,7 @@ async function setup(results: Record<string, Result>) {
   const receipts: Record<string, string> = {};
   for (const [name, result] of Object.entries(results)) {
     current = result;
-    const begun = await answering.begin({ requestMessageId: `message-${name}`, requestId: `begin-${name}`, spec: listSpec }, context(`begin-${name}`));
+    const begun = await answering.set({ requestMessageId: `message-${name}`, requestId: `begin-${name}`, fields: listSpec }, context(`begin-${name}`));
     const execution = await answering.execute({ kind: "result", taskId: begun.taskId, revisionId: begun.revisionId, sql: "SELECT 1" }, context(`execute-${name}`));
     if (execution.artifact.kind !== "candidate") throw new Error("expected Result Candidate");
     receipts[name] = (await answering.publish({ candidateId: execution.artifact.candidateId, format: "auto", requestId: `publish-${name}` }, context(`publish-${name}`))).receiptId;

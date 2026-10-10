@@ -14,7 +14,7 @@ import { DashboardRefresher } from "./dashboard-refresh.js";
 const context = (invocationId: string, sessionId = "session-1"): BusinessContext => ({ principal: { id: "user-1" }, sessionId, lane: "main", operationId: "operation-1", invocationId });
 const invocation = (invocationId: string) => ({ operationId: "operation-1", invocationId, getMemo: async () => undefined, setMemo: async () => undefined }) as never;
 const toolContext = { sessionId: "session-1", principalId: "user-1" } as never;
-const listSpec = { entity: "industries", metric: "sum", filters: [], groupBy: [], time: { state: "not_applicable" }, ranking: { state: "not_applicable" }, output: { rowMode: "full" } };
+const listSpec = { "population.entity": "industries", "population.eligibility": "n/a", "population.conditions": "n/a", "population.time": "n/a", "measure.formula": { op: "sum", of: "sales" }, grouping: "n/a", selection: "n/a", output: { rowMode: "full" } };
 const sales = { type: "quantitative", storage: "raw", unit: "亿元", additivity: "additive", label: "销售额" };
 
 async function setup() {
@@ -22,7 +22,7 @@ async function setup() {
   const resultStore = new InMemoryResultStore();
   let rows: unknown[][] = [["批发业", "100.00"], ["零售业", "40.00"]];
   const answering = new InMemoryAnswering({ store, resultStore, sqlExecutor: { run: async () => ({ columns: ["industry", "sales"], rows: rows.map((row) => [...row]), truncated: false }) } });
-  const begun = await answering.begin({ requestMessageId: "m", requestId: "b", spec: listSpec }, context("b"));
+  const begun = await answering.set({ requestMessageId: "m", requestId: "b", fields: listSpec }, context("b"));
   const execution = await answering.execute({ kind: "result", taskId: begun.taskId, revisionId: begun.revisionId, sql: "SELECT industry, sales FROM t" }, context("e"));
   if (execution.artifact.kind !== "candidate") throw new Error("expected Result Candidate");
   const receipt = await answering.publish({ candidateId: execution.artifact.candidateId, format: "csv", requestId: "p" }, context("p"));

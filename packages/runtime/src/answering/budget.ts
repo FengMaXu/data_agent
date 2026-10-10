@@ -19,7 +19,7 @@ import { AnsweringError, DATABASE_UNAVAILABLE, isDatabaseUnavailable } from "./e
 import { makeInternalId } from "./internal-ids.js";
 import { SqlExecutionError } from "./sql-execution.js";
 import { now } from "./support.js";
-import { MAX_CHOICE_PROBES } from "./choice-probe.js";
+import { MAX_FIELD_PROBES } from "./probes.js";
 
 /**
  * Query Task budget, attempt records and Implementation Obstacles. Every
@@ -146,13 +146,13 @@ export function reserveAttempt(
 ): { readonly task: QueryTaskRecord; readonly attempt?: QueryAttemptRecord; readonly obstacle?: ImplementationObstacle } {
   const at = Date.now();
   const budget = taskBudget(task, policy);
-  // Choice probes have their own per-task cap and do not consume exploration attempts (ADR-0005).
-  const choiceProbe = purpose === "choice_probe";
-  const probeCount = choiceProbe ? tx.listAttempts(task.taskId).filter((item) => item.purpose === "choice_probe" && item.state !== "blocked").length : 0;
-  const reason = choiceProbe
+  // Probes have their own per-task cap and do not consume exploration attempts (ADR-0005).
+  const fieldProbe = purpose === "field_probe";
+  const probeCount = fieldProbe ? tx.listAttempts(task.taskId).filter((item) => item.purpose === "field_probe" && item.state !== "blocked").length : 0;
+  const reason = fieldProbe
     ? Date.parse(budget.startedAt) + budget.policy.maxElapsedMs <= at ? "task time budget exhausted"
       : budget.observedRows >= budget.policy.maxObservedRows ? "observed-row budget exhausted"
-        : probeCount >= MAX_CHOICE_PROBES ? "choice probe budget exhausted" : undefined
+        : probeCount >= MAX_FIELD_PROBES ? "probe budget exhausted" : undefined
     : budgetFailure(budget, kind, at);
   if (reason) {
     const blocked = makeAttempt(task.taskId, kind, revisionId, invocationId, now(), "blocked", "not_started", false, "budget_exhausted", queryHash, purpose);
@@ -170,7 +170,7 @@ export function reserveAttempt(
       }),
     };
   }
-  const nextBudget: QueryBudgetState = choiceProbe
+  const nextBudget: QueryBudgetState = fieldProbe
     ? budget
     : kind === "revision"
     ? { ...budget, revisionCount: budget.revisionCount + 1 }

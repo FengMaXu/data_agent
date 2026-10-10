@@ -125,7 +125,7 @@ if (existsSync(answeringService)) {
   const methods = declaration && ts.isInterfaceDeclaration(declaration)
     ? declaration.members.flatMap((member) => ts.isMethodSignature(member) && member.name && ts.isIdentifier(member.name) ? [member.name.text] : [])
     : [];
-  const expected = ["begin", "revise", "execute", "publish", "refresh", "inspect"];
+  const expected = ["set", "execute", "publish", "refresh", "inspect"];
   if (methods.join(",") !== expected.join(",")) fail(`Answering public interface must contain only ${expected.join(", ")}; found ${methods.join(", ") || "none"}`);
 }
 

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
-import type { AnswerSpec, CheckCoverage, Finding } from "./model.js";
+import type { CheckCoverage, Finding, SpecFields } from "./model.js";
+import type { OutputValue } from "./fields.js";
 import type { PrivateResultObject } from "./result-store.js";
 
 type CheckUnknownReason = "digest_unavailable" | "schema_unavailable" | "insufficient_evidence";
@@ -11,7 +12,7 @@ type CheckOutcome =
   | { readonly kind: "unknown"; readonly reason: CheckUnknownReason };
 
 export interface CandidateCheckInput {
-  readonly spec: AnswerSpec;
+  readonly fields: SpecFields;
   readonly result: PrivateResultObject;
   readonly queryHash: string;
 }
@@ -39,8 +40,9 @@ function cryptoRandomId(): string {
 const shapeCheck: CandidateCheck = {
   id: "result_shape",
   evaluate(input) {
-    if (input.spec.output.state !== "specified") return { kind: "not_applicable" };
-    const output = input.spec.output.value;
+    const field = input.fields.output;
+    if (!field || (field.state !== "specified" && field.state !== "decided")) return { kind: "not_applicable" };
+    const output = field.value as OutputValue;
     if (output.rowMode === "scalar" && input.result.rowCount !== 1) {
       return { kind: "confirmed", finding: finding("shape_conflict", `Expected one scalar row but received ${input.result.rowCount}`, true, "result_shape") };
     }
