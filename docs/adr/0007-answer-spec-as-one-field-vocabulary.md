@@ -117,3 +117,145 @@ status: proposed
 - **文档引文不要求模型区分文档种类。** `cite` 的 `knowledge:<id>` 按组合根为该文档配置的种类（任务文档或已审核定义）准入。
 
 A/B 由维护者执行（Spider2 运行器的 `--spec-interface legacy|fields`）。
+
+## 补充（2026-10-10）：第二阶段的目标模型
+
+第二阶段把领域记录收敛为字段记录。本节给出收敛的目标：字段树的结构、四个互相独立的维度，以及现有规则在新模型中的位置。状态仍为 proposed；第二阶段在 A/B 结论成立、`fields` 成为默认接口之后实施。
+
+### 为什么不能只把记录一对一搬过来
+
+第一阶段把 8 个决策点挂到"所属"槽位下，但多数决策点描述的是槽位之间的依赖，而不是某一个槽位的细节：
+
+| 子字段 | 挂在 | 实际影响 |
+| --- | --- | --- |
+| `filters.population` | filters | 也决定 entity；ADR-0006 的统计总体规则同时作用于 `filters.population` 与 `entity`（决策 4） |
+| `entity.joinMultiplicity` | entity | 放大的是 metric 的值 |
+| `time.field` | time | 也决定 groupBy（按哪个日期分月）与 filters |
+| `metric.countGrain` | metric | 实质是实体身份：数行、数订单还是数客户 |
+| `metric.denominator` | metric | 分母的总体与 `filters.population` 重叠 |
+| `ranking.ties` | ranking | 改变输出行数；`top_n` 的 CandidateCheck 按 `rowCount` 核对 |
+| `output.shape` | output | 与 `output` 槽位本身重复：槽位值是 `{rowMode, rowCount, columns}`，子字段又用一句话描述同一件事 |
+
+此外，"假定"在三处各有一种写法：槽位的推断依据（Inferred Facet）、Hypothesis 的 provisional 结论、决策点的 `assumed` 声明。三者含义相近，规则覆盖面不同。
+
+A/B 重跑（`adr0007-fields-rowmode-dev10-deepseek-flash-20261010`，10 个开发集用例）中各子字段的最终声明：
+
+| 子字段 | 不适用 | 题面已定 | 假定 | 待定 | 引文 / 观测 |
+| --- | --- | --- | --- | --- | --- |
+| `filters.population` | 0 | 1 | 7 | 2 | 0 |
+| `output.shape` | 0 | 5 | 5 | 0 | 0 |
+| `metric.countGrain` | 1 | 2 | 6 | 1 | 0 |
+| `entity.joinMultiplicity` | 2 | 0 | 7 | 1 | 0 |
+| `ranking.ties` | 2 | 0 | 8 | 0 | 0 |
+| `time.field` | 5 | 0 | 2 | 3 | 0 |
+| `metric.denominator` | 5 | 2 | 1 | 2 | 0 |
+| `time.window` | 7 | 1 | 2 | 0 | 0 |
+
+样本小，只看方向：一半的子字段在多数用例中不适用，但每题都要声明；没有一项声明用到引文或观测证据，因此每个发布结果都带着一串"假定"披露；`entity.joinMultiplicity` 是可以查实的数据事实，却有 7 题写成了假定。
+
+### 四个维度
+
+目标模型把现在混在一起的东西拆成四个互相独立的维度；证据保持不变，仍是唯一被引用的对象。
+
+**1. 结构：答案由什么组成。** 字段按计算顺序组织成一棵树，每个歧义落在它实际发生的那一步。决策点不再是独立概念，而是这棵树上的节点。
+
+```
+population                统计总体
+  population.entity         实体与业务键（含按名称还是按键、版本是否合并）
+  population.eligibility    零值、空值实体是否纳入（原 filters.population）
+  population.conditions     资格条件及其作用阶段（原 filters）
+  population.source         数据来源（原 source）
+  population.time           时间范围、端点、参考日、日历与时区（原 time）
+  population.timeField      用哪个事件的时间字段（原 time.field）
+  population.missing        缺期是否补零，相邻观测还是相邻日历期（新增）
+measure                   度量
+  measure.formula           公式；kind 为枚举（原 metric）
+  measure.countGrain        计数粒度
+  measure.denominator       分母及分母为 0 的处理
+  measure.aggOrder          聚合顺序：先平均再汇总还是先汇总再相除（新增）
+  measure.window            滚动或累计窗口（原 time.window）
+  measure.unit              单位，比例还是百分数，舍入阶段（新增）
+grouping                  分组键与日历粒度（原 groupBy）
+selection                 排名：orderBy、n（原 ranking）
+  selection.ties            并列政策（原 ranking.ties）
+output                    行粒度、行数、列、精度（原 output 与 output.shape 合并）
+```
+
+另有一个物理层字段 `population.joinMultiplicity`（原 `entity.joinMultiplicity`），见维度 4。字段树控制在 20 个左右的节点：事件顺序与终止（语义指引 S09）、状态与递归（S10）等少见题型不单设节点，用对应节点的待定候选承载。
+
+**2. 状态：这个点有多确定。** 所有字段共用一个状态机，取代槽位依据、Hypothesis 结论、Choice 结论与决策点声明四套状态：
+
+`不适用 | 题面已定（引文） | 有证据 | 假定（披露） | 待定 → 已决定`
+
+"有证据"与"假定"的区分仍按 ADR-0006 由运行时判定；待定字段的探针、等价与决定规则不变（见规则映射表）。
+
+**3. 必要性：什么时候必须表态。** "必须声明"不再是固定的 8 项清单，而由其他字段的值推出：
+
+| 字段 | 何时必须给出状态 |
+| --- | --- |
+| `population.entity`、`population.eligibility`、`measure.formula`、`grouping`、`output` | 总是 |
+| `measure.countGrain` | `measure.formula.kind` 含计数 |
+| `measure.denominator`、`measure.aggOrder`、`measure.unit` | `measure.formula.kind` 为比率、占比或平均 |
+| `measure.window` | `measure.formula.kind` 为滚动或累计 |
+| `population.timeField`、`population.missing` | `population.time` 或 `grouping` 含时间 |
+| `selection.ties` | `selection` 不是"不适用" |
+| `population.joinMultiplicity` | 来源涉及多表连接 |
+
+前提是 `measure.formula.kind` 成为枚举（count、sum、average、ratio、share、extreme、rolling、cumulative 等）；目前 `MetricSpec.kind` 是自由字符串，规则无法据此触发。规则只依赖已有状态的字段；被依赖的字段尚未给出状态时，Revision 本来就不能进入 Ready。
+
+**4. 层：谁来定。**
+
+- **语义层**（用户的意思）：由题面、业务定义或用户澄清确定；模型可以假定，发布时披露。
+- **物理层**（在这个数据库里如何实现）：`population.source`、`population.timeField`、`population.joinMultiplicity`。这些是数据事实，由运行时用 Schema Profile（CONTEXT.md；键基数、空值率等）核实后作为观测证据填入，模型不再假定。Schema Profile 尚未实现；实现之前，物理层字段仍可由模型假定并披露。
+
+层由路径决定，取代 Hypothesis 的 `kind`。旧接口中 `kind` 由模型声明，`fields` 接口已由路径推出（`tools/answer-fields.ts` 的 `SUBFIELDS`）。
+
+### 规则映射
+
+| 现有规则 | 来源 | 在目标模型中 |
+| --- | --- | --- |
+| 证据准入与权威顺序 | ADR-0004 | 不变；字段引用证据 |
+| 改写已处置项须附理由，记录为取代 | ADR-0004、本 ADR 决策 6 | 不变；取代作用于单个字段记录 |
+| 一次调用产生一个 Revision，计一次预算 | 本 ADR 第一阶段实施记录 | 不变 |
+| 决策点未声明时 Revision 不能 Ready，结果查询与发布被阻断，探索不受影响 | ADR-0005 决策 5 | 必要性规则推出的字段没有状态时同样阻断 |
+| 决定前每个候选须有探针或不可探测理由 | ADR-0005 决策 1 | 不变；作用于待定字段的候选 |
+| 各候选输出相同即为等价，无需理由、建议与披露 | ADR-0005 决策 1；运行时由探针指纹推出（#146） | 不变 |
+| `compare_hypotheses` 只比较一个 Choice 的候选；偏离明显倾向须附理由与证据 | ADR-0005 决策 2、3 | 比较一个待定字段的候选；偏离规则不变 |
+| 结果指纹等于未采纳候选的探针指纹、且不等于被采纳候选的指纹时，不能成为结果候选（Choice Realization） | ADR-0005 决策 4 | 不变；作用于每个已决定字段 |
+| 已证实 / 未证实由运行时判定，未证实者发布时披露 | ADR-0006 | 不变；对应"有证据"与"假定 / 未证实的决定" |
+| 统计总体上的未证实决定，仅在无澄清途径时接受 | ADR-0006 | 作用于 `population.entity`、`population.eligibility`、`population.conditions`（语义层） |
+| 槽位假定记为 Inferred Facet，不建 Hypothesis | 本 ADR 第一阶段实施记录 | 不再需要：统计总体规则的范围已由路径确定，所有"假定"共用一种状态 |
+| `output.columns` 声明时结果列须逐位同名 | 本 ADR 决策 7 | 不变；归入 `output` |
+| 报告任务的共享字段继承与偏离 | ADR-0009 | 不变；路径按下节改名 |
+
+### 路径迁移
+
+| 第一阶段路径 | 目标路径 |
+| --- | --- |
+| `entity` | `population.entity` |
+| `filters` | `population.conditions` |
+| `filters.population` | `population.eligibility` |
+| `source` | `population.source` |
+| `time` | `population.time` |
+| `time.field` | `population.timeField` |
+| `entity.joinMultiplicity` | `population.joinMultiplicity` |
+| `metric`、`metrics.<name>` | `measure.formula`、`measures.<name>` |
+| `metric.countGrain`、`metric.denominator` | `measure.countGrain`、`measure.denominator` |
+| `time.window` | `measure.window` |
+| `groupBy` | `grouping` |
+| `ranking`、`ranking.ties` | `selection`、`selection.ties` |
+| `output`、`output.shape` | `output` |
+
+### 实施顺序
+
+1. A/B 按"实施与验证"在 35 个开发集用例上完成；结论成立后 `fields` 成为默认接口，删除旧工具、`answer-spec` Skill，并更新 `.pi/SYSTEM.md`。
+2. Hypothesis 与 Choice 记录增加显式 `path` 属性，取代第一阶段以 `"<path>: "` 语句前缀识别归属的做法。不迁移数据。
+3. 用 Spider2 错题标注（`spec-quality-labels.jsonl`）检验字段树覆盖面，再确定新增节点（`population.missing`、`measure.aggOrder`、`measure.unit`）是否保留。
+4. 领域记录收敛为字段记录，引入必要性规则与 `measure.formula.kind` 枚举。旧快照只读，读取时投影为字段视图，不改写历史；JEV 适配器发送前从字段记录投影出现有的 hypotheses / choices 形状，外部接口不变；评测指标提供新旧转换。
+5. Schema Profile 实现后，物理层字段改由运行时核实填入。
+
+### 未决
+
+- 没有路径的 `data_property` 假设（例如"每行存了两份"）：本 ADR 补充 2026-10-05 待定 5 已决定数据质量不进字段表；收敛后它们以物理层观测或检测器结论的形式存在，不再是可被模型假定的 Hypothesis。需要确认现有快照中这类记录的投影方式。
+- 一个路径下的多条假设：目标模型中一个字段只有一个值；现有快照中同一路径挂多条 Hypothesis 的情况需要在投影时合并或保留为只读历史。
+- 字段树是否覆盖评测外的产品场景（看板多视图由 ADR-0009 的报告任务承载，不在本树内）。
