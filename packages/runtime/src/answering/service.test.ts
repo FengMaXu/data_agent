@@ -66,6 +66,13 @@ describe("Answering vertical slice", () => {
     await expect(service.begin({ requestMessageId: "message-invalid-ranking", requestId: "begin-invalid-ranking", spec: { ...simpleSpec, ranking: { n: 10, orderBy: "score", tiePolicy: "arbitrary" } } }, context("begin-invalid-ranking"))).rejects.toMatchObject({ code: "INVALID_REQUEST" });
   });
 
+  it("names the allowed output row modes when the model guesses one", async () => {
+    const service = answering(async () => ({ columns: ["value"], rows: [[1]], truncated: false }));
+    const guessed = service.begin({ requestMessageId: "message-invalid-output", requestId: "begin-invalid-output", spec: { ...simpleSpec, output: { rowMode: "rows", rowCount: 4 } } }, context("begin-invalid-output"));
+    await expect(guessed).rejects.toMatchObject({ code: "INVALID_REQUEST" });
+    await expect(guessed).rejects.toThrow('Invalid output.rowMode "rows": use one of scalar, top_n, grouped, full, detail');
+  });
+
   it("rejects a provisional choice that changes the material population", async () => {
     const service = answering(async () => ({ columns: ["value"], rows: [[1]], truncated: false }));
     await expect(service.begin({
