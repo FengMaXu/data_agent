@@ -17,6 +17,7 @@ const semanticProjectDir = process.env.DATA_AGENT_SEMANTIC_PROJECT_DIR
   : path.resolve(dataDir, "..", "semantic-context");
 const packagedRoot = process.resourcesPath ?? root;
 const skillRoots = [path.join(root, ".agents", "skills"), path.join(packagedRoot, ".agents", "skills")];
+const builtinKnowledgeRoots = [path.join(root, ".agents", "knowledge"), path.join(packagedRoot, ".agents", "knowledge")];
 const pythonExecutable = process.env.DATA_AGENT_PYTHON
   ?? (existsSync(path.join(root, "dist", "python-runtime", "Scripts", "python.exe")) ? path.join(root, "dist", "python-runtime", "Scripts", "python.exe") : undefined);
 
@@ -62,6 +63,7 @@ application = await createDataAgentApplication({
   dataRoot: dataDir,
   host: "web",
   knowledgeRoot,
+  builtinKnowledgeRoots,
   semanticProjectDir,
   pythonExecutable,
   queryExecutor: resolveQueryExecutor,

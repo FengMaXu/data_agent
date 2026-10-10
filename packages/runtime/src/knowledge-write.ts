@@ -28,11 +28,18 @@ function learningAlreadyExists(previous: string, candidate: string): boolean {
 export class KnowledgeWriter {
   readonly root: string;
   private readonly auditPath: string;
-  constructor(root: string, auditPath?: string) { this.root = path.resolve(root); this.auditPath = auditPath ?? path.join(this.root, ".audit.log"); }
+  private readonly isBuiltin: (relativePath: string) => boolean;
+  constructor(root: string, auditPath?: string, options: { readonly isBuiltin?: (relativePath: string) => boolean } = {}) {
+    this.root = path.resolve(root);
+    this.auditPath = auditPath ?? path.join(this.root, ".audit.log");
+    this.isBuiltin = options.isBuiltin ?? (() => false);
+  }
   private resolve(relativePath: string): string { const target = path.resolve(this.root, relativePath); if (!target.startsWith(`${this.root}${path.sep}`) && target !== this.root) throw new Error("KNOWLEDGE_PATH_ESCAPE"); return target; }
   assertAllowed(operation: KnowledgeWriteOperation, relativePath: string): void {
     const normalized = relativePath.split(path.sep).join("/").replace(/^\.\//, "");
     if (normalized === "agent.md" || normalized.startsWith(".pi/")) throw new KnowledgeWriteDeniedError("SYSTEM_PROMPT_IMMUTABLE");
+    // A user-root copy would silently override the built-in document.
+    if (this.isBuiltin(normalized)) throw new KnowledgeWriteDeniedError(`BUILTIN_WRITE_DENIED:${normalized}`);
     if (CANONICAL_DOCS.includes(normalized) && operation !== "update_schema") throw new KnowledgeWriteDeniedError(`CANONICAL_WRITE_DENIED:${normalized}`);
     if (operation === "append_learning" && !normalized.startsWith("doc/learning")) throw new KnowledgeWriteDeniedError("LEARNING_APPEND_ONLY");
   }

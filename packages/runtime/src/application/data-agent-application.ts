@@ -2,6 +2,7 @@ import path from "node:path";
 import type { DataAgentCommandEnvelope, DataAgentEventEnvelope, DataAgentResponseEnvelope, RequestContext } from "@data-agent/contracts";
 import { ClarificationManager } from "../clarification.js";
 import { KnowledgeIndex } from "../knowledge.js";
+import { ensureKnowledgePlaceholders } from "../knowledge-seed.js";
 import { MetadataStore } from "../metadata.js";
 import { DataAgentRuntime } from "../protocol.js";
 import { WorkspaceStore } from "../workspace.js";
@@ -22,6 +23,8 @@ export interface DataAgentApplicationOptions {
   readonly host: "electron" | "web";
   readonly defaultUserId?: string;
   readonly knowledgeRoot?: string;
+  /** Read-only roots holding built-in knowledge that ships with the application; earlier roots win on duplicate paths. */
+  readonly builtinKnowledgeRoots?: readonly string[];
   readonly semanticProjectDir?: string;
   readonly pythonExecutable?: string | (() => string | undefined);
   readonly bundledPythonExecutable?: string;
@@ -90,7 +93,10 @@ export class DataAgentApplication implements ApplicationCommandHost {
     const workspaceUserId = options.defaultUserId ?? (options.host === "electron" ? "local" : undefined);
     const workspace = new WorkspaceStore(path.join(dataRoot, "workspace"), workspaceUserId ? { userId: workspaceUserId } : {});
     const knowledgeRoot = path.resolve(options.knowledgeRoot ?? path.join(dataRoot, "knowledge"));
+    const seeded = await ensureKnowledgePlaceholders(knowledgeRoot);
+    if (seeded.length > 0) console.info(`[data-agent] Created knowledge placeholders in ${knowledgeRoot}: ${seeded.join(", ")}`);
     const knowledge = new KnowledgeIndex({ requireMetadata: true });
+    for (const builtinRoot of options.builtinKnowledgeRoots ?? []) await knowledge.loadDirectory(builtinRoot, { readOnly: true });
     await knowledge.loadDirectory(knowledgeRoot);
     for (const diagnostic of knowledge.diagnostics()) {
       console.warn(`[data-agent] Knowledge diagnostic (${diagnostic.code}) ${diagnostic.path}: ${diagnostic.message}`);

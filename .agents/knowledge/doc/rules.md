@@ -15,8 +15,17 @@ usage: method
 
 - 仅生成只读 `SELECT` 或以只读 `SELECT` 为最终语句的 `WITH` / `WITH RECURSIVE`；CTE 内也不得含数据修改。禁止 DML、DDL、写文件、变更会话或调用有副作用的函数，不用批量语句绕过只读限制。
 - 使用当前连接的方言与版本；确认日期函数、窗口、递归、布尔表达式、标识符引用、数值类型和参数绑定语法可用，不混用不同数据库写法。
-- 仅引用已确认的表、列与关系。数据值在工具支持时使用参数绑定；否则按目标方言正确转义，不能直接拼接不可信文本。动态标识符必须来自已确认 Schema，不能用值占位符冒充标识符。
+- 仅引用已确认的表、列与关系，按真实列类型书写字面量（如文本列不与数字字面量比较）；不凭名称猜测表名或列名。数据值在工具支持时使用参数绑定；否则按目标方言正确转义，不能直接拼接不可信文本。动态标识符必须来自已确认 Schema，不能用值占位符冒充标识符。
 - 敏感字段遵守访问和脱敏政策；只返回任务需要的列，避免无关个人信息进入上下文。
+
+### 方言速查
+
+| 方言 | 适用写法 | 不可用或需避免 |
+|---|---|---|
+| SQLite | 年份 `strftime('%Y', col)`；日期差 `julianday(d1) - julianday(d2)`；连接 `\|\|`；浮点除法 `CAST(... AS REAL)` 或 `1.0 * ...`；系统表 `sqlite_master`；分页 `LIMIT n OFFSET m` | `YEAR()`、`MONTH()`、`DATEDIFF()`、`DATE_FORMAT()`、`CONCAT()`、`SUBSTRING_INDEX()`、`IF()`、`information_schema` |
+| MySQL | 日期格式化 `DATE_FORMAT()`，日期差 `DATEDIFF()` | 不要把 MySQL 函数经验复制到 SQLite、BigQuery 或 Snowflake |
+
+条件表达式统一优先用 `CASE WHEN`，空值处理用 `COALESCE()`。元数据只通过当前连接允许的接口读取，不在其他方言中假设 `information_schema` 可用。
 
 ## 2. 结构与命名
 
@@ -29,7 +38,7 @@ usage: method
 
 - 按已确定的计数粒度选择：`COUNT(*)` 计行，`COUNT(column)` 计非 NULL 值，`COUNT(DISTINCT entity_key)` 计不同非 NULL 实体。需要包括空键类别时按 Spec 显式实现。
 - 复合实体键的去重使用目标方言支持的复合去重，或先按完整键分组/去重再计数；不要用可能碰撞的字符串拼接替代复合键。
-- 连接包含完整关联键，尤其事件序号、批次、月份或历史版本有效期。不得只因同名列存在就连接。
+- 连接包含完整关联键，尤其事件序号、批次、月份或历史版本有效期。不得只因同名列存在就连接。连接前检查各侧业务键基数；多张表同时存在重复时，只对其中一张去重无法消除膨胀。
 - 条件连接明确写 `ON`；确有已定义笛卡尔网格需求时使用显式 `CROSS JOIN` 并估计规模。仅检验是否存在关联记录时，优先考虑 `EXISTS`，避免无意复制主表行。
 - 多事实表按已确定的共同粒度分别预聚合后连接；需要合法明细展开时保留展开。维度选版本或去重按已确定政策实现，不用任意 `MIN`/`MAX` 选记录。
 - 最终 `DISTINCT` 不能修复前面已膨胀的金额或平均权重；修复应发生在错误的连接/聚合阶段。
@@ -45,7 +54,7 @@ usage: method
 ## 5. 聚合与数值公式
 
 - 将计算图逐阶段翻译成 SQL。例如先得到产品年总量、再排名、最后平均所选年总量；不回到更细明细层错误求均值。
-- 分别实现 `AVG(a/b)`、`SUM(a)/SUM(b)`、分组均值的等权平均和加权平均，不因查询简短互换公式。
+- 分别实现 `AVG(a/b)`、`SUM(a)/SUM(b)`、分组均值的等权平均和加权平均，不因查询简短互换公式。例如行业整体增速用汇总后的分子与分母计算，不平均企业级增速。
 - 组合指标先计算全部分量再排名；题面要求多个条件度量时，分别用条件聚合等方式实现。
 - 除法使用适合目标方言的数值类型，避免整数截断。精确金额优先使用足够精度的十进制运算，注意乘法、中间汇总的溢出和类型提升。
 - 用 `NULLIF(denominator, 0)` 或显式条件避免除零；返回 NULL、零或其他值按 Spec 实现，不因技术防错改变业务定义。
@@ -83,6 +92,7 @@ usage: method
 
 - 性能优化必须保持当前语义。等价时提前过滤、预聚合，优先可用索引范围条件，避免不必要的大网格和重复扫描；不得为了性能删基准期、缩总体或降低所需精度。
 - 少量预览用于检查，不通过给最终 SQL 强加采样 `LIMIT` 改变完整结果。最终 `LIMIT` 只实现已定义 Top-N 或明确要求的明细上限。
+- 发布的必须是最后一次验证成功的最终 SQL，不发布中间 CTE 或明细中间表。
 - 返回上下文的预览最多 100 行；工具可能采用更小上限或自动截断，截断行数不是完整结果行数。不反复扩大上下文窗口代替完整交付，按系统流程发布/导出完整结果。
 - 最终投影严格匹配已确定的列清单、顺序、别名、单位和精度；诊断字段不自动导出。最终排序明确写出，不依赖 CTE、子查询或存储顺序。
 
@@ -97,3 +107,116 @@ usage: method
 - [ ] 最终列、排序和行数政策匹配；预览限制未混入完整结果 SQL。
 
 检查只说明实现层未发现相应问题，不授予候选发布资格。若发现口径本身不明确，回到语义指引与系统流程，而不是用实现修改反向追认口径。
+
+## 附录：通用实现模板
+
+模板只描述可迁移的 SQL 写法，不绑定数据库实体或业务领域；按当前 Schema 替换占位符并改写为目标方言后再验证。示例使用 SQLite 语法。
+
+### 日期差
+
+```sql
+SELECT julianday(end_date) - julianday(start_date) AS elapsed_days
+FROM source_table
+WHERE start_date IS NOT NULL AND end_date IS NOT NULL;
+```
+
+不要按年、月、日字段分别相减；其他方言使用等价的日期差函数。
+
+### 带历史基线的 LAG / 滚动窗口
+
+```sql
+WITH history AS (
+    SELECT entity_id, period, value
+    FROM source_table
+    WHERE period >= :calculation_start
+      AND period < :display_end
+), windowed AS (
+    SELECT
+        entity_id,
+        period,
+        value,
+        LAG(value) OVER (PARTITION BY entity_id ORDER BY period) AS previous_value,
+        AVG(value) OVER (
+            PARTITION BY entity_id
+            ORDER BY period
+            ROWS BETWEEN :lookback PRECEDING AND CURRENT ROW
+        ) AS rolling_value
+    FROM history
+)
+SELECT entity_id, period, value, previous_value, rolling_value
+FROM windowed
+WHERE period >= :display_start AND period < :display_end;
+```
+
+计算范围覆盖展示期之前所需的历史基线，最后一步才裁剪到展示期。
+
+### as-of 累计余额
+
+```sql
+SELECT entity_id, COALESCE(SUM(amount), 0) AS balance_as_of
+FROM transactions
+WHERE transaction_time < :as_of_boundary
+GROUP BY entity_id;
+```
+
+`<`、`<=` 与边界时间由口径决定；“截至某月初”不能改成该月净额。
+
+### 区间覆盖某个时点
+
+```sql
+WHERE start_time <= :point_in_time
+  AND (end_time >= :point_in_time OR end_time IS NULL)
+```
+
+明确结束端点是否包含，以及 NULL 是否代表仍然有效。
+
+### 日历年过滤
+
+```sql
+WHERE strftime('%Y', date_col) = :calendar_year
+```
+
+不要用年份差近似日历年，也不要混用财年、自然年和滚动十二个月。
+
+### 递归展开叶节点
+
+```sql
+WITH RECURSIVE expanded(root_id, node_id, quantity) AS (
+    SELECT root_id, child_id, CAST(quantity AS REAL)
+    FROM root_components
+    UNION ALL
+    SELECT e.root_id, c.child_id, e.quantity * c.quantity
+    FROM expanded e
+    JOIN components c ON c.parent_id = e.node_id
+), leaves AS (
+    SELECT e.root_id, e.node_id, e.quantity
+    FROM expanded e
+    WHERE NOT EXISTS (
+        SELECT 1 FROM components c WHERE c.parent_id = e.node_id
+    )
+)
+SELECT root_id, node_id, SUM(quantity) AS total_quantity
+FROM leaves
+GROUP BY root_id, node_id;
+```
+
+结果要明确是每条路径、每个叶节点还是每个根节点；路径数不能直接当叶节点数。
+
+### 有序逐期状态
+
+```sql
+WITH RECURSIVE states(entity_id, sequence_no, period, state_value) AS (
+    SELECT entity_id, 0, first_period, initial_value
+    FROM initial_state
+    UNION ALL
+    SELECT s.entity_id, n.sequence_no, n.period, s.state_value + n.delta
+    FROM states s
+    JOIN ordered_events n
+      ON n.entity_id = s.entity_id
+     AND n.sequence_no = s.sequence_no + 1
+)
+SELECT entity_id, period, state_value
+FROM states;
+```
+
+每一步必须有唯一的下一期、明确的初始状态和可检查的不变量；FIFO 分配、库存滚动和会话序列先验证前几步和最后一步。

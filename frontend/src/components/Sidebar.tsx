@@ -135,6 +135,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onNavigate, collapsed = f
                 ...(f.name ? { title: f.name } : {}),
                 ...(f.description ? { description: f.description } : {}),
                 ...(f.knowledgeId ? { knowledgeId: f.knowledgeId } : {}),
+                ...(f.readOnly ? { readOnly: true } : {}),
+                ...(f.hasContent === false ? { hasContent: false } : {}),
             })) };
             setKnowledgeFiles(response.files);
         } catch {
@@ -389,8 +391,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onNavigate, collapsed = f
                     depth={level}
                     icon={isDirectory ? <RiFolder3 size={15} /> : <RiFileText size={15} />}
                     label={item.knowledgeId ? (item.title ?? item.name) : item.name}
-                    secondary={item.knowledgeId}
-                    title={isDirectory ? item.path : [knowledgeLabel(item), item.description, item.path].filter(Boolean).join('\n')}
+                    secondary={item.readOnly ? `${item.knowledgeId} · ${t('common.knowledgeBuiltin')}` : item.hasContent === false ? `${item.knowledgeId} · ${t('common.knowledgePlaceholder')}` : item.knowledgeId}
+                    title={isDirectory ? item.path : [knowledgeLabel(item), item.description, item.path, item.readOnly ? t('common.knowledgeBuiltinHint') : item.hasContent === false ? t('common.knowledgePlaceholderHint') : ''].filter(Boolean).join('\n')}
                     expanded={hasChildren ? expanded : undefined}
                     active={!isDirectory && editorOpen && selectedFile?.path === item.path}
                     onSelect={() => hasChildren ? toggleKnowledgePath(item.path) : void openKnowledgeFile(item)}
@@ -698,7 +700,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onNavigate, collapsed = f
                         <div className="editor-modal-header">
                             <div className="editor-title" id="editor-modal-title"><FileText size={16} aria-hidden="true" /><span>{knowledgeLabel(selectedFile)}</span></div>
                             <div className="editor-actions">
-                                {isMarkdown && !isEditing && <button type="button" className="action-btn" onClick={() => setIsEditing(true)} title={t('editor.edit')} aria-label={t('editor.edit')}><Edit3 size={14} aria-hidden="true" /></button>}
+                                {isMarkdown && !isEditing && !selectedFile.readOnly && <button type="button" className="action-btn" onClick={() => setIsEditing(true)} title={t('editor.edit')} aria-label={t('editor.edit')}><Edit3 size={14} aria-hidden="true" /></button>}
                                 {isEditing && <button type="button" className="action-btn save" onClick={handleSave} disabled={saving} title={t('editor.save')} aria-label={t('editor.save')}><Save size={14} aria-hidden="true" /></button>}
                                 <button type="button" className="action-btn" onClick={closeEditor} title={t('editor.close')} aria-label={t('editor.close')}><X size={14} aria-hidden="true" /></button>
                             </div>

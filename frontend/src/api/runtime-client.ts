@@ -165,7 +165,7 @@ export async function writeWorkspaceFileViaRuntime(path: string, content: string
   await getRuntimeClient().dispatch({ type: "workspace.write", path, content });
 }
 
-export async function listKnowledgeViaRuntime(): Promise<Array<{ path: string; size: number; modifiedAt: number; knowledgeId?: string; name?: string; description?: string; usage?: "method" | "fact" }>> {
+export async function listKnowledgeViaRuntime(): Promise<Array<{ path: string; size: number; modifiedAt: number; knowledgeId?: string; name?: string; description?: string; usage?: "method" | "fact"; readOnly?: boolean; hasContent?: boolean }>> {
   const envelope = await getRuntimeClient().dispatch({ type: "knowledge.list" });
   const result = envelope.response;
   if (result.type !== "knowledge.list.result") throw new Error("UNEXPECTED_RESPONSE");

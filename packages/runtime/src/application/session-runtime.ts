@@ -82,7 +82,8 @@ export interface DataAgentSessionRuntimeOptions {
 export type AnsweringEvidenceDocuments = Readonly<Record<string, "task_document" | "reviewed_definition">>;
 
 export function composeKnowledgeCatalogPrompt(base: string, knowledge?: KnowledgeIndex, options: { readonly delegation?: boolean } = {}): string {
-  const entries = knowledge?.catalog() ?? [];
+  // An unfilled placeholder would send the Agent to read a document with no content.
+  const entries = (knowledge?.catalog() ?? []).filter((entry) => entry.hasContent);
   if (entries.length === 0) return base;
   const header = "Knowledge Catalog (choose sources by need; do not treat catalog metadata as business evidence):";
   if (!options.delegation) return `${base}\n\n${header}\n${renderKnowledgeCatalog(entries)}`;

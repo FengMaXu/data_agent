@@ -496,6 +496,8 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
     host: "electron",
     defaultUserId: "local",
     knowledgeRoot,
+    // General method guides are read in place so they update with the application.
+    builtinKnowledgeRoots: [path.join(packagedRoot, ".agents", "knowledge"), path.join(developmentRoot, ".agents", "knowledge")],
     semanticProjectDir,
     pythonExecutable: bundledPythonExecutable,
     bundledPythonExecutable,

@@ -87,6 +87,13 @@
         ]
       },
       {
+        "from": "../.agents/knowledge",
+        "to": ".agents/knowledge",
+        "filter": [
+          "**/*.md"
+        ]
+      },
+      {
         "from": "../.agents/skills",
         "to": ".agents/skills",
         "filter": [
