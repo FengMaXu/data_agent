@@ -1,4 +1,4 @@
-/* Hero demo: a scripted replay of the yourDB app at a fixed 1280×800 stage, scaled to the frame. */
+/* Hero demo: a scripted replay of the yourdb app at a fixed 1280×800 stage, scaled to the frame. */
 .hd-view { position: absolute; inset: 0; overflow: hidden; background: #f3f3f2; }
 
 .hd-stage {
