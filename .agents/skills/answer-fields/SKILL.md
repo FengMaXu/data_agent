@@ -128,7 +128,7 @@ query_database(kind="result", taskId, revisionId, sql)
 - 待定字段每个候选的 `alternativeId` 见 `set_answer_spec` 返回的状态表。
 - 探针 SQL 按该候选的口径计算**最终输出**，不是中间量。`[PROBE] output=...` 相同表示两个候选给出同一个答案。探针不占探索次数。
 - 探索只验证可能改变答案的未决点，每次解决一个问题；探索产物不能发布。
-- 最终查询绑定状态表所在的当前 `revisionId`，只执行一次，生成不可变的 Result Candidate。CandidateCheck 拒绝时修正 SQL；结果与未采纳候选的探针输出相同时以 `DECISION_NOT_REALIZED` 拒绝，改 SQL 实现已采纳的候选。
+- 最终查询绑定状态表所在的当前 `revisionId`，只执行一次，生成不可变的 Result Candidate。SQL 与已封存字段明显不符（最外层行数上限与 `selection.n` 不同、`include_ties` 却用行数上限截断、`percentage` 未乘 100）时，SQL 不执行并以 `SPEC_NOT_REALIZED` 拒绝：改 SQL 实现字段，字段本身写错才附 reason 改写字段；可能不符的情况随结果披露。CandidateCheck 拒绝时修正 SQL；结果与未采纳候选的探针输出相同时以 `DECISION_NOT_REALIZED` 拒绝，改 SQL 实现已采纳的候选。
 - `[IMPLEMENTATION_OBSTACLE]` 按 `kind` 判断：技术失败在预算内修 SQL；业务判断、映射不足、预算耗尽或执行结果未知时回到取证、澄清或说明限制。
 
 ## 7. 报告与看板

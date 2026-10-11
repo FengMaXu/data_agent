@@ -346,7 +346,7 @@ export type QueryArtifact =
 
 export interface Finding {
   readonly id: string;
-  readonly kind: "shape_conflict" | "result_incomplete" | "integrity_conflict" | "join_fanout";
+  readonly kind: "shape_conflict" | "result_incomplete" | "integrity_conflict" | "join_fanout" | "realization_conflict";
   readonly message: string;
   readonly blocking: boolean;
   readonly checkId?: string;

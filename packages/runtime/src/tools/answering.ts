@@ -529,7 +529,7 @@ export function createAnsweringAgentToolDefinitions(
     })] : []),
     protocolTool(queryTool(answering), {
       promptSnippet: "执行有界探索或当前版本的一次结果查询。",
-      promptGuidelines: ["探索产物不可发布；结果查询必须绑定当前 Ready Revision，遇到实现障碍先按分类修复或回到取证，不要盲目重跑未知结果。", "探针：exploration 加 probe={path, alternativeId}，SQL 按该候选口径计算最终输出；输出标识相同表示答案相同。探针不占探索次数。", "结果与未采纳候选的探针输出相同时会被 DECISION_NOT_REALIZED 拒绝：改 SQL 实现已采纳的候选，或附 reason 改写该字段。"],
+      promptGuidelines: ["探索产物不可发布；结果查询必须绑定当前 Ready Revision，遇到实现障碍先按分类修复或回到取证，不要盲目重跑未知结果。", "探针：exploration 加 probe={path, alternativeId}，SQL 按该候选口径计算最终输出；输出标识相同表示答案相同。探针不占探索次数。", "结果与未采纳候选的探针输出相同时会被 DECISION_NOT_REALIZED 拒绝：改 SQL 实现已采纳的候选，或附 reason 改写该字段。", "最终 SQL 与已封存字段明显不符时不执行，以 SPEC_NOT_REALIZED 拒绝：改 SQL 实现字段，字段写错才附 reason 改写字段。"],
     }),
     ...(hypothesisComparison ? [protocolTool(hypothesisComparisonTool(answering, hypothesisComparison), {
       promptSnippet: "请求 Jev 比较一个待定字段的全部候选。",

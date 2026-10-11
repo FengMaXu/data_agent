@@ -32,3 +32,12 @@ Query Digest、基数、形状和过滤器检测器能够可靠地描述候选�
 - 这种情况在检查覆盖中记为 `not_applicable`，原因写明“未配置”，发布记录仍可审计；不生成 Disclosure。
 - 应用启动时报告一次该部署状态。
 - 检查器已配置但本次不可用、未完成或不确定（`unavailable`、`unknown`），以及确定性规则发现的风险，仍按第 2 条随结果披露。
+
+## 修订（2026-10-11）：Spec Realization 进入第 3 条的硬阻断
+
+Answer Spec 负责语义理解，SQL 负责实现已封存的理解。ADR-0001 的 Reviewer 承担过这道核验，失去发布权后其实现被移除，此后没有任何机制检查 SQL 是否实现了封存字段。Spec Realization 补上这一层：只读封存字段与 SQL 文本，不读对话，只判断实现，不判断语义对错。
+
+- 第 3 条的硬阻断增加一类：SQL 在结构上不可能实现某个封存字段——最外层行数上限与 `selection.n` 不同（`strict`）、`include_ties` 却以不带 WITH TIES 的行数上限截断、`measure.formula` 含 `percentage` 而 SQL 从未乘 100。此时 SQL 不执行，以 `SPEC_NOT_REALIZED` 拒绝，可重试。
+- 有已知例外的结构信号（声明的来源表未被读取、`count_distinct` 无 DISTINCT、聚合层数少于公式嵌套、声明的日历粒度未被派生、`include_ties` 只用 ROW_NUMBER）按第 2 条记为 finding 并随结果披露，不阻断。
+- 规则读不懂的字段记为不可判定，不记为已实现。
+- 阻断规则须在已有运行上回放校准：2026-10-10 字段树运行 102 题中，阻断规则只在 1 道正确题上触发（`include_ties` 却 `LIMIT 1`，因无并列而碰巧正确），声明来源表未读取在 5 道正确题上触发（按键过滤代替连接查找表），故列为披露项。新增阻断规则前须做同样的回放。

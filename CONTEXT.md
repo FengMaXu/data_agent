@@ -160,6 +160,10 @@ _Avoid_: Advice cache, recommendation store
 The requirement that a result does not reproduce the probe output of an alternative the Revision did not adopt. A result that does is rejected as DECISION_NOT_REALIZED.
 _Avoid_: Choice consistency check
 
+**Spec Realization**:
+The check that the final SQL implements the sealed fields, read from the fields and the SQL text only. A conflict no correct implementation can have (a row cap that differs from `selection.n`, a cap that drops ties the Spec keeps, a percentage never multiplied by 100) rejects the SQL before it runs as SPEC_NOT_REALIZED; a likely conflict is disclosed with the result. It judges implementation, never whether the meaning is right.
+_Avoid_: SQL review, query digest
+
 **Necessity Rule**:
 The rule that says which fields must have a state before a result query: eight always, and the measure sub-fields, `selection.ties` and `population.joinMultiplicity` when the formula, selection or source call for them (ADR-0007). Not applicable is a state.
 _Avoid_: Checklist item, decision point
