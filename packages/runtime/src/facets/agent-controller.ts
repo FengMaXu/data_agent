@@ -45,11 +45,14 @@ export interface AgentController {
 
 export class AgentControllerError extends Error {
   readonly code: "ADMISSION_REJECTED" | "DRIVE_REJECTED" | "ABORT_REJECTED" | "QUEUE_REJECTED" | "RESUME_REJECTED";
+  /** Admission was refused only because the lane already runs an operation. */
+  readonly busy: boolean;
 
-  constructor(code: AgentControllerError["code"], message: string) {
+  constructor(code: AgentControllerError["code"], message: string, options: { readonly busy?: boolean } = {}) {
     super(message);
     this.name = "AgentControllerError";
     this.code = code;
+    this.busy = options.busy ?? false;
   }
 }
 
@@ -88,7 +91,7 @@ export class PiAgentController implements AgentController {
     const lane = await this.lane();
     await lane.setActiveTools([...this.baseActiveToolNames], context.pi);
     const admission = await lane.accept({ kind: "prompt", prompt: request.prompt, ...(request.operationId ? { operationId: request.operationId } : {}) }, context.pi);
-    if (!admission.ok) throw new AgentControllerError("ADMISSION_REJECTED", resultError(admission));
+    if (!admission.ok) throw new AgentControllerError("ADMISSION_REJECTED", resultError(admission), { busy: (admission.error as { readonly _tag?: string } | undefined)?._tag === "LaneBusy" });
     try {
       await this.onAccepted?.(admission.value, context);
     } catch (error) {

@@ -28,7 +28,7 @@ import { BrowserFrame, useInView, usePrefersReducedMotion } from './LandingVisua
 import './heroDemo.css';
 
 /*
- * A scripted replay of a real yourDB session (delivery_center, 2026-10-02), condensed to ~30s.
+ * A scripted replay of a real yourdb session (delivery_center, 2026-10-02), condensed to ~30s.
  * Everything on the stage is derived from one clock, so chapters can seek and the loop is deterministic.
  */
 
@@ -573,7 +573,7 @@ const HeroDemo: React.FC = () => {
 
     return (
         <div className="hd-demo">
-            <BrowserFrame url="yourDB / app">
+            <BrowserFrame url="yourdb / app">
                 <div ref={viewRef} className="hd-view" role="img" aria-label={t('landing.demo.label')}>
                     <div aria-hidden="true">{scale > 0 && <AppReplay time={shown} scale={scale} />}</div>
                 </div>

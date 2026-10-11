@@ -130,7 +130,7 @@ function generateDashboardTool(options: DashboardToolOptions): AgentHarnessTool<
       ].join("\n");
       return {
         content: [{ type: "text", text }],
-        details: { relativePath, fileType: "html", receiptIds: Object.values(sources).filter((source) => source.kind === "publication").map((source) => source.id), sources: Object.values(sources).map(({ kind, id, contentHash }) => ({ kind, id, contentHash })), renderer: CHART_RENDERER_VERSIONS },
+        details: { relativePath, fileType: "html", contentHash: createHash("sha256").update(html).digest("hex"), receiptIds: Object.values(sources).filter((source) => source.kind === "publication").map((source) => source.id), sources: Object.values(sources).map(({ kind, id, contentHash }) => ({ kind, id, contentHash })), renderer: CHART_RENDERER_VERSIONS },
       };
     },
   };
