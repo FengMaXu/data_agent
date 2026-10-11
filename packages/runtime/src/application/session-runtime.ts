@@ -14,7 +14,7 @@ import { createChartToolDefinitions } from "../tools/charts.js";
 import { createDashboardToolDefinitions } from "../tools/dashboard.js";
 import { DerivedDatasets, FileDerivedDatasetStore, InMemoryDerivedDatasetStore } from "../facets/derived-datasets.js";
 import { DashboardRefresher } from "../facets/dashboard-refresh.js";
-import { createAnsweringAgentToolDefinitions, type DataAgentToolContext, type HypothesisComparisonToolOptions, type SemanticSpecMode, type SpecInterface } from "../tools/answering.js";
+import { createAnsweringAgentToolDefinitions, type DataAgentToolContext, type HypothesisComparisonToolOptions, type SemanticSpecMode } from "../tools/answering.js";
 import { createCoreAgentToolDefinitions } from "../tools/core.js";
 import { createDataAgentPiRuntime, createPiSessionHost, type DataAgentModelProfile, type DataAgentSessionHost, type DataAgentSessionHostOptions, type OpenOperation, type SessionInput, type SessionQueryExecutor } from "../agent/harness-factory.js";
 import type { PresentationAgentEvent } from "../facets/transcript.js";
@@ -59,8 +59,6 @@ export interface DataAgentSessionRuntimeOptions {
   readonly specAlignmentAssessor?: SpecAlignmentAssessor;
   /** Evaluation-only semantic-spec ablation. Product composition leaves this required. */
   readonly semanticSpecMode?: SemanticSpecMode;
-  /** ADR-0007 phase 1: "fields" exposes set_answer_spec instead of begin/revise_answer_spec. */
-  readonly specInterface?: SpecInterface;
   /** Explicit Answering budget; omitted uses the production default policy. */
   readonly answeringBudgetPolicy?: QueryBudgetPolicy;
   /** Explicit fanout capability setting; omitted uses the production default. */
@@ -261,7 +259,7 @@ export async function createDataAgentSessionHost(options: DataAgentSessionRuntim
     assessor: options.specAlignmentAssessor,
     getOriginalQuestion: (requestMessageId: string, feedbackOptions?: { readonly signal?: AbortSignal }) => readOriginalQuestion(session, requestMessageId, feedbackOptions?.signal),
   } : undefined;
-  // compare_hypotheses writes advice here; Answering reads it when a Choice is decided (ADR-0005).
+  // compare_hypotheses writes advice here; Answering reads it when an open field is decided (ADR-0005).
   const advisoryLedger = new InMemoryAdvisoryLedger();
   const answering: Answering = new InMemoryAnswering({
     store: answeringStore,
@@ -270,8 +268,8 @@ export async function createDataAgentSessionHost(options: DataAgentSessionRuntim
     ...(options.answeringBudgetPolicy ? { budgetPolicy: options.answeringBudgetPolicy } : {}),
     ...(options.answeringFanout ? { fanout: options.answeringFanout } : {}),
     semanticQualificationMode: options.semanticSpecMode === "disabled" ? "bypassed" : "required",
-    // A Choice is decided after its alternatives' outputs are known (ADR-0005).
-    choiceProbes: options.semanticSpecMode !== "disabled",
+    // An open field is decided after its alternatives' outputs are known (ADR-0005).
+    fieldProbes: options.semanticSpecMode !== "disabled",
     advisoryLedger,
     requireAdvice: Boolean(options.hypothesisChoiceAdvisor),
     // ADR-0006: without a clarification tool an unverified population decision is disclosed, not blocked.
@@ -343,9 +341,9 @@ export async function createDataAgentSessionHost(options: DataAgentSessionRuntim
     ...createAnsweringAgentToolDefinitions(
       answering,
       artifacts,
-      // Comparison is over a Choice in the Answer Spec; without a semantic Spec there is nothing to compare.
+      // Comparison is over an open field of the Answer Spec; without a semantic Spec there is nothing to compare.
       options.hypothesisChoiceAdvisor && options.semanticSpecMode !== "disabled" ? simpleHypothesisComparisonOptions(options.hypothesisChoiceAdvisor, session, advisoryLedger) : undefined,
-      { semanticSpecMode: options.semanticSpecMode ?? "required", ...(options.specInterface ? { specInterface: options.specInterface } : {}) },
+      { semanticSpecMode: options.semanticSpecMode ?? "required" },
     ),
     ...createChartToolDefinitions({ workspace: options.workspace, artifacts, derived: derivedDatasets }),
     ...(options.enableDashboards !== false ? createDashboardToolDefinitions({ workspace: options.workspace, artifacts, derived: derivedDatasets }) : []),

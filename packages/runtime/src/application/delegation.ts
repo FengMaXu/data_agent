@@ -365,11 +365,7 @@ export function createQueryTaskDelegationResolver(options: QueryTaskDelegationRe
       const material = {
         assignedTask: task.task,
         ...(request ? { userRequest: request } : {}),
-        answerSpec: view.currentRevision.spec,
-        hypotheses: view.currentRevision.hypotheses,
-        choices: view.currentRevision.choices,
-        resolutions: view.currentRevision.resolutions,
-        choiceResolutions: view.currentRevision.choiceResolutions,
+        answerSpecFields: view.currentRevision.fields,
         candidate: {
           candidateId: candidate.candidateId,
           revisionId: candidate.revisionId,

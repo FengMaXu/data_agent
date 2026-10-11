@@ -9,7 +9,7 @@ import { buildEvaluationReport } from "./evaluation.mjs";
 import { AttemptRecorder, publicationFromReceipt } from "./record.mjs";
 
 const profile = { provider: "openai", model: "test-model", apiKey: "test" };
-const spec = { entity: "orders", metric: "count", filters: [], groupBy: [], time: { state: "not_applicable" }, ranking: { state: "not_applicable" }, output: { rowMode: "scalar", rowCount: 1 } };
+const spec = { "population.entity": "orders", "population.eligibility": "n/a", "population.conditions": "n/a", "population.time": "n/a", "measure.formula": { op: "count", of: "orders" }, "measure.countGrain": "one row per order", grouping: "n/a", selection: "n/a", output: { rowMode: "scalar", rowCount: 1 } };
 const invocation = (id) => ({ invocationId: id, operationId: "operation-1", turnId: "turn-1", getMemo: async () => undefined, setMemo: async () => undefined });
 
  test("production Application receipt crosses EpisodeRecord into the report without rerunning SQL", async () => {
@@ -25,12 +25,11 @@ const invocation = (id) => ({ invocationId: id, operationId: "operation-1", turn
   try {
     const host = await application.session({ userId: "user-1", host: "web", sessionId: "session-1" });
     const context = { sessionId: "session-1", principalId: "user-1", requestMessageId: "request-1" };
-    const update = host.tools.find((tool) => tool.name === "begin_answer_spec");
+    const update = host.tools.find((tool) => tool.name === "set_answer_spec");
     const query = host.tools.find((tool) => tool.name === "query_database");
     const publish = host.tools.find((tool) => tool.name === "export_query");
     assert.ok(update && query && publish);
-    const decisionPoints = ["population", "join_multiplicity", "time_field", "count_grain", "denominator", "window", "ties", "output_shape"].map((name) => ({ name, status: "not_applicable" }));
-    const began = await update.execute("begin", { spec, decisionPoints }, undefined, context, invocation("begin"), TODO_CONTEXT);
+    const began = await update.execute("begin", { fields: spec }, undefined, context, invocation("begin"), TODO_CONTEXT);
     const executed = await query.execute("result", { kind: "result", taskId: began.details.taskId, revisionId: began.details.revisionId, sql: "SELECT COUNT(*) FROM orders" }, undefined, context, invocation("result"), TODO_CONTEXT);
     const receipt = await publish.execute("publish", { candidateId: executed.details.artifact.candidateId, format: "csv" }, undefined, context, invocation("publish"), TODO_CONTEXT);
     const adapter = application.createAgentAdapter({ userId: "user-1", host: "web", sessionId: "session-1" });

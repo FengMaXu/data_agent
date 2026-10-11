@@ -18,7 +18,7 @@ import { infrastructureFailureOf } from "./infrastructure-failure.js";
 
 const UNAVAILABLE = "DATABASE_UNAVAILABLE: database process unavailable after 3 reconnects (Connection closed)";
 const unavailable = () => Object.assign(new Error(UNAVAILABLE), { code: "DATABASE_UNAVAILABLE" });
-const spec = { entity: "orders", metric: "count", filters: [], groupBy: [], time: { state: "not_applicable" }, ranking: { state: "not_applicable" }, output: { rowMode: "scalar", rowCount: 1 } };
+const spec = { "population.entity": "orders", "population.eligibility": "n/a", "population.conditions": "n/a", "population.time": "n/a", "measure.formula": { op: "count", of: "orders" }, "measure.countGrain": "one row per order", grouping: "n/a", selection: "n/a", output: { rowMode: "scalar", rowCount: 1 } };
 
 describe("infrastructure failure", () => {
   it("extracts the database failure line from tool result text", () => {
@@ -37,7 +37,7 @@ describe("infrastructure failure", () => {
     const answering = new InMemoryAnswering({ store: answeringStore, resultStore, sqlExecutor: { run: async () => { throw unavailable(); } } });
     const lastToolResult = (context: { messages: readonly any[] }) => context.messages.filter((message) => message.role === "toolResult").at(-1);
     faux.setResponses([
-      fauxAssistantMessage(fauxToolCall("begin_answer_spec", { spec }, { id: "begin" }), { stopReason: "toolUse" }),
+      fauxAssistantMessage(fauxToolCall("set_answer_spec", { fields: spec }, { id: "begin" }), { stopReason: "toolUse" }),
       async (context) => fauxAssistantMessage(fauxToolCall("query_database", { kind: "exploration", taskId: lastToolResult(context)?.details?.taskId, sql: "SELECT 1" }, { id: "explore" }), { stopReason: "toolUse" }),
       fauxAssistantMessage("I will look for the database file with run_python instead."),
     ]);

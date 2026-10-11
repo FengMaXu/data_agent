@@ -3,7 +3,7 @@ import { assertTaskAccess } from "./answering-store.js";
 import { AnsweringError } from "./errors.js";
 import { taskBudget } from "./budget.js";
 import { now } from "./support.js";
-import { choiceContextFor, viewFromRevision } from "./views.js";
+import { probeContextFor, viewFromRevision } from "./views.js";
 import type { AnsweringDeps, ResolvedSpecFeedbackOptions } from "./deps.js";
 import {
   assembleSpecFeedbackInput,
@@ -19,6 +19,15 @@ export interface RevisionFeedbackTarget {
   readonly requestMessageId: string;
   /** Evidence frozen in the same transaction that created the Revision. */
   readonly evidence: readonly Evidence[];
+}
+
+/** What a view says about the call and the task rather than the Revision; kept when the view is re-read. */
+function extrasOf(view: AnswerRevisionView): Partial<AnswerRevisionView> {
+  return {
+    ...(view.outcomes ? { outcomes: view.outcomes } : {}),
+    ...(view.role ? { role: view.role } : {}),
+    ...(view.parent ? { parent: view.parent } : {}),
+  };
 }
 
 export interface RevisionSubmissionOutcome {
@@ -47,7 +56,8 @@ export async function finishRevisionSubmission(deps: AnsweringDeps, outcome: Rev
   if (!persisted) return outcome.view;
   try {
     const stored = await deps.store.transact((tx) => ({ revision: tx.getRevision(target.revisionId), task: tx.getTask(target.taskId) }), context);
-    return stored.revision ? viewFromRevision(target.taskId, stored.revision, stored.task ? choiceContextFor(deps, stored.task) : undefined) : outcome.view;
+    if (!stored.revision) return outcome.view;
+    return { ...viewFromRevision(target.taskId, stored.revision, stored.task ? probeContextFor(deps, stored.task, target.evidence) : undefined, stored.task?.role === "report"), ...extrasOf(outcome.view) };
   } catch (error) {
     if (context.signal?.aborted) throw error;
     return outcome.view;

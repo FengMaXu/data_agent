@@ -30,7 +30,7 @@ import {
   sha256Tree,
   validateOfficialEvaluatorSource,
 } from "./lib.mjs";
-import { manifestFromExperiment, resolveExperiment, resolveSemanticSpecMode, resolveSpecInterface, validateExperimentConfig } from "./experiment.mjs";
+import { manifestFromExperiment, resolveExperiment, resolveSemanticSpecMode, validateExperimentConfig } from "./experiment.mjs";
 import { buildEvaluationReport, loadEpisodeRecord, persistScoreRecord } from "./evaluation.mjs";
 import { attemptDirectory, createAttemptDescriptor, createAttemptLayout, writeAttemptStatus } from "./episode.mjs";
 import { openAttemptRecorder, publicationFromReceipt, spanIdForIdentity, summarizeUsage } from "./record.mjs";
@@ -709,7 +709,6 @@ async function createCaseRunner(config, runDir, systemPrompt, attemptId = "attem
         ...(specAlignmentAssessor ? { specAlignmentAssessor } : {}),
         ...(queryBudgetPolicy ? { answeringBudgetPolicy: queryBudgetPolicy } : {}),
         semanticSpecMode,
-        ...(resolveSpecInterface(config) === "fields" ? { specInterface: "fields" } : {}),
         enableClarificationTool: config.enableClarificationTool !== false,
         answeringFanout: { enabled: fanoutEnabled },
         // Spider2 external knowledge is task-supplied, not a reviewed business definition.
@@ -943,10 +942,10 @@ async function createCaseRunner(config, runDir, systemPrompt, attemptId = "attem
           explorationQueries: (recorder?.calls ?? []).filter((call) => call.toolName === "query_database" && (call.args?.kind ?? call.args?.mode) === "exploration").length,
           resultQueries: (recorder?.calls ?? []).filter((call) => call.toolName === "query_database" && (call.args?.kind ?? call.args?.mode) === "result").length,
           fanoutProbes: recordedFanoutMetrics.targetCount,
-          revisions: (recorder?.calls ?? []).filter((call) => call.toolName === "revise_answer_spec" || (call.toolName === "set_answer_spec" && call.args?.taskId)).length,
+          revisions: (recorder?.calls ?? []).filter((call) => call.toolName === "set_answer_spec" && call.args?.taskId).length,
         },
         capabilities: {
-          semanticSpec: { configured: true, executed: (recorder?.calls ?? []).some((call) => (semanticSpecMode === "required" ? ["begin_answer_spec", "set_answer_spec"] : ["begin_query_task"]).includes(call.toolName)), coverage: semanticSpecMode },
+          semanticSpec: { configured: true, executed: (recorder?.calls ?? []).some((call) => (semanticSpecMode === "required" ? ["set_answer_spec"] : ["begin_query_task"]).includes(call.toolName)), coverage: semanticSpecMode },
           fanout: { configured: fanoutEnabled, executed: recordedFanoutMetrics.reportCount > 0, coverage: recordedFanoutMetrics.reportCount > 0 ? "observed" : fanoutEnabled ? "not_observed" : "disabled" },
           specFeedback: { configured: specFeedbackConfigured, executed: recordedSpecFeedbackMetrics.enabled, coverage: recordedSpecFeedbackMetrics.enabled ? "observed" : specFeedbackConfigured ? "not_observed" : "disabled" },
         },
@@ -1614,7 +1613,6 @@ function usage() {
     "Use `<command> --help` only for this usage text; it never loads credentials or starts work.",
     "`run --continue` keeps an existing attempt; `run --retry` appends a new attempt without replacing canonical evidence.",
     "Use `--semantic-spec-mode required|disabled` only for a pre-registered semantic-spec ablation; disabled keeps Query Task/Candidate/Receipt semantics.",
-    "Use `--spec-interface legacy|fields` for the ADR-0007 A/B; fields replaces begin/revise_answer_spec with set_answer_spec.",
     "Use `--disable-clarification` for both headless A/B arms to remove the blocking clarification tool without changing product defaults.",
   ].join("\n");
 }
@@ -1632,7 +1630,6 @@ async function main() {
   }
   let config = selectModelProfile(await loadConfig(options.config), options.modelProfile);
   if (options.semanticSpecMode) config = { ...config, answering: { ...(config.answering ?? {}), semanticSpecMode: String(options.semanticSpecMode) } };
-  if (options.specInterface) config = { ...config, answering: { ...(config.answering ?? {}), specInterface: String(options.specInterface) } };
   if (options.disableClarification) config = { ...config, enableClarificationTool: false };
   validateExperimentConfig(config);
   if (command === "preflight") await preflightCommand(config, options);

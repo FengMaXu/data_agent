@@ -1,10 +1,10 @@
-import type { CandidateId, DraftRevision, EvidenceId, HypothesisId, QueryArtifact, ReadyRevision, Resolution, RevisionId, TaskId } from "./model.js";
+import type { AlternativeId, CandidateId, DraftRevision, EvidenceId, FieldBasis, QueryArtifact, ReadyRevision, RevisionId, TaskId } from "./model.js";
 
 declare const taskId: TaskId;
 declare const revisionId: RevisionId;
 declare const evidenceId: EvidenceId;
 declare const candidateId: CandidateId;
-declare const hypothesisId: HypothesisId;
+declare const alternativeId: AlternativeId;
 declare const plainString: string;
 declare const draftRevision: DraftRevision;
 declare const observationArtifact: Extract<QueryArtifact, { kind: "exploration" }>;
@@ -17,19 +17,19 @@ const badFromString: TaskId = plainString;
 const badRevision: RevisionId = taskId;
 // @ts-expect-error Branded evidence identity must not be used as a candidate.
 const badCandidate: CandidateId = evidenceId;
-// @ts-expect-error Branded hypothesis identity must not be used as a task.
-const badTask: TaskId = hypothesisId;
+// @ts-expect-error Branded alternative identity must not be used as a task.
+const badTask: TaskId = alternativeId;
 // @ts-expect-error Branded revision identity must not be used as evidence.
 const badEvidence: EvidenceId = revisionId;
-// @ts-expect-error Branded candidate identity must not be used as a hypothesis.
-const badHypothesis: HypothesisId = candidateId;
+// @ts-expect-error Branded candidate identity must not be used as an alternative.
+const badAlternative: AlternativeId = candidateId;
 
 // @ts-expect-error A Draft Revision cannot cross the result execution seam.
 needsReadyRevision(draftRevision);
 // @ts-expect-error Exploration artifacts cannot cross the publication seam.
 publishCandidate(observationArtifact);
 
-// @ts-expect-error Supported resolutions require a non-empty QualifiedEvidence proof.
-const emptySupportedResolution: Resolution = { outcome: "supported", hypothesisId, proof: [] };
+// @ts-expect-error An evidence basis requires at least one evidence id.
+const emptyEvidenceBasis: FieldBasis = { kind: "evidence", evidenceIds: [] };
 
-void [badFromString, badRevision, badCandidate, badTask, badEvidence, badHypothesis, emptySupportedResolution];
+void [badFromString, badRevision, badCandidate, badTask, badEvidence, badAlternative, emptyEvidenceBasis];

@@ -9,11 +9,12 @@ import { KnowledgeIndex } from "../knowledge.js";
 import { ClarificationManager } from "../clarification.js";
 import { InMemoryAnsweringStore } from "../answering/answering-store.js";
 import type { CompareHypothesesInput, HypothesisChoiceAdvisor } from "../judgment/hypothesis-choice.js";
-import { facetNames, type SpecAlignmentAssessor } from "../judgment/spec-alignment.js";
+import type { SpecAlignmentAssessor } from "../judgment/spec-alignment.js";
+import { FIELD_SECTIONS } from "../answering/fields.js";
 import type { SpecFeedbackAssessment } from "../answering/model.js";
 
 const profile: DataAgentModelProfile = { provider: "openai", model: "test-model", apiKey: "test" };
-const spec = { entity: "orders", metric: "count", filters: [], groupBy: [], time: { state: "not_applicable" }, ranking: { state: "not_applicable" }, output: { rowMode: "scalar", rowCount: 1 } };
+const spec = { "population.entity": "orders", "population.eligibility": "n/a", "population.conditions": "n/a", "population.time": "n/a", "measure.formula": { op: "count", of: "orders" }, "measure.countGrain": "one row per order", grouping: "n/a", selection: "n/a", output: { rowMode: "scalar", rowCount: 1 } };
 
 const business = (invocationId: string, scope?: { readonly scopeId: string; readonly connectionId: string }): BusinessContext => ({
   principal: { id: "user-1" }, sessionId: "session-1", lane: "main", operationId: "operation-1", invocationId,
@@ -24,8 +25,8 @@ describe("Session Runtime scoped query composition", () => {
   it("does not load a protocol Skill whose required tools are absent in the ablation arm", async () => {
     const root = await mkdtemp(path.join(process.cwd(), ".tmp-session-runtime-skills-"));
     const skillRoot = path.join(root, "skills");
-    await mkdir(path.join(skillRoot, "answer-spec"), { recursive: true });
-    await writeFile(path.join(skillRoot, "answer-spec", "SKILL.md"), ["---", "name: answer-spec", "description: protocol", "requires-tools:", "  - begin_answer_spec", "---", "ANSWER SPEC BODY"].join("\n"), "utf8");
+    await mkdir(path.join(skillRoot, "answer-fields"), { recursive: true });
+    await writeFile(path.join(skillRoot, "answer-fields", "SKILL.md"), ["---", "name: answer-fields", "description: protocol", "requires-tools:", "  - set_answer_spec", "---", "ANSWER SPEC BODY"].join("\n"), "utf8");
     const invocation = { invocationId: "invoke-skill", operationId: "operation-1", turnId: "turn-1", getMemo: async () => undefined, setMemo: async () => undefined };
     const context = { sessionId: "session-1", principalId: "user-1" };
     const hosts = await Promise.all((["required", "disabled"] as const).map((semanticSpecMode) => createDataAgentSessionHost({
@@ -40,8 +41,8 @@ describe("Session Runtime scoped query composition", () => {
     try {
       const [required, disabled] = hosts as [typeof hosts[number], typeof hosts[number]];
       const load = (host: typeof required) => host.tools.find((tool) => tool.name === "load_skill")!;
-      await expect(load(required).execute("load", { name: "answer-spec" }, undefined, context, invocation, TODO_CONTEXT)).resolves.toMatchObject({ content: [{ text: "ANSWER SPEC BODY" }] });
-      await expect(load(disabled).execute("load", { name: "answer-spec" }, undefined, context, invocation, TODO_CONTEXT)).rejects.toThrow("SKILL_NOT_FOUND");
+      await expect(load(required).execute("load", { name: "answer-fields" }, undefined, context, invocation, TODO_CONTEXT)).resolves.toMatchObject({ content: [{ text: "ANSWER SPEC BODY" }] });
+      await expect(load(disabled).execute("load", { name: "answer-fields" }, undefined, context, invocation, TODO_CONTEXT)).rejects.toThrow("SKILL_NOT_FOUND");
     } finally {
       await Promise.all(hosts.map((host) => host.close()));
       await rm(root, { recursive: true, force: true });
@@ -70,31 +71,30 @@ describe("Session Runtime scoped query composition", () => {
       systemPrompt: "You are Data Agent.",
     });
     try {
-      const hypotheses = [{ localId: "cancelled", kind: "business_semantics" as const, statement: "取消订单不计入订单数", affects: ["filters" as const], basis: "业务定义", impact: "改变订单总体", proposedEvidenceIds: ["definition"] }];
-      const begun = await host.answering.begin({
+      const begun = await host.answering.set({
         requestMessageId,
         requestId: "begin-evidence",
-        spec: { ...spec, entity: { value: "orders", evidenceIds: ["request-quote"] }, filters: [{ value: "status <> 'cancelled'", hypothesisId: "cancelled" }] },
-        evidence: [
-          { localId: "definition", kind: "reviewed_definition", sourceRef: "business-definitions", quote: "取消订单不计入" },
-          { localId: "request-quote", kind: "request_wording", quote: "有效订单数" },
-        ],
-        hypotheses,
+        fields: {
+          ...spec,
+          "population.entity": { value: "orders", basis: "request", quote: "有效订单数" },
+          "population.conditions": { value: ["status <> 'cancelled'"], cite: [{ source: "knowledge:business-definitions", quote: "取消订单不计入" }] },
+        },
       }, business("begin-evidence"));
-      expect(begun.unresolvedHypotheses).toEqual([]);
-      expect(begun.spec.entity).toMatchObject({ basis: { kind: "evidence" } });
-      await expect(host.answering.begin({
+      expect(begun.outcomes?.every((item) => item.status === "applied")).toBe(true);
+      expect(begun.fields.find((item) => item.path === "population.entity")).toMatchObject({ status: "request" });
+      expect(begun.fields.find((item) => item.path === "population.conditions")).toMatchObject({ status: "evidence" });
+      const rules = await host.answering.set({
         requestMessageId,
         requestId: "begin-rules-as-definition",
-        spec,
-        evidence: [{ localId: "definition", kind: "reviewed_definition", sourceRef: "sql-rules", quote: "COUNT(DISTINCT key)" }],
-      }, business("begin-rules-as-definition"))).rejects.toMatchObject({ code: "EVIDENCE_REJECTED" });
-      await expect(host.answering.begin({
+        fields: { ...spec, "population.conditions": { value: ["distinct keys"], cite: [{ source: "knowledge:sql-rules", quote: "COUNT(DISTINCT key)" }] } },
+      }, business("begin-rules-as-definition"));
+      expect(rules.outcomes?.find((item) => item.path === "population.conditions")).toMatchObject({ status: "rejected", code: "EVIDENCE_REJECTED" });
+      const wrong = await host.answering.set({
         requestMessageId,
         requestId: "begin-wrong-quote",
-        spec,
-        evidence: [{ kind: "request_wording", quote: "全部订单数" }],
-      }, business("begin-wrong-quote"))).rejects.toMatchObject({ code: "EVIDENCE_REJECTED" });
+        fields: { ...spec, "population.entity": { value: "orders", basis: "request", quote: "全部订单数" } },
+      }, business("begin-wrong-quote"));
+      expect(wrong.outcomes?.find((item) => item.path === "population.entity")).toMatchObject({ status: "rejected", code: "EVIDENCE_REJECTED" });
     } finally {
       await host.close();
       await rm(root, { recursive: true, force: true });
@@ -178,7 +178,7 @@ describe("Session Runtime scoped query composition", () => {
       setMemo: async (key: string, value: unknown) => { memo.set(key, value); },
     });
     try {
-      const begun = await host.answering.begin({ requestMessageId, requestId: "begin-clarification", spec }, business("begin-clarification"));
+      const begun = await host.answering.set({ requestMessageId, requestId: "begin-clarification", fields: spec }, business("begin-clarification"));
       const ask = host.tools.find((item) => item.name === "ask_user_clarification")!;
       const asking = ask.execute("call-ask", { question: "订单量按哪种订单统计？", options: ["全部下单订单", "仅已送达订单"] }, undefined, toolContext, call("invoke-ask"), TODO_CONTEXT);
       const pending = manager.pendingFor("session-1");
@@ -188,10 +188,11 @@ describe("Session Runtime scoped query composition", () => {
       // The answer and the id to cite it by come back together.
       expect(JSON.stringify(answered.content)).toContain(`clarificationId=${pending.clarificationId}`);
 
-      const revise = host.tools.find((item) => item.name === "revise_answer_spec")!;
-      const evidence = (quote: string) => ({ taskId: begun.taskId, baseRevisionId: begun.revisionId, evidence: [{ localId: "answer", kind: "user_confirmation", sourceRef: pending.clarificationId, quote }] });
-      await expect(revise.execute("call-wrong", evidence("仅已送达订单"), undefined, toolContext, call("invoke-wrong"), TODO_CONTEXT)).rejects.toThrow(/not found verbatim in the user's answer/);
-      await revise.execute("call-revise", evidence("全部下单订单"), undefined, toolContext, call("invoke-revise"), TODO_CONTEXT);
+      const set = host.tools.find((item) => item.name === "set_answer_spec")!;
+      const cite = (quote: string) => ({ taskId: begun.taskId, fields: { "population.conditions": { value: ["全部下单订单"], cite: [{ source: `clarification:${pending.clarificationId}`, quote }], reason: "用户澄清了订单范围" } } });
+      const wrong = await set.execute("call-wrong", cite("仅已送达订单"), undefined, toolContext, call("invoke-wrong"), TODO_CONTEXT);
+      expect(JSON.stringify(wrong.content)).toMatch(/not found verbatim in the user's answer/);
+      await set.execute("call-revise", cite("全部下单订单"), undefined, toolContext, call("invoke-revise"), TODO_CONTEXT);
       const admitted = await answeringStore.transact((state) => state.listEvidence(begun.taskId), business("read-evidence"));
       expect(admitted).toEqual(expect.arrayContaining([expect.objectContaining({
         kind: "user_confirmation",
@@ -204,7 +205,7 @@ describe("Session Runtime scoped query composition", () => {
     }
   });
 
-  it("registers Jev comparison only by explicit configuration and binds it to the current unresolved Choice", async () => {
+  it("registers Jev comparison only by explicit configuration and binds it to the current open field", async () => {
     const root = await mkdtemp(path.join(process.cwd(), ".tmp-session-runtime-jev-"));
     const observed: CompareHypothesesInput[] = [];
     const advisor: HypothesisChoiceAdvisor = {
@@ -232,28 +233,17 @@ describe("Session Runtime scoped query composition", () => {
       hypothesisChoiceAdvisor: advisor,
     });
     try {
-      const begun = await host.answering.begin({
+      const begun = await host.answering.set({
         requestMessageId,
         requestId: "begin-jev",
-        spec,
-        choices: [{
-          localId: "month-denominator",
-          affects: ["metric"],
-          alternatives: [
-            { localId: "calendar", statement: "按十二个月计算" },
-            { localId: "observed", statement: "按有记录月份计算" },
-          ],
-        }],
+        fields: { ...spec, "measure.denominator": { open: ["按十二个月计算", "按有记录月份计算"] } },
       }, business("begin-jev"));
-      const task = await host.answering.inspect({ taskId: begun.taskId }, business("inspect-jev"));
-      const choiceId = task.currentRevision.choices[0]?.id;
-      if (!choiceId) throw new Error("choice missing");
       const tool = host.tools.find((item) => item.name === "compare_hypotheses");
       if (!tool) throw new Error("compare_hypotheses missing");
       const memo = new Map<string, unknown>();
       await tool.execute("call-jev", {
         taskId: begun.taskId,
-        choiceId,
+        path: "measure.denominator",
         evidence: [{ content: "无收入月份按零计算", sourceRef: "metric.md" }],
       }, undefined, {
         sessionId: "session-1", principalId: "user-1", requestMessageId,
@@ -264,11 +254,11 @@ describe("Session Runtime scoped query composition", () => {
       }, TODO_CONTEXT);
       expect(observed).toHaveLength(1);
       const unchanged = await host.answering.inspect({ taskId: begun.taskId }, business("inspect-after-jev"));
-      expect(unchanged.currentRevision.choiceResolutions).toEqual([]);
+      expect(unchanged.currentRevision.fields["measure.denominator"]).toMatchObject({ state: "open" });
       expect(unchanged.task.currentRevisionId).toBe(begun.revisionId);
       expect(observed[0]).toMatchObject({
         originalQuestion: "年度月均收入如何计算？",
-        hypotheses: [{ statement: "按十二个月计算" }, { statement: "按有记录月份计算" }],
+        hypotheses: [{ statement: "measure.denominator: 按十二个月计算" }, { statement: "measure.denominator: 按有记录月份计算" }],
         evidence: [
           { kind: "request_wording", content: "年度月均收入如何计算？" },
           { content: "无收入月份按零计算", sourceRef: "metric.md" },
@@ -285,9 +275,9 @@ describe("Session Runtime scoped query composition", () => {
     let observed: string | undefined;
     const assessment: SpecFeedbackAssessment = {
       model: "jev-test",
-      ruleVersion: "spec-alignment-v1",
-      facets: facetNames().map((facet) => ({
-        facet,
+      ruleVersion: "spec-alignment-v2",
+      sections: FIELD_SECTIONS.map((section) => ({
+        section,
         relation: { choice: "supported", probabilities: { supported: 1, contradicted: 0, not_established: 0, not_applicable: 0 }, confidence: 0.9 },
         coverage: { choice: "complete", probabilities: { complete: 1, partial: 0, missing: 0, not_applicable: 0 }, confidence: 0.9 },
       })),
@@ -308,7 +298,7 @@ describe("Session Runtime scoped query composition", () => {
       specAlignmentAssessor: assessor,
     });
     try {
-      const begun = await host.answering.begin({ requestMessageId, requestId: "begin-spec-feedback", spec }, business("begin-spec-feedback"));
+      const begun = await host.answering.set({ requestMessageId, requestId: "begin-spec-feedback", fields: spec }, business("begin-spec-feedback"));
       expect(observed).toBe("只统计已完成订单");
       expect(begun.specFeedback).toMatchObject({ status: "completed", assessment: { model: "jev-test" } });
     } finally {
@@ -342,7 +332,7 @@ describe("Session Runtime scoped query composition", () => {
       },
     });
     try {
-      const begun = await host.answering.begin({ requestMessageId: "request-fanout", requestId: "begin-fanout", spec: { ...spec, entity: "customer", metric: "count", output: { rowMode: "scalar", rowCount: 1, columns: ["n"] } }, decisionPoints: ["population", "join_multiplicity", "time_field", "count_grain", "denominator", "window", "ties", "output_shape"].map((name) => ({ name, status: "not_applicable" })) } as never, business("begin-fanout"));
+      const begun = await host.answering.set({ requestMessageId: "request-fanout", requestId: "begin-fanout", fields: { ...spec, "population.entity": "customer", output: { rowMode: "scalar", rowCount: 1, columns: ["n"] } } }, business("begin-fanout"));
       const result = await host.answering.execute({ kind: "result", taskId: begun.taskId, revisionId: begun.revisionId, sql: "SELECT COUNT(c.customer_id) AS n FROM customers c JOIN rental r ON r.customer_id = c.customer_id" }, business("result-fanout"));
       expect(result.fanout).toMatchObject({ status: "finding" });
       expect(calls).toEqual(["result", "exploration"]);
@@ -380,7 +370,7 @@ describe("Session Runtime scoped query composition", () => {
     });
     try {
       expect(host.tools.some((item) => item.name === "compare_hypotheses")).toBe(false);
-      const begun = await host.answering.begin({ requestMessageId: "request-1", requestId: "begin-1", spec }, business("begin-1"));
+      const begun = await host.answering.set({ requestMessageId: "request-1", requestId: "begin-1", fields: spec }, business("begin-1"));
       const explored = await host.answering.execute({ kind: "exploration", taskId: begun.taskId, sql: "SELECT 1", limit: 1, maxPreviewBytes: 4 * 1024 }, business("explore-1", scope));
       expect(explored.artifact.kind).toBe("exploration");
       expect(scopedCalls).toBe(1);

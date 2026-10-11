@@ -1,25 +1,22 @@
-import { decisionPointQuotes } from "./decision-points.js";
 import { randomUUID } from "node:crypto";
 import {
   clone,
   contentHash,
   type AnswerRevisionRecord,
   type AnswerRevisionView,
-  type BeginAnswer,
   type BusinessContext,
   type Evidence,
-  type QueryTaskRecord,
-  type ReviseAnswer,
-  type RevisionId,
-  type Deviation,
-  type DeviationProposal,
+  type FieldOutcome,
+  type FieldRecord,
   type ParentBinding,
-  type SpecStep,
-  type StepOutcome,
-  type Supersession,
+  type QueryTaskRecord,
+  type RevisionId,
+  type SetAnswerFields,
+  type SpecFields,
   type TaskId,
   type UntrustedEvidenceInput,
 } from "./model.js";
+import type { SpecPath } from "./fields.js";
 import { assertTaskAccess, type AnsweringTransaction } from "./answering-store.js";
 import { AnsweringError } from "./errors.js";
 import { makeInternalId } from "./internal-ids.js";
@@ -30,13 +27,23 @@ import {
   type AdmissionScope,
   type AdmittedEvidence,
 } from "./evidence-admission.js";
-import { beginTransition, reviseTransition, type ChoiceGovernance, type EvidenceResolver, type RevisionBody } from "./transition.js";
-import { QualificationError } from "./qualification.js";
-import { applyMetricRef, guardInheritance, inheritedFields, overlayInherited, splitMetricRef, type InheritedFields } from "./report.js";
+import {
+  FieldWriteError,
+  applyFieldWrite,
+  applyMeasureRef,
+  overlayInherited,
+  parseFieldWrite,
+  type DecisionGovernance,
+  type EvidenceResolver,
+  type FieldBody,
+  type InheritedFields,
+  type ParsedField,
+} from "./field-transition.js";
+import { inheritedFields } from "./report.js";
 import { initialSpecFeedback } from "./spec-feedback.js";
 import { finishRevisionSubmission } from "./spec-feedback-execution.js";
 import { localId, now } from "./support.js";
-import { choiceContextFor, viewFromRevision } from "./views.js";
+import { probeContextFor, viewFromRevision } from "./views.js";
 import type { AnsweringDeps } from "./deps.js";
 
 function requestEvidenceId(requestMessageId: string): string {
@@ -46,7 +53,7 @@ function requestEvidenceId(requestMessageId: string): string {
 /**
  * The auto-registered request handle gives SpecFeedback and reviewers the
  * original message identity. It has no quote or verification and therefore
- * never qualifies a Resolution or an evidence facet basis.
+ * never settles a field.
  */
 function requestHandleEvidence(requestMessageId: string, observedAt: string): Evidence {
   return { id: requestEvidenceId(requestMessageId) as Evidence["id"], kind: "request_wording", authority: "request_wording", sourceRef: requestMessageId, observedAt };
@@ -74,15 +81,15 @@ function evidenceFromAdmission(item: AdmittedEvidence, observedAt: string): Evid
   } as Evidence;
 }
 
-/** Same-call localIds shadow nothing: they are checked first, then task Evidence ids. */
+/** A write's own cite handles are checked first, then task Evidence ids. */
 function evidenceResolver(registered: readonly Evidence[], added: readonly { readonly localId?: string; readonly evidence: Evidence }[]): EvidenceResolver {
   const byLocal = new Map(added.flatMap((item) => item.localId ? [[item.localId, item.evidence] as const] : []));
   const byId = new Map([...registered, ...added.map((item) => item.evidence)].map((item) => [item.id as string, item]));
   return Object.assign((ref: string) => byLocal.get(ref) ?? byId.get(ref), { localIds: [...byLocal.keys()] });
 }
 
-async function admit(inputs: readonly UntrustedEvidenceInput[] | undefined, scope: AdmissionScope): Promise<readonly AdmittedEvidence[]> {
-  if (!inputs || inputs.length === 0) return [];
+async function admit(inputs: readonly UntrustedEvidenceInput[], scope: AdmissionScope): Promise<readonly AdmittedEvidence[]> {
+  if (inputs.length === 0) return [];
   try {
     return await admitEvidence(inputs, scope);
   } catch (error) {
@@ -91,163 +98,102 @@ async function admit(inputs: readonly UntrustedEvidenceInput[] | undefined, scop
   }
 }
 
-function admissionSource(deps: AnsweringDeps, context: BusinessContext): Pick<AdmissionScope, "source" | "signal"> {
+function governanceFor(deps: AnsweringDeps, task: Pick<QueryTaskRecord, "taskId" | "fieldProbes">): DecisionGovernance {
+  const context = probeContextFor(deps, task);
   return {
-    ...(deps.evidenceSource ? { source: deps.evidenceSource } : {}),
-    ...(context.signal ? { signal: context.signal } : {}),
+    ...(context?.tracked ? { probes: context.probes } : {}),
+    ...(context?.advice ? { advice: context.advice } : {}),
+    adviceRequired: deps.adviceRequired,
+    populationDecisions: deps.populationDecisions,
   };
 }
 
-/** A fixed_by_request declaration must quote the original request verbatim, checked like request_wording Evidence. */
-async function verifyDecisionPointQuotes(deps: AnsweringDeps, proposals: BeginAnswer["decisionPoints"], taskRequestMessageId: string, context: BusinessContext): Promise<void> {
-  const quotes = decisionPointQuotes(proposals);
-  if (quotes.length === 0) return;
-  await admit(quotes.map((quote) => ({ kind: "request_wording" as const, quote })), { sessionId: context.sessionId, taskRequestMessageId, ...admissionSource(deps, context) });
-}
-
-function governanceFor(deps: AnsweringDeps, task: Pick<QueryTaskRecord, "taskId" | "choiceProbes">): ChoiceGovernance | undefined {
-  const choiceContext = choiceContextFor(deps, task);
-  return choiceContext ? { ...choiceContext, adviceRequired: deps.adviceRequired, populationDecisions: deps.populationDecisions } : undefined;
-}
-
-/** Errors that reject one step of a stepped call; anything else aborts the whole call. */
-const STEP_REJECTIONS = new Set(["SPEC_TRANSITION_INVALID", "INVALID_REQUEST", "EVIDENCE_REJECTED"]);
-
-function stepRejection(label: string, error: unknown): StepOutcome | undefined {
-  if (error instanceof AnsweringError && STEP_REJECTIONS.has(error.code)) return { label, status: "rejected", code: error.code, message: error.message };
-  if (error instanceof QualificationError) return { label, status: "rejected", code: error.code, message: error.message };
+function rejection(path: string, error: unknown): FieldOutcome | undefined {
+  if (error instanceof FieldWriteError) return { path, status: "rejected", code: error.code, message: error.message };
+  if (error instanceof AnsweringError && ["SPEC_TRANSITION_INVALID", "INVALID_REQUEST", "EVIDENCE_REJECTED"].includes(error.code)) {
+    return { path, status: "rejected", code: error.code, message: error.message };
+  }
   return undefined;
 }
 
-interface PreparedStep {
-  readonly label: string;
-  readonly step: SpecStep;
+interface PreparedWrite {
+  readonly path: string;
+  readonly parsed?: ParsedField;
   readonly admitted: readonly AdmittedEvidence[];
-  /** Set when trusted-source checks already rejected the step. */
-  readonly rejected?: StepOutcome;
+  /** Set when parsing or trusted-source checks already rejected the write. */
+  readonly rejected?: FieldOutcome;
 }
 
-const SINGLE_DELTA_FIELDS = ["hypotheses", "choices", "addHypotheses", "addChoices", "dispositions", "notProbeable", "decisionPoints", "evidence"] as const;
-
-function assertStepsAlone(input: BeginAnswer | ReviseAnswer, extra: readonly string[]): void {
-  const record = input as unknown as Record<string, unknown>;
-  const mixed = [...SINGLE_DELTA_FIELDS, ...extra].filter((key) => record[key] !== undefined);
-  if (mixed.length > 0) throw new AnsweringError("INVALID_REQUEST", `steps cannot be combined with ${mixed.join(", ")}; put every change in a step`);
-  if (!Array.isArray(input.steps) || input.steps.length === 0) throw new AnsweringError("INVALID_REQUEST", "steps must list at least one step");
-}
-
-/** Evidence admission and request quotes are checked per step, before the Store transaction (ADR-0004). */
-async function prepareSteps(deps: AnsweringDeps, steps: readonly SpecStep[], taskRequestMessageId: string, context: BusinessContext): Promise<readonly PreparedStep[]> {
-  const prepared: PreparedStep[] = [];
-  for (const [index, step] of steps.entries()) {
-    const label = typeof step.label === "string" && step.label.trim() ? step.label.trim() : `step ${index + 1}`;
+/** Parsing and Evidence Admission happen per path, before the Store transaction (ADR-0004). */
+async function prepareWrites(deps: AnsweringDeps, input: SetAnswerFields, taskRequestMessageId: string, context: BusinessContext): Promise<readonly PreparedWrite[]> {
+  const prepared: PreparedWrite[] = [];
+  const scope: AdmissionScope = {
+    sessionId: context.sessionId,
+    taskRequestMessageId,
+    ...(deps.evidenceSource ? { source: deps.evidenceSource } : {}),
+    ...(context.signal ? { signal: context.signal } : {}),
+  };
+  for (const [rawPath, value] of Object.entries(input.fields)) {
+    const path = rawPath.trim();
     try {
-      const admitted = await admit(step.evidence, { sessionId: context.sessionId, taskRequestMessageId, ...admissionSource(deps, context) });
-      await verifyDecisionPointQuotes(deps, step.decisionPoints, taskRequestMessageId, context);
-      prepared.push({ label, step, admitted });
+      const parsed = parseFieldWrite(path, value, input.currentMessageId);
+      prepared.push({ path, parsed, admitted: await admit(parsed.evidence, scope) });
     } catch (error) {
-      const rejected = stepRejection(label, error);
+      const rejected = rejection(path, error);
       if (!rejected) throw error;
-      prepared.push({ label, step, admitted: [], rejected });
+      prepared.push({ path, admitted: [], rejected });
     }
   }
   return prepared;
 }
 
+interface TaskShape {
+  readonly report: boolean;
+  readonly inherited?: InheritedFields;
+}
+
 /**
- * Applies each step to the state the earlier applied steps left. A rejected
- * step changes nothing, and its Evidence is not registered.
+ * Applies each write to the state the earlier applied writes left. A rejected
+ * write changes nothing, and its Evidence is not registered.
  */
-function applySteps(base: RevisionBody, steps: readonly PreparedStep[], registered: readonly Evidence[], governance: ChoiceGovernance | undefined, createdAt: string, inheritance?: Inheritance) {
+function applyWrites(base: FieldBody, writes: readonly PreparedWrite[], registered: readonly Evidence[], governance: DecisionGovernance, shape: TaskShape, createdAt: string) {
   let body = base;
-  let deviations = inheritance?.recorded ?? [];
-  let metricRef = inheritance?.metricRef;
-  const supersessions: Supersession[] = [];
-  const outcomes: StepOutcome[] = [];
+  const outcomes: FieldOutcome[] = [];
   const added: Evidence[] = [];
-  for (const prepared of steps) {
-    if (prepared.rejected) {
-      outcomes.push(prepared.rejected);
+  for (const write of writes) {
+    if (write.rejected || !write.parsed) {
+      outcomes.push(write.rejected ?? { path: write.path, status: "rejected", message: "not parsed" });
       continue;
     }
-    const { step, label } = prepared;
-    const stepEvidence = prepared.admitted.map((item) => ({ ...(item.localId ? { localId: item.localId } : {}), evidence: evidenceFromAdmission(item, createdAt) }));
+    const own = write.admitted.map((item) => ({ ...(item.localId ? { localId: item.localId } : {}), evidence: evidenceFromAdmission(item, createdAt) }));
     try {
-      // A chart query's `metric: { ref }` is resolved against the Report Task, after the transition.
-      const { spec, ref } = inheritance ? splitMetricRef(step.spec) : { spec: step.spec };
-      const { supersessions: replaced, ...transitioned } = reviseTransition(body, {
-        ...(spec ? { spec } : {}),
-        ...(step.addHypotheses ? { addHypotheses: step.addHypotheses } : {}),
-        ...(step.addChoices ? { addChoices: step.addChoices } : {}),
-        ...(step.dispositions ? { dispositions: step.dispositions } : {}),
-        ...(step.notProbeable ? { notProbeable: step.notProbeable } : {}),
-        ...(step.decisionPoints ? { decisionPoints: step.decisionPoints } : {}),
-      }, evidenceResolver([...registered, ...added], stepEvidence), governance);
-      let next: RevisionBody = transitioned;
-      if (inheritance) {
-        // A chart query changes an inherited field only with a reason (ADR-0009 decision 3).
-        deviations = guardInheritance(body, transitioned, [...inheritance.proposals, ...(step.deviations ?? [])], deviations, Object.keys(inheritance.inherited.metrics).length > 0);
-        if (ref !== undefined) {
-          next = applyMetricRef(transitioned, inheritance.inherited, ref);
-          metricRef = ref;
-          deviations = deviations.filter((item) => item.path !== "metric");
-        } else if (spec && Object.prototype.hasOwnProperty.call(spec, "metric")) {
-          metricRef = undefined;
-        }
-      }
-      body = next;
-      supersessions.push(...replaced);
-      added.push(...stepEvidence.map((item) => item.evidence));
-      outcomes.push({ label, status: "applied" });
+      body = applyFieldWrite(body, write.parsed, {
+        resolve: evidenceResolver([...registered, ...added], own),
+        governance,
+        report: shape.report,
+        ...(shape.inherited ? { inherited: shape.inherited } : {}),
+      });
+      added.push(...own.map((item) => item.evidence));
+      outcomes.push({ path: write.parsed.path, status: "applied" });
     } catch (error) {
-      const rejected = stepRejection(label, error);
+      const rejected = rejection(write.parsed.path, error);
       if (!rejected) throw error;
       outcomes.push(rejected);
     }
   }
-  return { body, deviations, metricRef, supersessions, outcomes, added, applied: outcomes.some((outcome) => outcome.status === "applied") };
+  return { body, outcomes, added, applied: outcomes.some((outcome) => outcome.status === "applied") };
 }
 
-function bodyOf(source: RevisionBody): RevisionBody {
+/** What the view adds about the call and the task; attached after SpecFeedback re-reads the view. */
+function taskExtras(tx: Pick<AnsweringTransaction, "getTask">, task: Pick<QueryTaskRecord, "role" | "parent">, outcomes?: readonly FieldOutcome[]): Partial<AnswerRevisionView> {
   return {
-    spec: source.spec,
-    hypotheses: source.hypotheses,
-    choices: source.choices,
-    resolutions: source.resolutions,
-    choiceResolutions: source.choiceResolutions,
-    ...(source.probeWaivers ? { probeWaivers: source.probeWaivers } : {}),
-    ...(source.decisionPoints ? { decisionPoints: source.decisionPoints } : {}),
-  };
-}
-
-/** A chart query's inherited fields: the guard applies to every step. */
-interface Inheritance {
-  readonly inherited: InheritedFields;
-  readonly recorded: readonly Deviation[];
-  /** Deviation reasons given for the whole call. */
-  readonly proposals: readonly DeviationProposal[];
-  readonly metricRef?: string;
-}
-
-/** What the view adds about the task itself; attached after SpecFeedback re-reads the view. */
-interface ViewExtras {
-  readonly steps?: readonly StepOutcome[];
-  readonly role?: "report";
-  readonly parent?: ParentBinding & { readonly current: boolean };
-}
-
-function taskExtras(tx: Pick<AnsweringTransaction, "getTask">, task: Pick<QueryTaskRecord, "role" | "parent">): ViewExtras {
-  return {
+    ...(outcomes ? { outcomes } : {}),
     ...(task.role ? { role: task.role } : {}),
     ...(task.parent ? { parent: { ...task.parent, current: tx.getTask(task.parent.taskId)?.currentRevisionId === task.parent.revisionId } } : {}),
   };
 }
 
-function withExtras(view: AnswerRevisionView, extras: ViewExtras | undefined): AnswerRevisionView {
-  return extras ? { ...view, ...extras } : view;
-}
-
-/** The Report Task a chart query is started under, and the fields it copies from it. */
+/** The Report Task a chart query is bound to, and the fields it copies from it. */
 function bindParent(tx: AnsweringTransaction, parentTaskId: string, context: BusinessContext) {
   const parent = tx.getTask(parentTaskId as TaskId);
   assertTaskAccess(parent, context);
@@ -258,141 +204,52 @@ function bindParent(tx: AnsweringTransaction, parentTaskId: string, context: Bus
   return { binding, inherited: inheritedFields(revision, binding), evidence: tx.listEvidence(parent.taskId) };
 }
 
-export async function beginAnswer(deps: AnsweringDeps, input: BeginAnswer, context: BusinessContext): Promise<AnswerRevisionView> {
-  if (input.steps !== undefined) return beginStepped(deps, input, context);
-  if (input.report || input.parent) throw new AnsweringError("INVALID_REQUEST", "Report Tasks and chart queries are started with steps");
-  const requestMessageId = localId(input.requestMessageId, "requestMessageId");
-  const requestId = localId(input.requestId, "requestId");
-  // Trusted source reads happen before the Store transaction (ADR-0004).
-  const admitted = await admit(input.evidence, { sessionId: context.sessionId, taskRequestMessageId: requestMessageId, ...admissionSource(deps, context) });
-  await verifyDecisionPointQuotes(deps, input.decisionPoints, requestMessageId, context);
-  const outcome = await deps.store.transact(async (tx) => {
-    const existing = tx.findTaskByRequest(context.sessionId, requestId);
-    if (existing) {
-      assertTaskAccess(existing, context);
-      const revision = tx.getCurrentRevision(existing.taskId);
-      if (!revision) throw new AnsweringError("REVISION_NOT_FOUND", "Existing task has no current revision");
-      return { view: viewFromRevision(existing.taskId, revision, choiceContextFor(deps, existing)) } as const;
-    }
-    const taskId = makeInternalId("task") as unknown as TaskId;
-    const revisionId = makeInternalId("revision") as unknown as RevisionId;
-    const createdAt = now();
-    const requestEvidence = requestHandleEvidence(requestMessageId, createdAt);
-    const added = admitted.map((item) => ({ ...(item.localId ? { localId: item.localId } : {}), evidence: evidenceFromAdmission(item, createdAt) }));
-    const evidence = [requestEvidence, ...added.map((item) => item.evidence)];
-    for (const item of evidence) tx.appendEvidence(taskId, item);
-    const body = beginTransition(
-      { spec: input.spec, ...(input.hypotheses ? { hypotheses: input.hypotheses } : {}), ...(input.choices ? { choices: input.choices } : {}), ...(input.notProbeable ? { notProbeable: input.notProbeable } : {}), ...(input.decisionPoints ? { decisionPoints: input.decisionPoints } : {}) },
-      evidenceResolver([requestEvidence], added),
-      governanceFor(deps, { taskId, choiceProbes: [] }),
-    );
-    const baseRevision: AnswerRevisionRecord = { taskId, revisionId, requestId, ...body, state: { state: "draft", revisionId }, createdAt };
-    const revision: AnswerRevisionRecord = { ...baseRevision, specFeedback: initialSpecFeedback(baseRevision, evidence, Boolean(deps.specFeedback), createdAt) };
-    const task: QueryTaskRecord = { taskId, sessionId: context.sessionId, principalId: context.principal.id, requestMessageId, requestId, currentRevisionId: revisionId, lifecycle: "open", budget: newBudget(deps.budgetPolicy, createdAt), createdAt, updatedAt: createdAt };
-    tx.putRevision(revision);
-    tx.putTask(task);
-    return {
-      view: viewFromRevision(taskId, revision, choiceContextFor(deps, task)),
-      feedbackTarget: { taskId, revisionId, requestMessageId, evidence: clone(evidence) },
-    } as const;
-  }, context);
-  return finishRevisionSubmission(deps, outcome, context);
+function bodyOf(revision: AnswerRevisionRecord): FieldBody {
+  return { fields: revision.fields, rewrites: [], deviations: revision.deviations ?? [], ...(revision.measureRef ? { measureRef: revision.measureRef } : {}) };
 }
 
-/**
- * Apply a revision delta to the current Revision (ADR-0004). Runtime copies
- * the base Revision; omitted facets and items carry forward unchanged and an
- * item leaves only through an explicit disposition or supersession.
- */
-export async function reviseAnswer(deps: AnsweringDeps, input: ReviseAnswer, context: BusinessContext): Promise<AnswerRevisionView> {
-  if (input.steps !== undefined || input.rebind) return reviseStepped(deps, input, context);
-  const taskId = input.taskId as TaskId;
-  const baseRevisionId = input.baseRevisionId as RevisionId;
-  const requestId = localId(input.requestId, "requestId");
-  const taskRequestMessageId = await deps.store.transact((tx) => {
-    const task = tx.getTask(taskId);
-    assertTaskAccess(task, context);
-    return task.requestMessageId;
-  }, context);
-  const admitted = await admit(input.evidence, { sessionId: context.sessionId, taskRequestMessageId, ...admissionSource(deps, context) });
-  await verifyDecisionPointQuotes(deps, input.decisionPoints, taskRequestMessageId, context);
-  const outcome = await deps.store.transact(async (tx) => {
-    const existingTask = tx.getTask(taskId);
-    assertTaskAccess(existingTask, context);
-    if (existingTask.currentRevisionId !== baseRevisionId) throw new AnsweringError("REVISION_STALE", `Revision ${input.baseRevisionId} is stale`, { currentRevisionId: existingTask.currentRevisionId });
-    const reservation = reserveAttempt(tx, existingTask, deps.budgetPolicy, "revision", baseRevisionId, context.invocationId);
-    if (reservation.obstacle) return { obstacle: reservation.obstacle } as const;
-    const task = reservation.task;
-    const previous = tx.getRevision(baseRevisionId);
-    if (!previous) throw new AnsweringError("REVISION_NOT_FOUND", `Revision ${input.baseRevisionId} was not found`);
-    const createdAt = now();
-    const evidence = tx.listEvidence(taskId);
-    // A chart query may cite the Evidence of its Report Task (ADR-0009).
-    const parentEvidence = task.parent ? tx.listEvidence(task.parent.taskId) : [];
-    const added = admitted.map((item) => ({ ...(item.localId ? { localId: item.localId } : {}), evidence: evidenceFromAdmission(item, createdAt) }));
-    for (const item of added) tx.appendEvidence(taskId, item.evidence);
-    const allEvidence = [...evidence, ...added.map((item) => item.evidence)];
-    // A rejected transition throws inside the transaction: no Evidence, Revision or budget is committed.
-    const transition = reviseTransition(previous, {
-      ...(input.spec ? { spec: input.spec } : {}),
-      ...(input.addHypotheses ? { addHypotheses: input.addHypotheses } : {}),
-      ...(input.addChoices ? { addChoices: input.addChoices } : {}),
-      ...(input.dispositions ? { dispositions: input.dispositions } : {}),
-      ...(input.notProbeable ? { notProbeable: input.notProbeable } : {}),
-      ...(input.decisionPoints ? { decisionPoints: input.decisionPoints } : {}),
-    }, evidenceResolver([...evidence, ...parentEvidence], added), governanceFor(deps, task));
-    const { supersessions, ...body } = transition;
-    const metricShared = task.parent ? Object.keys(tx.getRevision(tx.getTask(task.parent.taskId)?.currentRevisionId as RevisionId)?.spec.metrics ?? {}).length > 0 : false;
-    const deviations = task.parent ? guardInheritance(previous, body, input.deviations, previous.deviations ?? [], metricShared) : [];
-    // Writing a metric of its own ends a chart query's metric reference.
-    const metricRef = input.spec && Object.prototype.hasOwnProperty.call(input.spec, "metric") ? undefined : previous.metricRef;
-    const revisionId = makeInternalId("revision") as unknown as RevisionId;
-    const baseRevision: AnswerRevisionRecord = {
-      taskId,
-      revisionId,
-      parentRevisionId: previous.revisionId,
-      requestId,
-      ...body,
-      state: { state: "draft", revisionId },
-      createdAt,
-      ...(supersessions.length > 0 ? { supersessions } : {}),
-      ...(deviations.length > 0 ? { deviations } : {}),
-      ...(metricRef ? { metricRef } : {}),
-      ...(task.parent ? { parentBinding: task.parent } : {}),
-    };
-    const revision: AnswerRevisionRecord = { ...baseRevision, specFeedback: initialSpecFeedback(baseRevision, allEvidence, Boolean(deps.specFeedback), baseRevision.createdAt) };
-    tx.putRevision(revision);
-    const { latestCandidateId: _latestCandidateId, publicationId: _publicationId, ...taskWithoutResults } = task;
-    const revisedTask: QueryTaskRecord = { ...taskWithoutResults, currentRevisionId: revisionId, lifecycle: "open", updatedAt: revision.createdAt };
-    tx.putAttempt({
-      ...reservation.attempt!,
-      state: "succeeded",
-      outcome: "succeeded",
-      sqlExecuted: false,
-      updatedAt: revision.createdAt,
-    });
-    tx.putTask(revisedTask);
-    return { view: viewFromRevision(taskId, revision, choiceContextFor(deps, task)), feedbackTarget: { taskId, revisionId, requestMessageId: task.requestMessageId, evidence: clone(allEvidence) } } as const;
-  }, context);
-  if ("obstacle" in outcome) {
-    throw new AnsweringError("IMPLEMENTATION_BUDGET_EXHAUSTED", outcome.obstacle.message, obstacleDetails(undefined, outcome.obstacle));
+function revisionRecord(base: Pick<AnswerRevisionRecord, "taskId" | "revisionId" | "requestId" | "createdAt"> & { readonly parentRevisionId?: RevisionId; readonly parentBinding?: ParentBinding }, body: FieldBody): AnswerRevisionRecord {
+  return {
+    ...base,
+    fields: body.fields,
+    state: { state: "draft", revisionId: base.revisionId },
+    ...(body.rewrites.length > 0 ? { rewrites: body.rewrites } : {}),
+    ...(body.deviations.length > 0 ? { deviations: body.deviations } : {}),
+    ...(body.measureRef ? { measureRef: body.measureRef } : {}),
+  };
+}
+
+/** Rebinding drops a measure copied from a definition the Report Task no longer has. */
+function dropMeasureRef(body: FieldBody): FieldBody {
+  const fields: Partial<Record<SpecPath, FieldRecord>> = {};
+  for (const [path, field] of Object.entries(body.fields) as [SpecPath, FieldRecord][]) {
+    if (!(path.startsWith("measure.") && field.inherited)) fields[path] = field;
   }
-  return finishRevisionSubmission(deps, outcome, context);
+  const { measureRef: _ref, ...rest } = body;
+  return { ...rest, fields: fields as SpecFields };
 }
 
 /**
- * Stepped begin: the task always starts, from an empty spec, so a later call
- * can continue it even when every step was rejected. Begin is not charged.
- * A Report Task starts the same way; a chart query starts from the shared
- * fields of its Report Task's current Revision (ADR-0009).
+ * The single Answer Spec write (ADR-0007). Each path is checked and applied
+ * on its own; the applied ones land as one Revision, charged once to the
+ * revision budget. Starting a task is not charged.
  */
-async function beginStepped(deps: AnsweringDeps, input: BeginAnswer, context: BusinessContext): Promise<AnswerRevisionView> {
-  assertStepsAlone(input, []);
+export async function setAnswerFields(deps: AnsweringDeps, input: SetAnswerFields, context: BusinessContext): Promise<AnswerRevisionView> {
+  if (!input.fields || typeof input.fields !== "object" || Array.isArray(input.fields)) throw new AnsweringError("INVALID_REQUEST", "fields must map field paths to field writes");
+  if (input.taskId) {
+    if (input.report || input.parent) throw new AnsweringError("INVALID_REQUEST", "report and parent only start a task; omit taskId");
+    return reviseFields(deps, input, context);
+  }
+  if (input.rebind) throw new AnsweringError("INVALID_REQUEST", "rebind needs the chart query's taskId");
+  return startTask(deps, input, context);
+}
+
+async function startTask(deps: AnsweringDeps, input: SetAnswerFields, context: BusinessContext): Promise<AnswerRevisionView> {
   if (input.report && input.parent) throw new AnsweringError("INVALID_REQUEST", "A Report Task cannot itself be a chart query of another Report Task");
-  const requestMessageId = localId(input.requestMessageId, "requestMessageId");
+  const requestMessageId = localId(input.requestMessageId ?? "", "requestMessageId");
   const requestId = localId(input.requestId, "requestId");
-  const prepared = await prepareSteps(deps, input.steps!, requestMessageId, context);
-  let extras: ViewExtras | undefined;
+  const prepared = await prepareWrites(deps, input, requestMessageId, context);
+  let extras: Partial<AnswerRevisionView> = {};
   const outcome = await deps.store.transact(async (tx) => {
     const existing = tx.findTaskByRequest(context.sessionId, requestId);
     if (existing) {
@@ -400,32 +257,21 @@ async function beginStepped(deps: AnsweringDeps, input: BeginAnswer, context: Bu
       const revision = tx.getCurrentRevision(existing.taskId);
       if (!revision) throw new AnsweringError("REVISION_NOT_FOUND", "Existing task has no current revision");
       extras = taskExtras(tx, existing);
-      return { view: viewFromRevision(existing.taskId, revision, choiceContextFor(deps, existing)) } as const;
+      return { view: viewFromRevision(existing.taskId, revision, probeContextFor(deps, existing, tx.listEvidence(existing.taskId)), existing.role === "report") } as const;
     }
     const taskId = makeInternalId("task") as unknown as TaskId;
     const revisionId = makeInternalId("revision") as unknown as RevisionId;
     const createdAt = now();
     const requestEvidence = requestHandleEvidence(requestMessageId, createdAt);
-    const governance = governanceFor(deps, { taskId, choiceProbes: [] });
     const parent = input.parent ? bindParent(tx, input.parent.taskId, context) : undefined;
-    const empty = beginTransition({ spec: {} }, evidenceResolver([requestEvidence], []), governance);
-    const start = parent ? overlayInherited(empty, parent.inherited, []) : empty;
-    const stepped = applySteps(start, prepared, [requestEvidence, ...(parent?.evidence ?? [])], governance, createdAt, parent ? { inherited: parent.inherited, recorded: [], proposals: input.deviations ?? [] } : undefined);
-    const evidence = [requestEvidence, ...stepped.added];
+    const empty: FieldBody = { fields: {}, rewrites: [], deviations: [] };
+    const start = parent ? overlayInherited(empty, parent.inherited) : empty;
+    const shape: TaskShape = { report: input.report === true, ...(parent ? { inherited: parent.inherited } : {}) };
+    const applied = applyWrites(start, prepared, [requestEvidence, ...(parent?.evidence ?? [])], governanceFor(deps, { taskId, fieldProbes: [] }), shape, createdAt);
+    const evidence = [requestEvidence, ...applied.added];
     for (const item of evidence) tx.appendEvidence(taskId, item);
-    const baseRevision: AnswerRevisionRecord = {
-      taskId,
-      revisionId,
-      requestId,
-      ...stepped.body,
-      state: { state: "draft", revisionId },
-      createdAt,
-      ...(stepped.supersessions.length > 0 ? { supersessions: stepped.supersessions } : {}),
-      ...(stepped.deviations.length > 0 ? { deviations: stepped.deviations } : {}),
-      ...(stepped.metricRef ? { metricRef: stepped.metricRef } : {}),
-      ...(parent ? { parentBinding: parent.binding } : {}),
-    };
-    const revision: AnswerRevisionRecord = { ...baseRevision, specFeedback: initialSpecFeedback(baseRevision, evidence, Boolean(deps.specFeedback), createdAt) };
+    const baseRevision = revisionRecord({ taskId, revisionId, requestId, createdAt, ...(parent ? { parentBinding: parent.binding } : {}) }, applied.body);
+    const revision: AnswerRevisionRecord = { ...baseRevision, ...(parent ? { parentBinding: parent.binding } : {}), specFeedback: initialSpecFeedback(baseRevision, evidence, Boolean(deps.specFeedback), createdAt) };
     const task: QueryTaskRecord = {
       taskId,
       sessionId: context.sessionId,
@@ -442,93 +288,84 @@ async function beginStepped(deps: AnsweringDeps, input: BeginAnswer, context: Bu
     };
     tx.putRevision(revision);
     tx.putTask(task);
-    extras = { steps: stepped.outcomes, ...taskExtras(tx, task) };
+    extras = taskExtras(tx, task, applied.outcomes);
     return {
-      view: viewFromRevision(taskId, revision, choiceContextFor(deps, task)),
+      view: viewFromRevision(taskId, revision, probeContextFor(deps, task, evidence), task.role === "report"),
       feedbackTarget: { taskId, revisionId, requestMessageId, evidence: clone(evidence) },
     } as const;
   }, context);
-  return withExtras(await finishRevisionSubmission(deps, outcome, context), extras);
+  const view = await finishRevisionSubmission(deps, outcome, context);
+  return { ...view, ...extras };
 }
 
 /**
- * Stepped revise: every step is checked on its own and the applied ones land
- * as one Revision, charged once to the revision budget. When no step applies,
- * nothing is written or charged and the current Revision is returned.
- * `rebind` moves a chart query to its Report Task's current Revision and
- * copies the shared fields again, keeping the ones it deviates on.
+ * Revise: when no write applies, nothing is written or charged and the
+ * current Revision is returned. `rebind` moves a chart query to its Report
+ * Task's current Revision and copies the shared fields again, keeping the
+ * ones it deviates on.
  */
-async function reviseStepped(deps: AnsweringDeps, input: ReviseAnswer, context: BusinessContext): Promise<AnswerRevisionView> {
-  if (input.steps !== undefined || !input.rebind) assertStepsAlone(input, ["spec"]);
+async function reviseFields(deps: AnsweringDeps, input: SetAnswerFields, context: BusinessContext): Promise<AnswerRevisionView> {
   const taskId = input.taskId as TaskId;
-  const baseRevisionId = input.baseRevisionId as RevisionId;
   const requestId = localId(input.requestId, "requestId");
   const taskRequestMessageId = await deps.store.transact((tx) => {
     const task = tx.getTask(taskId);
     assertTaskAccess(task, context);
     return task.requestMessageId;
   }, context);
-  const prepared = await prepareSteps(deps, input.steps ?? [], taskRequestMessageId, context);
-  let extras: ViewExtras | undefined;
+  const prepared = await prepareWrites(deps, input, taskRequestMessageId, context);
+  let extras: Partial<AnswerRevisionView> = {};
   const outcome = await deps.store.transact(async (tx) => {
     const existingTask = tx.getTask(taskId);
     assertTaskAccess(existingTask, context);
-    if (existingTask.currentRevisionId !== baseRevisionId) throw new AnsweringError("REVISION_STALE", `Revision ${input.baseRevisionId} is stale`, { currentRevisionId: existingTask.currentRevisionId });
-    const previous = tx.getRevision(baseRevisionId);
-    if (!previous) throw new AnsweringError("REVISION_NOT_FOUND", `Revision ${input.baseRevisionId} was not found`);
+    const previous = tx.getRevision(existingTask.currentRevisionId);
+    if (!previous) throw new AnsweringError("REVISION_NOT_FOUND", `Revision ${existingTask.currentRevisionId} was not found`);
     if (input.rebind && !existingTask.parent) throw new AnsweringError("INVALID_REQUEST", "Only a chart query of a Report Task can be rebound");
     const parent = existingTask.parent ? bindParent(tx, existingTask.parent.taskId, context) : undefined;
-    const rebound = input.rebind && parent && parent.binding.revisionId !== existingTask.parent!.revisionId;
-    const recorded = previous.deviations ?? [];
-    let metricRef = previous.metricRef;
-    let start: RevisionBody = rebound ? overlayInherited(previous, parent.inherited, recorded) : previous;
-    if (rebound && metricRef) {
-      // A definition the Report Task no longer has leaves the metric open for this chart query to set.
-      if (parent.inherited.metrics[metricRef]) start = applyMetricRef(start, parent.inherited, metricRef);
-      else {
-        start = { ...start, spec: { ...start.spec, metric: { state: "unknown" } } };
-        metricRef = undefined;
+    const rebound = Boolean(input.rebind && parent && parent.binding.revisionId !== existingTask.parent!.revisionId);
+    let start = bodyOf(previous);
+    if (rebound && parent) {
+      start = overlayInherited(start, parent.inherited);
+      if (start.measureRef) {
+        // A definition the Report Task no longer settles leaves the measure for this chart query to set.
+        const definition = parent.inherited.fields[`measures.${start.measureRef}`];
+        start = definition && (definition.state === "specified" || definition.state === "decided")
+          ? applyMeasureRef(start, parent.inherited, start.measureRef)
+          : dropMeasureRef(start);
       }
     }
     const createdAt = now();
     const evidence = tx.listEvidence(taskId);
-    const stepped = applySteps(start, prepared, [...evidence, ...(parent?.evidence ?? [])], governanceFor(deps, existingTask), createdAt, parent ? { inherited: parent.inherited, recorded, proposals: input.deviations ?? [], ...(metricRef ? { metricRef } : {}) } : undefined);
-    if (!stepped.applied && !rebound) {
-      extras = { steps: stepped.outcomes, ...taskExtras(tx, existingTask) };
-      return { view: viewFromRevision(taskId, previous, choiceContextFor(deps, existingTask)) } as const;
+    // The binding a chart query writes against: the new one on a rebind.
+    const inherited = parent ? (rebound ? parent.inherited : { ...parent.inherited, binding: existingTask.parent! }) : undefined;
+    const shape: TaskShape = { report: existingTask.role === "report", ...(inherited ? { inherited } : {}) };
+    const applied = applyWrites(start, prepared, [...evidence, ...(parent?.evidence ?? [])], governanceFor(deps, existingTask), shape, createdAt);
+    if (!applied.applied && !rebound) {
+      extras = taskExtras(tx, existingTask, applied.outcomes);
+      return { view: viewFromRevision(taskId, previous, probeContextFor(deps, existingTask, evidence), existingTask.role === "report") } as const;
     }
-    const reservation = reserveAttempt(tx, existingTask, deps.budgetPolicy, "revision", baseRevisionId, context.invocationId);
+    const reservation = reserveAttempt(tx, existingTask, deps.budgetPolicy, "revision", previous.revisionId, context.invocationId);
     if (reservation.obstacle) return { obstacle: reservation.obstacle } as const;
     const task = reservation.task;
-    for (const item of stepped.added) tx.appendEvidence(taskId, item);
-    const allEvidence = [...evidence, ...stepped.added];
+    for (const item of applied.added) tx.appendEvidence(taskId, item);
+    const allEvidence = [...evidence, ...applied.added];
     const revisionId = makeInternalId("revision") as unknown as RevisionId;
-    // On a rebind with no applied step the body is still the previous record; keep only its body fields.
-    const body = bodyOf(stepped.body);
-    const baseRevision: AnswerRevisionRecord = {
-      taskId,
-      revisionId,
-      parentRevisionId: previous.revisionId,
-      requestId,
-      ...body,
-      state: { state: "draft", revisionId },
-      createdAt,
-      ...(stepped.supersessions.length > 0 ? { supersessions: stepped.supersessions } : {}),
-      ...(stepped.deviations.length > 0 ? { deviations: stepped.deviations } : {}),
-      ...(stepped.metricRef ? { metricRef: stepped.metricRef } : {}),
-      ...(existingTask.parent ? { parentBinding: rebound ? parent.binding : existingTask.parent } : {}),
-    };
-    const revision: AnswerRevisionRecord = { ...baseRevision, specFeedback: initialSpecFeedback(baseRevision, allEvidence, Boolean(deps.specFeedback), createdAt) };
+    const binding = existingTask.parent ? (rebound ? parent!.binding : existingTask.parent) : undefined;
+    const baseRevision = revisionRecord({ taskId, revisionId, parentRevisionId: previous.revisionId, requestId, createdAt }, applied.body);
+    const revision: AnswerRevisionRecord = { ...baseRevision, ...(binding ? { parentBinding: binding } : {}), specFeedback: initialSpecFeedback(baseRevision, allEvidence, Boolean(deps.specFeedback), createdAt) };
     tx.putRevision(revision);
     const { latestCandidateId: _latestCandidateId, publicationId: _publicationId, ...taskWithoutResults } = task;
     tx.putAttempt({ ...reservation.attempt!, state: "succeeded", outcome: "succeeded", sqlExecuted: false, updatedAt: createdAt });
-    const revisedTask: QueryTaskRecord = { ...taskWithoutResults, currentRevisionId: revisionId, lifecycle: "open", updatedAt: createdAt, ...(rebound ? { parent: parent.binding } : {}) };
+    const revisedTask: QueryTaskRecord = { ...taskWithoutResults, currentRevisionId: revisionId, lifecycle: "open", updatedAt: createdAt, ...(rebound ? { parent: parent!.binding } : {}) };
     tx.putTask(revisedTask);
-    extras = { steps: stepped.outcomes, ...taskExtras(tx, revisedTask) };
-    return { view: viewFromRevision(taskId, revision, choiceContextFor(deps, task)), feedbackTarget: { taskId, revisionId, requestMessageId: task.requestMessageId, evidence: clone(allEvidence) } } as const;
+    extras = taskExtras(tx, revisedTask, applied.outcomes);
+    return {
+      view: viewFromRevision(taskId, revision, probeContextFor(deps, task, allEvidence), task.role === "report"),
+      feedbackTarget: { taskId, revisionId, requestMessageId: task.requestMessageId, evidence: clone(allEvidence) },
+    } as const;
   }, context);
   if ("obstacle" in outcome) {
     throw new AnsweringError("IMPLEMENTATION_BUDGET_EXHAUSTED", outcome.obstacle.message, obstacleDetails(undefined, outcome.obstacle));
   }
-  return withExtras(await finishRevisionSubmission(deps, outcome, context), extras);
+  const view = await finishRevisionSubmission(deps, outcome, context);
+  return { ...view, ...extras };
 }

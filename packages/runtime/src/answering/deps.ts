@@ -41,11 +41,11 @@ export interface AnsweringDeps {
   readonly budgetPolicy: QueryBudgetPolicy;
   readonly maxResultRows: number;
   readonly semanticQualificationMode: SemanticQualificationMode;
-  /** Choice probe tracking and the decide-after-probe rule (ADR-0005). */
-  readonly choiceProbes: boolean;
-  /** compare_hypotheses advice per Choice, written by the trusted comparison tool. */
+  /** Probe tracking for open fields and the decide-after-probe rule (ADR-0005). */
+  readonly fieldProbes: boolean;
+  /** compare_hypotheses advice per open field, written by the trusted comparison tool. */
   readonly advisoryLedger?: AdvisoryLedger;
-  /** An advisor is configured, so decisive core Choices need advice before a decision. */
+  /** An advisor is configured, so decisive open fields need advice before a decision. */
   readonly adviceRequired: boolean;
   /** Whether an unverified decision may settle the material population (ADR-0006). */
   readonly populationDecisions: "require_evidence" | "allow_disclosed";

@@ -14,7 +14,7 @@ import { MemoryChildSessionRepository } from "./child-session-repo.js";
 import { NativeDelegation } from "./delegation.js";
 import { PiSessionDelegationLedger } from "./ledger.js";
 
-const spec = { entity: "orders", metric: "count", filters: [], groupBy: [], time: { state: "not_applicable" }, ranking: { state: "not_applicable" }, output: { rowMode: "scalar", rowCount: 1 } };
+const spec = { "population.entity": "orders", "population.eligibility": "n/a", "population.conditions": "n/a", "population.time": "n/a", "measure.formula": { op: "count", of: "orders" }, "measure.countGrain": "one row per order", grouping: "n/a", selection: "n/a", output: { rowMode: "scalar", rowCount: 1 } };
 
 describe("main AgentHarness to child AgentHarness", () => {
   it("binds the actual prompt entry to Answering before the main agent delegates", async () => {
@@ -39,7 +39,7 @@ describe("main AgentHarness to child AgentHarness", () => {
     let childContext = "";
     const lastToolResult = (context: { messages: readonly any[] }) => context.messages.filter((message) => message.role === "toolResult").at(-1);
     faux.setResponses([
-      fauxAssistantMessage(fauxToolCall("begin_answer_spec", { spec }, { id: "begin-call" }), { stopReason: "toolUse" }),
+      fauxAssistantMessage(fauxToolCall("set_answer_spec", { fields: spec }, { id: "begin-call" }), { stopReason: "toolUse" }),
       async (context) => {
         begun = lastToolResult(context)?.details;
         if (!begun?.taskId || !begun.revisionId) throw new Error("TEST_ANSWER_SPEC_MISSING");
@@ -96,7 +96,7 @@ describe("main AgentHarness to child AgentHarness", () => {
       sqlExecutor: { run: async () => ({ columns: ["count"], rows: [[2]], truncated: false, columnTypes: ["INTEGER"] }) },
     });
     const business = (invocationId: string) => ({ principal: { id: "user-1" }, sessionId: "parent-session", lane: "main", operationId: "setup", invocationId });
-    const begun = await answering.begin({ requestMessageId, requestId: "begin", spec }, business("begin"));
+    const begun = await answering.set({ requestMessageId, requestId: "begin", fields: spec }, business("begin"));
     await answering.execute({ kind: "result", taskId: begun.taskId, revisionId: begun.revisionId, sql: "SELECT COUNT(*) FROM orders" }, business("candidate"));
     const ledger = new PiSessionDelegationLedger(parentSession);
     const delegation = new NativeDelegation({

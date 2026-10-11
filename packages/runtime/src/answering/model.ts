@@ -1,5 +1,5 @@
-import type { DecisionPointName, DecisionPointProposal, DecisionPoints } from "./decision-points.js";
 import { createHash } from "node:crypto";
+import type { FieldSection, FieldValue, SpecPath } from "./fields.js";
 
 /**
  * Domain identities are branded at the Answering boundary. Constructors are
@@ -12,19 +12,14 @@ export type Id<K extends string> = string & { readonly [identityBrand]: K };
 export type TaskId = Id<"TaskId">;
 export type RevisionId = Id<"RevisionId">;
 export type ReadyRevisionId = Id<"ReadyRevisionId">;
-export type HypothesisId = Id<"HypothesisId">;
 export type EvidenceId = Id<"EvidenceId">;
 export type QualifiedEvidenceId = Id<"QualifiedEvidenceId">;
-export type ChoiceId = Id<"ChoiceId">;
 export type AlternativeId = Id<"AlternativeId">;
 export type CandidateId = Id<"CandidateId">;
 export type PrivateResultRef = Id<"PrivateResultRef">;
 export type PublicationId = Id<"PublicationId">;
 
 export type NonEmpty<T> = readonly [T, ...T[]];
-
-export type FacetName = "entity" | "metric" | "filters" | "groupBy" | "time" | "ranking" | "output";
-export type HypothesisKind = "business_semantics" | "physical_mapping" | "data_property";
 
 /**
  * The inner loop reports obstacles instead of collapsing every failure into a
@@ -42,7 +37,7 @@ export type ImplementationObstacleKind =
 export type ExecutionOutcome = "not_started" | "failed" | "succeeded" | "unknown";
 
 export type QueryAttemptKind = "revision" | "exploration" | "result";
-export type QueryAttemptPurpose = "user_exploration" | "fanout_probe" | "choice_probe";
+export type QueryAttemptPurpose = "user_exploration" | "fanout_probe" | "field_probe";
 export type QueryAttemptState = "blocked" | "started" | "succeeded" | "failed" | "unknown";
 
 export interface QueryBudgetPolicy {
@@ -104,8 +99,8 @@ export interface SpecFeedbackChoice<TChoice extends string, TProbabilities exten
   readonly confidence: number;
 }
 
-export interface SpecFeedbackFacetAssessment {
-  readonly facet: FacetName;
+export interface SpecFeedbackSectionAssessment {
+  readonly section: FieldSection;
   readonly relation: SpecFeedbackChoice<SpecFeedbackRelation, SpecFeedbackRelationProbability>;
   readonly coverage: SpecFeedbackChoice<SpecFeedbackCoverage, SpecFeedbackCoverageProbability>;
 }
@@ -113,12 +108,12 @@ export interface SpecFeedbackFacetAssessment {
 export interface SpecFeedbackAssessment {
   readonly model: string;
   readonly ruleVersion: string;
-  readonly facets: readonly SpecFeedbackFacetAssessment[];
+  readonly sections: readonly SpecFeedbackSectionAssessment[];
 }
 
 export interface SpecFeedbackDeterministicIssue {
   readonly code: "scalar_row_count_conflict" | "strict_top_n_row_count_conflict";
-  readonly facets: NonEmpty<FacetName>;
+  readonly paths: NonEmpty<SpecPath>;
   readonly message: string;
   readonly actual?: number;
   readonly expected?: number;
@@ -196,86 +191,6 @@ export interface ImplementationObstacle {
   readonly queryHash?: string;
 }
 
-export interface EntitySpec {
-  readonly name: string;
-  readonly keyColumns?: readonly string[];
-}
-
-export interface MetricSpec {
-  readonly kind: string;
-  readonly expression?: string;
-  readonly unit?: string;
-  /** Report Task metric definitions (ADR-0009): the denominator and count grain a chart query inherits. */
-  readonly denominator?: string;
-  readonly countGrain?: string;
-}
-
-export interface FilterSpec {
-  readonly expression: string;
-}
-
-export interface GroupingSpec {
-  readonly expression: string;
-}
-
-export interface TimeSpec {
-  readonly expression: string;
-  readonly boundary?: "inclusive" | "exclusive" | "mixed" | "unspecified";
-}
-
-export interface RankingSpec {
-  readonly n: number;
-  readonly orderBy: string;
-  readonly tiePolicy?: "strict" | "include_ties" | "unspecified";
-}
-
-export interface OutputSpec {
-  readonly rowMode?: "scalar" | "top_n" | "grouped" | "full" | "detail";
-  readonly rowCount?: number;
-  readonly columns?: readonly string[];
-}
-
-export type Facet<T> =
-  | { readonly state: "unknown" }
-  | { readonly state: "not_applicable" }
-  | {
-      readonly state: "specified";
-      readonly value: T;
-      readonly basis:
-        | { readonly kind: "evidence"; readonly evidenceIds: NonEmpty<EvidenceId> }
-        | { readonly kind: "hypothesis"; readonly hypothesisId: HypothesisId }
-        /** Model inference without a bound Hypothesis or qualifying Evidence; disclosed, not blocking. */
-        | { readonly kind: "inference" }
-        /** Copied from the bound Revision of the parent Report Task (ADR-0009). */
-        | { readonly kind: "inherited"; readonly taskId: TaskId; readonly revisionId: RevisionId };
-    };
-
-export interface AnswerSpec {
-  readonly entity: Facet<EntitySpec>;
-  readonly metric: Facet<MetricSpec>;
-  readonly filters: readonly Facet<FilterSpec>[];
-  readonly groupBy: readonly Facet<GroupingSpec>[];
-  readonly time: Facet<TimeSpec>;
-  readonly ranking: Facet<RankingSpec>;
-  readonly output: Facet<OutputSpec>;
-  /** Named metric definitions of a Report Task, referenced by its chart queries (ADR-0009). */
-  readonly metrics?: Readonly<Record<string, Facet<MetricSpec>>>;
-}
-
-/** Minimal, untrusted model/application proposal accepted by begin/revise. */
-export interface AnswerSpecProposal {
-  readonly entity?: unknown;
-  /** A chart query may write `{ ref: "<name>" }` to take a Report Task metric definition. */
-  readonly metric?: unknown;
-  /** Named metric definitions; a present name replaces its definition, null removes it. */
-  readonly metrics?: Readonly<Record<string, unknown>>;
-  readonly filters?: readonly unknown[];
-  readonly groupBy?: readonly unknown[];
-  readonly time?: unknown;
-  readonly ranking?: unknown;
-  readonly output?: unknown;
-}
-
 export interface EvidenceBase {
   readonly id: EvidenceId;
   readonly kind: EvidenceKind;
@@ -327,107 +242,17 @@ export type Evidence =
   | (EvidenceBase & { readonly kind: "schema_fact"; readonly authority: "schema" })
   | (EvidenceBase & { readonly kind: "query_observation"; readonly authority: "observation"; readonly preview: BoundedResult });
 
-export interface Hypothesis {
-  readonly id: HypothesisId;
-  readonly kind: HypothesisKind;
-  readonly statement: string;
-  readonly affects: NonEmpty<FacetName>;
-  readonly basis: string;
-  readonly impact: string;
-}
-
-export interface HypothesisProposal {
-  readonly localId: string;
-  readonly kind: HypothesisKind;
-  readonly statement: string;
-  readonly affects: readonly FacetName[];
-  readonly basis: string;
-  readonly impact: string;
-  readonly proposedEvidenceIds?: readonly string[];
-  /**
-   * Supported without evidence: the Runtime records it unverified and discloses
-   * it (ADR-0006), unless it settles the material population while a
-   * clarification path exists.
-   */
-  readonly assumed?: boolean;
-}
-
-export interface ChoiceAlternative {
+/** One alternative of an open field; the Runtime issues its id for probes and the decision. */
+export interface FieldAlternative {
   readonly id: AlternativeId;
-  readonly statement: string;
+  readonly value: FieldValue;
 }
 
-export interface Choice {
-  readonly id: ChoiceId;
-  readonly affects: NonEmpty<FacetName>;
-  readonly alternatives: NonEmpty<ChoiceAlternative>;
+/** An alternative that cannot be executed on its own; recorded instead of a probe (ADR-0005). */
+export interface ProbeWaiver {
+  readonly alternativeId: AlternativeId;
+  readonly reason: string;
 }
-
-export interface ChoiceProposal {
-  readonly localId: string;
-  readonly affects: readonly FacetName[];
-  readonly alternatives: readonly { readonly localId: string; readonly statement: string }[];
-  readonly selectedAlternativeId?: string;
-  readonly selectionEvidenceIds?: readonly string[];
-  /** Required with selectedAlternativeId: why the cited evidence rules out every other alternative. */
-  readonly selectionRationale?: string;
-  readonly provisionalAlternativeId?: string;
-  /** Decide at creation (ADR-0006); verification is derived from decisionEvidenceIds. */
-  readonly decidedAlternativeId?: string;
-  readonly decisionRationale?: string;
-  readonly decisionEvidenceIds?: readonly string[];
-}
-
-export type Resolution =
-  | {
-      readonly outcome: "supported";
-      readonly hypothesisId: HypothesisId;
-      readonly proof: NonEmpty<QualifiedEvidenceId>;
-    }
-  | {
-      readonly outcome: "refuted";
-      readonly hypothesisId: HypothesisId;
-      readonly proof: NonEmpty<QualifiedEvidenceId>;
-    }
-  | {
-      /**
-       * Supported, but no cited evidence qualifies it (ADR-0006 applied to
-       * Hypotheses): unverified and disclosed at publication. Legacy snapshots
-       * carry the Choice that settled it instead of cited evidence.
-       */
-      readonly outcome: "provisional";
-      readonly hypothesisId: HypothesisId;
-      readonly choiceId?: ChoiceId;
-      readonly disclosureRequired: true;
-      readonly citedEvidenceIds?: readonly EvidenceId[];
-    };
-
-export type ChoiceResolution =
-  | {
-      readonly outcome: "selected";
-      readonly choiceId: ChoiceId;
-      readonly alternativeId: AlternativeId;
-      readonly proof: NonEmpty<QualifiedEvidenceId>;
-      /** Discriminating argument recorded at selection; absent on legacy snapshots. */
-      readonly rationale?: string;
-      readonly adviceOverride?: AdviceOverride;
-    }
-  | {
-      readonly outcome: "provisional";
-      readonly choiceId: ChoiceId;
-      readonly alternativeId: AlternativeId;
-      readonly disclosureRequired: true;
-      /** Required when Choice governance is on (ADR-0005); absent on legacy snapshots. */
-      readonly rationale?: string;
-      readonly adviceOverride?: AdviceOverride;
-      /** Evidence the decision cited that did not qualify it (ADR-0006); disclosed with the decision. */
-      readonly citedEvidenceIds?: readonly EvidenceId[];
-    }
-  | {
-      /** Every alternative's probe produced the same output; no decision or disclosure is needed. */
-      readonly outcome: "equivalent";
-      readonly choiceId: ChoiceId;
-    };
 
 /** Why a decision departs from compare_hypotheses' clear lean, with the evidence that outweighs it. */
 export interface AdviceOverride {
@@ -435,23 +260,41 @@ export interface AdviceOverride {
   readonly evidenceIds: NonEmpty<EvidenceId>;
 }
 
-export interface AdviceOverrideProposal {
-  readonly reason: string;
-  readonly evidenceIds: readonly string[];
-}
+/**
+ * What a value rests on. The Runtime, not the model, decides which applies
+ * (ADR-0006): cited evidence that qualifies for the field's layer makes it
+ * evidence; anything else is an assumption, disclosed at publication.
+ */
+export type FieldBasis =
+  | { readonly kind: "evidence"; readonly evidenceIds: NonEmpty<EvidenceId> }
+  | { readonly kind: "assumed"; readonly rationale?: string; readonly citedEvidenceIds?: readonly EvidenceId[] };
 
-/** An alternative that cannot be executed on its own; recorded instead of a probe (ADR-0005). */
-export interface ProbeWaiver {
-  readonly choiceId: ChoiceId;
-  readonly alternativeId: AlternativeId;
-  readonly reason: string;
-}
+/**
+ * One field of the Answer Spec (ADR-0007). A field is not applicable, has a
+ * value with a basis, or is open between alternatives until it is decided.
+ * `inherited` marks a chart query's copy of a Report Task field (ADR-0009).
+ */
+export type FieldRecord = (
+  | { readonly state: "not_applicable" }
+  | { readonly state: "specified"; readonly value: FieldValue; readonly basis: FieldBasis }
+  | { readonly state: "open"; readonly alternatives: NonEmpty<FieldAlternative>; readonly waivers?: readonly ProbeWaiver[] }
+  | {
+      readonly state: "decided";
+      readonly alternatives: NonEmpty<FieldAlternative>;
+      readonly waivers?: readonly ProbeWaiver[];
+      readonly alternativeId: AlternativeId;
+      readonly value: FieldValue;
+      readonly rationale: string;
+      readonly basis: FieldBasis;
+      readonly adviceOverride?: AdviceOverride;
+    }
+) & { readonly inherited?: ParentBinding };
 
-export interface ProbeWaiverProposal {
-  /** Existing Choice id, or the localId of a Choice added in the same call. */
-  readonly choiceId: string;
-  /** Existing alternative id, or the localId of an alternative added in the same call. */
-  readonly alternativeId: string;
+export type SpecFields = Readonly<Partial<Record<SpecPath, FieldRecord>>>;
+
+/** A field that already had a state and was rewritten, with the reason given (ADR-0004 continuity). */
+export interface FieldRewrite {
+  readonly path: SpecPath;
   readonly reason: string;
 }
 
@@ -459,8 +302,8 @@ export interface ProbeWaiverProposal {
  * Runtime record of one exploration executed as an alternative's probe. The
  * fingerprint compares complete outputs the way the answer will be judged.
  */
-export interface ChoiceProbeRecord {
-  readonly choiceId: ChoiceId;
+export interface FieldProbeRecord {
+  readonly path: SpecPath;
   readonly alternativeId: AlternativeId;
   readonly revisionId: RevisionId;
   readonly evidenceId: EvidenceId;
@@ -469,66 +312,6 @@ export interface ChoiceProbeRecord {
     | { readonly state: "available"; readonly fingerprint: string }
     | { readonly state: "unavailable"; readonly reason: string };
   readonly probedAt: string;
-}
-
-/**
- * Explicit handling of an existing Hypothesis or Choice in a revision. Runtime
- * applies it to the carried-forward state; omission is never a disposition.
- */
-export type DispositionProposal =
-  | {
-      readonly action: "support" | "refute";
-      readonly hypothesisId: string;
-      readonly evidenceIds: readonly string[];
-    }
-  | {
-      readonly action: "select";
-      readonly choiceId: string;
-      readonly alternativeId: string;
-      readonly evidenceIds: readonly string[];
-      /** Why the cited evidence rules out every other alternative; quoting the request alone is not enough. */
-      readonly rationale: string;
-      /** Required when the decision departs from compare_hypotheses' clear lean. */
-      readonly adviceOverride?: AdviceOverrideProposal;
-    }
-  | {
-      readonly action: "provisional";
-      readonly choiceId: string;
-      readonly alternativeId: string;
-      /** Why this alternative fits the request best; required when Choice governance is on. */
-      readonly rationale?: string;
-      readonly adviceOverride?: AdviceOverrideProposal;
-    }
-  | {
-      /**
-       * The one model-facing decision (ADR-0006). Runtime records it as
-       * selected when the cited evidence qualifies, otherwise as a disclosed
-       * provisional decision.
-       */
-      readonly action: "decide";
-      readonly choiceId: string;
-      readonly alternativeId: string;
-      readonly rationale: string;
-      readonly evidenceIds?: readonly string[];
-      readonly adviceOverride?: AdviceOverrideProposal;
-    }
-  | {
-      /** Accepted only when every alternative's probe produced the same output. */
-      readonly action: "equivalent";
-      readonly choiceId: string;
-    }
-  | {
-      readonly action: "supersede";
-      readonly targetId: string;
-      /** New item localIds from this revision or existing item ids that take over every affected facet. */
-      readonly replacementIds: readonly string[];
-      readonly reason: string;
-    };
-
-export interface Supersession {
-  readonly targetId: HypothesisId | ChoiceId;
-  readonly replacementIds: NonEmpty<HypothesisId | ChoiceId>;
-  readonly reason: string;
 }
 
 export interface DraftRevision {
@@ -581,8 +364,8 @@ export interface QueryTaskRecord {
   readonly lifecycle: "open" | "published" | "closed";
   /** Persisted task budget; omitted only for legacy snapshots and normalized on read/write. */
   readonly budget?: QueryBudgetState;
-  /** Latest probe per Choice alternative; Choice ids are stable across revisions. */
-  readonly choiceProbes?: readonly ChoiceProbeRecord[];
+  /** Latest probe per field alternative; alternative ids are stable until the field is rewritten. */
+  readonly fieldProbes?: readonly FieldProbeRecord[];
   /** "report": a Report Task that holds shared fields and never publishes (ADR-0009). */
   readonly role?: "report";
   /** A chart query's Report Task and the parent Revision its inherited fields were copied from. */
@@ -598,35 +381,28 @@ export interface ParentBinding {
 
 /** A chart query's change to a field it inherits from its Report Task, with the reason given (ADR-0009 decision 3). */
 export interface Deviation {
-  /** A shared slot or decision point name. */
+  /** A shared field path. */
   readonly path: string;
   readonly reason: string;
 }
+
 
 export interface AnswerRevisionRecord {
   readonly taskId: TaskId;
   readonly revisionId: RevisionId;
   readonly parentRevisionId?: RevisionId;
   readonly requestId: string;
-  readonly spec: AnswerSpec;
-  readonly hypotheses: readonly Hypothesis[];
-  readonly choices: readonly Choice[];
-  readonly resolutions: readonly Resolution[];
-  readonly choiceResolutions: readonly ChoiceResolution[];
+  readonly fields: SpecFields;
   readonly state: RevisionState;
   readonly createdAt: string;
-  /** Items removed from this Revision by explicit supersession; absent on legacy snapshots. */
-  readonly supersessions?: readonly Supersession[];
+  /** Fields rewritten in this Revision, with reasons. */
+  readonly rewrites?: readonly FieldRewrite[];
   /** Advisory report attached to this Revision; it never changes qualification. */
   readonly specFeedback?: SpecFeedback;
-  /** Alternatives declared not probeable; carried forward like other revision items. */
-  readonly probeWaivers?: readonly ProbeWaiver[];
-  /** Declared decision points (ADR-0005); absent on legacy revisions, which are exempt. */
-  readonly decisionPoints?: DecisionPoints;
   /** Inherited fields this chart query changed, with reasons; carried forward and disclosed. */
   readonly deviations?: readonly Deviation[];
-  /** The Report Task metric definition this chart query's metric is copied from. */
-  readonly metricRef?: string;
+  /** The Report Task measure definition this chart query's measure is copied from. */
+  readonly measureRef?: string;
   /** For a chart query: the parent Revision this Revision's inherited fields came from. */
   readonly parentBinding?: ParentBinding;
 }
@@ -654,13 +430,16 @@ export interface ResultCandidateRecord {
   readonly publishable: boolean;
 }
 
+export interface UnverifiedField {
+  readonly path: SpecPath;
+  /** assumed: a value without qualifying evidence; decided: an open field decided without it. */
+  readonly kind: "assumed" | "decided";
+}
+
 export interface PublicationDisclosure {
   readonly required: true;
-  readonly provisionalChoiceIds: readonly ChoiceId[];
-  /** Hypotheses supported without qualifying evidence (ADR-0006 applied to Hypotheses). */
-  readonly provisionalHypothesisIds?: readonly HypothesisId[];
-  /** Specified facets whose basis is model inference rather than a Hypothesis or qualifying Evidence. */
-  readonly inferredFacets?: readonly FacetName[];
+  /** Fields whose value no qualifying evidence settles (ADR-0006). */
+  readonly unverifiedFields: readonly UnverifiedField[];
   readonly summary: string;
   readonly fanoutStatus?: FanoutReport["status"];
   /** Shared fields this chart query changed from its Report Task. */
@@ -668,6 +447,7 @@ export interface PublicationDisclosure {
   /** Set on a refresh when the Report Task has changed since the chart query copied its shared fields. */
   readonly parentSuperseded?: ParentSupersession;
 }
+
 
 export interface ParentSupersession {
   readonly taskId: TaskId;
@@ -743,48 +523,25 @@ export interface PhysicalProfile {
 export interface AnswerTaskView {
   readonly task: QueryTaskRecord;
   readonly currentRevision: AnswerRevisionRecord;
-  readonly unresolvedFacets: readonly FacetName[];
-  readonly unresolvedHypotheses: readonly HypothesisId[];
-  readonly unresolvedChoices: readonly ChoiceId[];
+  /** Required fields without a state. */
+  readonly undeclared: readonly SpecPath[];
+  /** Open fields whose alternatives are not shown equivalent. */
+  readonly open: readonly SpecPath[];
   readonly attempts: readonly QueryAttemptRecord[];
   readonly candidate?: ResultCandidateRecord;
   readonly publication?: PublicationReceipt;
 }
 
-export interface HypothesisView {
-  readonly id: HypothesisId;
-  readonly kind: HypothesisKind;
-  readonly statement: string;
-  readonly affects: NonEmpty<FacetName>;
-  /** provisional: supported without qualifying evidence; resolved, and disclosed at publication. */
-  readonly status: "unresolved" | "supported" | "provisional" | "refuted";
-}
-
-export interface ChoiceView {
-  readonly id: ChoiceId;
-  readonly affects: NonEmpty<FacetName>;
-  readonly alternatives: NonEmpty<ChoiceAlternative>;
-  readonly status: "unresolved" | "selected" | "provisional" | "equivalent";
-  readonly alternativeId?: AlternativeId;
-  readonly rationale?: string;
-  /** Present when probes are tracked: per-alternative probe state and whether outputs differ. */
-  readonly probes?: readonly ChoiceProbeView[];
-  readonly outputs?: ChoiceOutputs;
-  /** Latest compare_hypotheses advice for this Choice; advisory only. */
-  readonly advice?: ChoiceAdviceView;
-  readonly adviceOverride?: AdviceOverride;
-}
-
-export interface ChoiceAdviceView {
+export interface AdviceView {
   readonly recommendation: "alternative" | "insufficient_evidence" | "multiple_plausible" | "none_supported";
   readonly probabilities: readonly { readonly alternativeId: string; readonly probability: number }[];
   readonly lean?: { readonly alternativeId: string; readonly probability: number };
 }
 
 /** identical: every alternative produced the same output; distinct: at least two differ; incomplete: some output unknown. */
-export type ChoiceOutputs = "identical" | "distinct" | "incomplete";
+export type ProbeOutputs = "identical" | "distinct" | "incomplete";
 
-export interface ChoiceProbeView {
+export interface ProbeView {
   readonly alternativeId: AlternativeId;
   readonly state: "missing" | "available" | "unavailable" | "waived";
   readonly rowCount?: number;
@@ -793,31 +550,57 @@ export interface ChoiceProbeView {
   readonly reason?: string;
 }
 
+/**
+ * request / evidence: settled by a verified request quote or other qualifying
+ * evidence; assumed: disclosed; open: alternatives await a decision;
+ * equivalent: every alternative produced the same output; decided: an open
+ * field decided, verified or not.
+ */
+export type FieldStatus = "not_applicable" | "request" | "evidence" | "assumed" | "open" | "equivalent" | "decided";
+
+export interface FieldView {
+  readonly path: SpecPath;
+  readonly status: FieldStatus;
+  readonly value?: FieldValue;
+  /** decided: whether qualifying evidence settled the decision. */
+  readonly verified?: boolean;
+  readonly rationale?: string;
+  readonly evidenceIds?: readonly EvidenceId[];
+  readonly alternatives?: readonly { readonly id: AlternativeId; readonly value: FieldValue; readonly probe?: ProbeView }[];
+  readonly outputs?: ProbeOutputs;
+  /** Latest compare_hypotheses advice for this field; advisory only. */
+  readonly advice?: AdviceView;
+  readonly adviceOverride?: AdviceOverride;
+  readonly inherited?: ParentBinding;
+}
+
+export interface FieldOutcome {
+  readonly path: string;
+  readonly status: "applied" | "rejected";
+  readonly code?: string;
+  readonly message?: string;
+}
+
 export interface AnswerRevisionView {
   readonly taskId: TaskId;
   readonly revisionId: RevisionId;
   readonly parentRevisionId?: RevisionId;
-  readonly spec: AnswerSpec;
-  /** Stable Runtime ids; a revision references these instead of resubmitting items. */
-  readonly hypotheses: readonly HypothesisView[];
-  readonly choices: readonly ChoiceView[];
-  readonly unresolvedFacets: readonly FacetName[];
-  readonly unresolvedHypotheses: readonly HypothesisId[];
-  readonly unresolvedChoices: readonly ChoiceId[];
-  /** Specified facets based on model inference; disclosed at publication, not blocking. */
-  readonly inferredFacets: readonly FacetName[];
-  /** Declared decision points and the ones still undeclared; present when decision points are tracked. */
-  readonly decisionPoints?: DecisionPoints;
-  readonly undeclaredDecisionPoints?: readonly DecisionPointName[];
+  readonly fields: readonly FieldView[];
+  /** Required fields without a state; they block the result query. */
+  readonly undeclared: readonly SpecPath[];
+  /** Open fields not shown equivalent; they block the result query. */
+  readonly open: readonly SpecPath[];
+  /** Fields disclosed at publication: assumed values and unverified decisions. */
+  readonly unverified: readonly SpecPath[];
   readonly specFeedback?: SpecFeedback;
-  /** Per-step outcome when the call carried `steps`, in call order. */
-  readonly steps?: readonly StepOutcome[];
+  /** Per-path outcome of the set call, in call order. */
+  readonly outcomes?: readonly FieldOutcome[];
   readonly role?: "report";
   /** For a chart query: its Report Task, the bound parent Revision and whether that is still current. */
   readonly parent?: ParentBinding & { readonly current: boolean };
   readonly deviations?: readonly Deviation[];
-  /** The Report Task metric definition a chart query's metric is taken from. */
-  readonly metricRef?: string;
+  /** The Report Task measure definition a chart query's measure is taken from. */
+  readonly measureRef?: string;
 }
 
 export interface QueryExecutionView {
@@ -828,84 +611,30 @@ export interface QueryExecutionView {
   readonly coverage?: readonly CheckCoverage[];
   readonly fanout?: FanoutReport;
   readonly attemptId?: string;
-  /** Set when the exploration ran as a Choice probe. */
-  readonly probe?: ChoiceProbeView & { readonly choiceId: ChoiceId };
+  /** Set when the exploration ran as the probe of an open field's alternative. */
+  readonly probe?: ProbeView & { readonly path: SpecPath };
 }
 
 /**
- * One increment of a stepped begin/revise. Each step is checked on its own
- * against the state the earlier applied steps left; a rejected step is skipped
- * and the call still lands as one Revision. localIds are scoped to the step.
+ * The single Answer Spec write (ADR-0007): fields by path, each checked and
+ * applied on its own; the applied ones land as one Revision. Without taskId
+ * the call starts the Query Task.
  */
-export interface SpecStep {
-  /** Caller's name for the step, echoed in its outcome. */
-  readonly label: string;
-  readonly spec?: AnswerSpecProposal;
-  readonly addHypotheses?: readonly HypothesisProposal[];
-  readonly addChoices?: readonly ChoiceProposal[];
-  readonly notProbeable?: readonly ProbeWaiverProposal[];
-  readonly decisionPoints?: readonly DecisionPointProposal[];
-  readonly dispositions?: readonly DispositionProposal[];
-  readonly evidence?: readonly UntrustedEvidenceInput[];
-  /** Reasons for changing fields inherited from the Report Task. */
-  readonly deviations?: readonly DeviationProposal[];
-}
-
-export interface DeviationProposal {
-  readonly path: string;
-  readonly reason: string;
-}
-
-export interface StepOutcome {
-  readonly label: string;
-  readonly status: "applied" | "rejected";
-  /** Error code and message of a rejected step. */
-  readonly code?: string;
-  readonly message?: string;
-}
-
-export interface BeginAnswer {
-  readonly requestMessageId: string;
-  /** Ignored when `steps` is present: the task starts from an empty spec. */
-  readonly spec: AnswerSpecProposal;
-  readonly hypotheses?: readonly HypothesisProposal[];
-  readonly choices?: readonly ChoiceProposal[];
-  readonly notProbeable?: readonly ProbeWaiverProposal[];
-  readonly decisionPoints?: readonly DecisionPointProposal[];
-  readonly evidence?: readonly UntrustedEvidenceInput[];
+export interface SetAnswerFields {
+  readonly taskId?: string;
+  /** The request message the task answers; required when starting a task. */
+  readonly requestMessageId?: string;
+  /** The Host's current user message, which a `message` citation quotes. */
+  readonly currentMessageId?: string;
   readonly requestId: string;
-  /** Stepped begin: create the task from an empty spec, then apply each step (see SpecStep). */
-  readonly steps?: readonly SpecStep[];
+  /** Untrusted field writes by path; the Runtime parses and checks each. */
+  readonly fields: Readonly<Record<string, unknown>>;
   /** Start a Report Task: shared fields only, never a result (ADR-0009). */
   readonly report?: boolean;
   /** Start a chart query under this Report Task; it inherits the shared fields. */
   readonly parent?: { readonly taskId: string };
-  /** Reasons for changing inherited fields in the same call. */
-  readonly deviations?: readonly DeviationProposal[];
-}
-
-/**
- * A delta against the current Revision. Runtime copies the base Revision and
- * applies only what is listed here; omitted facets and items carry forward.
- */
-export interface ReviseAnswer {
-  readonly taskId: string;
-  readonly baseRevisionId: string;
-  /** Facet patch: only present keys are replaced; filters/groupBy replace the whole list. */
-  readonly spec?: AnswerSpecProposal;
-  readonly addHypotheses?: readonly HypothesisProposal[];
-  readonly addChoices?: readonly ChoiceProposal[];
-  readonly notProbeable?: readonly ProbeWaiverProposal[];
-  readonly decisionPoints?: readonly DecisionPointProposal[];
-  readonly dispositions?: readonly DispositionProposal[];
-  readonly evidence?: readonly UntrustedEvidenceInput[];
-  readonly requestId: string;
-  /** Stepped revise, exclusive with the single-delta fields above (see SpecStep). */
-  readonly steps?: readonly SpecStep[];
   /** Chart query: bind to the Report Task's current Revision and copy its shared fields again. */
   readonly rebind?: boolean;
-  /** Reasons for changing inherited fields in the same call. */
-  readonly deviations?: readonly DeviationProposal[];
 }
 
 /**
@@ -915,7 +644,7 @@ export interface ReviseAnswer {
 export const CLARIFICATION_SOURCE_PREFIX = "clarification:";
 
 export interface UntrustedEvidenceInput {
-  /** Caller-local handle for references inside the same begin/revise call. */
+  /** Handle for the field write that cites it. */
   readonly localId?: string;
   /** "document": an authorized knowledge document, admitted with the kind the composition root configured for it. */
   readonly kind: EvidenceKind | "document";
@@ -937,8 +666,8 @@ export type ExecuteQuery =
       readonly taskId: string;
       readonly sql: string;
       readonly limit?: number;
-      /** Run this exploration as the probe of one Choice alternative (ADR-0005). */
-      readonly probe?: { readonly choiceId: string; readonly alternativeId: string };
+      /** Run this exploration as the probe of one alternative of an open field (ADR-0005). */
+      readonly probe?: { readonly path: string; readonly alternativeId: string };
       /** Host-owned serialized preview cap; model-facing tools do not expose it. */
       readonly maxPreviewBytes?: number;
       readonly requestId?: string;
@@ -999,15 +728,6 @@ export interface BusinessContext {
   readonly expectedRevisionId?: string;
 }
 
-export function isFacetName(value: unknown): value is FacetName {
-  return value === "entity" || value === "metric" || value === "filters" || value === "groupBy"
-    || value === "time" || value === "ranking" || value === "output";
-}
-
-export function isHypothesisKind(value: unknown): value is HypothesisKind {
-  return value === "business_semantics" || value === "physical_mapping" || value === "data_property";
-}
-
 export function isEvidenceKind(value: unknown): value is EvidenceKind {
   return value === "user_confirmation" || value === "reviewed_definition" || value === "task_document"
     || value === "request_wording" || value === "schema_fact" || value === "query_observation";
@@ -1050,4 +770,3 @@ export function contentHash(value: unknown): string {
 export function clone<T>(value: T): T {
   return structuredClone(value);
 }
-

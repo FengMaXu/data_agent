@@ -31,8 +31,7 @@ test("resolveExperiment records resolved model, capabilities, budgets, and conte
     assert.equal(experiment.suite.instanceIds[0], "local001");
     assert.equal(experiment.capabilities.fanout.configured, true);
     assert.equal(experiment.capabilities.semanticSpec.resolved, "required");
-    assert.equal(experiment.capabilities.tools.resolved.includes("begin_answer_spec"), true);
-    assert.equal(experiment.capabilities.tools.resolved.includes("revise_answer_spec"), true);
+    assert.equal(experiment.capabilities.tools.resolved.includes("set_answer_spec"), true);
     assert.equal(experiment.capabilities.tools.resolved.includes("begin_query_task"), false);
     const legacyDisabled = await resolveExperiment({ config: { ...current, assurance: { detectors: { enabled: false } } }, instanceIds: ["local001"], inputs: { systemPrompt: "prompt" } });
     assert.equal(legacyDisabled.capabilities.fanout.resolved, true);
@@ -59,7 +58,7 @@ test("semantic-spec ablation is an explicit experiment factor with a distinct to
     assert.notEqual(experiment.experimentId, required.experimentId);
     assert.equal(experiment.capabilities.semanticSpec.resolved, "disabled");
     assert.equal(experiment.capabilities.tools.resolved.includes("begin_query_task"), true);
-    assert.equal(experiment.capabilities.tools.resolved.includes("begin_answer_spec"), false);
+    assert.equal(experiment.capabilities.tools.resolved.includes("set_answer_spec"), false);
     assert.equal(experiment.capabilities.specFeedback.resolved, false);
     const headless = await resolveExperiment({ config: { ...current, enableClarificationTool: false, answering: { semanticSpecMode: "disabled" } }, instanceIds: ["local001"], inputs: { systemPrompt: "ablation prompt" } });
     assert.equal(headless.capabilities.clarification.resolved, false);
@@ -70,26 +69,8 @@ test("semantic-spec ablation is an explicit experiment factor with a distinct to
   }
 });
 
-test("the ADR-0007 field interface is an experiment factor with its own tool surface", async () => {
-  const root = await mkdtemp(path.join(os.tmpdir(), "spider-experiment-fields-"));
-  try {
-    const current = config(root);
-    await writeFile(current.datasetPath, "dataset", "utf8");
-    await writeFile(path.join(root, "evaluate.py"), "print('ok')", "utf8");
-    const fields = await resolveExperiment({ config: { ...current, answering: { specInterface: "fields" } }, instanceIds: ["local001"], inputs: { systemPrompt: "prompt" } });
-    const legacy = await resolveExperiment({ config: current, instanceIds: ["local001"], inputs: { systemPrompt: "prompt" } });
-    assert.notEqual(fields.experimentId, legacy.experimentId);
-    assert.equal(fields.capabilities.tools.resolved.includes("set_answer_spec"), true);
-    assert.equal(fields.capabilities.tools.resolved.includes("begin_answer_spec"), false);
-    assert.equal(legacy.capabilities.tools.resolved.includes("begin_answer_spec"), true);
-    assert.equal(legacy.capabilities.tools.resolved.includes("set_answer_spec"), false);
-  } finally {
-    await rm(root, { recursive: true, force: true });
-  }
-});
-
 test("invalid and deprecated config is rejected instead of silently ignored", () => {
-  assert.throws(() => validateExperimentConfig({ answering: { specInterface: "both" } }), /INVALID_SPEC_INTERFACE/);
+  assert.throws(() => validateExperimentConfig({ answering: { specInterface: "fields" } }), /DEPRECATED_CONFIG_FIELD:answering.specInterface/);
   assert.throws(() => validateExperimentConfig({ unknown: true }), /UNSUPPORTED_CONFIG_FIELD/);
   assert.throws(() => validateExperimentConfig({ limits: { maxExploratoryQueries: 3 } }), /DEPRECATED_CONFIG_FIELD/);
   assert.throws(() => validateExperimentConfig({ llm: { apiKey: "secret" } }), /INLINE_SECRET_FORBIDDEN/);

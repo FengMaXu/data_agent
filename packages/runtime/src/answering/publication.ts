@@ -11,7 +11,7 @@ import type {
 import { assertTaskAccess } from "./answering-store.js";
 import { AnsweringError } from "./errors.js";
 import { makeInternalId } from "./internal-ids.js";
-import { inferredFacets } from "./qualification.js";
+import { unverifiedFields } from "./qualification.js";
 import { assertDeliverable } from "./report.js";
 import { fanoutDisclosureSummary } from "./fanout-execution.js";
 import { SPEC_FEEDBACK_CHECK_ID, specFeedbackDisclosureSummary } from "./spec-feedback.js";
@@ -25,35 +25,25 @@ const INLINE_ROW_LIMIT = 10;
 
 /**
  * Everything a Receipt must disclose about the exact published Candidate:
- * provisional choices and hypotheses, inferred facets, fanout observations and SpecFeedback.
+ * unverified fields, deviations, fanout observations and SpecFeedback.
  * Disclosure is a record, never an approval.
  */
 export function composeDisclosure(revision: AnswerRevisionRecord, candidate: ResultCandidateRecord, parentSuperseded?: ParentSupersession): PublicationDisclosure | undefined {
-  const provisionalChoiceIds = revision.choiceResolutions
-    .filter((resolution) => resolution.outcome === "provisional")
-    .map((resolution) => resolution.choiceId);
-  const provisionalHypothesisIds = revision.resolutions
-    .filter((resolution) => resolution.outcome === "provisional")
-    .map((resolution) => resolution.hypothesisId);
-  const provisionalFacets = [...new Set(revision.hypotheses
-    .filter((hypothesis) => provisionalHypothesisIds.includes(hypothesis.id))
-    .flatMap((hypothesis) => hypothesis.affects))];
+  const unverified = unverifiedFields(revision.fields);
+  const assumed = unverified.filter((item) => item.kind === "assumed").map((item) => item.path);
+  const decided = unverified.filter((item) => item.kind === "decided").map((item) => item.path);
   const fanoutDisclosure = candidate.fanout && (candidate.fanout.status === "finding" || candidate.fanout.status === "unknown")
     ? fanoutDisclosureSummary(candidate.fanout)
     : "";
   const feedbackDisclosure = specFeedbackDisclosureSummary(candidate.coverage?.find((coverage) => coverage.checkId === SPEC_FEEDBACK_CHECK_ID));
-  const inferred = inferredFacets(revision.spec);
   const deviations = revision.deviations ?? [];
-  if (provisionalChoiceIds.length === 0 && provisionalHypothesisIds.length === 0 && inferred.length === 0 && deviations.length === 0 && !parentSuperseded && !fanoutDisclosure && !feedbackDisclosure) return undefined;
+  if (unverified.length === 0 && deviations.length === 0 && !parentSuperseded && !fanoutDisclosure && !feedbackDisclosure) return undefined;
   return {
     required: true,
-    provisionalChoiceIds,
-    ...(provisionalHypothesisIds.length > 0 ? { provisionalHypothesisIds } : {}),
-    ...(inferred.length > 0 ? { inferredFacets: inferred } : {}),
+    unverifiedFields: unverified,
     summary: [
-      ...(provisionalChoiceIds.length > 0 ? ["结果包含按字面解释选择的口径；该选择未被权威证据唯一确定。"] : []),
-      ...(provisionalHypothesisIds.length > 0 ? [`以下槽位依赖未被合格证据证实的假设：${provisionalFacets.join(", ")}。`] : []),
-      ...(inferred.length > 0 ? [`以下槽位为模型推断、未绑定合格证据：${inferred.join(", ")}。`] : []),
+      ...(decided.length > 0 ? [`以下字段在多种解释中按字面选择，未被权威证据唯一确定：${decided.join(", ")}。`] : []),
+      ...(assumed.length > 0 ? [`以下字段为假定，未被合格证据证实：${assumed.join(", ")}。`] : []),
       ...(deviations.length > 0 ? [`以下字段偏离报告任务的共享口径：${deviations.map((item) => `${item.path}（${item.reason}）`).join("；")}。`] : []),
       ...(parentSuperseded ? ["本次只刷新了数据；这张图所依据的报告任务口径已被修改，图仍按修改前的口径计算。"] : []),
       ...(fanoutDisclosure ? [fanoutDisclosure] : []),

@@ -16,12 +16,13 @@ const context = (invocationId: string): BusinessContext => ({
 });
 
 const spec = {
-  entity: "customer",
-  metric: "total payment amount",
-  filters: [],
-  groupBy: [],
-  time: { state: "not_applicable" },
-  ranking: { state: "not_applicable" },
+  "population.entity": "customer",
+  "population.eligibility": "n/a",
+  "population.conditions": "n/a",
+  "population.time": "n/a",
+  "measure.formula": { op: "sum", of: "payment.amount" },
+  grouping: "n/a",
+  selection: "n/a",
   output: { rowMode: "scalar", rowCount: 1, columns: ["total_amount"] },
 };
 
@@ -104,7 +105,7 @@ describe("Answering main-path fanout integration", () => {
       sqlExecutor: executor(db, calls),
       fanout: { schema },
     });
-    const begun = await answering.begin({ requestMessageId: "message-fanout", requestId: "begin-fanout", spec }, context("begin-fanout"));
+    const begun = await answering.set({ requestMessageId: "message-fanout", requestId: "begin-fanout", fields: spec }, context("begin-fanout"));
     const sql = `SELECT SUM(p.amount) AS total_amount
       FROM customers c
       JOIN payment p ON p.customer_id = c.customer_id
@@ -151,7 +152,7 @@ describe("Answering main-path fanout integration", () => {
       },
       fanout: { schema },
     });
-    const begun = await answering.begin({ requestMessageId: "message-timeout", requestId: "begin-timeout", spec }, context("begin-timeout"));
+    const begun = await answering.set({ requestMessageId: "message-timeout", requestId: "begin-timeout", fields: spec }, context("begin-timeout"));
     const sql = "SELECT SUM(p.amount) AS total_amount FROM customers c JOIN payment p ON p.customer_id = c.customer_id JOIN rental r ON r.customer_id = c.customer_id";
     const result = await answering.execute({ kind: "result", taskId: begun.taskId, revisionId: begun.revisionId, sql }, context("result-timeout"));
     expect(resultCalls).toBe(1);
@@ -181,7 +182,7 @@ describe("Answering main-path fanout integration", () => {
       fanout: { schema, maxTargets: 2 },
     });
     const multiSpec = { ...spec, output: { rowMode: "scalar", rowCount: 1, columns: ["customer_count", "payment_count"] } };
-    const begun = await answering.begin({ requestMessageId: "message-budget-fanout", requestId: "begin-budget-fanout", spec: multiSpec }, context("begin-budget-fanout"));
+    const begun = await answering.set({ requestMessageId: "message-budget-fanout", requestId: "begin-budget-fanout", fields: multiSpec }, context("begin-budget-fanout"));
     const sql = "SELECT COUNT(c.customer_id) AS customer_count, COUNT(p.payment_id) AS payment_count FROM customers c JOIN payment p ON p.customer_id = c.customer_id JOIN rental r ON r.customer_id = c.customer_id";
     const result = await answering.execute({ kind: "result", taskId: begun.taskId, revisionId: begun.revisionId, sql }, context("result-budget-fanout"));
     expect(calls).toEqual(["result", "exploration"]);
@@ -214,7 +215,7 @@ describe("Answering main-path fanout integration", () => {
       },
       fanout: { schema },
     });
-    const begun = await first.begin({ requestMessageId: "message-recovery-fanout", requestId: "begin-recovery-fanout", spec }, context("begin-recovery-fanout"));
+    const begun = await first.set({ requestMessageId: "message-recovery-fanout", requestId: "begin-recovery-fanout", fields: spec }, context("begin-recovery-fanout"));
     const sql = "SELECT SUM(p.amount) AS total_amount FROM customers c JOIN payment p ON p.customer_id = c.customer_id JOIN rental r ON r.customer_id = c.customer_id";
     await expect(first.execute({ kind: "result", taskId: begun.taskId, revisionId: begun.revisionId, sql }, { ...context("result-recovery-fanout"), memo })).rejects.toThrow("SESSION_COMMIT_FAILED");
     expect(calls).toBe(2);
@@ -254,7 +255,7 @@ describe("Answering main-path fanout integration", () => {
       },
       fanout: { schema },
     });
-    const begun = await answering.begin({ requestMessageId: "message-cancel-fanout", requestId: "begin-cancel-fanout", spec }, context("begin-cancel-fanout"));
+    const begun = await answering.set({ requestMessageId: "message-cancel-fanout", requestId: "begin-cancel-fanout", fields: spec }, context("begin-cancel-fanout"));
     const sql = "SELECT SUM(p.amount) AS total_amount FROM customers c JOIN payment p ON p.customer_id = c.customer_id JOIN rental r ON r.customer_id = c.customer_id";
     await expect(answering.execute({ kind: "result", taskId: begun.taskId, revisionId: begun.revisionId, sql }, { ...context("result-cancel-fanout"), signal: controller.signal })).rejects.toThrow("QUERY_CANCELLED");
     expect(calls).toEqual(["result", "exploration"]);
@@ -285,11 +286,11 @@ describe("Answering main-path fanout integration", () => {
       },
       fanout: { schema },
     });
-    const begun = await answering.begin({ requestMessageId: "message-stale-fanout", requestId: "begin-stale-fanout", spec }, context("begin-stale-fanout"));
+    const begun = await answering.set({ requestMessageId: "message-stale-fanout", requestId: "begin-stale-fanout", fields: spec }, context("begin-stale-fanout"));
     const sql = "SELECT SUM(p.amount) AS total_amount FROM customers c JOIN payment p ON p.customer_id = c.customer_id JOIN rental r ON r.customer_id = c.customer_id";
     const pending = answering.execute({ kind: "result", taskId: begun.taskId, revisionId: begun.revisionId, sql }, context("result-stale-fanout"));
     await started;
-    const revised = await answering.revise({ taskId: begun.taskId, baseRevisionId: begun.revisionId, requestId: "revise-stale-fanout", spec }, context("revise-stale-fanout"));
+    const revised = await answering.set({ taskId: begun.taskId, requestId: "revise-stale-fanout", fields: { grouping: { value: ["customer"], reason: "per customer" } } }, context("revise-stale-fanout"));
     releaseProbe?.();
     await expect(pending).rejects.toMatchObject({ code: "REVISION_STALE" });
     expect(revised.revisionId).not.toBe(begun.revisionId);
