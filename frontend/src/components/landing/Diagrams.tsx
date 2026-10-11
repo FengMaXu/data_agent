@@ -98,7 +98,7 @@ const Brand: React.FC<{ x: number; y: number }> = ({ x, y }) => {
     const height = 30;
     const scale = height / 674;
     return (
-        <g className="lp-dg-brand" aria-label="yourDB">
+        <g className="lp-dg-brand" aria-label="yourdb">
             <path
                 transform={`translate(${x - 2300 * scale} ${y - 0.758 * height}) scale(${scale})`}
                 fillRule="evenodd"

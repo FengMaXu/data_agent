@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import '@fontsource-variable/noto-serif-sc';
 import { ArrowRight, Languages } from '../icons/Typicons';
 import { BrandMark, BrandWordmark } from '../Brand';
 import { useLanguage } from '../../context/LanguageContext';
@@ -10,16 +11,22 @@ import {
 } from './LandingVisuals';
 import { AnswerFlowDiagram, ArchitectureDiagram } from './Diagrams';
 import HeroDemo from './HeroDemo';
+import analystArt from './personas/analyst.svg';
+import bossArt from './personas/boss.svg';
+import engineerArt from './personas/engineer.svg';
+import opsArt from './personas/ops.svg';
 import './landing.css';
 
 /** Where the "enter app" buttons go: the bundled /app, or VITE_APP_URL in a landing-only build (.env.landing). */
 const APP_URL = (import.meta.env.VITE_APP_URL as string | undefined)?.trim() || '/app';
 
 const PERSONAS = ['ops', 'engineer', 'analyst', 'boss'];
+// Line drawings of each persona at work.
+const PERSONA_ART: Record<string, string> = { ops: opsArt, engineer: engineerArt, analyst: analystArt, boss: bossArt };
 const CAPABILITIES = ['query', 'export', 'report', 'dashboard'];
 const ACCURACY = ['answer', 'hypothesis', 'loop', 'jev', 'clarify'];
 const SECURE_POINTS = ['local', 'mcp', 'guard'];
-const FORMATS = ['png', 'chart', 'ai', 'csv', 'md', 'html'];
+const FORMATS = ['png', 'chart', 'csv', 'md', 'html'];
 const DESKTOP_STEPS = ['launch', 'connect', 'ask', 'deliver'];
 const MOBILE_STEPS = ['scan', 'bind', 'ask', 'receive'];
 
@@ -133,18 +140,10 @@ const LandingPage: React.FC = () => {
 
             <header className="lp-nav">
                 <div className="lp-nav-inner">
-                    <a className="lp-logo" href="#landing-content" aria-label="yourDB">
+                    <a className="lp-logo" href="#landing-content" aria-label="yourdb">
                         <BrandMark />
                         <BrandWordmark />
                     </a>
-                    <nav className="lp-nav-links" aria-label={t('landing.nav.label')}>
-                        <a href="#who">{t('landing.nav.who')}</a>
-                        <a href="#what">{t('landing.nav.what')}</a>
-                        <a href="#where">{t('landing.nav.where')}</a>
-                        <a href="#build">{t('landing.nav.build')}</a>
-                        <a href="#why">{t('landing.nav.why')}</a>
-                        <a href="#how">{t('landing.nav.how')}</a>
-                    </nav>
                     <div className="lp-nav-actions">
                         <button className="lp-btn lp-btn-quiet" type="button" onClick={toggleLanguage}>
                             <Languages size={15} />
@@ -166,7 +165,7 @@ const LandingPage: React.FC = () => {
                     <span style={{ '--d': 1 } as React.CSSProperties}>anywhere,</span>
                     <br />
                     <span className="is-strong" style={{ '--d': 2 } as React.CSSProperties}>it&apos;s</span>{' '}
-                    <span className="is-strong" style={{ '--d': 3 } as React.CSSProperties}><BrandWordmark title="yourDB" />.</span>
+                    <span className="is-strong" style={{ '--d': 3 } as React.CSSProperties}><BrandWordmark title="yourdb" />.</span>
                 </h1>
                 <p className="lp-hero-sub">{t('landing.hero.subtitle')}</p>
                 <div className="lp-actions">
@@ -193,10 +192,10 @@ const LandingPage: React.FC = () => {
                     {PERSONAS.map((key, index) => (
                         <article key={key} className="lp-persona" data-reveal style={{ '--i': index } as React.CSSProperties}>
                             <span className="lp-persona-index">0{index + 1}</span>
+                            <img className="lp-persona-art" src={PERSONA_ART[key]} alt="" width={960} height={900} loading="lazy" />
                             <h3>{t(`landing.who.${key}.name`)}</h3>
-                            <p className="lp-persona-pain">“{t(`landing.who.${key}.pain`)}”</p>
+                            <p className="lp-persona-pain">{t(`landing.who.${key}.pain`)}</p>
                             <p className="lp-persona-fix">{t(`landing.who.${key}.fix`)}</p>
-                            <code className="lp-persona-ask">› {t(`landing.who.${key}.ask`)}</code>
                         </article>
                     ))}
                 </div>
@@ -281,26 +280,14 @@ const LandingPage: React.FC = () => {
                         <h3>{t('landing.why.easy.title')}</h3>
                         <p>{t('landing.why.easy.desc')}</p>
                     </div>
-                    <div className="lp-easy">
-                        <div className="lp-oneshot" data-reveal>
-                            <span>{t('landing.easy.oneshot.kicker')}</span>
-                            <code>› {t('landing.easy.oneshot.ask')}</code>
-                            <div className="lp-oneshot-out">
-                                {['SQL', 'CSV', 'PNG', 'HTML'].map((tag, i) => (
-                                    <b key={tag} style={{ '--i': i } as React.CSSProperties}>{tag}</b>
-                                ))}
+                    <div className="lp-formats">
+                        {FORMATS.map((key, index) => (
+                            <div key={key} className="lp-format" data-reveal style={{ '--i': index } as React.CSSProperties}>
+                                <strong>{t(`landing.format.${key}.title`)}</strong>
+                                <b>{t(`landing.format.${key}.tag`)}</b>
+                                <span>{t(`landing.format.${key}.desc`)}</span>
                             </div>
-                            <p>{t('landing.easy.oneshot.desc')}</p>
-                        </div>
-                        <div className="lp-formats">
-                            {FORMATS.map((key, index) => (
-                                <div key={key} className="lp-format" data-reveal style={{ '--i': index } as React.CSSProperties}>
-                                    <b>{t(`landing.format.${key}.tag`)}</b>
-                                    <strong>{t(`landing.format.${key}.title`)}</strong>
-                                    <span>{t(`landing.format.${key}.desc`)}</span>
-                                </div>
-                            ))}
-                        </div>
+                        ))}
                     </div>
                 </div>
             </section>
@@ -346,11 +333,11 @@ const LandingPage: React.FC = () => {
             </section>
 
             <footer className="lp-footer">
-                <a className="lp-logo lp-logo-sm" href="#landing-content" aria-label="yourDB">
+                <a className="lp-logo lp-logo-sm" href="#landing-content" aria-label="yourdb">
                     <BrandMark />
                     <BrandWordmark />
                 </a>
-                <span>anytime, anywhere, it&apos;s <BrandWordmark title="yourDB" />.</span>
+                <span>anytime, anywhere, it&apos;s <BrandWordmark title="yourdb" />.</span>
                 <span>© 2026</span>
             </footer>
         </main>

@@ -185,7 +185,7 @@ const PHONE_SCRIPT: PhoneMessage[] = [
     { from: 'bot', key: 'landing.phone.a2' },
 ];
 
-/** A phone conversation with yourDB, played message by message. */
+/** A phone conversation with yourdb, played message by message. */
 export const PhoneDemo: React.FC = () => {
     const { t } = useLanguage();
     const reduced = usePrefersReducedMotion();
@@ -211,7 +211,7 @@ export const PhoneDemo: React.FC = () => {
                 <div className="lp-phone-head">
                     <span className="lp-phone-avatar"><BrandMark /></span>
                     <div>
-                        <strong><BrandWordmark title="yourDB" /></strong>
+                        <strong><BrandWordmark title="yourdb" /></strong>
                         <small>{t('landing.phone.status')}</small>
                     </div>
                 </div>
