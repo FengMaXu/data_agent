@@ -357,7 +357,7 @@
 
 .lp-try, .lp-gets { display: flex; flex-direction: column; gap: 8px; margin-top: 24px; }
 .lp-try span, .lp-gets span { color: var(--muted); font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; }
-.lp-try code { padding: 12px 14px; border-radius: 10px; background: var(--ink); color: #fff; font-size: 0.8rem; line-height: 1.6; }
+.lp-try code { padding: 12px 14px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--bg); color: var(--ink); font-size: 0.8rem; line-height: 1.6; }
 .lp-gets b { font-size: 0.95rem; font-weight: 600; }
 
 .lp-caps-visual { min-width: 0; }
