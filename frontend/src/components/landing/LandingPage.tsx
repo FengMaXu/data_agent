@@ -175,11 +175,6 @@ const LandingPage: React.FC = () => {
                     </a>
                     <a className="lp-btn lp-btn-line lp-btn-lg" href="#who">{t('landing.hero.secondary')}</a>
                 </div>
-                <ul className="lp-platforms" aria-label={t('landing.hero.platforms')}>
-                    <li>{t('landing.where.desktop')}</li>
-                    <li>{t('landing.where.web')}</li>
-                    <li>{t('landing.where.mobile')}</li>
-                </ul>
 
                 <div className="lp-shot" ref={shotRef}>
                     <HeroDemo />
