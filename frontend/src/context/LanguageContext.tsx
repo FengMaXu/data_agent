@@ -753,7 +753,7 @@ const translations: Translations = {
         'landing.how.mobile.title': '手机端',
         'landing.how.mobile.note': '可选',
         'landing.how.mobile.scan.title': '扫码接入',
-        'landing.how.mobile.scan.desc': '在 设置 → 消息渠道 中用办公聊天应用扫码，机器人会自动创建。',
+        'landing.how.mobile.scan.desc': '打开 设置 → 消息渠道，用办公聊天应用扫码，机器人会自动创建。',
         'landing.how.mobile.bind.title': '绑定账号',
         'landing.how.mobile.bind.desc': '在设置中获取 6 位验证码，私聊机器人发送「/bind 验证码」。',
         'landing.how.mobile.ask.title': '在手机上提问',
