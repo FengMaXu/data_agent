@@ -400,7 +400,7 @@ const AppReplay: React.FC<{ time: number; scale: number }> = ({ time, scale }) =
                 <div className="hd-nav"><RiBrain4 size={18} /><span>{t('sidebar.semantic')}</span></div>
                 <div className="hd-nav"><RiPuzzle2 size={18} /><span>{t('sidebar.plugins')}</span></div>
                 <div className="hd-side-foot">
-                    <div className="hd-nav"><RiUser3 size={18} /><span>user_ld</span></div>
+                    <div className="hd-nav"><RiUser3 size={18} /><span>lin.chen</span></div>
                     <div className="hd-nav"><RiTranslate size={18} /><span>{t('sidebar.language')}</span></div>
                     <div className="hd-nav"><RiSettings4 size={18} /><span>{t('sidebar.settings')}</span></div>
                     <div className="hd-nav"><RiLogoutBox size={18} /><span>{t('sidebar.logout')}</span></div>
