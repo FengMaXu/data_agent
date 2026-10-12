@@ -62,6 +62,7 @@ function fieldView(path: SpecPath, field: FieldRecord, equivalent: ReadonlySet<S
     rationale: field.rationale,
     ...(field.basis.kind === "evidence" ? { evidenceIds: field.basis.evidenceIds } : {}),
     ...(field.adviceOverride ? { adviceOverride: field.adviceOverride } : {}),
+    ...(field.adviceUnavailable ? { adviceUnavailable: field.adviceUnavailable } : {}),
     ...shared,
   };
 }

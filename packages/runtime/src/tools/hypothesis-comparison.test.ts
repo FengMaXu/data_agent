@@ -87,6 +87,39 @@ describe("compare_hypotheses tool", () => {
     expect(second.details).toEqual(first.details);
   });
 
+  it("asks again once, then records an advisor outage without memoizing it", async () => {
+    const { answering, ledger, view, purchase, delivered } = await setup();
+    const outage = Object.assign(new Error("Jev HTTP 451"), { code: "HTTP_ERROR" });
+    const compare = vi.fn()
+      .mockRejectedValueOnce(outage)
+      .mockRejectedValueOnce(outage)
+      .mockResolvedValueOnce({ model: "jev", recommendation: { kind: "hypothesis", hypothesisId: delivered }, probabilities: [{ hypothesisId: purchase, probability: 0.1 }, { hypothesisId: delivered, probability: 0.7 }], abstentionProbabilities: { insufficientEvidence: 0, multiplePlausible: 0, noneSupported: 0 }, confidence: 0.7 });
+    const tool = createAnsweringAgentToolDefinitions(answering, undefined, { advisor: { compare }, getOriginalQuestion: async () => "q", ledger })
+      .map((definition) => definition.tool).find((item) => item.name === "compare_hypotheses")!;
+    const memo = new Map<string, unknown>();
+    const toolContext = { sessionId: "session-1", principalId: "user-1", requestMessageId: "current-message" };
+
+    const failed = await tool.execute("call-1", { taskId: view.taskId, path: PATH }, undefined, toolContext, invocationFor(memo), TODO_CONTEXT);
+    expect(compare).toHaveBeenCalledTimes(2);
+    expect(failed.content[0]).toMatchObject({ text: expect.stringContaining("[HYPOTHESIS_COMPARISON_UNAVAILABLE]") });
+    expect(ledger.latest(view.taskId, PATH)).toMatchObject({ recommendation: "unavailable", failure: "Jev HTTP 451", alternativeIds: [purchase, delivered] });
+
+    await tool.execute("call-1", { taskId: view.taskId, path: PATH }, undefined, toolContext, invocationFor(memo), TODO_CONTEXT);
+    expect(compare).toHaveBeenCalledTimes(3);
+    expect(ledger.latest(view.taskId, PATH)).toMatchObject({ recommendation: "alternative", lean: { alternativeId: delivered } });
+  });
+
+  it("does not treat invalid input as an outage", async () => {
+    const { answering, ledger, view } = await setup();
+    const compare = vi.fn().mockRejectedValue(Object.assign(new Error("bad"), { code: "INVALID_INPUT" }));
+    const tool = createAnsweringAgentToolDefinitions(answering, undefined, { advisor: { compare }, getOriginalQuestion: async () => "q", ledger })
+      .map((definition) => definition.tool).find((item) => item.name === "compare_hypotheses")!;
+    await expect(tool.execute("call-1", { taskId: view.taskId, path: PATH }, undefined, { sessionId: "session-1", principalId: "user-1", requestMessageId: "current-message" }, invocationFor(new Map()), TODO_CONTEXT))
+      .rejects.toThrow("bad");
+    expect(compare).toHaveBeenCalledTimes(1);
+    expect(ledger.latest(view.taskId, PATH)).toBeUndefined();
+  });
+
   it("rejects a path that is not open in the current Revision", async () => {
     const { answering, ledger, view } = await setup();
     const tool = createAnsweringAgentToolDefinitions(answering, undefined, { advisor: { compare: vi.fn() }, getOriginalQuestion: async () => "q", ledger })
@@ -121,6 +154,30 @@ describe("deciding against advice (ADR-0005)", () => {
     const observation = inspected.task.fieldProbes!.find((probe) => probe.alternativeId === purchase)!.evidenceId;
     const overridden = await decide(answering, view.taskId, "按下单时间", { adviceOverride: { reason: "Only the purchase month is defined for every order in 2016", evidenceIds: [observation] } });
     expect(overridden.fields.find((item) => item.path === PATH)).toMatchObject({ status: "decided", verified: false, rationale, advice: { lean: { alternativeId: delivered } }, adviceOverride: { evidenceIds: [observation] } });
+  });
+
+  it("does not let an assumption replace a field compare_hypotheses must weigh", async () => {
+    const { answering, view, purchase } = await setup();
+    const assumed = await answering.set({ taskId: view.taskId, requestId: "assume", fields: { [PATH]: { value: "按下单时间", basis: "assumed", rationale, reason: "advice failed" } } }, business("assume"));
+    expect(assumed.outcomes?.[0]).toMatchObject({ status: "rejected", code: "SPEC_TRANSITION_INVALID", message: expect.stringContaining("an assumption cannot replace it") });
+    const bare = await answering.set({ taskId: view.taskId, requestId: "bare", fields: { [PATH]: { value: "按送达时间", reason: "advice failed" } } }, business("bare"));
+    expect(bare.outcomes?.[0]).toMatchObject({ status: "rejected", message: expect.stringContaining("an assumption cannot replace it") });
+
+    const inspected = await answering.inspect({ taskId: view.taskId }, business("inspect"));
+    const observation = inspected.task.fieldProbes!.find((probe) => probe.alternativeId === purchase)!.evidenceId;
+    const settled = await answering.set({ taskId: view.taskId, requestId: "settle", fields: { [PATH]: { value: "按下单时间", evidenceIds: [observation], reason: "the observation settles it" } } }, business("settle"));
+    expect(settled.fields.find((item) => item.path === PATH)).toMatchObject({ status: "evidence" });
+  });
+
+  it("decides without advice when the advisor was unavailable, and discloses it", async () => {
+    const { answering, ledger, view, purchase, delivered } = await setup();
+    ledger.record({ taskId: view.taskId, path: PATH, alternativeIds: [purchase, delivered], model: "unavailable", probabilities: [], recommendation: "unavailable", failure: "Jev HTTP 451", recordedAt: "now" });
+    const decided = await decide(answering, view.taskId, "按下单时间");
+    expect(decided.fields.find((item) => item.path === PATH)).toMatchObject({ status: "decided", value: "按下单时间", adviceUnavailable: "Jev HTTP 451" });
+    const execution = await answering.execute({ kind: "result", taskId: view.taskId, revisionId: decided.revisionId, sql: "SELECT purchase" }, business("result"));
+    if (execution.artifact.kind !== "candidate") throw new Error("expected a candidate");
+    const receipt = await answering.publish({ candidateId: execution.artifact.candidateId, format: "auto", requestId: "publish" }, business("publish"));
+    expect(receipt.disclosure?.summary).toContain(`决定未经比较：${PATH}`);
   });
 
   it("accepts the leaned alternative without an override", async () => {

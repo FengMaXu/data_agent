@@ -112,7 +112,7 @@ requires-tools:
 ## 5. 修改与决定
 
 - **只写要变的路径。** 未写的路径保持不变。每个路径独立校验、独立生效，失败的路径不影响其他路径；按返回的 `✗` 原因只重发失败的路径。
-- **决定待定字段**：写 `{ "value": <候选原值>, "rationale", "evidenceIds"? }`。`rationale` 写把每个候选放回题面逐词检验的结论（`semantic-guide` 的“候选对照”）。`compare_hypotheses` 的明显倾向（`[ADVICE_LEAN]`）是默认答案；改选时须附 `"adviceOverride": { "reason", "evidenceIds" }`。
+- **决定待定字段**：写 `{ "value": <候选原值>, "rationale", "evidenceIds"? }`。`rationale` 写把每个候选放回题面逐词检验的结论（`semantic-guide` 的“候选对照”）。`compare_hypotheses` 的明显倾向（`[ADVICE_LEAN]`）是默认答案；改选时须附 `"adviceOverride": { "reason", "evidenceIds" }`。`compare_hypotheses` 返回 `[HYPOTHESIS_COMPARISON_UNAVAILABLE]`（建议服务故障）时，照常写决定，发布时会披露该决定未经比较；不要把待定字段改写成假定绕开比较，Runtime 会拒绝。
 - **无法单独执行的候选**：写 `{ "notProbeable": { "<alternativeId>": "理由" } }` 代替探针。
 - **改写已设置的字段**须附 `"reason"`，系统记录改写理由。
 - 写入任何字段都会产生新的 Revision，上一版未发布的结果候选随之失效；先把字段写完，再执行最终查询。
