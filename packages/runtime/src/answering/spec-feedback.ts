@@ -1,22 +1,35 @@
 import {
-  clone,
   contentHash,
   type AnswerRevisionRecord,
   type CheckCoverage,
   type Evidence,
   type EvidenceId,
+  type FieldRecord,
   type SpecFeedback,
   type SpecFeedbackAssessment,
   type SpecFeedbackChoice,
   type SpecFeedbackDeterministicIssue,
 } from "./model.js";
-import { EVIDENCE_AUTHORITY_RANK, SPEC_ALIGNMENT_RULE_VERSION, type SpecAlignmentEvidence, type SpecAlignmentInput } from "../judgment/spec-alignment.js";
-import { FIELD_SECTIONS, type FieldSection, type OutputValue, type SelectionValue } from "./fields.js";
+import { REQUIREMENT_ROLES, SPEC_ALIGNMENT_RULE_VERSION, type RequirementPhrase, type SpecAlignmentField, type SpecAlignmentInput } from "../judgment/spec-alignment.js";
+import type { OutputValue, SelectionValue } from "./fields.js";
+import { undeclaredPaths } from "./qualification.js";
 
-const SPEC_FEEDBACK_RULE_VERSION = "spec-feedback-v2";
+const SPEC_FEEDBACK_RULE_VERSION = "spec-feedback-v3";
 export const SPEC_FEEDBACK_CHECK_ID = "spec_feedback";
 export const SPEC_FEEDBACK_MAX_INPUT_BYTES = 64 * 1024;
 export const SPEC_FEEDBACK_DEFAULT_TIMEOUT_MS = 15_000;
+
+/**
+ * Which judgments are reported, replayed on the 2026-10-10 field-tree run
+ * (6 confirmed requirement errors, 39 correct cases): contradicted at 0.4,
+ * missing at 0.6 for selection and population phrases, an undefined output
+ * column at 0.95. Missing computation phrases flagged correct answers whose
+ * single measure.formula cannot hold every quantity, so they are not reported.
+ */
+const CONTRADICTED_AT = 0.4;
+const MISSING_AT = 0.6;
+const MISSING_ROLES = new Set(["selection", "population"]);
+const UNDEFINED_COLUMN_AT = 0.95;
 
 class SpecFeedbackInputError extends Error {
   constructor(readonly code: "original_question_unavailable" | "input_too_large" | "invalid_input", message: string) {
@@ -29,11 +42,7 @@ function jsonText(value: unknown): string {
   return JSON.stringify(value, (_key, item) => typeof item === "bigint" ? { __type: "bigint", value: item.toString() } : item);
 }
 
-function serializedByteLength(value: unknown): number {
-  return Buffer.byteLength(jsonText(value), "utf8");
-}
-
-function settled<T>(field: AnswerRevisionRecord["fields"][keyof AnswerRevisionRecord["fields"]]): T | undefined {
+function settled<T>(field: FieldRecord | undefined): T | undefined {
   return field && (field.state === "specified" || field.state === "decided") ? field.value as T : undefined;
 }
 
@@ -64,28 +73,32 @@ function deterministicSpecFeedbackIssues(fields: AnswerRevisionRecord["fields"])
   return issues;
 }
 
-function evidenceForInput(item: Evidence): { readonly value: SpecAlignmentEvidence; readonly limitation?: string } {
-  const content = item.quote !== undefined
-    ? item.quote
-    : item.kind === "query_observation"
-      ? jsonText(item.preview)
-      : undefined;
-  // Request wording is supplied separately from the trusted Session message.
-  // Other quote-less handles remain explicit coverage limitations.
-  const limitation = content === undefined && item.kind !== "request_wording"
-    ? `evidence_quote_missing:${item.id}`
-    : undefined;
-  return {
-    value: {
-      id: item.id,
-      kind: item.kind,
-      authority: item.authority,
-      authorityRank: EVIDENCE_AUTHORITY_RANK[item.authority],
-      sourceRef: item.sourceRef,
-      ...(content !== undefined ? { content } : {}),
-    },
-    ...(limitation ? { limitation } : {}),
-  };
+/** Field claims only: state, value or alternatives. Rationales, reasons and advice are the solver's own account and stay out. */
+function claimsOf(fields: AnswerRevisionRecord["fields"]): Readonly<Record<string, SpecAlignmentField>> {
+  return Object.fromEntries((Object.entries(fields) as [string, FieldRecord][]).map(([path, field]) => {
+    if (field.state === "specified" || field.state === "decided") return [path, { state: field.state, value: field.value }];
+    if (field.state === "open") return [path, { state: "open", alternatives: field.alternatives.map((item) => item.value) }];
+    return [path, { state: field.state }];
+  }));
+}
+
+const normalized = (text: string) => text.replace(/\s+/g, " ").trim().toLowerCase();
+
+/**
+ * Keep phrases found verbatim in the request (whitespace and case aside),
+ * once each, with a known role. Everything else is dropped and counted.
+ */
+export function admitRequirements(originalQuestion: string, phrases: readonly RequirementPhrase[]): { readonly admitted: readonly RequirementPhrase[]; readonly dropped: number } {
+  const question = normalized(originalQuestion);
+  const seen = new Set<string>();
+  const admitted: RequirementPhrase[] = [];
+  for (const phrase of phrases) {
+    const key = normalized(phrase.quote ?? "");
+    if (!key || !question.includes(key) || seen.has(key) || !REQUIREMENT_ROLES.includes(phrase.role)) continue;
+    seen.add(key);
+    admitted.push({ quote: phrase.quote.trim(), role: phrase.role });
+  }
+  return { admitted, dropped: phrases.length - admitted.length };
 }
 
 export interface SpecFeedbackAssembly {
@@ -96,28 +109,27 @@ export interface SpecFeedbackAssembly {
 }
 
 /**
- * Build the one conversation-blind assessor input. No source is fetched here:
- * only the original message and already-registered, bounded evidence enter the
- * request. The complete original question and Spec are rejected rather than
- * truncated when the serialized request exceeds the safety bound.
+ * Build the one conversation-blind assessor input from the Revision's claims,
+ * the admitted requirement phrases and the declared output columns. The input
+ * is rejected rather than truncated when it exceeds the safety bound.
  */
 export function assembleSpecFeedbackInput(
   revision: AnswerRevisionRecord,
   evidence: readonly Evidence[],
   originalQuestion: string,
+  requirements: readonly RequirementPhrase[],
+  limitations: readonly string[] = [],
   maxInputBytes = SPEC_FEEDBACK_MAX_INPUT_BYTES,
 ): SpecFeedbackAssembly {
   if (!originalQuestion.trim()) throw new SpecFeedbackInputError("original_question_unavailable", "The original user message has no readable text");
   if (!Number.isSafeInteger(maxInputBytes) || maxInputBytes < 1) throw new SpecFeedbackInputError("invalid_input", "Invalid Spec feedback input byte limit");
-  const converted = evidence.map(evidenceForInput);
-  const limitations = converted.flatMap((item) => item.limitation ? [item.limitation] : []);
   const input: SpecAlignmentInput = {
     originalQuestion,
-    fields: clone(revision.fields),
-    evidence: converted.map((item) => item.value),
-    limitations,
+    fields: claimsOf(revision.fields),
+    requirements: [...requirements],
+    outputColumns: [...settled<OutputValue>(revision.fields.output)?.columns ?? []],
   };
-  if (serializedByteLength(input) > maxInputBytes) {
+  if (Buffer.byteLength(jsonText(input), "utf8") > maxInputBytes) {
     throw new SpecFeedbackInputError("input_too_large", `Spec feedback input exceeds ${maxInputBytes} serialized bytes`);
   }
   return {
@@ -128,23 +140,24 @@ export function assembleSpecFeedbackInput(
   };
 }
 
+/** Feedback runs only on a complete Spec; a Revision with undeclared fields is skipped. */
 export function initialSpecFeedback(
   revision: AnswerRevisionRecord,
   evidence: readonly Evidence[],
   enabled: boolean,
   startedAt?: string,
 ): SpecFeedback {
-  const limitations = evidence.map(evidenceForInput).flatMap((item) => item.limitation ? [item.limitation] : []);
+  const incomplete = enabled && undeclaredPaths(revision.fields).length > 0;
   return {
     taskId: revision.taskId,
     revisionId: revision.revisionId,
     ruleVersion: SPEC_FEEDBACK_RULE_VERSION,
-    status: enabled ? "pending" : "disabled",
+    status: !enabled ? "disabled" : incomplete ? "skipped" : "pending",
     deterministicIssues: deterministicSpecFeedbackIssues(revision.fields),
     evidenceIds: evidence.map((item) => item.id),
-    limitations,
-    ...(enabled ? {} : { reason: "spec_alignment_assessor_not_configured" }),
-    ...(enabled && startedAt ? { startedAt } : {}),
+    limitations: [],
+    ...(!enabled ? { reason: "spec_alignment_assessor_not_configured" } : incomplete ? { reason: "spec_incomplete" } : {}),
+    ...(enabled && !incomplete && startedAt ? { startedAt } : {}),
   };
 }
 
@@ -152,25 +165,15 @@ function isFiniteProbability(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1;
 }
 
-function probabilityKeys(value: object): readonly string[] {
-  return Object.keys(value).sort();
-}
-
-function assertDistribution<T extends string>(
-  choice: SpecFeedbackChoice<T, Readonly<Record<T, number>>>,
-  expected: readonly T[],
-  name: string,
-): void {
-  if (!expected.includes(choice.choice) || !isFiniteProbability(choice.confidence)) throw new Error(`INVALID_SPEC_FEEDBACK_ASSESSMENT:${name}`);
+function assertChoice<T extends string>(choice: SpecFeedbackChoice<T> | undefined, expected: readonly T[], name: string): void {
+  if (!choice || !expected.includes(choice.choice) || !isFiniteProbability(choice.confidence)) throw new Error(`INVALID_SPEC_FEEDBACK_ASSESSMENT:${name}`);
   const probabilities = choice.probabilities;
   if (!probabilities || typeof probabilities !== "object") throw new Error(`INVALID_SPEC_FEEDBACK_ASSESSMENT:${name}`);
-  const expectedKeys = [...expected].sort();
-  if (JSON.stringify(probabilityKeys(probabilities)) !== JSON.stringify(expectedKeys)) throw new Error(`INVALID_SPEC_FEEDBACK_ASSESSMENT:${name}`);
+  if (JSON.stringify(Object.keys(probabilities).sort()) !== JSON.stringify([...expected].sort())) throw new Error(`INVALID_SPEC_FEEDBACK_ASSESSMENT:${name}`);
   let total = 0;
   for (const key of expected) {
-    const probability = probabilities[key];
-    if (!isFiniteProbability(probability)) throw new Error(`INVALID_SPEC_FEEDBACK_ASSESSMENT:${name}`);
-    total += probability;
+    if (!isFiniteProbability(probabilities[key])) throw new Error(`INVALID_SPEC_FEEDBACK_ASSESSMENT:${name}`);
+    total += probabilities[key];
   }
   if (Math.abs(total - 1) > 0.02) throw new Error(`INVALID_SPEC_FEEDBACK_ASSESSMENT:${name}`);
 }
@@ -180,72 +183,64 @@ export function validateSpecFeedbackAssessment(value: SpecFeedbackAssessment): S
   if (!value || typeof value.model !== "string" || !value.model.trim() || value.ruleVersion !== SPEC_ALIGNMENT_RULE_VERSION) {
     throw new Error("INVALID_SPEC_FEEDBACK_ASSESSMENT:metadata");
   }
-  if (!Array.isArray(value.sections) || value.sections.length !== FIELD_SECTIONS.length) throw new Error("INVALID_SPEC_FEEDBACK_ASSESSMENT:sections");
-  const seen = new Set<FieldSection>();
-  for (const section of value.sections) {
-    if (!section || !FIELD_SECTIONS.includes(section.section) || seen.has(section.section)) throw new Error("INVALID_SPEC_FEEDBACK_ASSESSMENT:section");
-    seen.add(section.section);
-    assertDistribution(section.relation, ["supported", "contradicted", "not_established", "not_applicable"], `${section.section}.relation`);
-    assertDistribution(section.coverage, ["complete", "partial", "missing", "not_applicable"], `${section.section}.coverage`);
-  }
+  if (!Array.isArray(value.requirements) || !Array.isArray(value.columns)) throw new Error("INVALID_SPEC_FEEDBACK_ASSESSMENT:items");
+  value.requirements.forEach((item, index) => {
+    if (!item || typeof item.quote !== "string" || !REQUIREMENT_ROLES.includes(item.role)) throw new Error(`INVALID_SPEC_FEEDBACK_ASSESSMENT:requirement${index}`);
+    assertChoice(item.judgment, ["expressed", "contradicted", "missing"], `requirement${index}`);
+  });
+  value.columns.forEach((item, index) => {
+    if (!item || typeof item.column !== "string") throw new Error(`INVALID_SPEC_FEEDBACK_ASSESSMENT:column${index}`);
+    assertChoice(item.judgment, ["defined", "undefined"], `column${index}`);
+  });
   return value;
 }
 
-function assessmentConcerns(assessment: SpecFeedbackAssessment): readonly string[] {
-  return assessment.sections.flatMap((section) => {
-    const concerns: string[] = [];
-    if (section.relation.choice !== "supported" && section.relation.choice !== "not_applicable") concerns.push(`${section.section}.relation=${section.relation.choice}`);
-    if (section.coverage.choice !== "complete" && section.coverage.choice !== "not_applicable") concerns.push(`${section.section}.coverage=${section.coverage.choice}`);
-    return concerns;
+/** The reported judgments, as one line each. */
+export function assessmentConcerns(assessment: SpecFeedbackAssessment | undefined): readonly string[] {
+  if (!assessment) return [];
+  const requirements = (assessment.requirements ?? []).flatMap((item) => {
+    const { contradicted, missing } = item.judgment.probabilities;
+    if (contradicted >= CONTRADICTED_AT) return [`contradicted(p=${contradicted.toFixed(2)}) [${item.role}] "${item.quote}"`];
+    if (MISSING_ROLES.has(item.role) && missing >= MISSING_AT) return [`missing(p=${missing.toFixed(2)}) [${item.role}] "${item.quote}"`];
+    return [];
   });
+  const columns = (assessment.columns ?? []).flatMap((item) => item.judgment.probabilities.undefined >= UNDEFINED_COLUMN_AT
+    ? [`output column "${item.column}" has no defining field (p=${item.judgment.probabilities.undefined.toFixed(2)})`]
+    : []);
+  return [...requirements, ...columns];
 }
 
 export function specFeedbackCoverage(feedback: SpecFeedback | undefined): CheckCoverage {
   if (!feedback) {
     return { checkId: SPEC_FEEDBACK_CHECK_ID, ruleVersion: SPEC_FEEDBACK_RULE_VERSION, outcome: "unknown", reason: "Spec feedback was not executed for this Revision." };
   }
-  const deterministic = feedback.deterministicIssues.map((issue) => issue.message);
-  const concerns = feedback.assessment ? assessmentConcerns(feedback.assessment) : [];
-  const relationRisks = feedback.assessment?.sections.flatMap((section) => section.relation.choice === "contradicted" ? [`${section.section}.relation=contradicted`] : []) ?? [];
-  const requirementRisks = feedback.assessment?.sections.flatMap((section) => ["partial", "missing"].includes(section.coverage.choice) ? [`${section.section}.coverage=${section.coverage.choice}`] : []) ?? [];
-  const risks = [...deterministic, ...relationRisks, ...requirementRisks];
+  const risks = [...feedback.deterministicIssues.map((issue) => issue.message), ...assessmentConcerns(feedback.assessment)];
   const limitations = [
     ...feedback.limitations,
     ...(feedback.reason ? [`reason=${feedback.reason}`] : []),
     ...(feedback.status !== "completed" ? [`status=${feedback.status}`] : []),
-    ...feedback.assessment?.sections.flatMap((section) => section.relation.choice === "not_established" ? [`${section.section}.relation=not_established`] : []) ?? [],
   ];
   if (risks.length > 0) {
     return {
       checkId: SPEC_FEEDBACK_CHECK_ID,
       ruleVersion: feedback.ruleVersion,
       outcome: "finding",
-      reason: `Advisory Spec feedback risks: ${risks.join("; ")}${limitations.length ? `; limitations: ${limitations.join(", ")}` : ""}. This does not change qualification or authorize a revision.`,
+      reason: `Advisory Spec feedback: ${risks.join("; ")}${limitations.length ? `; limitations: ${limitations.join(", ")}` : ""}. This does not change qualification or authorize a revision.`,
     };
   }
   // No assessor in this deployment: nothing was observed about this result, so it is recorded here and
   // reported once at startup, not disclosed with every result. Deterministic risks above still disclose.
   if (feedback.status === "disabled") {
-    return {
-      checkId: SPEC_FEEDBACK_CHECK_ID,
-      ruleVersion: feedback.ruleVersion,
-      outcome: "not_applicable",
-      reason: `Spec feedback assessor is not configured in this deployment${limitations.length ? `; limitations: ${limitations.join(", ")}` : ""}.`,
-    };
+    return { checkId: SPEC_FEEDBACK_CHECK_ID, ruleVersion: feedback.ruleVersion, outcome: "not_applicable", reason: "Spec feedback assessor is not configured in this deployment." };
   }
-  if (feedback.status !== "completed" || limitations.length > 0 || concerns.length > 0) {
-    return {
-      checkId: SPEC_FEEDBACK_CHECK_ID,
-      ruleVersion: feedback.ruleVersion,
-      outcome: "unknown",
-      reason: `Spec feedback is not a semantic proof: ${[...limitations, ...concerns].join("; ") || "coverage is incomplete"}.`,
-    };
+  if (feedback.status !== "completed" || limitations.length > 0) {
+    return { checkId: SPEC_FEEDBACK_CHECK_ID, ruleVersion: feedback.ruleVersion, outcome: "unknown", reason: `Spec feedback is not a semantic proof: ${limitations.join("; ") || "coverage is incomplete"}.` };
   }
   return {
     checkId: SPEC_FEEDBACK_CHECK_ID,
     ruleVersion: feedback.ruleVersion,
     outcome: "clear",
-    reason: "Within the supplied original question and registered evidence, no Spec feedback relation or coverage concern was reported; this is not a semantic proof.",
+    reason: "No requirement phrase was judged contradicted or missing above the reporting thresholds; this is not a semantic proof.",
   };
 }
 
@@ -256,16 +251,16 @@ export function specFeedbackDisclosureSummary(coverage: CheckCoverage | undefine
 }
 
 export function renderSpecFeedback(feedback: SpecFeedback | undefined): string {
-  if (!feedback) return "";
+  if (!feedback || feedback.status === "skipped") return "";
   const lines = [`[SPEC_FEEDBACK] revisionId=${feedback.revisionId} status=${feedback.status} advisory_only=true`];
-  const concerns = feedback.assessment ? assessmentConcerns(feedback.assessment) : [];
   for (const issue of feedback.deterministicIssues) lines.push(`deterministic: code=${issue.code} paths=${issue.paths.join(",")} message=${issue.message}`);
-  for (const concern of concerns) lines.push(`assessment: ${concern}`);
+  for (const concern of assessmentConcerns(feedback.assessment)) lines.push(`requirement: ${concern}`);
   if (feedback.status !== "completed" && feedback.reason) lines.push(`reason: ${feedback.reason}`);
   if (feedback.limitations.length > 0) lines.push(`limitations: ${feedback.limitations.join(", ")}`);
   if (feedback.stale && feedback.currentRevisionId) lines.push(`stale=true currentRevisionId=${feedback.currentRevisionId}`);
-  if (lines.length === 1) lines.push("No advisory relation or coverage concern was reported within the supplied materials.");
-  lines.push("以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。");
+  if (lines.length === 1) lines.push("No requirement phrase of the request was judged contradicted or missing.");
+  else lines.push("Each line quotes the request. Check the named field against that phrase: rewrite it with a reason, open alternatives for it, or keep it if the phrase does not apply.");
+  lines.push("以上是决策模型的建议，不是证据或修订授权；请结合原题和已有依据处理。");
   return lines.join("\n");
 }
 
@@ -317,4 +312,3 @@ export function unavailableSpecFeedback(
     durationMs,
   };
 }
-

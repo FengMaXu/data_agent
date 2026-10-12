@@ -3,8 +3,7 @@ import { MemorySessionRepo, TODO_CONTEXT } from "@earendil-works/pi-agent-core";
 import { PiSessionAnsweringStore } from "../adapters/pi-session-answering-store.js";
 import { InMemoryAnswering, InMemoryAnsweringStore, InMemoryResultStore, type BusinessContext, type EvidenceSource } from "./public.js";
 import type { AnsweringStore, AnsweringTransaction } from "./answering-store.js";
-import type { SpecAlignmentAssessor, SpecAlignmentInput } from "../judgment/spec-alignment.js";
-import { FIELD_SECTIONS } from "./fields.js";
+import type { RequirementExtractor, SpecAlignmentAssessor, SpecAlignmentInput } from "../judgment/spec-alignment.js";
 import type { SpecFeedbackAssessment } from "./model.js";
 
 const context = (invocationId: string, signal?: AbortSignal): BusinessContext => ({
@@ -40,30 +39,22 @@ const documentSource: EvidenceSource = {
   } as Record<string, { kind: "reviewed_definition" | "task_document"; content: string }>)[sourceRef],
 };
 
-function assessment(relation: "supported" | "contradicted" = "supported"): SpecFeedbackAssessment {
+function assessment(input?: SpecAlignmentInput, contradicted: readonly string[] = []): SpecFeedbackAssessment {
   return {
     model: "jev-test",
-    ruleVersion: "spec-alignment-v2",
-    sections: FIELD_SECTIONS.map((section) => ({
-      section,
-      relation: {
-        choice: relation,
-        probabilities: { supported: relation === "supported" ? 1 : 0, contradicted: relation === "contradicted" ? 1 : 0, not_established: 0, not_applicable: 0 },
-        confidence: 0.9,
-      },
-      coverage: {
-        choice: "complete" as const,
-        probabilities: { complete: 1, partial: 0, missing: 0, not_applicable: 0 },
-        confidence: 0.9,
-      },
-    })),
+    ruleVersion: "spec-alignment-v3",
+    requirements: (input?.requirements ?? []).map((item) => {
+      const against = contradicted.includes(item.quote);
+      return { ...item, judgment: { choice: against ? "contradicted" as const : "expressed" as const, probabilities: { expressed: against ? 0.1 : 0.9, contradicted: against ? 0.9 : 0.1, missing: 0 }, confidence: 0.8 } };
+    }),
+    columns: (input?.outputColumns ?? []).map((column) => ({ column, judgment: { choice: "defined" as const, probabilities: { defined: 1, undefined: 0 }, confidence: 0.9 } })),
   };
 }
 
 function serviceWithFeedback(
   assessor: SpecAlignmentAssessor,
   getOriginalQuestion: (requestMessageId: string, options?: { readonly signal?: AbortSignal }) => Promise<string | undefined>,
-  options: { readonly timeoutMs?: number; readonly maxInputBytes?: number } = {},
+  options: { readonly timeoutMs?: number; readonly maxInputBytes?: number; readonly requirementExtractor?: RequirementExtractor } = {},
 ) {
   return new InMemoryAnswering({
     store: new InMemoryAnsweringStore(),
@@ -93,15 +84,40 @@ describe("Answering Spec feedback", () => {
 
     expect(calls).toBe(1);
     expect(begun.specFeedback).toMatchObject({ status: "completed", taskId: begun.taskId, revisionId: begun.revisionId, assessment: { model: "jev-test" } });
-    expect(inputs[0]).toMatchObject({ originalQuestion: "请统计订单数", fields: { "measure.countGrain": { state: "specified", basis: { kind: "evidence" } } }, evidence: [
-      { kind: "request_wording", sourceRef: "message-1" },
-      { kind: "reviewed_definition", content: "订单数按订单实体计数" },
-    ], limitations: [] });
+    // Claims only: no basis, rationale or evidence text reaches the assessor.
+    expect(inputs[0]).toEqual({ originalQuestion: "请统计订单数", fields: expect.objectContaining({ "measure.countGrain": { state: "specified", value: "one row per order" } }), requirements: [], outputColumns: [] });
+    expect(begun.specFeedback?.limitations).toEqual(["requirement_extractor_not_configured"]);
 
     const replay = await service.set({ requestMessageId: "message-1", requestId: "begin-feedback", fields: simpleSpec }, context("begin-replay"));
     expect(replay.revisionId).toBe(begun.revisionId);
     expect(calls).toBe(1);
     await expect(service.inspect({ taskId: begun.taskId }, context("inspect-feedback"))).resolves.toMatchObject({ currentRevision: { specFeedback: { status: "completed" } } });
+  });
+
+  it("judges verbatim requirement phrases extracted once per request, and reports a contradicted one", async () => {
+    let extractions = 0;
+    const inputs: SpecAlignmentInput[] = [];
+    const service = serviceWithFeedback(
+      { assess: async (input) => { inputs.push(input); return assessment(input, ["for each customer"]); } },
+      async () => "Average sales per order for each customer within RFM segments",
+      { requirementExtractor: { extract: async () => { extractions += 1; return [{ quote: "for each customer", role: "scope" }, { quote: "per customer per month", role: "scope" }]; } } },
+    );
+    const begun = await service.set({ requestMessageId: "message-req", requestId: "begin-req", fields: { ...simpleSpec, output: { rowMode: "full", columns: ["value"] } } }, context("begin-req"));
+    expect(inputs[0]).toMatchObject({ requirements: [{ quote: "for each customer", role: "scope" }], outputColumns: ["value"] });
+    expect(begun.specFeedback).toMatchObject({ status: "completed", limitations: ["requirements_not_verbatim:1"] });
+    await service.set({ taskId: begun.taskId, requestId: "revise-req", fields: { grouping: { value: ["rfm_segment"], reason: "per segment" } } }, context("revise-req"));
+    expect(extractions).toBe(1);
+    const execution = await service.execute({ kind: "result", taskId: begun.taskId, revisionId: (await service.inspect({ taskId: begun.taskId }, context("i"))).currentRevision.revisionId, sql: "SELECT 1 AS avg_sales" }, context("result-req"));
+    expect(execution.coverage).toEqual(expect.arrayContaining([expect.objectContaining({ checkId: "spec_feedback", outcome: "finding", reason: expect.stringContaining("contradicted(p=0.90) [scope] \"for each customer\"") })]));
+  });
+
+  it("skips a Revision whose required fields are not all declared", async () => {
+    let calls = 0;
+    const service = serviceWithFeedback({ assess: async () => { calls += 1; return assessment(); } }, async () => "原题");
+    const { grouping: _grouping, ...incomplete } = simpleSpec;
+    const begun = await service.set({ requestMessageId: "message-incomplete", requestId: "begin-incomplete", fields: incomplete }, context("begin-incomplete"));
+    expect(begun.specFeedback).toMatchObject({ status: "skipped", reason: "spec_incomplete" });
+    expect(calls).toBe(0);
   });
 
   it("uses the Evidence snapshot captured by each Revision commit", async () => {
@@ -140,18 +156,17 @@ describe("Answering Spec feedback", () => {
     await snapshotWaiting;
     const task = (await inner.list(context("list-snapshot-race")))[0];
     if (!task) throw new Error("task missing");
-    await service.set({
+    const revisedView = await service.set({
       taskId: task.taskId,
       requestId: "revise-snapshot-race",
       fields: { "population.conditions": { value: ["status = 'paid'"], cite: [{ source: "knowledge:later.md", quote: "later evidence" }], reason: "the appendix restricts the orders" } },
     }, context("revise-snapshot-race"));
     releaseSnapshot?.();
-    await begunPromise;
+    const begunView = await begunPromise;
 
-    expect(inputs.map((value) => value.evidence.map((item) => item.sourceRef).sort())).toEqual(expect.arrayContaining([
-      ["later.md", "message-snapshot-race"],
-      ["message-snapshot-race"],
-    ]));
+    expect(inputs).toHaveLength(2);
+    expect(begunView.specFeedback?.evidenceIds).toHaveLength(1);
+    expect(revisedView.specFeedback?.evidenceIds).toHaveLength(2);
   });
 
   it("keeps Jev feedback advisory while deterministic conflicts become Candidate coverage and disclosure", async () => {
@@ -164,7 +179,7 @@ describe("Answering Spec feedback", () => {
     expect(begun.specFeedback?.deterministicIssues).toEqual(expect.arrayContaining([expect.objectContaining({ code: "strict_top_n_row_count_conflict" })]));
 
     const execution = await service.execute({ kind: "result", taskId: begun.taskId, revisionId: begun.revisionId, sql: "SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3" }, context("result-top-n"));
-    expect(execution.coverage).toEqual(expect.arrayContaining([expect.objectContaining({ checkId: "spec_feedback", ruleVersion: "spec-feedback-v2", outcome: "finding" })]));
+    expect(execution.coverage).toEqual(expect.arrayContaining([expect.objectContaining({ checkId: "spec_feedback", ruleVersion: "spec-feedback-v3", outcome: "finding" })]));
     if (execution.artifact.kind !== "candidate") throw new Error("expected candidate");
     const receipt = await service.publish({ candidateId: execution.artifact.candidateId, format: "inline", requestId: "publish-top-n" }, context("publish-top-n"));
     expect(receipt.disclosure?.summary).toContain("Answer Spec");

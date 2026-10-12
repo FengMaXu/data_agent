@@ -5,7 +5,9 @@ import { taskBudget } from "./budget.js";
 import { now } from "./support.js";
 import { probeContextFor, viewFromRevision } from "./views.js";
 import type { AnsweringDeps, ResolvedSpecFeedbackOptions } from "./deps.js";
+import type { RequirementPhrase } from "../judgment/spec-alignment.js";
 import {
+  admitRequirements,
   assembleSpecFeedbackInput,
   completedSpecFeedback,
   initialSpecFeedback,
@@ -76,6 +78,7 @@ async function evaluateSpecFeedback(deps: AnsweringDeps, options: ResolvedSpecFe
   }, context);
   const evidence = target.evidence;
   const base = snapshot.revision.specFeedback ?? initialSpecFeedback(snapshot.revision, evidence, true, startedAt);
+  if (base.status === "skipped") return base;
   const configuredTimeout = options.timeoutMs;
   const budget = taskBudget(snapshot.task, deps.budgetPolicy);
   const taskDeadline = Date.parse(budget.startedAt) + budget.policy.maxElapsedMs;
@@ -125,7 +128,16 @@ async function evaluateSpecFeedback(deps: AnsweringDeps, options: ResolvedSpecFe
     if (!originalQuestion) throw new Error("ORIGINAL_QUESTION_UNAVAILABLE");
     if (context.signal?.aborted) throw new AnsweringError("ANSWERING_CONTEXT_INVALID", "Answering operation was cancelled");
     if (timedOut) return unavailable("timeout", assembly);
-    assembly = assembleSpecFeedbackInput(snapshot.revision, evidence, originalQuestion, options.maxInputBytes);
+    const phrases = options.requirementExtractor
+      ? await Promise.race([requirementsOf(options, target.requestMessageId, originalQuestion, controller.signal), deadlinePromise, cancellationPromise])
+      : undefined;
+    if (timedOut) return unavailable("timeout", assembly);
+    const admitted = admitRequirements(originalQuestion, phrases ?? []);
+    const limitations = [
+      ...(!options.requirementExtractor ? ["requirement_extractor_not_configured"] : []),
+      ...(admitted.dropped > 0 ? [`requirements_not_verbatim:${admitted.dropped}`] : []),
+    ];
+    assembly = assembleSpecFeedbackInput(snapshot.revision, evidence, originalQuestion, admitted.admitted, limitations, options.maxInputBytes);
     if (context.signal?.aborted) throw new AnsweringError("ANSWERING_CONTEXT_INVALID", "Answering operation was cancelled");
     if (timedOut) return unavailable("timeout", assembly);
     const assessment = await Promise.race([
@@ -154,6 +166,21 @@ async function evaluateSpecFeedback(deps: AnsweringDeps, options: ResolvedSpecFe
     clearTimeout(timeout);
     context.signal?.removeEventListener("abort", forwardAbort);
   }
+}
+
+/** One extraction per request message: the request does not change across Revisions. A failed extraction is not cached. */
+const extractions = new WeakMap<ResolvedSpecFeedbackOptions, Map<string, Promise<readonly RequirementPhrase[]>>>();
+
+function requirementsOf(options: ResolvedSpecFeedbackOptions, requestMessageId: string, originalQuestion: string, signal: AbortSignal): Promise<readonly RequirementPhrase[]> {
+  let cache = extractions.get(options);
+  if (!cache) extractions.set(options, cache = new Map());
+  const key = `${requestMessageId} ${originalQuestion}`;
+  const cached = cache.get(key);
+  if (cached) return cached;
+  const pending = options.requirementExtractor!.extract(originalQuestion, { signal });
+  cache.set(key, pending);
+  pending.catch(() => cache!.delete(key));
+  return pending;
 }
 
 async function persistSpecFeedback(deps: AnsweringDeps, target: RevisionFeedbackTarget, feedback: SpecFeedback, context: BusinessContext): Promise<SpecFeedback | undefined> {

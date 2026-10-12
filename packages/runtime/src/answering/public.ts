@@ -69,17 +69,17 @@ export {
   type SpecFeedback,
   type SpecFeedbackAssessment,
   type SpecFeedbackChoice,
-  type SpecFeedbackCoverage,
-  type SpecFeedbackCoverageProbability,
+  type SpecFeedbackColumn,
   type SpecFeedbackDeterministicIssue,
-  type SpecFeedbackRelation,
-  type SpecFeedbackRelationProbability,
-  type SpecFeedbackSectionAssessment,
+  type SpecFeedbackRequirement,
   type SpecFeedbackStatus,
+  type RequirementJudgment,
+  type RequirementRole,
+  type ColumnJudgment,
   type SpecFields,
   type UntrustedEvidenceInput,
   CLARIFICATION_SOURCE_PREFIX,
   isEvidenceKind,
   isScopedReadOnlySql,
 } from "./model.js";
-export type { SpecAlignmentAssessor, SpecAlignmentEvidence, SpecAlignmentInput } from "../judgment/spec-alignment.js";
+export type { RequirementExtractor, RequirementPhrase, SpecAlignmentAssessor, SpecAlignmentField, SpecAlignmentInput } from "../judgment/spec-alignment.js";
