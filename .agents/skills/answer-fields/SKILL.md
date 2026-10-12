@@ -50,7 +50,7 @@ requires-tools:
 - `selection` 不是 `"n/a"` 时：`selection.ties`。
 - `population.source` 列出多张表时：`population.joinMultiplicity`。
 
-`population.timeField`、`population.missing` 不强制，题面涉及时再写。返回的“未声明”列出还缺的字段；全部声明之前不能执行最终查询。
+`population.timeField`、`population.missing` 不强制，题面涉及时再写。例外：按年、季、月或日分组且 `population.time` 写了日期范围时，系统按 `population.timeField`（写成 `表.列`）列出范围内实际有数据的期间（`[CALENDAR_COVERAGE]`）；有期间没有数据，`population.missing` 变为必须声明——写明缺数据的期间以零出现（SQL 须先生成全部期间再连接数据）还是不出现。返回的“未声明”列出还缺的字段；全部声明之前不能执行最终查询。
 
 `output.rowMode` 的取值（不要用其他词）：
 
@@ -112,9 +112,11 @@ requires-tools:
 ## 5. 修改与决定
 
 - **只写要变的路径。** 未写的路径保持不变。每个路径独立校验、独立生效，失败的路径不影响其他路径；按返回的 `✗` 原因只重发失败的路径。
-- **决定待定字段**：写 `{ "value": <候选原值>, "rationale", "evidenceIds"? }`。`rationale` 写把每个候选放回题面逐词检验的结论（`semantic-guide` 的“候选对照”）。`compare_hypotheses` 的明显倾向（`[ADVICE_LEAN]`）是默认答案；改选时须附 `"adviceOverride": { "reason", "evidenceIds" }`。`compare_hypotheses` 返回 `[HYPOTHESIS_COMPARISON_UNAVAILABLE]`（建议服务故障）时，照常写决定，发布时会披露该决定未经比较；不要把待定字段改写成假定绕开比较，Runtime 会拒绝。
+- **决定待定字段**：写 `{ "value": <候选原值>, "rationale", "evidenceIds"? }`。`rationale` 写把每个候选放回题面逐词检验的结论（`semantic-guide` 的“候选对照”）。`compare_hypotheses` 的明显倾向（`[ADVICE_LEAN]`）是默认答案；改选时须附 `"adviceOverride": { "reason", "evidenceIds" }`，证据须能确定该字段本身：语义字段只认原题、业务文档和用户确认，观测不能推翻倾向。`compare_hypotheses` 返回 `[HYPOTHESIS_COMPARISON_UNAVAILABLE]`（建议服务故障）时，照常写决定，发布时会披露该决定未经比较；不要把待定字段改写成假定绕开比较，Runtime 会拒绝。
 - **无法单独执行的候选**：写 `{ "notProbeable": { "<alternativeId>": "理由" } }` 代替探针。
 - **改写已设置的字段**须附 `"reason"`，系统记录改写理由。
+- **`[SPEC_FEEDBACK]` 题面要求**：Spec 必须声明的字段齐全后，系统逐条核对原题的要求片段，列出被判为与字段矛盾或缺失的原文和无定义的输出列。逐条对照对应字段：改写字段（附 reason）、打开候选，或在该片段确实不适用时保留。它是决策模型的建议，不是证据。
+- **实体身份计数**：写了 `population.entity` 和 `population.source` 后，返回中的 `[ENTITY_IDENTITY]` 给出每张来源表的行数、去重行数和 `keyColumns` 去重数。键不唯一或有完全重复行时，在 `population.entity` 写明一行是不是一个实体，需要去重就在 SQL 中去重；这些计数会随结果披露。
 - 写入任何字段都会产生新的 Revision，上一版未发布的结果候选随之失效；先把字段写完，再执行最终查询。
 
 ## 6. 探索、探针与最终查询
@@ -128,7 +130,7 @@ query_database(kind="result", taskId, revisionId, sql)
 - 待定字段每个候选的 `alternativeId` 见 `set_answer_spec` 返回的状态表。
 - 探针 SQL 按该候选的口径计算**最终输出**，不是中间量。`[PROBE] output=...` 相同表示两个候选给出同一个答案。探针不占探索次数。
 - 探索只验证可能改变答案的未决点，每次解决一个问题；探索产物不能发布。
-- 最终查询绑定状态表所在的当前 `revisionId`，只执行一次，生成不可变的 Result Candidate。SQL 与已封存字段明显不符（最外层行数上限与 `selection.n` 不同、`include_ties` 却用行数上限截断、`percentage` 未乘 100）时，SQL 不执行并以 `SPEC_NOT_REALIZED` 拒绝：改 SQL 实现字段，字段本身写错才附 reason 改写字段；可能不符的情况随结果披露。CandidateCheck 拒绝时修正 SQL；结果与未采纳候选的探针输出相同时以 `DECISION_NOT_REALIZED` 拒绝，改 SQL 实现已采纳的候选。
+- 最终查询绑定状态表所在的当前 `revisionId`，只执行一次，生成不可变的 Result Candidate。SQL 与已封存字段明显不符（最外层行数上限与 `selection.n` 不同、`include_ties` 却用行数上限截断、`percentage` 或 `pp_difference` 未乘 100）时，SQL 不执行并以 `SPEC_NOT_REALIZED` 拒绝：改 SQL 实现字段，字段本身写错才附 reason 改写字段；可能不符的情况随结果披露。CandidateCheck 拒绝时修正 SQL；结果与未采纳候选的探针输出相同时以 `DECISION_NOT_REALIZED` 拒绝，改 SQL 实现已采纳的候选。
 - `[IMPLEMENTATION_OBSTACLE]` 按 `kind` 判断：技术失败在预算内修 SQL；业务判断、映射不足、预算耗尽或执行结果未知时回到取证、澄清或说明限制。
 
 ## 7. 报告与看板

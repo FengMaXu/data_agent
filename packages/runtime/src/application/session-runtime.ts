@@ -27,7 +27,8 @@ import { createQueryTaskDelegationResolver, type DelegationSqlExplorer } from ".
 import { createSubagentToolDefinition } from "../tools/subagent.js";
 import type { DataAgentToolDefinition } from "../tools/tool-definition.js";
 import type { HypothesisChoiceAdvisor } from "../judgment/hypothesis-choice.js";
-import type { SpecAlignmentAssessor } from "../judgment/spec-alignment.js";
+import type { RequirementExtractor, SpecAlignmentAssessor } from "../judgment/spec-alignment.js";
+import { ModelRequirementExtractor } from "../adapters/model-requirement-extractor.js";
 import { isRuntimeInjected } from "../runtime-injected.js";
 
 export interface DataAgentSessionRuntimeOptions {
@@ -57,6 +58,8 @@ export interface DataAgentSessionRuntimeOptions {
   readonly hypothesisChoiceAdvisor?: HypothesisChoiceAdvisor;
   /** Optional post-commit Jev Spec alignment assessor. */
   readonly specAlignmentAssessor?: SpecAlignmentAssessor;
+  /** Overrides the session-model requirement extractor used by Spec feedback. */
+  readonly requirementExtractor?: RequirementExtractor;
   /** Evaluation-only semantic-spec ablation. Product composition leaves this required. */
   readonly semanticSpecMode?: SemanticSpecMode;
   /** Explicit Answering budget; omitted uses the production default policy. */
@@ -255,8 +258,11 @@ export async function createDataAgentSessionHost(options: DataAgentSessionRuntim
   // The user's clarification answers live in this Session, where Evidence Admission reads them.
   const clarificationLedger = new PiSessionClarificationLedger(session, TODO_CONTEXT);
   const resultStore = options.resultStore ?? (options.resultRoot ? new FileResultStore(options.resultRoot) : new InMemoryResultStore());
+  const piRuntime = await createDataAgentPiRuntime(options.profile);
+  // The requirement list comes from the session's model reading only the request; the assessor decides each item (ADR-0003).
   const specFeedback = options.specAlignmentAssessor ? {
     assessor: options.specAlignmentAssessor,
+    requirementExtractor: options.requirementExtractor ?? new ModelRequirementExtractor(piRuntime.models, piRuntime.model),
     getOriginalQuestion: (requestMessageId: string, feedbackOptions?: { readonly signal?: AbortSignal }) => readOriginalQuestion(session, requestMessageId, feedbackOptions?.signal),
   } : undefined;
   // compare_hypotheses writes advice here; Answering reads it when an open field is decided (ADR-0005).
@@ -325,7 +331,6 @@ export async function createDataAgentSessionHost(options: DataAgentSessionRuntim
     ...(skill.disableModelInvocation ? { disableModelInvocation: true } : {}),
   }));
   const toolContext: DataAgentToolContext = { sessionId: options.sessionId, principalId: options.principalId ?? "local" };
-  const piRuntime = await createDataAgentPiRuntime(options.profile);
   const toolDefinitions: DataAgentToolDefinition<DataAgentToolContext>[] = [
     ...createCoreAgentToolDefinitions({
       workspace: options.workspace,

@@ -11,6 +11,7 @@ import {
 } from "./model.js";
 import { FIELD_PATHS, type SpecPath } from "./fields.js";
 import { openPaths, undeclaredPaths, unverifiedFields } from "./qualification.js";
+import { calendarRequiredPaths } from "./calendar-coverage.js";
 import { equivalentPaths, summarizeProbes } from "./probes.js";
 import type { FieldAdvisory } from "./advisory-ledger.js";
 import type { AnsweringDeps } from "./deps.js";
@@ -92,10 +93,12 @@ export function viewFromRevision(taskId: TaskId, revision: AnswerRevisionRecord,
     revisionId: revision.revisionId,
     ...(revision.parentRevisionId ? { parentRevisionId: revision.parentRevisionId } : {}),
     fields: clone(ordered(revision.fields).map(([path, field]) => fieldView(path, field, equivalent, context))),
-    undeclared: undeclaredPaths(revision.fields, report),
+    undeclared: undeclaredPaths(revision.fields, report, calendarRequiredPaths(revision.calendarCoverage)),
     open: openPaths(revision.fields, equivalent),
     unverified: unverifiedFields(revision.fields).map((item) => item.path),
     ...(revision.specFeedback ? { specFeedback: clone(revision.specFeedback) } : {}),
+    ...(revision.entityIdentity ? { entityIdentity: clone(revision.entityIdentity) } : {}),
+    ...(revision.calendarCoverage ? { calendarCoverage: clone(revision.calendarCoverage) } : {}),
     ...(revision.deviations && revision.deviations.length > 0 ? { deviations: clone(revision.deviations) } : {}),
     ...(revision.measureRef ? { measureRef: revision.measureRef } : {}),
   };

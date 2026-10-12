@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
-import type { FieldSection, FieldValue, SpecPath } from "./fields.js";
+import type { FieldValue, SpecPath } from "./fields.js";
+import type { EntityIdentityReport } from "./entity-identity.js";
+import type { CalendarCoverageReport } from "./calendar-coverage.js";
 
 /**
  * Domain identities are branded at the Answering boundary. Constructors are
@@ -86,29 +88,38 @@ export interface CheckCoverage {
   readonly reason?: string;
 }
 
-export type SpecFeedbackStatus = "pending" | "completed" | "unavailable" | "disabled";
-export type SpecFeedbackRelation = "supported" | "contradicted" | "not_established" | "not_applicable";
-export type SpecFeedbackCoverage = "complete" | "partial" | "missing" | "not_applicable";
-export type SpecFeedbackRelationProbability = Readonly<Record<SpecFeedbackRelation, number>>;
-export type SpecFeedbackCoverageProbability = Readonly<Record<SpecFeedbackCoverage, number>>;
+/** skipped: the Revision still had undeclared fields, so there was no complete Spec to assess. */
+export type SpecFeedbackStatus = "pending" | "completed" | "unavailable" | "disabled" | "skipped";
+/** What a requirement phrase constrains; it tells the assessor which fields to read first. */
+export type RequirementRole = "population" | "scope" | "computation" | "selection" | "time";
+export type RequirementJudgment = "expressed" | "contradicted" | "missing";
+export type ColumnJudgment = "defined" | "undefined";
 
-export interface SpecFeedbackChoice<TChoice extends string, TProbabilities extends Readonly<Record<TChoice, number>>> {
+export interface SpecFeedbackChoice<TChoice extends string> {
   readonly choice: TChoice;
-  readonly probabilities: TProbabilities;
+  readonly probabilities: Readonly<Record<TChoice, number>>;
   /** Concentration of this Choice distribution; not calibrated correctness. */
   readonly confidence: number;
 }
 
-export interface SpecFeedbackSectionAssessment {
-  readonly section: FieldSection;
-  readonly relation: SpecFeedbackChoice<SpecFeedbackRelation, SpecFeedbackRelationProbability>;
-  readonly coverage: SpecFeedbackChoice<SpecFeedbackCoverage, SpecFeedbackCoverageProbability>;
+/** One phrase of the original request, verified verbatim, and how the Spec relates to it. */
+export interface SpecFeedbackRequirement {
+  readonly quote: string;
+  readonly role: RequirementRole;
+  readonly judgment: SpecFeedbackChoice<RequirementJudgment>;
+}
+
+/** One declared output column and whether a field defines its values. */
+export interface SpecFeedbackColumn {
+  readonly column: string;
+  readonly judgment: SpecFeedbackChoice<ColumnJudgment>;
 }
 
 export interface SpecFeedbackAssessment {
   readonly model: string;
   readonly ruleVersion: string;
-  readonly sections: readonly SpecFeedbackSectionAssessment[];
+  readonly requirements: readonly SpecFeedbackRequirement[];
+  readonly columns: readonly SpecFeedbackColumn[];
 }
 
 export interface SpecFeedbackDeterministicIssue {
@@ -348,7 +359,7 @@ export type QueryArtifact =
 
 export interface Finding {
   readonly id: string;
-  readonly kind: "shape_conflict" | "result_incomplete" | "integrity_conflict" | "join_fanout" | "realization_conflict";
+  readonly kind: "shape_conflict" | "result_incomplete" | "integrity_conflict" | "join_fanout" | "realization_conflict" | "entity_identity" | "calendar_coverage";
   readonly message: string;
   readonly blocking: boolean;
   readonly checkId?: string;
@@ -401,6 +412,10 @@ export interface AnswerRevisionRecord {
   readonly rewrites?: readonly FieldRewrite[];
   /** Advisory report attached to this Revision; it never changes qualification. */
   readonly specFeedback?: SpecFeedback;
+  /** Row, distinct-row and key counts of the declared sources, taken after the Revision commits; disclosed, never blocking. */
+  readonly entityIdentity?: EntityIdentityReport;
+  /** Periods of population.time the data has at the answer's calendar grain; missing periods make population.missing required. */
+  readonly calendarCoverage?: CalendarCoverageReport;
   /** Inherited fields this chart query changed, with reasons; carried forward and disclosed. */
   readonly deviations?: readonly Deviation[];
   /** The Report Task measure definition this chart query's measure is copied from. */
@@ -597,6 +612,8 @@ export interface AnswerRevisionView {
   /** Fields disclosed at publication: assumed values and unverified decisions. */
   readonly unverified: readonly SpecPath[];
   readonly specFeedback?: SpecFeedback;
+  readonly entityIdentity?: EntityIdentityReport;
+  readonly calendarCoverage?: CalendarCoverageReport;
   /** Per-path outcome of the set call, in call order. */
   readonly outcomes?: readonly FieldOutcome[];
   readonly role?: "report";

@@ -648,3 +648,4 @@ export { KnowledgeIndex } from "./knowledge.js";
 export { DataAgentSessionApplication } from "./application/host.js";
 export { JevHypothesisChoiceAdvisor } from "./adapters/jev-hypothesis-choice-advisor.js";
 export { JevSpecAlignmentAssessor } from "./adapters/jev-spec-alignment-assessor.js";
+export { ModelRequirementExtractor, REQUIREMENT_EXTRACTION_PROMPT } from "./adapters/model-requirement-extractor.js";

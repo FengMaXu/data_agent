@@ -4,7 +4,7 @@ import type { ResultStore } from "./result-store.js";
 import type { EvidenceSource } from "./evidence-admission.js";
 import type { FanoutDialect, FanoutSchema } from "./fanout-check.js";
 import type { AnsweringSqlExecutor } from "./sql-execution.js";
-import type { SpecAlignmentAssessor } from "../judgment/spec-alignment.js";
+import type { RequirementExtractor, SpecAlignmentAssessor } from "../judgment/spec-alignment.js";
 import type { AdvisoryLedger } from "./advisory-ledger.js";
 
 export interface FanoutAnsweringOptions {
@@ -17,6 +17,8 @@ export interface FanoutAnsweringOptions {
 
 export interface SpecFeedbackOptions {
   readonly assessor: SpecAlignmentAssessor;
+  /** Lists the request's requirement phrases once per request; without it only output columns are assessed. */
+  readonly requirementExtractor?: RequirementExtractor;
   readonly getOriginalQuestion: (requestMessageId: string, options?: { readonly signal?: AbortSignal }) => Promise<string | undefined>;
   readonly timeoutMs?: number;
   readonly maxInputBytes?: number;

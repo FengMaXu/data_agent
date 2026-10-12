@@ -15,6 +15,8 @@ import { makeInternalId } from "./internal-ids.js";
 import { unverifiedFields } from "./qualification.js";
 import { assertDeliverable } from "./report.js";
 import { fanoutDisclosureSummary } from "./fanout-execution.js";
+import { entityIdentityDisclosure } from "./entity-identity.js";
+import { calendarCoverageDisclosure } from "./calendar-coverage.js";
 import { SPEC_FEEDBACK_CHECK_ID, specFeedbackDisclosureSummary } from "./spec-feedback.js";
 import { markCandidateCorrupt } from "./result-execution.js";
 import { realizationDisclosure } from "./realization-check.js";
@@ -28,8 +30,8 @@ const INLINE_ROW_LIMIT = 10;
 /**
  * Everything a Receipt must disclose about the exact published Candidate:
  * unverified fields, decisions made while the advisor was unavailable,
- * deviations, fanout observations, likely Spec realization conflicts and
- * SpecFeedback.
+ * deviations, fanout observations, likely Spec realization conflicts,
+ * entity identity counts, calendar coverage and SpecFeedback.
  * Disclosure is a record, never an approval.
  */
 export function composeDisclosure(revision: AnswerRevisionRecord, candidate: ResultCandidateRecord, parentSuperseded?: ParentSupersession): PublicationDisclosure | undefined {
@@ -41,11 +43,13 @@ export function composeDisclosure(revision: AnswerRevisionRecord, candidate: Res
     : "";
   const feedbackDisclosure = specFeedbackDisclosureSummary(candidate.coverage?.find((coverage) => coverage.checkId === SPEC_FEEDBACK_CHECK_ID));
   const realization = realizationDisclosure(candidate.findings);
+  const identity = entityIdentityDisclosure(candidate.findings);
+  const calendar = calendarCoverageDisclosure(candidate.findings);
   const unadvised = (Object.entries(revision.fields) as [string, FieldRecord][])
     .filter(([, field]) => field.state === "decided" && field.adviceUnavailable)
     .map(([path]) => path);
   const deviations = revision.deviations ?? [];
-  if (unverified.length === 0 && unadvised.length === 0 && deviations.length === 0 && !parentSuperseded && !fanoutDisclosure && !feedbackDisclosure && !realization) return undefined;
+  if (unverified.length === 0 && unadvised.length === 0 && deviations.length === 0 && !parentSuperseded && !fanoutDisclosure && !feedbackDisclosure && !realization && !identity && !calendar) return undefined;
   return {
     required: true,
     unverifiedFields: unverified,
@@ -57,6 +61,8 @@ export function composeDisclosure(revision: AnswerRevisionRecord, candidate: Res
       ...(parentSuperseded ? ["本次只刷新了数据；这张图所依据的报告任务口径已被修改，图仍按修改前的口径计算。"] : []),
       ...(fanoutDisclosure ? [fanoutDisclosure] : []),
       ...(realization ? [realization] : []),
+      ...(identity ? [identity] : []),
+      ...(calendar ? [calendar] : []),
       ...(feedbackDisclosure ? [feedbackDisclosure] : []),
     ].join(" "),
     ...(fanoutDisclosure && candidate.fanout ? { fanoutStatus: candidate.fanout.status } : {}),

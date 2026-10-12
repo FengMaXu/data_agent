@@ -153,7 +153,7 @@ An open field whose every alternative produced the same Result Fingerprint. It c
 _Avoid_: Trivial choice, ignored ambiguity
 
 **Advisory Ledger**:
-The Runtime's record of the latest compare_hypotheses advice per open field. A decision that departs from the advice's clear lean must carry an override reason and evidence; the advice itself is never evidence. When the advisor fails, the ledger records the outage; the field may then be decided without advice, and the publication discloses it. An open field that needs advice cannot be replaced by an assumption, only decided, settled by qualifying evidence, or reopened.
+The Runtime's record of the latest compare_hypotheses advice per open field. A decision that departs from the advice's clear lean must carry an override reason and evidence that qualifies for the field (observations never outweigh a lean on a semantic field); the advice itself is never evidence. When the advisor fails, the ledger records the outage; the field may then be decided without advice, and the publication discloses it. An open field that needs advice cannot be replaced by an assumption, only decided, settled by qualifying evidence, or reopened.
 _Avoid_: Advice cache, recommendation store
 
 **Decision Realization**:
@@ -161,11 +161,23 @@ The requirement that a result does not reproduce the probe output of an alternat
 _Avoid_: Choice consistency check
 
 **Spec Realization**:
-The check that the final SQL implements the sealed fields, read from the fields and the SQL text only. A conflict no correct implementation can have (a row cap that differs from `selection.n`, a cap that drops ties the Spec keeps, a percentage never multiplied by 100) rejects the SQL before it runs as SPEC_NOT_REALIZED; a likely conflict is disclosed with the result. It judges implementation, never whether the meaning is right.
+The check that the final SQL implements the sealed fields, read from the fields and the SQL text only. A conflict no correct implementation can have (a row cap that differs from `selection.n`, a cap that drops ties the Spec keeps, a percentage or percentage-point difference never multiplied by 100) rejects the SQL before it runs as SPEC_NOT_REALIZED; a likely conflict is disclosed with the result. It judges implementation, never whether the meaning is right.
 _Avoid_: SQL review, query digest
 
+**Entity Identity Check**:
+The Runtime's count of rows, distinct rows and distinct declared keys of each source in `population.source`, taken when a Revision with a settled entity and source commits. It reports a counted key that is not unique and exact duplicate rows; whether a duplicate is one entity or a separate one stays a Spec decision. Findings are shown with the Revision and disclosed with the result, never blocking.
+_Avoid_: Deduplication rule, data quality verdict
+
+**Calendar Coverage**:
+The Runtime's list of the periods the time field actually has inside `population.time`, at the answer's year, quarter, month or day grain, read when a Revision commits. Periods without data make `population.missing` a required field and are disclosed with the result; how an absent period counts stays a Spec decision.
+_Avoid_: Gap filling, zero-fill rule
+
+**Requirement Phrase**:
+A phrase of the original request, copied verbatim, that constrains the answer, with its role (population, scope, computation, selection or time). A model that reads only the request lists them; the Runtime keeps only phrases found verbatim; the Spec feedback assessor, a decision model, judges each as expressed, contradicted or missing in the Spec's field claims. The judgment is advisory and disclosed, never evidence.
+_Avoid_: Reviewer finding, requirement checklist
+
 **Necessity Rule**:
-The rule that says which fields must have a state before a result query: eight always, and the measure sub-fields, `selection.ties` and `population.joinMultiplicity` when the formula, selection or source call for them (ADR-0007). Not applicable is a state.
+The rule that says which fields must have a state before a result query: eight always, and the measure sub-fields, `selection.ties` and `population.joinMultiplicity` when the formula, selection or source call for them, and `population.missing` when Calendar Coverage finds periods without data (ADR-0007). Not applicable is a state.
 _Avoid_: Checklist item, decision point
 
 **Business Definition Proposal**:

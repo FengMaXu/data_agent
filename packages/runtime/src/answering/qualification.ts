@@ -17,6 +17,7 @@ import {
   type SourceValue,
   type SpecPath,
 } from "./fields.js";
+import { calendarRequiredPaths } from "./calendar-coverage.js";
 
 /**
  * Text evidence carries authority only through a quote that Runtime found in a
@@ -45,9 +46,12 @@ export function requiredFor(fields: SpecFields): readonly FieldPath[] {
   });
 }
 
-/** Required fields without a state. A Report Task answers only for its shared population. */
-export function undeclaredPaths(fields: SpecFields, report = false): readonly SpecPath[] {
-  const required = report ? [...REPORT_REQUIRED, ...requiredFor(fields).filter(isSharedPath)] : requiredFor(fields);
+/**
+ * Required fields without a state. A Report Task answers only for its shared
+ * population. `dataRequired` adds paths the data made necessary (calendar coverage).
+ */
+export function undeclaredPaths(fields: SpecFields, report = false, dataRequired: readonly FieldPath[] = []): readonly SpecPath[] {
+  const required = report ? [...REPORT_REQUIRED, ...requiredFor(fields).filter(isSharedPath)] : [...requiredFor(fields), ...dataRequired];
   return [...new Set(required)].filter((path) => !fields[path]);
 }
 
@@ -74,7 +78,7 @@ export function unverifiedFields(fields: SpecFields): readonly UnverifiedField[]
 export function sealForResult(revision: AnswerRevisionRecord, equivalent: ReadonlySet<SpecPath> = new Set()):
   | { readonly ok: true; readonly revision: ReadyRevision }
   | { readonly ok: false; readonly undeclared: readonly SpecPath[]; readonly open: readonly SpecPath[] } {
-  const undeclared = undeclaredPaths(revision.fields);
+  const undeclared = undeclaredPaths(revision.fields, false, calendarRequiredPaths(revision.calendarCoverage));
   const open = openPaths(revision.fields, equivalent);
   if (undeclared.length > 0 || open.length > 0) return { ok: false, undeclared, open };
   return {

@@ -11,7 +11,7 @@ const spec = { "population.entity": "orders", "population.eligibility": "n/a", "
 const business = (invocationId: string) => ({ principal: { id: "user-1" }, sessionId: "session-1", lane: "main", operationId: "operation-1", invocationId });
 const PATH = "population.timeField";
 
-async function setup() {
+async function setup(path: string = PATH) {
   const outputs: Record<string, { columns: string[]; rows: unknown[][]; truncated: boolean }> = {
     "SELECT purchase": { columns: ["n"], rows: [[265]], truncated: false },
     "SELECT delivered": { columns: ["n"], rows: [[205]], truncated: false },
@@ -28,12 +28,12 @@ async function setup() {
   const view = await answering.set({
     requestMessageId: "current-message",
     requestId: "begin",
-    fields: { ...spec, [PATH]: { open: ["按下单时间", "按送达时间"] } },
+    fields: { ...spec, [path]: { open: ["按下单时间", "按送达时间"] } },
   }, business("begin"));
-  const field = view.fields.find((item) => item.path === PATH)!;
+  const field = view.fields.find((item) => item.path === path)!;
   const [purchase, delivered] = field.alternatives!.map((alternative) => alternative.id);
-  await answering.execute({ kind: "exploration", taskId: view.taskId, sql: "SELECT purchase", probe: { path: PATH, alternativeId: purchase! } }, business("probe-1"));
-  await answering.execute({ kind: "exploration", taskId: view.taskId, sql: "SELECT delivered", probe: { path: PATH, alternativeId: delivered! } }, business("probe-2"));
+  await answering.execute({ kind: "exploration", taskId: view.taskId, sql: "SELECT purchase", probe: { path, alternativeId: purchase! } }, business("probe-1"));
+  await answering.execute({ kind: "exploration", taskId: view.taskId, sql: "SELECT delivered", probe: { path, alternativeId: delivered! } }, business("probe-2"));
   return { answering, ledger, view, purchase: purchase!, delivered: delivered! };
 }
 
@@ -154,6 +154,18 @@ describe("deciding against advice (ADR-0005)", () => {
     const observation = inspected.task.fieldProbes!.find((probe) => probe.alternativeId === purchase)!.evidenceId;
     const overridden = await decide(answering, view.taskId, "按下单时间", { adviceOverride: { reason: "Only the purchase month is defined for every order in 2016", evidenceIds: [observation] } });
     expect(overridden.fields.find((item) => item.path === PATH)).toMatchObject({ status: "decided", verified: false, rationale, advice: { lean: { alternativeId: delivered } }, adviceOverride: { evidenceIds: [observation] } });
+  });
+
+  it("does not let observations outweigh a lean on a semantic field", async () => {
+    const semantic = "measure.countGrain";
+    const { answering, ledger, view, purchase, delivered } = await setup(semantic);
+    ledger.record({ taskId: view.taskId, path: semantic, alternativeIds: [purchase, delivered], model: "jev", probabilities: [{ alternativeId: purchase, probability: 0.04 }, { alternativeId: delivered, probability: 0.45 }], recommendation: "alternative", recommendedAlternativeId: delivered, lean: { alternativeId: delivered, probability: 0.45 }, recordedAt: "now" });
+    const inspected = await answering.inspect({ taskId: view.taskId }, business("inspect"));
+    const observation = inspected.task.fieldProbes!.find((probe) => probe.alternativeId === purchase)!.evidenceId;
+    const overridden = await answering.set({ taskId: view.taskId, requestId: "override", fields: { [semantic]: { value: "按下单时间", rationale, adviceOverride: { reason: "The data has no quantity column for extras", evidenceIds: [observation] } } } }, business("override"));
+    expect(overridden.outcomes?.[0]).toMatchObject({ status: "rejected", code: "SPEC_TRANSITION_INVALID", message: expect.stringContaining("needs evidence that qualifies for this field") });
+    const followed = await answering.set({ taskId: view.taskId, requestId: "follow", fields: { [semantic]: { value: "按送达时间", rationale } } }, business("follow"));
+    expect(followed.fields.find((item) => item.path === semantic)).toMatchObject({ status: "decided", value: "按送达时间" });
   });
 
   it("does not let an assumption replace a field compare_hypotheses must weigh", async () => {
