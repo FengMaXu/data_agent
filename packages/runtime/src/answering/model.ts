@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import type { FieldSection, FieldValue, SpecPath } from "./fields.js";
 import type { EntityIdentityReport } from "./entity-identity.js";
+import type { CalendarCoverageReport } from "./calendar-coverage.js";
 
 /**
  * Domain identities are branded at the Answering boundary. Constructors are
@@ -349,7 +350,7 @@ export type QueryArtifact =
 
 export interface Finding {
   readonly id: string;
-  readonly kind: "shape_conflict" | "result_incomplete" | "integrity_conflict" | "join_fanout" | "realization_conflict" | "entity_identity";
+  readonly kind: "shape_conflict" | "result_incomplete" | "integrity_conflict" | "join_fanout" | "realization_conflict" | "entity_identity" | "calendar_coverage";
   readonly message: string;
   readonly blocking: boolean;
   readonly checkId?: string;
@@ -404,6 +405,8 @@ export interface AnswerRevisionRecord {
   readonly specFeedback?: SpecFeedback;
   /** Row, distinct-row and key counts of the declared sources, taken after the Revision commits; disclosed, never blocking. */
   readonly entityIdentity?: EntityIdentityReport;
+  /** Periods of population.time the data has at the answer's calendar grain; missing periods make population.missing required. */
+  readonly calendarCoverage?: CalendarCoverageReport;
   /** Inherited fields this chart query changed, with reasons; carried forward and disclosed. */
   readonly deviations?: readonly Deviation[];
   /** The Report Task measure definition this chart query's measure is copied from. */
@@ -601,6 +604,7 @@ export interface AnswerRevisionView {
   readonly unverified: readonly SpecPath[];
   readonly specFeedback?: SpecFeedback;
   readonly entityIdentity?: EntityIdentityReport;
+  readonly calendarCoverage?: CalendarCoverageReport;
   /** Per-path outcome of the set call, in call order. */
   readonly outcomes?: readonly FieldOutcome[];
   readonly role?: "report";

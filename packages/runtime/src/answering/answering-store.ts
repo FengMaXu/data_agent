@@ -15,6 +15,7 @@ import {
   type TaskId,
 } from "./model.js";
 import { openPaths, undeclaredPaths } from "./qualification.js";
+import { calendarRequiredPaths } from "./calendar-coverage.js";
 import { equivalentPaths } from "./probes.js";
 
 export interface AnsweringTransaction {
@@ -189,7 +190,7 @@ export class InMemoryAnsweringStore implements AnsweringStore {
     const currentRevision = this.state.revisions.get(task.currentRevisionId);
     if (!currentRevision) throw new Error("ANSWERING_REVISION_MISSING");
     const attempts = [...(this.state.attempts.get(taskId)?.values() ?? [])];
-    const undeclared = undeclaredPaths(currentRevision.fields, task.role === "report");
+    const undeclared = undeclaredPaths(currentRevision.fields, task.role === "report", calendarRequiredPaths(currentRevision.calendarCoverage));
     const open = openPaths(currentRevision.fields, equivalentPaths(currentRevision.fields, task.fieldProbes ?? []));
     const candidate = task.latestCandidateId ? this.state.candidates.get(task.latestCandidateId) : undefined;
     const publication = task.publicationId ? this.state.receipts.get(task.publicationId) : undefined;

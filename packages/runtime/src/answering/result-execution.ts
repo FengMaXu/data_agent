@@ -28,6 +28,7 @@ import { boundedResult } from "./sql-execution.js";
 import { resultFingerprint } from "./result-fingerprint.js";
 import { evaluateSpecRealization } from "./realization-check.js";
 import { entityIdentityCoverage, entityIdentityFindings } from "./entity-identity.js";
+import { calendarCoverageCoverage, calendarCoverageFindings } from "./calendar-coverage.js";
 import { asRecord, now } from "./support.js";
 import type { AnsweringDeps } from "./deps.js";
 
@@ -316,9 +317,9 @@ export async function executeResult(
   }
 
   const fanout = await evaluateFanout(deps, taskId, revisionId, queryHash, input.sql.trim(), context);
-  // Entity identity was counted when the Revision committed; the sealed fields decide whether its findings still apply.
-  const combinedCoverage: readonly CheckCoverage[] = [...checkReport.coverage, realization.coverage, fanoutCoverage(fanout), entityIdentityCoverage(sealed.entityIdentity)];
-  const combinedFindings = [...checkReport.findings, ...realization.findings, ...fanoutFindings(fanout), ...entityIdentityFindings(sealed.entityIdentity)];
+  // Entity identity and calendar coverage were read when the Revision committed; the sealed fields decide whether its findings still apply.
+  const combinedCoverage: readonly CheckCoverage[] = [...checkReport.coverage, realization.coverage, fanoutCoverage(fanout), entityIdentityCoverage(sealed.entityIdentity), calendarCoverageCoverage(sealed.calendarCoverage)];
+  const combinedFindings = [...checkReport.findings, ...realization.findings, ...fanoutFindings(fanout), ...entityIdentityFindings(sealed.entityIdentity), ...calendarCoverageFindings(sealed.calendarCoverage)];
 
   const budgetAfterResult = await deps.store.transact((tx) => {
     const current = tx.getTask(taskId);

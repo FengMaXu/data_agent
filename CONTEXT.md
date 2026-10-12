@@ -168,8 +168,12 @@ _Avoid_: SQL review, query digest
 The Runtime's count of rows, distinct rows and distinct declared keys of each source in `population.source`, taken when a Revision with a settled entity and source commits. It reports a counted key that is not unique and exact duplicate rows; whether a duplicate is one entity or a separate one stays a Spec decision. Findings are shown with the Revision and disclosed with the result, never blocking.
 _Avoid_: Deduplication rule, data quality verdict
 
+**Calendar Coverage**:
+The Runtime's list of the periods the time field actually has inside `population.time`, at the answer's year, quarter, month or day grain, read when a Revision commits. Periods without data make `population.missing` a required field and are disclosed with the result; how an absent period counts stays a Spec decision.
+_Avoid_: Gap filling, zero-fill rule
+
 **Necessity Rule**:
-The rule that says which fields must have a state before a result query: eight always, and the measure sub-fields, `selection.ties` and `population.joinMultiplicity` when the formula, selection or source call for them (ADR-0007). Not applicable is a state.
+The rule that says which fields must have a state before a result query: eight always, and the measure sub-fields, `selection.ties` and `population.joinMultiplicity` when the formula, selection or source call for them, and `population.missing` when Calendar Coverage finds periods without data (ADR-0007). Not applicable is a state.
 _Avoid_: Checklist item, decision point
 
 **Business Definition Proposal**:

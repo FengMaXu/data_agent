@@ -50,7 +50,7 @@ requires-tools:
 - `selection` 不是 `"n/a"` 时：`selection.ties`。
 - `population.source` 列出多张表时：`population.joinMultiplicity`。
 
-`population.timeField`、`population.missing` 不强制，题面涉及时再写。返回的“未声明”列出还缺的字段；全部声明之前不能执行最终查询。
+`population.timeField`、`population.missing` 不强制，题面涉及时再写。例外：按年、季、月或日分组且 `population.time` 写了日期范围时，系统按 `population.timeField`（写成 `表.列`）列出范围内实际有数据的期间（`[CALENDAR_COVERAGE]`）；有期间没有数据，`population.missing` 变为必须声明——写明缺数据的期间以零出现（SQL 须先生成全部期间再连接数据）还是不出现。返回的“未声明”列出还缺的字段；全部声明之前不能执行最终查询。
 
 `output.rowMode` 的取值（不要用其他词）：
 

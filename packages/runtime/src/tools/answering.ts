@@ -10,6 +10,7 @@ import type {
 import { AnsweringError, FIELD_FORMS, FIELD_PATHS } from "../answering/public.js";
 import { renderSpecFeedback } from "../answering/spec-feedback.js";
 import { renderEntityIdentity } from "../answering/entity-identity.js";
+import { renderCalendarCoverage } from "../answering/calendar-coverage.js";
 import { leanOf, type AdvisoryLedger, type FieldAdvisory } from "../answering/public.js";
 import type {
   Answering,
@@ -303,6 +304,7 @@ function setSpecTool(answering: Answering): AgentHarnessTool<DataAgentToolContex
         : [];
       const feedback = renderSpecFeedback(view.specFeedback);
       const identity = renderEntityIdentity(view.entityIdentity);
+      const calendar = renderCalendarCoverage(view.calendarCoverage);
       const changed = !before || view.revisionId !== before.task.currentRevisionId;
       return result([
         `[${changed ? "ANSWER_SPEC_SET" : "ANSWER_SPEC_UNCHANGED"}] taskId=${view.taskId} revisionId=${view.revisionId}`,
@@ -312,6 +314,7 @@ function setSpecTool(answering: Answering): AgentHarnessTool<DataAgentToolContex
         fieldStateTable(view),
         ...stale,
         ...(identity ? [identity] : []),
+        ...(calendar ? [calendar] : []),
         ...(feedback ? [feedback] : []),
         fieldsJson(view),
       ].join("\n"), view);
