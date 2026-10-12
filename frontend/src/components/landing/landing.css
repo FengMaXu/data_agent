@@ -29,6 +29,8 @@
 .lp code, .lp pre { font-family: var(--font-mono); }
 .lp h1, .lp h2, .lp h3 { font-weight: 600; }
 .lp h1, .lp h2 { font-family: var(--serif); }
+/* Half-width CJK punctuation keeps display headings from opening gaps at 、and ，. */
+.lp h2, .lp-why-head h3 { font-feature-settings: 'halt'; }
 
 .lp [data-reveal] {
   opacity: 0;
@@ -255,7 +257,7 @@
 .lp-where-copy h2 {
   margin-top: 18px;
   font-size: clamp(1.9rem, 3.2vw, 2.75rem);
-  font-weight: 400;
+  font-weight: 500;
   line-height: 1.2;
   letter-spacing: -0.01em;
   text-wrap: pretty;
@@ -499,10 +501,10 @@
   border-top: 1px solid var(--ink);
 }
 
-.lp-why:first-of-type { margin-top: 64px; }
+.lp-block-head + .lp-why { margin-top: 64px; }
 .lp-why-head { align-self: start; }
 .lp-why-num { color: var(--muted); font-family: var(--font-mono); font-size: 0.75rem; }
-.lp-why-head h3 { margin-top: 10px; font-family: var(--serif); font-size: clamp(1.9rem, 3.2vw, 2.75rem); font-weight: 400; line-height: 1.2; letter-spacing: -0.01em; }
+.lp-why-head h3 { margin-top: 10px; font-family: var(--serif); font-size: clamp(1.9rem, 3.2vw, 2.75rem); font-weight: 500; line-height: 1.2; letter-spacing: -0.01em; }
 .lp-why-head p { margin-top: 16px; color: var(--muted); font-size: 0.95rem; line-height: 1.75; }
 
 /* Secure */
@@ -732,7 +734,7 @@
   -webkit-mask-image: radial-gradient(ellipse 50% 60% at 50% 50%, #000 10%, transparent 72%);
 }
 
-.lp-final h2 { font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 400; line-height: 1.15; letter-spacing: -0.01em; text-wrap: balance; }
+.lp-final h2 { font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 500; line-height: 1.15; letter-spacing: -0.01em; text-wrap: balance; }
 .lp-final p { margin-top: 20px; color: var(--muted); font-size: 1.05rem; }
 
 .lp-footer {
