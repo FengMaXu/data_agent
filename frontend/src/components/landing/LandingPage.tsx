@@ -9,7 +9,6 @@ import {
     GuardTerminal,
     PhoneDemo,
 } from './LandingVisuals';
-import { AnswerFlowDiagram, ArchitectureDiagram } from './Diagrams';
 import HeroDemo from './HeroDemo';
 import analystArt from './personas/analyst.svg';
 import bossArt from './personas/boss.svg';
@@ -24,7 +23,7 @@ const PERSONAS = ['ops', 'engineer', 'analyst', 'boss'];
 // Line drawings of each persona at work.
 const PERSONA_ART: Record<string, string> = { ops: opsArt, engineer: engineerArt, analyst: analystArt, boss: bossArt };
 const CAPABILITIES = ['query', 'export', 'report', 'dashboard'];
-const ACCURACY = ['answer', 'hypothesis', 'loop', 'jev', 'clarify'];
+const ACCURACY = ['sql', 'spec', 'clarify'];
 const SECURE_POINTS = ['local', 'mcp', 'guard'];
 const FORMATS = ['png', 'chart', 'csv', 'md', 'html'];
 const DESKTOP_STEPS = ['launch', 'connect', 'ask', 'deliver'];
@@ -219,13 +218,6 @@ const LandingPage: React.FC = () => {
                 </div>
             </section>
 
-            <section id="build" className="lp-block">
-                <SectionHead id="build" />
-                <div className="lp-build">
-                    <ArchitectureDiagram />
-                </div>
-            </section>
-
             <section id="why" className="lp-block">
                 <SectionHead id="why" />
 
@@ -235,7 +227,7 @@ const LandingPage: React.FC = () => {
                         <h3>{t('landing.why.accurate.title')}</h3>
                         <p>{t('landing.why.accurate.desc')}</p>
                     </div>
-                    <ul className="lp-mechs">
+                    <ul className="lp-points">
                         {ACCURACY.map((key, index) => (
                             <li key={key} data-reveal style={{ '--i': index } as React.CSSProperties}>
                                 <strong>{t(`landing.acc.${key}.title`)}</strong>
@@ -243,9 +235,6 @@ const LandingPage: React.FC = () => {
                             </li>
                         ))}
                     </ul>
-                    <div className="lp-why-wide">
-                        <AnswerFlowDiagram />
-                    </div>
                 </div>
 
                 <div className="lp-why">
