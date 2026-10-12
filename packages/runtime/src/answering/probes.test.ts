@@ -189,6 +189,22 @@ describe("Probes of open fields (ADR-0005)", () => {
     expect(accepted.artifact.kind).toBe("candidate");
   });
 
+  it("refuses a final SQL that cannot implement a sealed field without running it", async () => {
+    const top3 = "SELECT city, COUNT(*) FROM orders GROUP BY city ORDER BY 2 DESC LIMIT 3";
+    const { answering, calls } = service({ [top3]: { columns: ["city", "orders"], rows: [["a", 3], ["b", 2], ["c", 1]], truncated: false } });
+    const fields = { ...spec, grouping: ["city"], selection: { n: 3, orderBy: "orders desc" }, "selection.ties": "strict", output: { rowMode: "top_n", rowCount: 3 } };
+    const view = await answering.set({ requestMessageId: "message-1", requestId: "begin-1", fields }, context("begin"));
+    const blocked = await answering.execute({ kind: "result", taskId: view.taskId, revisionId: view.revisionId, sql: top3.replace("LIMIT 3", "LIMIT 5") }, context("result-wrong")).catch((error: unknown) => error);
+    expect(blocked).toMatchObject({
+      code: "SPEC_NOT_REALIZED",
+      message: expect.stringContaining("selection.n=3, but the outermost query keeps 5 rows"),
+      obstacle: { kind: "technical_failure", retryable: true, sqlExecuted: false },
+    });
+    expect(calls).toEqual([]);
+    const accepted = await answering.execute({ kind: "result", taskId: view.taskId, revisionId: view.revisionId, sql: top3 }, context("result-right"));
+    expect(accepted).toMatchObject({ artifact: { kind: "candidate" }, coverage: expect.arrayContaining([expect.objectContaining({ checkId: "spec_realization", outcome: "clear" })]) });
+  });
+
   it("does not block a result when the rejected alternative was never probed", async () => {
     const { answering } = service({ ...outputs, "SELECT final purchase": { columns: ["orders"], rows: [[265]], truncated: false } });
     const { view, purchase, delivered } = await begin(answering);

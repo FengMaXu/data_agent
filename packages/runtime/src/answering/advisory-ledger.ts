@@ -11,7 +11,10 @@ export interface FieldAdvisory {
   readonly alternativeIds: readonly string[];
   readonly model: string;
   readonly probabilities: readonly { readonly alternativeId: string; readonly probability: number }[];
-  readonly recommendation: "alternative" | "insufficient_evidence" | "multiple_plausible" | "none_supported";
+  /** unavailable: the advisor failed; the field may be decided without advice, and the decision is disclosed. */
+  readonly recommendation: "alternative" | "insufficient_evidence" | "multiple_plausible" | "none_supported" | "unavailable";
+  /** Why the advisor could not answer, when recommendation is unavailable. */
+  readonly failure?: string;
   readonly recommendedAlternativeId?: string;
   /** The alternative the advice clearly favours, if any (see leanOf). */
   readonly lean?: { readonly alternativeId: string; readonly probability: number };

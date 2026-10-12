@@ -1,6 +1,8 @@
 ---
-status: accepted
+status: superseded
 ---
+
+> 被 ADR-0003 取代：Reviewer 失去发布权，Query Digest 与 Reviewer 实现已于 `df6d74b` 移除。Spec 与 SQL 之间的实现核验现由 ADR-0003 修订（2026-10-11）中的 Spec Realization 承担。
 
 # 自由 SQL 查询采用职责分离的 Query Assurance
 

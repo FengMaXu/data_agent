@@ -44,7 +44,9 @@ export class AnsweringError extends Error {
     /** The database could not be reached even after reconnecting; the operation must end. */
     | "DATABASE_UNAVAILABLE"
     /** The result reproduces the output of a Choice alternative that was not adopted (ADR-0005). */
-    | "DECISION_NOT_REALIZED";
+    | "DECISION_NOT_REALIZED"
+    /** The final SQL cannot implement a sealed field, so it was not run. */
+    | "SPEC_NOT_REALIZED";
   readonly details?: unknown;
   readonly obstacle?: ImplementationObstacle;
 

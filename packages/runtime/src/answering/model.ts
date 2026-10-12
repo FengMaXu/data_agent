@@ -287,6 +287,8 @@ export type FieldRecord = (
       readonly rationale: string;
       readonly basis: FieldBasis;
       readonly adviceOverride?: AdviceOverride;
+      /** The advisor failed when advice was required; the decision was made without it and is disclosed. */
+      readonly adviceUnavailable?: string;
     }
 ) & { readonly inherited?: ParentBinding };
 
@@ -346,7 +348,7 @@ export type QueryArtifact =
 
 export interface Finding {
   readonly id: string;
-  readonly kind: "shape_conflict" | "result_incomplete" | "integrity_conflict" | "join_fanout";
+  readonly kind: "shape_conflict" | "result_incomplete" | "integrity_conflict" | "join_fanout" | "realization_conflict";
   readonly message: string;
   readonly blocking: boolean;
   readonly checkId?: string;
@@ -533,7 +535,7 @@ export interface AnswerTaskView {
 }
 
 export interface AdviceView {
-  readonly recommendation: "alternative" | "insufficient_evidence" | "multiple_plausible" | "none_supported";
+  readonly recommendation: "alternative" | "insufficient_evidence" | "multiple_plausible" | "none_supported" | "unavailable";
   readonly probabilities: readonly { readonly alternativeId: string; readonly probability: number }[];
   readonly lean?: { readonly alternativeId: string; readonly probability: number };
 }
@@ -571,6 +573,8 @@ export interface FieldView {
   /** Latest compare_hypotheses advice for this field; advisory only. */
   readonly advice?: AdviceView;
   readonly adviceOverride?: AdviceOverride;
+  /** decided: the advisor failed and the field was decided without its advice. */
+  readonly adviceUnavailable?: string;
   readonly inherited?: ParentBinding;
 }
 

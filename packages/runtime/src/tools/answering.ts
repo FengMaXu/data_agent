@@ -413,7 +413,31 @@ function hypothesisComparisonTool(answering: Answering, options: HypothesisCompa
           return comparisonResult(replayed, record.assessment as HypothesisChoiceAssessment);
         }
       }
-      const assessment = await options.advisor.compare({ originalQuestion, hypotheses, evidence }, { ...(context.abortSignal ? { signal: context.abortSignal } : {}) });
+      const compare = () => options.advisor.compare({ originalQuestion, hypotheses, evidence }, { ...(context.abortSignal ? { signal: context.abortSignal } : {}) });
+      let assessment: HypothesisChoiceAssessment;
+      try {
+        assessment = await compare().catch((error: unknown) => {
+          if (!advisorOutage(error, context.abortSignal)) throw error;
+          return compare();
+        });
+      } catch (error) {
+        if (!advisorOutage(error, context.abortSignal)) throw error;
+        // Not memoized: a later call asks the advisor again, and its advice replaces this record.
+        const failure = error instanceof Error ? error.message : String(error);
+        const unavailable: FieldAdvisory = {
+          taskId: value.taskId,
+          path: value.path,
+          alternativeIds: field.alternatives.map((alternative) => alternative.id as string),
+          model: "unavailable",
+          probabilities: [],
+          recommendation: "unavailable",
+          failure,
+          recordedAt: new Date().toISOString(),
+        };
+        options.ledger?.record(unavailable);
+        return result(`[HYPOTHESIS_COMPARISON_UNAVAILABLE] path=${value.path}
+The advisor failed twice (${failure}). You may decide ${value.path} with {value, rationale}; the publication will disclose that the decision was not compared. Do not rewrite it as an assumption.`, unavailable);
+      }
       const probabilities = assessment.probabilities.map((item) => ({ alternativeId: item.hypothesisId, probability: item.probability }));
       const recommendedAlternativeId = assessment.recommendation.kind === "hypothesis" ? assessment.recommendation.hypothesisId : undefined;
       const lean = leanOf(probabilities, recommendedAlternativeId);
@@ -433,6 +457,12 @@ function hypothesisComparisonTool(answering: Answering, options: HypothesisCompa
       return comparisonResult(advisory, assessment);
     },
   };
+}
+
+/** A provider failure the field can be decided around; invalid input and cancellation are not outages. */
+function advisorOutage(error: unknown, signal: AbortSignal | undefined): boolean {
+  if (signal?.aborted) return false;
+  return (error as { readonly code?: unknown } | undefined)?.code !== "INVALID_INPUT";
 }
 
 function comparisonResult(advisory: FieldAdvisory, assessment: HypothesisChoiceAssessment): AgentToolResult<unknown> {
@@ -529,11 +559,11 @@ export function createAnsweringAgentToolDefinitions(
     })] : []),
     protocolTool(queryTool(answering), {
       promptSnippet: "执行有界探索或当前版本的一次结果查询。",
-      promptGuidelines: ["探索产物不可发布；结果查询必须绑定当前 Ready Revision，遇到实现障碍先按分类修复或回到取证，不要盲目重跑未知结果。", "探针：exploration 加 probe={path, alternativeId}，SQL 按该候选口径计算最终输出；输出标识相同表示答案相同。探针不占探索次数。", "结果与未采纳候选的探针输出相同时会被 DECISION_NOT_REALIZED 拒绝：改 SQL 实现已采纳的候选，或附 reason 改写该字段。"],
+      promptGuidelines: ["探索产物不可发布；结果查询必须绑定当前 Ready Revision，遇到实现障碍先按分类修复或回到取证，不要盲目重跑未知结果。", "探针：exploration 加 probe={path, alternativeId}，SQL 按该候选口径计算最终输出；输出标识相同表示答案相同。探针不占探索次数。", "结果与未采纳候选的探针输出相同时会被 DECISION_NOT_REALIZED 拒绝：改 SQL 实现已采纳的候选，或附 reason 改写该字段。", "最终 SQL 与已封存字段明显不符时不执行，以 SPEC_NOT_REALIZED 拒绝：改 SQL 实现字段，字段写错才附 reason 改写字段。"],
     }),
     ...(hypothesisComparison ? [protocolTool(hypothesisComparisonTool(answering, hypothesisComparison), {
       promptSnippet: "请求 Jev 比较一个待定字段的全部候选。",
-      promptGuidelines: ["传入 taskId 和 path，候选由系统从 Answer Spec 读取；先给每个候选做探针，输出全部相同的字段由系统视为等价，无需比较或决定。建议不是 Evidence，不能单独决定字段；决定偏离建议的明显倾向时，须附 adviceOverride（理由与证据）。"],
+      promptGuidelines: ["传入 taskId 和 path，候选由系统从 Answer Spec 读取；先给每个候选做探针，输出全部相同的字段由系统视为等价，无需比较或决定。建议不是 Evidence，不能单独决定字段；决定偏离建议的明显倾向时，须附 adviceOverride（理由与证据）。建议服务不可用时，照常用 {value, rationale} 决定该字段（发布时会披露未经比较），不要改写为假定。"],
     })] : []),
     protocolTool(publishTool(answering, contentReader, "publish_query_result"), {
       promptSnippet: "发布当前不可变 Candidate 的小结果。",

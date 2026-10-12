@@ -1,6 +1,7 @@
 import type {
   AnswerRevisionRecord,
   BusinessContext,
+  FieldRecord,
   ParentSupersession,
   PublicationDisclosure,
   PublicationPermit,
@@ -16,6 +17,7 @@ import { assertDeliverable } from "./report.js";
 import { fanoutDisclosureSummary } from "./fanout-execution.js";
 import { SPEC_FEEDBACK_CHECK_ID, specFeedbackDisclosureSummary } from "./spec-feedback.js";
 import { markCandidateCorrupt } from "./result-execution.js";
+import { realizationDisclosure } from "./realization-check.js";
 import { buildPhysicalProfile } from "./physical-profile.js";
 import type { PrivateResultObject } from "./result-store.js";
 import { now } from "./support.js";
@@ -25,7 +27,9 @@ const INLINE_ROW_LIMIT = 10;
 
 /**
  * Everything a Receipt must disclose about the exact published Candidate:
- * unverified fields, deviations, fanout observations and SpecFeedback.
+ * unverified fields, decisions made while the advisor was unavailable,
+ * deviations, fanout observations, likely Spec realization conflicts and
+ * SpecFeedback.
  * Disclosure is a record, never an approval.
  */
 export function composeDisclosure(revision: AnswerRevisionRecord, candidate: ResultCandidateRecord, parentSuperseded?: ParentSupersession): PublicationDisclosure | undefined {
@@ -36,17 +40,23 @@ export function composeDisclosure(revision: AnswerRevisionRecord, candidate: Res
     ? fanoutDisclosureSummary(candidate.fanout)
     : "";
   const feedbackDisclosure = specFeedbackDisclosureSummary(candidate.coverage?.find((coverage) => coverage.checkId === SPEC_FEEDBACK_CHECK_ID));
+  const realization = realizationDisclosure(candidate.findings);
+  const unadvised = (Object.entries(revision.fields) as [string, FieldRecord][])
+    .filter(([, field]) => field.state === "decided" && field.adviceUnavailable)
+    .map(([path]) => path);
   const deviations = revision.deviations ?? [];
-  if (unverified.length === 0 && deviations.length === 0 && !parentSuperseded && !fanoutDisclosure && !feedbackDisclosure) return undefined;
+  if (unverified.length === 0 && unadvised.length === 0 && deviations.length === 0 && !parentSuperseded && !fanoutDisclosure && !feedbackDisclosure && !realization) return undefined;
   return {
     required: true,
     unverifiedFields: unverified,
     summary: [
       ...(decided.length > 0 ? [`以下字段在多种解释中按字面选择，未被权威证据唯一确定：${decided.join(", ")}。`] : []),
       ...(assumed.length > 0 ? [`以下字段为假定，未被合格证据证实：${assumed.join(", ")}。`] : []),
+      ...(unadvised.length > 0 ? [`以下字段的候选解释结果不同，但比较建议服务不可用，决定未经比较：${unadvised.join(", ")}。`] : []),
       ...(deviations.length > 0 ? [`以下字段偏离报告任务的共享口径：${deviations.map((item) => `${item.path}（${item.reason}）`).join("；")}。`] : []),
       ...(parentSuperseded ? ["本次只刷新了数据；这张图所依据的报告任务口径已被修改，图仍按修改前的口径计算。"] : []),
       ...(fanoutDisclosure ? [fanoutDisclosure] : []),
+      ...(realization ? [realization] : []),
       ...(feedbackDisclosure ? [feedbackDisclosure] : []),
     ].join(" "),
     ...(fanoutDisclosure && candidate.fanout ? { fanoutStatus: candidate.fanout.status } : {}),

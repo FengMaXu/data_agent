@@ -26,6 +26,7 @@ import { specFeedbackCoverage } from "./spec-feedback.js";
 import type { PrivateResultObject } from "./result-store.js";
 import { boundedResult } from "./sql-execution.js";
 import { resultFingerprint } from "./result-fingerprint.js";
+import { evaluateSpecRealization } from "./realization-check.js";
 import { asRecord, now } from "./support.js";
 import type { AnsweringDeps } from "./deps.js";
 
@@ -141,6 +142,25 @@ export async function executeResult(
   const taskId = input.taskId as TaskId;
   const queryHash = contentHash(input.sql.trim());
   const sealed = await sealRevision(deps, input, taskId, revisionId, queryHash, context);
+  const realization = evaluateSpecRealization(sealed.fields, input.sql);
+  const unrealized = realization.findings.filter((item) => item.blocking);
+  if (unrealized.length > 0) {
+    // The SQL cannot implement the sealed fields, so it is not run: fix the SQL, or rewrite the field with a reason.
+    const details = await deps.store.transact((tx) => {
+      const current = tx.getTask(taskId);
+      assertTaskAccess(current, context);
+      tx.putAttempt(makeAttempt(taskId, "result", revisionId, context.invocationId, now(), "blocked", "not_started", false, "technical_failure", queryHash));
+      return obstacle(tx, current, revisionId, "technical_failure", `The final SQL does not implement the sealed Answer Spec: ${unrealized.map((item) => item.message).join("; ")}`, {
+        requiresOuterDecision: false,
+        retryable: true,
+        sqlExecuted: false,
+        executionOutcome: "not_started",
+        queryHash,
+        coverage: [realization.coverage],
+      });
+    }, context);
+    throw new AnsweringError("SPEC_NOT_REALIZED", details.message, obstacleDetails({ findings: realization.findings, verdicts: realization.verdicts }, details));
+  }
 
   const memo = resultExecutionMemo(await context.memo?.get("answering.result-execution"));
   if (memo && (memo.taskId !== input.taskId || memo.revisionId !== input.revisionId || memo.queryHash !== queryHash)) {
@@ -295,8 +315,8 @@ export async function executeResult(
   }
 
   const fanout = await evaluateFanout(deps, taskId, revisionId, queryHash, input.sql.trim(), context);
-  const combinedCoverage: readonly CheckCoverage[] = [...checkReport.coverage, fanoutCoverage(fanout)];
-  const combinedFindings = [...checkReport.findings, ...fanoutFindings(fanout)];
+  const combinedCoverage: readonly CheckCoverage[] = [...checkReport.coverage, realization.coverage, fanoutCoverage(fanout)];
+  const combinedFindings = [...checkReport.findings, ...realization.findings, ...fanoutFindings(fanout)];
 
   const budgetAfterResult = await deps.store.transact((tx) => {
     const current = tx.getTask(taskId);
