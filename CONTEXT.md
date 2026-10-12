@@ -153,7 +153,7 @@ An open field whose every alternative produced the same Result Fingerprint. It c
 _Avoid_: Trivial choice, ignored ambiguity
 
 **Advisory Ledger**:
-The Runtime's record of the latest compare_hypotheses advice per open field. A decision that departs from the advice's clear lean must carry an override reason and evidence; the advice itself is never evidence. When the advisor fails, the ledger records the outage; the field may then be decided without advice, and the publication discloses it. An open field that needs advice cannot be replaced by an assumption, only decided, settled by qualifying evidence, or reopened.
+The Runtime's record of the latest compare_hypotheses advice per open field. A decision that departs from the advice's clear lean must carry an override reason and evidence that qualifies for the field (observations never outweigh a lean on a semantic field); the advice itself is never evidence. When the advisor fails, the ledger records the outage; the field may then be decided without advice, and the publication discloses it. An open field that needs advice cannot be replaced by an assumption, only decided, settled by qualifying evidence, or reopened.
 _Avoid_: Advice cache, recommendation store
 
 **Decision Realization**:
@@ -161,7 +161,7 @@ The requirement that a result does not reproduce the probe output of an alternat
 _Avoid_: Choice consistency check
 
 **Spec Realization**:
-The check that the final SQL implements the sealed fields, read from the fields and the SQL text only. A conflict no correct implementation can have (a row cap that differs from `selection.n`, a cap that drops ties the Spec keeps, a percentage never multiplied by 100) rejects the SQL before it runs as SPEC_NOT_REALIZED; a likely conflict is disclosed with the result. It judges implementation, never whether the meaning is right.
+The check that the final SQL implements the sealed fields, read from the fields and the SQL text only. A conflict no correct implementation can have (a row cap that differs from `selection.n`, a cap that drops ties the Spec keeps, a percentage or percentage-point difference never multiplied by 100) rejects the SQL before it runs as SPEC_NOT_REALIZED; a likely conflict is disclosed with the result. It judges implementation, never whether the meaning is right.
 _Avoid_: SQL review, query digest
 
 **Necessity Rule**:

@@ -317,12 +317,17 @@ function governDecision(
   if (!override || override.reason.length < MIN_RATIONALE_LENGTH || override.evidenceIds.length === 0) {
     transitionInvalid(`${path}: compare_hypotheses leaned to alternative ${lean.alternativeId} (p=${lean.probability}); choosing ${alternativeId} requires adviceOverride with a reason and at least one evidence id showing why the lean is wrong`);
   }
-  const evidenceIds = override.evidenceIds.map((ref) => {
+  const cited = override.evidenceIds.map((ref) => {
     const evidence = resolve(ref);
     if (!evidence) evidenceRejected(`${path}: adviceOverride references unknown evidence ${ref}`);
-    return evidence.id;
+    return evidence;
   });
-  return { adviceOverride: { reason: override.reason, evidenceIds: evidenceIds as unknown as NonEmpty<EvidenceId> } };
+  // Outweighing the lean takes evidence that could settle the field itself: observations never settle meaning.
+  if (cited.every((evidence) => disqualification(path, evidence))) {
+    const reasons = cited.map((evidence) => disqualification(path, evidence)).join("; ");
+    transitionInvalid(`${path}: adviceOverride needs evidence that qualifies for this field to outweigh the lean to ${lean.alternativeId} (${reasons}); cite the request verbatim, a business document or the user's confirmation, or decide the leaned alternative`);
+  }
+  return { adviceOverride: { reason: override.reason, evidenceIds: cited.map((evidence) => evidence.id) as unknown as NonEmpty<EvidenceId> } };
 }
 
 /** What one Revision is made of while a set call is applied. */

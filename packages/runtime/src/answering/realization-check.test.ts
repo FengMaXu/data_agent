@@ -73,6 +73,13 @@ describe("Spec realization", () => {
       expect(conflicts(formula, "SELECT ROUND(100.0 * SUM(late) / COUNT(*), 2) FROM orders")).toEqual([]);
     });
 
+    it("blocks a percentage-point difference the SQL never multiplies by 100", () => {
+      const share = (quarter: string) => ({ op: "ratio", per: `product x ${quarter}`, numerator: { op: "sum", per: "product", of: "amount_sold" }, denominator: { op: "sum", per: "quarter", of: "amount_sold" } });
+      const formula = { "measure.formula": { op: "pp_difference", from: share("2019-Q4"), to: share("2020-Q4") } };
+      expect(conflicts(formula, "SELECT p.x20 / d.t20 - p.x19 / d.t19 AS share_change FROM p, d")).toEqual([{ blocking: true, message: expect.stringContaining("pp_difference") }]);
+      expect(conflicts(formula, "SELECT 100.0 * (p.x20 / d.t20 - p.x19 / d.t19) AS share_change FROM p, d")).toEqual([]);
+    });
+
     it("flags count_distinct without DISTINCT as likely", () => {
       expect(conflicts({ "measure.formula": { op: "count_distinct", of: "customer_id" } }, "SELECT COUNT(customer_id) FROM orders")).toEqual([{ blocking: false, message: expect.stringContaining("DISTINCT") }]);
     });

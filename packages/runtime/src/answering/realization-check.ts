@@ -220,8 +220,13 @@ function formulaVerdicts(fields: SpecFields, sql: SqlText): readonly Realization
   if (!formula) return [];
   const path = "measure.formula";
   const verdicts: RealizationVerdict[] = [];
-  if (someOp(formula, new Set(["percentage"])) && !/(^|[^\w.])(100(\.0*)?|1e2)([^\w.]|$)/.test(sql.masked)) {
-    verdicts.push({ path, outcome: "contradicted", certainty: "certain", message: "measure.formula uses percentage (100·a/b), but the SQL never multiplies by 100. Multiply by 100, or rewrite measure.formula as ratio with a reason" });
+  // A percentage-point difference of ratios needs the same factor of 100 as a percentage.
+  const hundredOp = someOp(formula, new Set(["percentage"])) ? "percentage" : someOp(formula, new Set(["pp_difference"])) ? "pp_difference" : undefined;
+  if (hundredOp && !/(^|[^\w.])(100(\.0*)?|1e2)([^\w.]|$)/.test(sql.masked)) {
+    const message = hundredOp === "percentage"
+      ? "measure.formula uses percentage (100·a/b), but the SQL never multiplies by 100. Multiply by 100, or rewrite measure.formula as ratio with a reason"
+      : "measure.formula uses pp_difference (a percentage-point difference), but the SQL never multiplies by 100. Multiply the difference of the ratios by 100, or rewrite measure.formula as difference with a reason";
+    verdicts.push({ path, outcome: "contradicted", certainty: "certain", message });
   }
   if (someOp(formula, new Set(["count_distinct"])) && !/\bdistinct\b/.test(sql.masked)) {
     verdicts.push({ path, outcome: "contradicted", certainty: "likely", message: "measure.formula uses count_distinct, but the SQL has no DISTINCT. Count distinct keys unless an earlier GROUP BY already made them unique" });
