@@ -27,6 +27,7 @@ import type { PrivateResultObject } from "./result-store.js";
 import { boundedResult } from "./sql-execution.js";
 import { resultFingerprint } from "./result-fingerprint.js";
 import { evaluateSpecRealization } from "./realization-check.js";
+import { entityIdentityCoverage, entityIdentityFindings } from "./entity-identity.js";
 import { asRecord, now } from "./support.js";
 import type { AnsweringDeps } from "./deps.js";
 
@@ -315,8 +316,9 @@ export async function executeResult(
   }
 
   const fanout = await evaluateFanout(deps, taskId, revisionId, queryHash, input.sql.trim(), context);
-  const combinedCoverage: readonly CheckCoverage[] = [...checkReport.coverage, realization.coverage, fanoutCoverage(fanout)];
-  const combinedFindings = [...checkReport.findings, ...realization.findings, ...fanoutFindings(fanout)];
+  // Entity identity was counted when the Revision committed; the sealed fields decide whether its findings still apply.
+  const combinedCoverage: readonly CheckCoverage[] = [...checkReport.coverage, realization.coverage, fanoutCoverage(fanout), entityIdentityCoverage(sealed.entityIdentity)];
+  const combinedFindings = [...checkReport.findings, ...realization.findings, ...fanoutFindings(fanout), ...entityIdentityFindings(sealed.entityIdentity)];
 
   const budgetAfterResult = await deps.store.transact((tx) => {
     const current = tx.getTask(taskId);

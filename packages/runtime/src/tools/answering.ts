@@ -9,6 +9,7 @@ import type {
 } from "@earendil-works/pi-agent-core";
 import { AnsweringError, FIELD_FORMS, FIELD_PATHS } from "../answering/public.js";
 import { renderSpecFeedback } from "../answering/spec-feedback.js";
+import { renderEntityIdentity } from "../answering/entity-identity.js";
 import { leanOf, type AdvisoryLedger, type FieldAdvisory } from "../answering/public.js";
 import type {
   Answering,
@@ -301,6 +302,7 @@ function setSpecTool(answering: Answering): AgentHarnessTool<DataAgentToolContex
         ? [`- 失效: 上一版的结果候选 ${before.candidate.candidateId} 未发布，已不能发布`]
         : [];
       const feedback = renderSpecFeedback(view.specFeedback);
+      const identity = renderEntityIdentity(view.entityIdentity);
       const changed = !before || view.revisionId !== before.task.currentRevisionId;
       return result([
         `[${changed ? "ANSWER_SPEC_SET" : "ANSWER_SPEC_UNCHANGED"}] taskId=${view.taskId} revisionId=${view.revisionId}`,
@@ -309,6 +311,7 @@ function setSpecTool(answering: Answering): AgentHarnessTool<DataAgentToolContex
         "状态：",
         fieldStateTable(view),
         ...stale,
+        ...(identity ? [identity] : []),
         ...(feedback ? [feedback] : []),
         fieldsJson(view),
       ].join("\n"), view);

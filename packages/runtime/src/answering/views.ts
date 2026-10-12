@@ -96,6 +96,7 @@ export function viewFromRevision(taskId: TaskId, revision: AnswerRevisionRecord,
     open: openPaths(revision.fields, equivalent),
     unverified: unverifiedFields(revision.fields).map((item) => item.path),
     ...(revision.specFeedback ? { specFeedback: clone(revision.specFeedback) } : {}),
+    ...(revision.entityIdentity ? { entityIdentity: clone(revision.entityIdentity) } : {}),
     ...(revision.deviations && revision.deviations.length > 0 ? { deviations: clone(revision.deviations) } : {}),
     ...(revision.measureRef ? { measureRef: revision.measureRef } : {}),
   };

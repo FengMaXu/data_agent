@@ -42,6 +42,7 @@ import {
 import { inheritedFields } from "./report.js";
 import { initialSpecFeedback } from "./spec-feedback.js";
 import { finishRevisionSubmission } from "./spec-feedback-execution.js";
+import { attachEntityIdentity } from "./entity-identity-execution.js";
 import { localId, now } from "./support.js";
 import { probeContextFor, viewFromRevision } from "./views.js";
 import type { AnsweringDeps } from "./deps.js";
@@ -294,7 +295,7 @@ async function startTask(deps: AnsweringDeps, input: SetAnswerFields, context: B
       feedbackTarget: { taskId, revisionId, requestMessageId, evidence: clone(evidence) },
     } as const;
   }, context);
-  const view = await finishRevisionSubmission(deps, outcome, context);
+  const view = await attachEntityIdentity(deps, await finishRevisionSubmission(deps, outcome, context), context);
   return { ...view, ...extras };
 }
 
@@ -366,6 +367,6 @@ async function reviseFields(deps: AnsweringDeps, input: SetAnswerFields, context
   if ("obstacle" in outcome) {
     throw new AnsweringError("IMPLEMENTATION_BUDGET_EXHAUSTED", outcome.obstacle.message, obstacleDetails(undefined, outcome.obstacle));
   }
-  const view = await finishRevisionSubmission(deps, outcome, context);
+  const view = await attachEntityIdentity(deps, await finishRevisionSubmission(deps, outcome, context), context);
   return { ...view, ...extras };
 }

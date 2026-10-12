@@ -164,6 +164,10 @@ _Avoid_: Choice consistency check
 The check that the final SQL implements the sealed fields, read from the fields and the SQL text only. A conflict no correct implementation can have (a row cap that differs from `selection.n`, a cap that drops ties the Spec keeps, a percentage or percentage-point difference never multiplied by 100) rejects the SQL before it runs as SPEC_NOT_REALIZED; a likely conflict is disclosed with the result. It judges implementation, never whether the meaning is right.
 _Avoid_: SQL review, query digest
 
+**Entity Identity Check**:
+The Runtime's count of rows, distinct rows and distinct declared keys of each source in `population.source`, taken when a Revision with a settled entity and source commits. It reports a counted key that is not unique and exact duplicate rows; whether a duplicate is one entity or a separate one stays a Spec decision. Findings are shown with the Revision and disclosed with the result, never blocking.
+_Avoid_: Deduplication rule, data quality verdict
+
 **Necessity Rule**:
 The rule that says which fields must have a state before a result query: eight always, and the measure sub-fields, `selection.ties` and `population.joinMultiplicity` when the formula, selection or source call for them (ADR-0007). Not applicable is a state.
 _Avoid_: Checklist item, decision point
