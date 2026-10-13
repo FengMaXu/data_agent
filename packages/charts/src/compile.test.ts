@@ -212,6 +212,14 @@ describe("Part-of-whole marks", () => {
 
   const pie = (meta: FieldMeta = additive, extra: Partial<ChartSpec> = {}): ChartSpec => ({ version: 1, data, fields: { sales: meta }, chart: { mark: "pie", category: { field: "region" }, value: { field: "sales" } }, ...extra } as ChartSpec);
 
+  it("reads large value ticks in 万 or 亿, one unit per axis", () => {
+    const big = { columns: ["region", "sales"], rows: [["east", 185292], ["west", 30685]] };
+    const formatter = (dataset: ChartDataset) => (axis(ok(compileChart(cartesian([{ type: "bar", y: { field: "sales" } }]), dataset, { target: "interactive" })).option, "yAxis")[0]!.axisLabel as { formatter: (value: number) => string }).formatter;
+    expect([0, 30000, 180000].map(formatter(big))).toEqual(["0", "3万", "18万"]);
+    expect([0, 5000, 10000].map(formatter(regions))).toEqual(["0", "5,000", "10,000"]);
+    expect([0, 1.5e9].map(formatter({ columns: ["region", "sales"], rows: [["east", 2e9]] }))).toEqual(["0", "15亿"]);
+  });
+
   it("draws a pie from one row per category", () => {
     const { option } = ok(compileChart(pie(), regions, { target: "interactive" }));
     expect((seriesOf(option)[0]!.data as unknown[])).toEqual([{ name: "east", value: 10 }, { name: "west", value: 12.5 }, { name: "north", value: 7 }]);
@@ -223,6 +231,21 @@ describe("Part-of-whole marks", () => {
     expect(codes(compileChart(pie(), { columns: ["region", "sales"], rows: [["east", -1]] }, { target: "interactive" }))).toContain("NEGATIVE_IN_PART_OF_WHOLE");
     expect(codes(compileChart(pie(), { columns: ["region", "sales"], rows: [["east", null]] }, { target: "interactive" }))).toContain("INCOMPLETE_PART_OF_WHOLE");
     expect(codes(compileChart(pie(additive, { selection: { kind: "top_n", by: "sales", n: 2, order: "desc" } }), regions, { target: "interactive" }))).toContain("INCOMPLETE_PART_OF_WHOLE");
+  });
+
+  it("puts the whole in a donut's hole, labels only slices wide enough, and gives every share in the legend", () => {
+    const skewed = { columns: ["region", "sales"], rows: [["east", 371367], ["west", 7253], ["north", 223]] };
+    const { option, notices } = ok(compileChart(pie(), skewed, { target: "interactive" }));
+    const slices = seriesOf(option)[0]!.data as { name: string; label?: { show: boolean } }[];
+    expect(slices.map((slice) => slice.label?.show ?? true)).toEqual([true, false, false]);
+    const legend = option.legend as { formatter: (name: string) => string };
+    expect(["east", "west", "north"].map(legend.formatter)).toEqual(["east  98.0%", "west  1.9%", "north  0.06%"]);
+    expect((option.graphic as { style: { text: string } }[])[0]!.style.text).toBe("378,843\n合计");
+    expect(notices.map((notice) => notice.code)).toEqual(["PIE_DOMINATED"]);
+    // A plain pie has no hole to fill; a balanced one needs no advice.
+    const plain = ok(compileChart({ ...pie(), chart: { mark: "pie", category: { field: "region" }, value: { field: "sales" }, donut: false } } as ChartSpec, regions, { target: "interactive" }));
+    expect(plain.option.graphic).toBeUndefined();
+    expect(plain.notices).toEqual([]);
   });
 
   it("caps static pies instead of merging slices into an implicit other", () => {

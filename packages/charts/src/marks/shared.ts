@@ -155,7 +155,18 @@ export function viewportZoom(context: CompileContext, categoryCount: number, hor
     : [{ type: "slider", ...axis, ...window, zoomLock: true }];
 }
 
-export function valueAxis(meta: QuantitativeMeta, field: string, share: boolean): Record<string, unknown> {
+/**
+ * Tick text for a value axis whose largest shown value is `largest`: from 100,000 up ticks read in 万 (亿 from
+ * 100,000,000), as Chinese business readers count, instead of six- to nine-digit numbers. One unit per axis, so
+ * ticks never mix 5,000 and 1万.
+ */
+export function tickFormatter(largest: number): (value: number) => string {
+  const [divisor, suffix] = largest >= 1e9 ? [1e8, "亿"] : largest >= 1e5 ? [1e4, "万"] : [1, ""];
+  return (value: number) => (value === 0 || !suffix ? value.toLocaleString("zh-CN", { maximumFractionDigits: 4 }) : `${(value / divisor).toLocaleString("zh-CN", { maximumFractionDigits: 2 })}${suffix}`);
+}
+
+export function valueAxis(meta: QuantitativeMeta, field: string, share: boolean, largest = 0): Record<string, unknown> {
+  const ticks = tickFormatter(largest);
   return {
     type: "value",
     name: share ? `${fieldTitle(field, meta)}占比（%）` : axisTitle(field, meta),
@@ -163,7 +174,7 @@ export function valueAxis(meta: QuantitativeMeta, field: string, share: boolean)
     // Starts at the axis and runs inward: centred on it, a long name is cut off when tick labels are short.
     nameTextStyle: { align: "left" },
     // The axis name carries the unit; ticks show numbers, keeping % for percent display.
-    axisLabel: { formatter: (value: number) => (share || isPercentDisplay(meta) ? `${value}%` : value.toLocaleString("zh-CN", { maximumFractionDigits: 4 })) },
+    axisLabel: { formatter: (value: number) => (share || isPercentDisplay(meta) ? `${value}%` : ticks(value)) },
   };
 }
 
