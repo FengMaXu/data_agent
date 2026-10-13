@@ -112,11 +112,11 @@ requires-tools:
 ## 5. 修改与决定
 
 - **只写要变的路径。** 未写的路径保持不变。每个路径独立校验、独立生效，失败的路径不影响其他路径；按返回的 `✗` 原因只重发失败的路径。
-- **决定待定字段**：写 `{ "value": <候选原值>, "rationale", "evidenceIds"? }`。`rationale` 写把每个候选放回题面逐词检验的结论（`semantic-guide` 的“候选对照”）。`compare_hypotheses` 的明显倾向（`[ADVICE_LEAN]`）是默认答案；改选时须附 `"adviceOverride": { "reason", "evidenceIds" }`，证据须能确定该字段本身：语义字段只认原题、业务文档和用户确认，观测不能推翻倾向。`compare_hypotheses` 返回 `[HYPOTHESIS_COMPARISON_UNAVAILABLE]`（建议服务故障）时，照常写决定，发布时会披露该决定未经比较；不要把待定字段改写成假定绕开比较，Runtime 会拒绝。
+- **决定待定字段**：写 `{ "value": <候选原值>, "rationale", "evidenceIds"? }`。`rationale` 写把每个候选放回题面逐词检验的结论（`semantic-guide` 的“候选对照”）。`compare_hypotheses` 的明显倾向（`[ADVICE_LEAN]`）是默认答案；改选时须附 `"adviceOverride": { "reason", "evidenceIds" }`，证据须能确定该字段本身：语义字段只认原题、业务文档和用户确认，观测不能推翻倾向。`[ADVICE_LEAN] none`（建议无倾向）说明原题不能裁决：能询问用户时用 `ask_user_clarification` 询问，决定时以 `cite: [{source: "clarification:<id>", quote}]` 引用回答，或引用业务文档；原题措辞不算。不能询问用户时照常决定，发布时会披露该决定未经裁决。`compare_hypotheses` 返回 `[HYPOTHESIS_COMPARISON_UNAVAILABLE]`（建议服务故障）时，照常写决定，发布时会披露该决定未经比较；不要把待定字段改写成假定绕开比较，Runtime 会拒绝。
 - **无法单独执行的候选**：写 `{ "notProbeable": { "<alternativeId>": "理由" } }` 代替探针。
 - **改写已设置的字段**须附 `"reason"`，系统记录改写理由。
 - **`[SPEC_FEEDBACK]` 题面要求**：Spec 必须声明的字段齐全后，系统逐条核对原题的要求片段，列出被判为与字段矛盾或缺失的原文和无定义的输出列。逐条对照对应字段：改写字段（附 reason）、打开候选，或在该片段确实不适用时保留。它是决策模型的建议，不是证据。
-- **实体身份计数**：写了 `population.entity` 和 `population.source` 后，返回中的 `[ENTITY_IDENTITY]` 给出每张来源表的行数、去重行数和 `keyColumns` 去重数。键不唯一或有完全重复行时，在 `population.entity` 写明一行是不是一个实体，需要去重就在 SQL 中去重；这些计数会随结果披露。
+- **实体身份计数**：写了 `population.entity` 和 `population.source` 后，返回中的 `[ENTITY_IDENTITY]` 给出每张来源表的行数、去重行数和 `keyColumns` 去重数。计数的键不唯一时，按键去重计数，或在 `population.entity` / `measure.countGrain` 写明每行为何是独立实体。完全重复行只是数据质量事实，不是去重的理由：除非题面或业务文档说明重复行是同一实体，否则按表中原有行计数。这些计数会随结果披露。
 - 写入任何字段都会产生新的 Revision，上一版未发布的结果候选随之失效；先把字段写完，再执行最终查询。
 
 ## 6. 探索、探针与最终查询

@@ -48,7 +48,10 @@ export const MIN_RATIONALE_LENGTH = 20;
 /** Resolves an evidence reference: a cite's handle from this call first, then a registered Evidence id. */
 export type EvidenceResolver = ((ref: string) => Evidence | undefined) & { readonly localIds?: readonly string[] };
 
-/** require_evidence: a clarification path exists; allow_disclosed: none does, so disclose instead. */
+/**
+ * require_evidence: a clarification path exists, so an unverified material population decision, or a
+ * decision compare_hypotheses could not separate, needs qualifying evidence; allow_disclosed: none does, so disclose instead.
+ */
 export type PopulationDecisions = "require_evidence" | "allow_disclosed";
 
 /** Probes, advice and policy the Runtime applies when an open field is decided (ADR-0005, ADR-0006). */
@@ -285,13 +288,24 @@ function adviceGoverned(path: SpecPath, current: Extract<FieldRecord, { state: "
 interface DecisionAdvice {
   readonly adviceOverride?: AdviceOverride;
   readonly adviceUnavailable?: string;
+  readonly adviceUndecided?: string;
 }
+
+/**
+ * Evidence that can settle a meaning the advisor could not separate: the user's
+ * answer or a business definition. Request wording is not enough here; the
+ * advisor already read the request and found more than one reading plausible.
+ */
+const SETTLES_UNDECIDED: readonly Evidence["kind"][] = ["user_confirmation", "reviewed_definition", "task_document"];
 
 /**
  * ADR-0005 rules for deciding an open field: every alternative's output is
  * known, decisive fields were compared, and departing from a clear lean needs
  * a reason plus evidence. When the advisor failed, the decision proceeds
- * without advice and records the failure for disclosure.
+ * without advice and records the failure for disclosure. When the advisor
+ * answered but favours no alternative, the field is undecidable from the
+ * request: while the user can be asked, the decision must cite the user's
+ * answer or a business document; otherwise it is recorded for disclosure.
  */
 function governDecision(
   path: SpecPath,
@@ -300,6 +314,7 @@ function governDecision(
   override: { readonly reason: string; readonly evidenceIds: readonly string[] } | undefined,
   governance: DecisionGovernance,
   resolve: EvidenceResolver,
+  decisionCites: readonly Evidence[],
 ): DecisionAdvice {
   if (!governance.probes) return {};
   const summary = summarizeProbes(path, current.alternatives, governance.probes, current.waivers ?? []);
@@ -312,6 +327,14 @@ function governDecision(
     transitionInvalid(`${path}: the alternatives produce different or unknown outputs; call compare_hypotheses with path "${path}" before deciding`);
   }
   if (advice?.recommendation === "unavailable") return governed ? { adviceUnavailable: advice.failure ?? "the advisor did not answer" } : {};
+  if (governed && advice && !advice.lean) {
+    const settled = decisionCites.some((evidence) => SETTLES_UNDECIDED.includes(evidence.kind) && isAdmissibleProof(evidence));
+    if (settled) return {};
+    if (governance.populationDecisions === "require_evidence") {
+      transitionInvalid(`${path}: compare_hypotheses favoured no alternative (${advice.recommendation}), so the request does not settle it; ask the user with ask_user_clarification and cite the answer (cite source "clarification:<id>"), or cite a business document that settles it`);
+    }
+    return { adviceUndecided: advice.recommendation };
+  }
   const lean = advice?.lean;
   if (!lean || lean.alternativeId === alternativeId) return {};
   if (!override || override.reason.length < MIN_RATIONALE_LENGTH || override.evidenceIds.length === 0) {
@@ -472,7 +495,7 @@ export function applyFieldWrite(body: FieldBody, parsed: ParsedField, context: W
     const cited = resolveRefs(write.refs, context.resolve, path);
     const basis = basisFor(path, cited, rationale);
     guardPopulation(path, basis, "decided", cited, context.governance.populationDecisions);
-    const { adviceOverride, adviceUnavailable } = governDecision(path, open, alternative.id, write.adviceOverride, context.governance, context.resolve);
+    const { adviceOverride, adviceUnavailable, adviceUndecided } = governDecision(path, open, alternative.id, write.adviceOverride, context.governance, context.resolve, cited);
     return own(setField(body, path, {
       state: "decided",
       alternatives: open.alternatives,
@@ -483,6 +506,7 @@ export function applyFieldWrite(body: FieldBody, parsed: ParsedField, context: W
       basis,
       ...(adviceOverride ? { adviceOverride } : {}),
       ...(adviceUnavailable ? { adviceUnavailable } : {}),
+      ...(adviceUndecided ? { adviceUndecided } : {}),
     }));
   }
 

@@ -11,7 +11,7 @@ import { layersOf, type EntityValue, type MeasureExpression, type SourceValue } 
  * decision. Findings are disclosed, never blocking (ADR-0003).
  */
 export const ENTITY_IDENTITY_CHECK_ID = "entity_identity";
-export const ENTITY_IDENTITY_RULE_VERSION = "entity-identity-v1";
+export const ENTITY_IDENTITY_RULE_VERSION = "entity-identity-v2";
 /** Source tables checked per Revision. */
 export const ENTITY_IDENTITY_MAX_TABLES = 3;
 /** Above this many rows the DISTINCT counts are skipped and reported as not determinable. */
@@ -127,7 +127,8 @@ export function evaluateEntityIdentity(fields: SpecFields, observations: readonl
         code: "duplicate_rows",
         paths: ["population.entity", "population.joinMultiplicity"],
         table: item.table,
-        message: `${item.table} has ${item.rows} rows but ${item.distinctRows} distinct rows (${item.rows - item.distinctRows} exact duplicates). State in population.entity whether a duplicated row is the same entity or a separate one, and deduplicate in the SQL if it is the same`,
+        // A data-quality fact, not a Spec instruction: deduplicating on this count alone turned a correct local041 answer wrong.
+        message: `${item.table} has ${item.rows} rows but ${item.distinctRows} distinct rows (${item.rows - item.distinctRows} exact duplicates). This is a data-quality fact, not a reason to deduplicate: count the rows as stored unless the request or a business document says a repeated row is the same entity`,
       });
     }
   }

@@ -153,7 +153,7 @@ An open field whose every alternative produced the same Result Fingerprint. It c
 _Avoid_: Trivial choice, ignored ambiguity
 
 **Advisory Ledger**:
-The Runtime's record of the latest compare_hypotheses advice per open field. A decision that departs from the advice's clear lean must carry an override reason and evidence that qualifies for the field (observations never outweigh a lean on a semantic field); the advice itself is never evidence. When the advisor fails, the ledger records the outage; the field may then be decided without advice, and the publication discloses it. An open field that needs advice cannot be replaced by an assumption, only decided, settled by qualifying evidence, or reopened.
+The Runtime's record of the latest compare_hypotheses advice per open field. A decision that departs from the advice's clear lean must carry an override reason and evidence that qualifies for the field (observations never outweigh a lean on a semantic field); the advice itself is never evidence. When the advisor fails, the ledger records the outage; the field may then be decided without advice, and the publication discloses it. When the advisor answers but favours no alternative, the request does not settle the field: while the user can be asked, the decision must cite the user's answer or a business document (request wording is not enough, the advisor already read it); without a clarification path the decision is recorded as undecided and disclosed. An open field that needs advice cannot be replaced by an assumption, only decided, settled by qualifying evidence, or reopened.
 _Avoid_: Advice cache, recommendation store
 
 **Decision Realization**:
@@ -165,7 +165,7 @@ The check that the final SQL implements the sealed fields, read from the fields 
 _Avoid_: SQL review, query digest
 
 **Entity Identity Check**:
-The Runtime's count of rows, distinct rows and distinct declared keys of each source in `population.source`, taken when a Revision with a settled entity and source commits. It reports a counted key that is not unique and exact duplicate rows; whether a duplicate is one entity or a separate one stays a Spec decision. Findings are shown with the Revision and disclosed with the result, never blocking.
+The Runtime's count of rows, distinct rows and distinct declared keys of each source in `population.source`, taken when a Revision with a settled entity and source commits. It reports a counted key that is not unique and exact duplicate rows; whether a duplicate is one entity or a separate one stays a Spec decision. Exact duplicate rows are a data-quality fact (ADR-0007 待定 5): rows are counted as stored unless the request or a business document says a repeated row is the same entity. Findings are shown with the Revision and disclosed with the result, never blocking.
 _Avoid_: Deduplication rule, data quality verdict
 
 **Calendar Coverage**:
