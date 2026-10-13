@@ -47,7 +47,7 @@ function compileHistogram(context: CompileContext, chart: HistogramChart): Chart
     // Rotated labels need room below them before the axis name.
     grid: { left: 16, right: 24, top: 36, bottom: rotated ? 64 : 44, containLabel: true },
     xAxis: { ...axis, name: axisTitle(start.field, start.meta), nameLocation: "middle", nameGap: rotated ? 60 : 28 },
-    yAxis: valueAxis(value.meta, value.field, false),
+    yAxis: valueAxis(value.meta, value.field, false, Math.max(0, ...sorted.map((bin) => Math.abs((bin.count ?? 0) * countScale)))),
     series: [{
       type: "bar",
       name: fieldTitle(value.field, value.meta),

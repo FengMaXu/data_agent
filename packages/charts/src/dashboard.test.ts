@@ -91,7 +91,7 @@ describe("Dashboard layout", () => {
     expect(advice({ ...spec, layout })).toEqual([]);
     const second = { ...spec.views[1], id: "bar2" };
     const report = { ...spec, views: [...spec.views, second], layout: { rows: [{ views: ["detail"] }, { views: ["bar"] }, { views: ["bar2"] }, { views: ["kpi"] }] } };
-    expect(advice(report)).toEqual(["KPI_NOT_FIRST", "LONE_CHART_ROWS", "TABLE_BEFORE_CHARTS"]);
+    expect(advice(report)).toEqual(["KPI_NOT_FIRST", "LONE_CHART_ROWS", "TABLE_BEFORE_CHARTS", "REPEATED_MEASURE"]);
   });
 
   it("advises horizontal bars when category labels only fit rotated in their tile", () => {
@@ -99,6 +99,52 @@ describe("Dashboard layout", () => {
     const narrow = { ...spec, layout: { rows: [{ views: ["kpi"] }, { views: ["bar", "detail"] }] } };
     const result = validateDashboard(narrow, long);
     expect(result.ok ? result.advice.map((entry) => `${entry.code} ${entry.viewId}`) : codes(result)).toEqual(["LABELS_ROTATED_IN_TILE bar"]);
+  });
+
+  // The shape of a delivered dashboard: a status KPI row, a ring over the same counts, and a 15-method payment ranking in raw codes.
+  const status = { kind: "publication", receiptId: "publication_status" } as const;
+  const payments = { kind: "publication", receiptId: "publication_payments" } as const;
+  const orders: FieldMeta = { type: "quantitative", storage: "raw", unit: "单", additivity: "additive", label: "配送单数" };
+  const share: FieldMeta = { type: "quantitative", storage: "percent", additivity: "non_additive", label: "占比" };
+  const delivery: Record<string, ChartDataset> = {
+    [datasetKey(status)]: { columns: ["delivery_status", "orders", "share"], rows: [["DELIVERED", 371367, "98.03"], ["CANCELLED", 7253, "1.91"], ["DELIVERING", 223, "0.06"]] },
+    [datasetKey(payments)]: { columns: ["payment_method", "orders"], rows: Array.from({ length: 15 }, (_, index) => [`METHOD_${index}`, 1000 - index]) },
+  };
+  const deliverySpec = {
+    version: 1,
+    title: "配送现状",
+    views: [
+      { id: "kpi_status", type: "kpi", data: status, fields: { orders, share }, cards: [{ label: "已送达", value: { field: "orders" }, delta: { field: "share", label: "占比", kind: "context" }, where: { delivery_status: "DELIVERED" } }] },
+      { id: "status_share", type: "chart", chart: { version: 1, title: "状态构成", data: status, fields: { orders }, chart: { mark: "pie", category: { field: "delivery_status" }, value: { field: "orders" } } } },
+      { id: "payment_rank", type: "chart", chart: { version: 1, title: "支付方式", data: payments, fields: { orders }, chart: { mark: "cartesian", orientation: "horizontal", x: { field: "payment_method" }, layers: [{ type: "bar", y: { field: "orders" } }] } } },
+    ],
+    layout: { rows: [{ views: ["kpi_status"] }, { views: ["status_share"] }, { views: ["payment_rank"], height: "tall" }] },
+  };
+
+  it("advises against a repeated measure, a ring one slice fills, raw codes and a stretched long-tail ranking", () => {
+    const result = validateDashboard(deliverySpec, delivery);
+    expect(result.ok ? result.advice.map((entry) => `${entry.code} ${entry.viewId}`) : codes(result)).toEqual([
+      "LONE_CHART_ROWS undefined",
+      "REPEATED_MEASURE status_share",
+      "PIE_DOMINATED status_share",
+      "RAW_CODE_LABELS status_share",
+      "RAW_CODE_LABELS payment_rank",
+      "WIDE_HORIZONTAL_BAR payment_rank",
+      "LONG_TAIL payment_rank",
+    ]);
+    // A model-facing notice: the page does not show readers how to rebuild it.
+    const ring = compileChart(deliverySpec.views[1]!.chart, delivery[datasetKey(status)]!, { target: "interactive" });
+    expect(ring.ok && readerNotices(ring.notices)).toEqual([]);
+  });
+
+  it("leaves readable names, distinct measures and a cut ranking alone", () => {
+    const named: Record<string, ChartDataset> = {
+      [datasetKey(status)]: { columns: ["delivery_status", "orders", "share"], rows: [["已送达", 6000, "60"], ["已取消", 3000, "30"], ["配送中", 1000, "10"]] },
+      [datasetKey(payments)]: { columns: ["payment_method", "orders"], rows: Array.from({ length: 8 }, (_, index) => [`支付方式${index}`, 1000 - index]) },
+    };
+    const views = [{ ...deliverySpec.views[0], cards: [{ label: "已送达", value: { field: "share" }, where: { delivery_status: "已送达" } }], fields: { share } }, deliverySpec.views[1], deliverySpec.views[2]];
+    const result = validateDashboard({ ...deliverySpec, views, layout: { rows: [{ views: ["kpi_status"] }, { views: ["status_share", "payment_rank"] }] } }, named);
+    expect(result.ok ? result.advice.map((entry) => entry.code) : codes(result)).toEqual(["KPI_WITHOUT_COMPARISON"]);
   });
 });
 
@@ -109,6 +155,17 @@ describe("Dashboard display", () => {
     expect(resolveKpiCards(view, datasets[datasetKey(total)]!)).toEqual([{ label: "销售额", value: "5,734", unit: "亿元", fullValue: "5,733.88 亿元", delta: { label: "同比", value: "+10.0%", direction: "up" } }]);
     const falling = { columns: ["sales", "growth"], rows: [["49.7407", -0.2334]] };
     expect(resolveKpiCards(view, falling)).toEqual([{ label: "销售额", value: "49.74", unit: "亿元", fullValue: "49.74 亿元", delta: { label: "同比", value: "-23.3%", direction: "down" } }]);
+  });
+
+  it("colours a change only by the direction the card calls good, and shows a context figure plainly", () => {
+    const view = spec.views[0] as DashboardKpiView;
+    const withDelta = (delta: object) => ({ ...view, cards: [{ ...view.cards[0]!, delta: { field: "growth", label: "同比", ...delta } }] }) as DashboardKpiView;
+    const rising = datasets[datasetKey(total)]!;
+    expect(resolveKpiCards(withDelta({ good: "up" }), rising)[0]!.delta).toEqual({ label: "同比", value: "+10.0%", direction: "up", tone: "good" });
+    // A rising cost is the bad direction.
+    expect(resolveKpiCards(withDelta({ good: "down" }), rising)[0]!.delta).toEqual({ label: "同比", value: "+10.0%", direction: "up", tone: "bad" });
+    // A share of the whole is not a rise: no sign, arrow or tone.
+    expect(resolveKpiCards(withDelta({ kind: "context", label: "占比" }), rising)[0]!.delta).toEqual({ label: "占比", value: "10.0%" });
   });
 
   it("gives a table column one decimal count and its unit in the header", () => {

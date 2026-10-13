@@ -50,8 +50,17 @@ export const DashboardKpiCardSchema = Type.Object({
   label: Type.Optional(Name),
   /** The cell shown; never aggregated. */
   value: Type.Object({ field: Name }, Strict),
-  /** A second cell of the same row, such as a change rate computed by the query. */
-  delta: Type.Optional(Type.Object({ field: Name, label: Type.Optional(Name) }, Strict)),
+  /**
+   * A second cell of the same row. `kind: "change"` (default) is a signed comparison such as a change rate, drawn
+   * with an arrow; `good` names the direction that is an improvement and colours it, without it the arrow stays
+   * neutral. `kind: "context"` is a plain figure such as a share of the whole, drawn without sign, arrow or colour.
+   */
+  delta: Type.Optional(Type.Object({
+    field: Name,
+    label: Type.Optional(Name),
+    kind: Type.Optional(Type.Union([Type.Literal("change"), Type.Literal("context")])),
+    good: Type.Optional(Type.Union([Type.Literal("up"), Type.Literal("down")])),
+  }, Strict)),
   /** Picks one row by column values; rows it matches must agree on the cells shown. */
   where: Type.Optional(Type.Record(Type.String(), CellValue)),
   /** A small line of `y` over every row of the view's result, ordered by `x`, such as the monthly series behind the value. */

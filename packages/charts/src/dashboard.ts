@@ -1,5 +1,6 @@
 import { checkDashboardSpec, dashboardViewData, type DashboardInsightsView, type DashboardKpiCard, type DashboardKpiView, type DashboardRowHeight, type DashboardSpec, type DashboardTableView, type DatasetRef, type FieldMeta } from "@data-agent/contracts";
 import { compileChart } from "./compile.js";
+import { markOf } from "./marks/index.js";
 import { categoryLabel, columnDecimals, displayScale, formatFieldValue, formatValue, headlineDigits, numericCell, unitText, valueDecimals, type FormatOptions } from "./semantics.js";
 import type { ChartDataset, ChartErrorCode, PresentationNotice } from "./types.js";
 
@@ -29,7 +30,18 @@ export interface DashboardViewNotice {
 
 /** Advice on how the page reads as a BI dashboard; never blocks a build. */
 export interface DashboardLayoutAdvice {
-  readonly code: "KPI_NOT_FIRST" | "LONE_CHART_ROWS" | "TABLE_BEFORE_CHARTS" | "LABELS_ROTATED_IN_TILE" | "INSIGHTS_NOT_FIRST" | "KPI_WITHOUT_COMPARISON";
+  readonly code:
+    | "KPI_NOT_FIRST"
+    | "LONE_CHART_ROWS"
+    | "TABLE_BEFORE_CHARTS"
+    | "LABELS_ROTATED_IN_TILE"
+    | "INSIGHTS_NOT_FIRST"
+    | "KPI_WITHOUT_COMPARISON"
+    | "REPEATED_MEASURE"
+    | "RAW_CODE_LABELS"
+    | "PIE_DOMINATED"
+    | "WIDE_HORIZONTAL_BAR"
+    | "LONG_TAIL";
   readonly message: string;
   readonly viewId?: string;
 }
@@ -117,8 +129,48 @@ function layoutErrors(spec: DashboardSpec): DashboardError[] {
   return errors;
 }
 
+/** Category values that read as system codes rather than names: DELIVERED, STORE_DIRECT_PAYMENT, moveis_escritorio. */
+const CODE_TEXT = /^(?:[A-Z][A-Z0-9]{2,}(?:_[A-Z0-9]+)*|[a-z][a-z0-9]*(?:_[a-z0-9]+)+)$/;
+
+/** More categories than this in one ranking is a long tail better cut to a Top N and an "其他" row. */
+const LONG_TAIL_CATEGORIES = 12;
+
+/** What the compiled charts told the validator, beyond errors. */
+interface ChartFacts {
+  readonly rotated: ReadonlySet<string>;
+  readonly dominated: ReadonlyMap<string, string>;
+}
+
+/** The measures a view shows, as dataset key and column, for spotting two views that show the same numbers. */
+function shownMeasures(view: DashboardSpec["views"][number]): string[] {
+  const key = datasetKey(dashboardViewData(view));
+  if (view.type === "kpi") return view.cards.map((card) => `${key}|${card.value.field}`);
+  if (view.type !== "chart") return [];
+  const chart = view.chart.chart;
+  // A cartesian chart shows its layers' measures; labels and reference lines only annotate them.
+  if (chart.mark === "cartesian") return chart.layers.map((layer) => `${key}|${layer.y.field}`);
+  const declared = view.chart.fields ?? {};
+  return markOf(chart).fields(chart).filter((field) => declared[field]?.type === "quantitative").map((field) => `${key}|${field}`);
+}
+
+/** Text category columns a chart draws, with the distinct values it would label. */
+function categoryValues(view: Extract<DashboardSpec["views"][number], { type: "chart" }>, dataset: ChartDataset): Map<string, string[]> {
+  const declared = view.chart.fields ?? {};
+  const columns = new Map<string, string[]>();
+  for (const field of markOf(view.chart.chart).fields(view.chart.chart)) {
+    const meta = declared[field];
+    if (meta?.type === "quantitative" || meta?.type === "temporal") continue;
+    const index = dataset.columns.indexOf(field);
+    if (index < 0) continue;
+    const values = [...new Set(dataset.rows.map((row) => row[index]).filter((cell): cell is string => typeof cell === "string"))];
+    if (values.length > 0) columns.set(field, values);
+  }
+  return columns;
+}
+
 /** How the page reads as a BI dashboard: findings and a KPI row first, charts sharing rows, detail last. */
-function layoutAdvice(spec: DashboardSpec, rows: readonly DashboardRow[], rotated: ReadonlySet<string>): DashboardLayoutAdvice[] {
+function layoutAdvice(spec: DashboardSpec, rows: readonly DashboardRow[], facts: ChartFacts, datasets: DashboardDatasets): DashboardLayoutAdvice[] {
+  const { rotated } = facts;
   const advice: DashboardLayoutAdvice[] = [];
   const typeOf = new Map(spec.views.map((view) => [view.id, view.type]));
   const rowHas = (row: DashboardRow, type: string) => row.views.some((viewId) => typeOf.get(viewId) === type);
@@ -146,6 +198,40 @@ function layoutAdvice(spec: DashboardSpec, rows: readonly DashboardRow[], rotate
   });
   for (const viewId of rotated) {
     advice.push({ code: "LABELS_ROTATED_IN_TILE", message: `${viewId} 的类目标签在格子里放不下，被旋转显示；改为 orientation: "horizontal"，或给它更宽的格子`, viewId });
+  }
+  // One number told twice (a KPI card and a ring over the same counts) spends a tile on no new finding.
+  const shownBy = new Map<string, string[]>();
+  for (const view of spec.views) {
+    for (const measure of new Set(shownMeasures(view))) shownBy.set(measure, [...(shownBy.get(measure) ?? []), view.id]);
+  }
+  const repeated = new Set<string>();
+  for (const [measure, viewIds] of shownBy) {
+    const pair = viewIds.join("、");
+    if (viewIds.length < 2 || repeated.has(pair)) continue;
+    repeated.add(pair);
+    advice.push({ code: "REPEATED_MEASURE", message: `${pair} 显示同一结果的同一度量（${measure.split("|")[1]}），是同一个结论；只留更合适的一个，腾出的格子放能回答“为什么”的拆解图`, viewId: viewIds[1] });
+  }
+  for (const [viewId, message] of facts.dominated) advice.push({ code: "PIE_DOMINATED", message: `${viewId}：${message}`, viewId });
+  const rowOf = new Map(rows.flatMap((row) => row.views.map((viewId) => [viewId, row] as const)));
+  for (const view of spec.views) {
+    if (view.type !== "chart") continue;
+    const dataset = datasets[datasetKey(view.chart.data)];
+    if (!dataset) continue;
+    const codes = [...categoryValues(view, dataset)].flatMap(([field, values]) => {
+      const coded = values.filter((value) => CODE_TEXT.test(value));
+      return coded.length >= 2 && coded.length * 2 >= values.length ? [`${field}（${coded.slice(0, 3).join("、")}${coded.length > 3 ? "…" : ""}）`] : [];
+    });
+    if (codes.length > 0) advice.push({ code: "RAW_CODE_LABELS", message: `${view.id} 的类目是系统编码：${codes.join("；")}。读者不认识编码：有字典表时在查询中关联中文名，没有时用 CASE 改写为中文`, viewId: view.id });
+    const chart = view.chart.chart;
+    if (chart.mark !== "cartesian" || chart.orientation !== "horizontal") continue;
+    if (rowOf.get(view.id)?.views.length === 1) {
+      advice.push({ code: "WIDE_HORIZONTAL_BAR", message: `${view.id} 是横向条形却独占整行，条形被拉得过长、标签与数值相隔太远；与另一张图同行（widths [1, 1] 或 [3, 2]）`, viewId: view.id });
+    }
+    const xIndex = dataset.columns.indexOf(chart.x.field);
+    const categories = new Set(dataset.rows.map((row) => JSON.stringify(row[xIndex] ?? null))).size;
+    if (categories > LONG_TAIL_CATEGORIES && !view.chart.selection) {
+      advice.push({ code: "LONG_TAIL", message: `${view.id} 有 ${categories} 个类目，尾部条形细到读不出；在查询中取 Top ${LONG_TAIL_CATEGORIES - 4} 并把其余合并为一行“其他”`, viewId: view.id });
+    }
   }
   return advice;
 }
@@ -193,7 +279,7 @@ export function formatDashboardCell(value: unknown, meta: FieldMeta | undefined,
  * Notices that only tell the model how the chart was laid out; the page does
  * not show them to readers, whose tooltips already carry the full labels.
  */
-const LAYOUT_ONLY_NOTICES: ReadonlySet<string> = new Set(["LABELS_ROTATED", "LABELS_TRUNCATED", "TEMPORAL_UNDECLARED"]);
+const LAYOUT_ONLY_NOTICES: ReadonlySet<string> = new Set(["LABELS_ROTATED", "LABELS_TRUNCATED", "TEMPORAL_UNDECLARED", "PIE_DOMINATED"]);
 
 /** The notices a dashboard reader sees: those about the data, not about label layout. */
 export function readerNotices(notices: readonly PresentationNotice[]): PresentationNotice[] {
@@ -267,7 +353,11 @@ export interface KpiCardDisplay {
   readonly unit?: string;
   /** The value at full precision with its unit, for the tile's tooltip. */
   readonly fullValue: string;
-  readonly delta?: { readonly label?: string; readonly value: string; readonly direction?: "up" | "down" | "flat" };
+  /**
+   * A change carries its direction, and a tone when the card names which direction is good; a context figure
+   * (a share, a base) carries neither, so it never reads as a rise or a warning.
+   */
+  readonly delta?: { readonly label?: string; readonly value: string; readonly direction?: "up" | "down" | "flat"; readonly tone?: "good" | "bad" };
   /** The trend's shown values in x order; null where a value is missing. */
   readonly trend?: readonly (number | null)[];
 }
@@ -290,14 +380,16 @@ export function resolveKpiCards(view: DashboardKpiView, dataset: ChartDataset): 
     const value = headlineText(cell(card.value.field), meta, false);
     const deltaCell = card.delta ? cell(card.delta.field) : undefined;
     const deltaNumber = numericCell(deltaCell);
-    const direction = typeof deltaNumber === "number" ? (deltaNumber > 0 ? "up" : deltaNumber < 0 ? "down" : "flat") : undefined;
+    const change = card.delta !== undefined && card.delta.kind !== "context";
+    const direction = change && typeof deltaNumber === "number" ? (deltaNumber > 0 ? "up" : deltaNumber < 0 ? "down" : "flat") : undefined;
+    const tone = card.delta?.good && (direction === "up" || direction === "down") ? (direction === card.delta.good ? "good" : "bad") : undefined;
     const deltaText = card.delta ? headlineText(deltaCell, view.fields?.[card.delta.field], true) : "";
     return {
       label: card.label ?? meta?.label ?? card.value.field,
       value: value || "—",
       ...(value && unit && unit !== "%" ? { unit } : {}),
       fullValue: formatDashboardCell(cell(card.value.field), meta) || "—",
-      ...(card.delta ? { delta: { ...(card.delta.label ? { label: card.delta.label } : {}), value: deltaText ? `${direction === "up" ? "+" : ""}${deltaText}` : "—", ...(direction ? { direction } : {}) } } : {}),
+      ...(card.delta ? { delta: { ...(card.delta.label ? { label: card.delta.label } : {}), value: deltaText ? `${direction === "up" ? "+" : ""}${deltaText}` : "—", ...(direction ? { direction } : {}), ...(tone ? { tone } : {}) } } : {}),
       ...(card.trend ? { trend: trendValues(card.trend, view.fields?.[card.trend.y.field], dataset) } : {}),
     };
   });
@@ -393,6 +485,7 @@ export function validateDashboard(value: unknown, datasets: DashboardDatasets): 
   const rows = errors.length > 0 ? [] : dashboardRows(spec);
   const tiles = new Map(rows.flatMap((row) => row.views.map((viewId, position) => [viewId, tileChartSize(row, position)] as const)));
   const rotated = new Set<string>();
+  const dominated = new Map<string, string>();
 
   spec.views.forEach((view, index) => {
     const path = `/views/${index}`;
@@ -416,6 +509,8 @@ export function validateDashboard(value: unknown, datasets: DashboardDatasets): 
       } else {
         for (const notice of compiled.notices) notices.push({ viewId, notice });
         if (compiled.notices.some((notice) => notice.code === "LABELS_ROTATED")) rotated.add(viewId);
+        const pie = compiled.notices.find((notice) => notice.code === "PIE_DOMINATED");
+        if (pie) dominated.set(viewId, pie.message);
       }
       return;
     }
@@ -476,5 +571,5 @@ export function validateDashboard(value: unknown, datasets: DashboardDatasets): 
     });
   });
 
-  return errors.length > 0 ? { ok: false, errors } : { ok: true, spec, notices, advice: layoutAdvice(spec, rows, rotated) };
+  return errors.length > 0 ? { ok: false, errors } : { ok: true, spec, notices, advice: layoutAdvice(spec, rows, { rotated, dominated }, datasets) };
 }
