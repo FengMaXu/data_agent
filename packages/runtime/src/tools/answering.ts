@@ -472,7 +472,9 @@ function advisorOutage(error: unknown, signal: AbortSignal | undefined): boolean
 }
 
 function comparisonResult(advisory: FieldAdvisory, assessment: HypothesisChoiceAssessment): AgentToolResult<unknown> {
-  const lean = advisory.lean ? `\n[ADVICE_LEAN] alternativeId=${advisory.lean.alternativeId} probability=${advisory.lean.probability}` : "\n[ADVICE_LEAN] none";
+  const lean = advisory.lean
+    ? `\n[ADVICE_LEAN] alternativeId=${advisory.lean.alternativeId} probability=${advisory.lean.probability}`
+    : "\n[ADVICE_LEAN] none\nNo alternative is favoured, so the request does not settle this field. If ask_user_clarification is available, ask the user and cite the answer when deciding; otherwise decide and the publication discloses that the choice was not settled.";
   return result(`[HYPOTHESIS_COMPARISON_ADVISORY] path=${advisory.path}${lean}\n${json(assessment)}\n${ADVISORY_NOTE}`, { ...advisory, assessment });
 }
 

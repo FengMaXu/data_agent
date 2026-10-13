@@ -42,6 +42,8 @@ describe("entity identity rules", () => {
     const trees = fieldsOf({ "population.entity": "tree", "population.source": { tables: ["trees"] }, "measure.formula": { op: "count", of: "trees" } });
     const report = evaluateEntityIdentity(trees, [{ table: "trees", rows: 690626, distinctRows: 683788 }]);
     expect(report.findings).toEqual([expect.objectContaining({ code: "duplicate_rows", message: expect.stringContaining("6838 exact duplicates") })]);
+    // local041: the gold counts the rows as stored; the finding must not tell the solver to deduplicate.
+    expect(report.findings[0]!.message).toContain("not a reason to deduplicate");
   });
 
   it("is not applicable without a settled entity and source, and unknown when counts are missing", () => {

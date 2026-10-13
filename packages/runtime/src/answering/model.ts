@@ -300,6 +300,8 @@ export type FieldRecord = (
       readonly adviceOverride?: AdviceOverride;
       /** The advisor failed when advice was required; the decision was made without it and is disclosed. */
       readonly adviceUnavailable?: string;
+      /** The advisor favoured no alternative and no user could be asked; the decision is disclosed (its recommendation kind). */
+      readonly adviceUndecided?: string;
     }
 ) & { readonly inherited?: ParentBinding };
 
@@ -590,6 +592,8 @@ export interface FieldView {
   readonly adviceOverride?: AdviceOverride;
   /** decided: the advisor failed and the field was decided without its advice. */
   readonly adviceUnavailable?: string;
+  /** decided: the advisor favoured no alternative and the field was decided without the user. */
+  readonly adviceUndecided?: string;
   readonly inherited?: ParentBinding;
 }
 

@@ -11,7 +11,7 @@ const spec = { "population.entity": "orders", "population.eligibility": "n/a", "
 const business = (invocationId: string) => ({ principal: { id: "user-1" }, sessionId: "session-1", lane: "main", operationId: "operation-1", invocationId });
 const PATH = "population.timeField";
 
-async function setup(path: string = PATH) {
+async function setup(path: string = PATH, populationDecisions?: "require_evidence" | "allow_disclosed") {
   const outputs: Record<string, { columns: string[]; rows: unknown[][]; truncated: boolean }> = {
     "SELECT purchase": { columns: ["n"], rows: [[265]], truncated: false },
     "SELECT delivered": { columns: ["n"], rows: [[205]], truncated: false },
@@ -24,6 +24,7 @@ async function setup(path: string = PATH) {
     fieldProbes: true,
     advisoryLedger: ledger,
     requireAdvice: true,
+    ...(populationDecisions ? { populationDecisions } : {}),
   });
   const view = await answering.set({
     requestMessageId: "current-message",
@@ -190,6 +191,27 @@ describe("deciding against advice (ADR-0005)", () => {
     if (execution.artifact.kind !== "candidate") throw new Error("expected a candidate");
     const receipt = await answering.publish({ candidateId: execution.artifact.candidateId, format: "auto", requestId: "publish" }, business("publish"));
     expect(receipt.disclosure?.summary).toContain(`决定未经比较：${PATH}`);
+  });
+
+  // local056: Jev answered multiple_plausible with no alternative clearly ahead (0.24 vs 0.06 is under the ratio here at 0.15 vs 0.1).
+  const noLean = (taskId: string, purchase: string, delivered: string) => ({ taskId, path: PATH, alternativeIds: [purchase, delivered], model: "jev", probabilities: [{ alternativeId: purchase, probability: 0.15 }, { alternativeId: delivered, probability: 0.1 }], recommendation: "multiple_plausible" as const, recordedAt: "now" });
+
+  it("sends a decision the advice cannot separate to the user while the user can be asked", async () => {
+    const { answering, ledger, view, purchase, delivered } = await setup();
+    ledger.record(noLean(view.taskId, purchase, delivered));
+    const decided = await decide(answering, view.taskId, "按下单时间");
+    expect(decided.outcomes?.[0]).toMatchObject({ status: "rejected", code: "SPEC_TRANSITION_INVALID", message: expect.stringContaining("ask the user with ask_user_clarification") });
+  });
+
+  it("decides an inseparable field without a user, and discloses it", async () => {
+    const { answering, ledger, view, purchase, delivered } = await setup(PATH, "allow_disclosed");
+    ledger.record(noLean(view.taskId, purchase, delivered));
+    const decided = await decide(answering, view.taskId, "按下单时间");
+    expect(decided.fields.find((item) => item.path === PATH)).toMatchObject({ status: "decided", value: "按下单时间", adviceUndecided: "multiple_plausible" });
+    const execution = await answering.execute({ kind: "result", taskId: view.taskId, revisionId: decided.revisionId, sql: "SELECT purchase" }, business("result"));
+    if (execution.artifact.kind !== "candidate") throw new Error("expected a candidate");
+    const receipt = await answering.publish({ candidateId: execution.artifact.candidateId, format: "auto", requestId: "publish" }, business("publish"));
+    expect(receipt.disclosure?.summary).toContain(`决定未经裁决：${PATH}`);
   });
 
   it("accepts the leaned alternative without an override", async () => {
