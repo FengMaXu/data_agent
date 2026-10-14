@@ -17,6 +17,7 @@
 
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   overflow-x: hidden;
   overflow-y: auto;
   scroll-behavior: smooth;
@@ -29,6 +30,12 @@
 .lp code, .lp pre { font-family: var(--font-mono); }
 .lp h1, .lp h2, .lp h3 { font-weight: 600; }
 .lp h1, .lp h2 { font-family: var(--serif); }
+/* Keeps a lone character or word off the last line of body copy. */
+.lp p, .lp li { text-wrap: pretty; }
+.lp :focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+/* The global skip link sits just above the viewport; its shadow must not bleed into the header. */
+.lp .skip-link:not(:focus-visible) { box-shadow: none; }
+
 /* Half-width CJK punctuation keeps display headings from opening gaps at 、and ，. */
 .lp h2, .lp-why-head h3 { font-feature-settings: 'halt'; }
 
@@ -98,6 +105,37 @@
 .lp-logo .brand-wordmark { height: 19px; vertical-align: 0; }
 .lp-logo-sm .brand-mark { height: 18px; }
 .lp-logo-sm .brand-wordmark { height: 14px; }
+
+.lp-nav-links { display: flex; align-items: center; gap: 2px; }
+
+.lp-nav-links a {
+  position: relative;
+  padding: 8px 12px;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.86rem;
+  text-decoration: none;
+  transition: color 180ms var(--ease), background-color 180ms var(--ease);
+}
+
+.lp-nav-links a[aria-current] { color: var(--ink); }
+
+.lp-nav-links a::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  width: 4px;
+  height: 4px;
+  margin-left: -2px;
+  border-radius: 50%;
+  background: var(--ink);
+  opacity: 0;
+  transform: scale(0);
+  transition: opacity 220ms var(--ease), transform 220ms var(--ease);
+}
+
+.lp-nav-links a[aria-current]::after { opacity: 1; transform: none; }
 
 .lp-nav-actions { margin-left: auto; display: flex; align-items: center; gap: 6px; }
 
@@ -312,7 +350,7 @@
   padding: 20px 0 22px;
   border: none;
   background: none;
-  color: var(--muted-2);
+  color: var(--muted);
   font-size: 1.15rem;
   font-weight: 600;
   letter-spacing: -0.02em;
@@ -465,7 +503,7 @@
 .lp-gallery-foot strong { color: var(--ink); font-weight: 600; }
 
 /* Device sync */
-.lp-sync { display: flex; align-items: center; margin-top: 32px; }
+.lp-sync { max-width: 520px; display: flex; align-items: center; margin-top: 32px; }
 
 .lp-sync-node {
   flex-shrink: 0;
@@ -602,19 +640,10 @@
 
 .lp-phone-head strong { display: block; font-size: 0.92rem; }
 .lp-phone-head strong .brand-wordmark { height: 0.95em; }
-.lp-phone-avatar .brand-mark { height: 18px; }
+.lp-phone-avatar .brand-mark { height: 34px; }
 .lp-phone-head small { color: var(--muted); font-size: 0.72rem; }
 
-.lp-phone-avatar {
-  width: 34px;
-  height: 34px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--ink);
-  color: #fff;
-  font-weight: 600;
-}
+.lp-phone-avatar { display: flex; color: var(--ink); }
 
 .lp-phone-chat {
   flex: 1;
@@ -674,16 +703,15 @@
 }
 
 /* How to use */
-.lp-tracks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin-top: 64px; }
-.lp-track { padding: 32px; border: 1px solid var(--line); border-radius: 18px; background: var(--bg-2); }
+.lp-tracks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 64px; margin-top: 64px; }
+.lp-track { padding-top: 28px; border-top: 1px solid var(--ink); }
 
 .lp-track-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--line);
+  padding-bottom: 4px;
 }
 
 .lp-track-head h3 { font-size: 1.3rem; letter-spacing: -0.02em; }
@@ -777,6 +805,11 @@
   .lp-btn-quiet:hover { background: var(--bg-3); color: var(--ink); }
   .lp-btn:hover svg { transform: translateX(2px); }
   .lp-caps-tabs button:hover { color: var(--ink); }
+  .lp-nav-links a:hover { background: var(--bg-3); color: var(--ink); }
+}
+
+@media (max-width: 860px) {
+  .lp-nav-links { display: none; }
 }
 
 @media (max-width: 1080px) {
@@ -792,7 +825,7 @@
   .lp-where-inner { grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 64px; }
   .lp-where-copy { justify-self: stretch; }
   .lp-phone { margin-right: 0; }
-  .lp-tracks { grid-template-columns: minmax(0, 1fr); }
+  .lp-tracks { grid-template-columns: minmax(0, 1fr); gap: 56px; }
 }
 
 @media (max-width: 640px) {
@@ -814,7 +847,6 @@
   .lp-where { padding-top: 104px; }
   .lp-phone { width: 272px; }
   .lp-phone-screen { height: 540px; }
-  .lp-track { padding: 22px; }
   .lp-final { margin-top: 104px; padding: 104px 16px; }
 }
 

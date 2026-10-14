@@ -73,6 +73,7 @@ const translations: Translations = {
         'auth.errorFallback': 'Authentication failed',
 
         'landing.enterApp': 'Get started',
+        'landing.nav.label': 'Page sections',
         'landing.hero.eyebrow': 'An AI agent built for data work',
         'landing.hero.subtitle': 'Query, export, write the report, build the dashboard, all from one sentence. On your computer, in the browser or on your phone.',
         'landing.hero.primary': 'Get started',
@@ -597,6 +598,7 @@ const translations: Translations = {
         'auth.errorFallback': '认证失败',
 
         'landing.enterApp': '开始使用',
+        'landing.nav.label': '页面导航',
         'landing.hero.eyebrow': '专为数据场景打造的智能 Agent',
         'landing.hero.subtitle': '取数、导出、写报告、出看板，一句话直出。电脑、网页、手机，随时随地。',
         'landing.hero.primary': '开始使用',
