@@ -67,6 +67,11 @@ npx electron electron-host/main.cjs
 ### 桌面端打包
 
 ```bash
+# 1. Python 运行时：基于 uv 管理的独立 CPython（可拷到任意机器），不能用 venv（pyvenv.cfg 绑定本机 Python）
+node scripts/prepare-python-runtime-source.mjs              # → .tmp/python-runtime-source
+node scripts/build-python-runtime.mjs .tmp/python-runtime-source dist/python-runtime
+# 2. 应用构建与打包（只复制主进程需要的模块，better-sqlite3 取 Electron 版预编译包）
+node scripts/build-distribution.mjs
 node scripts/package-electron-manual.mjs
 # 产物：frontend/release-manual/win-unpacked/ 与 Data Agent Setup.exe
 ```

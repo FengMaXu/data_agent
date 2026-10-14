@@ -28,6 +28,9 @@ export const PYTHON_WORKSPACE_BOOTSTRAP = String.raw`import json, os, runpy, sit
 _config = json.loads(os.environ.pop("DATA_AGENT_PYTHON_CONFINEMENT"))
 _script = _config["script"]
 sys.dont_write_bytecode = True
+# The host decodes output as UTF-8; on a Chinese Windows locale pipes default to GBK.
+for _stream in (sys.stdout, sys.stderr):
+    _stream.reconfigure(encoding="utf-8")
 
 def _norm(value):
     try:

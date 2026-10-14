@@ -12,8 +12,9 @@
  *   3. pack the application (package.json + dist + electron + electron-host)
  *      into resources/app.asar with *.node unpacked
  *   4. stage extraResources (python-runtime, ktx-semantic-context)
+ *   5. keep only the Chinese and English Electron locales
  */
-import { cpSync, existsSync, mkdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 
@@ -57,6 +58,12 @@ cpSync(path.join(frontend, "node_modules", "electron", "dist"), out, { recursive
 
 // The stock default_app.asar is replaced by our application archive.
 rmSync(path.join(out, "resources", "default_app.asar"), { force: true });
+
+// The UI ships in Chinese and English; the other Chromium locales are ~44 MB.
+const keptLocales = new Set((pkg.build?.electronLanguages ?? ["zh-CN", "en-US"]).map((locale) => `${locale}.pak`));
+for (const file of readdirSync(path.join(out, "locales"))) {
+  if (!keptLocales.has(file)) rmSync(path.join(out, "locales", file), { force: true });
+}
 
 // 2. Product executable name
 const exeName = `${pkg.build?.productName ?? "Data Agent"}.exe`;
@@ -124,11 +131,17 @@ exec(npxCmd, ["@electron/asar", "pack", staging, path.join(out, "resources", "ap
 
 // 4. extraResources. These capabilities are mandatory for a usable desktop
 // package; fail closed instead of producing a silently incomplete artifact.
-const pythonRuntimeExecutable = path.resolve(frontend, "../dist/python-runtime/Scripts/python.exe");
+// Standalone CPython keeps python.exe at the root (see build-python-runtime.mjs); venv packs used Scripts/.
+const pythonRuntimeExecutable = ["python.exe", "Scripts/python.exe"]
+  .map((relative) => path.resolve(root, "dist", "python-runtime", relative))
+  .find((candidate) => existsSync(candidate));
+if (!pythonRuntimeExecutable) {
+  console.error("required extraResource missing: ../dist/python-runtime/python.exe");
+  process.exit(1);
+}
 for (const required of [
-  "../dist/python-runtime/Scripts/python.exe",
   "../.agents/skills/analysis/SKILL.md",
-  "../.agents/skills/answer-spec/SKILL.md",
+  "../.agents/skills/answer-fields/SKILL.md",
   "../.agents/knowledge/doc/rules.md",
   "../.agents/knowledge/doc/semantic_guide.md",
   "../.pi/SYSTEM.md",

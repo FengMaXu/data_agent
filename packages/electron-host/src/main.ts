@@ -456,8 +456,10 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
   // Bundled Python runtime pack ships under extraResources; never fall back to
   // development paths inside the packaged application.
   const effectiveResources = overrides.resourcesPath ?? deps.resourcesPath;
-  const bundledPython = path.join(effectiveResources ?? "", "python-runtime", "Scripts", "python.exe");
-  const bundledPythonExecutable = effectiveResources && existsSync(bundledPython) ? bundledPython : undefined;
+  // A standalone CPython keeps python.exe at the pack root; older venv-based packs used Scripts/.
+  const bundledPythonExecutable = effectiveResources
+    ? [path.join(effectiveResources, "python-runtime", "python.exe"), path.join(effectiveResources, "python-runtime", "Scripts", "python.exe")].find((candidate) => existsSync(candidate))
+    : undefined;
   for (const dir of ["metadata", "sessions", "workspace", "knowledge"]) {
     mkdirSync(path.join(paths.userDataDir, dir), { recursive: true });
   }
