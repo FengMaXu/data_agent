@@ -19,6 +19,7 @@ import {
 } from '../api/client';
 import { answerClarificationViaRuntime, getSessionStateViaRuntime, getTranscriptViaRuntime, steerAgentViaRuntime, stopAgentViaRuntime } from '../api/runtime-client';
 import { attachRunViaRuntime, sendChatViaRuntime, type ChatStreamOptions, type RuntimeChatHandle } from '../api/chat-events';
+import { isModelNotConfiguredError } from './ModelSetupPrompt';
 import type { ToolData } from './ToolPanel';
 import { useSession, type Session, type Task } from '../hooks/useSession';
 import { useLanguage } from '../context/LanguageContext';
@@ -77,6 +78,8 @@ interface ChatAreaProps {
     isToolPanelOpen?: boolean;
     hasTools?: boolean;
     semanticBlocked?: boolean;
+    /** Called when the runtime refuses a turn because no model is configured. */
+    onModelNotConfigured?: () => void;
 }
 
 const STAGE_ORDER: AgentProgressStage[] = [
@@ -227,6 +230,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
     isToolPanelOpen = false,
     hasTools = false,
     semanticBlocked = false,
+    onModelNotConfigured,
 }) => {
     const {
         currentTranscript,
@@ -871,6 +875,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
             },
             (err) => {
                 console.error('Chat error:', err);
+                if (isModelNotConfiguredError(err)) onModelNotConfigured?.();
                 setRunReason('error');
                 setPendingClarification(null);
                 setIsStreaming(false);

@@ -7,7 +7,7 @@ import ToolPanel, { type ToolData } from './components/ToolPanel';
 import SettingsPanel from './components/SettingsPanel';
 import PluginsPanel from './components/PluginsPanel';
 import { CHAT_VIEW, type WorkspaceView } from './components/workspace-view';
-import Onboarding from './components/Onboarding';
+import { ModelSetupPrompt } from './components/ModelSetupPrompt';
 import { SessionProvider } from './hooks/useSession';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { useLanguage } from './context/LanguageContext';
@@ -18,12 +18,15 @@ import GlobalPreviewModal from './components/common/GlobalPreviewModal';
 import { SemanticStartupStatus } from './components/SemanticStartupStatus';
 import { useSemanticStartupStatus } from './hooks/useSemanticStartupStatus';
 
-type StartupState = 'checking' | 'ready' | 'onboarding' | 'error';
+type StartupState = 'checking' | 'ready' | 'error';
 
 interface AppShellProps {
   startupState: StartupState;
-  setStartupState: React.Dispatch<React.SetStateAction<StartupState>>;
   onRetryStartup: () => void;
+  /** null until the startup check reads the configuration. */
+  modelConfigured: boolean | null;
+  onRecheckModel: () => void;
+  onModelMissing: () => void;
 }
 
 const DESKTOP_MENU_ITEMS = [
@@ -41,7 +44,7 @@ const CHAT_PANEL_MIN_WIDTH = 560;
 const SIDEBAR_PEEK_OPEN_DELAY = 80;
 const SIDEBAR_PEEK_CLOSE_DELAY = 180;
 
-const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState, onRetryStartup }) => {
+const AppShell: React.FC<AppShellProps> = ({ startupState, onRetryStartup, modelConfigured, onRecheckModel, onModelMissing }) => {
   const { t } = useLanguage();
   const [tools, setTools] = useState<ToolData[]>([]);
   const [isToolPanelOpen, setIsToolPanelOpen] = useState(false);
@@ -81,6 +84,12 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState, onRe
   useEffect(() => () => {
     if (sidebarPeekTimerRef.current) clearTimeout(sidebarPeekTimerRef.current);
   }, []);
+
+  // Settings saves the key without notifying the shell, so re-read it on the way back to chat.
+  const isChatView = activeView.kind === 'chat';
+  useEffect(() => {
+    if (isChatView && modelConfigured === false) onRecheckModel();
+  }, [isChatView, modelConfigured, onRecheckModel]);
 
   const handleUpdateTools = useCallback((newTools: ToolData[]) => {
     setTools(newTools);
@@ -204,10 +213,6 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState, onRe
     return <div className="app-loading">{t('app.preparing')}</div>;
   }
 
-  if (startupState === 'onboarding') {
-    return <Onboarding onComplete={() => setStartupState('ready')} />;
-  }
-
   if (startupState === 'error') {
     return (
       <div className="app-loading" role="alert">
@@ -243,6 +248,9 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState, onRe
           </div>
         )}
 
+        {modelConfigured === false && activeView.kind !== 'settings' && (
+          <ModelSetupPrompt onConfigure={() => setActiveView({ kind: 'settings', section: 'model' })} />
+        )}
         <SemanticStartupStatus status={semanticStatus} retrying={semanticRetrying} onRetry={retrySemantic} />
 
         <div className="app-container">
@@ -296,6 +304,7 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState, onRe
                 isToolPanelOpen={isToolPanelOpen}
                 hasTools={tools.length > 0}
                 semanticBlocked={semanticBlocked}
+                onModelNotConfigured={onModelMissing}
               />
             </div>
 
@@ -315,9 +324,23 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, setStartupState, onRe
   );
 };
 
+/** Whether a usable model key is stored; the runtime makes the final call when a chat starts. */
+async function readModelConfigured(): Promise<boolean> {
+  const config = await getConfigViaRuntime() as Record<string, unknown>;
+  const storedSecrets = await window.dataAgent?.getStoredSecrets();
+  return config.llm_enabled !== false && [
+    config.api_key,
+    config.openai_api_key,
+    config.anthropic_api_key,
+    storedSecrets?.openai_api_key,
+    storedSecrets?.anthropic_api_key,
+  ].some((value) => typeof value === 'string' && value.trim().length > 0);
+}
+
 const App: React.FC = () => {
   const [startupState, setStartupState] = useState<StartupState>('checking');
   const [startupAttempt, setStartupAttempt] = useState(0);
+  const [modelConfigured, setModelConfigured] = useState<boolean | null>(null);
   const { status } = useAuth();
   const { t } = useLanguage();
 
@@ -331,22 +354,10 @@ const App: React.FC = () => {
 
     const completeStartupCheck = async () => {
       try {
-        const config = await getConfigViaRuntime();
-        const configRecord = config as Record<string, unknown>;
-        const storedSecrets = await window.dataAgent?.getStoredSecrets();
-        const hasConfiguredKey = configRecord.llm_enabled !== false && [
-          configRecord.api_key,
-          configRecord.openai_api_key,
-          configRecord.anthropic_api_key,
-          storedSecrets?.openai_api_key,
-          storedSecrets?.anthropic_api_key,
-        ].some((value) => typeof value === 'string' && value.trim().length > 0);
-        if (hasConfiguredKey) {
-          if (!cancelled) setStartupState('ready');
-          return;
-        }
-
-        if (!cancelled) setStartupState('onboarding');
+        const configured = await readModelConfigured();
+        if (cancelled) return;
+        setModelConfigured(configured);
+        setStartupState('ready');
       } catch (error) {
         console.error('Startup config check failed:', error);
         if (!cancelled) setStartupState('error');
@@ -358,6 +369,13 @@ const App: React.FC = () => {
       cancelled = true;
     };
   }, [status, startupAttempt]);
+
+  const recheckModel = useCallback(() => {
+    readModelConfigured()
+      .then(setModelConfigured)
+      .catch((error) => console.error('Model config check failed:', error));
+  }, []);
+  const markModelMissing = useCallback(() => setModelConfigured(false), []);
 
   if (status === 'checking') {
     return <div className="app-loading">{t('app.preparing')}</div>;
@@ -371,8 +389,10 @@ const App: React.FC = () => {
     <PreviewProvider>
       <AppShell
         startupState={startupState}
-        setStartupState={setStartupState}
         onRetryStartup={() => setStartupAttempt((attempt) => attempt + 1)}
+        modelConfigured={modelConfigured}
+        onRecheckModel={recheckModel}
+        onModelMissing={markModelMissing}
       />
       <GlobalPreviewModal />
     </PreviewProvider>

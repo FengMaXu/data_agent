@@ -101,7 +101,7 @@ export class DataAgentRuntime implements ApplicationCommandHost {
   queryExecutor?: { run(sql: string, rowLimit: number, options?: { readonly idempotencyKey?: string }): Promise<{ columns: string[]; rows: unknown[][]; truncated: boolean }> };
   dbTester?: { test(connection: Record<string, unknown>): Promise<{ success: boolean; message: string; details?: unknown }> };
   llmTester?: { test(profile: Record<string, unknown>): Promise<{ success: boolean; message: string; details?: unknown }> };
-  /** Host callback for capability controllers after onboarding/config changes. */
+  /** Host callback for capability controllers after config changes. */
   onConfigSaved?: (config: Record<string, unknown>, context: RequestContext) => void | Promise<void>;
   mcpSupervisor?: { status(): Promise<Array<{ name: string; enabled: boolean; connected: boolean; toolCount: number; hostManaged: boolean }>>; test(name: string): Promise<{ ok: boolean; message: string }>; restart(name: string): Promise<{ ok: boolean }> };
   /** Host-composed channel management (ADR-0011); absent where no channels are enabled. */
