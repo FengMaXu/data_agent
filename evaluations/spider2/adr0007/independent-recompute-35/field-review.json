@@ -1,0 +1,682 @@
+[
+  {
+    "instance_id": "local002",
+    "relevant_node": "measure.formula",
+    "node_is_confirmed_original_error": false,
+    "explanation": "金额/件数、缺期及回归输入定义仍未唯一确定",
+    "error_layer": "未唯一裁决",
+    "visibility": "不能标成假定错/决定错：原声明可见，不等于业务错误已证",
+    "qualification": "已实际计算多个候选，全部差异机制仍未唯一定位",
+    "original_node_declared": true,
+    "original_node_status": "request",
+    "original_node_value": {
+      "op": "custom",
+      "description": "对 2017-01-01..2018-08-29 每日玩具销售额（brinquedos 类目 order_items.price 按日合计，缺日补 0）拟合简单线性回归 sales=a+b·x（x=自 2017-01-01 起的日历日序号）；预测 2018-12-05..2018-12-08 的日销售额 P(x)；对每个预测日取 5 日对称（中心）移动平均 MA(x)=(P(x-2)+P(x-1)+P(x)+P(x+1)+P(x+2))/5；最后对这 4 个 MA 求和",
+      "of": "daily toy sales"
+    },
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local002/attempts/attempt-001/trace.json",
+      "pointer": "/toolCalls/24/result/details/fields/8/value",
+      "quote": "{\"op\": \"custom\", \"description\": \"对 2017-01-01..2018-08-29 每日玩具销售额（brinquedos 类目 order_items.price 按日合计，缺日补 0）拟合简单线性回归 sales=a+b·x（x=自 2017-01-01 起的日历日序号）；预测 2018-12-05..2018-12-08 的日销售额 P(x)；对每个预测日取 5 日对称（中心）移动平均 MA(x)=(P(x-2)+P(x-1)+P(x)+P(x+1)+P(x+2))/5；最后对这 4 个 MA 求和\", \"of\": \"daily toy sales\"}"
+    },
+    "primary_status": "ambiguous_after_recompute"
+  },
+  {
+    "instance_id": "local010",
+    "relevant_node": "population.entity",
+    "node_is_confirmed_original_error": false,
+    "explanation": "业务文档明确无向城市对；原声明与SQL符合，Gold方向变体翻倍",
+    "error_layer": "标准答案与本次输入/明确要求局部冲突",
+    "visibility": "不适用：未确认原Spec语义错误",
+    "qualification": "Gold差异相关节点，不冒充原系统错误节点",
+    "original_node_declared": true,
+    "original_node_status": "assumed",
+    "original_node_value": {
+      "name": "unique unordered city pair, identified by standardized city names: lexicographically smaller city name as city1, larger as city2",
+      "keyColumns": [
+        "city1",
+        "city2"
+      ]
+    },
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local010/attempts/attempt-001/trace.json",
+      "pointer": "/toolCalls/5/result/details/fields/0/value",
+      "quote": "{\"name\": \"unique unordered city pair, identified by standardized city names: lexicographically smaller city name as city1, larger as city2\", \"keyColumns\": [\"city1\", \"city2\"]}"
+    },
+    "primary_status": "gold_conflict"
+  },
+  {
+    "instance_id": "local037",
+    "relevant_node": "measure.countGrain",
+    "node_is_confirmed_original_error": false,
+    "explanation": "支付事件与支付订单数，原明确事件口径；不能仅据Gold判错",
+    "error_layer": "未唯一裁决",
+    "visibility": "不能标成假定错/决定错：原声明可见，不等于业务错误已证",
+    "qualification": "差异机制已实测，业务意图未唯一裁决",
+    "original_node_declared": true,
+    "original_node_status": "assumed",
+    "original_node_value": "按付款事件计数：每个 (order_id, payment_sequential) 计一次付款（探索已证实该组合在 olist_order_payments 中唯一）",
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local037/attempts/attempt-001/trace.json",
+      "pointer": "/toolCalls/20/result/details/fields/7/value",
+      "quote": "按付款事件计数：每个 (order_id, payment_sequential) 计一次付款（探索已证实该组合在 olist_order_payments 中唯一）"
+    },
+    "primary_status": "ambiguous_after_recompute"
+  },
+  {
+    "instance_id": "local040",
+    "relevant_node": "population.entity",
+    "node_is_confirmed_original_error": true,
+    "explanation": "明确记录一行一树，但实际6838完整重复行；实体权重前提错",
+    "error_layer": "口径错（物理行等同树实体的假定）",
+    "visibility": "假定错",
+    "qualification": "局部错误；去重能解释原全部数值差异，但独立首稿也错",
+    "original_node_declared": true,
+    "original_node_status": "request",
+    "original_node_value": {
+      "name": "individual tree record (one row of the trees table, identified by tree_id/idx); borough is the grouping attribute"
+    },
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local040/attempts/attempt-001/trace.json",
+      "pointer": "/toolCalls/33/result/details/fields/0/value",
+      "quote": "{\"name\": \"individual tree record (one row of the trees table, identified by tree_id/idx); borough is the grouping attribute\"}"
+    },
+    "primary_status": "confirmed_semantic_error"
+  },
+  {
+    "instance_id": "local049",
+    "relevant_node": "population.entity",
+    "node_is_confirmed_original_error": false,
+    "explanation": "Gold重复公司ID的关联行，原按公司身份去重",
+    "error_layer": "标准答案与本次输入/明确要求局部冲突",
+    "visibility": "不适用：未确认原Spec语义错误",
+    "qualification": "Gold差异相关节点，不冒充原系统错误节点",
+    "original_node_declared": true,
+    "original_node_status": "assumed",
+    "original_node_value": {
+      "name": "company",
+      "keyColumns": [
+        "company_id"
+      ]
+    },
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local049/attempts/attempt-001/trace.json",
+      "pointer": "/toolCalls/16/result/details/fields/0/value",
+      "quote": "{\"name\": \"company\", \"keyColumns\": [\"company_id\"]}"
+    },
+    "primary_status": "gold_conflict"
+  },
+  {
+    "instance_id": "local050",
+    "relevant_node": "population.eligibility",
+    "node_is_confirmed_original_error": false,
+    "explanation": "2021商品月资格没有唯一依据；月均值舍入步骤另有局部差异",
+    "error_layer": "未唯一裁决",
+    "visibility": "不能标成假定错/决定错：原声明可见，不等于业务错误已证",
+    "qualification": "差异机制已实测，业务意图未唯一裁决",
+    "original_node_declared": true,
+    "original_node_status": "assumed",
+    "original_node_value": "Only product-month cells that have sales in BOTH 2019 and 2020 (growth rate needs both years); cells with a zero 2019 baseline are dropped (growth undefined). No zero-filling.",
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local050/attempts/attempt-001/trace.json",
+      "pointer": "/toolCalls/16/result/details/fields/1/value",
+      "quote": "Only product-month cells that have sales in BOTH 2019 and 2020 (growth rate needs both years); cells with a zero 2019 baseline are dropped (growth undefined). No zero-filling."
+    },
+    "primary_status": "ambiguous_after_recompute"
+  },
+  {
+    "instance_id": "local056",
+    "relevant_node": "population.missing",
+    "node_is_confirmed_original_error": false,
+    "explanation": "先发生缺月/相邻观测解释差异，随后金额差正负/绝对值",
+    "error_layer": "未唯一裁决",
+    "visibility": "不能标成假定错/决定错：原声明可见，不等于业务错误已证",
+    "qualification": "差异机制已实测，业务意图未唯一裁决",
+    "original_node_declared": true,
+    "original_node_status": "assumed",
+    "original_node_value": "不补零（无业务证据证明缺月代表零活动）；只在两个日历月份严格相邻（如 2005-07 与 2005-08）时计算一次月度变化；跨月缺口（2005-08 → 2006-02）不计作“月度变化”而被排除。",
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local056/attempts/attempt-001/trace.json",
+      "pointer": "/toolCalls/20/result/details/fields/6/value",
+      "quote": "不补零（无业务证据证明缺月代表零活动）；只在两个日历月份严格相邻（如 2005-07 与 2005-08）时计算一次月度变化；跨月缺口（2005-08 → 2006-02）不计作“月度变化”而被排除。"
+    },
+    "primary_status": "ambiguous_after_recompute"
+  },
+  {
+    "instance_id": "local061",
+    "relevant_node": "population.eligibility",
+    "node_is_confirmed_original_error": false,
+    "explanation": "仅历史成对商品月还是要求目标年可见，声明可见但意图未裁决",
+    "error_layer": "未唯一裁决",
+    "visibility": "不能标成假定错/决定错：原声明可见，不等于业务错误已证",
+    "qualification": "差异机制已实测，业务意图未唯一裁决",
+    "original_node_declared": true,
+    "original_node_status": "evidence",
+    "original_node_value": "A product is included for a month only if it has a summed sales amount in both 2019 and 2020 (so the growth rate is computable); products lacking either year are excluded, with no zero-fill.",
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local061/attempts/attempt-001/trace.json",
+      "pointer": "/toolCalls/10/result/details/fields/1/value",
+      "quote": "A product is included for a month only if it has a summed sales amount in both 2019 and 2020 (so the growth rate is computable); products lacking either year are excluded, with no zero-fill."
+    },
+    "primary_status": "ambiguous_after_recompute"
+  },
+  {
+    "instance_id": "local064",
+    "relevant_node": "population.missing",
+    "node_is_confirmed_original_error": true,
+    "explanation": "原要求各客户各月，但SQL月集合只来自现有交易，没有全年月份脊",
+    "error_layer": "实现错（全年月份未落实）",
+    "visibility": "不适用：实现层；另记population.missing未声明",
+    "qualification": "局部错误；不能单独解释Gold失分，Gold交易范围另冲突",
+    "original_node_declared": false,
+    "original_node_status": "undeclared",
+    "original_node_value": null,
+    "original_spec_evidence": null,
+    "primary_status": "confirmed_implementation_error"
+  },
+  {
+    "instance_id": "local067",
+    "relevant_node": "grouping",
+    "node_is_confirmed_original_error": false,
+    "explanation": "十分位排序方向改变余数分配与各层边界，题面未指定",
+    "error_layer": "未唯一裁决",
+    "visibility": "不能标成假定错/决定错：原声明可见，不等于业务错误已证",
+    "qualification": "差异机制已实测，业务意图未唯一裁决",
+    "original_node_declared": true,
+    "original_node_status": "decided",
+    "original_node_value": [
+      "按客户数等分：对意大利客户按 2021-12 利润升序用 NTILE(10) 分成 10 档，第 1 档=利润最低、第 10 档=利润最高，每档客户数尽量相等"
+    ],
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local067/attempts/attempt-001/trace.json",
+      "pointer": "/toolCalls/29/result/details/fields/8/value",
+      "quote": "[\"按客户数等分：对意大利客户按 2021-12 利润升序用 NTILE(10) 分成 10 档，第 1 档=利润最低、第 10 档=利润最高，每档客户数尽量相等\"]"
+    },
+    "primary_status": "ambiguous_after_recompute"
+  },
+  {
+    "instance_id": "local070",
+    "relevant_node": "selection",
+    "node_is_confirmed_original_error": false,
+    "explanation": "同日唯一代表城市选法，原MIN名称与独立最小ID均为额外解释",
+    "error_layer": "未唯一裁决",
+    "visibility": "不能标成假定错/决定错：原声明可见，不等于业务错误已证",
+    "qualification": "差异机制已实测，业务意图未唯一裁决",
+    "original_node_declared": true,
+    "original_node_status": "assumed",
+    "original_node_value": {
+      "n": 1,
+      "orderBy": "streak 天数升序取 1 条（最短）与降序取 1 条（最长）"
+    },
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local070/attempts/attempt-001/trace.json",
+      "pointer": "/toolCalls/13/result/details/fields/10/value",
+      "quote": "{\"n\": 1, \"orderBy\": \"streak 天数升序取 1 条（最短）与降序取 1 条（最长）\"}"
+    },
+    "primary_status": "ambiguous_after_recompute"
+  },
+  {
+    "instance_id": "local096",
+    "relevant_node": "population.eligibility",
+    "node_is_confirmed_original_error": false,
+    "explanation": "Gold接受未知演员/性别NULL；原明确排除未知性别",
+    "error_layer": "标准答案与本次输入/明确要求局部冲突",
+    "visibility": "不适用：未确认原Spec语义错误",
+    "qualification": "Gold差异相关节点，不冒充原系统错误节点",
+    "original_node_declared": true,
+    "original_node_status": "decided",
+    "original_node_value": "纳入 Movie 表中全部电影（含在 M_Cast 中没有任何演员记录的电影）",
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local096/attempts/attempt-001/trace.json",
+      "pointer": "/toolCalls/26/result/details/fields/1/value",
+      "quote": "纳入 Movie 表中全部电影（含在 M_Cast 中没有任何演员记录的电影）"
+    },
+    "primary_status": "gold_conflict"
+  },
+  {
+    "instance_id": "local098",
+    "relevant_node": "population.eligibility",
+    "node_is_confirmed_original_error": false,
+    "explanation": "Gold32585超过当前32127可识别出演者全集；原缺口规则正确",
+    "error_layer": "标准答案与本次输入/明确要求局部冲突",
+    "visibility": "不适用：未确认原Spec语义错误",
+    "qualification": "Gold差异相关节点，不冒充原系统错误节点",
+    "original_node_declared": true,
+    "original_node_status": "assumed",
+    "original_node_value": "仅计入在 M_Cast 至少有一条出演记录的人物 PID",
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local098/attempts/attempt-001/trace.json",
+      "pointer": "/toolCalls/29/result/details/fields/1/value",
+      "quote": "仅计入在 M_Cast 至少有一条出演记录的人物 PID"
+    },
+    "primary_status": "gold_conflict"
+  },
+  {
+    "instance_id": "local100",
+    "relevant_node": "population.eligibility",
+    "node_is_confirmed_original_error": false,
+    "explanation": "当前完整二跳图25698；Gold隐藏子集/历史数据机制未知",
+    "error_layer": "标准答案与本次输入/明确要求局部冲突",
+    "visibility": "不适用：未确认原Spec语义错误",
+    "qualification": "Gold差异相关节点，不冒充原系统错误节点",
+    "original_node_declared": true,
+    "original_node_status": "request",
+    "original_node_value": "拥有至少一条 M_Cast 出演记录的演员（按 Person.PID 标识）；排除 Shah Rukh Khan 本人，并排除所有与 Shah Rukh Khan 在同片直接出演的演员（即 Shahrukh number ≤ 1 者）",
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local100/attempts/attempt-001/trace.json",
+      "pointer": "/toolCalls/3/result/details/fields/1/value",
+      "quote": "拥有至少一条 M_Cast 出演记录的演员（按 Person.PID 标识）；排除 Shah Rukh Khan 本人，并排除所有与 Shah Rukh Khan 在同片直接出演的演员（即 Shahrukh number ≤ 1 者）"
+    },
+    "primary_status": "gold_conflict"
+  },
+  {
+    "instance_id": "local131",
+    "relevant_node": "population.eligibility",
+    "node_is_confirmed_original_error": false,
+    "explanation": "五个全零风格是否展示，原声明全集；标准SQL额外非零过滤",
+    "error_layer": "未唯一裁决",
+    "visibility": "不能标成假定错/决定错：原声明可见，不等于业务错误已证",
+    "qualification": "差异机制已实测，业务意图未唯一裁决",
+    "original_node_declared": true,
+    "original_node_status": "request",
+    "original_node_value": "every style in the Musical_Styles dictionary is a row; a style that no customer chose appears with count 0 in all three rank columns",
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local131/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/17/result/details/fields/1/value",
+      "quote": "every style in the Musical_Styles dictionary is a row; a style that no customer chose appears with count 0 in all three rank columns"
+    },
+    "primary_status": "ambiguous_after_recompute"
+  },
+  {
+    "instance_id": "local167",
+    "relevant_node": "population.conditions",
+    "node_is_confirmed_original_error": false,
+    "explanation": "Gold含不跨任何年末的Katie Hill；原年末资格筛选正确",
+    "error_layer": "标准答案与本次输入/明确要求局部冲突",
+    "visibility": "不适用：未确认原Spec语义错误",
+    "qualification": "Gold差异相关节点，不冒充原系统错误节点",
+    "original_node_declared": true,
+    "original_node_status": "assumed",
+    "original_node_value": [
+      "legislators.gender = 'F'（作用于资格总体 WHERE）",
+      "该议员的任期中至少有一条覆盖某年 12 月 31 日（作用于议员层 HAVING/EXISTS）"
+    ],
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local167/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/12/result/details/fields/2/value",
+      "quote": "[\"legislators.gender = 'F'（作用于资格总体 WHERE）\", \"该议员的任期中至少有一条覆盖某年 12 月 31 日（作用于议员层 HAVING/EXISTS）\"]"
+    },
+    "primary_status": "gold_conflict"
+  },
+  {
+    "instance_id": "local168",
+    "relevant_node": "population.conditions",
+    "node_is_confirmed_original_error": false,
+    "explanation": "职位范围先分叉，随后具名技能/未知技能、排名并列及薪资权重",
+    "error_layer": "未唯一裁决",
+    "visibility": "不能标成假定错/决定错：原声明可见，不等于业务错误已证",
+    "qualification": "差异机制已实测，业务意图未唯一裁决",
+    "original_node_declared": true,
+    "original_node_status": "decided",
+    "original_node_value": [
+      "job_title = 'Data Analyst' AND job_work_from_home = 1 AND salary_year_avg IS NOT NULL"
+    ],
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local168/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/39/result/details/fields/2/value",
+      "quote": "[\"job_title = 'Data Analyst' AND job_work_from_home = 1 AND salary_year_avg IS NOT NULL\"]"
+    },
+    "primary_status": "ambiguous_after_recompute"
+  },
+  {
+    "instance_id": "local169",
+    "relevant_node": "population.time",
+    "node_is_confirmed_original_error": false,
+    "explanation": "周期起点、观察窗口和任期端点候选仍不能解释全部Gold",
+    "error_layer": "未唯一裁决",
+    "visibility": "不能标成假定错/决定错：原声明可见，不等于业务错误已证",
+    "qualification": "已实际计算多个候选，全部差异机制仍未唯一定位",
+    "original_node_declared": true,
+    "original_node_status": "decided",
+    "original_node_value": {
+      "expression": "Period k (k=1..20) 参考日 = (首次任期开始年份 + k) 年的 12 月 31 日（参考日落在首次任期开始年份之后的第 k 个日历年）"
+    },
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local169/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/16/result/details/fields/4/value",
+      "quote": "{\"expression\": \"Period k (k=1..20) 参考日 = (首次任期开始年份 + k) 年的 12 月 31 日（参考日落在首次任期开始年份之后的第 k 个日历年）\"}"
+    },
+    "primary_status": "ambiguous_after_recompute"
+  },
+  {
+    "instance_id": "local171",
+    "relevant_node": "population.time",
+    "node_is_confirmed_original_error": false,
+    "explanation": "Gold额外限制1917..1999年末观察窗，题面未要求；LA州锚另有歧义",
+    "error_layer": "标准答案与本次输入/明确要求局部冲突",
+    "visibility": "不适用：未确认原Spec语义错误",
+    "qualification": "Gold差异相关节点，不冒充原系统错误节点",
+    "original_node_declared": true,
+    "original_node_status": "request",
+    "original_node_value": {
+      "expression": "对每位议员，取其首个任期起点年份 Y0；考察 Y = Y0+31 … Y0+49，参考日为每年 12 月 31 日；仅保留 (12-31 相对首个任期起点) 严格大于 30 年且严格小于 50 年的年份",
+      "boundary": "exclusive"
+    },
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local171/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/9/result/details/fields/4/value",
+      "quote": "{\"expression\": \"对每位议员，取其首个任期起点年份 Y0；考察 Y = Y0+31 … Y0+49，参考日为每年 12 月 31 日；仅保留 (12-31 相对首个任期起点) 严格大于 30 年且严格小于 50 年的年份\", \"boundary\": \"exclusive\"}"
+    },
+    "primary_status": "gold_conflict"
+  },
+  {
+    "instance_id": "local196",
+    "relevant_node": "measure.countGrain",
+    "node_is_confirmed_original_error": false,
+    "explanation": "Gold把五笔无关联付款计成租赁；原公式/SQL计真实rental",
+    "error_layer": "标准答案与本次输入/明确要求局部冲突",
+    "visibility": "不适用：未确认原Spec语义错误",
+    "qualification": "Gold差异相关节点，不冒充原系统错误节点",
+    "original_node_declared": true,
+    "original_node_status": "assumed",
+    "original_node_value": "one customer entity per observation; each average is taken over customers",
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local196/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/12/result/details/fields/9/value",
+      "quote": "one customer entity per observation; each average is taken over customers"
+    },
+    "primary_status": "gold_conflict"
+  },
+  {
+    "instance_id": "local220",
+    "relevant_node": "population.entity",
+    "node_is_confirmed_original_error": false,
+    "explanation": "Gold可由同名不同球员合并重现；原player身份计数正确",
+    "error_layer": "标准答案与本次输入/明确要求局部冲突",
+    "visibility": "不适用：未确认原Spec语义错误",
+    "qualification": "Gold差异相关节点，不冒充原系统错误节点",
+    "original_node_declared": true,
+    "original_node_status": "assumed",
+    "original_node_value": {
+      "name": "player",
+      "keyColumns": [
+        "player_api_id"
+      ]
+    },
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local220/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/5/result/details/fields/0/value",
+      "quote": "{\"name\": \"player\", \"keyColumns\": [\"player_api_id\"]}"
+    },
+    "primary_status": "gold_conflict"
+  },
+  {
+    "instance_id": "local263",
+    "relevant_node": "measure.countGrain",
+    "node_is_confirmed_original_error": false,
+    "explanation": "模型/步骤仍有文字歧义，但Gold还跨step关联放大；非原已证错误",
+    "error_layer": "标准答案与本次输入/明确要求局部冲突",
+    "visibility": "不适用：未确认原Spec语义错误",
+    "qualification": "Gold差异相关节点，不冒充原系统错误节点",
+    "original_node_declared": true,
+    "original_node_status": "decided",
+    "original_node_value": "one count per model (name, version) holding that status",
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local263/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/21/result/details/fields/6/value",
+      "quote": "one count per model (name, version) holding that status"
+    },
+    "primary_status": "gold_conflict"
+  },
+  {
+    "instance_id": "local264",
+    "relevant_node": "population.joinMultiplicity",
+    "node_is_confirmed_original_error": false,
+    "explanation": "漏step连接639含426跨步重复；原213未出现此放大",
+    "error_layer": "标准答案与本次输入/明确要求局部冲突",
+    "visibility": "不适用：未确认原Spec语义错误",
+    "qualification": "Gold差异相关节点，不冒充原系统错误节点",
+    "original_node_declared": false,
+    "original_node_status": "undeclared",
+    "original_node_value": null,
+    "original_spec_evidence": null,
+    "primary_status": "gold_conflict"
+  },
+  {
+    "instance_id": "local269",
+    "relevant_node": "population.entity",
+    "node_is_confirmed_original_error": false,
+    "explanation": "最终包装组合是根/路径/根叶还是跨根唯一叶数量，未定义",
+    "error_layer": "未唯一裁决",
+    "visibility": "不能标成假定错/决定错：原声明可见，不等于业务错误已证",
+    "qualification": "差异机制已实测，业务意图未唯一裁决",
+    "original_node_declared": true,
+    "original_node_status": "assumed",
+    "original_node_value": {
+      "name": "final packaging combination, i.e. a packaging item that is not a component (contains_id) of any other packaging"
+    },
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local269/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/8/result/details/fields/0/value",
+      "quote": "{\"name\": \"final packaging combination, i.e. a packaging item that is not a component (contains_id) of any other packaging\"}"
+    },
+    "primary_status": "ambiguous_after_recompute"
+  },
+  {
+    "instance_id": "local273",
+    "relevant_node": "population.entity",
+    "node_is_confirmed_original_error": false,
+    "explanation": "订单行/库存/实际分配事件单位先分叉；pick百分比分母未规定",
+    "error_layer": "未唯一裁决",
+    "visibility": "不能标成假定错/决定错：原声明可见，不等于业务错误已证",
+    "qualification": "差异机制已实测，业务意图未唯一裁决",
+    "original_node_declared": true,
+    "original_node_status": "assumed",
+    "original_node_value": {
+      "name": "order line (an order × product demand row)"
+    },
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local273/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/32/result/details/fields/0/value",
+      "quote": "{\"name\": \"order line (an order × product demand row)\"}"
+    },
+    "primary_status": "ambiguous_after_recompute"
+  },
+  {
+    "instance_id": "local279",
+    "relevant_node": "measure.formula",
+    "node_is_confirmed_original_error": false,
+    "explanation": "递归补货时点/初始状态候选未唯一确定，单纯并列解释已被排除",
+    "error_layer": "未唯一裁决",
+    "visibility": "不能标成假定错/决定错：原声明可见，不等于业务错误已证",
+    "qualification": "已实际计算多个候选，全部差异机制仍未唯一定位",
+    "original_node_declared": true,
+    "original_node_status": "assumed",
+    "original_node_value": {
+      "op": "custom",
+      "description": "Recursive month-by-month ending inventory: ending(2019-01) = Dec2018_inventory - budget(2019-01); ending(m) = ending(m-1) - budget(m); if ending(m) < qty_minimum then ending(m) += qty_purchase (restock). Metric(m) = |ending(m) - qty_minimum|. Per product select the 2019 month minimising Metric(m)."
+    },
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local279/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/30/result/details/fields/8/value",
+      "quote": "{\"op\": \"custom\", \"description\": \"Recursive month-by-month ending inventory: ending(2019-01) = Dec2018_inventory - budget(2019-01); ending(m) = ending(m-1) - budget(m); if ending(m) < qty_minimum then ending(m) += qty_purchase (restock). Metric(m) = |ending(m) - qty_minimum|. Per product select the 2019 month minimising Metric(m).\"}"
+    },
+    "primary_status": "ambiguous_after_recompute"
+  },
+  {
+    "instance_id": "local285",
+    "relevant_node": "population.conditions",
+    "node_is_confirmed_original_error": false,
+    "explanation": "净退货还是sale-only先分叉，随后价格与损耗权重、利润公式",
+    "error_layer": "未唯一裁决",
+    "visibility": "不能标成假定错/决定错：原声明可见，不等于业务错误已证",
+    "qualification": "差异机制已实测，业务意图未唯一裁决",
+    "original_node_declared": true,
+    "original_node_status": "request",
+    "original_node_value": [
+      "No filter other than restricting to calendar years 2020–2023 (the only years present)."
+    ],
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local285/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/18/result/details/fields/2/value",
+      "quote": "[\"No filter other than restricting to calendar years 2020–2023 (the only years present).\"]"
+    },
+    "primary_status": "ambiguous_after_recompute"
+  },
+  {
+    "instance_id": "local286",
+    "relevant_node": "population.eligibility",
+    "node_is_confirmed_original_error": false,
+    "explanation": "Gold额外卖家实际54件，违反严格>100；评分/packing定义另未裁决",
+    "error_layer": "标准答案与本次输入/明确要求局部冲突",
+    "visibility": "不适用：未确认原Spec语义错误",
+    "qualification": "Gold差异相关节点，不冒充原系统错误节点",
+    "original_node_declared": true,
+    "original_node_status": "request",
+    "original_node_value": "只纳入售出商品数量（订单商品行数）超过 100 件的卖家；没有任何商品记录的卖家不纳入。",
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local286/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/10/result/details/fields/1/value",
+      "quote": "只纳入售出商品数量（订单商品行数）超过 100 件的卖家；没有任何商品记录的卖家不纳入。"
+    },
+    "primary_status": "gold_conflict"
+  },
+  {
+    "instance_id": "local297",
+    "relevant_node": "population.conditions",
+    "node_is_confirmed_original_error": false,
+    "explanation": "Gold重建纳入purchase，与明确deposits/withdrawals范围冲突",
+    "error_layer": "标准答案与本次输入/明确要求局部冲突",
+    "visibility": "不适用：未确认原Spec语义错误",
+    "qualification": "Gold差异相关节点，不冒充原系统错误节点",
+    "original_node_declared": true,
+    "original_node_status": "request",
+    "original_node_value": [
+      "仅纳入 txn_type ∈ ('deposit','withdrawal') 的交易，purchase 不计入；作用阶段 = WHERE（月度净值聚合之前）"
+    ],
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local297/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/21/result/details/fields/2/value",
+      "quote": "[\"仅纳入 txn_type ∈ ('deposit','withdrawal') 的交易，purchase 不计入；作用阶段 = WHERE（月度净值聚合之前）\"]"
+    },
+    "primary_status": "gold_conflict"
+  },
+  {
+    "instance_id": "local298",
+    "relevant_node": "population.eligibility",
+    "node_is_confirmed_original_error": false,
+    "explanation": "Gold遗漏本月不活跃用户的前月正余额，违反all users",
+    "error_layer": "标准答案与本次输入/明确要求局部冲突",
+    "visibility": "不适用：未确认原Spec语义错误",
+    "qualification": "Gold差异相关节点，不冒充原系统错误节点",
+    "original_node_declared": true,
+    "original_node_status": "assumed",
+    "original_node_value": "All customers recorded in customer_transactions; a customer with no transaction before a snapshot carries balance 0 and adds nothing to the total",
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local298/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/21/result/details/fields/1/value",
+      "quote": "All customers recorded in customer_transactions; a customer with no transaction before a snapshot carries balance 0 and adds nothing to the total"
+    },
+    "primary_status": "gold_conflict"
+  },
+  {
+    "instance_id": "local299",
+    "relevant_node": "population.joinMultiplicity",
+    "node_is_confirmed_original_error": false,
+    "explanation": "Gold重建重复客户日行，随后31行窗口；原30日已正确",
+    "error_layer": "标准答案与本次输入/明确要求局部冲突",
+    "visibility": "不适用：未确认原Spec语义错误",
+    "qualification": "Gold差异相关节点，不冒充原系统错误节点",
+    "original_node_declared": true,
+    "original_node_status": "assumed",
+    "original_node_value": "Single source table; transactions are pre-aggregated to one row per (customer_id, txn_date) before joining the generated daily calendar spine, so no fan-out or double counting.",
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local299/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/22/result/details/fields/7/value",
+      "quote": "Single source table; transactions are pre-aggregated to one row per (customer_id, txn_date) before joining the generated daily calendar spine, so no fan-out or double counting."
+    },
+    "primary_status": "gold_conflict"
+  },
+  {
+    "instance_id": "local331",
+    "relevant_node": "population.entity",
+    "node_is_confirmed_original_error": false,
+    "explanation": "Gold多出无实际第三页访问的合成END事件",
+    "error_layer": "标准答案与本次输入/明确要求局部冲突",
+    "visibility": "不适用：未确认原Spec语义错误",
+    "qualification": "Gold差异相关节点，不冒充原系统错误节点",
+    "original_node_declared": true,
+    "original_node_status": "assumed",
+    "original_node_value": {
+      "name": "页面访问（visit）= activity_log 的一行（全表 action='view'）；无用户维度，以 session 为会话边界，会话内按 stamp 升序构成访问序列",
+      "keyColumns": [
+        "rowid"
+      ]
+    },
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local331/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/32/result/details/fields/0/value",
+      "quote": "{\"name\": \"页面访问（visit）= activity_log 的一行（全表 action='view'）；无用户维度，以 session 为会话边界，会话内按 stamp 升序构成访问序列\", \"keyColumns\": [\"rowid\"]}"
+    },
+    "primary_status": "gold_conflict"
+  },
+  {
+    "instance_id": "local335",
+    "relevant_node": "population.entity",
+    "node_is_confirmed_original_error": false,
+    "explanation": "赛季车手积分归属及转队处理至少两种机制都重现Gold，未唯一裁决",
+    "error_layer": "未唯一裁决",
+    "visibility": "不能标成假定错/决定错：原声明可见，不等于业务错误已证",
+    "qualification": "差异机制已实测，业务意图未唯一裁决",
+    "original_node_declared": true,
+    "original_node_status": "request",
+    "original_node_value": {
+      "name": "constructor",
+      "keyColumns": [
+        "constructor_id"
+      ]
+    },
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local335/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/40/result/details/fields/0/value",
+      "quote": "{\"name\": \"constructor\", \"keyColumns\": [\"constructor_id\"]}"
+    },
+    "primary_status": "ambiguous_after_recompute"
+  },
+  {
+    "instance_id": "local354",
+    "relevant_node": "population.eligibility",
+    "node_is_confirmed_original_error": true,
+    "explanation": "原误把DNS/DNQ/withdrawal视为真实参赛，Gold另遗漏明确合格Farina",
+    "error_layer": "口径错（参赛资格）＋标准局部冲突",
+    "visibility": "假定错：results记录等同实际参赛",
+    "qualification": "局部错误；104→103只修1人，不解释Gold仅3人",
+    "original_node_declared": true,
+    "original_node_status": "request",
+    "original_node_value": "drivers with at least one race participation in seasons 1950-1959",
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local354/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/27/result/details/fields/1/value",
+      "quote": "drivers with at least one race participation in seasons 1950-1959"
+    },
+    "primary_status": "gold_conflict"
+  },
+  {
+    "instance_id": "local358",
+    "relevant_node": "measure.countGrain",
+    "node_is_confirmed_original_error": true,
+    "explanation": "已声明user_id却假定每物理行一用户；字段内部矛盾与SQL重复计数，参考日另未定",
+    "error_layer": "字段内部口径矛盾及实现重复计数",
+    "visibility": "假定错：一行一用户前提；并非纯SQL漂移",
+    "qualification": "局部错误；Gold也按320行，评分差异还来自未定参考日",
+    "original_node_declared": true,
+    "original_node_status": "assumed",
+    "original_node_value": "按用户实体计数：mst_users 每行代表一名用户，每个用户计 1",
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local358/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/6/result/details/fields/8/value",
+      "quote": "按用户实体计数：mst_users 每行代表一名用户，每个用户计 1"
+    },
+    "primary_status": "confirmed_implementation_error"
+  }
+]

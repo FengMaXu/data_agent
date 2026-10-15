@@ -1,0 +1,4 @@
+{
+  "sql": "WITH f AS (SELECT id_bioguide,min(term_start) first FROM legislators_terms GROUP BY id_bioguide), n AS (SELECT id_bioguide,min(term_number) first_no FROM legislators_terms GROUP BY id_bioguide) SELECT count(distinct CASE WHEN f.first BETWEEN '1917-01-01' AND '1999-12-31' THEN f.id_bioguide END) true_first,count(distinct CASE WHEN t.term_start BETWEEN '1917-01-01' AND '1999-12-31' THEN f.id_bioguide END) numbered_first,sum(f.first!=t.term_start) changed_first FROM f JOIN n USING(id_bioguide) JOIN legislators_terms t ON t.id_bioguide=n.id_bioguide AND t.term_number=n.first_no",
+  "limit": 1000
+}

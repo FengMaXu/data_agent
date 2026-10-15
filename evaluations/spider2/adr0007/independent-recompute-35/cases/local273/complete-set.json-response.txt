@@ -1,0 +1,133 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_da6bc8ac-28f2-4363-8336-01de80c55496 revisionId=revision_a846396a-7d25-4c75-bb4b-10571c4b547b\n- ✓ population.eligibility\n- ✓ population.conditions\n- ✓ population.time\n- ✓ measure.formula\n- ✓ grouping\n- ✓ selection\n- ✓ output\n状态：\n- 未证实（发布时披露）: population.eligibility, population.conditions, population.time, measure.formula, grouping, output\n- 没有待处理的字段，可以执行结果查询\n[SPEC_FEEDBACK] revisionId=revision_a846396a-7d25-4c75-bb4b-10571c4b547b status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"product with FIFO order-inventory allocations\"}},\"population.eligibility\":{\"status\":\"assumed\",\"value\":\"Only products with positive FIFO allocations\"},\"population.conditions\":{\"status\":\"assumed\",\"value\":[\"positive demand and stock\",\"positive overlapping quantity\"]},\"population.time\":{\"status\":\"assumed\",\"value\":{\"expression\":\"All current stock and all recorded orders\"}},\"measure.formula\":{\"status\":\"assumed\",\"value\":{\"op\":\"custom\",\"description\":\"FIFO stock by purchase date, quantity asc,id; cumulative demand by ordered,order_id,line_id; picked=min(upper bounds)-max(lower bounds) on positive intersection; equal allocation mean 100*picked/inventory row qty\"}},\"grouping\":{\"status\":\"assumed\",\"value\":[\"product name\"]},\"selection\":{\"status\":\"not_applicable\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"full\",\"columns\":[\"product_name\",\"average_pick_percentage\"]}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_da6bc8ac-28f2-4363-8336-01de80c55496",
+    "revisionId": "revision_a846396a-7d25-4c75-bb4b-10571c4b547b",
+    "parentRevisionId": "revision_11887542-7697-4215-a5a7-77555e64f7bf",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "product with FIFO order-inventory allocations"
+        },
+        "evidenceIds": [
+          "evidence_dbd27835-81c1-46ca-8485-01187d07f683"
+        ]
+      },
+      {
+        "path": "population.eligibility",
+        "status": "assumed",
+        "value": "Only products with positive FIFO allocations"
+      },
+      {
+        "path": "population.conditions",
+        "status": "assumed",
+        "value": [
+          "positive demand and stock",
+          "positive overlapping quantity"
+        ]
+      },
+      {
+        "path": "population.time",
+        "status": "assumed",
+        "value": {
+          "expression": "All current stock and all recorded orders"
+        }
+      },
+      {
+        "path": "measure.formula",
+        "status": "assumed",
+        "value": {
+          "op": "custom",
+          "description": "FIFO stock by purchase date, quantity asc,id; cumulative demand by ordered,order_id,line_id; picked=min(upper bounds)-max(lower bounds) on positive intersection; equal allocation mean 100*picked/inventory row qty"
+        }
+      },
+      {
+        "path": "grouping",
+        "status": "assumed",
+        "value": [
+          "product name"
+        ]
+      },
+      {
+        "path": "selection",
+        "status": "not_applicable"
+      },
+      {
+        "path": "output",
+        "status": "assumed",
+        "value": {
+          "rowMode": "full",
+          "columns": [
+            "product_name",
+            "average_pick_percentage"
+          ]
+        }
+      }
+    ],
+    "undeclared": [],
+    "open": [],
+    "unverified": [
+      "population.eligibility",
+      "population.conditions",
+      "population.time",
+      "measure.formula",
+      "grouping",
+      "output"
+    ],
+    "specFeedback": {
+      "taskId": "task_da6bc8ac-28f2-4363-8336-01de80c55496",
+      "revisionId": "revision_a846396a-7d25-4c75-bb4b-10571c4b547b",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_dbd27835-81c1-46ca-8485-01187d07f683",
+        "evidence_e25dd821-71ae-4eb4-81b1-c5794b991a1f",
+        "evidence_7ed25c81-0dc4-447d-a746-5d10721310f4",
+        "evidence_dbb4d3a4-157f-4eec-9c73-4769a672c371",
+        "evidence_41aaed66-6291-4dbc-9403-aa5c1f8466c2",
+        "evidence_70b2d5b8-c0e0-4fd7-9942-615f30af3a7b"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "population.eligibility",
+        "status": "applied"
+      },
+      {
+        "path": "population.conditions",
+        "status": "applied"
+      },
+      {
+        "path": "population.time",
+        "status": "applied"
+      },
+      {
+        "path": "measure.formula",
+        "status": "applied"
+      },
+      {
+        "path": "grouping",
+        "status": "applied"
+      },
+      {
+        "path": "selection",
+        "status": "applied"
+      },
+      {
+        "path": "output",
+        "status": "applied"
+      }
+    ]
+  }
+}

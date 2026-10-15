@@ -1,0 +1,251 @@
+{
+  "frozenAt": "2026-10-11T09:12:58.045Z",
+  "instance_id": "local040",
+  "independent": true,
+  "taskId": "task_c53f627e-d7f6-43fb-a372-02b8d8b2af5a",
+  "revisionId": "revision_702b99aa-53cc-4fa1-8a94-44997cf9f536",
+  "publication": {
+    "receiptId": "publication_eeaf6589-ead5-4705-97ba-a53889c166e3",
+    "taskId": "task_c53f627e-d7f6-43fb-a372-02b8d8b2af5a",
+    "principalId": "independent-analyst",
+    "sessionId": "local040",
+    "candidateId": "candidate_1f41f6ad-614c-4fd8-988c-63322d46fada",
+    "revisionId": "revision_702b99aa-53cc-4fa1-8a94-44997cf9f536",
+    "resultRef": "result_788af703-bf7e-4088-9a31-19225eafcd45",
+    "format": "csv",
+    "publicRef": "/api/runtime/publications/publication_eeaf6589-ead5-4705-97ba-a53889c166e3?session_id=local040",
+    "contentHash": "6d668a5119dd1ac1889f2bea330089545f11ee3e611523524019cd01a3355a83",
+    "presentationContentHash": "9e461a8114fbd68b4b52d8ed09589bcde30c723950077a44ef27e20fda08b527",
+    "coverage": [
+      {
+        "checkId": "result_completeness",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_shape",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_identity",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "join_fanout",
+        "outcome": "not_applicable"
+      },
+      {
+        "checkId": "spec_feedback",
+        "ruleVersion": "spec-feedback-v2",
+        "outcome": "not_applicable",
+        "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+      }
+    ],
+    "fanout": {
+      "ruleVersion": "answering-fanout-v1",
+      "status": "not_applicable",
+      "snapshotScope": "unbound",
+      "targets": []
+    },
+    "disclosure": {
+      "required": true,
+      "unverifiedFields": [
+        {
+          "path": "measure.formula",
+          "kind": "assumed"
+        },
+        {
+          "path": "selection.ties",
+          "kind": "assumed"
+        }
+      ],
+      "summary": "以下字段为假定，未被合格证据证实：measure.formula, selection.ties。"
+    },
+    "physicalProfile": {
+      "version": 1,
+      "rowCount": 3,
+      "truncated": false,
+      "columns": [
+        {
+          "name": "boroname",
+          "kind": "text",
+          "nullCount": 0,
+          "distinctCount": 3
+        },
+        {
+          "name": "tree_count",
+          "kind": "integer",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 3,
+          "min": "106374",
+          "max": "256056"
+        },
+        {
+          "name": "average_mean_income",
+          "kind": "decimal",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 3,
+          "min": "73675.97696942792",
+          "max": "94029.32783386917"
+        }
+      ]
+    },
+    "policyVersion": "answering-publication-v1",
+    "createdByInvocationId": "5d4247a3-d8ac-452d-9f83-d12cd993c61b",
+    "requestId": "5d4247a3-d8ac-452d-9f83-d12cd993c61b",
+    "createdAt": "2026-10-11T09:12:55.143Z"
+  },
+  "currentRevision": {
+    "taskId": "task_c53f627e-d7f6-43fb-a372-02b8d8b2af5a",
+    "revisionId": "revision_702b99aa-53cc-4fa1-8a94-44997cf9f536",
+    "parentRevisionId": "revision_7a3383ba-370a-454a-94c7-b1dca05165c3",
+    "requestId": "4afa41a1-4825-4252-b827-ab55c18fefb3",
+    "createdAt": "2026-10-11T09:12:36.700Z",
+    "fields": {
+      "population.entity": {
+        "state": "specified",
+        "value": {
+          "name": "联合树木记录，tree_id识别树木，ZIP对齐收入"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_46f7d21d-191a-478e-877b-2fc72ce331a0"
+          ]
+        }
+      },
+      "population.eligibility": {
+        "state": "specified",
+        "value": "median>0 and mean>0, non-null nonblank borough; all tree statuses allowed",
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_77c55746-69a0-4378-af6b-5b84b8e87748"
+          ]
+        }
+      },
+      "population.conditions": {
+        "state": "specified",
+        "value": [
+          "ZIP full join, coalesce ZIP, positive median and mean, valid borough"
+        ],
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_a8d78917-b8b7-45ef-a8e9-a8a84db76484"
+          ]
+        }
+      },
+      "population.time": {
+        "state": "not_applicable"
+      },
+      "measure.formula": {
+        "state": "specified",
+        "value": {
+          "op": "custom",
+          "description": "Per borough count(tree_id) in eligible joined records and average mean income across tree records; rank by count, strict top3"
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Average is at combined record grain, tree-row weighted rather than ZIP or household weighted"
+        }
+      },
+      "grouping": {
+        "state": "specified",
+        "value": [
+          "boroname"
+        ],
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_14da2e36-63a1-4691-963e-344f17032258"
+          ]
+        }
+      },
+      "selection": {
+        "state": "specified",
+        "value": {
+          "n": 3,
+          "orderBy": "tree_count DESC, boroname ASC"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_d2f12e41-bac8-4978-b573-a9799ff8b2ec"
+          ]
+        }
+      },
+      "selection.ties": {
+        "state": "specified",
+        "value": "strict",
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "output": {
+        "state": "specified",
+        "value": {
+          "rowMode": "top_n",
+          "rowCount": 3,
+          "columns": [
+            "boroname",
+            "tree_count",
+            "average_mean_income"
+          ]
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_909bd0d7-5789-4278-81cf-98b4a5a85260"
+          ]
+        }
+      }
+    },
+    "state": {
+      "state": "ready",
+      "revisionId": "revision_702b99aa-53cc-4fa1-8a94-44997cf9f536",
+      "ready": "ready_7d144408-4eea-45bd-8f74-e59688896fa9"
+    },
+    "specFeedback": {
+      "taskId": "task_c53f627e-d7f6-43fb-a372-02b8d8b2af5a",
+      "revisionId": "revision_702b99aa-53cc-4fa1-8a94-44997cf9f536",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_46f7d21d-191a-478e-877b-2fc72ce331a0",
+        "evidence_a8e5d9f3-beaf-4c6b-bfb1-62d4c968ca71",
+        "evidence_35e510dd-71b1-412a-8211-a3eb81ccf4aa",
+        "evidence_90dbfd1d-c763-4023-91cb-dc6012539de8",
+        "evidence_108f251c-31d4-4542-91f0-194965db140d",
+        "evidence_3786f64d-8b4c-4822-8975-e07cbc095ff8",
+        "evidence_1576fade-654b-4d23-b3ef-79051ddd12e9",
+        "evidence_77c55746-69a0-4378-af6b-5b84b8e87748",
+        "evidence_a8d78917-b8b7-45ef-a8e9-a8a84db76484",
+        "evidence_14da2e36-63a1-4691-963e-344f17032258",
+        "evidence_d2f12e41-bac8-4978-b573-a9799ff8b2ec",
+        "evidence_909bd0d7-5789-4278-81cf-98b4a5a85260"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    }
+  },
+  "analystNote": {
+    "algorithm": "Full ZIP join; positive both income, valid borough; count trees, tree-row weighted mean; strict top3",
+    "assumptions": [
+      "valid borough=nonempty observed borough name",
+      "tree record income average, not ZIP-equal"
+    ]
+  },
+  "settings": {
+    "qualification": "required",
+    "fieldProbes": true,
+    "externalAdvisor": "not_configured",
+    "specFeedback": "not_configured",
+    "fanout": "disabled_for_offline_audit",
+    "populationDecisions": "allow_disclosed_headless_audit",
+    "databaseReadOnly": true
+  }
+}

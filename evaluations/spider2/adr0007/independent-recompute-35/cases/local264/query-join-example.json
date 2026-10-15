@@ -1,0 +1,1 @@
+{"sql": "WITH scores AS (SELECT DISTINCT name,version,step FROM model_score) SELECT m.name,m.version,m.step model_step,s.step score_step,m.L1_model FROM model m JOIN scores s USING(name,version) WHERE m.name='Critical Heat Flux' AND m.version=1 ORDER BY m.step,s.step", "limit": 100}

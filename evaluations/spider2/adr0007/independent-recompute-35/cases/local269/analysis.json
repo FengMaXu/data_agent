@@ -1,0 +1,50 @@
+{
+  "instance_id": "local269",
+  "status": "ambiguous_after_recompute",
+  "summary": "946 independently validated; Gold530.67 exactly reproduced by cross-root DISTINCT(leaf,quantity) then leaf mean, losing a repeated600; Gold algorithm not uniquely known",
+  "fork_node": "population.entity",
+  "error_layer": "unresolved_gold_grain_or_implementation",
+  "visibility": "root entity explicit; Gold dedup mechanism unavailable",
+  "independent_score": 0,
+  "evidence": [
+    {
+      "source": "blind.json",
+      "pointer": "/question",
+      "quote": "average total quantity across all final packaging combinations"
+    },
+    {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local269/attempts/attempt-20261010-154318Z/trace.json",
+      "quote": "final packaging combination, i.e. a packaging item that is not a component (contains_id) of any other packaging",
+      "pointer": "/toolCalls/8/result/details/fields/0/value",
+      "original_projection_source": "original-spec-evidence.json"
+    },
+    {
+      "source": "distinct-leaf-quantity.json-response.txt",
+      "pointer": "/details/preview/rows",
+      "quote": "530.67"
+    }
+  ],
+  "limitations": [
+    "Gold SQL unavailable; identical scalar does not establish intended grain or unique implementation."
+  ],
+  "parent_field_review": {
+    "instance_id": "local269",
+    "relevant_node": "population.entity",
+    "node_is_confirmed_original_error": false,
+    "explanation": "最终包装组合是根/路径/根叶还是跨根唯一叶数量，未定义",
+    "error_layer": "未唯一裁决",
+    "visibility": "不能标成假定错/决定错：原声明可见，不等于业务错误已证",
+    "qualification": "差异机制已实测，业务意图未唯一裁决",
+    "original_node_declared": true,
+    "original_node_status": "assumed",
+    "original_node_value": {
+      "name": "final packaging combination, i.e. a packaging item that is not a component (contains_id) of any other packaging"
+    },
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local269/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/8/result/details/fields/0/value",
+      "quote": "{\"name\": \"final packaging combination, i.e. a packaging item that is not a component (contains_id) of any other packaging\"}"
+    },
+    "primary_status": "ambiguous_after_recompute"
+  }
+}

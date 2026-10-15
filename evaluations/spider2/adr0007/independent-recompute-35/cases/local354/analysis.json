@@ -1,0 +1,70 @@
+{
+  "instance_id": "local354",
+  "status": "gold_conflict",
+  "summary": "独立实际参赛103司机、原任意results104；Gold仅3IDs。Farina642等明确满足两端同队>=2round且Gold遗漏，确证局部Gold冲突。原额外BillAston将DNS/DNQ/Withdrew当参赛构成独立确认的资格语义错误；不能解释全部失分。",
+  "fork_node": "population.eligibility (confirmed original local misclassification); Gold omissions outside original Spec error",
+  "error_layer": "local original semantic error plus Gold false-negative conflict",
+  "visibility": "original eligibility says participation but source asserts every results row participation; explicit nonparticipation discriminator omitted",
+  "independent_score": 0,
+  "secondary_findings": [
+    {
+      "status": "confirmed_semantic_error",
+      "case": "Bill Aston1952",
+      "fork_node": "population.eligibility",
+      "impact": "original104 vs independently103; not all Gold difference"
+    },
+    {
+      "status": "ambiguous_after_recompute",
+      "case": "Gold3 hidden restriction",
+      "impact": "not uniquely reconstructed despite real experiments"
+    }
+  ],
+  "evidence": [
+    {
+      "source": "blind.json",
+      "pointer": "/question",
+      "quote": "while also taking part in at least two distinct race rounds during that season"
+    },
+    {
+      "source": "query-farina-strong-counterexample-response.json",
+      "pointer": "/content/0/text",
+      "quote": "Alfa Romeo"
+    },
+    {
+      "source": "query-bill-aston-response.json",
+      "pointer": "/content/0/text",
+      "quote": "Did not qualify"
+    },
+    {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local354/attempts/attempt-20261010-154318Z/trace.json",
+      "quote": "results JOIN races ON race_id yields one row per driver-race participation",
+      "pointer": "/toolCalls/27/result/details/fields/3/value",
+      "original_projection_source": "original-spec-review.json"
+    }
+  ],
+  "limitations": [
+    "Gold SQL absent; Gold3 mechanism not uniquely reconstructed.",
+    "Gold IDs vs original two name columns/independent one name column also shape mismatch; content false negatives survive translating IDs to names.",
+    "Results zero-lap retirement retained as started proxy; Withdrew positive-lap included; not externally reviewed start definition.",
+    "Historical shared car endpoint constructor sets may require additional business disambiguation.",
+    "Python UTF8 CLI issue was reported immediately and repaired by parent; earlier GBK name displays not reliable, final/name-critical queries rerun UTF8."
+  ],
+  "parent_field_review": {
+    "instance_id": "local354",
+    "relevant_node": "population.eligibility",
+    "node_is_confirmed_original_error": true,
+    "explanation": "原误把DNS/DNQ/withdrawal视为真实参赛，Gold另遗漏明确合格Farina",
+    "error_layer": "口径错（参赛资格）＋标准局部冲突",
+    "visibility": "假定错：results记录等同实际参赛",
+    "qualification": "局部错误；104→103只修1人，不解释Gold仅3人",
+    "original_node_declared": true,
+    "original_node_status": "request",
+    "original_node_value": "drivers with at least one race participation in seasons 1950-1959",
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local354/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/27/result/details/fields/1/value",
+      "quote": "drivers with at least one race participation in seasons 1950-1959"
+    },
+    "primary_status": "gold_conflict"
+  }
+}

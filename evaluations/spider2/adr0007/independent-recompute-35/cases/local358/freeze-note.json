@@ -1,0 +1,12 @@
+{
+  "algorithm": "master users distinct identity; completed age at fixed run date; five disjoint buckets",
+  "assumptions": [
+    "reference day = current 2026-10-11, not given by request",
+    "include withdrawn users",
+    "unknown birth goes others if any"
+  ],
+  "observations": [
+    "320 rows,30 ids; birth_date identical within id",
+    "Log data spans2016..2017 so current day materially different"
+  ]
+}

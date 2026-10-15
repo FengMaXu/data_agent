@@ -1,0 +1,7 @@
+{
+  "algorithm": "Flight-row-weighted city pair average, symmetric city identity, Haversine km, all 7 bins",
+  "assumptions": [
+    "ranges are lower-bound bins",
+    "English city names used"
+  ]
+}

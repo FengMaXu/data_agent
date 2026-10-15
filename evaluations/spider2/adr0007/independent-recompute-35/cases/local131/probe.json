@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT s.StyleID,s.StyleName,COUNT(p.StyleID) n,SUM(CASE WHEN PreferenceSeq=1 THEN 1 ELSE 0 END) p1,SUM(CASE WHEN PreferenceSeq=2 THEN 1 ELSE 0 END) p2,SUM(CASE WHEN PreferenceSeq=3 THEN 1 ELSE 0 END) p3 FROM Musical_Styles s LEFT JOIN Musical_Preferences p ON p.StyleID=s.StyleID GROUP BY s.StyleID,s.StyleName ORDER BY s.StyleID",
+  "limit": 1000
+}

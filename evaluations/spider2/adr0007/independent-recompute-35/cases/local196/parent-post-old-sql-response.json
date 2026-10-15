@@ -1,0 +1,99 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_e33a92f3-aaf8-4430-8020-52bf4216dad9\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nrating | avg_total_amount_spent | avg_subsequent_rentals\nG | 110.66 | 25.3\nNC-17 | 111.94 | 25.36\nPG | 112.67 | 26.26\nPG-13 | 115.24 | 26.38\nR | 111.42 | 25.48"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_e33a92f3-aaf8-4430-8020-52bf4216dad9",
+      "preview": {
+        "columns": [
+          "rating",
+          "avg_total_amount_spent",
+          "avg_subsequent_rentals"
+        ],
+        "rows": [
+          [
+            "G",
+            110.66,
+            25.3
+          ],
+          [
+            "NC-17",
+            111.94,
+            25.36
+          ],
+          [
+            "PG",
+            112.67,
+            26.26
+          ],
+          [
+            "PG-13",
+            115.24,
+            26.38
+          ],
+          [
+            "R",
+            111.42,
+            25.48
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "REAL",
+          "REAL"
+        ],
+        "rowCount": 5,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "rating",
+        "avg_total_amount_spent",
+        "avg_subsequent_rentals"
+      ],
+      "rows": [
+        [
+          "G",
+          110.66,
+          25.3
+        ],
+        [
+          "NC-17",
+          111.94,
+          25.36
+        ],
+        [
+          "PG",
+          112.67,
+          26.26
+        ],
+        [
+          "PG-13",
+          115.24,
+          26.38
+        ],
+        [
+          "R",
+          111.42,
+          25.48
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "REAL",
+        "REAL"
+      ],
+      "rowCount": 5,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_d34d8b3c-98f0-4e24-b139-a35c310ca85d"
+  }
+}

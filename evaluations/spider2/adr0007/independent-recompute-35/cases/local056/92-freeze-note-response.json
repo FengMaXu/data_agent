@@ -1,0 +1,275 @@
+{
+  "frozenAt": "2026-10-11T09:01:57.631Z",
+  "instance_id": "local056",
+  "independent": true,
+  "taskId": "task_f81fe942-08df-4f79-8596-bae2a9cdb4e4",
+  "revisionId": "revision_900d402b-245b-4f3d-9218-fdfbb30865f3",
+  "publication": {
+    "receiptId": "publication_6facfd35-d0b5-4fe5-acf8-eba442156096",
+    "taskId": "task_f81fe942-08df-4f79-8596-bae2a9cdb4e4",
+    "principalId": "independent-analyst",
+    "sessionId": "local056",
+    "candidateId": "candidate_9d6112d9-31a6-4d4c-bea0-7d0bc896ebbd",
+    "revisionId": "revision_900d402b-245b-4f3d-9218-fdfbb30865f3",
+    "resultRef": "result_51488dff-3144-480a-96d3-9ce7e29ed5d3",
+    "format": "csv",
+    "publicRef": "/api/runtime/publications/publication_6facfd35-d0b5-4fe5-acf8-eba442156096?session_id=local056",
+    "contentHash": "e7bc6febbf5f2668e54781014a8ea68bc39f3733fa26eccceee3762b028af27d",
+    "presentationContentHash": "03127e9ad96b42ee4af9ecc9db758ba3eefca4653695f85e08cc95dca0f6e51e",
+    "coverage": [
+      {
+        "checkId": "result_completeness",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_shape",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_identity",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "join_fanout",
+        "outcome": "not_applicable"
+      },
+      {
+        "checkId": "spec_feedback",
+        "ruleVersion": "spec-feedback-v2",
+        "outcome": "not_applicable",
+        "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+      }
+    ],
+    "fanout": {
+      "ruleVersion": "answering-fanout-v1",
+      "status": "not_applicable",
+      "snapshotScope": "unbound",
+      "targets": []
+    },
+    "disclosure": {
+      "required": true,
+      "unverifiedFields": [
+        {
+          "path": "population.eligibility",
+          "kind": "assumed"
+        },
+        {
+          "path": "population.time",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.formula",
+          "kind": "assumed"
+        },
+        {
+          "path": "grouping",
+          "kind": "assumed"
+        },
+        {
+          "path": "output",
+          "kind": "assumed"
+        },
+        {
+          "path": "selection.ties",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.countGrain",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.denominator",
+          "kind": "assumed"
+        },
+        {
+          "path": "population.missing",
+          "kind": "assumed"
+        },
+        {
+          "path": "selection",
+          "kind": "assumed"
+        }
+      ],
+      "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.time, measure.formula, grouping, output, selection.ties, measure.countGrain, measure.denominator, population.missing, selection。"
+    },
+    "physicalProfile": {
+      "version": 1,
+      "rowCount": 1,
+      "truncated": false,
+      "columns": [
+        {
+          "name": "full_name",
+          "kind": "text",
+          "nullCount": 0,
+          "distinctCount": 1
+        }
+      ]
+    },
+    "policyVersion": "answering-publication-v1",
+    "createdByInvocationId": "0f051453-6303-47ab-bdc2-3380ed8b9b6e",
+    "requestId": "0f051453-6303-47ab-bdc2-3380ed8b9b6e",
+    "createdAt": "2026-10-11T09:01:53.677Z"
+  },
+  "currentRevision": {
+    "taskId": "task_f81fe942-08df-4f79-8596-bae2a9cdb4e4",
+    "revisionId": "revision_900d402b-245b-4f3d-9218-fdfbb30865f3",
+    "parentRevisionId": "revision_040f85f2-78a1-4bb5-b8cd-f0e8e2e2f031",
+    "requestId": "6a0f61cd-c71b-40da-a6f4-450fcaa8a7ec",
+    "createdAt": "2026-10-11T09:01:49.076Z",
+    "fields": {
+      "population.entity": {
+        "state": "specified",
+        "value": {
+          "name": "客户，customer.customer_id"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_847fca2e-97d5-4bce-945e-85f6fb5bd50b"
+          ]
+        }
+      },
+      "population.eligibility": {
+        "state": "specified",
+        "value": "至少两个有付款月份的客户；无可定义差分的客户排除",
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立推导所采用的解释；不是外部业务定义。"
+        }
+      },
+      "population.time": {
+        "state": "specified",
+        "value": {
+          "expression": "全部payment_date，年-月排序；缺月不补零"
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立推导所采用的解释；不是外部业务定义。"
+        }
+      },
+      "measure.formula": {
+        "state": "specified",
+        "value": {
+          "op": "custom",
+          "description": "每客户月总付款金额SUM(amount)，相邻观测月本月总额减前月总额，对非首期差分算AVG；取最大平均差"
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立推导所采用的解释；不是外部业务定义。"
+        }
+      },
+      "grouping": {
+        "state": "specified",
+        "value": [
+          "customer_id"
+        ],
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立推导所采用的解释；不是外部业务定义。"
+        }
+      },
+      "output": {
+        "state": "specified",
+        "value": {
+          "rowMode": "full",
+          "columns": [
+            "full_name"
+          ]
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立推导所采用的解释；不是外部业务定义。"
+        }
+      },
+      "selection.ties": {
+        "state": "specified",
+        "value": "include_ties",
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立推导所采用的解释；不是外部业务定义。"
+        }
+      },
+      "measure.countGrain": {
+        "state": "specified",
+        "value": "客户的相邻有付款月份差分",
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立推导所采用的解释；不是外部业务定义。"
+        }
+      },
+      "measure.denominator": {
+        "state": "specified",
+        "value": "每客户月份数减1；不足2期排除",
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立推导所采用的解释；不是外部业务定义。"
+        }
+      },
+      "population.missing": {
+        "state": "specified",
+        "value": "不补零；相邻有付款月份",
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立推导所采用的解释；不是外部业务定义。"
+        }
+      },
+      "population.conditions": {
+        "state": "not_applicable"
+      },
+      "selection": {
+        "state": "specified",
+        "value": {
+          "n": 1,
+          "orderBy": "signed_change DESC"
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立推导所采用的解释；不是外部业务定义。"
+        }
+      }
+    },
+    "state": {
+      "state": "ready",
+      "revisionId": "revision_900d402b-245b-4f3d-9218-fdfbb30865f3",
+      "ready": "ready_2c0aa52a-3266-4b60-8999-7ccb787dadf7"
+    },
+    "specFeedback": {
+      "taskId": "task_f81fe942-08df-4f79-8596-bae2a9cdb4e4",
+      "revisionId": "revision_900d402b-245b-4f3d-9218-fdfbb30865f3",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_847fca2e-97d5-4bce-945e-85f6fb5bd50b",
+        "evidence_0af94b97-407e-4bcb-ae3e-8af81e439b38",
+        "evidence_b8f62da6-225f-457d-a590-5ad68dd19953",
+        "evidence_4ff8fab3-64f5-49b2-821e-4ed4d1e38f5f",
+        "evidence_a185048d-2ef1-4b8a-860e-8629c37908c0",
+        "evidence_38dd9d54-bcc8-4e51-ac1d-becef0735270"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    }
+  },
+  "analystNote": {
+    "algorithm": "monthly sums -> signed observed-month lag differences -> customer average -> all maxima",
+    "assumptions": [
+      "不补零",
+      "金额差非变化率",
+      "月总额非月交易平均额"
+    ],
+    "limitations": [
+      "题面未定义change；备选已实际计算"
+    ]
+  },
+  "settings": {
+    "qualification": "required",
+    "fieldProbes": true,
+    "externalAdvisor": "not_configured",
+    "specFeedback": "not_configured",
+    "fanout": "disabled_for_offline_audit",
+    "populationDecisions": "allow_disclosed_headless_audit",
+    "databaseReadOnly": true
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "sql": "WITH u AS (SELECT DISTINCT user_id,birth_date FROM mst_users), a AS (SELECT user_id,cast(strftime('%Y','2016-11-28') as int)-cast(strftime('%Y',birth_date) as int)-(strftime('%m-%d','2016-11-28')<strftime('%m-%d',birth_date)) age FROM u), b AS (SELECT user_id,CASE WHEN age BETWEEN 20 AND 29 THEN '20s' WHEN age BETWEEN 30 AND 39 THEN '30s' WHEN age BETWEEN 40 AND 49 THEN '40s' WHEN age BETWEEN 50 AND 59 THEN '50s' ELSE 'others' END age_category FROM a), categories(age_category,seq) AS (VALUES('20s',1),('30s',2),('40s',3),('50s',4),('others',5)) SELECT c.age_category,count(distinct b.user_id) user_count FROM categories c LEFT JOIN b USING(age_category) GROUP BY c.age_category,c.seq ORDER BY c.seq",
+  "limit": 1000
+}

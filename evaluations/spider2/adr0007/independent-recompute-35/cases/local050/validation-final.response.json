@@ -1,0 +1,47 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_228fb2bf-17e7-40f7-b6af-daadf64d3666\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nmedian_monthly_projected_sales_usd\n2552.6949999999997"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_228fb2bf-17e7-40f7-b6af-daadf64d3666",
+      "preview": {
+        "columns": [
+          "median_monthly_projected_sales_usd"
+        ],
+        "rows": [
+          [
+            2552.6949999999997
+          ]
+        ],
+        "columnTypes": [
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "median_monthly_projected_sales_usd"
+      ],
+      "rows": [
+        [
+          2552.6949999999997
+        ]
+      ],
+      "columnTypes": [
+        "REAL"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_24ffd6c5-8c9f-4d09-adae-b312016e02bc"
+  }
+}

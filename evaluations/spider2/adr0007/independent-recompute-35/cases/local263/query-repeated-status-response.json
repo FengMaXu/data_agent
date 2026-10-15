@@ -1,0 +1,225 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_48ff211b-fd93-4eb0-8455-173c6b257e4e\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nname | version | L1_model | status | qualifying_steps\nDelaney solubility | 1 | regression | strong | 3\nDelaney solubility | 2 | regression | strong | 3\nDelaney solubility | 5 | regression | strong | 3\nFranck-Hertz | 3 | regression | strong | 3\nFranck-Hertz | 4 | tree | strong | 3\nFranck-Hertz | 5 | tree | strong | 3\nPSS3E5 | 2 | regression | strong | 3\nPSS3E5 | 3 | regression | strong | 3\nPSS3E5 | 4 | regression | strong | 3\nPSS3E5 | 5 | regression | strong | 3\nSolar Power Generation | 3 | regression | strong | 3\nSolar Power Generation | 4 | regression | strong | 3"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_48ff211b-fd93-4eb0-8455-173c6b257e4e",
+      "preview": {
+        "columns": [
+          "name",
+          "version",
+          "L1_model",
+          "status",
+          "qualifying_steps"
+        ],
+        "rows": [
+          [
+            "Delaney solubility",
+            1,
+            "regression",
+            "strong",
+            3
+          ],
+          [
+            "Delaney solubility",
+            2,
+            "regression",
+            "strong",
+            3
+          ],
+          [
+            "Delaney solubility",
+            5,
+            "regression",
+            "strong",
+            3
+          ],
+          [
+            "Franck-Hertz",
+            3,
+            "regression",
+            "strong",
+            3
+          ],
+          [
+            "Franck-Hertz",
+            4,
+            "tree",
+            "strong",
+            3
+          ],
+          [
+            "Franck-Hertz",
+            5,
+            "tree",
+            "strong",
+            3
+          ],
+          [
+            "PSS3E5",
+            2,
+            "regression",
+            "strong",
+            3
+          ],
+          [
+            "PSS3E5",
+            3,
+            "regression",
+            "strong",
+            3
+          ],
+          [
+            "PSS3E5",
+            4,
+            "regression",
+            "strong",
+            3
+          ],
+          [
+            "PSS3E5",
+            5,
+            "regression",
+            "strong",
+            3
+          ],
+          [
+            "Solar Power Generation",
+            3,
+            "regression",
+            "strong",
+            3
+          ],
+          [
+            "Solar Power Generation",
+            4,
+            "regression",
+            "strong",
+            3
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "TEXT",
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 12,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "name",
+        "version",
+        "L1_model",
+        "status",
+        "qualifying_steps"
+      ],
+      "rows": [
+        [
+          "Delaney solubility",
+          1,
+          "regression",
+          "strong",
+          3
+        ],
+        [
+          "Delaney solubility",
+          2,
+          "regression",
+          "strong",
+          3
+        ],
+        [
+          "Delaney solubility",
+          5,
+          "regression",
+          "strong",
+          3
+        ],
+        [
+          "Franck-Hertz",
+          3,
+          "regression",
+          "strong",
+          3
+        ],
+        [
+          "Franck-Hertz",
+          4,
+          "tree",
+          "strong",
+          3
+        ],
+        [
+          "Franck-Hertz",
+          5,
+          "tree",
+          "strong",
+          3
+        ],
+        [
+          "PSS3E5",
+          2,
+          "regression",
+          "strong",
+          3
+        ],
+        [
+          "PSS3E5",
+          3,
+          "regression",
+          "strong",
+          3
+        ],
+        [
+          "PSS3E5",
+          4,
+          "regression",
+          "strong",
+          3
+        ],
+        [
+          "PSS3E5",
+          5,
+          "regression",
+          "strong",
+          3
+        ],
+        [
+          "Solar Power Generation",
+          3,
+          "regression",
+          "strong",
+          3
+        ],
+        [
+          "Solar Power Generation",
+          4,
+          "regression",
+          "strong",
+          3
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "TEXT",
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 12,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_d471d71a-d820-4f69-95f4-f64d96629274"
+  }
+}

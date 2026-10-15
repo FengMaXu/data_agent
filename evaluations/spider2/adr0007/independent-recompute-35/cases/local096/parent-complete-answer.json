@@ -1,0 +1,70 @@
+{
+  "fields": {
+    "population.entity": {
+      "value": {
+        "name": "films",
+        "keyColumns": [
+          "Movie.MID"
+        ]
+      },
+      "basis": "request",
+      "quote": "percentage of films",
+      "reason": "登记已独立推导的答案；不以字段表决定业务算法。"
+    },
+    "population.eligibility": {
+      "value": "分母所有电影；分子至少一cast且所有Person明确Female，空cast排除分子",
+      "basis": "assumed",
+      "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+    },
+    "population.conditions": {
+      "value": [
+        "分子排除Male、None、SQL NULL或无法连接演员；演员身份外围空白清理"
+      ],
+      "basis": "assumed",
+      "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+    },
+    "population.time": {
+      "value": "全年份；CAST(substr(Movie.year,-4) AS INTEGER)",
+      "basis": "request",
+      "quote": "taking the last 4 characters and converting to a number"
+    },
+    "measure.formula": {
+      "value": {
+        "op": "custom",
+        "description": "先按电影聚合cast资格，再按年100*符合电影数/全部电影数；重复Person同PID保守合并，TRIM cast MID/PID"
+      },
+      "basis": "assumed",
+      "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+    },
+    "measure.countGrain": {
+      "value": "一部MID一票",
+      "basis": "assumed",
+      "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+    },
+    "measure.denominator": {
+      "value": "该年全部Movie",
+      "basis": "request",
+      "quote": "the total number of movies in that year"
+    },
+    "grouping": {
+      "value": [
+        "year"
+      ],
+      "basis": "request",
+      "quote": "For each year"
+    },
+    "selection": "n/a",
+    "output": {
+      "value": {
+        "rowMode": "grouped",
+        "columns": [
+          "year",
+          "total_movies",
+          "female_percentage"
+        ]
+      },
+      "basis": "request",
+      "quote": "display the year, the total number of movies in that year, and the percentage"
+    }
+  }
+}

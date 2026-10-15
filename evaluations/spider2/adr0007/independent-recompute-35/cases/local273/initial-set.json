@@ -1,0 +1,9 @@
+{
+  "fields": {
+    "population.entity": {
+      "value": "product with FIFO order-inventory allocations",
+      "basis": "request",
+      "quote": "each product name"
+    }
+  }
+}

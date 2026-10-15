@@ -1,0 +1,71 @@
+{
+  "instance_id": "local286",
+  "status": "gold_conflict",
+  "summary": "独立与原资格均236卖家；Gold237中额外卖家实际仅54商品、4795.91销售额，却标108件和9591.82，严格>100资格冲突。其余评分/包装时间定义差异已计算但不能唯一裁决。",
+  "fork_node": null,
+  "error_layer": "标准答案与本次题面/输入局部冲突",
+  "visibility": null,
+  "independent_score": 0,
+  "evidence": [
+    {
+      "source": "blind.json",
+      "pointer": "/question",
+      "quote": "Prepare a comprehensive performance report on our sellers, focusing on total sales, average item price, average review scores, and packing times. Ensure that the report includes only those sellers who have sold a quantity of more than 100 products and highlight the product category names in English with the highest sales volume."
+    },
+    {
+      "source": "probe-keys.response.json",
+      "pointer": "/details/preview/rows",
+      "quote": "112650"
+    },
+    {
+      "source": "parent-report-count-response.json",
+      "pointer": "/details/preview/rows",
+      "quote": "236"
+    },
+    {
+      "source": "parent-post-gold-extra-seller-response.json",
+      "pointer": "/details/preview/rows",
+      "quote": "4795.91"
+    },
+    {
+      "source": "parent-post-gold-head-reconstruction-response.json",
+      "pointer": "/details/preview/rows",
+      "quote": "4.134065715052809"
+    },
+    {
+      "source": "comparison-input.json",
+      "pointer": "/goldCsv/0/content",
+      "quote": "\"2a7dc43cecabf23403078e2188437d1d\",108,88.81314814814814,9591.82,4.134065715052809,4.092592592592593,furniture_decor\r\n"
+    },
+    {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local286/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/10/result/details/fields/1/value",
+      "quote": "订单商品行数）超过 100 件"
+    }
+  ],
+  "limitations": [
+    "54→108仅重现倍率，未确认Gold内部复制步骤或历史数据库版本。",
+    "评分权重、packing起点/负值政策仍未由业务证据唯一裁决。",
+    "Gold要求额外数量输出列与用户展示要求不完全相同，独立分0不证明算法全错。"
+  ],
+  "parent_completed": true,
+  "completed_at": "2026-10-11T10:12:38.190428+00:00",
+  "parent_field_review": {
+    "instance_id": "local286",
+    "relevant_node": "population.eligibility",
+    "node_is_confirmed_original_error": false,
+    "explanation": "Gold额外卖家实际54件，违反严格>100；评分/packing定义另未裁决",
+    "error_layer": "标准答案与本次输入/明确要求局部冲突",
+    "visibility": "不适用：未确认原Spec语义错误",
+    "qualification": "Gold差异相关节点，不冒充原系统错误节点",
+    "original_node_declared": true,
+    "original_node_status": "request",
+    "original_node_value": "只纳入售出商品数量（订单商品行数）超过 100 件的卖家；没有任何商品记录的卖家不纳入。",
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local286/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/10/result/details/fields/1/value",
+      "quote": "只纳入售出商品数量（订单商品行数）超过 100 件的卖家；没有任何商品记录的卖家不纳入。"
+    },
+    "primary_status": "gold_conflict"
+  }
+}

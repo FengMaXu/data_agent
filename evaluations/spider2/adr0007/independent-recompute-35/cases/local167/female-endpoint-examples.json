@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT l.id_bioguide,l.full_name,t.term_start,t.term_end FROM legislators l JOIN legislators_terms t USING(id_bioguide) WHERE gender='F' AND (substr(t.term_start,6)='12-31' OR substr(t.term_end,6)='12-31') ORDER BY t.term_start",
+  "limit": 1000
+}

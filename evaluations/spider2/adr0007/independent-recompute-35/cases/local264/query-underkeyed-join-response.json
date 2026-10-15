@@ -1,0 +1,85 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_e388f326-8fd0-42eb-ac72-bcca54c6b2d0\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nL1_model | n | model_steps | cross_step_rows | noninferior_rows\nregression | 639 | 213 | 426 | 342\ntree | 270 | 90 | 180 | 75"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_e388f326-8fd0-42eb-ac72-bcca54c6b2d0",
+      "preview": {
+        "columns": [
+          "L1_model",
+          "n",
+          "model_steps",
+          "cross_step_rows",
+          "noninferior_rows"
+        ],
+        "rows": [
+          [
+            "regression",
+            639,
+            213,
+            426,
+            342
+          ],
+          [
+            "tree",
+            270,
+            90,
+            180,
+            75
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 2,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "L1_model",
+        "n",
+        "model_steps",
+        "cross_step_rows",
+        "noninferior_rows"
+      ],
+      "rows": [
+        [
+          "regression",
+          639,
+          213,
+          426,
+          342
+        ],
+        [
+          "tree",
+          270,
+          90,
+          180,
+          75
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 2,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_8efc5076-5f55-47d0-8ed6-14f45ac9183a"
+  }
+}

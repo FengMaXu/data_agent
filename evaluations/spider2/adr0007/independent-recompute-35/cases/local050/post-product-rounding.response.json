@@ -1,0 +1,77 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_09b16c6f-927b-4d9e-a4db-1ed26fca46b3\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nm | a | rn | mean_all\n2 | 2454.4014285714284 | 6 | 2604.236291208791\n9 | 2754.071153846154 | 7 | 2604.236291208791"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_09b16c6f-927b-4d9e-a4db-1ed26fca46b3",
+      "preview": {
+        "columns": [
+          "m",
+          "a",
+          "rn",
+          "mean_all"
+        ],
+        "rows": [
+          [
+            2,
+            2454.4014285714284,
+            6,
+            2604.236291208791
+          ],
+          [
+            9,
+            2754.071153846154,
+            7,
+            2604.236291208791
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "REAL",
+          "INTEGER",
+          "REAL"
+        ],
+        "rowCount": 2,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "m",
+        "a",
+        "rn",
+        "mean_all"
+      ],
+      "rows": [
+        [
+          2,
+          2454.4014285714284,
+          6,
+          2604.236291208791
+        ],
+        [
+          9,
+          2754.071153846154,
+          7,
+          2604.236291208791
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "REAL",
+        "INTEGER",
+        "REAL"
+      ],
+      "rowCount": 2,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_71d1b740-aa8c-4101-a373-52684317d60f"
+  }
+}

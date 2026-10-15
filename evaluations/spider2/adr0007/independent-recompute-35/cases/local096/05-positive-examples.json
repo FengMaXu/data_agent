@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT m.MID,m.title,m.year,(SELECT COUNT(*) FROM M_Cast c WHERE c.MID=m.MID) casts FROM Movie m WHERE EXISTS(SELECT 1 FROM M_Cast c WHERE c.MID=m.MID) AND NOT EXISTS(SELECT 1 FROM M_Cast c LEFT JOIN Person p ON p.PID=c.PID WHERE c.MID=m.MID AND (p.Gender IS NULL OR p.Gender!='Female'))",
+  "limit": 100
+}

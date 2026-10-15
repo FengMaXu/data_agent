@@ -1,0 +1,275 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_51d64568-2a51-4a4a-839d-8497ee615252 revisionId=revision_b55e5363-bf65-49f2-acc8-6e11d8e7c97e\n- ✓ population.entity\n状态：\n- 未声明: population.eligibility, population.conditions, population.time, measure.formula, grouping, selection, output\n[SPEC_FEEDBACK] revisionId=revision_b55e5363-bf65-49f2-acc8-6e11d8e7c97e status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"新增独角兽公司 company_id\"}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_51d64568-2a51-4a4a-839d-8497ee615252",
+    "revisionId": "revision_b55e5363-bf65-49f2-acc8-6e11d8e7c97e",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "新增独角兽公司 company_id"
+        },
+        "evidenceIds": [
+          "evidence_a8d39bab-33d1-47fb-90d8-ba41552b8e47"
+        ]
+      }
+    ],
+    "undeclared": [
+      "population.eligibility",
+      "population.conditions",
+      "population.time",
+      "measure.formula",
+      "grouping",
+      "selection",
+      "output"
+    ],
+    "open": [],
+    "unverified": [],
+    "specFeedback": {
+      "taskId": "task_51d64568-2a51-4a4a-839d-8497ee615252",
+      "revisionId": "revision_b55e5363-bf65-49f2-acc8-6e11d8e7c97e",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_a8d39bab-33d1-47fb-90d8-ba41552b8e47"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "population.entity",
+        "status": "applied"
+      }
+    ]
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_f1b31b9c-d48b-4d82-b396-c16fda8461fa\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\ncompany_id | date_joined | year_founded\n109 | 2020-09-08T00:00:00.000 | 2004\n821 | 2019-05-16T00:00:00.000 | 2009\n153 | 2019-07-11T00:00:00.000 | 2016\n972 | 2018-10-17T00:00:00.000 | 2016\n1022 | 2021-06-02T00:00:00.000 | 2013"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_f1b31b9c-d48b-4d82-b396-c16fda8461fa",
+      "preview": {
+        "columns": [
+          "company_id",
+          "date_joined",
+          "year_founded"
+        ],
+        "rows": [
+          [
+            109,
+            "2020-09-08T00:00:00.000",
+            2004
+          ],
+          [
+            821,
+            "2019-05-16T00:00:00.000",
+            2009
+          ],
+          [
+            153,
+            "2019-07-11T00:00:00.000",
+            2016
+          ],
+          [
+            972,
+            "2018-10-17T00:00:00.000",
+            2016
+          ],
+          [
+            1022,
+            "2021-06-02T00:00:00.000",
+            2013
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 5,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "company_id",
+        "date_joined",
+        "year_founded"
+      ],
+      "rows": [
+        [
+          109,
+          "2020-09-08T00:00:00.000",
+          2004
+        ],
+        [
+          821,
+          "2019-05-16T00:00:00.000",
+          2009
+        ],
+        [
+          153,
+          "2019-07-11T00:00:00.000",
+          2016
+        ],
+        [
+          972,
+          "2018-10-17T00:00:00.000",
+          2016
+        ],
+        [
+          1022,
+          "2021-06-02T00:00:00.000",
+          2013
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 5,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_68dc3429-103f-4388-9dd6-7e4863ebda37"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_8d91415f-6c5a-49ed-929d-3b1095df5271\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nrows | companies | id_dates\n1085 | 1074 | 1074"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_8d91415f-6c5a-49ed-929d-3b1095df5271",
+      "preview": {
+        "columns": [
+          "rows",
+          "companies",
+          "id_dates"
+        ],
+        "rows": [
+          [
+            1085,
+            1074,
+            1074
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "rows",
+        "companies",
+        "id_dates"
+      ],
+      "rows": [
+        [
+          1085,
+          1074,
+          1074
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_c4d69eec-00d7-4af6-88ca-5627798bbde2"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_ab5fe007-8818-4d6d-be4a-3d8136f77da8\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nrows | companies | id_industries\n1085 | 1074 | 1074"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_ab5fe007-8818-4d6d-be4a-3d8136f77da8",
+      "preview": {
+        "columns": [
+          "rows",
+          "companies",
+          "id_industries"
+        ],
+        "rows": [
+          [
+            1085,
+            1074,
+            1074
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "rows",
+        "companies",
+        "id_industries"
+      ],
+      "rows": [
+        [
+          1085,
+          1074,
+          1074
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_61586e3c-4b76-409b-88da-555a6c512ecc"
+  }
+}
+

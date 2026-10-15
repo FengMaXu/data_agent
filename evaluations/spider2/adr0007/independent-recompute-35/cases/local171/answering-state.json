@@ -1,0 +1,1480 @@
+{
+  "version": 2,
+  "tasks": [
+    {
+      "taskId": "task_4d2f0ce8-661c-44fe-8d12-7be33e1d8c3c",
+      "sessionId": "local171",
+      "principalId": "independent-analyst",
+      "requestMessageId": "original-task",
+      "requestId": "074c473b-b7f1-47a2-96b3-51da56c11071",
+      "currentRevisionId": "revision_a381a70b-5bb2-49a3-b379-78051188c218",
+      "lifecycle": "published",
+      "budget": {
+        "policy": {
+          "version": "answering-dual-loop-v1",
+          "maxRevisions": 40,
+          "maxExplorationAttempts": 120,
+          "maxResultAttempts": 20,
+          "maxElapsedMs": 14400000,
+          "maxObservedRows": 2000000
+        },
+        "startedAt": "2026-10-11T09:12:37.727Z",
+        "revisionCount": 1,
+        "explorationAttempts": 15,
+        "resultAttempts": 1,
+        "observedRows": 102
+      },
+      "createdAt": "2026-10-11T09:12:37.727Z",
+      "updatedAt": "2026-10-11T09:15:52.080Z",
+      "latestCandidateId": "candidate_e603ea1f-2bf4-4d77-bcfe-b789661ffdd3",
+      "publicationId": "publication_7559968e-5286-4558-97ed-af22b329a52a"
+    }
+  ],
+  "revisions": [
+    {
+      "taskId": "task_4d2f0ce8-661c-44fe-8d12-7be33e1d8c3c",
+      "revisionId": "revision_2b924ac4-9036-41b2-bebd-a497fc0e7d3f",
+      "requestId": "074c473b-b7f1-47a2-96b3-51da56c11071",
+      "createdAt": "2026-10-11T09:12:37.727Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "male legislators"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_31856b21-ab58-4e71-8b20-aa0da4c13744"
+            ]
+          }
+        }
+      },
+      "state": {
+        "state": "draft",
+        "revisionId": "revision_2b924ac4-9036-41b2-bebd-a497fc0e7d3f"
+      },
+      "specFeedback": {
+        "taskId": "task_4d2f0ce8-661c-44fe-8d12-7be33e1d8c3c",
+        "revisionId": "revision_2b924ac4-9036-41b2-bebd-a497fc0e7d3f",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_31856b21-ab58-4e71-8b20-aa0da4c13744"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    },
+    {
+      "taskId": "task_4d2f0ce8-661c-44fe-8d12-7be33e1d8c3c",
+      "revisionId": "revision_a381a70b-5bb2-49a3-b379-78051188c218",
+      "parentRevisionId": "revision_2b924ac4-9036-41b2-bebd-a497fc0e7d3f",
+      "requestId": "e5734379-39b2-4226-a2ee-0e7fe68672dc",
+      "createdAt": "2026-10-11T09:13:25.529Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "male legislators"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_31856b21-ab58-4e71-8b20-aa0da4c13744"
+            ]
+          }
+        },
+        "population.eligibility": {
+          "state": "specified",
+          "value": "Only observed eligible records; no fabricated missing records",
+          "basis": {
+            "kind": "assumed",
+            "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+          }
+        },
+        "population.conditions": {
+          "state": "specified",
+          "value": [
+            "gender M",
+            "first term state LA",
+            "integer years 31..49"
+          ],
+          "basis": {
+            "kind": "assumed",
+            "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+          }
+        },
+        "population.time": {
+          "state": "specified",
+          "value": {
+            "expression": "All available calendar years, Dec31 observations within inclusive terms; years elapsed = snapshot year - first_start year"
+          },
+          "basis": {
+            "kind": "assumed",
+            "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+          }
+        },
+        "measure.formula": {
+          "state": "specified",
+          "value": {
+            "op": "custom",
+            "description": "Distinct male legislators first represented LA, serving in any inclusive term on Dec31; complete calendar years since global first term; filter integers >30 and <50; group observed periods without zero fill"
+          },
+          "basis": {
+            "kind": "assumed",
+            "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+          }
+        },
+        "grouping": {
+          "state": "specified",
+          "value": [
+            "period"
+          ],
+          "basis": {
+            "kind": "assumed",
+            "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+          }
+        },
+        "selection": {
+          "state": "not_applicable"
+        },
+        "output": {
+          "state": "specified",
+          "value": {
+            "rowMode": "full",
+            "columns": [
+              "period",
+              "legislators"
+            ]
+          },
+          "basis": {
+            "kind": "assumed",
+            "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+          }
+        }
+      },
+      "state": {
+        "state": "ready",
+        "revisionId": "revision_a381a70b-5bb2-49a3-b379-78051188c218",
+        "ready": "ready_56085136-f84e-4746-9928-1baf3b036d10"
+      },
+      "specFeedback": {
+        "taskId": "task_4d2f0ce8-661c-44fe-8d12-7be33e1d8c3c",
+        "revisionId": "revision_a381a70b-5bb2-49a3-b379-78051188c218",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_31856b21-ab58-4e71-8b20-aa0da4c13744",
+          "evidence_c0cf428e-b8c1-4abe-81ae-77a0b5ea247d",
+          "evidence_cd8651e3-ab5f-4c68-8cb8-f3cc8d41113c",
+          "evidence_d3920f8a-4558-4c68-b98b-4e66a7d29d5c",
+          "evidence_654e5e65-779f-443f-9b09-9b427c1c82f1",
+          "evidence_f2fd43d0-f7a7-4fd0-8505-416092ea744d",
+          "evidence_482d7368-08e1-4b91-8d3c-344725cf9249",
+          "evidence_174c8c1a-db8d-41b7-8d83-11471f5420fe"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "taskId": "task_4d2f0ce8-661c-44fe-8d12-7be33e1d8c3c",
+      "items": [
+        {
+          "id": "request_be3e2f2bd519d830902bceb0",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "observedAt": "2026-10-11T09:12:37.727Z"
+        },
+        {
+          "id": "evidence_31856b21-ab58-4e71-8b20-aa0da4c13744",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "6852b1c17f29393fcfbaf5a27b0346a59fece13f9337270ce73b9dc22c949551",
+          "quote": "male legislators",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "6852b1c17f29393fcfbaf5a27b0346a59fece13f9337270ce73b9dc22c949551"
+          },
+          "observedAt": "2026-10-11T09:12:37.727Z"
+        },
+        {
+          "id": "evidence_c0cf428e-b8c1-4abe-81ae-77a0b5ea247d",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "bf1e5bf1-2669-4c7f-9652-11cce73cea8f",
+          "preview": {
+            "columns": [
+              "min(term_start)",
+              "max(term_end)",
+              "sum(term_end IS NULL)",
+              "sum(term_start>term_end)",
+              "sum(substr(term_end,6)='12-31')",
+              "sum(substr(term_start,6)='12-31')"
+            ],
+            "rows": [
+              [
+                "1789-03-04",
+                "2025-01-03",
+                0,
+                0,
+                272,
+                8
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "TEXT",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "d606df648f9899798a227918f1eb02207644218c78fbe87efa45576cb511baee",
+          "contentHash": "34899a8a0b0b95a4ea5305081ea746f71e0cc7afe1a00a706404a6849a2f034b",
+          "observedAt": "2026-10-11T09:12:41.060Z"
+        },
+        {
+          "id": "evidence_cd8651e3-ab5f-4c68-8cb8-f3cc8d41113c",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "29202e43-8bdb-41bb-a744-68f3c519ec8b",
+          "preview": {
+            "columns": [
+              "min(date)",
+              "max(date)",
+              "count(*)"
+            ],
+            "rows": [
+              [
+                "1917-01-01",
+                "1999-12-31",
+                30315
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "caf9cd4e1fb05c8f23953d7d01e8fcd830659b31c0c416ed832ec05f4ad5e5a2",
+          "contentHash": "cf43ef7920de31b3ce544e2697a93230103ca9aa54562c024920ccd4e3002107",
+          "observedAt": "2026-10-11T09:12:44.577Z"
+        },
+        {
+          "id": "evidence_d3920f8a-4558-4c68-b98b-4e66a7d29d5c",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "e3db7252-2291-451a-b513-87538f5f887d",
+          "preview": {
+            "columns": [
+              "first_la_men",
+              "changed_state"
+            ],
+            "rows": [
+              [
+                198,
+                0
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "8b60df6c6d129286f90adcff63a3a91913e1fd36d940875e4970769f06e6a3a3",
+          "contentHash": "c31fa4dcb728248f801c7fb71e715abcc362f68aab191c17ba27ffc2d9203534",
+          "observedAt": "2026-10-11T09:12:49.685Z"
+        },
+        {
+          "id": "evidence_654e5e65-779f-443f-9b09-9b427c1c82f1",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "596ef142-7d7e-431d-8ca6-2f638c0698f4",
+          "preview": {
+            "columns": [
+              "period",
+              "legislators"
+            ],
+            "rows": [
+              [
+                31,
+                5
+              ],
+              [
+                32,
+                4
+              ],
+              [
+                33,
+                4
+              ],
+              [
+                34,
+                4
+              ],
+              [
+                35,
+                3
+              ],
+              [
+                36,
+                1
+              ],
+              [
+                37,
+                1
+              ],
+              [
+                38,
+                1
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 8,
+            "truncated": false
+          },
+          "queryHash": "a34fa8e0b50d46cd1eea912f9429e7795c90d69e07d2842763af4f5a9278bbd4",
+          "contentHash": "7098573a7ed45c2905232b33d4377818607ef828f1cefacedcbbe2c6e23331a3",
+          "observedAt": "2026-10-11T09:13:13.322Z"
+        },
+        {
+          "id": "evidence_f2fd43d0-f7a7-4fd0-8505-416092ea744d",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "4c78c15b-9b7d-4202-beac-af1ff9f95ef0",
+          "preview": {
+            "columns": [
+              "id_bioguide",
+              "full_name",
+              "first_start",
+              "first_snapshot",
+              "last_snapshot",
+              "observations"
+            ],
+            "rows": [
+              [
+                "S000768",
+                "Louis St. Martin",
+                "1851-12-01",
+                "1885-12-31",
+                "1886-12-31",
+                2
+              ],
+              [
+                "R000059",
+                "Joseph Eugene Ransdell",
+                "1899-12-04",
+                "1930-12-31",
+                "1930-12-31",
+                1
+              ],
+              [
+                "E000112",
+                "Allen Joseph Ellender",
+                "1937-01-05",
+                "1968-12-31",
+                "1971-12-31",
+                4
+              ],
+              [
+                "H000437",
+                "Felix Edward Hébert",
+                "1941-01-03",
+                "1972-12-31",
+                "1976-12-31",
+                5
+              ],
+              [
+                "L000428",
+                "Russell Billiu Long",
+                "1948-01-01",
+                "1979-12-31",
+                "1986-12-31",
+                8
+              ],
+              [
+                "B000780",
+                "John B. Breaux",
+                "1971-01-21",
+                "2002-12-31",
+                "2004-12-31",
+                3
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "TEXT",
+              "TEXT",
+              "TEXT",
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 6,
+            "truncated": false
+          },
+          "queryHash": "a4d485414ce2022ec2e3d4e96973952656b78e529095bf39f042a01f190fe345",
+          "contentHash": "44fe4f355bf24fbee1813ecc62bd75f9f5e7ed986e03a1f679a1b375a0ecad63",
+          "observedAt": "2026-10-11T09:13:15.785Z"
+        },
+        {
+          "id": "evidence_482d7368-08e1-4b91-8d3c-344725cf9249",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "c927d420-078d-4d26-b8f2-55b3bd43e65b",
+          "preview": {
+            "columns": [
+              "period",
+              "legislators"
+            ],
+            "rows": [
+              [
+                31,
+                6
+              ],
+              [
+                32,
+                5
+              ],
+              [
+                33,
+                5
+              ],
+              [
+                34,
+                5
+              ],
+              [
+                35,
+                4
+              ],
+              [
+                36,
+                2
+              ],
+              [
+                37,
+                1
+              ],
+              [
+                38,
+                1
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 8,
+            "truncated": false
+          },
+          "queryHash": "39169693c4586cd927b15031aacf3e787ca049b653880835232b183838a522df",
+          "contentHash": "a845fe74b5f15f6f7fa92970e5333c245fca8447e69b13f8c31dd249c58e7841",
+          "observedAt": "2026-10-11T09:13:19.532Z"
+        },
+        {
+          "id": "evidence_174c8c1a-db8d-41b7-8d83-11471f5420fe",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "c487bcd6-f332-42c1-be55-55d74c0dc834",
+          "preview": {
+            "columns": [
+              "period",
+              "legislators"
+            ],
+            "rows": [
+              [
+                31,
+                6
+              ],
+              [
+                32,
+                5
+              ],
+              [
+                33,
+                5
+              ],
+              [
+                34,
+                5
+              ],
+              [
+                35,
+                4
+              ],
+              [
+                36,
+                2
+              ],
+              [
+                37,
+                1
+              ],
+              [
+                38,
+                1
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 8,
+            "truncated": false
+          },
+          "queryHash": "9d6a5b6e19d600a4e8afea7345726b39577c5fcec920e45992555403eb812837",
+          "contentHash": "a845fe74b5f15f6f7fa92970e5333c245fca8447e69b13f8c31dd249c58e7841",
+          "observedAt": "2026-10-11T09:13:23.476Z"
+        },
+        {
+          "id": "evidence_7cf9a4c7-4c81-4310-acd8-e4dc62e12e0d",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "3068df14-39ea-4b77-bd83-f8b03ee64fe5",
+          "preview": {
+            "columns": [
+              "years_since_first_term",
+              "legislator_count"
+            ],
+            "rows": [
+              [
+                31,
+                6
+              ],
+              [
+                32,
+                5
+              ],
+              [
+                33,
+                5
+              ],
+              [
+                34,
+                5
+              ],
+              [
+                35,
+                4
+              ],
+              [
+                36,
+                2
+              ],
+              [
+                37,
+                1
+              ],
+              [
+                38,
+                1
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 8,
+            "truncated": false
+          },
+          "queryHash": "8d22e64152bdb717cf6e7ec5177a468b8fe0e233e6c3cb156d844dc5ebbf6548",
+          "contentHash": "627ca41d9563d286b37d807bfef0b667264b56d1a9a0a47744e07096c97a1221",
+          "observedAt": "2026-10-11T09:13:53.375Z"
+        },
+        {
+          "id": "evidence_c346c1d4-d3fa-4098-b46c-4e240e8bc28b",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "944bf679-137c-4127-9466-de2a32c1930f",
+          "preview": {
+            "columns": [
+              "period",
+              "legislators"
+            ],
+            "rows": [
+              [
+                31,
+                4
+              ],
+              [
+                32,
+                3
+              ],
+              [
+                33,
+                3
+              ],
+              [
+                34,
+                3
+              ],
+              [
+                35,
+                2
+              ],
+              [
+                36,
+                1
+              ],
+              [
+                37,
+                1
+              ],
+              [
+                38,
+                1
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 8,
+            "truncated": false
+          },
+          "queryHash": "886d7a9f040ddf0d0379f84d7a93e0da54d7f2a1261de4186d58f7ee956b51cd",
+          "contentHash": "1e3df3489124ace1f0114e9bfb536f05cdf3d9edfe2269bec5098122f9c1b232",
+          "observedAt": "2026-10-11T09:13:58.552Z"
+        },
+        {
+          "id": "evidence_8582c80e-2ee1-4a42-9057-d3633cbbd86f",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "a2caefa9-fa2d-4148-b45e-9d08e03b3d8d",
+          "preview": {
+            "columns": [
+              "period",
+              "legislators"
+            ],
+            "rows": [
+              [
+                31,
+                5
+              ],
+              [
+                32,
+                4
+              ],
+              [
+                33,
+                4
+              ],
+              [
+                34,
+                4
+              ],
+              [
+                35,
+                3
+              ],
+              [
+                36,
+                1
+              ],
+              [
+                37,
+                1
+              ],
+              [
+                38,
+                1
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 8,
+            "truncated": false
+          },
+          "queryHash": "b32ff1de3b82da2ad721bb41e347f9603b83a0da6b561b3fd7693b7bb17446ab",
+          "contentHash": "7098573a7ed45c2905232b33d4377818607ef828f1cefacedcbbe2c6e23331a3",
+          "observedAt": "2026-10-11T09:14:03.922Z"
+        },
+        {
+          "id": "evidence_2a5c55f8-0da8-401d-ab94-0e07280424b2",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "3807b0e0-6dfa-44ef-bafa-ef317e6b2e67",
+          "preview": {
+            "columns": [
+              "id_bioguide",
+              "full_name",
+              "first_state",
+              "first_start",
+              "first_snapshot",
+              "last_snapshot",
+              "observations"
+            ],
+            "rows": [
+              [
+                "L000366",
+                "Edward Livingston",
+                "NY",
+                "1795-12-07",
+                "1826-12-31",
+                "1831-12-31",
+                6
+              ],
+              [
+                "S000768",
+                "Louis St. Martin",
+                "LA",
+                "1851-12-01",
+                "1885-12-31",
+                "1886-12-31",
+                2
+              ],
+              [
+                "R000059",
+                "Joseph Eugene Ransdell",
+                "LA",
+                "1899-12-04",
+                "1930-12-31",
+                "1930-12-31",
+                1
+              ],
+              [
+                "E000112",
+                "Allen Joseph Ellender",
+                "LA",
+                "1937-01-05",
+                "1968-12-31",
+                "1971-12-31",
+                4
+              ],
+              [
+                "H000437",
+                "Felix Edward Hébert",
+                "LA",
+                "1941-01-03",
+                "1972-12-31",
+                "1976-12-31",
+                5
+              ],
+              [
+                "L000428",
+                "Russell Billiu Long",
+                "LA",
+                "1948-01-01",
+                "1979-12-31",
+                "1986-12-31",
+                8
+              ],
+              [
+                "B000780",
+                "John B. Breaux",
+                "LA",
+                "1971-01-21",
+                "2002-12-31",
+                "2004-12-31",
+                3
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "TEXT",
+              "TEXT",
+              "TEXT",
+              "TEXT",
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 7,
+            "truncated": false
+          },
+          "queryHash": "380f1395a35789c440cf5b2cfc006c28453f2d82167217af643e5dc3cde46a8c",
+          "contentHash": "537253c6552cafc8a59fbd4740ee40f9c47d9c72edfe4f1ace93d799a9af721c",
+          "observedAt": "2026-10-11T09:14:34.488Z"
+        },
+        {
+          "id": "evidence_689aeede-22d4-40f6-a69f-ad6ad8a5a142",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "0ed95951-a215-4f15-b729-e175059d1a04",
+          "preview": {
+            "columns": [
+              "period",
+              "legislators"
+            ],
+            "rows": [
+              [
+                31,
+                4
+              ],
+              [
+                32,
+                3
+              ],
+              [
+                33,
+                3
+              ],
+              [
+                34,
+                3
+              ],
+              [
+                35,
+                2
+              ],
+              [
+                36,
+                1
+              ],
+              [
+                37,
+                1
+              ],
+              [
+                38,
+                1
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 8,
+            "truncated": false
+          },
+          "queryHash": "4fc24086e7817f58f7efb990a29cc1e5583f8962dcef44739d36fef6ec4889cf",
+          "contentHash": "1e3df3489124ace1f0114e9bfb536f05cdf3d9edfe2269bec5098122f9c1b232",
+          "observedAt": "2026-10-11T09:14:39.295Z"
+        },
+        {
+          "id": "evidence_61b2f4d4-68f9-4a40-9d85-3a5ed640c36e",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "debb3709-7499-4122-a3b4-78265af68727",
+          "preview": {
+            "columns": [
+              "period",
+              "legislators"
+            ],
+            "rows": [
+              [
+                31,
+                5
+              ],
+              [
+                32,
+                4
+              ],
+              [
+                33,
+                4
+              ],
+              [
+                34,
+                4
+              ],
+              [
+                35,
+                3
+              ],
+              [
+                36,
+                1
+              ],
+              [
+                37,
+                1
+              ],
+              [
+                38,
+                1
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 8,
+            "truncated": false
+          },
+          "queryHash": "7707b1dc22896a708c47b169b59eb6848f10fe81da14a52ceff2677512df307d",
+          "contentHash": "7098573a7ed45c2905232b33d4377818607ef828f1cefacedcbbe2c6e23331a3",
+          "observedAt": "2026-10-11T09:14:43.612Z"
+        },
+        {
+          "id": "evidence_5146fa0c-036e-4a67-ab81-68f586f98eb1",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "6cfdb027-8eff-45e1-9628-dd4de1074ec5",
+          "preview": {
+            "columns": [
+              "period",
+              "legislators",
+              "elapsed_min",
+              "elapsed_max"
+            ],
+            "rows": [
+              [
+                30,
+                7,
+                30.072553045859,
+                30.99794661190965
+              ],
+              [
+                31,
+                5,
+                31.071868583162217,
+                31.99726214921287
+              ],
+              [
+                32,
+                4,
+                32.941820670773446,
+                32.99931553730322
+              ],
+              [
+                33,
+                4,
+                33.94387405886379,
+                33.998631074606436
+              ],
+              [
+                34,
+                4,
+                34.08350444900753,
+                34.997946611909654
+              ],
+              [
+                35,
+                3,
+                35.082819986310746,
+                35.997262149212865
+              ],
+              [
+                36,
+                1,
+                36.99931553730322,
+                36.99931553730322
+              ],
+              [
+                37,
+                1,
+                37.998631074606436,
+                37.998631074606436
+              ],
+              [
+                38,
+                1,
+                38.997946611909654,
+                38.997946611909654
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "REAL",
+              "REAL"
+            ],
+            "rowCount": 9,
+            "truncated": false
+          },
+          "queryHash": "764a6cee0535ff2a7dc010099db511e0e7f83056a655fb615e6bfc33d00df2eb",
+          "contentHash": "19308bd9d6ccc42e8641bfb18ae7703b71f737996ab782995a8be1ad4f870e95",
+          "observedAt": "2026-10-11T09:14:49.476Z"
+        },
+        {
+          "id": "evidence_100c951b-dcf1-4aa1-ae32-911d1e7ba4d6",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "27d87d3b-ecaa-4904-9cdc-23b198a50aa0",
+          "preview": {
+            "columns": [
+              "period",
+              "id_bioguide",
+              "full_name",
+              "gender",
+              "first_start",
+              "snapshot",
+              "state",
+              "term_start",
+              "term_end"
+            ],
+            "rows": [
+              [
+                31,
+                "B000780",
+                "John B. Breaux",
+                "M",
+                "1971-01-21",
+                "2002-12-31",
+                "LA",
+                "1999-01-06",
+                "2005-01-03"
+              ],
+              [
+                31,
+                "E000112",
+                "Allen Joseph Ellender",
+                "M",
+                "1937-01-05",
+                "1968-12-31",
+                "LA",
+                "1967-01-10",
+                "1972-07-27"
+              ],
+              [
+                31,
+                "H000437",
+                "Felix Edward Hébert",
+                "M",
+                "1941-01-03",
+                "1972-12-31",
+                "LA",
+                "1971-01-21",
+                "1973-01-03"
+              ],
+              [
+                31,
+                "L000428",
+                "Russell Billiu Long",
+                "M",
+                "1948-01-01",
+                "1979-12-31",
+                "LA",
+                "1975-01-14",
+                "1981-01-03"
+              ],
+              [
+                31,
+                "R000059",
+                "Joseph Eugene Ransdell",
+                "M",
+                "1899-12-04",
+                "1930-12-31",
+                "LA",
+                "1925-12-07",
+                "1931-03-03"
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "TEXT",
+              "TEXT",
+              "TEXT",
+              "TEXT",
+              "TEXT",
+              "TEXT",
+              "TEXT",
+              "TEXT"
+            ],
+            "rowCount": 5,
+            "truncated": false
+          },
+          "queryHash": "3c03dace21a6bd9fd4d2936ed5f318c72b9ee05820f79385eedd9d0a338e609a",
+          "contentHash": "18fba42526550915725a2706e4ff17e6e6013bf124860ab873e7787e9b61cc1c",
+          "observedAt": "2026-10-11T09:15:52.078Z"
+        }
+      ]
+    }
+  ],
+  "attempts": [
+    {
+      "taskId": "task_4d2f0ce8-661c-44fe-8d12-7be33e1d8c3c",
+      "items": [
+        {
+          "attemptId": "attempt_19b0106e-d816-40a7-a2c9-410b75bf0eed",
+          "taskId": "task_4d2f0ce8-661c-44fe-8d12-7be33e1d8c3c",
+          "kind": "exploration",
+          "revisionId": "revision_2b924ac4-9036-41b2-bebd-a497fc0e7d3f",
+          "invocationId": "bf1e5bf1-2669-4c7f-9652-11cce73cea8f",
+          "queryHash": "d606df648f9899798a227918f1eb02207644218c78fbe87efa45576cb511baee",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:12:40.649Z",
+          "updatedAt": "2026-10-11T09:12:41.061Z"
+        },
+        {
+          "attemptId": "attempt_dd8d629c-dcdf-46ea-b301-129973a6300a",
+          "taskId": "task_4d2f0ce8-661c-44fe-8d12-7be33e1d8c3c",
+          "kind": "exploration",
+          "revisionId": "revision_2b924ac4-9036-41b2-bebd-a497fc0e7d3f",
+          "invocationId": "29202e43-8bdb-41bb-a744-68f3c519ec8b",
+          "queryHash": "caf9cd4e1fb05c8f23953d7d01e8fcd830659b31c0c416ed832ec05f4ad5e5a2",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:12:44.093Z",
+          "updatedAt": "2026-10-11T09:12:44.578Z"
+        },
+        {
+          "attemptId": "attempt_ffadaad2-383d-4b57-9b9f-8741f28a97c7",
+          "taskId": "task_4d2f0ce8-661c-44fe-8d12-7be33e1d8c3c",
+          "kind": "exploration",
+          "revisionId": "revision_2b924ac4-9036-41b2-bebd-a497fc0e7d3f",
+          "invocationId": "e3db7252-2291-451a-b513-87538f5f887d",
+          "queryHash": "8b60df6c6d129286f90adcff63a3a91913e1fd36d940875e4970769f06e6a3a3",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:12:48.300Z",
+          "updatedAt": "2026-10-11T09:12:49.686Z"
+        },
+        {
+          "attemptId": "attempt_88b56be0-c22a-4f48-bd3b-908753f17967",
+          "taskId": "task_4d2f0ce8-661c-44fe-8d12-7be33e1d8c3c",
+          "kind": "exploration",
+          "revisionId": "revision_2b924ac4-9036-41b2-bebd-a497fc0e7d3f",
+          "invocationId": "596ef142-7d7e-431d-8ca6-2f638c0698f4",
+          "queryHash": "a34fa8e0b50d46cd1eea912f9429e7795c90d69e07d2842763af4f5a9278bbd4",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:13:12.517Z",
+          "updatedAt": "2026-10-11T09:13:13.323Z"
+        },
+        {
+          "attemptId": "attempt_039b03ba-c90b-4c33-af9f-893065fa390c",
+          "taskId": "task_4d2f0ce8-661c-44fe-8d12-7be33e1d8c3c",
+          "kind": "exploration",
+          "revisionId": "revision_2b924ac4-9036-41b2-bebd-a497fc0e7d3f",
+          "invocationId": "4c78c15b-9b7d-4202-beac-af1ff9f95ef0",
+          "queryHash": "a4d485414ce2022ec2e3d4e96973952656b78e529095bf39f042a01f190fe345",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:13:14.996Z",
+          "updatedAt": "2026-10-11T09:13:15.785Z"
+        },
+        {
+          "attemptId": "attempt_158033fa-5d32-455b-891b-20e3a7e959ae",
+          "taskId": "task_4d2f0ce8-661c-44fe-8d12-7be33e1d8c3c",
+          "kind": "exploration",
+          "revisionId": "revision_2b924ac4-9036-41b2-bebd-a497fc0e7d3f",
+          "invocationId": "c927d420-078d-4d26-b8f2-55b3bd43e65b",
+          "queryHash": "39169693c4586cd927b15031aacf3e787ca049b653880835232b183838a522df",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:13:17.547Z",
+          "updatedAt": "2026-10-11T09:13:19.533Z"
+        },
+        {
+          "attemptId": "attempt_aca330f9-a799-4f0e-af70-80cd5bf2fcf8",
+          "taskId": "task_4d2f0ce8-661c-44fe-8d12-7be33e1d8c3c",
+          "kind": "exploration",
+          "revisionId": "revision_2b924ac4-9036-41b2-bebd-a497fc0e7d3f",
+          "invocationId": "c487bcd6-f332-42c1-be55-55d74c0dc834",
+          "queryHash": "9d6a5b6e19d600a4e8afea7345726b39577c5fcec920e45992555403eb812837",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:13:21.548Z",
+          "updatedAt": "2026-10-11T09:13:23.477Z"
+        },
+        {
+          "attemptId": "attempt_d6ea1242-9e8a-4959-a56e-e975cf8df0bc",
+          "taskId": "task_4d2f0ce8-661c-44fe-8d12-7be33e1d8c3c",
+          "kind": "revision",
+          "revisionId": "revision_2b924ac4-9036-41b2-bebd-a497fc0e7d3f",
+          "invocationId": "e5734379-39b2-4226-a2ee-0e7fe68672dc",
+          "state": "succeeded",
+          "sqlExecuted": false,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:13:25.537Z",
+          "updatedAt": "2026-10-11T09:13:25.529Z"
+        },
+        {
+          "attemptId": "attempt_cfdef398-33cd-4bb3-9054-f63a373c073d",
+          "taskId": "task_4d2f0ce8-661c-44fe-8d12-7be33e1d8c3c",
+          "kind": "result",
+          "revisionId": "revision_a381a70b-5bb2-49a3-b379-78051188c218",
+          "invocationId": "8d37121c-f2a4-4c32-8cfa-e4520728658d",
+          "queryHash": "a1c9e91c725d8687d60fc67b3f1a1d4006a5a8abcf4da148f293f9a7b52c31b1",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:13:27.705Z",
+          "updatedAt": "2026-10-11T09:13:28.710Z"
+        },
+        {
+          "attemptId": "attempt_d5192a15-4c5b-4266-9dee-33b0e8411808",
+          "taskId": "task_4d2f0ce8-661c-44fe-8d12-7be33e1d8c3c",
+          "kind": "exploration",
+          "revisionId": "revision_a381a70b-5bb2-49a3-b379-78051188c218",
+          "invocationId": "3068df14-39ea-4b77-bd83-f8b03ee64fe5",
+          "queryHash": "8d22e64152bdb717cf6e7ec5177a468b8fe0e233e6c3cb156d844dc5ebbf6548",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:13:51.128Z",
+          "updatedAt": "2026-10-11T09:13:53.377Z"
+        },
+        {
+          "attemptId": "attempt_b84399cc-b3fc-44e0-93cc-4b33bcbdd349",
+          "taskId": "task_4d2f0ce8-661c-44fe-8d12-7be33e1d8c3c",
+          "kind": "exploration",
+          "revisionId": "revision_a381a70b-5bb2-49a3-b379-78051188c218",
+          "invocationId": "944bf679-137c-4127-9466-de2a32c1930f",
+          "queryHash": "886d7a9f040ddf0d0379f84d7a93e0da54d7f2a1261de4186d58f7ee956b51cd",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:13:57.610Z",
+          "updatedAt": "2026-10-11T09:13:58.553Z"
+        },
+        {
+          "attemptId": "attempt_8ac6fc24-7df6-42af-a253-fc3c80293326",
+          "taskId": "task_4d2f0ce8-661c-44fe-8d12-7be33e1d8c3c",
+          "kind": "exploration",
+          "revisionId": "revision_a381a70b-5bb2-49a3-b379-78051188c218",
+          "invocationId": "a2caefa9-fa2d-4148-b45e-9d08e03b3d8d",
+          "queryHash": "b32ff1de3b82da2ad721bb41e347f9603b83a0da6b561b3fd7693b7bb17446ab",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:14:02.465Z",
+          "updatedAt": "2026-10-11T09:14:03.923Z"
+        },
+        {
+          "attemptId": "attempt_053b8214-7ccd-448c-ab33-503d315e1875",
+          "taskId": "task_4d2f0ce8-661c-44fe-8d12-7be33e1d8c3c",
+          "kind": "exploration",
+          "revisionId": "revision_a381a70b-5bb2-49a3-b379-78051188c218",
+          "invocationId": "3807b0e0-6dfa-44ef-bafa-ef317e6b2e67",
+          "queryHash": "380f1395a35789c440cf5b2cfc006c28453f2d82167217af643e5dc3cde46a8c",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:14:30.405Z",
+          "updatedAt": "2026-10-11T09:14:34.489Z"
+        },
+        {
+          "attemptId": "attempt_d0240227-838d-4ed2-8286-8916a7113569",
+          "taskId": "task_4d2f0ce8-661c-44fe-8d12-7be33e1d8c3c",
+          "kind": "exploration",
+          "revisionId": "revision_a381a70b-5bb2-49a3-b379-78051188c218",
+          "invocationId": "0ed95951-a215-4f15-b729-e175059d1a04",
+          "queryHash": "4fc24086e7817f58f7efb990a29cc1e5583f8962dcef44739d36fef6ec4889cf",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:14:37.226Z",
+          "updatedAt": "2026-10-11T09:14:39.297Z"
+        },
+        {
+          "attemptId": "attempt_a9ee6199-d1a0-42ea-a295-656316f4e952",
+          "taskId": "task_4d2f0ce8-661c-44fe-8d12-7be33e1d8c3c",
+          "kind": "exploration",
+          "revisionId": "revision_a381a70b-5bb2-49a3-b379-78051188c218",
+          "invocationId": "debb3709-7499-4122-a3b4-78265af68727",
+          "queryHash": "7707b1dc22896a708c47b169b59eb6848f10fe81da14a52ceff2677512df307d",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:14:42.172Z",
+          "updatedAt": "2026-10-11T09:14:43.613Z"
+        },
+        {
+          "attemptId": "attempt_939d4f3a-7234-47e3-a4d6-544510faf805",
+          "taskId": "task_4d2f0ce8-661c-44fe-8d12-7be33e1d8c3c",
+          "kind": "exploration",
+          "revisionId": "revision_a381a70b-5bb2-49a3-b379-78051188c218",
+          "invocationId": "6cfdb027-8eff-45e1-9628-dd4de1074ec5",
+          "queryHash": "764a6cee0535ff2a7dc010099db511e0e7f83056a655fb615e6bfc33d00df2eb",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:14:47.475Z",
+          "updatedAt": "2026-10-11T09:14:49.478Z"
+        },
+        {
+          "attemptId": "attempt_cd81fa34-2463-4ac7-bd03-f1bdfe447518",
+          "taskId": "task_4d2f0ce8-661c-44fe-8d12-7be33e1d8c3c",
+          "kind": "exploration",
+          "revisionId": "revision_a381a70b-5bb2-49a3-b379-78051188c218",
+          "invocationId": "27d87d3b-ecaa-4904-9cdc-23b198a50aa0",
+          "queryHash": "3c03dace21a6bd9fd4d2936ed5f318c72b9ee05820f79385eedd9d0a338e609a",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:15:50.588Z",
+          "updatedAt": "2026-10-11T09:15:52.080Z"
+        }
+      ]
+    }
+  ],
+  "candidates": [
+    {
+      "candidateId": "candidate_e603ea1f-2bf4-4d77-bcfe-b789661ffdd3",
+      "taskId": "task_4d2f0ce8-661c-44fe-8d12-7be33e1d8c3c",
+      "revisionId": "revision_a381a70b-5bb2-49a3-b379-78051188c218",
+      "resultRef": "result_854b2d60-7831-4ac7-aab0-0a5caa12934c",
+      "resultSchema": [
+        "period",
+        "legislators"
+      ],
+      "rowCount": 8,
+      "contentHash": "3012a0892a98bb31c2cafaac63ac15df9b0d02f1e07842fffc1447a452f10378",
+      "sql": "WITH RECURSIVE years(y) AS (SELECT cast(substr(min(term_start),1,4) as int) FROM legislators_terms UNION ALL SELECT y+1 FROM years WHERE y< (SELECT cast(substr(max(term_end),1,4) as int) FROM legislators_terms)),r AS (SELECT *,row_number() over(partition by id_bioguide order by term_start,term_number,term_id) rn FROM legislators_terms),cohort AS (SELECT r.id_bioguide,r.term_start first_start FROM r JOIN legislators l USING(id_bioguide) WHERE rn=1 AND state='LA' AND gender='M'),active AS (SELECT DISTINCT c.id_bioguide,c.first_start,printf('%04d-12-31',y) snapshot,y-cast(substr(c.first_start,1,4) as int) period FROM cohort c JOIN legislators_terms t USING(id_bioguide) JOIN years ON printf('%04d-12-31',y) BETWEEN t.term_start AND t.term_end) SELECT period,count(distinct id_bioguide) AS legislators FROM active WHERE period BETWEEN 31 AND 49 GROUP BY period ORDER BY period",
+      "queryHash": "a1c9e91c725d8687d60fc67b3f1a1d4006a5a8abcf4da148f293f9a7b52c31b1",
+      "findings": [],
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "attemptId": "attempt_cfdef398-33cd-4bb3-9054-f63a373c073d",
+      "createdByInvocationId": "8d37121c-f2a4-4c32-8cfa-e4520728658d",
+      "createdAt": "2026-10-11T09:13:28.710Z",
+      "status": "ready",
+      "publishable": true
+    }
+  ],
+  "receipts": [
+    {
+      "receiptId": "publication_7559968e-5286-4558-97ed-af22b329a52a",
+      "taskId": "task_4d2f0ce8-661c-44fe-8d12-7be33e1d8c3c",
+      "principalId": "independent-analyst",
+      "sessionId": "local171",
+      "candidateId": "candidate_e603ea1f-2bf4-4d77-bcfe-b789661ffdd3",
+      "revisionId": "revision_a381a70b-5bb2-49a3-b379-78051188c218",
+      "resultRef": "result_854b2d60-7831-4ac7-aab0-0a5caa12934c",
+      "format": "csv",
+      "publicRef": "/api/runtime/publications/publication_7559968e-5286-4558-97ed-af22b329a52a?session_id=local171",
+      "contentHash": "3012a0892a98bb31c2cafaac63ac15df9b0d02f1e07842fffc1447a452f10378",
+      "presentationContentHash": "4ef5920ba572e1f6846c22bb7ba87af77d9a7184fe5dd7bea8dd3138f6d051a0",
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "disclosure": {
+        "required": true,
+        "unverifiedFields": [
+          {
+            "path": "population.eligibility",
+            "kind": "assumed"
+          },
+          {
+            "path": "population.conditions",
+            "kind": "assumed"
+          },
+          {
+            "path": "population.time",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.formula",
+            "kind": "assumed"
+          },
+          {
+            "path": "grouping",
+            "kind": "assumed"
+          },
+          {
+            "path": "output",
+            "kind": "assumed"
+          }
+        ],
+        "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.conditions, population.time, measure.formula, grouping, output。"
+      },
+      "physicalProfile": {
+        "version": 1,
+        "rowCount": 8,
+        "truncated": false,
+        "columns": [
+          {
+            "name": "period",
+            "kind": "integer",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 8,
+            "min": "31",
+            "max": "38"
+          },
+          {
+            "name": "legislators",
+            "kind": "integer",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 4,
+            "min": "1",
+            "max": "5"
+          }
+        ]
+      },
+      "policyVersion": "answering-publication-v1",
+      "createdByInvocationId": "8d37121c-f2a4-4c32-8cfa-e4520728658d",
+      "requestId": "8d37121c-f2a4-4c32-8cfa-e4520728658d",
+      "createdAt": "2026-10-11T09:13:28.730Z"
+    }
+  ]
+}

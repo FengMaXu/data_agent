@@ -1,0 +1,1256 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_53526653-c12b-4beb-b91e-4b7ca4b90a74 revisionId=revision_65a7c6d9-3acc-4263-9140-59d3921d74b6\n- ✓ population.entity\n状态：\n- 未声明: population.eligibility, population.conditions, population.time, measure.formula, grouping, selection, output\n[SPEC_FEEDBACK] revisionId=revision_65a7c6d9-3acc-4263-9140-59d3921d74b6 status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"远程Data Analyst职位发布，job_id\"}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+    "revisionId": "revision_65a7c6d9-3acc-4263-9140-59d3921d74b6",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "远程Data Analyst职位发布，job_id"
+        },
+        "evidenceIds": [
+          "evidence_69cf6f90-c0f4-4da2-a2ce-f1ecb82f8f9d"
+        ]
+      }
+    ],
+    "undeclared": [
+      "population.eligibility",
+      "population.conditions",
+      "population.time",
+      "measure.formula",
+      "grouping",
+      "selection",
+      "output"
+    ],
+    "open": [],
+    "unverified": [],
+    "specFeedback": {
+      "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+      "revisionId": "revision_65a7c6d9-3acc-4263-9140-59d3921d74b6",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_69cf6f90-c0f4-4da2-a2ce-f1ecb82f8f9d"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "population.entity",
+        "status": "applied"
+      }
+    ]
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_3391c05d-a76f-43eb-87c8-82aaf66ac6ee\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nrows | ids\n46 | 46"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_3391c05d-a76f-43eb-87c8-82aaf66ac6ee",
+      "preview": {
+        "columns": [
+          "rows",
+          "ids"
+        ],
+        "rows": [
+          [
+            46,
+            46
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "rows",
+        "ids"
+      ],
+      "rows": [
+        [
+          46,
+          46
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_5912b983-e512-49f8-bbe6-63d4ebde7ab3"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_67fd3550-aff8-490e-9844-e0f2f20fa362\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nrows | ids\n26 | 26"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_67fd3550-aff8-490e-9844-e0f2f20fa362",
+      "preview": {
+        "columns": [
+          "rows",
+          "ids"
+        ],
+        "rows": [
+          [
+            26,
+            26
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "rows",
+        "ids"
+      ],
+      "rows": [
+        [
+          26,
+          26
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_98335cbf-2bca-4751-bbc9-4ba6c466ac42"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_345b2053-dd93-4b42-aa6d-eabb60ad9106\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nskill_id | demand | skills\n1 | 3 | python\n187 | 1 | qlik"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_345b2053-dd93-4b42-aa6d-eabb60ad9106",
+      "preview": {
+        "columns": [
+          "skill_id",
+          "demand",
+          "skills"
+        ],
+        "rows": [
+          [
+            1,
+            3,
+            "python"
+          ],
+          [
+            187,
+            1,
+            "qlik"
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "TEXT"
+        ],
+        "rowCount": 2,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "skill_id",
+        "demand",
+        "skills"
+      ],
+      "rows": [
+        [
+          1,
+          3,
+          "python"
+        ],
+        [
+          187,
+          1,
+          "qlik"
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "TEXT"
+      ],
+      "rowCount": 2,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_c9b68939-c744-407f-8a61-91eb183215fc"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_3cf8ae5c-cfa4-4b5e-8845-7dbceb10fadc\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\njobs | salary | salary_sum\n9 | 92689.22222222222 | 834203"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_3cf8ae5c-cfa4-4b5e-8845-7dbceb10fadc",
+      "preview": {
+        "columns": [
+          "jobs",
+          "salary",
+          "salary_sum"
+        ],
+        "rows": [
+          [
+            9,
+            92689.22222222222,
+            834203
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "REAL",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "jobs",
+        "salary",
+        "salary_sum"
+      ],
+      "rows": [
+        [
+          9,
+          92689.22222222222,
+          834203
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "REAL",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_cf280f49-dc16-4b94-95f6-8db7a73b3c76"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_bb7a3d63-8dcf-4f5f-8ef6-59bf4085482d\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nskill_id | skills | demand | rows | skill_salary\n1 | python | 3 | 3 | 106900"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_bb7a3d63-8dcf-4f5f-8ef6-59bf4085482d",
+      "preview": {
+        "columns": [
+          "skill_id",
+          "skills",
+          "demand",
+          "rows",
+          "skill_salary"
+        ],
+        "rows": [
+          [
+            1,
+            "python",
+            3,
+            3,
+            106900
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "TEXT",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "skill_id",
+        "skills",
+        "demand",
+        "rows",
+        "skill_salary"
+      ],
+      "rows": [
+        [
+          1,
+          "python",
+          3,
+          3,
+          106900
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "TEXT",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_15d328b1-654a-464b-9b92-222a4b6a6050"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_2742df99-947c-4373-be20-2b068a9fdc03\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nlink_rows | association_average\n9 | 92689.22222222222"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_2742df99-947c-4373-be20-2b068a9fdc03",
+      "preview": {
+        "columns": [
+          "link_rows",
+          "association_average"
+        ],
+        "rows": [
+          [
+            9,
+            92689.22222222222
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "link_rows",
+        "association_average"
+      ],
+      "rows": [
+        [
+          9,
+          92689.22222222222
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "REAL"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_edb3c159-f295-4067-9f0f-fc31088fe6ae"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_420ac883-ee01-4c6e-9853-6e30c0971326\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nn_top_skills | jobs | salary\n1 | 9 | 92689.22222222222"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_420ac883-ee01-4c6e-9853-6e30c0971326",
+      "preview": {
+        "columns": [
+          "n_top_skills",
+          "jobs",
+          "salary"
+        ],
+        "rows": [
+          [
+            1,
+            9,
+            92689.22222222222
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "n_top_skills",
+        "jobs",
+        "salary"
+      ],
+      "rows": [
+        [
+          1,
+          9,
+          92689.22222222222
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "REAL"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_d915b6d3-6a11-4c36-be99-005425c0370a"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_bead62ca-7845-4112-b4fe-a3e97409f2ce\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nrows | unique_links\n22 | 22"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_bead62ca-7845-4112-b4fe-a3e97409f2ce",
+      "preview": {
+        "columns": [
+          "rows",
+          "unique_links"
+        ],
+        "rows": [
+          [
+            22,
+            22
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "rows",
+        "unique_links"
+      ],
+      "rows": [
+        [
+          22,
+          22
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_4e79b422-a104-4ec7-941b-6e6f1ae61db8"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_53526653-c12b-4beb-b91e-4b7ca4b90a74 revisionId=revision_3d451437-31f3-4d1c-ac2e-4797f43872e1\n- ✓ population.eligibility\n- ✓ population.conditions\n- ✓ population.time\n- ✓ measure.formula\n- ✓ measure.countGrain\n- ✓ measure.denominator\n- ✓ grouping\n- ✓ selection\n- ✓ selection.ties\n- ✓ output\n状态：\n- 未证实（发布时披露）: population.eligibility, measure.formula, measure.countGrain, measure.denominator, selection.ties\n- 没有待处理的字段，可以执行结果查询\n[SPEC_FEEDBACK] revisionId=revision_3d451437-31f3-4d1c-ac2e-4797f43872e1 status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"远程Data Analyst职位发布，job_id\"}},\"population.eligibility\":{\"status\":\"assumed\",\"value\":\"Distinct postings with exact Data Analyst short title, non-null salary_year_avg, remote=1; then require at least one of top3 skills\"},\"population.conditions\":{\"status\":\"request\",\"value\":[\"job_title_short='Data Analyst'\",\"salary_year_avg IS NOT NULL\",\"job_work_from_home=1\"]},\"population.time\":{\"status\":\"not_applicable\"},\"measure.formula\":{\"status\":\"assumed\",\"value\":{\"op\":\"avg\",\"of\":\"salary_year_avg\"}},\"measure.countGrain\":{\"status\":\"assumed\",\"value\":\"each distinct job_id exactly once\"},\"measure.denominator\":{\"status\":\"assumed\",\"value\":\"number of distinct eligible jobs requiring at least one selected top3 skill; empty set gives NULL\"},\"grouping\":{\"status\":\"not_applicable\"},\"selection\":{\"status\":\"request\",\"value\":{\"n\":3,\"orderBy\":\"skill demand DESC, skill_id ASC\"}},\"selection.ties\":{\"status\":\"assumed\",\"value\":\"strict\"},\"output\":{\"status\":\"request\",\"value\":{\"rowMode\":\"scalar\",\"columns\":[\"overall_average_salary\"]}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+    "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+    "parentRevisionId": "revision_65a7c6d9-3acc-4263-9140-59d3921d74b6",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "远程Data Analyst职位发布，job_id"
+        },
+        "evidenceIds": [
+          "evidence_69cf6f90-c0f4-4da2-a2ce-f1ecb82f8f9d"
+        ]
+      },
+      {
+        "path": "population.eligibility",
+        "status": "assumed",
+        "value": "Distinct postings with exact Data Analyst short title, non-null salary_year_avg, remote=1; then require at least one of top3 skills",
+        "rationale": "Salary is per posting, OR of selected skills; ranking within same eligible cohort"
+      },
+      {
+        "path": "population.conditions",
+        "status": "request",
+        "value": [
+          "job_title_short='Data Analyst'",
+          "salary_year_avg IS NOT NULL",
+          "job_work_from_home=1"
+        ],
+        "evidenceIds": [
+          "evidence_a31c84bb-85e2-40ae-8b84-ecbb25a826d2"
+        ]
+      },
+      {
+        "path": "population.time",
+        "status": "not_applicable"
+      },
+      {
+        "path": "measure.formula",
+        "status": "assumed",
+        "value": {
+          "op": "avg",
+          "of": "salary_year_avg"
+        },
+        "rationale": "Overall average of distinct jobs requesting any selected skill"
+      },
+      {
+        "path": "measure.countGrain",
+        "status": "assumed",
+        "value": "each distinct job_id exactly once"
+      },
+      {
+        "path": "measure.denominator",
+        "status": "assumed",
+        "value": "number of distinct eligible jobs requiring at least one selected top3 skill; empty set gives NULL"
+      },
+      {
+        "path": "grouping",
+        "status": "not_applicable"
+      },
+      {
+        "path": "selection",
+        "status": "request",
+        "value": {
+          "n": 3,
+          "orderBy": "skill demand DESC, skill_id ASC"
+        },
+        "evidenceIds": [
+          "evidence_f7981831-035f-4e25-b5da-543b6ce6f393"
+        ]
+      },
+      {
+        "path": "selection.ties",
+        "status": "assumed",
+        "value": "strict"
+      },
+      {
+        "path": "output",
+        "status": "request",
+        "value": {
+          "rowMode": "scalar",
+          "columns": [
+            "overall_average_salary"
+          ]
+        },
+        "evidenceIds": [
+          "evidence_a61ee7db-c1be-4926-8a40-573cea1a1dce"
+        ]
+      }
+    ],
+    "undeclared": [],
+    "open": [],
+    "unverified": [
+      "population.eligibility",
+      "measure.formula",
+      "measure.countGrain",
+      "measure.denominator",
+      "selection.ties"
+    ],
+    "specFeedback": {
+      "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+      "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_69cf6f90-c0f4-4da2-a2ce-f1ecb82f8f9d",
+        "evidence_3391c05d-a76f-43eb-87c8-82aaf66ac6ee",
+        "evidence_67fd3550-aff8-490e-9844-e0f2f20fa362",
+        "evidence_345b2053-dd93-4b42-aa6d-eabb60ad9106",
+        "evidence_3cf8ae5c-cfa4-4b5e-8845-7dbceb10fadc",
+        "evidence_bb7a3d63-8dcf-4f5f-8ef6-59bf4085482d",
+        "evidence_2742df99-947c-4373-be20-2b068a9fdc03",
+        "evidence_420ac883-ee01-4c6e-9853-6e30c0971326",
+        "evidence_bead62ca-7845-4112-b4fe-a3e97409f2ce",
+        "evidence_a31c84bb-85e2-40ae-8b84-ecbb25a826d2",
+        "evidence_f7981831-035f-4e25-b5da-543b6ce6f393",
+        "evidence_a61ee7db-c1be-4926-8a40-573cea1a1dce"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "population.eligibility",
+        "status": "applied"
+      },
+      {
+        "path": "population.conditions",
+        "status": "applied"
+      },
+      {
+        "path": "population.time",
+        "status": "applied"
+      },
+      {
+        "path": "measure.formula",
+        "status": "applied"
+      },
+      {
+        "path": "measure.countGrain",
+        "status": "applied"
+      },
+      {
+        "path": "measure.denominator",
+        "status": "applied"
+      },
+      {
+        "path": "grouping",
+        "status": "applied"
+      },
+      {
+        "path": "selection",
+        "status": "applied"
+      },
+      {
+        "path": "selection.ties",
+        "status": "applied"
+      },
+      {
+        "path": "output",
+        "status": "applied"
+      }
+    ]
+  }
+}
+
+{
+  "query": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[RESULT_CANDIDATE] candidateId=candidate_544735b4-a1bd-478b-8243-eff58c7a77a8 revisionId=revision_3d451437-31f3-4d1c-ac2e-4797f43872e1\noverall_average_salary\n92689.22222222222"
+      }
+    ],
+    "details": {
+      "kind": "result",
+      "artifact": {
+        "kind": "candidate",
+        "candidateId": "candidate_544735b4-a1bd-478b-8243-eff58c7a77a8",
+        "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+        "resultRef": "result_8c94154e-60e8-4755-a52d-543056a95e50"
+      },
+      "preview": {
+        "columns": [
+          "overall_average_salary"
+        ],
+        "rows": [
+          [
+            92689.22222222222
+          ]
+        ],
+        "columnTypes": [
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      },
+      "findings": [],
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "attemptId": "attempt_3e360daf-9354-4d6c-9131-a43098e1ece5"
+    }
+  },
+  "publication": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[PUBLISHED] csv [download](/api/runtime/publications/publication_8fff63c6-512d-4d0a-a880-0461a8a98d53?session_id=local168) receiptId=publication_8fff63c6-512d-4d0a-a880-0461a8a98d53\n[DISCLOSURE] 以下字段为假定，未被合格证据证实：population.eligibility, measure.formula, measure.countGrain, measure.denominator, selection.ties。"
+      }
+    ],
+    "details": {
+      "receiptId": "publication_8fff63c6-512d-4d0a-a880-0461a8a98d53",
+      "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+      "principalId": "independent-analyst",
+      "sessionId": "local168",
+      "candidateId": "candidate_544735b4-a1bd-478b-8243-eff58c7a77a8",
+      "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+      "resultRef": "result_8c94154e-60e8-4755-a52d-543056a95e50",
+      "format": "csv",
+      "publicRef": "/api/runtime/publications/publication_8fff63c6-512d-4d0a-a880-0461a8a98d53?session_id=local168",
+      "contentHash": "0ed2818eb4a091536d1a82b05ae3a28ea9cc43bd5dcfda06da5fba6cb235d4ff",
+      "presentationContentHash": "3a508c2f8524db6d2c5c42994f5841e80a44e42fc3626bc47cf00b4ffc4e3769",
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "disclosure": {
+        "required": true,
+        "unverifiedFields": [
+          {
+            "path": "population.eligibility",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.formula",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.countGrain",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.denominator",
+            "kind": "assumed"
+          },
+          {
+            "path": "selection.ties",
+            "kind": "assumed"
+          }
+        ],
+        "summary": "以下字段为假定，未被合格证据证实：population.eligibility, measure.formula, measure.countGrain, measure.denominator, selection.ties。"
+      },
+      "physicalProfile": {
+        "version": 1,
+        "rowCount": 1,
+        "truncated": false,
+        "columns": [
+          {
+            "name": "overall_average_salary",
+            "kind": "decimal",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 1,
+            "min": "92689.22222222222",
+            "max": "92689.22222222222"
+          }
+        ]
+      },
+      "policyVersion": "answering-publication-v1",
+      "createdByInvocationId": "aabb8b5b-01d8-4c22-a97f-c2b0fdcd7edb",
+      "requestId": "aabb8b5b-01d8-4c22-a97f-c2b0fdcd7edb",
+      "createdAt": "2026-10-11T09:22:20.785Z"
+    }
+  },
+  "authorizedCsv": "D:\\data_agent\\evaluations\\spider2\\adr0007\\independent-recompute-35\\cases\\local168\\publications\\publication_8fff63c6-512d-4d0a-a880-0461a8a98d53\\result.csv"
+}
+
+{
+  "frozenAt": "2026-10-11T09:22:22.125Z",
+  "instance_id": "local168",
+  "independent": true,
+  "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+  "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+  "publication": {
+    "receiptId": "publication_8fff63c6-512d-4d0a-a880-0461a8a98d53",
+    "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+    "principalId": "independent-analyst",
+    "sessionId": "local168",
+    "candidateId": "candidate_544735b4-a1bd-478b-8243-eff58c7a77a8",
+    "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+    "resultRef": "result_8c94154e-60e8-4755-a52d-543056a95e50",
+    "format": "csv",
+    "publicRef": "/api/runtime/publications/publication_8fff63c6-512d-4d0a-a880-0461a8a98d53?session_id=local168",
+    "contentHash": "0ed2818eb4a091536d1a82b05ae3a28ea9cc43bd5dcfda06da5fba6cb235d4ff",
+    "presentationContentHash": "3a508c2f8524db6d2c5c42994f5841e80a44e42fc3626bc47cf00b4ffc4e3769",
+    "coverage": [
+      {
+        "checkId": "result_completeness",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_shape",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_identity",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "join_fanout",
+        "outcome": "not_applicable"
+      },
+      {
+        "checkId": "spec_feedback",
+        "ruleVersion": "spec-feedback-v2",
+        "outcome": "not_applicable",
+        "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+      }
+    ],
+    "fanout": {
+      "ruleVersion": "answering-fanout-v1",
+      "status": "not_applicable",
+      "snapshotScope": "unbound",
+      "targets": []
+    },
+    "disclosure": {
+      "required": true,
+      "unverifiedFields": [
+        {
+          "path": "population.eligibility",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.formula",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.countGrain",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.denominator",
+          "kind": "assumed"
+        },
+        {
+          "path": "selection.ties",
+          "kind": "assumed"
+        }
+      ],
+      "summary": "以下字段为假定，未被合格证据证实：population.eligibility, measure.formula, measure.countGrain, measure.denominator, selection.ties。"
+    },
+    "physicalProfile": {
+      "version": 1,
+      "rowCount": 1,
+      "truncated": false,
+      "columns": [
+        {
+          "name": "overall_average_salary",
+          "kind": "decimal",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 1,
+          "min": "92689.22222222222",
+          "max": "92689.22222222222"
+        }
+      ]
+    },
+    "policyVersion": "answering-publication-v1",
+    "createdByInvocationId": "aabb8b5b-01d8-4c22-a97f-c2b0fdcd7edb",
+    "requestId": "aabb8b5b-01d8-4c22-a97f-c2b0fdcd7edb",
+    "createdAt": "2026-10-11T09:22:20.785Z"
+  },
+  "currentRevision": {
+    "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+    "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+    "parentRevisionId": "revision_65a7c6d9-3acc-4263-9140-59d3921d74b6",
+    "requestId": "6a97f5a6-4e2d-4e72-9364-d3dce9f79d9a",
+    "createdAt": "2026-10-11T09:22:00.623Z",
+    "fields": {
+      "population.entity": {
+        "state": "specified",
+        "value": {
+          "name": "远程Data Analyst职位发布，job_id"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_69cf6f90-c0f4-4da2-a2ce-f1ecb82f8f9d"
+          ]
+        }
+      },
+      "population.eligibility": {
+        "state": "specified",
+        "value": "Distinct postings with exact Data Analyst short title, non-null salary_year_avg, remote=1; then require at least one of top3 skills",
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Salary is per posting, OR of selected skills; ranking within same eligible cohort"
+        }
+      },
+      "population.conditions": {
+        "state": "specified",
+        "value": [
+          "job_title_short='Data Analyst'",
+          "salary_year_avg IS NOT NULL",
+          "job_work_from_home=1"
+        ],
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_a31c84bb-85e2-40ae-8b84-ecbb25a826d2"
+          ]
+        }
+      },
+      "population.time": {
+        "state": "not_applicable"
+      },
+      "measure.formula": {
+        "state": "specified",
+        "value": {
+          "op": "avg",
+          "of": "salary_year_avg"
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Overall average of distinct jobs requesting any selected skill"
+        }
+      },
+      "measure.countGrain": {
+        "state": "specified",
+        "value": "each distinct job_id exactly once",
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "measure.denominator": {
+        "state": "specified",
+        "value": "number of distinct eligible jobs requiring at least one selected top3 skill; empty set gives NULL",
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "grouping": {
+        "state": "not_applicable"
+      },
+      "selection": {
+        "state": "specified",
+        "value": {
+          "n": 3,
+          "orderBy": "skill demand DESC, skill_id ASC"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_f7981831-035f-4e25-b5da-543b6ce6f393"
+          ]
+        }
+      },
+      "selection.ties": {
+        "state": "specified",
+        "value": "strict",
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "output": {
+        "state": "specified",
+        "value": {
+          "rowMode": "scalar",
+          "columns": [
+            "overall_average_salary"
+          ]
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_a61ee7db-c1be-4926-8a40-573cea1a1dce"
+          ]
+        }
+      }
+    },
+    "state": {
+      "state": "ready",
+      "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+      "ready": "ready_179e4e3c-f9de-4994-9d42-f2c5cd9288c7"
+    },
+    "specFeedback": {
+      "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+      "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_69cf6f90-c0f4-4da2-a2ce-f1ecb82f8f9d",
+        "evidence_3391c05d-a76f-43eb-87c8-82aaf66ac6ee",
+        "evidence_67fd3550-aff8-490e-9844-e0f2f20fa362",
+        "evidence_345b2053-dd93-4b42-aa6d-eabb60ad9106",
+        "evidence_3cf8ae5c-cfa4-4b5e-8845-7dbceb10fadc",
+        "evidence_bb7a3d63-8dcf-4f5f-8ef6-59bf4085482d",
+        "evidence_2742df99-947c-4373-be20-2b068a9fdc03",
+        "evidence_420ac883-ee01-4c6e-9853-6e30c0971326",
+        "evidence_bead62ca-7845-4112-b4fe-a3e97409f2ce",
+        "evidence_a31c84bb-85e2-40ae-8b84-ecbb25a826d2",
+        "evidence_f7981831-035f-4e25-b5da-543b6ce6f393",
+        "evidence_a61ee7db-c1be-4926-8a40-573cea1a1dce"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    }
+  },
+  "analystNote": {
+    "algorithm": "Rank skills by distinct eligible job count; select jobs requiring any top3; one salary per posting",
+    "assumptions": [
+      "overall mean is posting-equal not job-skill weighted or skill-equal",
+      "OR selected skills",
+      "ranking within salary-known remote Data Analyst cohort"
+    ]
+  },
+  "settings": {
+    "qualification": "required",
+    "fieldProbes": true,
+    "externalAdvisor": "not_configured",
+    "specFeedback": "not_configured",
+    "fanout": "disabled_for_offline_audit",
+    "populationDecisions": "allow_disclosed_headless_audit",
+    "databaseReadOnly": true
+  }
+}
+
+{
+  "revealedAt": "2026-10-11T09:22:23.536Z",
+  "registry": {
+    "instance_id": "local168",
+    "attempt_id": "attempt-20261010-154318Z",
+    "score": 0,
+    "score_source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-retry.json",
+    "replayed_csv_score": 0,
+    "group": "wrong",
+    "status": "unknown",
+    "publication_status": "published",
+    "duration_ms": 291409,
+    "tool_calls": 43,
+    "error": {
+      "name": "OperationTerminalUnknownError",
+      "message": "OPERATION_TERMINAL_UNKNOWN",
+      "stack": "OperationTerminalUnknownError: OPERATION_TERMINAL_UNKNOWN\n    at requireKnownOperationTerminal (file:///D:/data_agent/evaluations/spider2/run.mjs:491:19)\n    at Object.prompt (file:///D:/data_agent/evaluations/spider2/run.mjs:758:11)\n    at async runPromptWithTimeout (file:///D:/data_agent/evaluations/spider2/lib.mjs:618:5)\n    at async file:///D:/data_agent/evaluations/spider2/run.mjs:782:9\n    at async file:///D:/data_agent/evaluations/spider2/run.mjs:1234:22\n    at async Promise.all (index 1)\n    at async runCommand (file:///D:/data_agent/evaluations/spider2/run.mjs:1242:3)\n    at async main (file:///D:/data_agent/evaluations/spider2/run.mjs:1637:31)"
+    },
+    "result_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local168/attempts/attempt-20261010-154318Z/result.json",
+    "trace_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local168/attempts/attempt-20261010-154318Z/trace.json",
+    "result_exists": true,
+    "trace_exists": true,
+    "sql_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local168/attempts/attempt-20261010-154318Z/submissions/sql/local168.sql",
+    "csv_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local168.csv",
+    "sql_exists": true,
+    "csv_exists": true,
+    "gold_sql_file": null,
+    "process": {
+      "turns": 31,
+      "toolCalls": 43,
+      "explorationQueries": 19,
+      "resultQueries": 1,
+      "fanoutProbes": 0,
+      "revisions": 3
+    },
+    "fanout_metrics": {
+      "reportCount": 1,
+      "targetCount": 0,
+      "findingCount": 0,
+      "unknownCount": 0,
+      "byStatus": {
+        "clear": 0,
+        "finding": 0,
+        "not_applicable": 1,
+        "unknown": 0
+      },
+      "enabled": true
+    },
+    "spec_feedback_metrics": {
+      "reportCount": 4,
+      "byStatus": {
+        "pending": 0,
+        "completed": 0,
+        "unavailable": 4,
+        "disabled": 0
+      },
+      "deterministicIssueCount": 0,
+      "concernCount": 0,
+      "enabled": true
+    }
+  },
+  "originalSql": "WITH base AS (\n  SELECT job_id, salary_year_avg\n  FROM job_postings_fact\n  WHERE job_title = 'Data Analyst'\n    AND job_work_from_home = 1\n    AND salary_year_avg IS NOT NULL\n),\ndemand AS (\n  SELECT sj.skill_id, COUNT(DISTINCT b.job_id) AS demand_positions\n  FROM base b\n  JOIN skills_job_dim sj ON sj.job_id = b.job_id\n  GROUP BY sj.skill_id\n),\ntop3 AS (\n  SELECT skill_id FROM demand ORDER BY demand_positions DESC, skill_id ASC LIMIT 3\n),\nsel AS (\n  SELECT DISTINCT b.job_id, b.salary_year_avg\n  FROM base b\n  JOIN skills_job_dim sj ON sj.job_id = b.job_id\n  WHERE sj.skill_id IN (SELECT skill_id FROM top3)\n)\nSELECT ROUND(AVG(salary_year_avg), 2) AS avg_salary\nFROM sel\n",
+  "originalCsv": "avg_salary\n104040.6\n",
+  "goldSql": null,
+  "goldCsv": [
+    {
+      "path": "C:\\data-agent-eval\\Spider2\\spider2-lite\\evaluation_suite\\gold\\exec_result\\local168.csv",
+      "content": "avg_salary\r\n101300"
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local168",
+    "condition_cols": [],
+    "ignore_order": true,
+    "toks": "122"
+  }
+}
+
+{
+  "instance_id": "local168",
+  "independent_freeze": "D:/data_agent/evaluations/spider2/adr0007/independent-recompute-35/cases/local168/independent-freeze.json",
+  "independent_official_score": 0,
+  "original_replayed_score": 0,
+  "recorded_original_score": 0,
+  "scorer_limitations": "Column-wise tolerance matching; ignore_order may ignore row associations; passing is not business proof.",
+  "independent": {
+    "path": "D:/data_agent/evaluations/spider2/adr0007/independent-recompute-35/cases/local168/publications/publication_8fff63c6-512d-4d0a-a880-0461a8a98d53/result.csv",
+    "rows": 1,
+    "columns": [
+      "overall_average_salary"
+    ],
+    "head": [
+      {
+        "overall_average_salary": 92689.2222222222
+      }
+    ]
+  },
+  "original": {
+    "path": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local168.csv",
+    "rows": 1,
+    "columns": [
+      "avg_salary"
+    ],
+    "head": [
+      {
+        "avg_salary": 104040.6
+      }
+    ]
+  },
+  "golds": [
+    {
+      "path": "C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local168.csv",
+      "rows": 1,
+      "columns": [
+        "avg_salary"
+      ],
+      "head": [
+        {
+          "avg_salary": 101300
+        }
+      ]
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local168",
+    "condition_cols": [],
+    "ignore_order": true,
+    "toks": "122"
+  }
+}
+ 

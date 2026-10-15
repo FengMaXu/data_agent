@@ -1,0 +1,60 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_cd8651e3-ab5f-4c68-8cb8-f3cc8d41113c\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nmin(date) | max(date) | count(*)\n1917-01-01 | 1999-12-31 | 30315"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_cd8651e3-ab5f-4c68-8cb8-f3cc8d41113c",
+      "preview": {
+        "columns": [
+          "min(date)",
+          "max(date)",
+          "count(*)"
+        ],
+        "rows": [
+          [
+            "1917-01-01",
+            "1999-12-31",
+            30315
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "min(date)",
+        "max(date)",
+        "count(*)"
+      ],
+      "rows": [
+        [
+          "1917-01-01",
+          "1999-12-31",
+          30315
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_dd8d629c-dcdf-46ea-b301-129973a6300a"
+  }
+}
+

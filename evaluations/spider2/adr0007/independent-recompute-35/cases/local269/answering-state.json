@@ -1,0 +1,902 @@
+{
+  "version": 2,
+  "tasks": [
+    {
+      "taskId": "task_d9c450e8-217f-4a18-8320-46fc0e6932c0",
+      "sessionId": "local269",
+      "principalId": "independent-analyst",
+      "requestMessageId": "original-task",
+      "requestId": "4c160b87-f801-4860-aecd-cf295f8cc0f1",
+      "currentRevisionId": "revision_5cb6fcbe-e360-4684-b1ff-4a0550d7b2e6",
+      "lifecycle": "published",
+      "budget": {
+        "policy": {
+          "version": "answering-dual-loop-v1",
+          "maxRevisions": 40,
+          "maxExplorationAttempts": 120,
+          "maxResultAttempts": 20,
+          "maxElapsedMs": 14400000,
+          "maxObservedRows": 2000000
+        },
+        "startedAt": "2026-10-11T09:02:37.166Z",
+        "revisionCount": 1,
+        "explorationAttempts": 7,
+        "resultAttempts": 1,
+        "observedRows": 48
+      },
+      "createdAt": "2026-10-11T09:02:37.166Z",
+      "updatedAt": "2026-10-11T09:05:14.859Z",
+      "latestCandidateId": "candidate_bd748844-1028-4d76-9cd0-084a2bb5dbdb",
+      "publicationId": "publication_e8213dca-fd82-4653-8b70-e948f78c113a"
+    }
+  ],
+  "revisions": [
+    {
+      "taskId": "task_d9c450e8-217f-4a18-8320-46fc0e6932c0",
+      "revisionId": "revision_92a654f3-3e32-4677-a375-07ac41cb3f52",
+      "requestId": "4c160b87-f801-4860-aecd-cf295f8cc0f1",
+      "createdAt": "2026-10-11T09:02:37.166Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "final packaging combinations"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_ff613861-dca0-4c9b-836a-4bd5e9903acd"
+            ]
+          }
+        }
+      },
+      "state": {
+        "state": "draft",
+        "revisionId": "revision_92a654f3-3e32-4677-a375-07ac41cb3f52"
+      },
+      "specFeedback": {
+        "taskId": "task_d9c450e8-217f-4a18-8320-46fc0e6932c0",
+        "revisionId": "revision_92a654f3-3e32-4677-a375-07ac41cb3f52",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_ff613861-dca0-4c9b-836a-4bd5e9903acd"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    },
+    {
+      "taskId": "task_d9c450e8-217f-4a18-8320-46fc0e6932c0",
+      "revisionId": "revision_5cb6fcbe-e360-4684-b1ff-4a0550d7b2e6",
+      "parentRevisionId": "revision_92a654f3-3e32-4677-a375-07ac41cb3f52",
+      "requestId": "8dd82303-addd-4527-93d4-5ae17530d19e",
+      "createdAt": "2026-10-11T09:03:16.561Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "final packaging combinations"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_ff613861-dca0-4c9b-836a-4bd5e9903acd"
+            ]
+          }
+        },
+        "population.eligibility": {
+          "state": "specified",
+          "value": "Outermost packaging with children and no incoming containment",
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "population.conditions": {
+          "state": "not_applicable"
+        },
+        "population.time": {
+          "state": "not_applicable"
+        },
+        "measure.formula": {
+          "state": "specified",
+          "value": {
+            "op": "custom",
+            "description": "Multiply quantities along every root-to-leaf path, sum leaf quantities per outermost root then arithmetic mean of root totals"
+          },
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "grouping": {
+          "state": "specified",
+          "value": [
+            "n/a"
+          ],
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "selection": {
+          "state": "not_applicable"
+        },
+        "output": {
+          "state": "specified",
+          "value": {
+            "rowMode": "full",
+            "columns": [
+              "average_total_quantity"
+            ]
+          },
+          "basis": {
+            "kind": "assumed"
+          }
+        }
+      },
+      "state": {
+        "state": "ready",
+        "revisionId": "revision_5cb6fcbe-e360-4684-b1ff-4a0550d7b2e6",
+        "ready": "ready_7bdef87b-e58f-42fd-8149-37aceda604d2"
+      },
+      "specFeedback": {
+        "taskId": "task_d9c450e8-217f-4a18-8320-46fc0e6932c0",
+        "revisionId": "revision_5cb6fcbe-e360-4684-b1ff-4a0550d7b2e6",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_ff613861-dca0-4c9b-836a-4bd5e9903acd",
+          "evidence_186605b7-c5ca-46a6-a3bb-1a5ad7a46783",
+          "evidence_0a333ec3-6b31-4d48-a750-e5e46f643fb6",
+          "evidence_0ad37de2-c9d5-4f15-8fde-3d0c95df965a"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "taskId": "task_d9c450e8-217f-4a18-8320-46fc0e6932c0",
+      "items": [
+        {
+          "id": "request_be3e2f2bd519d830902bceb0",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "observedAt": "2026-10-11T09:02:37.166Z"
+        },
+        {
+          "id": "evidence_ff613861-dca0-4c9b-836a-4bd5e9903acd",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "bb632d61c228390a8cca9701e62195366e36ae3ca2242dd16e4c40113e751dd0",
+          "quote": "final packaging combinations",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "bb632d61c228390a8cca9701e62195366e36ae3ca2242dd16e4c40113e751dd0"
+          },
+          "observedAt": "2026-10-11T09:02:37.166Z"
+        },
+        {
+          "id": "evidence_186605b7-c5ca-46a6-a3bb-1a5ad7a46783",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "50cc7818-3b47-4b68-a9c8-730e7a1dfb6f",
+          "preview": {
+            "columns": [
+              "id",
+              "name",
+              "contains_id",
+              "qty"
+            ],
+            "rows": [
+              [
+                501,
+                "Bottle 330cl",
+                null,
+                null
+              ],
+              [
+                502,
+                "Bottle 500cl",
+                null,
+                null
+              ],
+              [
+                511,
+                "Gift Carton",
+                501,
+                3
+              ],
+              [
+                511,
+                "Gift Carton",
+                502,
+                2
+              ],
+              [
+                521,
+                "Box Large",
+                502,
+                72
+              ],
+              [
+                522,
+                "Box Medium",
+                501,
+                36
+              ],
+              [
+                523,
+                "Box Small",
+                502,
+                30
+              ],
+              [
+                524,
+                "Gift Box",
+                511,
+                8
+              ],
+              [
+                531,
+                "Pallet of L",
+                521,
+                12
+              ],
+              [
+                532,
+                "Pallet of M",
+                522,
+                20
+              ],
+              [
+                533,
+                "Pallet Mix MS",
+                522,
+                10
+              ],
+              [
+                533,
+                "Pallet Mix MS",
+                523,
+                20
+              ],
+              [
+                534,
+                "Pallet Mix SG",
+                523,
+                20
+              ],
+              [
+                534,
+                "Pallet Mix SG",
+                524,
+                16
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "TEXT",
+              "NULL",
+              "NULL"
+            ],
+            "rowCount": 14,
+            "truncated": false
+          },
+          "queryHash": "7a69db718c0b01f8fcf6d54d507d294c5621589e1199d440679ef1aef0fc07c2",
+          "contentHash": "d40c52578edacfc6cca4b4314f1b981a6ef8dd803720737a363cd23a2b4ce4c2",
+          "observedAt": "2026-10-11T09:02:43.286Z"
+        },
+        {
+          "id": "evidence_0a333ec3-6b31-4d48-a750-e5e46f643fb6",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "34f74c57-f725-4f12-977e-dc9e7566ee1e",
+          "preview": {
+            "columns": [
+              "root",
+              "node",
+              "qty",
+              "path"
+            ],
+            "rows": [
+              [
+                531,
+                502,
+                864,
+                ",531,521,502,"
+              ],
+              [
+                532,
+                501,
+                720,
+                ",532,522,501,"
+              ],
+              [
+                533,
+                501,
+                360,
+                ",533,522,501,"
+              ],
+              [
+                533,
+                502,
+                600,
+                ",533,523,502,"
+              ],
+              [
+                534,
+                501,
+                384,
+                ",534,524,511,501,"
+              ],
+              [
+                534,
+                502,
+                600,
+                ",534,523,502,"
+              ],
+              [
+                534,
+                502,
+                256,
+                ",534,524,511,502,"
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "TEXT"
+            ],
+            "rowCount": 7,
+            "truncated": false
+          },
+          "queryHash": "f3e5a211b8eb0e5d6ce590ccaea838e1bf3d976f72bfc8dca2ead23e48fce699",
+          "contentHash": "6045416ded1b9090a4b5637ad721bf9d6bbd4436b99ed20fb3c200cf04c4f154",
+          "observedAt": "2026-10-11T09:03:07.421Z"
+        },
+        {
+          "id": "evidence_0ad37de2-c9d5-4f15-8fde-3d0c95df965a",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "c1041ac5-d6c8-4530-ba7c-22b346760a6c",
+          "preview": {
+            "columns": [
+              "root",
+              "total"
+            ],
+            "rows": [
+              [
+                531,
+                864
+              ],
+              [
+                532,
+                720
+              ],
+              [
+                533,
+                960
+              ],
+              [
+                534,
+                1240
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 4,
+            "truncated": false
+          },
+          "queryHash": "bae95e6e76a39ed4cd783551130b978b96b849d62fae97d8ee7b2ac213d41284",
+          "contentHash": "baf8bba0f84763611af35a4485f97c4a3302914a0a30e5e4eb57bb87dd472f05",
+          "observedAt": "2026-10-11T09:03:11.248Z"
+        },
+        {
+          "id": "evidence_4a5c6167-d011-46b7-89a1-5f395a5664a0",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "a52a8dd7-a9a0-4adc-b666-3a60923cb867",
+          "preview": {
+            "columns": [
+              "root",
+              "node",
+              "total",
+              "paths"
+            ],
+            "rows": [
+              [
+                511,
+                501,
+                3,
+                1
+              ],
+              [
+                511,
+                502,
+                2,
+                1
+              ],
+              [
+                521,
+                502,
+                72,
+                1
+              ],
+              [
+                522,
+                501,
+                36,
+                1
+              ],
+              [
+                523,
+                502,
+                30,
+                1
+              ],
+              [
+                524,
+                501,
+                24,
+                1
+              ],
+              [
+                524,
+                502,
+                16,
+                1
+              ],
+              [
+                531,
+                502,
+                864,
+                1
+              ],
+              [
+                532,
+                501,
+                720,
+                1
+              ],
+              [
+                533,
+                501,
+                360,
+                1
+              ],
+              [
+                533,
+                502,
+                600,
+                1
+              ],
+              [
+                534,
+                501,
+                384,
+                1
+              ],
+              [
+                534,
+                502,
+                856,
+                2
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 13,
+            "truncated": false
+          },
+          "queryHash": "80c69714ef9d61df92f655befb5a71ee2f19b20178743ae7f3e9a356647386eb",
+          "contentHash": "7bacab269d06ec5056cc6225e040d63d60d4d5d0f8bc8fab61207ba5c9062c31",
+          "observedAt": "2026-10-11T09:04:10.970Z"
+        },
+        {
+          "id": "evidence_44991205-7225-4767-b425-442cd3f3c3e2",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "eb777c78-846e-49c6-b363-6c4920bd434e",
+          "preview": {
+            "columns": [
+              "root",
+              "node",
+              "q",
+              "path"
+            ],
+            "rows": [
+              [
+                531,
+                502,
+                864,
+                ",531,521,502,"
+              ],
+              [
+                532,
+                501,
+                720,
+                ",532,522,501,"
+              ],
+              [
+                533,
+                501,
+                360,
+                ",533,522,501,"
+              ],
+              [
+                533,
+                502,
+                600,
+                ",533,523,502,"
+              ],
+              [
+                534,
+                501,
+                384,
+                ",534,524,511,501,"
+              ],
+              [
+                534,
+                502,
+                600,
+                ",534,523,502,"
+              ],
+              [
+                534,
+                502,
+                256,
+                ",534,524,511,502,"
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "TEXT"
+            ],
+            "rowCount": 7,
+            "truncated": false
+          },
+          "queryHash": "e4e057bc53536a3441103ce5b3659940eba2db9cbebf50c9102e51ab387a94cd",
+          "contentHash": "5799c70b513c6b4bdea6f673af04dbd9e94bf88553721faf34adc7ea660f814f",
+          "observedAt": "2026-10-11T09:04:16.967Z"
+        },
+        {
+          "id": "evidence_085c25ef-7f92-4072-9b86-5b80c16afa2c",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "656fc43e-1c25-4076-830b-80a21fe53f32",
+          "preview": {
+            "columns": [
+              "path_mean",
+              "path_count",
+              "sum_all"
+            ],
+            "rows": [
+              [
+                283.35714285714283,
+                14,
+                3967
+              ]
+            ],
+            "columnTypes": [
+              "REAL",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "75daf6ee57d1bdcd2ab4f30b9cf1f0b289790e9602269d73b970b80357853192",
+          "contentHash": "d0bc2947e6c7b4ca768ae2756f372ea8515c39c374fd64e6613cd34c058d2a20",
+          "observedAt": "2026-10-11T09:04:21.646Z"
+        },
+        {
+          "id": "evidence_46bd42a0-adc0-4a0c-81a3-7727906e1509",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "b25030cc-2356-4742-b725-e2ba08ebeb53",
+          "preview": {
+            "columns": [
+              "mean",
+              "denominator",
+              "numerator"
+            ],
+            "rows": [
+              [
+                530.67,
+                6,
+                3184
+              ]
+            ],
+            "columnTypes": [
+              "REAL",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "b1adedc52abb39adad8fdbd7b197f6de62e24ff56f784846e8726ee8ca9c96e8",
+          "contentHash": "530cff2fedcaa592cd4cab03469deac706e51e07bd407a8760472416d4689b24",
+          "observedAt": "2026-10-11T09:05:14.858Z"
+        }
+      ]
+    }
+  ],
+  "attempts": [
+    {
+      "taskId": "task_d9c450e8-217f-4a18-8320-46fc0e6932c0",
+      "items": [
+        {
+          "attemptId": "attempt_c612b80a-68f7-4e28-a560-2380f8ef1d76",
+          "taskId": "task_d9c450e8-217f-4a18-8320-46fc0e6932c0",
+          "kind": "exploration",
+          "revisionId": "revision_92a654f3-3e32-4677-a375-07ac41cb3f52",
+          "invocationId": "50cc7818-3b47-4b68-a9c8-730e7a1dfb6f",
+          "queryHash": "7a69db718c0b01f8fcf6d54d507d294c5621589e1199d440679ef1aef0fc07c2",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:02:42.392Z",
+          "updatedAt": "2026-10-11T09:02:43.287Z"
+        },
+        {
+          "attemptId": "attempt_0f2a6de0-f86b-47b5-b5e9-15b514d4b2ad",
+          "taskId": "task_d9c450e8-217f-4a18-8320-46fc0e6932c0",
+          "kind": "exploration",
+          "revisionId": "revision_92a654f3-3e32-4677-a375-07ac41cb3f52",
+          "invocationId": "34f74c57-f725-4f12-977e-dc9e7566ee1e",
+          "queryHash": "f3e5a211b8eb0e5d6ce590ccaea838e1bf3d976f72bfc8dca2ead23e48fce699",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:03:06.866Z",
+          "updatedAt": "2026-10-11T09:03:07.422Z"
+        },
+        {
+          "attemptId": "attempt_dc2ace14-66c0-4694-b17a-0c522263ed22",
+          "taskId": "task_d9c450e8-217f-4a18-8320-46fc0e6932c0",
+          "kind": "exploration",
+          "revisionId": "revision_92a654f3-3e32-4677-a375-07ac41cb3f52",
+          "invocationId": "c1041ac5-d6c8-4530-ba7c-22b346760a6c",
+          "queryHash": "bae95e6e76a39ed4cd783551130b978b96b849d62fae97d8ee7b2ac213d41284",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:03:10.729Z",
+          "updatedAt": "2026-10-11T09:03:11.249Z"
+        },
+        {
+          "attemptId": "attempt_5e2632c9-15ae-4900-94f5-3d147a0a4673",
+          "taskId": "task_d9c450e8-217f-4a18-8320-46fc0e6932c0",
+          "kind": "revision",
+          "revisionId": "revision_92a654f3-3e32-4677-a375-07ac41cb3f52",
+          "invocationId": "8dd82303-addd-4527-93d4-5ae17530d19e",
+          "state": "succeeded",
+          "sqlExecuted": false,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:03:16.566Z",
+          "updatedAt": "2026-10-11T09:03:16.561Z"
+        },
+        {
+          "attemptId": "attempt_de653681-697e-40b4-8a44-b741564a00f3",
+          "taskId": "task_d9c450e8-217f-4a18-8320-46fc0e6932c0",
+          "kind": "result",
+          "revisionId": "revision_5cb6fcbe-e360-4684-b1ff-4a0550d7b2e6",
+          "invocationId": "c60c1541-ce31-415c-bf1b-75924854a0a2",
+          "queryHash": "a83f0d8f2f39e22bb2d0baeb79b6cffba5df2ba121f54d700408fd6d0ab23cc4",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:03:20.600Z",
+          "updatedAt": "2026-10-11T09:03:21.541Z"
+        },
+        {
+          "attemptId": "attempt_2c7a0871-496b-4f47-b9a8-1caad10807a2",
+          "taskId": "task_d9c450e8-217f-4a18-8320-46fc0e6932c0",
+          "kind": "exploration",
+          "revisionId": "revision_5cb6fcbe-e360-4684-b1ff-4a0550d7b2e6",
+          "invocationId": "a52a8dd7-a9a0-4adc-b666-3a60923cb867",
+          "queryHash": "80c69714ef9d61df92f655befb5a71ee2f19b20178743ae7f3e9a356647386eb",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:04:10.405Z",
+          "updatedAt": "2026-10-11T09:04:10.971Z"
+        },
+        {
+          "attemptId": "attempt_b45d9c7e-485f-4b69-8d31-e38a21339e49",
+          "taskId": "task_d9c450e8-217f-4a18-8320-46fc0e6932c0",
+          "kind": "exploration",
+          "revisionId": "revision_5cb6fcbe-e360-4684-b1ff-4a0550d7b2e6",
+          "invocationId": "eb777c78-846e-49c6-b363-6c4920bd434e",
+          "queryHash": "e4e057bc53536a3441103ce5b3659940eba2db9cbebf50c9102e51ab387a94cd",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:04:16.288Z",
+          "updatedAt": "2026-10-11T09:04:16.969Z"
+        },
+        {
+          "attemptId": "attempt_729affed-0057-40b4-85fe-88ed7ea30396",
+          "taskId": "task_d9c450e8-217f-4a18-8320-46fc0e6932c0",
+          "kind": "exploration",
+          "revisionId": "revision_5cb6fcbe-e360-4684-b1ff-4a0550d7b2e6",
+          "invocationId": "656fc43e-1c25-4076-830b-80a21fe53f32",
+          "queryHash": "75daf6ee57d1bdcd2ab4f30b9cf1f0b289790e9602269d73b970b80357853192",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:04:20.946Z",
+          "updatedAt": "2026-10-11T09:04:21.647Z"
+        },
+        {
+          "attemptId": "attempt_dd0b82a1-1523-4e17-a3c3-dba648d25e5d",
+          "taskId": "task_d9c450e8-217f-4a18-8320-46fc0e6932c0",
+          "kind": "exploration",
+          "revisionId": "revision_5cb6fcbe-e360-4684-b1ff-4a0550d7b2e6",
+          "invocationId": "b25030cc-2356-4742-b725-e2ba08ebeb53",
+          "queryHash": "b1adedc52abb39adad8fdbd7b197f6de62e24ff56f784846e8726ee8ca9c96e8",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:05:14.049Z",
+          "updatedAt": "2026-10-11T09:05:14.859Z"
+        }
+      ]
+    }
+  ],
+  "candidates": [
+    {
+      "candidateId": "candidate_bd748844-1028-4d76-9cd0-084a2bb5dbdb",
+      "taskId": "task_d9c450e8-217f-4a18-8320-46fc0e6932c0",
+      "revisionId": "revision_5cb6fcbe-e360-4684-b1ff-4a0550d7b2e6",
+      "resultRef": "result_72c2fc3a-4010-4bbd-9eca-240289137b42",
+      "resultSchema": [
+        "average_total_quantity"
+      ],
+      "rowCount": 1,
+      "contentHash": "cfe5b856a8ffee06ba9da4624dcb787f29b33b761636769971a2bbe0b27d06b7",
+      "sql": "WITH RECURSIVE roots AS (SELECT id FROM packaging p WHERE EXISTS(SELECT 1 FROM packaging_relations r WHERE r.packaging_id=p.id) AND NOT EXISTS(SELECT 1 FROM packaging_relations r WHERE r.contains_id=p.id)), expand(root,node,qty,path) AS (SELECT id,id,1,','||id||',' FROM roots UNION ALL SELECT e.root,r.contains_id,e.qty*r.qty,e.path||r.contains_id||',' FROM expand e JOIN packaging_relations r ON r.packaging_id=e.node WHERE instr(e.path,','||r.contains_id||',')=0), leaf AS (SELECT * FROM expand e WHERE NOT EXISTS(SELECT 1 FROM packaging_relations r WHERE r.packaging_id=e.node)), totals AS (SELECT root,SUM(qty) total FROM leaf GROUP BY root) SELECT AVG(total*1.0) AS average_total_quantity FROM totals",
+      "queryHash": "a83f0d8f2f39e22bb2d0baeb79b6cffba5df2ba121f54d700408fd6d0ab23cc4",
+      "findings": [],
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "attemptId": "attempt_de653681-697e-40b4-8a44-b741564a00f3",
+      "createdByInvocationId": "c60c1541-ce31-415c-bf1b-75924854a0a2",
+      "createdAt": "2026-10-11T09:03:21.541Z",
+      "status": "ready",
+      "publishable": true
+    }
+  ],
+  "receipts": [
+    {
+      "receiptId": "publication_e8213dca-fd82-4653-8b70-e948f78c113a",
+      "taskId": "task_d9c450e8-217f-4a18-8320-46fc0e6932c0",
+      "principalId": "independent-analyst",
+      "sessionId": "local269",
+      "candidateId": "candidate_bd748844-1028-4d76-9cd0-084a2bb5dbdb",
+      "revisionId": "revision_5cb6fcbe-e360-4684-b1ff-4a0550d7b2e6",
+      "resultRef": "result_72c2fc3a-4010-4bbd-9eca-240289137b42",
+      "format": "csv",
+      "publicRef": "/api/runtime/publications/publication_e8213dca-fd82-4653-8b70-e948f78c113a?session_id=local269",
+      "contentHash": "cfe5b856a8ffee06ba9da4624dcb787f29b33b761636769971a2bbe0b27d06b7",
+      "presentationContentHash": "1e500561c35922e4215c61e13ae8366e5837c06cc887a5d3ac2ba11b91859fcb",
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "disclosure": {
+        "required": true,
+        "unverifiedFields": [
+          {
+            "path": "population.eligibility",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.formula",
+            "kind": "assumed"
+          },
+          {
+            "path": "grouping",
+            "kind": "assumed"
+          },
+          {
+            "path": "output",
+            "kind": "assumed"
+          }
+        ],
+        "summary": "以下字段为假定，未被合格证据证实：population.eligibility, measure.formula, grouping, output。"
+      },
+      "physicalProfile": {
+        "version": 1,
+        "rowCount": 1,
+        "truncated": false,
+        "columns": [
+          {
+            "name": "average_total_quantity",
+            "kind": "integer",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 1,
+            "min": "946",
+            "max": "946"
+          }
+        ]
+      },
+      "policyVersion": "answering-publication-v1",
+      "createdByInvocationId": "c60c1541-ce31-415c-bf1b-75924854a0a2",
+      "requestId": "c60c1541-ce31-415c-bf1b-75924854a0a2",
+      "createdAt": "2026-10-11T09:03:21.576Z"
+    }
+  ]
+}

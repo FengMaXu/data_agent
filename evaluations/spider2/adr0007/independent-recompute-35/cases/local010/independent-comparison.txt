@@ -1,0 +1,52 @@
+{
+  "instance_id": "local010",
+  "independent_freeze": "D:/data_agent/evaluations/spider2/adr0007/independent-recompute-35/cases/local010/independent-freeze.json",
+  "independent_official_score": 0,
+  "original_replayed_score": 0,
+  "recorded_original_score": 0,
+  "scorer_limitations": "Column-wise tolerance matching; ignore_order may ignore row associations; passing is not business proof.",
+  "independent": {
+    "path": "D:/data_agent/evaluations/spider2/adr0007/independent-recompute-35/cases/local010/publications/publication_9b34a8df-75f4-417d-960c-445a45355fc8/result.csv",
+    "rows": 1,
+    "columns": [
+      "fewest_pair_count"
+    ],
+    "head": [
+      {
+        "fewest_pair_count": 3
+      }
+    ]
+  },
+  "original": {
+    "path": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local010.csv",
+    "rows": 1,
+    "columns": [
+      "pair_count"
+    ],
+    "head": [
+      {
+        "pair_count": 3
+      }
+    ]
+  },
+  "golds": [
+    {
+      "path": "C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local010.csv",
+      "rows": 1,
+      "columns": [
+        "output"
+      ],
+      "head": [
+        {
+          "output": 6
+        }
+      ]
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local010",
+    "condition_cols": [],
+    "ignore_order": true,
+    "toks": "195"
+  }
+}

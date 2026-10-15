@@ -1,0 +1,118 @@
+{
+  "receiptId": "publication_dac26812-c4bb-467f-a93f-4424e4cb43b8",
+  "taskId": "task_09ea77a9-d637-443d-99eb-6c1ee236baf1",
+  "principalId": "independent-analyst",
+  "sessionId": "local131",
+  "candidateId": "candidate_58cb9328-42d5-49c5-b4fa-073bad7b7cdc",
+  "revisionId": "revision_28d61427-9c7b-4c43-a23e-f1f61f39ca4d",
+  "resultRef": "result_593f9936-b95b-412d-9dc1-125fb4bc28c0",
+  "format": "csv",
+  "publicRef": "/api/runtime/publications/publication_dac26812-c4bb-467f-a93f-4424e4cb43b8?session_id=local131",
+  "contentHash": "ac48bf5e5fb3fe2ba735a22f7acc9653f3cda3ba08e3b46c68976c1ef1e955d5",
+  "presentationContentHash": "7d20cc9c407bd63970c3dd17784fc65b6fd52d381dfcd098aff1216eb2aea8f4",
+  "coverage": [
+    {
+      "checkId": "result_completeness",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "result_shape",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "result_identity",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "join_fanout",
+      "outcome": "unknown",
+      "reason": "check_disabled"
+    },
+    {
+      "checkId": "spec_feedback",
+      "ruleVersion": "spec-feedback-v2",
+      "outcome": "not_applicable",
+      "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+    }
+  ],
+  "fanout": {
+    "ruleVersion": "answering-fanout-v1",
+    "status": "unknown",
+    "snapshotScope": "unbound",
+    "targets": [],
+    "unsupportedReasons": [
+      "check_disabled"
+    ]
+  },
+  "disclosure": {
+    "required": true,
+    "unverifiedFields": [
+      {
+        "path": "population.eligibility",
+        "kind": "assumed"
+      },
+      {
+        "path": "population.time",
+        "kind": "assumed"
+      },
+      {
+        "path": "measure.formula",
+        "kind": "assumed"
+      },
+      {
+        "path": "grouping",
+        "kind": "assumed"
+      },
+      {
+        "path": "output",
+        "kind": "assumed"
+      }
+    ],
+    "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.time, measure.formula, grouping, output。 JOIN fanout 检查未能完整完成：check_disabled。",
+    "fanoutStatus": "unknown"
+  },
+  "physicalProfile": {
+    "version": 1,
+    "rowCount": 25,
+    "truncated": false,
+    "columns": [
+      {
+        "name": "StyleName",
+        "kind": "text",
+        "nullCount": 0,
+        "distinctCount": 25
+      },
+      {
+        "name": "FirstPreference",
+        "kind": "integer",
+        "encodedAs": "number",
+        "nullCount": 0,
+        "distinctCount": 3,
+        "min": "0",
+        "max": "2"
+      },
+      {
+        "name": "SecondPreference",
+        "kind": "integer",
+        "encodedAs": "number",
+        "nullCount": 0,
+        "distinctCount": 3,
+        "min": "0",
+        "max": "2"
+      },
+      {
+        "name": "ThirdPreference",
+        "kind": "integer",
+        "encodedAs": "number",
+        "nullCount": 0,
+        "distinctCount": 2,
+        "min": "0",
+        "max": "1"
+      }
+    ]
+  },
+  "policyVersion": "answering-publication-v1",
+  "createdByInvocationId": "0140cd68-9dc2-4027-ace4-4413889818ce",
+  "requestId": "0140cd68-9dc2-4027-ace4-4413889818ce",
+  "createdAt": "2026-10-11T09:00:16.781Z"
+}

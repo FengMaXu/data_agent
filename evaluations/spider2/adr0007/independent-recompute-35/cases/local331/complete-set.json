@@ -1,0 +1,29 @@
+{
+  "fields": {
+    "population.eligibility": "Actual third visit events within same session; terminal pair without third event excluded",
+    "population.conditions": [
+      "first two adjacent view paths exactly /detail; retain original rows and original path values"
+    ],
+    "population.time": "All events ordered within session by stamp and rowid for timestamp ties",
+    "measure.formula": {
+      "op": "custom",
+      "description": "Count positive third-event occurrences in all sliding three-view windows with first two exactly /detail; one event window one count; select three path categories with greatest counts"
+    },
+    "grouping": [
+      "third_page path"
+    ],
+    "selection": {
+      "n": 3,
+      "orderBy": "occurrences DESC, third_page ASC"
+    },
+    "selection.ties": "strict",
+    "output": {
+      "rowMode": "top_n",
+      "rowCount": 3,
+      "columns": [
+        "third_page",
+        "occurrences"
+      ]
+    }
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT gender,count(*) n,count(distinct id_bioguide) people FROM legislators GROUP BY gender",
+  "limit": 1000
+}

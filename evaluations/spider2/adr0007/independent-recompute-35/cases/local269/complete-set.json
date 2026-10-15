@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "population.eligibility": "Outermost packaging with children and no incoming containment",
+    "population.conditions": "n/a",
+    "population.time": "n/a",
+    "measure.formula": {
+      "op": "custom",
+      "description": "Multiply quantities along every root-to-leaf path, sum leaf quantities per outermost root then arithmetic mean of root totals"
+    },
+    "grouping": [
+      "n/a"
+    ],
+    "selection": "n/a",
+    "output": {
+      "rowMode": "full",
+      "columns": [
+        "average_total_quantity"
+      ]
+    }
+  }
+}

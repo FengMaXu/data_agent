@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT t.boroname AS boroname,\n       COUNT(*) AS tree_count,\n       AVG(i.Estimate_Mean_income) AS avg_mean_income\nFROM trees t\nJOIN (SELECT zipcode,\n             MAX(Estimate_Median_income) AS Estimate_Median_income,\n             MAX(Estimate_Mean_income)   AS Estimate_Mean_income\n      FROM income_trees\n      GROUP BY zipcode) i\n  ON t.zipcode = i.zipcode\nWHERE i.Estimate_Median_income > 0\n  AND i.Estimate_Mean_income > 0\n  AND t.boroname IN ('Queens','Brooklyn','Staten Island','Bronx','Manhattan')\nGROUP BY t.boroname\nORDER BY tree_count DESC\nLIMIT 3\n",
+  "limit": 100
+}

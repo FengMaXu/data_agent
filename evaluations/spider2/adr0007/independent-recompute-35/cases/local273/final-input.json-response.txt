@@ -1,0 +1,206 @@
+{
+  "query": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[RESULT_CANDIDATE] candidateId=candidate_1f2ef420-0930-4829-b0e0-d1281959d521 revisionId=revision_a846396a-7d25-4c75-bb4b-10571c4b547b\n[FANOUT_CHECK] status=unknown reasons=check_disabled\nNo source-key duplication was observed within the supported probe coverage.\nproduct_name | average_pick_percentage\nDer Helle Kumpel | 70.83333333333334\nHazy Pink Cloud | 73.52941176470588\nHercule Trippel | 56.25\nHoppy Crude Oil | 85.71428571428571\nMonks and Nuns | 97.5609756097561\nPale Rider Rides | 71.36363636363636"
+      }
+    ],
+    "details": {
+      "kind": "result",
+      "artifact": {
+        "kind": "candidate",
+        "candidateId": "candidate_1f2ef420-0930-4829-b0e0-d1281959d521",
+        "revisionId": "revision_a846396a-7d25-4c75-bb4b-10571c4b547b",
+        "resultRef": "result_e9ee5a8f-6251-4d0f-84fc-714bca3e0bd7"
+      },
+      "preview": {
+        "columns": [
+          "product_name",
+          "average_pick_percentage"
+        ],
+        "rows": [
+          [
+            "Der Helle Kumpel",
+            70.83333333333334
+          ],
+          [
+            "Hazy Pink Cloud",
+            73.52941176470588
+          ],
+          [
+            "Hercule Trippel",
+            56.25
+          ],
+          [
+            "Hoppy Crude Oil",
+            85.71428571428571
+          ],
+          [
+            "Monks and Nuns",
+            97.5609756097561
+          ],
+          [
+            "Pale Rider Rides",
+            71.36363636363636
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "REAL"
+        ],
+        "rowCount": 6,
+        "truncated": false
+      },
+      "findings": [],
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "unknown",
+          "reason": "check_disabled"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "unknown",
+        "snapshotScope": "unbound",
+        "targets": [],
+        "unsupportedReasons": [
+          "check_disabled"
+        ]
+      },
+      "attemptId": "attempt_d7e83e69-545a-4e9c-8a16-7a915c1605b6"
+    }
+  },
+  "publication": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[PUBLISHED] csv [download](/api/runtime/publications/publication_18925f88-49d2-4116-b34a-e43ee6a667e6?session_id=local273) receiptId=publication_18925f88-49d2-4116-b34a-e43ee6a667e6\n[DISCLOSURE] 以下字段为假定，未被合格证据证实：population.eligibility, population.conditions, population.time, measure.formula, grouping, output。 JOIN fanout 检查未能完整完成：check_disabled。"
+      }
+    ],
+    "details": {
+      "receiptId": "publication_18925f88-49d2-4116-b34a-e43ee6a667e6",
+      "taskId": "task_da6bc8ac-28f2-4363-8336-01de80c55496",
+      "principalId": "independent-analyst",
+      "sessionId": "local273",
+      "candidateId": "candidate_1f2ef420-0930-4829-b0e0-d1281959d521",
+      "revisionId": "revision_a846396a-7d25-4c75-bb4b-10571c4b547b",
+      "resultRef": "result_e9ee5a8f-6251-4d0f-84fc-714bca3e0bd7",
+      "format": "csv",
+      "publicRef": "/api/runtime/publications/publication_18925f88-49d2-4116-b34a-e43ee6a667e6?session_id=local273",
+      "contentHash": "58730ff1e7d8c50822f9c4cb2db0891cde8347b59da171d6dd1a718d96bb7f93",
+      "presentationContentHash": "2a248049be1ee77469808c265338faf3e8adb1d031569c07b9a42e0abe69868a",
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "unknown",
+          "reason": "check_disabled"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "unknown",
+        "snapshotScope": "unbound",
+        "targets": [],
+        "unsupportedReasons": [
+          "check_disabled"
+        ]
+      },
+      "disclosure": {
+        "required": true,
+        "unverifiedFields": [
+          {
+            "path": "population.eligibility",
+            "kind": "assumed"
+          },
+          {
+            "path": "population.conditions",
+            "kind": "assumed"
+          },
+          {
+            "path": "population.time",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.formula",
+            "kind": "assumed"
+          },
+          {
+            "path": "grouping",
+            "kind": "assumed"
+          },
+          {
+            "path": "output",
+            "kind": "assumed"
+          }
+        ],
+        "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.conditions, population.time, measure.formula, grouping, output。 JOIN fanout 检查未能完整完成：check_disabled。",
+        "fanoutStatus": "unknown"
+      },
+      "physicalProfile": {
+        "version": 1,
+        "rowCount": 6,
+        "truncated": false,
+        "columns": [
+          {
+            "name": "product_name",
+            "kind": "text",
+            "nullCount": 0,
+            "distinctCount": 6
+          },
+          {
+            "name": "average_pick_percentage",
+            "kind": "decimal",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 6,
+            "min": "56.25",
+            "max": "97.5609756097561"
+          }
+        ]
+      },
+      "policyVersion": "answering-publication-v1",
+      "createdByInvocationId": "34082fc8-a190-444a-a5ff-81f87441adcb",
+      "requestId": "34082fc8-a190-444a-a5ff-81f87441adcb",
+      "createdAt": "2026-10-11T09:06:52.978Z"
+    }
+  },
+  "authorizedCsv": "D:\\data_agent\\evaluations\\spider2\\adr0007\\independent-recompute-35\\cases\\local273\\publications\\publication_18925f88-49d2-4116-b34a-e43ee6a667e6\\result.csv"
+}

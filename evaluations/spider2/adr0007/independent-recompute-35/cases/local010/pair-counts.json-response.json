@@ -1,0 +1,71 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_06c9682a-e1d0-4398-b120-ed3d5a33b3f4\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\npairs | flights | min(distance) | max(distance) | same_city_pairs\n258 | 33121 | 302.0123099827031 | 6774.7292687675135 | 0"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_06c9682a-e1d0-4398-b120-ed3d5a33b3f4",
+      "preview": {
+        "columns": [
+          "pairs",
+          "flights",
+          "min(distance)",
+          "max(distance)",
+          "same_city_pairs"
+        ],
+        "rows": [
+          [
+            258,
+            33121,
+            302.0123099827031,
+            6774.7292687675135,
+            0
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "REAL",
+          "REAL",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "pairs",
+        "flights",
+        "min(distance)",
+        "max(distance)",
+        "same_city_pairs"
+      ],
+      "rows": [
+        [
+          258,
+          33121,
+          302.0123099827031,
+          6774.7292687675135,
+          0
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "REAL",
+        "REAL",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_6e1293b6-7ec5-4403-aaeb-ef44603a2d5c"
+  }
+}

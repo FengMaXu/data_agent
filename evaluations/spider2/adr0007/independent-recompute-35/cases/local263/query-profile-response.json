@@ -1,0 +1,77 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_42610aec-c0d7-47b7-b4c4-327a4f9c930d\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nsource | rows | steps | models\nmodel_score | 2872 | 303 | 101\nmodel | 303 | 303 | 101"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_42610aec-c0d7-47b7-b4c4-327a4f9c930d",
+      "preview": {
+        "columns": [
+          "source",
+          "rows",
+          "steps",
+          "models"
+        ],
+        "rows": [
+          [
+            "model_score",
+            2872,
+            303,
+            101
+          ],
+          [
+            "model",
+            303,
+            303,
+            101
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 2,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "source",
+        "rows",
+        "steps",
+        "models"
+      ],
+      "rows": [
+        [
+          "model_score",
+          2872,
+          303,
+          101
+        ],
+        [
+          "model",
+          303,
+          303,
+          101
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 2,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_9a15deb8-4742-4628-9bb5-0b2d1dc48b05"
+  }
+}

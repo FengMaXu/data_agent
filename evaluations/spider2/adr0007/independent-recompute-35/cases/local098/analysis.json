@@ -1,0 +1,70 @@
+{
+  "instance_id": "local098",
+  "status": "gold_conflict",
+  "summary": "相邻出演年差≤4确实等价最多3缺年；原28698正确实现。当前全库只有32127可识别出演者，Gold32585超过全集上界。独立初稿误计1个NULL身份，冻结保留并另发布修正28698。",
+  "fork_node": null,
+  "error_layer": "标准答案与本次题面/输入局部冲突",
+  "visibility": null,
+  "independent_score": 0,
+  "evidence": [
+    {
+      "source": "blind.json",
+      "pointer": "/question",
+      "quote": "From the first year each actor appeared in a film to the last, how many actors in the database never had a gap longer than three consecutive years without at least one new movie appearance, meaning there is no four-year span anywhere in their active career without at least a single film credit?"
+    },
+    {
+      "source": "parent-post-actor-upper-bound-response.json",
+      "pointer": "/details/preview/rows",
+      "quote": "32127"
+    },
+    {
+      "source": "parent-post-gap-boundary-response.json",
+      "pointer": "/details/preview/rows",
+      "quote": "798"
+    },
+    {
+      "source": "parent-post-null-cast-identity-response.json",
+      "pointer": "/details/preview/rows",
+      "quote": "tt2355921"
+    },
+    {
+      "source": "parent-post-correction-note.json",
+      "pointer": "/corrected_count",
+      "quote": "28698"
+    },
+    {
+      "source": "comparison-input.json",
+      "pointer": "/goldCsv/0/content",
+      "quote": "output\r\n32585"
+    },
+    {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local098/attempts/attempt-001/trace.json",
+      "pointer": "/toolCalls/29/result/details/fields/2/value",
+      "quote": "相邻出现年份之差不超过 4"
+    }
+  ],
+  "limitations": [
+    "Gold生成机制/数据库版本未知，只确定当前出演者全集无法支持32585。",
+    "独立首稿多计NULL1人；初次冻结不可覆盖，修正SQL和新Receipt另行保留。"
+  ],
+  "parent_completed": true,
+  "completed_at": "2026-10-11T10:12:38.173679+00:00",
+  "parent_field_review": {
+    "instance_id": "local098",
+    "relevant_node": "population.eligibility",
+    "node_is_confirmed_original_error": false,
+    "explanation": "Gold32585超过当前32127可识别出演者全集；原缺口规则正确",
+    "error_layer": "标准答案与本次输入/明确要求局部冲突",
+    "visibility": "不适用：未确认原Spec语义错误",
+    "qualification": "Gold差异相关节点，不冒充原系统错误节点",
+    "original_node_declared": true,
+    "original_node_status": "assumed",
+    "original_node_value": "仅计入在 M_Cast 至少有一条出演记录的人物 PID",
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local098/attempts/attempt-001/trace.json",
+      "pointer": "/toolCalls/29/result/details/fields/1/value",
+      "quote": "仅计入在 M_Cast 至少有一条出演记录的人物 PID"
+    },
+    "primary_status": "gold_conflict"
+  }
+}

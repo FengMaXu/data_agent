@@ -1,0 +1,54 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_da6bc8ac-28f2-4363-8336-01de80c55496 revisionId=revision_11887542-7697-4215-a5a7-77555e64f7bf\n- ✓ population.entity\n状态：\n- 未声明: population.eligibility, population.conditions, population.time, measure.formula, grouping, selection, output\n[SPEC_FEEDBACK] revisionId=revision_11887542-7697-4215-a5a7-77555e64f7bf status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"product with FIFO order-inventory allocations\"}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_da6bc8ac-28f2-4363-8336-01de80c55496",
+    "revisionId": "revision_11887542-7697-4215-a5a7-77555e64f7bf",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "product with FIFO order-inventory allocations"
+        },
+        "evidenceIds": [
+          "evidence_dbd27835-81c1-46ca-8485-01187d07f683"
+        ]
+      }
+    ],
+    "undeclared": [
+      "population.eligibility",
+      "population.conditions",
+      "population.time",
+      "measure.formula",
+      "grouping",
+      "selection",
+      "output"
+    ],
+    "open": [],
+    "unverified": [],
+    "specFeedback": {
+      "taskId": "task_da6bc8ac-28f2-4363-8336-01de80c55496",
+      "revisionId": "revision_11887542-7697-4215-a5a7-77555e64f7bf",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_dbd27835-81c1-46ca-8485-01187d07f683"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "population.entity",
+        "status": "applied"
+      }
+    ]
+  }
+}

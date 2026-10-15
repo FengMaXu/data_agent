@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT count(*) rows,count(distinct company_id) companies,count(distinct company_id||date_joined) id_dates FROM companies_dates",
+  "limit": 100
+}

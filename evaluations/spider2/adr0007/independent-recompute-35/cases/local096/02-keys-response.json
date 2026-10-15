@@ -1,0 +1,89 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_adc6ea98-f3a6-44cf-aa3a-69ee51d84353\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nkind | rows | distinct_id | padded\nMovie | 3475 | 3475 | 0\nPerson | 38285 | 37565 | 0\nM_Cast | 82837 | 82835 | 82835"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_adc6ea98-f3a6-44cf-aa3a-69ee51d84353",
+      "preview": {
+        "columns": [
+          "kind",
+          "rows",
+          "distinct_id",
+          "padded"
+        ],
+        "rows": [
+          [
+            "Movie",
+            3475,
+            3475,
+            0
+          ],
+          [
+            "Person",
+            38285,
+            37565,
+            0
+          ],
+          [
+            "M_Cast",
+            82837,
+            82835,
+            82835
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 3,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "kind",
+        "rows",
+        "distinct_id",
+        "padded"
+      ],
+      "rows": [
+        [
+          "Movie",
+          3475,
+          3475,
+          0
+        ],
+        [
+          "Person",
+          38285,
+          37565,
+          0
+        ],
+        [
+          "M_Cast",
+          82837,
+          82835,
+          82835
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 3,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_71fc1e25-0099-4efc-bbe1-b1fea5327d21"
+  }
+}

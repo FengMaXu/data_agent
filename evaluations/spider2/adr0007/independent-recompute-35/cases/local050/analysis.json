@@ -1,0 +1,58 @@
+{
+  "instance_id": "local050",
+  "status": "ambiguous_after_recompute",
+  "summary": "独立2552.695，原2552.70；加2021有销量资格并商品预测ROUND2后精确重现Gold2604.2362912087915。2021资格不是题面明确要求；局部原SQL月均值舍入缺失不能解释全部差值。",
+  "fork_node": "population.eligibility",
+  "error_layer": "unresolved_target_year_roster; local_rounding_implementation_difference",
+  "visibility": "eligibility explicit historical-only; target roster omitted; rounding requires formula/output audit",
+  "independent_score": 0,
+  "evidence": [
+    {
+      "source": "blind.json",
+      "pointer": "/question",
+      "quote": "monthly sales data from 2019 and 2020 (filtered by promo_total_id=1 and channel_total_id=1)"
+    },
+    {
+      "source": "blind.json",
+      "pointer": "/documents/projection_calculation.md/content",
+      "quote": "Compute the average projected sales for each month in 2021, adjusting for currency conversion. Round the results to two decimal places."
+    },
+    {
+      "source": "post-product-rounding.json",
+      "pointer": "/sql",
+      "quote": "AVG(ROUND(a20*a20/a19,2))"
+    }
+  ],
+  "limitations": [
+    "Gold SQL缺失，操作组合精确重现不是唯一源实现证明",
+    "收集2021文档语句不等于2021实际销售资格业务规则",
+    "所有法国月汇率1，本次不能区别不同汇率年取法"
+  ],
+  "parent_field_review": {
+    "instance_id": "local050",
+    "relevant_node": "population.eligibility",
+    "node_is_confirmed_original_error": false,
+    "explanation": "2021商品月资格没有唯一依据；月均值舍入步骤另有局部差异",
+    "error_layer": "未唯一裁决",
+    "visibility": "不能标成假定错/决定错：原声明可见，不等于业务错误已证",
+    "qualification": "差异机制已实测，业务意图未唯一裁决",
+    "original_node_declared": true,
+    "original_node_status": "assumed",
+    "original_node_value": "Only product-month cells that have sales in BOTH 2019 and 2020 (growth rate needs both years); cells with a zero 2019 baseline are dropped (growth undefined). No zero-filling.",
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local050/attempts/attempt-001/trace.json",
+      "pointer": "/toolCalls/16/result/details/fields/1/value",
+      "quote": "Only product-month cells that have sales in BOTH 2019 and 2020 (growth rate needs both years); cells with a zero 2019 baseline are dropped (growth undefined). No zero-filling."
+    },
+    "primary_status": "ambiguous_after_recompute"
+  },
+  "secondary_findings": [
+    {
+      "status": "document_alignment_difference",
+      "node": "measure.formula",
+      "description": "任务文档要求月均值先ROUND2，原嵌套公式未声明该中间步骤，SQL只舍入最终median；局部差约0.005，不解释主体51.54。",
+      "error_layer": "口径声明遗漏/实现文档符合性差异，非全部失分根因",
+      "visibility": "节点已声明，中间舍入步骤未表达；不硬套整节点未声明"
+    }
+  ]
+}

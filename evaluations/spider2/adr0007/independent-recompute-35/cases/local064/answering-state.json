@@ -1,0 +1,1122 @@
+{
+  "version": 2,
+  "tasks": [
+    {
+      "taskId": "task_3932e0c7-258c-4b17-a966-5eb63818b3de",
+      "sessionId": "local064",
+      "principalId": "independent-analyst",
+      "requestMessageId": "original-task",
+      "requestId": "4a1de532-dc20-44d7-91de-34fff72a72e8",
+      "currentRevisionId": "revision_0ba2b2b8-87df-4070-8c2e-a40a40d8ad11",
+      "lifecycle": "published",
+      "budget": {
+        "policy": {
+          "version": "answering-dual-loop-v1",
+          "maxRevisions": 40,
+          "maxExplorationAttempts": 120,
+          "maxResultAttempts": 20,
+          "maxElapsedMs": 14400000,
+          "maxObservedRows": 2000000
+        },
+        "startedAt": "2026-10-11T08:58:23.121Z",
+        "revisionCount": 2,
+        "explorationAttempts": 4,
+        "resultAttempts": 1,
+        "observedRows": 27
+      },
+      "createdAt": "2026-10-11T08:58:23.121Z",
+      "updatedAt": "2026-10-11T09:01:48.825Z",
+      "latestCandidateId": "candidate_a06c17e8-bda3-44ea-8836-ab751aaee731",
+      "publicationId": "publication_4be5110e-1c5d-4d56-8de8-9ea8218c2a49"
+    }
+  ],
+  "revisions": [
+    {
+      "taskId": "task_3932e0c7-258c-4b17-a966-5eb63818b3de",
+      "revisionId": "revision_0287212a-703a-49b9-9d9b-e3a43d919a21",
+      "requestId": "4a1de532-dc20-44d7-91de-34fff72a72e8",
+      "createdAt": "2026-10-11T08:58:23.121Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "customer-month pairs"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_08e3496a-1a1b-4f9a-a9fb-f9ce04b4d963"
+            ]
+          }
+        }
+      },
+      "state": {
+        "state": "draft",
+        "revisionId": "revision_0287212a-703a-49b9-9d9b-e3a43d919a21"
+      },
+      "specFeedback": {
+        "taskId": "task_3932e0c7-258c-4b17-a966-5eb63818b3de",
+        "revisionId": "revision_0287212a-703a-49b9-9d9b-e3a43d919a21",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_08e3496a-1a1b-4f9a-a9fb-f9ce04b4d963"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    },
+    {
+      "taskId": "task_3932e0c7-258c-4b17-a966-5eb63818b3de",
+      "revisionId": "revision_7a7a4ad9-a787-4841-b950-9b0f5d8329f0",
+      "parentRevisionId": "revision_0287212a-703a-49b9-9d9b-e3a43d919a21",
+      "requestId": "1921fc1b-2abc-4293-a7d4-3479ca5ec064",
+      "createdAt": "2026-10-11T08:59:24.472Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "customer-month pairs"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_08e3496a-1a1b-4f9a-a9fb-f9ce04b4d963"
+            ]
+          }
+        },
+        "population.eligibility": {
+          "state": "specified",
+          "value": "Include all 500 customers, including zero-transaction customer-months",
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_37daa9d1-f165-4cfa-9b5e-8dd3b142570c"
+            ]
+          }
+        },
+        "population.conditions": {
+          "state": "specified",
+          "value": [
+            "Only deposit adds and withdrawal subtracts; purchase contributes zero"
+          ],
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_2c31e542-71a3-4023-a17a-d972124b5707"
+            ]
+          }
+        },
+        "population.time": {
+          "state": "specified",
+          "value": {
+            "expression": "2020-01-01 inclusive through 2021-01-01 exclusive, all 12 calendar months"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_05cb28f2-e9fd-4952-bbbc-2039aaf06687"
+            ]
+          }
+        },
+        "measure.formula": {
+          "state": "specified",
+          "value": {
+            "op": "custom",
+            "description": "Monthly deposit-withdrawal for each customer; positive customer count by month; average monthly net over all 500 customers; highest-count month average minus lowest-count month average"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_c9ca100e-408b-425c-b105-d73bd60e638c"
+            ]
+          }
+        },
+        "measure.countGrain": {
+          "state": "specified",
+          "value": "Distinct customer per calendar month",
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "measure.denominator": {
+          "state": "specified",
+          "value": "All 500 customers, zero-filled months",
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "grouping": {
+          "state": "specified",
+          "value": [
+            "calendar month"
+          ],
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_f38f6a99-6947-4957-8048-261c630887f3"
+            ]
+          }
+        },
+        "selection.ties": {
+          "state": "specified",
+          "value": "strict",
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "output": {
+          "state": "specified",
+          "value": {
+            "rowMode": "scalar",
+            "columns": [
+              "highest_month",
+              "highest_count",
+              "highest_average",
+              "lowest_month",
+              "lowest_count",
+              "lowest_average",
+              "difference"
+            ]
+          },
+          "basis": {
+            "kind": "assumed"
+          }
+        }
+      },
+      "state": {
+        "state": "draft",
+        "revisionId": "revision_7a7a4ad9-a787-4841-b950-9b0f5d8329f0"
+      },
+      "specFeedback": {
+        "taskId": "task_3932e0c7-258c-4b17-a966-5eb63818b3de",
+        "revisionId": "revision_7a7a4ad9-a787-4841-b950-9b0f5d8329f0",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_08e3496a-1a1b-4f9a-a9fb-f9ce04b4d963",
+          "evidence_512d5719-8c74-409b-8755-7d57d0e0f2dc",
+          "evidence_fcd5ec21-d2a0-4626-9be7-1d6d325f795f",
+          "evidence_37daa9d1-f165-4cfa-9b5e-8dd3b142570c",
+          "evidence_2c31e542-71a3-4023-a17a-d972124b5707",
+          "evidence_05cb28f2-e9fd-4952-bbbc-2039aaf06687",
+          "evidence_c9ca100e-408b-425c-b105-d73bd60e638c",
+          "evidence_f38f6a99-6947-4957-8048-261c630887f3"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    },
+    {
+      "taskId": "task_3932e0c7-258c-4b17-a966-5eb63818b3de",
+      "revisionId": "revision_0ba2b2b8-87df-4070-8c2e-a40a40d8ad11",
+      "parentRevisionId": "revision_7a7a4ad9-a787-4841-b950-9b0f5d8329f0",
+      "requestId": "e18b9ee6-905b-4bd8-90a3-a840f9d2778f",
+      "createdAt": "2026-10-11T09:00:46.901Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "customer-month pairs"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_08e3496a-1a1b-4f9a-a9fb-f9ce04b4d963"
+            ]
+          }
+        },
+        "population.eligibility": {
+          "state": "specified",
+          "value": "Include all 500 customers, including zero-transaction customer-months",
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_37daa9d1-f165-4cfa-9b5e-8dd3b142570c"
+            ]
+          }
+        },
+        "population.conditions": {
+          "state": "specified",
+          "value": [
+            "Only deposit adds and withdrawal subtracts; purchase contributes zero"
+          ],
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_2c31e542-71a3-4023-a17a-d972124b5707"
+            ]
+          }
+        },
+        "population.time": {
+          "state": "specified",
+          "value": {
+            "expression": "2020-01-01 inclusive through 2021-01-01 exclusive, all 12 calendar months"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_05cb28f2-e9fd-4952-bbbc-2039aaf06687"
+            ]
+          }
+        },
+        "measure.formula": {
+          "state": "specified",
+          "value": {
+            "op": "custom",
+            "description": "Monthly deposit-withdrawal for each customer; positive customer count by month; average monthly net over all 500 customers; highest-count month average minus lowest-count month average"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_c9ca100e-408b-425c-b105-d73bd60e638c"
+            ]
+          }
+        },
+        "measure.countGrain": {
+          "state": "specified",
+          "value": "Distinct customer per calendar month",
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "measure.denominator": {
+          "state": "specified",
+          "value": "All 500 customers, zero-filled months",
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "grouping": {
+          "state": "specified",
+          "value": [
+            "calendar month"
+          ],
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_f38f6a99-6947-4957-8048-261c630887f3"
+            ]
+          }
+        },
+        "selection.ties": {
+          "state": "specified",
+          "value": "strict",
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "output": {
+          "state": "specified",
+          "value": {
+            "rowMode": "scalar",
+            "columns": [
+              "highest_month",
+              "highest_count",
+              "highest_average",
+              "lowest_month",
+              "lowest_count",
+              "lowest_average",
+              "difference"
+            ]
+          },
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "selection": {
+          "state": "specified",
+          "value": {
+            "n": 1,
+            "orderBy": "positive_customers DESC, m ASC for high; positive_customers ASC, m ASC for low"
+          },
+          "basis": {
+            "kind": "assumed",
+            "rationale": "Two separate branches select highest and lowest positive customer counts, earliest month tie; scalar difference joins them"
+          }
+        }
+      },
+      "state": {
+        "state": "ready",
+        "revisionId": "revision_0ba2b2b8-87df-4070-8c2e-a40a40d8ad11",
+        "ready": "ready_017a265f-cb3b-44d2-910b-5c1521fa430d"
+      },
+      "specFeedback": {
+        "taskId": "task_3932e0c7-258c-4b17-a966-5eb63818b3de",
+        "revisionId": "revision_0ba2b2b8-87df-4070-8c2e-a40a40d8ad11",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_08e3496a-1a1b-4f9a-a9fb-f9ce04b4d963",
+          "evidence_512d5719-8c74-409b-8755-7d57d0e0f2dc",
+          "evidence_fcd5ec21-d2a0-4626-9be7-1d6d325f795f",
+          "evidence_37daa9d1-f165-4cfa-9b5e-8dd3b142570c",
+          "evidence_2c31e542-71a3-4023-a17a-d972124b5707",
+          "evidence_05cb28f2-e9fd-4952-bbbc-2039aaf06687",
+          "evidence_c9ca100e-408b-425c-b105-d73bd60e638c",
+          "evidence_f38f6a99-6947-4957-8048-261c630887f3"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "taskId": "task_3932e0c7-258c-4b17-a966-5eb63818b3de",
+      "items": [
+        {
+          "id": "request_be3e2f2bd519d830902bceb0",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "observedAt": "2026-10-11T08:58:23.121Z"
+        },
+        {
+          "id": "evidence_08e3496a-1a1b-4f9a-a9fb-f9ce04b4d963",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "122d607628fab8f199ceca92568b0f7655e9664696f5ac3249c804f0a89850d4",
+          "quote": "For each customer and each month of 2020",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "122d607628fab8f199ceca92568b0f7655e9664696f5ac3249c804f0a89850d4"
+          },
+          "observedAt": "2026-10-11T08:58:23.121Z"
+        },
+        {
+          "id": "evidence_512d5719-8c74-409b-8755-7d57d0e0f2dc",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "ca0d531e-6783-4c10-9cde-3607a276ee25",
+          "preview": {
+            "columns": [
+              "txn_type",
+              "n",
+              "first_date",
+              "last_date",
+              "customers"
+            ],
+            "rows": [
+              [
+                "deposit",
+                2671,
+                "2020-01-01",
+                "2020-04-26",
+                500
+              ],
+              [
+                "purchase",
+                1617,
+                "2020-01-01",
+                "2020-04-28",
+                448
+              ],
+              [
+                "withdrawal",
+                1580,
+                "2020-01-02",
+                "2020-04-28",
+                439
+              ],
+              [
+                "node_customers",
+                3500,
+                "2020-01-01",
+                "9999-12-31",
+                500
+              ],
+              [
+                "transactions_not_nodes",
+                0,
+                null,
+                null,
+                0
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER",
+              "TEXT",
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 5,
+            "truncated": false
+          },
+          "queryHash": "f3a68e2477ced36dafe6bc0b125fea4c2fe9e882fd191b24ca249acbda84a29f",
+          "contentHash": "2e02c6746c6d73ad59b6c2d128bc9fbf5bd32b27cabd77ac638a1cd7dab9e9a7",
+          "observedAt": "2026-10-11T08:58:36.591Z"
+        },
+        {
+          "id": "evidence_fcd5ec21-d2a0-4626-9be7-1d6d325f795f",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "344979fc-5257-43dd-ad78-6c6439b354fc",
+          "preview": {
+            "columns": [
+              "m",
+              "positive_customers",
+              "avg_balance",
+              "total_net"
+            ],
+            "rows": [
+              [
+                "2020-01-01",
+                424,
+                557.704,
+                278852
+              ],
+              [
+                "2020-02-01",
+                259,
+                224.856,
+                112428
+              ],
+              [
+                "2020-03-01",
+                248,
+                212.06,
+                106030
+              ],
+              [
+                "2020-04-01",
+                169,
+                137.71,
+                68855
+              ],
+              [
+                "2020-05-01",
+                0,
+                0,
+                0
+              ],
+              [
+                "2020-06-01",
+                0,
+                0,
+                0
+              ],
+              [
+                "2020-07-01",
+                0,
+                0,
+                0
+              ],
+              [
+                "2020-08-01",
+                0,
+                0,
+                0
+              ],
+              [
+                "2020-09-01",
+                0,
+                0,
+                0
+              ],
+              [
+                "2020-10-01",
+                0,
+                0,
+                0
+              ],
+              [
+                "2020-11-01",
+                0,
+                0,
+                0
+              ],
+              [
+                "2020-12-01",
+                0,
+                0,
+                0
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER",
+              "REAL",
+              "INTEGER"
+            ],
+            "rowCount": 12,
+            "truncated": false
+          },
+          "queryHash": "cfb0029eff93ecbaa3fee562943e53bc0427729af675553acc466a62e8c168cc",
+          "contentHash": "63d32ab08dfcfe4d86d0715e70c3485264cd23329947d7e61b583681cf3dcd06",
+          "observedAt": "2026-10-11T08:59:00.808Z"
+        },
+        {
+          "id": "evidence_37daa9d1-f165-4cfa-9b5e-8dd3b142570c",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "122d607628fab8f199ceca92568b0f7655e9664696f5ac3249c804f0a89850d4",
+          "quote": "across all customers",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "122d607628fab8f199ceca92568b0f7655e9664696f5ac3249c804f0a89850d4"
+          },
+          "observedAt": "2026-10-11T08:59:24.472Z"
+        },
+        {
+          "id": "evidence_2c31e542-71a3-4023-a17a-d972124b5707",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "122d607628fab8f199ceca92568b0f7655e9664696f5ac3249c804f0a89850d4",
+          "quote": "adding all deposit amounts and subtracting all withdrawal amounts",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "122d607628fab8f199ceca92568b0f7655e9664696f5ac3249c804f0a89850d4"
+          },
+          "observedAt": "2026-10-11T08:59:24.472Z"
+        },
+        {
+          "id": "evidence_05cb28f2-e9fd-4952-bbbc-2039aaf06687",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "122d607628fab8f199ceca92568b0f7655e9664696f5ac3249c804f0a89850d4",
+          "quote": "each month of 2020",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "122d607628fab8f199ceca92568b0f7655e9664696f5ac3249c804f0a89850d4"
+          },
+          "observedAt": "2026-10-11T08:59:24.472Z"
+        },
+        {
+          "id": "evidence_c9ca100e-408b-425c-b105-d73bd60e638c",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "122d607628fab8f199ceca92568b0f7655e9664696f5ac3249c804f0a89850d4",
+          "quote": "that occurred during that specific month",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "122d607628fab8f199ceca92568b0f7655e9664696f5ac3249c804f0a89850d4"
+          },
+          "observedAt": "2026-10-11T08:59:24.472Z"
+        },
+        {
+          "id": "evidence_f38f6a99-6947-4957-8048-261c630887f3",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "122d607628fab8f199ceca92568b0f7655e9664696f5ac3249c804f0a89850d4",
+          "quote": "each month of 2020",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "122d607628fab8f199ceca92568b0f7655e9664696f5ac3249c804f0a89850d4"
+          },
+          "observedAt": "2026-10-11T08:59:24.472Z"
+        },
+        {
+          "id": "evidence_8d7296b3-8d54-4209-b78c-0b10cb908270",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "d9c672ba-542b-4124-9db2-ecde6b856328",
+          "preview": {
+            "columns": [
+              "mode",
+              "kind",
+              "period",
+              "high_month",
+              "low_month",
+              "high_positive",
+              "low_positive",
+              "diff_all",
+              "diff_active",
+              "diff_positive"
+            ],
+            "rows": [
+              [
+                0,
+                "cumulative",
+                "full_year",
+                "2020-01",
+                "2020-03",
+                424,
+                381,
+                -436.91600000000005,
+                -483.2894210526317,
+                -823.2020006933096
+              ],
+              [
+                0,
+                "cumulative",
+                "observed",
+                "2020-01",
+                "2020-03",
+                424,
+                381,
+                -436.91600000000005,
+                -483.2894210526317,
+                -823.2020006933096
+              ],
+              [
+                0,
+                "monthly",
+                "full_year",
+                "2020-01",
+                "2020-05",
+                424,
+                0,
+                557.704,
+                null,
+                null
+              ],
+              [
+                0,
+                "monthly",
+                "observed",
+                "2020-01",
+                "2020-04",
+                424,
+                169,
+                419.9939999999999,
+                334.87228478964397,
+                33.50909902869262
+              ],
+              [
+                1,
+                "cumulative",
+                "full_year",
+                "2020-01",
+                "2020-04",
+                343,
+                216,
+                732.926,
+                837.4732621359224,
+                -539.3239256019868
+              ],
+              [
+                1,
+                "cumulative",
+                "observed",
+                "2020-01",
+                "2020-04",
+                343,
+                216,
+                732.926,
+                837.4732621359224,
+                -539.3239256019868
+              ],
+              [
+                1,
+                "monthly",
+                "full_year",
+                "2020-01",
+                "2020-05",
+                343,
+                0,
+                252.182,
+                null,
+                null
+              ],
+              [
+                1,
+                "monthly",
+                "observed",
+                "2020-01",
+                "2020-04",
+                343,
+                125,
+                363.74199999999996,
+                432.6997993527508,
+                25.46588921282796
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "TEXT",
+              "TEXT",
+              "TEXT",
+              "TEXT",
+              "INTEGER",
+              "INTEGER",
+              "REAL",
+              "REAL",
+              "REAL"
+            ],
+            "rowCount": 8,
+            "truncated": false
+          },
+          "queryHash": "a5234727b37cbca72a8a0a7baad25b0a53e0e8399699ce4c2a74152fe3d0020a",
+          "contentHash": "f773331a7df0b746e12fa6bfd1bda2aaa46609c407e09b0f917aeff93fd4ac64",
+          "observedAt": "2026-10-11T09:01:41.152Z"
+        },
+        {
+          "id": "evidence_dd0bc112-92e7-4726-8fb8-7e93a6a0f7b9",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "807a752f-6130-4b18-94c2-7bd1c7c6f934",
+          "preview": {
+            "columns": [
+              "highest_count_month",
+              "highest_count",
+              "highest_month_avg_balance",
+              "lowest_count_month",
+              "lowest_count",
+              "lowest_month_avg_balance",
+              "avg_difference"
+            ],
+            "rows": [
+              [
+                "2020-01",
+                424,
+                557.7,
+                "2020-04",
+                169,
+                137.71,
+                419.99
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER",
+              "REAL",
+              "TEXT",
+              "INTEGER",
+              "REAL",
+              "REAL"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "d76f519912322793d3fd488627241cb9728f49ea785358ad62f9ff63420151a2",
+          "contentHash": "493562766f4fafe128fb7cf3e49ec5909ace0e3f97771523c27d6e72cbf1b0ab",
+          "observedAt": "2026-10-11T09:01:48.824Z"
+        }
+      ]
+    }
+  ],
+  "attempts": [
+    {
+      "taskId": "task_3932e0c7-258c-4b17-a966-5eb63818b3de",
+      "items": [
+        {
+          "attemptId": "attempt_9d2d0b22-554a-48d7-9939-2dcbffb60676",
+          "taskId": "task_3932e0c7-258c-4b17-a966-5eb63818b3de",
+          "kind": "exploration",
+          "revisionId": "revision_0287212a-703a-49b9-9d9b-e3a43d919a21",
+          "invocationId": "ca0d531e-6783-4c10-9cde-3607a276ee25",
+          "queryHash": "f3a68e2477ced36dafe6bc0b125fea4c2fe9e882fd191b24ca249acbda84a29f",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T08:58:35.874Z",
+          "updatedAt": "2026-10-11T08:58:36.592Z"
+        },
+        {
+          "attemptId": "attempt_dd634d9f-7af7-4a52-8275-5497674fc7c7",
+          "taskId": "task_3932e0c7-258c-4b17-a966-5eb63818b3de",
+          "kind": "exploration",
+          "revisionId": "revision_0287212a-703a-49b9-9d9b-e3a43d919a21",
+          "invocationId": "344979fc-5257-43dd-ad78-6c6439b354fc",
+          "queryHash": "cfb0029eff93ecbaa3fee562943e53bc0427729af675553acc466a62e8c168cc",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T08:59:00.103Z",
+          "updatedAt": "2026-10-11T08:59:00.809Z"
+        },
+        {
+          "attemptId": "attempt_951da2f8-7c54-4b1b-9cbf-a1a32e83605e",
+          "taskId": "task_3932e0c7-258c-4b17-a966-5eb63818b3de",
+          "kind": "revision",
+          "revisionId": "revision_0287212a-703a-49b9-9d9b-e3a43d919a21",
+          "invocationId": "1921fc1b-2abc-4293-a7d4-3479ca5ec064",
+          "state": "succeeded",
+          "sqlExecuted": false,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T08:59:24.498Z",
+          "updatedAt": "2026-10-11T08:59:24.472Z"
+        },
+        {
+          "attemptId": "attempt_220549f3-1458-4ae5-881a-e26d624d5038",
+          "taskId": "task_3932e0c7-258c-4b17-a966-5eb63818b3de",
+          "kind": "result",
+          "revisionId": "revision_7a7a4ad9-a787-4841-b950-9b0f5d8329f0",
+          "invocationId": "61080431-f587-4f11-8f51-0242634ac5e8",
+          "queryHash": "efc6f72a83ac28660fef18d42981abd048450831803d4e433f66e638b60a6719",
+          "state": "blocked",
+          "sqlExecuted": false,
+          "outcome": "not_started",
+          "obstacleKind": "business_judgment_required",
+          "createdAt": "2026-10-11T08:59:30.383Z",
+          "updatedAt": "2026-10-11T08:59:30.383Z"
+        },
+        {
+          "attemptId": "attempt_891b7c65-e22d-4a61-9dd1-1e20fb41144a",
+          "taskId": "task_3932e0c7-258c-4b17-a966-5eb63818b3de",
+          "kind": "result",
+          "revisionId": "revision_7a7a4ad9-a787-4841-b950-9b0f5d8329f0",
+          "invocationId": "16d0f2f9-08fe-4c65-b2bc-c898855803ef",
+          "queryHash": "efc6f72a83ac28660fef18d42981abd048450831803d4e433f66e638b60a6719",
+          "state": "blocked",
+          "sqlExecuted": false,
+          "outcome": "not_started",
+          "obstacleKind": "business_judgment_required",
+          "createdAt": "2026-10-11T09:00:08.186Z",
+          "updatedAt": "2026-10-11T09:00:08.186Z"
+        },
+        {
+          "attemptId": "attempt_5a725876-b3a8-4eb4-9bb8-4f5e67d4e5bd",
+          "taskId": "task_3932e0c7-258c-4b17-a966-5eb63818b3de",
+          "kind": "revision",
+          "revisionId": "revision_7a7a4ad9-a787-4841-b950-9b0f5d8329f0",
+          "invocationId": "e18b9ee6-905b-4bd8-90a3-a840f9d2778f",
+          "state": "succeeded",
+          "sqlExecuted": false,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:00:46.907Z",
+          "updatedAt": "2026-10-11T09:00:46.901Z"
+        },
+        {
+          "attemptId": "attempt_773c0e24-e8a7-435e-ad1b-e4e139c269af",
+          "taskId": "task_3932e0c7-258c-4b17-a966-5eb63818b3de",
+          "kind": "result",
+          "revisionId": "revision_0ba2b2b8-87df-4070-8c2e-a40a40d8ad11",
+          "invocationId": "13916638-30d8-4684-a98e-19aea60d8b0c",
+          "queryHash": "efc6f72a83ac28660fef18d42981abd048450831803d4e433f66e638b60a6719",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:00:50.141Z",
+          "updatedAt": "2026-10-11T09:00:51.111Z"
+        },
+        {
+          "attemptId": "attempt_b3c48f41-e965-41fe-b777-c670be2ff7ed",
+          "taskId": "task_3932e0c7-258c-4b17-a966-5eb63818b3de",
+          "kind": "exploration",
+          "revisionId": "revision_0ba2b2b8-87df-4070-8c2e-a40a40d8ad11",
+          "invocationId": "d9c672ba-542b-4124-9db2-ecde6b856328",
+          "queryHash": "a5234727b37cbca72a8a0a7baad25b0a53e0e8399699ce4c2a74152fe3d0020a",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:01:40.238Z",
+          "updatedAt": "2026-10-11T09:01:41.153Z"
+        },
+        {
+          "attemptId": "attempt_fc8083bc-8b57-4114-a603-799733d4d697",
+          "taskId": "task_3932e0c7-258c-4b17-a966-5eb63818b3de",
+          "kind": "exploration",
+          "revisionId": "revision_0ba2b2b8-87df-4070-8c2e-a40a40d8ad11",
+          "invocationId": "807a752f-6130-4b18-94c2-7bd1c7c6f934",
+          "queryHash": "d76f519912322793d3fd488627241cb9728f49ea785358ad62f9ff63420151a2",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:01:48.065Z",
+          "updatedAt": "2026-10-11T09:01:48.825Z"
+        }
+      ]
+    }
+  ],
+  "candidates": [
+    {
+      "candidateId": "candidate_a06c17e8-bda3-44ea-8836-ab751aaee731",
+      "taskId": "task_3932e0c7-258c-4b17-a966-5eb63818b3de",
+      "revisionId": "revision_0ba2b2b8-87df-4070-8c2e-a40a40d8ad11",
+      "resultRef": "result_54f7c827-505f-4e65-9581-a87e7e02fec8",
+      "resultSchema": [
+        "highest_month",
+        "highest_count",
+        "highest_average",
+        "lowest_month",
+        "lowest_count",
+        "lowest_average",
+        "difference"
+      ],
+      "rowCount": 1,
+      "contentHash": "2fdfa03fd945860dc7a5b30ab7d1d290ce82f0fc77be84a2be27cb554b7001ed",
+      "sql": "WITH RECURSIVE months(m) AS (SELECT '2020-01-01' UNION ALL SELECT date(m,'+1 month') FROM months WHERE m<'2020-12-01'), customers AS (SELECT DISTINCT customer_id FROM customer_nodes), net AS (SELECT customer_id,date(txn_date,'start of month') m,SUM(CASE WHEN txn_type='deposit' THEN txn_amount WHEN txn_type='withdrawal' THEN -txn_amount ELSE 0 END) balance FROM customer_transactions WHERE txn_date>='2020-01-01' AND txn_date<'2021-01-01' GROUP BY customer_id,m), spine AS (SELECT c.customer_id,m.m,COALESCE(n.balance,0) balance FROM customers c CROSS JOIN months m LEFT JOIN net n ON n.customer_id=c.customer_id AND n.m=m.m), stats AS (SELECT m,SUM(balance>0) positive_customers,AVG(balance) avg_balance,SUM(balance) total_net FROM spine GROUP BY m) , hi AS (SELECT * FROM stats ORDER BY positive_customers DESC,m LIMIT 1), lo AS (SELECT * FROM stats ORDER BY positive_customers ASC,m LIMIT 1) SELECT hi.m highest_month,hi.positive_customers highest_count,hi.avg_balance highest_average,lo.m lowest_month,lo.positive_customers lowest_count,lo.avg_balance lowest_average,hi.avg_balance-lo.avg_balance difference FROM hi CROSS JOIN lo",
+      "queryHash": "efc6f72a83ac28660fef18d42981abd048450831803d4e433f66e638b60a6719",
+      "findings": [],
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "attemptId": "attempt_773c0e24-e8a7-435e-ad1b-e4e139c269af",
+      "createdByInvocationId": "13916638-30d8-4684-a98e-19aea60d8b0c",
+      "createdAt": "2026-10-11T09:00:51.111Z",
+      "status": "ready",
+      "publishable": true
+    }
+  ],
+  "receipts": [
+    {
+      "receiptId": "publication_4be5110e-1c5d-4d56-8de8-9ea8218c2a49",
+      "taskId": "task_3932e0c7-258c-4b17-a966-5eb63818b3de",
+      "principalId": "independent-analyst",
+      "sessionId": "local064",
+      "candidateId": "candidate_a06c17e8-bda3-44ea-8836-ab751aaee731",
+      "revisionId": "revision_0ba2b2b8-87df-4070-8c2e-a40a40d8ad11",
+      "resultRef": "result_54f7c827-505f-4e65-9581-a87e7e02fec8",
+      "format": "csv",
+      "publicRef": "/api/runtime/publications/publication_4be5110e-1c5d-4d56-8de8-9ea8218c2a49?session_id=local064",
+      "contentHash": "2fdfa03fd945860dc7a5b30ab7d1d290ce82f0fc77be84a2be27cb554b7001ed",
+      "presentationContentHash": "f6fb9798a07a833bc652aae8c37c9f9a7095c8cd148b93b34a3faaab4a43197d",
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "disclosure": {
+        "required": true,
+        "unverifiedFields": [
+          {
+            "path": "measure.countGrain",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.denominator",
+            "kind": "assumed"
+          },
+          {
+            "path": "selection.ties",
+            "kind": "assumed"
+          },
+          {
+            "path": "output",
+            "kind": "assumed"
+          },
+          {
+            "path": "selection",
+            "kind": "assumed"
+          }
+        ],
+        "summary": "以下字段为假定，未被合格证据证实：measure.countGrain, measure.denominator, selection.ties, output, selection。"
+      },
+      "physicalProfile": {
+        "version": 1,
+        "rowCount": 1,
+        "truncated": false,
+        "columns": [
+          {
+            "name": "highest_month",
+            "kind": "text",
+            "nullCount": 0,
+            "distinctCount": 1
+          },
+          {
+            "name": "highest_count",
+            "kind": "integer",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 1,
+            "min": "424",
+            "max": "424"
+          },
+          {
+            "name": "highest_average",
+            "kind": "decimal",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 1,
+            "min": "557.704",
+            "max": "557.704"
+          },
+          {
+            "name": "lowest_month",
+            "kind": "text",
+            "nullCount": 0,
+            "distinctCount": 1
+          },
+          {
+            "name": "lowest_count",
+            "kind": "integer",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 1,
+            "min": "0",
+            "max": "0"
+          },
+          {
+            "name": "lowest_average",
+            "kind": "integer",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 1,
+            "min": "0",
+            "max": "0"
+          },
+          {
+            "name": "difference",
+            "kind": "decimal",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 1,
+            "min": "557.704",
+            "max": "557.704"
+          }
+        ]
+      },
+      "policyVersion": "answering-publication-v1",
+      "createdByInvocationId": "13916638-30d8-4684-a98e-19aea60d8b0c",
+      "requestId": "13916638-30d8-4684-a98e-19aea60d8b0c",
+      "createdAt": "2026-10-11T09:00:51.142Z"
+    }
+  ]
+}

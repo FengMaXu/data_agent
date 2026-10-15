@@ -1,0 +1,74 @@
+{
+  "revealedAt": "2026-10-11T09:13:33.675Z",
+  "registry": {
+    "instance_id": "local171",
+    "attempt_id": "attempt-20261010-154318Z",
+    "score": 0,
+    "score_source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-retry.json",
+    "replayed_csv_score": 0,
+    "group": "wrong",
+    "status": "completed",
+    "publication_status": "published",
+    "duration_ms": 159469,
+    "tool_calls": 19,
+    "error": null,
+    "result_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local171/attempts/attempt-20261010-154318Z/result.json",
+    "trace_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local171/attempts/attempt-20261010-154318Z/trace.json",
+    "result_exists": true,
+    "trace_exists": true,
+    "sql_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local171/attempts/attempt-20261010-154318Z/submissions/sql/local171.sql",
+    "csv_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local171.csv",
+    "sql_exists": true,
+    "csv_exists": true,
+    "gold_sql_file": null,
+    "process": {
+      "turns": 12,
+      "toolCalls": 19,
+      "explorationQueries": 8,
+      "resultQueries": 1,
+      "fanoutProbes": 0,
+      "revisions": 1
+    },
+    "fanout_metrics": {
+      "reportCount": 1,
+      "targetCount": 0,
+      "findingCount": 0,
+      "unknownCount": 0,
+      "byStatus": {
+        "clear": 0,
+        "finding": 0,
+        "not_applicable": 1,
+        "unknown": 0
+      },
+      "enabled": true
+    },
+    "spec_feedback_metrics": {
+      "reportCount": 4,
+      "byStatus": {
+        "pending": 0,
+        "completed": 3,
+        "unavailable": 1,
+        "disabled": 0
+      },
+      "deterministicIssueCount": 0,
+      "concernCount": 0,
+      "enabled": true
+    }
+  },
+  "originalSql": "WITH RECURSIVE nums(k) AS (SELECT 31 UNION ALL SELECT k+1 FROM nums WHERE k<49),\nml AS (\n  SELECT t.id_bioguide AS idb\n  FROM legislators_terms t\n  JOIN legislators l ON l.id_bioguide = t.id_bioguide\n  WHERE t.state = 'LA' AND l.gender = 'M'\n  GROUP BY t.id_bioguide\n),\nft AS (\n  SELECT t.id_bioguide AS idb, MIN(t.term_start) AS first_start\n  FROM legislators_terms t\n  JOIN ml ON ml.idb = t.id_bioguide\n  GROUP BY t.id_bioguide\n)\nSELECT n.k AS years_since_first_term,\n       COUNT(DISTINCT ft.idb) AS legislator_count\nFROM ft JOIN nums n\nWHERE EXISTS (\n  SELECT 1 FROM legislators_terms t2\n  WHERE t2.id_bioguide = ft.idb\n    AND t2.term_start <= (CAST(substr(ft.first_start,1,4) AS INT)+n.k)||'-12-31'\n    AND t2.term_end   >= (CAST(substr(ft.first_start,1,4) AS INT)+n.k)||'-12-31'\n)\nGROUP BY n.k\nORDER BY n.k;\n",
+  "originalCsv": "years_since_first_term,legislator_count\n31,6\n32,5\n33,5\n34,5\n35,4\n36,2\n37,1\n38,1\n",
+  "goldSql": null,
+  "goldCsv": [
+    {
+      "path": "C:\\data-agent-eval\\Spider2\\spider2-lite\\evaluation_suite\\gold\\exec_result\\local171.csv",
+      "content": "period,cohort_retained\r\n31,4\r\n32,3\r\n33,3\r\n34,3\r\n35,2\r\n36,1\r\n37,1\r\n38,1\r\n"
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local171",
+    "condition_cols": [],
+    "ignore_order": true,
+    "toks": "155"
+  }
+}
+

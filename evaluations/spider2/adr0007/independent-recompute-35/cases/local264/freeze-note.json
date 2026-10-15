@@ -1,0 +1,1 @@
+{"algorithm": "Count all comparable name/version/step L1 associations", "answer": ["regression", 213], "assumptions": ["No Stack>=baseline restriction because question lacks that requirement"], "checks": ["regression213 and tree90, all303 comparable", "noninferior alternate regression114/tree25", "distinct version alternate71/30"]}

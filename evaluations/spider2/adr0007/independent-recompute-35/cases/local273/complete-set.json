@@ -1,0 +1,25 @@
+{
+  "fields": {
+    "population.eligibility": "Only products with positive FIFO allocations",
+    "population.conditions": [
+      "positive demand and stock",
+      "positive overlapping quantity"
+    ],
+    "population.time": "All current stock and all recorded orders",
+    "measure.formula": {
+      "op": "custom",
+      "description": "FIFO stock by purchase date, quantity asc,id; cumulative demand by ordered,order_id,line_id; picked=min(upper bounds)-max(lower bounds) on positive intersection; equal allocation mean 100*picked/inventory row qty"
+    },
+    "grouping": [
+      "product name"
+    ],
+    "selection": "n/a",
+    "output": {
+      "rowMode": "full",
+      "columns": [
+        "product_name",
+        "average_pick_percentage"
+      ]
+    }
+  }
+}

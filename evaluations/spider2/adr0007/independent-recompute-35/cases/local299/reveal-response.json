@@ -1,0 +1,75 @@
+{
+  "revealedAt": "2026-10-11T09:50:41.152Z",
+  "registry": {
+    "instance_id": "local299",
+    "attempt_id": "attempt-20261010-154318Z",
+    "score": 0,
+    "score_source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-retry.json",
+    "replayed_csv_score": 0,
+    "group": "wrong",
+    "status": "completed",
+    "publication_status": "published",
+    "duration_ms": 313514,
+    "tool_calls": 25,
+    "error": null,
+    "result_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local299/attempts/attempt-20261010-154318Z/result.json",
+    "trace_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local299/attempts/attempt-20261010-154318Z/trace.json",
+    "result_exists": true,
+    "trace_exists": true,
+    "sql_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local299/attempts/attempt-20261010-154318Z/submissions/sql/local299.sql",
+    "csv_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local299.csv",
+    "sql_exists": true,
+    "csv_exists": true,
+    "gold_sql_file": null,
+    "process": {
+      "turns": 17,
+      "toolCalls": 25,
+      "explorationQueries": 4,
+      "resultQueries": 1,
+      "fanoutProbes": 0,
+      "revisions": 12
+    },
+    "fanout_metrics": {
+      "reportCount": 1,
+      "targetCount": 0,
+      "findingCount": 0,
+      "unknownCount": 0,
+      "byStatus": {
+        "clear": 0,
+        "finding": 0,
+        "not_applicable": 1,
+        "unknown": 0
+      },
+      "enabled": true
+    },
+    "spec_feedback_metrics": {
+      "reportCount": 5,
+      "byStatus": {
+        "pending": 0,
+        "completed": 0,
+        "unavailable": 5,
+        "disabled": 0
+      },
+      "deterministicIssueCount": 0,
+      "concernCount": 0,
+      "enabled": true
+    }
+  },
+  "originalSql": "WITH RECURSIVE dates(day) AS (SELECT MIN(txn_date) FROM customer_transactions UNION ALL SELECT date(day,'+1 day') FROM dates WHERE day < (SELECT MAX(txn_date) FROM customer_transactions)), txn AS (SELECT customer_id, txn_date, SUM(CASE WHEN txn_type='deposit' THEN txn_amount ELSE -txn_amount END) AS net FROM customer_transactions GROUP BY customer_id, txn_date), cust AS (SELECT customer_id, MIN(txn_date) AS first_d, MAX(txn_date) AS last_d FROM customer_transactions GROUP BY customer_id), spine AS (SELECT c.customer_id, d.day, c.first_d FROM cust c JOIN dates d ON d.day BETWEEN c.first_d AND c.last_d), bal AS (SELECT s.customer_id, s.day, s.first_d, SUM(COALESCE(t.net,0)) OVER (PARTITION BY s.customer_id ORDER BY s.day) AS balance FROM spine s LEFT JOIN txn t ON t.customer_id=s.customer_id AND t.txn_date=s.day), roll AS (SELECT customer_id, day, first_d, AVG(balance) OVER (PARTITION BY customer_id ORDER BY day ROWS BETWEEN 29 PRECEDING AND CURRENT ROW) AS ravg, COUNT(*) OVER (PARTITION BY customer_id ORDER BY day ROWS BETWEEN 29 PRECEDING AND CURRENT ROW) AS cnt FROM bal), daily AS (SELECT customer_id, strftime('%Y-%m',day) AS month, first_d, CASE WHEN ravg<0 THEN 0 ELSE ravg END AS floored FROM roll WHERE cnt=30), per_cm AS (SELECT customer_id, month, MAX(floored) AS mx FROM daily WHERE month <> strftime('%Y-%m', first_d) GROUP BY customer_id, month) SELECT month AS month, ROUND(SUM(mx),2) AS total_max_30day_avg_balance FROM per_cm GROUP BY month ORDER BY month;\n",
+  "originalCsv": "month,total_max_30day_avg_balance\n2020-02,286194.37\n2020-03,314140.93\n2020-04,170303.97\n",
+  "goldSql": null,
+  "goldCsv": [
+    {
+      "path": "C:\\data-agent-eval\\Spider2\\spider2-lite\\evaluation_suite\\gold\\exec_result\\local299.csv",
+      "content": "month,total_allocation\r\n2020-02,284935.45376344083\r\n2020-03,312844.32258064515\r\n2020-04,170334.0\r\n"
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local299",
+    "condition_cols": [
+      1
+    ],
+    "ignore_order": true,
+    "toks": "203"
+  }
+}

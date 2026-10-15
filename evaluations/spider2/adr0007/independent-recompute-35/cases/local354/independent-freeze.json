@@ -1,0 +1,227 @@
+{
+  "frozenAt": "2026-10-11T10:01:37.141Z",
+  "instance_id": "local354",
+  "independent": true,
+  "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+  "revisionId": "revision_a09cb96a-556f-45d3-b03b-e59cb15272f1",
+  "publication": {
+    "receiptId": "publication_aad5b1ea-8e74-4fe1-9dca-aa3a4ad2e211",
+    "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+    "principalId": "independent-analyst",
+    "sessionId": "local354",
+    "candidateId": "candidate_885e9109-1a7e-43a9-8e23-c327ab23de2e",
+    "revisionId": "revision_a09cb96a-556f-45d3-b03b-e59cb15272f1",
+    "resultRef": "result_534d516b-6318-461b-a96f-f80fceb0fccd",
+    "format": "csv",
+    "publicRef": "/api/runtime/publications/publication_aad5b1ea-8e74-4fe1-9dca-aa3a4ad2e211?session_id=local354",
+    "contentHash": "44d6546a10951099e10727af9950e49cc635c966cdbac014504720ca108978f5",
+    "presentationContentHash": "5f8e1d94944c09213813f22c63488e85a2cfb368427a1ba8e353ae1e1bd46a69",
+    "coverage": [
+      {
+        "checkId": "result_completeness",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_shape",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_identity",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "join_fanout",
+        "outcome": "not_applicable"
+      },
+      {
+        "checkId": "spec_feedback",
+        "ruleVersion": "spec-feedback-v2",
+        "outcome": "not_applicable",
+        "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+      }
+    ],
+    "fanout": {
+      "ruleVersion": "answering-fanout-v1",
+      "status": "not_applicable",
+      "snapshotScope": "unbound",
+      "targets": []
+    },
+    "disclosure": {
+      "required": true,
+      "unverifiedFields": [
+        {
+          "path": "measure.formula",
+          "kind": "assumed"
+        },
+        {
+          "path": "grouping",
+          "kind": "assumed"
+        },
+        {
+          "path": "output",
+          "kind": "assumed"
+        }
+      ],
+      "summary": "以下字段为假定，未被合格证据证实：measure.formula, grouping, output。"
+    },
+    "physicalProfile": {
+      "version": 1,
+      "rowCount": 103,
+      "truncated": false,
+      "columns": [
+        {
+          "name": "driver_name",
+          "kind": "text",
+          "nullCount": 0,
+          "distinctCount": 103
+        }
+      ]
+    },
+    "policyVersion": "answering-publication-v1",
+    "createdByInvocationId": "c31092fe-bc1a-4abc-87ba-d9626c9eba33",
+    "requestId": "c31092fe-bc1a-4abc-87ba-d9626c9eba33",
+    "createdAt": "2026-10-11T10:01:34.933Z"
+  },
+  "currentRevision": {
+    "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+    "revisionId": "revision_a09cb96a-556f-45d3-b03b-e59cb15272f1",
+    "parentRevisionId": "revision_fc8ba537-2fe0-4406-951a-0a7a49c7293a",
+    "requestId": "714b861f-c10e-48f5-b735-d5f46bccdef9",
+    "createdAt": "2026-10-11T10:01:32.158Z",
+    "fields": {
+      "population.entity": {
+        "state": "specified",
+        "value": {
+          "name": "Driver satisfying within-season first/last constructor identity and >=2 distinct rounds"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_4329a8c1-3157-4343-801a-1d339e7286fc"
+          ]
+        }
+      },
+      "population.eligibility": {
+        "state": "specified",
+        "value": "A driver has at least two distinct raced rounds in the same1950sseason; exclude explicit nonrace statuses, zero-lap Withdrew; positive-lap Withdrew and zero-lap mechanical/accident retirement retained",
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_2b9c40f5-3fec-4446-ba74-4c0efe7854c8"
+          ]
+        }
+      },
+      "population.conditions": {
+        "state": "specified",
+        "value": [
+          "First and last participated round within driver-year have at least one common constructor; intermediate constructors unrestricted"
+        ],
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_ad125828-ae6f-46ce-ac78-d0e9f1d98ae4"
+          ]
+        }
+      },
+      "population.time": {
+        "state": "specified",
+        "value": {
+          "expression": "1950<=year<=1959 inclusive"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_58f90a0a-ff59-43a8-ba1d-c9b3e39a6134"
+          ]
+        }
+      },
+      "measure.formula": {
+        "state": "specified",
+        "value": {
+          "op": "custom",
+          "description": "Within driver-year count distinct participating round>=2; take min and max round; intersect endpoint constructor sets; retain driver if any qualifying season."
+        },
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "grouping": {
+        "state": "specified",
+        "value": [
+          "driver_id",
+          "year"
+        ],
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "selection": {
+        "state": "not_applicable"
+      },
+      "output": {
+        "state": "specified",
+        "value": {
+          "rowMode": "full",
+          "columns": [
+            "driver_name"
+          ]
+        },
+        "basis": {
+          "kind": "assumed"
+        }
+      }
+    },
+    "state": {
+      "state": "ready",
+      "revisionId": "revision_a09cb96a-556f-45d3-b03b-e59cb15272f1",
+      "ready": "ready_667d1401-a6ec-49e1-9575-f06b65137c3e"
+    },
+    "specFeedback": {
+      "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+      "revisionId": "revision_a09cb96a-556f-45d3-b03b-e59cb15272f1",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_4329a8c1-3157-4343-801a-1d339e7286fc",
+        "evidence_bfdbe5dc-b6b4-4f31-a616-df554370dd49",
+        "evidence_502399f0-e8e2-4004-a26e-7ea52da52217",
+        "evidence_03fc50ce-e17b-49cd-bb4f-64d59dc0ec2d",
+        "evidence_bacd5468-a0e6-477f-abd6-14875712c791",
+        "evidence_8eea4399-ef69-400a-a54d-d89eea06cda7",
+        "evidence_82647665-ab7c-42e4-b61f-a0d7700648c2",
+        "evidence_9a738178-7dcb-4b7c-892b-daccd64c0610",
+        "evidence_a59ccadf-b9ef-4766-b553-1f99102b31dc",
+        "evidence_2b9c40f5-3fec-4446-ba74-4c0efe7854c8",
+        "evidence_ad125828-ae6f-46ce-ac78-d0e9f1d98ae4",
+        "evidence_58f90a0a-ff59-43a8-ba1d-c9b3e39a6134"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    }
+  },
+  "analystNote": {
+    "algorithm": "Driver-year endpoint constructor set intersection and >=2 distinct actually raced rounds; unique drivers",
+    "answer_rows": 103,
+    "assumptions": [
+      "Results presence excluding explicit nonparticipation statuses; Withdrew zero-lap excluded,positive-lap retained",
+      "Shared-car endpoint construction interpreted existential commonconstructor",
+      "Complete a season does not require finalcalendarround or allintermediateconstructorstable"
+    ],
+    "checks": [
+      "24 driver-season rawmultirow-single-round examples",
+      "11 endpointstable but intermediaryotherconstructors examples",
+      "SQL UTF8 encoding failure reported and parentfixed; identicalalgorithmretried"
+    ]
+  },
+  "settings": {
+    "qualification": "required",
+    "fieldProbes": true,
+    "externalAdvisor": "not_configured",
+    "specFeedback": "not_configured",
+    "fanout": "disabled_for_offline_audit",
+    "populationDecisions": "allow_disclosed_headless_audit",
+    "databaseReadOnly": true
+  }
+}

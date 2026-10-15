@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT count(*) rows FROM (SELECT DISTINCT * FROM trees)",
+  "limit": 100
+}

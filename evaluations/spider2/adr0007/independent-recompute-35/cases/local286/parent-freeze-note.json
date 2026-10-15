@@ -1,0 +1,12 @@
+{
+  "algorithm": "preserved already independently derived seller report: >100 item units; sales separate from seller/order review and packing averages; top category by unit count",
+  "assumptions": [
+    "packing carrier-approved nonnegative valid dates",
+    "all recorded item statuses; no delivered restriction",
+    "review records once per seller/order"
+  ],
+  "limitations": [
+    "definition of packing interval and review weight not explicit",
+    "initial final JSON erroneously included limit; parent removed only interface option, not SQL/semantics"
+  ]
+}

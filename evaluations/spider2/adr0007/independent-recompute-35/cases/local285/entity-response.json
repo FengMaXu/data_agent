@@ -1,0 +1,54 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_8126fdc2-106a-4650-8990-625986947d98 revisionId=revision_4d9a3072-7572-4c66-a4a3-fb7e08b3aaf3\n- ✓ population.entity\n状态：\n- 未声明: population.eligibility, population.conditions, population.time, measure.formula, grouping, selection, output\n[SPEC_FEEDBACK] revisionId=revision_4d9a3072-7572-4c66-a4a3-fb7e08b3aaf3 status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"vegetable category-year\"}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_8126fdc2-106a-4650-8990-625986947d98",
+    "revisionId": "revision_4d9a3072-7572-4c66-a4a3-fb7e08b3aaf3",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "vegetable category-year"
+        },
+        "evidenceIds": [
+          "evidence_9e7bf4b9-c360-4d1e-b664-5318c0684f45"
+        ]
+      }
+    ],
+    "undeclared": [
+      "population.eligibility",
+      "population.conditions",
+      "population.time",
+      "measure.formula",
+      "grouping",
+      "selection",
+      "output"
+    ],
+    "open": [],
+    "unverified": [],
+    "specFeedback": {
+      "taskId": "task_8126fdc2-106a-4650-8990-625986947d98",
+      "revisionId": "revision_4d9a3072-7572-4c66-a4a3-fb7e08b3aaf3",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_9e7bf4b9-c360-4d1e-b664-5318c0684f45"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "population.entity",
+        "status": "applied"
+      }
+    ]
+  }
+}

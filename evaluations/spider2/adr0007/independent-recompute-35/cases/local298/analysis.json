@@ -1,0 +1,55 @@
+{
+  "instance_id": "local298",
+  "status": "gold_conflict",
+  "summary": "Gold三行精确等于完整前月总额扣掉当前月不活跃客户的正余额（23016/20906/107824），违反all users；独立与原结果一致，负截断阶段非错误源。",
+  "fork_node": "population.eligibility (Gold signature; original all-users policy is supported)",
+  "error_layer": "Gold population coverage conflicts with all-users snapshot; no confirmed original implementation error",
+  "visibility": "Original all-users policy and cumulative customer-level zero-floor explicitly recorded; missing policy text incomplete but SQL correct",
+  "independent_score": 0,
+  "evidence": [
+    {
+      "source": "blind.json",
+      "pointer": "/question",
+      "quote": "the total balance from all users for the previous month"
+    },
+    {
+      "source": "probe-missing-users-response.json",
+      "pointer": "/details/preview/rows/2",
+      "quote": "107824"
+    },
+    {
+      "source": "probe-counterexamples-response.json",
+      "pointer": "/details/preview/rows/0",
+      "quote": "610"
+    },
+    {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local298/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/21/result/details/fields/8/value",
+      "quote": "floor each customer's balance as of the 1st of the month at zero, then sum across customers",
+      "original_projection_source": "original-spec-extract.json"
+    }
+  ],
+  "limitations": [
+    "Gold SQL unavailable; reproduced current-active numerical signature not unique generator proof",
+    "Transaction sign convention and initial zero not specified by business documents",
+    "Original missing text overlooks customer-level gaps, though snapshots carry them correctly"
+  ],
+  "parent_field_review": {
+    "instance_id": "local298",
+    "relevant_node": "population.eligibility",
+    "node_is_confirmed_original_error": false,
+    "explanation": "Gold遗漏本月不活跃用户的前月正余额，违反all users",
+    "error_layer": "标准答案与本次输入/明确要求局部冲突",
+    "visibility": "不适用：未确认原Spec语义错误",
+    "qualification": "Gold差异相关节点，不冒充原系统错误节点",
+    "original_node_declared": true,
+    "original_node_status": "assumed",
+    "original_node_value": "All customers recorded in customer_transactions; a customer with no transaction before a snapshot carries balance 0 and adds nothing to the total",
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local298/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/21/result/details/fields/1/value",
+      "quote": "All customers recorded in customer_transactions; a customer with no transaction before a snapshot carries balance 0 and adds nothing to the total"
+    },
+    "primary_status": "gold_conflict"
+  }
+}

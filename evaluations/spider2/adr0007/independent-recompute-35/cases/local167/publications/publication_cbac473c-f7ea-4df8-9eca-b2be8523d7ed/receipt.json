@@ -1,0 +1,107 @@
+{
+  "receiptId": "publication_cbac473c-f7ea-4df8-9eca-b2be8523d7ed",
+  "taskId": "task_6cc27d11-d465-472f-90ea-3360c407e6f0",
+  "principalId": "independent-analyst",
+  "sessionId": "local167",
+  "candidateId": "candidate_a1e6424f-5fd7-43f3-8a71-e21a7196bbf0",
+  "revisionId": "revision_5b3e3b3f-4cf0-48bf-90a5-eaf9f77cc240",
+  "resultRef": "result_30d09d11-7aee-45e7-87b8-d3fc4bd0eb64",
+  "format": "csv",
+  "publicRef": "/api/runtime/publications/publication_cbac473c-f7ea-4df8-9eca-b2be8523d7ed?session_id=local167",
+  "contentHash": "2389e1284782d03fac9adbab1c2325ed611b2e11f96cdf7a6aa905a259def7b5",
+  "presentationContentHash": "edb71a0e5f13901134bb3ffe6b964a731d9063e88bcaf644dbc099e844975962",
+  "coverage": [
+    {
+      "checkId": "result_completeness",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "result_shape",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "result_identity",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "join_fanout",
+      "outcome": "not_applicable"
+    },
+    {
+      "checkId": "spec_feedback",
+      "ruleVersion": "spec-feedback-v2",
+      "outcome": "not_applicable",
+      "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+    }
+  ],
+  "fanout": {
+    "ruleVersion": "answering-fanout-v1",
+    "status": "not_applicable",
+    "snapshotScope": "unbound",
+    "targets": []
+  },
+  "disclosure": {
+    "required": true,
+    "unverifiedFields": [
+      {
+        "path": "population.eligibility",
+        "kind": "assumed"
+      },
+      {
+        "path": "population.conditions",
+        "kind": "assumed"
+      },
+      {
+        "path": "population.time",
+        "kind": "assumed"
+      },
+      {
+        "path": "measure.formula",
+        "kind": "assumed"
+      },
+      {
+        "path": "grouping",
+        "kind": "assumed"
+      },
+      {
+        "path": "selection",
+        "kind": "assumed"
+      },
+      {
+        "path": "output",
+        "kind": "assumed"
+      },
+      {
+        "path": "selection.ties",
+        "kind": "assumed"
+      }
+    ],
+    "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.conditions, population.time, measure.formula, grouping, selection, output, selection.ties。"
+  },
+  "physicalProfile": {
+    "version": 1,
+    "rowCount": 1,
+    "truncated": false,
+    "columns": [
+      {
+        "name": "state",
+        "kind": "text",
+        "nullCount": 0,
+        "distinctCount": 1
+      },
+      {
+        "name": "female_legislators",
+        "kind": "integer",
+        "encodedAs": "number",
+        "nullCount": 0,
+        "distinctCount": 1,
+        "min": "42",
+        "max": "42"
+      }
+    ]
+  },
+  "policyVersion": "answering-publication-v1",
+  "createdByInvocationId": "41289de4-2f8f-4a74-8b39-df2faaed6654",
+  "requestId": "41289de4-2f8f-4a74-8b39-df2faaed6654",
+  "createdAt": "2026-10-11T09:04:13.179Z"
+}

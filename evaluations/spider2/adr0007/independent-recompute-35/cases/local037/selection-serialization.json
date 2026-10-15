@@ -1,0 +1,12 @@
+{
+  "fields": {
+    "selection": {
+      "value": {
+        "n": 3,
+        "orderBy": "number_of_payments DESC, category ASC; per-category mode chosen by payment_type ASC on ties"
+      },
+      "basis": "request",
+      "quote": "top three product categories"
+    }
+  }
+}

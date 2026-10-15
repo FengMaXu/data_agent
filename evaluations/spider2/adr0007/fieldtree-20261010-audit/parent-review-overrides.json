@@ -1,0 +1,30 @@
+[
+  {
+    "instance_id": "local228",
+    "patch": {
+      "error_layer": null,
+      "visibility": null,
+      "standard": "题面要求每赛季三对位置匹配；Gold采用赛季-position一行共27行。题面未明确要求横表还是长表，该布局是评分约定而非唯一业务口径。"
+    }
+  },
+  {
+    "instance_id": "local311",
+    "patch": {
+      "error_layer": null,
+      "visibility": null,
+      "standard": "按constructor-season的车队与最佳车手合计积分取前三，题面明确询问车队及年份；审核结构/Gold还检查combined_points。积分物理来源未确定。",
+      "cause": "评分额外检查combined_points向量，当前只给车队/年，缺该向量足以判0；不能将其等同遗漏题面明确要求，题面只问Which constructors及which years。所选三组身份与Gold吻合也不证明积分定义正确；原探针的1435/1213与Gold1320/1157差异未定位。",
+      "recommendation": "将业务输出要求与Gold评分列约定分开审计，补积分来源定义；若评测要求数值列，先修订并明确该交付字段，不能只按别名/列序修复。"
+    }
+  },
+  {
+    "instance_id": "local336",
+    "patch": {
+      "error_layer": null,
+      "visibility": null,
+      "standard": "前五圈按四类超车事件计数；业务文档有R/P/S/T映射，Gold比较代码字符串，题面未明确要求代码而非类别全称。",
+      "cause": "类别字符串被改写，无法匹配Gold的R/P/S/T，是可证评分失配，不是改列别名；这种输出表示差异不自动证明业务类别划分错误。Pit多18另未定位：原观察Pit Entry2406+Pit Exit687=3093，不能从Gold3075恢复事件剔除规则。",
+      "recommendation": "在交付/评分合同中明确类别编码与说明，可分别输出代码和可读名称；先补Pit事件名单再定位18的差异，不凭代码匹配宣称全部指标已修复。"
+    }
+  }
+]

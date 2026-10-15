@@ -1,0 +1,13 @@
+{
+  "fields": {
+    "population.conditions": "n/a",
+    "selection": {
+      "value": {
+        "n": 1,
+        "orderBy": "signed_change DESC"
+      },
+      "basis": "assumed",
+      "rationale": "独立推导所采用的解释；不是外部业务定义。"
+    }
+  }
+}

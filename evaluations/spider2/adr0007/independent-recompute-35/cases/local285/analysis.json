@@ -1,0 +1,59 @@
+{
+  "instance_id": "local285",
+  "status": "ambiguous_after_recompute",
+  "summary": "已按年分类重建Gold全部数值签名：sale-only、逐交易加权价格/损耗率均值、先四舍五入平均率再乘成本、利润扣损耗。原SQL采用净退货、报价均值、SKU率均值及利润不扣损耗；无业务定义不能把Gold偏好判为唯一语义。",
+  "fork_node": "population.eligibility",
+  "error_layer": "unverified business metric definitions; numeric differences localized",
+  "visibility": "Explicit net-return policy and profit formula present in successful original Spec; Gold aggregate-product loss alternative absent",
+  "independent_score": 0,
+  "evidence": [
+    {
+      "source": "blind.json",
+      "pointer": "/question",
+      "quote": "total wholesale price, total selling price, average loss rate, total loss, and profit for each category within each year"
+    },
+    {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local285/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/18/result/details/fields/1/value",
+      "quote": "All records are included: no entity is dropped for zero activity, zero-valued loss rates are retained, and return transactions are handled by their stored quantity sign.",
+      "original_projection_source": "original-spec-extract.json"
+    },
+    {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local285/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/18/result/details/fields/7/value",
+      "quote": "profit=total_selling_price-total_wholesale_price.",
+      "original_projection_source": "original-spec-extract.json"
+    },
+    {
+      "source": "gold-signature-keyed.json",
+      "pointer": "/0/revenue_match",
+      "quote": "true"
+    }
+  ],
+  "limitations": [
+    "No official definition of wholesale total, price/loss averaging denominator, loss or profit",
+    "No procurement/inventory amounts; independent estimated loss denominator 1-r is an assumption",
+    "Gold SQL unavailable, signature reproduction not generator proof",
+    "2020/2023 incomplete years; floating rounding differs at half-cent for 3 revenues"
+  ],
+  "parent_field_review": {
+    "instance_id": "local285",
+    "relevant_node": "population.conditions",
+    "node_is_confirmed_original_error": false,
+    "explanation": "净退货还是sale-only先分叉，随后价格与损耗权重、利润公式",
+    "error_layer": "未唯一裁决",
+    "visibility": "不能标成假定错/决定错：原声明可见，不等于业务错误已证",
+    "qualification": "差异机制已实测，业务意图未唯一裁决",
+    "original_node_declared": true,
+    "original_node_status": "request",
+    "original_node_value": [
+      "No filter other than restricting to calendar years 2020–2023 (the only years present)."
+    ],
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local285/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/18/result/details/fields/2/value",
+      "quote": "[\"No filter other than restricting to calendar years 2020–2023 (the only years present).\"]"
+    },
+    "primary_status": "ambiguous_after_recompute"
+  }
+}

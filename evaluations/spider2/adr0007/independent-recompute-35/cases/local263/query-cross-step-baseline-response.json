@@ -1,0 +1,101 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_e7b43fda-8603-4698-a579-90c709a7bbc5\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nL1_model | status | step_count | model_count\nregression | soft | 34 | 17\ntree | soft | 10 | 4\nregression | strong | 62 | 32\ntree | strong | 12 | 5"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_e7b43fda-8603-4698-a579-90c709a7bbc5",
+      "preview": {
+        "columns": [
+          "L1_model",
+          "status",
+          "step_count",
+          "model_count"
+        ],
+        "rows": [
+          [
+            "regression",
+            "soft",
+            34,
+            17
+          ],
+          [
+            "tree",
+            "soft",
+            10,
+            4
+          ],
+          [
+            "regression",
+            "strong",
+            62,
+            32
+          ],
+          [
+            "tree",
+            "strong",
+            12,
+            5
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "TEXT",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 4,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "L1_model",
+        "status",
+        "step_count",
+        "model_count"
+      ],
+      "rows": [
+        [
+          "regression",
+          "soft",
+          34,
+          17
+        ],
+        [
+          "tree",
+          "soft",
+          10,
+          4
+        ],
+        [
+          "regression",
+          "strong",
+          62,
+          32
+        ],
+        [
+          "tree",
+          "strong",
+          12,
+          5
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "TEXT",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 4,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_d2486553-589a-479a-bc8b-1efa843709fa"
+  }
+}

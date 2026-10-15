@@ -1,0 +1,79 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_05f84805-ca56-4ee4-8d25-b0518b192c44\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\ncategory | payment_type | number_of_payments\ncama_mesa_banho | credit_card | 7565\nbeleza_saude | credit_card | 6898\nesporte_lazer | credit_card | 5923"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_05f84805-ca56-4ee4-8d25-b0518b192c44",
+      "preview": {
+        "columns": [
+          "category",
+          "payment_type",
+          "number_of_payments"
+        ],
+        "rows": [
+          [
+            "cama_mesa_banho",
+            "credit_card",
+            7565
+          ],
+          [
+            "beleza_saude",
+            "credit_card",
+            6898
+          ],
+          [
+            "esporte_lazer",
+            "credit_card",
+            5923
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 3,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "category",
+        "payment_type",
+        "number_of_payments"
+      ],
+      "rows": [
+        [
+          "cama_mesa_banho",
+          "credit_card",
+          7565
+        ],
+        [
+          "beleza_saude",
+          "credit_card",
+          6898
+        ],
+        [
+          "esporte_lazer",
+          "credit_card",
+          5923
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 3,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_ce625010-15b2-440e-8091-1e5e1b956c9a"
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "receiptId": "publication_54a96c41-0e70-4f7a-a3b0-708b775df09c",
+  "taskId": "task_71bad680-f9fc-4ec4-a0b6-fe471f99027a",
+  "principalId": "independent-analyst",
+  "sessionId": "local298",
+  "candidateId": "candidate_a7f7dc54-5d26-41d4-a93f-b7cfc64f07cc",
+  "revisionId": "revision_c1b40ac0-e57f-43a5-a0db-b4a6847535c7",
+  "resultRef": "result_83bba41e-5154-433f-a54d-7a7621a74d07",
+  "format": "csv",
+  "publicRef": "/api/runtime/publications/publication_54a96c41-0e70-4f7a-a3b0-708b775df09c?session_id=local298",
+  "contentHash": "a78cc6d8f0b090d71c593746e3cdf90025f9b28374a3db8ea0e34ccca7339d52",
+  "presentationContentHash": "fa1263d9ccf995a73f629562f840c2da29fd4f43befb05fd9c6791eb5a240761",
+  "coverage": [
+    {
+      "checkId": "result_completeness",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "result_shape",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "result_identity",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "join_fanout",
+      "outcome": "not_applicable"
+    },
+    {
+      "checkId": "spec_feedback",
+      "ruleVersion": "spec-feedback-v2",
+      "outcome": "not_applicable",
+      "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+    }
+  ],
+  "fanout": {
+    "ruleVersion": "answering-fanout-v1",
+    "status": "not_applicable",
+    "snapshotScope": "unbound",
+    "targets": []
+  },
+  "disclosure": {
+    "required": true,
+    "unverifiedFields": [
+      {
+        "path": "population.conditions",
+        "kind": "assumed"
+      },
+      {
+        "path": "population.missing",
+        "kind": "assumed"
+      },
+      {
+        "path": "measure.formula",
+        "kind": "assumed"
+      },
+      {
+        "path": "measure.countGrain",
+        "kind": "assumed"
+      },
+      {
+        "path": "measure.window",
+        "kind": "assumed"
+      },
+      {
+        "path": "output",
+        "kind": "assumed"
+      }
+    ],
+    "summary": "以下字段为假定，未被合格证据证实：population.conditions, population.missing, measure.formula, measure.countGrain, measure.window, output。"
+  },
+  "physicalProfile": {
+    "version": 1,
+    "rowCount": 3,
+    "truncated": false,
+    "columns": [
+      {
+        "name": "month",
+        "kind": "text",
+        "nullCount": 0,
+        "distinctCount": 3
+      },
+      {
+        "name": "previous_total_balance",
+        "kind": "integer",
+        "encodedAs": "number",
+        "nullCount": 0,
+        "distinctCount": 3,
+        "min": "235595",
+        "max": "261508"
+      }
+    ]
+  },
+  "policyVersion": "answering-publication-v1",
+  "createdByInvocationId": "7d2ab976-4d1c-43b7-a21c-57536113a359",
+  "requestId": "7d2ab976-4d1c-43b7-a21c-57536113a359",
+  "createdAt": "2026-10-11T09:47:01.079Z"
+}

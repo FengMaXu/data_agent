@@ -1,0 +1,54 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_b33629e2-811c-4fe4-acac-7248e4fb048c revisionId=revision_9f4ebafa-0ea5-4edd-9418-08cbf8f5ec6c\n- ✓ population.entity\n状态：\n- 未声明: population.eligibility, population.conditions, population.time, measure.formula, grouping, selection, output\n[SPEC_FEEDBACK] revisionId=revision_9f4ebafa-0ea5-4edd-9418-08cbf8f5ec6c status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"Italian customers\"}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_b33629e2-811c-4fe4-acac-7248e4fb048c",
+    "revisionId": "revision_9f4ebafa-0ea5-4edd-9418-08cbf8f5ec6c",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "Italian customers"
+        },
+        "evidenceIds": [
+          "evidence_d90382f3-d1bf-4e51-9b82-00e32118a354"
+        ]
+      }
+    ],
+    "undeclared": [
+      "population.eligibility",
+      "population.conditions",
+      "population.time",
+      "measure.formula",
+      "grouping",
+      "selection",
+      "output"
+    ],
+    "open": [],
+    "unverified": [],
+    "specFeedback": {
+      "taskId": "task_b33629e2-811c-4fe4-acac-7248e4fb048c",
+      "revisionId": "revision_9f4ebafa-0ea5-4edd-9418-08cbf8f5ec6c",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_d90382f3-d1bf-4e51-9b82-00e32118a354"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "population.entity",
+        "status": "applied"
+      }
+    ]
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "revealedAt": "2026-10-11T09:15:05.345Z",
+  "registry": {
+    "instance_id": "local061",
+    "attempt_id": "attempt-001",
+    "score": 0,
+    "score_source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-attempt-001.json",
+    "replayed_csv_score": 0,
+    "group": "wrong",
+    "status": "completed",
+    "publication_status": "published",
+    "duration_ms": 217284,
+    "tool_calls": 16,
+    "error": null,
+    "result_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local061/attempts/attempt-001/result.json",
+    "trace_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local061/attempts/attempt-001/trace.json",
+    "result_exists": true,
+    "trace_exists": true,
+    "sql_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local061/attempts/attempt-001/submissions/sql/local061.sql",
+    "csv_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local061.csv",
+    "sql_exists": true,
+    "csv_exists": true,
+    "gold_sql_file": null,
+    "process": {
+      "turns": 11,
+      "toolCalls": 16,
+      "explorationQueries": 2,
+      "resultQueries": 1,
+      "fanoutProbes": 1,
+      "revisions": 1
+    },
+    "fanout_metrics": {
+      "reportCount": 1,
+      "targetCount": 1,
+      "findingCount": 0,
+      "unknownCount": 1,
+      "byStatus": {
+        "clear": 0,
+        "finding": 0,
+        "not_applicable": 0,
+        "unknown": 1
+      },
+      "enabled": true
+    },
+    "spec_feedback_metrics": {
+      "reportCount": 4,
+      "byStatus": {
+        "pending": 0,
+        "completed": 0,
+        "unavailable": 4,
+        "disabled": 0
+      },
+      "deterministicIssueCount": 0,
+      "concernCount": 0,
+      "enabled": true
+    }
+  },
+  "originalSql": "WITH sf AS (\n  SELECT s.prod_id AS prod_id, t.calendar_year AS yr, t.calendar_month_number AS mo, SUM(s.amount_sold) AS amt\n  FROM sales s\n  JOIN times t ON t.time_id = s.time_id\n  JOIN customers cu ON cu.cust_id = s.cust_id\n  JOIN countries co ON co.country_id = cu.country_id\n  JOIN channels ch ON ch.channel_id = s.channel_id\n  JOIN promotions p ON p.promo_id = s.promo_id\n  WHERE co.country_name = 'France' AND ch.channel_total_id = 1 AND p.promo_total_id = 1\n    AND t.calendar_year IN (2019,2020)\n  GROUP BY s.prod_id, t.calendar_year, t.calendar_month_number\n),\npv AS (\n  SELECT prod_id, mo,\n         SUM(CASE WHEN yr=2019 THEN amt END) AS s2019,\n         SUM(CASE WHEN yr=2020 THEN amt END) AS s2020\n  FROM sf GROUP BY prod_id, mo\n),\nproj AS (\n  SELECT prod_id, mo,\n         (((s2020 - s2019) * 1.0 / NULLIF(s2019,0)) * s2020) + s2020 AS proj\n  FROM pv\n),\nproj_usd AS (\n  SELECT pr.prod_id, pr.mo, pr.proj * COALESCE(c.to_us, 1) AS proj_usd\n  FROM proj pr\n  LEFT JOIN currency c ON c.country = 'France' AND c.year = 2021 AND c.month = pr.mo\n)\nSELECT mo AS month, ROUND(AVG(proj_usd),2) AS avg_projected_sales_usd\nFROM proj_usd GROUP BY mo ORDER BY mo;\n",
+  "originalCsv": "month,avg_projected_sales_usd\n1,4054.99\n2,2402.89\n3,2888.48\n4,1474.1\n5,2904.71\n6,1440.35\n7,1600.13\n8,1392.6\n9,2702.5\n10,2218.77\n11,3208.94\n12,3062.66\n",
+  "goldSql": null,
+  "goldCsv": [
+    {
+      "path": "C:\\data-agent-eval\\Spider2\\spider2-lite\\evaluation_suite\\gold\\exec_result\\local061.csv",
+      "content": "month,avg_monthly_projected_sales_in_usd\r\n1,4120.33\r\n2,2454.4\r\n3,2980.58\r\n4,1517.54\r\n5,3025.06\r\n6,1482.95\r\n7,1658.6\r\n8,1419.89\r\n9,2754.07\r\n10,2218.77\r\n11,3208.94\r\n12,3131.66"
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local061",
+    "condition_cols": [],
+    "ignore_order": true,
+    "toks": "342"
+  }
+}

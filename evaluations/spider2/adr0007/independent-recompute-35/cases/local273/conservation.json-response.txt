@@ -1,0 +1,141 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_41aaed66-6291-4dbc-9403-aa5c1f8466c2\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nproduct_id | total_picked | available | required | over_single\n4280 | 200 | 200 | 480 | 0\n5310 | 40 | 500 | 40 | 0\n5430 | 100 | 500 | 100 | 0\n6520 | 300 | 400 | 300 | 0\n6600 | 56 | 100 | 56 | 0\n7950 | 150 | 536 | 150 | 0"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_41aaed66-6291-4dbc-9403-aa5c1f8466c2",
+      "preview": {
+        "columns": [
+          "product_id",
+          "total_picked",
+          "available",
+          "required",
+          "over_single"
+        ],
+        "rows": [
+          [
+            4280,
+            200,
+            200,
+            480,
+            0
+          ],
+          [
+            5310,
+            40,
+            500,
+            40,
+            0
+          ],
+          [
+            5430,
+            100,
+            500,
+            100,
+            0
+          ],
+          [
+            6520,
+            300,
+            400,
+            300,
+            0
+          ],
+          [
+            6600,
+            56,
+            100,
+            56,
+            0
+          ],
+          [
+            7950,
+            150,
+            536,
+            150,
+            0
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 6,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "product_id",
+        "total_picked",
+        "available",
+        "required",
+        "over_single"
+      ],
+      "rows": [
+        [
+          4280,
+          200,
+          200,
+          480,
+          0
+        ],
+        [
+          5310,
+          40,
+          500,
+          40,
+          0
+        ],
+        [
+          5430,
+          100,
+          500,
+          100,
+          0
+        ],
+        [
+          6520,
+          300,
+          400,
+          300,
+          0
+        ],
+        [
+          6600,
+          56,
+          100,
+          56,
+          0
+        ],
+        [
+          7950,
+          150,
+          536,
+          150,
+          0
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 6,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_2f19469f-fb1a-444f-bbac-c708ffa056fe"
+  }
+}

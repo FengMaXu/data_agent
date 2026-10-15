@@ -1,0 +1,89 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_75b19022-aee0-431f-855d-3f933f8714ff\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nkind | n | above5 | pct\nfull_population | 500 | 271 | 54.2\nintermediate_missing_months | 91 | NULL | NULL\ncustomers_without_selected_transactions | 0 | NULL | NULL"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_75b19022-aee0-431f-855d-3f933f8714ff",
+      "preview": {
+        "columns": [
+          "kind",
+          "n",
+          "above5",
+          "pct"
+        ],
+        "rows": [
+          [
+            "full_population",
+            500,
+            271,
+            54.2
+          ],
+          [
+            "intermediate_missing_months",
+            91,
+            null,
+            null
+          ],
+          [
+            "customers_without_selected_transactions",
+            0,
+            null,
+            null
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "INTEGER",
+          "REAL"
+        ],
+        "rowCount": 3,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "kind",
+        "n",
+        "above5",
+        "pct"
+      ],
+      "rows": [
+        [
+          "full_population",
+          500,
+          271,
+          54.2
+        ],
+        [
+          "intermediate_missing_months",
+          91,
+          null,
+          null
+        ],
+        [
+          "customers_without_selected_transactions",
+          0,
+          null,
+          null
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "INTEGER",
+        "REAL"
+      ],
+      "rowCount": 3,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_05158d61-912a-4526-8cf4-b99d2feb9bf9"
+  }
+}

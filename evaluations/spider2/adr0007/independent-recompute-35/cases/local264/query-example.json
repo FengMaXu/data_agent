@@ -1,0 +1,4 @@
+{
+  "sql": "WITH s AS (SELECT name,version,step,MAX(CASE WHEN model<>'Stack' THEN test_score END) baseline,MAX(CASE WHEN model='Stack' THEN test_score END) stack_score FROM model_score GROUP BY name,version,step) SELECT m.name,m.version,m.step,m.L1_model,baseline,stack_score FROM model m JOIN s USING(name,version,step) WHERE stack_score<baseline ORDER BY m.name,m.version,m.step LIMIT 12",
+  "limit": 100
+}

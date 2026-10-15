@@ -1,0 +1,935 @@
+{
+  "version": 2,
+  "tasks": [
+    {
+      "taskId": "task_daf9d35c-f124-47af-bca2-dc6d9a9e52ea",
+      "sessionId": "local264",
+      "principalId": "independent-analyst",
+      "requestMessageId": "original-task",
+      "requestId": "4164eee3-6a56-4d5c-b881-9ce14f38751e",
+      "currentRevisionId": "revision_f4d02b8a-5b38-4058-9485-8633de483cb6",
+      "lifecycle": "published",
+      "budget": {
+        "policy": {
+          "version": "answering-dual-loop-v1",
+          "maxRevisions": 40,
+          "maxExplorationAttempts": 120,
+          "maxResultAttempts": 20,
+          "maxElapsedMs": 14400000,
+          "maxObservedRows": 2000000
+        },
+        "startedAt": "2026-10-11T09:11:58.559Z",
+        "revisionCount": 1,
+        "explorationAttempts": 7,
+        "resultAttempts": 1,
+        "observedRows": 31
+      },
+      "createdAt": "2026-10-11T09:11:58.559Z",
+      "updatedAt": "2026-10-11T09:13:28.372Z",
+      "latestCandidateId": "candidate_d9d10d3d-2723-4a48-a619-52ad4ed1c887",
+      "publicationId": "publication_396d7a4a-0c4f-4576-804f-bb5e78e60af2"
+    }
+  ],
+  "revisions": [
+    {
+      "taskId": "task_daf9d35c-f124-47af-bca2-dc6d9a9e52ea",
+      "revisionId": "revision_b5aaff92-283d-4610-97a7-67965e12801d",
+      "requestId": "4164eee3-6a56-4d5c-b881-9ce14f38751e",
+      "createdAt": "2026-10-11T09:11:58.559Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "L1_model category occurrence at name/version/step"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_72bec7d6-d093-40e7-aeeb-f0a64f6b633c"
+            ]
+          }
+        }
+      },
+      "state": {
+        "state": "draft",
+        "revisionId": "revision_b5aaff92-283d-4610-97a7-67965e12801d"
+      },
+      "specFeedback": {
+        "taskId": "task_daf9d35c-f124-47af-bca2-dc6d9a9e52ea",
+        "revisionId": "revision_b5aaff92-283d-4610-97a7-67965e12801d",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_72bec7d6-d093-40e7-aeeb-f0a64f6b633c"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    },
+    {
+      "taskId": "task_daf9d35c-f124-47af-bca2-dc6d9a9e52ea",
+      "revisionId": "revision_f4d02b8a-5b38-4058-9485-8633de483cb6",
+      "parentRevisionId": "revision_b5aaff92-283d-4610-97a7-67965e12801d",
+      "requestId": "16ea86a8-18ae-44fb-84c9-af3e415161ca",
+      "createdAt": "2026-10-11T09:12:38.605Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "L1_model category occurrence at name/version/step"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_72bec7d6-d093-40e7-aeeb-f0a64f6b633c"
+            ]
+          }
+        },
+        "population.eligibility": {
+          "state": "specified",
+          "value": "Only steps with non-null L1_model and both Stack and non-Stack test scores; all observed303 steps eligible",
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "population.conditions": {
+          "state": "specified",
+          "value": [
+            "Compare categories at each name/version/step; do not filter by score outcome because not requested"
+          ],
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_de14b30c-af52-47fc-9a3d-9b8d6cfc7b1d"
+            ]
+          }
+        },
+        "population.time": {
+          "state": "specified",
+          "value": {
+            "expression": "All steps and versions, no date restriction"
+          },
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "measure.formula": {
+          "state": "specified",
+          "value": {
+            "op": "count",
+            "per": "L1_model",
+            "of": "distinct name/version/step/L1_model occurrence"
+          },
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "measure.countGrain": {
+          "state": "specified",
+          "value": "One L1 category per distinct name/version/step, repeated steps count separately",
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "grouping": {
+          "state": "specified",
+          "value": [
+            "L1_model"
+          ],
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "selection": {
+          "state": "specified",
+          "value": {
+            "n": 1,
+            "orderBy": "occurrences DESC"
+          },
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "selection.ties": {
+          "state": "specified",
+          "value": "include_ties",
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "output": {
+          "state": "specified",
+          "value": {
+            "rowMode": "full",
+            "columns": [
+              "L1_model",
+              "occurrences"
+            ]
+          },
+          "basis": {
+            "kind": "assumed"
+          }
+        }
+      },
+      "state": {
+        "state": "ready",
+        "revisionId": "revision_f4d02b8a-5b38-4058-9485-8633de483cb6",
+        "ready": "ready_ae5a90de-d915-4e2c-89de-fba4a7953ddc"
+      },
+      "specFeedback": {
+        "taskId": "task_daf9d35c-f124-47af-bca2-dc6d9a9e52ea",
+        "revisionId": "revision_f4d02b8a-5b38-4058-9485-8633de483cb6",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_72bec7d6-d093-40e7-aeeb-f0a64f6b633c",
+          "evidence_2d66f6c1-d528-4808-98dd-427b17a06b5f",
+          "evidence_8d1fe481-309a-4213-abea-1198c1f30351",
+          "evidence_95691544-e1a7-4cae-99b6-8f018e2c128e",
+          "evidence_5463d28c-0aa2-4b19-a3ca-7da182008ebb",
+          "evidence_de14b30c-af52-47fc-9a3d-9b8d6cfc7b1d"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "taskId": "task_daf9d35c-f124-47af-bca2-dc6d9a9e52ea",
+      "items": [
+        {
+          "id": "request_be3e2f2bd519d830902bceb0",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "observedAt": "2026-10-11T09:11:58.559Z"
+        },
+        {
+          "id": "evidence_72bec7d6-d093-40e7-aeeb-f0a64f6b633c",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "d872be3f075be099abe259a3dbc0c2d0ccee744b273cdcb0e02f2c4a824a57a6",
+          "quote": "across all steps and versions",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "d872be3f075be099abe259a3dbc0c2d0ccee744b273cdcb0e02f2c4a824a57a6"
+          },
+          "observedAt": "2026-10-11T09:11:58.559Z"
+        },
+        {
+          "id": "evidence_2d66f6c1-d528-4808-98dd-427b17a06b5f",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "40ab9751-1f29-4e66-a6ab-2a3c545cc147",
+          "preview": {
+            "columns": [
+              "L1_model",
+              "occurrences"
+            ],
+            "rows": [
+              [
+                "regression",
+                213
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "738f432e670e97a93830d935ac4e0a51133377a8f1bafc01003ae6c19537e9a4",
+          "contentHash": "2ac4fdf4a15a737f423bb834bbcac8e88eb13845836ffc06e34706b7556206f1",
+          "observedAt": "2026-10-11T09:12:03.479Z"
+        },
+        {
+          "id": "evidence_8d1fe481-309a-4213-abea-1198c1f30351",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "ef70c7bc-0eb4-467f-925b-660152ca89aa",
+          "preview": {
+            "columns": [
+              "L1_model",
+              "occurrences"
+            ],
+            "rows": [
+              [
+                "regression",
+                213
+              ],
+              [
+                "tree",
+                90
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 2,
+            "truncated": false
+          },
+          "queryHash": "c46a513752f08cea8df364013d57be46299fbfa286b662dd593f71ea4fcc37f9",
+          "contentHash": "64291ab5b137cdb3927ecd5d64e8525aa1ca46a69a333aaa527dc44f4553c9bb",
+          "observedAt": "2026-10-11T09:12:07.780Z"
+        },
+        {
+          "id": "evidence_95691544-e1a7-4cae-99b6-8f018e2c128e",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "e9d20b82-9cd3-446e-8b73-73e56737b070",
+          "preview": {
+            "columns": [
+              "L1_model",
+              "model_steps",
+              "model_versions",
+              "comparable",
+              "noninferior",
+              "strong"
+            ],
+            "rows": [
+              [
+                "regression",
+                213,
+                71,
+                213,
+                114,
+                78
+              ],
+              [
+                "tree",
+                90,
+                30,
+                90,
+                25,
+                14
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 2,
+            "truncated": false
+          },
+          "queryHash": "ccc9ff9bf6f9f06f0ccb354246a90ed8c7a6576d3b52ca820eeb58c859248c6c",
+          "contentHash": "325028d659ef2c67ba5eb6d3088fb4a5ec834acb6f4456ec43696f522cf10639",
+          "observedAt": "2026-10-11T09:12:11.238Z"
+        },
+        {
+          "id": "evidence_5463d28c-0aa2-4b19-a3ca-7da182008ebb",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "3da1ab67-30de-44ae-ba8a-af5f7b61779b",
+          "preview": {
+            "columns": [
+              "name",
+              "version",
+              "step",
+              "L1_model",
+              "baseline",
+              "stack_score"
+            ],
+            "rows": [
+              [
+                "Critical Heat Flux",
+                1,
+                1,
+                "regression",
+                0.8836410197441006,
+                0.8767667331999809
+              ],
+              [
+                "Critical Heat Flux",
+                2,
+                1,
+                "regression",
+                0.8836410197441006,
+                0.8767667331999809
+              ],
+              [
+                "Critical Heat Flux",
+                3,
+                1,
+                "tree",
+                0.8836410197441006,
+                0.8470847778663093
+              ],
+              [
+                "Critical Heat Flux",
+                3,
+                2,
+                "tree",
+                0.8836410197441006,
+                0.8580739277704147
+              ],
+              [
+                "Critical Heat Flux",
+                3,
+                3,
+                "tree",
+                0.8868161892955251,
+                0.820001186352687
+              ],
+              [
+                "Critical Heat Flux",
+                4,
+                1,
+                "tree",
+                0.8836410197441006,
+                0.8470847778663093
+              ],
+              [
+                "Critical Heat Flux",
+                4,
+                2,
+                "tree",
+                0.8836410197441006,
+                0.8212042575388446
+              ],
+              [
+                "Critical Heat Flux",
+                4,
+                3,
+                "tree",
+                0.8868161892955251,
+                0.8249690699279786
+              ],
+              [
+                "Critical Heat Flux",
+                5,
+                1,
+                "regression",
+                0.8836410197441006,
+                0.8767667331999809
+              ],
+              [
+                "Delaney solubility",
+                3,
+                1,
+                "tree",
+                0.8498776981484352,
+                0.7361578456024362
+              ],
+              [
+                "Delaney solubility",
+                3,
+                2,
+                "tree",
+                0.8498776981484352,
+                0.7688278804396981
+              ],
+              [
+                "Delaney solubility",
+                3,
+                3,
+                "tree",
+                0.8498776981484352,
+                0.7688278804396981
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER",
+              "INTEGER",
+              "TEXT",
+              "REAL",
+              "REAL"
+            ],
+            "rowCount": 12,
+            "truncated": false
+          },
+          "queryHash": "802d3cb1e3be8260aa13abfe450ec362b4da4be3c843477856e0ad2a735590f2",
+          "contentHash": "bd5331905a53c38d74dbf57addfd81bb3ef13225bc7b5f04dc944a4d605d6eb0",
+          "observedAt": "2026-10-11T09:12:15.860Z"
+        },
+        {
+          "id": "evidence_de14b30c-af52-47fc-9a3d-9b8d6cfc7b1d",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "d872be3f075be099abe259a3dbc0c2d0ccee744b273cdcb0e02f2c4a824a57a6",
+          "quote": "across all steps and versions when comparing traditional models to the Stack model",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "d872be3f075be099abe259a3dbc0c2d0ccee744b273cdcb0e02f2c4a824a57a6"
+          },
+          "observedAt": "2026-10-11T09:12:38.605Z"
+        },
+        {
+          "id": "evidence_e388f326-8fd0-42eb-ac72-bcca54c6b2d0",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "4ef28dc6-529a-495b-8260-36c9ae7805ef",
+          "preview": {
+            "columns": [
+              "L1_model",
+              "n",
+              "model_steps",
+              "cross_step_rows",
+              "noninferior_rows"
+            ],
+            "rows": [
+              [
+                "regression",
+                639,
+                213,
+                426,
+                342
+              ],
+              [
+                "tree",
+                270,
+                90,
+                180,
+                75
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 2,
+            "truncated": false
+          },
+          "queryHash": "e8a2d1fb33973f1e6b7640c59ace636a5e7d0140b2473879f26a1b8ddb37a9b3",
+          "contentHash": "523e1e5d7c56fb09248cee217175100b3638fb8135969a4df2f254419d8f79a0",
+          "observedAt": "2026-10-11T09:13:23.306Z"
+        },
+        {
+          "id": "evidence_e07b1a79-f14e-4ac2-b12f-f2de65ef6f49",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "51dfe173-0b99-4da0-b742-aa157f6bff5c",
+          "preview": {
+            "columns": [
+              "name",
+              "version",
+              "model_step",
+              "score_step",
+              "L1_model"
+            ],
+            "rows": [
+              [
+                "Critical Heat Flux",
+                1,
+                1,
+                1,
+                "regression"
+              ],
+              [
+                "Critical Heat Flux",
+                1,
+                1,
+                2,
+                "regression"
+              ],
+              [
+                "Critical Heat Flux",
+                1,
+                1,
+                3,
+                "regression"
+              ],
+              [
+                "Critical Heat Flux",
+                1,
+                2,
+                1,
+                "regression"
+              ],
+              [
+                "Critical Heat Flux",
+                1,
+                2,
+                2,
+                "regression"
+              ],
+              [
+                "Critical Heat Flux",
+                1,
+                2,
+                3,
+                "regression"
+              ],
+              [
+                "Critical Heat Flux",
+                1,
+                3,
+                1,
+                "regression"
+              ],
+              [
+                "Critical Heat Flux",
+                1,
+                3,
+                2,
+                "regression"
+              ],
+              [
+                "Critical Heat Flux",
+                1,
+                3,
+                3,
+                "regression"
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "TEXT"
+            ],
+            "rowCount": 9,
+            "truncated": false
+          },
+          "queryHash": "7ffb08b9dae6713664e9a3dd55ea66305c213b71f3f25a3b76e83fd874797aaa",
+          "contentHash": "c5d376de5a50badf2eb3f551c35a395eceb18f8a561c5d12d853ae802ec04b24",
+          "observedAt": "2026-10-11T09:13:25.793Z"
+        },
+        {
+          "id": "evidence_b4bef93b-e714-4936-872d-9da52138f505",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "0857365a-8408-4b26-808f-50c1a75308ec",
+          "preview": {
+            "columns": [
+              "L1_model",
+              "n",
+              "versions",
+              "first_step",
+              "last_step"
+            ],
+            "rows": [
+              [
+                "regression",
+                213,
+                71,
+                1,
+                3
+              ],
+              [
+                "tree",
+                90,
+                30,
+                1,
+                3
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 2,
+            "truncated": false
+          },
+          "queryHash": "74b81e24824b092771be1d1e85043144acc83781d4629e06e1565ee1859123cb",
+          "contentHash": "1666867e0c7ef56ef997e874dacac771e95d4eb3ffe59aa19a9da66823e52721",
+          "observedAt": "2026-10-11T09:13:28.371Z"
+        }
+      ]
+    }
+  ],
+  "attempts": [
+    {
+      "taskId": "task_daf9d35c-f124-47af-bca2-dc6d9a9e52ea",
+      "items": [
+        {
+          "attemptId": "attempt_32c9c2f0-9147-4d85-9682-90b1635b916c",
+          "taskId": "task_daf9d35c-f124-47af-bca2-dc6d9a9e52ea",
+          "kind": "exploration",
+          "revisionId": "revision_b5aaff92-283d-4610-97a7-67965e12801d",
+          "invocationId": "40ab9751-1f29-4e66-a6ab-2a3c545cc147",
+          "queryHash": "738f432e670e97a93830d935ac4e0a51133377a8f1bafc01003ae6c19537e9a4",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:12:02.881Z",
+          "updatedAt": "2026-10-11T09:12:03.480Z"
+        },
+        {
+          "attemptId": "attempt_3c4eeb9f-a2ad-47c8-af14-71492253d738",
+          "taskId": "task_daf9d35c-f124-47af-bca2-dc6d9a9e52ea",
+          "kind": "exploration",
+          "revisionId": "revision_b5aaff92-283d-4610-97a7-67965e12801d",
+          "invocationId": "ef70c7bc-0eb4-467f-925b-660152ca89aa",
+          "queryHash": "c46a513752f08cea8df364013d57be46299fbfa286b662dd593f71ea4fcc37f9",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:12:07.419Z",
+          "updatedAt": "2026-10-11T09:12:07.781Z"
+        },
+        {
+          "attemptId": "attempt_7364a846-b0e8-447b-80f7-7091a431d9b0",
+          "taskId": "task_daf9d35c-f124-47af-bca2-dc6d9a9e52ea",
+          "kind": "exploration",
+          "revisionId": "revision_b5aaff92-283d-4610-97a7-67965e12801d",
+          "invocationId": "e9d20b82-9cd3-446e-8b73-73e56737b070",
+          "queryHash": "ccc9ff9bf6f9f06f0ccb354246a90ed8c7a6576d3b52ca820eeb58c859248c6c",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:12:10.902Z",
+          "updatedAt": "2026-10-11T09:12:11.239Z"
+        },
+        {
+          "attemptId": "attempt_4329540d-ba39-4036-a170-8e1b9c2f1237",
+          "taskId": "task_daf9d35c-f124-47af-bca2-dc6d9a9e52ea",
+          "kind": "exploration",
+          "revisionId": "revision_b5aaff92-283d-4610-97a7-67965e12801d",
+          "invocationId": "3da1ab67-30de-44ae-ba8a-af5f7b61779b",
+          "queryHash": "802d3cb1e3be8260aa13abfe450ec362b4da4be3c843477856e0ad2a735590f2",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:12:15.262Z",
+          "updatedAt": "2026-10-11T09:12:15.861Z"
+        },
+        {
+          "attemptId": "attempt_622c303c-2908-49c9-8b41-79b25a5ae11e",
+          "taskId": "task_daf9d35c-f124-47af-bca2-dc6d9a9e52ea",
+          "kind": "revision",
+          "revisionId": "revision_b5aaff92-283d-4610-97a7-67965e12801d",
+          "invocationId": "16ea86a8-18ae-44fb-84c9-af3e415161ca",
+          "state": "succeeded",
+          "sqlExecuted": false,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:12:38.612Z",
+          "updatedAt": "2026-10-11T09:12:38.605Z"
+        },
+        {
+          "attemptId": "attempt_c85e2365-4873-441f-b726-68bbab654d27",
+          "taskId": "task_daf9d35c-f124-47af-bca2-dc6d9a9e52ea",
+          "kind": "result",
+          "revisionId": "revision_f4d02b8a-5b38-4058-9485-8633de483cb6",
+          "invocationId": "0ea7b7f7-3e93-4aba-a863-0422a8d5534b",
+          "queryHash": "542f5f9be6dcd70b7dec06b9081738f4ab6ad68e45aba434297ba2b0720e8f6a",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:12:43.143Z",
+          "updatedAt": "2026-10-11T09:12:43.618Z"
+        },
+        {
+          "attemptId": "attempt_8efc5076-5f55-47d0-8ed6-14f45ac9183a",
+          "taskId": "task_daf9d35c-f124-47af-bca2-dc6d9a9e52ea",
+          "kind": "exploration",
+          "revisionId": "revision_f4d02b8a-5b38-4058-9485-8633de483cb6",
+          "invocationId": "4ef28dc6-529a-495b-8260-36c9ae7805ef",
+          "queryHash": "e8a2d1fb33973f1e6b7640c59ace636a5e7d0140b2473879f26a1b8ddb37a9b3",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:13:23.031Z",
+          "updatedAt": "2026-10-11T09:13:23.307Z"
+        },
+        {
+          "attemptId": "attempt_ce0cec67-d3d7-4190-ac72-09b60f0c625b",
+          "taskId": "task_daf9d35c-f124-47af-bca2-dc6d9a9e52ea",
+          "kind": "exploration",
+          "revisionId": "revision_f4d02b8a-5b38-4058-9485-8633de483cb6",
+          "invocationId": "51dfe173-0b99-4da0-b742-aa157f6bff5c",
+          "queryHash": "7ffb08b9dae6713664e9a3dd55ea66305c213b71f3f25a3b76e83fd874797aaa",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:13:25.423Z",
+          "updatedAt": "2026-10-11T09:13:25.794Z"
+        },
+        {
+          "attemptId": "attempt_2ed7981a-5563-4b34-88fb-96eb7932ad78",
+          "taskId": "task_daf9d35c-f124-47af-bca2-dc6d9a9e52ea",
+          "kind": "exploration",
+          "revisionId": "revision_f4d02b8a-5b38-4058-9485-8633de483cb6",
+          "invocationId": "0857365a-8408-4b26-808f-50c1a75308ec",
+          "queryHash": "74b81e24824b092771be1d1e85043144acc83781d4629e06e1565ee1859123cb",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:13:28.004Z",
+          "updatedAt": "2026-10-11T09:13:28.372Z"
+        }
+      ]
+    }
+  ],
+  "candidates": [
+    {
+      "candidateId": "candidate_d9d10d3d-2723-4a48-a619-52ad4ed1c887",
+      "taskId": "task_daf9d35c-f124-47af-bca2-dc6d9a9e52ea",
+      "revisionId": "revision_f4d02b8a-5b38-4058-9485-8633de483cb6",
+      "resultRef": "result_bfb89c26-4433-4c48-af10-5b40737d774c",
+      "resultSchema": [
+        "L1_model",
+        "occurrences"
+      ],
+      "rowCount": 1,
+      "contentHash": "7a066b5dee1bebd18c8bc7b572edc689b80b5cb99ca83ed4af71e0311b26f292",
+      "sql": "WITH scores AS (SELECT name,version,step,MAX(CASE WHEN model<>'Stack' THEN test_score END) baseline,MAX(CASE WHEN model='Stack' THEN test_score END) stack_score FROM model_score GROUP BY name,version,step), units AS (SELECT DISTINCT m.name,m.version,m.step,m.L1_model FROM model m JOIN scores s USING(name,version,step) WHERE m.L1_model IS NOT NULL AND baseline IS NOT NULL AND stack_score IS NOT NULL), counts AS (SELECT L1_model,COUNT(*) occurrences FROM units GROUP BY L1_model) SELECT L1_model,occurrences FROM counts WHERE occurrences=(SELECT MAX(occurrences) FROM counts) ORDER BY L1_model",
+      "queryHash": "542f5f9be6dcd70b7dec06b9081738f4ab6ad68e45aba434297ba2b0720e8f6a",
+      "findings": [],
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "attemptId": "attempt_c85e2365-4873-441f-b726-68bbab654d27",
+      "createdByInvocationId": "0ea7b7f7-3e93-4aba-a863-0422a8d5534b",
+      "createdAt": "2026-10-11T09:12:43.618Z",
+      "status": "ready",
+      "publishable": true
+    }
+  ],
+  "receipts": [
+    {
+      "receiptId": "publication_396d7a4a-0c4f-4576-804f-bb5e78e60af2",
+      "taskId": "task_daf9d35c-f124-47af-bca2-dc6d9a9e52ea",
+      "principalId": "independent-analyst",
+      "sessionId": "local264",
+      "candidateId": "candidate_d9d10d3d-2723-4a48-a619-52ad4ed1c887",
+      "revisionId": "revision_f4d02b8a-5b38-4058-9485-8633de483cb6",
+      "resultRef": "result_bfb89c26-4433-4c48-af10-5b40737d774c",
+      "format": "csv",
+      "publicRef": "/api/runtime/publications/publication_396d7a4a-0c4f-4576-804f-bb5e78e60af2?session_id=local264",
+      "contentHash": "7a066b5dee1bebd18c8bc7b572edc689b80b5cb99ca83ed4af71e0311b26f292",
+      "presentationContentHash": "a98257706c1ffca80b0e07fdcdc5e0a96c7ade6cd66d7a8212e1cb98f61c5d02",
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "disclosure": {
+        "required": true,
+        "unverifiedFields": [
+          {
+            "path": "population.eligibility",
+            "kind": "assumed"
+          },
+          {
+            "path": "population.time",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.formula",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.countGrain",
+            "kind": "assumed"
+          },
+          {
+            "path": "grouping",
+            "kind": "assumed"
+          },
+          {
+            "path": "selection",
+            "kind": "assumed"
+          },
+          {
+            "path": "selection.ties",
+            "kind": "assumed"
+          },
+          {
+            "path": "output",
+            "kind": "assumed"
+          }
+        ],
+        "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.time, measure.formula, measure.countGrain, grouping, selection, selection.ties, output。"
+      },
+      "physicalProfile": {
+        "version": 1,
+        "rowCount": 1,
+        "truncated": false,
+        "columns": [
+          {
+            "name": "L1_model",
+            "kind": "text",
+            "nullCount": 0,
+            "distinctCount": 1
+          },
+          {
+            "name": "occurrences",
+            "kind": "integer",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 1,
+            "min": "213",
+            "max": "213"
+          }
+        ]
+      },
+      "policyVersion": "answering-publication-v1",
+      "createdByInvocationId": "0ea7b7f7-3e93-4aba-a863-0422a8d5534b",
+      "requestId": "0ea7b7f7-3e93-4aba-a863-0422a8d5534b",
+      "createdAt": "2026-10-11T09:12:43.642Z"
+    }
+  ]
+}

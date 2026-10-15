@@ -1,0 +1,73 @@
+{
+  "revealedAt": "2026-10-11T09:04:22.874Z",
+  "registry": {
+    "instance_id": "local167",
+    "attempt_id": "attempt-20261010-154318Z",
+    "score": 0,
+    "score_source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-retry.json",
+    "replayed_csv_score": 0,
+    "group": "wrong",
+    "status": "completed",
+    "publication_status": "published",
+    "duration_ms": 108523,
+    "tool_calls": 15,
+    "error": null,
+    "result_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local167/attempts/attempt-20261010-154318Z/result.json",
+    "trace_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local167/attempts/attempt-20261010-154318Z/trace.json",
+    "result_exists": true,
+    "trace_exists": true,
+    "sql_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local167/attempts/attempt-20261010-154318Z/submissions/sql/local167.sql",
+    "csv_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local167.csv",
+    "sql_exists": true,
+    "csv_exists": true,
+    "gold_sql_file": null,
+    "process": {
+      "turns": 12,
+      "toolCalls": 15,
+      "explorationQueries": 4,
+      "resultQueries": 1,
+      "fanoutProbes": 0,
+      "revisions": 2
+    },
+    "fanout_metrics": {
+      "reportCount": 1,
+      "targetCount": 0,
+      "findingCount": 0,
+      "unknownCount": 0,
+      "byStatus": {
+        "clear": 0,
+        "finding": 0,
+        "not_applicable": 1,
+        "unknown": 0
+      },
+      "enabled": true
+    },
+    "spec_feedback_metrics": {
+      "reportCount": 3,
+      "byStatus": {
+        "pending": 0,
+        "completed": 0,
+        "unavailable": 3,
+        "disabled": 0
+      },
+      "deterministicIssueCount": 0,
+      "concernCount": 0,
+      "enabled": true
+    }
+  },
+  "originalSql": "WITH fem AS (\n  SELECT id_bioguide FROM legislators WHERE gender = 'F'\n),\nfirst_state AS (\n  SELECT lt.id_bioguide, lt.state,\n         ROW_NUMBER() OVER (PARTITION BY lt.id_bioguide\n                            ORDER BY lt.term_start ASC, lt.term_number ASC) AS rn\n  FROM legislators_terms lt\n  JOIN fem f ON f.id_bioguide = lt.id_bioguide\n),\nqualified AS (\n  SELECT DISTINCT lt.id_bioguide\n  FROM legislators_terms lt\n  JOIN fem f ON f.id_bioguide = lt.id_bioguide\n  WHERE lt.term_end >= date(lt.term_start, 'start of year', '+1 year', '-1 day')\n)\nSELECT fs.state AS state,\n       COUNT(DISTINCT fs.id_bioguide) AS n_female_legislators\nFROM first_state fs\nJOIN qualified q ON q.id_bioguide = fs.id_bioguide\nWHERE fs.rn = 1\nGROUP BY fs.state\nORDER BY n_female_legislators DESC, fs.state ASC\nLIMIT 1;\n",
+  "originalCsv": "state,n_female_legislators\nCA,42\n",
+  "goldSql": null,
+  "goldCsv": [
+    {
+      "path": "C:\\data-agent-eval\\Spider2\\spider2-lite\\evaluation_suite\\gold\\exec_result\\local167.csv",
+      "content": "state,count_\r\nCA,43\r\n"
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local167",
+    "condition_cols": [],
+    "ignore_order": true,
+    "toks": "137"
+  }
+}

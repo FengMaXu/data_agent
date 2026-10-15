@@ -1,0 +1,86 @@
+[
+  {
+    "month": 1,
+    "gold": 4120.33,
+    "roster_month_round": 4120.33,
+    "roster_product_month_round": 4120.33,
+    "delta_roster": 0.0
+  },
+  {
+    "month": 2,
+    "gold": 2454.4,
+    "roster_month_round": 2454.4,
+    "roster_product_month_round": 2454.4,
+    "delta_roster": 0.0
+  },
+  {
+    "month": 3,
+    "gold": 2980.58,
+    "roster_month_round": 2980.58,
+    "roster_product_month_round": 2980.58,
+    "delta_roster": 0.0
+  },
+  {
+    "month": 4,
+    "gold": 1517.54,
+    "roster_month_round": 1517.54,
+    "roster_product_month_round": 1517.54,
+    "delta_roster": 0.0
+  },
+  {
+    "month": 5,
+    "gold": 3025.06,
+    "roster_month_round": 3025.06,
+    "roster_product_month_round": 3025.06,
+    "delta_roster": 0.0
+  },
+  {
+    "month": 6,
+    "gold": 1482.95,
+    "roster_month_round": 1482.95,
+    "roster_product_month_round": 1482.95,
+    "delta_roster": 0.0
+  },
+  {
+    "month": 7,
+    "gold": 1658.6,
+    "roster_month_round": 1658.6,
+    "roster_product_month_round": 1658.6,
+    "delta_roster": 0.0
+  },
+  {
+    "month": 8,
+    "gold": 1419.89,
+    "roster_month_round": 1419.89,
+    "roster_product_month_round": 1419.89,
+    "delta_roster": 0.0
+  },
+  {
+    "month": 9,
+    "gold": 2754.07,
+    "roster_month_round": 2754.07,
+    "roster_product_month_round": 2754.07,
+    "delta_roster": 0.0
+  },
+  {
+    "month": 10,
+    "gold": 2218.77,
+    "roster_month_round": 2218.77,
+    "roster_product_month_round": 2218.77,
+    "delta_roster": 0.0
+  },
+  {
+    "month": 11,
+    "gold": 3208.94,
+    "roster_month_round": 3208.94,
+    "roster_product_month_round": 3208.94,
+    "delta_roster": 0.0
+  },
+  {
+    "month": 12,
+    "gold": 3131.66,
+    "roster_month_round": 3131.66,
+    "roster_product_month_round": 3131.66,
+    "delta_roster": 0.0
+  }
+]

@@ -1,0 +1,16 @@
+{
+  "instance_id": "local264",
+  "db": "stacking",
+  "database_path": "C:/data-agent-eval/Spider2/spider2-lite/resource/databases/stacking.sqlite",
+  "question": "Which model category (L1_model) appears the most frequently across all steps and versions when comparing traditional models to the Stack model, and what is the total count of its occurrences?",
+  "task_source": "C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl",
+  "documents": {},
+  "formal_ddl": [
+    {
+      "path": "C:/data-agent-eval/Spider2/spider2-lite/resource/databases/sqlite/stacking/DDL.csv",
+      "content": "table_name,DDL\nproblem,\"CREATE TABLE problem (\n    name TEXT,\n    path TEXT,\n    type TEXT,\n    target TEXT\n);\"\neda,\"CREATE TABLE eda (\n    name TEXT,\n    version INTEGER,\n    feature TEXT,\n    type TEXT,\n    range BLOB,\n    drop_user INTEGER,\n    drop_correlation INTEGER,\n    target INTEGER\n);\"\nfeature_importance,\"CREATE TABLE feature_importance (\n    name TEXT,\n    version INTEGER,\n    step INTEGER,\n    feature TEXT,\n    importance NUMERIC\n);\"\nsolution,\"CREATE TABLE solution (\n    name TEXT,\n    version INTEGER,\n    correlation NUMERIC,\n    nb_model INTEGER,\n    nb_feature INTEGER,\n    score NUMERIC,\n    test_size NUMERIC,\n    resampling INTEGER\n);\"\nmodel_score,\"CREATE TABLE model_score (\n    name TEXT,\n    version INTEGER,\n    step INTEGER,\n    model TEXT,\n    train_score NUMERIC,\n    test_score NUMERIC\n);\"\nmodel_importance,\"CREATE TABLE model_importance (\n    name TEXT,\n    version INTEGER,\n    step INTEGER,\n    model TEXT,\n    importance NUMERIC\n);\"\nmodel,\"CREATE TABLE model (\n    name TEXT,\n    version INTEGER,\n    step INTEGER,\n    L1_model TEXT\n);\"\nstack_ok,\"CREATE TABLE stack_ok (\n    name TEXT,\n    version INTEGER,\n    step INTEGER,\n    L1_model TEXT,\n    status \n);\"\nsolution_ext,\"CREATE TABLE solution_ext (\n    name TEXT,\n    version INTEGER,\n    L1_model TEXT\n);\"\nstack_ok_score,\"CREATE TABLE stack_ok_score (\n    name TEXT,\n    version INTEGER,\n    score_1 NUMERIC,\n    score_2 NUMERIC,\n    score_3 NUMERIC\n);\"\n"
+    }
+  ],
+  "blind_packet": true,
+  "note": "No original SQL, prior diagnosis, semantic labels, Gold SQL or Gold results. Freeze and publish independent solution before reveal."
+}

@@ -1,0 +1,230 @@
+{
+  "query": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[RESULT_CANDIDATE] candidateId=candidate_a06c17e8-bda3-44ea-8836-ab751aaee731 revisionId=revision_0ba2b2b8-87df-4070-8c2e-a40a40d8ad11\nhighest_month | highest_count | highest_average | lowest_month | lowest_count | lowest_average | difference\n2020-01-01 | 424 | 557.704 | 2020-05-01 | 0 | 0 | 557.704"
+      }
+    ],
+    "details": {
+      "kind": "result",
+      "artifact": {
+        "kind": "candidate",
+        "candidateId": "candidate_a06c17e8-bda3-44ea-8836-ab751aaee731",
+        "revisionId": "revision_0ba2b2b8-87df-4070-8c2e-a40a40d8ad11",
+        "resultRef": "result_54f7c827-505f-4e65-9581-a87e7e02fec8"
+      },
+      "preview": {
+        "columns": [
+          "highest_month",
+          "highest_count",
+          "highest_average",
+          "lowest_month",
+          "lowest_count",
+          "lowest_average",
+          "difference"
+        ],
+        "rows": [
+          [
+            "2020-01-01",
+            424,
+            557.704,
+            "2020-05-01",
+            0,
+            0,
+            557.704
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "REAL",
+          "TEXT",
+          "INTEGER",
+          "INTEGER",
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      },
+      "findings": [],
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "attemptId": "attempt_773c0e24-e8a7-435e-ad1b-e4e139c269af"
+    }
+  },
+  "publication": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[PUBLISHED] csv [download](/api/runtime/publications/publication_4be5110e-1c5d-4d56-8de8-9ea8218c2a49?session_id=local064) receiptId=publication_4be5110e-1c5d-4d56-8de8-9ea8218c2a49\n[DISCLOSURE] 以下字段为假定，未被合格证据证实：measure.countGrain, measure.denominator, selection.ties, output, selection。"
+      }
+    ],
+    "details": {
+      "receiptId": "publication_4be5110e-1c5d-4d56-8de8-9ea8218c2a49",
+      "taskId": "task_3932e0c7-258c-4b17-a966-5eb63818b3de",
+      "principalId": "independent-analyst",
+      "sessionId": "local064",
+      "candidateId": "candidate_a06c17e8-bda3-44ea-8836-ab751aaee731",
+      "revisionId": "revision_0ba2b2b8-87df-4070-8c2e-a40a40d8ad11",
+      "resultRef": "result_54f7c827-505f-4e65-9581-a87e7e02fec8",
+      "format": "csv",
+      "publicRef": "/api/runtime/publications/publication_4be5110e-1c5d-4d56-8de8-9ea8218c2a49?session_id=local064",
+      "contentHash": "2fdfa03fd945860dc7a5b30ab7d1d290ce82f0fc77be84a2be27cb554b7001ed",
+      "presentationContentHash": "f6fb9798a07a833bc652aae8c37c9f9a7095c8cd148b93b34a3faaab4a43197d",
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "disclosure": {
+        "required": true,
+        "unverifiedFields": [
+          {
+            "path": "measure.countGrain",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.denominator",
+            "kind": "assumed"
+          },
+          {
+            "path": "selection.ties",
+            "kind": "assumed"
+          },
+          {
+            "path": "output",
+            "kind": "assumed"
+          },
+          {
+            "path": "selection",
+            "kind": "assumed"
+          }
+        ],
+        "summary": "以下字段为假定，未被合格证据证实：measure.countGrain, measure.denominator, selection.ties, output, selection。"
+      },
+      "physicalProfile": {
+        "version": 1,
+        "rowCount": 1,
+        "truncated": false,
+        "columns": [
+          {
+            "name": "highest_month",
+            "kind": "text",
+            "nullCount": 0,
+            "distinctCount": 1
+          },
+          {
+            "name": "highest_count",
+            "kind": "integer",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 1,
+            "min": "424",
+            "max": "424"
+          },
+          {
+            "name": "highest_average",
+            "kind": "decimal",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 1,
+            "min": "557.704",
+            "max": "557.704"
+          },
+          {
+            "name": "lowest_month",
+            "kind": "text",
+            "nullCount": 0,
+            "distinctCount": 1
+          },
+          {
+            "name": "lowest_count",
+            "kind": "integer",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 1,
+            "min": "0",
+            "max": "0"
+          },
+          {
+            "name": "lowest_average",
+            "kind": "integer",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 1,
+            "min": "0",
+            "max": "0"
+          },
+          {
+            "name": "difference",
+            "kind": "decimal",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 1,
+            "min": "557.704",
+            "max": "557.704"
+          }
+        ]
+      },
+      "policyVersion": "answering-publication-v1",
+      "createdByInvocationId": "13916638-30d8-4684-a98e-19aea60d8b0c",
+      "requestId": "13916638-30d8-4684-a98e-19aea60d8b0c",
+      "createdAt": "2026-10-11T09:00:51.142Z"
+    }
+  },
+  "authorizedCsv": "D:\\data_agent\\evaluations\\spider2\\adr0007\\independent-recompute-35\\cases\\local064\\publications\\publication_4be5110e-1c5d-4d56-8de8-9ea8218c2a49\\result.csv"
+}

@@ -1,0 +1,187 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_b8daac91-db04-4c32-b06b-5aef7b67dd07 revisionId=revision_8ed6e019-ac6c-45d2-90e1-064bd53cf184\n- ✓ population.eligibility\n- ✓ population.conditions\n- ✓ population.time\n- ✓ measure.formula\n- ✓ measure.countGrain\n- ✓ measure.denominator\n- ✓ measure.window\n- ✓ grouping\n- ✓ selection\n- ✓ selection.ties\n- ✓ output\n状态：\n- 未证实（发布时披露）: population.time, measure.countGrain, measure.denominator, measure.window, selection.ties, output\n- 没有待处理的字段，可以执行结果查询\n[SPEC_FEEDBACK] revisionId=revision_8ed6e019-ac6c-45d2-90e1-064bd53cf184 status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"customer\"}},\"population.eligibility\":{\"status\":\"request\",\"value\":\"All customers with deposits/withdrawals; includes zero and negative balances; observed set all 500 customers\"},\"population.conditions\":{\"status\":\"request\",\"value\":[\"deposit positive, withdrawal negative, purchase excluded\"]},\"population.time\":{\"status\":\"assumed\",\"value\":{\"expression\":\"All observed dates, most recent deposit/withdrawal calendar month separately per customer; intermediate calendar gaps zero-filled\"}},\"measure.formula\":{\"status\":\"request\",\"value\":{\"op\":\"custom\",\"description\":\"Monthly deposit-withdrawal net; cumulative closing from initial 0; latest per customer growth=(closing-prior closing)/prior closing*100 using signed denominator, or current closing*100 if prior=0; percentage=100*count(growth>5)/count(all customers)\"}},\"measure.countGrain\":{\"status\":\"assumed\",\"value\":\"One latest-month row per customer\"},\"measure.denominator\":{\"status\":\"assumed\",\"value\":\"All 500 customers; signed prior closing for nonzero growth\"},\"measure.window\":{\"status\":\"assumed\",\"value\":\"Cumulative monthly nets from first observed month through per-customer last deposit/withdrawal month; adjacent calendar prior\"},\"grouping\":{\"status\":\"not_applicable\"},\"selection\":{\"status\":\"request\",\"value\":{\"n\":1,\"orderBy\":\"month DESC per customer\"}},\"selection.ties\":{\"status\":\"assumed\",\"value\":\"strict\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"scalar\",\"columns\":[\"percentage_customers\"],\"units\":{\"percentage_customers\":\"%\"}}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_b8daac91-db04-4c32-b06b-5aef7b67dd07",
+    "revisionId": "revision_8ed6e019-ac6c-45d2-90e1-064bd53cf184",
+    "parentRevisionId": "revision_bdd07c92-9807-4672-bfb8-33d5da700904",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "customer"
+        },
+        "evidenceIds": [
+          "evidence_5b5d454c-10a1-4b53-be76-b0c013094a1e"
+        ]
+      },
+      {
+        "path": "population.eligibility",
+        "status": "request",
+        "value": "All customers with deposits/withdrawals; includes zero and negative balances; observed set all 500 customers",
+        "evidenceIds": [
+          "evidence_8382687b-bd58-429e-8e31-9a50542e9e26"
+        ]
+      },
+      {
+        "path": "population.conditions",
+        "status": "request",
+        "value": [
+          "deposit positive, withdrawal negative, purchase excluded"
+        ],
+        "evidenceIds": [
+          "evidence_00625981-a370-41f3-965a-fe68a6f6920b"
+        ]
+      },
+      {
+        "path": "population.time",
+        "status": "assumed",
+        "value": {
+          "expression": "All observed dates, most recent deposit/withdrawal calendar month separately per customer; intermediate calendar gaps zero-filled"
+        },
+        "rationale": "For each customer scopes the latest month; compare actual previous calendar month; first prior balance zero"
+      },
+      {
+        "path": "measure.formula",
+        "status": "request",
+        "value": {
+          "op": "custom",
+          "description": "Monthly deposit-withdrawal net; cumulative closing from initial 0; latest per customer growth=(closing-prior closing)/prior closing*100 using signed denominator, or current closing*100 if prior=0; percentage=100*count(growth>5)/count(all customers)"
+        },
+        "evidenceIds": [
+          "evidence_80635cc6-ccd1-4dd5-87b8-27305cd27c4e"
+        ]
+      },
+      {
+        "path": "measure.countGrain",
+        "status": "assumed",
+        "value": "One latest-month row per customer"
+      },
+      {
+        "path": "measure.denominator",
+        "status": "assumed",
+        "value": "All 500 customers; signed prior closing for nonzero growth"
+      },
+      {
+        "path": "measure.window",
+        "status": "assumed",
+        "value": "Cumulative monthly nets from first observed month through per-customer last deposit/withdrawal month; adjacent calendar prior"
+      },
+      {
+        "path": "grouping",
+        "status": "not_applicable"
+      },
+      {
+        "path": "selection",
+        "status": "request",
+        "value": {
+          "n": 1,
+          "orderBy": "month DESC per customer"
+        },
+        "evidenceIds": [
+          "evidence_efe3ecc5-ea4d-44d0-830c-d7d112b86c06"
+        ]
+      },
+      {
+        "path": "selection.ties",
+        "status": "assumed",
+        "value": "strict"
+      },
+      {
+        "path": "output",
+        "status": "assumed",
+        "value": {
+          "rowMode": "scalar",
+          "columns": [
+            "percentage_customers"
+          ],
+          "units": {
+            "percentage_customers": "%"
+          }
+        }
+      }
+    ],
+    "undeclared": [],
+    "open": [],
+    "unverified": [
+      "population.time",
+      "measure.countGrain",
+      "measure.denominator",
+      "measure.window",
+      "selection.ties",
+      "output"
+    ],
+    "specFeedback": {
+      "taskId": "task_b8daac91-db04-4c32-b06b-5aef7b67dd07",
+      "revisionId": "revision_8ed6e019-ac6c-45d2-90e1-064bd53cf184",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_5b5d454c-10a1-4b53-be76-b0c013094a1e",
+        "evidence_67905096-e266-4b28-b436-554dd4279759",
+        "evidence_0f5d6f20-a52a-477f-a014-d1cfd6243067",
+        "evidence_75b19022-aee0-431f-855d-3f933f8714ff",
+        "evidence_f7c4ff96-ae44-400b-89fd-d3bbb2134774",
+        "evidence_8382687b-bd58-429e-8e31-9a50542e9e26",
+        "evidence_00625981-a370-41f3-965a-fe68a6f6920b",
+        "evidence_80635cc6-ccd1-4dd5-87b8-27305cd27c4e",
+        "evidence_efe3ecc5-ea4d-44d0-830c-d7d112b86c06"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "population.eligibility",
+        "status": "applied"
+      },
+      {
+        "path": "population.conditions",
+        "status": "applied"
+      },
+      {
+        "path": "population.time",
+        "status": "applied"
+      },
+      {
+        "path": "measure.formula",
+        "status": "applied"
+      },
+      {
+        "path": "measure.countGrain",
+        "status": "applied"
+      },
+      {
+        "path": "measure.denominator",
+        "status": "applied"
+      },
+      {
+        "path": "measure.window",
+        "status": "applied"
+      },
+      {
+        "path": "grouping",
+        "status": "applied"
+      },
+      {
+        "path": "selection",
+        "status": "applied"
+      },
+      {
+        "path": "selection.ties",
+        "status": "applied"
+      },
+      {
+        "path": "output",
+        "status": "applied"
+      }
+    ]
+  }
+}

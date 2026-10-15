@@ -1,0 +1,110 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_7cf9a4c7-4c81-4310-acd8-e4dc62e12e0d\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nyears_since_first_term | legislator_count\n31 | 6\n32 | 5\n33 | 5\n34 | 5\n35 | 4\n36 | 2\n37 | 1\n38 | 1"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_7cf9a4c7-4c81-4310-acd8-e4dc62e12e0d",
+      "preview": {
+        "columns": [
+          "years_since_first_term",
+          "legislator_count"
+        ],
+        "rows": [
+          [
+            31,
+            6
+          ],
+          [
+            32,
+            5
+          ],
+          [
+            33,
+            5
+          ],
+          [
+            34,
+            5
+          ],
+          [
+            35,
+            4
+          ],
+          [
+            36,
+            2
+          ],
+          [
+            37,
+            1
+          ],
+          [
+            38,
+            1
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 8,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "years_since_first_term",
+        "legislator_count"
+      ],
+      "rows": [
+        [
+          31,
+          6
+        ],
+        [
+          32,
+          5
+        ],
+        [
+          33,
+          5
+        ],
+        [
+          34,
+          5
+        ],
+        [
+          35,
+          4
+        ],
+        [
+          36,
+          2
+        ],
+        [
+          37,
+          1
+        ],
+        [
+          38,
+          1
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 8,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_d5192a15-4c5b-4266-9dee-33b0e8411808"
+  }
+}
+

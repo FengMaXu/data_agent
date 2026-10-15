@@ -1,0 +1,57 @@
+{
+  "fields": {
+    "population.eligibility": {
+      "value": "Companies with joined date in interval and known industry; distinct company IDs",
+      "basis": "assumed",
+      "rationale": "new unicorn is date joined not founding; distinct IDs count company entities"
+    },
+    "population.conditions": {
+      "value": [
+        "company joining unicorn list 2019..2021"
+      ],
+      "basis": "request",
+      "quote": "new unicorn companies"
+    },
+    "population.time": {
+      "value": "2019-01-01 inclusive to 2022-01-01 exclusive, 3 calendar years",
+      "basis": "request",
+      "quote": "from 2019 to 2021"
+    },
+    "measure.formula": {
+      "value": {
+        "op": "custom",
+        "description": "Distinct new company IDs by industry across 3 years; choose highest total industry; average yearly new company count=total/3.0, including zero years"
+      },
+      "basis": "assumed",
+      "rationale": "top industry over entire requested period; yearly average has 3-year denominator"
+    },
+    "grouping": {
+      "value": [
+        "industry"
+      ],
+      "basis": "request",
+      "quote": "top industry"
+    },
+    "selection": {
+      "value": {
+        "n": 1,
+        "orderBy": "total DESC, industry ASC"
+      },
+      "basis": "request",
+      "quote": "top industry"
+    },
+    "selection.ties": "strict",
+    "output": {
+      "value": {
+        "rowMode": "top_n",
+        "rowCount": 1,
+        "columns": [
+          "industry",
+          "average_new_companies"
+        ]
+      },
+      "basis": "request",
+      "quote": "average number of new unicorn companies per year"
+    }
+  }
+}

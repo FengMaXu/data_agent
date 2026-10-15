@@ -1,0 +1,59 @@
+{
+  "fields": {
+    "population.eligibility": {
+      "value": "有可连接首付款租赁影片的客户；各客户在对应首rating组一次",
+      "basis": "assumed",
+      "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+    },
+    "population.conditions": {
+      "value": [
+        "首片由earliest payment_date确定；并列payment_id，若实际无并列则无影响"
+      ],
+      "basis": "assumed",
+      "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+    },
+    "population.time": {
+      "value": "每客户全部记录总额，首事件最早付款日",
+      "basis": "request",
+      "quote": "earliest payment date per customer"
+    },
+    "measure.formula": {
+      "value": {
+        "op": "custom",
+        "description": "每客户SUM(payment.amount)和COUNT DISTINCT rental_id-1；首payment对应film.rating，再按rating等客户权重AVG"
+      },
+      "basis": "assumed",
+      "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+    },
+    "measure.countGrain": {
+      "value": "组内客户等权平均，租赁rental_id计事件",
+      "basis": "assumed",
+      "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+    },
+    "measure.denominator": {
+      "value": "各首rating组客户数",
+      "basis": "assumed",
+      "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+    },
+    "grouping": {
+      "value": [
+        "first_film_rating"
+      ],
+      "basis": "request",
+      "quote": "For each rating category of the first movie rented"
+    },
+    "selection": "n/a",
+    "output": {
+      "value": {
+        "rowMode": "grouped",
+        "columns": [
+          "rating",
+          "average_total_spent",
+          "average_subsequent_rentals"
+        ]
+      },
+      "basis": "assumed",
+      "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+    }
+  }
+}

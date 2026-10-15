@@ -1,0 +1,71 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_c21ed24f-03ae-4e4b-91d8-d1ecd9f11165\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nn | a | b | elapsed_answer | consistent_doy_answer\n582 | 265.82755495472225 | 3.426493142330312 | 10719.167894905708 | 5730.193879672774"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_c21ed24f-03ae-4e4b-91d8-d1ecd9f11165",
+      "preview": {
+        "columns": [
+          "n",
+          "a",
+          "b",
+          "elapsed_answer",
+          "consistent_doy_answer"
+        ],
+        "rows": [
+          [
+            582,
+            265.82755495472225,
+            3.426493142330312,
+            10719.167894905708,
+            5730.193879672774
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "REAL",
+          "REAL",
+          "REAL",
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "n",
+        "a",
+        "b",
+        "elapsed_answer",
+        "consistent_doy_answer"
+      ],
+      "rows": [
+        [
+          582,
+          265.82755495472225,
+          3.426493142330312,
+          10719.167894905708,
+          5730.193879672774
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "REAL",
+        "REAL",
+        "REAL",
+        "REAL"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_edb78bd1-5c9e-461c-b0e7-909b48e850ed"
+  }
+}

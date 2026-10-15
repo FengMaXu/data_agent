@@ -1,0 +1,65 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_df09dcff-da0b-4c24-9e42-e2060d9a21b1\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\naction | n | paths | distinct_paths\nview | 244 | 244 | 11"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_df09dcff-da0b-4c24-9e42-e2060d9a21b1",
+      "preview": {
+        "columns": [
+          "action",
+          "n",
+          "paths",
+          "distinct_paths"
+        ],
+        "rows": [
+          [
+            "view",
+            244,
+            244,
+            11
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "action",
+        "n",
+        "paths",
+        "distinct_paths"
+      ],
+      "rows": [
+        [
+          "view",
+          244,
+          244,
+          11
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_74484285-0eeb-4f00-93ae-68e60f03a972"
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_dddc680d-ac8c-4251-8265-8ff5c5880e67\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\npct_customers_growth_over_5pct\n54.2"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_dddc680d-ac8c-4251-8265-8ff5c5880e67",
+      "preview": {
+        "columns": [
+          "pct_customers_growth_over_5pct"
+        ],
+        "rows": [
+          [
+            54.2
+          ]
+        ],
+        "columnTypes": [
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "pct_customers_growth_over_5pct"
+      ],
+      "rows": [
+        [
+          54.2
+        ]
+      ],
+      "columnTypes": [
+        "REAL"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_8ecb933d-2a52-4af5-b052-def2c92a3fd7"
+  }
+}

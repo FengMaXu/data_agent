@@ -1,0 +1,42 @@
+{
+  "fields": {
+    "population.eligibility": {
+      "value": "最短合作图距离2；排除直接合作者和起点",
+      "basis": "request",
+      "quote": "but not directly with him"
+    },
+    "population.conditions": {
+      "value": [
+        "源演员按查到的Shah Rukh Khan身份；合演同电影MID，PID外围空白清理"
+      ],
+      "basis": "assumed",
+      "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+    },
+    "population.time": "n/a",
+    "measure.formula": {
+      "value": {
+        "op": "custom",
+        "description": "演员电影二分图source电影->一跳PID->其电影->二跳PID，EXCEPT一跳和source，COUNT distinct二跳"
+      },
+      "basis": "assumed",
+      "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+    },
+    "measure.countGrain": {
+      "value": "演员PID一人一次",
+      "basis": "assumed",
+      "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+    },
+    "grouping": "n/a",
+    "selection": "n/a",
+    "output": {
+      "value": {
+        "rowMode": "scalar",
+        "columns": [
+          "actors_shahrukh_number_2"
+        ]
+      },
+      "basis": "assumed",
+      "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+    }
+  }
+}

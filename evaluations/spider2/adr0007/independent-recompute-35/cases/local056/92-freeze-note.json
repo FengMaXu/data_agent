@@ -1,0 +1,11 @@
+{
+  "algorithm": "monthly sums -> signed observed-month lag differences -> customer average -> all maxima",
+  "assumptions": [
+    "不补零",
+    "金额差非变化率",
+    "月总额非月交易平均额"
+  ],
+  "limitations": [
+    "题面未定义change；备选已实际计算"
+  ]
+}

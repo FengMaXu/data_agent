@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT co.country_name,t.calendar_year,t.calendar_month_number,COUNT(*) rows,COUNT(DISTINCT s.prod_id) products,SUM(s.amount_sold) sales FROM sales s JOIN customers c USING(cust_id) JOIN countries co USING(country_id) JOIN times t USING(time_id) JOIN promotions p USING(promo_id) JOIN channels ch USING(channel_id) WHERE co.country_name='France' AND p.promo_total_id=1 AND ch.channel_total_id=1 GROUP BY 1,2,3 ORDER BY 2,3",
+  "limit": 100
+}

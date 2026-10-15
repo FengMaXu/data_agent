@@ -1,0 +1,169 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_91e5c494-571a-442d-9be7-17d570f442f3\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nskill_id | demand | skills\n0 | 3 | NULL\n1 | 3 | python\n5 | 3 | NULL\n181 | 3 | NULL\n182 | 3 | NULL\n8 | 1 | NULL\n14 | 1 | NULL\n22 | 1 | NULL\n26 | 1 | NULL\n183 | 1 | NULL\n187 | 1 | qlik\n192 | 1 | NULL"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_91e5c494-571a-442d-9be7-17d570f442f3",
+      "preview": {
+        "columns": [
+          "skill_id",
+          "demand",
+          "skills"
+        ],
+        "rows": [
+          [
+            0,
+            3,
+            null
+          ],
+          [
+            1,
+            3,
+            "python"
+          ],
+          [
+            5,
+            3,
+            null
+          ],
+          [
+            181,
+            3,
+            null
+          ],
+          [
+            182,
+            3,
+            null
+          ],
+          [
+            8,
+            1,
+            null
+          ],
+          [
+            14,
+            1,
+            null
+          ],
+          [
+            22,
+            1,
+            null
+          ],
+          [
+            26,
+            1,
+            null
+          ],
+          [
+            183,
+            1,
+            null
+          ],
+          [
+            187,
+            1,
+            "qlik"
+          ],
+          [
+            192,
+            1,
+            null
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "NULL"
+        ],
+        "rowCount": 12,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "skill_id",
+        "demand",
+        "skills"
+      ],
+      "rows": [
+        [
+          0,
+          3,
+          null
+        ],
+        [
+          1,
+          3,
+          "python"
+        ],
+        [
+          5,
+          3,
+          null
+        ],
+        [
+          181,
+          3,
+          null
+        ],
+        [
+          182,
+          3,
+          null
+        ],
+        [
+          8,
+          1,
+          null
+        ],
+        [
+          14,
+          1,
+          null
+        ],
+        [
+          22,
+          1,
+          null
+        ],
+        [
+          26,
+          1,
+          null
+        ],
+        [
+          183,
+          1,
+          null
+        ],
+        [
+          187,
+          1,
+          "qlik"
+        ],
+        [
+          192,
+          1,
+          null
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "NULL"
+      ],
+      "rowCount": 12,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_194d7751-e2e2-4326-b346-7de9910108b2"
+  }
+}

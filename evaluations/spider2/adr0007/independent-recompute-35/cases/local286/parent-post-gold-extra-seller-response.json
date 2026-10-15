@@ -1,0 +1,89 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_18da5201-cb46-4eb0-a079-a9ca5f4bed19\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nseller_id | items | sales | avg_price | item_review_rows | joined_sales | joined_price | item_weighted_review\n2a7dc43cecabf23403078e2188437d1d | 54 | 4795.91 | 88.81314814814814 | 54 | 4795.91 | 88.81314814814814 | 4.092592592592593"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_18da5201-cb46-4eb0-a079-a9ca5f4bed19",
+      "preview": {
+        "columns": [
+          "seller_id",
+          "items",
+          "sales",
+          "avg_price",
+          "item_review_rows",
+          "joined_sales",
+          "joined_price",
+          "item_weighted_review"
+        ],
+        "rows": [
+          [
+            "2a7dc43cecabf23403078e2188437d1d",
+            54,
+            4795.91,
+            88.81314814814814,
+            54,
+            4795.91,
+            88.81314814814814,
+            4.092592592592593
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "REAL",
+          "REAL",
+          "INTEGER",
+          "REAL",
+          "REAL",
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "seller_id",
+        "items",
+        "sales",
+        "avg_price",
+        "item_review_rows",
+        "joined_sales",
+        "joined_price",
+        "item_weighted_review"
+      ],
+      "rows": [
+        [
+          "2a7dc43cecabf23403078e2188437d1d",
+          54,
+          4795.91,
+          88.81314814814814,
+          54,
+          4795.91,
+          88.81314814814814,
+          4.092592592592593
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "REAL",
+        "REAL",
+        "INTEGER",
+        "REAL",
+        "REAL",
+        "REAL"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_eda671bd-ffd7-480c-b770-cd2c670e3b98"
+  }
+}

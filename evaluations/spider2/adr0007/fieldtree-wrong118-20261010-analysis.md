@@ -1,0 +1,6769 @@
+# 最新字段树测评：逐题错因分析与模式识别
+
+> Run：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010`。离线复核，不执行数据库 SQL、不重跑模型。
+
+## 1. 结论与审阅范围
+
+**本次实际有 61 道已评分错题，另有 17 道无评分案例；两类不能混算。**
+
+| 指标 | 本文核对后的值 |
+|---|---:|
+| 计划题数 | 118 |
+| 有官方逐题评分 / CSV 重放 | 101 / 101 |
+| 判对 / 判错 | 40 / 61 |
+| 无评分 | 17 |
+| 已提交样本正确率 | 40 / 101 = 39.60% |
+| 固定 118 题分母正确率 | 40 / 118 = 33.90% |
+
+**汇总文件不一致必须先纠正。** `report.md`、`official_score/evaluation.json`、`score-record.json`仍展示首批的18/39；最新`official_score/summary.json`的`execResult.caseScores`已合并为101题、40题正确，但同一对象的`score`仍为22/62，`fixedDenominator`仍是22/118。这些值不能直接互换。本文以两次评分文件的逐题map为准，并重放101份CSV，全部与逐题分数一致。详情见评分与执行链专项审计。
+
+61 题逐题分析已完成阅读；其中：可证差异 11 题，较强候选 1 题，未定位 35 题，Gold冲突 14 题。**“可证差异”不代表已证明解释全部数值失分；候选与未定位的题保留证据边界。**
+逐题证据共 **576** 条，通过来源文件、JSON pointer或JSONL题号、逐字引文核验；校验不是语义正确性认证。
+
+**关键模式**：字段齐全仍可声明错误的计算拓扑（客户比率再分段平均、先删历史再LAG、错误排名域）；Ready与published不是语义认证；输出表示/Gold冲突混入同一0分；35题缺细则无法定位，不强贴原因。优先修评分汇总和补证，再做计算图回归。
+
+快速导航：[逐题分析](#cases) · [模式与改进优先级](#patterns) · [17道无评分审计](#process-audit)。
+
+## 2. 方法与证据边界
+
+1. 按评分attempt挑选`cases/<id>/attempts/<attempt>/result.json`与`trace.json`，不用case根的陈旧结果。local099/130/131已重试，根记录的402不能当本次最终结果。
+2. 对照题面/已审核标准、实际set_answer_spec成功与拒绝返回、提交SQL、判分CSV；101题的提交SQL、官方评分SQL缓存、result.finalSql内容一致。
+3. 官方CSV比较忽略列名和列序，额外预测列本身不会造成失败；`condition_cols`决定Gold检查列，`ignore_order`决定是否忽略行序，数值容差为0.01。因此不把改别名/多列/列序单独归为本次错因。
+4. 保留18节点词汇及最早可证分叉；可见性仅对口径错适用。字段引用存在、字段applied、Spec已Ready或结果已published，均不自动证明业务语义正确。
+5. Gold SQL缺失、隐含口径无法恢复时不从数值倒推业务事实。Gold冲突必须有明确题面或定义矛盾；probe等价只证明所列候选输出相同，不证明候选全集覆盖正确答案。
+6. 本文只读事后审阅；纯CSV判分重放是反馈环，没有执行solver SQL或重现runtime缺陷。修复建议是后续实验/回归检查，不是已经实施或验证的修复。
+
+主要来源：`official_score/summary-attempt-001.json`、`summary-retry.json`、每题attempt的result/trace/submissions、Spider2原题、`spec-quality-labels.jsonl`、Gold CSV/SQL、`evaluation_suite/evaluate.py:60–125`。原run未修改。
+
+<a id="cases"></a>
+## 3. 61 道错题逐题分析
+
+| 题号 | 判因状态 | 最早可证节点 | 主模式 |
+|---|---|---|---|
+| [local002](#local002) | 未定位 | `未定位` | 证据不足未定位 |
+| [local003](#local003) | 可证差异 | `measure.formula` | 公式、嵌套粒度与权重 |
+| [local010](#local010) | 未定位 | `未定位` | 证据不足未定位 |
+| [local015](#local015) | 可证差异 | `population.conditions` | 总体资格与条件阶段 |
+| [local037](#local037) | 未定位 | `未定位` | 证据不足未定位 |
+| [local040](#local040) | 未定位 | `未定位` | 证据不足未定位 |
+| [local049](#local049) | 未定位 | `未定位` | 证据不足未定位 |
+| [local050](#local050) | 未定位 | `未定位` | 证据不足未定位 |
+| [local056](#local056) | 未定位 | `未定位` | 证据不足未定位 |
+| [local059](#local059) | 可证差异 | `output` | 被评分的输出值/行形状 |
+| [local060](#local060) | 可证差异 | `measure.formula` | 运算单位或精度 |
+| [local061](#local061) | 未定位 | `未定位` | 证据不足未定位 |
+| [local064](#local064) | 未定位 | `未定位` | 证据不足未定位 |
+| [local066](#local066) | Gold冲突 | `population.conditions` | Gold与题面冲突 |
+| [local067](#local067) | 未定位 | `未定位` | 证据不足未定位 |
+| [local070](#local070) | 未定位 | `未定位` | 证据不足未定位 |
+| [local073](#local073) | Gold冲突 | `population.entity` | Gold与题面冲突 |
+| [local096](#local096) | 未定位 | `未定位` | 证据不足未定位 |
+| [local098](#local098) | 未定位 | `未定位` | 证据不足未定位 |
+| [local100](#local100) | 未定位 | `未定位` | 证据不足未定位 |
+| [local114](#local114) | Gold冲突 | `measure.countGrain` | Gold与题面冲突 |
+| [local131](#local131) | 未定位 | `population.eligibility` | 证据不足未定位 |
+| [local133](#local133) | Gold冲突 | `population.eligibility` | Gold与题面冲突 |
+| [local156](#local156) | 可证差异 | `population.conditions` | 总体资格与条件阶段 |
+| [local167](#local167) | 未定位 | `未定位` | 证据不足未定位 |
+| [local168](#local168) | 未定位 | `未定位` | 证据不足未定位 |
+| [local169](#local169) | 未定位 | `未定位` | 证据不足未定位 |
+| [local170](#local170) | Gold冲突 | `population.eligibility` | Gold与题面冲突 |
+| [local171](#local171) | 未定位 | `未定位` | 证据不足未定位 |
+| [local194](#local194) | Gold冲突 | `selection` | Gold与题面冲突 |
+| [local195](#local195) | 较强候选 | `selection` | 排名域、选取与并列 |
+| [local196](#local196) | 未定位 | `未定位` | 证据不足未定位 |
+| [local220](#local220) | 未定位 | `未定位` | 证据不足未定位 |
+| [local228](#local228) | 可证差异 | `output` | 被评分的输出值/行形状 |
+| [local230](#local230) | Gold冲突 | `selection` | Gold与题面冲突 |
+| [local253](#local253) | Gold冲突 | `measure.denominator` | Gold与题面冲突 |
+| [local258](#local258) | Gold冲突 | `population.eligibility` | Gold与题面冲突 |
+| [local259](#local259) | Gold冲突 | `population.eligibility` | Gold与题面冲突 |
+| [local263](#local263) | 未定位 | `未定位` | 证据不足未定位 |
+| [local264](#local264) | 未定位 | `未定位` | 证据不足未定位 |
+| [local269](#local269) | 未定位 | `未定位` | 证据不足未定位 |
+| [local270](#local270) | Gold冲突 | `population.conditions` | Gold与题面冲突 |
+| [local272](#local272) | Gold冲突 | `measure.formula` | Gold与题面冲突 |
+| [local273](#local273) | 未定位 | `未定位` | 证据不足未定位 |
+| [local275](#local275) | Gold冲突 | `population.conditions` | Gold与题面冲突 |
+| [local277](#local277) | 可证差异 | `measure.formula` | 公式、嵌套粒度与权重 |
+| [local279](#local279) | 未定位 | `未定位` | 证据不足未定位 |
+| [local283](#local283) | 可证差异 | `grouping` | 排名域、选取与并列 |
+| [local285](#local285) | 未定位 | `未定位` | 证据不足未定位 |
+| [local286](#local286) | 未定位 | `未定位` | 证据不足未定位 |
+| [local297](#local297) | 未定位 | `未定位` | 证据不足未定位 |
+| [local298](#local298) | 未定位 | `未定位` | 证据不足未定位 |
+| [local299](#local299) | 未定位 | `未定位` | 证据不足未定位 |
+| [local302](#local302) | 可证差异 | `selection` | 排名域、选取与并列 |
+| [local311](#local311) | 可证差异 | `output` | 被评分的输出值/行形状 |
+| [local330](#local330) | Gold冲突 | `output` | Gold与题面冲突 |
+| [local331](#local331) | 未定位 | `未定位` | 证据不足未定位 |
+| [local335](#local335) | 未定位 | `未定位` | 证据不足未定位 |
+| [local336](#local336) | 可证差异 | `output` | 被评分的输出值/行形状 |
+| [local354](#local354) | 未定位 | `未定位` | 证据不足未定位 |
+| [local358](#local358) | 未定位 | `未定位` | 证据不足未定位 |
+
+<a id="local002"></a>
+### local002 — 四个预测玩具销售中心移动平均之和
+
+- **Attempt**：`attempt-001`；官方CSV分数及离线重放均为0。
+- **定性**：未定位；节点 `未定位`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：2017-01-01至2018-08-29日销售训练简单线性回归，预测2018-12-05至08，各取中心前后2天共5日平均，再求四值之和；销售金额成分与缺日政策未细化。
+- **本次SQL**：按下单日汇总brinquedos商品price，不限状态；606日补零，x=0..605拟合OLS；目标x=703..706展开±2预测并SUM/5，最后两位舍入。
+- **实际失配**：预测4340.1，Gold14334.62114；均1行。ignore_order=true、condition_cols=[]，数值差远超0.01；别名无关。
+- **Spec处理**：index5初建，time/output被拒；7补正成功；22若干字段在fields外，整调用失败；23无reason重写九字段被拒，仅joinMultiplicity新增成功；24附reason成功更新全部9字段，最终time/formula/output=request，source/timeField=evidence，补零/资格/类目及连接assumed；无open/undeclared。25结果26导出对应提交SQL。
+- **错因分析**：无GoldSQL不能恢复sales金额成分、训练总体或补零政策。离线日历算术确认Aug29为605、Dec5为703、Dec8为706；训练与预测一起平移日序不会改变OLS预测，不能将0基/1基序号当错因。线性预测中心5日均值等于中心预测，SUM/5也正确实现四均值之和；暂无可证公式或日序分叉。
+- **过程机制**：字段封装、decimals映射、reason连续性各导致拒绝，后续已修复；失败调用的公式细化不等于生效状态。；曾用taskId=probe探索返回ANSWERING_TASK_NOT_FOUND，最终绑定真实task。
+- **后续验证/修复**：补取Gold生成SQL或训练序列、sales金额定义及缺日政策，逐层核对；不要为迎合单值擅自改price为付款/运费或删补零。
+- **限制**：无GoldSQL与任务业务定义。；物理source/timeField有证据不代表price已被确认为业务sales。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local002 /question`
+```text
+Can you calculate the 5-day symmetric moving average of predicted toy sales for December 5 to 8, 2018, using daily sales data from January 1, 2017, to August 29, 2018, with a simple linear regression model? Finally provide the sum of those four 5-day moving averages?
+```
+原始题面
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local002/attempts/attempt-001/submissions/sql/local002.sql`
+```text
+WITH RECURSIVE days(d) AS (
+  SELECT '2017-01-01'
+  UNION ALL
+  SELECT date(d,'+1 day') FROM days WHERE d < '2018-08-29'
+),
+sales AS (
+  SELECT DATE(o.order_purchase_timestamp) AS d, SUM(oi.price) AS rev
+  FROM orders o
+  JOIN order_items oi ON o.order_id = oi.order_id
+  JOIN products p ON oi.product_id = p.product_id
+  WHERE p.product_category_name = 'brinquedos'
+  GROUP BY DATE(o.order_purchase_timestamp)
+),
+j AS (
+  SELECT CAST(julianday(days.d) - julianday('2017-01-01') AS INTEGER) AS x,
+         COALESCE(sales.rev, 0.0) AS y
+  FROM days LEFT JOIN sales ON sales.d = days.d
+),
+stats AS (
+  SELECT COUNT(*) AS n, SUM(x) AS sx, SUM(y) AS sy, SUM(x*x) AS sxx, SUM(x*y) AS sxy FROM j
+),
+par AS (
+  SELECT (n*sxy - sx*sy)*1.0/(n*sxx - sx*sx) AS b,
+         (sy - ((n*sxy - sx*sy)*1.0/(n*sxx - sx*sx))*sx)/n AS a
+  FROM stats
+),
+targets(x) AS (VALUES (703),(704),(705),(706)),
+offs(k) AS (VALUES (-2),(-1),(0),(1),(2)),
+grid AS (
+  SELECT t.x AS center_x, par.a + par.b*(t.x + o.k) AS p
+  FROM targets t, par, offs o
+)
+SELECT ROUND(SUM(p)/5.0, 2) AS total_sum_of_moving_averages
+FROM grid
+```
+提交SQL与最终绑定SQL离线核对一致
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local002.csv`
+```text
+total_sum_of_moving_averages
+4340.1
+```
+官方评分输入CSV
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local002.csv`
+```text
+output
+14334.62114
+```
+评分Gold实际值
+- **score**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/spider2lite_eval.jsonl #local002`
+```text
+{"instance_id": "local002", "condition_cols": [], "ignore_order": true, "toks": "234"}
+```
+比较列与行序设置
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local002/attempts/attempt-001/trace.json /toolCalls/24/result/details/fields/8`
+```text
+{"path": "measure.formula", "status": "request", "value": {"op": "custom", "description": "对 2017-01-01..2018-08-29 每日玩具销售额（brinquedos 类目 order_items.price 按日合计，缺日补 0）拟合简单线性回归 sales=a+b·x（x=自 2017-01-01 起的日历日序号）；预测 2018-12-05..2018-12-08 的日销售额 P(x)；对每个预测日取 5 日对称（中心）移动平均 MA(x)=(P(x-2)+P(x-1)+P(x)+P(x+1)+P(x+2))/5；最后对这 4 个 MA 求和", "of": "daily toy sales"}, "evidenceIds": ["evidence_b6bc9e9a-7a84-4e2c-9b79-fcc2ca3b91d8"]}
+```
+最后成功计算链
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local002/attempts/attempt-001/trace.json /toolCalls/24/result/details/fields/6`
+```text
+{"path": "population.missing", "status": "assumed", "value": "缺期（无销售日）按 0 补齐；回归自变量按相邻日历日连续编号", "rationale": "同上，回归自变量用日历日序号"}
+```
+补零已假定声明而非漏声明
+- **process**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local002/attempts/attempt-001/trace.json /toolCalls/23/result/details/outcomes`
+```text
+[{"path": "population.entity", "status": "rejected", "code": "SPEC_TRANSITION_INVALID", "message": "population.entity is already set; add \"reason\" to change it"}, {"path": "population.eligibility", "status": "rejected", "code": "SPEC_TRANSITION_INVALID", "message": "population.eligibility is already set; add \"reason\" to change it"}, {"path": "population.conditions", "status": "rejected", "code": "SPEC_TRANSITION_INVALID", "message": "population.conditions is already set; add \"reason\" to change it"}, {"path": "population.source", "status": "rejected", "code": "SPEC_TRANSITION_INVALID", "message": "population.source is already set; add \"reason\" to change it"}, {"path": "population.joinMultiplicity", "status": "applied"}, {"path": "population.timeField", "status": "rejected", "code": "SPEC_TRANSITION_INVALID", "message": "population.timeField is already set; add \"reason\" to change it"}, {"path": "population.missing", "status": "rejected", "code": "SPEC_TRANSITION_INVALID", "message": "population.missing is already set; add \"reason\" to change it"}, {"path": "population.time", "status": "rejected", "code": "SPEC_TRANSITION_INVALID", "message": "population.time is already set; add \"reason\" to change it"}, {"path": "measure.formula", "status": "rejected", "code": "SPEC_TRANSITION_INVALID", "message": "measure.formula is already set; add \"reason\" to change it"}, {"path": "output", "status": "rejected", "code": "SPEC_TRANSITION_INVALID", "message": "output is already set; add \"reason\" to change it"}]
+```
+仅连接新增成功，其他重写被拒
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local002/attempts/attempt-001/trace.json /toolCalls/24/result/details/outcomes`
+```text
+[{"path": "population.entity", "status": "applied"}, {"path": "population.eligibility", "status": "applied"}, {"path": "population.conditions", "status": "applied"}, {"path": "population.source", "status": "applied"}, {"path": "population.time", "status": "applied"}, {"path": "population.timeField", "status": "applied"}, {"path": "population.missing", "status": "applied"}, {"path": "measure.formula", "status": "applied"}, {"path": "output", "status": "applied"}]
+```
+最后九字段实际应用成功
+
+<a id="local003"></a>
+### local003 — 按RFM段平均客户客单价
+
+- **Attempt**：`attempt-001`；官方CSV分数及离线重放均为0。
+- **定性**：可证差异；节点 `measure.formula`；错误层：口径错；可见性：待定后决定错。
+- **题面/标准**：delivered订单按customer_unique_id先算每客户total_spend/order_count，再在各RFM段平均客户比率；按RFM文档分段。GoldSQL金额用SUM(price)。
+- **本次SQL**：逐单payment_value汇总，按客户求freq/monetary及NTILE分段，段SUM(monetary)/SUM(freq)：按订单数加权客户比率而非客户等权平均。
+- **实际失配**：均11行；condition_cols=[1]只检查Gold数值列、忽略行序。Champions281.53对250.8568210435466，Hibernating133.77对182.8458159996057，Loyal Customers273.87对237.88125736097265；数值集合失配。Cant/Can't及Potential/Potentital字符串不在本题检查列。
+- **Spec处理**：7初建部分失败(message当澄清、formula缺per)；8未传taskId另建主任务，9补齐；14 formula因payment探针缺失被拒但time决定成功(两输出相同)；16缺compare被拒；18比较后formula成功decided verified=false，仍segment级sum/sum。最终无open，countGrain/denominator/output为assumed。19结果20导出照此实现。
+- **错因分析**：for each customer及标准/GoldSQL明确客户比率→段AVG。两formula候选均预设段级比率，仅争payment与price+freight，未包含正确嵌套；最终决定延续错误口径，不是SQL漂移。金额也与Gold(price)不同，影响M打分和段成员；RFM文档仅说spends，Schema或advisor不能裁决业务金额成分。
+- **过程机制**：修复漏taskId实际另建任务，最终主任务已补齐。；advisor偏payment、决定仍未验证，不代表业务定义已证实。
+- **后续验证/修复**：formula内层写客户比率、外层段平均；把price/payment_value/运费作为独立需补证分量，核对段成员与各层金额。
+- **限制**：只纠正嵌套不保证得分，金额口径同时不同。；只比较数值列；标签字符串不是本次主因。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local003 /question`
+```text
+According to the RFM definition document, calculate the average sales per order for each customer within distinct RFM segments, considering only 'delivered' orders. Use the customer unique identifier. Clearly define how to calculate Recency based on the latest purchase timestamp and specify the criteria for classifying RFM segments. The average sales should be computed as the total spend divided by the total number of orders. Please analyze and report the differences in average sales across the RFM segments
+```
+原始题面
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local003/attempts/attempt-001/submissions/sql/local003.sql`
+```text
+WITH delivered AS (
+  SELECT o.order_id AS order_id, c.customer_unique_id AS cuid,
+         o.order_purchase_timestamp AS ts, COALESCE(p.amt,0) AS order_amount
+  FROM orders o
+  JOIN customers c ON c.customer_id = o.customer_id
+  LEFT JOIN (SELECT order_id, SUM(payment_value) AS amt FROM order_payments GROUP BY order_id) p
+    ON p.order_id = o.order_id
+  WHERE o.order_status = 'delivered'
+),
+ref AS (SELECT MAX(ts) AS ref_ts FROM delivered),
+cust AS (
+  SELECT cuid, MAX(ts) AS last_ts, COUNT(*) AS freq, SUM(order_amount) AS monetary
+  FROM delivered GROUP BY cuid
+),
+scored AS (
+  SELECT cuid,
+    NTILE(5) OVER (ORDER BY julianday((SELECT ref_ts FROM ref)) - julianday(last_ts)) AS r,
+    NTILE(5) OVER (ORDER BY freq DESC) AS f,
+    NTILE(5) OVER (ORDER BY monetary DESC) AS m,
+    freq, monetary
+  FROM cust
+),
+seg AS (
+  SELECT cuid, freq, monetary,
+    CASE
+      WHEN r=1 AND f+m BETWEEN 1 AND 4 THEN 'Champions'
+      WHEN r=1 AND f+m BETWEEN 5 AND 6 THEN 'Potential Loyalists'
+      WHEN r=1 AND f+m BETWEEN 7 AND 8 THEN 'Recent Users'
+      WHEN r=1 AND f+m BETWEEN 9 AND 10 THEN 'Price Sensitive'
+      WHEN r=2 AND f+m BETWEEN 1 AND 4 THEN 'Loyal Customers'
+      WHEN r=2 AND f+m BETWEEN 5 AND 8 THEN 'Potential Loyalists'
+      WHEN r=2 AND f+m BETWEEN 9 AND 10 THEN 'Promising'
+      WHEN r=3 AND f+m BETWEEN 1 AND 4 THEN 'Loyal Customers'
+      WHEN r=3 AND f+m BETWEEN 5 AND 6 THEN 'Needs Attention'
+      WHEN r=3 AND f+m BETWEEN 7 AND 10 THEN 'About to Sleep'
+      WHEN r IN (4,5) AND f+m BETWEEN 1 AND 2 THEN 'Cant Lose Them'
+      WHEN r IN (4,5) AND f+m BETWEEN 3 AND 6 THEN 'Hibernating'
+      WHEN r IN (4,5) AND f+m BETWEEN 7 AND 10 THEN 'Lost'
+    END AS rfm_segment
+  FROM scored
+)
+SELECT rfm_segment,
+       ROUND(1.0*SUM(monetary)/SUM(freq),2) AS avg_sales_per_order
+FROM seg
+GROUP BY rfm_segment
+ORDER BY avg_sales_per_order DESC;
+```
+提交SQL与最终绑定SQL离线核对一致
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local003.csv`
+```text
+rfm_segment,avg_sales_per_order
+Cant Lose Them,429.32
+Champions,281.53
+Loyal Customers,273.87
+Hibernating,133.77
+Needs Attention,107.9
+Potential Loyalists,96.19
+Recent Users,70.73
+Lost,55.83
+About to Sleep,54.55
+Promising,39.71
+Price Sensitive,39.51
+```
+官方评分输入CSV
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local003.csv`
+```text
+RFM_Bucket,avg_sales_per_customer
+About to Sleep,57.68495912447257
+Can't Lose Them,350.8868165989553
+Champions,250.8568210435466
+Hibernating,182.8458159996057
+Lost,57.39320983627944
+Loyal Customers,237.88125736097265
+Needs Attention,145.90492498719917
+Potentital Loyalists,130.37477273563726
+Price Sensitive,34.90935135135135
+Promising,35.08535857461025
+Recent Users,67.64212875853163
+```
+评分Gold实际值
+- **score**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/spider2lite_eval.jsonl #local003`
+```text
+{"instance_id": "local003", "condition_cols": [1], "ignore_order": true, "toks": "316"}
+```
+比较列与行序设置
+- **standard**：`D:/data_agent/evaluations/spider2/spec-quality-labels.jsonl #local003 /facets/measure/alternatives/0`
+```text
+{"kind": "avg", "expression": "average per-customer total spend divided by delivered order count, grouped by RFM segment", "evidenceRefs": ["Q1"], "entity": "customer", "sourceGrain": "customer", "aggregationOrder": ["customer spend / delivered orders", "average by RFM segment"]}
+```
+标准客户比率再段平均
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local003/attempts/attempt-001/trace.json /toolCalls/18/result/details/fields/7`
+```text
+{"path": "measure.formula", "status": "decided", "value": {"op": "ratio", "per": "rfm_segment", "numerator": {"op": "sum", "per": "order", "of": {"op": "sum", "per": "payment_row", "of": "payment_value"}}, "denominator": {"op": "count", "per": "order", "of": "order_id"}}, "verified": false, "rationale": "Request defines the metric as total spend / total number of orders (segment-level sum/sum). Request wording 'total spend' and the RFM Monetary definition ('total amount of money the customer spends') indicate money actually paid, so order_payments.payment_value is chosen over order_items price+freight; the advisor [ADVICE_LEAN] also favours this candidate (0.59 vs 0.03). Probes: payment 52cb66ba89cb vs price+freight 03df027a529b; values differ only marginally because most orders have near-equal item and paid totals.", "alternatives": [{"id": "alternative_c98f5dfa-b1e4-42b3-bbb8-3962d6611282", "value": {"op": "ratio", "per": "rfm_segment", "numerator": {"op": "sum", "per": "order", "of": {"op": "sum", "per": "payment_row", "of": "payment_value"}}, "denominator": {"op": "count", "per": "order", "of": "order_id"}}, "probe": {"alternativeId": "alternative_c98f5dfa-b1e4-42b3-bbb8-3962d6611282", "state": "available", "rowCount": 11, "output": "52cb66ba89cb"}}, {"id": "alternative_e23bd115-ae40-4034-9d07-da8deedbfa90", "value": {"op": "ratio", "per": "rfm_segment", "numerator": {"op": "sum", "per": "order", "of": {"op": "custom", "per": "item_row", "description": "SUM(price + freight_value) per order"}}, "denominator": {"op": "count", "per": "order", "of": "order_id"}}, "probe": {"alternativeId": "alternative_e23bd115-ae40-4034-9d07-da8deedbfa90", "state": "available", "rowCount": 11, "output": "03df027a529b"}}], "outputs": "distinct", "advice": {"recommendation": "alternative", "probabilities": [{"alternativeId": "alternative_c98f5dfa-b1e4-42b3-bbb8-3962d6611282", "probability": 0.59}, {"alternativeId": "alternative_e23bd115-ae40-4034-9d07-da8deedbfa90", "probability": 0.03}], "lean": {"alternativeId": "alternative_c98f5dfa-b1e4-42b3-bbb8-3962d6611282", "probability": 0.59}}}
+```
+成功决定为段总额/段订单总数
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local003/attempts/attempt-001/trace.json /toolCalls/18/result/details/fields/9`
+```text
+{"path": "measure.denominator", "status": "assumed", "value": "Total number of delivered orders belonging to the customers of the segment; zero denominator yields NULL.", "rationale": "Request: 'total spend divided by the total number of orders'."}
+```
+段级订单分母已声明
+- **standard**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/sql/local003.sql`
+```text
+AVG(total_spent / total_orders) AS avg_sales_per_customer
+```
+GoldSQL直接确认外层客户平均
+- **standard**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/sql/local003.sql`
+```text
+SUM(price) AS total_spent
+```
+Gold金额成分price
+- **standard**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local003/attempts/attempt-001/trace.json /toolCalls/2/result/details/content`
+```text
+Monetary (M): The total amount of money the customer spends.
+```
+原RFM文档定义金额
+
+<a id="local010"></a>
+### local010 — 最少城市对距离桶计数
+
+- **Attempt**：`attempt-001`；官方CSV分数及离线重放均为0。
+- **定性**：未定位；节点 `未定位`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：按附文归一无向城市对，所有航班Haversine公里距离均值分桶，返回最少桶对数。
+- **本次SQL**：两次连接机场，英文城市名排序归一无向对，AVG航班距离，[0,1000)…[6000,+∞)计桶，最小非空桶3。
+- **实际失配**：1行3对Gold6；ignore_order=true、condition_cols=[]。现有探索七桶为92/93/37/20/6/3/7。
+- **Spec处理**：5唯一Spec全部成功，entity无向城市对assumed，denominator每对航班数evidence，countGrain=request；eligibility假定不同城市，半开区间assumed，无open/undeclared。最终SQL无同城过滤但探索same_city_flights=0，所以此漂移不改变输出；10结果11导出。
+- **错因分析**：无GoldSQL，不能凭6=2×3判Gold按有向对；原附文明确A→B与B→A相同。SQL的Haversine、航班平均、无向归一可对照文档；已排除同城漏过滤影响，Gold分桶细则/来源仍未知。
+- **过程机制**：Spec排除同城、SQL未过滤，但已有0同城观测，不能列为失分主因。
+- **后续验证/修复**：补Gold距离桶中间表/SQL，核对无向定义、边界和城市对入桶；不要为了3变6静默改为有向对。
+- **限制**：无GoldSQL，附文不定义桶边界。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local010 /question`
+```text
+Distribute all the unique city pairs into the distance ranges 0, 1000, 2000, 3000, 4000, 5000, and 6000+, based on their average distance of all routes between them. Then how many pairs are there in the distance range with the fewest unique city paires?
+```
+原始题面
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local010/attempts/attempt-001/submissions/sql/local010.sql`
+```text
+WITH ap AS (
+  SELECT airport_code,
+         json_extract(city,'$.en') AS cty,
+         CAST(substr(coordinates, 2, instr(coordinates,',')-2) AS REAL) AS lon,
+         CAST(substr(coordinates, instr(coordinates,',')+1, length(coordinates)-instr(coordinates,',')-1) AS REAL) AS lat
+  FROM airports_data
+),
+fl AS (
+  SELECT CASE WHEN d.cty < a.cty THEN d.cty ELSE a.cty END AS c1,
+         CASE WHEN d.cty < a.cty THEN a.cty ELSE d.cty END AS c2,
+         2*6371*asin(sqrt(power(sin(radians(a.lat-d.lat)/2),2)+cos(radians(d.lat))*cos(radians(a.lat))*power(sin(radians(a.lon-d.lon)/2),2))) AS dist
+  FROM flights f
+  JOIN ap d ON d.airport_code = f.departure_airport
+  JOIN ap a ON a.airport_code = f.arrival_airport
+),
+pair_avg AS (
+  SELECT c1, c2, AVG(dist) AS ad
+  FROM fl
+  GROUP BY c1, c2
+),
+bucketed AS (
+  SELECT CASE WHEN ad < 1000 THEN '0-1000'
+              WHEN ad < 2000 THEN '1000-2000'
+              WHEN ad < 3000 THEN '2000-3000'
+              WHEN ad < 4000 THEN '3000-4000'
+              WHEN ad < 5000 THEN '4000-5000'
+              WHEN ad < 6000 THEN '5000-6000'
+              ELSE '6000+' END AS distance_range
+  FROM pair_avg
+)
+SELECT COUNT(*) AS pair_count
+FROM bucketed
+GROUP BY distance_range
+ORDER BY pair_count ASC
+LIMIT 1;
+```
+提交SQL与最终绑定SQL离线核对一致
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local010.csv`
+```text
+pair_count
+3
+```
+官方评分输入CSV
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local010.csv`
+```text
+output
+6
+```
+评分Gold实际值
+- **score**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/spider2lite_eval.jsonl #local010`
+```text
+{"instance_id": "local010", "condition_cols": [], "ignore_order": true, "toks": "195"}
+```
+比较列与行序设置
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local010/attempts/attempt-001/trace.json /toolCalls/5/result/details/fields/0`
+```text
+{"path": "population.entity", "status": "assumed", "value": {"name": "unique unordered city pair, identified by standardized city names: lexicographically smaller city name as city1, larger as city2", "keyColumns": ["city1", "city2"]}}
+```
+已生效无向对声明
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local010/attempts/attempt-001/trace.json /toolCalls/5/result/details/fields/6`
+```text
+{"path": "measure.formula", "status": "assumed", "value": {"op": "count", "per": "distance_range", "of": {"op": "avg", "per": "city_pair", "of": "route_distance_km (Haversine over airports_data.coordinates of the flight's departure and arrival airports)"}}}
+```
+成功声明对平均再桶计数
+- **standard**：`C:/data-agent-eval/Spider2/spider2-lite/resource/documents/haversine_formula.md`
+```text
+This ensures that a flight from City A to City B is treated the same as a flight from City B to City A.
+```
+原文无向要求
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local010/attempts/attempt-001/trace.json /toolCalls/6/result/content/0/text`
+```text
+5:[4000,5000) | 6
+6:[5000,6000) | 3
+7:[6000,inf) | 7
+```
+已有桶profile最小3
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local010/attempts/attempt-001/trace.json /toolCalls/7/result/content/0/text`
+```text
+33121 | 516 | 258 | 0 | 302.01230998270313 | 6774.729268767513
+```
+无同城观测，排除同城漂移影响
+
+<a id="local015"></a>
+### local015 — 摩托车碰撞按头盔组死亡率
+
+- **Attempt**：`attempt-001`；官方CSV分数及离线重放均为0。
+- **定性**：可证差异；节点 `population.conditions`；错误层：口径错；可见性：假定错。
+- **题面/标准**：先限定motorcycle collisions，parties装备判佩戴/未佩戴头盔，各组摩托车死亡人数/组内摩托车碰撞总数×100。
+- **本次SQL**：仅由任一party头盔标注限定碰撞，不筛collisions.motorcycle_collision；佩戴23碰撞/3死亡、未佩戴5/0，按两行输出。
+- **实际失配**：13.0435与0对Gold16.67与0，预测2行长表/Gold1行两指标。已有成功探索摩托车碰撞佩戴18/3、未佩戴1/0，3/18×100=16.6667(离线算术)与Gold16.67一致。
+- **Spec处理**：4成功声明conditions/eligibility只有头盔资格、output假定2行。21公式缺外层per被拒但分母/countGrain成功；22补per后formula成功assumed，分母仍全部有装备标注且能连接的碰撞。无open/undeclared，23结果25导出照Spec实现。
+- **错因分析**：population.conditions最早可证分叉：只把头盔标注当摩托车资格，遗漏题面motorcycle collisions条件。19/20观测佩戴组含5个motorcycle_collision=0，未佩戴含4个，确实扩张分母，非连接放大推测。成功Spec分母也为全组碰撞，SQL未漂移。长/宽表行数另构成评分障碍，不代替已证分母差异。
+- **过程机制**：已探索头盔装备与车辆/摩托车标记不一致，未落实到题面摩托车条件。；21格式拒绝22修复，不是最终主因。
+- **后续验证/修复**：把motorcycle_collision=1写为聚合前资格条件，再两组聚合，按标准1行两百分比输出；不改用全部死亡或party死亡替代指定摩托车死亡。
+- **限制**：两表case_id交集仅1824是覆盖限制，不能推测未匹配事件头盔状态。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local015 /question`
+```text
+Please calculate the fatality rate for motorcycle collisions, separated by helmet usage. Specifically, calculate two percentages: 1) the percentage of motorcyclist fatalities in collisions where parties (drivers or passengers) were wearing helmets, and 2) the percentage of motorcyclist fatalities in collisions where parties were not wearing helmets. For each group, compute this by dividing the total number of motorcyclist fatalities by the total number of collisions involving that group. Use the parties table to determine helmet usage (from party_safety_equipment fields).
+```
+原始题面
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local015/attempts/attempt-001/submissions/sql/local015.sql`
+```text
+WITH hp AS (
+  SELECT case_id,
+    MAX(CASE WHEN party_safety_equipment_1 IN ('driver, motorcycle helmet used','passenger, motorcycle helmet used')
+              OR party_safety_equipment_2 IN ('driver, motorcycle helmet used','passenger, motorcycle helmet used')
+         THEN 1 ELSE 0 END) AS used,
+    MAX(CASE WHEN party_safety_equipment_1 IN ('driver, motorcycle helmet not used','passenger, motorcycle helmet not used')
+              OR party_safety_equipment_2 IN ('driver, motorcycle helmet not used','passenger, motorcycle helmet not used')
+         THEN 1 ELSE 0 END) AS notused
+  FROM parties
+  GROUP BY case_id
+),
+grp AS (
+  SELECT 'helmet used' AS helmet_usage, c.case_id, c.motorcyclist_killed_count
+  FROM collisions c JOIN hp ON hp.case_id = c.case_id
+  WHERE hp.used = 1
+  UNION ALL
+  SELECT 'helmet not used' AS helmet_usage, c.case_id, c.motorcyclist_killed_count
+  FROM collisions c JOIN hp ON hp.case_id = c.case_id
+  WHERE hp.notused = 1
+)
+SELECT helmet_usage,
+       ROUND(COALESCE(SUM(motorcyclist_killed_count), 0) * 100.0 / COUNT(DISTINCT case_id), 4) AS fatality_percentage
+FROM grp
+GROUP BY helmet_usage
+ORDER BY CASE helmet_usage WHEN 'helmet used' THEN 1 ELSE 2 END
+```
+提交SQL与最终绑定SQL离线核对一致
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local015.csv`
+```text
+helmet_usage,fatality_percentage
+helmet used,13.0435
+helmet not used,0
+```
+官方评分输入CSV
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local015.csv`
+```text
+percent_killed_helmet_used,percent_killed_helmet_not_used
+16.67,0.0
+```
+评分Gold实际值
+- **score**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/spider2lite_eval.jsonl #local015`
+```text
+{"instance_id": "local015", "condition_cols": [], "ignore_order": true, "toks": "176"}
+```
+比较列与行序设置
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local015/attempts/attempt-001/trace.json /toolCalls/22/result/details/fields/2`
+```text
+{"path": "population.conditions", "status": "assumed", "value": ["组A(helmet used)：碰撞中至少有一方 party 的 party_safety_equipment_1 或 party_safety_equipment_2 取值为 'driver, motorcycle helmet used' 或 'passenger, motorcycle helmet used'", "组B(helmet not used)：碰撞中至少有一方 party 的 party_safety_equipment_1 或 party_safety_equipment_2 取值为 'driver, motorcycle helmet not used' 或 'passenger, motorcycle helmet not used'", "条件作用于碰撞级资格总体（HAVING/EXISTS），不在聚合后过滤"], "rationale": "题面括号注明 drivers or passengers，与设备列中 'driver/passenger, motorcycle helmet used/not used' 四个观测取值一一对应；条件在碰撞级判定，避免 party 级多行影响碰撞计数。"}
+```
+成功状态只有头盔条件，未筛摩托车碰撞
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local015/attempts/attempt-001/trace.json /toolCalls/22/result/details/fields/8`
+```text
+{"path": "measure.denominator", "status": "assumed", "value": "该头盔分组内的全部碰撞（DISTINCT collisions.case_id，仅含能与 parties 头盔标注对上、且头盔状态可判定的碰撞）；分母为 0 的组仍返回该行，百分比记为 NULL/0，并在披露中说明", "rationale": "题面以「该组的碰撞总数」为分母；本库中 parties 与 collisions 的 case_id 仅少量交集（见披露），分母只包含两表都能提供信息的碰撞。"}
+```
+生效分母含全组碰撞
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local015/attempts/attempt-001/trace.json /toolCalls/19/result/content/0/text`
+```text
+0 | 1 | 0 | 0 | 4
+0 | 1 | 1 | 0 | 1
+1 | 0 | 0 | 0 | 5
+1 | 0 | 1 | 0 | 15
+1 | 0 | 1 | 1 | 3
+```
+非摩托车碰撞确实入组
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local015/attempts/attempt-001/trace.json /toolCalls/20/result/content/0/text`
+```text
+grp | n_coll_all | n_coll_moto | fatal_all | fatal_moto
+used | 23 | 18 | 3 | 3
+not_used | 5 | 1 | 0 | 0
+```
+两分母的具体变化，无需重查数据库
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local015/attempts/attempt-001/trace.json /toolCalls/20/args/sql`
+```text
+WITH hp AS (
+  SELECT case_id,
+    MAX(CASE WHEN party_safety_equipment_1 IN ('driver, motorcycle helmet used','passenger, motorcycle helmet used')
+              OR party_safety_equipment_2 IN ('driver, motorcycle helmet used','passenger, motorcycle helmet used')
+         THEN 1 ELSE 0 END) AS used,
+    MAX(CASE WHEN party_safety_equipment_1 IN ('driver, motorcycle helmet not used','passenger, motorcycle helmet not used')
+              OR party_safety_equipment_2 IN ('driver, motorcycle helmet not used','passenger, motorcycle helmet not used')
+         THEN 1 ELSE 0 END) AS notused
+  FROM parties GROUP BY case_id
+)
+SELECT 'used' AS grp,
+  COUNT(*) AS n_coll_all,
+  SUM(CASE WHEN c.motorcycle_collision=1 THEN 1 ELSE 0 END) AS n_coll_moto,
+  SUM(c.motorcyclist_killed_count) AS fatal_all,
+  SUM(CASE WHEN c.motorcycle_collision=1 THEN c.motorcyclist_killed_count ELSE 0 END) AS fatal_moto
+FROM collisions c JOIN hp ON hp.case_id=c.case_id WHERE hp.used=1
+UNION ALL
+SELECT 'not_used', COUNT(*),
+  SUM(CASE WHEN c.motorcycle_collision=1 THEN 1 ELSE 0 END),
+  SUM(c.motorcyclist_killed_count),
+  SUM(CASE WHEN c.motorcycle_collision=1 THEN c.motorcyclist_killed_count ELSE 0 END)
+FROM collisions c JOIN hp ON hp.case_id=c.case_id WHERE hp.notused=1
+```
+此观测按motorcycle_collision判定
+- **standard**：`D:/data_agent/evaluations/spider2/spec-quality-labels.jsonl #local015 /facets/output/alternatives/0`
+```text
+{"rowMode": "scalar", "rowCount": 1, "columnCount": 2, "columnNames": ["percent_killed_helmet_used", "percent_killed_helmet_not_used"], "evidenceRefs": ["Q1"]}
+```
+标准1行两指标
+
+<a id="local037"></a>
+### local037 — 类别最常用支付类型笔数Top3
+
+- **Attempt**：`attempt-001`；官方CSV分数及离线重放均为0。
+- **定性**：未定位；节点 `未定位`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：每类别最常用payment_type，其付款数跨类别Top3；payment业务计数粒度未明定。
+- **本次SQL**：去重(order_id,payment_sequential,payment_type,category)，数类别×类型付款事件，选类别众数，再取前三。
+- **实际失配**：Top3类别一致；7565/6898/5923对7540/6874/5904，各多25/24/19。ignore_order=true、condition_cols=[]；额外payment_type列不会单独致0分，计数向量已不匹配。
+- **Spec处理**：10初建formula内层per列表被拒；11 reason在裸formula使无value被拒；12封装成功。join两候选均探针，16错误字段名、18缺compare决定被拒；20比较后去重事件候选成功decided verified=true。entity/countGrain/formula仍assumed，无open/undeclared；21结果22导出与Spec一致。
+- **错因分析**：小幅差值不能证明Gold按distinct订单、首笔或状态过滤。直接连接候选8959/7566/6635也不等Gold，最终已去重事件，不能归因未防item连接放大。Gold业务粒度可能不同，但无SQL/定义不足定位。
+- **过程机制**：决定接口三次拒绝后20成功，最终不是open。；比较先HTTP失败后成功，JEV选择去重不是计数单位业务证明。
+- **后续验证/修复**：补Gold计数事件明细/SQL，核实payment与order、sequential是否纳入、状态条件和多类别归属；不要Gold更小便静默改成订单计数。
+- **限制**：无GoldSQL及任务业务定义，无法恢复过滤/计数细则。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local037 /question`
+```text
+Identify the top three product categories whose most commonly used payment type has the highest number of payments across all categories, and specify the number of payments made in each category using that payment type.
+```
+原始题面
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local037/attempts/attempt-001/submissions/sql/local037.sql`
+```text
+WITH payment_by_category AS (
+  SELECT DISTINCT
+         p.order_id,
+         p.payment_sequential,
+         p.payment_type,
+         pr.product_category_name
+  FROM olist_order_payments AS p
+  JOIN olist_order_items   AS oi ON oi.order_id   = p.order_id
+  JOIN olist_products      AS pr ON pr.product_id = oi.product_id
+  WHERE pr.product_category_name IS NOT NULL
+), payment_count AS (
+  SELECT product_category_name,
+         payment_type,
+         COUNT(*) AS payments
+  FROM payment_by_category
+  GROUP BY product_category_name, payment_type
+), category_mode AS (
+  SELECT product_category_name,
+         payment_type,
+         payments,
+         ROW_NUMBER() OVER (PARTITION BY product_category_name
+                            ORDER BY payments DESC, payment_type ASC) AS rn
+  FROM payment_count
+)
+SELECT product_category_name,
+       payment_type,
+       payments
+FROM category_mode
+WHERE rn = 1
+ORDER BY payments DESC, product_category_name ASC
+LIMIT 3
+```
+提交SQL与最终绑定SQL离线核对一致
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local037.csv`
+```text
+product_category_name,payment_type,payments
+cama_mesa_banho,credit_card,7565
+beleza_saude,credit_card,6898
+esporte_lazer,credit_card,5923
+```
+官方评分输入CSV
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local037.csv`
+```text
+Category_name,payment_count
+cama_mesa_banho,7540
+beleza_saude,6874
+esporte_lazer,5904
+```
+评分Gold实际值
+- **score**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/spider2lite_eval.jsonl #local037`
+```text
+{"instance_id": "local037", "condition_cols": [], "ignore_order": true, "toks": "106"}
+```
+比较列与行序设置
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local037/attempts/attempt-001/trace.json /toolCalls/20/result/details/fields/5`
+```text
+{"path": "population.joinMultiplicity", "status": "decided", "value": "先去重/预聚合：把订单映射到「所属类别集合」后，每个类别按 distinct 付款记录（order_id + payment_sequential）计数，避免一个订单的多个商品明细把同一笔付款重复计数", "verified": true, "rationale": "题面要求的是「number of payments made in each category」，即付款笔数。olist_order_payments 的一行（order_id + payment_sequential，观测已证实唯一）就是一笔付款；订单对商品明细是一对多（112650 行 / 98666 distinct order_id），直接连接会按商品明细行数复制同一笔付款，复制出来的行不是新发生的付款。按 S03「多事实表直接连接可能把两侧度量相互复制，先确定共同统计粒度再连接」，先把付款记录到「所属类别集合」去重，再按 distinct 付款记录计数。候选 A 的探针结果也与候选 B 完全同序但数值更低（7565/6898/5923 vs 8959/7566/6635），符合「去重后不重复计同一笔付款」的预期。Jev 建议 (probability 0.76) 同样指向候选 A，与其一致。", "evidenceIds": ["evidence_301771c3-0613-4f37-b2dc-607c4799f4f0", "evidence_76850cbc-7d9b-455f-9845-ff0060038d1a", "evidence_6e520a82-79f0-45c7-b358-f71264275b8f"], "alternatives": [{"id": "alternative_3792419a-6769-4979-8f4b-85bbe077c883", "value": "先去重/预聚合：把订单映射到「所属类别集合」后，每个类别按 distinct 付款记录（order_id + payment_sequential）计数，避免一个订单的多个商品明细把同一笔付款重复计数", "probe": {"alternativeId": "alternative_3792419a-6769-4979-8f4b-85bbe077c883", "state": "available", "rowCount": 3, "output": "42f1a52655f2"}}, {"id": "alternative_e5a88ec5-52eb-4c62-a3fc-68d6bf7b47a0", "value": "直接计数：按连接后行数计数，即商品明细行 × 付款行（同一笔付款会因订单含多个商品明细而重复出现）", "probe": {"alternativeId": "alternative_e5a88ec5-52eb-4c62-a3fc-68d6bf7b47a0", "state": "available", "rowCount": 3, "output": "154962aa408e"}}], "outputs": "distinct", "advice": {"recommendation": "alternative", "probabilities": [{"alternativeId": "alternative_3792419a-6769-4979-8f4b-85bbe077c883", "probability": 0.76}, {"alternativeId": "alternative_e5a88ec5-52eb-4c62-a3fc-68d6bf7b47a0", "probability": 0.01}], "lean": {"alternativeId": "alternative_3792419a-6769-4979-8f4b-85bbe077c883", "probability": 0.76}}}
+```
+最终去重事件决定成功
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local037/attempts/attempt-001/trace.json /toolCalls/20/result/details/fields/7`
+```text
+{"path": "measure.countGrain", "status": "assumed", "value": "按付款事件计数：每个 (order_id, payment_sequential) 计一次付款（探索已证实该组合在 olist_order_payments 中唯一）"}
+```
+计数单位仍假定order_id+payment_sequential
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local037/attempts/attempt-001/trace.json /toolCalls/14/result/content/0/text`
+```text
+cama_mesa_banho | credit_card | 8959
+beleza_saude | credit_card | 7566
+esporte_lazer | credit_card | 6635
+```
+直接连接候选也不匹配Gold
+- **process**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local037/attempts/attempt-001/trace.json /toolCalls/18/result/details/outcomes`
+```text
+[{"path": "population.joinMultiplicity", "status": "rejected", "code": "SPEC_TRANSITION_INVALID", "message": "population.joinMultiplicity: the alternatives produce different or unknown outputs; call compare_hypotheses with path \"population.joinMultiplicity\" before deciding"}]
+```
+此前缺比较决定被拒
+
+<a id="local040"></a>
+### local040 — 树木收入合并数据Top3区均收入
+
+- **Attempt**：`attempt-001`；官方CSV分数及离线重放均为0。
+- **定性**：未定位；节点 `未定位`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：ZIP合并树木收入、必要时填ZIP，两收入>0及有效区名，以树数量选3区，各区平均mean income；重复权重和填ZIP政策未细化。
+- **本次SQL**：收入按ZIP分别MAX归一行，与trees内连；5区白名单及两收入>0，COUNT树记录行、AVG每树携带收入，按树行数前三；树侧不按tree_id去重。
+- **实际失配**：3区名一致。Queens79366.73841785119对79366.23974692848，Brooklyn73555.19098751213对73552.914734429，Staten Island94029.32783386917对94026.03572038967；差约0.499/2.276/3.292均>0.01。额外tree_count/行序不是主因。
+- **Spec处理**：4初建conditions结构/output非逐字引文被拒；5漏taskId另建task；7回主task补齐。26封装失败；27候选描述不精确被拒，仅denominator成功；28精确候选缺compare被拒；31formula树加权决定成功verified=false，33joinZIP去重决定成功verified=true；无open。entity把每trees记录视为一树(request)，34结果35导出。
+- **错因分析**：无法确认最早业务分叉。树690626行但tree_id/idx各683788不同值；收入重复ZIP已处理，树侧行加权仍可能是候选机制，不是Gold政策。树加权/ZIP等权、原始连接各探针都未得Gold三值，无SQL不能断言Gold树去重或更换分母。trees无NULL/blankZIP，异常83只在Manhattan，不足解释本次3区差异。
+- **过程机制**：formula树加权探针14用原始收入连接+COUNT DISTINCT，最终去重ZIP+COUNT行；探针同时改变多个因素。；漏taskId、精确候选匹配和compare前置多次修复，最终主task已决定。
+- **后续验证/修复**：补Gold合并明细及平均分母；核实同tree_id多记录是重复还是版本、填ZIP规则，再对收入和/权重计数；不要直接DISTINCT或全国均值替换。
+- **限制**：无GoldSQL，树业务键/重复/缺ZIP处理无权威定义。；join verified=true不代表树实体/权重获确认。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local040 /question`
+```text
+In the combined dataset that unifies the trees data with the income data by ZIP code, filling missing ZIP values where necessary, which three boroughs, restricted to records with median and mean income both greater than zero and a valid borough name, contain the highest number of trees, and what is the average mean income for each of these three boroughs?
+```
+原始题面
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local040/attempts/attempt-001/submissions/sql/local040.sql`
+```text
+SELECT t.boroname AS boroname,
+       COUNT(*) AS tree_count,
+       AVG(i.Estimate_Mean_income) AS avg_mean_income
+FROM trees t
+JOIN (SELECT zipcode,
+             MAX(Estimate_Median_income) AS Estimate_Median_income,
+             MAX(Estimate_Mean_income)   AS Estimate_Mean_income
+      FROM income_trees
+      GROUP BY zipcode) i
+  ON t.zipcode = i.zipcode
+WHERE i.Estimate_Median_income > 0
+  AND i.Estimate_Mean_income > 0
+  AND t.boroname IN ('Queens','Brooklyn','Staten Island','Bronx','Manhattan')
+GROUP BY t.boroname
+ORDER BY tree_count DESC
+LIMIT 3
+```
+提交SQL与最终绑定SQL离线核对一致
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local040.csv`
+```text
+boroname,tree_count,avg_mean_income
+Queens,252846,79366.73841785119
+Brooklyn,177132,73555.19098751213
+Staten Island,106374,94029.32783386917
+```
+官方评分输入CSV
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local040.csv`
+```text
+boroname,mean_income
+Staten Island,94026.03572038967
+Queens,79366.23974692848
+Brooklyn,73552.914734429
+```
+评分Gold实际值
+- **score**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/spider2lite_eval.jsonl #local040`
+```text
+{"instance_id": "local040", "condition_cols": [], "ignore_order": true, "toks": "200"}
+```
+比较列与行序设置
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local040/attempts/attempt-001/trace.json /toolCalls/33/result/details/fields/0`
+```text
+{"path": "population.entity", "status": "request", "value": {"name": "individual tree record (one row of the trees table, identified by tree_id/idx); borough is the grouping attribute"}, "evidenceIds": ["evidence_bc723103-31d9-4108-b86c-9bb223938c02"]}
+```
+成功状态每trees行作为实体
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local040/attempts/attempt-001/trace.json /toolCalls/33/result/details/fields/6`
+```text
+{"path": "measure.formula", "status": "decided", "value": {"op": "custom", "description": "borough tree_count = COUNT(tree records); avg_mean_income = AVG(Estimate_Mean_income) over those same qualifying tree records (tree-weighted)"}, "verified": false, "rationale": "Combined dataset is at tree-record grain (trees base unified with income by ZIP); 'the average mean income for each of these three boroughs' averages the per-record mean income over the borough's qualifying tree records (tree-weighted). ZIP-unweighted would count each ZIP equally, ignoring the very different tree counts per ZIP, which the wording does not imply. Jev advisor leaned to this alternative (prob 0.55).", "alternatives": [{"id": "alternative_e6044240-ff61-468e-897d-45034fb3d3c5", "value": {"op": "custom", "description": "borough tree_count = COUNT(tree records); avg_mean_income = AVG(Estimate_Mean_income) over those same qualifying tree records (tree-weighted)"}, "probe": {"alternativeId": "alternative_e6044240-ff61-468e-897d-45034fb3d3c5", "state": "available", "rowCount": 3, "output": "000286fbd802"}}, {"id": "alternative_a138181b-3e14-48df-8f7d-6babf2bf3f0f", "value": {"op": "custom", "description": "borough tree_count = COUNT(tree records); avg_mean_income = AVG over the borough's distinct ZIP codes of Estimate_Mean_income (ZIP-unweighted)"}, "probe": {"alternativeId": "alternative_a138181b-3e14-48df-8f7d-6babf2bf3f0f", "state": "available", "rowCount": 3, "output": "653ad2e15e56"}}], "outputs": "distinct", "advice": {"recommendation": "alternative", "probabilities": [{"alternativeId": "alternative_e6044240-ff61-468e-897d-45034fb3d3c5", "probability": 0.55}, {"alternativeId": "alternative_a138181b-3e14-48df-8f7d-6babf2bf3f0f", "probability": 0.01}], "lean": {"alternativeId": "alternative_e6044240-ff61-468e-897d-45034fb3d3c5", "probability": 0.55}}}
+```
+最终树加权决定未验证
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local040/attempts/attempt-001/trace.json /toolCalls/33/result/details/fields/5`
+```text
+{"path": "population.joinMultiplicity", "status": "decided", "value": "one row per qualifying tree record (income joined by zip; duplicate income zips handled so tree count is not inflated)", "verified": true, "rationale": "income_trees has 4 ZIPs duplicated (10463,11205,11218,11370) with identical median/mean values; joining raw double-counts those trees (Queens 256056 vs 252846) and double-weights their income. Collapsing to one income row per ZIP keeps one combined row per tree record. Jev advisor leaned to this alternative (prob 0.41).", "evidenceIds": ["evidence_fe32ea11-b43c-4897-9766-689f4bcfdeef", "evidence_1cae6c89-f86b-4968-af84-67fbbf45ee3b", "evidence_b326a7a3-ab3a-4ff7-99b6-5ea9f865159a"], "alternatives": [{"id": "alternative_3dc88fe3-a631-4839-a8d9-1ef0b566e319", "value": "one row per qualifying tree record (income joined by zip; duplicate income zips handled so tree count is not inflated)", "probe": {"alternativeId": "alternative_3dc88fe3-a631-4839-a8d9-1ef0b566e319", "state": "available", "rowCount": 3, "output": "9109436893da"}}, {"id": "alternative_1a26291f-4ffc-4c02-bca6-6d27aaa0f1b2", "value": "one row per matched tree x income row (duplicates left as-is)", "probe": {"alternativeId": "alternative_1a26291f-4ffc-4c02-bca6-6d27aaa0f1b2", "state": "available", "rowCount": 3, "output": "b527b2a5008f"}}], "outputs": "distinct", "advice": {"recommendation": "insufficient_evidence", "probabilities": [{"alternativeId": "alternative_3dc88fe3-a631-4839-a8d9-1ef0b566e319", "probability": 0.41}, {"alternativeId": "alternative_1a26291f-4ffc-4c02-bca6-6d27aaa0f1b2", "probability": 0.02}], "lean": {"alternativeId": "alternative_3dc88fe3-a631-4839-a8d9-1ef0b566e319", "probability": 0.41}}}
+```
+最终ZIP去重成功
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local040/attempts/attempt-001/trace.json /toolCalls/11/result/content/0/text`
+```text
+rows_total | distinct_tree_id | distinct_idx
+690626 | 683788 | 683788
+```
+树行与ID不同的结构事实
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local040/attempts/attempt-001/trace.json /toolCalls/19/result/content/0/text`
+```text
+Queens | 252846 | 79366.73841785119
+Brooklyn | 177132 | 73555.19098751213
+Staten Island | 106374 | 94029.32783386917
+```
+ZIP去重探针即最终数值
+- **process**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local040/attempts/attempt-001/trace.json /toolCalls/3/result/details/2/report/markdown`
+```text
+zipcode 为 NULL 的行数为 0，空串行数也为 0。
+```
+原子代理缺ZIP观测，不能凭空要求填NULL
+
+<a id="local049"></a>
+### local049 — 三年最多新独角兽行业的年均公司数
+
+- **Attempt**：`attempt-001`；官方CSV分数及离线重放均为0。
+- **定性**：未定位；节点 `未定位`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：2019–2021按成为独角兽的年份计新公司，选窗口总数最多行业，三年等权均值。
+- **本次SQL**：公司日期先MIN(date_joined)，行业关联去重，公司年计COUNT DISTINCT；选三年总数最大行业，SUM/3。
+- **实际失配**：实际CSV 1行，前部值 [["57.67"]]；Gold 1行，前部值 [["59.67"]]。比较设置 {"instance_id": "local049", "condition_cols": [], "ignore_order": true, "toks": "85"}。
+- **Spec处理**：最后set返回 index16：population.entity=assumed；population.eligibility=assumed；measure.formula=request；grouping=assumed；selection=request；output=assumed。
+- **错因分析**：最终date_joined、三年分母和窗口总数排名符合可见定义。57.67与59.67不支持把COUNT DISTINCT、日期去重或行业范围任一项直接判成原因；Gold SQL及实际公司清单不可见。
+- **后续验证/修复**：补Gold公司清单及多日期/多行业政策，再分辨身份或归属规则。
+- **限制**：Gold SQL未提供；未执行数据库SQL，不从不同数值恢复不可见口径。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local049 /question`
+```text
+Can you help me calculate the average number of new unicorn companies per year in the top industry from 2019 to 2021?
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local049/attempts/attempt-001/submissions/sql/local049.sql`
+```text
+WITH ic AS (
+    SELECT DISTINCT company_id, industry FROM companies_industries
+),
+dd AS (
+    SELECT company_id, MIN(date_joined) AS dj FROM companies_dates GROUP BY company_id
+),
+y AS (
+    SELECT ic.industry,
+           CAST(substr(dd.dj,1,4) AS INTEGER) AS yr,
+           COUNT(DISTINCT ic.company_id) AS cnt
+    FROM ic JOIN dd ON ic.company_id = dd.company_id
+    WHERE CAST(substr(dd.dj,1,4) AS INTEGER) BETWEEN 2019 AND 2021
+    GROUP BY ic.industry, yr
+),
+top AS (
+    SELECT industry FROM (
+        SELECT industry, SUM(cnt) AS tot FROM y GROUP BY industry ORDER BY tot DESC LIMIT 1
+    )
+)
+SELECT ROUND(SUM(cnt)/3.0, 2) AS avg_new_unicorns_per_year
+FROM y WHERE industry = (SELECT industry FROM top);
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local049.csv`
+```text
+avg_new_unicorns_per_year
+57.67
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local049.csv`
+```text
+output
+59.67
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local049/attempts/attempt-001/trace.json /toolCalls/16/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "assumed", "value": "Each unicorn company counts once, attributed to the calendar year in which it became a unicorn (joined the unicorn list); companies whose relevant year is outside 2019-2021 are excluded.", "rationale": "The request phrases the population as 'new unicorn companies'; the dataset tables are the unicorn list and contain no company that has not reached unicorn status, so the eligible population is every company in the list, counted once in its joining year."}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local049/attempts/attempt-001/trace.json /toolCalls/16/result/details/fields/7`
+```text
+{"path": "measure.formula", "status": "request", "value": {"op": "avg", "per": "year", "of": {"op": "count_distinct", "per": "company", "of": "company_id"}}, "evidenceIds": ["evidence_6e0ff239-d0b3-499b-988d-a63327438350"]}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local049/attempts/attempt-001/trace.json /toolCalls/16/result/details/fields/11`
+```text
+{"path": "selection", "status": "request", "value": {"n": 1, "orderBy": "total new unicorns over 2019-2021 desc"}, "evidenceIds": ["evidence_36a16e52-4d3f-4b07-8aab-7579f4da0236"]}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local049/attempts/attempt-001/trace.json /toolCalls/16/result/details/fields/13`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "scalar", "rowCount": 1, "columns": ["avg_new_unicorns_per_year"], "units": {"avg_new_unicorns_per_year": "companies per year"}, "decimals": {"avg_new_unicorns_per_year": 2}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+
+<a id="local050"></a>
+### local050 — 法国月均预测销售额的中位数
+
+- **Attempt**：`attempt-001`；官方CSV分数及离线重放均为0。
+- **定性**：未定位；节点 `未定位`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：2019/2020法国且promo_total_id=channel_total_id=1；产品月增长预测2021，按币表换USD，先月内平均、后月间中位数。
+- **本次SQL**：两年产品月内联、2019非零；2021预测=s20²/s19，2021法国月汇率内联；产品均值再月中位数。
+- **实际失配**：实际CSV 1行，前部值 [["2552.7"]]；Gold 1行，前部值 [["2604.2362912087915"]]。比较设置 {"instance_id": "local050", "condition_cols": [], "ignore_order": true, "toks": "393"}。
+- **Spec处理**：最后set返回 index16：population.entity=assumed；population.eligibility=assumed；measure.formula=decided；grouping=assumed；selection=not_applicable；output=assumed。
+- **错因分析**：显式公式和聚合顺序被兑现。仅差51.5363美元，不能认定缺基年或缺汇率处理、总体或汇率年度是Gold规则。两年有效投影总体与月份缺失是待核验候选，不是已证错因。
+- **后续验证/修复**：补两年产品月清单、缺率/零基年政策及Gold SQL；保持指定median(avg(projected))层次。
+- **限制**：Gold SQL未提供；未执行数据库SQL，不从不同数值恢复不可见口径。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local050 /question`
+```text
+What is the median of the average monthly projected sales in USD for France in 2021, calculated by using the monthly sales data from 2019 and 2020 (filtered by promo_total_id=1 and channel_total_id=1), applying the growth rate from 2019 to 2020 to project 2021, converting to USD based on the currency table, and then determining the monthly averages before finding their median?
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local050/attempts/attempt-001/submissions/sql/local050.sql`
+```text
+WITH base AS (
+  SELECT s.prod_id AS prod_id, CAST(strftime('%m', t.time_id) AS INTEGER) AS m,
+         CAST(strftime('%Y', t.time_id) AS INTEGER) AS y, SUM(s.amount_sold) AS amt
+  FROM sales s
+  JOIN times t ON t.time_id = s.time_id
+  JOIN customers cu ON cu.cust_id = s.cust_id
+  JOIN countries co ON co.country_id = cu.country_id
+  JOIN promotions p ON p.promo_id = s.promo_id
+  JOIN channels ch ON ch.channel_id = s.channel_id
+  WHERE co.country_name='France' AND p.promo_total_id=1 AND ch.channel_total_id=1
+    AND t.calendar_year IN (2019,2020)
+  GROUP BY s.prod_id, m, y
+),
+piv AS (
+  SELECT a.prod_id AS prod_id, a.m AS m, a.amt AS s19, b.amt AS s20
+  FROM (SELECT * FROM base WHERE y=2019) a
+  JOIN (SELECT * FROM base WHERE y=2020) b ON a.prod_id=b.prod_id AND a.m=b.m
+  WHERE a.amt <> 0
+),
+usd AS (
+  SELECT piv.m AS m, ((((piv.s20 - piv.s19)/piv.s19)*piv.s20)+piv.s20) * cy.to_us AS p_usd
+  FROM piv JOIN currency cy ON cy.country='France' AND cy.year=2021 AND cy.month=piv.m
+),
+monthly AS (SELECT m, AVG(p_usd) AS avg_p FROM usd GROUP BY m),
+ranked AS (SELECT avg_p, ROW_NUMBER() OVER (ORDER BY avg_p) rn, COUNT(*) OVER () cnt FROM monthly)
+SELECT ROUND(AVG(avg_p),2) AS median_avg_monthly_projected_sales_usd
+FROM ranked WHERE rn IN ((cnt+1)/2,(cnt+2)/2)
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local050.csv`
+```text
+median_avg_monthly_projected_sales_usd
+2552.7
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local050.csv`
+```text
+output
+2604.2362912087915
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local050/attempts/attempt-001/trace.json /toolCalls/16/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "assumed", "value": "Only product-month cells that have sales in BOTH 2019 and 2020 (growth rate needs both years); cells with a zero 2019 baseline are dropped (growth undefined). No zero-filling.", "rationale": "The projection formula divides by 2019 sales and needs the 2020 value, so both years and a non-zero baseline are required."}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local050/attempts/attempt-001/trace.json /toolCalls/16/result/details/fields/8`
+```text
+{"path": "measure.formula", "status": "decided", "value": {"op": "median", "per": "month", "of": {"op": "avg", "per": "product", "of": {"op": "custom", "per": "product_month", "description": "Projected 2021 monthly sales in USD per France product-month = (((sum(amount_sold,2020) - sum(amount_sold,2019)) / sum(amount_sold,2019)) * sum(amount_sold,2020)) + sum(amount_sold,2020), then x currency.to_us(France,2021,month); median is taken over the 12 monthly averages", "of": "amount_sold"}}}, "verified": false, "rationale": "The question's last two steps are 'determining the monthly averages' then 'their median', matching candidate A: one average per calendar month across products, median over the 12 monthly averages. business-definitions step 5 ('the average projected sales for each month in 2021') and step 6 (report shows one value per month) both support this nesting. Candidate B re-indexes the average by product and candidate C drops the averaging; both contradict 'the monthly averages'. Jev also leans to alternative_607089f9.", "alternatives": [{"id": "alternative_607089f9-2528-4f0c-bd60-b42d48dcbcb7", "value": {"op": "median", "per": "month", "of": {"op": "avg", "per": "product", "of": {"op": "custom", "per": "product_month", "description": "Projected 2021 monthly sales in USD per France product-month = (((sum(amount_sold,2020) - sum(amount_sold,2019)) / sum(amount_sold,2019)) * sum(amount_sold,2020)) + sum(amount_sold,2020), then x currency.to_us(France,2021,month); median is taken over the 12 monthly averages", "of": "amount_sold"}}}, "probe": {"alternativeId": "alternative_607089f9-2528-4f0c-bd60-b42d48dcbcb7", "state": "available", "rowCount": 1, "output": "1ebfac65ef44"}}, {"id": "alternative_2fecd6f7-c31d-4fc0-b685-ea496d779511", "value": {"op": "median", "per": "product", "of": {"op": "avg", "per": "month", "of": {"op": "custom", "per": "product_month", "description": "Projected 2021 monthly sales in USD per France product-month (same projection formula), then each product's 12-month average; median taken over products", "of": "amount_sold"}}}, "probe": {"alternativeId": "alternative_2fecd6f7-c31d-4fc0-b685-ea496d779511", "state": "available", "rowCount": 1, "output": "6aae80e0d1b1"}}, {"id": "alternative_2f329c46-1ecc-4cc5-ae03-0eb241c2a58f", "value": {"op": "median", "per": "month", "of": {"op": "sum", "per": "product", "of": {"op": "custom", "per": "product_month", "description": "Projected 2021 monthly sales in USD per France product-month (same projection formula), summed over products per month; median over the 12 monthly country totals", "of": "amount_sold"}}}, "probe": {"alternativeId": "alternative_2f329c46-1ecc-4cc5-ae03-0eb241c2a58f", "state": "available", "rowCount": 1, "output": "e9f2adbf6fd7"}}], "outputs": "distinct", "advice": {"recommendation": "alternative", "probabilities": [{"alternativeId": "alternative_607089f9-2528-4f0c-bd60-b42d48dcbcb7", "probability": 0.38}, {"alternativeId": "alternative_2fecd6f7-c31d-4fc0-b685-ea496d779511", "probability": 0.01}, {"alternativeId": "alternative_2f329c46-1ecc-4cc5-ae03-0eb241c2a58f", "probability": 0.32}], "lean": {"alternativeId": "alternative_607089f9-2528-4f0c-bd60-b42d48dcbcb7", "probability": 0.38}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local050/attempts/attempt-001/trace.json /toolCalls/16/result/details/fields/12`
+```text
+{"path": "selection", "status": "not_applicable"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local050/attempts/attempt-001/trace.json /toolCalls/16/result/details/fields/13`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "scalar", "columns": ["median_avg_monthly_projected_sales_usd"], "units": {"median_avg_monthly_projected_sales_usd": "USD"}, "decimals": {"median_avg_monthly_projected_sales_usd": 2}}, "rationale": "The question asks for one median value in USD."}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+
+<a id="local056"></a>
+### local056 — 支付金额月变化最高的客户
+
+- **Attempt**：`attempt-001`；官方CSV分数及离线重放均为0。
+- **定性**：未定位；节点 `未定位`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：按客户比较平均月变化，输出全名；题面未唯一限定月内SUM/AVG、绝对/相对变化、缺月政策。
+- **本次SQL**：日历严格相邻的客户月SUM(amount)做差，再平均，最大者MICHEAL FORMAN；不补零、跨缺口不计。
+- **实际失配**：实际CSV 1行，前部值 [["MICHEAL FORMAN"]]；Gold 1行，前部值 [["STEPHEN QUALLS"]]。比较设置 {"instance_id": "local056", "condition_cols": [], "ignore_order": false, "toks": "87"}。
+- **Spec处理**：最后set返回 index20：population.entity=assumed；population.eligibility=assumed；measure.formula=decided；grouping=not_applicable；selection=request；output=assumed。
+- **错因分析**：已登记三个公式候选并重跑被错误标记的变化率探针，最终只计算日历相邻绝对合计差；其他候选/零填充观测不能由STEPHEN QUALLS恢复Gold公式。语义指引只约束日历检查，不是缺月业务政策。
+- **后续验证/修复**：补Gold公式与缺月处理，反证SUM/AVG、差值/率和相邻期间各候选；不以advisor概率为定义。
+- **限制**：Gold SQL未提供；未执行数据库SQL，不从不同数值恢复不可见口径。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local056 /question`
+```text
+Which customer has the highest average monthly change in payment amounts? Provide the customer's full name.
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local056/attempts/attempt-001/submissions/sql/local056.sql`
+```text
+WITH monthly AS (
+  SELECT p.customer_id AS customer_id,
+         strftime('%Y-%m', p.payment_date) AS ym,
+         SUM(p.amount) AS val
+  FROM payment p
+  GROUP BY p.customer_id, strftime('%Y-%m', p.payment_date)
+), pairs AS (
+  SELECT m1.customer_id AS customer_id,
+         m1.val - m2.val AS chg
+  FROM monthly m1
+  JOIN monthly m2
+    ON m2.customer_id = m1.customer_id
+   AND m2.ym = strftime('%Y-%m', date(m1.ym || '-01', '-1 month'))
+), avg_chg AS (
+  SELECT customer_id, AVG(chg) AS avg_monthly_change
+  FROM pairs GROUP BY customer_id
+)
+SELECT c.first_name || ' ' || c.last_name AS full_name
+FROM avg_chg a
+JOIN customer c ON c.customer_id = a.customer_id
+ORDER BY a.avg_monthly_change DESC
+LIMIT 1;
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local056.csv`
+```text
+full_name
+MICHEAL FORMAN
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local056.csv`
+```text
+fullname
+STEPHEN QUALLS
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local056/attempts/attempt-001/trace.json /toolCalls/20/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "assumed", "value": "只纳入在观测期内有支付记录的客户；无任何支付记录的客户没有支付金额也无月度变化，不参与排名。同时客户至少需要两个月度观测点（相邻月份）才能产生\"变化\"。", "rationale": "题面要求\"月度变化\"，没有支付记录的客户无法定义该指标"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local056/attempts/attempt-001/trace.json /toolCalls/20/result/details/fields/8`
+```text
+{"path": "measure.formula", "status": "decided", "value": {"op": "avg", "per": "customer", "of": {"op": "difference", "per": "customer", "from": {"op": "sum", "per": "customer_month", "of": "amount"}, "to": {"op": "sum", "per": "customer_month", "of": "amount"}}}, "verified": false, "rationale": "将三候选逐词放回题面：题面说 \"change in payment amounts\"，是“支付金额”的变化，量纲应为金额（美元）→ 用绝对差值 difference，排除相对变化率（候选 C）；“payment amounts”的月度取值是该客户当月支付的金额合计 → 月内用 sum（候选 A），排除月内均值（候选 B）；外层 \"average\" 即对客户各次月度变化取平均。探针验证：A → MICHEAL FORMAN，B 与 C → ASHLEY RICHARDSON，A 与 B/C 输出不同；Jev 建议的最大概率候选为 A（概率 0.32，B 仅 0.04），故采纳 A。", "alternatives": [{"id": "alternative_520953fa-1c10-4106-a9f3-6e0c191b160c", "value": {"op": "avg", "per": "customer", "of": {"op": "difference", "per": "customer", "from": {"op": "sum", "per": "customer_month", "of": "amount"}, "to": {"op": "sum", "per": "customer_month", "of": "amount"}}}, "probe": {"alternativeId": "alternative_520953fa-1c10-4106-a9f3-6e0c191b160c", "state": "available", "rowCount": 1, "output": "252d501df712"}}, {"id": "alternative_bdc2569d-b60d-4e2e-9a44-bc71776bfc90", "value": {"op": "avg", "per": "customer", "of": {"op": "difference", "per": "customer", "from": {"op": "avg", "per": "customer_month", "of": "amount"}, "to": {"op": "avg", "per": "customer_month", "of": "amount"}}}, "probe": {"alternativeId": "alternative_bdc2569d-b60d-4e2e-9a44-bc71776bfc90", "state": "available", "rowCount": 1, "output": "5873ce90997e"}}, {"id": "alternative_a25301a1-d0fe-4404-9683-f4179e0c089a", "value": {"op": "avg", "per": "customer", "of": {"op": "change_rate", "per": "customer", "from": {"op": "sum", "per": "customer_month", "of": "amount"}, "to": {"op": "sum", "per": "customer_month", "of": "amount"}}}, "probe": {"alternativeId": "alternative_a25301a1-d0fe-4404-9683-f4179e0c089a", "state": "available", "rowCount": 1, "output": "5873ce90997e"}}], "outputs": "distinct", "advice": {"recommendation": "insufficient_evidence", "probabilities": [{"alternativeId": "alternative_520953fa-1c10-4106-a9f3-6e0c191b160c", "probability": 0.32}, {"alternativeId": "alternative_bdc2569d-b60d-4e2e-9a44-bc71776bfc90", "probability": 0.04}, {"alternativeId": "alternative_a25301a1-d0fe-4404-9683-f4179e0c089a", "probability": 0}], "lean": {"alternativeId": "alternative_520953fa-1c10-4106-a9f3-6e0c191b160c", "probability": 0.32}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local056/attempts/attempt-001/trace.json /toolCalls/20/result/details/fields/12`
+```text
+{"path": "selection", "status": "request", "value": {"n": 1, "orderBy": "avg_monthly_change desc"}, "evidenceIds": ["evidence_6b2e1543-d02d-42dd-8336-38dafba6b101"]}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local056/attempts/attempt-001/trace.json /toolCalls/20/result/details/fields/14`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "top_n", "rowCount": 1, "columns": ["full_name"]}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+
+<a id="local059"></a>
+### local059 — 各事业部前三硬件产品的整体均值
+
+- **Attempt**：`attempt-001`；官方CSV分数及离线重放均为0。
+- **定性**：可证差异；节点 `output`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：2021日历年先各事业部选销量前三，再按overall average表述确定最终汇总范围；产品与SKU身份有待定义。
+- **本次SQL**：按division+product名称汇总，各division取3，再跨9产品AVG，单行794864.89。
+- **实际失配**：实际CSV 1行，前部值 [["794864.89"]]；Gold 3行，前部值 [["N & S", "397699.3333333333"], ["P & A", "244691"], ["PC", "10045.666666666666"]]。比较设置 {"instance_id": "local059", "condition_cols": [], "ignore_order": true, "toks": "72"}。
+- **Spec处理**：最后set返回 index23：population.entity=decided；population.eligibility=assumed；measure.formula=assumed；grouping=assumed；selection=request；output=assumed。
+- **错因分析**：单标量与Gold三事业部行的向量长度失配足以判0；不是列别名问题。overall average与in each division的最终范围存在歧义，不能把Gold分组升格唯一业务定义。名称合并与product_code的未证决定会改变值，但Gold SQL缺失，不能解释三项数值。
+- **后续验证/修复**：先确定overall是跨部还是各部；补产品/SKU定义。若采用分部输出需显式修订grouping与分母，而不是默加GROUP BY贴Gold。
+- **限制**：已证仅限评分布局不兼容；总体实体、最终业务范围与Gold数值来源未确定。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local059 /question`
+```text
+For the calendar year 2021, what is the overall average quantity sold of the top three best-selling hardware products (by total quantity sold) in each division?
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local059/attempts/attempt-001/submissions/sql/local059.sql`
+```text
+WITH prod_qty AS (
+  SELECT dp.division AS division, dp.product AS product, SUM(f.sold_quantity) AS qty
+  FROM hardware_fact_sales_monthly f
+  JOIN hardware_dim_product dp ON dp.product_code = f.product_code
+  WHERE f.date >= '2021-01-01' AND f.date < '2022-01-01'
+  GROUP BY dp.division, dp.product
+),
+ranked AS (
+  SELECT division, product, qty,
+         ROW_NUMBER() OVER (PARTITION BY division ORDER BY qty DESC) AS rn
+  FROM prod_qty
+)
+SELECT ROUND(AVG(qty), 2) AS avg_quantity_sold
+FROM ranked
+WHERE rn <= 3;
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local059.csv`
+```text
+avg_quantity_sold
+794864.89
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local059.csv`
+```text
+division,avg_top3_sold_quantity
+N & S,397699.3333333333
+P & A,244691
+PC,10045.666666666666
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local059/attempts/attempt-001/trace.json /toolCalls/23/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "assumed", "value": "Only products that have at least one sales row in calendar year 2021 are eligible (a product with no 2021 sales cannot be a best-seller by quantity); no zero-fill.", "rationale": "The question ranks best-selling products, which requires observed 2021 sales."}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local059/attempts/attempt-001/trace.json /toolCalls/23/result/details/fields/8`
+```text
+{"path": "measure.formula", "status": "assumed", "value": {"op": "avg", "per": "product", "of": {"op": "sum", "per": "product-division", "of": "sold_quantity"}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local059/attempts/attempt-001/trace.json /toolCalls/23/result/details/fields/12`
+```text
+{"path": "selection", "status": "request", "value": {"n": 3, "orderBy": "sum(sold_quantity) desc within each division"}, "evidenceIds": ["evidence_77ac3366-e398-4d07-adc7-f50dbcc7f514"]}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local059/attempts/attempt-001/trace.json /toolCalls/23/result/details/fields/14`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "scalar", "rowCount": 1, "columns": ["avg_quantity_sold"], "units": {"avg_quantity_sold": "units (quantity sold)"}}, "rationale": "'overall average' requests one aggregate value across all divisions, so the final result is a single row."}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+
+<a id="local060"></a>
+### local060 — 合格城市季度产品份额变化
+
+- **Attempt**：`attempt-001`；官方CSV分数及离线重放均为0。
+- **定性**：可证差异；节点 `measure.formula`；错误层：实现错；可见性：不适用或未定。
+- **题面/标准**：美国无促销销售先筛城市2020Q4相对2019Q4增长至少20%，再按两季销售额选前20%产品并比较两季份额；审核标准单位为百分点。
+- **本次SQL**：s19>0且s20>=1.2*s19筛城市，promo_id=999；维表可匹配且有销售的21种产品取前4；分母为合格城市当季全部salesq销售（未先限定匹配产品维表），输出2020减2019的比例差，未乘100。
+- **实际失配**：四个产品名称相同。English Willow预测0.025503 vsGold3.60258848242393；Speed Trainer预测-0.038711 vsGold+3.56020100104602；Pro Maple预测-0.009545 vsGold+0.26835801172932；Pitching Machine预测-0.01725 vsGold-5.12475189464153。额外份额列非独立失分原因；乘100仍不能解释全部差异。
+- **Spec处理**：四次Spec：index4公式缺per、grouping弯引号不匹配及selection字符串被拒；index5公式pp_difference/grouping成功，百分比文本selection.n仍拒；index26确定n=4及活动/维表身份资格成功，分母决定因尚未compare被拒；index29比较后分母decided、verified=false成功。最终公式request/pp_difference，但output又以request写fraction，内部单位冲突；open/undeclared均空。
+- **错因分析**：可证差异：已成功pp_difference公式被SQL实现成比例差，output的fraction也与百分点标准冲突。CSV无正确百分点值列足以失分。产品集合一致，不将维表孤儿、Top20%取整、别名/列数单独判主因。Gold无SQL，其余符号/数值差异尚不能确定是分母或城市屏选细则。
+- **过程机制**：百分比Top N两次拒绝后以N=21观测换成固定n=4。；分母不同探针后index26决定仍拒，index29才成功。
+- **后续验证/修复**：统一公式/output百分点单位，SQL乘100；另补Gold SQL或城市/分母明细核对，不声称修倍率即可复现Gold。
+- **限制**：定位单位偏离但未完整解释数值差异；Gold SQL缺失。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local060 /question`
+```text
+In the United States, for Q4 2019 and Q4 2020, first select only those cities where total sales (with no promotions) rose by at least 20% from Q4 2019 to Q4 2020. Among these cities, rank products by their overall sales (still excluding promotions) in those quarters and take the top 20%. Then compute each top product’s share of total sales in Q4 2019 and Q4 2020 and calculate the difference in share from Q4 2019 to Q4 2020, returning the results in descending order of that share change.
+```
+原始题面全文
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local060/attempts/attempt-001/submissions/sql/local060.sql`
+```text
+WITH cityq AS (
+  SELECT c.cust_city AS city,
+         SUM(CASE WHEN t.calendar_quarter_desc='2019-04' THEN s.amount_sold ELSE 0 END) AS s19,
+         SUM(CASE WHEN t.calendar_quarter_desc='2020-04' THEN s.amount_sold ELSE 0 END) AS s20
+  FROM sales s
+  JOIN customers c ON s.cust_id=c.cust_id
+  JOIN countries co ON c.country_id=co.country_id
+  JOIN times t ON s.time_id=t.time_id
+  WHERE co.country_name='United States of America' AND s.promo_id=999
+    AND t.calendar_quarter_desc IN ('2019-04','2020-04')
+  GROUP BY c.cust_city),
+qual AS (SELECT city FROM cityq WHERE s19>0 AND s20>=1.2*s19),
+salesq AS (
+  SELECT s.prod_id AS prod_id, t.calendar_quarter_desc AS q, SUM(s.amount_sold) AS amt
+  FROM sales s
+  JOIN customers c ON s.cust_id=c.cust_id
+  JOIN countries co ON c.country_id=co.country_id
+  JOIN times t ON s.time_id=t.time_id
+  JOIN qual ON qual.city=c.cust_city
+  WHERE co.country_name='United States of America' AND s.promo_id=999
+    AND t.calendar_quarter_desc IN ('2019-04','2020-04')
+  GROUP BY s.prod_id, t.calendar_quarter_desc),
+den AS (SELECT SUM(CASE WHEN q='2019-04' THEN amt ELSE 0 END) AS t19,
+               SUM(CASE WHEN q='2020-04' THEN amt ELSE 0 END) AS t20
+        FROM salesq),
+pt AS (SELECT p.prod_id AS prod_id, SUM(sq.amt) AS tot
+       FROM salesq sq JOIN products p ON p.prod_id=sq.prod_id
+       GROUP BY p.prod_id),
+rk AS (SELECT prod_id, ROW_NUMBER() OVER (ORDER BY tot DESC) AS rn FROM pt),
+top AS (SELECT prod_id FROM rk WHERE rn <= 0.20*(SELECT COUNT(*) FROM pt)),
+prod AS (SELECT sq.prod_id AS prod_id,
+                SUM(CASE WHEN q='2019-04' THEN amt ELSE 0 END) AS x19,
+                SUM(CASE WHEN q='2020-04' THEN amt ELSE 0 END) AS x20
+         FROM salesq sq JOIN top ON top.prod_id=sq.prod_id
+         GROUP BY sq.prod_id)
+SELECT p.prod_name AS prod_name,
+       ROUND(prod.x19/den.t19, 6) AS share_q4_2019,
+       ROUND(prod.x20/den.t20, 6) AS share_q4_2020,
+       ROUND(prod.x20/den.t20 - prod.x19/den.t19, 6) AS share_change
+FROM prod
+JOIN products p ON p.prod_id=prod.prod_id
+CROSS JOIN den
+ORDER BY share_change DESC;
+```
+本attempt实际提交SQL，与bound_final_sql去除首尾空白相同
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local060/attempts/attempt-001/trace.json /toolCalls/4/result/details/outcomes`
+```text
+[{"path": "population.entity", "status": "applied"}, {"path": "population.eligibility", "status": "applied"}, {"path": "population.conditions", "status": "applied"}, {"path": "population.source", "status": "applied"}, {"path": "population.time", "status": "applied"}, {"path": "population.timeField", "status": "applied"}, {"path": "population.missing", "status": "applied"}, {"path": "population.joinMultiplicity", "status": "applied"}, {"path": "measure.formula", "status": "rejected", "code": "INVALID_REQUEST", "message": "measure.formula has 5 layers; give every layer \"per\" (the grain it is computed on), e.g. avg per country of avg per player of sum per match"}, {"path": "measure.countGrain", "status": "applied"}, {"path": "measure.denominator", "status": "applied"}, {"path": "grouping", "status": "rejected", "code": "EVIDENCE_REJECTED", "message": "request_wording quote was not found verbatim in the original request: \"each top product's share of total sales in Q4 2019 and Q4 2020\""}, {"path": "selection", "status": "rejected", "code": "INVALID_REQUEST", "message": "selection value must be {n, orderBy}"}, {"path": "selection.ties", "status": "applied"}, {"path": "output", "status": "applied"}]
+```
+逐路径真实applied/rejected，不以调用参数当生效状态
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local060/attempts/attempt-001/trace.json /toolCalls/5/result/details/outcomes`
+```text
+[{"path": "measure.formula", "status": "applied"}, {"path": "grouping", "status": "applied"}, {"path": "selection", "status": "rejected", "code": "INVALID_REQUEST", "message": "selection.n must be a positive integer; argmax/argmin is n = 1"}]
+```
+逐路径真实applied/rejected，不以调用参数当生效状态
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local060/attempts/attempt-001/trace.json /toolCalls/26/result/details/outcomes`
+```text
+[{"path": "measure.denominator", "status": "rejected", "code": "SPEC_TRANSITION_INVALID", "message": "measure.denominator: the alternatives produce different or unknown outputs; call compare_hypotheses with path \"measure.denominator\" before deciding"}, {"path": "population.eligibility", "status": "applied"}, {"path": "selection", "status": "applied"}]
+```
+逐路径真实applied/rejected，不以调用参数当生效状态
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local060/attempts/attempt-001/trace.json /toolCalls/29/result/details/outcomes`
+```text
+[{"path": "measure.denominator", "status": "applied"}]
+```
+逐路径真实applied/rejected，不以调用参数当生效状态
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local060/attempts/attempt-001/trace.json /toolCalls/29/result/details/fields`
+```text
+[{"path": "population.entity", "status": "request", "value": {"name": "Final statistical entity = product (products.prod_id, labelled by prod_name). The qualifying population is screened first at the city level (customers.cust_city)."}, "evidenceIds": ["evidence_9cc5718c-cb0d-413d-9514-9b51e3151a29"]}, {"path": "population.eligibility", "status": "assumed", "value": "Ranking universe = products that exist in the products dimension and have non-promo sales in the qualifying cities (21 products, observed). The 3 dimension products with no such sales and the 51 sales prod_ids absent from the products dimension are excluded; no zero-activity entity is added.", "rationale": "A product must have a business identity (products dimension) and non-zero activity in the observation windows to be ranked by its sales."}, {"path": "population.conditions", "status": "request", "value": ["country = United States of America (customers.country_id -> countries.country_name), WHERE stage", "no promotion: sales.promo_id = 999, WHERE stage", "quarter in {Q4 2019, Q4 2020} i.e. times.calendar_quarter_desc IN ('2019-04','2020-04'), WHERE stage", "city screen at HAVING stage: city Q4 2020 non-promo sales >= 1.20 x city Q4 2019 non-promo sales"], "evidenceIds": ["evidence_20dc7e23-a2f2-4c8b-a18f-92750592b92b"]}, {"path": "population.source", "status": "assumed", "value": {"tables": ["sales", "customers", "countries", "times", "products"], "note": "sales is the fact table; dimensions joined by key."}}, {"path": "population.time", "status": "request", "value": {"expression": "Q4 2019 = calendar quarter 2019-04 (Oct-Dec 2019); Q4 2020 = calendar quarter 2020-04 (Oct-Dec 2020); endpoints inclusive."}, "evidenceIds": ["evidence_206a870b-f05e-4cb2-9b71-9033bda8803c"]}, {"path": "population.timeField", "status": "evidence", "value": "times.calendar_quarter_desc reached via sales.time_id = times.time_id", "evidenceIds": ["evidence_a220bcd8-2ed5-4890-af63-ee5e5c0f83fe"]}, {"path": "population.missing", "status": "assumed", "value": "No zero-fill. A product absent in a quarter is not imputed; a city absent in Q4 2019 cannot qualify for the growth screen."}, {"path": "population.joinMultiplicity", "status": "assumed", "value": "All joins are many-to-one on dimension keys (sales.cust_id -> customers.cust_id, sales.time_id -> times.time_id, sales.prod_id -> products.prod_id, customers.country_id -> countries.country_id); sales rows are not duplicated."}, {"path": "measure.formula", "status": "request", "value": {"op": "pp_difference", "per": "product (final one row per product)", "from": {"op": "ratio", "per": "product x calendar quarter 2019-04", "numerator": {"op": "sum", "per": "product x calendar quarter", "of": "amount_sold"}, "denominator": {"op": "sum", "per": "qualifying cities x calendar quarter", "of": "amount_sold"}}, "to": {"op": "ratio", "per": "product x calendar quarter 2020-04", "numerator": {"op": "sum", "per": "product x calendar quarter", "of": "amount_sold"}, "denominator": {"op": "sum", "per": "qualifying cities x calendar quarter", "of": "amount_sold"}}}, "evidenceIds": ["evidence_49186cff-1d5e-4c70-95e9-ceaebdf8d153"]}, {"path": "measure.countGrain", "status": "assumed", "value": "amount_sold summed over individual sales rows; reporting grain = product (prod_id) x calendar quarter."}, {"path": "measure.denominator", "status": "decided", "value": "Denominator = total non-promo amount_sold of the qualifying (>=20% growth) cities in that quarter", "verified": false, "rationale": "Placed back into the request: the second and third sentences are scoped by 'Among these cities', and 'each top product's share of total sales in Q4 2019 and Q4 2020' never restates a wider geography. 'total sales' therefore means the total sales of the analysis population just defined (the qualifying cities). Candidate (b) would make the city screen irrelevant to the denominator, and candidate (c) is circular (share of the selected products themselves). The Jev comparison also leans to this candidate (p=0.9).", "alternatives": [{"id": "alternative_57e61b1b-ead1-4bee-abbc-83056d2d2268", "value": "Denominator = total non-promo amount_sold of the qualifying (>=20% growth) cities in that quarter", "probe": {"alternativeId": "alternative_57e61b1b-ead1-4bee-abbc-83056d2d2268", "state": "available", "rowCount": 4, "output": "46d1169ea92d"}}, {"id": "alternative_919eeb99-3dce-48c1-abc3-1559a06f74e2", "value": "Denominator = total non-promo amount_sold of all United States cities in that quarter", "probe": {"alternativeId": "alternative_919eeb99-3dce-48c1-abc3-1559a06f74e2", "state": "available", "rowCount": 4, "output": "ce2bfebad575"}}, {"id": "alternative_38513ec1-0dcd-49c0-a46b-9fc903729613", "value": "Denominator = total non-promo amount_sold of the selected top-20% products in that quarter", "probe": {"alternativeId": "alternative_38513ec1-0dcd-49c0-a46b-9fc903729613", "state": "available", "rowCount": 4, "output": "cae8e25920ea"}}], "outputs": "distinct", "advice": {"recommendation": "alternative", "probabilities": [{"alternativeId": "alternative_57e61b1b-ead1-4bee-abbc-83056d2d2268", "probability": 0.9}, {"alternativeId": "alternative_919eeb99-3dce-48c1-abc3-1559a06f74e2", "probability": 0.02}, {"alternativeId": "alternative_38513ec1-0dcd-49c0-a46b-9fc903729613", "probability": 0}], "lean": {"alternativeId": "alternative_57e61b1b-ead1-4bee-abbc-83056d2d2268", "probability": 0.9}}}, {"path": "grouping", "status": "request", "value": ["product (prod_id, label prod_name)", "calendar quarter (2019-04, 2020-04) for the two share values; one final row per product"], "evidenceIds": ["evidence_dda19342-dd02-4550-8d19-7b86760e536e"]}, {"path": "selection", "status": "assumed", "value": {"n": 4, "orderBy": "combined non-promo amount_sold over Q4 2019 + Q4 2020 across the qualifying cities, descending"}, "rationale": "The request says 'rank products by their overall sales ... and take the top 20%'. Ranking universe = the 21 products that have identity in the products dimension and sales in the qualifying cities; 20% of 21 = 4.2 so the top 4 are kept. Observed check: taking the top 20% of all 72 sales prod_ids and then restricting to the products dimension yields exactly the same 4 products (prod_id 14, 21, 28, 130), so the orphan prod_ids and the rounding choice do not change the delivered set. Ties are strict (no equal totals at the cut)."}, {"path": "selection.ties", "status": "assumed", "value": "strict"}, {"path": "output", "status": "request", "value": {"rowMode": "full", "columns": ["prod_name", "share_q4_2019", "share_q4_2020", "share_change"], "units": {"share_q4_2019": "fraction of that quarter's total sales", "share_q4_2020": "fraction of that quarter's total sales", "share_change": "fraction (Q4 2020 share - Q4 2019 share)"}, "decimals": {"share_q4_2019": 6, "share_q4_2020": 6, "share_change": 6}}, "evidenceIds": ["evidence_72dc1490-2de1-47c2-9a93-19584c709976"]}]
+```
+最后一次Spec完整返回，含保留字段、假定、open/decided与观测依据
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local060.csv`
+```text
+prod_name,share_q4_2019,share_q4_2020,share_change
+English Willow Cricket Bat,0.009945,0.035448,0.025503
+Pro Maple Youth Bat,0.035098,0.025553,-0.009545
+Pitching Machine and Batting Cage Combo,0.095219,0.077969,-0.01725
+Speed Trainer Bats and Training Program,0.090263,0.051552,-0.038711
+```
+实际评分CSV
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local060.csv`
+```text
+prod_name,share_changes
+English Willow Cricket Bat,3.60258848242393
+Speed Trainer Bats and Training Program,3.56020100104602
+Pro Maple Youth Bat,0.26835801172932
+Pitching Machine and Batting Cage Combo,-5.12475189464153
+```
+Gold完整CSV及字符串多重集/数值
+- **score**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-attempt-001.json /execResult/caseScores/local060`
+```text
+0
+```
+此attempt官方执行比较分数
+- **score**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/spider2lite_eval.jsonl #local060`
+```text
+{"instance_id": "local060", "condition_cols": [], "ignore_order": true, "toks": "408"}
+```
+正式condition_cols/ignore_order；列名/额外列及允许行序非单独错因
+- **standard**：`D:/data_agent/evaluations/spider2/spec-quality-labels.jsonl #local060 /facets/unit/alternatives/0`
+```text
+{"kind": "explicit or semantic output unit", "units": ["percentage points"], "evidenceRefs": ["Q1"]}
+```
+已审核标准口径，非历史错因重标
+
+<a id="local061"></a>
+### local061 — 法国2021逐月美元销售预测
+
+- **Attempt**：`attempt-001`；官方CSV分数及离线重放均为0。
+- **定性**：未定位；节点 `未定位`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：逐产品同月汇总2019/2020额，以增长率应用于2020预测2021，再乘2021月汇率按月平均；法国、promo_total_id=1、channel_total_id=1。业务文档允许缺汇率用1、要求两位小数。
+- **本次SQL**：采用((S20-S19)/S19)*S20+S20，LEFT JOIN法国2021汇率COALESCE为1；缺任一基年或S19=0预测NULL由AVG排除。
+- **实际失配**：12月齐全，1月4054.99 vs4120.33、2月2402.89 vs2454.4、3月2888.48 vs2980.58；仅10月2218.77、11月3208.94一致，其余10个月不同。
+- **Spec处理**：四次Spec实际三任务：index2实体/分组open是task_b8b；index6漏taskId新建task_a8f，实体直引号引文及message来源失败，其余成功；index8再次漏taskId建task_e5f补实体条件；index10明确绑定task_a8f补实体(evidence)/条件(request)成功。结果用task_a8f无open/undeclared；formula、分母、missing假定；eligibility以“for each product and month”登记evidence但该短句未明示缺年排除。
+- **错因分析**：公式、过滤和汇率默认规则符合可见题面/文档。探针有较多缺基年产品月，有效预测数47、52、46等，但无Gold SQL/产品月明细，不能从较高均值倒推Gold缺年、2021活动总体或权重。接口任务散裂、baseline步骤不冒充数值主因。
+- **过程机制**：两次漏taskId实为创建新任务，最终补回task_a8f，不能混用其他任务状态。；弱引文登记evidence不等于缺年排除已证实。
+- **后续验证/修复**：索取Gold SQL/月参与产品键，核对缺年、零基期、2021活动总体及汇率键；保持文档公式，不重构总体迎合均值。
+- **限制**：Gold SQL缺失；缺年、零基期及平均总体政策未明示。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local061 /question`
+```text
+What is the average projected monthly sales in USD for France in 2021, considering only product sales with promotions where promo_total_id = 1 and channels where channel_total_id = 1, by taking each product’s monthly sales from 2019 and 2020, calculating the growth rate from 2019 to 2020 for that same product and month, applying this growth rate to project 2021 monthly sales, converting all projected 2021 amounts to USD with the 2021 exchange rates, and finally averaging and listing them by month?
+```
+原始题面全文
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local061/attempts/attempt-001/submissions/sql/local061.sql`
+```text
+WITH sf AS (
+  SELECT s.prod_id AS prod_id, t.calendar_year AS yr, t.calendar_month_number AS mo, SUM(s.amount_sold) AS amt
+  FROM sales s
+  JOIN times t ON t.time_id = s.time_id
+  JOIN customers cu ON cu.cust_id = s.cust_id
+  JOIN countries co ON co.country_id = cu.country_id
+  JOIN channels ch ON ch.channel_id = s.channel_id
+  JOIN promotions p ON p.promo_id = s.promo_id
+  WHERE co.country_name = 'France' AND ch.channel_total_id = 1 AND p.promo_total_id = 1
+    AND t.calendar_year IN (2019,2020)
+  GROUP BY s.prod_id, t.calendar_year, t.calendar_month_number
+),
+pv AS (
+  SELECT prod_id, mo,
+         SUM(CASE WHEN yr=2019 THEN amt END) AS s2019,
+         SUM(CASE WHEN yr=2020 THEN amt END) AS s2020
+  FROM sf GROUP BY prod_id, mo
+),
+proj AS (
+  SELECT prod_id, mo,
+         (((s2020 - s2019) * 1.0 / NULLIF(s2019,0)) * s2020) + s2020 AS proj
+  FROM pv
+),
+proj_usd AS (
+  SELECT pr.prod_id, pr.mo, pr.proj * COALESCE(c.to_us, 1) AS proj_usd
+  FROM proj pr
+  LEFT JOIN currency c ON c.country = 'France' AND c.year = 2021 AND c.month = pr.mo
+)
+SELECT mo AS month, ROUND(AVG(proj_usd),2) AS avg_projected_sales_usd
+FROM proj_usd GROUP BY mo ORDER BY mo;
+```
+本attempt实际提交SQL，与bound_final_sql去除首尾空白相同
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local061/attempts/attempt-001/trace.json /toolCalls/2/result/details/outcomes`
+```text
+[{"path": "population.entity", "status": "applied"}, {"path": "population.time", "status": "applied"}, {"path": "grouping", "status": "applied"}]
+```
+逐路径真实applied/rejected，不以调用参数当生效状态
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local061/attempts/attempt-001/trace.json /toolCalls/6/result/details/outcomes`
+```text
+[{"path": "population.entity", "status": "rejected", "code": "EVIDENCE_REJECTED", "message": "request_wording quote was not found verbatim in the original request: \"each product's monthly sales\""}, {"path": "population.eligibility", "status": "applied"}, {"path": "population.conditions", "status": "rejected", "code": "EVIDENCE_REJECTED", "message": "The original request is request_wording, not a later user confirmation"}, {"path": "population.source", "status": "applied"}, {"path": "population.time", "status": "applied"}, {"path": "population.timeField", "status": "applied"}, {"path": "population.missing", "status": "applied"}, {"path": "population.joinMultiplicity", "status": "applied"}, {"path": "measure.formula", "status": "applied"}, {"path": "measure.countGrain", "status": "applied"}, {"path": "measure.denominator", "status": "applied"}, {"path": "grouping", "status": "applied"}, {"path": "selection", "status": "applied"}, {"path": "output", "status": "applied"}]
+```
+逐路径真实applied/rejected，不以调用参数当生效状态
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local061/attempts/attempt-001/trace.json /toolCalls/8/result/details/outcomes`
+```text
+[{"path": "population.entity", "status": "applied"}, {"path": "population.conditions", "status": "applied"}]
+```
+逐路径真实applied/rejected，不以调用参数当生效状态
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local061/attempts/attempt-001/trace.json /toolCalls/10/result/details/outcomes`
+```text
+[{"path": "population.conditions", "status": "applied"}, {"path": "population.entity", "status": "applied"}]
+```
+逐路径真实applied/rejected，不以调用参数当生效状态
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local061/attempts/attempt-001/trace.json /toolCalls/10/result/details/fields`
+```text
+[{"path": "population.entity", "status": "evidence", "value": {"name": "product", "keyColumns": ["prod_id"]}, "evidenceIds": ["evidence_d59efa25-8a14-42c1-b484-5ef44a228e16"]}, {"path": "population.eligibility", "status": "evidence", "value": "A product is included for a month only if it has a summed sales amount in both 2019 and 2020 (so the growth rate is computable); products lacking either year are excluded, with no zero-fill.", "evidenceIds": ["evidence_62cc437a-9568-42a4-8004-b0b931448658"]}, {"path": "population.conditions", "status": "request", "value": ["country_name = 'France'", "promotions.promo_total_id = 1", "channels.channel_total_id = 1"], "evidenceIds": ["evidence_7457bb36-5e80-4305-90a1-838362e0b283"]}, {"path": "population.source", "status": "assumed", "value": {"tables": ["sales", "times", "customers", "countries", "channels", "promotions", "currency"], "note": "sales joined to times (year/month), customers->countries (France), channels, promotions, and currency (country+year+month)."}}, {"path": "population.time", "status": "assumed", "value": {"expression": "Growth base years 2019 and 2020; projected target year 2021, listed by calendar month", "boundary": "inclusive"}}, {"path": "population.timeField", "status": "assumed", "value": "sales.time_id -> times.time_id, using times.calendar_year and times.calendar_month_number"}, {"path": "population.missing", "status": "assumed", "value": "No zero-fill: a product-month is kept only if both its 2019 and 2020 sums exist; otherwise the projection is undefined and the row is dropped."}, {"path": "population.joinMultiplicity", "status": "assumed", "value": "No fan-out: sales->times 1:1 (time_id), sales->channels 1:1 (channel_id), sales->promotions 1:1 (promo_id), sales->customers 1:1 (cust_id), customers->countries 1:1 (country_id), currency 1:1 on (country, year, month)."}, {"path": "measure.formula", "status": "assumed", "value": {"op": "avg", "per": "product", "of": {"op": "custom", "per": "product-month", "description": "Projected 2021 sales per product and month = (((S2020 - S2019) / S2019) * S2020) + S2020, where S2019 and S2020 are the sums of sales.amount_sold for that product-month in 2019 and 2020, then multiplied by the 2021 currency conversion rate currency.to_us.", "of": {"op": "sum", "per": "product-month-year", "of": "amount_sold"}}}}, {"path": "measure.countGrain", "status": "assumed", "value": "one projected value per product per month; averaged across products within each month"}, {"path": "measure.denominator", "status": "assumed", "value": "number of products with a computable projection in that month; if zero, the month yields no row"}, {"path": "grouping", "status": "request", "value": ["month"], "evidenceIds": ["evidence_88c5728e-722f-4cbd-9b02-6887e2d2eda3"]}, {"path": "selection", "status": "not_applicable"}, {"path": "output", "status": "assumed", "value": {"rowMode": "grouped", "rowCount": 12, "columns": ["month", "avg_projected_sales_usd"], "units": {"avg_projected_sales_usd": "USD"}, "decimals": {"avg_projected_sales_usd": 2}}}]
+```
+最后一次Spec完整返回，含保留字段、假定、open/decided与观测依据
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local061.csv`
+```text
+month,avg_projected_sales_usd
+1,4054.99
+2,2402.89
+3,2888.48
+4,1474.1
+5,2904.71
+6,1440.35
+7,1600.13
+8,1392.6
+9,2702.5
+10,2218.77
+11,3208.94
+12,3062.66
+```
+实际评分CSV
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local061.csv`
+```text
+month,avg_monthly_projected_sales_in_usd
+1,4120.33
+2,2454.4
+3,2980.58
+4,1517.54
+5,3025.06
+6,1482.95
+7,1658.6
+8,1419.89
+9,2754.07
+10,2218.77
+11,3208.94
+12,3131.66
+```
+Gold完整CSV及字符串多重集/数值
+- **score**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-attempt-001.json /execResult/caseScores/local061`
+```text
+0
+```
+此attempt官方执行比较分数
+- **score**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/spider2lite_eval.jsonl #local061`
+```text
+{"instance_id": "local061", "condition_cols": [], "ignore_order": true, "toks": "342"}
+```
+正式condition_cols/ignore_order；列名/额外列及允许行序非单独错因
+- **standard**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local061/attempts/attempt-001/trace.json /toolCalls/4/result/details/content`
+````text
+# External Knowledge for local061
+
+## projection_calculation.md
+
+## Projection Calculation Method
+
+### Steps for Projection Calculation
+
+1. **Aggregate Historical Sales Data**
+
+   - **Data Collection**: Gather sales data for products sold in France, including sales amounts each month for the years 2019, 2020, and 2021.
+   - **Summarize Sales**: Sum up the sales amounts for each product, country, month, and year.
+
+2. **Calculate Average Sales**
+
+   - **Monthly Averages**: Compute the average sales amount for each product and month across all available months to establish a baseline of typical sales.
+
+3. **Project Sales for 2021**
+
+   - **Identify Changes**: Determine how sales changed from 2019 to 2020 for each product and month. Calculate the percentage change in sales from 2019 to 2020.
+   - **Apply Changes**: Use this percentage change to estimate the sales for each month in 2021.
+
+   **Projection Formula**:
+   - For 2021:
+     - Calculate the difference in sales between 2020 and 2019.
+     - Compute the percentage change relative to 2019 sales.
+     - Apply this percentage change to the 2020 sales to estimate 2021 sales.
+     - The formula used in the SQL query is:
+
+       ```plaintext
+       (((Sales in 2020 - Sales in 2019) / Sales in 2019) * Sales in 2020) + Sales in 2020
+       ```
+
+     - This formula calculates the projected sales for 2021 based on the observed trend from 2019 to 2020.
+
+   - For other years (not 2021):
+     - Use the average sales value calculated for each month.
+
+4. **Adjust for Currency Conversion**
+
+   - **Conversion Rates**: Convert the projected sales figures into USD using monthly conversion rates.
+   - **Currency Adjustment**: Multiply the projected sales figures by the conversion rates to adjust to USD. If specific rates are not available, use a default rate of 1.
+
+5. **Calculate Monthly Averages in USD**
+
+   - **Monthly Projections**: Compute the average projected sales for each month in 2021, adjusting for currency conversion. Round the results to two decimal places.
+
+6. **Compile Results**
+
+   - **Organize Data**: Arrange the projected sales figures in a report, showing the estimated sales for each month in USD.
+
+### Summary
+
+The projection calculation involves analyzing historical sales data from 2019 and 2020 to determine trends, applying these trends to estimate sales for 2021, and adjusting for currency differences. The result is a forecast of monthly sales in USD for 2021.
+````
+本attempt业务文档：公式、汇率默认1及两位小数
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local061/attempts/attempt-001/trace.json /toolCalls/12/result/details/artifact/preview`
+```text
+{"columns": ["month", "product_months", "missing_2019", "missing_2020", "zero_2019"], "rows": [[1, 70, 19, 4, 0], [2, 66, 13, 1, 0], [3, 68, 17, 5, 0], [4, 65, 19, 3, 0], [5, 68, 19, 3, 0], [6, 68, 20, 2, 0], [7, 69, 19, 1, 0], [8, 71, 20, 0, 0], [9, 69, 16, 0, 0], [10, 70, 14, 4, 0], [11, 68, 15, 4, 0], [12, 69, 12, 1, 0]], "columnTypes": ["INTEGER", "INTEGER", "INTEGER", "INTEGER", "INTEGER"], "rowCount": 12, "truncated": false}
+```
+缺基年产品月观测，不证明Gold缺期政策
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local061/attempts/attempt-001/trace.json /toolCalls/13/result/details/artifact/preview`
+```text
+{"columns": ["month", "avg_projected_sales_usd", "n_products"], "rows": [[1, 4054.99, 47], [2, 2402.89, 52], [3, 2888.48, 46], [4, 1474.1, 43], [5, 2904.71, 46], [6, 1440.35, 46], [7, 1600.13, 49], [8, 1392.6, 51], [9, 2702.5, 53], [10, 2218.77, 52], [11, 3208.94, 49], [12, 3062.66, 56]], "columnTypes": ["INTEGER", "REAL", "INTEGER"], "rowCount": 12, "truncated": false}
+```
+实际月平均及有效预测产品数
+
+<a id="local064"></a>
+### local064 — 2020正月末余额人数极值月份均值差
+
+- **Attempt**：`attempt-001`；官方CSV分数及离线重放均为0。
+- **定性**：未定位；节点 `未定位`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：每客户每月存款减取款（仅当月不累计），按正余额人数选最大/最小月份，求两月全客户平均余额差。
+- **本次SQL**：仅2020 deposit/withdrawal汇总客户月；已有观测月中1月424人、4月169人；全库500不同客户为平均分母，无交易隐含0。
+- **实际失配**：预测均值557.70、137.71，差419.99；Gold363.74199999999996。预测所有数值列都不能0.01容差匹配Gold，不是七列对一列或别名失败。
+- **Spec处理**：index4字段成功，eligibility在全500补零/当月活动间open；formula为assumed/custom明确当月余额。index8决定因compare未成功拒；index11换措辞缺reason拒；index12附reason替换为assumed“全500、无交易0”成功，非decided。最终open/undeclared空，formula未改累计。
+- **错因分析**：当月余额吻合明确题面，“all customers”也支持全客户解释。无Gold SQL，无法确定全年空月、平均对象、正余额人数或差向；不能凭363.742断言全500分母错误，更不能用累计余额替代。
+- **过程机制**：两次compare实际Jev HTTP451；决定阻断后reason重写假定清掉候选，但无证据说明导致数值错误。
+- **后续验证/修复**：补Gold客户月余额/选中月份，确认全年空月、无活动客户及差向；固定题面specific month余额再核对。
+- **限制**：Gold SQL缺失；全年缺月与全体客户政策细则缺证。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local064 /question`
+```text
+For each customer and each month of 2020, first calculate the month-end balance by adding all deposit amounts and subtracting all withdrawal amounts that occurred during that specific month. Then determine which month in 2020 has the highest count of customers with a positive month-end balance and which month has the lowest count. For each of these two months, compute the average month-end balance across all customers and provide the difference between these two averages
+```
+原始题面全文
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local064/attempts/attempt-001/submissions/sql/local064.sql`
+```text
+WITH mb AS (
+  SELECT customer_id, substr(txn_date,1,7) AS ym,
+    SUM(CASE WHEN txn_type='deposit' THEN txn_amount ELSE 0 END)
+    - SUM(CASE WHEN txn_type='withdrawal' THEN txn_amount ELSE 0 END) AS bal
+  FROM customer_transactions
+  WHERE txn_date >= '2020-01-01' AND txn_date <= '2020-12-31'
+    AND txn_type IN ('deposit','withdrawal')
+  GROUP BY customer_id, ym
+),
+d AS (SELECT COUNT(DISTINCT customer_id) AS n_all FROM customer_transactions),
+ms AS (
+  SELECT ym, SUM(CASE WHEN bal>0 THEN 1 ELSE 0 END) AS pos_cnt, SUM(bal) AS sum_bal
+  FROM mb GROUP BY ym
+),
+hi AS (SELECT * FROM ms ORDER BY pos_cnt DESC, ym ASC LIMIT 1),
+lo AS (SELECT * FROM ms ORDER BY pos_cnt ASC, ym ASC LIMIT 1)
+SELECT
+  hi.ym AS highest_count_month,
+  hi.pos_cnt AS highest_count,
+  ROUND(hi.sum_bal*1.0/(SELECT n_all FROM d),2) AS highest_month_avg_balance,
+  lo.ym AS lowest_count_month,
+  lo.pos_cnt AS lowest_count,
+  ROUND(lo.sum_bal*1.0/(SELECT n_all FROM d),2) AS lowest_month_avg_balance,
+  ROUND((hi.sum_bal-lo.sum_bal)*1.0/(SELECT n_all FROM d),2) AS avg_difference
+FROM hi, lo;
+```
+本attempt实际提交SQL，与bound_final_sql去除首尾空白相同
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local064/attempts/attempt-001/trace.json /toolCalls/4/result/details/outcomes`
+```text
+[{"path": "population.entity", "status": "applied"}, {"path": "population.eligibility", "status": "applied"}, {"path": "population.conditions", "status": "applied"}, {"path": "population.source", "status": "applied"}, {"path": "population.time", "status": "applied"}, {"path": "population.timeField", "status": "applied"}, {"path": "measure.formula", "status": "applied"}, {"path": "measure.countGrain", "status": "applied"}, {"path": "measure.denominator", "status": "applied"}, {"path": "grouping", "status": "applied"}, {"path": "selection", "status": "applied"}, {"path": "selection.ties", "status": "applied"}, {"path": "output", "status": "applied"}]
+```
+逐路径真实applied/rejected，不以调用参数当生效状态
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local064/attempts/attempt-001/trace.json /toolCalls/8/result/details/outcomes`
+```text
+[{"path": "population.eligibility", "status": "rejected", "code": "SPEC_TRANSITION_INVALID", "message": "population.eligibility: the alternatives produce different or unknown outputs; call compare_hypotheses with path \"population.eligibility\" before deciding"}]
+```
+逐路径真实applied/rejected，不以调用参数当生效状态
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local064/attempts/attempt-001/trace.json /toolCalls/11/result/details/outcomes`
+```text
+[{"path": "population.eligibility", "status": "rejected", "code": "SPEC_TRANSITION_INVALID", "message": "population.eligibility is already set; add \"reason\" to change it, or decide one of its alternatives with {value, rationale}"}]
+```
+逐路径真实applied/rejected，不以调用参数当生效状态
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local064/attempts/attempt-001/trace.json /toolCalls/12/result/details/outcomes`
+```text
+[{"path": "population.eligibility", "status": "applied"}]
+```
+逐路径真实applied/rejected，不以调用参数当生效状态
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local064/attempts/attempt-001/trace.json /toolCalls/12/result/details/fields`
+```text
+[{"path": "population.entity", "status": "assumed", "value": {"name": "customer", "keyColumns": ["customer_id"]}}, {"path": "population.eligibility", "status": "assumed", "value": "Average month-end balance is taken across all customers of the dataset (500); a customer with no deposit/withdrawal in a given month has month-end balance 0 (0 - 0) and is still counted in that month's average denominator.", "rationale": "Request wording 'across all customers' (contrasted with the subset 'customers with a positive month-end balance') indicates the whole customer base. compare_hypotheses is unavailable (HTTP 451), so this remains an unverified assumption to be disclosed."}, {"path": "population.conditions", "status": "request", "value": ["txn_date within calendar year 2020", "txn_type IN ('deposit','withdrawal'); 'purchase' rows excluded"], "evidenceIds": ["evidence_ec744aff-593a-49db-a7b1-39d6c79e3c85"]}, {"path": "population.source", "status": "evidence", "value": {"tables": ["customer_transactions"]}, "evidenceIds": ["evidence_f6efad32-7bb7-4434-afc4-dba439e4266c"]}, {"path": "population.time", "status": "request", "value": {"expression": "2020-01-01 through 2020-12-31", "boundary": "inclusive"}, "evidenceIds": ["evidence_c0f4ec0c-e7c0-4215-8243-5794665e7dbf"]}, {"path": "population.timeField", "status": "evidence", "value": "txn_date", "evidenceIds": ["evidence_9ff6d77c-6fe7-410a-9766-5f3f1571a1c9"]}, {"path": "measure.formula", "status": "assumed", "value": {"op": "custom", "description": "Step1: per customer per calendar month of 2020, month-end balance = SUM(amount of deposits) - SUM(amount of withdrawals) in that month. Step2: per month, count customers whose month-end balance > 0. Step3: pick the month with the maximum count and the month with the minimum count. Step4: for those two months, average month-end balance across customers = SUM(month-end balances)/denominator (per population.eligibility). Step5: result = average of the max-count month minus average of the min-count month."}}, {"path": "measure.countGrain", "status": "assumed", "value": "distinct customers per calendar month", "rationale": "The count asked is 'count of customers', so distinct customers per month."}, {"path": "measure.denominator", "status": "assumed", "value": "number of eligible customers for the month as defined by population.eligibility", "rationale": "Average is taken across customers; the exact denominator depends on the population.eligibility decision."}, {"path": "grouping", "status": "request", "value": ["calendar month (YYYY-MM) of 2020"], "evidenceIds": ["evidence_4b67fbe9-72db-4f50-b61a-7d90ed9d8e33"]}, {"path": "selection", "status": "request", "value": {"n": 1, "orderBy": "count of customers with positive month-end balance: descending for the highest month, ascending for the lowest month"}, "evidenceIds": ["evidence_a96e81b1-c37e-4b40-9d0f-045a84a35cea"]}, {"path": "selection.ties", "status": "assumed", "value": "strict"}, {"path": "output", "status": "assumed", "value": {"rowMode": "scalar", "columns": ["highest_count_month", "highest_count", "highest_month_avg_balance", "lowest_count_month", "lowest_count", "lowest_month_avg_balance", "avg_difference"], "decimals": {"highest_month_avg_balance": 2, "lowest_month_avg_balance": 2, "avg_difference": 2}}}]
+```
+最后一次Spec完整返回，含保留字段、假定、open/decided与观测依据
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local064.csv`
+```text
+highest_count_month,highest_count,highest_month_avg_balance,lowest_count_month,lowest_count,lowest_month_avg_balance,avg_difference
+2020-01,424,557.7,2020-04,169,137.71,419.99
+```
+实际评分CSV
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local064.csv`
+```text
+balance_diff
+363.74199999999996
+```
+Gold完整CSV及字符串多重集/数值
+- **score**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-attempt-001.json /execResult/caseScores/local064`
+```text
+0
+```
+此attempt官方执行比较分数
+- **score**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/spider2lite_eval.jsonl #local064`
+```text
+{"instance_id": "local064", "condition_cols": [], "ignore_order": false, "toks": "228"}
+```
+正式condition_cols/ignore_order；列名/额外列及允许行序非单独错因
+- **process**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local064/attempts/attempt-001/trace.json /toolCalls/7/result/content/0/text`
+```text
+Jev HTTP 451
+```
+compare实际失败，不是已完成比较
+
+<a id="local066"></a>
+### local066 — 已送达披萨配料总用量
+
+- **Attempt**：`attempt-001`；官方CSV分数及离线重放均为0。
+- **定性**：Gold冲突；节点 `population.conditions`；错误层：标准答案有问题；可见性：不适用或未定。
+- **题面/标准**：只统计已送达披萨实际配料；审核标准为每披萨配方减该行去料加该行加料，再按配料求总数。
+- **本次SQL**：原始订单连接runner排除取消；仅展开标准配方，每配料每披萨计1，忽略exclusions/extras。
+- **实际失配**：预测Bacon9、Cheese12、Chicken9、Mushrooms12；Gold14、11、11、12。调整候选原始探针Bacon12、Cheese10、Mushrooms11也不同于Gold，不能只以忽略加去料解释全部失配。
+- **Spec处理**：index3字段成功，conditions将忽略/调整加去料设open；source为原始表/evidence；连接声明经无quote schema登记evidence。index16选不调整因缺compare拒；index20比较后adviceOverride选不调整，decided、verified=false成功，SQL采用该候选。
+- **错因分析**：Gold从全部pizza_clean_customer_orders开始，末尾直接按配料计数，完全没有runner连接/送达条件；观测订单6为Restaurant Cancellation、9为Customer Cancellation且披萨明细存在，故违反pizzas we delivered，最早可证Gold分叉是送达资格。另有独立solver错误：主动忽略加去料违背实际配料标准。Gold还按order_id而非original_row_number关联排除，有跨披萨作用阶段问题。不能将Gold14等数量视为正确修复目标。
+- **过程机制**：最终覆盖顾问倾向调整的建议且披露；披露不能使错误口径正确。
+- **后续验证/修复**：先复核Gold只含已送达且加去料按披萨行身份；solver也改配方减该行exclusions加该行extras，不取消送达过滤迎合Gold。
+- **限制**：Gold与solver均有偏离；主分类Gold冲突不表示solver答案正确。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local066 /question`
+```text
+Based on our customer pizza order information, summarize the total quantity of each ingredient used in the pizzas we delivered. Output the name and quantity for each ingredient.
+```
+原始题面全文
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local066/attempts/attempt-001/submissions/sql/local066.sql`
+```text
+WITH delivered AS (
+    -- 粒度：每份已送达披萨一行（取自 pizza_customer_orders，按订单过滤至未取消订单）
+    SELECT co.rowid AS rid, co.pizza_id
+    FROM pizza_customer_orders co
+    JOIN pizza_runner_orders ro ON ro.order_id = co.order_id
+    WHERE ro.cancellation IS NULL OR TRIM(ro.cancellation) = ''
+), exploded AS (
+    -- 粒度：已送达披萨 × 该披萨配方中的一个配料（每个配料计 1 次）
+    SELECT CAST(TRIM(j.value) AS INTEGER) AS topping_id
+    FROM delivered d
+    JOIN pizza_recipes r ON r.pizza_id = d.pizza_id
+    JOIN json_each('[' || r.toppings || ']') j
+)
+SELECT t.topping_name AS topping_name, COUNT(*) AS quantity
+FROM exploded e
+JOIN pizza_toppings t ON t.topping_id = e.topping_id
+GROUP BY t.topping_name
+ORDER BY quantity DESC, t.topping_name ASC
+```
+本attempt实际提交SQL，与bound_final_sql去除首尾空白相同
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local066/attempts/attempt-001/trace.json /toolCalls/3/result/details/outcomes`
+```text
+[{"path": "population.entity", "status": "applied"}, {"path": "population.eligibility", "status": "applied"}, {"path": "population.conditions", "status": "applied"}, {"path": "population.source", "status": "applied"}, {"path": "population.time", "status": "applied"}, {"path": "population.timeField", "status": "applied"}, {"path": "population.missing", "status": "applied"}, {"path": "population.joinMultiplicity", "status": "applied"}, {"path": "measure.formula", "status": "applied"}, {"path": "measure.countGrain", "status": "applied"}, {"path": "grouping", "status": "applied"}, {"path": "selection", "status": "applied"}, {"path": "output", "status": "applied"}]
+```
+逐路径真实applied/rejected，不以调用参数当生效状态
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local066/attempts/attempt-001/trace.json /toolCalls/16/result/details/outcomes`
+```text
+[{"path": "population.conditions", "status": "rejected", "code": "SPEC_TRANSITION_INVALID", "message": "population.conditions: the alternatives produce different or unknown outputs; call compare_hypotheses with path \"population.conditions\" before deciding"}]
+```
+逐路径真实applied/rejected，不以调用参数当生效状态
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local066/attempts/attempt-001/trace.json /toolCalls/20/result/details/outcomes`
+```text
+[{"path": "population.conditions", "status": "applied"}]
+```
+逐路径真实applied/rejected，不以调用参数当生效状态
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local066/attempts/attempt-001/trace.json /toolCalls/20/result/details/fields`
+```text
+[{"path": "population.entity", "status": "request", "value": {"name": "已送达订单中的每一份披萨（pizza_customer_orders 的每行明细代表一份披萨）"}, "evidenceIds": ["evidence_6f2cd6b6-5048-4357-8172-7e2cdb5e13e4"]}, {"path": "population.eligibility", "status": "assumed", "value": "只纳入『已送达』订单中的披萨：订单在 pizza_runner_orders 中未取消（cancellation 为 NULL 或空字符串）；取消订单中的披萨整单排除；匹配不到配方的披萨不计入。", "rationale": "题面限定『我们送达的披萨』；库内没有 delivered 状态列，唯一可判据是 pizza_runner_orders.cancellation（观测值 NULL / Customer Cancellation / Restaurant Cancellation）。"}, {"path": "population.conditions", "status": "decided", "value": ["不调整：配料用量 = pizza_recipes.toppings 中列出的每种配料在每份已送达披萨上各计 1 次；忽略客户去料(exclusions)与加料(extras)"], "verified": false, "rationale": "逐词检验：题面问“已送达披萨里每种配料的总用量”，并只要求 “name and quantity”；披萨的配料构成由配方（pizza_recipes，按 pizza_id 唯一）定义，题面完全没有提到客户去料/加料。候选B 要把 exclusions/extras 折成数量，必须自己发明换算规则（加料算 1 份还是 2 份、被去料后又被加回的配料算几次），而数据中没有任何用量/份量列（pizza_recipes 只有 toppings 文本），属于无依据补造业务规则。两个候选的探针输出不同（A：Cheese 12/Mushrooms 12/…；B：Bacon 12/Mushrooms 11/Cheese 10/…），本次取 A 的输出。", "adviceOverride": {"reason": "advisor 只是低置信度倾向（0.45，且 insufficientEvidence=0.35），并非明显倾向；而它倾向的候选B 需要数据中不存在的用量语义（每份披萨每种配料计 1 次的前提下，加料/去料到数量的换算规则无任何来源）。题面只说“已送达披萨的配料用量”，配料集合应由唯一键 pizza_id 的配方确定；保持纯配方口径可避免引入未经证实的换算规则，并将 exclusions/extras 未计入作为已披露限制。", "evidenceIds": ["evidence_99aa1653-7a80-40f4-bed2-364364de6b46", "evidence_f2fd59b4-fd8c-432c-8ecd-005cc50209df", "evidence_b97c04f2-8cc5-4e07-b03a-26d2a9a88bd8", "evidence_be2a5cd5-2c03-4f87-a792-36f68b476154"]}, "alternatives": [{"id": "alternative_9779f373-c0f2-491a-8091-4630b51d029c", "value": ["不调整：配料用量 = pizza_recipes.toppings 中列出的每种配料在每份已送达披萨上各计 1 次；忽略客户去料(exclusions)与加料(extras)"], "probe": {"alternativeId": "alternative_9779f373-c0f2-491a-8091-4630b51d029c", "state": "available", "rowCount": 12, "output": "ff8ce371a01c"}}, {"id": "alternative_40ae50fc-bb7c-4e6a-bdbd-f1da4c8d2152", "value": ["调整：配料用量 = 每份已送达披萨的配方配料 − 该行 exclusions + 该行 extras，每种配料在每份披萨上各计 1 次"], "probe": {"alternativeId": "alternative_40ae50fc-bb7c-4e6a-bdbd-f1da4c8d2152", "state": "available", "rowCount": 12, "output": "8d3beec19f68"}}], "outputs": "distinct", "advice": {"recommendation": "alternative", "probabilities": [{"alternativeId": "alternative_9779f373-c0f2-491a-8091-4630b51d029c", "probability": 0.04}, {"alternativeId": "alternative_40ae50fc-bb7c-4e6a-bdbd-f1da4c8d2152", "probability": 0.45}], "lean": {"alternativeId": "alternative_40ae50fc-bb7c-4e6a-bdbd-f1da4c8d2152", "probability": 0.45}}}, {"path": "population.source", "status": "evidence", "value": {"tables": ["pizza_customer_orders", "pizza_runner_orders", "pizza_recipes", "pizza_toppings"], "note": "订单明细与 runner 订单取原始表，clean 版内容稍后核对"}, "evidenceIds": ["evidence_1ddf1262-7dc8-47f0-bb49-91476f72fab0", "evidence_a768d8f8-9f3e-46e5-a69d-3417b5bee619"]}, {"path": "population.time", "status": "not_applicable"}, {"path": "population.timeField", "status": "not_applicable"}, {"path": "population.missing", "status": "not_applicable"}, {"path": "population.joinMultiplicity", "status": "evidence", "value": "pizza_runner_orders 每订单 1 行，与订单明细按 order_id 连接为 1:N，不放大披萨行数；pizza_recipes 每个 pizza_id 至多 1 行配方，配方按配料拆分为多行（每种配料 1 行），同一配料不会在同份披萨上重复计数。", "evidenceIds": ["evidence_0bec8140-8e86-4e3f-9944-70340d63397d"]}, {"path": "measure.formula", "status": "assumed", "value": {"op": "sum", "per": "topping_name", "of": {"op": "count", "per": "pizza", "of": "该披萨中目标配料的用量单位（每出现一次计 1）"}}}, {"path": "measure.countGrain", "status": "assumed", "value": "按『已送达披萨 × 该披萨中的配料出现次数』计数；每个披萨的每种配料计 1 次", "rationale": "pizza_recipes.toppings 只列 topping_id，无按尺寸/份数的用量列，故每份披萨每种配料记 1"}, {"path": "grouping", "status": "assumed", "value": ["配料名称 topping_name"]}, {"path": "selection", "status": "not_applicable"}, {"path": "output", "status": "request", "value": {"rowMode": "grouped", "columns": ["topping_name", "quantity"], "units": {"quantity": "次（每份披萨的某种配料计 1）"}, "decimals": {"quantity": 0}}, "evidenceIds": ["evidence_0363975f-883f-48d3-97df-cdfaff80d4f1"]}]
+```
+最后一次Spec完整返回，含保留字段、假定、open/decided与观测依据
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local066.csv`
+```text
+topping_name,quantity
+Cheese,12
+Mushrooms,12
+BBQ Sauce,9
+Bacon,9
+Beef,9
+Chicken,9
+Pepperoni,9
+Salami,9
+Onions,3
+Peppers,3
+Tomato Sauce,3
+Tomatoes,3
+```
+实际评分CSV
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local066.csv`
+```text
+topping_name,topping_count
+Bacon,14
+Mushrooms,12
+Chicken,11
+Cheese,11
+Salami,10
+Pepperoni,10
+Beef,10
+BBQ Sauce,8
+Tomatoes,4
+Tomato Sauce,4
+Peppers,4
+Onions,4
+```
+Gold完整CSV及字符串多重集/数值
+- **score**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-attempt-001.json /execResult/caseScores/local066`
+```text
+0
+```
+此attempt官方执行比较分数
+- **score**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/spider2lite_eval.jsonl #local066`
+```text
+{"instance_id": "local066", "condition_cols": [], "ignore_order": true, "toks": "286"}
+```
+正式condition_cols/ignore_order；列名/额外列及允许行序非单独错因
+- **standard**：`D:/data_agent/evaluations/spider2/spec-quality-labels.jsonl #local066 /facets/measure/alternatives/0`
+```text
+{"kind": "sum", "entity": "ingredient", "expression": "base ingredient quantity minus excluded toppings plus extra toppings", "aggregationOrder": ["expand delivered pizza recipes", "remove exclusions", "add extras", "sum ingredient quantities"]}
+```
+已审核标准口径，非历史错因重标
+- **standard**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/sql/local066.sql`
+```text
+WITH cte_cleaned_customer_orders AS (
+    SELECT
+        *,
+        ROW_NUMBER() OVER () AS original_row_number
+    FROM 
+        pizza_clean_customer_orders
+),
+split_regular_toppings AS (
+    SELECT
+        pizza_id,
+        TRIM(SUBSTR(toppings, 1, INSTR(toppings || ',', ',') - 1)) AS topping_id,
+        SUBSTR(toppings || ',', INSTR(toppings || ',', ',') + 1) AS remaining_toppings
+    FROM 
+        pizza_recipes
+    UNION ALL
+    SELECT
+        pizza_id,
+        TRIM(SUBSTR(remaining_toppings, 1, INSTR(remaining_toppings, ',') - 1)) AS topping_id,
+        SUBSTR(remaining_toppings, INSTR(remaining_toppings, ',') + 1) AS remaining_toppings
+    FROM 
+        split_regular_toppings
+    WHERE
+        remaining_toppings <> ''
+),
+cte_base_toppings AS (
+    SELECT
+        t1.order_id,
+        t1.customer_id,
+        t1.pizza_id,
+        t1.order_time,
+        t1.original_row_number,
+        t2.topping_id
+    FROM 
+        cte_cleaned_customer_orders AS t1
+    LEFT JOIN 
+        split_regular_toppings AS t2
+    ON 
+        t1.pizza_id = t2.pizza_id
+),
+split_exclusions AS (
+    SELECT
+        order_id,
+        customer_id,
+        pizza_id,
+        order_time,
+        original_row_number,
+        TRIM(SUBSTR(exclusions, 1, INSTR(exclusions || ',', ',') - 1)) AS topping_id,
+        SUBSTR(exclusions || ',', INSTR(exclusions || ',', ',') + 1) AS remaining_exclusions
+    FROM 
+        cte_cleaned_customer_orders
+    WHERE 
+        exclusions IS NOT NULL
+    UNION ALL
+    SELECT
+        order_id,
+        customer_id,
+        pizza_id,
+        order_time,
+        original_row_number,
+        TRIM(SUBSTR(remaining_exclusions, 1, INSTR(remaining_exclusions, ',') - 1)) AS topping_id,
+        SUBSTR(remaining_exclusions, INSTR(remaining_exclusions, ',') + 1) AS remaining_exclusions
+    FROM 
+        split_exclusions
+    WHERE
+        remaining_exclusions <> ''
+),
+split_extras AS (
+    SELECT
+        order_id,
+        customer_id,
+        pizza_id,
+        order_time,
+        original_row_number,
+        TRIM(SUBSTR(extras, 1, INSTR(extras || ',', ',') - 1)) AS topping_id,
+        SUBSTR(extras || ',', INSTR(extras || ',', ',') + 1) AS remaining_extras
+    FROM 
+        cte_cleaned_customer_orders
+    WHERE 
+        extras IS NOT NULL
+    UNION ALL
+    SELECT
+        order_id,
+        customer_id,
+        pizza_id,
+        order_time,
+        original_row_number,
+        TRIM(SUBSTR(remaining_extras, 1, INSTR(remaining_extras, ',') - 1)) AS topping_id,
+        SUBSTR(remaining_extras, INSTR(remaining_extras, ',') + 1) AS remaining_extras
+    FROM 
+        split_extras
+    WHERE
+        remaining_extras <> ''
+),
+cte_combined_orders AS (
+    SELECT 
+        order_id,
+        customer_id,
+        pizza_id,
+        order_time,
+        original_row_number,
+        topping_id
+    FROM 
+        cte_base_toppings
+    WHERE topping_id NOT IN (SELECT topping_id FROM split_exclusions WHERE split_exclusions.order_id = cte_base_toppings.order_id)
+    UNION ALL
+    SELECT 
+        order_id,
+        customer_id,
+        pizza_id,
+        order_time,
+        original_row_number,
+        topping_id
+    FROM 
+        split_extras
+)
+SELECT
+    t2.topping_name,
+    COUNT(*) AS topping_count
+FROM 
+    cte_combined_orders AS t1
+JOIN 
+    pizza_toppings AS t2
+ON 
+    t1.topping_id = t2.topping_id
+GROUP BY 
+    t2.topping_name
+ORDER BY 
+    topping_count DESC;
+```
+Gold全SQL无runner/送达过滤，排除按order_id关联
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local066/attempts/attempt-001/trace.json /toolCalls/11/result/details/artifact/preview`
+```text
+{"columns": ["order_id", "pizza_id", "cancellation", "delivered", "total_rows"], "rows": [[1, 1, null, 1, 14], [2, 1, null, 1, 14], [3, 1, null, 1, 14], [3, 2, null, 1, 14], [4, 1, null, 1, 14], [4, 1, null, 1, 14], [4, 2, null, 1, 14], [5, 1, null, 1, 14], [6, 2, "Restaurant Cancellation", 0, 14], [7, 2, null, 1, 14], [8, 1, null, 1, 14], [9, 1, "Customer Cancellation", 0, 14], [10, 1, null, 1, 14], [10, 1, null, 1, 14]], "columnTypes": ["INTEGER", "INTEGER", "NULL", "INTEGER", "INTEGER"], "rowCount": 14, "truncated": false}
+```
+取消订单6/9确实有披萨明细
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local066/attempts/attempt-001/trace.json /toolCalls/14/result/details/artifact/preview`
+```text
+{"columns": ["topping_name", "quantity"], "rows": [["Bacon", 12], ["Mushrooms", 11], ["Cheese", 10], ["Beef", 9], ["Chicken", 9], ["Pepperoni", 9], ["Salami", 9], ["BBQ Sauce", 8], ["Onions", 3], ["Peppers", 3], ["Tomato Sauce", 3], ["Tomatoes", 3]], "columnTypes": ["TEXT", "INTEGER"], "rowCount": 12, "truncated": false}
+```
+送达且逐行调整候选也不等于Gold
+
+<a id="local067"></a>
+### local067 — 意大利客户12月利润十分档极值
+
+- **Attempt**：`attempt-001`；官方CSV分数及离线重放均为0。
+- **定性**：未定位；节点 `未定位`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：意大利客户按2021年12月利润均分十档，求档内最高/最低；未定义利润物理公式、零活动客户或档号方向。
+- **本次SQL**：12月有销售68客户；sum(amount_sold-unit_cost*quantity_sold)，成本四键连接；利润升序NTILE(10)，第1档最低，每档6或7人。
+- **实际失配**：预测档1(-10.03,-27.94)、档10(785.15,698.35)；Gold档1(785.15,588.36)、档10(-10.03,-27.94)。忽略行序后极值集合仍不同：预测698.35、Gold588.36等边界不同，非简单重排列。
+- **Spec处理**：共七次Spec：index2拒条件对象/max-min op，保留eligibility/grouping open；index3漏taskId建旁支；index8回原task补条件、custom公式open及连接观测。index17活动客户决定成功，grouping缺compare、公式缺探针拒；index21公式缺compare仍拒；index29才成功决定升序NTILE/amount_sold利润，verified=false。最终open/undeclared空，SQL吻合原任务。
+- **错因分析**：结果暗示分档方向/边界不同，但题面未定第1档高低，且ignore_order比较不保持档号/极值行关系。倒置现有结果不能恢复Gold，NTILE余数分配随排序变化，利润也可能不同。无Gold SQL不能确定根因；已登记成本连接689行无放大支持排除该次明显连接膨胀。
+- **过程机制**：条件stage对象被拒，与ADR可写stage存在接口摩擦，改WHERE文本成功。；漏taskId后回原任务；custom承载复合max/min，明确但未证实。
+- **后续验证/修复**：补Gold客户利润与档成员，明确升降序、档号/余数分配和利润收入端，不从边界倒推题面规则。
+- **限制**：Gold SQL缺失；分档方向/余数和利润物理字段未明示。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local067 /question`
+```text
+Can you provide the highest and lowest profits for Italian customers segmented into ten evenly divided tiers based on their December 2021 sales profits?
+```
+原始题面全文
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local067/attempts/attempt-001/submissions/sql/local067.sql`
+```text
+WITH cprof AS (
+  SELECT s.cust_id AS cust_id,
+         SUM(s.amount_sold - c.unit_cost * s.quantity_sold) AS profit
+  FROM sales s
+  JOIN customers cu ON cu.cust_id = s.cust_id
+  JOIN costs c ON c.prod_id = s.prod_id
+              AND c.time_id = s.time_id
+              AND c.promo_id = s.promo_id
+              AND c.channel_id = s.channel_id
+  WHERE cu.country_id = 52770
+    AND s.time_id >= '2021-12-01' AND s.time_id <= '2021-12-31'
+  GROUP BY s.cust_id
+),
+t AS (
+  SELECT profit, NTILE(10) OVER (ORDER BY profit) AS tier FROM cprof
+)
+SELECT tier,
+       ROUND(MAX(profit), 2) AS highest_profit,
+       ROUND(MIN(profit), 2) AS lowest_profit
+FROM t
+GROUP BY tier
+ORDER BY tier
+```
+本attempt实际提交SQL，与bound_final_sql去除首尾空白相同
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local067/attempts/attempt-001/trace.json /toolCalls/2/result/details/outcomes`
+```text
+[{"path": "population.entity", "status": "applied"}, {"path": "population.eligibility", "status": "applied"}, {"path": "population.conditions", "status": "rejected", "code": "INVALID_REQUEST", "message": "population.conditions value must be a non-empty list of non-empty strings"}, {"path": "population.source", "status": "applied"}, {"path": "population.time", "status": "applied"}, {"path": "population.timeField", "status": "applied"}, {"path": "measure.formula", "status": "rejected", "code": "INVALID_REQUEST", "message": "measure.formula.op \"max/min\": use one of count, count_distinct, sum, avg, median, min, max, ratio, percentage, difference, change_rate, pp_difference, cumulative, rolling, custom"}, {"path": "grouping", "status": "applied"}, {"path": "selection", "status": "applied"}, {"path": "output", "status": "applied"}]
+```
+逐路径真实applied/rejected，不以调用参数当生效状态
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local067/attempts/attempt-001/trace.json /toolCalls/3/result/details/outcomes`
+```text
+[{"path": "measure.formula", "status": "applied"}, {"path": "population.conditions", "status": "applied"}]
+```
+逐路径真实applied/rejected，不以调用参数当生效状态
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local067/attempts/attempt-001/trace.json /toolCalls/8/result/details/outcomes`
+```text
+[{"path": "measure.formula", "status": "applied"}, {"path": "population.conditions", "status": "applied"}, {"path": "population.joinMultiplicity", "status": "applied"}]
+```
+逐路径真实applied/rejected，不以调用参数当生效状态
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local067/attempts/attempt-001/trace.json /toolCalls/17/result/details/outcomes`
+```text
+[{"path": "population.eligibility", "status": "applied"}, {"path": "grouping", "status": "rejected", "code": "SPEC_TRANSITION_INVALID", "message": "grouping: the alternatives produce different or unknown outputs; call compare_hypotheses with path \"grouping\" before deciding"}, {"path": "measure.formula", "status": "rejected", "code": "SPEC_TRANSITION_INVALID", "message": "measure.formula needs the output of every alternative before a decision: run query_database kind=exploration with probe {path: \"measure.formula\", alternativeId} for alternative_acb95934-1a13-42a3-bad9-50cedd43af99, or write {notProbeable: {<alternativeId>: reason}}"}]
+```
+逐路径真实applied/rejected，不以调用参数当生效状态
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local067/attempts/attempt-001/trace.json /toolCalls/21/result/details/outcomes`
+```text
+[{"path": "measure.formula", "status": "rejected", "code": "SPEC_TRANSITION_INVALID", "message": "measure.formula: the alternatives produce different or unknown outputs; call compare_hypotheses with path \"measure.formula\" before deciding"}]
+```
+逐路径真实applied/rejected，不以调用参数当生效状态
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local067/attempts/attempt-001/trace.json /toolCalls/29/result/details/outcomes`
+```text
+[{"path": "grouping", "status": "applied"}, {"path": "measure.formula", "status": "applied"}]
+```
+逐路径真实applied/rejected，不以调用参数当生效状态
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local067/attempts/attempt-001/trace.json /toolCalls/29/result/details/fields`
+```text
+[{"path": "population.entity", "status": "assumed", "value": {"name": "意大利客户（customers 表，按 cust_id 唯一标识的客户）", "keyColumns": ["cust_id"]}}, {"path": "population.eligibility", "status": "decided", "value": "只纳入在 2021 年 12 月有销售记录、因而拥有 2021 年 12 月利润的意大利客户", "verified": false, "rationale": "题面要求以「their December 2021 sales profits」为依据分档，即每个被分档的客户必须拥有一个 2021 年 12 月的利润值；无 12 月销售的客户不存在该值（不是 0 利润的观测），记 0 会使 10 档中 9 档退化为全 0（探针已证），分档不再有含义。因此选「仅纳入 2021-12 有销售的意大利客户」（68 人）。", "alternatives": [{"id": "alternative_3adf1cbe-f21c-4e5a-b1b1-f9214be59108", "value": "只纳入在 2021 年 12 月有销售记录、因而拥有 2021 年 12 月利润的意大利客户", "probe": {"alternativeId": "alternative_3adf1cbe-f21c-4e5a-b1b1-f9214be59108", "state": "available", "rowCount": 10, "output": "ee8ecdc23f5a"}}, {"id": "alternative_c38c37c0-eedd-4416-b5e4-e34094e478fd", "value": "纳入 countries=Italy 的全部 7,780 名意大利客户，2021 年 12 月无销售的客户利润记 0", "probe": {"alternativeId": "alternative_c38c37c0-eedd-4416-b5e4-e34094e478fd", "state": "available", "rowCount": 10, "output": "b7fea86a5452"}}], "outputs": "distinct", "advice": {"recommendation": "alternative", "probabilities": [{"alternativeId": "alternative_3adf1cbe-f21c-4e5a-b1b1-f9214be59108", "probability": 0.45}, {"alternativeId": "alternative_c38c37c0-eedd-4416-b5e4-e34094e478fd", "probability": 0.04}], "lean": {"alternativeId": "alternative_3adf1cbe-f21c-4e5a-b1b1-f9214be59108", "probability": 0.45}}}, {"path": "population.conditions", "status": "assumed", "value": ["WHERE：客户国家为意大利——customers.country_id = 52770（countries.country_name = 'Italy'）", "WHERE：销售日期在 2021 年 12 月——sales.time_id 在 2021-12-01 至 2021-12-31（含两端）"]}, {"path": "population.source", "status": "assumed", "value": {"tables": ["sales", "customers", "countries", "costs"], "note": "countries 用于把客户映射到 Italy；costs 用于取单位成本 unit_cost，按 (prod_id,time_id,promo_id,channel_id) 与 sales 连接"}}, {"path": "population.time", "status": "request", "value": {"expression": "2021-12-01 至 2021-12-31（含两端）"}, "evidenceIds": ["evidence_c6f3a8d2-9752-41c4-b1c8-6006b12ef20b"]}, {"path": "population.timeField", "status": "evidence", "value": "sales.time_id（销售事实日期，文本格式 YYYY-MM-DD）", "evidenceIds": ["evidence_796d4671-b302-4fa1-a9cd-9ce39376c70f"]}, {"path": "population.joinMultiplicity", "status": "evidence", "value": "customers→countries 为多对一；sales→costs 按 (prod_id,time_id,promo_id,channel_id) 为 1:1（已观测：2021-12 意大利客户销售 689 行全部命中成本行，且连接后仍为 689 行，无行倍增）", "evidenceIds": ["evidence_6c19dbc0-3fe0-4b2f-b782-7652f8087425", "evidence_0920279e-f027-4474-9567-6e07613fbc82"]}, {"path": "measure.formula", "status": "decided", "value": {"op": "custom", "per": "tier", "description": "每档（十分位）内客户 2021-12 销售利润的最高值与最低值；客户利润 = sum(sales.amount_sold) − sum(costs.unit_cost × sales.quantity_sold)，按客户汇总其 2021-12 的销售明细行"}, "verified": false, "rationale": "「sales profits」= 销售额 − 销售成本。收入端取 sales.amount_sold：2021-12 意大利客户 689 条销售明细中有 6 条 unit_price×quantity_sold ≠ amount_sold，说明 costs.unit_price 是标准价而非成交价，amount_sold 才是记录在案的实际成交金额；成本端取 costs.unit_cost × sales.quantity_sold。两候选仅在最低两档边界上有小差异。", "alternatives": [{"id": "alternative_acb95934-1a13-42a3-bad9-50cedd43af99", "value": {"op": "custom", "per": "tier", "description": "每档（十分位）内客户 2021-12 销售利润的最高值与最低值；客户利润 = sum(sales.amount_sold) − sum(costs.unit_cost × sales.quantity_sold)，按客户汇总其 2021-12 的销售明细行"}, "probe": {"alternativeId": "alternative_acb95934-1a13-42a3-bad9-50cedd43af99", "state": "available", "rowCount": 10, "output": "ee8ecdc23f5a"}}, {"id": "alternative_e2e6396e-6481-45b8-8aaa-975b41208ecf", "value": {"op": "custom", "per": "tier", "description": "每档（十分位）内客户 2021-12 销售利润的最高值与最低值；客户利润 = sum(costs.unit_price × sales.quantity_sold) − sum(costs.unit_cost × sales.quantity_sold)，按客户汇总其 2021-12 的销售明细行"}, "probe": {"alternativeId": "alternative_e2e6396e-6481-45b8-8aaa-975b41208ecf", "state": "available", "rowCount": 10, "output": "59eec2b814ed"}}], "outputs": "distinct", "advice": {"recommendation": "insufficient_evidence", "probabilities": [{"alternativeId": "alternative_acb95934-1a13-42a3-bad9-50cedd43af99", "probability": 0.22}, {"alternativeId": "alternative_e2e6396e-6481-45b8-8aaa-975b41208ecf", "probability": 0.07}], "lean": {"alternativeId": "alternative_acb95934-1a13-42a3-bad9-50cedd43af99", "probability": 0.22}}}, {"path": "grouping", "status": "decided", "value": ["按客户数等分：对意大利客户按 2021-12 利润升序用 NTILE(10) 分成 10 档，第 1 档=利润最低、第 10 档=利润最高，每档客户数尽量相等"], "verified": false, "rationale": "题面「ten evenly divided tiers」中 evenly divided 修饰 tiers（档位），指将客户等分为十档（十分位）而非将利润取值域等宽切分；探针显示等宽切分时第 6、7 档各仅 1 名客户（最高=最低），并非 evenly divided。故采用 NTILE(10) 等客户数分档（已观测每档 6–7 人，68 人共 10 档）。", "alternatives": [{"id": "alternative_3ca21add-5e9e-4b53-8563-0b762f381d79", "value": ["按客户数等分：对意大利客户按 2021-12 利润升序用 NTILE(10) 分成 10 档，第 1 档=利润最低、第 10 档=利润最高，每档客户数尽量相等"], "probe": {"alternativeId": "alternative_3ca21add-5e9e-4b53-8563-0b762f381d79", "state": "available", "rowCount": 10, "output": "ee8ecdc23f5a"}}, {"id": "alternative_6f926767-e537-4eb9-96c4-70d284ee56a8", "value": ["按利润区间等宽：把意大利客户 2021-12 利润从最小值到最大值均分为 10 个等宽区间，第 1 档=利润最低区间"], "probe": {"alternativeId": "alternative_6f926767-e537-4eb9-96c4-70d284ee56a8", "state": "available", "rowCount": 10, "output": "aa40b8170bb9"}}], "outputs": "distinct", "advice": {"recommendation": "alternative", "probabilities": [{"alternativeId": "alternative_3ca21add-5e9e-4b53-8563-0b762f381d79", "probability": 0.39}, {"alternativeId": "alternative_6f926767-e537-4eb9-96c4-70d284ee56a8", "probability": 0.37}], "lean": {"alternativeId": "alternative_3ca21add-5e9e-4b53-8563-0b762f381d79", "probability": 0.39}}}, {"path": "selection", "status": "not_applicable"}, {"path": "output", "status": "assumed", "value": {"rowMode": "grouped", "rowCount": 10, "columns": ["tier", "highest_profit", "lowest_profit"], "units": {"tier": "档位（1=利润最低档，10=利润最高档）", "highest_profit": "货币（销售利润）", "lowest_profit": "货币（销售利润）"}, "decimals": {"highest_profit": 2, "lowest_profit": 2}}}]
+```
+最后一次Spec完整返回，含保留字段、假定、open/decided与观测依据
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local067.csv`
+```text
+tier,highest_profit,lowest_profit
+1,-10.03,-27.94
+2,0.6,-10.03
+3,18.33,0.88
+4,42.48,19.6
+5,82.47,54.5
+6,119.29,88.27
+7,194.11,125.15
+8,307.47,209.22
+9,588.36,318.61
+10,785.15,698.35
+```
+实际评分CSV
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local067.csv`
+```text
+bucket,max_profit,min_profit
+1,785.1500000000001,588.3599999999999
+2,544.0500000000003,304.34000000000015
+3,264.8799999999999,184.96999999999997
+4,165.9600000000001,114.49000000000001
+5,106.80999999999995,68.15000000000002
+6,66.34,39.47
+7,39.44999999999993,17.80000000000001
+8,10.840000000000007,0.5999999999999996
+9,0.3100000000000005,-10.030000000000086
+10,-10.030000000000086,-27.93999999999994
+```
+Gold完整CSV及字符串多重集/数值
+- **score**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-attempt-001.json /execResult/caseScores/local067`
+```text
+0
+```
+此attempt官方执行比较分数
+- **score**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/spider2lite_eval.jsonl #local067`
+```text
+{"instance_id": "local067", "condition_cols": [], "ignore_order": true, "toks": "93"}
+```
+正式condition_cols/ignore_order；列名/额外列及允许行序非单独错因
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local067/attempts/attempt-001/trace.json /toolCalls/8/result/details/fields`
+```text
+[{"path": "population.entity", "status": "assumed", "value": {"name": "意大利客户（customers 表，按 cust_id 唯一标识的客户）", "keyColumns": ["cust_id"]}}, {"path": "population.eligibility", "status": "open", "alternatives": [{"id": "alternative_3adf1cbe-f21c-4e5a-b1b1-f9214be59108", "value": "只纳入在 2021 年 12 月有销售记录、因而拥有 2021 年 12 月利润的意大利客户", "probe": {"alternativeId": "alternative_3adf1cbe-f21c-4e5a-b1b1-f9214be59108", "state": "missing"}}, {"id": "alternative_c38c37c0-eedd-4416-b5e4-e34094e478fd", "value": "纳入 countries=Italy 的全部 7,780 名意大利客户，2021 年 12 月无销售的客户利润记 0", "probe": {"alternativeId": "alternative_c38c37c0-eedd-4416-b5e4-e34094e478fd", "state": "missing"}}], "outputs": "incomplete"}, {"path": "population.conditions", "status": "assumed", "value": ["WHERE：客户国家为意大利——customers.country_id = 52770（countries.country_name = 'Italy'）", "WHERE：销售日期在 2021 年 12 月——sales.time_id 在 2021-12-01 至 2021-12-31（含两端）"]}, {"path": "population.source", "status": "assumed", "value": {"tables": ["sales", "customers", "countries", "costs"], "note": "countries 用于把客户映射到 Italy；costs 用于取单位成本 unit_cost，按 (prod_id,time_id,promo_id,channel_id) 与 sales 连接"}}, {"path": "population.time", "status": "request", "value": {"expression": "2021-12-01 至 2021-12-31（含两端）"}, "evidenceIds": ["evidence_c6f3a8d2-9752-41c4-b1c8-6006b12ef20b"]}, {"path": "population.timeField", "status": "evidence", "value": "sales.time_id（销售事实日期，文本格式 YYYY-MM-DD）", "evidenceIds": ["evidence_796d4671-b302-4fa1-a9cd-9ce39376c70f"]}, {"path": "population.joinMultiplicity", "status": "evidence", "value": "customers→countries 为多对一；sales→costs 按 (prod_id,time_id,promo_id,channel_id) 为 1:1（已观测：2021-12 意大利客户销售 689 行全部命中成本行，且连接后仍为 689 行，无行倍增）", "evidenceIds": ["evidence_6c19dbc0-3fe0-4b2f-b782-7652f8087425", "evidence_0920279e-f027-4474-9567-6e07613fbc82"]}, {"path": "measure.formula", "status": "open", "alternatives": [{"id": "alternative_acb95934-1a13-42a3-bad9-50cedd43af99", "value": {"op": "custom", "per": "tier", "description": "每档（十分位）内客户 2021-12 销售利润的最高值与最低值；客户利润 = sum(sales.amount_sold) − sum(costs.unit_cost × sales.quantity_sold)，按客户汇总其 2021-12 的销售明细行"}, "probe": {"alternativeId": "alternative_acb95934-1a13-42a3-bad9-50cedd43af99", "state": "missing"}}, {"id": "alternative_e2e6396e-6481-45b8-8aaa-975b41208ecf", "value": {"op": "custom", "per": "tier", "description": "每档（十分位）内客户 2021-12 销售利润的最高值与最低值；客户利润 = sum(costs.unit_price × sales.quantity_sold) − sum(costs.unit_cost × sales.quantity_sold)，按客户汇总其 2021-12 的销售明细行"}, "probe": {"alternativeId": "alternative_e2e6396e-6481-45b8-8aaa-975b41208ecf", "state": "missing"}}], "outputs": "incomplete"}, {"path": "grouping", "status": "open", "alternatives": [{"id": "alternative_3ca21add-5e9e-4b53-8563-0b762f381d79", "value": ["按客户数等分：对意大利客户按 2021-12 利润升序用 NTILE(10) 分成 10 档，第 1 档=利润最低、第 10 档=利润最高，每档客户数尽量相等"], "probe": {"alternativeId": "alternative_3ca21add-5e9e-4b53-8563-0b762f381d79", "state": "missing"}}, {"id": "alternative_6f926767-e537-4eb9-96c4-70d284ee56a8", "value": ["按利润区间等宽：把意大利客户 2021-12 利润从最小值到最大值均分为 10 个等宽区间，第 1 档=利润最低区间"], "probe": {"alternativeId": "alternative_6f926767-e537-4eb9-96c4-70d284ee56a8", "state": "missing"}}], "outputs": "incomplete"}, {"path": "selection", "status": "not_applicable"}, {"path": "output", "status": "assumed", "value": {"rowMode": "grouped", "rowCount": 10, "columns": ["tier", "highest_profit", "lowest_profit"], "units": {"tier": "档位（1=利润最低档，10=利润最高档）", "highest_profit": "货币（销售利润）", "lowest_profit": "货币（销售利润）"}, "decimals": {"highest_profit": 2, "lowest_profit": 2}}}]
+```
+原任务已登记689行连接无放大的观测依据
+
+<a id="local070"></a>
+### local070 — 中国城市7月最长最短日期连续段
+
+- **Attempt**：`attempt-001`；官方CSV分数及离线重放均为0。
+- **定性**：未定位；节点 `未定位`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：2021年7月cn日期条目取最长/最短日历连续段，每日一条，城市首字母大写其余小写；同日多城选择未定。
+- **本次SQL**：日期去重，以julianday-row_number识别段并保留最短/最长并列；每天MIN(city_name)，再规范大小写。
+- **实际失配**：两方15行日期集合相同；6个日期城市不同：7/12 Gaotan vsXiaoganzhan、7/19 Bakeshiyingcun vsYuquan、7/23 Lanxi vsYunfu、7/27 Dangcheng vsDongxing、7/29 Hushihacun vsTongzhou、7/30 Shuilou vsTumen，其余9个一致。失配是城市值非别名，大小写符合题面。
+- **Spec处理**：四次Spec：index2全部成功，formula最小姓名/min_id两候选open；index10改写长说明选min_id值非候选拒；index11精确候选但compare未成功仍拒；index13比较recommendation=insufficient_evidence、弱lean0.2后选最小姓名，decided、verified=false成功。最终SQL非被拒的min_id。
+- **错因分析**：差异仅同日代表城市；日期过滤/连续性/大小写无可见偏离。最小姓名是未证实决定，但题面与标准无Gold裁决键，Gold SQL缺失，不能由结果不同断言min_id才正确，也不能将被拒意图当已生效。
+- **过程机制**：两次失败后把insufficient_evidence的弱lean当默认答案；顾问不是业务证据。
+- **后续验证/修复**：补同日裁决键或Gold SQL，逐日期核对city_id；保持吻合的日期段/大小写。
+- **限制**：Gold SQL及同日选城规则缺失，不能据差异判Gold错误。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local070 /question`
+```text
+Please examine our database records for Chinese cities (country_code_2 = 'cn') during July 2021 and identify both the shortest and longest streaks of consecutive date entries. For each date in these streaks, return exactly one record per date along with the corresponding city name. In your output, please ensure the first letter of each city name is capitalized and the rest are lowercase. Display the dates and city names for both the shortest and longest consecutive date streaks, ordered by date.
+```
+原始题面全文
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local070/attempts/attempt-001/submissions/sql/local070.sql`
+```text
+WITH d AS (
+  SELECT DISTINCT insert_date AS dt FROM cities
+  WHERE country_code_2='cn' AND insert_date >= '2021-07-01' AND insert_date <= '2021-07-31'
+), g AS (
+  SELECT dt, CAST(julianday(dt) - ROW_NUMBER() OVER (ORDER BY dt) AS INT) AS grp FROM d
+), runs AS (
+  SELECT grp, COUNT(*) AS len FROM g GROUP BY grp
+), sel AS (
+  SELECT grp FROM runs WHERE len = (SELECT MIN(len) FROM runs)
+  UNION
+  SELECT grp FROM runs WHERE len = (SELECT MAX(len) FROM runs)
+), rep AS (
+  SELECT insert_date, MIN(city_name) AS city_name FROM cities
+  WHERE country_code_2='cn' AND insert_date >= '2021-07-01' AND insert_date <= '2021-07-31'
+  GROUP BY insert_date
+)
+SELECT g.dt AS insert_date,
+       UPPER(SUBSTR(rep.city_name,1,1)) || LOWER(SUBSTR(rep.city_name,2)) AS city_name
+FROM g
+JOIN sel ON sel.grp = g.grp
+JOIN rep ON rep.insert_date = g.dt
+ORDER BY g.dt
+```
+本attempt实际提交SQL，与bound_final_sql去除首尾空白相同
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local070/attempts/attempt-001/trace.json /toolCalls/2/result/details/outcomes`
+```text
+[{"path": "population.entity", "status": "applied"}, {"path": "population.eligibility", "status": "applied"}, {"path": "population.conditions", "status": "applied"}, {"path": "population.source", "status": "applied"}, {"path": "population.time", "status": "applied"}, {"path": "population.timeField", "status": "applied"}, {"path": "population.missing", "status": "applied"}, {"path": "measure.formula", "status": "applied"}, {"path": "measure.countGrain", "status": "applied"}, {"path": "grouping", "status": "applied"}, {"path": "selection", "status": "applied"}, {"path": "selection.ties", "status": "applied"}, {"path": "output", "status": "applied"}]
+```
+逐路径真实applied/rejected，不以调用参数当生效状态
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local070/attempts/attempt-001/trace.json /toolCalls/10/result/details/outcomes`
+```text
+[{"path": "measure.formula", "status": "rejected", "code": "SPEC_TRANSITION_INVALID", "message": "measure.formula: {\"op\":\"custom\",\"description\":\"取 country_code_2='cn' 且 insert_date∈[2021-07-01,2021-07-31] 的不同日历日期集合；将日历相邻（相差 1 天）的日期归为同一 streak（缺期断开）；统计每条 streak 的天数；选出天数最短与最长的 streak（各 1 条）；对选中 streak 的每个日期输出 1 行 = 该日期 + 该日期下 city_id 最小的记录的城市名（首字母大写、其余小写）。\"} is not one of its alternatives alternative_09c40a9a-58c9-49bc-9976-10d643485df1={\"op\":\"custom\",\"description\":\"（代表城市=字典序最小 city_name）取 country_code_2='cn' 且 insert_date∈[2021-07-01,2021-07-31] 的不同日历日期集合；将日历相邻（相差 1 天）的日期归为同一 streak；统计每条 streak 的天数；选出天数最短与最长的 streak（各 1 条）；对选中 streak 的每个日期输出 1 行 = 该日期 + 该日期下 city_name 字典序最小的城市（首字母大写、其余小写）。\"}; alternative_29bb8f2c-6416-4a7c-a8c1-9f2427dee015={\"op\":\"custom\",\"description\":\"（代表城市=最小 city_id）同上，但每个日期的代表城市取该日期下 city_id 最小的记录。\"}"}]
+```
+逐路径真实applied/rejected，不以调用参数当生效状态
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local070/attempts/attempt-001/trace.json /toolCalls/11/result/details/outcomes`
+```text
+[{"path": "measure.formula", "status": "rejected", "code": "SPEC_TRANSITION_INVALID", "message": "measure.formula: the alternatives produce different or unknown outputs; call compare_hypotheses with path \"measure.formula\" before deciding"}]
+```
+逐路径真实applied/rejected，不以调用参数当生效状态
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local070/attempts/attempt-001/trace.json /toolCalls/13/result/details/outcomes`
+```text
+[{"path": "measure.formula", "status": "applied"}]
+```
+逐路径真实applied/rejected，不以调用参数当生效状态
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local070/attempts/attempt-001/trace.json /toolCalls/13/result/details/fields`
+```text
+[{"path": "population.entity", "status": "request", "value": {"name": "cities 表中 country_code_2='cn' 的城市记录（城市-日期 行），业务键 (city_name, insert_date)"}, "evidenceIds": ["evidence_a014a997-1008-45d1-98ee-49547f07ccc4"]}, {"path": "population.eligibility", "status": "assumed", "value": "纳入 insert_date 非空的记录；某日只要有 ≥1 条记录即视为该日期存在；缺失日期不补零。"}, {"path": "population.conditions", "status": "request", "value": ["country_code_2 = 'cn'", "insert_date >= '2021-07-01' AND insert_date <= '2021-07-31'"], "evidenceIds": ["evidence_319c93ed-5b70-4c40-9b68-5b6f4f271c92"]}, {"path": "population.source", "status": "assumed", "value": {"tables": ["cities"]}}, {"path": "population.time", "status": "request", "value": {"expression": "2021-07-01 至 2021-07-31", "boundary": "inclusive"}, "evidenceIds": ["evidence_c17cdae4-5848-4789-ac7e-4c0eee51feda"]}, {"path": "population.timeField", "status": "assumed", "value": "cities.insert_date"}, {"path": "population.missing", "status": "assumed", "value": "相邻日历期：两日期相邻当且仅当日历相差 1 天；缺期不补零，遇缺期 streak 断开。"}, {"path": "measure.formula", "status": "decided", "value": {"op": "custom", "description": "（代表城市=字典序最小 city_name）取 country_code_2='cn' 且 insert_date∈[2021-07-01,2021-07-31] 的不同日历日期集合；将日历相邻（相差 1 天）的日期归为同一 streak；统计每条 streak 的天数；选出天数最短与最长的 streak（各 1 条）；对选中 streak 的每个日期输出 1 行 = 该日期 + 该日期下 city_name 字典序最小的城市（首字母大写、其余小写）。"}, "verified": false, "rationale": "compare_hypotheses 在 path=measure.formula 上给出 [ADVICE_LEAN] alternative_09c40a9a（p=0.2，对比 alternative_29bb8f2c p=0；recommendation=insufficient_evidence）。按流程以建议倾向为默认答案，无需 adviceOverride。两候选仅“同日多条记录取哪一条”不同（探针输出 60f443e47237 vs d74704c27319）；原题未给裁决键、业务文档也无定义，故选字典序最小 city_name 作为该日期的代表城市（可确定、可复现）。此为未证实业务假定，发布时披霞。", "alternatives": [{"id": "alternative_09c40a9a-58c9-49bc-9976-10d643485df1", "value": {"op": "custom", "description": "（代表城市=字典序最小 city_name）取 country_code_2='cn' 且 insert_date∈[2021-07-01,2021-07-31] 的不同日历日期集合；将日历相邻（相差 1 天）的日期归为同一 streak；统计每条 streak 的天数；选出天数最短与最长的 streak（各 1 条）；对选中 streak 的每个日期输出 1 行 = 该日期 + 该日期下 city_name 字典序最小的城市（首字母大写、其余小写）。"}, "probe": {"alternativeId": "alternative_09c40a9a-58c9-49bc-9976-10d643485df1", "state": "available", "rowCount": 15, "output": "60f443e47237"}}, {"id": "alternative_29bb8f2c-6416-4a7c-a8c1-9f2427dee015", "value": {"op": "custom", "description": "（代表城市=最小 city_id）同上，但每个日期的代表城市取该日期下 city_id 最小的记录。"}, "probe": {"alternativeId": "alternative_29bb8f2c-6416-4a7c-a8c1-9f2427dee015", "state": "available", "rowCount": 15, "output": "d74704c27319"}}], "outputs": "distinct", "advice": {"recommendation": "insufficient_evidence", "probabilities": [{"alternativeId": "alternative_09c40a9a-58c9-49bc-9976-10d643485df1", "probability": 0.2}, {"alternativeId": "alternative_29bb8f2c-6416-4a7c-a8c1-9f2427dee015", "probability": 0}], "lean": {"alternativeId": "alternative_09c40a9a-58c9-49bc-9976-10d643485df1", "probability": 0.2}}}, {"path": "measure.countGrain", "status": "assumed", "value": "按日：每一天在结果中至多一行"}, {"path": "grouping", "status": "not_applicable"}, {"path": "selection", "status": "assumed", "value": {"n": 1, "orderBy": "streak 天数升序取 1 条（最短）与降序取 1 条（最长）"}}, {"path": "selection.ties", "status": "assumed", "value": "include_ties"}, {"path": "output", "status": "assumed", "value": {"rowMode": "detail", "columns": ["insert_date", "city_name"], "units": {"insert_date": "日期(YYYY-MM-DD)"}}}]
+```
+最后一次Spec完整返回，含保留字段、假定、open/decided与观测依据
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local070.csv`
+```text
+insert_date,city_name
+2021-07-12,Gaotan
+2021-07-13,Yaopu
+2021-07-19,Bakeshiyingcun
+2021-07-20,Nanyang
+2021-07-21,Chengjiao chengguanzhen
+2021-07-22,Hanzhong
+2021-07-23,Lanxi
+2021-07-24,Huichang
+2021-07-25,Beichengqu
+2021-07-26,Xinqing
+2021-07-27,Dangcheng
+2021-07-28,Bengbu
+2021-07-29,Hushihacun
+2021-07-30,Shuilou
+2021-07-31,Xihuachi
+```
+实际评分CSV
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local070.csv`
+```text
+most_consecutive_dates,city_name
+2021-07-12,Xiaoganzhan
+2021-07-13,Yaopu
+2021-07-19,Yuquan
+2021-07-20,Nanyang
+2021-07-21,Chengjiao chengguanzhen
+2021-07-22,Hanzhong
+2021-07-23,Yunfu
+2021-07-24,Huichang
+2021-07-25,Beichengqu
+2021-07-26,Xinqing
+2021-07-27,Dongxing
+2021-07-28,Bengbu
+2021-07-29,Tongzhou
+2021-07-30,Tumen
+2021-07-31,Xihuachi
+```
+Gold完整CSV及字符串多重集/数值
+- **score**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-attempt-001.json /execResult/caseScores/local070`
+```text
+0
+```
+此attempt官方执行比较分数
+- **score**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/spider2lite_eval.jsonl #local070`
+```text
+{"instance_id": "local070", "condition_cols": [], "ignore_order": true, "toks": "164"}
+```
+正式condition_cols/ignore_order；列名/额外列及允许行序非单独错因
+- **process**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local070/attempts/attempt-001/trace.json /toolCalls/12/result/details/recommendation`
+```text
+insufficient_evidence
+```
+顾问实际insufficient_evidence非业务定论
+
+<a id="local073"></a>
+### local073 — 逐披萨行最终配料字符串
+
+- **Attempt**：`attempt-001`；官方CSV分数及离线重放均为0。
+- **定性**：Gold冲突；节点 `population.entity`；错误层：标准答案有问题；可见性：不适用或未定。
+- **题面/标准**：每row ID一披萨行，以该行配方减exclusions加extras，重复前缀2x先列、块内字母序，披萨名加冒号空格。评分只检查Gold order_id/toppings。
+- **本次SQL**：按customer_orders.rowid保持身份，加去料按row_id关联；重复次数与名称排序后拼接。row13无加去料；row14减BBQ Sauce/Mushrooms、加Bacon/Cheese。
+- **实际失配**：14行、order_id向量及13条字符串匹配。唯一字符串多重集差异：预测row13标准Meatlovers，含BBQ Sauce/Mushrooms且不加倍；Gold row13却为Meatlovers: 2xBacon, 2xCheese, Beef, Chicken, Pepperoni, Salami，与row14相同。2xBacon拼法一致，不是前缀空格、别名、列数或缺order_time失败。
+- **Spec处理**：仅index3一次Spec所有applied；entity/grouping为request，明确row id/order_id/pizza_name/order_time；formula假定custom但完整声明逐行加去料和排序；source假定原始表。无open，SQL保持逐行身份。实际探索同时读取raw/clean均相同：order10一行NULL/NULL，另一行2,6/1,4；不能声称换clean消除差异。
+- **错因分析**：题面明确row ID独立；实际raw/clean订单10第一份无加去料，Gold却输出第二份定制配料，具体行内容与逐披萨规则及输入矛盾，属Gold行身份冲突。Gold SQL缺失，不能断言内部必然按order_id传播，但输入→输出矛盾可证。solver按row_id隔离正确，不从Gold反推两份都定制。
+- **过程机制**：replace相关多次探索失败后最终去掉replace，未改变逐行加去料。
+- **后续验证/修复**：复核Gold order10 row13并补SQL定位污染步骤，保留逐披萨事件隔离。
+- **限制**：Gold SQL缺失，内部污染机制不可见；仅row13输入输出矛盾确定。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local073 /question`
+```text
+For each pizza order, provide a single result row with the row ID, order ID, customer ID, pizza name, and final set of ingredients. The final ingredients are determined by starting with the standard toppings from the pizza’s recipe, removing any excluded toppings, and adding any extra toppings. Present the ingredients in a string starting with the pizza name followed by ': ', with ingredients listed in alphabetical order. Ingredients appearing multiple times (e.g., from standard and extra toppings) should be prefixed with '2x' and listed first, followed by single-occurrence ingredients, both in alphabetical order. Group by row ID, order ID, pizza name, and order time to ensure each order appears once. Sort results by row ID in ascending order. Assign pizza_id 1 to 'Meatlovers' pizzas and pizza_id 2 to all others.
+```
+原始题面全文
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local073/attempts/attempt-001/submissions/sql/local073.sql`
+```text
+WITH ord AS (SELECT rowid AS row_id, order_id, customer_id, pizza_id, exclusions, extras, order_time FROM pizza_customer_orders), std AS (SELECT o.row_id AS row_id, CAST(j.value AS INTEGER) AS tid FROM ord o JOIN pizza_recipes r ON r.pizza_id=o.pizza_id JOIN json_each('[' || r.toppings || ']') j), exc AS (SELECT o.row_id AS row_id, CAST(j.value AS INTEGER) AS tid FROM ord o JOIN json_each('[' || o.exclusions || ']') j WHERE o.exclusions IS NOT NULL), extr AS (SELECT o.row_id AS row_id, CAST(j.value AS INTEGER) AS tid FROM ord o JOIN json_each('[' || o.extras || ']') j WHERE o.extras IS NOT NULL), allt AS (SELECT s.row_id AS row_id, s.tid AS tid FROM std s WHERE NOT EXISTS (SELECT 1 FROM exc e WHERE e.row_id=s.row_id AND e.tid=s.tid) UNION ALL SELECT row_id, tid FROM extr), cnt AS (SELECT row_id, tid, COUNT(*) AS c FROM allt GROUP BY row_id, tid), named AS (SELECT c.row_id AS row_id, t.topping_name AS name, c.c AS c FROM cnt c JOIN pizza_toppings t ON t.topping_id=c.tid), parts AS (SELECT row_id, CASE WHEN c>=2 THEN c||'x'||name ELSE name END AS part, CASE WHEN c>=2 THEN 0 ELSE 1 END AS grp, name AS sortname FROM named), agg AS (SELECT row_id, GROUP_CONCAT(part, ',' || char(32)) AS ingr FROM (SELECT * FROM parts ORDER BY row_id, grp, sortname) GROUP BY row_id) SELECT o.row_id AS row_id, o.order_id AS order_id, o.customer_id AS customer_id, pn.pizza_name AS pizza_name, pn.pizza_name || ':' || char(32) || a.ingr AS ingredients FROM ord o JOIN pizza_names pn ON pn.pizza_id=o.pizza_id JOIN agg a ON a.row_id=o.row_id ORDER BY o.row_id
+```
+本attempt实际提交SQL，与bound_final_sql去除首尾空白相同
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local073/attempts/attempt-001/trace.json /toolCalls/3/result/details/outcomes`
+```text
+[{"path": "population.entity", "status": "applied"}, {"path": "population.eligibility", "status": "applied"}, {"path": "population.conditions", "status": "applied"}, {"path": "population.time", "status": "applied"}, {"path": "population.timeField", "status": "applied"}, {"path": "population.source", "status": "applied"}, {"path": "population.joinMultiplicity", "status": "applied"}, {"path": "measure.formula", "status": "applied"}, {"path": "measure.countGrain", "status": "applied"}, {"path": "grouping", "status": "applied"}, {"path": "selection", "status": "applied"}, {"path": "output", "status": "applied"}]
+```
+逐路径真实applied/rejected，不以调用参数当生效状态
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local073/attempts/attempt-001/trace.json /toolCalls/3/result/details/fields`
+```text
+[{"path": "population.entity", "status": "request", "value": {"name": "one pizza order line item, identified by (row id, order id, pizza name, order time)"}, "evidenceIds": ["evidence_142556ac-dc70-4bcb-aaf5-0fd3fbf9c9bb"]}, {"path": "population.eligibility", "status": "request", "value": "include every pizza order line item, regardless of NULL exclusions/extras", "evidenceIds": ["evidence_0bf46fc9-31dc-45f7-9323-dc2a920cba85"]}, {"path": "population.conditions", "status": "not_applicable"}, {"path": "population.source", "status": "assumed", "value": {"tables": ["pizza_customer_orders", "pizza_names", "pizza_recipes", "pizza_toppings"]}}, {"path": "population.time", "status": "not_applicable"}, {"path": "population.timeField", "status": "assumed", "value": "order_time"}, {"path": "population.joinMultiplicity", "status": "assumed", "value": "recipe is 1 row per pizza_id, names 1 row per pizza_id, toppings 1 row per topping_id; joining them to the order line does not multiply order rows; ingredient ids must be split then de-duplicated by name-with-multiplicity"}, {"path": "measure.formula", "status": "assumed", "value": {"op": "custom", "description": "per pizza order line: take the recipe topping ids for its pizza_id, remove the excluded topping ids, add the extra topping ids (counting multiplicity), map ids to topping names, render a string '<pizza_name>: ' + ingredients where names occurring twice are listed first prefixed '2x' and remaining names follow, each block alphabetically ordered", "of": "final ingredient set"}}, {"path": "measure.countGrain", "status": "not_applicable"}, {"path": "grouping", "status": "request", "value": ["row id", "order_id", "pizza_name", "order_time"], "evidenceIds": ["evidence_1ef5aa8a-9ebd-4eaa-a25c-00a86fd39272"]}, {"path": "selection", "status": "not_applicable"}, {"path": "output", "status": "assumed", "value": {"rowMode": "full", "columns": ["row_id", "order_id", "customer_id", "pizza_name", "ingredients"]}}]
+```
+最后一次Spec完整返回，含保留字段、假定、open/decided与观测依据
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local073.csv`
+```text
+row_id,order_id,customer_id,pizza_name,ingredients
+1,1,101,Meatlovers,"Meatlovers: BBQ Sauce, Bacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami"
+2,2,101,Meatlovers,"Meatlovers: BBQ Sauce, Bacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami"
+3,3,102,Meatlovers,"Meatlovers: BBQ Sauce, Bacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami"
+4,3,102,Vegetarian,"Vegetarian: Cheese, Mushrooms, Onions, Peppers, Tomato Sauce, Tomatoes"
+5,4,103,Meatlovers,"Meatlovers: BBQ Sauce, Bacon, Beef, Chicken, Mushrooms, Pepperoni, Salami"
+6,4,103,Meatlovers,"Meatlovers: BBQ Sauce, Bacon, Beef, Chicken, Mushrooms, Pepperoni, Salami"
+7,4,103,Vegetarian,"Vegetarian: Mushrooms, Onions, Peppers, Tomato Sauce, Tomatoes"
+8,5,104,Meatlovers,"Meatlovers: 2xBacon, BBQ Sauce, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami"
+9,6,101,Vegetarian,"Vegetarian: Cheese, Mushrooms, Onions, Peppers, Tomato Sauce, Tomatoes"
+10,7,105,Vegetarian,"Vegetarian: Bacon, Cheese, Mushrooms, Onions, Peppers, Tomato Sauce, Tomatoes"
+11,8,102,Meatlovers,"Meatlovers: BBQ Sauce, Bacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami"
+12,9,103,Meatlovers,"Meatlovers: 2xBacon, 2xChicken, BBQ Sauce, Beef, Mushrooms, Pepperoni, Salami"
+13,10,104,Meatlovers,"Meatlovers: BBQ Sauce, Bacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami"
+14,10,104,Meatlovers,"Meatlovers: 2xBacon, 2xCheese, Beef, Chicken, Pepperoni, Salami"
+```
+实际评分CSV
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local073.csv`
+```text
+"order_id","customer_id","pizza_id","order_time","original_row_number","toppings"
+1,101,1,"2021-01-01 18:05:02",1,"Meatlovers: BBQ Sauce, Bacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami"
+2,101,1,"2021-01-01 19:00:52",2,"Meatlovers: BBQ Sauce, Bacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami"
+3,102,1,"2021-01-02 23:51:23",3,"Meatlovers: BBQ Sauce, Bacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami"
+3,102,2,"2021-01-02 23:51:23",4,"Vegetarian: Cheese, Mushrooms, Onions, Peppers, Tomato Sauce, Tomatoes"
+4,103,1,"2021-01-04 13:23:46",5,"Meatlovers: BBQ Sauce, Bacon, Beef, Chicken, Mushrooms, Pepperoni, Salami"
+4,103,1,"2021-01-04 13:23:46",6,"Meatlovers: BBQ Sauce, Bacon, Beef, Chicken, Mushrooms, Pepperoni, Salami"
+4,103,2,"2021-01-04 13:23:46",7,"Vegetarian: Mushrooms, Onions, Peppers, Tomato Sauce, Tomatoes"
+5,104,1,"2021-01-08 21:00:29",8,"Meatlovers: 2xBacon, BBQ Sauce, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami"
+6,101,2,"2021-01-08 21:03:13",9,"Vegetarian: Cheese, Mushrooms, Onions, Peppers, Tomato Sauce, Tomatoes"
+7,105,2,"2021-01-08 21:20:29",10,"Vegetarian: Bacon, Cheese, Mushrooms, Onions, Peppers, Tomato Sauce, Tomatoes"
+8,102,1,"2021-01-09 23:54:33",11,"Meatlovers: BBQ Sauce, Bacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami"
+9,103,1,"2021-01-10 11:22:59",12,"Meatlovers: 2xBacon, 2xChicken, BBQ Sauce, Beef, Mushrooms, Pepperoni, Salami"
+10,104,1,"2021-01-11 18:34:49",13,"Meatlovers: 2xBacon, 2xCheese, Beef, Chicken, Pepperoni, Salami"
+10,104,1,"2021-01-11 18:34:49",14,"Meatlovers: 2xBacon, 2xCheese, Beef, Chicken, Pepperoni, Salami"
+```
+Gold完整CSV及字符串多重集/数值
+- **score**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-attempt-001.json /execResult/caseScores/local073`
+```text
+0
+```
+此attempt官方执行比较分数
+- **score**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/spider2lite_eval.jsonl #local073`
+```text
+{"instance_id": "local073", "condition_cols": [0, 5], "ignore_order": true, "toks": "348"}
+```
+正式condition_cols/ignore_order；列名/额外列及允许行序非单独错因
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local073/attempts/attempt-001/trace.json /toolCalls/5/result/details/artifact/preview`
+```text
+{"columns": ["t", "order_id", "customer_id", "pizza_id", "exclusions", "extras", "order_time"], "rows": [["pizza_customer_orders", 1, 101, 1, null, null, "2021-01-01 18:05:02"], ["pizza_customer_orders", 2, 101, 1, null, null, "2021-01-01 19:00:52"], ["pizza_customer_orders", 3, 102, 1, null, null, "2021-01-02 23:51:23"], ["pizza_customer_orders", 3, 102, 2, null, null, "2021-01-02 23:51:23"], ["pizza_customer_orders", 4, 103, 1, "4", null, "2021-01-04 13:23:46"], ["pizza_customer_orders", 4, 103, 1, "4", null, "2021-01-04 13:23:46"], ["pizza_customer_orders", 4, 103, 2, "4", null, "2021-01-04 13:23:46"], ["pizza_customer_orders", 5, 104, 1, null, "1", "2021-01-08 21:00:29"], ["pizza_customer_orders", 6, 101, 2, null, null, "2021-01-08 21:03:13"], ["pizza_customer_orders", 7, 105, 2, null, "1", "2021-01-08 21:20:29"], ["pizza_customer_orders", 8, 102, 1, null, null, "2021-01-09 23:54:33"], ["pizza_customer_orders", 9, 103, 1, "4", "1,5", "2021-01-10 11:22:59"], ["pizza_customer_orders", 10, 104, 1, null, null, "2021-01-11 18:34:49"], ["pizza_customer_orders", 10, 104, 1, "2,6", "1,4", "2021-01-11 18:34:49"], ["pizza_clean_customer_orders", 1, 101, 1, null, null, "2021-01-01 18:05:02"], ["pizza_clean_customer_orders", 2, 101, 1, null, null, "2021-01-01 19:00:52"], ["pizza_clean_customer_orders", 3, 102, 1, null, null, "2021-01-02 23:51:23"], ["pizza_clean_customer_orders", 3, 102, 2, null, null, "2021-01-02 23:51:23"], ["pizza_clean_customer_orders", 4, 103, 1, "4", null, "2021-01-04 13:23:46"], ["pizza_clean_customer_orders", 4, 103, 1, "4", null, "2021-01-04 13:23:46"], ["pizza_clean_customer_orders", 4, 103, 2, "4", null, "2021-01-04 13:23:46"], ["pizza_clean_customer_orders", 5, 104, 1, null, "1", "2021-01-08 21:00:29"], ["pizza_clean_customer_orders", 6, 101, 2, null, null, "2021-01-08 21:03:13"], ["pizza_clean_customer_orders", 7, 105, 2, null, "1", "2021-01-08 21:20:29"], ["pizza_clean_customer_orders", 8, 102, 1, null, null, "2021-01-09 23:54:33"], ["pizza_clean_customer_orders", 9, 103, 1, "4", "1,5", "2021-01-10 11:22:59"], ["pizza_clean_customer_orders", 10, 104, 1, null, null, "2021-01-11 18:34:49"], ["pizza_clean_customer_orders", 10, 104, 1, "2,6", "1,4", "2021-01-11 18:34:49"]], "columnTypes": ["TEXT", "INTEGER", "INTEGER", "INTEGER", "NULL", "NULL", "TEXT"], "rowCount": 28, "truncated": false}
+```
+raw/clean逐行相同，order10第一行NULL/NULL、第二行2,6/1,4
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local073/attempts/attempt-001/trace.json /toolCalls/8/result/details/artifact/preview`
+```text
+{"columns": ["implicit_rowid", "order_id", "customer_id", "pizza_id", "exclusions", "extras", "order_time"], "rows": [[1, 1, 101, 1, null, null, "2021-01-01 18:05:02"], [2, 2, 101, 1, null, null, "2021-01-01 19:00:52"], [3, 3, 102, 1, null, null, "2021-01-02 23:51:23"], [4, 3, 102, 2, null, null, "2021-01-02 23:51:23"], [5, 4, 103, 1, "4", null, "2021-01-04 13:23:46"], [6, 4, 103, 1, "4", null, "2021-01-04 13:23:46"], [7, 4, 103, 2, "4", null, "2021-01-04 13:23:46"], [8, 5, 104, 1, null, "1", "2021-01-08 21:00:29"], [9, 6, 101, 2, null, null, "2021-01-08 21:03:13"], [10, 7, 105, 2, null, "1", "2021-01-08 21:20:29"], [11, 8, 102, 1, null, null, "2021-01-09 23:54:33"], [12, 9, 103, 1, "4", "1,5", "2021-01-10 11:22:59"], [13, 10, 104, 1, null, null, "2021-01-11 18:34:49"], [14, 10, 104, 1, "2,6", "1,4", "2021-01-11 18:34:49"]], "columnTypes": ["INTEGER", "INTEGER", "INTEGER", "INTEGER", "NULL", "NULL", "TEXT"], "rowCount": 14, "truncated": false}
+```
+rowid13/14对应不同加去料事件
+
+<a id="local096"></a>
+### local096 — 逐年全女性卡司电影百分比
+
+- **Attempt**：`attempt-001`；官方CSV分数及离线重放均为0。
+- **定性**：未定位；节点 `未定位`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：Movie.year末四位转数字，年全部电影为分母，无Male或None/未知演员的电影为分子，百分比输出。
+- **本次SQL**：TRIM Cast.PID匹配Person，非Female（含NULL/未匹配）均非女性；按MID聚合后与Movie连接，按年count全部电影，百分比两位小数。
+- **实际失配**：78行年份/各年总数匹配；2009预测0 vsGold0.9090909090909091、2012预测0 vsGold0.9009009009009009、2018预测0.96 vsGold1.9230769230769231。1999的1.52 vs1.5151515、2000的1.56 vs1.5625在0.01内，非舍入主因。
+- **Spec处理**：index4只有entity含note拒，index5去note成功；eligibility全部/有卡司与公式有无至少一位女性两项open；index26两项成功处置（探针identical），补先MID聚合连接，decided、verified=false。无卡司电影数观测0，候选本数据等价；最终open/undeclared空，output两位小数假定。
+- **错因分析**：最终年份表达式和非Female排除符合题面。早期GROUP BY year实际按物理year造重复年度，但最终改完整CAST表达式已修，不可归最终错因。Gold无SQL/电影名单，不能确认多出的电影来自忽略NULL、姓名身份或标准错误。Person重复PID可能影响行权重，但须性别冲突事实才能归因。
+- **过程机制**：早期PID直连0匹配，最终TRIM修复。；早期GROUP BY year重复分组在最终SQL已修复。
+- **后续验证/修复**：补Gold全女性MID及各片性别明细，核对2009/2012/2018；保留未知性别排除，不放宽条件凑Gold。
+- **限制**：Gold SQL/分子电影身份缺失；Person重复PID性别一致性未证。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local096 /question`
+```text
+For each year, calculate the percentage of films that had exclusively female actors (meaning no male actors and no actors with unknown/unspecified gender). Consider actors with gender marked as 'Male' or 'None' as non-female. For the results, display the year, the total number of movies in that year, and the percentage of movies with exclusively female actors. Extract the year from the Movie.year field by taking the last 4 characters and converting to a number.
+```
+原始题面全文
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local096/attempts/attempt-001/submissions/sql/local096.sql`
+```text
+WITH cg AS (
+  SELECT c.MID AS MID, CASE WHEN p.Gender = 'Female' THEN 1 ELSE 0 END AS is_female
+  FROM M_Cast c LEFT JOIN Person p ON p.PID = TRIM(c.PID)
+), pm AS (
+  SELECT MID, SUM(is_female) AS f, SUM(1 - is_female) AS nf FROM cg GROUP BY MID
+)
+SELECT CAST(substr(m.year,-4) AS INTEGER) AS year,
+       COUNT(*) AS total_movies,
+       ROUND(100.0*SUM(CASE WHEN COALESCE(pm.nf,0)=0 THEN 1 ELSE 0 END)/COUNT(*),2) AS pct_female_only_films
+FROM Movie m LEFT JOIN pm ON pm.MID = m.MID
+GROUP BY CAST(substr(m.year,-4) AS INTEGER)
+ORDER BY 1
+```
+本attempt实际提交SQL，与bound_final_sql去除首尾空白相同
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local096/attempts/attempt-001/trace.json /toolCalls/4/result/details/outcomes`
+```text
+[{"path": "population.entity", "status": "rejected", "code": "INVALID_REQUEST", "message": "population.entity value has unknown keys note; allowed: name, keyColumns"}, {"path": "population.eligibility", "status": "applied"}, {"path": "population.conditions", "status": "applied"}, {"path": "population.source", "status": "applied"}, {"path": "population.time", "status": "applied"}, {"path": "population.timeField", "status": "applied"}, {"path": "population.missing", "status": "applied"}, {"path": "population.joinMultiplicity", "status": "applied"}, {"path": "measure.formula", "status": "applied"}, {"path": "measure.countGrain", "status": "applied"}, {"path": "measure.denominator", "status": "applied"}, {"path": "grouping", "status": "applied"}, {"path": "selection", "status": "applied"}, {"path": "output", "status": "applied"}]
+```
+逐路径真实applied/rejected，不以调用参数当生效状态
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local096/attempts/attempt-001/trace.json /toolCalls/5/result/details/outcomes`
+```text
+[{"path": "population.entity", "status": "applied"}]
+```
+逐路径真实applied/rejected，不以调用参数当生效状态
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local096/attempts/attempt-001/trace.json /toolCalls/26/result/details/outcomes`
+```text
+[{"path": "population.eligibility", "status": "applied"}, {"path": "measure.formula", "status": "applied"}, {"path": "population.joinMultiplicity", "status": "applied"}]
+```
+逐路径真实applied/rejected，不以调用参数当生效状态
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local096/attempts/attempt-001/trace.json /toolCalls/26/result/details/fields`
+```text
+[{"path": "population.entity", "status": "assumed", "value": {"name": "影片(Movie)", "keyColumns": ["MID"]}}, {"path": "population.eligibility", "status": "decided", "value": "纳入 Movie 表中全部电影（含在 M_Cast 中没有任何演员记录的电影）", "verified": false, "rationale": "两个候选放回题面逐词检验后，由于观测到没有任何电影缺少 M_Cast 记录（无演员记录的电影数 = 0），两个候选的最终输出完全相同（探针 output 均为 058a8fa28bf2），因此无需区分；按题面“films”字面取 Movie 表全部电影。", "alternatives": [{"id": "alternative_508566f0-4577-4b0b-ac0f-5a7c7ebab461", "value": "纳入 Movie 表中全部电影（含在 M_Cast 中没有任何演员记录的电影）", "probe": {"alternativeId": "alternative_508566f0-4577-4b0b-ac0f-5a7c7ebab461", "state": "available", "rowCount": 78, "output": "058a8fa28bf2"}}, {"id": "alternative_077ab0bb-9884-4895-8d40-28d253f0212c", "value": "只纳入在 M_Cast 中至少有一条演员记录的电影", "probe": {"alternativeId": "alternative_077ab0bb-9884-4895-8d40-28d253f0212c", "state": "available", "rowCount": 78, "output": "058a8fa28bf2"}}], "outputs": "identical"}, {"path": "population.conditions", "status": "not_applicable"}, {"path": "population.source", "status": "assumed", "value": {"tables": ["Movie", "M_Cast", "Person"], "note": "Movie 为电影主表，M_Cast 关联电影与演员(PID)，Person 提供 Gender"}}, {"path": "population.time", "status": "assumed", "value": {"expression": "不限定时间范围；按 Movie.year 解析出的年份分组，覆盖表中全部年份（1931–2018）"}}, {"path": "population.timeField", "status": "assumed", "value": "Movie.year（取末 4 个字符转为数字作为年份）"}, {"path": "population.missing", "status": "assumed", "value": "不补零：某年份没有电影则不输出该年份的行"}, {"path": "population.joinMultiplicity", "status": "assumed", "value": "M_Cast 每演员一行，与 Movie 连接后一部电影有多行；先用 M_Cast 按 MID 预聚合出每部电影的演员性别构成，再与 Movie 按 MID 一对一连接，电影数按 Movie 行（MID 唯一）计数，不使用连接后的明细行数"}, {"path": "measure.formula", "status": "decided", "value": {"op": "percentage", "per": "year", "numerator": {"op": "count", "per": "movie", "of": "「该电影不存在任何性别非 Female 的演员记录」的电影（无演员记录的电影算作满足）"}, "denominator": {"op": "count", "per": "movie", "of": "该年份全部电影"}}, "verified": false, "rationale": "两个候选的探针输出相同（output=058a8fa28bf2）：因为每部电影都至少有一条演员记录，“无任何非 Female 演员记录”与“至少一位 Female 且无非 Female 记录”对所有电影判定一致，故候选等价。非 Female = Gender='Male' 或 Gender IS NULL（未知/未指定，含 M_Cast.PID 为 NULL 的 2 行）。", "alternatives": [{"id": "alternative_8286bd34-fa35-48c8-9af0-2572fdee7bee", "value": {"op": "percentage", "per": "year", "numerator": {"op": "count", "per": "movie", "of": "「该电影不存在任何性别非 Female 的演员记录」的电影（无演员记录的电影算作满足）"}, "denominator": {"op": "count", "per": "movie", "of": "该年份全部电影"}}, "probe": {"alternativeId": "alternative_8286bd34-fa35-48c8-9af0-2572fdee7bee", "state": "available", "rowCount": 78, "output": "058a8fa28bf2"}}, {"id": "alternative_361f7781-5280-44cd-89d3-5d7f4b87a223", "value": {"op": "percentage", "per": "year", "numerator": {"op": "count", "per": "movie", "of": "「该电影至少有一位 Female 演员且不存在任何性别非 Female 的演员记录」的电影"}, "denominator": {"op": "count", "per": "movie", "of": "该年份全部电影"}}, "probe": {"alternativeId": "alternative_361f7781-5280-44cd-89d3-5d7f4b87a223", "state": "available", "rowCount": 78, "output": "058a8fa28bf2"}}], "outputs": "identical"}, {"path": "measure.countGrain", "status": "assumed", "value": "按电影实体计数：每部电影计一次（按 Movie.MID 去重）"}, {"path": "measure.denominator", "status": "assumed", "value": "该年份的电影总数（Movie 表中该年份的电影数，按 MID 去重）；某年电影数为 0 时该年不输出；性别为 Male 或 NULL（未知/未指定）的演员视为非女性"}, {"path": "grouping", "status": "assumed", "value": ["year（Movie.year 末 4 字符转成的数字年份，升序）"]}, {"path": "selection", "status": "not_applicable"}, {"path": "output", "status": "assumed", "value": {"rowMode": "full", "columns": ["year", "total_movies", "pct_female_only_films"], "units": {"year": "年", "total_movies": "部", "pct_female_only_films": "%"}, "decimals": {"pct_female_only_films": 2}}}]
+```
+最后一次Spec完整返回，含保留字段、假定、open/decided与观测依据
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local096.csv`
+```text
+year,total_movies,pct_female_only_films
+1931,1,0
+1936,3,0
+1939,2,50
+1941,1,0
+1943,1,0
+1946,2,0
+1947,2,0
+1948,3,0
+1949,3,0
+1950,2,0
+1951,6,0
+1952,6,0
+1953,8,0
+1954,6,0
+1955,9,0
+1956,6,0
+1957,13,0
+1958,9,0
+1959,6,0
+1960,14,0
+1961,7,0
+1962,12,0
+1963,10,0
+1964,15,0
+1965,14,0
+1966,18,0
+1967,19,0
+1968,21,0
+1969,18,0
+1970,24,0
+1971,24,0
+1972,29,0
+1973,29,0
+1974,26,0
+1975,24,0
+1976,22,0
+1977,28,0
+1978,23,0
+1979,25,0
+1980,31,0
+1981,33,0
+1982,36,0
+1983,37,0
+1984,33,0
+1985,31,0
+1986,33,0
+1987,32,0
+1988,37,0
+1989,47,0
+1990,42,0
+1991,41,0
+1992,58,0
+1993,63,0
+1994,60,0
+1995,56,0
+1996,60,0
+1997,55,0
+1998,55,0
+1999,66,1.52
+2000,64,1.56
+2001,73,0
+2002,87,0
+2003,103,0
+2004,103,0
+2005,129,0
+2006,101,0
+2007,109,0
+2008,107,0
+2009,110,0
+2010,125,0
+2011,116,0
+2012,111,0
+2013,136,0
+2014,126,0
+2015,119,0
+2016,129,0
+2017,126,0
+2018,104,0.96
+```
+实际评分CSV
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local096.csv`
+```text
+"YEAR","TOTAL_NUM_OF_MOV","PERCENT_OF_MOV_WITH_ONLY_F"
+1939,2,50.0
+2018,104,1.9230769230769231
+2000,64,1.5625
+1999,66,1.5151515151515151
+2009,110,0.9090909090909091
+2012,111,0.9009009009009009
+1931,1,0.0
+1936,3,0.0
+1941,1,0.0
+1943,1,0.0
+1946,2,0.0
+1947,2,0.0
+1948,3,0.0
+1949,3,0.0
+1950,2,0.0
+1951,6,0.0
+1952,6,0.0
+1953,8,0.0
+1954,6,0.0
+1955,9,0.0
+1956,6,0.0
+1957,13,0.0
+1958,9,0.0
+1959,6,0.0
+1960,14,0.0
+1961,7,0.0
+1962,12,0.0
+1963,10,0.0
+1964,15,0.0
+1965,14,0.0
+1966,18,0.0
+1967,19,0.0
+1968,21,0.0
+1969,18,0.0
+1970,24,0.0
+1971,24,0.0
+1972,29,0.0
+1973,29,0.0
+1974,26,0.0
+1975,24,0.0
+1976,22,0.0
+1977,28,0.0
+1978,23,0.0
+1979,25,0.0
+1980,31,0.0
+1981,33,0.0
+1982,36,0.0
+1983,37,0.0
+1984,33,0.0
+1985,31,0.0
+1986,33,0.0
+1987,32,0.0
+1988,37,0.0
+1989,47,0.0
+1990,42,0.0
+1991,41,0.0
+1992,58,0.0
+1993,63,0.0
+1994,60,0.0
+1995,56,0.0
+1996,60,0.0
+1997,55,0.0
+1998,55,0.0
+2001,73,0.0
+2002,87,0.0
+2003,103,0.0
+2004,103,0.0
+2005,129,0.0
+2006,101,0.0
+2007,109,0.0
+2008,107,0.0
+2010,125,0.0
+2011,116,0.0
+2013,136,0.0
+2014,126,0.0
+2015,119,0.0
+2016,129,0.0
+2017,126,0.0
+```
+Gold完整CSV及字符串多重集/数值
+- **score**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-attempt-001.json /execResult/caseScores/local096`
+```text
+0
+```
+此attempt官方执行比较分数
+- **score**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/spider2lite_eval.jsonl #local096`
+```text
+{"instance_id": "local096", "condition_cols": [], "ignore_order": true, "toks": "114"}
+```
+正式condition_cols/ignore_order；列名/额外列及允许行序非单独错因
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local096/attempts/attempt-001/trace.json /toolCalls/10/result/details/artifact/preview`
+```text
+{"columns": ["movies_without_any_cast", "mcast_rows", "distinct_mid_in_cast"], "rows": [[0, 82837, 3475]], "columnTypes": ["INTEGER", "INTEGER", "INTEGER"], "rowCount": 1, "truncated": false}
+```
+无卡司电影0，资格候选本数据等价
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local096/attempts/attempt-001/trace.json /toolCalls/28/result/details/artifact/preview`
+```text
+{"columns": ["total_movies", "female_only_movies", "movies_with_female", "cast_all_unknown_gender", "female_actor_rows_in_those_movies"], "rows": [[3475, 4, 3450, 0, 26]], "columnTypes": ["INTEGER", "INTEGER", "INTEGER", "INTEGER", "INTEGER"], "rowCount": 1, "truncated": false}
+```
+规范PID全女性电影总4，不能倒推Gold构成
+
+<a id="local098"></a>
+### local098 — 演员活跃期无四年空窗的数量
+
+- **Attempt**：`attempt-001`；官方CSV分数及离线重放均为0。
+- **定性**：未定位；节点 `未定位`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：有出演演员首年到末年内无连续四年完全无电影；相邻出演年差<=4（只有3个无片年），同年多片按出现年去重。
+- **本次SQL**：TRIM Cast.PID、年份末四位，演员年去重LAG后MAX年差<=4；单年演员NULL视0；仅Cast有出演且PID非NULL。
+- **实际失配**：预测28698 vsGold32585，差3887；全Person含无出演的已有探针34136也非Gold。Cast不同PID32127，Gold更高，但不能恢复其人物总体。
+- **Spec处理**：共六次Spec：index4source/join缺rationale拒，index5补齐；eligibility有出演/全Person open。index26决定缺compare、conditions/source缺reason全拒；index28以HTTP451为由reason替换eligibility为assumed仅有出演成功；index29附reason补TRIM/末四位、移除Person成功。SQL符合成功字段，index26不是已生效。
+- **错因分析**：年差<=4吻合最多3连续空年，非off-by-one；末四位避罗马前缀，单年演员无内部空窗。全Person含未出演者不一定属题面演员；无Gold SQL/名单，Gold大于Cast数不能单独证明标准错误，不能直接改总体迎合计数。
+- **过程机制**：3次探索超时后恢复，index25探索预算耗尽。；compare HTTP451后reason将open覆盖assumed，未证是业务错因。；子代理称CAST无损，但主traceMIN=0及117非四位值；最终识别修复。
+- **后续验证/修复**：补Gold PID集合差分，确定有出演/全Person、单年/未知政策，坚持四年空窗，不从32585倒推阈值。
+- **限制**：Gold SQL/实体名单、年份解析及空主体政策缺失。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local098 /question`
+```text
+From the first year each actor appeared in a film to the last, how many actors in the database never had a gap longer than three consecutive years without at least one new movie appearance, meaning there is no four-year span anywhere in their active career without at least a single film credit?
+```
+原始题面全文
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local098/attempts/attempt-001/submissions/sql/local098.sql`
+```text
+WITH ay AS (
+  SELECT DISTINCT TRIM(mc.PID) AS pid,
+         CAST(SUBSTR(TRIM(m.year), -4) AS INTEGER) AS yr
+  FROM M_Cast mc
+  JOIN Movie m ON m.MID = mc.MID
+  WHERE mc.PID IS NOT NULL
+),
+o AS (
+  SELECT pid, yr, LAG(yr) OVER (PARTITION BY pid ORDER BY yr) AS prev_yr
+  FROM ay
+),
+g AS (
+  SELECT pid, MAX(yr - prev_yr) AS max_gap
+  FROM o
+  GROUP BY pid
+)
+SELECT COUNT(*) AS actor_count
+FROM g
+WHERE COALESCE(max_gap, 0) <= 4
+```
+本attempt实际提交SQL，与bound_final_sql去除首尾空白相同
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local098/attempts/attempt-001/trace.json /toolCalls/4/result/details/outcomes`
+```text
+[{"path": "population.entity", "status": "applied"}, {"path": "population.eligibility", "status": "applied"}, {"path": "population.conditions", "status": "applied"}, {"path": "population.source", "status": "rejected", "code": "INVALID_REQUEST", "message": "population.source with basis \"assumed\" needs a rationale"}, {"path": "population.time", "status": "applied"}, {"path": "population.timeField", "status": "applied"}, {"path": "population.missing", "status": "applied"}, {"path": "population.joinMultiplicity", "status": "rejected", "code": "INVALID_REQUEST", "message": "population.joinMultiplicity with basis \"assumed\" needs a rationale"}, {"path": "measure.formula", "status": "applied"}, {"path": "measure.countGrain", "status": "applied"}, {"path": "measure.denominator", "status": "applied"}, {"path": "measure.window", "status": "applied"}, {"path": "grouping", "status": "applied"}, {"path": "selection", "status": "applied"}, {"path": "output", "status": "applied"}]
+```
+逐路径真实applied/rejected，不以调用参数当生效状态
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local098/attempts/attempt-001/trace.json /toolCalls/5/result/details/outcomes`
+```text
+[{"path": "population.source", "status": "applied"}, {"path": "population.joinMultiplicity", "status": "applied"}]
+```
+逐路径真实applied/rejected，不以调用参数当生效状态
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local098/attempts/attempt-001/trace.json /toolCalls/26/result/details/outcomes`
+```text
+[{"path": "population.eligibility", "status": "rejected", "code": "SPEC_TRANSITION_INVALID", "message": "population.eligibility: the alternatives produce different or unknown outputs; call compare_hypotheses with path \"population.eligibility\" before deciding"}, {"path": "population.conditions", "status": "rejected", "code": "SPEC_TRANSITION_INVALID", "message": "population.conditions is already set; add \"reason\" to change it"}, {"path": "population.source", "status": "rejected", "code": "SPEC_TRANSITION_INVALID", "message": "population.source is already set; add \"reason\" to change it"}]
+```
+逐路径真实applied/rejected，不以调用参数当生效状态
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local098/attempts/attempt-001/trace.json /toolCalls/28/result/details/outcomes`
+```text
+[{"path": "population.eligibility", "status": "applied"}]
+```
+逐路径真实applied/rejected，不以调用参数当生效状态
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local098/attempts/attempt-001/trace.json /toolCalls/29/result/details/outcomes`
+```text
+[{"path": "population.conditions", "status": "applied"}, {"path": "population.source", "status": "applied"}]
+```
+逐路径真实applied/rejected，不以调用参数当生效状态
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local098/attempts/attempt-001/trace.json /toolCalls/29/result/details/fields`
+```text
+[{"path": "population.entity", "status": "assumed", "value": {"name": "actor (人物)", "keyColumns": ["PID"]}, "rationale": "题面问'演员'，以人物实体为单位，业务键取 Person.PID/M_Cast.PID"}, {"path": "population.eligibility", "status": "assumed", "value": "仅计入在 M_Cast 至少有一条出演记录的人物 PID", "rationale": "题面以'每位演员首次到末次出演影片的年份'为判定区间，预设演员必须有出演记录；无出演记录者无活跃期可谈。M_Cast 是出演表，Person 是通用人物表（5436 个制品人 PID 中仅 743 个也出演，5438 个 Person PID 无任何出演），计入非出演者会让他们空洞地满足'无缺口'，与题意不符。"}, {"path": "population.conditions", "status": "assumed", "value": ["出演记录取 M_Cast，人物键为 TRIM(M_Cast.PID)（原始值含前导空格，长度 10 而 Person.PID 为 9）", "影片年份取 Movie.year 末尾四位：CAST(SUBSTR(TRIM(year),-4) AS INTEGER)，范围为 1931-2018；避免 'I 2018' 等罗马数字前缀直接 CAST 成 0", "缺口条件作用于演员层：相邻出现年份之差不超过 4（等价于活跃期内任意连续四个日历年至少有一个出演年份）"], "rationale": "Movie.year 存在 'I 2018'/'III 2015' 等前缀（117 行非 4 位），直接 CAST 会得 0 并制造虚假大缺口"}, {"path": "population.source", "status": "assumed", "value": {"tables": ["M_Cast", "Movie"], "note": "出演=M_Cast（TRIM(PID) 作人物键），影片年份=Movie.year 末尾四位；Person 不参与，因其为通用人物表且 PID 前导空格不一致"}, "rationale": "eligibility 已决定仅统计有出演记录者，无需进入 Person 表"}, {"path": "population.time", "status": "assumed", "value": {"expression": "全库范围，无观察期限制；使用影片年份"}}, {"path": "population.timeField", "status": "assumed", "value": "Movie.year", "rationale": "题面'first year ... appeared in a film / new movie appearance'指影片年份"}, {"path": "population.missing", "status": "assumed", "value": "不补零；缺口由相邻出现年份之差判定，而非补齐日历期"}, {"path": "population.joinMultiplicity", "status": "assumed", "value": "M_Cast 与 Movie 按 MID 连接（Movie.MID 唯一），每(演员,影片)一行；同一演员同一年多部影片只计一个出现年份（需按 PID,year 去重）", "rationale": "M_Cast 是每演员每影片一行的关联表，同一演员同一年多部影片会产生多行，但'出现年份'应按年去重"}, {"path": "measure.formula", "status": "assumed", "value": {"op": "count", "per": "actor", "of": "PID"}, "rationale": "答案是满足条件的演员人数"}, {"path": "measure.countGrain", "status": "assumed", "value": "按实体：每个满足'无四年缺口'条件的演员计 1"}, {"path": "measure.denominator", "status": "not_applicable"}, {"path": "measure.window", "status": "not_applicable"}, {"path": "grouping", "status": "not_applicable"}, {"path": "selection", "status": "not_applicable"}, {"path": "output", "status": "assumed", "value": {"rowMode": "scalar", "columns": ["actor_count"], "units": {"actor_count": "演员人数"}, "decimals": {"actor_count": 0}}}]
+```
+最后一次Spec完整返回，含保留字段、假定、open/decided与观测依据
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local098.csv`
+```text
+actor_count
+28698
+```
+实际评分CSV
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local098.csv`
+```text
+output
+32585
+```
+Gold完整CSV及字符串多重集/数值
+- **score**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-attempt-001.json /execResult/caseScores/local098`
+```text
+0
+```
+此attempt官方执行比较分数
+- **score**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/spider2lite_eval.jsonl #local098`
+```text
+{"instance_id": "local098", "condition_cols": [], "ignore_order": false, "toks": "184"}
+```
+正式condition_cols/ignore_order；列名/额外列及允许行序非单独错因
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local098/attempts/attempt-001/trace.json /toolCalls/15/result/details/artifact/preview`
+```text
+{"columns": ["cast_rows", "distinct_cast_pids", "distinct_mids"], "rows": [[82837, 32127, 3475]], "columnTypes": ["INTEGER", "INTEGER", "INTEGER"], "rowCount": 1, "truncated": false}
+```
+规范Cast PID实体数32127
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local098/attempts/attempt-001/trace.json /toolCalls/21/result/details/artifact/preview`
+```text
+{"columns": ["actor_count"], "rows": [[34136]], "columnTypes": ["INTEGER"], "rowCount": 1, "truncated": false}
+```
+全Person含无出演探针34136仍非Gold
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local098/attempts/attempt-001/trace.json /toolCalls/12/result/details/artifact/preview`
+```text
+{"columns": ["min_y", "max_y", "null_y", "empty_y", "not4_y"], "rows": [[0, 2018, 0, 0, 117]], "columnTypes": ["INTEGER", "INTEGER", "INTEGER", "INTEGER", "INTEGER"], "rowCount": 1, "truncated": false}
+```
+实际年份CAST存在0非无损
+
+<a id="local100"></a>
+### local100 — 沙鲁克合作图距离2的演员数量
+
+- **Attempt**：`attempt-001`；官方CSV分数及离线重放均为0。
+- **定性**：未定位；节点 `未定位`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：同片合作为边；不同演员曾与沙鲁克直接伙伴同片但从未与他直接同片，排除本人。
+- **本次SQL**：种子nm0451321，Cast同MID生成2382直接伙伴，再取其影片不同演员，排除直接层/本人；ltrim统一PID得25698。
+- **实际失配**：预测25698 vsGold15911，差9787；trace观测种子90片、直接2382、两跳并集28081、最终25698。
+- **Spec处理**：index3唯一Spec全部applied。entity/eligibility/两跳条件request，source schema/evidence，countGrain Person.PID去重；SQL用同规范Cast.PID，全部32127 Cast PID观测能匹配Person。无open/revisions，SQL落实成功两跳定义。
+- **错因分析**：规范PID、种子身份、两跳和直接层排除吻合题面。去Person不构成已证总体变更，规范Cast PID全部匹配；Movie也匹配。无Gold SQL/演员集合，不能从小结果推断姓名去重、漏边、原始空格或额外限制，更不能宣告Gold错。
+- **过程机制**：形状/身份准入通过，但spec_feedback provider_http_error为unknown，不是合作图业务证明。
+- **后续验证/修复**：补Gold种子/直接/二跳PID集合离线比对，核查规范身份及排除直接层，不新增性别/年份/角色限制。
+- **限制**：Gold SQL/演员集合缺失，9787差异来源未知。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local100 /question`
+```text
+Find out how many actors have a 'Shahrukh number' of 2? This means they acted in a film with someone who acted with Shahrukh Khan, but not directly with him.
+```
+原始题面全文
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local100/attempts/attempt-001/submissions/sql/local100.sql`
+```text
+WITH l1 AS (
+  SELECT DISTINCT ltrim(c.PID) AS pid
+  FROM M_Cast c
+  WHERE c.MID IN (SELECT MID FROM M_Cast WHERE ltrim(PID)='nm0451321')
+    AND ltrim(c.PID) <> 'nm0451321'
+),
+l1_movies AS (
+  SELECT DISTINCT c.MID
+  FROM M_Cast c JOIN l1 ON ltrim(c.PID)=l1.pid
+),
+l2 AS (
+  SELECT DISTINCT ltrim(c2.PID) AS pid
+  FROM M_Cast c2 JOIN l1_movies m ON c2.MID=m.MID
+)
+SELECT COUNT(*) AS shahrukh_number_2_actor_count
+FROM l2
+WHERE pid NOT IN (SELECT pid FROM l1)
+  AND pid <> 'nm0451321'
+```
+本attempt实际提交SQL，与bound_final_sql去除首尾空白相同
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local100/attempts/attempt-001/trace.json /toolCalls/3/result/details/outcomes`
+```text
+[{"path": "population.entity", "status": "applied"}, {"path": "population.eligibility", "status": "applied"}, {"path": "population.conditions", "status": "applied"}, {"path": "population.source", "status": "applied"}, {"path": "population.time", "status": "applied"}, {"path": "population.joinMultiplicity", "status": "applied"}, {"path": "measure.formula", "status": "applied"}, {"path": "measure.countGrain", "status": "applied"}, {"path": "grouping", "status": "applied"}, {"path": "selection", "status": "applied"}, {"path": "output", "status": "applied"}]
+```
+逐路径真实applied/rejected，不以调用参数当生效状态
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local100/attempts/attempt-001/trace.json /toolCalls/3/result/details/fields`
+```text
+[{"path": "population.entity", "status": "request", "value": {"name": "actor", "keyColumns": ["PID"]}, "evidenceIds": ["evidence_9bcdadbc-a4b6-4517-a2a6-a341220c2570"]}, {"path": "population.eligibility", "status": "request", "value": "拥有至少一条 M_Cast 出演记录的演员（按 Person.PID 标识）；排除 Shah Rukh Khan 本人，并排除所有与 Shah Rukh Khan 在同片直接出演的演员（即 Shahrukh number ≤ 1 者）", "evidenceIds": ["evidence_8d5bb1dc-a001-47ff-bff8-3a539ba74431"]}, {"path": "population.conditions", "status": "request", "value": ["存在一部影片 F1 使该演员与某中间演员 A1 同片出演（M_Cast 同一 MID），且 A1 曾与 Shah Rukh Khan(nm0451321) 同片出演；同时该演员不曾在任何影片中与 Shah Rukh Khan 同片出演"], "evidenceIds": ["evidence_24d23330-bd9e-4cf5-bcc7-17139be32bbf"]}, {"path": "population.source", "status": "evidence", "value": {"tables": ["Person", "M_Cast", "Movie"], "note": "Person.PID 与 M_Cast.PID 连接需 ltrim(M_Cast.PID)；影片以 M_Cast.MID 标识，未使用 Movie 作为过滤条件"}, "evidenceIds": ["evidence_fdf3ba40-5ebd-4983-925d-65a7a355b801"]}, {"path": "population.time", "status": "not_applicable"}, {"path": "population.joinMultiplicity", "status": "assumed", "value": "M_Cast 中同一 (MID,PID) 可能重复；演员级计数按 PID 去重，中间关系逐层以 DISTINCT 处理"}, {"path": "measure.formula", "status": "assumed", "value": {"op": "count_distinct", "of": "PID"}}, {"path": "measure.countGrain", "status": "assumed", "value": "按演员（Person.PID）去重计数"}, {"path": "grouping", "status": "not_applicable"}, {"path": "selection", "status": "not_applicable"}, {"path": "output", "status": "assumed", "value": {"rowMode": "scalar", "columns": ["shahrukh_number_2_actor_count"], "units": {"shahrukh_number_2_actor_count": "actors"}, "decimals": {"shahrukh_number_2_actor_count": 0}}}]
+```
+最后一次Spec完整返回，含保留字段、假定、open/decided与观测依据
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local100.csv`
+```text
+shahrukh_number_2_actor_count
+25698
+```
+实际评分CSV
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local100.csv`
+```text
+output
+15911
+```
+Gold完整CSV及字符串多重集/数值
+- **score**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-attempt-001.json /execResult/caseScores/local100`
+```text
+0
+```
+此attempt官方执行比较分数
+- **score**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/spider2lite_eval.jsonl #local100`
+```text
+{"instance_id": "local100", "condition_cols": [], "ignore_order": false, "toks": "107"}
+```
+正式condition_cols/ignore_order；列名/额外列及允许行序非单独错因
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local100/attempts/attempt-001/trace.json /toolCalls/4/result/details/artifact/preview`
+```text
+{"columns": ["srk_movies", "l1_incl_srk", "cast_rows", "cast_pids_with_lead_space", "distinct_pids", "dup_mid_pid_pairs", "pids_matched_person"], "rows": [[90, 2383, 82837, 82835, 32127, 0, 32127]], "columnTypes": ["INTEGER", "INTEGER", "INTEGER", "INTEGER", "INTEGER", "INTEGER", "INTEGER"], "rowCount": 1, "truncated": false}
+```
+种子90片、Cast规范PID32127全部匹配Person
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local100/attempts/attempt-001/trace.json /toolCalls/5/result/details/artifact/preview`
+```text
+{"columns": ["l1_count", "l2_all", "l2_excluding_l1"], "rows": [[2382, 28081, 25698]], "columnTypes": ["INTEGER", "INTEGER", "INTEGER"], "rowCount": 1, "truncated": false}
+```
+直接层及二跳并集实际观测
+
+<a id="local114"></a>
+### local114 — 各区域订单与最高销售代表
+
+- **Attempt**：`attempt-001`；官方CSV分数及离线重放均为0。
+- **定性**：Gold冲突；节点 `measure.countGrain`；错误层：标准答案有问题；可见性：不适用或未定。
+- **题面/标准**：每区统计订单数、销售额，先按代表汇总销售，再保留最高代表的全部并列者。题面计数对象是orders。
+- **本次SQL**：代表→账户→订单左连接，COUNT(o.id)按代表计订单，再区级SUM(order_cnt)；金额同链路汇总，RANK保留最高代表并列。
+- **实际失配**：四区仅计数列不匹配：Midwest897 vs9；Northeast2357 vs21；Southeast2024 vs10；West1634 vs10。金额、最高代表姓名与销售额一致。Gold计数等于本attempt观测的代表人数；ignore_order=true，别名不是原因。
+- **Spec处理**：仅一次Spec写入index4，16路径均applied，undeclared/open空。countGrain assumed明确订单头行，custom formula含COUNT(web_orders.id)；最高selection/ties request。SQL兑现声明。
+- **错因分析**：Gold计数值与明确订单对象冲突。订单键fanout=1，不能归因连接放大；其他列一致排除金额及最高代表选择为主因。没有GoldSQL，不能断言其内部COUNT(rep)，但观测各区代表人数正是Gold9/21/10/10。
+- **过程机制**：首条探索引用r.region_id随后修正为s.region_id；不是最终SQL。；Spec feedback provider_http_error；join_fanout clear。
+- **后续验证/修复**：核对并修正Gold订单计数，勿为了9/21/10/10把指标改为代表人数。补GoldSQL确认内部计数对象。
+- **限制**：GoldSQL缺失；代表人数来自本attempt explorer观测报告，不是业务定义。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local114 /question`
+```text
+Provide a detailed web sales report for each region, including the number of orders, total sales amount, and the name and sales amount of all sales representatives who achieved the highest total sales amount in that region (include all representatives in case of a tie).
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local114/attempts/attempt-001/submissions/sql/local114.sql`
+```text
+WITH rep_sales AS (
+  SELECT s.region_id AS region_id, s.id AS rep_id, s.name AS rep_name,
+         COUNT(o.id) AS order_cnt, COALESCE(SUM(o.total_amt_usd), 0) AS rep_sales
+  FROM web_sales_reps s
+  LEFT JOIN web_accounts a ON a.sales_rep_id = s.id
+  LEFT JOIN web_orders o ON o.account_id = a.id
+  GROUP BY s.region_id, s.id, s.name
+),
+reg AS (
+  SELECT region_id, SUM(order_cnt) AS order_count, SUM(rep_sales) AS total_sales
+  FROM rep_sales GROUP BY region_id
+),
+rk AS (
+  SELECT region_id, rep_name, rep_sales,
+         RANK() OVER (PARTITION BY region_id ORDER BY rep_sales DESC) AS rnk
+  FROM rep_sales
+)
+SELECT rg.name AS region,
+       rg2.order_count AS order_count,
+       ROUND(rg2.total_sales, 2) AS total_sales_amount,
+       rk.rep_name AS top_rep_name,
+       ROUND(rk.rep_sales, 2) AS top_rep_sales_amount
+FROM rk
+JOIN reg rg2 ON rg2.region_id = rk.region_id
+JOIN web_region rg ON rg.id = rk.region_id
+WHERE rk.rnk = 1
+ORDER BY rg.id;
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local114.csv`
+```text
+region,order_count,total_sales_amount,top_rep_name,top_rep_sales_amount
+Northeast,2357,7744405.36,Tia Amato,1010690.6
+Midwest,897,3013486.51,Charles Bidwell,675637.19
+Southeast,2024,6458497,Earlie Schleusner,1098137.72
+West,1634,5925122.96,Georgianna Chisholm,886244.12
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local114.csv`
+```text
+region,total_orders,total_sales,top_selling_rep,max_sales
+Midwest,9,3013486.51,Charles Bidwell,675637.19
+Northeast,21,7744405.36,Tia Amato,1010690.6
+Southeast,10,6458497.0,Earlie Schleusner,1098137.72
+West,10,5925122.96,Georgianna Chisholm,886244.12
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local114/attempts/attempt-001/trace.json /toolCalls/4/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "assumed", "value": "纳入全部 4 个区域；区域内全部销售代表均参与“最高销售额”排名（无订单的代表销售额为 0，不会成为最高值）", "rationale": "题面为“每个区域”的全部区域报告，观测显示 4 个区域均有订单与代表。"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local114/attempts/attempt-001/trace.json /toolCalls/4/result/details/fields/8`
+```text
+{"path": "measure.formula", "status": "assumed", "value": {"op": "custom", "description": "每个区域输出三项：(1) 订单数 = count(web_orders.id)；(2) 总销售额 = sum(web_orders.total_amt_usd)；(3) 销售代表最高销售额 = 先在该区域内按代表聚合 sum(total_amt_usd) 得到代表级销售额，再取组内最大值及其全部并列代表的姓名与销售额。"}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local114/attempts/attempt-001/trace.json /toolCalls/4/result/details/fields/9`
+```text
+{"path": "measure.countGrain", "status": "assumed", "value": "订单按行计数（web_orders 为一订单一行的订单头粒度）", "rationale": "探索显示 web_orders 一订单一行（id 唯一）。"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local114/attempts/attempt-001/trace.json /toolCalls/4/result/details/fields/13`
+```text
+{"path": "selection", "status": "request", "value": {"n": 1, "orderBy": "代表级销售额（sum(total_amt_usd)）DESC，区域内取最高"}, "evidenceIds": ["evidence_9d71e01c-b7d8-4bcf-8cbc-3f935652c300"]}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local114/attempts/attempt-001/trace.json /toolCalls/4/result/details/fields/15`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "grouped", "rowCount": 4, "columns": ["region", "order_count", "total_sales_amount", "top_rep_name", "top_rep_sales_amount"], "units": {"order_count": "笔", "total_sales_amount": "USD", "top_rep_sales_amount": "USD"}, "decimals": {"order_count": 0, "total_sales_amount": 2, "top_rep_sales_amount": 2}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **process**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local114/attempts/attempt-001/trace.json /toolCalls/6/result/details/artifact/preview`
+```text
+{"columns": ["region", "rep_name", "rep_sales", "reps_in_region", "tied_top"], "rows": [["Midwest", "Charles Bidwell", 675637.19, 9, 1], ["Northeast", "Tia Amato", 1010690.6, 21, 1], ["Southeast", "Earlie Schleusner", 1098137.72, 10, 1], ["West", "Georgianna Chisholm", 886244.12, 10, 1]], "columnTypes": ["TEXT", "TEXT", "REAL", "INTEGER", "INTEGER"], "rowCount": 4, "truncated": false}
+```
+原attempt探索观测，支持本文的实际计数/身份事实；不当作业务定义或交付数据。
+
+<a id="local131"></a>
+### local131 — 音乐风格三档偏好计数与零风格
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：未定位；节点 `population.eligibility`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：每风格一行分别计第一、第二、第三偏好。GoldSQL只保留有偏好风格；题面each musical style字面倾向全字典，但未专门规定零偏好风格。
+- **本次SQL**：从Musical_Styles LEFT JOIN偏好，ON中限定1/2/3；25风格全部输出，零偏好三列0。
+- **实际失配**：预测25行Gold20行；额外50's Music、Rap、Elvis、Karaoke、90's Music均三档0。共同20风格计数一致。ignore_order=true，列名排序不是原因。
+- **Spec处理**：完整indices5/6/7/15/17：5登记eligibility两候选open，output decimals格式被拒；6漏taskId创建output-only旁支，7回原task补output applied。探针25vs20；15普通决定被拒需comparison；17用basis=request引each musical style覆写为全字典/零计数，request/applied/open=[]。提交绑定原task。
+- **错因分析**：分叉可定位零实体资格，非COUNT对象或连接放大。Gold WHERE匹配偏好且HAVING任一COUNT>0，实际保留零风格。零实体边界未由合格业务定义明确，两种读法存在；不能只据Gold20行判模型应删零，也不将each读法自动升格无歧义Gold错，留unresolved。
+- **过程机制**：output.decimals拒绝已修复；漏taskId创建旁支。；comparison HTTP451；先前被拒决定未生效，后request替换真实applied。
+- **后续验证/修复**：补确认零偏好风格是否纳入；只报告有偏好时改eligibility及INNER JOIN/HAVING，全风格时改Gold。
+- **限制**：零实体规则题面未明确，业务文档空。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local131 /question`
+```text
+Could you list each musical style with the number of times it appears as a 1st, 2nd, or 3rd preference in a single row per style?
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local131/attempts/attempt-20261010-154318Z/submissions/sql/local131.sql`
+```text
+SELECT s.StyleName AS StyleName, SUM(CASE WHEN mp.PreferenceSeq = 1 THEN 1 ELSE 0 END) AS first_preference, SUM(CASE WHEN mp.PreferenceSeq = 2 THEN 1 ELSE 0 END) AS second_preference, SUM(CASE WHEN mp.PreferenceSeq = 3 THEN 1 ELSE 0 END) AS third_preference FROM Musical_Styles AS s LEFT JOIN Musical_Preferences AS mp ON mp.StyleID = s.StyleID AND mp.PreferenceSeq IN (1,2,3) GROUP BY s.StyleID, s.StyleName ORDER BY s.StyleID
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local131.csv`
+```text
+StyleName,first_preference,second_preference,third_preference
+40's Ballroom Music,0,1,1
+50's Music,0,0,0
+60's Music,1,0,0
+70's Music,0,1,0
+80's Music,0,0,1
+Country,0,1,0
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local131.csv`
+```text
+StyleName,FirstPreference,SecondPreference,ThirdPreference
+Standards,2,2,0
+Jazz,2,1,0
+Rhythm and Blues,2,0,1
+Top 40 Hits,2,0,0
+Contemporary,1,2,0
+Classic Rock & Roll,1,1,0
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local131/attempts/attempt-20261010-154318Z/trace.json /toolCalls/17/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "request", "value": "every style in the Musical_Styles dictionary is a row; a style that no customer chose appears with count 0 in all three rank columns", "evidenceIds": ["evidence_298f561e-d139-419f-a2f3-c928f799d9fd"]}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local131/attempts/attempt-20261010-154318Z/trace.json /toolCalls/17/result/details/fields/6`
+```text
+{"path": "measure.formula", "status": "assumed", "value": {"op": "count", "per": "musical style × preference rank", "of": "Musical_Preferences preference record"}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local131/attempts/attempt-20261010-154318Z/trace.json /toolCalls/17/result/details/fields/9`
+```text
+{"path": "selection", "status": "not_applicable"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local131/attempts/attempt-20261010-154318Z/trace.json /toolCalls/17/result/details/fields/10`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "full", "columns": ["StyleName", "first_preference", "second_preference", "third_preference"], "units": {"first_preference": "count of times the style is a 1st preference", "second_preference": "count of times the style is a 2nd preference", "third_preference": "count of times the style is a 3rd preference"}, "decimals": {"first_preference": 0, "second_preference": 0, "third_preference": 0}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+
+<a id="local133"></a>
+### local133 — 有排名风格加权分与平均绝对差
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：Gold冲突；节点 `population.eligibility`；错误层：标准答案有问题；可见性：不适用或未定。
+- **题面/标准**：至少被一用户排名的风格按第一/第二/第三3/2/1计分，先每风格总分，再这些风格等权平均，求绝对差。
+- **本次SQL**：偏好表按StyleID聚合20个有排名风格，3/2/1求和，AVG(total)=4.05，ABS差ROUND2位。
+- **实际失配**：预测20行Gold25行；40's Ballroom Music总分3/差1.05，Gold差0.2400000000000002；Gold额外50's Music差3.24。额外预测列不单独致错；行数与数值失配。
+- **Spec处理**：6 eligibility/denominator request/applied排除从未排名。formula在6/7两次嵌套per不足rejected；8改custom但引文Compute大写非逐字rejected；9改小写compute，formula request/applied，undeclared/open空。SQL兑现最终成功状态。
+- **错因分析**：题面that has been ranked by at least one user与across all such styles显式限定，Gold含五个无排名风格违反资格。总分81/20=4.05符合实际；Gold3.24与81/25兼容仅为机制候选，不能由数值倒推不可见GoldSQL。资格行集冲突本身可证。
+- **过程机制**：per与大小写引文拒绝均修复；不是最终主因。
+- **后续验证/修复**：修Gold行集与平均分母到有排名20风格；补GoldSQL复核。不得为了评分改变显式总体。
+- **限制**：GoldSQL缺失；Gold内部平均算法未直接可见。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local133 /question`
+```text
+Given a database of musical styles and user preferences, where Musical_Preferences contains user rankings of musical styles (PreferenceSeq=1 for first choice, PreferenceSeq=2 for second choice, PreferenceSeq=3 for third choice): Calculate a weighted score for each musical style by assigning 3 points for each time it was ranked as first choice, 2 points for each second choice, and 1 point for each third choice ranking. Calculate the total weighted score for each musical style that has been ranked by at least one user. Then, compute the absolute difference between each style's total weighted score and the average total weighted score across all such styles.	
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local133/attempts/attempt-20261010-154318Z/submissions/sql/local133.sql`
+```text
+WITH style_scores AS (SELECT mp.StyleID AS StyleID, SUM(CASE mp.PreferenceSeq WHEN 1 THEN 3 WHEN 2 THEN 2 WHEN 3 THEN 1 ELSE 0 END) AS weighted_score FROM Musical_Preferences AS mp GROUP BY mp.StyleID), avg_score AS (SELECT AVG(CAST(ss.weighted_score AS REAL)) AS avg_weighted_score FROM style_scores AS ss) SELECT ss.StyleID AS StyleID, ms.StyleName AS StyleName, ss.weighted_score AS weighted_score, ROUND(ABS(ss.weighted_score - a.avg_weighted_score), 2) AS abs_diff_from_avg FROM style_scores AS ss CROSS JOIN avg_score AS a LEFT JOIN Musical_Styles AS ms ON ms.StyleID = ss.StyleID ORDER BY ss.StyleID
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local133.csv`
+```text
+StyleID,StyleName,weighted_score,abs_diff_from_avg
+1,40's Ballroom Music,3,1.05
+3,60's Music,3,1.05
+4,70's Music,2,2.05
+5,80's Music,1,3.05
+6,Country,2,2.05
+7,Classical,3,1.05
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local133.csv`
+```text
+StyleName,score
+40's Ballroom Music,0.2400000000000002
+50's Music,3.24
+60's Music,0.2400000000000002
+70's Music,1.2400000000000002
+80's Music,2.24
+Country,1.2400000000000002
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local133/attempts/attempt-20261010-154318Z/trace.json /toolCalls/9/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "request", "value": "A musical style qualifies if it has at least one row in Musical_Preferences, i.e. it was ranked (as 1st, 2nd or 3rd choice) by at least one user. Styles present in Musical_Styles but never ranked by any user are excluded from both the per-style rows and the average.", "evidenceIds": ["evidence_5d82a174-f872-4297-880d-394debee19d7"]}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local133/attempts/attempt-20261010-154318Z/trace.json /toolCalls/9/result/details/fields/6`
+```text
+{"path": "measure.formula", "status": "request", "value": {"op": "custom", "description": "Layer 1 - per style, over its ranking rows in Musical_Preferences: weighted_score = SUM(CASE PreferenceSeq WHEN 1 THEN 3 WHEN 2 THEN 2 WHEN 3 THEN 1 ELSE 0 END) = 3 x (count of 1st choices) + 2 x (count of 2nd choices) + 1 x (count of 3rd choices). Layer 2 - across the styles that have at least one ranking row, each style weighted equally (denominator = number of such styles): avg_weighted_score = AVG(weighted_score). Layer 3 - per style: abs_diff_from_avg = ABS(weighted_score - avg_weighted_score). Aggregation order: score per style, then average across styles, then absolute difference per style. Units: points."}, "evidenceIds": ["evidence_4fb2d79f-380e-480f-bd21-c606a74e6e2f"]}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local133/attempts/attempt-20261010-154318Z/trace.json /toolCalls/9/result/details/fields/10`
+```text
+{"path": "selection", "status": "not_applicable"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local133/attempts/attempt-20261010-154318Z/trace.json /toolCalls/9/result/details/fields/11`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "grouped", "rowCount": 20, "columns": ["StyleID", "StyleName", "weighted_score", "abs_diff_from_avg"], "units": {"StyleID": "id", "StyleName": "text", "weighted_score": "points", "abs_diff_from_avg": "points"}, "decimals": {"weighted_score": 0, "abs_diff_from_avg": 2}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **process**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local133/attempts/attempt-20261010-154318Z/trace.json /toolCalls/2/result/content/0/text`
+```text
+Musical_Preferences 表的观测数据取值如下：PreferenceSeq 仅有 1、2、3 三个取值（行数分别为 15、15、6）；总行数 36；不同音乐风格数 20；不同用户数 15；StyleID、CustomerID、PreferenceSeq 三列均无 NULL。
+```
+工具返回中的物理观测报告；用于核对排名风格数或演员覆盖上界，不是业务规则。
+
+<a id="local156"></a>
+### local156 — 地区比特币年度均价与同比
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：可证差异；节点 `population.conditions`；错误层：口径错；可见性：题面引用错。
+- **题面/标准**：每地区每年花费/买入BTC量求均价；保留首年作为同比基线，计算变化后剔除首年输出。Gold2018有相对2017同比。
+- **本次SQL**：BUY/BTC按DD-MM-YYYY第7位截年汇总，filt先剔除各地区首年，然后LAG；2018同比全部NULL，最终按year、price_rank排序。
+- **实际失配**：20行中5个2018同比空，Gold非空（Africa92.86、Asia95.61等）；同region-year均价与后续同比相符。condition_cols=[0,1,2,4]排除rank；ignore_order=false，预测India2018开头，GoldAfrica2018开头并按地区串年，行序也失配。
+- **Spec处理**：3 conditions request引首年排除却登记总体条件，eligibility assumed也剔首年，没限定输出stage。11开候选缺reason被拒；12成功open全币种/BTC，time缺value被拒；13time修正applied。17普通决定被拒需comparison；20basis=assumed加reason覆写成功，最后assumed/applied/open=[]，不是decided。formula只写均价ratio，未声明同比先后。
+- **错因分析**：最早可证分叉是首年排除作用阶段被引文映射为总体排除，SQL在LAG前删除2017基线，造成2018缺同比。不是BTC过滤错（均价匹配），排名列未评分。按年排名行序与Gold顺序另有独立评分失配，不把该行序读法当无歧义业务错。
+- **过程机制**：comparison连续HTTP451，先前决定未生效，后假定覆写实际成功。；日期格式已修复；bound_final_sql与提交一致；fanout unknown不证明重复。
+- **后续验证/修复**：将conditions首年剔除stage设最终输出，所有年先LAG再筛首年；补change_rate计算图，核对当前严格行序契约。
+- **限制**：GoldSQL缺失；rank方向与粗标准不一致但非condition_cols，不能算本次主因。；题面未明确region/year输出行序，行序失分不等同口径错误。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local156 /question`
+```text
+Analyze the annual average purchase price per Bitcoin by region, computed as the total dollar amount spent divided by the total quantity purchased each year, excluding the first year's data for each region. Then, for each year, rank the regions based on these average purchase prices, and calculate the annual percentage change in cost for each region compared to the previous year.
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local156/attempts/attempt-20261010-154318Z/submissions/sql/local156.sql`
+```text
+WITH yearly AS (
+  SELECT SUBSTR(t.txn_date,7,4) AS year, m.region AS region,
+         SUM(t.quantity*p.price) AS spent, SUM(t.quantity) AS qty
+  FROM bitcoin_transactions t
+  JOIN bitcoin_members m ON t.member_id = m.member_id
+  JOIN bitcoin_prices p ON t.ticker = p.ticker AND t.txn_date = p.market_date
+  WHERE t.txn_type='BUY' AND t.ticker='BTC'
+    AND t.quantity IS NOT NULL AND t.quantity <> 0
+  GROUP BY year, region
+),
+filt AS (
+  SELECT * FROM yearly
+  WHERE CAST(year AS INTEGER) > (SELECT MIN(CAST(y2.year AS INTEGER)) FROM yearly y2 WHERE y2.region = yearly.region)
+)
+SELECT year, region,
+       ROUND(spent/qty, 2) AS average_purchase_price,
+       RANK() OVER (PARTITION BY year ORDER BY spent/qty DESC) AS price_rank,
+       ROUND((spent/qty - LAG(spent/qty) OVER (PARTITION BY region ORDER BY year)) * 100.0
+             / LAG(spent/qty) OVER (PARTITION BY region ORDER BY year), 2) AS pct_change_vs_prev_year
+FROM filt
+ORDER BY year, price_rank;
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local156.csv`
+```text
+year,region,average_purchase_price,price_rank,pct_change_vs_prev_year
+2018,India,8031.11,1,
+2018,Asia,7830,2,
+2018,Africa,7690.71,3,
+2018,United States,7578.48,4,
+2018,Australia,7524.88,5,
+2019,India,7731.35,1,-3.73
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local156.csv`
+```text
+"year_start","region","btc_dca","dca_ranking","dca_percentage_change"
+"2018",Africa,7690.71,3,92.86
+"2019",Africa,7368.82,4,-4.19
+"2020",Africa,11114.12,3,50.83
+"2021",Africa,44247.22,2,298.12
+"2018",Asia,7830.0,4,95.61
+"2019",Asia,7267.68,1,-7.18
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local156/attempts/attempt-20261010-154318Z/trace.json /toolCalls/20/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "assumed", "value": "纳入 bitcoin_transactions 中 txn_type='BUY' 且 quantity 非空非零、并能匹配到价格行的交易；再剔除每个地区的最早年份", "rationale": "题面用 'purchase'/'quantity purchased'，故取买入方向；首年剔除为题面明确要求"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local156/attempts/attempt-20261010-154318Z/trace.json /toolCalls/20/result/details/fields/2`
+```text
+{"path": "population.conditions", "status": "assumed", "value": ["txn_type='BUY' AND ticker='BTC'（仅比特币资产）；剔除各地区首年（year > 2017）"], "rationale": "题面称 'per Bitcoin'（每枚比特币的买入均价），而数据中 ticker 含 BTC 与 ETH（ETH 为以太坊，非比特币）。观测显示仅取 ticker='BTC' 时各地区各年均价（2017≈$3800–4000、2018≈$7600–8000、2019≈$7300–7700、2020≈$10300–11400、2021≈$44000–45000）与真实比特币年度均价高度吻合；若混入 ETH，均价被稀释至 $2000–33500，不再是比特币价格。故限定 ticker='BTC'，并剔除各地区首年（year > 2017）。"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local156/attempts/attempt-20261010-154318Z/trace.json /toolCalls/20/result/details/fields/8`
+```text
+{"path": "measure.formula", "status": "assumed", "value": {"op": "ratio", "per": "region-year", "numerator": {"op": "sum", "per": "purchase", "of": "quantity * price"}, "denominator": {"op": "sum", "per": "purchase", "of": "quantity"}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local156/attempts/attempt-20261010-154318Z/trace.json /toolCalls/20/result/details/fields/12`
+```text
+{"path": "selection", "status": "not_applicable"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local156/attempts/attempt-20261010-154318Z/trace.json /toolCalls/20/result/details/fields/13`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "full", "columns": ["year", "region", "average_purchase_price", "price_rank", "pct_change_vs_prev_year"], "units": {"average_purchase_price": "USD per BTC", "pct_change_vs_prev_year": "%"}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+
+<a id="local167"></a>
+### local167 — 首次州女性议员最多人数
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：未定位；节点 `未定位`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：每女性议员按首次代表州归属，任意任期包含某个12-31者计人数，选最多州；GoldCA43。
+- **本次SQL**：F议员最早term_start、term_number取首次州，任期term_end>=开始年12-31者资格；COUNT DISTINCT个人后取最多州。
+- **实际失配**：实际CA42，GoldCA43，差1人；州相同，ignore_order=true，别名不是原因。
+- **Spec处理**：5资格与任一年底条件assumed/applied，time n/a，timeField声明任期区间；countGrain缺rationale和grouping对象候选被拒，6修复成功。两首次州候选探针均CA42，并列两候选亦相同；12 grouping/ties decided/applied/outputs identical/verified=false，open/undeclared空。
+- **错因分析**：实际区间测试在非空正常日期上对应至少一个年末，个人去重符合人数。首次锚点与并列候选同值，不能由43倒推Gold省略年底资格、数任期或换首州。缺GoldSQL/人员名单，额外1人身份及资格未知，不能宣布Gold错误。
+- **过程机制**：countGrain/grouping格式拒绝已修复；同输出探针不是人数差异原因。
+- **后续验证/修复**：补GoldSQL/CA议员ID列表逐人比较首次州、年底覆盖及业务键，不删12-31条件凑43。
+- **限制**：GoldSQL/人员明细缺失；任期端点业务定义未提供。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local167 /question`
+```text
+Based on the state each female legislator first represented, which state has the highest number of female legislators whose terms included December 31st at any point, and what is that count? Please provide the state's abbreviation.
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local167/attempts/attempt-20261010-154318Z/submissions/sql/local167.sql`
+```text
+WITH fem AS (
+  SELECT id_bioguide FROM legislators WHERE gender = 'F'
+),
+first_state AS (
+  SELECT lt.id_bioguide, lt.state,
+         ROW_NUMBER() OVER (PARTITION BY lt.id_bioguide
+                            ORDER BY lt.term_start ASC, lt.term_number ASC) AS rn
+  FROM legislators_terms lt
+  JOIN fem f ON f.id_bioguide = lt.id_bioguide
+),
+qualified AS (
+  SELECT DISTINCT lt.id_bioguide
+  FROM legislators_terms lt
+  JOIN fem f ON f.id_bioguide = lt.id_bioguide
+  WHERE lt.term_end >= date(lt.term_start, 'start of year', '+1 year', '-1 day')
+)
+SELECT fs.state AS state,
+       COUNT(DISTINCT fs.id_bioguide) AS n_female_legislators
+FROM first_state fs
+JOIN qualified q ON q.id_bioguide = fs.id_bioguide
+WHERE fs.rn = 1
+GROUP BY fs.state
+ORDER BY n_female_legislators DESC, fs.state ASC
+LIMIT 1;
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local167.csv`
+```text
+state,n_female_legislators
+CA,42
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local167.csv`
+```text
+state,count_
+CA,43
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local167/attempts/attempt-20261010-154318Z/trace.json /toolCalls/12/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "assumed", "value": "性别为 F 的议员，且至少存在一条任期记录（否则无法归属'首次代表州'）", "rationale": "没有任期的议员无法按首次代表州归属；性别只用 F。"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local167/attempts/attempt-20261010-154318Z/trace.json /toolCalls/12/result/details/fields/7`
+```text
+{"path": "measure.formula", "status": "assumed", "value": {"op": "count_distinct", "of": "id_bioguide"}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local167/attempts/attempt-20261010-154318Z/trace.json /toolCalls/12/result/details/fields/11`
+```text
+{"path": "selection", "status": "assumed", "value": {"n": 1, "orderBy": "female legislator count DESC"}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local167/attempts/attempt-20261010-154318Z/trace.json /toolCalls/12/result/details/fields/13`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "top_n", "rowCount": 1, "columns": ["state", "n_female_legislators"], "units": {"n_female_legislators": "人"}, "decimals": {"n_female_legislators": 0}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+
+<a id="local168"></a>
+### local168 — 远程分析职位前三技能平均年薪
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：未定位；节点 `未定位`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：Data Analyst、远程、非空年薪职位中前三最常需求技能所关联职位的总体平均年薪；标题映射、技能身份及职位/职位技能权重未获精确定义。
+- **本次SQL**：job_title精确等于Data Analyst；先远程非空薪资筛选，按桥表不同job_id计需求取3个skill_id，至少有其一的职位DISTINCT去重，平均每职位一次。
+- **实际失配**：104040.6 vsGold101300，差2740.6；实际top3=182/0/1、5职位。已测short标题92689.22、命名技能92850均不等于Gold。
+- **Spec处理**：4全部applied，conditions open原文/short，countGrain及denominator明确职位等权。29采用short普通决定被拒，但selection修改独立applied。31经comparison改原文job_title，decided/applied/verified=false；同次selection开skill_id/命名技能两候选。39选择skill_id，decided/applied/open=[]。SQL兑现两实际决定及去重。
+- **错因分析**：标题、技能缺行、均值计数对象均有敏感分叉，但无GoldSQL，题面/粗标准不唯一，多个探针也不能还原101300。不能因维表稀疏认定必须内联，也不能凭均值失配证明DISTINCT错或连接放大。未见成功正确声明后SQL偏离。
+- **过程机制**：字段独立生效：29条件被拒不代表selection失败。；comparison多次451；30标题建议原文lean0.34，技能最终仍未证实。
+- **后续验证/修复**：补GoldSQL确认标题字段、top3排名总体/并列、未命名skill_id与均值实体权重；用现有探针反证，不能无依据换分母。
+- **限制**：GoldSQL缺失；skills_dim稀疏为观测，不是业务规则。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local168 /question`
+```text
+Among job postings that specifically have the Data Analyst, require a non-null annual average salary, and are remote, what is the overall average salary when considering only the top three most frequently demanded skills for these positions?
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local168/attempts/attempt-20261010-154318Z/submissions/sql/local168.sql`
+```text
+WITH base AS (
+  SELECT job_id, salary_year_avg
+  FROM job_postings_fact
+  WHERE job_title = 'Data Analyst'
+    AND job_work_from_home = 1
+    AND salary_year_avg IS NOT NULL
+),
+demand AS (
+  SELECT sj.skill_id, COUNT(DISTINCT b.job_id) AS demand_positions
+  FROM base b
+  JOIN skills_job_dim sj ON sj.job_id = b.job_id
+  GROUP BY sj.skill_id
+),
+top3 AS (
+  SELECT skill_id FROM demand ORDER BY demand_positions DESC, skill_id ASC LIMIT 3
+),
+sel AS (
+  SELECT DISTINCT b.job_id, b.salary_year_avg
+  FROM base b
+  JOIN skills_job_dim sj ON sj.job_id = b.job_id
+  WHERE sj.skill_id IN (SELECT skill_id FROM top3)
+)
+SELECT ROUND(AVG(salary_year_avg), 2) AS avg_salary
+FROM sel
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local168.csv`
+```text
+avg_salary
+104040.6
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local168.csv`
+```text
+avg_salary
+101300
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local168/attempts/attempt-20261010-154318Z/trace.json /toolCalls/39/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "assumed", "value": "只纳入 salary_year_avg 非空（题面要求 non-null annual average salary）的职位；salary_year_avg 为 NULL 的职位不进入总体。零薪资不作特殊处理（观测范围内 salary_year_avg 最小为 23496）。"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local168/attempts/attempt-20261010-154318Z/trace.json /toolCalls/39/result/details/fields/6`
+```text
+{"path": "measure.formula", "status": "assumed", "value": {"op": "avg", "per": "job posting", "of": "salary_year_avg"}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local168/attempts/attempt-20261010-154318Z/trace.json /toolCalls/39/result/details/fields/10`
+```text
+{"path": "selection", "status": "decided", "value": {"n": 3, "orderBy": "要求该技能的合格职位数 desc；技能身份 = skills_job_dim.skill_id（不要求该 skill_id 在 skills_dim 中有名称行）；并列按 skill_id asc 破并列"}, "verified": false, "rationale": "把两个候选放回题面逐词检验：题面要求 'the top three most frequently demanded skills for these positions'，即必须存在三个最常被要求的技能。候选Y（按 skills_dim.skills 名称）在本库只能给出 python 与 qlik 两个技能（合格集合内只有 2 个有名称的技能，skills_dim 仅 26 行），'前三'无法成立，且内连接会静默丢弃 90% 以上的技能需求记录（skills_job_dim 涉及 244 个 skill_id）；候选X（按 skill_id）能给出恰好三个最常被要求的技能（182、0、1），不丢弃任何需求记录，更符合题面。两候选探针最终输出不同（X: 104040.6；Y: 92850），故逐词对照后采用候选X。compare_hypotheses 对该字段不可用（HTTP 451，重试多次），本决定由题面与方法学理由作出并属未证实假设。", "alternatives": [{"id": "alternative_35addaf8-fa4b-4472-9cb2-e9dca43e2ac8", "value": {"n": 3, "orderBy": "要求该技能的合格职位数 desc；技能身份 = skills_job_dim.skill_id（不要求该 skill_id 在 skills_dim 中有名称行）；并列按 skill_id asc 破并列"}, "probe": {"alternativeId": "alternative_35addaf8-fa4b-4472-9cb2-e9dca43e2ac8", "state": "available", "rowCount": 1, "output": "d20d653ba1c5"}}, {"id": "alternative_ffa27cfb-423c-4d3c-bf80-341b1867602c", "value": {"n": 3, "orderBy": "要求该技能的合格职位数 desc；技能身份 = skills_dim.skills 名称（内连接 skills_dim）；并列按 skills asc 破并列"}, "probe": {"alternativeId": "alternative_ffa27cfb-423c-4d3c-bf80-341b1867602c", "state": "available", "rowCount": 1, "output": "9eb22599524e"}}], "outputs": "distinct"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local168/attempts/attempt-20261010-154318Z/trace.json /toolCalls/39/result/details/fields/12`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "scalar", "columns": ["avg_salary"], "units": {"avg_salary": "USD/year"}, "decimals": {"avg_salary": 2}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+
+<a id="local169"></a>
+### local169 — 1917–1999初任议员二十期留存
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：未定位；节点 `未定位`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：首次起点1917-01-01至1999-12-31固定队列，二十期相应12-31仍在任比例，包含零期；精确锚点缺GoldSQL。
+- **本次SQL**：MIN(term_start)4033人固定队列，period1..20检查首次年+period年末，EXISTS任意任期闭区间覆盖；个人去重/4033，ROUND4位，零期COALESCE。
+- **实际失配**：双方20行；第1期0.9809 vs0.96974956607984，第2期0.7719 vs0.78651128192413，第4期0.6829 vs0.69923134143318，多期差>0.01。双方0到1比例，不是乘100；4位舍入不足解释。
+- **Spec处理**：7队列条件/request与time两锚点open生效，source缺value、formula最外per、grouping形状被拒。8漏taskId新建旁支只三字段，10/11对旁支probe被拒无候选；12回原task补修，13/14原task两锚点成功探针；16选首次年+k decided/applied/verified=false/open=[]。最终SQL与选项一致。
+- **错因分析**：未选首次年+k-1候选第一期0.997025也不符Gold0.96975，不能移一期就定性全部失分。原trace验证MIN起点与term_number0逐人12518/12518一致。缺GoldSQL/人员期别清单，队列、端点或断任再任隐含差异未定。
+- **过程机制**：漏taskId导致旁支与两probe拒绝，回原task已修复。；comparison+k lean0.30不是标准事实；决定未证实。
+- **后续验证/修复**：补GoldSQL/期别人员ID核查4033固定分母、首期日期、断任/再任及端点；不只移一期或乘100凑答案。
+- **限制**：GoldSQL不可见，Gold断任再任与日历锚点未说明。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local169 /question`
+```text
+What is the annual retention rate of legislators who began their first term between January 1, 1917 and December 31, 1999, measured as the proportion of this cohort still in office on December 31st for each of the first 20 years following their initial term start? The results should show all 20 periods in sequence regardless of whether any legislators were retained in a particular year.
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local169/attempts/attempt-20261010-154318Z/submissions/sql/local169.sql`
+```text
+WITH RECURSIVE
+cohort AS (
+  SELECT id_bioguide AS bid,
+         CAST(strftime('%Y', MIN(term_start)) AS INTEGER) AS start_year
+  FROM legislators_terms
+  GROUP BY id_bioguide
+  HAVING MIN(term_start) BETWEEN '1917-01-01' AND '1999-12-31'
+),
+k(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM k WHERE n < 20),
+checks AS (
+  SELECT c.bid, k.n AS period,
+         printf('%04d-12-31', c.start_year + k.n) AS check_date
+  FROM cohort c CROSS JOIN k
+),
+ret AS (
+  SELECT ch.period, COUNT(DISTINCT ch.bid) AS retained
+  FROM checks ch
+  WHERE EXISTS (
+     SELECT 1 FROM legislators_terms t
+     WHERE t.id_bioguide = ch.bid
+       AND t.term_start <= ch.check_date
+       AND t.term_end >= ch.check_date
+  )
+  GROUP BY ch.period
+),
+tot AS (SELECT COUNT(*) AS n FROM cohort)
+SELECT k.n AS period,
+       ROUND(1.0 * COALESCE(r.retained, 0) / (SELECT n FROM tot), 4) AS retention_rate
+FROM k LEFT JOIN ret r ON r.period = k.n
+ORDER BY k.n
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local169.csv`
+```text
+period,retention_rate
+1,0.9809
+2,0.7719
+3,0.7672
+4,0.6829
+5,0.6782
+6,0.5753
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local169.csv`
+```text
+period,retention rate
+1,0.96974956607984
+2,0.78651128192413
+3,0.76295561616663
+4,0.69923134143318
+5,0.67840317381602
+6,0.58343664765683
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local169/attempts/attempt-20261010-154318Z/trace.json /toolCalls/16/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "request", "value": "队列成员固定：首次任期开始日期落在 1917-01-01 至 1999-12-31（含两端）的全部议员；其人数即 20 个期间共用的固定分母。", "evidenceIds": ["evidence_1e59498f-4b62-44dc-98b6-0b2e82b19a34"]}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local169/attempts/attempt-20261010-154318Z/trace.json /toolCalls/16/result/details/fields/8`
+```text
+{"path": "measure.formula", "status": "assumed", "value": {"op": "ratio", "per": "period", "numerator": {"op": "count_distinct", "per": "period", "of": "队列议员 id_bioguide，其任一条任期满足 term_start <= 该期参考日 AND term_end >= 该期参考日"}, "denominator": {"op": "count", "per": "cohort", "of": "全部队列议员（固定分母）"}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local169/attempts/attempt-20261010-154318Z/trace.json /toolCalls/16/result/details/fields/12`
+```text
+{"path": "selection", "status": "not_applicable"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local169/attempts/attempt-20261010-154318Z/trace.json /toolCalls/16/result/details/fields/13`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "grouped", "rowCount": 20, "columns": ["period", "retention_rate"], "units": {"retention_rate": "proportion (0-1)"}, "decimals": {"retention_rate": 4}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+
+<a id="local170"></a>
+### local170 — 男女六时点留存均非零的州
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：Gold冲突；节点 `population.eligibility`；错误层：标准答案有问题；可见性：不适用或未定。
+- **题面/标准**：同一州男女双方在0/2/4/6/8/10年各12-31留存均须>0，缺任何性别不能合格；GoldPI不满足女性存在性。
+- **本次SQL**：按首次任期州归队列，以首次年+k年末EXISTS覆盖；每state/gender六个retained_cnt皆>0，再要求两个性别；限定50州。
+- **实际失配**：预测32州Gold25。预测多AK/AZ/MN/NC/NH/NM/TX/WI/WY，漏PI/VT。GoldPI本attempt所有任期州性别观测为女性0、男性13，直接与双方条件冲突；其余全部差异机制未确定。
+- **Spec处理**：12全部applied，time=request首次年+k，source/timeField/joinMultiplicity=evidence，grouping首次州assumed，conditions仅50州/全码open；22经32vs34探针选50州decided/applied/verified=false/open=[]，SQL兑现。
+- **错因分析**：至少GoldPI行与明确both male and female及实际全任期女性0的观测矛盾，无女性不可能六时点女性非零。全码探针只比50州增DC/GU，不会把32变25。其他名单差异不足倒推Gold采用的首州/年末政策；只确认局部Gold冲突。
+- **过程机制**：18替代探索被单语句检查拒绝，20移除分隔符后成功；不是提交。；比较建议支持50州不构成业务证明。
+- **后续验证/修复**：核对修正GoldPI与双性别筛选，补GoldSQL/州性别偏移人数解释剩余名单差异，不改成缺性别也合格。
+- **限制**：GoldSQL缺失；只证明PI矛盾，不宣称解释全部名单。；首次州/当时州及年龄对齐的Gold实现不可见。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local170 /question`
+```text
+Identify the state abbreviations where, for both male and female legislators, the retention rate remains greater than zero at specific intervals of 0, 2, 4, 6, 8, and 10 years after their first term start date. A legislator is considered retained if they are serving on December 31 of the respective year. Only include states where both gender cohorts maintain non-zero retention rates at all six of these time points during the first decade of service.
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local170/attempts/attempt-20261010-154318Z/submissions/sql/local170.sql`
+```text
+WITH first_term AS (
+  SELECT id_bioguide, MIN(term_start) AS first_start
+  FROM legislators_terms GROUP BY id_bioguide
+),
+first_state AS (
+  SELECT t.id_bioguide, MIN(t.state) AS state
+  FROM legislators_terms t
+  JOIN first_term f ON f.id_bioguide = t.id_bioguide AND t.term_start = f.first_start
+  GROUP BY t.id_bioguide
+),
+cohort AS (
+  SELECT l.id_bioguide, l.gender, fs.state,
+         CAST(strftime('%Y', f.first_start) AS INTEGER) AS first_year
+  FROM legislators l
+  JOIN first_term  f  ON f.id_bioguide  = l.id_bioguide
+  JOIN first_state fs ON fs.id_bioguide = l.id_bioguide
+  WHERE fs.state IN ('AK','AL','AR','AZ','CA','CO','CT','DE','FL','GA','HI','IA','ID','IL','IN','KS','KY','LA','MA','MD','ME','MI','MN','MO','MS','MT','NC','ND','NE','NH','NJ','NM','NV','NY','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VA','VT','WA','WI','WV','WY')
+),
+offsets(k) AS (VALUES (0),(2),(4),(6),(8),(10)),
+per_k AS (
+  SELECT c.state, c.gender, o.k,
+         COUNT(*) AS cohort_cnt,
+         SUM(CASE WHEN EXISTS (
+              SELECT 1 FROM legislators_terms t2
+              WHERE t2.id_bioguide = c.id_bioguide
+                AND t2.term_start <= printf('%04d-12-31', c.first_year + o.k)
+                AND t2.term_end   >= printf('%04d-12-31', c.first_year + o.k)
+            ) THEN 1 ELSE 0 END) AS retained_cnt
+  FROM cohort c CROSS JOIN offsets o
+  GROUP BY c.state, c.gender, o.k
+),
+qual AS (
+  SELECT state, gender
+  FROM per_k
+  GROUP BY state, gender
+  HAVING COUNT(*) = 6 AND MIN(retained_cnt) > 0
+)
+SELECT state
+FROM qual
+GROUP BY state
+HAVING COUNT(DISTINCT gender) = 2
+ORDER BY state
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local170.csv`
+```text
+state
+AK
+AR
+AZ
+CA
+CO
+CT
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local170.csv`
+```text
+state
+AR
+CA
+CO
+CT
+FL
+HI
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local170/attempts/attempt-20261010-154318Z/trace.json /toolCalls/22/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "assumed", "value": "所有在 legislators_terms 中至少有一段任期（term_start 非空）且能确定州的议员；不补零，未在某参考日任职即视为未留存", "rationale": "题面未要求排除任何特定议员；A legislator is considered retained if they are serving on December 31 of the respective year 隐含未任职=未留存"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local170/attempts/attempt-20261010-154318Z/trace.json /toolCalls/22/result/details/fields/7`
+```text
+{"path": "measure.formula", "status": "assumed", "value": {"op": "ratio", "per": "state x gender x offset k", "numerator": {"op": "count_distinct", "per": "state x gender x offset k", "of": "legislators retained at offset k (serving on the reference date)"}, "denominator": {"op": "count_distinct", "per": "state x gender x offset k", "of": "legislators in the cohort"}}, "rationale": "retention rate 的字面含义=该(州,性别)队列中在某参考日仍在任的比例；题面只要求 >0，等价于该时点至少有一名在任议员"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local170/attempts/attempt-20261010-154318Z/trace.json /toolCalls/22/result/details/fields/11`
+```text
+{"path": "selection", "status": "not_applicable"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local170/attempts/attempt-20261010-154318Z/trace.json /toolCalls/22/result/details/fields/12`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "full", "columns": ["state"], "units": {"state": "US state postal abbreviation"}, "decimals": {}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **process**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local170/attempts/attempt-20261010-154318Z/trace.json /toolCalls/14/result/details/artifact/preview`
+```text
+{"columns": ["state", "n_people", "n_f", "n_m"], "rows": [["AK", 19, 1, 18], ["AL", 215, 5, 210], ["AR", 123, 5, 118], ["AS", 3, 1, 2], ["AZ", 60, 7, 53], ["CA", 418, 43, 375], ["CO", 99, 4, 95], ["CT", 247, 8, 239], ["DC", 3, 1, 2], ["DE", 100, 1, 99], ["DK", 11, 0, 11], ["FL", 184, 20, 164], ["GA", 326, 9, 317], ["GU", 5, 1, 4], ["HI", 27, 6, 21], ["IA", 209, 3, 206], ["ID", 63, 2, 61], ["IL", 509, 18, 491], ["IN", 354, 7, 347], ["KS", 147, 8, 139], ["KY", 381, 2, 379], ["LA", 205, 5, 200], ["MA", 444, 8, 436], ["MD", 315, 8, 307], ["ME", 180, 4, 176], ["MI", 312, 13, 299], ["MN", 173, 8, 165], ["MO", 343, 9, 334], ["MP", 1, 0, 1], ["MS", 162, 1, 161], ["MT", 55, 1, 54], ["NC", 372, 8, 364], ["ND", 47, 2, 45], ["NE", 132, 4, 128], ["NH", 186, 5, 181], ["NJ", 373, 7, 366], ["NM", 60, 5, 55], ["NV", 62, 6, 56], ["NY", 1494, 29, 1465], ["OH", 694, 11, 683], ["OK", 99, 3, 96], ["OL", 2, 0, 2], ["OR", 96, 6, 90], ["PA", 1075, 11, 1064], ["PI", 13, 0, 13], ["PR", 20, 1, 19], ["RI", 111, 1, 110], ["SC", 261, 5, 256], ["SD", 54, 4, 50], ["TN", 312, 6, 306]], "columnTypes": ["TEXT", "INTEGER", "INTEGER", "INTEGER"], "rowCount": 50, "truncated": true}
+```
+原attempt探索观测，支持本文的实际计数/身份事实；不当作业务定义或交付数据。
+
+<a id="local171"></a>
+### local171 — Louisiana男性31–49年年末在任数
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：未定位；节点 `未定位`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：男性Louisiana议员在首任后>30且<50年每12-31计不同在任人，按经过年数分组；from Louisiana身份及首次锚点未明确。
+- **本次SQL**：曾有LA任期且M者资格，全历史MIN起点为首任，参考首次年+31..49，任意州任期覆盖则个人计一次，仅有留存期输出。
+- **实际失配**：双方8行31..38；31..35预测6/5/5/5/4 vs4/3/3/3/2；36为2 vs1；37/38各1相同。另一LA首任锚点探针5/4/4/4/3/1/1/1仍不全复现Gold。
+- **Spec处理**：4资格/conditions assumed曾有LA，time/grouping=request31..49年末，countGrain=request个人；joinMultiplicity未声明。5漏taskId新建旁支；7又taskId写入fields，新任务multiplicity applied但未知路径taskId rejected；9回原task补multiplicity applied、undeclared/open=[]。SQL使用原task而不是旁支空Spec。
+- **错因分析**：COUNT DISTINCT/EXISTS排除任期行重复。观测跨州L000366全职业首任1795、LA首任1823，身份锚点确敏感且改变31–36，但仅换LA锚点仍差1；Gold排除谁及资格不可见，不能确认候选为主因。31..49年末符合显式时间范围，不从小人数倒推端点/终止条件。
+- **过程机制**：漏taskId及fields.taskId形成两个旁支，原task后来补齐；不能整次调用一概判失败。；14分号GROUP_CONCAT分隔符被单语句检查拒绝，15改分隔符成功；不是final语法失败。
+- **后续验证/修复**：补Gold人员ID和州/首任定义；比较L000366及31期6人，区分职业首次、LA首次、首次州与当时州；不换COUNT对象凑Gold。
+- **限制**：GoldSQL/人员明细缺失；资格阶段与锚点未确证。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local171 /question`
+```text
+For male legislators from Louisiana, how many distinct legislators were actively serving on December 31 of each year from more than 30 years since their first term up to less than 50 years, grouping the results by the exact number of years elapsed since their first term?
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local171/attempts/attempt-20261010-154318Z/submissions/sql/local171.sql`
+```text
+WITH RECURSIVE nums(k) AS (SELECT 31 UNION ALL SELECT k+1 FROM nums WHERE k<49),
+ml AS (
+  SELECT t.id_bioguide AS idb
+  FROM legislators_terms t
+  JOIN legislators l ON l.id_bioguide = t.id_bioguide
+  WHERE t.state = 'LA' AND l.gender = 'M'
+  GROUP BY t.id_bioguide
+),
+ft AS (
+  SELECT t.id_bioguide AS idb, MIN(t.term_start) AS first_start
+  FROM legislators_terms t
+  JOIN ml ON ml.idb = t.id_bioguide
+  GROUP BY t.id_bioguide
+)
+SELECT n.k AS years_since_first_term,
+       COUNT(DISTINCT ft.idb) AS legislator_count
+FROM ft JOIN nums n
+WHERE EXISTS (
+  SELECT 1 FROM legislators_terms t2
+  WHERE t2.id_bioguide = ft.idb
+    AND t2.term_start <= (CAST(substr(ft.first_start,1,4) AS INT)+n.k)||'-12-31'
+    AND t2.term_end   >= (CAST(substr(ft.first_start,1,4) AS INT)+n.k)||'-12-31'
+)
+GROUP BY n.k
+ORDER BY n.k;
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local171.csv`
+```text
+years_since_first_term,legislator_count
+31,6
+32,5
+33,5
+34,5
+35,4
+36,2
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local171.csv`
+```text
+period,cohort_retained
+31,4
+32,3
+33,3
+34,3
+35,2
+36,1
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local171/attempts/attempt-20261010-154318Z/trace.json /toolCalls/9/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "assumed", "value": "纳入 legislators.gender='M' 且该 id_bioguide 在 legislators_terms 中存在至少一条 state='LA' 任期记录的议员；没有任期的议员不纳入。", "rationale": "题面限定 male / from Louisiana；state 只存在于任期表，故以存在 LA 任期记录定义 'from Louisiana'；无任期记录者不可能在某日'actively serving'，故排除。"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local171/attempts/attempt-20261010-154318Z/trace.json /toolCalls/9/result/details/fields/7`
+```text
+{"path": "measure.formula", "status": "request", "value": {"op": "count_distinct", "per": "elapsed_year", "of": "id_bioguide"}, "evidenceIds": ["evidence_af53c74e-eeed-4ed9-bc12-fefbc472b444"]}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local171/attempts/attempt-20261010-154318Z/trace.json /toolCalls/9/result/details/fields/10`
+```text
+{"path": "selection", "status": "not_applicable"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local171/attempts/attempt-20261010-154318Z/trace.json /toolCalls/9/result/details/fields/11`
+```text
+{"path": "output", "status": "request", "value": {"rowMode": "grouped", "columns": ["years_since_first_term", "legislator_count"], "units": {"years_since_first_term": "years", "legislator_count": "legislators"}, "decimals": {"legislator_count": 0}}, "evidenceIds": ["evidence_666564a1-0421-4aa8-a529-41b13764f5f8"]}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+
+<a id="local194"></a>
+### local194 — 每演员前三电影收入等额分摊
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：Gold冲突；节点 `selection`；错误层：标准答案有问题；可见性：不适用或未定。
+- **题面/标准**：题面each actor要求每演员前三创收片，电影收入在该片演员等额分摊，不是仅全局三片。按总收入或份额排名、是否再跨三片平均尚有细节歧义。
+- **本次SQL**：每片SUM(payment.amount)，film_actor每片COUNT演员求份额；每actor片总收入DESC取3，再AVG其份额，输出actor-film与均值。
+- **实际失配**：预测600行=200演员各3片；Gold三行YENTL IDAHO135.77、MALTESE HOPE123.78、GIANT TROOPERS106.72。ignore_order=false，行集/数值失配；多预测列不单独致错。
+- **Spec处理**：6 entity/eligibility=request each actor且applied，selection assumed per actor总收入取3；formula缺最外per rejected，7 ratio per film修复applied。12 output加跨三片avg列applied，但formula仍仅per-film ratio，未同步AVG层；最终无待定/未声明，SQL兑现每actor选择。
+- **错因分析**：Gold仅三电影无法满足each actor：本attempt200演员、每人14–42片、每片最多15演员，三片最多覆盖45演员，不能给200人的各自前三片。选择范围冲突独立于缺GoldSQL成立。Gold具体全局分摊收入排名还是其他处理不可见；总收入vs份额以及跨片AVG不作为已证solver主因。
+- **过程机制**：formula外per修复；output加入actor平均而formula未同步，属次要计算图遗漏。；bound_final_sql与提交一致，未将末条探索误当final。
+- **后续验证/修复**：补GoldSQL并修each actor范围；确认总收入/份额排名及average是否跨三片再均值，完整登记计算图。勿为Gold三行静默改全局Top3。
+- **限制**：GoldSQL缺失，内部排名金额无法恢复。；平均及排名细则有歧义，跨片AVG和总收入排序未独立证实。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local194 /question`
+```text
+Please provide a list of the top three revenue-generating films for each actor, along with the average revenue per actor in those films, calculated by dividing the total film revenue equally among the actors for each film.
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local194/attempts/attempt-20261010-154318Z/submissions/sql/local194.sql`
+```text
+WITH film_rev AS (
+  SELECT i.film_id AS film_id, SUM(p.amount) AS film_revenue
+  FROM inventory i
+  JOIN rental r ON r.inventory_id = i.inventory_id
+  JOIN payment p ON p.rental_id = r.rental_id
+  GROUP BY i.film_id
+),
+cast AS (
+  SELECT film_id, COUNT(*) AS n_actors
+  FROM film_actor
+  GROUP BY film_id
+),
+pairs AS (
+  SELECT fa.actor_id AS actor_id, fa.film_id AS film_id,
+         COALESCE(fr.film_revenue, 0) AS film_revenue,
+         c.n_actors AS n_actors
+  FROM film_actor fa
+  JOIN cast c ON c.film_id = fa.film_id
+  LEFT JOIN film_rev fr ON fr.film_id = fa.film_id
+),
+ranked AS (
+  SELECT actor_id, film_id, film_revenue, n_actors,
+         ROW_NUMBER() OVER (PARTITION BY actor_id ORDER BY film_revenue DESC, film_id ASC) AS rn
+  FROM pairs
+),
+top3 AS (
+  SELECT * FROM ranked WHERE rn <= 3
+),
+aa AS (
+  SELECT actor_id, AVG(film_revenue * 1.0 / n_actors) AS avg_revenue_per_actor
+  FROM top3 GROUP BY actor_id
+)
+SELECT a.first_name AS actor_first_name,
+       a.last_name  AS actor_last_name,
+       f.title      AS film_title,
+       ROUND(t.film_revenue, 2) AS film_revenue,
+       ROUND(t.film_revenue * 1.0 / t.n_actors, 2) AS revenue_per_actor,
+       ROUND(aa.avg_revenue_per_actor, 2) AS avg_revenue_per_actor
+FROM top3 t
+JOIN actor a ON a.actor_id = t.actor_id
+JOIN film  f ON f.film_id  = t.film_id
+JOIN aa    ON aa.actor_id  = t.actor_id
+ORDER BY actor_first_name, actor_last_name, film_revenue DESC
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local194.csv`
+```text
+actor_first_name,actor_last_name,film_title,film_revenue,revenue_per_actor,avg_revenue_per_actor
+ADAM,GRANT,IDOLS SNATCHERS,114.7,14.34,20.31
+ADAM,GRANT,GROUNDHOG UNCUT,102.82,14.69,20.31
+ADAM,GRANT,SEABISCUIT PUNK,95.74,31.91,20.31
+ADAM,HOPPER,TORQUE BOUND,198.72,39.74,26.98
+ADAM,HOPPER,PRINCESS GIANT,142.74,28.55,26.98
+ADAM,HOPPER,OPEN AFRICAN,113.79,12.64,26.98
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local194.csv`
+```text
+title,rev_per_actor
+YENTL IDAHO,135.77
+MALTESE HOPE,123.78
+GIANT TROOPERS,106.72
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local194/attempts/attempt-20261010-154318Z/trace.json /toolCalls/12/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "request", "value": "All actors in the actor table are included; no actor is excluded.", "evidenceIds": ["evidence_4b11f1d1-bce4-491e-aabd-2ac1c8fecce7"]}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local194/attempts/attempt-20261010-154318Z/trace.json /toolCalls/12/result/details/fields/6`
+```text
+{"path": "measure.formula", "status": "assumed", "value": {"op": "ratio", "per": "film", "numerator": {"op": "sum", "per": "film", "of": "amount"}, "denominator": {"op": "count_distinct", "per": "film", "of": "actor_id"}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local194/attempts/attempt-20261010-154318Z/trace.json /toolCalls/12/result/details/fields/10`
+```text
+{"path": "selection", "status": "assumed", "value": {"n": 3, "orderBy": "film total revenue (SUM(payment.amount) per film) descending, per actor"}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local194/attempts/attempt-20261010-154318Z/trace.json /toolCalls/12/result/details/fields/12`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "full", "columns": ["actor_first_name", "actor_last_name", "film_title", "film_revenue", "revenue_per_actor", "avg_revenue_per_actor"], "units": {"film_revenue": "USD", "revenue_per_actor": "USD", "avg_revenue_per_actor": "USD"}, "decimals": {"film_revenue": 2, "revenue_per_actor": 2, "avg_revenue_per_actor": 2}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **process**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local194/attempts/attempt-20261010-154318Z/trace.json /toolCalls/10/result/details/artifact/preview`
+```text
+{"columns": ["min_positive_rev_films", "max_positive_rev_films", "actors_with_lt_3_films"], "rows": [[14, 42, 0]], "columnTypes": ["INTEGER", "INTEGER", "INTEGER"], "rowCount": 1, "truncated": false}
+```
+原attempt探索观测，支持本文的实际计数/身份事实；不当作业务定义或交付数据。
+- **process**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local194/attempts/attempt-20261010-154318Z/trace.json /toolCalls/2/result/content/0/text`
+```text
+各表行数：film=1000、actor=200、film_actor=5462、payment=16049、rental=16044、inventory=4581。film_actor 基数：每部电影最多 15 位演员（最少 1），每位演员最多出演 42 部电影（最少 14）。
+```
+工具返回中的物理观测报告；用于核对排名风格数或演员覆盖上界，不是业务规则。
+
+<a id="local195"></a>
+### local195 — 前五演员客户覆盖率
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：较强候选；节点 `selection`；错误层：口径错；可见性：待定后决定错。
+- **题面/标准**：租过任一入选演员影片的去重客户/全部客户，输出百分比；top actor排名指标题面未明。
+- **本次SQL**：按参演影片数选5个actor_id，覆盖594/599客户。
+- **实际失配**：实际99.1652754590985，Gold99.33；差0.1647245409015个百分点超0.01。
+- **Spec处理**：index8建任务，eligibility/selection open，formula因filter非法被拒；9缺per拒绝，10成功。四候选均探针。19/20比较HTTP451；21影片数selection决定成功verified=false，eligibility缺有效比较拒绝；22比较insufficient_evidence，23全部客户决定成功verified=false。24结果25发布，提交绑定一致。
+- **错因分析**：候选主因中间排名指标：index18仅换租赁次数排名，探针99.3322203672788与Gold吻合。“租赁排名会循环”是推断非定义；12/14第5位无并列。数值吻合不证业务规则，故probable；Gold其他排名或总体得同值可反证。
+- **过程机制**：formula拒绝两次修复；HTTP451；活跃候选Y但探针1，标签漂移，最终不用。
+- **后续验证/修复**：补Gold SQL或top actor定义；勿换去重/分母贴数值。
+- **限制**：Gold SQL缺失，top actor无专属定义。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local195 /question`
+```text
+Please find out how widespread the appeal of our top five actors is. What percentage of our customers have rented films featuring these actors?
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local195/attempts/attempt-20261010-154318Z/submissions/sql/local195.sql`
+```text
+WITH top_actors AS (
+  SELECT fa.actor_id
+  FROM film_actor fa
+  GROUP BY fa.actor_id
+  ORDER BY COUNT(DISTINCT fa.film_id) DESC, fa.actor_id
+  LIMIT 5
+)
+SELECT 100.0 * COUNT(DISTINCT r.customer_id) / (SELECT COUNT(*) FROM customer) AS percentage
+FROM rental r
+JOIN inventory i ON i.inventory_id = r.inventory_id
+JOIN film_actor fa ON fa.film_id = i.film_id
+WHERE fa.actor_id IN (SELECT actor_id FROM top_actors);
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local195.csv`
+```text
+percentage
+99.1652754590985
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local195.csv`
+```text
+output
+99.33
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local195/attempts/attempt-20261010-154318Z/trace.json /toolCalls/23/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "decided", "value": "all customers in the customer table", "verified": false, "rationale": "The question says 'our customers' with no qualifier such as 'active'; business-definitions provides no definition of a customer or of active/inactive eligibility and no clarification tool is available, so the most literal reading is every row of the customer table (599 customers, all of whom have at least one rental). The active flag (584 active='1', 15 active='0') is not used. Advisor compared the two candidates and leaned toward this one (insufficient_evidence, p=0.23 vs 0). Probe output 99.1652754590985 (=594/599).", "alternatives": [{"id": "alternative_6f122878-fabe-440f-bbbd-16b651d45b6d", "value": "all customers in the customer table", "probe": {"alternativeId": "alternative_6f122878-fabe-440f-bbbd-16b651d45b6d", "state": "available", "rowCount": 1, "output": "453d06c2a6fc"}}, {"id": "alternative_5dad3319-06fa-44b8-b7d0-5895296fc7f8", "value": "only customers with active='Y'", "probe": {"alternativeId": "alternative_5dad3319-06fa-44b8-b7d0-5895296fc7f8", "state": "available", "rowCount": 1, "output": "4cdefce1e6c1"}}], "outputs": "distinct", "advice": {"recommendation": "insufficient_evidence", "probabilities": [{"alternativeId": "alternative_6f122878-fabe-440f-bbbd-16b651d45b6d", "probability": 0.23}, {"alternativeId": "alternative_5dad3319-06fa-44b8-b7d0-5895296fc7f8", "probability": 0}], "lean": {"alternativeId": "alternative_6f122878-fabe-440f-bbbd-16b651d45b6d", "probability": 0.23}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local195/attempts/attempt-20261010-154318Z/trace.json /toolCalls/23/result/details/fields/6`
+```text
+{"path": "measure.formula", "status": "assumed", "value": {"op": "percentage", "per": "global (whole eligible customer population)", "numerator": {"op": "count_distinct", "per": "customer", "of": "customer_id"}, "denominator": {"op": "count_distinct", "per": "customer", "of": "customer_id"}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local195/attempts/attempt-20261010-154318Z/trace.json /toolCalls/23/result/details/fields/10`
+```text
+{"path": "selection", "status": "decided", "value": {"n": 5, "orderBy": "film_count DESC (number of films the actor appears in)"}, "verified": false, "rationale": "The question asks how widespread the APPEAL of the top five actors is, measured by the share of customers who rented their films. If 'top' were defined by rental volume, the question would be circular; therefore the top five actors are ranked by an independent, catalog-side metric: the number of films each actor appears in (film_actor). This yields actors 107,102,198,181,23; the 5th (37 films) is not tied, so exactly 5 are selected. Probe: 99.1653% (=594/599).", "alternatives": [{"id": "alternative_3eca7f58-7671-4277-98eb-3aea8f592070", "value": {"n": 5, "orderBy": "film_count DESC (number of films the actor appears in)"}, "probe": {"alternativeId": "alternative_3eca7f58-7671-4277-98eb-3aea8f592070", "state": "available", "rowCount": 1, "output": "453d06c2a6fc"}}, {"id": "alternative_7a2dc481-28c5-42e4-b8ed-c9239809e6d9", "value": {"n": 5, "orderBy": "rental_count DESC (number of rentals of films the actor appears in)"}, "probe": {"alternativeId": "alternative_7a2dc481-28c5-42e4-b8ed-c9239809e6d9", "state": "available", "rowCount": 1, "output": "f21a688239d4"}}], "outputs": "distinct"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local195/attempts/attempt-20261010-154318Z/trace.json /toolCalls/23/result/details/fields/12`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "scalar", "columns": ["percentage"], "units": {"percentage": "%"}, "decimals": {"percentage": 2}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **process**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local195/attempts/attempt-20261010-154318Z/trace.json /toolCalls/18/result/details/artifact/preview`
+```text
+{"columns": ["percentage"], "rows": [[99.3322203672788]], "columnTypes": ["REAL"], "rowCount": 1, "truncated": false}
+```
+原attempt探索观测，支持本文的实际计数/身份事实；不当作业务定义或交付数据。
+
+<a id="local196"></a>
+### local196 — 首次付款影片评级的客户均值
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：未定位；节点 `未定位`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：按最早payment_date首次影片rating分组，平均客户总消费及总租赁数减1。
+- **本次SQL**：MIN付款关联影片；每客户SUM全部payment金额及COUNT rental-1，再按rating AVG舍入2位。
+- **实际失配**：消费全吻合；后续实际/Gold：G25.30/25.32、NC-17 25.36/25.37、PG26.26/26.27、PG-13 26.38/26.38、R25.48/25.49。G差0.02足以失败，忽略行序。
+- **Spec处理**：index4全部成功，entity=request，source/timeField=evidence，eligibility open，formula assumed custom。7/8探针相同；11漏taskId新空task跨任务证据拒绝；12回原task决定outputs identical、verified=false。13结果14发布绑定一致。
+- **错因分析**：Spec与SQL遵守锚点、先客户后评级及减1。6观测599客户有租赁、最早付款无NULL租赁/并列；10 rental与非空rental_id付款计数均值相同。5客户有NULL-rental_id付款，但无Gold SQL证实Gold把付款当租赁。不能归因所有差异为舍入或直接判Gold错。
+- **过程机制**：漏投影q.rental_id探索失败后修复；漏taskId新任务失败不改原task；反馈provider_http_error。
+- **后续验证/修复**：补Gold SQL及无rental_id付款计数定义，逐评级对照。
+- **限制**：Gold SQL缺失，隐藏租赁计数实现未定。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local196 /question`
+```text
+For each rating category of the first movie rented by customers—where the first movie is identified based on the earliest payment date per customer—please provide the average total amount spent per customer and the average number of subsequent rentals (calculated as the total number of rentals minus one) for customers whose first rented movie falls into that rating category.
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local196/attempts/attempt-20261010-154318Z/submissions/sql/local196.sql`
+```text
+WITH fp AS (SELECT customer_id, MIN(payment_date) AS mpd FROM payment GROUP BY customer_id),
+fm AS (SELECT p.customer_id AS cid, f.rating AS rating FROM payment p JOIN fp ON fp.customer_id=p.customer_id AND p.payment_date=fp.mpd JOIN rental r ON r.rental_id=p.rental_id JOIN inventory i ON i.inventory_id=r.inventory_id JOIN film f ON f.film_id=i.film_id),
+cu AS (SELECT c.customer_id AS cid, (SELECT SUM(amount) FROM payment p WHERE p.customer_id=c.customer_id) AS total_amt, (SELECT COUNT(*) FROM rental r WHERE r.customer_id=c.customer_id) AS n_rentals FROM customer c)
+SELECT fm.rating AS rating, ROUND(AVG(cu.total_amt),2) AS avg_total_amount_spent, ROUND(AVG(cu.n_rentals-1),2) AS avg_subsequent_rentals FROM fm JOIN cu ON cu.cid=fm.cid GROUP BY fm.rating ORDER BY fm.rating
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local196.csv`
+```text
+rating,avg_total_amount_spent,avg_subsequent_rentals
+G,110.66,25.3
+NC-17,111.94,25.36
+PG,112.67,26.26
+PG-13,115.24,26.38
+R,111.42,25.48
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local196.csv`
+```text
+"rating","avg_spend","avg_subsequent_rentals_number"
+PG-13,115.24,26.38
+PG,112.67,26.27
+NC-17,111.94,25.37
+R,111.42,25.49
+G,110.66,25.32
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local196/attempts/attempt-20261010-154318Z/trace.json /toolCalls/12/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "decided", "value": "customers with at least one rental event; the first-movie rating is taken from the earliest payment that links to a rental", "verified": false, "rationale": "Both candidates were probed (alternative_528355e0..., alternative_cf835f54...) and produced the identical output id 7e89d690a92b, i.e. they are equivalent. Exploration shows all 599 customers have >=1 rental and payment, 0 customers have a NULL-rental_id earliest payment, and 0 customers have a tie at the earliest payment date, so restricting to customers whose earliest payment links to a rental drops nobody. Candidate A's wording is adopted as the literal reading of 'the first movie rented by customers'.", "alternatives": [{"id": "alternative_528355e0-0923-4372-b505-3e1950e7141e", "value": "customers with at least one rental event; the first-movie rating is taken from the earliest payment that links to a rental", "probe": {"alternativeId": "alternative_528355e0-0923-4372-b505-3e1950e7141e", "state": "available", "rowCount": 5, "output": "7e89d690a92b"}}, {"id": "alternative_cf835f54-d7e0-4a67-baff-21a13f888e0c", "value": "only customers whose earliest payment by payment_date links to a rental (drop customers whose very first payment has NULL rental_id)", "probe": {"alternativeId": "alternative_cf835f54-d7e0-4a67-baff-21a13f888e0c", "state": "available", "rowCount": 5, "output": "7e89d690a92b"}}], "outputs": "identical"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local196/attempts/attempt-20261010-154318Z/trace.json /toolCalls/12/result/details/fields/8`
+```text
+{"path": "measure.formula", "status": "assumed", "value": {"op": "custom", "description": "Two metrics per rating category r = film.rating of a customer's first movie, where the first movie is the film of the rental linked to the customer's earliest payment by payment_date. Metric1(r) = AVG over customers c in r of total amount spent by c = SUM(payment.amount) over all payments of c. Metric2(r) = AVG over customers c in r of (total number of rentals of c - 1)."}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local196/attempts/attempt-20261010-154318Z/trace.json /toolCalls/12/result/details/fields/12`
+```text
+{"path": "selection", "status": "not_applicable"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local196/attempts/attempt-20261010-154318Z/trace.json /toolCalls/12/result/details/fields/13`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "grouped", "rowCount": 5, "columns": ["rating", "avg_total_amount_spent", "avg_subsequent_rentals"], "units": {"avg_total_amount_spent": "currency", "avg_subsequent_rentals": "rentals"}, "decimals": {"avg_total_amount_spent": 2, "avg_subsequent_rentals": 2}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+
+<a id="local220"></a>
+### local220 — 最多胜场及负场球员
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：未定位；节点 `未定位`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：数非NULL实际出场且本队胜/负的比赛，排除平局，分别argmax。
+- **本次SQL**：展开22主客槽位，以player_api_id分组，DISTINCT match_api_id计胜负，API键显示姓名。
+- **实际失配**：实际Cristiano Ronaldo199胜、Gorka Iraizoz Moreno107负；Gold_a两行Marcelo/Ricardo，Gold_b一行两列同名。姓名均失配，非额外列/列序。
+- **Spec处理**：index5唯一Spec全applied；eligibility/conditions=request；entity、计数、展开、分组、selection/include_ties=assumed，无open。6键检查7/8排名9姓名映射10结果11发布；绑定一致。
+- **错因分析**：API和比赛键唯一(6)，主客判断正确，SQL与Spec一致。姓名合并、不同Player键、漏槽位或Gold错仅候选，无Gold SQL/姓名合并探针，不能由两个Gold姓名断言机制或真实Gold冲突。
+- **过程机制**：反馈provider_http_error；无待定后决定。
+- **后续验证/修复**：补Gold SQL核实体键、同名合并、22槽位；勿静默按姓名合并。
+- **限制**：Gold SQL缺失，无姓名合并观测。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local220 /question`
+```text
+Which player has participated in the highest number of winning matches and which player has participated in the highest number of losing matches, considering only matches where they actually played (excluding null entries) and where their team won or lost (excluding draws)?
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local220/attempts/attempt-20261010-154318Z/submissions/sql/local220.sql`
+```text
+WITH slots AS (
+  SELECT match_api_id AS mid, home_team_goal AS hg, away_team_goal AS ag, home_player_1 AS pid, 1 AS ishome FROM Match
+  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, home_player_2, 1 FROM Match
+  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, home_player_3, 1 FROM Match
+  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, home_player_4, 1 FROM Match
+  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, home_player_5, 1 FROM Match
+  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, home_player_6, 1 FROM Match
+  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, home_player_7, 1 FROM Match
+  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, home_player_8, 1 FROM Match
+  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, home_player_9, 1 FROM Match
+  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, home_player_10, 1 FROM Match
+  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, home_player_11, 1 FROM Match
+  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, away_player_1, 0 FROM Match
+  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, away_player_2, 0 FROM Match
+  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, away_player_3, 0 FROM Match
+  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, away_player_4, 0 FROM Match
+  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, away_player_5, 0 FROM Match
+  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, away_player_6, 0 FROM Match
+  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, away_player_7, 0 FROM Match
+  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, away_player_8, 0 FROM Match
+  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, away_player_9, 0 FROM Match
+  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, away_player_10, 0 FROM Match
+  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, away_player_11, 0 FROM Match
+), agg AS (
+  SELECT pid,
+    COUNT(DISTINCT CASE WHEN (ishome=1 AND hg>ag) OR (ishome=0 AND ag>hg) THEN mid END) AS wins,
+    COUNT(DISTINCT CASE WHEN (ishome=1 AND hg<ag) OR (ishome=0 AND ag<hg) THEN mid END) AS losses
+  FROM slots
+  WHERE pid IS NOT NULL
+  GROUP BY pid
+)
+SELECT * FROM (
+  SELECT 'most_winning_matches' AS result_type,
+         (SELECT player_name FROM Player WHERE player_api_id = agg.pid) AS player_name,
+         wins AS match_count
+  FROM agg WHERE wins = (SELECT MAX(wins) FROM agg)
+  UNION ALL
+  SELECT 'most_losing_matches',
+         (SELECT player_name FROM Player WHERE player_api_id = agg.pid),
+         losses
+  FROM agg WHERE losses = (SELECT MAX(losses) FROM agg)
+) ORDER BY result_type DESC
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local220.csv`
+```text
+result_type,player_name,match_count
+most_winning_matches,Cristiano Ronaldo,199
+most_losing_matches,Gorka Iraizoz Moreno,107
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local220_a.csv`
+```text
+player
+Marcelo
+Ricardo
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local220/attempts/attempt-20261010-154318Z/trace.json /toolCalls/5/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "request", "value": "只纳入至少有一次实际出场的球员（Match 表中 22 个球员槽位 home_player_1..11 / away_player_1..11 至少一个非 NULL）；NULL 槽位不代表出场，被排除；从未出场的球员不参与排名。", "evidenceIds": ["evidence_1bce3d01-0c37-44aa-a008-914222d705f5"]}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local220/attempts/attempt-20261010-154318Z/trace.json /toolCalls/5/result/details/fields/8`
+```text
+{"path": "measure.formula", "status": "assumed", "value": {"op": "custom", "description": "对每位球员，分别统计其实际出场且球队获胜的比赛数（wins）与实际出场且球队失利的比赛数（losses），平局排除；答案为 wins 最大的球员与 losses 最大的球员（两行结果）。"}, "rationale": "题目要求两个并列的 argmax（最多胜场、最多负场），单一标准算式的单一表达式无法表达两个独立极值，故用 custom 并写明描述。"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local220/attempts/attempt-20261010-154318Z/trace.json /toolCalls/5/result/details/fields/11`
+```text
+{"path": "selection", "status": "assumed", "value": {"n": 1, "orderBy": "在每个结果分区内按该分区比赛数降序取第 1 名"}, "rationale": "题目问『最高』——两个分区的 argmax。"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local220/attempts/attempt-20261010-154318Z/trace.json /toolCalls/5/result/details/fields/13`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "full", "columns": ["result_type", "player_name", "match_count"], "units": {"match_count": "matches"}, "decimals": {"match_count": 0}}, "rationale": "两行结果分别对应最多胜场球员与最多失利球员；含场数便于核对。"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local220_b.csv`
+```text
+player1,player2
+Marcelo,Ricardo
+```
+第二种合法Gold布局仍要求Marcelo/Ricardo；当前姓名均不匹配，已覆盖两个Gold分支。
+
+<a id="local228"></a>
+### local228 — IPL前三击球投球按排名配对
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：可证差异；节点 `output`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：题面要求每赛季三对位置匹配；Gold采用赛季-position一行共27行。题面未明确要求横表还是长表，该布局是评分约定而非唯一业务口径。
+- **本次SQL**：正确指标与ROW_NUMBER(值DESC,pidASC)，三对横铺一赛季一行9行19列。
+- **实际失配**：预测9/Gold27行；离线拆9行各三对成27行与全部Gold逐行完全一致，提交未拆。比较向量长度27/9必失配。
+- **Spec处理**：index4唯一Spec全部applied；排除/selection/ID并列=request，output assumed rowCount9一赛季一行。SQL实现output，无漂移；7结果8发布一致。
+- **错因分析**：output行粒度最早分叉；27对指标全吻合排除排名域、tie-break和wicket过滤。非纯列名/额外姓名列，是横铺行数及向量长度。题面matched positions未明横纵，定性评分合同布局差异，不断言业务信息损失。
+- **过程机制**：shape放行assumed9行，不能校验隐藏Gold。
+- **后续验证/修复**：output改season-position三行每赛季，保留已吻合指标，补布局合同。
+- **限制**：题面未显式每对一行，27行由Gold合同；Gold SQL缺失。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local228 /question`
+```text
+For each IPL season, identify the top three batsmen with the highest total runs scored and the top three bowlers with the most wickets taken, excluding ‘run out’, ‘hit wicket’, and ‘retired hurt’ dismissals. In the event of ties in runs or wickets, break the tie using the smaller player ID. Then output these six players in matched positions—batsman 1 with bowler 1, batsman 2 with bowler 2, and batsman 3 with bowler 3—in ascending order of the season ID, along with each player’s total runs or wickets.
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local228/attempts/attempt-20261010-154318Z/submissions/sql/local228.sql`
+```text
+WITH bat AS (
+  SELECT m.season_id AS s, bb.striker AS pid, SUM(bs.runs_scored) AS runs
+  FROM batsman_scored bs
+  JOIN ball_by_ball bb ON bs.match_id=bb.match_id AND bs.over_id=bb.over_id AND bs.ball_id=bb.ball_id AND bs.innings_no=bb.innings_no
+  JOIN match m ON m.match_id=bb.match_id
+  GROUP BY m.season_id, bb.striker
+), bowl AS (
+  SELECT m.season_id AS s, bb.bowler AS pid, COUNT(*) AS wkts
+  FROM wicket_taken wt
+  JOIN ball_by_ball bb ON wt.match_id=bb.match_id AND wt.over_id=bb.over_id AND wt.ball_id=bb.ball_id AND wt.innings_no=bb.innings_no
+  JOIN match m ON m.match_id=bb.match_id
+  WHERE wt.kind_out NOT IN ('run out','hit wicket','retired hurt')
+  GROUP BY m.season_id, bb.bowler
+), batr AS (
+  SELECT s, pid, runs, ROW_NUMBER() OVER (PARTITION BY s ORDER BY runs DESC, pid ASC) AS rn FROM bat
+), bowlr AS (
+  SELECT s, pid, wkts, ROW_NUMBER() OVER (PARTITION BY s ORDER BY wkts DESC, pid ASC) AS rn FROM bowl
+)
+SELECT se.s AS season_id,
+  b1.pid AS batsman1_id, p1.player_name AS batsman1_name, b1.runs AS batsman1_runs,
+  w1.pid AS bowler1_id, q1.player_name AS bowler1_name, w1.wkts AS bowler1_wickets,
+  b2.pid AS batsman2_id, p2.player_name AS batsman2_name, b2.runs AS batsman2_runs,
+  w2.pid AS bowler2_id, q2.player_name AS bowler2_name, w2.wkts AS bowler2_wickets,
+  b3.pid AS batsman3_id, p3.player_name AS batsman3_name, b3.runs AS batsman3_runs,
+  w3.pid AS bowler3_id, q3.player_name AS bowler3_name, w3.wkts AS bowler3_wickets
+FROM (SELECT DISTINCT season_id AS s FROM match) se
+LEFT JOIN batr b1 ON b1.s=se.s AND b1.rn=1
+LEFT JOIN player p1 ON p1.player_id=b1.pid
+LEFT JOIN bowlr w1 ON w1.s=se.s AND w1.rn=1
+LEFT JOIN player q1 ON q1.player_id=w1.pid
+LEFT JOIN batr b2 ON b2.s=se.s AND b2.rn=2
+LEFT JOIN player p2 ON p2.player_id=b2.pid
+LEFT JOIN bowlr w2 ON w2.s=se.s AND w2.rn=2
+LEFT JOIN player q2 ON q2.player_id=w2.pid
+LEFT JOIN batr b3 ON b3.s=se.s AND b3.rn=3
+LEFT JOIN player p3 ON p3.player_id=b3.pid
+LEFT JOIN bowlr w3 ON w3.s=se.s AND w3.rn=3
+LEFT JOIN player q3 ON q3.player_id=w3.pid
+ORDER BY se.s;
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local228.csv`
+```text
+season_id,batsman1_id,batsman1_name,batsman1_runs,bowler1_id,bowler1_name,bowler1_wickets,batsman2_id,batsman2_name,batsman2_runs,bowler2_id,bowler2_name,bowler2_wickets,batsman3_id,batsman3_name,batsman3_runs,bowler3_id,bowler3_name,bowler3_wickets
+1,100,SE Marsh,616,102,Sohail Tanvir,22,40,G Gambhir,534,38,SK Warne,19,44,ST Jayasuriya,514,32,SR Watson,17
+2,18,ML Hayden,572,61,RP Singh,23,53,AC Gilchrist,495,124,A Kumble,21,110,AB de Villiers,465,73,A Nehra,19
+3,133,SR Tendulkar,617,131,PP Ojha,21,9,JH Kallis,572,50,Harbhajan Singh,17,21,SK Raina,505,124,A Kumble,17
+4,162,CH Gayle,604,194,SL Malinga,28,8,V Kohli,557,126,MM Patel,22,133,SR Tendulkar,553,270,S Aravind,21
+5,162,CH Gayle,733,190,M Morkel,25,40,G Gambhir,590,315,SP Narine,24,42,S Dhawan,569,194,SL Malinga,22
+6,19,MEK Hussey,733,71,DJ Bravo,32,162,CH Gayle,694,310,JP Faulkner,28,21,SK Raina,548,50,Harbhajan Singh,24
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local228.csv`
+```text
+"season id","batsman","runs","bowler","wickets"
+1,100,616,102,22
+1,40,534,38,19
+1,44,514,32,17
+2,18,572,61,23
+2,53,495,124,21
+2,110,465,73,19
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local228/attempts/attempt-20261010-154318Z/trace.json /toolCalls/4/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "assumed", "value": "Per season, batsman candidates = players with at least one row in batsman_scored as the striker that season; bowler candidates = players with at least one delivery bowled (ball_by_ball.bowler) that season. Zero-run / zero-wicket players never enter the top 3.", "rationale": "题面只要求每赛季得分/夺三柱门最高的三名球员，未规定最低出场门槛；按‘有记录即参与排名’处理，对前3名无影响。"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local228/attempts/attempt-20261010-154318Z/trace.json /toolCalls/4/result/details/fields/7`
+```text
+{"path": "measure.formula", "status": "assumed", "value": {"op": "custom", "per": "season, player", "description": "Two metrics. Batsman total runs = SUM(batsman_scored.runs_scored) over ball events where the player is ball_by_ball.striker, grouped by (season_id, player_id). Bowler total wickets = COUNT(*) of wicket_taken rows with kind_out NOT IN ('run out','hit wicket','retired hurt') over ball events where the player is ball_by_ball.bowler, grouped by (season_id, player_id)."}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local228/attempts/attempt-20261010-154318Z/trace.json /toolCalls/4/result/details/fields/12`
+```text
+{"path": "selection", "status": "request", "value": {"n": 3, "orderBy": "batsmen: total runs DESC, then player_id ASC; bowlers: total wickets DESC, then player_id ASC"}, "evidenceIds": ["evidence_20c33fcc-26e6-4c41-82b9-7f71832e2a33"]}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local228/attempts/attempt-20261010-154318Z/trace.json /toolCalls/4/result/details/fields/14`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "grouped", "rowCount": 9, "columns": ["season_id", "batsman1_id", "batsman1_name", "batsman1_runs", "bowler1_id", "bowler1_name", "bowler1_wickets", "batsman2_id", "batsman2_name", "batsman2_runs", "bowler2_id", "bowler2_name", "bowler2_wickets", "batsman3_id", "batsman3_name", "batsman3_runs", "bowler3_id", "bowler3_name", "bowler3_wickets"], "units": {"batsman1_runs": "runs", "batsman2_runs": "runs", "batsman3_runs": "runs", "bowler1_wickets": "wickets", "bowler2_wickets": "wickets", "bowler3_wickets": "wickets"}, "decimals": {"batsman1_runs": 0, "batsman2_runs": 0, "batsman3_runs": 0, "bowler1_wickets": 0, "bowler2_wickets": 0, "bowler3_wickets": 0}}, "rationale": "题面要求把六名球员按对位（batsman1-bowler1 …）在赛季维度输出并附各自 runs/wickets；采用一赛季一行、以 player_id+player_name 标识球员。"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+
+<a id="local230"></a>
+### local230 — 高评分热门类型前四导演
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：Gold冲突；节点 `selection`；错误层：标准答案有问题；可见性：不适用或未定。
+- **题面/标准**：选>8电影最多3类型，再选其内影片最多4导演，数电影非类型连接行。
+- **本次SQL**：DISTINCT电影选Drama/Action/Comedy；director ID DISTINCT电影LIMIT4，四人各2。
+- **实际失配**：实际Anthony、James、Joe、Marianne各2；Gold仅James4、Anthony3、Joe3。4/3行及数值不同，忽略行序。
+- **Spec处理**：index7 conditions对象拒绝其余applied；8条件字符串修复。成功Spec Top3、DISTINCT电影、n4/output4，无open；13结果14发布实现它。
+- **错因分析**：Gold违反top four：12观测4人各2部、100人各1部，非候选不足。11同时数电影/连接行James2/4、Joe2/3、Anthony2/3，Gold吻合类型连接行而题面films。仅报告直接观测，不声称恢复Gold SQL。主selection4→3，连接权重次要冲突。
+- **过程机制**：conditions拒绝后修复；partial反馈非语义证明。
+- **后续验证/修复**：复核Gold Top4及电影去重，勿贴Gold改n3或电影×类型计数。
+- **限制**：Gold SQL缺失，数值吻合不证明Gold实现。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local230 /question`
+```text
+Determine the top three genres with the most movies rated above 8, and then identify the top four directors who have directed the most films rated above 8 within those genres. List these directors and their respective movie counts.
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local230/attempts/attempt-20261010-154318Z/submissions/sql/local230.sql`
+```text
+WITH top_genres AS (
+  SELECT g.genre
+  FROM genre g
+  JOIN ratings r ON r.movie_id = g.movie_id
+  WHERE r.avg_rating > 8
+  GROUP BY g.genre
+  ORDER BY COUNT(DISTINCT g.movie_id) DESC
+  LIMIT 3
+)
+SELECT n.name AS director,
+       COUNT(DISTINCT dm.movie_id) AS movie_count
+FROM director_mapping dm
+JOIN names n ON n.id = dm.name_id
+JOIN ratings r ON r.movie_id = dm.movie_id
+JOIN genre g ON g.movie_id = dm.movie_id
+WHERE r.avg_rating > 8
+  AND g.genre IN (SELECT genre FROM top_genres)
+GROUP BY n.id, n.name
+ORDER BY movie_count DESC, director ASC
+LIMIT 4
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local230.csv`
+```text
+director,movie_count
+Anthony Russo,2
+James Mangold,2
+Joe Russo,2
+Marianne Elliott,2
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local230.csv`
+```text
+"director_name","movie_count"
+James Mangold,4
+Anthony Russo,3
+Joe Russo,3
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local230/attempts/attempt-20261010-154318Z/trace.json /toolCalls/8/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "assumed", "value": "只有执导过至少一部 avg_rating>8 且其类型属于 Top3 类型的电影的导演才进入候选；无合格电影的导演不计入（对 Top4 排名无影响）。"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local230/attempts/attempt-20261010-154318Z/trace.json /toolCalls/8/result/details/fields/6`
+```text
+{"path": "measure.formula", "status": "assumed", "value": {"op": "count_distinct", "per": "director", "of": "movies.id"}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local230/attempts/attempt-20261010-154318Z/trace.json /toolCalls/8/result/details/fields/9`
+```text
+{"path": "selection", "status": "assumed", "value": {"n": 4, "orderBy": "movie_count desc"}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local230/attempts/attempt-20261010-154318Z/trace.json /toolCalls/8/result/details/fields/11`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "top_n", "rowCount": 4, "columns": ["director", "movie_count"], "units": {"movie_count": "部"}, "decimals": {"movie_count": 0}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **process**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local230/attempts/attempt-20261010-154318Z/trace.json /toolCalls/11/result/details/artifact/preview`
+```text
+{"columns": ["director", "distinct_movies", "movie_genre_rows"], "rows": [["James Mangold", 2, 4], ["Joe Russo", 2, 3], ["Anthony Russo", 2, 3], ["Marianne Elliott", 2, 2], ["Soubin Shahir", 1, 3], ["Sandeep Reddy Vanga", 1, 2], ["Amr Gamal", 1, 2], ["Arshad Siddiqui", 1, 2], ["Raj B. Shetty", 1, 2], ["Madhu C. Narayanan", 1, 2], ["Khalid Rahman", 1, 2], ["Clarence Williams IV", 1, 2], ["H. Vinoth", 1, 2], ["Jeral Clyde Jr.", 1, 2], ["Aaron K. Carter", 1, 2], ["Nitesh Tiwari", 1, 2], ["Manoj K. Jha", 1, 2], ["Mandeep Benipal", 1, 2], ["Oskars Rupenheits", 1, 2], ["Mahesh Narayan", 1, 2], ["Aditya Dhar", 1, 2], ["Tim Van Someren", 1, 2], ["Harsha", 1, 2], ["Prince Singh", 1, 2], ["Emeric Pressburger", 1, 2], ["Tigmanshu Dhulia", 1, 2], ["Michael Powell", 1, 2], ["Noah Baumbach", 1, 2]], "columnTypes": ["TEXT", "INTEGER", "INTEGER"], "rowCount": 28, "truncated": false}
+```
+原attempt探索观测，支持本文的实际计数/身份事实；不当作业务定义或交付数据。
+- **process**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local230/attempts/attempt-20261010-154318Z/trace.json /toolCalls/12/result/details/artifact/preview`
+```text
+{"columns": ["cnt", "num_directors"], "rows": [[2, 4], [1, 100]], "columnTypes": ["INTEGER", "INTEGER"], "rowCount": 2, "truncated": false}
+```
+原attempt探索观测，支持本文的实际计数/身份事实；不当作业务定义或交付数据。
+
+<a id="local253"></a>
+### local253 — 四城薪资前五与全国均值
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：Gold冲突；节点 `measure.denominator`；错误层：标准答案有问题；可见性：不适用或未定。
+- **题面/标准**：清洗salary，公司×城市AVG各城前5；每行与同一个overall national average salary比较。
+- **本次SQL**：数字串REAL，公司×城市AVG和ROW_NUMBER前5；全部4344条清洗记录单一全国AVG767988.77。
+- **实际失配**：相同20公司×城市及当地均值；预测全国全767988.77，Gold20个不同全国值，如Qwerty5081882、SetuServ4949704、Rahul3037137.5。
+- **Spec处理**：index4 conditions对象/formula缺per拒绝；6修复open整体全国/公司全国AVG。各探针；21建议整体0.77；24整体决定成功verified=false、ties同输出后strict、补不换币种周期；25 output top_n20改full成功避免全局Top5检查；26结果27发布一致。
+- **错因分析**：明确the overall national average salary，不论权重/清洗，共同全国均值不能随公司变。Gold20个不同值违反范围，勿恢复不可见公司分母。名单及当地均值全吻合排除清洗/Top5主因。
+- **过程机制**：正确识别整体/公司歧义并按题面选；改full是检查适配非Top5业务变化。
+- **后续验证/修复**：复核Gold全国分母公司分组；另补币种周期/SalariesReported权重定义，勿贴Gold改公司全国AVG。
+- **限制**：Gold SQL缺失，Gold全国公式未定；多币种/年/月/小时，字面清洗未代表可业务比较。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local253 /question`
+```text
+Using a Salary Dataset where the salary values need to be cleaned by removing non-numeric characters and converting them to a numeric type, write a detailed SQL query that identifies the top 5 companies by average salary in each of Mumbai, Pune, New Delhi, and Hyderabad, then compares each company’s average salary in those cities to the overall national average salary. The final result should display four columns: Location, Company Name, Average Salary in State, and Average Salary in Country, listing only the top 5 companies in each of the specified locations.
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local253/attempts/attempt-20261010-154318Z/submissions/sql/local253.sql`
+```text
+WITH RECURSIVE
+  maxlen AS (
+    SELECT MAX(LENGTH(Salary)) AS L FROM SalaryDataset
+  ),
+  nums(pos) AS (
+    SELECT 1 UNION ALL SELECT pos + 1 FROM nums WHERE pos < (SELECT L FROM maxlen)
+  ),
+  extracted AS (
+    SELECT s.Location, s.CompanyName,
+           (SELECT GROUP_CONCAT(SUBSTR(s.Salary, n.pos, 1), '')
+              FROM (SELECT pos FROM nums WHERE pos <= LENGTH(s.Salary) AND SUBSTR(s.Salary, pos, 1) GLOB '[0-9]' ORDER BY pos) n) AS digits_txt
+    FROM SalaryDataset s
+    WHERE s.Salary IS NOT NULL AND TRIM(s.Salary) <> ''
+  ),
+  valid_salary AS (
+    SELECT Location, CompanyName, CAST(digits_txt AS REAL) AS salary
+    FROM extracted
+    WHERE digits_txt IS NOT NULL AND digits_txt <> ''
+  ),
+  city_company_avg AS (
+    SELECT Location, CompanyName, AVG(salary) AS avg_state
+    FROM valid_salary
+    WHERE Location IN ('Mumbai', 'Pune', 'New Delhi', 'Hyderabad')
+    GROUP BY Location, CompanyName
+  ),
+  ranked AS (
+    SELECT Location, CompanyName, avg_state,
+           ROW_NUMBER() OVER (PARTITION BY Location ORDER BY avg_state DESC, CompanyName ASC) AS rn
+    FROM city_company_avg
+  ),
+  national AS (
+    SELECT AVG(salary) AS avg_country FROM valid_salary
+  )
+SELECT ranked.Location AS "Location",
+       ranked.CompanyName AS "Company Name",
+       ROUND(ranked.avg_state, 2) AS "Average Salary in State",
+       ROUND((SELECT avg_country FROM national), 2) AS "Average Salary in Country"
+FROM ranked
+WHERE ranked.rn <= 5
+ORDER BY CASE ranked.Location
+           WHEN 'Mumbai' THEN 1
+           WHEN 'Pune' THEN 2
+           WHEN 'New Delhi' THEN 3
+           WHEN 'Hyderabad' THEN 4
+           ELSE 5
+         END,
+         ranked.avg_state DESC
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local253.csv`
+```text
+Location,Company Name,Average Salary in State,Average Salary in Country
+Mumbai,Rahul Industries,6044006,767988.77
+Mumbai,NVIDIA,4187500,767988.77
+Mumbai,VINAYA KUMAR,4029337,767988.77
+Mumbai,Goldman Sachs,3977066,767988.77
+Mumbai,Zee Entertainment Enterprises Ltd.,3531413,767988.77
+Pune,Atos,5273205,767988.77
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local253.csv`
+```text
+"location","companyname","avg_sal_state","avg_salary_country"
+Hyderabad,Qwerty Concepts,5081882.0,5081882.0
+Hyderabad,SetuServ,4949704.0,4949704.0
+Hyderabad,XYZ (Turkey),3000000.0,1510743.5
+Hyderabad,ABCDEF,2745265.5,1643757.75
+Hyderabad,MarketLinc,2658491.0,2658491.0
+Mumbai,Rahul Industries,6044006.0,3037137.5
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local253/attempts/attempt-20261010-154318Z/trace.json /toolCalls/25/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "assumed", "value": "按题面将 Salary 去除非数字字符后转数值；清洗后全部 4344 行都能得到纯数字串（无空值、无 0 值，数值区间 26–9,568,943），因此没有任何记录因无法解析而被剔除，也不做缺失填补。不做单位/币种换算：/yr、/mo、/hr 与 ₹、$、£、AFN 一律按去除非数字字符后的字面数值参与平均（题面只要求去除非数字字符并转数值）", "rationale": "题面规定的清洗方式是“removing non-numeric characters and converting them to a numeric type”，未要求周期或币种换算；换算需要外部汇率/工时假设，属不可由证据确定的业务规则，故按字面实现并在交付中披露"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local253/attempts/attempt-20261010-154318Z/trace.json /toolCalls/25/result/details/fields/5`
+```text
+{"path": "measure.formula", "status": "decided", "value": {"op": "custom", "per": "每个 Location×CompanyName 输出行", "description": "Average Salary in State = 每个 (Location, CompanyName) 分组内清洗后薪资的平均值；Average Salary in Country = 全数据集（所有城市、所有公司、所有薪资记录）清洗后薪资的单一总体平均值，每行显示同一常数", "of": {"op": "avg", "per": "location×company 内的薪资记录", "of": "cleaned_salary"}}, "verified": false, "rationale": "把两个候选放回题面逐词检验：题面说 “compares each company's average salary in those cities to the overall national average salary”，其中 “the overall national average salary”（定冠词 + overall national）指全国单一的整体平均薪资，而不是该公司自身的全国口径；且三个输出语义中只有 “Average Salary in Country” 为常数才能称为国家标准。探针输出不同（output=b119a7f2e905 vs 94a3876762ee），采纳与 compare_hypotheses 明显倾向（probability=0.77）一致的候选。", "alternatives": [{"id": "alternative_d97aecfe-45d8-4fa4-8cf0-c75b49a58f18", "value": {"op": "custom", "per": "每个 Location×CompanyName 输出行", "description": "Average Salary in State = 每个 (Location, CompanyName) 分组内清洗后薪资的平均值；Average Salary in Country = 全数据集（所有城市、所有公司、所有薪资记录）清洗后薪资的单一总体平均值，每行显示同一常数", "of": {"op": "avg", "per": "location×company 内的薪资记录", "of": "cleaned_salary"}}, "probe": {"alternativeId": "alternative_d97aecfe-45d8-4fa4-8cf0-c75b49a58f18", "state": "available", "rowCount": 20, "output": "b119a7f2e905"}}, {"id": "alternative_fa584833-e82f-4db3-845f-f827833f7e9a", "value": {"op": "custom", "per": "每个 Location×CompanyName 输出行", "description": "Average Salary in State = 每个 (Location, CompanyName) 分组内清洗后薪资的平均值；Average Salary in Country = 该输出行所属公司在全部城市清洗后薪资的平均值（每家公司一个值）", "of": {"op": "avg", "per": "location×company 内的薪资记录", "of": "cleaned_salary"}}, "probe": {"alternativeId": "alternative_fa584833-e82f-4db3-845f-f827833f7e9a", "state": "available", "rowCount": 20, "output": "94a3876762ee"}}], "outputs": "distinct", "advice": {"recommendation": "alternative", "probabilities": [{"alternativeId": "alternative_d97aecfe-45d8-4fa4-8cf0-c75b49a58f18", "probability": 0.77}, {"alternativeId": "alternative_fa584833-e82f-4db3-845f-f827833f7e9a", "probability": 0.04}], "lean": {"alternativeId": "alternative_d97aecfe-45d8-4fa4-8cf0-c75b49a58f18", "probability": 0.77}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local253/attempts/attempt-20261010-154318Z/trace.json /toolCalls/25/result/details/fields/7`
+```text
+{"path": "measure.denominator", "status": "assumed", "value": "分母为对应分组（城市×公司 或 全国）内清洗后可解析的薪资记录行数；分母为 0 的分组不产生行，不做除零或补零", "rationale": "无业务定义；空分组的均值无定义，故不出现在结果中"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local253/attempts/attempt-20261010-154318Z/trace.json /toolCalls/25/result/details/fields/9`
+```text
+{"path": "selection", "status": "request", "value": {"n": 5, "orderBy": "Average Salary in State DESC（在每个 Location 分区内）"}, "evidenceIds": ["evidence_a8d056e7-8143-438a-b928-a37284e60d65"]}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local253/attempts/attempt-20261010-154318Z/trace.json /toolCalls/25/result/details/fields/11`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "full", "columns": ["Location", "Company Name", "Average Salary in State", "Average Salary in Country"], "units": {"Average Salary in State": "INR/年", "Average Salary in Country": "INR/年"}, "decimals": {"Average Salary in State": 2, "Average Salary in Country": 2}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+
+<a id="local258"></a>
+### local258 — 各投手与最佳单场
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：Gold冲突；节点 `population.eligibility`；错误层：标准答案有问题；可见性：不适用或未定。
+- **题面/标准**：each bowler，排除run-out/非投手出局，失分仅bat runs，最佳最多wickets单场报告失分。
+- **本次SQL**：330 bowler完整球键LEFT JOIN得分/extra/wicket；六类credited wickets，legal球排除wides/noballs，match汇总最多wickets最少runs的W-R。
+- **实际失配**：预测330/Gold286行；真实投球者K Goel24、LRPL Taylor52、B Chipli93、LPC Silva111、CK Kapugedera127、SR Tendulkar133完整Gold均无。Malinga实际143/6.31/16.01/5-12，Gold159/6/15.138364779874214/5-0；Gold2–5评分仍长度数值字符串失配。
+- **Spec处理**：index10 eligibility和legal/all formula open，grouping对象拒绝11修复；20 root evidenceIds非法；21改候选文字拒绝；22 exact候选缺有效比较拒绝。17/23 HTTP451，24 reason改formula assumed成功；27/28完整eligibility探针330/283；29改全部投手assumed成功、加bowler_id；30结果31发布绑定。33/34发布后探索未换提交。
+- **错因分析**：可证Gold冲突仅总体each bowler无正wicket门槛，真实零wicket投手被省略。不能由Malinga多16wickets推Gold含run-outs，也不能由5-0推只数出局球失分。legal/all已有观测，doc只6 balls未裁定合法球，数值差异未定，非已证Gold冲突。
+- **过程机制**：失效比较后assumed重写open成功非证实；custom且selection n/a，最佳未独立声明；发布后探索非最终。
+- **后续验证/修复**：复核Gold零wicket遗漏；补SQL、legal-ball、dismissal归属和最佳完整全场失分定义。
+- **限制**：Gold SQL缺失；doc无具体dismissal/合法球映射；player35有事实无维表；数值错因未定。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local258 /question`
+```text
+Calculate the total number of wickets taken by each bowler (excluding run-outs and other dismissals not attributed to the bowler), their economy rate (total runs conceded divided by total overs bowled, considering only runs scored off the bat and ignoring any extra runs like wides and no-balls), their strike rate (average number of balls bowled per wicket taken), and their best bowling performance in a single match (the match with the most wickets taken by the bowler, formatted as "wickets-runs" where runs are the runs conceded excluding extras).
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local258/attempts/attempt-20261010-154318Z/submissions/sql/local258.sql`
+```text
+WITH deliv AS (
+  SELECT b.bowler AS bowler, b.match_id AS match_id,
+         COALESCE(bs.runs_scored,0) AS runs,
+         CASE WHEN ex.extra_type IN ('wides','noballs') THEN 0 ELSE 1 END AS legal_ball,
+         CASE WHEN w.kind_out IS NOT NULL THEN 1 ELSE 0 END AS wkt
+  FROM ball_by_ball b
+  LEFT JOIN batsman_scored bs ON bs.match_id=b.match_id AND bs.over_id=b.over_id AND bs.ball_id=b.ball_id AND bs.innings_no=b.innings_no
+  LEFT JOIN extra_runs ex ON ex.match_id=b.match_id AND ex.over_id=b.over_id AND ex.ball_id=b.ball_id AND ex.innings_no=b.innings_no
+  LEFT JOIN wicket_taken w ON w.match_id=b.match_id AND w.over_id=b.over_id AND w.ball_id=b.ball_id AND w.innings_no=b.innings_no
+       AND w.kind_out IN ('caught','bowled','lbw','stumped','caught and bowled','hit wicket')
+),
+bm AS (
+  SELECT bowler, match_id, SUM(wkt) AS wkts, SUM(runs) AS runs
+  FROM deliv GROUP BY bowler, match_id
+),
+best AS (
+  SELECT bowler, wkts, runs,
+         ROW_NUMBER() OVER (PARTITION BY bowler ORDER BY wkts DESC, runs ASC) AS rn
+  FROM bm
+),
+bt AS (
+  SELECT bowler, SUM(wkt) AS total_wickets, SUM(runs) AS runs_conceded, SUM(legal_ball) AS legal_balls
+  FROM deliv GROUP BY bowler
+)
+SELECT bt.bowler AS bowler_id,
+       p.player_name AS bowler_name,
+       bt.total_wickets AS total_wickets,
+       ROUND(bt.runs_conceded * 6.0 / NULLIF(bt.legal_balls,0), 2) AS economy_rate,
+       ROUND(CAST(bt.legal_balls AS REAL) / NULLIF(bt.total_wickets,0), 2) AS strike_rate,
+       (best.wkts || '-' || best.runs) AS best_bowling
+FROM bt
+JOIN best ON best.bowler = bt.bowler AND best.rn = 1
+LEFT JOIN player p ON p.player_id = bt.bowler
+ORDER BY bt.total_wickets DESC, bt.bowler
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local258.csv`
+```text
+bowler_id,bowler_name,total_wickets,economy_rate,strike_rate,best_bowling
+194,SL Malinga,143,6.31,16.01,5-12
+136,A Mishra,123,7.13,19.37,5-17
+71,DJ Bravo,122,7.9,16.54,4-21
+50,Harbhajan Singh,119,6.8,22.46,5-17
+67,PP Chawla,119,7.41,20.18,4-17
+201,R Ashwin,100,6.29,22.66,4-34
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local258.csv`
+```text
+"bowler","player_name","wickets","economy_rate","bowler_strike_rate","Best_Bowling_figure"
+194,SL Malinga,159,6.0,15.138364779874214,"5-0"
+71,DJ Bravo,137,7.558293838862559,15.401459854014599,"4-0"
+136,A Mishra,131,6.955773955773957,18.641221374045802,"5-0"
+50,Harbhajan Singh,128,6.630196936542669,21.421875,"5-0"
+67,PP Chawla,126,7.325925925925926,19.285714285714285,"4-0"
+81,R Vinay Kumar,117,7.9524733268671195,17.623931623931625,"5-0"
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local258/attempts/attempt-20261010-154318Z/trace.json /toolCalls/29/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "assumed", "value": "all bowlers who bowled at least one delivery are reported (330 bowlers); the 47 bowlers with no credited wicket are kept, with strike_rate NULL (undefined) and best_bowling taken from the match with the fewest runs conceded among their matches", "rationale": "The task says 'each bowler' with no qualification, so every player who bowled a delivery is a bowler and belongs in the table; excluding zero-wicket bowlers would add an unstated filter. Probes showed the two readings are not equivalent: all-bowlers output=0e0b300e8bab (330 rows) vs wicket-takers-only output=f8fc138e95e4 (283 rows)."}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local258/attempts/attempt-20261010-154318Z/trace.json /toolCalls/29/result/details/fields/6`
+```text
+{"path": "measure.formula", "status": "assumed", "value": {"op": "custom", "description": "Per bowler: total_wickets = COUNT of credited dismissals (caught, bowled, lbw, stumped, caught and bowled, hit wicket); runs_conceded = SUM(batsman_scored.runs_scored) over the bowler's deliveries (runs off the bat only, ALL extras ignored); balls_bowled = COUNT of LEGAL deliveries (deliveries with no wide and no no-ball); overs_bowled = balls_bowled/6; economy_rate = runs_conceded/overs_bowled (= runs_conceded*6/balls_bowled); strike_rate = balls_bowled/total_wickets; best_bowling = 'W-R' of the match where the bowler took the most credited wickets (tie-break: fewest runs_conceded in the match)."}, "rationale": "'total overs bowled' is a scorecard unit of 6 LEGAL deliveries; wides/no-balls are re-bowled and do not consume a ball of the over (observed: ball_id reaches 9, so overs with extras have more than 6 delivery rows, and extra_runs holds 4091 wides + 567 noballs). Business definition: Economy Rate = (Total Runs Conceded / Balls Bowled) x 6. So balls bowled = legal deliveries."}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local258/attempts/attempt-20261010-154318Z/trace.json /toolCalls/29/result/details/fields/10`
+```text
+{"path": "selection", "status": "not_applicable"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local258/attempts/attempt-20261010-154318Z/trace.json /toolCalls/29/result/details/fields/11`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "full", "columns": ["bowler_id", "bowler_name", "total_wickets", "economy_rate", "strike_rate", "best_bowling"], "units": {"total_wickets": "wickets", "economy_rate": "runs per over", "strike_rate": "balls per wicket", "best_bowling": "wickets-runs"}, "decimals": {"economy_rate": 2, "strike_rate": 2}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **process**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local258/attempts/attempt-20261010-154318Z/trace.json /toolCalls/19/result/details/artifact/preview`
+```text
+{"columns": ["n_bowlers", "bowlers_zero_wkt", "bowlers_zero_legal_ball", "wkts_35", "runs_35", "legal_35"], "rows": [[330, 47, 0, 77, 2102, 1691]], "columnTypes": ["INTEGER", "INTEGER", "INTEGER", "INTEGER", "INTEGER", "INTEGER"], "rowCount": 1, "truncated": false}
+```
+原attempt探索观测，支持本文的实际计数/身份事实；不当作业务定义或交付数据。
+- **process**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local258/attempts/attempt-20261010-154318Z/trace.json /toolCalls/34/result/details/artifact/preview`
+```text
+{"columns": ["bowler_id", "player_name", "total_wickets", "economy_rate", "strike_rate", "best_bowling"], "rows": [[24, "K Goel", 0, 8.36, null, "0-7"], [52, "LRPL Taylor", 0, 11.5, null, "0-11"], [93, "B Chipli", 0, 20, null, "0-20"], [111, "LPC Silva", 0, 21, null, "0-21"], [127, "CK Kapugedera", 0, 17.29, null, "0-8"], [133, "SR Tendulkar", 0, 9.5, null, "0-6"]], "columnTypes": ["INTEGER", "TEXT", "INTEGER", "REAL", "NULL", "TEXT"], "rowCount": 6, "truncated": false}
+```
+原attempt探索观测，支持本文的实际计数/身份事实；不当作业务定义或交付数据。
+
+<a id="local259"></a>
+### local259 — 每位IPL球员生涯档案
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：Gold冲突；节点 `population.eligibility`；错误层：标准答案有问题；可见性：不适用或未定。
+- **题面/标准**：For each player，属性生涯指标最佳单场，忽略extra_runs，未要求同时击球投球。
+- **本次SQL**：全部468 player ID LEFT JOIN；matches player_match distinct，balls batsman_scored内连接球，wickets六类，最佳W-R全场bat runs。
+- **实际失配**：预测468/Gold247。Gold无BB McCullum2、RT Ponting3、R Dravid6；实际91/10/89场和2431/91/2170分，非未出场。Ganguly实际57matches/1249balls/10wickets/2-20，Gold55/1291/12/3-1，runs均1303；Gold2–17忽略行序，长度及值失配。
+- **Spec处理**：index5全成功eligibility all/played open；19缺探针拒绝；20/21仅468/467 COUNT探针非最终档案；22/24 HTTP451；23 eligibility缺比较拒绝、formula精确化成功；25缺reason拒绝；26reason作路径拒绝；27reason入字段引用each player改request成功；28结果29发布以468维表实现。
+- **错因分析**：Gold遗漏有身份且参赛击球的2/3/6，与each player冲突，不是未出场1人歧义。勿由247反推击球且投球/正wicket规则。balls/matches/wickets/best亦不同，doc无物理筛选与dismissal映射，Gold SQL缺失不能恢复；总体冲突非实际所有指标正确。
+- **过程机制**：COUNT人口探针非最终档案；reason位置/HTTP451循环；selection n/a但custom/SQL有modal/最佳排序。
+- **后续验证/修复**：复核Gold隐含内连接资格；补SQL核balls全delivery、matches范围和最佳全场失分，勿贴247删参赛玩家。
+- **限制**：Gold SQL缺失；player35事实无维表排除；无得分记录球是否计面对球与dismissal归属未裁定。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local259 /question`
+```text
+For each player, list their ID, name, their most frequent role across all matches, batting hand, bowling skill, total runs scored, total matches played, total times they were dismissed, batting average (total runs divided by total dismissals), highest score in a single match, the number of matches in which they scored at least 30 runs, at least 50 runs, and at least 100 runs, total balls faced in their career, strike rate (total runs divided by total balls faced, multiplied by 100), total wickets taken, economy rate (average runs conceded per over), and their best bowling performance in a single match (most wickets taken in a match, formatted as "wickets taken-runs given", where the best performance is the one with the most wickets, and if tied, the fewest runs conceded). Ignore the extra runs data.
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local259/attempts/attempt-20261010-154318Z/submissions/sql/local259.sql`
+```text
+WITH deliveries AS (
+  SELECT bb.match_id, bb.innings_no, bb.over_id, bb.ball_id, bb.striker, bb.bowler, b.runs_scored
+  FROM ball_by_ball bb
+  JOIN batsman_scored b ON b.match_id=bb.match_id AND b.over_id=bb.over_id AND b.ball_id=bb.ball_id AND b.innings_no=bb.innings_no
+),
+bat_match AS (SELECT striker AS player_id, match_id, SUM(runs_scored) AS runs, COUNT(*) AS balls FROM deliveries GROUP BY striker, match_id),
+bat_tot AS (SELECT player_id, SUM(runs) AS total_runs, SUM(balls) AS balls_faced, MAX(runs) AS highest_score,
+   SUM(CASE WHEN runs>=30 THEN 1 ELSE 0 END) AS m30, SUM(CASE WHEN runs>=50 THEN 1 ELSE 0 END) AS m50, SUM(CASE WHEN runs>=100 THEN 1 ELSE 0 END) AS m100 FROM bat_match GROUP BY player_id),
+matches AS (SELECT player_id, COUNT(DISTINCT match_id) AS total_matches FROM player_match GROUP BY player_id),
+dismissals AS (SELECT player_out AS player_id, COUNT(*) AS total_dismissals FROM wicket_taken WHERE kind_out<>'retired hurt' GROUP BY player_out),
+role_counts AS (SELECT player_id, role, COUNT(*) AS c FROM player_match GROUP BY player_id, role),
+role_ranked AS (SELECT player_id, role, ROW_NUMBER() OVER (PARTITION BY player_id ORDER BY c DESC, role ASC) AS rn FROM role_counts),
+best_role AS (SELECT player_id, role FROM role_ranked WHERE rn=1),
+bowl_del AS (SELECT bb.match_id, bb.bowler, COUNT(*) AS balls, SUM(COALESCE(b.runs_scored,0)) AS runs FROM ball_by_ball bb LEFT JOIN batsman_scored b ON b.match_id=bb.match_id AND b.over_id=bb.over_id AND b.ball_id=bb.ball_id AND b.innings_no=bb.innings_no GROUP BY bb.match_id, bb.bowler),
+wk AS (SELECT bb.match_id, bb.bowler, COUNT(*) AS wkts FROM wicket_taken w JOIN ball_by_ball bb ON bb.match_id=w.match_id AND bb.over_id=w.over_id AND bb.ball_id=w.ball_id AND bb.innings_no=w.innings_no WHERE w.kind_out IN ('caught','bowled','lbw','stumped','caught and bowled','hit wicket') GROUP BY bb.match_id, bb.bowler),
+bowl_match AS (SELECT bd.match_id, bd.bowler AS player_id, bd.balls, bd.runs, COALESCE(wk.wkts,0) AS wkts FROM bowl_del bd LEFT JOIN wk ON wk.match_id=bd.match_id AND wk.bowler=bd.bowler),
+bowl_tot AS (SELECT player_id, SUM(wkts) AS total_wickets, SUM(runs)*6.0/NULLIF(SUM(balls),0) AS economy_rate FROM bowl_match GROUP BY player_id),
+best_bowl AS (SELECT player_id, wkts, runs FROM (SELECT player_id, wkts, runs, ROW_NUMBER() OVER (PARTITION BY player_id ORDER BY wkts DESC, runs ASC) AS rn FROM bowl_match) WHERE rn=1)
+SELECT p.player_id, p.player_name, br.role AS most_frequent_role, p.batting_hand, p.bowling_skill,
+ COALESCE(bt.total_runs,0) AS total_runs, COALESCE(m.total_matches,0) AS total_matches, COALESCE(d.total_dismissals,0) AS total_dismissals,
+ ROUND(CAST(COALESCE(bt.total_runs,0) AS REAL)/NULLIF(d.total_dismissals,0),2) AS batting_average,
+ COALESCE(bt.highest_score,0) AS highest_score, COALESCE(bt.m30,0) AS matches_30plus, COALESCE(bt.m50,0) AS matches_50plus, COALESCE(bt.m100,0) AS matches_100plus,
+ COALESCE(bt.balls_faced,0) AS total_balls_faced,
+ ROUND(CAST(COALESCE(bt.total_runs,0) AS REAL)/NULLIF(bt.balls_faced,0)*100,2) AS strike_rate,
+ COALESCE(bw.total_wickets,0) AS total_wickets, ROUND(bw.economy_rate,2) AS economy_rate,
+ bb2.wkts||'-'||bb2.runs AS best_bowling
+FROM player p
+LEFT JOIN bat_tot bt ON bt.player_id=p.player_id
+LEFT JOIN matches m ON m.player_id=p.player_id
+LEFT JOIN dismissals d ON d.player_id=p.player_id
+LEFT JOIN best_role br ON br.player_id=p.player_id
+LEFT JOIN bowl_tot bw ON bw.player_id=p.player_id
+LEFT JOIN best_bowl bb2 ON bb2.player_id=p.player_id
+ORDER BY p.player_id
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local259.csv`
+```text
+player_id,player_name,most_frequent_role,batting_hand,bowling_skill,total_runs,total_matches,total_dismissals,batting_average,highest_score,matches_30plus,matches_50plus,matches_100plus,total_balls_faced,strike_rate,total_wickets,economy_rate,best_bowling
+1,SC Ganguly,Captain,Left-hand bat,Right-arm medium,1303,57,52,25.06,91,20,7,0,1249,104.32,10,7.69,2-20
+2,BB McCullum,Player,Right-hand bat,Right-arm medium,2431,91,86,28.27,158,35,13,2,1875,129.65,0,,
+3,RT Ponting,Captain,Right-hand bat,Right-arm medium,91,10,9,10.11,28,0,0,0,129,70.54,0,,
+4,DJ Hussey,Player,Right-hand bat,Right-arm offbreak,1322,64,49,26.98,71,19,5,0,1084,121.96,8,8.67,2-2
+5,Mohammad Hafeez,Player,Right-hand bat,Right-arm offbreak,64,8,7,9.14,16,0,0,0,83,77.11,2,5.81,1-7
+6,R Dravid,Captain,Right-hand bat,Right-arm offbreak,2170,89,77,28.18,75,32,11,0,1895,114.51,0,,
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local259.csv`
+```text
+"striker","striker_name","role","batting_hand","bowling_skill","runs","matches","dismissals","batt_avg","Highest_score","thirties","fifties","hundreds","balls_faced_career","strike_rate","wickets_taken","economy_rate","best_bowling_figure"
+1,SC Ganguly,Captain,Left-hand bat,Right-arm medium,1303,55,52,25.057692307692307,91,20,7,0,1291,100.92951200619676,12,7.694656488549618,"3-1"
+4,DJ Hussey,Player,Right-hand bat,Right-arm offbreak,1322,61,49,26.979591836734695,71,19,5,0,1101,120.07266121707538,10,8.674922600619196,"2-0"
+5,Mohammad Hafeez,Player,Right-hand bat,Right-arm offbreak,64,8,7,9.142857142857142,16,0,0,0,84,76.19047619047619,2,5.809523809523809,"1-0"
+8,V Kohli,Player,Right-hand bat,Right-arm medium,3987,127,105,37.97142857142857,113,57,29,4,3133,127.25821895946376,5,8.045454545454545,"2-0"
+9,JH Kallis,Player,Right-hand bat,Right-arm fast-medium,2414,94,84,28.738095238095237,89,34,17,0,2274,106.15655233069481,74,7.422197434467373,"3-0"
+10,CL White,Player,Right-hand bat,Legbreak googly,949,44,35,27.114285714285714,78,15,6,0,758,125.19788918205805,1,10.565217391304348,"1-0"
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local259/attempts/attempt-20261010-154318Z/trace.json /toolCalls/27/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "request", "value": "All players recorded in the player table (one row per player_id), including any player who never appeared in a match", "evidenceIds": ["evidence_0222f288-0522-49a8-950e-ecb1f162bf2d"]}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local259/attempts/attempt-20261010-154318Z/trace.json /toolCalls/27/result/details/fields/8`
+```text
+{"path": "measure.formula", "status": "assumed", "value": {"op": "custom", "description": "Per-player stat line, one row per player in the player table. total_runs = SUM(batsman_scored.runs_scored) over deliveries where the player is the striker (batsman runs only; extra runs ignored). total_matches = count of distinct matches in player_match. most_frequent_role = modal player_match.role; ties broken by role name ascending. total_dismissals = COUNT of wicket_taken rows where player_out = the player, excluding kind_out='retired hurt' (not a dismissal); run out and obstructing the field still count as dismissals. batting_average = total_runs / total_dismissals (NULL when 0 dismissals). highest_score = MAX over matches of the player's runs in that match. matches_30plus/50plus/100plus = COUNT of matches where per-match runs >= 30 / 50 / 100. total_balls_faced = COUNT of batsman_scored rows on which the player was striker (the per-ball batsman record; a wide delivery carries no batsman_scored row so is not a ball faced). strike_rate = total_runs / total_balls_faced * 100 (NULL when 0 balls). total_wickets = COUNT of wicket_taken rows where the player is the delivery's bowler, restricted to kinds credited to a bowler (caught, bowled, lbw, stumped, caught and bowled, hit wicket); run out, retired hurt and obstructing the field are not credited to the bowler. economy_rate = (runs conceded as bowler) / (balls bowled) * 6, where runs conceded = SUM of batsman runs off the player's deliveries and balls bowled = COUNT of deliveries bowled by the player (extra runs ignored, so wides/noballs are not separately identified or removed). best_bowling = the player's single best bowling performance across the matches in which he bowled: most wickets, tie broken by fewest runs conceded, formatted 'wickets-runs'; NULL when the player bowled no delivery."}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local259/attempts/attempt-20261010-154318Z/trace.json /toolCalls/27/result/details/fields/12`
+```text
+{"path": "selection", "status": "not_applicable"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local259/attempts/attempt-20261010-154318Z/trace.json /toolCalls/27/result/details/fields/13`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "full", "columns": ["player_id", "player_name", "most_frequent_role", "batting_hand", "bowling_skill", "total_runs", "total_matches", "total_dismissals", "batting_average", "highest_score", "matches_30plus", "matches_50plus", "matches_100plus", "total_balls_faced", "strike_rate", "total_wickets", "economy_rate", "best_bowling"], "units": {"total_runs": "runs", "batting_average": "runs per dismissal", "highest_score": "runs", "strike_rate": "runs per 100 balls", "economy_rate": "runs per over", "best_bowling": "wickets-runs"}, "decimals": {"batting_average": 2, "strike_rate": 2, "economy_rate": 2}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **process**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local259/attempts/attempt-20261010-154318Z/trace.json /toolCalls/7/result/details/artifact/preview`
+```text
+{"columns": ["striker", "balls_as_striker", "bs_rows_joined", "scoring_balls", "balls_with_extra", "wides", "noballs"], "rows": [[1, 1291, 1249, 642, 89, 59, 5], [2, 1944, 1875, 1058, 126, 72, 13], [3, 129, 129, 60, 6, 1, 0], [4, 1101, 1084, 676, 51, 26, 5], [5, 84, 83, 33, 5, 1, 0], [6, 1918, 1895, 1098, 74, 36, 4], [7, 129, 121, 65, 9, 8, 0], [8, 3133, 3061, 1983, 123, 83, 11], [9, 2274, 2216, 1301, 108, 69, 8], [10, 758, 753, 493, 22, 12, 3]], "columnTypes": ["INTEGER", "INTEGER", "INTEGER", "INTEGER", "INTEGER", "INTEGER", "INTEGER"], "rowCount": 10, "truncated": false}
+```
+原attempt探索观测，支持本文的实际计数/身份事实；不当作业务定义或交付数据。
+
+<a id="local263"></a>
+### local263 — strong/soft最常关联L1_model
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：未定位；节点 `未定位`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：模型name/version，any step比较成立status，再计关联L1_model次数各status最大；标准描述模型OR后传播关联记录，记录身份/权重须补明。
+- **本次SQL**：按step的stack_ok，status/L1_model COUNT DISTINCT name||version，每模型-status-category一次，不展开全部关联记录。
+- **实际失配**：实际soft regression21/strong37，Gold108/234；逐step COUNT(*)成功探针36/78仍非Gold，不能改COUNT(*)即修复。
+- **Spec处理**：index4第一task per数组/selection ties键拒绝，countGrain assumed一次；9漏taskId第二task countGrain模型/step open；11补人口/source成功。各候选探针；19 eligibility同输出决定成功、countGrain缺比较拒绝；20比较建议模型一次0.62；21决定applied verified=false；22结果23发布第二task。
+- **错因分析**：计数单位/传播是疑点，非类别/Top1。21/37与36/78为真实不同粒度，view按NVstep分组，join model不含step后GROUP BY。Gold108/234为36/78三倍不证明连接/传播规则。标准未给重复关联权重，探针无模型OR×关联行结果，无法确认Gold算法或判Gold错；不认定“一模型一次”成功决定必为根因。
+- **过程机制**：第二task实际轨迹不可套第一fields；source仅view无join声明不表示内部无连接；partial反馈非证明。
+- **后续验证/修复**：补SQL及association occurrence定义：模型status OR、记录身份、同实体键权重分别明确；审阅不新查询。
+- **限制**：Gold SQL缺失；实体一次/step/关联记录权重不等价，无业务裁定。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local263 /question`
+```text
+Identify the L1_model associated with each model (specified by name and version) that occurs most frequently for each status ('strong' or 'soft'), along with the number of times it occurs. A model has a 'strong' status if, for any of its steps, the maximum test score among non-'Stack' models is less than the 'Stack' model's test score. It has a 'soft' status if the maximum test score among non-'Stack' models equals the 'Stack' model's test score. Count how many times each L1_model is associated with a 'strong' or 'soft' status across all models, and determine which L1_model has the highest occurrence for each status.
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local263/attempts/attempt-20261010-154318Z/submissions/sql/local263.sql`
+```text
+WITH assoc AS (
+  SELECT status, L1_model, COUNT(DISTINCT name||'|'||version) AS count
+  FROM stack_ok
+  GROUP BY status, L1_model
+),
+ranked AS (
+  SELECT status, L1_model, count,
+         ROW_NUMBER() OVER (PARTITION BY status ORDER BY count DESC, L1_model) AS rn
+  FROM assoc
+)
+SELECT status, L1_model, count
+FROM ranked
+WHERE rn = 1
+ORDER BY status
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local263.csv`
+```text
+status,L1_model,count
+soft,regression,21
+strong,regression,37
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local263.csv`
+```text
+status,L1_model,max_cnt
+soft,regression,108
+strong,regression,234
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local263/attempts/attempt-20261010-154318Z/trace.json /toolCalls/21/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "decided", "value": "only models that hold at least one strong/soft step", "verified": false, "rationale": "两候选探针输出相同（同 output id 4ddc562cf4e0）：未持有 strong/soft 的模型不属于任何状态组，不会进入结果，故对最终答案无影响。按最字面口径选取：只有持有至少一个 strong/soft 步骤的模型参与关联计数。", "alternatives": [{"id": "alternative_e5d32c8f-e9a6-4d6e-ad4b-2f444d2db9a9", "value": "only models that hold at least one strong/soft step", "probe": {"alternativeId": "alternative_e5d32c8f-e9a6-4d6e-ad4b-2f444d2db9a9", "state": "available", "rowCount": 2, "output": "4ddc562cf4e0"}}, {"id": "alternative_64a9bc49-24ea-4189-9b11-95bf7010cf08", "value": "all 101 (name, version) models", "probe": {"alternativeId": "alternative_64a9bc49-24ea-4189-9b11-95bf7010cf08", "state": "available", "rowCount": 2, "output": "4ddc562cf4e0"}}], "outputs": "identical"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local263/attempts/attempt-20261010-154318Z/trace.json /toolCalls/21/result/details/fields/5`
+```text
+{"path": "measure.formula", "status": "assumed", "value": {"op": "count", "per": "model", "of": "model"}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local263/attempts/attempt-20261010-154318Z/trace.json /toolCalls/21/result/details/fields/8`
+```text
+{"path": "selection", "status": "assumed", "value": {"n": 1, "orderBy": "count desc"}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local263/attempts/attempt-20261010-154318Z/trace.json /toolCalls/21/result/details/fields/10`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "grouped", "rowCount": 2, "columns": ["status", "L1_model", "count"]}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+
+<a id="local264"></a>
+### local264 — 跨步骤版本的传统/Stack类别出现次数
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：未定位；节点 `未定位`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：比较traditional/Stack过程中跨step/version计L1_model occurrences，比较事件形成未定义。
+- **本次SQL**：model按L1_model COUNT(*)，无Stack比较，regression213已跨NVstep。
+- **实际失配**：预测regression213，Gold639，仅count失配，别名不评分。
+- **Spec处理**：index4/5建Spec前query失败未执行；6唯一Spec全成功：source model、countGrain NVstep行、conditions/time n/a，无open，语义assumed；12证实213行/71 NV；13完整step-key关联Stack仍213；14 model303/303distinct NVstep/Stack303；15结果16发布绑定。
+- **错因分析**：source/conditions未实现Stack比较，但when comparing是背景还是比较事件无定义/Gold SQL。639是213三倍绝不证明要丢step连接，13完整key关联213非639。不能解释隐藏三阶段/三份重复或Gold错，保留未定。
+- **过程机制**：子代理只type=table误称视图不存在，是元数据范围错误非无Stack；建Spec前两查询被拒非观测；反馈provider_http_error。
+- **后续验证/修复**：补Gold SQL及comparison事件粒度/key，明确source权重后修Spec，勿直接乘3。
+- **限制**：Gold SQL缺失，比较对象/传统集合/出现次数未定。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local264 /question`
+```text
+Which model category (L1_model) appears the most frequently across all steps and versions when comparing traditional models to the Stack model, and what is the total count of its occurrences?
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local264/attempts/attempt-20261010-154318Z/submissions/sql/local264.sql`
+```text
+SELECT L1_model, COUNT(*) AS "count" FROM model GROUP BY L1_model ORDER BY COUNT(*) DESC, L1_model ASC LIMIT 1
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local264.csv`
+```text
+L1_model,count
+regression,213
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local264.csv`
+```text
+L1_model,max_cnt
+regression,639
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local264/attempts/attempt-20261010-154318Z/trace.json /toolCalls/6/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "assumed", "value": "包含全部记录，不排除任何 L1_model 取值；不补零", "rationale": "题目要求统计全部出现次数"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local264/attempts/attempt-20261010-154318Z/trace.json /toolCalls/6/result/details/fields/5`
+```text
+{"path": "measure.formula", "status": "assumed", "value": {"op": "count", "per": "row", "of": "*"}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local264/attempts/attempt-20261010-154318Z/trace.json /toolCalls/6/result/details/fields/8`
+```text
+{"path": "selection", "status": "assumed", "value": {"n": 1, "orderBy": "count desc"}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local264/attempts/attempt-20261010-154318Z/trace.json /toolCalls/6/result/details/fields/10`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "top_n", "rowCount": 1, "columns": ["L1_model", "count"], "units": {"count": "条"}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+
+<a id="local269"></a>
+### local269 — 末级包装组合总数量的均值
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：未定位；节点 `未定位`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：完整展开嵌套关系，叶项目数量沿路径相乘、组合内求和，再跨final packaging combinations平均；组合身份未专门定义。
+- **本次SQL**：把不被任何包装包含的根当组合，跨路径保留重复叶出现；4根叶总量864/720/960/1240，AVG=946。
+- **实际失配**：实际CSV 1行，前部值 [["946"]]；Gold 1行，前部值 [["530.67"]]。比较设置 {"instance_id": "local269", "condition_cols": [], "ignore_order": false, "toks": "160"}。
+- **Spec处理**：最后set返回 index8：population.entity=assumed；population.eligibility=assumed；measure.formula=assumed；grouping=not_applicable；selection=not_applicable；output=assumed。
+- **错因分析**：最终SQL与成功嵌套avg(sum)一致。叶种类、路径发生、根组合是不同可能平均实体；Gold530.67无法裁定“final combination”是否根或根-叶组合，不能反推去重/数量丢失。
+- **后续验证/修复**：补组合实体定义和Gold展开表；对根-叶-路径各粒度逐项复核，别删掉混合包装重复路径迎合值。
+- **限制**：Gold SQL未提供；未执行数据库SQL，不从不同数值恢复不可见口径。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local269 /question`
+```text
+What is the average total quantity across all final packaging combinations, considering only the leaf-level items within each combination after fully expanding any nested packaging relationships?
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local269/attempts/attempt-20261010-154318Z/submissions/sql/local269.sql`
+```text
+WITH RECURSIVE roots AS (
+  SELECT p.id AS root_id
+  FROM packaging p
+  WHERE NOT EXISTS (SELECT 1 FROM packaging_relations r WHERE r.contains_id = p.id)
+),
+expand AS (
+  SELECT root_id, root_id AS node_id, 1 AS mult,
+         '>' || CAST(root_id AS TEXT) || '>' AS path
+  FROM roots
+  UNION ALL
+  SELECT e.root_id, r.contains_id, e.mult * r.qty,
+         e.path || CAST(r.contains_id AS TEXT) || '>'
+  FROM expand e
+  JOIN packaging_relations r ON r.packaging_id = e.node_id
+  WHERE instr(e.path, '>' || CAST(r.contains_id AS TEXT) || '>') = 0
+),
+leaf_totals AS (
+  SELECT e.root_id, SUM(e.mult) AS total_qty
+  FROM expand e
+  WHERE NOT EXISTS (SELECT 1 FROM packaging_relations r2 WHERE r2.packaging_id = e.node_id)
+  GROUP BY e.root_id
+)
+SELECT AVG(total_qty) AS average_total_leaf_quantity
+FROM leaf_totals;
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local269.csv`
+```text
+average_total_leaf_quantity
+946
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local269.csv`
+```text
+avg_qty
+530.67
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local269/attempts/attempt-20261010-154318Z/trace.json /toolCalls/8/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "assumed", "value": "Include only final/outermost packaging items (those never appearing as contains_id). Each such combination is fully expanded; only its leaf-level items contribute quantity.", "rationale": "No business definition found; literal reading of 'final packaging combinations' and 'leaf-level items within each combination'."}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local269/attempts/attempt-20261010-154318Z/trace.json /toolCalls/8/result/details/fields/6`
+```text
+{"path": "measure.formula", "status": "assumed", "value": {"op": "avg", "per": "final packaging combination", "of": {"op": "sum", "per": "leaf-level item occurrence within a combination", "of": "expanded leaf quantity (qty multiplied along the containment path)"}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local269/attempts/attempt-20261010-154318Z/trace.json /toolCalls/8/result/details/fields/10`
+```text
+{"path": "selection", "status": "not_applicable"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local269/attempts/attempt-20261010-154318Z/trace.json /toolCalls/8/result/details/fields/11`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "scalar", "rowCount": 1, "columns": ["average_total_leaf_quantity"]}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **process**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local269/attempts/attempt-20261010-154318Z/trace.json /toolCalls/9/result/details/artifact/preview`
+```text
+{"columns": ["root_id", "root_name", "node_id", "mult"], "rows": [[531, "Pallet of L", 502, 864], [532, "Pallet of M", 501, 720], [533, "Pallet Mix MS", 501, 360], [533, "Pallet Mix MS", 502, 600], [534, "Pallet Mix SG", 501, 384], [534, "Pallet Mix SG", 502, 256], [534, "Pallet Mix SG", 502, 600]], "columnTypes": ["INTEGER", "TEXT", "INTEGER", "INTEGER"], "rowCount": 7, "truncated": false}
+```
+展开的7个叶发生，支持4个根各自合计；不代表业务定义。
+
+<a id="local270"></a>
+### local270 — 根包装中累计数量超过500的项目
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：Gold冲突；节点 `population.conditions`；错误层：标准答案有问题；可见性：不适用或未定。
+- **题面/标准**：根包装不被其它包装包含，同根同项目所有嵌套路径数量累加后>500。
+- **本次SQL**：逐层乘qty，同根同叶SUM；Pallet Mix SG的Bottle 500cl两路径600+256=856，纳入4对。
+- **实际失配**：实际CSV 4行，前部值 [["Pallet Mix MS", "Bottle 500cl", "600"], ["Pallet Mix SG", "Bottle 500cl", "856"], ["Pallet of L", "Bottle 500cl", "864"], ["Pallet of M", "Bottle 330cl", "720"]]；Gold 3行，前部值 [["Pallet of L", "Bottle 500cl"], ["Pallet of M", "Bottle 330cl"], ["Pallet Mix MS", "Bottle 500cl"]]。比较设置 {"instance_id": "local270", "condition_cols": [], "ignore_order": true, "toks": "129"}。
+- **Spec处理**：最后set返回 index17：population.entity=request；population.eligibility=assumed；population.conditions=request；measure.formula=assumed；grouping=assumed；selection=not_applicable；output=assumed。
+- **错因分析**：观察完整12条边：534→523→502为20×30=600，534→524→511→502为16×8×2=256。534未被任何边包含，856>500，Gold仅3对且漏掉该对，违背根与累计阈值。不能将额外total_quantity列当失分原因，也不恢复不可见Gold内部去重策略。
+- **后续验证/修复**：复核并修正Gold漏项；保留路径乘数和同根叶总和。API错误另做接口回归，不换成加法零行读法。
+- **限制**：Gold SQL缺失；这里只证明具体漏项，不推断Gold内部实现。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local270 /question`
+```text
+Which top-level packaging containers, meaning those not contained within any other packaging, have any item for which the total quantity accumulated across all nested levels in the hierarchy exceeds 500, and what are the names of both these containers and the corresponding items?
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local270/attempts/attempt-20261010-154318Z/submissions/sql/local270.sql`
+```text
+WITH RECURSIVE expanded(root_id, node_id, q) AS (
+  SELECT r.packaging_id, r.contains_id, r.qty
+  FROM packaging_relations r
+  WHERE r.packaging_id NOT IN (SELECT contains_id FROM packaging_relations)
+  UNION ALL
+  SELECT e.root_id, r.contains_id, e.q * r.qty
+  FROM expanded e JOIN packaging_relations r ON r.packaging_id = e.node_id
+), leaves AS (
+  SELECT e.root_id, e.node_id, e.q FROM expanded e
+  WHERE NOT EXISTS (SELECT 1 FROM packaging_relations r WHERE r.packaging_id = e.node_id)
+)
+SELECT p1.name AS top_container, p2.name AS item, SUM(l.q) AS total_quantity
+FROM leaves l JOIN packaging p1 ON p1.id=l.root_id JOIN packaging p2 ON p2.id=l.node_id
+GROUP BY p1.name, p2.name HAVING SUM(l.q) > 500
+ORDER BY p1.name, p2.name
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local270.csv`
+```text
+top_container,item,total_quantity
+Pallet Mix MS,Bottle 500cl,600
+Pallet Mix SG,Bottle 500cl,856
+Pallet of L,Bottle 500cl,864
+Pallet of M,Bottle 330cl,720
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local270.csv`
+```text
+p_name,c_name
+Pallet of L,Bottle 500cl
+Pallet of M,Bottle 330cl
+Pallet Mix MS,Bottle 500cl
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local270/attempts/attempt-20261010-154318Z/trace.json /toolCalls/17/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "assumed", "value": "Include all top-level containers; include all items nested at any level", "rationale": "Question asks for containers that HAVE any qualifying item; containers with no qualifying item are excluded by the HAVING filter."}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local270/attempts/attempt-20261010-154318Z/trace.json /toolCalls/17/result/details/fields/2`
+```text
+{"path": "population.conditions", "status": "request", "value": ["total quantity accumulated across all nested levels for an item > 500"], "evidenceIds": ["evidence_c22a4bcb-f49c-4632-a7bb-17411b5f7fe0"]}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local270/attempts/attempt-20261010-154318Z/trace.json /toolCalls/17/result/details/fields/6`
+```text
+{"path": "measure.formula", "status": "assumed", "value": {"op": "sum", "per": "top container and item", "of": {"op": "custom", "per": "root-to-item path", "description": "product of qty along the path edges", "of": "qty"}}, "rationale": "The two readings give different answers: the additive reading returns 0 rows, which contradicts the question's presupposition that qualifying containers and items exist. The multiplicative rollup returns 4 rows and matches the sql-rules 'expand leaf nodes' template, which multiplies quantity along each root-to-leaf path (e.quantity * c.quantity). 'Total quantity accumulated across all nested levels' means each nested level multiplies the count (12 Box Large x 72 bottles = 864 bottles)."}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local270/attempts/attempt-20261010-154318Z/trace.json /toolCalls/17/result/details/fields/8`
+```text
+{"path": "selection", "status": "not_applicable"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local270/attempts/attempt-20261010-154318Z/trace.json /toolCalls/17/result/details/fields/9`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "full", "columns": ["top_container", "item", "total_quantity"]}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **process**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local270/attempts/attempt-20261010-154318Z/trace.json /toolCalls/8/result/details/artifact/preview`
+```text
+{"columns": ["packaging_id", "contains_id", "qty"], "rows": [[511, 501, 3], [511, 502, 2], [521, 502, 72], [522, 501, 36], [523, 502, 30], [524, 511, 8], [531, 521, 12], [532, 522, 20], [533, 522, 10], [533, 523, 20], [534, 523, 20], [534, 524, 16]], "columnTypes": ["INTEGER", "INTEGER", "INTEGER"], "rowCount": 12, "truncated": false}
+```
+完整包装边及数量：两条534→502路径累计856，534无上级。
+
+<a id="local272"></a>
+### local272 — 订单423仓库1 FIFO精确拣货
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：Gold冲突；节点 `measure.formula`；错误层：标准答案有问题；可见性：不适用或未定。
+- **题面/标准**：每产品累计拣货须等于订单423累计需求，不超库存；购买日、数量排序。
+- **本次SQL**：需求SUM到产品，仓库1批次FIFO累积，6520拣14+20+6=40，4280拣36+24=60。
+- **实际失配**：实际CSV 5行，前部值 [["4280", "C", "1", "36"], ["4280", "D", "18", "24"], ["6520", "A", "29", "14"], ["6520", "C", "13", "20"], ["6520", "A", "16", "6"]]；Gold 4行，前部值 [["4280", "C", "1", "36.0"], ["4280", "D", "18", "24.0"], ["6520", "A", "29", "14.0"], ["6520", "C", "13", "12.0"]]。比较设置 {"instance_id": "local272", "condition_cols": [0, 1, 2, 3], "ignore_order": false, "toks": "190"}。
+- **Spec处理**：最后set返回 index36：population.entity=assumed；population.eligibility=assumed；measure.formula=assumed；grouping=assumed；selection=not_applicable；output=assumed。
+- **错因分析**：订单原探索index29返回6520需求40且仅1条订单行。Gold该产品14+12=26≠40，违反explicit total picked matches cumulative ordered；本次无同产品多订单行，不能把未逐line分配当实际失分原因。记录picking_line探针用仓库2，也不是合格替代来源。
+- **后续验证/修复**：先修正Gold需求守恒；再给多行、库存不足等最小用例验证分配，不能删14件让SQL贴26。
+- **限制**：Gold SQL缺失，26的内部由来未定；多行序列在本订单没有触发。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local272 /question`
+```text
+For order 423, identify the product IDs, aisles, and positions from which to pick the exact quantities needed for each order line, ensuring that the total picked quantity for each product matches the cumulative quantities ordered without exceeding the available inventory in warehouse 1. Calculate the quantities to be picked from each location by prioritizing inventory with earlier purchased dates and smaller quantities, and ensure that picking respects the sequence and cumulative quantities of the order lines for products with multiple entries.
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local272/attempts/attempt-20261010-154318Z/submissions/sql/local272.sql`
+```text
+WITH req AS (
+  SELECT product_id, SUM(qty) AS need_qty
+  FROM orderlines
+  WHERE order_id = 423
+  GROUP BY product_id
+),
+b AS (
+  SELECT i.product_id, i.location_id, l.aisle, l.position, p.purchased, i.qty,
+         ROW_NUMBER() OVER (PARTITION BY i.product_id
+                            ORDER BY p.purchased ASC, i.qty ASC, l.aisle ASC, l.position ASC) AS rn
+  FROM inventory i
+  JOIN locations l ON l.id = i.location_id
+  JOIN purchases p ON p.id = i.purchase_id
+  JOIN req ON req.product_id = i.product_id
+  WHERE l.warehouse = 1
+),
+c AS (
+  SELECT b.product_id, b.aisle, b.position, b.qty, b.rn, req.need_qty,
+         COALESCE(SUM(b.qty) OVER (PARTITION BY b.product_id ORDER BY b.rn
+                                   ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), 0) AS prev
+  FROM b JOIN req ON req.product_id = b.product_id
+)
+SELECT product_id, aisle, position, MIN(qty, need_qty - prev) AS pick_qty
+FROM c
+WHERE prev < need_qty
+ORDER BY product_id, rn
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local272.csv`
+```text
+product_id,aisle,position,pick_qty
+4280,C,1,36
+4280,D,18,24
+6520,A,29,14
+6520,C,13,20
+6520,A,16,6
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local272.csv`
+```text
+product_id,aisle,position,quantity_to_be_picked
+4280,C,1,36.0
+4280,D,18,24.0
+6520,A,29,14.0
+6520,C,13,12.0
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local272/attempts/attempt-20261010-154318Z/trace.json /toolCalls/36/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "assumed", "value": "Only allocation lines with a positive pick quantity are kept; warehouse-2 locations and products not ordered on order 423 are out of scope, and inventory batches whose remaining requirement is already zero are not picked at all."}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local272/attempts/attempt-20261010-154318Z/trace.json /toolCalls/36/result/details/fields/7`
+```text
+{"path": "measure.formula", "status": "assumed", "value": {"op": "custom", "description": "Pick quantity from each warehouse-1 storage location = MIN(inventory.qty, product requirement - cumulative quantity already allocated from earlier batches of the same product). Batches are ordered by purchases.purchased ASC then inventory.qty ASC (earlier purchase first, then smaller quantity first); only batches with a positive remaining requirement are emitted. The product requirement is the cumulative ordered quantity of all order lines of order 423 for that product (SUM(orderlines.qty))."}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local272/attempts/attempt-20261010-154318Z/trace.json /toolCalls/36/result/details/fields/10`
+```text
+{"path": "selection", "status": "not_applicable"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local272/attempts/attempt-20261010-154318Z/trace.json /toolCalls/36/result/details/fields/11`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "detail", "columns": ["product_id", "aisle", "position", "pick_qty"], "units": {"pick_qty": "units"}, "decimals": {"pick_qty": 0}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **process**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local272/attempts/attempt-20261010-154318Z/trace.json /toolCalls/29/result/details/artifact/preview`
+```text
+{"columns": ["product_id", "ordered_qty", "n_lines"], "rows": [[4280, 60, 1], [6520, 40, 1]], "columnTypes": ["INTEGER", "INTEGER", "INTEGER"], "rowCount": 2, "truncated": false}
+```
+订单423实际每产品需求与行数，6520明确40。
+
+<a id="local273"></a>
+### local273 — FIFO平均拣货比例
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：未定位；节点 `未定位`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：按购买日及批次数量FIFO，要求量与库存量区间交集决定拣量，按产品名AVG比例。
+- **本次SQL**：需求按订单日期累计，产品总库存压缩后算每订单行min(qty,max(0,total-prev))；以订单行需求作分母，AVG×100。
+- **实际失配**：实际CSV 6行，前部值 [["Der Helle Kumpel", "100"], ["Hazy Pink Cloud", "100"], ["Hercule Trippel", "100"], ["Hoppy Crude Oil", "36.11111111111111"], ["Monks and Nuns", "100"], ["Pale Rider Rides", "100"]]；Gold 6行，前部值 [["Der Helle Kumpel", "76.92307692307692"], ["Hazy Pink Cloud", "75"], ["Hercule Trippel", "75"], ["Hoppy Crude Oil", "85.71428571428571"], ["Monks and Nuns", "100"], ["Pale Rider Rides", "80"]]。比较设置 {"instance_id": "local273", "condition_cols": [], "ignore_order": false, "toks": "249"}。
+- **Spec处理**：最后set返回 index32：population.entity=assumed；population.eligibility=assumed；measure.formula=assumed；grouping=assumed；selection=not_applicable；output=assumed。
+- **错因分析**：压缩总库存可保持全部批次被允许的需求总满足量，不应仅凭看不到location就判FIFO必错。比例分母是需求量还是库存量、均值单元是订单还是非零分配区间未获专属定义。两个探针均不等Gold，不能认定选择B就证明错因。
+- **后续验证/修复**：补分配行粒度与比例分母；保留订单-批次交集表，在确定口径后再按产品平均。
+- **限制**：Gold SQL未提供；未执行数据库SQL，不从不同数值恢复不可见口径。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local273 /question`
+```text
+Calculate the average pick percentage for each product name, using a first-in-first-out approach that selects from inventory locations based on the earliest purchase date and smallest available quantity, ensuring that the picked quantity reflects only the overlapping range between each order’s required quantity and the inventory’s available quantity, and then grouping and ordering the results by product name?
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local273/attempts/attempt-20261010-154318Z/submissions/sql/local273.sql`
+```text
+WITH inv AS (SELECT i.product_id, i.qty, pu.purchased, i.id, SUM(i.qty) OVER (PARTITION BY i.product_id ORDER BY pu.purchased ASC, i.qty ASC, i.id ASC) AS cum FROM inventory i JOIN purchases pu ON pu.id = i.purchase_id), tot AS (SELECT product_id, MAX(cum) AS total FROM inv GROUP BY product_id), dem AS (SELECT ol.id, ol.product_id, ol.qty, COALESCE(SUM(ol.qty) OVER (PARTITION BY ol.product_id ORDER BY o.ordered ASC, o.id ASC, ol.id ASC ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),0) AS prev FROM orderlines ol JOIN orders o ON o.id = ol.order_id) SELECT p.name AS product_name, AVG(MIN(d.qty, MAX(0, t.total - d.prev)) * 100.0 / d.qty) AS average_pick_percentage FROM dem d JOIN products p ON p.id = d.product_id JOIN tot t ON t.product_id = d.product_id GROUP BY p.name ORDER BY p.name;
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local273.csv`
+```text
+product_name,average_pick_percentage
+Der Helle Kumpel,100
+Hazy Pink Cloud,100
+Hercule Trippel,100
+Hoppy Crude Oil,36.11111111111111
+Monks and Nuns,100
+Pale Rider Rides,100
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local273.csv`
+```text
+product_name,avg_pick_percentage
+Der Helle Kumpel,76.92307692307692
+Hazy Pink Cloud,75
+Hercule Trippel,75
+Hoppy Crude Oil,85.71428571428571
+Monks and Nuns,100
+Pale Rider Rides,80
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local273/attempts/attempt-20261010-154318Z/trace.json /toolCalls/32/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "assumed", "value": "Every order line (demand row) whose product has at least one inventory record; required qty (orderlines.qty) > 0.", "rationale": "Each order's required quantity defines one demand observation; nothing in the request excludes order lines."}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local273/attempts/attempt-20261010-154318Z/trace.json /toolCalls/32/result/details/fields/7`
+```text
+{"path": "measure.formula", "status": "assumed", "value": {"op": "avg", "per": "order line", "of": {"op": "ratio", "per": "order line", "numerator": {"op": "custom", "per": "order line", "description": "picked quantity under cumulative FIFO: order lines processed by order date consume inventory locations ordered by (purchase date ASC, qty ASC); picked = MIN(remaining required, remaining available)"}, "denominator": {"op": "custom", "per": "order line", "description": "orderline required qty"}}}, "rationale": "Chose cumulative FIFO (candidate B). 'first-in-first-out approach that selects from inventory locations' (plural) and 'the picked quantity reflects only the overlapping range between each order's required quantity and the inventory's available quantity' describe sequential consumption capped by remaining inventory, which also matches the database's own picking (picking_line consumes several locations per order-product in purchase-date/qty order with carry-over). Candidate A (single earliest/smallest location, no consumption) contradicts FIFO."}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local273/attempts/attempt-20261010-154318Z/trace.json /toolCalls/32/result/details/fields/11`
+```text
+{"path": "selection", "status": "not_applicable"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local273/attempts/attempt-20261010-154318Z/trace.json /toolCalls/32/result/details/fields/12`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "grouped", "rowCount": 6, "columns": ["product_name", "average_pick_percentage"], "units": {"average_pick_percentage": "percent (0-100)"}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+
+<a id="local275"></a>
+### local275 — 2017每月季调比均高于2的产品
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：Gold冲突；节点 `population.conditions`；错误层：标准答案有问题；可见性：不适用或未定。
+- **题面/标准**：文档ratio=实际销售/CMA；2017每月均>2，不是某月或全年最大值>2。
+- **本次SQL**：最终先对月份去重再编号，正确t13..24；两12月窗口CMA，按产品MIN(ratio)>2，输出空。
+- **实际失配**：实际CSV 0行，前部值 []；Gold 4行，前部值 [["Hazy Pink Cloud"], ["Hoppy Crude Oil"], ["Reindeer Fuel"], ["Summer in India"]]。比较设置 {"instance_id": "local275", "condition_cols": [], "ignore_order": false, "toks": "194"}。
+- **Spec处理**：最后set返回 index33：population.entity=request；population.eligibility=assumed；population.conditions=assumed；measure.formula=equivalent；grouping=assumed；selection=not_applicable；output=assumed。
+- **错因分析**：Gold含Reindeer Fuel等2017有实际零销售月份的产品。qty=0、CMA非负时不能使ratio>2；完整最终月映射探针min ratio分别有0或0.065，不满足every month。已修掉早期SELECT DISTINCT mth,ROW_NUMBER同时用造成的月份复制，不能把早期复制作为最终错因。formula两个候选最终只被记equivalent，并不证明Gold或候选业务正确。
+- **后续验证/修复**：核对Gold是否错误用了ANY/MAX条件。保留EVERY/MIN；为零月份、真连续月与两窗口定义加回归样例。
+- **限制**：Gold SQL缺失；证实成员不满足forall，不反推它内部一定用MAX。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local275 /question`
+```text
+Based on monthly sales data starting in January 2016 and using a centered moving average to adjust for seasonality, which products had a seasonality-adjusted sales ratio that stayed consistently above 2 for every month in the year 2017?
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local275/attempts/attempt-20261010-154318Z/submissions/sql/local275.sql`
+```text
+WITH months AS (
+  SELECT mth, ROW_NUMBER() OVER (ORDER BY mth) AS t
+  FROM (SELECT DISTINCT mth FROM monthly_sales)
+),
+s AS (
+  SELECT ms.product_id, mo.t, ms.qty
+  FROM monthly_sales ms JOIN months mo ON ms.mth = mo.mth
+),
+w AS (
+  SELECT product_id, t, qty,
+    (SUM(qty) OVER (PARTITION BY product_id ORDER BY t ROWS BETWEEN 5 PRECEDING AND 6 FOLLOWING)
+   + SUM(qty) OVER (PARTITION BY product_id ORDER BY t ROWS BETWEEN 6 PRECEDING AND 5 FOLLOWING)) / 24.0 AS cma
+  FROM s
+),
+r AS (
+  SELECT product_id, t, qty * 1.0 / NULLIF(cma,0) AS ratio
+  FROM w WHERE t BETWEEN 13 AND 24
+)
+SELECT p.id AS product_id, p.name AS product_name
+FROM r JOIN products p ON p.id = r.product_id
+GROUP BY p.id, p.name
+HAVING MIN(r.ratio) > 2
+ORDER BY p.id
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local275.csv`
+```text
+product_id,product_name
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local275.csv`
+```text
+product_name
+Hazy Pink Cloud
+Hoppy Crude Oil
+Reindeer Fuel
+Summer in India
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local275/attempts/attempt-20261010-154318Z/trace.json /toolCalls/33/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "assumed", "value": "all products that have monthly sales records in monthly_sales; products/months with zero or low sales are still kept, no product excluded for zero or missing activity", "rationale": "题面问 'which products'，未提及排除任何产品；数据中10个产品均有完整36个月记录，无零值实体需要排除。无澄清工具可用，故记为假定。"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local275/attempts/attempt-20261010-154318Z/trace.json /toolCalls/33/result/details/fields/2`
+```text
+{"path": "population.conditions", "status": "assumed", "value": ["Sales-to-CMA ratio = monthly qty / centered 12-month moving average (CMA) of the same product; the ratio must be strictly greater than 2 for EVERY month of 2017 (2017-01 through 2017-12) - applied as HAVING min(ratio over the 2017 months) > 2", "CMA and the ratio are only evaluated for time steps 7..30 (2016-07 .. 2018-06); with time step 1 = 2016-01 (data starts January 2016), the 12 months of 2017 are steps 13..24, entirely within that range"]}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local275/attempts/attempt-20261010-154318Z/trace.json /toolCalls/33/result/details/fields/8`
+```text
+{"path": "measure.formula", "status": "equivalent", "alternatives": [{"id": "alternative_2a57fcae-1539-4185-873d-9c58f546f71c", "value": {"op": "min", "per": "product", "of": {"op": "ratio", "per": "product_month", "numerator": {"op": "sum", "per": "product_month", "of": "qty"}, "denominator": {"op": "custom", "per": "product_month", "description": "Centered 12-month moving average (CMA) of the product's monthly qty, center month INCLUDED: average of two overlapping 12-month windows (t-5..t+6) and (t-6..t+5); equivalently (0.5*qty[t-6] + qty[t-5]+...+qty[t+5] + 0.5*qty[t+6])/12"}}}, "probe": {"alternativeId": "alternative_2a57fcae-1539-4185-873d-9c58f546f71c", "state": "available", "rowCount": 0, "output": "bdebb0e36c08"}}, {"id": "alternative_809cdbfc-8ee3-4ad0-a489-dc51a6a52eb1", "value": {"op": "min", "per": "product", "of": {"op": "ratio", "per": "product_month", "numerator": {"op": "sum", "per": "product_month", "of": "qty"}, "denominator": {"op": "custom", "per": "product_month", "description": "Centered moving average with center month EXCLUDED: window1 = (t-5..t-1 and t+1..t+6), window2 = (t-6..t-1 and t+1..t+5); CMA = mean of the two window means (older 11-month reading of '5 months before and 6 months after')"}}}, "probe": {"alternativeId": "alternative_809cdbfc-8ee3-4ad0-a489-dc51a6a52eb1", "state": "available", "rowCount": 0, "output": "bdebb0e36c08"}}], "outputs": "identical"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local275/attempts/attempt-20261010-154318Z/trace.json /toolCalls/33/result/details/fields/12`
+```text
+{"path": "selection", "status": "not_applicable"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local275/attempts/attempt-20261010-154318Z/trace.json /toolCalls/33/result/details/fields/13`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "full", "columns": ["product_id", "product_name"]}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **process**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local275/attempts/attempt-20261010-154318Z/trace.json /toolCalls/4/result/details/content`
+```text
+# External Knowledge for local275
+
+## calculation_method.md
+
+
+# Explanation of Metrics
+
+## 1. Sales-to-CMA Ratio
+- **Definition**: This ratio compares actual sales to the centered moving average (CMA) of sales.
+- **Calculation**:
+  - **Centered Moving Average (CMA)**: The CMA is a smoothed value of sales calculated over a rolling 12-month period. It averages sales from the months before and after a given month, specifically using two overlapping windows (5 months before and 6 months after, and vice versa).
+  - **Sales-to-CMA Ratio**: The ratio is computed by dividing the actual sales amount for a month by its corresponding CMA value. A ratio greater than 2 indicates that the actual sales are more than twice the smoothed average for that period, suggesting significantly higher-than-average sales.
+
+## 2. 12-Month Overlapping Windows
+- **Definition**: A method to smooth sales data over time by averaging values in a specified window.
+- **Calculation**:
+  - **Window Size**: The window spans 12 months, with the specific approach involving overlapping periods. 
+  - **First Window**: For a given month, this window includes 5 months before and 6 months after.
+  - **Second Window**: Another window includes 6 months before and 5 months after the given month.
+  - **Averaging**: Sales data is averaged over these two overlapping windows to compute the CMA. This method smooths out fluctuations by considering both the past and future sales in the calculation.
+
+## 3. Restriction to the 7th and 30th Months
+- **Definition**: A filter applied to focus calculations within a specific range of months.
+- **Calculation**:
+  - **Time Range**: Only the months between the 7th and 30th time steps (which correspond to specific periods) are considered for calculating the CMA and ratio.
+  - **Purpose**: This restriction is used to avoid edge effects in the data where the moving average might be less reliable (e.g., at the very beginning or end of the available data). By focusing on these months, the calculations are more stable and meaningful.
+```
+任务业务文档逐字ratio/CMA定义。
+- **process**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local275/attempts/attempt-20261010-154318Z/trace.json /toolCalls/14/result/details/artifact/preview`
+```text
+{"columns": ["product_id", "mth", "qty"], "rows": [[4160, "2016-01-01", 79], [4160, "2016-02-01", 133], [4160, "2016-03-01", 24], [4160, "2016-04-01", 1], [4160, "2016-05-01", 0], [4160, "2016-06-01", 0], [4160, "2016-07-01", 0], [4160, "2016-08-01", 0], [4160, "2016-09-01", 1], [4160, "2016-10-01", 4], [4160, "2016-11-01", 15], [4160, "2016-12-01", 74], [4160, "2017-01-01", 148], [4160, "2017-02-01", 209], [4160, "2017-03-01", 30], [4160, "2017-04-01", 2], [4160, "2017-05-01", 0], [4160, "2017-06-01", 0], [4160, "2017-07-01", 0], [4160, "2017-08-01", 1], [4160, "2017-09-01", 0], [4160, "2017-10-01", 3], [4160, "2017-11-01", 17], [4160, "2017-12-01", 172], [4160, "2018-01-01", 167], [4160, "2018-02-01", 247], [4160, "2018-03-01", 42], [4160, "2018-04-01", 0], [4160, "2018-05-01", 0], [4160, "2018-06-01", 0], [4160, "2018-07-01", 0], [4160, "2018-08-01", 1], [4160, "2018-09-01", 0], [4160, "2018-10-01", 1], [4160, "2018-11-01", 73], [4160, "2018-12-01", 160]], "columnTypes": ["INTEGER", "TEXT", "INTEGER"], "rowCount": 36, "truncated": false}
+```
+Reindeer Fuel2017实际零月份；Gold仍把它列入every-month>2。
+- **process**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local275/attempts/attempt-20261010-154318Z/trace.json /toolCalls/28/result/details/artifact/preview`
+```text
+{"columns": ["product_id", "n", "min_r", "max_r", "months_gt2"], "rows": [[5310, 12, 0.833, 1.19, 0], [5430, 12, 0.644, 1.238, 0], [7950, 12, 0.478, 1.175, 0], [6520, 12, 0.419, 1.888, 0], [7870, 12, 0.346, 2.091, 1], [4040, 12, 0.099, 1.581, 0], [7790, 12, 0.065, 2.893, 3], [6600, 12, 0, 2.291, 2], [4280, 12, 0, 1.787, 0], [4160, 12, 0, 5.187, 3]], "columnTypes": ["INTEGER", "INTEGER", "REAL", "REAL", "INTEGER"], "rowCount": 10, "truncated": false}
+```
+最终月编号修复后的十二个月ratio范围。
+
+<a id="local277"></a>
+### local277 — 两产品2018季调加权回归年销量均值
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：可证差异；节点 `measure.formula`；错误层：口径错；可见性：假定错。
+- **题面/标准**：指定前36个月、季调7..30、weighted regression；需明确回归对象与权重后才能确定具体估值。
+- **本次SQL**：CMA与月季节指数后，在7..30对CMA做无显式权重OLS，趋势乘指数；12个月SUM再两产品AVG=460.51。
+- **实际失配**：实际CSV 1行，前部值 [["460.51"]]；Gold 1行，前部值 [["39.39"]]。比较设置 {"instance_id": "local277", "condition_cols": [], "ignore_order": false, "toks": "331"}。
+- **Spec处理**：最后set返回 index26：population.entity=assumed；population.eligibility=assumed；measure.formula=assumed；grouping=not_applicable；selection=not_applicable；output=assumed。
+- **错因分析**：成功formula文本明确ordinary least-squares，SQL用COUNT/SUM无权重。题面weighted被未证OLS假定替代，是可证方法分叉；月窗口权重不等于回归权重。文档只定义CMA/ratio，未提供回归权重，故不能宣称这一差异独自还原Gold39.39。
+- **后续验证/修复**：补权重、回归目标、年汇总定义；保留指定加权方法，禁止用OLS作为等价默认；逐阶段核对CMA、季调、回归与年层。
+- **限制**：可证没有声明或实现所要求的回归权重；具体权重与Gold39.39来源未知。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local277 /question`
+```text
+What is the average forecasted annual sales for products 4160 and 7790 during 2018, using monthly sales data starting from January 2016 for the first 36 months, applying seasonality adjustments from time steps 7 through 30, and employing a weighted regression method to estimate sales?
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local277/attempts/attempt-20261010-154318Z/submissions/sql/local277.sql`
+```text
+WITH s AS (
+  -- monthly series per product, 2016-01..2018-12 = time steps 1..36
+  SELECT product_id, mth, qty,
+         ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY mth) AS t,
+         CAST(substr(mth, 6, 2) AS INTEGER) AS m
+  FROM monthly_sales
+  WHERE product_id IN (4160, 7790)
+    AND mth >= '2016-01-01' AND mth <= '2018-12-01'
+),
+cma AS (
+  -- 2x12 centered moving average: mean of the two overlapping 12-month windows
+  SELECT product_id, mth, qty, t, m,
+         ( AVG(qty) OVER (PARTITION BY product_id ORDER BY t ROWS BETWEEN 6 PRECEDING AND 5 FOLLOWING)
+         + AVG(qty) OVER (PARTITION BY product_id ORDER BY t ROWS BETWEEN 5 PRECEDING AND 6 FOLLOWING) ) / 2.0 AS cma
+  FROM s
+),
+ratio AS (
+  -- sales-to-CMA ratio for time steps 7..30
+  SELECT product_id, m, t, cma, CASE WHEN cma <> 0 THEN qty * 1.0 / cma END AS r
+  FROM cma
+  WHERE t BETWEEN 7 AND 30
+),
+season AS (
+  -- seasonal index S_m = mean ratio per calendar month over steps 7..30
+  SELECT product_id, m, AVG(r) AS S
+  FROM ratio
+  WHERE r IS NOT NULL
+  GROUP BY product_id, m
+),
+coef AS (
+  -- least-squares trend line CMA = a + b*t fitted on time steps 7..30
+  SELECT product_id,
+         (COUNT(*) * SUM(t * cma) - SUM(t * 1.0) * SUM(cma))
+           / (COUNT(*) * SUM(t * t * 1.0) - SUM(t * 1.0) * SUM(t * 1.0)) AS b,
+         (SUM(cma) - ((COUNT(*) * SUM(t * cma) - SUM(t * 1.0) * SUM(cma))
+           / (COUNT(*) * SUM(t * t * 1.0) - SUM(t * 1.0) * SUM(t * 1.0))) * SUM(t * 1.0)) / COUNT(*) AS a
+  FROM cma
+  WHERE t BETWEEN 7 AND 30
+  GROUP BY product_id
+),
+monthly_forecast AS (
+  -- 2018 monthly forecast = trend * seasonal index, t = 25..36
+  SELECT c.product_id, c.t,
+         (cf.a + cf.b * c.t) * se.S AS yhat
+  FROM cma c
+  JOIN coef cf ON cf.product_id = c.product_id
+  JOIN season se ON se.product_id = c.product_id AND se.m = c.m
+  WHERE c.t BETWEEN 25 AND 36
+),
+annual AS (
+  SELECT product_id, SUM(yhat) AS annual_2018
+  FROM monthly_forecast
+  GROUP BY product_id
+)
+SELECT ROUND(AVG(annual_2018), 2) AS avg_forecasted_annual_sales_2018
+FROM annual;
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local277.csv`
+```text
+avg_forecasted_annual_sales_2018
+460.51
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local277.csv`
+```text
+avg_forecasted_annual_sales
+39.39
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local277/attempts/attempt-20261010-154318Z/trace.json /toolCalls/26/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "assumed", "value": "Include both products 4160 and 7790; keep all 36 monthly observations per product, including months with qty=0 (observed zero sales, not missing).", "rationale": "Zero-qty rows are real observed monthly sales; dropping them would break the monthly time series required by the CMA/ratio and regression steps."}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local277/attempts/attempt-20261010-154318Z/trace.json /toolCalls/26/result/details/fields/7`
+```text
+{"path": "measure.formula", "status": "assumed", "value": {"op": "custom", "description": "Classical multiplicative (ratio-to-moving-average) decomposition forecast, per product then averaged. (1) CMA_t = average of the two overlapping 12-month windows t-6..t+5 and t-5..t+6 (2x12 centered moving average), evaluated on time steps t=7..30; (2) ratio_t = qty_t / CMA_t for t=7..30; (3) seasonal index S_m = mean of ratio_t for calendar month m (m=1..12), using only t=7..30; (4) trend line fitted by ordinary least-squares regression of CMA_t on t over t=7..30: CMA = a + b*t; (5) monthly 2018 forecast = (a + b*t) * S_m for t=25..36; (6) product 2018 annual forecast = sum of its 12 monthly forecasts; (7) answer = mean of the two products' annual forecasts."}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local277/attempts/attempt-20261010-154318Z/trace.json /toolCalls/26/result/details/fields/9`
+```text
+{"path": "selection", "status": "not_applicable"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local277/attempts/attempt-20261010-154318Z/trace.json /toolCalls/26/result/details/fields/10`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "scalar", "rowCount": 1, "columns": ["avg_forecasted_annual_sales_2018"], "units": {"avg_forecasted_annual_sales_2018": "quantity (units)"}, "decimals": {"avg_forecasted_annual_sales_2018": 2}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **process**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local277/attempts/attempt-20261010-154318Z/trace.json /toolCalls/4/result/details/content`
+```text
+# External Knowledge for local277
+
+## calculation_method.md
+
+
+# Explanation of Metrics
+
+## 1. Sales-to-CMA Ratio
+- **Definition**: This ratio compares actual sales to the centered moving average (CMA) of sales.
+- **Calculation**:
+  - **Centered Moving Average (CMA)**: The CMA is a smoothed value of sales calculated over a rolling 12-month period. It averages sales from the months before and after a given month, specifically using two overlapping windows (5 months before and 6 months after, and vice versa).
+  - **Sales-to-CMA Ratio**: The ratio is computed by dividing the actual sales amount for a month by its corresponding CMA value. A ratio greater than 2 indicates that the actual sales are more than twice the smoothed average for that period, suggesting significantly higher-than-average sales.
+
+## 2. 12-Month Overlapping Windows
+- **Definition**: A method to smooth sales data over time by averaging values in a specified window.
+- **Calculation**:
+  - **Window Size**: The window spans 12 months, with the specific approach involving overlapping periods. 
+  - **First Window**: For a given month, this window includes 5 months before and 6 months after.
+  - **Second Window**: Another window includes 6 months before and 5 months after the given month.
+  - **Averaging**: Sales data is averaged over these two overlapping windows to compute the CMA. This method smooths out fluctuations by considering both the past and future sales in the calculation.
+
+## 3. Restriction to the 7th and 30th Months
+- **Definition**: A filter applied to focus calculations within a specific range of months.
+- **Calculation**:
+  - **Time Range**: Only the months between the 7th and 30th time steps (which correspond to specific periods) are considered for calculating the CMA and ratio.
+  - **Purpose**: This restriction is used to avoid edge effects in the data where the moving average might be less reliable (e.g., at the very beginning or end of the available data). By focusing on these months, the calculations are more stable and meaningful.
+```
+业务文档没有权重回归公式；定义的权重窗口属于CMA。
+
+<a id="local279"></a>
+### local279 — 递归补货后离最低库存最近的月份
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：未定位；节点 `未定位`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：December2018库存作种子，2019逐月减需求，低于最低库存时补货，逐产品选绝对差最小月份；并列未定。
+- **本次SQL**：种子库存SUM；2019需求来自monthly_budget，递归当月扣需后补一次；最小差并列取较早月。
+- **实际失配**：实际CSV 2行，前部值 [["6520", "2019-06-01", "0"], ["6600", "2019-03-01", "10"]]；Gold 2行，前部值 [["6520", "2019-12-01", "0.0"], ["6600", "2019-06-01", "10.0"]]。比较设置 {"instance_id": "local279", "condition_cols": [], "ignore_order": false, "toks": "232"}。
+- **Spec处理**：最后set返回 index30：population.entity=assumed；population.eligibility=assumed；measure.formula=assumed；grouping=assumed；selection=assumed；output=assumed。
+- **错因分析**：纯离线按原trace库存/预算算术得到6520六月差0、十二月差100；6600三月与八月差10、六月差50。Gold十二月0与六月10不只是同一当前序列的并列裁决。种子来源、需求表、补货作用时点仍缺定义，不能仅把月份ASC改DESC。
+- **后续验证/修复**：补December库存快照和月需求源、补货阶段，再完整对比12期状态；不要将这种差异归为只改tie-break。
+- **限制**：Gold SQL未提供；未执行数据库SQL，不从不同数值恢复不可见口径。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local279 /question`
+```text
+Using a recursive monthly inventory adjustment model starting from December 2018 inventory levels, where we restock a product if its ending inventory drops below the minimum required level, determine for each product the month in 2019 where the absolute difference between its ending inventory and the minimum required level is the smallest, and return the product_id, that month, and the absolute difference.
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local279/attempts/attempt-20261010-154318Z/submissions/sql/local279.sql`
+```text
+WITH RECURSIVE
+init AS (
+  SELECT pm.product_id, it.qty AS inv, pm.qty_minimum AS mn, pm.qty_purchase AS pq
+  FROM product_minimums pm
+  JOIN (SELECT product_id, SUM(qty) AS qty FROM inventory GROUP BY product_id) it
+    ON it.product_id = pm.product_id
+),
+rec(product_id, mth, ending, mn, pq) AS (
+  SELECT i.product_id, mb.mth,
+         CASE WHEN i.inv - mb.qty < i.mn THEN i.inv - mb.qty + i.pq ELSE i.inv - mb.qty END,
+         i.mn, i.pq
+  FROM init i
+  JOIN monthly_budget mb ON mb.product_id = i.product_id AND mb.mth = '2019-01-01'
+  UNION ALL
+  SELECT r.product_id, date(r.mth, '+1 month'),
+         CASE WHEN r.ending - mb.qty < r.mn THEN r.ending - mb.qty + r.pq ELSE r.ending - mb.qty END,
+         r.mn, r.pq
+  FROM rec r
+  JOIN monthly_budget mb ON mb.product_id = r.product_id AND mb.mth = date(r.mth, '+1 month')
+  WHERE r.mth < '2019-12-01'
+),
+ranked AS (
+  SELECT r.product_id,
+         r.mth AS "month",
+         ABS(r.ending - r.mn) AS abs_diff,
+         ROW_NUMBER() OVER (PARTITION BY r.product_id ORDER BY ABS(r.ending - r.mn) ASC, r.mth ASC) AS rn
+  FROM rec r
+)
+SELECT product_id, "month", abs_diff
+FROM ranked
+WHERE rn = 1
+ORDER BY product_id;
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local279.csv`
+```text
+product_id,month,abs_diff
+6520,2019-06-01,0
+6600,2019-03-01,10
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local279.csv`
+```text
+product_id,date,diff
+6520,2019-12-01,0.0
+6600,2019-06-01,10.0
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local279/attempts/attempt-20261010-154318Z/trace.json /toolCalls/30/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "assumed", "value": "Products carrying a minimum required level (a row in product_minimums) and therefore an inventory-adjustment policy: product_id 6520 and 6600."}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local279/attempts/attempt-20261010-154318Z/trace.json /toolCalls/30/result/details/fields/8`
+```text
+{"path": "measure.formula", "status": "assumed", "value": {"op": "custom", "description": "Recursive month-by-month ending inventory: ending(2019-01) = Dec2018_inventory - budget(2019-01); ending(m) = ending(m-1) - budget(m); if ending(m) < qty_minimum then ending(m) += qty_purchase (restock). Metric(m) = |ending(m) - qty_minimum|. Per product select the 2019 month minimising Metric(m)."}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local279/attempts/attempt-20261010-154318Z/trace.json /toolCalls/30/result/details/fields/10`
+```text
+{"path": "selection", "status": "assumed", "value": {"n": 1, "orderBy": "abs_diff ascending, month ascending"}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local279/attempts/attempt-20261010-154318Z/trace.json /toolCalls/30/result/details/fields/12`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "grouped", "rowCount": 2, "columns": ["product_id", "month", "abs_diff"], "units": {"abs_diff": "quantity units"}, "decimals": {"abs_diff": 0}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **process**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local279/attempts/attempt-20261010-154318Z/trace.json /toolCalls/6/result/details/artifact/preview`
+```text
+{"columns": ["product_id", "qty_minimum", "qty_purchase"], "rows": [[6520, 100, 400], [6600, 30, 100]], "columnTypes": ["INTEGER", "INTEGER", "INTEGER"], "rowCount": 2, "truncated": false}
+```
+最低库存和单次补货量。
+- **process**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local279/attempts/attempt-20261010-154318Z/trace.json /toolCalls/14/result/details/artifact/preview`
+```text
+{"columns": ["product_id", "mth", "qty"], "rows": [[6520, "2018-01-01", 30], [6520, "2018-02-01", 30], [6520, "2018-03-01", 30], [6520, "2018-04-01", 30], [6520, "2018-05-01", 40], [6520, "2018-06-01", 50], [6520, "2018-07-01", 50], [6520, "2018-08-01", 40], [6520, "2018-09-01", 30], [6520, "2018-10-01", 30], [6520, "2018-11-01", 30], [6520, "2018-12-01", 30], [6520, "2019-01-01", 45], [6520, "2019-02-01", 45], [6520, "2019-03-01", 50], [6520, "2019-04-01", 50], [6520, "2019-05-01", 55], [6520, "2019-06-01", 55], [6520, "2019-07-01", 60], [6520, "2019-08-01", 60], [6520, "2019-09-01", 50], [6520, "2019-10-01", 50], [6520, "2019-11-01", 40], [6520, "2019-12-01", 40], [6600, "2018-01-01", 6], [6600, "2018-02-01", 6], [6600, "2018-03-01", 6], [6600, "2018-04-01", 6], [6600, "2018-05-01", 6], [6600, "2018-06-01", 6], [6600, "2018-07-01", 6], [6600, "2018-08-01", 6], [6600, "2018-09-01", 6], [6600, "2018-10-01", 6], [6600, "2018-11-01", 6], [6600, "2018-12-01", 6], [6600, "2019-01-01", 20], [6600, "2019-02-01", 20], [6600, "2019-03-01", 20], [6600, "2019-04-01", 20], [6600, "2019-05-01", 20], [6600, "2019-06-01", 20], [6600, "2019-07-01", 20], [6600, "2019-08-01", 20], [6600, "2019-09-01", 20], [6600, "2019-10-01", 20], [6600, "2019-11-01", 20], [6600, "2019-12-01", 20]], "columnTypes": ["INTEGER", "TEXT", "INTEGER"], "rowCount": 48, "truncated": false}
+```
+全24个月预算。
+- **process**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local279/attempts/attempt-20261010-154318Z/trace.json /toolCalls/16/result/details/artifact/preview`
+```text
+{"columns": ["product_id", "lots", "total_qty"], "rows": [[4040, 11, 300], [4160, 17, 700], [4280, 6, 200], [5310, 12, 500], [5430, 12, 500], [6520, 11, 400], [6600, 6, 100], [7790, 11, 300], [7870, 14, 559], [7950, 13, 536]], "columnTypes": ["INTEGER", "INTEGER", "INTEGER"], "rowCount": 10, "truncated": false}
+```
+产品库存种子400/100。
+
+<a id="local283"></a>
+### local283 — 跨国家联赛每赛季最高积分球队
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：可证差异；节点 `grouping`；错误层：口径错；可见性：假定错。
+- **题面/标准**：已审核标准明确最终season粒度、partitionBy season；球队积分胜3平1负0。
+- **本次SQL**：先season-country-league-team求和，再在season-country-league内RANK1，共90行。
+- **实际失配**：实际CSV 90行，前部值 [["2008/2009", "RSC Anderlecht", "Belgium Jupiler League", "Belgium", "77"], ["2008/2009", "Standard de Liège", "Belgium Jupiler League", "Belgium", "77"], ["2008/2009", "Manchester United", "England Premier League", "England", "90"], ["2008/2009", "Girondins de Bordeaux", "France Ligue 1", "France", "80"], ["2008/2009", "VfL Wolfsburg", "Germany 1. Bundesliga", "Germany", "69"], ["2008/2009", "Inter", "Italy Serie A", "Italy", "84"]]；Gold 8行，前部值 [["2013/2014", "Juventus", "Italy Serie A", "Italy", "102", "1"], ["2011/2012", "Real Madrid CF", "Spain LIGA BBVA", "Spain", "100", "1"], ["2012/2013", "FC Barcelona", "Spain LIGA BBVA", "Spain", "100", "1"], ["2009/2010", "FC Barcelona", "Spain LIGA BBVA", "Spain", "99", "1"], ["2010/2011", "FC Barcelona", "Spain LIGA BBVA", "Spain", "96", "1"], ["2015/2016", "Paris Saint-Germain", "France Ligue 1", "France", "96", "1"]]。比较设置 {"instance_id": "local283", "condition_cols": [], "ignore_order": true, "toks": "228"}。
+- **Spec处理**：最后set返回 index17：population.entity=assumed；population.eligibility=assumed；measure.formula=assumed；grouping=assumed；selection=assumed；output=assumed。
+- **错因分析**：最早可证最终排名域扩张：grouping成功假定season+country+league，SQL兑现该假定，按联赛分别冠军而非跨全国家联赛每赛季冠军。strict88/include_ties90两候选都在错误域内；并列调整不能得到8季答案。Gold还要求未题面要求的season_rank，需另审评分列约定。
+- **后续验证/修复**：最终RANK仅partition season，明确全局每季选取；验证Gold额外rank列的结构性约定，不能混作积分业务要求。
+- **限制**：题面自然语言有“联赛冠军”背景读法；这里按已审核season标准判定。Gold额外rank列需独立规范。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local283 /question`
+```text
+Analyze the soccer match dataset to determine the champion team for each season across all countries and leagues, awarding 3 points for every win, 1 point for every tie, and 0 points for every loss. For each season, return the champion’s team name, the league, the country, and the total points accumulated.
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local283/attempts/attempt-20261010-154318Z/submissions/sql/local283.sql`
+```text
+WITH team_rows AS (
+  SELECT season, league_id, country_id, home_team_api_id AS team_api_id,
+         CASE WHEN home_team_goal > away_team_goal THEN 3
+              WHEN home_team_goal = away_team_goal THEN 1
+              ELSE 0 END AS points
+  FROM Match
+  UNION ALL
+  SELECT season, league_id, country_id, away_team_api_id,
+         CASE WHEN away_team_goal > home_team_goal THEN 3
+              WHEN away_team_goal = home_team_goal THEN 1
+              ELSE 0 END
+  FROM Match
+), team_points AS (
+  SELECT season, league_id, country_id, team_api_id, SUM(points) AS total_points
+  FROM team_rows
+  GROUP BY season, league_id, country_id, team_api_id
+), ranked AS (
+  SELECT season, league_id, country_id, team_api_id, total_points,
+         RANK() OVER (PARTITION BY season, league_id, country_id ORDER BY total_points DESC) AS pts_rank
+  FROM team_points
+)
+SELECT r.season AS season,
+       t.team_long_name AS team_name,
+       l.name AS league,
+       c.name AS country,
+       r.total_points AS total_points
+FROM ranked r
+JOIN Team t ON t.team_api_id = r.team_api_id
+JOIN League l ON l.id = r.league_id
+JOIN Country c ON c.id = r.country_id
+WHERE r.pts_rank = 1
+ORDER BY r.season, c.name, l.name, r.total_points DESC, t.team_long_name;
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local283.csv`
+```text
+season,team_name,league,country,total_points
+2008/2009,RSC Anderlecht,Belgium Jupiler League,Belgium,77
+2008/2009,Standard de Liège,Belgium Jupiler League,Belgium,77
+2008/2009,Manchester United,England Premier League,England,90
+2008/2009,Girondins de Bordeaux,France Ligue 1,France,80
+2008/2009,VfL Wolfsburg,Germany 1. Bundesliga,Germany,69
+2008/2009,Inter,Italy Serie A,Italy,84
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local283.csv`
+```text
+"season","team","league_name","country_name","total_points","season_rank"
+"2013/2014",Juventus,Italy Serie A,Italy,102,1
+"2011/2012",Real Madrid CF,Spain LIGA BBVA,Spain,100,1
+"2012/2013",FC Barcelona,Spain LIGA BBVA,Spain,100,1
+"2009/2010",FC Barcelona,Spain LIGA BBVA,Spain,99,1
+"2010/2011",FC Barcelona,Spain LIGA BBVA,Spain,96,1
+"2015/2016",Paris Saint-Germain,France Ligue 1,France,96,1
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local283/attempts/attempt-20261010-154318Z/trace.json /toolCalls/17/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "assumed", "value": "在该 (国家, 联赛, 赛季) 内至少出场过一场比赛的球队；从未在该联赛赛季出场的球队不计入（无比赛则无积分）"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local283/attempts/attempt-20261010-154318Z/trace.json /toolCalls/17/result/details/fields/7`
+```text
+{"path": "measure.formula", "status": "assumed", "value": {"op": "sum", "per": "team within (country, league, season)", "of": {"op": "custom", "per": "match", "description": "按 3-1-0 计分制：球队单场比赛胜得 3 分、平得 1 分、负得 0 分；胜负由该场 home_team_goal 与 away_team_goal 比较判定，主队与客队分别计算，再按球队在 (国家,联赛,赛季) 内求和"}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local283/attempts/attempt-20261010-154318Z/trace.json /toolCalls/17/result/details/fields/8`
+```text
+{"path": "grouping", "status": "assumed", "value": ["season", "country", "league"]}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local283/attempts/attempt-20261010-154318Z/trace.json /toolCalls/17/result/details/fields/9`
+```text
+{"path": "selection", "status": "assumed", "value": {"n": 1, "orderBy": "total_points DESC"}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local283/attempts/attempt-20261010-154318Z/trace.json /toolCalls/17/result/details/fields/11`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "full", "columns": ["season", "team_name", "league", "country", "total_points"], "units": {"total_points": "分"}, "decimals": {"total_points": 0}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **standard**：`D:/data_agent/evaluations/spider2/spec-quality-labels.jsonl #local283 /facets/ranking/alternatives/0`
+```text
+{"selection": "champion per season", "orderBy": "points DESC", "role": "final output", "partitionBy": ["season"], "tiePolicy": "unspecified", "evidenceRefs": ["Q1"]}
+```
+已审核标准的最终排名域为season。
+
+<a id="local285"></a>
+### local285 — 蔬菜分类年度财务指标
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：未定位；节点 `未定位`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：2020–2023分类×年，多项价格/收入/损耗/利润两位小数；损耗与利润专属公式未给出。
+- **本次SQL**：价统计按批发日行；收入与成本按匹配交易量；损耗逐item-day×rate，利润明确不减损耗；平均loss在全类别商品级计算不随年变。
+- **实际失配**：实际CSV 24行，前部值 [["Aquatic Tuberous Vegetables", "2020", "7.89", "29.54", "0.76", "28.78", "37403.41", "52632.11", "11.97", "2771.64", "15228.7"], ["Aquatic Tuberous Vegetables", "2021", "7.77", "38.78", "1.18", "37.6", "82099.53", "116848.79", "11.97", "6770.05", "34749.26"], ["Aquatic Tuberous Vegetables", "2022", "8.29", "48.01", "0.01", "48", "89695.02", "131482.06", "11.97", "8477.59", "41787.04"], ["Aquatic Tuberous Vegetables", "2023", "8.24", "32.91", "0.1", "32.81", "33033.91", "49126.94", "11.97", "4358.98", "16093.03"], ["Cabbage", "2020", "5.66", "10.8", "1.6", "9.2", "53962.88", "84182.93", "14.14", "6295.87", "30220.04"], ["Cabbage", "2021", "6.02", "14.38", "1.31", "13.07", "75239.26", "112078.95", "14.14", "8472.61", "36839.69"]]；Gold 24行，前部值 [["2020", "1011010504", "Capsicum", "7.43", "45.39", "0.4", "44.99", "82190.88", "125582.87", "7.99", "6567.05", "36824.94"], ["2022", "1011010801", "Edible Mushroom", "7.28", "65.99", "0.1", "65.89", "106334.97", "168662.76", "8.02", "8528.06", "53799.73"], ["2021", "1011010501", "Solanum", "5.29", "14.45", "0.6", "13.85", "40871.63", "63218.59", "6.36", "2599.44", "19747.52"], ["2023", "1011010101", "Flower/Leaf Vegetables", "3.84", "141.0", "0.3", "140.7", "107910.29", "171324.51", "10.49", "11319.79", "52094.43"], ["2021", "1011010201", "Cabbage", "6.09", "14.38", "1.31", "13.07", "75332.83", "112214.19", "11.56", "8708.48", "28172.88"], ["2022", "1011010101", "Flower/Leaf Vegetables", "3.12", "40.45", "0.01", "40.44", "176841.89", "308694.75", "11.51", "20354.5", "111498.36"]]。比较设置 {"instance_id": "local285", "condition_cols": [2, 3, 4, 5, 6, 7, 8, 9, 10, 11], "ignore_order": true, "toks": "415"}。
+- **Spec处理**：最后set返回 index18：population.entity=request；population.eligibility=assumed；measure.formula=decided；grouping=request；selection=not_applicable；output=request。
+- **错因分析**：Gold Capsicum2020利润等于125582.87−82190.88−6567.05，采用扣损耗形态，当前formula主动排除该候选；但题面未定义gross/net，不能仅凭Gold裁定业务。多项均值权重/归属与联结也不同：只扣损耗探针仍未复原Gold，原因组合未唯一定位。
+- **后续验证/修复**：先明确价/率均值的观测单元、净利润是否扣损耗、日期匹配及退货规则，再逐项修订；别将全部差异归为单次连接放大。
+- **限制**：Gold SQL未提供；未执行数据库SQL，不从不同数值恢复不可见口径。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local285 /question`
+```text
+For veg whsle data, can you analyze our financial performance over the years 2020 to 2023? I need insights into the average wholesale price, maximum wholesale price, minimum wholesale price, wholesale price difference, total wholesale price, total selling price, average loss rate, total loss, and profit for each category within each year. Round all calculated values to two decimal places.
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local285/attempts/attempt-20261010-154318Z/submissions/sql/local285.sql`
+```text
+WITH w AS (
+  SELECT item_code, date(whsle_date) AS d, AVG(`whsle_px_rmb-kg`) AS px
+  FROM veg_whsle_df GROUP BY 1,2
+),
+tday AS (
+  SELECT item_code, date(txn_date) AS d,
+         SUM(`qty_sold(kg)`) AS qty,
+         SUM(`qty_sold(kg)`*`unit_selling_px_rmb/kg`) AS rev
+  FROM veg_txn_df GROUP BY 1,2
+),
+joined AS (
+  SELECT c.category_name AS category_name, strftime('%Y', tday.d) AS year,
+         tday.qty AS qty, tday.rev AS rev, w.px AS px, l.`loss_rate_%` AS lr
+  FROM tday
+  JOIN veg_cat c ON c.item_code = tday.item_code
+  JOIN w ON w.item_code=tday.item_code AND w.d=tday.d
+  JOIN veg_loss_rate_df l ON l.item_code=tday.item_code
+),
+mon AS (
+  SELECT category_name, year, SUM(qty*px) AS tot_cost, SUM(rev) AS tot_rev, SUM(qty*px*lr/100.0) AS tot_loss
+  FROM joined GROUP BY 1,2
+),
+wh AS (
+  SELECT c.category_name AS category_name, strftime('%Y', x.whsle_date) AS year,
+         AVG(x.`whsle_px_rmb-kg`) AS avg_px, MAX(x.`whsle_px_rmb-kg`) AS max_px, MIN(x.`whsle_px_rmb-kg`) AS min_px
+  FROM veg_whsle_df x JOIN veg_cat c ON c.item_code=x.item_code GROUP BY 1,2
+),
+lrc AS (
+  SELECT c.category_name AS category_name, AVG(l.`loss_rate_%`) AS avg_lr
+  FROM veg_loss_rate_df l JOIN veg_cat c ON c.item_code=l.item_code GROUP BY 1
+)
+SELECT m.category_name AS category_name, m.year AS year,
+  ROUND(wh.avg_px,2) AS average_wholesale_price,
+  ROUND(wh.max_px,2) AS maximum_wholesale_price,
+  ROUND(wh.min_px,2) AS minimum_wholesale_price,
+  ROUND(wh.max_px-wh.min_px,2) AS wholesale_price_difference,
+  ROUND(m.tot_cost,2) AS total_wholesale_price,
+  ROUND(m.tot_rev,2) AS total_selling_price,
+  ROUND(lrc.avg_lr,2) AS average_loss_rate,
+  ROUND(m.tot_loss,2) AS total_loss,
+  ROUND(m.tot_rev - m.tot_cost,2) AS profit
+FROM mon m JOIN wh ON wh.category_name=m.category_name AND wh.year=m.year
+JOIN lrc ON lrc.category_name=m.category_name
+ORDER BY m.category_name, m.year;
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local285.csv`
+```text
+category_name,year,average_wholesale_price,maximum_wholesale_price,minimum_wholesale_price,wholesale_price_difference,total_wholesale_price,total_selling_price,average_loss_rate,total_loss,profit
+Aquatic Tuberous Vegetables,2020,7.89,29.54,0.76,28.78,37403.41,52632.11,11.97,2771.64,15228.7
+Aquatic Tuberous Vegetables,2021,7.77,38.78,1.18,37.6,82099.53,116848.79,11.97,6770.05,34749.26
+Aquatic Tuberous Vegetables,2022,8.29,48.01,0.01,48,89695.02,131482.06,11.97,8477.59,41787.04
+Aquatic Tuberous Vegetables,2023,8.24,32.91,0.1,32.81,33033.91,49126.94,11.97,4358.98,16093.03
+Cabbage,2020,5.66,10.8,1.6,9.2,53962.88,84182.93,14.14,6295.87,30220.04
+Cabbage,2021,6.02,14.38,1.31,13.07,75239.26,112078.95,14.14,8472.61,36839.69
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local285.csv`
+```text
+YR,category_code,category_name,AVG_WHOLE_SALE,MAX_WHOLE_SALE,MIN_WHOLE_SALE,WHOLE_SALE_DIFF,WHOLE_SALE_PRICE,SELLING_PRICE,AVG_LOSS_RATE_PCT,TOTAL_LOSS,PROFIT
+2020,1011010504,Capsicum,7.43,45.39,0.4,44.99,82190.88,125582.87,7.99,6567.05,36824.94
+2022,1011010801,Edible Mushroom,7.28,65.99,0.1,65.89,106334.97,168662.76,8.02,8528.06,53799.73
+2021,1011010501,Solanum,5.29,14.45,0.6,13.85,40871.63,63218.59,6.36,2599.44,19747.52
+2023,1011010101,Flower/Leaf Vegetables,3.84,141.0,0.3,140.7,107910.29,171324.51,10.49,11319.79,52094.43
+2021,1011010201,Cabbage,6.09,14.38,1.31,13.07,75332.83,112214.19,11.56,8708.48,28172.88
+2022,1011010101,Flower/Leaf Vegetables,3.12,40.45,0.01,40.44,176841.89,308694.75,11.51,20354.5,111498.36
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local285/attempts/attempt-20261010-154318Z/trace.json /toolCalls/18/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "assumed", "value": "All records are included: no entity is dropped for zero activity, zero-valued loss rates are retained, and return transactions are handled by their stored quantity sign.", "rationale": "The request gives no zero/empty policy; keeping all records is the most literal reading and avoids silently changing the population."}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local285/attempts/attempt-20261010-154318Z/trace.json /toolCalls/18/result/details/fields/7`
+```text
+{"path": "measure.formula", "status": "decided", "value": {"op": "custom", "description": "Quantity-weighted monetary totals per category×year: average/max/min/difference of whsle_px_rmb-kg as in the literal reading; total_wholesale_price=SUM(qty_sold*whsle_px); total_selling_price=SUM(qty_sold*unit_selling_px); average_loss_rate=AVG(loss_rate_%); total_loss=SUM(qty_sold*whsle_px*loss_rate_%/100); profit=total_selling_price-total_wholesale_price."}, "verified": false, "rationale": "No business definition or clarification exists for these metrics (business-definitions and query-patterns are empty; Jev abstained). Reading 'total <x> price' as a monetary amount (quantity x unit price) is the only reading under which 'profit' is a coherent financial figure: the literal unweighted column sums (candidate 3c6e666b) add 878,503 transaction unit prices to 55,982 daily wholesale prices and yield absurd ~97-99% margins. The adopted candidate keeps average/maximum/minimum/difference as the literal price statistics of veg_whsle_df (RMB/kg) and makes the two 'total ... price' columns quantity-weighted monetary values by matching each transaction to the same item's same-day wholesale price. Profit is revenue minus cost; the spoilage value (total_loss) is reported separately. Candidate 52b4d799 (profit net of loss) was rejected because netting the spoilage value into profit is an extra assumption not stated in the request.", "alternatives": [{"id": "alternative_3c6e666b-cdfb-428a-af79-2c4c2150bbb9", "value": {"op": "custom", "description": "Literal column aggregates per category×year (unweighted). average_wholesale_price=AVG(whsle_px_rmb-kg); maximum=MAX(whsle_px_rmb-kg); minimum=MIN(whsle_px_rmb-kg); difference=MAX-MIN; total_wholesale_price=SUM(whsle_px_rmb-kg) over veg_whsle_df; total_selling_price=SUM(unit_selling_px_rmb/kg) over veg_txn_df; average_loss_rate=AVG(loss_rate_%); total_loss=SUM(whsle_px_rmb-kg*loss_rate_%/100); profit=total_selling_price-total_wholesale_price."}, "probe": {"alternativeId": "alternative_3c6e666b-cdfb-428a-af79-2c4c2150bbb9", "state": "available", "rowCount": 24, "output": "1b1485821c82"}}, {"id": "alternative_76881eb5-761a-41c3-a768-b8ed35ab0f60", "value": {"op": "custom", "description": "Quantity-weighted monetary totals per category×year: average/max/min/difference of whsle_px_rmb-kg as in the literal reading; total_wholesale_price=SUM(qty_sold*whsle_px); total_selling_price=SUM(qty_sold*unit_selling_px); average_loss_rate=AVG(loss_rate_%); total_loss=SUM(qty_sold*whsle_px*loss_rate_%/100); profit=total_selling_price-total_wholesale_price."}, "probe": {"alternativeId": "alternative_76881eb5-761a-41c3-a768-b8ed35ab0f60", "state": "available", "rowCount": 24, "output": "39535521be18"}}, {"id": "alternative_52b4d799-5022-42df-ad84-7c37fc2078ea", "value": {"op": "custom", "description": "Quantity-weighted monetary totals with loss deducted from profit: identical to the previous candidate except profit=total_selling_price-total_wholesale_price-total_loss."}, "probe": {"alternativeId": "alternative_52b4d799-5022-42df-ad84-7c37fc2078ea", "state": "available", "rowCount": 24, "output": "77e3f49f7dbc"}}], "outputs": "distinct", "advice": {"recommendation": "insufficient_evidence", "probabilities": [{"alternativeId": "alternative_3c6e666b-cdfb-428a-af79-2c4c2150bbb9", "probability": 0.25}, {"alternativeId": "alternative_76881eb5-761a-41c3-a768-b8ed35ab0f60", "probability": 0.21}, {"alternativeId": "alternative_52b4d799-5022-42df-ad84-7c37fc2078ea", "probability": 0.03}]}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local285/attempts/attempt-20261010-154318Z/trace.json /toolCalls/18/result/details/fields/10`
+```text
+{"path": "selection", "status": "not_applicable"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local285/attempts/attempt-20261010-154318Z/trace.json /toolCalls/18/result/details/fields/11`
+```text
+{"path": "output", "status": "request", "value": {"rowMode": "grouped", "columns": ["category_name", "year", "average_wholesale_price", "maximum_wholesale_price", "minimum_wholesale_price", "wholesale_price_difference", "total_wholesale_price", "total_selling_price", "average_loss_rate", "total_loss", "profit"], "units": {"average_wholesale_price": "RMB/kg", "maximum_wholesale_price": "RMB/kg", "minimum_wholesale_price": "RMB/kg", "wholesale_price_difference": "RMB/kg", "total_wholesale_price": "RMB", "total_selling_price": "RMB", "average_loss_rate": "%", "total_loss": "RMB", "profit": "RMB"}, "decimals": {"average_wholesale_price": 2, "maximum_wholesale_price": 2, "minimum_wholesale_price": 2, "wholesale_price_difference": 2, "total_wholesale_price": 2, "total_selling_price": 2, "average_loss_rate": 2, "total_loss": 2, "profit": 2}}, "evidenceIds": ["evidence_7170d536-9af8-4a08-bd45-6c5d2b5464a1"]}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+
+<a id="local286"></a>
+### local286 — 超过100件卖家的销量评价打包报表
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：未定位；节点 `未定位`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：卖家销售数量>100；各指标业务权重和packing起止、英文最高销量类别并列规则未完整定义。
+- **本次SQL**：订单商品行COUNT>100，得到236卖家；价格商品加权，评价和packing订单去重；packing从approved到carrier。
+- **实际失配**：实际CSV 236行，前部值 [["4869f7a5dfa277a7dca6462dcf3b52b2", "229472.63", "198.51", "4.13", "2.34", "watches_gifts"], ["53243585a1d6dc2643021fd1853d8905", "222776.05", "543.36", "4.13", "3.05", "telephony"], ["4a3ca9315b744ce9f8e9374361493884", "200472.92", "100.89", "3.83", "2.35", "bed_bath_table"], ["fa1c13f2614d7b5c4749cbc52fecda94", "194042.03", "331.13", "4.34", "2.34", "watches_gifts"], ["7c67e1448b00f6e969d365cea6b010ab", "187923.89", "137.77", "3.49", "11.38", "office_furniture"], ["7e93a43ef30c4f03f38b393420bc753a", "176431.87", "518.92", "4.21", "2.38", "watches_gifts"]]；Gold 237行，前部值 [["febab0275244b9a49a623f0bd613ca2f", "129", "56.3753488372093", "7272.42", "1.8885301823272955", "4.263565891472868", "housewares"], ["fe2032dab1a61af8794248c8196565c9", "306", "215.55428104575162", "65959.61", "1.9214672219050817", "4.3841059602649", "perfumery"], ["fc906263ca5083d09dce42fe02247800", "119", "37.79579831932773", "4497.7", "2.1816547035098766", "4.358333333333333", "computers_accessories"], ["fa40cc5b934574b62717c68f3d678b6d", "340", "47.22314705882353", "16055.87", "2.8698073377445406", "4.430678466076696", "toys"], ["fa1c13f2614d7b5c4749cbc52fecda94", "586", "331.12974402730373", "194042.03", "2.702054130123516", "4.34020618556701", "watches_gifts"], ["f8db351d8c4c4c22c6835c19a46f01b0", "724", "69.78674033149171", "50525.6", "1.7867020452414404", "4.218836565096953", "housewares"]]。比较设置 {"instance_id": "local286", "condition_cols": [], "ignore_order": true, "toks": "173"}。
+- **Spec处理**：最后set返回 index10：population.entity=request；population.eligibility=request；measure.formula=assumed；grouping=assumed；selection=not_applicable；output=assumed。
+- **错因分析**：Gold237卖家多一个ID 2a7dc43cecabf23403078e2188437d1d。评分还检查Gold的product_cnt，但当前输出缺数量列；评价与packing亦不同。Gold108可能来自不同权重/总体，不能断言必有review放大；无此卖家的实际源数量无法裁定其资格。
+- **后续验证/修复**：补该卖家源数量、评价分母、packing事件定义；对输出评分约定独立审计，再做数量阈值/订单权重回归。
+- **限制**：Gold SQL未提供；未执行数据库SQL，不从不同数值恢复不可见口径。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local286 /question`
+```text
+Prepare a comprehensive performance report on our sellers, focusing on total sales, average item price, average review scores, and packing times. Ensure that the report includes only those sellers who have sold a quantity of more than 100 products and highlight the product category names in English with the highest sales volume.
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local286/attempts/attempt-20261010-154318Z/submissions/sql/local286.sql`
+```text
+WITH item_agg AS (
+  SELECT seller_id, SUM(price) AS total_sales, AVG(price) AS avg_item_price, COUNT(*) AS qty
+  FROM order_items GROUP BY seller_id HAVING COUNT(*) > 100
+),
+seller_order AS (SELECT DISTINCT seller_id, order_id FROM order_items),
+order_score AS (SELECT order_id, AVG(review_score) AS score FROM order_reviews GROUP BY order_id),
+rev_agg AS (
+  SELECT so.seller_id, AVG(os.score) AS avg_review_score
+  FROM seller_order so JOIN order_score os ON os.order_id = so.order_id
+  GROUP BY so.seller_id
+),
+pack_agg AS (
+  SELECT so.seller_id, AVG(julianday(o.order_delivered_carrier_date) - julianday(o.order_approved_at)) AS packing_time
+  FROM seller_order so JOIN orders o ON o.order_id = so.order_id
+  WHERE o.order_approved_at IS NOT NULL AND o.order_delivered_carrier_date IS NOT NULL
+  GROUP BY so.seller_id
+),
+cat_qty AS (
+  SELECT oi.seller_id, t.product_category_name_english AS cat, COUNT(*) AS qty
+  FROM order_items oi
+  JOIN products p ON p.product_id = oi.product_id
+  JOIN product_category_name_translation t ON t.product_category_name = p.product_category_name
+  GROUP BY oi.seller_id, t.product_category_name_english
+),
+cat_rank AS (
+  SELECT seller_id, cat, qty, ROW_NUMBER() OVER (PARTITION BY seller_id ORDER BY qty DESC, cat ASC) AS rn FROM cat_qty
+),
+top_cat AS (SELECT seller_id, cat AS top_category_english FROM cat_rank WHERE rn = 1)
+SELECT i.seller_id,
+       ROUND(i.total_sales, 2) AS total_sales,
+       ROUND(i.avg_item_price, 2) AS avg_item_price,
+       ROUND(r.avg_review_score, 2) AS avg_review_score,
+       ROUND(pk.packing_time, 2) AS packing_time,
+       tc.top_category_english
+FROM item_agg i
+LEFT JOIN rev_agg r ON r.seller_id = i.seller_id
+LEFT JOIN pack_agg pk ON pk.seller_id = i.seller_id
+LEFT JOIN top_cat tc ON tc.seller_id = i.seller_id
+ORDER BY i.total_sales DESC
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local286.csv`
+```text
+seller_id,total_sales,avg_item_price,avg_review_score,packing_time,top_category_english
+4869f7a5dfa277a7dca6462dcf3b52b2,229472.63,198.51,4.13,2.34,watches_gifts
+53243585a1d6dc2643021fd1853d8905,222776.05,543.36,4.13,3.05,telephony
+4a3ca9315b744ce9f8e9374361493884,200472.92,100.89,3.83,2.35,bed_bath_table
+fa1c13f2614d7b5c4749cbc52fecda94,194042.03,331.13,4.34,2.34,watches_gifts
+7c67e1448b00f6e969d365cea6b010ab,187923.89,137.77,3.49,11.38,office_furniture
+7e93a43ef30c4f03f38b393420bc753a,176431.87,518.92,4.21,2.38,watches_gifts
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local286.csv`
+```text
+"seller_id","product_cnt","avg_price","total_sales","avg_packing_time","avg_review_score","highlight_product"
+febab0275244b9a49a623f0bd613ca2f,129,56.3753488372093,7272.42,1.8885301823272955,4.263565891472868,housewares
+fe2032dab1a61af8794248c8196565c9,306,215.55428104575162,65959.61,1.9214672219050817,4.3841059602649,perfumery
+fc906263ca5083d09dce42fe02247800,119,37.79579831932773,4497.7,2.1816547035098766,4.358333333333333,computers_accessories
+fa40cc5b934574b62717c68f3d678b6d,340,47.22314705882353,16055.87,2.8698073377445406,4.430678466076696,toys
+fa1c13f2614d7b5c4749cbc52fecda94,586,331.12974402730373,194042.03,2.702054130123516,4.34020618556701,watches_gifts
+f8db351d8c4c4c22c6835c19a46f01b0,724,69.78674033149171,50525.6,1.7867020452414404,4.218836565096953,housewares
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local286/attempts/attempt-20261010-154318Z/trace.json /toolCalls/10/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "request", "value": "只纳入售出商品数量（订单商品行数）超过 100 件的卖家；没有任何商品记录的卖家不纳入。", "evidenceIds": ["evidence_48108da5-3fb9-4ef5-b106-608474cf90f0"]}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local286/attempts/attempt-20261010-154318Z/trace.json /toolCalls/10/result/details/fields/7`
+```text
+{"path": "measure.formula", "status": "assumed", "value": {"op": "custom", "description": "按 seller 聚合的多个指标：total_sales = Σ(order_items.price)，订单商品行粒度，单位 BRL；avg_item_price = Σ(price)/商品行数，单位 BRL；avg_review_score = 该卖家全部订单的 review_score 平均（订单粒度去重）；packing_time = 各订单 (order_delivered_carrier_date − order_approved_at) 的平均天数（订单粒度去重）；top_category_english = 该卖家售出件数最多的英文品类名"}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local286/attempts/attempt-20261010-154318Z/trace.json /toolCalls/10/result/details/fields/9`
+```text
+{"path": "selection", "status": "not_applicable"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local286/attempts/attempt-20261010-154318Z/trace.json /toolCalls/10/result/details/fields/10`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "full", "columns": ["seller_id", "total_sales", "avg_item_price", "avg_review_score", "packing_time", "top_category_english"], "units": {"total_sales": "BRL", "avg_item_price": "BRL", "avg_review_score": "分(1-5)", "packing_time": "天"}, "decimals": {"total_sales": 2, "avg_item_price": 2, "avg_review_score": 2, "packing_time": 2}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **process**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local286/attempts/attempt-20261010-154318Z/trace.json /toolCalls/6/result/details/artifact/preview`
+```text
+{"columns": ["total_sellers_with_items", "sellers_over_100", "total_item_rows"], "rows": [[3095, 236, 112650]], "columnTypes": ["INTEGER", "INTEGER", "INTEGER"], "rowCount": 1, "truncated": false}
+```
+按当前商品行阈值有236卖家；不证明Gold多出卖家的真实数量。
+
+<a id="local297"></a>
+### local297 — 最近月余额增长超过5%的客户占比
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：未定位；节点 `未定位`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：客户-月先求存取净额、累计月末余额，再比较最近月与前月；前月为零时当期余额×100，求增长>5%的客户百分比。缺月及首月无基线的处理未明示。
+- **本次SQL**：仅deposit/withdrawal；客户各自最后观测月对上一观测月，不补日历月；NULL前余额与零余额同样回退bal×100；分母500客户。
+- **实际失配**：预测54.2%，Gold36.4%，差17.8个百分点；均1行1列，非列名问题。
+- **Spec处理**：index6条件成功request排除purchase、missing假定不补月取上一观测月，time open客户各自最近月/全局最近月。index13将missing重开为单月客户计入/剔除两个候选，取代缺月相邻规则的文字。index19 time成功decided且verified=false，但missing决定被拒；三次比较HTTP451后index21以basis:assumed+reason成功改写missing，最终open=[]。SQL兑现各自最近月及NULL→0，未发现最终可证Spec-SQL业务漂移。
+- **错因分析**：Gold SQL缺失。题面只规定零余额，不能由36.4确定应纳purchase、全局最新月、负余额截断或剔除单月客户。原探索显示17客户无前余额、110客户前余额为负，各自最后观测月也不同；候选风险实际存在但无法唯一判定标准。
+- **过程机制**：missing决定先被拒、后显式假定改写成功，不能把之前rationale当成功decided。；time比较成功有倾向，但不是业务证据；missing比较持续Jev HTTP451。；最终SpecFeedback unavailable/provider_http_error，concernCount=0不是语义通过。
+- **后续验证/修复**：补取Gold定义，分别核实purchase纳入、最近月参照、日历缺月与首月NULL规则；保留题面已明确条件，不按数字反改口径。
+- **限制**：Gold SQL未提供，36.4%的分子分母不可恢复。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local297 /question`
+```text
+For each customer, group all deposits and withdrawals by the first day of each month to obtain a monthly net amount, then calculate each month’s closing balance by cumulatively summing these monthly nets. Next, determine the most recent month’s growth rate by comparing its closing balance to the prior month’s balance, treating deposits as positive and withdrawals as negative, and if the previous month’s balance is zero, the growth rate should be the current month’s balance multiplied by 100. Finally, compute the percentage of customers whose most recent month shows a growth rate of more than 5%.
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local297/attempts/attempt-20261010-154318Z/submissions/sql/local297.sql`
+```text
+WITH nets AS (
+  SELECT customer_id AS cid, substr(txn_date,1,7) AS m,
+         SUM(CASE WHEN txn_type='deposit' THEN txn_amount ELSE -txn_amount END) AS net
+  FROM customer_transactions
+  WHERE txn_type IN ('deposit','withdrawal')
+  GROUP BY customer_id, substr(txn_date,1,7)
+), cum AS (
+  SELECT cid, m, SUM(net) OVER (PARTITION BY cid ORDER BY m ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS bal
+  FROM nets
+), rn AS (
+  SELECT cid, m, bal, LAG(bal) OVER (PARTITION BY cid ORDER BY m) AS prev_bal,
+         ROW_NUMBER() OVER (PARTITION BY cid ORDER BY m DESC) AS r
+  FROM cum
+), g AS (
+  SELECT cid, bal, prev_bal,
+         CASE WHEN prev_bal IS NULL OR prev_bal = 0 THEN bal*100.0 ELSE (bal-prev_bal)*100.0/prev_bal END AS gr
+  FROM rn WHERE r = 1
+)
+SELECT ROUND(100.0*SUM(CASE WHEN gr > 5 THEN 1 ELSE 0 END)/COUNT(*), 2) AS pct_customers_growth_over_5pct
+FROM g
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local297.csv`
+```text
+pct_customers_growth_over_5pct
+54.2
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local297.csv`
+```text
+output
+36.4
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local297/attempts/attempt-20261010-154318Z/trace.json /toolCalls/21/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "assumed", "value": "customer_transactions 中出现过交易的全部客户（500 位）", "rationale": "题面仅 'For each customer'，未指定客户全集来源；事实表中出现的 500 位客户全部有交易记录，故以事实表出现过的客户为资格总体。"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local297/attempts/attempt-20261010-154318Z/trace.json /toolCalls/21/result/details/fields/7`
+```text
+{"path": "measure.formula", "status": "assumed", "value": {"op": "percentage", "per": "customer", "numerator": {"op": "count", "per": "customer", "of": {"op": "custom", "per": "customer", "description": "该客户最近一个月的增长率 > 5（百分数）；增长率 = (最近月期末余额 - 上一月期末余额) / 上一月期末余额 × 100，当上一月期末余额 = 0 时取 最近月期末余额 × 100", "of": {"op": "change_rate", "per": "customer", "from": "上一观测月期末余额", "to": "最近观测月期末余额"}}}, "denominator": {"op": "count_distinct", "per": "customer", "of": "customer_id"}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local297/attempts/attempt-20261010-154318Z/trace.json /toolCalls/21/result/details/fields/11`
+```text
+{"path": "selection", "status": "not_applicable"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local297/attempts/attempt-20261010-154318Z/trace.json /toolCalls/21/result/details/fields/12`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "scalar", "rowCount": 1, "columns": ["pct_customers_growth_over_5pct"], "units": {"pct_customers_growth_over_5pct": "%"}, "decimals": {"pct_customers_growth_over_5pct": 2}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+
+<a id="local298"></a>
+### local298 — 月初截至上月的全体用户余额与负债归零
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：未定位；节点 `未定位`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：每月以1日为截止取上一月余额，负余额置零；首月仅作基线且不输出。截断粒度和截断后是否反馈下一期状态需另证。
+- **本次SQL**：2020-02/03/04逐客户累计此前交易，deposit正其余负；最终将客户累计负余额floor为0后跨客户求和，不回写下一月累计状态。
+- **实际失配**：只比较Gold列1（condition_cols=[1]）：预测235595/261508/260971，Gold212579/240602/153147。月份YYYY-MM与YYYY-MM-DD不参与评分。
+- **Spec处理**：index11累计截至月初成功request，formula open逐客户floor后sum/sum后floor；grouping对象被拒。index12漏taskId新建仅grouping旁任务，index13回原任务修正。两公式探针不同，index18决定被拒；三次HTTP451后index21以value+reason且无rationale写入，实际assumed而非decided，open=[]。SQL符合最终逐客户累计后截断假定。
+- **错因分析**：两种探针均不等于Gold：逐客户floor是提交值，整体floor为126091/0/0。不能仅断言选错这两个候选之一。逐期归零后反馈状态与当前累计后仅输出floor是不同机制；题面无递归状态规则、Gold SQL缺失，无法判定。标准标签的聚合顺序没有独立业务定义支撑，不能代替Gold。
+- **过程机制**：负债截断假定写入后的SpecFeedback仍unavailable/provider_http_error，没有成功反馈背书截断状态政策。；grouping修正漏taskId创建旁任务，最终使用原任务。；fanout unknown/source_unique_key_unavailable不是发现放大。
+- **后续验证/修复**：补证逐客户/整体截断、逐期截断后是否反馈下期、月初<或<=；再核对客户-月中间余额，勿把输出floor当已证Gold状态政策。
+- **限制**：没有Gold SQL或客户月度余额明细，三个总额无法唯一恢复状态递推。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local298 /question`
+```text
+For each month, calculate the total balance from all users for the previous month (measured as of the 1st of each month), replacing any negative balances with zero. Ensure that data from the first month is used only as a baseline for calculating previous total balance, and exclude it from the final output. Sort the results in ascending order by month. 
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local298/attempts/attempt-20261010-154318Z/submissions/sql/local298.sql`
+```text
+WITH months(month) AS (
+  SELECT '2020-02' UNION ALL SELECT '2020-03' UNION ALL SELECT '2020-04'
+), signed AS (
+  SELECT customer_id, txn_date,
+         CASE WHEN txn_type='deposit' THEN txn_amount ELSE -txn_amount END AS amt
+  FROM customer_transactions
+), cust_bal AS (
+  SELECT m.month AS month, s.customer_id AS customer_id, SUM(s.amt) AS bal
+  FROM months m JOIN signed s ON s.txn_date < m.month || '-01'
+  GROUP BY m.month, s.customer_id
+)
+SELECT month, CAST(SUM(CASE WHEN bal < 0 THEN 0 ELSE bal END) AS INTEGER) AS total_balance
+FROM cust_bal
+GROUP BY month
+ORDER BY month ASC;
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local298.csv`
+```text
+month,total_balance
+2020-02,235595
+2020-03,261508
+2020-04,260971
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local298.csv`
+```text
+month_,total_data_storage
+2020-02-01,212579
+2020-03-01,240602
+2020-04-01,153147
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local298/attempts/attempt-20261010-154318Z/trace.json /toolCalls/21/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "assumed", "value": "All customers recorded in customer_transactions; a customer with no transaction before a snapshot carries balance 0 and adds nothing to the total", "rationale": "No business definition available; customer_transactions is the only user/amount table in the database."}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local298/attempts/attempt-20261010-154318Z/trace.json /toolCalls/21/result/details/fields/8`
+```text
+{"path": "measure.formula", "status": "assumed", "value": {"op": "sum", "per": "month", "of": {"op": "custom", "per": "customer", "description": "floor each customer's balance as of the 1st of the month at zero, then sum across customers", "of": {"op": "sum", "per": "customer", "of": "signed_txn_amount"}}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local298/attempts/attempt-20261010-154318Z/trace.json /toolCalls/21/result/details/fields/10`
+```text
+{"path": "selection", "status": "not_applicable"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local298/attempts/attempt-20261010-154318Z/trace.json /toolCalls/21/result/details/fields/12`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "grouped", "rowCount": 3, "columns": ["month", "total_balance"], "units": {"total_balance": "amount"}, "decimals": {"total_balance": 0}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+
+<a id="local299"></a>
+### local299 — 日累计余额30日滚动最大值的月合计
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：未定位；节点 `未定位`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：逐客逐日累计余额；满30日后求30日平均、负平均归零；每客每月MAX后跨客SUM，剔除各客户首月。
+- **本次SQL**：每客首日至自己末交易日建日历，无交易日余额前推；当日+前29日AVG(balance)、COUNT=30；负平均floor，按客户月MAX再SUM至2位小数。
+- **实际失配**：只比较列1且忽略行序：预测286194.37/314140.93/170303.97，Gold284935.45376344083/312844.32258064515/170334.0，均超0.01容差。
+- **Spec处理**：index4累计→滚动→月MAX→月SUM及缺日carry成功假定，time open全表末日/客户末日。grouping修正成功；index4至16多种selection orderBy写法均被拒，index17最终n/a成功，ties需reason后index18才n/a成功。index22 time成功decided选客户末日、verified=false；SQL与最终日历和30日窗口声明一致。
+- **错因分析**：可见SQL兑现显式聚合和30日窗口，Gold缺SQL，不能从小数倒推31日窗或端点。标准客户末日范围与决定一致；全表末日探针290091.17/337746.37/316177.57也不等Gold。不存在可证的最终Spec-SQL漂移，窗口/日历隐藏细则仍未定。
+- **过程机制**：selection接口反复拒绝后n/a，最终仍以SQL MAX计算数值极值。；time比较成功弱倾向不是业务证明。；五次SpecFeedback均unavailable，无法验证滚动边界。
+- **后续验证/修复**：补取Gold逐日余额与窗口公式，核对首个可计算日、当前日是否计入、末日与缺日carry；不得为贴Gold把ROWS29改30。
+- **限制**：月度合计不足以唯一识别窗口或日历差异。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local299 /question`
+```text
+For a bank database with customer transactions, calculate each customer's daily running balance (where deposits add to the balance and other transaction types subtract). For each customer and each day, compute the 30-day rolling average balance (only after having 30 days of data, and treating negative averages as zero). Then group these daily averages by month and find each customer's maximum 30-day average balance within each month. Sum these maximum values across all customers for each month. Consider the first month of each customer's transaction history as the baseline period and exclude it from the final results, presenting monthly totals of these summed maximum 30-day average balances.
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local299/attempts/attempt-20261010-154318Z/submissions/sql/local299.sql`
+```text
+WITH RECURSIVE dates(day) AS (SELECT MIN(txn_date) FROM customer_transactions UNION ALL SELECT date(day,'+1 day') FROM dates WHERE day < (SELECT MAX(txn_date) FROM customer_transactions)), txn AS (SELECT customer_id, txn_date, SUM(CASE WHEN txn_type='deposit' THEN txn_amount ELSE -txn_amount END) AS net FROM customer_transactions GROUP BY customer_id, txn_date), cust AS (SELECT customer_id, MIN(txn_date) AS first_d, MAX(txn_date) AS last_d FROM customer_transactions GROUP BY customer_id), spine AS (SELECT c.customer_id, d.day, c.first_d FROM cust c JOIN dates d ON d.day BETWEEN c.first_d AND c.last_d), bal AS (SELECT s.customer_id, s.day, s.first_d, SUM(COALESCE(t.net,0)) OVER (PARTITION BY s.customer_id ORDER BY s.day) AS balance FROM spine s LEFT JOIN txn t ON t.customer_id=s.customer_id AND t.txn_date=s.day), roll AS (SELECT customer_id, day, first_d, AVG(balance) OVER (PARTITION BY customer_id ORDER BY day ROWS BETWEEN 29 PRECEDING AND CURRENT ROW) AS ravg, COUNT(*) OVER (PARTITION BY customer_id ORDER BY day ROWS BETWEEN 29 PRECEDING AND CURRENT ROW) AS cnt FROM bal), daily AS (SELECT customer_id, strftime('%Y-%m',day) AS month, first_d, CASE WHEN ravg<0 THEN 0 ELSE ravg END AS floored FROM roll WHERE cnt=30), per_cm AS (SELECT customer_id, month, MAX(floored) AS mx FROM daily WHERE month <> strftime('%Y-%m', first_d) GROUP BY customer_id, month) SELECT month AS month, ROUND(SUM(mx),2) AS total_max_30day_avg_balance FROM per_cm GROUP BY month ORDER BY month;
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local299.csv`
+```text
+month,total_max_30day_avg_balance
+2020-02,286194.37
+2020-03,314140.93
+2020-04,170303.97
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local299.csv`
+```text
+month,total_allocation
+2020-02,284935.45376344083
+2020-03,312844.32258064515
+2020-04,170334.0
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local299/attempts/attempt-20261010-154318Z/trace.json /toolCalls/22/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "assumed", "value": "Customers that appear in customer_transactions with at least one transaction. There is no separate customer master, so no zero-activity customers are considered."}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local299/attempts/attempt-20261010-154318Z/trace.json /toolCalls/22/result/details/fields/8`
+```text
+{"path": "measure.formula", "status": "assumed", "value": {"op": "sum", "per": "month", "of": {"op": "max", "per": "customer-month", "of": {"op": "rolling", "per": "customer-day", "of": {"op": "cumulative", "per": "customer-day", "of": "signed_daily_amount"}}}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local299/attempts/attempt-20261010-154318Z/trace.json /toolCalls/22/result/details/fields/13`
+```text
+{"path": "selection", "status": "not_applicable"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local299/attempts/attempt-20261010-154318Z/trace.json /toolCalls/22/result/details/fields/15`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "grouped", "rowCount": 3, "columns": ["month", "total_max_30day_avg_balance"], "units": {"month": "YYYY-MM", "total_max_30day_avg_balance": "sum of txn_amount units"}, "decimals": {"total_max_30day_avg_balance": 2}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+
+<a id="local302"></a>
+### local302 — 销售冲击最负的属性类型
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：可证差异；节点 `selection`；错误层：口径错；可见性：误标不适用。
+- **题面/标准**：各属性类型先求全部属性值的12周前后销售变化百分比算术平均，最终只选平均变化最负的类型及变化率。
+- **本次SQL**：算各类型平均变化率并升序，但返回所有五种类型，无最终argmin筛选。
+- **实际失配**：预测5行，首行demographic,-2.01；Gold1行demographic,-2.008662，首行差0.001338在容差内，5对1行导致失败。
+- **Spec处理**：index4 selection n/a成功、output假定5行成功，认为首行即可表示最负类型；formula缺内层per被拒、grouping message引用被拒。index5漏taskId旁任务，6回原任务成功修正公式和grouping。unknown资格11重开、15决定被拒、17改显式假定包含unknown成功；selection与5行output不变，SQL忠实兑现错误Spec而非漂移。
+- **错因分析**：题面明确Identify the attribute type with the highest negative impact，最终argmin却标不适用。首行已与Gold类别和数值相符，unknown纳入、窗口及平均公式不是本次已证失败的必要原因。
+- **过程机制**：探针围绕unknown资格，遗漏最终取对象。；formula/grouping修正中漏taskId创建旁任务，最终仍绑定原任务。；HTTP451后假定成功不能弥补selection错；最终SpecFeedback unavailable。
+- **后续验证/修复**：selection按平均变化升序n=1，output改1行并定并列；最终SQL加argmin/Top1，保留已与Gold一致的公式。
+- **限制**：题面未明示并列，当前首行与Gold一致。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local302 /question`
+```text
+Analyze the average percentage change in sales between the 12 weeks before and after June 15, 2020, for each attribute type: region, platform, age band, demographic, and customer type. For each attribute type, calculate the average percentage change in sales across all its attribute values. Identify the attribute type with the highest negative impact on sales and provide its average percentage change in sales.
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local302/attempts/attempt-20261010-154318Z/submissions/sql/local302.sql`
+```text
+WITH u AS (
+  SELECT 'region' AS at, region AS av, week_date, sales FROM cleaned_weekly_sales
+  UNION ALL SELECT 'platform', platform, week_date, sales FROM cleaned_weekly_sales
+  UNION ALL SELECT 'age_band', age_band, week_date, sales FROM cleaned_weekly_sales
+  UNION ALL SELECT 'demographic', demographic, week_date, sales FROM cleaned_weekly_sales
+  UNION ALL SELECT 'customer_type', customer_type, week_date, sales FROM cleaned_weekly_sales
+),
+pv AS (
+  SELECT at, av,
+    SUM(CASE WHEN week_date BETWEEN '2020-03-23' AND '2020-06-08' THEN sales ELSE 0 END) AS before_sales,
+    SUM(CASE WHEN week_date BETWEEN '2020-06-15' AND '2020-08-31' THEN sales ELSE 0 END) AS after_sales
+  FROM u
+  WHERE week_date BETWEEN '2020-03-23' AND '2020-08-31'
+  GROUP BY at, av
+)
+SELECT at AS attribute_type,
+  ROUND(AVG(100.0*(after_sales-before_sales)/before_sales), 2) AS average_percentage_change
+FROM pv
+WHERE before_sales > 0
+GROUP BY at
+ORDER BY average_percentage_change ASC
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local302.csv`
+```text
+attribute_type,average_percentage_change
+demographic,-2.01
+age_band,-1.87
+customer_type,-1.42
+region,-1.11
+platform,2.37
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local302.csv`
+```text
+metric,avg_percent_change
+demographic,-2.008662
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local302/attempts/attempt-20261010-154318Z/trace.json /toolCalls/17/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "assumed", "value": "Include every observed attribute value, including the literal 'unknown' value present in age_band and demographic; no zero/empty entity is created or removed", "rationale": "Most literal reading of 'average percentage change in sales across all its attribute values': 'unknown' is an observed distinct value of age_band/demographic in the cleaned table. No business definition enumerates the values (business-definitions is empty) and the Jev comparison service was unavailable (HTTP 451), so no qualifying evidence exists to exclude it. Including it makes demographic the worst (-2.01%); excluding it would make customer_type the worst (-1.42%). Disclosed as an unverified assumption."}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local302/attempts/attempt-20261010-154318Z/trace.json /toolCalls/17/result/details/fields/7`
+```text
+{"path": "measure.formula", "status": "request", "value": {"op": "avg", "per": "attribute_type", "of": {"op": "percentage", "per": "attribute_value", "numerator": {"op": "difference", "per": "attribute_value", "from": {"op": "sum", "per": "attribute_value x before-period", "of": "sales"}, "to": {"op": "sum", "per": "attribute_value x after-period", "of": "sales"}}, "denominator": {"op": "sum", "per": "attribute_value x before-period", "of": "sales"}}}, "evidenceIds": ["evidence_91f8382b-d0d2-4278-ab10-015748144381"]}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local302/attempts/attempt-20261010-154318Z/trace.json /toolCalls/17/result/details/fields/11`
+```text
+{"path": "selection", "status": "not_applicable"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local302/attempts/attempt-20261010-154318Z/trace.json /toolCalls/17/result/details/fields/12`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "grouped", "rowCount": 5, "columns": ["attribute_type", "average_percentage_change"], "units": {"average_percentage_change": "%"}, "decimals": {"average_percentage_change": 2}}, "rationale": "One row per attribute type (region, platform, age_band, demographic, customer_type), ordered ascending so the type with the highest negative impact is the first row."}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+
+<a id="local311"></a>
+### local311 — 车队与最佳车手合并积分历史前三
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：可证差异；节点 `output`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：按constructor-season的车队与最佳车手合计积分取前三，题面明确询问车队及年份；审核结构/Gold还检查combined_points。积分物理来源未确定。
+- **本次SQL**：季末round的constructor_standings+driver_standings积分，team_driver_rank=1为最佳车手；取3后仅输出车队、年，不投影合并积分。
+- **实际失配**：预测Red Bull2023/Red Bull2022/Mercedes2019与Gold身份及年相同；Gold还检查1320/1157/1152积分列，预测不存在。原同口径探索1435/1213/1152，故补列仍有未定数值差。
+- **Spec处理**：index6两列output成功假定；formula缺op被拒，20字符串候选被拒，21正规候选open成功。26决定被拒但source和两列output修订成功，29 override仍被拒。31换候选缺reason拒，32成功重开两source实现；探针只投影身份/年。35因身份输出相同成功decided、verified=false。最终兑现两列Spec，没有正确三列Spec遭SQL漏列。
+- **错因分析**：评分额外检查combined_points向量，当前只给车队/年，缺该向量足以判0；不能将其等同遗漏题面明确要求，题面只问Which constructors及which years。所选三组身份与Gold吻合也不证明积分定义正确；原探针的1435/1213与Gold1320/1157差异未定位。
+- **过程机制**：HTTP451后替换成两种source候选，用不含指标的探针确认等价，未验证积分值。；最终decided verified=false，六次SpecFeedback unavailable。
+- **后续验证/修复**：将业务输出要求与Gold评分列约定分开审计，补积分来源定义；若评测要求数值列，先修订并明确该交付字段，不能只按别名/列序修复。
+- **限制**：confirmed仅指缺评分指标列；Gold积分来源未恢复，补列不保证正确。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local311 /question`
+```text
+Which constructors had the top 3 combined points from their best driver and team, and in which years did they achieve them?
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local311/attempts/attempt-20261010-154318Z/submissions/sql/local311.sql`
+```text
+WITH lr AS (SELECT year, MAX(round) AS mr FROM races GROUP BY year), cs AS (SELECT r.year AS yr, cs.constructor_id AS cid, cs.points AS tp FROM constructor_standings cs JOIN races r ON r.race_id=cs.race_id JOIN lr ON lr.year=r.year AND lr.mr=r.round), ds AS (SELECT r.year AS yr, ds.driver_id AS did, ds.points AS dp FROM driver_standings ds JOIN races r ON r.race_id=ds.race_id JOIN lr ON lr.year=r.year AND lr.mr=r.round), t1 AS (SELECT DISTINCT year AS yr, constructor_id AS cid, driver_id AS did FROM team_driver_ranks WHERE team_driver_rank=1) SELECT c.name AS constructor, cs.yr AS year FROM t1 JOIN cs ON cs.yr=t1.yr AND cs.cid=t1.cid JOIN ds ON ds.yr=t1.yr AND ds.did=t1.did JOIN constructors c ON c.constructor_id=cs.cid ORDER BY (cs.tp + ds.dp) DESC, cs.yr DESC LIMIT 3
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local311.csv`
+```text
+constructor,year
+Red Bull,2023
+Red Bull,2022
+Mercedes,2019
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local311.csv`
+```text
+year,constructor,combined_points
+2023,Red Bull,1320
+2022,Red Bull,1157
+2019,Mercedes,1152
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local311/attempts/attempt-20261010-154318Z/trace.json /toolCalls/35/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "assumed", "value": "Include every constructor-season present in the data; zero-point constructor-seasons are kept in the population but cannot rank in the top 3"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local311/attempts/attempt-20261010-154318Z/trace.json /toolCalls/35/result/details/fields/8`
+```text
+{"path": "measure.formula", "status": "decided", "value": {"op": "sum", "per": "constructor-season", "of": "constructor end-of-season standing points + best driver end-of-season standing points"}, "verified": false, "rationale": "两个候选在本题上探针输出完全相同（同一 output id 936342ec3318），系统视为等价。采纳其共同口径：combined = 车队赛季积分 + 该队最佳车手（team_driver_rank = 1）赛季积分，均取赛季末排位积分表。题面 'combined points from their best driver and team' 明确点名 'best driver' 与 'team' 两个分量，'combined' 表示相加；不采用只取车队积分的读法（会使 'their best driver' 失效）。注：compare_hypotheses 顾问不可用（Jev HTTP 451），未能取得独立建议。", "alternatives": [{"id": "alternative_b6bea190-eff0-4592-a33b-50b5dfd65676", "value": {"op": "sum", "per": "constructor-season", "of": "constructor end-of-season standing points + best driver end-of-season standing points"}, "probe": {"alternativeId": "alternative_b6bea190-eff0-4592-a33b-50b5dfd65676", "state": "available", "rowCount": 3, "output": "936342ec3318"}}, {"id": "alternative_a90e4323-b4b3-427b-a193-eba42f8a5822", "value": {"op": "sum", "per": "constructor-season", "of": "sum of constructor_results.points over the season + best driver's summed result points over the season"}, "probe": {"alternativeId": "alternative_a90e4323-b4b3-427b-a193-eba42f8a5822", "state": "available", "rowCount": 3, "output": "936342ec3318"}}], "outputs": "identical"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local311/attempts/attempt-20261010-154318Z/trace.json /toolCalls/35/result/details/fields/10`
+```text
+{"path": "selection", "status": "assumed", "value": {"n": 3, "orderBy": "combined points DESC"}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local311/attempts/attempt-20261010-154318Z/trace.json /toolCalls/35/result/details/fields/12`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "top_n", "rowCount": 3, "columns": ["constructor", "year"]}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+
+<a id="local330"></a>
+### local330 — 各页面作为入口或出口的去重会话数
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：Gold冲突；节点 `output`；错误层：标准答案有问题；可见性：不适用或未定。
+- **题面/标准**：每网页统计其是session首/末页之一的唯一session数，首末同页同session只计一次；题面明确total number及each web page。
+- **本次SQL**：每session最早/最晚stamp同刻全部path保留，distinct(session,path)后每path count distinct session，输出9页及计数。
+- **实际失配**：预测9行页面+计数；Gold仅1行path2=/detail，无任何计数。condition_cols=[]，9行页面向量不能匹配1行Gold；额外计数列本身不单独判错。
+- **Spec处理**：index6每页count distinct session成功，grouping open path/option；19首末同刻全部保留request成功但grouping决定拒；22错误顶层adviceOverride拒；23比较终于成功倾向path，24以request+reason写path成功、open=[]。SQL符合计数Spec，未声明只选/detail。
+- **错因分析**：Gold没有提供题面明确要求的每页唯一会话数且只一个网页，存在具体内容/结构矛盾，而非因缺SQL或模型猜测判错。首末同刻政策虽有歧义，但不能解释Gold完全没有count。
+- **过程机制**：grouping比较三次HTTP451后index23成功，24理由仍称不可用，与最新返回不符。；同刻全保留以题面引用落地不证明题面已唯一决定并列。；最终SpecFeedback unavailable。
+- **后续验证/修复**：复核Gold与题目错配，Gold应提供每页及唯一会话数；另定首末同刻政策，勿为贴Gold删计数或仅取/detail。
+- **限制**：Gold SQL缺失，不能复原单行/detail来源。；不据此宣称预测9页计数在并列政策上唯一正确。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local330 /question`
+```text
+Using the activity log table, compute the total number of unique user sessions where each web page appears as either a landing page (the first page visited in a session based on timestamp) or an exit page (the last page visited in a session based on timestamp), or both. Count each session only once per page even if the page serves as both landing and exit for that session. 
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local330/attempts/attempt-20261010-154318Z/submissions/sql/local330.sql`
+```text
+WITH session_bounds AS (
+  -- 每个会话的首次与末次访问时间（按 stamp 最早/最晚；同刻并列全部保留）
+  SELECT session,
+         MIN(stamp) AS first_stamp,
+         MAX(stamp) AS last_stamp
+  FROM activity_log
+  GROUP BY session
+), end_pages AS (
+  -- 每个会话中充当落地页或退出页的页面；同一会话同一页面只保留一行
+  SELECT DISTINCT a.session, a.path
+  FROM activity_log a
+  JOIN session_bounds b ON b.session = a.session
+  WHERE a.stamp = b.first_stamp
+     OR a.stamp = b.last_stamp
+)
+SELECT path,
+       COUNT(DISTINCT session) AS session_count
+FROM end_pages
+GROUP BY path
+ORDER BY path
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local330.csv`
+```text
+path,session_count
+"",2
+/,2
+/complete,2
+/detail,9
+/detail/,9
+/search_input,2
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local330.csv`
+```text
+path2
+/detail
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local330/attempts/attempt-20261010-154318Z/trace.json /toolCalls/24/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "assumed", "value": "纳入 activity_log 中出现的全部会话；session 为 NULL 的行不构成会话（观测：0 行）；源表中不存在的零活动会话不补造。"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local330/attempts/attempt-20261010-154318Z/trace.json /toolCalls/24/result/details/fields/6`
+```text
+{"path": "measure.formula", "status": "assumed", "value": {"op": "count_distinct", "per": "page", "of": "session"}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local330/attempts/attempt-20261010-154318Z/trace.json /toolCalls/24/result/details/fields/9`
+```text
+{"path": "selection", "status": "not_applicable"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local330/attempts/attempt-20261010-154318Z/trace.json /toolCalls/24/result/details/fields/10`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "full", "columns": ["path", "session_count"], "units": {"session_count": "个唯一会话"}, "decimals": {"session_count": 0}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+
+<a id="local331"></a>
+### local331 — 连续两次/detail之后的第三页前三
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：未定位；节点 `未定位`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：会话内按时序连续两次/detail之后第三页发生数Top3；题面及正式语义未明示会话结束算虚拟第三页END。
+- **本次SQL**：activity_log逐行按session的stamp,rowid排序；真实行前两path=/detail则count该path，取3，不生成END哨兵。
+- **实际失配**：预测/detail33、/2、/detail/1；Gold/detail33、END7、/2。共同实际页计数相同，Gold END7挤掉/detail/；本题ignore_order=false。
+- **Spec处理**：index4逐行事件、存在前两条的第三行资格、Top3计数成功假定，严格/detail或合并/detail/条件open。28漏taskId旁任务、证据unknown拒；29回原任务成功改rowid实体与稳定Top3，但条件决定拒。31 request改写缺reason拒，32加reason成功request且open=[]。最终只声明真实第三行；没有成功声明END后SQL漏实现。
+- **错因分析**：SQL不能输出END与CSV差异明确，但END7不能唯一恢复终止事件、追加哨兵、去重或顺序规则。题面和标准未规定无第三次访问时生成END，故不能强标未声明终止为confirmed，也不以Gold有哨兵直接证明Gold违题。
+- **过程机制**：去重候选得空结果不证明每条重复行都是独立真实访问。；同秒顺序用rowid补充，缺业务顺序定义。；HTTP451后request+reason改写，实际非decided；最终SpecFeedback unavailable。
+- **后续验证/修复**：补证END定义和GoldSQL，明确尾部连续/detail的虚拟第三页规则及追加时点；核实同秒顺序后再对账7次END。
+- **限制**：无权威END定义，不能由7次反推精确算法。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local331 /question`
+```text
+Which three distinct third-page visits are most frequently observed immediately after two consecutive visits to the '/detail' page, and how many times does each third-page visit occur?
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local331/attempts/attempt-20261010-154318Z/submissions/sql/local331.sql`
+```text
+WITH seq AS (
+  SELECT session,
+         stamp,
+         path,
+         LAG(path, 1) OVER (PARTITION BY session ORDER BY stamp, rowid) AS prev1,
+         LAG(path, 2) OVER (PARTITION BY session ORDER BY stamp, rowid) AS prev2
+  FROM activity_log
+)
+SELECT path AS third_page,
+       COUNT(*) AS occurrences
+FROM seq
+WHERE prev1 = '/detail'
+  AND prev2 = '/detail'
+GROUP BY path
+ORDER BY occurrences DESC, third_page ASC
+LIMIT 3
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local331.csv`
+```text
+third_page,occurrences
+/detail,33
+/,2
+/detail/,1
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local331.csv`
+```text
+path2,count2
+/detail,33
+END,7
+/,2
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local331/attempts/attempt-20261010-154318Z/trace.json /toolCalls/32/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "assumed", "value": "同一 session 内按 stamp 升序排列的事件序列；仅当某事件在同一 session 内存在紧邻的前两条事件时才可能成为“第三次访问”；不补零、不跨 session 拼接"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local331/attempts/attempt-20261010-154318Z/trace.json /toolCalls/32/result/details/fields/7`
+```text
+{"path": "measure.formula", "status": "assumed", "value": {"op": "count", "per": "满足序列条件的第三次访问事件行", "of": "符合条件的第三次访问行"}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local331/attempts/attempt-20261010-154318Z/trace.json /toolCalls/32/result/details/fields/10`
+```text
+{"path": "selection", "status": "assumed", "value": {"n": 3, "orderBy": "occurrences DESC, third_page ASC"}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local331/attempts/attempt-20261010-154318Z/trace.json /toolCalls/32/result/details/fields/12`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "top_n", "rowCount": 3, "columns": ["third_page", "occurrences"], "units": {"occurrences": "次"}, "decimals": {"occurrences": 0}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+
+<a id="local335"></a>
+### local335 — 拥有最低正积分车手最多赛季的五车队
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：未定位；节点 `未定位`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：2001起每季正积分车手中找最低总积分者，数所属队合格赛季，取最多5队；source、跨队归属及并列细则未唯一明确。
+- **本次SQL**：driver_standings按年/driver取最后round积分>0；每季最低者全保留，映射当季所有results所属队，distinct(year,constructor)数赛季，数量降序名称升序取5。
+- **实际失配**：预测Williams/Toro Rosso/Minardi/Sauber/Arrows，计数6/5/3/3/2；GoldWilliams/Jordan/Toro Rosso/Arrows/Minardi。忽略行序，实质Sauber替代Jordan；额外计数列不单独失败。
+- **Spec处理**：index6成功但ties open。24重开条件缺reason拒，25顶层reason整次失败，26内嵌reason成功open。32新值不匹配候选拒，ties未探针拒；33无成功比较仍拒。36以value+reason实际assumed成功，37补回2001/正分条件成功；40在5/6行ties探针后value+reason落assumed strict。SQL符合最终假定，single最低车手草案没有成功选用。
+- **错因分析**：身份集合错明确，但source、最低分并列、跨队归属或最终切点未能唯一定位。探针A/B都含Sauber不含Jordan，只改最低分并列不能解释Gold。原探索standings/results有42个driver-season积分差，却无Gold来源定义；Arrows/Jordan均2季切点也不能解释Gold排除3季Sauber。
+- **过程机制**：若干前导注释探索被Only one read-only SQL statement is allowed拒，后无注释重发才成功，不能引用失败请求当结果。；三个条件比较HTTP451，之后以假定改写成功非verified decided。；fanout unknown/unsupported_aggregate_expression, unsupported_shape不证明放大，SQL已distinct赛季-队。
+- **后续验证/修复**：补证积分source、冲刺/调整、跨队归属与Gold每队合格赛季列表，逐季对账Sauber/Jordan再定并列；不以删额外列或改字母切点修复。
+- **限制**：Gold只有五个队名无计数/赛季，无法恢复根因。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local335 /question`
+```text
+In Formula 1 seasons since 2001, considering only drivers who scored points in a season, which five constructors have had the most seasons where their drivers scored the fewest total points among all point-scoring drivers in that season?
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local335/attempts/attempt-20261010-154318Z/submissions/sql/local335.sql`
+```text
+WITH last AS (
+  SELECT r.year AS year, ds.driver_id AS driver_id, ds.points AS pts,
+         ROW_NUMBER() OVER (PARTITION BY r.year, ds.driver_id ORDER BY r.round DESC) rn
+  FROM driver_standings ds JOIN races r ON r.race_id = ds.race_id WHERE r.year >= 2001),
+tot AS (SELECT year, driver_id, pts FROM last WHERE rn = 1),
+ps AS (SELECT * FROM tot WHERE pts > 0),
+mn AS (SELECT year, MIN(pts) AS m FROM ps GROUP BY year),
+md AS (SELECT ps.year, ps.driver_id FROM ps JOIN mn ON mn.year = ps.year AND mn.m = ps.pts),
+mc AS (SELECT DISTINCT md.year, res.constructor_id AS cid
+       FROM md JOIN results res ON res.driver_id = md.driver_id
+       JOIN races r ON r.race_id = res.race_id AND r.year = md.year)
+SELECT c.name AS constructor_name, COUNT(*) AS season_count
+FROM mc JOIN constructors c ON c.constructor_id = mc.cid
+GROUP BY c.name
+ORDER BY season_count DESC, c.name ASC
+LIMIT 5
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local335.csv`
+```text
+constructor_name,season_count
+Williams,6
+Toro Rosso,5
+Minardi,3
+Sauber,3
+Arrows,2
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local335.csv`
+```text
+Constructor
+Williams
+Jordan
+Toro Rosso
+Arrows
+Minardi
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local335/attempts/attempt-20261010-154318Z/trace.json /toolCalls/40/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "assumed", "value": "每个赛季仅将「赛季总积分>0 的车手」纳入『最低分』比较；没有任何此类赛季的车队不计入结果（为 0 也不会进入前五）", "rationale": "题面限定 drivers who scored points in a season"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local335/attempts/attempt-20261010-154318Z/trace.json /toolCalls/40/result/details/fields/7`
+```text
+{"path": "measure.formula", "status": "assumed", "value": {"op": "count_distinct", "per": "constructor", "of": "season"}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local335/attempts/attempt-20261010-154318Z/trace.json /toolCalls/40/result/details/fields/10`
+```text
+{"path": "selection", "status": "request", "value": {"n": 5, "orderBy": "season_count DESC"}, "evidenceIds": ["evidence_1909031d-886b-4485-b9e3-5e8607ec55c1"]}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local335/attempts/attempt-20261010-154318Z/trace.json /toolCalls/40/result/details/fields/12`
+```text
+{"path": "output", "status": "request", "value": {"rowMode": "top_n", "rowCount": 5, "columns": ["constructor_name", "season_count"], "units": {"season_count": "seasons"}, "decimals": {"season_count": 0}}, "evidenceIds": ["evidence_ddd338cc-7826-4a54-9418-ae019eeacac3"]}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+
+<a id="local336"></a>
+### local336 — 前五圈四类超车次数
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：可证差异；节点 `output`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：前五圈按四类超车事件计数；业务文档有R/P/S/T映射，Gold比较代码字符串，题面未明确要求代码而非类别全称。
+- **本次SQL**：overtakes取lap<=5按类型COUNT(*)，将代码转成英文描述字符串。
+- **实际失配**：预测retirements1609/pit stops3093/start-related overtakes2452/standard on-track passes3974；Gold R1609/P3075/S2452/T3974。字符串均不同，Pit还多18；忽略行序，非列名问题。
+- **Spec处理**：index4条件lap<=5成功request、eligibility却写1..5，英文描述output成功假定；5补证业务R/P/S/T分类名称使grouping成功evidence、source成功evidence，output未改。原探索lap范围1..87，不能把多18归因lap=0。SQL兑现输出假定。
+- **错因分析**：类别字符串被改写，无法匹配Gold的R/P/S/T，是可证评分失配，不是改列别名；这种输出表示差异不自动证明业务类别划分错误。Pit多18另未定位：原观察Pit Entry2406+Pit Exit687=3093，不能从Gold3075恢复事件剔除规则。
+- **过程机制**：分类有依据不等于输出编码契约相同；两次SpecFeedback unavailable/provider_http_error。；分类文档不证明事件行唯一性或Gold去重规则。
+- **后续验证/修复**：在交付/评分合同中明确类别编码与说明，可分别输出代码和可读名称；先补Pit事件名单再定位18的差异，不凭代码匹配宣称全部指标已修复。
+- **限制**：Gold SQL缺失，Pit残差未恢复，标签修复不保证答对。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local336 /question`
+```text
+In the first five laps of the race, how many overtakes occurred in each category—retirements, pit stops, start-related overtakes, and standard on-track passes?
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local336/attempts/attempt-20261010-154318Z/submissions/sql/local336.sql`
+```text
+SELECT CASE overtake_type
+         WHEN 'R' THEN 'retirements'
+         WHEN 'P' THEN 'pit stops'
+         WHEN 'S' THEN 'start-related overtakes'
+         WHEN 'T' THEN 'standard on-track passes'
+       END AS category,
+       COUNT(*) AS overtake_count
+FROM overtakes
+WHERE lap <= 5
+GROUP BY overtake_type
+ORDER BY CASE overtake_type WHEN 'R' THEN 1 WHEN 'P' THEN 2 WHEN 'S' THEN 3 WHEN 'T' THEN 4 END;
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local336.csv`
+```text
+category,overtake_count
+retirements,1609
+pit stops,3093
+start-related overtakes,2452
+standard on-track passes,3974
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local336.csv`
+```text
+overtake_type,overtake_count
+P,3075
+R,1609
+S,2452
+T,3974
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local336/attempts/attempt-20261010-154318Z/trace.json /toolCalls/5/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "assumed", "value": "Every overtake event row with a lap in 1..5 is counted; no zero/null entities added or dropped.", "rationale": "Overtakes are events; there is no zero-activity or empty-entity notion. Rows with lap > 5 are excluded by the condition."}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local336/attempts/attempt-20261010-154318Z/trace.json /toolCalls/5/result/details/fields/6`
+```text
+{"path": "measure.formula", "status": "assumed", "value": {"op": "count", "of": "overtake event"}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local336/attempts/attempt-20261010-154318Z/trace.json /toolCalls/5/result/details/fields/9`
+```text
+{"path": "selection", "status": "not_applicable"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local336/attempts/attempt-20261010-154318Z/trace.json /toolCalls/5/result/details/fields/10`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "grouped", "rowCount": 4, "columns": ["category", "overtake_count"], "units": {"overtake_count": "overtakes"}, "decimals": {"overtake_count": 0}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+
+<a id="local354"></a>
+### local354 — 1950年代赛季首末参赛车队相同的车手
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：未定位；节点 `未定位`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：1950-1959存在一季车手自身首末参加比赛constructor相同且至少2个不同round；标准输出driver_id。
+- **本次SQL**：results按driver-year的race round选首末constructor，count distinct round>=2；满足任一季则distinct输出姓名，共104人。
+- **实际失配**：预测104行forename/surname；Gold3行driver_id=501/554/579，身份编码及104对3总体均不同。
+- **Spec处理**：index4四项message引用拒、单候选conditions open/字符串formula/output拒，仅grouping/selection n/a成功；探索仍绑定该task。27题面entity/资格/条件/年代成功request，source假定results/races/drivers，joinMultiplicity schema引用成功evidence，output姓名成功assumed；grouping/selection重写缺reason拒但原n/a有效。最终SQL兑现声明，初次失败草案不是实际Spec。
+- **错因分析**：ID对姓名失配可证，但不能解释3对104的最早业务分叉。成功drives单一首末drive且last_round>first_round亦104人，首末drive关联亦104；year-driver覆盖与results都895且无results独有对。因此仅换drives来源不能复原Gold3人。缺SQL，未知Gold额外资格/聚合域/版本，不证Gold错误或当前条件实现错。
+- **过程机制**：早期带注释drives探针被单语句检查拒，后19/20成功。；message原请求误当后来确认导致拒，最终basis:request修正。；最终SpecFeedback unavailable且schema quote missing，不存在业务范围验证成功。
+- **后续验证/修复**：先投影driver_id保留实体键；补证Gold3人资格及赛季、首末记录，多constructor及未起跑等边界应核实，不添加未知限制。
+- **限制**：Gold仅3个ID无SQL和赛季，改投影不能单独修复104行。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local354 /question`
+```text
+Among Formula 1 drivers who raced during the 1950s, which drivers completed a season in that decade with the same constructor in both the first and the last race they participated in, while also taking part in at least two distinct race rounds during that season?
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local354/attempts/attempt-20261010-154318Z/submissions/sql/local354.sql`
+```text
+WITH r AS (SELECT ra.year AS year, ra.round AS round, ra.race_id AS race_id, r.driver_id AS driver_id, r.constructor_id AS ctor FROM results r JOIN races ra ON r.race_id = ra.race_id WHERE ra.year BETWEEN 1950 AND 1959), firsts AS (SELECT year, driver_id, ctor, ROW_NUMBER() OVER (PARTITION BY year, driver_id ORDER BY round ASC, race_id ASC) AS rn FROM r), lasts AS (SELECT year, driver_id, ctor, ROW_NUMBER() OVER (PARTITION BY year, driver_id ORDER BY round DESC, race_id DESC) AS rn FROM r), cnt AS (SELECT year, driver_id, COUNT(DISTINCT round) AS nrounds FROM r GROUP BY year, driver_id) SELECT DISTINCT d.forename AS forename, d.surname AS surname FROM firsts f JOIN lasts l ON l.year = f.year AND l.driver_id = f.driver_id AND l.rn = 1 JOIN cnt ON cnt.year = f.year AND cnt.driver_id = f.driver_id JOIN drivers d ON d.driver_id = f.driver_id WHERE f.rn = 1 AND f.ctor = l.ctor AND cnt.nrounds >= 2 ORDER BY d.surname, d.forename
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local354.csv`
+```text
+forename,surname
+Cliff,Allison
+Alberto,Ascari
+Bill,Aston
+Élie,Bayol
+Jean,Behra
+Gino,Bianco
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local354.csv`
+```text
+driver_id
+501
+554
+579
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local354/attempts/attempt-20261010-154318Z/trace.json /toolCalls/27/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "request", "value": "drivers with at least one race participation in seasons 1950-1959", "evidenceIds": ["evidence_e9872852-b748-47ac-bc91-d62a1e9cc6c0"]}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local354/attempts/attempt-20261010-154318Z/trace.json /toolCalls/27/result/details/fields/8`
+```text
+{"path": "measure.formula", "status": "not_applicable"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local354/attempts/attempt-20261010-154318Z/trace.json /toolCalls/27/result/details/fields/10`
+```text
+{"path": "selection", "status": "not_applicable"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local354/attempts/attempt-20261010-154318Z/trace.json /toolCalls/27/result/details/fields/11`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "full", "columns": ["forename", "surname"]}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+
+<a id="local358"></a>
+### local358 — 用户年龄段人数
+
+- **Attempt**：`attempt-20261010-154318Z`；官方CSV分数及离线重放均为0。
+- **定性**：未定位；节点 `未定位`；错误层：未定/不适用；可见性：不适用或未定。
+- **题面/标准**：20-29/30-39/40-49/50-59及others统计用户；题面未给年龄参考日、周岁算法或实体去重政策。
+- **本次SQL**：mst_users全部320行，以执行日date(now)=2026-10-10按已过生日周岁分箱，COUNT(*)源行非distinct用户。
+- **实际失配**：预测32/88/24/24/152；Gold16/88/32/32/152，总数均320，3组不同。
+- **Spec处理**：index6唯一Spec全部成功；time假定执行日周岁（rationale夹带2025字样，实际value是now）、countGrain假定每行一用户、资格含已注销；未open。7后续探索today实际2026-10-10，当前分箱等于提交；2016-11-28快照88/24/24/56/128也非Gold。SQL兑现value的now，不因rationale2025注记标已证漂移。
+- **错因分析**：参考日风险实质存在，差异也可能来自生日算法、实体或版本；题面、空业务知识及标准标签无可展开为具体日期的依据。不能从Gold人数倒推固定日；2016最大注册日不自动是标准。320总数相同也不证明按行或distinct唯一正确。
+- **过程机制**：当前/快照探索未绑定open候选，也无成功比较决定，不能标待定后决定错。；SpecFeedback unavailable/provider_http_error；年龄知识检索明确无参考日。
+- **后续验证/修复**：补取评测参考日、周岁/整年差公式，核实user_id唯一性和注销纳入；固化日期后离线对账，不用now随日变动。
+- **限制**：Gold SQL缺失；标准dataset-defined reference date没有具体日，无法确定Gold规则。
+
+**原文证据**：
+
+- **request**：`C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl #local358 /question`
+```text
+How many users are there in each age category (20s, 30s, 40s, 50s, and others)?
+```
+本题原始题面，区分显式要求与未定义细则。
+- **sql**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local358/attempts/attempt-20261010-154318Z/submissions/sql/local358.sql`
+```text
+WITH ages AS (
+  SELECT
+    CAST(strftime('%Y', date('now')) AS INTEGER) - CAST(substr(birth_date, 1, 4) AS INTEGER)
+      - CASE WHEN strftime('%m-%d', date('now')) < substr(birth_date, 6, 5) THEN 1 ELSE 0 END AS age
+  FROM mst_users
+)
+SELECT
+  CASE
+    WHEN age BETWEEN 20 AND 29 THEN '20s'
+    WHEN age BETWEEN 30 AND 39 THEN '30s'
+    WHEN age BETWEEN 40 AND 49 THEN '40s'
+    WHEN age BETWEEN 50 AND 59 THEN '50s'
+    ELSE 'others'
+  END AS age_category,
+  COUNT(*) AS user_count
+FROM ages
+GROUP BY age_category
+ORDER BY CASE age_category
+           WHEN '20s' THEN 1 WHEN '30s' THEN 2 WHEN '40s' THEN 3 WHEN '50s' THEN 4 ELSE 5
+         END;
+```
+本attempt实际提交SQL；与result.finalSql及官方评分SQL缓存核对一致。
+- **result**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local358.csv`
+```text
+age_category,user_count
+20s,32
+30s,88
+40s,24
+50s,24
+others,152
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **result**：`C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local358.csv`
+```text
+category,user_count
+20s,16
+30s,88
+40s,32
+50s,32
+others,152
+```
+实际预测/Gold CSV值；全文用于行数、成员和评测列的离线核对，展示前六行。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local358/attempts/attempt-20261010-154318Z/trace.json /toolCalls/6/result/details/fields/1`
+```text
+{"path": "population.eligibility", "status": "assumed", "value": "包含 mst_users 的全部已注册用户，含 withdraw_date 非空的已注销用户；birth_date 缺失的用户无法归入任何年龄组（观测：320 行 birth_date 均非空）", "rationale": "题面问 “How many users are there”，未限定活跃/未注销；业务定义文档为空且无澄清工具，采用最字面解释：主表中的全部用户都计入"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local358/attempts/attempt-20261010-154318Z/trace.json /toolCalls/6/result/details/fields/7`
+```text
+{"path": "measure.formula", "status": "assumed", "value": {"op": "count", "of": "user_id"}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local358/attempts/attempt-20261010-154318Z/trace.json /toolCalls/6/result/details/fields/11`
+```text
+{"path": "selection", "status": "not_applicable"}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+- **spec**：`C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local358/attempts/attempt-20261010-154318Z/trace.json /toolCalls/6/result/details/fields/12`
+```text
+{"path": "output", "status": "assumed", "value": {"rowMode": "grouped", "rowCount": 5, "columns": ["age_category", "user_count"], "units": {"age_category": "年龄组标签", "user_count": "人"}, "decimals": {"user_count": 0}}}
+```
+工具实际返回的最终字段状态与值（不是被拒参数）。
+
+<a id="patterns"></a>
+## 4. 模式识别
+
+以下主模式统计以61道错题为分母，每题只计一个主模式；次模式可以重叠。较强候选、Gold冲突、未定位单独列出，不把它们并入已证明的业务错因。
+
+| 主模式 | 可证差异 | 较强候选 | Gold冲突 | 未定位 | 合计 | 题号 |
+|---|---:|---:|---:|---:|---:|---|
+| 证据不足未定位 | 0 | 0 | 0 | 35 | 35 | local002、local010、local037、local040、local049、local050、local056、local061、local064、local067、local070、local096、local098、local100、local131、local167、local168、local169、local171、local196、local220、local263、local264、local269、local273、local279、local285、local286、local297、local298、local299、local331、local335、local354、local358 |
+| Gold与题面冲突 | 0 | 0 | 14 | 0 | 14 | local066、local073、local114、local133、local170、local194、local230、local253、local258、local259、local270、local272、local275、local330 |
+| 被评分的输出值/行形状 | 4 | 0 | 0 | 0 | 4 | local059、local228、local311、local336 |
+| 排名域、选取与并列 | 2 | 1 | 0 | 0 | 3 | local195、local283、local302 |
+| 公式、嵌套粒度与权重 | 2 | 0 | 0 | 0 | 2 | local003、local277 |
+| 总体资格与条件阶段 | 2 | 0 | 0 | 0 | 2 | local015、local156 |
+| 运算单位或精度 | 1 | 0 | 0 | 0 | 1 | local060 |
+
+### 模式A：先修测量链，再评价字段树
+
+**三个问题不能合称“模型错了61题”：业务/实现差异、输出与判分合同不兼容、Gold与明确要求冲突。** 本次11个可证差异中，7个有可证业务/Spec实现分叉（003、015、060、156、277、283、302），4个仅确认输出表示失配（059、228、311、336）。14个Gold冲突是具体局部冲突；不代表14个solver全部正确。066还存在独立的加去料处理问题，258/259的其他数值也未确定。**不得把40+14当作纠正后正确题数。**
+
+分母也有混合：22/62是第二批，18/39是首批，40/101才是两批实际逐题合并；固定118分母为40/118。不能据旧报告推断接口劣化，也不能据40个本次判对证明字段树独立带来提升。该集合是选择过的118题，不是全套或同条件A/B样本。
+
+### 模式B：字段已声明，但计算拓扑仍能声明错
+
+- **嵌套集合遗漏**：003两候选都以段级SUM/SUM为前提，只争金额字段，正确的“客户比率→段AVG”不在候选中。列全候选、跑完探针并不意味着搜索空间覆盖正确业务口径。
+- **作用阶段遗漏**：156把“排除首年”写成总体过滤，在LAG前删除同比历史。重点不只是“是否有条件字段”，而是条件在哪个计算阶段生效。
+- **排名域遗漏**：283研究了strict/include_ties，却始终在season-country-league的域内；最终该按season取最高。并列讨论再细也不能修复错误分区。
+- **最终选择被判不适用**：302先算全部类型是正确中间阶段，却把最终argmin登记n/a，交付5行而非指定最负类型。第一行碰巧正确不等于回答集合正确。
+- **方法被默认替换**：277题面要求加权回归，成功custom公式写OLS。CMA的平滑权重不是回归权重；“能计算”不能代替“符合指定方法”。
+
+这5种实际现象支持下一步把**中间粒度、条件作用阶段、排名域及方法权重**显式化，并检验题面到节点的支持关系。它们不证明必须增加第19个节点；可先检验现有18节点值模型是否足够表达。
+
+### 模式C：Ready / applied / published是流程状态，不是业务语义认证
+
+060成功公式是pp_difference，SQL却给比例差，output又声明fraction；这是一条可直接检查的字段内部与实现一致性问题。003、156、283、302则是SQL忠实实现了错误/不完整声明，不应都叫SQL漂移。
+
+多个案将custom.description用作完整口径容器：复杂复合指标、递归模型需要custom，不宜简单禁用；但自然语言里出现“weighted”“average”“各类最负”时，应能追踪到对应运算、输入单元和最终选取。完整字段树并不自动构成可核验计算图。
+
+将待定字段以basis:assumed+reason显式改写，与成功decided/verified状态不同。258、297等有这种真实返回。它是**待定字段被显式改写为未证实假定的观测现象**；是否满足统计总体的额外准入规则，还须结合该attempt的策略和澄清可用性专审，本文不先认定合规或违规。后续反馈与披露应保持其低保障属性，不能因为open变空便视作业务已确证。
+
+### 模式D：题面、Gold及输出表示需分别校验
+
+14个Gold冲突有不同强度的具体可反证点：114把订单计数变成另一数量、133包含显式排除的零偏好风格、253的共同全国均值随公司变、272违反需求量守恒、275包含实际零月却宣称每月ratio>2、330完全不给要求的会话计数。每题都保留了Gold内部算法未恢复的限制。冲突判定仅针对本题面与本次实际输入，不能据此区分Gold算法错误、数据库版本不一致或标尺录入错误；不宣称Gold在其原生成环境下必然错误。
+
+059/228的标量/分部、横铺/长表差异，以及311额外被评分的积分向量、336类别编码/全称差异，只能确认比较合同不兼容。它们不自动证明业务信息丢失。反过来，列名、列序或额外预测列不被官方函数直接处罚，不能拿这些解释实际0分。
+
+官方比较还按列独立匹配（ignore_order时逐列排序），**不校验整行各值的联合关联**。本次纯CSV重放验证的是“与当前评分器一致”，不是40个通过案例全部业务正确。建议单独测试同一姓名对应错误数值的交换用例，并在新评测版本明确按行键/整行元组比较；不在本次复盘静默更换评分器。
+
+### 模式E：接口摩擦、保障不可用与预算终止是另一条链
+
+set拒绝、Jev HTTP451、知识section not found确有出现；它们造成修订成本，但判对题同样经历路径拒绝，不能直接解释61个语义失分。局部返回可能isError=false而outcomes含rejected，Python任务亦可能内部status:error；审计必须读实际载荷而非单一成功标志。
+
+Spec feedback大量unavailable、fanout大量unknown意味着保障覆盖不完整；unknown不是clear，亦不证明真实连接放大。应把保障可用率与业务准确率分开汇报。
+
+17个无评分的停止位置尤其重要：6个timeout尚未建立Spec，6个有待定字段，1个已Ready，212已有候选却在export被取消，另3个只有未终结events。不能把它们都叫“字段树循环”或“SQL错误”。
+
+### 优先级与验证计划（尚未实施）
+
+| 优先级 | 下一步 | 验收检查 |
+|---|---|---|
+| P0 | 汇总统一由latest-attempt逐题map派生，原子更新比例/固定分母/报告 | 两批39/62合并后所有展示都一致为40/101与40/118；3个重试不再显示402终态 |
+| P0 | 补审Gold业务口径、实际输出投影与隐含政策 | 14个具体冲突逐题裁决；35个未定位题补Gold SQL/业务细则，不用数值贴合代替定义 |
+| P1 | 核验计算图，不只核验字段是否齐全 | 客户比率再段AVG、LAG后剪首年、跨赛季全局排名、最终argmin、明确回归权重各有最小反例 |
+| P1 | 字段内部及Spec→SQL一致性检查 | pp_difference与fraction冲突、无回归权重、声明最终n=1却输出全组可被指出；非机器可判项进入审阅而非假认证 |
+| P1 | 保持显式假定、决定和确证的区别 | 未证决定仍披露；probe相同只证明候选投影等价，不把身份-only投影视作金额公式已验证 |
+| P2 | 执行预算与发布预算分层，完善partial终态 | 212类型的候选→export停止能定位；缺run_end日志不误记timeout；工具路径拒绝纳入过程指标 |
+| P2 | 改善知识节点寻址与外部反馈保障 | not-found/451有可追溯降级状态；fanout unknown有明确原因，不被报告成无放大 |
+
+**证据边界**：35题主因未定位、1题仅为较强候选。当前足以提出上述最小回归与补证计划，不足以估计每种隐藏业务错误的真实占比，更不足以给出字段树相对旧接口的因果结论。
+
+### 过程统计：关联不等于因果
+
+| 组别 | 有outcomes的applied路径次数 | rejected路径次数 | 路径被拒比例 |
+|---|---:|---:|---:|
+| 61道错题 | 932 | 188 | 16.79% |
+| 40道判对题 | 559 | 73 | 11.55% |
+| 17道无评分案例（部分记录缺失） | 103 | 20 | 16.26% |
+
+这些是工具实际返回outcomes里的路径尝试次数，不是整次调用失败率，也不包含没有outcomes的失败。判对题同样出现接口拒绝，因此不能把“出现过API错误”直接当作SQL失分的原因。错题集与判对集难度不同，不能由拒绝率差直接归因接口设计。
+
+| 组别 | Spec feedback完成 | 不可用 | 最终fanout clear / unknown / n/a |
+|---|---:|---:|---|
+| 61道错题 | 44 | 153 | 3 / 17 / 41 |
+| 40道判对题 | 26 | 86 | 1 / 9 / 30 |
+
+反馈不可用与fanout unknown是保障覆盖限制，不是业务口径错误的证明；0个finding也不等于已经排除连接放大。上述计数由prepare_review.py从本attempt结果重算。
+
+<a id="process-audit"></a>
+## 5. 无评分案例与评分/执行链专项审计
+
+**以下17题没有最新官方分数，不属于61道已评分错题的语义归因分母：** local018、local023、local024、local025、local026、local028、local029、local031、local032、local034、local035、local062、local063、local212、local355、local356、local360。
+
+## 评分及执行链专项审计
+
+此部分由父协调者补齐中断的审计工作。纯CSV重放与逐题来源校验不是数据库重跑，也不是独立业务正确性认证。
+
+### 评分文件版本
+
+| 文件 | map题数/判对 | 对外比例 | 判断 |
+|---|---|---|---|
+| summary-attempt-001.json | 39/18 | 18/39 | 首批 |
+| summary-retry.json | 62/22 | 22/62 | 第二批 |
+| summary.json | 101/40 | score仍22/62；fixed仍22/118 | map已合并，比例未同步 |
+| report.md、evaluation.json、score-record.json | 仍为首批 | 18/39 | 不能作为最新分母 |
+
+两个map无重叠，latest map恰等于二者并集。101份CSV重放全部一致；118固定集合中有17题无分数。run根summary只记录115个旧终态，根结果仍含local099/130/131早先402；这三题最新attempt已发布且分别判对/判对/判错，不纳入最新无评分。
+
+汇总原文：
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary.json /execResult/correct`：`40`
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary.json /execResult/total`：`101`
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary.json /execResult/score`：`0.3548387096774194`
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary.json /execResult/fixedDenominator`：`{"score": 0.1864406779661017, "correct": 22, "total": 118, "submittedTotal": 62, "missingSubmissions": 56}`
+
+### 17道无评分的逐题停止位置
+
+13个保存为timeout、1个保存为max_tool_calls、3个缺失result/trace终态。timeout是运行器终态，不等于数据库查询超时；记录时长不能直接当单个API时长。三段缺终态日志只记录观测窗口，不按0秒或timeout计入平均。
+
+| 题号 | 保存状态 | 时长/观测窗（秒） | 最后可见位置 |
+|---|---|---:|---|
+| local018 | timeout | 592.813 | grouping仍open；两次451后比较返回建议，未见最终决定或结果查询。 |
+| local023 | timeout | 1041.430 | 只见6个知识/子代理工具，未建立Spec；最后patterns子代理完成。 |
+| local024 | timeout | 481.329 | Spec eligibility及ties open，3个探索已返回，未见最终决定。 |
+| local025 | timeout | 521.054 | 只见5个知识/子代理工具，未建立Spec；某子代理返回空content。 |
+| local026 | timeout | 554.770 | 知识section S08/S03两次not found；未建Spec，最后子代理空content。 |
+| local028 | timeout | 577.724 | timeField两候选有不同输出，比较已有建议，但字段尚open。 |
+| local029 | timeout | 534.572 | 只见4个工具，停知识阅读；未建立Spec。 |
+| local031 | timeout | 619.272 | 已建Spec，formula/selection/output未声明且4字段open；继续找语义/业务知识。 |
+| local032 | timeout | 524.298 | 只见4个工具，schema子代理完成；未建立Spec。 |
+| local034 | timeout | 543.656 | 只见5个工具，停知识检索；未建立Spec。 |
+| local035 | timeout | 495.131 | 最后set已无undeclared/open，可执行结果；未见结果查询或export，不是已证Spec阻断。 |
+| local062 | timeout | 505.944 | eligibility尚open；比较已有倾向，未见最终决定或结果。 |
+| local063 | timeout | 714.395 | selection尚open；22个query调用含预算障碍，末两次返回exploration budget exhausted。 |
+| local212 | max_tool_calls | 253.524 | 第50工具已生成候选；第51 export被取消，MAX_TOOL_CALLS停止，无发布CSV。 |
+| local355 | record_missing | 253.097（观测窗） | 14工具start/13end；末事件tool_start；undeclared=[]，open=[]；无run_end。 |
+| local356 | record_missing | 224.650（观测窗） | 24工具start/24end；末事件message_update/toolcall_end；undeclared=['measure.formula']，open=[]；无run_end。 |
+| local360 | record_missing | 100.049（观测窗） | 9工具start/9end；末事件message_update/thinking_delta；undeclared=['output']，open=['population.eligibility']；无run_end。 |
+
+这些停止位置是可见事实，不证明是谁耗尽时间。6个timeout没有Spec、6个有待定字段、1个已Ready；因此不能将全部13个归为字段树死循环。local063可证有探索预算耗尽；local212可证发生在交付阶段。
+
+### 无评分证据摘录
+
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local018/attempts/attempt-001/result.json /status`
+```text
+timeout
+```
+保存的运行终态，不是SQL语义得分。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local018/attempts/attempt-001/result.json /error/message`
+```text
+TASK_TIMEOUT
+```
+实际停止标记。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local018/attempts/attempt-001/trace.json /toolCalls/21/result/content/0/text`
+```text
+[HYPOTHESIS_COMPARISON_ADVISORY] path=grouping
+[ADVICE_LEAN] alternativeId=alternative_ef9b4846-8b6e-4750-b3e7-8c61fdfaddbf probability=0.46
+{"model":"jev-1.13.0","recommendation":{"kind":"hypothesis","hypothesisId":"alternative_ef9b4846-8b6e-4750-b3e7-8c61fdfaddbf"},"probabilities":[{"hypothesisId":"alternative_ef9b4846-8b6e-4750-b3e7-8c61fdfaddbf","probability":0.46},{"hypothesisId":"alternative_165e20c8-ab8f-41b8-85c6-bc851cb671ee","probability":0.25}],"abstentionProbabilities":{"insufficientEvidence":0.21,"multiplePlausible":0.07,"noneSupported":0.01},"confidence":0.33}
+This recommendation is not evidence. Deciding against a clear lean requires adviceOverride with a reason and evidence ids.
+```
+grouping仍open；两次451后比较返回建议，未见最终决定或结果查询。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local023/attempts/attempt-001/result.json /status`
+```text
+timeout
+```
+保存的运行终态，不是SQL语义得分。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local023/attempts/attempt-001/result.json /error/message`
+```text
+TASK_TIMEOUT
+```
+实际停止标记。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local023/attempts/attempt-001/trace.json /toolCalls/5/result/content/0/text`
+```text
+### patterns（explorer）— completed
+
+### 结论
+
+在 **已验证查询模版（knowledgeId: query-patterns）** 中，**不存在**与板球击球相关的任何已验证查询模版。该知识源没有可用于 "average runs per match"、"batting average"、"top N players"、"season"、"runs scored per match"、"dismissals/outs" 的模版 SQL，因此**没有任何模版 SQL 或适用前提可以逐字报告**。
+
+### 关键事实
+
+- 对 query-patterns 的多次检索（关键词：cricket、cricket batting average runs per match top N players season dismissals outs、average runs per match batting、top N ranking season aggregation template、average per match 等）返回结果均为空（`{"hits":[],"omittedHitCount":0}`），来源：`search_knowledge`（knowledgeIds=["query-patterns"]）。
+- 直接读取该知识源全文（`read_knowledge` knowledgeId=query-patterns，mode=full_document，lineCount=9，truncated=false），正文仅有一行声明，表示未提供任何基准专用查询模版。
+- 检索返回的相关命中全部来自 **database-schema**（非 query-patterns），例如 `batsman_scored(runs_scored)`、`wicket_taken(player_out, kind_out)`、`player_match(match_id, player_id, role, team_id)`、`match(sea
+```
+只见6个知识/子代理工具，未建立Spec；最后patterns子代理完成。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local024/attempts/attempt-001/result.json /status`
+```text
+timeout
+```
+保存的运行终态，不是SQL语义得分。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local024/attempts/attempt-001/result.json /error/message`
+```text
+TASK_TIMEOUT
+```
+实际停止标记。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local024/attempts/attempt-001/trace.json /toolCalls/9/result/content/0/text`
+```text
+[EXPLORATION_EVIDENCE] evidenceId=evidence_b22d449f-dde4-413d-acec-e9494d485397
+Cite this evidenceId in a field's evidenceIds; do not resubmit the observation body.
+joined_rows | bs_rows | batters_with_runs | pm_players_never_batted | strikers_not_in_pm
+131259 | 131259 | 434 | 34 | 0
+```
+Spec eligibility及ties open，3个探索已返回，未见最终决定。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local025/attempts/attempt-001/result.json /status`
+```text
+timeout
+```
+保存的运行终态，不是SQL语义得分。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local025/attempts/attempt-001/result.json /error/message`
+```text
+TASK_TIMEOUT
+```
+实际停止标记。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local025/attempts/attempt-001/trace.json /toolCalls/4/result/content/0/text`
+```text
+{"mode":"full_document","knowledgeId":"semantic-guide","name":"数据分析语义理解指引","content":"# 数据分析语义理解指引\n\n> 职责：确定“应该回答什么”，形成有依据的 Answer Spec；适用于 SQL、KTX 和后续统计分析。\n> 分工：系统提示词与已加载的任务流程 Skill 维护证据优先级、假设登记、版本与交付流程；[SQL 生成规范](./rules.md)维护“如何实现口径”；[业务知识](./business.md)与 [Schema](./db_schema.md)提供具体业务定义和字段证据。本指引不授予业务事实或发布资格。\n\n## 1. 执行步骤（每个新查询任务必读）\n\n1. **拆题**：提取实体名词、指标、限定词、比较关系、时间表达和输出要求，保留对应题面短语。完成条件：字段树的必需字段已建立，未知项明确记录。\n2. **定口径**：按第 2 节填写；对会改变结果的合理解释记录依据和影响。完成条件：已知要求与候选假设分开，未决项可定位到字段。\n3. **定向取证**：先查适用业务定义及 Schema，再用少量只读探索区分候选解释。完成条件：每次探索说明解决哪个问题、观察到什么、仍不能证明什么。\n4. **编排计算**：写出 `输入粒度 → 处理/公式 → 输出粒度 → 后续用途`。完成条件：每次筛选、聚合、连接和比较对身份、总体、权重的影响明确。\n5. **对照题意**：从已写查询反译业务含义，按第 5 节用最小样例检查高风险选择。完成条件：题面要求有实现位置，新增行为有依据或明确披露；再按任务流程进入结果执行与交付。\n\n这不是固定次数的探索清单。证据不足时按任务流程处置或澄清；无澄清工具时采用最字面解释并披露，不能将其升级为 Hard Constraint。\n\n## 2. 字段树（每个新查询任务必读）\n\nAnswer Spec 按计算顺序分为五段，每个歧义写在它实际发生的那一步。字段写法见 `answer-fields` Skill。
+```
+只见5个知识/子代理工具，未建立Spec；某子代理返回空content。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local026/attempts/attempt-001/result.json /status`
+```text
+timeout
+```
+保存的运行终态，不是SQL语义得分。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local026/attempts/attempt-001/result.json /error/message`
+```text
+TASK_TIMEOUT
+```
+实际停止标记。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local028/attempts/attempt-001/result.json /status`
+```text
+timeout
+```
+保存的运行终态，不是SQL语义得分。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local028/attempts/attempt-001/result.json /error/message`
+```text
+TASK_TIMEOUT
+```
+实际停止标记。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local028/attempts/attempt-001/trace.json /toolCalls/8/result/content/0/text`
+```text
+[HYPOTHESIS_COMPARISON_ADVISORY] path=population.timeField
+[ADVICE_LEAN] alternativeId=alternative_67c32a6a-219c-421d-9007-943eba09734b probability=0.85
+{"model":"jev-1.13.0","recommendation":{"kind":"hypothesis","hypothesisId":"alternative_67c32a6a-219c-421d-9007-943eba09734b"},"probabilities":[{"hypothesisId":"alternative_02f062ed-ad97-42c3-8c3c-7c5c55ad800b","probability":0},{"hypothesisId":"alternative_67c32a6a-219c-421d-9007-943eba09734b","probability":0.85}],"abstentionProbabilities":{"insufficientEvidence":0.09,"multiplePlausible":0.06,"noneSupported":0},"confidence":0.81}
+This recommendation is not evidence. Deciding against a clear lean requires adviceOverride with a reason and evidence ids.
+```
+timeField两候选有不同输出，比较已有建议，但字段尚open。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local029/attempts/attempt-001/result.json /status`
+```text
+timeout
+```
+保存的运行终态，不是SQL语义得分。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local029/attempts/attempt-001/result.json /error/message`
+```text
+TASK_TIMEOUT
+```
+实际停止标记。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local029/attempts/attempt-001/trace.json /toolCalls/3/result/content/0/text`
+```text
+{"mode":"full_document","knowledgeId":"semantic-guide","name":"数据分析语义理解指引","content":"# 数据分析语义理解指引\n\n> 职责：确定“应该回答什么”，形成有依据的 Answer Spec；适用于 SQL、KTX 和后续统计分析。\n> 分工：系统提示词与已加载的任务流程 Skill 维护证据优先级、假设登记、版本与交付流程；[SQL 生成规范](./rules.md)维护“如何实现口径”；[业务知识](./business.md)与 [Schema](./db_schema.md)提供具体业务定义和字段证据。本指引不授予业务事实或发布资格。\n\n## 1. 执行步骤（每个新查询任务必读）\n\n1. **拆题**：提取实体名词、指标、限定词、比较关系、时间表达和输出要求，保留对应题面短语。完成条件：字段树的必需字段已建立，未知项明确记录。\n2. **定口径**：按第 2 节填写；对会改变结果的合理解释记录依据和影响。完成条件：已知要求与候选假设分开，未决项可定位到字段。\n3. **定向取证**：先查适用业务定义及 Schema，再用少量只读探索区分候选解释。完成条件：每次探索说明解决哪个问题、观察到什么、仍不能证明什么。\n4. **编排计算**：写出 `输入粒度 → 处理/公式 → 输出粒度 → 后续用途`。完成条件：每次筛选、聚合、连接和比较对身份、总体、权重的影响明确。\n5. **对照题意**：从已写查询反译业务含义，按第 5 节用最小样例检查高风险选择。完成条件：题面要求有实现位置，新增行为有依据或明确披露；再按任务流程进入结果执行与交付。\n\n这不是固定次数的探索清单。证据不足时按任务流程处置或澄清；无澄清工具时采用最字面解释并披露，不能将其升级为 Hard Constraint。\n\n## 2. 字段树（每个新查询任务必读）\n\nAnswer Spec 按计算顺序分为五段，每个歧义写在它实际发生的那一步。字段写法见 `answer-fields` Skill。
+```
+只见4个工具，停知识阅读；未建立Spec。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local031/attempts/attempt-001/result.json /status`
+```text
+timeout
+```
+保存的运行终态，不是SQL语义得分。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local031/attempts/attempt-001/result.json /error/message`
+```text
+TASK_TIMEOUT
+```
+实际停止标记。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local031/attempts/attempt-001/trace.json /toolCalls/7/result/content/0/text`
+```text
+{"hits":[{"knowledgeId":"semantic-guide","name":"数据分析语义理解指引","sectionId":"semantic-guide#_E6_95_B0_E6_8D_AE_E5_88_86_E6_9E_90_E8_AF_AD_E4_B9_89_E7_90_86_E8_A7_A3_E6_8C_87_E5_BC_95_2F3._20_E4_B8_93_E9_A2_98_E7_B4_A2_E5_BC_95_EF_BC_88_E6_8C_89_E8_A7_A-9","sectionTitle":"S08｜排名、并列与分桶","path":"doc/semantic_guide.md","startLine":133,"endLine":141,"score":7.721012683706467,"content":"### S08｜排名、并列与分桶\n\n- 先定义候选总体、比较实体、指标、分区、方向、数量及并列政策。作品数、销量和租赁热度不可互换。\n- 区分恰好 N 个对象与前 N 名含并列；并列裁决需要依据，合格对象不足时不补造。\n- 业务并列与稳定展示是两件事；额外排序键不能擅自消除并列。\n- 等人数分桶、累计排名比例、等宽区间与分位点分类不是同一种定义；有公式按公式执行。\n\n**完成条件：** 并列极值、分桶边界和不足 N 个对象时的预期行为明确。\n","truncated":false,"contentRef":"knowledge:semantic-guide@3754465545#semantic-guide#_E6_95_B0_E6_8D_AE_E5_88_86_E6_9E_90_E8_AF_AD_E4_B9_89_E7_90_86_E8_A7_A3_E6_8C_87_E5_BC_95_2F3._20_E4_B8_93_E9_A2_98_E7_B4_A2_E5_BC_95_EF_BC_88_E6_8C_89_E8_A7_A-9:45e2e09651eb9c37e3c2313a"},{"knowledgeId
+```
+已建Spec，formula/selection/output未声明且4字段open；继续找语义/业务知识。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local032/attempts/attempt-001/result.json /status`
+```text
+timeout
+```
+保存的运行终态，不是SQL语义得分。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local032/attempts/attempt-001/result.json /error/message`
+```text
+TASK_TIMEOUT
+```
+实际停止标记。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local032/attempts/attempt-001/trace.json /toolCalls/3/result/content/0/text`
+````text
+### schema（explorer）— completed
+
+### 结论
+
+本库命名约定为 `olist_*`（另有两个非前缀表 `olist_products_dataset`、`product_category_name_translation`）。与 sellers、orders、order items（price/freight）、customers、product reviews/ratings 相关的表为：`olist_sellers`、`olist_orders`、`olist_order_items`、`olist_customers`、`olist_order_reviews`（另需 `olist_products` 关联商品分类）。全部 10 张物理表如下（DDL 中未声明任何 PRIMARY KEY / FOREIGN KEY / UNIQUE 约束）。
+
+```
+olist_customers
+  customer_id                TEXT
+  customer_unique_id         TEXT
+  customer_zip_code_prefix   BIGINT
+  customer_city              TEXT
+  customer_state             TEXT
+
+olist_sellers
+  seller_id                  TEXT
+  seller_zip_code_prefix     BIGINT
+  seller_city                TEXT
+  seller_state               TEXT
+
+olist_orders
+  order_id                       TEXT
+  customer_id                    TEXT
+  order_status                   TEXT
+  order_purchase_timestamp     
+````
+只见4个工具，schema子代理完成；未建立Spec。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local034/attempts/attempt-001/result.json /status`
+```text
+timeout
+```
+保存的运行终态，不是SQL语义得分。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local034/attempts/attempt-001/result.json /error/message`
+```text
+TASK_TIMEOUT
+```
+实际停止标记。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local034/attempts/attempt-001/trace.json /toolCalls/4/result/content/0/text`
+```text
+{"hits":[{"knowledgeId":"semantic-guide","name":"数据分析语义理解指引","sectionId":"semantic-guide#_E6_95_B0_E6_8D_AE_E5_88_86_E6_9E_90_E8_AF_AD_E4_B9_89_E7_90_86_E8_A7_A3_E6_8C_87_E5_BC_95_2F3._20_E4_B8_93_E9_A2_98_E7_B4_A2_E5_BC_95_EF_BC_88_E6_8C_89_E8_A7_A-4","sectionTitle":"S03｜连接关系与权重","path":"doc/semantic_guide.md","startLine":85,"endLine":93,"score":6.905478959178514,"content":"### S03｜连接关系与权重\n\n- 先确认左右粒度、完整业务键、预期基数与未匹配政策。复合键遗漏一列即可把不同事件误配。\n- 多事实表直接连接可能把两侧度量相互复制；先确定共同统计粒度，再决定是否分别聚合后连接。\n- 重复维度先区分脏重复、有效历史版本和合法多值。任意挑一条与整体去重都不是默认正确方案。\n- 连接后的均值可能按事实数量加权，而不是按客户、区域或商品等权。即使结果行数符合预期，也要检查权重。\n\n**完成条件：** 行复制、未匹配剔除与权重变化均能从业务关系解释；实现方式见 SQL 规范。\n","truncated":false,"contentRef":"knowledge:semantic-guide@3754465545#semantic-guide#_E6_95_B0_E6_8D_AE_E5_88_86_E6_9E_90_E8_AF_AD_E4_B9_89_E7_90_86_E8_A7_A3_E6_8C_87_E5_BC_95_2F3._20_E4_B8_93_E9_A2_98_E7_B4_A2_E5_BC_95_EF_BC_88_E6_8C_89_E8_A7_A-4:2d0bde21bb3
+```
+只见5个工具，停知识检索；未建立Spec。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local035/attempts/attempt-001/result.json /status`
+```text
+timeout
+```
+保存的运行终态，不是SQL语义得分。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local035/attempts/attempt-001/result.json /error/message`
+```text
+TASK_TIMEOUT
+```
+实际停止标记。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local035/attempts/attempt-001/trace.json /toolCalls/4/result/content/0/text`
+```text
+[ANSWER_SPEC_SET] taskId=task_3c64e4e7-f417-42e2-a6c4-8a767c8546a9 revisionId=revision_f4764ec8-e4e6-46cf-96ac-02215496aad2
+- ✓ population.entity
+- ✓ population.eligibility
+- ✓ population.conditions
+- ✓ population.source
+- ✓ population.time
+- ✓ measure.formula
+- ✓ grouping
+- ✓ selection
+- ✓ selection.ties
+- ✓ output
+状态：
+- 未证实（发布时披露）: population.entity, population.eligibility, population.source, selection, selection.ties, output
+- 没有待处理的字段，可以执行结果查询
+[SPEC_FEEDBACK] revisionId=revision_f4764ec8-e4e6-46cf-96ac-02215496aad2 status=completed advisory_only=true
+assessment: population.relation=not_established
+assessment: selection.relation=not_established
+assessment: output.relation=not_established
+limitations: evidence_quote_missing:evidence_7d1e0a7d-5a83-4c22-a014-6ccd0873b007
+以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。
+{"population.entity":{"status":"assumed","value":{"name":"olist_geolocation 表的地理定位记录（一
+```
+最后set已无undeclared/open，可执行结果；未见结果查询或export，不是已证Spec阻断。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local062/attempts/attempt-001/result.json /status`
+```text
+timeout
+```
+保存的运行终态，不是SQL语义得分。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local062/attempts/attempt-001/result.json /error/message`
+```text
+TASK_TIMEOUT
+```
+实际停止标记。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local062/attempts/attempt-001/trace.json /toolCalls/15/result/content/0/text`
+```text
+[HYPOTHESIS_COMPARISON_ADVISORY] path=population.eligibility
+[ADVICE_LEAN] alternativeId=alternative_52d72a7e-998b-4313-add4-fc19e5446f72 probability=0.53
+{"model":"jev-1.13.0","recommendation":{"kind":"hypothesis","hypothesisId":"alternative_52d72a7e-998b-4313-add4-fc19e5446f72"},"probabilities":[{"hypothesisId":"alternative_52d72a7e-998b-4313-add4-fc19e5446f72","probability":0.53},{"hypothesisId":"alternative_c34a83fc-dda9-44e5-998c-ec0f22168a53","probability":0.13}],"abstentionProbabilities":{"insufficientEvidence":0.15,"multiplePlausible":0.19,"noneSupported":0},"confidence":0.41}
+This recommendation is not evidence. Deciding against a clear lean requires adviceOverride with a reason and evidence ids.
+```
+eligibility尚open；比较已有倾向，未见最终决定或结果。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local063/attempts/attempt-001/result.json /status`
+```text
+timeout
+```
+保存的运行终态，不是SQL语义得分。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local063/attempts/attempt-001/result.json /error/message`
+```text
+TASK_TIMEOUT
+```
+实际停止标记。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local063/attempts/attempt-001/trace.json /toolCalls/36/result/content/0/text`
+```text
+[IMPLEMENTATION_OBSTACLE] exploration budget exhausted
+{"kind":"budget_exhausted","taskId":"task_86de8a5e-52b4-4099-bb84-a42d5e200880","revisionId":"revision_65cd91c8-b521-40ad-9589-3d3f95e66a33","message":"exploration budget exhausted","evidenceIds":[],"attempts":[{"attemptId":"attempt_df2b4902-4b49-4861-b819-b7a44510c63f","taskId":"task_86de8a5e-52b4-4099-bb84-a42d5e200880","kind":"revision","revisionId":"revision_29c423dd-8795-4880-9dfb-6729c59f29b9","invocationId":"01a1264b-cf11-7587-a7fa-b9c19039d2f0","state":"succeeded","sqlExecuted":false,"outcome":"succeeded","createdAt":"2026-10-10T14:51:10.811Z","updatedAt":"2026-10-10T14:51:10.810Z"},{"attemptId":"attempt_bccd174b-bf25-4410-942a-94400a93366c","taskId":"task_86de8a5e-52b4-4099-bb84-a42d5e200880","kind":"exploration","revisionId":"revision_72aad821-3a9a-4797-8ec0-ffbc8cec0d82","invocationId":"01a1264b-ea8e-7587-a7fa-ba23e4c2d0bc
+```
+selection尚open；22个query调用含预算障碍，末两次返回exploration budget exhausted。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local212/attempts/attempt-20261010-154318Z/result.json /status`
+```text
+max_tool_calls
+```
+保存的运行终态，不是SQL语义得分。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local212/attempts/attempt-20261010-154318Z/result.json /error/message`
+```text
+MAX_TOOL_CALLS
+```
+实际停止标记。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local212/attempts/attempt-20261010-154318Z/trace.json /toolCalls/50/result/content/0/text`
+```text
+Tool execution was cancelled before completion.
+```
+第50工具已生成候选；第51 export被取消，MAX_TOOL_CALLS停止，无发布CSV。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local212/attempts/attempt-20261010-154318Z/trace.json /toolCalls/49/result/content/0/text`
+```text
+[RESULT_CANDIDATE]
+```
+停止前已生成候选，不是SQL未成功。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local355/attempts/attempt-20261010-154318Z/record/events.jsonl sequence=8611 /payload/entry/message/details/undeclared`
+```text
+[]
+```
+最后可见Spec未声明字段。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local355/attempts/attempt-20261010-154318Z/record/events.jsonl sequence=8611 /payload/entry/message/details/open`
+```text
+[]
+```
+最后可见Spec待定字段。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local355/attempts/attempt-20261010-154318Z/record/events.jsonl sequence=17914 /payload`
+```text
+{"runId": "01a126b8-9a6c-75a3-aa25-1d6af7ff7501", "toolCallId": "call_00_MGwNoPh4V0qEyEK5CetH4251|e431be88-3d4a-4c2e-b095-f3625743e510", "toolName": "query_database", "type": "tool_start"}
+```
+日志末尾未形成运行终态；不归为timeout。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local356/attempts/attempt-20261010-154318Z/record/events.jsonl sequence=9839 /payload/entry/message/details/undeclared`
+```text
+["measure.formula"]
+```
+最后可见Spec未声明字段。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local356/attempts/attempt-20261010-154318Z/record/events.jsonl sequence=9839 /payload/entry/message/details/open`
+```text
+[]
+```
+最后可见Spec待定字段。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local356/attempts/attempt-20261010-154318Z/record/events.jsonl sequence=35066 /payload`
+```text
+{"role": "assistant", "runId": "01a126b9-28af-75a3-aa25-1e79d3b9e0dc", "type": "message_update", "updateType": "toolcall_end"}
+```
+日志末尾未形成运行终态；不归为timeout。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local360/attempts/attempt-20261010-154318Z/record/events.jsonl sequence=4753 /payload/entry/message/details/undeclared`
+```text
+["output"]
+```
+最后可见Spec未声明字段。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local360/attempts/attempt-20261010-154318Z/record/events.jsonl sequence=4753 /payload/entry/message/details/open`
+```text
+["population.eligibility"]
+```
+最后可见Spec待定字段。
+- `C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local360/attempts/attempt-20261010-154318Z/record/events.jsonl sequence=13804 /payload`
+```text
+{"role": "assistant", "runId": "01a126bb-1dcb-75a3-aa25-2162fc3b4a0f", "type": "message_update", "updateType": "thinking_delta"}
+```
+日志末尾未形成运行终态；不归为timeout。
+
+### 执行链改进建议
+
+- 以attempt索引驱动结果汇总；一次性原子更新caseScores、correct/total/score、fixedDenominator与用户报告，防止局部重试后混用不同批次分母。
+- 保留未终结的events和启动/结束记录，明确partial≠timeout；取消时落盘停止阶段、正在执行的工具及候选/发布状态。
+- 修订/探针/证据预算与外层工具预算分开报告；预留交付工具预算，避免候选已产生却在export被取消。
+- 对知识section not found、比较器451、预算障碍作专门回归；不能只看isError，set的路径拒绝或run_python内部status:error也可能发生在isError=false返回中。
+- 本审计发现的是现象及保障缺口，没有实施运行器修复，也没有定位全部timeout的上游原因。
+
+## 6. 复核材料
+
+- `fieldtree-20261010-audit/registry.json`：118题的最新attempt、分数和原始文件绑定。
+- `fieldtree-20261010-audit/case-analyses.jsonl`：61题结构化分析及完整原文引用。
+- `fieldtree-20261010-audit/artifact-summary.json`：CSV重放、过程统计及作用范围。
+- `fieldtree-20261010-audit/prepare_review.py`：只读抽取及101份CSV比较重放，不执行SQL。
+- `fieldtree-20261010-audit/review_helpers.py`：引用和覆盖校验。
+- `fieldtree-20261010-audit/PROTOCOL.md`：定性、字段与证据不足的审阅规则。
+- `fieldtree-20261010-audit/audit_process.py`、`score-process-evidence.json`：17题停止位置和55条逐字过程引用，可单独重算校验。
+- `fieldtree-20261010-audit/parent-review-overrides.json`：父复核对3个输出表示案例的保守修订，不把评分布局直接标成业务口径错。
+
+```bash
+python evaluations/spider2/adr0007/fieldtree-20261010-audit/review_helpers.py --merge
+python evaluations/spider2/adr0007/fieldtree-20261010-audit/render_report.py
+```
+
+后续若补齐Gold业务细则或重跑，需要另存版本，不能把本文未定位题静默改成已证实。

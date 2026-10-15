@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT PID,COUNT(*) n,COUNT(DISTINCT Gender) genders,GROUP_CONCAT(DISTINCT Gender) values_seen FROM Person GROUP BY PID HAVING COUNT(*)>1 ORDER BY genders DESC,PID LIMIT 15",
+  "limit": 100
+}

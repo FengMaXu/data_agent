@@ -1,0 +1,184 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_100c951b-dcf1-4aa1-ae32-911d1e7ba4d6\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nperiod | id_bioguide | full_name | gender | first_start | snapshot | state | term_start | term_end\n31 | B000780 | John B. Breaux | M | 1971-01-21 | 2002-12-31 | LA | 1999-01-06 | 2005-01-03\n31 | E000112 | Allen Joseph Ellender | M | 1937-01-05 | 1968-12-31 | LA | 1967-01-10 | 1972-07-27\n31 | H000437 | Felix Edward Hébert | M | 1941-01-03 | 1972-12-31 | LA | 1971-01-21 | 1973-01-03\n31 | L000428 | Russell Billiu Long | M | 1948-01-01 | 1979-12-31 | LA | 1975-01-14 | 1981-01-03\n31 | R000059 | Joseph Eugene Ransdell | M | 1899-12-04 | 1930-12-31 | LA | 1925-12-07 | 1931-03-03"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_100c951b-dcf1-4aa1-ae32-911d1e7ba4d6",
+      "preview": {
+        "columns": [
+          "period",
+          "id_bioguide",
+          "full_name",
+          "gender",
+          "first_start",
+          "snapshot",
+          "state",
+          "term_start",
+          "term_end"
+        ],
+        "rows": [
+          [
+            31,
+            "B000780",
+            "John B. Breaux",
+            "M",
+            "1971-01-21",
+            "2002-12-31",
+            "LA",
+            "1999-01-06",
+            "2005-01-03"
+          ],
+          [
+            31,
+            "E000112",
+            "Allen Joseph Ellender",
+            "M",
+            "1937-01-05",
+            "1968-12-31",
+            "LA",
+            "1967-01-10",
+            "1972-07-27"
+          ],
+          [
+            31,
+            "H000437",
+            "Felix Edward Hébert",
+            "M",
+            "1941-01-03",
+            "1972-12-31",
+            "LA",
+            "1971-01-21",
+            "1973-01-03"
+          ],
+          [
+            31,
+            "L000428",
+            "Russell Billiu Long",
+            "M",
+            "1948-01-01",
+            "1979-12-31",
+            "LA",
+            "1975-01-14",
+            "1981-01-03"
+          ],
+          [
+            31,
+            "R000059",
+            "Joseph Eugene Ransdell",
+            "M",
+            "1899-12-04",
+            "1930-12-31",
+            "LA",
+            "1925-12-07",
+            "1931-03-03"
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "TEXT",
+          "TEXT",
+          "TEXT",
+          "TEXT",
+          "TEXT",
+          "TEXT",
+          "TEXT",
+          "TEXT"
+        ],
+        "rowCount": 5,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "period",
+        "id_bioguide",
+        "full_name",
+        "gender",
+        "first_start",
+        "snapshot",
+        "state",
+        "term_start",
+        "term_end"
+      ],
+      "rows": [
+        [
+          31,
+          "B000780",
+          "John B. Breaux",
+          "M",
+          "1971-01-21",
+          "2002-12-31",
+          "LA",
+          "1999-01-06",
+          "2005-01-03"
+        ],
+        [
+          31,
+          "E000112",
+          "Allen Joseph Ellender",
+          "M",
+          "1937-01-05",
+          "1968-12-31",
+          "LA",
+          "1967-01-10",
+          "1972-07-27"
+        ],
+        [
+          31,
+          "H000437",
+          "Felix Edward Hébert",
+          "M",
+          "1941-01-03",
+          "1972-12-31",
+          "LA",
+          "1971-01-21",
+          "1973-01-03"
+        ],
+        [
+          31,
+          "L000428",
+          "Russell Billiu Long",
+          "M",
+          "1948-01-01",
+          "1979-12-31",
+          "LA",
+          "1975-01-14",
+          "1981-01-03"
+        ],
+        [
+          31,
+          "R000059",
+          "Joseph Eugene Ransdell",
+          "M",
+          "1899-12-04",
+          "1930-12-31",
+          "LA",
+          "1925-12-07",
+          "1931-03-03"
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "TEXT",
+        "TEXT",
+        "TEXT",
+        "TEXT",
+        "TEXT",
+        "TEXT",
+        "TEXT",
+        "TEXT"
+      ],
+      "rowCount": 5,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_cd81fa34-2463-4ac7-bd03-f1bdfe447518"
+  }
+}
+

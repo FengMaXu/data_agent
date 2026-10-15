@@ -1,0 +1,121 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_d9c450e8-217f-4a18-8320-46fc0e6932c0 revisionId=revision_5cb6fcbe-e360-4684-b1ff-4a0550d7b2e6\n- ✓ population.eligibility\n- ✓ population.conditions\n- ✓ population.time\n- ✓ measure.formula\n- ✓ grouping\n- ✓ selection\n- ✓ output\n状态：\n- 未证实（发布时披露）: population.eligibility, measure.formula, grouping, output\n- 没有待处理的字段，可以执行结果查询\n[SPEC_FEEDBACK] revisionId=revision_5cb6fcbe-e360-4684-b1ff-4a0550d7b2e6 status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"final packaging combinations\"}},\"population.eligibility\":{\"status\":\"assumed\",\"value\":\"Outermost packaging with children and no incoming containment\"},\"population.conditions\":{\"status\":\"not_applicable\"},\"population.time\":{\"status\":\"not_applicable\"},\"measure.formula\":{\"status\":\"assumed\",\"value\":{\"op\":\"custom\",\"description\":\"Multiply quantities along every root-to-leaf path, sum leaf quantities per outermost root then arithmetic mean of root totals\"}},\"grouping\":{\"status\":\"assumed\",\"value\":[\"n/a\"]},\"selection\":{\"status\":\"not_applicable\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"full\",\"columns\":[\"average_total_quantity\"]}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_d9c450e8-217f-4a18-8320-46fc0e6932c0",
+    "revisionId": "revision_5cb6fcbe-e360-4684-b1ff-4a0550d7b2e6",
+    "parentRevisionId": "revision_92a654f3-3e32-4677-a375-07ac41cb3f52",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "final packaging combinations"
+        },
+        "evidenceIds": [
+          "evidence_ff613861-dca0-4c9b-836a-4bd5e9903acd"
+        ]
+      },
+      {
+        "path": "population.eligibility",
+        "status": "assumed",
+        "value": "Outermost packaging with children and no incoming containment"
+      },
+      {
+        "path": "population.conditions",
+        "status": "not_applicable"
+      },
+      {
+        "path": "population.time",
+        "status": "not_applicable"
+      },
+      {
+        "path": "measure.formula",
+        "status": "assumed",
+        "value": {
+          "op": "custom",
+          "description": "Multiply quantities along every root-to-leaf path, sum leaf quantities per outermost root then arithmetic mean of root totals"
+        }
+      },
+      {
+        "path": "grouping",
+        "status": "assumed",
+        "value": [
+          "n/a"
+        ]
+      },
+      {
+        "path": "selection",
+        "status": "not_applicable"
+      },
+      {
+        "path": "output",
+        "status": "assumed",
+        "value": {
+          "rowMode": "full",
+          "columns": [
+            "average_total_quantity"
+          ]
+        }
+      }
+    ],
+    "undeclared": [],
+    "open": [],
+    "unverified": [
+      "population.eligibility",
+      "measure.formula",
+      "grouping",
+      "output"
+    ],
+    "specFeedback": {
+      "taskId": "task_d9c450e8-217f-4a18-8320-46fc0e6932c0",
+      "revisionId": "revision_5cb6fcbe-e360-4684-b1ff-4a0550d7b2e6",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_ff613861-dca0-4c9b-836a-4bd5e9903acd",
+        "evidence_186605b7-c5ca-46a6-a3bb-1a5ad7a46783",
+        "evidence_0a333ec3-6b31-4d48-a750-e5e46f643fb6",
+        "evidence_0ad37de2-c9d5-4f15-8fde-3d0c95df965a"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "population.eligibility",
+        "status": "applied"
+      },
+      {
+        "path": "population.conditions",
+        "status": "applied"
+      },
+      {
+        "path": "population.time",
+        "status": "applied"
+      },
+      {
+        "path": "measure.formula",
+        "status": "applied"
+      },
+      {
+        "path": "grouping",
+        "status": "applied"
+      },
+      {
+        "path": "selection",
+        "status": "applied"
+      },
+      {
+        "path": "output",
+        "status": "applied"
+      }
+    ]
+  }
+}

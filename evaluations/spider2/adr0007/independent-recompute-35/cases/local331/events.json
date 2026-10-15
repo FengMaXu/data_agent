@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT rowid,stamp,session,action,path FROM activity_log ORDER BY session,stamp,rowid",
+  "limit": 1000
+}

@@ -1,0 +1,79 @@
+{
+  "database_access": false,
+  "new_result_published": false,
+  "checks": [
+    {
+      "instance_id": "local015",
+      "gold_content_verified": true,
+      "scope": "two motorcycle fatality percentages; output is a valid two-value presentation",
+      "check": "Recorded scope-correct counts yield3/18*100 and0/1*100, matching both Gold values.",
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local015/attempts/attempt-001/trace.json",
+      "pointer": "/toolCalls/20/result/details/artifact/preview",
+      "diagnostic_values": [
+        16.666666666666668,
+        0.0
+      ],
+      "not_a_new_published_result": true
+    },
+    {
+      "instance_id": "local040",
+      "gold_content_verified": true,
+      "scope": "three borough identities and tree-weighted mean income; complete duplicate tree records collapsed",
+      "check": "All three keyed Gold means match actual DISTINCT-tree experiment; identity inference and duplicate-policy limitation retained.",
+      "source": "D:/data_agent/evaluations/spider2/adr0007/independent-recompute-35/cases/local040/post-distinct-tree-original.json-response.json",
+      "pointer": "/details/preview",
+      "keyed_rows_checked": 3,
+      "not_a_new_published_result": true
+    },
+    {
+      "instance_id": "local156",
+      "gold_content_verified": true,
+      "scope": "20region-year prices, YoY and ascending price rank; chosen display order/rank direction is not unique wording",
+      "check": "All Gold values are supported by25 retained-baseline actual region/year prices; YoY uses rounded observed inputs within.01 tolerance.",
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local156/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/10/result/details/artifact/preview",
+      "keyed_rows_checked": 20,
+      "max_percentage_error_from_observed_rounding": 0.004905258046478789,
+      "not_a_new_published_result": true
+    },
+    {
+      "instance_id": "local228",
+      "gold_content_verified": true,
+      "scope": "all27 season-position pairs; representation/score contract only, not a confirmed business-content error",
+      "check": "Diagnostic unpivot of authorized original nine-row CSV matches all27 Gold rows exactly, including row associations.",
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local228.csv",
+      "gold_file": "C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local228.csv",
+      "keyed_rows_checked": 27,
+      "not_a_new_published_result": true
+    },
+    {
+      "instance_id": "local283",
+      "gold_content_verified": true,
+      "scope": "eight global season champions/points; Gold rank1 is logically valid though not explicitly requested as an output column",
+      "check": "Across recorded league leaders, season maxima match all8 Gold identities and points; global winner must be a league leader.",
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local283.csv",
+      "keyed_rows_checked": 8,
+      "not_a_new_published_result": true
+    },
+    {
+      "instance_id": "local302",
+      "gold_content_verified": true,
+      "scope": "requested final most-negative attribute and percentage within scoring tolerance",
+      "check": "Published list argmin is demographic,-2.01 vsGold-2.008662; other four output groups cause answer-set mismatch.",
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local302.csv",
+      "keyed_rows_checked": 1,
+      "not_a_new_published_result": true
+    },
+    {
+      "instance_id": "local064",
+      "gold_content_verified": false,
+      "confirmed_gold_conflict": true,
+      "scope": "monthly deposit-withdrawal flows, all500customers/all12months; minimum months are allzero",
+      "check": "Unique requested difference557.704 vsGold363.742; generated-month ties do not change zero average. Prior report already verified all customers/months and type scope.",
+      "source": "D:/data_agent/evaluations/spider2/adr0007/independent-recompute-35/cases/local064/probe-variants-response.json",
+      "pointer": "/details/preview/rows/2",
+      "independent_publication": "publication_4be5110e-1c5d-4d56-8de8-9ea8218c2a49",
+      "not_a_new_published_result": true
+    }
+  ]
+}

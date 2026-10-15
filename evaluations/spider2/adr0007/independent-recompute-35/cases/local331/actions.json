@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT action,COUNT(*) n,COUNT(path) paths,COUNT(DISTINCT path) distinct_paths FROM activity_log GROUP BY action",
+  "limit": 1000
+}

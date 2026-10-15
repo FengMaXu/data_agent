@@ -1,0 +1,159 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_ff43cc45-2c05-4d02-b724-7bbb4f46b6a4 revisionId=revision_c2a2806e-05ee-4660-9ed6-df119c027838\n- ✓ population.eligibility\n- ✓ population.conditions\n- ✓ population.time\n- ✓ measure.formula\n- ✓ measure.countGrain\n- ✓ grouping\n- ✗ selection: selection.orderBy is required (column and direction)\n- ✓ selection.ties\n- ✓ output\n字段写法：one of: \"n/a\"; a bare value (an assumption, disclosed); {value, basis:\"request\", quote}; {value, cite:[{source, quote}]}; {value, evidenceIds}; {value, basis:\"assumed\", rationale}; {open:[value, ...]}; to decide an open field {value:<alternative>, rationale, evidenceIds?}; {notProbeable:{<alternativeId>: reason}}\n状态：\n- 未证实（发布时披露）: population.time, measure.formula, measure.countGrain, grouping, selection.ties, output\n- 未声明: selection\n[SPEC_FEEDBACK] revisionId=revision_c2a2806e-05ee-4660-9ed6-df119c027838 status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"individual football player identified by player_api_id\"}},\"population.eligibility\":{\"status\":\"request\",\"value\":\"Non-null recorded lineup identities only\"},\"population.conditions\":{\"status\":\"request\",\"value\":[\"Exclude draws; assign win/loss to player lineup side\"]},\"population.time\":{\"status\":\"assumed\",\"value\":{\"expression\":\"All available matches; no date restriction requested\"}},\"measure.formula\":{\"status\":\"assumed\",\"value\":{\"op\":\"count_distinct\",\"per\":\"player_api_id and outcome\",\"of\":\"match_id\"}},\"measure.countGrain\":{\"status\":\"assumed\",\"value\":\"One distinct player identity per match per outcome\"},\"grouping\":{\"status\":\"assumed\",\"value\":[\"player_api_id\",\"outcome\"]},\"selection.ties\":{\"status\":\"assumed\",\"value\":\"include_ties\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"full\",\"columns\":[\"outcome\",\"player_name\",\"matches\"]}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_ff43cc45-2c05-4d02-b724-7bbb4f46b6a4",
+    "revisionId": "revision_c2a2806e-05ee-4660-9ed6-df119c027838",
+    "parentRevisionId": "revision_3c8ed68e-f542-49bc-8dd7-d2ee20a7a752",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "individual football player identified by player_api_id"
+        },
+        "evidenceIds": [
+          "evidence_371e12dd-f67d-4b1c-84d2-fe8ef0c7a1df"
+        ]
+      },
+      {
+        "path": "population.eligibility",
+        "status": "request",
+        "value": "Non-null recorded lineup identities only",
+        "evidenceIds": [
+          "evidence_987d1091-6de3-49a4-8cfd-03e25805fd2e"
+        ]
+      },
+      {
+        "path": "population.conditions",
+        "status": "request",
+        "value": [
+          "Exclude draws; assign win/loss to player lineup side"
+        ],
+        "evidenceIds": [
+          "evidence_459170d5-6ed3-4624-bec0-613bd63caa33"
+        ]
+      },
+      {
+        "path": "population.time",
+        "status": "assumed",
+        "value": {
+          "expression": "All available matches; no date restriction requested"
+        }
+      },
+      {
+        "path": "measure.formula",
+        "status": "assumed",
+        "value": {
+          "op": "count_distinct",
+          "per": "player_api_id and outcome",
+          "of": "match_id"
+        }
+      },
+      {
+        "path": "measure.countGrain",
+        "status": "assumed",
+        "value": "One distinct player identity per match per outcome"
+      },
+      {
+        "path": "grouping",
+        "status": "assumed",
+        "value": [
+          "player_api_id",
+          "outcome"
+        ]
+      },
+      {
+        "path": "selection.ties",
+        "status": "assumed",
+        "value": "include_ties"
+      },
+      {
+        "path": "output",
+        "status": "assumed",
+        "value": {
+          "rowMode": "full",
+          "columns": [
+            "outcome",
+            "player_name",
+            "matches"
+          ]
+        }
+      }
+    ],
+    "undeclared": [
+      "selection"
+    ],
+    "open": [],
+    "unverified": [
+      "population.time",
+      "measure.formula",
+      "measure.countGrain",
+      "grouping",
+      "selection.ties",
+      "output"
+    ],
+    "specFeedback": {
+      "taskId": "task_ff43cc45-2c05-4d02-b724-7bbb4f46b6a4",
+      "revisionId": "revision_c2a2806e-05ee-4660-9ed6-df119c027838",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_371e12dd-f67d-4b1c-84d2-fe8ef0c7a1df",
+        "evidence_65b98308-576b-4f9c-98f8-7ec8e0f9ad88",
+        "evidence_c3aa4f66-ae66-4b8a-8e1f-e841ff97ff73",
+        "evidence_1f53f635-8037-4822-8b02-3320aac492d3",
+        "evidence_987d1091-6de3-49a4-8cfd-03e25805fd2e",
+        "evidence_459170d5-6ed3-4624-bec0-613bd63caa33"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "population.eligibility",
+        "status": "applied"
+      },
+      {
+        "path": "population.conditions",
+        "status": "applied"
+      },
+      {
+        "path": "population.time",
+        "status": "applied"
+      },
+      {
+        "path": "measure.formula",
+        "status": "applied"
+      },
+      {
+        "path": "measure.countGrain",
+        "status": "applied"
+      },
+      {
+        "path": "grouping",
+        "status": "applied"
+      },
+      {
+        "path": "selection",
+        "status": "rejected",
+        "code": "INVALID_REQUEST",
+        "message": "selection.orderBy is required (column and direction)"
+      },
+      {
+        "path": "selection.ties",
+        "status": "applied"
+      },
+      {
+        "path": "output",
+        "status": "applied"
+      }
+    ]
+  }
+}

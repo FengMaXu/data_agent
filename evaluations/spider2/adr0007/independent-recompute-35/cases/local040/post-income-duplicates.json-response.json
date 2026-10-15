@@ -1,0 +1,209 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_d5ead9c2-f3ce-4d27-9e6c-4d14900d58e9\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nzipcode | Estimate_Total | Margin_of_Error_Total | Estimate_Median_income | Margin_of_Error_Median_income | Estimate_Mean_income | Margin_of_Error_Mean_income\n10463 | 27458 | 478 | 56482 | 2218 | 80384 | 4046\n10463 | 27458 | 478 | 56482 | 2218 | 80384 | 4046\n11205 | 15198 | 353 | 47575 | 3834 | 73353 | 3929\n11205 | 15198 | 353 | 47575 | 3834 | 73353 | 3929\n11218 | 24909 | 371 | 56120 | 3925 | 78208 | 3788\n11218 | 24909 | 371 | 56120 | 3925 | 78208 | 3788\n11370 | 8809 | 291 | 53427 | 4549 | 75046 | 9658\n11370 | 8809 | 291 | 53427 | 4549 | 75046 | 9658"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_d5ead9c2-f3ce-4d27-9e6c-4d14900d58e9",
+      "preview": {
+        "columns": [
+          "zipcode",
+          "Estimate_Total",
+          "Margin_of_Error_Total",
+          "Estimate_Median_income",
+          "Margin_of_Error_Median_income",
+          "Estimate_Mean_income",
+          "Margin_of_Error_Mean_income"
+        ],
+        "rows": [
+          [
+            10463,
+            27458,
+            478,
+            56482,
+            2218,
+            80384,
+            4046
+          ],
+          [
+            10463,
+            27458,
+            478,
+            56482,
+            2218,
+            80384,
+            4046
+          ],
+          [
+            11205,
+            15198,
+            353,
+            47575,
+            3834,
+            73353,
+            3929
+          ],
+          [
+            11205,
+            15198,
+            353,
+            47575,
+            3834,
+            73353,
+            3929
+          ],
+          [
+            11218,
+            24909,
+            371,
+            56120,
+            3925,
+            78208,
+            3788
+          ],
+          [
+            11218,
+            24909,
+            371,
+            56120,
+            3925,
+            78208,
+            3788
+          ],
+          [
+            11370,
+            8809,
+            291,
+            53427,
+            4549,
+            75046,
+            9658
+          ],
+          [
+            11370,
+            8809,
+            291,
+            53427,
+            4549,
+            75046,
+            9658
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 8,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "zipcode",
+        "Estimate_Total",
+        "Margin_of_Error_Total",
+        "Estimate_Median_income",
+        "Margin_of_Error_Median_income",
+        "Estimate_Mean_income",
+        "Margin_of_Error_Mean_income"
+      ],
+      "rows": [
+        [
+          10463,
+          27458,
+          478,
+          56482,
+          2218,
+          80384,
+          4046
+        ],
+        [
+          10463,
+          27458,
+          478,
+          56482,
+          2218,
+          80384,
+          4046
+        ],
+        [
+          11205,
+          15198,
+          353,
+          47575,
+          3834,
+          73353,
+          3929
+        ],
+        [
+          11205,
+          15198,
+          353,
+          47575,
+          3834,
+          73353,
+          3929
+        ],
+        [
+          11218,
+          24909,
+          371,
+          56120,
+          3925,
+          78208,
+          3788
+        ],
+        [
+          11218,
+          24909,
+          371,
+          56120,
+          3925,
+          78208,
+          3788
+        ],
+        [
+          11370,
+          8809,
+          291,
+          53427,
+          4549,
+          75046,
+          9658
+        ],
+        [
+          11370,
+          8809,
+          291,
+          53427,
+          4549,
+          75046,
+          9658
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 8,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_14973f26-e578-4703-96b0-659590fb05a8"
+  }
+}

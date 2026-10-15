@@ -1,0 +1,46 @@
+{
+  "instance_id": "local264",
+  "status": "gold_conflict",
+  "summary": "独立所有可比较步骤中regression213次；原直接model计行同为213；Gold639可由漏step关联产生，426行跨步重复已实查。",
+  "fork_node": "population.joinMultiplicity (reconstructed Gold); original lacks comparison eligibility but data-equivalent",
+  "error_layer": "Gold reconstructed row amplification; original scope omission currently observationally equivalent",
+  "visibility": "outside_original_spec_error",
+  "independent_score": 0,
+  "evidence": [
+    {
+      "source": "blind.json",
+      "pointer": "/question",
+      "quote": "across all steps and versions when comparing traditional models to the Stack model"
+    },
+    {
+      "source": "query-underkeyed-join-response.json",
+      "pointer": "/content/0/text",
+      "quote": "426"
+    },
+    {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local264/attempts/attempt-20261010-154318Z/trace.json",
+      "quote": "按 model 表的一行记录计数（每个 name+version+step 组合）",
+      "pointer": "/toolCalls/6/result/details/fields/6/value",
+      "original_projection_source": "original-spec-review.json"
+    }
+  ],
+  "limitations": [
+    "Gold SQL absent; underkeyed join is sufficient reconstruction, not proven exact code.",
+    "Question does not specify success-only comparison; alternate noninferior count114, not639.",
+    "Original omitted explicit comparison availability; all303steps happen comparable so no visible result impact."
+  ],
+  "parent_field_review": {
+    "instance_id": "local264",
+    "relevant_node": "population.joinMultiplicity",
+    "node_is_confirmed_original_error": false,
+    "explanation": "漏step连接639含426跨步重复；原213未出现此放大",
+    "error_layer": "标准答案与本次输入/明确要求局部冲突",
+    "visibility": "不适用：未确认原Spec语义错误",
+    "qualification": "Gold差异相关节点，不冒充原系统错误节点",
+    "original_node_declared": false,
+    "original_node_status": "undeclared",
+    "original_node_value": null,
+    "original_spec_evidence": null,
+    "primary_status": "gold_conflict"
+  }
+}

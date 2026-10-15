@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT session,stamp,COUNT(*) n FROM activity_log GROUP BY session,stamp HAVING COUNT(*)>1",
+  "limit": 1000
+}

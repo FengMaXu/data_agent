@@ -1,0 +1,51 @@
+{
+  "instance_id": "local067",
+  "status": "ambiguous_after_recompute",
+  "summary": "仅利润NTILE排序ASC改DESC逐bucket键精确重现全部Gold；68名客户余数分配端改变，不是纯层号反转。同额次序影响成员但不改变MAX/MIN，非本题失分原因。题面没有排序方向规则。",
+  "fork_node": "grouping",
+  "error_layer": "unresolved_binning_direction_not_implementation",
+  "visibility": "explicit_ASC_grouping; tie_order_missing_but_output_invariant",
+  "independent_score": 0,
+  "evidence": [
+    {
+      "source": "blind.json",
+      "pointer": "/question",
+      "quote": "ten evenly divided tiers"
+    },
+    {
+      "source": "post-descending-tiers.json",
+      "pointer": "/sql",
+      "quote": "NTILE(10) OVER(ORDER BY profit DESC,cust_id)"
+    },
+    {
+      "source": "post-tie-order-invariance.json",
+      "pointer": "/sql",
+      "quote": "NTILE(10) OVER(ORDER BY profit DESC,cust_id DESC)"
+    }
+  ],
+  "limitations": [
+    "Gold SQL缺失但10层边界精确重现",
+    "题面没有分层方向或同额处理规则",
+    "活跃资格及利润口径没有已审核业务定义"
+  ],
+  "parent_field_review": {
+    "instance_id": "local067",
+    "relevant_node": "grouping",
+    "node_is_confirmed_original_error": false,
+    "explanation": "十分位排序方向改变余数分配与各层边界，题面未指定",
+    "error_layer": "未唯一裁决",
+    "visibility": "不能标成假定错/决定错：原声明可见，不等于业务错误已证",
+    "qualification": "差异机制已实测，业务意图未唯一裁决",
+    "original_node_declared": true,
+    "original_node_status": "decided",
+    "original_node_value": [
+      "按客户数等分：对意大利客户按 2021-12 利润升序用 NTILE(10) 分成 10 档，第 1 档=利润最低、第 10 档=利润最高，每档客户数尽量相等"
+    ],
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local067/attempts/attempt-001/trace.json",
+      "pointer": "/toolCalls/29/result/details/fields/8/value",
+      "quote": "[\"按客户数等分：对意大利客户按 2021-12 利润升序用 NTILE(10) 分成 10 档，第 1 档=利润最低、第 10 档=利润最高，每档客户数尽量相等\"]"
+    },
+    "primary_status": "ambiguous_after_recompute"
+  }
+}

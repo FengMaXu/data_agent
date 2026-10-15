@@ -1,0 +1,127 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_e7725e71-da36-4c57-b0eb-ff64907aa059\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\npayment_id | customer_id | rental_id | amount | payment_date\n424 | 16 | NULL | 1.99 | 2005-06-18 04:56:12.000\n7011 | 259 | NULL | 1.99 | 2005-08-23 06:13:16.000\n10840 | 401 | NULL | 0.99 | 2005-07-12 06:26:10.000\n14675 | 546 | NULL | 3.99 | 2005-07-30 21:16:20.000\n15458 | 577 | NULL | 0.99 | 2005-05-27 00:46:39.000"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_e7725e71-da36-4c57-b0eb-ff64907aa059",
+      "preview": {
+        "columns": [
+          "payment_id",
+          "customer_id",
+          "rental_id",
+          "amount",
+          "payment_date"
+        ],
+        "rows": [
+          [
+            424,
+            16,
+            null,
+            1.99,
+            "2005-06-18 04:56:12.000"
+          ],
+          [
+            7011,
+            259,
+            null,
+            1.99,
+            "2005-08-23 06:13:16.000"
+          ],
+          [
+            10840,
+            401,
+            null,
+            0.99,
+            "2005-07-12 06:26:10.000"
+          ],
+          [
+            14675,
+            546,
+            null,
+            3.99,
+            "2005-07-30 21:16:20.000"
+          ],
+          [
+            15458,
+            577,
+            null,
+            0.99,
+            "2005-05-27 00:46:39.000"
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "NULL",
+          "REAL",
+          "TEXT"
+        ],
+        "rowCount": 5,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "payment_id",
+        "customer_id",
+        "rental_id",
+        "amount",
+        "payment_date"
+      ],
+      "rows": [
+        [
+          424,
+          16,
+          null,
+          1.99,
+          "2005-06-18 04:56:12.000"
+        ],
+        [
+          7011,
+          259,
+          null,
+          1.99,
+          "2005-08-23 06:13:16.000"
+        ],
+        [
+          10840,
+          401,
+          null,
+          0.99,
+          "2005-07-12 06:26:10.000"
+        ],
+        [
+          14675,
+          546,
+          null,
+          3.99,
+          "2005-07-30 21:16:20.000"
+        ],
+        [
+          15458,
+          577,
+          null,
+          0.99,
+          "2005-05-27 00:46:39.000"
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "NULL",
+        "REAL",
+        "TEXT"
+      ],
+      "rowCount": 5,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_61f45a2d-ef75-4b42-9002-0fd8ca9da6b2"
+  }
+}

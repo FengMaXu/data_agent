@@ -1,0 +1,195 @@
+{
+  "frozenAt": "2026-10-11T09:08:52.362Z",
+  "instance_id": "local010",
+  "independent": true,
+  "taskId": "task_3f425279-bd31-44af-83cc-2d27fee4ccf8",
+  "revisionId": "revision_854bcc4d-32ca-474c-a113-c68a8cbd7ee7",
+  "publication": {
+    "receiptId": "publication_9b34a8df-75f4-417d-960c-445a45355fc8",
+    "taskId": "task_3f425279-bd31-44af-83cc-2d27fee4ccf8",
+    "principalId": "independent-analyst",
+    "sessionId": "local010",
+    "candidateId": "candidate_43a5ad4d-6467-4cf1-941b-fc9e2da29766",
+    "revisionId": "revision_854bcc4d-32ca-474c-a113-c68a8cbd7ee7",
+    "resultRef": "result_3c3c111a-453d-498d-aacc-725ee957c8bb",
+    "format": "csv",
+    "publicRef": "/api/runtime/publications/publication_9b34a8df-75f4-417d-960c-445a45355fc8?session_id=local010",
+    "contentHash": "14d1e3772d659783c9ebc03df62e70ac2ea43b257822bee5ec876caf60daa336",
+    "presentationContentHash": "ca0e3da81eff4fa04993de35336d1b329f01e2c3596edf53efd3a5123e137793",
+    "coverage": [
+      {
+        "checkId": "result_completeness",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_shape",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_identity",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "join_fanout",
+        "outcome": "unknown",
+        "reason": "check_disabled"
+      },
+      {
+        "checkId": "spec_feedback",
+        "ruleVersion": "spec-feedback-v2",
+        "outcome": "not_applicable",
+        "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+      }
+    ],
+    "fanout": {
+      "ruleVersion": "answering-fanout-v1",
+      "status": "unknown",
+      "snapshotScope": "unbound",
+      "targets": [],
+      "unsupportedReasons": [
+        "check_disabled"
+      ]
+    },
+    "disclosure": {
+      "required": true,
+      "unverifiedFields": [],
+      "summary": "JOIN fanout 检查未能完整完成：check_disabled。",
+      "fanoutStatus": "unknown"
+    },
+    "physicalProfile": {
+      "version": 1,
+      "rowCount": 1,
+      "truncated": false,
+      "columns": [
+        {
+          "name": "fewest_pair_count",
+          "kind": "integer",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 1,
+          "min": "3",
+          "max": "3"
+        }
+      ]
+    },
+    "policyVersion": "answering-publication-v1",
+    "createdByInvocationId": "9565a667-f113-499b-8723-d9f0e9452f4a",
+    "requestId": "9565a667-f113-499b-8723-d9f0e9452f4a",
+    "createdAt": "2026-10-11T09:08:49.818Z"
+  },
+  "currentRevision": {
+    "taskId": "task_3f425279-bd31-44af-83cc-2d27fee4ccf8",
+    "revisionId": "revision_854bcc4d-32ca-474c-a113-c68a8cbd7ee7",
+    "parentRevisionId": "revision_6aebca02-6a6b-4d1e-9aad-9ed83e5c69f6",
+    "requestId": "88f06bc6-20b1-4a00-966d-9bd9f7f1972d",
+    "createdAt": "2026-10-11T09:08:46.347Z",
+    "fields": {
+      "population.entity": {
+        "state": "specified",
+        "value": {
+          "name": "无向城市对（名字字典序规范化）"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_658fd390-8c2f-4261-bf71-9570b22d9dfc"
+          ]
+        }
+      },
+      "population.eligibility": {
+        "state": "specified",
+        "value": "All flight records with both airport city and coordinates; no extra state/time restrictions",
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_397ce37f-a952-446b-8c12-0c210a217357"
+          ]
+        }
+      },
+      "population.conditions": {
+        "state": "not_applicable"
+      },
+      "population.time": {
+        "state": "not_applicable"
+      },
+      "measure.formula": {
+        "state": "specified",
+        "value": {
+          "op": "custom",
+          "description": "Haversine km R6371 per flight row; normalize unordered city names; mean distance per city pair across all flights; count pairs by lower-bound 1000km bins with capped 6000+; include empty bins; minimum count"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_8871ac2d-efa7-466a-8949-7068945aa04b"
+          ]
+        }
+      },
+      "grouping": {
+        "state": "not_applicable"
+      },
+      "selection": {
+        "state": "not_applicable"
+      },
+      "output": {
+        "state": "specified",
+        "value": {
+          "rowMode": "scalar",
+          "columns": [
+            "fewest_pair_count"
+          ]
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_4f31542b-7449-48a8-bc74-8a0bba437e4c"
+          ]
+        }
+      }
+    },
+    "state": {
+      "state": "ready",
+      "revisionId": "revision_854bcc4d-32ca-474c-a113-c68a8cbd7ee7",
+      "ready": "ready_1417473c-9da2-4869-b442-b5a0a9480922"
+    },
+    "specFeedback": {
+      "taskId": "task_3f425279-bd31-44af-83cc-2d27fee4ccf8",
+      "revisionId": "revision_854bcc4d-32ca-474c-a113-c68a8cbd7ee7",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_658fd390-8c2f-4261-bf71-9570b22d9dfc",
+        "evidence_e22d0b56-d7c9-4e62-bc59-399294927a2c",
+        "evidence_4aaf6c78-ef7d-4c16-9476-4da6a05b335a",
+        "evidence_604731c5-dd07-4e4d-96f3-ad5463162753",
+        "evidence_06c9682a-e1d0-4398-b120-ed3d5a33b3f4",
+        "evidence_b3314926-1427-40bf-9552-2d1639cdbb26",
+        "evidence_b5284430-0466-41d7-963c-975055f7d369",
+        "evidence_2a9d9ea4-f519-4447-a5fe-75fd19173212",
+        "evidence_397ce37f-a952-446b-8c12-0c210a217357",
+        "evidence_8871ac2d-efa7-466a-8949-7068945aa04b",
+        "evidence_4f31542b-7449-48a8-bc74-8a0bba437e4c"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    }
+  },
+  "analystNote": {
+    "algorithm": "Flight-row-weighted city pair average, symmetric city identity, Haversine km, all 7 bins",
+    "assumptions": [
+      "ranges are lower-bound bins",
+      "English city names used"
+    ]
+  },
+  "settings": {
+    "qualification": "required",
+    "fieldProbes": true,
+    "externalAdvisor": "not_configured",
+    "specFeedback": "not_configured",
+    "fanout": "disabled_for_offline_audit",
+    "populationDecisions": "allow_disclosed_headless_audit",
+    "databaseReadOnly": true
+  }
+}

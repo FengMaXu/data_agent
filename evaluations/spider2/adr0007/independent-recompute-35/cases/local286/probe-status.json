@@ -1,0 +1,3 @@
+{
+  "sql": "SELECT o.order_status,COUNT(*) items,COUNT(DISTINCT i.order_id) orders FROM order_items i JOIN orders o USING(order_id) GROUP BY order_status ORDER BY items DESC"
+}

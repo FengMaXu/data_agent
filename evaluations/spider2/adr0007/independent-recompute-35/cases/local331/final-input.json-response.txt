@@ -1,0 +1,193 @@
+{
+  "query": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[RESULT_CANDIDATE] candidateId=candidate_f34db2c3-abdb-433f-99e0-a610ee73a294 revisionId=revision_c8189670-768c-44bd-9e2e-1cd6121109ec\nthird_page | occurrences\n/detail | 33\n/ | 2\n/detail/ | 1"
+      }
+    ],
+    "details": {
+      "kind": "result",
+      "artifact": {
+        "kind": "candidate",
+        "candidateId": "candidate_f34db2c3-abdb-433f-99e0-a610ee73a294",
+        "revisionId": "revision_c8189670-768c-44bd-9e2e-1cd6121109ec",
+        "resultRef": "result_bba91d19-d39b-4a6a-a5e3-e6e93a89c4a5"
+      },
+      "preview": {
+        "columns": [
+          "third_page",
+          "occurrences"
+        ],
+        "rows": [
+          [
+            "/detail",
+            33
+          ],
+          [
+            "/",
+            2
+          ],
+          [
+            "/detail/",
+            1
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 3,
+        "truncated": false
+      },
+      "findings": [],
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "attemptId": "attempt_7ba2b31d-43ff-4c40-88aa-baf06041e719"
+    }
+  },
+  "publication": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[PUBLISHED] csv [download](/api/runtime/publications/publication_e3725592-08c5-4fe4-8392-d80404f0de2d?session_id=local331) receiptId=publication_e3725592-08c5-4fe4-8392-d80404f0de2d\n[DISCLOSURE] 以下字段为假定，未被合格证据证实：population.eligibility, population.conditions, population.time, measure.formula, grouping, selection, selection.ties, output。"
+      }
+    ],
+    "details": {
+      "receiptId": "publication_e3725592-08c5-4fe4-8392-d80404f0de2d",
+      "taskId": "task_4e89f196-7139-4a3f-a96f-1224b0553abc",
+      "principalId": "independent-analyst",
+      "sessionId": "local331",
+      "candidateId": "candidate_f34db2c3-abdb-433f-99e0-a610ee73a294",
+      "revisionId": "revision_c8189670-768c-44bd-9e2e-1cd6121109ec",
+      "resultRef": "result_bba91d19-d39b-4a6a-a5e3-e6e93a89c4a5",
+      "format": "csv",
+      "publicRef": "/api/runtime/publications/publication_e3725592-08c5-4fe4-8392-d80404f0de2d?session_id=local331",
+      "contentHash": "364b0e0a1eeb4e72b5424746d8694460c01dd424025da024eb3be756cb004ce3",
+      "presentationContentHash": "3a9d30430d5d0ee4b7d6b8a8cde018a71b6b04fc3e93b1ca96d13f5c2075e18f",
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "disclosure": {
+        "required": true,
+        "unverifiedFields": [
+          {
+            "path": "population.eligibility",
+            "kind": "assumed"
+          },
+          {
+            "path": "population.conditions",
+            "kind": "assumed"
+          },
+          {
+            "path": "population.time",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.formula",
+            "kind": "assumed"
+          },
+          {
+            "path": "grouping",
+            "kind": "assumed"
+          },
+          {
+            "path": "selection",
+            "kind": "assumed"
+          },
+          {
+            "path": "selection.ties",
+            "kind": "assumed"
+          },
+          {
+            "path": "output",
+            "kind": "assumed"
+          }
+        ],
+        "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.conditions, population.time, measure.formula, grouping, selection, selection.ties, output。"
+      },
+      "physicalProfile": {
+        "version": 1,
+        "rowCount": 3,
+        "truncated": false,
+        "columns": [
+          {
+            "name": "third_page",
+            "kind": "text",
+            "nullCount": 0,
+            "distinctCount": 3
+          },
+          {
+            "name": "occurrences",
+            "kind": "integer",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 3,
+            "min": "1",
+            "max": "33"
+          }
+        ]
+      },
+      "policyVersion": "answering-publication-v1",
+      "createdByInvocationId": "8fd6cfbc-aaaf-4640-9878-6c8bab5d5b42",
+      "requestId": "8fd6cfbc-aaaf-4640-9878-6c8bab5d5b42",
+      "createdAt": "2026-10-11T09:15:39.819Z"
+    }
+  },
+  "authorizedCsv": "D:\\data_agent\\evaluations\\spider2\\adr0007\\independent-recompute-35\\cases\\local331\\publications\\publication_e3725592-08c5-4fe4-8392-d80404f0de2d\\result.csv"
+}

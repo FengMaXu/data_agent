@@ -1,0 +1,4 @@
+{
+  "sql": "WITH m AS(SELECT customer_id,strftime('%Y-%m',payment_date) ym,SUM(amount) val FROM payment GROUP BY 1,2),s AS(SELECT a.customer_id,AVG(ABS(a.val-b.val)) metric FROM m a JOIN m b ON a.customer_id=b.customer_id AND b.ym=strftime('%Y-%m',date(a.ym||'-01','-1 month')) GROUP BY 1) SELECT c.first_name||' '||c.last_name name,s.* FROM s JOIN customer c USING(customer_id) ORDER BY metric DESC LIMIT 3",
+  "limit": 100
+}

@@ -1,0 +1,93 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_95691544-e1a7-4cae-99b6-8f018e2c128e\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nL1_model | model_steps | model_versions | comparable | noninferior | strong\nregression | 213 | 71 | 213 | 114 | 78\ntree | 90 | 30 | 90 | 25 | 14"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_95691544-e1a7-4cae-99b6-8f018e2c128e",
+      "preview": {
+        "columns": [
+          "L1_model",
+          "model_steps",
+          "model_versions",
+          "comparable",
+          "noninferior",
+          "strong"
+        ],
+        "rows": [
+          [
+            "regression",
+            213,
+            71,
+            213,
+            114,
+            78
+          ],
+          [
+            "tree",
+            90,
+            30,
+            90,
+            25,
+            14
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 2,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "L1_model",
+        "model_steps",
+        "model_versions",
+        "comparable",
+        "noninferior",
+        "strong"
+      ],
+      "rows": [
+        [
+          "regression",
+          213,
+          71,
+          213,
+          114,
+          78
+        ],
+        [
+          "tree",
+          90,
+          30,
+          90,
+          25,
+          14
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 2,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_7364a846-b0e8-447b-80f7-7091a431d9b0"
+  }
+}

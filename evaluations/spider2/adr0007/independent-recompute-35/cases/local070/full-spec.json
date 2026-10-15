@@ -1,0 +1,62 @@
+{
+  "fields": {
+    "population.eligibility": {
+      "value": "Only observed eligible records; no fabricated missing records",
+      "basis": "assumed",
+      "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+    },
+    "population.conditions": {
+      "value": [
+        "country_code_2='cn'"
+      ],
+      "basis": "assumed",
+      "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+    },
+    "population.time": {
+      "value": "July 2021 inclusive; insert_date",
+      "basis": "assumed",
+      "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+    },
+    "measure.formula": {
+      "value": {
+        "op": "custom",
+        "description": "Distinct calendar-date islands; choose all islands of minimum or maximum day count; one representative city per date by smallest city_id; capitalize first character only"
+      },
+      "basis": "assumed",
+      "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+    },
+    "grouping": {
+      "value": [
+        "date"
+      ],
+      "basis": "assumed",
+      "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+    },
+    "selection": {
+      "value": {
+        "n": 1,
+        "orderBy": [
+          "island day count ascending and descending"
+        ]
+      },
+      "basis": "assumed",
+      "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+    },
+    "output": {
+      "value": {
+        "rowMode": "full",
+        "columns": [
+          "date",
+          "city_name"
+        ]
+      },
+      "basis": "assumed",
+      "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+    },
+    "selection.ties": {
+      "value": "include_ties",
+      "basis": "assumed",
+      "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+    }
+  }
+}

@@ -1,0 +1,105 @@
+[
+  {
+    "lane": 1,
+    "ids": [
+      "local002",
+      "local003",
+      "local010",
+      "local015",
+      "local037",
+      "local040",
+      "local049",
+      "local050",
+      "local056",
+      "local059"
+    ],
+    "packet_root": "C:/Users/Negan/AppData/Local/Temp/fieldtree-20261010-review-m989sbll",
+    "output": "D:/data_agent/evaluations/spider2/adr0007/fieldtree-20261010-audit/lane-1-analysis.jsonl"
+  },
+  {
+    "lane": 2,
+    "ids": [
+      "local060",
+      "local061",
+      "local064",
+      "local066",
+      "local067",
+      "local070",
+      "local073",
+      "local096",
+      "local098",
+      "local100"
+    ],
+    "packet_root": "C:/Users/Negan/AppData/Local/Temp/fieldtree-20261010-review-m989sbll",
+    "output": "D:/data_agent/evaluations/spider2/adr0007/fieldtree-20261010-audit/lane-2-analysis.jsonl"
+  },
+  {
+    "lane": 3,
+    "ids": [
+      "local114",
+      "local131",
+      "local133",
+      "local156",
+      "local167",
+      "local168",
+      "local169",
+      "local170",
+      "local171",
+      "local194"
+    ],
+    "packet_root": "C:/Users/Negan/AppData/Local/Temp/fieldtree-20261010-review-m989sbll",
+    "output": "D:/data_agent/evaluations/spider2/adr0007/fieldtree-20261010-audit/lane-3-analysis.jsonl"
+  },
+  {
+    "lane": 4,
+    "ids": [
+      "local195",
+      "local196",
+      "local220",
+      "local228",
+      "local230",
+      "local253",
+      "local258",
+      "local259",
+      "local263",
+      "local264"
+    ],
+    "packet_root": "C:/Users/Negan/AppData/Local/Temp/fieldtree-20261010-review-m989sbll",
+    "output": "D:/data_agent/evaluations/spider2/adr0007/fieldtree-20261010-audit/lane-4-analysis.jsonl"
+  },
+  {
+    "lane": 5,
+    "ids": [
+      "local269",
+      "local270",
+      "local272",
+      "local273",
+      "local275",
+      "local277",
+      "local279",
+      "local283",
+      "local285",
+      "local286"
+    ],
+    "packet_root": "C:/Users/Negan/AppData/Local/Temp/fieldtree-20261010-review-m989sbll",
+    "output": "D:/data_agent/evaluations/spider2/adr0007/fieldtree-20261010-audit/lane-5-analysis.jsonl"
+  },
+  {
+    "lane": 6,
+    "ids": [
+      "local297",
+      "local298",
+      "local299",
+      "local302",
+      "local311",
+      "local330",
+      "local331",
+      "local335",
+      "local336",
+      "local354",
+      "local358"
+    ],
+    "packet_root": "C:/Users/Negan/AppData/Local/Temp/fieldtree-20261010-review-m989sbll",
+    "output": "D:/data_agent/evaluations/spider2/adr0007/fieldtree-20261010-audit/lane-6-analysis.jsonl"
+  }
+]

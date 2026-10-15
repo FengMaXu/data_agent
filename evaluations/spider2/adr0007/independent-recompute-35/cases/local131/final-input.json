@@ -1,0 +1,3 @@
+{
+  "sql": "SELECT s.StyleName,SUM(CASE WHEN p.PreferenceSeq=1 THEN 1 ELSE 0 END) AS FirstPreference,SUM(CASE WHEN p.PreferenceSeq=2 THEN 1 ELSE 0 END) AS SecondPreference,SUM(CASE WHEN p.PreferenceSeq=3 THEN 1 ELSE 0 END) AS ThirdPreference FROM Musical_Styles s LEFT JOIN Musical_Preferences p ON s.StyleID=p.StyleID GROUP BY s.StyleID,s.StyleName ORDER BY s.StyleID"
+}

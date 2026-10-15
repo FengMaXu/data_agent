@@ -1,0 +1,3035 @@
+{
+  "version": 2,
+  "tasks": [
+    {
+      "taskId": "task_a98385ed-ab7f-43a4-bce2-6e9a7e38810c",
+      "sessionId": "local279",
+      "principalId": "independent-analyst",
+      "requestMessageId": "original-task",
+      "requestId": "5331abf1-9f56-4bb5-8c53-339ef8a75c91",
+      "currentRevisionId": "revision_65799b49-0dd4-404f-9d9f-afd75e629981",
+      "lifecycle": "published",
+      "budget": {
+        "policy": {
+          "version": "answering-dual-loop-v1",
+          "maxRevisions": 40,
+          "maxExplorationAttempts": 120,
+          "maxResultAttempts": 20,
+          "maxElapsedMs": 14400000,
+          "maxObservedRows": 2000000
+        },
+        "startedAt": "2026-10-11T09:09:29.210Z",
+        "revisionCount": 1,
+        "explorationAttempts": 8,
+        "resultAttempts": 1,
+        "observedRows": 267
+      },
+      "createdAt": "2026-10-11T09:09:29.210Z",
+      "updatedAt": "2026-10-11T09:12:52.693Z",
+      "latestCandidateId": "candidate_fa4c4e41-1aa9-4f07-a7fd-67930117b6aa",
+      "publicationId": "publication_ab8f4656-1b42-48b0-85ad-b30d0e4fc958"
+    }
+  ],
+  "revisions": [
+    {
+      "taskId": "task_a98385ed-ab7f-43a4-bce2-6e9a7e38810c",
+      "revisionId": "revision_a81fd1ac-cfb2-4459-827f-07a060b00db5",
+      "requestId": "5331abf1-9f56-4bb5-8c53-339ef8a75c91",
+      "createdAt": "2026-10-11T09:09:29.210Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "product monthly inventory states"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_f6e1ec15-b8ba-42b7-b397-3ac3e1913c6a"
+            ]
+          }
+        }
+      },
+      "state": {
+        "state": "draft",
+        "revisionId": "revision_a81fd1ac-cfb2-4459-827f-07a060b00db5"
+      },
+      "specFeedback": {
+        "taskId": "task_a98385ed-ab7f-43a4-bce2-6e9a7e38810c",
+        "revisionId": "revision_a81fd1ac-cfb2-4459-827f-07a060b00db5",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_f6e1ec15-b8ba-42b7-b397-3ac3e1913c6a"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    },
+    {
+      "taskId": "task_a98385ed-ab7f-43a4-bce2-6e9a7e38810c",
+      "revisionId": "revision_65799b49-0dd4-404f-9d9f-afd75e629981",
+      "parentRevisionId": "revision_a81fd1ac-cfb2-4459-827f-07a060b00db5",
+      "requestId": "b0b6cd70-015f-4d5c-8637-73112016c5d6",
+      "createdAt": "2026-10-11T09:10:33.053Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "product monthly inventory states"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_f6e1ec15-b8ba-42b7-b397-3ac3e1913c6a"
+            ]
+          }
+        },
+        "population.eligibility": {
+          "state": "specified",
+          "value": "Products with configured minimum and purchase quantity",
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "population.conditions": {
+          "state": "specified",
+          "value": [
+            "2019 forecast monthly demand; absent months zero demand"
+          ],
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "population.time": {
+          "state": "specified",
+          "value": {
+            "expression": "Initialize December2018, simulate Jan-Dec2019"
+          },
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "measure.formula": {
+          "state": "specified",
+          "value": {
+            "op": "custom",
+            "description": "Month pre_end=previous final ending-budget; strictly below minimum triggers one qty_purchase added immediately; final ending=pre_end+purchase; select minimum abs(final ending-minimum), earliest month on ties"
+          },
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "grouping": {
+          "state": "specified",
+          "value": [
+            "product_id"
+          ],
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "selection": {
+          "state": "not_applicable"
+        },
+        "output": {
+          "state": "specified",
+          "value": {
+            "rowMode": "full",
+            "columns": [
+              "product_id",
+              "month",
+              "absolute_difference"
+            ]
+          },
+          "basis": {
+            "kind": "assumed"
+          }
+        }
+      },
+      "state": {
+        "state": "ready",
+        "revisionId": "revision_65799b49-0dd4-404f-9d9f-afd75e629981",
+        "ready": "ready_5419f8dc-f466-413f-be4b-50c3d0da9f56"
+      },
+      "specFeedback": {
+        "taskId": "task_a98385ed-ab7f-43a4-bce2-6e9a7e38810c",
+        "revisionId": "revision_65799b49-0dd4-404f-9d9f-afd75e629981",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_f6e1ec15-b8ba-42b7-b397-3ac3e1913c6a",
+          "evidence_6b41579a-8f80-42d7-bd73-fb4acaae1260",
+          "evidence_d5e5f364-604d-4a64-9e72-4603bf47dd1f",
+          "evidence_0ff9dc5b-468f-4846-91f7-3ae870814787",
+          "evidence_2c7cfb16-d665-4806-a9f2-aef82ea5807b",
+          "evidence_7545365d-0e09-4fbf-875a-1be40af5333a"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "taskId": "task_a98385ed-ab7f-43a4-bce2-6e9a7e38810c",
+      "items": [
+        {
+          "id": "request_be3e2f2bd519d830902bceb0",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "observedAt": "2026-10-11T09:09:29.210Z"
+        },
+        {
+          "id": "evidence_f6e1ec15-b8ba-42b7-b397-3ac3e1913c6a",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "c28aa3270581f62c2697c1e4be726227016ab1b5dee7090390dd297b8de6072b",
+          "quote": "for each product",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "c28aa3270581f62c2697c1e4be726227016ab1b5dee7090390dd297b8de6072b"
+          },
+          "observedAt": "2026-10-11T09:09:29.210Z"
+        },
+        {
+          "id": "evidence_6b41579a-8f80-42d7-bd73-fb4acaae1260",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "1dffb7a4-eaa9-41ee-a43e-af0ea370b8a7",
+          "preview": {
+            "columns": [
+              "source",
+              "product_id",
+              "mth",
+              "qty"
+            ],
+            "rows": [
+              [
+                "inventory",
+                4040,
+                null,
+                300
+              ],
+              [
+                "inventory",
+                4160,
+                null,
+                700
+              ],
+              [
+                "inventory",
+                4280,
+                null,
+                200
+              ],
+              [
+                "inventory",
+                5310,
+                null,
+                500
+              ],
+              [
+                "inventory",
+                5430,
+                null,
+                500
+              ],
+              [
+                "budget",
+                6520,
+                "2018-01-01",
+                30
+              ],
+              [
+                "budget",
+                6520,
+                "2018-02-01",
+                30
+              ],
+              [
+                "budget",
+                6520,
+                "2018-03-01",
+                30
+              ],
+              [
+                "budget",
+                6520,
+                "2018-04-01",
+                30
+              ],
+              [
+                "budget",
+                6520,
+                "2018-05-01",
+                40
+              ],
+              [
+                "budget",
+                6520,
+                "2018-06-01",
+                50
+              ],
+              [
+                "budget",
+                6520,
+                "2018-07-01",
+                50
+              ],
+              [
+                "budget",
+                6520,
+                "2018-08-01",
+                40
+              ],
+              [
+                "budget",
+                6520,
+                "2018-09-01",
+                30
+              ],
+              [
+                "budget",
+                6520,
+                "2018-10-01",
+                30
+              ],
+              [
+                "budget",
+                6520,
+                "2018-11-01",
+                30
+              ],
+              [
+                "budget",
+                6520,
+                "2018-12-01",
+                30
+              ],
+              [
+                "budget",
+                6520,
+                "2019-01-01",
+                45
+              ],
+              [
+                "budget",
+                6520,
+                "2019-02-01",
+                45
+              ],
+              [
+                "budget",
+                6520,
+                "2019-03-01",
+                50
+              ],
+              [
+                "budget",
+                6520,
+                "2019-04-01",
+                50
+              ],
+              [
+                "budget",
+                6520,
+                "2019-05-01",
+                55
+              ],
+              [
+                "budget",
+                6520,
+                "2019-06-01",
+                55
+              ],
+              [
+                "budget",
+                6520,
+                "2019-07-01",
+                60
+              ],
+              [
+                "budget",
+                6520,
+                "2019-08-01",
+                60
+              ],
+              [
+                "budget",
+                6520,
+                "2019-09-01",
+                50
+              ],
+              [
+                "budget",
+                6520,
+                "2019-10-01",
+                50
+              ],
+              [
+                "budget",
+                6520,
+                "2019-11-01",
+                40
+              ],
+              [
+                "budget",
+                6520,
+                "2019-12-01",
+                40
+              ],
+              [
+                "inventory",
+                6520,
+                null,
+                400
+              ],
+              [
+                "minimum",
+                6520,
+                "100.0",
+                400
+              ],
+              [
+                "budget",
+                6600,
+                "2018-01-01",
+                6
+              ],
+              [
+                "budget",
+                6600,
+                "2018-02-01",
+                6
+              ],
+              [
+                "budget",
+                6600,
+                "2018-03-01",
+                6
+              ],
+              [
+                "budget",
+                6600,
+                "2018-04-01",
+                6
+              ],
+              [
+                "budget",
+                6600,
+                "2018-05-01",
+                6
+              ],
+              [
+                "budget",
+                6600,
+                "2018-06-01",
+                6
+              ],
+              [
+                "budget",
+                6600,
+                "2018-07-01",
+                6
+              ],
+              [
+                "budget",
+                6600,
+                "2018-08-01",
+                6
+              ],
+              [
+                "budget",
+                6600,
+                "2018-09-01",
+                6
+              ],
+              [
+                "budget",
+                6600,
+                "2018-10-01",
+                6
+              ],
+              [
+                "budget",
+                6600,
+                "2018-11-01",
+                6
+              ],
+              [
+                "budget",
+                6600,
+                "2018-12-01",
+                6
+              ],
+              [
+                "budget",
+                6600,
+                "2019-01-01",
+                20
+              ],
+              [
+                "budget",
+                6600,
+                "2019-02-01",
+                20
+              ],
+              [
+                "budget",
+                6600,
+                "2019-03-01",
+                20
+              ],
+              [
+                "budget",
+                6600,
+                "2019-04-01",
+                20
+              ],
+              [
+                "budget",
+                6600,
+                "2019-05-01",
+                20
+              ],
+              [
+                "budget",
+                6600,
+                "2019-06-01",
+                20
+              ],
+              [
+                "budget",
+                6600,
+                "2019-07-01",
+                20
+              ],
+              [
+                "budget",
+                6600,
+                "2019-08-01",
+                20
+              ],
+              [
+                "budget",
+                6600,
+                "2019-09-01",
+                20
+              ],
+              [
+                "budget",
+                6600,
+                "2019-10-01",
+                20
+              ],
+              [
+                "budget",
+                6600,
+                "2019-11-01",
+                20
+              ],
+              [
+                "budget",
+                6600,
+                "2019-12-01",
+                20
+              ],
+              [
+                "inventory",
+                6600,
+                null,
+                100
+              ],
+              [
+                "minimum",
+                6600,
+                "30.0",
+                100
+              ],
+              [
+                "inventory",
+                7790,
+                null,
+                300
+              ],
+              [
+                "inventory",
+                7870,
+                null,
+                559
+              ],
+              [
+                "inventory",
+                7950,
+                null,
+                536
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER",
+              "NULL",
+              "INTEGER"
+            ],
+            "rowCount": 60,
+            "truncated": false
+          },
+          "queryHash": "528adeb1edbb46832b3f80e99cb13ea5cef9ca5452f9faa12bfd460bb377d784",
+          "contentHash": "9be49e0e218a70c81b29e58b96baea93c3076e3a8b49be7e46f4ca0acd2e3e51",
+          "observedAt": "2026-10-11T09:09:35.541Z"
+        },
+        {
+          "id": "evidence_d5e5f364-604d-4a64-9e72-4603bf47dd1f",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "997ee804-3fb9-4b58-93a8-b5e296578f2d",
+          "preview": {
+            "columns": [
+              "source",
+              "start",
+              "end",
+              "n"
+            ],
+            "rows": [
+              [
+                "sales",
+                "2016-01-01",
+                "2018-12-01",
+                360
+              ],
+              [
+                "budget",
+                "2018-01-01",
+                "2019-12-01",
+                48
+              ],
+              [
+                "purchase",
+                "2016-01-01",
+                "2018-12-29",
+                180
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "TEXT",
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 3,
+            "truncated": false
+          },
+          "queryHash": "3dcda9166a40fda28272599920b4d25b800cb7672032f09854b912770a772b24",
+          "contentHash": "5560fc98c0b8366b47427e5a4653f9b28b1adbc6b0adad2e69fe731e774ce0ed",
+          "observedAt": "2026-10-11T09:09:41.227Z"
+        },
+        {
+          "id": "evidence_0ff9dc5b-468f-4846-91f7-3ae870814787",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "d81fb6c2-edff-4120-9d06-17cef9f70929",
+          "preview": {
+            "columns": [
+              "product_id",
+              "n",
+              "mth",
+              "qty_minimum",
+              "qty_purchase",
+              "initial",
+              "demand",
+              "opening",
+              "pre_end",
+              "replenish",
+              "ending"
+            ],
+            "rows": [
+              [
+                6520,
+                0,
+                "2018-12-01",
+                100,
+                400,
+                400,
+                0,
+                400,
+                400,
+                0,
+                400
+              ],
+              [
+                6520,
+                1,
+                "2019-01-01",
+                100,
+                400,
+                400,
+                45,
+                400,
+                355,
+                0,
+                355
+              ],
+              [
+                6520,
+                2,
+                "2019-02-01",
+                100,
+                400,
+                400,
+                45,
+                355,
+                310,
+                0,
+                310
+              ],
+              [
+                6520,
+                3,
+                "2019-03-01",
+                100,
+                400,
+                400,
+                50,
+                310,
+                260,
+                0,
+                260
+              ],
+              [
+                6520,
+                4,
+                "2019-04-01",
+                100,
+                400,
+                400,
+                50,
+                260,
+                210,
+                0,
+                210
+              ],
+              [
+                6520,
+                5,
+                "2019-05-01",
+                100,
+                400,
+                400,
+                55,
+                210,
+                155,
+                0,
+                155
+              ],
+              [
+                6520,
+                6,
+                "2019-06-01",
+                100,
+                400,
+                400,
+                55,
+                155,
+                100,
+                0,
+                100
+              ],
+              [
+                6520,
+                7,
+                "2019-07-01",
+                100,
+                400,
+                400,
+                60,
+                100,
+                40,
+                400,
+                440
+              ],
+              [
+                6520,
+                8,
+                "2019-08-01",
+                100,
+                400,
+                400,
+                60,
+                440,
+                380,
+                0,
+                380
+              ],
+              [
+                6520,
+                9,
+                "2019-09-01",
+                100,
+                400,
+                400,
+                50,
+                380,
+                330,
+                0,
+                330
+              ],
+              [
+                6520,
+                10,
+                "2019-10-01",
+                100,
+                400,
+                400,
+                50,
+                330,
+                280,
+                0,
+                280
+              ],
+              [
+                6520,
+                11,
+                "2019-11-01",
+                100,
+                400,
+                400,
+                40,
+                280,
+                240,
+                0,
+                240
+              ],
+              [
+                6520,
+                12,
+                "2019-12-01",
+                100,
+                400,
+                400,
+                40,
+                240,
+                200,
+                0,
+                200
+              ],
+              [
+                6600,
+                0,
+                "2018-12-01",
+                30,
+                100,
+                100,
+                0,
+                100,
+                100,
+                0,
+                100
+              ],
+              [
+                6600,
+                1,
+                "2019-01-01",
+                30,
+                100,
+                100,
+                20,
+                100,
+                80,
+                0,
+                80
+              ],
+              [
+                6600,
+                2,
+                "2019-02-01",
+                30,
+                100,
+                100,
+                20,
+                80,
+                60,
+                0,
+                60
+              ],
+              [
+                6600,
+                3,
+                "2019-03-01",
+                30,
+                100,
+                100,
+                20,
+                60,
+                40,
+                0,
+                40
+              ],
+              [
+                6600,
+                4,
+                "2019-04-01",
+                30,
+                100,
+                100,
+                20,
+                40,
+                20,
+                100,
+                120
+              ],
+              [
+                6600,
+                5,
+                "2019-05-01",
+                30,
+                100,
+                100,
+                20,
+                120,
+                100,
+                0,
+                100
+              ],
+              [
+                6600,
+                6,
+                "2019-06-01",
+                30,
+                100,
+                100,
+                20,
+                100,
+                80,
+                0,
+                80
+              ],
+              [
+                6600,
+                7,
+                "2019-07-01",
+                30,
+                100,
+                100,
+                20,
+                80,
+                60,
+                0,
+                60
+              ],
+              [
+                6600,
+                8,
+                "2019-08-01",
+                30,
+                100,
+                100,
+                20,
+                60,
+                40,
+                0,
+                40
+              ],
+              [
+                6600,
+                9,
+                "2019-09-01",
+                30,
+                100,
+                100,
+                20,
+                40,
+                20,
+                100,
+                120
+              ],
+              [
+                6600,
+                10,
+                "2019-10-01",
+                30,
+                100,
+                100,
+                20,
+                120,
+                100,
+                0,
+                100
+              ],
+              [
+                6600,
+                11,
+                "2019-11-01",
+                30,
+                100,
+                100,
+                20,
+                100,
+                80,
+                0,
+                80
+              ],
+              [
+                6600,
+                12,
+                "2019-12-01",
+                30,
+                100,
+                100,
+                20,
+                80,
+                60,
+                0,
+                60
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "TEXT",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 26,
+            "truncated": false
+          },
+          "queryHash": "c1d06d72c5215b921f3d4b7e6500bde72f543522d724f8d776e591434ecec273",
+          "contentHash": "5387810149a0b4904952f6f0a4ef2874e40fd8f67b74f5c6c8e5178cec0fdeaa",
+          "observedAt": "2026-10-11T09:10:19.374Z"
+        },
+        {
+          "id": "evidence_2c7cfb16-d665-4806-a9f2-aef82ea5807b",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "ca02a4b3-405e-4a5d-bca8-b06e29328d51",
+          "preview": {
+            "columns": [
+              "product_id",
+              "smallest_end",
+              "total_demand",
+              "total_purchase",
+              "ending12",
+              "conserved_end"
+            ],
+            "rows": [
+              [
+                6520,
+                100,
+                600,
+                400,
+                200,
+                200
+              ],
+              [
+                6600,
+                40,
+                240,
+                200,
+                60,
+                60
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 2,
+            "truncated": false
+          },
+          "queryHash": "4edb7db8d9197726253a563c114da3359b432c6c0f0faabfe5f3055b7d10b81e",
+          "contentHash": "3e7296159b86278ca9640fe3d8fda4a435ca9625fba17926df211106228872f0",
+          "observedAt": "2026-10-11T09:10:25.084Z"
+        },
+        {
+          "id": "evidence_7545365d-0e09-4fbf-875a-1be40af5333a",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "e9a3f208-158c-4777-bb04-3eafc6d537bf",
+          "preview": {
+            "columns": [
+              "product_id",
+              "absolute_difference",
+              "ties",
+              "months"
+            ],
+            "rows": [
+              [
+                6520,
+                0,
+                1,
+                "2019-06-01"
+              ],
+              [
+                6600,
+                10,
+                2,
+                "2019-03-01,2019-08-01"
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "TEXT"
+            ],
+            "rowCount": 2,
+            "truncated": false
+          },
+          "queryHash": "baad468c74694aaeec9de39e56a7fe3961c44295fb1fe0f83e88eb8254a975fa",
+          "contentHash": "b0c341fbe1b512c4f6474a41753c622ceaf7aefa201925b5cfee7de20de4f64d",
+          "observedAt": "2026-10-11T09:10:29.571Z"
+        },
+        {
+          "id": "evidence_f279f172-1a15-48f8-88a3-c270d877bf14",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "ad5201a3-2212-4ffa-8a99-8443f3b02466",
+          "preview": {
+            "columns": [
+              "product_id",
+              "inventory",
+              "purchases_all",
+              "sales_all",
+              "purchases_2018",
+              "sales_2018",
+              "sales_dec",
+              "budget_dec"
+            ],
+            "rows": [
+              [
+                6520,
+                400,
+                1400,
+                1230,
+                400,
+                357,
+                14,
+                30
+              ],
+              [
+                6600,
+                100,
+                400,
+                324,
+                100,
+                98,
+                1,
+                6
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 2,
+            "truncated": false
+          },
+          "queryHash": "c51b77c19d56decca83d0ee4b1de62238b66ee0b55725eaf636cad0a05981a2f",
+          "contentHash": "e877f7e0f58995b7d01f9364239c2d40bed34919fcdb2c81d0318e8797b4fb3d",
+          "observedAt": "2026-10-11T09:11:16.455Z"
+        },
+        {
+          "id": "evidence_b20a380b-6c55-41d9-b87c-55ec1d99a23a",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "9226b6e2-a137-4bbc-b37f-4edd028e1c0a",
+          "preview": {
+            "columns": [
+              "product_id",
+              "kind",
+              "mode",
+              "y",
+              "metric",
+              "mindiff",
+              "months"
+            ],
+            "rows": [
+              [
+                6520,
+                "2018_purchases_minus_sales",
+                "delayed_add",
+                2018,
+                "post",
+                13,
+                "9"
+              ],
+              [
+                6520,
+                "2018_purchases_minus_sales",
+                "delayed_add",
+                2018,
+                "pre",
+                13,
+                "9"
+              ],
+              [
+                6520,
+                "2018_purchases_minus_sales",
+                "delayed_add",
+                2019,
+                "post",
+                17,
+                "7"
+              ],
+              [
+                6520,
+                "2018_purchases_minus_sales",
+                "delayed_add",
+                2019,
+                "pre",
+                17,
+                "7"
+              ],
+              [
+                6520,
+                "2018_purchases_minus_sales",
+                "delayed_set",
+                2018,
+                "post",
+                0,
+                "8"
+              ],
+              [
+                6520,
+                "2018_purchases_minus_sales",
+                "delayed_set",
+                2018,
+                "pre",
+                0,
+                "8"
+              ],
+              [
+                6520,
+                "2018_purchases_minus_sales",
+                "delayed_set",
+                2019,
+                "post",
+                0,
+                "6"
+              ],
+              [
+                6520,
+                "2018_purchases_minus_sales",
+                "delayed_set",
+                2019,
+                "pre",
+                0,
+                "6"
+              ],
+              [
+                6520,
+                "2018_purchases_minus_sales",
+                "immediate_add",
+                2018,
+                "post",
+                13,
+                "9"
+              ],
+              [
+                6520,
+                "2018_purchases_minus_sales",
+                "immediate_add",
+                2018,
+                "pre",
+                13,
+                "9"
+              ],
+              [
+                6520,
+                "2018_purchases_minus_sales",
+                "immediate_add",
+                2019,
+                "post",
+                43,
+                "6"
+              ],
+              [
+                6520,
+                "2018_purchases_minus_sales",
+                "immediate_add",
+                2019,
+                "pre",
+                17,
+                "7"
+              ],
+              [
+                6520,
+                "2018_purchases_minus_sales",
+                "immediate_set",
+                2018,
+                "post",
+                0,
+                "9"
+              ],
+              [
+                6520,
+                "2018_purchases_minus_sales",
+                "immediate_set",
+                2018,
+                "pre",
+                0,
+                "9"
+              ],
+              [
+                6520,
+                "2018_purchases_minus_sales",
+                "immediate_set",
+                2019,
+                "post",
+                45,
+                "6"
+              ],
+              [
+                6520,
+                "2018_purchases_minus_sales",
+                "immediate_set",
+                2019,
+                "pre",
+                15,
+                "7"
+              ],
+              [
+                6520,
+                "2018_purchases_minus_sales",
+                "immediate_topup",
+                2018,
+                "post",
+                0,
+                "1,2,3,4,5,6,7,8,9,10,11,12"
+              ],
+              [
+                6520,
+                "2018_purchases_minus_sales",
+                "immediate_topup",
+                2018,
+                "pre",
+                30,
+                "2,3,4,9,10,11,12"
+              ],
+              [
+                6520,
+                "2018_purchases_minus_sales",
+                "immediate_topup",
+                2019,
+                "post",
+                0,
+                "1,2,3,4,5,6,7,8,9,10,11,12"
+              ],
+              [
+                6520,
+                "2018_purchases_minus_sales",
+                "immediate_topup",
+                2019,
+                "pre",
+                40,
+                "11,12"
+              ],
+              [
+                6520,
+                "2018_purchases_minus_sales",
+                "inclusive_add",
+                2018,
+                "post",
+                13,
+                "9"
+              ],
+              [
+                6520,
+                "2018_purchases_minus_sales",
+                "inclusive_add",
+                2018,
+                "pre",
+                13,
+                "9"
+              ],
+              [
+                6520,
+                "2018_purchases_minus_sales",
+                "inclusive_add",
+                2019,
+                "post",
+                43,
+                "6"
+              ],
+              [
+                6520,
+                "2018_purchases_minus_sales",
+                "inclusive_add",
+                2019,
+                "pre",
+                17,
+                "7"
+              ],
+              [
+                6520,
+                "dec_purchase_stock",
+                "delayed_add",
+                2018,
+                "post",
+                13,
+                "9"
+              ],
+              [
+                6520,
+                "dec_purchase_stock",
+                "delayed_add",
+                2018,
+                "pre",
+                13,
+                "9"
+              ],
+              [
+                6520,
+                "dec_purchase_stock",
+                "delayed_add",
+                2019,
+                "post",
+                17,
+                "7"
+              ],
+              [
+                6520,
+                "dec_purchase_stock",
+                "delayed_add",
+                2019,
+                "pre",
+                17,
+                "7"
+              ],
+              [
+                6520,
+                "dec_purchase_stock",
+                "delayed_set",
+                2018,
+                "post",
+                0,
+                "8"
+              ],
+              [
+                6520,
+                "dec_purchase_stock",
+                "delayed_set",
+                2018,
+                "pre",
+                0,
+                "8"
+              ],
+              [
+                6520,
+                "dec_purchase_stock",
+                "delayed_set",
+                2019,
+                "post",
+                0,
+                "6"
+              ],
+              [
+                6520,
+                "dec_purchase_stock",
+                "delayed_set",
+                2019,
+                "pre",
+                0,
+                "6"
+              ],
+              [
+                6520,
+                "dec_purchase_stock",
+                "immediate_add",
+                2018,
+                "post",
+                13,
+                "9"
+              ],
+              [
+                6520,
+                "dec_purchase_stock",
+                "immediate_add",
+                2018,
+                "pre",
+                13,
+                "9"
+              ],
+              [
+                6520,
+                "dec_purchase_stock",
+                "immediate_add",
+                2019,
+                "post",
+                43,
+                "6"
+              ],
+              [
+                6520,
+                "dec_purchase_stock",
+                "immediate_add",
+                2019,
+                "pre",
+                17,
+                "7"
+              ],
+              [
+                6520,
+                "dec_purchase_stock",
+                "immediate_set",
+                2018,
+                "post",
+                0,
+                "9"
+              ],
+              [
+                6520,
+                "dec_purchase_stock",
+                "immediate_set",
+                2018,
+                "pre",
+                0,
+                "9"
+              ],
+              [
+                6520,
+                "dec_purchase_stock",
+                "immediate_set",
+                2019,
+                "post",
+                45,
+                "6"
+              ],
+              [
+                6520,
+                "dec_purchase_stock",
+                "immediate_set",
+                2019,
+                "pre",
+                15,
+                "7"
+              ],
+              [
+                6520,
+                "dec_purchase_stock",
+                "immediate_topup",
+                2018,
+                "post",
+                0,
+                "1,2,3,4,5,6,7,8,9,10,11,12"
+              ],
+              [
+                6520,
+                "dec_purchase_stock",
+                "immediate_topup",
+                2018,
+                "pre",
+                30,
+                "2,3,4,9,10,11,12"
+              ],
+              [
+                6520,
+                "dec_purchase_stock",
+                "immediate_topup",
+                2019,
+                "post",
+                0,
+                "1,2,3,4,5,6,7,8,9,10,11,12"
+              ],
+              [
+                6520,
+                "dec_purchase_stock",
+                "immediate_topup",
+                2019,
+                "pre",
+                40,
+                "11,12"
+              ],
+              [
+                6520,
+                "dec_purchase_stock",
+                "inclusive_add",
+                2018,
+                "post",
+                13,
+                "9"
+              ],
+              [
+                6520,
+                "dec_purchase_stock",
+                "inclusive_add",
+                2018,
+                "pre",
+                13,
+                "9"
+              ],
+              [
+                6520,
+                "dec_purchase_stock",
+                "inclusive_add",
+                2019,
+                "post",
+                43,
+                "6"
+              ],
+              [
+                6520,
+                "dec_purchase_stock",
+                "inclusive_add",
+                2019,
+                "pre",
+                17,
+                "7"
+              ],
+              [
+                6520,
+                "purchases_minus_sales",
+                "delayed_add",
+                2018,
+                "post",
+                10,
+                "2"
+              ],
+              [
+                6520,
+                "purchases_minus_sales",
+                "delayed_add",
+                2018,
+                "pre",
+                10,
+                "2"
+              ],
+              [
+                6520,
+                "purchases_minus_sales",
+                "delayed_add",
+                2019,
+                "post",
+                0,
+                "9"
+              ],
+              [
+                6520,
+                "purchases_minus_sales",
+                "delayed_add",
+                2019,
+                "pre",
+                0,
+                "9"
+              ],
+              [
+                6520,
+                "purchases_minus_sales",
+                "delayed_set",
+                2018,
+                "post",
+                0,
+                "11"
+              ],
+              [
+                6520,
+                "purchases_minus_sales",
+                "delayed_set",
+                2018,
+                "pre",
+                0,
+                "11"
+              ],
+              [
+                6520,
+                "purchases_minus_sales",
+                "delayed_set",
+                2019,
+                "post",
+                20,
+                "2"
+              ],
+              [
+                6520,
+                "purchases_minus_sales",
+                "delayed_set",
+                2019,
+                "pre",
+                20,
+                "2"
+              ],
+              [
+                6520,
+                "purchases_minus_sales",
+                "immediate_add",
+                2018,
+                "post",
+                10,
+                "2"
+              ],
+              [
+                6520,
+                "purchases_minus_sales",
+                "immediate_add",
+                2018,
+                "pre",
+                10,
+                "2"
+              ],
+              [
+                6520,
+                "purchases_minus_sales",
+                "immediate_add",
+                2019,
+                "post",
+                0,
+                "9"
+              ],
+              [
+                6520,
+                "purchases_minus_sales",
+                "immediate_add",
+                2019,
+                "pre",
+                0,
+                "9"
+              ],
+              [
+                6520,
+                "purchases_minus_sales",
+                "immediate_set",
+                2018,
+                "post",
+                0,
+                "11"
+              ],
+              [
+                6520,
+                "purchases_minus_sales",
+                "immediate_set",
+                2018,
+                "pre",
+                0,
+                "11"
+              ],
+              [
+                6520,
+                "purchases_minus_sales",
+                "immediate_set",
+                2019,
+                "post",
+                25,
+                "1"
+              ],
+              [
+                6520,
+                "purchases_minus_sales",
+                "immediate_set",
+                2019,
+                "pre",
+                20,
+                "2"
+              ],
+              [
+                6520,
+                "purchases_minus_sales",
+                "immediate_topup",
+                2018,
+                "post",
+                0,
+                "3,4,5,6,7,8,9,10,11,12"
+              ],
+              [
+                6520,
+                "purchases_minus_sales",
+                "immediate_topup",
+                2018,
+                "pre",
+                10,
+                "2"
+              ],
+              [
+                6520,
+                "purchases_minus_sales",
+                "immediate_topup",
+                2019,
+                "post",
+                0,
+                "2,3,4,5,6,7,8,9,10,11,12"
+              ],
+              [
+                6520,
+                "purchases_minus_sales",
+                "immediate_topup",
+                2019,
+                "pre",
+                20,
+                "2"
+              ],
+              [
+                6520,
+                "purchases_minus_sales",
+                "inclusive_add",
+                2018,
+                "post",
+                10,
+                "2"
+              ],
+              [
+                6520,
+                "purchases_minus_sales",
+                "inclusive_add",
+                2018,
+                "pre",
+                10,
+                "2"
+              ],
+              [
+                6520,
+                "purchases_minus_sales",
+                "inclusive_add",
+                2019,
+                "post",
+                25,
+                "1"
+              ],
+              [
+                6520,
+                "purchases_minus_sales",
+                "inclusive_add",
+                2019,
+                "pre",
+                0,
+                "9"
+              ],
+              [
+                6520,
+                "snapshot",
+                "delayed_add",
+                2018,
+                "post",
+                0,
+                "8"
+              ],
+              [
+                6520,
+                "snapshot",
+                "delayed_add",
+                2018,
+                "pre",
+                0,
+                "8"
+              ],
+              [
+                6520,
+                "snapshot",
+                "delayed_add",
+                2019,
+                "post",
+                0,
+                "6"
+              ],
+              [
+                6520,
+                "snapshot",
+                "delayed_add",
+                2019,
+                "pre",
+                0,
+                "6"
+              ],
+              [
+                6520,
+                "snapshot",
+                "delayed_set",
+                2018,
+                "post",
+                0,
+                "8"
+              ],
+              [
+                6520,
+                "snapshot",
+                "delayed_set",
+                2018,
+                "pre",
+                0,
+                "8"
+              ],
+              [
+                6520,
+                "snapshot",
+                "delayed_set",
+                2019,
+                "post",
+                0,
+                "6"
+              ],
+              [
+                6520,
+                "snapshot",
+                "delayed_set",
+                2019,
+                "pre",
+                0,
+                "6"
+              ],
+              [
+                6520,
+                "snapshot",
+                "immediate_add",
+                2018,
+                "post",
+                0,
+                "8"
+              ],
+              [
+                6520,
+                "snapshot",
+                "immediate_add",
+                2018,
+                "pre",
+                0,
+                "8"
+              ],
+              [
+                6520,
+                "snapshot",
+                "immediate_add",
+                2019,
+                "post",
+                0,
+                "6"
+              ],
+              [
+                6520,
+                "snapshot",
+                "immediate_add",
+                2019,
+                "pre",
+                0,
+                "6"
+              ],
+              [
+                6520,
+                "snapshot",
+                "immediate_set",
+                2018,
+                "post",
+                0,
+                "8"
+              ],
+              [
+                6520,
+                "snapshot",
+                "immediate_set",
+                2018,
+                "pre",
+                0,
+                "8"
+              ],
+              [
+                6520,
+                "snapshot",
+                "immediate_set",
+                2019,
+                "post",
+                0,
+                "6"
+              ],
+              [
+                6520,
+                "snapshot",
+                "immediate_set",
+                2019,
+                "pre",
+                0,
+                "6"
+              ],
+              [
+                6520,
+                "snapshot",
+                "immediate_topup",
+                2018,
+                "post",
+                0,
+                "8,9,10,11,12"
+              ],
+              [
+                6520,
+                "snapshot",
+                "immediate_topup",
+                2018,
+                "pre",
+                0,
+                "8"
+              ],
+              [
+                6520,
+                "snapshot",
+                "immediate_topup",
+                2019,
+                "post",
+                0,
+                "6,7,8,9,10,11,12"
+              ],
+              [
+                6520,
+                "snapshot",
+                "immediate_topup",
+                2019,
+                "pre",
+                0,
+                "6"
+              ],
+              [
+                6520,
+                "snapshot",
+                "inclusive_add",
+                2018,
+                "post",
+                40,
+                "7"
+              ],
+              [
+                6520,
+                "snapshot",
+                "inclusive_add",
+                2018,
+                "pre",
+                0,
+                "8"
+              ],
+              [
+                6520,
+                "snapshot",
+                "inclusive_add",
+                2019,
+                "post",
+                55,
+                "5"
+              ],
+              [
+                6520,
+                "snapshot",
+                "inclusive_add",
+                2019,
+                "pre",
+                0,
+                "6"
+              ],
+              [
+                6600,
+                "2018_purchases_minus_sales",
+                "delayed_add",
+                2018,
+                "post",
+                0,
+                "12"
+              ],
+              [
+                6600,
+                "2018_purchases_minus_sales",
+                "delayed_add",
+                2018,
+                "pre",
+                0,
+                "12"
+              ],
+              [
+                6600,
+                "2018_purchases_minus_sales",
+                "delayed_add",
+                2019,
+                "post",
+                8,
+                "4,9"
+              ],
+              [
+                6600,
+                "2018_purchases_minus_sales",
+                "delayed_add",
+                2019,
+                "pre",
+                8,
+                "4,9"
+              ],
+              [
+                6600,
+                "2018_purchases_minus_sales",
+                "delayed_set",
+                2018,
+                "post",
+                2,
+                "12"
+              ],
+              [
+                6600,
+                "2018_purchases_minus_sales",
+                "delayed_set",
+                2018,
+                "pre",
+                2,
+                "12"
+              ],
+              [
+                6600,
+                "2018_purchases_minus_sales",
+                "delayed_set",
+                2019,
+                "post",
+                10,
+                "3,4,7,8,11,12"
+              ],
+              [
+                6600,
+                "2018_purchases_minus_sales",
+                "delayed_set",
+                2019,
+                "pre",
+                10,
+                "3,4,7,8,11,12"
+              ],
+              [
+                6600,
+                "2018_purchases_minus_sales",
+                "immediate_add",
+                2018,
+                "post",
+                0,
+                "12"
+              ],
+              [
+                6600,
+                "2018_purchases_minus_sales",
+                "immediate_add",
+                2018,
+                "pre",
+                0,
+                "12"
+              ],
+              [
+                6600,
+                "2018_purchases_minus_sales",
+                "immediate_add",
+                2019,
+                "post",
+                12,
+                "3,8"
+              ],
+              [
+                6600,
+                "2018_purchases_minus_sales",
+                "immediate_add",
+                2019,
+                "pre",
+                8,
+                "4,9"
+              ],
+              [
+                6600,
+                "2018_purchases_minus_sales",
+                "immediate_set",
+                2018,
+                "post",
+                4,
+                "12"
+              ],
+              [
+                6600,
+                "2018_purchases_minus_sales",
+                "immediate_set",
+                2018,
+                "pre",
+                4,
+                "12"
+              ],
+              [
+                6600,
+                "2018_purchases_minus_sales",
+                "immediate_set",
+                2019,
+                "post",
+                10,
+                "4,8,12"
+              ],
+              [
+                6600,
+                "2018_purchases_minus_sales",
+                "immediate_set",
+                2019,
+                "pre",
+                10,
+                "4,5,8,9,12"
+              ],
+              [
+                6600,
+                "2018_purchases_minus_sales",
+                "immediate_topup",
+                2018,
+                "post",
+                0,
+                "1,2,3,4,5,6,7,8,9,10,11,12"
+              ],
+              [
+                6600,
+                "2018_purchases_minus_sales",
+                "immediate_topup",
+                2018,
+                "pre",
+                6,
+                "2,3,4,5,6,7,8,9,10,11,12"
+              ],
+              [
+                6600,
+                "2018_purchases_minus_sales",
+                "immediate_topup",
+                2019,
+                "post",
+                0,
+                "1,2,3,4,5,6,7,8,9,10,11,12"
+              ],
+              [
+                6600,
+                "2018_purchases_minus_sales",
+                "immediate_topup",
+                2019,
+                "pre",
+                20,
+                "2,3,4,5,6,7,8,9,10,11,12"
+              ],
+              [
+                6600,
+                "2018_purchases_minus_sales",
+                "inclusive_add",
+                2018,
+                "post",
+                6,
+                "11"
+              ],
+              [
+                6600,
+                "2018_purchases_minus_sales",
+                "inclusive_add",
+                2018,
+                "pre",
+                0,
+                "12"
+              ],
+              [
+                6600,
+                "2018_purchases_minus_sales",
+                "inclusive_add",
+                2019,
+                "post",
+                12,
+                "3,8"
+              ],
+              [
+                6600,
+                "2018_purchases_minus_sales",
+                "inclusive_add",
+                2019,
+                "pre",
+                8,
+                "4,9"
+              ],
+              [
+                6600,
+                "purchases_minus_sales",
+                "delayed_add",
+                2018,
+                "post",
+                2,
+                "8"
+              ],
+              [
+                6600,
+                "purchases_minus_sales",
+                "delayed_add",
+                2018,
+                "pre",
+                2,
+                "8"
+              ],
+              [
+                6600,
+                "purchases_minus_sales",
+                "delayed_add",
+                2019,
+                "post",
+                6,
+                "2,7,12"
+              ],
+              [
+                6600,
+                "purchases_minus_sales",
+                "delayed_add",
+                2019,
+                "pre",
+                6,
+                "2,7,12"
+              ],
+              [
+                6600,
+                "purchases_minus_sales",
+                "delayed_set",
+                2018,
+                "post",
+                2,
+                "8"
+              ],
+              [
+                6600,
+                "purchases_minus_sales",
+                "delayed_set",
+                2018,
+                "pre",
+                2,
+                "8"
+              ],
+              [
+                6600,
+                "purchases_minus_sales",
+                "delayed_set",
+                2019,
+                "post",
+                6,
+                "2"
+              ],
+              [
+                6600,
+                "purchases_minus_sales",
+                "delayed_set",
+                2019,
+                "pre",
+                6,
+                "2"
+              ],
+              [
+                6600,
+                "purchases_minus_sales",
+                "immediate_add",
+                2018,
+                "post",
+                4,
+                "7"
+              ],
+              [
+                6600,
+                "purchases_minus_sales",
+                "immediate_add",
+                2018,
+                "pre",
+                2,
+                "8"
+              ],
+              [
+                6600,
+                "purchases_minus_sales",
+                "immediate_add",
+                2019,
+                "post",
+                6,
+                "2,7,12"
+              ],
+              [
+                6600,
+                "purchases_minus_sales",
+                "immediate_add",
+                2019,
+                "pre",
+                6,
+                "2,7,12"
+              ],
+              [
+                6600,
+                "purchases_minus_sales",
+                "immediate_set",
+                2018,
+                "post",
+                4,
+                "7"
+              ],
+              [
+                6600,
+                "purchases_minus_sales",
+                "immediate_set",
+                2018,
+                "pre",
+                2,
+                "8"
+              ],
+              [
+                6600,
+                "purchases_minus_sales",
+                "immediate_set",
+                2019,
+                "post",
+                6,
+                "2"
+              ],
+              [
+                6600,
+                "purchases_minus_sales",
+                "immediate_set",
+                2019,
+                "pre",
+                6,
+                "2"
+              ],
+              [
+                6600,
+                "purchases_minus_sales",
+                "immediate_topup",
+                2018,
+                "post",
+                0,
+                "8,9,10,11,12"
+              ],
+              [
+                6600,
+                "purchases_minus_sales",
+                "immediate_topup",
+                2018,
+                "pre",
+                2,
+                "8"
+              ],
+              [
+                6600,
+                "purchases_minus_sales",
+                "immediate_topup",
+                2019,
+                "post",
+                0,
+                "3,4,5,6,7,8,9,10,11,12"
+              ],
+              [
+                6600,
+                "purchases_minus_sales",
+                "immediate_topup",
+                2019,
+                "pre",
+                6,
+                "2"
+              ],
+              [
+                6600,
+                "purchases_minus_sales",
+                "inclusive_add",
+                2018,
+                "post",
+                4,
+                "7"
+              ],
+              [
+                6600,
+                "purchases_minus_sales",
+                "inclusive_add",
+                2018,
+                "pre",
+                2,
+                "8"
+              ],
+              [
+                6600,
+                "purchases_minus_sales",
+                "inclusive_add",
+                2019,
+                "post",
+                6,
+                "2,7,12"
+              ],
+              [
+                6600,
+                "purchases_minus_sales",
+                "inclusive_add",
+                2019,
+                "pre",
+                6,
+                "2,7,12"
+              ],
+              [
+                6600,
+                "snapshot",
+                "delayed_add",
+                2018,
+                "post",
+                2,
+                "12"
+              ],
+              [
+                6600,
+                "snapshot",
+                "delayed_add",
+                2018,
+                "pre",
+                2,
+                "12"
+              ],
+              [
+                6600,
+                "snapshot",
+                "delayed_add",
+                2019,
+                "post",
+                10,
+                "3,4,8,9"
+              ],
+              [
+                6600,
+                "snapshot",
+                "delayed_add",
+                2019,
+                "pre",
+                10,
+                "3,4,8,9"
+              ],
+              [
+                6600,
+                "snapshot",
+                "delayed_set",
+                2018,
+                "post",
+                2,
+                "12"
+              ],
+              [
+                6600,
+                "snapshot",
+                "delayed_set",
+                2018,
+                "pre",
+                2,
+                "12"
+              ],
+              [
+                6600,
+                "snapshot",
+                "delayed_set",
+                2019,
+                "post",
+                10,
+                "3,4,7,8,11,12"
+              ],
+              [
+                6600,
+                "snapshot",
+                "delayed_set",
+                2019,
+                "pre",
+                10,
+                "3,4,7,8,11,12"
+              ],
+              [
+                6600,
+                "snapshot",
+                "immediate_add",
+                2018,
+                "post",
+                4,
+                "11"
+              ],
+              [
+                6600,
+                "snapshot",
+                "immediate_add",
+                2018,
+                "pre",
+                2,
+                "12"
+              ],
+              [
+                6600,
+                "snapshot",
+                "immediate_add",
+                2019,
+                "post",
+                10,
+                "3,8"
+              ],
+              [
+                6600,
+                "snapshot",
+                "immediate_add",
+                2019,
+                "pre",
+                10,
+                "3,4,8,9"
+              ],
+              [
+                6600,
+                "snapshot",
+                "immediate_set",
+                2018,
+                "post",
+                4,
+                "11"
+              ],
+              [
+                6600,
+                "snapshot",
+                "immediate_set",
+                2018,
+                "pre",
+                2,
+                "12"
+              ],
+              [
+                6600,
+                "snapshot",
+                "immediate_set",
+                2019,
+                "post",
+                10,
+                "3,7,11"
+              ],
+              [
+                6600,
+                "snapshot",
+                "immediate_set",
+                2019,
+                "pre",
+                10,
+                "3,4,7,8,11,12"
+              ],
+              [
+                6600,
+                "snapshot",
+                "immediate_topup",
+                2018,
+                "post",
+                0,
+                "12"
+              ],
+              [
+                6600,
+                "snapshot",
+                "immediate_topup",
+                2018,
+                "pre",
+                2,
+                "12"
+              ],
+              [
+                6600,
+                "snapshot",
+                "immediate_topup",
+                2019,
+                "post",
+                0,
+                "4,5,6,7,8,9,10,11,12"
+              ],
+              [
+                6600,
+                "snapshot",
+                "immediate_topup",
+                2019,
+                "pre",
+                10,
+                "3,4"
+              ],
+              [
+                6600,
+                "snapshot",
+                "inclusive_add",
+                2018,
+                "post",
+                4,
+                "11"
+              ],
+              [
+                6600,
+                "snapshot",
+                "inclusive_add",
+                2018,
+                "pre",
+                2,
+                "12"
+              ],
+              [
+                6600,
+                "snapshot",
+                "inclusive_add",
+                2019,
+                "post",
+                10,
+                "3,8"
+              ],
+              [
+                6600,
+                "snapshot",
+                "inclusive_add",
+                2019,
+                "pre",
+                10,
+                "3,4,8,9"
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "TEXT",
+              "TEXT",
+              "INTEGER",
+              "TEXT",
+              "INTEGER",
+              "TEXT"
+            ],
+            "rowCount": 168,
+            "truncated": false
+          },
+          "queryHash": "833d81de79d959afba03d165780d6c2defd03ca1bf81a422838b6fdd322322ee",
+          "contentHash": "0f3791cd33abab8b82820c44da098633142f7fd7cb3c3aa80b33f8ded9e92d86",
+          "observedAt": "2026-10-11T09:12:48.257Z"
+        },
+        {
+          "id": "evidence_57838eee-c7ef-4015-a029-d7a84dec0ecc",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "bab48877-9050-46f3-8959-215ef36d0700",
+          "preview": {
+            "columns": [
+              "product_id",
+              "month",
+              "abs_diff"
+            ],
+            "rows": [
+              [
+                6520,
+                "2019-06-01",
+                0
+              ],
+              [
+                6600,
+                "2019-03-01",
+                10
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 2,
+            "truncated": false
+          },
+          "queryHash": "906bdaa69d290b9d387eb0e212620f124f81e018f8530407e8d73d34fab3364f",
+          "contentHash": "8dfeb3426a9b4c57541c03b2301ef4b835b6d94dda177b21366c12af28ee88ab",
+          "observedAt": "2026-10-11T09:12:52.691Z"
+        }
+      ]
+    }
+  ],
+  "attempts": [
+    {
+      "taskId": "task_a98385ed-ab7f-43a4-bce2-6e9a7e38810c",
+      "items": [
+        {
+          "attemptId": "attempt_956ea7a8-6dfa-4a93-9590-a1b2fca04540",
+          "taskId": "task_a98385ed-ab7f-43a4-bce2-6e9a7e38810c",
+          "kind": "exploration",
+          "revisionId": "revision_a81fd1ac-cfb2-4459-827f-07a060b00db5",
+          "invocationId": "1dffb7a4-eaa9-41ee-a43e-af0ea370b8a7",
+          "queryHash": "528adeb1edbb46832b3f80e99cb13ea5cef9ca5452f9faa12bfd460bb377d784",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:09:34.124Z",
+          "updatedAt": "2026-10-11T09:09:35.542Z"
+        },
+        {
+          "attemptId": "attempt_a9fc68de-4423-4681-bb74-82641ac42248",
+          "taskId": "task_a98385ed-ab7f-43a4-bce2-6e9a7e38810c",
+          "kind": "exploration",
+          "revisionId": "revision_a81fd1ac-cfb2-4459-827f-07a060b00db5",
+          "invocationId": "997ee804-3fb9-4b58-93a8-b5e296578f2d",
+          "queryHash": "3dcda9166a40fda28272599920b4d25b800cb7672032f09854b912770a772b24",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:09:40.474Z",
+          "updatedAt": "2026-10-11T09:09:41.228Z"
+        },
+        {
+          "attemptId": "attempt_7488049b-5a2e-406b-b0ef-a80c88a04f77",
+          "taskId": "task_a98385ed-ab7f-43a4-bce2-6e9a7e38810c",
+          "kind": "exploration",
+          "revisionId": "revision_a81fd1ac-cfb2-4459-827f-07a060b00db5",
+          "invocationId": "d81fb6c2-edff-4120-9d06-17cef9f70929",
+          "queryHash": "c1d06d72c5215b921f3d4b7e6500bde72f543522d724f8d776e591434ecec273",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:10:18.622Z",
+          "updatedAt": "2026-10-11T09:10:19.375Z"
+        },
+        {
+          "attemptId": "attempt_c477d8ca-1ef8-4cf1-9010-983adf46ab1e",
+          "taskId": "task_a98385ed-ab7f-43a4-bce2-6e9a7e38810c",
+          "kind": "exploration",
+          "revisionId": "revision_a81fd1ac-cfb2-4459-827f-07a060b00db5",
+          "invocationId": "ca02a4b3-405e-4a5d-bca8-b06e29328d51",
+          "queryHash": "4edb7db8d9197726253a563c114da3359b432c6c0f0faabfe5f3055b7d10b81e",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:10:24.689Z",
+          "updatedAt": "2026-10-11T09:10:25.085Z"
+        },
+        {
+          "attemptId": "attempt_ed2cc764-b8e5-4439-a6ba-fffcedb437e5",
+          "taskId": "task_a98385ed-ab7f-43a4-bce2-6e9a7e38810c",
+          "kind": "exploration",
+          "revisionId": "revision_a81fd1ac-cfb2-4459-827f-07a060b00db5",
+          "invocationId": "e9a3f208-158c-4777-bb04-3eafc6d537bf",
+          "queryHash": "baad468c74694aaeec9de39e56a7fe3961c44295fb1fe0f83e88eb8254a975fa",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:10:29.100Z",
+          "updatedAt": "2026-10-11T09:10:29.572Z"
+        },
+        {
+          "attemptId": "attempt_d68a8687-edb7-4796-bff1-3c94d8c4570b",
+          "taskId": "task_a98385ed-ab7f-43a4-bce2-6e9a7e38810c",
+          "kind": "revision",
+          "revisionId": "revision_a81fd1ac-cfb2-4459-827f-07a060b00db5",
+          "invocationId": "b0b6cd70-015f-4d5c-8637-73112016c5d6",
+          "state": "succeeded",
+          "sqlExecuted": false,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:10:33.059Z",
+          "updatedAt": "2026-10-11T09:10:33.053Z"
+        },
+        {
+          "attemptId": "attempt_7c540c24-f8cf-4e19-a0c5-690743b1d3d9",
+          "taskId": "task_a98385ed-ab7f-43a4-bce2-6e9a7e38810c",
+          "kind": "result",
+          "revisionId": "revision_65799b49-0dd4-404f-9d9f-afd75e629981",
+          "invocationId": "a8165296-9067-4382-8dfa-740434f4f777",
+          "queryHash": "0f32b028de99dd0d76c367e41a25ffa78ad9d19084758d644719ded82ef3ecac",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:10:36.535Z",
+          "updatedAt": "2026-10-11T09:10:36.937Z"
+        },
+        {
+          "attemptId": "attempt_b2ca3163-11c3-480a-aa4d-e23554b821c6",
+          "taskId": "task_a98385ed-ab7f-43a4-bce2-6e9a7e38810c",
+          "kind": "exploration",
+          "revisionId": "revision_65799b49-0dd4-404f-9d9f-afd75e629981",
+          "invocationId": "ad5201a3-2212-4ffa-8a99-8443f3b02466",
+          "queryHash": "c51b77c19d56decca83d0ee4b1de62238b66ee0b55725eaf636cad0a05981a2f",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:11:16.017Z",
+          "updatedAt": "2026-10-11T09:11:16.456Z"
+        },
+        {
+          "attemptId": "attempt_5eccb1c9-a777-44b8-a784-411168ae8e50",
+          "taskId": "task_a98385ed-ab7f-43a4-bce2-6e9a7e38810c",
+          "kind": "exploration",
+          "revisionId": "revision_65799b49-0dd4-404f-9d9f-afd75e629981",
+          "invocationId": "9226b6e2-a137-4bbc-b37f-4edd028e1c0a",
+          "queryHash": "833d81de79d959afba03d165780d6c2defd03ca1bf81a422838b6fdd322322ee",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:12:47.833Z",
+          "updatedAt": "2026-10-11T09:12:48.258Z"
+        },
+        {
+          "attemptId": "attempt_a578883c-7ebd-46e0-b8fd-f5a969c2bc49",
+          "taskId": "task_a98385ed-ab7f-43a4-bce2-6e9a7e38810c",
+          "kind": "exploration",
+          "revisionId": "revision_65799b49-0dd4-404f-9d9f-afd75e629981",
+          "invocationId": "bab48877-9050-46f3-8959-215ef36d0700",
+          "queryHash": "906bdaa69d290b9d387eb0e212620f124f81e018f8530407e8d73d34fab3364f",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:12:52.301Z",
+          "updatedAt": "2026-10-11T09:12:52.693Z"
+        }
+      ]
+    }
+  ],
+  "candidates": [
+    {
+      "candidateId": "candidate_fa4c4e41-1aa9-4f07-a7fd-67930117b6aa",
+      "taskId": "task_a98385ed-ab7f-43a4-bce2-6e9a7e38810c",
+      "revisionId": "revision_65799b49-0dd4-404f-9d9f-afd75e629981",
+      "resultRef": "result_5ce2bee4-c193-4066-91ab-c9d323f6690e",
+      "resultSchema": [
+        "product_id",
+        "month",
+        "absolute_difference"
+      ],
+      "rowCount": 2,
+      "contentHash": "6543d698bb9b7289a24bb50868b65197fbe0b2695ab8614886d02dcac785ec82",
+      "sql": "WITH RECURSIVE months(n,mth) AS (SELECT 1,'2019-01-01' UNION ALL SELECT n+1,date(mth,'+1 month') FROM months WHERE n<12), seed AS (SELECT m.product_id,m.qty_minimum,m.qty_purchase,COALESCE(SUM(i.qty),0) initial FROM product_minimums m LEFT JOIN inventory i ON m.product_id=i.product_id GROUP BY m.product_id,m.qty_minimum,m.qty_purchase), needs AS (SELECT s.*,m.n,m.mth,COALESCE(b.qty,0) demand FROM seed s CROSS JOIN months m LEFT JOIN monthly_budget b ON s.product_id=b.product_id AND m.mth=b.mth), sim(product_id,n,mth,qty_minimum,qty_purchase,initial,demand,opening,pre_end,replenish,ending) AS (SELECT product_id,0,'2018-12-01',qty_minimum,qty_purchase,initial,0,initial,initial,0,initial FROM seed UNION ALL SELECT s.product_id,b.n,b.mth,s.qty_minimum,s.qty_purchase,s.initial,b.demand,s.ending,s.ending-b.demand,CASE WHEN s.ending-b.demand<s.qty_minimum THEN s.qty_purchase ELSE 0 END,s.ending-b.demand+CASE WHEN s.ending-b.demand<s.qty_minimum THEN s.qty_purchase ELSE 0 END FROM sim s JOIN needs b ON s.product_id=b.product_id AND b.n=s.n+1), ranked AS (SELECT product_id,mth,ABS(ending-qty_minimum) absolute_difference,ROW_NUMBER() OVER(PARTITION BY product_id ORDER BY ABS(ending-qty_minimum),mth) rn FROM sim WHERE n>0) SELECT product_id,mth AS month,absolute_difference FROM ranked WHERE rn=1 ORDER BY product_id",
+      "queryHash": "0f32b028de99dd0d76c367e41a25ffa78ad9d19084758d644719ded82ef3ecac",
+      "findings": [],
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "attemptId": "attempt_7c540c24-f8cf-4e19-a0c5-690743b1d3d9",
+      "createdByInvocationId": "a8165296-9067-4382-8dfa-740434f4f777",
+      "createdAt": "2026-10-11T09:10:36.937Z",
+      "status": "ready",
+      "publishable": true
+    }
+  ],
+  "receipts": [
+    {
+      "receiptId": "publication_ab8f4656-1b42-48b0-85ad-b30d0e4fc958",
+      "taskId": "task_a98385ed-ab7f-43a4-bce2-6e9a7e38810c",
+      "principalId": "independent-analyst",
+      "sessionId": "local279",
+      "candidateId": "candidate_fa4c4e41-1aa9-4f07-a7fd-67930117b6aa",
+      "revisionId": "revision_65799b49-0dd4-404f-9d9f-afd75e629981",
+      "resultRef": "result_5ce2bee4-c193-4066-91ab-c9d323f6690e",
+      "format": "csv",
+      "publicRef": "/api/runtime/publications/publication_ab8f4656-1b42-48b0-85ad-b30d0e4fc958?session_id=local279",
+      "contentHash": "6543d698bb9b7289a24bb50868b65197fbe0b2695ab8614886d02dcac785ec82",
+      "presentationContentHash": "7909adb37334f987a0bc813c7c73e4ec16872dd2f259f867ab17284e7cb5c303",
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "disclosure": {
+        "required": true,
+        "unverifiedFields": [
+          {
+            "path": "population.eligibility",
+            "kind": "assumed"
+          },
+          {
+            "path": "population.conditions",
+            "kind": "assumed"
+          },
+          {
+            "path": "population.time",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.formula",
+            "kind": "assumed"
+          },
+          {
+            "path": "grouping",
+            "kind": "assumed"
+          },
+          {
+            "path": "output",
+            "kind": "assumed"
+          }
+        ],
+        "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.conditions, population.time, measure.formula, grouping, output。"
+      },
+      "physicalProfile": {
+        "version": 1,
+        "rowCount": 2,
+        "truncated": false,
+        "columns": [
+          {
+            "name": "product_id",
+            "kind": "integer",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 2,
+            "min": "6520",
+            "max": "6600"
+          },
+          {
+            "name": "month",
+            "kind": "text",
+            "nullCount": 0,
+            "distinctCount": 2
+          },
+          {
+            "name": "absolute_difference",
+            "kind": "integer",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 2,
+            "min": "0",
+            "max": "10"
+          }
+        ]
+      },
+      "policyVersion": "answering-publication-v1",
+      "createdByInvocationId": "a8165296-9067-4382-8dfa-740434f4f777",
+      "requestId": "a8165296-9067-4382-8dfa-740434f4f777",
+      "createdAt": "2026-10-11T09:10:36.962Z"
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+{"algorithm": "Same-step score comparison, distinct model identity once per L1/status", "assumptions": ["Same-step baseline scope", "Count distinct model identity not step; both statuses allowed if different steps qualify"], "checks": ["303 unique steps,101 models, no duplicate score keys", "regression soft 21 strong 37"]}

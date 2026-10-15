@@ -1,0 +1,290 @@
+{
+  "frozenAt": "2026-10-11T09:02:42.204Z",
+  "instance_id": "local037",
+  "independent": true,
+  "taskId": "task_0e7333c9-1b1e-48b6-8b2f-ca7975fd1b7f",
+  "revisionId": "revision_9870458f-7ecc-4d8e-8cd2-4cd3b2479cc3",
+  "publication": {
+    "receiptId": "publication_caf1b2d3-4cce-44c1-b09d-c51ccedbd1f1",
+    "taskId": "task_0e7333c9-1b1e-48b6-8b2f-ca7975fd1b7f",
+    "principalId": "independent-analyst",
+    "sessionId": "local037",
+    "candidateId": "candidate_708f1436-76d3-4002-9391-97f49e4134c3",
+    "revisionId": "revision_9870458f-7ecc-4d8e-8cd2-4cd3b2479cc3",
+    "resultRef": "result_84a9fbfb-90d7-4142-aaae-ecf957b35794",
+    "format": "csv",
+    "publicRef": "/api/runtime/publications/publication_caf1b2d3-4cce-44c1-b09d-c51ccedbd1f1?session_id=local037",
+    "contentHash": "4c5eb9592d5178cb27f606d4436c8c303a1cb32b2678a246a723f14f850290fa",
+    "presentationContentHash": "8470411b561bfc8284fbb83e85813ae0312e703fde6e339e21ced75bf15203b5",
+    "coverage": [
+      {
+        "checkId": "result_completeness",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_shape",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_identity",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "join_fanout",
+        "outcome": "unknown",
+        "reason": "check_disabled"
+      },
+      {
+        "checkId": "spec_feedback",
+        "ruleVersion": "spec-feedback-v2",
+        "outcome": "not_applicable",
+        "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+      }
+    ],
+    "fanout": {
+      "ruleVersion": "answering-fanout-v1",
+      "status": "unknown",
+      "snapshotScope": "unbound",
+      "targets": [],
+      "unsupportedReasons": [
+        "check_disabled"
+      ]
+    },
+    "disclosure": {
+      "required": true,
+      "unverifiedFields": [
+        {
+          "path": "population.eligibility",
+          "kind": "assumed"
+        },
+        {
+          "path": "population.time",
+          "kind": "assumed"
+        },
+        {
+          "path": "population.joinMultiplicity",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.countGrain",
+          "kind": "assumed"
+        },
+        {
+          "path": "selection.ties",
+          "kind": "assumed"
+        },
+        {
+          "path": "population.conditions",
+          "kind": "assumed"
+        }
+      ],
+      "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.time, population.joinMultiplicity, measure.countGrain, selection.ties, population.conditions。 JOIN fanout 检查未能完整完成：check_disabled。",
+      "fanoutStatus": "unknown"
+    },
+    "physicalProfile": {
+      "version": 1,
+      "rowCount": 3,
+      "truncated": false,
+      "columns": [
+        {
+          "name": "category",
+          "kind": "text",
+          "nullCount": 0,
+          "distinctCount": 3
+        },
+        {
+          "name": "payment_type",
+          "kind": "text",
+          "nullCount": 0,
+          "distinctCount": 1
+        },
+        {
+          "name": "number_of_payments",
+          "kind": "integer",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 3,
+          "min": "5923",
+          "max": "7565"
+        }
+      ]
+    },
+    "policyVersion": "answering-publication-v1",
+    "createdByInvocationId": "7516d01d-4187-4be7-bd34-94ab75e18980",
+    "requestId": "7516d01d-4187-4be7-bd34-94ab75e18980",
+    "createdAt": "2026-10-11T09:02:37.784Z"
+  },
+  "currentRevision": {
+    "taskId": "task_0e7333c9-1b1e-48b6-8b2f-ca7975fd1b7f",
+    "revisionId": "revision_9870458f-7ecc-4d8e-8cd2-4cd3b2479cc3",
+    "parentRevisionId": "revision_7ec53ebc-391e-4295-aeb9-d9549a81000e",
+    "requestId": "970c6b7a-8736-453a-8688-e96e0acfeb48",
+    "createdAt": "2026-10-11T09:02:14.545Z",
+    "fields": {
+      "population.entity": {
+        "state": "specified",
+        "value": {
+          "name": "product categories and their payment events"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_f4d86743-3583-4cec-8a61-f9e3c92c3bbe"
+          ]
+        }
+      },
+      "population.eligibility": {
+        "state": "specified",
+        "value": "Only non-null categories represented by at least one payment",
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立题解；题目未明确，作为假定披露"
+        }
+      },
+      "population.time": {
+        "state": "specified",
+        "value": {
+          "expression": "All stored dates; no time filter"
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立题解；题目未明确，作为假定披露"
+        }
+      },
+      "population.joinMultiplicity": {
+        "state": "specified",
+        "value": "DISTINCT order_id/category before payment join; each payment once per category",
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立题解；题目未明确，作为假定披露"
+        }
+      },
+      "measure.formula": {
+        "state": "specified",
+        "value": {
+          "op": "count",
+          "of": "payment records per category/payment_type"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_c23d8f28-df5b-4035-af3a-1b4bc16c698d"
+          ]
+        }
+      },
+      "measure.countGrain": {
+        "state": "specified",
+        "value": "(category,order_id,payment_sequential)",
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立题解；题目未明确，作为假定披露"
+        }
+      },
+      "grouping": {
+        "state": "specified",
+        "value": [
+          "category",
+          "payment_type"
+        ],
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_32a0efc1-ac7e-4cd7-9792-13ea7f2b7d55"
+          ]
+        }
+      },
+      "selection.ties": {
+        "state": "specified",
+        "value": "strict",
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立题解；题目未明确，作为假定披露"
+        }
+      },
+      "output": {
+        "state": "specified",
+        "value": {
+          "rowMode": "top_n",
+          "rowCount": 3,
+          "columns": [
+            "category",
+            "payment_type",
+            "number_of_payments"
+          ]
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_32987530-e651-46c0-b805-d08142d5e6bd"
+          ]
+        }
+      },
+      "population.conditions": {
+        "state": "specified",
+        "value": [
+          "No additional status/date restrictions"
+        ],
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立题解；题目未明确，作为假定披露"
+        }
+      },
+      "selection": {
+        "state": "specified",
+        "value": {
+          "n": 3,
+          "orderBy": "number_of_payments DESC, category ASC; per-category mode chosen by payment_type ASC on ties"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_83caa61c-d5ff-46fe-bd79-abf2679b8cf8"
+          ]
+        }
+      }
+    },
+    "state": {
+      "state": "ready",
+      "revisionId": "revision_9870458f-7ecc-4d8e-8cd2-4cd3b2479cc3",
+      "ready": "ready_13a2a7c7-0a3b-4c0b-84d2-cbef96ce883d"
+    },
+    "specFeedback": {
+      "taskId": "task_0e7333c9-1b1e-48b6-8b2f-ca7975fd1b7f",
+      "revisionId": "revision_9870458f-7ecc-4d8e-8cd2-4cd3b2479cc3",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_f4d86743-3583-4cec-8a61-f9e3c92c3bbe",
+        "evidence_b16ef82d-9dad-402d-a22b-8ce297d2f82e",
+        "evidence_4d4f1a8a-5f12-47ad-9225-a78c34f35f9b",
+        "evidence_05f84805-ca56-4ee4-8d25-b0518b192c44",
+        "evidence_c23d8f28-df5b-4035-af3a-1b4bc16c698d",
+        "evidence_32a0efc1-ac7e-4cd7-9792-13ea7f2b7d55",
+        "evidence_32987530-e651-46c0-b805-d08142d5e6bd",
+        "evidence_83caa61c-d5ff-46fe-bd79-abf2679b8cf8"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    }
+  },
+  "analystNote": {
+    "algorithm": "Distinct order-category membership then count payment rows; per-category mode; top three maxima",
+    "assumptions": [
+      "No null categories",
+      "Multi-category payments count once in each category",
+      "Strict ties by names"
+    ],
+    "validation": "Payment keys unique 103886; top counts differ from item join 7565/6898/5923 vs 8959/7566/6635"
+  },
+  "settings": {
+    "qualification": "required",
+    "fieldProbes": true,
+    "externalAdvisor": "not_configured",
+    "specFeedback": "not_configured",
+    "fanout": "disabled_for_offline_audit",
+    "populationDecisions": "allow_disclosed_headless_audit",
+    "databaseReadOnly": true
+  }
+}

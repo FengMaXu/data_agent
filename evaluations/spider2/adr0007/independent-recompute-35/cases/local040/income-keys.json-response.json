@@ -1,0 +1,65 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_35e510dd-71b1-412a-8211-a3eb81ccf4aa\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nrows | zips | missing_zip | positive\n220 | 216 | 0 | 188"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_35e510dd-71b1-412a-8211-a3eb81ccf4aa",
+      "preview": {
+        "columns": [
+          "rows",
+          "zips",
+          "missing_zip",
+          "positive"
+        ],
+        "rows": [
+          [
+            220,
+            216,
+            0,
+            188
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "rows",
+        "zips",
+        "missing_zip",
+        "positive"
+      ],
+      "rows": [
+        [
+          220,
+          216,
+          0,
+          188
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_6cdd92cc-028a-4c6d-a466-0ef686e63a55"
+  }
+}

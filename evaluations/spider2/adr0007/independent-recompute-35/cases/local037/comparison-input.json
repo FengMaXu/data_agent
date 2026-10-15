@@ -1,0 +1,73 @@
+{
+  "revealedAt": "2026-10-11T09:02:51.994Z",
+  "registry": {
+    "instance_id": "local037",
+    "attempt_id": "attempt-001",
+    "score": 0,
+    "score_source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-attempt-001.json",
+    "replayed_csv_score": 0,
+    "group": "wrong",
+    "status": "completed",
+    "publication_status": "published",
+    "duration_ms": 424589,
+    "tool_calls": 23,
+    "error": null,
+    "result_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local037/attempts/attempt-001/result.json",
+    "trace_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local037/attempts/attempt-001/trace.json",
+    "result_exists": true,
+    "trace_exists": true,
+    "sql_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local037/attempts/attempt-001/submissions/sql/local037.sql",
+    "csv_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local037.csv",
+    "sql_exists": true,
+    "csv_exists": true,
+    "gold_sql_file": null,
+    "process": {
+      "turns": 17,
+      "toolCalls": 23,
+      "explorationQueries": 3,
+      "resultQueries": 1,
+      "fanoutProbes": 0,
+      "revisions": 5
+    },
+    "fanout_metrics": {
+      "reportCount": 1,
+      "targetCount": 0,
+      "findingCount": 0,
+      "unknownCount": 0,
+      "byStatus": {
+        "clear": 0,
+        "finding": 0,
+        "not_applicable": 1,
+        "unknown": 0
+      },
+      "enabled": true
+    },
+    "spec_feedback_metrics": {
+      "reportCount": 3,
+      "byStatus": {
+        "pending": 0,
+        "completed": 0,
+        "unavailable": 3,
+        "disabled": 0
+      },
+      "deterministicIssueCount": 0,
+      "concernCount": 0,
+      "enabled": true
+    }
+  },
+  "originalSql": "WITH payment_by_category AS (\n  SELECT DISTINCT\n         p.order_id,\n         p.payment_sequential,\n         p.payment_type,\n         pr.product_category_name\n  FROM olist_order_payments AS p\n  JOIN olist_order_items   AS oi ON oi.order_id   = p.order_id\n  JOIN olist_products      AS pr ON pr.product_id = oi.product_id\n  WHERE pr.product_category_name IS NOT NULL\n), payment_count AS (\n  SELECT product_category_name,\n         payment_type,\n         COUNT(*) AS payments\n  FROM payment_by_category\n  GROUP BY product_category_name, payment_type\n), category_mode AS (\n  SELECT product_category_name,\n         payment_type,\n         payments,\n         ROW_NUMBER() OVER (PARTITION BY product_category_name\n                            ORDER BY payments DESC, payment_type ASC) AS rn\n  FROM payment_count\n)\nSELECT product_category_name,\n       payment_type,\n       payments\nFROM category_mode\nWHERE rn = 1\nORDER BY payments DESC, product_category_name ASC\nLIMIT 3\n",
+  "originalCsv": "product_category_name,payment_type,payments\ncama_mesa_banho,credit_card,7565\nbeleza_saude,credit_card,6898\nesporte_lazer,credit_card,5923\n",
+  "goldSql": null,
+  "goldCsv": [
+    {
+      "path": "C:\\data-agent-eval\\Spider2\\spider2-lite\\evaluation_suite\\gold\\exec_result\\local037.csv",
+      "content": "Category_name,payment_count\r\ncama_mesa_banho,7540\r\nbeleza_saude,6874\r\nesporte_lazer,5904\r\n"
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local037",
+    "condition_cols": [],
+    "ignore_order": true,
+    "toks": "106"
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT 'cast_raw' kind,COUNT(DISTINCT PID) n FROM M_Cast UNION ALL SELECT 'cast_normalized',COUNT(DISTINCT TRIM(PID)) FROM M_Cast UNION ALL SELECT 'persons',COUNT(DISTINCT PID) FROM Person UNION ALL SELECT 'credit_movie_join',COUNT(DISTINCT TRIM(c.PID)) FROM M_Cast c JOIN Movie m ON c.MID=m.MID",
+  "limit": 100
+}

@@ -1,0 +1,253 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_5463d28c-0aa2-4b19-a3ca-7da182008ebb\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nname | version | step | L1_model | baseline | stack_score\nCritical Heat Flux | 1 | 1 | regression | 0.8836410197441006 | 0.8767667331999809\nCritical Heat Flux | 2 | 1 | regression | 0.8836410197441006 | 0.8767667331999809\nCritical Heat Flux | 3 | 1 | tree | 0.8836410197441006 | 0.8470847778663093\nCritical Heat Flux | 3 | 2 | tree | 0.8836410197441006 | 0.8580739277704147\nCritical Heat Flux | 3 | 3 | tree | 0.8868161892955251 | 0.820001186352687\nCritical Heat Flux | 4 | 1 | tree | 0.8836410197441006 | 0.8470847778663093\nCritical Heat Flux | 4 | 2 | tree | 0.8836410197441006 | 0.8212042575388446\nCritical Heat Flux | 4 | 3 | tree | 0.8868161892955251 | 0.8249690699279786\nCritical Heat Flux | 5 | 1 | regression | 0.8836410197441006 | 0.8767667331999809\nDelaney solubility | 3 | 1 | tree | 0.8498776981484352 | 0.7361578456024362\nDelaney solubility | 3 | 2 | tree | 0.8498776981484352 | 0.7688278804396981\nDelaney solubility | 3 | 3 | tree | 0.8498776981484352 | 0.7688278804396981"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_5463d28c-0aa2-4b19-a3ca-7da182008ebb",
+      "preview": {
+        "columns": [
+          "name",
+          "version",
+          "step",
+          "L1_model",
+          "baseline",
+          "stack_score"
+        ],
+        "rows": [
+          [
+            "Critical Heat Flux",
+            1,
+            1,
+            "regression",
+            0.8836410197441006,
+            0.8767667331999809
+          ],
+          [
+            "Critical Heat Flux",
+            2,
+            1,
+            "regression",
+            0.8836410197441006,
+            0.8767667331999809
+          ],
+          [
+            "Critical Heat Flux",
+            3,
+            1,
+            "tree",
+            0.8836410197441006,
+            0.8470847778663093
+          ],
+          [
+            "Critical Heat Flux",
+            3,
+            2,
+            "tree",
+            0.8836410197441006,
+            0.8580739277704147
+          ],
+          [
+            "Critical Heat Flux",
+            3,
+            3,
+            "tree",
+            0.8868161892955251,
+            0.820001186352687
+          ],
+          [
+            "Critical Heat Flux",
+            4,
+            1,
+            "tree",
+            0.8836410197441006,
+            0.8470847778663093
+          ],
+          [
+            "Critical Heat Flux",
+            4,
+            2,
+            "tree",
+            0.8836410197441006,
+            0.8212042575388446
+          ],
+          [
+            "Critical Heat Flux",
+            4,
+            3,
+            "tree",
+            0.8868161892955251,
+            0.8249690699279786
+          ],
+          [
+            "Critical Heat Flux",
+            5,
+            1,
+            "regression",
+            0.8836410197441006,
+            0.8767667331999809
+          ],
+          [
+            "Delaney solubility",
+            3,
+            1,
+            "tree",
+            0.8498776981484352,
+            0.7361578456024362
+          ],
+          [
+            "Delaney solubility",
+            3,
+            2,
+            "tree",
+            0.8498776981484352,
+            0.7688278804396981
+          ],
+          [
+            "Delaney solubility",
+            3,
+            3,
+            "tree",
+            0.8498776981484352,
+            0.7688278804396981
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "INTEGER",
+          "TEXT",
+          "REAL",
+          "REAL"
+        ],
+        "rowCount": 12,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "name",
+        "version",
+        "step",
+        "L1_model",
+        "baseline",
+        "stack_score"
+      ],
+      "rows": [
+        [
+          "Critical Heat Flux",
+          1,
+          1,
+          "regression",
+          0.8836410197441006,
+          0.8767667331999809
+        ],
+        [
+          "Critical Heat Flux",
+          2,
+          1,
+          "regression",
+          0.8836410197441006,
+          0.8767667331999809
+        ],
+        [
+          "Critical Heat Flux",
+          3,
+          1,
+          "tree",
+          0.8836410197441006,
+          0.8470847778663093
+        ],
+        [
+          "Critical Heat Flux",
+          3,
+          2,
+          "tree",
+          0.8836410197441006,
+          0.8580739277704147
+        ],
+        [
+          "Critical Heat Flux",
+          3,
+          3,
+          "tree",
+          0.8868161892955251,
+          0.820001186352687
+        ],
+        [
+          "Critical Heat Flux",
+          4,
+          1,
+          "tree",
+          0.8836410197441006,
+          0.8470847778663093
+        ],
+        [
+          "Critical Heat Flux",
+          4,
+          2,
+          "tree",
+          0.8836410197441006,
+          0.8212042575388446
+        ],
+        [
+          "Critical Heat Flux",
+          4,
+          3,
+          "tree",
+          0.8868161892955251,
+          0.8249690699279786
+        ],
+        [
+          "Critical Heat Flux",
+          5,
+          1,
+          "regression",
+          0.8836410197441006,
+          0.8767667331999809
+        ],
+        [
+          "Delaney solubility",
+          3,
+          1,
+          "tree",
+          0.8498776981484352,
+          0.7361578456024362
+        ],
+        [
+          "Delaney solubility",
+          3,
+          2,
+          "tree",
+          0.8498776981484352,
+          0.7688278804396981
+        ],
+        [
+          "Delaney solubility",
+          3,
+          3,
+          "tree",
+          0.8498776981484352,
+          0.7688278804396981
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "INTEGER",
+        "TEXT",
+        "REAL",
+        "REAL"
+      ],
+      "rowCount": 12,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_4329540d-ba39-4036-a170-8e1b9c2f1237"
+  }
+}

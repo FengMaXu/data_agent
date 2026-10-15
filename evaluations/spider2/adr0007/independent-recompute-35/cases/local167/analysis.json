@@ -1,0 +1,51 @@
+{
+  "instance_id": "local167",
+  "status": "gold_conflict",
+  "summary": "CA首州女性43人中Katie Hill唯一任期2019-01-03..2019-11-03，不含任何12-31；闭/开区间均42，原与独立相同；Gold43等于未筛全部女性。",
+  "fork_node": "population.conditions",
+  "error_layer": "gold_population_conflict",
+  "visibility": "原Spec正确写出任一年末EXISTS；Gold没有Spec",
+  "independent_score": 0,
+  "evidence": [
+    {
+      "source": "blind.json",
+      "pointer": "/question",
+      "quote": "whose terms included December 31st at any point"
+    },
+    {
+      "source": "ca-person-inventory.json-response.txt",
+      "pointer": "/details/preview/rows/0",
+      "quote": "H001087"
+    },
+    {
+      "source": "comparison-input.json",
+      "pointer": "/goldCsv/0/content",
+      "quote": "CA,43"
+    }
+  ],
+  "limitations": [
+    "Gold SQL缺失，不能确认生成43的真实机制",
+    "Term_end端点未由业务文档定义，但不影响CA42"
+  ],
+  "parent_field_review": {
+    "instance_id": "local167",
+    "relevant_node": "population.conditions",
+    "node_is_confirmed_original_error": false,
+    "explanation": "Gold含不跨任何年末的Katie Hill；原年末资格筛选正确",
+    "error_layer": "标准答案与本次输入/明确要求局部冲突",
+    "visibility": "不适用：未确认原Spec语义错误",
+    "qualification": "Gold差异相关节点，不冒充原系统错误节点",
+    "original_node_declared": true,
+    "original_node_status": "assumed",
+    "original_node_value": [
+      "legislators.gender = 'F'（作用于资格总体 WHERE）",
+      "该议员的任期中至少有一条覆盖某年 12 月 31 日（作用于议员层 HAVING/EXISTS）"
+    ],
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local167/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/12/result/details/fields/2/value",
+      "quote": "[\"legislators.gender = 'F'（作用于资格总体 WHERE）\", \"该议员的任期中至少有一条覆盖某年 12 月 31 日（作用于议员层 HAVING/EXISTS）\"]"
+    },
+    "primary_status": "gold_conflict"
+  }
+}

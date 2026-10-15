@@ -1,0 +1,9 @@
+{
+  "algorithm": "shortest coappearance graph distance exactly2; set difference removes source/direct neighbors",
+  "assumptions": [
+    "演员业务键PID而不是同名合并"
+  ],
+  "limitations": [
+    "同名起点若有多个PID需记录实际查询；所有电影均纳入"
+  ]
+}

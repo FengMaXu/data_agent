@@ -1,0 +1,4 @@
+{
+  "sql": "WITH persons AS MATERIALIZED (SELECT PID,MAX(CASE WHEN Gender='Female' THEN 0 ELSE 1 END) bad FROM Person GROUP BY PID), cast_rows AS MATERIALIZED (SELECT DISTINCT TRIM(MID) mid,TRIM(PID) pid FROM M_Cast), cast_flags AS MATERIALIZED (SELECT c.mid,COUNT(*) actors,MAX(COALESCE(p.bad,1)) bad FROM cast_rows c LEFT JOIN persons p ON c.pid=p.PID GROUP BY c.mid), movie_flags AS (SELECT m.MID,m.title,CAST(substr(m.year,-4) AS INTEGER) year,COALESCE(c.actors,0) actors,COALESCE(c.bad,0) bad FROM Movie m LEFT JOIN cast_flags c ON m.MID=c.mid) SELECT MID,title,year,actors FROM movie_flags WHERE actors>0 AND bad=0 ORDER BY year,MID",
+  "limit": 100
+}

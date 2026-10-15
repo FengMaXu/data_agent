@@ -1,0 +1,185 @@
+{
+  "query": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[RESULT_CANDIDATE] candidateId=candidate_bffe0dad-cee0-422d-a906-1dfc132e7825 revisionId=revision_0e6a02e0-dd0f-478e-9b6e-76ffed465301\nmonth | total_max_avg30\n2020-02-01 | 290091.1666666667\n2020-03-01 | 337746.36666666664\n2020-04-01 | 316177.56666666665"
+      }
+    ],
+    "details": {
+      "kind": "result",
+      "artifact": {
+        "kind": "candidate",
+        "candidateId": "candidate_bffe0dad-cee0-422d-a906-1dfc132e7825",
+        "revisionId": "revision_0e6a02e0-dd0f-478e-9b6e-76ffed465301",
+        "resultRef": "result_cd69c14c-1149-4be1-9dc9-0fb503a75d91"
+      },
+      "preview": {
+        "columns": [
+          "month",
+          "total_max_avg30"
+        ],
+        "rows": [
+          [
+            "2020-02-01",
+            290091.1666666667
+          ],
+          [
+            "2020-03-01",
+            337746.36666666664
+          ],
+          [
+            "2020-04-01",
+            316177.56666666665
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "REAL"
+        ],
+        "rowCount": 3,
+        "truncated": false
+      },
+      "findings": [],
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "attemptId": "attempt_ff3dec65-965b-493a-a3d2-22c90f9527e9"
+    }
+  },
+  "publication": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[PUBLISHED] csv [download](/api/runtime/publications/publication_57530b15-3cca-489b-b6f5-81df873387aa?session_id=local299) receiptId=publication_57530b15-3cca-489b-b6f5-81df873387aa\n[DISCLOSURE] 以下字段为假定，未被合格证据证实：population.time, population.missing, measure.countGrain, measure.denominator, measure.window, output。"
+      }
+    ],
+    "details": {
+      "receiptId": "publication_57530b15-3cca-489b-b6f5-81df873387aa",
+      "taskId": "task_d8d0e935-257c-4565-822a-711b7e37139d",
+      "principalId": "independent-analyst",
+      "sessionId": "local299",
+      "candidateId": "candidate_bffe0dad-cee0-422d-a906-1dfc132e7825",
+      "revisionId": "revision_0e6a02e0-dd0f-478e-9b6e-76ffed465301",
+      "resultRef": "result_cd69c14c-1149-4be1-9dc9-0fb503a75d91",
+      "format": "csv",
+      "publicRef": "/api/runtime/publications/publication_57530b15-3cca-489b-b6f5-81df873387aa?session_id=local299",
+      "contentHash": "bd6d4ce52fa86b63fe2fe969db28ff2b9d67badb484e60f6974a5e99b41682a3",
+      "presentationContentHash": "3ea3eb11a1bbb680dcfbd3f9c7d7c8d5af3fd26acb39f555d7638d215ceccd6b",
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "disclosure": {
+        "required": true,
+        "unverifiedFields": [
+          {
+            "path": "population.time",
+            "kind": "assumed"
+          },
+          {
+            "path": "population.missing",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.countGrain",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.denominator",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.window",
+            "kind": "assumed"
+          },
+          {
+            "path": "output",
+            "kind": "assumed"
+          }
+        ],
+        "summary": "以下字段为假定，未被合格证据证实：population.time, population.missing, measure.countGrain, measure.denominator, measure.window, output。"
+      },
+      "physicalProfile": {
+        "version": 1,
+        "rowCount": 3,
+        "truncated": false,
+        "columns": [
+          {
+            "name": "month",
+            "kind": "text",
+            "nullCount": 0,
+            "distinctCount": 3
+          },
+          {
+            "name": "total_max_avg30",
+            "kind": "decimal",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 3,
+            "min": "290091.1666666667",
+            "max": "337746.36666666664"
+          }
+        ]
+      },
+      "policyVersion": "answering-publication-v1",
+      "createdByInvocationId": "284b63d8-b78e-4f1d-af13-7a5becd049ce",
+      "requestId": "284b63d8-b78e-4f1d-af13-7a5becd049ce",
+      "createdAt": "2026-10-11T09:50:38.553Z"
+    }
+  },
+  "authorizedCsv": "D:\\data_agent\\evaluations\\spider2\\adr0007\\independent-recompute-35\\cases\\local299\\publications\\publication_57530b15-3cca-489b-b6f5-81df873387aa\\result.csv"
+}

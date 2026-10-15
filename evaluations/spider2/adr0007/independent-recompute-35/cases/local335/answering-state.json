@@ -1,0 +1,1953 @@
+{
+  "version": 2,
+  "tasks": [
+    {
+      "taskId": "task_9df6902f-fbc4-4bbc-9b3c-fdb3ba15a368",
+      "sessionId": "local335",
+      "principalId": "independent-analyst",
+      "requestMessageId": "original-task",
+      "requestId": "9c5e9503-e371-46e6-9d5e-3f9b9bed8a1c",
+      "currentRevisionId": "revision_1241bc50-3e55-4eb7-bebb-a3cf4326f4b0",
+      "lifecycle": "published",
+      "budget": {
+        "policy": {
+          "version": "answering-dual-loop-v1",
+          "maxRevisions": 40,
+          "maxExplorationAttempts": 120,
+          "maxResultAttempts": 20,
+          "maxElapsedMs": 14400000,
+          "maxObservedRows": 2000000
+        },
+        "startedAt": "2026-10-11T09:14:40.423Z",
+        "revisionCount": 1,
+        "explorationAttempts": 11,
+        "resultAttempts": 1,
+        "observedRows": 178
+      },
+      "createdAt": "2026-10-11T09:14:40.423Z",
+      "updatedAt": "2026-10-11T09:17:38.971Z",
+      "latestCandidateId": "candidate_d2d568dd-4237-49ef-ae70-0679dab4d737",
+      "publicationId": "publication_55cd46c9-324d-48fb-afe9-eb06bd7cb4ee"
+    }
+  ],
+  "revisions": [
+    {
+      "taskId": "task_9df6902f-fbc4-4bbc-9b3c-fdb3ba15a368",
+      "revisionId": "revision_d19a261b-0913-4ac2-812b-d67017702867",
+      "requestId": "9c5e9503-e371-46e6-9d5e-3f9b9bed8a1c",
+      "createdAt": "2026-10-11T09:14:40.423Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "Constructor-season with a season-minimum positive-points driver"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_20ef538b-aade-49a3-9446-769167130612"
+            ]
+          }
+        }
+      },
+      "state": {
+        "state": "draft",
+        "revisionId": "revision_d19a261b-0913-4ac2-812b-d67017702867"
+      },
+      "specFeedback": {
+        "taskId": "task_9df6902f-fbc4-4bbc-9b3c-fdb3ba15a368",
+        "revisionId": "revision_d19a261b-0913-4ac2-812b-d67017702867",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_20ef538b-aade-49a3-9446-769167130612"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    },
+    {
+      "taskId": "task_9df6902f-fbc4-4bbc-9b3c-fdb3ba15a368",
+      "revisionId": "revision_1241bc50-3e55-4eb7-bebb-a3cf4326f4b0",
+      "parentRevisionId": "revision_d19a261b-0913-4ac2-812b-d67017702867",
+      "requestId": "da4df06a-f21f-4599-aad8-e1da815fee03",
+      "createdAt": "2026-10-11T09:15:27.317Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "Constructor-season with a season-minimum positive-points driver"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_20ef538b-aade-49a3-9446-769167130612"
+            ]
+          }
+        },
+        "population.eligibility": {
+          "state": "specified",
+          "value": "Positive final available season standings points only",
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_595cbe8e-4231-49fe-895c-e3e5f27c2008"
+            ]
+          }
+        },
+        "population.conditions": {
+          "state": "specified",
+          "value": [
+            "For each season find minimum positive driver total, include all tied drivers; associate actual constructors driven in same season; count each constructor-season once"
+          ],
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_a894eb80-1ae9-441c-bd98-d626aaeff96e"
+            ]
+          }
+        },
+        "population.time": {
+          "state": "specified",
+          "value": {
+            "expression": "year>=2001 inclusive through latest available standings;2024 incomplete through round12"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_9b073afe-eb65-4132-b710-90726fcb78a7"
+            ]
+          }
+        },
+        "measure.formula": {
+          "state": "specified",
+          "value": {
+            "op": "custom",
+            "description": "Latest available standings per year yields driver-season total; filter >0 and retain per-year minimum; join driver results in same year to actual constructors; count distinct seasons per constructor."
+          },
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "measure.countGrain": {
+          "state": "specified",
+          "value": "One constructor-year even if multiple minimum drivers or races",
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "grouping": {
+          "state": "specified",
+          "value": [
+            "constructor_id"
+          ],
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "selection": {
+          "state": "specified",
+          "value": {
+            "n": 5,
+            "orderBy": "seasons DESC, constructor_id ASC"
+          },
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "selection.ties": {
+          "state": "specified",
+          "value": "strict",
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "output": {
+          "state": "specified",
+          "value": {
+            "rowMode": "top_n",
+            "rowCount": 5,
+            "columns": [
+              "name",
+              "seasons"
+            ]
+          },
+          "basis": {
+            "kind": "assumed"
+          }
+        }
+      },
+      "state": {
+        "state": "ready",
+        "revisionId": "revision_1241bc50-3e55-4eb7-bebb-a3cf4326f4b0",
+        "ready": "ready_6122b243-cded-41eb-af48-80d65364474a"
+      },
+      "specFeedback": {
+        "taskId": "task_9df6902f-fbc4-4bbc-9b3c-fdb3ba15a368",
+        "revisionId": "revision_1241bc50-3e55-4eb7-bebb-a3cf4326f4b0",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_20ef538b-aade-49a3-9446-769167130612",
+          "evidence_9ab2aa42-e597-4ca8-b091-80601a3e8761",
+          "evidence_6ff112a1-bc6c-4cb5-a63d-a8e28d1cc557",
+          "evidence_cf5e94dc-e6cb-4725-b579-2c790f31da9a",
+          "evidence_5e09484f-c3c5-4261-a70a-f7e4b4c5dd06",
+          "evidence_3669c03b-ec06-47f7-97a0-7519fbf85f19",
+          "evidence_595cbe8e-4231-49fe-895c-e3e5f27c2008",
+          "evidence_a894eb80-1ae9-441c-bd98-d626aaeff96e",
+          "evidence_9b073afe-eb65-4132-b710-90726fcb78a7"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "taskId": "task_9df6902f-fbc4-4bbc-9b3c-fdb3ba15a368",
+      "items": [
+        {
+          "id": "request_be3e2f2bd519d830902bceb0",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "observedAt": "2026-10-11T09:14:40.423Z"
+        },
+        {
+          "id": "evidence_20ef538b-aade-49a3-9446-769167130612",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "4b7ce3267bb744fbc839461bcefa445c00e2f5f46380beef24a9c2814ab9e04f",
+          "quote": "which five constructors have had the most seasons",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "4b7ce3267bb744fbc839461bcefa445c00e2f5f46380beef24a9c2814ab9e04f"
+          },
+          "observedAt": "2026-10-11T09:14:40.423Z"
+        },
+        {
+          "id": "evidence_9ab2aa42-e597-4ca8-b091-80601a3e8761",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "226c3367-ca49-46e6-bc52-d4247e6c2289",
+          "preview": {
+            "columns": [
+              "name",
+              "seasons"
+            ],
+            "rows": [
+              [
+                "Williams",
+                6
+              ],
+              [
+                "Toro Rosso",
+                5
+              ],
+              [
+                "Sauber",
+                3
+              ],
+              [
+                "Minardi",
+                3
+              ],
+              [
+                "Jordan",
+                2
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 5,
+            "truncated": false
+          },
+          "queryHash": "5a85b7144180de785f0beba698b632d983b4c75da7ba37df70947ed5125c2c88",
+          "contentHash": "f6384c5d30587375d9cd3a0415a030b2cb9c4d8f470699fec3450be34ff782f2",
+          "observedAt": "2026-10-11T09:14:44.671Z"
+        },
+        {
+          "id": "evidence_6ff112a1-bc6c-4cb5-a63d-a8e28d1cc557",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "a4b40e00-8b99-432e-8243-5cf389988835",
+          "preview": {
+            "columns": [
+              "year",
+              "forename",
+              "surname",
+              "points",
+              "name"
+            ],
+            "rows": [
+              [
+                2001,
+                "Jos",
+                "Verstappen",
+                1,
+                "Arrows"
+              ],
+              [
+                2002,
+                "Takuma",
+                "Sato",
+                2,
+                "Jordan"
+              ],
+              [
+                2002,
+                "Mark",
+                "Webber",
+                2,
+                "Minardi"
+              ],
+              [
+                2002,
+                "Heinz-Harald",
+                "Frentzen",
+                2,
+                "Sauber"
+              ],
+              [
+                2002,
+                "Heinz-Harald",
+                "Frentzen",
+                2,
+                "Arrows"
+              ],
+              [
+                2002,
+                "Mika",
+                "Salo",
+                2,
+                "Toyota"
+              ],
+              [
+                2003,
+                "Justin",
+                "Wilson",
+                1,
+                "Minardi"
+              ],
+              [
+                2003,
+                "Justin",
+                "Wilson",
+                1,
+                "Jaguar"
+              ],
+              [
+                2003,
+                "Ralph",
+                "Firman",
+                1,
+                "Jordan"
+              ],
+              [
+                2004,
+                "Zsolt",
+                "Baumgartner",
+                1,
+                "Minardi"
+              ],
+              [
+                2005,
+                "Takuma",
+                "Sato",
+                1,
+                "BAR"
+              ],
+              [
+                2005,
+                "Vitantonio",
+                "Liuzzi",
+                1,
+                "Red Bull"
+              ],
+              [
+                2006,
+                "Vitantonio",
+                "Liuzzi",
+                1,
+                "Toro Rosso"
+              ],
+              [
+                2007,
+                "Adrian",
+                "Sutil",
+                1,
+                "Spyker"
+              ],
+              [
+                2008,
+                "Jenson",
+                "Button",
+                3,
+                "Honda"
+              ],
+              [
+                2009,
+                "S��bastien",
+                "Bourdais",
+                2,
+                "Toro Rosso"
+              ],
+              [
+                2010,
+                "Jaime",
+                "Alguersuari",
+                5,
+                "Toro Rosso"
+              ],
+              [
+                2011,
+                "Pastor",
+                "Maldonado",
+                1,
+                "Williams"
+              ],
+              [
+                2012,
+                "Daniel",
+                "Ricciardo",
+                10,
+                "Toro Rosso"
+              ],
+              [
+                2013,
+                "Pastor",
+                "Maldonado",
+                1,
+                "Williams"
+              ],
+              [
+                2014,
+                "Pastor",
+                "Maldonado",
+                2,
+                "Lotus F1"
+              ],
+              [
+                2014,
+                "Jules",
+                "Bianchi",
+                2,
+                "Marussia"
+              ],
+              [
+                2015,
+                "Marcus",
+                "Ericsson",
+                9,
+                "Sauber"
+              ],
+              [
+                2016,
+                "Jolyon",
+                "Palmer",
+                1,
+                "Renault"
+              ],
+              [
+                2016,
+                "Pascal",
+                "Wehrlein",
+                1,
+                "Manor Marussia"
+              ],
+              [
+                2016,
+                "Stoffel",
+                "Vandoorne",
+                1,
+                "McLaren"
+              ],
+              [
+                2017,
+                "Daniil",
+                "Kvyat",
+                5,
+                "Toro Rosso"
+              ],
+              [
+                2017,
+                "Pascal",
+                "Wehrlein",
+                5,
+                "Sauber"
+              ],
+              [
+                2018,
+                "Sergey",
+                "Sirotkin",
+                1,
+                "Williams"
+              ],
+              [
+                2019,
+                "Robert",
+                "Kubica",
+                1,
+                "Williams"
+              ],
+              [
+                2020,
+                "Kevin",
+                "Magnussen",
+                1,
+                "Haas F1 Team"
+              ],
+              [
+                2021,
+                "Antonio",
+                "Giovinazzi",
+                3,
+                "Alfa Romeo"
+              ],
+              [
+                2022,
+                "Nicholas",
+                "Latifi",
+                2,
+                "Williams"
+              ],
+              [
+                2022,
+                "Nyck",
+                "de Vries",
+                2,
+                "Williams"
+              ],
+              [
+                2023,
+                "Logan",
+                "Sargeant",
+                1,
+                "Williams"
+              ],
+              [
+                2024,
+                "Esteban",
+                "Ocon",
+                3,
+                "Alpine F1 Team"
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "TEXT",
+              "TEXT",
+              "INTEGER",
+              "TEXT"
+            ],
+            "rowCount": 36,
+            "truncated": false
+          },
+          "queryHash": "4e09670b1713a6f8ab88f707c54642ad781181ca862a3434306d4eb17de642b3",
+          "contentHash": "acc4669160f91137f5519a160e8b74e1601e91ea0f9065160bf5c23c7b124de7",
+          "observedAt": "2026-10-11T09:14:48.741Z"
+        },
+        {
+          "id": "evidence_cf5e94dc-e6cb-4725-b579-2c790f31da9a",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "7d9b174a-1e04-43c2-9231-c49d52aab0c5",
+          "preview": {
+            "columns": [
+              "constructor_id",
+              "name",
+              "seasons"
+            ],
+            "rows": [
+              [
+                3,
+                "Williams",
+                6
+              ],
+              [
+                5,
+                "Toro Rosso",
+                5
+              ],
+              [
+                15,
+                "Sauber",
+                3
+              ],
+              [
+                18,
+                "Minardi",
+                3
+              ],
+              [
+                17,
+                "Jordan",
+                2
+              ],
+              [
+                21,
+                "Arrows",
+                2
+              ],
+              [
+                1,
+                "McLaren",
+                1
+              ],
+              [
+                4,
+                "Renault",
+                1
+              ],
+              [
+                7,
+                "Toyota",
+                1
+              ],
+              [
+                9,
+                "Red Bull",
+                1
+              ],
+              [
+                11,
+                "Honda",
+                1
+              ],
+              [
+                12,
+                "Spyker",
+                1
+              ],
+              [
+                16,
+                "BAR",
+                1
+              ],
+              [
+                19,
+                "Jaguar",
+                1
+              ],
+              [
+                51,
+                "Alfa Romeo",
+                1
+              ],
+              [
+                206,
+                "Marussia",
+                1
+              ],
+              [
+                208,
+                "Lotus F1",
+                1
+              ],
+              [
+                209,
+                "Manor Marussia",
+                1
+              ],
+              [
+                210,
+                "Haas F1 Team",
+                1
+              ],
+              [
+                214,
+                "Alpine F1 Team",
+                1
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 20,
+            "truncated": false
+          },
+          "queryHash": "06c13a9bd151530449711af656596432f458178166f77f14f0cb17a584218d97",
+          "contentHash": "f602f7532ede42d6d5705e04d7014fb4bc6034d0e04487f92724b9153bffba8c",
+          "observedAt": "2026-10-11T09:14:52.037Z"
+        },
+        {
+          "id": "evidence_5e09484f-c3c5-4261-a70a-f7e4b4c5dd06",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "0d98c12a-1af7-4425-b281-44e4bf2c1ef5",
+          "preview": {
+            "columns": [
+              "year",
+              "forename",
+              "surname",
+              "standings",
+              "result_and_sprint"
+            ],
+            "rows": [],
+            "columnTypes": [
+              "NULL",
+              "NULL",
+              "NULL",
+              "NULL",
+              "NULL"
+            ],
+            "rowCount": 0,
+            "truncated": false
+          },
+          "queryHash": "205a0f63978b26da91e2ea9afe49407b837ff185c36a088352ba0bdce2b7cf12",
+          "contentHash": "e4f03f1a657f9e39cdf600447b7eb0564e0edf00467826aadaa78b435a7b1f5e",
+          "observedAt": "2026-10-11T09:14:56.582Z"
+        },
+        {
+          "id": "evidence_3669c03b-ec06-47f7-97a0-7519fbf85f19",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "894c909a-7c45-4486-b6e7-f581d4e59f5f",
+          "preview": {
+            "columns": [
+              "year",
+              "calendar_last",
+              "results_last",
+              "standings_last",
+              "races"
+            ],
+            "rows": [
+              [
+                2001,
+                17,
+                17,
+                17,
+                17
+              ],
+              [
+                2002,
+                17,
+                17,
+                17,
+                17
+              ],
+              [
+                2003,
+                16,
+                16,
+                16,
+                16
+              ],
+              [
+                2004,
+                18,
+                18,
+                18,
+                18
+              ],
+              [
+                2005,
+                19,
+                19,
+                19,
+                19
+              ],
+              [
+                2006,
+                18,
+                18,
+                18,
+                18
+              ],
+              [
+                2007,
+                17,
+                17,
+                17,
+                17
+              ],
+              [
+                2008,
+                18,
+                18,
+                18,
+                18
+              ],
+              [
+                2009,
+                17,
+                17,
+                17,
+                17
+              ],
+              [
+                2010,
+                19,
+                19,
+                19,
+                19
+              ],
+              [
+                2011,
+                19,
+                19,
+                19,
+                19
+              ],
+              [
+                2012,
+                20,
+                20,
+                20,
+                20
+              ],
+              [
+                2013,
+                19,
+                19,
+                19,
+                19
+              ],
+              [
+                2014,
+                19,
+                19,
+                19,
+                19
+              ],
+              [
+                2015,
+                19,
+                19,
+                19,
+                19
+              ],
+              [
+                2016,
+                21,
+                21,
+                21,
+                21
+              ],
+              [
+                2017,
+                20,
+                20,
+                20,
+                20
+              ],
+              [
+                2018,
+                21,
+                21,
+                21,
+                21
+              ],
+              [
+                2019,
+                21,
+                21,
+                21,
+                21
+              ],
+              [
+                2020,
+                17,
+                17,
+                17,
+                17
+              ],
+              [
+                2021,
+                22,
+                22,
+                22,
+                22
+              ],
+              [
+                2022,
+                22,
+                22,
+                22,
+                22
+              ],
+              [
+                2023,
+                22,
+                22,
+                22,
+                22
+              ],
+              [
+                2024,
+                24,
+                12,
+                12,
+                24
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 24,
+            "truncated": false
+          },
+          "queryHash": "64b126257b4832552d2e1f8227c95d7030fd4f11dd346a222020363c3426043f",
+          "contentHash": "a6ae4694a997d130473e910732ecddba45f4e1b8064accab9120be9b75c281a9",
+          "observedAt": "2026-10-11T09:15:02.448Z"
+        },
+        {
+          "id": "evidence_595cbe8e-4231-49fe-895c-e3e5f27c2008",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "4b7ce3267bb744fbc839461bcefa445c00e2f5f46380beef24a9c2814ab9e04f",
+          "quote": "considering only drivers who scored points in a season",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "4b7ce3267bb744fbc839461bcefa445c00e2f5f46380beef24a9c2814ab9e04f"
+          },
+          "observedAt": "2026-10-11T09:15:27.317Z"
+        },
+        {
+          "id": "evidence_a894eb80-1ae9-441c-bd98-d626aaeff96e",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "4b7ce3267bb744fbc839461bcefa445c00e2f5f46380beef24a9c2814ab9e04f",
+          "quote": "their drivers scored the fewest total points among all point-scoring drivers in that season",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "4b7ce3267bb744fbc839461bcefa445c00e2f5f46380beef24a9c2814ab9e04f"
+          },
+          "observedAt": "2026-10-11T09:15:27.317Z"
+        },
+        {
+          "id": "evidence_9b073afe-eb65-4132-b710-90726fcb78a7",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "4b7ce3267bb744fbc839461bcefa445c00e2f5f46380beef24a9c2814ab9e04f",
+          "quote": "seasons since 2001",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "4b7ce3267bb744fbc839461bcefa445c00e2f5f46380beef24a9c2814ab9e04f"
+          },
+          "observedAt": "2026-10-11T09:15:27.317Z"
+        },
+        {
+          "id": "evidence_6c7fa506-73b3-4bb4-b19a-fa0eb2bba454",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "25176c83-c51c-4e9f-98b8-910ff454fab3",
+          "preview": {
+            "columns": [
+              "method",
+              "name",
+              "seasons",
+              "rn"
+            ],
+            "rows": [
+              [
+                "final_standings",
+                "Williams",
+                6,
+                1
+              ],
+              [
+                "final_standings",
+                "Toro Rosso",
+                5,
+                2
+              ],
+              [
+                "final_standings",
+                "Sauber",
+                3,
+                3
+              ],
+              [
+                "final_standings",
+                "Minardi",
+                3,
+                4
+              ],
+              [
+                "final_standings",
+                "Jordan",
+                2,
+                5
+              ],
+              [
+                "final_standings",
+                "Arrows",
+                2,
+                6
+              ],
+              [
+                "final_standings",
+                "McLaren",
+                1,
+                7
+              ],
+              [
+                "final_standings",
+                "Renault",
+                1,
+                8
+              ],
+              [
+                "positive_race_min",
+                "Williams",
+                18,
+                1
+              ],
+              [
+                "positive_race_min",
+                "McLaren",
+                16,
+                2
+              ],
+              [
+                "positive_race_min",
+                "Toro Rosso",
+                13,
+                3
+              ],
+              [
+                "positive_race_min",
+                "Renault",
+                12,
+                4
+              ],
+              [
+                "positive_race_min",
+                "Ferrari",
+                12,
+                5
+              ],
+              [
+                "positive_race_min",
+                "Sauber",
+                12,
+                6
+              ],
+              [
+                "positive_race_min",
+                "Red Bull",
+                10,
+                7
+              ],
+              [
+                "positive_race_min",
+                "Force India",
+                9,
+                8
+              ],
+              [
+                "race_only",
+                "Williams",
+                6,
+                1
+              ],
+              [
+                "race_only",
+                "Toro Rosso",
+                5,
+                2
+              ],
+              [
+                "race_only",
+                "Sauber",
+                3,
+                3
+              ],
+              [
+                "race_only",
+                "Minardi",
+                3,
+                4
+              ],
+              [
+                "race_only",
+                "Jordan",
+                2,
+                5
+              ],
+              [
+                "race_only",
+                "Arrows",
+                2,
+                6
+              ],
+              [
+                "race_only",
+                "McLaren",
+                1,
+                7
+              ],
+              [
+                "race_only",
+                "Renault",
+                1,
+                8
+              ],
+              [
+                "sum_cumulative_standings",
+                "Williams",
+                8,
+                1
+              ],
+              [
+                "sum_cumulative_standings",
+                "Toro Rosso",
+                2,
+                2
+              ],
+              [
+                "sum_cumulative_standings",
+                "Sauber",
+                2,
+                3
+              ],
+              [
+                "sum_cumulative_standings",
+                "Minardi",
+                2,
+                4
+              ],
+              [
+                "sum_cumulative_standings",
+                "McLaren",
+                1,
+                5
+              ],
+              [
+                "sum_cumulative_standings",
+                "Renault",
+                1,
+                6
+              ],
+              [
+                "sum_cumulative_standings",
+                "Toyota",
+                1,
+                7
+              ],
+              [
+                "sum_cumulative_standings",
+                "Honda",
+                1,
+                8
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "TEXT",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 32,
+            "truncated": false
+          },
+          "queryHash": "57fe16ade91c561a368eba7d74f9f76eaf31e19c9e5fafb4a7ad1a49b6824a7c",
+          "contentHash": "9f70d217cd920b24b9f05727e1f30812763020c830c17a2af3b1ef0565916dd2",
+          "observedAt": "2026-10-11T09:16:18.295Z"
+        },
+        {
+          "id": "evidence_18a1a386-661e-4754-ad7a-2b763533738c",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "6777f0e8-388a-4add-b407-dda93c4a40c1",
+          "preview": {
+            "columns": [
+              "method",
+              "name",
+              "n",
+              "rn"
+            ],
+            "rows": [
+              [
+                "career",
+                "Williams",
+                9,
+                1
+              ],
+              [
+                "career",
+                "Renault",
+                6,
+                2
+              ],
+              [
+                "career",
+                "Toro Rosso",
+                6,
+                3
+              ],
+              [
+                "career",
+                "Sauber",
+                6,
+                4
+              ],
+              [
+                "career",
+                "Red Bull",
+                5,
+                5
+              ],
+              [
+                "career",
+                "McLaren",
+                4,
+                6
+              ],
+              [
+                "career",
+                "Force India",
+                4,
+                7
+              ],
+              [
+                "career",
+                "Jordan",
+                4,
+                8
+              ],
+              [
+                "latest_team",
+                "Williams",
+                6,
+                1
+              ],
+              [
+                "latest_team",
+                "Toro Rosso",
+                5,
+                2
+              ],
+              [
+                "latest_team",
+                "Sauber",
+                3,
+                3
+              ],
+              [
+                "latest_team",
+                "Jordan",
+                2,
+                4
+              ],
+              [
+                "latest_team",
+                "Minardi",
+                2,
+                5
+              ],
+              [
+                "latest_team",
+                "McLaren",
+                1,
+                6
+              ],
+              [
+                "latest_team",
+                "Renault",
+                1,
+                7
+              ],
+              [
+                "latest_team",
+                "Toyota",
+                1,
+                8
+              ],
+              [
+                "same_year_driver_count",
+                "Williams",
+                7,
+                1
+              ],
+              [
+                "same_year_driver_count",
+                "Toro Rosso",
+                5,
+                2
+              ],
+              [
+                "same_year_driver_count",
+                "Sauber",
+                3,
+                3
+              ],
+              [
+                "same_year_driver_count",
+                "Minardi",
+                3,
+                4
+              ],
+              [
+                "same_year_driver_count",
+                "Jordan",
+                2,
+                5
+              ],
+              [
+                "same_year_driver_count",
+                "Arrows",
+                2,
+                6
+              ],
+              [
+                "same_year_driver_count",
+                "McLaren",
+                1,
+                7
+              ],
+              [
+                "same_year_driver_count",
+                "Renault",
+                1,
+                8
+              ],
+              [
+                "scoring_team",
+                "Williams",
+                6,
+                1
+              ],
+              [
+                "scoring_team",
+                "Toro Rosso",
+                5,
+                2
+              ],
+              [
+                "scoring_team",
+                "Sauber",
+                2,
+                3
+              ],
+              [
+                "scoring_team",
+                "Jordan",
+                2,
+                4
+              ],
+              [
+                "scoring_team",
+                "Minardi",
+                2,
+                5
+              ],
+              [
+                "scoring_team",
+                "Arrows",
+                2,
+                6
+              ],
+              [
+                "scoring_team",
+                "McLaren",
+                1,
+                7
+              ],
+              [
+                "scoring_team",
+                "Renault",
+                1,
+                8
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "TEXT",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 32,
+            "truncated": false
+          },
+          "queryHash": "a892c772963f50d536256311a7ee76cba9c39fd300b007dbe047bcfd4c4a75ed",
+          "contentHash": "3a983af6aff1291e475d8607b8a130dda198a1bdea44539b034b49997805d201",
+          "observedAt": "2026-10-11T09:16:22.238Z"
+        },
+        {
+          "id": "evidence_8d04c9ad-cc77-4253-8295-2c111636e82c",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "5099a39e-9bdd-4c8d-9b06-a197c7713c9c",
+          "preview": {
+            "columns": [
+              "name",
+              "n"
+            ],
+            "rows": [
+              [
+                "Williams",
+                6
+              ],
+              [
+                "Toro Rosso",
+                5
+              ],
+              [
+                "Arrows",
+                2
+              ],
+              [
+                "Jordan",
+                2
+              ],
+              [
+                "Minardi",
+                2
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 5,
+            "truncated": false
+          },
+          "queryHash": "ac105d35a340e96fa36d7bbc7723f6f899911d0313d0f1795c482d612d1484fc",
+          "contentHash": "7d8cfe5ff0c84fc09fa68c22516eff214498ae3b23c59a786d506aa1accf3ea9",
+          "observedAt": "2026-10-11T09:17:02.102Z"
+        },
+        {
+          "id": "evidence_c168bb6b-9d2e-4672-9afd-d5f5f21e1a65",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "58f70b67-eb32-4ab6-a09a-4986e249aa0c",
+          "preview": {
+            "columns": [
+              "name",
+              "n"
+            ],
+            "rows": [
+              [
+                "Williams",
+                6
+              ],
+              [
+                "Toro Rosso",
+                5
+              ],
+              [
+                "Jordan",
+                3
+              ],
+              [
+                "Arrows",
+                2
+              ],
+              [
+                "Minardi",
+                2
+              ],
+              [
+                "Sauber",
+                2
+              ],
+              [
+                "Alfa Romeo",
+                1
+              ],
+              [
+                "Alpine F1 Team",
+                1
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 8,
+            "truncated": false
+          },
+          "queryHash": "330e8ee4449131818b08d313e43f21da30cbab5f2a5b62c65fca10c15e931df3",
+          "contentHash": "3db5d6a23e3f899b24fee65cf35fdca73a514edd332475caebae6f196f99b075",
+          "observedAt": "2026-10-11T09:17:05.125Z"
+        },
+        {
+          "id": "evidence_fc6ed9b8-67f6-43d8-be29-c25a022181e4",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "e8275ba7-7d6f-4d62-9a55-5e75e6f6991a",
+          "preview": {
+            "columns": [
+              "year",
+              "forename",
+              "surname",
+              "name",
+              "points",
+              "points_with_team"
+            ],
+            "rows": [
+              [
+                2002,
+                "Heinz-Harald",
+                "Frentzen",
+                "Sauber",
+                2,
+                0
+              ],
+              [
+                2003,
+                "Justin",
+                "Wilson",
+                "Minardi",
+                1,
+                0
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "TEXT",
+              "TEXT",
+              "TEXT",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 2,
+            "truncated": false
+          },
+          "queryHash": "59f7ba749aed834a4fae03d75a3276536663ce3d4625261812c48c3d8ae3fb9e",
+          "contentHash": "d147b0ddf7c66e511f750353847a0b0743b5e4c8f0628dd7ee922762edf47ebe",
+          "observedAt": "2026-10-11T09:17:08.302Z"
+        },
+        {
+          "id": "evidence_e19d87d2-868c-4b4d-9f02-066a52c6b91c",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "3c24b0ef-9175-45e1-beac-ec4c1e5e7726",
+          "preview": {
+            "columns": [
+              "year",
+              "forename",
+              "surname",
+              "name",
+              "points"
+            ],
+            "rows": [
+              [
+                2001,
+                "Jean",
+                "Alesi",
+                "Jordan",
+                1
+              ],
+              [
+                2001,
+                "Jos",
+                "Verstappen",
+                "Arrows",
+                1
+              ],
+              [
+                2002,
+                "Takuma",
+                "Sato",
+                "Jordan",
+                2
+              ],
+              [
+                2002,
+                "Mark",
+                "Webber",
+                "Minardi",
+                2
+              ],
+              [
+                2002,
+                "Heinz-Harald",
+                "Frentzen",
+                "Arrows",
+                2
+              ],
+              [
+                2003,
+                "Ralph",
+                "Firman",
+                "Jordan",
+                1
+              ],
+              [
+                2004,
+                "Zsolt",
+                "Baumgartner",
+                "Minardi",
+                1
+              ],
+              [
+                2015,
+                "Marcus",
+                "Ericsson",
+                "Sauber",
+                9
+              ],
+              [
+                2017,
+                "Pascal",
+                "Wehrlein",
+                "Sauber",
+                5
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "TEXT",
+              "TEXT",
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 9,
+            "truncated": false
+          },
+          "queryHash": "85c7a645bc0f88118e80aa1d281b8abb6eefc78940e0b0a96c0341017d7b11ad",
+          "contentHash": "e3d19a55cfe7e801e2eefa6053e80c92d071af907fd064b7fe00a44ef06295b3",
+          "observedAt": "2026-10-11T09:17:38.969Z"
+        }
+      ]
+    }
+  ],
+  "attempts": [
+    {
+      "taskId": "task_9df6902f-fbc4-4bbc-9b3c-fdb3ba15a368",
+      "items": [
+        {
+          "attemptId": "attempt_7be918a7-d856-4096-8ea5-a03bb6bb86d5",
+          "taskId": "task_9df6902f-fbc4-4bbc-9b3c-fdb3ba15a368",
+          "kind": "exploration",
+          "revisionId": "revision_d19a261b-0913-4ac2-812b-d67017702867",
+          "invocationId": "226c3367-ca49-46e6-bc52-d4247e6c2289",
+          "queryHash": "5a85b7144180de785f0beba698b632d983b4c75da7ba37df70947ed5125c2c88",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:14:43.800Z",
+          "updatedAt": "2026-10-11T09:14:44.672Z"
+        },
+        {
+          "attemptId": "attempt_8daccb75-0b66-4cec-b287-241c30b0a333",
+          "taskId": "task_9df6902f-fbc4-4bbc-9b3c-fdb3ba15a368",
+          "kind": "exploration",
+          "revisionId": "revision_d19a261b-0913-4ac2-812b-d67017702867",
+          "invocationId": "a4b40e00-8b99-432e-8243-5cf389988835",
+          "queryHash": "4e09670b1713a6f8ab88f707c54642ad781181ca862a3434306d4eb17de642b3",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:14:48.105Z",
+          "updatedAt": "2026-10-11T09:14:48.741Z"
+        },
+        {
+          "attemptId": "attempt_75024bc6-104b-4895-92ce-2d988bb64c5b",
+          "taskId": "task_9df6902f-fbc4-4bbc-9b3c-fdb3ba15a368",
+          "kind": "exploration",
+          "revisionId": "revision_d19a261b-0913-4ac2-812b-d67017702867",
+          "invocationId": "7d9b174a-1e04-43c2-9231-c49d52aab0c5",
+          "queryHash": "06c13a9bd151530449711af656596432f458178166f77f14f0cb17a584218d97",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:14:51.622Z",
+          "updatedAt": "2026-10-11T09:14:52.038Z"
+        },
+        {
+          "attemptId": "attempt_b4c0bbb4-4753-4108-a617-076f9d53e0b9",
+          "taskId": "task_9df6902f-fbc4-4bbc-9b3c-fdb3ba15a368",
+          "kind": "exploration",
+          "revisionId": "revision_d19a261b-0913-4ac2-812b-d67017702867",
+          "invocationId": "0d98c12a-1af7-4425-b281-44e4bf2c1ef5",
+          "queryHash": "205a0f63978b26da91e2ea9afe49407b837ff185c36a088352ba0bdce2b7cf12",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:14:55.819Z",
+          "updatedAt": "2026-10-11T09:14:56.583Z"
+        },
+        {
+          "attemptId": "attempt_676c5893-b08d-458d-b750-2e2d7855a520",
+          "taskId": "task_9df6902f-fbc4-4bbc-9b3c-fdb3ba15a368",
+          "kind": "exploration",
+          "revisionId": "revision_d19a261b-0913-4ac2-812b-d67017702867",
+          "invocationId": "894c909a-7c45-4486-b6e7-f581d4e59f5f",
+          "queryHash": "64b126257b4832552d2e1f8227c95d7030fd4f11dd346a222020363c3426043f",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:14:59.930Z",
+          "updatedAt": "2026-10-11T09:15:02.449Z"
+        },
+        {
+          "attemptId": "attempt_840852c5-7f12-4990-9366-80bde40444b4",
+          "taskId": "task_9df6902f-fbc4-4bbc-9b3c-fdb3ba15a368",
+          "kind": "revision",
+          "revisionId": "revision_d19a261b-0913-4ac2-812b-d67017702867",
+          "invocationId": "da4df06a-f21f-4599-aad8-e1da815fee03",
+          "state": "succeeded",
+          "sqlExecuted": false,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:15:27.321Z",
+          "updatedAt": "2026-10-11T09:15:27.317Z"
+        },
+        {
+          "attemptId": "attempt_5d693588-0f2b-4c4e-8498-982b015a3753",
+          "taskId": "task_9df6902f-fbc4-4bbc-9b3c-fdb3ba15a368",
+          "kind": "result",
+          "revisionId": "revision_1241bc50-3e55-4eb7-bebb-a3cf4326f4b0",
+          "invocationId": "c4934ed0-a663-4335-9f15-15dac58acfff",
+          "queryHash": "098eb21fca9c08f38308296223ae371723de4176b980936737c4e5bfed901564",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:15:30.206Z",
+          "updatedAt": "2026-10-11T09:15:30.871Z"
+        },
+        {
+          "attemptId": "attempt_559c72d9-f3d3-498a-b33f-cdc65e4c0d50",
+          "taskId": "task_9df6902f-fbc4-4bbc-9b3c-fdb3ba15a368",
+          "kind": "exploration",
+          "revisionId": "revision_1241bc50-3e55-4eb7-bebb-a3cf4326f4b0",
+          "invocationId": "25176c83-c51c-4e9f-98b8-910ff454fab3",
+          "queryHash": "57fe16ade91c561a368eba7d74f9f76eaf31e19c9e5fafb4a7ad1a49b6824a7c",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:16:17.505Z",
+          "updatedAt": "2026-10-11T09:16:18.295Z"
+        },
+        {
+          "attemptId": "attempt_d672bb9e-51e9-4fc3-a9d0-db9e0dc76a7d",
+          "taskId": "task_9df6902f-fbc4-4bbc-9b3c-fdb3ba15a368",
+          "kind": "exploration",
+          "revisionId": "revision_1241bc50-3e55-4eb7-bebb-a3cf4326f4b0",
+          "invocationId": "6777f0e8-388a-4add-b407-dda93c4a40c1",
+          "queryHash": "a892c772963f50d536256311a7ee76cba9c39fd300b007dbe047bcfd4c4a75ed",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:16:21.484Z",
+          "updatedAt": "2026-10-11T09:16:22.239Z"
+        },
+        {
+          "attemptId": "attempt_f7c351d1-2d8e-45f3-b348-733e5c6bf8e5",
+          "taskId": "task_9df6902f-fbc4-4bbc-9b3c-fdb3ba15a368",
+          "kind": "exploration",
+          "revisionId": "revision_1241bc50-3e55-4eb7-bebb-a3cf4326f4b0",
+          "invocationId": "5099a39e-9bdd-4c8d-9b06-a197c7713c9c",
+          "queryHash": "ac105d35a340e96fa36d7bbc7723f6f899911d0313d0f1795c482d612d1484fc",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:17:01.481Z",
+          "updatedAt": "2026-10-11T09:17:02.103Z"
+        },
+        {
+          "attemptId": "attempt_0e0b1a4b-029c-4776-9955-f4d220fc2945",
+          "taskId": "task_9df6902f-fbc4-4bbc-9b3c-fdb3ba15a368",
+          "kind": "exploration",
+          "revisionId": "revision_1241bc50-3e55-4eb7-bebb-a3cf4326f4b0",
+          "invocationId": "58f70b67-eb32-4ab6-a09a-4986e249aa0c",
+          "queryHash": "330e8ee4449131818b08d313e43f21da30cbab5f2a5b62c65fca10c15e931df3",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:17:04.725Z",
+          "updatedAt": "2026-10-11T09:17:05.126Z"
+        },
+        {
+          "attemptId": "attempt_bf1d5ae4-87b0-4776-9e3d-7d74d08d589b",
+          "taskId": "task_9df6902f-fbc4-4bbc-9b3c-fdb3ba15a368",
+          "kind": "exploration",
+          "revisionId": "revision_1241bc50-3e55-4eb7-bebb-a3cf4326f4b0",
+          "invocationId": "e8275ba7-7d6f-4d62-9a55-5e75e6f6991a",
+          "queryHash": "59f7ba749aed834a4fae03d75a3276536663ce3d4625261812c48c3d8ae3fb9e",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:17:07.795Z",
+          "updatedAt": "2026-10-11T09:17:08.303Z"
+        },
+        {
+          "attemptId": "attempt_6484d334-f118-484c-ae7c-e51cae00156c",
+          "taskId": "task_9df6902f-fbc4-4bbc-9b3c-fdb3ba15a368",
+          "kind": "exploration",
+          "revisionId": "revision_1241bc50-3e55-4eb7-bebb-a3cf4326f4b0",
+          "invocationId": "3c24b0ef-9175-45e1-beac-ec4c1e5e7726",
+          "queryHash": "85c7a645bc0f88118e80aa1d281b8abb6eefc78940e0b0a96c0341017d7b11ad",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:17:38.508Z",
+          "updatedAt": "2026-10-11T09:17:38.971Z"
+        }
+      ]
+    }
+  ],
+  "candidates": [
+    {
+      "candidateId": "candidate_d2d568dd-4237-49ef-ae70-0679dab4d737",
+      "taskId": "task_9df6902f-fbc4-4bbc-9b3c-fdb3ba15a368",
+      "revisionId": "revision_1241bc50-3e55-4eb7-bebb-a3cf4326f4b0",
+      "resultRef": "result_0010bf1d-cf6b-41d0-9c55-00ec75350f09",
+      "resultSchema": [
+        "name",
+        "seasons"
+      ],
+      "rowCount": 5,
+      "contentHash": "ef972b17371cf7396270eb68e013593b5e8f9f8f09faab711473ab28b18192de",
+      "sql": "WITH last_round AS (SELECT r.year,MAX(r.round) round FROM races r JOIN driver_standings ds USING(race_id) WHERE r.year>=2001 GROUP BY r.year), points AS (SELECT r.year,ds.driver_id,ds.points FROM races r JOIN last_round lr ON r.year=lr.year AND r.round=lr.round JOIN driver_standings ds USING(race_id) WHERE ds.points>0), lowest AS (SELECT * FROM points p WHERE points=(SELECT MIN(x.points) FROM points x WHERE x.year=p.year)), team_seasons AS (SELECT DISTINCT l.year,l.driver_id,l.points,re.constructor_id FROM lowest l JOIN races r ON r.year=l.year JOIN results re ON re.race_id=r.race_id AND re.driver_id=l.driver_id), counts AS (SELECT constructor_id,COUNT(DISTINCT year) seasons FROM team_seasons GROUP BY constructor_id) SELECT c.name,counts.seasons FROM counts JOIN constructors c USING(constructor_id) ORDER BY seasons DESC,c.constructor_id LIMIT 5",
+      "queryHash": "098eb21fca9c08f38308296223ae371723de4176b980936737c4e5bfed901564",
+      "findings": [],
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "attemptId": "attempt_5d693588-0f2b-4c4e-8498-982b015a3753",
+      "createdByInvocationId": "c4934ed0-a663-4335-9f15-15dac58acfff",
+      "createdAt": "2026-10-11T09:15:30.871Z",
+      "status": "ready",
+      "publishable": true
+    }
+  ],
+  "receipts": [
+    {
+      "receiptId": "publication_55cd46c9-324d-48fb-afe9-eb06bd7cb4ee",
+      "taskId": "task_9df6902f-fbc4-4bbc-9b3c-fdb3ba15a368",
+      "principalId": "independent-analyst",
+      "sessionId": "local335",
+      "candidateId": "candidate_d2d568dd-4237-49ef-ae70-0679dab4d737",
+      "revisionId": "revision_1241bc50-3e55-4eb7-bebb-a3cf4326f4b0",
+      "resultRef": "result_0010bf1d-cf6b-41d0-9c55-00ec75350f09",
+      "format": "csv",
+      "publicRef": "/api/runtime/publications/publication_55cd46c9-324d-48fb-afe9-eb06bd7cb4ee?session_id=local335",
+      "contentHash": "ef972b17371cf7396270eb68e013593b5e8f9f8f09faab711473ab28b18192de",
+      "presentationContentHash": "bcc38f8b967d89e80ba4d28beebb26e1d9f8ad041f8f9f62c53529fdd92a7c08",
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "disclosure": {
+        "required": true,
+        "unverifiedFields": [
+          {
+            "path": "measure.formula",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.countGrain",
+            "kind": "assumed"
+          },
+          {
+            "path": "grouping",
+            "kind": "assumed"
+          },
+          {
+            "path": "selection",
+            "kind": "assumed"
+          },
+          {
+            "path": "selection.ties",
+            "kind": "assumed"
+          },
+          {
+            "path": "output",
+            "kind": "assumed"
+          }
+        ],
+        "summary": "以下字段为假定，未被合格证据证实：measure.formula, measure.countGrain, grouping, selection, selection.ties, output。"
+      },
+      "physicalProfile": {
+        "version": 1,
+        "rowCount": 5,
+        "truncated": false,
+        "columns": [
+          {
+            "name": "name",
+            "kind": "text",
+            "nullCount": 0,
+            "distinctCount": 5
+          },
+          {
+            "name": "seasons",
+            "kind": "integer",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 4,
+            "min": "2",
+            "max": "6"
+          }
+        ]
+      },
+      "policyVersion": "answering-publication-v1",
+      "createdByInvocationId": "c4934ed0-a663-4335-9f15-15dac58acfff",
+      "requestId": "c4934ed0-a663-4335-9f15-15dac58acfff",
+      "createdAt": "2026-10-11T09:15:30.886Z"
+    }
+  ]
+}

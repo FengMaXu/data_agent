@@ -1,0 +1,191 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_df1a034f-d1b9-46b1-be3f-2f28379e2b95\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nsession | event_id | stamp | path | second_page | third_page | third_event\n36dd0df7 | 203 | 2017-01-09 12:19:49 | /detail | /detail | NULL | NULL\n3efe001c | 194 | 2017-01-09 12:18:43 | /detail | /detail | NULL | NULL\n5d5b0997 | 189 | 2017-01-09 12:18:43 | /detail | /detail | NULL | NULL\n5eb2e107 | 179 | 2017-01-09 12:18:43 | /detail | /detail | NULL | NULL\nd45ec190 | 200 | 2017-01-09 12:18:43 | /detail | /detail | NULL | NULL\neee2bb21 | 188 | 2017-01-09 12:18:43 | /detail | /detail | NULL | NULL\nfe05e1d8 | 180 | 2017-01-09 12:18:43 | /detail | /detail | NULL | NULL"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_df1a034f-d1b9-46b1-be3f-2f28379e2b95",
+      "preview": {
+        "columns": [
+          "session",
+          "event_id",
+          "stamp",
+          "path",
+          "second_page",
+          "third_page",
+          "third_event"
+        ],
+        "rows": [
+          [
+            "36dd0df7",
+            203,
+            "2017-01-09 12:19:49",
+            "/detail",
+            "/detail",
+            null,
+            null
+          ],
+          [
+            "3efe001c",
+            194,
+            "2017-01-09 12:18:43",
+            "/detail",
+            "/detail",
+            null,
+            null
+          ],
+          [
+            "5d5b0997",
+            189,
+            "2017-01-09 12:18:43",
+            "/detail",
+            "/detail",
+            null,
+            null
+          ],
+          [
+            "5eb2e107",
+            179,
+            "2017-01-09 12:18:43",
+            "/detail",
+            "/detail",
+            null,
+            null
+          ],
+          [
+            "d45ec190",
+            200,
+            "2017-01-09 12:18:43",
+            "/detail",
+            "/detail",
+            null,
+            null
+          ],
+          [
+            "eee2bb21",
+            188,
+            "2017-01-09 12:18:43",
+            "/detail",
+            "/detail",
+            null,
+            null
+          ],
+          [
+            "fe05e1d8",
+            180,
+            "2017-01-09 12:18:43",
+            "/detail",
+            "/detail",
+            null,
+            null
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "TEXT",
+          "TEXT",
+          "TEXT",
+          "NULL",
+          "NULL"
+        ],
+        "rowCount": 7,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "session",
+        "event_id",
+        "stamp",
+        "path",
+        "second_page",
+        "third_page",
+        "third_event"
+      ],
+      "rows": [
+        [
+          "36dd0df7",
+          203,
+          "2017-01-09 12:19:49",
+          "/detail",
+          "/detail",
+          null,
+          null
+        ],
+        [
+          "3efe001c",
+          194,
+          "2017-01-09 12:18:43",
+          "/detail",
+          "/detail",
+          null,
+          null
+        ],
+        [
+          "5d5b0997",
+          189,
+          "2017-01-09 12:18:43",
+          "/detail",
+          "/detail",
+          null,
+          null
+        ],
+        [
+          "5eb2e107",
+          179,
+          "2017-01-09 12:18:43",
+          "/detail",
+          "/detail",
+          null,
+          null
+        ],
+        [
+          "d45ec190",
+          200,
+          "2017-01-09 12:18:43",
+          "/detail",
+          "/detail",
+          null,
+          null
+        ],
+        [
+          "eee2bb21",
+          188,
+          "2017-01-09 12:18:43",
+          "/detail",
+          "/detail",
+          null,
+          null
+        ],
+        [
+          "fe05e1d8",
+          180,
+          "2017-01-09 12:18:43",
+          "/detail",
+          "/detail",
+          null,
+          null
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "TEXT",
+        "TEXT",
+        "TEXT",
+        "NULL",
+        "NULL"
+      ],
+      "rowCount": 7,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_04eff2bd-1c17-42d2-8260-68f575aece88"
+  }
+}

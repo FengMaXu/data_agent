@@ -1,0 +1,51 @@
+{
+  "instance_id": "local064",
+  "status": "confirmed_implementation_error",
+  "summary": "原SQL遗漏全年无交易月份；Gold精确匹配扣purchase且仅观测月份的当月净额，但违背题面明示交易类型，不能把全部失分归于SQL遗漏。",
+  "fork_node": "population.missing",
+  "error_layer": "SQL calendar-spine implementation; separate Gold conflict signature",
+  "visibility": "requires SQL and observed month coverage; original Spec states whole 2020 but lacks missing calendar policy",
+  "independent_score": 0,
+  "evidence": [
+    {
+      "source": "blind.json",
+      "pointer": "/question",
+      "quote": "adding all deposit amounts and subtracting all withdrawal amounts that occurred during that specific month"
+    },
+    {
+      "source": "blind.json",
+      "pointer": "/question",
+      "quote": "For each customer and each month of 2020"
+    },
+    {
+      "source": "probe-variants-response.json",
+      "pointer": "/details/preview/rows",
+      "quote": "363.74199999999996"
+    },
+    {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local064/attempts/attempt-001/trace.json",
+      "pointer": "/toolCalls/12/result/details/fields/4/value",
+      "quote": "2020-01-01 through 2020-12-31",
+      "original_projection_source": "original-spec-extract.json"
+    }
+  ],
+  "limitations": [
+    "Gold SQL unavailable; numeric signature is not business evidence",
+    "May-Dec missing transaction data",
+    "Minimum month tie policy unspecified"
+  ],
+  "parent_field_review": {
+    "instance_id": "local064",
+    "relevant_node": "population.missing",
+    "node_is_confirmed_original_error": true,
+    "explanation": "原要求各客户各月，但SQL月集合只来自现有交易，没有全年月份脊",
+    "error_layer": "实现错（全年月份未落实）",
+    "visibility": "不适用：实现层；另记population.missing未声明",
+    "qualification": "局部错误；不能单独解释Gold失分，Gold交易范围另冲突",
+    "original_node_declared": false,
+    "original_node_status": "undeclared",
+    "original_node_value": null,
+    "original_spec_evidence": null,
+    "primary_status": "confirmed_implementation_error"
+  }
+}

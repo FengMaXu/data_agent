@@ -1,0 +1,10 @@
+{
+  "algorithm": "same-month post-demand single-batch restock recurrence; rank post-restock ending",
+  "assumptions": [
+    "inventory is December2018 balance",
+    "budget forecast demand",
+    "restock in same month; one batch",
+    "only configured products; earliest tie"
+  ],
+  "checks": "26 state rows, monthly/final conservation; all12 forecasts per modeled product"
+}

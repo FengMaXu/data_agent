@@ -1,0 +1,4 @@
+{
+  "sql": "WITH d AS (\n  SELECT DISTINCT insert_date AS dt FROM cities\n  WHERE country_code_2='cn' AND insert_date >= '2021-07-01' AND insert_date <= '2021-07-31'\n), g AS (\n  SELECT dt, CAST(julianday(dt) - ROW_NUMBER() OVER (ORDER BY dt) AS INT) AS grp FROM d\n), runs AS (\n  SELECT grp, COUNT(*) AS len FROM g GROUP BY grp\n), sel AS (\n  SELECT grp FROM runs WHERE len = (SELECT MIN(len) FROM runs)\n  UNION\n  SELECT grp FROM runs WHERE len = (SELECT MAX(len) FROM runs)\n), rep AS (\n  SELECT insert_date, MIN(city_name) AS city_name FROM cities\n  WHERE country_code_2='cn' AND insert_date >= '2021-07-01' AND insert_date <= '2021-07-31'\n  GROUP BY insert_date\n)\nSELECT g.dt AS insert_date,\n       UPPER(SUBSTR(rep.city_name,1,1)) || LOWER(SUBSTR(rep.city_name,2)) AS city_name\nFROM g\nJOIN sel ON sel.grp = g.grp\nJOIN rep ON rep.insert_date = g.dt\nORDER BY g.dt\n",
+  "limit": 1000
+}

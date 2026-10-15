@@ -1,0 +1,183 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_f7c4ff96-ae44-400b-89fd-d3bbb2134774\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\ncustomer_id | m | net | balance | prior_balance\n3 | 2020-01-01 | 144 | 144 | 0\n3 | 2020-02-01 | 0 | 144 | 144\n3 | 2020-03-01 | -401 | -257 | 144\n3 | 2020-04-01 | 493 | 236 | -257\n4 | 2020-01-01 | 848 | 848 | 0\n10 | 2020-01-01 | -410 | -410 | 0\n10 | 2020-02-01 | 494 | 84 | -410\n10 | 2020-03-01 | -282 | -198 | 84\n10 | 2020-04-01 | -513 | -711 | -198"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_f7c4ff96-ae44-400b-89fd-d3bbb2134774",
+      "preview": {
+        "columns": [
+          "customer_id",
+          "m",
+          "net",
+          "balance",
+          "prior_balance"
+        ],
+        "rows": [
+          [
+            3,
+            "2020-01-01",
+            144,
+            144,
+            0
+          ],
+          [
+            3,
+            "2020-02-01",
+            0,
+            144,
+            144
+          ],
+          [
+            3,
+            "2020-03-01",
+            -401,
+            -257,
+            144
+          ],
+          [
+            3,
+            "2020-04-01",
+            493,
+            236,
+            -257
+          ],
+          [
+            4,
+            "2020-01-01",
+            848,
+            848,
+            0
+          ],
+          [
+            10,
+            "2020-01-01",
+            -410,
+            -410,
+            0
+          ],
+          [
+            10,
+            "2020-02-01",
+            494,
+            84,
+            -410
+          ],
+          [
+            10,
+            "2020-03-01",
+            -282,
+            -198,
+            84
+          ],
+          [
+            10,
+            "2020-04-01",
+            -513,
+            -711,
+            -198
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "TEXT",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 9,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "customer_id",
+        "m",
+        "net",
+        "balance",
+        "prior_balance"
+      ],
+      "rows": [
+        [
+          3,
+          "2020-01-01",
+          144,
+          144,
+          0
+        ],
+        [
+          3,
+          "2020-02-01",
+          0,
+          144,
+          144
+        ],
+        [
+          3,
+          "2020-03-01",
+          -401,
+          -257,
+          144
+        ],
+        [
+          3,
+          "2020-04-01",
+          493,
+          236,
+          -257
+        ],
+        [
+          4,
+          "2020-01-01",
+          848,
+          848,
+          0
+        ],
+        [
+          10,
+          "2020-01-01",
+          -410,
+          -410,
+          0
+        ],
+        [
+          10,
+          "2020-02-01",
+          494,
+          84,
+          -410
+        ],
+        [
+          10,
+          "2020-03-01",
+          -282,
+          -198,
+          84
+        ],
+        [
+          10,
+          "2020-04-01",
+          -513,
+          -711,
+          -198
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "TEXT",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 9,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_b3ec2ca0-5ccc-47c3-a57b-bc9b44afd56a"
+  }
+}

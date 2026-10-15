@@ -1,0 +1,54 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_0ba3fcf4-8dfb-4ae7-999a-7c8e7625f636 revisionId=revision_7fa38c65-e231-45b2-8724-a657d62c3d52\n- ✓ population.entity\n状态：\n- 未声明: population.eligibility, population.conditions, population.time, measure.formula, grouping, selection, output\n[SPEC_FEEDBACK] revisionId=revision_7fa38c65-e231-45b2-8724-a657d62c3d52 status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"Product monthly France sales projection\"}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_0ba3fcf4-8dfb-4ae7-999a-7c8e7625f636",
+    "revisionId": "revision_7fa38c65-e231-45b2-8724-a657d62c3d52",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "Product monthly France sales projection"
+        },
+        "evidenceIds": [
+          "evidence_b86cad70-da84-4a47-9779-075e44d1a1e6"
+        ]
+      }
+    ],
+    "undeclared": [
+      "population.eligibility",
+      "population.conditions",
+      "population.time",
+      "measure.formula",
+      "grouping",
+      "selection",
+      "output"
+    ],
+    "open": [],
+    "unverified": [],
+    "specFeedback": {
+      "taskId": "task_0ba3fcf4-8dfb-4ae7-999a-7c8e7625f636",
+      "revisionId": "revision_7fa38c65-e231-45b2-8724-a657d62c3d52",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_b86cad70-da84-4a47-9779-075e44d1a1e6"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "population.entity",
+        "status": "applied"
+      }
+    ]
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_07bfa263-2d53-498c-92af-5d0838617c0b\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nseller_orders | missing_pack_events | negative_pack | min_packing | max_packing | avg_approved_pack | avg_purchase_to_carrier\n100010 | 1024 | 1398 | -171.2190046296455 | 125.76256944425404 | 2.7919713597256735 | 3.221515929198923"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_07bfa263-2d53-498c-92af-5d0838617c0b",
+      "preview": {
+        "columns": [
+          "seller_orders",
+          "missing_pack_events",
+          "negative_pack",
+          "min_packing",
+          "max_packing",
+          "avg_approved_pack",
+          "avg_purchase_to_carrier"
+        ],
+        "rows": [
+          [
+            100010,
+            1024,
+            1398,
+            -171.2190046296455,
+            125.76256944425404,
+            2.7919713597256735,
+            3.221515929198923
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "REAL",
+          "REAL",
+          "REAL",
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "seller_orders",
+        "missing_pack_events",
+        "negative_pack",
+        "min_packing",
+        "max_packing",
+        "avg_approved_pack",
+        "avg_purchase_to_carrier"
+      ],
+      "rows": [
+        [
+          100010,
+          1024,
+          1398,
+          -171.2190046296455,
+          125.76256944425404,
+          2.7919713597256735,
+          3.221515929198923
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "REAL",
+        "REAL",
+        "REAL",
+        "REAL"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_b9af4c36-6b0e-469d-b1dc-afa0387848d4"
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "sql": "WITH f AS (SELECT id_bioguide,min(term_start) first FROM legislators_terms GROUP BY id_bioguide HAVING min(term_start) BETWEEN '1917-01-01' AND '1999-12-31') SELECT cast(substr(d.date,1,4) as int)-cast(substr(f.first,1,4) as int) period,count(*) joined_rows,count(distinct f.id_bioguide) distinct_people FROM f JOIN legislators_terms t USING(id_bioguide) JOIN legislation_date_dim d ON d.date BETWEEN t.term_start AND t.term_end WHERE d.month_name='December' AND d.day_of_month=31 GROUP BY period HAVING period BETWEEN 0 AND 20 ORDER BY period",
+  "limit": 1000
+}

@@ -1,0 +1,857 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_a31e304e-1bd8-4e3e-aafc-e758fb77fbc0\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nsession | stamp | event_id | path | second_page | third_page | third_event\n1cf7678e | 2017-01-09 12:18:43 | 69 | /detail | /detail | /detail | 141\n1cf7678e | 2017-01-09 12:18:43 | 105 | /detail | /detail | /detail | 177\n1cf7678e | 2017-01-09 12:18:43 | 141 | /detail | /detail | /detail | 213\n1cf7678e | 2017-01-09 12:18:43 | 177 | /detail | /detail | / | 6\n36dd0df7 | 2017-01-09 12:19:49 | 95 | /detail | /detail | /detail | 167\n36dd0df7 | 2017-01-09 12:19:49 | 131 | /detail | /detail | /detail | 203\n36dd0df7 | 2017-01-09 12:19:49 | 167 | /detail | /detail | /detail | 239\n36dd0df7 | 2017-01-09 12:19:49 | 203 | /detail | /detail | NULL | NULL\n3efe001c | 2017-01-09 12:18:43 | 86 | /detail | /detail | /detail | 158\n3efe001c | 2017-01-09 12:18:43 | 122 | /detail | /detail | /detail | 194\n3efe001c | 2017-01-09 12:18:43 | 158 | /detail | /detail | /detail | 230\n3efe001c | 2017-01-09 12:18:43 | 194 | /detail | /detail | NULL | NULL\n5d5b0997 | 2017-01-09 12:18:43 | 81 | /detail | /detail | /detail | 153\n5d5b0997 | 2017-01-09 12:18:43 | 117 | /detail | /detail | /detail | 189\n5d5b0997 | 2017-01-09 12:18:43 | 153 | /detail | /detail | /detail | 225\n5d5b0997 | 2017-01-09 12:18:43 | 189 | /detail | /detail | NULL | NULL\n5eb2e107 | 2017-01-09 12:18:43 | 71 | /detail | /detail | /detail | 143\n5eb2e107 | 2017-01-09 12:18:43 | 107 | /detail | /detail | /detail | 179\n5eb2e107 | 2017-01-09 12:18:43 | 143 | /detail | /detail | /detail | 215\n5eb2e107 | 2017-01-09 12:18:43 | 179 | /detail | /detail | NULL | NULL\n87b5725f | 2017-01-09 12:18:43 | 73 | /detail | /detail | /detail | 145\n87b5725f | 2017-01-09 12:18:43 | 109 | /detail | /detail | /detail | 181\n87b5725f | 2017-01-09 12:18:43 | 145 | /detail | /detail | /detail | 217\n87b5725f | 2017-01-09 12:18:43 | 181 | /detail | /detail | /search_list/ | 10\n87b5725f | 2017-01-09 12:24:13 | 78 | /detail | /detail | /detail | 150\n87b5725f | 2017-01-09 12:24:13 | 114 | /detail | /detail | /detail | 186\n87b5725f | 2017-01-09 12:24:13 | 150 | /detail | /detail | /detail | 222\n87b5725f | 2017-01-09 12:24:13 | 186 | /detail | /detail | / | 15\n9afaf87c | 2017-01-09 12:20:18 | 88 | /detail | /detail | /detail | 160\n9afaf87c | 2017-01-09 12:20:18 | 124 | /detail | /detail | /detail | 196\n9afaf87c | 2017-01-09 12:20:18 | 160 | /detail | /detail | /detail | 232\n9afaf87c | 2017-01-09 12:20:18 | 196 | /detail | /detail | /detail/ | 25\nd45ec190 | 2017-01-09 12:18:43 | 92 | /detail | /detail | /detail | 164\nd45ec190 | 2017-01-09 12:18:43 | 128 | /detail | /detail | /detail | 200\nd45ec190 | 2017-01-09 12:18:43 | 164 | /detail | /detail | /detail | 236\nd45ec190 | 2017-01-09 12:18:43 | 200 | /detail | /detail | NULL | NULL\neee2bb21 | 2017-01-09 12:18:43 | 80 | /detail | /detail | /detail | 152\neee2bb21 | 2017-01-09 12:18:43 | 116 | /detail | /detail | /detail | 188\neee2bb21 | 2017-01-09 12:18:43 | 152 | /detail | /detail | /detail | 224\neee2bb21 | 2017-01-09 12:18:43 | 188 | /detail | /detail | NULL | NULL\nfe05e1d8 | 2017-01-09 12:18:43 | 72 | /detail | /detail | /detail | 144\nfe05e1d8 | 2017-01-09 12:18:43 | 108 | /detail | /detail | /detail | 180\nfe05e1d8 | 2017-01-09 12:18:43 | 144 | /detail | /detail | /detail | 216\nfe05e1d8 | 2017-01-09 12:18:43 | 180 | /detail | /detail | NULL | NULL"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_a31e304e-1bd8-4e3e-aafc-e758fb77fbc0",
+      "preview": {
+        "columns": [
+          "session",
+          "stamp",
+          "event_id",
+          "path",
+          "second_page",
+          "third_page",
+          "third_event"
+        ],
+        "rows": [
+          [
+            "1cf7678e",
+            "2017-01-09 12:18:43",
+            69,
+            "/detail",
+            "/detail",
+            "/detail",
+            141
+          ],
+          [
+            "1cf7678e",
+            "2017-01-09 12:18:43",
+            105,
+            "/detail",
+            "/detail",
+            "/detail",
+            177
+          ],
+          [
+            "1cf7678e",
+            "2017-01-09 12:18:43",
+            141,
+            "/detail",
+            "/detail",
+            "/detail",
+            213
+          ],
+          [
+            "1cf7678e",
+            "2017-01-09 12:18:43",
+            177,
+            "/detail",
+            "/detail",
+            "/",
+            6
+          ],
+          [
+            "36dd0df7",
+            "2017-01-09 12:19:49",
+            95,
+            "/detail",
+            "/detail",
+            "/detail",
+            167
+          ],
+          [
+            "36dd0df7",
+            "2017-01-09 12:19:49",
+            131,
+            "/detail",
+            "/detail",
+            "/detail",
+            203
+          ],
+          [
+            "36dd0df7",
+            "2017-01-09 12:19:49",
+            167,
+            "/detail",
+            "/detail",
+            "/detail",
+            239
+          ],
+          [
+            "36dd0df7",
+            "2017-01-09 12:19:49",
+            203,
+            "/detail",
+            "/detail",
+            null,
+            null
+          ],
+          [
+            "3efe001c",
+            "2017-01-09 12:18:43",
+            86,
+            "/detail",
+            "/detail",
+            "/detail",
+            158
+          ],
+          [
+            "3efe001c",
+            "2017-01-09 12:18:43",
+            122,
+            "/detail",
+            "/detail",
+            "/detail",
+            194
+          ],
+          [
+            "3efe001c",
+            "2017-01-09 12:18:43",
+            158,
+            "/detail",
+            "/detail",
+            "/detail",
+            230
+          ],
+          [
+            "3efe001c",
+            "2017-01-09 12:18:43",
+            194,
+            "/detail",
+            "/detail",
+            null,
+            null
+          ],
+          [
+            "5d5b0997",
+            "2017-01-09 12:18:43",
+            81,
+            "/detail",
+            "/detail",
+            "/detail",
+            153
+          ],
+          [
+            "5d5b0997",
+            "2017-01-09 12:18:43",
+            117,
+            "/detail",
+            "/detail",
+            "/detail",
+            189
+          ],
+          [
+            "5d5b0997",
+            "2017-01-09 12:18:43",
+            153,
+            "/detail",
+            "/detail",
+            "/detail",
+            225
+          ],
+          [
+            "5d5b0997",
+            "2017-01-09 12:18:43",
+            189,
+            "/detail",
+            "/detail",
+            null,
+            null
+          ],
+          [
+            "5eb2e107",
+            "2017-01-09 12:18:43",
+            71,
+            "/detail",
+            "/detail",
+            "/detail",
+            143
+          ],
+          [
+            "5eb2e107",
+            "2017-01-09 12:18:43",
+            107,
+            "/detail",
+            "/detail",
+            "/detail",
+            179
+          ],
+          [
+            "5eb2e107",
+            "2017-01-09 12:18:43",
+            143,
+            "/detail",
+            "/detail",
+            "/detail",
+            215
+          ],
+          [
+            "5eb2e107",
+            "2017-01-09 12:18:43",
+            179,
+            "/detail",
+            "/detail",
+            null,
+            null
+          ],
+          [
+            "87b5725f",
+            "2017-01-09 12:18:43",
+            73,
+            "/detail",
+            "/detail",
+            "/detail",
+            145
+          ],
+          [
+            "87b5725f",
+            "2017-01-09 12:18:43",
+            109,
+            "/detail",
+            "/detail",
+            "/detail",
+            181
+          ],
+          [
+            "87b5725f",
+            "2017-01-09 12:18:43",
+            145,
+            "/detail",
+            "/detail",
+            "/detail",
+            217
+          ],
+          [
+            "87b5725f",
+            "2017-01-09 12:18:43",
+            181,
+            "/detail",
+            "/detail",
+            "/search_list/",
+            10
+          ],
+          [
+            "87b5725f",
+            "2017-01-09 12:24:13",
+            78,
+            "/detail",
+            "/detail",
+            "/detail",
+            150
+          ],
+          [
+            "87b5725f",
+            "2017-01-09 12:24:13",
+            114,
+            "/detail",
+            "/detail",
+            "/detail",
+            186
+          ],
+          [
+            "87b5725f",
+            "2017-01-09 12:24:13",
+            150,
+            "/detail",
+            "/detail",
+            "/detail",
+            222
+          ],
+          [
+            "87b5725f",
+            "2017-01-09 12:24:13",
+            186,
+            "/detail",
+            "/detail",
+            "/",
+            15
+          ],
+          [
+            "9afaf87c",
+            "2017-01-09 12:20:18",
+            88,
+            "/detail",
+            "/detail",
+            "/detail",
+            160
+          ],
+          [
+            "9afaf87c",
+            "2017-01-09 12:20:18",
+            124,
+            "/detail",
+            "/detail",
+            "/detail",
+            196
+          ],
+          [
+            "9afaf87c",
+            "2017-01-09 12:20:18",
+            160,
+            "/detail",
+            "/detail",
+            "/detail",
+            232
+          ],
+          [
+            "9afaf87c",
+            "2017-01-09 12:20:18",
+            196,
+            "/detail",
+            "/detail",
+            "/detail/",
+            25
+          ],
+          [
+            "d45ec190",
+            "2017-01-09 12:18:43",
+            92,
+            "/detail",
+            "/detail",
+            "/detail",
+            164
+          ],
+          [
+            "d45ec190",
+            "2017-01-09 12:18:43",
+            128,
+            "/detail",
+            "/detail",
+            "/detail",
+            200
+          ],
+          [
+            "d45ec190",
+            "2017-01-09 12:18:43",
+            164,
+            "/detail",
+            "/detail",
+            "/detail",
+            236
+          ],
+          [
+            "d45ec190",
+            "2017-01-09 12:18:43",
+            200,
+            "/detail",
+            "/detail",
+            null,
+            null
+          ],
+          [
+            "eee2bb21",
+            "2017-01-09 12:18:43",
+            80,
+            "/detail",
+            "/detail",
+            "/detail",
+            152
+          ],
+          [
+            "eee2bb21",
+            "2017-01-09 12:18:43",
+            116,
+            "/detail",
+            "/detail",
+            "/detail",
+            188
+          ],
+          [
+            "eee2bb21",
+            "2017-01-09 12:18:43",
+            152,
+            "/detail",
+            "/detail",
+            "/detail",
+            224
+          ],
+          [
+            "eee2bb21",
+            "2017-01-09 12:18:43",
+            188,
+            "/detail",
+            "/detail",
+            null,
+            null
+          ],
+          [
+            "fe05e1d8",
+            "2017-01-09 12:18:43",
+            72,
+            "/detail",
+            "/detail",
+            "/detail",
+            144
+          ],
+          [
+            "fe05e1d8",
+            "2017-01-09 12:18:43",
+            108,
+            "/detail",
+            "/detail",
+            "/detail",
+            180
+          ],
+          [
+            "fe05e1d8",
+            "2017-01-09 12:18:43",
+            144,
+            "/detail",
+            "/detail",
+            "/detail",
+            216
+          ],
+          [
+            "fe05e1d8",
+            "2017-01-09 12:18:43",
+            180,
+            "/detail",
+            "/detail",
+            null,
+            null
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "TEXT",
+          "INTEGER",
+          "TEXT",
+          "TEXT",
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 44,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "session",
+        "stamp",
+        "event_id",
+        "path",
+        "second_page",
+        "third_page",
+        "third_event"
+      ],
+      "rows": [
+        [
+          "1cf7678e",
+          "2017-01-09 12:18:43",
+          69,
+          "/detail",
+          "/detail",
+          "/detail",
+          141
+        ],
+        [
+          "1cf7678e",
+          "2017-01-09 12:18:43",
+          105,
+          "/detail",
+          "/detail",
+          "/detail",
+          177
+        ],
+        [
+          "1cf7678e",
+          "2017-01-09 12:18:43",
+          141,
+          "/detail",
+          "/detail",
+          "/detail",
+          213
+        ],
+        [
+          "1cf7678e",
+          "2017-01-09 12:18:43",
+          177,
+          "/detail",
+          "/detail",
+          "/",
+          6
+        ],
+        [
+          "36dd0df7",
+          "2017-01-09 12:19:49",
+          95,
+          "/detail",
+          "/detail",
+          "/detail",
+          167
+        ],
+        [
+          "36dd0df7",
+          "2017-01-09 12:19:49",
+          131,
+          "/detail",
+          "/detail",
+          "/detail",
+          203
+        ],
+        [
+          "36dd0df7",
+          "2017-01-09 12:19:49",
+          167,
+          "/detail",
+          "/detail",
+          "/detail",
+          239
+        ],
+        [
+          "36dd0df7",
+          "2017-01-09 12:19:49",
+          203,
+          "/detail",
+          "/detail",
+          null,
+          null
+        ],
+        [
+          "3efe001c",
+          "2017-01-09 12:18:43",
+          86,
+          "/detail",
+          "/detail",
+          "/detail",
+          158
+        ],
+        [
+          "3efe001c",
+          "2017-01-09 12:18:43",
+          122,
+          "/detail",
+          "/detail",
+          "/detail",
+          194
+        ],
+        [
+          "3efe001c",
+          "2017-01-09 12:18:43",
+          158,
+          "/detail",
+          "/detail",
+          "/detail",
+          230
+        ],
+        [
+          "3efe001c",
+          "2017-01-09 12:18:43",
+          194,
+          "/detail",
+          "/detail",
+          null,
+          null
+        ],
+        [
+          "5d5b0997",
+          "2017-01-09 12:18:43",
+          81,
+          "/detail",
+          "/detail",
+          "/detail",
+          153
+        ],
+        [
+          "5d5b0997",
+          "2017-01-09 12:18:43",
+          117,
+          "/detail",
+          "/detail",
+          "/detail",
+          189
+        ],
+        [
+          "5d5b0997",
+          "2017-01-09 12:18:43",
+          153,
+          "/detail",
+          "/detail",
+          "/detail",
+          225
+        ],
+        [
+          "5d5b0997",
+          "2017-01-09 12:18:43",
+          189,
+          "/detail",
+          "/detail",
+          null,
+          null
+        ],
+        [
+          "5eb2e107",
+          "2017-01-09 12:18:43",
+          71,
+          "/detail",
+          "/detail",
+          "/detail",
+          143
+        ],
+        [
+          "5eb2e107",
+          "2017-01-09 12:18:43",
+          107,
+          "/detail",
+          "/detail",
+          "/detail",
+          179
+        ],
+        [
+          "5eb2e107",
+          "2017-01-09 12:18:43",
+          143,
+          "/detail",
+          "/detail",
+          "/detail",
+          215
+        ],
+        [
+          "5eb2e107",
+          "2017-01-09 12:18:43",
+          179,
+          "/detail",
+          "/detail",
+          null,
+          null
+        ],
+        [
+          "87b5725f",
+          "2017-01-09 12:18:43",
+          73,
+          "/detail",
+          "/detail",
+          "/detail",
+          145
+        ],
+        [
+          "87b5725f",
+          "2017-01-09 12:18:43",
+          109,
+          "/detail",
+          "/detail",
+          "/detail",
+          181
+        ],
+        [
+          "87b5725f",
+          "2017-01-09 12:18:43",
+          145,
+          "/detail",
+          "/detail",
+          "/detail",
+          217
+        ],
+        [
+          "87b5725f",
+          "2017-01-09 12:18:43",
+          181,
+          "/detail",
+          "/detail",
+          "/search_list/",
+          10
+        ],
+        [
+          "87b5725f",
+          "2017-01-09 12:24:13",
+          78,
+          "/detail",
+          "/detail",
+          "/detail",
+          150
+        ],
+        [
+          "87b5725f",
+          "2017-01-09 12:24:13",
+          114,
+          "/detail",
+          "/detail",
+          "/detail",
+          186
+        ],
+        [
+          "87b5725f",
+          "2017-01-09 12:24:13",
+          150,
+          "/detail",
+          "/detail",
+          "/detail",
+          222
+        ],
+        [
+          "87b5725f",
+          "2017-01-09 12:24:13",
+          186,
+          "/detail",
+          "/detail",
+          "/",
+          15
+        ],
+        [
+          "9afaf87c",
+          "2017-01-09 12:20:18",
+          88,
+          "/detail",
+          "/detail",
+          "/detail",
+          160
+        ],
+        [
+          "9afaf87c",
+          "2017-01-09 12:20:18",
+          124,
+          "/detail",
+          "/detail",
+          "/detail",
+          196
+        ],
+        [
+          "9afaf87c",
+          "2017-01-09 12:20:18",
+          160,
+          "/detail",
+          "/detail",
+          "/detail",
+          232
+        ],
+        [
+          "9afaf87c",
+          "2017-01-09 12:20:18",
+          196,
+          "/detail",
+          "/detail",
+          "/detail/",
+          25
+        ],
+        [
+          "d45ec190",
+          "2017-01-09 12:18:43",
+          92,
+          "/detail",
+          "/detail",
+          "/detail",
+          164
+        ],
+        [
+          "d45ec190",
+          "2017-01-09 12:18:43",
+          128,
+          "/detail",
+          "/detail",
+          "/detail",
+          200
+        ],
+        [
+          "d45ec190",
+          "2017-01-09 12:18:43",
+          164,
+          "/detail",
+          "/detail",
+          "/detail",
+          236
+        ],
+        [
+          "d45ec190",
+          "2017-01-09 12:18:43",
+          200,
+          "/detail",
+          "/detail",
+          null,
+          null
+        ],
+        [
+          "eee2bb21",
+          "2017-01-09 12:18:43",
+          80,
+          "/detail",
+          "/detail",
+          "/detail",
+          152
+        ],
+        [
+          "eee2bb21",
+          "2017-01-09 12:18:43",
+          116,
+          "/detail",
+          "/detail",
+          "/detail",
+          188
+        ],
+        [
+          "eee2bb21",
+          "2017-01-09 12:18:43",
+          152,
+          "/detail",
+          "/detail",
+          "/detail",
+          224
+        ],
+        [
+          "eee2bb21",
+          "2017-01-09 12:18:43",
+          188,
+          "/detail",
+          "/detail",
+          null,
+          null
+        ],
+        [
+          "fe05e1d8",
+          "2017-01-09 12:18:43",
+          72,
+          "/detail",
+          "/detail",
+          "/detail",
+          144
+        ],
+        [
+          "fe05e1d8",
+          "2017-01-09 12:18:43",
+          108,
+          "/detail",
+          "/detail",
+          "/detail",
+          180
+        ],
+        [
+          "fe05e1d8",
+          "2017-01-09 12:18:43",
+          144,
+          "/detail",
+          "/detail",
+          "/detail",
+          216
+        ],
+        [
+          "fe05e1d8",
+          "2017-01-09 12:18:43",
+          180,
+          "/detail",
+          "/detail",
+          null,
+          null
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "TEXT",
+        "INTEGER",
+        "TEXT",
+        "TEXT",
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 44,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_7180d6be-2177-4810-93c6-014500a8b090"
+  }
+}

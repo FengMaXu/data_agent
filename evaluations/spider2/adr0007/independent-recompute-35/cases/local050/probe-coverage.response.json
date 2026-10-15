@@ -1,0 +1,225 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_4f696a17-5e0c-4418-84d3-5fccd720b44b\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nm | product_months | missing_2019 | missing_2020 | zero_2019\n1 | 70 | 19 | 4 | 0\n2 | 66 | 13 | 1 | 0\n3 | 68 | 17 | 5 | 0\n4 | 65 | 19 | 3 | 0\n5 | 68 | 19 | 3 | 0\n6 | 68 | 20 | 2 | 0\n7 | 69 | 19 | 1 | 0\n8 | 71 | 20 | 0 | 0\n9 | 69 | 16 | 0 | 0\n10 | 70 | 14 | 4 | 0\n11 | 68 | 15 | 4 | 0\n12 | 69 | 12 | 1 | 0"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_4f696a17-5e0c-4418-84d3-5fccd720b44b",
+      "preview": {
+        "columns": [
+          "m",
+          "product_months",
+          "missing_2019",
+          "missing_2020",
+          "zero_2019"
+        ],
+        "rows": [
+          [
+            1,
+            70,
+            19,
+            4,
+            0
+          ],
+          [
+            2,
+            66,
+            13,
+            1,
+            0
+          ],
+          [
+            3,
+            68,
+            17,
+            5,
+            0
+          ],
+          [
+            4,
+            65,
+            19,
+            3,
+            0
+          ],
+          [
+            5,
+            68,
+            19,
+            3,
+            0
+          ],
+          [
+            6,
+            68,
+            20,
+            2,
+            0
+          ],
+          [
+            7,
+            69,
+            19,
+            1,
+            0
+          ],
+          [
+            8,
+            71,
+            20,
+            0,
+            0
+          ],
+          [
+            9,
+            69,
+            16,
+            0,
+            0
+          ],
+          [
+            10,
+            70,
+            14,
+            4,
+            0
+          ],
+          [
+            11,
+            68,
+            15,
+            4,
+            0
+          ],
+          [
+            12,
+            69,
+            12,
+            1,
+            0
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 12,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "m",
+        "product_months",
+        "missing_2019",
+        "missing_2020",
+        "zero_2019"
+      ],
+      "rows": [
+        [
+          1,
+          70,
+          19,
+          4,
+          0
+        ],
+        [
+          2,
+          66,
+          13,
+          1,
+          0
+        ],
+        [
+          3,
+          68,
+          17,
+          5,
+          0
+        ],
+        [
+          4,
+          65,
+          19,
+          3,
+          0
+        ],
+        [
+          5,
+          68,
+          19,
+          3,
+          0
+        ],
+        [
+          6,
+          68,
+          20,
+          2,
+          0
+        ],
+        [
+          7,
+          69,
+          19,
+          1,
+          0
+        ],
+        [
+          8,
+          71,
+          20,
+          0,
+          0
+        ],
+        [
+          9,
+          69,
+          16,
+          0,
+          0
+        ],
+        [
+          10,
+          70,
+          14,
+          4,
+          0
+        ],
+        [
+          11,
+          68,
+          15,
+          4,
+          0
+        ],
+        [
+          12,
+          69,
+          12,
+          1,
+          0
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 12,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_83c6d806-0fc7-41fa-8d4f-b0100a6af8a5"
+  }
+}

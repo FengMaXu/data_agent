@@ -1,0 +1,461 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_60e41544-7552-46b3-93a8-4acf9e2fd267\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nStyleID | StyleName | n | p1 | p2 | p3\n1 | 40's Ballroom Music | 2 | 0 | 1 | 1\n2 | 50's Music | 0 | 0 | 0 | 0\n3 | 60's Music | 1 | 1 | 0 | 0\n4 | 70's Music | 1 | 0 | 1 | 0\n5 | 80's Music | 1 | 0 | 0 | 1\n6 | Country | 1 | 0 | 1 | 0\n7 | Classical | 2 | 0 | 1 | 1\n8 | Classic Rock & Roll | 2 | 1 | 1 | 0\n9 | Rap | 0 | 0 | 0 | 0\n10 | Contemporary | 3 | 1 | 2 | 0\n11 | Country Rock | 1 | 1 | 0 | 0\n12 | Elvis | 0 | 0 | 0 | 0\n13 | Folk | 1 | 0 | 1 | 0\n14 | Chamber Music | 1 | 1 | 0 | 0\n15 | Jazz | 3 | 2 | 1 | 0\n16 | Karaoke | 0 | 0 | 0 | 0\n17 | Motown | 1 | 0 | 1 | 0\n18 | Modern Rock | 2 | 0 | 1 | 1\n19 | Rhythm and Blues | 3 | 2 | 0 | 1\n20 | Show Tunes | 2 | 1 | 1 | 0\n21 | Standards | 4 | 2 | 2 | 0\n22 | Top 40 Hits | 2 | 2 | 0 | 0\n23 | Variety | 1 | 1 | 0 | 0\n24 | Salsa | 2 | 0 | 1 | 1\n25 | 90's Music | 0 | 0 | 0 | 0"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_60e41544-7552-46b3-93a8-4acf9e2fd267",
+      "preview": {
+        "columns": [
+          "StyleID",
+          "StyleName",
+          "n",
+          "p1",
+          "p2",
+          "p3"
+        ],
+        "rows": [
+          [
+            1,
+            "40's Ballroom Music",
+            2,
+            0,
+            1,
+            1
+          ],
+          [
+            2,
+            "50's Music",
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            3,
+            "60's Music",
+            1,
+            1,
+            0,
+            0
+          ],
+          [
+            4,
+            "70's Music",
+            1,
+            0,
+            1,
+            0
+          ],
+          [
+            5,
+            "80's Music",
+            1,
+            0,
+            0,
+            1
+          ],
+          [
+            6,
+            "Country",
+            1,
+            0,
+            1,
+            0
+          ],
+          [
+            7,
+            "Classical",
+            2,
+            0,
+            1,
+            1
+          ],
+          [
+            8,
+            "Classic Rock & Roll",
+            2,
+            1,
+            1,
+            0
+          ],
+          [
+            9,
+            "Rap",
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            10,
+            "Contemporary",
+            3,
+            1,
+            2,
+            0
+          ],
+          [
+            11,
+            "Country Rock",
+            1,
+            1,
+            0,
+            0
+          ],
+          [
+            12,
+            "Elvis",
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            13,
+            "Folk",
+            1,
+            0,
+            1,
+            0
+          ],
+          [
+            14,
+            "Chamber Music",
+            1,
+            1,
+            0,
+            0
+          ],
+          [
+            15,
+            "Jazz",
+            3,
+            2,
+            1,
+            0
+          ],
+          [
+            16,
+            "Karaoke",
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            17,
+            "Motown",
+            1,
+            0,
+            1,
+            0
+          ],
+          [
+            18,
+            "Modern Rock",
+            2,
+            0,
+            1,
+            1
+          ],
+          [
+            19,
+            "Rhythm and Blues",
+            3,
+            2,
+            0,
+            1
+          ],
+          [
+            20,
+            "Show Tunes",
+            2,
+            1,
+            1,
+            0
+          ],
+          [
+            21,
+            "Standards",
+            4,
+            2,
+            2,
+            0
+          ],
+          [
+            22,
+            "Top 40 Hits",
+            2,
+            2,
+            0,
+            0
+          ],
+          [
+            23,
+            "Variety",
+            1,
+            1,
+            0,
+            0
+          ],
+          [
+            24,
+            "Salsa",
+            2,
+            0,
+            1,
+            1
+          ],
+          [
+            25,
+            "90's Music",
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "TEXT",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 25,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "StyleID",
+        "StyleName",
+        "n",
+        "p1",
+        "p2",
+        "p3"
+      ],
+      "rows": [
+        [
+          1,
+          "40's Ballroom Music",
+          2,
+          0,
+          1,
+          1
+        ],
+        [
+          2,
+          "50's Music",
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          3,
+          "60's Music",
+          1,
+          1,
+          0,
+          0
+        ],
+        [
+          4,
+          "70's Music",
+          1,
+          0,
+          1,
+          0
+        ],
+        [
+          5,
+          "80's Music",
+          1,
+          0,
+          0,
+          1
+        ],
+        [
+          6,
+          "Country",
+          1,
+          0,
+          1,
+          0
+        ],
+        [
+          7,
+          "Classical",
+          2,
+          0,
+          1,
+          1
+        ],
+        [
+          8,
+          "Classic Rock & Roll",
+          2,
+          1,
+          1,
+          0
+        ],
+        [
+          9,
+          "Rap",
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          10,
+          "Contemporary",
+          3,
+          1,
+          2,
+          0
+        ],
+        [
+          11,
+          "Country Rock",
+          1,
+          1,
+          0,
+          0
+        ],
+        [
+          12,
+          "Elvis",
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          13,
+          "Folk",
+          1,
+          0,
+          1,
+          0
+        ],
+        [
+          14,
+          "Chamber Music",
+          1,
+          1,
+          0,
+          0
+        ],
+        [
+          15,
+          "Jazz",
+          3,
+          2,
+          1,
+          0
+        ],
+        [
+          16,
+          "Karaoke",
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          17,
+          "Motown",
+          1,
+          0,
+          1,
+          0
+        ],
+        [
+          18,
+          "Modern Rock",
+          2,
+          0,
+          1,
+          1
+        ],
+        [
+          19,
+          "Rhythm and Blues",
+          3,
+          2,
+          0,
+          1
+        ],
+        [
+          20,
+          "Show Tunes",
+          2,
+          1,
+          1,
+          0
+        ],
+        [
+          21,
+          "Standards",
+          4,
+          2,
+          2,
+          0
+        ],
+        [
+          22,
+          "Top 40 Hits",
+          2,
+          2,
+          0,
+          0
+        ],
+        [
+          23,
+          "Variety",
+          1,
+          1,
+          0,
+          0
+        ],
+        [
+          24,
+          "Salsa",
+          2,
+          0,
+          1,
+          1
+        ],
+        [
+          25,
+          "90's Music",
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "TEXT",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 25,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_d55589cc-2d8a-4374-980e-0170252acc7e"
+  }
+}

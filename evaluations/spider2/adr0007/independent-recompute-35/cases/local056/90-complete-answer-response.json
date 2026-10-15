@@ -1,0 +1,146 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_f81fe942-08df-4f79-8596-bae2a9cdb4e4 revisionId=revision_900d402b-245b-4f3d-9218-fdfbb30865f3\n- ✓ population.conditions\n- ✓ selection\n状态：\n- 未证实（发布时披露）: population.eligibility, population.time, measure.formula, grouping, output, selection.ties, measure.countGrain, measure.denominator, population.missing, selection\n- 没有待处理的字段，可以执行结果查询\n[SPEC_FEEDBACK] revisionId=revision_900d402b-245b-4f3d-9218-fdfbb30865f3 status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"客户，customer.customer_id\"}},\"population.eligibility\":{\"status\":\"assumed\",\"value\":\"至少两个有付款月份的客户；无可定义差分的客户排除\"},\"population.conditions\":{\"status\":\"not_applicable\"},\"population.time\":{\"status\":\"assumed\",\"value\":{\"expression\":\"全部payment_date，年-月排序；缺月不补零\"}},\"population.missing\":{\"status\":\"assumed\",\"value\":\"不补零；相邻有付款月份\"},\"measure.formula\":{\"status\":\"assumed\",\"value\":{\"op\":\"custom\",\"description\":\"每客户月总付款金额SUM(amount)，相邻观测月本月总额减前月总额，对非首期差分算AVG；取最大平均差\"}},\"measure.countGrain\":{\"status\":\"assumed\",\"value\":\"客户的相邻有付款月份差分\"},\"measure.denominator\":{\"status\":\"assumed\",\"value\":\"每客户月份数减1；不足2期排除\"},\"grouping\":{\"status\":\"assumed\",\"value\":[\"customer_id\"]},\"selection\":{\"status\":\"assumed\",\"value\":{\"n\":1,\"orderBy\":\"signed_change DESC\"}},\"selection.ties\":{\"status\":\"assumed\",\"value\":\"include_ties\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"full\",\"columns\":[\"full_name\"]}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_f81fe942-08df-4f79-8596-bae2a9cdb4e4",
+    "revisionId": "revision_900d402b-245b-4f3d-9218-fdfbb30865f3",
+    "parentRevisionId": "revision_040f85f2-78a1-4bb5-b8cd-f0e8e2e2f031",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "客户，customer.customer_id"
+        },
+        "evidenceIds": [
+          "evidence_847fca2e-97d5-4bce-945e-85f6fb5bd50b"
+        ]
+      },
+      {
+        "path": "population.eligibility",
+        "status": "assumed",
+        "value": "至少两个有付款月份的客户；无可定义差分的客户排除",
+        "rationale": "独立推导所采用的解释；不是外部业务定义。"
+      },
+      {
+        "path": "population.conditions",
+        "status": "not_applicable"
+      },
+      {
+        "path": "population.time",
+        "status": "assumed",
+        "value": {
+          "expression": "全部payment_date，年-月排序；缺月不补零"
+        },
+        "rationale": "独立推导所采用的解释；不是外部业务定义。"
+      },
+      {
+        "path": "population.missing",
+        "status": "assumed",
+        "value": "不补零；相邻有付款月份",
+        "rationale": "独立推导所采用的解释；不是外部业务定义。"
+      },
+      {
+        "path": "measure.formula",
+        "status": "assumed",
+        "value": {
+          "op": "custom",
+          "description": "每客户月总付款金额SUM(amount)，相邻观测月本月总额减前月总额，对非首期差分算AVG；取最大平均差"
+        },
+        "rationale": "独立推导所采用的解释；不是外部业务定义。"
+      },
+      {
+        "path": "measure.countGrain",
+        "status": "assumed",
+        "value": "客户的相邻有付款月份差分",
+        "rationale": "独立推导所采用的解释；不是外部业务定义。"
+      },
+      {
+        "path": "measure.denominator",
+        "status": "assumed",
+        "value": "每客户月份数减1；不足2期排除",
+        "rationale": "独立推导所采用的解释；不是外部业务定义。"
+      },
+      {
+        "path": "grouping",
+        "status": "assumed",
+        "value": [
+          "customer_id"
+        ],
+        "rationale": "独立推导所采用的解释；不是外部业务定义。"
+      },
+      {
+        "path": "selection",
+        "status": "assumed",
+        "value": {
+          "n": 1,
+          "orderBy": "signed_change DESC"
+        },
+        "rationale": "独立推导所采用的解释；不是外部业务定义。"
+      },
+      {
+        "path": "selection.ties",
+        "status": "assumed",
+        "value": "include_ties",
+        "rationale": "独立推导所采用的解释；不是外部业务定义。"
+      },
+      {
+        "path": "output",
+        "status": "assumed",
+        "value": {
+          "rowMode": "full",
+          "columns": [
+            "full_name"
+          ]
+        },
+        "rationale": "独立推导所采用的解释；不是外部业务定义。"
+      }
+    ],
+    "undeclared": [],
+    "open": [],
+    "unverified": [
+      "population.eligibility",
+      "population.time",
+      "measure.formula",
+      "grouping",
+      "output",
+      "selection.ties",
+      "measure.countGrain",
+      "measure.denominator",
+      "population.missing",
+      "selection"
+    ],
+    "specFeedback": {
+      "taskId": "task_f81fe942-08df-4f79-8596-bae2a9cdb4e4",
+      "revisionId": "revision_900d402b-245b-4f3d-9218-fdfbb30865f3",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_847fca2e-97d5-4bce-945e-85f6fb5bd50b",
+        "evidence_0af94b97-407e-4bcb-ae3e-8af81e439b38",
+        "evidence_b8f62da6-225f-457d-a590-5ad68dd19953",
+        "evidence_4ff8fab3-64f5-49b2-821e-4ed4d1e38f5f",
+        "evidence_a185048d-2ef1-4b8a-860e-8629c37908c0",
+        "evidence_38dd9d54-bcc8-4e51-ac1d-becef0735270"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "population.conditions",
+        "status": "applied"
+      },
+      {
+        "path": "selection",
+        "status": "applied"
+      }
+    ]
+  }
+}

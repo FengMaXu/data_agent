@@ -1,0 +1,125 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_9cffb6f6-fcf1-4dee-92de-5dd97293a8ce\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\npid | actor_name\nnm0000027 | Alec Guinness\nnm0000047 | Sophia Loren\nnm0000093 | Brad Pitt\nnm0000096 | Gillian Anderson\nnm0000112 | Pierce Brosnan\nnm0000137 | Bo Derek\nnm0000140 | Michael Douglas\nnm0000144 | Cary Elwes\nnm0000147 | Colin Firth\nnm0000155 | Whoopi Goldberg"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_9cffb6f6-fcf1-4dee-92de-5dd97293a8ce",
+      "preview": {
+        "columns": [
+          "pid",
+          "actor_name"
+        ],
+        "rows": [
+          [
+            "nm0000027",
+            "Alec Guinness"
+          ],
+          [
+            "nm0000047",
+            "Sophia Loren"
+          ],
+          [
+            "nm0000093",
+            "Brad Pitt"
+          ],
+          [
+            "nm0000096",
+            "Gillian Anderson"
+          ],
+          [
+            "nm0000112",
+            "Pierce Brosnan"
+          ],
+          [
+            "nm0000137",
+            "Bo Derek"
+          ],
+          [
+            "nm0000140",
+            "Michael Douglas"
+          ],
+          [
+            "nm0000144",
+            "Cary Elwes"
+          ],
+          [
+            "nm0000147",
+            "Colin Firth"
+          ],
+          [
+            "nm0000155",
+            "Whoopi Goldberg"
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "TEXT"
+        ],
+        "rowCount": 10,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "pid",
+        "actor_name"
+      ],
+      "rows": [
+        [
+          "nm0000027",
+          "Alec Guinness"
+        ],
+        [
+          "nm0000047",
+          "Sophia Loren"
+        ],
+        [
+          "nm0000093",
+          "Brad Pitt"
+        ],
+        [
+          "nm0000096",
+          "Gillian Anderson"
+        ],
+        [
+          "nm0000112",
+          "Pierce Brosnan"
+        ],
+        [
+          "nm0000137",
+          "Bo Derek"
+        ],
+        [
+          "nm0000140",
+          "Michael Douglas"
+        ],
+        [
+          "nm0000144",
+          "Cary Elwes"
+        ],
+        [
+          "nm0000147",
+          "Colin Firth"
+        ],
+        [
+          "nm0000155",
+          "Whoopi Goldberg"
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "TEXT"
+      ],
+      "rowCount": 10,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_4f440f70-3fd9-4e71-85d7-8ea0c4b8cfd6"
+  }
+}

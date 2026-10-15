@@ -1,0 +1,77 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_b45383cc-5a13-42d5-90cf-1a55c2ec7800\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nthird_page | occurrences\n/detail | 33\n/ | 2\n/detail/ | 1\n/search_list/ | 1"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_b45383cc-5a13-42d5-90cf-1a55c2ec7800",
+      "preview": {
+        "columns": [
+          "third_page",
+          "occurrences"
+        ],
+        "rows": [
+          [
+            "/detail",
+            33
+          ],
+          [
+            "/",
+            2
+          ],
+          [
+            "/detail/",
+            1
+          ],
+          [
+            "/search_list/",
+            1
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 4,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "third_page",
+        "occurrences"
+      ],
+      "rows": [
+        [
+          "/detail",
+          33
+        ],
+        [
+          "/",
+          2
+        ],
+        [
+          "/detail/",
+          1
+        ],
+        [
+          "/search_list/",
+          1
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 4,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_79ba1832-9c4b-496b-a5dc-0ba1cb068537"
+  }
+}

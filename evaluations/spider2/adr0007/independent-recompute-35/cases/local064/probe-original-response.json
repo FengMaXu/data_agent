@@ -1,0 +1,83 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_dd0bc112-92e7-4726-8fb8-7e93a6a0f7b9\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nhighest_count_month | highest_count | highest_month_avg_balance | lowest_count_month | lowest_count | lowest_month_avg_balance | avg_difference\n2020-01 | 424 | 557.7 | 2020-04 | 169 | 137.71 | 419.99"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_dd0bc112-92e7-4726-8fb8-7e93a6a0f7b9",
+      "preview": {
+        "columns": [
+          "highest_count_month",
+          "highest_count",
+          "highest_month_avg_balance",
+          "lowest_count_month",
+          "lowest_count",
+          "lowest_month_avg_balance",
+          "avg_difference"
+        ],
+        "rows": [
+          [
+            "2020-01",
+            424,
+            557.7,
+            "2020-04",
+            169,
+            137.71,
+            419.99
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "REAL",
+          "TEXT",
+          "INTEGER",
+          "REAL",
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "highest_count_month",
+        "highest_count",
+        "highest_month_avg_balance",
+        "lowest_count_month",
+        "lowest_count",
+        "lowest_month_avg_balance",
+        "avg_difference"
+      ],
+      "rows": [
+        [
+          "2020-01",
+          424,
+          557.7,
+          "2020-04",
+          169,
+          137.71,
+          419.99
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "REAL",
+        "TEXT",
+        "INTEGER",
+        "REAL",
+        "REAL"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_fc8083bc-8b57-4114-a603-799733d4d697"
+  }
+}

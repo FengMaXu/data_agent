@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "selection": {
+      "value": {
+        "n": 1,
+        "orderBy": [
+          {
+            "column": "island_day_count",
+            "direction": "asc"
+          },
+          {
+            "column": "island_day_count",
+            "direction": "desc"
+          }
+        ]
+      },
+      "basis": "assumed",
+      "rationale": "Minimum and maximum islands, all ties as already planned"
+    }
+  }
+}

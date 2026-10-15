@@ -1,0 +1,65 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_d41dd994-21ed-486f-b397-2271b31d338a\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nall_actors | incorrect_three_year_gap | correct_max_three_missing_years | distinguishing_actors\n32128 | 27901 | 28699 | 798"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_d41dd994-21ed-486f-b397-2271b31d338a",
+      "preview": {
+        "columns": [
+          "all_actors",
+          "incorrect_three_year_gap",
+          "correct_max_three_missing_years",
+          "distinguishing_actors"
+        ],
+        "rows": [
+          [
+            32128,
+            27901,
+            28699,
+            798
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "all_actors",
+        "incorrect_three_year_gap",
+        "correct_max_three_missing_years",
+        "distinguishing_actors"
+      ],
+      "rows": [
+        [
+          32128,
+          27901,
+          28699,
+          798
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_25fa2d89-58df-4c40-8b8c-7470173ec310"
+  }
+}

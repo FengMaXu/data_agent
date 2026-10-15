@@ -1,0 +1,798 @@
+{
+  "version": 2,
+  "tasks": [
+    {
+      "taskId": "task_a2f4eac8-9241-4704-8848-9d55d04ab315",
+      "sessionId": "local100",
+      "principalId": "independent-analyst",
+      "requestMessageId": "original-task",
+      "requestId": "a97fa393-4fda-488f-b99f-12b5a9b1fb51",
+      "currentRevisionId": "revision_67905189-e263-4a33-b5f8-7994c37f59a9",
+      "lifecycle": "published",
+      "budget": {
+        "policy": {
+          "version": "answering-dual-loop-v1",
+          "maxRevisions": 40,
+          "maxExplorationAttempts": 120,
+          "maxResultAttempts": 20,
+          "maxElapsedMs": 14400000,
+          "maxObservedRows": 2000000
+        },
+        "startedAt": "2026-10-11T10:04:53.128Z",
+        "revisionCount": 1,
+        "explorationAttempts": 8,
+        "resultAttempts": 1,
+        "observedRows": 26
+      },
+      "createdAt": "2026-10-11T10:04:53.128Z",
+      "updatedAt": "2026-10-11T10:07:30.652Z",
+      "latestCandidateId": "candidate_365bcaab-4ab9-462f-954a-2b43dc0fe395",
+      "publicationId": "publication_7f4ba0f1-2ded-4f82-9005-f5e7c69a00e0"
+    }
+  ],
+  "revisions": [
+    {
+      "taskId": "task_a2f4eac8-9241-4704-8848-9d55d04ab315",
+      "revisionId": "revision_48c4c729-7945-4054-9a1c-936c1fea9c6d",
+      "requestId": "a97fa393-4fda-488f-b99f-12b5a9b1fb51",
+      "createdAt": "2026-10-11T10:04:53.128Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "actors",
+            "keyColumns": [
+              "Person.PID"
+            ]
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_693451c5-900e-45ea-9d97-9566dd6110dc"
+            ]
+          }
+        }
+      },
+      "state": {
+        "state": "draft",
+        "revisionId": "revision_48c4c729-7945-4054-9a1c-936c1fea9c6d"
+      },
+      "specFeedback": {
+        "taskId": "task_a2f4eac8-9241-4704-8848-9d55d04ab315",
+        "revisionId": "revision_48c4c729-7945-4054-9a1c-936c1fea9c6d",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_693451c5-900e-45ea-9d97-9566dd6110dc"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    },
+    {
+      "taskId": "task_a2f4eac8-9241-4704-8848-9d55d04ab315",
+      "revisionId": "revision_67905189-e263-4a33-b5f8-7994c37f59a9",
+      "parentRevisionId": "revision_48c4c729-7945-4054-9a1c-936c1fea9c6d",
+      "requestId": "78106542-28d1-4652-92ca-fb792c8e64f3",
+      "createdAt": "2026-10-11T10:05:05.165Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "actors",
+            "keyColumns": [
+              "Person.PID"
+            ]
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_693451c5-900e-45ea-9d97-9566dd6110dc"
+            ]
+          }
+        },
+        "population.eligibility": {
+          "state": "specified",
+          "value": "最短合作图距离2；排除直接合作者和起点",
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_7be4544e-aae2-400e-b921-56415b19bdf9"
+            ]
+          }
+        },
+        "population.conditions": {
+          "state": "specified",
+          "value": [
+            "源演员按查到的Shah Rukh Khan身份；合演同电影MID，PID外围空白清理"
+          ],
+          "basis": {
+            "kind": "assumed",
+            "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+          }
+        },
+        "population.time": {
+          "state": "not_applicable"
+        },
+        "measure.formula": {
+          "state": "specified",
+          "value": {
+            "op": "custom",
+            "description": "演员电影二分图source电影->一跳PID->其电影->二跳PID，EXCEPT一跳和source，COUNT distinct二跳"
+          },
+          "basis": {
+            "kind": "assumed",
+            "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+          }
+        },
+        "measure.countGrain": {
+          "state": "specified",
+          "value": "演员PID一人一次",
+          "basis": {
+            "kind": "assumed",
+            "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+          }
+        },
+        "grouping": {
+          "state": "not_applicable"
+        },
+        "selection": {
+          "state": "not_applicable"
+        },
+        "output": {
+          "state": "specified",
+          "value": {
+            "rowMode": "scalar",
+            "columns": [
+              "actors_shahrukh_number_2"
+            ]
+          },
+          "basis": {
+            "kind": "assumed",
+            "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+          }
+        }
+      },
+      "state": {
+        "state": "ready",
+        "revisionId": "revision_67905189-e263-4a33-b5f8-7994c37f59a9",
+        "ready": "ready_1152f8bd-4856-42da-8e19-413b5ea410b2"
+      },
+      "specFeedback": {
+        "taskId": "task_a2f4eac8-9241-4704-8848-9d55d04ab315",
+        "revisionId": "revision_67905189-e263-4a33-b5f8-7994c37f59a9",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_693451c5-900e-45ea-9d97-9566dd6110dc",
+          "evidence_f4cb1c99-a437-49f8-ac7c-7747427858d5",
+          "evidence_dfb8566e-a283-47c4-81da-c38c6440df6f",
+          "evidence_1b60f145-f133-4704-b7b9-d31f6e4817b6",
+          "evidence_7be4544e-aae2-400e-b921-56415b19bdf9"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "taskId": "task_a2f4eac8-9241-4704-8848-9d55d04ab315",
+      "items": [
+        {
+          "id": "request_be3e2f2bd519d830902bceb0",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "observedAt": "2026-10-11T10:04:53.128Z"
+        },
+        {
+          "id": "evidence_693451c5-900e-45ea-9d97-9566dd6110dc",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "4db3689aee76fd4c2791604ac9bd1dced7ff20b9dc47ca6c5d10081d6d02fde8",
+          "quote": "actors",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "4db3689aee76fd4c2791604ac9bd1dced7ff20b9dc47ca6c5d10081d6d02fde8"
+          },
+          "observedAt": "2026-10-11T10:04:53.128Z"
+        },
+        {
+          "id": "evidence_f4cb1c99-a437-49f8-ac7c-7747427858d5",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "ae4322ef-3fc1-409a-b897-54332abd895e",
+          "preview": {
+            "columns": [
+              "PID",
+              "Name",
+              "Gender"
+            ],
+            "rows": [
+              [
+                "nm0451321",
+                " Shah Rukh Khan",
+                "Male"
+              ],
+              [
+                "nm0787564",
+                " Master Shahrukh",
+                "Male"
+              ],
+              [
+                "nm4611840",
+                " Shahrukh Aksari",
+                "Male"
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "TEXT",
+              "TEXT"
+            ],
+            "rowCount": 3,
+            "truncated": false
+          },
+          "queryHash": "13c52fd78ec115d7cdca151441103d1eedc9439f506fee79a38ade13c7091855",
+          "contentHash": "5b9c6b301764302d52da54fef3620f812fd6ae32dc0e571f38711432a046e547",
+          "observedAt": "2026-10-11T10:04:55.492Z"
+        },
+        {
+          "id": "evidence_dfb8566e-a283-47c4-81da-c38c6440df6f",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "5490188b-b8fe-4876-ad9b-a5e047a59c50",
+          "preview": {
+            "columns": [
+              "kind",
+              "n"
+            ],
+            "rows": [
+              [
+                "source",
+                1
+              ],
+              [
+                "source_films",
+                90
+              ],
+              [
+                "first_hop",
+                2383
+              ],
+              [
+                "next_films",
+                3206
+              ],
+              [
+                "second_hop",
+                25698
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 5,
+            "truncated": false
+          },
+          "queryHash": "7f36358f73162ccaff1e6661d08480b4d50e5d02c3d56d01abbbb8a4d37772f4",
+          "contentHash": "1a805abafb8e71daed67afd667eb532b349104362c8a59d45c59f2b0f458b9f5",
+          "observedAt": "2026-10-11T10:04:58.966Z"
+        },
+        {
+          "id": "evidence_1b60f145-f133-4704-b7b9-d31f6e4817b6",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "846cc600-b6af-4ca8-8e56-6de12bd3b0ac",
+          "preview": {
+            "columns": [
+              "candidates",
+              "missing_person"
+            ],
+            "rows": [
+              [
+                25698,
+                0
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "662f8cd2967fc543ddc45db896709068b4780d110b0e2f34e3f2302ef0279d42",
+          "contentHash": "062c88198ccc1b6f1ba7530496ec72e99d719dd0f686064561f653d392e28591",
+          "observedAt": "2026-10-11T10:05:02.322Z"
+        },
+        {
+          "id": "evidence_7be4544e-aae2-400e-b921-56415b19bdf9",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "4db3689aee76fd4c2791604ac9bd1dced7ff20b9dc47ca6c5d10081d6d02fde8",
+          "quote": "but not directly with him",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "4db3689aee76fd4c2791604ac9bd1dced7ff20b9dc47ca6c5d10081d6d02fde8"
+          },
+          "observedAt": "2026-10-11T10:05:05.165Z"
+        },
+        {
+          "id": "evidence_5ed579c0-3f73-48c9-926f-47b2172472a2",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "71b9b2cd-2b26-499c-a7d0-b2400c94a1a6",
+          "preview": {
+            "columns": [
+              "Gender",
+              "actors",
+              "person_rows",
+              "names"
+            ],
+            "rows": [
+              [
+                null,
+                2346,
+                2545,
+                2330
+              ],
+              [
+                "Female",
+                7519,
+                7528,
+                7239
+              ],
+              [
+                "Male",
+                15833,
+                15909,
+                15000
+              ]
+            ],
+            "columnTypes": [
+              "NULL",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 3,
+            "truncated": false
+          },
+          "queryHash": "acee8dd31db573d45a198336e0644be6f163e72af0ffcf60c152d99d0faf859b",
+          "contentHash": "5126602590e7ecc4b0863561539e6fabd0a5fe4b4ea8a8362585a5136b6970ea",
+          "observedAt": "2026-10-11T10:06:41.006Z"
+        },
+        {
+          "id": "evidence_9cffb6f6-fcf1-4dee-92de-5dd97293a8ce",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "9cee6cd9-71e6-4c58-84e7-f978bf40ab44",
+          "preview": {
+            "columns": [
+              "pid",
+              "actor_name"
+            ],
+            "rows": [
+              [
+                "nm0000027",
+                "Alec Guinness"
+              ],
+              [
+                "nm0000047",
+                "Sophia Loren"
+              ],
+              [
+                "nm0000093",
+                "Brad Pitt"
+              ],
+              [
+                "nm0000096",
+                "Gillian Anderson"
+              ],
+              [
+                "nm0000112",
+                "Pierce Brosnan"
+              ],
+              [
+                "nm0000137",
+                "Bo Derek"
+              ],
+              [
+                "nm0000140",
+                "Michael Douglas"
+              ],
+              [
+                "nm0000144",
+                "Cary Elwes"
+              ],
+              [
+                "nm0000147",
+                "Colin Firth"
+              ],
+              [
+                "nm0000155",
+                "Whoopi Goldberg"
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "TEXT"
+            ],
+            "rowCount": 10,
+            "truncated": false
+          },
+          "queryHash": "c26d056d6fcf6070f98b38eecb630971f7209b184c57d4c53a8458352939d869",
+          "contentHash": "9d70825ab99a2bd970b10882724f9311a7c7652113a8d1981a6024344ae21751",
+          "observedAt": "2026-10-11T10:06:45.196Z"
+        },
+        {
+          "id": "evidence_6be38253-b52e-4203-b02c-7407eea4bd95",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "2e4e572e-ae06-4db7-a255-3d490c9b8fdc",
+          "preview": {
+            "columns": [
+              "shahrukh_number_2_actor_count"
+            ],
+            "rows": [
+              [
+                25698
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "b81c8ee3026e0264ca6e000fa93075d9ce80b8ebe210ee4429c1141aa257c202",
+          "contentHash": "4e9eefcffd1862190a2d26150fb832d44f29d39f07287011c91b8f7dd63d1ab2",
+          "observedAt": "2026-10-11T10:06:48.362Z"
+        },
+        {
+          "id": "evidence_c48ab6a7-d354-41e8-9785-e1c1250da1d8",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "1e14502f-6d8c-4b92-bf24-95b4b892fa97",
+          "preview": {
+            "columns": [
+              "d2",
+              "d1",
+              "reachable_within_two",
+              "overlaps"
+            ],
+            "rows": [
+              [
+                25698,
+                2382,
+                28081,
+                0
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "ed23afbbc74488bdd126cbd2fe693da158bb65fde3669cac3103c5621d6130b3",
+          "contentHash": "f12e87ed28c0d8f51f095507334800b44eba3f9e47e6052f09f8eb83233e6d7c",
+          "observedAt": "2026-10-11T10:06:50.561Z"
+        },
+        {
+          "id": "evidence_d65e533e-3924-4644-963e-1e268a997dcd",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "781c2b55-d9a9-4d1a-bd04-32cf5bdc8fd4",
+          "preview": {
+            "columns": [
+              "cast_movies",
+              "missing_movie"
+            ],
+            "rows": [
+              [
+                3475,
+                0
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "c40c83e3b15c1c318d8a3d78bd765b234a87282db0d2b3aea58483ce1681467b",
+          "contentHash": "af03f8cc4b87c018277f7996e1ebf20b7ca0fb9f282409e08f610ae0ca51ba3b",
+          "observedAt": "2026-10-11T10:07:30.652Z"
+        }
+      ]
+    }
+  ],
+  "attempts": [
+    {
+      "taskId": "task_a2f4eac8-9241-4704-8848-9d55d04ab315",
+      "items": [
+        {
+          "attemptId": "attempt_7ff2a445-157d-4504-8e3b-c2cc0edd2a23",
+          "taskId": "task_a2f4eac8-9241-4704-8848-9d55d04ab315",
+          "kind": "exploration",
+          "revisionId": "revision_48c4c729-7945-4054-9a1c-936c1fea9c6d",
+          "invocationId": "ae4322ef-3fc1-409a-b897-54332abd895e",
+          "queryHash": "13c52fd78ec115d7cdca151441103d1eedc9439f506fee79a38ade13c7091855",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:04:55.203Z",
+          "updatedAt": "2026-10-11T10:04:55.493Z"
+        },
+        {
+          "attemptId": "attempt_c51a22a3-083f-4646-8d29-d058a58c92b6",
+          "taskId": "task_a2f4eac8-9241-4704-8848-9d55d04ab315",
+          "kind": "exploration",
+          "revisionId": "revision_48c4c729-7945-4054-9a1c-936c1fea9c6d",
+          "invocationId": "5490188b-b8fe-4876-ad9b-a5e047a59c50",
+          "queryHash": "7f36358f73162ccaff1e6661d08480b4d50e5d02c3d56d01abbbb8a4d37772f4",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:04:58.063Z",
+          "updatedAt": "2026-10-11T10:04:58.966Z"
+        },
+        {
+          "attemptId": "attempt_364c0494-ba7c-4c01-a113-f12cb93ce37f",
+          "taskId": "task_a2f4eac8-9241-4704-8848-9d55d04ab315",
+          "kind": "exploration",
+          "revisionId": "revision_48c4c729-7945-4054-9a1c-936c1fea9c6d",
+          "invocationId": "846cc600-b6af-4ca8-8e56-6de12bd3b0ac",
+          "queryHash": "662f8cd2967fc543ddc45db896709068b4780d110b0e2f34e3f2302ef0279d42",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:05:01.318Z",
+          "updatedAt": "2026-10-11T10:05:02.322Z"
+        },
+        {
+          "attemptId": "attempt_881e7c41-a6c6-4cfe-9b0c-e3a993ecfbe0",
+          "taskId": "task_a2f4eac8-9241-4704-8848-9d55d04ab315",
+          "kind": "revision",
+          "revisionId": "revision_48c4c729-7945-4054-9a1c-936c1fea9c6d",
+          "invocationId": "78106542-28d1-4652-92ca-fb792c8e64f3",
+          "state": "succeeded",
+          "sqlExecuted": false,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:05:05.168Z",
+          "updatedAt": "2026-10-11T10:05:05.165Z"
+        },
+        {
+          "attemptId": "attempt_37e6ab63-3cc9-4575-9ce1-07ab39e3f801",
+          "taskId": "task_a2f4eac8-9241-4704-8848-9d55d04ab315",
+          "kind": "result",
+          "revisionId": "revision_67905189-e263-4a33-b5f8-7994c37f59a9",
+          "invocationId": "065aaf6e-57b2-4866-b8e4-8496b7e1a265",
+          "queryHash": "d1c3a01bf12d2e9585b4eb9d314628947b03d73e459b2037b861953619b8859f",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:05:07.270Z",
+          "updatedAt": "2026-10-11T10:05:07.960Z"
+        },
+        {
+          "attemptId": "attempt_ba330118-07e7-4d14-97c9-dfecefac814d",
+          "taskId": "task_a2f4eac8-9241-4704-8848-9d55d04ab315",
+          "kind": "exploration",
+          "revisionId": "revision_67905189-e263-4a33-b5f8-7994c37f59a9",
+          "invocationId": "71b9b2cd-2b26-499c-a7d0-b2400c94a1a6",
+          "queryHash": "acee8dd31db573d45a198336e0644be6f163e72af0ffcf60c152d99d0faf859b",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:06:39.938Z",
+          "updatedAt": "2026-10-11T10:06:41.007Z"
+        },
+        {
+          "attemptId": "attempt_4f440f70-3fd9-4e71-85d7-8ea0c4b8cfd6",
+          "taskId": "task_a2f4eac8-9241-4704-8848-9d55d04ab315",
+          "kind": "exploration",
+          "revisionId": "revision_67905189-e263-4a33-b5f8-7994c37f59a9",
+          "invocationId": "9cee6cd9-71e6-4c58-84e7-f978bf40ab44",
+          "queryHash": "c26d056d6fcf6070f98b38eecb630971f7209b184c57d4c53a8458352939d869",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:06:43.858Z",
+          "updatedAt": "2026-10-11T10:06:45.197Z"
+        },
+        {
+          "attemptId": "attempt_f62735c4-4b5e-4f37-a922-88ebcae7e67f",
+          "taskId": "task_a2f4eac8-9241-4704-8848-9d55d04ab315",
+          "kind": "exploration",
+          "revisionId": "revision_67905189-e263-4a33-b5f8-7994c37f59a9",
+          "invocationId": "2e4e572e-ae06-4db7-a255-3d490c9b8fdc",
+          "queryHash": "b81c8ee3026e0264ca6e000fa93075d9ce80b8ebe210ee4429c1141aa257c202",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:06:47.824Z",
+          "updatedAt": "2026-10-11T10:06:48.362Z"
+        },
+        {
+          "attemptId": "attempt_37501557-cf38-4d0e-a8ff-88834f30bdc8",
+          "taskId": "task_a2f4eac8-9241-4704-8848-9d55d04ab315",
+          "kind": "exploration",
+          "revisionId": "revision_67905189-e263-4a33-b5f8-7994c37f59a9",
+          "invocationId": "1e14502f-6d8c-4b92-bf24-95b4b892fa97",
+          "queryHash": "ed23afbbc74488bdd126cbd2fe693da158bb65fde3669cac3103c5621d6130b3",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:06:49.908Z",
+          "updatedAt": "2026-10-11T10:06:50.563Z"
+        },
+        {
+          "attemptId": "attempt_7e62e8d2-3f6a-4b50-a6e4-7609c25d4f5c",
+          "taskId": "task_a2f4eac8-9241-4704-8848-9d55d04ab315",
+          "kind": "exploration",
+          "revisionId": "revision_67905189-e263-4a33-b5f8-7994c37f59a9",
+          "invocationId": "781c2b55-d9a9-4d1a-bd04-32cf5bdc8fd4",
+          "queryHash": "c40c83e3b15c1c318d8a3d78bd765b234a87282db0d2b3aea58483ce1681467b",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:07:30.466Z",
+          "updatedAt": "2026-10-11T10:07:30.652Z"
+        }
+      ]
+    }
+  ],
+  "candidates": [
+    {
+      "candidateId": "candidate_365bcaab-4ab9-462f-954a-2b43dc0fe395",
+      "taskId": "task_a2f4eac8-9241-4704-8848-9d55d04ab315",
+      "revisionId": "revision_67905189-e263-4a33-b5f8-7994c37f59a9",
+      "resultRef": "result_c5857c1e-962d-48be-8f08-2f5768215ea4",
+      "resultSchema": [
+        "actors_shahrukh_number_2"
+      ],
+      "rowCount": 1,
+      "contentHash": "fcda6ce3b64fa2bedfc4457c763383f14a2153425ebcdc6b5fce2a85a782289e",
+      "sql": "WITH source AS MATERIALIZED(SELECT DISTINCT PID FROM Person WHERE TRIM(Name)='Shah Rukh Khan' OR TRIM(Name)='Shahrukh Khan'),cast_clean AS MATERIALIZED(SELECT DISTINCT MID,TRIM(PID) pid FROM M_Cast),source_films AS MATERIALIZED(SELECT DISTINCT c.MID FROM cast_clean c JOIN source s ON c.pid=s.PID),first_hop AS MATERIALIZED(SELECT DISTINCT c.pid FROM cast_clean c JOIN source_films f USING(MID)),next_films AS MATERIALIZED(SELECT DISTINCT c.MID FROM cast_clean c JOIN first_hop h USING(pid)),second_hop AS MATERIALIZED(SELECT DISTINCT c.pid FROM cast_clean c JOIN next_films f USING(MID) EXCEPT SELECT pid FROM first_hop EXCEPT SELECT PID FROM source) SELECT COUNT(*) actors_shahrukh_number_2 FROM second_hop",
+      "queryHash": "d1c3a01bf12d2e9585b4eb9d314628947b03d73e459b2037b861953619b8859f",
+      "findings": [],
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "attemptId": "attempt_37e6ab63-3cc9-4575-9ce1-07ab39e3f801",
+      "createdByInvocationId": "065aaf6e-57b2-4866-b8e4-8496b7e1a265",
+      "createdAt": "2026-10-11T10:05:07.960Z",
+      "status": "ready",
+      "publishable": true
+    }
+  ],
+  "receipts": [
+    {
+      "receiptId": "publication_7f4ba0f1-2ded-4f82-9005-f5e7c69a00e0",
+      "taskId": "task_a2f4eac8-9241-4704-8848-9d55d04ab315",
+      "principalId": "independent-analyst",
+      "sessionId": "local100",
+      "candidateId": "candidate_365bcaab-4ab9-462f-954a-2b43dc0fe395",
+      "revisionId": "revision_67905189-e263-4a33-b5f8-7994c37f59a9",
+      "resultRef": "result_c5857c1e-962d-48be-8f08-2f5768215ea4",
+      "format": "csv",
+      "publicRef": "/api/runtime/publications/publication_7f4ba0f1-2ded-4f82-9005-f5e7c69a00e0?session_id=local100",
+      "contentHash": "fcda6ce3b64fa2bedfc4457c763383f14a2153425ebcdc6b5fce2a85a782289e",
+      "presentationContentHash": "d4f68e4d260bc7b30a8e1cea1d6f7970c28efd4e50ea1a78ff4c1ab997557307",
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "disclosure": {
+        "required": true,
+        "unverifiedFields": [
+          {
+            "path": "population.conditions",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.formula",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.countGrain",
+            "kind": "assumed"
+          },
+          {
+            "path": "output",
+            "kind": "assumed"
+          }
+        ],
+        "summary": "以下字段为假定，未被合格证据证实：population.conditions, measure.formula, measure.countGrain, output。"
+      },
+      "physicalProfile": {
+        "version": 1,
+        "rowCount": 1,
+        "truncated": false,
+        "columns": [
+          {
+            "name": "actors_shahrukh_number_2",
+            "kind": "integer",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 1,
+            "min": "25698",
+            "max": "25698"
+          }
+        ]
+      },
+      "policyVersion": "answering-publication-v1",
+      "createdByInvocationId": "065aaf6e-57b2-4866-b8e4-8496b7e1a265",
+      "requestId": "065aaf6e-57b2-4866-b8e4-8496b7e1a265",
+      "createdAt": "2026-10-11T10:05:07.977Z"
+    }
+  ]
+}

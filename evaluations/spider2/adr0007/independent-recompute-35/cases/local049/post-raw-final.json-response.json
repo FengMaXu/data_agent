@@ -1,0 +1,79 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_4cfb7044-e13d-4857-86c3-586960792c4f\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nindustry | total | answer\nFintech | 179 | 59.67\nInternet software & services | 156 | 52\nE-commerce & direct-to-consumer | 76 | 25.33"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_4cfb7044-e13d-4857-86c3-586960792c4f",
+      "preview": {
+        "columns": [
+          "industry",
+          "total",
+          "answer"
+        ],
+        "rows": [
+          [
+            "Fintech",
+            179,
+            59.67
+          ],
+          [
+            "Internet software & services",
+            156,
+            52
+          ],
+          [
+            "E-commerce & direct-to-consumer",
+            76,
+            25.33
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "REAL"
+        ],
+        "rowCount": 3,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "industry",
+        "total",
+        "answer"
+      ],
+      "rows": [
+        [
+          "Fintech",
+          179,
+          59.67
+        ],
+        [
+          "Internet software & services",
+          156,
+          52
+        ],
+        [
+          "E-commerce & direct-to-consumer",
+          76,
+          25.33
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "REAL"
+      ],
+      "rowCount": 3,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_d7e4a135-d830-4fdb-a93f-690f1e1bfea1"
+  }
+}

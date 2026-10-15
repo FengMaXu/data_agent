@@ -1,0 +1,14 @@
+{
+  "fields": {
+    "population.entity": {
+      "value": {
+        "name": "actors with film credits",
+        "keyColumns": [
+          "M_Cast.PID"
+        ]
+      },
+      "basis": "request",
+      "quote": "actors"
+    }
+  }
+}

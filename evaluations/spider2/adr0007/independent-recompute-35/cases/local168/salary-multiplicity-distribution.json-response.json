@@ -1,0 +1,59 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_420ac883-ee01-4c6e-9853-6e30c0971326\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nn_top_skills | jobs | salary\n1 | 9 | 92689.22222222222"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_420ac883-ee01-4c6e-9853-6e30c0971326",
+      "preview": {
+        "columns": [
+          "n_top_skills",
+          "jobs",
+          "salary"
+        ],
+        "rows": [
+          [
+            1,
+            9,
+            92689.22222222222
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "n_top_skills",
+        "jobs",
+        "salary"
+      ],
+      "rows": [
+        [
+          1,
+          9,
+          92689.22222222222
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "REAL"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_d915b6d3-6a11-4c36-be99-005425c0370a"
+  }
+}

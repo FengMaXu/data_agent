@@ -1,0 +1,22 @@
+{
+  "local070": {
+    "stage": "completed",
+    "status": "ambiguous_after_recompute"
+  },
+  "local167": {
+    "stage": "completed",
+    "status": "gold_conflict"
+  },
+  "local169": {
+    "stage": "completed",
+    "status": "ambiguous_after_recompute"
+  },
+  "local171": {
+    "stage": "completed",
+    "status": "gold_conflict"
+  },
+  "local358": {
+    "stage": "completed",
+    "status": "confirmed_implementation_error"
+  }
+}

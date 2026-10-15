@@ -1,0 +1,233 @@
+{
+  "frozenAt": "2026-10-11T09:06:56.481Z",
+  "instance_id": "local273",
+  "independent": true,
+  "taskId": "task_da6bc8ac-28f2-4363-8336-01de80c55496",
+  "revisionId": "revision_a846396a-7d25-4c75-bb4b-10571c4b547b",
+  "publication": {
+    "receiptId": "publication_18925f88-49d2-4116-b34a-e43ee6a667e6",
+    "taskId": "task_da6bc8ac-28f2-4363-8336-01de80c55496",
+    "principalId": "independent-analyst",
+    "sessionId": "local273",
+    "candidateId": "candidate_1f2ef420-0930-4829-b0e0-d1281959d521",
+    "revisionId": "revision_a846396a-7d25-4c75-bb4b-10571c4b547b",
+    "resultRef": "result_e9ee5a8f-6251-4d0f-84fc-714bca3e0bd7",
+    "format": "csv",
+    "publicRef": "/api/runtime/publications/publication_18925f88-49d2-4116-b34a-e43ee6a667e6?session_id=local273",
+    "contentHash": "58730ff1e7d8c50822f9c4cb2db0891cde8347b59da171d6dd1a718d96bb7f93",
+    "presentationContentHash": "2a248049be1ee77469808c265338faf3e8adb1d031569c07b9a42e0abe69868a",
+    "coverage": [
+      {
+        "checkId": "result_completeness",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_shape",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_identity",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "join_fanout",
+        "outcome": "unknown",
+        "reason": "check_disabled"
+      },
+      {
+        "checkId": "spec_feedback",
+        "ruleVersion": "spec-feedback-v2",
+        "outcome": "not_applicable",
+        "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+      }
+    ],
+    "fanout": {
+      "ruleVersion": "answering-fanout-v1",
+      "status": "unknown",
+      "snapshotScope": "unbound",
+      "targets": [],
+      "unsupportedReasons": [
+        "check_disabled"
+      ]
+    },
+    "disclosure": {
+      "required": true,
+      "unverifiedFields": [
+        {
+          "path": "population.eligibility",
+          "kind": "assumed"
+        },
+        {
+          "path": "population.conditions",
+          "kind": "assumed"
+        },
+        {
+          "path": "population.time",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.formula",
+          "kind": "assumed"
+        },
+        {
+          "path": "grouping",
+          "kind": "assumed"
+        },
+        {
+          "path": "output",
+          "kind": "assumed"
+        }
+      ],
+      "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.conditions, population.time, measure.formula, grouping, output。 JOIN fanout 检查未能完整完成：check_disabled。",
+      "fanoutStatus": "unknown"
+    },
+    "physicalProfile": {
+      "version": 1,
+      "rowCount": 6,
+      "truncated": false,
+      "columns": [
+        {
+          "name": "product_name",
+          "kind": "text",
+          "nullCount": 0,
+          "distinctCount": 6
+        },
+        {
+          "name": "average_pick_percentage",
+          "kind": "decimal",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 6,
+          "min": "56.25",
+          "max": "97.5609756097561"
+        }
+      ]
+    },
+    "policyVersion": "answering-publication-v1",
+    "createdByInvocationId": "34082fc8-a190-444a-a5ff-81f87441adcb",
+    "requestId": "34082fc8-a190-444a-a5ff-81f87441adcb",
+    "createdAt": "2026-10-11T09:06:52.978Z"
+  },
+  "currentRevision": {
+    "taskId": "task_da6bc8ac-28f2-4363-8336-01de80c55496",
+    "revisionId": "revision_a846396a-7d25-4c75-bb4b-10571c4b547b",
+    "parentRevisionId": "revision_11887542-7697-4215-a5a7-77555e64f7bf",
+    "requestId": "b8e2aa50-5bd1-43c2-8b1d-a2b647f4fa7f",
+    "createdAt": "2026-10-11T09:06:48.015Z",
+    "fields": {
+      "population.entity": {
+        "state": "specified",
+        "value": {
+          "name": "product with FIFO order-inventory allocations"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_dbd27835-81c1-46ca-8485-01187d07f683"
+          ]
+        }
+      },
+      "population.eligibility": {
+        "state": "specified",
+        "value": "Only products with positive FIFO allocations",
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "population.conditions": {
+        "state": "specified",
+        "value": [
+          "positive demand and stock",
+          "positive overlapping quantity"
+        ],
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "population.time": {
+        "state": "specified",
+        "value": {
+          "expression": "All current stock and all recorded orders"
+        },
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "measure.formula": {
+        "state": "specified",
+        "value": {
+          "op": "custom",
+          "description": "FIFO stock by purchase date, quantity asc,id; cumulative demand by ordered,order_id,line_id; picked=min(upper bounds)-max(lower bounds) on positive intersection; equal allocation mean 100*picked/inventory row qty"
+        },
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "grouping": {
+        "state": "specified",
+        "value": [
+          "product name"
+        ],
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "selection": {
+        "state": "not_applicable"
+      },
+      "output": {
+        "state": "specified",
+        "value": {
+          "rowMode": "full",
+          "columns": [
+            "product_name",
+            "average_pick_percentage"
+          ]
+        },
+        "basis": {
+          "kind": "assumed"
+        }
+      }
+    },
+    "state": {
+      "state": "ready",
+      "revisionId": "revision_a846396a-7d25-4c75-bb4b-10571c4b547b",
+      "ready": "ready_70cdbbe5-8d0b-4f2e-bcc1-c3b3e49dc74d"
+    },
+    "specFeedback": {
+      "taskId": "task_da6bc8ac-28f2-4363-8336-01de80c55496",
+      "revisionId": "revision_a846396a-7d25-4c75-bb4b-10571c4b547b",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_dbd27835-81c1-46ca-8485-01187d07f683",
+        "evidence_e25dd821-71ae-4eb4-81b1-c5794b991a1f",
+        "evidence_7ed25c81-0dc4-447d-a746-5d10721310f4",
+        "evidence_dbb4d3a4-157f-4eec-9c73-4769a672c371",
+        "evidence_41aaed66-6291-4dbc-9403-aa5c1f8466c2",
+        "evidence_70b2d5b8-c0e0-4fd7-9942-615f30af3a7b"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    }
+  },
+  "analystNote": {
+    "algorithm": "cumulative interval intersection; mean positive allocation percentages of original inventory quantity",
+    "assumptions": [
+      "pick percentage denominator=inventory row available quantity",
+      "orders by ordered then id; only positive picks averaged"
+    ],
+    "checks": "Per-product allocations conserve min(total inventory,total orders); raw allocation details saved"
+  },
+  "settings": {
+    "qualification": "required",
+    "fieldProbes": true,
+    "externalAdvisor": "not_configured",
+    "specFeedback": "not_configured",
+    "fanout": "disabled_for_offline_audit",
+    "populationDecisions": "allow_disclosed_headless_audit",
+    "databaseReadOnly": true
+  }
+}

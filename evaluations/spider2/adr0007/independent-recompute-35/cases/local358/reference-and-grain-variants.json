@@ -1,0 +1,4 @@
+{
+  "sql": "WITH refs(d) AS (VALUES ('2016-11-28'),('2017-03-02'),('2024-01-01'),('2024-04-07'),('2024-12-31'),('2025-01-06'),('2026-10-11')), u AS (SELECT user_id,birth_date,count(*) copies,max(withdraw_date) withdrawn FROM mst_users GROUP BY user_id,birth_date),ages AS (SELECT d,u.*,cast(substr(d,1,4) as int)-cast(substr(birth_date,1,4) as int)-(substr(d,6)<substr(birth_date,6)) age FROM refs CROSS JOIN u),b AS (SELECT *,CASE WHEN age BETWEEN 20 AND 29 THEN '20s' WHEN age BETWEEN 30 AND 39 THEN '30s' WHEN age BETWEEN 40 AND 49 THEN '40s' WHEN age BETWEEN 50 AND 59 THEN '50s' ELSE 'others' END category FROM ages) SELECT d,category,count(*) users,sum(copies) physical_rows,sum(withdrawn IS NULL) not_withdrawn_users FROM b GROUP BY d,category ORDER BY d,category",
+  "limit": 1000
+}

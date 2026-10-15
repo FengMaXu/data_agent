@@ -1,0 +1,271 @@
+{
+  "frozenAt": "2026-10-11T09:19:50.775Z",
+  "instance_id": "local067",
+  "independent": true,
+  "taskId": "task_b33629e2-811c-4fe4-acac-7248e4fb048c",
+  "revisionId": "revision_24a015f0-e0a7-41f0-86b4-8365c96fdac4",
+  "publication": {
+    "receiptId": "publication_570cf3c0-5648-47a3-bddc-61086f651c73",
+    "taskId": "task_b33629e2-811c-4fe4-acac-7248e4fb048c",
+    "principalId": "independent-analyst",
+    "sessionId": "local067",
+    "candidateId": "candidate_ec37592b-d8a6-458c-a73a-09a13f5c8549",
+    "revisionId": "revision_24a015f0-e0a7-41f0-86b4-8365c96fdac4",
+    "resultRef": "result_2904c559-6b16-4f98-9719-8e03a5e8d18a",
+    "format": "csv",
+    "publicRef": "/api/runtime/publications/publication_570cf3c0-5648-47a3-bddc-61086f651c73?session_id=local067",
+    "contentHash": "a942e969952f7d2b7b1f7baf704e31b996144e78f0ee1afb52829b8d537c7459",
+    "presentationContentHash": "fb2dde61eb501509b80b6301cd0ac96791a7120f3c9bc05ea346ed1242f2199a",
+    "coverage": [
+      {
+        "checkId": "result_completeness",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_shape",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_identity",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "join_fanout",
+        "outcome": "not_applicable"
+      },
+      {
+        "checkId": "spec_feedback",
+        "ruleVersion": "spec-feedback-v2",
+        "outcome": "not_applicable",
+        "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+      }
+    ],
+    "fanout": {
+      "ruleVersion": "answering-fanout-v1",
+      "status": "not_applicable",
+      "snapshotScope": "unbound",
+      "targets": []
+    },
+    "disclosure": {
+      "required": true,
+      "unverifiedFields": [
+        {
+          "path": "population.eligibility",
+          "kind": "assumed"
+        },
+        {
+          "path": "population.joinMultiplicity",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.formula",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.countGrain",
+          "kind": "assumed"
+        }
+      ],
+      "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.joinMultiplicity, measure.formula, measure.countGrain。"
+    },
+    "physicalProfile": {
+      "version": 1,
+      "rowCount": 10,
+      "truncated": false,
+      "columns": [
+        {
+          "name": "tier",
+          "kind": "integer",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 10,
+          "min": "1",
+          "max": "10"
+        },
+        {
+          "name": "highest_profit",
+          "kind": "decimal",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 10,
+          "min": "-10.030000000000086",
+          "max": "785.1500000000001"
+        },
+        {
+          "name": "lowest_profit",
+          "kind": "decimal",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 10,
+          "min": "-27.93999999999994",
+          "max": "698.35"
+        }
+      ]
+    },
+    "policyVersion": "answering-publication-v1",
+    "createdByInvocationId": "cbbf3f71-4636-4e27-bdad-3952a045deb6",
+    "requestId": "cbbf3f71-4636-4e27-bdad-3952a045deb6",
+    "createdAt": "2026-10-11T09:19:47.901Z"
+  },
+  "currentRevision": {
+    "taskId": "task_b33629e2-811c-4fe4-acac-7248e4fb048c",
+    "revisionId": "revision_24a015f0-e0a7-41f0-86b4-8365c96fdac4",
+    "parentRevisionId": "revision_9f4ebafa-0ea5-4edd-9418-08cbf8f5ec6c",
+    "requestId": "304e2ad2-94b2-447d-8f6b-70269b87e4ac",
+    "createdAt": "2026-10-11T09:19:27.961Z",
+    "fields": {
+      "population.entity": {
+        "state": "specified",
+        "value": {
+          "name": "Italian customers"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_d90382f3-d1bf-4e51-9b82-00e32118a354"
+          ]
+        }
+      },
+      "population.eligibility": {
+        "state": "specified",
+        "value": "Italian customers with December2021 sales; inactive Italian customers not included",
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立题解；题目未明确，作为假定披露"
+        }
+      },
+      "population.conditions": {
+        "state": "specified",
+        "value": [
+          "countries.country_name='Italy'"
+        ],
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_514b2576-2dc0-43e8-b9af-ae2c6ef33d8b"
+          ]
+        }
+      },
+      "population.time": {
+        "state": "specified",
+        "value": {
+          "expression": "Calendar December2021 inclusive; sales.time_id via times"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_6c02bc47-6d1e-45a0-9436-290fbd5f8661"
+          ]
+        }
+      },
+      "population.joinMultiplicity": {
+        "state": "specified",
+        "value": "Sales-costs join full prod_id/time_id/channel_id/promo_id; unique observed costs; sales remain once per line",
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立题解；题目未明确，作为假定披露"
+        }
+      },
+      "measure.formula": {
+        "state": "specified",
+        "value": {
+          "op": "custom",
+          "description": "Customer profit SUM(amount_sold-quantity_sold*unit_cost); NTILE10 over customer totals ascending profit,cust_id; each tier MAX and MIN customer profit; active customers only"
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立题解；题目未明确，作为假定披露"
+        }
+      },
+      "measure.countGrain": {
+        "state": "specified",
+        "value": "Sales rows sum to one customer total; customers equal-count tiled",
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立题解；题目未明确，作为假定披露"
+        }
+      },
+      "measure.denominator": {
+        "state": "not_applicable"
+      },
+      "grouping": {
+        "state": "specified",
+        "value": [
+          "equal-count customer tier 1..10"
+        ],
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_1c445fba-8a4f-4ece-8752-8fbce2fff7d1"
+          ]
+        }
+      },
+      "selection": {
+        "state": "not_applicable"
+      },
+      "output": {
+        "state": "specified",
+        "value": {
+          "rowMode": "grouped",
+          "rowCount": 10,
+          "columns": [
+            "tier",
+            "highest_profit",
+            "lowest_profit"
+          ]
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_1dec030d-a1fe-41fb-92a8-57cf054640f3"
+          ]
+        }
+      }
+    },
+    "state": {
+      "state": "ready",
+      "revisionId": "revision_24a015f0-e0a7-41f0-86b4-8365c96fdac4",
+      "ready": "ready_a57ffb35-4dc5-4b89-b1e8-d1460be89831"
+    },
+    "specFeedback": {
+      "taskId": "task_b33629e2-811c-4fe4-acac-7248e4fb048c",
+      "revisionId": "revision_24a015f0-e0a7-41f0-86b4-8365c96fdac4",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_d90382f3-d1bf-4e51-9b82-00e32118a354",
+        "evidence_6ec4f5bc-1dea-4613-97e6-9155db32a14a",
+        "evidence_aae979c2-bae8-426d-8dd4-2e793ac661db",
+        "evidence_aabc91ca-6ed6-485c-992a-0e73d6448230",
+        "evidence_a709d005-2a3b-4669-a6bb-38155e91bb02",
+        "evidence_80b4c0ad-0cfb-41a8-bc56-1060f59ee431",
+        "evidence_514b2576-2dc0-43e8-b9af-ae2c6ef33d8b",
+        "evidence_6c02bc47-6d1e-45a0-9436-290fbd5f8661",
+        "evidence_1c445fba-8a4f-4ece-8752-8fbce2fff7d1",
+        "evidence_1dec030d-a1fe-41fb-92a8-57cf054640f3"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    }
+  },
+  "analystNote": {
+    "algorithm": "Customer actual revenue minus unit_cost*quantity then NTILE10 equal-count customer tiers low to high; extremes per tier",
+    "assumptions": [
+      "Only active customers",
+      "Stable cust_id tie split",
+      "Actual revenue profit interpretation"
+    ],
+    "validation": "Cost key and missing matches, actual-vs-list revenue, bin cardinalities and ties explored"
+  },
+  "settings": {
+    "qualification": "required",
+    "fieldProbes": true,
+    "externalAdvisor": "not_configured",
+    "specFeedback": "not_configured",
+    "fanout": "disabled_for_offline_audit",
+    "populationDecisions": "allow_disclosed_headless_audit",
+    "databaseReadOnly": true
+  }
+}

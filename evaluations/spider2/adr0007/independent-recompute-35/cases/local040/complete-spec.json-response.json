@@ -1,0 +1,162 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_c53f627e-d7f6-43fb-a372-02b8d8b2af5a revisionId=revision_702b99aa-53cc-4fa1-8a94-44997cf9f536\n- ✓ population.eligibility\n- ✓ population.conditions\n- ✓ population.time\n- ✓ measure.formula\n- ✓ grouping\n- ✓ selection\n- ✓ selection.ties\n- ✓ output\n状态：\n- 未证实（发布时披露）: measure.formula, selection.ties\n- 没有待处理的字段，可以执行结果查询\n[SPEC_FEEDBACK] revisionId=revision_702b99aa-53cc-4fa1-8a94-44997cf9f536 status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"联合树木记录，tree_id识别树木，ZIP对齐收入\"}},\"population.eligibility\":{\"status\":\"request\",\"value\":\"median>0 and mean>0, non-null nonblank borough; all tree statuses allowed\"},\"population.conditions\":{\"status\":\"request\",\"value\":[\"ZIP full join, coalesce ZIP, positive median and mean, valid borough\"]},\"population.time\":{\"status\":\"not_applicable\"},\"measure.formula\":{\"status\":\"assumed\",\"value\":{\"op\":\"custom\",\"description\":\"Per borough count(tree_id) in eligible joined records and average mean income across tree records; rank by count, strict top3\"}},\"grouping\":{\"status\":\"request\",\"value\":[\"boroname\"]},\"selection\":{\"status\":\"request\",\"value\":{\"n\":3,\"orderBy\":\"tree_count DESC, boroname ASC\"}},\"selection.ties\":{\"status\":\"assumed\",\"value\":\"strict\"},\"output\":{\"status\":\"request\",\"value\":{\"rowMode\":\"top_n\",\"rowCount\":3,\"columns\":[\"boroname\",\"tree_count\",\"average_mean_income\"]}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_c53f627e-d7f6-43fb-a372-02b8d8b2af5a",
+    "revisionId": "revision_702b99aa-53cc-4fa1-8a94-44997cf9f536",
+    "parentRevisionId": "revision_7a3383ba-370a-454a-94c7-b1dca05165c3",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "联合树木记录，tree_id识别树木，ZIP对齐收入"
+        },
+        "evidenceIds": [
+          "evidence_46f7d21d-191a-478e-877b-2fc72ce331a0"
+        ]
+      },
+      {
+        "path": "population.eligibility",
+        "status": "request",
+        "value": "median>0 and mean>0, non-null nonblank borough; all tree statuses allowed",
+        "evidenceIds": [
+          "evidence_77c55746-69a0-4378-af6b-5b84b8e87748"
+        ]
+      },
+      {
+        "path": "population.conditions",
+        "status": "request",
+        "value": [
+          "ZIP full join, coalesce ZIP, positive median and mean, valid borough"
+        ],
+        "evidenceIds": [
+          "evidence_a8d78917-b8b7-45ef-a8e9-a8a84db76484"
+        ]
+      },
+      {
+        "path": "population.time",
+        "status": "not_applicable"
+      },
+      {
+        "path": "measure.formula",
+        "status": "assumed",
+        "value": {
+          "op": "custom",
+          "description": "Per borough count(tree_id) in eligible joined records and average mean income across tree records; rank by count, strict top3"
+        },
+        "rationale": "Average is at combined record grain, tree-row weighted rather than ZIP or household weighted"
+      },
+      {
+        "path": "grouping",
+        "status": "request",
+        "value": [
+          "boroname"
+        ],
+        "evidenceIds": [
+          "evidence_14da2e36-63a1-4691-963e-344f17032258"
+        ]
+      },
+      {
+        "path": "selection",
+        "status": "request",
+        "value": {
+          "n": 3,
+          "orderBy": "tree_count DESC, boroname ASC"
+        },
+        "evidenceIds": [
+          "evidence_d2f12e41-bac8-4978-b573-a9799ff8b2ec"
+        ]
+      },
+      {
+        "path": "selection.ties",
+        "status": "assumed",
+        "value": "strict"
+      },
+      {
+        "path": "output",
+        "status": "request",
+        "value": {
+          "rowMode": "top_n",
+          "rowCount": 3,
+          "columns": [
+            "boroname",
+            "tree_count",
+            "average_mean_income"
+          ]
+        },
+        "evidenceIds": [
+          "evidence_909bd0d7-5789-4278-81cf-98b4a5a85260"
+        ]
+      }
+    ],
+    "undeclared": [],
+    "open": [],
+    "unverified": [
+      "measure.formula",
+      "selection.ties"
+    ],
+    "specFeedback": {
+      "taskId": "task_c53f627e-d7f6-43fb-a372-02b8d8b2af5a",
+      "revisionId": "revision_702b99aa-53cc-4fa1-8a94-44997cf9f536",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_46f7d21d-191a-478e-877b-2fc72ce331a0",
+        "evidence_a8e5d9f3-beaf-4c6b-bfb1-62d4c968ca71",
+        "evidence_35e510dd-71b1-412a-8211-a3eb81ccf4aa",
+        "evidence_90dbfd1d-c763-4023-91cb-dc6012539de8",
+        "evidence_108f251c-31d4-4542-91f0-194965db140d",
+        "evidence_3786f64d-8b4c-4822-8975-e07cbc095ff8",
+        "evidence_1576fade-654b-4d23-b3ef-79051ddd12e9",
+        "evidence_77c55746-69a0-4378-af6b-5b84b8e87748",
+        "evidence_a8d78917-b8b7-45ef-a8e9-a8a84db76484",
+        "evidence_14da2e36-63a1-4691-963e-344f17032258",
+        "evidence_d2f12e41-bac8-4978-b573-a9799ff8b2ec",
+        "evidence_909bd0d7-5789-4278-81cf-98b4a5a85260"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "population.eligibility",
+        "status": "applied"
+      },
+      {
+        "path": "population.conditions",
+        "status": "applied"
+      },
+      {
+        "path": "population.time",
+        "status": "applied"
+      },
+      {
+        "path": "measure.formula",
+        "status": "applied"
+      },
+      {
+        "path": "grouping",
+        "status": "applied"
+      },
+      {
+        "path": "selection",
+        "status": "applied"
+      },
+      {
+        "path": "selection.ties",
+        "status": "applied"
+      },
+      {
+        "path": "output",
+        "status": "applied"
+      }
+    ]
+  }
+}

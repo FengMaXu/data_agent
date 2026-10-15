@@ -1,0 +1,101 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_d5c68dd5-b235-4e81-8696-b15b98d7f868\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nd | ma | yhat | identity_error\n2018-12-05 | 9.213329483315263 | 9.213329483315263 | 0\n2018-12-06 | 9.219482178860389 | 9.219482178860389 | 0\n2018-12-07 | 9.225634874405518 | 9.225634874405518 | 0\n2018-12-08 | 9.231787569950644 | 9.231787569950644 | 0"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_d5c68dd5-b235-4e81-8696-b15b98d7f868",
+      "preview": {
+        "columns": [
+          "d",
+          "ma",
+          "yhat",
+          "identity_error"
+        ],
+        "rows": [
+          [
+            "2018-12-05",
+            9.213329483315263,
+            9.213329483315263,
+            0
+          ],
+          [
+            "2018-12-06",
+            9.219482178860389,
+            9.219482178860389,
+            0
+          ],
+          [
+            "2018-12-07",
+            9.225634874405518,
+            9.225634874405518,
+            0
+          ],
+          [
+            "2018-12-08",
+            9.231787569950644,
+            9.231787569950644,
+            0
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "REAL",
+          "REAL",
+          "INTEGER"
+        ],
+        "rowCount": 4,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "d",
+        "ma",
+        "yhat",
+        "identity_error"
+      ],
+      "rows": [
+        [
+          "2018-12-05",
+          9.213329483315263,
+          9.213329483315263,
+          0
+        ],
+        [
+          "2018-12-06",
+          9.219482178860389,
+          9.219482178860389,
+          0
+        ],
+        [
+          "2018-12-07",
+          9.225634874405518,
+          9.225634874405518,
+          0
+        ],
+        [
+          "2018-12-08",
+          9.231787569950644,
+          9.231787569950644,
+          0
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "REAL",
+        "REAL",
+        "INTEGER"
+      ],
+      "rowCount": 4,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_35d05191-965e-432b-8bf6-d22f0577ff31"
+  }
+}

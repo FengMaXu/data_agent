@@ -1,0 +1,4 @@
+{
+  "sql": "WITH dates AS (SELECT DISTINCT company_id,date_joined,year_founded FROM companies_dates), industries AS (SELECT DISTINCT company_id,industry FROM companies_industries), new_companies AS (SELECT d.company_id,CAST(strftime('%Y',d.date_joined) AS INTEGER) year,i.industry FROM dates d JOIN industries i USING(company_id) WHERE d.date_joined>='2019-01-01' AND d.date_joined<'2022-01-01'), totals AS (SELECT industry,count(distinct company_id) total FROM new_companies GROUP BY industry) SELECT avg(n) changing_year_top FROM (SELECT year,max(n) n FROM (SELECT year,industry,count(distinct company_id) n FROM new_companies GROUP BY 1,2) GROUP BY year)",
+  "limit": 100
+}

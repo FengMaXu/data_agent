@@ -1,0 +1,4 @@
+{
+  "sql": "WITH RECURSIVE p(n) AS(SELECT 0 UNION ALL SELECT n+1 FROM p WHERE n<20),f AS(SELECT id_bioguide,min(term_start) first,max(term_end) last FROM legislators_terms GROUP BY id_bioguide HAVING min(term_start) BETWEEN '1917-01-01' AND '1999-12-31'),c AS(SELECT f.*,n,printf('%04d-12-31',cast(substr(first,1,4) as int)+n) dt FROM f CROSS JOIN p) SELECT n,sum(dt<=last) bridged_until_last,sum(EXISTS(SELECT 1 FROM legislators_terms t WHERE t.id_bioguide=c.id_bioguide AND substr(dt,1,4)||'-12-01' BETWEEN term_start AND term_end)) december_first FROM c GROUP BY n ORDER BY n",
+  "limit": 1000
+}

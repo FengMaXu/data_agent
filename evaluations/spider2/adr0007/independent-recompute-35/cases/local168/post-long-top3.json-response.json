@@ -1,0 +1,79 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_198c89c3-20a9-42c8-8844-1d9cc15ddd7e\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nskill_id | demand | skills\n182 | 3 | NULL\n0 | 2 | NULL\n1 | 2 | python"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_198c89c3-20a9-42c8-8844-1d9cc15ddd7e",
+      "preview": {
+        "columns": [
+          "skill_id",
+          "demand",
+          "skills"
+        ],
+        "rows": [
+          [
+            182,
+            3,
+            null
+          ],
+          [
+            0,
+            2,
+            null
+          ],
+          [
+            1,
+            2,
+            "python"
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "NULL"
+        ],
+        "rowCount": 3,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "skill_id",
+        "demand",
+        "skills"
+      ],
+      "rows": [
+        [
+          182,
+          3,
+          null
+        ],
+        [
+          0,
+          2,
+          null
+        ],
+        [
+          1,
+          2,
+          "python"
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "NULL"
+      ],
+      "rowCount": 3,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_22451a92-c0a2-41fa-8db6-aba354d9e237"
+  }
+}

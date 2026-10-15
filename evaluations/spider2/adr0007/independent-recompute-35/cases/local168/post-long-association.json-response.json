@@ -1,0 +1,53 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_ef0895ec-de21-470c-a251-4902d372afc0\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nlink_rows | association_avg\n7 | 104080.57142857143"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_ef0895ec-de21-470c-a251-4902d372afc0",
+      "preview": {
+        "columns": [
+          "link_rows",
+          "association_avg"
+        ],
+        "rows": [
+          [
+            7,
+            104080.57142857143
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "link_rows",
+        "association_avg"
+      ],
+      "rows": [
+        [
+          7,
+          104080.57142857143
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "REAL"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_59a3fdfb-d159-4b5d-8d0a-cb3eaf74cbd9"
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT boroname,count(*) n FROM trees GROUP BY 1 ORDER BY 2 DESC",
+  "limit": 100
+}

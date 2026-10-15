@@ -1,0 +1,10 @@
+{
+  "fields": {
+    "grouping": {
+      "value": "n/a",
+      "basis": "request",
+      "quote": "sum of those four 5-day moving averages",
+      "reason": "Scalar sum has no outer grouping; serialization correction only"
+    }
+  }
+}

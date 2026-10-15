@@ -1,0 +1,71 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_95cfd399-adec-49df-84c6-3935651b80ce\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\ncustomers | unequal_event_counts | unequal_paid_rentals | MIN(rentals) | MAX(rentals)\n599 | 5 | 0 | 12 | 46"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_95cfd399-adec-49df-84c6-3935651b80ce",
+      "preview": {
+        "columns": [
+          "customers",
+          "unequal_event_counts",
+          "unequal_paid_rentals",
+          "MIN(rentals)",
+          "MAX(rentals)"
+        ],
+        "rows": [
+          [
+            599,
+            5,
+            0,
+            12,
+            46
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "customers",
+        "unequal_event_counts",
+        "unequal_paid_rentals",
+        "MIN(rentals)",
+        "MAX(rentals)"
+      ],
+      "rows": [
+        [
+          599,
+          5,
+          0,
+          12,
+          46
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_7a8fe946-5792-48c5-94d1-367ea2d740c6"
+  }
+}

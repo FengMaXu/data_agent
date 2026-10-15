@@ -1,0 +1,4 @@
+{
+  "sql": "WITH RECURSIVE years(y) AS (SELECT 1789 UNION ALL SELECT y+1 FROM years WHERE y<2025), f AS (SELECT *,row_number() over(partition by id_bioguide order by term_start,term_number) rn FROM legislators_terms) SELECT count(distinct l.id_bioguide) inclusive_people,count(distinct CASE WHEN printf('%04d-12-31',y)<t.term_end THEN l.id_bioguide END) exclusive_people,count(*) joined_rows FROM legislators l JOIN f ON f.id_bioguide=l.id_bioguide AND rn=1 JOIN legislators_terms t ON t.id_bioguide=l.id_bioguide JOIN years ON printf('%04d-12-31',y) BETWEEN t.term_start AND t.term_end WHERE l.gender='F' AND f.state='CA'",
+  "limit": 1000
+}

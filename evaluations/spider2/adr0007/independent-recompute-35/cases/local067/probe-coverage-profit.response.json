@@ -1,0 +1,83 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_aae979c2-bae8-426d-8dd4-2e793ac661db\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nsale_rows | active_customers | missing_cost | min_revenue_delta | max_revenue_delta | actual_profit | list_profit\n689 | 68 | 0 | -4.3799999999999955 | 0.38999999999998636 | 11407.1 | 11423.84"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_aae979c2-bae8-426d-8dd4-2e793ac661db",
+      "preview": {
+        "columns": [
+          "sale_rows",
+          "active_customers",
+          "missing_cost",
+          "min_revenue_delta",
+          "max_revenue_delta",
+          "actual_profit",
+          "list_profit"
+        ],
+        "rows": [
+          [
+            689,
+            68,
+            0,
+            -4.3799999999999955,
+            0.38999999999998636,
+            11407.1,
+            11423.84
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "REAL",
+          "REAL",
+          "REAL",
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "sale_rows",
+        "active_customers",
+        "missing_cost",
+        "min_revenue_delta",
+        "max_revenue_delta",
+        "actual_profit",
+        "list_profit"
+      ],
+      "rows": [
+        [
+          689,
+          68,
+          0,
+          -4.3799999999999955,
+          0.38999999999998636,
+          11407.1,
+          11423.84
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "REAL",
+        "REAL",
+        "REAL",
+        "REAL"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_e7b9324c-e884-4974-ae9d-22d1d4cc33b8"
+  }
+}

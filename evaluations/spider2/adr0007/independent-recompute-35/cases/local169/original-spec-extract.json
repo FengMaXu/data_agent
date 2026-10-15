@@ -1,0 +1,1033 @@
+[
+  {
+    "pointer": "/toolCalls/7",
+    "call": {
+      "sequence": 8,
+      "toolCallId": "call_00_nArCbOa2JyhL9G5kQWFO5938|a4a49545-99a1-434f-bdc7-f00a51edeb94",
+      "toolName": "set_answer_spec",
+      "args": {
+        "fields": {
+          "population.entity": {
+            "value": "legislator",
+            "keyColumns": [
+              "id_bioguide"
+            ],
+            "basis": "assumed",
+            "rationale": "题目统计对象是 'legislators'；任期表 legislators_terms 以 id_bioguide 标识议员，同一议员可能有多条任期行，须按该键合并为一实体计数。"
+          },
+          "population.eligibility": {
+            "value": "队列成员固定：首次任期开始日期落在 1917-01-01 至 1999-12-31（含两端）的全部议员；其人数即 20 个期间共用的固定分母。",
+            "basis": "request",
+            "quote": "began their first term between January 1, 1917 and December 31, 1999"
+          },
+          "population.conditions": {
+            "value": "首次任期开始日期 term_start 的最小值 BETWEEN '1917-01-01' AND '1999-12-31'（在队列定义阶段施加，不随期间变化）。",
+            "basis": "request",
+            "quote": "began their first term between January 1, 1917 and December 31, 1999"
+          },
+          "population.source": {
+            "tables": [
+              "legislators_terms"
+            ],
+            "note": "仅用任期表 legislators_terms；无需连接 legislators。",
+            "cite": [
+              {
+                "source": "schema:legislators_terms.id_bioguide"
+              },
+              {
+                "source": "schema:legislators_terms.term_start"
+              },
+              {
+                "source": "schema:legislators_terms.term_end"
+              }
+            ]
+          },
+          "population.time": {
+            "open": [
+              "Period k (k=1..20) 参考日 = (首次任期开始年份 + k - 1) 年的 12 月 31 日（首个参考日为首次任期开始所在年份的 12-31）",
+              "Period k (k=1..20) 参考日 = (首次任期开始年份 + k) 年的 12 月 31 日（参考日落在首次任期开始年份之后的第 k 个日历年）"
+            ]
+          },
+          "population.timeField": {
+            "value": "队列/期间锚点用 legislators_terms.term_start（取每位议员的最小值作为首次任期起点）；在任判定用任期的 term_start 与 term_end 区间。",
+            "cite": [
+              {
+                "source": "schema:legislators_terms.term_start"
+              },
+              {
+                "source": "schema:legislators_terms.term_end"
+              }
+            ]
+          },
+          "population.missing": {
+            "value": "20 个期间全部输出；某期间无人仍在任时该期保留，留存率为 0。",
+            "basis": "request",
+            "quote": "show all 20 periods in sequence regardless of whether any legislators were retained in a particular year"
+          },
+          "population.joinMultiplicity": {
+            "value": "n/a（单表，无连接）"
+          },
+          "measure.formula": {
+            "op": "ratio",
+            "numerator": {
+              "op": "count_distinct",
+              "per": "period",
+              "of": "队列议员 id_bioguide，其任一条任期满足 term_start <= 该期参考日 AND term_end >= 该期参考日"
+            },
+            "denominator": {
+              "op": "count",
+              "per": "cohort",
+              "of": "队列议员总数（固定分母）"
+            }
+          },
+          "measure.countGrain": {
+            "value": "count_distinct 计数的是议员实体（id_bioguide），不是任期行。"
+          },
+          "measure.denominator": {
+            "value": "分母为全部队列成员数（首次任期起点在 1917-01-01～1999-12-31 的不同 id_bioguide 数），20 个期间共用同一分母；分母大于 0，无需零分母处理。"
+          },
+          "grouping": [
+            {
+              "key": "period",
+              "values": "1..20",
+              "description": "任期第 k 年，每个期间一行；期间到参考日的映射见 population.time"
+            }
+          ],
+          "selection": "n/a",
+          "output": {
+            "rowMode": "grouped",
+            "rowCount": 20,
+            "columns": [
+              "period",
+              "retention_rate"
+            ],
+            "units": {
+              "retention_rate": "proportion (0-1)"
+            },
+            "decimals": {
+              "retention_rate": 4
+            }
+          }
+        }
+      },
+      "startedAt": 1791647559162,
+      "isError": false,
+      "finishedAt": 1791647560001,
+      "durationMs": 839,
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "[ANSWER_SPEC_SET] taskId=task_780d255a-4a62-436e-b19b-52edc10a2f66 revisionId=revision_2d327adc-8f1c-4205-94e1-48d441bced4b\n- ✓ population.entity\n- ✓ population.eligibility\n- ✓ population.conditions\n- ✗ population.source: population.source has no value; write one of: \"n/a\"; a bare value (an assumption, disclosed); {value, basis:\"request\", quote}; {value, cite:[{source, quote}]}; {value, evidenceIds}; {value, basis:\"assumed\", rationale}; {open:[value, ...]}; to decide an open field {value:<alternative>, rationale, evidenceIds?}; {notProbeable:{<alternativeId>: reason}}\n- ✓ population.time\n- ✓ population.timeField\n- ✓ population.missing\n- ✓ population.joinMultiplicity\n- ✗ measure.formula: measure.formula has 3 layers; give every layer \"per\" (the grain it is computed on), e.g. avg per country of avg per player of sum per match\n- ✓ measure.countGrain\n- ✓ measure.denominator\n- ✗ grouping: grouping value must be a non-empty list of non-empty strings\n- ✓ selection\n- ✓ output\n字段写法：one of: \"n/a\"; a bare value (an assumption, disclosed); {value, basis:\"request\", quote}; {value, cite:[{source, quote}]}; {value, evidenceIds}; {value, basis:\"assumed\", rationale}; {open:[value, ...]}; to decide an open field {value:<alternative>, rationale, evidenceIds?}; {notProbeable:{<alternativeId>: reason}}\n状态：\n- 待定 population.time: alternative_8d073273-587f-42e7-978e-c7bb5adb0336={\"expression\":\"Period k (k=1..20) 参考日 = (首次任期开始年份 + k - 1) 年的 12 月 31 日（首个参考日为首次任期开始所在年份的 12-31）\"} missing; alternative_57172d4b-6504-4ae9-b655-f64601a4bdb1={\"expression\":\"Period k (k=1..20) 参考日 = (首次任期开始年份 + k) 年的 12 月 31 日（参考日落在首次任期开始年份之后的第 k 个日历年）\"} missing; outputs=incomplete\n- 未证实（发布时披露）: population.entity, population.joinMultiplicity, measure.countGrain, measure.denominator, output\n- 未声明: measure.formula, grouping\n[SPEC_FEEDBACK] revisionId=revision_2d327adc-8f1c-4205-94e1-48d441bced4b status=unavailable advisory_only=true\nreason: provider_http_error\nlimitations: evidence_quote_missing:evidence_a8b91440-4553-4573-8c57-e6115899afde, evidence_quote_missing:evidence_2f175338-e93c-4667-b159-272926a1eb55\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"assumed\",\"value\":{\"name\":\"legislator\"}},\"population.eligibility\":{\"status\":\"request\",\"value\":\"队列成员固定：首次任期开始日期落在 1917-01-01 至 1999-12-31（含两端）的全部议员；其人数即 20 个期间共用的固定分母。\"},\"population.conditions\":{\"status\":\"request\",\"value\":[\"首次任期开始日期 term_start 的最小值 BETWEEN '1917-01-01' AND '1999-12-31'（在队列定义阶段施加，不随期间变化）。\"]},\"population.time\":{\"status\":\"open\",\"alternatives\":[{\"id\":\"alternative_8d073273-587f-42e7-978e-c7bb5adb0336\",\"value\":{\"expression\":\"Period k (k=1..20) 参考日 = (首次任期开始年份 + k - 1) 年的 12 月 31 日（首个参考日为首次任期开始所在年份的 12-31）\"}},{\"id\":\"alternative_57172d4b-6504-4ae9-b655-f64601a4bdb1\",\"value\":{\"expression\":\"Period k (k=1..20) 参考日 = (首次任期开始年份 + k) 年的 12 月 31 日（参考日落在首次任期开始年份之后的第 k 个日历年）\"}}]},\"population.timeField\":{\"status\":\"evidence\",\"value\":\"队列/期间锚点用 legislators_terms.term_start（取每位议员的最小值作为首次任期起点）；在任判定用任期的 term_start 与 term_end 区间。\"},\"population.missing\":{\"status\":\"request\",\"value\":\"20 个期间全部输出；某期间无人仍在任时该期保留，留存率为 0。\"},\"population.joinMultiplicity\":{\"status\":\"assumed\",\"value\":\"n/a（单表，无连接）\"},\"measure.countGrain\":{\"status\":\"assumed\",\"value\":\"count_distinct 计数的是议员实体（id_bioguide），不是任期行。\"},\"measure.denominator\":{\"status\":\"assumed\",\"value\":\"分母为全部队列成员数（首次任期起点在 1917-01-01～1999-12-31 的不同 id_bioguide 数），20 个期间共用同一分母；分母大于 0，无需零分母处理。\"},\"selection\":{\"status\":\"not_applicable\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"grouped\",\"rowCount\":20,\"columns\":[\"period\",\"retention_rate\"],\"units\":{\"retention_rate\":\"proportion (0-1)\"},\"decimals\":{\"retention_rate\":4}}}}"
+          }
+        ],
+        "details": {
+          "taskId": "task_780d255a-4a62-436e-b19b-52edc10a2f66",
+          "revisionId": "revision_2d327adc-8f1c-4205-94e1-48d441bced4b",
+          "fields": [
+            {
+              "path": "population.entity",
+              "status": "assumed",
+              "value": {
+                "name": "legislator"
+              },
+              "rationale": "题目统计对象是 'legislators'；任期表 legislators_terms 以 id_bioguide 标识议员，同一议员可能有多条任期行，须按该键合并为一实体计数。"
+            },
+            {
+              "path": "population.eligibility",
+              "status": "request",
+              "value": "队列成员固定：首次任期开始日期落在 1917-01-01 至 1999-12-31（含两端）的全部议员；其人数即 20 个期间共用的固定分母。",
+              "evidenceIds": [
+                "evidence_1e59498f-4b62-44dc-98b6-0b2e82b19a34"
+              ]
+            },
+            {
+              "path": "population.conditions",
+              "status": "request",
+              "value": [
+                "首次任期开始日期 term_start 的最小值 BETWEEN '1917-01-01' AND '1999-12-31'（在队列定义阶段施加，不随期间变化）。"
+              ],
+              "evidenceIds": [
+                "evidence_603c0ff9-7743-4bb4-9b19-1bb5e5e248a8"
+              ]
+            },
+            {
+              "path": "population.time",
+              "status": "open",
+              "alternatives": [
+                {
+                  "id": "alternative_8d073273-587f-42e7-978e-c7bb5adb0336",
+                  "value": {
+                    "expression": "Period k (k=1..20) 参考日 = (首次任期开始年份 + k - 1) 年的 12 月 31 日（首个参考日为首次任期开始所在年份的 12-31）"
+                  },
+                  "probe": {
+                    "alternativeId": "alternative_8d073273-587f-42e7-978e-c7bb5adb0336",
+                    "state": "missing"
+                  }
+                },
+                {
+                  "id": "alternative_57172d4b-6504-4ae9-b655-f64601a4bdb1",
+                  "value": {
+                    "expression": "Period k (k=1..20) 参考日 = (首次任期开始年份 + k) 年的 12 月 31 日（参考日落在首次任期开始年份之后的第 k 个日历年）"
+                  },
+                  "probe": {
+                    "alternativeId": "alternative_57172d4b-6504-4ae9-b655-f64601a4bdb1",
+                    "state": "missing"
+                  }
+                }
+              ],
+              "outputs": "incomplete"
+            },
+            {
+              "path": "population.timeField",
+              "status": "evidence",
+              "value": "队列/期间锚点用 legislators_terms.term_start（取每位议员的最小值作为首次任期起点）；在任判定用任期的 term_start 与 term_end 区间。",
+              "evidenceIds": [
+                "evidence_a8b91440-4553-4573-8c57-e6115899afde",
+                "evidence_2f175338-e93c-4667-b159-272926a1eb55"
+              ]
+            },
+            {
+              "path": "population.missing",
+              "status": "request",
+              "value": "20 个期间全部输出；某期间无人仍在任时该期保留，留存率为 0。",
+              "evidenceIds": [
+                "evidence_02d421e5-f23c-4245-92bb-096354009613"
+              ]
+            },
+            {
+              "path": "population.joinMultiplicity",
+              "status": "assumed",
+              "value": "n/a（单表，无连接）"
+            },
+            {
+              "path": "measure.countGrain",
+              "status": "assumed",
+              "value": "count_distinct 计数的是议员实体（id_bioguide），不是任期行。"
+            },
+            {
+              "path": "measure.denominator",
+              "status": "assumed",
+              "value": "分母为全部队列成员数（首次任期起点在 1917-01-01～1999-12-31 的不同 id_bioguide 数），20 个期间共用同一分母；分母大于 0，无需零分母处理。"
+            },
+            {
+              "path": "selection",
+              "status": "not_applicable"
+            },
+            {
+              "path": "output",
+              "status": "assumed",
+              "value": {
+                "rowMode": "grouped",
+                "rowCount": 20,
+                "columns": [
+                  "period",
+                  "retention_rate"
+                ],
+                "units": {
+                  "retention_rate": "proportion (0-1)"
+                },
+                "decimals": {
+                  "retention_rate": 4
+                }
+              }
+            }
+          ],
+          "undeclared": [
+            "measure.formula",
+            "grouping"
+          ],
+          "open": [
+            "population.time"
+          ],
+          "unverified": [
+            "population.entity",
+            "population.joinMultiplicity",
+            "measure.countGrain",
+            "measure.denominator",
+            "output"
+          ],
+          "specFeedback": {
+            "taskId": "task_780d255a-4a62-436e-b19b-52edc10a2f66",
+            "revisionId": "revision_2d327adc-8f1c-4205-94e1-48d441bced4b",
+            "ruleVersion": "spec-feedback-v2",
+            "status": "unavailable",
+            "deterministicIssues": [],
+            "evidenceIds": [
+              "request_9cb4a0bd246ddc74598dc91a",
+              "evidence_1e59498f-4b62-44dc-98b6-0b2e82b19a34",
+              "evidence_603c0ff9-7743-4bb4-9b19-1bb5e5e248a8",
+              "evidence_a8b91440-4553-4573-8c57-e6115899afde",
+              "evidence_2f175338-e93c-4667-b159-272926a1eb55",
+              "evidence_02d421e5-f23c-4245-92bb-096354009613"
+            ],
+            "limitations": [
+              "evidence_quote_missing:evidence_a8b91440-4553-4573-8c57-e6115899afde",
+              "evidence_quote_missing:evidence_2f175338-e93c-4667-b159-272926a1eb55"
+            ],
+            "startedAt": "2026-10-10T15:52:39.169Z",
+            "inputHash": "6308f366d91011bd0c37818c9957e180681fbf7803b82990ed5536ca667b6a44",
+            "reason": "provider_http_error",
+            "completedAt": "2026-10-10T15:52:39.984Z",
+            "durationMs": 815
+          },
+          "outcomes": [
+            {
+              "path": "population.entity",
+              "status": "applied"
+            },
+            {
+              "path": "population.eligibility",
+              "status": "applied"
+            },
+            {
+              "path": "population.conditions",
+              "status": "applied"
+            },
+            {
+              "path": "population.source",
+              "status": "rejected",
+              "code": "INVALID_REQUEST",
+              "message": "population.source has no value; write one of: \"n/a\"; a bare value (an assumption, disclosed); {value, basis:\"request\", quote}; {value, cite:[{source, quote}]}; {value, evidenceIds}; {value, basis:\"assumed\", rationale}; {open:[value, ...]}; to decide an open field {value:<alternative>, rationale, evidenceIds?}; {notProbeable:{<alternativeId>: reason}}"
+            },
+            {
+              "path": "population.time",
+              "status": "applied"
+            },
+            {
+              "path": "population.timeField",
+              "status": "applied"
+            },
+            {
+              "path": "population.missing",
+              "status": "applied"
+            },
+            {
+              "path": "population.joinMultiplicity",
+              "status": "applied"
+            },
+            {
+              "path": "measure.formula",
+              "status": "rejected",
+              "code": "INVALID_REQUEST",
+              "message": "measure.formula has 3 layers; give every layer \"per\" (the grain it is computed on), e.g. avg per country of avg per player of sum per match"
+            },
+            {
+              "path": "measure.countGrain",
+              "status": "applied"
+            },
+            {
+              "path": "measure.denominator",
+              "status": "applied"
+            },
+            {
+              "path": "grouping",
+              "status": "rejected",
+              "code": "INVALID_REQUEST",
+              "message": "grouping value must be a non-empty list of non-empty strings"
+            },
+            {
+              "path": "selection",
+              "status": "applied"
+            },
+            {
+              "path": "output",
+              "status": "applied"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "pointer": "/toolCalls/8",
+    "call": {
+      "sequence": 9,
+      "toolCallId": "call_00_UcruckY5FAduxNXpFqC98782|0ca5ae76-18bb-4b85-854e-ba8a926452a2",
+      "toolName": "set_answer_spec",
+      "args": {
+        "fields": {
+          "grouping": [
+            "period = 任期第 k 年，k = 1..20，每个期间一行"
+          ],
+          "measure.formula": {
+            "op": "ratio",
+            "per": "period",
+            "numerator": {
+              "op": "count_distinct",
+              "per": "period",
+              "of": "队列议员 id_bioguide，其任一条任期满足 term_start <= 该期参考日 AND term_end >= 该期参考日"
+            },
+            "denominator": {
+              "op": "count",
+              "per": "cohort",
+              "of": "全部队列议员（固定分母）"
+            }
+          },
+          "population.source": {
+            "value": {
+              "tables": [
+                "legislators_terms"
+              ],
+              "note": "仅用任期表，无需连接 legislators"
+            },
+            "cite": [
+              {
+                "source": "schema:legislators_terms.id_bioguide",
+                "quote": "id_bioguide"
+              },
+              {
+                "source": "schema:legislators_terms.term_start",
+                "quote": "term_start"
+              },
+              {
+                "source": "schema:legislators_terms.term_end",
+                "quote": "term_end"
+              }
+            ]
+          }
+        }
+      },
+      "startedAt": 1791647564020,
+      "isError": false,
+      "finishedAt": 1791647564821,
+      "durationMs": 801,
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "[ANSWER_SPEC_SET] taskId=task_67b51227-d050-431a-90ee-ea0f9a1595dd revisionId=revision_87f59213-3b78-44c6-bd85-99cf76a263e1\n- ✓ grouping\n- ✓ measure.formula\n- ✓ population.source\n状态：\n- 未证实（发布时披露）: grouping, measure.formula\n- 未声明: population.entity, population.eligibility, population.conditions, population.time, selection, output, measure.countGrain, measure.denominator\n[SPEC_FEEDBACK] revisionId=revision_87f59213-3b78-44c6-bd85-99cf76a263e1 status=unavailable advisory_only=true\nreason: provider_http_error\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.source\":{\"status\":\"evidence\",\"value\":{\"tables\":[\"legislators_terms\"],\"note\":\"仅用任期表，无需连接 legislators\"}},\"measure.formula\":{\"status\":\"assumed\",\"value\":{\"op\":\"ratio\",\"per\":\"period\",\"numerator\":{\"op\":\"count_distinct\",\"per\":\"period\",\"of\":\"队列议员 id_bioguide，其任一条任期满足 term_start <= 该期参考日 AND term_end >= 该期参考日\"},\"denominator\":{\"op\":\"count\",\"per\":\"cohort\",\"of\":\"全部队列议员（固定分母）\"}}},\"grouping\":{\"status\":\"assumed\",\"value\":[\"period = 任期第 k 年，k = 1..20，每个期间一行\"]}}"
+          }
+        ],
+        "details": {
+          "taskId": "task_67b51227-d050-431a-90ee-ea0f9a1595dd",
+          "revisionId": "revision_87f59213-3b78-44c6-bd85-99cf76a263e1",
+          "fields": [
+            {
+              "path": "population.source",
+              "status": "evidence",
+              "value": {
+                "tables": [
+                  "legislators_terms"
+                ],
+                "note": "仅用任期表，无需连接 legislators"
+              },
+              "evidenceIds": [
+                "evidence_1674adfe-db82-42bc-9548-d1ae9ef61189",
+                "evidence_9aebb6f8-51b6-4e55-bde0-8b986a92e0e0",
+                "evidence_9c262a61-a156-4eef-b6c6-fda86cca18c0"
+              ]
+            },
+            {
+              "path": "measure.formula",
+              "status": "assumed",
+              "value": {
+                "op": "ratio",
+                "per": "period",
+                "numerator": {
+                  "op": "count_distinct",
+                  "per": "period",
+                  "of": "队列议员 id_bioguide，其任一条任期满足 term_start <= 该期参考日 AND term_end >= 该期参考日"
+                },
+                "denominator": {
+                  "op": "count",
+                  "per": "cohort",
+                  "of": "全部队列议员（固定分母）"
+                }
+              }
+            },
+            {
+              "path": "grouping",
+              "status": "assumed",
+              "value": [
+                "period = 任期第 k 年，k = 1..20，每个期间一行"
+              ]
+            }
+          ],
+          "undeclared": [
+            "population.entity",
+            "population.eligibility",
+            "population.conditions",
+            "population.time",
+            "selection",
+            "output",
+            "measure.countGrain",
+            "measure.denominator"
+          ],
+          "open": [],
+          "unverified": [
+            "grouping",
+            "measure.formula"
+          ],
+          "specFeedback": {
+            "taskId": "task_67b51227-d050-431a-90ee-ea0f9a1595dd",
+            "revisionId": "revision_87f59213-3b78-44c6-bd85-99cf76a263e1",
+            "ruleVersion": "spec-feedback-v2",
+            "status": "unavailable",
+            "deterministicIssues": [],
+            "evidenceIds": [
+              "request_9cb4a0bd246ddc74598dc91a",
+              "evidence_1674adfe-db82-42bc-9548-d1ae9ef61189",
+              "evidence_9aebb6f8-51b6-4e55-bde0-8b986a92e0e0",
+              "evidence_9c262a61-a156-4eef-b6c6-fda86cca18c0"
+            ],
+            "limitations": [],
+            "startedAt": "2026-10-10T15:52:44.024Z",
+            "inputHash": "c229feb04d89258f9548e0ed86edfe8c2f5e9ea67e0fedc71a9559ecdfda6d5b",
+            "reason": "provider_http_error",
+            "completedAt": "2026-10-10T15:52:44.794Z",
+            "durationMs": 770
+          },
+          "outcomes": [
+            {
+              "path": "grouping",
+              "status": "applied"
+            },
+            {
+              "path": "measure.formula",
+              "status": "applied"
+            },
+            {
+              "path": "population.source",
+              "status": "applied"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "pointer": "/toolCalls/12",
+    "call": {
+      "sequence": 13,
+      "toolCallId": "call_00_Y9VhiKdaY3v6u6fYXWzl6462|46f46fc7-c578-4494-b78f-1aade1acf9b3",
+      "toolName": "set_answer_spec",
+      "args": {
+        "taskId": "task_780d255a-4a62-436e-b19b-52edc10a2f66",
+        "fields": {
+          "grouping": [
+            "period = 任期第 k 年，k = 1..20，每个期间一行"
+          ],
+          "measure.formula": {
+            "op": "ratio",
+            "per": "period",
+            "numerator": {
+              "op": "count_distinct",
+              "per": "period",
+              "of": "队列议员 id_bioguide，其任一条任期满足 term_start <= 该期参考日 AND term_end >= 该期参考日"
+            },
+            "denominator": {
+              "op": "count",
+              "per": "cohort",
+              "of": "全部队列议员（固定分母）"
+            }
+          },
+          "population.source": {
+            "value": {
+              "tables": [
+                "legislators_terms"
+              ],
+              "note": "仅用任期表，无需连接 legislators"
+            },
+            "cite": [
+              {
+                "source": "schema:legislators_terms.id_bioguide",
+                "quote": "id_bioguide"
+              },
+              {
+                "source": "schema:legislators_terms.term_start",
+                "quote": "term_start"
+              },
+              {
+                "source": "schema:legislators_terms.term_end",
+                "quote": "term_end"
+              }
+            ]
+          }
+        }
+      },
+      "startedAt": 1791647577768,
+      "isError": false,
+      "finishedAt": 1791647578602,
+      "durationMs": 834,
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "[ANSWER_SPEC_SET] taskId=task_780d255a-4a62-436e-b19b-52edc10a2f66 revisionId=revision_df76456a-b4ac-4c7c-9b99-4a30c1298305\n- ✓ grouping\n- ✓ measure.formula\n- ✓ population.source\n状态：\n- 待定 population.time: alternative_8d073273-587f-42e7-978e-c7bb5adb0336={\"expression\":\"Period k (k=1..20) 参考日 = (首次任期开始年份 + k - 1) 年的 12 月 31 日（首个参考日为首次任期开始所在年份的 12-31）\"} missing; alternative_57172d4b-6504-4ae9-b655-f64601a4bdb1={\"expression\":\"Period k (k=1..20) 参考日 = (首次任期开始年份 + k) 年的 12 月 31 日（参考日落在首次任期开始年份之后的第 k 个日历年）\"} missing; outputs=incomplete\n- 未证实（发布时披露）: population.entity, population.joinMultiplicity, measure.countGrain, measure.denominator, output, grouping, measure.formula\n[SPEC_FEEDBACK] revisionId=revision_df76456a-b4ac-4c7c-9b99-4a30c1298305 status=unavailable advisory_only=true\nreason: provider_http_error\nlimitations: evidence_quote_missing:evidence_a8b91440-4553-4573-8c57-e6115899afde, evidence_quote_missing:evidence_2f175338-e93c-4667-b159-272926a1eb55\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"assumed\",\"value\":{\"name\":\"legislator\"}},\"population.eligibility\":{\"status\":\"request\",\"value\":\"队列成员固定：首次任期开始日期落在 1917-01-01 至 1999-12-31（含两端）的全部议员；其人数即 20 个期间共用的固定分母。\"},\"population.conditions\":{\"status\":\"request\",\"value\":[\"首次任期开始日期 term_start 的最小值 BETWEEN '1917-01-01' AND '1999-12-31'（在队列定义阶段施加，不随期间变化）。\"]},\"population.source\":{\"status\":\"evidence\",\"value\":{\"tables\":[\"legislators_terms\"],\"note\":\"仅用任期表，无需连接 legislators\"}},\"population.time\":{\"status\":\"open\",\"alternatives\":[{\"id\":\"alternative_8d073273-587f-42e7-978e-c7bb5adb0336\",\"value\":{\"expression\":\"Period k (k=1..20) 参考日 = (首次任期开始年份 + k - 1) 年的 12 月 31 日（首个参考日为首次任期开始所在年份的 12-31）\"}},{\"id\":\"alternative_57172d4b-6504-4ae9-b655-f64601a4bdb1\",\"value\":{\"expression\":\"Period k (k=1..20) 参考日 = (首次任期开始年份 + k) 年的 12 月 31 日（参考日落在首次任期开始年份之后的第 k 个日历年）\"}}]},\"population.timeField\":{\"status\":\"evidence\",\"value\":\"队列/期间锚点用 legislators_terms.term_start（取每位议员的最小值作为首次任期起点）；在任判定用任期的 term_start 与 term_end 区间。\"},\"population.missing\":{\"status\":\"request\",\"value\":\"20 个期间全部输出；某期间无人仍在任时该期保留，留存率为 0。\"},\"population.joinMultiplicity\":{\"status\":\"assumed\",\"value\":\"n/a（单表，无连接）\"},\"measure.formula\":{\"status\":\"assumed\",\"value\":{\"op\":\"ratio\",\"per\":\"period\",\"numerator\":{\"op\":\"count_distinct\",\"per\":\"period\",\"of\":\"队列议员 id_bioguide，其任一条任期满足 term_start <= 该期参考日 AND term_end >= 该期参考日\"},\"denominator\":{\"op\":\"count\",\"per\":\"cohort\",\"of\":\"全部队列议员（固定分母）\"}}},\"measure.countGrain\":{\"status\":\"assumed\",\"value\":\"count_distinct 计数的是议员实体（id_bioguide），不是任期行。\"},\"measure.denominator\":{\"status\":\"assumed\",\"value\":\"分母为全部队列成员数（首次任期起点在 1917-01-01～1999-12-31 的不同 id_bioguide 数），20 个期间共用同一分母；分母大于 0，无需零分母处理。\"},\"grouping\":{\"status\":\"assumed\",\"value\":[\"period = 任期第 k 年，k = 1..20，每个期间一行\"]},\"selection\":{\"status\":\"not_applicable\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"grouped\",\"rowCount\":20,\"columns\":[\"period\",\"retention_rate\"],\"units\":{\"retention_rate\":\"proportion (0-1)\"},\"decimals\":{\"retention_rate\":4}}}}"
+          }
+        ],
+        "details": {
+          "taskId": "task_780d255a-4a62-436e-b19b-52edc10a2f66",
+          "revisionId": "revision_df76456a-b4ac-4c7c-9b99-4a30c1298305",
+          "parentRevisionId": "revision_2d327adc-8f1c-4205-94e1-48d441bced4b",
+          "fields": [
+            {
+              "path": "population.entity",
+              "status": "assumed",
+              "value": {
+                "name": "legislator"
+              },
+              "rationale": "题目统计对象是 'legislators'；任期表 legislators_terms 以 id_bioguide 标识议员，同一议员可能有多条任期行，须按该键合并为一实体计数。"
+            },
+            {
+              "path": "population.eligibility",
+              "status": "request",
+              "value": "队列成员固定：首次任期开始日期落在 1917-01-01 至 1999-12-31（含两端）的全部议员；其人数即 20 个期间共用的固定分母。",
+              "evidenceIds": [
+                "evidence_1e59498f-4b62-44dc-98b6-0b2e82b19a34"
+              ]
+            },
+            {
+              "path": "population.conditions",
+              "status": "request",
+              "value": [
+                "首次任期开始日期 term_start 的最小值 BETWEEN '1917-01-01' AND '1999-12-31'（在队列定义阶段施加，不随期间变化）。"
+              ],
+              "evidenceIds": [
+                "evidence_603c0ff9-7743-4bb4-9b19-1bb5e5e248a8"
+              ]
+            },
+            {
+              "path": "population.source",
+              "status": "evidence",
+              "value": {
+                "tables": [
+                  "legislators_terms"
+                ],
+                "note": "仅用任期表，无需连接 legislators"
+              },
+              "evidenceIds": [
+                "evidence_730f1aa6-3b82-492a-832f-ac8f3a35a4f7",
+                "evidence_450488ea-3de6-4b43-a6dc-19e84977e5ce",
+                "evidence_abb1e010-ac3e-4079-9c38-0d3173d6e32c"
+              ]
+            },
+            {
+              "path": "population.time",
+              "status": "open",
+              "alternatives": [
+                {
+                  "id": "alternative_8d073273-587f-42e7-978e-c7bb5adb0336",
+                  "value": {
+                    "expression": "Period k (k=1..20) 参考日 = (首次任期开始年份 + k - 1) 年的 12 月 31 日（首个参考日为首次任期开始所在年份的 12-31）"
+                  },
+                  "probe": {
+                    "alternativeId": "alternative_8d073273-587f-42e7-978e-c7bb5adb0336",
+                    "state": "missing"
+                  }
+                },
+                {
+                  "id": "alternative_57172d4b-6504-4ae9-b655-f64601a4bdb1",
+                  "value": {
+                    "expression": "Period k (k=1..20) 参考日 = (首次任期开始年份 + k) 年的 12 月 31 日（参考日落在首次任期开始年份之后的第 k 个日历年）"
+                  },
+                  "probe": {
+                    "alternativeId": "alternative_57172d4b-6504-4ae9-b655-f64601a4bdb1",
+                    "state": "missing"
+                  }
+                }
+              ],
+              "outputs": "incomplete"
+            },
+            {
+              "path": "population.timeField",
+              "status": "evidence",
+              "value": "队列/期间锚点用 legislators_terms.term_start（取每位议员的最小值作为首次任期起点）；在任判定用任期的 term_start 与 term_end 区间。",
+              "evidenceIds": [
+                "evidence_a8b91440-4553-4573-8c57-e6115899afde",
+                "evidence_2f175338-e93c-4667-b159-272926a1eb55"
+              ]
+            },
+            {
+              "path": "population.missing",
+              "status": "request",
+              "value": "20 个期间全部输出；某期间无人仍在任时该期保留，留存率为 0。",
+              "evidenceIds": [
+                "evidence_02d421e5-f23c-4245-92bb-096354009613"
+              ]
+            },
+            {
+              "path": "population.joinMultiplicity",
+              "status": "assumed",
+              "value": "n/a（单表，无连接）"
+            },
+            {
+              "path": "measure.formula",
+              "status": "assumed",
+              "value": {
+                "op": "ratio",
+                "per": "period",
+                "numerator": {
+                  "op": "count_distinct",
+                  "per": "period",
+                  "of": "队列议员 id_bioguide，其任一条任期满足 term_start <= 该期参考日 AND term_end >= 该期参考日"
+                },
+                "denominator": {
+                  "op": "count",
+                  "per": "cohort",
+                  "of": "全部队列议员（固定分母）"
+                }
+              }
+            },
+            {
+              "path": "measure.countGrain",
+              "status": "assumed",
+              "value": "count_distinct 计数的是议员实体（id_bioguide），不是任期行。"
+            },
+            {
+              "path": "measure.denominator",
+              "status": "assumed",
+              "value": "分母为全部队列成员数（首次任期起点在 1917-01-01～1999-12-31 的不同 id_bioguide 数），20 个期间共用同一分母；分母大于 0，无需零分母处理。"
+            },
+            {
+              "path": "grouping",
+              "status": "assumed",
+              "value": [
+                "period = 任期第 k 年，k = 1..20，每个期间一行"
+              ]
+            },
+            {
+              "path": "selection",
+              "status": "not_applicable"
+            },
+            {
+              "path": "output",
+              "status": "assumed",
+              "value": {
+                "rowMode": "grouped",
+                "rowCount": 20,
+                "columns": [
+                  "period",
+                  "retention_rate"
+                ],
+                "units": {
+                  "retention_rate": "proportion (0-1)"
+                },
+                "decimals": {
+                  "retention_rate": 4
+                }
+              }
+            }
+          ],
+          "undeclared": [],
+          "open": [
+            "population.time"
+          ],
+          "unverified": [
+            "population.entity",
+            "population.joinMultiplicity",
+            "measure.countGrain",
+            "measure.denominator",
+            "output",
+            "grouping",
+            "measure.formula"
+          ],
+          "specFeedback": {
+            "taskId": "task_780d255a-4a62-436e-b19b-52edc10a2f66",
+            "revisionId": "revision_df76456a-b4ac-4c7c-9b99-4a30c1298305",
+            "ruleVersion": "spec-feedback-v2",
+            "status": "unavailable",
+            "deterministicIssues": [],
+            "evidenceIds": [
+              "request_9cb4a0bd246ddc74598dc91a",
+              "evidence_1e59498f-4b62-44dc-98b6-0b2e82b19a34",
+              "evidence_603c0ff9-7743-4bb4-9b19-1bb5e5e248a8",
+              "evidence_a8b91440-4553-4573-8c57-e6115899afde",
+              "evidence_2f175338-e93c-4667-b159-272926a1eb55",
+              "evidence_02d421e5-f23c-4245-92bb-096354009613",
+              "evidence_730f1aa6-3b82-492a-832f-ac8f3a35a4f7",
+              "evidence_450488ea-3de6-4b43-a6dc-19e84977e5ce",
+              "evidence_abb1e010-ac3e-4079-9c38-0d3173d6e32c"
+            ],
+            "limitations": [
+              "evidence_quote_missing:evidence_a8b91440-4553-4573-8c57-e6115899afde",
+              "evidence_quote_missing:evidence_2f175338-e93c-4667-b159-272926a1eb55"
+            ],
+            "startedAt": "2026-10-10T15:52:57.778Z",
+            "inputHash": "99f530bcef1b0c513ef9f9152bfc1d69fb50ac3962a6caf6e8cedeb983e83b83",
+            "reason": "provider_http_error",
+            "completedAt": "2026-10-10T15:52:58.580Z",
+            "durationMs": 802
+          },
+          "outcomes": [
+            {
+              "path": "grouping",
+              "status": "applied"
+            },
+            {
+              "path": "measure.formula",
+              "status": "applied"
+            },
+            {
+              "path": "population.source",
+              "status": "applied"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "pointer": "/toolCalls/16",
+    "call": {
+      "sequence": 17,
+      "toolCallId": "call_00_aTttCjBexqx7MJPVPqYe8098|5212c5fc-0514-4992-9416-910bc2e96e02",
+      "toolName": "set_answer_spec",
+      "args": {
+        "fields": {
+          "population.time": {
+            "value": {
+              "expression": "Period k (k=1..20) 参考日 = (首次任期开始年份 + k) 年的 12 月 31 日（参考日落在首次任期开始年份之后的第 k 个日历年）"
+            },
+            "rationale": "两候选探针输出不同（仅相差一期）。按题面 'the first 20 years following their initial term start' 逐词检验：'following'（之后）指首次任期开始年份之后的年份，'the first year following X' 的惯用含义是事件所在年份的下一个日历年（例如 1917 年开始，第 1 年 = 1918），且留存分析惯例 '第 k 年留存' 指入组后满 k 年的年末快照。因此第 k 期取 (首次任期开始年份 + k) 年的 12-31；另一候选（含开始所在年份）作为未采纳解释披露。",
+            "evidenceIds": [
+              "evidence_4a5ea906-eaaf-4bc6-a345-6a7a78175790",
+              "evidence_7bfb1c44-3028-46a1-9ab8-50aee206559c"
+            ]
+          }
+        },
+        "taskId": "task_780d255a-4a62-436e-b19b-52edc10a2f66"
+      },
+      "startedAt": 1791647609605,
+      "isError": false,
+      "finishedAt": 1791647610419,
+      "durationMs": 814,
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "[ANSWER_SPEC_SET] taskId=task_780d255a-4a62-436e-b19b-52edc10a2f66 revisionId=revision_ee15dbde-251d-499d-951f-f42112b17123\n- ✓ population.time\n状态：\n- 未证实（发布时披露）: population.entity, population.time, population.joinMultiplicity, measure.countGrain, measure.denominator, output, grouping, measure.formula\n- 没有待处理的字段，可以执行结果查询\n[SPEC_FEEDBACK] revisionId=revision_ee15dbde-251d-499d-951f-f42112b17123 status=unavailable advisory_only=true\nreason: provider_http_error\nlimitations: evidence_quote_missing:evidence_a8b91440-4553-4573-8c57-e6115899afde, evidence_quote_missing:evidence_2f175338-e93c-4667-b159-272926a1eb55\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"assumed\",\"value\":{\"name\":\"legislator\"}},\"population.eligibility\":{\"status\":\"request\",\"value\":\"队列成员固定：首次任期开始日期落在 1917-01-01 至 1999-12-31（含两端）的全部议员；其人数即 20 个期间共用的固定分母。\"},\"population.conditions\":{\"status\":\"request\",\"value\":[\"首次任期开始日期 term_start 的最小值 BETWEEN '1917-01-01' AND '1999-12-31'（在队列定义阶段施加，不随期间变化）。\"]},\"population.source\":{\"status\":\"evidence\",\"value\":{\"tables\":[\"legislators_terms\"],\"note\":\"仅用任期表，无需连接 legislators\"}},\"population.time\":{\"status\":\"decided\",\"value\":{\"expression\":\"Period k (k=1..20) 参考日 = (首次任期开始年份 + k) 年的 12 月 31 日（参考日落在首次任期开始年份之后的第 k 个日历年）\"},\"verified\":false},\"population.timeField\":{\"status\":\"evidence\",\"value\":\"队列/期间锚点用 legislators_terms.term_start（取每位议员的最小值作为首次任期起点）；在任判定用任期的 term_start 与 term_end 区间。\"},\"population.missing\":{\"status\":\"request\",\"value\":\"20 个期间全部输出；某期间无人仍在任时该期保留，留存率为 0。\"},\"population.joinMultiplicity\":{\"status\":\"assumed\",\"value\":\"n/a（单表，无连接）\"},\"measure.formula\":{\"status\":\"assumed\",\"value\":{\"op\":\"ratio\",\"per\":\"period\",\"numerator\":{\"op\":\"count_distinct\",\"per\":\"period\",\"of\":\"队列议员 id_bioguide，其任一条任期满足 term_start <= 该期参考日 AND term_end >= 该期参考日\"},\"denominator\":{\"op\":\"count\",\"per\":\"cohort\",\"of\":\"全部队列议员（固定分母）\"}}},\"measure.countGrain\":{\"status\":\"assumed\",\"value\":\"count_distinct 计数的是议员实体（id_bioguide），不是任期行。\"},\"measure.denominator\":{\"status\":\"assumed\",\"value\":\"分母为全部队列成员数（首次任期起点在 1917-01-01～1999-12-31 的不同 id_bioguide 数），20 个期间共用同一分母；分母大于 0，无需零分母处理。\"},\"grouping\":{\"status\":\"assumed\",\"value\":[\"period = 任期第 k 年，k = 1..20，每个期间一行\"]},\"selection\":{\"status\":\"not_applicable\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"grouped\",\"rowCount\":20,\"columns\":[\"period\",\"retention_rate\"],\"units\":{\"retention_rate\":\"proportion (0-1)\"},\"decimals\":{\"retention_rate\":4}}}}"
+          }
+        ],
+        "details": {
+          "taskId": "task_780d255a-4a62-436e-b19b-52edc10a2f66",
+          "revisionId": "revision_ee15dbde-251d-499d-951f-f42112b17123",
+          "parentRevisionId": "revision_df76456a-b4ac-4c7c-9b99-4a30c1298305",
+          "fields": [
+            {
+              "path": "population.entity",
+              "status": "assumed",
+              "value": {
+                "name": "legislator"
+              },
+              "rationale": "题目统计对象是 'legislators'；任期表 legislators_terms 以 id_bioguide 标识议员，同一议员可能有多条任期行，须按该键合并为一实体计数。"
+            },
+            {
+              "path": "population.eligibility",
+              "status": "request",
+              "value": "队列成员固定：首次任期开始日期落在 1917-01-01 至 1999-12-31（含两端）的全部议员；其人数即 20 个期间共用的固定分母。",
+              "evidenceIds": [
+                "evidence_1e59498f-4b62-44dc-98b6-0b2e82b19a34"
+              ]
+            },
+            {
+              "path": "population.conditions",
+              "status": "request",
+              "value": [
+                "首次任期开始日期 term_start 的最小值 BETWEEN '1917-01-01' AND '1999-12-31'（在队列定义阶段施加，不随期间变化）。"
+              ],
+              "evidenceIds": [
+                "evidence_603c0ff9-7743-4bb4-9b19-1bb5e5e248a8"
+              ]
+            },
+            {
+              "path": "population.source",
+              "status": "evidence",
+              "value": {
+                "tables": [
+                  "legislators_terms"
+                ],
+                "note": "仅用任期表，无需连接 legislators"
+              },
+              "evidenceIds": [
+                "evidence_730f1aa6-3b82-492a-832f-ac8f3a35a4f7",
+                "evidence_450488ea-3de6-4b43-a6dc-19e84977e5ce",
+                "evidence_abb1e010-ac3e-4079-9c38-0d3173d6e32c"
+              ]
+            },
+            {
+              "path": "population.time",
+              "status": "decided",
+              "value": {
+                "expression": "Period k (k=1..20) 参考日 = (首次任期开始年份 + k) 年的 12 月 31 日（参考日落在首次任期开始年份之后的第 k 个日历年）"
+              },
+              "verified": false,
+              "rationale": "两候选探针输出不同（仅相差一期）。按题面 'the first 20 years following their initial term start' 逐词检验：'following'（之后）指首次任期开始年份之后的年份，'the first year following X' 的惯用含义是事件所在年份的下一个日历年（例如 1917 年开始，第 1 年 = 1918），且留存分析惯例 '第 k 年留存' 指入组后满 k 年的年末快照。因此第 k 期取 (首次任期开始年份 + k) 年的 12-31；另一候选（含开始所在年份）作为未采纳解释披露。",
+              "alternatives": [
+                {
+                  "id": "alternative_8d073273-587f-42e7-978e-c7bb5adb0336",
+                  "value": {
+                    "expression": "Period k (k=1..20) 参考日 = (首次任期开始年份 + k - 1) 年的 12 月 31 日（首个参考日为首次任期开始所在年份的 12-31）"
+                  },
+                  "probe": {
+                    "alternativeId": "alternative_8d073273-587f-42e7-978e-c7bb5adb0336",
+                    "state": "available",
+                    "rowCount": 20,
+                    "output": "6111085ffc96"
+                  }
+                },
+                {
+                  "id": "alternative_57172d4b-6504-4ae9-b655-f64601a4bdb1",
+                  "value": {
+                    "expression": "Period k (k=1..20) 参考日 = (首次任期开始年份 + k) 年的 12 月 31 日（参考日落在首次任期开始年份之后的第 k 个日历年）"
+                  },
+                  "probe": {
+                    "alternativeId": "alternative_57172d4b-6504-4ae9-b655-f64601a4bdb1",
+                    "state": "available",
+                    "rowCount": 20,
+                    "output": "f80dfc372b8c"
+                  }
+                }
+              ],
+              "outputs": "distinct",
+              "advice": {
+                "recommendation": "alternative",
+                "probabilities": [
+                  {
+                    "alternativeId": "alternative_8d073273-587f-42e7-978e-c7bb5adb0336",
+                    "probability": 0.28
+                  },
+                  {
+                    "alternativeId": "alternative_57172d4b-6504-4ae9-b655-f64601a4bdb1",
+                    "probability": 0.3
+                  }
+                ],
+                "lean": {
+                  "alternativeId": "alternative_57172d4b-6504-4ae9-b655-f64601a4bdb1",
+                  "probability": 0.3
+                }
+              }
+            },
+            {
+              "path": "population.timeField",
+              "status": "evidence",
+              "value": "队列/期间锚点用 legislators_terms.term_start（取每位议员的最小值作为首次任期起点）；在任判定用任期的 term_start 与 term_end 区间。",
+              "evidenceIds": [
+                "evidence_a8b91440-4553-4573-8c57-e6115899afde",
+                "evidence_2f175338-e93c-4667-b159-272926a1eb55"
+              ]
+            },
+            {
+              "path": "population.missing",
+              "status": "request",
+              "value": "20 个期间全部输出；某期间无人仍在任时该期保留，留存率为 0。",
+              "evidenceIds": [
+                "evidence_02d421e5-f23c-4245-92bb-096354009613"
+              ]
+            },
+            {
+              "path": "population.joinMultiplicity",
+              "status": "assumed",
+              "value": "n/a（单表，无连接）"
+            },
+            {
+              "path": "measure.formula",
+              "status": "assumed",
+              "value": {
+                "op": "ratio",
+                "per": "period",
+                "numerator": {
+                  "op": "count_distinct",
+                  "per": "period",
+                  "of": "队列议员 id_bioguide，其任一条任期满足 term_start <= 该期参考日 AND term_end >= 该期参考日"
+                },
+                "denominator": {
+                  "op": "count",
+                  "per": "cohort",
+                  "of": "全部队列议员（固定分母）"
+                }
+              }
+            },
+            {
+              "path": "measure.countGrain",
+              "status": "assumed",
+              "value": "count_distinct 计数的是议员实体（id_bioguide），不是任期行。"
+            },
+            {
+              "path": "measure.denominator",
+              "status": "assumed",
+              "value": "分母为全部队列成员数（首次任期起点在 1917-01-01～1999-12-31 的不同 id_bioguide 数），20 个期间共用同一分母；分母大于 0，无需零分母处理。"
+            },
+            {
+              "path": "grouping",
+              "status": "assumed",
+              "value": [
+                "period = 任期第 k 年，k = 1..20，每个期间一行"
+              ]
+            },
+            {
+              "path": "selection",
+              "status": "not_applicable"
+            },
+            {
+              "path": "output",
+              "status": "assumed",
+              "value": {
+                "rowMode": "grouped",
+                "rowCount": 20,
+                "columns": [
+                  "period",
+                  "retention_rate"
+                ],
+                "units": {
+                  "retention_rate": "proportion (0-1)"
+                },
+                "decimals": {
+                  "retention_rate": 4
+                }
+              }
+            }
+          ],
+          "undeclared": [],
+          "open": [],
+          "unverified": [
+            "population.entity",
+            "population.time",
+            "population.joinMultiplicity",
+            "measure.countGrain",
+            "measure.denominator",
+            "output",
+            "grouping",
+            "measure.formula"
+          ],
+          "specFeedback": {
+            "taskId": "task_780d255a-4a62-436e-b19b-52edc10a2f66",
+            "revisionId": "revision_ee15dbde-251d-499d-951f-f42112b17123",
+            "ruleVersion": "spec-feedback-v2",
+            "status": "unavailable",
+            "deterministicIssues": [],
+            "evidenceIds": [
+              "request_9cb4a0bd246ddc74598dc91a",
+              "evidence_1e59498f-4b62-44dc-98b6-0b2e82b19a34",
+              "evidence_603c0ff9-7743-4bb4-9b19-1bb5e5e248a8",
+              "evidence_a8b91440-4553-4573-8c57-e6115899afde",
+              "evidence_2f175338-e93c-4667-b159-272926a1eb55",
+              "evidence_02d421e5-f23c-4245-92bb-096354009613",
+              "evidence_730f1aa6-3b82-492a-832f-ac8f3a35a4f7",
+              "evidence_450488ea-3de6-4b43-a6dc-19e84977e5ce",
+              "evidence_abb1e010-ac3e-4079-9c38-0d3173d6e32c",
+              "evidence_4a5ea906-eaaf-4bc6-a345-6a7a78175790",
+              "evidence_7bfb1c44-3028-46a1-9ab8-50aee206559c"
+            ],
+            "limitations": [
+              "evidence_quote_missing:evidence_a8b91440-4553-4573-8c57-e6115899afde",
+              "evidence_quote_missing:evidence_2f175338-e93c-4667-b159-272926a1eb55"
+            ],
+            "startedAt": "2026-10-10T15:53:29.626Z",
+            "inputHash": "a5726e0dfb4962bac2ea1f708f3d4ac9c1994dedbf39b176007f6aa48ca52c5d",
+            "reason": "provider_http_error",
+            "completedAt": "2026-10-10T15:53:30.398Z",
+            "durationMs": 772
+          },
+          "outcomes": [
+            {
+              "path": "population.time",
+              "status": "applied"
+            }
+          ]
+        }
+      }
+    }
+  }
+]

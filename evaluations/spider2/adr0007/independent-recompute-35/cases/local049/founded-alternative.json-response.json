@@ -1,0 +1,85 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_cbf20a9e-4e95-48b7-b7ac-a9c50c5edd4a\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nindustry | founded_total\nFintech | 18\nInternet software & services | 14\nE-commerce & direct-to-consumer | 11\nHealth | 8\nCybersecurity | 8"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_cbf20a9e-4e95-48b7-b7ac-a9c50c5edd4a",
+      "preview": {
+        "columns": [
+          "industry",
+          "founded_total"
+        ],
+        "rows": [
+          [
+            "Fintech",
+            18
+          ],
+          [
+            "Internet software & services",
+            14
+          ],
+          [
+            "E-commerce & direct-to-consumer",
+            11
+          ],
+          [
+            "Health",
+            8
+          ],
+          [
+            "Cybersecurity",
+            8
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 5,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "industry",
+        "founded_total"
+      ],
+      "rows": [
+        [
+          "Fintech",
+          18
+        ],
+        [
+          "Internet software & services",
+          14
+        ],
+        [
+          "E-commerce & direct-to-consumer",
+          11
+        ],
+        [
+          "Health",
+          8
+        ],
+        [
+          "Cybersecurity",
+          8
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 5,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_1fbb39cc-ca93-4cb7-a0b4-70b7c978d9f4"
+  }
+}

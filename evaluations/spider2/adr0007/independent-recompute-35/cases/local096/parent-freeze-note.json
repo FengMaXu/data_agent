@@ -1,0 +1,10 @@
+{
+  "algorithm": "TRIM cast identity; duplicate Person group with any non-Female disqualifies; all Movie denominator; nonempty cast numerator; exact year suffix",
+  "assumptions": [
+    "空cast不满足had exclusively female actors；重复Person保守合并",
+    "外围空白键规范化"
+  ],
+  "limitations": [
+    "同PID冲突和空cast解释单独保留备选"
+  ]
+}

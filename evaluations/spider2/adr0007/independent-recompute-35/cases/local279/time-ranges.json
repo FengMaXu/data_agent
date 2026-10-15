@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT 'sales' source,MIN(mth) start,MAX(mth) end,COUNT(*) n FROM monthly_sales UNION ALL SELECT 'budget',MIN(mth),MAX(mth),COUNT(*) FROM monthly_budget UNION ALL SELECT 'purchase',MIN(purchased),MAX(purchased),COUNT(*) FROM purchases",
+  "limit": 1000
+}

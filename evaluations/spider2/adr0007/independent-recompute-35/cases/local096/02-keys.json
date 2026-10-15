@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT 'Movie' kind,COUNT(*) rows,COUNT(DISTINCT MID) distinct_id,SUM(MID!=TRIM(MID)) padded FROM Movie UNION ALL SELECT 'Person',COUNT(*),COUNT(DISTINCT PID),SUM(PID!=TRIM(PID)) FROM Person UNION ALL SELECT 'M_Cast',COUNT(*),COUNT(DISTINCT MID||'|'||PID),SUM(MID!=TRIM(MID) OR PID!=TRIM(PID)) FROM M_Cast",
+  "limit": 100
+}
