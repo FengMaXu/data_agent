@@ -95,7 +95,7 @@ application = await createDataAgentApplication({
       ...(config.base_url ? { baseUrl: String(config.base_url) } : {}),
       apiFormat: config.api_format === "chat" || config.apiFormat === "chat" ? "chat" : "responses",
     };
-    if (config.llm_enabled === false || !profile.apiKey || !profile.model) throw new Error("LLM_NOT_CONFIGURED: complete onboarding first");
+    if (config.llm_enabled === false || !profile.apiKey || !profile.model) throw new Error("LLM_NOT_CONFIGURED: add a model API key in Settings → Model");
     return profile;
   },
   systemPromptRoots: [knowledgeRoot, root],
