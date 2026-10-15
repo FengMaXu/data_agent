@@ -19,21 +19,19 @@ const context = (invocationId = "invocation-1"): BusinessContext => ({
   invocationId,
 });
 
+/** Loses the first transaction that commits a Result Candidate, as a Session commit failure would. */
 class FailOnceAtCandidateCommit implements AnsweringStore {
-  private count = 0;
   private failed = false;
   constructor(private delegate: InMemoryAnsweringStore) {}
 
   async transact<T>(command: Parameters<AnsweringStore["transact"]>[0], context: BusinessContext): Promise<T> {
-    this.count += 1;
-    if (!this.failed && this.count === 5) {
-      const before = this.delegate.snapshot();
-      await this.delegate.transact(command, context);
-      this.delegate = new InMemoryAnsweringStore(before);
-      this.failed = true;
-      throw new Error("SESSION_COMMIT_FAILED");
-    }
-    return this.delegate.transact(command, context) as Promise<T>;
+    if (this.failed) return this.delegate.transact(command, context) as Promise<T>;
+    const before = this.delegate.snapshot();
+    const value = await this.delegate.transact(command, context) as T;
+    if (this.delegate.snapshot().candidates.length === before.candidates.length) return value;
+    this.delegate = new InMemoryAnsweringStore(before);
+    this.failed = true;
+    throw new Error("SESSION_COMMIT_FAILED");
   }
 
   inspect(taskId: Parameters<AnsweringStore["inspect"]>[0], context: BusinessContext) { return this.delegate.inspect(taskId, context); }

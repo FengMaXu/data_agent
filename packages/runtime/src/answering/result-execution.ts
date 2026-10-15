@@ -29,6 +29,7 @@ import { resultFingerprint } from "./result-fingerprint.js";
 import { evaluateSpecRealization } from "./realization-check.js";
 import { entityIdentityCoverage, entityIdentityFindings } from "./entity-identity.js";
 import { calendarCoverageCoverage, calendarCoverageFindings } from "./calendar-coverage.js";
+import { recordDataChecks } from "./data-checks-execution.js";
 import { asRecord, now } from "./support.js";
 import type { AnsweringDeps } from "./deps.js";
 
@@ -143,6 +144,9 @@ export async function executeResult(
 ): Promise<QueryExecutionView> {
   const taskId = input.taskId as TaskId;
   const queryHash = contentHash(input.sql.trim());
+  // The set call reads the data checks after its Revision commits; a result query that
+  // reaches the Revision first reads them here, so calendar coverage cannot miss the seal.
+  if (deps.semanticQualificationMode === "required") await recordDataChecks(deps, taskId, revisionId, context);
   const sealed = await sealRevision(deps, input, taskId, revisionId, queryHash, context);
   const realization = evaluateSpecRealization(sealed.fields, input.sql);
   const unrealized = realization.findings.filter((item) => item.blocking);
