@@ -94,3 +94,6 @@ frontend/rel-*/
 .artifacts/
 scratch/
 /*.pdf
+
+# Temp workspaces left behind by interrupted test runs
+.tmp-*/
