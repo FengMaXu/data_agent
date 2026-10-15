@@ -204,7 +204,7 @@ describe("Session Runtime scoped query composition", () => {
     }
   });
 
-  it("registers Jev comparison only by explicit configuration and binds it to the current open field", async () => {
+  it("asks the configured Jev advisor with the exact Session request once an open field's probes differ", async () => {
     const root = await mkdtemp(path.join(process.cwd(), ".tmp-session-runtime-jev-"));
     const observed: CompareHypothesesInput[] = [];
     const advisor: HypothesisChoiceAdvisor = {
@@ -230,39 +230,30 @@ describe("Session Runtime scoped query composition", () => {
       profile,
       systemPrompt: "You are Data Agent.",
       hypothesisChoiceAdvisor: advisor,
+      queryExecutor: { run: async (sql) => ({ columns: ["n"], rows: [[sql.includes("twelve") ? 12 : 9]], truncated: false }) },
     });
     try {
+      // The comparison is the Runtime's own step, not a model tool.
+      expect(host.tools.some((item) => item.name === "compare_hypotheses")).toBe(false);
       const begun = await host.answering.set({
         requestMessageId,
         requestId: "begin-jev",
         fields: { ...spec, "measure.denominator": { open: ["按十二个月计算", "按有记录月份计算"] } },
       }, business("begin-jev"));
-      const tool = host.tools.find((item) => item.name === "compare_hypotheses");
-      if (!tool) throw new Error("compare_hypotheses missing");
-      const memo = new Map<string, unknown>();
-      await tool.execute("call-jev", {
-        taskId: begun.taskId,
-        path: "measure.denominator",
-        evidence: [{ content: "无收入月份按零计算", sourceRef: "metric.md" }],
-      }, undefined, {
-        sessionId: "session-1", principalId: "user-1", requestMessageId,
-      }, {
-        invocationId: "invoke-jev", operationId: "operation-1", turnId: "turn-1",
-        getMemo: async (key: string) => memo.get(key),
-        setMemo: async (key: string, value: unknown) => { memo.set(key, value); },
-      }, TODO_CONTEXT);
+      const [twelve, recorded] = begun.fields.find((item) => item.path === "measure.denominator")!.alternatives!.map((item) => item.id as string);
+      await host.answering.execute({ kind: "exploration", taskId: begun.taskId, sql: "SELECT twelve", probe: { path: "measure.denominator", alternativeId: twelve! } }, business("probe-twelve"));
+      expect(observed).toHaveLength(0);
+      const last = await host.answering.execute({ kind: "exploration", taskId: begun.taskId, sql: "SELECT recorded", probe: { path: "measure.denominator", alternativeId: recorded! } }, business("probe-recorded"));
       expect(observed).toHaveLength(1);
-      const unchanged = await host.answering.inspect({ taskId: begun.taskId }, business("inspect-after-jev"));
-      expect(unchanged.currentRevision.fields["measure.denominator"]).toMatchObject({ state: "open" });
-      expect(unchanged.task.currentRevisionId).toBe(begun.revisionId);
+      expect(last.probe).toMatchObject({ advice: { recommendation: "insufficient_evidence" } });
       expect(observed[0]).toMatchObject({
         originalQuestion: "年度月均收入如何计算？",
         hypotheses: [{ statement: "measure.denominator: 按十二个月计算" }, { statement: "measure.denominator: 按有记录月份计算" }],
-        evidence: [
-          { kind: "request_wording", content: "年度月均收入如何计算？" },
-          { content: "无收入月份按零计算", sourceRef: "metric.md" },
-        ],
+        evidence: [{ kind: "request_wording", content: "年度月均收入如何计算？" }, { id: "probe_outputs" }],
       });
+      const unchanged = await host.answering.inspect({ taskId: begun.taskId }, business("inspect-after-jev"));
+      expect(unchanged.currentRevision.fields["measure.denominator"]).toMatchObject({ state: "open" });
+      expect(unchanged.task.currentRevisionId).toBe(begun.revisionId);
     } finally {
       await host.close();
       await rm(root, { recursive: true, force: true });

@@ -11,8 +11,8 @@ import { AnsweringError, FIELD_FORMS, FIELD_PATHS } from "../answering/public.js
 import { renderSpecFeedback } from "../answering/spec-feedback.js";
 import { renderEntityIdentity } from "../answering/entity-identity.js";
 import { renderCalendarCoverage } from "../answering/calendar-coverage.js";
-import { leanOf, type AdvisoryLedger, type FieldAdvisory } from "../answering/public.js";
 import type {
+  AdviceView,
   Answering,
   AnswerRevisionView,
   AnswerTaskView,
@@ -22,11 +22,6 @@ import type {
   InspectAnswer,
   PublishCandidate,
 } from "../answering/public.js";
-import type {
-  HypothesisChoiceAdvisor,
-  HypothesisChoiceAssessment,
-  HypothesisChoiceEvidence,
-} from "../judgment/hypothesis-choice.js";
 import { defineDataAgentTool, type DataAgentToolDefinition, type ToolPromptMetadata } from "./tool-definition.js";
 
 /**
@@ -97,21 +92,10 @@ export const ANSWERING_INSPECT_PARAMETERS = Type.Object({
   taskId: Type.String({ minLength: 1 }),
 }, { additionalProperties: false });
 
-/** Comparison is over one open field: its alternatives are read from the Answer Spec, never supplied by the model. */
-export const HYPOTHESIS_COMPARISON_PARAMETERS = Type.Object({
-  taskId: Type.String({ minLength: 1 }),
-  path: Type.String({ minLength: 1 }),
-  evidence: Type.Optional(Type.Array(Type.Object({
-    content: Type.String({ minLength: 1 }),
-    sourceRef: Type.Optional(Type.String({ minLength: 1 })),
-  }, { additionalProperties: false }), { maxItems: 32 })),
-}, { additionalProperties: false });
-
 type SetAnswerSpecInput = Static<typeof SET_ANSWER_SPEC_PARAMETERS>;
 type QueryInput = Static<typeof ANSWERING_QUERY_PARAMETERS>;
 type PublishInput = Static<typeof ANSWERING_PUBLISH_PARAMETERS>;
 type InspectInput = Static<typeof ANSWERING_INSPECT_PARAMETERS>;
-export type HypothesisComparisonInput = Static<typeof HYPOTHESIS_COMPARISON_PARAMETERS>;
 
 type ToolContext = DataAgentToolContext | undefined;
 
@@ -182,6 +166,17 @@ function fanoutText(view: Awaited<ReturnType<Answering["execute"]>>): string {
   return `[FANOUT_CHECK] status=${report.status}${reason}\n${findings.length ? `Observed source-key duplication: ${findings.join("; ")}. This is a bounded metric-copy observation, not a business-semantic verdict.` : "No source-key duplication was observed within the supported probe coverage."}`;
 }
 
+/** How the model reads the Runtime's advice on an open field (ADR-0005); advice is never evidence. */
+function adviceText(path: string, advice: AdviceView): string {
+  if (advice.recommendation === "unavailable") {
+    return `[ADVICE_UNAVAILABLE] path=${path}\nThe advisor could not compare the alternatives. Decide ${path} with {value, rationale}; the publication discloses that the decision was not compared. Do not rewrite it as an assumption.`;
+  }
+  if (!advice.lean) {
+    return `[ADVICE] path=${path} lean=none\nNo alternative is favoured, so the request does not settle this field. If ask_user_clarification is available, ask the user and cite the answer when deciding; otherwise decide and the publication discloses that the choice was not settled.`;
+  }
+  return `[ADVICE] path=${path} lean=${advice.lean.alternativeId} probability=${advice.lean.probability}\nThe advice is not evidence. Deciding against the lean requires adviceOverride with a reason and evidence that settles the field.`;
+}
+
 function queryText(view: Awaited<ReturnType<Answering["execute"]>>): string {
   const artifact = view.artifact.kind === "exploration"
     ? `[EXPLORATION_EVIDENCE] evidenceId=${view.artifact.evidenceId}\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.`
@@ -191,7 +186,8 @@ function queryText(view: Awaited<ReturnType<Answering["execute"]>>): string {
   const probe = view.probe
     ? `[PROBE] path=${view.probe.path} alternativeId=${view.probe.alternativeId} rows=${view.probe.rowCount} ${view.probe.state === "available" ? `output=${view.probe.output}` : `output unavailable: ${view.probe.reason}`}\nAlternatives of the same field with equal output ids produce the same answer.`
     : "";
-  return `${artifact}${probe ? `\n${probe}` : ""}${fanout ? `\n${fanout}` : ""}\n${preview}`;
+  const advice = view.probe?.advice ? adviceText(view.probe.path, view.probe.advice) : "";
+  return `${artifact}${probe ? `\n${probe}` : ""}${advice ? `\n${advice}` : ""}${fanout ? `\n${fanout}` : ""}\n${preview}`;
 }
 
 function beginQueryTaskTool(answering: Answering): AgentHarnessTool<DataAgentToolContext> {
@@ -247,13 +243,18 @@ export function fieldStateTable(view: AnswerRevisionView): string {
   }
   const open = new Set<string>(view.open);
   for (const field of view.fields) {
-    if (open.has(field.path)) lines.push(`- 待定 ${field.path}: ${alternativesText(field)}${field.outputs ? `; outputs=${field.outputs}` : ""}`);
+    if (open.has(field.path)) lines.push(`- 待定 ${field.path}: ${alternativesText(field)}${field.outputs ? `; outputs=${field.outputs}` : ""}${field.advice ? `; ${adviceLabel(field.advice)}` : ""}`);
     if (field.status === "equivalent") lines.push(`- 等价 ${field.path}: 各候选输出相同，无需决定`);
   }
   if (view.unverified.length > 0) lines.push(`- 未证实（发布时披露）: ${view.unverified.join(", ")}`);
   if (view.undeclared.length > 0) lines.push(`- 未声明: ${view.undeclared.join(", ")}`);
   if (view.open.length === 0 && view.undeclared.length === 0) lines.push(report ? "- 共享字段已处理，图表查询可以执行结果查询" : "- 没有待处理的字段，可以执行结果查询");
   return lines.join("\n");
+}
+
+function adviceLabel(advice: AdviceView): string {
+  if (advice.recommendation === "unavailable") return "建议不可用（照常决定，发布时披露未经比较）";
+  return advice.lean ? `建议倾向 ${advice.lean.alternativeId}（p=${advice.lean.probability}）` : "建议无倾向（原题不能裁决）";
 }
 
 /** Field states in compact form for the model: status, value and alternatives. */
@@ -353,131 +354,6 @@ export interface PublishedContentReader {
   resolve(publicationId: string, context: BusinessContext): Promise<{ readonly content: string }>;
 }
 
-export interface HypothesisComparisonToolOptions {
-  readonly advisor: HypothesisChoiceAdvisor;
-  readonly getOriginalQuestion: (requestMessageId?: string) => Promise<string>;
-  /** Trusted record of advice per open field; Answering reads it when the field is decided (ADR-0005). */
-  readonly ledger?: AdvisoryLedger;
-}
-
-const ADVISORY_NOTE = "This recommendation is not evidence. Deciding against a clear lean requires adviceOverride with a reason and evidence ids.";
-
-type OpenField = Extract<AnswerTaskView["currentRevision"]["fields"][keyof AnswerTaskView["currentRevision"]["fields"]], { alternatives: unknown }>;
-
-/** Probe outputs the Runtime already holds, stated so the advisor can see which alternatives actually differ. */
-function probeEvidence(task: AnswerTaskView, path: string, field: OpenField): HypothesisChoiceEvidence[] {
-  const probes = (task.task.fieldProbes ?? []).filter((probe) => probe.path === path);
-  if (probes.length === 0) return [];
-  const labels = new Map(field.alternatives.map((alternative, index) => [alternative.id as string, `alternative ${index + 1}`]));
-  const outputs = new Map<string, string[]>();
-  for (const probe of probes) {
-    if (probe.outcome.state !== "available") continue;
-    outputs.set(probe.outcome.fingerprint, [...(outputs.get(probe.outcome.fingerprint) ?? []), labels.get(probe.alternativeId) ?? probe.alternativeId]);
-  }
-  const lines = probes.map((probe) => `${labels.get(probe.alternativeId) ?? probe.alternativeId}: ${probe.rowCount} output rows${probe.outcome.state === "available" ? "" : ` (output not comparable: ${probe.outcome.reason})`}`);
-  const same = [...outputs.values()].filter((group) => group.length > 1).map((group) => `${group.join(" and ")} produce identical output`);
-  return [{ id: "probe_outputs", kind: "observation", authority: "observation", authorityRank: 5, sourceRef: "field_probes", content: [...lines, ...same].join("\n") }];
-}
-
-function hypothesisComparisonTool(answering: Answering, options: HypothesisComparisonToolOptions): AgentHarnessTool<DataAgentToolContext> {
-  return {
-    name: "compare_hypotheses",
-    label: "compare_hypotheses",
-    description: "Ask the configured Jev advisor to compare the alternatives of one open Answer Spec field against the original request, recorded probe outputs and optional evidence. The advice is recorded for that field; it never revises the Answer Spec or authorizes publication.",
-    replay: "safe",
-    parameters: HYPOTHESIS_COMPARISON_PARAMETERS,
-    async execute(toolCallId, input, _onUpdate, toolContext, invocation, context) {
-      void toolCallId;
-      const value = checked(HYPOTHESIS_COMPARISON_PARAMETERS, input) as HypothesisComparisonInput;
-      const business = trustedContext(toolContext, invocation, context);
-      const task = await answering.inspect({ taskId: value.taskId }, business);
-      const field = task.currentRevision.fields[value.path as keyof typeof task.currentRevision.fields];
-      if (!field || field.state !== "open") throw new AnsweringError("INVALID_REQUEST", `${value.path} is not an open field of the current Revision; compare the alternatives of an open field`);
-      const originalQuestion = await options.getOriginalQuestion(toolContext?.requestMessageId);
-      const hypotheses = field.alternatives.map((alternative) => ({ id: alternative.id as string, statement: `${value.path}: ${valueText(alternative.value)}` }));
-      const evidence: HypothesisChoiceEvidence[] = [
-        { id: "request", kind: "request_wording", authority: "request_wording", authorityRank: 3, sourceRef: "user_request", content: originalQuestion },
-        ...probeEvidence(task, value.path, field),
-        ...(value.evidence ?? []).map((item, index) => ({
-          id: `inline_${index}`,
-          kind: "observation" as const,
-          authority: "observation" as const,
-          authorityRank: 5,
-          sourceRef: item.sourceRef ?? `inline_${index}`,
-          content: item.content.slice(0, 8_000),
-        })),
-      ];
-      const signature = json({ taskId: value.taskId, path: value.path, hypotheses, evidence });
-      const memo = fromMemoJson(await invocation.getMemo("answering.hypothesis-comparison"));
-      if (memo && typeof memo === "object" && !Array.isArray(memo)) {
-        const record = memo as Record<string, unknown>;
-        if (record.signature !== signature) throw new Error("HYPOTHESIS_COMPARISON_INVOCATION_CONFLICT");
-        if (record.advisory && record.assessment) {
-          // A replay returns and re-records the same advice.
-          const replayed = record.advisory as FieldAdvisory;
-          options.ledger?.record(replayed);
-          return comparisonResult(replayed, record.assessment as HypothesisChoiceAssessment);
-        }
-      }
-      const compare = () => options.advisor.compare({ originalQuestion, hypotheses, evidence }, { ...(context.abortSignal ? { signal: context.abortSignal } : {}) });
-      let assessment: HypothesisChoiceAssessment;
-      try {
-        assessment = await compare().catch((error: unknown) => {
-          if (!advisorOutage(error, context.abortSignal)) throw error;
-          return compare();
-        });
-      } catch (error) {
-        if (!advisorOutage(error, context.abortSignal)) throw error;
-        // Not memoized: a later call asks the advisor again, and its advice replaces this record.
-        const failure = error instanceof Error ? error.message : String(error);
-        const unavailable: FieldAdvisory = {
-          taskId: value.taskId,
-          path: value.path,
-          alternativeIds: field.alternatives.map((alternative) => alternative.id as string),
-          model: "unavailable",
-          probabilities: [],
-          recommendation: "unavailable",
-          failure,
-          recordedAt: new Date().toISOString(),
-        };
-        options.ledger?.record(unavailable);
-        return result(`[HYPOTHESIS_COMPARISON_UNAVAILABLE] path=${value.path}
-The advisor failed twice (${failure}). You may decide ${value.path} with {value, rationale}; the publication will disclose that the decision was not compared. Do not rewrite it as an assumption.`, unavailable);
-      }
-      const probabilities = assessment.probabilities.map((item) => ({ alternativeId: item.hypothesisId, probability: item.probability }));
-      const recommendedAlternativeId = assessment.recommendation.kind === "hypothesis" ? assessment.recommendation.hypothesisId : undefined;
-      const lean = leanOf(probabilities, recommendedAlternativeId);
-      const advisory: FieldAdvisory = {
-        taskId: value.taskId,
-        path: value.path,
-        alternativeIds: field.alternatives.map((alternative) => alternative.id as string),
-        model: assessment.model,
-        probabilities,
-        recommendation: assessment.recommendation.kind === "hypothesis" ? "alternative" : assessment.recommendation.kind,
-        ...(recommendedAlternativeId ? { recommendedAlternativeId } : {}),
-        ...(lean ? { lean } : {}),
-        recordedAt: new Date().toISOString(),
-      };
-      await invocation.setMemo("answering.hypothesis-comparison", memoJson({ signature, assessment, advisory }));
-      options.ledger?.record(advisory);
-      return comparisonResult(advisory, assessment);
-    },
-  };
-}
-
-/** A provider failure the field can be decided around; invalid input and cancellation are not outages. */
-function advisorOutage(error: unknown, signal: AbortSignal | undefined): boolean {
-  if (signal?.aborted) return false;
-  return (error as { readonly code?: unknown } | undefined)?.code !== "INVALID_INPUT";
-}
-
-function comparisonResult(advisory: FieldAdvisory, assessment: HypothesisChoiceAssessment): AgentToolResult<unknown> {
-  const lean = advisory.lean
-    ? `\n[ADVICE_LEAN] alternativeId=${advisory.lean.alternativeId} probability=${advisory.lean.probability}`
-    : "\n[ADVICE_LEAN] none\nNo alternative is favoured, so the request does not settle this field. If ask_user_clarification is available, ask the user and cite the answer when deciding; otherwise decide and the publication discloses that the choice was not settled.";
-  return result(`[HYPOTHESIS_COMPARISON_ADVISORY] path=${advisory.path}${lean}\n${json(assessment)}\n${ADVISORY_NOTE}`, { ...advisory, assessment });
-}
-
 function publishTool(answering: Answering, contentReader: PublishedContentReader | undefined, name: "publish_query_result" | "export_query"): AgentHarnessTool<DataAgentToolContext> {
   return {
     name,
@@ -531,8 +407,8 @@ function inspectTool(answering: Answering): AgentHarnessTool<DataAgentToolContex
 
 /**
  * An Answering protocol tool. Pinned: the protocol can require any of them at
- * any step (compare_hypotheses before a decision, inspect_answer to recover
- * ids), so a Skill's tool allowlist must not hide them.
+ * any step (a probe before a decision, inspect_answer to recover ids), so a
+ * Skill's tool allowlist must not hide them.
  */
 function protocolTool(tool: AgentHarnessTool<DataAgentToolContext>, metadata: ToolPromptMetadata): DataAgentToolDefinition<DataAgentToolContext> {
   return defineDataAgentTool(tool, metadata, { pinned: true });
@@ -545,7 +421,6 @@ function protocolTool(tool: AgentHarnessTool<DataAgentToolContext>, metadata: To
 export function createAnsweringAgentToolDefinitions(
   answering: Answering,
   contentReader?: PublishedContentReader,
-  hypothesisComparison?: HypothesisComparisonToolOptions,
   options: AnsweringToolOptions = {},
 ): readonly DataAgentToolDefinition<DataAgentToolContext>[] {
   const semanticSpecMode = options.semanticSpecMode ?? "required";
@@ -556,7 +431,7 @@ export function createAnsweringAgentToolDefinitions(
         "字段写法：\"n/a\"；直接写值（视为假定，发布时披露）；{value, basis:\"request\", quote}（原题逐字片段）；{value, cite:[{source, quote}]}（source 为 knowledge:<id>、schema:<表.列>、clarification:<id> 或 message）；{value, evidenceIds}（query_database 返回的观测证据）；{value, basis:\"assumed\", rationale}；{open:[候选,…]}。",
         "必须声明：population.entity、population.eligibility、population.conditions、population.time、measure.formula、grouping、selection、output（不适用写 \"n/a\"）；measure.formula 的 op 为计数、平均、比率类时还要 measure.countGrain，平均与比率类要 measure.denominator，cumulative/rolling 要 measure.window；selection 不是 n/a 时要 selection.ties；population.source 有多张表时要 population.joinMultiplicity。返回的「未声明」列出还缺的字段。",
         "measure.formula 是逐层表达式 {op, per?, of | numerator+denominator | from+to}；嵌套顺序就是聚合顺序，多于一层时每个内层都写 per（最外层按 grouping 计算，可省略）。op 取 count、count_distinct、sum、avg、median、min、max、ratio、percentage、difference、change_rate、pp_difference、cumulative、rolling；以上都不适用时用 custom 并写 description。",
-        "待定字段先用 query_database 的 probe={path, alternativeId} 跑每个候选（alternativeId 见返回的状态表），无法单独执行的候选写 {notProbeable:{<alternativeId>: 理由}}；输出全部相同时系统视为等价；不同时调用 compare_hypotheses，再写 {value:<候选原值>, rationale, evidenceIds?} 决定。",
+        "待定字段先用 query_database 的 probe={path, alternativeId} 跑每个候选（alternativeId 见返回的状态表），无法单独执行的候选写 {notProbeable:{<alternativeId>: 理由}}；输出全部相同时系统视为等价；不同时系统在最后一个探针返回时附上比较建议（[ADVICE]），再写 {value:<候选原值>, rationale, evidenceIds?} 决定。建议不是证据；偏离建议的明显倾向须附 adviceOverride（理由与能确定该字段的证据）；建议不可用时照常决定（发布时披露未经比较），不要改写为假定。其他字段改动后，此前的探针作废（状态表显示 stale），须重跑。",
         "改写已设置的字段须附 reason；每个路径独立生效，失败的路径不影响其他路径，按返回的 ✗ 原因只重发失败的路径。",
         "报告和看板：先用 report: true 建一个报告任务，写共享的 population.* 和各度量定义 measures.<名字>（value 为 {formula, countGrain?, denominator?, window?}）；再为每张图用 parentTaskId 建图表查询，写 measure.formula: {ref:\"<名字>\"}、grouping、selection、output 等。图表查询改 population.* 须附 reason（记为偏离并披露）；报告任务修改后，图表查询先 rebind: true 再查询。",
       ],
@@ -569,10 +444,6 @@ export function createAnsweringAgentToolDefinitions(
       promptSnippet: "执行有界探索或当前版本的一次结果查询。",
       promptGuidelines: ["探索产物不可发布；结果查询必须绑定当前 Ready Revision，遇到实现障碍先按分类修复或回到取证，不要盲目重跑未知结果。", "探针：exploration 加 probe={path, alternativeId}，SQL 按该候选口径计算最终输出；输出标识相同表示答案相同。探针不占探索次数。", "结果与未采纳候选的探针输出相同时会被 DECISION_NOT_REALIZED 拒绝：改 SQL 实现已采纳的候选，或附 reason 改写该字段。", "最终 SQL 与已封存字段明显不符时不执行，以 SPEC_NOT_REALIZED 拒绝：改 SQL 实现字段，字段写错才附 reason 改写字段。"],
     }),
-    ...(hypothesisComparison ? [protocolTool(hypothesisComparisonTool(answering, hypothesisComparison), {
-      promptSnippet: "请求 Jev 比较一个待定字段的全部候选。",
-      promptGuidelines: ["传入 taskId 和 path，候选由系统从 Answer Spec 读取；先给每个候选做探针，输出全部相同的字段由系统视为等价，无需比较或决定。建议不是 Evidence，不能单独决定字段；决定偏离建议的明显倾向时，须附 adviceOverride（理由与证据）。建议服务不可用时，照常用 {value, rationale} 决定该字段（发布时会披露未经比较），不要改写为假定。"],
-    })] : []),
     protocolTool(publishTool(answering, contentReader, "publish_query_result"), {
       promptSnippet: "发布当前不可变 Candidate 的小结果。",
       promptGuidelines: ["只使用当前 Candidate；行数不超过 10 时使用 inline，不重跑 SQL，Publication Receipt 才授权读取。"],

@@ -32,8 +32,8 @@ import {
 } from "./fields.js";
 import { makeInternalId } from "./internal-ids.js";
 import { isAdmissibleProof } from "./qualification.js";
-import { summarizeProbes } from "./probes.js";
-import type { FieldAdvisory } from "./advisory-ledger.js";
+import { probeContext, summarizeProbes } from "./probes.js";
+import { applicableAdvice, type FieldAdvisory } from "./advice.js";
 
 /**
  * Runtime-owned field transitions (ADR-0004, ADR-0007). The model writes a
@@ -50,7 +50,7 @@ export type EvidenceResolver = ((ref: string) => Evidence | undefined) & { reado
 
 /**
  * require_evidence: a clarification path exists, so an unverified material population decision, or a
- * decision compare_hypotheses could not separate, needs qualifying evidence; allow_disclosed: none does, so disclose instead.
+ * decision the advice could not separate, needs qualifying evidence; allow_disclosed: none does, so disclose instead.
  */
 export type PopulationDecisions = "require_evidence" | "allow_disclosed";
 
@@ -58,7 +58,7 @@ export type PopulationDecisions = "require_evidence" | "allow_disclosed";
 export interface DecisionGovernance {
   /** Absent: probes are not tracked and a decision needs only a rationale. */
   readonly probes?: readonly FieldProbeRecord[];
-  /** Latest compare_hypotheses advice for a field, from the Advisory Ledger. */
+  /** Latest advice the Runtime recorded for a field. */
   readonly advice?: (path: string) => FieldAdvisory | undefined;
   /** An advisor is configured: decisive open fields need advice before a decision. */
   readonly adviceRequired?: boolean;
@@ -270,18 +270,10 @@ function rationaleOf(value: string | undefined, label: string): string {
   return rationale;
 }
 
-/** Advice applies only to the alternative set it compared. */
-function currentAdvice(path: string, alternatives: readonly FieldAlternative[], governance: DecisionGovernance): FieldAdvisory | undefined {
-  const advice = governance.advice?.(path);
-  if (!advice) return undefined;
-  const ids = alternatives.map((item) => item.id as string);
-  return advice.alternativeIds.length === ids.length && advice.alternativeIds.every((id, index) => id === ids[index]) ? advice : undefined;
-}
-
-/** The open field is one compare_hypotheses must weigh: an advisor is configured and its alternatives' outputs are not known to agree. */
-function adviceGoverned(path: SpecPath, current: Extract<FieldRecord, { state: "open" }>, governance: DecisionGovernance): boolean {
+/** The open field is one the advice must weigh: an advisor is configured and its alternatives' outputs are not known to agree. */
+function adviceGoverned(path: SpecPath, current: Extract<FieldRecord, { state: "open" }>, governance: DecisionGovernance, fields: SpecFields): boolean {
   if (!governance.probes || !governance.adviceRequired || !needsAdvice(path)) return false;
-  return summarizeProbes(path, current.alternatives, governance.probes, current.waivers ?? []).outputs !== "identical";
+  return summarizeProbes(path, current.alternatives, governance.probes, current.waivers ?? [], probeContext(fields, path)).outputs !== "identical";
 }
 
 /** How a decision settled its advice requirement. */
@@ -315,30 +307,33 @@ function governDecision(
   governance: DecisionGovernance,
   resolve: EvidenceResolver,
   decisionCites: readonly Evidence[],
+  fields: SpecFields,
 ): DecisionAdvice {
   if (!governance.probes) return {};
-  const summary = summarizeProbes(path, current.alternatives, governance.probes, current.waivers ?? []);
+  const summary = summarizeProbes(path, current.alternatives, governance.probes, current.waivers ?? [], probeContext(fields, path));
   if (!summary.covered) {
-    transitionInvalid(`${path} needs the output of every alternative before a decision: run query_database kind=exploration with probe {path: "${path}", alternativeId} for ${summary.missing.join(", ")}, or write {notProbeable: {<alternativeId>: reason}}`);
+    const stale = summary.stale.length > 0 ? ` (${summary.stale.join(", ")} were probed before other fields changed)` : "";
+    transitionInvalid(`${path} needs the output of every alternative under the current other fields before a decision: run query_database kind=exploration with probe {path: "${path}", alternativeId} for ${summary.missing.join(", ")}${stale}, or write {notProbeable: {<alternativeId>: reason}}`);
   }
-  const advice = currentAdvice(path, current.alternatives, governance);
-  const governed = adviceGoverned(path, current, governance);
+  // Advice applies only to the alternatives and probe outputs it was asked about.
+  const advice = applicableAdvice(governance.advice?.(path), current.alternatives, summary);
+  const governed = adviceGoverned(path, current, governance, fields);
   if (!advice && governed) {
-    transitionInvalid(`${path}: the alternatives produce different or unknown outputs; call compare_hypotheses with path "${path}" before deciding`);
+    transitionInvalid(`${path}: the alternatives produce different or unknown outputs and the Runtime holds no comparison of them yet; send the decision again`);
   }
   if (advice?.recommendation === "unavailable") return governed ? { adviceUnavailable: advice.failure ?? "the advisor did not answer" } : {};
   if (governed && advice && !advice.lean) {
     const settled = decisionCites.some((evidence) => SETTLES_UNDECIDED.includes(evidence.kind) && isAdmissibleProof(evidence));
     if (settled) return {};
     if (governance.populationDecisions === "require_evidence") {
-      transitionInvalid(`${path}: compare_hypotheses favoured no alternative (${advice.recommendation}), so the request does not settle it; ask the user with ask_user_clarification and cite the answer (cite source "clarification:<id>"), or cite a business document that settles it`);
+      transitionInvalid(`${path}: the advice favoured no alternative (${advice.recommendation}), so the request does not settle it; ask the user with ask_user_clarification and cite the answer (cite source "clarification:<id>"), or cite a business document that settles it`);
     }
     return { adviceUndecided: advice.recommendation };
   }
   const lean = advice?.lean;
   if (!lean || lean.alternativeId === alternativeId) return {};
   if (!override || override.reason.length < MIN_RATIONALE_LENGTH || override.evidenceIds.length === 0) {
-    transitionInvalid(`${path}: compare_hypotheses leaned to alternative ${lean.alternativeId} (p=${lean.probability}); choosing ${alternativeId} requires adviceOverride with a reason and at least one evidence id showing why the lean is wrong`);
+    transitionInvalid(`${path}: the advice leaned to alternative ${lean.alternativeId} (p=${lean.probability}); choosing ${alternativeId} requires adviceOverride with a reason and at least one evidence id showing why the lean is wrong`);
   }
   const cited = override.evidenceIds.map((ref) => {
     const evidence = resolve(ref);
@@ -495,7 +490,7 @@ export function applyFieldWrite(body: FieldBody, parsed: ParsedField, context: W
     const cited = resolveRefs(write.refs, context.resolve, path);
     const basis = basisFor(path, cited, rationale);
     guardPopulation(path, basis, "decided", cited, context.governance.populationDecisions);
-    const { adviceOverride, adviceUnavailable, adviceUndecided } = governDecision(path, open, alternative.id, write.adviceOverride, context.governance, context.resolve, cited);
+    const { adviceOverride, adviceUnavailable, adviceUndecided } = governDecision(path, open, alternative.id, write.adviceOverride, context.governance, context.resolve, cited, body.fields);
     return own(setField(body, path, {
       state: "decided",
       alternatives: open.alternatives,
@@ -513,9 +508,9 @@ export function applyFieldWrite(body: FieldBody, parsed: ParsedField, context: W
   // A value: its basis is evidence when what it cites qualifies, otherwise a disclosed assumption.
   const cited = resolveRefs(write.refs, context.resolve, path);
   const basis = basisFor(path, cited, write.rationale);
-  // An assumption cannot stand in for a decision compare_hypotheses must weigh; only qualifying evidence settles it directly.
-  if (current?.state === "open" && basis.kind !== "evidence" && adviceGoverned(path, current, context.governance)) {
-    transitionInvalid(`${path} is open and its alternatives' outputs differ or are unknown, so an assumption cannot replace it: decide one of its alternatives with {value, rationale} (probes and compare_hypotheses first), cite evidence that settles it, or reopen it with {open: [...]}`);
+  // An assumption cannot stand in for a decision the advice must weigh; only qualifying evidence settles it directly.
+  if (current?.state === "open" && basis.kind !== "evidence" && adviceGoverned(path, current, context.governance, body.fields)) {
+    transitionInvalid(`${path} is open and its alternatives' outputs differ or are unknown, so an assumption cannot replace it: decide one of its alternatives with {value, rationale} (probe every alternative first), cite evidence that settles it, or reopen it with {open: [...]}`);
   }
   guardPopulation(path, basis, "assumed", cited, context.governance.populationDecisions);
   return finish(own(setField(body, path, { state: "specified", value: write.value, basis })));

@@ -16,7 +16,7 @@ requires-tools:
 1. 按需读取 `semantic-guide`，拆题。
 2. 业务定义、表结构、数据取值交给 `subagent` 的 explorer 收集，每个子任务只问一个问题，并行派发。
 3. 一次 `set_answer_spec`（不带 `taskId`）按计算顺序写下字段：统计总体 → 度量 → 分组 → 选取 → 输出。题面没说死的字段写成待定。
-4. 每个待定字段的每个候选各跑一次探针（§5）。输出全部相同的字段由系统视为等价，不用处理；输出不同的，调用 `compare_hypotheses` 后写入决定。
+4. 每个待定字段的每个候选各跑一次探针（§5）。输出全部相同的字段由系统视为等价，不用处理；输出不同的，系统在最后一个探针返回时附上比较建议（`[ADVICE]`），据此写入决定。改动其他字段后，此前的探针作废（状态表显示 `stale`），须重跑。
 5. 状态表显示“没有待处理的字段”后，执行一次最终查询，得到 Result Candidate。
 6. 发布 Candidate，并披露未证实的字段和数据限制。
 
@@ -112,7 +112,7 @@ requires-tools:
 ## 5. 修改与决定
 
 - **只写要变的路径。** 未写的路径保持不变。每个路径独立校验、独立生效，失败的路径不影响其他路径；按返回的 `✗` 原因只重发失败的路径。
-- **决定待定字段**：写 `{ "value": <候选原值>, "rationale", "evidenceIds"? }`。`rationale` 写把每个候选放回题面逐词检验的结论（`semantic-guide` 的“候选对照”）。`compare_hypotheses` 的明显倾向（`[ADVICE_LEAN]`）是默认答案；改选时须附 `"adviceOverride": { "reason", "evidenceIds" }`，证据须能确定该字段本身：语义字段只认原题、业务文档和用户确认，观测不能推翻倾向。`[ADVICE_LEAN] none`（建议无倾向）说明原题不能裁决：能询问用户时用 `ask_user_clarification` 询问，决定时以 `cite: [{source: "clarification:<id>", quote}]` 引用回答，或引用业务文档；原题措辞不算。不能询问用户时照常决定，发布时会披露该决定未经裁决。`compare_hypotheses` 返回 `[HYPOTHESIS_COMPARISON_UNAVAILABLE]`（建议服务故障）时，照常写决定，发布时会披露该决定未经比较；不要把待定字段改写成假定绕开比较，Runtime 会拒绝。
+- **决定待定字段**：写 `{ "value": <候选原值>, "rationale", "evidenceIds"? }`。`rationale` 写把每个候选放回题面逐词检验的结论（`semantic-guide` 的“候选对照”）。比较建议的明显倾向（`[ADVICE] lean=<alternativeId>`）是默认答案；改选时须附 `"adviceOverride": { "reason", "evidenceIds" }`，证据须能确定该字段本身：语义字段只认原题、业务文档和用户确认，观测不能推翻倾向。`[ADVICE] lean=none`（建议无倾向）说明原题不能裁决：能询问用户时用 `ask_user_clarification` 询问，决定时以 `cite: [{source: "clarification:<id>", quote}]` 引用回答，或引用业务文档；原题措辞不算。不能询问用户时照常决定，发布时会披露该决定未经裁决。建议为 `[ADVICE_UNAVAILABLE]`（建议服务故障）时，照常写决定，发布时会披露该决定未经比较；不要把待定字段改写成假定绕开比较，Runtime 会拒绝。
 - **无法单独执行的候选**：写 `{ "notProbeable": { "<alternativeId>": "理由" } }` 代替探针。
 - **改写已设置的字段**须附 `"reason"`，系统记录改写理由。
 - **`[SPEC_FEEDBACK]` 题面要求**：Spec 必须声明的字段齐全后，系统逐条核对原题的要求片段，列出被判为与字段矛盾或缺失的原文和无定义的输出列。逐条对照对应字段：改写字段（附 reason）、打开候选，或在该片段确实不适用时保留。它是决策模型的建议，不是证据。

@@ -67,7 +67,7 @@ export function isSharedPath(path: string): boolean {
   return path.startsWith("population.") || MEASURE_DEFINITION.test(path);
 }
 
-/** Paths whose open alternatives need compare_hypotheses advice before a decision when an advisor is configured. */
+/** Paths whose open alternatives need advice before a decision when an advisor is configured. */
 export function needsAdvice(path: SpecPath): boolean {
   return path !== "selection" && path !== "selection.ties" && path !== "output";
 }
