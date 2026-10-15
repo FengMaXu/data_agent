@@ -1,0 +1,73 @@
+{
+  "fields": {
+    "population.eligibility": {
+      "value": "Only sellers whose recorded sold units exceed100",
+      "basis": "request",
+      "quote": "sold a quantity of more than 100 products"
+    },
+    "population.conditions": {
+      "value": [
+        "HAVING COUNT(order_items rows)>100",
+        "All recorded order_items statuses; no delivered-only restriction",
+        "Packing average excludes missing or negative event durations only"
+      ],
+      "basis": "assumed",
+      "rationale": "独立题解；题目未明确，作为假定披露"
+    },
+    "population.time": {
+      "value": "All stored history; no user date bound",
+      "basis": "assumed",
+      "rationale": "独立题解；题目未明确，作为假定披露"
+    },
+    "population.joinMultiplicity": {
+      "value": "Aggregate sales separately; DISTINCT seller/order before reviews and time join; products/translation observed one-row keys",
+      "basis": "assumed",
+      "rationale": "独立题解；题目未明确，作为假定披露"
+    },
+    "measure.formula": {
+      "value": {
+        "op": "custom",
+        "description": "Seller SUM(price), COUNT item rows sold, AVG item price; AVG review rows associated through distinct seller/order; AVG nonnegative carrier-minus-approved Julian days per seller/order; mode category by unit count, translate English, join all tied highest categories"
+      },
+      "basis": "assumed",
+      "rationale": "独立题解；题目未明确，作为假定披露"
+    },
+    "measure.countGrain": {
+      "value": "Sales/prices: item rows; review average: review records once per seller-order; packing average: distinct seller-order valid event pairs",
+      "basis": "assumed",
+      "rationale": "独立题解；题目未明确，作为假定披露"
+    },
+    "measure.denominator": {
+      "value": "Price non-null item count; reviews non-null review records; packing non-null nonnegative approved-to-carrier event durations",
+      "basis": "assumed",
+      "rationale": "独立题解；题目未明确，作为假定披露"
+    },
+    "grouping": {
+      "value": [
+        "seller_id"
+      ],
+      "basis": "request",
+      "quote": "our sellers"
+    },
+    "selection": "n/a",
+    "output": {
+      "value": {
+        "rowMode": "grouped",
+        "columns": [
+          "seller_id",
+          "total_sales",
+          "products_sold",
+          "average_item_price",
+          "average_review_score",
+          "average_packing_days",
+          "top_category_english"
+        ],
+        "units": {
+          "average_packing_days": "days"
+        }
+      },
+      "basis": "request",
+      "quote": "performance report"
+    }
+  }
+}

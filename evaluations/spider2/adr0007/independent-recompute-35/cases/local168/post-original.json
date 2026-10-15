@@ -1,0 +1,4 @@
+{
+  "sql": "WITH base AS (\n  SELECT job_id, salary_year_avg\n  FROM job_postings_fact\n  WHERE job_title = 'Data Analyst'\n    AND job_work_from_home = 1\n    AND salary_year_avg IS NOT NULL\n),\ndemand AS (\n  SELECT sj.skill_id, COUNT(DISTINCT b.job_id) AS demand_positions\n  FROM base b\n  JOIN skills_job_dim sj ON sj.job_id = b.job_id\n  GROUP BY sj.skill_id\n),\ntop3 AS (\n  SELECT skill_id FROM demand ORDER BY demand_positions DESC, skill_id ASC LIMIT 3\n),\nsel AS (\n  SELECT DISTINCT b.job_id, b.salary_year_avg\n  FROM base b\n  JOIN skills_job_dim sj ON sj.job_id = b.job_id\n  WHERE sj.skill_id IN (SELECT skill_id FROM top3)\n)\nSELECT ROUND(AVG(salary_year_avg), 2) AS avg_salary\nFROM sel\n",
+  "limit": 100
+}

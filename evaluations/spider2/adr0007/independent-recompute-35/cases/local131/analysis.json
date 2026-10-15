@@ -1,0 +1,48 @@
+{
+  "instance_id": "local131",
+  "status": "ambiguous_after_recompute",
+  "summary": "25 vs 20 rows entirely explained by five zero styles; all 20 keyed counts identical",
+  "fork_node": "population.eligibility",
+  "error_layer": "semantic_population_ambiguity",
+  "visibility": "explicit_in_successful_spec",
+  "independent_score": 0,
+  "evidence": [
+    {
+      "source": "blind.json",
+      "pointer": "/question",
+      "quote": "each musical style"
+    },
+    {
+      "source": "comparison-input.json",
+      "pointer": "/goldSql",
+      "quote": "HAVING COUNT(FirstStyle) > 0"
+    },
+    {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local131/attempts/attempt-20261010-154318Z/trace.json",
+      "quote": "every style in the Musical_Styles dictionary is a row; a style that no customer chose appears with count 0 in all three rank columns",
+      "pointer": "/toolCalls/17/result/details/fields/1/value",
+      "original_projection_source": "original-spec-evidence.json"
+    }
+  ],
+  "limitations": [
+    "No unique business eligibility definition; observed zeros do not decide intended population."
+  ],
+  "parent_field_review": {
+    "instance_id": "local131",
+    "relevant_node": "population.eligibility",
+    "node_is_confirmed_original_error": false,
+    "explanation": "五个全零风格是否展示，原声明全集；标准SQL额外非零过滤",
+    "error_layer": "未唯一裁决",
+    "visibility": "不能标成假定错/决定错：原声明可见，不等于业务错误已证",
+    "qualification": "差异机制已实测，业务意图未唯一裁决",
+    "original_node_declared": true,
+    "original_node_status": "request",
+    "original_node_value": "every style in the Musical_Styles dictionary is a row; a style that no customer chose appears with count 0 in all three rank columns",
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local131/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/17/result/details/fields/1/value",
+      "quote": "every style in the Musical_Styles dictionary is a row; a style that no customer chose appears with count 0 in all three rank columns"
+    },
+    "primary_status": "ambiguous_after_recompute"
+  }
+}

@@ -1,0 +1,4 @@
+# local067 独立推导（揭示前）
+原题逐字 "Italian customers segmented into ten evenly divided tiers based on their December 2021 sales profits"。先算每位意大利客户2021年12月所有销售利润，再以总利润排序将客户人数尽量均分10层（NTILE(10)），报告各层最高/最低客户利润。不是将销售记录分箱、不是利润范围等宽、不是将同额利润组强行同层。层号从低到高1→10，同额按cust_id稳定排序。题面没有规定方向/tie，同额可以为保持人数均分而拆分，均需披露。
+
+利润字段没有业务文档，DDL有amount_sold、quantity_sold和unit_cost/unit_price。采用实际销售收入amount_sold减quantity_sold*unit_cost，再按客户SUM；不以成本表unit_price替代实际收入。成本按prod_id/time_id/channel_id/promo_id完整键关联，先查唯一性与未匹配。只算当月有销售的意大利客户，未销售客户是否0利润不明，采用active-only假定。缺成本不能任当0；查覆盖后决定限制。对比unit_price公式验证是否数值等价，并验证分层人数及边界同额。最终每层一行tier/min/max，不交客户姓名。

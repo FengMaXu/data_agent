@@ -1,0 +1,251 @@
+{
+  "frozenAt": "2026-10-11T09:22:22.125Z",
+  "instance_id": "local168",
+  "independent": true,
+  "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+  "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+  "publication": {
+    "receiptId": "publication_8fff63c6-512d-4d0a-a880-0461a8a98d53",
+    "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+    "principalId": "independent-analyst",
+    "sessionId": "local168",
+    "candidateId": "candidate_544735b4-a1bd-478b-8243-eff58c7a77a8",
+    "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+    "resultRef": "result_8c94154e-60e8-4755-a52d-543056a95e50",
+    "format": "csv",
+    "publicRef": "/api/runtime/publications/publication_8fff63c6-512d-4d0a-a880-0461a8a98d53?session_id=local168",
+    "contentHash": "0ed2818eb4a091536d1a82b05ae3a28ea9cc43bd5dcfda06da5fba6cb235d4ff",
+    "presentationContentHash": "3a508c2f8524db6d2c5c42994f5841e80a44e42fc3626bc47cf00b4ffc4e3769",
+    "coverage": [
+      {
+        "checkId": "result_completeness",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_shape",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_identity",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "join_fanout",
+        "outcome": "not_applicable"
+      },
+      {
+        "checkId": "spec_feedback",
+        "ruleVersion": "spec-feedback-v2",
+        "outcome": "not_applicable",
+        "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+      }
+    ],
+    "fanout": {
+      "ruleVersion": "answering-fanout-v1",
+      "status": "not_applicable",
+      "snapshotScope": "unbound",
+      "targets": []
+    },
+    "disclosure": {
+      "required": true,
+      "unverifiedFields": [
+        {
+          "path": "population.eligibility",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.formula",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.countGrain",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.denominator",
+          "kind": "assumed"
+        },
+        {
+          "path": "selection.ties",
+          "kind": "assumed"
+        }
+      ],
+      "summary": "以下字段为假定，未被合格证据证实：population.eligibility, measure.formula, measure.countGrain, measure.denominator, selection.ties。"
+    },
+    "physicalProfile": {
+      "version": 1,
+      "rowCount": 1,
+      "truncated": false,
+      "columns": [
+        {
+          "name": "overall_average_salary",
+          "kind": "decimal",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 1,
+          "min": "92689.22222222222",
+          "max": "92689.22222222222"
+        }
+      ]
+    },
+    "policyVersion": "answering-publication-v1",
+    "createdByInvocationId": "aabb8b5b-01d8-4c22-a97f-c2b0fdcd7edb",
+    "requestId": "aabb8b5b-01d8-4c22-a97f-c2b0fdcd7edb",
+    "createdAt": "2026-10-11T09:22:20.785Z"
+  },
+  "currentRevision": {
+    "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+    "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+    "parentRevisionId": "revision_65a7c6d9-3acc-4263-9140-59d3921d74b6",
+    "requestId": "6a97f5a6-4e2d-4e72-9364-d3dce9f79d9a",
+    "createdAt": "2026-10-11T09:22:00.623Z",
+    "fields": {
+      "population.entity": {
+        "state": "specified",
+        "value": {
+          "name": "远程Data Analyst职位发布，job_id"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_69cf6f90-c0f4-4da2-a2ce-f1ecb82f8f9d"
+          ]
+        }
+      },
+      "population.eligibility": {
+        "state": "specified",
+        "value": "Distinct postings with exact Data Analyst short title, non-null salary_year_avg, remote=1; then require at least one of top3 skills",
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Salary is per posting, OR of selected skills; ranking within same eligible cohort"
+        }
+      },
+      "population.conditions": {
+        "state": "specified",
+        "value": [
+          "job_title_short='Data Analyst'",
+          "salary_year_avg IS NOT NULL",
+          "job_work_from_home=1"
+        ],
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_a31c84bb-85e2-40ae-8b84-ecbb25a826d2"
+          ]
+        }
+      },
+      "population.time": {
+        "state": "not_applicable"
+      },
+      "measure.formula": {
+        "state": "specified",
+        "value": {
+          "op": "avg",
+          "of": "salary_year_avg"
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Overall average of distinct jobs requesting any selected skill"
+        }
+      },
+      "measure.countGrain": {
+        "state": "specified",
+        "value": "each distinct job_id exactly once",
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "measure.denominator": {
+        "state": "specified",
+        "value": "number of distinct eligible jobs requiring at least one selected top3 skill; empty set gives NULL",
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "grouping": {
+        "state": "not_applicable"
+      },
+      "selection": {
+        "state": "specified",
+        "value": {
+          "n": 3,
+          "orderBy": "skill demand DESC, skill_id ASC"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_f7981831-035f-4e25-b5da-543b6ce6f393"
+          ]
+        }
+      },
+      "selection.ties": {
+        "state": "specified",
+        "value": "strict",
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "output": {
+        "state": "specified",
+        "value": {
+          "rowMode": "scalar",
+          "columns": [
+            "overall_average_salary"
+          ]
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_a61ee7db-c1be-4926-8a40-573cea1a1dce"
+          ]
+        }
+      }
+    },
+    "state": {
+      "state": "ready",
+      "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+      "ready": "ready_179e4e3c-f9de-4994-9d42-f2c5cd9288c7"
+    },
+    "specFeedback": {
+      "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+      "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_69cf6f90-c0f4-4da2-a2ce-f1ecb82f8f9d",
+        "evidence_3391c05d-a76f-43eb-87c8-82aaf66ac6ee",
+        "evidence_67fd3550-aff8-490e-9844-e0f2f20fa362",
+        "evidence_345b2053-dd93-4b42-aa6d-eabb60ad9106",
+        "evidence_3cf8ae5c-cfa4-4b5e-8845-7dbceb10fadc",
+        "evidence_bb7a3d63-8dcf-4f5f-8ef6-59bf4085482d",
+        "evidence_2742df99-947c-4373-be20-2b068a9fdc03",
+        "evidence_420ac883-ee01-4c6e-9853-6e30c0971326",
+        "evidence_bead62ca-7845-4112-b4fe-a3e97409f2ce",
+        "evidence_a31c84bb-85e2-40ae-8b84-ecbb25a826d2",
+        "evidence_f7981831-035f-4e25-b5da-543b6ce6f393",
+        "evidence_a61ee7db-c1be-4926-8a40-573cea1a1dce"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    }
+  },
+  "analystNote": {
+    "algorithm": "Rank skills by distinct eligible job count; select jobs requiring any top3; one salary per posting",
+    "assumptions": [
+      "overall mean is posting-equal not job-skill weighted or skill-equal",
+      "OR selected skills",
+      "ranking within salary-known remote Data Analyst cohort"
+    ]
+  },
+  "settings": {
+    "qualification": "required",
+    "fieldProbes": true,
+    "externalAdvisor": "not_configured",
+    "specFeedback": "not_configured",
+    "fanout": "disabled_for_offline_audit",
+    "populationDecisions": "allow_disclosed_headless_audit",
+    "databaseReadOnly": true
+  }
+}

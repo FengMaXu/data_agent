@@ -1,0 +1,4 @@
+{
+  "sql": "WITH f AS (SELECT *,row_number() over(partition by id_bioguide order by term_start,term_number,term_id) rn FROM legislators_terms) SELECT l.id_bioguide,l.full_name, f.state, min(t.term_start) start,max(t.term_end) end,count(*) terms,max(substr(t.term_start,1,4)||'-12-31'<=t.term_end) ever_dec31 FROM legislators l JOIN f ON f.id_bioguide=l.id_bioguide AND rn=1 JOIN legislators_terms t ON t.id_bioguide=l.id_bioguide WHERE gender='F' AND f.state='CA' GROUP BY l.id_bioguide ORDER BY ever_dec31,l.id_bioguide",
+  "limit": 1000
+}

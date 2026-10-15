@@ -1,0 +1,1378 @@
+{
+  "version": 2,
+  "tasks": [
+    {
+      "taskId": "task_60e61a4a-e567-4c9d-b18e-50861ce36ab9",
+      "sessionId": "local098",
+      "principalId": "independent-analyst",
+      "requestMessageId": "original-task",
+      "requestId": "0f759e8c-0d43-4654-bd26-a8ed7e8e1b35",
+      "currentRevisionId": "revision_8c8c1ff3-c2f1-4731-a893-7bf4c2f00992",
+      "lifecycle": "published",
+      "budget": {
+        "policy": {
+          "version": "answering-dual-loop-v1",
+          "maxRevisions": 40,
+          "maxExplorationAttempts": 120,
+          "maxResultAttempts": 20,
+          "maxElapsedMs": 14400000,
+          "maxObservedRows": 2000000
+        },
+        "startedAt": "2026-10-11T10:04:53.049Z",
+        "revisionCount": 2,
+        "explorationAttempts": 8,
+        "resultAttempts": 2,
+        "observedRows": 74
+      },
+      "createdAt": "2026-10-11T10:04:53.049Z",
+      "updatedAt": "2026-10-11T10:09:14.981Z",
+      "latestCandidateId": "candidate_3c46ca21-11c8-4f1f-b752-562700d08743",
+      "publicationId": "publication_a8d61834-102d-4828-8b92-5e4de13c5771"
+    }
+  ],
+  "revisions": [
+    {
+      "taskId": "task_60e61a4a-e567-4c9d-b18e-50861ce36ab9",
+      "revisionId": "revision_adc4cc8a-e576-4bad-a3db-16e61373bfbe",
+      "requestId": "0f759e8c-0d43-4654-bd26-a8ed7e8e1b35",
+      "createdAt": "2026-10-11T10:04:53.049Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "actors with film credits",
+            "keyColumns": [
+              "M_Cast.PID"
+            ]
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_2d772de6-b63f-4ce5-ad8f-96b70f0ccaf4"
+            ]
+          }
+        }
+      },
+      "state": {
+        "state": "draft",
+        "revisionId": "revision_adc4cc8a-e576-4bad-a3db-16e61373bfbe"
+      },
+      "specFeedback": {
+        "taskId": "task_60e61a4a-e567-4c9d-b18e-50861ce36ab9",
+        "revisionId": "revision_adc4cc8a-e576-4bad-a3db-16e61373bfbe",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_2d772de6-b63f-4ce5-ad8f-96b70f0ccaf4"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    },
+    {
+      "taskId": "task_60e61a4a-e567-4c9d-b18e-50861ce36ab9",
+      "revisionId": "revision_7d6fab88-415d-44e4-8fbc-bfe7ecab3ad4",
+      "parentRevisionId": "revision_adc4cc8a-e576-4bad-a3db-16e61373bfbe",
+      "requestId": "0e50b289-ae86-4bde-a3cd-958933d6b28d",
+      "createdAt": "2026-10-11T10:05:08.194Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "actors with film credits",
+            "keyColumns": [
+              "M_Cast.PID"
+            ]
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_2d772de6-b63f-4ce5-ad8f-96b70f0ccaf4"
+            ]
+          }
+        },
+        "population.eligibility": {
+          "state": "specified",
+          "value": "所有有可解析电影出演年记录的演员，包括只出演一年者",
+          "basis": {
+            "kind": "assumed",
+            "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+          }
+        },
+        "population.conditions": {
+          "state": "specified",
+          "value": [
+            "每演员相邻出演年差不超过4；无四年连续无片窗口"
+          ],
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_aadeab1e-4123-45e4-b962-06779e35f6fc"
+            ]
+          }
+        },
+        "population.time": {
+          "state": "specified",
+          "value": {
+            "expression": "各演员最早到最晚出演年"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_1729a556-dc81-4502-9cb0-e135d3d5f2cd"
+            ]
+          }
+        },
+        "measure.formula": {
+          "state": "specified",
+          "value": {
+            "op": "custom",
+            "description": "distinct PID/year -> LAG(year) -> MAX(year-prev)<=4 -> COUNT演员；单年max_diff=0"
+          },
+          "basis": {
+            "kind": "assumed",
+            "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+          }
+        },
+        "measure.countGrain": {
+          "state": "specified",
+          "value": "演员PID",
+          "basis": {
+            "kind": "assumed",
+            "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+          }
+        },
+        "grouping": {
+          "state": "not_applicable"
+        },
+        "selection": {
+          "state": "not_applicable"
+        },
+        "output": {
+          "state": "specified",
+          "value": {
+            "rowMode": "scalar",
+            "columns": [
+              "actors_without_four_year_gap"
+            ]
+          },
+          "basis": {
+            "kind": "assumed",
+            "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+          }
+        }
+      },
+      "state": {
+        "state": "ready",
+        "revisionId": "revision_7d6fab88-415d-44e4-8fbc-bfe7ecab3ad4",
+        "ready": "ready_f8a2774b-0478-49fc-821e-ab0c1d3a84fe"
+      },
+      "specFeedback": {
+        "taskId": "task_60e61a4a-e567-4c9d-b18e-50861ce36ab9",
+        "revisionId": "revision_7d6fab88-415d-44e4-8fbc-bfe7ecab3ad4",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_2d772de6-b63f-4ce5-ad8f-96b70f0ccaf4",
+          "evidence_883cedf5-bac7-458a-a099-220aac22892d",
+          "evidence_4c662b52-1e1e-487a-9adc-a19678c43ce8",
+          "evidence_52bb5342-2dc8-4dc0-a394-1398dd326113",
+          "evidence_679f9001-8c55-4629-a529-15f3ebebfd0b",
+          "evidence_aadeab1e-4123-45e4-b962-06779e35f6fc",
+          "evidence_1729a556-dc81-4502-9cb0-e135d3d5f2cd"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    },
+    {
+      "taskId": "task_60e61a4a-e567-4c9d-b18e-50861ce36ab9",
+      "revisionId": "revision_8c8c1ff3-c2f1-4731-a893-7bf4c2f00992",
+      "parentRevisionId": "revision_7d6fab88-415d-44e4-8fbc-bfe7ecab3ad4",
+      "requestId": "554d85f8-7288-4228-87e0-92ef1ecb2e17",
+      "createdAt": "2026-10-11T10:09:11.052Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "actors with film credits",
+            "keyColumns": [
+              "M_Cast.PID"
+            ]
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_2d772de6-b63f-4ce5-ad8f-96b70f0ccaf4"
+            ]
+          }
+        },
+        "population.eligibility": {
+          "state": "specified",
+          "value": "所有有可解析电影出演年记录的演员，包括只出演一年者",
+          "basis": {
+            "kind": "assumed",
+            "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+          }
+        },
+        "population.conditions": {
+          "state": "specified",
+          "value": [
+            "每演员相邻出演年差不超过4；无四年连续无片窗口",
+            "出演者PID非NULL且非空；未知身份不作为额外演员"
+          ],
+          "basis": {
+            "kind": "assumed",
+            "rationale": "NULL是未知演员身份，不是可计数独立演员。"
+          }
+        },
+        "population.time": {
+          "state": "specified",
+          "value": {
+            "expression": "各演员最早到最晚出演年"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_1729a556-dc81-4502-9cb0-e135d3d5f2cd"
+            ]
+          }
+        },
+        "measure.formula": {
+          "state": "specified",
+          "value": {
+            "op": "custom",
+            "description": "distinct PID/year -> LAG(year) -> MAX(year-prev)<=4 -> COUNT演员；单年max_diff=0"
+          },
+          "basis": {
+            "kind": "assumed",
+            "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+          }
+        },
+        "measure.countGrain": {
+          "state": "specified",
+          "value": "演员PID",
+          "basis": {
+            "kind": "assumed",
+            "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+          }
+        },
+        "grouping": {
+          "state": "not_applicable"
+        },
+        "selection": {
+          "state": "not_applicable"
+        },
+        "output": {
+          "state": "specified",
+          "value": {
+            "rowMode": "scalar",
+            "columns": [
+              "actors_without_four_year_gap"
+            ]
+          },
+          "basis": {
+            "kind": "assumed",
+            "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+          }
+        }
+      },
+      "state": {
+        "state": "ready",
+        "revisionId": "revision_8c8c1ff3-c2f1-4731-a893-7bf4c2f00992",
+        "ready": "ready_066c3c46-2d55-44e3-809e-65fd752e03c5"
+      },
+      "rewrites": [
+        {
+          "path": "population.conditions",
+          "reason": "实查发现独立初稿COUNT分组包括一组NULL；保留初次freeze，修正额外未知身份计数，不改变年差规则。"
+        }
+      ],
+      "specFeedback": {
+        "taskId": "task_60e61a4a-e567-4c9d-b18e-50861ce36ab9",
+        "revisionId": "revision_8c8c1ff3-c2f1-4731-a893-7bf4c2f00992",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_2d772de6-b63f-4ce5-ad8f-96b70f0ccaf4",
+          "evidence_883cedf5-bac7-458a-a099-220aac22892d",
+          "evidence_4c662b52-1e1e-487a-9adc-a19678c43ce8",
+          "evidence_52bb5342-2dc8-4dc0-a394-1398dd326113",
+          "evidence_679f9001-8c55-4629-a529-15f3ebebfd0b",
+          "evidence_aadeab1e-4123-45e4-b962-06779e35f6fc",
+          "evidence_1729a556-dc81-4502-9cb0-e135d3d5f2cd",
+          "evidence_6bebe6c1-e307-4d6c-b321-025794c5fc33",
+          "evidence_d41dd994-21ed-486f-b397-2271b31d338a",
+          "evidence_7c97fd8f-4778-4a09-8cb9-af37766483bc"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "taskId": "task_60e61a4a-e567-4c9d-b18e-50861ce36ab9",
+      "items": [
+        {
+          "id": "request_be3e2f2bd519d830902bceb0",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "observedAt": "2026-10-11T10:04:53.049Z"
+        },
+        {
+          "id": "evidence_2d772de6-b63f-4ce5-ad8f-96b70f0ccaf4",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "811bc138e5f2c681e47f25a279d57401b4112c2bf65b3d05593f1b02b418b9f9",
+          "quote": "actors",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "811bc138e5f2c681e47f25a279d57401b4112c2bf65b3d05593f1b02b418b9f9"
+          },
+          "observedAt": "2026-10-11T10:04:53.049Z"
+        },
+        {
+          "id": "evidence_883cedf5-bac7-458a-a099-220aac22892d",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "6a7a69c3-6d2c-4d0e-a4b9-da7580114e1b",
+          "preview": {
+            "columns": [
+              "year",
+              "n"
+            ],
+            "rows": [],
+            "columnTypes": [
+              "NULL",
+              "NULL"
+            ],
+            "rowCount": 0,
+            "truncated": false
+          },
+          "queryHash": "80d75b3ed5db0536ed73446766a942039ffe74411c44cabbaee74455712bafe3",
+          "contentHash": "56f172b44ff1cdf39c9123ef184668a434b83b9fd8aae1e736f81a1f54a86d6f",
+          "observedAt": "2026-10-11T10:04:55.648Z"
+        },
+        {
+          "id": "evidence_4c662b52-1e1e-487a-9adc-a19678c43ce8",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "5c0d16b8-ae01-45e9-974a-ca97f3528e52",
+          "preview": {
+            "columns": [
+              "max_diff",
+              "actors",
+              "single_year"
+            ],
+            "rows": [
+              [
+                0,
+                24793,
+                24793
+              ],
+              [
+                1,
+                938,
+                0
+              ],
+              [
+                2,
+                1143,
+                0
+              ],
+              [
+                3,
+                1027,
+                0
+              ],
+              [
+                4,
+                798,
+                0
+              ],
+              [
+                5,
+                633,
+                0
+              ],
+              [
+                6,
+                539,
+                0
+              ],
+              [
+                7,
+                406,
+                0
+              ],
+              [
+                8,
+                291,
+                0
+              ],
+              [
+                9,
+                240,
+                0
+              ],
+              [
+                10,
+                208,
+                0
+              ],
+              [
+                11,
+                163,
+                0
+              ],
+              [
+                12,
+                120,
+                0
+              ],
+              [
+                13,
+                106,
+                0
+              ],
+              [
+                14,
+                97,
+                0
+              ],
+              [
+                15,
+                81,
+                0
+              ],
+              [
+                16,
+                71,
+                0
+              ],
+              [
+                17,
+                65,
+                0
+              ],
+              [
+                18,
+                46,
+                0
+              ],
+              [
+                19,
+                48,
+                0
+              ],
+              [
+                20,
+                40,
+                0
+              ],
+              [
+                21,
+                26,
+                0
+              ],
+              [
+                22,
+                37,
+                0
+              ],
+              [
+                23,
+                28,
+                0
+              ],
+              [
+                24,
+                23,
+                0
+              ],
+              [
+                25,
+                14,
+                0
+              ],
+              [
+                26,
+                19,
+                0
+              ],
+              [
+                27,
+                17,
+                0
+              ],
+              [
+                28,
+                13,
+                0
+              ],
+              [
+                29,
+                13,
+                0
+              ],
+              [
+                30,
+                18,
+                0
+              ],
+              [
+                31,
+                15,
+                0
+              ],
+              [
+                32,
+                9,
+                0
+              ],
+              [
+                33,
+                3,
+                0
+              ],
+              [
+                34,
+                6,
+                0
+              ],
+              [
+                35,
+                6,
+                0
+              ],
+              [
+                36,
+                5,
+                0
+              ],
+              [
+                37,
+                3,
+                0
+              ],
+              [
+                38,
+                4,
+                0
+              ],
+              [
+                39,
+                2,
+                0
+              ],
+              [
+                40,
+                2,
+                0
+              ],
+              [
+                41,
+                1,
+                0
+              ],
+              [
+                42,
+                2,
+                0
+              ],
+              [
+                43,
+                1,
+                0
+              ],
+              [
+                44,
+                1,
+                0
+              ],
+              [
+                45,
+                1,
+                0
+              ],
+              [
+                48,
+                2,
+                0
+              ],
+              [
+                50,
+                1,
+                0
+              ],
+              [
+                52,
+                1,
+                0
+              ],
+              [
+                59,
+                1,
+                0
+              ],
+              [
+                60,
+                1,
+                0
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 51,
+            "truncated": false
+          },
+          "queryHash": "d419dffd3d1215bf4e48efdb6155eedc81cf8a180f72fbdf098feb1f188e760f",
+          "contentHash": "898480e6faf2f7416bafc96306a4fa499fab7d69af9ae4b405339e5607c55285",
+          "observedAt": "2026-10-11T10:04:58.948Z"
+        },
+        {
+          "id": "evidence_52bb5342-2dc8-4dc0-a394-1398dd326113",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "e416a719-e48b-4ef3-80f1-dc309732b177",
+          "preview": {
+            "columns": [
+              "pid",
+              "first_year",
+              "last_year",
+              "years",
+              "max_diff"
+            ],
+            "rows": [
+              [
+                "nm0004291",
+                1948,
+                1964,
+                10,
+                4
+              ],
+              [
+                "nm0004334",
+                1968,
+                2018,
+                37,
+                4
+              ],
+              [
+                "nm0004416",
+                1996,
+                2007,
+                4,
+                4
+              ],
+              [
+                "nm0004429",
+                1962,
+                2018,
+                40,
+                4
+              ],
+              [
+                "nm0004468",
+                1986,
+                1993,
+                3,
+                4
+              ],
+              [
+                "nm0004564",
+                1968,
+                2011,
+                31,
+                4
+              ],
+              [
+                "nm0005983",
+                1965,
+                1969,
+                2,
+                4
+              ],
+              [
+                "nm0006433",
+                1991,
+                2013,
+                17,
+                4
+              ],
+              [
+                "nm0006689",
+                1998,
+                2018,
+                15,
+                4
+              ],
+              [
+                "nm0006762",
+                1977,
+                2009,
+                21,
+                4
+              ],
+              [
+                "nm0006764",
+                1992,
+                2018,
+                16,
+                4
+              ],
+              [
+                "nm0006765",
+                1983,
+                1989,
+                3,
+                4
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 12,
+            "truncated": false
+          },
+          "queryHash": "149c1e30585e2b0cd8cd6f215f25972ca6343dedb85280ec68e81309d62c0bdc",
+          "contentHash": "bf15b0365dd7bf83864ac3ab27a77ac0cd9affde35d7a52d17c1b04cde7077c7",
+          "observedAt": "2026-10-11T10:05:02.341Z"
+        },
+        {
+          "id": "evidence_679f9001-8c55-4629-a529-15f3ebebfd0b",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "308d9bb0-f63a-4c6a-9907-b87512b04fbf",
+          "preview": {
+            "columns": [
+              "actors",
+              "missing_person"
+            ],
+            "rows": [
+              [
+                32128,
+                1
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "772b65b14923b29ffc76fc6c0493da36087066c5f466f82fe18b4291f191e4d1",
+          "contentHash": "a9bf20ccf27a3b8a16c7ab72dbb41b90b69f653cf73fe780bdf88379aa4c5b25",
+          "observedAt": "2026-10-11T10:05:06.248Z"
+        },
+        {
+          "id": "evidence_aadeab1e-4123-45e4-b962-06779e35f6fc",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "811bc138e5f2c681e47f25a279d57401b4112c2bf65b3d05593f1b02b418b9f9",
+          "quote": "there is no four-year span anywhere in their active career without at least a single film credit",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "811bc138e5f2c681e47f25a279d57401b4112c2bf65b3d05593f1b02b418b9f9"
+          },
+          "observedAt": "2026-10-11T10:05:08.194Z"
+        },
+        {
+          "id": "evidence_1729a556-dc81-4502-9cb0-e135d3d5f2cd",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "811bc138e5f2c681e47f25a279d57401b4112c2bf65b3d05593f1b02b418b9f9",
+          "quote": "From the first year each actor appeared in a film to the last",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "811bc138e5f2c681e47f25a279d57401b4112c2bf65b3d05593f1b02b418b9f9"
+          },
+          "observedAt": "2026-10-11T10:05:08.194Z"
+        },
+        {
+          "id": "evidence_6bebe6c1-e307-4d6c-b321-025794c5fc33",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "fd415102-6d31-428b-8d5f-6a088279dceb",
+          "preview": {
+            "columns": [
+              "kind",
+              "n"
+            ],
+            "rows": [
+              [
+                "cast_raw",
+                32127
+              ],
+              [
+                "cast_normalized",
+                32127
+              ],
+              [
+                "persons",
+                37565
+              ],
+              [
+                "credit_movie_join",
+                32127
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 4,
+            "truncated": false
+          },
+          "queryHash": "ab910fa36707e8d9083d55f3c758a63eba77aa3a6ad5103f128f1bdc56b19909",
+          "contentHash": "062fc36e955d641d1babcb937c0b9a2c50eaf75a96a251dc15562353280468cd",
+          "observedAt": "2026-10-11T10:06:40.645Z"
+        },
+        {
+          "id": "evidence_d41dd994-21ed-486f-b397-2271b31d338a",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "405fd71d-9b27-4cc7-9461-42b95d4aea92",
+          "preview": {
+            "columns": [
+              "all_actors",
+              "incorrect_three_year_gap",
+              "correct_max_three_missing_years",
+              "distinguishing_actors"
+            ],
+            "rows": [
+              [
+                32128,
+                27901,
+                28699,
+                798
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "b650e0a297d51b570c265a22cf77b82d3debe9bf1de18d79b8b6f17ac0118e2e",
+          "contentHash": "f935b1da93e4e6c31ae9db2c63c0b309913398ddcd7ded897e963e765c1b8e83",
+          "observedAt": "2026-10-11T10:06:44.464Z"
+        },
+        {
+          "id": "evidence_7c97fd8f-4778-4a09-8cb9-af37766483bc",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "8c4cda25-ea76-406a-80ba-f682e9dc4dcd",
+          "preview": {
+            "columns": [
+              "MID",
+              "PID"
+            ],
+            "rows": [
+              [
+                "tt2355921",
+                null
+              ],
+              [
+                "tt1587388",
+                null
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "NULL"
+            ],
+            "rowCount": 2,
+            "truncated": false
+          },
+          "queryHash": "fded2e985047a658ed435658d991449d4d7f241ffda8072d62dd9e46dca7d5c0",
+          "contentHash": "4c98ff038b75a7621369401b07c36ba05c23620826feff57e757e240314e9cfc",
+          "observedAt": "2026-10-11T10:07:29.153Z"
+        },
+        {
+          "id": "evidence_49c1f66a-4f02-4c43-aaa2-f96491d4e331",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "5926ee2d-1169-41a3-abda-f8481d2d41ff",
+          "preview": {
+            "columns": [
+              "actors_without_four_year_gap"
+            ],
+            "rows": [
+              [
+                28698
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "eb8834d06f5276cee6f01141baa0495ce074f901d75a4586689b72ec65711fab",
+          "contentHash": "15f5092ecc87974bafe4d3380b422104cf7d3488b5792f80fca1a9cb7892c9d1",
+          "observedAt": "2026-10-11T10:09:13.104Z"
+        }
+      ]
+    }
+  ],
+  "attempts": [
+    {
+      "taskId": "task_60e61a4a-e567-4c9d-b18e-50861ce36ab9",
+      "items": [
+        {
+          "attemptId": "attempt_9d97736d-d431-448c-81c4-ee75b5a01243",
+          "taskId": "task_60e61a4a-e567-4c9d-b18e-50861ce36ab9",
+          "kind": "exploration",
+          "revisionId": "revision_adc4cc8a-e576-4bad-a3db-16e61373bfbe",
+          "invocationId": "6a7a69c3-6d2c-4d0e-a4b9-da7580114e1b",
+          "queryHash": "80d75b3ed5db0536ed73446766a942039ffe74411c44cabbaee74455712bafe3",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:04:55.344Z",
+          "updatedAt": "2026-10-11T10:04:55.648Z"
+        },
+        {
+          "attemptId": "attempt_10792e48-f2d6-497f-9882-37b9c081aae5",
+          "taskId": "task_60e61a4a-e567-4c9d-b18e-50861ce36ab9",
+          "kind": "exploration",
+          "revisionId": "revision_adc4cc8a-e576-4bad-a3db-16e61373bfbe",
+          "invocationId": "5c0d16b8-ae01-45e9-974a-ca97f3528e52",
+          "queryHash": "d419dffd3d1215bf4e48efdb6155eedc81cf8a180f72fbdf098feb1f188e760f",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:04:58.047Z",
+          "updatedAt": "2026-10-11T10:04:58.949Z"
+        },
+        {
+          "attemptId": "attempt_0034d04d-e4aa-45d8-8b60-be534ede7357",
+          "taskId": "task_60e61a4a-e567-4c9d-b18e-50861ce36ab9",
+          "kind": "exploration",
+          "revisionId": "revision_adc4cc8a-e576-4bad-a3db-16e61373bfbe",
+          "invocationId": "e416a719-e48b-4ef3-80f1-dc309732b177",
+          "queryHash": "149c1e30585e2b0cd8cd6f215f25972ca6343dedb85280ec68e81309d62c0bdc",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:05:01.515Z",
+          "updatedAt": "2026-10-11T10:05:02.342Z"
+        },
+        {
+          "attemptId": "attempt_e26294fc-c405-468d-b930-94d693bb49a3",
+          "taskId": "task_60e61a4a-e567-4c9d-b18e-50861ce36ab9",
+          "kind": "exploration",
+          "revisionId": "revision_adc4cc8a-e576-4bad-a3db-16e61373bfbe",
+          "invocationId": "308d9bb0-f63a-4c6a-9907-b87512b04fbf",
+          "queryHash": "772b65b14923b29ffc76fc6c0493da36087066c5f466f82fe18b4291f191e4d1",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:05:05.582Z",
+          "updatedAt": "2026-10-11T10:05:06.249Z"
+        },
+        {
+          "attemptId": "attempt_da849b6b-1d8d-41e8-b15b-69ba31dcb0e0",
+          "taskId": "task_60e61a4a-e567-4c9d-b18e-50861ce36ab9",
+          "kind": "revision",
+          "revisionId": "revision_adc4cc8a-e576-4bad-a3db-16e61373bfbe",
+          "invocationId": "0e50b289-ae86-4bde-a3cd-958933d6b28d",
+          "state": "succeeded",
+          "sqlExecuted": false,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:05:08.199Z",
+          "updatedAt": "2026-10-11T10:05:08.194Z"
+        },
+        {
+          "attemptId": "attempt_7a3fc47f-8e69-4059-9470-aba77702b644",
+          "taskId": "task_60e61a4a-e567-4c9d-b18e-50861ce36ab9",
+          "kind": "result",
+          "revisionId": "revision_7d6fab88-415d-44e4-8fbc-bfe7ecab3ad4",
+          "invocationId": "39f9c3fa-ae14-4428-987b-6ce865dd48ff",
+          "queryHash": "816e3bf2ed4ce2574b88a32f66892a8fedae47947318c0b820f61465b40e0a78",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:05:09.811Z",
+          "updatedAt": "2026-10-11T10:05:10.465Z"
+        },
+        {
+          "attemptId": "attempt_65886370-cbcd-426e-bdbd-8e9f19a09686",
+          "taskId": "task_60e61a4a-e567-4c9d-b18e-50861ce36ab9",
+          "kind": "exploration",
+          "revisionId": "revision_7d6fab88-415d-44e4-8fbc-bfe7ecab3ad4",
+          "invocationId": "fd415102-6d31-428b-8d5f-6a088279dceb",
+          "queryHash": "ab910fa36707e8d9083d55f3c758a63eba77aa3a6ad5103f128f1bdc56b19909",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:06:39.684Z",
+          "updatedAt": "2026-10-11T10:06:40.646Z"
+        },
+        {
+          "attemptId": "attempt_25fa2d89-58df-4c40-8b8c-7470173ec310",
+          "taskId": "task_60e61a4a-e567-4c9d-b18e-50861ce36ab9",
+          "kind": "exploration",
+          "revisionId": "revision_7d6fab88-415d-44e4-8fbc-bfe7ecab3ad4",
+          "invocationId": "405fd71d-9b27-4cc7-9461-42b95d4aea92",
+          "queryHash": "b650e0a297d51b570c265a22cf77b82d3debe9bf1de18d79b8b6f17ac0118e2e",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:06:43.130Z",
+          "updatedAt": "2026-10-11T10:06:44.465Z"
+        },
+        {
+          "attemptId": "attempt_5bdff9f1-77c6-4a4e-b675-2c9b74737a34",
+          "taskId": "task_60e61a4a-e567-4c9d-b18e-50861ce36ab9",
+          "kind": "exploration",
+          "revisionId": "revision_7d6fab88-415d-44e4-8fbc-bfe7ecab3ad4",
+          "invocationId": "8c4cda25-ea76-406a-80ba-f682e9dc4dcd",
+          "queryHash": "fded2e985047a658ed435658d991449d4d7f241ffda8072d62dd9e46dca7d5c0",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:07:28.923Z",
+          "updatedAt": "2026-10-11T10:07:29.154Z"
+        },
+        {
+          "attemptId": "attempt_2c47d5ed-ac86-400b-bab5-3413b0cc156b",
+          "taskId": "task_60e61a4a-e567-4c9d-b18e-50861ce36ab9",
+          "kind": "revision",
+          "revisionId": "revision_7d6fab88-415d-44e4-8fbc-bfe7ecab3ad4",
+          "invocationId": "554d85f8-7288-4228-87e0-92ef1ecb2e17",
+          "state": "succeeded",
+          "sqlExecuted": false,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:09:11.060Z",
+          "updatedAt": "2026-10-11T10:09:11.052Z"
+        },
+        {
+          "attemptId": "attempt_c696ae83-299e-4051-8e4d-7e081c6096a9",
+          "taskId": "task_60e61a4a-e567-4c9d-b18e-50861ce36ab9",
+          "kind": "exploration",
+          "revisionId": "revision_8c8c1ff3-c2f1-4731-a893-7bf4c2f00992",
+          "invocationId": "5926ee2d-1169-41a3-abda-f8481d2d41ff",
+          "queryHash": "eb8834d06f5276cee6f01141baa0495ce074f901d75a4586689b72ec65711fab",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:09:12.568Z",
+          "updatedAt": "2026-10-11T10:09:13.104Z"
+        },
+        {
+          "attemptId": "attempt_cc4ab281-1fc6-4406-b658-28ff23efe1de",
+          "taskId": "task_60e61a4a-e567-4c9d-b18e-50861ce36ab9",
+          "kind": "result",
+          "revisionId": "revision_8c8c1ff3-c2f1-4731-a893-7bf4c2f00992",
+          "invocationId": "69a4b71d-7899-4fab-89f8-cc30ce429302",
+          "queryHash": "4d834497b15ec26aad600e79c54ee46e78c9653ef260a05006836c92059b0225",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:09:14.450Z",
+          "updatedAt": "2026-10-11T10:09:14.974Z"
+        }
+      ]
+    }
+  ],
+  "candidates": [
+    {
+      "candidateId": "candidate_ba4cb05c-6775-4662-b2dc-1ee39d7a726f",
+      "taskId": "task_60e61a4a-e567-4c9d-b18e-50861ce36ab9",
+      "revisionId": "revision_7d6fab88-415d-44e4-8fbc-bfe7ecab3ad4",
+      "resultRef": "result_9143a50a-6018-4564-a74e-6be31cc5d7fa",
+      "resultSchema": [
+        "actors_without_four_year_gap"
+      ],
+      "rowCount": 1,
+      "contentHash": "fcba4e43ad3e83082c589f1f516efe9067fc56f38b73cd985c38d6160f4b0289",
+      "sql": "WITH films AS MATERIALIZED (SELECT MID,CAST(substr(year,-4) AS INTEGER) y FROM Movie),credits AS MATERIALIZED (SELECT DISTINCT TRIM(c.PID) pid,f.y FROM M_Cast c JOIN films f ON c.MID=f.MID),ordered AS (SELECT pid,y,LAG(y) OVER (PARTITION BY pid ORDER BY y) prev FROM credits),careers AS (SELECT pid,MIN(y) first_year,MAX(y) last_year,COUNT(*) years,COALESCE(MAX(y-prev),0) max_diff FROM ordered GROUP BY pid) SELECT COUNT(*) actors_without_four_year_gap FROM careers WHERE max_diff<=4",
+      "queryHash": "816e3bf2ed4ce2574b88a32f66892a8fedae47947318c0b820f61465b40e0a78",
+      "findings": [],
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "attemptId": "attempt_7a3fc47f-8e69-4059-9470-aba77702b644",
+      "createdByInvocationId": "39f9c3fa-ae14-4428-987b-6ce865dd48ff",
+      "createdAt": "2026-10-11T10:05:10.465Z",
+      "status": "ready",
+      "publishable": true
+    },
+    {
+      "candidateId": "candidate_3c46ca21-11c8-4f1f-b752-562700d08743",
+      "taskId": "task_60e61a4a-e567-4c9d-b18e-50861ce36ab9",
+      "revisionId": "revision_8c8c1ff3-c2f1-4731-a893-7bf4c2f00992",
+      "resultRef": "result_186a1e05-18dc-477a-aced-4543b735494e",
+      "resultSchema": [
+        "actors_without_four_year_gap"
+      ],
+      "rowCount": 1,
+      "contentHash": "08b6ad9f7eb397f96471200f6a52e5dd686493ad2b0f5eea05f1b2981821dc34",
+      "sql": "WITH films AS MATERIALIZED (SELECT MID,CAST(substr(year,-4) AS INTEGER) y FROM Movie),credits AS MATERIALIZED (SELECT DISTINCT TRIM(c.PID) pid,f.y FROM M_Cast c JOIN films f ON c.MID=f.MID WHERE c.PID IS NOT NULL AND TRIM(c.PID)!=''),ordered AS (SELECT pid,y,LAG(y) OVER (PARTITION BY pid ORDER BY y) prev FROM credits),careers AS (SELECT pid,MIN(y) first_year,MAX(y) last_year,COUNT(*) years,COALESCE(MAX(y-prev),0) max_diff FROM ordered GROUP BY pid) SELECT COUNT(*) actors_without_four_year_gap FROM careers WHERE max_diff<=4",
+      "queryHash": "4d834497b15ec26aad600e79c54ee46e78c9653ef260a05006836c92059b0225",
+      "findings": [],
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "attemptId": "attempt_cc4ab281-1fc6-4406-b658-28ff23efe1de",
+      "createdByInvocationId": "69a4b71d-7899-4fab-89f8-cc30ce429302",
+      "createdAt": "2026-10-11T10:09:14.974Z",
+      "status": "ready",
+      "publishable": true
+    }
+  ],
+  "receipts": [
+    {
+      "receiptId": "publication_100fa935-2fa9-4d9d-b187-dde933024236",
+      "taskId": "task_60e61a4a-e567-4c9d-b18e-50861ce36ab9",
+      "principalId": "independent-analyst",
+      "sessionId": "local098",
+      "candidateId": "candidate_ba4cb05c-6775-4662-b2dc-1ee39d7a726f",
+      "revisionId": "revision_7d6fab88-415d-44e4-8fbc-bfe7ecab3ad4",
+      "resultRef": "result_9143a50a-6018-4564-a74e-6be31cc5d7fa",
+      "format": "csv",
+      "publicRef": "/api/runtime/publications/publication_100fa935-2fa9-4d9d-b187-dde933024236?session_id=local098",
+      "contentHash": "fcba4e43ad3e83082c589f1f516efe9067fc56f38b73cd985c38d6160f4b0289",
+      "presentationContentHash": "d2f43e31d524aa233c5b1465ece31b5aef5ffe47f3f5e755efed82152a5fc571",
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "disclosure": {
+        "required": true,
+        "unverifiedFields": [
+          {
+            "path": "population.eligibility",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.formula",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.countGrain",
+            "kind": "assumed"
+          },
+          {
+            "path": "output",
+            "kind": "assumed"
+          }
+        ],
+        "summary": "以下字段为假定，未被合格证据证实：population.eligibility, measure.formula, measure.countGrain, output。"
+      },
+      "physicalProfile": {
+        "version": 1,
+        "rowCount": 1,
+        "truncated": false,
+        "columns": [
+          {
+            "name": "actors_without_four_year_gap",
+            "kind": "integer",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 1,
+            "min": "28699",
+            "max": "28699"
+          }
+        ]
+      },
+      "policyVersion": "answering-publication-v1",
+      "createdByInvocationId": "39f9c3fa-ae14-4428-987b-6ce865dd48ff",
+      "requestId": "39f9c3fa-ae14-4428-987b-6ce865dd48ff",
+      "createdAt": "2026-10-11T10:05:10.480Z"
+    },
+    {
+      "receiptId": "publication_a8d61834-102d-4828-8b92-5e4de13c5771",
+      "taskId": "task_60e61a4a-e567-4c9d-b18e-50861ce36ab9",
+      "principalId": "independent-analyst",
+      "sessionId": "local098",
+      "candidateId": "candidate_3c46ca21-11c8-4f1f-b752-562700d08743",
+      "revisionId": "revision_8c8c1ff3-c2f1-4731-a893-7bf4c2f00992",
+      "resultRef": "result_186a1e05-18dc-477a-aced-4543b735494e",
+      "format": "csv",
+      "publicRef": "/api/runtime/publications/publication_a8d61834-102d-4828-8b92-5e4de13c5771?session_id=local098",
+      "contentHash": "08b6ad9f7eb397f96471200f6a52e5dd686493ad2b0f5eea05f1b2981821dc34",
+      "presentationContentHash": "e9bf9b844e5ce7cc36f01d6cca8c7726e6e2a39834bd7cae11fc1054ea433966",
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "disclosure": {
+        "required": true,
+        "unverifiedFields": [
+          {
+            "path": "population.eligibility",
+            "kind": "assumed"
+          },
+          {
+            "path": "population.conditions",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.formula",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.countGrain",
+            "kind": "assumed"
+          },
+          {
+            "path": "output",
+            "kind": "assumed"
+          }
+        ],
+        "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.conditions, measure.formula, measure.countGrain, output。"
+      },
+      "physicalProfile": {
+        "version": 1,
+        "rowCount": 1,
+        "truncated": false,
+        "columns": [
+          {
+            "name": "actors_without_four_year_gap",
+            "kind": "integer",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 1,
+            "min": "28698",
+            "max": "28698"
+          }
+        ]
+      },
+      "policyVersion": "answering-publication-v1",
+      "createdByInvocationId": "69a4b71d-7899-4fab-89f8-cc30ce429302",
+      "requestId": "69a4b71d-7899-4fab-89f8-cc30ce429302",
+      "createdAt": "2026-10-11T10:09:14.981Z"
+    }
+  ]
+}

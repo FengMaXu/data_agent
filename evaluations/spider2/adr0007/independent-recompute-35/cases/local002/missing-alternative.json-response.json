@@ -1,0 +1,65 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_c7bfe5d1-0897-43dc-ad35-a2e015865838\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nn | a | b | sparse_calendar_answer\n582 | 5.599622571762781 | 0.004580261047945883 | 35.305665920162625"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_c7bfe5d1-0897-43dc-ad35-a2e015865838",
+      "preview": {
+        "columns": [
+          "n",
+          "a",
+          "b",
+          "sparse_calendar_answer"
+        ],
+        "rows": [
+          [
+            582,
+            5.599622571762781,
+            0.004580261047945883,
+            35.305665920162625
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "REAL",
+          "REAL",
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "n",
+        "a",
+        "b",
+        "sparse_calendar_answer"
+      ],
+      "rows": [
+        [
+          582,
+          5.599622571762781,
+          0.004580261047945883,
+          35.305665920162625
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "REAL",
+        "REAL",
+        "REAL"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_3aa7d063-6691-4aa7-bf05-6cd80ae1d650"
+  }
+}

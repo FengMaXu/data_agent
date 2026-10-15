@@ -1,0 +1,239 @@
+{
+  "query": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[RESULT_CANDIDATE] candidateId=candidate_e44ca490-2ecd-4217-bb12-39238ce538c7 revisionId=revision_f8b0bbfb-4351-4cf4-8417-e6830fc53f33\ndate | city_name\n2021-07-12 | Xiaoganzhan\n2021-07-13 | Yaopu\n2021-07-19 | Yuquan\n2021-07-20 | Nanyang\n2021-07-21 | Chengjiao chengguanzhen\n2021-07-22 | Hanzhong\n2021-07-23 | Yunfu\n2021-07-24 | Huichang\n2021-07-25 | Beichengqu\n2021-07-26 | Xinqing\n2021-07-27 | Dongxing\n2021-07-28 | Bengbu\n2021-07-29 | Tongzhou\n2021-07-30 | Tumen\n2021-07-31 | Xihuachi"
+      }
+    ],
+    "details": {
+      "kind": "result",
+      "artifact": {
+        "kind": "candidate",
+        "candidateId": "candidate_e44ca490-2ecd-4217-bb12-39238ce538c7",
+        "revisionId": "revision_f8b0bbfb-4351-4cf4-8417-e6830fc53f33",
+        "resultRef": "result_4f468d17-008b-4a23-b817-dbd872532abd"
+      },
+      "preview": {
+        "columns": [
+          "date",
+          "city_name"
+        ],
+        "rows": [
+          [
+            "2021-07-12",
+            "Xiaoganzhan"
+          ],
+          [
+            "2021-07-13",
+            "Yaopu"
+          ],
+          [
+            "2021-07-19",
+            "Yuquan"
+          ],
+          [
+            "2021-07-20",
+            "Nanyang"
+          ],
+          [
+            "2021-07-21",
+            "Chengjiao chengguanzhen"
+          ],
+          [
+            "2021-07-22",
+            "Hanzhong"
+          ],
+          [
+            "2021-07-23",
+            "Yunfu"
+          ],
+          [
+            "2021-07-24",
+            "Huichang"
+          ],
+          [
+            "2021-07-25",
+            "Beichengqu"
+          ],
+          [
+            "2021-07-26",
+            "Xinqing"
+          ],
+          [
+            "2021-07-27",
+            "Dongxing"
+          ],
+          [
+            "2021-07-28",
+            "Bengbu"
+          ],
+          [
+            "2021-07-29",
+            "Tongzhou"
+          ],
+          [
+            "2021-07-30",
+            "Tumen"
+          ],
+          [
+            "2021-07-31",
+            "Xihuachi"
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "TEXT"
+        ],
+        "rowCount": 15,
+        "truncated": false
+      },
+      "findings": [],
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "attemptId": "attempt_9b4b2757-c257-42cd-8901-eec6e89e10cd"
+    }
+  },
+  "publication": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[PUBLISHED] csv [download](/api/runtime/publications/publication_839a5a17-d2ca-4077-b345-e0a989fca4b8?session_id=local070) receiptId=publication_839a5a17-d2ca-4077-b345-e0a989fca4b8\n[DISCLOSURE] 以下字段为假定，未被合格证据证实：population.eligibility, population.conditions, population.time, measure.formula, grouping, output, selection.ties, selection。"
+      }
+    ],
+    "details": {
+      "receiptId": "publication_839a5a17-d2ca-4077-b345-e0a989fca4b8",
+      "taskId": "task_1d5794d9-e7c0-4015-9fca-55850d975382",
+      "principalId": "independent-analyst",
+      "sessionId": "local070",
+      "candidateId": "candidate_e44ca490-2ecd-4217-bb12-39238ce538c7",
+      "revisionId": "revision_f8b0bbfb-4351-4cf4-8417-e6830fc53f33",
+      "resultRef": "result_4f468d17-008b-4a23-b817-dbd872532abd",
+      "format": "csv",
+      "publicRef": "/api/runtime/publications/publication_839a5a17-d2ca-4077-b345-e0a989fca4b8?session_id=local070",
+      "contentHash": "4165e9d9ae01e3e4d5ed863e3dca63a512781417b3f460b47366609eed660229",
+      "presentationContentHash": "5310d64e2fb0dde210b9af0f15f14c095c31925d85e742f24d75305bb9de4e75",
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "disclosure": {
+        "required": true,
+        "unverifiedFields": [
+          {
+            "path": "population.eligibility",
+            "kind": "assumed"
+          },
+          {
+            "path": "population.conditions",
+            "kind": "assumed"
+          },
+          {
+            "path": "population.time",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.formula",
+            "kind": "assumed"
+          },
+          {
+            "path": "grouping",
+            "kind": "assumed"
+          },
+          {
+            "path": "output",
+            "kind": "assumed"
+          },
+          {
+            "path": "selection.ties",
+            "kind": "assumed"
+          },
+          {
+            "path": "selection",
+            "kind": "assumed"
+          }
+        ],
+        "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.conditions, population.time, measure.formula, grouping, output, selection.ties, selection。"
+      },
+      "physicalProfile": {
+        "version": 1,
+        "rowCount": 15,
+        "truncated": false,
+        "columns": [
+          {
+            "name": "date",
+            "kind": "text",
+            "nullCount": 0,
+            "distinctCount": 15
+          },
+          {
+            "name": "city_name",
+            "kind": "text",
+            "nullCount": 0,
+            "distinctCount": 15
+          }
+        ]
+      },
+      "policyVersion": "answering-publication-v1",
+      "createdByInvocationId": "a8875c51-0a98-4e40-a9cb-78d32396a36d",
+      "requestId": "a8875c51-0a98-4e40-a9cb-78d32396a36d",
+      "createdAt": "2026-10-11T09:00:31.293Z"
+    }
+  },
+  "authorizedCsv": "D:\\data_agent\\evaluations\\spider2\\adr0007\\independent-recompute-35\\cases\\local070\\publications\\publication_839a5a17-d2ca-4077-b345-e0a989fca4b8\\result.csv"
+}
+

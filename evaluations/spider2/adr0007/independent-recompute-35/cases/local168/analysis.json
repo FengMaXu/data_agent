@@ -1,0 +1,52 @@
+{
+  "instance_id": "local168",
+  "status": "ambiguous_after_recompute",
+  "summary": "Gold101300精确等于短标题类别下仅具名python/qlik两种技能均薪的等权平均；原完整标题、未知ID技能排名、岗位等权三处选择均可见，业务不能唯一裁决",
+  "fork_node": "population.conditions (sufficient Gold-reconstruction variant)",
+  "error_layer": "unresolved cohort / skill eligibility / nested average weighting",
+  "visibility": "all material decisions explicit in original Spec; not missing-field failure",
+  "independent_score": 0,
+  "evidence": [
+    {
+      "source": "blind.json",
+      "pointer": "/question",
+      "quote": "overall average salary when considering only the top three most frequently demanded skills"
+    },
+    {
+      "source": "post-short-known-skill-equal.json-response.json",
+      "pointer": "/details/preview/rows",
+      "quote": "101300"
+    },
+    {
+      "source": "post-known-salary-counterexample.json-response.json",
+      "pointer": "/details/preview/rows",
+      "quote": "1791218"
+    }
+  ],
+  "limitations": [
+    "only two dimension-known demanded skills, not three",
+    "unknown-ID ranking has five tied leading skills",
+    "Gold SQL unavailable; matching multi-change experiment is sufficient not unique",
+    "title and salary averaging entity ambiguous"
+  ],
+  "parent_field_review": {
+    "instance_id": "local168",
+    "relevant_node": "population.conditions",
+    "node_is_confirmed_original_error": false,
+    "explanation": "职位范围先分叉，随后具名技能/未知技能、排名并列及薪资权重",
+    "error_layer": "未唯一裁决",
+    "visibility": "不能标成假定错/决定错：原声明可见，不等于业务错误已证",
+    "qualification": "差异机制已实测，业务意图未唯一裁决",
+    "original_node_declared": true,
+    "original_node_status": "decided",
+    "original_node_value": [
+      "job_title = 'Data Analyst' AND job_work_from_home = 1 AND salary_year_avg IS NOT NULL"
+    ],
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local168/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/39/result/details/fields/2/value",
+      "quote": "[\"job_title = 'Data Analyst' AND job_work_from_home = 1 AND salary_year_avg IS NOT NULL\"]"
+    },
+    "primary_status": "ambiguous_after_recompute"
+  }
+}

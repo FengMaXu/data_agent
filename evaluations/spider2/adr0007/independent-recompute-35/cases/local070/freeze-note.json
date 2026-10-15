@@ -1,0 +1,8 @@
+{
+  "algorithm": "Distinct days -> calendar islands -> min/max island lengths -> minimum-city_id representative",
+  "assumptions": [
+    "Representative city rule unspecified; minimum city_id chosen",
+    "Keep all tied extreme islands"
+  ],
+  "validation": "4 islands lengths 8,2,3,13; output 15 dates"
+}

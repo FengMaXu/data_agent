@@ -1,0 +1,47 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_35a3662e-fc70-47c9-9f36-76e2515c741e\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\navg_salary\n104040.6"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_35a3662e-fc70-47c9-9f36-76e2515c741e",
+      "preview": {
+        "columns": [
+          "avg_salary"
+        ],
+        "rows": [
+          [
+            104040.6
+          ]
+        ],
+        "columnTypes": [
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "avg_salary"
+      ],
+      "rows": [
+        [
+          104040.6
+        ]
+      ],
+      "columnTypes": [
+        "REAL"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_ca5b2ad3-2a3f-497c-989f-e2e93f5d1638"
+  }
+}

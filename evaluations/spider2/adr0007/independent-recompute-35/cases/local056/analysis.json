@@ -1,0 +1,54 @@
+{
+  "instance_id": "local056",
+  "status": "ambiguous_after_recompute",
+  "summary": "观测月signed赢家HECTOR；日历相邻signed原赢家MICHEAL；观测月ABS复现Gold STEPHEN。两维均影响结果，题面不唯一裁决。",
+  "fork_node": "population.missing (then measure.formula)",
+  "error_layer": "unresolved_semantic_interpretation",
+  "visibility": "explicit_in_original_spec",
+  "independent_score": 0,
+  "evidence": [
+    {
+      "source": "blind.json",
+      "pointer": "/question",
+      "quote": "highest average monthly change in payment amounts"
+    },
+    {
+      "source": "04-alternatives-response.json",
+      "pointer": "/details/preview/rows/0",
+      "quote": "STEPHEN QUALLS"
+    },
+    {
+      "source": "96-three-customer-months-response.json",
+      "pointer": "/details/preview/rows",
+      "quote": "10.98"
+    },
+    {
+      "source": "comparison-input.json",
+      "pointer": "/originalCsv",
+      "quote": "MICHEAL FORMAN"
+    }
+  ],
+  "limitations": [
+    "匹配Gold的候选不是业务证据",
+    "无Gold SQL；绝对差及缺月策略未定义",
+    "离线研究不是原同预算A/B"
+  ],
+  "parent_field_review": {
+    "instance_id": "local056",
+    "relevant_node": "population.missing",
+    "node_is_confirmed_original_error": false,
+    "explanation": "先发生缺月/相邻观测解释差异，随后金额差正负/绝对值",
+    "error_layer": "未唯一裁决",
+    "visibility": "不能标成假定错/决定错：原声明可见，不等于业务错误已证",
+    "qualification": "差异机制已实测，业务意图未唯一裁决",
+    "original_node_declared": true,
+    "original_node_status": "assumed",
+    "original_node_value": "不补零（无业务证据证明缺月代表零活动）；只在两个日历月份严格相邻（如 2005-07 与 2005-08）时计算一次月度变化；跨月缺口（2005-08 → 2006-02）不计作“月度变化”而被排除。",
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local056/attempts/attempt-001/trace.json",
+      "pointer": "/toolCalls/20/result/details/fields/6/value",
+      "quote": "不补零（无业务证据证明缺月代表零活动）；只在两个日历月份严格相邻（如 2005-07 与 2005-08）时计算一次月度变化；跨月缺口（2005-08 → 2006-02）不计作“月度变化”而被排除。"
+    },
+    "primary_status": "ambiguous_after_recompute"
+  }
+}

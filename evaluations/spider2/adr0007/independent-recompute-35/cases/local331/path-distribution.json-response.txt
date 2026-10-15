@@ -1,0 +1,133 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_bbd42d87-936b-4e4e-bccc-717253d37266\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\npath | n\n | 12\n/ | 16\n/complete | 10\n/confirm | 10\n/detail | 55\n/detail/ | 24\n/input | 10\n/search_input | 25\n/search_input/ | 10\n/search_list | 50\n/search_list/ | 22"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_bbd42d87-936b-4e4e-bccc-717253d37266",
+      "preview": {
+        "columns": [
+          "path",
+          "n"
+        ],
+        "rows": [
+          [
+            "",
+            12
+          ],
+          [
+            "/",
+            16
+          ],
+          [
+            "/complete",
+            10
+          ],
+          [
+            "/confirm",
+            10
+          ],
+          [
+            "/detail",
+            55
+          ],
+          [
+            "/detail/",
+            24
+          ],
+          [
+            "/input",
+            10
+          ],
+          [
+            "/search_input",
+            25
+          ],
+          [
+            "/search_input/",
+            10
+          ],
+          [
+            "/search_list",
+            50
+          ],
+          [
+            "/search_list/",
+            22
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 11,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "path",
+        "n"
+      ],
+      "rows": [
+        [
+          "",
+          12
+        ],
+        [
+          "/",
+          16
+        ],
+        [
+          "/complete",
+          10
+        ],
+        [
+          "/confirm",
+          10
+        ],
+        [
+          "/detail",
+          55
+        ],
+        [
+          "/detail/",
+          24
+        ],
+        [
+          "/input",
+          10
+        ],
+        [
+          "/search_input",
+          25
+        ],
+        [
+          "/search_input/",
+          10
+        ],
+        [
+          "/search_list",
+          50
+        ],
+        [
+          "/search_list/",
+          22
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 11,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_97c48033-df2c-44a6-a928-f05c4f5cf31d"
+  }
+}

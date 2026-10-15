@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT customer_id,strftime('%Y-%m',payment_date) month,SUM(amount) total FROM payment WHERE customer_id IN (332,445,487) GROUP BY 1,2 ORDER BY 1,2",
+  "limit": 100
+}

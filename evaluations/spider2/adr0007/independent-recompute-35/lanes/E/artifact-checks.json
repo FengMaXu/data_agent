@@ -1,0 +1,157 @@
+[
+  {
+    "id": "local070",
+    "frozen_before_reveal": true,
+    "publication_sql_exists": true,
+    "publication_csv_exists": true,
+    "sql_same_as_independent": true,
+    "analysis_exists": true,
+    "independent_plan_exists": true,
+    "evidence_check": [
+      {
+        "source": "blind.json",
+        "pointer": "/question",
+        "quote_found": true
+      },
+      {
+        "source": "comparison-input.json",
+        "pointer": "/originalSql",
+        "quote_found": true
+      },
+      {
+        "source": "original-spec-extract.json",
+        "pointer": "/3/call/result/details/fields",
+        "quote_found": true
+      }
+    ],
+    "sql_executions": 6,
+    "actual_final_executions": 1,
+    "status": "ambiguous_after_recompute",
+    "score": 1
+  },
+  {
+    "id": "local167",
+    "frozen_before_reveal": true,
+    "publication_sql_exists": true,
+    "publication_csv_exists": true,
+    "sql_same_as_independent": true,
+    "analysis_exists": true,
+    "independent_plan_exists": true,
+    "evidence_check": [
+      {
+        "source": "blind.json",
+        "pointer": "/question",
+        "quote_found": true
+      },
+      {
+        "source": "ca-person-inventory.json-response.txt",
+        "pointer": "/details/preview/rows/0",
+        "quote_found": true
+      },
+      {
+        "source": "comparison-input.json",
+        "pointer": "/goldCsv/0/content",
+        "quote_found": true
+      }
+    ],
+    "sql_executions": 13,
+    "actual_final_executions": 1,
+    "status": "gold_conflict",
+    "score": 0
+  },
+  {
+    "id": "local169",
+    "frozen_before_reveal": true,
+    "publication_sql_exists": true,
+    "publication_csv_exists": true,
+    "sql_same_as_independent": true,
+    "analysis_exists": true,
+    "independent_plan_exists": true,
+    "evidence_check": [
+      {
+        "source": "blind.json",
+        "pointer": "/question",
+        "quote_found": true
+      },
+      {
+        "source": "comparison-input.json",
+        "pointer": "/originalSql",
+        "quote_found": true
+      },
+      {
+        "source": "original-final-fields.json",
+        "pointer": "/4/value/expression",
+        "quote_found": true
+      }
+    ],
+    "sql_executions": 13,
+    "actual_final_executions": 1,
+    "status": "ambiguous_after_recompute",
+    "score": 0
+  },
+  {
+    "id": "local171",
+    "frozen_before_reveal": true,
+    "publication_sql_exists": true,
+    "publication_csv_exists": true,
+    "sql_same_as_independent": true,
+    "analysis_exists": true,
+    "independent_plan_exists": true,
+    "evidence_check": [
+      {
+        "source": "blind.json",
+        "pointer": "/question",
+        "quote_found": true
+      },
+      {
+        "source": "comparison-input.json",
+        "pointer": "/originalSql",
+        "quote_found": true
+      },
+      {
+        "source": "period31-counterexample-members.json-response.txt",
+        "pointer": "/details/preview/rows",
+        "quote_found": true
+      }
+    ],
+    "sql_executions": 16,
+    "actual_final_executions": 1,
+    "status": "gold_conflict",
+    "score": 0
+  },
+  {
+    "id": "local358",
+    "frozen_before_reveal": true,
+    "publication_sql_exists": true,
+    "publication_csv_exists": true,
+    "sql_same_as_independent": true,
+    "analysis_exists": true,
+    "independent_plan_exists": true,
+    "evidence_check": [
+      {
+        "source": "blind.json",
+        "pointer": "/question",
+        "quote_found": true
+      },
+      {
+        "source": "original-final-fields.json",
+        "pointer": "/0/value/name",
+        "quote_found": true
+      },
+      {
+        "source": "original-final-fields.json",
+        "pointer": "/8/value",
+        "quote_found": true
+      },
+      {
+        "source": "comparison-input.json",
+        "pointer": "/originalSql",
+        "quote_found": true
+      }
+    ],
+    "sql_executions": 12,
+    "actual_final_executions": 1,
+    "status": "confirmed_implementation_error",
+    "score": 0
+  }
+]

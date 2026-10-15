@@ -1,0 +1,1807 @@
+{
+  "version": 2,
+  "tasks": [
+    {
+      "taskId": "task_6cc27d11-d465-472f-90ea-3360c407e6f0",
+      "sessionId": "local167",
+      "principalId": "independent-analyst",
+      "requestMessageId": "original-task",
+      "requestId": "6e0acb43-52a5-468c-8fee-3dc2669facaf",
+      "currentRevisionId": "revision_5b3e3b3f-4cf0-48bf-90a5-eaf9f77cc240",
+      "lifecycle": "published",
+      "budget": {
+        "policy": {
+          "version": "answering-dual-loop-v1",
+          "maxRevisions": 40,
+          "maxExplorationAttempts": 120,
+          "maxResultAttempts": 20,
+          "maxElapsedMs": 14400000,
+          "maxObservedRows": 2000000
+        },
+        "startedAt": "2026-10-11T09:02:52.115Z",
+        "revisionCount": 1,
+        "explorationAttempts": 12,
+        "resultAttempts": 1,
+        "observedRows": 162
+      },
+      "createdAt": "2026-10-11T09:02:52.115Z",
+      "updatedAt": "2026-10-11T09:06:09.441Z",
+      "latestCandidateId": "candidate_a1e6424f-5fd7-43f3-8a71-e21a7196bbf0",
+      "publicationId": "publication_cbac473c-f7ea-4df8-9eca-b2be8523d7ed"
+    }
+  ],
+  "revisions": [
+    {
+      "taskId": "task_6cc27d11-d465-472f-90ea-3360c407e6f0",
+      "revisionId": "revision_744343e4-22d8-4dea-b261-135118eaae4d",
+      "requestId": "6e0acb43-52a5-468c-8fee-3dc2669facaf",
+      "createdAt": "2026-10-11T09:02:52.115Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "female legislators keyed by id_bioguide"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_e944b857-5c7a-4a98-b722-0b96b7d765f2"
+            ]
+          }
+        }
+      },
+      "state": {
+        "state": "draft",
+        "revisionId": "revision_744343e4-22d8-4dea-b261-135118eaae4d"
+      },
+      "specFeedback": {
+        "taskId": "task_6cc27d11-d465-472f-90ea-3360c407e6f0",
+        "revisionId": "revision_744343e4-22d8-4dea-b261-135118eaae4d",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_e944b857-5c7a-4a98-b722-0b96b7d765f2"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    },
+    {
+      "taskId": "task_6cc27d11-d465-472f-90ea-3360c407e6f0",
+      "revisionId": "revision_5b3e3b3f-4cf0-48bf-90a5-eaf9f77cc240",
+      "parentRevisionId": "revision_744343e4-22d8-4dea-b261-135118eaae4d",
+      "requestId": "4db64be6-7fed-4905-b8de-ce1bc12fc7ed",
+      "createdAt": "2026-10-11T09:04:05.230Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "female legislators keyed by id_bioguide"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_e944b857-5c7a-4a98-b722-0b96b7d765f2"
+            ]
+          }
+        },
+        "population.eligibility": {
+          "state": "specified",
+          "value": "Only observed eligible records; no fabricated missing records",
+          "basis": {
+            "kind": "assumed",
+            "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+          }
+        },
+        "population.conditions": {
+          "state": "specified",
+          "value": [
+            "gender F",
+            "any term includes calendar December 31"
+          ],
+          "basis": {
+            "kind": "assumed",
+            "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+          }
+        },
+        "population.time": {
+          "state": "specified",
+          "value": {
+            "expression": "All available years; term_start <= Dec31 <= term_end inclusive"
+          },
+          "basis": {
+            "kind": "assumed",
+            "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+          }
+        },
+        "measure.formula": {
+          "state": "specified",
+          "value": {
+            "op": "custom",
+            "description": "One female id_bioguide once, attributed to earliest term state, eligible if any inclusive term contains a December 31; select state maximum distinct women"
+          },
+          "basis": {
+            "kind": "assumed",
+            "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+          }
+        },
+        "grouping": {
+          "state": "specified",
+          "value": [
+            "first state"
+          ],
+          "basis": {
+            "kind": "assumed",
+            "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+          }
+        },
+        "selection": {
+          "state": "specified",
+          "value": {
+            "n": 1,
+            "orderBy": "female_legislators DESC"
+          },
+          "basis": {
+            "kind": "assumed",
+            "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+          }
+        },
+        "output": {
+          "state": "specified",
+          "value": {
+            "rowMode": "full",
+            "columns": [
+              "state",
+              "female_legislators"
+            ]
+          },
+          "basis": {
+            "kind": "assumed",
+            "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+          }
+        },
+        "selection.ties": {
+          "state": "specified",
+          "value": "include_ties",
+          "basis": {
+            "kind": "assumed",
+            "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+          }
+        }
+      },
+      "state": {
+        "state": "ready",
+        "revisionId": "revision_5b3e3b3f-4cf0-48bf-90a5-eaf9f77cc240",
+        "ready": "ready_ce0d8b71-1e27-4a3d-832c-62e72b97dbd9"
+      },
+      "specFeedback": {
+        "taskId": "task_6cc27d11-d465-472f-90ea-3360c407e6f0",
+        "revisionId": "revision_5b3e3b3f-4cf0-48bf-90a5-eaf9f77cc240",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_e944b857-5c7a-4a98-b722-0b96b7d765f2",
+          "evidence_08a6ae18-fa2e-4fc9-8213-674b8a4b5597",
+          "evidence_7c46f990-b82c-491a-9b6a-af099549d1a9",
+          "evidence_e720585f-84af-4208-b413-3f628acebe95",
+          "evidence_50008977-825b-4c9b-aa27-4eb2569536c1",
+          "evidence_95dfe410-46d9-480a-b847-73a762936fae",
+          "evidence_7620f06d-a8bc-4c7b-a63a-70b9dfc08171",
+          "evidence_660eb0e7-af45-4914-9932-bcd43c1c466e"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "taskId": "task_6cc27d11-d465-472f-90ea-3360c407e6f0",
+      "items": [
+        {
+          "id": "request_be3e2f2bd519d830902bceb0",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "observedAt": "2026-10-11T09:02:52.115Z"
+        },
+        {
+          "id": "evidence_e944b857-5c7a-4a98-b722-0b96b7d765f2",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "db8ee42f4abe77c41cc8c7af4aa876dbb261112db03f39f97c1952613ed4c01d",
+          "quote": "female legislators",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "db8ee42f4abe77c41cc8c7af4aa876dbb261112db03f39f97c1952613ed4c01d"
+          },
+          "observedAt": "2026-10-11T09:02:52.115Z"
+        },
+        {
+          "id": "evidence_08a6ae18-fa2e-4fc9-8213-674b8a4b5597",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "bdb18785-842f-4ae5-ad60-c933f4894ed9",
+          "preview": {
+            "columns": [
+              "gender",
+              "n",
+              "people"
+            ],
+            "rows": [
+              [
+                "F",
+                366,
+                366
+              ],
+              [
+                "M",
+                12152,
+                12152
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 2,
+            "truncated": false
+          },
+          "queryHash": "8b06c4085f1555289f10cd54457abfc40af7b3f4e06cea96c058d94826de665f",
+          "contentHash": "3cf5a137e7102b41966a4527dd7fd852fb0fc5a38571160116f7940ec394f7db",
+          "observedAt": "2026-10-11T09:02:59.167Z"
+        },
+        {
+          "id": "evidence_7c46f990-b82c-491a-9b6a-af099549d1a9",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "dabfd70e-c4ab-473e-8840-6d67ff3a867e",
+          "preview": {
+            "columns": [
+              "first_date",
+              "last_date",
+              "null_ends",
+              "inverted",
+              "end_dec31",
+              "start_dec31"
+            ],
+            "rows": [
+              [
+                "1789-03-04",
+                "2025-01-03",
+                0,
+                0,
+                272,
+                8
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "TEXT",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "a18a48b5168cc7ba7d16044113ad17bed46e9eb6efff5e58de9474e26597cc13",
+          "contentHash": "f67149eb500c579481edb340ef60cc93ed4ff3fbd3bb2656a61c6dcfe143a962",
+          "observedAt": "2026-10-11T09:03:06.096Z"
+        },
+        {
+          "id": "evidence_e720585f-84af-4208-b413-3f628acebe95",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "3c0c366e-09e7-4721-b37d-f6dfcfeccd8b",
+          "preview": {
+            "columns": [
+              "min_date",
+              "max_date",
+              "n",
+              "dec31"
+            ],
+            "rows": [
+              [
+                "1917-01-01",
+                "1999-12-31",
+                30315,
+                83
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "TEXT",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "b2a59f257f134088b9c537af77a35fedfc1dc8e73e03da886e1315581d52fe4f",
+          "contentHash": "612e21fbadd37ec0c14da34bf2e97db92dd7999856fd523639fd228b9b722622",
+          "observedAt": "2026-10-11T09:03:10.845Z"
+        },
+        {
+          "id": "evidence_50008977-825b-4c9b-aa27-4eb2569536c1",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "9d6635bf-1b06-4f2d-9139-ab4148e5501a",
+          "preview": {
+            "columns": [
+              "id_bioguide",
+              "states"
+            ],
+            "rows": [],
+            "columnTypes": [
+              "NULL",
+              "NULL"
+            ],
+            "rowCount": 0,
+            "truncated": false
+          },
+          "queryHash": "9b4b2fc40feece89f52042ee5227847d142219bfafeca88f6ac82f893f7bc126",
+          "contentHash": "e2b50dad88dd2f78a81ff2361f37a4231bfd57ea95a499789718bd8784dfa6f8",
+          "observedAt": "2026-10-11T09:03:18.054Z"
+        },
+        {
+          "id": "evidence_95dfe410-46d9-480a-b847-73a762936fae",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "ddafcf06-a64c-4d58-9717-623c8e967ee7",
+          "preview": {
+            "columns": [
+              "state",
+              "female_legislators"
+            ],
+            "rows": [
+              [
+                "CA",
+                42
+              ],
+              [
+                "NY",
+                29
+              ],
+              [
+                "FL",
+                20
+              ],
+              [
+                "IL",
+                18
+              ],
+              [
+                "MI",
+                13
+              ],
+              [
+                "WA",
+                12
+              ],
+              [
+                "OH",
+                11
+              ],
+              [
+                "PA",
+                11
+              ],
+              [
+                "TX",
+                10
+              ],
+              [
+                "MO",
+                9
+              ],
+              [
+                "CT",
+                8
+              ],
+              [
+                "GA",
+                8
+              ],
+              [
+                "MA",
+                8
+              ],
+              [
+                "NC",
+                8
+              ],
+              [
+                "AZ",
+                7
+              ],
+              [
+                "IN",
+                7
+              ],
+              [
+                "KS",
+                7
+              ],
+              [
+                "MD",
+                7
+              ],
+              [
+                "MN",
+                7
+              ],
+              [
+                "NJ",
+                7
+              ],
+              [
+                "VA",
+                7
+              ],
+              [
+                "HI",
+                6
+              ],
+              [
+                "NV",
+                6
+              ],
+              [
+                "OR",
+                6
+              ],
+              [
+                "TN",
+                6
+              ],
+              [
+                "AR",
+                5
+              ],
+              [
+                "NH",
+                5
+              ],
+              [
+                "NM",
+                5
+              ],
+              [
+                "SC",
+                5
+              ],
+              [
+                "AL",
+                4
+              ],
+              [
+                "CO",
+                4
+              ],
+              [
+                "LA",
+                4
+              ],
+              [
+                "ME",
+                4
+              ],
+              [
+                "NE",
+                4
+              ],
+              [
+                "UT",
+                4
+              ],
+              [
+                "IA",
+                3
+              ],
+              [
+                "OK",
+                3
+              ],
+              [
+                "SD",
+                3
+              ],
+              [
+                "WV",
+                3
+              ],
+              [
+                "WY",
+                3
+              ],
+              [
+                "ID",
+                2
+              ],
+              [
+                "KY",
+                2
+              ],
+              [
+                "VI",
+                2
+              ],
+              [
+                "WI",
+                2
+              ],
+              [
+                "AK",
+                1
+              ],
+              [
+                "AS",
+                1
+              ],
+              [
+                "DC",
+                1
+              ],
+              [
+                "DE",
+                1
+              ],
+              [
+                "GU",
+                1
+              ],
+              [
+                "MS",
+                1
+              ],
+              [
+                "MT",
+                1
+              ],
+              [
+                "ND",
+                1
+              ],
+              [
+                "PR",
+                1
+              ],
+              [
+                "RI",
+                1
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 54,
+            "truncated": false
+          },
+          "queryHash": "1966eb4e9457a217bff10ab652a3aa54bd4e1cecc08fc3ea729860f3f8ae2890",
+          "contentHash": "37cbaaf40719c22331963db270dd1c5457016bf358d59ef0d57daedae045da8e",
+          "observedAt": "2026-10-11T09:03:46.063Z"
+        },
+        {
+          "id": "evidence_7620f06d-a8bc-4c7b-a63a-70b9dfc08171",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "6ec5bf85-01dd-4491-88fa-f1dba176a33d",
+          "preview": {
+            "columns": [
+              "id_bioguide",
+              "full_name",
+              "term_start",
+              "term_end"
+            ],
+            "rows": [
+              [
+                "M001150",
+                "Candice S. Miller",
+                "2015-01-06",
+                "2016-12-31"
+              ],
+              [
+                "L000580",
+                "Michelle Lujan Grisham",
+                "2017-01-03",
+                "2018-12-31"
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "TEXT",
+              "TEXT",
+              "TEXT"
+            ],
+            "rowCount": 2,
+            "truncated": false
+          },
+          "queryHash": "2b17121d6ebddf0fe4ef213373d8c3a37600155a802415d0757b524f700fbf63",
+          "contentHash": "e2b65d6c6e18cde8dff817a0ab08d67da947d0f3f5ff904602a734e371478677",
+          "observedAt": "2026-10-11T09:03:50.451Z"
+        },
+        {
+          "id": "evidence_660eb0e7-af45-4914-9932-bcd43c1c466e",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "2b8b26e5-5647-469e-b893-05a492eee8d3",
+          "preview": {
+            "columns": [
+              "state",
+              "female_legislators"
+            ],
+            "rows": [
+              [
+                "CA",
+                42
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "21c52c2cddd5d5c7e7159f6803470591b12551887d93c8bff12c1ac47b96710b",
+          "contentHash": "ee4138d8e6ffe2a8fb66a05f61b96fac467bb40529f39a4b5b8b0422df96e4ce",
+          "observedAt": "2026-10-11T09:03:56.950Z"
+        },
+        {
+          "id": "evidence_898f52c6-f1bd-428e-94df-a6fb6dd2e93f",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "658baeb9-2147-4060-b0a1-9a80b064afc2",
+          "preview": {
+            "columns": [
+              "id_bioguide",
+              "full_name",
+              "state",
+              "start",
+              "end",
+              "terms",
+              "ever_dec31"
+            ],
+            "rows": [
+              [
+                "H001087",
+                "Katie Hill",
+                "CA",
+                "2019-01-03",
+                "2019-11-03",
+                1,
+                0
+              ],
+              [
+                "B000711",
+                "Barbara Boxer",
+                "CA",
+                "1983-01-03",
+                "2017-01-03",
+                9,
+                1
+              ],
+              [
+                "B001102",
+                "Yvonne Brathwaite Burke",
+                "CA",
+                "1973-01-03",
+                "1979-01-03",
+                3,
+                1
+              ],
+              [
+                "B001158",
+                "Sala Galante Burton",
+                "CA",
+                "1983-06-21",
+                "1987-02-01",
+                3,
+                1
+              ],
+              [
+                "B001228",
+                "Mary Bono Mack",
+                "CA",
+                "1998-04-07",
+                "2013-01-03",
+                8,
+                1
+              ],
+              [
+                "B001270",
+                "Karen Bass",
+                "CA",
+                "2011-01-05",
+                "2021-01-03",
+                5,
+                1
+              ],
+              [
+                "B001285",
+                "Julia Brownley",
+                "CA",
+                "2013-01-03",
+                "2021-01-03",
+                4,
+                1
+              ],
+              [
+                "B001300",
+                "Nanette Diaz Barragán",
+                "CA",
+                "2017-01-03",
+                "2021-01-03",
+                2,
+                1
+              ],
+              [
+                "C001036",
+                "Lois Capps",
+                "CA",
+                "1998-03-10",
+                "2017-01-03",
+                10,
+                1
+              ],
+              [
+                "C001080",
+                "Judy Chu",
+                "CA",
+                "2009-07-16",
+                "2021-01-03",
+                6,
+                1
+              ],
+              [
+                "D000454",
+                "Helen Gahagan Douglas",
+                "CA",
+                "1945-01-03",
+                "1951-01-03",
+                3,
+                1
+              ],
+              [
+                "D000598",
+                "Susan A. Davis",
+                "CA",
+                "2001-01-03",
+                "2021-01-03",
+                10,
+                1
+              ],
+              [
+                "E000215",
+                "Anna G. Eshoo",
+                "CA",
+                "1993-01-05",
+                "2021-01-03",
+                14,
+                1
+              ],
+              [
+                "F000062",
+                "Dianne Feinstein",
+                "CA",
+                "1992-11-10",
+                "2025-01-03",
+                6,
+                1
+              ],
+              [
+                "F000102",
+                "Bobbi Fiedler",
+                "CA",
+                "1981-01-05",
+                "1987-01-03",
+                3,
+                1
+              ],
+              [
+                "H000213",
+                "Jane Harman",
+                "CA",
+                "1993-01-05",
+                "2011-02-28",
+                9,
+                1
+              ],
+              [
+                "H001063",
+                "Janice Hahn",
+                "CA",
+                "2011-07-19",
+                "2016-12-04",
+                3,
+                1
+              ],
+              [
+                "H001075",
+                "Kamala D. Harris",
+                "CA",
+                "2017-01-03",
+                "2023-01-03",
+                1,
+                1
+              ],
+              [
+                "K000002",
+                "Florence Prag Kahn",
+                "CA",
+                "1925-12-07",
+                "1937-01-03",
+                6,
+                1
+              ],
+              [
+                "L000397",
+                "Zoe Lofgren",
+                "CA",
+                "1995-01-04",
+                "2021-01-03",
+                13,
+                1
+              ],
+              [
+                "L000551",
+                "Barbara Lee",
+                "CA",
+                "1998-04-07",
+                "2021-01-03",
+                12,
+                1
+              ],
+              [
+                "M000714",
+                "Juanita Millender-McDonald",
+                "CA",
+                "1996-03-26",
+                "2007-04-22",
+                7,
+                1
+              ],
+              [
+                "M001163",
+                "Doris O. Matsui",
+                "CA",
+                "2005-03-10",
+                "2021-01-03",
+                8,
+                1
+              ],
+              [
+                "N000125",
+                "Mae Ella Nolan",
+                "CA",
+                "1921-04-11",
+                "1925-03-03",
+                2,
+                1
+              ],
+              [
+                "N000179",
+                "Grace F. Napolitano",
+                "CA",
+                "1999-01-06",
+                "2021-01-03",
+                11,
+                1
+              ],
+              [
+                "N000187",
+                "Gloria Negrete McLeod",
+                "CA",
+                "2013-01-03",
+                "2015-01-03",
+                1,
+                1
+              ],
+              [
+                "P000197",
+                "Nancy Pelosi",
+                "CA",
+                "1987-01-06",
+                "2021-01-03",
+                17,
+                1
+              ],
+              [
+                "P000273",
+                "Shirley Neil Pettis",
+                "CA",
+                "1975-04-29",
+                "1979-01-03",
+                2,
+                1
+              ],
+              [
+                "P000618",
+                "Katie Porter",
+                "CA",
+                "2019-01-03",
+                "2021-01-03",
+                1,
+                1
+              ],
+              [
+                "R000486",
+                "Lucille Roybal-Allard",
+                "CA",
+                "1993-01-05",
+                "2021-01-03",
+                14,
+                1
+              ],
+              [
+                "R000581",
+                "Laura Richardson",
+                "CA",
+                "2007-09-04",
+                "2013-01-03",
+                3,
+                1
+              ],
+              [
+                "S000030",
+                "Loretta Sanchez",
+                "CA",
+                "1997-01-07",
+                "2017-01-03",
+                10,
+                1
+              ],
+              [
+                "S000119",
+                "Lynn Schenk",
+                "CA",
+                "1993-01-05",
+                "1995-01-03",
+                1,
+                1
+              ],
+              [
+                "S000213",
+                "Andrea Seastrand",
+                "CA",
+                "1995-01-04",
+                "1997-01-03",
+                1,
+                1
+              ],
+              [
+                "S001153",
+                "Hilda L. Solis",
+                "CA",
+                "2001-01-03",
+                "2009-02-24",
+                5,
+                1
+              ],
+              [
+                "S001156",
+                "Linda T. Sánchez",
+                "CA",
+                "2003-01-07",
+                "2021-01-03",
+                9,
+                1
+              ],
+              [
+                "S001175",
+                "Jackie Speier",
+                "CA",
+                "2008-04-08",
+                "2021-01-03",
+                7,
+                1
+              ],
+              [
+                "T000057",
+                "Ellen O. Tauscher",
+                "CA",
+                "1997-01-07",
+                "2009-06-26",
+                7,
+                1
+              ],
+              [
+                "T000474",
+                "Norma J. Torres",
+                "CA",
+                "2015-01-06",
+                "2021-01-03",
+                3,
+                1
+              ],
+              [
+                "W000187",
+                "Maxine Waters",
+                "CA",
+                "1991-01-03",
+                "2021-01-03",
+                15,
+                1
+              ],
+              [
+                "W000738",
+                "Lynn C. Woolsey",
+                "CA",
+                "1993-01-05",
+                "2013-01-03",
+                10,
+                1
+              ],
+              [
+                "W000794",
+                "Diane E. Watson",
+                "CA",
+                "2001-06-07",
+                "2011-01-03",
+                5,
+                1
+              ],
+              [
+                "W000820",
+                "Mimi Walters",
+                "CA",
+                "2015-01-06",
+                "2019-01-03",
+                2,
+                1
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "TEXT",
+              "TEXT",
+              "TEXT",
+              "TEXT",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 43,
+            "truncated": false
+          },
+          "queryHash": "1d2faa751dd26004aa93b152a7c89400c00140a75c2e08833a4263241930dbf4",
+          "contentHash": "2fbc156ee8d6e0c65e339eda1c3cf20ac76010c18eaac3422aec031421788362",
+          "observedAt": "2026-10-11T09:04:49.659Z"
+        },
+        {
+          "id": "evidence_e7209416-d2f8-4bff-bb9a-bac7476f2567",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "3e47d808-cdda-4903-a724-e95bcbd89ac4",
+          "preview": {
+            "columns": [
+              "state",
+              "all_women",
+              "years_nonnegative"
+            ],
+            "rows": [
+              [
+                "CA",
+                43,
+                43
+              ],
+              [
+                "NY",
+                29,
+                29
+              ],
+              [
+                "FL",
+                20,
+                20
+              ],
+              [
+                "IL",
+                18,
+                18
+              ],
+              [
+                "MI",
+                13,
+                13
+              ],
+              [
+                "WA",
+                12,
+                12
+              ],
+              [
+                "PA",
+                11,
+                11
+              ],
+              [
+                "OH",
+                11,
+                11
+              ],
+              [
+                "TX",
+                10,
+                10
+              ],
+              [
+                "MO",
+                9,
+                9
+              ],
+              [
+                "GA",
+                9,
+                9
+              ],
+              [
+                "NC",
+                8,
+                8
+              ],
+              [
+                "MN",
+                8,
+                8
+              ],
+              [
+                "MD",
+                8,
+                8
+              ],
+              [
+                "MA",
+                8,
+                8
+              ],
+              [
+                "KS",
+                8,
+                8
+              ],
+              [
+                "CT",
+                8,
+                8
+              ],
+              [
+                "VA",
+                7,
+                7
+              ],
+              [
+                "NJ",
+                7,
+                7
+              ],
+              [
+                "IN",
+                7,
+                7
+              ],
+              [
+                "AZ",
+                7,
+                7
+              ],
+              [
+                "TN",
+                6,
+                6
+              ],
+              [
+                "OR",
+                6,
+                6
+              ],
+              [
+                "NV",
+                6,
+                6
+              ],
+              [
+                "HI",
+                6,
+                6
+              ],
+              [
+                "SC",
+                5,
+                5
+              ],
+              [
+                "NM",
+                5,
+                5
+              ],
+              [
+                "NH",
+                5,
+                5
+              ],
+              [
+                "LA",
+                5,
+                5
+              ],
+              [
+                "AR",
+                5,
+                5
+              ],
+              [
+                "AL",
+                5,
+                5
+              ],
+              [
+                "UT",
+                4,
+                4
+              ],
+              [
+                "SD",
+                4,
+                4
+              ],
+              [
+                "NE",
+                4,
+                4
+              ],
+              [
+                "ME",
+                4,
+                4
+              ],
+              [
+                "CO",
+                4,
+                4
+              ],
+              [
+                "WY",
+                3,
+                3
+              ],
+              [
+                "WV",
+                3,
+                3
+              ],
+              [
+                "OK",
+                3,
+                3
+              ],
+              [
+                "IA",
+                3,
+                3
+              ],
+              [
+                "WI",
+                2,
+                2
+              ],
+              [
+                "VI",
+                2,
+                2
+              ],
+              [
+                "ND",
+                2,
+                2
+              ],
+              [
+                "KY",
+                2,
+                2
+              ],
+              [
+                "ID",
+                2,
+                2
+              ],
+              [
+                "RI",
+                1,
+                1
+              ],
+              [
+                "PR",
+                1,
+                1
+              ],
+              [
+                "MT",
+                1,
+                1
+              ],
+              [
+                "MS",
+                1,
+                1
+              ],
+              [
+                "GU",
+                1,
+                1
+              ],
+              [
+                "DE",
+                1,
+                1
+              ],
+              [
+                "DC",
+                1,
+                1
+              ],
+              [
+                "AS",
+                1,
+                1
+              ],
+              [
+                "AK",
+                1,
+                1
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 54,
+            "truncated": false
+          },
+          "queryHash": "e6ae47e6cc4018178fa327d4b24cf4bea1df4ec12841cbdf949256963e4bee9f",
+          "contentHash": "7c4860cac44b1700581b03648f57ef83e1e35c750bb2892b13dc104d9c24cd9a",
+          "observedAt": "2026-10-11T09:04:55.151Z"
+        },
+        {
+          "id": "evidence_aaa4644a-ef86-404e-81b5-639d85f1b9a8",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "1e9c28b8-261b-44fc-95b4-4ab69089ad38",
+          "preview": {
+            "columns": [
+              "state",
+              "n_female_legislators"
+            ],
+            "rows": [
+              [
+                "CA",
+                42
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "871f6463bed0e5e5f678b39afcef964019b8b688ec482675692fce97b758e15f",
+          "contentHash": "44c924d23c6e4213f13476263bc41350c4b8e4e76e407e6115f09a9371bea5f8",
+          "observedAt": "2026-10-11T09:05:36.228Z"
+        },
+        {
+          "id": "evidence_56f16792-476f-4c55-a24e-620aac8f6edf",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "fc589a47-75d1-4089-bec2-634108f9b76f",
+          "preview": {
+            "columns": [
+              "inclusive_people",
+              "exclusive_people",
+              "joined_rows"
+            ],
+            "rows": [
+              [
+                42,
+                42,
+                567
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "504d70f2e16cb5e7a8960ecd84fdf83ad8aae84b7f270c45c49db0cec871f498",
+          "contentHash": "3519691c897d46bad9ca3201edc7d3852eb5c0762dfd7a0fab50268d4ab37be0",
+          "observedAt": "2026-10-11T09:06:03.405Z"
+        },
+        {
+          "id": "evidence_84529296-a480-4d71-8927-c719fe140a5f",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "8e48d780-561e-442d-880a-f8e31e3744fc",
+          "preview": {
+            "columns": [
+              "people"
+            ],
+            "rows": [
+              [
+                25
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "0cef2a218c7c9794c211f54b11e3a06ff203da12388673a932fa422192ce3fe5",
+          "contentHash": "1d8a1573b19007ea28062db55280a2c114a42f10599af44470d7d832805d282d",
+          "observedAt": "2026-10-11T09:06:09.439Z"
+        }
+      ]
+    }
+  ],
+  "attempts": [
+    {
+      "taskId": "task_6cc27d11-d465-472f-90ea-3360c407e6f0",
+      "items": [
+        {
+          "attemptId": "attempt_6d62863e-437f-4f45-8563-236d923f8ea1",
+          "taskId": "task_6cc27d11-d465-472f-90ea-3360c407e6f0",
+          "kind": "exploration",
+          "revisionId": "revision_744343e4-22d8-4dea-b261-135118eaae4d",
+          "invocationId": "bdb18785-842f-4ae5-ad60-c933f4894ed9",
+          "queryHash": "8b06c4085f1555289f10cd54457abfc40af7b3f4e06cea96c058d94826de665f",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:02:58.504Z",
+          "updatedAt": "2026-10-11T09:02:59.167Z"
+        },
+        {
+          "attemptId": "attempt_04c4e93f-96f5-4613-92bc-20beaf966b92",
+          "taskId": "task_6cc27d11-d465-472f-90ea-3360c407e6f0",
+          "kind": "exploration",
+          "revisionId": "revision_744343e4-22d8-4dea-b261-135118eaae4d",
+          "invocationId": "dabfd70e-c4ab-473e-8840-6d67ff3a867e",
+          "queryHash": "a18a48b5168cc7ba7d16044113ad17bed46e9eb6efff5e58de9474e26597cc13",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:03:05.157Z",
+          "updatedAt": "2026-10-11T09:03:06.097Z"
+        },
+        {
+          "attemptId": "attempt_1b22f862-da2b-4e79-a782-b6f3733f4a57",
+          "taskId": "task_6cc27d11-d465-472f-90ea-3360c407e6f0",
+          "kind": "exploration",
+          "revisionId": "revision_744343e4-22d8-4dea-b261-135118eaae4d",
+          "invocationId": "3c0c366e-09e7-4721-b37d-f6dfcfeccd8b",
+          "queryHash": "b2a59f257f134088b9c537af77a35fedfc1dc8e73e03da886e1315581d52fe4f",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:03:10.342Z",
+          "updatedAt": "2026-10-11T09:03:10.846Z"
+        },
+        {
+          "attemptId": "attempt_420c4a83-bc21-460d-a6c8-a44ef3753cbf",
+          "taskId": "task_6cc27d11-d465-472f-90ea-3360c407e6f0",
+          "kind": "exploration",
+          "revisionId": "revision_744343e4-22d8-4dea-b261-135118eaae4d",
+          "invocationId": "9d6635bf-1b06-4f2d-9139-ab4148e5501a",
+          "queryHash": "9b4b2fc40feece89f52042ee5227847d142219bfafeca88f6ac82f893f7bc126",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:03:16.305Z",
+          "updatedAt": "2026-10-11T09:03:18.055Z"
+        },
+        {
+          "attemptId": "attempt_5ca04bca-130a-4296-abb2-d6c295a59968",
+          "taskId": "task_6cc27d11-d465-472f-90ea-3360c407e6f0",
+          "kind": "exploration",
+          "revisionId": "revision_744343e4-22d8-4dea-b261-135118eaae4d",
+          "invocationId": "ddafcf06-a64c-4d58-9717-623c8e967ee7",
+          "queryHash": "1966eb4e9457a217bff10ab652a3aa54bd4e1cecc08fc3ea729860f3f8ae2890",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:03:43.820Z",
+          "updatedAt": "2026-10-11T09:03:46.064Z"
+        },
+        {
+          "attemptId": "attempt_4b03944a-89c8-455a-b266-6276bd1d87e2",
+          "taskId": "task_6cc27d11-d465-472f-90ea-3360c407e6f0",
+          "kind": "exploration",
+          "revisionId": "revision_744343e4-22d8-4dea-b261-135118eaae4d",
+          "invocationId": "6ec5bf85-01dd-4491-88fa-f1dba176a33d",
+          "queryHash": "2b17121d6ebddf0fe4ef213373d8c3a37600155a802415d0757b524f700fbf63",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:03:49.976Z",
+          "updatedAt": "2026-10-11T09:03:50.452Z"
+        },
+        {
+          "attemptId": "attempt_79e926c1-f670-4133-9e98-a7fc6d20933a",
+          "taskId": "task_6cc27d11-d465-472f-90ea-3360c407e6f0",
+          "kind": "exploration",
+          "revisionId": "revision_744343e4-22d8-4dea-b261-135118eaae4d",
+          "invocationId": "2b8b26e5-5647-469e-b893-05a492eee8d3",
+          "queryHash": "21c52c2cddd5d5c7e7159f6803470591b12551887d93c8bff12c1ac47b96710b",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:03:54.791Z",
+          "updatedAt": "2026-10-11T09:03:56.951Z"
+        },
+        {
+          "attemptId": "attempt_3d06fb1e-0935-4fa9-b334-7d9a37a599ff",
+          "taskId": "task_6cc27d11-d465-472f-90ea-3360c407e6f0",
+          "kind": "revision",
+          "revisionId": "revision_744343e4-22d8-4dea-b261-135118eaae4d",
+          "invocationId": "4db64be6-7fed-4905-b8de-ce1bc12fc7ed",
+          "state": "succeeded",
+          "sqlExecuted": false,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:04:05.243Z",
+          "updatedAt": "2026-10-11T09:04:05.230Z"
+        },
+        {
+          "attemptId": "attempt_a85b5f0c-29f0-4910-b84d-892a240017bb",
+          "taskId": "task_6cc27d11-d465-472f-90ea-3360c407e6f0",
+          "kind": "result",
+          "revisionId": "revision_5b3e3b3f-4cf0-48bf-90a5-eaf9f77cc240",
+          "invocationId": "41289de4-2f8f-4a74-8b39-df2faaed6654",
+          "queryHash": "59d8cbcf054c0b237bceb9ee596453dcab700b77ee636c2535338e21290913cb",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:04:10.864Z",
+          "updatedAt": "2026-10-11T09:04:13.157Z"
+        },
+        {
+          "attemptId": "attempt_6fb30598-8c9f-44eb-8bcb-f1f22f9e5503",
+          "taskId": "task_6cc27d11-d465-472f-90ea-3360c407e6f0",
+          "kind": "exploration",
+          "revisionId": "revision_5b3e3b3f-4cf0-48bf-90a5-eaf9f77cc240",
+          "invocationId": "658baeb9-2147-4060-b0a1-9a80b064afc2",
+          "queryHash": "1d2faa751dd26004aa93b152a7c89400c00140a75c2e08833a4263241930dbf4",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:04:47.320Z",
+          "updatedAt": "2026-10-11T09:04:49.660Z"
+        },
+        {
+          "attemptId": "attempt_1c35673f-cee1-4a77-aec0-586bbd2d9443",
+          "taskId": "task_6cc27d11-d465-472f-90ea-3360c407e6f0",
+          "kind": "exploration",
+          "revisionId": "revision_5b3e3b3f-4cf0-48bf-90a5-eaf9f77cc240",
+          "invocationId": "3e47d808-cdda-4903-a724-e95bcbd89ac4",
+          "queryHash": "e6ae47e6cc4018178fa327d4b24cf4bea1df4ec12841cbdf949256963e4bee9f",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:04:52.765Z",
+          "updatedAt": "2026-10-11T09:04:55.153Z"
+        },
+        {
+          "attemptId": "attempt_c106ffdf-bc22-4fd1-bed0-60f9a039eab7",
+          "taskId": "task_6cc27d11-d465-472f-90ea-3360c407e6f0",
+          "kind": "exploration",
+          "revisionId": "revision_5b3e3b3f-4cf0-48bf-90a5-eaf9f77cc240",
+          "invocationId": "1e9c28b8-261b-44fc-95b4-4ab69089ad38",
+          "queryHash": "871f6463bed0e5e5f678b39afcef964019b8b688ec482675692fce97b758e15f",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:05:32.394Z",
+          "updatedAt": "2026-10-11T09:05:36.230Z"
+        },
+        {
+          "attemptId": "attempt_0c7cac93-1ebc-4cd8-9cdd-176e7ec25670",
+          "taskId": "task_6cc27d11-d465-472f-90ea-3360c407e6f0",
+          "kind": "exploration",
+          "revisionId": "revision_5b3e3b3f-4cf0-48bf-90a5-eaf9f77cc240",
+          "invocationId": "fc589a47-75d1-4089-bec2-634108f9b76f",
+          "queryHash": "504d70f2e16cb5e7a8960ecd84fdf83ad8aae84b7f270c45c49db0cec871f498",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:05:46.415Z",
+          "updatedAt": "2026-10-11T09:06:03.407Z"
+        },
+        {
+          "attemptId": "attempt_76ff3a18-aba4-4a84-846b-18bcf4db80ed",
+          "taskId": "task_6cc27d11-d465-472f-90ea-3360c407e6f0",
+          "kind": "exploration",
+          "revisionId": "revision_5b3e3b3f-4cf0-48bf-90a5-eaf9f77cc240",
+          "invocationId": "8e48d780-561e-442d-880a-f8e31e3744fc",
+          "queryHash": "0cef2a218c7c9794c211f54b11e3a06ff203da12388673a932fa422192ce3fe5",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:06:07.823Z",
+          "updatedAt": "2026-10-11T09:06:09.441Z"
+        }
+      ]
+    }
+  ],
+  "candidates": [
+    {
+      "candidateId": "candidate_a1e6424f-5fd7-43f3-8a71-e21a7196bbf0",
+      "taskId": "task_6cc27d11-d465-472f-90ea-3360c407e6f0",
+      "revisionId": "revision_5b3e3b3f-4cf0-48bf-90a5-eaf9f77cc240",
+      "resultRef": "result_30d09d11-7aee-45e7-87b8-d3fc4bd0eb64",
+      "resultSchema": [
+        "state",
+        "female_legislators"
+      ],
+      "rowCount": 1,
+      "contentHash": "2389e1284782d03fac9adbab1c2325ed611b2e11f96cdf7a6aa905a259def7b5",
+      "sql": "WITH ranked AS (SELECT *,row_number() over(partition by id_bioguide order by term_start,term_number,term_id) rn FROM legislators_terms), eligible AS (SELECT l.id_bioguide,r.state FROM legislators l JOIN ranked r ON r.id_bioguide=l.id_bioguide AND r.rn=1 WHERE l.gender='F' AND EXISTS (SELECT 1 FROM legislators_terms t WHERE t.id_bioguide=l.id_bioguide AND substr(t.term_start,1,4)||'-12-31'<=t.term_end)), counts AS (SELECT state,count(*) female_legislators FROM eligible GROUP BY state) SELECT state,female_legislators FROM counts WHERE female_legislators=(SELECT max(female_legislators) FROM counts) ORDER BY state",
+      "queryHash": "59d8cbcf054c0b237bceb9ee596453dcab700b77ee636c2535338e21290913cb",
+      "findings": [],
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "attemptId": "attempt_a85b5f0c-29f0-4910-b84d-892a240017bb",
+      "createdByInvocationId": "41289de4-2f8f-4a74-8b39-df2faaed6654",
+      "createdAt": "2026-10-11T09:04:13.157Z",
+      "status": "ready",
+      "publishable": true
+    }
+  ],
+  "receipts": [
+    {
+      "receiptId": "publication_cbac473c-f7ea-4df8-9eca-b2be8523d7ed",
+      "taskId": "task_6cc27d11-d465-472f-90ea-3360c407e6f0",
+      "principalId": "independent-analyst",
+      "sessionId": "local167",
+      "candidateId": "candidate_a1e6424f-5fd7-43f3-8a71-e21a7196bbf0",
+      "revisionId": "revision_5b3e3b3f-4cf0-48bf-90a5-eaf9f77cc240",
+      "resultRef": "result_30d09d11-7aee-45e7-87b8-d3fc4bd0eb64",
+      "format": "csv",
+      "publicRef": "/api/runtime/publications/publication_cbac473c-f7ea-4df8-9eca-b2be8523d7ed?session_id=local167",
+      "contentHash": "2389e1284782d03fac9adbab1c2325ed611b2e11f96cdf7a6aa905a259def7b5",
+      "presentationContentHash": "edb71a0e5f13901134bb3ffe6b964a731d9063e88bcaf644dbc099e844975962",
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "disclosure": {
+        "required": true,
+        "unverifiedFields": [
+          {
+            "path": "population.eligibility",
+            "kind": "assumed"
+          },
+          {
+            "path": "population.conditions",
+            "kind": "assumed"
+          },
+          {
+            "path": "population.time",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.formula",
+            "kind": "assumed"
+          },
+          {
+            "path": "grouping",
+            "kind": "assumed"
+          },
+          {
+            "path": "selection",
+            "kind": "assumed"
+          },
+          {
+            "path": "output",
+            "kind": "assumed"
+          },
+          {
+            "path": "selection.ties",
+            "kind": "assumed"
+          }
+        ],
+        "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.conditions, population.time, measure.formula, grouping, selection, output, selection.ties。"
+      },
+      "physicalProfile": {
+        "version": 1,
+        "rowCount": 1,
+        "truncated": false,
+        "columns": [
+          {
+            "name": "state",
+            "kind": "text",
+            "nullCount": 0,
+            "distinctCount": 1
+          },
+          {
+            "name": "female_legislators",
+            "kind": "integer",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 1,
+            "min": "42",
+            "max": "42"
+          }
+        ]
+      },
+      "policyVersion": "answering-publication-v1",
+      "createdByInvocationId": "41289de4-2f8f-4a74-8b39-df2faaed6654",
+      "requestId": "41289de4-2f8f-4a74-8b39-df2faaed6654",
+      "createdAt": "2026-10-11T09:04:13.179Z"
+    }
+  ]
+}

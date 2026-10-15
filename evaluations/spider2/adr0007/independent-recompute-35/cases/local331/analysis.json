@@ -1,0 +1,57 @@
+{
+  "instance_id": "local331",
+  "status": "gold_conflict",
+  "summary": "Gold adds synthetic END7 with no actual page visit; COALESCE missing third event exactly reproduces all Gold top3, displacing legitimate /detail/1",
+  "fork_node": "population.eligibility",
+  "error_layer": "gold_nonvisit_category_conflict",
+  "visibility": "original actual-event eligibility explicit; conflict external to original implementation",
+  "independent_score": 0,
+  "evidence": [
+    {
+      "source": "blind.json",
+      "pointer": "/question",
+      "quote": "three distinct third-page visits"
+    },
+    {
+      "source": "comparison-input.json",
+      "pointer": "/goldCsv/0/content",
+      "quote": "END,7"
+    },
+    {
+      "source": "end-is-not-observed.json-response.txt",
+      "pointer": "/details/preview/rows",
+      "quote": "0"
+    },
+    {
+      "source": "synthetic-end-counterfactual.json-response.txt",
+      "pointer": "/details/preview/rows",
+      "quote": "END"
+    }
+  ],
+  "limitations": [
+    "Repeated rows and timestamp ties lack business event identities; retain rows and stable rowid ordering disclosed. Gold SQL unavailable but exact local category conflict verified."
+  ],
+  "parent_field_review": {
+    "instance_id": "local331",
+    "relevant_node": "population.entity",
+    "node_is_confirmed_original_error": false,
+    "explanation": "Gold多出无实际第三页访问的合成END事件",
+    "error_layer": "标准答案与本次输入/明确要求局部冲突",
+    "visibility": "不适用：未确认原Spec语义错误",
+    "qualification": "Gold差异相关节点，不冒充原系统错误节点",
+    "original_node_declared": true,
+    "original_node_status": "assumed",
+    "original_node_value": {
+      "name": "页面访问（visit）= activity_log 的一行（全表 action='view'）；无用户维度，以 session 为会话边界，会话内按 stamp 升序构成访问序列",
+      "keyColumns": [
+        "rowid"
+      ]
+    },
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local331/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/32/result/details/fields/0/value",
+      "quote": "{\"name\": \"页面访问（visit）= activity_log 的一行（全表 action='view'）；无用户维度，以 session 为会话边界，会话内按 stamp 升序构成访问序列\", \"keyColumns\": [\"rowid\"]}"
+    },
+    "primary_status": "gold_conflict"
+  }
+}

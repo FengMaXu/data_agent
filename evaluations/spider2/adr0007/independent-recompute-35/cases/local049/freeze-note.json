@@ -1,0 +1,8 @@
+{
+  "algorithm": "date_joined years, distinct company ID, fixed top industry by 3-year additions, total/3",
+  "assumptions": [
+    "date_joined is unicorn entry",
+    "top by additions not valuation",
+    "fixed industry not yearly changing"
+  ]
+}

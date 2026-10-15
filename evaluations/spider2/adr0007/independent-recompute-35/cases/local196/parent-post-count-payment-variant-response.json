@@ -1,0 +1,127 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_8d2f6672-a2fd-42f0-a11e-4c99e4327928\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nrating | customers | avg_spend | true_subsequent | payments_as_rentals\nG | 104 | 110.65990384615385 | 25.298076923076923 | 25.317307692307693\nNC-17 | 117 | 111.941452991453 | 25.358974358974358 | 25.367521367521366\nPG | 106 | 112.67066037735849 | 26.264150943396228 | 26.27358490566038\nPG-13 | 147 | 115.23639455782313 | 26.38095238095238 | 26.38095238095238\nR | 125 | 111.42312000000001 | 25.48 | 25.488"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_8d2f6672-a2fd-42f0-a11e-4c99e4327928",
+      "preview": {
+        "columns": [
+          "rating",
+          "customers",
+          "avg_spend",
+          "true_subsequent",
+          "payments_as_rentals"
+        ],
+        "rows": [
+          [
+            "G",
+            104,
+            110.65990384615385,
+            25.298076923076923,
+            25.317307692307693
+          ],
+          [
+            "NC-17",
+            117,
+            111.941452991453,
+            25.358974358974358,
+            25.367521367521366
+          ],
+          [
+            "PG",
+            106,
+            112.67066037735849,
+            26.264150943396228,
+            26.27358490566038
+          ],
+          [
+            "PG-13",
+            147,
+            115.23639455782313,
+            26.38095238095238,
+            26.38095238095238
+          ],
+          [
+            "R",
+            125,
+            111.42312000000001,
+            25.48,
+            25.488
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "REAL",
+          "REAL",
+          "REAL"
+        ],
+        "rowCount": 5,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "rating",
+        "customers",
+        "avg_spend",
+        "true_subsequent",
+        "payments_as_rentals"
+      ],
+      "rows": [
+        [
+          "G",
+          104,
+          110.65990384615385,
+          25.298076923076923,
+          25.317307692307693
+        ],
+        [
+          "NC-17",
+          117,
+          111.941452991453,
+          25.358974358974358,
+          25.367521367521366
+        ],
+        [
+          "PG",
+          106,
+          112.67066037735849,
+          26.264150943396228,
+          26.27358490566038
+        ],
+        [
+          "PG-13",
+          147,
+          115.23639455782313,
+          26.38095238095238,
+          26.38095238095238
+        ],
+        [
+          "R",
+          125,
+          111.42312000000001,
+          25.48,
+          25.488
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "REAL",
+        "REAL",
+        "REAL"
+      ],
+      "rowCount": 5,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_e3bf7e93-091a-4790-ac89-8eb3f1ab211f"
+  }
+}

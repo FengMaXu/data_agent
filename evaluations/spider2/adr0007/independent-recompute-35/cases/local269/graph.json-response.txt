@@ -1,0 +1,221 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_186605b7-c5ca-46a6-a3bb-1a5ad7a46783\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nid | name | contains_id | qty\n501 | Bottle 330cl | NULL | NULL\n502 | Bottle 500cl | NULL | NULL\n511 | Gift Carton | 501 | 3\n511 | Gift Carton | 502 | 2\n521 | Box Large | 502 | 72\n522 | Box Medium | 501 | 36\n523 | Box Small | 502 | 30\n524 | Gift Box | 511 | 8\n531 | Pallet of L | 521 | 12\n532 | Pallet of M | 522 | 20\n533 | Pallet Mix MS | 522 | 10\n533 | Pallet Mix MS | 523 | 20\n534 | Pallet Mix SG | 523 | 20\n534 | Pallet Mix SG | 524 | 16"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_186605b7-c5ca-46a6-a3bb-1a5ad7a46783",
+      "preview": {
+        "columns": [
+          "id",
+          "name",
+          "contains_id",
+          "qty"
+        ],
+        "rows": [
+          [
+            501,
+            "Bottle 330cl",
+            null,
+            null
+          ],
+          [
+            502,
+            "Bottle 500cl",
+            null,
+            null
+          ],
+          [
+            511,
+            "Gift Carton",
+            501,
+            3
+          ],
+          [
+            511,
+            "Gift Carton",
+            502,
+            2
+          ],
+          [
+            521,
+            "Box Large",
+            502,
+            72
+          ],
+          [
+            522,
+            "Box Medium",
+            501,
+            36
+          ],
+          [
+            523,
+            "Box Small",
+            502,
+            30
+          ],
+          [
+            524,
+            "Gift Box",
+            511,
+            8
+          ],
+          [
+            531,
+            "Pallet of L",
+            521,
+            12
+          ],
+          [
+            532,
+            "Pallet of M",
+            522,
+            20
+          ],
+          [
+            533,
+            "Pallet Mix MS",
+            522,
+            10
+          ],
+          [
+            533,
+            "Pallet Mix MS",
+            523,
+            20
+          ],
+          [
+            534,
+            "Pallet Mix SG",
+            523,
+            20
+          ],
+          [
+            534,
+            "Pallet Mix SG",
+            524,
+            16
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "TEXT",
+          "NULL",
+          "NULL"
+        ],
+        "rowCount": 14,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "id",
+        "name",
+        "contains_id",
+        "qty"
+      ],
+      "rows": [
+        [
+          501,
+          "Bottle 330cl",
+          null,
+          null
+        ],
+        [
+          502,
+          "Bottle 500cl",
+          null,
+          null
+        ],
+        [
+          511,
+          "Gift Carton",
+          501,
+          3
+        ],
+        [
+          511,
+          "Gift Carton",
+          502,
+          2
+        ],
+        [
+          521,
+          "Box Large",
+          502,
+          72
+        ],
+        [
+          522,
+          "Box Medium",
+          501,
+          36
+        ],
+        [
+          523,
+          "Box Small",
+          502,
+          30
+        ],
+        [
+          524,
+          "Gift Box",
+          511,
+          8
+        ],
+        [
+          531,
+          "Pallet of L",
+          521,
+          12
+        ],
+        [
+          532,
+          "Pallet of M",
+          522,
+          20
+        ],
+        [
+          533,
+          "Pallet Mix MS",
+          522,
+          10
+        ],
+        [
+          533,
+          "Pallet Mix MS",
+          523,
+          20
+        ],
+        [
+          534,
+          "Pallet Mix SG",
+          523,
+          20
+        ],
+        [
+          534,
+          "Pallet Mix SG",
+          524,
+          16
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "TEXT",
+        "NULL",
+        "NULL"
+      ],
+      "rowCount": 14,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_c612b80a-68f7-4e28-a560-2380f8ef1d76"
+  }
+}

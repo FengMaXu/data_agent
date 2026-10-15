@@ -1,0 +1,16 @@
+import sys
+sys.path.insert(0,'evaluations/spider2/adr0007/independent-recompute-35/lanes/D');from ops import *
+id='local096'
+begin(id,'电影，Movie.MID','percentage of films', '''# 独立题解
+原题逐字："For each year, calculate the percentage of films that had exclusively female actors (meaning no male actors and no actors with unknown/unspecified gender). Consider actors with gender marked as 'Male' or 'None' as non-female. For the results, display the year, the total number of movies in that year, and the percentage of movies with exclusively female actors. Extract the year from the Movie.year field by taking the last 4 characters and converting to a number."
+没有业务文档。分母是每年全部Movie，不应因演员连接丢掉电影。年份严格substr(year,-4)转换integer。分子要求至少一位已知Female演员且没有任何非Female/NULL/缺Person演员；空cast不能证实had female actors，故主解释排除，另算空cast无反例的逻辑备选。按MID区分电影并避免cast重复扩张分母。核对键唯一性、Gender取值、PID/MID空白、无法连接和cast空集，真实验证后冻结。
+''')
+query(id,'02-keys',"SELECT 'Movie' kind,COUNT(*) rows,COUNT(DISTINCT MID) distinct_id,SUM(MID!=TRIM(MID)) padded FROM Movie UNION ALL SELECT 'Person',COUNT(*),COUNT(DISTINCT PID),SUM(PID!=TRIM(PID)) FROM Person UNION ALL SELECT 'M_Cast',COUNT(*),COUNT(DISTINCT MID||'|'||PID),SUM(MID!=TRIM(MID) OR PID!=TRIM(PID)) FROM M_Cast")
+query(id,'03-gender',"SELECT Gender,COUNT(*) n FROM Person GROUP BY Gender")
+query(id,'04-link-profile',"SELECT COUNT(*) movies,SUM(NOT EXISTS(SELECT 1 FROM M_Cast c WHERE c.MID=m.MID)) no_cast,SUM(EXISTS(SELECT 1 FROM M_Cast c WHERE c.MID=m.MID AND NOT EXISTS(SELECT 1 FROM Person p WHERE p.PID=c.PID))) orphan_cast_movies FROM Movie m")
+query(id,'05-positive-examples',"SELECT m.MID,m.title,m.year,(SELECT COUNT(*) FROM M_Cast c WHERE c.MID=m.MID) casts FROM Movie m WHERE EXISTS(SELECT 1 FROM M_Cast c WHERE c.MID=m.MID) AND NOT EXISTS(SELECT 1 FROM M_Cast c LEFT JOIN Person p ON p.PID=c.PID WHERE c.MID=m.MID AND (p.Gender IS NULL OR p.Gender!='Female'))")
+query(id,'06-empty-by-year',"SELECT CAST(substr(m.year,-4) AS INTEGER) year,COUNT(*) total,SUM(NOT EXISTS(SELECT 1 FROM M_Cast c WHERE c.MID=m.MID)) empty_cast FROM Movie m GROUP BY 1 ORDER BY 1",150)
+base="""WITH flags AS(SELECT m.MID,CAST(substr(m.year,-4) AS INTEGER) year,CASE WHEN EXISTS(SELECT 1 FROM M_Cast c WHERE c.MID=m.MID) AND NOT EXISTS(SELECT 1 FROM M_Cast c LEFT JOIN Person p ON p.PID=c.PID WHERE c.MID=m.MID AND (p.Gender IS NULL OR p.Gender!='Female')) THEN 1 ELSE 0 END female_only FROM Movie m) """
+query(id,'07-independent-output',base+"SELECT year,COUNT(*) total_movies,100.0*SUM(female_only)/COUNT(*) female_percentage FROM flags GROUP BY year ORDER BY year",150)
+serialize(id,'全部电影为分母；分子至少有一位演员且所有演员都明确Female；空cast/未知/孤立演员不满足', ['至少一条M_Cast且不存在非Female演员用于分子；分母不筛cast'], '全部年份；严格CAST(substr(Movie.year,-4) AS INTEGER)', '每年全部Movie计数；分子至少一cast且所有cast Person.Gender=Female，100*分子/分母', ['CAST(substr(Movie.year,-4) AS INTEGER)'],'n/a',{'rowMode':'grouped','columns':['year','total_movies','female_percentage']},{'measure.countGrain':assumed('电影MID'),'measure.denominator':assumed('该年全部电影，非仅有cast电影')})
+finish(id,base+"SELECT year,COUNT(*) total_movies,100.0*SUM(female_only)/COUNT(*) female_percentage FROM flags GROUP BY year ORDER BY year",{'algorithm':'all Movie denominator; nonempty cast and only Female numerator; exact year suffix conversion','assumptions':['空cast排除分子，另算备选'],'limitations':['题面括号no male/no unknown可被读为空集也满足；主解释had actors要求正例']})

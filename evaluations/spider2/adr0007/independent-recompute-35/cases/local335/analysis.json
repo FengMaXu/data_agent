@@ -1,0 +1,61 @@
+{
+  "instance_id": "local335",
+  "status": "ambiguous_after_recompute",
+  "summary": "独立全车手赛季积分+同年实际参赛归属：Williams6/ToroRosso5/Sauber3/Minardi3/Jordan2；原同口径按姓名裁决第五为Arrows。两种不同改变均重现Gold名称集合：仅得分车队归属，或按车手×车队赛季积分比较，再按名称裁决。不能唯一定位Gold隐含口径。",
+  "fork_node": "population.conditions candidate (minimum total scoring scope and season constructor attribution); selection.ties confirmed independent-original local difference",
+  "error_layer": "unresolved_semantic_choice; no confirmed original implementation error",
+  "visibility": "intermediate measure grain and attribution incompletely specified; not a proven field visibility error",
+  "independent_score": 0,
+  "evidence": [
+    {
+      "source": "blind.json",
+      "pointer": "/question",
+      "quote": "their drivers scored the fewest total points among all point-scoring drivers in that season"
+    },
+    {
+      "source": "query-zero-point-affiliation-response.json",
+      "pointer": "/content/0/text",
+      "quote": "Frentzen"
+    },
+    {
+      "source": "query-team-min-details-response.json",
+      "pointer": "/content/0/text",
+      "quote": "Alesi"
+    },
+    {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local335/attempts/attempt-20261010-154318Z/trace.json",
+      "quote": "按赛季去重计数：每个车队计其满足条件的赛季数",
+      "pointer": "/toolCalls/40/result/details/fields/8/value",
+      "original_projection_source": "original-spec-review.json"
+    }
+  ],
+  "limitations": [
+    "Gold has names only and no SQL; two genuinely different mechanisms reproduce same names.",
+    "Gold only names vs original/independent extra season-count column can independently cause scoring failure.",
+    "2001 inclusive,2024partialround12; boundary fifth Arrows/Jordan2 for main interpretation.",
+    "All same-year constructors is disclosed interpretation, not proven business affiliation rule."
+  ],
+  "parent_field_review": {
+    "instance_id": "local335",
+    "relevant_node": "population.entity",
+    "node_is_confirmed_original_error": false,
+    "explanation": "赛季车手积分归属及转队处理至少两种机制都重现Gold，未唯一裁决",
+    "error_layer": "未唯一裁决",
+    "visibility": "不能标成假定错/决定错：原声明可见，不等于业务错误已证",
+    "qualification": "差异机制已实测，业务意图未唯一裁决",
+    "original_node_declared": true,
+    "original_node_status": "request",
+    "original_node_value": {
+      "name": "constructor",
+      "keyColumns": [
+        "constructor_id"
+      ]
+    },
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local335/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/40/result/details/fields/0/value",
+      "quote": "{\"name\": \"constructor\", \"keyColumns\": [\"constructor_id\"]}"
+    },
+    "primary_status": "ambiguous_after_recompute"
+  }
+}

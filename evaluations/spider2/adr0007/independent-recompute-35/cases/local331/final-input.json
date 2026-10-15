@@ -1,0 +1,3 @@
+{
+  "sql": "WITH ordered AS (SELECT rowid event_id,session,stamp,path,LEAD(path,1) OVER(PARTITION BY session ORDER BY stamp,rowid) second_page,LEAD(path,2) OVER(PARTITION BY session ORDER BY stamp,rowid) third_page,LEAD(rowid,2) OVER(PARTITION BY session ORDER BY stamp,rowid) third_event FROM activity_log WHERE action='view'), counts AS (SELECT third_page,COUNT(*) occurrences FROM ordered WHERE path='/detail' AND second_page='/detail' AND third_event IS NOT NULL GROUP BY third_page) SELECT third_page,occurrences FROM counts ORDER BY occurrences DESC,third_page ASC LIMIT 3"
+}

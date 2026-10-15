@@ -1,0 +1,69 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_6ec4f5bc-1dea-4613-97e6-9155db32a14a\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nmetric | n\ncost_rows_dec | 1907\ncost_keys_dec | 1907\nall_italian_customers | 7780"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_6ec4f5bc-1dea-4613-97e6-9155db32a14a",
+      "preview": {
+        "columns": [
+          "metric",
+          "n"
+        ],
+        "rows": [
+          [
+            "cost_rows_dec",
+            1907
+          ],
+          [
+            "cost_keys_dec",
+            1907
+          ],
+          [
+            "all_italian_customers",
+            7780
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 3,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "metric",
+        "n"
+      ],
+      "rows": [
+        [
+          "cost_rows_dec",
+          1907
+        ],
+        [
+          "cost_keys_dec",
+          1907
+        ],
+        [
+          "all_italian_customers",
+          7780
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 3,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_f51ff016-5372-4fe3-9cee-888bc9551138"
+  }
+}

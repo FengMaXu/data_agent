@@ -1,0 +1,673 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_9d0238ce-c215-48e0-b7c0-e5af93735bd9\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\ntitle | year | PID | Name | Gender\nOMG: Oh My God! | 2012 | nm0050187 |  Arun Bali | Male\nOMG: Oh My God! | 2012 | nm0149822 |  Mithun Chakraborty | Male\nOMG: Oh My God! | 2012 | nm0222150 |  Prabhu Deva | Male\nOMG: Oh My God! | 2012 | nm0222150 | Prabhu Deva | Male\nOMG: Oh My God! | 2012 | nm0474774 |  Akshay Kumar | Male\nOMG: Oh My God! | 2012 | nm0542498 |  Mahesh Manjrekar | Male\nOMG: Oh My God! | 2012 | nm0542498 | Mahesh Manjrekar | Male\nOMG: Oh My God! | 2012 | nm0620636 |  Govind Namdeo | Male\nOMG: Oh My God! | 2012 | nm0700875 |  Om Puri | Male\nOMG: Oh My God! | 2012 | nm0712546 |  Paresh Rawal | Male\nOMG: Oh My God! | 2012 | nm1030307 |  Poonam Jhawer | Female\nOMG: Oh My God! | 2012 | nm1084488 |  Umesh Shukla | NULL\nOMG: Oh My God! | 2012 | nm1084488 | Umesh Shukla | NULL\nOMG: Oh My God! | 2012 | nm1302330 |  Murli Sharma | Male\nOMG: Oh My God! | 2012 | nm1330618 |  Yusuf Hussain | Male\nOMG: Oh My God! | 2012 | nm1913309 |  Nikhil Ratnaparkhi | Male\nOMG: Oh My God! | 2012 | nm1979258 |  Chirag Vohra | Male\nOMG: Oh My God! | 2012 | nm2276202 |  Bhavesh Mandalia | NULL\nOMG: Oh My God! | 2012 | nm3140050 |  Azaan Shah | Male\nOMG: Oh My God! | 2012 | nm3848064 |  Sonakshi Sinha | Female\nOMG: Oh My God! | 2012 | nm3891905 |  Lubna Salim | Female\nOMG: Oh My God! | 2012 | nm4005751 |  Bhakti Ratnaparkhi | Female\nOMG: Oh My God! | 2012 | nm4443385 |  Krunal Pandit | Male\nOMG: Oh My God! | 2012 | nm4559606 |  Apoorva Arora | Female\nOMG: Oh My God! | 2012 | nm4999775 |  Nidhi Subbaiah | Female\nOMG: Oh My God! | 2012 | nm5314927 |  Jaineeraj Rajpurohit | Male\nOMG: Oh My God! | 2012 | nm5315020 |  Pradeep Vengurlekar | Male\nOMG: Oh My God! | 2012 | nm5315022 |  Kukul Taramaster | Male\nOMG: Oh My God! | 2012 | nm5315046 |  Karandeep Singh | Male\nOMG: Oh My God! | 2012 | nm5315050 |  Honey Chaaya | Male\nOMG: Oh My God! | 2012 | nm5363398 |  Ishita Vyas | Female\nOMG: Oh My God! | 2012 | nm5557230 |  Puja Gupta | Female\nOMG: Oh My God! | 2012 | nm5637026 |  Pathik Desai | Male\nOMG: Oh My God! | 2012 | nm6953296 |  Jayesh More | Male\nOMG: Oh My God! | 2012 | nm7317036 |  Vidya Patwardhan | Female\nOMG: Oh My God! | 2012 | nm7457338 |  Dimple Danda | Female\nOMG: Oh My God! | 2012 | nm7523299 |  Nilesh Pandya | Male\nOMG: Oh My God! | 2012 | nm7523300 |  Pravin Naik | Male\nOMG: Oh My God! | 2012 | nm7523301 |  Suneel Chouhan | Male\nOMG: Oh My God! | 2012 | nm7523302 |  Shashi Omprakash Sati | Female\nOMG: Oh My God! | 2012 | nm7523303 |  Vinad Khanna | Male\nOMG: Oh My God! | 2012 | nm7523304 |  Chirag Vora | Male\nOMG: Oh My God! | 2012 | nm7523305 |  Abdul Majid Shiakha | Male\nOMG: Oh My God! | 2012 | nm7523306 |  Anil Badola | Male"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_9d0238ce-c215-48e0-b7c0-e5af93735bd9",
+      "preview": {
+        "columns": [
+          "title",
+          "year",
+          "PID",
+          "Name",
+          "Gender"
+        ],
+        "rows": [
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm0050187",
+            " Arun Bali",
+            "Male"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm0149822",
+            " Mithun Chakraborty",
+            "Male"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm0222150",
+            " Prabhu Deva",
+            "Male"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm0222150",
+            "Prabhu Deva",
+            "Male"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm0474774",
+            " Akshay Kumar",
+            "Male"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm0542498",
+            " Mahesh Manjrekar",
+            "Male"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm0542498",
+            "Mahesh Manjrekar",
+            "Male"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm0620636",
+            " Govind Namdeo",
+            "Male"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm0700875",
+            " Om Puri",
+            "Male"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm0712546",
+            " Paresh Rawal",
+            "Male"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm1030307",
+            " Poonam Jhawer",
+            "Female"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm1084488",
+            " Umesh Shukla",
+            null
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm1084488",
+            "Umesh Shukla",
+            null
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm1302330",
+            " Murli Sharma",
+            "Male"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm1330618",
+            " Yusuf Hussain",
+            "Male"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm1913309",
+            " Nikhil Ratnaparkhi",
+            "Male"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm1979258",
+            " Chirag Vohra",
+            "Male"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm2276202",
+            " Bhavesh Mandalia",
+            null
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm3140050",
+            " Azaan Shah",
+            "Male"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm3848064",
+            " Sonakshi Sinha",
+            "Female"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm3891905",
+            " Lubna Salim",
+            "Female"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm4005751",
+            " Bhakti Ratnaparkhi",
+            "Female"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm4443385",
+            " Krunal Pandit",
+            "Male"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm4559606",
+            " Apoorva Arora",
+            "Female"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm4999775",
+            " Nidhi Subbaiah",
+            "Female"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm5314927",
+            " Jaineeraj Rajpurohit",
+            "Male"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm5315020",
+            " Pradeep Vengurlekar",
+            "Male"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm5315022",
+            " Kukul Taramaster",
+            "Male"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm5315046",
+            " Karandeep Singh",
+            "Male"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm5315050",
+            " Honey Chaaya",
+            "Male"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm5363398",
+            " Ishita Vyas",
+            "Female"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm5557230",
+            " Puja Gupta",
+            "Female"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm5637026",
+            " Pathik Desai",
+            "Male"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm6953296",
+            " Jayesh More",
+            "Male"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm7317036",
+            " Vidya Patwardhan",
+            "Female"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm7457338",
+            " Dimple Danda",
+            "Female"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm7523299",
+            " Nilesh Pandya",
+            "Male"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm7523300",
+            " Pravin Naik",
+            "Male"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm7523301",
+            " Suneel Chouhan",
+            "Male"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm7523302",
+            " Shashi Omprakash Sati",
+            "Female"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm7523303",
+            " Vinad Khanna",
+            "Male"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm7523304",
+            " Chirag Vora",
+            "Male"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm7523305",
+            " Abdul Majid Shiakha",
+            "Male"
+          ],
+          [
+            "OMG: Oh My God!",
+            "2012",
+            "nm7523306",
+            " Anil Badola",
+            "Male"
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "TEXT",
+          "TEXT",
+          "TEXT",
+          "TEXT"
+        ],
+        "rowCount": 44,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "title",
+        "year",
+        "PID",
+        "Name",
+        "Gender"
+      ],
+      "rows": [
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm0050187",
+          " Arun Bali",
+          "Male"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm0149822",
+          " Mithun Chakraborty",
+          "Male"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm0222150",
+          " Prabhu Deva",
+          "Male"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm0222150",
+          "Prabhu Deva",
+          "Male"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm0474774",
+          " Akshay Kumar",
+          "Male"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm0542498",
+          " Mahesh Manjrekar",
+          "Male"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm0542498",
+          "Mahesh Manjrekar",
+          "Male"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm0620636",
+          " Govind Namdeo",
+          "Male"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm0700875",
+          " Om Puri",
+          "Male"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm0712546",
+          " Paresh Rawal",
+          "Male"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm1030307",
+          " Poonam Jhawer",
+          "Female"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm1084488",
+          " Umesh Shukla",
+          null
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm1084488",
+          "Umesh Shukla",
+          null
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm1302330",
+          " Murli Sharma",
+          "Male"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm1330618",
+          " Yusuf Hussain",
+          "Male"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm1913309",
+          " Nikhil Ratnaparkhi",
+          "Male"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm1979258",
+          " Chirag Vohra",
+          "Male"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm2276202",
+          " Bhavesh Mandalia",
+          null
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm3140050",
+          " Azaan Shah",
+          "Male"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm3848064",
+          " Sonakshi Sinha",
+          "Female"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm3891905",
+          " Lubna Salim",
+          "Female"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm4005751",
+          " Bhakti Ratnaparkhi",
+          "Female"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm4443385",
+          " Krunal Pandit",
+          "Male"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm4559606",
+          " Apoorva Arora",
+          "Female"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm4999775",
+          " Nidhi Subbaiah",
+          "Female"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm5314927",
+          " Jaineeraj Rajpurohit",
+          "Male"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm5315020",
+          " Pradeep Vengurlekar",
+          "Male"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm5315022",
+          " Kukul Taramaster",
+          "Male"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm5315046",
+          " Karandeep Singh",
+          "Male"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm5315050",
+          " Honey Chaaya",
+          "Male"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm5363398",
+          " Ishita Vyas",
+          "Female"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm5557230",
+          " Puja Gupta",
+          "Female"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm5637026",
+          " Pathik Desai",
+          "Male"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm6953296",
+          " Jayesh More",
+          "Male"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm7317036",
+          " Vidya Patwardhan",
+          "Female"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm7457338",
+          " Dimple Danda",
+          "Female"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm7523299",
+          " Nilesh Pandya",
+          "Male"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm7523300",
+          " Pravin Naik",
+          "Male"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm7523301",
+          " Suneel Chouhan",
+          "Male"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm7523302",
+          " Shashi Omprakash Sati",
+          "Female"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm7523303",
+          " Vinad Khanna",
+          "Male"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm7523304",
+          " Chirag Vora",
+          "Male"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm7523305",
+          " Abdul Majid Shiakha",
+          "Male"
+        ],
+        [
+          "OMG: Oh My God!",
+          "2012",
+          "nm7523306",
+          " Anil Badola",
+          "Male"
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "TEXT",
+        "TEXT",
+        "TEXT",
+        "TEXT"
+      ],
+      "rowCount": 44,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_549e3d82-59ef-4b7e-bc58-87a2c1370ac1"
+  }
+}

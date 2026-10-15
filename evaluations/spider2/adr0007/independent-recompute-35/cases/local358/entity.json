@@ -1,0 +1,9 @@
+{
+  "fields": {
+    "population.entity": {
+      "value": "users by user_id",
+      "basis": "request",
+      "quote": "users"
+    }
+  }
+}

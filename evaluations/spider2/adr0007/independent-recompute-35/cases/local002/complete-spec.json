@@ -1,0 +1,45 @@
+{
+  "fields": {
+    "population.eligibility": {
+      "value": "Every calendar day, missing toy sales zero; item rows count as sold units irrespective of order status",
+      "basis": "assumed",
+      "rationale": "Daily sales implies regular calendar series; no status specified"
+    },
+    "population.conditions": {
+      "value": [
+        "category English toys"
+      ],
+      "basis": "request",
+      "quote": "toy sales"
+    },
+    "population.time": {
+      "value": "Training 2017-01-01..2018-08-29 inclusive; forecast 2018-12-03..10; centers 2018-12-05..08",
+      "basis": "request",
+      "quote": "December 5 to 8, 2018"
+    },
+    "measure.formula": {
+      "value": {
+        "op": "custom",
+        "description": "Count item rows by calendar day including zero days; OLS on elapsed calendar days; predict 8 days; symmetric five-day arithmetic mean for each of four centers; sum four means"
+      },
+      "basis": "assumed",
+      "rationale": "sales taken as units; OLS and centered mean implemented explicitly"
+    },
+    "grouping": {
+      "value": [],
+      "basis": "request",
+      "quote": "sum of those four 5-day moving averages"
+    },
+    "selection": "n/a",
+    "output": {
+      "value": {
+        "rowMode": "scalar",
+        "columns": [
+          "sum_moving_averages"
+        ]
+      },
+      "basis": "request",
+      "quote": "sum of those four 5-day moving averages"
+    }
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_ff9e879e-6847-400a-948a-89a48d9e3ed5\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nage_category | user_count\n20s | 9\n30s | 2\n40s | 3\n50s | 6\nothers | 10"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_ff9e879e-6847-400a-948a-89a48d9e3ed5",
+      "preview": {
+        "columns": [
+          "age_category",
+          "user_count"
+        ],
+        "rows": [
+          [
+            "20s",
+            9
+          ],
+          [
+            "30s",
+            2
+          ],
+          [
+            "40s",
+            3
+          ],
+          [
+            "50s",
+            6
+          ],
+          [
+            "others",
+            10
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 5,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "age_category",
+        "user_count"
+      ],
+      "rows": [
+        [
+          "20s",
+          9
+        ],
+        [
+          "30s",
+          2
+        ],
+        [
+          "40s",
+          3
+        ],
+        [
+          "50s",
+          6
+        ],
+        [
+          "others",
+          10
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 5,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_6ef52e17-56e0-4e67-9be0-fb6aefdcbec7"
+  }
+}
+

@@ -1,0 +1,164 @@
+{
+  "query": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[RESULT_CANDIDATE] candidateId=candidate_544735b4-a1bd-478b-8243-eff58c7a77a8 revisionId=revision_3d451437-31f3-4d1c-ac2e-4797f43872e1\noverall_average_salary\n92689.22222222222"
+      }
+    ],
+    "details": {
+      "kind": "result",
+      "artifact": {
+        "kind": "candidate",
+        "candidateId": "candidate_544735b4-a1bd-478b-8243-eff58c7a77a8",
+        "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+        "resultRef": "result_8c94154e-60e8-4755-a52d-543056a95e50"
+      },
+      "preview": {
+        "columns": [
+          "overall_average_salary"
+        ],
+        "rows": [
+          [
+            92689.22222222222
+          ]
+        ],
+        "columnTypes": [
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      },
+      "findings": [],
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "attemptId": "attempt_3e360daf-9354-4d6c-9131-a43098e1ece5"
+    }
+  },
+  "publication": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[PUBLISHED] csv [download](/api/runtime/publications/publication_8fff63c6-512d-4d0a-a880-0461a8a98d53?session_id=local168) receiptId=publication_8fff63c6-512d-4d0a-a880-0461a8a98d53\n[DISCLOSURE] 以下字段为假定，未被合格证据证实：population.eligibility, measure.formula, measure.countGrain, measure.denominator, selection.ties。"
+      }
+    ],
+    "details": {
+      "receiptId": "publication_8fff63c6-512d-4d0a-a880-0461a8a98d53",
+      "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+      "principalId": "independent-analyst",
+      "sessionId": "local168",
+      "candidateId": "candidate_544735b4-a1bd-478b-8243-eff58c7a77a8",
+      "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+      "resultRef": "result_8c94154e-60e8-4755-a52d-543056a95e50",
+      "format": "csv",
+      "publicRef": "/api/runtime/publications/publication_8fff63c6-512d-4d0a-a880-0461a8a98d53?session_id=local168",
+      "contentHash": "0ed2818eb4a091536d1a82b05ae3a28ea9cc43bd5dcfda06da5fba6cb235d4ff",
+      "presentationContentHash": "3a508c2f8524db6d2c5c42994f5841e80a44e42fc3626bc47cf00b4ffc4e3769",
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "disclosure": {
+        "required": true,
+        "unverifiedFields": [
+          {
+            "path": "population.eligibility",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.formula",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.countGrain",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.denominator",
+            "kind": "assumed"
+          },
+          {
+            "path": "selection.ties",
+            "kind": "assumed"
+          }
+        ],
+        "summary": "以下字段为假定，未被合格证据证实：population.eligibility, measure.formula, measure.countGrain, measure.denominator, selection.ties。"
+      },
+      "physicalProfile": {
+        "version": 1,
+        "rowCount": 1,
+        "truncated": false,
+        "columns": [
+          {
+            "name": "overall_average_salary",
+            "kind": "decimal",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 1,
+            "min": "92689.22222222222",
+            "max": "92689.22222222222"
+          }
+        ]
+      },
+      "policyVersion": "answering-publication-v1",
+      "createdByInvocationId": "aabb8b5b-01d8-4c22-a97f-c2b0fdcd7edb",
+      "requestId": "aabb8b5b-01d8-4c22-a97f-c2b0fdcd7edb",
+      "createdAt": "2026-10-11T09:22:20.785Z"
+    }
+  },
+  "authorizedCsv": "D:\\data_agent\\evaluations\\spider2\\adr0007\\independent-recompute-35\\cases\\local168\\publications\\publication_8fff63c6-512d-4d0a-a880-0461a8a98d53\\result.csv"
+}

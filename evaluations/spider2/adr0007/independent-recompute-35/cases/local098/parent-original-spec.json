@@ -1,0 +1,177 @@
+{
+  "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local098/attempts/attempt-001/trace.json",
+  "trace_index": 29,
+  "details": {
+    "taskId": "task_eb52d9ea-42d5-44b4-8498-5e495695c168",
+    "revisionId": "revision_ff8d11ca-aad2-4bb7-8866-8cef8042a262",
+    "parentRevisionId": "revision_72444d17-ddf6-4022-a77f-a427a4a3a8cd",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "assumed",
+        "value": {
+          "name": "actor (人物)",
+          "keyColumns": [
+            "PID"
+          ]
+        },
+        "rationale": "题面问'演员'，以人物实体为单位，业务键取 Person.PID/M_Cast.PID"
+      },
+      {
+        "path": "population.eligibility",
+        "status": "assumed",
+        "value": "仅计入在 M_Cast 至少有一条出演记录的人物 PID",
+        "rationale": "题面以'每位演员首次到末次出演影片的年份'为判定区间，预设演员必须有出演记录；无出演记录者无活跃期可谈。M_Cast 是出演表，Person 是通用人物表（5436 个制品人 PID 中仅 743 个也出演，5438 个 Person PID 无任何出演），计入非出演者会让他们空洞地满足'无缺口'，与题意不符。"
+      },
+      {
+        "path": "population.conditions",
+        "status": "assumed",
+        "value": [
+          "出演记录取 M_Cast，人物键为 TRIM(M_Cast.PID)（原始值含前导空格，长度 10 而 Person.PID 为 9）",
+          "影片年份取 Movie.year 末尾四位：CAST(SUBSTR(TRIM(year),-4) AS INTEGER)，范围为 1931-2018；避免 'I 2018' 等罗马数字前缀直接 CAST 成 0",
+          "缺口条件作用于演员层：相邻出现年份之差不超过 4（等价于活跃期内任意连续四个日历年至少有一个出演年份）"
+        ],
+        "rationale": "Movie.year 存在 'I 2018'/'III 2015' 等前缀（117 行非 4 位），直接 CAST 会得 0 并制造虚假大缺口"
+      },
+      {
+        "path": "population.source",
+        "status": "assumed",
+        "value": {
+          "tables": [
+            "M_Cast",
+            "Movie"
+          ],
+          "note": "出演=M_Cast（TRIM(PID) 作人物键），影片年份=Movie.year 末尾四位；Person 不参与，因其为通用人物表且 PID 前导空格不一致"
+        },
+        "rationale": "eligibility 已决定仅统计有出演记录者，无需进入 Person 表"
+      },
+      {
+        "path": "population.time",
+        "status": "assumed",
+        "value": {
+          "expression": "全库范围，无观察期限制；使用影片年份"
+        }
+      },
+      {
+        "path": "population.timeField",
+        "status": "assumed",
+        "value": "Movie.year",
+        "rationale": "题面'first year ... appeared in a film / new movie appearance'指影片年份"
+      },
+      {
+        "path": "population.missing",
+        "status": "assumed",
+        "value": "不补零；缺口由相邻出现年份之差判定，而非补齐日历期"
+      },
+      {
+        "path": "population.joinMultiplicity",
+        "status": "assumed",
+        "value": "M_Cast 与 Movie 按 MID 连接（Movie.MID 唯一），每(演员,影片)一行；同一演员同一年多部影片只计一个出现年份（需按 PID,year 去重）",
+        "rationale": "M_Cast 是每演员每影片一行的关联表，同一演员同一年多部影片会产生多行，但'出现年份'应按年去重"
+      },
+      {
+        "path": "measure.formula",
+        "status": "assumed",
+        "value": {
+          "op": "count",
+          "per": "actor",
+          "of": "PID"
+        },
+        "rationale": "答案是满足条件的演员人数"
+      },
+      {
+        "path": "measure.countGrain",
+        "status": "assumed",
+        "value": "按实体：每个满足'无四年缺口'条件的演员计 1"
+      },
+      {
+        "path": "measure.denominator",
+        "status": "not_applicable"
+      },
+      {
+        "path": "measure.window",
+        "status": "not_applicable"
+      },
+      {
+        "path": "grouping",
+        "status": "not_applicable"
+      },
+      {
+        "path": "selection",
+        "status": "not_applicable"
+      },
+      {
+        "path": "output",
+        "status": "assumed",
+        "value": {
+          "rowMode": "scalar",
+          "columns": [
+            "actor_count"
+          ],
+          "units": {
+            "actor_count": "演员人数"
+          },
+          "decimals": {
+            "actor_count": 0
+          }
+        }
+      }
+    ],
+    "undeclared": [],
+    "open": [],
+    "unverified": [
+      "population.entity",
+      "population.eligibility",
+      "population.conditions",
+      "population.time",
+      "population.timeField",
+      "population.missing",
+      "measure.formula",
+      "measure.countGrain",
+      "output",
+      "population.source",
+      "population.joinMultiplicity"
+    ],
+    "specFeedback": {
+      "taskId": "task_eb52d9ea-42d5-44b4-8498-5e495695c168",
+      "revisionId": "revision_ff8d11ca-aad2-4bb7-8866-8cef8042a262",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "unavailable",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_fd70dc6c2b08e7349b01ef1f",
+        "evidence_bcca17bc-6bf2-4be9-8f3f-023b0d84a85b",
+        "evidence_1351cd49-ba45-409d-9da4-73cacbea960f",
+        "evidence_dd3ff8bf-a61a-4162-93d9-bf39196228aa",
+        "evidence_0b8ddfa4-d84e-454c-885e-81aa6d7b0b33",
+        "evidence_bc3a8c02-6d71-40fc-aab4-f413c5e5e015",
+        "evidence_86c87a25-f84c-45de-9fad-42e7a55f1bae",
+        "evidence_86bdf05c-1039-4ada-90dd-b42154066b8a",
+        "evidence_5b986b19-f48f-422f-836d-60255d6f80e1",
+        "evidence_f08345ac-dbe0-4a89-a910-ec79f403ef64",
+        "evidence_c01d1691-d085-429e-ba78-965f1e62d91c",
+        "evidence_802d97b1-d1c8-497b-a4c6-0380bd0c85e0",
+        "evidence_68808dc2-37eb-40fb-a7c7-20859166675c",
+        "evidence_5006ca70-3ae5-43c7-9e44-0789415c3cab",
+        "evidence_829f3a4b-1333-47b8-8f76-0295cc966ac6",
+        "evidence_c06d74bb-8dba-416a-b0c1-b2febef0cfa0"
+      ],
+      "limitations": [],
+      "startedAt": "2026-10-10T15:19:35.774Z",
+      "inputHash": "1d5ce395a6f901f28b5408fb7d84e408c133749f93ba7ef0e5bea77fde7bf63c",
+      "reason": "provider_http_error",
+      "completedAt": "2026-10-10T15:19:36.748Z",
+      "durationMs": 974
+    },
+    "outcomes": [
+      {
+        "path": "population.conditions",
+        "status": "applied"
+      },
+      {
+        "path": "population.source",
+        "status": "applied"
+      }
+    ]
+  }
+}

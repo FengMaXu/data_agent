@@ -1,0 +1,268 @@
+{
+  "frozenAt": "2026-10-11T09:42:55.281Z",
+  "instance_id": "local297",
+  "independent": true,
+  "taskId": "task_b8daac91-db04-4c32-b06b-5aef7b67dd07",
+  "revisionId": "revision_8ed6e019-ac6c-45d2-90e1-064bd53cf184",
+  "publication": {
+    "receiptId": "publication_5db803ae-af19-4441-a24f-64d7dc6810ac",
+    "taskId": "task_b8daac91-db04-4c32-b06b-5aef7b67dd07",
+    "principalId": "independent-analyst",
+    "sessionId": "local297",
+    "candidateId": "candidate_3a07c56b-b469-4089-8007-86f6fca44c72",
+    "revisionId": "revision_8ed6e019-ac6c-45d2-90e1-064bd53cf184",
+    "resultRef": "result_49e6bed9-58fd-4cd5-90ba-8b23e53dce90",
+    "format": "csv",
+    "publicRef": "/api/runtime/publications/publication_5db803ae-af19-4441-a24f-64d7dc6810ac?session_id=local297",
+    "contentHash": "e11d082d723f04ad62b8328d28b03cdfaba2fa372a9d7e1b80a08ea251d4a6a3",
+    "presentationContentHash": "0f99a37e65133804652607e8a6b9c36a45330218c7a953cc862baa0120395e84",
+    "coverage": [
+      {
+        "checkId": "result_completeness",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_shape",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_identity",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "join_fanout",
+        "outcome": "not_applicable"
+      },
+      {
+        "checkId": "spec_feedback",
+        "ruleVersion": "spec-feedback-v2",
+        "outcome": "not_applicable",
+        "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+      }
+    ],
+    "fanout": {
+      "ruleVersion": "answering-fanout-v1",
+      "status": "not_applicable",
+      "snapshotScope": "unbound",
+      "targets": []
+    },
+    "disclosure": {
+      "required": true,
+      "unverifiedFields": [
+        {
+          "path": "population.time",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.countGrain",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.denominator",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.window",
+          "kind": "assumed"
+        },
+        {
+          "path": "selection.ties",
+          "kind": "assumed"
+        },
+        {
+          "path": "output",
+          "kind": "assumed"
+        }
+      ],
+      "summary": "以下字段为假定，未被合格证据证实：population.time, measure.countGrain, measure.denominator, measure.window, selection.ties, output。"
+    },
+    "physicalProfile": {
+      "version": 1,
+      "rowCount": 1,
+      "truncated": false,
+      "columns": [
+        {
+          "name": "percentage_customers",
+          "kind": "decimal",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 1,
+          "min": "54.2",
+          "max": "54.2"
+        }
+      ]
+    },
+    "policyVersion": "answering-publication-v1",
+    "createdByInvocationId": "750f0443-ca0a-4a48-9cee-e260cdfa9e2b",
+    "requestId": "750f0443-ca0a-4a48-9cee-e260cdfa9e2b",
+    "createdAt": "2026-10-11T09:42:54.176Z"
+  },
+  "currentRevision": {
+    "taskId": "task_b8daac91-db04-4c32-b06b-5aef7b67dd07",
+    "revisionId": "revision_8ed6e019-ac6c-45d2-90e1-064bd53cf184",
+    "parentRevisionId": "revision_bdd07c92-9807-4672-bfb8-33d5da700904",
+    "requestId": "38166f61-a7ea-4455-bcf8-89ddbbe1e64c",
+    "createdAt": "2026-10-11T09:42:52.725Z",
+    "fields": {
+      "population.entity": {
+        "state": "specified",
+        "value": {
+          "name": "customer"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_5b5d454c-10a1-4b53-be76-b0c013094a1e"
+          ]
+        }
+      },
+      "population.eligibility": {
+        "state": "specified",
+        "value": "All customers with deposits/withdrawals; includes zero and negative balances; observed set all 500 customers",
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_8382687b-bd58-429e-8e31-9a50542e9e26"
+          ]
+        }
+      },
+      "population.conditions": {
+        "state": "specified",
+        "value": [
+          "deposit positive, withdrawal negative, purchase excluded"
+        ],
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_00625981-a370-41f3-965a-fe68a6f6920b"
+          ]
+        }
+      },
+      "population.time": {
+        "state": "specified",
+        "value": {
+          "expression": "All observed dates, most recent deposit/withdrawal calendar month separately per customer; intermediate calendar gaps zero-filled"
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "For each customer scopes the latest month; compare actual previous calendar month; first prior balance zero"
+        }
+      },
+      "measure.formula": {
+        "state": "specified",
+        "value": {
+          "op": "custom",
+          "description": "Monthly deposit-withdrawal net; cumulative closing from initial 0; latest per customer growth=(closing-prior closing)/prior closing*100 using signed denominator, or current closing*100 if prior=0; percentage=100*count(growth>5)/count(all customers)"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_80635cc6-ccd1-4dd5-87b8-27305cd27c4e"
+          ]
+        }
+      },
+      "measure.countGrain": {
+        "state": "specified",
+        "value": "One latest-month row per customer",
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "measure.denominator": {
+        "state": "specified",
+        "value": "All 500 customers; signed prior closing for nonzero growth",
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "measure.window": {
+        "state": "specified",
+        "value": "Cumulative monthly nets from first observed month through per-customer last deposit/withdrawal month; adjacent calendar prior",
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "grouping": {
+        "state": "not_applicable"
+      },
+      "selection": {
+        "state": "specified",
+        "value": {
+          "n": 1,
+          "orderBy": "month DESC per customer"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_efe3ecc5-ea4d-44d0-830c-d7d112b86c06"
+          ]
+        }
+      },
+      "selection.ties": {
+        "state": "specified",
+        "value": "strict",
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "output": {
+        "state": "specified",
+        "value": {
+          "rowMode": "scalar",
+          "columns": [
+            "percentage_customers"
+          ],
+          "units": {
+            "percentage_customers": "%"
+          }
+        },
+        "basis": {
+          "kind": "assumed"
+        }
+      }
+    },
+    "state": {
+      "state": "ready",
+      "revisionId": "revision_8ed6e019-ac6c-45d2-90e1-064bd53cf184",
+      "ready": "ready_96db8140-d97f-4e80-a105-3da64a53f5e4"
+    },
+    "specFeedback": {
+      "taskId": "task_b8daac91-db04-4c32-b06b-5aef7b67dd07",
+      "revisionId": "revision_8ed6e019-ac6c-45d2-90e1-064bd53cf184",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_5b5d454c-10a1-4b53-be76-b0c013094a1e",
+        "evidence_67905096-e266-4b28-b436-554dd4279759",
+        "evidence_0f5d6f20-a52a-477f-a014-d1cfd6243067",
+        "evidence_75b19022-aee0-431f-855d-3f933f8714ff",
+        "evidence_f7c4ff96-ae44-400b-89fd-d3bbb2134774",
+        "evidence_8382687b-bd58-429e-8e31-9a50542e9e26",
+        "evidence_00625981-a370-41f3-965a-fe68a6f6920b",
+        "evidence_80635cc6-ccd1-4dd5-87b8-27305cd27c4e",
+        "evidence_efe3ecc5-ea4d-44d0-830c-d7d112b86c06"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    }
+  },
+  "analystNote": {
+    "algorithm": "Monthly deposit-withdrawal net; cumulative closing from initial 0; latest per customer growth=(closing-prior closing)/prior closing*100 using signed denominator, or current closing*100 if prior=0; percentage=100*count(growth>5)/count(all customers)",
+    "limitations": [
+      "Most recent selected-transaction month per customer, not global April",
+      "Signed prior balance denominator",
+      "Opening balance 0 and calendar missing nets 0 assumed"
+    ]
+  },
+  "settings": {
+    "qualification": "required",
+    "fieldProbes": true,
+    "externalAdvisor": "not_configured",
+    "specFeedback": "not_configured",
+    "fanout": "disabled_for_offline_audit",
+    "populationDecisions": "allow_disclosed_headless_audit",
+    "databaseReadOnly": true
+  }
+}

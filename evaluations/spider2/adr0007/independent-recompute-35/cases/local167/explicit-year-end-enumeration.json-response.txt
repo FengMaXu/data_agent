@@ -1,0 +1,60 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_56f16792-476f-4c55-a24e-620aac8f6edf\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\ninclusive_people | exclusive_people | joined_rows\n42 | 42 | 567"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_56f16792-476f-4c55-a24e-620aac8f6edf",
+      "preview": {
+        "columns": [
+          "inclusive_people",
+          "exclusive_people",
+          "joined_rows"
+        ],
+        "rows": [
+          [
+            42,
+            42,
+            567
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "inclusive_people",
+        "exclusive_people",
+        "joined_rows"
+      ],
+      "rows": [
+        [
+          42,
+          42,
+          567
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_0c7cac93-1ebc-4cd8-9cdd-176e7ec25670"
+  }
+}
+

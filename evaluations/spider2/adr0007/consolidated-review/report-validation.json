@@ -1,0 +1,10 @@
+{
+  "report_bytes": 72859,
+  "report_lines": 1274,
+  "gold_case_anchors": 32,
+  "balanced_quote_fences": 108,
+  "csv_rows": 61,
+  "csv_gold_problem_flags": 32,
+  "all_python_scripts_parse": true,
+  "navigation_anchors_verified": true
+}

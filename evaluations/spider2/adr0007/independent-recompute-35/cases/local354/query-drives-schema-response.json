@@ -1,0 +1,59 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_122bb1b5-f4e8-49d6-b16a-82b8a8aa5d31\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nname | type | sql\ndrives | table | CREATE TABLE drives(\n  year INT,\n  driver_id INT,\n  drive_id,\n  constructor_id INT,\n  first_round INT,\n  last_round INT,\n  is_first_drive_of_season,\n  is_final_drive_of_season\n)"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_122bb1b5-f4e8-49d6-b16a-82b8a8aa5d31",
+      "preview": {
+        "columns": [
+          "name",
+          "type",
+          "sql"
+        ],
+        "rows": [
+          [
+            "drives",
+            "table",
+            "CREATE TABLE drives(\n  year INT,\n  driver_id INT,\n  drive_id,\n  constructor_id INT,\n  first_round INT,\n  last_round INT,\n  is_first_drive_of_season,\n  is_final_drive_of_season\n)"
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "TEXT",
+          "TEXT"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "name",
+        "type",
+        "sql"
+      ],
+      "rows": [
+        [
+          "drives",
+          "table",
+          "CREATE TABLE drives(\n  year INT,\n  driver_id INT,\n  drive_id,\n  constructor_id INT,\n  first_round INT,\n  last_round INT,\n  is_first_drive_of_season,\n  is_final_drive_of_season\n)"
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "TEXT",
+        "TEXT"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_c69c88d6-1590-49dd-b79c-a36c699e8320"
+  }
+}

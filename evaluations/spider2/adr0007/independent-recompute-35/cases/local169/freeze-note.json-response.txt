@@ -1,0 +1,239 @@
+{
+  "frozenAt": "2026-10-11T09:08:09.960Z",
+  "instance_id": "local169",
+  "independent": true,
+  "taskId": "task_fc5d100f-7fec-4d70-8aa1-2bfd230e6822",
+  "revisionId": "revision_98ebfe58-cf14-4768-96ce-fa5190c51735",
+  "publication": {
+    "receiptId": "publication_d7460269-071f-411c-868d-a8cce5aa6134",
+    "taskId": "task_fc5d100f-7fec-4d70-8aa1-2bfd230e6822",
+    "principalId": "independent-analyst",
+    "sessionId": "local169",
+    "candidateId": "candidate_67e79810-0fdb-451e-a674-a5ab20ebb165",
+    "revisionId": "revision_98ebfe58-cf14-4768-96ce-fa5190c51735",
+    "resultRef": "result_0544c762-aa0b-4f41-ad19-bc8000083d74",
+    "format": "csv",
+    "publicRef": "/api/runtime/publications/publication_d7460269-071f-411c-868d-a8cce5aa6134?session_id=local169",
+    "contentHash": "ee2fbd5806de9b29a40312bdc94b0915c4c77ad44bf680ebf7185e6f02f9c9ad",
+    "presentationContentHash": "fa95949255a9c7144c7649a3b5f1b6438092498923054ee7ae4c47170ebd1471",
+    "coverage": [
+      {
+        "checkId": "result_completeness",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_shape",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_identity",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "join_fanout",
+        "outcome": "not_applicable"
+      },
+      {
+        "checkId": "spec_feedback",
+        "ruleVersion": "spec-feedback-v2",
+        "outcome": "not_applicable",
+        "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+      }
+    ],
+    "fanout": {
+      "ruleVersion": "answering-fanout-v1",
+      "status": "not_applicable",
+      "snapshotScope": "unbound",
+      "targets": []
+    },
+    "disclosure": {
+      "required": true,
+      "unverifiedFields": [
+        {
+          "path": "population.eligibility",
+          "kind": "assumed"
+        },
+        {
+          "path": "population.conditions",
+          "kind": "assumed"
+        },
+        {
+          "path": "population.time",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.formula",
+          "kind": "assumed"
+        },
+        {
+          "path": "grouping",
+          "kind": "assumed"
+        },
+        {
+          "path": "output",
+          "kind": "assumed"
+        }
+      ],
+      "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.conditions, population.time, measure.formula, grouping, output。"
+    },
+    "physicalProfile": {
+      "version": 1,
+      "rowCount": 20,
+      "truncated": false,
+      "columns": [
+        {
+          "name": "period",
+          "kind": "integer",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 20,
+          "min": "0",
+          "max": "19"
+        },
+        {
+          "name": "retention_rate",
+          "kind": "decimal",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 20,
+          "min": "0.2092734936771634",
+          "max": "0.9970245474832631"
+        }
+      ]
+    },
+    "policyVersion": "answering-publication-v1",
+    "createdByInvocationId": "f9d35ad4-448a-481b-b9f4-7d7633171f05",
+    "requestId": "f9d35ad4-448a-481b-b9f4-7d7633171f05",
+    "createdAt": "2026-10-11T09:08:06.834Z"
+  },
+  "currentRevision": {
+    "taskId": "task_fc5d100f-7fec-4d70-8aa1-2bfd230e6822",
+    "revisionId": "revision_98ebfe58-cf14-4768-96ce-fa5190c51735",
+    "parentRevisionId": "revision_c8916109-1dd3-4e7e-b0fd-0a830d09c1a5",
+    "requestId": "fb4aa50c-0453-47a6-a3da-e6412ce45bef",
+    "createdAt": "2026-10-11T09:08:02.107Z",
+    "fields": {
+      "population.entity": {
+        "state": "specified",
+        "value": {
+          "name": "legislators by id_bioguide"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_01138453-4d94-4d78-bf40-69111688f92b"
+          ]
+        }
+      },
+      "population.eligibility": {
+        "state": "specified",
+        "value": "Only observed eligible records; no fabricated missing records",
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+        }
+      },
+      "population.conditions": {
+        "state": "specified",
+        "value": [
+          "global first term starts 1917-01-01..1999-12-31 inclusive"
+        ],
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+        }
+      },
+      "population.time": {
+        "state": "specified",
+        "value": {
+          "expression": "First 20 year-end observations: initial start-year Dec31 through start-year+19 Dec31; inclusive term endpoints; no 1999 follow-up truncation"
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+        }
+      },
+      "measure.formula": {
+        "state": "specified",
+        "value": {
+          "op": "custom",
+          "description": "Fixed cohort denominator = count distinct people whose global first term starts in 1917..1999. For period 0..19, observation is Dec31 in start year plus period; numerator people with any inclusive term covering observation; retain all periods including zero. Ratio 0..1."
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+        }
+      },
+      "grouping": {
+        "state": "specified",
+        "value": [
+          "period 0..19"
+        ],
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+        }
+      },
+      "selection": {
+        "state": "not_applicable"
+      },
+      "output": {
+        "state": "specified",
+        "value": {
+          "rowMode": "full",
+          "columns": [
+            "period",
+            "retention_rate"
+          ]
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+        }
+      }
+    },
+    "state": {
+      "state": "ready",
+      "revisionId": "revision_98ebfe58-cf14-4768-96ce-fa5190c51735",
+      "ready": "ready_f3e2edd6-bc25-44e5-b5ec-e0ece2f9e41b"
+    },
+    "specFeedback": {
+      "taskId": "task_fc5d100f-7fec-4d70-8aa1-2bfd230e6822",
+      "revisionId": "revision_98ebfe58-cf14-4768-96ce-fa5190c51735",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_01138453-4d94-4d78-bf40-69111688f92b",
+        "evidence_cfe7c808-5c41-4c45-80d0-68f711b04e6a",
+        "evidence_53377167-145e-4ae6-9cee-b4c2ce787d45",
+        "evidence_f0a63eca-23e7-41bb-8a23-846f06220e5e",
+        "evidence_fec18632-90ca-4eda-85f7-bec87e73d1f5",
+        "evidence_d5d2b7c4-1807-45e3-8eba-549fa9e9c41e",
+        "evidence_8d7f4ddd-9925-43e6-a830-10ae3f7514df"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    }
+  },
+  "analystNote": {
+    "algorithm": "fixed cohort; 20 generated calendar year ends; EXISTS office each observation; fraction",
+    "assumptions": [
+      "period0 first subsequent Dec31 in starting calendar year",
+      "term_end inclusive",
+      "office after re-entry qualifies"
+    ],
+    "validation": "count and endpoint variants actual database probes retained"
+  },
+  "settings": {
+    "qualification": "required",
+    "fieldProbes": true,
+    "externalAdvisor": "not_configured",
+    "specFeedback": "not_configured",
+    "fanout": "disabled_for_offline_audit",
+    "populationDecisions": "allow_disclosed_headless_audit",
+    "databaseReadOnly": true
+  }
+}
+

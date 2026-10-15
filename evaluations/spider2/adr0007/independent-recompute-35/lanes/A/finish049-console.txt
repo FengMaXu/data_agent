@@ -1,0 +1,1488 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_35efe166-3fc5-449a-b0f4-2a2c1f025459\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nindustry | total | average_new_companies\nFintech | 173 | 57.666666666666664\nInternet software & services | 152 | 50.666666666666664\nE-commerce & direct-to-consumer | 75 | 25\nArtificial intelligence | 53 | 17.666666666666668\nHealth | 52 | 17.333333333333332\nOther | 41 | 13.666666666666666\nCybersecurity | 38 | 12.666666666666666\n\"Supply chain, logistics, & delivery\" | 35 | 11.666666666666666\nData management & analytics | 31 | 10.333333333333334\nMobile & telecommunications | 18 | 6"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_35efe166-3fc5-449a-b0f4-2a2c1f025459",
+      "preview": {
+        "columns": [
+          "industry",
+          "total",
+          "average_new_companies"
+        ],
+        "rows": [
+          [
+            "Fintech",
+            173,
+            57.666666666666664
+          ],
+          [
+            "Internet software & services",
+            152,
+            50.666666666666664
+          ],
+          [
+            "E-commerce & direct-to-consumer",
+            75,
+            25
+          ],
+          [
+            "Artificial intelligence",
+            53,
+            17.666666666666668
+          ],
+          [
+            "Health",
+            52,
+            17.333333333333332
+          ],
+          [
+            "Other",
+            41,
+            13.666666666666666
+          ],
+          [
+            "Cybersecurity",
+            38,
+            12.666666666666666
+          ],
+          [
+            "\"Supply chain, logistics, & delivery\"",
+            35,
+            11.666666666666666
+          ],
+          [
+            "Data management & analytics",
+            31,
+            10.333333333333334
+          ],
+          [
+            "Mobile & telecommunications",
+            18,
+            6
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "REAL"
+        ],
+        "rowCount": 10,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "industry",
+        "total",
+        "average_new_companies"
+      ],
+      "rows": [
+        [
+          "Fintech",
+          173,
+          57.666666666666664
+        ],
+        [
+          "Internet software & services",
+          152,
+          50.666666666666664
+        ],
+        [
+          "E-commerce & direct-to-consumer",
+          75,
+          25
+        ],
+        [
+          "Artificial intelligence",
+          53,
+          17.666666666666668
+        ],
+        [
+          "Health",
+          52,
+          17.333333333333332
+        ],
+        [
+          "Other",
+          41,
+          13.666666666666666
+        ],
+        [
+          "Cybersecurity",
+          38,
+          12.666666666666666
+        ],
+        [
+          "\"Supply chain, logistics, & delivery\"",
+          35,
+          11.666666666666666
+        ],
+        [
+          "Data management & analytics",
+          31,
+          10.333333333333334
+        ],
+        [
+          "Mobile & telecommunications",
+          18,
+          6
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "REAL"
+      ],
+      "rowCount": 10,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_b29b49dc-ecab-4c44-ac6d-cd4b54117e09"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_18e64a55-9f1c-4c8a-8b78-05e675a233b3\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nyear | industry | n\n2019 | Fintech | 20\n2019 | Artificial intelligence | 14\n2019 | Internet software & services | 13\n2019 | E-commerce & direct-to-consumer | 12\n2019 | Other | 9\n2019 | \"Supply chain, logistics, & delivery\" | 8\n2019 | Auto & transportation | 6\n2019 | Mobile & telecommunications | 4\n2019 | Data management & analytics | 4\n2019 | Cybersecurity | 4\n2019 | Travel | 3\n2019 | Health | 3\n2019 | Consumer & retail | 3\n2019 | Edtech | 1\n2020 | Internet software & services | 20\n2020 | E-commerce & direct-to-consumer | 16\n2020 | Fintech | 15\n2020 | Other | 11\n2020 | Health | 9\n2020 | Mobile & telecommunications | 8\n2020 | Cybersecurity | 7\n2020 | Data management & analytics | 6\n2020 | Auto & transportation | 5\n2020 | Edtech | 4\n2020 | Artificial intelligence | 3\n2020 | \"Supply chain, logistics, & delivery\" | 2\n2020 | Hardware | 1\n2020 | Consumer & retail | 1\n2021 | Fintech | 138\n2021 | Internet software & services | 119\n2021 | E-commerce & direct-to-consumer | 47\n2021 | Health | 40\n2021 | Artificial intelligence | 36\n2021 | Cybersecurity | 27\n2021 | \"Supply chain, logistics, & delivery\" | 25\n2021 | Other | 21\n2021 | Data management & analytics | 21\n2021 | Hardware | 14\n2021 | Edtech | 12\n2021 | Consumer & retail | 7\n2021 | Mobile & telecommunications | 6\n2021 | Auto & transportation | 4\n2021 | Travel | 3"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_18e64a55-9f1c-4c8a-8b78-05e675a233b3",
+      "preview": {
+        "columns": [
+          "year",
+          "industry",
+          "n"
+        ],
+        "rows": [
+          [
+            2019,
+            "Fintech",
+            20
+          ],
+          [
+            2019,
+            "Artificial intelligence",
+            14
+          ],
+          [
+            2019,
+            "Internet software & services",
+            13
+          ],
+          [
+            2019,
+            "E-commerce & direct-to-consumer",
+            12
+          ],
+          [
+            2019,
+            "Other",
+            9
+          ],
+          [
+            2019,
+            "\"Supply chain, logistics, & delivery\"",
+            8
+          ],
+          [
+            2019,
+            "Auto & transportation",
+            6
+          ],
+          [
+            2019,
+            "Mobile & telecommunications",
+            4
+          ],
+          [
+            2019,
+            "Data management & analytics",
+            4
+          ],
+          [
+            2019,
+            "Cybersecurity",
+            4
+          ],
+          [
+            2019,
+            "Travel",
+            3
+          ],
+          [
+            2019,
+            "Health",
+            3
+          ],
+          [
+            2019,
+            "Consumer & retail",
+            3
+          ],
+          [
+            2019,
+            "Edtech",
+            1
+          ],
+          [
+            2020,
+            "Internet software & services",
+            20
+          ],
+          [
+            2020,
+            "E-commerce & direct-to-consumer",
+            16
+          ],
+          [
+            2020,
+            "Fintech",
+            15
+          ],
+          [
+            2020,
+            "Other",
+            11
+          ],
+          [
+            2020,
+            "Health",
+            9
+          ],
+          [
+            2020,
+            "Mobile & telecommunications",
+            8
+          ],
+          [
+            2020,
+            "Cybersecurity",
+            7
+          ],
+          [
+            2020,
+            "Data management & analytics",
+            6
+          ],
+          [
+            2020,
+            "Auto & transportation",
+            5
+          ],
+          [
+            2020,
+            "Edtech",
+            4
+          ],
+          [
+            2020,
+            "Artificial intelligence",
+            3
+          ],
+          [
+            2020,
+            "\"Supply chain, logistics, & delivery\"",
+            2
+          ],
+          [
+            2020,
+            "Hardware",
+            1
+          ],
+          [
+            2020,
+            "Consumer & retail",
+            1
+          ],
+          [
+            2021,
+            "Fintech",
+            138
+          ],
+          [
+            2021,
+            "Internet software & services",
+            119
+          ],
+          [
+            2021,
+            "E-commerce & direct-to-consumer",
+            47
+          ],
+          [
+            2021,
+            "Health",
+            40
+          ],
+          [
+            2021,
+            "Artificial intelligence",
+            36
+          ],
+          [
+            2021,
+            "Cybersecurity",
+            27
+          ],
+          [
+            2021,
+            "\"Supply chain, logistics, & delivery\"",
+            25
+          ],
+          [
+            2021,
+            "Other",
+            21
+          ],
+          [
+            2021,
+            "Data management & analytics",
+            21
+          ],
+          [
+            2021,
+            "Hardware",
+            14
+          ],
+          [
+            2021,
+            "Edtech",
+            12
+          ],
+          [
+            2021,
+            "Consumer & retail",
+            7
+          ],
+          [
+            2021,
+            "Mobile & telecommunications",
+            6
+          ],
+          [
+            2021,
+            "Auto & transportation",
+            4
+          ],
+          [
+            2021,
+            "Travel",
+            3
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 43,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "year",
+        "industry",
+        "n"
+      ],
+      "rows": [
+        [
+          2019,
+          "Fintech",
+          20
+        ],
+        [
+          2019,
+          "Artificial intelligence",
+          14
+        ],
+        [
+          2019,
+          "Internet software & services",
+          13
+        ],
+        [
+          2019,
+          "E-commerce & direct-to-consumer",
+          12
+        ],
+        [
+          2019,
+          "Other",
+          9
+        ],
+        [
+          2019,
+          "\"Supply chain, logistics, & delivery\"",
+          8
+        ],
+        [
+          2019,
+          "Auto & transportation",
+          6
+        ],
+        [
+          2019,
+          "Mobile & telecommunications",
+          4
+        ],
+        [
+          2019,
+          "Data management & analytics",
+          4
+        ],
+        [
+          2019,
+          "Cybersecurity",
+          4
+        ],
+        [
+          2019,
+          "Travel",
+          3
+        ],
+        [
+          2019,
+          "Health",
+          3
+        ],
+        [
+          2019,
+          "Consumer & retail",
+          3
+        ],
+        [
+          2019,
+          "Edtech",
+          1
+        ],
+        [
+          2020,
+          "Internet software & services",
+          20
+        ],
+        [
+          2020,
+          "E-commerce & direct-to-consumer",
+          16
+        ],
+        [
+          2020,
+          "Fintech",
+          15
+        ],
+        [
+          2020,
+          "Other",
+          11
+        ],
+        [
+          2020,
+          "Health",
+          9
+        ],
+        [
+          2020,
+          "Mobile & telecommunications",
+          8
+        ],
+        [
+          2020,
+          "Cybersecurity",
+          7
+        ],
+        [
+          2020,
+          "Data management & analytics",
+          6
+        ],
+        [
+          2020,
+          "Auto & transportation",
+          5
+        ],
+        [
+          2020,
+          "Edtech",
+          4
+        ],
+        [
+          2020,
+          "Artificial intelligence",
+          3
+        ],
+        [
+          2020,
+          "\"Supply chain, logistics, & delivery\"",
+          2
+        ],
+        [
+          2020,
+          "Hardware",
+          1
+        ],
+        [
+          2020,
+          "Consumer & retail",
+          1
+        ],
+        [
+          2021,
+          "Fintech",
+          138
+        ],
+        [
+          2021,
+          "Internet software & services",
+          119
+        ],
+        [
+          2021,
+          "E-commerce & direct-to-consumer",
+          47
+        ],
+        [
+          2021,
+          "Health",
+          40
+        ],
+        [
+          2021,
+          "Artificial intelligence",
+          36
+        ],
+        [
+          2021,
+          "Cybersecurity",
+          27
+        ],
+        [
+          2021,
+          "\"Supply chain, logistics, & delivery\"",
+          25
+        ],
+        [
+          2021,
+          "Other",
+          21
+        ],
+        [
+          2021,
+          "Data management & analytics",
+          21
+        ],
+        [
+          2021,
+          "Hardware",
+          14
+        ],
+        [
+          2021,
+          "Edtech",
+          12
+        ],
+        [
+          2021,
+          "Consumer & retail",
+          7
+        ],
+        [
+          2021,
+          "Mobile & telecommunications",
+          6
+        ],
+        [
+          2021,
+          "Auto & transportation",
+          4
+        ],
+        [
+          2021,
+          "Travel",
+          3
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 43,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_f0f1bd06-3bdf-4d72-803b-ba51965b5924"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_cbf20a9e-4e95-48b7-b7ac-a9c50c5edd4a\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nindustry | founded_total\nFintech | 18\nInternet software & services | 14\nE-commerce & direct-to-consumer | 11\nHealth | 8\nCybersecurity | 8"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_cbf20a9e-4e95-48b7-b7ac-a9c50c5edd4a",
+      "preview": {
+        "columns": [
+          "industry",
+          "founded_total"
+        ],
+        "rows": [
+          [
+            "Fintech",
+            18
+          ],
+          [
+            "Internet software & services",
+            14
+          ],
+          [
+            "E-commerce & direct-to-consumer",
+            11
+          ],
+          [
+            "Health",
+            8
+          ],
+          [
+            "Cybersecurity",
+            8
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 5,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "industry",
+        "founded_total"
+      ],
+      "rows": [
+        [
+          "Fintech",
+          18
+        ],
+        [
+          "Internet software & services",
+          14
+        ],
+        [
+          "E-commerce & direct-to-consumer",
+          11
+        ],
+        [
+          "Health",
+          8
+        ],
+        [
+          "Cybersecurity",
+          8
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 5,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_1fbb39cc-ca93-4cb7-a0b4-70b7c978d9f4"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_6275008b-cb5f-4644-b544-dcdde723f0f3\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nrows | companies\n747 | 732"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_6275008b-cb5f-4644-b544-dcdde723f0f3",
+      "preview": {
+        "columns": [
+          "rows",
+          "companies"
+        ],
+        "rows": [
+          [
+            747,
+            732
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "rows",
+        "companies"
+      ],
+      "rows": [
+        [
+          747,
+          732
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_a836c770-9db7-4721-81cd-ce59729ae761"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_51d64568-2a51-4a4a-839d-8497ee615252 revisionId=revision_81c5b68d-4d0d-4a81-ba3a-3b535fb4c856\n- ✓ population.eligibility\n- ✓ population.conditions\n- ✓ population.time\n- ✓ measure.formula\n- ✓ grouping\n- ✓ selection\n- ✓ selection.ties\n- ✓ output\n状态：\n- 未证实（发布时披露）: population.eligibility, measure.formula, selection.ties\n- 没有待处理的字段，可以执行结果查询\n[SPEC_FEEDBACK] revisionId=revision_81c5b68d-4d0d-4a81-ba3a-3b535fb4c856 status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"新增独角兽公司 company_id\"}},\"population.eligibility\":{\"status\":\"assumed\",\"value\":\"Companies with joined date in interval and known industry; distinct company IDs\"},\"population.conditions\":{\"status\":\"request\",\"value\":[\"company joining unicorn list 2019..2021\"]},\"population.time\":{\"status\":\"request\",\"value\":{\"expression\":\"2019-01-01 inclusive to 2022-01-01 exclusive, 3 calendar years\"}},\"measure.formula\":{\"status\":\"assumed\",\"value\":{\"op\":\"custom\",\"description\":\"Distinct new company IDs by industry across 3 years; choose highest total industry; average yearly new company count=total/3.0, including zero years\"}},\"grouping\":{\"status\":\"request\",\"value\":[\"industry\"]},\"selection\":{\"status\":\"request\",\"value\":{\"n\":1,\"orderBy\":\"total DESC, industry ASC\"}},\"selection.ties\":{\"status\":\"assumed\",\"value\":\"strict\"},\"output\":{\"status\":\"request\",\"value\":{\"rowMode\":\"top_n\",\"rowCount\":1,\"columns\":[\"industry\",\"average_new_companies\"]}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_51d64568-2a51-4a4a-839d-8497ee615252",
+    "revisionId": "revision_81c5b68d-4d0d-4a81-ba3a-3b535fb4c856",
+    "parentRevisionId": "revision_b55e5363-bf65-49f2-acc8-6e11d8e7c97e",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "新增独角兽公司 company_id"
+        },
+        "evidenceIds": [
+          "evidence_a8d39bab-33d1-47fb-90d8-ba41552b8e47"
+        ]
+      },
+      {
+        "path": "population.eligibility",
+        "status": "assumed",
+        "value": "Companies with joined date in interval and known industry; distinct company IDs",
+        "rationale": "new unicorn is date joined not founding; distinct IDs count company entities"
+      },
+      {
+        "path": "population.conditions",
+        "status": "request",
+        "value": [
+          "company joining unicorn list 2019..2021"
+        ],
+        "evidenceIds": [
+          "evidence_eae88191-901f-4af9-9bfd-c92b81ba43a9"
+        ]
+      },
+      {
+        "path": "population.time",
+        "status": "request",
+        "value": {
+          "expression": "2019-01-01 inclusive to 2022-01-01 exclusive, 3 calendar years"
+        },
+        "evidenceIds": [
+          "evidence_212310d3-1764-4934-ae9a-e94faa3993c5"
+        ]
+      },
+      {
+        "path": "measure.formula",
+        "status": "assumed",
+        "value": {
+          "op": "custom",
+          "description": "Distinct new company IDs by industry across 3 years; choose highest total industry; average yearly new company count=total/3.0, including zero years"
+        },
+        "rationale": "top industry over entire requested period; yearly average has 3-year denominator"
+      },
+      {
+        "path": "grouping",
+        "status": "request",
+        "value": [
+          "industry"
+        ],
+        "evidenceIds": [
+          "evidence_898f5fef-7dab-4605-80ec-0c705e58467c"
+        ]
+      },
+      {
+        "path": "selection",
+        "status": "request",
+        "value": {
+          "n": 1,
+          "orderBy": "total DESC, industry ASC"
+        },
+        "evidenceIds": [
+          "evidence_51e6ac24-4dab-4a50-848a-2416aa29093d"
+        ]
+      },
+      {
+        "path": "selection.ties",
+        "status": "assumed",
+        "value": "strict"
+      },
+      {
+        "path": "output",
+        "status": "request",
+        "value": {
+          "rowMode": "top_n",
+          "rowCount": 1,
+          "columns": [
+            "industry",
+            "average_new_companies"
+          ]
+        },
+        "evidenceIds": [
+          "evidence_26c04f79-25f3-4cfa-8dd7-192edc130f47"
+        ]
+      }
+    ],
+    "undeclared": [],
+    "open": [],
+    "unverified": [
+      "population.eligibility",
+      "measure.formula",
+      "selection.ties"
+    ],
+    "specFeedback": {
+      "taskId": "task_51d64568-2a51-4a4a-839d-8497ee615252",
+      "revisionId": "revision_81c5b68d-4d0d-4a81-ba3a-3b535fb4c856",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_a8d39bab-33d1-47fb-90d8-ba41552b8e47",
+        "evidence_f1b31b9c-d48b-4d82-b396-c16fda8461fa",
+        "evidence_8d91415f-6c5a-49ed-929d-3b1095df5271",
+        "evidence_ab5fe007-8818-4d6d-be4a-3d8136f77da8",
+        "evidence_35efe166-3fc5-449a-b0f4-2a2c1f025459",
+        "evidence_18e64a55-9f1c-4c8a-8b78-05e675a233b3",
+        "evidence_cbf20a9e-4e95-48b7-b7ac-a9c50c5edd4a",
+        "evidence_6275008b-cb5f-4644-b544-dcdde723f0f3",
+        "evidence_eae88191-901f-4af9-9bfd-c92b81ba43a9",
+        "evidence_212310d3-1764-4934-ae9a-e94faa3993c5",
+        "evidence_898f5fef-7dab-4605-80ec-0c705e58467c",
+        "evidence_51e6ac24-4dab-4a50-848a-2416aa29093d",
+        "evidence_26c04f79-25f3-4cfa-8dd7-192edc130f47"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "population.eligibility",
+        "status": "applied"
+      },
+      {
+        "path": "population.conditions",
+        "status": "applied"
+      },
+      {
+        "path": "population.time",
+        "status": "applied"
+      },
+      {
+        "path": "measure.formula",
+        "status": "applied"
+      },
+      {
+        "path": "grouping",
+        "status": "applied"
+      },
+      {
+        "path": "selection",
+        "status": "applied"
+      },
+      {
+        "path": "selection.ties",
+        "status": "applied"
+      },
+      {
+        "path": "output",
+        "status": "applied"
+      }
+    ]
+  }
+}
+
+{
+  "query": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[RESULT_CANDIDATE] candidateId=candidate_2358f21b-b878-4c35-98b6-ebc80b574e43 revisionId=revision_81c5b68d-4d0d-4a81-ba3a-3b535fb4c856\nindustry | average_new_companies\nFintech | 57.666666666666664"
+      }
+    ],
+    "details": {
+      "kind": "result",
+      "artifact": {
+        "kind": "candidate",
+        "candidateId": "candidate_2358f21b-b878-4c35-98b6-ebc80b574e43",
+        "revisionId": "revision_81c5b68d-4d0d-4a81-ba3a-3b535fb4c856",
+        "resultRef": "result_febb77ba-0822-4a3f-bd40-b6c0e7b577d4"
+      },
+      "preview": {
+        "columns": [
+          "industry",
+          "average_new_companies"
+        ],
+        "rows": [
+          [
+            "Fintech",
+            57.666666666666664
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      },
+      "findings": [],
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "attemptId": "attempt_4ded8360-cadc-4a07-bb26-7486236c4a25"
+    }
+  },
+  "publication": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[PUBLISHED] csv [download](/api/runtime/publications/publication_4f58a567-572c-4cb4-8ee9-e8a591316e48?session_id=local049) receiptId=publication_4f58a567-572c-4cb4-8ee9-e8a591316e48\n[DISCLOSURE] 以下字段为假定，未被合格证据证实：population.eligibility, measure.formula, selection.ties。"
+      }
+    ],
+    "details": {
+      "receiptId": "publication_4f58a567-572c-4cb4-8ee9-e8a591316e48",
+      "taskId": "task_51d64568-2a51-4a4a-839d-8497ee615252",
+      "principalId": "independent-analyst",
+      "sessionId": "local049",
+      "candidateId": "candidate_2358f21b-b878-4c35-98b6-ebc80b574e43",
+      "revisionId": "revision_81c5b68d-4d0d-4a81-ba3a-3b535fb4c856",
+      "resultRef": "result_febb77ba-0822-4a3f-bd40-b6c0e7b577d4",
+      "format": "csv",
+      "publicRef": "/api/runtime/publications/publication_4f58a567-572c-4cb4-8ee9-e8a591316e48?session_id=local049",
+      "contentHash": "a399e54cc1b0c5574e076dc5551a874e175455e1f58980398edfee9e213e9bf7",
+      "presentationContentHash": "c538b629e195395e7dbbb65e9cd3e3a1f3d5b74d26a8c61cf70c1cc21632885b",
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "disclosure": {
+        "required": true,
+        "unverifiedFields": [
+          {
+            "path": "population.eligibility",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.formula",
+            "kind": "assumed"
+          },
+          {
+            "path": "selection.ties",
+            "kind": "assumed"
+          }
+        ],
+        "summary": "以下字段为假定，未被合格证据证实：population.eligibility, measure.formula, selection.ties。"
+      },
+      "physicalProfile": {
+        "version": 1,
+        "rowCount": 1,
+        "truncated": false,
+        "columns": [
+          {
+            "name": "industry",
+            "kind": "text",
+            "nullCount": 0,
+            "distinctCount": 1
+          },
+          {
+            "name": "average_new_companies",
+            "kind": "decimal",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 1,
+            "min": "57.666666666666664",
+            "max": "57.666666666666664"
+          }
+        ]
+      },
+      "policyVersion": "answering-publication-v1",
+      "createdByInvocationId": "64bbc9e8-612e-40ec-8d90-772e57bebc87",
+      "requestId": "64bbc9e8-612e-40ec-8d90-772e57bebc87",
+      "createdAt": "2026-10-11T09:18:01.002Z"
+    }
+  },
+  "authorizedCsv": "D:\\data_agent\\evaluations\\spider2\\adr0007\\independent-recompute-35\\cases\\local049\\publications\\publication_4f58a567-572c-4cb4-8ee9-e8a591316e48\\result.csv"
+}
+
+{
+  "frozenAt": "2026-10-11T09:18:02.886Z",
+  "instance_id": "local049",
+  "independent": true,
+  "taskId": "task_51d64568-2a51-4a4a-839d-8497ee615252",
+  "revisionId": "revision_81c5b68d-4d0d-4a81-ba3a-3b535fb4c856",
+  "publication": {
+    "receiptId": "publication_4f58a567-572c-4cb4-8ee9-e8a591316e48",
+    "taskId": "task_51d64568-2a51-4a4a-839d-8497ee615252",
+    "principalId": "independent-analyst",
+    "sessionId": "local049",
+    "candidateId": "candidate_2358f21b-b878-4c35-98b6-ebc80b574e43",
+    "revisionId": "revision_81c5b68d-4d0d-4a81-ba3a-3b535fb4c856",
+    "resultRef": "result_febb77ba-0822-4a3f-bd40-b6c0e7b577d4",
+    "format": "csv",
+    "publicRef": "/api/runtime/publications/publication_4f58a567-572c-4cb4-8ee9-e8a591316e48?session_id=local049",
+    "contentHash": "a399e54cc1b0c5574e076dc5551a874e175455e1f58980398edfee9e213e9bf7",
+    "presentationContentHash": "c538b629e195395e7dbbb65e9cd3e3a1f3d5b74d26a8c61cf70c1cc21632885b",
+    "coverage": [
+      {
+        "checkId": "result_completeness",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_shape",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_identity",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "join_fanout",
+        "outcome": "not_applicable"
+      },
+      {
+        "checkId": "spec_feedback",
+        "ruleVersion": "spec-feedback-v2",
+        "outcome": "not_applicable",
+        "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+      }
+    ],
+    "fanout": {
+      "ruleVersion": "answering-fanout-v1",
+      "status": "not_applicable",
+      "snapshotScope": "unbound",
+      "targets": []
+    },
+    "disclosure": {
+      "required": true,
+      "unverifiedFields": [
+        {
+          "path": "population.eligibility",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.formula",
+          "kind": "assumed"
+        },
+        {
+          "path": "selection.ties",
+          "kind": "assumed"
+        }
+      ],
+      "summary": "以下字段为假定，未被合格证据证实：population.eligibility, measure.formula, selection.ties。"
+    },
+    "physicalProfile": {
+      "version": 1,
+      "rowCount": 1,
+      "truncated": false,
+      "columns": [
+        {
+          "name": "industry",
+          "kind": "text",
+          "nullCount": 0,
+          "distinctCount": 1
+        },
+        {
+          "name": "average_new_companies",
+          "kind": "decimal",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 1,
+          "min": "57.666666666666664",
+          "max": "57.666666666666664"
+        }
+      ]
+    },
+    "policyVersion": "answering-publication-v1",
+    "createdByInvocationId": "64bbc9e8-612e-40ec-8d90-772e57bebc87",
+    "requestId": "64bbc9e8-612e-40ec-8d90-772e57bebc87",
+    "createdAt": "2026-10-11T09:18:01.002Z"
+  },
+  "currentRevision": {
+    "taskId": "task_51d64568-2a51-4a4a-839d-8497ee615252",
+    "revisionId": "revision_81c5b68d-4d0d-4a81-ba3a-3b535fb4c856",
+    "parentRevisionId": "revision_b55e5363-bf65-49f2-acc8-6e11d8e7c97e",
+    "requestId": "4e4a9c37-740a-443f-81b0-01b7e4818542",
+    "createdAt": "2026-10-11T09:17:58.040Z",
+    "fields": {
+      "population.entity": {
+        "state": "specified",
+        "value": {
+          "name": "新增独角兽公司 company_id"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_a8d39bab-33d1-47fb-90d8-ba41552b8e47"
+          ]
+        }
+      },
+      "population.eligibility": {
+        "state": "specified",
+        "value": "Companies with joined date in interval and known industry; distinct company IDs",
+        "basis": {
+          "kind": "assumed",
+          "rationale": "new unicorn is date joined not founding; distinct IDs count company entities"
+        }
+      },
+      "population.conditions": {
+        "state": "specified",
+        "value": [
+          "company joining unicorn list 2019..2021"
+        ],
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_eae88191-901f-4af9-9bfd-c92b81ba43a9"
+          ]
+        }
+      },
+      "population.time": {
+        "state": "specified",
+        "value": {
+          "expression": "2019-01-01 inclusive to 2022-01-01 exclusive, 3 calendar years"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_212310d3-1764-4934-ae9a-e94faa3993c5"
+          ]
+        }
+      },
+      "measure.formula": {
+        "state": "specified",
+        "value": {
+          "op": "custom",
+          "description": "Distinct new company IDs by industry across 3 years; choose highest total industry; average yearly new company count=total/3.0, including zero years"
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "top industry over entire requested period; yearly average has 3-year denominator"
+        }
+      },
+      "grouping": {
+        "state": "specified",
+        "value": [
+          "industry"
+        ],
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_898f5fef-7dab-4605-80ec-0c705e58467c"
+          ]
+        }
+      },
+      "selection": {
+        "state": "specified",
+        "value": {
+          "n": 1,
+          "orderBy": "total DESC, industry ASC"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_51e6ac24-4dab-4a50-848a-2416aa29093d"
+          ]
+        }
+      },
+      "selection.ties": {
+        "state": "specified",
+        "value": "strict",
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "output": {
+        "state": "specified",
+        "value": {
+          "rowMode": "top_n",
+          "rowCount": 1,
+          "columns": [
+            "industry",
+            "average_new_companies"
+          ]
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_26c04f79-25f3-4cfa-8dd7-192edc130f47"
+          ]
+        }
+      }
+    },
+    "state": {
+      "state": "ready",
+      "revisionId": "revision_81c5b68d-4d0d-4a81-ba3a-3b535fb4c856",
+      "ready": "ready_ef3197c9-7784-43da-afc8-3be7405ecfac"
+    },
+    "specFeedback": {
+      "taskId": "task_51d64568-2a51-4a4a-839d-8497ee615252",
+      "revisionId": "revision_81c5b68d-4d0d-4a81-ba3a-3b535fb4c856",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_a8d39bab-33d1-47fb-90d8-ba41552b8e47",
+        "evidence_f1b31b9c-d48b-4d82-b396-c16fda8461fa",
+        "evidence_8d91415f-6c5a-49ed-929d-3b1095df5271",
+        "evidence_ab5fe007-8818-4d6d-be4a-3d8136f77da8",
+        "evidence_35efe166-3fc5-449a-b0f4-2a2c1f025459",
+        "evidence_18e64a55-9f1c-4c8a-8b78-05e675a233b3",
+        "evidence_cbf20a9e-4e95-48b7-b7ac-a9c50c5edd4a",
+        "evidence_6275008b-cb5f-4644-b544-dcdde723f0f3",
+        "evidence_eae88191-901f-4af9-9bfd-c92b81ba43a9",
+        "evidence_212310d3-1764-4934-ae9a-e94faa3993c5",
+        "evidence_898f5fef-7dab-4605-80ec-0c705e58467c",
+        "evidence_51e6ac24-4dab-4a50-848a-2416aa29093d",
+        "evidence_26c04f79-25f3-4cfa-8dd7-192edc130f47"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    }
+  },
+  "analystNote": {
+    "algorithm": "date_joined years, distinct company ID, fixed top industry by 3-year additions, total/3",
+    "assumptions": [
+      "date_joined is unicorn entry",
+      "top by additions not valuation",
+      "fixed industry not yearly changing"
+    ]
+  },
+  "settings": {
+    "qualification": "required",
+    "fieldProbes": true,
+    "externalAdvisor": "not_configured",
+    "specFeedback": "not_configured",
+    "fanout": "disabled_for_offline_audit",
+    "populationDecisions": "allow_disclosed_headless_audit",
+    "databaseReadOnly": true
+  }
+}
+
+{
+  "revealedAt": "2026-10-11T09:18:04.195Z",
+  "registry": {
+    "instance_id": "local049",
+    "attempt_id": "attempt-001",
+    "score": 0,
+    "score_source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-attempt-001.json",
+    "replayed_csv_score": 0,
+    "group": "wrong",
+    "status": "completed",
+    "publication_status": "published",
+    "duration_ms": 144654,
+    "tool_calls": 20,
+    "error": null,
+    "result_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local049/attempts/attempt-001/result.json",
+    "trace_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local049/attempts/attempt-001/trace.json",
+    "result_exists": true,
+    "trace_exists": true,
+    "sql_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local049/attempts/attempt-001/submissions/sql/local049.sql",
+    "csv_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local049.csv",
+    "sql_exists": true,
+    "csv_exists": true,
+    "gold_sql_file": null,
+    "process": {
+      "turns": 13,
+      "toolCalls": 20,
+      "explorationQueries": 7,
+      "resultQueries": 1,
+      "fanoutProbes": 0,
+      "revisions": 2
+    },
+    "fanout_metrics": {
+      "reportCount": 1,
+      "targetCount": 0,
+      "findingCount": 0,
+      "unknownCount": 0,
+      "byStatus": {
+        "clear": 0,
+        "finding": 0,
+        "not_applicable": 1,
+        "unknown": 0
+      },
+      "enabled": true
+    },
+    "spec_feedback_metrics": {
+      "reportCount": 3,
+      "byStatus": {
+        "pending": 0,
+        "completed": 0,
+        "unavailable": 3,
+        "disabled": 0
+      },
+      "deterministicIssueCount": 0,
+      "concernCount": 0,
+      "enabled": true
+    }
+  },
+  "originalSql": "WITH ic AS (\n    SELECT DISTINCT company_id, industry FROM companies_industries\n),\ndd AS (\n    SELECT company_id, MIN(date_joined) AS dj FROM companies_dates GROUP BY company_id\n),\ny AS (\n    SELECT ic.industry,\n           CAST(substr(dd.dj,1,4) AS INTEGER) AS yr,\n           COUNT(DISTINCT ic.company_id) AS cnt\n    FROM ic JOIN dd ON ic.company_id = dd.company_id\n    WHERE CAST(substr(dd.dj,1,4) AS INTEGER) BETWEEN 2019 AND 2021\n    GROUP BY ic.industry, yr\n),\ntop AS (\n    SELECT industry FROM (\n        SELECT industry, SUM(cnt) AS tot FROM y GROUP BY industry ORDER BY tot DESC LIMIT 1\n    )\n)\nSELECT ROUND(SUM(cnt)/3.0, 2) AS avg_new_unicorns_per_year\nFROM y WHERE industry = (SELECT industry FROM top);\n",
+  "originalCsv": "avg_new_unicorns_per_year\n57.67\n",
+  "goldSql": null,
+  "goldCsv": [
+    {
+      "path": "C:\\data-agent-eval\\Spider2\\spider2-lite\\evaluation_suite\\gold\\exec_result\\local049.csv",
+      "content": "output\r\n59.67"
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local049",
+    "condition_cols": [],
+    "ignore_order": true,
+    "toks": "85"
+  }
+}
+
+{
+  "instance_id": "local049",
+  "independent_freeze": "D:/data_agent/evaluations/spider2/adr0007/independent-recompute-35/cases/local049/independent-freeze.json",
+  "independent_official_score": 0,
+  "original_replayed_score": 0,
+  "recorded_original_score": 0,
+  "scorer_limitations": "Column-wise tolerance matching; ignore_order may ignore row associations; passing is not business proof.",
+  "independent": {
+    "path": "D:/data_agent/evaluations/spider2/adr0007/independent-recompute-35/cases/local049/publications/publication_4f58a567-572c-4cb4-8ee9-e8a591316e48/result.csv",
+    "rows": 1,
+    "columns": [
+      "industry",
+      "average_new_companies"
+    ],
+    "head": [
+      {
+        "industry": "Fintech",
+        "average_new_companies": 57.6666666667
+      }
+    ]
+  },
+  "original": {
+    "path": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local049.csv",
+    "rows": 1,
+    "columns": [
+      "avg_new_unicorns_per_year"
+    ],
+    "head": [
+      {
+        "avg_new_unicorns_per_year": 57.67
+      }
+    ]
+  },
+  "golds": [
+    {
+      "path": "C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local049.csv",
+      "rows": 1,
+      "columns": [
+        "output"
+      ],
+      "head": [
+        {
+          "output": 59.67
+        }
+      ]
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local049",
+    "condition_cols": [],
+    "ignore_order": true,
+    "toks": "85"
+  }
+}
+ 

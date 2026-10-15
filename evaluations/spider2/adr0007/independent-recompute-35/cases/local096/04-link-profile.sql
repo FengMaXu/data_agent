@@ -1,0 +1,1 @@
+SELECT COUNT(*) movies,SUM(NOT EXISTS(SELECT 1 FROM M_Cast c WHERE c.MID=m.MID)) no_cast,SUM(EXISTS(SELECT 1 FROM M_Cast c WHERE c.MID=m.MID AND NOT EXISTS(SELECT 1 FROM Person p WHERE p.PID=c.PID))) orphan_cast_movies FROM Movie m

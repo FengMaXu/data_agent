@@ -1,0 +1,12 @@
+{
+  "fields": {
+    "selection": {
+      "value": {
+        "n": 1,
+        "orderBy": "island_day_count ASC for shortest; DESC for longest"
+      },
+      "basis": "assumed",
+      "rationale": "Both extremes, all ties, as planned"
+    }
+  }
+}

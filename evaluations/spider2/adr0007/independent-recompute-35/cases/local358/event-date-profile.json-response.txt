@@ -1,0 +1,80 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_e58a658b-7531-4f95-9d31-b58b307b7fc0\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nsrc | first_stamp | last_stamp\naction | 2016-11-03 18:00:00 | 2016-11-04 15:00:00\npurchase | 2017-01-30 10:00:00 | 2017-03-02 10:00:00\naccess | /detail | 2016-01-11 15:00:00"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_e58a658b-7531-4f95-9d31-b58b307b7fc0",
+      "preview": {
+        "columns": [
+          "src",
+          "first_stamp",
+          "last_stamp"
+        ],
+        "rows": [
+          [
+            "action",
+            "2016-11-03 18:00:00",
+            "2016-11-04 15:00:00"
+          ],
+          [
+            "purchase",
+            "2017-01-30 10:00:00",
+            "2017-03-02 10:00:00"
+          ],
+          [
+            "access",
+            "/detail",
+            "2016-01-11 15:00:00"
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "TEXT",
+          "TEXT"
+        ],
+        "rowCount": 3,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "src",
+        "first_stamp",
+        "last_stamp"
+      ],
+      "rows": [
+        [
+          "action",
+          "2016-11-03 18:00:00",
+          "2016-11-04 15:00:00"
+        ],
+        [
+          "purchase",
+          "2017-01-30 10:00:00",
+          "2017-03-02 10:00:00"
+        ],
+        [
+          "access",
+          "/detail",
+          "2016-01-11 15:00:00"
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "TEXT",
+        "TEXT"
+      ],
+      "rowCount": 3,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_56b3acb9-7cf2-465d-9dca-b256e6dd0f4b"
+  }
+}
+

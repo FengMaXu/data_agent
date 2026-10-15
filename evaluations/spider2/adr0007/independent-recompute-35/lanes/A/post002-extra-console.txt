@@ -1,0 +1,192 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_c21ed24f-03ae-4e4b-91d8-d1ecd9f11165\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nn | a | b | elapsed_answer | consistent_doy_answer\n582 | 265.82755495472225 | 3.426493142330312 | 10719.167894905708 | 5730.193879672774"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_c21ed24f-03ae-4e4b-91d8-d1ecd9f11165",
+      "preview": {
+        "columns": [
+          "n",
+          "a",
+          "b",
+          "elapsed_answer",
+          "consistent_doy_answer"
+        ],
+        "rows": [
+          [
+            582,
+            265.82755495472225,
+            3.426493142330312,
+            10719.167894905708,
+            5730.193879672774
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "REAL",
+          "REAL",
+          "REAL",
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "n",
+        "a",
+        "b",
+        "elapsed_answer",
+        "consistent_doy_answer"
+      ],
+      "rows": [
+        [
+          582,
+          265.82755495472225,
+          3.426493142330312,
+          10719.167894905708,
+          5730.193879672774
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "REAL",
+        "REAL",
+        "REAL",
+        "REAL"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_edb78bd1-5c9e-461c-b0e7-909b48e850ed"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_8abeda9d-f098-4cf0-8617-6832136b00dd\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nn | a | b | answer\n606 | 555.1658859510331 | 0.7132501601815119 | 4230.602495195633"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_8abeda9d-f098-4cf0-8617-6832136b00dd",
+      "preview": {
+        "columns": [
+          "n",
+          "a",
+          "b",
+          "answer"
+        ],
+        "rows": [
+          [
+            606,
+            555.1658859510331,
+            0.7132501601815119,
+            4230.602495195633
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "REAL",
+          "REAL",
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "n",
+        "a",
+        "b",
+        "answer"
+      ],
+      "rows": [
+        [
+          606,
+          555.1658859510331,
+          0.7132501601815119,
+          4230.602495195633
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "REAL",
+        "REAL",
+        "REAL"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_7e16da82-d6e7-4ba3-a98d-a9fe431e35f5"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_790c6786-708e-46f2-a97f-cdd59e7f2d2c\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nsy | order_count_answer\n3861 | 34.65134724345582"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_790c6786-708e-46f2-a97f-cdd59e7f2d2c",
+      "preview": {
+        "columns": [
+          "sy",
+          "order_count_answer"
+        ],
+        "rows": [
+          [
+            3861,
+            34.65134724345582
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "sy",
+        "order_count_answer"
+      ],
+      "rows": [
+        [
+          3861,
+          34.65134724345582
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "REAL"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_3b6a4cf8-508f-4f1e-98b8-94d168df18a3"
+  }
+}
+

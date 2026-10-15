@@ -1,0 +1,101 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_4060088e-ac52-48a0-b6bf-6721e4f67ed5\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\njob_id | salary_year_avg | salary | skill_id\n419649 | 90000 | 90000 | 1\n777802 | 135000 | 135000 | 1\n1791218 | 95700 | 95700 | 1\n1791218 | 95700 | 95700 | 187"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_4060088e-ac52-48a0-b6bf-6721e4f67ed5",
+      "preview": {
+        "columns": [
+          "job_id",
+          "salary_year_avg",
+          "salary",
+          "skill_id"
+        ],
+        "rows": [
+          [
+            419649,
+            90000,
+            90000,
+            1
+          ],
+          [
+            777802,
+            135000,
+            135000,
+            1
+          ],
+          [
+            1791218,
+            95700,
+            95700,
+            1
+          ],
+          [
+            1791218,
+            95700,
+            95700,
+            187
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 4,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "job_id",
+        "salary_year_avg",
+        "salary",
+        "skill_id"
+      ],
+      "rows": [
+        [
+          419649,
+          90000,
+          90000,
+          1
+        ],
+        [
+          777802,
+          135000,
+          135000,
+          1
+        ],
+        [
+          1791218,
+          95700,
+          95700,
+          1
+        ],
+        [
+          1791218,
+          95700,
+          95700,
+          187
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 4,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_663fa637-076e-43a7-8383-6c1e7bf3be7a"
+  }
+}

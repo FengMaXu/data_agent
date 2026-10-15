@@ -1,0 +1,99 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_b1950293-9f5d-49bb-ace0-836d417c30f7\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nyear | round | name | status | laps\n1952 | 5 | Aston Butterworth | Withdrew | 0\n1952 | 6 | Aston Butterworth | Oil pressure | 2\n1952 | 8 | Aston Butterworth | Did not qualify | 0"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_b1950293-9f5d-49bb-ace0-836d417c30f7",
+      "preview": {
+        "columns": [
+          "year",
+          "round",
+          "name",
+          "status",
+          "laps"
+        ],
+        "rows": [
+          [
+            1952,
+            5,
+            "Aston Butterworth",
+            "Withdrew",
+            0
+          ],
+          [
+            1952,
+            6,
+            "Aston Butterworth",
+            "Oil pressure",
+            2
+          ],
+          [
+            1952,
+            8,
+            "Aston Butterworth",
+            "Did not qualify",
+            0
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "TEXT",
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 3,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "year",
+        "round",
+        "name",
+        "status",
+        "laps"
+      ],
+      "rows": [
+        [
+          1952,
+          5,
+          "Aston Butterworth",
+          "Withdrew",
+          0
+        ],
+        [
+          1952,
+          6,
+          "Aston Butterworth",
+          "Oil pressure",
+          2
+        ],
+        [
+          1952,
+          8,
+          "Aston Butterworth",
+          "Did not qualify",
+          0
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "TEXT",
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 3,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_3270cc65-0dfe-445f-832b-6be6caefb90e"
+  }
+}

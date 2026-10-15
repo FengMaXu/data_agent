@@ -1,0 +1,99 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_f1b31b9c-d48b-4d82-b396-c16fda8461fa\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\ncompany_id | date_joined | year_founded\n109 | 2020-09-08T00:00:00.000 | 2004\n821 | 2019-05-16T00:00:00.000 | 2009\n153 | 2019-07-11T00:00:00.000 | 2016\n972 | 2018-10-17T00:00:00.000 | 2016\n1022 | 2021-06-02T00:00:00.000 | 2013"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_f1b31b9c-d48b-4d82-b396-c16fda8461fa",
+      "preview": {
+        "columns": [
+          "company_id",
+          "date_joined",
+          "year_founded"
+        ],
+        "rows": [
+          [
+            109,
+            "2020-09-08T00:00:00.000",
+            2004
+          ],
+          [
+            821,
+            "2019-05-16T00:00:00.000",
+            2009
+          ],
+          [
+            153,
+            "2019-07-11T00:00:00.000",
+            2016
+          ],
+          [
+            972,
+            "2018-10-17T00:00:00.000",
+            2016
+          ],
+          [
+            1022,
+            "2021-06-02T00:00:00.000",
+            2013
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 5,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "company_id",
+        "date_joined",
+        "year_founded"
+      ],
+      "rows": [
+        [
+          109,
+          "2020-09-08T00:00:00.000",
+          2004
+        ],
+        [
+          821,
+          "2019-05-16T00:00:00.000",
+          2009
+        ],
+        [
+          153,
+          "2019-07-11T00:00:00.000",
+          2016
+        ],
+        [
+          972,
+          "2018-10-17T00:00:00.000",
+          2016
+        ],
+        [
+          1022,
+          "2021-06-02T00:00:00.000",
+          2013
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 5,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_68dc3429-103f-4388-9dd6-7e4863ebda37"
+  }
+}

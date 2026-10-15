@@ -1,0 +1,4 @@
+{
+  "sql": "WITH f AS (SELECT id_bioguide,min(term_start) first FROM legislators_terms GROUP BY id_bioguide) SELECT t.id_bioguide,count(distinct state) states FROM f JOIN legislators_terms t ON t.id_bioguide=f.id_bioguide AND t.term_start=f.first GROUP BY t.id_bioguide HAVING count(distinct state)>1",
+  "limit": 1000
+}

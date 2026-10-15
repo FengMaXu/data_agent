@@ -1,0 +1,3 @@
+{
+  "sql": "SELECT 'cost_rows_dec' metric,COUNT(*) n FROM costs k JOIN times t USING(time_id) WHERE calendar_year=2021 AND calendar_month_number=12 UNION ALL SELECT 'cost_keys_dec',COUNT(*) FROM (SELECT DISTINCT prod_id,k.time_id,channel_id,promo_id FROM costs k JOIN times t USING(time_id) WHERE calendar_year=2021 AND calendar_month_number=12) UNION ALL SELECT 'all_italian_customers',COUNT(*) FROM customers c JOIN countries n USING(country_id) WHERE n.country_name='Italy'"
+}

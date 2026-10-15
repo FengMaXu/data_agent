@@ -1,0 +1,330 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_8669ad29-63ee-4573-ba6a-60483370c302\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\na | b | answer\n570.141601448448 | 0.730849627811366 | 4340.100656966221"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_8669ad29-63ee-4573-ba6a-60483370c302",
+      "preview": {
+        "columns": [
+          "a",
+          "b",
+          "answer"
+        ],
+        "rows": [
+          [
+            570.141601448448,
+            0.730849627811366,
+            4340.100656966221
+          ]
+        ],
+        "columnTypes": [
+          "REAL",
+          "REAL",
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "a",
+        "b",
+        "answer"
+      ],
+      "rows": [
+        [
+          570.141601448448,
+          0.730849627811366,
+          4340.100656966221
+        ]
+      ],
+      "columnTypes": [
+        "REAL",
+        "REAL",
+        "REAL"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_ea5372bf-6edf-41dc-bb03-df21be4ff6c7"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_92a4480e-41a6-444c-8e5b-a357663235f2\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nn | a | b | answer\n582 | 653.1430070873369 | 0.5475915885863805 | 4155.685124985768"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_92a4480e-41a6-444c-8e5b-a357663235f2",
+      "preview": {
+        "columns": [
+          "n",
+          "a",
+          "b",
+          "answer"
+        ],
+        "rows": [
+          [
+            582,
+            653.1430070873369,
+            0.5475915885863805,
+            4155.685124985768
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "REAL",
+          "REAL",
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "n",
+        "a",
+        "b",
+        "answer"
+      ],
+      "rows": [
+        [
+          582,
+          653.1430070873369,
+          0.5475915885863805,
+          4155.685124985768
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "REAL",
+        "REAL",
+        "REAL"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_c9e159f1-8c60-48f5-b9d8-f38699d98362"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_fcd356e5-5959-40b5-8d67-7c2f7b18d0cd\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nn | a | b | elapsed_prediction | doy_prediction\n606 | 227.81565697600956 | 3.55814354362977 | 10938.11113385273 | 5757.454134327785"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_fcd356e5-5959-40b5-8d67-7c2f7b18d0cd",
+      "preview": {
+        "columns": [
+          "n",
+          "a",
+          "b",
+          "elapsed_prediction",
+          "doy_prediction"
+        ],
+        "rows": [
+          [
+            606,
+            227.81565697600956,
+            3.55814354362977,
+            10938.11113385273,
+            5757.454134327785
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "REAL",
+          "REAL",
+          "REAL",
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "n",
+        "a",
+        "b",
+        "elapsed_prediction",
+        "doy_prediction"
+      ],
+      "rows": [
+        [
+          606,
+          227.81565697600956,
+          3.55814354362977,
+          10938.11113385273,
+          5757.454134327785
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "REAL",
+        "REAL",
+        "REAL",
+        "REAL"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_b9918f66-531c-4049-8c69-c52370a141b2"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_9e78e91f-5053-447f-b8cb-8b3b12868e4d\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nn | a | b | answer\n582 | 665.9251021202103 | 0.5436361088893874 | 4195.666963331135"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_9e78e91f-5053-447f-b8cb-8b3b12868e4d",
+      "preview": {
+        "columns": [
+          "n",
+          "a",
+          "b",
+          "answer"
+        ],
+        "rows": [
+          [
+            582,
+            665.9251021202103,
+            0.5436361088893874,
+            4195.666963331135
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "REAL",
+          "REAL",
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "n",
+        "a",
+        "b",
+        "answer"
+      ],
+      "rows": [
+        [
+          582,
+          665.9251021202103,
+          0.5436361088893874,
+          4195.666963331135
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "REAL",
+        "REAL",
+        "REAL"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_84c9b7ce-ef3a-48d9-b95f-0bae5f34dcef"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_45d15fdb-3bbe-450c-ad5f-f5023bae5863\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nn | sy | precise_b | precise_a\n606 | 4090 | 0.006152695545127375 | 4.887984515090718"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_45d15fdb-3bbe-450c-ad5f-f5023bae5863",
+      "preview": {
+        "columns": [
+          "n",
+          "sy",
+          "precise_b",
+          "precise_a"
+        ],
+        "rows": [
+          [
+            606,
+            4090,
+            0.006152695545127375,
+            4.887984515090718
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "REAL",
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "n",
+        "sy",
+        "precise_b",
+        "precise_a"
+      ],
+      "rows": [
+        [
+          606,
+          4090,
+          0.006152695545127375,
+          4.887984515090718
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "REAL",
+        "REAL"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_50f0ace4-d812-4b83-8217-32369aa29deb"
+  }
+}
+

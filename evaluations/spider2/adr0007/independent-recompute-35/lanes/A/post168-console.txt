@@ -1,0 +1,847 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_91e5c494-571a-442d-9be7-17d570f442f3\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nskill_id | demand | skills\n0 | 3 | NULL\n1 | 3 | python\n5 | 3 | NULL\n181 | 3 | NULL\n182 | 3 | NULL\n8 | 1 | NULL\n14 | 1 | NULL\n22 | 1 | NULL\n26 | 1 | NULL\n183 | 1 | NULL\n187 | 1 | qlik\n192 | 1 | NULL"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_91e5c494-571a-442d-9be7-17d570f442f3",
+      "preview": {
+        "columns": [
+          "skill_id",
+          "demand",
+          "skills"
+        ],
+        "rows": [
+          [
+            0,
+            3,
+            null
+          ],
+          [
+            1,
+            3,
+            "python"
+          ],
+          [
+            5,
+            3,
+            null
+          ],
+          [
+            181,
+            3,
+            null
+          ],
+          [
+            182,
+            3,
+            null
+          ],
+          [
+            8,
+            1,
+            null
+          ],
+          [
+            14,
+            1,
+            null
+          ],
+          [
+            22,
+            1,
+            null
+          ],
+          [
+            26,
+            1,
+            null
+          ],
+          [
+            183,
+            1,
+            null
+          ],
+          [
+            187,
+            1,
+            "qlik"
+          ],
+          [
+            192,
+            1,
+            null
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "NULL"
+        ],
+        "rowCount": 12,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "skill_id",
+        "demand",
+        "skills"
+      ],
+      "rows": [
+        [
+          0,
+          3,
+          null
+        ],
+        [
+          1,
+          3,
+          "python"
+        ],
+        [
+          5,
+          3,
+          null
+        ],
+        [
+          181,
+          3,
+          null
+        ],
+        [
+          182,
+          3,
+          null
+        ],
+        [
+          8,
+          1,
+          null
+        ],
+        [
+          14,
+          1,
+          null
+        ],
+        [
+          22,
+          1,
+          null
+        ],
+        [
+          26,
+          1,
+          null
+        ],
+        [
+          183,
+          1,
+          null
+        ],
+        [
+          187,
+          1,
+          "qlik"
+        ],
+        [
+          192,
+          1,
+          null
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "NULL"
+      ],
+      "rowCount": 12,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_194d7751-e2e2-4326-b346-7de9910108b2"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_e09458af-3146-4fe1-a108-1c92d517dee6\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\njob_title_short | n | ids\nData Analyst | 17 | 17"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_e09458af-3146-4fe1-a108-1c92d517dee6",
+      "preview": {
+        "columns": [
+          "job_title_short",
+          "n",
+          "ids"
+        ],
+        "rows": [
+          [
+            "Data Analyst",
+            17,
+            17
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "job_title_short",
+        "n",
+        "ids"
+      ],
+      "rows": [
+        [
+          "Data Analyst",
+          17,
+          17
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_c08e816f-dab8-46f0-ae6a-a36dda7ff477"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_35a3662e-fc70-47c9-9f36-76e2515c741e\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\navg_salary\n104040.6"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_35a3662e-fc70-47c9-9f36-76e2515c741e",
+      "preview": {
+        "columns": [
+          "avg_salary"
+        ],
+        "rows": [
+          [
+            104040.6
+          ]
+        ],
+        "columnTypes": [
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "avg_salary"
+      ],
+      "rows": [
+        [
+          104040.6
+        ]
+      ],
+      "columnTypes": [
+        "REAL"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_ca5b2ad3-2a3f-497c-989f-e2e93f5d1638"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_5aaba28d-b69e-45e6-9da9-8a7a884ec38c\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nskill_id | demand | skills\n0 | 3 | NULL\n1 | 3 | python\n5 | 3 | NULL"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_5aaba28d-b69e-45e6-9da9-8a7a884ec38c",
+      "preview": {
+        "columns": [
+          "skill_id",
+          "demand",
+          "skills"
+        ],
+        "rows": [
+          [
+            0,
+            3,
+            null
+          ],
+          [
+            1,
+            3,
+            "python"
+          ],
+          [
+            5,
+            3,
+            null
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "NULL"
+        ],
+        "rowCount": 3,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "skill_id",
+        "demand",
+        "skills"
+      ],
+      "rows": [
+        [
+          0,
+          3,
+          null
+        ],
+        [
+          1,
+          3,
+          "python"
+        ],
+        [
+          5,
+          3,
+          null
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "NULL"
+      ],
+      "rowCount": 3,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_5140bb28-a829-49e7-85cd-6e04e00fc503"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_1653414a-26df-461b-a391-2eaabd6289c6\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nselected_jobs | avg_salary\n9 | 92689.22222222222"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_1653414a-26df-461b-a391-2eaabd6289c6",
+      "preview": {
+        "columns": [
+          "selected_jobs",
+          "avg_salary"
+        ],
+        "rows": [
+          [
+            9,
+            92689.22222222222
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "selected_jobs",
+        "avg_salary"
+      ],
+      "rows": [
+        [
+          9,
+          92689.22222222222
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "REAL"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_7e8ce90e-3c3e-43ec-81b9-d6ccc6ddb773"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_5be02fdd-1108-4f80-beee-664bf46128c7\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nlink_rows | association_avg\n9 | 92689.22222222222"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_5be02fdd-1108-4f80-beee-664bf46128c7",
+      "preview": {
+        "columns": [
+          "link_rows",
+          "association_avg"
+        ],
+        "rows": [
+          [
+            9,
+            92689.22222222222
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "link_rows",
+        "association_avg"
+      ],
+      "rows": [
+        [
+          9,
+          92689.22222222222
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "REAL"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_835ebc3e-3331-4602-8bc0-4ffb8b939d8c"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_3e613617-02d2-432f-b443-75b8d046cb22\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nskill_id | demand | skills\n1 | 3 | python\n187 | 1 | qlik"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_3e613617-02d2-432f-b443-75b8d046cb22",
+      "preview": {
+        "columns": [
+          "skill_id",
+          "demand",
+          "skills"
+        ],
+        "rows": [
+          [
+            1,
+            3,
+            "python"
+          ],
+          [
+            187,
+            1,
+            "qlik"
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "TEXT"
+        ],
+        "rowCount": 2,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "skill_id",
+        "demand",
+        "skills"
+      ],
+      "rows": [
+        [
+          1,
+          3,
+          "python"
+        ],
+        [
+          187,
+          1,
+          "qlik"
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "TEXT"
+      ],
+      "rowCount": 2,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_a6381a0c-48e0-4efd-a965-9d60aed0d026"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_282f058f-abe4-453c-b833-702511b872ac\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nselected_jobs | avg_salary\n3 | 106900"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_282f058f-abe4-453c-b833-702511b872ac",
+      "preview": {
+        "columns": [
+          "selected_jobs",
+          "avg_salary"
+        ],
+        "rows": [
+          [
+            3,
+            106900
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "selected_jobs",
+        "avg_salary"
+      ],
+      "rows": [
+        [
+          3,
+          106900
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_84e08118-800e-435a-bc00-145d640df9d5"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_2af5d614-19b6-40fa-a7ba-6ed023a40c4f\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nlink_rows | association_avg\n4 | 104100"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_2af5d614-19b6-40fa-a7ba-6ed023a40c4f",
+      "preview": {
+        "columns": [
+          "link_rows",
+          "association_avg"
+        ],
+        "rows": [
+          [
+            4,
+            104100
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "link_rows",
+        "association_avg"
+      ],
+      "rows": [
+        [
+          4,
+          104100
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_f81acb65-dd2d-4721-9ae5-740780027e00"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_df8c317f-9753-4a9a-80a2-54273240a5cf\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nskill_id | n | mean\n1 | 3 | 106900\n187 | 1 | 95700"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_df8c317f-9753-4a9a-80a2-54273240a5cf",
+      "preview": {
+        "columns": [
+          "skill_id",
+          "n",
+          "mean"
+        ],
+        "rows": [
+          [
+            1,
+            3,
+            106900
+          ],
+          [
+            187,
+            1,
+            95700
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 2,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "skill_id",
+        "n",
+        "mean"
+      ],
+      "rows": [
+        [
+          1,
+          3,
+          106900
+        ],
+        [
+          187,
+          1,
+          95700
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 2,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_5b35f763-2e02-40b4-a233-94acf9e441f1"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_198c89c3-20a9-42c8-8844-1d9cc15ddd7e\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nskill_id | demand | skills\n182 | 3 | NULL\n0 | 2 | NULL\n1 | 2 | python"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_198c89c3-20a9-42c8-8844-1d9cc15ddd7e",
+      "preview": {
+        "columns": [
+          "skill_id",
+          "demand",
+          "skills"
+        ],
+        "rows": [
+          [
+            182,
+            3,
+            null
+          ],
+          [
+            0,
+            2,
+            null
+          ],
+          [
+            1,
+            2,
+            "python"
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "NULL"
+        ],
+        "rowCount": 3,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "skill_id",
+        "demand",
+        "skills"
+      ],
+      "rows": [
+        [
+          182,
+          3,
+          null
+        ],
+        [
+          0,
+          2,
+          null
+        ],
+        [
+          1,
+          2,
+          "python"
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "NULL"
+      ],
+      "rowCount": 3,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_22451a92-c0a2-41fa-8db6-aba354d9e237"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_f65d090e-329a-407e-885c-d1ebbca1fd4d\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nselected_jobs | avg_salary\n5 | 104040.6"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_f65d090e-329a-407e-885c-d1ebbca1fd4d",
+      "preview": {
+        "columns": [
+          "selected_jobs",
+          "avg_salary"
+        ],
+        "rows": [
+          [
+            5,
+            104040.6
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "selected_jobs",
+        "avg_salary"
+      ],
+      "rows": [
+        [
+          5,
+          104040.6
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "REAL"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_4f920bca-d874-4c91-ba94-df758973f509"
+  }
+}

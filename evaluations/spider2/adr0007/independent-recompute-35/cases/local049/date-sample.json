@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT * FROM companies_dates LIMIT 5",
+  "limit": 100
+}

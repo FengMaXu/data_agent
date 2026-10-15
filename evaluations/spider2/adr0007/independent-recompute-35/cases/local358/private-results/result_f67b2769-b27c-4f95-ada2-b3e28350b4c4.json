@@ -1,0 +1,1 @@
+{"resultRef":"result_f67b2769-b27c-4f95-ada2-b3e28350b4c4","columns":["age_category","user_count"],"columnTypes":["TEXT","INTEGER"],"rows":[["20s",3],["30s",9],["40s",2],["50s",3],["others",13]],"rowCount":5,"truncated":false,"contentHash":"e95f510fd1fbaf8322b777c24f5369f8902d8dc25fde290c8bc05d24308b0191"}

@@ -1,0 +1,173 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_265b94cc-aa24-422f-9857-6a3a09b97e43\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nname | version | L1_model | steps\nCritical Heat Flux | 1 | regression | 3\nCritical Heat Flux | 2 | regression | 3\nCritical Heat Flux | 3 | tree | 3\nCritical Heat Flux | 4 | tree | 3\nCritical Heat Flux | 5 | regression | 3\nDelaney solubility | 1 | regression | 3\nDelaney solubility | 2 | regression | 3\nDelaney solubility | 3 | tree | 3\nDelaney solubility | 4 | tree | 3\nDelaney solubility | 5 | regression | 3"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_265b94cc-aa24-422f-9857-6a3a09b97e43",
+      "preview": {
+        "columns": [
+          "name",
+          "version",
+          "L1_model",
+          "steps"
+        ],
+        "rows": [
+          [
+            "Critical Heat Flux",
+            1,
+            "regression",
+            3
+          ],
+          [
+            "Critical Heat Flux",
+            2,
+            "regression",
+            3
+          ],
+          [
+            "Critical Heat Flux",
+            3,
+            "tree",
+            3
+          ],
+          [
+            "Critical Heat Flux",
+            4,
+            "tree",
+            3
+          ],
+          [
+            "Critical Heat Flux",
+            5,
+            "regression",
+            3
+          ],
+          [
+            "Delaney solubility",
+            1,
+            "regression",
+            3
+          ],
+          [
+            "Delaney solubility",
+            2,
+            "regression",
+            3
+          ],
+          [
+            "Delaney solubility",
+            3,
+            "tree",
+            3
+          ],
+          [
+            "Delaney solubility",
+            4,
+            "tree",
+            3
+          ],
+          [
+            "Delaney solubility",
+            5,
+            "regression",
+            3
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 10,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "name",
+        "version",
+        "L1_model",
+        "steps"
+      ],
+      "rows": [
+        [
+          "Critical Heat Flux",
+          1,
+          "regression",
+          3
+        ],
+        [
+          "Critical Heat Flux",
+          2,
+          "regression",
+          3
+        ],
+        [
+          "Critical Heat Flux",
+          3,
+          "tree",
+          3
+        ],
+        [
+          "Critical Heat Flux",
+          4,
+          "tree",
+          3
+        ],
+        [
+          "Critical Heat Flux",
+          5,
+          "regression",
+          3
+        ],
+        [
+          "Delaney solubility",
+          1,
+          "regression",
+          3
+        ],
+        [
+          "Delaney solubility",
+          2,
+          "regression",
+          3
+        ],
+        [
+          "Delaney solubility",
+          3,
+          "tree",
+          3
+        ],
+        [
+          "Delaney solubility",
+          4,
+          "tree",
+          3
+        ],
+        [
+          "Delaney solubility",
+          5,
+          "regression",
+          3
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 10,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_bfa36344-28c5-4a27-9767-35318e668bfa"
+  }
+}

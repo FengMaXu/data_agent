@@ -1,0 +1,4 @@
+{
+  "sql": "WITH source AS MATERIALIZED(SELECT DISTINCT PID FROM Person WHERE TRIM(Name)='Shah Rukh Khan' OR TRIM(Name)='Shahrukh Khan'),cast_clean AS MATERIALIZED(SELECT DISTINCT MID,TRIM(PID) pid FROM M_Cast),source_films AS MATERIALIZED(SELECT DISTINCT c.MID FROM cast_clean c JOIN source s ON c.pid=s.PID),first_hop AS MATERIALIZED(SELECT DISTINCT c.pid FROM cast_clean c JOIN source_films f USING(MID)),next_films AS MATERIALIZED(SELECT DISTINCT c.MID FROM cast_clean c JOIN first_hop h USING(pid)),second_hop AS MATERIALIZED(SELECT DISTINCT c.pid FROM cast_clean c JOIN next_films f USING(MID) EXCEPT SELECT pid FROM first_hop EXCEPT SELECT PID FROM source) SELECT 'source' kind,COUNT(*) n FROM source UNION ALL SELECT 'source_films',COUNT(*) FROM source_films UNION ALL SELECT 'first_hop',COUNT(*) FROM first_hop UNION ALL SELECT 'next_films',COUNT(*) FROM next_films UNION ALL SELECT 'second_hop',COUNT(*) FROM second_hop",
+  "limit": 100
+}

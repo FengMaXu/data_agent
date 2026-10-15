@@ -1,0 +1,53 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_1b60f145-f133-4704-b7b9-d31f6e4817b6\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\ncandidates | missing_person\n25698 | 0"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_1b60f145-f133-4704-b7b9-d31f6e4817b6",
+      "preview": {
+        "columns": [
+          "candidates",
+          "missing_person"
+        ],
+        "rows": [
+          [
+            25698,
+            0
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "candidates",
+        "missing_person"
+      ],
+      "rows": [
+        [
+          25698,
+          0
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_364c0494-ba7c-4c01-a113-f12cb93ce37f"
+  }
+}

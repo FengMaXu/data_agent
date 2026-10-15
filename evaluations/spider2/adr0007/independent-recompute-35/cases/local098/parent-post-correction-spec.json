@@ -1,0 +1,13 @@
+{
+  "fields": {
+    "population.conditions": {
+      "value": [
+        "每演员相邻出演年差不超过4；无四年连续无片窗口",
+        "出演者PID非NULL且非空；未知身份不作为额外演员"
+      ],
+      "basis": "assumed",
+      "rationale": "NULL是未知演员身份，不是可计数独立演员。",
+      "reason": "实查发现独立初稿COUNT分组包括一组NULL；保留初次freeze，修正额外未知身份计数，不改变年差规则。"
+    }
+  }
+}

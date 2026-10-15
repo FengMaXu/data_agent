@@ -1,0 +1,92 @@
+{
+  "receiptId": "publication_eeaf6589-ead5-4705-97ba-a53889c166e3",
+  "taskId": "task_c53f627e-d7f6-43fb-a372-02b8d8b2af5a",
+  "principalId": "independent-analyst",
+  "sessionId": "local040",
+  "candidateId": "candidate_1f41f6ad-614c-4fd8-988c-63322d46fada",
+  "revisionId": "revision_702b99aa-53cc-4fa1-8a94-44997cf9f536",
+  "resultRef": "result_788af703-bf7e-4088-9a31-19225eafcd45",
+  "format": "csv",
+  "publicRef": "/api/runtime/publications/publication_eeaf6589-ead5-4705-97ba-a53889c166e3?session_id=local040",
+  "contentHash": "6d668a5119dd1ac1889f2bea330089545f11ee3e611523524019cd01a3355a83",
+  "presentationContentHash": "9e461a8114fbd68b4b52d8ed09589bcde30c723950077a44ef27e20fda08b527",
+  "coverage": [
+    {
+      "checkId": "result_completeness",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "result_shape",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "result_identity",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "join_fanout",
+      "outcome": "not_applicable"
+    },
+    {
+      "checkId": "spec_feedback",
+      "ruleVersion": "spec-feedback-v2",
+      "outcome": "not_applicable",
+      "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+    }
+  ],
+  "fanout": {
+    "ruleVersion": "answering-fanout-v1",
+    "status": "not_applicable",
+    "snapshotScope": "unbound",
+    "targets": []
+  },
+  "disclosure": {
+    "required": true,
+    "unverifiedFields": [
+      {
+        "path": "measure.formula",
+        "kind": "assumed"
+      },
+      {
+        "path": "selection.ties",
+        "kind": "assumed"
+      }
+    ],
+    "summary": "以下字段为假定，未被合格证据证实：measure.formula, selection.ties。"
+  },
+  "physicalProfile": {
+    "version": 1,
+    "rowCount": 3,
+    "truncated": false,
+    "columns": [
+      {
+        "name": "boroname",
+        "kind": "text",
+        "nullCount": 0,
+        "distinctCount": 3
+      },
+      {
+        "name": "tree_count",
+        "kind": "integer",
+        "encodedAs": "number",
+        "nullCount": 0,
+        "distinctCount": 3,
+        "min": "106374",
+        "max": "256056"
+      },
+      {
+        "name": "average_mean_income",
+        "kind": "decimal",
+        "encodedAs": "number",
+        "nullCount": 0,
+        "distinctCount": 3,
+        "min": "73675.97696942792",
+        "max": "94029.32783386917"
+      }
+    ]
+  },
+  "policyVersion": "answering-publication-v1",
+  "createdByInvocationId": "5d4247a3-d8ac-452d-9f83-d12cd993c61b",
+  "requestId": "5d4247a3-d8ac-452d-9f83-d12cd993c61b",
+  "createdAt": "2026-10-11T09:12:55.143Z"
+}

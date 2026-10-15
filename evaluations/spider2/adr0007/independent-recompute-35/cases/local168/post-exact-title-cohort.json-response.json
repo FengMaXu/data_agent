@@ -1,0 +1,59 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_e09458af-3146-4fe1-a108-1c92d517dee6\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\njob_title_short | n | ids\nData Analyst | 17 | 17"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_e09458af-3146-4fe1-a108-1c92d517dee6",
+      "preview": {
+        "columns": [
+          "job_title_short",
+          "n",
+          "ids"
+        ],
+        "rows": [
+          [
+            "Data Analyst",
+            17,
+            17
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "job_title_short",
+        "n",
+        "ids"
+      ],
+      "rows": [
+        [
+          "Data Analyst",
+          17,
+          17
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_c08e816f-dab8-46f0-ae6a-a36dda7ff477"
+  }
+}

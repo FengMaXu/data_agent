@@ -1,0 +1,16 @@
+{
+  "instance_id": "local286",
+  "db": "electronic_sales",
+  "database_path": "C:/data-agent-eval/Spider2/spider2-lite/resource/databases/electronic_sales.sqlite",
+  "question": "Prepare a comprehensive performance report on our sellers, focusing on total sales, average item price, average review scores, and packing times. Ensure that the report includes only those sellers who have sold a quantity of more than 100 products and highlight the product category names in English with the highest sales volume.",
+  "task_source": "C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl",
+  "documents": {},
+  "formal_ddl": [
+    {
+      "path": "C:/data-agent-eval/Spider2/spider2-lite/resource/databases/sqlite/electronic_sales/DDL.csv",
+      "content": "table_name,DDL\ncustomers,\"CREATE TABLE customers (\n    index INTEGER,\n    customer_id TEXT,\n    customer_unique_id TEXT,\n    customer_zip_code_prefix INTEGER,\n    customer_city TEXT,\n    customer_state TEXT\n);\"\nsellers,\"CREATE TABLE sellers (\n    index INTEGER,\n    seller_id TEXT,\n    seller_zip_code_prefix INTEGER,\n    seller_city TEXT,\n    seller_state TEXT\n);\"\norder_reviews,\"CREATE TABLE order_reviews (\n    index INTEGER,\n    review_id TEXT,\n    order_id TEXT,\n    review_score INTEGER,\n    review_comment_title TEXT,\n    review_comment_message TEXT,\n    review_creation_date TEXT,\n    review_answer_timestamp TEXT\n);\"\norder_items,\"CREATE TABLE order_items (\n    index INTEGER,\n    order_id TEXT,\n    order_item_id INTEGER,\n    product_id TEXT,\n    seller_id TEXT,\n    shipping_limit_date TEXT,\n    price REAL,\n    freight_value REAL\n);\"\nproducts,\"CREATE TABLE products (\n    index INTEGER,\n    product_id TEXT,\n    product_category_name TEXT,\n    product_name_lenght REAL,\n    product_description_lenght REAL,\n    product_photos_qty REAL,\n    product_weight_g REAL,\n    product_length_cm REAL,\n    product_height_cm REAL,\n    product_width_cm REAL\n);\"\ngeolocation,\"CREATE TABLE geolocation (\n    index INTEGER,\n    geolocation_zip_code_prefix INTEGER,\n    geolocation_lat REAL,\n    geolocation_lng REAL,\n    geolocation_city TEXT,\n    geolocation_state TEXT\n);\"\nproduct_category_name_translation,\"CREATE TABLE product_category_name_translation (\n    index INTEGER,\n    product_category_name TEXT,\n    product_category_name_english TEXT\n);\"\norders,\"CREATE TABLE orders (\n    index INTEGER,\n    order_id TEXT,\n    customer_id TEXT,\n    order_status TEXT,\n    order_purchase_timestamp TEXT,\n    order_approved_at TEXT,\n    order_delivered_carrier_date TEXT,\n    order_delivered_customer_date TEXT,\n    order_estimated_delivery_date TEXT\n);\"\norder_payments,\"CREATE TABLE order_payments (\n    index INTEGER,\n    order_id TEXT,\n    payment_sequential INTEGER,\n    payment_type TEXT,\n    payment_installments INTEGER,\n    payment_value REAL\n);\"\n"
+    }
+  ],
+  "blind_packet": true,
+  "note": "No original SQL, prior diagnosis, semantic labels, Gold SQL or Gold results. Freeze and publish independent solution before reveal."
+}

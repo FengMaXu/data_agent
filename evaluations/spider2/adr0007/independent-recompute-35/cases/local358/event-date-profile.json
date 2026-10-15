@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT 'action' src,min(stamp) first_stamp,max(stamp) last_stamp FROM action_log UNION ALL SELECT 'purchase',min(stamp),max(stamp) FROM purchase_log UNION ALL SELECT 'access',min(stamp),max(stamp) FROM access_log",
+  "limit": 1000
+}

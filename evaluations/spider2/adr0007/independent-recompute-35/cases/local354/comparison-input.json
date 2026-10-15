@@ -1,0 +1,73 @@
+{
+  "revealedAt": "2026-10-11T10:01:39.213Z",
+  "registry": {
+    "instance_id": "local354",
+    "attempt_id": "attempt-20261010-154318Z",
+    "score": 0,
+    "score_source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-retry.json",
+    "replayed_csv_score": 0,
+    "group": "wrong",
+    "status": "completed",
+    "publication_status": "published",
+    "duration_ms": 218133,
+    "tool_calls": 31,
+    "error": null,
+    "result_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local354/attempts/attempt-20261010-154318Z/result.json",
+    "trace_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local354/attempts/attempt-20261010-154318Z/trace.json",
+    "result_exists": true,
+    "trace_exists": true,
+    "sql_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local354/attempts/attempt-20261010-154318Z/submissions/sql/local354.sql",
+    "csv_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local354.csv",
+    "sql_exists": true,
+    "csv_exists": true,
+    "gold_sql_file": null,
+    "process": {
+      "turns": 16,
+      "toolCalls": 31,
+      "explorationQueries": 20,
+      "resultQueries": 1,
+      "fanoutProbes": 0,
+      "revisions": 1
+    },
+    "fanout_metrics": {
+      "reportCount": 1,
+      "targetCount": 0,
+      "findingCount": 0,
+      "unknownCount": 0,
+      "byStatus": {
+        "clear": 0,
+        "finding": 0,
+        "not_applicable": 1,
+        "unknown": 0
+      },
+      "enabled": true
+    },
+    "spec_feedback_metrics": {
+      "reportCount": 2,
+      "byStatus": {
+        "pending": 0,
+        "completed": 1,
+        "unavailable": 1,
+        "disabled": 0
+      },
+      "deterministicIssueCount": 0,
+      "concernCount": 0,
+      "enabled": true
+    }
+  },
+  "originalSql": "WITH r AS (SELECT ra.year AS year, ra.round AS round, ra.race_id AS race_id, r.driver_id AS driver_id, r.constructor_id AS ctor FROM results r JOIN races ra ON r.race_id = ra.race_id WHERE ra.year BETWEEN 1950 AND 1959), firsts AS (SELECT year, driver_id, ctor, ROW_NUMBER() OVER (PARTITION BY year, driver_id ORDER BY round ASC, race_id ASC) AS rn FROM r), lasts AS (SELECT year, driver_id, ctor, ROW_NUMBER() OVER (PARTITION BY year, driver_id ORDER BY round DESC, race_id DESC) AS rn FROM r), cnt AS (SELECT year, driver_id, COUNT(DISTINCT round) AS nrounds FROM r GROUP BY year, driver_id) SELECT DISTINCT d.forename AS forename, d.surname AS surname FROM firsts f JOIN lasts l ON l.year = f.year AND l.driver_id = f.driver_id AND l.rn = 1 JOIN cnt ON cnt.year = f.year AND cnt.driver_id = f.driver_id JOIN drivers d ON d.driver_id = f.driver_id WHERE f.rn = 1 AND f.ctor = l.ctor AND cnt.nrounds >= 2 ORDER BY d.surname, d.forename\n",
+  "originalCsv": "forename,surname\nCliff,Allison\nAlberto,Ascari\nBill,Aston\nÉlie,Bayol\nJean,Behra\nGino,Bianco\nPrince,Bira\nFelice,Bonetto\nJo,Bonnier\nJack,Brabham\nToni,Branca\nEric,Brandon\nTony,Brooks\nAlan,Brown\nClemar,Bucci\nIan,Burgess\nYves,Cabantous\nEitel,Cantoni\nPiero,Carini\nEugenio,Castellotti\nEugène,Chaboud\nLouis,Chiron\nJohnny,Claes\nPeter,Collins\nGeoff,Crossley\nJorge,Daponte\nColin,Davis\nKen,Downing\nLuigi,Fagioli\nJack,Fairman\nJuan,Fangio\nNino,Farina\nRudi,Fischer\nRon,Flockhart\nPaul,Frère\nTony,Gaze\nOlivier,Gendebien\nBob,Gerard\nGerino,Gerini\nPaco,Godia\nJosé Froilán,González\nHorace,Gould\nMasten,Gregory\nDan,Gurney\nBruce,Halford\nDuncan,Hamilton\nDavid,Hampshire\nCuth,Harrison\nMike,Hawthorn\nHans,Herrmann\nGraham,Hill\nPhil,Hill\nPeter,Hirt\nInnes,Ireland\nKarl,Kling\nChico,Landi\nPierre,Levegh\nStuart,Lewis-Evans\nLance,Macklin\nUmberto,Maglioli\nGuy,Mairesse\nSergio,Mantovani\nRobert,Manzon\nOnofre,Marimón\nEugène,Martin\nKenneth,McAlpine\nBruce,McLaren\nCarlos,Menditeguy\nRoberto,Mieres\nStirling,Moss\nDavid,Murray\nLuigi,Musso\nCesare,Perdisa\nAndré,Pilette\nLuigi,Piotti\nJacques,Pollet\nDennis,Poore\nFranco,Rol\nLouis,Rosier\nTroy,Ruttman\nRoy,Salvadori\nConsalvo,Sanesi\nGiorgio,Scarlatti\nHarry,Schell\nCarroll,Shelby\nAndré,Simon\nAlan,Stacey\nJacques,Swaters\nPiero,Taruffi\nMaurice,Trintignant\nToni,Ulmen\nLuigi,Villoresi\nFred,Wacker\nKen,Wharton\nPeter,Whitehead\nHernando,da Silva Ramos\nCarel Godin,de Beaufort\nMaria,de Filippis\nToulo,de Graffenried\nAlfonso,de Portago\nCharles,de Tornaco\nHans,von Stuck\nWolfgang,von Trips\nPhilippe,Étancelin\n",
+  "goldSql": null,
+  "goldCsv": [
+    {
+      "path": "C:\\data-agent-eval\\Spider2\\spider2-lite\\evaluation_suite\\gold\\exec_result\\local354.csv",
+      "content": "driver_id\r\n501\r\n554\r\n579\r\n"
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local354",
+    "condition_cols": [],
+    "ignore_order": true,
+    "toks": "139"
+  }
+}

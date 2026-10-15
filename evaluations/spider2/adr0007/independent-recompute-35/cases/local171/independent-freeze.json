@@ -1,0 +1,241 @@
+{
+  "frozenAt": "2026-10-11T09:13:31.354Z",
+  "instance_id": "local171",
+  "independent": true,
+  "taskId": "task_4d2f0ce8-661c-44fe-8d12-7be33e1d8c3c",
+  "revisionId": "revision_a381a70b-5bb2-49a3-b379-78051188c218",
+  "publication": {
+    "receiptId": "publication_7559968e-5286-4558-97ed-af22b329a52a",
+    "taskId": "task_4d2f0ce8-661c-44fe-8d12-7be33e1d8c3c",
+    "principalId": "independent-analyst",
+    "sessionId": "local171",
+    "candidateId": "candidate_e603ea1f-2bf4-4d77-bcfe-b789661ffdd3",
+    "revisionId": "revision_a381a70b-5bb2-49a3-b379-78051188c218",
+    "resultRef": "result_854b2d60-7831-4ac7-aab0-0a5caa12934c",
+    "format": "csv",
+    "publicRef": "/api/runtime/publications/publication_7559968e-5286-4558-97ed-af22b329a52a?session_id=local171",
+    "contentHash": "3012a0892a98bb31c2cafaac63ac15df9b0d02f1e07842fffc1447a452f10378",
+    "presentationContentHash": "4ef5920ba572e1f6846c22bb7ba87af77d9a7184fe5dd7bea8dd3138f6d051a0",
+    "coverage": [
+      {
+        "checkId": "result_completeness",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_shape",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_identity",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "join_fanout",
+        "outcome": "not_applicable"
+      },
+      {
+        "checkId": "spec_feedback",
+        "ruleVersion": "spec-feedback-v2",
+        "outcome": "not_applicable",
+        "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+      }
+    ],
+    "fanout": {
+      "ruleVersion": "answering-fanout-v1",
+      "status": "not_applicable",
+      "snapshotScope": "unbound",
+      "targets": []
+    },
+    "disclosure": {
+      "required": true,
+      "unverifiedFields": [
+        {
+          "path": "population.eligibility",
+          "kind": "assumed"
+        },
+        {
+          "path": "population.conditions",
+          "kind": "assumed"
+        },
+        {
+          "path": "population.time",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.formula",
+          "kind": "assumed"
+        },
+        {
+          "path": "grouping",
+          "kind": "assumed"
+        },
+        {
+          "path": "output",
+          "kind": "assumed"
+        }
+      ],
+      "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.conditions, population.time, measure.formula, grouping, output。"
+    },
+    "physicalProfile": {
+      "version": 1,
+      "rowCount": 8,
+      "truncated": false,
+      "columns": [
+        {
+          "name": "period",
+          "kind": "integer",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 8,
+          "min": "31",
+          "max": "38"
+        },
+        {
+          "name": "legislators",
+          "kind": "integer",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 4,
+          "min": "1",
+          "max": "5"
+        }
+      ]
+    },
+    "policyVersion": "answering-publication-v1",
+    "createdByInvocationId": "8d37121c-f2a4-4c32-8cfa-e4520728658d",
+    "requestId": "8d37121c-f2a4-4c32-8cfa-e4520728658d",
+    "createdAt": "2026-10-11T09:13:28.730Z"
+  },
+  "currentRevision": {
+    "taskId": "task_4d2f0ce8-661c-44fe-8d12-7be33e1d8c3c",
+    "revisionId": "revision_a381a70b-5bb2-49a3-b379-78051188c218",
+    "parentRevisionId": "revision_2b924ac4-9036-41b2-bebd-a497fc0e7d3f",
+    "requestId": "e5734379-39b2-4226-a2ee-0e7fe68672dc",
+    "createdAt": "2026-10-11T09:13:25.529Z",
+    "fields": {
+      "population.entity": {
+        "state": "specified",
+        "value": {
+          "name": "male legislators"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_31856b21-ab58-4e71-8b20-aa0da4c13744"
+          ]
+        }
+      },
+      "population.eligibility": {
+        "state": "specified",
+        "value": "Only observed eligible records; no fabricated missing records",
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+        }
+      },
+      "population.conditions": {
+        "state": "specified",
+        "value": [
+          "gender M",
+          "first term state LA",
+          "integer years 31..49"
+        ],
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+        }
+      },
+      "population.time": {
+        "state": "specified",
+        "value": {
+          "expression": "All available calendar years, Dec31 observations within inclusive terms; years elapsed = snapshot year - first_start year"
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+        }
+      },
+      "measure.formula": {
+        "state": "specified",
+        "value": {
+          "op": "custom",
+          "description": "Distinct male legislators first represented LA, serving in any inclusive term on Dec31; complete calendar years since global first term; filter integers >30 and <50; group observed periods without zero fill"
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+        }
+      },
+      "grouping": {
+        "state": "specified",
+        "value": [
+          "period"
+        ],
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+        }
+      },
+      "selection": {
+        "state": "not_applicable"
+      },
+      "output": {
+        "state": "specified",
+        "value": {
+          "rowMode": "full",
+          "columns": [
+            "period",
+            "legislators"
+          ]
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+        }
+      }
+    },
+    "state": {
+      "state": "ready",
+      "revisionId": "revision_a381a70b-5bb2-49a3-b379-78051188c218",
+      "ready": "ready_56085136-f84e-4746-9928-1baf3b036d10"
+    },
+    "specFeedback": {
+      "taskId": "task_4d2f0ce8-661c-44fe-8d12-7be33e1d8c3c",
+      "revisionId": "revision_a381a70b-5bb2-49a3-b379-78051188c218",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_31856b21-ab58-4e71-8b20-aa0da4c13744",
+        "evidence_c0cf428e-b8c1-4abe-81ae-77a0b5ea247d",
+        "evidence_cd8651e3-ab5f-4c68-8cb8-f3cc8d41113c",
+        "evidence_d3920f8a-4558-4c68-b98b-4e66a7d29d5c",
+        "evidence_654e5e65-779f-443f-9b09-9b427c1c82f1",
+        "evidence_f2fd43d0-f7a7-4fd0-8505-416092ea744d",
+        "evidence_482d7368-08e1-4b91-8d3c-344725cf9249",
+        "evidence_174c8c1a-db8d-41b7-8d83-11471f5420fe"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    }
+  },
+  "analystNote": {
+    "algorithm": "global first term -> male first LA -> actual term office Dec31 -> completed whole years31..49 -> distinct people",
+    "assumptions": [
+      "from LA = first-state LA",
+      "inclusive term_end",
+      "whole years; observed groups only"
+    ],
+    "validation": "first/ever/active state probes and long-service person inventory actual database"
+  },
+  "settings": {
+    "qualification": "required",
+    "fieldProbes": true,
+    "externalAdvisor": "not_configured",
+    "specFeedback": "not_configured",
+    "fanout": "disabled_for_offline_audit",
+    "populationDecisions": "allow_disclosed_headless_audit",
+    "databaseReadOnly": true
+  }
+}

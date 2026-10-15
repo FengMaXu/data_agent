@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT * FROM income_trees WHERE zipcode IN (SELECT zipcode FROM income_trees GROUP BY zipcode HAVING count(*)>1) ORDER BY zipcode",
+  "limit": 100
+}

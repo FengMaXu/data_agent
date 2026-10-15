@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT (SELECT count(*) FROM companies_dates) date_rows,(SELECT count(*) FROM (SELECT DISTINCT * FROM companies_dates)) distinct_date_rows,(SELECT count(*) FROM companies_industries) industry_rows,(SELECT count(*) FROM (SELECT DISTINCT * FROM companies_industries)) distinct_industry_rows",
+  "limit": 100
+}

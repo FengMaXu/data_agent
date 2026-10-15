@@ -1,0 +1,285 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_d769cf1e-10e3-4255-b0c6-54a96b800636\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nyear | round | driver_id | name | status | laps\n1950 | 1 | 642 | Alfa Romeo | Finished | 70\n1950 | 2 | 642 | Alfa Romeo | Accident | 0\n1950 | 4 | 642 | Alfa Romeo | Finished | 42\n1950 | 5 | 642 | Alfa Romeo | Finished | 35\n1950 | 6 | 642 | Alfa Romeo | Fuel pump | 55\n1950 | 7 | 642 | Alfa Romeo | Finished | 80\n1951 | 1 | 642 | Alfa Romeo | Finished | 42\n1951 | 3 | 642 | Alfa Romeo | Finished | 36\n1951 | 4 | 642 | Alfa Romeo | +4 Laps | 73\n1951 | 5 | 642 | Alfa Romeo | Clutch | 75\n1951 | 6 | 642 | Alfa Romeo | Overheating | 8\n1951 | 7 | 642 | Alfa Romeo | Engine | 6\n1951 | 7 | 642 | Alfa Romeo | +1 Lap | 79\n1951 | 8 | 642 | Alfa Romeo | Finished | 70"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_d769cf1e-10e3-4255-b0c6-54a96b800636",
+      "preview": {
+        "columns": [
+          "year",
+          "round",
+          "driver_id",
+          "name",
+          "status",
+          "laps"
+        ],
+        "rows": [
+          [
+            1950,
+            1,
+            642,
+            "Alfa Romeo",
+            "Finished",
+            70
+          ],
+          [
+            1950,
+            2,
+            642,
+            "Alfa Romeo",
+            "Accident",
+            0
+          ],
+          [
+            1950,
+            4,
+            642,
+            "Alfa Romeo",
+            "Finished",
+            42
+          ],
+          [
+            1950,
+            5,
+            642,
+            "Alfa Romeo",
+            "Finished",
+            35
+          ],
+          [
+            1950,
+            6,
+            642,
+            "Alfa Romeo",
+            "Fuel pump",
+            55
+          ],
+          [
+            1950,
+            7,
+            642,
+            "Alfa Romeo",
+            "Finished",
+            80
+          ],
+          [
+            1951,
+            1,
+            642,
+            "Alfa Romeo",
+            "Finished",
+            42
+          ],
+          [
+            1951,
+            3,
+            642,
+            "Alfa Romeo",
+            "Finished",
+            36
+          ],
+          [
+            1951,
+            4,
+            642,
+            "Alfa Romeo",
+            "+4 Laps",
+            73
+          ],
+          [
+            1951,
+            5,
+            642,
+            "Alfa Romeo",
+            "Clutch",
+            75
+          ],
+          [
+            1951,
+            6,
+            642,
+            "Alfa Romeo",
+            "Overheating",
+            8
+          ],
+          [
+            1951,
+            7,
+            642,
+            "Alfa Romeo",
+            "Engine",
+            6
+          ],
+          [
+            1951,
+            7,
+            642,
+            "Alfa Romeo",
+            "+1 Lap",
+            79
+          ],
+          [
+            1951,
+            8,
+            642,
+            "Alfa Romeo",
+            "Finished",
+            70
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "TEXT",
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 14,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "year",
+        "round",
+        "driver_id",
+        "name",
+        "status",
+        "laps"
+      ],
+      "rows": [
+        [
+          1950,
+          1,
+          642,
+          "Alfa Romeo",
+          "Finished",
+          70
+        ],
+        [
+          1950,
+          2,
+          642,
+          "Alfa Romeo",
+          "Accident",
+          0
+        ],
+        [
+          1950,
+          4,
+          642,
+          "Alfa Romeo",
+          "Finished",
+          42
+        ],
+        [
+          1950,
+          5,
+          642,
+          "Alfa Romeo",
+          "Finished",
+          35
+        ],
+        [
+          1950,
+          6,
+          642,
+          "Alfa Romeo",
+          "Fuel pump",
+          55
+        ],
+        [
+          1950,
+          7,
+          642,
+          "Alfa Romeo",
+          "Finished",
+          80
+        ],
+        [
+          1951,
+          1,
+          642,
+          "Alfa Romeo",
+          "Finished",
+          42
+        ],
+        [
+          1951,
+          3,
+          642,
+          "Alfa Romeo",
+          "Finished",
+          36
+        ],
+        [
+          1951,
+          4,
+          642,
+          "Alfa Romeo",
+          "+4 Laps",
+          73
+        ],
+        [
+          1951,
+          5,
+          642,
+          "Alfa Romeo",
+          "Clutch",
+          75
+        ],
+        [
+          1951,
+          6,
+          642,
+          "Alfa Romeo",
+          "Overheating",
+          8
+        ],
+        [
+          1951,
+          7,
+          642,
+          "Alfa Romeo",
+          "Engine",
+          6
+        ],
+        [
+          1951,
+          7,
+          642,
+          "Alfa Romeo",
+          "+1 Lap",
+          79
+        ],
+        [
+          1951,
+          8,
+          642,
+          "Alfa Romeo",
+          "Finished",
+          70
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "TEXT",
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 14,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_56fb2984-7cfc-40a0-9c0a-0da30aa42a5c"
+  }
+}

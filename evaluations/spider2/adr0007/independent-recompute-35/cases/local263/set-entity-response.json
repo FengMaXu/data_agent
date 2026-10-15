@@ -1,0 +1,54 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_748f795a-cb42-46f6-9b10-066d9dce255c revisionId=revision_78d86c0a-e907-47e8-94d0-d8fb6b9c975a\n- ✓ population.entity\n状态：\n- 未声明: population.eligibility, population.conditions, population.time, measure.formula, grouping, selection, output\n[SPEC_FEEDBACK] revisionId=revision_78d86c0a-e907-47e8-94d0-d8fb6b9c975a status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"model identified by name and version, associated L1_model\"}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_748f795a-cb42-46f6-9b10-066d9dce255c",
+    "revisionId": "revision_78d86c0a-e907-47e8-94d0-d8fb6b9c975a",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "model identified by name and version, associated L1_model"
+        },
+        "evidenceIds": [
+          "evidence_6a015fdb-674a-4dbb-b3e1-15f6fd50ae43"
+        ]
+      }
+    ],
+    "undeclared": [
+      "population.eligibility",
+      "population.conditions",
+      "population.time",
+      "measure.formula",
+      "grouping",
+      "selection",
+      "output"
+    ],
+    "open": [],
+    "unverified": [],
+    "specFeedback": {
+      "taskId": "task_748f795a-cb42-46f6-9b10-066d9dce255c",
+      "revisionId": "revision_78d86c0a-e907-47e8-94d0-d8fb6b9c975a",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_6a015fdb-674a-4dbb-b3e1-15f6fd50ae43"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "population.entity",
+        "status": "applied"
+      }
+    ]
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "revealedAt": "2026-10-11T09:22:23.536Z",
+  "registry": {
+    "instance_id": "local168",
+    "attempt_id": "attempt-20261010-154318Z",
+    "score": 0,
+    "score_source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-retry.json",
+    "replayed_csv_score": 0,
+    "group": "wrong",
+    "status": "unknown",
+    "publication_status": "published",
+    "duration_ms": 291409,
+    "tool_calls": 43,
+    "error": {
+      "name": "OperationTerminalUnknownError",
+      "message": "OPERATION_TERMINAL_UNKNOWN",
+      "stack": "OperationTerminalUnknownError: OPERATION_TERMINAL_UNKNOWN\n    at requireKnownOperationTerminal (file:///D:/data_agent/evaluations/spider2/run.mjs:491:19)\n    at Object.prompt (file:///D:/data_agent/evaluations/spider2/run.mjs:758:11)\n    at async runPromptWithTimeout (file:///D:/data_agent/evaluations/spider2/lib.mjs:618:5)\n    at async file:///D:/data_agent/evaluations/spider2/run.mjs:782:9\n    at async file:///D:/data_agent/evaluations/spider2/run.mjs:1234:22\n    at async Promise.all (index 1)\n    at async runCommand (file:///D:/data_agent/evaluations/spider2/run.mjs:1242:3)\n    at async main (file:///D:/data_agent/evaluations/spider2/run.mjs:1637:31)"
+    },
+    "result_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local168/attempts/attempt-20261010-154318Z/result.json",
+    "trace_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local168/attempts/attempt-20261010-154318Z/trace.json",
+    "result_exists": true,
+    "trace_exists": true,
+    "sql_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local168/attempts/attempt-20261010-154318Z/submissions/sql/local168.sql",
+    "csv_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local168.csv",
+    "sql_exists": true,
+    "csv_exists": true,
+    "gold_sql_file": null,
+    "process": {
+      "turns": 31,
+      "toolCalls": 43,
+      "explorationQueries": 19,
+      "resultQueries": 1,
+      "fanoutProbes": 0,
+      "revisions": 3
+    },
+    "fanout_metrics": {
+      "reportCount": 1,
+      "targetCount": 0,
+      "findingCount": 0,
+      "unknownCount": 0,
+      "byStatus": {
+        "clear": 0,
+        "finding": 0,
+        "not_applicable": 1,
+        "unknown": 0
+      },
+      "enabled": true
+    },
+    "spec_feedback_metrics": {
+      "reportCount": 4,
+      "byStatus": {
+        "pending": 0,
+        "completed": 0,
+        "unavailable": 4,
+        "disabled": 0
+      },
+      "deterministicIssueCount": 0,
+      "concernCount": 0,
+      "enabled": true
+    }
+  },
+  "originalSql": "WITH base AS (\n  SELECT job_id, salary_year_avg\n  FROM job_postings_fact\n  WHERE job_title = 'Data Analyst'\n    AND job_work_from_home = 1\n    AND salary_year_avg IS NOT NULL\n),\ndemand AS (\n  SELECT sj.skill_id, COUNT(DISTINCT b.job_id) AS demand_positions\n  FROM base b\n  JOIN skills_job_dim sj ON sj.job_id = b.job_id\n  GROUP BY sj.skill_id\n),\ntop3 AS (\n  SELECT skill_id FROM demand ORDER BY demand_positions DESC, skill_id ASC LIMIT 3\n),\nsel AS (\n  SELECT DISTINCT b.job_id, b.salary_year_avg\n  FROM base b\n  JOIN skills_job_dim sj ON sj.job_id = b.job_id\n  WHERE sj.skill_id IN (SELECT skill_id FROM top3)\n)\nSELECT ROUND(AVG(salary_year_avg), 2) AS avg_salary\nFROM sel\n",
+  "originalCsv": "avg_salary\n104040.6\n",
+  "goldSql": null,
+  "goldCsv": [
+    {
+      "path": "C:\\data-agent-eval\\Spider2\\spider2-lite\\evaluation_suite\\gold\\exec_result\\local168.csv",
+      "content": "avg_salary\r\n101300"
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local168",
+    "condition_cols": [],
+    "ignore_order": true,
+    "toks": "122"
+  }
+}

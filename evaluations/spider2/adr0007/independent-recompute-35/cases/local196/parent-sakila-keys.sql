@@ -1,0 +1,1 @@
+SELECT 'payment' kind,COUNT(*) n,COUNT(DISTINCT payment_id) ids,COUNT(DISTINCT customer_id) customers FROM payment UNION ALL SELECT 'rental',COUNT(*),COUNT(DISTINCT rental_id),COUNT(DISTINCT customer_id) FROM rental

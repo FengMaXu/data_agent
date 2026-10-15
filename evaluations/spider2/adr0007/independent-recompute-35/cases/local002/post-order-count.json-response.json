@@ -1,0 +1,53 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_790c6786-708e-46f2-a97f-cdd59e7f2d2c\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nsy | order_count_answer\n3861 | 34.65134724345582"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_790c6786-708e-46f2-a97f-cdd59e7f2d2c",
+      "preview": {
+        "columns": [
+          "sy",
+          "order_count_answer"
+        ],
+        "rows": [
+          [
+            3861,
+            34.65134724345582
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "sy",
+        "order_count_answer"
+      ],
+      "rows": [
+        [
+          3861,
+          34.65134724345582
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "REAL"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_3b6a4cf8-508f-4f1e-98b8-94d168df18a3"
+  }
+}

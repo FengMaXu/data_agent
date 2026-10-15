@@ -1,0 +1,4 @@
+{
+  "sql": "WITH f AS (SELECT id_bioguide,min(term_start) first FROM legislators_terms GROUP BY id_bioguide) SELECT count(*) cohort,min(first),max(first),count(distinct id_bioguide) keys FROM f WHERE first BETWEEN '1917-01-01' AND '1999-12-31'",
+  "limit": 1000
+}

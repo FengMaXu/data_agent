@@ -1,0 +1,73 @@
+{
+  "revealedAt": "2026-10-11T09:06:59.792Z",
+  "registry": {
+    "instance_id": "local273",
+    "attempt_id": "attempt-20261010-154318Z",
+    "score": 0,
+    "score_source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-retry.json",
+    "replayed_csv_score": 0,
+    "group": "wrong",
+    "status": "completed",
+    "publication_status": "published",
+    "duration_ms": 377856,
+    "tool_calls": 35,
+    "error": null,
+    "result_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local273/attempts/attempt-20261010-154318Z/result.json",
+    "trace_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local273/attempts/attempt-20261010-154318Z/trace.json",
+    "result_exists": true,
+    "trace_exists": true,
+    "sql_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local273/attempts/attempt-20261010-154318Z/submissions/sql/local273.sql",
+    "csv_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local273.csv",
+    "sql_exists": true,
+    "csv_exists": true,
+    "gold_sql_file": null,
+    "process": {
+      "turns": 22,
+      "toolCalls": 35,
+      "explorationQueries": 7,
+      "resultQueries": 1,
+      "fanoutProbes": 1,
+      "revisions": 6
+    },
+    "fanout_metrics": {
+      "reportCount": 1,
+      "targetCount": 1,
+      "findingCount": 0,
+      "unknownCount": 0,
+      "byStatus": {
+        "clear": 1,
+        "finding": 0,
+        "not_applicable": 0,
+        "unknown": 0
+      },
+      "enabled": true
+    },
+    "spec_feedback_metrics": {
+      "reportCount": 4,
+      "byStatus": {
+        "pending": 0,
+        "completed": 0,
+        "unavailable": 4,
+        "disabled": 0
+      },
+      "deterministicIssueCount": 0,
+      "concernCount": 0,
+      "enabled": true
+    }
+  },
+  "originalSql": "WITH inv AS (SELECT i.product_id, i.qty, pu.purchased, i.id, SUM(i.qty) OVER (PARTITION BY i.product_id ORDER BY pu.purchased ASC, i.qty ASC, i.id ASC) AS cum FROM inventory i JOIN purchases pu ON pu.id = i.purchase_id), tot AS (SELECT product_id, MAX(cum) AS total FROM inv GROUP BY product_id), dem AS (SELECT ol.id, ol.product_id, ol.qty, COALESCE(SUM(ol.qty) OVER (PARTITION BY ol.product_id ORDER BY o.ordered ASC, o.id ASC, ol.id ASC ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),0) AS prev FROM orderlines ol JOIN orders o ON o.id = ol.order_id) SELECT p.name AS product_name, AVG(MIN(d.qty, MAX(0, t.total - d.prev)) * 100.0 / d.qty) AS average_pick_percentage FROM dem d JOIN products p ON p.id = d.product_id JOIN tot t ON t.product_id = d.product_id GROUP BY p.name ORDER BY p.name;\n",
+  "originalCsv": "product_name,average_pick_percentage\nDer Helle Kumpel,100\nHazy Pink Cloud,100\nHercule Trippel,100\nHoppy Crude Oil,36.11111111111111\nMonks and Nuns,100\nPale Rider Rides,100\n",
+  "goldSql": null,
+  "goldCsv": [
+    {
+      "path": "C:\\data-agent-eval\\Spider2\\spider2-lite\\evaluation_suite\\gold\\exec_result\\local273.csv",
+      "content": "product_name,avg_pick_percentage\r\nDer Helle Kumpel,76.92307692307692\r\nHazy Pink Cloud,75\r\nHercule Trippel,75\r\nHoppy Crude Oil,85.71428571428571\r\nMonks and Nuns,100\r\nPale Rider Rides,80"
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local273",
+    "condition_cols": [],
+    "ignore_order": false,
+    "toks": "249"
+  }
+}

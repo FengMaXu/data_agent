@@ -1,0 +1,684 @@
+{
+  "query": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[RESULT_CANDIDATE] candidateId=candidate_900c5720-9215-4157-84bb-95673958393a revisionId=revision_caac8f30-af45-4eac-b0b2-e3fe00d09961\n[FANOUT_CHECK] status=unknown reasons=check_disabled\nNo source-key duplication was observed within the supported probe coverage.\nseller_id | total_sales | products_sold | average_item_price | average_review_score | average_packing_days | top_category_english\n4869f7a5dfa277a7dca6462dcf3b52b2 | 229472.63 | 1156 | 198.50573529411764 | 4.133451957295374 | 2.3771520020099817 | watches_gifts\n53243585a1d6dc2643021fd1853d8905 | 222776.05 | 410 | 543.3562195121951 | 4.132022471910112 | 3.0508116648296975 | telephony\n4a3ca9315b744ce9f8e9374361493884 | 200472.92 | 1987 | 100.89225968797183 | 3.827873403664631 | 2.38172589565532 | bed_bath_table\nfa1c13f2614d7b5c4749cbc52fecda94 | 194042.03 | 586 | 331.12974402730373 | 4.339070567986231 | 2.3643673907290292 | watches_gifts\n7c67e1448b00f6e969d365cea6b010ab | 187923.89 | 1364 | 137.7741129032258 | 3.488798370672098 | 11.384186236296628 | office_furniture\n7e93a43ef30c4f03f38b393420bc753a | 176431.87 | 340 | 518.9172647058823 | 4.214925373134329 | 2.453834548960118 | watches_gifts\nda8622b14eb17ae2831f4ac5b9dab84a | 160236.57 | 1551 | 103.31177949709866 | 4.178867924528302 | 2.296141981296429 | bed_bath_table\n7a67c85e85bb2ce8582c35f2203ad736 | 141745.53 | 1171 | 121.04656703672075 | 4.244155844155844 | 1.6179294670702018 | cool_stuff\n1025f0e2d44d7041d6cf58b6550e0bfa | 138968.55 | 1428 | 97.31691176470588 | 3.989059080962801 | 3.8201592941304354 | furniture_decor\n955fee9216a65b617aa5c0531780ce60 | 135171.7 | 1499 | 90.17458305537025 | 4.1587177482408135 | 1.739815763971964 | furniture_decor\n46dc3b2cc0980fb8ec44634e21d2718e | 128111.19 | 542 | 236.36750922509225 | 4.194174757281553 | 2.9014870752260267 | toys\n6560211a19b47992c3666cc44a7e94c0 | 123304.83 | 2033 | 60.65166256763404 | 3.937093275488069 | 1.2551149678490143 | watches_gifts\n620c87c171fb2a6dd6e8bb4dec959fc6 | 114774.5 | 798 | 143.82769423558898 | 4.2516914749661705 | 2.4039570473336367 | health_beauty\n7d13fca15225358621be4086e1eb0964 | 113628.97 | 578 | 196.58991349480968 | 4.024955436720143 | 3.503651204029862 | watches_gifts\n5dceca129747e92ff8ef7a997dc4f8ca | 112155.53 | 346 | 324.14893063583816 | 3.984423676012461 | 1.9850019290310297 | luggage_accessories\n1f50f920176fa81dab994f9023523100 | 106939.20999999999 | 1931 | 55.380222682547895 | 4.130341880341881 | 3.4603029240265 | garden_tools\ncc419e0650a3c5ba77189a1882b7556a | 104288.42 | 1775 | 58.75403943661972 | 4.077586206896552 | 2.3978866714883154 | health_beauty\na1043bafd471dff536d0c462352beb48 | 101901.16 | 770 | 132.33916883116885 | 4.222377622377622 | 1.5650893472067116 | garden_tools\n3d871de0142ce09b7081e2b9d1733cb1 | 94914.2 | 1147 | 82.74995640802092 | 4.153271028037383 | 2.9654713274204947 | stationery\nedb1ef5e36e0c8cd84eb3c9b003e486d | 79284.55 | 175 | 453.0545714285714 | 4.421686746987952 | 1.3827112626146387 | health_beauty\nccc4bbb5f32a6ab2b7066a4130f114e3 | 74004.62 | 192 | 385.44072916666664 | 4.28494623655914 | 2.844445382866606 | health_beauty\nf7ba60f8c3f99e7ee4042fdef03b70c4 | 68395 | 230 | 297.3695652173913 | 4.212669683257919 | 2.11940204173172 | health_beauty\nfe2032dab1a61af8794248c8196565c9 | 65959.61 | 306 | 215.55428104575162 | 4.375862068965517 | 1.6854787311153259 | perfumery\n8581055ce74af1daba164fdbd55a40de | 64925.3 | 435 | 149.2535632183908 | 4.262755102040816 | 2.758404228296471 | auto\ncca3071e3e9bb7d12640c9fbe2301306 | 64009.89 | 830 | 77.12034939759036 | 3.846368715083799 | 3.50376300439265 | furniture_decor\n522620dcb18a6b31cd7bdf73665113a9 | 57168.49 | 180 | 317.6027222222222 | 3.888235294117647 | 2.415019000210191 | consoles_games\n17e34d8224d27a541263c4c64b11a56b | 56363.24 | 268 | 210.31059701492538 | 4.1857707509881426 | 2.702495039664283 | perfumery\n7ddcbb64b5bc1ef36ca8c151f6ec77df | 55578.57 | 343 | 162.0366472303207 | 3.9518072289156625 | 2.0415924292649112 | cool_stuff\nde722cd6dad950a92b7d4f82673f8833 | 55426.1 | 379 | 146.2430079155673 | 4.293768545994065 | 1.5981809529700284 | computers_accessories\n37be5a7c751166fbc5f8ccba4119e043 | 55350.55 | 281 | 196.97704626334522 | 4.3003663003663 | 2.9902056951421616 | bed_bath_table\n218d46b86c1881d022bce9c68a7d4b15 | 55093.28 | 427 | 129.024074941452 | 4.149484536082475 | 1.7444537696850828 | sports_leisure\n25c5c91f63607446a97b143d2d535d31 | 54679.22 | 269 | 203.26847583643124 | 3.8 | 4.414006632842267 | computers_accessories\nf5a590cf36251cf1162ea35bef76fe84 | 53201.78 | 122 | 436.0801639344262 | 4.230769230769231 | 2.750933464988212 | musical_instruments\nceaec5548eefc6e23e6607c5435102e7 | 52917.18 | 211 | 250.7923222748815 | 4.1457286432160805 | 2.7393002003936364 | cool_stuff\nb2ba3715d723d245138f291a6fe42594 | 51676.88 | 363 | 142.36055096418733 | 4.098802395209581 | 5.083046537725415 | stationery\nf8db351d8c4c4c22c6835c19a46f01b0 | 50525.6 | 724 | 69.78674033149171 | 4.237593984962406 | 1.3193253942990293 | housewares\n8160255418d5aaa7dbdc9f4c64ebda44 | 47017.69 | 431 | 109.08976798143853 | 3.9427083333333335 | 3.6734172908238167 | bed_bath_table\n77530e9772f57a62c906e1c21538ab82 | 46610.4 | 389 | 119.82107969151672 | 4.11214953271028 | 1.988496812518698 | furniture_decor\n4e922959ae960d389249c378d1c939f5 | 46030.37 | 454 | 101.38848017621146 | 3.9542168674698797 | 3.4974008813017914 | computers_accessories\nc826c40d7b19f62a09e2d7c5e7295ee2 | 45643.74 | 373 | 122.36927613941018 | 4.079545454545454 | 2.358230758522421 | [unknown]\n850f4f8af5ea87287ac68de36e29107f | 45355.36 | 192 | 236.22583333333333 | 4.293478260869565 | 1.0285670044907445 | toys\nb33e7c55446eabf8fe1a42d037ac7d6d | 44985.17 | 155 | 290.22690322580644 | 4.1644736842105265 | 2.102167536651453 | watches_gifts\n4d6d651bd7684af3fffabd5f08d12e5a | 43587.4 | 395 | 110.34784810126582 | 4.197297297297298 | 3.631440622439086 | sports_leisure\ne9779976487b77c6d4ac45f75ec7afe9 | 43162.95 | 750 | 57.550599999999996 | 4.217125382262997 | 2.234223307287175 | sports_leisure\nc3cfdc648177fdbbbb35635a37472c53 | 43048.18 | 307 | 140.22208469055374 | 4.46643109540636 | 1.5643042508495801 | sports_leisure\n2eb70248d66e0e3ef83659f71b244378 | 42628.61 | 212 | 201.07834905660377 | 2.693467336683417 | 10.746727245852371 | watches_gifts\nd91fb3b7d041e83b64a00a3edfb37e4f | 40889.74 | 536 | 76.28682835820895 | 4.0964285714285715 | 2.8029103231893924 | home_appliances\n17a053fcb14bd219540cbde0df490be0 | 40703.14 | 149 | 273.1754362416107 | 4.233870967741935 | 3.1869505608446773 | office_furniture\n391fc6631aebcf3004804e51b40bcf1e | 39951.95 | 613 | 65.17446982055465 | 4.02808988764045 | 3.1150254629426994 | furniture_decor\n634964b17796e64304cadf1ad3050fb7 | 39465.1 | 326 | 121.0585889570552 | 4.037453183520599 | 3.092425718616847 | watches_gifts\n(truncated preview)"
+      }
+    ],
+    "details": {
+      "kind": "result",
+      "artifact": {
+        "kind": "candidate",
+        "candidateId": "candidate_900c5720-9215-4157-84bb-95673958393a",
+        "revisionId": "revision_caac8f30-af45-4eac-b0b2-e3fe00d09961",
+        "resultRef": "result_36db6bbc-9dcb-4da9-9e5b-13f333df66fb"
+      },
+      "preview": {
+        "columns": [
+          "seller_id",
+          "total_sales",
+          "products_sold",
+          "average_item_price",
+          "average_review_score",
+          "average_packing_days",
+          "top_category_english"
+        ],
+        "rows": [
+          [
+            "4869f7a5dfa277a7dca6462dcf3b52b2",
+            229472.63,
+            1156,
+            198.50573529411764,
+            4.133451957295374,
+            2.3771520020099817,
+            "watches_gifts"
+          ],
+          [
+            "53243585a1d6dc2643021fd1853d8905",
+            222776.05,
+            410,
+            543.3562195121951,
+            4.132022471910112,
+            3.0508116648296975,
+            "telephony"
+          ],
+          [
+            "4a3ca9315b744ce9f8e9374361493884",
+            200472.92,
+            1987,
+            100.89225968797183,
+            3.827873403664631,
+            2.38172589565532,
+            "bed_bath_table"
+          ],
+          [
+            "fa1c13f2614d7b5c4749cbc52fecda94",
+            194042.03,
+            586,
+            331.12974402730373,
+            4.339070567986231,
+            2.3643673907290292,
+            "watches_gifts"
+          ],
+          [
+            "7c67e1448b00f6e969d365cea6b010ab",
+            187923.89,
+            1364,
+            137.7741129032258,
+            3.488798370672098,
+            11.384186236296628,
+            "office_furniture"
+          ],
+          [
+            "7e93a43ef30c4f03f38b393420bc753a",
+            176431.87,
+            340,
+            518.9172647058823,
+            4.214925373134329,
+            2.453834548960118,
+            "watches_gifts"
+          ],
+          [
+            "da8622b14eb17ae2831f4ac5b9dab84a",
+            160236.57,
+            1551,
+            103.31177949709866,
+            4.178867924528302,
+            2.296141981296429,
+            "bed_bath_table"
+          ],
+          [
+            "7a67c85e85bb2ce8582c35f2203ad736",
+            141745.53,
+            1171,
+            121.04656703672075,
+            4.244155844155844,
+            1.6179294670702018,
+            "cool_stuff"
+          ],
+          [
+            "1025f0e2d44d7041d6cf58b6550e0bfa",
+            138968.55,
+            1428,
+            97.31691176470588,
+            3.989059080962801,
+            3.8201592941304354,
+            "furniture_decor"
+          ],
+          [
+            "955fee9216a65b617aa5c0531780ce60",
+            135171.7,
+            1499,
+            90.17458305537025,
+            4.1587177482408135,
+            1.739815763971964,
+            "furniture_decor"
+          ],
+          [
+            "46dc3b2cc0980fb8ec44634e21d2718e",
+            128111.19,
+            542,
+            236.36750922509225,
+            4.194174757281553,
+            2.9014870752260267,
+            "toys"
+          ],
+          [
+            "6560211a19b47992c3666cc44a7e94c0",
+            123304.83,
+            2033,
+            60.65166256763404,
+            3.937093275488069,
+            1.2551149678490143,
+            "watches_gifts"
+          ],
+          [
+            "620c87c171fb2a6dd6e8bb4dec959fc6",
+            114774.5,
+            798,
+            143.82769423558898,
+            4.2516914749661705,
+            2.4039570473336367,
+            "health_beauty"
+          ],
+          [
+            "7d13fca15225358621be4086e1eb0964",
+            113628.97,
+            578,
+            196.58991349480968,
+            4.024955436720143,
+            3.503651204029862,
+            "watches_gifts"
+          ],
+          [
+            "5dceca129747e92ff8ef7a997dc4f8ca",
+            112155.53,
+            346,
+            324.14893063583816,
+            3.984423676012461,
+            1.9850019290310297,
+            "luggage_accessories"
+          ],
+          [
+            "1f50f920176fa81dab994f9023523100",
+            106939.20999999999,
+            1931,
+            55.380222682547895,
+            4.130341880341881,
+            3.4603029240265,
+            "garden_tools"
+          ],
+          [
+            "cc419e0650a3c5ba77189a1882b7556a",
+            104288.42,
+            1775,
+            58.75403943661972,
+            4.077586206896552,
+            2.3978866714883154,
+            "health_beauty"
+          ],
+          [
+            "a1043bafd471dff536d0c462352beb48",
+            101901.16,
+            770,
+            132.33916883116885,
+            4.222377622377622,
+            1.5650893472067116,
+            "garden_tools"
+          ],
+          [
+            "3d871de0142ce09b7081e2b9d1733cb1",
+            94914.2,
+            1147,
+            82.74995640802092,
+            4.153271028037383,
+            2.9654713274204947,
+            "stationery"
+          ],
+          [
+            "edb1ef5e36e0c8cd84eb3c9b003e486d",
+            79284.55,
+            175,
+            453.0545714285714,
+            4.421686746987952,
+            1.3827112626146387,
+            "health_beauty"
+          ],
+          [
+            "ccc4bbb5f32a6ab2b7066a4130f114e3",
+            74004.62,
+            192,
+            385.44072916666664,
+            4.28494623655914,
+            2.844445382866606,
+            "health_beauty"
+          ],
+          [
+            "f7ba60f8c3f99e7ee4042fdef03b70c4",
+            68395,
+            230,
+            297.3695652173913,
+            4.212669683257919,
+            2.11940204173172,
+            "health_beauty"
+          ],
+          [
+            "fe2032dab1a61af8794248c8196565c9",
+            65959.61,
+            306,
+            215.55428104575162,
+            4.375862068965517,
+            1.6854787311153259,
+            "perfumery"
+          ],
+          [
+            "8581055ce74af1daba164fdbd55a40de",
+            64925.3,
+            435,
+            149.2535632183908,
+            4.262755102040816,
+            2.758404228296471,
+            "auto"
+          ],
+          [
+            "cca3071e3e9bb7d12640c9fbe2301306",
+            64009.89,
+            830,
+            77.12034939759036,
+            3.846368715083799,
+            3.50376300439265,
+            "furniture_decor"
+          ],
+          [
+            "522620dcb18a6b31cd7bdf73665113a9",
+            57168.49,
+            180,
+            317.6027222222222,
+            3.888235294117647,
+            2.415019000210191,
+            "consoles_games"
+          ],
+          [
+            "17e34d8224d27a541263c4c64b11a56b",
+            56363.24,
+            268,
+            210.31059701492538,
+            4.1857707509881426,
+            2.702495039664283,
+            "perfumery"
+          ],
+          [
+            "7ddcbb64b5bc1ef36ca8c151f6ec77df",
+            55578.57,
+            343,
+            162.0366472303207,
+            3.9518072289156625,
+            2.0415924292649112,
+            "cool_stuff"
+          ],
+          [
+            "de722cd6dad950a92b7d4f82673f8833",
+            55426.1,
+            379,
+            146.2430079155673,
+            4.293768545994065,
+            1.5981809529700284,
+            "computers_accessories"
+          ],
+          [
+            "37be5a7c751166fbc5f8ccba4119e043",
+            55350.55,
+            281,
+            196.97704626334522,
+            4.3003663003663,
+            2.9902056951421616,
+            "bed_bath_table"
+          ],
+          [
+            "218d46b86c1881d022bce9c68a7d4b15",
+            55093.28,
+            427,
+            129.024074941452,
+            4.149484536082475,
+            1.7444537696850828,
+            "sports_leisure"
+          ],
+          [
+            "25c5c91f63607446a97b143d2d535d31",
+            54679.22,
+            269,
+            203.26847583643124,
+            3.8,
+            4.414006632842267,
+            "computers_accessories"
+          ],
+          [
+            "f5a590cf36251cf1162ea35bef76fe84",
+            53201.78,
+            122,
+            436.0801639344262,
+            4.230769230769231,
+            2.750933464988212,
+            "musical_instruments"
+          ],
+          [
+            "ceaec5548eefc6e23e6607c5435102e7",
+            52917.18,
+            211,
+            250.7923222748815,
+            4.1457286432160805,
+            2.7393002003936364,
+            "cool_stuff"
+          ],
+          [
+            "b2ba3715d723d245138f291a6fe42594",
+            51676.88,
+            363,
+            142.36055096418733,
+            4.098802395209581,
+            5.083046537725415,
+            "stationery"
+          ],
+          [
+            "f8db351d8c4c4c22c6835c19a46f01b0",
+            50525.6,
+            724,
+            69.78674033149171,
+            4.237593984962406,
+            1.3193253942990293,
+            "housewares"
+          ],
+          [
+            "8160255418d5aaa7dbdc9f4c64ebda44",
+            47017.69,
+            431,
+            109.08976798143853,
+            3.9427083333333335,
+            3.6734172908238167,
+            "bed_bath_table"
+          ],
+          [
+            "77530e9772f57a62c906e1c21538ab82",
+            46610.4,
+            389,
+            119.82107969151672,
+            4.11214953271028,
+            1.988496812518698,
+            "furniture_decor"
+          ],
+          [
+            "4e922959ae960d389249c378d1c939f5",
+            46030.37,
+            454,
+            101.38848017621146,
+            3.9542168674698797,
+            3.4974008813017914,
+            "computers_accessories"
+          ],
+          [
+            "c826c40d7b19f62a09e2d7c5e7295ee2",
+            45643.74,
+            373,
+            122.36927613941018,
+            4.079545454545454,
+            2.358230758522421,
+            "[unknown]"
+          ],
+          [
+            "850f4f8af5ea87287ac68de36e29107f",
+            45355.36,
+            192,
+            236.22583333333333,
+            4.293478260869565,
+            1.0285670044907445,
+            "toys"
+          ],
+          [
+            "b33e7c55446eabf8fe1a42d037ac7d6d",
+            44985.17,
+            155,
+            290.22690322580644,
+            4.1644736842105265,
+            2.102167536651453,
+            "watches_gifts"
+          ],
+          [
+            "4d6d651bd7684af3fffabd5f08d12e5a",
+            43587.4,
+            395,
+            110.34784810126582,
+            4.197297297297298,
+            3.631440622439086,
+            "sports_leisure"
+          ],
+          [
+            "e9779976487b77c6d4ac45f75ec7afe9",
+            43162.95,
+            750,
+            57.550599999999996,
+            4.217125382262997,
+            2.234223307287175,
+            "sports_leisure"
+          ],
+          [
+            "c3cfdc648177fdbbbb35635a37472c53",
+            43048.18,
+            307,
+            140.22208469055374,
+            4.46643109540636,
+            1.5643042508495801,
+            "sports_leisure"
+          ],
+          [
+            "2eb70248d66e0e3ef83659f71b244378",
+            42628.61,
+            212,
+            201.07834905660377,
+            2.693467336683417,
+            10.746727245852371,
+            "watches_gifts"
+          ],
+          [
+            "d91fb3b7d041e83b64a00a3edfb37e4f",
+            40889.74,
+            536,
+            76.28682835820895,
+            4.0964285714285715,
+            2.8029103231893924,
+            "home_appliances"
+          ],
+          [
+            "17a053fcb14bd219540cbde0df490be0",
+            40703.14,
+            149,
+            273.1754362416107,
+            4.233870967741935,
+            3.1869505608446773,
+            "office_furniture"
+          ],
+          [
+            "391fc6631aebcf3004804e51b40bcf1e",
+            39951.95,
+            613,
+            65.17446982055465,
+            4.02808988764045,
+            3.1150254629426994,
+            "furniture_decor"
+          ],
+          [
+            "634964b17796e64304cadf1ad3050fb7",
+            39465.1,
+            326,
+            121.0585889570552,
+            4.037453183520599,
+            3.092425718616847,
+            "watches_gifts"
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "REAL",
+          "INTEGER",
+          "REAL",
+          "REAL",
+          "REAL",
+          "TEXT"
+        ],
+        "rowCount": 236,
+        "truncated": true
+      },
+      "findings": [],
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "unknown",
+          "reason": "check_disabled"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "unknown",
+        "snapshotScope": "unbound",
+        "targets": [],
+        "unsupportedReasons": [
+          "check_disabled"
+        ]
+      },
+      "attemptId": "attempt_0c42b75c-359d-4243-bfac-bd8f44a62525"
+    }
+  },
+  "publication": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[PUBLISHED] csv [download](/api/runtime/publications/publication_76b4c4b8-ec4d-4738-b8c9-a5063f1b5553?session_id=local286) receiptId=publication_76b4c4b8-ec4d-4738-b8c9-a5063f1b5553\n[DISCLOSURE] 以下字段为假定，未被合格证据证实：population.conditions, population.time, population.joinMultiplicity, measure.formula, measure.countGrain, measure.denominator。 JOIN fanout 检查未能完整完成：check_disabled。"
+      }
+    ],
+    "details": {
+      "receiptId": "publication_76b4c4b8-ec4d-4738-b8c9-a5063f1b5553",
+      "taskId": "task_3e79711a-7848-4c69-89b9-da6773f63499",
+      "principalId": "independent-analyst",
+      "sessionId": "local286",
+      "candidateId": "candidate_900c5720-9215-4157-84bb-95673958393a",
+      "revisionId": "revision_caac8f30-af45-4eac-b0b2-e3fe00d09961",
+      "resultRef": "result_36db6bbc-9dcb-4da9-9e5b-13f333df66fb",
+      "format": "csv",
+      "publicRef": "/api/runtime/publications/publication_76b4c4b8-ec4d-4738-b8c9-a5063f1b5553?session_id=local286",
+      "contentHash": "a0140ddd0b3ef25409b384b31821ee442686be0d24416567e55a1ab717d7dde5",
+      "presentationContentHash": "19d5505c51eefe87069fe21b1bde752d93f8a602f8e6b12fd0114a0302c7e6f2",
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "unknown",
+          "reason": "check_disabled"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "unknown",
+        "snapshotScope": "unbound",
+        "targets": [],
+        "unsupportedReasons": [
+          "check_disabled"
+        ]
+      },
+      "disclosure": {
+        "required": true,
+        "unverifiedFields": [
+          {
+            "path": "population.conditions",
+            "kind": "assumed"
+          },
+          {
+            "path": "population.time",
+            "kind": "assumed"
+          },
+          {
+            "path": "population.joinMultiplicity",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.formula",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.countGrain",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.denominator",
+            "kind": "assumed"
+          }
+        ],
+        "summary": "以下字段为假定，未被合格证据证实：population.conditions, population.time, population.joinMultiplicity, measure.formula, measure.countGrain, measure.denominator。 JOIN fanout 检查未能完整完成：check_disabled。",
+        "fanoutStatus": "unknown"
+      },
+      "physicalProfile": {
+        "version": 1,
+        "rowCount": 236,
+        "truncated": false,
+        "columns": [
+          {
+            "name": "seller_id",
+            "kind": "text",
+            "nullCount": 0,
+            "distinctCount": 236
+          },
+          {
+            "name": "total_sales",
+            "kind": "decimal",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 236,
+            "min": "2574.7799999999997",
+            "max": "229472.63"
+          },
+          {
+            "name": "products_sold",
+            "kind": "integer",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 157,
+            "min": "101",
+            "max": "2033"
+          },
+          {
+            "name": "average_item_price",
+            "kind": "decimal",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 236,
+            "min": "15.235384615384614",
+            "max": "543.3562195121951"
+          },
+          {
+            "name": "average_review_score",
+            "kind": "decimal",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 233,
+            "min": "2.3333333333333335",
+            "max": "4.603960396039604"
+          },
+          {
+            "name": "average_packing_days",
+            "kind": "decimal",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 236,
+            "min": "0.9766663636948855",
+            "max": "11.384186236296628"
+          },
+          {
+            "name": "top_category_english",
+            "kind": "text",
+            "nullCount": 0,
+            "distinctCount": 36
+          }
+        ]
+      },
+      "policyVersion": "answering-publication-v1",
+      "createdByInvocationId": "d3ab88c6-f30d-43a8-8c7f-6888d841df06",
+      "requestId": "d3ab88c6-f30d-43a8-8c7f-6888d841df06",
+      "createdAt": "2026-10-11T10:06:50.308Z"
+    }
+  },
+  "authorizedCsv": "D:\\data_agent\\evaluations\\spider2\\adr0007\\independent-recompute-35\\cases\\local286\\publications\\publication_76b4c4b8-ec4d-4738-b8c9-a5063f1b5553\\result.csv"
+}

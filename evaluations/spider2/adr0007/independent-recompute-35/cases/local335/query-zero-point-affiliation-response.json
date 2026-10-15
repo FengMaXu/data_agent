@@ -1,0 +1,93 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_fc6ed9b8-67f6-43d8-be29-c25a022181e4\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nyear | forename | surname | name | points | points_with_team\n2002 | Heinz-Harald | Frentzen | Sauber | 2 | 0\n2003 | Justin | Wilson | Minardi | 1 | 0"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_fc6ed9b8-67f6-43d8-be29-c25a022181e4",
+      "preview": {
+        "columns": [
+          "year",
+          "forename",
+          "surname",
+          "name",
+          "points",
+          "points_with_team"
+        ],
+        "rows": [
+          [
+            2002,
+            "Heinz-Harald",
+            "Frentzen",
+            "Sauber",
+            2,
+            0
+          ],
+          [
+            2003,
+            "Justin",
+            "Wilson",
+            "Minardi",
+            1,
+            0
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "TEXT",
+          "TEXT",
+          "TEXT",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 2,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "year",
+        "forename",
+        "surname",
+        "name",
+        "points",
+        "points_with_team"
+      ],
+      "rows": [
+        [
+          2002,
+          "Heinz-Harald",
+          "Frentzen",
+          "Sauber",
+          2,
+          0
+        ],
+        [
+          2003,
+          "Justin",
+          "Wilson",
+          "Minardi",
+          1,
+          0
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "TEXT",
+        "TEXT",
+        "TEXT",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 2,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_bf1d5ae4-87b0-4776-9e3d-7d74d08d589b"
+  }
+}

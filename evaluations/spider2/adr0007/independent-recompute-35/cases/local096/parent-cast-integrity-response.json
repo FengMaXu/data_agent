@@ -1,0 +1,65 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_52943571-df7d-478b-a38d-caf06e64e7b6\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nmovies | empty_cast | female_only | rejected\n3475 | 0 | 4 | 3471"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_52943571-df7d-478b-a38d-caf06e64e7b6",
+      "preview": {
+        "columns": [
+          "movies",
+          "empty_cast",
+          "female_only",
+          "rejected"
+        ],
+        "rows": [
+          [
+            3475,
+            0,
+            4,
+            3471
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "movies",
+        "empty_cast",
+        "female_only",
+        "rejected"
+      ],
+      "rows": [
+        [
+          3475,
+          0,
+          4,
+          3471
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_b8031795-eeb0-4d41-a649-a458367ee9ac"
+  }
+}

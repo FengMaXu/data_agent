@@ -1,0 +1,3 @@
+{
+  "sql": "SELECT pay.order_id,pay.payment_type,GROUP_CONCAT(payment_sequential) seq,COUNT(*) n,SUM(payment_value) value FROM olist_order_payments pay WHERE payment_type='credit_card' AND EXISTS (SELECT 1 FROM olist_order_items i JOIN olist_products p USING(product_id) WHERE i.order_id=pay.order_id AND product_category_name='cama_mesa_banho') GROUP BY pay.order_id,pay.payment_type HAVING COUNT(*)>1 LIMIT 5"
+}

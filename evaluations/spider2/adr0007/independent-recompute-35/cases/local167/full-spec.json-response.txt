@@ -1,0 +1,159 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_6cc27d11-d465-472f-90ea-3360c407e6f0 revisionId=revision_5b3e3b3f-4cf0-48bf-90a5-eaf9f77cc240\n- ✓ population.eligibility\n- ✓ population.conditions\n- ✓ population.time\n- ✓ measure.formula\n- ✓ grouping\n- ✓ selection\n- ✓ output\n- ✓ selection.ties\n状态：\n- 未证实（发布时披露）: population.eligibility, population.conditions, population.time, measure.formula, grouping, selection, output, selection.ties\n- 没有待处理的字段，可以执行结果查询\n[SPEC_FEEDBACK] revisionId=revision_5b3e3b3f-4cf0-48bf-90a5-eaf9f77cc240 status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"female legislators keyed by id_bioguide\"}},\"population.eligibility\":{\"status\":\"assumed\",\"value\":\"Only observed eligible records; no fabricated missing records\"},\"population.conditions\":{\"status\":\"assumed\",\"value\":[\"gender F\",\"any term includes calendar December 31\"]},\"population.time\":{\"status\":\"assumed\",\"value\":{\"expression\":\"All available years; term_start <= Dec31 <= term_end inclusive\"}},\"measure.formula\":{\"status\":\"assumed\",\"value\":{\"op\":\"custom\",\"description\":\"One female id_bioguide once, attributed to earliest term state, eligible if any inclusive term contains a December 31; select state maximum distinct women\"}},\"grouping\":{\"status\":\"assumed\",\"value\":[\"first state\"]},\"selection\":{\"status\":\"assumed\",\"value\":{\"n\":1,\"orderBy\":\"female_legislators DESC\"}},\"selection.ties\":{\"status\":\"assumed\",\"value\":\"include_ties\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"full\",\"columns\":[\"state\",\"female_legislators\"]}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_6cc27d11-d465-472f-90ea-3360c407e6f0",
+    "revisionId": "revision_5b3e3b3f-4cf0-48bf-90a5-eaf9f77cc240",
+    "parentRevisionId": "revision_744343e4-22d8-4dea-b261-135118eaae4d",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "female legislators keyed by id_bioguide"
+        },
+        "evidenceIds": [
+          "evidence_e944b857-5c7a-4a98-b722-0b96b7d765f2"
+        ]
+      },
+      {
+        "path": "population.eligibility",
+        "status": "assumed",
+        "value": "Only observed eligible records; no fabricated missing records",
+        "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+      },
+      {
+        "path": "population.conditions",
+        "status": "assumed",
+        "value": [
+          "gender F",
+          "any term includes calendar December 31"
+        ],
+        "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+      },
+      {
+        "path": "population.time",
+        "status": "assumed",
+        "value": {
+          "expression": "All available years; term_start <= Dec31 <= term_end inclusive"
+        },
+        "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+      },
+      {
+        "path": "measure.formula",
+        "status": "assumed",
+        "value": {
+          "op": "custom",
+          "description": "One female id_bioguide once, attributed to earliest term state, eligible if any inclusive term contains a December 31; select state maximum distinct women"
+        },
+        "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+      },
+      {
+        "path": "grouping",
+        "status": "assumed",
+        "value": [
+          "first state"
+        ],
+        "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+      },
+      {
+        "path": "selection",
+        "status": "assumed",
+        "value": {
+          "n": 1,
+          "orderBy": "female_legislators DESC"
+        },
+        "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+      },
+      {
+        "path": "selection.ties",
+        "status": "assumed",
+        "value": "include_ties",
+        "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+      },
+      {
+        "path": "output",
+        "status": "assumed",
+        "value": {
+          "rowMode": "full",
+          "columns": [
+            "state",
+            "female_legislators"
+          ]
+        },
+        "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+      }
+    ],
+    "undeclared": [],
+    "open": [],
+    "unverified": [
+      "population.eligibility",
+      "population.conditions",
+      "population.time",
+      "measure.formula",
+      "grouping",
+      "selection",
+      "output",
+      "selection.ties"
+    ],
+    "specFeedback": {
+      "taskId": "task_6cc27d11-d465-472f-90ea-3360c407e6f0",
+      "revisionId": "revision_5b3e3b3f-4cf0-48bf-90a5-eaf9f77cc240",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_e944b857-5c7a-4a98-b722-0b96b7d765f2",
+        "evidence_08a6ae18-fa2e-4fc9-8213-674b8a4b5597",
+        "evidence_7c46f990-b82c-491a-9b6a-af099549d1a9",
+        "evidence_e720585f-84af-4208-b413-3f628acebe95",
+        "evidence_50008977-825b-4c9b-aa27-4eb2569536c1",
+        "evidence_95dfe410-46d9-480a-b847-73a762936fae",
+        "evidence_7620f06d-a8bc-4c7b-a63a-70b9dfc08171",
+        "evidence_660eb0e7-af45-4914-9932-bcd43c1c466e"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "population.eligibility",
+        "status": "applied"
+      },
+      {
+        "path": "population.conditions",
+        "status": "applied"
+      },
+      {
+        "path": "population.time",
+        "status": "applied"
+      },
+      {
+        "path": "measure.formula",
+        "status": "applied"
+      },
+      {
+        "path": "grouping",
+        "status": "applied"
+      },
+      {
+        "path": "selection",
+        "status": "applied"
+      },
+      {
+        "path": "output",
+        "status": "applied"
+      },
+      {
+        "path": "selection.ties",
+        "status": "applied"
+      }
+    ]
+  }
+}
+

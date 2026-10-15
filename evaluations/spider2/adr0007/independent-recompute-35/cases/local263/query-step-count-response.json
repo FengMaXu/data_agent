@@ -1,0 +1,89 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_fb041b94-982a-44e9-ab1b-e93202c2e5ed\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nL1_model | status | occurrences\nregression | soft | 36\ntree | soft | 11\nregression | strong | 78\ntree | strong | 14"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_fb041b94-982a-44e9-ab1b-e93202c2e5ed",
+      "preview": {
+        "columns": [
+          "L1_model",
+          "status",
+          "occurrences"
+        ],
+        "rows": [
+          [
+            "regression",
+            "soft",
+            36
+          ],
+          [
+            "tree",
+            "soft",
+            11
+          ],
+          [
+            "regression",
+            "strong",
+            78
+          ],
+          [
+            "tree",
+            "strong",
+            14
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 4,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "L1_model",
+        "status",
+        "occurrences"
+      ],
+      "rows": [
+        [
+          "regression",
+          "soft",
+          36
+        ],
+        [
+          "tree",
+          "soft",
+          11
+        ],
+        [
+          "regression",
+          "strong",
+          78
+        ],
+        [
+          "tree",
+          "strong",
+          14
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 4,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_56a7336b-ed62-4bd9-b9af-a3e247b97ac5"
+  }
+}

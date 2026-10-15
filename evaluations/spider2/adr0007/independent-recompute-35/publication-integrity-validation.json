@@ -1,0 +1,331 @@
+{
+  "database_queries_executed": 0,
+  "cases": 35,
+  "publications_verified": 36,
+  "checks": [
+    {
+      "instance_id": "local002",
+      "receipt_id": "publication_ab748593-4d28-4dc0-b4df-9030fa844954",
+      "candidate_id": "candidate_651c69c1-d784-4df9-8d04-e4a2a42e2ceb",
+      "rows": 1,
+      "content_hash_matches": true,
+      "presentation_hash_matches": true,
+      "authorized_csv_bytes_match": true
+    },
+    {
+      "instance_id": "local010",
+      "receipt_id": "publication_9b34a8df-75f4-417d-960c-445a45355fc8",
+      "candidate_id": "candidate_43a5ad4d-6467-4cf1-941b-fc9e2da29766",
+      "rows": 1,
+      "content_hash_matches": true,
+      "presentation_hash_matches": true,
+      "authorized_csv_bytes_match": true
+    },
+    {
+      "instance_id": "local037",
+      "receipt_id": "publication_caf1b2d3-4cce-44c1-b09d-c51ccedbd1f1",
+      "candidate_id": "candidate_708f1436-76d3-4002-9391-97f49e4134c3",
+      "rows": 3,
+      "content_hash_matches": true,
+      "presentation_hash_matches": true,
+      "authorized_csv_bytes_match": true
+    },
+    {
+      "instance_id": "local040",
+      "receipt_id": "publication_eeaf6589-ead5-4705-97ba-a53889c166e3",
+      "candidate_id": "candidate_1f41f6ad-614c-4fd8-988c-63322d46fada",
+      "rows": 3,
+      "content_hash_matches": true,
+      "presentation_hash_matches": true,
+      "authorized_csv_bytes_match": true
+    },
+    {
+      "instance_id": "local049",
+      "receipt_id": "publication_4f58a567-572c-4cb4-8ee9-e8a591316e48",
+      "candidate_id": "candidate_2358f21b-b878-4c35-98b6-ebc80b574e43",
+      "rows": 1,
+      "content_hash_matches": true,
+      "presentation_hash_matches": true,
+      "authorized_csv_bytes_match": true
+    },
+    {
+      "instance_id": "local050",
+      "receipt_id": "publication_ebad7921-f825-4269-bf4c-fa5f9a82ea3d",
+      "candidate_id": "candidate_cf611990-f479-4c3e-8fdb-87ac8c87b6f5",
+      "rows": 1,
+      "content_hash_matches": true,
+      "presentation_hash_matches": true,
+      "authorized_csv_bytes_match": true
+    },
+    {
+      "instance_id": "local056",
+      "receipt_id": "publication_6facfd35-d0b5-4fe5-acf8-eba442156096",
+      "candidate_id": "candidate_9d6112d9-31a6-4d4c-bea0-7d0bc896ebbd",
+      "rows": 1,
+      "content_hash_matches": true,
+      "presentation_hash_matches": true,
+      "authorized_csv_bytes_match": true
+    },
+    {
+      "instance_id": "local061",
+      "receipt_id": "publication_38a25c9b-658e-4809-871f-d12c67586fb2",
+      "candidate_id": "candidate_aad2c9e1-58d4-4019-8217-96ca66dda686",
+      "rows": 12,
+      "content_hash_matches": true,
+      "presentation_hash_matches": true,
+      "authorized_csv_bytes_match": true
+    },
+    {
+      "instance_id": "local064",
+      "receipt_id": "publication_4be5110e-1c5d-4d56-8de8-9ea8218c2a49",
+      "candidate_id": "candidate_a06c17e8-bda3-44ea-8836-ab751aaee731",
+      "rows": 1,
+      "content_hash_matches": true,
+      "presentation_hash_matches": true,
+      "authorized_csv_bytes_match": true
+    },
+    {
+      "instance_id": "local067",
+      "receipt_id": "publication_570cf3c0-5648-47a3-bddc-61086f651c73",
+      "candidate_id": "candidate_ec37592b-d8a6-458c-a73a-09a13f5c8549",
+      "rows": 10,
+      "content_hash_matches": true,
+      "presentation_hash_matches": true,
+      "authorized_csv_bytes_match": true
+    },
+    {
+      "instance_id": "local070",
+      "receipt_id": "publication_839a5a17-d2ca-4077-b345-e0a989fca4b8",
+      "candidate_id": "candidate_e44ca490-2ecd-4217-bb12-39238ce538c7",
+      "rows": 15,
+      "content_hash_matches": true,
+      "presentation_hash_matches": true,
+      "authorized_csv_bytes_match": true
+    },
+    {
+      "instance_id": "local096",
+      "receipt_id": "publication_e6432aaa-bac2-4c1b-85ac-a79cb8f8c5d5",
+      "candidate_id": "candidate_e66469f5-bf89-4a21-b2a1-38a2ad792586",
+      "rows": 78,
+      "content_hash_matches": true,
+      "presentation_hash_matches": true,
+      "authorized_csv_bytes_match": true
+    },
+    {
+      "instance_id": "local098",
+      "receipt_id": "publication_100fa935-2fa9-4d9d-b187-dde933024236",
+      "candidate_id": "candidate_ba4cb05c-6775-4662-b2dc-1ee39d7a726f",
+      "rows": 1,
+      "content_hash_matches": true,
+      "presentation_hash_matches": true,
+      "authorized_csv_bytes_match": true
+    },
+    {
+      "instance_id": "local098",
+      "receipt_id": "publication_a8d61834-102d-4828-8b92-5e4de13c5771",
+      "candidate_id": "candidate_3c46ca21-11c8-4f1f-b752-562700d08743",
+      "rows": 1,
+      "content_hash_matches": true,
+      "presentation_hash_matches": true,
+      "authorized_csv_bytes_match": true
+    },
+    {
+      "instance_id": "local100",
+      "receipt_id": "publication_7f4ba0f1-2ded-4f82-9005-f5e7c69a00e0",
+      "candidate_id": "candidate_365bcaab-4ab9-462f-954a-2b43dc0fe395",
+      "rows": 1,
+      "content_hash_matches": true,
+      "presentation_hash_matches": true,
+      "authorized_csv_bytes_match": true
+    },
+    {
+      "instance_id": "local131",
+      "receipt_id": "publication_dac26812-c4bb-467f-a93f-4424e4cb43b8",
+      "candidate_id": "candidate_58cb9328-42d5-49c5-b4fa-073bad7b7cdc",
+      "rows": 25,
+      "content_hash_matches": true,
+      "presentation_hash_matches": true,
+      "authorized_csv_bytes_match": true
+    },
+    {
+      "instance_id": "local167",
+      "receipt_id": "publication_cbac473c-f7ea-4df8-9eca-b2be8523d7ed",
+      "candidate_id": "candidate_a1e6424f-5fd7-43f3-8a71-e21a7196bbf0",
+      "rows": 1,
+      "content_hash_matches": true,
+      "presentation_hash_matches": true,
+      "authorized_csv_bytes_match": true
+    },
+    {
+      "instance_id": "local168",
+      "receipt_id": "publication_8fff63c6-512d-4d0a-a880-0461a8a98d53",
+      "candidate_id": "candidate_544735b4-a1bd-478b-8243-eff58c7a77a8",
+      "rows": 1,
+      "content_hash_matches": true,
+      "presentation_hash_matches": true,
+      "authorized_csv_bytes_match": true
+    },
+    {
+      "instance_id": "local169",
+      "receipt_id": "publication_d7460269-071f-411c-868d-a8cce5aa6134",
+      "candidate_id": "candidate_67e79810-0fdb-451e-a674-a5ab20ebb165",
+      "rows": 20,
+      "content_hash_matches": true,
+      "presentation_hash_matches": true,
+      "authorized_csv_bytes_match": true
+    },
+    {
+      "instance_id": "local171",
+      "receipt_id": "publication_7559968e-5286-4558-97ed-af22b329a52a",
+      "candidate_id": "candidate_e603ea1f-2bf4-4d77-bcfe-b789661ffdd3",
+      "rows": 8,
+      "content_hash_matches": true,
+      "presentation_hash_matches": true,
+      "authorized_csv_bytes_match": true
+    },
+    {
+      "instance_id": "local196",
+      "receipt_id": "publication_67e7bc2a-42d0-4c3d-acc7-1d76df9b40ad",
+      "candidate_id": "candidate_97816c49-8289-4a80-9643-209ad554278f",
+      "rows": 5,
+      "content_hash_matches": true,
+      "presentation_hash_matches": true,
+      "authorized_csv_bytes_match": true
+    },
+    {
+      "instance_id": "local220",
+      "receipt_id": "publication_aae5e760-da2d-4ff7-8242-505ff3f6ce6e",
+      "candidate_id": "candidate_946f0238-7493-404c-be91-fae4ea1fa6b3",
+      "rows": 2,
+      "content_hash_matches": true,
+      "presentation_hash_matches": true,
+      "authorized_csv_bytes_match": true
+    },
+    {
+      "instance_id": "local263",
+      "receipt_id": "publication_749257c5-db8c-4369-b7c4-972b8253292b",
+      "candidate_id": "candidate_c787eeae-3648-417c-b60a-57dbc1da2636",
+      "rows": 2,
+      "content_hash_matches": true,
+      "presentation_hash_matches": true,
+      "authorized_csv_bytes_match": true
+    },
+    {
+      "instance_id": "local264",
+      "receipt_id": "publication_396d7a4a-0c4f-4576-804f-bb5e78e60af2",
+      "candidate_id": "candidate_d9d10d3d-2723-4a48-a619-52ad4ed1c887",
+      "rows": 1,
+      "content_hash_matches": true,
+      "presentation_hash_matches": true,
+      "authorized_csv_bytes_match": true
+    },
+    {
+      "instance_id": "local269",
+      "receipt_id": "publication_e8213dca-fd82-4653-8b70-e948f78c113a",
+      "candidate_id": "candidate_bd748844-1028-4d76-9cd0-084a2bb5dbdb",
+      "rows": 1,
+      "content_hash_matches": true,
+      "presentation_hash_matches": true,
+      "authorized_csv_bytes_match": true
+    },
+    {
+      "instance_id": "local273",
+      "receipt_id": "publication_18925f88-49d2-4116-b34a-e43ee6a667e6",
+      "candidate_id": "candidate_1f2ef420-0930-4829-b0e0-d1281959d521",
+      "rows": 6,
+      "content_hash_matches": true,
+      "presentation_hash_matches": true,
+      "authorized_csv_bytes_match": true
+    },
+    {
+      "instance_id": "local279",
+      "receipt_id": "publication_ab8f4656-1b42-48b0-85ad-b30d0e4fc958",
+      "candidate_id": "candidate_fa4c4e41-1aa9-4f07-a7fd-67930117b6aa",
+      "rows": 2,
+      "content_hash_matches": true,
+      "presentation_hash_matches": true,
+      "authorized_csv_bytes_match": true
+    },
+    {
+      "instance_id": "local285",
+      "receipt_id": "publication_8489dc31-25a4-4045-b39c-7a8aa1150bd9",
+      "candidate_id": "candidate_478483c4-f0e9-4f20-8f82-19bee2280154",
+      "rows": 24,
+      "content_hash_matches": true,
+      "presentation_hash_matches": true,
+      "authorized_csv_bytes_match": true
+    },
+    {
+      "instance_id": "local286",
+      "receipt_id": "publication_76b4c4b8-ec4d-4738-b8c9-a5063f1b5553",
+      "candidate_id": "candidate_900c5720-9215-4157-84bb-95673958393a",
+      "rows": 236,
+      "content_hash_matches": true,
+      "presentation_hash_matches": true,
+      "authorized_csv_bytes_match": true
+    },
+    {
+      "instance_id": "local297",
+      "receipt_id": "publication_5db803ae-af19-4441-a24f-64d7dc6810ac",
+      "candidate_id": "candidate_3a07c56b-b469-4089-8007-86f6fca44c72",
+      "rows": 1,
+      "content_hash_matches": true,
+      "presentation_hash_matches": true,
+      "authorized_csv_bytes_match": true
+    },
+    {
+      "instance_id": "local298",
+      "receipt_id": "publication_54a96c41-0e70-4f7a-a3b0-708b775df09c",
+      "candidate_id": "candidate_a7f7dc54-5d26-41d4-a93f-b7cfc64f07cc",
+      "rows": 3,
+      "content_hash_matches": true,
+      "presentation_hash_matches": true,
+      "authorized_csv_bytes_match": true
+    },
+    {
+      "instance_id": "local299",
+      "receipt_id": "publication_57530b15-3cca-489b-b6f5-81df873387aa",
+      "candidate_id": "candidate_bffe0dad-cee0-422d-a906-1dfc132e7825",
+      "rows": 3,
+      "content_hash_matches": true,
+      "presentation_hash_matches": true,
+      "authorized_csv_bytes_match": true
+    },
+    {
+      "instance_id": "local331",
+      "receipt_id": "publication_e3725592-08c5-4fe4-8392-d80404f0de2d",
+      "candidate_id": "candidate_f34db2c3-abdb-433f-99e0-a610ee73a294",
+      "rows": 3,
+      "content_hash_matches": true,
+      "presentation_hash_matches": true,
+      "authorized_csv_bytes_match": true
+    },
+    {
+      "instance_id": "local335",
+      "receipt_id": "publication_55cd46c9-324d-48fb-afe9-eb06bd7cb4ee",
+      "candidate_id": "candidate_d2d568dd-4237-49ef-ae70-0679dab4d737",
+      "rows": 5,
+      "content_hash_matches": true,
+      "presentation_hash_matches": true,
+      "authorized_csv_bytes_match": true
+    },
+    {
+      "instance_id": "local354",
+      "receipt_id": "publication_aad5b1ea-8e74-4fe1-9dca-aa3a4ad2e211",
+      "candidate_id": "candidate_885e9109-1a7e-43a9-8e23-c327ab23de2e",
+      "rows": 103,
+      "content_hash_matches": true,
+      "presentation_hash_matches": true,
+      "authorized_csv_bytes_match": true
+    },
+    {
+      "instance_id": "local358",
+      "receipt_id": "publication_cfa0036b-9d04-416a-be18-7529556561b1",
+      "candidate_id": "candidate_984be3f8-7501-47df-9e4a-1ae8ab595350",
+      "rows": 5,
+      "content_hash_matches": true,
+      "presentation_hash_matches": true,
+      "authorized_csv_bytes_match": true
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "algorithm": "Product month matched historical growth; target year monthly exchange rate; monthly AVG round2 then median",
+  "assumptions": [
+    "Missing baseline excluded; no 2021 actual sales filter",
+    "Positive baseline required"
+  ],
+  "validation": "12 populated months, unique monthly France rates all1; historical coverage inspected"
+}

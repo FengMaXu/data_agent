@@ -1,0 +1,57 @@
+{
+  "instance_id": "local297",
+  "status": "gold_conflict",
+  "summary": "独立与原均54.2%=271/500；Gold36.4可精确重建为purchase负额+ABS前额+首次NULL不回退。Gold数值签名违反明确deposit/withdrawal范围；不能仅以Gold评价原条件错误。",
+  "fork_node": "population.conditions (Gold signature only; no confirmed original semantic fork)",
+  "error_layer": "Gold/request conflict signature; original SQL realizes its declared assumptions",
+  "visibility": "Original population.conditions and growth formula explicitly recorded; no confirmed hidden semantic error",
+  "independent_score": 0,
+  "evidence": [
+    {
+      "source": "blind.json",
+      "pointer": "/question",
+      "quote": "group all deposits and withdrawals by the first day of each month"
+    },
+    {
+      "source": "blind.json",
+      "pointer": "/question",
+      "quote": "closing balance by cumulatively summing these monthly nets"
+    },
+    {
+      "source": "probe-null-abs-response.json",
+      "pointer": "/details/preview/rows/1",
+      "quote": "36.4"
+    },
+    {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local297/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/21/result/details/fields/2/value",
+      "quote": "仅纳入 txn_type ∈ ('deposit','withdrawal') 的交易，purchase 不计入；作用阶段 = WHERE（月度净值聚合之前）",
+      "original_projection_source": "original-spec-extract.json"
+    }
+  ],
+  "limitations": [
+    "Gold generator SQL unavailable; exact numeric signature does not prove unique intended algorithm",
+    "Latest per customer vs global latest, signed vs absolute prior denominator, initial NULL policy need business confirmation",
+    "Intermediate calendar gap fill is numerically irrelevant for latest cumulative comparison"
+  ],
+  "parent_field_review": {
+    "instance_id": "local297",
+    "relevant_node": "population.conditions",
+    "node_is_confirmed_original_error": false,
+    "explanation": "Gold重建纳入purchase，与明确deposits/withdrawals范围冲突",
+    "error_layer": "标准答案与本次输入/明确要求局部冲突",
+    "visibility": "不适用：未确认原Spec语义错误",
+    "qualification": "Gold差异相关节点，不冒充原系统错误节点",
+    "original_node_declared": true,
+    "original_node_status": "request",
+    "original_node_value": [
+      "仅纳入 txn_type ∈ ('deposit','withdrawal') 的交易，purchase 不计入；作用阶段 = WHERE（月度净值聚合之前）"
+    ],
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local297/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/21/result/details/fields/2/value",
+      "quote": "[\"仅纳入 txn_type ∈ ('deposit','withdrawal') 的交易，purchase 不计入；作用阶段 = WHERE（月度净值聚合之前）\"]"
+    },
+    "primary_status": "gold_conflict"
+  }
+}

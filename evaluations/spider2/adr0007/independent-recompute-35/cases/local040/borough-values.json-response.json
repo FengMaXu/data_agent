@@ -1,0 +1,85 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_90dbfd1d-c763-4023-91cb-dc6012539de8\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nboroname | n\nQueens | 253039\nBrooklyn | 179089\nStaten Island | 106374\nBronx | 86035\nManhattan | 66089"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_90dbfd1d-c763-4023-91cb-dc6012539de8",
+      "preview": {
+        "columns": [
+          "boroname",
+          "n"
+        ],
+        "rows": [
+          [
+            "Queens",
+            253039
+          ],
+          [
+            "Brooklyn",
+            179089
+          ],
+          [
+            "Staten Island",
+            106374
+          ],
+          [
+            "Bronx",
+            86035
+          ],
+          [
+            "Manhattan",
+            66089
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 5,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "boroname",
+        "n"
+      ],
+      "rows": [
+        [
+          "Queens",
+          253039
+        ],
+        [
+          "Brooklyn",
+          179089
+        ],
+        [
+          "Staten Island",
+          106374
+        ],
+        [
+          "Bronx",
+          86035
+        ],
+        [
+          "Manhattan",
+          66089
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 5,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_f158d995-2b8d-4cad-8967-eb55d0a29de7"
+  }
+}

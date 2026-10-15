@@ -1,0 +1,75 @@
+{
+  "fields": {
+    "population.eligibility": {
+      "value": "Paired same-product same-month historical observations; positive 2019 baseline",
+      "basis": "assumed",
+      "rationale": "独立题解；题目未明确，作为假定披露"
+    },
+    "population.conditions": {
+      "value": [
+        "France",
+        "promotions.promo_total_id=1",
+        "channels.channel_total_id=1"
+      ],
+      "basis": "request",
+      "quote": "promo_total_id = 1 and channels where channel_total_id = 1"
+    },
+    "population.time": {
+      "value": "2019 and 2020 monthly historical sales project 2021; 2021 exchange rates",
+      "basis": "request",
+      "quote": "2019 and 2020"
+    },
+    "population.joinMultiplicity": {
+      "value": "Sum sales per product-year-month before pairing; currency country/year/month unique",
+      "basis": "assumed",
+      "rationale": "独立题解；题目未明确，作为假定披露"
+    },
+    "measure.formula": {
+      "value": {
+        "op": "custom",
+        "description": "SUM historical amount_sold per product/month/year; project b*(1+(b-a)/a); convert by France2021 monthly currency.to_us default1; per-month product AVG then ROUND2"
+      },
+      "cite": [
+        {
+          "source": "knowledge:projection_calculation.md",
+          "quote": "Compute the average projected sales for each month in 2021, adjusting for currency conversion. Round the results to two decimal places."
+        }
+      ]
+    },
+    "measure.countGrain": {
+      "value": "Valid product/month forecast cells",
+      "basis": "assumed",
+      "rationale": "独立题解；题目未明确，作为假定披露"
+    },
+    "measure.denominator": {
+      "value": "Count valid paired product projections in each month; undefined growth excluded",
+      "basis": "assumed",
+      "rationale": "独立题解；题目未明确，作为假定披露"
+    },
+    "grouping": {
+      "value": [
+        "calendar month"
+      ],
+      "basis": "request",
+      "quote": "listing them by month"
+    },
+    "selection": "n/a",
+    "output": {
+      "value": {
+        "rowMode": "grouped",
+        "columns": [
+          "month",
+          "average_projected_monthly_sales_usd"
+        ],
+        "units": {
+          "average_projected_monthly_sales_usd": "USD"
+        },
+        "decimals": {
+          "average_projected_monthly_sales_usd": 2
+        }
+      },
+      "basis": "request",
+      "quote": "listing them by month"
+    }
+  }
+}

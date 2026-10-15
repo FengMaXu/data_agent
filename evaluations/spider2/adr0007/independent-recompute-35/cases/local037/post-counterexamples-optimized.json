@@ -1,0 +1,3 @@
+{
+  "sql": "WITH repeated AS (SELECT order_id,payment_type,GROUP_CONCAT(payment_sequential) seq,COUNT(*) n,SUM(payment_value) value FROM olist_order_payments WHERE payment_type='credit_card' GROUP BY order_id,payment_type HAVING COUNT(*)>1),oc AS (SELECT DISTINCT i.order_id FROM olist_order_items i JOIN olist_products p USING(product_id) WHERE product_category_name='cama_mesa_banho') SELECT r.* FROM repeated r JOIN oc USING(order_id) LIMIT 5"
+}

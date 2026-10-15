@@ -1,0 +1,254 @@
+{
+  "frozenAt": "2026-10-11T09:18:02.886Z",
+  "instance_id": "local049",
+  "independent": true,
+  "taskId": "task_51d64568-2a51-4a4a-839d-8497ee615252",
+  "revisionId": "revision_81c5b68d-4d0d-4a81-ba3a-3b535fb4c856",
+  "publication": {
+    "receiptId": "publication_4f58a567-572c-4cb4-8ee9-e8a591316e48",
+    "taskId": "task_51d64568-2a51-4a4a-839d-8497ee615252",
+    "principalId": "independent-analyst",
+    "sessionId": "local049",
+    "candidateId": "candidate_2358f21b-b878-4c35-98b6-ebc80b574e43",
+    "revisionId": "revision_81c5b68d-4d0d-4a81-ba3a-3b535fb4c856",
+    "resultRef": "result_febb77ba-0822-4a3f-bd40-b6c0e7b577d4",
+    "format": "csv",
+    "publicRef": "/api/runtime/publications/publication_4f58a567-572c-4cb4-8ee9-e8a591316e48?session_id=local049",
+    "contentHash": "a399e54cc1b0c5574e076dc5551a874e175455e1f58980398edfee9e213e9bf7",
+    "presentationContentHash": "c538b629e195395e7dbbb65e9cd3e3a1f3d5b74d26a8c61cf70c1cc21632885b",
+    "coverage": [
+      {
+        "checkId": "result_completeness",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_shape",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_identity",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "join_fanout",
+        "outcome": "not_applicable"
+      },
+      {
+        "checkId": "spec_feedback",
+        "ruleVersion": "spec-feedback-v2",
+        "outcome": "not_applicable",
+        "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+      }
+    ],
+    "fanout": {
+      "ruleVersion": "answering-fanout-v1",
+      "status": "not_applicable",
+      "snapshotScope": "unbound",
+      "targets": []
+    },
+    "disclosure": {
+      "required": true,
+      "unverifiedFields": [
+        {
+          "path": "population.eligibility",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.formula",
+          "kind": "assumed"
+        },
+        {
+          "path": "selection.ties",
+          "kind": "assumed"
+        }
+      ],
+      "summary": "以下字段为假定，未被合格证据证实：population.eligibility, measure.formula, selection.ties。"
+    },
+    "physicalProfile": {
+      "version": 1,
+      "rowCount": 1,
+      "truncated": false,
+      "columns": [
+        {
+          "name": "industry",
+          "kind": "text",
+          "nullCount": 0,
+          "distinctCount": 1
+        },
+        {
+          "name": "average_new_companies",
+          "kind": "decimal",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 1,
+          "min": "57.666666666666664",
+          "max": "57.666666666666664"
+        }
+      ]
+    },
+    "policyVersion": "answering-publication-v1",
+    "createdByInvocationId": "64bbc9e8-612e-40ec-8d90-772e57bebc87",
+    "requestId": "64bbc9e8-612e-40ec-8d90-772e57bebc87",
+    "createdAt": "2026-10-11T09:18:01.002Z"
+  },
+  "currentRevision": {
+    "taskId": "task_51d64568-2a51-4a4a-839d-8497ee615252",
+    "revisionId": "revision_81c5b68d-4d0d-4a81-ba3a-3b535fb4c856",
+    "parentRevisionId": "revision_b55e5363-bf65-49f2-acc8-6e11d8e7c97e",
+    "requestId": "4e4a9c37-740a-443f-81b0-01b7e4818542",
+    "createdAt": "2026-10-11T09:17:58.040Z",
+    "fields": {
+      "population.entity": {
+        "state": "specified",
+        "value": {
+          "name": "新增独角兽公司 company_id"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_a8d39bab-33d1-47fb-90d8-ba41552b8e47"
+          ]
+        }
+      },
+      "population.eligibility": {
+        "state": "specified",
+        "value": "Companies with joined date in interval and known industry; distinct company IDs",
+        "basis": {
+          "kind": "assumed",
+          "rationale": "new unicorn is date joined not founding; distinct IDs count company entities"
+        }
+      },
+      "population.conditions": {
+        "state": "specified",
+        "value": [
+          "company joining unicorn list 2019..2021"
+        ],
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_eae88191-901f-4af9-9bfd-c92b81ba43a9"
+          ]
+        }
+      },
+      "population.time": {
+        "state": "specified",
+        "value": {
+          "expression": "2019-01-01 inclusive to 2022-01-01 exclusive, 3 calendar years"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_212310d3-1764-4934-ae9a-e94faa3993c5"
+          ]
+        }
+      },
+      "measure.formula": {
+        "state": "specified",
+        "value": {
+          "op": "custom",
+          "description": "Distinct new company IDs by industry across 3 years; choose highest total industry; average yearly new company count=total/3.0, including zero years"
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "top industry over entire requested period; yearly average has 3-year denominator"
+        }
+      },
+      "grouping": {
+        "state": "specified",
+        "value": [
+          "industry"
+        ],
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_898f5fef-7dab-4605-80ec-0c705e58467c"
+          ]
+        }
+      },
+      "selection": {
+        "state": "specified",
+        "value": {
+          "n": 1,
+          "orderBy": "total DESC, industry ASC"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_51e6ac24-4dab-4a50-848a-2416aa29093d"
+          ]
+        }
+      },
+      "selection.ties": {
+        "state": "specified",
+        "value": "strict",
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "output": {
+        "state": "specified",
+        "value": {
+          "rowMode": "top_n",
+          "rowCount": 1,
+          "columns": [
+            "industry",
+            "average_new_companies"
+          ]
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_26c04f79-25f3-4cfa-8dd7-192edc130f47"
+          ]
+        }
+      }
+    },
+    "state": {
+      "state": "ready",
+      "revisionId": "revision_81c5b68d-4d0d-4a81-ba3a-3b535fb4c856",
+      "ready": "ready_ef3197c9-7784-43da-afc8-3be7405ecfac"
+    },
+    "specFeedback": {
+      "taskId": "task_51d64568-2a51-4a4a-839d-8497ee615252",
+      "revisionId": "revision_81c5b68d-4d0d-4a81-ba3a-3b535fb4c856",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_a8d39bab-33d1-47fb-90d8-ba41552b8e47",
+        "evidence_f1b31b9c-d48b-4d82-b396-c16fda8461fa",
+        "evidence_8d91415f-6c5a-49ed-929d-3b1095df5271",
+        "evidence_ab5fe007-8818-4d6d-be4a-3d8136f77da8",
+        "evidence_35efe166-3fc5-449a-b0f4-2a2c1f025459",
+        "evidence_18e64a55-9f1c-4c8a-8b78-05e675a233b3",
+        "evidence_cbf20a9e-4e95-48b7-b7ac-a9c50c5edd4a",
+        "evidence_6275008b-cb5f-4644-b544-dcdde723f0f3",
+        "evidence_eae88191-901f-4af9-9bfd-c92b81ba43a9",
+        "evidence_212310d3-1764-4934-ae9a-e94faa3993c5",
+        "evidence_898f5fef-7dab-4605-80ec-0c705e58467c",
+        "evidence_51e6ac24-4dab-4a50-848a-2416aa29093d",
+        "evidence_26c04f79-25f3-4cfa-8dd7-192edc130f47"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    }
+  },
+  "analystNote": {
+    "algorithm": "date_joined years, distinct company ID, fixed top industry by 3-year additions, total/3",
+    "assumptions": [
+      "date_joined is unicorn entry",
+      "top by additions not valuation",
+      "fixed industry not yearly changing"
+    ]
+  },
+  "settings": {
+    "qualification": "required",
+    "fieldProbes": true,
+    "externalAdvisor": "not_configured",
+    "specFeedback": "not_configured",
+    "fanout": "disabled_for_offline_audit",
+    "populationDecisions": "allow_disclosed_headless_audit",
+    "databaseReadOnly": true
+  }
+}

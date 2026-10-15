@@ -1,0 +1,125 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_a37940f5-5f5d-4791-a1de-d59ee1800abd\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nname | allocations | touched_inventory | normalized_allocated_pct\nDer Helle Kumpel | 13 | 10 | 76.92307692307692\nHazy Pink Cloud | 4 | 3 | 75\nHercule Trippel | 4 | 3 | 75\nHoppy Crude Oil | 7 | 6 | 85.71428571428571\nMonks and Nuns | 1 | 1 | 100\nPale Rider Rides | 5 | 4 | 80"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_a37940f5-5f5d-4791-a1de-d59ee1800abd",
+      "preview": {
+        "columns": [
+          "name",
+          "allocations",
+          "touched_inventory",
+          "normalized_allocated_pct"
+        ],
+        "rows": [
+          [
+            "Der Helle Kumpel",
+            13,
+            10,
+            76.92307692307692
+          ],
+          [
+            "Hazy Pink Cloud",
+            4,
+            3,
+            75
+          ],
+          [
+            "Hercule Trippel",
+            4,
+            3,
+            75
+          ],
+          [
+            "Hoppy Crude Oil",
+            7,
+            6,
+            85.71428571428571
+          ],
+          [
+            "Monks and Nuns",
+            1,
+            1,
+            100
+          ],
+          [
+            "Pale Rider Rides",
+            5,
+            4,
+            80
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "INTEGER",
+          "REAL"
+        ],
+        "rowCount": 6,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "name",
+        "allocations",
+        "touched_inventory",
+        "normalized_allocated_pct"
+      ],
+      "rows": [
+        [
+          "Der Helle Kumpel",
+          13,
+          10,
+          76.92307692307692
+        ],
+        [
+          "Hazy Pink Cloud",
+          4,
+          3,
+          75
+        ],
+        [
+          "Hercule Trippel",
+          4,
+          3,
+          75
+        ],
+        [
+          "Hoppy Crude Oil",
+          7,
+          6,
+          85.71428571428571
+        ],
+        [
+          "Monks and Nuns",
+          1,
+          1,
+          100
+        ],
+        [
+          "Pale Rider Rides",
+          5,
+          4,
+          80
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "INTEGER",
+        "REAL"
+      ],
+      "rowCount": 6,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_cbbaf3a0-0761-4529-889d-53521eebaa11"
+  }
+}

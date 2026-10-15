@@ -1,0 +1,79 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_081100d9-855c-4596-b032-801491b19500\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nyear | raw_count | distinct_companies\n2019 | 21 | 20\n2020 | 18 | 15\n2021 | 140 | 138"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_081100d9-855c-4596-b032-801491b19500",
+      "preview": {
+        "columns": [
+          "year",
+          "raw_count",
+          "distinct_companies"
+        ],
+        "rows": [
+          [
+            "2019",
+            21,
+            20
+          ],
+          [
+            "2020",
+            18,
+            15
+          ],
+          [
+            "2021",
+            140,
+            138
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 3,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "year",
+        "raw_count",
+        "distinct_companies"
+      ],
+      "rows": [
+        [
+          "2019",
+          21,
+          20
+        ],
+        [
+          "2020",
+          18,
+          15
+        ],
+        [
+          "2021",
+          140,
+          138
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 3,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_975bf32c-5383-472a-8626-7a541b8af845"
+  }
+}

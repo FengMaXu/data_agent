@@ -1,0 +1,9 @@
+{
+  "fields": {
+    "population.entity": {
+      "value": "product categories and their payment events",
+      "basis": "request",
+      "quote": "product categories"
+    }
+  }
+}

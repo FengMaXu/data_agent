@@ -1,0 +1,199 @@
+{
+  "query": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[RESULT_CANDIDATE] candidateId=candidate_c787eeae-3648-417c-b60a-57dbc1da2636 revisionId=revision_db672233-51b2-4023-a248-0b635984f5af\nstatus | L1_model | occurrences\nsoft | regression | 21\nstrong | regression | 37"
+      }
+    ],
+    "details": {
+      "kind": "result",
+      "artifact": {
+        "kind": "candidate",
+        "candidateId": "candidate_c787eeae-3648-417c-b60a-57dbc1da2636",
+        "revisionId": "revision_db672233-51b2-4023-a248-0b635984f5af",
+        "resultRef": "result_5bf31803-4ea3-4a9a-8b59-772b7770c3d9"
+      },
+      "preview": {
+        "columns": [
+          "status",
+          "L1_model",
+          "occurrences"
+        ],
+        "rows": [
+          [
+            "soft",
+            "regression",
+            21
+          ],
+          [
+            "strong",
+            "regression",
+            37
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 2,
+        "truncated": false
+      },
+      "findings": [],
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "attemptId": "attempt_fbb13c7a-8eb3-44cc-9a97-5f4dfc66ced7"
+    }
+  },
+  "publication": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[PUBLISHED] csv [download](/api/runtime/publications/publication_749257c5-db8c-4369-b7c4-972b8253292b?session_id=local263) receiptId=publication_749257c5-db8c-4369-b7c4-972b8253292b\n[DISCLOSURE] 以下字段为假定，未被合格证据证实：population.eligibility, population.time, measure.formula, measure.countGrain, grouping, selection, selection.ties, output。"
+      }
+    ],
+    "details": {
+      "receiptId": "publication_749257c5-db8c-4369-b7c4-972b8253292b",
+      "taskId": "task_748f795a-cb42-46f6-9b10-066d9dce255c",
+      "principalId": "independent-analyst",
+      "sessionId": "local263",
+      "candidateId": "candidate_c787eeae-3648-417c-b60a-57dbc1da2636",
+      "revisionId": "revision_db672233-51b2-4023-a248-0b635984f5af",
+      "resultRef": "result_5bf31803-4ea3-4a9a-8b59-772b7770c3d9",
+      "format": "csv",
+      "publicRef": "/api/runtime/publications/publication_749257c5-db8c-4369-b7c4-972b8253292b?session_id=local263",
+      "contentHash": "1f4af5cdaa08247f3f7babbe1702e68b6bed2c333c7bfefa54578ec9edbd6aab",
+      "presentationContentHash": "b6377b219b37f6510b27d6cc1c903fd73a5cdbbb8f7761193760a3c66324b1fd",
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "disclosure": {
+        "required": true,
+        "unverifiedFields": [
+          {
+            "path": "population.eligibility",
+            "kind": "assumed"
+          },
+          {
+            "path": "population.time",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.formula",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.countGrain",
+            "kind": "assumed"
+          },
+          {
+            "path": "grouping",
+            "kind": "assumed"
+          },
+          {
+            "path": "selection",
+            "kind": "assumed"
+          },
+          {
+            "path": "selection.ties",
+            "kind": "assumed"
+          },
+          {
+            "path": "output",
+            "kind": "assumed"
+          }
+        ],
+        "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.time, measure.formula, measure.countGrain, grouping, selection, selection.ties, output。"
+      },
+      "physicalProfile": {
+        "version": 1,
+        "rowCount": 2,
+        "truncated": false,
+        "columns": [
+          {
+            "name": "status",
+            "kind": "text",
+            "nullCount": 0,
+            "distinctCount": 2
+          },
+          {
+            "name": "L1_model",
+            "kind": "text",
+            "nullCount": 0,
+            "distinctCount": 1
+          },
+          {
+            "name": "occurrences",
+            "kind": "integer",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 2,
+            "min": "21",
+            "max": "37"
+          }
+        ]
+      },
+      "policyVersion": "answering-publication-v1",
+      "createdByInvocationId": "18302d8a-aa8d-4227-bc77-bc53dd796d64",
+      "requestId": "18302d8a-aa8d-4227-bc77-bc53dd796d64",
+      "createdAt": "2026-10-11T09:09:40.726Z"
+    }
+  },
+  "authorizedCsv": "D:\\data_agent\\evaluations\\spider2\\adr0007\\independent-recompute-35\\cases\\local263\\publications\\publication_749257c5-db8c-4369-b7c4-972b8253292b\\result.csv"
+}

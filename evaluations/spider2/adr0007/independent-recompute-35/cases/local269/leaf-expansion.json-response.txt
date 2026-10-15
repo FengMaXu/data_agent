@@ -1,0 +1,137 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_0a333ec3-6b31-4d48-a750-e5e46f643fb6\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nroot | node | qty | path\n531 | 502 | 864 | ,531,521,502,\n532 | 501 | 720 | ,532,522,501,\n533 | 501 | 360 | ,533,522,501,\n533 | 502 | 600 | ,533,523,502,\n534 | 501 | 384 | ,534,524,511,501,\n534 | 502 | 600 | ,534,523,502,\n534 | 502 | 256 | ,534,524,511,502,"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_0a333ec3-6b31-4d48-a750-e5e46f643fb6",
+      "preview": {
+        "columns": [
+          "root",
+          "node",
+          "qty",
+          "path"
+        ],
+        "rows": [
+          [
+            531,
+            502,
+            864,
+            ",531,521,502,"
+          ],
+          [
+            532,
+            501,
+            720,
+            ",532,522,501,"
+          ],
+          [
+            533,
+            501,
+            360,
+            ",533,522,501,"
+          ],
+          [
+            533,
+            502,
+            600,
+            ",533,523,502,"
+          ],
+          [
+            534,
+            501,
+            384,
+            ",534,524,511,501,"
+          ],
+          [
+            534,
+            502,
+            600,
+            ",534,523,502,"
+          ],
+          [
+            534,
+            502,
+            256,
+            ",534,524,511,502,"
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "TEXT"
+        ],
+        "rowCount": 7,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "root",
+        "node",
+        "qty",
+        "path"
+      ],
+      "rows": [
+        [
+          531,
+          502,
+          864,
+          ",531,521,502,"
+        ],
+        [
+          532,
+          501,
+          720,
+          ",532,522,501,"
+        ],
+        [
+          533,
+          501,
+          360,
+          ",533,522,501,"
+        ],
+        [
+          533,
+          502,
+          600,
+          ",533,523,502,"
+        ],
+        [
+          534,
+          501,
+          384,
+          ",534,524,511,501,"
+        ],
+        [
+          534,
+          502,
+          600,
+          ",534,523,502,"
+        ],
+        [
+          534,
+          502,
+          256,
+          ",534,524,511,502,"
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "TEXT"
+      ],
+      "rowCount": 7,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_0f2a6de0-f86b-47b5-b5e9-15b514d4b2ad"
+  }
+}

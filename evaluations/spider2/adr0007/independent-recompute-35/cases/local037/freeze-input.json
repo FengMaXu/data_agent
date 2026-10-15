@@ -1,0 +1,9 @@
+{
+  "algorithm": "Distinct order-category membership then count payment rows; per-category mode; top three maxima",
+  "assumptions": [
+    "No null categories",
+    "Multi-category payments count once in each category",
+    "Strict ties by names"
+  ],
+  "validation": "Payment keys unique 103886; top counts differ from item join 7565/6898/5923 vs 8959/7566/6635"
+}

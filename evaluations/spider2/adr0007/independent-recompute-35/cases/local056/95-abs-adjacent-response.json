@@ -1,0 +1,79 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_b4c99e3b-50fe-4881-bd46-a3a210696fda\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nname | customer_id | metric\nWADE DELVALLE | 598 | 55.370000000000005\nTERRENCE GUNDERSON | 595 | 50.23666666666667\nSTEPHEN QUALLS | 332 | 49.92"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_b4c99e3b-50fe-4881-bd46-a3a210696fda",
+      "preview": {
+        "columns": [
+          "name",
+          "customer_id",
+          "metric"
+        ],
+        "rows": [
+          [
+            "WADE DELVALLE",
+            598,
+            55.370000000000005
+          ],
+          [
+            "TERRENCE GUNDERSON",
+            595,
+            50.23666666666667
+          ],
+          [
+            "STEPHEN QUALLS",
+            332,
+            49.92
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "REAL"
+        ],
+        "rowCount": 3,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "name",
+        "customer_id",
+        "metric"
+      ],
+      "rows": [
+        [
+          "WADE DELVALLE",
+          598,
+          55.370000000000005
+        ],
+        [
+          "TERRENCE GUNDERSON",
+          595,
+          50.23666666666667
+        ],
+        [
+          "STEPHEN QUALLS",
+          332,
+          49.92
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "REAL"
+      ],
+      "rowCount": 3,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_418629d9-600d-4a52-8772-05a120eec21e"
+  }
+}

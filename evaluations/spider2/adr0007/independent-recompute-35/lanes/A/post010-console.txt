@@ -1,0 +1,232 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_2ddc7271-6685-4003-b226-26dc3714bae7\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\ncity1 | city2 | distance | flights\nAstrakhan | Neryungri | 5147.035387153853 | 18\nMoscow | Neryungri | 5014.482849950008 | 18\nNeryungri | St. Petersburg | 5050.803508281288 | 18"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_2ddc7271-6685-4003-b226-26dc3714bae7",
+      "preview": {
+        "columns": [
+          "city1",
+          "city2",
+          "distance",
+          "flights"
+        ],
+        "rows": [
+          [
+            "Astrakhan",
+            "Neryungri",
+            5147.035387153853,
+            18
+          ],
+          [
+            "Moscow",
+            "Neryungri",
+            5014.482849950008,
+            18
+          ],
+          [
+            "Neryungri",
+            "St. Petersburg",
+            5050.803508281288,
+            18
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "TEXT",
+          "REAL",
+          "INTEGER"
+        ],
+        "rowCount": 3,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "city1",
+        "city2",
+        "distance",
+        "flights"
+      ],
+      "rows": [
+        [
+          "Astrakhan",
+          "Neryungri",
+          5147.035387153853,
+          18
+        ],
+        [
+          "Moscow",
+          "Neryungri",
+          5014.482849950008,
+          18
+        ],
+        [
+          "Neryungri",
+          "St. Petersburg",
+          5050.803508281288,
+          18
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "TEXT",
+        "REAL",
+        "INTEGER"
+      ],
+      "rowCount": 3,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_0972eb99-b1f6-4722-b541-bfa38ef2b2a6"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_7e9677ac-f9cf-455b-a2b3-8a7299fe07b1\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\ncity1 | city2 | flights | reverse_flights | distance_diff\nAstrakhan | Neryungri | 9 | 9 | 0\nMoscow | Neryungri | 9 | 9 | 0\nNeryungri | Astrakhan | 9 | 9 | 0\nNeryungri | Moscow | 9 | 9 | 0\nNeryungri | St. Petersburg | 9 | 9 | 0\nSt. Petersburg | Neryungri | 9 | 9 | 0"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_7e9677ac-f9cf-455b-a2b3-8a7299fe07b1",
+      "preview": {
+        "columns": [
+          "city1",
+          "city2",
+          "flights",
+          "reverse_flights",
+          "distance_diff"
+        ],
+        "rows": [
+          [
+            "Astrakhan",
+            "Neryungri",
+            9,
+            9,
+            0
+          ],
+          [
+            "Moscow",
+            "Neryungri",
+            9,
+            9,
+            0
+          ],
+          [
+            "Neryungri",
+            "Astrakhan",
+            9,
+            9,
+            0
+          ],
+          [
+            "Neryungri",
+            "Moscow",
+            9,
+            9,
+            0
+          ],
+          [
+            "Neryungri",
+            "St. Petersburg",
+            9,
+            9,
+            0
+          ],
+          [
+            "St. Petersburg",
+            "Neryungri",
+            9,
+            9,
+            0
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "TEXT",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 6,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "city1",
+        "city2",
+        "flights",
+        "reverse_flights",
+        "distance_diff"
+      ],
+      "rows": [
+        [
+          "Astrakhan",
+          "Neryungri",
+          9,
+          9,
+          0
+        ],
+        [
+          "Moscow",
+          "Neryungri",
+          9,
+          9,
+          0
+        ],
+        [
+          "Neryungri",
+          "Astrakhan",
+          9,
+          9,
+          0
+        ],
+        [
+          "Neryungri",
+          "Moscow",
+          9,
+          9,
+          0
+        ],
+        [
+          "Neryungri",
+          "St. Petersburg",
+          9,
+          9,
+          0
+        ],
+        [
+          "St. Petersburg",
+          "Neryungri",
+          9,
+          9,
+          0
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "TEXT",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 6,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_ac40aad1-9b97-434e-97cd-124532bc1a78"
+  }
+}
+

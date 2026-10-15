@@ -1,0 +1,2 @@
+WITH films AS MATERIALIZED (SELECT MID,CAST(substr(year,-4) AS INTEGER) y FROM Movie),credits AS MATERIALIZED (SELECT DISTINCT TRIM(c.PID) pid,f.y FROM M_Cast c JOIN films f ON c.MID=f.MID WHERE c.PID IS NOT NULL AND TRIM(c.PID)!=''),ordered AS (SELECT pid,y,LAG(y) OVER (PARTITION BY pid ORDER BY y) prev FROM credits),careers AS (SELECT pid,MIN(y) first_year,MAX(y) last_year,COUNT(*) years,COALESCE(MAX(y-prev),0) max_diff FROM ordered GROUP BY pid) SELECT COUNT(*) actors_without_four_year_gap FROM careers WHERE max_diff<=4
+

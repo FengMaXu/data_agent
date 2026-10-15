@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT count(*) rows,count(distinct skill_id) ids FROM skills_dim",
+  "limit": 100
+}

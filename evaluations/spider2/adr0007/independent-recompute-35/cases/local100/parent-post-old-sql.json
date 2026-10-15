@@ -1,0 +1,4 @@
+{
+  "sql": "WITH l1 AS (\n  SELECT DISTINCT ltrim(c.PID) AS pid\n  FROM M_Cast c\n  WHERE c.MID IN (SELECT MID FROM M_Cast WHERE ltrim(PID)='nm0451321')\n    AND ltrim(c.PID) <> 'nm0451321'\n),\nl1_movies AS (\n  SELECT DISTINCT c.MID\n  FROM M_Cast c JOIN l1 ON ltrim(c.PID)=l1.pid\n),\nl2 AS (\n  SELECT DISTINCT ltrim(c2.PID) AS pid\n  FROM M_Cast c2 JOIN l1_movies m ON c2.MID=m.MID\n)\nSELECT COUNT(*) AS shahrukh_number_2_actor_count\nFROM l2\nWHERE pid NOT IN (SELECT pid FROM l1)\n  AND pid <> 'nm0451321'\n",
+  "limit": 100
+}

@@ -1,0 +1,9 @@
+{
+  "algorithm": "global first term -> male first LA -> actual term office Dec31 -> completed whole years31..49 -> distinct people",
+  "assumptions": [
+    "from LA = first-state LA",
+    "inclusive term_end",
+    "whole years; observed groups only"
+  ],
+  "validation": "first/ever/active state probes and long-service person inventory actual database"
+}

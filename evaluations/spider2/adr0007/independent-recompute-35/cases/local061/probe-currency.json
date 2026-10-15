@@ -1,0 +1,3 @@
+{
+  "sql": "SELECT year,month,COUNT(*) currency_rows,MIN(to_us) min_rate,MAX(to_us) max_rate FROM currency WHERE country='France' AND year=2021 GROUP BY year,month ORDER BY month"
+}

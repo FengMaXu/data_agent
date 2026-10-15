@@ -1,0 +1,176 @@
+{
+  "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local100/attempts/attempt-001/trace.json",
+  "trace_index": 3,
+  "details": {
+    "taskId": "task_c73205ca-1449-4bbe-9e46-a88bf3077269",
+    "revisionId": "revision_40f916e5-3f59-437d-b362-8788d75c8ed2",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "actor",
+          "keyColumns": [
+            "PID"
+          ]
+        },
+        "evidenceIds": [
+          "evidence_9bcdadbc-a4b6-4517-a2a6-a341220c2570"
+        ]
+      },
+      {
+        "path": "population.eligibility",
+        "status": "request",
+        "value": "拥有至少一条 M_Cast 出演记录的演员（按 Person.PID 标识）；排除 Shah Rukh Khan 本人，并排除所有与 Shah Rukh Khan 在同片直接出演的演员（即 Shahrukh number ≤ 1 者）",
+        "evidenceIds": [
+          "evidence_8d5bb1dc-a001-47ff-bff8-3a539ba74431"
+        ]
+      },
+      {
+        "path": "population.conditions",
+        "status": "request",
+        "value": [
+          "存在一部影片 F1 使该演员与某中间演员 A1 同片出演（M_Cast 同一 MID），且 A1 曾与 Shah Rukh Khan(nm0451321) 同片出演；同时该演员不曾在任何影片中与 Shah Rukh Khan 同片出演"
+        ],
+        "evidenceIds": [
+          "evidence_24d23330-bd9e-4cf5-bcc7-17139be32bbf"
+        ]
+      },
+      {
+        "path": "population.source",
+        "status": "evidence",
+        "value": {
+          "tables": [
+            "Person",
+            "M_Cast",
+            "Movie"
+          ],
+          "note": "Person.PID 与 M_Cast.PID 连接需 ltrim(M_Cast.PID)；影片以 M_Cast.MID 标识，未使用 Movie 作为过滤条件"
+        },
+        "evidenceIds": [
+          "evidence_fdf3ba40-5ebd-4983-925d-65a7a355b801"
+        ]
+      },
+      {
+        "path": "population.time",
+        "status": "not_applicable"
+      },
+      {
+        "path": "population.joinMultiplicity",
+        "status": "assumed",
+        "value": "M_Cast 中同一 (MID,PID) 可能重复；演员级计数按 PID 去重，中间关系逐层以 DISTINCT 处理"
+      },
+      {
+        "path": "measure.formula",
+        "status": "assumed",
+        "value": {
+          "op": "count_distinct",
+          "of": "PID"
+        }
+      },
+      {
+        "path": "measure.countGrain",
+        "status": "assumed",
+        "value": "按演员（Person.PID）去重计数"
+      },
+      {
+        "path": "grouping",
+        "status": "not_applicable"
+      },
+      {
+        "path": "selection",
+        "status": "not_applicable"
+      },
+      {
+        "path": "output",
+        "status": "assumed",
+        "value": {
+          "rowMode": "scalar",
+          "columns": [
+            "shahrukh_number_2_actor_count"
+          ],
+          "units": {
+            "shahrukh_number_2_actor_count": "actors"
+          },
+          "decimals": {
+            "shahrukh_number_2_actor_count": 0
+          }
+        }
+      }
+    ],
+    "undeclared": [],
+    "open": [],
+    "unverified": [
+      "population.joinMultiplicity",
+      "measure.formula",
+      "measure.countGrain",
+      "output"
+    ],
+    "specFeedback": {
+      "taskId": "task_c73205ca-1449-4bbe-9e46-a88bf3077269",
+      "revisionId": "revision_40f916e5-3f59-437d-b362-8788d75c8ed2",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "unavailable",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_25cf1ffa238b8f76c3970a74",
+        "evidence_9bcdadbc-a4b6-4517-a2a6-a341220c2570",
+        "evidence_8d5bb1dc-a001-47ff-bff8-3a539ba74431",
+        "evidence_24d23330-bd9e-4cf5-bcc7-17139be32bbf",
+        "evidence_fdf3ba40-5ebd-4983-925d-65a7a355b801"
+      ],
+      "limitations": [],
+      "startedAt": "2026-10-10T15:19:44.551Z",
+      "inputHash": "5c29af5981fc738bffaa9a228e895a631736e9bc5d2886b585404dc12870cf6d",
+      "reason": "provider_http_error",
+      "completedAt": "2026-10-10T15:19:46.024Z",
+      "durationMs": 1473
+    },
+    "outcomes": [
+      {
+        "path": "population.entity",
+        "status": "applied"
+      },
+      {
+        "path": "population.eligibility",
+        "status": "applied"
+      },
+      {
+        "path": "population.conditions",
+        "status": "applied"
+      },
+      {
+        "path": "population.source",
+        "status": "applied"
+      },
+      {
+        "path": "population.time",
+        "status": "applied"
+      },
+      {
+        "path": "population.joinMultiplicity",
+        "status": "applied"
+      },
+      {
+        "path": "measure.formula",
+        "status": "applied"
+      },
+      {
+        "path": "measure.countGrain",
+        "status": "applied"
+      },
+      {
+        "path": "grouping",
+        "status": "applied"
+      },
+      {
+        "path": "selection",
+        "status": "applied"
+      },
+      {
+        "path": "output",
+        "status": "applied"
+      }
+    ]
+  }
+}

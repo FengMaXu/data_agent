@@ -1,0 +1,77 @@
+{
+  "revealedAt": "2026-10-11T09:04:42.507Z",
+  "registry": {
+    "instance_id": "local220",
+    "attempt_id": "attempt-20261010-154318Z",
+    "score": 0,
+    "score_source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-retry.json",
+    "replayed_csv_score": 0,
+    "group": "wrong",
+    "status": "completed",
+    "publication_status": "published",
+    "duration_ms": 153288,
+    "tool_calls": 12,
+    "error": null,
+    "result_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local220/attempts/attempt-20261010-154318Z/result.json",
+    "trace_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local220/attempts/attempt-20261010-154318Z/trace.json",
+    "result_exists": true,
+    "trace_exists": true,
+    "sql_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local220/attempts/attempt-20261010-154318Z/submissions/sql/local220.sql",
+    "csv_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local220.csv",
+    "sql_exists": true,
+    "csv_exists": true,
+    "gold_sql_file": null,
+    "process": {
+      "turns": 9,
+      "toolCalls": 12,
+      "explorationQueries": 4,
+      "resultQueries": 1,
+      "fanoutProbes": 0,
+      "revisions": 0
+    },
+    "fanout_metrics": {
+      "reportCount": 1,
+      "targetCount": 0,
+      "findingCount": 0,
+      "unknownCount": 0,
+      "byStatus": {
+        "clear": 0,
+        "finding": 0,
+        "not_applicable": 1,
+        "unknown": 0
+      },
+      "enabled": true
+    },
+    "spec_feedback_metrics": {
+      "reportCount": 1,
+      "byStatus": {
+        "pending": 0,
+        "completed": 0,
+        "unavailable": 1,
+        "disabled": 0
+      },
+      "deterministicIssueCount": 0,
+      "concernCount": 0,
+      "enabled": true
+    }
+  },
+  "originalSql": "WITH slots AS (\n  SELECT match_api_id AS mid, home_team_goal AS hg, away_team_goal AS ag, home_player_1 AS pid, 1 AS ishome FROM Match\n  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, home_player_2, 1 FROM Match\n  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, home_player_3, 1 FROM Match\n  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, home_player_4, 1 FROM Match\n  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, home_player_5, 1 FROM Match\n  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, home_player_6, 1 FROM Match\n  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, home_player_7, 1 FROM Match\n  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, home_player_8, 1 FROM Match\n  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, home_player_9, 1 FROM Match\n  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, home_player_10, 1 FROM Match\n  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, home_player_11, 1 FROM Match\n  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, away_player_1, 0 FROM Match\n  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, away_player_2, 0 FROM Match\n  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, away_player_3, 0 FROM Match\n  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, away_player_4, 0 FROM Match\n  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, away_player_5, 0 FROM Match\n  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, away_player_6, 0 FROM Match\n  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, away_player_7, 0 FROM Match\n  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, away_player_8, 0 FROM Match\n  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, away_player_9, 0 FROM Match\n  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, away_player_10, 0 FROM Match\n  UNION ALL SELECT match_api_id, home_team_goal, away_team_goal, away_player_11, 0 FROM Match\n), agg AS (\n  SELECT pid,\n    COUNT(DISTINCT CASE WHEN (ishome=1 AND hg>ag) OR (ishome=0 AND ag>hg) THEN mid END) AS wins,\n    COUNT(DISTINCT CASE WHEN (ishome=1 AND hg<ag) OR (ishome=0 AND ag<hg) THEN mid END) AS losses\n  FROM slots\n  WHERE pid IS NOT NULL\n  GROUP BY pid\n)\nSELECT * FROM (\n  SELECT 'most_winning_matches' AS result_type,\n         (SELECT player_name FROM Player WHERE player_api_id = agg.pid) AS player_name,\n         wins AS match_count\n  FROM agg WHERE wins = (SELECT MAX(wins) FROM agg)\n  UNION ALL\n  SELECT 'most_losing_matches',\n         (SELECT player_name FROM Player WHERE player_api_id = agg.pid),\n         losses\n  FROM agg WHERE losses = (SELECT MAX(losses) FROM agg)\n) ORDER BY result_type DESC\n",
+  "originalCsv": "result_type,player_name,match_count\nmost_winning_matches,Cristiano Ronaldo,199\nmost_losing_matches,Gorka Iraizoz Moreno,107\n",
+  "goldSql": null,
+  "goldCsv": [
+    {
+      "path": "C:\\data-agent-eval\\Spider2\\spider2-lite\\evaluation_suite\\gold\\exec_result\\local220_a.csv",
+      "content": "player\r\nMarcelo\r\nRicardo"
+    },
+    {
+      "path": "C:\\data-agent-eval\\Spider2\\spider2-lite\\evaluation_suite\\gold\\exec_result\\local220_b.csv",
+      "content": "player1,player2\r\nMarcelo,Ricardo"
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local220",
+    "condition_cols": [],
+    "ignore_order": true,
+    "toks": "871"
+  }
+}

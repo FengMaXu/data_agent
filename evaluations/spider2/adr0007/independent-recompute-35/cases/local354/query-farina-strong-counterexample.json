@@ -1,0 +1,1 @@
+{"sql": "SELECT r.year,r.round,re.driver_id,c.name,st.status,re.laps FROM results re JOIN races r USING(race_id) JOIN constructors c USING(constructor_id) JOIN status st USING(status_id) WHERE re.driver_id=642 AND r.year BETWEEN 1950 AND 1951 ORDER BY year,round,re.result_id", "limit": 100}

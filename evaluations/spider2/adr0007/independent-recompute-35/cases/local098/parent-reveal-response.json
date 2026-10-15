@@ -1,0 +1,73 @@
+{
+  "revealedAt": "2026-10-11T10:05:13.927Z",
+  "registry": {
+    "instance_id": "local098",
+    "attempt_id": "attempt-001",
+    "score": 0,
+    "score_source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-attempt-001.json",
+    "replayed_csv_score": 0,
+    "group": "wrong",
+    "status": "completed",
+    "publication_status": "published",
+    "duration_ms": 436269,
+    "tool_calls": 32,
+    "error": null,
+    "result_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local098/attempts/attempt-001/result.json",
+    "trace_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local098/attempts/attempt-001/trace.json",
+    "result_exists": true,
+    "trace_exists": true,
+    "sql_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local098/attempts/attempt-001/submissions/sql/local098.sql",
+    "csv_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local098.csv",
+    "sql_exists": true,
+    "csv_exists": true,
+    "gold_sql_file": null,
+    "process": {
+      "turns": 28,
+      "toolCalls": 32,
+      "explorationQueries": 19,
+      "resultQueries": 1,
+      "fanoutProbes": 0,
+      "revisions": 4
+    },
+    "fanout_metrics": {
+      "reportCount": 1,
+      "targetCount": 0,
+      "findingCount": 0,
+      "unknownCount": 0,
+      "byStatus": {
+        "clear": 0,
+        "finding": 0,
+        "not_applicable": 1,
+        "unknown": 0
+      },
+      "enabled": true
+    },
+    "spec_feedback_metrics": {
+      "reportCount": 4,
+      "byStatus": {
+        "pending": 0,
+        "completed": 1,
+        "unavailable": 3,
+        "disabled": 0
+      },
+      "deterministicIssueCount": 0,
+      "concernCount": 0,
+      "enabled": true
+    }
+  },
+  "originalSql": "WITH ay AS (\n  SELECT DISTINCT TRIM(mc.PID) AS pid,\n         CAST(SUBSTR(TRIM(m.year), -4) AS INTEGER) AS yr\n  FROM M_Cast mc\n  JOIN Movie m ON m.MID = mc.MID\n  WHERE mc.PID IS NOT NULL\n),\no AS (\n  SELECT pid, yr, LAG(yr) OVER (PARTITION BY pid ORDER BY yr) AS prev_yr\n  FROM ay\n),\ng AS (\n  SELECT pid, MAX(yr - prev_yr) AS max_gap\n  FROM o\n  GROUP BY pid\n)\nSELECT COUNT(*) AS actor_count\nFROM g\nWHERE COALESCE(max_gap, 0) <= 4\n",
+  "originalCsv": "actor_count\n28698\n",
+  "goldSql": null,
+  "goldCsv": [
+    {
+      "path": "C:\\data-agent-eval\\Spider2\\spider2-lite\\evaluation_suite\\gold\\exec_result\\local098.csv",
+      "content": "output\r\n32585"
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local098",
+    "condition_cols": [],
+    "ignore_order": false,
+    "toks": "184"
+  }
+}

@@ -1,0 +1,126 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_1d5794d9-e7c0-4015-9fca-55850d975382 revisionId=revision_f8b0bbfb-4351-4cf4-8417-e6830fc53f33\n- ✓ selection\n状态：\n- 未证实（发布时披露）: population.eligibility, population.conditions, population.time, measure.formula, grouping, output, selection.ties, selection\n- 没有待处理的字段，可以执行结果查询\n[SPEC_FEEDBACK] revisionId=revision_f8b0bbfb-4351-4cf4-8417-e6830fc53f33 status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"Chinese city date entries\"}},\"population.eligibility\":{\"status\":\"assumed\",\"value\":\"Only observed eligible records; no fabricated missing records\"},\"population.conditions\":{\"status\":\"assumed\",\"value\":[\"country_code_2='cn'\"]},\"population.time\":{\"status\":\"assumed\",\"value\":{\"expression\":\"July 2021 inclusive; insert_date\"}},\"measure.formula\":{\"status\":\"assumed\",\"value\":{\"op\":\"custom\",\"description\":\"Distinct calendar-date islands; choose all islands of minimum or maximum day count; one representative city per date by smallest city_id; capitalize first character only\"}},\"grouping\":{\"status\":\"assumed\",\"value\":[\"date\"]},\"selection\":{\"status\":\"assumed\",\"value\":{\"n\":1,\"orderBy\":\"island_day_count ASC for shortest; DESC for longest\"}},\"selection.ties\":{\"status\":\"assumed\",\"value\":\"include_ties\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"full\",\"columns\":[\"date\",\"city_name\"]}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_1d5794d9-e7c0-4015-9fca-55850d975382",
+    "revisionId": "revision_f8b0bbfb-4351-4cf4-8417-e6830fc53f33",
+    "parentRevisionId": "revision_847d6e01-6d0d-4519-9903-356f403e5649",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "Chinese city date entries"
+        },
+        "evidenceIds": [
+          "evidence_b483fbde-8e44-4cb7-bc35-2da1004c8f97"
+        ]
+      },
+      {
+        "path": "population.eligibility",
+        "status": "assumed",
+        "value": "Only observed eligible records; no fabricated missing records",
+        "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+      },
+      {
+        "path": "population.conditions",
+        "status": "assumed",
+        "value": [
+          "country_code_2='cn'"
+        ],
+        "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+      },
+      {
+        "path": "population.time",
+        "status": "assumed",
+        "value": {
+          "expression": "July 2021 inclusive; insert_date"
+        },
+        "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+      },
+      {
+        "path": "measure.formula",
+        "status": "assumed",
+        "value": {
+          "op": "custom",
+          "description": "Distinct calendar-date islands; choose all islands of minimum or maximum day count; one representative city per date by smallest city_id; capitalize first character only"
+        },
+        "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+      },
+      {
+        "path": "grouping",
+        "status": "assumed",
+        "value": [
+          "date"
+        ],
+        "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+      },
+      {
+        "path": "selection",
+        "status": "assumed",
+        "value": {
+          "n": 1,
+          "orderBy": "island_day_count ASC for shortest; DESC for longest"
+        },
+        "rationale": "Both extremes, all ties, as planned"
+      },
+      {
+        "path": "selection.ties",
+        "status": "assumed",
+        "value": "include_ties",
+        "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+      },
+      {
+        "path": "output",
+        "status": "assumed",
+        "value": {
+          "rowMode": "full",
+          "columns": [
+            "date",
+            "city_name"
+          ]
+        },
+        "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+      }
+    ],
+    "undeclared": [],
+    "open": [],
+    "unverified": [
+      "population.eligibility",
+      "population.conditions",
+      "population.time",
+      "measure.formula",
+      "grouping",
+      "output",
+      "selection.ties",
+      "selection"
+    ],
+    "specFeedback": {
+      "taskId": "task_1d5794d9-e7c0-4015-9fca-55850d975382",
+      "revisionId": "revision_f8b0bbfb-4351-4cf4-8417-e6830fc53f33",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_b483fbde-8e44-4cb7-bc35-2da1004c8f97",
+        "evidence_734b1af0-2bbd-4d6d-b462-1a34a20e7773",
+        "evidence_e26c4ea5-8180-4be2-8cfe-cc862d47ca14",
+        "evidence_c3392e1b-eda9-42e3-89d7-cb745a35888f"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "selection",
+        "status": "applied"
+      }
+    ]
+  }
+}
+

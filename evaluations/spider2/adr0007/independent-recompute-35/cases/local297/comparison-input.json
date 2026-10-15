@@ -1,0 +1,73 @@
+{
+  "revealedAt": "2026-10-11T09:43:00.855Z",
+  "registry": {
+    "instance_id": "local297",
+    "attempt_id": "attempt-20261010-154318Z",
+    "score": 0,
+    "score_source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-retry.json",
+    "replayed_csv_score": 0,
+    "group": "wrong",
+    "status": "completed",
+    "publication_status": "published",
+    "duration_ms": 216424,
+    "tool_calls": 24,
+    "error": null,
+    "result_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local297/attempts/attempt-20261010-154318Z/result.json",
+    "trace_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local297/attempts/attempt-20261010-154318Z/trace.json",
+    "result_exists": true,
+    "trace_exists": true,
+    "sql_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local297/attempts/attempt-20261010-154318Z/submissions/sql/local297.sql",
+    "csv_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local297.csv",
+    "sql_exists": true,
+    "csv_exists": true,
+    "gold_sql_file": null,
+    "process": {
+      "turns": 17,
+      "toolCalls": 24,
+      "explorationQueries": 7,
+      "resultQueries": 1,
+      "fanoutProbes": 0,
+      "revisions": 3
+    },
+    "fanout_metrics": {
+      "reportCount": 1,
+      "targetCount": 0,
+      "findingCount": 0,
+      "unknownCount": 0,
+      "byStatus": {
+        "clear": 0,
+        "finding": 0,
+        "not_applicable": 1,
+        "unknown": 0
+      },
+      "enabled": true
+    },
+    "spec_feedback_metrics": {
+      "reportCount": 4,
+      "byStatus": {
+        "pending": 0,
+        "completed": 2,
+        "unavailable": 2,
+        "disabled": 0
+      },
+      "deterministicIssueCount": 0,
+      "concernCount": 0,
+      "enabled": true
+    }
+  },
+  "originalSql": "WITH nets AS (\n  SELECT customer_id AS cid, substr(txn_date,1,7) AS m,\n         SUM(CASE WHEN txn_type='deposit' THEN txn_amount ELSE -txn_amount END) AS net\n  FROM customer_transactions\n  WHERE txn_type IN ('deposit','withdrawal')\n  GROUP BY customer_id, substr(txn_date,1,7)\n), cum AS (\n  SELECT cid, m, SUM(net) OVER (PARTITION BY cid ORDER BY m ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS bal\n  FROM nets\n), rn AS (\n  SELECT cid, m, bal, LAG(bal) OVER (PARTITION BY cid ORDER BY m) AS prev_bal,\n         ROW_NUMBER() OVER (PARTITION BY cid ORDER BY m DESC) AS r\n  FROM cum\n), g AS (\n  SELECT cid, bal, prev_bal,\n         CASE WHEN prev_bal IS NULL OR prev_bal = 0 THEN bal*100.0 ELSE (bal-prev_bal)*100.0/prev_bal END AS gr\n  FROM rn WHERE r = 1\n)\nSELECT ROUND(100.0*SUM(CASE WHEN gr > 5 THEN 1 ELSE 0 END)/COUNT(*), 2) AS pct_customers_growth_over_5pct\nFROM g\n",
+  "originalCsv": "pct_customers_growth_over_5pct\n54.2\n",
+  "goldSql": null,
+  "goldCsv": [
+    {
+      "path": "C:\\data-agent-eval\\Spider2\\spider2-lite\\evaluation_suite\\gold\\exec_result\\local297.csv",
+      "content": "output\r\n36.4"
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local297",
+    "condition_cols": [],
+    "ignore_order": false,
+    "toks": "170"
+  }
+}

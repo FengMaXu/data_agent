@@ -1,0 +1,989 @@
+{
+  "version": 2,
+  "tasks": [
+    {
+      "taskId": "task_09ea77a9-d637-443d-99eb-6c1ee236baf1",
+      "sessionId": "local131",
+      "principalId": "independent-analyst",
+      "requestMessageId": "original-task",
+      "requestId": "1b53f9ba-0702-41a2-921c-84ecd6b58cdc",
+      "currentRevisionId": "revision_28d61427-9c7b-4c43-a23e-f1f61f39ca4d",
+      "lifecycle": "published",
+      "budget": {
+        "policy": {
+          "version": "answering-dual-loop-v1",
+          "maxRevisions": 40,
+          "maxExplorationAttempts": 120,
+          "maxResultAttempts": 20,
+          "maxElapsedMs": 14400000,
+          "maxObservedRows": 2000000
+        },
+        "startedAt": "2026-10-11T08:59:17.799Z",
+        "revisionCount": 2,
+        "explorationAttempts": 3,
+        "resultAttempts": 1,
+        "observedRows": 74
+      },
+      "createdAt": "2026-10-11T08:59:17.799Z",
+      "updatedAt": "2026-10-11T09:02:10.769Z",
+      "latestCandidateId": "candidate_58cb9328-42d5-49c5-b4fa-073bad7b7cdc",
+      "publicationId": "publication_dac26812-c4bb-467f-a93f-4424e4cb43b8"
+    }
+  ],
+  "revisions": [
+    {
+      "taskId": "task_09ea77a9-d637-443d-99eb-6c1ee236baf1",
+      "revisionId": "revision_81652f0e-8656-480a-8b5a-1643a6cf2350",
+      "requestId": "1b53f9ba-0702-41a2-921c-84ecd6b58cdc",
+      "createdAt": "2026-10-11T08:59:17.799Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "musical style keyed by StyleID"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_b714ba4f-2bee-4d3c-840f-94e09dff3375"
+            ]
+          }
+        }
+      },
+      "state": {
+        "state": "draft",
+        "revisionId": "revision_81652f0e-8656-480a-8b5a-1643a6cf2350"
+      },
+      "specFeedback": {
+        "taskId": "task_09ea77a9-d637-443d-99eb-6c1ee236baf1",
+        "revisionId": "revision_81652f0e-8656-480a-8b5a-1643a6cf2350",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_b714ba4f-2bee-4d3c-840f-94e09dff3375"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    },
+    {
+      "taskId": "task_09ea77a9-d637-443d-99eb-6c1ee236baf1",
+      "revisionId": "revision_c69a8ea3-c5f9-4585-8ed6-1d8d92efdf4b",
+      "parentRevisionId": "revision_81652f0e-8656-480a-8b5a-1643a6cf2350",
+      "requestId": "b4f51469-e78a-4906-b355-570fe06c1a72",
+      "createdAt": "2026-10-11T08:59:47.505Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "musical style keyed by StyleID"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_b714ba4f-2bee-4d3c-840f-94e09dff3375"
+            ]
+          }
+        },
+        "population.eligibility": {
+          "state": "specified",
+          "value": "All catalog styles including zero preferences",
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "population.time": {
+          "state": "specified",
+          "value": {
+            "expression": "All available records"
+          },
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "measure.formula": {
+          "state": "specified",
+          "value": {
+            "op": "custom",
+            "description": "For each StyleID count Musical_Preferences rows separately for PreferenceSeq 1,2,3; zero for absent rows"
+          },
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "grouping": {
+          "state": "specified",
+          "value": [
+            "StyleID",
+            "StyleName"
+          ],
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "selection": {
+          "state": "not_applicable"
+        },
+        "output": {
+          "state": "specified",
+          "value": {
+            "rowMode": "full",
+            "columns": [
+              "StyleName",
+              "FirstPreference",
+              "SecondPreference",
+              "ThirdPreference"
+            ]
+          },
+          "basis": {
+            "kind": "assumed"
+          }
+        }
+      },
+      "state": {
+        "state": "draft",
+        "revisionId": "revision_c69a8ea3-c5f9-4585-8ed6-1d8d92efdf4b"
+      },
+      "specFeedback": {
+        "taskId": "task_09ea77a9-d637-443d-99eb-6c1ee236baf1",
+        "revisionId": "revision_c69a8ea3-c5f9-4585-8ed6-1d8d92efdf4b",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_b714ba4f-2bee-4d3c-840f-94e09dff3375",
+          "evidence_60e41544-7552-46b3-93a8-4acf9e2fd267",
+          "evidence_af5b7910-3b83-435b-90ac-b4848786eec5"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    },
+    {
+      "taskId": "task_09ea77a9-d637-443d-99eb-6c1ee236baf1",
+      "revisionId": "revision_28d61427-9c7b-4c43-a23e-f1f61f39ca4d",
+      "parentRevisionId": "revision_c69a8ea3-c5f9-4585-8ed6-1d8d92efdf4b",
+      "requestId": "c6693678-5072-4bf9-8aff-c4b9653610b4",
+      "createdAt": "2026-10-11T09:00:12.380Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "musical style keyed by StyleID"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_b714ba4f-2bee-4d3c-840f-94e09dff3375"
+            ]
+          }
+        },
+        "population.eligibility": {
+          "state": "specified",
+          "value": "All catalog styles including zero preferences",
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "population.time": {
+          "state": "specified",
+          "value": {
+            "expression": "All available records"
+          },
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "measure.formula": {
+          "state": "specified",
+          "value": {
+            "op": "custom",
+            "description": "For each StyleID count Musical_Preferences rows separately for PreferenceSeq 1,2,3; zero for absent rows"
+          },
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "grouping": {
+          "state": "specified",
+          "value": [
+            "StyleID",
+            "StyleName"
+          ],
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "selection": {
+          "state": "not_applicable"
+        },
+        "output": {
+          "state": "specified",
+          "value": {
+            "rowMode": "full",
+            "columns": [
+              "StyleName",
+              "FirstPreference",
+              "SecondPreference",
+              "ThirdPreference"
+            ]
+          },
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "population.conditions": {
+          "state": "not_applicable"
+        }
+      },
+      "state": {
+        "state": "ready",
+        "revisionId": "revision_28d61427-9c7b-4c43-a23e-f1f61f39ca4d",
+        "ready": "ready_2ead3421-1395-453b-b1c3-7d8cedfa6831"
+      },
+      "specFeedback": {
+        "taskId": "task_09ea77a9-d637-443d-99eb-6c1ee236baf1",
+        "revisionId": "revision_28d61427-9c7b-4c43-a23e-f1f61f39ca4d",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_b714ba4f-2bee-4d3c-840f-94e09dff3375",
+          "evidence_60e41544-7552-46b3-93a8-4acf9e2fd267",
+          "evidence_af5b7910-3b83-435b-90ac-b4848786eec5"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "taskId": "task_09ea77a9-d637-443d-99eb-6c1ee236baf1",
+      "items": [
+        {
+          "id": "request_be3e2f2bd519d830902bceb0",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "observedAt": "2026-10-11T08:59:17.799Z"
+        },
+        {
+          "id": "evidence_b714ba4f-2bee-4d3c-840f-94e09dff3375",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "43a9a4e7012d2ff2230b6dd1e0063528588154cbd1748c51fa0d1180aecfc083",
+          "quote": "each musical style",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "43a9a4e7012d2ff2230b6dd1e0063528588154cbd1748c51fa0d1180aecfc083"
+          },
+          "observedAt": "2026-10-11T08:59:17.799Z"
+        },
+        {
+          "id": "evidence_60e41544-7552-46b3-93a8-4acf9e2fd267",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "e66dc029-e430-44a2-876c-e31623b44d0f",
+          "preview": {
+            "columns": [
+              "StyleID",
+              "StyleName",
+              "n",
+              "p1",
+              "p2",
+              "p3"
+            ],
+            "rows": [
+              [
+                1,
+                "40's Ballroom Music",
+                2,
+                0,
+                1,
+                1
+              ],
+              [
+                2,
+                "50's Music",
+                0,
+                0,
+                0,
+                0
+              ],
+              [
+                3,
+                "60's Music",
+                1,
+                1,
+                0,
+                0
+              ],
+              [
+                4,
+                "70's Music",
+                1,
+                0,
+                1,
+                0
+              ],
+              [
+                5,
+                "80's Music",
+                1,
+                0,
+                0,
+                1
+              ],
+              [
+                6,
+                "Country",
+                1,
+                0,
+                1,
+                0
+              ],
+              [
+                7,
+                "Classical",
+                2,
+                0,
+                1,
+                1
+              ],
+              [
+                8,
+                "Classic Rock & Roll",
+                2,
+                1,
+                1,
+                0
+              ],
+              [
+                9,
+                "Rap",
+                0,
+                0,
+                0,
+                0
+              ],
+              [
+                10,
+                "Contemporary",
+                3,
+                1,
+                2,
+                0
+              ],
+              [
+                11,
+                "Country Rock",
+                1,
+                1,
+                0,
+                0
+              ],
+              [
+                12,
+                "Elvis",
+                0,
+                0,
+                0,
+                0
+              ],
+              [
+                13,
+                "Folk",
+                1,
+                0,
+                1,
+                0
+              ],
+              [
+                14,
+                "Chamber Music",
+                1,
+                1,
+                0,
+                0
+              ],
+              [
+                15,
+                "Jazz",
+                3,
+                2,
+                1,
+                0
+              ],
+              [
+                16,
+                "Karaoke",
+                0,
+                0,
+                0,
+                0
+              ],
+              [
+                17,
+                "Motown",
+                1,
+                0,
+                1,
+                0
+              ],
+              [
+                18,
+                "Modern Rock",
+                2,
+                0,
+                1,
+                1
+              ],
+              [
+                19,
+                "Rhythm and Blues",
+                3,
+                2,
+                0,
+                1
+              ],
+              [
+                20,
+                "Show Tunes",
+                2,
+                1,
+                1,
+                0
+              ],
+              [
+                21,
+                "Standards",
+                4,
+                2,
+                2,
+                0
+              ],
+              [
+                22,
+                "Top 40 Hits",
+                2,
+                2,
+                0,
+                0
+              ],
+              [
+                23,
+                "Variety",
+                1,
+                1,
+                0,
+                0
+              ],
+              [
+                24,
+                "Salsa",
+                2,
+                0,
+                1,
+                1
+              ],
+              [
+                25,
+                "90's Music",
+                0,
+                0,
+                0,
+                0
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "TEXT",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 25,
+            "truncated": false
+          },
+          "queryHash": "2f90c6c892a9649137b2ef054d2aa7d4191209688f9752d5812b09fdb30f24ff",
+          "contentHash": "4c9ce95fe7e967962efcf4c2dc1fbfda89fd77b88cc0700ec38be785f3ee0cfa",
+          "observedAt": "2026-10-11T08:59:37.696Z"
+        },
+        {
+          "id": "evidence_af5b7910-3b83-435b-90ac-b4848786eec5",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "446acd80-47b9-4d07-8e55-575b21dd8179",
+          "preview": {
+            "columns": [
+              "PreferenceSeq",
+              "n",
+              "customers"
+            ],
+            "rows": [
+              [
+                1,
+                15,
+                15
+              ],
+              [
+                2,
+                15,
+                15
+              ],
+              [
+                3,
+                6,
+                6
+              ],
+              [
+                -1,
+                25,
+                25
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 4,
+            "truncated": false
+          },
+          "queryHash": "d960aa8adb565033a1f53145e182b310d5a02368f85f5497ea841a185ff63395",
+          "contentHash": "3cc3a04b4d7377bda696c98cf605df959ffbb6c89633d871363c74ef062c17e9",
+          "observedAt": "2026-10-11T08:59:43.167Z"
+        },
+        {
+          "id": "evidence_9b8619e4-0502-408e-a356-06fcb5240073",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "e0d81265-fa36-4a78-8370-27e9719372c0",
+          "preview": {
+            "columns": [
+              "StyleName",
+              "p1",
+              "p2",
+              "p3"
+            ],
+            "rows": [
+              [
+                "40's Ballroom Music",
+                0,
+                1,
+                1
+              ],
+              [
+                "60's Music",
+                1,
+                0,
+                0
+              ],
+              [
+                "70's Music",
+                0,
+                1,
+                0
+              ],
+              [
+                "80's Music",
+                0,
+                0,
+                1
+              ],
+              [
+                "Country",
+                0,
+                1,
+                0
+              ],
+              [
+                "Classical",
+                0,
+                1,
+                1
+              ],
+              [
+                "Classic Rock & Roll",
+                1,
+                1,
+                0
+              ],
+              [
+                "Contemporary",
+                1,
+                2,
+                0
+              ],
+              [
+                "Country Rock",
+                1,
+                0,
+                0
+              ],
+              [
+                "Folk",
+                0,
+                1,
+                0
+              ],
+              [
+                "Chamber Music",
+                1,
+                0,
+                0
+              ],
+              [
+                "Jazz",
+                2,
+                1,
+                0
+              ],
+              [
+                "Motown",
+                0,
+                1,
+                0
+              ],
+              [
+                "Modern Rock",
+                0,
+                1,
+                1
+              ],
+              [
+                "Rhythm and Blues",
+                2,
+                0,
+                1
+              ],
+              [
+                "Show Tunes",
+                1,
+                1,
+                0
+              ],
+              [
+                "Standards",
+                2,
+                2,
+                0
+              ],
+              [
+                "Top 40 Hits",
+                2,
+                0,
+                0
+              ],
+              [
+                "Variety",
+                1,
+                0,
+                0
+              ],
+              [
+                "Salsa",
+                0,
+                1,
+                1
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 20,
+            "truncated": false
+          },
+          "queryHash": "58b1ffafb534080c38336ec4a8f10642ef36c12f5928460d918e2f241b14586a",
+          "contentHash": "b34d223b1e95effedabb4612be9f5e147396a01113699c617a7885959b0db575",
+          "observedAt": "2026-10-11T09:02:10.767Z"
+        }
+      ]
+    }
+  ],
+  "attempts": [
+    {
+      "taskId": "task_09ea77a9-d637-443d-99eb-6c1ee236baf1",
+      "items": [
+        {
+          "attemptId": "attempt_d55589cc-2d8a-4374-980e-0170252acc7e",
+          "taskId": "task_09ea77a9-d637-443d-99eb-6c1ee236baf1",
+          "kind": "exploration",
+          "revisionId": "revision_81652f0e-8656-480a-8b5a-1643a6cf2350",
+          "invocationId": "e66dc029-e430-44a2-876c-e31623b44d0f",
+          "queryHash": "2f90c6c892a9649137b2ef054d2aa7d4191209688f9752d5812b09fdb30f24ff",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T08:59:36.852Z",
+          "updatedAt": "2026-10-11T08:59:37.697Z"
+        },
+        {
+          "attemptId": "attempt_1376167c-cfaa-4952-b3ce-c396f82baf73",
+          "taskId": "task_09ea77a9-d637-443d-99eb-6c1ee236baf1",
+          "kind": "exploration",
+          "revisionId": "revision_81652f0e-8656-480a-8b5a-1643a6cf2350",
+          "invocationId": "446acd80-47b9-4d07-8e55-575b21dd8179",
+          "queryHash": "d960aa8adb565033a1f53145e182b310d5a02368f85f5497ea841a185ff63395",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T08:59:42.565Z",
+          "updatedAt": "2026-10-11T08:59:43.168Z"
+        },
+        {
+          "attemptId": "attempt_8850ea66-8600-4474-9472-8c8e1428b0d6",
+          "taskId": "task_09ea77a9-d637-443d-99eb-6c1ee236baf1",
+          "kind": "revision",
+          "revisionId": "revision_81652f0e-8656-480a-8b5a-1643a6cf2350",
+          "invocationId": "b4f51469-e78a-4906-b355-570fe06c1a72",
+          "state": "succeeded",
+          "sqlExecuted": false,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T08:59:47.511Z",
+          "updatedAt": "2026-10-11T08:59:47.505Z"
+        },
+        {
+          "attemptId": "attempt_274f8f06-9b7e-4ba5-98f1-e418dd80a8fc",
+          "taskId": "task_09ea77a9-d637-443d-99eb-6c1ee236baf1",
+          "kind": "result",
+          "revisionId": "revision_c69a8ea3-c5f9-4585-8ed6-1d8d92efdf4b",
+          "invocationId": "eefc6ff2-ac28-4b16-bc90-80f5b3e85374",
+          "queryHash": "57a457488a859cbbff2b1fce681eba5ba9be9b1b77d967e71ea4e5cc40bec099",
+          "state": "blocked",
+          "sqlExecuted": false,
+          "outcome": "not_started",
+          "obstacleKind": "business_judgment_required",
+          "createdAt": "2026-10-11T08:59:51.153Z",
+          "updatedAt": "2026-10-11T08:59:51.153Z"
+        },
+        {
+          "attemptId": "attempt_9f1b0636-f3c6-4fbb-9dea-be9f6a77a10d",
+          "taskId": "task_09ea77a9-d637-443d-99eb-6c1ee236baf1",
+          "kind": "revision",
+          "revisionId": "revision_c69a8ea3-c5f9-4585-8ed6-1d8d92efdf4b",
+          "invocationId": "c6693678-5072-4bf9-8aff-c4b9653610b4",
+          "state": "succeeded",
+          "sqlExecuted": false,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:00:12.387Z",
+          "updatedAt": "2026-10-11T09:00:12.380Z"
+        },
+        {
+          "attemptId": "attempt_ae98569c-6134-485b-ad09-fb7b640a5c57",
+          "taskId": "task_09ea77a9-d637-443d-99eb-6c1ee236baf1",
+          "kind": "result",
+          "revisionId": "revision_28d61427-9c7b-4c43-a23e-f1f61f39ca4d",
+          "invocationId": "0140cd68-9dc2-4027-ace4-4413889818ce",
+          "queryHash": "57a457488a859cbbff2b1fce681eba5ba9be9b1b77d967e71ea4e5cc40bec099",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:00:16.323Z",
+          "updatedAt": "2026-10-11T09:00:16.746Z"
+        },
+        {
+          "attemptId": "attempt_aaaa8ceb-1a13-481b-8193-cb17771b9635",
+          "taskId": "task_09ea77a9-d637-443d-99eb-6c1ee236baf1",
+          "kind": "exploration",
+          "revisionId": "revision_28d61427-9c7b-4c43-a23e-f1f61f39ca4d",
+          "invocationId": "e0d81265-fa36-4a78-8370-27e9719372c0",
+          "queryHash": "58b1ffafb534080c38336ec4a8f10642ef36c12f5928460d918e2f241b14586a",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:02:09.680Z",
+          "updatedAt": "2026-10-11T09:02:10.769Z"
+        }
+      ]
+    }
+  ],
+  "candidates": [
+    {
+      "candidateId": "candidate_58cb9328-42d5-49c5-b4fa-073bad7b7cdc",
+      "taskId": "task_09ea77a9-d637-443d-99eb-6c1ee236baf1",
+      "revisionId": "revision_28d61427-9c7b-4c43-a23e-f1f61f39ca4d",
+      "resultRef": "result_593f9936-b95b-412d-9dc1-125fb4bc28c0",
+      "resultSchema": [
+        "StyleName",
+        "FirstPreference",
+        "SecondPreference",
+        "ThirdPreference"
+      ],
+      "rowCount": 25,
+      "contentHash": "ac48bf5e5fb3fe2ba735a22f7acc9653f3cda3ba08e3b46c68976c1ef1e955d5",
+      "sql": "SELECT s.StyleName,SUM(CASE WHEN p.PreferenceSeq=1 THEN 1 ELSE 0 END) AS FirstPreference,SUM(CASE WHEN p.PreferenceSeq=2 THEN 1 ELSE 0 END) AS SecondPreference,SUM(CASE WHEN p.PreferenceSeq=3 THEN 1 ELSE 0 END) AS ThirdPreference FROM Musical_Styles s LEFT JOIN Musical_Preferences p ON s.StyleID=p.StyleID GROUP BY s.StyleID,s.StyleName ORDER BY s.StyleID",
+      "queryHash": "57a457488a859cbbff2b1fce681eba5ba9be9b1b77d967e71ea4e5cc40bec099",
+      "findings": [],
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "unknown",
+          "reason": "check_disabled"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "unknown",
+        "snapshotScope": "unbound",
+        "targets": [],
+        "unsupportedReasons": [
+          "check_disabled"
+        ]
+      },
+      "attemptId": "attempt_ae98569c-6134-485b-ad09-fb7b640a5c57",
+      "createdByInvocationId": "0140cd68-9dc2-4027-ace4-4413889818ce",
+      "createdAt": "2026-10-11T09:00:16.746Z",
+      "status": "ready",
+      "publishable": true
+    }
+  ],
+  "receipts": [
+    {
+      "receiptId": "publication_dac26812-c4bb-467f-a93f-4424e4cb43b8",
+      "taskId": "task_09ea77a9-d637-443d-99eb-6c1ee236baf1",
+      "principalId": "independent-analyst",
+      "sessionId": "local131",
+      "candidateId": "candidate_58cb9328-42d5-49c5-b4fa-073bad7b7cdc",
+      "revisionId": "revision_28d61427-9c7b-4c43-a23e-f1f61f39ca4d",
+      "resultRef": "result_593f9936-b95b-412d-9dc1-125fb4bc28c0",
+      "format": "csv",
+      "publicRef": "/api/runtime/publications/publication_dac26812-c4bb-467f-a93f-4424e4cb43b8?session_id=local131",
+      "contentHash": "ac48bf5e5fb3fe2ba735a22f7acc9653f3cda3ba08e3b46c68976c1ef1e955d5",
+      "presentationContentHash": "7d20cc9c407bd63970c3dd17784fc65b6fd52d381dfcd098aff1216eb2aea8f4",
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "unknown",
+          "reason": "check_disabled"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "unknown",
+        "snapshotScope": "unbound",
+        "targets": [],
+        "unsupportedReasons": [
+          "check_disabled"
+        ]
+      },
+      "disclosure": {
+        "required": true,
+        "unverifiedFields": [
+          {
+            "path": "population.eligibility",
+            "kind": "assumed"
+          },
+          {
+            "path": "population.time",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.formula",
+            "kind": "assumed"
+          },
+          {
+            "path": "grouping",
+            "kind": "assumed"
+          },
+          {
+            "path": "output",
+            "kind": "assumed"
+          }
+        ],
+        "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.time, measure.formula, grouping, output。 JOIN fanout 检查未能完整完成：check_disabled。",
+        "fanoutStatus": "unknown"
+      },
+      "physicalProfile": {
+        "version": 1,
+        "rowCount": 25,
+        "truncated": false,
+        "columns": [
+          {
+            "name": "StyleName",
+            "kind": "text",
+            "nullCount": 0,
+            "distinctCount": 25
+          },
+          {
+            "name": "FirstPreference",
+            "kind": "integer",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 3,
+            "min": "0",
+            "max": "2"
+          },
+          {
+            "name": "SecondPreference",
+            "kind": "integer",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 3,
+            "min": "0",
+            "max": "2"
+          },
+          {
+            "name": "ThirdPreference",
+            "kind": "integer",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 2,
+            "min": "0",
+            "max": "1"
+          }
+        ]
+      },
+      "policyVersion": "answering-publication-v1",
+      "createdByInvocationId": "0140cd68-9dc2-4027-ace4-4413889818ce",
+      "requestId": "0140cd68-9dc2-4027-ace4-4413889818ce",
+      "createdAt": "2026-10-11T09:00:16.781Z"
+    }
+  ]
+}

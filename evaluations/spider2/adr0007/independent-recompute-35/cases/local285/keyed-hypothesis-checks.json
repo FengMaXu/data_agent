@@ -1,0 +1,28 @@
+[
+  {
+    "mode": "net_all",
+    "matching_rows_out_of_24": {
+      "avg_wp": 24,
+      "cost": 0,
+      "revenue": 0,
+      "avg_rate": 23,
+      "loss_product_averages": 0,
+      "loss_rowwise": 0,
+      "profit_product": 0,
+      "profit_rowwise": 0
+    }
+  },
+  {
+    "mode": "sale_only",
+    "matching_rows_out_of_24": {
+      "avg_wp": 24,
+      "cost": 24,
+      "revenue": 21,
+      "avg_rate": 24,
+      "loss_product_averages": 0,
+      "loss_rowwise": 0,
+      "profit_product": 0,
+      "profit_rowwise": 0
+    }
+  }
+]

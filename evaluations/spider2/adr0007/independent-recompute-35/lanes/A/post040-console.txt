@@ -1,0 +1,832 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_d5ead9c2-f3ce-4d27-9e6c-4d14900d58e9\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nzipcode | Estimate_Total | Margin_of_Error_Total | Estimate_Median_income | Margin_of_Error_Median_income | Estimate_Mean_income | Margin_of_Error_Mean_income\n10463 | 27458 | 478 | 56482 | 2218 | 80384 | 4046\n10463 | 27458 | 478 | 56482 | 2218 | 80384 | 4046\n11205 | 15198 | 353 | 47575 | 3834 | 73353 | 3929\n11205 | 15198 | 353 | 47575 | 3834 | 73353 | 3929\n11218 | 24909 | 371 | 56120 | 3925 | 78208 | 3788\n11218 | 24909 | 371 | 56120 | 3925 | 78208 | 3788\n11370 | 8809 | 291 | 53427 | 4549 | 75046 | 9658\n11370 | 8809 | 291 | 53427 | 4549 | 75046 | 9658"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_d5ead9c2-f3ce-4d27-9e6c-4d14900d58e9",
+      "preview": {
+        "columns": [
+          "zipcode",
+          "Estimate_Total",
+          "Margin_of_Error_Total",
+          "Estimate_Median_income",
+          "Margin_of_Error_Median_income",
+          "Estimate_Mean_income",
+          "Margin_of_Error_Mean_income"
+        ],
+        "rows": [
+          [
+            10463,
+            27458,
+            478,
+            56482,
+            2218,
+            80384,
+            4046
+          ],
+          [
+            10463,
+            27458,
+            478,
+            56482,
+            2218,
+            80384,
+            4046
+          ],
+          [
+            11205,
+            15198,
+            353,
+            47575,
+            3834,
+            73353,
+            3929
+          ],
+          [
+            11205,
+            15198,
+            353,
+            47575,
+            3834,
+            73353,
+            3929
+          ],
+          [
+            11218,
+            24909,
+            371,
+            56120,
+            3925,
+            78208,
+            3788
+          ],
+          [
+            11218,
+            24909,
+            371,
+            56120,
+            3925,
+            78208,
+            3788
+          ],
+          [
+            11370,
+            8809,
+            291,
+            53427,
+            4549,
+            75046,
+            9658
+          ],
+          [
+            11370,
+            8809,
+            291,
+            53427,
+            4549,
+            75046,
+            9658
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 8,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "zipcode",
+        "Estimate_Total",
+        "Margin_of_Error_Total",
+        "Estimate_Median_income",
+        "Margin_of_Error_Median_income",
+        "Estimate_Mean_income",
+        "Margin_of_Error_Mean_income"
+      ],
+      "rows": [
+        [
+          10463,
+          27458,
+          478,
+          56482,
+          2218,
+          80384,
+          4046
+        ],
+        [
+          10463,
+          27458,
+          478,
+          56482,
+          2218,
+          80384,
+          4046
+        ],
+        [
+          11205,
+          15198,
+          353,
+          47575,
+          3834,
+          73353,
+          3929
+        ],
+        [
+          11205,
+          15198,
+          353,
+          47575,
+          3834,
+          73353,
+          3929
+        ],
+        [
+          11218,
+          24909,
+          371,
+          56120,
+          3925,
+          78208,
+          3788
+        ],
+        [
+          11218,
+          24909,
+          371,
+          56120,
+          3925,
+          78208,
+          3788
+        ],
+        [
+          11370,
+          8809,
+          291,
+          53427,
+          4549,
+          75046,
+          9658
+        ],
+        [
+          11370,
+          8809,
+          291,
+          53427,
+          4549,
+          75046,
+          9658
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 8,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_14973f26-e578-4703-96b0-659590fb05a8"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_8173ae4f-ffc7-4733-ac83-ea4c73822760\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\ntree_id | n | zips | boroughs\n722568 | 2 | 1 | 1\n722516 | 2 | 1 | 1\n722222 | 2 | 1 | 1\n722026 | 2 | 1 | 1\n721992 | 2 | 1 | 1\n721447 | 2 | 1 | 1\n721309 | 2 | 1 | 1\n721245 | 2 | 1 | 1\n720785 | 2 | 1 | 1\n720739 | 2 | 1 | 1"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_8173ae4f-ffc7-4733-ac83-ea4c73822760",
+      "preview": {
+        "columns": [
+          "tree_id",
+          "n",
+          "zips",
+          "boroughs"
+        ],
+        "rows": [
+          [
+            722568,
+            2,
+            1,
+            1
+          ],
+          [
+            722516,
+            2,
+            1,
+            1
+          ],
+          [
+            722222,
+            2,
+            1,
+            1
+          ],
+          [
+            722026,
+            2,
+            1,
+            1
+          ],
+          [
+            721992,
+            2,
+            1,
+            1
+          ],
+          [
+            721447,
+            2,
+            1,
+            1
+          ],
+          [
+            721309,
+            2,
+            1,
+            1
+          ],
+          [
+            721245,
+            2,
+            1,
+            1
+          ],
+          [
+            720785,
+            2,
+            1,
+            1
+          ],
+          [
+            720739,
+            2,
+            1,
+            1
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 10,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "tree_id",
+        "n",
+        "zips",
+        "boroughs"
+      ],
+      "rows": [
+        [
+          722568,
+          2,
+          1,
+          1
+        ],
+        [
+          722516,
+          2,
+          1,
+          1
+        ],
+        [
+          722222,
+          2,
+          1,
+          1
+        ],
+        [
+          722026,
+          2,
+          1,
+          1
+        ],
+        [
+          721992,
+          2,
+          1,
+          1
+        ],
+        [
+          721447,
+          2,
+          1,
+          1
+        ],
+        [
+          721309,
+          2,
+          1,
+          1
+        ],
+        [
+          721245,
+          2,
+          1,
+          1
+        ],
+        [
+          720785,
+          2,
+          1,
+          1
+        ],
+        [
+          720739,
+          2,
+          1,
+          1
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 10,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_81a32b88-f543-44cd-996d-be1a374482dc"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_b146970e-1a28-46f3-8946-82be1611c2a9\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nrows\n683788"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_b146970e-1a28-46f3-8946-82be1611c2a9",
+      "preview": {
+        "columns": [
+          "rows"
+        ],
+        "rows": [
+          [
+            683788
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "rows"
+      ],
+      "rows": [
+        [
+          683788
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_b659a866-a5a1-4202-9d8d-7ba09ffb2703"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_4a9c3859-d243-47bf-a88a-c44462fafa19\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nboroname | tree_count | avg_mean_income\nQueens | 252846 | 79366.73841785119\nBrooklyn | 177132 | 73555.19098751213\nStaten Island | 106374 | 94029.32783386917"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_4a9c3859-d243-47bf-a88a-c44462fafa19",
+      "preview": {
+        "columns": [
+          "boroname",
+          "tree_count",
+          "avg_mean_income"
+        ],
+        "rows": [
+          [
+            "Queens",
+            252846,
+            79366.73841785119
+          ],
+          [
+            "Brooklyn",
+            177132,
+            73555.19098751213
+          ],
+          [
+            "Staten Island",
+            106374,
+            94029.32783386917
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "REAL"
+        ],
+        "rowCount": 3,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "boroname",
+        "tree_count",
+        "avg_mean_income"
+      ],
+      "rows": [
+        [
+          "Queens",
+          252846,
+          79366.73841785119
+        ],
+        [
+          "Brooklyn",
+          177132,
+          73555.19098751213
+        ],
+        [
+          "Staten Island",
+          106374,
+          94029.32783386917
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "REAL"
+      ],
+      "rowCount": 3,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_fe007804-ee33-4988-bfce-9037bd97204d"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_2c95fe98-feab-4e1e-965b-643186aea9d3\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nboroname | tree_count | avg_mean_income\nQueens | 250364 | 79366.23974692848\nBrooklyn | 175358 | 73552.914734429\nStaten Island | 105318 | 94026.03572038967"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_2c95fe98-feab-4e1e-965b-643186aea9d3",
+      "preview": {
+        "columns": [
+          "boroname",
+          "tree_count",
+          "avg_mean_income"
+        ],
+        "rows": [
+          [
+            "Queens",
+            250364,
+            79366.23974692848
+          ],
+          [
+            "Brooklyn",
+            175358,
+            73552.914734429
+          ],
+          [
+            "Staten Island",
+            105318,
+            94026.03572038967
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "REAL"
+        ],
+        "rowCount": 3,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "boroname",
+        "tree_count",
+        "avg_mean_income"
+      ],
+      "rows": [
+        [
+          "Queens",
+          250364,
+          79366.23974692848
+        ],
+        [
+          "Brooklyn",
+          175358,
+          73552.914734429
+        ],
+        [
+          "Staten Island",
+          105318,
+          94026.03572038967
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "REAL"
+      ],
+      "rowCount": 3,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_9ed85a62-f6b6-41e5-ba92-85ae448fcb53"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_b12bb41c-8095-425b-8f16-2327f0d21438\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nboroname | tree_count | avg_mean_income\nQueens | 250364 | 79366.23974692848\nBrooklyn | 175358 | 73552.914734429\nStaten Island | 105318 | 94026.03572038967"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_b12bb41c-8095-425b-8f16-2327f0d21438",
+      "preview": {
+        "columns": [
+          "boroname",
+          "tree_count",
+          "avg_mean_income"
+        ],
+        "rows": [
+          [
+            "Queens",
+            250364,
+            79366.23974692848
+          ],
+          [
+            "Brooklyn",
+            175358,
+            73552.914734429
+          ],
+          [
+            "Staten Island",
+            105318,
+            94026.03572038967
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "REAL"
+        ],
+        "rowCount": 3,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "boroname",
+        "tree_count",
+        "avg_mean_income"
+      ],
+      "rows": [
+        [
+          "Queens",
+          250364,
+          79366.23974692848
+        ],
+        [
+          "Brooklyn",
+          175358,
+          73552.914734429
+        ],
+        [
+          "Staten Island",
+          105318,
+          94026.03572038967
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "REAL"
+      ],
+      "rowCount": 3,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_fd1b05ed-58dc-4023-9c71-b8fa27c4adae"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_024270c2-3636-4def-a697-9de2a4489141\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nboroname | tree_count | average_mean_income\nQueens | 250364 | 79366.23974692848\nBrooklyn | 175358 | 73552.914734429\nStaten Island | 105318 | 94026.03572038967"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_024270c2-3636-4def-a697-9de2a4489141",
+      "preview": {
+        "columns": [
+          "boroname",
+          "tree_count",
+          "average_mean_income"
+        ],
+        "rows": [
+          [
+            "Queens",
+            250364,
+            79366.23974692848
+          ],
+          [
+            "Brooklyn",
+            175358,
+            73552.914734429
+          ],
+          [
+            "Staten Island",
+            105318,
+            94026.03572038967
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "REAL"
+        ],
+        "rowCount": 3,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "boroname",
+        "tree_count",
+        "average_mean_income"
+      ],
+      "rows": [
+        [
+          "Queens",
+          250364,
+          79366.23974692848
+        ],
+        [
+          "Brooklyn",
+          175358,
+          73552.914734429
+        ],
+        [
+          "Staten Island",
+          105318,
+          94026.03572038967
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "REAL"
+      ],
+      "rowCount": 3,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_1de186c6-f278-4729-925c-549a4e45af06"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_7f049268-e01a-4a49-a2f9-d32a0c6459ac\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nboroname | tree_count | average_mean_income\nQueens | 250364 | 79366.23974692848\nBrooklyn | 175358 | 73552.914734429\nStaten Island | 105318 | 94026.03572038967"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_7f049268-e01a-4a49-a2f9-d32a0c6459ac",
+      "preview": {
+        "columns": [
+          "boroname",
+          "tree_count",
+          "average_mean_income"
+        ],
+        "rows": [
+          [
+            "Queens",
+            250364,
+            79366.23974692848
+          ],
+          [
+            "Brooklyn",
+            175358,
+            73552.914734429
+          ],
+          [
+            "Staten Island",
+            105318,
+            94026.03572038967
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "REAL"
+        ],
+        "rowCount": 3,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "boroname",
+        "tree_count",
+        "average_mean_income"
+      ],
+      "rows": [
+        [
+          "Queens",
+          250364,
+          79366.23974692848
+        ],
+        [
+          "Brooklyn",
+          175358,
+          73552.914734429
+        ],
+        [
+          "Staten Island",
+          105318,
+          94026.03572038967
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "REAL"
+      ],
+      "rowCount": 3,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_65b41c38-1df0-4056-93f4-65ba2b88390e"
+  }
+}
+

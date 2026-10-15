@@ -1,0 +1,1 @@
+{"sql": "SELECT txn_type,COUNT(*) n,MIN(txn_date) earliest,MAX(txn_date) latest,SUM(CASE WHEN substr(txn_date,9,2)='01' THEN txn_amount ELSE 0 END) first_day_amount FROM customer_transactions GROUP BY txn_type", "limit": 100}

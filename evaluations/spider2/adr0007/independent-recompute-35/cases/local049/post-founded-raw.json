@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT count(*) n,count(distinct d.company_id) ids FROM companies_dates d JOIN companies_industries i USING(company_id) WHERE industry='Fintech' AND year_founded BETWEEN 2019 AND 2021",
+  "limit": 100
+}

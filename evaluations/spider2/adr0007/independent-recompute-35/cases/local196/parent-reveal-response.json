@@ -1,0 +1,73 @@
+{
+  "revealedAt": "2026-10-11T10:05:13.460Z",
+  "registry": {
+    "instance_id": "local196",
+    "attempt_id": "attempt-20261010-154318Z",
+    "score": 0,
+    "score_source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-retry.json",
+    "replayed_csv_score": 0,
+    "group": "wrong",
+    "status": "completed",
+    "publication_status": "published",
+    "duration_ms": 162894,
+    "tool_calls": 15,
+    "error": null,
+    "result_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local196/attempts/attempt-20261010-154318Z/result.json",
+    "trace_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local196/attempts/attempt-20261010-154318Z/trace.json",
+    "result_exists": true,
+    "trace_exists": true,
+    "sql_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local196/attempts/attempt-20261010-154318Z/submissions/sql/local196.sql",
+    "csv_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local196.csv",
+    "sql_exists": true,
+    "csv_exists": true,
+    "gold_sql_file": null,
+    "process": {
+      "turns": 13,
+      "toolCalls": 15,
+      "explorationQueries": 5,
+      "resultQueries": 1,
+      "fanoutProbes": 0,
+      "revisions": 1
+    },
+    "fanout_metrics": {
+      "reportCount": 1,
+      "targetCount": 0,
+      "findingCount": 0,
+      "unknownCount": 0,
+      "byStatus": {
+        "clear": 0,
+        "finding": 0,
+        "not_applicable": 1,
+        "unknown": 0
+      },
+      "enabled": true
+    },
+    "spec_feedback_metrics": {
+      "reportCount": 3,
+      "byStatus": {
+        "pending": 0,
+        "completed": 0,
+        "unavailable": 3,
+        "disabled": 0
+      },
+      "deterministicIssueCount": 0,
+      "concernCount": 0,
+      "enabled": true
+    }
+  },
+  "originalSql": "WITH fp AS (SELECT customer_id, MIN(payment_date) AS mpd FROM payment GROUP BY customer_id),\nfm AS (SELECT p.customer_id AS cid, f.rating AS rating FROM payment p JOIN fp ON fp.customer_id=p.customer_id AND p.payment_date=fp.mpd JOIN rental r ON r.rental_id=p.rental_id JOIN inventory i ON i.inventory_id=r.inventory_id JOIN film f ON f.film_id=i.film_id),\ncu AS (SELECT c.customer_id AS cid, (SELECT SUM(amount) FROM payment p WHERE p.customer_id=c.customer_id) AS total_amt, (SELECT COUNT(*) FROM rental r WHERE r.customer_id=c.customer_id) AS n_rentals FROM customer c)\nSELECT fm.rating AS rating, ROUND(AVG(cu.total_amt),2) AS avg_total_amount_spent, ROUND(AVG(cu.n_rentals-1),2) AS avg_subsequent_rentals FROM fm JOIN cu ON cu.cid=fm.cid GROUP BY fm.rating ORDER BY fm.rating\n",
+  "originalCsv": "rating,avg_total_amount_spent,avg_subsequent_rentals\nG,110.66,25.3\nNC-17,111.94,25.36\nPG,112.67,26.26\nPG-13,115.24,26.38\nR,111.42,25.48\n",
+  "goldSql": null,
+  "goldCsv": [
+    {
+      "path": "C:\\data-agent-eval\\Spider2\\spider2-lite\\evaluation_suite\\gold\\exec_result\\local196.csv",
+      "content": "\"rating\",\"avg_spend\",\"avg_subsequent_rentals_number\"\r\nPG-13,115.24,26.38\r\nPG,112.67,26.27\r\nNC-17,111.94,25.37\r\nR,111.42,25.49\r\nG,110.66,25.32\r\n"
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local196",
+    "condition_cols": [],
+    "ignore_order": true,
+    "toks": "132"
+  }
+}

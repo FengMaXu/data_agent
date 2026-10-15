@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT d.company_id,d.date_joined,count(*) joined_copies FROM companies_dates d JOIN companies_industries i USING(company_id) WHERE i.industry='Fintech' AND d.date_joined>='2019-01-01' AND d.date_joined<'2022-01-01' GROUP BY 1,2 HAVING count(*)>1",
+  "limit": 100
+}

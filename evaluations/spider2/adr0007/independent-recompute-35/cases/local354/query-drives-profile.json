@@ -1,0 +1,1 @@
+{"sql": "SELECT year,COUNT(*) drive_rows,COUNT(DISTINCT driver_id) drivers,SUM(is_first_drive_of_season=1) first_flags,SUM(is_final_drive_of_season=1) last_flags,SUM(first_round=last_round) single_round_drives FROM drives WHERE year BETWEEN 1950 AND 1959 GROUP BY year ORDER BY year", "limit": 300}

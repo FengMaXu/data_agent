@@ -1,0 +1,253 @@
+{
+  "frozenAt": "2026-10-11T09:00:33.292Z",
+  "instance_id": "local070",
+  "independent": true,
+  "taskId": "task_1d5794d9-e7c0-4015-9fca-55850d975382",
+  "revisionId": "revision_f8b0bbfb-4351-4cf4-8417-e6830fc53f33",
+  "publication": {
+    "receiptId": "publication_839a5a17-d2ca-4077-b345-e0a989fca4b8",
+    "taskId": "task_1d5794d9-e7c0-4015-9fca-55850d975382",
+    "principalId": "independent-analyst",
+    "sessionId": "local070",
+    "candidateId": "candidate_e44ca490-2ecd-4217-bb12-39238ce538c7",
+    "revisionId": "revision_f8b0bbfb-4351-4cf4-8417-e6830fc53f33",
+    "resultRef": "result_4f468d17-008b-4a23-b817-dbd872532abd",
+    "format": "csv",
+    "publicRef": "/api/runtime/publications/publication_839a5a17-d2ca-4077-b345-e0a989fca4b8?session_id=local070",
+    "contentHash": "4165e9d9ae01e3e4d5ed863e3dca63a512781417b3f460b47366609eed660229",
+    "presentationContentHash": "5310d64e2fb0dde210b9af0f15f14c095c31925d85e742f24d75305bb9de4e75",
+    "coverage": [
+      {
+        "checkId": "result_completeness",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_shape",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_identity",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "join_fanout",
+        "outcome": "not_applicable"
+      },
+      {
+        "checkId": "spec_feedback",
+        "ruleVersion": "spec-feedback-v2",
+        "outcome": "not_applicable",
+        "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+      }
+    ],
+    "fanout": {
+      "ruleVersion": "answering-fanout-v1",
+      "status": "not_applicable",
+      "snapshotScope": "unbound",
+      "targets": []
+    },
+    "disclosure": {
+      "required": true,
+      "unverifiedFields": [
+        {
+          "path": "population.eligibility",
+          "kind": "assumed"
+        },
+        {
+          "path": "population.conditions",
+          "kind": "assumed"
+        },
+        {
+          "path": "population.time",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.formula",
+          "kind": "assumed"
+        },
+        {
+          "path": "grouping",
+          "kind": "assumed"
+        },
+        {
+          "path": "output",
+          "kind": "assumed"
+        },
+        {
+          "path": "selection.ties",
+          "kind": "assumed"
+        },
+        {
+          "path": "selection",
+          "kind": "assumed"
+        }
+      ],
+      "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.conditions, population.time, measure.formula, grouping, output, selection.ties, selection。"
+    },
+    "physicalProfile": {
+      "version": 1,
+      "rowCount": 15,
+      "truncated": false,
+      "columns": [
+        {
+          "name": "date",
+          "kind": "text",
+          "nullCount": 0,
+          "distinctCount": 15
+        },
+        {
+          "name": "city_name",
+          "kind": "text",
+          "nullCount": 0,
+          "distinctCount": 15
+        }
+      ]
+    },
+    "policyVersion": "answering-publication-v1",
+    "createdByInvocationId": "a8875c51-0a98-4e40-a9cb-78d32396a36d",
+    "requestId": "a8875c51-0a98-4e40-a9cb-78d32396a36d",
+    "createdAt": "2026-10-11T09:00:31.293Z"
+  },
+  "currentRevision": {
+    "taskId": "task_1d5794d9-e7c0-4015-9fca-55850d975382",
+    "revisionId": "revision_f8b0bbfb-4351-4cf4-8417-e6830fc53f33",
+    "parentRevisionId": "revision_847d6e01-6d0d-4519-9903-356f403e5649",
+    "requestId": "de8abeab-831e-4d46-8598-ebaf97f18aba",
+    "createdAt": "2026-10-11T09:00:27.525Z",
+    "fields": {
+      "population.entity": {
+        "state": "specified",
+        "value": {
+          "name": "Chinese city date entries"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_b483fbde-8e44-4cb7-bc35-2da1004c8f97"
+          ]
+        }
+      },
+      "population.eligibility": {
+        "state": "specified",
+        "value": "Only observed eligible records; no fabricated missing records",
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+        }
+      },
+      "population.conditions": {
+        "state": "specified",
+        "value": [
+          "country_code_2='cn'"
+        ],
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+        }
+      },
+      "population.time": {
+        "state": "specified",
+        "value": {
+          "expression": "July 2021 inclusive; insert_date"
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+        }
+      },
+      "measure.formula": {
+        "state": "specified",
+        "value": {
+          "op": "custom",
+          "description": "Distinct calendar-date islands; choose all islands of minimum or maximum day count; one representative city per date by smallest city_id; capitalize first character only"
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+        }
+      },
+      "grouping": {
+        "state": "specified",
+        "value": [
+          "date"
+        ],
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+        }
+      },
+      "output": {
+        "state": "specified",
+        "value": {
+          "rowMode": "full",
+          "columns": [
+            "date",
+            "city_name"
+          ]
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+        }
+      },
+      "selection.ties": {
+        "state": "specified",
+        "value": "include_ties",
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+        }
+      },
+      "selection": {
+        "state": "specified",
+        "value": {
+          "n": 1,
+          "orderBy": "island_day_count ASC for shortest; DESC for longest"
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Both extremes, all ties, as planned"
+        }
+      }
+    },
+    "state": {
+      "state": "ready",
+      "revisionId": "revision_f8b0bbfb-4351-4cf4-8417-e6830fc53f33",
+      "ready": "ready_95611484-f815-4bb7-b068-a10bd3bd588d"
+    },
+    "specFeedback": {
+      "taskId": "task_1d5794d9-e7c0-4015-9fca-55850d975382",
+      "revisionId": "revision_f8b0bbfb-4351-4cf4-8417-e6830fc53f33",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_b483fbde-8e44-4cb7-bc35-2da1004c8f97",
+        "evidence_734b1af0-2bbd-4d6d-b462-1a34a20e7773",
+        "evidence_e26c4ea5-8180-4be2-8cfe-cc862d47ca14",
+        "evidence_c3392e1b-eda9-42e3-89d7-cb745a35888f"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    }
+  },
+  "analystNote": {
+    "algorithm": "Distinct days -> calendar islands -> min/max island lengths -> minimum-city_id representative",
+    "assumptions": [
+      "Representative city rule unspecified; minimum city_id chosen",
+      "Keep all tied extreme islands"
+    ],
+    "validation": "4 islands lengths 8,2,3,13; output 15 dates"
+  },
+  "settings": {
+    "qualification": "required",
+    "fieldProbes": true,
+    "externalAdvisor": "not_configured",
+    "specFeedback": "not_configured",
+    "fanout": "disabled_for_offline_audit",
+    "populationDecisions": "allow_disclosed_headless_audit",
+    "databaseReadOnly": true
+  }
+}
+

@@ -1,0 +1,1 @@
+{"sql": "SELECT name,type,sql FROM sqlite_master WHERE name IN ('stack_ok','solution_ext','stack_ok_score');", "limit": 100}

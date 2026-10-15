@@ -1,0 +1,89 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_e22d0b56-d7c9-4e62-bc59-399294927a2c\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nairport_code | city | coordinates\nYKS | {\"en\": \"Yakutsk\", \"ru\": \"���ܧ����\"} | (129.77099609375,62.0932998657226562)\nMJZ | {\"en\": \"Mirnyj\", \"ru\": \"���ڧ�ߧ���\"} | (114.03900146484375,62.534698486328125)\nKHV | {\"en\": \"Khabarovsk\", \"ru\": \"���ѧҧѧ��ӧ��\"} | (135.18800354004,48.5279998779300001)\nPKC | {\"en\": \"Petropavlovsk\", \"ru\": \"���֧����ѧӧݧ�ӧ��-���ѧާ�ѧ��ܧڧ�\"} | (158.453994750976562,53.1679000854492188)"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_e22d0b56-d7c9-4e62-bc59-399294927a2c",
+      "preview": {
+        "columns": [
+          "airport_code",
+          "city",
+          "coordinates"
+        ],
+        "rows": [
+          [
+            "YKS",
+            "{\"en\": \"Yakutsk\", \"ru\": \"���ܧ����\"}",
+            "(129.77099609375,62.0932998657226562)"
+          ],
+          [
+            "MJZ",
+            "{\"en\": \"Mirnyj\", \"ru\": \"���ڧ�ߧ���\"}",
+            "(114.03900146484375,62.534698486328125)"
+          ],
+          [
+            "KHV",
+            "{\"en\": \"Khabarovsk\", \"ru\": \"���ѧҧѧ��ӧ��\"}",
+            "(135.18800354004,48.5279998779300001)"
+          ],
+          [
+            "PKC",
+            "{\"en\": \"Petropavlovsk\", \"ru\": \"���֧����ѧӧݧ�ӧ��-���ѧާ�ѧ��ܧڧ�\"}",
+            "(158.453994750976562,53.1679000854492188)"
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "TEXT",
+          "TEXT"
+        ],
+        "rowCount": 4,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "airport_code",
+        "city",
+        "coordinates"
+      ],
+      "rows": [
+        [
+          "YKS",
+          "{\"en\": \"Yakutsk\", \"ru\": \"���ܧ����\"}",
+          "(129.77099609375,62.0932998657226562)"
+        ],
+        [
+          "MJZ",
+          "{\"en\": \"Mirnyj\", \"ru\": \"���ڧ�ߧ���\"}",
+          "(114.03900146484375,62.534698486328125)"
+        ],
+        [
+          "KHV",
+          "{\"en\": \"Khabarovsk\", \"ru\": \"���ѧҧѧ��ӧ��\"}",
+          "(135.18800354004,48.5279998779300001)"
+        ],
+        [
+          "PKC",
+          "{\"en\": \"Petropavlovsk\", \"ru\": \"���֧����ѧӧݧ�ӧ��-���ѧާ�ѧ��ܧڧ�\"}",
+          "(158.453994750976562,53.1679000854492188)"
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "TEXT",
+        "TEXT"
+      ],
+      "rowCount": 4,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_e8aa6d5c-275a-44e7-9797-ff2a7ca29fc2"
+  }
+}

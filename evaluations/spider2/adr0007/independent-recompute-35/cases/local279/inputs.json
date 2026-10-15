@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT 'inventory' source,product_id,NULL mth,SUM(qty) qty FROM inventory GROUP BY product_id UNION ALL SELECT 'minimum',product_id,CAST(qty_minimum AS TEXT),qty_purchase FROM product_minimums UNION ALL SELECT 'budget',product_id,mth,qty FROM monthly_budget ORDER BY product_id,source,mth",
+  "limit": 1000
+}

@@ -1,0 +1,161 @@
+{
+  "query": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[RESULT_CANDIDATE] candidateId=candidate_651c69c1-d784-4df9-8d04-e4a2a42e2ceb revisionId=revision_53dae7b6-93e9-433a-91da-b0991be9808e\n[FANOUT_CHECK] status=unknown reasons=check_disabled\nNo source-key duplication was observed within the supported probe coverage.\nsum_moving_averages\n36.890234106531814"
+      }
+    ],
+    "details": {
+      "kind": "result",
+      "artifact": {
+        "kind": "candidate",
+        "candidateId": "candidate_651c69c1-d784-4df9-8d04-e4a2a42e2ceb",
+        "revisionId": "revision_53dae7b6-93e9-433a-91da-b0991be9808e",
+        "resultRef": "result_72c35452-35b7-4989-9850-310fd6299ab1"
+      },
+      "preview": {
+        "columns": [
+          "sum_moving_averages"
+        ],
+        "rows": [
+          [
+            36.890234106531814
+          ]
+        ],
+        "columnTypes": [
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      },
+      "findings": [],
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "unknown",
+          "reason": "check_disabled"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "unknown",
+        "snapshotScope": "unbound",
+        "targets": [],
+        "unsupportedReasons": [
+          "check_disabled"
+        ]
+      },
+      "attemptId": "attempt_7db5bfac-62d6-42df-a86c-333155f4e3fc"
+    }
+  },
+  "publication": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[PUBLISHED] csv [download](/api/runtime/publications/publication_ab748593-4d28-4dc0-b4df-9030fa844954?session_id=local002) receiptId=publication_ab748593-4d28-4dc0-b4df-9030fa844954\n[DISCLOSURE] 以下字段为假定，未被合格证据证实：population.eligibility, measure.formula。 JOIN fanout 检查未能完整完成：check_disabled。"
+      }
+    ],
+    "details": {
+      "receiptId": "publication_ab748593-4d28-4dc0-b4df-9030fa844954",
+      "taskId": "task_4530a9ba-5bef-4824-9628-f660fc1649ae",
+      "principalId": "independent-analyst",
+      "sessionId": "local002",
+      "candidateId": "candidate_651c69c1-d784-4df9-8d04-e4a2a42e2ceb",
+      "revisionId": "revision_53dae7b6-93e9-433a-91da-b0991be9808e",
+      "resultRef": "result_72c35452-35b7-4989-9850-310fd6299ab1",
+      "format": "csv",
+      "publicRef": "/api/runtime/publications/publication_ab748593-4d28-4dc0-b4df-9030fa844954?session_id=local002",
+      "contentHash": "e4066e07b09e50721c86e2685d42b13fe2240fc6bbbe0a6f45cb758e31cb35c1",
+      "presentationContentHash": "1408003aa6022cbb7b789230741b6a3a1afb497f3aa61c641b621328cec30304",
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "unknown",
+          "reason": "check_disabled"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "unknown",
+        "snapshotScope": "unbound",
+        "targets": [],
+        "unsupportedReasons": [
+          "check_disabled"
+        ]
+      },
+      "disclosure": {
+        "required": true,
+        "unverifiedFields": [
+          {
+            "path": "population.eligibility",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.formula",
+            "kind": "assumed"
+          }
+        ],
+        "summary": "以下字段为假定，未被合格证据证实：population.eligibility, measure.formula。 JOIN fanout 检查未能完整完成：check_disabled。",
+        "fanoutStatus": "unknown"
+      },
+      "physicalProfile": {
+        "version": 1,
+        "rowCount": 1,
+        "truncated": false,
+        "columns": [
+          {
+            "name": "sum_moving_averages",
+            "kind": "decimal",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 1,
+            "min": "36.890234106531814",
+            "max": "36.890234106531814"
+          }
+        ]
+      },
+      "policyVersion": "answering-publication-v1",
+      "createdByInvocationId": "c62ea8f3-30bc-455e-aedc-071c7b908269",
+      "requestId": "c62ea8f3-30bc-455e-aedc-071c7b908269",
+      "createdAt": "2026-10-11T09:03:14.023Z"
+    }
+  },
+  "authorizedCsv": "D:\\data_agent\\evaluations\\spider2\\adr0007\\independent-recompute-35\\cases\\local002\\publications\\publication_ab748593-4d28-4dc0-b4df-9030fa844954\\result.csv"
+}

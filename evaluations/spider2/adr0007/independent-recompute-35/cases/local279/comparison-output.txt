@@ -1,0 +1,79 @@
+{
+  "instance_id": "local279",
+  "independent_freeze": "D:/data_agent/evaluations/spider2/adr0007/independent-recompute-35/cases/local279/independent-freeze.json",
+  "independent_official_score": 0,
+  "original_replayed_score": 0,
+  "recorded_original_score": 0,
+  "scorer_limitations": "Column-wise tolerance matching; ignore_order may ignore row associations; passing is not business proof.",
+  "independent": {
+    "path": "D:/data_agent/evaluations/spider2/adr0007/independent-recompute-35/cases/local279/publications/publication_ab8f4656-1b42-48b0-85ad-b30d0e4fc958/result.csv",
+    "rows": 2,
+    "columns": [
+      "product_id",
+      "month",
+      "absolute_difference"
+    ],
+    "head": [
+      {
+        "product_id": 6520,
+        "month": "2019-06-01",
+        "absolute_difference": 0
+      },
+      {
+        "product_id": 6600,
+        "month": "2019-03-01",
+        "absolute_difference": 10
+      }
+    ]
+  },
+  "original": {
+    "path": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local279.csv",
+    "rows": 2,
+    "columns": [
+      "product_id",
+      "month",
+      "abs_diff"
+    ],
+    "head": [
+      {
+        "product_id": 6520,
+        "month": "2019-06-01",
+        "abs_diff": 0
+      },
+      {
+        "product_id": 6600,
+        "month": "2019-03-01",
+        "abs_diff": 10
+      }
+    ]
+  },
+  "golds": [
+    {
+      "path": "C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local279.csv",
+      "rows": 2,
+      "columns": [
+        "product_id",
+        "date",
+        "diff"
+      ],
+      "head": [
+        {
+          "product_id": 6520,
+          "date": "2019-12-01",
+          "diff": 0.0
+        },
+        {
+          "product_id": 6600,
+          "date": "2019-06-01",
+          "diff": 10.0
+        }
+      ]
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local279",
+    "condition_cols": [],
+    "ignore_order": false,
+    "toks": "232"
+  }
+}

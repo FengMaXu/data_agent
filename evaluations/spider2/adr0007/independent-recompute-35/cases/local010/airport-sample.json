@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT airport_code,city,coordinates FROM airports_data LIMIT 4",
+  "limit": 100
+}

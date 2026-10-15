@@ -1,0 +1,9 @@
+{
+  "fields": {
+    "population.entity": {
+      "value": "无向城市对（名字字典序规范化）",
+      "basis": "request",
+      "quote": "unique city pairs"
+    }
+  }
+}

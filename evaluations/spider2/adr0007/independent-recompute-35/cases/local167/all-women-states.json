@@ -1,0 +1,4 @@
+{
+  "sql": "WITH f AS (SELECT *,row_number() over(partition by id_bioguide order by term_start,term_number,term_id) rn FROM legislators_terms) SELECT f.state,count(distinct l.id_bioguide) all_women,count(distinct CASE WHEN EXISTS (SELECT 1 FROM legislators_terms t WHERE t.id_bioguide=l.id_bioguide AND strftime('%Y',term_end)>=strftime('%Y',term_start)) THEN l.id_bioguide END) years_nonnegative FROM legislators l JOIN f ON f.id_bioguide=l.id_bioguide AND rn=1 WHERE gender='F' GROUP BY f.state ORDER BY all_women DESC",
+  "limit": 1000
+}

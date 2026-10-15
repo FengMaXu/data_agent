@@ -1,0 +1,78 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_7620f06d-a8bc-4c7b-a63a-70b9dfc08171\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nid_bioguide | full_name | term_start | term_end\nM001150 | Candice S. Miller | 2015-01-06 | 2016-12-31\nL000580 | Michelle Lujan Grisham | 2017-01-03 | 2018-12-31"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_7620f06d-a8bc-4c7b-a63a-70b9dfc08171",
+      "preview": {
+        "columns": [
+          "id_bioguide",
+          "full_name",
+          "term_start",
+          "term_end"
+        ],
+        "rows": [
+          [
+            "M001150",
+            "Candice S. Miller",
+            "2015-01-06",
+            "2016-12-31"
+          ],
+          [
+            "L000580",
+            "Michelle Lujan Grisham",
+            "2017-01-03",
+            "2018-12-31"
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "TEXT",
+          "TEXT",
+          "TEXT"
+        ],
+        "rowCount": 2,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "id_bioguide",
+        "full_name",
+        "term_start",
+        "term_end"
+      ],
+      "rows": [
+        [
+          "M001150",
+          "Candice S. Miller",
+          "2015-01-06",
+          "2016-12-31"
+        ],
+        [
+          "L000580",
+          "Michelle Lujan Grisham",
+          "2017-01-03",
+          "2018-12-31"
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "TEXT",
+        "TEXT",
+        "TEXT"
+      ],
+      "rowCount": 2,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_4b03944a-89c8-455a-b266-6276bd1d87e2"
+  }
+}
+

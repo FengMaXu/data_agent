@@ -1,0 +1,93 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_dac0a296-a78f-41a7-bc89-2c4c920bc6ef\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nproduct_name | average_pick_percentage\nDer Helle Kumpel | 100\nHazy Pink Cloud | 100\nHercule Trippel | 100\nHoppy Crude Oil | 36.11111111111111\nMonks and Nuns | 100\nPale Rider Rides | 100"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_dac0a296-a78f-41a7-bc89-2c4c920bc6ef",
+      "preview": {
+        "columns": [
+          "product_name",
+          "average_pick_percentage"
+        ],
+        "rows": [
+          [
+            "Der Helle Kumpel",
+            100
+          ],
+          [
+            "Hazy Pink Cloud",
+            100
+          ],
+          [
+            "Hercule Trippel",
+            100
+          ],
+          [
+            "Hoppy Crude Oil",
+            36.11111111111111
+          ],
+          [
+            "Monks and Nuns",
+            100
+          ],
+          [
+            "Pale Rider Rides",
+            100
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 6,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "product_name",
+        "average_pick_percentage"
+      ],
+      "rows": [
+        [
+          "Der Helle Kumpel",
+          100
+        ],
+        [
+          "Hazy Pink Cloud",
+          100
+        ],
+        [
+          "Hercule Trippel",
+          100
+        ],
+        [
+          "Hoppy Crude Oil",
+          36.11111111111111
+        ],
+        [
+          "Monks and Nuns",
+          100
+        ],
+        [
+          "Pale Rider Rides",
+          100
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 6,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_03428f1e-1704-4984-bfd7-ceba176b5fb0"
+  }
+}

@@ -1,0 +1,74 @@
+[
+  {
+    "case": "local037",
+    "source": "blind.json",
+    "pointer": "/question",
+    "literal_quote_pass": true
+  },
+  {
+    "case": "local037",
+    "source": "post-grain.json",
+    "pointer": "/sql",
+    "literal_quote_pass": true
+  },
+  {
+    "case": "local037",
+    "source": "original-spec-extract.json",
+    "pointer": "/5/message/details/fields/7/value",
+    "literal_quote_pass": true
+  },
+  {
+    "case": "local050",
+    "source": "blind.json",
+    "pointer": "/question",
+    "literal_quote_pass": true
+  },
+  {
+    "case": "local050",
+    "source": "blind.json",
+    "pointer": "/documents/projection_calculation.md/content",
+    "literal_quote_pass": true
+  },
+  {
+    "case": "local050",
+    "source": "post-product-rounding.json",
+    "pointer": "/sql",
+    "literal_quote_pass": true
+  },
+  {
+    "case": "local061",
+    "source": "blind.json",
+    "pointer": "/question",
+    "literal_quote_pass": true
+  },
+  {
+    "case": "local061",
+    "source": "blind.json",
+    "pointer": "/documents/projection_calculation.md/content",
+    "literal_quote_pass": true
+  },
+  {
+    "case": "local061",
+    "source": "post-roster-rounding.json",
+    "pointer": "/sql",
+    "literal_quote_pass": true
+  },
+  {
+    "case": "local067",
+    "source": "blind.json",
+    "pointer": "/question",
+    "literal_quote_pass": true
+  },
+  {
+    "case": "local067",
+    "source": "post-descending-tiers.json",
+    "pointer": "/sql",
+    "literal_quote_pass": true
+  },
+  {
+    "case": "local067",
+    "source": "post-tie-order-invariance.json",
+    "pointer": "/sql",
+    "literal_quote_pass": true
+  }
+]

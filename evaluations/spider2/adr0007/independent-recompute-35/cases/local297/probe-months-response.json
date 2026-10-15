@@ -1,0 +1,125 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_67905096-e266-4b28-b436-554dd4279759\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nm | customers | above5 | zero_prior | negative_prior | avg_growth\n2020-01-01 | 17 | 15 | 17 | 0 | 55164.705882352944\n2020-02-01 | 26 | 19 | 0 | 1 | 75.09589667147341\n2020-03-01 | 194 | 103 | 0 | 43 | -1235.1185327621547\n2020-04-01 | 263 | 134 | 0 | 66 | -88.97789902761731"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_67905096-e266-4b28-b436-554dd4279759",
+      "preview": {
+        "columns": [
+          "m",
+          "customers",
+          "above5",
+          "zero_prior",
+          "negative_prior",
+          "avg_growth"
+        ],
+        "rows": [
+          [
+            "2020-01-01",
+            17,
+            15,
+            17,
+            0,
+            55164.705882352944
+          ],
+          [
+            "2020-02-01",
+            26,
+            19,
+            0,
+            1,
+            75.09589667147341
+          ],
+          [
+            "2020-03-01",
+            194,
+            103,
+            0,
+            43,
+            -1235.1185327621547
+          ],
+          [
+            "2020-04-01",
+            263,
+            134,
+            0,
+            66,
+            -88.97789902761731
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "REAL"
+        ],
+        "rowCount": 4,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "m",
+        "customers",
+        "above5",
+        "zero_prior",
+        "negative_prior",
+        "avg_growth"
+      ],
+      "rows": [
+        [
+          "2020-01-01",
+          17,
+          15,
+          17,
+          0,
+          55164.705882352944
+        ],
+        [
+          "2020-02-01",
+          26,
+          19,
+          0,
+          1,
+          75.09589667147341
+        ],
+        [
+          "2020-03-01",
+          194,
+          103,
+          0,
+          43,
+          -1235.1185327621547
+        ],
+        [
+          "2020-04-01",
+          263,
+          134,
+          0,
+          66,
+          -88.97789902761731
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "REAL"
+      ],
+      "rowCount": 4,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_572f604c-7c1d-4001-b66e-8cff40873122"
+  }
+}

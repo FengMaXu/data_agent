@@ -1,0 +1,55 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_4d2f0ce8-661c-44fe-8d12-7be33e1d8c3c revisionId=revision_2b924ac4-9036-41b2-bebd-a497fc0e7d3f\n- ✓ population.entity\n状态：\n- 未声明: population.eligibility, population.conditions, population.time, measure.formula, grouping, selection, output\n[SPEC_FEEDBACK] revisionId=revision_2b924ac4-9036-41b2-bebd-a497fc0e7d3f status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"male legislators\"}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_4d2f0ce8-661c-44fe-8d12-7be33e1d8c3c",
+    "revisionId": "revision_2b924ac4-9036-41b2-bebd-a497fc0e7d3f",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "male legislators"
+        },
+        "evidenceIds": [
+          "evidence_31856b21-ab58-4e71-8b20-aa0da4c13744"
+        ]
+      }
+    ],
+    "undeclared": [
+      "population.eligibility",
+      "population.conditions",
+      "population.time",
+      "measure.formula",
+      "grouping",
+      "selection",
+      "output"
+    ],
+    "open": [],
+    "unverified": [],
+    "specFeedback": {
+      "taskId": "task_4d2f0ce8-661c-44fe-8d12-7be33e1d8c3c",
+      "revisionId": "revision_2b924ac4-9036-41b2-bebd-a497fc0e7d3f",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_31856b21-ab58-4e71-8b20-aa0da4c13744"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "population.entity",
+        "status": "applied"
+      }
+    ]
+  }
+}
+

@@ -1,0 +1,16 @@
+{
+  "instance_id": "local100",
+  "db": "DB_IMDB",
+  "database_path": "C:/data-agent-eval/Spider2/spider2-lite/resource/databases/DB_IMDB.sqlite",
+  "question": "Find out how many actors have a 'Shahrukh number' of 2? This means they acted in a film with someone who acted with Shahrukh Khan, but not directly with him.",
+  "task_source": "C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl",
+  "documents": {},
+  "formal_ddl": [
+    {
+      "path": "C:/data-agent-eval/Spider2/spider2-lite/resource/databases/sqlite/DB_IMDB/DDL.csv",
+      "content": "table_name,DDL\nMovie,\"CREATE TABLE Movie (\n    index INTEGER,\n    MID TEXT,\n    title TEXT,\n    year TEXT,\n    rating REAL,\n    num_votes INTEGER\n);\"\nGenre,\"CREATE TABLE Genre (\n    index INTEGER,\n    Name TEXT,\n    GID INTEGER\n);\"\nLanguage,\"CREATE TABLE Language (\n    index INTEGER,\n    Name TEXT,\n    LAID INTEGER\n);\"\nCountry,\"CREATE TABLE Country (\n    index INTEGER,\n    Name TEXT,\n    CID INTEGER\n);\"\nLocation,\"CREATE TABLE Location (\n    index INTEGER,\n    Name TEXT,\n    LID INTEGER\n);\"\nM_Location,\"CREATE TABLE M_Location (\n    index INTEGER,\n    MID TEXT,\n    LID REAL,\n    ID INTEGER\n);\"\nM_Country,\"CREATE TABLE M_Country (\n    index INTEGER,\n    MID TEXT,\n    CID REAL,\n    ID INTEGER\n);\"\nM_Language,\"CREATE TABLE M_Language (\n    index INTEGER,\n    MID TEXT,\n    LAID INTEGER,\n    ID INTEGER\n);\"\nM_Genre,\"CREATE TABLE M_Genre (\n    index INTEGER,\n    MID TEXT,\n    GID INTEGER,\n    ID INTEGER\n);\"\nPerson,\"CREATE TABLE Person (\n    index INTEGER,\n    PID TEXT,\n    Name TEXT,\n    Gender TEXT\n);\"\nM_Producer,\"CREATE TABLE M_Producer (\n    index INTEGER,\n    MID TEXT,\n    PID TEXT,\n    ID INTEGER\n);\"\nM_Director,\"CREATE TABLE M_Director (\n    index INTEGER,\n    MID TEXT,\n    PID TEXT,\n    ID INTEGER\n);\"\nM_Cast,\"CREATE TABLE M_Cast (\n    index INTEGER,\n    MID TEXT,\n    PID TEXT,\n    ID INTEGER\n);\"\n"
+    }
+  ],
+  "blind_packet": true,
+  "note": "No original SQL, prior diagnosis, semantic labels, Gold SQL or Gold results. Freeze and publish independent solution before reveal."
+}

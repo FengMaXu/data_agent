@@ -1,0 +1,73 @@
+{
+  "revealedAt": "2026-10-11T09:12:51.584Z",
+  "registry": {
+    "instance_id": "local264",
+    "attempt_id": "attempt-20261010-154318Z",
+    "score": 0,
+    "score_source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-retry.json",
+    "replayed_csv_score": 0,
+    "group": "wrong",
+    "status": "completed",
+    "publication_status": "published",
+    "duration_ms": 72417,
+    "tool_calls": 17,
+    "error": null,
+    "result_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local264/attempts/attempt-20261010-154318Z/result.json",
+    "trace_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local264/attempts/attempt-20261010-154318Z/trace.json",
+    "result_exists": true,
+    "trace_exists": true,
+    "sql_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local264/attempts/attempt-20261010-154318Z/submissions/sql/local264.sql",
+    "csv_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local264.csv",
+    "sql_exists": true,
+    "csv_exists": true,
+    "gold_sql_file": null,
+    "process": {
+      "turns": 10,
+      "toolCalls": 17,
+      "explorationQueries": 10,
+      "resultQueries": 1,
+      "fanoutProbes": 0,
+      "revisions": 0
+    },
+    "fanout_metrics": {
+      "reportCount": 1,
+      "targetCount": 0,
+      "findingCount": 0,
+      "unknownCount": 0,
+      "byStatus": {
+        "clear": 0,
+        "finding": 0,
+        "not_applicable": 1,
+        "unknown": 0
+      },
+      "enabled": true
+    },
+    "spec_feedback_metrics": {
+      "reportCount": 1,
+      "byStatus": {
+        "pending": 0,
+        "completed": 0,
+        "unavailable": 1,
+        "disabled": 0
+      },
+      "deterministicIssueCount": 0,
+      "concernCount": 0,
+      "enabled": true
+    }
+  },
+  "originalSql": "SELECT L1_model, COUNT(*) AS \"count\" FROM model GROUP BY L1_model ORDER BY COUNT(*) DESC, L1_model ASC LIMIT 1\n",
+  "originalCsv": "L1_model,count\nregression,213\n",
+  "goldSql": null,
+  "goldCsv": [
+    {
+      "path": "C:\\data-agent-eval\\Spider2\\spider2-lite\\evaluation_suite\\gold\\exec_result\\local264.csv",
+      "content": "L1_model,max_cnt\r\nregression,639\r\n"
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local264",
+    "condition_cols": [],
+    "ignore_order": false,
+    "toks": "71"
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT m.product_id,(SELECT SUM(qty) FROM inventory WHERE product_id=m.product_id) inventory,(SELECT SUM(qty) FROM purchases WHERE product_id=m.product_id AND purchased<'2019-01-01') purchases_all,(SELECT SUM(qty) FROM monthly_sales WHERE product_id=m.product_id AND mth<'2019-01-01') sales_all,(SELECT SUM(qty) FROM purchases WHERE product_id=m.product_id AND purchased>='2018-01-01') purchases_2018,(SELECT SUM(qty) FROM monthly_sales WHERE product_id=m.product_id AND mth>='2018-01-01') sales_2018,(SELECT qty FROM monthly_sales WHERE product_id=m.product_id AND mth='2018-12-01') sales_dec,(SELECT qty FROM monthly_budget WHERE product_id=m.product_id AND mth='2018-12-01') budget_dec FROM product_minimums m",
+  "limit": 1000
+}

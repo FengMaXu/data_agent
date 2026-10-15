@@ -1,0 +1,73 @@
+{
+  "revealedAt": "2026-10-11T09:13:01.692Z",
+  "registry": {
+    "instance_id": "local040",
+    "attempt_id": "attempt-001",
+    "score": 0,
+    "score_source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-attempt-001.json",
+    "replayed_csv_score": 0,
+    "group": "wrong",
+    "status": "completed",
+    "publication_status": "published",
+    "duration_ms": 262686,
+    "tool_calls": 36,
+    "error": null,
+    "result_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local040/attempts/attempt-001/result.json",
+    "trace_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local040/attempts/attempt-001/trace.json",
+    "result_exists": true,
+    "trace_exists": true,
+    "sql_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local040/attempts/attempt-001/submissions/sql/local040.sql",
+    "csv_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local040.csv",
+    "sql_exists": true,
+    "csv_exists": true,
+    "gold_sql_file": null,
+    "process": {
+      "turns": 18,
+      "toolCalls": 36,
+      "explorationQueries": 16,
+      "resultQueries": 1,
+      "fanoutProbes": 0,
+      "revisions": 5
+    },
+    "fanout_metrics": {
+      "reportCount": 1,
+      "targetCount": 0,
+      "findingCount": 0,
+      "unknownCount": 0,
+      "byStatus": {
+        "clear": 0,
+        "finding": 0,
+        "not_applicable": 1,
+        "unknown": 0
+      },
+      "enabled": true
+    },
+    "spec_feedback_metrics": {
+      "reportCount": 6,
+      "byStatus": {
+        "pending": 0,
+        "completed": 2,
+        "unavailable": 4,
+        "disabled": 0
+      },
+      "deterministicIssueCount": 0,
+      "concernCount": 0,
+      "enabled": true
+    }
+  },
+  "originalSql": "SELECT t.boroname AS boroname,\n       COUNT(*) AS tree_count,\n       AVG(i.Estimate_Mean_income) AS avg_mean_income\nFROM trees t\nJOIN (SELECT zipcode,\n             MAX(Estimate_Median_income) AS Estimate_Median_income,\n             MAX(Estimate_Mean_income)   AS Estimate_Mean_income\n      FROM income_trees\n      GROUP BY zipcode) i\n  ON t.zipcode = i.zipcode\nWHERE i.Estimate_Median_income > 0\n  AND i.Estimate_Mean_income > 0\n  AND t.boroname IN ('Queens','Brooklyn','Staten Island','Bronx','Manhattan')\nGROUP BY t.boroname\nORDER BY tree_count DESC\nLIMIT 3\n",
+  "originalCsv": "boroname,tree_count,avg_mean_income\nQueens,252846,79366.73841785119\nBrooklyn,177132,73555.19098751213\nStaten Island,106374,94029.32783386917\n",
+  "goldSql": null,
+  "goldCsv": [
+    {
+      "path": "C:\\data-agent-eval\\Spider2\\spider2-lite\\evaluation_suite\\gold\\exec_result\\local040.csv",
+      "content": "boroname,mean_income\r\nStaten Island,94026.03572038967\r\nQueens,79366.23974692848\r\nBrooklyn,73552.914734429"
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local040",
+    "condition_cols": [],
+    "ignore_order": true,
+    "toks": "200"
+  }
+}

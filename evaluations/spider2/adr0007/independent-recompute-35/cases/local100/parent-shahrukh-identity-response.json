@@ -1,0 +1,79 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_f4cb1c99-a437-49f8-ac7c-7747427858d5\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nPID | Name | Gender\nnm0451321 |  Shah Rukh Khan | Male\nnm0787564 |  Master Shahrukh | Male\nnm4611840 |  Shahrukh Aksari | Male"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_f4cb1c99-a437-49f8-ac7c-7747427858d5",
+      "preview": {
+        "columns": [
+          "PID",
+          "Name",
+          "Gender"
+        ],
+        "rows": [
+          [
+            "nm0451321",
+            " Shah Rukh Khan",
+            "Male"
+          ],
+          [
+            "nm0787564",
+            " Master Shahrukh",
+            "Male"
+          ],
+          [
+            "nm4611840",
+            " Shahrukh Aksari",
+            "Male"
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "TEXT",
+          "TEXT"
+        ],
+        "rowCount": 3,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "PID",
+        "Name",
+        "Gender"
+      ],
+      "rows": [
+        [
+          "nm0451321",
+          " Shah Rukh Khan",
+          "Male"
+        ],
+        [
+          "nm0787564",
+          " Master Shahrukh",
+          "Male"
+        ],
+        [
+          "nm4611840",
+          " Shahrukh Aksari",
+          "Male"
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "TEXT",
+        "TEXT"
+      ],
+      "rowCount": 3,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_7ff2a445-157d-4504-8e3b-c2cc0edd2a23"
+  }
+}

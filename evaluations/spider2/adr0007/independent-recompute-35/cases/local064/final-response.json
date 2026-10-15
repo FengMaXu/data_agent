@@ -1,0 +1,78 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[IMPLEMENTATION_OBSTACLE] Final query is blocked until every required field has a state and no field is left open: declare selection\n{\"kind\":\"business_judgment_required\",\"taskId\":\"task_3932e0c7-258c-4b17-a966-5eb63818b3de\",\"revisionId\":\"revision_7a7a4ad9-a787-4841-b950-9b0f5d8329f0\",\"message\":\"Final query is blocked until every required field has a state and no field is left open: declare selection\",\"evidenceIds\":[],\"attempts\":[{\"attemptId\":\"attempt_9d2d0b22-554a-48d7-9939-2dcbffb60676\",\"taskId\":\"task_3932e0c7-258c-4b17-a966-5eb63818b3de\",\"kind\":\"exploration\",\"revisionId\":\"revision_0287212a-703a-49b9-9d9b-e3a43d919a21\",\"invocationId\":\"ca0d531e-6783-4c10-9cde-3607a276ee25\",\"queryHash\":\"f3a68e2477ced36dafe6bc0b125fea4c2fe9e882fd191b24ca249acbda84a29f\",\"state\":\"succeeded\",\"sqlExecuted\":true,\"outcome\":\"succeeded\",\"createdAt\":\"2026-10-11T08:58:35.874Z\",\"updatedAt\":\"2026-10-11T08:58:36.592Z\"},{\"attemptId\":\"attempt_dd634d9f-7af7-4a52-8275-5497674fc7c7\",\"taskId\":\"task_3932e0c7-258c-4b17-a966-5eb63818b3de\",\"kind\":\"exploration\",\"revisionId\":\"revision_0287212a-703a-49b9-9d9b-e3a43d919a21\",\"invocationId\":\"344979fc-5257-43dd-ad78-6c6439b354fc\",\"queryHash\":\"cfb0029eff93ecbaa3fee562943e53bc0427729af675553acc466a62e8c168cc\",\"state\":\"succeeded\",\"sqlExecuted\":true,\"outcome\":\"succeeded\",\"createdAt\":\"2026-10-11T08:59:00.103Z\",\"updatedAt\":\"2026-10-11T08:59:00.809Z\"},{\"attemptId\":\"attempt_951da2f8-7c54-4b1b-9cbf-a1a32e83605e\",\"taskId\":\"task_3932e0c7-258c-4b17-a966-5eb63818b3de\",\"kind\":\"revision\",\"revisionId\":\"revision_0287212a-703a-49b9-9d9b-e3a43d919a21\",\"invocationId\":\"1921fc1b-2abc-4293-a7d4-3479ca5ec064\",\"state\":\"succeeded\",\"sqlExecuted\":false,\"outcome\":\"succeeded\",\"createdAt\":\"2026-10-11T08:59:24.498Z\",\"updatedAt\":\"2026-10-11T08:59:24.472Z\"},{\"attemptId\":\"attempt_220549f3-1458-4ae5-881a-e26d624d5038\",\"taskId\":\"task_3932e0c7-258c-4b17-a966-5eb63818b3de\",\"kind\":\"result\",\"revisionId\":\"revision_7a7a4ad9-a787-4841-b950-9b0f5d8329f0\",\"invocationId\":\"61080431-f587-4f11-8f51-0242634ac5e8\",\"queryHash\":\"efc6f72a83ac28660fef18d42981abd048450831803d4e433f66e638b60a6719\",\"state\":\"blocked\",\"sqlExecuted\":false,\"outcome\":\"not_started\",\"obstacleKind\":\"business_judgment_required\",\"createdAt\":\"2026-10-11T08:59:30.383Z\",\"updatedAt\":\"2026-10-11T08:59:30.383Z\"}],\"coverage\":[],\"requiresOuterDecision\":true,\"retryable\":false,\"sqlExecuted\":false,\"executionOutcome\":\"not_started\",\"queryHash\":\"efc6f72a83ac28660fef18d42981abd048450831803d4e433f66e638b60a6719\"}"
+    }
+  ],
+  "details": {
+    "obstacle": {
+      "kind": "business_judgment_required",
+      "taskId": "task_3932e0c7-258c-4b17-a966-5eb63818b3de",
+      "revisionId": "revision_7a7a4ad9-a787-4841-b950-9b0f5d8329f0",
+      "message": "Final query is blocked until every required field has a state and no field is left open: declare selection",
+      "evidenceIds": [],
+      "attempts": [
+        {
+          "attemptId": "attempt_9d2d0b22-554a-48d7-9939-2dcbffb60676",
+          "taskId": "task_3932e0c7-258c-4b17-a966-5eb63818b3de",
+          "kind": "exploration",
+          "revisionId": "revision_0287212a-703a-49b9-9d9b-e3a43d919a21",
+          "invocationId": "ca0d531e-6783-4c10-9cde-3607a276ee25",
+          "queryHash": "f3a68e2477ced36dafe6bc0b125fea4c2fe9e882fd191b24ca249acbda84a29f",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T08:58:35.874Z",
+          "updatedAt": "2026-10-11T08:58:36.592Z"
+        },
+        {
+          "attemptId": "attempt_dd634d9f-7af7-4a52-8275-5497674fc7c7",
+          "taskId": "task_3932e0c7-258c-4b17-a966-5eb63818b3de",
+          "kind": "exploration",
+          "revisionId": "revision_0287212a-703a-49b9-9d9b-e3a43d919a21",
+          "invocationId": "344979fc-5257-43dd-ad78-6c6439b354fc",
+          "queryHash": "cfb0029eff93ecbaa3fee562943e53bc0427729af675553acc466a62e8c168cc",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T08:59:00.103Z",
+          "updatedAt": "2026-10-11T08:59:00.809Z"
+        },
+        {
+          "attemptId": "attempt_951da2f8-7c54-4b1b-9cbf-a1a32e83605e",
+          "taskId": "task_3932e0c7-258c-4b17-a966-5eb63818b3de",
+          "kind": "revision",
+          "revisionId": "revision_0287212a-703a-49b9-9d9b-e3a43d919a21",
+          "invocationId": "1921fc1b-2abc-4293-a7d4-3479ca5ec064",
+          "state": "succeeded",
+          "sqlExecuted": false,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T08:59:24.498Z",
+          "updatedAt": "2026-10-11T08:59:24.472Z"
+        },
+        {
+          "attemptId": "attempt_220549f3-1458-4ae5-881a-e26d624d5038",
+          "taskId": "task_3932e0c7-258c-4b17-a966-5eb63818b3de",
+          "kind": "result",
+          "revisionId": "revision_7a7a4ad9-a787-4841-b950-9b0f5d8329f0",
+          "invocationId": "61080431-f587-4f11-8f51-0242634ac5e8",
+          "queryHash": "efc6f72a83ac28660fef18d42981abd048450831803d4e433f66e638b60a6719",
+          "state": "blocked",
+          "sqlExecuted": false,
+          "outcome": "not_started",
+          "obstacleKind": "business_judgment_required",
+          "createdAt": "2026-10-11T08:59:30.383Z",
+          "updatedAt": "2026-10-11T08:59:30.383Z"
+        }
+      ],
+      "coverage": [],
+      "requiresOuterDecision": true,
+      "retryable": false,
+      "sqlExecuted": false,
+      "executionOutcome": "not_started",
+      "queryHash": "efc6f72a83ac28660fef18d42981abd048450831803d4e433f66e638b60a6719"
+    },
+    "code": "UNRESOLVED_ASSUMPTIONS"
+  }
+}

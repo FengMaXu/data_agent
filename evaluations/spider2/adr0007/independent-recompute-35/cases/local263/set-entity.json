@@ -1,0 +1,9 @@
+{
+  "fields": {
+    "population.entity": {
+      "value": "model identified by name and version, associated L1_model",
+      "basis": "request",
+      "quote": "each model (specified by name and version)"
+    }
+  }
+}

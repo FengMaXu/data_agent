@@ -1,0 +1,55 @@
+{
+  "instance_id": "local263",
+  "status": "gold_conflict",
+  "summary": "独立模型级次数21/37与原一致；同一步状态实际步数36/78；漏step关联model产生108/234精确复现Gold。Gold次数超过所有regression模型/状态步数，存在可确证局部关联放大。",
+  "fork_node": "population.joinMultiplicity (reconstructed Gold); no confirmed original semantic error",
+  "error_layer": "Gold reconstructed underkeyed join; step-versus-model wording ambiguity separately disclosed",
+  "visibility": "outside_original_spec_error",
+  "independent_score": 0,
+  "evidence": [
+    {
+      "source": "blind.json",
+      "pointer": "/question",
+      "quote": "each model (specified by name and version)"
+    },
+    {
+      "source": "blind.json",
+      "pointer": "/question",
+      "quote": "A model has a 'strong' status if, for any of its steps"
+    },
+    {
+      "source": "query-underkeyed-join-response.json",
+      "pointer": "/content/0/text",
+      "quote": "108"
+    },
+    {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local263/attempts/attempt-20261010-154318Z/trace.json",
+      "quote": "one count per model (name, version) holding that status",
+      "pointer": "/toolCalls/21/result/details/fields/6/value",
+      "original_projection_source": "original-spec-review.json"
+    }
+  ],
+  "limitations": [
+    "Gold SQL absent; incomplete join experimentally sufficient, not proven true implementation.",
+    "Number of times could mean per-step association: valid alternate counts36/78, not108/234.",
+    "Same-step comparison chosen; cross-step baseline experimentally32 strong and17 soft models, not Gold."
+  ],
+  "parent_field_review": {
+    "instance_id": "local263",
+    "relevant_node": "measure.countGrain",
+    "node_is_confirmed_original_error": false,
+    "explanation": "模型/步骤仍有文字歧义，但Gold还跨step关联放大；非原已证错误",
+    "error_layer": "标准答案与本次输入/明确要求局部冲突",
+    "visibility": "不适用：未确认原Spec语义错误",
+    "qualification": "Gold差异相关节点，不冒充原系统错误节点",
+    "original_node_declared": true,
+    "original_node_status": "decided",
+    "original_node_value": "one count per model (name, version) holding that status",
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local263/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/21/result/details/fields/6/value",
+      "quote": "one count per model (name, version) holding that status"
+    },
+    "primary_status": "gold_conflict"
+  }
+}

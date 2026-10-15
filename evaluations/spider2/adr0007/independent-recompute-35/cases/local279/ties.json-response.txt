@@ -1,0 +1,77 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_7545365d-0e09-4fbf-875a-1be40af5333a\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nproduct_id | absolute_difference | ties | months\n6520 | 0 | 1 | 2019-06-01\n6600 | 10 | 2 | 2019-03-01,2019-08-01"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_7545365d-0e09-4fbf-875a-1be40af5333a",
+      "preview": {
+        "columns": [
+          "product_id",
+          "absolute_difference",
+          "ties",
+          "months"
+        ],
+        "rows": [
+          [
+            6520,
+            0,
+            1,
+            "2019-06-01"
+          ],
+          [
+            6600,
+            10,
+            2,
+            "2019-03-01,2019-08-01"
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "TEXT"
+        ],
+        "rowCount": 2,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "product_id",
+        "absolute_difference",
+        "ties",
+        "months"
+      ],
+      "rows": [
+        [
+          6520,
+          0,
+          1,
+          "2019-06-01"
+        ],
+        [
+          6600,
+          10,
+          2,
+          "2019-03-01,2019-08-01"
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "TEXT"
+      ],
+      "rowCount": 2,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_ed2cc764-b8e5-4439-a6ba-fffcedb437e5"
+  }
+}

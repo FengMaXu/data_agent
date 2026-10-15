@@ -1,0 +1,169 @@
+{
+  "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local273/attempts/attempt-20261010-154318Z/trace.json",
+  "pointer": "/toolCalls/32/result/details",
+  "last_observed_spec": {
+    "taskId": "task_321f43d5-5167-44a6-87c2-eb2d145b51ba",
+    "revisionId": "revision_8c95af9e-b313-4ec3-896b-9baee11337a5",
+    "parentRevisionId": "revision_d320df64-1448-47ff-b2b2-c70c1fc7dd87",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "assumed",
+        "value": {
+          "name": "order line (an order × product demand row)"
+        },
+        "rationale": "The metric averages over 'each order's required quantity', i.e. one demand row per order×product (orderlines.id)."
+      },
+      {
+        "path": "population.eligibility",
+        "status": "assumed",
+        "value": "Every order line (demand row) whose product has at least one inventory record; required qty (orderlines.qty) > 0.",
+        "rationale": "Each order's required quantity defines one demand observation; nothing in the request excludes order lines."
+      },
+      {
+        "path": "population.conditions",
+        "status": "not_applicable"
+      },
+      {
+        "path": "population.source",
+        "status": "assumed",
+        "value": {
+          "tables": [
+            "orderlines",
+            "orders",
+            "products",
+            "inventory",
+            "purchases"
+          ]
+        }
+      },
+      {
+        "path": "population.time",
+        "status": "assumed",
+        "value": {
+          "expression": "n/a (all dates)"
+        }
+      },
+      {
+        "path": "population.timeField",
+        "status": "assumed",
+        "value": "inventory batches ordered by purchases.purchased; demand rows ordered by orders.ordered"
+      },
+      {
+        "path": "population.joinMultiplicity",
+        "status": "assumed",
+        "value": "orderlines × inventory is 1:N via product_id; the FIFO allocation is computed per product so rows are not multiplied.",
+        "rationale": "A product has many inventory rows (multiple purchases/locations) and many order lines; a naive join would multiply."
+      },
+      {
+        "path": "measure.formula",
+        "status": "assumed",
+        "value": {
+          "op": "avg",
+          "per": "order line",
+          "of": {
+            "op": "ratio",
+            "per": "order line",
+            "numerator": {
+              "op": "custom",
+              "per": "order line",
+              "description": "picked quantity under cumulative FIFO: order lines processed by order date consume inventory locations ordered by (purchase date ASC, qty ASC); picked = MIN(remaining required, remaining available)"
+            },
+            "denominator": {
+              "op": "custom",
+              "per": "order line",
+              "description": "orderline required qty"
+            }
+          }
+        },
+        "rationale": "Chose cumulative FIFO (candidate B). 'first-in-first-out approach that selects from inventory locations' (plural) and 'the picked quantity reflects only the overlapping range between each order's required quantity and the inventory's available quantity' describe sequential consumption capped by remaining inventory, which also matches the database's own picking (picking_line consumes several locations per order-product in purchase-date/qty order with carry-over). Candidate A (single earliest/smallest location, no consumption) contradicts FIFO."
+      },
+      {
+        "path": "measure.countGrain",
+        "status": "assumed",
+        "value": "one observation per order line (order × product demand)"
+      },
+      {
+        "path": "measure.denominator",
+        "status": "assumed",
+        "value": "required quantity of the demand row (orderlines.qty); rows with qty <= 0 excluded",
+        "rationale": "pick percentage = picked quantity / required quantity, so the denominator is the order line's qty."
+      },
+      {
+        "path": "grouping",
+        "status": "assumed",
+        "value": [
+          "products.name"
+        ]
+      },
+      {
+        "path": "selection",
+        "status": "not_applicable"
+      },
+      {
+        "path": "output",
+        "status": "assumed",
+        "value": {
+          "rowMode": "grouped",
+          "rowCount": 6,
+          "columns": [
+            "product_name",
+            "average_pick_percentage"
+          ],
+          "units": {
+            "average_pick_percentage": "percent (0-100)"
+          }
+        }
+      }
+    ],
+    "undeclared": [],
+    "open": [],
+    "unverified": [
+      "population.eligibility",
+      "population.source",
+      "population.time",
+      "population.timeField",
+      "population.joinMultiplicity",
+      "measure.countGrain",
+      "grouping",
+      "output",
+      "population.entity",
+      "measure.denominator",
+      "measure.formula"
+    ],
+    "specFeedback": {
+      "taskId": "task_321f43d5-5167-44a6-87c2-eb2d145b51ba",
+      "revisionId": "revision_8c95af9e-b313-4ec3-896b-9baee11337a5",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "unavailable",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_b135130a014992063f80a459",
+        "evidence_2fa5bd51-f54d-4786-92bb-b21326b34753",
+        "evidence_62a8e560-aa0c-4950-8766-9853d95f743c",
+        "evidence_92b8fd5f-5d7d-48c8-9706-e9c1d3e26e65",
+        "evidence_27a37e77-9b3c-4f9d-9878-ded653a62d94",
+        "evidence_d62b84ad-1786-49b2-9c4f-5749f0327a39",
+        "evidence_b73aed56-9d62-42aa-ae4d-caa60e4eba11",
+        "evidence_19da5ae1-73b9-4c1c-b18e-ef0eb3484b80",
+        "evidence_beb0ac66-06a1-4233-9850-8a0bcc53d1d9"
+      ],
+      "limitations": [],
+      "startedAt": "2026-10-10T16:20:58.076Z",
+      "inputHash": "80854e4405356929efe2f1916b9ab059df0d5e602d74a526acc0e6a083ee9688",
+      "reason": "provider_http_error",
+      "completedAt": "2026-10-10T16:20:58.899Z",
+      "durationMs": 823
+    },
+    "outcomes": [
+      {
+        "path": "measure.formula",
+        "status": "applied"
+      },
+      {
+        "path": "output",
+        "status": "applied"
+      }
+    ]
+  }
+}

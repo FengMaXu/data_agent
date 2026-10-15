@@ -1,0 +1,9 @@
+{
+  "fields": {
+    "population.entity": {
+      "value": "每日玩具销售件数（order_items行）",
+      "basis": "request",
+      "quote": "daily sales data"
+    }
+  }
+}

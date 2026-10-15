@@ -1,0 +1,1 @@
+{"resultRef":"result_83bba41e-5154-433f-a54d-7a7621a74d07","columns":["month","previous_total_balance"],"columnTypes":["TEXT","INTEGER"],"rows":[["2020-02-01",235595],["2020-03-01",261508],["2020-04-01",260971]],"rowCount":3,"truncated":false,"contentHash":"a78cc6d8f0b090d71c593746e3cdf90025f9b28374a3db8ea0e34ccca7339d52"}

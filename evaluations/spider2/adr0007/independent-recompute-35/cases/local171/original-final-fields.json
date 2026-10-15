@@ -1,0 +1,120 @@
+[
+  {
+    "path": "population.entity",
+    "status": "request",
+    "value": {
+      "name": "distinct legislator (male, from Louisiana)",
+      "keyColumns": [
+        "id_bioguide"
+      ]
+    },
+    "evidenceIds": [
+      "evidence_9c103851-25e7-4834-902e-c65ad31eccc7"
+    ]
+  },
+  {
+    "path": "population.eligibility",
+    "status": "assumed",
+    "value": "纳入 legislators.gender='M' 且该 id_bioguide 在 legislators_terms 中存在至少一条 state='LA' 任期记录的议员；没有任期的议员不纳入。",
+    "rationale": "题面限定 male / from Louisiana；state 只存在于任期表，故以存在 LA 任期记录定义 'from Louisiana'；无任期记录者不可能在某日'actively serving'，故排除。"
+  },
+  {
+    "path": "population.conditions",
+    "status": "assumed",
+    "value": [
+      "legislators.gender = 'M'",
+      "该议员存在 legislators_terms.state = 'LA' 的任期记录"
+    ],
+    "rationale": "gender='M' 与 state='LA' 的取值由数据观测确认；作用阶段为资格总体筛选(WHERE)。"
+  },
+  {
+    "path": "population.source",
+    "status": "assumed",
+    "value": {
+      "tables": [
+        "legislators",
+        "legislators_terms"
+      ],
+      "note": "legislators 提供 gender；legislators_terms 提供 state/term_start/term_end；按 id_bioguide 连接。"
+    },
+    "rationale": "gender 只在 legislators，state 与任期日期只在 legislators_terms。"
+  },
+  {
+    "path": "population.time",
+    "status": "request",
+    "value": {
+      "expression": "对每位议员，取其首个任期起点年份 Y0；考察 Y = Y0+31 … Y0+49，参考日为每年 12 月 31 日；仅保留 (12-31 相对首个任期起点) 严格大于 30 年且严格小于 50 年的年份",
+      "boundary": "exclusive"
+    },
+    "evidenceIds": [
+      "evidence_b9c7486f-4bb1-4af2-82f6-6760e9fef20a"
+    ]
+  },
+  {
+    "path": "population.timeField",
+    "status": "assumed",
+    "value": "legislators_terms.term_start 用于求首个任期起点；legislators_terms.term_start/term_end 用于判断参考日是否在职区间内（两端含）。",
+    "rationale": "题面未指明物理列；任期表只有 term_start/term_end。"
+  },
+  {
+    "path": "population.joinMultiplicity",
+    "status": "assumed",
+    "value": "legislators 与 legislators_terms 为 1:N（一人多条任期、term_type 可同时有 rep/sen），连接后一名议员会出现多行；计数时对 id_bioguide 去重；在参考日判断在职时先对任期作存在性判定（EXISTS），避免同一议员在同一 elapsed 年被重复计数。",
+    "rationale": "数据观测：legislators 12518 行=distinct id_bioguide，legislators_terms 44063 行同 12518 个 id_bioguide，属一对多。"
+  },
+  {
+    "path": "measure.formula",
+    "status": "request",
+    "value": {
+      "op": "count_distinct",
+      "per": "elapsed_year",
+      "of": "id_bioguide"
+    },
+    "evidenceIds": [
+      "evidence_af53c74e-eeed-4ed9-bc12-fefbc472b444"
+    ]
+  },
+  {
+    "path": "measure.countGrain",
+    "status": "request",
+    "value": "按议员实体 id_bioguide 去重计数（同一议员在同一 elapsed 年内只计一次）。",
+    "evidenceIds": [
+      "evidence_7f2f93f2-3120-43c1-8765-05709002f59e"
+    ]
+  },
+  {
+    "path": "grouping",
+    "status": "request",
+    "value": [
+      "自首个任期起的整年数 elapsed = YEAR(参考日 12-31) - YEAR(首个任期起点)，取值 31..49"
+    ],
+    "evidenceIds": [
+      "evidence_ba606f64-927e-4e0b-87b8-fd65791cd5b9"
+    ]
+  },
+  {
+    "path": "selection",
+    "status": "not_applicable"
+  },
+  {
+    "path": "output",
+    "status": "request",
+    "value": {
+      "rowMode": "grouped",
+      "columns": [
+        "years_since_first_term",
+        "legislator_count"
+      ],
+      "units": {
+        "years_since_first_term": "years",
+        "legislator_count": "legislators"
+      },
+      "decimals": {
+        "legislator_count": 0
+      }
+    },
+    "evidenceIds": [
+      "evidence_666564a1-0421-4aa8-a529-41b13764f5f8"
+    ]
+  }
+]

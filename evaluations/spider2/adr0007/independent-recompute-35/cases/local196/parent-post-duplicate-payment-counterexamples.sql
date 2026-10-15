@@ -1,0 +1,1 @@
+SELECT p.customer_id,p.rental_id,COUNT(*) payment_events,GROUP_CONCAT(p.payment_id) payment_ids,GROUP_CONCAT(p.payment_date) dates,SUM(p.amount) amounts FROM payment p GROUP BY p.customer_id,p.rental_id HAVING COUNT(*)>1 ORDER BY p.customer_id,p.rental_id

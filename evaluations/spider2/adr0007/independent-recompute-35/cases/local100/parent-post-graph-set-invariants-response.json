@@ -1,0 +1,65 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_c48ab6a7-d354-41e8-9785-e1c1250da1d8\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nd2 | d1 | reachable_within_two | overlaps\n25698 | 2382 | 28081 | 0"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_c48ab6a7-d354-41e8-9785-e1c1250da1d8",
+      "preview": {
+        "columns": [
+          "d2",
+          "d1",
+          "reachable_within_two",
+          "overlaps"
+        ],
+        "rows": [
+          [
+            25698,
+            2382,
+            28081,
+            0
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "d2",
+        "d1",
+        "reachable_within_two",
+        "overlaps"
+      ],
+      "rows": [
+        [
+          25698,
+          2382,
+          28081,
+          0
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_37501557-cf38-4d0e-a8ff-88834f30bdc8"
+  }
+}

@@ -1,0 +1,268 @@
+{
+  "frozenAt": "2026-10-11T10:05:11.332Z",
+  "instance_id": "local196",
+  "independent": true,
+  "taskId": "task_a60fd16a-87cb-417d-9f19-c421aa06cbe3",
+  "revisionId": "revision_aef75b5a-b7a8-4cf3-900e-ccffdf4ca2eb",
+  "publication": {
+    "receiptId": "publication_67e7bc2a-42d0-4c3d-acc7-1d76df9b40ad",
+    "taskId": "task_a60fd16a-87cb-417d-9f19-c421aa06cbe3",
+    "principalId": "independent-analyst",
+    "sessionId": "local196",
+    "candidateId": "candidate_97816c49-8289-4a80-9643-209ad554278f",
+    "revisionId": "revision_aef75b5a-b7a8-4cf3-900e-ccffdf4ca2eb",
+    "resultRef": "result_0386a0c3-2963-4e9e-ba60-4e4bb51e55e1",
+    "format": "csv",
+    "publicRef": "/api/runtime/publications/publication_67e7bc2a-42d0-4c3d-acc7-1d76df9b40ad?session_id=local196",
+    "contentHash": "34133835e33fec568cf2a969d255e4190b1e4d7863555857523707ff7b24ec42",
+    "presentationContentHash": "a8362821114ae1b3124cd4c5c64d837b59b0d8256f2fdd3664fc418bcd04a3ef",
+    "coverage": [
+      {
+        "checkId": "result_completeness",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_shape",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_identity",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "join_fanout",
+        "outcome": "not_applicable"
+      },
+      {
+        "checkId": "spec_feedback",
+        "ruleVersion": "spec-feedback-v2",
+        "outcome": "not_applicable",
+        "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+      }
+    ],
+    "fanout": {
+      "ruleVersion": "answering-fanout-v1",
+      "status": "not_applicable",
+      "snapshotScope": "unbound",
+      "targets": []
+    },
+    "disclosure": {
+      "required": true,
+      "unverifiedFields": [
+        {
+          "path": "population.eligibility",
+          "kind": "assumed"
+        },
+        {
+          "path": "population.conditions",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.formula",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.countGrain",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.denominator",
+          "kind": "assumed"
+        },
+        {
+          "path": "output",
+          "kind": "assumed"
+        }
+      ],
+      "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.conditions, measure.formula, measure.countGrain, measure.denominator, output。"
+    },
+    "physicalProfile": {
+      "version": 1,
+      "rowCount": 5,
+      "truncated": false,
+      "columns": [
+        {
+          "name": "rating",
+          "kind": "text",
+          "nullCount": 0,
+          "distinctCount": 5
+        },
+        {
+          "name": "average_total_spent",
+          "kind": "decimal",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 5,
+          "min": "110.65990384615385",
+          "max": "115.23639455782313"
+        },
+        {
+          "name": "average_subsequent_rentals",
+          "kind": "decimal",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 5,
+          "min": "25.298076923076923",
+          "max": "26.38095238095238"
+        }
+      ]
+    },
+    "policyVersion": "answering-publication-v1",
+    "createdByInvocationId": "21b19db6-abd3-4863-9c38-1046f29b42c1",
+    "requestId": "21b19db6-abd3-4863-9c38-1046f29b42c1",
+    "createdAt": "2026-10-11T10:05:09.388Z"
+  },
+  "currentRevision": {
+    "taskId": "task_a60fd16a-87cb-417d-9f19-c421aa06cbe3",
+    "revisionId": "revision_aef75b5a-b7a8-4cf3-900e-ccffdf4ca2eb",
+    "parentRevisionId": "revision_67ebd591-8d12-4a7c-b395-391bef2ff50f",
+    "requestId": "e4c10751-68ae-4680-a346-f09697934135",
+    "createdAt": "2026-10-11T10:05:07.156Z",
+    "fields": {
+      "population.entity": {
+        "state": "specified",
+        "value": {
+          "name": "customers",
+          "keyColumns": [
+            "customer.customer_id"
+          ]
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_0d22f202-75c1-4e42-bc98-e54273d14dcc"
+          ]
+        }
+      },
+      "population.eligibility": {
+        "state": "specified",
+        "value": "有可连接首付款租赁影片的客户；各客户在对应首rating组一次",
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+        }
+      },
+      "population.conditions": {
+        "state": "specified",
+        "value": [
+          "首片由earliest payment_date确定；并列payment_id，若实际无并列则无影响"
+        ],
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+        }
+      },
+      "population.time": {
+        "state": "specified",
+        "value": {
+          "expression": "每客户全部记录总额，首事件最早付款日"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_101e60fb-9b05-45ab-9d50-4dd1b3a371ae"
+          ]
+        }
+      },
+      "measure.formula": {
+        "state": "specified",
+        "value": {
+          "op": "custom",
+          "description": "每客户SUM(payment.amount)和COUNT DISTINCT rental_id-1；首payment对应film.rating，再按rating等客户权重AVG"
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+        }
+      },
+      "measure.countGrain": {
+        "state": "specified",
+        "value": "组内客户等权平均，租赁rental_id计事件",
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+        }
+      },
+      "measure.denominator": {
+        "state": "specified",
+        "value": "各首rating组客户数",
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+        }
+      },
+      "grouping": {
+        "state": "specified",
+        "value": [
+          "first_film_rating"
+        ],
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_a305318e-8dd1-4733-80c5-1a78ab89eddd"
+          ]
+        }
+      },
+      "selection": {
+        "state": "not_applicable"
+      },
+      "output": {
+        "state": "specified",
+        "value": {
+          "rowMode": "grouped",
+          "columns": [
+            "rating",
+            "average_total_spent",
+            "average_subsequent_rentals"
+          ]
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+        }
+      }
+    },
+    "state": {
+      "state": "ready",
+      "revisionId": "revision_aef75b5a-b7a8-4cf3-900e-ccffdf4ca2eb",
+      "ready": "ready_ae507a29-1d3c-49b7-aabc-9f9c1182b656"
+    },
+    "specFeedback": {
+      "taskId": "task_a60fd16a-87cb-417d-9f19-c421aa06cbe3",
+      "revisionId": "revision_aef75b5a-b7a8-4cf3-900e-ccffdf4ca2eb",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_0d22f202-75c1-4e42-bc98-e54273d14dcc",
+        "evidence_0b0da542-8220-4689-9735-6b9f749f89d4",
+        "evidence_384d084f-39bb-42a2-9d39-982c079ac335",
+        "evidence_95cfd399-adec-49df-84c6-3935651b80ce",
+        "evidence_919c30e3-df93-4f05-98fe-e1c519728d85",
+        "evidence_101e60fb-9b05-45ab-9d50-4dd1b3a371ae",
+        "evidence_a305318e-8dd1-4733-80c5-1a78ab89eddd"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    }
+  },
+  "analystNote": {
+    "algorithm": "separate customer payment sum and rental count; first film by earliest payment, then per-rating customer averages",
+    "assumptions": [
+      "同付款时间用payment_id确定；实际先查询并列"
+    ],
+    "limitations": [
+      "未凭Gold改为租赁日期或删部分月份"
+    ]
+  },
+  "settings": {
+    "qualification": "required",
+    "fieldProbes": true,
+    "externalAdvisor": "not_configured",
+    "specFeedback": "not_configured",
+    "fanout": "disabled_for_offline_audit",
+    "populationDecisions": "allow_disclosed_headless_audit",
+    "databaseReadOnly": true
+  }
+}

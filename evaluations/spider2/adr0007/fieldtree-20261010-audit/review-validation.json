@@ -1,0 +1,46 @@
+{
+  "scored_wrong_cases": 61,
+  "verbatim_citations": 576,
+  "cause_status": {
+    "unresolved": 35,
+    "confirmed": 11,
+    "gold_conflict": 14,
+    "probable": 1
+  },
+  "primary_patterns": {
+    "insufficient_evidence": 35,
+    "formula_aggregation": 2,
+    "population_scope": 2,
+    "output_values": 4,
+    "units_or_precision": 1,
+    "gold_conflict": 14,
+    "ranking_or_ties": 3
+  },
+  "unscored_cases": [
+    "local018",
+    "local023",
+    "local024",
+    "local025",
+    "local026",
+    "local028",
+    "local029",
+    "local031",
+    "local032",
+    "local034",
+    "local035",
+    "local062",
+    "local063",
+    "local212",
+    "local355",
+    "local356",
+    "local360"
+  ],
+  "report": "D:/data_agent/evaluations/spider2/adr0007/fieldtree-wrong118-20261010-analysis.md",
+  "scored_sql_bindings_checked": 101,
+  "csv_replay_agreement": "101/101",
+  "process_citations_checked": 55,
+  "markdown_fence_blocks_checked": 628,
+  "covered_unscored_cases": 17,
+  "database_sql_executed_for_this_audit": false,
+  "runner_or_original_run_modified": false
+}

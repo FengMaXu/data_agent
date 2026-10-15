@@ -1,0 +1,47 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_6be38253-b52e-4203-b02c-7407eea4bd95\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nshahrukh_number_2_actor_count\n25698"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_6be38253-b52e-4203-b02c-7407eea4bd95",
+      "preview": {
+        "columns": [
+          "shahrukh_number_2_actor_count"
+        ],
+        "rows": [
+          [
+            25698
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "shahrukh_number_2_actor_count"
+      ],
+      "rows": [
+        [
+          25698
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_f62735c4-4b5e-4f37-a922-88ebcae7e67f"
+  }
+}

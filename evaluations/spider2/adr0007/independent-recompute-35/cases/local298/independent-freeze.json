@@ -1,0 +1,262 @@
+{
+  "frozenAt": "2026-10-11T09:47:02.576Z",
+  "instance_id": "local298",
+  "independent": true,
+  "taskId": "task_71bad680-f9fc-4ec4-a0b6-fe471f99027a",
+  "revisionId": "revision_c1b40ac0-e57f-43a5-a0db-b4a6847535c7",
+  "publication": {
+    "receiptId": "publication_54a96c41-0e70-4f7a-a3b0-708b775df09c",
+    "taskId": "task_71bad680-f9fc-4ec4-a0b6-fe471f99027a",
+    "principalId": "independent-analyst",
+    "sessionId": "local298",
+    "candidateId": "candidate_a7f7dc54-5d26-41d4-a93f-b7cfc64f07cc",
+    "revisionId": "revision_c1b40ac0-e57f-43a5-a0db-b4a6847535c7",
+    "resultRef": "result_83bba41e-5154-433f-a54d-7a7621a74d07",
+    "format": "csv",
+    "publicRef": "/api/runtime/publications/publication_54a96c41-0e70-4f7a-a3b0-708b775df09c?session_id=local298",
+    "contentHash": "a78cc6d8f0b090d71c593746e3cdf90025f9b28374a3db8ea0e34ccca7339d52",
+    "presentationContentHash": "fa1263d9ccf995a73f629562f840c2da29fd4f43befb05fd9c6791eb5a240761",
+    "coverage": [
+      {
+        "checkId": "result_completeness",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_shape",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_identity",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "join_fanout",
+        "outcome": "not_applicable"
+      },
+      {
+        "checkId": "spec_feedback",
+        "ruleVersion": "spec-feedback-v2",
+        "outcome": "not_applicable",
+        "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+      }
+    ],
+    "fanout": {
+      "ruleVersion": "answering-fanout-v1",
+      "status": "not_applicable",
+      "snapshotScope": "unbound",
+      "targets": []
+    },
+    "disclosure": {
+      "required": true,
+      "unverifiedFields": [
+        {
+          "path": "population.conditions",
+          "kind": "assumed"
+        },
+        {
+          "path": "population.missing",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.formula",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.countGrain",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.window",
+          "kind": "assumed"
+        },
+        {
+          "path": "output",
+          "kind": "assumed"
+        }
+      ],
+      "summary": "以下字段为假定，未被合格证据证实：population.conditions, population.missing, measure.formula, measure.countGrain, measure.window, output。"
+    },
+    "physicalProfile": {
+      "version": 1,
+      "rowCount": 3,
+      "truncated": false,
+      "columns": [
+        {
+          "name": "month",
+          "kind": "text",
+          "nullCount": 0,
+          "distinctCount": 3
+        },
+        {
+          "name": "previous_total_balance",
+          "kind": "integer",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 3,
+          "min": "235595",
+          "max": "261508"
+        }
+      ]
+    },
+    "policyVersion": "answering-publication-v1",
+    "createdByInvocationId": "7d2ab976-4d1c-43b7-a21c-57536113a359",
+    "requestId": "7d2ab976-4d1c-43b7-a21c-57536113a359",
+    "createdAt": "2026-10-11T09:47:01.079Z"
+  },
+  "currentRevision": {
+    "taskId": "task_71bad680-f9fc-4ec4-a0b6-fe471f99027a",
+    "revisionId": "revision_c1b40ac0-e57f-43a5-a0db-b4a6847535c7",
+    "parentRevisionId": "revision_3421dd27-58a2-4ee0-8767-364a68051624",
+    "requestId": "4ac5627c-fb3c-4606-a456-7012814c6fcf",
+    "createdAt": "2026-10-11T09:46:58.828Z",
+    "fields": {
+      "population.entity": {
+        "state": "specified",
+        "value": {
+          "name": "customer-month"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_2cbdcbb3-9616-4a43-be46-cf63327d5c30"
+          ]
+        }
+      },
+      "population.eligibility": {
+        "state": "specified",
+        "value": "All customers, including no activity in a particular month, carried cumulative balance",
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_764884b2-4921-4377-a74e-bae67545e2d6"
+          ]
+        }
+      },
+      "population.conditions": {
+        "state": "specified",
+        "value": [
+          "Deposit positive; withdrawal and purchase negative; initial balance zero",
+          "Exclude baseline first month only after calculating previous total"
+        ],
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Balance flows not defined by request; all nondeposit transaction types observed are account expenditures"
+        }
+      },
+      "population.time": {
+        "state": "specified",
+        "value": {
+          "expression": "Continuous months from first to last recorded transaction; first-of-month snapshot strictly before that day; baseline first month excluded after lag"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_45ea4e83-db43-42db-b260-3392858077f6"
+          ]
+        }
+      },
+      "population.missing": {
+        "state": "specified",
+        "value": "Zero net in inactive months; carry cumulative account balance",
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "measure.formula": {
+        "state": "specified",
+        "value": {
+          "op": "custom",
+          "description": "Per customer monthly signed transaction net, cumulatively sum from zero, clip each customer closing to MAX(closing,0), sum all customers, lag aggregate one calendar month. Remove first month only after lag."
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Cumulative account balance interpretation; negative balances clipped per customer after accumulation, not monthly net or aggregate"
+        }
+      },
+      "measure.countGrain": {
+        "state": "specified",
+        "value": "One customer closing per calendar month before sum",
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "measure.window": {
+        "state": "specified",
+        "value": "Cumulative from first recorded calendar month; previous month lag by one calendar month",
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "grouping": {
+        "state": "specified",
+        "value": [
+          "calendar month first day"
+        ],
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_fe24dfee-3960-41b7-8302-3b189198501b"
+          ]
+        }
+      },
+      "selection": {
+        "state": "not_applicable"
+      },
+      "output": {
+        "state": "specified",
+        "value": {
+          "rowMode": "grouped",
+          "columns": [
+            "month",
+            "previous_total_balance"
+          ]
+        },
+        "basis": {
+          "kind": "assumed"
+        }
+      }
+    },
+    "state": {
+      "state": "ready",
+      "revisionId": "revision_c1b40ac0-e57f-43a5-a0db-b4a6847535c7",
+      "ready": "ready_48b5afdf-df52-4e37-a285-3e8bbf20ea1f"
+    },
+    "specFeedback": {
+      "taskId": "task_71bad680-f9fc-4ec4-a0b6-fe471f99027a",
+      "revisionId": "revision_c1b40ac0-e57f-43a5-a0db-b4a6847535c7",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_2cbdcbb3-9616-4a43-be46-cf63327d5c30",
+        "evidence_4d7bd722-9fba-4dec-9616-c1e40a116ce3",
+        "evidence_b0daf128-51f7-4a77-a265-74a5952e4fa2",
+        "evidence_67c384dc-33e9-4838-85e3-cc22cad11843",
+        "evidence_764884b2-4921-4377-a74e-bae67545e2d6",
+        "evidence_45ea4e83-db43-42db-b260-3392858077f6",
+        "evidence_fe24dfee-3960-41b7-8302-3b189198501b"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    }
+  },
+  "analystNote": {
+    "algorithm": "Per customer monthly signed transaction net, cumulatively sum from zero, clip each customer closing to MAX(closing,0), sum all customers, lag aggregate one calendar month. Remove first month only after lag.",
+    "limitations": [
+      "Deposit plus, withdrawal/purchase minus inferred from account balance context",
+      "Opening balance zero",
+      "End at last recorded month; no artificial following month",
+      "Monthly closing clipped per account, not reflected back into next month"
+    ]
+  },
+  "settings": {
+    "qualification": "required",
+    "fieldProbes": true,
+    "externalAdvisor": "not_configured",
+    "specFeedback": "not_configured",
+    "fanout": "disabled_for_offline_audit",
+    "populationDecisions": "allow_disclosed_headless_audit",
+    "databaseReadOnly": true
+  }
+}

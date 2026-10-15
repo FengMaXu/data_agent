@@ -1,0 +1,1223 @@
+{
+  "version": 2,
+  "tasks": [
+    {
+      "taskId": "task_0ba3fcf4-8dfb-4ae7-999a-7c8e7625f636",
+      "sessionId": "local061",
+      "principalId": "independent-analyst",
+      "requestMessageId": "original-task",
+      "requestId": "b6dceecb-06f5-4c4a-bd96-845d582e2c38",
+      "currentRevisionId": "revision_f549fc86-a55e-4732-a6f7-6df60f690eb4",
+      "lifecycle": "published",
+      "budget": {
+        "policy": {
+          "version": "answering-dual-loop-v1",
+          "maxRevisions": 40,
+          "maxExplorationAttempts": 120,
+          "maxResultAttempts": 20,
+          "maxElapsedMs": 14400000,
+          "maxObservedRows": 2000000
+        },
+        "startedAt": "2026-10-11T09:14:15.295Z",
+        "revisionCount": 1,
+        "explorationAttempts": 6,
+        "resultAttempts": 1,
+        "observedRows": 77
+      },
+      "createdAt": "2026-10-11T09:14:15.295Z",
+      "updatedAt": "2026-10-11T09:15:50.806Z",
+      "latestCandidateId": "candidate_aad2c9e1-58d4-4019-8217-96ca66dda686",
+      "publicationId": "publication_38a25c9b-658e-4809-871f-d12c67586fb2"
+    }
+  ],
+  "revisions": [
+    {
+      "taskId": "task_0ba3fcf4-8dfb-4ae7-999a-7c8e7625f636",
+      "revisionId": "revision_7fa38c65-e231-45b2-8724-a657d62c3d52",
+      "requestId": "b6dceecb-06f5-4c4a-bd96-845d582e2c38",
+      "createdAt": "2026-10-11T09:14:15.295Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "Product monthly France sales projection"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_b86cad70-da84-4a47-9779-075e44d1a1e6"
+            ]
+          }
+        }
+      },
+      "state": {
+        "state": "draft",
+        "revisionId": "revision_7fa38c65-e231-45b2-8724-a657d62c3d52"
+      },
+      "specFeedback": {
+        "taskId": "task_0ba3fcf4-8dfb-4ae7-999a-7c8e7625f636",
+        "revisionId": "revision_7fa38c65-e231-45b2-8724-a657d62c3d52",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_b86cad70-da84-4a47-9779-075e44d1a1e6"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    },
+    {
+      "taskId": "task_0ba3fcf4-8dfb-4ae7-999a-7c8e7625f636",
+      "revisionId": "revision_f549fc86-a55e-4732-a6f7-6df60f690eb4",
+      "parentRevisionId": "revision_7fa38c65-e231-45b2-8724-a657d62c3d52",
+      "requestId": "874c9184-14ff-4e21-877b-415b049f7045",
+      "createdAt": "2026-10-11T09:14:52.897Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "Product monthly France sales projection"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_b86cad70-da84-4a47-9779-075e44d1a1e6"
+            ]
+          }
+        },
+        "population.eligibility": {
+          "state": "specified",
+          "value": "Paired same-product same-month historical observations; positive 2019 baseline",
+          "basis": {
+            "kind": "assumed",
+            "rationale": "独立题解；题目未明确，作为假定披露"
+          }
+        },
+        "population.conditions": {
+          "state": "specified",
+          "value": [
+            "France",
+            "promotions.promo_total_id=1",
+            "channels.channel_total_id=1"
+          ],
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_eef7ed38-1179-4a5f-99bc-559455b65327"
+            ]
+          }
+        },
+        "population.time": {
+          "state": "specified",
+          "value": {
+            "expression": "2019 and 2020 monthly historical sales project 2021; 2021 exchange rates"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_1ef430e4-37a7-461d-933b-0cfbce6a22ec"
+            ]
+          }
+        },
+        "population.joinMultiplicity": {
+          "state": "specified",
+          "value": "Sum sales per product-year-month before pairing; currency country/year/month unique",
+          "basis": {
+            "kind": "assumed",
+            "rationale": "独立题解；题目未明确，作为假定披露"
+          }
+        },
+        "measure.formula": {
+          "state": "specified",
+          "value": {
+            "op": "custom",
+            "description": "SUM historical amount_sold per product/month/year; project b*(1+(b-a)/a); convert by France2021 monthly currency.to_us default1; per-month product AVG then ROUND2"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_828438c3-147a-4b21-bf3e-912c2beef7ad"
+            ]
+          }
+        },
+        "measure.countGrain": {
+          "state": "specified",
+          "value": "Valid product/month forecast cells",
+          "basis": {
+            "kind": "assumed",
+            "rationale": "独立题解；题目未明确，作为假定披露"
+          }
+        },
+        "measure.denominator": {
+          "state": "specified",
+          "value": "Count valid paired product projections in each month; undefined growth excluded",
+          "basis": {
+            "kind": "assumed",
+            "rationale": "独立题解；题目未明确，作为假定披露"
+          }
+        },
+        "grouping": {
+          "state": "specified",
+          "value": [
+            "calendar month"
+          ],
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_40212770-dce7-417c-a245-26096b163b2e"
+            ]
+          }
+        },
+        "selection": {
+          "state": "not_applicable"
+        },
+        "output": {
+          "state": "specified",
+          "value": {
+            "rowMode": "grouped",
+            "columns": [
+              "month",
+              "average_projected_monthly_sales_usd"
+            ],
+            "units": {
+              "average_projected_monthly_sales_usd": "USD"
+            },
+            "decimals": {
+              "average_projected_monthly_sales_usd": 2
+            }
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_62c98219-b2c7-4503-a8de-e62cf46c204e"
+            ]
+          }
+        }
+      },
+      "state": {
+        "state": "ready",
+        "revisionId": "revision_f549fc86-a55e-4732-a6f7-6df60f690eb4",
+        "ready": "ready_36f5d743-8f04-450d-9244-6f9a8955f6dd"
+      },
+      "specFeedback": {
+        "taskId": "task_0ba3fcf4-8dfb-4ae7-999a-7c8e7625f636",
+        "revisionId": "revision_f549fc86-a55e-4732-a6f7-6df60f690eb4",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_b86cad70-da84-4a47-9779-075e44d1a1e6",
+          "evidence_627cbd3f-58cb-47c5-8bef-ae19452baf73",
+          "evidence_57049d5e-e593-455f-afbd-77ee43165c4f",
+          "evidence_8244bd1f-7e0a-4d7b-a3d1-fc4402f1901c",
+          "evidence_4eef2c7b-707f-4f26-b494-63468d0ac3d9",
+          "evidence_eef7ed38-1179-4a5f-99bc-559455b65327",
+          "evidence_1ef430e4-37a7-461d-933b-0cfbce6a22ec",
+          "evidence_828438c3-147a-4b21-bf3e-912c2beef7ad",
+          "evidence_40212770-dce7-417c-a245-26096b163b2e",
+          "evidence_62c98219-b2c7-4503-a8de-e62cf46c204e"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "taskId": "task_0ba3fcf4-8dfb-4ae7-999a-7c8e7625f636",
+      "items": [
+        {
+          "id": "request_be3e2f2bd519d830902bceb0",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "observedAt": "2026-10-11T09:14:15.295Z"
+        },
+        {
+          "id": "evidence_b86cad70-da84-4a47-9779-075e44d1a1e6",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "83b796685baff7e167f63aab6ef124a33307f24e0399903a4d9b219940b129f6",
+          "quote": "each product’s monthly sales",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "83b796685baff7e167f63aab6ef124a33307f24e0399903a4d9b219940b129f6"
+          },
+          "observedAt": "2026-10-11T09:14:15.295Z"
+        },
+        {
+          "id": "evidence_627cbd3f-58cb-47c5-8bef-ae19452baf73",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "20aaa901-970b-4f90-aa65-502efb88d5f1",
+          "preview": {
+            "columns": [
+              "year",
+              "month",
+              "currency_rows",
+              "min_rate",
+              "max_rate"
+            ],
+            "rows": [
+              [
+                2021,
+                1,
+                1,
+                1,
+                1
+              ],
+              [
+                2021,
+                2,
+                1,
+                1,
+                1
+              ],
+              [
+                2021,
+                3,
+                1,
+                1,
+                1
+              ],
+              [
+                2021,
+                4,
+                1,
+                1,
+                1
+              ],
+              [
+                2021,
+                5,
+                1,
+                1,
+                1
+              ],
+              [
+                2021,
+                6,
+                1,
+                1,
+                1
+              ],
+              [
+                2021,
+                7,
+                1,
+                1,
+                1
+              ],
+              [
+                2021,
+                8,
+                1,
+                1,
+                1
+              ],
+              [
+                2021,
+                9,
+                1,
+                1,
+                1
+              ],
+              [
+                2021,
+                10,
+                1,
+                1,
+                1
+              ],
+              [
+                2021,
+                11,
+                1,
+                1,
+                1
+              ],
+              [
+                2021,
+                12,
+                1,
+                1,
+                1
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 12,
+            "truncated": false
+          },
+          "queryHash": "63a3e956b660b1c6dcdf603bbbdd8ec5e6f95bddc276f4deaf520c2ccec5f377",
+          "contentHash": "e4cd01a37f3658cb917f131f8d0cbd1658091112170a6dccbfc4f215fae76bbd",
+          "observedAt": "2026-10-11T09:14:18.837Z"
+        },
+        {
+          "id": "evidence_57049d5e-e593-455f-afbd-77ee43165c4f",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "d9745173-9459-4fbe-9d85-875b69f2f81b",
+          "preview": {
+            "columns": [
+              "month",
+              "products",
+              "baseline",
+              "following_year",
+              "avg_projection",
+              "min_projection",
+              "max_projection"
+            ],
+            "rows": [
+              [
+                1,
+                47,
+                71387.12,
+                59684.73,
+                4054.9943250241085,
+                14.971666860397537,
+                92369.76451533742
+              ],
+              [
+                2,
+                52,
+                96905.21,
+                69051.34,
+                2402.8901741998384,
+                13.111950313807533,
+                34018.310266061
+              ],
+              [
+                3,
+                46,
+                83626.71,
+                57673.67,
+                2888.4775991276597,
+                6.036854504082448,
+                60711.546521284174
+              ],
+              [
+                4,
+                43,
+                94662.92,
+                53723.24,
+                1474.104029476533,
+                5.417887212073074,
+                15869.433430080988
+              ],
+              [
+                5,
+                46,
+                67152.63,
+                66119.75,
+                2904.7134991887374,
+                22.890761964249364,
+                38836.21814778148
+              ],
+              [
+                6,
+                46,
+                86239.58,
+                57033.98,
+                1440.353931605308,
+                21.671548848292293,
+                12990.089252142521
+              ],
+              [
+                7,
+                49,
+                81524.22,
+                63938.58,
+                1600.1336172408344,
+                18.804200677528645,
+                12131.14411701062
+              ],
+              [
+                8,
+                51,
+                77918.44,
+                61421.659999999996,
+                1392.5971410067111,
+                1.287633217872014,
+                9375.102354705221
+              ],
+              [
+                9,
+                53,
+                73481.73,
+                67387.49,
+                2702.5017872409767,
+                6.280820038289727,
+                28514.132589432236
+              ],
+              [
+                10,
+                52,
+                62643.94,
+                69388.61,
+                2218.773458797572,
+                14.121293450311375,
+                16099.441404802592
+              ],
+              [
+                11,
+                49,
+                61453.27,
+                65840.51,
+                3208.9430007968385,
+                51.07796852646637,
+                57575.80849467494
+              ],
+              [
+                12,
+                56,
+                84120.51,
+                84546.85,
+                3062.6643679549256,
+                5.224424864212432,
+                56181.60432777031
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "REAL",
+              "REAL",
+              "REAL",
+              "REAL",
+              "REAL"
+            ],
+            "rowCount": 12,
+            "truncated": false
+          },
+          "queryHash": "33dddf2a58c9c20fa868aa4a6601399fbaac8d7473a8b73e7ac4b4a700fdc4a8",
+          "contentHash": "9cf9a5afe73cac4a62794862ee77a201ca330a39baaaa564820f5c62d9584603",
+          "observedAt": "2026-10-11T09:14:33.154Z"
+        },
+        {
+          "id": "evidence_8244bd1f-7e0a-4d7b-a3d1-fc4402f1901c",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "e167a117-d8be-42e7-81f2-7aa67ae827f4",
+          "preview": {
+            "columns": [
+              "prod_id",
+              "month",
+              "s19",
+              "s20",
+              "local_forecast",
+              "growth"
+            ],
+            "rows": [
+              [
+                118,
+                1,
+                16.3,
+                1227.04,
+                92369.76451533742,
+                74.27852760736197
+              ],
+              [
+                20,
+                3,
+                1204.18,
+                8550.3,
+                60711.546521284174,
+                6.100516534072978
+              ],
+              [
+                37,
+                11,
+                62.91,
+                1903.18,
+                57575.80849467494,
+                29.25242409791766
+              ],
+              [
+                20,
+                12,
+                5412.51,
+                17437.99,
+                56181.60432777031,
+                2.221793585600766
+              ],
+              [
+                15,
+                5,
+                999.99,
+                6231.84,
+                38836.21814778148,
+                5.231902319023191
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "REAL",
+              "REAL",
+              "REAL",
+              "REAL"
+            ],
+            "rowCount": 5,
+            "truncated": false
+          },
+          "queryHash": "7eee3449190e9f4d76aa5283443819a4c21e36ebab59c593f5795e9beb16a054",
+          "contentHash": "cb454011b1b9e9c5821c6aded63df56474d5b1d64e16716b7441651b8f45e99d",
+          "observedAt": "2026-10-11T09:14:41.865Z"
+        },
+        {
+          "id": "evidence_4eef2c7b-707f-4f26-b494-63468d0ac3d9",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "c31c159a-80da-4384-ab68-db2aa21b7d88",
+          "preview": {
+            "columns": [
+              "month",
+              "average_projected_monthly_sales_usd"
+            ],
+            "rows": [
+              [
+                1,
+                4054.99
+              ],
+              [
+                2,
+                2402.89
+              ],
+              [
+                3,
+                2888.48
+              ],
+              [
+                4,
+                1474.1
+              ],
+              [
+                5,
+                2904.71
+              ],
+              [
+                6,
+                1440.35
+              ],
+              [
+                7,
+                1600.13
+              ],
+              [
+                8,
+                1392.6
+              ],
+              [
+                9,
+                2702.5
+              ],
+              [
+                10,
+                2218.77
+              ],
+              [
+                11,
+                3208.94
+              ],
+              [
+                12,
+                3062.66
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "REAL"
+            ],
+            "rowCount": 12,
+            "truncated": false
+          },
+          "queryHash": "70d25b3f0f1d9df88903ab94d3dd8d1c6484545da1af73b021ebb00c946f0939",
+          "contentHash": "c67fb4e686f3dae7b00bd6eeadc5b2c65945f1f1b8a085641b5358d0a8484078",
+          "observedAt": "2026-10-11T09:14:50.047Z"
+        },
+        {
+          "id": "evidence_eef7ed38-1179-4a5f-99bc-559455b65327",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "83b796685baff7e167f63aab6ef124a33307f24e0399903a4d9b219940b129f6",
+          "quote": "promo_total_id = 1 and channels where channel_total_id = 1",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "83b796685baff7e167f63aab6ef124a33307f24e0399903a4d9b219940b129f6"
+          },
+          "observedAt": "2026-10-11T09:14:52.897Z"
+        },
+        {
+          "id": "evidence_1ef430e4-37a7-461d-933b-0cfbce6a22ec",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "83b796685baff7e167f63aab6ef124a33307f24e0399903a4d9b219940b129f6",
+          "quote": "2019 and 2020",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "83b796685baff7e167f63aab6ef124a33307f24e0399903a4d9b219940b129f6"
+          },
+          "observedAt": "2026-10-11T09:14:52.897Z"
+        },
+        {
+          "id": "evidence_828438c3-147a-4b21-bf3e-912c2beef7ad",
+          "kind": "task_document",
+          "authority": "task_document",
+          "sourceRef": "projection_calculation.md",
+          "contentHash": "a99c37c025883926503a6b3e94e91b9b05d4b7beee8e1c0d45be25be7e814ae0",
+          "quote": "Compute the average projected sales for each month in 2021, adjusting for currency conversion. Round the results to two decimal places.",
+          "verification": {
+            "method": "document_quote",
+            "sourceContentHash": "a99c37c025883926503a6b3e94e91b9b05d4b7beee8e1c0d45be25be7e814ae0"
+          },
+          "observedAt": "2026-10-11T09:14:52.897Z"
+        },
+        {
+          "id": "evidence_40212770-dce7-417c-a245-26096b163b2e",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "83b796685baff7e167f63aab6ef124a33307f24e0399903a4d9b219940b129f6",
+          "quote": "listing them by month",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "83b796685baff7e167f63aab6ef124a33307f24e0399903a4d9b219940b129f6"
+          },
+          "observedAt": "2026-10-11T09:14:52.897Z"
+        },
+        {
+          "id": "evidence_62c98219-b2c7-4503-a8de-e62cf46c204e",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "83b796685baff7e167f63aab6ef124a33307f24e0399903a4d9b219940b129f6",
+          "quote": "listing them by month",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "83b796685baff7e167f63aab6ef124a33307f24e0399903a4d9b219940b129f6"
+          },
+          "observedAt": "2026-10-11T09:14:52.897Z"
+        },
+        {
+          "id": "evidence_2010356b-e452-4b79-b28f-538bb39a0d3b",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "5ab3ae89-25be-46c8-879b-3dd5c9f0a8cc",
+          "preview": {
+            "columns": [
+              "month",
+              "history_products",
+              "roster_2021",
+              "independent",
+              "roster_month_round",
+              "roster_product_and_month_round"
+            ],
+            "rows": [
+              [
+                1,
+                47,
+                46,
+                4054.99,
+                4120.33,
+                4120.33
+              ],
+              [
+                2,
+                52,
+                49,
+                2402.89,
+                2454.4,
+                2454.4
+              ],
+              [
+                3,
+                46,
+                44,
+                2888.48,
+                2980.58,
+                2980.58
+              ],
+              [
+                4,
+                43,
+                41,
+                1474.1,
+                1517.54,
+                1517.54
+              ],
+              [
+                5,
+                46,
+                44,
+                2904.71,
+                3025.06,
+                3025.06
+              ],
+              [
+                6,
+                46,
+                44,
+                1440.35,
+                1482.95,
+                1482.95
+              ],
+              [
+                7,
+                49,
+                47,
+                1600.13,
+                1658.6,
+                1658.6
+              ],
+              [
+                8,
+                51,
+                50,
+                1392.6,
+                1419.89,
+                1419.89
+              ],
+              [
+                9,
+                53,
+                52,
+                2702.5,
+                2754.07,
+                2754.07
+              ],
+              [
+                10,
+                52,
+                52,
+                2218.77,
+                2218.77,
+                2218.77
+              ],
+              [
+                11,
+                49,
+                49,
+                3208.94,
+                3208.94,
+                3208.94
+              ],
+              [
+                12,
+                56,
+                53,
+                3062.66,
+                3131.66,
+                3131.66
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "REAL",
+              "REAL",
+              "REAL"
+            ],
+            "rowCount": 12,
+            "truncated": false
+          },
+          "queryHash": "701e1accbcddc3bf3afc8e0203046be2d73d79e22f8e9d3d91df916fe3715b4d",
+          "contentHash": "c1ff804c3ae6a1dd1cc7c55c385e597ebc30676727559766b75aa44a48fd2d03",
+          "observedAt": "2026-10-11T09:15:44.616Z"
+        },
+        {
+          "id": "evidence_3e3c8f12-f8d9-4779-9f61-e19ea3e1df86",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "771885c9-4cd8-4bec-a140-b5468983a108",
+          "preview": {
+            "columns": [
+              "prod_id",
+              "month",
+              "s19",
+              "s20",
+              "v"
+            ],
+            "rows": [
+              [
+                47,
+                1,
+                242.32999999999998,
+                504.28000000000003,
+                1049.3885131845007
+              ],
+              [
+                44,
+                2,
+                191.2,
+                50.07,
+                13.111950313807531
+              ],
+              [
+                47,
+                2,
+                120.01,
+                742.39,
+                4592.4748945921165
+              ],
+              [
+                129,
+                2,
+                1822.1,
+                379.57,
+                79.06996591844576
+              ],
+              [
+                46,
+                3,
+                448.26,
+                52.019999999999996,
+                6.036854504082451
+              ],
+              [
+                47,
+                3,
+                211.62,
+                603.03,
+                1718.3875857669407
+              ],
+              [
+                47,
+                4,
+                119.76,
+                370.21,
+                1144.4175359051435
+              ],
+              [
+                129,
+                4,
+                1418.48,
+                180.6,
+                22.99388077378602
+              ],
+              [
+                47,
+                5,
+                152.24,
+                273.53,
+                491.45205530740924
+              ],
+              [
+                129,
+                5,
+                1424.87,
+                180.6,
+                22.89076196424937
+              ],
+              [
+                47,
+                6,
+                181.47,
+                399.33,
+                878.7372507852537
+              ],
+              [
+                129,
+                6,
+                1019.5899999999999,
+                361.2,
+                127.95872850851813
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "REAL",
+              "REAL",
+              "REAL"
+            ],
+            "rowCount": 12,
+            "truncated": false
+          },
+          "queryHash": "571f7e6b3e67109d849779e9a5c3a1cbd3d37a03b6502121f663afd6c65b444a",
+          "contentHash": "148136657a910ff58304d75aa3cf7a294227d9d3c15ec69f8d7e177f361ae68f",
+          "observedAt": "2026-10-11T09:15:50.805Z"
+        }
+      ]
+    }
+  ],
+  "attempts": [
+    {
+      "taskId": "task_0ba3fcf4-8dfb-4ae7-999a-7c8e7625f636",
+      "items": [
+        {
+          "attemptId": "attempt_d805f086-6289-48a3-8997-301b8e099ff7",
+          "taskId": "task_0ba3fcf4-8dfb-4ae7-999a-7c8e7625f636",
+          "kind": "exploration",
+          "revisionId": "revision_7fa38c65-e231-45b2-8724-a657d62c3d52",
+          "invocationId": "20aaa901-970b-4f90-aa65-502efb88d5f1",
+          "queryHash": "63a3e956b660b1c6dcdf603bbbdd8ec5e6f95bddc276f4deaf520c2ccec5f377",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:14:18.206Z",
+          "updatedAt": "2026-10-11T09:14:18.837Z"
+        },
+        {
+          "attemptId": "attempt_3cf04a72-5c12-472c-948b-752e0a344d27",
+          "taskId": "task_0ba3fcf4-8dfb-4ae7-999a-7c8e7625f636",
+          "kind": "exploration",
+          "revisionId": "revision_7fa38c65-e231-45b2-8724-a657d62c3d52",
+          "invocationId": "d9745173-9459-4fbe-9d85-875b69f2f81b",
+          "queryHash": "33dddf2a58c9c20fa868aa4a6601399fbaac8d7473a8b73e7ac4b4a700fdc4a8",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:14:23.157Z",
+          "updatedAt": "2026-10-11T09:14:33.154Z"
+        },
+        {
+          "attemptId": "attempt_f028ceaf-5340-4c60-bc31-59fccec65a06",
+          "taskId": "task_0ba3fcf4-8dfb-4ae7-999a-7c8e7625f636",
+          "kind": "exploration",
+          "revisionId": "revision_7fa38c65-e231-45b2-8724-a657d62c3d52",
+          "invocationId": "e167a117-d8be-42e7-81f2-7aa67ae827f4",
+          "queryHash": "7eee3449190e9f4d76aa5283443819a4c21e36ebab59c593f5795e9beb16a054",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:14:35.570Z",
+          "updatedAt": "2026-10-11T09:14:41.866Z"
+        },
+        {
+          "attemptId": "attempt_53771d0c-478b-4651-8bc2-3f85d5c751f9",
+          "taskId": "task_0ba3fcf4-8dfb-4ae7-999a-7c8e7625f636",
+          "kind": "exploration",
+          "revisionId": "revision_7fa38c65-e231-45b2-8724-a657d62c3d52",
+          "invocationId": "c31c159a-80da-4384-ab68-db2aa21b7d88",
+          "queryHash": "70d25b3f0f1d9df88903ab94d3dd8d1c6484545da1af73b021ebb00c946f0939",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:14:45.784Z",
+          "updatedAt": "2026-10-11T09:14:50.048Z"
+        },
+        {
+          "attemptId": "attempt_9ae047d0-f7c5-42a9-8b92-6bd02168649b",
+          "taskId": "task_0ba3fcf4-8dfb-4ae7-999a-7c8e7625f636",
+          "kind": "revision",
+          "revisionId": "revision_7fa38c65-e231-45b2-8724-a657d62c3d52",
+          "invocationId": "874c9184-14ff-4e21-877b-415b049f7045",
+          "state": "succeeded",
+          "sqlExecuted": false,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:14:52.905Z",
+          "updatedAt": "2026-10-11T09:14:52.897Z"
+        },
+        {
+          "attemptId": "attempt_6dafe697-7cca-41b0-9806-9e1738e92142",
+          "taskId": "task_0ba3fcf4-8dfb-4ae7-999a-7c8e7625f636",
+          "kind": "result",
+          "revisionId": "revision_f549fc86-a55e-4732-a6f7-6df60f690eb4",
+          "invocationId": "d9c05ea9-3546-40ce-965f-e7cc5e3f13f4",
+          "queryHash": "39837d61f5497c5e0a8ad7dc95df2998f6d87004b873b95436c59b30809cabdf",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:14:56.797Z",
+          "updatedAt": "2026-10-11T09:15:00.973Z"
+        },
+        {
+          "attemptId": "attempt_f1376999-656f-40f1-b4b9-ac7e784f302a",
+          "taskId": "task_0ba3fcf4-8dfb-4ae7-999a-7c8e7625f636",
+          "kind": "exploration",
+          "revisionId": "revision_f549fc86-a55e-4732-a6f7-6df60f690eb4",
+          "invocationId": "5ab3ae89-25be-46c8-879b-3dd5c9f0a8cc",
+          "queryHash": "701e1accbcddc3bf3afc8e0203046be2d73d79e22f8e9d3d91df916fe3715b4d",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:15:37.223Z",
+          "updatedAt": "2026-10-11T09:15:44.617Z"
+        },
+        {
+          "attemptId": "attempt_baacd2d5-bc74-4f08-af46-7465b03963fe",
+          "taskId": "task_0ba3fcf4-8dfb-4ae7-999a-7c8e7625f636",
+          "kind": "exploration",
+          "revisionId": "revision_f549fc86-a55e-4732-a6f7-6df60f690eb4",
+          "invocationId": "771885c9-4cd8-4bec-a140-b5468983a108",
+          "queryHash": "571f7e6b3e67109d849779e9a5c3a1cbd3d37a03b6502121f663afd6c65b444a",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:15:46.204Z",
+          "updatedAt": "2026-10-11T09:15:50.806Z"
+        }
+      ]
+    }
+  ],
+  "candidates": [
+    {
+      "candidateId": "candidate_aad2c9e1-58d4-4019-8217-96ca66dda686",
+      "taskId": "task_0ba3fcf4-8dfb-4ae7-999a-7c8e7625f636",
+      "revisionId": "revision_f549fc86-a55e-4732-a6f7-6df60f690eb4",
+      "resultRef": "result_8e819a70-051b-4862-a5b0-8241d43ead6e",
+      "resultSchema": [
+        "month",
+        "average_projected_monthly_sales_usd"
+      ],
+      "rowCount": 12,
+      "contentHash": "b3b017f8bd5c846a14ec07123b73de2e0c0a25da9943c28b484d1091ce0066b2",
+      "sql": "WITH hist AS (SELECT s.prod_id,t.calendar_year yr,t.calendar_month_number month,SUM(s.amount_sold) sales_amount FROM sales s JOIN times t ON t.time_id=s.time_id JOIN customers c ON c.cust_id=s.cust_id JOIN countries cn ON cn.country_id=c.country_id JOIN channels ch ON ch.channel_id=s.channel_id JOIN promotions pm ON pm.promo_id=s.promo_id WHERE cn.country_name='France' AND ch.channel_total_id=1 AND pm.promo_total_id=1 AND t.calendar_year IN (2019,2020) GROUP BY s.prod_id,t.calendar_year,t.calendar_month_number), projections AS (SELECT b.prod_id,b.month,a.sales_amount s19,b.sales_amount s20,b.sales_amount*(1+(b.sales_amount-a.sales_amount)/a.sales_amount) local_forecast FROM hist a JOIN hist b ON a.prod_id=b.prod_id AND a.month=b.month AND a.yr=2019 AND b.yr=2020 WHERE a.sales_amount>0),usd AS (SELECT p.*,COALESCE(c.to_us,1) rate,p.local_forecast*COALESCE(c.to_us,1) usd_forecast FROM projections p LEFT JOIN currency c ON c.country='France' AND c.year=2021 AND c.month=p.month) SELECT month,ROUND(AVG(usd_forecast),2) average_projected_monthly_sales_usd FROM usd GROUP BY month ORDER BY month",
+      "queryHash": "39837d61f5497c5e0a8ad7dc95df2998f6d87004b873b95436c59b30809cabdf",
+      "findings": [],
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "unknown",
+          "reason": "check_disabled"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "unknown",
+        "snapshotScope": "unbound",
+        "targets": [],
+        "unsupportedReasons": [
+          "check_disabled"
+        ]
+      },
+      "attemptId": "attempt_6dafe697-7cca-41b0-9806-9e1738e92142",
+      "createdByInvocationId": "d9c05ea9-3546-40ce-965f-e7cc5e3f13f4",
+      "createdAt": "2026-10-11T09:15:00.973Z",
+      "status": "ready",
+      "publishable": true
+    }
+  ],
+  "receipts": [
+    {
+      "receiptId": "publication_38a25c9b-658e-4809-871f-d12c67586fb2",
+      "taskId": "task_0ba3fcf4-8dfb-4ae7-999a-7c8e7625f636",
+      "principalId": "independent-analyst",
+      "sessionId": "local061",
+      "candidateId": "candidate_aad2c9e1-58d4-4019-8217-96ca66dda686",
+      "revisionId": "revision_f549fc86-a55e-4732-a6f7-6df60f690eb4",
+      "resultRef": "result_8e819a70-051b-4862-a5b0-8241d43ead6e",
+      "format": "csv",
+      "publicRef": "/api/runtime/publications/publication_38a25c9b-658e-4809-871f-d12c67586fb2?session_id=local061",
+      "contentHash": "b3b017f8bd5c846a14ec07123b73de2e0c0a25da9943c28b484d1091ce0066b2",
+      "presentationContentHash": "25beae1daec4dadccb9c29befaf8a8efcd9e9ffe598f6560685f69c1438e7613",
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "unknown",
+          "reason": "check_disabled"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "unknown",
+        "snapshotScope": "unbound",
+        "targets": [],
+        "unsupportedReasons": [
+          "check_disabled"
+        ]
+      },
+      "disclosure": {
+        "required": true,
+        "unverifiedFields": [
+          {
+            "path": "population.eligibility",
+            "kind": "assumed"
+          },
+          {
+            "path": "population.joinMultiplicity",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.countGrain",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.denominator",
+            "kind": "assumed"
+          }
+        ],
+        "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.joinMultiplicity, measure.countGrain, measure.denominator。 JOIN fanout 检查未能完整完成：check_disabled。",
+        "fanoutStatus": "unknown"
+      },
+      "physicalProfile": {
+        "version": 1,
+        "rowCount": 12,
+        "truncated": false,
+        "columns": [
+          {
+            "name": "month",
+            "kind": "integer",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 12,
+            "min": "1",
+            "max": "12"
+          },
+          {
+            "name": "average_projected_monthly_sales_usd",
+            "kind": "decimal",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 12,
+            "min": "1392.6",
+            "max": "4054.99"
+          }
+        ]
+      },
+      "policyVersion": "answering-publication-v1",
+      "createdByInvocationId": "d9c05ea9-3546-40ce-965f-e7cc5e3f13f4",
+      "requestId": "d9c05ea9-3546-40ce-965f-e7cc5e3f13f4",
+      "createdAt": "2026-10-11T09:15:00.998Z"
+    }
+  ]
+}

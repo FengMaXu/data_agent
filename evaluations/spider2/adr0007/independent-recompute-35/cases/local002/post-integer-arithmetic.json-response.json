@@ -1,0 +1,65 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_45d15fdb-3bbe-450c-ad5f-f5023bae5863\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nn | sy | precise_b | precise_a\n606 | 4090 | 0.006152695545127375 | 4.887984515090718"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_45d15fdb-3bbe-450c-ad5f-f5023bae5863",
+      "preview": {
+        "columns": [
+          "n",
+          "sy",
+          "precise_b",
+          "precise_a"
+        ],
+        "rows": [
+          [
+            606,
+            4090,
+            0.006152695545127375,
+            4.887984515090718
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "REAL",
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "n",
+        "sy",
+        "precise_b",
+        "precise_a"
+      ],
+      "rows": [
+        [
+          606,
+          4090,
+          0.006152695545127375,
+          4.887984515090718
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "REAL",
+        "REAL"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_50f0ace4-d812-4b83-8217-32369aa29deb"
+  }
+}

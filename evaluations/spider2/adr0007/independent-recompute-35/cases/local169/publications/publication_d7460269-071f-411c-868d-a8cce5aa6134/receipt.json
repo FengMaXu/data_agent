@@ -1,0 +1,102 @@
+{
+  "receiptId": "publication_d7460269-071f-411c-868d-a8cce5aa6134",
+  "taskId": "task_fc5d100f-7fec-4d70-8aa1-2bfd230e6822",
+  "principalId": "independent-analyst",
+  "sessionId": "local169",
+  "candidateId": "candidate_67e79810-0fdb-451e-a674-a5ab20ebb165",
+  "revisionId": "revision_98ebfe58-cf14-4768-96ce-fa5190c51735",
+  "resultRef": "result_0544c762-aa0b-4f41-ad19-bc8000083d74",
+  "format": "csv",
+  "publicRef": "/api/runtime/publications/publication_d7460269-071f-411c-868d-a8cce5aa6134?session_id=local169",
+  "contentHash": "ee2fbd5806de9b29a40312bdc94b0915c4c77ad44bf680ebf7185e6f02f9c9ad",
+  "presentationContentHash": "fa95949255a9c7144c7649a3b5f1b6438092498923054ee7ae4c47170ebd1471",
+  "coverage": [
+    {
+      "checkId": "result_completeness",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "result_shape",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "result_identity",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "join_fanout",
+      "outcome": "not_applicable"
+    },
+    {
+      "checkId": "spec_feedback",
+      "ruleVersion": "spec-feedback-v2",
+      "outcome": "not_applicable",
+      "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+    }
+  ],
+  "fanout": {
+    "ruleVersion": "answering-fanout-v1",
+    "status": "not_applicable",
+    "snapshotScope": "unbound",
+    "targets": []
+  },
+  "disclosure": {
+    "required": true,
+    "unverifiedFields": [
+      {
+        "path": "population.eligibility",
+        "kind": "assumed"
+      },
+      {
+        "path": "population.conditions",
+        "kind": "assumed"
+      },
+      {
+        "path": "population.time",
+        "kind": "assumed"
+      },
+      {
+        "path": "measure.formula",
+        "kind": "assumed"
+      },
+      {
+        "path": "grouping",
+        "kind": "assumed"
+      },
+      {
+        "path": "output",
+        "kind": "assumed"
+      }
+    ],
+    "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.conditions, population.time, measure.formula, grouping, output。"
+  },
+  "physicalProfile": {
+    "version": 1,
+    "rowCount": 20,
+    "truncated": false,
+    "columns": [
+      {
+        "name": "period",
+        "kind": "integer",
+        "encodedAs": "number",
+        "nullCount": 0,
+        "distinctCount": 20,
+        "min": "0",
+        "max": "19"
+      },
+      {
+        "name": "retention_rate",
+        "kind": "decimal",
+        "encodedAs": "number",
+        "nullCount": 0,
+        "distinctCount": 20,
+        "min": "0.2092734936771634",
+        "max": "0.9970245474832631"
+      }
+    ]
+  },
+  "policyVersion": "answering-publication-v1",
+  "createdByInvocationId": "f9d35ad4-448a-481b-b9f4-7d7633171f05",
+  "requestId": "f9d35ad4-448a-481b-b9f4-7d7633171f05",
+  "createdAt": "2026-10-11T09:08:06.834Z"
+}

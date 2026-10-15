@@ -1,0 +1,99 @@
+{
+  "receiptId": "publication_cfa0036b-9d04-416a-be18-7529556561b1",
+  "taskId": "task_4feeb335-4c80-43c5-888c-8647c2c08e0c",
+  "principalId": "independent-analyst",
+  "sessionId": "local358",
+  "candidateId": "candidate_984be3f8-7501-47df-9e4a-1ae8ab595350",
+  "revisionId": "revision_dbc9aaf2-c653-44bd-9ecf-d11a90d4afd6",
+  "resultRef": "result_f67b2769-b27c-4f95-ada2-b3e28350b4c4",
+  "format": "csv",
+  "publicRef": "/api/runtime/publications/publication_cfa0036b-9d04-416a-be18-7529556561b1?session_id=local358",
+  "contentHash": "e95f510fd1fbaf8322b777c24f5369f8902d8dc25fde290c8bc05d24308b0191",
+  "presentationContentHash": "40b2866520669737fb69c9a5324849ddceb4da31316cb830fa37839cd0e2f477",
+  "coverage": [
+    {
+      "checkId": "result_completeness",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "result_shape",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "result_identity",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "join_fanout",
+      "outcome": "not_applicable"
+    },
+    {
+      "checkId": "spec_feedback",
+      "ruleVersion": "spec-feedback-v2",
+      "outcome": "not_applicable",
+      "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+    }
+  ],
+  "fanout": {
+    "ruleVersion": "answering-fanout-v1",
+    "status": "not_applicable",
+    "snapshotScope": "unbound",
+    "targets": []
+  },
+  "disclosure": {
+    "required": true,
+    "unverifiedFields": [
+      {
+        "path": "population.eligibility",
+        "kind": "assumed"
+      },
+      {
+        "path": "population.conditions",
+        "kind": "assumed"
+      },
+      {
+        "path": "population.time",
+        "kind": "assumed"
+      },
+      {
+        "path": "measure.formula",
+        "kind": "assumed"
+      },
+      {
+        "path": "grouping",
+        "kind": "assumed"
+      },
+      {
+        "path": "output",
+        "kind": "assumed"
+      }
+    ],
+    "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.conditions, population.time, measure.formula, grouping, output。"
+  },
+  "physicalProfile": {
+    "version": 1,
+    "rowCount": 5,
+    "truncated": false,
+    "columns": [
+      {
+        "name": "age_category",
+        "kind": "text",
+        "nullCount": 0,
+        "distinctCount": 5
+      },
+      {
+        "name": "user_count",
+        "kind": "integer",
+        "encodedAs": "number",
+        "nullCount": 0,
+        "distinctCount": 4,
+        "min": "2",
+        "max": "13"
+      }
+    ]
+  },
+  "policyVersion": "answering-publication-v1",
+  "createdByInvocationId": "65f92c7b-5d51-46a2-904b-4018cf89fb1e",
+  "requestId": "65f92c7b-5d51-46a2-904b-4018cf89fb1e",
+  "createdAt": "2026-10-11T09:17:04.645Z"
+}

@@ -1,0 +1,353 @@
+{
+  "frozenAt": "2026-10-11T09:37:40.994Z",
+  "instance_id": "local285",
+  "independent": true,
+  "taskId": "task_8126fdc2-106a-4650-8990-625986947d98",
+  "revisionId": "revision_baf5234d-5a40-4cfc-9b38-3d95c54f2fb9",
+  "publication": {
+    "receiptId": "publication_8489dc31-25a4-4045-b39c-7a8aa1150bd9",
+    "taskId": "task_8126fdc2-106a-4650-8990-625986947d98",
+    "principalId": "independent-analyst",
+    "sessionId": "local285",
+    "candidateId": "candidate_478483c4-f0e9-4f20-8f82-19bee2280154",
+    "revisionId": "revision_baf5234d-5a40-4cfc-9b38-3d95c54f2fb9",
+    "resultRef": "result_0f7ca75d-9232-44e8-acdd-7d02de676d2a",
+    "format": "csv",
+    "publicRef": "/api/runtime/publications/publication_8489dc31-25a4-4045-b39c-7a8aa1150bd9?session_id=local285",
+    "contentHash": "fbfdc4a34626a25e8786fecb7ff906e1dafe916e03064d2964cdb8a65eeb8e26",
+    "presentationContentHash": "f8d50ac5ab93ae848561aeead15195d7715b7d2609d0b041a533361c1cfd23bd",
+    "coverage": [
+      {
+        "checkId": "result_completeness",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_shape",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_identity",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "join_fanout",
+        "outcome": "not_applicable"
+      },
+      {
+        "checkId": "spec_feedback",
+        "ruleVersion": "spec-feedback-v2",
+        "outcome": "not_applicable",
+        "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+      }
+    ],
+    "fanout": {
+      "ruleVersion": "answering-fanout-v1",
+      "status": "not_applicable",
+      "snapshotScope": "unbound",
+      "targets": []
+    },
+    "disclosure": {
+      "required": true,
+      "unverifiedFields": [
+        {
+          "path": "population.eligibility",
+          "kind": "assumed"
+        },
+        {
+          "path": "population.conditions",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.formula",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.countGrain",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.denominator",
+          "kind": "assumed"
+        },
+        {
+          "path": "output",
+          "kind": "assumed"
+        }
+      ],
+      "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.conditions, measure.formula, measure.countGrain, measure.denominator, output。"
+    },
+    "physicalProfile": {
+      "version": 1,
+      "rowCount": 24,
+      "truncated": false,
+      "columns": [
+        {
+          "name": "year",
+          "kind": "decimal",
+          "encodedAs": "string",
+          "nullCount": 0,
+          "distinctCount": 4,
+          "min": "2020",
+          "max": "2023"
+        },
+        {
+          "name": "category_name",
+          "kind": "text",
+          "nullCount": 0,
+          "distinctCount": 6
+        },
+        {
+          "name": "avg_wholesale_price",
+          "kind": "decimal",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 24,
+          "min": "3.66",
+          "max": "9.42"
+        },
+        {
+          "name": "max_wholesale_price",
+          "kind": "decimal",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 23,
+          "min": "10.72",
+          "max": "141"
+        },
+        {
+          "name": "min_wholesale_price",
+          "kind": "decimal",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 15,
+          "min": "0.01",
+          "max": "1.67"
+        },
+        {
+          "name": "wholesale_price_difference",
+          "kind": "decimal",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 24,
+          "min": "9.2",
+          "max": "140.99"
+        },
+        {
+          "name": "total_wholesale_price",
+          "kind": "decimal",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 24,
+          "min": "21669.95",
+          "max": "224152.95"
+        },
+        {
+          "name": "total_selling_price",
+          "kind": "decimal",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 24,
+          "min": "34378.93",
+          "max": "364896.96"
+        },
+        {
+          "name": "avg_loss_rate",
+          "kind": "decimal",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 23,
+          "min": "6.13",
+          "max": "17.28"
+        },
+        {
+          "name": "total_loss",
+          "kind": "decimal",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 24,
+          "min": "1388.89",
+          "max": "36289.39"
+        },
+        {
+          "name": "profit",
+          "kind": "decimal",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 24,
+          "min": "10714.89",
+          "max": "108468.47"
+        }
+      ]
+    },
+    "policyVersion": "answering-publication-v1",
+    "createdByInvocationId": "ed6786e9-5092-4413-9cc7-3515f8d01e7e",
+    "requestId": "ed6786e9-5092-4413-9cc7-3515f8d01e7e",
+    "createdAt": "2026-10-11T09:37:39.587Z"
+  },
+  "currentRevision": {
+    "taskId": "task_8126fdc2-106a-4650-8990-625986947d98",
+    "revisionId": "revision_baf5234d-5a40-4cfc-9b38-3d95c54f2fb9",
+    "parentRevisionId": "revision_4d9a3072-7572-4c66-a4a3-fb7e08b3aaf3",
+    "requestId": "4bcf8693-3275-4aea-8c28-a10544b3e8f8",
+    "createdAt": "2026-10-11T09:06:24.266Z",
+    "fields": {
+      "population.entity": {
+        "state": "specified",
+        "value": {
+          "name": "vegetable category-year"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_9e7bf4b9-c360-4d1e-b664-5318c0684f45"
+          ]
+        }
+      },
+      "population.eligibility": {
+        "state": "specified",
+        "value": "All category-year groups with wholesale quotations and sales in data; quoted SKU rates included once",
+        "basis": {
+          "kind": "assumed",
+          "rationale": "No procurement or inventory data; reporting estimated financial model over available observations"
+        }
+      },
+      "population.conditions": {
+        "state": "specified",
+        "value": [
+          "Net signed sales quantity (returns already negative); exact same date/item quote; no duplicate quotes; include all categories"
+        ],
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Return signs and exact quote coverage observed; no restriction requested"
+        }
+      },
+      "population.time": {
+        "state": "specified",
+        "value": {
+          "expression": "2020-01-01 inclusive to 2024-01-01 exclusive"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_a94f01b6-7d2c-4ae4-ae92-fb7bcde41764"
+          ]
+        }
+      },
+      "measure.formula": {
+        "state": "specified",
+        "value": {
+          "op": "custom",
+          "description": "Simple wholesale quotation average/max/min and max-min difference. Total wholesale price interpreted net quantity times exact daily wholesale unit price; total selling price net quantity times actual selling unit price. Average loss rate simple mean across distinct quoted items per year. Loss estimated as net quantity*wholesale*r/(1-r) for procurement loss rate r; profit=revenue-sold-unit-cost-loss."
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Financial totals and loss denominator undefined; actual procurement unknown. This is disclosed estimate, not accounting fact."
+        }
+      },
+      "measure.countGrain": {
+        "state": "specified",
+        "value": "Quotes for price mean; distinct quoted items for loss rate mean; transaction rows for revenue and cost",
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "measure.denominator": {
+        "state": "specified",
+        "value": "Count of wholesale quotations for average price; distinct quoted items for average loss rate; 1-r for estimated procurement cost",
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "grouping": {
+        "state": "specified",
+        "value": [
+          "calendar year",
+          "category_code and category_name"
+        ],
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_8e1de389-9121-449e-a8e4-c12c5198bad0"
+          ]
+        }
+      },
+      "selection": {
+        "state": "not_applicable"
+      },
+      "output": {
+        "state": "specified",
+        "value": {
+          "rowMode": "grouped",
+          "columns": [
+            "year",
+            "category_name",
+            "avg_wholesale_price",
+            "max_wholesale_price",
+            "min_wholesale_price",
+            "wholesale_price_difference",
+            "total_wholesale_price",
+            "total_selling_price",
+            "avg_loss_rate",
+            "total_loss",
+            "profit"
+          ],
+          "decimals": {
+            "avg_wholesale_price": 2,
+            "max_wholesale_price": 2,
+            "min_wholesale_price": 2,
+            "wholesale_price_difference": 2,
+            "total_wholesale_price": 2,
+            "total_selling_price": 2,
+            "avg_loss_rate": 2,
+            "total_loss": 2,
+            "profit": 2
+          }
+        },
+        "basis": {
+          "kind": "assumed"
+        }
+      }
+    },
+    "state": {
+      "state": "ready",
+      "revisionId": "revision_baf5234d-5a40-4cfc-9b38-3d95c54f2fb9",
+      "ready": "ready_7616871d-934d-48ce-81e4-5335642aadc0"
+    },
+    "specFeedback": {
+      "taskId": "task_8126fdc2-106a-4650-8990-625986947d98",
+      "revisionId": "revision_baf5234d-5a40-4cfc-9b38-3d95c54f2fb9",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_9e7bf4b9-c360-4d1e-b664-5318c0684f45",
+        "evidence_82069971-34a4-45c7-8c09-25fdf79e6262",
+        "evidence_863565e3-a960-4d26-aa77-cae8555b350e",
+        "evidence_6f6bbf3f-1099-4935-8da8-133e92615793",
+        "evidence_a94f01b6-7d2c-4ae4-ae92-fb7bcde41764",
+        "evidence_8e1de389-9121-449e-a8e4-c12c5198bad0"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    }
+  },
+  "analystNote": {
+    "algorithm": "Simple wholesale quotation average/max/min and max-min difference. Total wholesale price interpreted net quantity times exact daily wholesale unit price; total selling price net quantity times actual selling unit price. Average loss rate simple mean across distinct quoted items per year. Loss estimated as net quantity*wholesale*r/(1-r) for procurement loss rate r; profit=revenue-sold-unit-cost-loss.",
+    "limitations": [
+      "No official loss/profit definition or procurement quantity",
+      "Estimated purchase loss fraction denominator 1-r",
+      "Unweighted quote/item averages",
+      "2020 and 2023 partial year data; signed returns; actual selling price assumed"
+    ]
+  },
+  "settings": {
+    "qualification": "required",
+    "fieldProbes": true,
+    "externalAdvisor": "not_configured",
+    "specFeedback": "not_configured",
+    "fanout": "disabled_for_offline_audit",
+    "populationDecisions": "allow_disclosed_headless_audit",
+    "databaseReadOnly": true
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "sql": "WITH scores AS (SELECT name,version,step,MAX(CASE WHEN model<>'Stack' THEN test_score END) baseline,MAX(CASE WHEN model='Stack' THEN test_score END) stack_score FROM model_score GROUP BY name,version,step), units AS (SELECT DISTINCT m.name,m.version,m.step,m.L1_model FROM model m JOIN scores s USING(name,version,step) WHERE m.L1_model IS NOT NULL AND baseline IS NOT NULL AND stack_score IS NOT NULL), counts AS (SELECT L1_model,COUNT(*) occurrences FROM units GROUP BY L1_model) SELECT L1_model,occurrences FROM counts WHERE occurrences=(SELECT MAX(occurrences) FROM counts) ORDER BY L1_model",
+  "limit": 100
+}

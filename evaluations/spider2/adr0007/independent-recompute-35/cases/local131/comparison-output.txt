@@ -1,0 +1,196 @@
+{
+  "instance_id": "local131",
+  "independent_freeze": "D:/data_agent/evaluations/spider2/adr0007/independent-recompute-35/cases/local131/independent-freeze.json",
+  "independent_official_score": 0,
+  "original_replayed_score": 0,
+  "recorded_original_score": 0,
+  "scorer_limitations": "Column-wise tolerance matching; ignore_order may ignore row associations; passing is not business proof.",
+  "independent": {
+    "path": "D:/data_agent/evaluations/spider2/adr0007/independent-recompute-35/cases/local131/publications/publication_dac26812-c4bb-467f-a93f-4424e4cb43b8/result.csv",
+    "rows": 25,
+    "columns": [
+      "StyleName",
+      "FirstPreference",
+      "SecondPreference",
+      "ThirdPreference"
+    ],
+    "head": [
+      {
+        "StyleName": "40's Ballroom Music",
+        "FirstPreference": 0,
+        "SecondPreference": 1,
+        "ThirdPreference": 1
+      },
+      {
+        "StyleName": "50's Music",
+        "FirstPreference": 0,
+        "SecondPreference": 0,
+        "ThirdPreference": 0
+      },
+      {
+        "StyleName": "60's Music",
+        "FirstPreference": 1,
+        "SecondPreference": 0,
+        "ThirdPreference": 0
+      },
+      {
+        "StyleName": "70's Music",
+        "FirstPreference": 0,
+        "SecondPreference": 1,
+        "ThirdPreference": 0
+      },
+      {
+        "StyleName": "80's Music",
+        "FirstPreference": 0,
+        "SecondPreference": 0,
+        "ThirdPreference": 1
+      },
+      {
+        "StyleName": "Country",
+        "FirstPreference": 0,
+        "SecondPreference": 1,
+        "ThirdPreference": 0
+      },
+      {
+        "StyleName": "Classical",
+        "FirstPreference": 0,
+        "SecondPreference": 1,
+        "ThirdPreference": 1
+      },
+      {
+        "StyleName": "Classic Rock & Roll",
+        "FirstPreference": 1,
+        "SecondPreference": 1,
+        "ThirdPreference": 0
+      }
+    ]
+  },
+  "original": {
+    "path": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local131.csv",
+    "rows": 25,
+    "columns": [
+      "StyleName",
+      "first_preference",
+      "second_preference",
+      "third_preference"
+    ],
+    "head": [
+      {
+        "StyleName": "40's Ballroom Music",
+        "first_preference": 0,
+        "second_preference": 1,
+        "third_preference": 1
+      },
+      {
+        "StyleName": "50's Music",
+        "first_preference": 0,
+        "second_preference": 0,
+        "third_preference": 0
+      },
+      {
+        "StyleName": "60's Music",
+        "first_preference": 1,
+        "second_preference": 0,
+        "third_preference": 0
+      },
+      {
+        "StyleName": "70's Music",
+        "first_preference": 0,
+        "second_preference": 1,
+        "third_preference": 0
+      },
+      {
+        "StyleName": "80's Music",
+        "first_preference": 0,
+        "second_preference": 0,
+        "third_preference": 1
+      },
+      {
+        "StyleName": "Country",
+        "first_preference": 0,
+        "second_preference": 1,
+        "third_preference": 0
+      },
+      {
+        "StyleName": "Classical",
+        "first_preference": 0,
+        "second_preference": 1,
+        "third_preference": 1
+      },
+      {
+        "StyleName": "Classic Rock & Roll",
+        "first_preference": 1,
+        "second_preference": 1,
+        "third_preference": 0
+      }
+    ]
+  },
+  "golds": [
+    {
+      "path": "C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local131.csv",
+      "rows": 20,
+      "columns": [
+        "StyleName",
+        "FirstPreference",
+        "SecondPreference",
+        "ThirdPreference"
+      ],
+      "head": [
+        {
+          "StyleName": "Standards",
+          "FirstPreference": 2,
+          "SecondPreference": 2,
+          "ThirdPreference": 0
+        },
+        {
+          "StyleName": "Jazz",
+          "FirstPreference": 2,
+          "SecondPreference": 1,
+          "ThirdPreference": 0
+        },
+        {
+          "StyleName": "Rhythm and Blues",
+          "FirstPreference": 2,
+          "SecondPreference": 0,
+          "ThirdPreference": 1
+        },
+        {
+          "StyleName": "Top 40 Hits",
+          "FirstPreference": 2,
+          "SecondPreference": 0,
+          "ThirdPreference": 0
+        },
+        {
+          "StyleName": "Contemporary",
+          "FirstPreference": 1,
+          "SecondPreference": 2,
+          "ThirdPreference": 0
+        },
+        {
+          "StyleName": "Classic Rock & Roll",
+          "FirstPreference": 1,
+          "SecondPreference": 1,
+          "ThirdPreference": 0
+        },
+        {
+          "StyleName": "Show Tunes",
+          "FirstPreference": 1,
+          "SecondPreference": 1,
+          "ThirdPreference": 0
+        },
+        {
+          "StyleName": "60's Music",
+          "FirstPreference": 1,
+          "SecondPreference": 0,
+          "ThirdPreference": 0
+        }
+      ]
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local131",
+    "condition_cols": [],
+    "ignore_order": true,
+    "toks": "91"
+  }
+}

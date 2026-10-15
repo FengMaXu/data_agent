@@ -1,0 +1,99 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_a185048d-2ef1-4b8a-860e-8629c37908c0\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\ncustomer_id | metric | name\n163 | 0.8866666666666667 | CATHY SPENCER\n155 | 0.5544444444444446 | GAIL KNIGHT\n178 | 0.5544444444444445 | MARION SNYDER\n521 | 0.5544444444444445 | ROLAND SOUTH\n585 | 0.5544444444444441 | PERRY SWAFFORD"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_a185048d-2ef1-4b8a-860e-8629c37908c0",
+      "preview": {
+        "columns": [
+          "customer_id",
+          "metric",
+          "name"
+        ],
+        "rows": [
+          [
+            163,
+            0.8866666666666667,
+            "CATHY SPENCER"
+          ],
+          [
+            155,
+            0.5544444444444446,
+            "GAIL KNIGHT"
+          ],
+          [
+            178,
+            0.5544444444444445,
+            "MARION SNYDER"
+          ],
+          [
+            521,
+            0.5544444444444445,
+            "ROLAND SOUTH"
+          ],
+          [
+            585,
+            0.5544444444444441,
+            "PERRY SWAFFORD"
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "REAL",
+          "TEXT"
+        ],
+        "rowCount": 5,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "customer_id",
+        "metric",
+        "name"
+      ],
+      "rows": [
+        [
+          163,
+          0.8866666666666667,
+          "CATHY SPENCER"
+        ],
+        [
+          155,
+          0.5544444444444446,
+          "GAIL KNIGHT"
+        ],
+        [
+          178,
+          0.5544444444444445,
+          "MARION SNYDER"
+        ],
+        [
+          521,
+          0.5544444444444445,
+          "ROLAND SOUTH"
+        ],
+        [
+          585,
+          0.5544444444444441,
+          "PERRY SWAFFORD"
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "REAL",
+        "TEXT"
+      ],
+      "rowCount": 5,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_1e1a1f12-de20-4198-9c06-1dc578aa5782"
+  }
+}

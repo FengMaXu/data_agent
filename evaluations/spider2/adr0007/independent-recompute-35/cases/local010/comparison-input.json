@@ -1,0 +1,73 @@
+{
+  "revealedAt": "2026-10-11T09:08:55.024Z",
+  "registry": {
+    "instance_id": "local010",
+    "attempt_id": "attempt-001",
+    "score": 0,
+    "score_source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-attempt-001.json",
+    "replayed_csv_score": 0,
+    "group": "wrong",
+    "status": "completed",
+    "publication_status": "published",
+    "duration_ms": 181783,
+    "tool_calls": 12,
+    "error": null,
+    "result_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local010/attempts/attempt-001/result.json",
+    "trace_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local010/attempts/attempt-001/trace.json",
+    "result_exists": true,
+    "trace_exists": true,
+    "sql_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local010/attempts/attempt-001/submissions/sql/local010.sql",
+    "csv_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local010.csv",
+    "sql_exists": true,
+    "csv_exists": true,
+    "gold_sql_file": null,
+    "process": {
+      "turns": 8,
+      "toolCalls": 12,
+      "explorationQueries": 3,
+      "resultQueries": 1,
+      "fanoutProbes": 0,
+      "revisions": 0
+    },
+    "fanout_metrics": {
+      "reportCount": 1,
+      "targetCount": 0,
+      "findingCount": 0,
+      "unknownCount": 0,
+      "byStatus": {
+        "clear": 0,
+        "finding": 0,
+        "not_applicable": 1,
+        "unknown": 0
+      },
+      "enabled": true
+    },
+    "spec_feedback_metrics": {
+      "reportCount": 1,
+      "byStatus": {
+        "pending": 0,
+        "completed": 0,
+        "unavailable": 1,
+        "disabled": 0
+      },
+      "deterministicIssueCount": 0,
+      "concernCount": 0,
+      "enabled": true
+    }
+  },
+  "originalSql": "WITH ap AS (\n  SELECT airport_code,\n         json_extract(city,'$.en') AS cty,\n         CAST(substr(coordinates, 2, instr(coordinates,',')-2) AS REAL) AS lon,\n         CAST(substr(coordinates, instr(coordinates,',')+1, length(coordinates)-instr(coordinates,',')-1) AS REAL) AS lat\n  FROM airports_data\n),\nfl AS (\n  SELECT CASE WHEN d.cty < a.cty THEN d.cty ELSE a.cty END AS c1,\n         CASE WHEN d.cty < a.cty THEN a.cty ELSE d.cty END AS c2,\n         2*6371*asin(sqrt(power(sin(radians(a.lat-d.lat)/2),2)+cos(radians(d.lat))*cos(radians(a.lat))*power(sin(radians(a.lon-d.lon)/2),2))) AS dist\n  FROM flights f\n  JOIN ap d ON d.airport_code = f.departure_airport\n  JOIN ap a ON a.airport_code = f.arrival_airport\n),\npair_avg AS (\n  SELECT c1, c2, AVG(dist) AS ad\n  FROM fl\n  GROUP BY c1, c2\n),\nbucketed AS (\n  SELECT CASE WHEN ad < 1000 THEN '0-1000'\n              WHEN ad < 2000 THEN '1000-2000'\n              WHEN ad < 3000 THEN '2000-3000'\n              WHEN ad < 4000 THEN '3000-4000'\n              WHEN ad < 5000 THEN '4000-5000'\n              WHEN ad < 6000 THEN '5000-6000'\n              ELSE '6000+' END AS distance_range\n  FROM pair_avg\n)\nSELECT COUNT(*) AS pair_count\nFROM bucketed\nGROUP BY distance_range\nORDER BY pair_count ASC\nLIMIT 1;\n",
+  "originalCsv": "pair_count\n3\n",
+  "goldSql": null,
+  "goldCsv": [
+    {
+      "path": "C:\\data-agent-eval\\Spider2\\spider2-lite\\evaluation_suite\\gold\\exec_result\\local010.csv",
+      "content": "output\r\n6"
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local010",
+    "condition_cols": [],
+    "ignore_order": true,
+    "toks": "195"
+  }
+}

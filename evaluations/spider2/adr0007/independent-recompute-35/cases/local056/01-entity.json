@@ -1,0 +1,9 @@
+{
+  "fields": {
+    "population.entity": {
+      "value": "客户，customer.customer_id",
+      "basis": "request",
+      "quote": "Which customer"
+    }
+  }
+}

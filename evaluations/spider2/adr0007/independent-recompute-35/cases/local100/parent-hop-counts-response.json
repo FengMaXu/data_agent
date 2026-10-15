@@ -1,0 +1,85 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_dfb8566e-a283-47c4-81da-c38c6440df6f\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nkind | n\nsource | 1\nsource_films | 90\nfirst_hop | 2383\nnext_films | 3206\nsecond_hop | 25698"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_dfb8566e-a283-47c4-81da-c38c6440df6f",
+      "preview": {
+        "columns": [
+          "kind",
+          "n"
+        ],
+        "rows": [
+          [
+            "source",
+            1
+          ],
+          [
+            "source_films",
+            90
+          ],
+          [
+            "first_hop",
+            2383
+          ],
+          [
+            "next_films",
+            3206
+          ],
+          [
+            "second_hop",
+            25698
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 5,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "kind",
+        "n"
+      ],
+      "rows": [
+        [
+          "source",
+          1
+        ],
+        [
+          "source_films",
+          90
+        ],
+        [
+          "first_hop",
+          2383
+        ],
+        [
+          "next_films",
+          3206
+        ],
+        [
+          "second_hop",
+          25698
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 5,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_c51a22a3-083f-4646-8d29-d058a58c92b6"
+  }
+}

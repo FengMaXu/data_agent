@@ -1,0 +1,9 @@
+{
+  "lane": "D",
+  "cases": {
+    "local056": {
+      "stage": "completed",
+      "summary": "ambiguous_after_recompute；score 0，两维差异已真实定位"
+    }
+  }
+}

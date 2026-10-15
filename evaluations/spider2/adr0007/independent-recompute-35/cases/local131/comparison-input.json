@@ -1,0 +1,73 @@
+{
+  "revealedAt": "2026-10-11T09:00:23.091Z",
+  "registry": {
+    "instance_id": "local131",
+    "attempt_id": "attempt-20261010-154318Z",
+    "score": 0,
+    "score_source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-retry.json",
+    "replayed_csv_score": 0,
+    "group": "wrong",
+    "status": "completed",
+    "publication_status": "published",
+    "duration_ms": 127819,
+    "tool_calls": 21,
+    "error": null,
+    "result_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local131/attempts/attempt-20261010-154318Z/result.json",
+    "trace_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local131/attempts/attempt-20261010-154318Z/trace.json",
+    "result_exists": true,
+    "trace_exists": true,
+    "sql_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local131/attempts/attempt-20261010-154318Z/submissions/sql/local131.sql",
+    "csv_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local131.csv",
+    "sql_exists": true,
+    "csv_exists": true,
+    "gold_sql_file": "C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/sql/local131.sql",
+    "process": {
+      "turns": 18,
+      "toolCalls": 21,
+      "explorationQueries": 2,
+      "resultQueries": 2,
+      "fanoutProbes": 0,
+      "revisions": 3
+    },
+    "fanout_metrics": {
+      "reportCount": 1,
+      "targetCount": 0,
+      "findingCount": 0,
+      "unknownCount": 0,
+      "byStatus": {
+        "clear": 0,
+        "finding": 0,
+        "not_applicable": 0,
+        "unknown": 1
+      },
+      "enabled": true
+    },
+    "spec_feedback_metrics": {
+      "reportCount": 4,
+      "byStatus": {
+        "pending": 0,
+        "completed": 1,
+        "unavailable": 3,
+        "disabled": 0
+      },
+      "deterministicIssueCount": 0,
+      "concernCount": 0,
+      "enabled": true
+    }
+  },
+  "originalSql": "SELECT s.StyleName AS StyleName, SUM(CASE WHEN mp.PreferenceSeq = 1 THEN 1 ELSE 0 END) AS first_preference, SUM(CASE WHEN mp.PreferenceSeq = 2 THEN 1 ELSE 0 END) AS second_preference, SUM(CASE WHEN mp.PreferenceSeq = 3 THEN 1 ELSE 0 END) AS third_preference FROM Musical_Styles AS s LEFT JOIN Musical_Preferences AS mp ON mp.StyleID = s.StyleID AND mp.PreferenceSeq IN (1,2,3) GROUP BY s.StyleID, s.StyleName ORDER BY s.StyleID\n",
+  "originalCsv": "StyleName,first_preference,second_preference,third_preference\n40's Ballroom Music,0,1,1\n50's Music,0,0,0\n60's Music,1,0,0\n70's Music,0,1,0\n80's Music,0,0,1\nCountry,0,1,0\nClassical,0,1,1\nClassic Rock & Roll,1,1,0\nRap,0,0,0\nContemporary,1,2,0\nCountry Rock,1,0,0\nElvis,0,0,0\nFolk,0,1,0\nChamber Music,1,0,0\nJazz,2,1,0\nKaraoke,0,0,0\nMotown,0,1,0\nModern Rock,0,1,1\nRhythm and Blues,2,0,1\nShow Tunes,1,1,0\nStandards,2,2,0\nTop 40 Hits,2,0,0\nVariety,1,0,0\nSalsa,0,1,1\n90's Music,0,0,0\n",
+  "goldSql": "SELECT \r\n  Musical_Styles.StyleName,\r\n  COUNT(RankedPreferences.FirstStyle)\r\n    AS FirstPreference,\r\n  COUNT(RankedPreferences.SecondStyle)\r\n    AS SecondPreference,\r\n  COUNT(RankedPreferences.ThirdStyle)\r\n    AS ThirdPreference\r\nFROM Musical_Styles,\r\n (SELECT (CASE WHEN\r\n    Musical_Preferences.PreferenceSeq = 1\r\n               THEN Musical_Preferences.StyleID\r\n               ELSE Null END) As FirstStyle,\r\n         (CASE WHEN\r\n    Musical_Preferences.PreferenceSeq = 2\r\n               THEN Musical_Preferences.StyleID\r\n               ELSE Null END) As SecondStyle,\r\n         (CASE WHEN\r\n    Musical_Preferences.PreferenceSeq = 3\r\n               THEN Musical_Preferences.StyleID\r\n               ELSE Null END) AS ThirdStyle\r\n   FROM Musical_Preferences)  AS RankedPreferences\r\nWHERE Musical_Styles.StyleID =\r\n         RankedPreferences.FirstStyle\r\n  OR Musical_Styles.StyleID =\r\n         RankedPreferences.SecondStyle\r\n  OR Musical_Styles.StyleID =\r\n         RankedPreferences.ThirdStyle\r\nGROUP BY StyleID, StyleName\r\nHAVING COUNT(FirstStyle) > 0\r\n     OR     COUNT(SecondStyle) > 0\r\n     OR     COUNT(ThirdStyle) > 0\r\nORDER BY FirstPreference DESC,\r\n        SecondPreference DESC,\r\n        ThirdPreference DESC, StyleID;",
+  "goldCsv": [
+    {
+      "path": "C:\\data-agent-eval\\Spider2\\spider2-lite\\evaluation_suite\\gold\\exec_result\\local131.csv",
+      "content": "StyleName,FirstPreference,SecondPreference,ThirdPreference\r\nStandards,2,2,0\r\nJazz,2,1,0\r\nRhythm and Blues,2,0,1\r\nTop 40 Hits,2,0,0\r\nContemporary,1,2,0\r\nClassic Rock & Roll,1,1,0\r\nShow Tunes,1,1,0\r\n60's Music,1,0,0\r\nCountry Rock,1,0,0\r\nChamber Music,1,0,0\r\nVariety,1,0,0\r\n40's Ballroom Music,0,1,1\r\nClassical,0,1,1\r\nModern Rock,0,1,1\r\nSalsa,0,1,1\r\n70's Music,0,1,0\r\nCountry,0,1,0\r\nFolk,0,1,0\r\nMotown,0,1,0\r\n80's Music,0,0,1"
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local131",
+    "condition_cols": [],
+    "ignore_order": true,
+    "toks": "91"
+  }
+}

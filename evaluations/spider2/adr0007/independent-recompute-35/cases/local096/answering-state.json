@@ -1,0 +1,2477 @@
+{
+  "version": 2,
+  "tasks": [
+    {
+      "taskId": "task_8f48f1b9-67d7-4ac0-be97-e687527c5a22",
+      "sessionId": "local096",
+      "principalId": "independent-analyst",
+      "requestMessageId": "original-task",
+      "requestId": "d8b193d6-fd48-4859-b202-2674486aa3d2",
+      "currentRevisionId": "revision_f0dec9fa-125c-4141-bd9d-cff06c142f7c",
+      "lifecycle": "published",
+      "budget": {
+        "policy": {
+          "version": "answering-dual-loop-v1",
+          "maxRevisions": 40,
+          "maxExplorationAttempts": 120,
+          "maxResultAttempts": 20,
+          "maxElapsedMs": 14400000,
+          "maxObservedRows": 2000000
+        },
+        "startedAt": "2026-10-11T09:04:39.189Z",
+        "revisionCount": 1,
+        "explorationAttempts": 12,
+        "resultAttempts": 1,
+        "observedRows": 316
+      },
+      "createdAt": "2026-10-11T09:04:39.189Z",
+      "updatedAt": "2026-10-11T10:07:27.017Z",
+      "latestCandidateId": "candidate_e66469f5-bf89-4a21-b2a1-38a2ad792586",
+      "publicationId": "publication_e6432aaa-bac2-4c1b-85ac-a79cb8f8c5d5"
+    }
+  ],
+  "revisions": [
+    {
+      "taskId": "task_8f48f1b9-67d7-4ac0-be97-e687527c5a22",
+      "revisionId": "revision_d020730a-81de-41ab-a34e-6ab38a174364",
+      "requestId": "d8b193d6-fd48-4859-b202-2674486aa3d2",
+      "createdAt": "2026-10-11T09:04:39.189Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "电影，Movie.MID"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_3a9a7269-7979-4efc-8279-86db8cdf7283"
+            ]
+          }
+        }
+      },
+      "state": {
+        "state": "draft",
+        "revisionId": "revision_d020730a-81de-41ab-a34e-6ab38a174364"
+      },
+      "specFeedback": {
+        "taskId": "task_8f48f1b9-67d7-4ac0-be97-e687527c5a22",
+        "revisionId": "revision_d020730a-81de-41ab-a34e-6ab38a174364",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_3a9a7269-7979-4efc-8279-86db8cdf7283"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    },
+    {
+      "taskId": "task_8f48f1b9-67d7-4ac0-be97-e687527c5a22",
+      "revisionId": "revision_f0dec9fa-125c-4141-bd9d-cff06c142f7c",
+      "parentRevisionId": "revision_d020730a-81de-41ab-a34e-6ab38a174364",
+      "requestId": "133e62df-fb96-4ace-91ef-d84b35dddcac",
+      "createdAt": "2026-10-11T10:03:03.679Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "films",
+            "keyColumns": [
+              "Movie.MID"
+            ]
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_40939b29-18c9-49b8-af8b-7af8d4e96026"
+            ]
+          }
+        },
+        "population.eligibility": {
+          "state": "specified",
+          "value": "分母所有电影；分子至少一cast且所有Person明确Female，空cast排除分子",
+          "basis": {
+            "kind": "assumed",
+            "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+          }
+        },
+        "population.conditions": {
+          "state": "specified",
+          "value": [
+            "分子排除Male、None、SQL NULL或无法连接演员；演员身份外围空白清理"
+          ],
+          "basis": {
+            "kind": "assumed",
+            "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+          }
+        },
+        "population.time": {
+          "state": "specified",
+          "value": {
+            "expression": "全年份；CAST(substr(Movie.year,-4) AS INTEGER)"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_8b43b9ca-56bb-45ce-bee8-33a09b307306"
+            ]
+          }
+        },
+        "measure.formula": {
+          "state": "specified",
+          "value": {
+            "op": "custom",
+            "description": "先按电影聚合cast资格，再按年100*符合电影数/全部电影数；重复Person同PID保守合并，TRIM cast MID/PID"
+          },
+          "basis": {
+            "kind": "assumed",
+            "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+          }
+        },
+        "measure.countGrain": {
+          "state": "specified",
+          "value": "一部MID一票",
+          "basis": {
+            "kind": "assumed",
+            "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+          }
+        },
+        "measure.denominator": {
+          "state": "specified",
+          "value": "该年全部Movie",
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_fee9a513-e5b9-407d-a49c-17d0178624f1"
+            ]
+          }
+        },
+        "grouping": {
+          "state": "specified",
+          "value": [
+            "year"
+          ],
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_568f2e85-65e1-4251-9fcc-22198b0570af"
+            ]
+          }
+        },
+        "selection": {
+          "state": "not_applicable"
+        },
+        "output": {
+          "state": "specified",
+          "value": {
+            "rowMode": "grouped",
+            "columns": [
+              "year",
+              "total_movies",
+              "female_percentage"
+            ]
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_d5da19d0-51da-4d4d-bc8c-57d809d5430f"
+            ]
+          }
+        }
+      },
+      "state": {
+        "state": "ready",
+        "revisionId": "revision_f0dec9fa-125c-4141-bd9d-cff06c142f7c",
+        "ready": "ready_cee21f8b-390a-4008-96c9-85595a34e87e"
+      },
+      "rewrites": [
+        {
+          "path": "population.entity",
+          "reason": "登记已独立推导的答案；不以字段表决定业务算法。"
+        }
+      ],
+      "specFeedback": {
+        "taskId": "task_8f48f1b9-67d7-4ac0-be97-e687527c5a22",
+        "revisionId": "revision_f0dec9fa-125c-4141-bd9d-cff06c142f7c",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_3a9a7269-7979-4efc-8279-86db8cdf7283",
+          "evidence_adc6ea98-f3a6-44cf-aa3a-69ee51d84353",
+          "evidence_cc93e22a-eacd-41d8-b73d-138451c7bb21",
+          "evidence_557a0e23-1f47-4632-b631-895b49e6c4b8",
+          "evidence_52943571-df7d-478b-a38d-caf06e64e7b6",
+          "evidence_22b2dbc4-cdfd-4d74-8b9c-98a56bbfeaff",
+          "evidence_72a94aee-6edb-45a6-bd4e-2716756a973c",
+          "evidence_20be9bf4-d5df-4b56-814c-fb40cf18a74b",
+          "evidence_40939b29-18c9-49b8-af8b-7af8d4e96026",
+          "evidence_8b43b9ca-56bb-45ce-bee8-33a09b307306",
+          "evidence_fee9a513-e5b9-407d-a49c-17d0178624f1",
+          "evidence_568f2e85-65e1-4251-9fcc-22198b0570af",
+          "evidence_d5da19d0-51da-4d4d-bc8c-57d809d5430f"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "taskId": "task_8f48f1b9-67d7-4ac0-be97-e687527c5a22",
+      "items": [
+        {
+          "id": "request_be3e2f2bd519d830902bceb0",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "observedAt": "2026-10-11T09:04:39.189Z"
+        },
+        {
+          "id": "evidence_3a9a7269-7979-4efc-8279-86db8cdf7283",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "afd5bc94609f676c94d5447ee3751072c7a2d529a071c0b39291f0a6207f7891",
+          "quote": "percentage of films",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "afd5bc94609f676c94d5447ee3751072c7a2d529a071c0b39291f0a6207f7891"
+          },
+          "observedAt": "2026-10-11T09:04:39.189Z"
+        },
+        {
+          "id": "evidence_adc6ea98-f3a6-44cf-aa3a-69ee51d84353",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "388ea45b-273c-40b6-b679-a4692ec72bae",
+          "preview": {
+            "columns": [
+              "kind",
+              "rows",
+              "distinct_id",
+              "padded"
+            ],
+            "rows": [
+              [
+                "Movie",
+                3475,
+                3475,
+                0
+              ],
+              [
+                "Person",
+                38285,
+                37565,
+                0
+              ],
+              [
+                "M_Cast",
+                82837,
+                82835,
+                82835
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 3,
+            "truncated": false
+          },
+          "queryHash": "60569cfb980a4fa7be1be13f036084385f3f1d61acc19be198d9282f05070462",
+          "contentHash": "6c9f64b71abdeee73c887b36d34c83f88d6c81716ebbd4ea69265c714b556b42",
+          "observedAt": "2026-10-11T09:04:46.738Z"
+        },
+        {
+          "id": "evidence_cc93e22a-eacd-41d8-b73d-138451c7bb21",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "c20b97e2-ab47-452e-9069-882d34ddd1b3",
+          "preview": {
+            "columns": [
+              "Gender",
+              "n"
+            ],
+            "rows": [
+              [
+                null,
+                8795
+              ],
+              [
+                "Female",
+                9435
+              ],
+              [
+                "Male",
+                20055
+              ]
+            ],
+            "columnTypes": [
+              "NULL",
+              "INTEGER"
+            ],
+            "rowCount": 3,
+            "truncated": false
+          },
+          "queryHash": "fc230db8a7cba14ece6235ac7ce3e841f495b4b0d1dddc4cbf2d3b09d7b86ef4",
+          "contentHash": "2dbd180be537fcf4a6c2a6ed54c72508666869fbe8bdff11667cdfdc186c5d5d",
+          "observedAt": "2026-10-11T09:04:53.883Z"
+        },
+        {
+          "id": "evidence_557a0e23-1f47-4632-b631-895b49e6c4b8",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "6e00a2b9-2518-48ef-ac04-d43d7c0011cc",
+          "preview": {
+            "columns": [
+              "table_name",
+              "rows",
+              "pairs",
+              "normalized_pairs",
+              "padded_mid",
+              "padded_pid"
+            ],
+            "rows": [
+              [
+                "cast",
+                82837,
+                82835,
+                82835,
+                0,
+                82835
+              ],
+              [
+                "Person",
+                38285,
+                37565,
+                37565,
+                0,
+                0
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 2,
+            "truncated": false
+          },
+          "queryHash": "67e1672e36df72069076ab599cc8fcd61a811444a4b34310d3bbedd41abfa66f",
+          "contentHash": "22ae0ec8bac84164afbe1b8e89d4764b713e5f100f688fba0875fd79ea587025",
+          "observedAt": "2026-10-11T10:02:52.321Z"
+        },
+        {
+          "id": "evidence_52943571-df7d-478b-a38d-caf06e64e7b6",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "ee3e9d76-d6e4-4092-9591-8e6ff805bb09",
+          "preview": {
+            "columns": [
+              "movies",
+              "empty_cast",
+              "female_only",
+              "rejected"
+            ],
+            "rows": [
+              [
+                3475,
+                0,
+                4,
+                3471
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "ac6028fa66da729ae33d669c90671cb408312ed2d775dcca6d955ba4fdebae68",
+          "contentHash": "7cab5ebfafb67219607f30a13d070a5d81b9b06df82b2e126d2b47e1f7d10926",
+          "observedAt": "2026-10-11T10:02:55.248Z"
+        },
+        {
+          "id": "evidence_22b2dbc4-cdfd-4d74-8b9c-98a56bbfeaff",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "f4a4d5e4-8c51-4634-b43d-5e1e7399be10",
+          "preview": {
+            "columns": [
+              "MID",
+              "title",
+              "year",
+              "actors"
+            ],
+            "rows": [
+              [
+                "tt0375882",
+                "Kala Jigar",
+                1939,
+                1
+              ],
+              [
+                "tt0272001",
+                "Bindhaast",
+                1999,
+                11
+              ],
+              [
+                "tt0354922",
+                "Snegithiye",
+                2000,
+                10
+              ],
+              [
+                "tt8458202",
+                "Pihu",
+                2018,
+                2
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "TEXT",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 4,
+            "truncated": false
+          },
+          "queryHash": "18e408facc37e79a95f1742a9d6dfeda7f584f47182a5169c0a0b635967741f2",
+          "contentHash": "52d2a2f159ee518870c1f2b4ed911cc9f38d88b7cbc7dba2cdb23c4473d979ac",
+          "observedAt": "2026-10-11T10:02:58.195Z"
+        },
+        {
+          "id": "evidence_72a94aee-6edb-45a6-bd4e-2716756a973c",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "78959daf-92da-4309-b149-7dd8102e0dc9",
+          "preview": {
+            "columns": [
+              "year",
+              "total",
+              "empty_cast",
+              "female_only"
+            ],
+            "rows": [
+              [
+                1931,
+                1,
+                0,
+                0
+              ],
+              [
+                1936,
+                3,
+                0,
+                0
+              ],
+              [
+                1939,
+                2,
+                0,
+                1
+              ],
+              [
+                1941,
+                1,
+                0,
+                0
+              ],
+              [
+                1943,
+                1,
+                0,
+                0
+              ],
+              [
+                1946,
+                2,
+                0,
+                0
+              ],
+              [
+                1947,
+                2,
+                0,
+                0
+              ],
+              [
+                1948,
+                3,
+                0,
+                0
+              ],
+              [
+                1949,
+                3,
+                0,
+                0
+              ],
+              [
+                1950,
+                2,
+                0,
+                0
+              ],
+              [
+                1951,
+                6,
+                0,
+                0
+              ],
+              [
+                1952,
+                6,
+                0,
+                0
+              ],
+              [
+                1953,
+                8,
+                0,
+                0
+              ],
+              [
+                1954,
+                6,
+                0,
+                0
+              ],
+              [
+                1955,
+                9,
+                0,
+                0
+              ],
+              [
+                1956,
+                6,
+                0,
+                0
+              ],
+              [
+                1957,
+                13,
+                0,
+                0
+              ],
+              [
+                1958,
+                9,
+                0,
+                0
+              ],
+              [
+                1959,
+                6,
+                0,
+                0
+              ],
+              [
+                1960,
+                14,
+                0,
+                0
+              ],
+              [
+                1961,
+                7,
+                0,
+                0
+              ],
+              [
+                1962,
+                12,
+                0,
+                0
+              ],
+              [
+                1963,
+                10,
+                0,
+                0
+              ],
+              [
+                1964,
+                15,
+                0,
+                0
+              ],
+              [
+                1965,
+                14,
+                0,
+                0
+              ],
+              [
+                1966,
+                18,
+                0,
+                0
+              ],
+              [
+                1967,
+                19,
+                0,
+                0
+              ],
+              [
+                1968,
+                21,
+                0,
+                0
+              ],
+              [
+                1969,
+                18,
+                0,
+                0
+              ],
+              [
+                1970,
+                24,
+                0,
+                0
+              ],
+              [
+                1971,
+                24,
+                0,
+                0
+              ],
+              [
+                1972,
+                29,
+                0,
+                0
+              ],
+              [
+                1973,
+                29,
+                0,
+                0
+              ],
+              [
+                1974,
+                26,
+                0,
+                0
+              ],
+              [
+                1975,
+                24,
+                0,
+                0
+              ],
+              [
+                1976,
+                22,
+                0,
+                0
+              ],
+              [
+                1977,
+                28,
+                0,
+                0
+              ],
+              [
+                1978,
+                23,
+                0,
+                0
+              ],
+              [
+                1979,
+                25,
+                0,
+                0
+              ],
+              [
+                1980,
+                31,
+                0,
+                0
+              ],
+              [
+                1981,
+                33,
+                0,
+                0
+              ],
+              [
+                1982,
+                36,
+                0,
+                0
+              ],
+              [
+                1983,
+                37,
+                0,
+                0
+              ],
+              [
+                1984,
+                33,
+                0,
+                0
+              ],
+              [
+                1985,
+                31,
+                0,
+                0
+              ],
+              [
+                1986,
+                33,
+                0,
+                0
+              ],
+              [
+                1987,
+                32,
+                0,
+                0
+              ],
+              [
+                1988,
+                37,
+                0,
+                0
+              ],
+              [
+                1989,
+                47,
+                0,
+                0
+              ],
+              [
+                1990,
+                42,
+                0,
+                0
+              ],
+              [
+                1991,
+                41,
+                0,
+                0
+              ],
+              [
+                1992,
+                58,
+                0,
+                0
+              ],
+              [
+                1993,
+                63,
+                0,
+                0
+              ],
+              [
+                1994,
+                60,
+                0,
+                0
+              ],
+              [
+                1995,
+                56,
+                0,
+                0
+              ],
+              [
+                1996,
+                60,
+                0,
+                0
+              ],
+              [
+                1997,
+                55,
+                0,
+                0
+              ],
+              [
+                1998,
+                55,
+                0,
+                0
+              ],
+              [
+                1999,
+                66,
+                0,
+                1
+              ],
+              [
+                2000,
+                64,
+                0,
+                1
+              ],
+              [
+                2001,
+                73,
+                0,
+                0
+              ],
+              [
+                2002,
+                87,
+                0,
+                0
+              ],
+              [
+                2003,
+                103,
+                0,
+                0
+              ],
+              [
+                2004,
+                103,
+                0,
+                0
+              ],
+              [
+                2005,
+                129,
+                0,
+                0
+              ],
+              [
+                2006,
+                101,
+                0,
+                0
+              ],
+              [
+                2007,
+                109,
+                0,
+                0
+              ],
+              [
+                2008,
+                107,
+                0,
+                0
+              ],
+              [
+                2009,
+                110,
+                0,
+                0
+              ],
+              [
+                2010,
+                125,
+                0,
+                0
+              ],
+              [
+                2011,
+                116,
+                0,
+                0
+              ],
+              [
+                2012,
+                111,
+                0,
+                0
+              ],
+              [
+                2013,
+                136,
+                0,
+                0
+              ],
+              [
+                2014,
+                126,
+                0,
+                0
+              ],
+              [
+                2015,
+                119,
+                0,
+                0
+              ],
+              [
+                2016,
+                129,
+                0,
+                0
+              ],
+              [
+                2017,
+                126,
+                0,
+                0
+              ],
+              [
+                2018,
+                104,
+                0,
+                1
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 78,
+            "truncated": false
+          },
+          "queryHash": "8bbeacec1b891c731777589132cc6e24c9465eaf2bea91184896d31aa339fe48",
+          "contentHash": "0e2f44ecb73168522d52e6626f0fceb63aa0a7857b522b5de9934d17d1ed558d",
+          "observedAt": "2026-10-11T10:03:00.963Z"
+        },
+        {
+          "id": "evidence_20be9bf4-d5df-4b56-814c-fb40cf18a74b",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "fb385c67-4ee1-4861-b519-e7bd8117577c",
+          "preview": {
+            "columns": [
+              "PID",
+              "n",
+              "genders",
+              "values_seen"
+            ],
+            "rows": [
+              [
+                "nm0001162",
+                2,
+                1,
+                "Male"
+              ],
+              [
+                "nm0001408",
+                2,
+                1,
+                "Male"
+              ],
+              [
+                "nm0004292",
+                2,
+                1,
+                "Male"
+              ],
+              [
+                "nm0004363",
+                2,
+                1,
+                "Male"
+              ],
+              [
+                "nm0004433",
+                2,
+                1,
+                "Male"
+              ],
+              [
+                "nm0004434",
+                2,
+                1,
+                "Male"
+              ],
+              [
+                "nm0004564",
+                2,
+                1,
+                "Female"
+              ],
+              [
+                "nm0004570",
+                2,
+                1,
+                "Male"
+              ],
+              [
+                "nm0006348",
+                2,
+                1,
+                "Male"
+              ],
+              [
+                "nm0006370",
+                2,
+                1,
+                "Male"
+              ],
+              [
+                "nm0007124",
+                2,
+                1,
+                "Female"
+              ],
+              [
+                "nm0007147",
+                2,
+                1,
+                "Male"
+              ],
+              [
+                "nm0007806",
+                2,
+                1,
+                "Male"
+              ],
+              [
+                "nm0013158",
+                2,
+                1,
+                "Male"
+              ],
+              [
+                "nm0015459",
+                2,
+                1,
+                "Male"
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER",
+              "INTEGER",
+              "TEXT"
+            ],
+            "rowCount": 15,
+            "truncated": false
+          },
+          "queryHash": "5602c3bf55f4283e73f1bf3db019a42ce059b998852d6e0e7268a6f93cf3116a",
+          "contentHash": "9859b1367fc3cce9e1f427b8f339542f0594495c956d5ef39f805aca58776f49",
+          "observedAt": "2026-10-11T10:03:02.541Z"
+        },
+        {
+          "id": "evidence_40939b29-18c9-49b8-af8b-7af8d4e96026",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "afd5bc94609f676c94d5447ee3751072c7a2d529a071c0b39291f0a6207f7891",
+          "quote": "percentage of films",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "afd5bc94609f676c94d5447ee3751072c7a2d529a071c0b39291f0a6207f7891"
+          },
+          "observedAt": "2026-10-11T10:03:03.679Z"
+        },
+        {
+          "id": "evidence_8b43b9ca-56bb-45ce-bee8-33a09b307306",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "afd5bc94609f676c94d5447ee3751072c7a2d529a071c0b39291f0a6207f7891",
+          "quote": "taking the last 4 characters and converting to a number",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "afd5bc94609f676c94d5447ee3751072c7a2d529a071c0b39291f0a6207f7891"
+          },
+          "observedAt": "2026-10-11T10:03:03.679Z"
+        },
+        {
+          "id": "evidence_fee9a513-e5b9-407d-a49c-17d0178624f1",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "afd5bc94609f676c94d5447ee3751072c7a2d529a071c0b39291f0a6207f7891",
+          "quote": "the total number of movies in that year",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "afd5bc94609f676c94d5447ee3751072c7a2d529a071c0b39291f0a6207f7891"
+          },
+          "observedAt": "2026-10-11T10:03:03.679Z"
+        },
+        {
+          "id": "evidence_568f2e85-65e1-4251-9fcc-22198b0570af",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "afd5bc94609f676c94d5447ee3751072c7a2d529a071c0b39291f0a6207f7891",
+          "quote": "For each year",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "afd5bc94609f676c94d5447ee3751072c7a2d529a071c0b39291f0a6207f7891"
+          },
+          "observedAt": "2026-10-11T10:03:03.679Z"
+        },
+        {
+          "id": "evidence_d5da19d0-51da-4d4d-bc8c-57d809d5430f",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "afd5bc94609f676c94d5447ee3751072c7a2d529a071c0b39291f0a6207f7891",
+          "quote": "display the year, the total number of movies in that year, and the percentage",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "afd5bc94609f676c94d5447ee3751072c7a2d529a071c0b39291f0a6207f7891"
+          },
+          "observedAt": "2026-10-11T10:03:03.679Z"
+        },
+        {
+          "id": "evidence_84728c1a-5b47-493d-b194-366ce04ac673",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "315a3666-2595-4bcb-bfb2-7080b9c5779d",
+          "preview": {
+            "columns": [
+              "MID",
+              "title",
+              "year",
+              "n",
+              "bad",
+              "unknown",
+              "female"
+            ],
+            "rows": [
+              [
+                "tt0375882",
+                "Kala Jigar",
+                1939,
+                1,
+                0,
+                0,
+                1
+              ],
+              [
+                "tt0272001",
+                "Bindhaast",
+                1999,
+                11,
+                0,
+                0,
+                1
+              ],
+              [
+                "tt0354922",
+                "Snegithiye",
+                2000,
+                10,
+                0,
+                0,
+                1
+              ],
+              [
+                "tt1587388",
+                "Yeh Hai Malegaon Ka Superman",
+                2009,
+                1,
+                0,
+                1,
+                0
+              ],
+              [
+                "tt2355921",
+                "The Wish Fish",
+                2012,
+                1,
+                0,
+                1,
+                0
+              ],
+              [
+                "tt8338754",
+                "Vaibhav Sethia: Don't",
+                2018,
+                1,
+                0,
+                1,
+                0
+              ],
+              [
+                "tt8458202",
+                "Pihu",
+                2018,
+                2,
+                0,
+                0,
+                1
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "TEXT",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 7,
+            "truncated": false
+          },
+          "queryHash": "00fc5b954eca7b43f737ff08aa83978044cfefd59a8aa02aaca2fc39e8c2c893",
+          "contentHash": "d24c9362a7158ebdf588ea835e4e717cb0730b924900e8e5a654d2405a3a34db",
+          "observedAt": "2026-10-11T10:06:40.503Z"
+        },
+        {
+          "id": "evidence_6843437b-a697-4a3a-8048-c84c2500700c",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "ae9a4efe-f60a-4ed3-ab1c-55074736c9e7",
+          "preview": {
+            "columns": [
+              "year",
+              "total_movies",
+              "ignored_null_percentage",
+              "explicit_female_percentage"
+            ],
+            "rows": [
+              [
+                1931,
+                1,
+                0,
+                0
+              ],
+              [
+                1936,
+                3,
+                0,
+                0
+              ],
+              [
+                1939,
+                2,
+                50,
+                50
+              ],
+              [
+                1941,
+                1,
+                0,
+                0
+              ],
+              [
+                1943,
+                1,
+                0,
+                0
+              ],
+              [
+                1946,
+                2,
+                0,
+                0
+              ],
+              [
+                1947,
+                2,
+                0,
+                0
+              ],
+              [
+                1948,
+                3,
+                0,
+                0
+              ],
+              [
+                1949,
+                3,
+                0,
+                0
+              ],
+              [
+                1950,
+                2,
+                0,
+                0
+              ],
+              [
+                1951,
+                6,
+                0,
+                0
+              ],
+              [
+                1952,
+                6,
+                0,
+                0
+              ],
+              [
+                1953,
+                8,
+                0,
+                0
+              ],
+              [
+                1954,
+                6,
+                0,
+                0
+              ],
+              [
+                1955,
+                9,
+                0,
+                0
+              ],
+              [
+                1956,
+                6,
+                0,
+                0
+              ],
+              [
+                1957,
+                13,
+                0,
+                0
+              ],
+              [
+                1958,
+                9,
+                0,
+                0
+              ],
+              [
+                1959,
+                6,
+                0,
+                0
+              ],
+              [
+                1960,
+                14,
+                0,
+                0
+              ],
+              [
+                1961,
+                7,
+                0,
+                0
+              ],
+              [
+                1962,
+                12,
+                0,
+                0
+              ],
+              [
+                1963,
+                10,
+                0,
+                0
+              ],
+              [
+                1964,
+                15,
+                0,
+                0
+              ],
+              [
+                1965,
+                14,
+                0,
+                0
+              ],
+              [
+                1966,
+                18,
+                0,
+                0
+              ],
+              [
+                1967,
+                19,
+                0,
+                0
+              ],
+              [
+                1968,
+                21,
+                0,
+                0
+              ],
+              [
+                1969,
+                18,
+                0,
+                0
+              ],
+              [
+                1970,
+                24,
+                0,
+                0
+              ],
+              [
+                1971,
+                24,
+                0,
+                0
+              ],
+              [
+                1972,
+                29,
+                0,
+                0
+              ],
+              [
+                1973,
+                29,
+                0,
+                0
+              ],
+              [
+                1974,
+                26,
+                0,
+                0
+              ],
+              [
+                1975,
+                24,
+                0,
+                0
+              ],
+              [
+                1976,
+                22,
+                0,
+                0
+              ],
+              [
+                1977,
+                28,
+                0,
+                0
+              ],
+              [
+                1978,
+                23,
+                0,
+                0
+              ],
+              [
+                1979,
+                25,
+                0,
+                0
+              ],
+              [
+                1980,
+                31,
+                0,
+                0
+              ],
+              [
+                1981,
+                33,
+                0,
+                0
+              ],
+              [
+                1982,
+                36,
+                0,
+                0
+              ],
+              [
+                1983,
+                37,
+                0,
+                0
+              ],
+              [
+                1984,
+                33,
+                0,
+                0
+              ],
+              [
+                1985,
+                31,
+                0,
+                0
+              ],
+              [
+                1986,
+                33,
+                0,
+                0
+              ],
+              [
+                1987,
+                32,
+                0,
+                0
+              ],
+              [
+                1988,
+                37,
+                0,
+                0
+              ],
+              [
+                1989,
+                47,
+                0,
+                0
+              ],
+              [
+                1990,
+                42,
+                0,
+                0
+              ],
+              [
+                1991,
+                41,
+                0,
+                0
+              ],
+              [
+                1992,
+                58,
+                0,
+                0
+              ],
+              [
+                1993,
+                63,
+                0,
+                0
+              ],
+              [
+                1994,
+                60,
+                0,
+                0
+              ],
+              [
+                1995,
+                56,
+                0,
+                0
+              ],
+              [
+                1996,
+                60,
+                0,
+                0
+              ],
+              [
+                1997,
+                55,
+                0,
+                0
+              ],
+              [
+                1998,
+                55,
+                0,
+                0
+              ],
+              [
+                1999,
+                66,
+                1.5151515151515151,
+                1.5151515151515151
+              ],
+              [
+                2000,
+                64,
+                1.5625,
+                1.5625
+              ],
+              [
+                2001,
+                73,
+                0,
+                0
+              ],
+              [
+                2002,
+                87,
+                0,
+                0
+              ],
+              [
+                2003,
+                103,
+                0,
+                0
+              ],
+              [
+                2004,
+                103,
+                0,
+                0
+              ],
+              [
+                2005,
+                129,
+                0,
+                0
+              ],
+              [
+                2006,
+                101,
+                0,
+                0
+              ],
+              [
+                2007,
+                109,
+                0,
+                0
+              ],
+              [
+                2008,
+                107,
+                0,
+                0
+              ],
+              [
+                2009,
+                110,
+                0.9090909090909091,
+                0
+              ],
+              [
+                2010,
+                125,
+                0,
+                0
+              ],
+              [
+                2011,
+                116,
+                0,
+                0
+              ],
+              [
+                2012,
+                111,
+                0.9009009009009009,
+                0
+              ],
+              [
+                2013,
+                136,
+                0,
+                0
+              ],
+              [
+                2014,
+                126,
+                0,
+                0
+              ],
+              [
+                2015,
+                119,
+                0,
+                0
+              ],
+              [
+                2016,
+                129,
+                0,
+                0
+              ],
+              [
+                2017,
+                126,
+                0,
+                0
+              ],
+              [
+                2018,
+                104,
+                1.9230769230769231,
+                0.9615384615384616
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 78,
+            "truncated": false
+          },
+          "queryHash": "b317b3d51519a50d807474274fa5a1ed8d559c50ad9d704d90c6c5944bd4c7b8",
+          "contentHash": "4c7350b4c43ec7e7d6e40a67d1913a9e2c4a6b9b369413adcbbd641945f6c97b",
+          "observedAt": "2026-10-11T10:06:45.063Z"
+        },
+        {
+          "id": "evidence_9d0238ce-c215-48e0-b7c0-e5af93735bd9",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "24af85ea-6267-4eb2-a4d1-2ebc4b2671fe",
+          "preview": {
+            "columns": [
+              "title",
+              "year",
+              "PID",
+              "Name",
+              "Gender"
+            ],
+            "rows": [
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm0050187",
+                " Arun Bali",
+                "Male"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm0149822",
+                " Mithun Chakraborty",
+                "Male"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm0222150",
+                " Prabhu Deva",
+                "Male"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm0222150",
+                "Prabhu Deva",
+                "Male"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm0474774",
+                " Akshay Kumar",
+                "Male"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm0542498",
+                " Mahesh Manjrekar",
+                "Male"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm0542498",
+                "Mahesh Manjrekar",
+                "Male"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm0620636",
+                " Govind Namdeo",
+                "Male"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm0700875",
+                " Om Puri",
+                "Male"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm0712546",
+                " Paresh Rawal",
+                "Male"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm1030307",
+                " Poonam Jhawer",
+                "Female"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm1084488",
+                " Umesh Shukla",
+                null
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm1084488",
+                "Umesh Shukla",
+                null
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm1302330",
+                " Murli Sharma",
+                "Male"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm1330618",
+                " Yusuf Hussain",
+                "Male"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm1913309",
+                " Nikhil Ratnaparkhi",
+                "Male"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm1979258",
+                " Chirag Vohra",
+                "Male"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm2276202",
+                " Bhavesh Mandalia",
+                null
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm3140050",
+                " Azaan Shah",
+                "Male"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm3848064",
+                " Sonakshi Sinha",
+                "Female"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm3891905",
+                " Lubna Salim",
+                "Female"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm4005751",
+                " Bhakti Ratnaparkhi",
+                "Female"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm4443385",
+                " Krunal Pandit",
+                "Male"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm4559606",
+                " Apoorva Arora",
+                "Female"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm4999775",
+                " Nidhi Subbaiah",
+                "Female"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm5314927",
+                " Jaineeraj Rajpurohit",
+                "Male"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm5315020",
+                " Pradeep Vengurlekar",
+                "Male"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm5315022",
+                " Kukul Taramaster",
+                "Male"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm5315046",
+                " Karandeep Singh",
+                "Male"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm5315050",
+                " Honey Chaaya",
+                "Male"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm5363398",
+                " Ishita Vyas",
+                "Female"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm5557230",
+                " Puja Gupta",
+                "Female"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm5637026",
+                " Pathik Desai",
+                "Male"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm6953296",
+                " Jayesh More",
+                "Male"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm7317036",
+                " Vidya Patwardhan",
+                "Female"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm7457338",
+                " Dimple Danda",
+                "Female"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm7523299",
+                " Nilesh Pandya",
+                "Male"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm7523300",
+                " Pravin Naik",
+                "Male"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm7523301",
+                " Suneel Chouhan",
+                "Male"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm7523302",
+                " Shashi Omprakash Sati",
+                "Female"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm7523303",
+                " Vinad Khanna",
+                "Male"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm7523304",
+                " Chirag Vora",
+                "Male"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm7523305",
+                " Abdul Majid Shiakha",
+                "Male"
+              ],
+              [
+                "OMG: Oh My God!",
+                "2012",
+                "nm7523306",
+                " Anil Badola",
+                "Male"
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "TEXT",
+              "TEXT",
+              "TEXT",
+              "TEXT"
+            ],
+            "rowCount": 44,
+            "truncated": false
+          },
+          "queryHash": "866f9c2eda73b97f26fdc7cd03342cd4b62d3f30d3d9b6cde3de5d04217c896f",
+          "contentHash": "aa27ae98715e636fcd9172627a81c254c34d20fcc19ca9c8893b8d9930c5d6e4",
+          "observedAt": "2026-10-11T10:06:48.271Z"
+        },
+        {
+          "id": "evidence_f5217163-af1c-431d-891f-5c998822693e",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "4d8aeb3e-ea02-4f94-b3a3-68c992b9590b",
+          "preview": {
+            "columns": [
+              "MID",
+              "title",
+              "year",
+              "PID",
+              "Name",
+              "Gender"
+            ],
+            "rows": [
+              [
+                "tt2355921",
+                "The Wish Fish",
+                "2012",
+                null,
+                null,
+                null
+              ],
+              [
+                "tt8338754",
+                "Vaibhav Sethia: Don't",
+                "2018",
+                "nm9795685",
+                " Vaibhav Sethia",
+                null
+              ],
+              [
+                "tt1587388",
+                "Yeh Hai Malegaon Ka Superman",
+                "2009",
+                null,
+                null,
+                null
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "TEXT",
+              "TEXT",
+              "NULL",
+              "NULL",
+              "NULL"
+            ],
+            "rowCount": 3,
+            "truncated": false
+          },
+          "queryHash": "bafec2bfa698060862f46fcbaf0915da61b4f2d5b1687ea4123363dcdde461fb",
+          "contentHash": "35ec903c8cbede28a26f0883a2d65c68a72d8e86c7ff6313dbb0d4ed39460253",
+          "observedAt": "2026-10-11T10:07:27.016Z"
+        }
+      ]
+    }
+  ],
+  "attempts": [
+    {
+      "taskId": "task_8f48f1b9-67d7-4ac0-be97-e687527c5a22",
+      "items": [
+        {
+          "attemptId": "attempt_71fc1e25-0099-4efc-bbe1-b1fea5327d21",
+          "taskId": "task_8f48f1b9-67d7-4ac0-be97-e687527c5a22",
+          "kind": "exploration",
+          "revisionId": "revision_d020730a-81de-41ab-a34e-6ab38a174364",
+          "invocationId": "388ea45b-273c-40b6-b679-a4692ec72bae",
+          "queryHash": "60569cfb980a4fa7be1be13f036084385f3f1d61acc19be198d9282f05070462",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:04:44.915Z",
+          "updatedAt": "2026-10-11T09:04:46.739Z"
+        },
+        {
+          "attemptId": "attempt_d8add55c-3ca6-411c-9101-408dcb8e5c24",
+          "taskId": "task_8f48f1b9-67d7-4ac0-be97-e687527c5a22",
+          "kind": "exploration",
+          "revisionId": "revision_d020730a-81de-41ab-a34e-6ab38a174364",
+          "invocationId": "c20b97e2-ab47-452e-9069-882d34ddd1b3",
+          "queryHash": "fc230db8a7cba14ece6235ac7ce3e841f495b4b0d1dddc4cbf2d3b09d7b86ef4",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:04:51.670Z",
+          "updatedAt": "2026-10-11T09:04:53.883Z"
+        },
+        {
+          "attemptId": "attempt_af8770c3-3f67-4615-9d21-5ef890614a40",
+          "taskId": "task_8f48f1b9-67d7-4ac0-be97-e687527c5a22",
+          "kind": "exploration",
+          "revisionId": "revision_d020730a-81de-41ab-a34e-6ab38a174364",
+          "invocationId": "d90c9e78-99a9-47d0-83d3-545d905a30b1",
+          "queryHash": "596b036b58264e948635d27d4b150f3683a4c12c8c7a60dcdc6f20406b705567",
+          "state": "failed",
+          "sqlExecuted": true,
+          "outcome": "failed",
+          "createdAt": "2026-10-11T09:04:57.921Z",
+          "updatedAt": "2026-10-11T09:06:58.425Z",
+          "obstacleKind": "technical_failure"
+        },
+        {
+          "attemptId": "attempt_5ea7b21c-6268-4ad6-85ad-4eb3467eaed9",
+          "taskId": "task_8f48f1b9-67d7-4ac0-be97-e687527c5a22",
+          "kind": "exploration",
+          "revisionId": "revision_d020730a-81de-41ab-a34e-6ab38a174364",
+          "invocationId": "6e00a2b9-2518-48ef-ac04-d43d7c0011cc",
+          "queryHash": "67e1672e36df72069076ab599cc8fcd61a811444a4b34310d3bbedd41abfa66f",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:02:51.624Z",
+          "updatedAt": "2026-10-11T10:02:52.321Z"
+        },
+        {
+          "attemptId": "attempt_b8031795-eeb0-4d41-a649-a458367ee9ac",
+          "taskId": "task_8f48f1b9-67d7-4ac0-be97-e687527c5a22",
+          "kind": "exploration",
+          "revisionId": "revision_d020730a-81de-41ab-a34e-6ab38a174364",
+          "invocationId": "ee3e9d76-d6e4-4092-9591-8e6ff805bb09",
+          "queryHash": "ac6028fa66da729ae33d669c90671cb408312ed2d775dcca6d955ba4fdebae68",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:02:53.907Z",
+          "updatedAt": "2026-10-11T10:02:55.249Z"
+        },
+        {
+          "attemptId": "attempt_351dce55-5058-47c1-83fb-d2c64b1edcbf",
+          "taskId": "task_8f48f1b9-67d7-4ac0-be97-e687527c5a22",
+          "kind": "exploration",
+          "revisionId": "revision_d020730a-81de-41ab-a34e-6ab38a174364",
+          "invocationId": "f4a4d5e4-8c51-4634-b43d-5e1e7399be10",
+          "queryHash": "18e408facc37e79a95f1742a9d6dfeda7f584f47182a5169c0a0b635967741f2",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:02:56.842Z",
+          "updatedAt": "2026-10-11T10:02:58.195Z"
+        },
+        {
+          "attemptId": "attempt_cf79e061-b481-42f8-9cd0-4526a483b400",
+          "taskId": "task_8f48f1b9-67d7-4ac0-be97-e687527c5a22",
+          "kind": "exploration",
+          "revisionId": "revision_d020730a-81de-41ab-a34e-6ab38a174364",
+          "invocationId": "78959daf-92da-4309-b149-7dd8102e0dc9",
+          "queryHash": "8bbeacec1b891c731777589132cc6e24c9465eaf2bea91184896d31aa339fe48",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:02:59.876Z",
+          "updatedAt": "2026-10-11T10:03:00.963Z"
+        },
+        {
+          "attemptId": "attempt_9242fa91-ed71-4d67-b322-3fd0cd66238b",
+          "taskId": "task_8f48f1b9-67d7-4ac0-be97-e687527c5a22",
+          "kind": "exploration",
+          "revisionId": "revision_d020730a-81de-41ab-a34e-6ab38a174364",
+          "invocationId": "fb385c67-4ee1-4861-b519-e7bd8117577c",
+          "queryHash": "5602c3bf55f4283e73f1bf3db019a42ce059b998852d6e0e7268a6f93cf3116a",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:03:02.183Z",
+          "updatedAt": "2026-10-11T10:03:02.542Z"
+        },
+        {
+          "attemptId": "attempt_ab23461d-718b-476e-b208-191b7ee8975d",
+          "taskId": "task_8f48f1b9-67d7-4ac0-be97-e687527c5a22",
+          "kind": "revision",
+          "revisionId": "revision_d020730a-81de-41ab-a34e-6ab38a174364",
+          "invocationId": "133e62df-fb96-4ace-91ef-d84b35dddcac",
+          "state": "succeeded",
+          "sqlExecuted": false,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:03:03.682Z",
+          "updatedAt": "2026-10-11T10:03:03.679Z"
+        },
+        {
+          "attemptId": "attempt_5c9e48e6-ba2a-40e8-8d64-3feaf17408fe",
+          "taskId": "task_8f48f1b9-67d7-4ac0-be97-e687527c5a22",
+          "kind": "result",
+          "revisionId": "revision_f0dec9fa-125c-4141-bd9d-cff06c142f7c",
+          "invocationId": "77cbdbae-89eb-44e7-b786-9023150259bf",
+          "queryHash": "49c9c66fe1f846e058a4a62d47c9ac414a588284791e7484f041eb61e9441a40",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:03:05.133Z",
+          "updatedAt": "2026-10-11T10:03:06.536Z"
+        },
+        {
+          "attemptId": "attempt_41cb8b94-f0a9-4807-a850-a22c968bd4c9",
+          "taskId": "task_8f48f1b9-67d7-4ac0-be97-e687527c5a22",
+          "kind": "exploration",
+          "revisionId": "revision_f0dec9fa-125c-4141-bd9d-cff06c142f7c",
+          "invocationId": "315a3666-2595-4bcb-bfb2-7080b9c5779d",
+          "queryHash": "00fc5b954eca7b43f737ff08aa83978044cfefd59a8aa02aaca2fc39e8c2c893",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:06:39.473Z",
+          "updatedAt": "2026-10-11T10:06:40.505Z"
+        },
+        {
+          "attemptId": "attempt_435b8f7e-204a-4b60-bbac-db6577d44d98",
+          "taskId": "task_8f48f1b9-67d7-4ac0-be97-e687527c5a22",
+          "kind": "exploration",
+          "revisionId": "revision_f0dec9fa-125c-4141-bd9d-cff06c142f7c",
+          "invocationId": "ae9a4efe-f60a-4ed3-ab1c-55074736c9e7",
+          "queryHash": "b317b3d51519a50d807474274fa5a1ed8d559c50ad9d704d90c6c5944bd4c7b8",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:06:43.489Z",
+          "updatedAt": "2026-10-11T10:06:45.065Z"
+        },
+        {
+          "attemptId": "attempt_549e3d82-59ef-4b7e-bc58-87a2c1370ac1",
+          "taskId": "task_8f48f1b9-67d7-4ac0-be97-e687527c5a22",
+          "kind": "exploration",
+          "revisionId": "revision_f0dec9fa-125c-4141-bd9d-cff06c142f7c",
+          "invocationId": "24af85ea-6267-4eb2-a4d1-2ebc4b2671fe",
+          "queryHash": "866f9c2eda73b97f26fdc7cd03342cd4b62d3f30d3d9b6cde3de5d04217c896f",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:06:47.713Z",
+          "updatedAt": "2026-10-11T10:06:48.272Z"
+        },
+        {
+          "attemptId": "attempt_ccb1fc4c-9351-418e-a7ab-b2ba1eb46895",
+          "taskId": "task_8f48f1b9-67d7-4ac0-be97-e687527c5a22",
+          "kind": "exploration",
+          "revisionId": "revision_f0dec9fa-125c-4141-bd9d-cff06c142f7c",
+          "invocationId": "4d8aeb3e-ea02-4f94-b3a3-68c992b9590b",
+          "queryHash": "bafec2bfa698060862f46fcbaf0915da61b4f2d5b1687ea4123363dcdde461fb",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:07:26.367Z",
+          "updatedAt": "2026-10-11T10:07:27.017Z"
+        }
+      ]
+    }
+  ],
+  "candidates": [
+    {
+      "candidateId": "candidate_e66469f5-bf89-4a21-b2a1-38a2ad792586",
+      "taskId": "task_8f48f1b9-67d7-4ac0-be97-e687527c5a22",
+      "revisionId": "revision_f0dec9fa-125c-4141-bd9d-cff06c142f7c",
+      "resultRef": "result_e6249ef6-0065-4e6c-92a7-4d3d3de8c9ba",
+      "resultSchema": [
+        "year",
+        "total_movies",
+        "female_percentage"
+      ],
+      "rowCount": 78,
+      "contentHash": "e974fe9e9ef3a819e3530dd9295a40c3eacd4ba8a75738b3eb18a39ee7f4496d",
+      "sql": "WITH persons AS MATERIALIZED (SELECT PID,MAX(CASE WHEN Gender='Female' THEN 0 ELSE 1 END) bad FROM Person GROUP BY PID), cast_rows AS MATERIALIZED (SELECT DISTINCT TRIM(MID) mid,TRIM(PID) pid FROM M_Cast), cast_flags AS MATERIALIZED (SELECT c.mid,COUNT(*) actors,MAX(COALESCE(p.bad,1)) bad FROM cast_rows c LEFT JOIN persons p ON c.pid=p.PID GROUP BY c.mid), movie_flags AS (SELECT m.MID,m.title,CAST(substr(m.year,-4) AS INTEGER) year,COALESCE(c.actors,0) actors,COALESCE(c.bad,0) bad FROM Movie m LEFT JOIN cast_flags c ON m.MID=c.mid) SELECT year,COUNT(*) total_movies,100.0*SUM(actors>0 AND bad=0)/COUNT(*) female_percentage FROM movie_flags GROUP BY year ORDER BY year",
+      "queryHash": "49c9c66fe1f846e058a4a62d47c9ac414a588284791e7484f041eb61e9441a40",
+      "findings": [],
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "unknown",
+          "reason": "check_disabled"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "unknown",
+        "snapshotScope": "unbound",
+        "targets": [],
+        "unsupportedReasons": [
+          "check_disabled"
+        ]
+      },
+      "attemptId": "attempt_5c9e48e6-ba2a-40e8-8d64-3feaf17408fe",
+      "createdByInvocationId": "77cbdbae-89eb-44e7-b786-9023150259bf",
+      "createdAt": "2026-10-11T10:03:06.536Z",
+      "status": "ready",
+      "publishable": true
+    }
+  ],
+  "receipts": [
+    {
+      "receiptId": "publication_e6432aaa-bac2-4c1b-85ac-a79cb8f8c5d5",
+      "taskId": "task_8f48f1b9-67d7-4ac0-be97-e687527c5a22",
+      "principalId": "independent-analyst",
+      "sessionId": "local096",
+      "candidateId": "candidate_e66469f5-bf89-4a21-b2a1-38a2ad792586",
+      "revisionId": "revision_f0dec9fa-125c-4141-bd9d-cff06c142f7c",
+      "resultRef": "result_e6249ef6-0065-4e6c-92a7-4d3d3de8c9ba",
+      "format": "csv",
+      "publicRef": "/api/runtime/publications/publication_e6432aaa-bac2-4c1b-85ac-a79cb8f8c5d5?session_id=local096",
+      "contentHash": "e974fe9e9ef3a819e3530dd9295a40c3eacd4ba8a75738b3eb18a39ee7f4496d",
+      "presentationContentHash": "17ac62057bb50b8b7bfa3f3a8566d233fa1600c508cb2fce81b72c9387a38dea",
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "unknown",
+          "reason": "check_disabled"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "unknown",
+        "snapshotScope": "unbound",
+        "targets": [],
+        "unsupportedReasons": [
+          "check_disabled"
+        ]
+      },
+      "disclosure": {
+        "required": true,
+        "unverifiedFields": [
+          {
+            "path": "population.eligibility",
+            "kind": "assumed"
+          },
+          {
+            "path": "population.conditions",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.formula",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.countGrain",
+            "kind": "assumed"
+          }
+        ],
+        "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.conditions, measure.formula, measure.countGrain。 JOIN fanout 检查未能完整完成：check_disabled。",
+        "fanoutStatus": "unknown"
+      },
+      "physicalProfile": {
+        "version": 1,
+        "rowCount": 78,
+        "truncated": false,
+        "columns": [
+          {
+            "name": "year",
+            "kind": "integer",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 78,
+            "min": "1931",
+            "max": "2018"
+          },
+          {
+            "name": "total_movies",
+            "kind": "integer",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 52,
+            "min": "1",
+            "max": "136"
+          },
+          {
+            "name": "female_percentage",
+            "kind": "decimal",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 5,
+            "min": "0",
+            "max": "50"
+          }
+        ]
+      },
+      "policyVersion": "answering-publication-v1",
+      "createdByInvocationId": "77cbdbae-89eb-44e7-b786-9023150259bf",
+      "requestId": "77cbdbae-89eb-44e7-b786-9023150259bf",
+      "createdAt": "2026-10-11T10:03:06.551Z"
+    }
+  ]
+}

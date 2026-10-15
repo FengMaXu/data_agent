@@ -1,0 +1,253 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_828e0a8b-8d93-4f69-9693-24e7653890c8\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nmode | current_m | prior_m | pair_n | signed_n | abs_n\ndw_only | 2020-02-01 | 2020-01-01 | 422 | 240 | 256\ndw_only | 2020-03-01 | 2020-01-01 | 427 | 255 | 276\ndw_only | 2020-03-01 | 2020-02-01 | 374 | 196 | 206\ndw_only | 2020-04-01 | 2020-01-01 | 263 | 162 | 180\ndw_only | 2020-04-01 | 2020-02-01 | 231 | 124 | 150\ndw_only | 2020-04-01 | 2020-03-01 | 233 | 116 | 142\npurchase_negative | 2020-02-01 | 2020-01-01 | 455 | 217 | 185\npurchase_negative | 2020-03-01 | 2020-01-01 | 456 | 207 | 157\npurchase_negative | 2020-03-01 | 2020-02-01 | 419 | 206 | 147\npurchase_negative | 2020-04-01 | 2020-01-01 | 309 | 131 | 99\npurchase_negative | 2020-04-01 | 2020-02-01 | 287 | 146 | 101\npurchase_negative | 2020-04-01 | 2020-03-01 | 287 | 134 | 107"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_828e0a8b-8d93-4f69-9693-24e7653890c8",
+      "preview": {
+        "columns": [
+          "mode",
+          "current_m",
+          "prior_m",
+          "pair_n",
+          "signed_n",
+          "abs_n"
+        ],
+        "rows": [
+          [
+            "dw_only",
+            "2020-02-01",
+            "2020-01-01",
+            422,
+            240,
+            256
+          ],
+          [
+            "dw_only",
+            "2020-03-01",
+            "2020-01-01",
+            427,
+            255,
+            276
+          ],
+          [
+            "dw_only",
+            "2020-03-01",
+            "2020-02-01",
+            374,
+            196,
+            206
+          ],
+          [
+            "dw_only",
+            "2020-04-01",
+            "2020-01-01",
+            263,
+            162,
+            180
+          ],
+          [
+            "dw_only",
+            "2020-04-01",
+            "2020-02-01",
+            231,
+            124,
+            150
+          ],
+          [
+            "dw_only",
+            "2020-04-01",
+            "2020-03-01",
+            233,
+            116,
+            142
+          ],
+          [
+            "purchase_negative",
+            "2020-02-01",
+            "2020-01-01",
+            455,
+            217,
+            185
+          ],
+          [
+            "purchase_negative",
+            "2020-03-01",
+            "2020-01-01",
+            456,
+            207,
+            157
+          ],
+          [
+            "purchase_negative",
+            "2020-03-01",
+            "2020-02-01",
+            419,
+            206,
+            147
+          ],
+          [
+            "purchase_negative",
+            "2020-04-01",
+            "2020-01-01",
+            309,
+            131,
+            99
+          ],
+          [
+            "purchase_negative",
+            "2020-04-01",
+            "2020-02-01",
+            287,
+            146,
+            101
+          ],
+          [
+            "purchase_negative",
+            "2020-04-01",
+            "2020-03-01",
+            287,
+            134,
+            107
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "TEXT",
+          "TEXT",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 12,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "mode",
+        "current_m",
+        "prior_m",
+        "pair_n",
+        "signed_n",
+        "abs_n"
+      ],
+      "rows": [
+        [
+          "dw_only",
+          "2020-02-01",
+          "2020-01-01",
+          422,
+          240,
+          256
+        ],
+        [
+          "dw_only",
+          "2020-03-01",
+          "2020-01-01",
+          427,
+          255,
+          276
+        ],
+        [
+          "dw_only",
+          "2020-03-01",
+          "2020-02-01",
+          374,
+          196,
+          206
+        ],
+        [
+          "dw_only",
+          "2020-04-01",
+          "2020-01-01",
+          263,
+          162,
+          180
+        ],
+        [
+          "dw_only",
+          "2020-04-01",
+          "2020-02-01",
+          231,
+          124,
+          150
+        ],
+        [
+          "dw_only",
+          "2020-04-01",
+          "2020-03-01",
+          233,
+          116,
+          142
+        ],
+        [
+          "purchase_negative",
+          "2020-02-01",
+          "2020-01-01",
+          455,
+          217,
+          185
+        ],
+        [
+          "purchase_negative",
+          "2020-03-01",
+          "2020-01-01",
+          456,
+          207,
+          157
+        ],
+        [
+          "purchase_negative",
+          "2020-03-01",
+          "2020-02-01",
+          419,
+          206,
+          147
+        ],
+        [
+          "purchase_negative",
+          "2020-04-01",
+          "2020-01-01",
+          309,
+          131,
+          99
+        ],
+        [
+          "purchase_negative",
+          "2020-04-01",
+          "2020-02-01",
+          287,
+          146,
+          101
+        ],
+        [
+          "purchase_negative",
+          "2020-04-01",
+          "2020-03-01",
+          287,
+          134,
+          107
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "TEXT",
+        "TEXT",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 12,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_e510e913-e6df-4e1b-b818-2ba3a403a16e"
+  }
+}
