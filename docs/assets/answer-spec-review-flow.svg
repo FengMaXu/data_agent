@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1010" viewBox="0 0 1200 1010" role="img" aria-labelledby="title desc">
+<title id="title">题意、Answer Spec 与 SQL 的双向检查流程</title>
+<desc id="desc">主流程为题目与业务依据、Answer Spec、SQL、结果发布。第一道检查由大语言模型核对题意与Spec，发现遗漏和未声明决定；第二道检查核对SQL是否实现Spec及是否补入额外决定。运行时负责证据核验、候选与修订状态、确定性检查和发布完整性。这是一份建议设计，不表示所有检查已实现。</desc>
+<defs>
+ <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/></marker>
+ <marker id="blueArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb"/></marker>
+ <style>text{font-family:'Microsoft YaHei','PingFang SC',sans-serif;fill:#172b42}.title{font-size:30px;font-weight:700}.sub{font-size:17px;fill:#536477}.node{fill:#fff;stroke:#334155;stroke-width:2.5}.label{font-size:24px;font-weight:700;text-anchor:middle}.small{font-size:17px;fill:#536477;text-anchor:middle}.head{font-size:21px;font-weight:700;fill:#1748a0}.body{font-size:19px}.note{font-size:17px;fill:#536477}.main{fill:none;stroke:#334155;stroke-width:2.5;marker-end:url(#arrow)}.feedback{fill:none;stroke:#2563eb;stroke-width:2.5;stroke-dasharray:8 6;marker-end:url(#blueArrow)}</style>
+</defs>
+<rect width="1200" height="1010" fill="#fff"/>
+<text x="65" y="55" class="title">题意 → Answer Spec → SQL → 结果</text>
+<text x="65" y="89" class="sub">建议设计 · 保留主流程，增强两次转换的检查，复用现有竞争假设机制</text>
+
+<rect x="90" y="135" width="270" height="92" rx="18" class="node"/>
+<text x="225" y="173" class="label">题目与业务依据</text><text x="225" y="202" class="small">用户要求 · 文档 · 澄清</text>
+<path d="M225 227 V319" class="main"/>
+<text x="245" y="279" class="note">理解并表达</text>
+
+<rect x="90" y="330" width="270" height="100" rx="18" class="node"/>
+<text x="225" y="372" class="label">Answer Spec</text><text x="225" y="404" class="small">字段 · 依据 · 候选 · 决定</text>
+<path d="M225 430 V547" class="main"/>
+<text x="245" y="493" class="note">生成实现</text>
+
+<rect x="90" y="558" width="270" height="92" rx="18" class="node"/>
+<text x="225" y="596" class="label">SQL</text><text x="225" y="626" class="small">实现当前版本的 Spec</text>
+<path d="M225 650 V748" class="main"/>
+<text x="245" y="701" class="note">执行与发布检查</text>
+
+<rect x="90" y="760" width="270" height="92" rx="18" class="node"/>
+<text x="225" y="797" class="label">结果发布</text><text x="225" y="827" class="small">当前 Candidate ＋ 必要披露</text>
+
+<rect x="460" y="270" width="675" height="170" rx="16" fill="#eff6ff" stroke="#b8d0f5"/>
+<text x="485" y="306" class="head">① 题意 ↔ Spec：LLM 检查语义</text>
+<text x="485" y="342" class="body">题目要求是否全部表达？是否加入了无依据的决定？</text>
+<text x="485" y="373" class="body">落实为计算时，还需自行补什么范围、阶段或粒度？</text>
+<text x="485" y="412" class="note">发现缺口 → 修订 / 探索 / 打开竞争候选 / 用户澄清</text>
+<path d="M360 380 H452" class="feedback"/>
+<path d="M790 270 V181 H369" class="feedback"/>
+<text x="492" y="163" class="note">回到原题与依据核对，而非仅替 Spec 找支持</text>
+
+<rect x="460" y="560" width="675" height="174" rx="16" fill="#eff6ff" stroke="#b8d0f5"/>
+<text x="485" y="596" class="head">② Spec ↔ SQL：结构检查 ＋ 必要的 LLM 审查</text>
+<text x="485" y="633" class="body">SQL 是否兑现 Spec？实现时是否补入了额外决定？</text>
+<text x="485" y="665" class="body">确定性规则检查可判定部分；语义缺口交回审查。</text>
+<text x="485" y="705" class="note">实现错 → 改 SQL；口径错或未定 → 回到 Spec</text>
+<path d="M360 604 H452" class="feedback"/>
+<path d="M790 560 V493 H400 V415 H369" class="feedback"/>
+
+<text x="470" y="786" class="body">竞争机制：open → probe → compare → decide</text>
+<text x="470" y="821" class="note">复用现有机制；探针说明结果差异，不证明业务解释正确。</text>
+
+<rect x="65" y="890" width="1070" height="85" rx="14" fill="#f1f5f9"/>
+<text x="87" y="922" class="body">运行时贯穿全程：证据核验 · Revision 与发现状态 · 候选处置 · 确定性检查 · 发布完整性</text>
+<text x="87" y="953" class="note">实线：主流程　　蓝色虚线：反馈回路　　LLM 反馈不等于硬阻断；发现并处理不等于证明正确。</text>
+</svg>
