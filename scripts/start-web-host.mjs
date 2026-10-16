@@ -19,7 +19,7 @@ const packagedRoot = process.resourcesPath ?? root;
 const skillRoots = [path.join(root, ".agents", "skills"), path.join(packagedRoot, ".agents", "skills")];
 const builtinKnowledgeRoots = [path.join(root, ".agents", "knowledge"), path.join(packagedRoot, ".agents", "knowledge")];
 const pythonExecutable = process.env.DATA_AGENT_PYTHON
-  ?? (existsSync(path.join(root, "dist", "python-runtime", "Scripts", "python.exe")) ? path.join(root, "dist", "python-runtime", "Scripts", "python.exe") : undefined);
+  ?? [path.join(root, "dist", "python-runtime", "python.exe"), path.join(root, "dist", "python-runtime", "Scripts", "python.exe")].find((candidate) => existsSync(candidate));
 
 const { createDataAgentApplication } = await import(toUrl(path.join(root, "packages/runtime/dist/index.js")));
 const { createRuntimeServer } = await import(toUrl(path.join(root, "apps/server/dist/index.js")));
