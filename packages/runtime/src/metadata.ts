@@ -17,7 +17,7 @@ export class MetadataStore {
   const sourceDir = typeof import.meta.url === "string"
     ? path.dirname(fileURLToPath(import.meta.url))
     : __dirname;
-    // better-sqlite3 cannot create missing parent directories.
+    // SQLite cannot create missing parent directories.
     mkdirSync(path.dirname(path.resolve(dbPath)), { recursive: true });
     const workerCandidates = [
       // The Electron CJS bundle stages a CJS worker next to main.cjs.

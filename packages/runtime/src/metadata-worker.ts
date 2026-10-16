@@ -1,9 +1,9 @@
-import Database from "better-sqlite3";
+import { DatabaseSync } from "node:sqlite";
 import { parentPort, workerData } from "node:worker_threads";
 
 if (!parentPort) throw new Error("metadata worker requires a parent port");
-const db = new Database(workerData.path as string);
-db.pragma("journal_mode = WAL");
+const db = new DatabaseSync(workerData.path as string);
+db.exec("PRAGMA journal_mode = WAL");
 db.exec(`CREATE TABLE IF NOT EXISTS knowledge_cache (path TEXT PRIMARY KEY, revision INTEGER NOT NULL, payload TEXT NOT NULL, updated_at REAL NOT NULL); CREATE TABLE IF NOT EXISTS tasks (id TEXT NOT NULL, user_id TEXT NOT NULL, name TEXT NOT NULL, created_at REAL NOT NULL, updated_at REAL NOT NULL, deleted_at REAL, PRIMARY KEY(user_id,id)); CREATE TABLE IF NOT EXISTS session_projection_outbox (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT NOT NULL, session_id TEXT NOT NULL, target_sequence INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'pending', attempts INTEGER NOT NULL DEFAULT 0, error TEXT, created_at REAL NOT NULL, updated_at REAL NOT NULL); CREATE TABLE IF NOT EXISTS app_config (key TEXT PRIMARY KEY, value_json TEXT NOT NULL, updated_at REAL NOT NULL); CREATE TABLE IF NOT EXISTS semantic_sources (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT NOT NULL, connection_id TEXT NOT NULL, source_name TEXT NOT NULL, definition_json TEXT NOT NULL, updated_at REAL NOT NULL, UNIQUE(user_id, connection_id, source_name)); CREATE TABLE IF NOT EXISTS auth_users (username TEXT PRIMARY KEY, user_id TEXT NOT NULL, display_name TEXT NOT NULL, salt TEXT NOT NULL, hash TEXT NOT NULL, created_at REAL NOT NULL); CREATE TABLE IF NOT EXISTS auth_tokens (token TEXT PRIMARY KEY, user_id TEXT NOT NULL, username TEXT NOT NULL, display_name TEXT NOT NULL, created_at REAL NOT NULL); CREATE TABLE IF NOT EXISTS chat_sessions (id TEXT NOT NULL, user_id TEXT NOT NULL, task_id TEXT NOT NULL, name TEXT NOT NULL, created_at REAL NOT NULL, updated_at REAL NOT NULL, deleted_at REAL, PRIMARY KEY(user_id,id)); CREATE UNIQUE INDEX IF NOT EXISTS uq_chat_sessions_global_id ON chat_sessions(id);`);
 // Channel boundary (ADR-0011): inbound dedupe, address/actor bindings, and the delivery outbox.
 // Their times come from the channel hub (`at`), so due and interrupted checks use one clock.
@@ -11,7 +11,8 @@ db.exec(`CREATE TABLE IF NOT EXISTS channel_inbound (channel TEXT NOT NULL, requ
 // channel_links gained its role after it was first created.
 if (!(db.prepare("PRAGMA table_info(channel_links)").all() as { name: string }[]).some((column) => column.name === "role")) db.exec("ALTER TABLE channel_links ADD COLUMN role TEXT NOT NULL DEFAULT 'account'");
 const now = () => Date.now();
-parentPort.on("message", (message: { id: number; op: string; userId: string; [key: string]: unknown }) => {
+// Fields arrive untyped from MetadataStore.call and are bound as SQL parameters as sent.
+parentPort.on("message", (message: { id: number; op: string; userId: string; [key: string]: any }) => {
   try {
     const result = (() => {
       const t = now();
