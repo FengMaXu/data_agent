@@ -273,7 +273,7 @@ An adapter for one external platform or trigger source (an IM, a scheduler, an M
 _Avoid_: Gateway, bot, integration
 
 **Submission**:
-The single inbound shape a Channel hands the Runtime: a deduplicated request id, a Conversation Address, a verified actor and an input or a clarification answer.
+The single inbound shape a Channel hands the Runtime: a deduplicated request id, a Conversation Address, a verified actor and a body: an input, a clarification answer, a new-conversation request or an access decision (ADR-0011 decision 2).
 _Avoid_: Message, webhook payload
 
 **Conversation Address**:
@@ -281,5 +281,5 @@ Where a conversation lives on a Channel (tenant, chat, optional thread) and who 
 _Avoid_: Chat id, channel session
 
 **Deliverable**:
-What may leave the system through a Channel: a Question, a Publication delivery (by Receipt) or a Notice. Deliverables are persisted before delivery and keyed for idempotency; run progress is not a Deliverable and may be dropped.
+What may leave the system through a Channel: a Question, a Publication delivery (by Receipt), a Dashboard delivery, an Access Request or a Notice (ADR-0011 decision 3). Deliverables are persisted before delivery and keyed for idempotency; run progress is not a Deliverable and may be dropped.
 _Avoid_: Outbound message, notification
