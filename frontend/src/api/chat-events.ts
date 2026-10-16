@@ -177,7 +177,7 @@ export function mapRuntimeEvent(event: DataAgentEvent, activeMessageId: string):
     case "workspace.artifact.created":
       return { event: { type: "workspace_updated", tool: "" } };
     case "agent.completed":
-      return { event: { type: "done", reason: "completed" } };
+      return { event: { type: "done", reason: event.outcome === "failed" ? "error" : event.outcome ?? "completed" } };
     default:
       return null;
   }
