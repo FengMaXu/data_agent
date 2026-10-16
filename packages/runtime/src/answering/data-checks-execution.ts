@@ -1,4 +1,5 @@
-import { clone, contentHash, type AnswerRevisionView, type BusinessContext, type RevisionId, type TaskId } from "./model.js";
+import { clone, contentHash, type AnswerRevisionView, type BusinessContext, type RevisionId, type SpecFields, type TaskId } from "./model.js";
+import type { SpecPath } from "./fields.js";
 import { assertTaskAccess } from "./answering-store.js";
 import type { AnsweringDeps } from "./deps.js";
 import {
@@ -98,26 +99,25 @@ function sameCalendar(left: CalendarTarget | undefined, right: CalendarTarget): 
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
-const settledView = (view: AnswerRevisionView, path: string) => view.fields.some((field) => field.path === path && field.value !== undefined && field.status !== "open" && field.status !== "not_applicable");
+/** A field the checks can read: it has a value that is not one of several open alternatives. */
+function settled(fields: SpecFields, path: SpecPath): boolean {
+  const field = fields[path];
+  return field?.state === "specified" || field?.state === "decided";
+}
+
+interface DataCheckReports {
+  readonly entityIdentity?: EntityIdentityReport;
+  readonly calendarCoverage?: CalendarCoverageReport;
+}
 
 /**
- * Post-commit data checks for one Revision: entity identity counts and
- * calendar coverage. Readings for the same target carry over from the parent
+ * Entity identity counts and calendar coverage of one Revision, read once and
+ * recorded on it. Readings for the same target carry over from the parent
  * Revision, so a Revision that changes neither target runs no query. A failed
- * read is a limitation and never fails the set call; calendar coverage can
- * make population.missing required (see calendarRequiredPaths).
+ * read is a limitation, never a failure. Returns what the Revision holds
+ * afterwards, or undefined when neither check applies.
  */
-export async function attachDataChecks(
-  deps: AnsweringDeps,
-  view: AnswerRevisionView,
-  context: BusinessContext,
-): Promise<AnswerRevisionView> {
-  // Skip without touching the store when neither check could apply.
-  const identityApplies = settledView(view, "population.entity") && settledView(view, "population.source");
-  const calendarApplies = settledView(view, "population.time") && (settledView(view, "grouping") || settledView(view, "measure.formula"));
-  if (!identityApplies && !calendarApplies) return view;
-  const taskId = view.taskId as TaskId;
-  const revisionId = view.revisionId as RevisionId;
+export async function recordDataChecks(deps: AnsweringDeps, taskId: TaskId, revisionId: RevisionId, context: BusinessContext): Promise<DataCheckReports | undefined> {
   const snapshot = await deps.store.transact((tx) => {
     assertTaskAccess(tx.getTask(taskId), context);
     const revision = tx.getRevision(revisionId);
@@ -125,7 +125,11 @@ export async function attachDataChecks(
     return { revision, parent };
   }, context);
   const revision = snapshot.revision;
-  if (!revision || revision.entityIdentity || revision.calendarCoverage) return view;
+  if (!revision) return undefined;
+  if (revision.entityIdentity || revision.calendarCoverage) return revision;
+  const identityApplies = settled(revision.fields, "population.entity") && settled(revision.fields, "population.source");
+  const calendarApplies = settled(revision.fields, "population.time") && (settled(revision.fields, "grouping") || settled(revision.fields, "measure.formula"));
+  if (!identityApplies && !calendarApplies) return undefined;
 
   let entityIdentity: EntityIdentityReport | undefined;
   if (identityApplies) {
@@ -143,22 +147,39 @@ export async function attachDataChecks(
       ? carried && sameCalendar(carried.target, target) ? carried : await readCalendar(deps, target, context)
       : limitation ? { ruleVersion: CALENDAR_COVERAGE_RULE_VERSION, status: "unknown", limitations: [limitation] } : undefined;
   }
-  if (!entityIdentity && !calendarCoverage) return view;
+  if (!entityIdentity && !calendarCoverage) return undefined;
   try {
-    await deps.store.transact((tx) => {
+    // A concurrent reader of the same Revision may have recorded first; its reports stand.
+    return await deps.store.transact((tx) => {
       const current = tx.getRevision(revisionId);
-      if (!current || current.entityIdentity || current.calendarCoverage) return;
+      if (!current) return undefined;
+      if (current.entityIdentity || current.calendarCoverage) return current;
       tx.putRevision({ ...current, ...(entityIdentity ? { entityIdentity } : {}), ...(calendarCoverage ? { calendarCoverage } : {}) });
+      return { ...(entityIdentity ? { entityIdentity } : {}), ...(calendarCoverage ? { calendarCoverage } : {}) };
     }, context);
   } catch (error) {
     if (context.signal?.aborted) throw error;
-    return view;
+    return undefined;
   }
-  const missingRequired = calendarRequiredPaths(calendarCoverage).filter((path) => !revision.fields[path]);
+}
+
+/**
+ * Post-commit data checks for the Revision a set call returns: the reports
+ * and any field calendar coverage made required are added to the view.
+ */
+export async function attachDataChecks(
+  deps: AnsweringDeps,
+  view: AnswerRevisionView,
+  context: BusinessContext,
+): Promise<AnswerRevisionView> {
+  const reports = await recordDataChecks(deps, view.taskId as TaskId, view.revisionId as RevisionId, context);
+  if (!reports) return view;
+  const declared = new Set(view.fields.map((field) => field.path as string));
+  const missingRequired = calendarRequiredPaths(reports.calendarCoverage).filter((path) => !declared.has(path));
   return {
     ...view,
-    ...(entityIdentity ? { entityIdentity: clone(entityIdentity) } : {}),
-    ...(calendarCoverage ? { calendarCoverage: clone(calendarCoverage) } : {}),
+    ...(reports.entityIdentity ? { entityIdentity: clone(reports.entityIdentity) } : {}),
+    ...(reports.calendarCoverage ? { calendarCoverage: clone(reports.calendarCoverage) } : {}),
     ...(missingRequired.length > 0 ? { undeclared: [...new Set([...view.undeclared, ...missingRequired])] } : {}),
   };
 }

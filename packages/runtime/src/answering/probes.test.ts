@@ -126,6 +126,41 @@ describe("Probes of open fields (ADR-0005)", () => {
       .rejects.toMatchObject({ code: "UNRESOLVED_ASSUMPTIONS", details: { open: [PATH] } });
   });
 
+  it("opens an equivalent field again when another field changes after its probes", async () => {
+    const { answering } = service(outputs);
+    const { view, purchase, delivered } = await begin(answering);
+    await probe(answering, view.taskId, "SELECT purchase", purchase, "probe-purchase");
+    await probe(answering, view.taskId, "SELECT delivered again", delivered, "probe-delivered");
+    expect((await answering.inspect({ taskId: view.taskId }, context("inspect-1"))).open).toEqual([]);
+
+    // The probes ran without a grouping; under a monthly grouping the alternatives may differ.
+    const regrouped = await answering.set({ taskId: view.taskId, requestId: "regroup", fields: { grouping: { value: ["month"], reason: "the request asks per month" } } }, context("regroup"));
+    expect(regrouped.open).toEqual([PATH]);
+    expect(regrouped.fields.find((item) => item.path === PATH)?.alternatives?.map((item) => item.probe?.state)).toEqual(["stale", "stale"]);
+    await expect(answering.execute({ kind: "result", taskId: view.taskId, revisionId: regrouped.revisionId, sql: "SELECT purchase" }, context("result")))
+      .rejects.toMatchObject({ code: "UNRESOLVED_ASSUMPTIONS", details: { open: [PATH] } });
+
+    await probe(answering, view.taskId, "SELECT purchase", purchase, "reprobe-purchase");
+    await probe(answering, view.taskId, "SELECT delivered again", delivered, "reprobe-delivered");
+    expect((await answering.inspect({ taskId: view.taskId }, context("inspect-2"))).open).toEqual([]);
+  });
+
+  it("refuses a decision on probes taken while other fields held different states", async () => {
+    const { answering } = service(outputs);
+    const { view, purchase, delivered } = await begin(answering);
+    await probe(answering, view.taskId, "SELECT purchase", purchase, "probe-purchase");
+    await probe(answering, view.taskId, "SELECT delivered", delivered, "probe-delivered");
+    await answering.set({ taskId: view.taskId, requestId: "condition", fields: { "population.conditions": { value: ["status = 'delivered'"], reason: "only delivered orders count" } } }, context("condition"));
+
+    const refused = await decide(answering, view.taskId, DELIVERED);
+    expect(refused.outcomes?.[0]).toMatchObject({ status: "rejected", code: "SPEC_TRANSITION_INVALID", message: expect.stringContaining("were probed before other fields changed") });
+
+    await probe(answering, view.taskId, "SELECT purchase", purchase, "reprobe-purchase");
+    await probe(answering, view.taskId, "SELECT delivered", delivered, "reprobe-delivered");
+    const decided = await decide(answering, view.taskId, DELIVERED, "decide-again");
+    expect(decided.fields.find((item) => item.path === PATH)).toMatchObject({ status: "decided", value: DELIVERED });
+  });
+
   it("marks an over-cap probe output unavailable but counts it as probed", async () => {
     const { answering } = service({ ...outputs, "SELECT big": { columns: ["n"], rows: [[1]], truncated: true } });
     const { view, purchase, delivered } = await begin(answering);

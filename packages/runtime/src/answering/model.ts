@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import type { FieldValue, SpecPath } from "./fields.js";
 import type { EntityIdentityReport } from "./entity-identity.js";
 import type { CalendarCoverageReport } from "./calendar-coverage.js";
+import type { FieldAdvisory } from "./advice.js";
 
 /**
  * Domain identities are branded at the Answering boundary. Constructors are
@@ -265,7 +266,7 @@ export interface ProbeWaiver {
   readonly reason: string;
 }
 
-/** Why a decision departs from compare_hypotheses' clear lean, with the evidence that outweighs it. */
+/** Why a decision departs from the advice's clear lean, with the evidence that outweighs it. */
 export interface AdviceOverride {
   readonly reason: string;
   readonly evidenceIds: NonEmpty<EvidenceId>;
@@ -322,6 +323,8 @@ export interface FieldProbeRecord {
   readonly alternativeId: AlternativeId;
   readonly revisionId: RevisionId;
   readonly evidenceId: EvidenceId;
+  /** probeContext of the other fields when the probe ran; absent on probes recorded before contexts, which are stale. */
+  readonly context?: string;
   readonly rowCount: number;
   readonly outcome:
     | { readonly state: "available"; readonly fingerprint: string }
@@ -381,6 +384,8 @@ export interface QueryTaskRecord {
   readonly budget?: QueryBudgetState;
   /** Latest probe per field alternative; alternative ids are stable until the field is rewritten. */
   readonly fieldProbes?: readonly FieldProbeRecord[];
+  /** Latest advice per open field, asked by the Runtime once the field's probe outputs differ (ADR-0005). */
+  readonly fieldAdvice?: readonly FieldAdvisory[];
   /** "report": a Report Task that holds shared fields and never publishes (ADR-0009). */
   readonly role?: "report";
   /** A chart query's Report Task and the parent Revision its inherited fields were copied from. */
@@ -562,7 +567,8 @@ export type ProbeOutputs = "identical" | "distinct" | "incomplete";
 
 export interface ProbeView {
   readonly alternativeId: AlternativeId;
-  readonly state: "missing" | "available" | "unavailable" | "waived";
+  /** stale: the latest probe ran while other fields held different states. */
+  readonly state: "missing" | "available" | "unavailable" | "waived" | "stale";
   readonly rowCount?: number;
   /** Short fingerprint prefix; equal prefixes mean equal outputs. */
   readonly output?: string;
@@ -587,7 +593,7 @@ export interface FieldView {
   readonly evidenceIds?: readonly EvidenceId[];
   readonly alternatives?: readonly { readonly id: AlternativeId; readonly value: FieldValue; readonly probe?: ProbeView }[];
   readonly outputs?: ProbeOutputs;
-  /** Latest compare_hypotheses advice for this field; advisory only. */
+  /** Advice the Runtime recorded for this field's alternatives and probe outputs; advisory only. */
   readonly advice?: AdviceView;
   readonly adviceOverride?: AdviceOverride;
   /** decided: the advisor failed and the field was decided without its advice. */
@@ -637,7 +643,7 @@ export interface QueryExecutionView {
   readonly fanout?: FanoutReport;
   readonly attemptId?: string;
   /** Set when the exploration ran as the probe of an open field's alternative. */
-  readonly probe?: ProbeView & { readonly path: SpecPath };
+  readonly probe?: ProbeView & { readonly path: SpecPath; readonly advice?: AdviceView };
 }
 
 /**

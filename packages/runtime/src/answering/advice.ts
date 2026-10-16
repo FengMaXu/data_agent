@@ -1,14 +1,18 @@
+import { contentHash, type AdviceView, type FieldAlternative, type QueryTaskRecord } from "./model.js";
+import type { ProbeSummary } from "./probes.js";
+
 /**
- * Advisory Ledger (ADR-0005): the Runtime's record of what compare_hypotheses
- * advised for an open field. Only trusted code writes it (the comparison tool after
- * calling the advisor); Answering reads it to require a reasoned override when
- * a decision departs from a clear lean. Advice is never Evidence.
+ * Field Advice (ADR-0005): what the comparison advisor said about one open
+ * field's alternatives. The Runtime asks for it once every alternative's
+ * output is known and they differ, records it on the Query Task, and reads it
+ * when the field is decided. Advice is never Evidence.
  */
 export interface FieldAdvisory {
-  readonly taskId: string;
   readonly path: string;
   /** Alternative ids in field order; advice for a different alternative set does not apply. */
   readonly alternativeIds: readonly string[];
+  /** adviceBasis of the probe outputs the advisor saw; advice about other outputs does not apply. */
+  readonly basis: string;
   readonly model: string;
   readonly probabilities: readonly { readonly alternativeId: string; readonly probability: number }[];
   /** unavailable: the advisor failed; the field may be decided without advice, and the decision is disclosed. */
@@ -19,24 +23,6 @@ export interface FieldAdvisory {
   /** The alternative the advice clearly favours, if any (see leanOf). */
   readonly lean?: { readonly alternativeId: string; readonly probability: number };
   readonly recordedAt: string;
-}
-
-export interface AdvisoryLedger {
-  record(advisory: FieldAdvisory): void;
-  latest(taskId: string, path: string): FieldAdvisory | undefined;
-}
-
-export class InMemoryAdvisoryLedger implements AdvisoryLedger {
-  private readonly entries = new Map<string, FieldAdvisory>();
-
-  record(advisory: FieldAdvisory): void {
-    this.entries.set(`${advisory.taskId}\u0000${advisory.path}`, structuredClone(advisory));
-  }
-
-  latest(taskId: string, path: string): FieldAdvisory | undefined {
-    const entry = this.entries.get(`${taskId}\u0000${path}`);
-    return entry ? structuredClone(entry) : undefined;
-  }
 }
 
 /** Minimum probability for an unrecommended top alternative to count as a lean. */
@@ -61,4 +47,26 @@ export function leanOf(
   if (!top || top.probability < LEAN_MIN_PROBABILITY) return undefined;
   const runnerUp = ranked[1]?.probability ?? 0;
   return top.probability >= LEAN_MIN_RATIO * runnerUp ? { alternativeId: top.alternativeId, probability: top.probability } : undefined;
+}
+
+/** Identity of what the advisor is shown: each alternative and its probe outcome under the current context. */
+export function adviceBasis(summary: ProbeSummary): string {
+  return contentHash(summary.probes.map((probe) => [probe.alternativeId, probe.state, probe.output ?? "", probe.rowCount ?? ""])).slice(0, 32);
+}
+
+/** The recorded advice that still applies to this alternative set and these probe outputs. */
+export function applicableAdvice(advice: FieldAdvisory | undefined, alternatives: readonly FieldAlternative[], summary: ProbeSummary): FieldAdvisory | undefined {
+  if (!advice) return undefined;
+  const ids = alternatives.map((item) => item.id as string);
+  const sameSet = advice.alternativeIds.length === ids.length && advice.alternativeIds.every((id, index) => id === ids[index]);
+  return sameSet && advice.basis === adviceBasis(summary) ? advice : undefined;
+}
+
+/** What a view shows of an advisory. */
+export function adviceView(advice: FieldAdvisory): AdviceView {
+  return { recommendation: advice.recommendation, probabilities: advice.probabilities, ...(advice.lean ? { lean: advice.lean } : {}) };
+}
+
+export function latestAdvice(task: Pick<QueryTaskRecord, "fieldAdvice">, path: string): FieldAdvisory | undefined {
+  return task.fieldAdvice?.find((item) => item.path === path);
 }

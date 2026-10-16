@@ -1,4 +1,3 @@
-import type { AdvisoryLedger } from "./advisory-ledger.js";
 import {
   contentHash,
   normalizeLimit,
@@ -31,6 +30,7 @@ import { publishCandidate } from "./publication.js";
 import { refreshPublication } from "./refresh.js";
 import type { AnsweringDeps, FanoutAnsweringOptions, SemanticQualificationMode, SpecFeedbackOptions } from "./deps.js";
 import type { AnsweringSqlExecutor } from "./sql-execution.js";
+import type { FieldAdviceOptions } from "./advice-execution.js";
 
 export { AnsweringError };
 export { DEFAULT_QUERY_BUDGET_POLICY };
@@ -73,10 +73,12 @@ export interface InMemoryAnsweringOptions {
    * has a probe or a waiver, and the view shows whether outputs differ.
    */
   readonly fieldProbes?: boolean;
-  /** Advice recorded by compare_hypotheses; read when deciding an open field (ADR-0005). */
-  readonly advisoryLedger?: AdvisoryLedger;
-  /** Set when an advisor is configured: decisive open fields need advice before a decision. */
-  readonly requireAdvice?: boolean;
+  /**
+   * The comparison advisor (ADR-0005). With probes, the Runtime asks it about
+   * an open field once every alternative's output is known and they differ,
+   * and a decision on such a field needs that advice.
+   */
+  readonly fieldAdvice?: FieldAdviceOptions;
   /**
    * ADR-0006: "require_evidence" (default) when the session can ask the user;
    * "allow_disclosed" when it cannot, so an unverified population decision is disclosed instead.
@@ -109,8 +111,8 @@ function resolveDeps(options: InMemoryAnsweringOptions): AnsweringDeps {
     maxResultRows: Math.max(1, Math.trunc(options.maxResultRows ?? MAX_RESULT_ROWS)),
     semanticQualificationMode: options.semanticQualificationMode ?? "required",
     fieldProbes: options.fieldProbes === true,
-    ...(options.advisoryLedger ? { advisoryLedger: options.advisoryLedger } : {}),
-    adviceRequired: options.requireAdvice === true && Boolean(options.advisoryLedger),
+    ...(options.fieldAdvice ? { fieldAdvice: options.fieldAdvice } : {}),
+    adviceRequired: options.fieldProbes === true && Boolean(options.fieldAdvice),
     populationDecisions: options.populationDecisions ?? "require_evidence",
     ...(options.evidenceSource ? { evidenceSource: options.evidenceSource } : {}),
     ...(options.specFeedback ? {

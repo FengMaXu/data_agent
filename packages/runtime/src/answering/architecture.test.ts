@@ -127,7 +127,7 @@ describe("Answering architecture boundaries", () => {
       semanticQualificationMode: "bypassed",
       sqlExecutor: { run: async () => ({ columns: ["value"], rows: [[1]], truncated: false }) },
     });
-    const definitions = createAnsweringAgentToolDefinitions(answering, undefined, undefined, { semanticSpecMode: "disabled" });
+    const definitions = createAnsweringAgentToolDefinitions(answering, undefined, { semanticSpecMode: "disabled" });
     const tools = definitions.map((definition) => definition.tool);
     expect(tools.map((tool) => tool.name)).toContain("begin_query_task");
     expect(tools.map((tool) => tool.name)).not.toContain("set_answer_spec");

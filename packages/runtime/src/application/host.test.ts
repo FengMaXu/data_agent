@@ -159,7 +159,7 @@ describe("DataAgent Session Application production composition", () => {
       skillRoots: [join(process.cwd(), "..", "..", ".agents", "skills")],
       enableSubagents: true,
       delegationRoot: join(root, "subagents"),
-      // With an advisor, Answering requires compare_hypotheses before deciding a Choice, so no Skill may hide it.
+      // With an advisor configured, no Skill may hide the Answering protocol tools.
       hypothesisChoiceAdvisor: { compare: async () => { throw new Error("not called"); } } satisfies HypothesisChoiceAdvisor,
       createMissingSessions: false,
       authorizeSession: async () => true,
@@ -170,7 +170,7 @@ describe("DataAgent Session Application production composition", () => {
       for (const name of ["dashboard", "analysis", "demo-report"]) {
         await loadSkill.execute(`load-${name}`, { name }, undefined, { sessionId: "session-1", principalId: "user-1" }, invocation(`load-${name}`), TODO_CONTEXT);
         const active = await host.lane.getActiveTools(TODO_CONTEXT);
-        expect(active).toEqual(expect.arrayContaining(["load_skill", "set_answer_spec", "query_database", "compare_hypotheses", "publish_query_result", "export_query", "inspect_answer", "ask_user_clarification", "subagent"]));
+        expect(active).toEqual(expect.arrayContaining(["load_skill", "set_answer_spec", "query_database", "publish_query_result", "export_query", "inspect_answer", "ask_user_clarification", "subagent"]));
         expect(active).not.toContain("list_workspace");
       }
     } finally {
