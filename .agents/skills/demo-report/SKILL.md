@@ -10,6 +10,8 @@ allowed-tools:
   - run_python
   - write_file
   - read_file
+  - search_knowledge
+  - read_knowledge
 ---
 
 # 数据分析报告生成 Skill
@@ -124,4 +126,4 @@ allowed-tools:
 - 所有数据必须来自已发布的查询结果，不得编造。
 - 不使用 matplotlib 或其他 Python 绘图库画图。
 - 需要随报告附数据文件时，使用 `export_query` 返回的下载链接。
-- 图表风格遵循 knowledge/doc/business.md 中的规范。
+- 配色、字体和图例由图表工具统一提供，不要自行指定颜色；业务文档里的配色建议不适用于工具生成的图表。
