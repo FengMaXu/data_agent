@@ -1,0 +1,197 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_b3314926-1427-40bf-9552-2d1639cdbb26\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\ncity1 | city2 | airport_routes | min(distance) | max(distance)\nMoscow | Ulyanovsk | 4 | 672.2644085389138 | 742.8160707394161\nAnadyr | Moscow | 3 | 6177.07739672632 | 6226.020970764133\nBarnaul | Moscow | 3 | 2910.1004802109337 | 2944.2209138415583\nBryansk | Moscow | 3 | 331.2173876530231 | 370.85309273440964\nGelendzhik | Moscow | 3 | 1203.89828410678 | 1267.2663338543036\nKemorovo | Moscow | 3 | 2986.3350898297754 | 3017.6039337164425\nKurgan | Moscow | 3 | 1723.7761020846883 | 1759.5442624367545\nMoscow | Petrozavodsk | 3 | 683.334314554822 | 751.8305995165396\nMoscow | St. Petersburg | 3 | 599.2890097899877 | 666.8838408232715\nMoscow | Yoshkar-Ola | 3 | 636.5894349228373 | 669.9997629921572"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_b3314926-1427-40bf-9552-2d1639cdbb26",
+      "preview": {
+        "columns": [
+          "city1",
+          "city2",
+          "airport_routes",
+          "min(distance)",
+          "max(distance)"
+        ],
+        "rows": [
+          [
+            "Moscow",
+            "Ulyanovsk",
+            4,
+            672.2644085389138,
+            742.8160707394161
+          ],
+          [
+            "Anadyr",
+            "Moscow",
+            3,
+            6177.07739672632,
+            6226.020970764133
+          ],
+          [
+            "Barnaul",
+            "Moscow",
+            3,
+            2910.1004802109337,
+            2944.2209138415583
+          ],
+          [
+            "Bryansk",
+            "Moscow",
+            3,
+            331.2173876530231,
+            370.85309273440964
+          ],
+          [
+            "Gelendzhik",
+            "Moscow",
+            3,
+            1203.89828410678,
+            1267.2663338543036
+          ],
+          [
+            "Kemorovo",
+            "Moscow",
+            3,
+            2986.3350898297754,
+            3017.6039337164425
+          ],
+          [
+            "Kurgan",
+            "Moscow",
+            3,
+            1723.7761020846883,
+            1759.5442624367545
+          ],
+          [
+            "Moscow",
+            "Petrozavodsk",
+            3,
+            683.334314554822,
+            751.8305995165396
+          ],
+          [
+            "Moscow",
+            "St. Petersburg",
+            3,
+            599.2890097899877,
+            666.8838408232715
+          ],
+          [
+            "Moscow",
+            "Yoshkar-Ola",
+            3,
+            636.5894349228373,
+            669.9997629921572
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "TEXT",
+          "INTEGER",
+          "REAL",
+          "REAL"
+        ],
+        "rowCount": 10,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "city1",
+        "city2",
+        "airport_routes",
+        "min(distance)",
+        "max(distance)"
+      ],
+      "rows": [
+        [
+          "Moscow",
+          "Ulyanovsk",
+          4,
+          672.2644085389138,
+          742.8160707394161
+        ],
+        [
+          "Anadyr",
+          "Moscow",
+          3,
+          6177.07739672632,
+          6226.020970764133
+        ],
+        [
+          "Barnaul",
+          "Moscow",
+          3,
+          2910.1004802109337,
+          2944.2209138415583
+        ],
+        [
+          "Bryansk",
+          "Moscow",
+          3,
+          331.2173876530231,
+          370.85309273440964
+        ],
+        [
+          "Gelendzhik",
+          "Moscow",
+          3,
+          1203.89828410678,
+          1267.2663338543036
+        ],
+        [
+          "Kemorovo",
+          "Moscow",
+          3,
+          2986.3350898297754,
+          3017.6039337164425
+        ],
+        [
+          "Kurgan",
+          "Moscow",
+          3,
+          1723.7761020846883,
+          1759.5442624367545
+        ],
+        [
+          "Moscow",
+          "Petrozavodsk",
+          3,
+          683.334314554822,
+          751.8305995165396
+        ],
+        [
+          "Moscow",
+          "St. Petersburg",
+          3,
+          599.2890097899877,
+          666.8838408232715
+        ],
+        [
+          "Moscow",
+          "Yoshkar-Ola",
+          3,
+          636.5894349228373,
+          669.9997629921572
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "TEXT",
+        "INTEGER",
+        "REAL",
+        "REAL"
+      ],
+      "rowCount": 10,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_bef9197a-a92b-4fd9-b475-c15626a00ebf"
+  }
+}

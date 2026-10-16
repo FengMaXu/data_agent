@@ -1,0 +1,53 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_679f9001-8c55-4629-a529-15f3ebebfd0b\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nactors | missing_person\n32128 | 1"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_679f9001-8c55-4629-a529-15f3ebebfd0b",
+      "preview": {
+        "columns": [
+          "actors",
+          "missing_person"
+        ],
+        "rows": [
+          [
+            32128,
+            1
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "actors",
+        "missing_person"
+      ],
+      "rows": [
+        [
+          32128,
+          1
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_e26294fc-c405-468d-b930-94d693bb49a3"
+  }
+}

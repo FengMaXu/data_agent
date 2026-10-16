@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT r.year,MAX(r.round) calendar_last,MAX(CASE WHEN EXISTS(SELECT 1 FROM results re WHERE re.race_id=r.race_id) THEN r.round END) results_last,MAX(CASE WHEN EXISTS(SELECT 1 FROM driver_standings d WHERE d.race_id=r.race_id) THEN r.round END) standings_last,COUNT(*) races FROM races r WHERE year>=2001 GROUP BY year ORDER BY year",
+  "limit": 100
+}

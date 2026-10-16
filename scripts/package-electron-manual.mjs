@@ -10,7 +10,7 @@
  *   1. copy the local Electron runtime into <out>/win-unpacked
  *   2. rename electron.exe -> Data Agent.exe
  *   3. pack the application (package.json + dist + electron + electron-host)
- *      into resources/app.asar with *.node unpacked
+ *      into resources/app.asar
  *   4. stage extraResources (python-runtime, ktx-semantic-context)
  *   5. keep only the Chinese and English Electron locales
  */
@@ -69,7 +69,7 @@ for (const file of readdirSync(path.join(out, "locales"))) {
 const exeName = `${pkg.build?.productName ?? "Data Agent"}.exe`;
 renameSync(path.join(out, "electron.exe"), path.join(out, exeName));
 
-// 3. Application archive (*.node stays unpacked next to the asar)
+// 3. Application archive
 const staging = path.join(root, ".tmp", "electron-app-stage");
 rmSync(staging, { recursive: true, force: true });
 mkdirSync(staging, { recursive: true });
@@ -93,8 +93,8 @@ for (const name of ["main.cjs", "metadata-worker.cjs", "mcp-mysql.cjs"]) {
   }
 }
 
-// Native module + its runtime deps ship inside the archive but with *.node unpacked.
-// npm may hoist better-sqlite3 to the workspace root, so probe both locations.
+// Runtime deps the bundles keep external ship inside the archive. npm may hoist
+// them to the workspace root, so probe both locations.
 const moduleRoots = [path.join(frontend, "node_modules"), path.join(root, "node_modules")];
 function resolveModule(name) {
   for (const dir of moduleRoots) {
@@ -106,7 +106,6 @@ function resolveModule(name) {
 }
 mkdirSync(path.join(staging, "node_modules"), { recursive: true });
 for (const name of [
-  "better-sqlite3", "bindings", "file-uri-to-path",
   "mysql2", "aws-ssl-profiles", "denque", "generate-function", "is-property",
   "iconv-lite", "safer-buffer", "long", "lru.min", "named-placeholders", "sql-escaper",
   "@modelcontextprotocol/sdk", "ajv", "ajv-formats", "cross-spawn", "fast-deep-equal",
@@ -116,18 +115,8 @@ for (const name of [
   cpSync(resolveModule(name), path.join(staging, "node_modules", name), { recursive: true });
 }
 
-// The workspace copy of better-sqlite3 is compiled for the local Node ABI.
-// Re-fetch the prebuilt binary matching the packaged Electron ABI so the
-// native module loads inside the shipped application.
-const electronMajor = pkg.devDependencies?.electron ?? pkg.dependencies?.electron;
-const electronVersion = String(electronMajor).replace(/[^\d.]/g, "");
-exec(process.platform === "win32" ? "npx.cmd" : "npx", [
-  "prebuild-install",
-  "--runtime=electron", `--target=${electronVersion}`, "--arch=x64", "--verbose",
-], { cwd: path.join(staging, "node_modules", "better-sqlite3") });
-
 const npxCmd = process.platform === "win32" ? "npx.cmd" : "npx";
-exec(npxCmd, ["@electron/asar", "pack", staging, path.join(out, "resources", "app.asar"), "--unpack=*.node"]);
+exec(npxCmd, ["@electron/asar", "pack", staging, path.join(out, "resources", "app.asar")]);
 
 // 4. extraResources. These capabilities are mandatory for a usable desktop
 // package; fail closed instead of producing a silently incomplete artifact.

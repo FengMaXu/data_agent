@@ -1,0 +1,10 @@
+{
+  "lane": "B",
+  "cases": {
+    "local037": "completed",
+    "local050": "completed",
+    "local061": "completed",
+    "local067": "completed",
+    "local286": "independent_exploration"
+  }
+}

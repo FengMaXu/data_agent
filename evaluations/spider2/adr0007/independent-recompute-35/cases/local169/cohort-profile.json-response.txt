@@ -1,0 +1,66 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_cfe7c808-5c41-4c45-80d0-68f711b04e6a\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\ncohort | min(first) | max(first) | keys\n4033 | 1917-04-02 | 1999-11-06 | 4033"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_cfe7c808-5c41-4c45-80d0-68f711b04e6a",
+      "preview": {
+        "columns": [
+          "cohort",
+          "min(first)",
+          "max(first)",
+          "keys"
+        ],
+        "rows": [
+          [
+            4033,
+            "1917-04-02",
+            "1999-11-06",
+            4033
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "TEXT",
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "cohort",
+        "min(first)",
+        "max(first)",
+        "keys"
+      ],
+      "rows": [
+        [
+          4033,
+          "1917-04-02",
+          "1999-11-06",
+          4033
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "TEXT",
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_590bbe67-f768-413c-8602-5995170a804c"
+  }
+}
+

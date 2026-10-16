@@ -1,0 +1,197 @@
+{
+  "frozenAt": "2026-10-11T09:03:28.726Z",
+  "instance_id": "local269",
+  "independent": true,
+  "taskId": "task_d9c450e8-217f-4a18-8320-46fc0e6932c0",
+  "revisionId": "revision_5cb6fcbe-e360-4684-b1ff-4a0550d7b2e6",
+  "publication": {
+    "receiptId": "publication_e8213dca-fd82-4653-8b70-e948f78c113a",
+    "taskId": "task_d9c450e8-217f-4a18-8320-46fc0e6932c0",
+    "principalId": "independent-analyst",
+    "sessionId": "local269",
+    "candidateId": "candidate_bd748844-1028-4d76-9cd0-084a2bb5dbdb",
+    "revisionId": "revision_5cb6fcbe-e360-4684-b1ff-4a0550d7b2e6",
+    "resultRef": "result_72c2fc3a-4010-4bbd-9eca-240289137b42",
+    "format": "csv",
+    "publicRef": "/api/runtime/publications/publication_e8213dca-fd82-4653-8b70-e948f78c113a?session_id=local269",
+    "contentHash": "cfe5b856a8ffee06ba9da4624dcb787f29b33b761636769971a2bbe0b27d06b7",
+    "presentationContentHash": "1e500561c35922e4215c61e13ae8366e5837c06cc887a5d3ac2ba11b91859fcb",
+    "coverage": [
+      {
+        "checkId": "result_completeness",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_shape",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_identity",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "join_fanout",
+        "outcome": "not_applicable"
+      },
+      {
+        "checkId": "spec_feedback",
+        "ruleVersion": "spec-feedback-v2",
+        "outcome": "not_applicable",
+        "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+      }
+    ],
+    "fanout": {
+      "ruleVersion": "answering-fanout-v1",
+      "status": "not_applicable",
+      "snapshotScope": "unbound",
+      "targets": []
+    },
+    "disclosure": {
+      "required": true,
+      "unverifiedFields": [
+        {
+          "path": "population.eligibility",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.formula",
+          "kind": "assumed"
+        },
+        {
+          "path": "grouping",
+          "kind": "assumed"
+        },
+        {
+          "path": "output",
+          "kind": "assumed"
+        }
+      ],
+      "summary": "以下字段为假定，未被合格证据证实：population.eligibility, measure.formula, grouping, output。"
+    },
+    "physicalProfile": {
+      "version": 1,
+      "rowCount": 1,
+      "truncated": false,
+      "columns": [
+        {
+          "name": "average_total_quantity",
+          "kind": "integer",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 1,
+          "min": "946",
+          "max": "946"
+        }
+      ]
+    },
+    "policyVersion": "answering-publication-v1",
+    "createdByInvocationId": "c60c1541-ce31-415c-bf1b-75924854a0a2",
+    "requestId": "c60c1541-ce31-415c-bf1b-75924854a0a2",
+    "createdAt": "2026-10-11T09:03:21.576Z"
+  },
+  "currentRevision": {
+    "taskId": "task_d9c450e8-217f-4a18-8320-46fc0e6932c0",
+    "revisionId": "revision_5cb6fcbe-e360-4684-b1ff-4a0550d7b2e6",
+    "parentRevisionId": "revision_92a654f3-3e32-4677-a375-07ac41cb3f52",
+    "requestId": "8dd82303-addd-4527-93d4-5ae17530d19e",
+    "createdAt": "2026-10-11T09:03:16.561Z",
+    "fields": {
+      "population.entity": {
+        "state": "specified",
+        "value": {
+          "name": "final packaging combinations"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_ff613861-dca0-4c9b-836a-4bd5e9903acd"
+          ]
+        }
+      },
+      "population.eligibility": {
+        "state": "specified",
+        "value": "Outermost packaging with children and no incoming containment",
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "population.conditions": {
+        "state": "not_applicable"
+      },
+      "population.time": {
+        "state": "not_applicable"
+      },
+      "measure.formula": {
+        "state": "specified",
+        "value": {
+          "op": "custom",
+          "description": "Multiply quantities along every root-to-leaf path, sum leaf quantities per outermost root then arithmetic mean of root totals"
+        },
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "grouping": {
+        "state": "specified",
+        "value": [
+          "n/a"
+        ],
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "selection": {
+        "state": "not_applicable"
+      },
+      "output": {
+        "state": "specified",
+        "value": {
+          "rowMode": "full",
+          "columns": [
+            "average_total_quantity"
+          ]
+        },
+        "basis": {
+          "kind": "assumed"
+        }
+      }
+    },
+    "state": {
+      "state": "ready",
+      "revisionId": "revision_5cb6fcbe-e360-4684-b1ff-4a0550d7b2e6",
+      "ready": "ready_7bdef87b-e58f-42fd-8149-37aceda604d2"
+    },
+    "specFeedback": {
+      "taskId": "task_d9c450e8-217f-4a18-8320-46fc0e6932c0",
+      "revisionId": "revision_5cb6fcbe-e360-4684-b1ff-4a0550d7b2e6",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_ff613861-dca0-4c9b-836a-4bd5e9903acd",
+        "evidence_186605b7-c5ca-46a6-a3bb-1a5ad7a46783",
+        "evidence_0a333ec3-6b31-4d48-a750-e5e46f643fb6",
+        "evidence_0ad37de2-c9d5-4f15-8fde-3d0c95df965a"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    }
+  },
+  "analystNote": {
+    "algorithm": "Recursive multiplicative root-to-leaf expansion then sum and equal root mean",
+    "assumptions": [
+      "final combination means outermost root packaging; intermediate cartons/boxes are not final"
+    ],
+    "validation": "Four roots; leaf totals 864,720,960,1240; mean946"
+  },
+  "settings": {
+    "qualification": "required",
+    "fieldProbes": true,
+    "externalAdvisor": "not_configured",
+    "specFeedback": "not_configured",
+    "fanout": "disabled_for_offline_audit",
+    "populationDecisions": "allow_disclosed_headless_audit",
+    "databaseReadOnly": true
+  }
+}

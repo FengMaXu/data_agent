@@ -1,0 +1,125 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_863565e3-a960-4d26-aa77-cae8555b350e\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nkind | n | min_qty | max_qty | min_discount | max_discount\nreturn | 461 | -9.082 | -0.025 | 1 | 1\nsale | 878042 | 0.003 | 160 | 1 | 1\nduplicate_wholesale_keys | 0 | NULL | NULL | NULL | NULL\nunmatched_transactions | 0 | NULL | NULL | NULL | NULL"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_863565e3-a960-4d26-aa77-cae8555b350e",
+      "preview": {
+        "columns": [
+          "kind",
+          "n",
+          "min_qty",
+          "max_qty",
+          "min_discount",
+          "max_discount"
+        ],
+        "rows": [
+          [
+            "return",
+            461,
+            -9.082,
+            -0.025,
+            1,
+            1
+          ],
+          [
+            "sale",
+            878042,
+            0.003,
+            160,
+            1,
+            1
+          ],
+          [
+            "duplicate_wholesale_keys",
+            0,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            "unmatched_transactions",
+            0,
+            null,
+            null,
+            null,
+            null
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "REAL",
+          "REAL",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 4,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "kind",
+        "n",
+        "min_qty",
+        "max_qty",
+        "min_discount",
+        "max_discount"
+      ],
+      "rows": [
+        [
+          "return",
+          461,
+          -9.082,
+          -0.025,
+          1,
+          1
+        ],
+        [
+          "sale",
+          878042,
+          0.003,
+          160,
+          1,
+          1
+        ],
+        [
+          "duplicate_wholesale_keys",
+          0,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          "unmatched_transactions",
+          0,
+          null,
+          null,
+          null,
+          null
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "REAL",
+        "REAL",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 4,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_8cec9170-5f4f-4a4c-89bb-ed070b1a01dc"
+  }
+}

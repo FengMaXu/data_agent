@@ -1,0 +1,79 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_bc7d9986-7242-4f36-a1a4-99b881737ab3\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nname | type | sql\nstack_ok | view | CREATE VIEW stack_ok AS select A.name, A.version, A.step, C.L1_model, 'strong' as status\n        from (select name, version, step, max(test_score) as max_test_score \n              from model_score where model not in ('Stack') \n              group by name, version, step) as A\n        inner join \n             (select name, version, step, test_score as stack_score \n              from model_score \n              where model = 'Stack') as B\n        on A.name = B.name\n        and A.version = B.version\n        and A.step = B.step\n        inner join \n            model as C\n            on A.name = C.name\n            and A.version = C.version\n        where A.max_test_score < B.stack_score\n        group by A.name, A.version, A.step\nunion all\nselect A.name, A.version, A.step, C.L1_model, 'soft' as status\n        from (select name, version, step, max(test_score) as max_test_score \n              from model_score where model not in ('Stack') \n              group by name, version, step) as A\n        inner join \n             (select name, version, step, test_score as stack_score \n              from model_score \n              where model = 'Stack') as B\n        on A.name = B.name\n        and A.version = B.version\n        and A.step = B.step\n        inner join \n            model as C\n            on A.name = C.name\n            and A.version = C.version\n        where A.max_test_score = B.stack_score\n        group by A.name, A.version, A.step\norder by A.name, A.version\nsolution_ext | view | CREATE VIEW solution_ext AS select name, version, L1_model\nfrom model\ngroup by name, version, L1_model\norder by name\nstack_ok_score | view | CREATE VIEW stack_ok_score AS select distinct test_score_1.name, test_score_1.version, test_score_1.score_1, test_score_2.score_2, test_score_3.score_3\nfrom\n(select A.name, A.version, A.test_score as score_1\n from model_score as A\n inner join stack_ok as B\n on A.name = B.name\n and A.version = B.version\n where A.model = 'Stack'\n and A.step = 1) as test_score_1\ninner join\n(select A.name, A.version, A.test_score as score_2\n from model_score as A\n inner join stack_ok as B\n on A.name = B.name\n and A.version = B.version\n where A.model = 'Stack'\n and A.step = 2) as test_score_2\n on test_score_1.name = test_score_2.name\n and test_score_1.version = test_score_2.version\ninner join\n(select A.name, A.version, A.test_score as score_3\n from model_score as A\n inner join stack_ok as B\n on A.name = B.name\n and A.version = B.version\n where A.model = 'Stack'\n and A.step = 3) as test_score_3\n on test_score_1.name = test_score_3.name\n and test_score_1.version = test_score_3.version"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_bc7d9986-7242-4f36-a1a4-99b881737ab3",
+      "preview": {
+        "columns": [
+          "name",
+          "type",
+          "sql"
+        ],
+        "rows": [
+          [
+            "stack_ok",
+            "view",
+            "CREATE VIEW stack_ok AS select A.name, A.version, A.step, C.L1_model, 'strong' as status\n        from (select name, version, step, max(test_score) as max_test_score \n              from model_score where model not in ('Stack') \n              group by name, version, step) as A\n        inner join \n             (select name, version, step, test_score as stack_score \n              from model_score \n              where model = 'Stack') as B\n        on A.name = B.name\n        and A.version = B.version\n        and A.step = B.step\n        inner join \n            model as C\n            on A.name = C.name\n            and A.version = C.version\n        where A.max_test_score < B.stack_score\n        group by A.name, A.version, A.step\nunion all\nselect A.name, A.version, A.step, C.L1_model, 'soft' as status\n        from (select name, version, step, max(test_score) as max_test_score \n              from model_score where model not in ('Stack') \n              group by name, version, step) as A\n        inner join \n             (select name, version, step, test_score as stack_score \n              from model_score \n              where model = 'Stack') as B\n        on A.name = B.name\n        and A.version = B.version\n        and A.step = B.step\n        inner join \n            model as C\n            on A.name = C.name\n            and A.version = C.version\n        where A.max_test_score = B.stack_score\n        group by A.name, A.version, A.step\norder by A.name, A.version"
+          ],
+          [
+            "solution_ext",
+            "view",
+            "CREATE VIEW solution_ext AS select name, version, L1_model\nfrom model\ngroup by name, version, L1_model\norder by name"
+          ],
+          [
+            "stack_ok_score",
+            "view",
+            "CREATE VIEW stack_ok_score AS select distinct test_score_1.name, test_score_1.version, test_score_1.score_1, test_score_2.score_2, test_score_3.score_3\nfrom\n(select A.name, A.version, A.test_score as score_1\n from model_score as A\n inner join stack_ok as B\n on A.name = B.name\n and A.version = B.version\n where A.model = 'Stack'\n and A.step = 1) as test_score_1\ninner join\n(select A.name, A.version, A.test_score as score_2\n from model_score as A\n inner join stack_ok as B\n on A.name = B.name\n and A.version = B.version\n where A.model = 'Stack'\n and A.step = 2) as test_score_2\n on test_score_1.name = test_score_2.name\n and test_score_1.version = test_score_2.version\ninner join\n(select A.name, A.version, A.test_score as score_3\n from model_score as A\n inner join stack_ok as B\n on A.name = B.name\n and A.version = B.version\n where A.model = 'Stack'\n and A.step = 3) as test_score_3\n on test_score_1.name = test_score_3.name\n and test_score_1.version = test_score_3.version"
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "TEXT",
+          "TEXT"
+        ],
+        "rowCount": 3,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "name",
+        "type",
+        "sql"
+      ],
+      "rows": [
+        [
+          "stack_ok",
+          "view",
+          "CREATE VIEW stack_ok AS select A.name, A.version, A.step, C.L1_model, 'strong' as status\n        from (select name, version, step, max(test_score) as max_test_score \n              from model_score where model not in ('Stack') \n              group by name, version, step) as A\n        inner join \n             (select name, version, step, test_score as stack_score \n              from model_score \n              where model = 'Stack') as B\n        on A.name = B.name\n        and A.version = B.version\n        and A.step = B.step\n        inner join \n            model as C\n            on A.name = C.name\n            and A.version = C.version\n        where A.max_test_score < B.stack_score\n        group by A.name, A.version, A.step\nunion all\nselect A.name, A.version, A.step, C.L1_model, 'soft' as status\n        from (select name, version, step, max(test_score) as max_test_score \n              from model_score where model not in ('Stack') \n              group by name, version, step) as A\n        inner join \n             (select name, version, step, test_score as stack_score \n              from model_score \n              where model = 'Stack') as B\n        on A.name = B.name\n        and A.version = B.version\n        and A.step = B.step\n        inner join \n            model as C\n            on A.name = C.name\n            and A.version = C.version\n        where A.max_test_score = B.stack_score\n        group by A.name, A.version, A.step\norder by A.name, A.version"
+        ],
+        [
+          "solution_ext",
+          "view",
+          "CREATE VIEW solution_ext AS select name, version, L1_model\nfrom model\ngroup by name, version, L1_model\norder by name"
+        ],
+        [
+          "stack_ok_score",
+          "view",
+          "CREATE VIEW stack_ok_score AS select distinct test_score_1.name, test_score_1.version, test_score_1.score_1, test_score_2.score_2, test_score_3.score_3\nfrom\n(select A.name, A.version, A.test_score as score_1\n from model_score as A\n inner join stack_ok as B\n on A.name = B.name\n and A.version = B.version\n where A.model = 'Stack'\n and A.step = 1) as test_score_1\ninner join\n(select A.name, A.version, A.test_score as score_2\n from model_score as A\n inner join stack_ok as B\n on A.name = B.name\n and A.version = B.version\n where A.model = 'Stack'\n and A.step = 2) as test_score_2\n on test_score_1.name = test_score_2.name\n and test_score_1.version = test_score_2.version\ninner join\n(select A.name, A.version, A.test_score as score_3\n from model_score as A\n inner join stack_ok as B\n on A.name = B.name\n and A.version = B.version\n where A.model = 'Stack'\n and A.step = 3) as test_score_3\n on test_score_1.name = test_score_3.name\n and test_score_1.version = test_score_3.version"
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "TEXT",
+        "TEXT"
+      ],
+      "rowCount": 3,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_99e7a67f-8bdc-4894-a8aa-9cfd61061e5c"
+  }
+}

@@ -1,0 +1,152 @@
+{
+  "query": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[RESULT_CANDIDATE] candidateId=candidate_43a5ad4d-6467-4cf1-941b-fc9e2da29766 revisionId=revision_854bcc4d-32ca-474c-a113-c68a8cbd7ee7\n[FANOUT_CHECK] status=unknown reasons=check_disabled\nNo source-key duplication was observed within the supported probe coverage.\nfewest_pair_count\n3"
+      }
+    ],
+    "details": {
+      "kind": "result",
+      "artifact": {
+        "kind": "candidate",
+        "candidateId": "candidate_43a5ad4d-6467-4cf1-941b-fc9e2da29766",
+        "revisionId": "revision_854bcc4d-32ca-474c-a113-c68a8cbd7ee7",
+        "resultRef": "result_3c3c111a-453d-498d-aacc-725ee957c8bb"
+      },
+      "preview": {
+        "columns": [
+          "fewest_pair_count"
+        ],
+        "rows": [
+          [
+            3
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      },
+      "findings": [],
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "unknown",
+          "reason": "check_disabled"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "unknown",
+        "snapshotScope": "unbound",
+        "targets": [],
+        "unsupportedReasons": [
+          "check_disabled"
+        ]
+      },
+      "attemptId": "attempt_67bc72a7-79c1-4f5d-abe4-0523a06b28fa"
+    }
+  },
+  "publication": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[PUBLISHED] csv [download](/api/runtime/publications/publication_9b34a8df-75f4-417d-960c-445a45355fc8?session_id=local010) receiptId=publication_9b34a8df-75f4-417d-960c-445a45355fc8\n[DISCLOSURE] JOIN fanout 检查未能完整完成：check_disabled。"
+      }
+    ],
+    "details": {
+      "receiptId": "publication_9b34a8df-75f4-417d-960c-445a45355fc8",
+      "taskId": "task_3f425279-bd31-44af-83cc-2d27fee4ccf8",
+      "principalId": "independent-analyst",
+      "sessionId": "local010",
+      "candidateId": "candidate_43a5ad4d-6467-4cf1-941b-fc9e2da29766",
+      "revisionId": "revision_854bcc4d-32ca-474c-a113-c68a8cbd7ee7",
+      "resultRef": "result_3c3c111a-453d-498d-aacc-725ee957c8bb",
+      "format": "csv",
+      "publicRef": "/api/runtime/publications/publication_9b34a8df-75f4-417d-960c-445a45355fc8?session_id=local010",
+      "contentHash": "14d1e3772d659783c9ebc03df62e70ac2ea43b257822bee5ec876caf60daa336",
+      "presentationContentHash": "ca0e3da81eff4fa04993de35336d1b329f01e2c3596edf53efd3a5123e137793",
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "unknown",
+          "reason": "check_disabled"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "unknown",
+        "snapshotScope": "unbound",
+        "targets": [],
+        "unsupportedReasons": [
+          "check_disabled"
+        ]
+      },
+      "disclosure": {
+        "required": true,
+        "unverifiedFields": [],
+        "summary": "JOIN fanout 检查未能完整完成：check_disabled。",
+        "fanoutStatus": "unknown"
+      },
+      "physicalProfile": {
+        "version": 1,
+        "rowCount": 1,
+        "truncated": false,
+        "columns": [
+          {
+            "name": "fewest_pair_count",
+            "kind": "integer",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 1,
+            "min": "3",
+            "max": "3"
+          }
+        ]
+      },
+      "policyVersion": "answering-publication-v1",
+      "createdByInvocationId": "9565a667-f113-499b-8723-d9f0e9452f4a",
+      "requestId": "9565a667-f113-499b-8723-d9f0e9452f4a",
+      "createdAt": "2026-10-11T09:08:49.818Z"
+    }
+  },
+  "authorizedCsv": "D:\\data_agent\\evaluations\\spider2\\adr0007\\independent-recompute-35\\cases\\local010\\publications\\publication_9b34a8df-75f4-417d-960c-445a45355fc8\\result.csv"
+}

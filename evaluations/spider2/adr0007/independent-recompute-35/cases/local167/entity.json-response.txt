@@ -1,0 +1,55 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_6cc27d11-d465-472f-90ea-3360c407e6f0 revisionId=revision_744343e4-22d8-4dea-b261-135118eaae4d\n- ✓ population.entity\n状态：\n- 未声明: population.eligibility, population.conditions, population.time, measure.formula, grouping, selection, output\n[SPEC_FEEDBACK] revisionId=revision_744343e4-22d8-4dea-b261-135118eaae4d status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"female legislators keyed by id_bioguide\"}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_6cc27d11-d465-472f-90ea-3360c407e6f0",
+    "revisionId": "revision_744343e4-22d8-4dea-b261-135118eaae4d",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "female legislators keyed by id_bioguide"
+        },
+        "evidenceIds": [
+          "evidence_e944b857-5c7a-4a98-b722-0b96b7d765f2"
+        ]
+      }
+    ],
+    "undeclared": [
+      "population.eligibility",
+      "population.conditions",
+      "population.time",
+      "measure.formula",
+      "grouping",
+      "selection",
+      "output"
+    ],
+    "open": [],
+    "unverified": [],
+    "specFeedback": {
+      "taskId": "task_6cc27d11-d465-472f-90ea-3360c407e6f0",
+      "revisionId": "revision_744343e4-22d8-4dea-b261-135118eaae4d",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_e944b857-5c7a-4a98-b722-0b96b7d765f2"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "population.entity",
+        "status": "applied"
+      }
+    ]
+  }
+}
+

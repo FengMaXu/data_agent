@@ -1,0 +1,56 @@
+{
+  "instance_id": "local273",
+  "status": "ambiguous_after_recompute",
+  "summary": "Exact Gold vector reproduced using pick / total allocated per inventory, versus original order-line fulfillment and independent pick / original inventory; original aggregate loses location event grain",
+  "fork_node": "population.entity",
+  "error_layer": "semantic_grain_and_denominator_ambiguity",
+  "visibility": "explicit_in_successful_spec",
+  "independent_score": 0,
+  "evidence": [
+    {
+      "source": "blind.json",
+      "pointer": "/question",
+      "quote": "only the overlapping range between each order’s required quantity and the inventory’s available quantity"
+    },
+    {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local273/attempts/attempt-20261010-154318Z/trace.json",
+      "quote": "order line (an order × product demand row)",
+      "pointer": "/toolCalls/32/result/details/fields/0/value",
+      "original_projection_source": "original-spec-evidence.json"
+    },
+    {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local273/attempts/attempt-20261010-154318Z/trace.json",
+      "quote": "required quantity of the demand row (orderlines.qty); rows with qty <= 0 excluded",
+      "pointer": "/toolCalls/32/result/details/fields/9/value",
+      "original_projection_source": "original-spec-evidence.json"
+    },
+    {
+      "source": "gold-exact-normalization.json-response.txt",
+      "pointer": "/details/preview/rows",
+      "quote": "76.92307692307692"
+    }
+  ],
+  "limitations": [
+    "Exact normalization vector is not unique proof of Gold implementation or intended denominator."
+  ],
+  "parent_field_review": {
+    "instance_id": "local273",
+    "relevant_node": "population.entity",
+    "node_is_confirmed_original_error": false,
+    "explanation": "订单行/库存/实际分配事件单位先分叉；pick百分比分母未规定",
+    "error_layer": "未唯一裁决",
+    "visibility": "不能标成假定错/决定错：原声明可见，不等于业务错误已证",
+    "qualification": "差异机制已实测，业务意图未唯一裁决",
+    "original_node_declared": true,
+    "original_node_status": "assumed",
+    "original_node_value": {
+      "name": "order line (an order × product demand row)"
+    },
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local273/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/32/result/details/fields/0/value",
+      "quote": "{\"name\": \"order line (an order × product demand row)\"}"
+    },
+    "primary_status": "ambiguous_after_recompute"
+  }
+}

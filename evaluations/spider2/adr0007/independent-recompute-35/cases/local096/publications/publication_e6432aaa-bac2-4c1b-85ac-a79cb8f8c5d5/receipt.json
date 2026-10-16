@@ -1,0 +1,108 @@
+{
+  "receiptId": "publication_e6432aaa-bac2-4c1b-85ac-a79cb8f8c5d5",
+  "taskId": "task_8f48f1b9-67d7-4ac0-be97-e687527c5a22",
+  "principalId": "independent-analyst",
+  "sessionId": "local096",
+  "candidateId": "candidate_e66469f5-bf89-4a21-b2a1-38a2ad792586",
+  "revisionId": "revision_f0dec9fa-125c-4141-bd9d-cff06c142f7c",
+  "resultRef": "result_e6249ef6-0065-4e6c-92a7-4d3d3de8c9ba",
+  "format": "csv",
+  "publicRef": "/api/runtime/publications/publication_e6432aaa-bac2-4c1b-85ac-a79cb8f8c5d5?session_id=local096",
+  "contentHash": "e974fe9e9ef3a819e3530dd9295a40c3eacd4ba8a75738b3eb18a39ee7f4496d",
+  "presentationContentHash": "17ac62057bb50b8b7bfa3f3a8566d233fa1600c508cb2fce81b72c9387a38dea",
+  "coverage": [
+    {
+      "checkId": "result_completeness",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "result_shape",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "result_identity",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "join_fanout",
+      "outcome": "unknown",
+      "reason": "check_disabled"
+    },
+    {
+      "checkId": "spec_feedback",
+      "ruleVersion": "spec-feedback-v2",
+      "outcome": "not_applicable",
+      "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+    }
+  ],
+  "fanout": {
+    "ruleVersion": "answering-fanout-v1",
+    "status": "unknown",
+    "snapshotScope": "unbound",
+    "targets": [],
+    "unsupportedReasons": [
+      "check_disabled"
+    ]
+  },
+  "disclosure": {
+    "required": true,
+    "unverifiedFields": [
+      {
+        "path": "population.eligibility",
+        "kind": "assumed"
+      },
+      {
+        "path": "population.conditions",
+        "kind": "assumed"
+      },
+      {
+        "path": "measure.formula",
+        "kind": "assumed"
+      },
+      {
+        "path": "measure.countGrain",
+        "kind": "assumed"
+      }
+    ],
+    "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.conditions, measure.formula, measure.countGrain。 JOIN fanout 检查未能完整完成：check_disabled。",
+    "fanoutStatus": "unknown"
+  },
+  "physicalProfile": {
+    "version": 1,
+    "rowCount": 78,
+    "truncated": false,
+    "columns": [
+      {
+        "name": "year",
+        "kind": "integer",
+        "encodedAs": "number",
+        "nullCount": 0,
+        "distinctCount": 78,
+        "min": "1931",
+        "max": "2018"
+      },
+      {
+        "name": "total_movies",
+        "kind": "integer",
+        "encodedAs": "number",
+        "nullCount": 0,
+        "distinctCount": 52,
+        "min": "1",
+        "max": "136"
+      },
+      {
+        "name": "female_percentage",
+        "kind": "decimal",
+        "encodedAs": "number",
+        "nullCount": 0,
+        "distinctCount": 5,
+        "min": "0",
+        "max": "50"
+      }
+    ]
+  },
+  "policyVersion": "answering-publication-v1",
+  "createdByInvocationId": "77cbdbae-89eb-44e7-b786-9023150259bf",
+  "requestId": "77cbdbae-89eb-44e7-b786-9023150259bf",
+  "createdAt": "2026-10-11T10:03:06.551Z"
+}

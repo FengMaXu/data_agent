@@ -1,0 +1,65 @@
+{
+  "instance_id": "local196",
+  "status": "gold_conflict",
+  "summary": "独立与原均按真实rental数减1；Gold五组后续租赁均值精确等于payment记录数减1，其中5条payment.rental_id为NULL。Gold把无租赁关联付款当租赁，局部计数冲突已实证。",
+  "fork_node": null,
+  "error_layer": "标准答案与本次题面/输入局部冲突",
+  "visibility": null,
+  "independent_score": 0,
+  "evidence": [
+    {
+      "source": "blind.json",
+      "pointer": "/question",
+      "quote": "For each rating category of the first movie rented by customers—where the first movie is identified based on the earliest payment date per customer—please provide the average total amount spent per customer and the average number of subsequent rentals (calculated as the total number of rentals minus one) for customers whose first rented movie falls into that rating category."
+    },
+    {
+      "source": "parent-sakila-keys-response.json",
+      "pointer": "/details/preview/rows",
+      "quote": "16049"
+    },
+    {
+      "source": "parent-post-count-payment-variant-response.json",
+      "pointer": "/details/preview/rows",
+      "quote": "25.317307692307693"
+    },
+    {
+      "source": "parent-post-nonrental-payments-response.json",
+      "pointer": "/details/preview/rows",
+      "quote": "424"
+    },
+    {
+      "source": "comparison-input.json",
+      "pointer": "/goldCsv/0/content",
+      "quote": "\"rating\",\"avg_spend\",\"avg_subsequent_rentals_number\"\r\nPG-13,115.24,26.38\r\nPG,112.67,26.27\r\nNC-17,111.94,25.37\r\nR,111.42,25.49\r\nG,110.66,25.32\r\n"
+    },
+    {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local196/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/12/result/details/fields/8/value",
+      "quote": "total number of rentals of c - 1"
+    }
+  ],
+  "limitations": [
+    "Gold SQL缺失；只确认本次结果等价于错误付款事件计数，不断言其隐藏代码。",
+    "此类付款存在不一定是数据缺陷，可是真实无关联收费；不能擅自删除总花费。"
+  ],
+  "parent_completed": true,
+  "completed_at": "2026-10-11T10:12:38.185210+00:00",
+  "parent_field_review": {
+    "instance_id": "local196",
+    "relevant_node": "measure.countGrain",
+    "node_is_confirmed_original_error": false,
+    "explanation": "Gold把五笔无关联付款计成租赁；原公式/SQL计真实rental",
+    "error_layer": "标准答案与本次输入/明确要求局部冲突",
+    "visibility": "不适用：未确认原Spec语义错误",
+    "qualification": "Gold差异相关节点，不冒充原系统错误节点",
+    "original_node_declared": true,
+    "original_node_status": "assumed",
+    "original_node_value": "one customer entity per observation; each average is taken over customers",
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local196/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/12/result/details/fields/9/value",
+      "quote": "one customer entity per observation; each average is taken over customers"
+    },
+    "primary_status": "gold_conflict"
+  }
+}

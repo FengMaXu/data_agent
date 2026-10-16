@@ -1,0 +1,209 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_07e176ec-9fce-4552-807d-f9b7ff245339\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nyear | round | driver_id | forename | surname | name | status | laps\n1959 | 1 | 403 | Phil | Hill | Ferrari | +3 Laps | 97\n1959 | 3 | 403 | Phil | Hill | Ferrari | +2 Laps | 73\n1959 | 4 | 403 | Phil | Hill | Ferrari | Finished | 50\n1959 | 6 | 403 | Phil | Hill | Ferrari | Finished | 60\n1959 | 7 | 403 | Phil | Hill | Ferrari | Accident | 5\n1959 | 8 | 403 | Phil | Hill | Ferrari | Finished | 72\n1959 | 9 | 403 | Phil | Hill | Ferrari | Clutch | 8"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_07e176ec-9fce-4552-807d-f9b7ff245339",
+      "preview": {
+        "columns": [
+          "year",
+          "round",
+          "driver_id",
+          "forename",
+          "surname",
+          "name",
+          "status",
+          "laps"
+        ],
+        "rows": [
+          [
+            1959,
+            1,
+            403,
+            "Phil",
+            "Hill",
+            "Ferrari",
+            "+3 Laps",
+            97
+          ],
+          [
+            1959,
+            3,
+            403,
+            "Phil",
+            "Hill",
+            "Ferrari",
+            "+2 Laps",
+            73
+          ],
+          [
+            1959,
+            4,
+            403,
+            "Phil",
+            "Hill",
+            "Ferrari",
+            "Finished",
+            50
+          ],
+          [
+            1959,
+            6,
+            403,
+            "Phil",
+            "Hill",
+            "Ferrari",
+            "Finished",
+            60
+          ],
+          [
+            1959,
+            7,
+            403,
+            "Phil",
+            "Hill",
+            "Ferrari",
+            "Accident",
+            5
+          ],
+          [
+            1959,
+            8,
+            403,
+            "Phil",
+            "Hill",
+            "Ferrari",
+            "Finished",
+            72
+          ],
+          [
+            1959,
+            9,
+            403,
+            "Phil",
+            "Hill",
+            "Ferrari",
+            "Clutch",
+            8
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "TEXT",
+          "TEXT",
+          "TEXT",
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 7,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "year",
+        "round",
+        "driver_id",
+        "forename",
+        "surname",
+        "name",
+        "status",
+        "laps"
+      ],
+      "rows": [
+        [
+          1959,
+          1,
+          403,
+          "Phil",
+          "Hill",
+          "Ferrari",
+          "+3 Laps",
+          97
+        ],
+        [
+          1959,
+          3,
+          403,
+          "Phil",
+          "Hill",
+          "Ferrari",
+          "+2 Laps",
+          73
+        ],
+        [
+          1959,
+          4,
+          403,
+          "Phil",
+          "Hill",
+          "Ferrari",
+          "Finished",
+          50
+        ],
+        [
+          1959,
+          6,
+          403,
+          "Phil",
+          "Hill",
+          "Ferrari",
+          "Finished",
+          60
+        ],
+        [
+          1959,
+          7,
+          403,
+          "Phil",
+          "Hill",
+          "Ferrari",
+          "Accident",
+          5
+        ],
+        [
+          1959,
+          8,
+          403,
+          "Phil",
+          "Hill",
+          "Ferrari",
+          "Finished",
+          72
+        ],
+        [
+          1959,
+          9,
+          403,
+          "Phil",
+          "Hill",
+          "Ferrari",
+          "Clutch",
+          8
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "TEXT",
+        "TEXT",
+        "TEXT",
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 7,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_7cf837c3-6df0-4d8e-84a1-012b9001cab3"
+  }
+}

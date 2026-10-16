@@ -1,0 +1,93 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_2c7cfb16-d665-4806-a9f2-aef82ea5807b\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nproduct_id | smallest_end | total_demand | total_purchase | ending12 | conserved_end\n6520 | 100 | 600 | 400 | 200 | 200\n6600 | 40 | 240 | 200 | 60 | 60"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_2c7cfb16-d665-4806-a9f2-aef82ea5807b",
+      "preview": {
+        "columns": [
+          "product_id",
+          "smallest_end",
+          "total_demand",
+          "total_purchase",
+          "ending12",
+          "conserved_end"
+        ],
+        "rows": [
+          [
+            6520,
+            100,
+            600,
+            400,
+            200,
+            200
+          ],
+          [
+            6600,
+            40,
+            240,
+            200,
+            60,
+            60
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 2,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "product_id",
+        "smallest_end",
+        "total_demand",
+        "total_purchase",
+        "ending12",
+        "conserved_end"
+      ],
+      "rows": [
+        [
+          6520,
+          100,
+          600,
+          400,
+          200,
+          200
+        ],
+        [
+          6600,
+          40,
+          240,
+          200,
+          60,
+          60
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 2,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_c477d8ca-1ef8-4cf1-9010-983adf46ab1e"
+  }
+}

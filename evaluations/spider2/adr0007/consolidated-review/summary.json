@@ -1,0 +1,52 @@
+{
+  "unique_cases": 61,
+  "recompute_subset": 35,
+  "overlap": 35,
+  "prior_primary_gold_flags": 14,
+  "recompute_primary_gold_flags": 17,
+  "previous_primary_gold_union": 31,
+  "additional_secondary_gold_flag": [
+    "local064"
+  ],
+  "confirmed_gold_local_conflict": 32,
+  "suspected_gold": [
+    "local358"
+  ],
+  "core_gold_verified_agent_failures": [
+    "local015",
+    "local040",
+    "local156",
+    "local228",
+    "local283",
+    "local302"
+  ],
+  "core_business_error_cases": [
+    "local015",
+    "local040",
+    "local156",
+    "local283",
+    "local302"
+  ],
+  "representation_only_core_case": [
+    "local228"
+  ],
+  "agent_error_gold_unverified": [
+    "local003",
+    "local060",
+    "local277"
+  ],
+  "mixed_confirmed_gold_agent_error": [
+    "local064",
+    "local066",
+    "local354"
+  ],
+  "counts_by_category": {
+    "AGENT_LOCAL_ERROR_GOLD_UNVERIFIED": 3,
+    "GOLD_LOCAL_CONFLICT": 32,
+    "GOLD_SUSPECT_AGENT_LOCAL_ERROR": 1,
+    "GOLD_VERIFIED_AGENT_FAILURE": 6,
+    "UNRESOLVED_OR_SCORING_CONTRACT": 19
+  },
+  "database_access_in_this_consolidation": false,
+  "official_gold_or_score_modified": false
+}

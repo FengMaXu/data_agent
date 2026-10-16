@@ -1,0 +1,1 @@
+SELECT year,COUNT(*) n FROM Movie WHERE substr(year,-4) NOT GLOB '[12][0-9][0-9][0-9]' GROUP BY year

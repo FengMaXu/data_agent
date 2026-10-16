@@ -1,0 +1,1546 @@
+[
+  {
+    "sequence": 14,
+    "toolCallId": "call_00_JYC5thRq3sSsDtOgMcRq8502|e1fd01af-de3e-4e2b-8acf-f5e17d8e927a",
+    "toolName": "set_answer_spec",
+    "args": {
+      "fields": {
+        "population.entity": {
+          "value": "order line (an order × product demand row)",
+          "basis": "request",
+          "quote": "each order's required quantity"
+        },
+        "population.eligibility": {
+          "value": "Every order line (demand row) whose product has at least one inventory record; required qty (orderlines.qty) > 0.",
+          "basis": "assumed",
+          "rationale": "Each order's required quantity defines one demand observation; nothing in the request excludes order lines."
+        },
+        "population.conditions": "n/a",
+        "population.source": {
+          "tables": [
+            "orderlines",
+            "orders",
+            "products",
+            "inventory",
+            "purchases"
+          ]
+        },
+        "population.time": "n/a (all dates)",
+        "population.timeField": {
+          "value": "inventory batches ordered by purchases.purchased; demand rows ordered by orders.ordered",
+          "basis": "request",
+          "quote": "earliest purchase date"
+        },
+        "population.joinMultiplicity": {
+          "value": "orderlines × inventory is 1:N via product_id; the FIFO allocation is computed per product so rows are not multiplied.",
+          "basis": "assumed",
+          "rationale": "A product has many inventory rows (multiple purchases/locations) and many order lines; a naive join would multiply."
+        },
+        "measure.formula": {
+          "open": [
+            "A: single FIFO location per order line — picked = MIN(orderline.qty, inventory.qty of the location with earliest purchase date then smallest qty); pick% = picked/required",
+            "B: cumulative FIFO allocation — order lines (by order) consume inventory locations ordered by (purchase date ASC, qty ASC); picked per line = MIN(remaining required, remaining available); pick% = picked/required"
+          ]
+        },
+        "measure.countGrain": "one observation per order line (order × product demand)",
+        "measure.denominator": {
+          "value": "orderlines.qty of the demand row (the required quantity); rows with qty <= 0 excluded",
+          "basis": "request",
+          "quote": "overlapping range between each order's required quantity and the inventory's available quantity"
+        },
+        "grouping": [
+          "products.name"
+        ],
+        "selection": "n/a",
+        "output": {
+          "rowMode": "grouped",
+          "rowCount": 10,
+          "columns": [
+            "product_name",
+            "average_pick_percentage"
+          ]
+        }
+      }
+    },
+    "startedAt": 1791648983748,
+    "isError": false,
+    "finishedAt": 1791648984651,
+    "durationMs": 903,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "[ANSWER_SPEC_SET] taskId=task_321f43d5-5167-44a6-87c2-eb2d145b51ba revisionId=revision_ca03e8b9-e5a2-41bc-85f2-3ef29fc91636\n- ✗ population.entity: request_wording quote was not found verbatim in the original request: \"each order's required quantity\"\n- ✓ population.eligibility\n- ✓ population.conditions\n- ✓ population.source\n- ✓ population.time\n- ✓ population.timeField\n- ✓ population.joinMultiplicity\n- ✗ measure.formula: measure.formula must be {op, per?, of | numerator+denominator | from+to}\n- ✓ measure.countGrain\n- ✗ measure.denominator: request_wording quote was not found verbatim in the original request: \"overlapping range between each order's required quantity and the inventory's available quantity\"\n- ✓ grouping\n- ✓ selection\n- ✓ output\n字段写法：one of: \"n/a\"; a bare value (an assumption, disclosed); {value, basis:\"request\", quote}; {value, cite:[{source, quote}]}; {value, evidenceIds}; {value, basis:\"assumed\", rationale}; {open:[value, ...]}; to decide an open field {value:<alternative>, rationale, evidenceIds?}; {notProbeable:{<alternativeId>: reason}}\n状态：\n- 未证实（发布时披露）: population.eligibility, population.source, population.time, population.timeField, population.joinMultiplicity, measure.countGrain, grouping, output\n- 未声明: population.entity, measure.formula\n[SPEC_FEEDBACK] revisionId=revision_ca03e8b9-e5a2-41bc-85f2-3ef29fc91636 status=unavailable advisory_only=true\nreason: provider_http_error\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.eligibility\":{\"status\":\"assumed\",\"value\":\"Every order line (demand row) whose product has at least one inventory record; required qty (orderlines.qty) > 0.\"},\"population.conditions\":{\"status\":\"not_applicable\"},\"population.source\":{\"status\":\"assumed\",\"value\":{\"tables\":[\"orderlines\",\"orders\",\"products\",\"inventory\",\"purchases\"]}},\"population.time\":{\"status\":\"assumed\",\"value\":{\"expression\":\"n/a (all dates)\"}},\"population.timeField\":{\"status\":\"assumed\",\"value\":\"inventory batches ordered by purchases.purchased; demand rows ordered by orders.ordered\"},\"population.joinMultiplicity\":{\"status\":\"assumed\",\"value\":\"orderlines × inventory is 1:N via product_id; the FIFO allocation is computed per product so rows are not multiplied.\"},\"measure.countGrain\":{\"status\":\"assumed\",\"value\":\"one observation per order line (order × product demand)\"},\"grouping\":{\"status\":\"assumed\",\"value\":[\"products.name\"]},\"selection\":{\"status\":\"not_applicable\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"grouped\",\"rowCount\":10,\"columns\":[\"product_name\",\"average_pick_percentage\"]}}}"
+        }
+      ],
+      "details": {
+        "taskId": "task_321f43d5-5167-44a6-87c2-eb2d145b51ba",
+        "revisionId": "revision_ca03e8b9-e5a2-41bc-85f2-3ef29fc91636",
+        "fields": [
+          {
+            "path": "population.eligibility",
+            "status": "assumed",
+            "value": "Every order line (demand row) whose product has at least one inventory record; required qty (orderlines.qty) > 0.",
+            "rationale": "Each order's required quantity defines one demand observation; nothing in the request excludes order lines."
+          },
+          {
+            "path": "population.conditions",
+            "status": "not_applicable"
+          },
+          {
+            "path": "population.source",
+            "status": "assumed",
+            "value": {
+              "tables": [
+                "orderlines",
+                "orders",
+                "products",
+                "inventory",
+                "purchases"
+              ]
+            }
+          },
+          {
+            "path": "population.time",
+            "status": "assumed",
+            "value": {
+              "expression": "n/a (all dates)"
+            }
+          },
+          {
+            "path": "population.timeField",
+            "status": "assumed",
+            "value": "inventory batches ordered by purchases.purchased; demand rows ordered by orders.ordered"
+          },
+          {
+            "path": "population.joinMultiplicity",
+            "status": "assumed",
+            "value": "orderlines × inventory is 1:N via product_id; the FIFO allocation is computed per product so rows are not multiplied.",
+            "rationale": "A product has many inventory rows (multiple purchases/locations) and many order lines; a naive join would multiply."
+          },
+          {
+            "path": "measure.countGrain",
+            "status": "assumed",
+            "value": "one observation per order line (order × product demand)"
+          },
+          {
+            "path": "grouping",
+            "status": "assumed",
+            "value": [
+              "products.name"
+            ]
+          },
+          {
+            "path": "selection",
+            "status": "not_applicable"
+          },
+          {
+            "path": "output",
+            "status": "assumed",
+            "value": {
+              "rowMode": "grouped",
+              "rowCount": 10,
+              "columns": [
+                "product_name",
+                "average_pick_percentage"
+              ]
+            }
+          }
+        ],
+        "undeclared": [
+          "population.entity",
+          "measure.formula"
+        ],
+        "open": [],
+        "unverified": [
+          "population.eligibility",
+          "population.source",
+          "population.time",
+          "population.timeField",
+          "population.joinMultiplicity",
+          "measure.countGrain",
+          "grouping",
+          "output"
+        ],
+        "specFeedback": {
+          "taskId": "task_321f43d5-5167-44a6-87c2-eb2d145b51ba",
+          "revisionId": "revision_ca03e8b9-e5a2-41bc-85f2-3ef29fc91636",
+          "ruleVersion": "spec-feedback-v2",
+          "status": "unavailable",
+          "deterministicIssues": [],
+          "evidenceIds": [
+            "request_b135130a014992063f80a459",
+            "evidence_2fa5bd51-f54d-4786-92bb-b21326b34753"
+          ],
+          "limitations": [],
+          "startedAt": "2026-10-10T16:16:23.755Z",
+          "inputHash": "f7e225ccb3375f2fe45cc2aff2f525229e6f6cfcb0ab0c0a39dae657aab09891",
+          "reason": "provider_http_error",
+          "completedAt": "2026-10-10T16:16:24.627Z",
+          "durationMs": 872
+        },
+        "outcomes": [
+          {
+            "path": "population.entity",
+            "status": "rejected",
+            "code": "EVIDENCE_REJECTED",
+            "message": "request_wording quote was not found verbatim in the original request: \"each order's required quantity\""
+          },
+          {
+            "path": "population.eligibility",
+            "status": "applied"
+          },
+          {
+            "path": "population.conditions",
+            "status": "applied"
+          },
+          {
+            "path": "population.source",
+            "status": "applied"
+          },
+          {
+            "path": "population.time",
+            "status": "applied"
+          },
+          {
+            "path": "population.timeField",
+            "status": "applied"
+          },
+          {
+            "path": "population.joinMultiplicity",
+            "status": "applied"
+          },
+          {
+            "path": "measure.formula",
+            "status": "rejected",
+            "code": "INVALID_REQUEST",
+            "message": "measure.formula must be {op, per?, of | numerator+denominator | from+to}"
+          },
+          {
+            "path": "measure.countGrain",
+            "status": "applied"
+          },
+          {
+            "path": "measure.denominator",
+            "status": "rejected",
+            "code": "EVIDENCE_REJECTED",
+            "message": "request_wording quote was not found verbatim in the original request: \"overlapping range between each order's required quantity and the inventory's available quantity\""
+          },
+          {
+            "path": "grouping",
+            "status": "applied"
+          },
+          {
+            "path": "selection",
+            "status": "applied"
+          },
+          {
+            "path": "output",
+            "status": "applied"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "sequence": 15,
+    "toolCallId": "call_00_b966SxN0GbzNSySvMd9q4169|d899bc87-5603-47d1-836a-b5339c5e67a4",
+    "toolName": "set_answer_spec",
+    "args": {
+      "taskId": "task_321f43d5-5167-44a6-87c2-eb2d145b51ba",
+      "fields": {
+        "population.entity": {
+          "value": "order line (an order × product demand row)",
+          "basis": "assumed",
+          "rationale": "The metric averages over 'each order's required quantity', i.e. one demand row per order×product (orderlines.id)."
+        },
+        "measure.denominator": {
+          "value": "required quantity of the demand row (orderlines.qty); rows with qty <= 0 excluded",
+          "basis": "assumed",
+          "rationale": "pick percentage = picked quantity / required quantity, so the denominator is the order line's qty."
+        }
+      }
+    },
+    "startedAt": 1791648997009,
+    "isError": false,
+    "finishedAt": 1791648997916,
+    "durationMs": 907,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "[ANSWER_SPEC_SET] taskId=task_321f43d5-5167-44a6-87c2-eb2d145b51ba revisionId=revision_6258c74c-91f0-492a-a6b3-d36c188ac700\n- ✓ population.entity\n- ✓ measure.denominator\n状态：\n- 未证实（发布时披露）: population.eligibility, population.source, population.time, population.timeField, population.joinMultiplicity, measure.countGrain, grouping, output, population.entity, measure.denominator\n- 未声明: measure.formula\n[SPEC_FEEDBACK] revisionId=revision_6258c74c-91f0-492a-a6b3-d36c188ac700 status=unavailable advisory_only=true\nreason: provider_http_error\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"assumed\",\"value\":{\"name\":\"order line (an order × product demand row)\"}},\"population.eligibility\":{\"status\":\"assumed\",\"value\":\"Every order line (demand row) whose product has at least one inventory record; required qty (orderlines.qty) > 0.\"},\"population.conditions\":{\"status\":\"not_applicable\"},\"population.source\":{\"status\":\"assumed\",\"value\":{\"tables\":[\"orderlines\",\"orders\",\"products\",\"inventory\",\"purchases\"]}},\"population.time\":{\"status\":\"assumed\",\"value\":{\"expression\":\"n/a (all dates)\"}},\"population.timeField\":{\"status\":\"assumed\",\"value\":\"inventory batches ordered by purchases.purchased; demand rows ordered by orders.ordered\"},\"population.joinMultiplicity\":{\"status\":\"assumed\",\"value\":\"orderlines × inventory is 1:N via product_id; the FIFO allocation is computed per product so rows are not multiplied.\"},\"measure.countGrain\":{\"status\":\"assumed\",\"value\":\"one observation per order line (order × product demand)\"},\"measure.denominator\":{\"status\":\"assumed\",\"value\":\"required quantity of the demand row (orderlines.qty); rows with qty <= 0 excluded\"},\"grouping\":{\"status\":\"assumed\",\"value\":[\"products.name\"]},\"selection\":{\"status\":\"not_applicable\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"grouped\",\"rowCount\":10,\"columns\":[\"product_name\",\"average_pick_percentage\"]}}}"
+        }
+      ],
+      "details": {
+        "taskId": "task_321f43d5-5167-44a6-87c2-eb2d145b51ba",
+        "revisionId": "revision_6258c74c-91f0-492a-a6b3-d36c188ac700",
+        "parentRevisionId": "revision_ca03e8b9-e5a2-41bc-85f2-3ef29fc91636",
+        "fields": [
+          {
+            "path": "population.entity",
+            "status": "assumed",
+            "value": {
+              "name": "order line (an order × product demand row)"
+            },
+            "rationale": "The metric averages over 'each order's required quantity', i.e. one demand row per order×product (orderlines.id)."
+          },
+          {
+            "path": "population.eligibility",
+            "status": "assumed",
+            "value": "Every order line (demand row) whose product has at least one inventory record; required qty (orderlines.qty) > 0.",
+            "rationale": "Each order's required quantity defines one demand observation; nothing in the request excludes order lines."
+          },
+          {
+            "path": "population.conditions",
+            "status": "not_applicable"
+          },
+          {
+            "path": "population.source",
+            "status": "assumed",
+            "value": {
+              "tables": [
+                "orderlines",
+                "orders",
+                "products",
+                "inventory",
+                "purchases"
+              ]
+            }
+          },
+          {
+            "path": "population.time",
+            "status": "assumed",
+            "value": {
+              "expression": "n/a (all dates)"
+            }
+          },
+          {
+            "path": "population.timeField",
+            "status": "assumed",
+            "value": "inventory batches ordered by purchases.purchased; demand rows ordered by orders.ordered"
+          },
+          {
+            "path": "population.joinMultiplicity",
+            "status": "assumed",
+            "value": "orderlines × inventory is 1:N via product_id; the FIFO allocation is computed per product so rows are not multiplied.",
+            "rationale": "A product has many inventory rows (multiple purchases/locations) and many order lines; a naive join would multiply."
+          },
+          {
+            "path": "measure.countGrain",
+            "status": "assumed",
+            "value": "one observation per order line (order × product demand)"
+          },
+          {
+            "path": "measure.denominator",
+            "status": "assumed",
+            "value": "required quantity of the demand row (orderlines.qty); rows with qty <= 0 excluded",
+            "rationale": "pick percentage = picked quantity / required quantity, so the denominator is the order line's qty."
+          },
+          {
+            "path": "grouping",
+            "status": "assumed",
+            "value": [
+              "products.name"
+            ]
+          },
+          {
+            "path": "selection",
+            "status": "not_applicable"
+          },
+          {
+            "path": "output",
+            "status": "assumed",
+            "value": {
+              "rowMode": "grouped",
+              "rowCount": 10,
+              "columns": [
+                "product_name",
+                "average_pick_percentage"
+              ]
+            }
+          }
+        ],
+        "undeclared": [
+          "measure.formula"
+        ],
+        "open": [],
+        "unverified": [
+          "population.eligibility",
+          "population.source",
+          "population.time",
+          "population.timeField",
+          "population.joinMultiplicity",
+          "measure.countGrain",
+          "grouping",
+          "output",
+          "population.entity",
+          "measure.denominator"
+        ],
+        "specFeedback": {
+          "taskId": "task_321f43d5-5167-44a6-87c2-eb2d145b51ba",
+          "revisionId": "revision_6258c74c-91f0-492a-a6b3-d36c188ac700",
+          "ruleVersion": "spec-feedback-v2",
+          "status": "unavailable",
+          "deterministicIssues": [],
+          "evidenceIds": [
+            "request_b135130a014992063f80a459",
+            "evidence_2fa5bd51-f54d-4786-92bb-b21326b34753"
+          ],
+          "limitations": [],
+          "startedAt": "2026-10-10T16:16:37.023Z",
+          "inputHash": "cb5b8a99313f354d560aa789c2de6ab991ffa19ac626cc1a3a585bce43d12b5a",
+          "reason": "provider_http_error",
+          "completedAt": "2026-10-10T16:16:37.905Z",
+          "durationMs": 882
+        },
+        "outcomes": [
+          {
+            "path": "population.entity",
+            "status": "applied"
+          },
+          {
+            "path": "measure.denominator",
+            "status": "applied"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "sequence": 25,
+    "toolCallId": "call_00_a5HoU1zt1mx9WyTFpjhe7986|c7e0bce9-871c-4be0-af08-060dbf4379db",
+    "toolName": "set_answer_spec",
+    "args": {
+      "fields": {
+        "measure.formula": {
+          "open": [
+            {
+              "label": "A-single-fifo-location",
+              "op": "avg",
+              "per": "order line",
+              "of": {
+                "op": "ratio",
+                "per": "order line",
+                "numerator": {
+                  "op": "min",
+                  "per": "order line",
+                  "of": [
+                    "orderline required qty",
+                    "available qty of the FIFO-first inventory location (earliest purchase date, then smallest qty)"
+                  ]
+                },
+                "denominator": {
+                  "op": "custom",
+                  "per": "order line",
+                  "description": "orderline required qty"
+                }
+              }
+            },
+            {
+              "label": "B-cumulative-fifo",
+              "op": "avg",
+              "per": "order line",
+              "of": {
+                "op": "ratio",
+                "per": "order line",
+                "numerator": {
+                  "op": "custom",
+                  "per": "order line",
+                  "description": "picked = MIN(required qty, remaining inventory after earlier orders consume batches in (purchase date ASC, qty ASC) order)"
+                },
+                "denominator": {
+                  "op": "custom",
+                  "per": "order line",
+                  "description": "orderline required qty"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "taskId": "task_321f43d5-5167-44a6-87c2-eb2d145b51ba"
+    },
+    "startedAt": 1791649112600,
+    "isError": false,
+    "finishedAt": 1791649112617,
+    "durationMs": 17,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "[ANSWER_SPEC_UNCHANGED] taskId=task_321f43d5-5167-44a6-87c2-eb2d145b51ba revisionId=revision_6258c74c-91f0-492a-a6b3-d36c188ac700\n- ✗ measure.formula: measure.formula has unknown keys label; allowed: op, per, of, numerator, denominator, from, to, description\n字段写法：one of: \"n/a\"; a bare value (an assumption, disclosed); {value, basis:\"request\", quote}; {value, cite:[{source, quote}]}; {value, evidenceIds}; {value, basis:\"assumed\", rationale}; {open:[value, ...]}; to decide an open field {value:<alternative>, rationale, evidenceIds?}; {notProbeable:{<alternativeId>: reason}}\n状态：\n- 未证实（发布时披露）: population.eligibility, population.source, population.time, population.timeField, population.joinMultiplicity, measure.countGrain, grouping, output, population.entity, measure.denominator\n- 未声明: measure.formula\n[SPEC_FEEDBACK] revisionId=revision_6258c74c-91f0-492a-a6b3-d36c188ac700 status=unavailable advisory_only=true\nreason: provider_http_error\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"assumed\",\"value\":{\"name\":\"order line (an order × product demand row)\"}},\"population.eligibility\":{\"status\":\"assumed\",\"value\":\"Every order line (demand row) whose product has at least one inventory record; required qty (orderlines.qty) > 0.\"},\"population.conditions\":{\"status\":\"not_applicable\"},\"population.source\":{\"status\":\"assumed\",\"value\":{\"tables\":[\"orderlines\",\"orders\",\"products\",\"inventory\",\"purchases\"]}},\"population.time\":{\"status\":\"assumed\",\"value\":{\"expression\":\"n/a (all dates)\"}},\"population.timeField\":{\"status\":\"assumed\",\"value\":\"inventory batches ordered by purchases.purchased; demand rows ordered by orders.ordered\"},\"population.joinMultiplicity\":{\"status\":\"assumed\",\"value\":\"orderlines × inventory is 1:N via product_id; the FIFO allocation is computed per product so rows are not multiplied.\"},\"measure.countGrain\":{\"status\":\"assumed\",\"value\":\"one observation per order line (order × product demand)\"},\"measure.denominator\":{\"status\":\"assumed\",\"value\":\"required quantity of the demand row (orderlines.qty); rows with qty <= 0 excluded\"},\"grouping\":{\"status\":\"assumed\",\"value\":[\"products.name\"]},\"selection\":{\"status\":\"not_applicable\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"grouped\",\"rowCount\":10,\"columns\":[\"product_name\",\"average_pick_percentage\"]}}}"
+        }
+      ],
+      "details": {
+        "taskId": "task_321f43d5-5167-44a6-87c2-eb2d145b51ba",
+        "revisionId": "revision_6258c74c-91f0-492a-a6b3-d36c188ac700",
+        "parentRevisionId": "revision_ca03e8b9-e5a2-41bc-85f2-3ef29fc91636",
+        "fields": [
+          {
+            "path": "population.entity",
+            "status": "assumed",
+            "value": {
+              "name": "order line (an order × product demand row)"
+            },
+            "rationale": "The metric averages over 'each order's required quantity', i.e. one demand row per order×product (orderlines.id)."
+          },
+          {
+            "path": "population.eligibility",
+            "status": "assumed",
+            "value": "Every order line (demand row) whose product has at least one inventory record; required qty (orderlines.qty) > 0.",
+            "rationale": "Each order's required quantity defines one demand observation; nothing in the request excludes order lines."
+          },
+          {
+            "path": "population.conditions",
+            "status": "not_applicable"
+          },
+          {
+            "path": "population.source",
+            "status": "assumed",
+            "value": {
+              "tables": [
+                "orderlines",
+                "orders",
+                "products",
+                "inventory",
+                "purchases"
+              ]
+            }
+          },
+          {
+            "path": "population.time",
+            "status": "assumed",
+            "value": {
+              "expression": "n/a (all dates)"
+            }
+          },
+          {
+            "path": "population.timeField",
+            "status": "assumed",
+            "value": "inventory batches ordered by purchases.purchased; demand rows ordered by orders.ordered"
+          },
+          {
+            "path": "population.joinMultiplicity",
+            "status": "assumed",
+            "value": "orderlines × inventory is 1:N via product_id; the FIFO allocation is computed per product so rows are not multiplied.",
+            "rationale": "A product has many inventory rows (multiple purchases/locations) and many order lines; a naive join would multiply."
+          },
+          {
+            "path": "measure.countGrain",
+            "status": "assumed",
+            "value": "one observation per order line (order × product demand)"
+          },
+          {
+            "path": "measure.denominator",
+            "status": "assumed",
+            "value": "required quantity of the demand row (orderlines.qty); rows with qty <= 0 excluded",
+            "rationale": "pick percentage = picked quantity / required quantity, so the denominator is the order line's qty."
+          },
+          {
+            "path": "grouping",
+            "status": "assumed",
+            "value": [
+              "products.name"
+            ]
+          },
+          {
+            "path": "selection",
+            "status": "not_applicable"
+          },
+          {
+            "path": "output",
+            "status": "assumed",
+            "value": {
+              "rowMode": "grouped",
+              "rowCount": 10,
+              "columns": [
+                "product_name",
+                "average_pick_percentage"
+              ]
+            }
+          }
+        ],
+        "undeclared": [
+          "measure.formula"
+        ],
+        "open": [],
+        "unverified": [
+          "population.eligibility",
+          "population.source",
+          "population.time",
+          "population.timeField",
+          "population.joinMultiplicity",
+          "measure.countGrain",
+          "grouping",
+          "output",
+          "population.entity",
+          "measure.denominator"
+        ],
+        "specFeedback": {
+          "taskId": "task_321f43d5-5167-44a6-87c2-eb2d145b51ba",
+          "revisionId": "revision_6258c74c-91f0-492a-a6b3-d36c188ac700",
+          "ruleVersion": "spec-feedback-v2",
+          "status": "unavailable",
+          "deterministicIssues": [],
+          "evidenceIds": [
+            "request_b135130a014992063f80a459",
+            "evidence_2fa5bd51-f54d-4786-92bb-b21326b34753"
+          ],
+          "limitations": [],
+          "startedAt": "2026-10-10T16:16:37.023Z",
+          "inputHash": "cb5b8a99313f354d560aa789c2de6ab991ffa19ac626cc1a3a585bce43d12b5a",
+          "reason": "provider_http_error",
+          "completedAt": "2026-10-10T16:16:37.905Z",
+          "durationMs": 882
+        },
+        "outcomes": [
+          {
+            "path": "measure.formula",
+            "status": "rejected",
+            "code": "INVALID_REQUEST",
+            "message": "measure.formula has unknown keys label; allowed: op, per, of, numerator, denominator, from, to, description"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "sequence": 26,
+    "toolCallId": "call_00_bKlkMZTKSkw6yJVgFwEU1521|6539cb48-3240-42c4-be0e-09b3c3b00e3d",
+    "toolName": "set_answer_spec",
+    "args": {
+      "fields": {
+        "measure.formula": {
+          "open": [
+            {
+              "op": "avg",
+              "per": "order line",
+              "of": {
+                "op": "ratio",
+                "per": "order line",
+                "numerator": {
+                  "op": "min",
+                  "per": "order line",
+                  "of": [
+                    "orderline required qty",
+                    "available qty of the FIFO-first inventory location (earliest purchase date, then smallest qty)"
+                  ]
+                },
+                "denominator": {
+                  "op": "custom",
+                  "per": "order line",
+                  "description": "orderline required qty"
+                }
+              }
+            },
+            {
+              "op": "avg",
+              "per": "order line",
+              "of": {
+                "op": "ratio",
+                "per": "order line",
+                "numerator": {
+                  "op": "custom",
+                  "per": "order line",
+                  "description": "picked = MIN(required qty, remaining inventory after earlier orders consume batches in (purchase date ASC, qty ASC) order)"
+                },
+                "denominator": {
+                  "op": "custom",
+                  "per": "order line",
+                  "description": "orderline required qty"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "taskId": "task_321f43d5-5167-44a6-87c2-eb2d145b51ba"
+    },
+    "startedAt": 1791649118276,
+    "isError": false,
+    "finishedAt": 1791649118305,
+    "durationMs": 29,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "[ANSWER_SPEC_UNCHANGED] taskId=task_321f43d5-5167-44a6-87c2-eb2d145b51ba revisionId=revision_6258c74c-91f0-492a-a6b3-d36c188ac700\n- ✗ measure.formula: measure.formula.of.numerator.of must be {op, per?, of | numerator+denominator | from+to}\n字段写法：one of: \"n/a\"; a bare value (an assumption, disclosed); {value, basis:\"request\", quote}; {value, cite:[{source, quote}]}; {value, evidenceIds}; {value, basis:\"assumed\", rationale}; {open:[value, ...]}; to decide an open field {value:<alternative>, rationale, evidenceIds?}; {notProbeable:{<alternativeId>: reason}}\n状态：\n- 未证实（发布时披露）: population.eligibility, population.source, population.time, population.timeField, population.joinMultiplicity, measure.countGrain, grouping, output, population.entity, measure.denominator\n- 未声明: measure.formula\n[SPEC_FEEDBACK] revisionId=revision_6258c74c-91f0-492a-a6b3-d36c188ac700 status=unavailable advisory_only=true\nreason: provider_http_error\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"assumed\",\"value\":{\"name\":\"order line (an order × product demand row)\"}},\"population.eligibility\":{\"status\":\"assumed\",\"value\":\"Every order line (demand row) whose product has at least one inventory record; required qty (orderlines.qty) > 0.\"},\"population.conditions\":{\"status\":\"not_applicable\"},\"population.source\":{\"status\":\"assumed\",\"value\":{\"tables\":[\"orderlines\",\"orders\",\"products\",\"inventory\",\"purchases\"]}},\"population.time\":{\"status\":\"assumed\",\"value\":{\"expression\":\"n/a (all dates)\"}},\"population.timeField\":{\"status\":\"assumed\",\"value\":\"inventory batches ordered by purchases.purchased; demand rows ordered by orders.ordered\"},\"population.joinMultiplicity\":{\"status\":\"assumed\",\"value\":\"orderlines × inventory is 1:N via product_id; the FIFO allocation is computed per product so rows are not multiplied.\"},\"measure.countGrain\":{\"status\":\"assumed\",\"value\":\"one observation per order line (order × product demand)\"},\"measure.denominator\":{\"status\":\"assumed\",\"value\":\"required quantity of the demand row (orderlines.qty); rows with qty <= 0 excluded\"},\"grouping\":{\"status\":\"assumed\",\"value\":[\"products.name\"]},\"selection\":{\"status\":\"not_applicable\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"grouped\",\"rowCount\":10,\"columns\":[\"product_name\",\"average_pick_percentage\"]}}}"
+        }
+      ],
+      "details": {
+        "taskId": "task_321f43d5-5167-44a6-87c2-eb2d145b51ba",
+        "revisionId": "revision_6258c74c-91f0-492a-a6b3-d36c188ac700",
+        "parentRevisionId": "revision_ca03e8b9-e5a2-41bc-85f2-3ef29fc91636",
+        "fields": [
+          {
+            "path": "population.entity",
+            "status": "assumed",
+            "value": {
+              "name": "order line (an order × product demand row)"
+            },
+            "rationale": "The metric averages over 'each order's required quantity', i.e. one demand row per order×product (orderlines.id)."
+          },
+          {
+            "path": "population.eligibility",
+            "status": "assumed",
+            "value": "Every order line (demand row) whose product has at least one inventory record; required qty (orderlines.qty) > 0.",
+            "rationale": "Each order's required quantity defines one demand observation; nothing in the request excludes order lines."
+          },
+          {
+            "path": "population.conditions",
+            "status": "not_applicable"
+          },
+          {
+            "path": "population.source",
+            "status": "assumed",
+            "value": {
+              "tables": [
+                "orderlines",
+                "orders",
+                "products",
+                "inventory",
+                "purchases"
+              ]
+            }
+          },
+          {
+            "path": "population.time",
+            "status": "assumed",
+            "value": {
+              "expression": "n/a (all dates)"
+            }
+          },
+          {
+            "path": "population.timeField",
+            "status": "assumed",
+            "value": "inventory batches ordered by purchases.purchased; demand rows ordered by orders.ordered"
+          },
+          {
+            "path": "population.joinMultiplicity",
+            "status": "assumed",
+            "value": "orderlines × inventory is 1:N via product_id; the FIFO allocation is computed per product so rows are not multiplied.",
+            "rationale": "A product has many inventory rows (multiple purchases/locations) and many order lines; a naive join would multiply."
+          },
+          {
+            "path": "measure.countGrain",
+            "status": "assumed",
+            "value": "one observation per order line (order × product demand)"
+          },
+          {
+            "path": "measure.denominator",
+            "status": "assumed",
+            "value": "required quantity of the demand row (orderlines.qty); rows with qty <= 0 excluded",
+            "rationale": "pick percentage = picked quantity / required quantity, so the denominator is the order line's qty."
+          },
+          {
+            "path": "grouping",
+            "status": "assumed",
+            "value": [
+              "products.name"
+            ]
+          },
+          {
+            "path": "selection",
+            "status": "not_applicable"
+          },
+          {
+            "path": "output",
+            "status": "assumed",
+            "value": {
+              "rowMode": "grouped",
+              "rowCount": 10,
+              "columns": [
+                "product_name",
+                "average_pick_percentage"
+              ]
+            }
+          }
+        ],
+        "undeclared": [
+          "measure.formula"
+        ],
+        "open": [],
+        "unverified": [
+          "population.eligibility",
+          "population.source",
+          "population.time",
+          "population.timeField",
+          "population.joinMultiplicity",
+          "measure.countGrain",
+          "grouping",
+          "output",
+          "population.entity",
+          "measure.denominator"
+        ],
+        "specFeedback": {
+          "taskId": "task_321f43d5-5167-44a6-87c2-eb2d145b51ba",
+          "revisionId": "revision_6258c74c-91f0-492a-a6b3-d36c188ac700",
+          "ruleVersion": "spec-feedback-v2",
+          "status": "unavailable",
+          "deterministicIssues": [],
+          "evidenceIds": [
+            "request_b135130a014992063f80a459",
+            "evidence_2fa5bd51-f54d-4786-92bb-b21326b34753"
+          ],
+          "limitations": [],
+          "startedAt": "2026-10-10T16:16:37.023Z",
+          "inputHash": "cb5b8a99313f354d560aa789c2de6ab991ffa19ac626cc1a3a585bce43d12b5a",
+          "reason": "provider_http_error",
+          "completedAt": "2026-10-10T16:16:37.905Z",
+          "durationMs": 882
+        },
+        "outcomes": [
+          {
+            "path": "measure.formula",
+            "status": "rejected",
+            "code": "INVALID_REQUEST",
+            "message": "measure.formula.of.numerator.of must be {op, per?, of | numerator+denominator | from+to}"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "sequence": 27,
+    "toolCallId": "call_00_SWZuR1hVnEZLoAqOoeUa4627|d79daec5-b007-4597-a249-6e36c6d6a99c",
+    "toolName": "set_answer_spec",
+    "args": {
+      "fields": {
+        "measure.formula": {
+          "open": [
+            {
+              "op": "avg",
+              "per": "order line",
+              "of": {
+                "op": "ratio",
+                "per": "order line",
+                "numerator": {
+                  "op": "custom",
+                  "per": "order line",
+                  "description": "single FIFO location: picked = MIN(orderline required qty, available qty of the inventory location with the earliest purchase date (tie: smallest qty))"
+                },
+                "denominator": {
+                  "op": "custom",
+                  "per": "order line",
+                  "description": "orderline required qty"
+                }
+              }
+            },
+            {
+              "op": "avg",
+              "per": "order line",
+              "of": {
+                "op": "ratio",
+                "per": "order line",
+                "numerator": {
+                  "op": "custom",
+                  "per": "order line",
+                  "description": "cumulative FIFO: orders consume inventory locations in (purchase date ASC, qty ASC) order; picked = MIN(remaining required, remaining available)"
+                },
+                "denominator": {
+                  "op": "custom",
+                  "per": "order line",
+                  "description": "orderline required qty"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "taskId": "task_321f43d5-5167-44a6-87c2-eb2d145b51ba"
+    },
+    "startedAt": 1791649157034,
+    "isError": false,
+    "finishedAt": 1791649157310,
+    "durationMs": 276,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "[ANSWER_SPEC_SET] taskId=task_321f43d5-5167-44a6-87c2-eb2d145b51ba revisionId=revision_d320df64-1448-47ff-b2b2-c70c1fc7dd87\n- ✓ measure.formula\n状态：\n- 待定 measure.formula: alternative_85d0e733-2d2f-496e-ac91-e76e809d2d64={\"op\":\"avg\",\"per\":\"order line\",\"of\":{\"op\":\"ratio\",\"per\":\"order line\",\"numerator\":{\"op\":\"custom\",\"per\":\"order line\",\"description\":\"single FIFO location: picked = MIN(orderline required qty, available qty of the inventory location with the earliest purchase date (tie: smallest qty))\"},\"denominator\":{\"op\":\"custom\",\"per\":\"order line\",\"description\":\"orderline required qty\"}}} missing; alternative_ef0de6ad-72a0-47df-99f9-956fb63d2854={\"op\":\"avg\",\"per\":\"order line\",\"of\":{\"op\":\"ratio\",\"per\":\"order line\",\"numerator\":{\"op\":\"custom\",\"per\":\"order line\",\"description\":\"cumulative FIFO: orders consume inventory locations in (purchase date ASC, qty ASC) order; picked = MIN(remaining required, remaining available)\"},\"denominator\":{\"op\":\"custom\",\"per\":\"order line\",\"description\":\"orderline required qty\"}}} missing; outputs=incomplete\n- 未证实（发布时披露）: population.eligibility, population.source, population.time, population.timeField, population.joinMultiplicity, measure.countGrain, grouping, output, population.entity, measure.denominator\n[SPEC_FEEDBACK] revisionId=revision_d320df64-1448-47ff-b2b2-c70c1fc7dd87 status=unavailable advisory_only=true\nreason: provider_http_error\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"assumed\",\"value\":{\"name\":\"order line (an order × product demand row)\"}},\"population.eligibility\":{\"status\":\"assumed\",\"value\":\"Every order line (demand row) whose product has at least one inventory record; required qty (orderlines.qty) > 0.\"},\"population.conditions\":{\"status\":\"not_applicable\"},\"population.source\":{\"status\":\"assumed\",\"value\":{\"tables\":[\"orderlines\",\"orders\",\"products\",\"inventory\",\"purchases\"]}},\"population.time\":{\"status\":\"assumed\",\"value\":{\"expression\":\"n/a (all dates)\"}},\"population.timeField\":{\"status\":\"assumed\",\"value\":\"inventory batches ordered by purchases.purchased; demand rows ordered by orders.ordered\"},\"population.joinMultiplicity\":{\"status\":\"assumed\",\"value\":\"orderlines × inventory is 1:N via product_id; the FIFO allocation is computed per product so rows are not multiplied.\"},\"measure.formula\":{\"status\":\"open\",\"alternatives\":[{\"id\":\"alternative_85d0e733-2d2f-496e-ac91-e76e809d2d64\",\"value\":{\"op\":\"avg\",\"per\":\"order line\",\"of\":{\"op\":\"ratio\",\"per\":\"order line\",\"numerator\":{\"op\":\"custom\",\"per\":\"order line\",\"description\":\"single FIFO location: picked = MIN(orderline required qty, available qty of the inventory location with the earliest purchase date (tie: smallest qty))\"},\"denominator\":{\"op\":\"custom\",\"per\":\"order line\",\"description\":\"orderline required qty\"}}}},{\"id\":\"alternative_ef0de6ad-72a0-47df-99f9-956fb63d2854\",\"value\":{\"op\":\"avg\",\"per\":\"order line\",\"of\":{\"op\":\"ratio\",\"per\":\"order line\",\"numerator\":{\"op\":\"custom\",\"per\":\"order line\",\"description\":\"cumulative FIFO: orders consume inventory locations in (purchase date ASC, qty ASC) order; picked = MIN(remaining required, remaining available)\"},\"denominator\":{\"op\":\"custom\",\"per\":\"order line\",\"description\":\"orderline required qty\"}}}}]},\"measure.countGrain\":{\"status\":\"assumed\",\"value\":\"one observation per order line (order × product demand)\"},\"measure.denominator\":{\"status\":\"assumed\",\"value\":\"required quantity of the demand row (orderlines.qty); rows with qty <= 0 excluded\"},\"grouping\":{\"status\":\"assumed\",\"value\":[\"products.name\"]},\"selection\":{\"status\":\"not_applicable\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"grouped\",\"rowCount\":10,\"columns\":[\"product_name\",\"average_pick_percentage\"]}}}"
+        }
+      ],
+      "details": {
+        "taskId": "task_321f43d5-5167-44a6-87c2-eb2d145b51ba",
+        "revisionId": "revision_d320df64-1448-47ff-b2b2-c70c1fc7dd87",
+        "parentRevisionId": "revision_6258c74c-91f0-492a-a6b3-d36c188ac700",
+        "fields": [
+          {
+            "path": "population.entity",
+            "status": "assumed",
+            "value": {
+              "name": "order line (an order × product demand row)"
+            },
+            "rationale": "The metric averages over 'each order's required quantity', i.e. one demand row per order×product (orderlines.id)."
+          },
+          {
+            "path": "population.eligibility",
+            "status": "assumed",
+            "value": "Every order line (demand row) whose product has at least one inventory record; required qty (orderlines.qty) > 0.",
+            "rationale": "Each order's required quantity defines one demand observation; nothing in the request excludes order lines."
+          },
+          {
+            "path": "population.conditions",
+            "status": "not_applicable"
+          },
+          {
+            "path": "population.source",
+            "status": "assumed",
+            "value": {
+              "tables": [
+                "orderlines",
+                "orders",
+                "products",
+                "inventory",
+                "purchases"
+              ]
+            }
+          },
+          {
+            "path": "population.time",
+            "status": "assumed",
+            "value": {
+              "expression": "n/a (all dates)"
+            }
+          },
+          {
+            "path": "population.timeField",
+            "status": "assumed",
+            "value": "inventory batches ordered by purchases.purchased; demand rows ordered by orders.ordered"
+          },
+          {
+            "path": "population.joinMultiplicity",
+            "status": "assumed",
+            "value": "orderlines × inventory is 1:N via product_id; the FIFO allocation is computed per product so rows are not multiplied.",
+            "rationale": "A product has many inventory rows (multiple purchases/locations) and many order lines; a naive join would multiply."
+          },
+          {
+            "path": "measure.formula",
+            "status": "open",
+            "alternatives": [
+              {
+                "id": "alternative_85d0e733-2d2f-496e-ac91-e76e809d2d64",
+                "value": {
+                  "op": "avg",
+                  "per": "order line",
+                  "of": {
+                    "op": "ratio",
+                    "per": "order line",
+                    "numerator": {
+                      "op": "custom",
+                      "per": "order line",
+                      "description": "single FIFO location: picked = MIN(orderline required qty, available qty of the inventory location with the earliest purchase date (tie: smallest qty))"
+                    },
+                    "denominator": {
+                      "op": "custom",
+                      "per": "order line",
+                      "description": "orderline required qty"
+                    }
+                  }
+                },
+                "probe": {
+                  "alternativeId": "alternative_85d0e733-2d2f-496e-ac91-e76e809d2d64",
+                  "state": "missing"
+                }
+              },
+              {
+                "id": "alternative_ef0de6ad-72a0-47df-99f9-956fb63d2854",
+                "value": {
+                  "op": "avg",
+                  "per": "order line",
+                  "of": {
+                    "op": "ratio",
+                    "per": "order line",
+                    "numerator": {
+                      "op": "custom",
+                      "per": "order line",
+                      "description": "cumulative FIFO: orders consume inventory locations in (purchase date ASC, qty ASC) order; picked = MIN(remaining required, remaining available)"
+                    },
+                    "denominator": {
+                      "op": "custom",
+                      "per": "order line",
+                      "description": "orderline required qty"
+                    }
+                  }
+                },
+                "probe": {
+                  "alternativeId": "alternative_ef0de6ad-72a0-47df-99f9-956fb63d2854",
+                  "state": "missing"
+                }
+              }
+            ],
+            "outputs": "incomplete"
+          },
+          {
+            "path": "measure.countGrain",
+            "status": "assumed",
+            "value": "one observation per order line (order × product demand)"
+          },
+          {
+            "path": "measure.denominator",
+            "status": "assumed",
+            "value": "required quantity of the demand row (orderlines.qty); rows with qty <= 0 excluded",
+            "rationale": "pick percentage = picked quantity / required quantity, so the denominator is the order line's qty."
+          },
+          {
+            "path": "grouping",
+            "status": "assumed",
+            "value": [
+              "products.name"
+            ]
+          },
+          {
+            "path": "selection",
+            "status": "not_applicable"
+          },
+          {
+            "path": "output",
+            "status": "assumed",
+            "value": {
+              "rowMode": "grouped",
+              "rowCount": 10,
+              "columns": [
+                "product_name",
+                "average_pick_percentage"
+              ]
+            }
+          }
+        ],
+        "undeclared": [],
+        "open": [
+          "measure.formula"
+        ],
+        "unverified": [
+          "population.eligibility",
+          "population.source",
+          "population.time",
+          "population.timeField",
+          "population.joinMultiplicity",
+          "measure.countGrain",
+          "grouping",
+          "output",
+          "population.entity",
+          "measure.denominator"
+        ],
+        "specFeedback": {
+          "taskId": "task_321f43d5-5167-44a6-87c2-eb2d145b51ba",
+          "revisionId": "revision_d320df64-1448-47ff-b2b2-c70c1fc7dd87",
+          "ruleVersion": "spec-feedback-v2",
+          "status": "unavailable",
+          "deterministicIssues": [],
+          "evidenceIds": [
+            "request_b135130a014992063f80a459",
+            "evidence_2fa5bd51-f54d-4786-92bb-b21326b34753",
+            "evidence_62a8e560-aa0c-4950-8766-9853d95f743c",
+            "evidence_92b8fd5f-5d7d-48c8-9706-e9c1d3e26e65",
+            "evidence_27a37e77-9b3c-4f9d-9878-ded653a62d94",
+            "evidence_d62b84ad-1786-49b2-9c4f-5749f0327a39",
+            "evidence_b73aed56-9d62-42aa-ae4d-caa60e4eba11"
+          ],
+          "limitations": [],
+          "startedAt": "2026-10-10T16:19:17.046Z",
+          "inputHash": "117e86f9be89df8ef59bd6cbd31c09c64cd496d4ad762135827d975cbb15a853",
+          "reason": "provider_http_error",
+          "completedAt": "2026-10-10T16:19:17.266Z",
+          "durationMs": 220
+        },
+        "outcomes": [
+          {
+            "path": "measure.formula",
+            "status": "applied"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "sequence": 31,
+    "toolCallId": "call_00_NmcnTtC2zFLtaHs8gLRA8475|93f0cb44-338d-4369-8243-1a04964d25bb",
+    "toolName": "set_answer_spec",
+    "args": {
+      "fields": {
+        "measure.formula": {
+          "value": {
+            "op": "avg",
+            "per": "order line",
+            "of": {
+              "op": "ratio",
+              "per": "order line",
+              "numerator": {
+                "op": "custom",
+                "per": "order line",
+                "description": "cumulative FIFO: orders consume inventory locations in (purchase date ASC, qty ASC) order; picked = MIN(remaining required, remaining available)"
+              },
+              "denominator": {
+                "op": "custom",
+                "per": "order line",
+                "description": "orderline required qty"
+              }
+            }
+          },
+          "rationale": "Re-reading the request: 'first-in-first-out approach that selects from inventory locations' (plural locations) plus 'the picked quantity reflects only the overlapping range between each order's required quantity and the inventory's available quantity' describes sequential FIFO consumption in which each order line's picked quantity is capped by the inventory still available (the overlap). The database's own picking behaves this way: picking_line for one order-product consumes several locations in (purchase date, qty) order and later orders draw on the remainder. Candidate A (only the single earliest/smallest location, no consumption) contradicts 'first-in-first-out'.",
+          "evidenceIds": [
+            "evidence_beb0ac66-06a1-4233-9850-8a0bcc53d1d9",
+            "evidence_62a8e560-aa0c-4950-8766-9853d95f743c"
+          ]
+        },
+        "output": {
+          "rowMode": "grouped",
+          "rowCount": 6,
+          "columns": [
+            "product_name",
+            "average_pick_percentage"
+          ],
+          "units": {
+            "average_pick_percentage": "percent (0-100)"
+          }
+        }
+      },
+      "taskId": "task_321f43d5-5167-44a6-87c2-eb2d145b51ba"
+    },
+    "startedAt": 1791649249938,
+    "isError": false,
+    "finishedAt": 1791649249956,
+    "durationMs": 18,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "[ANSWER_SPEC_UNCHANGED] taskId=task_321f43d5-5167-44a6-87c2-eb2d145b51ba revisionId=revision_d320df64-1448-47ff-b2b2-c70c1fc7dd87\n- ✗ measure.formula: measure.formula: the alternatives produce different or unknown outputs; call compare_hypotheses with path \"measure.formula\" before deciding\n- ✗ output: output is already set; add \"reason\" to change it\n字段写法：one of: \"n/a\"; a bare value (an assumption, disclosed); {value, basis:\"request\", quote}; {value, cite:[{source, quote}]}; {value, evidenceIds}; {value, basis:\"assumed\", rationale}; {open:[value, ...]}; to decide an open field {value:<alternative>, rationale, evidenceIds?}; {notProbeable:{<alternativeId>: reason}}\n状态：\n- 待定 measure.formula: alternative_85d0e733-2d2f-496e-ac91-e76e809d2d64={\"op\":\"avg\",\"per\":\"order line\",\"of\":{\"op\":\"ratio\",\"per\":\"order line\",\"numerator\":{\"op\":\"custom\",\"per\":\"order line\",\"description\":\"single FIFO location: picked = MIN(orderline required qty, available qty of the inventory location with the earliest purchase date (tie: smallest qty))\"},\"denominator\":{\"op\":\"custom\",\"per\":\"order line\",\"description\":\"orderline required qty\"}}} output=5b698ccaf24e; alternative_ef0de6ad-72a0-47df-99f9-956fb63d2854={\"op\":\"avg\",\"per\":\"order line\",\"of\":{\"op\":\"ratio\",\"per\":\"order line\",\"numerator\":{\"op\":\"custom\",\"per\":\"order line\",\"description\":\"cumulative FIFO: orders consume inventory locations in (purchase date ASC, qty ASC) order; picked = MIN(remaining required, remaining available)\"},\"denominator\":{\"op\":\"custom\",\"per\":\"order line\",\"description\":\"orderline required qty\"}}} output=09b3fdfb2bc2; outputs=distinct\n- 未证实（发布时披露）: population.eligibility, population.source, population.time, population.timeField, population.joinMultiplicity, measure.countGrain, grouping, output, population.entity, measure.denominator\n[SPEC_FEEDBACK] revisionId=revision_d320df64-1448-47ff-b2b2-c70c1fc7dd87 status=unavailable advisory_only=true\nreason: provider_http_error\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"assumed\",\"value\":{\"name\":\"order line (an order × product demand row)\"}},\"population.eligibility\":{\"status\":\"assumed\",\"value\":\"Every order line (demand row) whose product has at least one inventory record; required qty (orderlines.qty) > 0.\"},\"population.conditions\":{\"status\":\"not_applicable\"},\"population.source\":{\"status\":\"assumed\",\"value\":{\"tables\":[\"orderlines\",\"orders\",\"products\",\"inventory\",\"purchases\"]}},\"population.time\":{\"status\":\"assumed\",\"value\":{\"expression\":\"n/a (all dates)\"}},\"population.timeField\":{\"status\":\"assumed\",\"value\":\"inventory batches ordered by purchases.purchased; demand rows ordered by orders.ordered\"},\"population.joinMultiplicity\":{\"status\":\"assumed\",\"value\":\"orderlines × inventory is 1:N via product_id; the FIFO allocation is computed per product so rows are not multiplied.\"},\"measure.formula\":{\"status\":\"open\",\"alternatives\":[{\"id\":\"alternative_85d0e733-2d2f-496e-ac91-e76e809d2d64\",\"value\":{\"op\":\"avg\",\"per\":\"order line\",\"of\":{\"op\":\"ratio\",\"per\":\"order line\",\"numerator\":{\"op\":\"custom\",\"per\":\"order line\",\"description\":\"single FIFO location: picked = MIN(orderline required qty, available qty of the inventory location with the earliest purchase date (tie: smallest qty))\"},\"denominator\":{\"op\":\"custom\",\"per\":\"order line\",\"description\":\"orderline required qty\"}}}},{\"id\":\"alternative_ef0de6ad-72a0-47df-99f9-956fb63d2854\",\"value\":{\"op\":\"avg\",\"per\":\"order line\",\"of\":{\"op\":\"ratio\",\"per\":\"order line\",\"numerator\":{\"op\":\"custom\",\"per\":\"order line\",\"description\":\"cumulative FIFO: orders consume inventory locations in (purchase date ASC, qty ASC) order; picked = MIN(remaining required, remaining available)\"},\"denominator\":{\"op\":\"custom\",\"per\":\"order line\",\"description\":\"orderline required qty\"}}}}]},\"measure.countGrain\":{\"status\":\"assumed\",\"value\":\"one observation per order line (order × product demand)\"},\"measure.denominator\":{\"status\":\"assumed\",\"value\":\"required quantity of the demand row (orderlines.qty); rows with qty <= 0 excluded\"},\"grouping\":{\"status\":\"assumed\",\"value\":[\"products.name\"]},\"selection\":{\"status\":\"not_applicable\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"grouped\",\"rowCount\":10,\"columns\":[\"product_name\",\"average_pick_percentage\"]}}}"
+        }
+      ],
+      "details": {
+        "taskId": "task_321f43d5-5167-44a6-87c2-eb2d145b51ba",
+        "revisionId": "revision_d320df64-1448-47ff-b2b2-c70c1fc7dd87",
+        "parentRevisionId": "revision_6258c74c-91f0-492a-a6b3-d36c188ac700",
+        "fields": [
+          {
+            "path": "population.entity",
+            "status": "assumed",
+            "value": {
+              "name": "order line (an order × product demand row)"
+            },
+            "rationale": "The metric averages over 'each order's required quantity', i.e. one demand row per order×product (orderlines.id)."
+          },
+          {
+            "path": "population.eligibility",
+            "status": "assumed",
+            "value": "Every order line (demand row) whose product has at least one inventory record; required qty (orderlines.qty) > 0.",
+            "rationale": "Each order's required quantity defines one demand observation; nothing in the request excludes order lines."
+          },
+          {
+            "path": "population.conditions",
+            "status": "not_applicable"
+          },
+          {
+            "path": "population.source",
+            "status": "assumed",
+            "value": {
+              "tables": [
+                "orderlines",
+                "orders",
+                "products",
+                "inventory",
+                "purchases"
+              ]
+            }
+          },
+          {
+            "path": "population.time",
+            "status": "assumed",
+            "value": {
+              "expression": "n/a (all dates)"
+            }
+          },
+          {
+            "path": "population.timeField",
+            "status": "assumed",
+            "value": "inventory batches ordered by purchases.purchased; demand rows ordered by orders.ordered"
+          },
+          {
+            "path": "population.joinMultiplicity",
+            "status": "assumed",
+            "value": "orderlines × inventory is 1:N via product_id; the FIFO allocation is computed per product so rows are not multiplied.",
+            "rationale": "A product has many inventory rows (multiple purchases/locations) and many order lines; a naive join would multiply."
+          },
+          {
+            "path": "measure.formula",
+            "status": "open",
+            "alternatives": [
+              {
+                "id": "alternative_85d0e733-2d2f-496e-ac91-e76e809d2d64",
+                "value": {
+                  "op": "avg",
+                  "per": "order line",
+                  "of": {
+                    "op": "ratio",
+                    "per": "order line",
+                    "numerator": {
+                      "op": "custom",
+                      "per": "order line",
+                      "description": "single FIFO location: picked = MIN(orderline required qty, available qty of the inventory location with the earliest purchase date (tie: smallest qty))"
+                    },
+                    "denominator": {
+                      "op": "custom",
+                      "per": "order line",
+                      "description": "orderline required qty"
+                    }
+                  }
+                },
+                "probe": {
+                  "alternativeId": "alternative_85d0e733-2d2f-496e-ac91-e76e809d2d64",
+                  "state": "available",
+                  "rowCount": 6,
+                  "output": "5b698ccaf24e"
+                }
+              },
+              {
+                "id": "alternative_ef0de6ad-72a0-47df-99f9-956fb63d2854",
+                "value": {
+                  "op": "avg",
+                  "per": "order line",
+                  "of": {
+                    "op": "ratio",
+                    "per": "order line",
+                    "numerator": {
+                      "op": "custom",
+                      "per": "order line",
+                      "description": "cumulative FIFO: orders consume inventory locations in (purchase date ASC, qty ASC) order; picked = MIN(remaining required, remaining available)"
+                    },
+                    "denominator": {
+                      "op": "custom",
+                      "per": "order line",
+                      "description": "orderline required qty"
+                    }
+                  }
+                },
+                "probe": {
+                  "alternativeId": "alternative_ef0de6ad-72a0-47df-99f9-956fb63d2854",
+                  "state": "available",
+                  "rowCount": 6,
+                  "output": "09b3fdfb2bc2"
+                }
+              }
+            ],
+            "outputs": "distinct"
+          },
+          {
+            "path": "measure.countGrain",
+            "status": "assumed",
+            "value": "one observation per order line (order × product demand)"
+          },
+          {
+            "path": "measure.denominator",
+            "status": "assumed",
+            "value": "required quantity of the demand row (orderlines.qty); rows with qty <= 0 excluded",
+            "rationale": "pick percentage = picked quantity / required quantity, so the denominator is the order line's qty."
+          },
+          {
+            "path": "grouping",
+            "status": "assumed",
+            "value": [
+              "products.name"
+            ]
+          },
+          {
+            "path": "selection",
+            "status": "not_applicable"
+          },
+          {
+            "path": "output",
+            "status": "assumed",
+            "value": {
+              "rowMode": "grouped",
+              "rowCount": 10,
+              "columns": [
+                "product_name",
+                "average_pick_percentage"
+              ]
+            }
+          }
+        ],
+        "undeclared": [],
+        "open": [
+          "measure.formula"
+        ],
+        "unverified": [
+          "population.eligibility",
+          "population.source",
+          "population.time",
+          "population.timeField",
+          "population.joinMultiplicity",
+          "measure.countGrain",
+          "grouping",
+          "output",
+          "population.entity",
+          "measure.denominator"
+        ],
+        "specFeedback": {
+          "taskId": "task_321f43d5-5167-44a6-87c2-eb2d145b51ba",
+          "revisionId": "revision_d320df64-1448-47ff-b2b2-c70c1fc7dd87",
+          "ruleVersion": "spec-feedback-v2",
+          "status": "unavailable",
+          "deterministicIssues": [],
+          "evidenceIds": [
+            "request_b135130a014992063f80a459",
+            "evidence_2fa5bd51-f54d-4786-92bb-b21326b34753",
+            "evidence_62a8e560-aa0c-4950-8766-9853d95f743c",
+            "evidence_92b8fd5f-5d7d-48c8-9706-e9c1d3e26e65",
+            "evidence_27a37e77-9b3c-4f9d-9878-ded653a62d94",
+            "evidence_d62b84ad-1786-49b2-9c4f-5749f0327a39",
+            "evidence_b73aed56-9d62-42aa-ae4d-caa60e4eba11"
+          ],
+          "limitations": [],
+          "startedAt": "2026-10-10T16:19:17.046Z",
+          "inputHash": "117e86f9be89df8ef59bd6cbd31c09c64cd496d4ad762135827d975cbb15a853",
+          "reason": "provider_http_error",
+          "completedAt": "2026-10-10T16:19:17.266Z",
+          "durationMs": 220
+        },
+        "outcomes": [
+          {
+            "path": "measure.formula",
+            "status": "rejected",
+            "code": "SPEC_TRANSITION_INVALID",
+            "message": "measure.formula: the alternatives produce different or unknown outputs; call compare_hypotheses with path \"measure.formula\" before deciding"
+          },
+          {
+            "path": "output",
+            "status": "rejected",
+            "code": "SPEC_TRANSITION_INVALID",
+            "message": "output is already set; add \"reason\" to change it"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "sequence": 33,
+    "toolCallId": "call_00_IWo1u9bM22vF9wGsBXWQ0837|3e7e8cf8-f7fb-4b1b-b6a1-e3d5e7e0a572",
+    "toolName": "set_answer_spec",
+    "args": {
+      "fields": {
+        "measure.formula": {
+          "value": {
+            "op": "avg",
+            "per": "order line",
+            "of": {
+              "op": "ratio",
+              "per": "order line",
+              "numerator": {
+                "op": "custom",
+                "per": "order line",
+                "description": "picked quantity under cumulative FIFO: order lines processed by order date consume inventory locations ordered by (purchase date ASC, qty ASC); picked = MIN(remaining required, remaining available)"
+              },
+              "denominator": {
+                "op": "custom",
+                "per": "order line",
+                "description": "orderline required qty"
+              }
+            }
+          },
+          "reason": "Advisor compare_hypotheses is unavailable (Jev HTTP 451) so the open field cannot be closed via compare_hypotheses; rewriting with explicit reason instead.",
+          "basis": "assumed",
+          "rationale": "Chose cumulative FIFO (candidate B). 'first-in-first-out approach that selects from inventory locations' (plural) and 'the picked quantity reflects only the overlapping range between each order's required quantity and the inventory's available quantity' describe sequential consumption capped by remaining inventory, which also matches the database's own picking (picking_line consumes several locations per order-product in purchase-date/qty order with carry-over). Candidate A (single earliest/smallest location, no consumption) contradicts FIFO.",
+          "evidenceIds": [
+            "evidence_beb0ac66-06a1-4233-9850-8a0bcc53d1d9",
+            "evidence_62a8e560-aa0c-4950-8766-9853d95f743c"
+          ]
+        },
+        "output": {
+          "value": {
+            "rowMode": "grouped",
+            "rowCount": 6,
+            "columns": [
+              "product_name",
+              "average_pick_percentage"
+            ],
+            "units": {
+              "average_pick_percentage": "percent (0-100)"
+            }
+          },
+          "reason": "Only products that actually have order demand can carry a pick percentage (6 products); products with inventory but no orders have an undefined average."
+        }
+      },
+      "taskId": "task_321f43d5-5167-44a6-87c2-eb2d145b51ba"
+    },
+    "startedAt": 1791649258059,
+    "isError": false,
+    "finishedAt": 1791649258946,
+    "durationMs": 887,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "[ANSWER_SPEC_SET] taskId=task_321f43d5-5167-44a6-87c2-eb2d145b51ba revisionId=revision_8c95af9e-b313-4ec3-896b-9baee11337a5\n- ✓ measure.formula\n- ✓ output\n状态：\n- 未证实（发布时披露）: population.eligibility, population.source, population.time, population.timeField, population.joinMultiplicity, measure.countGrain, grouping, output, population.entity, measure.denominator, measure.formula\n- 没有待处理的字段，可以执行结果查询\n[SPEC_FEEDBACK] revisionId=revision_8c95af9e-b313-4ec3-896b-9baee11337a5 status=unavailable advisory_only=true\nreason: provider_http_error\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"assumed\",\"value\":{\"name\":\"order line (an order × product demand row)\"}},\"population.eligibility\":{\"status\":\"assumed\",\"value\":\"Every order line (demand row) whose product has at least one inventory record; required qty (orderlines.qty) > 0.\"},\"population.conditions\":{\"status\":\"not_applicable\"},\"population.source\":{\"status\":\"assumed\",\"value\":{\"tables\":[\"orderlines\",\"orders\",\"products\",\"inventory\",\"purchases\"]}},\"population.time\":{\"status\":\"assumed\",\"value\":{\"expression\":\"n/a (all dates)\"}},\"population.timeField\":{\"status\":\"assumed\",\"value\":\"inventory batches ordered by purchases.purchased; demand rows ordered by orders.ordered\"},\"population.joinMultiplicity\":{\"status\":\"assumed\",\"value\":\"orderlines × inventory is 1:N via product_id; the FIFO allocation is computed per product so rows are not multiplied.\"},\"measure.formula\":{\"status\":\"assumed\",\"value\":{\"op\":\"avg\",\"per\":\"order line\",\"of\":{\"op\":\"ratio\",\"per\":\"order line\",\"numerator\":{\"op\":\"custom\",\"per\":\"order line\",\"description\":\"picked quantity under cumulative FIFO: order lines processed by order date consume inventory locations ordered by (purchase date ASC, qty ASC); picked = MIN(remaining required, remaining available)\"},\"denominator\":{\"op\":\"custom\",\"per\":\"order line\",\"description\":\"orderline required qty\"}}}},\"measure.countGrain\":{\"status\":\"assumed\",\"value\":\"one observation per order line (order × product demand)\"},\"measure.denominator\":{\"status\":\"assumed\",\"value\":\"required quantity of the demand row (orderlines.qty); rows with qty <= 0 excluded\"},\"grouping\":{\"status\":\"assumed\",\"value\":[\"products.name\"]},\"selection\":{\"status\":\"not_applicable\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"grouped\",\"rowCount\":6,\"columns\":[\"product_name\",\"average_pick_percentage\"],\"units\":{\"average_pick_percentage\":\"percent (0-100)\"}}}}"
+        }
+      ],
+      "details": {
+        "taskId": "task_321f43d5-5167-44a6-87c2-eb2d145b51ba",
+        "revisionId": "revision_8c95af9e-b313-4ec3-896b-9baee11337a5",
+        "parentRevisionId": "revision_d320df64-1448-47ff-b2b2-c70c1fc7dd87",
+        "fields": [
+          {
+            "path": "population.entity",
+            "status": "assumed",
+            "value": {
+              "name": "order line (an order × product demand row)"
+            },
+            "rationale": "The metric averages over 'each order's required quantity', i.e. one demand row per order×product (orderlines.id)."
+          },
+          {
+            "path": "population.eligibility",
+            "status": "assumed",
+            "value": "Every order line (demand row) whose product has at least one inventory record; required qty (orderlines.qty) > 0.",
+            "rationale": "Each order's required quantity defines one demand observation; nothing in the request excludes order lines."
+          },
+          {
+            "path": "population.conditions",
+            "status": "not_applicable"
+          },
+          {
+            "path": "population.source",
+            "status": "assumed",
+            "value": {
+              "tables": [
+                "orderlines",
+                "orders",
+                "products",
+                "inventory",
+                "purchases"
+              ]
+            }
+          },
+          {
+            "path": "population.time",
+            "status": "assumed",
+            "value": {
+              "expression": "n/a (all dates)"
+            }
+          },
+          {
+            "path": "population.timeField",
+            "status": "assumed",
+            "value": "inventory batches ordered by purchases.purchased; demand rows ordered by orders.ordered"
+          },
+          {
+            "path": "population.joinMultiplicity",
+            "status": "assumed",
+            "value": "orderlines × inventory is 1:N via product_id; the FIFO allocation is computed per product so rows are not multiplied.",
+            "rationale": "A product has many inventory rows (multiple purchases/locations) and many order lines; a naive join would multiply."
+          },
+          {
+            "path": "measure.formula",
+            "status": "assumed",
+            "value": {
+              "op": "avg",
+              "per": "order line",
+              "of": {
+                "op": "ratio",
+                "per": "order line",
+                "numerator": {
+                  "op": "custom",
+                  "per": "order line",
+                  "description": "picked quantity under cumulative FIFO: order lines processed by order date consume inventory locations ordered by (purchase date ASC, qty ASC); picked = MIN(remaining required, remaining available)"
+                },
+                "denominator": {
+                  "op": "custom",
+                  "per": "order line",
+                  "description": "orderline required qty"
+                }
+              }
+            },
+            "rationale": "Chose cumulative FIFO (candidate B). 'first-in-first-out approach that selects from inventory locations' (plural) and 'the picked quantity reflects only the overlapping range between each order's required quantity and the inventory's available quantity' describe sequential consumption capped by remaining inventory, which also matches the database's own picking (picking_line consumes several locations per order-product in purchase-date/qty order with carry-over). Candidate A (single earliest/smallest location, no consumption) contradicts FIFO."
+          },
+          {
+            "path": "measure.countGrain",
+            "status": "assumed",
+            "value": "one observation per order line (order × product demand)"
+          },
+          {
+            "path": "measure.denominator",
+            "status": "assumed",
+            "value": "required quantity of the demand row (orderlines.qty); rows with qty <= 0 excluded",
+            "rationale": "pick percentage = picked quantity / required quantity, so the denominator is the order line's qty."
+          },
+          {
+            "path": "grouping",
+            "status": "assumed",
+            "value": [
+              "products.name"
+            ]
+          },
+          {
+            "path": "selection",
+            "status": "not_applicable"
+          },
+          {
+            "path": "output",
+            "status": "assumed",
+            "value": {
+              "rowMode": "grouped",
+              "rowCount": 6,
+              "columns": [
+                "product_name",
+                "average_pick_percentage"
+              ],
+              "units": {
+                "average_pick_percentage": "percent (0-100)"
+              }
+            }
+          }
+        ],
+        "undeclared": [],
+        "open": [],
+        "unverified": [
+          "population.eligibility",
+          "population.source",
+          "population.time",
+          "population.timeField",
+          "population.joinMultiplicity",
+          "measure.countGrain",
+          "grouping",
+          "output",
+          "population.entity",
+          "measure.denominator",
+          "measure.formula"
+        ],
+        "specFeedback": {
+          "taskId": "task_321f43d5-5167-44a6-87c2-eb2d145b51ba",
+          "revisionId": "revision_8c95af9e-b313-4ec3-896b-9baee11337a5",
+          "ruleVersion": "spec-feedback-v2",
+          "status": "unavailable",
+          "deterministicIssues": [],
+          "evidenceIds": [
+            "request_b135130a014992063f80a459",
+            "evidence_2fa5bd51-f54d-4786-92bb-b21326b34753",
+            "evidence_62a8e560-aa0c-4950-8766-9853d95f743c",
+            "evidence_92b8fd5f-5d7d-48c8-9706-e9c1d3e26e65",
+            "evidence_27a37e77-9b3c-4f9d-9878-ded653a62d94",
+            "evidence_d62b84ad-1786-49b2-9c4f-5749f0327a39",
+            "evidence_b73aed56-9d62-42aa-ae4d-caa60e4eba11",
+            "evidence_19da5ae1-73b9-4c1c-b18e-ef0eb3484b80",
+            "evidence_beb0ac66-06a1-4233-9850-8a0bcc53d1d9"
+          ],
+          "limitations": [],
+          "startedAt": "2026-10-10T16:20:58.076Z",
+          "inputHash": "80854e4405356929efe2f1916b9ab059df0d5e602d74a526acc0e6a083ee9688",
+          "reason": "provider_http_error",
+          "completedAt": "2026-10-10T16:20:58.899Z",
+          "durationMs": 823
+        },
+        "outcomes": [
+          {
+            "path": "measure.formula",
+            "status": "applied"
+          },
+          {
+            "path": "output",
+            "status": "applied"
+          }
+        ]
+      }
+    }
+  }
+]

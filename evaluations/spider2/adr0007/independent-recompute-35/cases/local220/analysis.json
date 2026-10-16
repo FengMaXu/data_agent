@@ -1,0 +1,56 @@
+{
+  "instance_id": "local220",
+  "status": "gold_conflict",
+  "summary": "按独立球员身份，胜场最高Cristiano Ronaldo 199、负场最高Gorka Iraizoz Moreno 107；Gold恰对应把3个Marcelo与5个Ricardo身份合并后的姓名极值301/163。",
+  "fork_node": "population.entity (Gold reconstructed alternative; original has no confirmed semantic error)",
+  "error_layer": "Gold entity conflation; original output includes extra columns but names independently conflict",
+  "visibility": "outside_original_spec_error",
+  "independent_score": 0,
+  "evidence": [
+    {
+      "source": "blind.json",
+      "pointer": "/question",
+      "quote": "Which player has participated in the highest number of winning matches and which player has participated in the highest number of losing matches"
+    },
+    {
+      "source": "executor-events.jsonl",
+      "quote": "\"Marcelo\",\"Win\",301,3",
+      "line": 6,
+      "pointer": "/raw/rows/0"
+    },
+    {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local220/attempts/attempt-20261010-154318Z/trace.json",
+      "quote": "player_name 仅作展示标签。",
+      "pointer": "/toolCalls/5/result/details/fields/0/rationale",
+      "original_projection_source": "original-spec-review.json"
+    }
+  ],
+  "limitations": [
+    "Gold SQL absent: name-merging is experimentally sufficient, not proven to be Gold implementation.",
+    "Lineup identities are recorded participation proxy; no minute-level verification.",
+    "Extra output columns also differ from Gold, cannot attribute every grading rule failure exclusively to identity."
+  ],
+  "parent_field_review": {
+    "instance_id": "local220",
+    "relevant_node": "population.entity",
+    "node_is_confirmed_original_error": false,
+    "explanation": "Gold可由同名不同球员合并重现；原player身份计数正确",
+    "error_layer": "标准答案与本次输入/明确要求局部冲突",
+    "visibility": "不适用：未确认原Spec语义错误",
+    "qualification": "Gold差异相关节点，不冒充原系统错误节点",
+    "original_node_declared": true,
+    "original_node_status": "assumed",
+    "original_node_value": {
+      "name": "player",
+      "keyColumns": [
+        "player_api_id"
+      ]
+    },
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local220/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/5/result/details/fields/0/value",
+      "quote": "{\"name\": \"player\", \"keyColumns\": [\"player_api_id\"]}"
+    },
+    "primary_status": "gold_conflict"
+  }
+}

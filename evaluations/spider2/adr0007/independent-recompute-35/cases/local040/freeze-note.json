@@ -1,0 +1,7 @@
+{
+  "algorithm": "Full ZIP join; positive both income, valid borough; count trees, tree-row weighted mean; strict top3",
+  "assumptions": [
+    "valid borough=nonempty observed borough name",
+    "tree record income average, not ZIP-equal"
+  ]
+}

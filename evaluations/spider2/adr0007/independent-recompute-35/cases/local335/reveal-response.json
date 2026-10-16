@@ -1,0 +1,73 @@
+{
+  "revealedAt": "2026-10-11T09:15:37.001Z",
+  "registry": {
+    "instance_id": "local335",
+    "attempt_id": "attempt-20261010-154318Z",
+    "score": 0,
+    "score_source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-retry.json",
+    "replayed_csv_score": 0,
+    "group": "wrong",
+    "status": "completed",
+    "publication_status": "published",
+    "duration_ms": 394430,
+    "tool_calls": 43,
+    "error": null,
+    "result_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local335/attempts/attempt-20261010-154318Z/result.json",
+    "trace_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local335/attempts/attempt-20261010-154318Z/trace.json",
+    "result_exists": true,
+    "trace_exists": true,
+    "sql_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local335/attempts/attempt-20261010-154318Z/submissions/sql/local335.sql",
+    "csv_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local335.csv",
+    "sql_exists": true,
+    "csv_exists": true,
+    "gold_sql_file": null,
+    "process": {
+      "turns": 27,
+      "toolCalls": 43,
+      "explorationQueries": 21,
+      "resultQueries": 1,
+      "fanoutProbes": 0,
+      "revisions": 8
+    },
+    "fanout_metrics": {
+      "reportCount": 1,
+      "targetCount": 0,
+      "findingCount": 0,
+      "unknownCount": 0,
+      "byStatus": {
+        "clear": 0,
+        "finding": 0,
+        "not_applicable": 0,
+        "unknown": 1
+      },
+      "enabled": true
+    },
+    "spec_feedback_metrics": {
+      "reportCount": 5,
+      "byStatus": {
+        "pending": 0,
+        "completed": 0,
+        "unavailable": 5,
+        "disabled": 0
+      },
+      "deterministicIssueCount": 0,
+      "concernCount": 0,
+      "enabled": true
+    }
+  },
+  "originalSql": "WITH last AS (\n  SELECT r.year AS year, ds.driver_id AS driver_id, ds.points AS pts,\n         ROW_NUMBER() OVER (PARTITION BY r.year, ds.driver_id ORDER BY r.round DESC) rn\n  FROM driver_standings ds JOIN races r ON r.race_id = ds.race_id WHERE r.year >= 2001),\ntot AS (SELECT year, driver_id, pts FROM last WHERE rn = 1),\nps AS (SELECT * FROM tot WHERE pts > 0),\nmn AS (SELECT year, MIN(pts) AS m FROM ps GROUP BY year),\nmd AS (SELECT ps.year, ps.driver_id FROM ps JOIN mn ON mn.year = ps.year AND mn.m = ps.pts),\nmc AS (SELECT DISTINCT md.year, res.constructor_id AS cid\n       FROM md JOIN results res ON res.driver_id = md.driver_id\n       JOIN races r ON r.race_id = res.race_id AND r.year = md.year)\nSELECT c.name AS constructor_name, COUNT(*) AS season_count\nFROM mc JOIN constructors c ON c.constructor_id = mc.cid\nGROUP BY c.name\nORDER BY season_count DESC, c.name ASC\nLIMIT 5\n",
+  "originalCsv": "constructor_name,season_count\nWilliams,6\nToro Rosso,5\nMinardi,3\nSauber,3\nArrows,2\n",
+  "goldSql": null,
+  "goldCsv": [
+    {
+      "path": "C:\\data-agent-eval\\Spider2\\spider2-lite\\evaluation_suite\\gold\\exec_result\\local335.csv",
+      "content": "Constructor\r\nWilliams\r\nJordan\r\nToro Rosso\r\nArrows\r\nMinardi\r\n"
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local335",
+    "condition_cols": [],
+    "ignore_order": true,
+    "toks": "138"
+  }
+}

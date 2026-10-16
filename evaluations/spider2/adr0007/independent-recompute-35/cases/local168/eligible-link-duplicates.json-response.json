@@ -1,0 +1,53 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_bead62ca-7845-4112-b4fe-a3e97409f2ce\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nrows | unique_links\n22 | 22"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_bead62ca-7845-4112-b4fe-a3e97409f2ce",
+      "preview": {
+        "columns": [
+          "rows",
+          "unique_links"
+        ],
+        "rows": [
+          [
+            22,
+            22
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "rows",
+        "unique_links"
+      ],
+      "rows": [
+        [
+          22,
+          22
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_4e79b422-a104-4ec7-941b-6e6f1ae61db8"
+  }
+}

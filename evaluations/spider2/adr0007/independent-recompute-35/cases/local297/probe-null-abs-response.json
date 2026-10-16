@@ -1,0 +1,119 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_2bc09b9e-fdbe-4797-9f89-174a34b2f08a\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nmode | customers | null_prior | null_positive | abs_no_null_pass | abs_no_null_pct | signed_no_null_pass\ndw_only | 500 | 17 | 15 | 291 | 58.2 | 256\npurchase_negative | 500 | 3 | 2 | 182 | 36.4 | 233\npurchase_zero_month | 500 | 3 | 2 | 256 | 51.2 | 223"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_2bc09b9e-fdbe-4797-9f89-174a34b2f08a",
+      "preview": {
+        "columns": [
+          "mode",
+          "customers",
+          "null_prior",
+          "null_positive",
+          "abs_no_null_pass",
+          "abs_no_null_pct",
+          "signed_no_null_pass"
+        ],
+        "rows": [
+          [
+            "dw_only",
+            500,
+            17,
+            15,
+            291,
+            58.2,
+            256
+          ],
+          [
+            "purchase_negative",
+            500,
+            3,
+            2,
+            182,
+            36.4,
+            233
+          ],
+          [
+            "purchase_zero_month",
+            500,
+            3,
+            2,
+            256,
+            51.2,
+            223
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "REAL",
+          "INTEGER"
+        ],
+        "rowCount": 3,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "mode",
+        "customers",
+        "null_prior",
+        "null_positive",
+        "abs_no_null_pass",
+        "abs_no_null_pct",
+        "signed_no_null_pass"
+      ],
+      "rows": [
+        [
+          "dw_only",
+          500,
+          17,
+          15,
+          291,
+          58.2,
+          256
+        ],
+        [
+          "purchase_negative",
+          500,
+          3,
+          2,
+          182,
+          36.4,
+          233
+        ],
+        [
+          "purchase_zero_month",
+          500,
+          3,
+          2,
+          256,
+          51.2,
+          223
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "REAL",
+        "INTEGER"
+      ],
+      "rowCount": 3,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_8082718b-d618-4c6c-9de9-ff2818b6b7dd"
+  }
+}

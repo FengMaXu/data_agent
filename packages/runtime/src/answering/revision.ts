@@ -45,6 +45,8 @@ import { finishRevisionSubmission } from "./spec-feedback-execution.js";
 import { attachDataChecks } from "./data-checks-execution.js";
 import { localId, now } from "./support.js";
 import { probeContextFor, viewFromRevision } from "./views.js";
+import { ensureAdvice } from "./advice-execution.js";
+import { adviceView, type FieldAdvisory } from "./advice.js";
 import type { AnsweringDeps } from "./deps.js";
 
 function requestEvidenceId(requestMessageId: string): string {
@@ -194,6 +196,13 @@ function taskExtras(tx: Pick<AnsweringTransaction, "getTask">, task: Pick<QueryT
   };
 }
 
+/** Shows advice recorded after the view was built on the fields it is about. */
+function withAdvice(view: AnswerRevisionView, advice: readonly FieldAdvisory[]): AnswerRevisionView {
+  if (advice.length === 0) return view;
+  const byPath = new Map(advice.map((item) => [item.path, item]));
+  return { ...view, fields: view.fields.map((field) => byPath.has(field.path) ? { ...field, advice: adviceView(byPath.get(field.path)!) } : field) };
+}
+
 /** The Report Task a chart query is bound to, and the fields it copies from it. */
 function bindParent(tx: AnsweringTransaction, parentTaskId: string, context: BusinessContext) {
   const parent = tx.getTask(parentTaskId as TaskId);
@@ -313,6 +322,8 @@ async function reviseFields(deps: AnsweringDeps, input: SetAnswerFields, context
     assertTaskAccess(task, context);
     return task.requestMessageId;
   }, context);
+  // A decision is checked against the advice: ask for any the probes already call for (ADR-0005).
+  await ensureAdvice(deps, taskId, context);
   const prepared = await prepareWrites(deps, input, taskRequestMessageId, context);
   let extras: Partial<AnswerRevisionView> = {};
   const outcome = await deps.store.transact(async (tx) => {
@@ -368,5 +379,6 @@ async function reviseFields(deps: AnsweringDeps, input: SetAnswerFields, context
     throw new AnsweringError("IMPLEMENTATION_BUDGET_EXHAUSTED", outcome.obstacle.message, obstacleDetails(undefined, outcome.obstacle));
   }
   const view = await attachDataChecks(deps, await finishRevisionSubmission(deps, outcome, context), context);
-  return { ...view, ...extras };
+  // A waiver may have completed a field's outputs in this call.
+  return { ...withAdvice(view, await ensureAdvice(deps, taskId, context)), ...extras };
 }

@@ -1,0 +1,3269 @@
+{
+  "version": 2,
+  "tasks": [
+    {
+      "taskId": "task_4e89f196-7139-4a3f-a96f-1224b0553abc",
+      "sessionId": "local331",
+      "principalId": "independent-analyst",
+      "requestMessageId": "original-task",
+      "requestId": "06275450-ab60-4155-b782-4e1303ee49c7",
+      "currentRevisionId": "revision_c8189670-768c-44bd-9e2e-1cd6121109ec",
+      "lifecycle": "published",
+      "budget": {
+        "policy": {
+          "version": "answering-dual-loop-v1",
+          "maxRevisions": 40,
+          "maxExplorationAttempts": 120,
+          "maxResultAttempts": 20,
+          "maxElapsedMs": 14400000,
+          "maxObservedRows": 2000000
+        },
+        "startedAt": "2026-10-11T09:14:15.489Z",
+        "revisionCount": 1,
+        "explorationAttempts": 11,
+        "resultAttempts": 1,
+        "observedRows": 355
+      },
+      "createdAt": "2026-10-11T09:14:15.489Z",
+      "updatedAt": "2026-10-11T09:16:22.727Z",
+      "latestCandidateId": "candidate_f34db2c3-abdb-433f-99e0-a610ee73a294",
+      "publicationId": "publication_e3725592-08c5-4fe4-8392-d80404f0de2d"
+    }
+  ],
+  "revisions": [
+    {
+      "taskId": "task_4e89f196-7139-4a3f-a96f-1224b0553abc",
+      "revisionId": "revision_d5a395ec-e5bc-4c11-bc4e-e39ed6cbe293",
+      "requestId": "06275450-ab60-4155-b782-4e1303ee49c7",
+      "createdAt": "2026-10-11T09:14:15.489Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "distinct actual third-page paths after consecutive detail visits"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_4e26d905-cba8-49c5-9503-2688b5387bd9"
+            ]
+          }
+        }
+      },
+      "state": {
+        "state": "draft",
+        "revisionId": "revision_d5a395ec-e5bc-4c11-bc4e-e39ed6cbe293"
+      },
+      "specFeedback": {
+        "taskId": "task_4e89f196-7139-4a3f-a96f-1224b0553abc",
+        "revisionId": "revision_d5a395ec-e5bc-4c11-bc4e-e39ed6cbe293",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_4e26d905-cba8-49c5-9503-2688b5387bd9"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    },
+    {
+      "taskId": "task_4e89f196-7139-4a3f-a96f-1224b0553abc",
+      "revisionId": "revision_c8189670-768c-44bd-9e2e-1cd6121109ec",
+      "parentRevisionId": "revision_d5a395ec-e5bc-4c11-bc4e-e39ed6cbe293",
+      "requestId": "1fb0f45e-ed28-405c-a8f0-be4df11664c5",
+      "createdAt": "2026-10-11T09:15:36.153Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "distinct actual third-page paths after consecutive detail visits"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_4e26d905-cba8-49c5-9503-2688b5387bd9"
+            ]
+          }
+        },
+        "population.eligibility": {
+          "state": "specified",
+          "value": "Actual third visit events within same session; terminal pair without third event excluded",
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "population.conditions": {
+          "state": "specified",
+          "value": [
+            "first two adjacent view paths exactly /detail; retain original rows and original path values"
+          ],
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "population.time": {
+          "state": "specified",
+          "value": {
+            "expression": "All events ordered within session by stamp and rowid for timestamp ties"
+          },
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "measure.formula": {
+          "state": "specified",
+          "value": {
+            "op": "custom",
+            "description": "Count positive third-event occurrences in all sliding three-view windows with first two exactly /detail; one event window one count; select three path categories with greatest counts"
+          },
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "grouping": {
+          "state": "specified",
+          "value": [
+            "third_page path"
+          ],
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "selection": {
+          "state": "specified",
+          "value": {
+            "n": 3,
+            "orderBy": "occurrences DESC, third_page ASC"
+          },
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "selection.ties": {
+          "state": "specified",
+          "value": "strict",
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "output": {
+          "state": "specified",
+          "value": {
+            "rowMode": "top_n",
+            "rowCount": 3,
+            "columns": [
+              "third_page",
+              "occurrences"
+            ]
+          },
+          "basis": {
+            "kind": "assumed"
+          }
+        }
+      },
+      "state": {
+        "state": "ready",
+        "revisionId": "revision_c8189670-768c-44bd-9e2e-1cd6121109ec",
+        "ready": "ready_0da3761c-1633-4bed-8194-aa53892acaa1"
+      },
+      "specFeedback": {
+        "taskId": "task_4e89f196-7139-4a3f-a96f-1224b0553abc",
+        "revisionId": "revision_c8189670-768c-44bd-9e2e-1cd6121109ec",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_4e26d905-cba8-49c5-9503-2688b5387bd9",
+          "evidence_df09dcff-da0b-4c24-9e42-e2060d9a21b1",
+          "evidence_f9ea2621-4c88-4cbf-9d63-26c3bc19361c",
+          "evidence_41b3c307-c208-4041-ac59-cc6b29e5683c",
+          "evidence_b45383cc-5a13-42d5-90cf-1a55c2ec7800",
+          "evidence_a31e304e-1bd8-4e3e-aafc-e758fb77fbc0",
+          "evidence_bbd42d87-936b-4e4e-bccc-717253d37266"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "taskId": "task_4e89f196-7139-4a3f-a96f-1224b0553abc",
+      "items": [
+        {
+          "id": "request_be3e2f2bd519d830902bceb0",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "observedAt": "2026-10-11T09:14:15.489Z"
+        },
+        {
+          "id": "evidence_4e26d905-cba8-49c5-9503-2688b5387bd9",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "c7b1ea53a9369d1e42f2cc57b15f5112ded3bd5f9360666bdaf61acde1e253a8",
+          "quote": "three distinct third-page visits",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "c7b1ea53a9369d1e42f2cc57b15f5112ded3bd5f9360666bdaf61acde1e253a8"
+          },
+          "observedAt": "2026-10-11T09:14:15.489Z"
+        },
+        {
+          "id": "evidence_df09dcff-da0b-4c24-9e42-e2060d9a21b1",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "2cd0ac57-438f-4737-830d-adf5d423d8e6",
+          "preview": {
+            "columns": [
+              "action",
+              "n",
+              "paths",
+              "distinct_paths"
+            ],
+            "rows": [
+              [
+                "view",
+                244,
+                244,
+                11
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "e152cf79bc1b348f59f88737414ae770c4685d7858c343c0ee28774f6afed138",
+          "contentHash": "3973c5dced10126cc1167b67f80dd98438718656b8d81da0781ae74eadd7f2da",
+          "observedAt": "2026-10-11T09:14:19.039Z"
+        },
+        {
+          "id": "evidence_f9ea2621-4c88-4cbf-9d63-26c3bc19361c",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "3db43405-88f4-4778-929b-c0e4721beca1",
+          "preview": {
+            "columns": [
+              "rowid",
+              "stamp",
+              "session",
+              "action",
+              "path"
+            ],
+            "rows": [
+              [
+                28,
+                "2017-01-09 12:18:43",
+                "0fe39581",
+                "view",
+                "/search_list/"
+              ],
+              [
+                60,
+                "2017-01-09 12:18:43",
+                "0fe39581",
+                "view",
+                "/search_list/"
+              ],
+              [
+                93,
+                "2017-01-09 12:18:43",
+                "0fe39581",
+                "view",
+                "/search_list"
+              ],
+              [
+                129,
+                "2017-01-09 12:18:43",
+                "0fe39581",
+                "view",
+                "/search_list"
+              ],
+              [
+                165,
+                "2017-01-09 12:18:43",
+                "0fe39581",
+                "view",
+                "/search_list"
+              ],
+              [
+                201,
+                "2017-01-09 12:18:43",
+                "0fe39581",
+                "view",
+                "/search_list"
+              ],
+              [
+                237,
+                "2017-01-09 12:18:43",
+                "0fe39581",
+                "view",
+                "/search_list"
+              ],
+              [
+                18,
+                "2017-01-09 12:18:43",
+                "111f2996",
+                "view",
+                "/search_list/"
+              ],
+              [
+                50,
+                "2017-01-09 12:18:43",
+                "111f2996",
+                "view",
+                "/search_list/"
+              ],
+              [
+                82,
+                "2017-01-09 12:18:43",
+                "111f2996",
+                "view",
+                "/search_list"
+              ],
+              [
+                118,
+                "2017-01-09 12:18:43",
+                "111f2996",
+                "view",
+                "/search_list"
+              ],
+              [
+                154,
+                "2017-01-09 12:18:43",
+                "111f2996",
+                "view",
+                "/search_list"
+              ],
+              [
+                190,
+                "2017-01-09 12:18:43",
+                "111f2996",
+                "view",
+                "/search_list"
+              ],
+              [
+                226,
+                "2017-01-09 12:18:43",
+                "111f2996",
+                "view",
+                "/search_list"
+              ],
+              [
+                19,
+                "2017-01-09 12:19:11",
+                "111f2996",
+                "view",
+                "/search_input/"
+              ],
+              [
+                51,
+                "2017-01-09 12:19:11",
+                "111f2996",
+                "view",
+                "/search_input/"
+              ],
+              [
+                83,
+                "2017-01-09 12:19:11",
+                "111f2996",
+                "view",
+                "/search_input"
+              ],
+              [
+                119,
+                "2017-01-09 12:19:11",
+                "111f2996",
+                "view",
+                "/search_input"
+              ],
+              [
+                155,
+                "2017-01-09 12:19:11",
+                "111f2996",
+                "view",
+                "/search_input"
+              ],
+              [
+                191,
+                "2017-01-09 12:19:11",
+                "111f2996",
+                "view",
+                "/search_input"
+              ],
+              [
+                227,
+                "2017-01-09 12:19:11",
+                "111f2996",
+                "view",
+                "/search_input"
+              ],
+              [
+                20,
+                "2017-01-09 12:20:10",
+                "111f2996",
+                "view",
+                "/"
+              ],
+              [
+                52,
+                "2017-01-09 12:20:10",
+                "111f2996",
+                "view",
+                "/"
+              ],
+              [
+                84,
+                "2017-01-09 12:20:10",
+                "111f2996",
+                "view",
+                ""
+              ],
+              [
+                120,
+                "2017-01-09 12:20:10",
+                "111f2996",
+                "view",
+                ""
+              ],
+              [
+                156,
+                "2017-01-09 12:20:10",
+                "111f2996",
+                "view",
+                ""
+              ],
+              [
+                192,
+                "2017-01-09 12:20:10",
+                "111f2996",
+                "view",
+                "/"
+              ],
+              [
+                228,
+                "2017-01-09 12:20:10",
+                "111f2996",
+                "view",
+                "/"
+              ],
+              [
+                21,
+                "2017-01-09 12:21:14",
+                "111f2996",
+                "view",
+                "/search_input/"
+              ],
+              [
+                53,
+                "2017-01-09 12:21:14",
+                "111f2996",
+                "view",
+                "/search_input/"
+              ],
+              [
+                85,
+                "2017-01-09 12:21:14",
+                "111f2996",
+                "view",
+                "/search_input"
+              ],
+              [
+                121,
+                "2017-01-09 12:21:14",
+                "111f2996",
+                "view",
+                "/search_input"
+              ],
+              [
+                157,
+                "2017-01-09 12:21:14",
+                "111f2996",
+                "view",
+                "/search_input"
+              ],
+              [
+                193,
+                "2017-01-09 12:21:14",
+                "111f2996",
+                "view",
+                "/search_input"
+              ],
+              [
+                229,
+                "2017-01-09 12:21:14",
+                "111f2996",
+                "view",
+                "/search_input"
+              ],
+              [
+                5,
+                "2017-01-09 12:18:43",
+                "1cf7678e",
+                "view",
+                "/detail/"
+              ],
+              [
+                37,
+                "2017-01-09 12:18:43",
+                "1cf7678e",
+                "view",
+                "/detail/"
+              ],
+              [
+                69,
+                "2017-01-09 12:18:43",
+                "1cf7678e",
+                "view",
+                "/detail"
+              ],
+              [
+                105,
+                "2017-01-09 12:18:43",
+                "1cf7678e",
+                "view",
+                "/detail"
+              ],
+              [
+                141,
+                "2017-01-09 12:18:43",
+                "1cf7678e",
+                "view",
+                "/detail"
+              ],
+              [
+                177,
+                "2017-01-09 12:18:43",
+                "1cf7678e",
+                "view",
+                "/detail"
+              ],
+              [
+                213,
+                "2017-01-09 12:18:43",
+                "1cf7678e",
+                "view",
+                "/detail"
+              ],
+              [
+                6,
+                "2017-01-09 12:19:04",
+                "1cf7678e",
+                "view",
+                "/"
+              ],
+              [
+                38,
+                "2017-01-09 12:19:04",
+                "1cf7678e",
+                "view",
+                "/"
+              ],
+              [
+                70,
+                "2017-01-09 12:19:04",
+                "1cf7678e",
+                "view",
+                ""
+              ],
+              [
+                106,
+                "2017-01-09 12:19:04",
+                "1cf7678e",
+                "view",
+                ""
+              ],
+              [
+                142,
+                "2017-01-09 12:19:04",
+                "1cf7678e",
+                "view",
+                ""
+              ],
+              [
+                178,
+                "2017-01-09 12:19:04",
+                "1cf7678e",
+                "view",
+                "/"
+              ],
+              [
+                214,
+                "2017-01-09 12:19:04",
+                "1cf7678e",
+                "view",
+                "/"
+              ],
+              [
+                29,
+                "2017-01-09 12:18:43",
+                "36dd0df7",
+                "view",
+                "/search_list/"
+              ],
+              [
+                61,
+                "2017-01-09 12:18:43",
+                "36dd0df7",
+                "view",
+                "/search_list/"
+              ],
+              [
+                94,
+                "2017-01-09 12:18:43",
+                "36dd0df7",
+                "view",
+                "/search_list"
+              ],
+              [
+                130,
+                "2017-01-09 12:18:43",
+                "36dd0df7",
+                "view",
+                "/search_list"
+              ],
+              [
+                166,
+                "2017-01-09 12:18:43",
+                "36dd0df7",
+                "view",
+                "/search_list"
+              ],
+              [
+                202,
+                "2017-01-09 12:18:43",
+                "36dd0df7",
+                "view",
+                "/search_list"
+              ],
+              [
+                238,
+                "2017-01-09 12:18:43",
+                "36dd0df7",
+                "view",
+                "/search_list"
+              ],
+              [
+                30,
+                "2017-01-09 12:19:49",
+                "36dd0df7",
+                "view",
+                "/detail/"
+              ],
+              [
+                62,
+                "2017-01-09 12:19:49",
+                "36dd0df7",
+                "view",
+                "/detail/"
+              ],
+              [
+                95,
+                "2017-01-09 12:19:49",
+                "36dd0df7",
+                "view",
+                "/detail"
+              ],
+              [
+                131,
+                "2017-01-09 12:19:49",
+                "36dd0df7",
+                "view",
+                "/detail"
+              ],
+              [
+                167,
+                "2017-01-09 12:19:49",
+                "36dd0df7",
+                "view",
+                "/detail"
+              ],
+              [
+                203,
+                "2017-01-09 12:19:49",
+                "36dd0df7",
+                "view",
+                "/detail"
+              ],
+              [
+                239,
+                "2017-01-09 12:19:49",
+                "36dd0df7",
+                "view",
+                "/detail"
+              ],
+              [
+                22,
+                "2017-01-09 12:18:43",
+                "3efe001c",
+                "view",
+                "/detail/"
+              ],
+              [
+                54,
+                "2017-01-09 12:18:43",
+                "3efe001c",
+                "view",
+                "/detail/"
+              ],
+              [
+                86,
+                "2017-01-09 12:18:43",
+                "3efe001c",
+                "view",
+                "/detail"
+              ],
+              [
+                122,
+                "2017-01-09 12:18:43",
+                "3efe001c",
+                "view",
+                "/detail"
+              ],
+              [
+                158,
+                "2017-01-09 12:18:43",
+                "3efe001c",
+                "view",
+                "/detail"
+              ],
+              [
+                194,
+                "2017-01-09 12:18:43",
+                "3efe001c",
+                "view",
+                "/detail"
+              ],
+              [
+                230,
+                "2017-01-09 12:18:43",
+                "3efe001c",
+                "view",
+                "/detail"
+              ],
+              [
+                4,
+                "2017-01-09 12:18:43",
+                "47db0370",
+                "view",
+                "/search_list/"
+              ],
+              [
+                36,
+                "2017-01-09 12:18:43",
+                "47db0370",
+                "view",
+                "/search_list/"
+              ],
+              [
+                68,
+                "2017-01-09 12:18:43",
+                "47db0370",
+                "view",
+                "/search_list"
+              ],
+              [
+                104,
+                "2017-01-09 12:18:43",
+                "47db0370",
+                "view",
+                "/search_list"
+              ],
+              [
+                140,
+                "2017-01-09 12:18:43",
+                "47db0370",
+                "view",
+                "/search_list"
+              ],
+              [
+                176,
+                "2017-01-09 12:18:43",
+                "47db0370",
+                "view",
+                "/search_list"
+              ],
+              [
+                212,
+                "2017-01-09 12:18:43",
+                "47db0370",
+                "view",
+                "/search_list"
+              ],
+              [
+                17,
+                "2017-01-09 12:18:43",
+                "5d5b0997",
+                "view",
+                "/detail/"
+              ],
+              [
+                49,
+                "2017-01-09 12:18:43",
+                "5d5b0997",
+                "view",
+                "/detail/"
+              ],
+              [
+                81,
+                "2017-01-09 12:18:43",
+                "5d5b0997",
+                "view",
+                "/detail"
+              ],
+              [
+                117,
+                "2017-01-09 12:18:43",
+                "5d5b0997",
+                "view",
+                "/detail"
+              ],
+              [
+                153,
+                "2017-01-09 12:18:43",
+                "5d5b0997",
+                "view",
+                "/detail"
+              ],
+              [
+                189,
+                "2017-01-09 12:18:43",
+                "5d5b0997",
+                "view",
+                "/detail"
+              ],
+              [
+                225,
+                "2017-01-09 12:18:43",
+                "5d5b0997",
+                "view",
+                "/detail"
+              ],
+              [
+                7,
+                "2017-01-09 12:18:43",
+                "5eb2e107",
+                "view",
+                "/detail/"
+              ],
+              [
+                39,
+                "2017-01-09 12:18:43",
+                "5eb2e107",
+                "view",
+                "/detail/"
+              ],
+              [
+                71,
+                "2017-01-09 12:18:43",
+                "5eb2e107",
+                "view",
+                "/detail"
+              ],
+              [
+                107,
+                "2017-01-09 12:18:43",
+                "5eb2e107",
+                "view",
+                "/detail"
+              ],
+              [
+                143,
+                "2017-01-09 12:18:43",
+                "5eb2e107",
+                "view",
+                "/detail"
+              ],
+              [
+                179,
+                "2017-01-09 12:18:43",
+                "5eb2e107",
+                "view",
+                "/detail"
+              ],
+              [
+                215,
+                "2017-01-09 12:18:43",
+                "5eb2e107",
+                "view",
+                "/detail"
+              ],
+              [
+                9,
+                "2017-01-09 12:18:43",
+                "87b5725f",
+                "view",
+                "/detail/"
+              ],
+              [
+                41,
+                "2017-01-09 12:18:43",
+                "87b5725f",
+                "view",
+                "/detail/"
+              ],
+              [
+                73,
+                "2017-01-09 12:18:43",
+                "87b5725f",
+                "view",
+                "/detail"
+              ],
+              [
+                109,
+                "2017-01-09 12:18:43",
+                "87b5725f",
+                "view",
+                "/detail"
+              ],
+              [
+                145,
+                "2017-01-09 12:18:43",
+                "87b5725f",
+                "view",
+                "/detail"
+              ],
+              [
+                181,
+                "2017-01-09 12:18:43",
+                "87b5725f",
+                "view",
+                "/detail"
+              ],
+              [
+                217,
+                "2017-01-09 12:18:43",
+                "87b5725f",
+                "view",
+                "/detail"
+              ],
+              [
+                10,
+                "2017-01-09 12:20:22",
+                "87b5725f",
+                "view",
+                "/search_list/"
+              ],
+              [
+                42,
+                "2017-01-09 12:20:22",
+                "87b5725f",
+                "view",
+                "/search_list/"
+              ],
+              [
+                74,
+                "2017-01-09 12:20:22",
+                "87b5725f",
+                "view",
+                "/search_list"
+              ],
+              [
+                110,
+                "2017-01-09 12:20:22",
+                "87b5725f",
+                "view",
+                "/search_list"
+              ],
+              [
+                146,
+                "2017-01-09 12:20:22",
+                "87b5725f",
+                "view",
+                "/search_list"
+              ],
+              [
+                182,
+                "2017-01-09 12:20:22",
+                "87b5725f",
+                "view",
+                "/search_list"
+              ],
+              [
+                218,
+                "2017-01-09 12:20:22",
+                "87b5725f",
+                "view",
+                "/search_list"
+              ],
+              [
+                11,
+                "2017-01-09 12:20:46",
+                "87b5725f",
+                "view",
+                "/"
+              ],
+              [
+                43,
+                "2017-01-09 12:20:46",
+                "87b5725f",
+                "view",
+                "/"
+              ],
+              [
+                75,
+                "2017-01-09 12:20:46",
+                "87b5725f",
+                "view",
+                ""
+              ],
+              [
+                111,
+                "2017-01-09 12:20:46",
+                "87b5725f",
+                "view",
+                ""
+              ],
+              [
+                147,
+                "2017-01-09 12:20:46",
+                "87b5725f",
+                "view",
+                ""
+              ],
+              [
+                183,
+                "2017-01-09 12:20:46",
+                "87b5725f",
+                "view",
+                "/"
+              ],
+              [
+                219,
+                "2017-01-09 12:20:46",
+                "87b5725f",
+                "view",
+                "/"
+              ],
+              [
+                12,
+                "2017-01-09 12:21:26",
+                "87b5725f",
+                "view",
+                "/search_input/"
+              ],
+              [
+                44,
+                "2017-01-09 12:21:26",
+                "87b5725f",
+                "view",
+                "/search_input/"
+              ],
+              [
+                76,
+                "2017-01-09 12:21:26",
+                "87b5725f",
+                "view",
+                "/search_input"
+              ],
+              [
+                112,
+                "2017-01-09 12:21:26",
+                "87b5725f",
+                "view",
+                "/search_input"
+              ],
+              [
+                148,
+                "2017-01-09 12:21:26",
+                "87b5725f",
+                "view",
+                "/search_input"
+              ],
+              [
+                184,
+                "2017-01-09 12:21:26",
+                "87b5725f",
+                "view",
+                "/search_input"
+              ],
+              [
+                220,
+                "2017-01-09 12:21:26",
+                "87b5725f",
+                "view",
+                "/search_input"
+              ],
+              [
+                13,
+                "2017-01-09 12:22:51",
+                "87b5725f",
+                "view",
+                "/search_list/"
+              ],
+              [
+                45,
+                "2017-01-09 12:22:51",
+                "87b5725f",
+                "view",
+                "/search_list/"
+              ],
+              [
+                77,
+                "2017-01-09 12:22:51",
+                "87b5725f",
+                "view",
+                "/search_list"
+              ],
+              [
+                113,
+                "2017-01-09 12:22:51",
+                "87b5725f",
+                "view",
+                "/search_list"
+              ],
+              [
+                149,
+                "2017-01-09 12:22:51",
+                "87b5725f",
+                "view",
+                "/search_list"
+              ],
+              [
+                185,
+                "2017-01-09 12:22:51",
+                "87b5725f",
+                "view",
+                "/search_list"
+              ],
+              [
+                221,
+                "2017-01-09 12:22:51",
+                "87b5725f",
+                "view",
+                "/search_list"
+              ],
+              [
+                14,
+                "2017-01-09 12:24:13",
+                "87b5725f",
+                "view",
+                "/detail/"
+              ],
+              [
+                46,
+                "2017-01-09 12:24:13",
+                "87b5725f",
+                "view",
+                "/detail/"
+              ],
+              [
+                78,
+                "2017-01-09 12:24:13",
+                "87b5725f",
+                "view",
+                "/detail"
+              ],
+              [
+                114,
+                "2017-01-09 12:24:13",
+                "87b5725f",
+                "view",
+                "/detail"
+              ],
+              [
+                150,
+                "2017-01-09 12:24:13",
+                "87b5725f",
+                "view",
+                "/detail"
+              ],
+              [
+                186,
+                "2017-01-09 12:24:13",
+                "87b5725f",
+                "view",
+                "/detail"
+              ],
+              [
+                222,
+                "2017-01-09 12:24:13",
+                "87b5725f",
+                "view",
+                "/detail"
+              ],
+              [
+                15,
+                "2017-01-09 12:25:25",
+                "87b5725f",
+                "view",
+                "/"
+              ],
+              [
+                47,
+                "2017-01-09 12:25:25",
+                "87b5725f",
+                "view",
+                "/"
+              ],
+              [
+                79,
+                "2017-01-09 12:25:25",
+                "87b5725f",
+                "view",
+                ""
+              ],
+              [
+                115,
+                "2017-01-09 12:25:25",
+                "87b5725f",
+                "view",
+                ""
+              ],
+              [
+                151,
+                "2017-01-09 12:25:25",
+                "87b5725f",
+                "view",
+                ""
+              ],
+              [
+                187,
+                "2017-01-09 12:25:25",
+                "87b5725f",
+                "view",
+                "/"
+              ],
+              [
+                223,
+                "2017-01-09 12:25:25",
+                "87b5725f",
+                "view",
+                "/"
+              ],
+              [
+                31,
+                "2017-01-09 12:18:43",
+                "8cc03a54",
+                "view",
+                "/search_list/"
+              ],
+              [
+                63,
+                "2017-01-09 12:18:43",
+                "8cc03a54",
+                "view",
+                "/search_list/"
+              ],
+              [
+                96,
+                "2017-01-09 12:18:43",
+                "8cc03a54",
+                "view",
+                "/search_list"
+              ],
+              [
+                132,
+                "2017-01-09 12:18:43",
+                "8cc03a54",
+                "view",
+                "/search_list"
+              ],
+              [
+                168,
+                "2017-01-09 12:18:43",
+                "8cc03a54",
+                "view",
+                "/search_list"
+              ],
+              [
+                204,
+                "2017-01-09 12:18:43",
+                "8cc03a54",
+                "view",
+                "/search_list"
+              ],
+              [
+                240,
+                "2017-01-09 12:18:43",
+                "8cc03a54",
+                "view",
+                "/search_list"
+              ],
+              [
+                97,
+                "2017-01-09 12:18:44",
+                "8cc03a54",
+                "view",
+                "/input"
+              ],
+              [
+                133,
+                "2017-01-09 12:18:44",
+                "8cc03a54",
+                "view",
+                "/input"
+              ],
+              [
+                169,
+                "2017-01-09 12:18:44",
+                "8cc03a54",
+                "view",
+                "/input"
+              ],
+              [
+                205,
+                "2017-01-09 12:18:44",
+                "8cc03a54",
+                "view",
+                "/input"
+              ],
+              [
+                241,
+                "2017-01-09 12:18:44",
+                "8cc03a54",
+                "view",
+                "/input"
+              ],
+              [
+                98,
+                "2017-01-09 12:18:45",
+                "8cc03a54",
+                "view",
+                "/confirm"
+              ],
+              [
+                134,
+                "2017-01-09 12:18:45",
+                "8cc03a54",
+                "view",
+                "/confirm"
+              ],
+              [
+                170,
+                "2017-01-09 12:18:45",
+                "8cc03a54",
+                "view",
+                "/confirm"
+              ],
+              [
+                206,
+                "2017-01-09 12:18:45",
+                "8cc03a54",
+                "view",
+                "/confirm"
+              ],
+              [
+                242,
+                "2017-01-09 12:18:45",
+                "8cc03a54",
+                "view",
+                "/confirm"
+              ],
+              [
+                99,
+                "2017-01-09 12:18:46",
+                "8cc03a54",
+                "view",
+                "/complete"
+              ],
+              [
+                135,
+                "2017-01-09 12:18:46",
+                "8cc03a54",
+                "view",
+                "/complete"
+              ],
+              [
+                171,
+                "2017-01-09 12:18:46",
+                "8cc03a54",
+                "view",
+                "/complete"
+              ],
+              [
+                207,
+                "2017-01-09 12:18:46",
+                "8cc03a54",
+                "view",
+                "/complete"
+              ],
+              [
+                243,
+                "2017-01-09 12:18:46",
+                "8cc03a54",
+                "view",
+                "/complete"
+              ],
+              [
+                1,
+                "2017-01-09 12:18:43",
+                "989004ea",
+                "view",
+                "/search_list/"
+              ],
+              [
+                33,
+                "2017-01-09 12:18:43",
+                "989004ea",
+                "view",
+                "/search_list/"
+              ],
+              [
+                65,
+                "2017-01-09 12:18:43",
+                "989004ea",
+                "view",
+                "/search_list"
+              ],
+              [
+                101,
+                "2017-01-09 12:18:43",
+                "989004ea",
+                "view",
+                "/search_list"
+              ],
+              [
+                137,
+                "2017-01-09 12:18:43",
+                "989004ea",
+                "view",
+                "/search_list"
+              ],
+              [
+                173,
+                "2017-01-09 12:18:43",
+                "989004ea",
+                "view",
+                "/search_list"
+              ],
+              [
+                209,
+                "2017-01-09 12:18:43",
+                "989004ea",
+                "view",
+                "/search_list"
+              ],
+              [
+                2,
+                "2017-01-09 12:19:27",
+                "989004ea",
+                "view",
+                "/search_input/"
+              ],
+              [
+                34,
+                "2017-01-09 12:19:27",
+                "989004ea",
+                "view",
+                "/search_input/"
+              ],
+              [
+                66,
+                "2017-01-09 12:19:27",
+                "989004ea",
+                "view",
+                "/search_input"
+              ],
+              [
+                102,
+                "2017-01-09 12:19:27",
+                "989004ea",
+                "view",
+                "/search_input"
+              ],
+              [
+                138,
+                "2017-01-09 12:19:27",
+                "989004ea",
+                "view",
+                "/search_input"
+              ],
+              [
+                174,
+                "2017-01-09 12:19:27",
+                "989004ea",
+                "view",
+                "/search_input"
+              ],
+              [
+                210,
+                "2017-01-09 12:19:27",
+                "989004ea",
+                "view",
+                "/search_input"
+              ],
+              [
+                3,
+                "2017-01-09 12:20:03",
+                "989004ea",
+                "view",
+                "/search_list/"
+              ],
+              [
+                35,
+                "2017-01-09 12:20:03",
+                "989004ea",
+                "view",
+                "/search_list/"
+              ],
+              [
+                67,
+                "2017-01-09 12:20:03",
+                "989004ea",
+                "view",
+                "/search_list"
+              ],
+              [
+                103,
+                "2017-01-09 12:20:03",
+                "989004ea",
+                "view",
+                "/search_list"
+              ],
+              [
+                139,
+                "2017-01-09 12:20:03",
+                "989004ea",
+                "view",
+                "/search_list"
+              ],
+              [
+                175,
+                "2017-01-09 12:20:03",
+                "989004ea",
+                "view",
+                "/search_list"
+              ],
+              [
+                211,
+                "2017-01-09 12:20:03",
+                "989004ea",
+                "view",
+                "/search_list"
+              ],
+              [
+                23,
+                "2017-01-09 12:18:43",
+                "9afaf87c",
+                "view",
+                "/search_list/"
+              ],
+              [
+                55,
+                "2017-01-09 12:18:43",
+                "9afaf87c",
+                "view",
+                "/search_list/"
+              ],
+              [
+                87,
+                "2017-01-09 12:18:43",
+                "9afaf87c",
+                "view",
+                "/search_list"
+              ],
+              [
+                123,
+                "2017-01-09 12:18:43",
+                "9afaf87c",
+                "view",
+                "/search_list"
+              ],
+              [
+                159,
+                "2017-01-09 12:18:43",
+                "9afaf87c",
+                "view",
+                "/search_list"
+              ],
+              [
+                195,
+                "2017-01-09 12:18:43",
+                "9afaf87c",
+                "view",
+                "/search_list"
+              ],
+              [
+                231,
+                "2017-01-09 12:18:43",
+                "9afaf87c",
+                "view",
+                "/search_list"
+              ],
+              [
+                24,
+                "2017-01-09 12:20:18",
+                "9afaf87c",
+                "view",
+                "/detail/"
+              ],
+              [
+                56,
+                "2017-01-09 12:20:18",
+                "9afaf87c",
+                "view",
+                "/detail/"
+              ],
+              [
+                88,
+                "2017-01-09 12:20:18",
+                "9afaf87c",
+                "view",
+                "/detail"
+              ],
+              [
+                124,
+                "2017-01-09 12:20:18",
+                "9afaf87c",
+                "view",
+                "/detail"
+              ],
+              [
+                160,
+                "2017-01-09 12:20:18",
+                "9afaf87c",
+                "view",
+                "/detail"
+              ],
+              [
+                196,
+                "2017-01-09 12:20:18",
+                "9afaf87c",
+                "view",
+                "/detail"
+              ],
+              [
+                232,
+                "2017-01-09 12:20:18",
+                "9afaf87c",
+                "view",
+                "/detail"
+              ],
+              [
+                25,
+                "2017-01-09 12:21:39",
+                "9afaf87c",
+                "view",
+                "/detail/"
+              ],
+              [
+                57,
+                "2017-01-09 12:21:39",
+                "9afaf87c",
+                "view",
+                "/detail/"
+              ],
+              [
+                89,
+                "2017-01-09 12:21:39",
+                "9afaf87c",
+                "view",
+                "/input"
+              ],
+              [
+                125,
+                "2017-01-09 12:21:39",
+                "9afaf87c",
+                "view",
+                "/input"
+              ],
+              [
+                161,
+                "2017-01-09 12:21:39",
+                "9afaf87c",
+                "view",
+                "/input"
+              ],
+              [
+                197,
+                "2017-01-09 12:21:39",
+                "9afaf87c",
+                "view",
+                "/input"
+              ],
+              [
+                233,
+                "2017-01-09 12:21:39",
+                "9afaf87c",
+                "view",
+                "/input"
+              ],
+              [
+                26,
+                "2017-01-09 12:22:52",
+                "9afaf87c",
+                "view",
+                "/search_list/"
+              ],
+              [
+                58,
+                "2017-01-09 12:22:52",
+                "9afaf87c",
+                "view",
+                "/search_list/"
+              ],
+              [
+                90,
+                "2017-01-09 12:22:52",
+                "9afaf87c",
+                "view",
+                "/confirm"
+              ],
+              [
+                126,
+                "2017-01-09 12:22:52",
+                "9afaf87c",
+                "view",
+                "/confirm"
+              ],
+              [
+                162,
+                "2017-01-09 12:22:52",
+                "9afaf87c",
+                "view",
+                "/confirm"
+              ],
+              [
+                198,
+                "2017-01-09 12:22:52",
+                "9afaf87c",
+                "view",
+                "/confirm"
+              ],
+              [
+                234,
+                "2017-01-09 12:22:52",
+                "9afaf87c",
+                "view",
+                "/confirm"
+              ],
+              [
+                91,
+                "2017-01-09 12:23:00",
+                "9afaf87c",
+                "view",
+                "/complete"
+              ],
+              [
+                127,
+                "2017-01-09 12:23:00",
+                "9afaf87c",
+                "view",
+                "/complete"
+              ],
+              [
+                163,
+                "2017-01-09 12:23:00",
+                "9afaf87c",
+                "view",
+                "/complete"
+              ],
+              [
+                199,
+                "2017-01-09 12:23:00",
+                "9afaf87c",
+                "view",
+                "/complete"
+              ],
+              [
+                235,
+                "2017-01-09 12:23:00",
+                "9afaf87c",
+                "view",
+                "/complete"
+              ],
+              [
+                32,
+                "2017-01-09 12:18:43",
+                "cabf98e8",
+                "view",
+                "/search_input/"
+              ],
+              [
+                64,
+                "2017-01-09 12:18:43",
+                "cabf98e8",
+                "view",
+                "/search_input/"
+              ],
+              [
+                100,
+                "2017-01-09 12:18:43",
+                "cabf98e8",
+                "view",
+                "/search_input"
+              ],
+              [
+                136,
+                "2017-01-09 12:18:43",
+                "cabf98e8",
+                "view",
+                "/search_input"
+              ],
+              [
+                172,
+                "2017-01-09 12:18:43",
+                "cabf98e8",
+                "view",
+                "/search_input"
+              ],
+              [
+                208,
+                "2017-01-09 12:18:43",
+                "cabf98e8",
+                "view",
+                "/search_input"
+              ],
+              [
+                244,
+                "2017-01-09 12:18:43",
+                "cabf98e8",
+                "view",
+                "/search_input"
+              ],
+              [
+                27,
+                "2017-01-09 12:18:43",
+                "d45ec190",
+                "view",
+                "/detail/"
+              ],
+              [
+                59,
+                "2017-01-09 12:18:43",
+                "d45ec190",
+                "view",
+                "/detail/"
+              ],
+              [
+                92,
+                "2017-01-09 12:18:43",
+                "d45ec190",
+                "view",
+                "/detail"
+              ],
+              [
+                128,
+                "2017-01-09 12:18:43",
+                "d45ec190",
+                "view",
+                "/detail"
+              ],
+              [
+                164,
+                "2017-01-09 12:18:43",
+                "d45ec190",
+                "view",
+                "/detail"
+              ],
+              [
+                200,
+                "2017-01-09 12:18:43",
+                "d45ec190",
+                "view",
+                "/detail"
+              ],
+              [
+                236,
+                "2017-01-09 12:18:43",
+                "d45ec190",
+                "view",
+                "/detail"
+              ],
+              [
+                16,
+                "2017-01-09 12:18:43",
+                "eee2bb21",
+                "view",
+                "/detail/"
+              ],
+              [
+                48,
+                "2017-01-09 12:18:43",
+                "eee2bb21",
+                "view",
+                "/detail/"
+              ],
+              [
+                80,
+                "2017-01-09 12:18:43",
+                "eee2bb21",
+                "view",
+                "/detail"
+              ],
+              [
+                116,
+                "2017-01-09 12:18:43",
+                "eee2bb21",
+                "view",
+                "/detail"
+              ],
+              [
+                152,
+                "2017-01-09 12:18:43",
+                "eee2bb21",
+                "view",
+                "/detail"
+              ],
+              [
+                188,
+                "2017-01-09 12:18:43",
+                "eee2bb21",
+                "view",
+                "/detail"
+              ],
+              [
+                224,
+                "2017-01-09 12:18:43",
+                "eee2bb21",
+                "view",
+                "/detail"
+              ],
+              [
+                8,
+                "2017-01-09 12:18:43",
+                "fe05e1d8",
+                "view",
+                "/detail/"
+              ],
+              [
+                40,
+                "2017-01-09 12:18:43",
+                "fe05e1d8",
+                "view",
+                "/detail/"
+              ],
+              [
+                72,
+                "2017-01-09 12:18:43",
+                "fe05e1d8",
+                "view",
+                "/detail"
+              ],
+              [
+                108,
+                "2017-01-09 12:18:43",
+                "fe05e1d8",
+                "view",
+                "/detail"
+              ],
+              [
+                144,
+                "2017-01-09 12:18:43",
+                "fe05e1d8",
+                "view",
+                "/detail"
+              ],
+              [
+                180,
+                "2017-01-09 12:18:43",
+                "fe05e1d8",
+                "view",
+                "/detail"
+              ],
+              [
+                216,
+                "2017-01-09 12:18:43",
+                "fe05e1d8",
+                "view",
+                "/detail"
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "TEXT",
+              "TEXT",
+              "TEXT",
+              "TEXT"
+            ],
+            "rowCount": 244,
+            "truncated": false
+          },
+          "queryHash": "c5f5a56675d8ef9dda8e221c724aa9d4c7f2c38e1a9cab28b5ae96d060531cbb",
+          "contentHash": "777f18ef4e2e9571062ccf52900450ab52ff0b906606ea02c240289db7cb501c",
+          "observedAt": "2026-10-11T09:14:24.118Z"
+        },
+        {
+          "id": "evidence_41b3c307-c208-4041-ac59-cc6b29e5683c",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "fd3c1842-764d-423c-a69a-d668830f8733",
+          "preview": {
+            "columns": [
+              "session",
+              "stamp",
+              "n"
+            ],
+            "rows": [
+              [
+                "0fe39581",
+                "2017-01-09 12:18:43",
+                7
+              ],
+              [
+                "111f2996",
+                "2017-01-09 12:18:43",
+                7
+              ],
+              [
+                "111f2996",
+                "2017-01-09 12:19:11",
+                7
+              ],
+              [
+                "111f2996",
+                "2017-01-09 12:20:10",
+                7
+              ],
+              [
+                "111f2996",
+                "2017-01-09 12:21:14",
+                7
+              ],
+              [
+                "1cf7678e",
+                "2017-01-09 12:18:43",
+                7
+              ],
+              [
+                "1cf7678e",
+                "2017-01-09 12:19:04",
+                7
+              ],
+              [
+                "36dd0df7",
+                "2017-01-09 12:18:43",
+                7
+              ],
+              [
+                "36dd0df7",
+                "2017-01-09 12:19:49",
+                7
+              ],
+              [
+                "3efe001c",
+                "2017-01-09 12:18:43",
+                7
+              ],
+              [
+                "47db0370",
+                "2017-01-09 12:18:43",
+                7
+              ],
+              [
+                "5d5b0997",
+                "2017-01-09 12:18:43",
+                7
+              ],
+              [
+                "5eb2e107",
+                "2017-01-09 12:18:43",
+                7
+              ],
+              [
+                "87b5725f",
+                "2017-01-09 12:18:43",
+                7
+              ],
+              [
+                "87b5725f",
+                "2017-01-09 12:20:22",
+                7
+              ],
+              [
+                "87b5725f",
+                "2017-01-09 12:20:46",
+                7
+              ],
+              [
+                "87b5725f",
+                "2017-01-09 12:21:26",
+                7
+              ],
+              [
+                "87b5725f",
+                "2017-01-09 12:22:51",
+                7
+              ],
+              [
+                "87b5725f",
+                "2017-01-09 12:24:13",
+                7
+              ],
+              [
+                "87b5725f",
+                "2017-01-09 12:25:25",
+                7
+              ],
+              [
+                "8cc03a54",
+                "2017-01-09 12:18:43",
+                7
+              ],
+              [
+                "8cc03a54",
+                "2017-01-09 12:18:44",
+                5
+              ],
+              [
+                "8cc03a54",
+                "2017-01-09 12:18:45",
+                5
+              ],
+              [
+                "8cc03a54",
+                "2017-01-09 12:18:46",
+                5
+              ],
+              [
+                "989004ea",
+                "2017-01-09 12:18:43",
+                7
+              ],
+              [
+                "989004ea",
+                "2017-01-09 12:19:27",
+                7
+              ],
+              [
+                "989004ea",
+                "2017-01-09 12:20:03",
+                7
+              ],
+              [
+                "9afaf87c",
+                "2017-01-09 12:18:43",
+                7
+              ],
+              [
+                "9afaf87c",
+                "2017-01-09 12:20:18",
+                7
+              ],
+              [
+                "9afaf87c",
+                "2017-01-09 12:21:39",
+                7
+              ],
+              [
+                "9afaf87c",
+                "2017-01-09 12:22:52",
+                7
+              ],
+              [
+                "9afaf87c",
+                "2017-01-09 12:23:00",
+                5
+              ],
+              [
+                "cabf98e8",
+                "2017-01-09 12:18:43",
+                7
+              ],
+              [
+                "d45ec190",
+                "2017-01-09 12:18:43",
+                7
+              ],
+              [
+                "eee2bb21",
+                "2017-01-09 12:18:43",
+                7
+              ],
+              [
+                "fe05e1d8",
+                "2017-01-09 12:18:43",
+                7
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 36,
+            "truncated": false
+          },
+          "queryHash": "02b0979f3342bcc0875e7b45e0dc06ccd06243d55f6deb452b5a56c24236f8e5",
+          "contentHash": "f412b362943ce01d3fb56add8107c5f57c79395e5dfaaeff269d1c49aac3513d",
+          "observedAt": "2026-10-11T09:14:28.981Z"
+        },
+        {
+          "id": "evidence_b45383cc-5a13-42d5-90cf-1a55c2ec7800",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "831f84fd-8cc1-410a-889c-5752b1e73bd4",
+          "preview": {
+            "columns": [
+              "third_page",
+              "occurrences"
+            ],
+            "rows": [
+              [
+                "/detail",
+                33
+              ],
+              [
+                "/",
+                2
+              ],
+              [
+                "/detail/",
+                1
+              ],
+              [
+                "/search_list/",
+                1
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 4,
+            "truncated": false
+          },
+          "queryHash": "0cadebc48de3b8747cefd1cbd2b267468ffd37f61fa791c4af93bb93b473c7df",
+          "contentHash": "845ba03b9f465157e59213fea2f5db1dc298ad976d52949e70d0fdec76553b07",
+          "observedAt": "2026-10-11T09:14:51.270Z"
+        },
+        {
+          "id": "evidence_a31e304e-1bd8-4e3e-aafc-e758fb77fbc0",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "ad97febf-66db-4492-8c8d-bf0c7e811d6c",
+          "preview": {
+            "columns": [
+              "session",
+              "stamp",
+              "event_id",
+              "path",
+              "second_page",
+              "third_page",
+              "third_event"
+            ],
+            "rows": [
+              [
+                "1cf7678e",
+                "2017-01-09 12:18:43",
+                69,
+                "/detail",
+                "/detail",
+                "/detail",
+                141
+              ],
+              [
+                "1cf7678e",
+                "2017-01-09 12:18:43",
+                105,
+                "/detail",
+                "/detail",
+                "/detail",
+                177
+              ],
+              [
+                "1cf7678e",
+                "2017-01-09 12:18:43",
+                141,
+                "/detail",
+                "/detail",
+                "/detail",
+                213
+              ],
+              [
+                "1cf7678e",
+                "2017-01-09 12:18:43",
+                177,
+                "/detail",
+                "/detail",
+                "/",
+                6
+              ],
+              [
+                "36dd0df7",
+                "2017-01-09 12:19:49",
+                95,
+                "/detail",
+                "/detail",
+                "/detail",
+                167
+              ],
+              [
+                "36dd0df7",
+                "2017-01-09 12:19:49",
+                131,
+                "/detail",
+                "/detail",
+                "/detail",
+                203
+              ],
+              [
+                "36dd0df7",
+                "2017-01-09 12:19:49",
+                167,
+                "/detail",
+                "/detail",
+                "/detail",
+                239
+              ],
+              [
+                "36dd0df7",
+                "2017-01-09 12:19:49",
+                203,
+                "/detail",
+                "/detail",
+                null,
+                null
+              ],
+              [
+                "3efe001c",
+                "2017-01-09 12:18:43",
+                86,
+                "/detail",
+                "/detail",
+                "/detail",
+                158
+              ],
+              [
+                "3efe001c",
+                "2017-01-09 12:18:43",
+                122,
+                "/detail",
+                "/detail",
+                "/detail",
+                194
+              ],
+              [
+                "3efe001c",
+                "2017-01-09 12:18:43",
+                158,
+                "/detail",
+                "/detail",
+                "/detail",
+                230
+              ],
+              [
+                "3efe001c",
+                "2017-01-09 12:18:43",
+                194,
+                "/detail",
+                "/detail",
+                null,
+                null
+              ],
+              [
+                "5d5b0997",
+                "2017-01-09 12:18:43",
+                81,
+                "/detail",
+                "/detail",
+                "/detail",
+                153
+              ],
+              [
+                "5d5b0997",
+                "2017-01-09 12:18:43",
+                117,
+                "/detail",
+                "/detail",
+                "/detail",
+                189
+              ],
+              [
+                "5d5b0997",
+                "2017-01-09 12:18:43",
+                153,
+                "/detail",
+                "/detail",
+                "/detail",
+                225
+              ],
+              [
+                "5d5b0997",
+                "2017-01-09 12:18:43",
+                189,
+                "/detail",
+                "/detail",
+                null,
+                null
+              ],
+              [
+                "5eb2e107",
+                "2017-01-09 12:18:43",
+                71,
+                "/detail",
+                "/detail",
+                "/detail",
+                143
+              ],
+              [
+                "5eb2e107",
+                "2017-01-09 12:18:43",
+                107,
+                "/detail",
+                "/detail",
+                "/detail",
+                179
+              ],
+              [
+                "5eb2e107",
+                "2017-01-09 12:18:43",
+                143,
+                "/detail",
+                "/detail",
+                "/detail",
+                215
+              ],
+              [
+                "5eb2e107",
+                "2017-01-09 12:18:43",
+                179,
+                "/detail",
+                "/detail",
+                null,
+                null
+              ],
+              [
+                "87b5725f",
+                "2017-01-09 12:18:43",
+                73,
+                "/detail",
+                "/detail",
+                "/detail",
+                145
+              ],
+              [
+                "87b5725f",
+                "2017-01-09 12:18:43",
+                109,
+                "/detail",
+                "/detail",
+                "/detail",
+                181
+              ],
+              [
+                "87b5725f",
+                "2017-01-09 12:18:43",
+                145,
+                "/detail",
+                "/detail",
+                "/detail",
+                217
+              ],
+              [
+                "87b5725f",
+                "2017-01-09 12:18:43",
+                181,
+                "/detail",
+                "/detail",
+                "/search_list/",
+                10
+              ],
+              [
+                "87b5725f",
+                "2017-01-09 12:24:13",
+                78,
+                "/detail",
+                "/detail",
+                "/detail",
+                150
+              ],
+              [
+                "87b5725f",
+                "2017-01-09 12:24:13",
+                114,
+                "/detail",
+                "/detail",
+                "/detail",
+                186
+              ],
+              [
+                "87b5725f",
+                "2017-01-09 12:24:13",
+                150,
+                "/detail",
+                "/detail",
+                "/detail",
+                222
+              ],
+              [
+                "87b5725f",
+                "2017-01-09 12:24:13",
+                186,
+                "/detail",
+                "/detail",
+                "/",
+                15
+              ],
+              [
+                "9afaf87c",
+                "2017-01-09 12:20:18",
+                88,
+                "/detail",
+                "/detail",
+                "/detail",
+                160
+              ],
+              [
+                "9afaf87c",
+                "2017-01-09 12:20:18",
+                124,
+                "/detail",
+                "/detail",
+                "/detail",
+                196
+              ],
+              [
+                "9afaf87c",
+                "2017-01-09 12:20:18",
+                160,
+                "/detail",
+                "/detail",
+                "/detail",
+                232
+              ],
+              [
+                "9afaf87c",
+                "2017-01-09 12:20:18",
+                196,
+                "/detail",
+                "/detail",
+                "/detail/",
+                25
+              ],
+              [
+                "d45ec190",
+                "2017-01-09 12:18:43",
+                92,
+                "/detail",
+                "/detail",
+                "/detail",
+                164
+              ],
+              [
+                "d45ec190",
+                "2017-01-09 12:18:43",
+                128,
+                "/detail",
+                "/detail",
+                "/detail",
+                200
+              ],
+              [
+                "d45ec190",
+                "2017-01-09 12:18:43",
+                164,
+                "/detail",
+                "/detail",
+                "/detail",
+                236
+              ],
+              [
+                "d45ec190",
+                "2017-01-09 12:18:43",
+                200,
+                "/detail",
+                "/detail",
+                null,
+                null
+              ],
+              [
+                "eee2bb21",
+                "2017-01-09 12:18:43",
+                80,
+                "/detail",
+                "/detail",
+                "/detail",
+                152
+              ],
+              [
+                "eee2bb21",
+                "2017-01-09 12:18:43",
+                116,
+                "/detail",
+                "/detail",
+                "/detail",
+                188
+              ],
+              [
+                "eee2bb21",
+                "2017-01-09 12:18:43",
+                152,
+                "/detail",
+                "/detail",
+                "/detail",
+                224
+              ],
+              [
+                "eee2bb21",
+                "2017-01-09 12:18:43",
+                188,
+                "/detail",
+                "/detail",
+                null,
+                null
+              ],
+              [
+                "fe05e1d8",
+                "2017-01-09 12:18:43",
+                72,
+                "/detail",
+                "/detail",
+                "/detail",
+                144
+              ],
+              [
+                "fe05e1d8",
+                "2017-01-09 12:18:43",
+                108,
+                "/detail",
+                "/detail",
+                "/detail",
+                180
+              ],
+              [
+                "fe05e1d8",
+                "2017-01-09 12:18:43",
+                144,
+                "/detail",
+                "/detail",
+                "/detail",
+                216
+              ],
+              [
+                "fe05e1d8",
+                "2017-01-09 12:18:43",
+                180,
+                "/detail",
+                "/detail",
+                null,
+                null
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "TEXT",
+              "INTEGER",
+              "TEXT",
+              "TEXT",
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 44,
+            "truncated": false
+          },
+          "queryHash": "fb57c66e578e6b1656a64894633bc371a41526c611928ba1e65d75d6b557348c",
+          "contentHash": "70ba5fa13e01b683133c7cddfbf27398c1e64cbcc34e1ad445597f23a8ff7552",
+          "observedAt": "2026-10-11T09:14:55.703Z"
+        },
+        {
+          "id": "evidence_bbd42d87-936b-4e4e-bccc-717253d37266",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "049e3f4d-c70e-4340-afc7-f238d3bea597",
+          "preview": {
+            "columns": [
+              "path",
+              "n"
+            ],
+            "rows": [
+              [
+                "",
+                12
+              ],
+              [
+                "/",
+                16
+              ],
+              [
+                "/complete",
+                10
+              ],
+              [
+                "/confirm",
+                10
+              ],
+              [
+                "/detail",
+                55
+              ],
+              [
+                "/detail/",
+                24
+              ],
+              [
+                "/input",
+                10
+              ],
+              [
+                "/search_input",
+                25
+              ],
+              [
+                "/search_input/",
+                10
+              ],
+              [
+                "/search_list",
+                50
+              ],
+              [
+                "/search_list/",
+                22
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 11,
+            "truncated": false
+          },
+          "queryHash": "60a004192ffbc22ffaf5a09e055ae9f6f6772f7e9991548569c4771a53767a61",
+          "contentHash": "d21ff5d12f17e0e6a1a7ddc9568e60fbb8d31eb4443e72f8ee7abff6f30e259a",
+          "observedAt": "2026-10-11T09:14:59.512Z"
+        },
+        {
+          "id": "evidence_bcb035fa-148b-4b13-8573-e613ad025a85",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "ebf64cb6-3fb2-4931-8319-ab17bdd37bfe",
+          "preview": {
+            "columns": [
+              "third_page",
+              "occurrences"
+            ],
+            "rows": [
+              [
+                "/detail",
+                33
+              ],
+              [
+                "END",
+                7
+              ],
+              [
+                "/",
+                2
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 3,
+            "truncated": false
+          },
+          "queryHash": "d1c431adb719bf9d4969e779c02dda2c1569942f120c7f79e1ba38f0de6eb3d5",
+          "contentHash": "f1bb9c128cb613bd71777aba22e2d60c379592ecd43797434eb844a7ecee8eb0",
+          "observedAt": "2026-10-11T09:16:10.147Z"
+        },
+        {
+          "id": "evidence_df1a034f-d1b9-46b1-be3f-2f28379e2b95",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "05aedc9d-76ab-401e-9a74-7e5f24a2a6c4",
+          "preview": {
+            "columns": [
+              "session",
+              "event_id",
+              "stamp",
+              "path",
+              "second_page",
+              "third_page",
+              "third_event"
+            ],
+            "rows": [
+              [
+                "36dd0df7",
+                203,
+                "2017-01-09 12:19:49",
+                "/detail",
+                "/detail",
+                null,
+                null
+              ],
+              [
+                "3efe001c",
+                194,
+                "2017-01-09 12:18:43",
+                "/detail",
+                "/detail",
+                null,
+                null
+              ],
+              [
+                "5d5b0997",
+                189,
+                "2017-01-09 12:18:43",
+                "/detail",
+                "/detail",
+                null,
+                null
+              ],
+              [
+                "5eb2e107",
+                179,
+                "2017-01-09 12:18:43",
+                "/detail",
+                "/detail",
+                null,
+                null
+              ],
+              [
+                "d45ec190",
+                200,
+                "2017-01-09 12:18:43",
+                "/detail",
+                "/detail",
+                null,
+                null
+              ],
+              [
+                "eee2bb21",
+                188,
+                "2017-01-09 12:18:43",
+                "/detail",
+                "/detail",
+                null,
+                null
+              ],
+              [
+                "fe05e1d8",
+                180,
+                "2017-01-09 12:18:43",
+                "/detail",
+                "/detail",
+                null,
+                null
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER",
+              "TEXT",
+              "TEXT",
+              "TEXT",
+              "NULL",
+              "NULL"
+            ],
+            "rowCount": 7,
+            "truncated": false
+          },
+          "queryHash": "8bfb60924eb06bcf2c1b881229e5e211fe15723620adcdaef1a2def09f48d215",
+          "contentHash": "00e1d70aedd65bbdc345f5f143792db6218c65f1d3d13af3381182f0e9cffde2",
+          "observedAt": "2026-10-11T09:16:12.117Z"
+        },
+        {
+          "id": "evidence_64f057f4-3948-4b62-9367-5fe450819ff6",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "550dedad-b34c-46c8-a614-50b617ed96c6",
+          "preview": {
+            "columns": [
+              "n"
+            ],
+            "rows": [
+              [
+                0
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "3b49c555df8eff4d31edca3b7848397ae104770c74e4ab17cc6290cee4bcf604",
+          "contentHash": "146ff55f82c4f133b632769dc71f616a4b5bb4621e277d51a4f5fd65352fc77c",
+          "observedAt": "2026-10-11T09:16:16.532Z"
+        },
+        {
+          "id": "evidence_56d328b1-0acd-4f12-8eb4-e84078c35d52",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "01c8db72-1fa3-49d2-abcf-7d0b52cdefa8",
+          "preview": {
+            "columns": [
+              "p3",
+              "n"
+            ],
+            "rows": [],
+            "columnTypes": [
+              "NULL",
+              "NULL"
+            ],
+            "rowCount": 0,
+            "truncated": false
+          },
+          "queryHash": "16450b78e88a2c3dcff8d8fb01c7b28af5d404725547d0711657e89b157b7e46",
+          "contentHash": "45c375fa785284c853df3476fe7c8c2bd6e08e3503e74fc25517d4fac302bc2d",
+          "observedAt": "2026-10-11T09:16:19.958Z"
+        },
+        {
+          "id": "evidence_637c6715-33ca-4e1c-b14f-0e7e64b2dfc0",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "e9b85224-6df6-4e5a-917a-3f0434718953",
+          "preview": {
+            "columns": [
+              "p3",
+              "n"
+            ],
+            "rows": [
+              [
+                "/input",
+                1
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "160e59a91d897922348c2ad9d35047fb5ee992a137fdeb2b29697a4f385780cd",
+          "contentHash": "9ae94fb41d86256713c6ebe90c0eaa4ffc7938c20191faacbb1df629fa1c7b26",
+          "observedAt": "2026-10-11T09:16:22.726Z"
+        }
+      ]
+    }
+  ],
+  "attempts": [
+    {
+      "taskId": "task_4e89f196-7139-4a3f-a96f-1224b0553abc",
+      "items": [
+        {
+          "attemptId": "attempt_74484285-0eeb-4f00-93ae-68e60f03a972",
+          "taskId": "task_4e89f196-7139-4a3f-a96f-1224b0553abc",
+          "kind": "exploration",
+          "revisionId": "revision_d5a395ec-e5bc-4c11-bc4e-e39ed6cbe293",
+          "invocationId": "2cd0ac57-438f-4737-830d-adf5d423d8e6",
+          "queryHash": "e152cf79bc1b348f59f88737414ae770c4685d7858c343c0ee28774f6afed138",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:14:18.418Z",
+          "updatedAt": "2026-10-11T09:14:19.040Z"
+        },
+        {
+          "attemptId": "attempt_d89d5cc2-0312-41a9-836c-38d6df6fe75c",
+          "taskId": "task_4e89f196-7139-4a3f-a96f-1224b0553abc",
+          "kind": "exploration",
+          "revisionId": "revision_d5a395ec-e5bc-4c11-bc4e-e39ed6cbe293",
+          "invocationId": "3db43405-88f4-4778-929b-c0e4721beca1",
+          "queryHash": "c5f5a56675d8ef9dda8e221c724aa9d4c7f2c38e1a9cab28b5ae96d060531cbb",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:14:23.423Z",
+          "updatedAt": "2026-10-11T09:14:24.118Z"
+        },
+        {
+          "attemptId": "attempt_7f7b78d8-f73b-4132-988d-468be72712db",
+          "taskId": "task_4e89f196-7139-4a3f-a96f-1224b0553abc",
+          "kind": "exploration",
+          "revisionId": "revision_d5a395ec-e5bc-4c11-bc4e-e39ed6cbe293",
+          "invocationId": "fd3c1842-764d-423c-a69a-d668830f8733",
+          "queryHash": "02b0979f3342bcc0875e7b45e0dc06ccd06243d55f6deb452b5a56c24236f8e5",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:14:28.353Z",
+          "updatedAt": "2026-10-11T09:14:28.983Z"
+        },
+        {
+          "attemptId": "attempt_79ba1832-9c4b-496b-a5dc-0ba1cb068537",
+          "taskId": "task_4e89f196-7139-4a3f-a96f-1224b0553abc",
+          "kind": "exploration",
+          "revisionId": "revision_d5a395ec-e5bc-4c11-bc4e-e39ed6cbe293",
+          "invocationId": "831f84fd-8cc1-410a-889c-5752b1e73bd4",
+          "queryHash": "0cadebc48de3b8747cefd1cbd2b267468ffd37f61fa791c4af93bb93b473c7df",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:14:50.904Z",
+          "updatedAt": "2026-10-11T09:14:51.271Z"
+        },
+        {
+          "attemptId": "attempt_7180d6be-2177-4810-93c6-014500a8b090",
+          "taskId": "task_4e89f196-7139-4a3f-a96f-1224b0553abc",
+          "kind": "exploration",
+          "revisionId": "revision_d5a395ec-e5bc-4c11-bc4e-e39ed6cbe293",
+          "invocationId": "ad97febf-66db-4492-8c8d-bf0c7e811d6c",
+          "queryHash": "fb57c66e578e6b1656a64894633bc371a41526c611928ba1e65d75d6b557348c",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:14:55.201Z",
+          "updatedAt": "2026-10-11T09:14:55.704Z"
+        },
+        {
+          "attemptId": "attempt_97c48033-df2c-44a6-a928-f05c4f5cf31d",
+          "taskId": "task_4e89f196-7139-4a3f-a96f-1224b0553abc",
+          "kind": "exploration",
+          "revisionId": "revision_d5a395ec-e5bc-4c11-bc4e-e39ed6cbe293",
+          "invocationId": "049e3f4d-c70e-4340-afc7-f238d3bea597",
+          "queryHash": "60a004192ffbc22ffaf5a09e055ae9f6f6772f7e9991548569c4771a53767a61",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:14:59.113Z",
+          "updatedAt": "2026-10-11T09:14:59.514Z"
+        },
+        {
+          "attemptId": "attempt_06448d94-041e-4052-b019-17cdcaadeb14",
+          "taskId": "task_4e89f196-7139-4a3f-a96f-1224b0553abc",
+          "kind": "revision",
+          "revisionId": "revision_d5a395ec-e5bc-4c11-bc4e-e39ed6cbe293",
+          "invocationId": "1fb0f45e-ed28-405c-a8f0-be4df11664c5",
+          "state": "succeeded",
+          "sqlExecuted": false,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:15:36.161Z",
+          "updatedAt": "2026-10-11T09:15:36.153Z"
+        },
+        {
+          "attemptId": "attempt_7ba2b31d-43ff-4c40-88aa-baf06041e719",
+          "taskId": "task_4e89f196-7139-4a3f-a96f-1224b0553abc",
+          "kind": "result",
+          "revisionId": "revision_c8189670-768c-44bd-9e2e-1cd6121109ec",
+          "invocationId": "8fd6cfbc-aaaf-4640-9878-6c8bab5d5b42",
+          "queryHash": "15ce68044fe855e60abfebf0fe09fc4479c30bee51c6af29ded4628e21c83a02",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:15:39.411Z",
+          "updatedAt": "2026-10-11T09:15:39.798Z"
+        },
+        {
+          "attemptId": "attempt_1b5d686b-0156-4b21-ac24-29a2cd3945eb",
+          "taskId": "task_4e89f196-7139-4a3f-a96f-1224b0553abc",
+          "kind": "exploration",
+          "revisionId": "revision_c8189670-768c-44bd-9e2e-1cd6121109ec",
+          "invocationId": "ebf64cb6-3fb2-4931-8319-ab17bdd37bfe",
+          "queryHash": "d1c431adb719bf9d4969e779c02dda2c1569942f120c7f79e1ba38f0de6eb3d5",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:16:09.765Z",
+          "updatedAt": "2026-10-11T09:16:10.148Z"
+        },
+        {
+          "attemptId": "attempt_04eff2bd-1c17-42d2-8260-68f575aece88",
+          "taskId": "task_4e89f196-7139-4a3f-a96f-1224b0553abc",
+          "kind": "exploration",
+          "revisionId": "revision_c8189670-768c-44bd-9e2e-1cd6121109ec",
+          "invocationId": "05aedc9d-76ab-401e-9a74-7e5f24a2a6c4",
+          "queryHash": "8bfb60924eb06bcf2c1b881229e5e211fe15723620adcdaef1a2def09f48d215",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:16:11.868Z",
+          "updatedAt": "2026-10-11T09:16:12.119Z"
+        },
+        {
+          "attemptId": "attempt_0d925dd1-b5d9-46ef-8804-fb1df7b886cd",
+          "taskId": "task_4e89f196-7139-4a3f-a96f-1224b0553abc",
+          "kind": "exploration",
+          "revisionId": "revision_c8189670-768c-44bd-9e2e-1cd6121109ec",
+          "invocationId": "550dedad-b34c-46c8-a614-50b617ed96c6",
+          "queryHash": "3b49c555df8eff4d31edca3b7848397ae104770c74e4ab17cc6290cee4bcf604",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:16:16.003Z",
+          "updatedAt": "2026-10-11T09:16:16.534Z"
+        },
+        {
+          "attemptId": "attempt_cc7690aa-e637-40c8-943d-8fe09b2ecbd6",
+          "taskId": "task_4e89f196-7139-4a3f-a96f-1224b0553abc",
+          "kind": "exploration",
+          "revisionId": "revision_c8189670-768c-44bd-9e2e-1cd6121109ec",
+          "invocationId": "01c8db72-1fa3-49d2-abcf-7d0b52cdefa8",
+          "queryHash": "16450b78e88a2c3dcff8d8fb01c7b28af5d404725547d0711657e89b157b7e46",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:16:19.632Z",
+          "updatedAt": "2026-10-11T09:16:19.961Z"
+        },
+        {
+          "attemptId": "attempt_0c8b9e47-01db-43d5-88ab-ef198c563bc8",
+          "taskId": "task_4e89f196-7139-4a3f-a96f-1224b0553abc",
+          "kind": "exploration",
+          "revisionId": "revision_c8189670-768c-44bd-9e2e-1cd6121109ec",
+          "invocationId": "e9b85224-6df6-4e5a-917a-3f0434718953",
+          "queryHash": "160e59a91d897922348c2ad9d35047fb5ee992a137fdeb2b29697a4f385780cd",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:16:22.458Z",
+          "updatedAt": "2026-10-11T09:16:22.727Z"
+        }
+      ]
+    }
+  ],
+  "candidates": [
+    {
+      "candidateId": "candidate_f34db2c3-abdb-433f-99e0-a610ee73a294",
+      "taskId": "task_4e89f196-7139-4a3f-a96f-1224b0553abc",
+      "revisionId": "revision_c8189670-768c-44bd-9e2e-1cd6121109ec",
+      "resultRef": "result_bba91d19-d39b-4a6a-a5e3-e6e93a89c4a5",
+      "resultSchema": [
+        "third_page",
+        "occurrences"
+      ],
+      "rowCount": 3,
+      "contentHash": "364b0e0a1eeb4e72b5424746d8694460c01dd424025da024eb3be756cb004ce3",
+      "sql": "WITH ordered AS (SELECT rowid event_id,session,stamp,path,LEAD(path,1) OVER(PARTITION BY session ORDER BY stamp,rowid) second_page,LEAD(path,2) OVER(PARTITION BY session ORDER BY stamp,rowid) third_page,LEAD(rowid,2) OVER(PARTITION BY session ORDER BY stamp,rowid) third_event FROM activity_log WHERE action='view'), counts AS (SELECT third_page,COUNT(*) occurrences FROM ordered WHERE path='/detail' AND second_page='/detail' AND third_event IS NOT NULL GROUP BY third_page) SELECT third_page,occurrences FROM counts ORDER BY occurrences DESC,third_page ASC LIMIT 3",
+      "queryHash": "15ce68044fe855e60abfebf0fe09fc4479c30bee51c6af29ded4628e21c83a02",
+      "findings": [],
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "attemptId": "attempt_7ba2b31d-43ff-4c40-88aa-baf06041e719",
+      "createdByInvocationId": "8fd6cfbc-aaaf-4640-9878-6c8bab5d5b42",
+      "createdAt": "2026-10-11T09:15:39.798Z",
+      "status": "ready",
+      "publishable": true
+    }
+  ],
+  "receipts": [
+    {
+      "receiptId": "publication_e3725592-08c5-4fe4-8392-d80404f0de2d",
+      "taskId": "task_4e89f196-7139-4a3f-a96f-1224b0553abc",
+      "principalId": "independent-analyst",
+      "sessionId": "local331",
+      "candidateId": "candidate_f34db2c3-abdb-433f-99e0-a610ee73a294",
+      "revisionId": "revision_c8189670-768c-44bd-9e2e-1cd6121109ec",
+      "resultRef": "result_bba91d19-d39b-4a6a-a5e3-e6e93a89c4a5",
+      "format": "csv",
+      "publicRef": "/api/runtime/publications/publication_e3725592-08c5-4fe4-8392-d80404f0de2d?session_id=local331",
+      "contentHash": "364b0e0a1eeb4e72b5424746d8694460c01dd424025da024eb3be756cb004ce3",
+      "presentationContentHash": "3a9d30430d5d0ee4b7d6b8a8cde018a71b6b04fc3e93b1ca96d13f5c2075e18f",
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "disclosure": {
+        "required": true,
+        "unverifiedFields": [
+          {
+            "path": "population.eligibility",
+            "kind": "assumed"
+          },
+          {
+            "path": "population.conditions",
+            "kind": "assumed"
+          },
+          {
+            "path": "population.time",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.formula",
+            "kind": "assumed"
+          },
+          {
+            "path": "grouping",
+            "kind": "assumed"
+          },
+          {
+            "path": "selection",
+            "kind": "assumed"
+          },
+          {
+            "path": "selection.ties",
+            "kind": "assumed"
+          },
+          {
+            "path": "output",
+            "kind": "assumed"
+          }
+        ],
+        "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.conditions, population.time, measure.formula, grouping, selection, selection.ties, output。"
+      },
+      "physicalProfile": {
+        "version": 1,
+        "rowCount": 3,
+        "truncated": false,
+        "columns": [
+          {
+            "name": "third_page",
+            "kind": "text",
+            "nullCount": 0,
+            "distinctCount": 3
+          },
+          {
+            "name": "occurrences",
+            "kind": "integer",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 3,
+            "min": "1",
+            "max": "33"
+          }
+        ]
+      },
+      "policyVersion": "answering-publication-v1",
+      "createdByInvocationId": "8fd6cfbc-aaaf-4640-9878-6c8bab5d5b42",
+      "requestId": "8fd6cfbc-aaaf-4640-9878-6c8bab5d5b42",
+      "createdAt": "2026-10-11T09:15:39.819Z"
+    }
+  ]
+}

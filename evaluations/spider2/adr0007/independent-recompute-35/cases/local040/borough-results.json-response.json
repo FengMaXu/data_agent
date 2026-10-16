@@ -1,0 +1,99 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_108f251c-31d4-4542-91f0-194965db140d\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nboroname | tree_count | average_mean_income\nQueens | 256056 | 79312.57225763114\nBrooklyn | 184711 | 73675.97696942792\nStaten Island | 106374 | 94029.32783386917\nBronx | 89792 | 54542.13687188168\nManhattan | 64930 | 132677.6081780379"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_108f251c-31d4-4542-91f0-194965db140d",
+      "preview": {
+        "columns": [
+          "boroname",
+          "tree_count",
+          "average_mean_income"
+        ],
+        "rows": [
+          [
+            "Queens",
+            256056,
+            79312.57225763114
+          ],
+          [
+            "Brooklyn",
+            184711,
+            73675.97696942792
+          ],
+          [
+            "Staten Island",
+            106374,
+            94029.32783386917
+          ],
+          [
+            "Bronx",
+            89792,
+            54542.13687188168
+          ],
+          [
+            "Manhattan",
+            64930,
+            132677.6081780379
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "REAL"
+        ],
+        "rowCount": 5,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "boroname",
+        "tree_count",
+        "average_mean_income"
+      ],
+      "rows": [
+        [
+          "Queens",
+          256056,
+          79312.57225763114
+        ],
+        [
+          "Brooklyn",
+          184711,
+          73675.97696942792
+        ],
+        [
+          "Staten Island",
+          106374,
+          94029.32783386917
+        ],
+        [
+          "Bronx",
+          89792,
+          54542.13687188168
+        ],
+        [
+          "Manhattan",
+          64930,
+          132677.6081780379
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "REAL"
+      ],
+      "rowCount": 5,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_6231b064-4438-438e-9058-006fab7dc7f7"
+  }
+}

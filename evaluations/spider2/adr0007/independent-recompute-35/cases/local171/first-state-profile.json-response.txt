@@ -1,0 +1,54 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_d3920f8a-4558-4c68-b98b-4e66a7d29d5c\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nfirst_la_men | changed_state\n198 | 0"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_d3920f8a-4558-4c68-b98b-4e66a7d29d5c",
+      "preview": {
+        "columns": [
+          "first_la_men",
+          "changed_state"
+        ],
+        "rows": [
+          [
+            198,
+            0
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "first_la_men",
+        "changed_state"
+      ],
+      "rows": [
+        [
+          198,
+          0
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_ffadaad2-383d-4b57-9b9f-8741f28a97c7"
+  }
+}
+

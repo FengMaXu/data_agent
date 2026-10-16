@@ -1,0 +1,277 @@
+{
+  "frozenAt": "2026-10-11T09:04:36.538Z",
+  "instance_id": "local220",
+  "independent": true,
+  "taskId": "task_ff43cc45-2c05-4d02-b724-7bbb4f46b6a4",
+  "revisionId": "revision_0cce2149-1f34-4d48-9d8a-b53c85693249",
+  "publication": {
+    "receiptId": "publication_aae5e760-da2d-4ff7-8242-505ff3f6ce6e",
+    "taskId": "task_ff43cc45-2c05-4d02-b724-7bbb4f46b6a4",
+    "principalId": "independent-analyst",
+    "sessionId": "local220",
+    "candidateId": "candidate_946f0238-7493-404c-be91-fae4ea1fa6b3",
+    "revisionId": "revision_0cce2149-1f34-4d48-9d8a-b53c85693249",
+    "resultRef": "result_882b7890-2882-43ac-a279-f8cae9ef2212",
+    "format": "csv",
+    "publicRef": "/api/runtime/publications/publication_aae5e760-da2d-4ff7-8242-505ff3f6ce6e?session_id=local220",
+    "contentHash": "ae447aa0506dbbc44bb39b462093d33493b4187c76c2c5882d41f9ecab13dd55",
+    "presentationContentHash": "847527223fa382bdc76c78b1b5f68618a5384475c62b5bf8dd3219513b06d8af",
+    "coverage": [
+      {
+        "checkId": "result_completeness",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_shape",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_identity",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "join_fanout",
+        "outcome": "not_applicable"
+      },
+      {
+        "checkId": "spec_feedback",
+        "ruleVersion": "spec-feedback-v2",
+        "outcome": "not_applicable",
+        "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+      }
+    ],
+    "fanout": {
+      "ruleVersion": "answering-fanout-v1",
+      "status": "not_applicable",
+      "snapshotScope": "unbound",
+      "targets": []
+    },
+    "disclosure": {
+      "required": true,
+      "unverifiedFields": [
+        {
+          "path": "population.time",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.formula",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.countGrain",
+          "kind": "assumed"
+        },
+        {
+          "path": "grouping",
+          "kind": "assumed"
+        },
+        {
+          "path": "selection.ties",
+          "kind": "assumed"
+        },
+        {
+          "path": "output",
+          "kind": "assumed"
+        },
+        {
+          "path": "selection",
+          "kind": "assumed"
+        }
+      ],
+      "summary": "以下字段为假定，未被合格证据证实：population.time, measure.formula, measure.countGrain, grouping, selection.ties, output, selection。"
+    },
+    "physicalProfile": {
+      "version": 1,
+      "rowCount": 2,
+      "truncated": false,
+      "columns": [
+        {
+          "name": "outcome",
+          "kind": "text",
+          "nullCount": 0,
+          "distinctCount": 2
+        },
+        {
+          "name": "player_name",
+          "kind": "text",
+          "nullCount": 0,
+          "distinctCount": 2
+        },
+        {
+          "name": "matches",
+          "kind": "integer",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 2,
+          "min": "107",
+          "max": "199"
+        }
+      ]
+    },
+    "policyVersion": "answering-publication-v1",
+    "createdByInvocationId": "9413bca6-6b27-4d20-b0f0-86b0c691a216",
+    "requestId": "9413bca6-6b27-4d20-b0f0-86b0c691a216",
+    "createdAt": "2026-10-11T09:04:30.799Z"
+  },
+  "currentRevision": {
+    "taskId": "task_ff43cc45-2c05-4d02-b724-7bbb4f46b6a4",
+    "revisionId": "revision_0cce2149-1f34-4d48-9d8a-b53c85693249",
+    "parentRevisionId": "revision_c2a2806e-05ee-4660-9ed6-df119c027838",
+    "requestId": "ac6d1498-5e8f-45da-9869-967d7c59f0ac",
+    "createdAt": "2026-10-11T09:03:32.903Z",
+    "fields": {
+      "population.entity": {
+        "state": "specified",
+        "value": {
+          "name": "individual football player identified by player_api_id"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_371e12dd-f67d-4b1c-84d2-fe8ef0c7a1df"
+          ]
+        }
+      },
+      "population.eligibility": {
+        "state": "specified",
+        "value": "Non-null recorded lineup identities only",
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_987d1091-6de3-49a4-8cfd-03e25805fd2e"
+          ]
+        }
+      },
+      "population.conditions": {
+        "state": "specified",
+        "value": [
+          "Exclude draws; assign win/loss to player lineup side"
+        ],
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_459170d5-6ed3-4624-bec0-613bd63caa33"
+          ]
+        }
+      },
+      "population.time": {
+        "state": "specified",
+        "value": {
+          "expression": "All available matches; no date restriction requested"
+        },
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "measure.formula": {
+        "state": "specified",
+        "value": {
+          "op": "count_distinct",
+          "per": "player_api_id and outcome",
+          "of": "match_id"
+        },
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "measure.countGrain": {
+        "state": "specified",
+        "value": "One distinct player identity per match per outcome",
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "grouping": {
+        "state": "specified",
+        "value": [
+          "player_api_id",
+          "outcome"
+        ],
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "selection.ties": {
+        "state": "specified",
+        "value": "include_ties",
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "output": {
+        "state": "specified",
+        "value": {
+          "rowMode": "full",
+          "columns": [
+            "outcome",
+            "player_name",
+            "matches"
+          ]
+        },
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "selection": {
+        "state": "specified",
+        "value": {
+          "n": 1,
+          "orderBy": "matches DESC within each outcome"
+        },
+        "basis": {
+          "kind": "assumed"
+        }
+      }
+    },
+    "state": {
+      "state": "ready",
+      "revisionId": "revision_0cce2149-1f34-4d48-9d8a-b53c85693249",
+      "ready": "ready_eb90b466-cbb8-405c-9d87-21e041bfc841"
+    },
+    "specFeedback": {
+      "taskId": "task_ff43cc45-2c05-4d02-b724-7bbb4f46b6a4",
+      "revisionId": "revision_0cce2149-1f34-4d48-9d8a-b53c85693249",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_371e12dd-f67d-4b1c-84d2-fe8ef0c7a1df",
+        "evidence_65b98308-576b-4f9c-98f8-7ec8e0f9ad88",
+        "evidence_c3aa4f66-ae66-4b8a-8e1f-e841ff97ff73",
+        "evidence_1f53f635-8037-4822-8b02-3320aac492d3",
+        "evidence_987d1091-6de3-49a4-8cfd-03e25805fd2e",
+        "evidence_459170d5-6ed3-4624-bec0-613bd63caa33"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    }
+  },
+  "analystNote": {
+    "algorithm": "Unpivot 22 identity slots; count distinct matches by player_api_id/outcome; all maxima",
+    "limitations": [
+      "Recorded lineup presence proxies actual playing; no substitute minute evidence"
+    ],
+    "checks": {
+      "winner": [
+        "Cristiano Ronaldo",
+        199
+      ],
+      "loser": [
+        "Gorka Iraizoz Moreno",
+        107
+      ],
+      "unmatched": 0,
+      "duplicate_win_slot": 1
+    }
+  },
+  "settings": {
+    "qualification": "required",
+    "fieldProbes": true,
+    "externalAdvisor": "not_configured",
+    "specFeedback": "not_configured",
+    "fanout": "disabled_for_offline_audit",
+    "populationDecisions": "allow_disclosed_headless_audit",
+    "databaseReadOnly": true
+  }
+}

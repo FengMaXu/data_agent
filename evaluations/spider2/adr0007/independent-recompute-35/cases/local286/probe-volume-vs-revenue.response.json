@@ -1,0 +1,77 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[IMPLEMENTATION_OBSTACLE] Only one read-only SQL statement is allowed\n{\"kind\":\"technical_failure\",\"taskId\":\"task_3e79711a-7848-4c69-89b9-da6773f63499\",\"revisionId\":\"revision_1565d684-b61c-42be-905e-54ab0cba23ca\",\"message\":\"Only one read-only SQL statement is allowed\",\"evidenceIds\":[],\"attempts\":[{\"attemptId\":\"attempt_6e6b5763-c160-4804-ad55-62c074a03d6f\",\"taskId\":\"task_3e79711a-7848-4c69-89b9-da6773f63499\",\"kind\":\"exploration\",\"revisionId\":\"revision_1565d684-b61c-42be-905e-54ab0cba23ca\",\"invocationId\":\"d2c91afd-7bc4-430b-901e-f50c349e6b03\",\"queryHash\":\"0a5235d7ecc6f44f2e6524ae79e3d77235a553e048494369bbb36b7d4c4d79f2\",\"state\":\"succeeded\",\"sqlExecuted\":true,\"outcome\":\"succeeded\",\"createdAt\":\"2026-10-11T09:24:30.682Z\",\"updatedAt\":\"2026-10-11T09:24:38.690Z\"},{\"attemptId\":\"attempt_a5f654bb-549a-42f9-95ba-e122055da52a\",\"taskId\":\"task_3e79711a-7848-4c69-89b9-da6773f63499\",\"kind\":\"exploration\",\"revisionId\":\"revision_1565d684-b61c-42be-905e-54ab0cba23ca\",\"invocationId\":\"105d8f24-9ca5-4e85-b3d7-b14a22647559\",\"queryHash\":\"2b2a9a4fa39c82c2fc97133c21cbe08ab25a79093d748f1b1e81af9b527bea08\",\"state\":\"succeeded\",\"sqlExecuted\":true,\"outcome\":\"succeeded\",\"createdAt\":\"2026-10-11T09:24:41.622Z\",\"updatedAt\":\"2026-10-11T09:24:45.337Z\"},{\"attemptId\":\"attempt_b9af4c36-6b0e-469d-b1dc-afa0387848d4\",\"taskId\":\"task_3e79711a-7848-4c69-89b9-da6773f63499\",\"kind\":\"exploration\",\"revisionId\":\"revision_1565d684-b61c-42be-905e-54ab0cba23ca\",\"invocationId\":\"ae9e9053-565b-4739-b73e-4ffd55836221\",\"queryHash\":\"cbc3b4802a9fc9d3824ab793fb7542518238895bb7122d8380395951f44eb31a\",\"state\":\"succeeded\",\"sqlExecuted\":true,\"outcome\":\"succeeded\",\"createdAt\":\"2026-10-11T09:24:47.848Z\",\"updatedAt\":\"2026-10-11T09:24:52.400Z\"},{\"attemptId\":\"attempt_64c3fe47-6cdd-4f1e-a198-86968eda126c\",\"taskId\":\"task_3e79711a-7848-4c69-89b9-da6773f63499\",\"kind\":\"exploration\",\"revisionId\":\"revision_1565d684-b61c-42be-905e-54ab0cba23ca\",\"invocationId\":\"f77177b7-dbfa-4826-8382-493e52cf7c40\",\"queryHash\":\"9237f84bd071f0804e8a20a3247842e9c29fbc6ffb396fec8aa95ddf44c5d1b2\",\"state\":\"succeeded\",\"sqlExecuted\":true,\"outcome\":\"succeeded\",\"createdAt\":\"2026-10-11T09:24:54.370Z\",\"updatedAt\":\"2026-10-11T09:24:55.002Z\"}],\"coverage\":[],\"requiresOuterDecision\":false,\"retryable\":false,\"sqlExecuted\":false,\"executionOutcome\":\"not_started\"}"
+    }
+  ],
+  "details": {
+    "obstacle": {
+      "kind": "technical_failure",
+      "taskId": "task_3e79711a-7848-4c69-89b9-da6773f63499",
+      "revisionId": "revision_1565d684-b61c-42be-905e-54ab0cba23ca",
+      "message": "Only one read-only SQL statement is allowed",
+      "evidenceIds": [],
+      "attempts": [
+        {
+          "attemptId": "attempt_6e6b5763-c160-4804-ad55-62c074a03d6f",
+          "taskId": "task_3e79711a-7848-4c69-89b9-da6773f63499",
+          "kind": "exploration",
+          "revisionId": "revision_1565d684-b61c-42be-905e-54ab0cba23ca",
+          "invocationId": "d2c91afd-7bc4-430b-901e-f50c349e6b03",
+          "queryHash": "0a5235d7ecc6f44f2e6524ae79e3d77235a553e048494369bbb36b7d4c4d79f2",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:24:30.682Z",
+          "updatedAt": "2026-10-11T09:24:38.690Z"
+        },
+        {
+          "attemptId": "attempt_a5f654bb-549a-42f9-95ba-e122055da52a",
+          "taskId": "task_3e79711a-7848-4c69-89b9-da6773f63499",
+          "kind": "exploration",
+          "revisionId": "revision_1565d684-b61c-42be-905e-54ab0cba23ca",
+          "invocationId": "105d8f24-9ca5-4e85-b3d7-b14a22647559",
+          "queryHash": "2b2a9a4fa39c82c2fc97133c21cbe08ab25a79093d748f1b1e81af9b527bea08",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:24:41.622Z",
+          "updatedAt": "2026-10-11T09:24:45.337Z"
+        },
+        {
+          "attemptId": "attempt_b9af4c36-6b0e-469d-b1dc-afa0387848d4",
+          "taskId": "task_3e79711a-7848-4c69-89b9-da6773f63499",
+          "kind": "exploration",
+          "revisionId": "revision_1565d684-b61c-42be-905e-54ab0cba23ca",
+          "invocationId": "ae9e9053-565b-4739-b73e-4ffd55836221",
+          "queryHash": "cbc3b4802a9fc9d3824ab793fb7542518238895bb7122d8380395951f44eb31a",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:24:47.848Z",
+          "updatedAt": "2026-10-11T09:24:52.400Z"
+        },
+        {
+          "attemptId": "attempt_64c3fe47-6cdd-4f1e-a198-86968eda126c",
+          "taskId": "task_3e79711a-7848-4c69-89b9-da6773f63499",
+          "kind": "exploration",
+          "revisionId": "revision_1565d684-b61c-42be-905e-54ab0cba23ca",
+          "invocationId": "f77177b7-dbfa-4826-8382-493e52cf7c40",
+          "queryHash": "9237f84bd071f0804e8a20a3247842e9c29fbc6ffb396fec8aa95ddf44c5d1b2",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:24:54.370Z",
+          "updatedAt": "2026-10-11T09:24:55.002Z"
+        }
+      ],
+      "coverage": [],
+      "requiresOuterDecision": false,
+      "retryable": false,
+      "sqlExecuted": false,
+      "executionOutcome": "not_started"
+    },
+    "code": "INVALID_QUERY"
+  }
+}

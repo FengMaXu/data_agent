@@ -1,0 +1,1 @@
+{"algorithm": "Unpivot 22 identity slots; count distinct matches by player_api_id/outcome; all maxima", "limitations": ["Recorded lineup presence proxies actual playing; no substitute minute evidence"], "checks": {"winner": ["Cristiano Ronaldo", 199], "loser": ["Gorka Iraizoz Moreno", 107], "unmatched": 0, "duplicate_win_slot": 1}}

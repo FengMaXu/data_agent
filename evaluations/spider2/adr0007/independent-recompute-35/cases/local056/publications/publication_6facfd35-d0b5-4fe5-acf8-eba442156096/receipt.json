@@ -1,0 +1,106 @@
+{
+  "receiptId": "publication_6facfd35-d0b5-4fe5-acf8-eba442156096",
+  "taskId": "task_f81fe942-08df-4f79-8596-bae2a9cdb4e4",
+  "principalId": "independent-analyst",
+  "sessionId": "local056",
+  "candidateId": "candidate_9d6112d9-31a6-4d4c-bea0-7d0bc896ebbd",
+  "revisionId": "revision_900d402b-245b-4f3d-9218-fdfbb30865f3",
+  "resultRef": "result_51488dff-3144-480a-96d3-9ce7e29ed5d3",
+  "format": "csv",
+  "publicRef": "/api/runtime/publications/publication_6facfd35-d0b5-4fe5-acf8-eba442156096?session_id=local056",
+  "contentHash": "e7bc6febbf5f2668e54781014a8ea68bc39f3733fa26eccceee3762b028af27d",
+  "presentationContentHash": "03127e9ad96b42ee4af9ecc9db758ba3eefca4653695f85e08cc95dca0f6e51e",
+  "coverage": [
+    {
+      "checkId": "result_completeness",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "result_shape",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "result_identity",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "join_fanout",
+      "outcome": "not_applicable"
+    },
+    {
+      "checkId": "spec_feedback",
+      "ruleVersion": "spec-feedback-v2",
+      "outcome": "not_applicable",
+      "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+    }
+  ],
+  "fanout": {
+    "ruleVersion": "answering-fanout-v1",
+    "status": "not_applicable",
+    "snapshotScope": "unbound",
+    "targets": []
+  },
+  "disclosure": {
+    "required": true,
+    "unverifiedFields": [
+      {
+        "path": "population.eligibility",
+        "kind": "assumed"
+      },
+      {
+        "path": "population.time",
+        "kind": "assumed"
+      },
+      {
+        "path": "measure.formula",
+        "kind": "assumed"
+      },
+      {
+        "path": "grouping",
+        "kind": "assumed"
+      },
+      {
+        "path": "output",
+        "kind": "assumed"
+      },
+      {
+        "path": "selection.ties",
+        "kind": "assumed"
+      },
+      {
+        "path": "measure.countGrain",
+        "kind": "assumed"
+      },
+      {
+        "path": "measure.denominator",
+        "kind": "assumed"
+      },
+      {
+        "path": "population.missing",
+        "kind": "assumed"
+      },
+      {
+        "path": "selection",
+        "kind": "assumed"
+      }
+    ],
+    "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.time, measure.formula, grouping, output, selection.ties, measure.countGrain, measure.denominator, population.missing, selection。"
+  },
+  "physicalProfile": {
+    "version": 1,
+    "rowCount": 1,
+    "truncated": false,
+    "columns": [
+      {
+        "name": "full_name",
+        "kind": "text",
+        "nullCount": 0,
+        "distinctCount": 1
+      }
+    ]
+  },
+  "policyVersion": "answering-publication-v1",
+  "createdByInvocationId": "0f051453-6303-47ab-bdc2-3380ed8b9b6e",
+  "requestId": "0f051453-6303-47ab-bdc2-3380ed8b9b6e",
+  "createdAt": "2026-10-11T09:01:53.677Z"
+}

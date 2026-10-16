@@ -1,0 +1,95 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_29a7a60c-9cec-4dfe-849b-c0e409af37d8\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nn | sx | sy | sxx | sxy | a | b | nonzero_days | revenue\n606 | 183315 | 4090 | 73998155 | 1351329 | 4.887984515090718 | 0.006152695545127375 | 582 | 479481.51"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_29a7a60c-9cec-4dfe-849b-c0e409af37d8",
+      "preview": {
+        "columns": [
+          "n",
+          "sx",
+          "sy",
+          "sxx",
+          "sxy",
+          "a",
+          "b",
+          "nonzero_days",
+          "revenue"
+        ],
+        "rows": [
+          [
+            606,
+            183315,
+            4090,
+            73998155,
+            1351329,
+            4.887984515090718,
+            0.006152695545127375,
+            582,
+            479481.51
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "REAL",
+          "REAL",
+          "INTEGER",
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "n",
+        "sx",
+        "sy",
+        "sxx",
+        "sxy",
+        "a",
+        "b",
+        "nonzero_days",
+        "revenue"
+      ],
+      "rows": [
+        [
+          606,
+          183315,
+          4090,
+          73998155,
+          1351329,
+          4.887984515090718,
+          0.006152695545127375,
+          582,
+          479481.51
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "REAL",
+        "REAL",
+        "INTEGER",
+        "REAL"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_ba27979f-f360-4cd6-95bc-a5a0211b2644"
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "sql": "WITH s AS (SELECT name,version,step,MAX(CASE WHEN model<>'Stack' THEN test_score END) baseline,MAX(CASE WHEN model='Stack' THEN test_score END) stack_score FROM model_score GROUP BY name,version,step) SELECT m.L1_model,COUNT(*) model_steps,COUNT(DISTINCT m.name||':'||m.version) model_versions,SUM(baseline IS NOT NULL AND stack_score IS NOT NULL) comparable,SUM(stack_score>=baseline) noninferior,SUM(stack_score>baseline) strong FROM model m LEFT JOIN s USING(name,version,step) GROUP BY m.L1_model",
+  "limit": 100
+}

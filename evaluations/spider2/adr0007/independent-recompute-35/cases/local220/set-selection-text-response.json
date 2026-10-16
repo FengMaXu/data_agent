@@ -1,0 +1,132 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_ff43cc45-2c05-4d02-b724-7bbb4f46b6a4 revisionId=revision_0cce2149-1f34-4d48-9d8a-b53c85693249\n- ✓ selection\n状态：\n- 未证实（发布时披露）: population.time, measure.formula, measure.countGrain, grouping, selection.ties, output, selection\n- 没有待处理的字段，可以执行结果查询\n[SPEC_FEEDBACK] revisionId=revision_0cce2149-1f34-4d48-9d8a-b53c85693249 status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"individual football player identified by player_api_id\"}},\"population.eligibility\":{\"status\":\"request\",\"value\":\"Non-null recorded lineup identities only\"},\"population.conditions\":{\"status\":\"request\",\"value\":[\"Exclude draws; assign win/loss to player lineup side\"]},\"population.time\":{\"status\":\"assumed\",\"value\":{\"expression\":\"All available matches; no date restriction requested\"}},\"measure.formula\":{\"status\":\"assumed\",\"value\":{\"op\":\"count_distinct\",\"per\":\"player_api_id and outcome\",\"of\":\"match_id\"}},\"measure.countGrain\":{\"status\":\"assumed\",\"value\":\"One distinct player identity per match per outcome\"},\"grouping\":{\"status\":\"assumed\",\"value\":[\"player_api_id\",\"outcome\"]},\"selection\":{\"status\":\"assumed\",\"value\":{\"n\":1,\"orderBy\":\"matches DESC within each outcome\"}},\"selection.ties\":{\"status\":\"assumed\",\"value\":\"include_ties\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"full\",\"columns\":[\"outcome\",\"player_name\",\"matches\"]}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_ff43cc45-2c05-4d02-b724-7bbb4f46b6a4",
+    "revisionId": "revision_0cce2149-1f34-4d48-9d8a-b53c85693249",
+    "parentRevisionId": "revision_c2a2806e-05ee-4660-9ed6-df119c027838",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "individual football player identified by player_api_id"
+        },
+        "evidenceIds": [
+          "evidence_371e12dd-f67d-4b1c-84d2-fe8ef0c7a1df"
+        ]
+      },
+      {
+        "path": "population.eligibility",
+        "status": "request",
+        "value": "Non-null recorded lineup identities only",
+        "evidenceIds": [
+          "evidence_987d1091-6de3-49a4-8cfd-03e25805fd2e"
+        ]
+      },
+      {
+        "path": "population.conditions",
+        "status": "request",
+        "value": [
+          "Exclude draws; assign win/loss to player lineup side"
+        ],
+        "evidenceIds": [
+          "evidence_459170d5-6ed3-4624-bec0-613bd63caa33"
+        ]
+      },
+      {
+        "path": "population.time",
+        "status": "assumed",
+        "value": {
+          "expression": "All available matches; no date restriction requested"
+        }
+      },
+      {
+        "path": "measure.formula",
+        "status": "assumed",
+        "value": {
+          "op": "count_distinct",
+          "per": "player_api_id and outcome",
+          "of": "match_id"
+        }
+      },
+      {
+        "path": "measure.countGrain",
+        "status": "assumed",
+        "value": "One distinct player identity per match per outcome"
+      },
+      {
+        "path": "grouping",
+        "status": "assumed",
+        "value": [
+          "player_api_id",
+          "outcome"
+        ]
+      },
+      {
+        "path": "selection",
+        "status": "assumed",
+        "value": {
+          "n": 1,
+          "orderBy": "matches DESC within each outcome"
+        }
+      },
+      {
+        "path": "selection.ties",
+        "status": "assumed",
+        "value": "include_ties"
+      },
+      {
+        "path": "output",
+        "status": "assumed",
+        "value": {
+          "rowMode": "full",
+          "columns": [
+            "outcome",
+            "player_name",
+            "matches"
+          ]
+        }
+      }
+    ],
+    "undeclared": [],
+    "open": [],
+    "unverified": [
+      "population.time",
+      "measure.formula",
+      "measure.countGrain",
+      "grouping",
+      "selection.ties",
+      "output",
+      "selection"
+    ],
+    "specFeedback": {
+      "taskId": "task_ff43cc45-2c05-4d02-b724-7bbb4f46b6a4",
+      "revisionId": "revision_0cce2149-1f34-4d48-9d8a-b53c85693249",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_371e12dd-f67d-4b1c-84d2-fe8ef0c7a1df",
+        "evidence_65b98308-576b-4f9c-98f8-7ec8e0f9ad88",
+        "evidence_c3aa4f66-ae66-4b8a-8e1f-e841ff97ff73",
+        "evidence_1f53f635-8037-4822-8b02-3320aac492d3",
+        "evidence_987d1091-6de3-49a4-8cfd-03e25805fd2e",
+        "evidence_459170d5-6ed3-4624-bec0-613bd63caa33"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "selection",
+        "status": "applied"
+      }
+    ]
+  }
+}

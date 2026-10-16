@@ -1,0 +1,54 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_51d64568-2a51-4a4a-839d-8497ee615252 revisionId=revision_b55e5363-bf65-49f2-acc8-6e11d8e7c97e\n- ✓ population.entity\n状态：\n- 未声明: population.eligibility, population.conditions, population.time, measure.formula, grouping, selection, output\n[SPEC_FEEDBACK] revisionId=revision_b55e5363-bf65-49f2-acc8-6e11d8e7c97e status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"新增独角兽公司 company_id\"}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_51d64568-2a51-4a4a-839d-8497ee615252",
+    "revisionId": "revision_b55e5363-bf65-49f2-acc8-6e11d8e7c97e",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "新增独角兽公司 company_id"
+        },
+        "evidenceIds": [
+          "evidence_a8d39bab-33d1-47fb-90d8-ba41552b8e47"
+        ]
+      }
+    ],
+    "undeclared": [
+      "population.eligibility",
+      "population.conditions",
+      "population.time",
+      "measure.formula",
+      "grouping",
+      "selection",
+      "output"
+    ],
+    "open": [],
+    "unverified": [],
+    "specFeedback": {
+      "taskId": "task_51d64568-2a51-4a4a-839d-8497ee615252",
+      "revisionId": "revision_b55e5363-bf65-49f2-acc8-6e11d8e7c97e",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_a8d39bab-33d1-47fb-90d8-ba41552b8e47"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "population.entity",
+        "status": "applied"
+      }
+    ]
+  }
+}

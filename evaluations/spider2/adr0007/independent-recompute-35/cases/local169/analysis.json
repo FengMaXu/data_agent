@@ -1,0 +1,52 @@
+{
+  "instance_id": "local169",
+  "status": "ambiguous_after_recompute",
+  "summary": "真实重算固定cohort4033；原年历1..20、独立0..19、开端点/删失/浮点周年/年度重叠/周年快照均不能解释Gold全部20值；Gold分母可还原4033但分子仍未唯一定位。",
+  "fork_node": "population.time",
+  "error_layer": "unresolved_temporal_semantics_or_gold_implementation",
+  "visibility": "原Spec明确两种期对齐候选并决定次年起，SQL忠实；未观察到隐藏节点",
+  "independent_score": 0,
+  "evidence": [
+    {
+      "source": "blind.json",
+      "pointer": "/question",
+      "quote": "for each of the first 20 years following their initial term start"
+    },
+    {
+      "source": "comparison-input.json",
+      "pointer": "/originalSql",
+      "quote": "printf('%04d-12-31', c.start_year + k.n) AS check_date"
+    },
+    {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local169/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/16/result/details/fields/4/value",
+      "quote": "Period k (k=1..20) 参考日 = (首次任期开始年份 + k) 年的 12 月 31 日（参考日落在首次任期开始年份之后的第 k 个日历年）",
+      "original_projection_source": "original-final-fields.json"
+    }
+  ],
+  "limitations": [
+    "Gold SQL缺失；Gold分子20期仍无唯一解释",
+    "题面year alignment不完全明确",
+    "没有证明原Spec或原SQL存在违背明示语义的错误；独立0-based编号是假定"
+  ],
+  "parent_field_review": {
+    "instance_id": "local169",
+    "relevant_node": "population.time",
+    "node_is_confirmed_original_error": false,
+    "explanation": "周期起点、观察窗口和任期端点候选仍不能解释全部Gold",
+    "error_layer": "未唯一裁决",
+    "visibility": "不能标成假定错/决定错：原声明可见，不等于业务错误已证",
+    "qualification": "已实际计算多个候选，全部差异机制仍未唯一定位",
+    "original_node_declared": true,
+    "original_node_status": "decided",
+    "original_node_value": {
+      "expression": "Period k (k=1..20) 参考日 = (首次任期开始年份 + k) 年的 12 月 31 日（参考日落在首次任期开始年份之后的第 k 个日历年）"
+    },
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local169/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/16/result/details/fields/4/value",
+      "quote": "{\"expression\": \"Period k (k=1..20) 参考日 = (首次任期开始年份 + k) 年的 12 月 31 日（参考日落在首次任期开始年份之后的第 k 个日历年）\"}"
+    },
+    "primary_status": "ambiguous_after_recompute"
+  }
+}

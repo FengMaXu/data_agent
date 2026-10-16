@@ -1,0 +1,188 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_0ba3fcf4-8dfb-4ae7-999a-7c8e7625f636 revisionId=revision_f549fc86-a55e-4732-a6f7-6df60f690eb4\n- ✓ population.eligibility\n- ✓ population.conditions\n- ✓ population.time\n- ✓ population.joinMultiplicity\n- ✓ measure.formula\n- ✓ measure.countGrain\n- ✓ measure.denominator\n- ✓ grouping\n- ✓ selection\n- ✓ output\n状态：\n- 未证实（发布时披露）: population.eligibility, population.joinMultiplicity, measure.countGrain, measure.denominator\n- 没有待处理的字段，可以执行结果查询\n[SPEC_FEEDBACK] revisionId=revision_f549fc86-a55e-4732-a6f7-6df60f690eb4 status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"Product monthly France sales projection\"}},\"population.eligibility\":{\"status\":\"assumed\",\"value\":\"Paired same-product same-month historical observations; positive 2019 baseline\"},\"population.conditions\":{\"status\":\"request\",\"value\":[\"France\",\"promotions.promo_total_id=1\",\"channels.channel_total_id=1\"]},\"population.time\":{\"status\":\"request\",\"value\":{\"expression\":\"2019 and 2020 monthly historical sales project 2021; 2021 exchange rates\"}},\"population.joinMultiplicity\":{\"status\":\"assumed\",\"value\":\"Sum sales per product-year-month before pairing; currency country/year/month unique\"},\"measure.formula\":{\"status\":\"evidence\",\"value\":{\"op\":\"custom\",\"description\":\"SUM historical amount_sold per product/month/year; project b*(1+(b-a)/a); convert by France2021 monthly currency.to_us default1; per-month product AVG then ROUND2\"}},\"measure.countGrain\":{\"status\":\"assumed\",\"value\":\"Valid product/month forecast cells\"},\"measure.denominator\":{\"status\":\"assumed\",\"value\":\"Count valid paired product projections in each month; undefined growth excluded\"},\"grouping\":{\"status\":\"request\",\"value\":[\"calendar month\"]},\"selection\":{\"status\":\"not_applicable\"},\"output\":{\"status\":\"request\",\"value\":{\"rowMode\":\"grouped\",\"columns\":[\"month\",\"average_projected_monthly_sales_usd\"],\"units\":{\"average_projected_monthly_sales_usd\":\"USD\"},\"decimals\":{\"average_projected_monthly_sales_usd\":2}}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_0ba3fcf4-8dfb-4ae7-999a-7c8e7625f636",
+    "revisionId": "revision_f549fc86-a55e-4732-a6f7-6df60f690eb4",
+    "parentRevisionId": "revision_7fa38c65-e231-45b2-8724-a657d62c3d52",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "Product monthly France sales projection"
+        },
+        "evidenceIds": [
+          "evidence_b86cad70-da84-4a47-9779-075e44d1a1e6"
+        ]
+      },
+      {
+        "path": "population.eligibility",
+        "status": "assumed",
+        "value": "Paired same-product same-month historical observations; positive 2019 baseline",
+        "rationale": "独立题解；题目未明确，作为假定披露"
+      },
+      {
+        "path": "population.conditions",
+        "status": "request",
+        "value": [
+          "France",
+          "promotions.promo_total_id=1",
+          "channels.channel_total_id=1"
+        ],
+        "evidenceIds": [
+          "evidence_eef7ed38-1179-4a5f-99bc-559455b65327"
+        ]
+      },
+      {
+        "path": "population.time",
+        "status": "request",
+        "value": {
+          "expression": "2019 and 2020 monthly historical sales project 2021; 2021 exchange rates"
+        },
+        "evidenceIds": [
+          "evidence_1ef430e4-37a7-461d-933b-0cfbce6a22ec"
+        ]
+      },
+      {
+        "path": "population.joinMultiplicity",
+        "status": "assumed",
+        "value": "Sum sales per product-year-month before pairing; currency country/year/month unique",
+        "rationale": "独立题解；题目未明确，作为假定披露"
+      },
+      {
+        "path": "measure.formula",
+        "status": "evidence",
+        "value": {
+          "op": "custom",
+          "description": "SUM historical amount_sold per product/month/year; project b*(1+(b-a)/a); convert by France2021 monthly currency.to_us default1; per-month product AVG then ROUND2"
+        },
+        "evidenceIds": [
+          "evidence_828438c3-147a-4b21-bf3e-912c2beef7ad"
+        ]
+      },
+      {
+        "path": "measure.countGrain",
+        "status": "assumed",
+        "value": "Valid product/month forecast cells",
+        "rationale": "独立题解；题目未明确，作为假定披露"
+      },
+      {
+        "path": "measure.denominator",
+        "status": "assumed",
+        "value": "Count valid paired product projections in each month; undefined growth excluded",
+        "rationale": "独立题解；题目未明确，作为假定披露"
+      },
+      {
+        "path": "grouping",
+        "status": "request",
+        "value": [
+          "calendar month"
+        ],
+        "evidenceIds": [
+          "evidence_40212770-dce7-417c-a245-26096b163b2e"
+        ]
+      },
+      {
+        "path": "selection",
+        "status": "not_applicable"
+      },
+      {
+        "path": "output",
+        "status": "request",
+        "value": {
+          "rowMode": "grouped",
+          "columns": [
+            "month",
+            "average_projected_monthly_sales_usd"
+          ],
+          "units": {
+            "average_projected_monthly_sales_usd": "USD"
+          },
+          "decimals": {
+            "average_projected_monthly_sales_usd": 2
+          }
+        },
+        "evidenceIds": [
+          "evidence_62c98219-b2c7-4503-a8de-e62cf46c204e"
+        ]
+      }
+    ],
+    "undeclared": [],
+    "open": [],
+    "unverified": [
+      "population.eligibility",
+      "population.joinMultiplicity",
+      "measure.countGrain",
+      "measure.denominator"
+    ],
+    "specFeedback": {
+      "taskId": "task_0ba3fcf4-8dfb-4ae7-999a-7c8e7625f636",
+      "revisionId": "revision_f549fc86-a55e-4732-a6f7-6df60f690eb4",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_b86cad70-da84-4a47-9779-075e44d1a1e6",
+        "evidence_627cbd3f-58cb-47c5-8bef-ae19452baf73",
+        "evidence_57049d5e-e593-455f-afbd-77ee43165c4f",
+        "evidence_8244bd1f-7e0a-4d7b-a3d1-fc4402f1901c",
+        "evidence_4eef2c7b-707f-4f26-b494-63468d0ac3d9",
+        "evidence_eef7ed38-1179-4a5f-99bc-559455b65327",
+        "evidence_1ef430e4-37a7-461d-933b-0cfbce6a22ec",
+        "evidence_828438c3-147a-4b21-bf3e-912c2beef7ad",
+        "evidence_40212770-dce7-417c-a245-26096b163b2e",
+        "evidence_62c98219-b2c7-4503-a8de-e62cf46c204e"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "population.eligibility",
+        "status": "applied"
+      },
+      {
+        "path": "population.conditions",
+        "status": "applied"
+      },
+      {
+        "path": "population.time",
+        "status": "applied"
+      },
+      {
+        "path": "population.joinMultiplicity",
+        "status": "applied"
+      },
+      {
+        "path": "measure.formula",
+        "status": "applied"
+      },
+      {
+        "path": "measure.countGrain",
+        "status": "applied"
+      },
+      {
+        "path": "measure.denominator",
+        "status": "applied"
+      },
+      {
+        "path": "grouping",
+        "status": "applied"
+      },
+      {
+        "path": "selection",
+        "status": "applied"
+      },
+      {
+        "path": "output",
+        "status": "applied"
+      }
+    ]
+  }
+}

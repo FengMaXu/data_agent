@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT COUNT(*) n FROM activity_log WHERE path='END'",
+  "limit": 1000
+}

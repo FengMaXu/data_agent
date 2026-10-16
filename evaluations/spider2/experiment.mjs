@@ -33,12 +33,9 @@ export function resolveSemanticSpecMode(config) {
 }
 
 function defaultTools(config, semanticSpecMode) {
-  const jevAvailable = Boolean(process.env.TYPESAFE_API_KEY?.trim());
   return [
     ...BASE_TOOLS.filter((tool) => tool !== "ask_user_clarification" || config.enableClarificationTool !== false),
     ...(semanticSpecMode !== "required" ? ["begin_query_task"] : ["set_answer_spec"]),
-    // compare_hypotheses compares the alternatives of an open Answer Spec field, so it exists only with a semantic Spec.
-    ...(jevAvailable && semanticSpecMode === "required" ? ["compare_hypotheses"] : []),
     ...(config.enableDashboards === true ? ["generate_dashboard"] : []),
     ...(config.enableWidgets === true ? ["show_widget"] : []),
   ];

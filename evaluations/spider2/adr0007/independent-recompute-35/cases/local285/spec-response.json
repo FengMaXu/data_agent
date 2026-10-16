@@ -1,0 +1,180 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_8126fdc2-106a-4650-8990-625986947d98 revisionId=revision_baf5234d-5a40-4cfc-9b38-3d95c54f2fb9\n- ✓ population.eligibility\n- ✓ population.conditions\n- ✓ population.time\n- ✓ measure.formula\n- ✓ measure.countGrain\n- ✓ measure.denominator\n- ✓ grouping\n- ✓ selection\n- ✓ output\n状态：\n- 未证实（发布时披露）: population.eligibility, population.conditions, measure.formula, measure.countGrain, measure.denominator, output\n- 没有待处理的字段，可以执行结果查询\n[SPEC_FEEDBACK] revisionId=revision_baf5234d-5a40-4cfc-9b38-3d95c54f2fb9 status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"vegetable category-year\"}},\"population.eligibility\":{\"status\":\"assumed\",\"value\":\"All category-year groups with wholesale quotations and sales in data; quoted SKU rates included once\"},\"population.conditions\":{\"status\":\"assumed\",\"value\":[\"Net signed sales quantity (returns already negative); exact same date/item quote; no duplicate quotes; include all categories\"]},\"population.time\":{\"status\":\"request\",\"value\":{\"expression\":\"2020-01-01 inclusive to 2024-01-01 exclusive\"}},\"measure.formula\":{\"status\":\"assumed\",\"value\":{\"op\":\"custom\",\"description\":\"Simple wholesale quotation average/max/min and max-min difference. Total wholesale price interpreted net quantity times exact daily wholesale unit price; total selling price net quantity times actual selling unit price. Average loss rate simple mean across distinct quoted items per year. Loss estimated as net quantity*wholesale*r/(1-r) for procurement loss rate r; profit=revenue-sold-unit-cost-loss.\"}},\"measure.countGrain\":{\"status\":\"assumed\",\"value\":\"Quotes for price mean; distinct quoted items for loss rate mean; transaction rows for revenue and cost\"},\"measure.denominator\":{\"status\":\"assumed\",\"value\":\"Count of wholesale quotations for average price; distinct quoted items for average loss rate; 1-r for estimated procurement cost\"},\"grouping\":{\"status\":\"request\",\"value\":[\"calendar year\",\"category_code and category_name\"]},\"selection\":{\"status\":\"not_applicable\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"grouped\",\"columns\":[\"year\",\"category_name\",\"avg_wholesale_price\",\"max_wholesale_price\",\"min_wholesale_price\",\"wholesale_price_difference\",\"total_wholesale_price\",\"total_selling_price\",\"avg_loss_rate\",\"total_loss\",\"profit\"],\"decimals\":{\"avg_wholesale_price\":2,\"max_wholesale_price\":2,\"min_wholesale_price\":2,\"wholesale_price_difference\":2,\"total_wholesale_price\":2,\"total_selling_price\":2,\"avg_loss_rate\":2,\"total_loss\":2,\"profit\":2}}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_8126fdc2-106a-4650-8990-625986947d98",
+    "revisionId": "revision_baf5234d-5a40-4cfc-9b38-3d95c54f2fb9",
+    "parentRevisionId": "revision_4d9a3072-7572-4c66-a4a3-fb7e08b3aaf3",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "vegetable category-year"
+        },
+        "evidenceIds": [
+          "evidence_9e7bf4b9-c360-4d1e-b664-5318c0684f45"
+        ]
+      },
+      {
+        "path": "population.eligibility",
+        "status": "assumed",
+        "value": "All category-year groups with wholesale quotations and sales in data; quoted SKU rates included once",
+        "rationale": "No procurement or inventory data; reporting estimated financial model over available observations"
+      },
+      {
+        "path": "population.conditions",
+        "status": "assumed",
+        "value": [
+          "Net signed sales quantity (returns already negative); exact same date/item quote; no duplicate quotes; include all categories"
+        ],
+        "rationale": "Return signs and exact quote coverage observed; no restriction requested"
+      },
+      {
+        "path": "population.time",
+        "status": "request",
+        "value": {
+          "expression": "2020-01-01 inclusive to 2024-01-01 exclusive"
+        },
+        "evidenceIds": [
+          "evidence_a94f01b6-7d2c-4ae4-ae92-fb7bcde41764"
+        ]
+      },
+      {
+        "path": "measure.formula",
+        "status": "assumed",
+        "value": {
+          "op": "custom",
+          "description": "Simple wholesale quotation average/max/min and max-min difference. Total wholesale price interpreted net quantity times exact daily wholesale unit price; total selling price net quantity times actual selling unit price. Average loss rate simple mean across distinct quoted items per year. Loss estimated as net quantity*wholesale*r/(1-r) for procurement loss rate r; profit=revenue-sold-unit-cost-loss."
+        },
+        "rationale": "Financial totals and loss denominator undefined; actual procurement unknown. This is disclosed estimate, not accounting fact."
+      },
+      {
+        "path": "measure.countGrain",
+        "status": "assumed",
+        "value": "Quotes for price mean; distinct quoted items for loss rate mean; transaction rows for revenue and cost"
+      },
+      {
+        "path": "measure.denominator",
+        "status": "assumed",
+        "value": "Count of wholesale quotations for average price; distinct quoted items for average loss rate; 1-r for estimated procurement cost"
+      },
+      {
+        "path": "grouping",
+        "status": "request",
+        "value": [
+          "calendar year",
+          "category_code and category_name"
+        ],
+        "evidenceIds": [
+          "evidence_8e1de389-9121-449e-a8e4-c12c5198bad0"
+        ]
+      },
+      {
+        "path": "selection",
+        "status": "not_applicable"
+      },
+      {
+        "path": "output",
+        "status": "assumed",
+        "value": {
+          "rowMode": "grouped",
+          "columns": [
+            "year",
+            "category_name",
+            "avg_wholesale_price",
+            "max_wholesale_price",
+            "min_wholesale_price",
+            "wholesale_price_difference",
+            "total_wholesale_price",
+            "total_selling_price",
+            "avg_loss_rate",
+            "total_loss",
+            "profit"
+          ],
+          "decimals": {
+            "avg_wholesale_price": 2,
+            "max_wholesale_price": 2,
+            "min_wholesale_price": 2,
+            "wholesale_price_difference": 2,
+            "total_wholesale_price": 2,
+            "total_selling_price": 2,
+            "avg_loss_rate": 2,
+            "total_loss": 2,
+            "profit": 2
+          }
+        }
+      }
+    ],
+    "undeclared": [],
+    "open": [],
+    "unverified": [
+      "population.eligibility",
+      "population.conditions",
+      "measure.formula",
+      "measure.countGrain",
+      "measure.denominator",
+      "output"
+    ],
+    "specFeedback": {
+      "taskId": "task_8126fdc2-106a-4650-8990-625986947d98",
+      "revisionId": "revision_baf5234d-5a40-4cfc-9b38-3d95c54f2fb9",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_9e7bf4b9-c360-4d1e-b664-5318c0684f45",
+        "evidence_82069971-34a4-45c7-8c09-25fdf79e6262",
+        "evidence_863565e3-a960-4d26-aa77-cae8555b350e",
+        "evidence_6f6bbf3f-1099-4935-8da8-133e92615793",
+        "evidence_a94f01b6-7d2c-4ae4-ae92-fb7bcde41764",
+        "evidence_8e1de389-9121-449e-a8e4-c12c5198bad0"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "population.eligibility",
+        "status": "applied"
+      },
+      {
+        "path": "population.conditions",
+        "status": "applied"
+      },
+      {
+        "path": "population.time",
+        "status": "applied"
+      },
+      {
+        "path": "measure.formula",
+        "status": "applied"
+      },
+      {
+        "path": "measure.countGrain",
+        "status": "applied"
+      },
+      {
+        "path": "measure.denominator",
+        "status": "applied"
+      },
+      {
+        "path": "grouping",
+        "status": "applied"
+      },
+      {
+        "path": "selection",
+        "status": "applied"
+      },
+      {
+        "path": "output",
+        "status": "applied"
+      }
+    ]
+  }
+}

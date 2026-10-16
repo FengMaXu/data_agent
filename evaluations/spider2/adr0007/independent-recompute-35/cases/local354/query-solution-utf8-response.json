@@ -1,0 +1,659 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_9a738178-7dcb-4b7c-892b-daccd64c0610\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\ndriver_name\nGraham Hill\nJo Bonnier\nJack Brabham\nBruce McLaren\nDan Gurney\nPhil Hill\nInnes Ireland\nMasten Gregory\nMaurice Trintignant\nAndré Pilette\nCarel Godin de Beaufort\nIan Burgess\nRoy Salvadori\nColin Davis\nStirling Moss\nWolfgang von Trips\nCliff Allison\nHans Herrmann\nTony Brooks\nOlivier Gendebien\nGiorgio Scarlatti\nJack Fairman\nCarlos Menditeguy\nJosé Froilán González\nHarry Schell\nAlan Stacey\nBruce Halford\nTroy Ruttman\nRon Flockhart\nHorace Gould\nMaria de Filippis\nJean Behra\nCarroll Shelby\nLuigi Musso\nMike Hawthorn\nJuan Fangio\nPaco Godia\nPeter Collins\nGerino Gerini\nLuigi Piotti\nLouis Chiron\nStuart Lewis-Evans\nAlfonso de Portago\nCesare Perdisa\nEugenio Castellotti\nAndré Simon\nBob Gerard\nUmberto Maglioli\nChico Landi\nHernando da Silva Ramos\nÉlie Bayol\nRobert Manzon\nLouis Rosier\nPaul Frère\nLuigi Villoresi\nToulo de Graffenried\nPiero Taruffi\nNino Farina\nRoberto Mieres\nSergio Mantovani\nClemar Bucci\nAlberto Ascari\nKarl Kling\nJacques Pollet\nLance Macklin\nJohnny Claes\nKen Wharton\nKenneth McAlpine\nPrince Bira\nOnofre Marimón\nJorge Daponte\nJacques Swaters\nPeter Whitehead\nEric Brandon\nAlan Brown\nFred Wacker\nFelice Bonetto\nYves Cabantous\nDuncan Hamilton\nHans von Stuck\nPeter Hirt\nPiero Carini\nRudi Fischer\nToni Ulmen\nCharles de Tornaco\nTony Gaze\nPhilippe Étancelin\nDennis Poore\nKen Downing\nGino Bianco\nDavid Murray\nEitel Cantoni\nFranco Rol\nConsalvo Sanesi\nGuy Mairesse\nPierre Levegh\nEugène Chaboud\nToni Branca\nDavid Hampshire\nGeoff Crossley\nLuigi Fagioli\nCuth Harrison\nEugène Martin"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_9a738178-7dcb-4b7c-892b-daccd64c0610",
+      "preview": {
+        "columns": [
+          "driver_name"
+        ],
+        "rows": [
+          [
+            "Graham Hill"
+          ],
+          [
+            "Jo Bonnier"
+          ],
+          [
+            "Jack Brabham"
+          ],
+          [
+            "Bruce McLaren"
+          ],
+          [
+            "Dan Gurney"
+          ],
+          [
+            "Phil Hill"
+          ],
+          [
+            "Innes Ireland"
+          ],
+          [
+            "Masten Gregory"
+          ],
+          [
+            "Maurice Trintignant"
+          ],
+          [
+            "André Pilette"
+          ],
+          [
+            "Carel Godin de Beaufort"
+          ],
+          [
+            "Ian Burgess"
+          ],
+          [
+            "Roy Salvadori"
+          ],
+          [
+            "Colin Davis"
+          ],
+          [
+            "Stirling Moss"
+          ],
+          [
+            "Wolfgang von Trips"
+          ],
+          [
+            "Cliff Allison"
+          ],
+          [
+            "Hans Herrmann"
+          ],
+          [
+            "Tony Brooks"
+          ],
+          [
+            "Olivier Gendebien"
+          ],
+          [
+            "Giorgio Scarlatti"
+          ],
+          [
+            "Jack Fairman"
+          ],
+          [
+            "Carlos Menditeguy"
+          ],
+          [
+            "José Froilán González"
+          ],
+          [
+            "Harry Schell"
+          ],
+          [
+            "Alan Stacey"
+          ],
+          [
+            "Bruce Halford"
+          ],
+          [
+            "Troy Ruttman"
+          ],
+          [
+            "Ron Flockhart"
+          ],
+          [
+            "Horace Gould"
+          ],
+          [
+            "Maria de Filippis"
+          ],
+          [
+            "Jean Behra"
+          ],
+          [
+            "Carroll Shelby"
+          ],
+          [
+            "Luigi Musso"
+          ],
+          [
+            "Mike Hawthorn"
+          ],
+          [
+            "Juan Fangio"
+          ],
+          [
+            "Paco Godia"
+          ],
+          [
+            "Peter Collins"
+          ],
+          [
+            "Gerino Gerini"
+          ],
+          [
+            "Luigi Piotti"
+          ],
+          [
+            "Louis Chiron"
+          ],
+          [
+            "Stuart Lewis-Evans"
+          ],
+          [
+            "Alfonso de Portago"
+          ],
+          [
+            "Cesare Perdisa"
+          ],
+          [
+            "Eugenio Castellotti"
+          ],
+          [
+            "André Simon"
+          ],
+          [
+            "Bob Gerard"
+          ],
+          [
+            "Umberto Maglioli"
+          ],
+          [
+            "Chico Landi"
+          ],
+          [
+            "Hernando da Silva Ramos"
+          ],
+          [
+            "Élie Bayol"
+          ],
+          [
+            "Robert Manzon"
+          ],
+          [
+            "Louis Rosier"
+          ],
+          [
+            "Paul Frère"
+          ],
+          [
+            "Luigi Villoresi"
+          ],
+          [
+            "Toulo de Graffenried"
+          ],
+          [
+            "Piero Taruffi"
+          ],
+          [
+            "Nino Farina"
+          ],
+          [
+            "Roberto Mieres"
+          ],
+          [
+            "Sergio Mantovani"
+          ],
+          [
+            "Clemar Bucci"
+          ],
+          [
+            "Alberto Ascari"
+          ],
+          [
+            "Karl Kling"
+          ],
+          [
+            "Jacques Pollet"
+          ],
+          [
+            "Lance Macklin"
+          ],
+          [
+            "Johnny Claes"
+          ],
+          [
+            "Ken Wharton"
+          ],
+          [
+            "Kenneth McAlpine"
+          ],
+          [
+            "Prince Bira"
+          ],
+          [
+            "Onofre Marimón"
+          ],
+          [
+            "Jorge Daponte"
+          ],
+          [
+            "Jacques Swaters"
+          ],
+          [
+            "Peter Whitehead"
+          ],
+          [
+            "Eric Brandon"
+          ],
+          [
+            "Alan Brown"
+          ],
+          [
+            "Fred Wacker"
+          ],
+          [
+            "Felice Bonetto"
+          ],
+          [
+            "Yves Cabantous"
+          ],
+          [
+            "Duncan Hamilton"
+          ],
+          [
+            "Hans von Stuck"
+          ],
+          [
+            "Peter Hirt"
+          ],
+          [
+            "Piero Carini"
+          ],
+          [
+            "Rudi Fischer"
+          ],
+          [
+            "Toni Ulmen"
+          ],
+          [
+            "Charles de Tornaco"
+          ],
+          [
+            "Tony Gaze"
+          ],
+          [
+            "Philippe Étancelin"
+          ],
+          [
+            "Dennis Poore"
+          ],
+          [
+            "Ken Downing"
+          ],
+          [
+            "Gino Bianco"
+          ],
+          [
+            "David Murray"
+          ],
+          [
+            "Eitel Cantoni"
+          ],
+          [
+            "Franco Rol"
+          ],
+          [
+            "Consalvo Sanesi"
+          ],
+          [
+            "Guy Mairesse"
+          ],
+          [
+            "Pierre Levegh"
+          ],
+          [
+            "Eugène Chaboud"
+          ],
+          [
+            "Toni Branca"
+          ],
+          [
+            "David Hampshire"
+          ],
+          [
+            "Geoff Crossley"
+          ],
+          [
+            "Luigi Fagioli"
+          ],
+          [
+            "Cuth Harrison"
+          ],
+          [
+            "Eugène Martin"
+          ]
+        ],
+        "columnTypes": [
+          "TEXT"
+        ],
+        "rowCount": 103,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "driver_name"
+      ],
+      "rows": [
+        [
+          "Graham Hill"
+        ],
+        [
+          "Jo Bonnier"
+        ],
+        [
+          "Jack Brabham"
+        ],
+        [
+          "Bruce McLaren"
+        ],
+        [
+          "Dan Gurney"
+        ],
+        [
+          "Phil Hill"
+        ],
+        [
+          "Innes Ireland"
+        ],
+        [
+          "Masten Gregory"
+        ],
+        [
+          "Maurice Trintignant"
+        ],
+        [
+          "André Pilette"
+        ],
+        [
+          "Carel Godin de Beaufort"
+        ],
+        [
+          "Ian Burgess"
+        ],
+        [
+          "Roy Salvadori"
+        ],
+        [
+          "Colin Davis"
+        ],
+        [
+          "Stirling Moss"
+        ],
+        [
+          "Wolfgang von Trips"
+        ],
+        [
+          "Cliff Allison"
+        ],
+        [
+          "Hans Herrmann"
+        ],
+        [
+          "Tony Brooks"
+        ],
+        [
+          "Olivier Gendebien"
+        ],
+        [
+          "Giorgio Scarlatti"
+        ],
+        [
+          "Jack Fairman"
+        ],
+        [
+          "Carlos Menditeguy"
+        ],
+        [
+          "José Froilán González"
+        ],
+        [
+          "Harry Schell"
+        ],
+        [
+          "Alan Stacey"
+        ],
+        [
+          "Bruce Halford"
+        ],
+        [
+          "Troy Ruttman"
+        ],
+        [
+          "Ron Flockhart"
+        ],
+        [
+          "Horace Gould"
+        ],
+        [
+          "Maria de Filippis"
+        ],
+        [
+          "Jean Behra"
+        ],
+        [
+          "Carroll Shelby"
+        ],
+        [
+          "Luigi Musso"
+        ],
+        [
+          "Mike Hawthorn"
+        ],
+        [
+          "Juan Fangio"
+        ],
+        [
+          "Paco Godia"
+        ],
+        [
+          "Peter Collins"
+        ],
+        [
+          "Gerino Gerini"
+        ],
+        [
+          "Luigi Piotti"
+        ],
+        [
+          "Louis Chiron"
+        ],
+        [
+          "Stuart Lewis-Evans"
+        ],
+        [
+          "Alfonso de Portago"
+        ],
+        [
+          "Cesare Perdisa"
+        ],
+        [
+          "Eugenio Castellotti"
+        ],
+        [
+          "André Simon"
+        ],
+        [
+          "Bob Gerard"
+        ],
+        [
+          "Umberto Maglioli"
+        ],
+        [
+          "Chico Landi"
+        ],
+        [
+          "Hernando da Silva Ramos"
+        ],
+        [
+          "Élie Bayol"
+        ],
+        [
+          "Robert Manzon"
+        ],
+        [
+          "Louis Rosier"
+        ],
+        [
+          "Paul Frère"
+        ],
+        [
+          "Luigi Villoresi"
+        ],
+        [
+          "Toulo de Graffenried"
+        ],
+        [
+          "Piero Taruffi"
+        ],
+        [
+          "Nino Farina"
+        ],
+        [
+          "Roberto Mieres"
+        ],
+        [
+          "Sergio Mantovani"
+        ],
+        [
+          "Clemar Bucci"
+        ],
+        [
+          "Alberto Ascari"
+        ],
+        [
+          "Karl Kling"
+        ],
+        [
+          "Jacques Pollet"
+        ],
+        [
+          "Lance Macklin"
+        ],
+        [
+          "Johnny Claes"
+        ],
+        [
+          "Ken Wharton"
+        ],
+        [
+          "Kenneth McAlpine"
+        ],
+        [
+          "Prince Bira"
+        ],
+        [
+          "Onofre Marimón"
+        ],
+        [
+          "Jorge Daponte"
+        ],
+        [
+          "Jacques Swaters"
+        ],
+        [
+          "Peter Whitehead"
+        ],
+        [
+          "Eric Brandon"
+        ],
+        [
+          "Alan Brown"
+        ],
+        [
+          "Fred Wacker"
+        ],
+        [
+          "Felice Bonetto"
+        ],
+        [
+          "Yves Cabantous"
+        ],
+        [
+          "Duncan Hamilton"
+        ],
+        [
+          "Hans von Stuck"
+        ],
+        [
+          "Peter Hirt"
+        ],
+        [
+          "Piero Carini"
+        ],
+        [
+          "Rudi Fischer"
+        ],
+        [
+          "Toni Ulmen"
+        ],
+        [
+          "Charles de Tornaco"
+        ],
+        [
+          "Tony Gaze"
+        ],
+        [
+          "Philippe Étancelin"
+        ],
+        [
+          "Dennis Poore"
+        ],
+        [
+          "Ken Downing"
+        ],
+        [
+          "Gino Bianco"
+        ],
+        [
+          "David Murray"
+        ],
+        [
+          "Eitel Cantoni"
+        ],
+        [
+          "Franco Rol"
+        ],
+        [
+          "Consalvo Sanesi"
+        ],
+        [
+          "Guy Mairesse"
+        ],
+        [
+          "Pierre Levegh"
+        ],
+        [
+          "Eugène Chaboud"
+        ],
+        [
+          "Toni Branca"
+        ],
+        [
+          "David Hampshire"
+        ],
+        [
+          "Geoff Crossley"
+        ],
+        [
+          "Luigi Fagioli"
+        ],
+        [
+          "Cuth Harrison"
+        ],
+        [
+          "Eugène Martin"
+        ]
+      ],
+      "columnTypes": [
+        "TEXT"
+      ],
+      "rowCount": 103,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_22201682-24d0-4258-9834-e2d93aef036d"
+  }
+}

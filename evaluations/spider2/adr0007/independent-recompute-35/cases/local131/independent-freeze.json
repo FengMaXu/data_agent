@@ -1,0 +1,239 @@
+{
+  "frozenAt": "2026-10-11T09:00:19.624Z",
+  "instance_id": "local131",
+  "independent": true,
+  "taskId": "task_09ea77a9-d637-443d-99eb-6c1ee236baf1",
+  "revisionId": "revision_28d61427-9c7b-4c43-a23e-f1f61f39ca4d",
+  "publication": {
+    "receiptId": "publication_dac26812-c4bb-467f-a93f-4424e4cb43b8",
+    "taskId": "task_09ea77a9-d637-443d-99eb-6c1ee236baf1",
+    "principalId": "independent-analyst",
+    "sessionId": "local131",
+    "candidateId": "candidate_58cb9328-42d5-49c5-b4fa-073bad7b7cdc",
+    "revisionId": "revision_28d61427-9c7b-4c43-a23e-f1f61f39ca4d",
+    "resultRef": "result_593f9936-b95b-412d-9dc1-125fb4bc28c0",
+    "format": "csv",
+    "publicRef": "/api/runtime/publications/publication_dac26812-c4bb-467f-a93f-4424e4cb43b8?session_id=local131",
+    "contentHash": "ac48bf5e5fb3fe2ba735a22f7acc9653f3cda3ba08e3b46c68976c1ef1e955d5",
+    "presentationContentHash": "7d20cc9c407bd63970c3dd17784fc65b6fd52d381dfcd098aff1216eb2aea8f4",
+    "coverage": [
+      {
+        "checkId": "result_completeness",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_shape",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_identity",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "join_fanout",
+        "outcome": "unknown",
+        "reason": "check_disabled"
+      },
+      {
+        "checkId": "spec_feedback",
+        "ruleVersion": "spec-feedback-v2",
+        "outcome": "not_applicable",
+        "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+      }
+    ],
+    "fanout": {
+      "ruleVersion": "answering-fanout-v1",
+      "status": "unknown",
+      "snapshotScope": "unbound",
+      "targets": [],
+      "unsupportedReasons": [
+        "check_disabled"
+      ]
+    },
+    "disclosure": {
+      "required": true,
+      "unverifiedFields": [
+        {
+          "path": "population.eligibility",
+          "kind": "assumed"
+        },
+        {
+          "path": "population.time",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.formula",
+          "kind": "assumed"
+        },
+        {
+          "path": "grouping",
+          "kind": "assumed"
+        },
+        {
+          "path": "output",
+          "kind": "assumed"
+        }
+      ],
+      "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.time, measure.formula, grouping, output。 JOIN fanout 检查未能完整完成：check_disabled。",
+      "fanoutStatus": "unknown"
+    },
+    "physicalProfile": {
+      "version": 1,
+      "rowCount": 25,
+      "truncated": false,
+      "columns": [
+        {
+          "name": "StyleName",
+          "kind": "text",
+          "nullCount": 0,
+          "distinctCount": 25
+        },
+        {
+          "name": "FirstPreference",
+          "kind": "integer",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 3,
+          "min": "0",
+          "max": "2"
+        },
+        {
+          "name": "SecondPreference",
+          "kind": "integer",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 3,
+          "min": "0",
+          "max": "2"
+        },
+        {
+          "name": "ThirdPreference",
+          "kind": "integer",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 2,
+          "min": "0",
+          "max": "1"
+        }
+      ]
+    },
+    "policyVersion": "answering-publication-v1",
+    "createdByInvocationId": "0140cd68-9dc2-4027-ace4-4413889818ce",
+    "requestId": "0140cd68-9dc2-4027-ace4-4413889818ce",
+    "createdAt": "2026-10-11T09:00:16.781Z"
+  },
+  "currentRevision": {
+    "taskId": "task_09ea77a9-d637-443d-99eb-6c1ee236baf1",
+    "revisionId": "revision_28d61427-9c7b-4c43-a23e-f1f61f39ca4d",
+    "parentRevisionId": "revision_c69a8ea3-c5f9-4585-8ed6-1d8d92efdf4b",
+    "requestId": "c6693678-5072-4bf9-8aff-c4b9653610b4",
+    "createdAt": "2026-10-11T09:00:12.380Z",
+    "fields": {
+      "population.entity": {
+        "state": "specified",
+        "value": {
+          "name": "musical style keyed by StyleID"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_b714ba4f-2bee-4d3c-840f-94e09dff3375"
+          ]
+        }
+      },
+      "population.eligibility": {
+        "state": "specified",
+        "value": "All catalog styles including zero preferences",
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "population.time": {
+        "state": "specified",
+        "value": {
+          "expression": "All available records"
+        },
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "measure.formula": {
+        "state": "specified",
+        "value": {
+          "op": "custom",
+          "description": "For each StyleID count Musical_Preferences rows separately for PreferenceSeq 1,2,3; zero for absent rows"
+        },
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "grouping": {
+        "state": "specified",
+        "value": [
+          "StyleID",
+          "StyleName"
+        ],
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "selection": {
+        "state": "not_applicable"
+      },
+      "output": {
+        "state": "specified",
+        "value": {
+          "rowMode": "full",
+          "columns": [
+            "StyleName",
+            "FirstPreference",
+            "SecondPreference",
+            "ThirdPreference"
+          ]
+        },
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "population.conditions": {
+        "state": "not_applicable"
+      }
+    },
+    "state": {
+      "state": "ready",
+      "revisionId": "revision_28d61427-9c7b-4c43-a23e-f1f61f39ca4d",
+      "ready": "ready_2ead3421-1395-453b-b1c3-7d8cedfa6831"
+    },
+    "specFeedback": {
+      "taskId": "task_09ea77a9-d637-443d-99eb-6c1ee236baf1",
+      "revisionId": "revision_28d61427-9c7b-4c43-a23e-f1f61f39ca4d",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_b714ba4f-2bee-4d3c-840f-94e09dff3375",
+        "evidence_60e41544-7552-46b3-93a8-4acf9e2fd267",
+        "evidence_af5b7910-3b83-435b-90ac-b4848786eec5"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    }
+  },
+  "analystNote": {
+    "algorithm": "catalog left join with three conditional counts",
+    "assumptions": [
+      "each includes zero-count styles"
+    ],
+    "checks": "sequence distribution and count conservation queried"
+  },
+  "settings": {
+    "qualification": "required",
+    "fieldProbes": true,
+    "externalAdvisor": "not_configured",
+    "specFeedback": "not_configured",
+    "fanout": "disabled_for_offline_audit",
+    "populationDecisions": "allow_disclosed_headless_audit",
+    "databaseReadOnly": true
+  }
+}

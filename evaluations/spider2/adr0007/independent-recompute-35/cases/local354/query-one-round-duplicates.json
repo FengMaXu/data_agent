@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT r.year,re.driver_id,d.forename,d.surname,COUNT(*) result_rows,COUNT(DISTINCT r.round) rounds FROM results re JOIN races r USING(race_id) JOIN drivers d USING(driver_id) WHERE r.year BETWEEN 1950 AND 1959 GROUP BY r.year,re.driver_id HAVING COUNT(*)>=2 AND COUNT(DISTINCT round)=1 ORDER BY r.year,re.driver_id",
+  "limit": 200
+}

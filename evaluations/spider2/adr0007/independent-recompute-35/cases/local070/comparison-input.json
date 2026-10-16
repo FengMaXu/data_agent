@@ -1,0 +1,73 @@
+{
+  "revealedAt": "2026-10-11T09:00:35.441Z",
+  "registry": {
+    "instance_id": "local070",
+    "attempt_id": "attempt-001",
+    "score": 0,
+    "score_source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-attempt-001.json",
+    "replayed_csv_score": 0,
+    "group": "wrong",
+    "status": "completed",
+    "publication_status": "published",
+    "duration_ms": 312098,
+    "tool_calls": 16,
+    "error": null,
+    "result_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local070/attempts/attempt-001/result.json",
+    "trace_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local070/attempts/attempt-001/trace.json",
+    "result_exists": true,
+    "trace_exists": true,
+    "sql_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local070/attempts/attempt-001/submissions/sql/local070.sql",
+    "csv_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local070.csv",
+    "sql_exists": true,
+    "csv_exists": true,
+    "gold_sql_file": null,
+    "process": {
+      "turns": 13,
+      "toolCalls": 16,
+      "explorationQueries": 4,
+      "resultQueries": 1,
+      "fanoutProbes": 0,
+      "revisions": 3
+    },
+    "fanout_metrics": {
+      "reportCount": 1,
+      "targetCount": 0,
+      "findingCount": 0,
+      "unknownCount": 0,
+      "byStatus": {
+        "clear": 0,
+        "finding": 0,
+        "not_applicable": 1,
+        "unknown": 0
+      },
+      "enabled": true
+    },
+    "spec_feedback_metrics": {
+      "reportCount": 2,
+      "byStatus": {
+        "pending": 0,
+        "completed": 0,
+        "unavailable": 2,
+        "disabled": 0
+      },
+      "deterministicIssueCount": 0,
+      "concernCount": 0,
+      "enabled": true
+    }
+  },
+  "originalSql": "WITH d AS (\n  SELECT DISTINCT insert_date AS dt FROM cities\n  WHERE country_code_2='cn' AND insert_date >= '2021-07-01' AND insert_date <= '2021-07-31'\n), g AS (\n  SELECT dt, CAST(julianday(dt) - ROW_NUMBER() OVER (ORDER BY dt) AS INT) AS grp FROM d\n), runs AS (\n  SELECT grp, COUNT(*) AS len FROM g GROUP BY grp\n), sel AS (\n  SELECT grp FROM runs WHERE len = (SELECT MIN(len) FROM runs)\n  UNION\n  SELECT grp FROM runs WHERE len = (SELECT MAX(len) FROM runs)\n), rep AS (\n  SELECT insert_date, MIN(city_name) AS city_name FROM cities\n  WHERE country_code_2='cn' AND insert_date >= '2021-07-01' AND insert_date <= '2021-07-31'\n  GROUP BY insert_date\n)\nSELECT g.dt AS insert_date,\n       UPPER(SUBSTR(rep.city_name,1,1)) || LOWER(SUBSTR(rep.city_name,2)) AS city_name\nFROM g\nJOIN sel ON sel.grp = g.grp\nJOIN rep ON rep.insert_date = g.dt\nORDER BY g.dt\n",
+  "originalCsv": "insert_date,city_name\n2021-07-12,Gaotan\n2021-07-13,Yaopu\n2021-07-19,Bakeshiyingcun\n2021-07-20,Nanyang\n2021-07-21,Chengjiao chengguanzhen\n2021-07-22,Hanzhong\n2021-07-23,Lanxi\n2021-07-24,Huichang\n2021-07-25,Beichengqu\n2021-07-26,Xinqing\n2021-07-27,Dangcheng\n2021-07-28,Bengbu\n2021-07-29,Hushihacun\n2021-07-30,Shuilou\n2021-07-31,Xihuachi\n",
+  "goldSql": null,
+  "goldCsv": [
+    {
+      "path": "C:\\data-agent-eval\\Spider2\\spider2-lite\\evaluation_suite\\gold\\exec_result\\local070.csv",
+      "content": "most_consecutive_dates,city_name\r\n2021-07-12,Xiaoganzhan\r\n2021-07-13,Yaopu\r\n2021-07-19,Yuquan\r\n2021-07-20,Nanyang\r\n2021-07-21,Chengjiao chengguanzhen\r\n2021-07-22,Hanzhong\r\n2021-07-23,Yunfu\r\n2021-07-24,Huichang\r\n2021-07-25,Beichengqu\r\n2021-07-26,Xinqing\r\n2021-07-27,Dongxing\r\n2021-07-28,Bengbu\r\n2021-07-29,Tongzhou\r\n2021-07-30,Tumen\r\n2021-07-31,Xihuachi\r\n"
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local070",
+    "condition_cols": [],
+    "ignore_order": true,
+    "toks": "164"
+  }
+}

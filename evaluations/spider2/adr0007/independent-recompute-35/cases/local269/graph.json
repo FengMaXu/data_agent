@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT p.id,p.name,r.contains_id,r.qty FROM packaging p LEFT JOIN packaging_relations r ON p.id=r.packaging_id ORDER BY p.id,r.contains_id",
+  "limit": 1000
+}

@@ -1,0 +1,9 @@
+{
+  "fields": {
+    "population.entity": {
+      "value": "individual football player identified by player_api_id",
+      "basis": "request",
+      "quote": "Which player"
+    }
+  }
+}

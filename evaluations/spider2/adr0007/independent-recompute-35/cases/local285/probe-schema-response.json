@@ -1,0 +1,113 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_82069971-34a4-45c7-8c09-25fdf79e6262\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\npart | n | lo | hi | items\nwholesale | 55982 | 2020-07-01 00:00:00 | 2023-06-30 00:00:00 | 251\ntransactions | 878503 | 2020-07-01 00:00:00 | 2023-06-30 00:00:00 | 246\ncategories | 251 | Aquatic Tuberous Vegetables | Solanum | 251\nloss | 251 | 0 | 29.25 | 251"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_82069971-34a4-45c7-8c09-25fdf79e6262",
+      "preview": {
+        "columns": [
+          "part",
+          "n",
+          "lo",
+          "hi",
+          "items"
+        ],
+        "rows": [
+          [
+            "wholesale",
+            55982,
+            "2020-07-01 00:00:00",
+            "2023-06-30 00:00:00",
+            251
+          ],
+          [
+            "transactions",
+            878503,
+            "2020-07-01 00:00:00",
+            "2023-06-30 00:00:00",
+            246
+          ],
+          [
+            "categories",
+            251,
+            "Aquatic Tuberous Vegetables",
+            "Solanum",
+            251
+          ],
+          [
+            "loss",
+            251,
+            0,
+            29.25,
+            251
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "TEXT",
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 4,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "part",
+        "n",
+        "lo",
+        "hi",
+        "items"
+      ],
+      "rows": [
+        [
+          "wholesale",
+          55982,
+          "2020-07-01 00:00:00",
+          "2023-06-30 00:00:00",
+          251
+        ],
+        [
+          "transactions",
+          878503,
+          "2020-07-01 00:00:00",
+          "2023-06-30 00:00:00",
+          246
+        ],
+        [
+          "categories",
+          251,
+          "Aquatic Tuberous Vegetables",
+          "Solanum",
+          251
+        ],
+        [
+          "loss",
+          251,
+          0,
+          29.25,
+          251
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "TEXT",
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 4,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_de4c6c6f-88cf-417f-8980-5a1c39b93081"
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "sql": "WITH r AS (SELECT *,row_number() over(partition by id_bioguide order by term_start,term_number,term_id) rn FROM legislators_terms) SELECT count(distinct l.id_bioguide) first_la_men,count(distinct CASE WHEN EXISTS(SELECT 1 FROM legislators_terms t WHERE t.id_bioguide=l.id_bioguide AND t.state<>'LA') THEN l.id_bioguide END) changed_state FROM legislators l JOIN r USING(id_bioguide) WHERE rn=1 AND gender='M' AND state='LA'",
+  "limit": 1000
+}

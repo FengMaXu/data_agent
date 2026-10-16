@@ -1,0 +1,16 @@
+{
+  "instance_id": "local037",
+  "db": "Brazilian_E_Commerce",
+  "database_path": "C:/data-agent-eval/Spider2/spider2-lite/resource/databases/Brazilian_E_Commerce.sqlite",
+  "question": "Identify the top three product categories whose most commonly used payment type has the highest number of payments across all categories, and specify the number of payments made in each category using that payment type.",
+  "task_source": "C:/data-agent-eval/Spider2/spider2-lite/spider2-lite.jsonl",
+  "documents": {},
+  "formal_ddl": [
+    {
+      "path": "C:/data-agent-eval/Spider2/spider2-lite/resource/databases/sqlite/Brazilian_E_Commerce/DDL.csv",
+      "content": "table_name,DDL\nolist_customers,\"CREATE TABLE olist_customers (\n    customer_id TEXT,\n    customer_unique_id TEXT,\n    customer_zip_code_prefix BIGINT,\n    customer_city TEXT,\n    customer_state TEXT\n);\"\nolist_sellers,\"CREATE TABLE olist_sellers (\n    seller_id TEXT,\n    seller_zip_code_prefix BIGINT,\n    seller_city TEXT,\n    seller_state TEXT\n);\"\nolist_order_reviews,\"CREATE TABLE olist_order_reviews (\n    review_id TEXT,\n    order_id TEXT,\n    review_score BIGINT,\n    review_comment_title TEXT,\n    review_comment_message TEXT,\n    review_creation_date TEXT,\n    review_answer_timestamp TEXT\n);\"\nolist_order_items,\"CREATE TABLE olist_order_items (\n    order_id TEXT,\n    order_item_id BIGINT,\n    product_id TEXT,\n    seller_id TEXT,\n    shipping_limit_date TEXT,\n    price FLOAT,\n    freight_value FLOAT\n);\"\nolist_products,\"CREATE TABLE olist_products (\n    product_id TEXT,\n    product_category_name TEXT,\n    product_name_lenght FLOAT,\n    product_description_lenght FLOAT,\n    product_photos_qty FLOAT,\n    product_weight_g FLOAT,\n    product_length_cm FLOAT,\n    product_height_cm FLOAT,\n    product_width_cm FLOAT\n);\"\nolist_geolocation,\"CREATE TABLE olist_geolocation (\n    geolocation_zip_code_prefix BIGINT,\n    geolocation_lat FLOAT,\n    geolocation_lng FLOAT,\n    geolocation_city TEXT,\n    geolocation_state TEXT\n);\"\nproduct_category_name_translation,\"CREATE TABLE product_category_name_translation (\n    product_category_name TEXT,\n    product_category_name_english TEXT\n);\"\nolist_orders,\"CREATE TABLE olist_orders (\n    order_id TEXT,\n    customer_id TEXT,\n    order_status TEXT,\n    order_purchase_timestamp TEXT,\n    order_approved_at TEXT,\n    order_delivered_carrier_date TEXT,\n    order_delivered_customer_date TEXT,\n    order_estimated_delivery_date TEXT\n);\"\nolist_order_payments,\"CREATE TABLE olist_order_payments (\n    order_id TEXT,\n    payment_sequential BIGINT,\n    payment_type TEXT,\n    payment_installments BIGINT,\n    payment_value FLOAT\n);\"\nolist_products_dataset,\"CREATE TABLE olist_products_dataset (\n    index BIGINT,\n    product_id TEXT,\n    product_category_name TEXT,\n    product_name_lenght FLOAT,\n    product_description_lenght FLOAT,\n    product_photos_qty FLOAT,\n    product_weight_g FLOAT,\n    product_length_cm FLOAT,\n    product_height_cm FLOAT,\n    product_width_cm FLOAT\n);\"\n"
+    }
+  ],
+  "blind_packet": true,
+  "note": "No original SQL, prior diagnosis, semantic labels, Gold SQL or Gold results. Freeze and publish independent solution before reveal."
+}

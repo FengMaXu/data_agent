@@ -1,0 +1,285 @@
+{
+  "frozenAt": "2026-10-11T10:03:08.352Z",
+  "instance_id": "local096",
+  "independent": true,
+  "taskId": "task_8f48f1b9-67d7-4ac0-be97-e687527c5a22",
+  "revisionId": "revision_f0dec9fa-125c-4141-bd9d-cff06c142f7c",
+  "publication": {
+    "receiptId": "publication_e6432aaa-bac2-4c1b-85ac-a79cb8f8c5d5",
+    "taskId": "task_8f48f1b9-67d7-4ac0-be97-e687527c5a22",
+    "principalId": "independent-analyst",
+    "sessionId": "local096",
+    "candidateId": "candidate_e66469f5-bf89-4a21-b2a1-38a2ad792586",
+    "revisionId": "revision_f0dec9fa-125c-4141-bd9d-cff06c142f7c",
+    "resultRef": "result_e6249ef6-0065-4e6c-92a7-4d3d3de8c9ba",
+    "format": "csv",
+    "publicRef": "/api/runtime/publications/publication_e6432aaa-bac2-4c1b-85ac-a79cb8f8c5d5?session_id=local096",
+    "contentHash": "e974fe9e9ef3a819e3530dd9295a40c3eacd4ba8a75738b3eb18a39ee7f4496d",
+    "presentationContentHash": "17ac62057bb50b8b7bfa3f3a8566d233fa1600c508cb2fce81b72c9387a38dea",
+    "coverage": [
+      {
+        "checkId": "result_completeness",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_shape",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_identity",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "join_fanout",
+        "outcome": "unknown",
+        "reason": "check_disabled"
+      },
+      {
+        "checkId": "spec_feedback",
+        "ruleVersion": "spec-feedback-v2",
+        "outcome": "not_applicable",
+        "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+      }
+    ],
+    "fanout": {
+      "ruleVersion": "answering-fanout-v1",
+      "status": "unknown",
+      "snapshotScope": "unbound",
+      "targets": [],
+      "unsupportedReasons": [
+        "check_disabled"
+      ]
+    },
+    "disclosure": {
+      "required": true,
+      "unverifiedFields": [
+        {
+          "path": "population.eligibility",
+          "kind": "assumed"
+        },
+        {
+          "path": "population.conditions",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.formula",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.countGrain",
+          "kind": "assumed"
+        }
+      ],
+      "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.conditions, measure.formula, measure.countGrain。 JOIN fanout 检查未能完整完成：check_disabled。",
+      "fanoutStatus": "unknown"
+    },
+    "physicalProfile": {
+      "version": 1,
+      "rowCount": 78,
+      "truncated": false,
+      "columns": [
+        {
+          "name": "year",
+          "kind": "integer",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 78,
+          "min": "1931",
+          "max": "2018"
+        },
+        {
+          "name": "total_movies",
+          "kind": "integer",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 52,
+          "min": "1",
+          "max": "136"
+        },
+        {
+          "name": "female_percentage",
+          "kind": "decimal",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 5,
+          "min": "0",
+          "max": "50"
+        }
+      ]
+    },
+    "policyVersion": "answering-publication-v1",
+    "createdByInvocationId": "77cbdbae-89eb-44e7-b786-9023150259bf",
+    "requestId": "77cbdbae-89eb-44e7-b786-9023150259bf",
+    "createdAt": "2026-10-11T10:03:06.551Z"
+  },
+  "currentRevision": {
+    "taskId": "task_8f48f1b9-67d7-4ac0-be97-e687527c5a22",
+    "revisionId": "revision_f0dec9fa-125c-4141-bd9d-cff06c142f7c",
+    "parentRevisionId": "revision_d020730a-81de-41ab-a34e-6ab38a174364",
+    "requestId": "133e62df-fb96-4ace-91ef-d84b35dddcac",
+    "createdAt": "2026-10-11T10:03:03.679Z",
+    "fields": {
+      "population.entity": {
+        "state": "specified",
+        "value": {
+          "name": "films",
+          "keyColumns": [
+            "Movie.MID"
+          ]
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_40939b29-18c9-49b8-af8b-7af8d4e96026"
+          ]
+        }
+      },
+      "population.eligibility": {
+        "state": "specified",
+        "value": "分母所有电影；分子至少一cast且所有Person明确Female，空cast排除分子",
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+        }
+      },
+      "population.conditions": {
+        "state": "specified",
+        "value": [
+          "分子排除Male、None、SQL NULL或无法连接演员；演员身份外围空白清理"
+        ],
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+        }
+      },
+      "population.time": {
+        "state": "specified",
+        "value": {
+          "expression": "全年份；CAST(substr(Movie.year,-4) AS INTEGER)"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_8b43b9ca-56bb-45ce-bee8-33a09b307306"
+          ]
+        }
+      },
+      "measure.formula": {
+        "state": "specified",
+        "value": {
+          "op": "custom",
+          "description": "先按电影聚合cast资格，再按年100*符合电影数/全部电影数；重复Person同PID保守合并，TRIM cast MID/PID"
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+        }
+      },
+      "measure.countGrain": {
+        "state": "specified",
+        "value": "一部MID一票",
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+        }
+      },
+      "measure.denominator": {
+        "state": "specified",
+        "value": "该年全部Movie",
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_fee9a513-e5b9-407d-a49c-17d0178624f1"
+          ]
+        }
+      },
+      "grouping": {
+        "state": "specified",
+        "value": [
+          "year"
+        ],
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_568f2e85-65e1-4251-9fcc-22198b0570af"
+          ]
+        }
+      },
+      "selection": {
+        "state": "not_applicable"
+      },
+      "output": {
+        "state": "specified",
+        "value": {
+          "rowMode": "grouped",
+          "columns": [
+            "year",
+            "total_movies",
+            "female_percentage"
+          ]
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_d5da19d0-51da-4d4d-bc8c-57d809d5430f"
+          ]
+        }
+      }
+    },
+    "state": {
+      "state": "ready",
+      "revisionId": "revision_f0dec9fa-125c-4141-bd9d-cff06c142f7c",
+      "ready": "ready_cee21f8b-390a-4008-96c9-85595a34e87e"
+    },
+    "rewrites": [
+      {
+        "path": "population.entity",
+        "reason": "登记已独立推导的答案；不以字段表决定业务算法。"
+      }
+    ],
+    "specFeedback": {
+      "taskId": "task_8f48f1b9-67d7-4ac0-be97-e687527c5a22",
+      "revisionId": "revision_f0dec9fa-125c-4141-bd9d-cff06c142f7c",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_3a9a7269-7979-4efc-8279-86db8cdf7283",
+        "evidence_adc6ea98-f3a6-44cf-aa3a-69ee51d84353",
+        "evidence_cc93e22a-eacd-41d8-b73d-138451c7bb21",
+        "evidence_557a0e23-1f47-4632-b631-895b49e6c4b8",
+        "evidence_52943571-df7d-478b-a38d-caf06e64e7b6",
+        "evidence_22b2dbc4-cdfd-4d74-8b9c-98a56bbfeaff",
+        "evidence_72a94aee-6edb-45a6-bd4e-2716756a973c",
+        "evidence_20be9bf4-d5df-4b56-814c-fb40cf18a74b",
+        "evidence_40939b29-18c9-49b8-af8b-7af8d4e96026",
+        "evidence_8b43b9ca-56bb-45ce-bee8-33a09b307306",
+        "evidence_fee9a513-e5b9-407d-a49c-17d0178624f1",
+        "evidence_568f2e85-65e1-4251-9fcc-22198b0570af",
+        "evidence_d5da19d0-51da-4d4d-bc8c-57d809d5430f"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    }
+  },
+  "analystNote": {
+    "algorithm": "TRIM cast identity; duplicate Person group with any non-Female disqualifies; all Movie denominator; nonempty cast numerator; exact year suffix",
+    "assumptions": [
+      "空cast不满足had exclusively female actors；重复Person保守合并",
+      "外围空白键规范化"
+    ],
+    "limitations": [
+      "同PID冲突和空cast解释单独保留备选"
+    ]
+  },
+  "settings": {
+    "qualification": "required",
+    "fieldProbes": true,
+    "externalAdvisor": "not_configured",
+    "specFeedback": "not_configured",
+    "fanout": "disabled_for_offline_audit",
+    "populationDecisions": "allow_disclosed_headless_audit",
+    "databaseReadOnly": true
+  }
+}

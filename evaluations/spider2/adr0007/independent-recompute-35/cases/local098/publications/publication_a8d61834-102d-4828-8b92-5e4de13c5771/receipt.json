@@ -1,0 +1,89 @@
+{
+  "receiptId": "publication_a8d61834-102d-4828-8b92-5e4de13c5771",
+  "taskId": "task_60e61a4a-e567-4c9d-b18e-50861ce36ab9",
+  "principalId": "independent-analyst",
+  "sessionId": "local098",
+  "candidateId": "candidate_3c46ca21-11c8-4f1f-b752-562700d08743",
+  "revisionId": "revision_8c8c1ff3-c2f1-4731-a893-7bf4c2f00992",
+  "resultRef": "result_186a1e05-18dc-477a-aced-4543b735494e",
+  "format": "csv",
+  "publicRef": "/api/runtime/publications/publication_a8d61834-102d-4828-8b92-5e4de13c5771?session_id=local098",
+  "contentHash": "08b6ad9f7eb397f96471200f6a52e5dd686493ad2b0f5eea05f1b2981821dc34",
+  "presentationContentHash": "e9bf9b844e5ce7cc36f01d6cca8c7726e6e2a39834bd7cae11fc1054ea433966",
+  "coverage": [
+    {
+      "checkId": "result_completeness",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "result_shape",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "result_identity",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "join_fanout",
+      "outcome": "not_applicable"
+    },
+    {
+      "checkId": "spec_feedback",
+      "ruleVersion": "spec-feedback-v2",
+      "outcome": "not_applicable",
+      "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+    }
+  ],
+  "fanout": {
+    "ruleVersion": "answering-fanout-v1",
+    "status": "not_applicable",
+    "snapshotScope": "unbound",
+    "targets": []
+  },
+  "disclosure": {
+    "required": true,
+    "unverifiedFields": [
+      {
+        "path": "population.eligibility",
+        "kind": "assumed"
+      },
+      {
+        "path": "population.conditions",
+        "kind": "assumed"
+      },
+      {
+        "path": "measure.formula",
+        "kind": "assumed"
+      },
+      {
+        "path": "measure.countGrain",
+        "kind": "assumed"
+      },
+      {
+        "path": "output",
+        "kind": "assumed"
+      }
+    ],
+    "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.conditions, measure.formula, measure.countGrain, output。"
+  },
+  "physicalProfile": {
+    "version": 1,
+    "rowCount": 1,
+    "truncated": false,
+    "columns": [
+      {
+        "name": "actors_without_four_year_gap",
+        "kind": "integer",
+        "encodedAs": "number",
+        "nullCount": 0,
+        "distinctCount": 1,
+        "min": "28698",
+        "max": "28698"
+      }
+    ]
+  },
+  "policyVersion": "answering-publication-v1",
+  "createdByInvocationId": "69a4b71d-7899-4fab-89f8-cc30ce429302",
+  "requestId": "69a4b71d-7899-4fab-89f8-cc30ce429302",
+  "createdAt": "2026-10-11T10:09:14.981Z"
+}

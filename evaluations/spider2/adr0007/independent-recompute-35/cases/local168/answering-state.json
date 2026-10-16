@@ -1,0 +1,1685 @@
+{
+  "version": 2,
+  "tasks": [
+    {
+      "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+      "sessionId": "local168",
+      "principalId": "independent-analyst",
+      "requestMessageId": "original-task",
+      "requestId": "3ebb6b16-27a9-4897-b0a9-14b7e9f2bd4a",
+      "currentRevisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+      "lifecycle": "published",
+      "budget": {
+        "policy": {
+          "version": "answering-dual-loop-v1",
+          "maxRevisions": 40,
+          "maxExplorationAttempts": 120,
+          "maxResultAttempts": 20,
+          "maxElapsedMs": 14400000,
+          "maxObservedRows": 2000000
+        },
+        "startedAt": "2026-10-11T09:20:29.716Z",
+        "revisionCount": 1,
+        "explorationAttempts": 27,
+        "resultAttempts": 1,
+        "observedRows": 50
+      },
+      "createdAt": "2026-10-11T09:20:29.716Z",
+      "updatedAt": "2026-10-11T09:28:53.663Z",
+      "latestCandidateId": "candidate_544735b4-a1bd-478b-8243-eff58c7a77a8",
+      "publicationId": "publication_8fff63c6-512d-4d0a-a880-0461a8a98d53"
+    }
+  ],
+  "revisions": [
+    {
+      "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+      "revisionId": "revision_65a7c6d9-3acc-4263-9140-59d3921d74b6",
+      "requestId": "3ebb6b16-27a9-4897-b0a9-14b7e9f2bd4a",
+      "createdAt": "2026-10-11T09:20:29.716Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "远程Data Analyst职位发布，job_id"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_69cf6f90-c0f4-4da2-a2ce-f1ecb82f8f9d"
+            ]
+          }
+        }
+      },
+      "state": {
+        "state": "draft",
+        "revisionId": "revision_65a7c6d9-3acc-4263-9140-59d3921d74b6"
+      },
+      "specFeedback": {
+        "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+        "revisionId": "revision_65a7c6d9-3acc-4263-9140-59d3921d74b6",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_69cf6f90-c0f4-4da2-a2ce-f1ecb82f8f9d"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    },
+    {
+      "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+      "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+      "parentRevisionId": "revision_65a7c6d9-3acc-4263-9140-59d3921d74b6",
+      "requestId": "6a97f5a6-4e2d-4e72-9364-d3dce9f79d9a",
+      "createdAt": "2026-10-11T09:22:00.623Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "远程Data Analyst职位发布，job_id"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_69cf6f90-c0f4-4da2-a2ce-f1ecb82f8f9d"
+            ]
+          }
+        },
+        "population.eligibility": {
+          "state": "specified",
+          "value": "Distinct postings with exact Data Analyst short title, non-null salary_year_avg, remote=1; then require at least one of top3 skills",
+          "basis": {
+            "kind": "assumed",
+            "rationale": "Salary is per posting, OR of selected skills; ranking within same eligible cohort"
+          }
+        },
+        "population.conditions": {
+          "state": "specified",
+          "value": [
+            "job_title_short='Data Analyst'",
+            "salary_year_avg IS NOT NULL",
+            "job_work_from_home=1"
+          ],
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_a31c84bb-85e2-40ae-8b84-ecbb25a826d2"
+            ]
+          }
+        },
+        "population.time": {
+          "state": "not_applicable"
+        },
+        "measure.formula": {
+          "state": "specified",
+          "value": {
+            "op": "avg",
+            "of": "salary_year_avg"
+          },
+          "basis": {
+            "kind": "assumed",
+            "rationale": "Overall average of distinct jobs requesting any selected skill"
+          }
+        },
+        "measure.countGrain": {
+          "state": "specified",
+          "value": "each distinct job_id exactly once",
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "measure.denominator": {
+          "state": "specified",
+          "value": "number of distinct eligible jobs requiring at least one selected top3 skill; empty set gives NULL",
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "grouping": {
+          "state": "not_applicable"
+        },
+        "selection": {
+          "state": "specified",
+          "value": {
+            "n": 3,
+            "orderBy": "skill demand DESC, skill_id ASC"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_f7981831-035f-4e25-b5da-543b6ce6f393"
+            ]
+          }
+        },
+        "selection.ties": {
+          "state": "specified",
+          "value": "strict",
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "output": {
+          "state": "specified",
+          "value": {
+            "rowMode": "scalar",
+            "columns": [
+              "overall_average_salary"
+            ]
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_a61ee7db-c1be-4926-8a40-573cea1a1dce"
+            ]
+          }
+        }
+      },
+      "state": {
+        "state": "ready",
+        "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+        "ready": "ready_179e4e3c-f9de-4994-9d42-f2c5cd9288c7"
+      },
+      "specFeedback": {
+        "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+        "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_69cf6f90-c0f4-4da2-a2ce-f1ecb82f8f9d",
+          "evidence_3391c05d-a76f-43eb-87c8-82aaf66ac6ee",
+          "evidence_67fd3550-aff8-490e-9844-e0f2f20fa362",
+          "evidence_345b2053-dd93-4b42-aa6d-eabb60ad9106",
+          "evidence_3cf8ae5c-cfa4-4b5e-8845-7dbceb10fadc",
+          "evidence_bb7a3d63-8dcf-4f5f-8ef6-59bf4085482d",
+          "evidence_2742df99-947c-4373-be20-2b068a9fdc03",
+          "evidence_420ac883-ee01-4c6e-9853-6e30c0971326",
+          "evidence_bead62ca-7845-4112-b4fe-a3e97409f2ce",
+          "evidence_a31c84bb-85e2-40ae-8b84-ecbb25a826d2",
+          "evidence_f7981831-035f-4e25-b5da-543b6ce6f393",
+          "evidence_a61ee7db-c1be-4926-8a40-573cea1a1dce"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+      "items": [
+        {
+          "id": "request_be3e2f2bd519d830902bceb0",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "observedAt": "2026-10-11T09:20:29.716Z"
+        },
+        {
+          "id": "evidence_69cf6f90-c0f4-4da2-a2ce-f1ecb82f8f9d",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "1808ce073150245fe1afe7e65c11c5f34d69a677fcb5268773d49289bdb0d16f",
+          "quote": "job postings",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "1808ce073150245fe1afe7e65c11c5f34d69a677fcb5268773d49289bdb0d16f"
+          },
+          "observedAt": "2026-10-11T09:20:29.716Z"
+        },
+        {
+          "id": "evidence_3391c05d-a76f-43eb-87c8-82aaf66ac6ee",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "e1b1d4a2-2d69-48c0-a30b-717d980eb64d",
+          "preview": {
+            "columns": [
+              "rows",
+              "ids"
+            ],
+            "rows": [
+              [
+                46,
+                46
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "17efd88c67d20e4f9c40bccc507ee5ea8686c93227f4970033976232abe2bf88",
+          "contentHash": "79dce622ca1c8632b9eb30637bcb1c02ab1fc6ec0827c87f2638e0477662fe7d",
+          "observedAt": "2026-10-11T09:20:32.118Z"
+        },
+        {
+          "id": "evidence_67fd3550-aff8-490e-9844-e0f2f20fa362",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "7a0438dd-0d72-4b37-a7b1-3a75ac1332f4",
+          "preview": {
+            "columns": [
+              "rows",
+              "ids"
+            ],
+            "rows": [
+              [
+                26,
+                26
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "3c08357d06284c7fd098dc38155b2b44ee6dd25a911eaed624a375e640ad0395",
+          "contentHash": "9fdd88a980f081b57110677f3b7d66472b18616698fa31038c6796ca66d01451",
+          "observedAt": "2026-10-11T09:20:33.746Z"
+        },
+        {
+          "id": "evidence_345b2053-dd93-4b42-aa6d-eabb60ad9106",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "a7ae4eed-42c2-4075-b769-7b25f11c8203",
+          "preview": {
+            "columns": [
+              "skill_id",
+              "demand",
+              "skills"
+            ],
+            "rows": [
+              [
+                1,
+                3,
+                "python"
+              ],
+              [
+                187,
+                1,
+                "qlik"
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "TEXT"
+            ],
+            "rowCount": 2,
+            "truncated": false
+          },
+          "queryHash": "a9cdc08a78906087f4c174d103608e8d0db2e136261db37d0503a356639898e9",
+          "contentHash": "d0b2e802022b435504b7ce4a3c47989bb70a572a25843f3209879ce4b9f5b9b1",
+          "observedAt": "2026-10-11T09:20:45.461Z"
+        },
+        {
+          "id": "evidence_3cf8ae5c-cfa4-4b5e-8845-7dbceb10fadc",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "def69f8c-1994-4db5-b928-cfd8da50f3cd",
+          "preview": {
+            "columns": [
+              "jobs",
+              "salary",
+              "salary_sum"
+            ],
+            "rows": [
+              [
+                9,
+                92689.22222222222,
+                834203
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "REAL",
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "a8b155a29233aa06c321ce7c9867324805c8eaac1aca8bb06c44efe729d1662c",
+          "contentHash": "b0c6958ad28f37dedd15862f4f0a7dbc8634cd4dacf8f4ee1f92d2982b8827dc",
+          "observedAt": "2026-10-11T09:21:01.154Z"
+        },
+        {
+          "id": "evidence_bb7a3d63-8dcf-4f5f-8ef6-59bf4085482d",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "1d699554-b6a4-437e-b8fa-a3df8cb87d88",
+          "preview": {
+            "columns": [
+              "skill_id",
+              "skills",
+              "demand",
+              "rows",
+              "skill_salary"
+            ],
+            "rows": [
+              [
+                1,
+                "python",
+                3,
+                3,
+                106900
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "TEXT",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "679940ce6e8e7cf406d22113c1967f95f473297545cebc8cbb677e18db0d46ee",
+          "contentHash": "bcb4b9cde05240dd9c7bf2f66f0a79b6bdfc9fa80350473449b62ef72c6a670c",
+          "observedAt": "2026-10-11T09:21:19.737Z"
+        },
+        {
+          "id": "evidence_2742df99-947c-4373-be20-2b068a9fdc03",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "e1a3555c-dc90-43da-8b68-54ee580bb75b",
+          "preview": {
+            "columns": [
+              "link_rows",
+              "association_average"
+            ],
+            "rows": [
+              [
+                9,
+                92689.22222222222
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "REAL"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "b8e1d9960ad40fa65e4642da21a0bbcef2b3adcc66a2ba99958ba980caebb455",
+          "contentHash": "5674cd3f2b398adc96b61c589e17df1cb0664eb97583edec9353ad60f4b6299b",
+          "observedAt": "2026-10-11T09:21:35.973Z"
+        },
+        {
+          "id": "evidence_420ac883-ee01-4c6e-9853-6e30c0971326",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "05c0ce16-3f16-44e0-91d6-55ff01bbb76f",
+          "preview": {
+            "columns": [
+              "n_top_skills",
+              "jobs",
+              "salary"
+            ],
+            "rows": [
+              [
+                1,
+                9,
+                92689.22222222222
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "REAL"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "842c5ca1f4ca187ccdbabdea34634eb93824d95907f6ff620d29918e9be9c81c",
+          "contentHash": "0e219d117e7ec017b533e748e6d8f629b6fa147d8a695a4d14f834145ae42e0b",
+          "observedAt": "2026-10-11T09:21:48.087Z"
+        },
+        {
+          "id": "evidence_bead62ca-7845-4112-b4fe-a3e97409f2ce",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "2f91dfd4-aa9f-490d-8b7f-687341bbcee6",
+          "preview": {
+            "columns": [
+              "rows",
+              "unique_links"
+            ],
+            "rows": [
+              [
+                22,
+                22
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "0c6d042584efd9e8476745b7a116dbdfca0889bf988d71e2ff28695751fe4ec1",
+          "contentHash": "f4c6436c0dd05449b690b2c7745819ea98c5fda4cae41ee5aed0eb1439d207d4",
+          "observedAt": "2026-10-11T09:21:58.009Z"
+        },
+        {
+          "id": "evidence_a31c84bb-85e2-40ae-8b84-ecbb25a826d2",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "1808ce073150245fe1afe7e65c11c5f34d69a677fcb5268773d49289bdb0d16f",
+          "quote": "Data Analyst, require a non-null annual average salary, and are remote",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "1808ce073150245fe1afe7e65c11c5f34d69a677fcb5268773d49289bdb0d16f"
+          },
+          "observedAt": "2026-10-11T09:22:00.623Z"
+        },
+        {
+          "id": "evidence_f7981831-035f-4e25-b5da-543b6ce6f393",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "1808ce073150245fe1afe7e65c11c5f34d69a677fcb5268773d49289bdb0d16f",
+          "quote": "top three most frequently demanded skills",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "1808ce073150245fe1afe7e65c11c5f34d69a677fcb5268773d49289bdb0d16f"
+          },
+          "observedAt": "2026-10-11T09:22:00.623Z"
+        },
+        {
+          "id": "evidence_a61ee7db-c1be-4926-8a40-573cea1a1dce",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "1808ce073150245fe1afe7e65c11c5f34d69a677fcb5268773d49289bdb0d16f",
+          "quote": "overall average salary",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "1808ce073150245fe1afe7e65c11c5f34d69a677fcb5268773d49289bdb0d16f"
+          },
+          "observedAt": "2026-10-11T09:22:00.623Z"
+        },
+        {
+          "id": "evidence_91e5c494-571a-442d-9be7-17d570f442f3",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "07129048-e1f9-47e2-b7cc-789655e70f2d",
+          "preview": {
+            "columns": [
+              "skill_id",
+              "demand",
+              "skills"
+            ],
+            "rows": [
+              [
+                0,
+                3,
+                null
+              ],
+              [
+                1,
+                3,
+                "python"
+              ],
+              [
+                5,
+                3,
+                null
+              ],
+              [
+                181,
+                3,
+                null
+              ],
+              [
+                182,
+                3,
+                null
+              ],
+              [
+                8,
+                1,
+                null
+              ],
+              [
+                14,
+                1,
+                null
+              ],
+              [
+                22,
+                1,
+                null
+              ],
+              [
+                26,
+                1,
+                null
+              ],
+              [
+                183,
+                1,
+                null
+              ],
+              [
+                187,
+                1,
+                "qlik"
+              ],
+              [
+                192,
+                1,
+                null
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "NULL"
+            ],
+            "rowCount": 12,
+            "truncated": false
+          },
+          "queryHash": "33ac15e2cf89ef67d6d347d6e49264936860244127797e8fa4b7438db4c0e9e9",
+          "contentHash": "2a7ed34c911f170284c8dcd8e566cd380e9bcfc5adfd8211e9d56f9e50ec76ca",
+          "observedAt": "2026-10-11T09:23:13.957Z"
+        },
+        {
+          "id": "evidence_e09458af-3146-4fe1-a108-1c92d517dee6",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "746e5ceb-f42a-429b-9bed-45a11c28b411",
+          "preview": {
+            "columns": [
+              "job_title_short",
+              "n",
+              "ids"
+            ],
+            "rows": [
+              [
+                "Data Analyst",
+                17,
+                17
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "24ee70b81bdba0ab2b94857929842f90cc85b0645d574f6c49993dbcb7f2ccd2",
+          "contentHash": "8ae80849cfc45571c607be15db9c0ab8e794d24042041407f91108b484f5ad0e",
+          "observedAt": "2026-10-11T09:23:15.922Z"
+        },
+        {
+          "id": "evidence_35a3662e-fc70-47c9-9f36-76e2515c741e",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "d9093efd-c3bc-433d-83b0-d8b67b6697c1",
+          "preview": {
+            "columns": [
+              "avg_salary"
+            ],
+            "rows": [
+              [
+                104040.6
+              ]
+            ],
+            "columnTypes": [
+              "REAL"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "4802300df4381d4967cbfbcddf16189357772575e4dfc4b12b70f540cf21ebcd",
+          "contentHash": "9b6b18345e0fd64fc86c7d1860b1579cb55e9d33191a09f872eab311162bdacc",
+          "observedAt": "2026-10-11T09:23:30.066Z"
+        },
+        {
+          "id": "evidence_5aaba28d-b69e-45e6-9da9-8a7a884ec38c",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "33107a74-a90e-4a4d-b316-4ff984760a53",
+          "preview": {
+            "columns": [
+              "skill_id",
+              "demand",
+              "skills"
+            ],
+            "rows": [
+              [
+                0,
+                3,
+                null
+              ],
+              [
+                1,
+                3,
+                "python"
+              ],
+              [
+                5,
+                3,
+                null
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "NULL"
+            ],
+            "rowCount": 3,
+            "truncated": false
+          },
+          "queryHash": "74baaaed53e49b7a5a5c02bffcf3e12507ceebfea284494b6e83c5937c3f9779",
+          "contentHash": "5dc37b593726b9ffd3d8a6959e475346c6833f2759536b391e307818a5025d78",
+          "observedAt": "2026-10-11T09:23:40.433Z"
+        },
+        {
+          "id": "evidence_1653414a-26df-461b-a391-2eaabd6289c6",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "70b932cf-9b36-4f73-baed-4a9c035fa8a3",
+          "preview": {
+            "columns": [
+              "selected_jobs",
+              "avg_salary"
+            ],
+            "rows": [
+              [
+                9,
+                92689.22222222222
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "REAL"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "d747c7cd76b081976d075786671e64e737c32d893aa3bf5f21defc63daf06ccb",
+          "contentHash": "f94a7102d0c6ade3a6a7b5784a1a47e828811318947507cf50c188d7b9b763d5",
+          "observedAt": "2026-10-11T09:23:55.390Z"
+        },
+        {
+          "id": "evidence_5be02fdd-1108-4f80-beee-664bf46128c7",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "a1529a30-db32-4bc8-85e6-de7741ffb176",
+          "preview": {
+            "columns": [
+              "link_rows",
+              "association_avg"
+            ],
+            "rows": [
+              [
+                9,
+                92689.22222222222
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "REAL"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "830149196470bfb3b7ae77129d9e905ed01c960a6459eca09ad75bbc1ba70452",
+          "contentHash": "6a7d50b2d2129a011ff8dd51e632e65de01379216e777a24d3ebbd20bb0bb4af",
+          "observedAt": "2026-10-11T09:24:11.616Z"
+        },
+        {
+          "id": "evidence_3e613617-02d2-432f-b443-75b8d046cb22",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "da333791-9211-446f-99dd-c3f43115bb24",
+          "preview": {
+            "columns": [
+              "skill_id",
+              "demand",
+              "skills"
+            ],
+            "rows": [
+              [
+                1,
+                3,
+                "python"
+              ],
+              [
+                187,
+                1,
+                "qlik"
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "TEXT"
+            ],
+            "rowCount": 2,
+            "truncated": false
+          },
+          "queryHash": "3b90b299db38988689df328a9c39472b16dbc2145098e6f22da5b40404361a2e",
+          "contentHash": "d0b2e802022b435504b7ce4a3c47989bb70a572a25843f3209879ce4b9f5b9b1",
+          "observedAt": "2026-10-11T09:24:15.486Z"
+        },
+        {
+          "id": "evidence_282f058f-abe4-453c-b833-702511b872ac",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "1b92ab6f-5024-4db7-b868-22cb1d1522f1",
+          "preview": {
+            "columns": [
+              "selected_jobs",
+              "avg_salary"
+            ],
+            "rows": [
+              [
+                3,
+                106900
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "28b15ae90c0e31748922a97fbb392c5a956378cfcac4505f2084858ba8f83be0",
+          "contentHash": "6a5c1d4890f815f510c7097cfa6d00a6554cf65690e41c7c7a76c251f63f1824",
+          "observedAt": "2026-10-11T09:24:43.259Z"
+        },
+        {
+          "id": "evidence_2af5d614-19b6-40fa-a7ba-6ed023a40c4f",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "47d0ed1d-61c8-4a9d-933f-9aab21422f49",
+          "preview": {
+            "columns": [
+              "link_rows",
+              "association_avg"
+            ],
+            "rows": [
+              [
+                4,
+                104100
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "f0c2bba40a2d56067cd90bbf76b645615889ba2e48efd9f860cf79b1732a035c",
+          "contentHash": "731b235c2f27564b7dd94ac150257623f4c32a4354ce844c2b8010d54da4bf9f",
+          "observedAt": "2026-10-11T09:25:05.703Z"
+        },
+        {
+          "id": "evidence_df8c317f-9753-4a9a-80a2-54273240a5cf",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "aadfeccf-cd62-4240-a266-c21bfa54eb6b",
+          "preview": {
+            "columns": [
+              "skill_id",
+              "n",
+              "mean"
+            ],
+            "rows": [
+              [
+                1,
+                3,
+                106900
+              ],
+              [
+                187,
+                1,
+                95700
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 2,
+            "truncated": false
+          },
+          "queryHash": "c6f5f7f07e75891413fe5aacab32416508991ce948b5b24497a6aeca04c4f4a0",
+          "contentHash": "ac70fa98ce519ab3d30b6d0c6187e97d5e30b7ee16cf7518a9db2a70b7c7a86c",
+          "observedAt": "2026-10-11T09:25:25.836Z"
+        },
+        {
+          "id": "evidence_198c89c3-20a9-42c8-8844-1d9cc15ddd7e",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "d1d3bc3e-6fef-4248-ace5-971417e86c37",
+          "preview": {
+            "columns": [
+              "skill_id",
+              "demand",
+              "skills"
+            ],
+            "rows": [
+              [
+                182,
+                3,
+                null
+              ],
+              [
+                0,
+                2,
+                null
+              ],
+              [
+                1,
+                2,
+                "python"
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "NULL"
+            ],
+            "rowCount": 3,
+            "truncated": false
+          },
+          "queryHash": "392c8e2991d2c38d33e5cbfc3444cfa0d2319d5084bb3cc139117c15488d4c57",
+          "contentHash": "c4f00f70e05120e2d6e319f64916ca0a1f0d386e3d22844e3a24f4fc69ac6d2b",
+          "observedAt": "2026-10-11T09:25:40.509Z"
+        },
+        {
+          "id": "evidence_f65d090e-329a-407e-885c-d1ebbca1fd4d",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "bd20558d-433a-4eef-9352-8aff7019702c",
+          "preview": {
+            "columns": [
+              "selected_jobs",
+              "avg_salary"
+            ],
+            "rows": [
+              [
+                5,
+                104040.6
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "REAL"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "d64b757d930cd45e2c35dd3bbb571521dd3724a54cea85e6988b04823d26e604",
+          "contentHash": "4f658a7b00c6182b028f610cbbfd1b4ad48bcf16b528494e9c5648c8e62e6dc7",
+          "observedAt": "2026-10-11T09:26:03.886Z"
+        },
+        {
+          "id": "evidence_ef0895ec-de21-470c-a251-4902d372afc0",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "d3d1f9c0-7a0f-401d-9966-600cd4e2ed88",
+          "preview": {
+            "columns": [
+              "link_rows",
+              "association_avg"
+            ],
+            "rows": [
+              [
+                7,
+                104080.57142857143
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "REAL"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "80ddda6482956a455c90404e2d5e0493c2bfb25d3b829e8ab70bd82ccc52b35c",
+          "contentHash": "cc523102e88f3673cd7016b3eb44579f63a06bd251230570f8eb8cec05c0ac9f",
+          "observedAt": "2026-10-11T09:26:16.773Z"
+        },
+        {
+          "id": "evidence_5f827a55-276e-484e-bddf-a9dad4d3a38f",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "baf5f523-97e9-429a-8c76-a9452bc5943d",
+          "preview": {
+            "columns": [
+              "skill_id",
+              "demand",
+              "skills"
+            ],
+            "rows": [
+              [
+                1,
+                2,
+                "python"
+              ],
+              [
+                187,
+                1,
+                "qlik"
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "TEXT"
+            ],
+            "rowCount": 2,
+            "truncated": false
+          },
+          "queryHash": "071300a1c89c97e0fbbac1f18d9db88503ad870689a73430cc126d7a5a0875c2",
+          "contentHash": "3b76fd1f3a6104be24f8458142505f2334e4cfaaae3922fe11d7911812da1a80",
+          "observedAt": "2026-10-11T09:26:21.638Z"
+        },
+        {
+          "id": "evidence_6a58009e-a199-4dc7-ae8b-50dcac964bfc",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "bfdbaa89-cc95-47f9-9a85-521853788efe",
+          "preview": {
+            "columns": [
+              "selected_jobs",
+              "avg_salary"
+            ],
+            "rows": [
+              [
+                2,
+                92850
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "6cd15ce11bf1dd18017501d29e96a41c1b037e7039782f16eaceb8ba5288aa05",
+          "contentHash": "5f3fa2e6cbfff0de020d75b0ddb09fd7dbd663d05071d6e3d9caf94c08a477a7",
+          "observedAt": "2026-10-11T09:26:31.328Z"
+        },
+        {
+          "id": "evidence_c19079df-4e82-4d3b-aeee-a832acca65fc",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "bf60d732-93f5-4a93-92b7-168e11bf90fc",
+          "preview": {
+            "columns": [
+              "link_rows",
+              "association_avg"
+            ],
+            "rows": [
+              [
+                3,
+                93800
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "7fae8395f2c1350a8014b7a520082933092287ece63b0f2684c15713945b39a4",
+          "contentHash": "ca657d275dc99ab7b0400d1ce9f5ff6256d3360de33da47dd0e8c307cee783c9",
+          "observedAt": "2026-10-11T09:26:42.907Z"
+        },
+        {
+          "id": "evidence_f0976f2f-8f54-4c9c-9289-8fd477d34852",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "32e284ab-dc77-45d6-b08e-5858b98aa931",
+          "preview": {
+            "columns": [
+              "skill_equal_average",
+              "available_skills"
+            ],
+            "rows": [
+              [
+                101300,
+                2
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "5654b9747c45c0e133d06198e5de5251bb0cb55df27a81f1a38cf32e7fdd8e4e",
+          "contentHash": "ab1f28af349a2b4c4d1cba721c471eca9fde78edbf0913c944ca099f3831c24f",
+          "observedAt": "2026-10-11T09:28:03.438Z"
+        },
+        {
+          "id": "evidence_10040909-88f3-47ea-b775-355e2d982501",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "6e07edff-6cd0-4341-a88a-d07a967c53a0",
+          "preview": {
+            "columns": [
+              "skill_equal_average",
+              "available_skills"
+            ],
+            "rows": [
+              [
+                94275,
+                2
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "de3beb695b1dbe0829b097006a0e683d51099df89087848e0627fa0fa6f49699",
+          "contentHash": "6e2a295d339d8777073a90ef20501640886d7f9b3dea758479ce78cf93944a1d",
+          "observedAt": "2026-10-11T09:28:31.919Z"
+        },
+        {
+          "id": "evidence_4060088e-ac52-48a0-b6bf-6721e4f67ed5",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "61edbb65-b5ed-4ea3-9e24-523e2fc8cbdc",
+          "preview": {
+            "columns": [
+              "job_id",
+              "salary_year_avg",
+              "salary",
+              "skill_id"
+            ],
+            "rows": [
+              [
+                419649,
+                90000,
+                90000,
+                1
+              ],
+              [
+                777802,
+                135000,
+                135000,
+                1
+              ],
+              [
+                1791218,
+                95700,
+                95700,
+                1
+              ],
+              [
+                1791218,
+                95700,
+                95700,
+                187
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 4,
+            "truncated": false
+          },
+          "queryHash": "b57809bd0cd70df9f7d7d5fb6c2fc063f53d473af8bff5d1a56c206ff45c4d95",
+          "contentHash": "ed08c063faaf2581df951a4dae1a4f5fb82b35fd5b6cbc43fcf979e22d3714ad",
+          "observedAt": "2026-10-11T09:28:53.657Z"
+        }
+      ]
+    }
+  ],
+  "attempts": [
+    {
+      "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+      "items": [
+        {
+          "attemptId": "attempt_5912b983-e512-49f8-bbe6-63d4ebde7ab3",
+          "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+          "kind": "exploration",
+          "revisionId": "revision_65a7c6d9-3acc-4263-9140-59d3921d74b6",
+          "invocationId": "e1b1d4a2-2d69-48c0-a30b-717d980eb64d",
+          "queryHash": "17efd88c67d20e4f9c40bccc507ee5ea8686c93227f4970033976232abe2bf88",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:20:31.813Z",
+          "updatedAt": "2026-10-11T09:20:32.119Z"
+        },
+        {
+          "attemptId": "attempt_98335cbf-2bca-4751-bbc9-4ba6c466ac42",
+          "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+          "kind": "exploration",
+          "revisionId": "revision_65a7c6d9-3acc-4263-9140-59d3921d74b6",
+          "invocationId": "7a0438dd-0d72-4b37-a7b1-3a75ac1332f4",
+          "queryHash": "3c08357d06284c7fd098dc38155b2b44ee6dd25a911eaed624a375e640ad0395",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:20:33.550Z",
+          "updatedAt": "2026-10-11T09:20:33.746Z"
+        },
+        {
+          "attemptId": "attempt_c9b68939-c744-407f-8a61-91eb183215fc",
+          "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+          "kind": "exploration",
+          "revisionId": "revision_65a7c6d9-3acc-4263-9140-59d3921d74b6",
+          "invocationId": "a7ae4eed-42c2-4075-b769-7b25f11c8203",
+          "queryHash": "a9cdc08a78906087f4c174d103608e8d0db2e136261db37d0503a356639898e9",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:20:35.637Z",
+          "updatedAt": "2026-10-11T09:20:45.462Z"
+        },
+        {
+          "attemptId": "attempt_cf280f49-dc16-4b94-95f6-8db7a73b3c76",
+          "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+          "kind": "exploration",
+          "revisionId": "revision_65a7c6d9-3acc-4263-9140-59d3921d74b6",
+          "invocationId": "def69f8c-1994-4db5-b928-cfd8da50f3cd",
+          "queryHash": "a8b155a29233aa06c321ce7c9867324805c8eaac1aca8bb06c44efe729d1662c",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:20:46.876Z",
+          "updatedAt": "2026-10-11T09:21:01.155Z"
+        },
+        {
+          "attemptId": "attempt_15d328b1-654a-464b-9b92-222a4b6a6050",
+          "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+          "kind": "exploration",
+          "revisionId": "revision_65a7c6d9-3acc-4263-9140-59d3921d74b6",
+          "invocationId": "1d699554-b6a4-437e-b8fa-a3df8cb87d88",
+          "queryHash": "679940ce6e8e7cf406d22113c1967f95f473297545cebc8cbb677e18db0d46ee",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:21:03.709Z",
+          "updatedAt": "2026-10-11T09:21:19.738Z"
+        },
+        {
+          "attemptId": "attempt_edb3c159-f295-4067-9f0f-fc31088fe6ae",
+          "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+          "kind": "exploration",
+          "revisionId": "revision_65a7c6d9-3acc-4263-9140-59d3921d74b6",
+          "invocationId": "e1a3555c-dc90-43da-8b68-54ee580bb75b",
+          "queryHash": "b8e1d9960ad40fa65e4642da21a0bbcef2b3adcc66a2ba99958ba980caebb455",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:21:21.575Z",
+          "updatedAt": "2026-10-11T09:21:35.973Z"
+        },
+        {
+          "attemptId": "attempt_d915b6d3-6a11-4c36-be99-005425c0370a",
+          "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+          "kind": "exploration",
+          "revisionId": "revision_65a7c6d9-3acc-4263-9140-59d3921d74b6",
+          "invocationId": "05c0ce16-3f16-44e0-91d6-55ff01bbb76f",
+          "queryHash": "842c5ca1f4ca187ccdbabdea34634eb93824d95907f6ff620d29918e9be9c81c",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:21:37.618Z",
+          "updatedAt": "2026-10-11T09:21:48.088Z"
+        },
+        {
+          "attemptId": "attempt_4e79b422-a104-4ec7-941b-6e6f1ae61db8",
+          "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+          "kind": "exploration",
+          "revisionId": "revision_65a7c6d9-3acc-4263-9140-59d3921d74b6",
+          "invocationId": "2f91dfd4-aa9f-490d-8b7f-687341bbcee6",
+          "queryHash": "0c6d042584efd9e8476745b7a116dbdfca0889bf988d71e2ff28695751fe4ec1",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:21:50.468Z",
+          "updatedAt": "2026-10-11T09:21:58.009Z"
+        },
+        {
+          "attemptId": "attempt_a691c692-1e07-4d42-9977-0f78e55ae3db",
+          "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+          "kind": "revision",
+          "revisionId": "revision_65a7c6d9-3acc-4263-9140-59d3921d74b6",
+          "invocationId": "6a97f5a6-4e2d-4e72-9364-d3dce9f79d9a",
+          "state": "succeeded",
+          "sqlExecuted": false,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:22:00.627Z",
+          "updatedAt": "2026-10-11T09:22:00.623Z"
+        },
+        {
+          "attemptId": "attempt_3e360daf-9354-4d6c-9131-a43098e1ece5",
+          "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+          "kind": "result",
+          "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+          "invocationId": "aabb8b5b-01d8-4c22-a97f-c2b0fdcd7edb",
+          "queryHash": "f7cfd981d59a32e297638afb00f454d6133f97ba16b162541722f06c95c6a870",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:22:02.107Z",
+          "updatedAt": "2026-10-11T09:22:20.770Z"
+        },
+        {
+          "attemptId": "attempt_194d7751-e2e2-4326-b346-7de9910108b2",
+          "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+          "kind": "exploration",
+          "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+          "invocationId": "07129048-e1f9-47e2-b7cc-789655e70f2d",
+          "queryHash": "33ac15e2cf89ef67d6d347d6e49264936860244127797e8fa4b7438db4c0e9e9",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:23:02.019Z",
+          "updatedAt": "2026-10-11T09:23:13.958Z"
+        },
+        {
+          "attemptId": "attempt_c08e816f-dab8-46f0-ae6a-a36dda7ff477",
+          "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+          "kind": "exploration",
+          "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+          "invocationId": "746e5ceb-f42a-429b-9bed-45a11c28b411",
+          "queryHash": "24ee70b81bdba0ab2b94857929842f90cc85b0645d574f6c49993dbcb7f2ccd2",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:23:15.485Z",
+          "updatedAt": "2026-10-11T09:23:15.923Z"
+        },
+        {
+          "attemptId": "attempt_ca5b2ad3-2a3f-497c-989f-e2e93f5d1638",
+          "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+          "kind": "exploration",
+          "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+          "invocationId": "d9093efd-c3bc-433d-83b0-d8b67b6697c1",
+          "queryHash": "4802300df4381d4967cbfbcddf16189357772575e4dfc4b12b70f540cf21ebcd",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:23:17.311Z",
+          "updatedAt": "2026-10-11T09:23:30.066Z"
+        },
+        {
+          "attemptId": "attempt_5140bb28-a829-49e7-85cd-6e04e00fc503",
+          "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+          "kind": "exploration",
+          "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+          "invocationId": "33107a74-a90e-4a4d-b316-4ff984760a53",
+          "queryHash": "74baaaed53e49b7a5a5c02bffcf3e12507ceebfea284494b6e83c5937c3f9779",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:23:31.778Z",
+          "updatedAt": "2026-10-11T09:23:40.434Z"
+        },
+        {
+          "attemptId": "attempt_7e8ce90e-3c3e-43ec-81b9-d6ccc6ddb773",
+          "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+          "kind": "exploration",
+          "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+          "invocationId": "70b932cf-9b36-4f73-baed-4a9c035fa8a3",
+          "queryHash": "d747c7cd76b081976d075786671e64e737c32d893aa3bf5f21defc63daf06ccb",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:23:41.836Z",
+          "updatedAt": "2026-10-11T09:23:55.391Z"
+        },
+        {
+          "attemptId": "attempt_835ebc3e-3331-4602-8bc0-4ffb8b939d8c",
+          "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+          "kind": "exploration",
+          "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+          "invocationId": "a1529a30-db32-4bc8-85e6-de7741ffb176",
+          "queryHash": "830149196470bfb3b7ae77129d9e905ed01c960a6459eca09ad75bbc1ba70452",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:23:57.075Z",
+          "updatedAt": "2026-10-11T09:24:11.618Z"
+        },
+        {
+          "attemptId": "attempt_a6381a0c-48e0-4efd-a965-9d60aed0d026",
+          "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+          "kind": "exploration",
+          "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+          "invocationId": "da333791-9211-446f-99dd-c3f43115bb24",
+          "queryHash": "3b90b299db38988689df328a9c39472b16dbc2145098e6f22da5b40404361a2e",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:24:13.715Z",
+          "updatedAt": "2026-10-11T09:24:15.486Z"
+        },
+        {
+          "attemptId": "attempt_84e08118-800e-435a-bc00-145d640df9d5",
+          "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+          "kind": "exploration",
+          "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+          "invocationId": "1b92ab6f-5024-4db7-b868-22cb1d1522f1",
+          "queryHash": "28b15ae90c0e31748922a97fbb392c5a956378cfcac4505f2084858ba8f83be0",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:24:16.639Z",
+          "updatedAt": "2026-10-11T09:24:43.260Z"
+        },
+        {
+          "attemptId": "attempt_f81acb65-dd2d-4721-9ae5-740780027e00",
+          "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+          "kind": "exploration",
+          "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+          "invocationId": "47d0ed1d-61c8-4a9d-933f-9aab21422f49",
+          "queryHash": "f0c2bba40a2d56067cd90bbf76b645615889ba2e48efd9f860cf79b1732a035c",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:24:45.652Z",
+          "updatedAt": "2026-10-11T09:25:05.703Z"
+        },
+        {
+          "attemptId": "attempt_5b35f763-2e02-40b4-a233-94acf9e441f1",
+          "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+          "kind": "exploration",
+          "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+          "invocationId": "aadfeccf-cd62-4240-a266-c21bfa54eb6b",
+          "queryHash": "c6f5f7f07e75891413fe5aacab32416508991ce948b5b24497a6aeca04c4f4a0",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:25:07.601Z",
+          "updatedAt": "2026-10-11T09:25:25.837Z"
+        },
+        {
+          "attemptId": "attempt_22451a92-c0a2-41fa-8db6-aba354d9e237",
+          "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+          "kind": "exploration",
+          "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+          "invocationId": "d1d3bc3e-6fef-4248-ace5-971417e86c37",
+          "queryHash": "392c8e2991d2c38d33e5cbfc3444cfa0d2319d5084bb3cc139117c15488d4c57",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:25:27.604Z",
+          "updatedAt": "2026-10-11T09:25:40.512Z"
+        },
+        {
+          "attemptId": "attempt_4f920bca-d874-4c91-ba94-df758973f509",
+          "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+          "kind": "exploration",
+          "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+          "invocationId": "bd20558d-433a-4eef-9352-8aff7019702c",
+          "queryHash": "d64b757d930cd45e2c35dd3bbb571521dd3724a54cea85e6988b04823d26e604",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:25:43.431Z",
+          "updatedAt": "2026-10-11T09:26:03.887Z"
+        },
+        {
+          "attemptId": "attempt_59a3fdfb-d159-4b5d-8d0a-cb3eaf74cbd9",
+          "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+          "kind": "exploration",
+          "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+          "invocationId": "d3d1f9c0-7a0f-401d-9966-600cd4e2ed88",
+          "queryHash": "80ddda6482956a455c90404e2d5e0493c2bfb25d3b829e8ab70bd82ccc52b35c",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:26:05.231Z",
+          "updatedAt": "2026-10-11T09:26:16.774Z"
+        },
+        {
+          "attemptId": "attempt_1b8ef596-d03f-4faf-b1e2-2f40b9374c2c",
+          "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+          "kind": "exploration",
+          "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+          "invocationId": "baf5f523-97e9-429a-8c76-a9452bc5943d",
+          "queryHash": "071300a1c89c97e0fbbac1f18d9db88503ad870689a73430cc126d7a5a0875c2",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:26:18.379Z",
+          "updatedAt": "2026-10-11T09:26:21.639Z"
+        },
+        {
+          "attemptId": "attempt_68035750-9086-44bb-bd83-19f3fecbab44",
+          "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+          "kind": "exploration",
+          "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+          "invocationId": "bfdbaa89-cc95-47f9-9a85-521853788efe",
+          "queryHash": "6cd15ce11bf1dd18017501d29e96a41c1b037e7039782f16eaceb8ba5288aa05",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:26:23.420Z",
+          "updatedAt": "2026-10-11T09:26:31.329Z"
+        },
+        {
+          "attemptId": "attempt_f11f3894-96fb-4b01-983c-c3d4c46dc442",
+          "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+          "kind": "exploration",
+          "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+          "invocationId": "bf60d732-93f5-4a93-92b7-168e11bf90fc",
+          "queryHash": "7fae8395f2c1350a8014b7a520082933092287ece63b0f2684c15713945b39a4",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:26:33.334Z",
+          "updatedAt": "2026-10-11T09:26:42.908Z"
+        },
+        {
+          "attemptId": "attempt_245441cc-ff5d-4200-bf2f-bae9da921127",
+          "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+          "kind": "exploration",
+          "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+          "invocationId": "32e284ab-dc77-45d6-b08e-5858b98aa931",
+          "queryHash": "5654b9747c45c0e133d06198e5de5251bb0cb55df27a81f1a38cf32e7fdd8e4e",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:27:29.715Z",
+          "updatedAt": "2026-10-11T09:28:03.442Z"
+        },
+        {
+          "attemptId": "attempt_b50b8a2c-d6f6-40cc-8970-859297468b67",
+          "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+          "kind": "exploration",
+          "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+          "invocationId": "6e07edff-6cd0-4341-a88a-d07a967c53a0",
+          "queryHash": "de3beb695b1dbe0829b097006a0e683d51099df89087848e0627fa0fa6f49699",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:28:05.397Z",
+          "updatedAt": "2026-10-11T09:28:31.924Z"
+        },
+        {
+          "attemptId": "attempt_663fa637-076e-43a7-8383-6c1e7bf3be7a",
+          "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+          "kind": "exploration",
+          "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+          "invocationId": "61edbb65-b5ed-4ea3-9e24-523e2fc8cbdc",
+          "queryHash": "b57809bd0cd70df9f7d7d5fb6c2fc063f53d473af8bff5d1a56c206ff45c4d95",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:28:33.522Z",
+          "updatedAt": "2026-10-11T09:28:53.663Z"
+        }
+      ]
+    }
+  ],
+  "candidates": [
+    {
+      "candidateId": "candidate_544735b4-a1bd-478b-8243-eff58c7a77a8",
+      "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+      "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+      "resultRef": "result_8c94154e-60e8-4755-a52d-543056a95e50",
+      "resultSchema": [
+        "overall_average_salary"
+      ],
+      "rowCount": 1,
+      "contentHash": "0ed2818eb4a091536d1a82b05ae3a28ea9cc43bd5dcfda06da5fba6cb235d4ff",
+      "sql": "WITH eligible AS (SELECT job_id,salary_year_avg FROM job_postings_fact WHERE job_title_short='Data Analyst' AND salary_year_avg IS NOT NULL AND job_work_from_home=1), links AS (SELECT DISTINCT job_id,skill_id FROM skills_job_dim), frequencies AS (SELECT l.skill_id,count(distinct e.job_id) demand FROM eligible e JOIN links l USING(job_id) GROUP BY l.skill_id), top_skills AS (SELECT skill_id,demand FROM frequencies ORDER BY demand DESC,skill_id LIMIT 3), selected_jobs AS (SELECT e.* FROM eligible e WHERE EXISTS(SELECT 1 FROM links l JOIN top_skills t USING(skill_id) WHERE l.job_id=e.job_id)) SELECT avg(salary_year_avg) overall_average_salary FROM selected_jobs",
+      "queryHash": "f7cfd981d59a32e297638afb00f454d6133f97ba16b162541722f06c95c6a870",
+      "findings": [],
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "attemptId": "attempt_3e360daf-9354-4d6c-9131-a43098e1ece5",
+      "createdByInvocationId": "aabb8b5b-01d8-4c22-a97f-c2b0fdcd7edb",
+      "createdAt": "2026-10-11T09:22:20.770Z",
+      "status": "ready",
+      "publishable": true
+    }
+  ],
+  "receipts": [
+    {
+      "receiptId": "publication_8fff63c6-512d-4d0a-a880-0461a8a98d53",
+      "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+      "principalId": "independent-analyst",
+      "sessionId": "local168",
+      "candidateId": "candidate_544735b4-a1bd-478b-8243-eff58c7a77a8",
+      "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+      "resultRef": "result_8c94154e-60e8-4755-a52d-543056a95e50",
+      "format": "csv",
+      "publicRef": "/api/runtime/publications/publication_8fff63c6-512d-4d0a-a880-0461a8a98d53?session_id=local168",
+      "contentHash": "0ed2818eb4a091536d1a82b05ae3a28ea9cc43bd5dcfda06da5fba6cb235d4ff",
+      "presentationContentHash": "3a508c2f8524db6d2c5c42994f5841e80a44e42fc3626bc47cf00b4ffc4e3769",
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "disclosure": {
+        "required": true,
+        "unverifiedFields": [
+          {
+            "path": "population.eligibility",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.formula",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.countGrain",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.denominator",
+            "kind": "assumed"
+          },
+          {
+            "path": "selection.ties",
+            "kind": "assumed"
+          }
+        ],
+        "summary": "以下字段为假定，未被合格证据证实：population.eligibility, measure.formula, measure.countGrain, measure.denominator, selection.ties。"
+      },
+      "physicalProfile": {
+        "version": 1,
+        "rowCount": 1,
+        "truncated": false,
+        "columns": [
+          {
+            "name": "overall_average_salary",
+            "kind": "decimal",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 1,
+            "min": "92689.22222222222",
+            "max": "92689.22222222222"
+          }
+        ]
+      },
+      "policyVersion": "answering-publication-v1",
+      "createdByInvocationId": "aabb8b5b-01d8-4c22-a97f-c2b0fdcd7edb",
+      "requestId": "aabb8b5b-01d8-4c22-a97f-c2b0fdcd7edb",
+      "createdAt": "2026-10-11T09:22:20.785Z"
+    }
+  ]
+}

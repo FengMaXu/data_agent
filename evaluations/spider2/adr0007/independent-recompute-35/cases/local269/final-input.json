@@ -1,0 +1,3 @@
+{
+  "sql": "WITH RECURSIVE roots AS (SELECT id FROM packaging p WHERE EXISTS(SELECT 1 FROM packaging_relations r WHERE r.packaging_id=p.id) AND NOT EXISTS(SELECT 1 FROM packaging_relations r WHERE r.contains_id=p.id)), expand(root,node,qty,path) AS (SELECT id,id,1,','||id||',' FROM roots UNION ALL SELECT e.root,r.contains_id,e.qty*r.qty,e.path||r.contains_id||',' FROM expand e JOIN packaging_relations r ON r.packaging_id=e.node WHERE instr(e.path,','||r.contains_id||',')=0), leaf AS (SELECT * FROM expand e WHERE NOT EXISTS(SELECT 1 FROM packaging_relations r WHERE r.packaging_id=e.node)), totals AS (SELECT root,SUM(qty) total FROM leaf GROUP BY root) SELECT AVG(total*1.0) AS average_total_quantity FROM totals"
+}

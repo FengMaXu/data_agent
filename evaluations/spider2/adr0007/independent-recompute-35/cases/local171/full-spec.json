@@ -1,0 +1,54 @@
+{
+  "fields": {
+    "population.eligibility": {
+      "value": "Only observed eligible records; no fabricated missing records",
+      "basis": "assumed",
+      "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+    },
+    "population.conditions": {
+      "value": [
+        "gender M",
+        "first term state LA",
+        "integer years 31..49"
+      ],
+      "basis": "assumed",
+      "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+    },
+    "population.time": {
+      "value": "All available calendar years, Dec31 observations within inclusive terms; years elapsed = snapshot year - first_start year",
+      "basis": "assumed",
+      "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+    },
+    "measure.formula": {
+      "value": {
+        "op": "custom",
+        "description": "Distinct male legislators first represented LA, serving in any inclusive term on Dec31; complete calendar years since global first term; filter integers >30 and <50; group observed periods without zero fill"
+      },
+      "basis": "assumed",
+      "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+    },
+    "grouping": {
+      "value": [
+        "period"
+      ],
+      "basis": "assumed",
+      "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+    },
+    "selection": {
+      "value": "n/a",
+      "basis": "assumed",
+      "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+    },
+    "output": {
+      "value": {
+        "rowMode": "full",
+        "columns": [
+          "period",
+          "legislators"
+        ]
+      },
+      "basis": "assumed",
+      "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+    }
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_cc93e22a-eacd-41d8-b73d-138451c7bb21\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nGender | n\nNULL | 8795\nFemale | 9435\nMale | 20055"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_cc93e22a-eacd-41d8-b73d-138451c7bb21",
+      "preview": {
+        "columns": [
+          "Gender",
+          "n"
+        ],
+        "rows": [
+          [
+            null,
+            8795
+          ],
+          [
+            "Female",
+            9435
+          ],
+          [
+            "Male",
+            20055
+          ]
+        ],
+        "columnTypes": [
+          "NULL",
+          "INTEGER"
+        ],
+        "rowCount": 3,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "Gender",
+        "n"
+      ],
+      "rows": [
+        [
+          null,
+          8795
+        ],
+        [
+          "Female",
+          9435
+        ],
+        [
+          "Male",
+          20055
+        ]
+      ],
+      "columnTypes": [
+        "NULL",
+        "INTEGER"
+      ],
+      "rowCount": 3,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_d8add55c-3ca6-411c-9101-408dcb8e5c24"
+  }
+}

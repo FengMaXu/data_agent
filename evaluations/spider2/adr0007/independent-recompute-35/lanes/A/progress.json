@@ -1,0 +1,7 @@
+{
+  "local002": "completed: ambiguous_after_recompute",
+  "local010": "completed: gold_conflict",
+  "local040": "completed: confirmed_semantic_error; independent_error_acknowledged",
+  "local049": "completed: gold_conflict",
+  "local168": "completed: ambiguous_after_recompute"
+}

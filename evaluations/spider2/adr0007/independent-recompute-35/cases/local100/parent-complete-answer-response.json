@@ -1,0 +1,141 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_a2f4eac8-9241-4704-8848-9d55d04ab315 revisionId=revision_67905189-e263-4a33-b5f8-7994c37f59a9\n- ✓ population.eligibility\n- ✓ population.conditions\n- ✓ population.time\n- ✓ measure.formula\n- ✓ measure.countGrain\n- ✓ grouping\n- ✓ selection\n- ✓ output\n状态：\n- 未证实（发布时披露）: population.conditions, measure.formula, measure.countGrain, output\n- 没有待处理的字段，可以执行结果查询\n[SPEC_FEEDBACK] revisionId=revision_67905189-e263-4a33-b5f8-7994c37f59a9 status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"actors\",\"keyColumns\":[\"Person.PID\"]}},\"population.eligibility\":{\"status\":\"request\",\"value\":\"最短合作图距离2；排除直接合作者和起点\"},\"population.conditions\":{\"status\":\"assumed\",\"value\":[\"源演员按查到的Shah Rukh Khan身份；合演同电影MID，PID外围空白清理\"]},\"population.time\":{\"status\":\"not_applicable\"},\"measure.formula\":{\"status\":\"assumed\",\"value\":{\"op\":\"custom\",\"description\":\"演员电影二分图source电影->一跳PID->其电影->二跳PID，EXCEPT一跳和source，COUNT distinct二跳\"}},\"measure.countGrain\":{\"status\":\"assumed\",\"value\":\"演员PID一人一次\"},\"grouping\":{\"status\":\"not_applicable\"},\"selection\":{\"status\":\"not_applicable\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"scalar\",\"columns\":[\"actors_shahrukh_number_2\"]}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_a2f4eac8-9241-4704-8848-9d55d04ab315",
+    "revisionId": "revision_67905189-e263-4a33-b5f8-7994c37f59a9",
+    "parentRevisionId": "revision_48c4c729-7945-4054-9a1c-936c1fea9c6d",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "actors",
+          "keyColumns": [
+            "Person.PID"
+          ]
+        },
+        "evidenceIds": [
+          "evidence_693451c5-900e-45ea-9d97-9566dd6110dc"
+        ]
+      },
+      {
+        "path": "population.eligibility",
+        "status": "request",
+        "value": "最短合作图距离2；排除直接合作者和起点",
+        "evidenceIds": [
+          "evidence_7be4544e-aae2-400e-b921-56415b19bdf9"
+        ]
+      },
+      {
+        "path": "population.conditions",
+        "status": "assumed",
+        "value": [
+          "源演员按查到的Shah Rukh Khan身份；合演同电影MID，PID外围空白清理"
+        ],
+        "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+      },
+      {
+        "path": "population.time",
+        "status": "not_applicable"
+      },
+      {
+        "path": "measure.formula",
+        "status": "assumed",
+        "value": {
+          "op": "custom",
+          "description": "演员电影二分图source电影->一跳PID->其电影->二跳PID，EXCEPT一跳和source，COUNT distinct二跳"
+        },
+        "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+      },
+      {
+        "path": "measure.countGrain",
+        "status": "assumed",
+        "value": "演员PID一人一次",
+        "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+      },
+      {
+        "path": "grouping",
+        "status": "not_applicable"
+      },
+      {
+        "path": "selection",
+        "status": "not_applicable"
+      },
+      {
+        "path": "output",
+        "status": "assumed",
+        "value": {
+          "rowMode": "scalar",
+          "columns": [
+            "actors_shahrukh_number_2"
+          ]
+        },
+        "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+      }
+    ],
+    "undeclared": [],
+    "open": [],
+    "unverified": [
+      "population.conditions",
+      "measure.formula",
+      "measure.countGrain",
+      "output"
+    ],
+    "specFeedback": {
+      "taskId": "task_a2f4eac8-9241-4704-8848-9d55d04ab315",
+      "revisionId": "revision_67905189-e263-4a33-b5f8-7994c37f59a9",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_693451c5-900e-45ea-9d97-9566dd6110dc",
+        "evidence_f4cb1c99-a437-49f8-ac7c-7747427858d5",
+        "evidence_dfb8566e-a283-47c4-81da-c38c6440df6f",
+        "evidence_1b60f145-f133-4704-b7b9-d31f6e4817b6",
+        "evidence_7be4544e-aae2-400e-b921-56415b19bdf9"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "population.eligibility",
+        "status": "applied"
+      },
+      {
+        "path": "population.conditions",
+        "status": "applied"
+      },
+      {
+        "path": "population.time",
+        "status": "applied"
+      },
+      {
+        "path": "measure.formula",
+        "status": "applied"
+      },
+      {
+        "path": "measure.countGrain",
+        "status": "applied"
+      },
+      {
+        "path": "grouping",
+        "status": "applied"
+      },
+      {
+        "path": "selection",
+        "status": "applied"
+      },
+      {
+        "path": "output",
+        "status": "applied"
+      }
+    ]
+  }
+}

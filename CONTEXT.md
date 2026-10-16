@@ -141,7 +141,7 @@ The single model-facing way to settle an open field: one of its alternatives plu
 _Avoid_: Select vs provisional choice, tentative selection
 
 **Probe**:
-One exploration run as an alternative of an open field, computing the final output under that alternative. The Runtime records its Result Fingerprint on the Query Task; an open field is decided only after every alternative has a probe or a declared waiver.
+One exploration run as an alternative of an open field, computing the final output under that alternative. The Runtime records its Result Fingerprint on the Query Task; an open field is decided only after every alternative has a probe or a declared waiver. A probe counts only while every other field holds the state it ran under; changing another field makes it stale.
 _Avoid_: Sample query, alternative preview
 
 **Result Fingerprint**:
@@ -152,8 +152,8 @@ _Avoid_: Result hash, content hash
 An open field whose every alternative produced the same Result Fingerprint. It counts as handled without a decision, advice or disclosure.
 _Avoid_: Trivial choice, ignored ambiguity
 
-**Advisory Ledger**:
-The Runtime's record of the latest compare_hypotheses advice per open field. A decision that departs from the advice's clear lean must carry an override reason and evidence that qualifies for the field (observations never outweigh a lean on a semantic field); the advice itself is never evidence. When the advisor fails, the ledger records the outage; the field may then be decided without advice, and the publication discloses it. When the advisor answers but favours no alternative, the request does not settle the field: while the user can be asked, the decision must cite the user's answer or a business document (request wording is not enough, the advisor already read it); without a clarification path the decision is recorded as undecided and disclosed. An open field that needs advice cannot be replaced by an assumption, only decided, settled by qualifying evidence, or reopened.
+**Field Advice**:
+The Runtime's record, on the Query Task, of the comparison advisor's latest advice per open field. The Runtime asks for it once every alternative's output is known under the current other fields and the outputs differ; it applies only to the alternatives and probe outputs it compared. A decision that departs from the advice's clear lean must carry an override reason and evidence that qualifies for the field (observations never outweigh a lean on a semantic field); the advice itself is never evidence. When the advisor fails, the outage is recorded and asked again after a minute; the field may then be decided without advice, and the publication discloses it. When the advisor answers but favours no alternative, the request does not settle the field: while the user can be asked, the decision must cite the user's answer or a business document (request wording is not enough, the advisor already read it); without a clarification path the decision is recorded as undecided and disclosed. An open field that needs advice cannot be replaced by an assumption, only decided, settled by qualifying evidence, or reopened.
 _Avoid_: Advice cache, recommendation store
 
 **Decision Realization**:

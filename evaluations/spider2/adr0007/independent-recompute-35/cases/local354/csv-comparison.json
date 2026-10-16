@@ -1,0 +1,109 @@
+{
+  "instance_id": "local354",
+  "independent_freeze": "D:/data_agent/evaluations/spider2/adr0007/independent-recompute-35/cases/local354/independent-freeze.json",
+  "independent_official_score": 0,
+  "original_replayed_score": 0,
+  "recorded_original_score": 0,
+  "scorer_limitations": "Column-wise tolerance matching; ignore_order may ignore row associations; passing is not business proof.",
+  "independent": {
+    "path": "D:/data_agent/evaluations/spider2/adr0007/independent-recompute-35/cases/local354/publications/publication_aad5b1ea-8e74-4fe1-9dca-aa3a4ad2e211/result.csv",
+    "rows": 103,
+    "columns": [
+      "driver_name"
+    ],
+    "head": [
+      {
+        "driver_name": "Graham Hill"
+      },
+      {
+        "driver_name": "Jo Bonnier"
+      },
+      {
+        "driver_name": "Jack Brabham"
+      },
+      {
+        "driver_name": "Bruce McLaren"
+      },
+      {
+        "driver_name": "Dan Gurney"
+      },
+      {
+        "driver_name": "Phil Hill"
+      },
+      {
+        "driver_name": "Innes Ireland"
+      },
+      {
+        "driver_name": "Masten Gregory"
+      }
+    ]
+  },
+  "original": {
+    "path": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local354.csv",
+    "rows": 104,
+    "columns": [
+      "forename",
+      "surname"
+    ],
+    "head": [
+      {
+        "forename": "Cliff",
+        "surname": "Allison"
+      },
+      {
+        "forename": "Alberto",
+        "surname": "Ascari"
+      },
+      {
+        "forename": "Bill",
+        "surname": "Aston"
+      },
+      {
+        "forename": "Élie",
+        "surname": "Bayol"
+      },
+      {
+        "forename": "Jean",
+        "surname": "Behra"
+      },
+      {
+        "forename": "Gino",
+        "surname": "Bianco"
+      },
+      {
+        "forename": "Prince",
+        "surname": "Bira"
+      },
+      {
+        "forename": "Felice",
+        "surname": "Bonetto"
+      }
+    ]
+  },
+  "golds": [
+    {
+      "path": "C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local354.csv",
+      "rows": 3,
+      "columns": [
+        "driver_id"
+      ],
+      "head": [
+        {
+          "driver_id": 501
+        },
+        {
+          "driver_id": 554
+        },
+        {
+          "driver_id": 579
+        }
+      ]
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local354",
+    "condition_cols": [],
+    "ignore_order": true,
+    "toks": "139"
+  }
+}

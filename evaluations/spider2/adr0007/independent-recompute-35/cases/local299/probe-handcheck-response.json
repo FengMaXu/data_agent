@@ -1,0 +1,119 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_aaf01311-1ec8-45e7-a00c-487d09032e9f\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\ncustomer_id | d | window_sum | independent_range_sum | range_days | clip_daily_before_avg | clip_after_avg\n1 | 2020-01-31 | 9360 | 9360 | 30 | 312 | 312\n3 | 2020-02-25 | 460 | 460 | 30 | 124.8 | 15.333333333333334\n10 | 2020-02-11 | -40784 | -40784 | 30 | 37.06666666666667 | 0"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_aaf01311-1ec8-45e7-a00c-487d09032e9f",
+      "preview": {
+        "columns": [
+          "customer_id",
+          "d",
+          "window_sum",
+          "independent_range_sum",
+          "range_days",
+          "clip_daily_before_avg",
+          "clip_after_avg"
+        ],
+        "rows": [
+          [
+            1,
+            "2020-01-31",
+            9360,
+            9360,
+            30,
+            312,
+            312
+          ],
+          [
+            3,
+            "2020-02-25",
+            460,
+            460,
+            30,
+            124.8,
+            15.333333333333334
+          ],
+          [
+            10,
+            "2020-02-11",
+            -40784,
+            -40784,
+            30,
+            37.06666666666667,
+            0
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "TEXT",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 3,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "customer_id",
+        "d",
+        "window_sum",
+        "independent_range_sum",
+        "range_days",
+        "clip_daily_before_avg",
+        "clip_after_avg"
+      ],
+      "rows": [
+        [
+          1,
+          "2020-01-31",
+          9360,
+          9360,
+          30,
+          312,
+          312
+        ],
+        [
+          3,
+          "2020-02-25",
+          460,
+          460,
+          30,
+          124.8,
+          15.333333333333334
+        ],
+        [
+          10,
+          "2020-02-11",
+          -40784,
+          -40784,
+          30,
+          37.06666666666667,
+          0
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "TEXT",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 3,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_4619222d-8805-41e1-852d-5fabccd2adf0"
+  }
+}

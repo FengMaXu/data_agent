@@ -1,0 +1,4 @@
+{
+  "sql": "WITH RECURSIVE periods(period) AS (SELECT 0 UNION ALL SELECT period+1 FROM periods WHERE period<19), first AS (SELECT id_bioguide,min(term_start) first_start FROM legislators_terms GROUP BY id_bioguide), cohort AS (SELECT * FROM first WHERE first_start BETWEEN '1917-01-01' AND '1999-12-31'), observations AS (SELECT c.*,p.period,printf('%04d-12-31',cast(substr(c.first_start,1,4) as int)+p.period+1) snapshot FROM cohort c CROSS JOIN periods p), counts AS (SELECT period,count(*) cohort_size,sum(EXISTS(SELECT 1 FROM legislators_terms t WHERE t.id_bioguide=o.id_bioguide AND o.snapshot BETWEEN t.term_start AND t.term_end)) retained FROM observations o GROUP BY period) SELECT *,retained*1.0/cohort_size rate FROM counts ORDER BY period",
+  "limit": 1000
+}

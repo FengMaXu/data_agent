@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT m.name,m.version,m.L1_model,COUNT(DISTINCT m.step) steps FROM model m GROUP BY m.name,m.version,m.L1_model HAVING COUNT(DISTINCT m.step)>1 ORDER BY steps DESC LIMIT 10",
+  "limit": 100
+}

@@ -1,0 +1,2 @@
+# 独立题解（Gold揭示前）
+每客户先独立合计所有payment.amount，独立数所有rental_id，减一为后续次数。最早payment_date对应payment->rental->inventory->film.rating；不能用最早rental_date替代题面指定payment。先查每客户最早支付有无并列，若并列且rating不同需保留不确定性；主算法按payment_id作为确定性次序，仅在并列情况下起作用。最后在首片rating组对客户总花费与后续次数做等客户权重平均，不在付款/商品连接上直接平均。

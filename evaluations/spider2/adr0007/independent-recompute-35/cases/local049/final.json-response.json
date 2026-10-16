@@ -1,0 +1,165 @@
+{
+  "query": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[RESULT_CANDIDATE] candidateId=candidate_2358f21b-b878-4c35-98b6-ebc80b574e43 revisionId=revision_81c5b68d-4d0d-4a81-ba3a-3b535fb4c856\nindustry | average_new_companies\nFintech | 57.666666666666664"
+      }
+    ],
+    "details": {
+      "kind": "result",
+      "artifact": {
+        "kind": "candidate",
+        "candidateId": "candidate_2358f21b-b878-4c35-98b6-ebc80b574e43",
+        "revisionId": "revision_81c5b68d-4d0d-4a81-ba3a-3b535fb4c856",
+        "resultRef": "result_febb77ba-0822-4a3f-bd40-b6c0e7b577d4"
+      },
+      "preview": {
+        "columns": [
+          "industry",
+          "average_new_companies"
+        ],
+        "rows": [
+          [
+            "Fintech",
+            57.666666666666664
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      },
+      "findings": [],
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "attemptId": "attempt_4ded8360-cadc-4a07-bb26-7486236c4a25"
+    }
+  },
+  "publication": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[PUBLISHED] csv [download](/api/runtime/publications/publication_4f58a567-572c-4cb4-8ee9-e8a591316e48?session_id=local049) receiptId=publication_4f58a567-572c-4cb4-8ee9-e8a591316e48\n[DISCLOSURE] 以下字段为假定，未被合格证据证实：population.eligibility, measure.formula, selection.ties。"
+      }
+    ],
+    "details": {
+      "receiptId": "publication_4f58a567-572c-4cb4-8ee9-e8a591316e48",
+      "taskId": "task_51d64568-2a51-4a4a-839d-8497ee615252",
+      "principalId": "independent-analyst",
+      "sessionId": "local049",
+      "candidateId": "candidate_2358f21b-b878-4c35-98b6-ebc80b574e43",
+      "revisionId": "revision_81c5b68d-4d0d-4a81-ba3a-3b535fb4c856",
+      "resultRef": "result_febb77ba-0822-4a3f-bd40-b6c0e7b577d4",
+      "format": "csv",
+      "publicRef": "/api/runtime/publications/publication_4f58a567-572c-4cb4-8ee9-e8a591316e48?session_id=local049",
+      "contentHash": "a399e54cc1b0c5574e076dc5551a874e175455e1f58980398edfee9e213e9bf7",
+      "presentationContentHash": "c538b629e195395e7dbbb65e9cd3e3a1f3d5b74d26a8c61cf70c1cc21632885b",
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "disclosure": {
+        "required": true,
+        "unverifiedFields": [
+          {
+            "path": "population.eligibility",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.formula",
+            "kind": "assumed"
+          },
+          {
+            "path": "selection.ties",
+            "kind": "assumed"
+          }
+        ],
+        "summary": "以下字段为假定，未被合格证据证实：population.eligibility, measure.formula, selection.ties。"
+      },
+      "physicalProfile": {
+        "version": 1,
+        "rowCount": 1,
+        "truncated": false,
+        "columns": [
+          {
+            "name": "industry",
+            "kind": "text",
+            "nullCount": 0,
+            "distinctCount": 1
+          },
+          {
+            "name": "average_new_companies",
+            "kind": "decimal",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 1,
+            "min": "57.666666666666664",
+            "max": "57.666666666666664"
+          }
+        ]
+      },
+      "policyVersion": "answering-publication-v1",
+      "createdByInvocationId": "64bbc9e8-612e-40ec-8d90-772e57bebc87",
+      "requestId": "64bbc9e8-612e-40ec-8d90-772e57bebc87",
+      "createdAt": "2026-10-11T09:18:01.002Z"
+    }
+  },
+  "authorizedCsv": "D:\\data_agent\\evaluations\\spider2\\adr0007\\independent-recompute-35\\cases\\local049\\publications\\publication_4f58a567-572c-4cb4-8ee9-e8a591316e48\\result.csv"
+}

@@ -1,0 +1,264 @@
+{
+  "frozenAt": "2026-10-11T09:04:18.049Z",
+  "instance_id": "local167",
+  "independent": true,
+  "taskId": "task_6cc27d11-d465-472f-90ea-3360c407e6f0",
+  "revisionId": "revision_5b3e3b3f-4cf0-48bf-90a5-eaf9f77cc240",
+  "publication": {
+    "receiptId": "publication_cbac473c-f7ea-4df8-9eca-b2be8523d7ed",
+    "taskId": "task_6cc27d11-d465-472f-90ea-3360c407e6f0",
+    "principalId": "independent-analyst",
+    "sessionId": "local167",
+    "candidateId": "candidate_a1e6424f-5fd7-43f3-8a71-e21a7196bbf0",
+    "revisionId": "revision_5b3e3b3f-4cf0-48bf-90a5-eaf9f77cc240",
+    "resultRef": "result_30d09d11-7aee-45e7-87b8-d3fc4bd0eb64",
+    "format": "csv",
+    "publicRef": "/api/runtime/publications/publication_cbac473c-f7ea-4df8-9eca-b2be8523d7ed?session_id=local167",
+    "contentHash": "2389e1284782d03fac9adbab1c2325ed611b2e11f96cdf7a6aa905a259def7b5",
+    "presentationContentHash": "edb71a0e5f13901134bb3ffe6b964a731d9063e88bcaf644dbc099e844975962",
+    "coverage": [
+      {
+        "checkId": "result_completeness",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_shape",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_identity",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "join_fanout",
+        "outcome": "not_applicable"
+      },
+      {
+        "checkId": "spec_feedback",
+        "ruleVersion": "spec-feedback-v2",
+        "outcome": "not_applicable",
+        "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+      }
+    ],
+    "fanout": {
+      "ruleVersion": "answering-fanout-v1",
+      "status": "not_applicable",
+      "snapshotScope": "unbound",
+      "targets": []
+    },
+    "disclosure": {
+      "required": true,
+      "unverifiedFields": [
+        {
+          "path": "population.eligibility",
+          "kind": "assumed"
+        },
+        {
+          "path": "population.conditions",
+          "kind": "assumed"
+        },
+        {
+          "path": "population.time",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.formula",
+          "kind": "assumed"
+        },
+        {
+          "path": "grouping",
+          "kind": "assumed"
+        },
+        {
+          "path": "selection",
+          "kind": "assumed"
+        },
+        {
+          "path": "output",
+          "kind": "assumed"
+        },
+        {
+          "path": "selection.ties",
+          "kind": "assumed"
+        }
+      ],
+      "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.conditions, population.time, measure.formula, grouping, selection, output, selection.ties。"
+    },
+    "physicalProfile": {
+      "version": 1,
+      "rowCount": 1,
+      "truncated": false,
+      "columns": [
+        {
+          "name": "state",
+          "kind": "text",
+          "nullCount": 0,
+          "distinctCount": 1
+        },
+        {
+          "name": "female_legislators",
+          "kind": "integer",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 1,
+          "min": "42",
+          "max": "42"
+        }
+      ]
+    },
+    "policyVersion": "answering-publication-v1",
+    "createdByInvocationId": "41289de4-2f8f-4a74-8b39-df2faaed6654",
+    "requestId": "41289de4-2f8f-4a74-8b39-df2faaed6654",
+    "createdAt": "2026-10-11T09:04:13.179Z"
+  },
+  "currentRevision": {
+    "taskId": "task_6cc27d11-d465-472f-90ea-3360c407e6f0",
+    "revisionId": "revision_5b3e3b3f-4cf0-48bf-90a5-eaf9f77cc240",
+    "parentRevisionId": "revision_744343e4-22d8-4dea-b261-135118eaae4d",
+    "requestId": "4db64be6-7fed-4905-b8de-ce1bc12fc7ed",
+    "createdAt": "2026-10-11T09:04:05.230Z",
+    "fields": {
+      "population.entity": {
+        "state": "specified",
+        "value": {
+          "name": "female legislators keyed by id_bioguide"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_e944b857-5c7a-4a98-b722-0b96b7d765f2"
+          ]
+        }
+      },
+      "population.eligibility": {
+        "state": "specified",
+        "value": "Only observed eligible records; no fabricated missing records",
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+        }
+      },
+      "population.conditions": {
+        "state": "specified",
+        "value": [
+          "gender F",
+          "any term includes calendar December 31"
+        ],
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+        }
+      },
+      "population.time": {
+        "state": "specified",
+        "value": {
+          "expression": "All available years; term_start <= Dec31 <= term_end inclusive"
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+        }
+      },
+      "measure.formula": {
+        "state": "specified",
+        "value": {
+          "op": "custom",
+          "description": "One female id_bioguide once, attributed to earliest term state, eligible if any inclusive term contains a December 31; select state maximum distinct women"
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+        }
+      },
+      "grouping": {
+        "state": "specified",
+        "value": [
+          "first state"
+        ],
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+        }
+      },
+      "selection": {
+        "state": "specified",
+        "value": {
+          "n": 1,
+          "orderBy": "female_legislators DESC"
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+        }
+      },
+      "output": {
+        "state": "specified",
+        "value": {
+          "rowMode": "full",
+          "columns": [
+            "state",
+            "female_legislators"
+          ]
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+        }
+      },
+      "selection.ties": {
+        "state": "specified",
+        "value": "include_ties",
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+        }
+      }
+    },
+    "state": {
+      "state": "ready",
+      "revisionId": "revision_5b3e3b3f-4cf0-48bf-90a5-eaf9f77cc240",
+      "ready": "ready_ce0d8b71-1e27-4a3d-832c-62e72b97dbd9"
+    },
+    "specFeedback": {
+      "taskId": "task_6cc27d11-d465-472f-90ea-3360c407e6f0",
+      "revisionId": "revision_5b3e3b3f-4cf0-48bf-90a5-eaf9f77cc240",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_e944b857-5c7a-4a98-b722-0b96b7d765f2",
+        "evidence_08a6ae18-fa2e-4fc9-8213-674b8a4b5597",
+        "evidence_7c46f990-b82c-491a-9b6a-af099549d1a9",
+        "evidence_e720585f-84af-4208-b413-3f628acebe95",
+        "evidence_50008977-825b-4c9b-aa27-4eb2569536c1",
+        "evidence_95dfe410-46d9-480a-b847-73a762936fae",
+        "evidence_7620f06d-a8bc-4c7b-a63a-70b9dfc08171",
+        "evidence_660eb0e7-af45-4914-9932-bcd43c1c466e"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    }
+  },
+  "analystNote": {
+    "algorithm": "Earliest state per person; ever inclusive Dec31; count women once; top count with ties",
+    "assumptions": [
+      "Inclusive end",
+      "No date dimension truncation"
+    ],
+    "observations": [
+      "366 women",
+      "Terms 1789..2025; date dimension 1917..1999",
+      "No earliest-date state conflicts"
+    ]
+  },
+  "settings": {
+    "qualification": "required",
+    "fieldProbes": true,
+    "externalAdvisor": "not_configured",
+    "specFeedback": "not_configured",
+    "fanout": "disabled_for_offline_audit",
+    "populationDecisions": "allow_disclosed_headless_audit",
+    "databaseReadOnly": true
+  }
+}

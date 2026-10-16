@@ -80,4 +80,26 @@ describe("calendar coverage in Answering", () => {
     const receipt = await answering.publish({ candidateId: execution.artifact.candidateId, format: "auto", requestId: "publish" }, business("publish"));
     expect(receipt.disclosure?.summary).toContain("时间范围内有期间没有数据");
   });
+
+  it("reads the coverage before sealing when the result query reaches the Revision first", async () => {
+    const store = new InMemoryAnsweringStore();
+    const answering = new InMemoryAnswering({
+      store,
+      resultStore: new InMemoryResultStore(),
+      sqlExecutor: {
+        run: async (sql) => sql.startsWith("SELECT DISTINCT SUBSTR")
+          ? { columns: ["p"], rows: [["2020-01"], ["2020-02"]], truncated: false }
+          : { columns: ["n"], rows: [[1]], truncated: false },
+      },
+    });
+    const view = await answering.set({ requestMessageId: "message", requestId: "begin", fields: spec }, business("begin"));
+    // As if a parallel result query ran between the Revision commit and the set call's data checks.
+    await store.transact((tx) => {
+      const { entityIdentity: _identity, calendarCoverage: _calendar, ...revision } = tx.getRevision(view.revisionId as never)!;
+      tx.putRevision(revision);
+    }, business("strip"));
+
+    await expect(answering.execute({ kind: "result", taskId: view.taskId, revisionId: view.revisionId, sql: "SELECT 1" }, business("result")))
+      .rejects.toMatchObject({ code: "UNRESOLVED_ASSUMPTIONS", details: { undeclared: ["population.missing"] } });
+  });
 });

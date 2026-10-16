@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT name,version,step,model,COUNT(*) n,MIN(test_score) lo,MAX(test_score) hi FROM model_score GROUP BY name,version,step,model HAVING COUNT(*)>1 LIMIT 20",
+  "limit": 100
+}

@@ -1,0 +1,47 @@
+[
+  {
+    "instance_id": "local064",
+    "status": "confirmed_implementation_error",
+    "queries": 5,
+    "final_queries": 1,
+    "freeze_before_reveal": true,
+    "rows": 1,
+    "failures": []
+  },
+  {
+    "instance_id": "local285",
+    "status": "ambiguous_after_recompute",
+    "queries": 8,
+    "final_queries": 1,
+    "freeze_before_reveal": true,
+    "rows": 24,
+    "failures": []
+  },
+  {
+    "instance_id": "local297",
+    "status": "gold_conflict",
+    "queries": 10,
+    "final_queries": 1,
+    "freeze_before_reveal": true,
+    "rows": 1,
+    "failures": []
+  },
+  {
+    "instance_id": "local298",
+    "status": "gold_conflict",
+    "queries": 8,
+    "final_queries": 1,
+    "freeze_before_reveal": true,
+    "rows": 3,
+    "failures": []
+  },
+  {
+    "instance_id": "local299",
+    "status": "gold_conflict",
+    "queries": 10,
+    "final_queries": 1,
+    "freeze_before_reveal": true,
+    "rows": 3,
+    "failures": []
+  }
+]

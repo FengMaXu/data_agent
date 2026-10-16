@@ -1,0 +1,52 @@
+{
+  "instance_id": "local171",
+  "status": "gold_conflict",
+  "summary": "Gold全部8行等于将有效年末限定在日期维表1917..1999。原6/5/5/5/4/2/1/1，独立首次州5/4/4/4/3/1/1/1；单加观测删失可完全复现Gold4/3/3/3/2/1/1/1，但题面无该年代限制。",
+  "fork_node": "population.time",
+  "error_layer": "gold_unrequested_observation_truncation",
+  "visibility": "原Spec无观测年代截断且SQL忠实；首次州与任一州歧义可见，不能由Gold识别",
+  "independent_score": 0,
+  "evidence": [
+    {
+      "source": "blind.json",
+      "pointer": "/question",
+      "quote": "actively serving on December 31 of each year"
+    },
+    {
+      "source": "comparison-input.json",
+      "pointer": "/originalSql",
+      "quote": "WHERE t.state = 'LA' AND l.gender = 'M'"
+    },
+    {
+      "source": "period31-counterexample-members.json-response.txt",
+      "pointer": "/details/preview/rows",
+      "quote": "2002-12-31"
+    }
+  ],
+  "limitations": [
+    "Gold SQL缺失，不能证明Gold真实使用date dimension",
+    "来自LA未指定首次州/任一州；Gold截断后对此无识别力",
+    "连续时长和完成周年两种边界读法未唯一"
+  ],
+  "parent_field_review": {
+    "instance_id": "local171",
+    "relevant_node": "population.time",
+    "node_is_confirmed_original_error": false,
+    "explanation": "Gold额外限制1917..1999年末观察窗，题面未要求；LA州锚另有歧义",
+    "error_layer": "标准答案与本次输入/明确要求局部冲突",
+    "visibility": "不适用：未确认原Spec语义错误",
+    "qualification": "Gold差异相关节点，不冒充原系统错误节点",
+    "original_node_declared": true,
+    "original_node_status": "request",
+    "original_node_value": {
+      "expression": "对每位议员，取其首个任期起点年份 Y0；考察 Y = Y0+31 … Y0+49，参考日为每年 12 月 31 日；仅保留 (12-31 相对首个任期起点) 严格大于 30 年且严格小于 50 年的年份",
+      "boundary": "exclusive"
+    },
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local171/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/9/result/details/fields/4/value",
+      "quote": "{\"expression\": \"对每位议员，取其首个任期起点年份 Y0；考察 Y = Y0+31 … Y0+49，参考日为每年 12 月 31 日；仅保留 (12-31 相对首个任期起点) 严格大于 30 年且严格小于 50 年的年份\", \"boundary\": \"exclusive\"}"
+    },
+    "primary_status": "gold_conflict"
+  }
+}

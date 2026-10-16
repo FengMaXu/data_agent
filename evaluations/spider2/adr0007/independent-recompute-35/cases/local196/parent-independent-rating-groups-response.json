@@ -1,0 +1,113 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_919c30e3-df93-4f05-98fe-e1c519728d85\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nrating | customers | avg_total_spent | avg_subsequent_rentals\nG | 104 | 110.65990384615385 | 25.298076923076923\nNC-17 | 117 | 111.941452991453 | 25.358974358974358\nPG | 106 | 112.67066037735849 | 26.264150943396228\nPG-13 | 147 | 115.23639455782313 | 26.38095238095238\nR | 125 | 111.42312000000001 | 25.48"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_919c30e3-df93-4f05-98fe-e1c519728d85",
+      "preview": {
+        "columns": [
+          "rating",
+          "customers",
+          "avg_total_spent",
+          "avg_subsequent_rentals"
+        ],
+        "rows": [
+          [
+            "G",
+            104,
+            110.65990384615385,
+            25.298076923076923
+          ],
+          [
+            "NC-17",
+            117,
+            111.941452991453,
+            25.358974358974358
+          ],
+          [
+            "PG",
+            106,
+            112.67066037735849,
+            26.264150943396228
+          ],
+          [
+            "PG-13",
+            147,
+            115.23639455782313,
+            26.38095238095238
+          ],
+          [
+            "R",
+            125,
+            111.42312000000001,
+            25.48
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "REAL",
+          "REAL"
+        ],
+        "rowCount": 5,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "rating",
+        "customers",
+        "avg_total_spent",
+        "avg_subsequent_rentals"
+      ],
+      "rows": [
+        [
+          "G",
+          104,
+          110.65990384615385,
+          25.298076923076923
+        ],
+        [
+          "NC-17",
+          117,
+          111.941452991453,
+          25.358974358974358
+        ],
+        [
+          "PG",
+          106,
+          112.67066037735849,
+          26.264150943396228
+        ],
+        [
+          "PG-13",
+          147,
+          115.23639455782313,
+          26.38095238095238
+        ],
+        [
+          "R",
+          125,
+          111.42312000000001,
+          25.48
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "REAL",
+        "REAL"
+      ],
+      "rowCount": 5,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_ea52401d-67e0-4cb4-abbf-3a089d28430b"
+  }
+}

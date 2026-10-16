@@ -1,0 +1,4 @@
+{
+  "sql": "WITH ordered AS (SELECT rowid event_id,session,stamp,path,LEAD(path,1) OVER(PARTITION BY session ORDER BY stamp,rowid) second_page,LEAD(path,2) OVER(PARTITION BY session ORDER BY stamp,rowid) third_page,LEAD(rowid,2) OVER(PARTITION BY session ORDER BY stamp,rowid) third_event FROM activity_log WHERE action='view') SELECT session,event_id,stamp,path,second_page,third_page,third_event FROM ordered WHERE path='/detail' AND second_page='/detail' AND third_event IS NULL ORDER BY session",
+  "limit": 1000
+}

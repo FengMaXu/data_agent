@@ -1,0 +1,59 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_4aaf6c78-ef7d-4c16-9476-4da6a05b335a\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nflights | ids | directed_airport_routes\n33121 | 33121 | 618"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_4aaf6c78-ef7d-4c16-9476-4da6a05b335a",
+      "preview": {
+        "columns": [
+          "flights",
+          "ids",
+          "directed_airport_routes"
+        ],
+        "rows": [
+          [
+            33121,
+            33121,
+            618
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "flights",
+        "ids",
+        "directed_airport_routes"
+      ],
+      "rows": [
+        [
+          33121,
+          33121,
+          618
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_7c372376-b79a-4296-a6ee-f4ad4047ecb3"
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "sql": "WITH f AS (SELECT *,row_number() over(partition by id_bioguide order by term_start,term_number) rn FROM legislators_terms) SELECT count(distinct l.id_bioguide) people FROM legislators l JOIN f ON f.id_bioguide=l.id_bioguide AND rn=1 JOIN legislators_terms t ON t.id_bioguide=l.id_bioguide JOIN legislation_date_dim dd ON dd.date BETWEEN t.term_start AND t.term_end WHERE gender='F' AND f.state='CA' AND dd.month_name='December' AND dd.day_of_month=31",
+  "limit": 1000
+}

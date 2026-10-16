@@ -1,0 +1,89 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_abdaa895-6c97-4547-ac4e-10da07391be9\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nvariant | median_raw | median_round_monthly\n2020_roster_missing_2019_zero | 1988.9777693928731 | 1988.975\n2021_roster_missing_pair_zero | 1875.6139858014071 | 1875.615\npaired_2021_roster | 2604.236129353304 | 2604.235\npaired_all | 2552.6959807204075 | 2552.6949999999997"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_abdaa895-6c97-4547-ac4e-10da07391be9",
+      "preview": {
+        "columns": [
+          "variant",
+          "median_raw",
+          "median_round_monthly"
+        ],
+        "rows": [
+          [
+            "2020_roster_missing_2019_zero",
+            1988.9777693928731,
+            1988.975
+          ],
+          [
+            "2021_roster_missing_pair_zero",
+            1875.6139858014071,
+            1875.615
+          ],
+          [
+            "paired_2021_roster",
+            2604.236129353304,
+            2604.235
+          ],
+          [
+            "paired_all",
+            2552.6959807204075,
+            2552.6949999999997
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "REAL",
+          "REAL"
+        ],
+        "rowCount": 4,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "variant",
+        "median_raw",
+        "median_round_monthly"
+      ],
+      "rows": [
+        [
+          "2020_roster_missing_2019_zero",
+          1988.9777693928731,
+          1988.975
+        ],
+        [
+          "2021_roster_missing_pair_zero",
+          1875.6139858014071,
+          1875.615
+        ],
+        [
+          "paired_2021_roster",
+          2604.236129353304,
+          2604.235
+        ],
+        [
+          "paired_all",
+          2552.6959807204075,
+          2552.6949999999997
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "REAL",
+        "REAL"
+      ],
+      "rowCount": 4,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_4b5f0e02-a0e8-4a2f-894c-c8263238edf2"
+  }
+}

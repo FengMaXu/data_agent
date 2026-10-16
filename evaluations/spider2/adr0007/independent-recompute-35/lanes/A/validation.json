@@ -1,0 +1,72 @@
+[
+  {
+    "instance_id": "local002",
+    "status": "ambiguous_after_recompute",
+    "checks": {
+      "required_artifacts": true,
+      "receipt_csv_and_sql": true,
+      "freeze_before_reveal": true,
+      "real_result_execution": true,
+      "evidence_quotes_present": true
+    },
+    "executed_query_count": 13,
+    "independent_csv": "evaluations\\spider2\\adr0007\\independent-recompute-35\\cases\\local002\\publications\\publication_ab748593-4d28-4dc0-b4df-9030fa844954\\result.csv",
+    "independent_score": 0
+  },
+  {
+    "instance_id": "local010",
+    "status": "gold_conflict",
+    "checks": {
+      "required_artifacts": true,
+      "receipt_csv_and_sql": true,
+      "freeze_before_reveal": true,
+      "real_result_execution": true,
+      "evidence_quotes_present": true
+    },
+    "executed_query_count": 10,
+    "independent_csv": "evaluations\\spider2\\adr0007\\independent-recompute-35\\cases\\local010\\publications\\publication_9b34a8df-75f4-417d-960c-445a45355fc8\\result.csv",
+    "independent_score": 0
+  },
+  {
+    "instance_id": "local040",
+    "status": "confirmed_semantic_error",
+    "checks": {
+      "required_artifacts": true,
+      "receipt_csv_and_sql": true,
+      "freeze_before_reveal": true,
+      "real_result_execution": true,
+      "evidence_quotes_present": true
+    },
+    "executed_query_count": 15,
+    "independent_csv": "evaluations\\spider2\\adr0007\\independent-recompute-35\\cases\\local040\\publications\\publication_eeaf6589-ead5-4705-97ba-a53889c166e3\\result.csv",
+    "independent_score": 0
+  },
+  {
+    "instance_id": "local049",
+    "status": "gold_conflict",
+    "checks": {
+      "required_artifacts": true,
+      "receipt_csv_and_sql": true,
+      "freeze_before_reveal": true,
+      "real_result_execution": true,
+      "evidence_quotes_present": true
+    },
+    "executed_query_count": 14,
+    "independent_csv": "evaluations\\spider2\\adr0007\\independent-recompute-35\\cases\\local049\\publications\\publication_4f58a567-572c-4cb4-8ee9-e8a591316e48\\result.csv",
+    "independent_score": 0
+  },
+  {
+    "instance_id": "local168",
+    "status": "ambiguous_after_recompute",
+    "checks": {
+      "required_artifacts": true,
+      "receipt_csv_and_sql": true,
+      "freeze_before_reveal": true,
+      "real_result_execution": true,
+      "evidence_quotes_present": true
+    },
+    "executed_query_count": 28,
+    "independent_csv": "evaluations\\spider2\\adr0007\\independent-recompute-35\\cases\\local168\\publications\\publication_8fff63c6-512d-4d0a-a880-0461a8a98d53\\result.csv",
+    "independent_score": 0
+  }
+]

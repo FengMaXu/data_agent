@@ -1,0 +1,289 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_a59ccadf-b9ef-4766-b553-1f99102b31dc\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nyear | forename | surname | first_round | last_round | rounds | endpoint_constructor | all_constructors\n1951 | Toulo | de Graffenried | 1 | 8 | 5 | Alfa Romeo | 51,105\n1953 | Johnny | Claes | 3 | 9 | 5 | Connaught | 105,125\n1956 | Maurice | Trintignant | 2 | 8 | 5 | Vanwall | 118,130\n1956 | André | Pilette | 2 | 5 | 3 | Gordini | 6,128\n1956 | Harry | Schell | 2 | 8 | 6 | Vanwall | 105,118\n1956 | Hernando | da Silva Ramos | 2 | 8 | 4 | Gordini | 105,128\n1958 | Maurice | Trintignant | 2 | 11 | 9 | Cooper | 66,87,105\n1958 | Cliff | Allison | 2 | 11 | 9 | Team Lotus | 32,105\n1959 | Roy | Salvadori | 1 | 9 | 7 | Cooper-Maserati | 117,167\n1959 | Stirling | Moss | 1 | 9 | 8 | Cooper-Climax | 66,170\n1959 | Tony | Brooks | 1 | 9 | 8 | Ferrari | 6,118"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_a59ccadf-b9ef-4766-b553-1f99102b31dc",
+      "preview": {
+        "columns": [
+          "year",
+          "forename",
+          "surname",
+          "first_round",
+          "last_round",
+          "rounds",
+          "endpoint_constructor",
+          "all_constructors"
+        ],
+        "rows": [
+          [
+            1951,
+            "Toulo",
+            "de Graffenried",
+            1,
+            8,
+            5,
+            "Alfa Romeo",
+            "51,105"
+          ],
+          [
+            1953,
+            "Johnny",
+            "Claes",
+            3,
+            9,
+            5,
+            "Connaught",
+            "105,125"
+          ],
+          [
+            1956,
+            "Maurice",
+            "Trintignant",
+            2,
+            8,
+            5,
+            "Vanwall",
+            "118,130"
+          ],
+          [
+            1956,
+            "André",
+            "Pilette",
+            2,
+            5,
+            3,
+            "Gordini",
+            "6,128"
+          ],
+          [
+            1956,
+            "Harry",
+            "Schell",
+            2,
+            8,
+            6,
+            "Vanwall",
+            "105,118"
+          ],
+          [
+            1956,
+            "Hernando",
+            "da Silva Ramos",
+            2,
+            8,
+            4,
+            "Gordini",
+            "105,128"
+          ],
+          [
+            1958,
+            "Maurice",
+            "Trintignant",
+            2,
+            11,
+            9,
+            "Cooper",
+            "66,87,105"
+          ],
+          [
+            1958,
+            "Cliff",
+            "Allison",
+            2,
+            11,
+            9,
+            "Team Lotus",
+            "32,105"
+          ],
+          [
+            1959,
+            "Roy",
+            "Salvadori",
+            1,
+            9,
+            7,
+            "Cooper-Maserati",
+            "117,167"
+          ],
+          [
+            1959,
+            "Stirling",
+            "Moss",
+            1,
+            9,
+            8,
+            "Cooper-Climax",
+            "66,170"
+          ],
+          [
+            1959,
+            "Tony",
+            "Brooks",
+            1,
+            9,
+            8,
+            "Ferrari",
+            "6,118"
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "TEXT",
+          "TEXT",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "TEXT",
+          "TEXT"
+        ],
+        "rowCount": 11,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "year",
+        "forename",
+        "surname",
+        "first_round",
+        "last_round",
+        "rounds",
+        "endpoint_constructor",
+        "all_constructors"
+      ],
+      "rows": [
+        [
+          1951,
+          "Toulo",
+          "de Graffenried",
+          1,
+          8,
+          5,
+          "Alfa Romeo",
+          "51,105"
+        ],
+        [
+          1953,
+          "Johnny",
+          "Claes",
+          3,
+          9,
+          5,
+          "Connaught",
+          "105,125"
+        ],
+        [
+          1956,
+          "Maurice",
+          "Trintignant",
+          2,
+          8,
+          5,
+          "Vanwall",
+          "118,130"
+        ],
+        [
+          1956,
+          "André",
+          "Pilette",
+          2,
+          5,
+          3,
+          "Gordini",
+          "6,128"
+        ],
+        [
+          1956,
+          "Harry",
+          "Schell",
+          2,
+          8,
+          6,
+          "Vanwall",
+          "105,118"
+        ],
+        [
+          1956,
+          "Hernando",
+          "da Silva Ramos",
+          2,
+          8,
+          4,
+          "Gordini",
+          "105,128"
+        ],
+        [
+          1958,
+          "Maurice",
+          "Trintignant",
+          2,
+          11,
+          9,
+          "Cooper",
+          "66,87,105"
+        ],
+        [
+          1958,
+          "Cliff",
+          "Allison",
+          2,
+          11,
+          9,
+          "Team Lotus",
+          "32,105"
+        ],
+        [
+          1959,
+          "Roy",
+          "Salvadori",
+          1,
+          9,
+          7,
+          "Cooper-Maserati",
+          "117,167"
+        ],
+        [
+          1959,
+          "Stirling",
+          "Moss",
+          1,
+          9,
+          8,
+          "Cooper-Climax",
+          "66,170"
+        ],
+        [
+          1959,
+          "Tony",
+          "Brooks",
+          1,
+          9,
+          8,
+          "Ferrari",
+          "6,118"
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "TEXT",
+        "TEXT",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "TEXT",
+        "TEXT"
+      ],
+      "rowCount": 11,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_e4466e1c-6eb9-45e2-bd1c-10c42bd5cc26"
+  }
+}

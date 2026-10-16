@@ -1,0 +1,69 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_345b2053-dd93-4b42-aa6d-eabb60ad9106\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nskill_id | demand | skills\n1 | 3 | python\n187 | 1 | qlik"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_345b2053-dd93-4b42-aa6d-eabb60ad9106",
+      "preview": {
+        "columns": [
+          "skill_id",
+          "demand",
+          "skills"
+        ],
+        "rows": [
+          [
+            1,
+            3,
+            "python"
+          ],
+          [
+            187,
+            1,
+            "qlik"
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "TEXT"
+        ],
+        "rowCount": 2,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "skill_id",
+        "demand",
+        "skills"
+      ],
+      "rows": [
+        [
+          1,
+          3,
+          "python"
+        ],
+        [
+          187,
+          1,
+          "qlik"
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "TEXT"
+      ],
+      "rowCount": 2,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_c9b68939-c744-407f-8a61-91eb183215fc"
+  }
+}

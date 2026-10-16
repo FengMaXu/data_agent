@@ -1,0 +1,1 @@
+{"sql": "SELECT L1_model,COUNT(*) n,COUNT(DISTINCT name||':'||version) versions,MIN(step) first_step,MAX(step) last_step FROM model GROUP BY L1_model", "limit": 100}

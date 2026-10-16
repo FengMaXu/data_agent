@@ -1,0 +1,183 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_e19d87d2-868c-4b4d-9f02-066a52c6b91c\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nyear | forename | surname | name | points\n2001 | Jean | Alesi | Jordan | 1\n2001 | Jos | Verstappen | Arrows | 1\n2002 | Takuma | Sato | Jordan | 2\n2002 | Mark | Webber | Minardi | 2\n2002 | Heinz-Harald | Frentzen | Arrows | 2\n2003 | Ralph | Firman | Jordan | 1\n2004 | Zsolt | Baumgartner | Minardi | 1\n2015 | Marcus | Ericsson | Sauber | 9\n2017 | Pascal | Wehrlein | Sauber | 5"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_e19d87d2-868c-4b4d-9f02-066a52c6b91c",
+      "preview": {
+        "columns": [
+          "year",
+          "forename",
+          "surname",
+          "name",
+          "points"
+        ],
+        "rows": [
+          [
+            2001,
+            "Jean",
+            "Alesi",
+            "Jordan",
+            1
+          ],
+          [
+            2001,
+            "Jos",
+            "Verstappen",
+            "Arrows",
+            1
+          ],
+          [
+            2002,
+            "Takuma",
+            "Sato",
+            "Jordan",
+            2
+          ],
+          [
+            2002,
+            "Mark",
+            "Webber",
+            "Minardi",
+            2
+          ],
+          [
+            2002,
+            "Heinz-Harald",
+            "Frentzen",
+            "Arrows",
+            2
+          ],
+          [
+            2003,
+            "Ralph",
+            "Firman",
+            "Jordan",
+            1
+          ],
+          [
+            2004,
+            "Zsolt",
+            "Baumgartner",
+            "Minardi",
+            1
+          ],
+          [
+            2015,
+            "Marcus",
+            "Ericsson",
+            "Sauber",
+            9
+          ],
+          [
+            2017,
+            "Pascal",
+            "Wehrlein",
+            "Sauber",
+            5
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "TEXT",
+          "TEXT",
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 9,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "year",
+        "forename",
+        "surname",
+        "name",
+        "points"
+      ],
+      "rows": [
+        [
+          2001,
+          "Jean",
+          "Alesi",
+          "Jordan",
+          1
+        ],
+        [
+          2001,
+          "Jos",
+          "Verstappen",
+          "Arrows",
+          1
+        ],
+        [
+          2002,
+          "Takuma",
+          "Sato",
+          "Jordan",
+          2
+        ],
+        [
+          2002,
+          "Mark",
+          "Webber",
+          "Minardi",
+          2
+        ],
+        [
+          2002,
+          "Heinz-Harald",
+          "Frentzen",
+          "Arrows",
+          2
+        ],
+        [
+          2003,
+          "Ralph",
+          "Firman",
+          "Jordan",
+          1
+        ],
+        [
+          2004,
+          "Zsolt",
+          "Baumgartner",
+          "Minardi",
+          1
+        ],
+        [
+          2015,
+          "Marcus",
+          "Ericsson",
+          "Sauber",
+          9
+        ],
+        [
+          2017,
+          "Pascal",
+          "Wehrlein",
+          "Sauber",
+          5
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "TEXT",
+        "TEXT",
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 9,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_6484d334-f118-484c-ae7c-e51cae00156c"
+  }
+}

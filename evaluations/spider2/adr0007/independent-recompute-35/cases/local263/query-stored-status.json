@@ -1,0 +1,1 @@
+{"sql": "SELECT L1_model,status,COUNT(*) n,COUNT(DISTINCT name||':'||version) models FROM stack_ok GROUP BY L1_model,status ORDER BY status,L1_model", "limit": 100}

@@ -1,0 +1,179 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_3932e0c7-258c-4b17-a966-5eb63818b3de revisionId=revision_7a7a4ad9-a787-4841-b950-9b0f5d8329f0\n- ✓ population.eligibility\n- ✓ population.conditions\n- ✓ population.time\n- ✓ measure.formula\n- ✓ measure.countGrain\n- ✓ measure.denominator\n- ✓ grouping\n- ✗ selection: selection.orderBy is required (column and direction)\n- ✓ selection.ties\n- ✓ output\n字段写法：one of: \"n/a\"; a bare value (an assumption, disclosed); {value, basis:\"request\", quote}; {value, cite:[{source, quote}]}; {value, evidenceIds}; {value, basis:\"assumed\", rationale}; {open:[value, ...]}; to decide an open field {value:<alternative>, rationale, evidenceIds?}; {notProbeable:{<alternativeId>: reason}}\n状态：\n- 未证实（发布时披露）: measure.countGrain, measure.denominator, selection.ties, output\n- 未声明: selection\n[SPEC_FEEDBACK] revisionId=revision_7a7a4ad9-a787-4841-b950-9b0f5d8329f0 status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"customer-month pairs\"}},\"population.eligibility\":{\"status\":\"request\",\"value\":\"Include all 500 customers, including zero-transaction customer-months\"},\"population.conditions\":{\"status\":\"request\",\"value\":[\"Only deposit adds and withdrawal subtracts; purchase contributes zero\"]},\"population.time\":{\"status\":\"request\",\"value\":{\"expression\":\"2020-01-01 inclusive through 2021-01-01 exclusive, all 12 calendar months\"}},\"measure.formula\":{\"status\":\"request\",\"value\":{\"op\":\"custom\",\"description\":\"Monthly deposit-withdrawal for each customer; positive customer count by month; average monthly net over all 500 customers; highest-count month average minus lowest-count month average\"}},\"measure.countGrain\":{\"status\":\"assumed\",\"value\":\"Distinct customer per calendar month\"},\"measure.denominator\":{\"status\":\"assumed\",\"value\":\"All 500 customers, zero-filled months\"},\"grouping\":{\"status\":\"request\",\"value\":[\"calendar month\"]},\"selection.ties\":{\"status\":\"assumed\",\"value\":\"strict\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"scalar\",\"columns\":[\"highest_month\",\"highest_count\",\"highest_average\",\"lowest_month\",\"lowest_count\",\"lowest_average\",\"difference\"]}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_3932e0c7-258c-4b17-a966-5eb63818b3de",
+    "revisionId": "revision_7a7a4ad9-a787-4841-b950-9b0f5d8329f0",
+    "parentRevisionId": "revision_0287212a-703a-49b9-9d9b-e3a43d919a21",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "customer-month pairs"
+        },
+        "evidenceIds": [
+          "evidence_08e3496a-1a1b-4f9a-a9fb-f9ce04b4d963"
+        ]
+      },
+      {
+        "path": "population.eligibility",
+        "status": "request",
+        "value": "Include all 500 customers, including zero-transaction customer-months",
+        "evidenceIds": [
+          "evidence_37daa9d1-f165-4cfa-9b5e-8dd3b142570c"
+        ]
+      },
+      {
+        "path": "population.conditions",
+        "status": "request",
+        "value": [
+          "Only deposit adds and withdrawal subtracts; purchase contributes zero"
+        ],
+        "evidenceIds": [
+          "evidence_2c31e542-71a3-4023-a17a-d972124b5707"
+        ]
+      },
+      {
+        "path": "population.time",
+        "status": "request",
+        "value": {
+          "expression": "2020-01-01 inclusive through 2021-01-01 exclusive, all 12 calendar months"
+        },
+        "evidenceIds": [
+          "evidence_05cb28f2-e9fd-4952-bbbc-2039aaf06687"
+        ]
+      },
+      {
+        "path": "measure.formula",
+        "status": "request",
+        "value": {
+          "op": "custom",
+          "description": "Monthly deposit-withdrawal for each customer; positive customer count by month; average monthly net over all 500 customers; highest-count month average minus lowest-count month average"
+        },
+        "evidenceIds": [
+          "evidence_c9ca100e-408b-425c-b105-d73bd60e638c"
+        ]
+      },
+      {
+        "path": "measure.countGrain",
+        "status": "assumed",
+        "value": "Distinct customer per calendar month"
+      },
+      {
+        "path": "measure.denominator",
+        "status": "assumed",
+        "value": "All 500 customers, zero-filled months"
+      },
+      {
+        "path": "grouping",
+        "status": "request",
+        "value": [
+          "calendar month"
+        ],
+        "evidenceIds": [
+          "evidence_f38f6a99-6947-4957-8048-261c630887f3"
+        ]
+      },
+      {
+        "path": "selection.ties",
+        "status": "assumed",
+        "value": "strict"
+      },
+      {
+        "path": "output",
+        "status": "assumed",
+        "value": {
+          "rowMode": "scalar",
+          "columns": [
+            "highest_month",
+            "highest_count",
+            "highest_average",
+            "lowest_month",
+            "lowest_count",
+            "lowest_average",
+            "difference"
+          ]
+        }
+      }
+    ],
+    "undeclared": [
+      "selection"
+    ],
+    "open": [],
+    "unverified": [
+      "measure.countGrain",
+      "measure.denominator",
+      "selection.ties",
+      "output"
+    ],
+    "specFeedback": {
+      "taskId": "task_3932e0c7-258c-4b17-a966-5eb63818b3de",
+      "revisionId": "revision_7a7a4ad9-a787-4841-b950-9b0f5d8329f0",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_08e3496a-1a1b-4f9a-a9fb-f9ce04b4d963",
+        "evidence_512d5719-8c74-409b-8755-7d57d0e0f2dc",
+        "evidence_fcd5ec21-d2a0-4626-9be7-1d6d325f795f",
+        "evidence_37daa9d1-f165-4cfa-9b5e-8dd3b142570c",
+        "evidence_2c31e542-71a3-4023-a17a-d972124b5707",
+        "evidence_05cb28f2-e9fd-4952-bbbc-2039aaf06687",
+        "evidence_c9ca100e-408b-425c-b105-d73bd60e638c",
+        "evidence_f38f6a99-6947-4957-8048-261c630887f3"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "population.eligibility",
+        "status": "applied"
+      },
+      {
+        "path": "population.conditions",
+        "status": "applied"
+      },
+      {
+        "path": "population.time",
+        "status": "applied"
+      },
+      {
+        "path": "measure.formula",
+        "status": "applied"
+      },
+      {
+        "path": "measure.countGrain",
+        "status": "applied"
+      },
+      {
+        "path": "measure.denominator",
+        "status": "applied"
+      },
+      {
+        "path": "grouping",
+        "status": "applied"
+      },
+      {
+        "path": "selection",
+        "status": "rejected",
+        "code": "INVALID_REQUEST",
+        "message": "selection.orderBy is required (column and direction)"
+      },
+      {
+        "path": "selection.ties",
+        "status": "applied"
+      },
+      {
+        "path": "output",
+        "status": "applied"
+      }
+    ]
+  }
+}

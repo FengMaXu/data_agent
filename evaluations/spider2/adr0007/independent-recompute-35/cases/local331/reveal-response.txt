@@ -1,0 +1,73 @@
+{
+  "revealedAt": "2026-10-11T09:15:43.688Z",
+  "registry": {
+    "instance_id": "local331",
+    "attempt_id": "attempt-20261010-154318Z",
+    "score": 0,
+    "score_source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-retry.json",
+    "replayed_csv_score": 0,
+    "group": "wrong",
+    "status": "completed",
+    "publication_status": "published",
+    "duration_ms": 233884,
+    "tool_calls": 35,
+    "error": null,
+    "result_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local331/attempts/attempt-20261010-154318Z/result.json",
+    "trace_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local331/attempts/attempt-20261010-154318Z/trace.json",
+    "result_exists": true,
+    "trace_exists": true,
+    "sql_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local331/attempts/attempt-20261010-154318Z/submissions/sql/local331.sql",
+    "csv_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local331.csv",
+    "sql_exists": true,
+    "csv_exists": true,
+    "gold_sql_file": null,
+    "process": {
+      "turns": 18,
+      "toolCalls": 35,
+      "explorationQueries": 22,
+      "resultQueries": 1,
+      "fanoutProbes": 0,
+      "revisions": 3
+    },
+    "fanout_metrics": {
+      "reportCount": 1,
+      "targetCount": 0,
+      "findingCount": 0,
+      "unknownCount": 0,
+      "byStatus": {
+        "clear": 0,
+        "finding": 0,
+        "not_applicable": 1,
+        "unknown": 0
+      },
+      "enabled": true
+    },
+    "spec_feedback_metrics": {
+      "reportCount": 4,
+      "byStatus": {
+        "pending": 0,
+        "completed": 1,
+        "unavailable": 3,
+        "disabled": 0
+      },
+      "deterministicIssueCount": 0,
+      "concernCount": 0,
+      "enabled": true
+    }
+  },
+  "originalSql": "WITH seq AS (\n  SELECT session,\n         stamp,\n         path,\n         LAG(path, 1) OVER (PARTITION BY session ORDER BY stamp, rowid) AS prev1,\n         LAG(path, 2) OVER (PARTITION BY session ORDER BY stamp, rowid) AS prev2\n  FROM activity_log\n)\nSELECT path AS third_page,\n       COUNT(*) AS occurrences\nFROM seq\nWHERE prev1 = '/detail'\n  AND prev2 = '/detail'\nGROUP BY path\nORDER BY occurrences DESC, third_page ASC\nLIMIT 3\n",
+  "originalCsv": "third_page,occurrences\n/detail,33\n/,2\n/detail/,1\n",
+  "goldSql": null,
+  "goldCsv": [
+    {
+      "path": "C:\\data-agent-eval\\Spider2\\spider2-lite\\evaluation_suite\\gold\\exec_result\\local331.csv",
+      "content": "path2,count2\r\n/detail,33\r\nEND,7\r\n/,2"
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local331",
+    "condition_cols": [],
+    "ignore_order": false,
+    "toks": "135"
+  }
+}

@@ -5,7 +5,7 @@ import type { EvidenceSource } from "./evidence-admission.js";
 import type { FanoutDialect, FanoutSchema } from "./fanout-check.js";
 import type { AnsweringSqlExecutor } from "./sql-execution.js";
 import type { RequirementExtractor, SpecAlignmentAssessor } from "../judgment/spec-alignment.js";
-import type { AdvisoryLedger } from "./advisory-ledger.js";
+import type { FieldAdviceOptions } from "./advice-execution.js";
 
 export interface FanoutAnsweringOptions {
   readonly enabled?: boolean;
@@ -45,9 +45,9 @@ export interface AnsweringDeps {
   readonly semanticQualificationMode: SemanticQualificationMode;
   /** Probe tracking for open fields and the decide-after-probe rule (ADR-0005). */
   readonly fieldProbes: boolean;
-  /** compare_hypotheses advice per open field, written by the trusted comparison tool. */
-  readonly advisoryLedger?: AdvisoryLedger;
-  /** An advisor is configured, so decisive open fields need advice before a decision. */
+  /** The advisor the Runtime asks about an open field whose probe outputs differ (ADR-0005). */
+  readonly fieldAdvice?: FieldAdviceOptions;
+  /** An advisor is configured and probes are tracked, so decisive open fields need advice before a decision. */
   readonly adviceRequired: boolean;
   /** Whether an unverified decision may settle the material population (ADR-0006). */
   readonly populationDecisions: "require_evidence" | "allow_disclosed";

@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT tree_id,count(*) n,count(distinct zipcode) zips,count(distinct boroname) boroughs FROM trees GROUP BY tree_id HAVING count(*)>1 ORDER BY n DESC LIMIT 10",
+  "limit": 100
+}

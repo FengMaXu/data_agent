@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT l.id,l.order_id,l.product_id,l.qty,o.ordered,o.delivery FROM orderlines l JOIN orders o ON l.order_id=o.id ORDER BY l.product_id,o.ordered,o.id,l.id",
+  "limit": 1000
+}

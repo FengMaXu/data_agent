@@ -1,0 +1,47 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_49c1f66a-4f02-4c43-aaa2-f96491d4e331\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nactors_without_four_year_gap\n28698"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_49c1f66a-4f02-4c43-aaa2-f96491d4e331",
+      "preview": {
+        "columns": [
+          "actors_without_four_year_gap"
+        ],
+        "rows": [
+          [
+            28698
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "actors_without_four_year_gap"
+      ],
+      "rows": [
+        [
+          28698
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_c696ae83-299e-4051-8e4d-7e081c6096a9"
+  }
+}

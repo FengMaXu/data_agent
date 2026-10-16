@@ -1,0 +1,172 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_71bad680-f9fc-4ec4-a0b6-fe471f99027a revisionId=revision_c1b40ac0-e57f-43a5-a0db-b4a6847535c7\n- ✓ population.eligibility\n- ✓ population.conditions\n- ✓ population.time\n- ✓ population.missing\n- ✓ measure.formula\n- ✓ measure.countGrain\n- ✓ measure.window\n- ✓ grouping\n- ✓ selection\n- ✓ output\n状态：\n- 未证实（发布时披露）: population.conditions, population.missing, measure.formula, measure.countGrain, measure.window, output\n- 没有待处理的字段，可以执行结果查询\n[SPEC_FEEDBACK] revisionId=revision_c1b40ac0-e57f-43a5-a0db-b4a6847535c7 status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"customer-month\"}},\"population.eligibility\":{\"status\":\"request\",\"value\":\"All customers, including no activity in a particular month, carried cumulative balance\"},\"population.conditions\":{\"status\":\"assumed\",\"value\":[\"Deposit positive; withdrawal and purchase negative; initial balance zero\",\"Exclude baseline first month only after calculating previous total\"]},\"population.time\":{\"status\":\"request\",\"value\":{\"expression\":\"Continuous months from first to last recorded transaction; first-of-month snapshot strictly before that day; baseline first month excluded after lag\"}},\"population.missing\":{\"status\":\"assumed\",\"value\":\"Zero net in inactive months; carry cumulative account balance\"},\"measure.formula\":{\"status\":\"assumed\",\"value\":{\"op\":\"custom\",\"description\":\"Per customer monthly signed transaction net, cumulatively sum from zero, clip each customer closing to MAX(closing,0), sum all customers, lag aggregate one calendar month. Remove first month only after lag.\"}},\"measure.countGrain\":{\"status\":\"assumed\",\"value\":\"One customer closing per calendar month before sum\"},\"measure.window\":{\"status\":\"assumed\",\"value\":\"Cumulative from first recorded calendar month; previous month lag by one calendar month\"},\"grouping\":{\"status\":\"request\",\"value\":[\"calendar month first day\"]},\"selection\":{\"status\":\"not_applicable\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"grouped\",\"columns\":[\"month\",\"previous_total_balance\"]}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_71bad680-f9fc-4ec4-a0b6-fe471f99027a",
+    "revisionId": "revision_c1b40ac0-e57f-43a5-a0db-b4a6847535c7",
+    "parentRevisionId": "revision_3421dd27-58a2-4ee0-8767-364a68051624",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "customer-month"
+        },
+        "evidenceIds": [
+          "evidence_2cbdcbb3-9616-4a43-be46-cf63327d5c30"
+        ]
+      },
+      {
+        "path": "population.eligibility",
+        "status": "request",
+        "value": "All customers, including no activity in a particular month, carried cumulative balance",
+        "evidenceIds": [
+          "evidence_764884b2-4921-4377-a74e-bae67545e2d6"
+        ]
+      },
+      {
+        "path": "population.conditions",
+        "status": "assumed",
+        "value": [
+          "Deposit positive; withdrawal and purchase negative; initial balance zero",
+          "Exclude baseline first month only after calculating previous total"
+        ],
+        "rationale": "Balance flows not defined by request; all nondeposit transaction types observed are account expenditures"
+      },
+      {
+        "path": "population.time",
+        "status": "request",
+        "value": {
+          "expression": "Continuous months from first to last recorded transaction; first-of-month snapshot strictly before that day; baseline first month excluded after lag"
+        },
+        "evidenceIds": [
+          "evidence_45ea4e83-db43-42db-b260-3392858077f6"
+        ]
+      },
+      {
+        "path": "population.missing",
+        "status": "assumed",
+        "value": "Zero net in inactive months; carry cumulative account balance"
+      },
+      {
+        "path": "measure.formula",
+        "status": "assumed",
+        "value": {
+          "op": "custom",
+          "description": "Per customer monthly signed transaction net, cumulatively sum from zero, clip each customer closing to MAX(closing,0), sum all customers, lag aggregate one calendar month. Remove first month only after lag."
+        },
+        "rationale": "Cumulative account balance interpretation; negative balances clipped per customer after accumulation, not monthly net or aggregate"
+      },
+      {
+        "path": "measure.countGrain",
+        "status": "assumed",
+        "value": "One customer closing per calendar month before sum"
+      },
+      {
+        "path": "measure.window",
+        "status": "assumed",
+        "value": "Cumulative from first recorded calendar month; previous month lag by one calendar month"
+      },
+      {
+        "path": "grouping",
+        "status": "request",
+        "value": [
+          "calendar month first day"
+        ],
+        "evidenceIds": [
+          "evidence_fe24dfee-3960-41b7-8302-3b189198501b"
+        ]
+      },
+      {
+        "path": "selection",
+        "status": "not_applicable"
+      },
+      {
+        "path": "output",
+        "status": "assumed",
+        "value": {
+          "rowMode": "grouped",
+          "columns": [
+            "month",
+            "previous_total_balance"
+          ]
+        }
+      }
+    ],
+    "undeclared": [],
+    "open": [],
+    "unverified": [
+      "population.conditions",
+      "population.missing",
+      "measure.formula",
+      "measure.countGrain",
+      "measure.window",
+      "output"
+    ],
+    "specFeedback": {
+      "taskId": "task_71bad680-f9fc-4ec4-a0b6-fe471f99027a",
+      "revisionId": "revision_c1b40ac0-e57f-43a5-a0db-b4a6847535c7",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_2cbdcbb3-9616-4a43-be46-cf63327d5c30",
+        "evidence_4d7bd722-9fba-4dec-9616-c1e40a116ce3",
+        "evidence_b0daf128-51f7-4a77-a265-74a5952e4fa2",
+        "evidence_67c384dc-33e9-4838-85e3-cc22cad11843",
+        "evidence_764884b2-4921-4377-a74e-bae67545e2d6",
+        "evidence_45ea4e83-db43-42db-b260-3392858077f6",
+        "evidence_fe24dfee-3960-41b7-8302-3b189198501b"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "population.eligibility",
+        "status": "applied"
+      },
+      {
+        "path": "population.conditions",
+        "status": "applied"
+      },
+      {
+        "path": "population.time",
+        "status": "applied"
+      },
+      {
+        "path": "population.missing",
+        "status": "applied"
+      },
+      {
+        "path": "measure.formula",
+        "status": "applied"
+      },
+      {
+        "path": "measure.countGrain",
+        "status": "applied"
+      },
+      {
+        "path": "measure.window",
+        "status": "applied"
+      },
+      {
+        "path": "grouping",
+        "status": "applied"
+      },
+      {
+        "path": "selection",
+        "status": "applied"
+      },
+      {
+        "path": "output",
+        "status": "applied"
+      }
+    ]
+  }
+}

@@ -1,0 +1,173 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_05894618-b58c-4912-986d-d3c141767e86\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\ncustomer_id | m | prior_closing | current_net\n2 | 2020-04-01 | 610 | 0\n4 | 2020-04-01 | 655 | 0\n6 | 2020-04-01 | 340 | 0\n12 | 2020-04-01 | 295 | 0\n13 | 2020-04-01 | 1405 | 0\n20 | 2020-04-01 | 776 | 0\n24 | 2020-04-01 | 254 | 0\n45 | 2020-04-01 | 584 | 0\n52 | 2020-04-01 | 2612 | 0\n64 | 2020-04-01 | 245 | 0"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_05894618-b58c-4912-986d-d3c141767e86",
+      "preview": {
+        "columns": [
+          "customer_id",
+          "m",
+          "prior_closing",
+          "current_net"
+        ],
+        "rows": [
+          [
+            2,
+            "2020-04-01",
+            610,
+            0
+          ],
+          [
+            4,
+            "2020-04-01",
+            655,
+            0
+          ],
+          [
+            6,
+            "2020-04-01",
+            340,
+            0
+          ],
+          [
+            12,
+            "2020-04-01",
+            295,
+            0
+          ],
+          [
+            13,
+            "2020-04-01",
+            1405,
+            0
+          ],
+          [
+            20,
+            "2020-04-01",
+            776,
+            0
+          ],
+          [
+            24,
+            "2020-04-01",
+            254,
+            0
+          ],
+          [
+            45,
+            "2020-04-01",
+            584,
+            0
+          ],
+          [
+            52,
+            "2020-04-01",
+            2612,
+            0
+          ],
+          [
+            64,
+            "2020-04-01",
+            245,
+            0
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "TEXT",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 10,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "customer_id",
+        "m",
+        "prior_closing",
+        "current_net"
+      ],
+      "rows": [
+        [
+          2,
+          "2020-04-01",
+          610,
+          0
+        ],
+        [
+          4,
+          "2020-04-01",
+          655,
+          0
+        ],
+        [
+          6,
+          "2020-04-01",
+          340,
+          0
+        ],
+        [
+          12,
+          "2020-04-01",
+          295,
+          0
+        ],
+        [
+          13,
+          "2020-04-01",
+          1405,
+          0
+        ],
+        [
+          20,
+          "2020-04-01",
+          776,
+          0
+        ],
+        [
+          24,
+          "2020-04-01",
+          254,
+          0
+        ],
+        [
+          45,
+          "2020-04-01",
+          584,
+          0
+        ],
+        [
+          52,
+          "2020-04-01",
+          2612,
+          0
+        ],
+        [
+          64,
+          "2020-04-01",
+          245,
+          0
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "TEXT",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 10,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_61ec9768-5de7-4615-a378-fd5aab6525fc"
+  }
+}

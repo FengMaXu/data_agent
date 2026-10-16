@@ -1,0 +1,114 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_a6718c19-0596-4109-b08b-b8c29b8f27c2\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nreference_date | rows | users | missing_id | missing_birth | invalid_birth | min_birth | max_birth | min_register | max_register | min_withdraw | max_withdraw\n2026-10-11 | 320 | 30 | 0 | 0 | 0 | 1950-01-21 | 2009-10-12 | 2016-10-01 | 2016-11-28 | 2016-10-10 | 2016-10-10"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_a6718c19-0596-4109-b08b-b8c29b8f27c2",
+      "preview": {
+        "columns": [
+          "reference_date",
+          "rows",
+          "users",
+          "missing_id",
+          "missing_birth",
+          "invalid_birth",
+          "min_birth",
+          "max_birth",
+          "min_register",
+          "max_register",
+          "min_withdraw",
+          "max_withdraw"
+        ],
+        "rows": [
+          [
+            "2026-10-11",
+            320,
+            30,
+            0,
+            0,
+            0,
+            "1950-01-21",
+            "2009-10-12",
+            "2016-10-01",
+            "2016-11-28",
+            "2016-10-10",
+            "2016-10-10"
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "TEXT",
+          "TEXT",
+          "TEXT",
+          "TEXT",
+          "TEXT",
+          "TEXT"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "reference_date",
+        "rows",
+        "users",
+        "missing_id",
+        "missing_birth",
+        "invalid_birth",
+        "min_birth",
+        "max_birth",
+        "min_register",
+        "max_register",
+        "min_withdraw",
+        "max_withdraw"
+      ],
+      "rows": [
+        [
+          "2026-10-11",
+          320,
+          30,
+          0,
+          0,
+          0,
+          "1950-01-21",
+          "2009-10-12",
+          "2016-10-01",
+          "2016-11-28",
+          "2016-10-10",
+          "2016-10-10"
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "TEXT",
+        "TEXT",
+        "TEXT",
+        "TEXT",
+        "TEXT",
+        "TEXT"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_bed08333-14da-4598-a4b5-62a4ede4f7db"
+  }
+}
+

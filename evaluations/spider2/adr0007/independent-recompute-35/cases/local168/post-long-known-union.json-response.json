@@ -1,0 +1,53 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_6a58009e-a199-4dc7-ae8b-50dcac964bfc\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nselected_jobs | avg_salary\n2 | 92850"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_6a58009e-a199-4dc7-ae8b-50dcac964bfc",
+      "preview": {
+        "columns": [
+          "selected_jobs",
+          "avg_salary"
+        ],
+        "rows": [
+          [
+            2,
+            92850
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "selected_jobs",
+        "avg_salary"
+      ],
+      "rows": [
+        [
+          2,
+          92850
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_68035750-9086-44bb-bd83-19f3fecbab44"
+  }
+}

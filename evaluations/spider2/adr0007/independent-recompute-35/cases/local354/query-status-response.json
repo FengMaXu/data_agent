@@ -1,0 +1,941 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_bfdbe5dc-b6b4-4f31-a616-df554370dd49\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nstatus_id | status | n | zero_laps\n1 | Finished | 343 | 0\n5 | Engine | 237 | 13\n3 | Accident | 131 | 29\n11 | +1 Lap | 120 | 0\n12 | +2 Laps | 100 | 0\n13 | +3 Laps | 90 | 0\n7 | Transmission | 68 | 4\n14 | +4 Laps | 60 | 0\n15 | +5 Laps | 59 | 0\n6 | Gearbox | 54 | 1\n81 | Did not qualify | 50 | 50\n16 | +6 Laps | 46 | 0\n8 | Clutch | 38 | 1\n17 | +7 Laps | 36 | 0\n20 | Spun off | 30 | 2\n25 | Overheating | 30 | 0\n44 | Oil leak | 29 | 0\n18 | +8 Laps | 28 | 0\n22 | Suspension | 27 | 3\n54 | Withdrew | 26 | 24\n23 | Brakes | 25 | 1\n31 | Retired | 25 | 3\n121 | Magneto | 22 | 0\n19 | +9 Laps | 21 | 0\n88 | +10 Laps | 20 | 0\n109 | Axle | 20 | 0\n80 | Ignition | 19 | 0\n51 | Oil pressure | 18 | 0\n48 | Fuel pump | 17 | 2\n95 | Fuel leak | 13 | 0\n53 | +13 Laps | 12 | 0\n86 | Halfshaft | 12 | 1\n69 | Fuel system | 11 | 2\n36 | Wheel | 10 | 0\n38 | Steering | 10 | 0\n37 | Throttle | 9 | 0\n55 | +12 Laps | 9 | 0\n45 | +11 Laps | 8 | 0\n62 | Not classified | 8 | 0\n67 | Wheel bearing | 7 | 0\n94 | Oil pump | 7 | 0\n2 | Disqualified | 6 | 0\n21 | Radiator | 6 | 0\n24 | Differential | 6 | 0\n42 | Heat shield fire | 6 | 1\n111 | +14 Laps | 6 | 0\n112 | +15 Laps | 6 | 0\n4 | Collision | 5 | 1\n10 | Electrical | 5 | 0\n108 | Oil pipe | 5 | 0\n116 | +16 Laps | 5 | 0\n126 | Supercharger | 5 | 0\n32 | Fuel pressure | 3 | 0\n50 | +17 Laps | 3 | 0\n60 | Out of fuel | 3 | 0\n68 | Physical | 3 | 0\n114 | +18 Laps | 3 | 0\n124 | +19 Laps | 3 | 0\n27 | Tyre | 2 | 0\n43 | Exhaust | 2 | 0\n83 | Chassis | 2 | 0\n98 | Injection | 2 | 1\n101 | Turbo | 2 | 0\n115 | +22 Laps | 2 | 0\n117 | +24 Laps | 2 | 0\n47 | Water leak | 1 | 0\n64 | Handling | 1 | 0\n70 | Oil line | 1 | 0\n85 | Stalled | 1 | 0\n99 | Distributor | 1 | 0\n103 | Water pump | 1 | 0\n110 | Water pipe | 1 | 0\n125 | +46 Laps | 1 | 0\n127 | +20 Laps | 1 | 0"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_bfdbe5dc-b6b4-4f31-a616-df554370dd49",
+      "preview": {
+        "columns": [
+          "status_id",
+          "status",
+          "n",
+          "zero_laps"
+        ],
+        "rows": [
+          [
+            1,
+            "Finished",
+            343,
+            0
+          ],
+          [
+            5,
+            "Engine",
+            237,
+            13
+          ],
+          [
+            3,
+            "Accident",
+            131,
+            29
+          ],
+          [
+            11,
+            "+1 Lap",
+            120,
+            0
+          ],
+          [
+            12,
+            "+2 Laps",
+            100,
+            0
+          ],
+          [
+            13,
+            "+3 Laps",
+            90,
+            0
+          ],
+          [
+            7,
+            "Transmission",
+            68,
+            4
+          ],
+          [
+            14,
+            "+4 Laps",
+            60,
+            0
+          ],
+          [
+            15,
+            "+5 Laps",
+            59,
+            0
+          ],
+          [
+            6,
+            "Gearbox",
+            54,
+            1
+          ],
+          [
+            81,
+            "Did not qualify",
+            50,
+            50
+          ],
+          [
+            16,
+            "+6 Laps",
+            46,
+            0
+          ],
+          [
+            8,
+            "Clutch",
+            38,
+            1
+          ],
+          [
+            17,
+            "+7 Laps",
+            36,
+            0
+          ],
+          [
+            20,
+            "Spun off",
+            30,
+            2
+          ],
+          [
+            25,
+            "Overheating",
+            30,
+            0
+          ],
+          [
+            44,
+            "Oil leak",
+            29,
+            0
+          ],
+          [
+            18,
+            "+8 Laps",
+            28,
+            0
+          ],
+          [
+            22,
+            "Suspension",
+            27,
+            3
+          ],
+          [
+            54,
+            "Withdrew",
+            26,
+            24
+          ],
+          [
+            23,
+            "Brakes",
+            25,
+            1
+          ],
+          [
+            31,
+            "Retired",
+            25,
+            3
+          ],
+          [
+            121,
+            "Magneto",
+            22,
+            0
+          ],
+          [
+            19,
+            "+9 Laps",
+            21,
+            0
+          ],
+          [
+            88,
+            "+10 Laps",
+            20,
+            0
+          ],
+          [
+            109,
+            "Axle",
+            20,
+            0
+          ],
+          [
+            80,
+            "Ignition",
+            19,
+            0
+          ],
+          [
+            51,
+            "Oil pressure",
+            18,
+            0
+          ],
+          [
+            48,
+            "Fuel pump",
+            17,
+            2
+          ],
+          [
+            95,
+            "Fuel leak",
+            13,
+            0
+          ],
+          [
+            53,
+            "+13 Laps",
+            12,
+            0
+          ],
+          [
+            86,
+            "Halfshaft",
+            12,
+            1
+          ],
+          [
+            69,
+            "Fuel system",
+            11,
+            2
+          ],
+          [
+            36,
+            "Wheel",
+            10,
+            0
+          ],
+          [
+            38,
+            "Steering",
+            10,
+            0
+          ],
+          [
+            37,
+            "Throttle",
+            9,
+            0
+          ],
+          [
+            55,
+            "+12 Laps",
+            9,
+            0
+          ],
+          [
+            45,
+            "+11 Laps",
+            8,
+            0
+          ],
+          [
+            62,
+            "Not classified",
+            8,
+            0
+          ],
+          [
+            67,
+            "Wheel bearing",
+            7,
+            0
+          ],
+          [
+            94,
+            "Oil pump",
+            7,
+            0
+          ],
+          [
+            2,
+            "Disqualified",
+            6,
+            0
+          ],
+          [
+            21,
+            "Radiator",
+            6,
+            0
+          ],
+          [
+            24,
+            "Differential",
+            6,
+            0
+          ],
+          [
+            42,
+            "Heat shield fire",
+            6,
+            1
+          ],
+          [
+            111,
+            "+14 Laps",
+            6,
+            0
+          ],
+          [
+            112,
+            "+15 Laps",
+            6,
+            0
+          ],
+          [
+            4,
+            "Collision",
+            5,
+            1
+          ],
+          [
+            10,
+            "Electrical",
+            5,
+            0
+          ],
+          [
+            108,
+            "Oil pipe",
+            5,
+            0
+          ],
+          [
+            116,
+            "+16 Laps",
+            5,
+            0
+          ],
+          [
+            126,
+            "Supercharger",
+            5,
+            0
+          ],
+          [
+            32,
+            "Fuel pressure",
+            3,
+            0
+          ],
+          [
+            50,
+            "+17 Laps",
+            3,
+            0
+          ],
+          [
+            60,
+            "Out of fuel",
+            3,
+            0
+          ],
+          [
+            68,
+            "Physical",
+            3,
+            0
+          ],
+          [
+            114,
+            "+18 Laps",
+            3,
+            0
+          ],
+          [
+            124,
+            "+19 Laps",
+            3,
+            0
+          ],
+          [
+            27,
+            "Tyre",
+            2,
+            0
+          ],
+          [
+            43,
+            "Exhaust",
+            2,
+            0
+          ],
+          [
+            83,
+            "Chassis",
+            2,
+            0
+          ],
+          [
+            98,
+            "Injection",
+            2,
+            1
+          ],
+          [
+            101,
+            "Turbo",
+            2,
+            0
+          ],
+          [
+            115,
+            "+22 Laps",
+            2,
+            0
+          ],
+          [
+            117,
+            "+24 Laps",
+            2,
+            0
+          ],
+          [
+            47,
+            "Water leak",
+            1,
+            0
+          ],
+          [
+            64,
+            "Handling",
+            1,
+            0
+          ],
+          [
+            70,
+            "Oil line",
+            1,
+            0
+          ],
+          [
+            85,
+            "Stalled",
+            1,
+            0
+          ],
+          [
+            99,
+            "Distributor",
+            1,
+            0
+          ],
+          [
+            103,
+            "Water pump",
+            1,
+            0
+          ],
+          [
+            110,
+            "Water pipe",
+            1,
+            0
+          ],
+          [
+            125,
+            "+46 Laps",
+            1,
+            0
+          ],
+          [
+            127,
+            "+20 Laps",
+            1,
+            0
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "TEXT",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 74,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "status_id",
+        "status",
+        "n",
+        "zero_laps"
+      ],
+      "rows": [
+        [
+          1,
+          "Finished",
+          343,
+          0
+        ],
+        [
+          5,
+          "Engine",
+          237,
+          13
+        ],
+        [
+          3,
+          "Accident",
+          131,
+          29
+        ],
+        [
+          11,
+          "+1 Lap",
+          120,
+          0
+        ],
+        [
+          12,
+          "+2 Laps",
+          100,
+          0
+        ],
+        [
+          13,
+          "+3 Laps",
+          90,
+          0
+        ],
+        [
+          7,
+          "Transmission",
+          68,
+          4
+        ],
+        [
+          14,
+          "+4 Laps",
+          60,
+          0
+        ],
+        [
+          15,
+          "+5 Laps",
+          59,
+          0
+        ],
+        [
+          6,
+          "Gearbox",
+          54,
+          1
+        ],
+        [
+          81,
+          "Did not qualify",
+          50,
+          50
+        ],
+        [
+          16,
+          "+6 Laps",
+          46,
+          0
+        ],
+        [
+          8,
+          "Clutch",
+          38,
+          1
+        ],
+        [
+          17,
+          "+7 Laps",
+          36,
+          0
+        ],
+        [
+          20,
+          "Spun off",
+          30,
+          2
+        ],
+        [
+          25,
+          "Overheating",
+          30,
+          0
+        ],
+        [
+          44,
+          "Oil leak",
+          29,
+          0
+        ],
+        [
+          18,
+          "+8 Laps",
+          28,
+          0
+        ],
+        [
+          22,
+          "Suspension",
+          27,
+          3
+        ],
+        [
+          54,
+          "Withdrew",
+          26,
+          24
+        ],
+        [
+          23,
+          "Brakes",
+          25,
+          1
+        ],
+        [
+          31,
+          "Retired",
+          25,
+          3
+        ],
+        [
+          121,
+          "Magneto",
+          22,
+          0
+        ],
+        [
+          19,
+          "+9 Laps",
+          21,
+          0
+        ],
+        [
+          88,
+          "+10 Laps",
+          20,
+          0
+        ],
+        [
+          109,
+          "Axle",
+          20,
+          0
+        ],
+        [
+          80,
+          "Ignition",
+          19,
+          0
+        ],
+        [
+          51,
+          "Oil pressure",
+          18,
+          0
+        ],
+        [
+          48,
+          "Fuel pump",
+          17,
+          2
+        ],
+        [
+          95,
+          "Fuel leak",
+          13,
+          0
+        ],
+        [
+          53,
+          "+13 Laps",
+          12,
+          0
+        ],
+        [
+          86,
+          "Halfshaft",
+          12,
+          1
+        ],
+        [
+          69,
+          "Fuel system",
+          11,
+          2
+        ],
+        [
+          36,
+          "Wheel",
+          10,
+          0
+        ],
+        [
+          38,
+          "Steering",
+          10,
+          0
+        ],
+        [
+          37,
+          "Throttle",
+          9,
+          0
+        ],
+        [
+          55,
+          "+12 Laps",
+          9,
+          0
+        ],
+        [
+          45,
+          "+11 Laps",
+          8,
+          0
+        ],
+        [
+          62,
+          "Not classified",
+          8,
+          0
+        ],
+        [
+          67,
+          "Wheel bearing",
+          7,
+          0
+        ],
+        [
+          94,
+          "Oil pump",
+          7,
+          0
+        ],
+        [
+          2,
+          "Disqualified",
+          6,
+          0
+        ],
+        [
+          21,
+          "Radiator",
+          6,
+          0
+        ],
+        [
+          24,
+          "Differential",
+          6,
+          0
+        ],
+        [
+          42,
+          "Heat shield fire",
+          6,
+          1
+        ],
+        [
+          111,
+          "+14 Laps",
+          6,
+          0
+        ],
+        [
+          112,
+          "+15 Laps",
+          6,
+          0
+        ],
+        [
+          4,
+          "Collision",
+          5,
+          1
+        ],
+        [
+          10,
+          "Electrical",
+          5,
+          0
+        ],
+        [
+          108,
+          "Oil pipe",
+          5,
+          0
+        ],
+        [
+          116,
+          "+16 Laps",
+          5,
+          0
+        ],
+        [
+          126,
+          "Supercharger",
+          5,
+          0
+        ],
+        [
+          32,
+          "Fuel pressure",
+          3,
+          0
+        ],
+        [
+          50,
+          "+17 Laps",
+          3,
+          0
+        ],
+        [
+          60,
+          "Out of fuel",
+          3,
+          0
+        ],
+        [
+          68,
+          "Physical",
+          3,
+          0
+        ],
+        [
+          114,
+          "+18 Laps",
+          3,
+          0
+        ],
+        [
+          124,
+          "+19 Laps",
+          3,
+          0
+        ],
+        [
+          27,
+          "Tyre",
+          2,
+          0
+        ],
+        [
+          43,
+          "Exhaust",
+          2,
+          0
+        ],
+        [
+          83,
+          "Chassis",
+          2,
+          0
+        ],
+        [
+          98,
+          "Injection",
+          2,
+          1
+        ],
+        [
+          101,
+          "Turbo",
+          2,
+          0
+        ],
+        [
+          115,
+          "+22 Laps",
+          2,
+          0
+        ],
+        [
+          117,
+          "+24 Laps",
+          2,
+          0
+        ],
+        [
+          47,
+          "Water leak",
+          1,
+          0
+        ],
+        [
+          64,
+          "Handling",
+          1,
+          0
+        ],
+        [
+          70,
+          "Oil line",
+          1,
+          0
+        ],
+        [
+          85,
+          "Stalled",
+          1,
+          0
+        ],
+        [
+          99,
+          "Distributor",
+          1,
+          0
+        ],
+        [
+          103,
+          "Water pump",
+          1,
+          0
+        ],
+        [
+          110,
+          "Water pipe",
+          1,
+          0
+        ],
+        [
+          125,
+          "+46 Laps",
+          1,
+          0
+        ],
+        [
+          127,
+          "+20 Laps",
+          1,
+          0
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "TEXT",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 74,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_411a907c-2970-4cbd-b12d-2437596c1961"
+  }
+}

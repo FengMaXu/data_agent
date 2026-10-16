@@ -1,0 +1,1182 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_604731c5-dd07-4e4d-96f3-ad5463162753\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nbucket | pair_count\n0 | 92\n1000 | 93\n2000 | 37\n3000 | 20\n4000 | 6\n5000 | 3\n6000 | 7"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_604731c5-dd07-4e4d-96f3-ad5463162753",
+      "preview": {
+        "columns": [
+          "bucket",
+          "pair_count"
+        ],
+        "rows": [
+          [
+            0,
+            92
+          ],
+          [
+            1000,
+            93
+          ],
+          [
+            2000,
+            37
+          ],
+          [
+            3000,
+            20
+          ],
+          [
+            4000,
+            6
+          ],
+          [
+            5000,
+            3
+          ],
+          [
+            6000,
+            7
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 7,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "bucket",
+        "pair_count"
+      ],
+      "rows": [
+        [
+          0,
+          92
+        ],
+        [
+          1000,
+          93
+        ],
+        [
+          2000,
+          37
+        ],
+        [
+          3000,
+          20
+        ],
+        [
+          4000,
+          6
+        ],
+        [
+          5000,
+          3
+        ],
+        [
+          6000,
+          7
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 7,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_8a49603b-df63-4421-a3a1-bdf53cbd25c8"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_06c9682a-e1d0-4398-b120-ed3d5a33b3f4\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\npairs | flights | min(distance) | max(distance) | same_city_pairs\n258 | 33121 | 302.0123099827031 | 6774.7292687675135 | 0"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_06c9682a-e1d0-4398-b120-ed3d5a33b3f4",
+      "preview": {
+        "columns": [
+          "pairs",
+          "flights",
+          "min(distance)",
+          "max(distance)",
+          "same_city_pairs"
+        ],
+        "rows": [
+          [
+            258,
+            33121,
+            302.0123099827031,
+            6774.7292687675135,
+            0
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "REAL",
+          "REAL",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "pairs",
+        "flights",
+        "min(distance)",
+        "max(distance)",
+        "same_city_pairs"
+      ],
+      "rows": [
+        [
+          258,
+          33121,
+          302.0123099827031,
+          6774.7292687675135,
+          0
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "REAL",
+        "REAL",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_6e1293b6-7ec5-4403-aaeb-ef44603a2d5c"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_b3314926-1427-40bf-9552-2d1639cdbb26\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\ncity1 | city2 | airport_routes | min(distance) | max(distance)\nMoscow | Ulyanovsk | 4 | 672.2644085389138 | 742.8160707394161\nAnadyr | Moscow | 3 | 6177.07739672632 | 6226.020970764133\nBarnaul | Moscow | 3 | 2910.1004802109337 | 2944.2209138415583\nBryansk | Moscow | 3 | 331.2173876530231 | 370.85309273440964\nGelendzhik | Moscow | 3 | 1203.89828410678 | 1267.2663338543036\nKemorovo | Moscow | 3 | 2986.3350898297754 | 3017.6039337164425\nKurgan | Moscow | 3 | 1723.7761020846883 | 1759.5442624367545\nMoscow | Petrozavodsk | 3 | 683.334314554822 | 751.8305995165396\nMoscow | St. Petersburg | 3 | 599.2890097899877 | 666.8838408232715\nMoscow | Yoshkar-Ola | 3 | 636.5894349228373 | 669.9997629921572"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_b3314926-1427-40bf-9552-2d1639cdbb26",
+      "preview": {
+        "columns": [
+          "city1",
+          "city2",
+          "airport_routes",
+          "min(distance)",
+          "max(distance)"
+        ],
+        "rows": [
+          [
+            "Moscow",
+            "Ulyanovsk",
+            4,
+            672.2644085389138,
+            742.8160707394161
+          ],
+          [
+            "Anadyr",
+            "Moscow",
+            3,
+            6177.07739672632,
+            6226.020970764133
+          ],
+          [
+            "Barnaul",
+            "Moscow",
+            3,
+            2910.1004802109337,
+            2944.2209138415583
+          ],
+          [
+            "Bryansk",
+            "Moscow",
+            3,
+            331.2173876530231,
+            370.85309273440964
+          ],
+          [
+            "Gelendzhik",
+            "Moscow",
+            3,
+            1203.89828410678,
+            1267.2663338543036
+          ],
+          [
+            "Kemorovo",
+            "Moscow",
+            3,
+            2986.3350898297754,
+            3017.6039337164425
+          ],
+          [
+            "Kurgan",
+            "Moscow",
+            3,
+            1723.7761020846883,
+            1759.5442624367545
+          ],
+          [
+            "Moscow",
+            "Petrozavodsk",
+            3,
+            683.334314554822,
+            751.8305995165396
+          ],
+          [
+            "Moscow",
+            "St. Petersburg",
+            3,
+            599.2890097899877,
+            666.8838408232715
+          ],
+          [
+            "Moscow",
+            "Yoshkar-Ola",
+            3,
+            636.5894349228373,
+            669.9997629921572
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "TEXT",
+          "INTEGER",
+          "REAL",
+          "REAL"
+        ],
+        "rowCount": 10,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "city1",
+        "city2",
+        "airport_routes",
+        "min(distance)",
+        "max(distance)"
+      ],
+      "rows": [
+        [
+          "Moscow",
+          "Ulyanovsk",
+          4,
+          672.2644085389138,
+          742.8160707394161
+        ],
+        [
+          "Anadyr",
+          "Moscow",
+          3,
+          6177.07739672632,
+          6226.020970764133
+        ],
+        [
+          "Barnaul",
+          "Moscow",
+          3,
+          2910.1004802109337,
+          2944.2209138415583
+        ],
+        [
+          "Bryansk",
+          "Moscow",
+          3,
+          331.2173876530231,
+          370.85309273440964
+        ],
+        [
+          "Gelendzhik",
+          "Moscow",
+          3,
+          1203.89828410678,
+          1267.2663338543036
+        ],
+        [
+          "Kemorovo",
+          "Moscow",
+          3,
+          2986.3350898297754,
+          3017.6039337164425
+        ],
+        [
+          "Kurgan",
+          "Moscow",
+          3,
+          1723.7761020846883,
+          1759.5442624367545
+        ],
+        [
+          "Moscow",
+          "Petrozavodsk",
+          3,
+          683.334314554822,
+          751.8305995165396
+        ],
+        [
+          "Moscow",
+          "St. Petersburg",
+          3,
+          599.2890097899877,
+          666.8838408232715
+        ],
+        [
+          "Moscow",
+          "Yoshkar-Ola",
+          3,
+          636.5894349228373,
+          669.9997629921572
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "TEXT",
+        "INTEGER",
+        "REAL",
+        "REAL"
+      ],
+      "rowCount": 10,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_bef9197a-a92b-4fd9-b475-c15626a00ebf"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_b5284430-0466-41d7-963c-975055f7d369\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nbucket | pair_count\n0 | 184\n1000 | 186\n2000 | 74\n3000 | 40\n4000 | 12\n5000 | 6\n6000 | 14"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_b5284430-0466-41d7-963c-975055f7d369",
+      "preview": {
+        "columns": [
+          "bucket",
+          "pair_count"
+        ],
+        "rows": [
+          [
+            0,
+            184
+          ],
+          [
+            1000,
+            186
+          ],
+          [
+            2000,
+            74
+          ],
+          [
+            3000,
+            40
+          ],
+          [
+            4000,
+            12
+          ],
+          [
+            5000,
+            6
+          ],
+          [
+            6000,
+            14
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 7,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "bucket",
+        "pair_count"
+      ],
+      "rows": [
+        [
+          0,
+          184
+        ],
+        [
+          1000,
+          186
+        ],
+        [
+          2000,
+          74
+        ],
+        [
+          3000,
+          40
+        ],
+        [
+          4000,
+          12
+        ],
+        [
+          5000,
+          6
+        ],
+        [
+          6000,
+          14
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 7,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_f9f5bf27-9625-41ce-a820-cf63a857f95c"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_2a9d9ea4-f519-4447-a5fe-75fd19173212\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nbucket | pair_count\n0 | 92\n1000 | 93\n2000 | 37\n3000 | 20\n4000 | 6\n5000 | 3\n6000 | 7"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_2a9d9ea4-f519-4447-a5fe-75fd19173212",
+      "preview": {
+        "columns": [
+          "bucket",
+          "pair_count"
+        ],
+        "rows": [
+          [
+            0,
+            92
+          ],
+          [
+            1000,
+            93
+          ],
+          [
+            2000,
+            37
+          ],
+          [
+            3000,
+            20
+          ],
+          [
+            4000,
+            6
+          ],
+          [
+            5000,
+            3
+          ],
+          [
+            6000,
+            7
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 7,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "bucket",
+        "pair_count"
+      ],
+      "rows": [
+        [
+          0,
+          92
+        ],
+        [
+          1000,
+          93
+        ],
+        [
+          2000,
+          37
+        ],
+        [
+          3000,
+          20
+        ],
+        [
+          4000,
+          6
+        ],
+        [
+          5000,
+          3
+        ],
+        [
+          6000,
+          7
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 7,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_3f6abd19-016e-4649-b8a4-1f69e4345888"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_3f425279-bd31-44af-83cc-2d27fee4ccf8 revisionId=revision_854bcc4d-32ca-474c-a113-c68a8cbd7ee7\n- ✓ population.eligibility\n- ✓ population.conditions\n- ✓ population.time\n- ✓ measure.formula\n- ✓ grouping\n- ✓ selection\n- ✓ output\n状态：\n- 没有待处理的字段，可以执行结果查询\n[SPEC_FEEDBACK] revisionId=revision_854bcc4d-32ca-474c-a113-c68a8cbd7ee7 status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"无向城市对（名字字典序规范化）\"}},\"population.eligibility\":{\"status\":\"request\",\"value\":\"All flight records with both airport city and coordinates; no extra state/time restrictions\"},\"population.conditions\":{\"status\":\"not_applicable\"},\"population.time\":{\"status\":\"not_applicable\"},\"measure.formula\":{\"status\":\"evidence\",\"value\":{\"op\":\"custom\",\"description\":\"Haversine km R6371 per flight row; normalize unordered city names; mean distance per city pair across all flights; count pairs by lower-bound 1000km bins with capped 6000+; include empty bins; minimum count\"}},\"grouping\":{\"status\":\"not_applicable\"},\"selection\":{\"status\":\"not_applicable\"},\"output\":{\"status\":\"request\",\"value\":{\"rowMode\":\"scalar\",\"columns\":[\"fewest_pair_count\"]}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_3f425279-bd31-44af-83cc-2d27fee4ccf8",
+    "revisionId": "revision_854bcc4d-32ca-474c-a113-c68a8cbd7ee7",
+    "parentRevisionId": "revision_6aebca02-6a6b-4d1e-9aad-9ed83e5c69f6",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "无向城市对（名字字典序规范化）"
+        },
+        "evidenceIds": [
+          "evidence_658fd390-8c2f-4261-bf71-9570b22d9dfc"
+        ]
+      },
+      {
+        "path": "population.eligibility",
+        "status": "request",
+        "value": "All flight records with both airport city and coordinates; no extra state/time restrictions",
+        "evidenceIds": [
+          "evidence_397ce37f-a952-446b-8c12-0c210a217357"
+        ]
+      },
+      {
+        "path": "population.conditions",
+        "status": "not_applicable"
+      },
+      {
+        "path": "population.time",
+        "status": "not_applicable"
+      },
+      {
+        "path": "measure.formula",
+        "status": "evidence",
+        "value": {
+          "op": "custom",
+          "description": "Haversine km R6371 per flight row; normalize unordered city names; mean distance per city pair across all flights; count pairs by lower-bound 1000km bins with capped 6000+; include empty bins; minimum count"
+        },
+        "evidenceIds": [
+          "evidence_8871ac2d-efa7-466a-8949-7068945aa04b"
+        ]
+      },
+      {
+        "path": "grouping",
+        "status": "not_applicable"
+      },
+      {
+        "path": "selection",
+        "status": "not_applicable"
+      },
+      {
+        "path": "output",
+        "status": "request",
+        "value": {
+          "rowMode": "scalar",
+          "columns": [
+            "fewest_pair_count"
+          ]
+        },
+        "evidenceIds": [
+          "evidence_4f31542b-7449-48a8-bc74-8a0bba437e4c"
+        ]
+      }
+    ],
+    "undeclared": [],
+    "open": [],
+    "unverified": [],
+    "specFeedback": {
+      "taskId": "task_3f425279-bd31-44af-83cc-2d27fee4ccf8",
+      "revisionId": "revision_854bcc4d-32ca-474c-a113-c68a8cbd7ee7",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_658fd390-8c2f-4261-bf71-9570b22d9dfc",
+        "evidence_e22d0b56-d7c9-4e62-bc59-399294927a2c",
+        "evidence_4aaf6c78-ef7d-4c16-9476-4da6a05b335a",
+        "evidence_604731c5-dd07-4e4d-96f3-ad5463162753",
+        "evidence_06c9682a-e1d0-4398-b120-ed3d5a33b3f4",
+        "evidence_b3314926-1427-40bf-9552-2d1639cdbb26",
+        "evidence_b5284430-0466-41d7-963c-975055f7d369",
+        "evidence_2a9d9ea4-f519-4447-a5fe-75fd19173212",
+        "evidence_397ce37f-a952-446b-8c12-0c210a217357",
+        "evidence_8871ac2d-efa7-466a-8949-7068945aa04b",
+        "evidence_4f31542b-7449-48a8-bc74-8a0bba437e4c"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "population.eligibility",
+        "status": "applied"
+      },
+      {
+        "path": "population.conditions",
+        "status": "applied"
+      },
+      {
+        "path": "population.time",
+        "status": "applied"
+      },
+      {
+        "path": "measure.formula",
+        "status": "applied"
+      },
+      {
+        "path": "grouping",
+        "status": "applied"
+      },
+      {
+        "path": "selection",
+        "status": "applied"
+      },
+      {
+        "path": "output",
+        "status": "applied"
+      }
+    ]
+  }
+}
+
+{
+  "query": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[RESULT_CANDIDATE] candidateId=candidate_43a5ad4d-6467-4cf1-941b-fc9e2da29766 revisionId=revision_854bcc4d-32ca-474c-a113-c68a8cbd7ee7\n[FANOUT_CHECK] status=unknown reasons=check_disabled\nNo source-key duplication was observed within the supported probe coverage.\nfewest_pair_count\n3"
+      }
+    ],
+    "details": {
+      "kind": "result",
+      "artifact": {
+        "kind": "candidate",
+        "candidateId": "candidate_43a5ad4d-6467-4cf1-941b-fc9e2da29766",
+        "revisionId": "revision_854bcc4d-32ca-474c-a113-c68a8cbd7ee7",
+        "resultRef": "result_3c3c111a-453d-498d-aacc-725ee957c8bb"
+      },
+      "preview": {
+        "columns": [
+          "fewest_pair_count"
+        ],
+        "rows": [
+          [
+            3
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      },
+      "findings": [],
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "unknown",
+          "reason": "check_disabled"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "unknown",
+        "snapshotScope": "unbound",
+        "targets": [],
+        "unsupportedReasons": [
+          "check_disabled"
+        ]
+      },
+      "attemptId": "attempt_67bc72a7-79c1-4f5d-abe4-0523a06b28fa"
+    }
+  },
+  "publication": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[PUBLISHED] csv [download](/api/runtime/publications/publication_9b34a8df-75f4-417d-960c-445a45355fc8?session_id=local010) receiptId=publication_9b34a8df-75f4-417d-960c-445a45355fc8\n[DISCLOSURE] JOIN fanout 检查未能完整完成：check_disabled。"
+      }
+    ],
+    "details": {
+      "receiptId": "publication_9b34a8df-75f4-417d-960c-445a45355fc8",
+      "taskId": "task_3f425279-bd31-44af-83cc-2d27fee4ccf8",
+      "principalId": "independent-analyst",
+      "sessionId": "local010",
+      "candidateId": "candidate_43a5ad4d-6467-4cf1-941b-fc9e2da29766",
+      "revisionId": "revision_854bcc4d-32ca-474c-a113-c68a8cbd7ee7",
+      "resultRef": "result_3c3c111a-453d-498d-aacc-725ee957c8bb",
+      "format": "csv",
+      "publicRef": "/api/runtime/publications/publication_9b34a8df-75f4-417d-960c-445a45355fc8?session_id=local010",
+      "contentHash": "14d1e3772d659783c9ebc03df62e70ac2ea43b257822bee5ec876caf60daa336",
+      "presentationContentHash": "ca0e3da81eff4fa04993de35336d1b329f01e2c3596edf53efd3a5123e137793",
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "unknown",
+          "reason": "check_disabled"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "unknown",
+        "snapshotScope": "unbound",
+        "targets": [],
+        "unsupportedReasons": [
+          "check_disabled"
+        ]
+      },
+      "disclosure": {
+        "required": true,
+        "unverifiedFields": [],
+        "summary": "JOIN fanout 检查未能完整完成：check_disabled。",
+        "fanoutStatus": "unknown"
+      },
+      "physicalProfile": {
+        "version": 1,
+        "rowCount": 1,
+        "truncated": false,
+        "columns": [
+          {
+            "name": "fewest_pair_count",
+            "kind": "integer",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 1,
+            "min": "3",
+            "max": "3"
+          }
+        ]
+      },
+      "policyVersion": "answering-publication-v1",
+      "createdByInvocationId": "9565a667-f113-499b-8723-d9f0e9452f4a",
+      "requestId": "9565a667-f113-499b-8723-d9f0e9452f4a",
+      "createdAt": "2026-10-11T09:08:49.818Z"
+    }
+  },
+  "authorizedCsv": "D:\\data_agent\\evaluations\\spider2\\adr0007\\independent-recompute-35\\cases\\local010\\publications\\publication_9b34a8df-75f4-417d-960c-445a45355fc8\\result.csv"
+}
+
+{
+  "frozenAt": "2026-10-11T09:08:52.362Z",
+  "instance_id": "local010",
+  "independent": true,
+  "taskId": "task_3f425279-bd31-44af-83cc-2d27fee4ccf8",
+  "revisionId": "revision_854bcc4d-32ca-474c-a113-c68a8cbd7ee7",
+  "publication": {
+    "receiptId": "publication_9b34a8df-75f4-417d-960c-445a45355fc8",
+    "taskId": "task_3f425279-bd31-44af-83cc-2d27fee4ccf8",
+    "principalId": "independent-analyst",
+    "sessionId": "local010",
+    "candidateId": "candidate_43a5ad4d-6467-4cf1-941b-fc9e2da29766",
+    "revisionId": "revision_854bcc4d-32ca-474c-a113-c68a8cbd7ee7",
+    "resultRef": "result_3c3c111a-453d-498d-aacc-725ee957c8bb",
+    "format": "csv",
+    "publicRef": "/api/runtime/publications/publication_9b34a8df-75f4-417d-960c-445a45355fc8?session_id=local010",
+    "contentHash": "14d1e3772d659783c9ebc03df62e70ac2ea43b257822bee5ec876caf60daa336",
+    "presentationContentHash": "ca0e3da81eff4fa04993de35336d1b329f01e2c3596edf53efd3a5123e137793",
+    "coverage": [
+      {
+        "checkId": "result_completeness",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_shape",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_identity",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "join_fanout",
+        "outcome": "unknown",
+        "reason": "check_disabled"
+      },
+      {
+        "checkId": "spec_feedback",
+        "ruleVersion": "spec-feedback-v2",
+        "outcome": "not_applicable",
+        "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+      }
+    ],
+    "fanout": {
+      "ruleVersion": "answering-fanout-v1",
+      "status": "unknown",
+      "snapshotScope": "unbound",
+      "targets": [],
+      "unsupportedReasons": [
+        "check_disabled"
+      ]
+    },
+    "disclosure": {
+      "required": true,
+      "unverifiedFields": [],
+      "summary": "JOIN fanout 检查未能完整完成：check_disabled。",
+      "fanoutStatus": "unknown"
+    },
+    "physicalProfile": {
+      "version": 1,
+      "rowCount": 1,
+      "truncated": false,
+      "columns": [
+        {
+          "name": "fewest_pair_count",
+          "kind": "integer",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 1,
+          "min": "3",
+          "max": "3"
+        }
+      ]
+    },
+    "policyVersion": "answering-publication-v1",
+    "createdByInvocationId": "9565a667-f113-499b-8723-d9f0e9452f4a",
+    "requestId": "9565a667-f113-499b-8723-d9f0e9452f4a",
+    "createdAt": "2026-10-11T09:08:49.818Z"
+  },
+  "currentRevision": {
+    "taskId": "task_3f425279-bd31-44af-83cc-2d27fee4ccf8",
+    "revisionId": "revision_854bcc4d-32ca-474c-a113-c68a8cbd7ee7",
+    "parentRevisionId": "revision_6aebca02-6a6b-4d1e-9aad-9ed83e5c69f6",
+    "requestId": "88f06bc6-20b1-4a00-966d-9bd9f7f1972d",
+    "createdAt": "2026-10-11T09:08:46.347Z",
+    "fields": {
+      "population.entity": {
+        "state": "specified",
+        "value": {
+          "name": "无向城市对（名字字典序规范化）"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_658fd390-8c2f-4261-bf71-9570b22d9dfc"
+          ]
+        }
+      },
+      "population.eligibility": {
+        "state": "specified",
+        "value": "All flight records with both airport city and coordinates; no extra state/time restrictions",
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_397ce37f-a952-446b-8c12-0c210a217357"
+          ]
+        }
+      },
+      "population.conditions": {
+        "state": "not_applicable"
+      },
+      "population.time": {
+        "state": "not_applicable"
+      },
+      "measure.formula": {
+        "state": "specified",
+        "value": {
+          "op": "custom",
+          "description": "Haversine km R6371 per flight row; normalize unordered city names; mean distance per city pair across all flights; count pairs by lower-bound 1000km bins with capped 6000+; include empty bins; minimum count"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_8871ac2d-efa7-466a-8949-7068945aa04b"
+          ]
+        }
+      },
+      "grouping": {
+        "state": "not_applicable"
+      },
+      "selection": {
+        "state": "not_applicable"
+      },
+      "output": {
+        "state": "specified",
+        "value": {
+          "rowMode": "scalar",
+          "columns": [
+            "fewest_pair_count"
+          ]
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_4f31542b-7449-48a8-bc74-8a0bba437e4c"
+          ]
+        }
+      }
+    },
+    "state": {
+      "state": "ready",
+      "revisionId": "revision_854bcc4d-32ca-474c-a113-c68a8cbd7ee7",
+      "ready": "ready_1417473c-9da2-4869-b442-b5a0a9480922"
+    },
+    "specFeedback": {
+      "taskId": "task_3f425279-bd31-44af-83cc-2d27fee4ccf8",
+      "revisionId": "revision_854bcc4d-32ca-474c-a113-c68a8cbd7ee7",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_658fd390-8c2f-4261-bf71-9570b22d9dfc",
+        "evidence_e22d0b56-d7c9-4e62-bc59-399294927a2c",
+        "evidence_4aaf6c78-ef7d-4c16-9476-4da6a05b335a",
+        "evidence_604731c5-dd07-4e4d-96f3-ad5463162753",
+        "evidence_06c9682a-e1d0-4398-b120-ed3d5a33b3f4",
+        "evidence_b3314926-1427-40bf-9552-2d1639cdbb26",
+        "evidence_b5284430-0466-41d7-963c-975055f7d369",
+        "evidence_2a9d9ea4-f519-4447-a5fe-75fd19173212",
+        "evidence_397ce37f-a952-446b-8c12-0c210a217357",
+        "evidence_8871ac2d-efa7-466a-8949-7068945aa04b",
+        "evidence_4f31542b-7449-48a8-bc74-8a0bba437e4c"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    }
+  },
+  "analystNote": {
+    "algorithm": "Flight-row-weighted city pair average, symmetric city identity, Haversine km, all 7 bins",
+    "assumptions": [
+      "ranges are lower-bound bins",
+      "English city names used"
+    ]
+  },
+  "settings": {
+    "qualification": "required",
+    "fieldProbes": true,
+    "externalAdvisor": "not_configured",
+    "specFeedback": "not_configured",
+    "fanout": "disabled_for_offline_audit",
+    "populationDecisions": "allow_disclosed_headless_audit",
+    "databaseReadOnly": true
+  }
+}
+
+{
+  "revealedAt": "2026-10-11T09:08:55.024Z",
+  "registry": {
+    "instance_id": "local010",
+    "attempt_id": "attempt-001",
+    "score": 0,
+    "score_source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-attempt-001.json",
+    "replayed_csv_score": 0,
+    "group": "wrong",
+    "status": "completed",
+    "publication_status": "published",
+    "duration_ms": 181783,
+    "tool_calls": 12,
+    "error": null,
+    "result_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local010/attempts/attempt-001/result.json",
+    "trace_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local010/attempts/attempt-001/trace.json",
+    "result_exists": true,
+    "trace_exists": true,
+    "sql_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local010/attempts/attempt-001/submissions/sql/local010.sql",
+    "csv_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local010.csv",
+    "sql_exists": true,
+    "csv_exists": true,
+    "gold_sql_file": null,
+    "process": {
+      "turns": 8,
+      "toolCalls": 12,
+      "explorationQueries": 3,
+      "resultQueries": 1,
+      "fanoutProbes": 0,
+      "revisions": 0
+    },
+    "fanout_metrics": {
+      "reportCount": 1,
+      "targetCount": 0,
+      "findingCount": 0,
+      "unknownCount": 0,
+      "byStatus": {
+        "clear": 0,
+        "finding": 0,
+        "not_applicable": 1,
+        "unknown": 0
+      },
+      "enabled": true
+    },
+    "spec_feedback_metrics": {
+      "reportCount": 1,
+      "byStatus": {
+        "pending": 0,
+        "completed": 0,
+        "unavailable": 1,
+        "disabled": 0
+      },
+      "deterministicIssueCount": 0,
+      "concernCount": 0,
+      "enabled": true
+    }
+  },
+  "originalSql": "WITH ap AS (\n  SELECT airport_code,\n         json_extract(city,'$.en') AS cty,\n         CAST(substr(coordinates, 2, instr(coordinates,',')-2) AS REAL) AS lon,\n         CAST(substr(coordinates, instr(coordinates,',')+1, length(coordinates)-instr(coordinates,',')-1) AS REAL) AS lat\n  FROM airports_data\n),\nfl AS (\n  SELECT CASE WHEN d.cty < a.cty THEN d.cty ELSE a.cty END AS c1,\n         CASE WHEN d.cty < a.cty THEN a.cty ELSE d.cty END AS c2,\n         2*6371*asin(sqrt(power(sin(radians(a.lat-d.lat)/2),2)+cos(radians(d.lat))*cos(radians(a.lat))*power(sin(radians(a.lon-d.lon)/2),2))) AS dist\n  FROM flights f\n  JOIN ap d ON d.airport_code = f.departure_airport\n  JOIN ap a ON a.airport_code = f.arrival_airport\n),\npair_avg AS (\n  SELECT c1, c2, AVG(dist) AS ad\n  FROM fl\n  GROUP BY c1, c2\n),\nbucketed AS (\n  SELECT CASE WHEN ad < 1000 THEN '0-1000'\n              WHEN ad < 2000 THEN '1000-2000'\n              WHEN ad < 3000 THEN '2000-3000'\n              WHEN ad < 4000 THEN '3000-4000'\n              WHEN ad < 5000 THEN '4000-5000'\n              WHEN ad < 6000 THEN '5000-6000'\n              ELSE '6000+' END AS distance_range\n  FROM pair_avg\n)\nSELECT COUNT(*) AS pair_count\nFROM bucketed\nGROUP BY distance_range\nORDER BY pair_count ASC\nLIMIT 1;\n",
+  "originalCsv": "pair_count\n3\n",
+  "goldSql": null,
+  "goldCsv": [
+    {
+      "path": "C:\\data-agent-eval\\Spider2\\spider2-lite\\evaluation_suite\\gold\\exec_result\\local010.csv",
+      "content": "output\r\n6"
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local010",
+    "condition_cols": [],
+    "ignore_order": true,
+    "toks": "195"
+  }
+}
+
+{
+  "instance_id": "local010",
+  "independent_freeze": "D:/data_agent/evaluations/spider2/adr0007/independent-recompute-35/cases/local010/independent-freeze.json",
+  "independent_official_score": 0,
+  "original_replayed_score": 0,
+  "recorded_original_score": 0,
+  "scorer_limitations": "Column-wise tolerance matching; ignore_order may ignore row associations; passing is not business proof.",
+  "independent": {
+    "path": "D:/data_agent/evaluations/spider2/adr0007/independent-recompute-35/cases/local010/publications/publication_9b34a8df-75f4-417d-960c-445a45355fc8/result.csv",
+    "rows": 1,
+    "columns": [
+      "fewest_pair_count"
+    ],
+    "head": [
+      {
+        "fewest_pair_count": 3
+      }
+    ]
+  },
+  "original": {
+    "path": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local010.csv",
+    "rows": 1,
+    "columns": [
+      "pair_count"
+    ],
+    "head": [
+      {
+        "pair_count": 3
+      }
+    ]
+  },
+  "golds": [
+    {
+      "path": "C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local010.csv",
+      "rows": 1,
+      "columns": [
+        "output"
+      ],
+      "head": [
+        {
+          "output": 6
+        }
+      ]
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local010",
+    "condition_cols": [],
+    "ignore_order": true,
+    "toks": "195"
+  }
+}
+ 

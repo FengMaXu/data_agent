@@ -1,0 +1,47 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_b146970e-1a28-46f3-8946-82be1611c2a9\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nrows\n683788"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_b146970e-1a28-46f3-8946-82be1611c2a9",
+      "preview": {
+        "columns": [
+          "rows"
+        ],
+        "rows": [
+          [
+            683788
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "rows"
+      ],
+      "rows": [
+        [
+          683788
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_b659a866-a5a1-4202-9d8d-7ba09ffb2703"
+  }
+}

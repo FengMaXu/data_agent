@@ -1,0 +1,107 @@
+{
+  "receiptId": "publication_396d7a4a-0c4f-4576-804f-bb5e78e60af2",
+  "taskId": "task_daf9d35c-f124-47af-bca2-dc6d9a9e52ea",
+  "principalId": "independent-analyst",
+  "sessionId": "local264",
+  "candidateId": "candidate_d9d10d3d-2723-4a48-a619-52ad4ed1c887",
+  "revisionId": "revision_f4d02b8a-5b38-4058-9485-8633de483cb6",
+  "resultRef": "result_bfb89c26-4433-4c48-af10-5b40737d774c",
+  "format": "csv",
+  "publicRef": "/api/runtime/publications/publication_396d7a4a-0c4f-4576-804f-bb5e78e60af2?session_id=local264",
+  "contentHash": "7a066b5dee1bebd18c8bc7b572edc689b80b5cb99ca83ed4af71e0311b26f292",
+  "presentationContentHash": "a98257706c1ffca80b0e07fdcdc5e0a96c7ade6cd66d7a8212e1cb98f61c5d02",
+  "coverage": [
+    {
+      "checkId": "result_completeness",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "result_shape",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "result_identity",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "join_fanout",
+      "outcome": "not_applicable"
+    },
+    {
+      "checkId": "spec_feedback",
+      "ruleVersion": "spec-feedback-v2",
+      "outcome": "not_applicable",
+      "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+    }
+  ],
+  "fanout": {
+    "ruleVersion": "answering-fanout-v1",
+    "status": "not_applicable",
+    "snapshotScope": "unbound",
+    "targets": []
+  },
+  "disclosure": {
+    "required": true,
+    "unverifiedFields": [
+      {
+        "path": "population.eligibility",
+        "kind": "assumed"
+      },
+      {
+        "path": "population.time",
+        "kind": "assumed"
+      },
+      {
+        "path": "measure.formula",
+        "kind": "assumed"
+      },
+      {
+        "path": "measure.countGrain",
+        "kind": "assumed"
+      },
+      {
+        "path": "grouping",
+        "kind": "assumed"
+      },
+      {
+        "path": "selection",
+        "kind": "assumed"
+      },
+      {
+        "path": "selection.ties",
+        "kind": "assumed"
+      },
+      {
+        "path": "output",
+        "kind": "assumed"
+      }
+    ],
+    "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.time, measure.formula, measure.countGrain, grouping, selection, selection.ties, output。"
+  },
+  "physicalProfile": {
+    "version": 1,
+    "rowCount": 1,
+    "truncated": false,
+    "columns": [
+      {
+        "name": "L1_model",
+        "kind": "text",
+        "nullCount": 0,
+        "distinctCount": 1
+      },
+      {
+        "name": "occurrences",
+        "kind": "integer",
+        "encodedAs": "number",
+        "nullCount": 0,
+        "distinctCount": 1,
+        "min": "213",
+        "max": "213"
+      }
+    ]
+  },
+  "policyVersion": "answering-publication-v1",
+  "createdByInvocationId": "0ea7b7f7-3e93-4aba-a863-0422a8d5534b",
+  "requestId": "0ea7b7f7-3e93-4aba-a863-0422a8d5534b",
+  "createdAt": "2026-10-11T09:12:43.642Z"
+}

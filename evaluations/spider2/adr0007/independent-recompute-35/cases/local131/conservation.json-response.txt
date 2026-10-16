@@ -1,0 +1,89 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_af5b7910-3b83-435b-90ac-b4848786eec5\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nPreferenceSeq | n | customers\n1 | 15 | 15\n2 | 15 | 15\n3 | 6 | 6\n-1 | 25 | 25"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_af5b7910-3b83-435b-90ac-b4848786eec5",
+      "preview": {
+        "columns": [
+          "PreferenceSeq",
+          "n",
+          "customers"
+        ],
+        "rows": [
+          [
+            1,
+            15,
+            15
+          ],
+          [
+            2,
+            15,
+            15
+          ],
+          [
+            3,
+            6,
+            6
+          ],
+          [
+            -1,
+            25,
+            25
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 4,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "PreferenceSeq",
+        "n",
+        "customers"
+      ],
+      "rows": [
+        [
+          1,
+          15,
+          15
+        ],
+        [
+          2,
+          15,
+          15
+        ],
+        [
+          3,
+          6,
+          6
+        ],
+        [
+          -1,
+          25,
+          25
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 4,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_1376167c-cfaa-4952-b3ce-c396f82baf73"
+  }
+}

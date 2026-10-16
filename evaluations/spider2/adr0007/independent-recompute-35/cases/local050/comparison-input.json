@@ -1,0 +1,73 @@
+{
+  "revealedAt": "2026-10-11T09:11:04.825Z",
+  "registry": {
+    "instance_id": "local050",
+    "attempt_id": "attempt-001",
+    "score": 0,
+    "score_source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-attempt-001.json",
+    "replayed_csv_score": 0,
+    "group": "wrong",
+    "status": "completed",
+    "publication_status": "published",
+    "duration_ms": 219340,
+    "tool_calls": 19,
+    "error": null,
+    "result_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local050/attempts/attempt-001/result.json",
+    "trace_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local050/attempts/attempt-001/trace.json",
+    "result_exists": true,
+    "trace_exists": true,
+    "sql_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local050/attempts/attempt-001/submissions/sql/local050.sql",
+    "csv_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local050.csv",
+    "sql_exists": true,
+    "csv_exists": true,
+    "gold_sql_file": null,
+    "process": {
+      "turns": 15,
+      "toolCalls": 19,
+      "explorationQueries": 4,
+      "resultQueries": 1,
+      "fanoutProbes": 1,
+      "revisions": 4
+    },
+    "fanout_metrics": {
+      "reportCount": 1,
+      "targetCount": 1,
+      "findingCount": 0,
+      "unknownCount": 1,
+      "byStatus": {
+        "clear": 0,
+        "finding": 0,
+        "not_applicable": 0,
+        "unknown": 1
+      },
+      "enabled": true
+    },
+    "spec_feedback_metrics": {
+      "reportCount": 3,
+      "byStatus": {
+        "pending": 0,
+        "completed": 2,
+        "unavailable": 1,
+        "disabled": 0
+      },
+      "deterministicIssueCount": 0,
+      "concernCount": 0,
+      "enabled": true
+    }
+  },
+  "originalSql": "WITH base AS (\n  SELECT s.prod_id AS prod_id, CAST(strftime('%m', t.time_id) AS INTEGER) AS m,\n         CAST(strftime('%Y', t.time_id) AS INTEGER) AS y, SUM(s.amount_sold) AS amt\n  FROM sales s\n  JOIN times t ON t.time_id = s.time_id\n  JOIN customers cu ON cu.cust_id = s.cust_id\n  JOIN countries co ON co.country_id = cu.country_id\n  JOIN promotions p ON p.promo_id = s.promo_id\n  JOIN channels ch ON ch.channel_id = s.channel_id\n  WHERE co.country_name='France' AND p.promo_total_id=1 AND ch.channel_total_id=1\n    AND t.calendar_year IN (2019,2020)\n  GROUP BY s.prod_id, m, y\n),\npiv AS (\n  SELECT a.prod_id AS prod_id, a.m AS m, a.amt AS s19, b.amt AS s20\n  FROM (SELECT * FROM base WHERE y=2019) a\n  JOIN (SELECT * FROM base WHERE y=2020) b ON a.prod_id=b.prod_id AND a.m=b.m\n  WHERE a.amt <> 0\n),\nusd AS (\n  SELECT piv.m AS m, ((((piv.s20 - piv.s19)/piv.s19)*piv.s20)+piv.s20) * cy.to_us AS p_usd\n  FROM piv JOIN currency cy ON cy.country='France' AND cy.year=2021 AND cy.month=piv.m\n),\nmonthly AS (SELECT m, AVG(p_usd) AS avg_p FROM usd GROUP BY m),\nranked AS (SELECT avg_p, ROW_NUMBER() OVER (ORDER BY avg_p) rn, COUNT(*) OVER () cnt FROM monthly)\nSELECT ROUND(AVG(avg_p),2) AS median_avg_monthly_projected_sales_usd\nFROM ranked WHERE rn IN ((cnt+1)/2,(cnt+2)/2)\n",
+  "originalCsv": "median_avg_monthly_projected_sales_usd\n2552.7\n",
+  "goldSql": null,
+  "goldCsv": [
+    {
+      "path": "C:\\data-agent-eval\\Spider2\\spider2-lite\\evaluation_suite\\gold\\exec_result\\local050.csv",
+      "content": "output\r\n2604.2362912087915"
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local050",
+    "condition_cols": [],
+    "ignore_order": true,
+    "toks": "393"
+  }
+}

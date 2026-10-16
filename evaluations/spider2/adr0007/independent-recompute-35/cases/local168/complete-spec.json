@@ -1,0 +1,49 @@
+{
+  "fields": {
+    "population.eligibility": {
+      "value": "Distinct postings with exact Data Analyst short title, non-null salary_year_avg, remote=1; then require at least one of top3 skills",
+      "basis": "assumed",
+      "rationale": "Salary is per posting, OR of selected skills; ranking within same eligible cohort"
+    },
+    "population.conditions": {
+      "value": [
+        "job_title_short='Data Analyst'",
+        "salary_year_avg IS NOT NULL",
+        "job_work_from_home=1"
+      ],
+      "basis": "request",
+      "quote": "Data Analyst, require a non-null annual average salary, and are remote"
+    },
+    "population.time": "n/a",
+    "measure.formula": {
+      "value": {
+        "op": "avg",
+        "of": "salary_year_avg"
+      },
+      "basis": "assumed",
+      "rationale": "Overall average of distinct jobs requesting any selected skill"
+    },
+    "measure.countGrain": "each distinct job_id exactly once",
+    "measure.denominator": "number of distinct eligible jobs requiring at least one selected top3 skill; empty set gives NULL",
+    "grouping": "n/a",
+    "selection": {
+      "value": {
+        "n": 3,
+        "orderBy": "skill demand DESC, skill_id ASC"
+      },
+      "basis": "request",
+      "quote": "top three most frequently demanded skills"
+    },
+    "selection.ties": "strict",
+    "output": {
+      "value": {
+        "rowMode": "scalar",
+        "columns": [
+          "overall_average_salary"
+        ]
+      },
+      "basis": "request",
+      "quote": "overall average salary"
+    }
+  }
+}

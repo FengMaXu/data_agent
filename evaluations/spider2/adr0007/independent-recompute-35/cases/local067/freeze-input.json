@@ -1,0 +1,9 @@
+{
+  "algorithm": "Customer actual revenue minus unit_cost*quantity then NTILE10 equal-count customer tiers low to high; extremes per tier",
+  "assumptions": [
+    "Only active customers",
+    "Stable cust_id tie split",
+    "Actual revenue profit interpretation"
+  ],
+  "validation": "Cost key and missing matches, actual-vs-list revenue, bin cardinalities and ties explored"
+}

@@ -1,0 +1,77 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_6bebe6c1-e307-4d6c-b321-025794c5fc33\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nkind | n\ncast_raw | 32127\ncast_normalized | 32127\npersons | 37565\ncredit_movie_join | 32127"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_6bebe6c1-e307-4d6c-b321-025794c5fc33",
+      "preview": {
+        "columns": [
+          "kind",
+          "n"
+        ],
+        "rows": [
+          [
+            "cast_raw",
+            32127
+          ],
+          [
+            "cast_normalized",
+            32127
+          ],
+          [
+            "persons",
+            37565
+          ],
+          [
+            "credit_movie_join",
+            32127
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 4,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "kind",
+        "n"
+      ],
+      "rows": [
+        [
+          "cast_raw",
+          32127
+        ],
+        [
+          "cast_normalized",
+          32127
+        ],
+        [
+          "persons",
+          37565
+        ],
+        [
+          "credit_movie_join",
+          32127
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 4,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_65886370-cbcd-426e-bdbd-8e9f19a09686"
+  }
+}

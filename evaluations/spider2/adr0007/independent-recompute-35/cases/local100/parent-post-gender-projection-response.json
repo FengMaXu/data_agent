@@ -1,0 +1,89 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_5ed579c0-3f73-48c9-926f-47b2172472a2\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nGender | actors | person_rows | names\nNULL | 2346 | 2545 | 2330\nFemale | 7519 | 7528 | 7239\nMale | 15833 | 15909 | 15000"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_5ed579c0-3f73-48c9-926f-47b2172472a2",
+      "preview": {
+        "columns": [
+          "Gender",
+          "actors",
+          "person_rows",
+          "names"
+        ],
+        "rows": [
+          [
+            null,
+            2346,
+            2545,
+            2330
+          ],
+          [
+            "Female",
+            7519,
+            7528,
+            7239
+          ],
+          [
+            "Male",
+            15833,
+            15909,
+            15000
+          ]
+        ],
+        "columnTypes": [
+          "NULL",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 3,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "Gender",
+        "actors",
+        "person_rows",
+        "names"
+      ],
+      "rows": [
+        [
+          null,
+          2346,
+          2545,
+          2330
+        ],
+        [
+          "Female",
+          7519,
+          7528,
+          7239
+        ],
+        [
+          "Male",
+          15833,
+          15909,
+          15000
+        ]
+      ],
+      "columnTypes": [
+        "NULL",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 3,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_ba330118-07e7-4d14-97c9-dfecefac814d"
+  }
+}

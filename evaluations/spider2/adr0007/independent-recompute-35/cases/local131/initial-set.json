@@ -1,0 +1,9 @@
+{
+  "fields": {
+    "population.entity": {
+      "value": "musical style keyed by StyleID",
+      "basis": "request",
+      "quote": "each musical style"
+    }
+  }
+}

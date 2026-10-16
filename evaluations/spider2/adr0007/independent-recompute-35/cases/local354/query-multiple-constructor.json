@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT r.year,r.round,re.driver_id,d.forename,d.surname,COUNT(*) rows,COUNT(DISTINCT constructor_id) constructors FROM results re JOIN races r USING(race_id) JOIN drivers d USING(driver_id) WHERE r.year BETWEEN 1950 AND 1959 GROUP BY r.year,r.round,re.driver_id HAVING COUNT(*)>1 ORDER BY constructors DESC,r.year,r.round LIMIT 30",
+  "limit": 100
+}

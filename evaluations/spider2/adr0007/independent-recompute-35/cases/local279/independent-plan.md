@@ -1,0 +1,3 @@
+# 独立推导
+原题逐字：“Using a recursive monthly inventory adjustment model starting from December 2018 inventory levels, where we restock a product if its ending inventory drops below the minimum required level, determine for each product the month in 2019 where the absolute difference between its ending inventory and the minimum required level is the smallest, and return the product_id, that month, and the absolute difference.”
+以inventory现存数量的产品总和作为2018-12月底状态，monthly_budget为2019月需求预测（monthly_sales为历史实际销量，先检查时间）。每月先扣需求，若当月预补货结存严格低于qty_minimum，加一个qty_purchase批次，作为最终月末结存和下月状态。仅一次补货，不能无据重复直到最低阈值；检查是否依然低于最小值。输出每产品|最终月末-min|最小月；题面单数，并列先选最早月并披露。替代延迟补货和补货前结存对比将在独立冻结后检验。

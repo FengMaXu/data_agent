@@ -1,0 +1,4 @@
+{
+  "sql": "WITH inv AS (SELECT i.product_id, i.qty, pu.purchased, i.id, SUM(i.qty) OVER (PARTITION BY i.product_id ORDER BY pu.purchased ASC, i.qty ASC, i.id ASC) AS cum FROM inventory i JOIN purchases pu ON pu.id = i.purchase_id), tot AS (SELECT product_id, MAX(cum) AS total FROM inv GROUP BY product_id), dem AS (SELECT ol.id, ol.product_id, ol.qty, COALESCE(SUM(ol.qty) OVER (PARTITION BY ol.product_id ORDER BY o.ordered ASC, o.id ASC, ol.id ASC ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),0) AS prev FROM orderlines ol JOIN orders o ON o.id = ol.order_id) SELECT p.name AS product_name, AVG(MIN(d.qty, MAX(0, t.total - d.prev)) * 100.0 / d.qty) AS average_pick_percentage FROM dem d JOIN products p ON p.id = d.product_id JOIN tot t ON t.product_id = d.product_id GROUP BY p.name ORDER BY p.name;\n",
+  "limit": 1000
+}

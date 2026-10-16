@@ -1,0 +1,9 @@
+{
+  "algorithm": "fixed cohort; 20 generated calendar year ends; EXISTS office each observation; fraction",
+  "assumptions": [
+    "period0 first subsequent Dec31 in starting calendar year",
+    "term_end inclusive",
+    "office after re-entry qualifies"
+  ],
+  "validation": "count and endpoint variants actual database probes retained"
+}

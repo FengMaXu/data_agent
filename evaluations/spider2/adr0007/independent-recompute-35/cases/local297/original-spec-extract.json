@@ -1,0 +1,786 @@
+[
+  {
+    "source": "\\\\?\\C:\\data-agent-eval\\runs\\adr0007-fieldtree-wrong118-deepseek-flash-20261010\\cases\\local297\\attempts\\attempt-20261010-154318Z\\session\\--C--data-agent-eval-runs-adr0007-fieldtree-wrong118-deepseek-flash-20261010-cases-local297-attempts-attempt-20261010-154318Z-session--\\2026-10-10T16-27-54-117Z_adr0007-fieldtree-wrong118-deepseek-flash-20261010-local297-attempt-20261010-154318Z.jsonl",
+    "line": 11970,
+    "toolName": "set_answer_spec",
+    "details": {
+      "taskId": "task_8d622dd0-a3d1-4d6b-a9d2-02f2e77bea7d",
+      "revisionId": "revision_81e378cf-1822-4cbf-89fa-1803d5d995a2",
+      "fields": [
+        {
+          "path": "population.entity",
+          "status": "assumed",
+          "value": {
+            "name": "customer，以 customer_id 唯一标识"
+          }
+        },
+        {
+          "path": "population.eligibility",
+          "status": "assumed",
+          "value": "customer_transactions 中出现过交易的全部客户（500 位）",
+          "rationale": "题面仅 'For each customer'，未指定客户全集来源；事实表中出现的 500 位客户全部有交易记录，故以事实表出现过的客户为资格总体。"
+        },
+        {
+          "path": "population.conditions",
+          "status": "request",
+          "value": [
+            "仅纳入 txn_type ∈ ('deposit','withdrawal') 的交易，purchase 不计入；作用阶段 = WHERE（月度净值聚合之前）"
+          ],
+          "evidenceIds": [
+            "evidence_ffa162af-1e92-4bdd-9571-ffbdd5173d92"
+          ]
+        },
+        {
+          "path": "population.source",
+          "status": "assumed",
+          "value": {
+            "tables": [
+              "customer_transactions"
+            ]
+          }
+        },
+        {
+          "path": "population.time",
+          "status": "open",
+          "alternatives": [
+            {
+              "id": "alternative_a36a2541-913e-4539-ac51-f0bf1ccdf527",
+              "value": {
+                "expression": "最近一个月 = 每位客户自身有交易的月份中最晚的一个（客户各自最近月）"
+              },
+              "probe": {
+                "alternativeId": "alternative_a36a2541-913e-4539-ac51-f0bf1ccdf527",
+                "state": "missing"
+              }
+            },
+            {
+              "id": "alternative_bf8ad5c0-c433-4ee2-920a-6444156ade58",
+              "value": {
+                "expression": "最近一个月 = 全表最近月份 2020-04，仅纳入在该月有 deposit/withdrawal 交易的客户"
+              },
+              "probe": {
+                "alternativeId": "alternative_bf8ad5c0-c433-4ee2-920a-6444156ade58",
+                "state": "missing"
+              }
+            }
+          ],
+          "outputs": "incomplete"
+        },
+        {
+          "path": "population.timeField",
+          "status": "evidence",
+          "value": "txn_date",
+          "evidenceIds": [
+            "evidence_37b1bee2-7ff7-48b6-b713-1670c81c14b8"
+          ]
+        },
+        {
+          "path": "population.missing",
+          "status": "assumed",
+          "value": "不补缺月；'上一月'为该客户月份序列中的上一个观测月（跨缺月时仍取前一个有过交易的月份）",
+          "rationale": "题面只说 'by the first day of each month' 分组与 'cumu­latively summing'，未要求在无交易月份补零。"
+        },
+        {
+          "path": "measure.formula",
+          "status": "assumed",
+          "value": {
+            "op": "percentage",
+            "per": "customer",
+            "numerator": {
+              "op": "count",
+              "per": "customer",
+              "of": {
+                "op": "custom",
+                "per": "customer",
+                "description": "该客户最近一个月的增长率 > 5（百分数）；增长率 = (最近月期末余额 - 上一月期末余额) / 上一月期末余额 × 100，当上一月期末余额 = 0 时取 最近月期末余额 × 100",
+                "of": {
+                  "op": "change_rate",
+                  "per": "customer",
+                  "from": "上一观测月期末余额",
+                  "to": "最近观测月期末余额"
+                }
+              }
+            },
+            "denominator": {
+              "op": "count_distinct",
+              "per": "customer",
+              "of": "customer_id"
+            }
+          }
+        },
+        {
+          "path": "measure.countGrain",
+          "status": "request",
+          "value": "按客户计数（count_distinct customer_id），不是按交易行或交易事件",
+          "evidenceIds": [
+            "evidence_a133ca99-57cc-47f6-850b-f89cb0170e6b"
+          ]
+        },
+        {
+          "path": "measure.denominator",
+          "status": "request",
+          "value": "分母 = 资格总体内的全部客户数（customer_transactions 的 distinct customer_id）；分母为 0 时不适用（此处非 0）",
+          "evidenceIds": [
+            "evidence_b37bc101-8aaf-44e8-93b5-1a94fac9b9ea"
+          ]
+        },
+        {
+          "path": "grouping",
+          "status": "not_applicable"
+        },
+        {
+          "path": "selection",
+          "status": "not_applicable"
+        },
+        {
+          "path": "output",
+          "status": "assumed",
+          "value": {
+            "rowMode": "scalar",
+            "rowCount": 1,
+            "columns": [
+              "pct_customers_growth_over_5pct"
+            ],
+            "units": {
+              "pct_customers_growth_over_5pct": "%"
+            },
+            "decimals": {
+              "pct_customers_growth_over_5pct": 2
+            }
+          }
+        }
+      ],
+      "outcomes": [
+        {
+          "path": "population.entity",
+          "status": "applied"
+        },
+        {
+          "path": "population.eligibility",
+          "status": "applied"
+        },
+        {
+          "path": "population.conditions",
+          "status": "applied"
+        },
+        {
+          "path": "population.source",
+          "status": "applied"
+        },
+        {
+          "path": "population.time",
+          "status": "applied"
+        },
+        {
+          "path": "population.timeField",
+          "status": "applied"
+        },
+        {
+          "path": "population.missing",
+          "status": "applied"
+        },
+        {
+          "path": "measure.formula",
+          "status": "applied"
+        },
+        {
+          "path": "measure.countGrain",
+          "status": "applied"
+        },
+        {
+          "path": "measure.denominator",
+          "status": "applied"
+        },
+        {
+          "path": "grouping",
+          "status": "applied"
+        },
+        {
+          "path": "selection",
+          "status": "applied"
+        },
+        {
+          "path": "output",
+          "status": "applied"
+        }
+      ]
+    }
+  },
+  {
+    "source": "\\\\?\\C:\\data-agent-eval\\runs\\adr0007-fieldtree-wrong118-deepseek-flash-20261010\\cases\\local297\\attempts\\attempt-20261010-154318Z\\session\\--C--data-agent-eval-runs-adr0007-fieldtree-wrong118-deepseek-flash-20261010-cases-local297-attempts-attempt-20261010-154318Z-session--\\2026-10-10T16-27-54-117Z_adr0007-fieldtree-wrong118-deepseek-flash-20261010-local297-attempt-20261010-154318Z.jsonl",
+    "line": 18356,
+    "toolName": "set_answer_spec",
+    "details": {
+      "taskId": "task_8d622dd0-a3d1-4d6b-a9d2-02f2e77bea7d",
+      "revisionId": "revision_dcf37783-7416-4dbf-a9dd-43ef197ebecc",
+      "fields": [
+        {
+          "path": "population.entity",
+          "status": "assumed",
+          "value": {
+            "name": "customer，以 customer_id 唯一标识"
+          }
+        },
+        {
+          "path": "population.eligibility",
+          "status": "assumed",
+          "value": "customer_transactions 中出现过交易的全部客户（500 位）",
+          "rationale": "题面仅 'For each customer'，未指定客户全集来源；事实表中出现的 500 位客户全部有交易记录，故以事实表出现过的客户为资格总体。"
+        },
+        {
+          "path": "population.conditions",
+          "status": "request",
+          "value": [
+            "仅纳入 txn_type ∈ ('deposit','withdrawal') 的交易，purchase 不计入；作用阶段 = WHERE（月度净值聚合之前）"
+          ],
+          "evidenceIds": [
+            "evidence_ffa162af-1e92-4bdd-9571-ffbdd5173d92"
+          ]
+        },
+        {
+          "path": "population.source",
+          "status": "assumed",
+          "value": {
+            "tables": [
+              "customer_transactions"
+            ]
+          }
+        },
+        {
+          "path": "population.time",
+          "status": "open",
+          "alternatives": [
+            {
+              "id": "alternative_a36a2541-913e-4539-ac51-f0bf1ccdf527",
+              "value": {
+                "expression": "最近一个月 = 每位客户自身有交易的月份中最晚的一个（客户各自最近月）"
+              },
+              "probe": {
+                "alternativeId": "alternative_a36a2541-913e-4539-ac51-f0bf1ccdf527",
+                "state": "available",
+                "rowCount": 1,
+                "output": "8ad5550eba3a"
+              }
+            },
+            {
+              "id": "alternative_bf8ad5c0-c433-4ee2-920a-6444156ade58",
+              "value": {
+                "expression": "最近一个月 = 全表最近月份 2020-04，仅纳入在该月有 deposit/withdrawal 交易的客户"
+              },
+              "probe": {
+                "alternativeId": "alternative_bf8ad5c0-c433-4ee2-920a-6444156ade58",
+                "state": "available",
+                "rowCount": 1,
+                "output": "5d66d06054a4"
+              }
+            }
+          ],
+          "outputs": "distinct"
+        },
+        {
+          "path": "population.timeField",
+          "status": "evidence",
+          "value": "txn_date",
+          "evidenceIds": [
+            "evidence_37b1bee2-7ff7-48b6-b713-1670c81c14b8"
+          ]
+        },
+        {
+          "path": "population.missing",
+          "status": "open",
+          "alternatives": [
+            {
+              "id": "alternative_10027be4-31f1-44d9-aca1-1811129df88a",
+              "value": "单月客户（无上一月余额）视为上一月余额为 0，即增长率 = 当期余额×100，并计入分母",
+              "probe": {
+                "alternativeId": "alternative_10027be4-31f1-44d9-aca1-1811129df88a",
+                "state": "missing"
+              }
+            },
+            {
+              "id": "alternative_2a62b16d-07e2-4840-8412-54bc5c27b9e5",
+              "value": "单月客户无上一月余额、无法定义增长率，从分母中剔除（仅统计至少有 2 个观测月的客户）",
+              "probe": {
+                "alternativeId": "alternative_2a62b16d-07e2-4840-8412-54bc5c27b9e5",
+                "state": "missing"
+              }
+            }
+          ],
+          "outputs": "incomplete"
+        },
+        {
+          "path": "measure.formula",
+          "status": "assumed",
+          "value": {
+            "op": "percentage",
+            "per": "customer",
+            "numerator": {
+              "op": "count",
+              "per": "customer",
+              "of": {
+                "op": "custom",
+                "per": "customer",
+                "description": "该客户最近一个月的增长率 > 5（百分数）；增长率 = (最近月期末余额 - 上一月期末余额) / 上一月期末余额 × 100，当上一月期末余额 = 0 时取 最近月期末余额 × 100",
+                "of": {
+                  "op": "change_rate",
+                  "per": "customer",
+                  "from": "上一观测月期末余额",
+                  "to": "最近观测月期末余额"
+                }
+              }
+            },
+            "denominator": {
+              "op": "count_distinct",
+              "per": "customer",
+              "of": "customer_id"
+            }
+          }
+        },
+        {
+          "path": "measure.countGrain",
+          "status": "request",
+          "value": "按客户计数（count_distinct customer_id），不是按交易行或交易事件",
+          "evidenceIds": [
+            "evidence_a133ca99-57cc-47f6-850b-f89cb0170e6b"
+          ]
+        },
+        {
+          "path": "measure.denominator",
+          "status": "request",
+          "value": "分母 = 资格总体内的全部客户数（customer_transactions 的 distinct customer_id）；分母为 0 时不适用（此处非 0）",
+          "evidenceIds": [
+            "evidence_b37bc101-8aaf-44e8-93b5-1a94fac9b9ea"
+          ]
+        },
+        {
+          "path": "grouping",
+          "status": "not_applicable"
+        },
+        {
+          "path": "selection",
+          "status": "not_applicable"
+        },
+        {
+          "path": "output",
+          "status": "assumed",
+          "value": {
+            "rowMode": "scalar",
+            "rowCount": 1,
+            "columns": [
+              "pct_customers_growth_over_5pct"
+            ],
+            "units": {
+              "pct_customers_growth_over_5pct": "%"
+            },
+            "decimals": {
+              "pct_customers_growth_over_5pct": 2
+            }
+          }
+        }
+      ],
+      "outcomes": [
+        {
+          "path": "population.missing",
+          "status": "applied"
+        }
+      ]
+    }
+  },
+  {
+    "source": "\\\\?\\C:\\data-agent-eval\\runs\\adr0007-fieldtree-wrong118-deepseek-flash-20261010\\cases\\local297\\attempts\\attempt-20261010-154318Z\\session\\--C--data-agent-eval-runs-adr0007-fieldtree-wrong118-deepseek-flash-20261010-cases-local297-attempts-attempt-20261010-154318Z-session--\\2026-10-10T16-27-54-117Z_adr0007-fieldtree-wrong118-deepseek-flash-20261010-local297-attempt-20261010-154318Z.jsonl",
+    "line": 21889,
+    "toolName": "set_answer_spec",
+    "details": {
+      "taskId": "task_8d622dd0-a3d1-4d6b-a9d2-02f2e77bea7d",
+      "revisionId": "revision_09165d0b-3784-45e3-9228-44a480578784",
+      "fields": [
+        {
+          "path": "population.entity",
+          "status": "assumed",
+          "value": {
+            "name": "customer，以 customer_id 唯一标识"
+          }
+        },
+        {
+          "path": "population.eligibility",
+          "status": "assumed",
+          "value": "customer_transactions 中出现过交易的全部客户（500 位）",
+          "rationale": "题面仅 'For each customer'，未指定客户全集来源；事实表中出现的 500 位客户全部有交易记录，故以事实表出现过的客户为资格总体。"
+        },
+        {
+          "path": "population.conditions",
+          "status": "request",
+          "value": [
+            "仅纳入 txn_type ∈ ('deposit','withdrawal') 的交易，purchase 不计入；作用阶段 = WHERE（月度净值聚合之前）"
+          ],
+          "evidenceIds": [
+            "evidence_ffa162af-1e92-4bdd-9571-ffbdd5173d92"
+          ]
+        },
+        {
+          "path": "population.source",
+          "status": "assumed",
+          "value": {
+            "tables": [
+              "customer_transactions"
+            ]
+          }
+        },
+        {
+          "path": "population.time",
+          "status": "decided",
+          "value": {
+            "expression": "最近一个月 = 每位客户自身有交易的月份中最晚的一个（客户各自最近月）"
+          },
+          "verified": false,
+          "rationale": "题面主体始终是 'For each customer'：'determine the most recent month's growth rate by comparing its closing balance to the prior month's balance' 以及 'customers whose most recent month' 中的 'its'/'whose' 都回指每位客户，故 'most recent month' 为客户各自序列中的最后一个月；候选 B 需额外假设只统计 4 月有交易的客户，会凭空缩小 'percentage of customers' 的分母，题面无此限定。Jev 建议倾向于本候选。",
+          "alternatives": [
+            {
+              "id": "alternative_a36a2541-913e-4539-ac51-f0bf1ccdf527",
+              "value": {
+                "expression": "最近一个月 = 每位客户自身有交易的月份中最晚的一个（客户各自最近月）"
+              },
+              "probe": {
+                "alternativeId": "alternative_a36a2541-913e-4539-ac51-f0bf1ccdf527",
+                "state": "available",
+                "rowCount": 1,
+                "output": "8ad5550eba3a"
+              }
+            },
+            {
+              "id": "alternative_bf8ad5c0-c433-4ee2-920a-6444156ade58",
+              "value": {
+                "expression": "最近一个月 = 全表最近月份 2020-04，仅纳入在该月有 deposit/withdrawal 交易的客户"
+              },
+              "probe": {
+                "alternativeId": "alternative_bf8ad5c0-c433-4ee2-920a-6444156ade58",
+                "state": "available",
+                "rowCount": 1,
+                "output": "5d66d06054a4"
+              }
+            }
+          ],
+          "outputs": "distinct",
+          "advice": {
+            "recommendation": "alternative",
+            "probabilities": [
+              {
+                "alternativeId": "alternative_a36a2541-913e-4539-ac51-f0bf1ccdf527",
+                "probability": 0.6
+              },
+              {
+                "alternativeId": "alternative_bf8ad5c0-c433-4ee2-920a-6444156ade58",
+                "probability": 0
+              }
+            ],
+            "lean": {
+              "alternativeId": "alternative_a36a2541-913e-4539-ac51-f0bf1ccdf527",
+              "probability": 0.6
+            }
+          }
+        },
+        {
+          "path": "population.timeField",
+          "status": "evidence",
+          "value": "txn_date",
+          "evidenceIds": [
+            "evidence_37b1bee2-7ff7-48b6-b713-1670c81c14b8"
+          ]
+        },
+        {
+          "path": "population.missing",
+          "status": "open",
+          "alternatives": [
+            {
+              "id": "alternative_10027be4-31f1-44d9-aca1-1811129df88a",
+              "value": "单月客户（无上一月余额）视为上一月余额为 0，即增长率 = 当期余额×100，并计入分母",
+              "probe": {
+                "alternativeId": "alternative_10027be4-31f1-44d9-aca1-1811129df88a",
+                "state": "available",
+                "rowCount": 1,
+                "output": "8ad5550eba3a"
+              }
+            },
+            {
+              "id": "alternative_2a62b16d-07e2-4840-8412-54bc5c27b9e5",
+              "value": "单月客户无上一月余额、无法定义增长率，从分母中剔除（仅统计至少有 2 个观测月的客户）",
+              "probe": {
+                "alternativeId": "alternative_2a62b16d-07e2-4840-8412-54bc5c27b9e5",
+                "state": "available",
+                "rowCount": 1,
+                "output": "1694ed0c9d6a"
+              }
+            }
+          ],
+          "outputs": "distinct"
+        },
+        {
+          "path": "measure.formula",
+          "status": "assumed",
+          "value": {
+            "op": "percentage",
+            "per": "customer",
+            "numerator": {
+              "op": "count",
+              "per": "customer",
+              "of": {
+                "op": "custom",
+                "per": "customer",
+                "description": "该客户最近一个月的增长率 > 5（百分数）；增长率 = (最近月期末余额 - 上一月期末余额) / 上一月期末余额 × 100，当上一月期末余额 = 0 时取 最近月期末余额 × 100",
+                "of": {
+                  "op": "change_rate",
+                  "per": "customer",
+                  "from": "上一观测月期末余额",
+                  "to": "最近观测月期末余额"
+                }
+              }
+            },
+            "denominator": {
+              "op": "count_distinct",
+              "per": "customer",
+              "of": "customer_id"
+            }
+          }
+        },
+        {
+          "path": "measure.countGrain",
+          "status": "request",
+          "value": "按客户计数（count_distinct customer_id），不是按交易行或交易事件",
+          "evidenceIds": [
+            "evidence_a133ca99-57cc-47f6-850b-f89cb0170e6b"
+          ]
+        },
+        {
+          "path": "measure.denominator",
+          "status": "request",
+          "value": "分母 = 资格总体内的全部客户数（customer_transactions 的 distinct customer_id）；分母为 0 时不适用（此处非 0）",
+          "evidenceIds": [
+            "evidence_b37bc101-8aaf-44e8-93b5-1a94fac9b9ea"
+          ]
+        },
+        {
+          "path": "grouping",
+          "status": "not_applicable"
+        },
+        {
+          "path": "selection",
+          "status": "not_applicable"
+        },
+        {
+          "path": "output",
+          "status": "assumed",
+          "value": {
+            "rowMode": "scalar",
+            "rowCount": 1,
+            "columns": [
+              "pct_customers_growth_over_5pct"
+            ],
+            "units": {
+              "pct_customers_growth_over_5pct": "%"
+            },
+            "decimals": {
+              "pct_customers_growth_over_5pct": 2
+            }
+          }
+        }
+      ],
+      "outcomes": [
+        {
+          "path": "population.time",
+          "status": "applied"
+        },
+        {
+          "path": "population.missing",
+          "status": "rejected",
+          "code": "SPEC_TRANSITION_INVALID",
+          "message": "population.missing: the alternatives produce different or unknown outputs; call compare_hypotheses with path \"population.missing\" before deciding"
+        }
+      ]
+    }
+  },
+  {
+    "source": "\\\\?\\C:\\data-agent-eval\\runs\\adr0007-fieldtree-wrong118-deepseek-flash-20261010\\cases\\local297\\attempts\\attempt-20261010-154318Z\\session\\--C--data-agent-eval-runs-adr0007-fieldtree-wrong118-deepseek-flash-20261010-cases-local297-attempts-attempt-20261010-154318Z-session--\\2026-10-10T16-27-54-117Z_adr0007-fieldtree-wrong118-deepseek-flash-20261010-local297-attempt-20261010-154318Z.jsonl",
+    "line": 22851,
+    "toolName": "set_answer_spec",
+    "details": {
+      "taskId": "task_8d622dd0-a3d1-4d6b-a9d2-02f2e77bea7d",
+      "revisionId": "revision_1ed3945b-12b2-4d4c-8fdf-8285268b6505",
+      "fields": [
+        {
+          "path": "population.entity",
+          "status": "assumed",
+          "value": {
+            "name": "customer，以 customer_id 唯一标识"
+          }
+        },
+        {
+          "path": "population.eligibility",
+          "status": "assumed",
+          "value": "customer_transactions 中出现过交易的全部客户（500 位）",
+          "rationale": "题面仅 'For each customer'，未指定客户全集来源；事实表中出现的 500 位客户全部有交易记录，故以事实表出现过的客户为资格总体。"
+        },
+        {
+          "path": "population.conditions",
+          "status": "request",
+          "value": [
+            "仅纳入 txn_type ∈ ('deposit','withdrawal') 的交易，purchase 不计入；作用阶段 = WHERE（月度净值聚合之前）"
+          ],
+          "evidenceIds": [
+            "evidence_ffa162af-1e92-4bdd-9571-ffbdd5173d92"
+          ]
+        },
+        {
+          "path": "population.source",
+          "status": "assumed",
+          "value": {
+            "tables": [
+              "customer_transactions"
+            ]
+          }
+        },
+        {
+          "path": "population.time",
+          "status": "decided",
+          "value": {
+            "expression": "最近一个月 = 每位客户自身有交易的月份中最晚的一个（客户各自最近月）"
+          },
+          "verified": false,
+          "rationale": "题面主体始终是 'For each customer'：'determine the most recent month's growth rate by comparing its closing balance to the prior month's balance' 以及 'customers whose most recent month' 中的 'its'/'whose' 都回指每位客户，故 'most recent month' 为客户各自序列中的最后一个月；候选 B 需额外假设只统计 4 月有交易的客户，会凭空缩小 'percentage of customers' 的分母，题面无此限定。Jev 建议倾向于本候选。",
+          "alternatives": [
+            {
+              "id": "alternative_a36a2541-913e-4539-ac51-f0bf1ccdf527",
+              "value": {
+                "expression": "最近一个月 = 每位客户自身有交易的月份中最晚的一个（客户各自最近月）"
+              },
+              "probe": {
+                "alternativeId": "alternative_a36a2541-913e-4539-ac51-f0bf1ccdf527",
+                "state": "available",
+                "rowCount": 1,
+                "output": "8ad5550eba3a"
+              }
+            },
+            {
+              "id": "alternative_bf8ad5c0-c433-4ee2-920a-6444156ade58",
+              "value": {
+                "expression": "最近一个月 = 全表最近月份 2020-04，仅纳入在该月有 deposit/withdrawal 交易的客户"
+              },
+              "probe": {
+                "alternativeId": "alternative_bf8ad5c0-c433-4ee2-920a-6444156ade58",
+                "state": "available",
+                "rowCount": 1,
+                "output": "5d66d06054a4"
+              }
+            }
+          ],
+          "outputs": "distinct",
+          "advice": {
+            "recommendation": "alternative",
+            "probabilities": [
+              {
+                "alternativeId": "alternative_a36a2541-913e-4539-ac51-f0bf1ccdf527",
+                "probability": 0.6
+              },
+              {
+                "alternativeId": "alternative_bf8ad5c0-c433-4ee2-920a-6444156ade58",
+                "probability": 0
+              }
+            ],
+            "lean": {
+              "alternativeId": "alternative_a36a2541-913e-4539-ac51-f0bf1ccdf527",
+              "probability": 0.6
+            }
+          }
+        },
+        {
+          "path": "population.timeField",
+          "status": "evidence",
+          "value": "txn_date",
+          "evidenceIds": [
+            "evidence_37b1bee2-7ff7-48b6-b713-1670c81c14b8"
+          ]
+        },
+        {
+          "path": "population.missing",
+          "status": "assumed",
+          "value": "单月客户（无上一月余额）视为上一月余额为 0，即增长率 = 当期余额×100，并计入分母",
+          "rationale": "题面 'if the previous month's balance is zero, the growth rate should be the current month's balance multiplied by 100' 的回退规则表明作者希望缺失上一月余额的情形也可计算增长率；客户在首个交易月之前的累计余额即 0，故单月客户的上一月余额取 0。题面问的是 'percentage of customers'，以全部客户为分母，故选 M1。注：该字段的 Jev 比较不可用（HTTP 451），本决定未获建议背书，发布时披露。"
+        },
+        {
+          "path": "measure.formula",
+          "status": "assumed",
+          "value": {
+            "op": "percentage",
+            "per": "customer",
+            "numerator": {
+              "op": "count",
+              "per": "customer",
+              "of": {
+                "op": "custom",
+                "per": "customer",
+                "description": "该客户最近一个月的增长率 > 5（百分数）；增长率 = (最近月期末余额 - 上一月期末余额) / 上一月期末余额 × 100，当上一月期末余额 = 0 时取 最近月期末余额 × 100",
+                "of": {
+                  "op": "change_rate",
+                  "per": "customer",
+                  "from": "上一观测月期末余额",
+                  "to": "最近观测月期末余额"
+                }
+              }
+            },
+            "denominator": {
+              "op": "count_distinct",
+              "per": "customer",
+              "of": "customer_id"
+            }
+          }
+        },
+        {
+          "path": "measure.countGrain",
+          "status": "request",
+          "value": "按客户计数（count_distinct customer_id），不是按交易行或交易事件",
+          "evidenceIds": [
+            "evidence_a133ca99-57cc-47f6-850b-f89cb0170e6b"
+          ]
+        },
+        {
+          "path": "measure.denominator",
+          "status": "request",
+          "value": "分母 = 资格总体内的全部客户数（customer_transactions 的 distinct customer_id）；分母为 0 时不适用（此处非 0）",
+          "evidenceIds": [
+            "evidence_b37bc101-8aaf-44e8-93b5-1a94fac9b9ea"
+          ]
+        },
+        {
+          "path": "grouping",
+          "status": "not_applicable"
+        },
+        {
+          "path": "selection",
+          "status": "not_applicable"
+        },
+        {
+          "path": "output",
+          "status": "assumed",
+          "value": {
+            "rowMode": "scalar",
+            "rowCount": 1,
+            "columns": [
+              "pct_customers_growth_over_5pct"
+            ],
+            "units": {
+              "pct_customers_growth_over_5pct": "%"
+            },
+            "decimals": {
+              "pct_customers_growth_over_5pct": 2
+            }
+          }
+        }
+      ],
+      "outcomes": [
+        {
+          "path": "population.missing",
+          "status": "applied"
+        }
+      ]
+    }
+  }
+]

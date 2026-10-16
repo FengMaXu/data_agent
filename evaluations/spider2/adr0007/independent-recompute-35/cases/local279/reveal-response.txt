@@ -1,0 +1,73 @@
+{
+  "revealedAt": "2026-10-11T09:10:43.822Z",
+  "registry": {
+    "instance_id": "local279",
+    "attempt_id": "attempt-20261010-154318Z",
+    "score": 0,
+    "score_source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-retry.json",
+    "replayed_csv_score": 0,
+    "group": "wrong",
+    "status": "completed",
+    "publication_status": "published",
+    "duration_ms": 371185,
+    "tool_calls": 33,
+    "error": null,
+    "result_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local279/attempts/attempt-20261010-154318Z/result.json",
+    "trace_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local279/attempts/attempt-20261010-154318Z/trace.json",
+    "result_exists": true,
+    "trace_exists": true,
+    "sql_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local279/attempts/attempt-20261010-154318Z/submissions/sql/local279.sql",
+    "csv_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local279.csv",
+    "sql_exists": true,
+    "csv_exists": true,
+    "gold_sql_file": null,
+    "process": {
+      "turns": 16,
+      "toolCalls": 33,
+      "explorationQueries": 18,
+      "resultQueries": 1,
+      "fanoutProbes": 0,
+      "revisions": 2
+    },
+    "fanout_metrics": {
+      "reportCount": 1,
+      "targetCount": 0,
+      "findingCount": 0,
+      "unknownCount": 0,
+      "byStatus": {
+        "clear": 0,
+        "finding": 0,
+        "not_applicable": 1,
+        "unknown": 0
+      },
+      "enabled": true
+    },
+    "spec_feedback_metrics": {
+      "reportCount": 3,
+      "byStatus": {
+        "pending": 0,
+        "completed": 0,
+        "unavailable": 3,
+        "disabled": 0
+      },
+      "deterministicIssueCount": 0,
+      "concernCount": 0,
+      "enabled": true
+    }
+  },
+  "originalSql": "WITH RECURSIVE\ninit AS (\n  SELECT pm.product_id, it.qty AS inv, pm.qty_minimum AS mn, pm.qty_purchase AS pq\n  FROM product_minimums pm\n  JOIN (SELECT product_id, SUM(qty) AS qty FROM inventory GROUP BY product_id) it\n    ON it.product_id = pm.product_id\n),\nrec(product_id, mth, ending, mn, pq) AS (\n  SELECT i.product_id, mb.mth,\n         CASE WHEN i.inv - mb.qty < i.mn THEN i.inv - mb.qty + i.pq ELSE i.inv - mb.qty END,\n         i.mn, i.pq\n  FROM init i\n  JOIN monthly_budget mb ON mb.product_id = i.product_id AND mb.mth = '2019-01-01'\n  UNION ALL\n  SELECT r.product_id, date(r.mth, '+1 month'),\n         CASE WHEN r.ending - mb.qty < r.mn THEN r.ending - mb.qty + r.pq ELSE r.ending - mb.qty END,\n         r.mn, r.pq\n  FROM rec r\n  JOIN monthly_budget mb ON mb.product_id = r.product_id AND mb.mth = date(r.mth, '+1 month')\n  WHERE r.mth < '2019-12-01'\n),\nranked AS (\n  SELECT r.product_id,\n         r.mth AS \"month\",\n         ABS(r.ending - r.mn) AS abs_diff,\n         ROW_NUMBER() OVER (PARTITION BY r.product_id ORDER BY ABS(r.ending - r.mn) ASC, r.mth ASC) AS rn\n  FROM rec r\n)\nSELECT product_id, \"month\", abs_diff\nFROM ranked\nWHERE rn = 1\nORDER BY product_id;\n",
+  "originalCsv": "product_id,month,abs_diff\n6520,2019-06-01,0\n6600,2019-03-01,10\n",
+  "goldSql": null,
+  "goldCsv": [
+    {
+      "path": "C:\\data-agent-eval\\Spider2\\spider2-lite\\evaluation_suite\\gold\\exec_result\\local279.csv",
+      "content": "product_id,date,diff\r\n6520,2019-12-01,0.0\r\n6600,2019-06-01,10.0\r\n"
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local279",
+    "condition_cols": [],
+    "ignore_order": false,
+    "toks": "232"
+  }
+}

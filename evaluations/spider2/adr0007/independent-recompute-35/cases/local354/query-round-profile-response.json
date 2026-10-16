@@ -1,0 +1,221 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_03fc50ce-e17b-49cd-bb4f-64d59dc0ec2d\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nyear | rounds | lo | hi | entries | drivers\n1950 | 7 | 1 | 7 | 160 | 81\n1951 | 8 | 1 | 8 | 179 | 84\n1952 | 8 | 1 | 8 | 215 | 105\n1953 | 9 | 1 | 9 | 246 | 108\n1954 | 9 | 1 | 9 | 230 | 97\n1955 | 7 | 1 | 7 | 180 | 84\n1956 | 8 | 1 | 8 | 190 | 85\n1957 | 8 | 1 | 8 | 171 | 76\n1958 | 11 | 1 | 11 | 241 | 87\n1959 | 9 | 1 | 9 | 195 | 88"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_03fc50ce-e17b-49cd-bb4f-64d59dc0ec2d",
+      "preview": {
+        "columns": [
+          "year",
+          "rounds",
+          "lo",
+          "hi",
+          "entries",
+          "drivers"
+        ],
+        "rows": [
+          [
+            1950,
+            7,
+            1,
+            7,
+            160,
+            81
+          ],
+          [
+            1951,
+            8,
+            1,
+            8,
+            179,
+            84
+          ],
+          [
+            1952,
+            8,
+            1,
+            8,
+            215,
+            105
+          ],
+          [
+            1953,
+            9,
+            1,
+            9,
+            246,
+            108
+          ],
+          [
+            1954,
+            9,
+            1,
+            9,
+            230,
+            97
+          ],
+          [
+            1955,
+            7,
+            1,
+            7,
+            180,
+            84
+          ],
+          [
+            1956,
+            8,
+            1,
+            8,
+            190,
+            85
+          ],
+          [
+            1957,
+            8,
+            1,
+            8,
+            171,
+            76
+          ],
+          [
+            1958,
+            11,
+            1,
+            11,
+            241,
+            87
+          ],
+          [
+            1959,
+            9,
+            1,
+            9,
+            195,
+            88
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 10,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "year",
+        "rounds",
+        "lo",
+        "hi",
+        "entries",
+        "drivers"
+      ],
+      "rows": [
+        [
+          1950,
+          7,
+          1,
+          7,
+          160,
+          81
+        ],
+        [
+          1951,
+          8,
+          1,
+          8,
+          179,
+          84
+        ],
+        [
+          1952,
+          8,
+          1,
+          8,
+          215,
+          105
+        ],
+        [
+          1953,
+          9,
+          1,
+          9,
+          246,
+          108
+        ],
+        [
+          1954,
+          9,
+          1,
+          9,
+          230,
+          97
+        ],
+        [
+          1955,
+          7,
+          1,
+          7,
+          180,
+          84
+        ],
+        [
+          1956,
+          8,
+          1,
+          8,
+          190,
+          85
+        ],
+        [
+          1957,
+          8,
+          1,
+          8,
+          171,
+          76
+        ],
+        [
+          1958,
+          11,
+          1,
+          11,
+          241,
+          87
+        ],
+        [
+          1959,
+          9,
+          1,
+          9,
+          195,
+          88
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 10,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_be7f696e-204b-4a9d-b02f-49e63f620514"
+  }
+}

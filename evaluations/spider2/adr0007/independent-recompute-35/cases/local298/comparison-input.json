@@ -1,0 +1,75 @@
+{
+  "revealedAt": "2026-10-11T09:47:04.145Z",
+  "registry": {
+    "instance_id": "local298",
+    "attempt_id": "attempt-20261010-154318Z",
+    "score": 0,
+    "score_source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-retry.json",
+    "replayed_csv_score": 0,
+    "group": "wrong",
+    "status": "completed",
+    "publication_status": "published",
+    "duration_ms": 303017,
+    "tool_calls": 24,
+    "error": null,
+    "result_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local298/attempts/attempt-20261010-154318Z/result.json",
+    "trace_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local298/attempts/attempt-20261010-154318Z/trace.json",
+    "result_exists": true,
+    "trace_exists": true,
+    "sql_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local298/attempts/attempt-20261010-154318Z/submissions/sql/local298.sql",
+    "csv_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local298.csv",
+    "sql_exists": true,
+    "csv_exists": true,
+    "gold_sql_file": null,
+    "process": {
+      "turns": 16,
+      "toolCalls": 24,
+      "explorationQueries": 3,
+      "resultQueries": 1,
+      "fanoutProbes": 1,
+      "revisions": 3
+    },
+    "fanout_metrics": {
+      "reportCount": 1,
+      "targetCount": 1,
+      "findingCount": 0,
+      "unknownCount": 1,
+      "byStatus": {
+        "clear": 0,
+        "finding": 0,
+        "not_applicable": 0,
+        "unknown": 1
+      },
+      "enabled": true
+    },
+    "spec_feedback_metrics": {
+      "reportCount": 4,
+      "byStatus": {
+        "pending": 0,
+        "completed": 0,
+        "unavailable": 4,
+        "disabled": 0
+      },
+      "deterministicIssueCount": 0,
+      "concernCount": 0,
+      "enabled": true
+    }
+  },
+  "originalSql": "WITH months(month) AS (\n  SELECT '2020-02' UNION ALL SELECT '2020-03' UNION ALL SELECT '2020-04'\n), signed AS (\n  SELECT customer_id, txn_date,\n         CASE WHEN txn_type='deposit' THEN txn_amount ELSE -txn_amount END AS amt\n  FROM customer_transactions\n), cust_bal AS (\n  SELECT m.month AS month, s.customer_id AS customer_id, SUM(s.amt) AS bal\n  FROM months m JOIN signed s ON s.txn_date < m.month || '-01'\n  GROUP BY m.month, s.customer_id\n)\nSELECT month, CAST(SUM(CASE WHEN bal < 0 THEN 0 ELSE bal END) AS INTEGER) AS total_balance\nFROM cust_bal\nGROUP BY month\nORDER BY month ASC;\n",
+  "originalCsv": "month,total_balance\n2020-02,235595\n2020-03,261508\n2020-04,260971\n",
+  "goldSql": null,
+  "goldCsv": [
+    {
+      "path": "C:\\data-agent-eval\\Spider2\\spider2-lite\\evaluation_suite\\gold\\exec_result\\local298.csv",
+      "content": "month_,total_data_storage\r\n2020-02-01,212579\r\n2020-03-01,240602\r\n2020-04-01,153147\r\n"
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local298",
+    "condition_cols": [
+      1
+    ],
+    "ignore_order": false,
+    "toks": "131"
+  }
+}

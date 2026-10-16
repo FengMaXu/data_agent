@@ -1,0 +1,4 @@
+{
+  "sql": "WITH RECURSIVE months(month) AS (SELECT date(MIN(payment_date),'start of month') FROM payment UNION ALL SELECT date(month,'+1 month') FROM months WHERE month<(SELECT date(MAX(payment_date),'start of month') FROM payment)), m AS(SELECT c.customer_id,month,COALESCE(SUM(p.amount),0) total FROM customer c CROSS JOIN months LEFT JOIN payment p ON p.customer_id=c.customer_id AND date(p.payment_date,'start of month')=month GROUP BY 1,2),d AS(SELECT *,LAG(total) OVER(PARTITION BY customer_id ORDER BY month) prev FROM m),s AS(SELECT customer_id,AVG(total-prev) metric FROM d GROUP BY 1) SELECT s.*,c.first_name||' '||c.last_name name FROM s JOIN customer c USING(customer_id) ORDER BY metric DESC LIMIT 5",
+  "limit": 100
+}

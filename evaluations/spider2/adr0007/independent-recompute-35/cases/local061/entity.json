@@ -1,0 +1,9 @@
+{
+  "fields": {
+    "population.entity": {
+      "value": "Product monthly France sales projection",
+      "basis": "request",
+      "quote": "each product’s monthly sales"
+    }
+  }
+}

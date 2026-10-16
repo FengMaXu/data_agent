@@ -1,0 +1,191 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_84728c1a-5b47-493d-b194-366ce04ac673\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nMID | title | year | n | bad | unknown | female\ntt0375882 | Kala Jigar | 1939 | 1 | 0 | 0 | 1\ntt0272001 | Bindhaast | 1999 | 11 | 0 | 0 | 1\ntt0354922 | Snegithiye | 2000 | 10 | 0 | 0 | 1\ntt1587388 | Yeh Hai Malegaon Ka Superman | 2009 | 1 | 0 | 1 | 0\ntt2355921 | The Wish Fish | 2012 | 1 | 0 | 1 | 0\ntt8338754 | Vaibhav Sethia: Don't | 2018 | 1 | 0 | 1 | 0\ntt8458202 | Pihu | 2018 | 2 | 0 | 0 | 1"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_84728c1a-5b47-493d-b194-366ce04ac673",
+      "preview": {
+        "columns": [
+          "MID",
+          "title",
+          "year",
+          "n",
+          "bad",
+          "unknown",
+          "female"
+        ],
+        "rows": [
+          [
+            "tt0375882",
+            "Kala Jigar",
+            1939,
+            1,
+            0,
+            0,
+            1
+          ],
+          [
+            "tt0272001",
+            "Bindhaast",
+            1999,
+            11,
+            0,
+            0,
+            1
+          ],
+          [
+            "tt0354922",
+            "Snegithiye",
+            2000,
+            10,
+            0,
+            0,
+            1
+          ],
+          [
+            "tt1587388",
+            "Yeh Hai Malegaon Ka Superman",
+            2009,
+            1,
+            0,
+            1,
+            0
+          ],
+          [
+            "tt2355921",
+            "The Wish Fish",
+            2012,
+            1,
+            0,
+            1,
+            0
+          ],
+          [
+            "tt8338754",
+            "Vaibhav Sethia: Don't",
+            2018,
+            1,
+            0,
+            1,
+            0
+          ],
+          [
+            "tt8458202",
+            "Pihu",
+            2018,
+            2,
+            0,
+            0,
+            1
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "TEXT",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 7,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "MID",
+        "title",
+        "year",
+        "n",
+        "bad",
+        "unknown",
+        "female"
+      ],
+      "rows": [
+        [
+          "tt0375882",
+          "Kala Jigar",
+          1939,
+          1,
+          0,
+          0,
+          1
+        ],
+        [
+          "tt0272001",
+          "Bindhaast",
+          1999,
+          11,
+          0,
+          0,
+          1
+        ],
+        [
+          "tt0354922",
+          "Snegithiye",
+          2000,
+          10,
+          0,
+          0,
+          1
+        ],
+        [
+          "tt1587388",
+          "Yeh Hai Malegaon Ka Superman",
+          2009,
+          1,
+          0,
+          1,
+          0
+        ],
+        [
+          "tt2355921",
+          "The Wish Fish",
+          2012,
+          1,
+          0,
+          1,
+          0
+        ],
+        [
+          "tt8338754",
+          "Vaibhav Sethia: Don't",
+          2018,
+          1,
+          0,
+          1,
+          0
+        ],
+        [
+          "tt8458202",
+          "Pihu",
+          2018,
+          2,
+          0,
+          0,
+          1
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "TEXT",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 7,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_41cb8b94-f0a9-4807-a850-a22c968bd4c9"
+  }
+}

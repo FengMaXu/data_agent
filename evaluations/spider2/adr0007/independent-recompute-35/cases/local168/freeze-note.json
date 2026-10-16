@@ -1,0 +1,8 @@
+{
+  "algorithm": "Rank skills by distinct eligible job count; select jobs requiring any top3; one salary per posting",
+  "assumptions": [
+    "overall mean is posting-equal not job-skill weighted or skill-equal",
+    "OR selected skills",
+    "ranking within salary-known remote Data Analyst cohort"
+  ]
+}

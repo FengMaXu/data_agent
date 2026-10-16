@@ -1,0 +1,2175 @@
+{
+  "version": 2,
+  "tasks": [
+    {
+      "taskId": "task_fc5d100f-7fec-4d70-8aa1-2bfd230e6822",
+      "sessionId": "local169",
+      "principalId": "independent-analyst",
+      "requestMessageId": "original-task",
+      "requestId": "f3e04816-92a2-445c-8233-902f3528b1cc",
+      "currentRevisionId": "revision_98ebfe58-cf14-4768-96ce-fa5190c51735",
+      "lifecycle": "published",
+      "budget": {
+        "policy": {
+          "version": "answering-dual-loop-v1",
+          "maxRevisions": 40,
+          "maxExplorationAttempts": 120,
+          "maxResultAttempts": 20,
+          "maxElapsedMs": 14400000,
+          "maxObservedRows": 2000000
+        },
+        "startedAt": "2026-10-11T09:07:05.680Z",
+        "revisionCount": 1,
+        "explorationAttempts": 12,
+        "resultAttempts": 1,
+        "observedRows": 251
+      },
+      "createdAt": "2026-10-11T09:07:05.680Z",
+      "updatedAt": "2026-10-11T09:21:26.440Z",
+      "latestCandidateId": "candidate_67e79810-0fdb-451e-a674-a5ab20ebb165",
+      "publicationId": "publication_d7460269-071f-411c-868d-a8cce5aa6134"
+    }
+  ],
+  "revisions": [
+    {
+      "taskId": "task_fc5d100f-7fec-4d70-8aa1-2bfd230e6822",
+      "revisionId": "revision_c8916109-1dd3-4e7e-b0fd-0a830d09c1a5",
+      "requestId": "f3e04816-92a2-445c-8233-902f3528b1cc",
+      "createdAt": "2026-10-11T09:07:05.680Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "legislators by id_bioguide"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_01138453-4d94-4d78-bf40-69111688f92b"
+            ]
+          }
+        }
+      },
+      "state": {
+        "state": "draft",
+        "revisionId": "revision_c8916109-1dd3-4e7e-b0fd-0a830d09c1a5"
+      },
+      "specFeedback": {
+        "taskId": "task_fc5d100f-7fec-4d70-8aa1-2bfd230e6822",
+        "revisionId": "revision_c8916109-1dd3-4e7e-b0fd-0a830d09c1a5",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_01138453-4d94-4d78-bf40-69111688f92b"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    },
+    {
+      "taskId": "task_fc5d100f-7fec-4d70-8aa1-2bfd230e6822",
+      "revisionId": "revision_98ebfe58-cf14-4768-96ce-fa5190c51735",
+      "parentRevisionId": "revision_c8916109-1dd3-4e7e-b0fd-0a830d09c1a5",
+      "requestId": "fb4aa50c-0453-47a6-a3da-e6412ce45bef",
+      "createdAt": "2026-10-11T09:08:02.107Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "legislators by id_bioguide"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_01138453-4d94-4d78-bf40-69111688f92b"
+            ]
+          }
+        },
+        "population.eligibility": {
+          "state": "specified",
+          "value": "Only observed eligible records; no fabricated missing records",
+          "basis": {
+            "kind": "assumed",
+            "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+          }
+        },
+        "population.conditions": {
+          "state": "specified",
+          "value": [
+            "global first term starts 1917-01-01..1999-12-31 inclusive"
+          ],
+          "basis": {
+            "kind": "assumed",
+            "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+          }
+        },
+        "population.time": {
+          "state": "specified",
+          "value": {
+            "expression": "First 20 year-end observations: initial start-year Dec31 through start-year+19 Dec31; inclusive term endpoints; no 1999 follow-up truncation"
+          },
+          "basis": {
+            "kind": "assumed",
+            "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+          }
+        },
+        "measure.formula": {
+          "state": "specified",
+          "value": {
+            "op": "custom",
+            "description": "Fixed cohort denominator = count distinct people whose global first term starts in 1917..1999. For period 0..19, observation is Dec31 in start year plus period; numerator people with any inclusive term covering observation; retain all periods including zero. Ratio 0..1."
+          },
+          "basis": {
+            "kind": "assumed",
+            "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+          }
+        },
+        "grouping": {
+          "state": "specified",
+          "value": [
+            "period 0..19"
+          ],
+          "basis": {
+            "kind": "assumed",
+            "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+          }
+        },
+        "selection": {
+          "state": "not_applicable"
+        },
+        "output": {
+          "state": "specified",
+          "value": {
+            "rowMode": "full",
+            "columns": [
+              "period",
+              "retention_rate"
+            ]
+          },
+          "basis": {
+            "kind": "assumed",
+            "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+          }
+        }
+      },
+      "state": {
+        "state": "ready",
+        "revisionId": "revision_98ebfe58-cf14-4768-96ce-fa5190c51735",
+        "ready": "ready_f3e2edd6-bc25-44e5-b5ec-e0ece2f9e41b"
+      },
+      "specFeedback": {
+        "taskId": "task_fc5d100f-7fec-4d70-8aa1-2bfd230e6822",
+        "revisionId": "revision_98ebfe58-cf14-4768-96ce-fa5190c51735",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_01138453-4d94-4d78-bf40-69111688f92b",
+          "evidence_cfe7c808-5c41-4c45-80d0-68f711b04e6a",
+          "evidence_53377167-145e-4ae6-9cee-b4c2ce787d45",
+          "evidence_f0a63eca-23e7-41bb-8a23-846f06220e5e",
+          "evidence_fec18632-90ca-4eda-85f7-bec87e73d1f5",
+          "evidence_d5d2b7c4-1807-45e3-8eba-549fa9e9c41e",
+          "evidence_8d7f4ddd-9925-43e6-a830-10ae3f7514df"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "taskId": "task_fc5d100f-7fec-4d70-8aa1-2bfd230e6822",
+      "items": [
+        {
+          "id": "request_be3e2f2bd519d830902bceb0",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "observedAt": "2026-10-11T09:07:05.680Z"
+        },
+        {
+          "id": "evidence_01138453-4d94-4d78-bf40-69111688f92b",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "6354695b6dff2844cccfea433cfd403f8b755265940f1dd234f118b08d77545c",
+          "quote": "legislators",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "6354695b6dff2844cccfea433cfd403f8b755265940f1dd234f118b08d77545c"
+          },
+          "observedAt": "2026-10-11T09:07:05.680Z"
+        },
+        {
+          "id": "evidence_cfe7c808-5c41-4c45-80d0-68f711b04e6a",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "369db239-16d1-4e8a-b29a-912c60db01ca",
+          "preview": {
+            "columns": [
+              "cohort",
+              "min(first)",
+              "max(first)",
+              "keys"
+            ],
+            "rows": [
+              [
+                4033,
+                "1917-04-02",
+                "1999-11-06",
+                4033
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "TEXT",
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "200500837688c31fd110724cd1cc22a82d99790d27c17089e6c89bb89c99ef6d",
+          "contentHash": "29d0f5d498ae8f1108421f56e0dc781217f362e2689df9b964b4c53d3bfcb9ae",
+          "observedAt": "2026-10-11T09:07:11.244Z"
+        },
+        {
+          "id": "evidence_53377167-145e-4ae6-9cee-b4c2ce787d45",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "8983ae81-3fc1-44b1-8f9d-ba20d6dbb3ca",
+          "preview": {
+            "columns": [
+              "min(term_start)",
+              "max(term_end)",
+              "sum(term_end IS NULL)",
+              "sum(term_start>term_end)",
+              "sum(substr(term_end,6)='12-31')",
+              "sum(substr(term_start,6)='12-31')"
+            ],
+            "rows": [
+              [
+                "1789-03-04",
+                "2025-01-03",
+                0,
+                0,
+                272,
+                8
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "TEXT",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "d606df648f9899798a227918f1eb02207644218c78fbe87efa45576cb511baee",
+          "contentHash": "34899a8a0b0b95a4ea5305081ea746f71e0cc7afe1a00a706404a6849a2f034b",
+          "observedAt": "2026-10-11T09:07:16.824Z"
+        },
+        {
+          "id": "evidence_f0a63eca-23e7-41bb-8a23-846f06220e5e",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "e207cbdf-00a1-4177-84cf-d65b943ee037",
+          "preview": {
+            "columns": [
+              "min(date)",
+              "max(date)",
+              "count(*)"
+            ],
+            "rows": [
+              [
+                "1917-01-01",
+                "1999-12-31",
+                30315
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "caf9cd4e1fb05c8f23953d7d01e8fcd830659b31c0c416ed832ec05f4ad5e5a2",
+          "contentHash": "cf43ef7920de31b3ce544e2697a93230103ca9aa54562c024920ccd4e3002107",
+          "observedAt": "2026-10-11T09:07:22.371Z"
+        },
+        {
+          "id": "evidence_fec18632-90ca-4eda-85f7-bec87e73d1f5",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "393d16d0-b6e9-4cd2-885d-9943b3dca3b5",
+          "preview": {
+            "columns": [
+              "period",
+              "cohort_size",
+              "retained",
+              "rate"
+            ],
+            "rows": [
+              [
+                0,
+                4033,
+                4021,
+                0.9970245474832631
+              ],
+              [
+                1,
+                4033,
+                3956,
+                0.9809075130176048
+              ],
+              [
+                2,
+                4033,
+                3113,
+                0.7718819737168361
+              ],
+              [
+                3,
+                4033,
+                3094,
+                0.767170840565336
+              ],
+              [
+                4,
+                4033,
+                2754,
+                0.6828663525911233
+              ],
+              [
+                5,
+                4033,
+                2735,
+                0.6781552194396231
+              ],
+              [
+                6,
+                4033,
+                2320,
+                0.5752541532358046
+              ],
+              [
+                7,
+                4033,
+                2313,
+                0.5735184726010414
+              ],
+              [
+                8,
+                4033,
+                2011,
+                0.49863625092982894
+              ],
+              [
+                9,
+                4033,
+                1996,
+                0.4949169352839078
+              ],
+              [
+                10,
+                4033,
+                1752,
+                0.4344160674435904
+              ],
+              [
+                11,
+                4033,
+                1731,
+                0.4292090255393008
+              ],
+              [
+                12,
+                4033,
+                1435,
+                0.35581453012645675
+              ],
+              [
+                13,
+                4033,
+                1419,
+                0.35184726010414086
+              ],
+              [
+                14,
+                4033,
+                1234,
+                0.30597570047111333
+              ],
+              [
+                15,
+                4033,
+                1214,
+                0.30101661294321846
+              ],
+              [
+                16,
+                4033,
+                1043,
+                0.25861641457971735
+              ],
+              [
+                17,
+                4033,
+                1036,
+                0.25688073394495414
+              ],
+              [
+                18,
+                4033,
+                857,
+                0.21249690057029508
+              ],
+              [
+                19,
+                4033,
+                844,
+                0.2092734936771634
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "REAL"
+            ],
+            "rowCount": 20,
+            "truncated": false
+          },
+          "queryHash": "504c55c93c8607ef0fca57901ca943699789520532e6588d46ecb83e78737280",
+          "contentHash": "bf5216b156fafb37db3545508bc6cfe330c5c0ecc65fdf12f207cd373653434c",
+          "observedAt": "2026-10-11T09:07:46.204Z"
+        },
+        {
+          "id": "evidence_d5d2b7c4-1807-45e3-8eba-549fa9e9c41e",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "583f3d35-e9bb-4a1f-b813-1b6a9645f181",
+          "preview": {
+            "columns": [
+              "period",
+              "cohort_size",
+              "retained",
+              "rate"
+            ],
+            "rows": [
+              [
+                0,
+                4033,
+                3956,
+                0.9809075130176048
+              ],
+              [
+                1,
+                4033,
+                3113,
+                0.7718819737168361
+              ],
+              [
+                2,
+                4033,
+                3094,
+                0.767170840565336
+              ],
+              [
+                3,
+                4033,
+                2754,
+                0.6828663525911233
+              ],
+              [
+                4,
+                4033,
+                2735,
+                0.6781552194396231
+              ],
+              [
+                5,
+                4033,
+                2320,
+                0.5752541532358046
+              ],
+              [
+                6,
+                4033,
+                2313,
+                0.5735184726010414
+              ],
+              [
+                7,
+                4033,
+                2011,
+                0.49863625092982894
+              ],
+              [
+                8,
+                4033,
+                1996,
+                0.4949169352839078
+              ],
+              [
+                9,
+                4033,
+                1752,
+                0.4344160674435904
+              ],
+              [
+                10,
+                4033,
+                1731,
+                0.4292090255393008
+              ],
+              [
+                11,
+                4033,
+                1435,
+                0.35581453012645675
+              ],
+              [
+                12,
+                4033,
+                1419,
+                0.35184726010414086
+              ],
+              [
+                13,
+                4033,
+                1234,
+                0.30597570047111333
+              ],
+              [
+                14,
+                4033,
+                1214,
+                0.30101661294321846
+              ],
+              [
+                15,
+                4033,
+                1043,
+                0.25861641457971735
+              ],
+              [
+                16,
+                4033,
+                1036,
+                0.25688073394495414
+              ],
+              [
+                17,
+                4033,
+                857,
+                0.21249690057029508
+              ],
+              [
+                18,
+                4033,
+                844,
+                0.2092734936771634
+              ],
+              [
+                19,
+                4033,
+                707,
+                0.17530374411108357
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "REAL"
+            ],
+            "rowCount": 20,
+            "truncated": false
+          },
+          "queryHash": "67950a48edde521b6bb184948fdeae843f906d44c0747fef26b51a3124a95f7e",
+          "contentHash": "0a41368266735e4ec93dac2a65b06dcee35df72dca05948691dd7bb8edeff354",
+          "observedAt": "2026-10-11T09:07:52.343Z"
+        },
+        {
+          "id": "evidence_8d7f4ddd-9925-43e6-a830-10ae3f7514df",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "442759ad-3695-4004-a4e0-7861c605f510",
+          "preview": {
+            "columns": [
+              "period",
+              "cohort_size",
+              "retained"
+            ],
+            "rows": [
+              [
+                0,
+                4033,
+                4013
+              ],
+              [
+                1,
+                4033,
+                3953
+              ],
+              [
+                2,
+                4033,
+                3111
+              ],
+              [
+                3,
+                4033,
+                3092
+              ],
+              [
+                4,
+                4033,
+                2748
+              ],
+              [
+                5,
+                4033,
+                2734
+              ],
+              [
+                6,
+                4033,
+                2318
+              ],
+              [
+                7,
+                4033,
+                2312
+              ],
+              [
+                8,
+                4033,
+                2006
+              ],
+              [
+                9,
+                4033,
+                1996
+              ],
+              [
+                10,
+                4033,
+                1747
+              ],
+              [
+                11,
+                4033,
+                1730
+              ],
+              [
+                12,
+                4033,
+                1431
+              ],
+              [
+                13,
+                4033,
+                1419
+              ],
+              [
+                14,
+                4033,
+                1232
+              ],
+              [
+                15,
+                4033,
+                1214
+              ],
+              [
+                16,
+                4033,
+                1043
+              ],
+              [
+                17,
+                4033,
+                1035
+              ],
+              [
+                18,
+                4033,
+                855
+              ],
+              [
+                19,
+                4033,
+                844
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 20,
+            "truncated": false
+          },
+          "queryHash": "4b2e44f9083d431b5f06c2ab27599e92f9fa98125077e6b5d56d1534696a190e",
+          "contentHash": "b6c655ab0ddaa355bdcfb710275201e84f590c540fb39f1632189a10538ad8ef",
+          "observedAt": "2026-10-11T09:07:58.208Z"
+        },
+        {
+          "id": "evidence_53f5b8ad-47f4-465d-91e3-b881047a8a87",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "a5182c49-94ba-482e-9e28-58908b4e5f7a",
+          "preview": {
+            "columns": [
+              "period",
+              "retention_rate"
+            ],
+            "rows": [
+              [
+                1,
+                0.9809
+              ],
+              [
+                2,
+                0.7719
+              ],
+              [
+                3,
+                0.7672
+              ],
+              [
+                4,
+                0.6829
+              ],
+              [
+                5,
+                0.6782
+              ],
+              [
+                6,
+                0.5753
+              ],
+              [
+                7,
+                0.5735
+              ],
+              [
+                8,
+                0.4986
+              ],
+              [
+                9,
+                0.4949
+              ],
+              [
+                10,
+                0.4344
+              ],
+              [
+                11,
+                0.4292
+              ],
+              [
+                12,
+                0.3558
+              ],
+              [
+                13,
+                0.3518
+              ],
+              [
+                14,
+                0.306
+              ],
+              [
+                15,
+                0.301
+              ],
+              [
+                16,
+                0.2586
+              ],
+              [
+                17,
+                0.2569
+              ],
+              [
+                18,
+                0.2125
+              ],
+              [
+                19,
+                0.2093
+              ],
+              [
+                20,
+                0.1753
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "REAL"
+            ],
+            "rowCount": 20,
+            "truncated": false
+          },
+          "queryHash": "39c63ba2e168be563cac19b2fbcea4c70c307ab7f53146ecf61a769164e1b146",
+          "contentHash": "622a6c7b032c173f6f913ed723bdc067917ca0c0ba1f2054e7185636c0b1ad6e",
+          "observedAt": "2026-10-11T09:08:35.310Z"
+        },
+        {
+          "id": "evidence_f601eacd-44f3-4a8f-912d-e3464bc8e0e5",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "03ddd7ff-65f4-4442-a8c4-667f0f979b89",
+          "preview": {
+            "columns": [
+              "mode",
+              "p",
+              "uncensored",
+              "censored"
+            ],
+            "rows": [
+              [
+                "calendar",
+                0,
+                4021,
+                4021
+              ],
+              [
+                "calendar",
+                1,
+                3956,
+                3909
+              ],
+              [
+                "calendar",
+                2,
+                3113,
+                3062
+              ],
+              [
+                "calendar",
+                3,
+                3094,
+                2968
+              ],
+              [
+                "calendar",
+                4,
+                2754,
+                2633
+              ],
+              [
+                "calendar",
+                5,
+                2735,
+                2548
+              ],
+              [
+                "calendar",
+                6,
+                2320,
+                2155
+              ],
+              [
+                "calendar",
+                7,
+                2313,
+                2057
+              ],
+              [
+                "calendar",
+                8,
+                2011,
+                1781
+              ],
+              [
+                "calendar",
+                9,
+                1996,
+                1738
+              ],
+              [
+                "calendar",
+                10,
+                1752,
+                1512
+              ],
+              [
+                "calendar",
+                11,
+                1731,
+                1471
+              ],
+              [
+                "calendar",
+                12,
+                1435,
+                1209
+              ],
+              [
+                "calendar",
+                13,
+                1419,
+                1166
+              ],
+              [
+                "calendar",
+                14,
+                1234,
+                1009
+              ],
+              [
+                "calendar",
+                15,
+                1214,
+                978
+              ],
+              [
+                "calendar",
+                16,
+                1043,
+                832
+              ],
+              [
+                "calendar",
+                17,
+                1036,
+                797
+              ],
+              [
+                "calendar",
+                18,
+                857,
+                657
+              ],
+              [
+                "calendar",
+                19,
+                844,
+                620
+              ],
+              [
+                "calendar",
+                20,
+                707,
+                514
+              ],
+              [
+                "floor36525",
+                0,
+                4021,
+                4021
+              ],
+              [
+                "floor36525",
+                1,
+                3954,
+                3907
+              ],
+              [
+                "floor36525",
+                2,
+                3113,
+                3062
+              ],
+              [
+                "floor36525",
+                3,
+                3094,
+                2968
+              ],
+              [
+                "floor36525",
+                4,
+                2754,
+                2633
+              ],
+              [
+                "floor36525",
+                5,
+                2733,
+                2546
+              ],
+              [
+                "floor36525",
+                6,
+                2320,
+                2155
+              ],
+              [
+                "floor36525",
+                7,
+                2313,
+                2057
+              ],
+              [
+                "floor36525",
+                8,
+                2011,
+                1781
+              ],
+              [
+                "floor36525",
+                9,
+                1996,
+                1738
+              ],
+              [
+                "floor36525",
+                10,
+                1752,
+                1512
+              ],
+              [
+                "floor36525",
+                11,
+                1731,
+                1471
+              ],
+              [
+                "floor36525",
+                12,
+                1435,
+                1209
+              ],
+              [
+                "floor36525",
+                13,
+                1419,
+                1166
+              ],
+              [
+                "floor36525",
+                14,
+                1234,
+                1009
+              ],
+              [
+                "floor36525",
+                15,
+                1214,
+                978
+              ],
+              [
+                "floor36525",
+                16,
+                1043,
+                832
+              ],
+              [
+                "floor36525",
+                17,
+                1036,
+                797
+              ],
+              [
+                "floor36525",
+                18,
+                857,
+                657
+              ],
+              [
+                "floor36525",
+                19,
+                844,
+                620
+              ],
+              [
+                "floor36525",
+                20,
+                707,
+                514
+              ],
+              [
+                "round365",
+                0,
+                515,
+                515
+              ],
+              [
+                "round365",
+                1,
+                3996,
+                3994
+              ],
+              [
+                "round365",
+                2,
+                3834,
+                3787
+              ],
+              [
+                "round365",
+                3,
+                3104,
+                3052
+              ],
+              [
+                "round365",
+                4,
+                3075,
+                2948
+              ],
+              [
+                "round365",
+                5,
+                2751,
+                2629
+              ],
+              [
+                "round365",
+                6,
+                2669,
+                2480
+              ],
+              [
+                "round365",
+                7,
+                2312,
+                2146
+              ],
+              [
+                "round365",
+                8,
+                2267,
+                2010
+              ],
+              [
+                "round365",
+                9,
+                2005,
+                1776
+              ],
+              [
+                "round365",
+                10,
+                1964,
+                1704
+              ],
+              [
+                "round365",
+                11,
+                1747,
+                1509
+              ],
+              [
+                "round365",
+                12,
+                1698,
+                1437
+              ],
+              [
+                "round365",
+                13,
+                1428,
+                1201
+              ],
+              [
+                "round365",
+                14,
+                1405,
+                1152
+              ],
+              [
+                "round365",
+                15,
+                1231,
+                1006
+              ],
+              [
+                "round365",
+                16,
+                1190,
+                954
+              ],
+              [
+                "round365",
+                17,
+                1041,
+                831
+              ],
+              [
+                "round365",
+                18,
+                1024,
+                785
+              ],
+              [
+                "round365",
+                19,
+                850,
+                652
+              ],
+              [
+                "round365",
+                20,
+                832,
+                608
+              ],
+              [
+                "round36525",
+                0,
+                515,
+                515
+              ],
+              [
+                "round36525",
+                1,
+                3996,
+                3994
+              ],
+              [
+                "round36525",
+                2,
+                3834,
+                3787
+              ],
+              [
+                "round36525",
+                3,
+                3104,
+                3052
+              ],
+              [
+                "round36525",
+                4,
+                3075,
+                2948
+              ],
+              [
+                "round36525",
+                5,
+                2751,
+                2629
+              ],
+              [
+                "round36525",
+                6,
+                2669,
+                2480
+              ],
+              [
+                "round36525",
+                7,
+                2312,
+                2146
+              ],
+              [
+                "round36525",
+                8,
+                2267,
+                2010
+              ],
+              [
+                "round36525",
+                9,
+                2005,
+                1776
+              ],
+              [
+                "round36525",
+                10,
+                1964,
+                1704
+              ],
+              [
+                "round36525",
+                11,
+                1747,
+                1509
+              ],
+              [
+                "round36525",
+                12,
+                1698,
+                1437
+              ],
+              [
+                "round36525",
+                13,
+                1428,
+                1201
+              ],
+              [
+                "round36525",
+                14,
+                1405,
+                1152
+              ],
+              [
+                "round36525",
+                15,
+                1231,
+                1006
+              ],
+              [
+                "round36525",
+                16,
+                1190,
+                954
+              ],
+              [
+                "round36525",
+                17,
+                1041,
+                831
+              ],
+              [
+                "round36525",
+                18,
+                1024,
+                785
+              ],
+              [
+                "round36525",
+                19,
+                850,
+                652
+              ],
+              [
+                "round36525",
+                20,
+                832,
+                608
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 84,
+            "truncated": false
+          },
+          "queryHash": "8dc2e558e9d7f6d50c7f5f6622d2d4e3dda6123ae385cea1c073ca44321a9312",
+          "contentHash": "9e11846579ab98ec15816cfad081fd34bc2aab4c110893a3b328bab3976bec02",
+          "observedAt": "2026-10-11T09:09:16.432Z"
+        },
+        {
+          "id": "evidence_639e8d63-f1d2-491f-bf30-1c7c3a42c733",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "ab3951d1-fd8b-4236-9d56-2e91e7893c0c",
+          "preview": {
+            "columns": [
+              "n",
+              "denominator",
+              "any_service_in_year",
+              "anniversary",
+              "annual_expanded"
+            ],
+            "rows": [
+              [
+                0,
+                4033,
+                4033,
+                4033,
+                4033
+              ],
+              [
+                1,
+                4033,
+                4013,
+                3967,
+                4013
+              ],
+              [
+                2,
+                4033,
+                3956,
+                2923,
+                3956
+              ],
+              [
+                3,
+                4033,
+                3114,
+                3103,
+                3114
+              ],
+              [
+                4,
+                4033,
+                3180,
+                2058,
+                3180
+              ],
+              [
+                5,
+                4033,
+                2750,
+                2746,
+                2750
+              ],
+              [
+                6,
+                4033,
+                2780,
+                2038,
+                2780
+              ],
+              [
+                7,
+                4033,
+                2322,
+                2312,
+                2322
+              ],
+              [
+                8,
+                4033,
+                2353,
+                1725,
+                2353
+              ],
+              [
+                9,
+                4033,
+                2010,
+                2001,
+                2010
+              ],
+              [
+                10,
+                4033,
+                2036,
+                1623,
+                2036
+              ],
+              [
+                11,
+                4033,
+                1748,
+                1742,
+                1748
+              ],
+              [
+                12,
+                4033,
+                1749,
+                1351,
+                1749
+              ],
+              [
+                13,
+                4033,
+                1435,
+                1425,
+                1435
+              ],
+              [
+                14,
+                4033,
+                1439,
+                1221,
+                1439
+              ],
+              [
+                15,
+                4033,
+                1234,
+                1226,
+                1234
+              ],
+              [
+                16,
+                4033,
+                1235,
+                856,
+                1235
+              ],
+              [
+                17,
+                4033,
+                1043,
+                1041,
+                1043
+              ],
+              [
+                18,
+                4033,
+                1048,
+                890,
+                1048
+              ],
+              [
+                19,
+                4033,
+                856,
+                848,
+                856
+              ],
+              [
+                20,
+                4033,
+                850,
+                702,
+                850
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 21,
+            "truncated": false
+          },
+          "queryHash": "248e6bf557f9be7325d801c01c4d34e7a15df0d899e8ed845e28c6bfa60dbed8",
+          "contentHash": "ed53dda1be61a7dc685071452d9f7a810d77b536a00461134afcb2cf2eec117c",
+          "observedAt": "2026-10-11T09:10:07.460Z"
+        },
+        {
+          "id": "evidence_5e61086c-30fa-4e68-89f8-123584ad47fd",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "9de6be67-1f9f-4bfc-abad-790627478f49",
+          "preview": {
+            "columns": [
+              "n",
+              "bridged_until_last",
+              "december_first"
+            ],
+            "rows": [
+              [
+                0,
+                4022,
+                3598
+              ],
+              [
+                1,
+                3963,
+                3954
+              ],
+              [
+                2,
+                3242,
+                2844
+              ],
+              [
+                3,
+                3223,
+                3092
+              ],
+              [
+                4,
+                2847,
+                2502
+              ],
+              [
+                5,
+                2827,
+                2734
+              ],
+              [
+                6,
+                2419,
+                2103
+              ],
+              [
+                7,
+                2408,
+                2312
+              ],
+              [
+                8,
+                2096,
+                1856
+              ],
+              [
+                9,
+                2079,
+                1994
+              ],
+              [
+                10,
+                1816,
+                1682
+              ],
+              [
+                11,
+                1795,
+                1732
+              ],
+              [
+                12,
+                1495,
+                1398
+              ],
+              [
+                13,
+                1475,
+                1420
+              ],
+              [
+                14,
+                1285,
+                1207
+              ],
+              [
+                15,
+                1265,
+                1215
+              ],
+              [
+                16,
+                1077,
+                1044
+              ],
+              [
+                17,
+                1070,
+                1036
+              ],
+              [
+                18,
+                883,
+                857
+              ],
+              [
+                19,
+                870,
+                845
+              ],
+              [
+                20,
+                730,
+                708
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 21,
+            "truncated": false
+          },
+          "queryHash": "3b4843b59d907f68cb2ab56413e853bc6268d46f3b4b1662a5fc02d337f26cd5",
+          "contentHash": "9f790d51cf14b302165a0e19865eca05ec7540d9705a9c05d395b28204273bd7",
+          "observedAt": "2026-10-11T09:11:09.341Z"
+        },
+        {
+          "id": "evidence_71721295-e766-428f-9c80-77318dc4c0b4",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "dcef6248-fe1e-4246-b8e6-a94e86e249bc",
+          "preview": {
+            "columns": [
+              "true_first",
+              "numbered_first",
+              "changed_first"
+            ],
+            "rows": [
+              [
+                4033,
+                4033,
+                0
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "c498a756ad407cd52cda0eed6613dd3f19c7dd95c65aa71936d5345cb15ebf51",
+          "contentHash": "d13762c920733974a9fbf5d2ab4bec860b53ea6413e85fb1751dd4ab777ac335",
+          "observedAt": "2026-10-11T09:11:16.836Z"
+        },
+        {
+          "id": "evidence_323acd6b-ced6-4faa-884e-909180dc2309",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "009cce85-2603-484a-afd0-630f0740b565",
+          "preview": {
+            "columns": [
+              "period",
+              "joined_rows",
+              "distinct_people"
+            ],
+            "rows": [
+              [
+                0,
+                4021,
+                4021
+              ],
+              [
+                1,
+                3909,
+                3909
+              ],
+              [
+                2,
+                3062,
+                3062
+              ],
+              [
+                3,
+                2968,
+                2968
+              ],
+              [
+                4,
+                2633,
+                2633
+              ],
+              [
+                5,
+                2548,
+                2548
+              ],
+              [
+                6,
+                2155,
+                2155
+              ],
+              [
+                7,
+                2057,
+                2057
+              ],
+              [
+                8,
+                1781,
+                1781
+              ],
+              [
+                9,
+                1738,
+                1738
+              ],
+              [
+                10,
+                1512,
+                1512
+              ],
+              [
+                11,
+                1472,
+                1471
+              ],
+              [
+                12,
+                1209,
+                1209
+              ],
+              [
+                13,
+                1166,
+                1166
+              ],
+              [
+                14,
+                1009,
+                1009
+              ],
+              [
+                15,
+                978,
+                978
+              ],
+              [
+                16,
+                832,
+                832
+              ],
+              [
+                17,
+                797,
+                797
+              ],
+              [
+                18,
+                657,
+                657
+              ],
+              [
+                19,
+                620,
+                620
+              ],
+              [
+                20,
+                514,
+                514
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 21,
+            "truncated": false
+          },
+          "queryHash": "83472982f18f45cdd69a7b7133168df33a50e7e530e28a8de55cdb7b3c3865c8",
+          "contentHash": "61066131371ce4563d59ece41827801acf6d1bad293fb48214263b00dc25df36",
+          "observedAt": "2026-10-11T09:21:26.439Z"
+        }
+      ]
+    }
+  ],
+  "attempts": [
+    {
+      "taskId": "task_fc5d100f-7fec-4d70-8aa1-2bfd230e6822",
+      "items": [
+        {
+          "attemptId": "attempt_590bbe67-f768-413c-8602-5995170a804c",
+          "taskId": "task_fc5d100f-7fec-4d70-8aa1-2bfd230e6822",
+          "kind": "exploration",
+          "revisionId": "revision_c8916109-1dd3-4e7e-b0fd-0a830d09c1a5",
+          "invocationId": "369db239-16d1-4e8a-b29a-912c60db01ca",
+          "queryHash": "200500837688c31fd110724cd1cc22a82d99790d27c17089e6c89bb89c99ef6d",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:07:09.353Z",
+          "updatedAt": "2026-10-11T09:07:11.245Z"
+        },
+        {
+          "attemptId": "attempt_a1f0ebba-6217-43ae-9507-e3f46ff504d6",
+          "taskId": "task_fc5d100f-7fec-4d70-8aa1-2bfd230e6822",
+          "kind": "exploration",
+          "revisionId": "revision_c8916109-1dd3-4e7e-b0fd-0a830d09c1a5",
+          "invocationId": "8983ae81-3fc1-44b1-8f9d-ba20d6dbb3ca",
+          "queryHash": "d606df648f9899798a227918f1eb02207644218c78fbe87efa45576cb511baee",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:07:16.297Z",
+          "updatedAt": "2026-10-11T09:07:16.824Z"
+        },
+        {
+          "attemptId": "attempt_d5c52239-77d8-4727-8738-2db552ba496e",
+          "taskId": "task_fc5d100f-7fec-4d70-8aa1-2bfd230e6822",
+          "kind": "exploration",
+          "revisionId": "revision_c8916109-1dd3-4e7e-b0fd-0a830d09c1a5",
+          "invocationId": "e207cbdf-00a1-4177-84cf-d65b943ee037",
+          "queryHash": "caf9cd4e1fb05c8f23953d7d01e8fcd830659b31c0c416ed832ec05f4ad5e5a2",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:07:21.577Z",
+          "updatedAt": "2026-10-11T09:07:22.372Z"
+        },
+        {
+          "attemptId": "attempt_3017ad49-7b9c-4f68-be36-5339e74403f4",
+          "taskId": "task_fc5d100f-7fec-4d70-8aa1-2bfd230e6822",
+          "kind": "exploration",
+          "revisionId": "revision_c8916109-1dd3-4e7e-b0fd-0a830d09c1a5",
+          "invocationId": "393d16d0-b6e9-4cd2-885d-9943b3dca3b5",
+          "queryHash": "504c55c93c8607ef0fca57901ca943699789520532e6588d46ecb83e78737280",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:07:43.849Z",
+          "updatedAt": "2026-10-11T09:07:46.204Z"
+        },
+        {
+          "attemptId": "attempt_0f1dfd6a-4a4c-41e9-8c65-0d84e576ba43",
+          "taskId": "task_fc5d100f-7fec-4d70-8aa1-2bfd230e6822",
+          "kind": "exploration",
+          "revisionId": "revision_c8916109-1dd3-4e7e-b0fd-0a830d09c1a5",
+          "invocationId": "583f3d35-e9bb-4a1f-b813-1b6a9645f181",
+          "queryHash": "67950a48edde521b6bb184948fdeae843f906d44c0747fef26b51a3124a95f7e",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:07:49.908Z",
+          "updatedAt": "2026-10-11T09:07:52.344Z"
+        },
+        {
+          "attemptId": "attempt_4df6ff97-d2a9-4795-ace0-8d34f43c282f",
+          "taskId": "task_fc5d100f-7fec-4d70-8aa1-2bfd230e6822",
+          "kind": "exploration",
+          "revisionId": "revision_c8916109-1dd3-4e7e-b0fd-0a830d09c1a5",
+          "invocationId": "442759ad-3695-4004-a4e0-7861c605f510",
+          "queryHash": "4b2e44f9083d431b5f06c2ab27599e92f9fa98125077e6b5d56d1534696a190e",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:07:55.416Z",
+          "updatedAt": "2026-10-11T09:07:58.209Z"
+        },
+        {
+          "attemptId": "attempt_aaa9d631-4e8a-4247-83d2-5298a44c5e3e",
+          "taskId": "task_fc5d100f-7fec-4d70-8aa1-2bfd230e6822",
+          "kind": "revision",
+          "revisionId": "revision_c8916109-1dd3-4e7e-b0fd-0a830d09c1a5",
+          "invocationId": "fb4aa50c-0453-47a6-a3da-e6412ce45bef",
+          "state": "succeeded",
+          "sqlExecuted": false,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:08:02.111Z",
+          "updatedAt": "2026-10-11T09:08:02.107Z"
+        },
+        {
+          "attemptId": "attempt_9db6eead-2d72-4a4c-88dc-2a16a145c2fd",
+          "taskId": "task_fc5d100f-7fec-4d70-8aa1-2bfd230e6822",
+          "kind": "result",
+          "revisionId": "revision_98ebfe58-cf14-4768-96ce-fa5190c51735",
+          "invocationId": "f9d35ad4-448a-481b-b9f4-7d7633171f05",
+          "queryHash": "3c94e96b2dbcfb495d87e6bbec61f6144d20346d4a0b74c0e67ae0ae56c2acdd",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:08:04.991Z",
+          "updatedAt": "2026-10-11T09:08:06.815Z"
+        },
+        {
+          "attemptId": "attempt_d3ea2a9b-3d1a-4835-a4c3-d023e654bbe2",
+          "taskId": "task_fc5d100f-7fec-4d70-8aa1-2bfd230e6822",
+          "kind": "exploration",
+          "revisionId": "revision_98ebfe58-cf14-4768-96ce-fa5190c51735",
+          "invocationId": "a5182c49-94ba-482e-9e28-58908b4e5f7a",
+          "queryHash": "39c63ba2e168be563cac19b2fbcea4c70c307ab7f53146ecf61a769164e1b146",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:08:32.960Z",
+          "updatedAt": "2026-10-11T09:08:35.312Z"
+        },
+        {
+          "attemptId": "attempt_5addb2c3-9285-40a8-b391-3143cf034794",
+          "taskId": "task_fc5d100f-7fec-4d70-8aa1-2bfd230e6822",
+          "kind": "exploration",
+          "revisionId": "revision_98ebfe58-cf14-4768-96ce-fa5190c51735",
+          "invocationId": "03ddd7ff-65f4-4442-a8c4-667f0f979b89",
+          "queryHash": "8dc2e558e9d7f6d50c7f5f6622d2d4e3dda6123ae385cea1c073ca44321a9312",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:09:09.097Z",
+          "updatedAt": "2026-10-11T09:09:16.433Z"
+        },
+        {
+          "attemptId": "attempt_f72446ff-e75e-4e35-a8ce-8f1c17a746cd",
+          "taskId": "task_fc5d100f-7fec-4d70-8aa1-2bfd230e6822",
+          "kind": "exploration",
+          "revisionId": "revision_98ebfe58-cf14-4768-96ce-fa5190c51735",
+          "invocationId": "ab3951d1-fd8b-4236-9d56-2e91e7893c0c",
+          "queryHash": "248e6bf557f9be7325d801c01c4d34e7a15df0d899e8ed845e28c6bfa60dbed8",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:10:05.170Z",
+          "updatedAt": "2026-10-11T09:10:07.462Z"
+        },
+        {
+          "attemptId": "attempt_b67a6a2d-f3b8-4313-91c3-e204a3011127",
+          "taskId": "task_fc5d100f-7fec-4d70-8aa1-2bfd230e6822",
+          "kind": "exploration",
+          "revisionId": "revision_98ebfe58-cf14-4768-96ce-fa5190c51735",
+          "invocationId": "9de6be67-1f9f-4bfc-abad-790627478f49",
+          "queryHash": "3b4843b59d907f68cb2ab56413e853bc6268d46f3b4b1662a5fc02d337f26cd5",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:11:05.527Z",
+          "updatedAt": "2026-10-11T09:11:09.343Z"
+        },
+        {
+          "attemptId": "attempt_5864d905-cb16-4dd3-aaeb-64190b2bfd42",
+          "taskId": "task_fc5d100f-7fec-4d70-8aa1-2bfd230e6822",
+          "kind": "exploration",
+          "revisionId": "revision_98ebfe58-cf14-4768-96ce-fa5190c51735",
+          "invocationId": "dcef6248-fe1e-4246-b8e6-a94e86e249bc",
+          "queryHash": "c498a756ad407cd52cda0eed6613dd3f19c7dd95c65aa71936d5345cb15ebf51",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:11:13.592Z",
+          "updatedAt": "2026-10-11T09:11:16.837Z"
+        },
+        {
+          "attemptId": "attempt_3f4e2ffc-cec8-4fda-a164-81540b67f4ca",
+          "taskId": "task_fc5d100f-7fec-4d70-8aa1-2bfd230e6822",
+          "kind": "exploration",
+          "revisionId": "revision_98ebfe58-cf14-4768-96ce-fa5190c51735",
+          "invocationId": "009cce85-2603-484a-afd0-630f0740b565",
+          "queryHash": "83472982f18f45cdd69a7b7133168df33a50e7e530e28a8de55cdb7b3c3865c8",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:21:25.022Z",
+          "updatedAt": "2026-10-11T09:21:26.441Z"
+        }
+      ]
+    }
+  ],
+  "candidates": [
+    {
+      "candidateId": "candidate_67e79810-0fdb-451e-a674-a5ab20ebb165",
+      "taskId": "task_fc5d100f-7fec-4d70-8aa1-2bfd230e6822",
+      "revisionId": "revision_98ebfe58-cf14-4768-96ce-fa5190c51735",
+      "resultRef": "result_0544c762-aa0b-4f41-ad19-bc8000083d74",
+      "resultSchema": [
+        "period",
+        "retention_rate"
+      ],
+      "rowCount": 20,
+      "contentHash": "ee2fbd5806de9b29a40312bdc94b0915c4c77ad44bf680ebf7185e6f02f9c9ad",
+      "sql": "WITH RECURSIVE periods(period) AS (SELECT 0 UNION ALL SELECT period+1 FROM periods WHERE period<19), first AS (SELECT id_bioguide,min(term_start) first_start FROM legislators_terms GROUP BY id_bioguide), cohort AS (SELECT * FROM first WHERE first_start BETWEEN '1917-01-01' AND '1999-12-31'), observations AS (SELECT c.*,p.period,printf('%04d-12-31',cast(substr(c.first_start,1,4) as int)+p.period) snapshot FROM cohort c CROSS JOIN periods p), counts AS (SELECT period,count(*) cohort_size,sum(EXISTS(SELECT 1 FROM legislators_terms t WHERE t.id_bioguide=o.id_bioguide AND o.snapshot BETWEEN t.term_start AND t.term_end)) retained FROM observations o GROUP BY period) SELECT period,retained*1.0/cohort_size AS retention_rate FROM counts ORDER BY period",
+      "queryHash": "3c94e96b2dbcfb495d87e6bbec61f6144d20346d4a0b74c0e67ae0ae56c2acdd",
+      "findings": [],
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "attemptId": "attempt_9db6eead-2d72-4a4c-88dc-2a16a145c2fd",
+      "createdByInvocationId": "f9d35ad4-448a-481b-b9f4-7d7633171f05",
+      "createdAt": "2026-10-11T09:08:06.815Z",
+      "status": "ready",
+      "publishable": true
+    }
+  ],
+  "receipts": [
+    {
+      "receiptId": "publication_d7460269-071f-411c-868d-a8cce5aa6134",
+      "taskId": "task_fc5d100f-7fec-4d70-8aa1-2bfd230e6822",
+      "principalId": "independent-analyst",
+      "sessionId": "local169",
+      "candidateId": "candidate_67e79810-0fdb-451e-a674-a5ab20ebb165",
+      "revisionId": "revision_98ebfe58-cf14-4768-96ce-fa5190c51735",
+      "resultRef": "result_0544c762-aa0b-4f41-ad19-bc8000083d74",
+      "format": "csv",
+      "publicRef": "/api/runtime/publications/publication_d7460269-071f-411c-868d-a8cce5aa6134?session_id=local169",
+      "contentHash": "ee2fbd5806de9b29a40312bdc94b0915c4c77ad44bf680ebf7185e6f02f9c9ad",
+      "presentationContentHash": "fa95949255a9c7144c7649a3b5f1b6438092498923054ee7ae4c47170ebd1471",
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "disclosure": {
+        "required": true,
+        "unverifiedFields": [
+          {
+            "path": "population.eligibility",
+            "kind": "assumed"
+          },
+          {
+            "path": "population.conditions",
+            "kind": "assumed"
+          },
+          {
+            "path": "population.time",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.formula",
+            "kind": "assumed"
+          },
+          {
+            "path": "grouping",
+            "kind": "assumed"
+          },
+          {
+            "path": "output",
+            "kind": "assumed"
+          }
+        ],
+        "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.conditions, population.time, measure.formula, grouping, output。"
+      },
+      "physicalProfile": {
+        "version": 1,
+        "rowCount": 20,
+        "truncated": false,
+        "columns": [
+          {
+            "name": "period",
+            "kind": "integer",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 20,
+            "min": "0",
+            "max": "19"
+          },
+          {
+            "name": "retention_rate",
+            "kind": "decimal",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 20,
+            "min": "0.2092734936771634",
+            "max": "0.9970245474832631"
+          }
+        ]
+      },
+      "policyVersion": "answering-publication-v1",
+      "createdByInvocationId": "f9d35ad4-448a-481b-b9f4-7d7633171f05",
+      "requestId": "f9d35ad4-448a-481b-b9f4-7d7633171f05",
+      "createdAt": "2026-10-11T09:08:06.834Z"
+    }
+  ]
+}

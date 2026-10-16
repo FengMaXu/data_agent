@@ -1,0 +1,9 @@
+{
+  "fields": {
+    "population.entity": {
+      "value": "电影，Movie.MID",
+      "basis": "request",
+      "quote": "percentage of films"
+    }
+  }
+}

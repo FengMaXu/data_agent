@@ -1,0 +1,11 @@
+{
+  "cases": 35,
+  "statuses": {
+    "ambiguous_after_recompute": 15,
+    "gold_conflict": 17,
+    "confirmed_semantic_error": 1,
+    "confirmed_implementation_error": 2
+  },
+  "report": "D:/data_agent/evaluations/spider2/adr0007/fieldtree-unresolved35-recompute.md",
+  "partial": false
+}

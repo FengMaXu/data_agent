@@ -1,0 +1,52 @@
+{
+  "instance_id": "local040",
+  "status": "confirmed_semantic_error",
+  "summary": "原SQL仅去收入重复，未去树自身完整重复；只去6838个重复树行即按borough精确恢复全部Gold均值。独立冻结解也遗漏重复处置，已承认",
+  "fork_node": "population.entity",
+  "error_layer": "entity identity / duplicate source-row weighting",
+  "visibility": "entity/countGrain explicit but one-row-one-tree premise false; tree dedup absent",
+  "independent_score": 0,
+  "evidence": [
+    {
+      "source": "blind.json",
+      "pointer": "/question",
+      "quote": "highest number of trees"
+    },
+    {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local040/attempts/attempt-001/trace.json",
+      "pointer": "/toolCalls/33/result/details/fields/0/value",
+      "quote": "individual tree record (one row of the trees table, identified by tree_id/idx); borough is the grouping attribute",
+      "original_projection_source": "original-spec-review.json"
+    },
+    {
+      "source": "post-distinct-tree-original.json-response.json",
+      "pointer": "/details/preview/rows",
+      "quote": "79366.23974692848"
+    }
+  ],
+  "limitations": [
+    "same tree_id identical rows as same entity is identity inference, no reviewed duplicate policy",
+    "Independent raw-join publication was erroneous too",
+    "Gold internal SQL unavailable; multiple dedup algorithms equivalent on data"
+  ],
+  "parent_field_review": {
+    "instance_id": "local040",
+    "relevant_node": "population.entity",
+    "node_is_confirmed_original_error": true,
+    "explanation": "明确记录一行一树，但实际6838完整重复行；实体权重前提错",
+    "error_layer": "口径错（物理行等同树实体的假定）",
+    "visibility": "假定错",
+    "qualification": "局部错误；去重能解释原全部数值差异，但独立首稿也错",
+    "original_node_declared": true,
+    "original_node_status": "request",
+    "original_node_value": {
+      "name": "individual tree record (one row of the trees table, identified by tree_id/idx); borough is the grouping attribute"
+    },
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local040/attempts/attempt-001/trace.json",
+      "pointer": "/toolCalls/33/result/details/fields/0/value",
+      "quote": "{\"name\": \"individual tree record (one row of the trees table, identified by tree_id/idx); borough is the grouping attribute\"}"
+    },
+    "primary_status": "confirmed_semantic_error"
+  }
+}

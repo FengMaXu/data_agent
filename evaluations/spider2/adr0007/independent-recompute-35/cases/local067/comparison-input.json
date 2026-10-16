@@ -1,0 +1,73 @@
+{
+  "revealedAt": "2026-10-11T09:19:52.671Z",
+  "registry": {
+    "instance_id": "local067",
+    "attempt_id": "attempt-001",
+    "score": 0,
+    "score_source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-attempt-001.json",
+    "replayed_csv_score": 0,
+    "group": "wrong",
+    "status": "completed",
+    "publication_status": "published",
+    "duration_ms": 475379,
+    "tool_calls": 32,
+    "error": null,
+    "result_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local067/attempts/attempt-001/result.json",
+    "trace_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local067/attempts/attempt-001/trace.json",
+    "result_exists": true,
+    "trace_exists": true,
+    "sql_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local067/attempts/attempt-001/submissions/sql/local067.sql",
+    "csv_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local067.csv",
+    "sql_exists": true,
+    "csv_exists": true,
+    "gold_sql_file": null,
+    "process": {
+      "turns": 18,
+      "toolCalls": 32,
+      "explorationQueries": 11,
+      "resultQueries": 1,
+      "fanoutProbes": 0,
+      "revisions": 4
+    },
+    "fanout_metrics": {
+      "reportCount": 1,
+      "targetCount": 0,
+      "findingCount": 0,
+      "unknownCount": 0,
+      "byStatus": {
+        "clear": 0,
+        "finding": 0,
+        "not_applicable": 0,
+        "unknown": 1
+      },
+      "enabled": true
+    },
+    "spec_feedback_metrics": {
+      "reportCount": 5,
+      "byStatus": {
+        "pending": 0,
+        "completed": 4,
+        "unavailable": 1,
+        "disabled": 0
+      },
+      "deterministicIssueCount": 0,
+      "concernCount": 0,
+      "enabled": true
+    }
+  },
+  "originalSql": "WITH cprof AS (\n  SELECT s.cust_id AS cust_id,\n         SUM(s.amount_sold - c.unit_cost * s.quantity_sold) AS profit\n  FROM sales s\n  JOIN customers cu ON cu.cust_id = s.cust_id\n  JOIN costs c ON c.prod_id = s.prod_id\n              AND c.time_id = s.time_id\n              AND c.promo_id = s.promo_id\n              AND c.channel_id = s.channel_id\n  WHERE cu.country_id = 52770\n    AND s.time_id >= '2021-12-01' AND s.time_id <= '2021-12-31'\n  GROUP BY s.cust_id\n),\nt AS (\n  SELECT profit, NTILE(10) OVER (ORDER BY profit) AS tier FROM cprof\n)\nSELECT tier,\n       ROUND(MAX(profit), 2) AS highest_profit,\n       ROUND(MIN(profit), 2) AS lowest_profit\nFROM t\nGROUP BY tier\nORDER BY tier\n",
+  "originalCsv": "tier,highest_profit,lowest_profit\n1,-10.03,-27.94\n2,0.6,-10.03\n3,18.33,0.88\n4,42.48,19.6\n5,82.47,54.5\n6,119.29,88.27\n7,194.11,125.15\n8,307.47,209.22\n9,588.36,318.61\n10,785.15,698.35\n",
+  "goldSql": null,
+  "goldCsv": [
+    {
+      "path": "C:\\data-agent-eval\\Spider2\\spider2-lite\\evaluation_suite\\gold\\exec_result\\local067.csv",
+      "content": "bucket,max_profit,min_profit\r\n1,785.1500000000001,588.3599999999999\r\n2,544.0500000000003,304.34000000000015\r\n3,264.8799999999999,184.96999999999997\r\n4,165.9600000000001,114.49000000000001\r\n5,106.80999999999995,68.15000000000002\r\n6,66.34,39.47\r\n7,39.44999999999993,17.80000000000001\r\n8,10.840000000000007,0.5999999999999996\r\n9,0.3100000000000005,-10.030000000000086\r\n10,-10.030000000000086,-27.93999999999994\r\n"
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local067",
+    "condition_cols": [],
+    "ignore_order": true,
+    "toks": "93"
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "sql": "WITH RECURSIVE e(root,node,q,path) AS (SELECT packaging_id,contains_id,qty,','||packaging_id||','||contains_id||',' FROM packaging_relations UNION ALL SELECT e.root,r.contains_id,e.q*r.qty,e.path||r.contains_id||',' FROM e JOIN packaging_relations r ON e.node=r.packaging_id WHERE instr(e.path,','||r.contains_id||',')=0) SELECT AVG(q*1.0) path_mean,COUNT(*) path_count,SUM(q) sum_all FROM e WHERE NOT EXISTS(SELECT 1 FROM packaging_relations r WHERE r.packaging_id=e.node)",
+  "limit": 1000
+}

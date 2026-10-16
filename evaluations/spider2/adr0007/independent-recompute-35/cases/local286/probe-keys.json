@@ -1,0 +1,3 @@
+{
+  "sql": "SELECT 'item_rows' metric,COUNT(*) n FROM order_items UNION ALL SELECT 'item_keys',COUNT(*) FROM (SELECT DISTINCT order_id,order_item_id FROM order_items) UNION ALL SELECT 'seller_rows',COUNT(*) FROM sellers UNION ALL SELECT 'seller_ids',COUNT(DISTINCT seller_id) FROM sellers UNION ALL SELECT 'qualified_sellers',COUNT(*) FROM (SELECT seller_id FROM order_items GROUP BY seller_id HAVING COUNT(*)>100) UNION ALL SELECT 'qualified_distinct_products',COUNT(*) FROM (SELECT seller_id FROM order_items GROUP BY seller_id HAVING COUNT(DISTINCT product_id)>100) UNION ALL SELECT 'review_rows',COUNT(*) FROM order_reviews UNION ALL SELECT 'review_id_order_keys',COUNT(*) FROM (SELECT DISTINCT review_id,order_id FROM order_reviews)"
+}

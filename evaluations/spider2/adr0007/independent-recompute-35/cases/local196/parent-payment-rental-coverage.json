@@ -1,0 +1,4 @@
+{
+  "sql": "WITH rc AS (SELECT customer_id,COUNT(*) rentals FROM rental GROUP BY customer_id),pc AS(SELECT customer_id,COUNT(*) payments,COUNT(DISTINCT rental_id) paid_rentals,SUM(amount) spend FROM payment GROUP BY customer_id) SELECT COUNT(*) customers,SUM(payments!=rentals) unequal_event_counts,SUM(paid_rentals!=rentals) unequal_paid_rentals,MIN(rentals),MAX(rentals) FROM rc JOIN pc USING(customer_id)",
+  "limit": 100
+}

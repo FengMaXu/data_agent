@@ -1,0 +1,4 @@
+{
+  "sql": "WITH monthly AS (\n  SELECT p.customer_id AS customer_id,\n         strftime('%Y-%m', p.payment_date) AS ym,\n         SUM(p.amount) AS val\n  FROM payment p\n  GROUP BY p.customer_id, strftime('%Y-%m', p.payment_date)\n), pairs AS (\n  SELECT m1.customer_id AS customer_id,\n         m1.val - m2.val AS chg\n  FROM monthly m1\n  JOIN monthly m2\n    ON m2.customer_id = m1.customer_id\n   AND m2.ym = strftime('%Y-%m', date(m1.ym || '-01', '-1 month'))\n), avg_chg AS (\n  SELECT customer_id, AVG(chg) AS avg_monthly_change\n  FROM pairs GROUP BY customer_id\n)\nSELECT c.first_name || ' ' || c.last_name AS full_name\nFROM avg_chg a\nJOIN customer c ON c.customer_id = a.customer_id\nORDER BY a.avg_monthly_change DESC\nLIMIT 1;\n",
+  "limit": 100
+}

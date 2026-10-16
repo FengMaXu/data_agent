@@ -1,0 +1,267 @@
+{
+  "frozenAt": "2026-10-11T09:12:47.630Z",
+  "instance_id": "local264",
+  "independent": true,
+  "taskId": "task_daf9d35c-f124-47af-bca2-dc6d9a9e52ea",
+  "revisionId": "revision_f4d02b8a-5b38-4058-9485-8633de483cb6",
+  "publication": {
+    "receiptId": "publication_396d7a4a-0c4f-4576-804f-bb5e78e60af2",
+    "taskId": "task_daf9d35c-f124-47af-bca2-dc6d9a9e52ea",
+    "principalId": "independent-analyst",
+    "sessionId": "local264",
+    "candidateId": "candidate_d9d10d3d-2723-4a48-a619-52ad4ed1c887",
+    "revisionId": "revision_f4d02b8a-5b38-4058-9485-8633de483cb6",
+    "resultRef": "result_bfb89c26-4433-4c48-af10-5b40737d774c",
+    "format": "csv",
+    "publicRef": "/api/runtime/publications/publication_396d7a4a-0c4f-4576-804f-bb5e78e60af2?session_id=local264",
+    "contentHash": "7a066b5dee1bebd18c8bc7b572edc689b80b5cb99ca83ed4af71e0311b26f292",
+    "presentationContentHash": "a98257706c1ffca80b0e07fdcdc5e0a96c7ade6cd66d7a8212e1cb98f61c5d02",
+    "coverage": [
+      {
+        "checkId": "result_completeness",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_shape",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_identity",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "join_fanout",
+        "outcome": "not_applicable"
+      },
+      {
+        "checkId": "spec_feedback",
+        "ruleVersion": "spec-feedback-v2",
+        "outcome": "not_applicable",
+        "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+      }
+    ],
+    "fanout": {
+      "ruleVersion": "answering-fanout-v1",
+      "status": "not_applicable",
+      "snapshotScope": "unbound",
+      "targets": []
+    },
+    "disclosure": {
+      "required": true,
+      "unverifiedFields": [
+        {
+          "path": "population.eligibility",
+          "kind": "assumed"
+        },
+        {
+          "path": "population.time",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.formula",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.countGrain",
+          "kind": "assumed"
+        },
+        {
+          "path": "grouping",
+          "kind": "assumed"
+        },
+        {
+          "path": "selection",
+          "kind": "assumed"
+        },
+        {
+          "path": "selection.ties",
+          "kind": "assumed"
+        },
+        {
+          "path": "output",
+          "kind": "assumed"
+        }
+      ],
+      "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.time, measure.formula, measure.countGrain, grouping, selection, selection.ties, output。"
+    },
+    "physicalProfile": {
+      "version": 1,
+      "rowCount": 1,
+      "truncated": false,
+      "columns": [
+        {
+          "name": "L1_model",
+          "kind": "text",
+          "nullCount": 0,
+          "distinctCount": 1
+        },
+        {
+          "name": "occurrences",
+          "kind": "integer",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 1,
+          "min": "213",
+          "max": "213"
+        }
+      ]
+    },
+    "policyVersion": "answering-publication-v1",
+    "createdByInvocationId": "0ea7b7f7-3e93-4aba-a863-0422a8d5534b",
+    "requestId": "0ea7b7f7-3e93-4aba-a863-0422a8d5534b",
+    "createdAt": "2026-10-11T09:12:43.642Z"
+  },
+  "currentRevision": {
+    "taskId": "task_daf9d35c-f124-47af-bca2-dc6d9a9e52ea",
+    "revisionId": "revision_f4d02b8a-5b38-4058-9485-8633de483cb6",
+    "parentRevisionId": "revision_b5aaff92-283d-4610-97a7-67965e12801d",
+    "requestId": "16ea86a8-18ae-44fb-84c9-af3e415161ca",
+    "createdAt": "2026-10-11T09:12:38.605Z",
+    "fields": {
+      "population.entity": {
+        "state": "specified",
+        "value": {
+          "name": "L1_model category occurrence at name/version/step"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_72bec7d6-d093-40e7-aeeb-f0a64f6b633c"
+          ]
+        }
+      },
+      "population.eligibility": {
+        "state": "specified",
+        "value": "Only steps with non-null L1_model and both Stack and non-Stack test scores; all observed303 steps eligible",
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "population.conditions": {
+        "state": "specified",
+        "value": [
+          "Compare categories at each name/version/step; do not filter by score outcome because not requested"
+        ],
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_de14b30c-af52-47fc-9a3d-9b8d6cfc7b1d"
+          ]
+        }
+      },
+      "population.time": {
+        "state": "specified",
+        "value": {
+          "expression": "All steps and versions, no date restriction"
+        },
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "measure.formula": {
+        "state": "specified",
+        "value": {
+          "op": "count",
+          "per": "L1_model",
+          "of": "distinct name/version/step/L1_model occurrence"
+        },
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "measure.countGrain": {
+        "state": "specified",
+        "value": "One L1 category per distinct name/version/step, repeated steps count separately",
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "grouping": {
+        "state": "specified",
+        "value": [
+          "L1_model"
+        ],
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "selection": {
+        "state": "specified",
+        "value": {
+          "n": 1,
+          "orderBy": "occurrences DESC"
+        },
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "selection.ties": {
+        "state": "specified",
+        "value": "include_ties",
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "output": {
+        "state": "specified",
+        "value": {
+          "rowMode": "full",
+          "columns": [
+            "L1_model",
+            "occurrences"
+          ]
+        },
+        "basis": {
+          "kind": "assumed"
+        }
+      }
+    },
+    "state": {
+      "state": "ready",
+      "revisionId": "revision_f4d02b8a-5b38-4058-9485-8633de483cb6",
+      "ready": "ready_ae5a90de-d915-4e2c-89de-fba4a7953ddc"
+    },
+    "specFeedback": {
+      "taskId": "task_daf9d35c-f124-47af-bca2-dc6d9a9e52ea",
+      "revisionId": "revision_f4d02b8a-5b38-4058-9485-8633de483cb6",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_72bec7d6-d093-40e7-aeeb-f0a64f6b633c",
+        "evidence_2d66f6c1-d528-4808-98dd-427b17a06b5f",
+        "evidence_8d1fe481-309a-4213-abea-1198c1f30351",
+        "evidence_95691544-e1a7-4cae-99b6-8f018e2c128e",
+        "evidence_5463d28c-0aa2-4b19-a3ca-7da182008ebb",
+        "evidence_de14b30c-af52-47fc-9a3d-9b8d6cfc7b1d"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    }
+  },
+  "analystNote": {
+    "algorithm": "Count all comparable name/version/step L1 associations",
+    "answer": [
+      "regression",
+      213
+    ],
+    "assumptions": [
+      "No Stack>=baseline restriction because question lacks that requirement"
+    ],
+    "checks": [
+      "regression213 and tree90, all303 comparable",
+      "noninferior alternate regression114/tree25",
+      "distinct version alternate71/30"
+    ]
+  },
+  "settings": {
+    "qualification": "required",
+    "fieldProbes": true,
+    "externalAdvisor": "not_configured",
+    "specFeedback": "not_configured",
+    "fanout": "disabled_for_offline_audit",
+    "populationDecisions": "allow_disclosed_headless_audit",
+    "databaseReadOnly": true
+  }
+}

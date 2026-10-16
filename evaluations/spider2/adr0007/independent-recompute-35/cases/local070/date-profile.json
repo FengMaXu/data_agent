@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT insert_date, count(*) n, count(distinct city_name) cities,group_concat(city_name) names FROM cities WHERE country_code_2='cn' AND insert_date >= '2021-07-01' AND insert_date < '2021-08-01' GROUP BY insert_date ORDER BY insert_date",
+  "limit": 1000
+}

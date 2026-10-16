@@ -1,0 +1,168 @@
+{
+  "query": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[RESULT_CANDIDATE] candidateId=candidate_3a07c56b-b469-4089-8007-86f6fca44c72 revisionId=revision_8ed6e019-ac6c-45d2-90e1-064bd53cf184\npercentage_customers\n54.2"
+      }
+    ],
+    "details": {
+      "kind": "result",
+      "artifact": {
+        "kind": "candidate",
+        "candidateId": "candidate_3a07c56b-b469-4089-8007-86f6fca44c72",
+        "revisionId": "revision_8ed6e019-ac6c-45d2-90e1-064bd53cf184",
+        "resultRef": "result_49e6bed9-58fd-4cd5-90ba-8b23e53dce90"
+      },
+      "preview": {
+        "columns": [
+          "percentage_customers"
+        ],
+        "rows": [
+          [
+            54.2
+          ]
+        ],
+        "columnTypes": [
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      },
+      "findings": [],
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "attemptId": "attempt_297d49e0-9c78-4285-b936-62bb721aca66"
+    }
+  },
+  "publication": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[PUBLISHED] csv [download](/api/runtime/publications/publication_5db803ae-af19-4441-a24f-64d7dc6810ac?session_id=local297) receiptId=publication_5db803ae-af19-4441-a24f-64d7dc6810ac\n[DISCLOSURE] 以下字段为假定，未被合格证据证实：population.time, measure.countGrain, measure.denominator, measure.window, selection.ties, output。"
+      }
+    ],
+    "details": {
+      "receiptId": "publication_5db803ae-af19-4441-a24f-64d7dc6810ac",
+      "taskId": "task_b8daac91-db04-4c32-b06b-5aef7b67dd07",
+      "principalId": "independent-analyst",
+      "sessionId": "local297",
+      "candidateId": "candidate_3a07c56b-b469-4089-8007-86f6fca44c72",
+      "revisionId": "revision_8ed6e019-ac6c-45d2-90e1-064bd53cf184",
+      "resultRef": "result_49e6bed9-58fd-4cd5-90ba-8b23e53dce90",
+      "format": "csv",
+      "publicRef": "/api/runtime/publications/publication_5db803ae-af19-4441-a24f-64d7dc6810ac?session_id=local297",
+      "contentHash": "e11d082d723f04ad62b8328d28b03cdfaba2fa372a9d7e1b80a08ea251d4a6a3",
+      "presentationContentHash": "0f99a37e65133804652607e8a6b9c36a45330218c7a953cc862baa0120395e84",
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "disclosure": {
+        "required": true,
+        "unverifiedFields": [
+          {
+            "path": "population.time",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.countGrain",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.denominator",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.window",
+            "kind": "assumed"
+          },
+          {
+            "path": "selection.ties",
+            "kind": "assumed"
+          },
+          {
+            "path": "output",
+            "kind": "assumed"
+          }
+        ],
+        "summary": "以下字段为假定，未被合格证据证实：population.time, measure.countGrain, measure.denominator, measure.window, selection.ties, output。"
+      },
+      "physicalProfile": {
+        "version": 1,
+        "rowCount": 1,
+        "truncated": false,
+        "columns": [
+          {
+            "name": "percentage_customers",
+            "kind": "decimal",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 1,
+            "min": "54.2",
+            "max": "54.2"
+          }
+        ]
+      },
+      "policyVersion": "answering-publication-v1",
+      "createdByInvocationId": "750f0443-ca0a-4a48-9cee-e260cdfa9e2b",
+      "requestId": "750f0443-ca0a-4a48-9cee-e260cdfa9e2b",
+      "createdAt": "2026-10-11T09:42:54.176Z"
+    }
+  },
+  "authorizedCsv": "D:\\data_agent\\evaluations\\spider2\\adr0007\\independent-recompute-35\\cases\\local297\\publications\\publication_5db803ae-af19-4441-a24f-64d7dc6810ac\\result.csv"
+}

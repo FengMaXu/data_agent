@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT s.StyleName,SUM(p.PreferenceSeq=1) p1,SUM(p.PreferenceSeq=2) p2,SUM(p.PreferenceSeq=3) p3 FROM Musical_Styles s JOIN Musical_Preferences p USING(StyleID) GROUP BY s.StyleID,s.StyleName",
+  "limit": 1000
+}

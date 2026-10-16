@@ -1,0 +1,149 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_35efe166-3fc5-449a-b0f4-2a2c1f025459\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nindustry | total | average_new_companies\nFintech | 173 | 57.666666666666664\nInternet software & services | 152 | 50.666666666666664\nE-commerce & direct-to-consumer | 75 | 25\nArtificial intelligence | 53 | 17.666666666666668\nHealth | 52 | 17.333333333333332\nOther | 41 | 13.666666666666666\nCybersecurity | 38 | 12.666666666666666\n\"Supply chain, logistics, & delivery\" | 35 | 11.666666666666666\nData management & analytics | 31 | 10.333333333333334\nMobile & telecommunications | 18 | 6"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_35efe166-3fc5-449a-b0f4-2a2c1f025459",
+      "preview": {
+        "columns": [
+          "industry",
+          "total",
+          "average_new_companies"
+        ],
+        "rows": [
+          [
+            "Fintech",
+            173,
+            57.666666666666664
+          ],
+          [
+            "Internet software & services",
+            152,
+            50.666666666666664
+          ],
+          [
+            "E-commerce & direct-to-consumer",
+            75,
+            25
+          ],
+          [
+            "Artificial intelligence",
+            53,
+            17.666666666666668
+          ],
+          [
+            "Health",
+            52,
+            17.333333333333332
+          ],
+          [
+            "Other",
+            41,
+            13.666666666666666
+          ],
+          [
+            "Cybersecurity",
+            38,
+            12.666666666666666
+          ],
+          [
+            "\"Supply chain, logistics, & delivery\"",
+            35,
+            11.666666666666666
+          ],
+          [
+            "Data management & analytics",
+            31,
+            10.333333333333334
+          ],
+          [
+            "Mobile & telecommunications",
+            18,
+            6
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "REAL"
+        ],
+        "rowCount": 10,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "industry",
+        "total",
+        "average_new_companies"
+      ],
+      "rows": [
+        [
+          "Fintech",
+          173,
+          57.666666666666664
+        ],
+        [
+          "Internet software & services",
+          152,
+          50.666666666666664
+        ],
+        [
+          "E-commerce & direct-to-consumer",
+          75,
+          25
+        ],
+        [
+          "Artificial intelligence",
+          53,
+          17.666666666666668
+        ],
+        [
+          "Health",
+          52,
+          17.333333333333332
+        ],
+        [
+          "Other",
+          41,
+          13.666666666666666
+        ],
+        [
+          "Cybersecurity",
+          38,
+          12.666666666666666
+        ],
+        [
+          "\"Supply chain, logistics, & delivery\"",
+          35,
+          11.666666666666666
+        ],
+        [
+          "Data management & analytics",
+          31,
+          10.333333333333334
+        ],
+        [
+          "Mobile & telecommunications",
+          18,
+          6
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "REAL"
+      ],
+      "rowCount": 10,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_b29b49dc-ecab-4c44-ac6d-cd4b54117e09"
+  }
+}

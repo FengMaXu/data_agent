@@ -1,0 +1,99 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_b0daf128-51f7-4a77-a265-74a5952e4fa2\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\ntxn_type | n | earliest | latest | first_day_amount\ndeposit | 2671 | 2020-01-01 | 2020-04-26 | 55426\npurchase | 1617 | 2020-01-01 | 2020-04-28 | 36109\nwithdrawal | 1580 | 2020-01-02 | 2020-04-28 | 21951"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_b0daf128-51f7-4a77-a265-74a5952e4fa2",
+      "preview": {
+        "columns": [
+          "txn_type",
+          "n",
+          "earliest",
+          "latest",
+          "first_day_amount"
+        ],
+        "rows": [
+          [
+            "deposit",
+            2671,
+            "2020-01-01",
+            "2020-04-26",
+            55426
+          ],
+          [
+            "purchase",
+            1617,
+            "2020-01-01",
+            "2020-04-28",
+            36109
+          ],
+          [
+            "withdrawal",
+            1580,
+            "2020-01-02",
+            "2020-04-28",
+            21951
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "TEXT",
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 3,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "txn_type",
+        "n",
+        "earliest",
+        "latest",
+        "first_day_amount"
+      ],
+      "rows": [
+        [
+          "deposit",
+          2671,
+          "2020-01-01",
+          "2020-04-26",
+          55426
+        ],
+        [
+          "purchase",
+          1617,
+          "2020-01-01",
+          "2020-04-28",
+          36109
+        ],
+        [
+          "withdrawal",
+          1580,
+          "2020-01-02",
+          "2020-04-28",
+          21951
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "TEXT",
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 3,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_dbf543fc-46ef-4fe0-97f3-06f9a44346fa"
+  }
+}

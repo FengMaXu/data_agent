@@ -1,0 +1,4 @@
+{
+  "sql": "WITH fem AS (\n  SELECT id_bioguide FROM legislators WHERE gender = 'F'\n),\nfirst_state AS (\n  SELECT lt.id_bioguide, lt.state,\n         ROW_NUMBER() OVER (PARTITION BY lt.id_bioguide\n                            ORDER BY lt.term_start ASC, lt.term_number ASC) AS rn\n  FROM legislators_terms lt\n  JOIN fem f ON f.id_bioguide = lt.id_bioguide\n),\nqualified AS (\n  SELECT DISTINCT lt.id_bioguide\n  FROM legislators_terms lt\n  JOIN fem f ON f.id_bioguide = lt.id_bioguide\n  WHERE lt.term_end >= date(lt.term_start, 'start of year', '+1 year', '-1 day')\n)\nSELECT fs.state AS state,\n       COUNT(DISTINCT fs.id_bioguide) AS n_female_legislators\nFROM first_state fs\nJOIN qualified q ON q.id_bioguide = fs.id_bioguide\nWHERE fs.rn = 1\nGROUP BY fs.state\nORDER BY n_female_legislators DESC, fs.state ASC\nLIMIT 1;\n",
+  "limit": 1000
+}

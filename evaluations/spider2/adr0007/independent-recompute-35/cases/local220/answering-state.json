@@ -1,0 +1,1018 @@
+{
+  "version": 2,
+  "tasks": [
+    {
+      "taskId": "task_ff43cc45-2c05-4d02-b724-7bbb4f46b6a4",
+      "sessionId": "local220",
+      "principalId": "independent-analyst",
+      "requestMessageId": "original-task",
+      "requestId": "c8077aa0-0b03-43ec-88be-45682c832fb9",
+      "currentRevisionId": "revision_0cce2149-1f34-4d48-9d8a-b53c85693249",
+      "lifecycle": "published",
+      "budget": {
+        "policy": {
+          "version": "answering-dual-loop-v1",
+          "maxRevisions": 40,
+          "maxExplorationAttempts": 120,
+          "maxResultAttempts": 20,
+          "maxElapsedMs": 14400000,
+          "maxObservedRows": 2000000
+        },
+        "startedAt": "2026-10-11T08:58:42.288Z",
+        "revisionCount": 2,
+        "explorationAttempts": 5,
+        "resultAttempts": 1,
+        "observedRows": 36
+      },
+      "createdAt": "2026-10-11T08:58:42.288Z",
+      "updatedAt": "2026-10-11T09:06:55.644Z",
+      "latestCandidateId": "candidate_946f0238-7493-404c-be91-fae4ea1fa6b3",
+      "publicationId": "publication_aae5e760-da2d-4ff7-8242-505ff3f6ce6e"
+    }
+  ],
+  "revisions": [
+    {
+      "taskId": "task_ff43cc45-2c05-4d02-b724-7bbb4f46b6a4",
+      "revisionId": "revision_3c8ed68e-f542-49bc-8dd7-d2ee20a7a752",
+      "requestId": "c8077aa0-0b03-43ec-88be-45682c832fb9",
+      "createdAt": "2026-10-11T08:58:42.288Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "individual football player identified by player_api_id"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_371e12dd-f67d-4b1c-84d2-fe8ef0c7a1df"
+            ]
+          }
+        }
+      },
+      "state": {
+        "state": "draft",
+        "revisionId": "revision_3c8ed68e-f542-49bc-8dd7-d2ee20a7a752"
+      },
+      "specFeedback": {
+        "taskId": "task_ff43cc45-2c05-4d02-b724-7bbb4f46b6a4",
+        "revisionId": "revision_3c8ed68e-f542-49bc-8dd7-d2ee20a7a752",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_371e12dd-f67d-4b1c-84d2-fe8ef0c7a1df"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    },
+    {
+      "taskId": "task_ff43cc45-2c05-4d02-b724-7bbb4f46b6a4",
+      "revisionId": "revision_c2a2806e-05ee-4660-9ed6-df119c027838",
+      "parentRevisionId": "revision_3c8ed68e-f542-49bc-8dd7-d2ee20a7a752",
+      "requestId": "5562e51f-0988-4bae-b852-4d1823971b38",
+      "createdAt": "2026-10-11T09:02:10.485Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "individual football player identified by player_api_id"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_371e12dd-f67d-4b1c-84d2-fe8ef0c7a1df"
+            ]
+          }
+        },
+        "population.eligibility": {
+          "state": "specified",
+          "value": "Non-null recorded lineup identities only",
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_987d1091-6de3-49a4-8cfd-03e25805fd2e"
+            ]
+          }
+        },
+        "population.conditions": {
+          "state": "specified",
+          "value": [
+            "Exclude draws; assign win/loss to player lineup side"
+          ],
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_459170d5-6ed3-4624-bec0-613bd63caa33"
+            ]
+          }
+        },
+        "population.time": {
+          "state": "specified",
+          "value": {
+            "expression": "All available matches; no date restriction requested"
+          },
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "measure.formula": {
+          "state": "specified",
+          "value": {
+            "op": "count_distinct",
+            "per": "player_api_id and outcome",
+            "of": "match_id"
+          },
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "measure.countGrain": {
+          "state": "specified",
+          "value": "One distinct player identity per match per outcome",
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "grouping": {
+          "state": "specified",
+          "value": [
+            "player_api_id",
+            "outcome"
+          ],
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "selection.ties": {
+          "state": "specified",
+          "value": "include_ties",
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "output": {
+          "state": "specified",
+          "value": {
+            "rowMode": "full",
+            "columns": [
+              "outcome",
+              "player_name",
+              "matches"
+            ]
+          },
+          "basis": {
+            "kind": "assumed"
+          }
+        }
+      },
+      "state": {
+        "state": "draft",
+        "revisionId": "revision_c2a2806e-05ee-4660-9ed6-df119c027838"
+      },
+      "specFeedback": {
+        "taskId": "task_ff43cc45-2c05-4d02-b724-7bbb4f46b6a4",
+        "revisionId": "revision_c2a2806e-05ee-4660-9ed6-df119c027838",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_371e12dd-f67d-4b1c-84d2-fe8ef0c7a1df",
+          "evidence_65b98308-576b-4f9c-98f8-7ec8e0f9ad88",
+          "evidence_c3aa4f66-ae66-4b8a-8e1f-e841ff97ff73",
+          "evidence_1f53f635-8037-4822-8b02-3320aac492d3",
+          "evidence_987d1091-6de3-49a4-8cfd-03e25805fd2e",
+          "evidence_459170d5-6ed3-4624-bec0-613bd63caa33"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    },
+    {
+      "taskId": "task_ff43cc45-2c05-4d02-b724-7bbb4f46b6a4",
+      "revisionId": "revision_0cce2149-1f34-4d48-9d8a-b53c85693249",
+      "parentRevisionId": "revision_c2a2806e-05ee-4660-9ed6-df119c027838",
+      "requestId": "ac6d1498-5e8f-45da-9869-967d7c59f0ac",
+      "createdAt": "2026-10-11T09:03:32.903Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "individual football player identified by player_api_id"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_371e12dd-f67d-4b1c-84d2-fe8ef0c7a1df"
+            ]
+          }
+        },
+        "population.eligibility": {
+          "state": "specified",
+          "value": "Non-null recorded lineup identities only",
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_987d1091-6de3-49a4-8cfd-03e25805fd2e"
+            ]
+          }
+        },
+        "population.conditions": {
+          "state": "specified",
+          "value": [
+            "Exclude draws; assign win/loss to player lineup side"
+          ],
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_459170d5-6ed3-4624-bec0-613bd63caa33"
+            ]
+          }
+        },
+        "population.time": {
+          "state": "specified",
+          "value": {
+            "expression": "All available matches; no date restriction requested"
+          },
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "measure.formula": {
+          "state": "specified",
+          "value": {
+            "op": "count_distinct",
+            "per": "player_api_id and outcome",
+            "of": "match_id"
+          },
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "measure.countGrain": {
+          "state": "specified",
+          "value": "One distinct player identity per match per outcome",
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "grouping": {
+          "state": "specified",
+          "value": [
+            "player_api_id",
+            "outcome"
+          ],
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "selection.ties": {
+          "state": "specified",
+          "value": "include_ties",
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "output": {
+          "state": "specified",
+          "value": {
+            "rowMode": "full",
+            "columns": [
+              "outcome",
+              "player_name",
+              "matches"
+            ]
+          },
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "selection": {
+          "state": "specified",
+          "value": {
+            "n": 1,
+            "orderBy": "matches DESC within each outcome"
+          },
+          "basis": {
+            "kind": "assumed"
+          }
+        }
+      },
+      "state": {
+        "state": "ready",
+        "revisionId": "revision_0cce2149-1f34-4d48-9d8a-b53c85693249",
+        "ready": "ready_eb90b466-cbb8-405c-9d87-21e041bfc841"
+      },
+      "specFeedback": {
+        "taskId": "task_ff43cc45-2c05-4d02-b724-7bbb4f46b6a4",
+        "revisionId": "revision_0cce2149-1f34-4d48-9d8a-b53c85693249",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_371e12dd-f67d-4b1c-84d2-fe8ef0c7a1df",
+          "evidence_65b98308-576b-4f9c-98f8-7ec8e0f9ad88",
+          "evidence_c3aa4f66-ae66-4b8a-8e1f-e841ff97ff73",
+          "evidence_1f53f635-8037-4822-8b02-3320aac492d3",
+          "evidence_987d1091-6de3-49a4-8cfd-03e25805fd2e",
+          "evidence_459170d5-6ed3-4624-bec0-613bd63caa33"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "taskId": "task_ff43cc45-2c05-4d02-b724-7bbb4f46b6a4",
+      "items": [
+        {
+          "id": "request_be3e2f2bd519d830902bceb0",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "observedAt": "2026-10-11T08:58:42.288Z"
+        },
+        {
+          "id": "evidence_371e12dd-f67d-4b1c-84d2-fe8ef0c7a1df",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "8358202f6610cb0191f909dc5fa09e56110c068f350125191579d72fedbc3004",
+          "quote": "Which player",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "8358202f6610cb0191f909dc5fa09e56110c068f350125191579d72fedbc3004"
+          },
+          "observedAt": "2026-10-11T08:58:42.288Z"
+        },
+        {
+          "id": "evidence_65b98308-576b-4f9c-98f8-7ec8e0f9ad88",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "27ab074e-1bb8-4809-aa7f-dace4b7203ac",
+          "preview": {
+            "columns": [
+              "outcome",
+              "player_name",
+              "matches"
+            ],
+            "rows": [
+              [
+                "Loss",
+                "Gorka Iraizoz Moreno",
+                107
+              ],
+              [
+                "Win",
+                "Cristiano Ronaldo",
+                199
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 2,
+            "truncated": false
+          },
+          "queryHash": "a0dd8a8e130b93768418263dfdd83fa209e2018f3fad5b01def662321bc722fb",
+          "contentHash": "caad02ebbe773d290510a88ecd68123bd0caa02512159b95fa9eafcc6ec8d408",
+          "observedAt": "2026-10-11T09:00:18.071Z"
+        },
+        {
+          "id": "evidence_c3aa4f66-ae66-4b8a-8e1f-e841ff97ff73",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "d056f535-c58c-4a36-8b8c-e3686c148fbb",
+          "preview": {
+            "columns": [
+              "outcome",
+              "slots",
+              "player_matches",
+              "unmatched"
+            ],
+            "rows": [
+              [
+                "Loss",
+                201618,
+                201618,
+                0
+              ],
+              [
+                "Win",
+                203082,
+                203081,
+                0
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 2,
+            "truncated": false
+          },
+          "queryHash": "ed0abeda2cfcaebdc7bd8a8aaf6f56187473413d0e5dd6ba8b0ef567915dc7bc",
+          "contentHash": "557e9999a8c0f4d86146104f5e487921f9dda7f5f3ed1d2ed25adb8a1e50cb19",
+          "observedAt": "2026-10-11T09:00:45.169Z"
+        },
+        {
+          "id": "evidence_1f53f635-8037-4822-8b02-3320aac492d3",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "042158e3-5345-4e0c-bd4c-01d3d946866a",
+          "preview": {
+            "columns": [
+              "player_name",
+              "outcome",
+              "side",
+              "matches"
+            ],
+            "rows": [
+              [
+                "Cristiano Ronaldo",
+                "Loss",
+                "away",
+                19
+              ],
+              [
+                "Cristiano Ronaldo",
+                "Loss",
+                "home",
+                8
+              ],
+              [
+                "Cristiano Ronaldo",
+                "Win",
+                "away",
+                83
+              ],
+              [
+                "Cristiano Ronaldo",
+                "Win",
+                "home",
+                116
+              ],
+              [
+                "Gorka Iraizoz Moreno",
+                "Loss",
+                "away",
+                68
+              ],
+              [
+                "Gorka Iraizoz Moreno",
+                "Loss",
+                "home",
+                39
+              ],
+              [
+                "Gorka Iraizoz Moreno",
+                "Win",
+                "away",
+                41
+              ],
+              [
+                "Gorka Iraizoz Moreno",
+                "Win",
+                "home",
+                73
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "TEXT",
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 8,
+            "truncated": false
+          },
+          "queryHash": "dfcd5890359b2a64911de918811ffc7935d1aa6b07e4d60d195c29daa1e31b18",
+          "contentHash": "7a1931dd544cae3247d63a0e44aba2f7d19fc72eefbdc4d8e60d4171abb10cef",
+          "observedAt": "2026-10-11T09:01:49.974Z"
+        },
+        {
+          "id": "evidence_987d1091-6de3-49a4-8cfd-03e25805fd2e",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "8358202f6610cb0191f909dc5fa09e56110c068f350125191579d72fedbc3004",
+          "quote": "considering only matches where they actually played (excluding null entries)",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "8358202f6610cb0191f909dc5fa09e56110c068f350125191579d72fedbc3004"
+          },
+          "observedAt": "2026-10-11T09:02:10.485Z"
+        },
+        {
+          "id": "evidence_459170d5-6ed3-4624-bec0-613bd63caa33",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "8358202f6610cb0191f909dc5fa09e56110c068f350125191579d72fedbc3004",
+          "quote": "where their team won or lost (excluding draws)",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "8358202f6610cb0191f909dc5fa09e56110c068f350125191579d72fedbc3004"
+          },
+          "observedAt": "2026-10-11T09:02:10.485Z"
+        },
+        {
+          "id": "evidence_c4d57910-7a51-4938-8b79-9399ff4b032e",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "8cb290ac-9d51-4a72-9e05-aa3274c5f445",
+          "preview": {
+            "columns": [
+              "player_api_id",
+              "player_name",
+              "outcome",
+              "matches"
+            ],
+            "rows": [
+              [
+                30893,
+                "Cristiano Ronaldo",
+                "Loss",
+                27
+              ],
+              [
+                30893,
+                "Cristiano Ronaldo",
+                "Win",
+                199
+              ],
+              [
+                33764,
+                "Gorka Iraizoz Moreno",
+                "Loss",
+                107
+              ],
+              [
+                33764,
+                "Gorka Iraizoz Moreno",
+                "Win",
+                114
+              ],
+              [
+                78908,
+                "Marcelo",
+                "Loss",
+                64
+              ],
+              [
+                280350,
+                "Marcelo",
+                "Loss",
+                39
+              ],
+              [
+                28467,
+                "Marcelo",
+                "Loss",
+                27
+              ],
+              [
+                28467,
+                "Marcelo",
+                "Win",
+                165
+              ],
+              [
+                78908,
+                "Marcelo",
+                "Win",
+                103
+              ],
+              [
+                280350,
+                "Marcelo",
+                "Win",
+                33
+              ],
+              [
+                24590,
+                "Ricardo",
+                "Loss",
+                55
+              ],
+              [
+                96836,
+                "Ricardo",
+                "Loss",
+                41
+              ],
+              [
+                24591,
+                "Ricardo",
+                "Loss",
+                38
+              ],
+              [
+                30855,
+                "Ricardo",
+                "Loss",
+                15
+              ],
+              [
+                301804,
+                "Ricardo",
+                "Loss",
+                14
+              ],
+              [
+                24590,
+                "Ricardo",
+                "Win",
+                60
+              ],
+              [
+                24591,
+                "Ricardo",
+                "Win",
+                26
+              ],
+              [
+                96836,
+                "Ricardo",
+                "Win",
+                25
+              ],
+              [
+                30855,
+                "Ricardo",
+                "Win",
+                6
+              ],
+              [
+                301804,
+                "Ricardo",
+                "Win",
+                4
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "TEXT",
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 20,
+            "truncated": false
+          },
+          "queryHash": "2f066ef0c6b79ed4125429e18bb286d5bf919280a5185ccdcd70f3a9deececa2",
+          "contentHash": "a4abcec772e8720988f8adf3eb837301a056b2cac5d0bbd278736cb4b2febda4",
+          "observedAt": "2026-10-11T09:05:54.111Z"
+        },
+        {
+          "id": "evidence_28de57b5-6d41-4b84-95fc-cb530297da64",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "5a60aaff-1978-4c55-afb9-a07869c34dc3",
+          "preview": {
+            "columns": [
+              "player_name",
+              "outcome",
+              "matches",
+              "identities"
+            ],
+            "rows": [
+              [
+                "Marcelo",
+                "Win",
+                301,
+                3
+              ],
+              [
+                "Ricardo",
+                "Loss",
+                163,
+                5
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "TEXT",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 2,
+            "truncated": false
+          },
+          "queryHash": "9b6fe7d5f45f658863d8d077f90fd266150e146b66b0b2c9008666bc123e06ae",
+          "contentHash": "8857e25c31896cbd1c160c8e4ad5af9008f3da5842de75bde9c2ae4bb8064c70",
+          "observedAt": "2026-10-11T09:06:55.643Z"
+        }
+      ]
+    }
+  ],
+  "attempts": [
+    {
+      "taskId": "task_ff43cc45-2c05-4d02-b724-7bbb4f46b6a4",
+      "items": [
+        {
+          "attemptId": "attempt_d7fcd41f-9fe1-44cb-9fd3-4b82009135bc",
+          "taskId": "task_ff43cc45-2c05-4d02-b724-7bbb4f46b6a4",
+          "kind": "exploration",
+          "revisionId": "revision_3c8ed68e-f542-49bc-8dd7-d2ee20a7a752",
+          "invocationId": "27ab074e-1bb8-4809-aa7f-dace4b7203ac",
+          "queryHash": "a0dd8a8e130b93768418263dfdd83fa209e2018f3fad5b01def662321bc722fb",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T08:58:44.432Z",
+          "updatedAt": "2026-10-11T09:00:18.072Z"
+        },
+        {
+          "attemptId": "attempt_c82c779a-66b2-4cc8-b668-ef258840de09",
+          "taskId": "task_ff43cc45-2c05-4d02-b724-7bbb4f46b6a4",
+          "kind": "exploration",
+          "revisionId": "revision_3c8ed68e-f542-49bc-8dd7-d2ee20a7a752",
+          "invocationId": "d056f535-c58c-4a36-8b8c-e3686c148fbb",
+          "queryHash": "ed0abeda2cfcaebdc7bd8a8aaf6f56187473413d0e5dd6ba8b0ef567915dc7bc",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:00:27.723Z",
+          "updatedAt": "2026-10-11T09:00:45.170Z"
+        },
+        {
+          "attemptId": "attempt_ac7fdd62-f0ab-423d-bc9d-ca9e6f1fc944",
+          "taskId": "task_ff43cc45-2c05-4d02-b724-7bbb4f46b6a4",
+          "kind": "exploration",
+          "revisionId": "revision_3c8ed68e-f542-49bc-8dd7-d2ee20a7a752",
+          "invocationId": "042158e3-5345-4e0c-bd4c-01d3d946866a",
+          "queryHash": "dfcd5890359b2a64911de918811ffc7935d1aa6b07e4d60d195c29daa1e31b18",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:00:47.297Z",
+          "updatedAt": "2026-10-11T09:01:49.975Z"
+        },
+        {
+          "attemptId": "attempt_5c90e922-c21f-413a-8f77-081d330672c0",
+          "taskId": "task_ff43cc45-2c05-4d02-b724-7bbb4f46b6a4",
+          "kind": "revision",
+          "revisionId": "revision_3c8ed68e-f542-49bc-8dd7-d2ee20a7a752",
+          "invocationId": "5562e51f-0988-4bae-b852-4d1823971b38",
+          "state": "succeeded",
+          "sqlExecuted": false,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:02:10.492Z",
+          "updatedAt": "2026-10-11T09:02:10.485Z"
+        },
+        {
+          "attemptId": "attempt_f512c9ed-b857-41e0-9958-0db27c12b404",
+          "taskId": "task_ff43cc45-2c05-4d02-b724-7bbb4f46b6a4",
+          "kind": "result",
+          "revisionId": "revision_c2a2806e-05ee-4660-9ed6-df119c027838",
+          "invocationId": "0440272b-8e24-4fea-b406-13d14c1bd02b",
+          "queryHash": "61a8088ccb3aa67a22b05cfb0b70f8782267b526de2a03be033e4f5b83d65033",
+          "state": "blocked",
+          "sqlExecuted": false,
+          "outcome": "not_started",
+          "obstacleKind": "business_judgment_required",
+          "createdAt": "2026-10-11T09:02:14.949Z",
+          "updatedAt": "2026-10-11T09:02:14.949Z"
+        },
+        {
+          "attemptId": "attempt_001362b6-eac2-4e7d-9925-45657c987d2b",
+          "taskId": "task_ff43cc45-2c05-4d02-b724-7bbb4f46b6a4",
+          "kind": "result",
+          "revisionId": "revision_c2a2806e-05ee-4660-9ed6-df119c027838",
+          "invocationId": "764fdf06-1166-4fc0-8175-e53fcc6ccd7f",
+          "queryHash": "61a8088ccb3aa67a22b05cfb0b70f8782267b526de2a03be033e4f5b83d65033",
+          "state": "blocked",
+          "sqlExecuted": false,
+          "outcome": "not_started",
+          "obstacleKind": "business_judgment_required",
+          "createdAt": "2026-10-11T09:02:58.634Z",
+          "updatedAt": "2026-10-11T09:02:58.634Z"
+        },
+        {
+          "attemptId": "attempt_75dd424d-7a99-4393-ad3a-18efa750a59d",
+          "taskId": "task_ff43cc45-2c05-4d02-b724-7bbb4f46b6a4",
+          "kind": "revision",
+          "revisionId": "revision_c2a2806e-05ee-4660-9ed6-df119c027838",
+          "invocationId": "ac6d1498-5e8f-45da-9869-967d7c59f0ac",
+          "state": "succeeded",
+          "sqlExecuted": false,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:03:32.911Z",
+          "updatedAt": "2026-10-11T09:03:32.903Z"
+        },
+        {
+          "attemptId": "attempt_33c55414-24ab-4dc7-9976-030bc9caab5e",
+          "taskId": "task_ff43cc45-2c05-4d02-b724-7bbb4f46b6a4",
+          "kind": "result",
+          "revisionId": "revision_0cce2149-1f34-4d48-9d8a-b53c85693249",
+          "invocationId": "9413bca6-6b27-4d20-b0f0-86b0c691a216",
+          "queryHash": "61a8088ccb3aa67a22b05cfb0b70f8782267b526de2a03be033e4f5b83d65033",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:03:36.403Z",
+          "updatedAt": "2026-10-11T09:04:30.774Z"
+        },
+        {
+          "attemptId": "attempt_38c347d0-f1ec-405f-98fa-bbf8fa3da517",
+          "taskId": "task_ff43cc45-2c05-4d02-b724-7bbb4f46b6a4",
+          "kind": "exploration",
+          "revisionId": "revision_0cce2149-1f34-4d48-9d8a-b53c85693249",
+          "invocationId": "8cb290ac-9d51-4a72-9e05-aa3274c5f445",
+          "queryHash": "2f066ef0c6b79ed4125429e18bb286d5bf919280a5185ccdcd70f3a9deececa2",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:05:14.090Z",
+          "updatedAt": "2026-10-11T09:05:54.113Z"
+        },
+        {
+          "attemptId": "attempt_dad37a53-63cf-4188-88f7-0f1d247a2087",
+          "taskId": "task_ff43cc45-2c05-4d02-b724-7bbb4f46b6a4",
+          "kind": "exploration",
+          "revisionId": "revision_0cce2149-1f34-4d48-9d8a-b53c85693249",
+          "invocationId": "5a60aaff-1978-4c55-afb9-a07869c34dc3",
+          "queryHash": "9b6fe7d5f45f658863d8d077f90fd266150e146b66b0b2c9008666bc123e06ae",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:05:58.243Z",
+          "updatedAt": "2026-10-11T09:06:55.644Z"
+        }
+      ]
+    }
+  ],
+  "candidates": [
+    {
+      "candidateId": "candidate_946f0238-7493-404c-be91-fae4ea1fa6b3",
+      "taskId": "task_ff43cc45-2c05-4d02-b724-7bbb4f46b6a4",
+      "revisionId": "revision_0cce2149-1f34-4d48-9d8a-b53c85693249",
+      "resultRef": "result_882b7890-2882-43ac-a279-f8cae9ef2212",
+      "resultSchema": [
+        "outcome",
+        "player_name",
+        "matches"
+      ],
+      "rowCount": 2,
+      "contentHash": "ae447aa0506dbbc44bb39b462093d33493b4187c76c2c5882d41f9ecab13dd55",
+      "sql": "WITH appearances AS (SELECT id match_id, 'home' side, home_player_1 player_id, CASE WHEN home_team_goal > away_team_goal THEN 'Win' ELSE 'Loss' END outcome FROM Match WHERE home_team_goal<>away_team_goal AND home_player_1 IS NOT NULL UNION ALL SELECT id match_id, 'home' side, home_player_2 player_id, CASE WHEN home_team_goal > away_team_goal THEN 'Win' ELSE 'Loss' END outcome FROM Match WHERE home_team_goal<>away_team_goal AND home_player_2 IS NOT NULL UNION ALL SELECT id match_id, 'home' side, home_player_3 player_id, CASE WHEN home_team_goal > away_team_goal THEN 'Win' ELSE 'Loss' END outcome FROM Match WHERE home_team_goal<>away_team_goal AND home_player_3 IS NOT NULL UNION ALL SELECT id match_id, 'home' side, home_player_4 player_id, CASE WHEN home_team_goal > away_team_goal THEN 'Win' ELSE 'Loss' END outcome FROM Match WHERE home_team_goal<>away_team_goal AND home_player_4 IS NOT NULL UNION ALL SELECT id match_id, 'home' side, home_player_5 player_id, CASE WHEN home_team_goal > away_team_goal THEN 'Win' ELSE 'Loss' END outcome FROM Match WHERE home_team_goal<>away_team_goal AND home_player_5 IS NOT NULL UNION ALL SELECT id match_id, 'home' side, home_player_6 player_id, CASE WHEN home_team_goal > away_team_goal THEN 'Win' ELSE 'Loss' END outcome FROM Match WHERE home_team_goal<>away_team_goal AND home_player_6 IS NOT NULL UNION ALL SELECT id match_id, 'home' side, home_player_7 player_id, CASE WHEN home_team_goal > away_team_goal THEN 'Win' ELSE 'Loss' END outcome FROM Match WHERE home_team_goal<>away_team_goal AND home_player_7 IS NOT NULL UNION ALL SELECT id match_id, 'home' side, home_player_8 player_id, CASE WHEN home_team_goal > away_team_goal THEN 'Win' ELSE 'Loss' END outcome FROM Match WHERE home_team_goal<>away_team_goal AND home_player_8 IS NOT NULL UNION ALL SELECT id match_id, 'home' side, home_player_9 player_id, CASE WHEN home_team_goal > away_team_goal THEN 'Win' ELSE 'Loss' END outcome FROM Match WHERE home_team_goal<>away_team_goal AND home_player_9 IS NOT NULL UNION ALL SELECT id match_id, 'home' side, home_player_10 player_id, CASE WHEN home_team_goal > away_team_goal THEN 'Win' ELSE 'Loss' END outcome FROM Match WHERE home_team_goal<>away_team_goal AND home_player_10 IS NOT NULL UNION ALL SELECT id match_id, 'home' side, home_player_11 player_id, CASE WHEN home_team_goal > away_team_goal THEN 'Win' ELSE 'Loss' END outcome FROM Match WHERE home_team_goal<>away_team_goal AND home_player_11 IS NOT NULL UNION ALL SELECT id match_id, 'away' side, away_player_1 player_id, CASE WHEN away_team_goal > home_team_goal THEN 'Win' ELSE 'Loss' END outcome FROM Match WHERE home_team_goal<>away_team_goal AND away_player_1 IS NOT NULL UNION ALL SELECT id match_id, 'away' side, away_player_2 player_id, CASE WHEN away_team_goal > home_team_goal THEN 'Win' ELSE 'Loss' END outcome FROM Match WHERE home_team_goal<>away_team_goal AND away_player_2 IS NOT NULL UNION ALL SELECT id match_id, 'away' side, away_player_3 player_id, CASE WHEN away_team_goal > home_team_goal THEN 'Win' ELSE 'Loss' END outcome FROM Match WHERE home_team_goal<>away_team_goal AND away_player_3 IS NOT NULL UNION ALL SELECT id match_id, 'away' side, away_player_4 player_id, CASE WHEN away_team_goal > home_team_goal THEN 'Win' ELSE 'Loss' END outcome FROM Match WHERE home_team_goal<>away_team_goal AND away_player_4 IS NOT NULL UNION ALL SELECT id match_id, 'away' side, away_player_5 player_id, CASE WHEN away_team_goal > home_team_goal THEN 'Win' ELSE 'Loss' END outcome FROM Match WHERE home_team_goal<>away_team_goal AND away_player_5 IS NOT NULL UNION ALL SELECT id match_id, 'away' side, away_player_6 player_id, CASE WHEN away_team_goal > home_team_goal THEN 'Win' ELSE 'Loss' END outcome FROM Match WHERE home_team_goal<>away_team_goal AND away_player_6 IS NOT NULL UNION ALL SELECT id match_id, 'away' side, away_player_7 player_id, CASE WHEN away_team_goal > home_team_goal THEN 'Win' ELSE 'Loss' END outcome FROM Match WHERE home_team_goal<>away_team_goal AND away_player_7 IS NOT NULL UNION ALL SELECT id match_id, 'away' side, away_player_8 player_id, CASE WHEN away_team_goal > home_team_goal THEN 'Win' ELSE 'Loss' END outcome FROM Match WHERE home_team_goal<>away_team_goal AND away_player_8 IS NOT NULL UNION ALL SELECT id match_id, 'away' side, away_player_9 player_id, CASE WHEN away_team_goal > home_team_goal THEN 'Win' ELSE 'Loss' END outcome FROM Match WHERE home_team_goal<>away_team_goal AND away_player_9 IS NOT NULL UNION ALL SELECT id match_id, 'away' side, away_player_10 player_id, CASE WHEN away_team_goal > home_team_goal THEN 'Win' ELSE 'Loss' END outcome FROM Match WHERE home_team_goal<>away_team_goal AND away_player_10 IS NOT NULL UNION ALL SELECT id match_id, 'away' side, away_player_11 player_id, CASE WHEN away_team_goal > home_team_goal THEN 'Win' ELSE 'Loss' END outcome FROM Match WHERE home_team_goal<>away_team_goal AND away_player_11 IS NOT NULL), unique_appearances AS (SELECT DISTINCT match_id,player_id,outcome FROM appearances), counts AS (SELECT player_id,outcome,COUNT(*) matches FROM unique_appearances GROUP BY player_id,outcome) SELECT c.outcome,p.player_name,c.matches FROM counts c JOIN Player p ON p.player_api_id=c.player_id WHERE c.matches=(SELECT MAX(x.matches) FROM counts x WHERE x.outcome=c.outcome) ORDER BY c.outcome,p.player_name",
+      "queryHash": "61a8088ccb3aa67a22b05cfb0b70f8782267b526de2a03be033e4f5b83d65033",
+      "findings": [],
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "attemptId": "attempt_33c55414-24ab-4dc7-9976-030bc9caab5e",
+      "createdByInvocationId": "9413bca6-6b27-4d20-b0f0-86b0c691a216",
+      "createdAt": "2026-10-11T09:04:30.774Z",
+      "status": "ready",
+      "publishable": true
+    }
+  ],
+  "receipts": [
+    {
+      "receiptId": "publication_aae5e760-da2d-4ff7-8242-505ff3f6ce6e",
+      "taskId": "task_ff43cc45-2c05-4d02-b724-7bbb4f46b6a4",
+      "principalId": "independent-analyst",
+      "sessionId": "local220",
+      "candidateId": "candidate_946f0238-7493-404c-be91-fae4ea1fa6b3",
+      "revisionId": "revision_0cce2149-1f34-4d48-9d8a-b53c85693249",
+      "resultRef": "result_882b7890-2882-43ac-a279-f8cae9ef2212",
+      "format": "csv",
+      "publicRef": "/api/runtime/publications/publication_aae5e760-da2d-4ff7-8242-505ff3f6ce6e?session_id=local220",
+      "contentHash": "ae447aa0506dbbc44bb39b462093d33493b4187c76c2c5882d41f9ecab13dd55",
+      "presentationContentHash": "847527223fa382bdc76c78b1b5f68618a5384475c62b5bf8dd3219513b06d8af",
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "disclosure": {
+        "required": true,
+        "unverifiedFields": [
+          {
+            "path": "population.time",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.formula",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.countGrain",
+            "kind": "assumed"
+          },
+          {
+            "path": "grouping",
+            "kind": "assumed"
+          },
+          {
+            "path": "selection.ties",
+            "kind": "assumed"
+          },
+          {
+            "path": "output",
+            "kind": "assumed"
+          },
+          {
+            "path": "selection",
+            "kind": "assumed"
+          }
+        ],
+        "summary": "以下字段为假定，未被合格证据证实：population.time, measure.formula, measure.countGrain, grouping, selection.ties, output, selection。"
+      },
+      "physicalProfile": {
+        "version": 1,
+        "rowCount": 2,
+        "truncated": false,
+        "columns": [
+          {
+            "name": "outcome",
+            "kind": "text",
+            "nullCount": 0,
+            "distinctCount": 2
+          },
+          {
+            "name": "player_name",
+            "kind": "text",
+            "nullCount": 0,
+            "distinctCount": 2
+          },
+          {
+            "name": "matches",
+            "kind": "integer",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 2,
+            "min": "107",
+            "max": "199"
+          }
+        ]
+      },
+      "policyVersion": "answering-publication-v1",
+      "createdByInvocationId": "9413bca6-6b27-4d20-b0f0-86b0c691a216",
+      "requestId": "9413bca6-6b27-4d20-b0f0-86b0c691a216",
+      "createdAt": "2026-10-11T09:04:30.799Z"
+    }
+  ]
+}

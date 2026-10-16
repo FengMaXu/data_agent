@@ -1,0 +1,13 @@
+{
+  "unique_case_markers": 61,
+  "recomputed_cases_are_subset": 35,
+  "confirmed_gold_local_conflicts": 32,
+  "core_gold_verified_failure_cases": 6,
+  "core_confirmed_business_error_cases": 5,
+  "representation_only_case": "local228",
+  "mixed_error_cases": 3,
+  "verbatim_source_quotes_checked": 714,
+  "quote_errors": [],
+  "case_markers_do_not_modify_official_gold": true,
+  "database_access_for_this_validation": false
+}

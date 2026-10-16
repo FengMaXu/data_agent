@@ -1,0 +1,186 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_d8d0e935-257c-4565-822a-711b7e37139d revisionId=revision_0e6a02e0-dd0f-478e-9b6e-76ffed465301\n- ✓ population.eligibility\n- ✓ population.conditions\n- ✓ population.time\n- ✓ population.missing\n- ✓ measure.formula\n- ✓ measure.countGrain\n- ✓ measure.denominator\n- ✓ measure.window\n- ✓ grouping\n- ✓ selection\n- ✓ output\n状态：\n- 未证实（发布时披露）: population.time, population.missing, measure.countGrain, measure.denominator, measure.window, output\n- 没有待处理的字段，可以执行结果查询\n[SPEC_FEEDBACK] revisionId=revision_0e6a02e0-dd0f-478e-9b6e-76ffed465301 status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"customer-day\"}},\"population.eligibility\":{\"status\":\"request\",\"value\":\"All customers and every calendar day from each customer first transaction date through database last transaction date; inactive days carry balance\"},\"population.conditions\":{\"status\":\"request\",\"value\":[\"deposit adds, other types subtract\",\"Rolling averages only at 30 days; negative averages clipped to 0\",\"Exclude per-customer first calendar month only after calculating cumulative and rolling values\"]},\"population.time\":{\"status\":\"assumed\",\"value\":{\"expression\":\"Each customer first transaction day through global last recorded transaction day inclusive; monthly first transaction calendar month is baseline excluded after windows\"}},\"population.missing\":{\"status\":\"assumed\",\"value\":\"Full calendar spine; no transaction day has zero net and carried closing\"},\"measure.formula\":{\"status\":\"request\",\"value\":{\"op\":\"custom\",\"description\":\"Daily net signed transaction sum, cumulative customer daily closing, arithmetic average over current day plus preceding 29 calendar days only at 30 rows, MAX(avg30,0), maximum per customer calendar month, exclude first transaction month, SUM customer monthly maxima\"}},\"measure.countGrain\":{\"status\":\"assumed\",\"value\":\"One calendar-day closing per customer; monthly max one per customer-month\"},\"measure.denominator\":{\"status\":\"assumed\",\"value\":\"Exactly 30 calendar daily closings per valid rolling average\"},\"measure.window\":{\"status\":\"assumed\",\"value\":\"Cumulative from customer first transaction day and rolling current day plus 29 preceding calendar days inclusive, require count=30\"},\"grouping\":{\"status\":\"request\",\"value\":[\"calendar month\"]},\"selection\":{\"status\":\"not_applicable\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"grouped\",\"columns\":[\"month\",\"total_max_avg30\"]}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_d8d0e935-257c-4565-822a-711b7e37139d",
+    "revisionId": "revision_0e6a02e0-dd0f-478e-9b6e-76ffed465301",
+    "parentRevisionId": "revision_76d48a97-e2a8-43fe-af42-f477c8b7e14c",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "customer-day"
+        },
+        "evidenceIds": [
+          "evidence_869c34cb-8d57-4c5f-a1a5-e90d55341066"
+        ]
+      },
+      {
+        "path": "population.eligibility",
+        "status": "request",
+        "value": "All customers and every calendar day from each customer first transaction date through database last transaction date; inactive days carry balance",
+        "evidenceIds": [
+          "evidence_e587dada-ef4e-4d38-a95d-6168596f56b1"
+        ]
+      },
+      {
+        "path": "population.conditions",
+        "status": "request",
+        "value": [
+          "deposit adds, other types subtract",
+          "Rolling averages only at 30 days; negative averages clipped to 0",
+          "Exclude per-customer first calendar month only after calculating cumulative and rolling values"
+        ],
+        "evidenceIds": [
+          "evidence_45001b6a-c635-4c59-8e13-be02f60e348e"
+        ]
+      },
+      {
+        "path": "population.time",
+        "status": "assumed",
+        "value": {
+          "expression": "Each customer first transaction day through global last recorded transaction day inclusive; monthly first transaction calendar month is baseline excluded after windows"
+        },
+        "rationale": "Common observation cutoff; do not infer customer closure from last transaction; no extrapolation after known data cutoff"
+      },
+      {
+        "path": "population.missing",
+        "status": "assumed",
+        "value": "Full calendar spine; no transaction day has zero net and carried closing"
+      },
+      {
+        "path": "measure.formula",
+        "status": "request",
+        "value": {
+          "op": "custom",
+          "description": "Daily net signed transaction sum, cumulative customer daily closing, arithmetic average over current day plus preceding 29 calendar days only at 30 rows, MAX(avg30,0), maximum per customer calendar month, exclude first transaction month, SUM customer monthly maxima"
+        },
+        "evidenceIds": [
+          "evidence_b0160ed4-2a58-4d3a-8a84-44bbc21fa3cb"
+        ]
+      },
+      {
+        "path": "measure.countGrain",
+        "status": "assumed",
+        "value": "One calendar-day closing per customer; monthly max one per customer-month"
+      },
+      {
+        "path": "measure.denominator",
+        "status": "assumed",
+        "value": "Exactly 30 calendar daily closings per valid rolling average"
+      },
+      {
+        "path": "measure.window",
+        "status": "assumed",
+        "value": "Cumulative from customer first transaction day and rolling current day plus 29 preceding calendar days inclusive, require count=30"
+      },
+      {
+        "path": "grouping",
+        "status": "request",
+        "value": [
+          "calendar month"
+        ],
+        "evidenceIds": [
+          "evidence_ba880b50-beb5-4264-b83b-54f2180031ba"
+        ]
+      },
+      {
+        "path": "selection",
+        "status": "not_applicable"
+      },
+      {
+        "path": "output",
+        "status": "assumed",
+        "value": {
+          "rowMode": "grouped",
+          "columns": [
+            "month",
+            "total_max_avg30"
+          ]
+        }
+      }
+    ],
+    "undeclared": [],
+    "open": [],
+    "unverified": [
+      "population.time",
+      "population.missing",
+      "measure.countGrain",
+      "measure.denominator",
+      "measure.window",
+      "output"
+    ],
+    "specFeedback": {
+      "taskId": "task_d8d0e935-257c-4565-822a-711b7e37139d",
+      "revisionId": "revision_0e6a02e0-dd0f-478e-9b6e-76ffed465301",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_869c34cb-8d57-4c5f-a1a5-e90d55341066",
+        "evidence_a883cfe9-523b-4ccb-99cd-f07483c7f9b2",
+        "evidence_442c3915-00c1-4baf-b093-9c8f904f901b",
+        "evidence_acbe2324-21ec-4ad4-9deb-6a67cd7dd1bf",
+        "evidence_aaf01311-1ec8-45e7-a00c-487d09032e9f",
+        "evidence_e587dada-ef4e-4d38-a95d-6168596f56b1",
+        "evidence_45001b6a-c635-4c59-8e13-be02f60e348e",
+        "evidence_b0160ed4-2a58-4d3a-8a84-44bbc21fa3cb",
+        "evidence_ba880b50-beb5-4264-b83b-54f2180031ba"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "population.eligibility",
+        "status": "applied"
+      },
+      {
+        "path": "population.conditions",
+        "status": "applied"
+      },
+      {
+        "path": "population.time",
+        "status": "applied"
+      },
+      {
+        "path": "population.missing",
+        "status": "applied"
+      },
+      {
+        "path": "measure.formula",
+        "status": "applied"
+      },
+      {
+        "path": "measure.countGrain",
+        "status": "applied"
+      },
+      {
+        "path": "measure.denominator",
+        "status": "applied"
+      },
+      {
+        "path": "measure.window",
+        "status": "applied"
+      },
+      {
+        "path": "grouping",
+        "status": "applied"
+      },
+      {
+        "path": "selection",
+        "status": "applied"
+      },
+      {
+        "path": "output",
+        "status": "applied"
+      }
+    ]
+  }
+}

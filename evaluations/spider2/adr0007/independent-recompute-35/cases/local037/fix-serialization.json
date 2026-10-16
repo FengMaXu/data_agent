@@ -1,0 +1,22 @@
+{
+  "fields": {
+    "population.conditions": {
+      "value": [
+        "No additional status/date restrictions"
+      ],
+      "basis": "assumed",
+      "rationale": "独立题解；题目未明确，作为假定披露"
+    },
+    "selection": {
+      "value": {
+        "n": 3,
+        "orderBy": {
+          "column": "number_of_payments",
+          "direction": "desc"
+        }
+      },
+      "basis": "request",
+      "quote": "top three product categories"
+    }
+  }
+}

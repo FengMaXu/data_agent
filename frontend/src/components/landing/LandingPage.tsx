@@ -27,6 +27,8 @@ const ACCURACY = ['sql', 'spec', 'clarify'];
 const SECURE_POINTS = ['local', 'mcp', 'guard'];
 const FORMATS = ['png', 'chart', 'csv', 'md', 'html'];
 const DESKTOP_STEPS = ['launch', 'connect', 'ask', 'deliver'];
+// Header links, labelled by each section's kicker.
+const NAV_SECTIONS = ['who', 'what', 'where', 'why', 'how'];
 const MOBILE_STEPS = ['scan', 'bind', 'ask', 'receive'];
 
 /** Adds `is-visible` to every `[data-reveal]` element inside the root once it scrolls into view. */
@@ -50,6 +52,36 @@ function useRevealAll(root: React.RefObject<HTMLElement | null>) {
     }, [root]);
 }
 
+/** The last section whose top has scrolled past the upper third of the scroll root, for the header's active link. */
+function useActiveSection(root: React.RefObject<HTMLElement | null>, ids: string[]): string | null {
+    const [active, setActive] = useState<string | null>(null);
+    useEffect(() => {
+        const scroller = root.current;
+        if (!scroller) return;
+        let frame = 0;
+        const update = () => {
+            frame = 0;
+            const line = scroller.getBoundingClientRect().top + scroller.clientHeight / 3;
+            let current: string | null = null;
+            for (const id of ids) {
+                const node = scroller.querySelector(`#${id}`);
+                if (node && node.getBoundingClientRect().top <= line) current = id;
+            }
+            setActive(current);
+        };
+        const onScroll = () => {
+            if (!frame) frame = window.requestAnimationFrame(update);
+        };
+        update();
+        scroller.addEventListener('scroll', onScroll, { passive: true });
+        return () => {
+            scroller.removeEventListener('scroll', onScroll);
+            if (frame) window.cancelAnimationFrame(frame);
+        };
+    }, [root, ids]);
+    return active;
+}
+
 const SectionHead: React.FC<{ id: string }> = ({ id }) => {
     const { t } = useLanguage();
     return (
@@ -66,10 +98,25 @@ const Capabilities: React.FC = () => {
     const [active, setActive] = useState(0);
     const key = CAPABILITIES[active];
     const Visual = CAPABILITY_VISUALS[key];
+    const tabsRef = useRef<HTMLDivElement>(null);
+
+    // Arrow keys move between tabs, per the WAI-ARIA tabs pattern.
+    const onTabKey = (event: React.KeyboardEvent) => {
+        const last = CAPABILITIES.length - 1;
+        const next = event.key === 'ArrowRight' ? (active === last ? 0 : active + 1)
+            : event.key === 'ArrowLeft' ? (active === 0 ? last : active - 1)
+                : event.key === 'Home' ? 0
+                    : event.key === 'End' ? last
+                        : null;
+        if (next === null) return;
+        event.preventDefault();
+        setActive(next);
+        tabsRef.current?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[next]?.focus();
+    };
 
     return (
         <div className="lp-caps">
-            <div className="lp-caps-tabs" role="tablist" aria-label={t('landing.what.title')}>
+            <div className="lp-caps-tabs" role="tablist" aria-label={t('landing.what.title')} ref={tabsRef} onKeyDown={onTabKey}>
                 {CAPABILITIES.map((cap, index) => (
                     <button
                         key={cap}
@@ -78,6 +125,7 @@ const Capabilities: React.FC = () => {
                         id={`lp-cap-tab-${cap}`}
                         aria-selected={index === active}
                         aria-controls="lp-cap-panel"
+                        tabIndex={index === active ? 0 : -1}
                         className={index === active ? 'is-active' : ''}
                         onClick={() => setActive(index)}
                     >
@@ -112,6 +160,7 @@ const LandingPage: React.FC = () => {
     const rootRef = useRef<HTMLElement>(null);
     const shotRef = useRef<HTMLDivElement>(null);
     useRevealAll(rootRef);
+    const activeSection = useActiveSection(rootRef, NAV_SECTIONS);
 
     useEffect(() => {
         const root = rootRef.current;
@@ -143,6 +192,13 @@ const LandingPage: React.FC = () => {
                         <BrandMark />
                         <BrandWordmark />
                     </a>
+                    <nav className="lp-nav-links" aria-label={t('landing.nav.label')}>
+                        {NAV_SECTIONS.map((id) => (
+                            <a key={id} href={`#${id}`} aria-current={activeSection === id ? 'location' : undefined}>
+                                {t(`landing.${id}.kicker`)}
+                            </a>
+                        ))}
+                    </nav>
                     <div className="lp-nav-actions">
                         <button className="lp-btn lp-btn-quiet" type="button" onClick={toggleLanguage}>
                             <Languages size={15} />

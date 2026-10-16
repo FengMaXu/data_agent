@@ -1,0 +1,101 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_a709d005-2a3b-4669-a6bb-38155e91bb02\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nprofit | customers | first_id | last_id\n-10.030000000000086 | 3 | 4875 | 7017\n-12.829999999999927 | 3 | 777 | 12527\n0.8800000000000008 | 2 | 2098 | 2745\n0.5999999999999996 | 2 | 170 | 1323"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_a709d005-2a3b-4669-a6bb-38155e91bb02",
+      "preview": {
+        "columns": [
+          "profit",
+          "customers",
+          "first_id",
+          "last_id"
+        ],
+        "rows": [
+          [
+            -10.030000000000086,
+            3,
+            4875,
+            7017
+          ],
+          [
+            -12.829999999999927,
+            3,
+            777,
+            12527
+          ],
+          [
+            0.8800000000000008,
+            2,
+            2098,
+            2745
+          ],
+          [
+            0.5999999999999996,
+            2,
+            170,
+            1323
+          ]
+        ],
+        "columnTypes": [
+          "REAL",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 4,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "profit",
+        "customers",
+        "first_id",
+        "last_id"
+      ],
+      "rows": [
+        [
+          -10.030000000000086,
+          3,
+          4875,
+          7017
+        ],
+        [
+          -12.829999999999927,
+          3,
+          777,
+          12527
+        ],
+        [
+          0.8800000000000008,
+          2,
+          2098,
+          2745
+        ],
+        [
+          0.5999999999999996,
+          2,
+          170,
+          1323
+        ]
+      ],
+      "columnTypes": [
+        "REAL",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 4,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_b318eddd-2ee1-485a-8453-543f1a430f6a"
+  }
+}

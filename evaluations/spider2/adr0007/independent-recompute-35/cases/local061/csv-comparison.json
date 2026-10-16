@@ -1,0 +1,142 @@
+{
+  "instance_id": "local061",
+  "independent_freeze": "D:/data_agent/evaluations/spider2/adr0007/independent-recompute-35/cases/local061/independent-freeze.json",
+  "independent_official_score": 0,
+  "original_replayed_score": 0,
+  "recorded_original_score": 0,
+  "scorer_limitations": "Column-wise tolerance matching; ignore_order may ignore row associations; passing is not business proof.",
+  "independent": {
+    "path": "D:/data_agent/evaluations/spider2/adr0007/independent-recompute-35/cases/local061/publications/publication_38a25c9b-658e-4809-871f-d12c67586fb2/result.csv",
+    "rows": 12,
+    "columns": [
+      "month",
+      "average_projected_monthly_sales_usd"
+    ],
+    "head": [
+      {
+        "month": 1,
+        "average_projected_monthly_sales_usd": 4054.99
+      },
+      {
+        "month": 2,
+        "average_projected_monthly_sales_usd": 2402.89
+      },
+      {
+        "month": 3,
+        "average_projected_monthly_sales_usd": 2888.48
+      },
+      {
+        "month": 4,
+        "average_projected_monthly_sales_usd": 1474.1
+      },
+      {
+        "month": 5,
+        "average_projected_monthly_sales_usd": 2904.71
+      },
+      {
+        "month": 6,
+        "average_projected_monthly_sales_usd": 1440.35
+      },
+      {
+        "month": 7,
+        "average_projected_monthly_sales_usd": 1600.13
+      },
+      {
+        "month": 8,
+        "average_projected_monthly_sales_usd": 1392.6
+      }
+    ]
+  },
+  "original": {
+    "path": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local061.csv",
+    "rows": 12,
+    "columns": [
+      "month",
+      "avg_projected_sales_usd"
+    ],
+    "head": [
+      {
+        "month": 1,
+        "avg_projected_sales_usd": 4054.99
+      },
+      {
+        "month": 2,
+        "avg_projected_sales_usd": 2402.89
+      },
+      {
+        "month": 3,
+        "avg_projected_sales_usd": 2888.48
+      },
+      {
+        "month": 4,
+        "avg_projected_sales_usd": 1474.1
+      },
+      {
+        "month": 5,
+        "avg_projected_sales_usd": 2904.71
+      },
+      {
+        "month": 6,
+        "avg_projected_sales_usd": 1440.35
+      },
+      {
+        "month": 7,
+        "avg_projected_sales_usd": 1600.13
+      },
+      {
+        "month": 8,
+        "avg_projected_sales_usd": 1392.6
+      }
+    ]
+  },
+  "golds": [
+    {
+      "path": "C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local061.csv",
+      "rows": 12,
+      "columns": [
+        "month",
+        "avg_monthly_projected_sales_in_usd"
+      ],
+      "head": [
+        {
+          "month": 1,
+          "avg_monthly_projected_sales_in_usd": 4120.33
+        },
+        {
+          "month": 2,
+          "avg_monthly_projected_sales_in_usd": 2454.4
+        },
+        {
+          "month": 3,
+          "avg_monthly_projected_sales_in_usd": 2980.58
+        },
+        {
+          "month": 4,
+          "avg_monthly_projected_sales_in_usd": 1517.54
+        },
+        {
+          "month": 5,
+          "avg_monthly_projected_sales_in_usd": 3025.06
+        },
+        {
+          "month": 6,
+          "avg_monthly_projected_sales_in_usd": 1482.95
+        },
+        {
+          "month": 7,
+          "avg_monthly_projected_sales_in_usd": 1658.6
+        },
+        {
+          "month": 8,
+          "avg_monthly_projected_sales_in_usd": 1419.89
+        }
+      ]
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local061",
+    "condition_cols": [],
+    "ignore_order": true,
+    "toks": "342"
+  }
+}

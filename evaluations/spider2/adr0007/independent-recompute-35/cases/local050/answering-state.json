@@ -1,0 +1,1709 @@
+{
+  "version": 2,
+  "tasks": [
+    {
+      "taskId": "task_da3c5864-101b-4a0b-ae9c-cea8012f293b",
+      "sessionId": "local050",
+      "principalId": "independent-analyst",
+      "requestMessageId": "original-task",
+      "requestId": "9455ccee-5d88-4a3d-b84c-f8557b8bd558",
+      "currentRevisionId": "revision_ea29797b-1c2a-4215-a779-6ba126b0f283",
+      "lifecycle": "published",
+      "budget": {
+        "policy": {
+          "version": "answering-dual-loop-v1",
+          "maxRevisions": 40,
+          "maxExplorationAttempts": 120,
+          "maxResultAttempts": 20,
+          "maxElapsedMs": 14400000,
+          "maxObservedRows": 2000000
+        },
+        "startedAt": "2026-10-11T09:09:29.827Z",
+        "revisionCount": 1,
+        "explorationAttempts": 8,
+        "resultAttempts": 1,
+        "observedRows": 128
+      },
+      "createdAt": "2026-10-11T09:09:29.827Z",
+      "updatedAt": "2026-10-11T09:12:36.447Z",
+      "latestCandidateId": "candidate_cf611990-f479-4c3e-8fdb-87ac8c87b6f5",
+      "publicationId": "publication_ebad7921-f825-4269-bf4c-fa5f9a82ea3d"
+    }
+  ],
+  "revisions": [
+    {
+      "taskId": "task_da3c5864-101b-4a0b-ae9c-cea8012f293b",
+      "revisionId": "revision_b5dd1c9f-69e8-46df-ae3a-9896764cf792",
+      "requestId": "9455ccee-5d88-4a3d-b84c-f8557b8bd558",
+      "createdAt": "2026-10-11T09:09:29.827Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "France product-month projected sales"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_b4594f9d-f194-4922-bb71-5958eba4feff"
+            ]
+          }
+        }
+      },
+      "state": {
+        "state": "draft",
+        "revisionId": "revision_b5dd1c9f-69e8-46df-ae3a-9896764cf792"
+      },
+      "specFeedback": {
+        "taskId": "task_da3c5864-101b-4a0b-ae9c-cea8012f293b",
+        "revisionId": "revision_b5dd1c9f-69e8-46df-ae3a-9896764cf792",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_b4594f9d-f194-4922-bb71-5958eba4feff"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    },
+    {
+      "taskId": "task_da3c5864-101b-4a0b-ae9c-cea8012f293b",
+      "revisionId": "revision_ea29797b-1c2a-4215-a779-6ba126b0f283",
+      "parentRevisionId": "revision_b5dd1c9f-69e8-46df-ae3a-9896764cf792",
+      "requestId": "e4a9b0d1-15f0-4b99-82e9-38e219b3da2d",
+      "createdAt": "2026-10-11T09:10:47.853Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "France product-month projected sales"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_b4594f9d-f194-4922-bb71-5958eba4feff"
+            ]
+          }
+        },
+        "population.eligibility": {
+          "state": "specified",
+          "value": "Product-months with positive 2019 sales and non-null 2020 sales; no invented growth for missing baseline",
+          "basis": {
+            "kind": "assumed",
+            "rationale": "独立题解；题目未明确，作为假定披露"
+          }
+        },
+        "population.conditions": {
+          "state": "specified",
+          "value": [
+            "France",
+            "promo_total_id=1",
+            "channel_total_id=1"
+          ],
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_443aa49c-9847-470a-8535-02e5268c9e34"
+            ]
+          }
+        },
+        "population.time": {
+          "state": "specified",
+          "value": {
+            "expression": "Historical calendar 2019,2020; forecast calendar 2021"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_1fb2647a-0f78-4971-871e-8664cea80452"
+            ]
+          }
+        },
+        "population.joinMultiplicity": {
+          "state": "specified",
+          "value": "Join dimension keys then sum per product-year-month; one currency key per France/2021/month",
+          "basis": {
+            "kind": "assumed",
+            "rationale": "独立题解；题目未明确，作为假定披露"
+          }
+        },
+        "measure.formula": {
+          "state": "specified",
+          "value": {
+            "op": "custom",
+            "description": "SUM historical sales product/year/month; project each paired product/month a2020*a2020/a2019; multiply France/2021/month currency.to_us default1; AVG across projected products per month; ROUND monthly AVG 2 decimals; median 12 monthly AVGs via middle-two average"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_cfeb22bb-105a-4843-9c1f-51f00bca165c"
+            ]
+          }
+        },
+        "measure.countGrain": {
+          "state": "specified",
+          "value": "Product-month projections in monthly mean; monthly means in median",
+          "basis": {
+            "kind": "assumed",
+            "rationale": "独立题解；题目未明确，作为假定披露"
+          }
+        },
+        "measure.denominator": {
+          "state": "specified",
+          "value": "Number of valid paired product projections per month; then all non-empty months in median",
+          "basis": {
+            "kind": "assumed",
+            "rationale": "独立题解；题目未明确，作为假定披露"
+          }
+        },
+        "grouping": {
+          "state": "specified",
+          "value": [
+            "product/month/year historical",
+            "month projected mean",
+            "overall median"
+          ],
+          "basis": {
+            "kind": "assumed",
+            "rationale": "独立题解；题目未明确，作为假定披露"
+          }
+        },
+        "selection": {
+          "state": "not_applicable"
+        },
+        "output": {
+          "state": "specified",
+          "value": {
+            "rowMode": "scalar",
+            "columns": [
+              "median_monthly_projected_sales_usd"
+            ],
+            "units": {
+              "median_monthly_projected_sales_usd": "USD"
+            }
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_48d092ca-d43f-4631-bb31-4049c8aeccb5"
+            ]
+          }
+        }
+      },
+      "state": {
+        "state": "ready",
+        "revisionId": "revision_ea29797b-1c2a-4215-a779-6ba126b0f283",
+        "ready": "ready_90c98887-d5cf-4035-8048-67cd725529f7"
+      },
+      "specFeedback": {
+        "taskId": "task_da3c5864-101b-4a0b-ae9c-cea8012f293b",
+        "revisionId": "revision_ea29797b-1c2a-4215-a779-6ba126b0f283",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_b4594f9d-f194-4922-bb71-5958eba4feff",
+          "evidence_ffb012b1-8e67-465b-aeb6-16eea5040453",
+          "evidence_711141f8-f299-447b-bf90-13b6eb40d757",
+          "evidence_d7b54034-7d30-4626-a841-3d2d32ebe391",
+          "evidence_4f696a17-5e0c-4418-84d3-5fccd720b44b",
+          "evidence_228fb2bf-17e7-40f7-b6af-daadf64d3666",
+          "evidence_443aa49c-9847-470a-8535-02e5268c9e34",
+          "evidence_1fb2647a-0f78-4971-871e-8664cea80452",
+          "evidence_cfeb22bb-105a-4843-9c1f-51f00bca165c",
+          "evidence_48d092ca-d43f-4631-bb31-4049c8aeccb5"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "taskId": "task_da3c5864-101b-4a0b-ae9c-cea8012f293b",
+      "items": [
+        {
+          "id": "request_be3e2f2bd519d830902bceb0",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "observedAt": "2026-10-11T09:09:29.827Z"
+        },
+        {
+          "id": "evidence_b4594f9d-f194-4922-bb71-5958eba4feff",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "5cb17ddd03f424825df3f10726b658a9d151de11764bd22991a45fb41f3eb69d",
+          "quote": "projected sales in USD for France in 2021",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "5cb17ddd03f424825df3f10726b658a9d151de11764bd22991a45fb41f3eb69d"
+          },
+          "observedAt": "2026-10-11T09:09:29.827Z"
+        },
+        {
+          "id": "evidence_ffb012b1-8e67-465b-aeb6-16eea5040453",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "0a260c67-d20e-4638-bf3c-c515025bf191",
+          "preview": {
+            "columns": [
+              "country",
+              "year",
+              "month",
+              "to_us"
+            ],
+            "rows": [
+              [
+                "France",
+                2019,
+                1,
+                1
+              ],
+              [
+                "France",
+                2019,
+                2,
+                1
+              ],
+              [
+                "France",
+                2019,
+                3,
+                1
+              ],
+              [
+                "France",
+                2019,
+                4,
+                1
+              ],
+              [
+                "France",
+                2019,
+                5,
+                1
+              ],
+              [
+                "France",
+                2019,
+                6,
+                1
+              ],
+              [
+                "France",
+                2019,
+                7,
+                1
+              ],
+              [
+                "France",
+                2019,
+                8,
+                1
+              ],
+              [
+                "France",
+                2019,
+                9,
+                1
+              ],
+              [
+                "France",
+                2019,
+                10,
+                1
+              ],
+              [
+                "France",
+                2019,
+                11,
+                1
+              ],
+              [
+                "France",
+                2019,
+                12,
+                1
+              ],
+              [
+                "France",
+                2020,
+                1,
+                1
+              ],
+              [
+                "France",
+                2020,
+                2,
+                1
+              ],
+              [
+                "France",
+                2020,
+                3,
+                1
+              ],
+              [
+                "France",
+                2020,
+                4,
+                1
+              ],
+              [
+                "France",
+                2020,
+                5,
+                1
+              ],
+              [
+                "France",
+                2020,
+                6,
+                1
+              ],
+              [
+                "France",
+                2020,
+                7,
+                1
+              ],
+              [
+                "France",
+                2020,
+                8,
+                1
+              ],
+              [
+                "France",
+                2020,
+                9,
+                1
+              ],
+              [
+                "France",
+                2020,
+                10,
+                1
+              ],
+              [
+                "France",
+                2020,
+                11,
+                1
+              ],
+              [
+                "France",
+                2020,
+                12,
+                1
+              ],
+              [
+                "France",
+                2021,
+                1,
+                1
+              ],
+              [
+                "France",
+                2021,
+                2,
+                1
+              ],
+              [
+                "France",
+                2021,
+                3,
+                1
+              ],
+              [
+                "France",
+                2021,
+                4,
+                1
+              ],
+              [
+                "France",
+                2021,
+                5,
+                1
+              ],
+              [
+                "France",
+                2021,
+                6,
+                1
+              ],
+              [
+                "France",
+                2021,
+                7,
+                1
+              ],
+              [
+                "France",
+                2021,
+                8,
+                1
+              ],
+              [
+                "France",
+                2021,
+                9,
+                1
+              ],
+              [
+                "France",
+                2021,
+                10,
+                1
+              ],
+              [
+                "France",
+                2021,
+                11,
+                1
+              ],
+              [
+                "France",
+                2021,
+                12,
+                1
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 36,
+            "truncated": false
+          },
+          "queryHash": "1ee3a1f4b3e96b50e93dd29e8abc5d4ce172f3f60e691a55fba1316ccd47f718",
+          "contentHash": "3d2eee359066d5b4226960efa668eca4f93e37bd42e8fa827aa14f9330c83361",
+          "observedAt": "2026-10-11T09:09:36.201Z"
+        },
+        {
+          "id": "evidence_711141f8-f299-447b-bf90-13b6eb40d757",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "a9c2d94b-2246-454f-bf61-88dc9a3d662a",
+          "preview": {
+            "columns": [
+              "country_name",
+              "calendar_year",
+              "calendar_month_number",
+              "rows",
+              "products",
+              "sales"
+            ],
+            "rows": [
+              [
+                "France",
+                2019,
+                1,
+                602,
+                51,
+                101491.1
+              ],
+              [
+                "France",
+                2019,
+                2,
+                563,
+                53,
+                106703.01
+              ],
+              [
+                "France",
+                2019,
+                3,
+                616,
+                51,
+                88268
+              ],
+              [
+                "France",
+                2019,
+                4,
+                485,
+                46,
+                98627.88
+              ],
+              [
+                "France",
+                2019,
+                5,
+                466,
+                49,
+                68379.98
+              ],
+              [
+                "France",
+                2019,
+                6,
+                427,
+                48,
+                86430.63
+              ],
+              [
+                "France",
+                2019,
+                7,
+                647,
+                50,
+                82041.55
+              ],
+              [
+                "France",
+                2019,
+                8,
+                582,
+                51,
+                77918.44
+              ],
+              [
+                "France",
+                2019,
+                9,
+                565,
+                53,
+                73481.73
+              ],
+              [
+                "France",
+                2019,
+                10,
+                594,
+                56,
+                65449.22
+              ],
+              [
+                "France",
+                2019,
+                11,
+                498,
+                53,
+                64907.6
+              ],
+              [
+                "France",
+                2019,
+                12,
+                612,
+                57,
+                92134.43000000001
+              ],
+              [
+                "France",
+                2020,
+                1,
+                725,
+                66,
+                63169.7
+              ],
+              [
+                "France",
+                2020,
+                2,
+                879,
+                65,
+                73859.12
+              ],
+              [
+                "France",
+                2020,
+                3,
+                750,
+                63,
+                65386.67
+              ],
+              [
+                "France",
+                2020,
+                4,
+                664,
+                62,
+                61937.01
+              ],
+              [
+                "France",
+                2020,
+                5,
+                791,
+                65,
+                72806.01
+              ],
+              [
+                "France",
+                2020,
+                6,
+                690,
+                66,
+                65092.63
+              ],
+              [
+                "France",
+                2020,
+                7,
+                765,
+                68,
+                73164.08
+              ],
+              [
+                "France",
+                2020,
+                8,
+                776,
+                71,
+                74651.9
+              ],
+              [
+                "France",
+                2020,
+                9,
+                849,
+                69,
+                75988.35
+              ],
+              [
+                "France",
+                2020,
+                10,
+                793,
+                66,
+                73408.29000000001
+              ],
+              [
+                "France",
+                2020,
+                11,
+                780,
+                64,
+                70783.61
+              ],
+              [
+                "France",
+                2020,
+                12,
+                824,
+                68,
+                88787.74
+              ],
+              [
+                "France",
+                2021,
+                1,
+                800,
+                67,
+                65272.7
+              ],
+              [
+                "France",
+                2021,
+                2,
+                740,
+                66,
+                94407.36
+              ],
+              [
+                "France",
+                2021,
+                3,
+                683,
+                67,
+                64737.840000000004
+              ],
+              [
+                "France",
+                2021,
+                4,
+                648,
+                65,
+                78361.08
+              ],
+              [
+                "France",
+                2021,
+                5,
+                786,
+                69,
+                69678.33
+              ],
+              [
+                "France",
+                2021,
+                6,
+                667,
+                68,
+                75387.74
+              ],
+              [
+                "France",
+                2021,
+                7,
+                699,
+                65,
+                63056.66
+              ],
+              [
+                "France",
+                2021,
+                8,
+                698,
+                67,
+                61311.04
+              ],
+              [
+                "France",
+                2021,
+                9,
+                802,
+                67,
+                100828.44
+              ],
+              [
+                "France",
+                2021,
+                10,
+                778,
+                70,
+                67461.95
+              ],
+              [
+                "France",
+                2021,
+                11,
+                721,
+                66,
+                77067.05
+              ],
+              [
+                "France",
+                2021,
+                12,
+                369,
+                66,
+                68674.42
+              ],
+              [
+                "France",
+                2022,
+                1,
+                679,
+                69,
+                57430.16
+              ],
+              [
+                "France",
+                2022,
+                2,
+                611,
+                69,
+                57645.1
+              ],
+              [
+                "France",
+                2022,
+                3,
+                573,
+                67,
+                68382.85
+              ],
+              [
+                "France",
+                2022,
+                4,
+                687,
+                66,
+                94227.26
+              ],
+              [
+                "France",
+                2022,
+                5,
+                712,
+                69,
+                76493.65
+              ],
+              [
+                "France",
+                2022,
+                6,
+                648,
+                62,
+                85502.31999999999
+              ],
+              [
+                "France",
+                2022,
+                7,
+                675,
+                68,
+                82309.59
+              ],
+              [
+                "France",
+                2022,
+                8,
+                789,
+                70,
+                95834.83
+              ],
+              [
+                "France",
+                2022,
+                9,
+                791,
+                71,
+                105664.58
+              ],
+              [
+                "France",
+                2022,
+                10,
+                971,
+                71,
+                93824.73
+              ],
+              [
+                "France",
+                2022,
+                11,
+                786,
+                70,
+                96689.36
+              ],
+              [
+                "France",
+                2022,
+                12,
+                822,
+                71,
+                111152.41
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "REAL"
+            ],
+            "rowCount": 48,
+            "truncated": false
+          },
+          "queryHash": "ce1c062164938358adb4c0f4a3ff9a6ca02aabe2db8838356d16a78b5c82bf04",
+          "contentHash": "43b23ead689107acfae906c2fce338c9eb9e32a1494f3a09a0d52092fd20b6c6",
+          "observedAt": "2026-10-11T09:09:49.650Z"
+        },
+        {
+          "id": "evidence_d7b54034-7d30-4626-a841-3d2d32ebe391",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "006b6ae0-2b38-4ec0-bce6-3206c8f9a6fd",
+          "preview": {
+            "columns": [
+              "m",
+              "products",
+              "sales_2019",
+              "sales_2020",
+              "min_projection",
+              "max_projection",
+              "monthly_avg"
+            ],
+            "rows": [
+              [
+                1,
+                47,
+                71387.12,
+                59684.73,
+                14.971666860397535,
+                92369.76451533742,
+                4054.99
+              ],
+              [
+                2,
+                52,
+                96905.21,
+                69051.34,
+                13.111950313807531,
+                34018.310266061,
+                2402.89
+              ],
+              [
+                3,
+                46,
+                83626.71,
+                57673.67,
+                6.036854504082451,
+                60711.54652128418,
+                2888.48
+              ],
+              [
+                4,
+                43,
+                94662.92,
+                53723.24,
+                5.417887212073073,
+                15869.433430080988,
+                1474.1
+              ],
+              [
+                5,
+                46,
+                67152.63,
+                66119.75,
+                22.89076196424937,
+                38836.218147781474,
+                2904.71
+              ],
+              [
+                6,
+                46,
+                86239.58,
+                57033.98,
+                21.671548848292293,
+                12990.089252142521,
+                1440.35
+              ],
+              [
+                7,
+                49,
+                81524.22,
+                63938.58,
+                18.804200677528634,
+                12131.14411701062,
+                1600.13
+              ],
+              [
+                8,
+                51,
+                77918.44,
+                61421.659999999996,
+                1.2876332178720127,
+                9375.102354705221,
+                1392.6
+              ],
+              [
+                9,
+                53,
+                73481.73,
+                67387.49,
+                6.280820038289726,
+                28514.132589432233,
+                2702.5
+              ],
+              [
+                10,
+                52,
+                62643.94,
+                69388.61,
+                14.12129345031138,
+                16099.441404802592,
+                2218.77
+              ],
+              [
+                11,
+                49,
+                61453.27,
+                65840.51,
+                51.07796852646638,
+                57575.808494674944,
+                3208.94
+              ],
+              [
+                12,
+                56,
+                84120.51,
+                84546.85,
+                5.224424864212432,
+                56181.6043277703,
+                3062.66
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "REAL",
+              "REAL",
+              "REAL",
+              "REAL",
+              "REAL"
+            ],
+            "rowCount": 12,
+            "truncated": false
+          },
+          "queryHash": "212c9c94aa0263eaf519e186b8ef867090ab6d5921b53dc8f5313183d4b30543",
+          "contentHash": "0c1663dbdb9cad681cdd318d628f7af7a55ff9a966d5ce29e836938bdd7a3654",
+          "observedAt": "2026-10-11T09:10:30.500Z"
+        },
+        {
+          "id": "evidence_4f696a17-5e0c-4418-84d3-5fccd720b44b",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "9a8efb13-ebc5-4cd7-b977-10f0f9b2ba5e",
+          "preview": {
+            "columns": [
+              "m",
+              "product_months",
+              "missing_2019",
+              "missing_2020",
+              "zero_2019"
+            ],
+            "rows": [
+              [
+                1,
+                70,
+                19,
+                4,
+                0
+              ],
+              [
+                2,
+                66,
+                13,
+                1,
+                0
+              ],
+              [
+                3,
+                68,
+                17,
+                5,
+                0
+              ],
+              [
+                4,
+                65,
+                19,
+                3,
+                0
+              ],
+              [
+                5,
+                68,
+                19,
+                3,
+                0
+              ],
+              [
+                6,
+                68,
+                20,
+                2,
+                0
+              ],
+              [
+                7,
+                69,
+                19,
+                1,
+                0
+              ],
+              [
+                8,
+                71,
+                20,
+                0,
+                0
+              ],
+              [
+                9,
+                69,
+                16,
+                0,
+                0
+              ],
+              [
+                10,
+                70,
+                14,
+                4,
+                0
+              ],
+              [
+                11,
+                68,
+                15,
+                4,
+                0
+              ],
+              [
+                12,
+                69,
+                12,
+                1,
+                0
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 12,
+            "truncated": false
+          },
+          "queryHash": "b20e168f44c9fd23496d883679a28d3122929906fa50250bec3617ff0ad01f7f",
+          "contentHash": "a13794f0991a197c794c04fcd7e92025f3d301badc056a5eae0974820ce1118c",
+          "observedAt": "2026-10-11T09:10:38.169Z"
+        },
+        {
+          "id": "evidence_228fb2bf-17e7-40f7-b6af-daadf64d3666",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "cc4d6efa-bcf5-4e06-888b-aea8f36d135d",
+          "preview": {
+            "columns": [
+              "median_monthly_projected_sales_usd"
+            ],
+            "rows": [
+              [
+                2552.6949999999997
+              ]
+            ],
+            "columnTypes": [
+              "REAL"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "c64881a6d5dca501663a127265436a3d530ba46addb5db8b9fb5bc4d083e3ac2",
+          "contentHash": "b912121e6ab3afe25ae98351bfe99fde7ebd3012694661d339b3f1f634e6e2c0",
+          "observedAt": "2026-10-11T09:10:45.012Z"
+        },
+        {
+          "id": "evidence_443aa49c-9847-470a-8535-02e5268c9e34",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "5cb17ddd03f424825df3f10726b658a9d151de11764bd22991a45fb41f3eb69d",
+          "quote": "filtered by promo_total_id=1 and channel_total_id=1",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "5cb17ddd03f424825df3f10726b658a9d151de11764bd22991a45fb41f3eb69d"
+          },
+          "observedAt": "2026-10-11T09:10:47.853Z"
+        },
+        {
+          "id": "evidence_1fb2647a-0f78-4971-871e-8664cea80452",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "5cb17ddd03f424825df3f10726b658a9d151de11764bd22991a45fb41f3eb69d",
+          "quote": "monthly sales data from 2019 and 2020",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "5cb17ddd03f424825df3f10726b658a9d151de11764bd22991a45fb41f3eb69d"
+          },
+          "observedAt": "2026-10-11T09:10:47.853Z"
+        },
+        {
+          "id": "evidence_cfeb22bb-105a-4843-9c1f-51f00bca165c",
+          "kind": "task_document",
+          "authority": "task_document",
+          "sourceRef": "projection_calculation.md",
+          "contentHash": "a99c37c025883926503a6b3e94e91b9b05d4b7beee8e1c0d45be25be7e814ae0",
+          "quote": "Apply this percentage change to the 2020 sales to estimate 2021 sales.",
+          "verification": {
+            "method": "document_quote",
+            "sourceContentHash": "a99c37c025883926503a6b3e94e91b9b05d4b7beee8e1c0d45be25be7e814ae0"
+          },
+          "observedAt": "2026-10-11T09:10:47.853Z"
+        },
+        {
+          "id": "evidence_48d092ca-d43f-4631-bb31-4049c8aeccb5",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "5cb17ddd03f424825df3f10726b658a9d151de11764bd22991a45fb41f3eb69d",
+          "quote": "What is the median",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "5cb17ddd03f424825df3f10726b658a9d151de11764bd22991a45fb41f3eb69d"
+          },
+          "observedAt": "2026-10-11T09:10:47.853Z"
+        },
+        {
+          "id": "evidence_abdaa895-6c97-4547-ac4e-10da07391be9",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "ec96a9ed-724b-48be-81be-8cf2727e6f95",
+          "preview": {
+            "columns": [
+              "variant",
+              "median_raw",
+              "median_round_monthly"
+            ],
+            "rows": [
+              [
+                "2020_roster_missing_2019_zero",
+                1988.9777693928731,
+                1988.975
+              ],
+              [
+                "2021_roster_missing_pair_zero",
+                1875.6139858014071,
+                1875.615
+              ],
+              [
+                "paired_2021_roster",
+                2604.236129353304,
+                2604.235
+              ],
+              [
+                "paired_all",
+                2552.6959807204075,
+                2552.6949999999997
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "REAL",
+              "REAL"
+            ],
+            "rowCount": 4,
+            "truncated": false
+          },
+          "queryHash": "ca2a486b85c6c80efd3cf3788155e6313c2019ea8c9e72a9a303d189abf71882",
+          "contentHash": "35659dfbf9e9125369327456409d7aaca3ad394ccee22fbd59752f9cb9b47517",
+          "observedAt": "2026-10-11T09:11:53.777Z"
+        },
+        {
+          "id": "evidence_46069cd3-fafe-43c5-a1d4-f74c91388a70",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "45ef2ad7-0f5c-4089-b1b9-512c8438d7d2",
+          "preview": {
+            "columns": [
+              "m",
+              "pairs",
+              "pairs_with_2021",
+              "restricted_mean"
+            ],
+            "rows": [
+              [
+                1,
+                47,
+                46,
+                4120.33358180323
+              ],
+              [
+                2,
+                52,
+                49,
+                2454.400658113617
+              ],
+              [
+                3,
+                46,
+                44,
+                2980.58057090003
+              ],
+              [
+                4,
+                43,
+                41,
+                1517.5380939222437
+              ],
+              [
+                5,
+                46,
+                44,
+                3025.0563214865965
+              ],
+              [
+                6,
+                46,
+                44,
+                1482.945110785236
+              ],
+              [
+                7,
+                49,
+                47,
+                1658.6029859276325
+              ],
+              [
+                8,
+                51,
+                50,
+                1419.8877542593257
+              ],
+              [
+                9,
+                53,
+                52,
+                2754.0716005929908
+              ],
+              [
+                10,
+                52,
+                52,
+                2218.773458797572
+              ],
+              [
+                11,
+                49,
+                49,
+                3208.9430007968385
+              ],
+              [
+                12,
+                56,
+                53,
+                3131.6637329794908
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "REAL"
+            ],
+            "rowCount": 12,
+            "truncated": false
+          },
+          "queryHash": "eef46474b5baa4c881b56fe3fd9eed3ee1d065a71bf2c23156af3fbd85407685",
+          "contentHash": "4a3a89d954a74c8f1345f71ab55a761641fee82c8e5c128fcc110b535bf1a09b",
+          "observedAt": "2026-10-11T09:12:06.627Z"
+        },
+        {
+          "id": "evidence_09b16c6f-927b-4d9e-a4db-1ed26fca46b3",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "afc5a4e3-c0c2-4b16-bc03-e2adaae0f9be",
+          "preview": {
+            "columns": [
+              "m",
+              "a",
+              "rn",
+              "mean_all"
+            ],
+            "rows": [
+              [
+                2,
+                2454.4014285714284,
+                6,
+                2604.236291208791
+              ],
+              [
+                9,
+                2754.071153846154,
+                7,
+                2604.236291208791
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "REAL",
+              "INTEGER",
+              "REAL"
+            ],
+            "rowCount": 2,
+            "truncated": false
+          },
+          "queryHash": "20aa75e5662753befe064187ffae853cf1e91676e2e1056c267a61a2d5f03115",
+          "contentHash": "2aab02b6a6f25a9d4d3080aa4fe8ee1cb4c7fa0ee7a9db7dc03a8d246eb151f5",
+          "observedAt": "2026-10-11T09:12:36.446Z"
+        }
+      ]
+    }
+  ],
+  "attempts": [
+    {
+      "taskId": "task_da3c5864-101b-4a0b-ae9c-cea8012f293b",
+      "items": [
+        {
+          "attemptId": "attempt_f650b8ea-9451-46f1-9f93-1cceee55793f",
+          "taskId": "task_da3c5864-101b-4a0b-ae9c-cea8012f293b",
+          "kind": "exploration",
+          "revisionId": "revision_b5dd1c9f-69e8-46df-ae3a-9896764cf792",
+          "invocationId": "0a260c67-d20e-4638-bf3c-c515025bf191",
+          "queryHash": "1ee3a1f4b3e96b50e93dd29e8abc5d4ce172f3f60e691a55fba1316ccd47f718",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:09:35.171Z",
+          "updatedAt": "2026-10-11T09:09:36.201Z"
+        },
+        {
+          "attemptId": "attempt_34415566-b41a-4e64-a686-b9f5268133cc",
+          "taskId": "task_da3c5864-101b-4a0b-ae9c-cea8012f293b",
+          "kind": "exploration",
+          "revisionId": "revision_b5dd1c9f-69e8-46df-ae3a-9896764cf792",
+          "invocationId": "a9c2d94b-2246-454f-bf61-88dc9a3d662a",
+          "queryHash": "ce1c062164938358adb4c0f4a3ff9a6ca02aabe2db8838356d16a78b5c82bf04",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:09:41.285Z",
+          "updatedAt": "2026-10-11T09:09:49.651Z"
+        },
+        {
+          "attemptId": "attempt_41cf1dd8-8e53-4e04-945a-cb018351e8c1",
+          "taskId": "task_da3c5864-101b-4a0b-ae9c-cea8012f293b",
+          "kind": "exploration",
+          "revisionId": "revision_b5dd1c9f-69e8-46df-ae3a-9896764cf792",
+          "invocationId": "006b6ae0-2b38-4ec0-bce6-3206c8f9a6fd",
+          "queryHash": "212c9c94aa0263eaf519e186b8ef867090ab6d5921b53dc8f5313183d4b30543",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:10:22.023Z",
+          "updatedAt": "2026-10-11T09:10:30.501Z"
+        },
+        {
+          "attemptId": "attempt_83c6d806-0fc7-41fa-8d4f-b0100a6af8a5",
+          "taskId": "task_da3c5864-101b-4a0b-ae9c-cea8012f293b",
+          "kind": "exploration",
+          "revisionId": "revision_b5dd1c9f-69e8-46df-ae3a-9896764cf792",
+          "invocationId": "9a8efb13-ebc5-4cd7-b977-10f0f9b2ba5e",
+          "queryHash": "b20e168f44c9fd23496d883679a28d3122929906fa50250bec3617ff0ad01f7f",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:10:33.781Z",
+          "updatedAt": "2026-10-11T09:10:38.170Z"
+        },
+        {
+          "attemptId": "attempt_24ffd6c5-8c9f-4d09-adae-b312016e02bc",
+          "taskId": "task_da3c5864-101b-4a0b-ae9c-cea8012f293b",
+          "kind": "exploration",
+          "revisionId": "revision_b5dd1c9f-69e8-46df-ae3a-9896764cf792",
+          "invocationId": "cc4d6efa-bcf5-4e06-888b-aea8f36d135d",
+          "queryHash": "c64881a6d5dca501663a127265436a3d530ba46addb5db8b9fb5bc4d083e3ac2",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:10:41.659Z",
+          "updatedAt": "2026-10-11T09:10:45.013Z"
+        },
+        {
+          "attemptId": "attempt_ed22589f-4499-479a-ad95-0eba9246e06b",
+          "taskId": "task_da3c5864-101b-4a0b-ae9c-cea8012f293b",
+          "kind": "revision",
+          "revisionId": "revision_b5dd1c9f-69e8-46df-ae3a-9896764cf792",
+          "invocationId": "e4a9b0d1-15f0-4b99-82e9-38e219b3da2d",
+          "state": "succeeded",
+          "sqlExecuted": false,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:10:47.858Z",
+          "updatedAt": "2026-10-11T09:10:47.853Z"
+        },
+        {
+          "attemptId": "attempt_8ccf50cf-ec63-4566-81cd-776bb9d582fa",
+          "taskId": "task_da3c5864-101b-4a0b-ae9c-cea8012f293b",
+          "kind": "result",
+          "revisionId": "revision_ea29797b-1c2a-4215-a779-6ba126b0f283",
+          "invocationId": "7e923007-74d4-4bc2-a21b-0056b73df931",
+          "queryHash": "e13036f919d8d5f2309d656a74485999a86416349a7bb0d39aa4b1023e7d9a8e",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:10:51.092Z",
+          "updatedAt": "2026-10-11T09:10:57.613Z"
+        },
+        {
+          "attemptId": "attempt_4b5f0e02-a0e8-4a2f-894c-c8263238edf2",
+          "taskId": "task_da3c5864-101b-4a0b-ae9c-cea8012f293b",
+          "kind": "exploration",
+          "revisionId": "revision_ea29797b-1c2a-4215-a779-6ba126b0f283",
+          "invocationId": "ec96a9ed-724b-48be-81be-8cf2727e6f95",
+          "queryHash": "ca2a486b85c6c80efd3cf3788155e6313c2019ea8c9e72a9a303d189abf71882",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:11:38.572Z",
+          "updatedAt": "2026-10-11T09:11:53.780Z"
+        },
+        {
+          "attemptId": "attempt_4b8323d2-328b-4a85-8862-e2f9a9d104f1",
+          "taskId": "task_da3c5864-101b-4a0b-ae9c-cea8012f293b",
+          "kind": "exploration",
+          "revisionId": "revision_ea29797b-1c2a-4215-a779-6ba126b0f283",
+          "invocationId": "45ef2ad7-0f5c-4089-b1b9-512c8438d7d2",
+          "queryHash": "eef46474b5baa4c881b56fe3fd9eed3ee1d065a71bf2c23156af3fbd85407685",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:11:58.240Z",
+          "updatedAt": "2026-10-11T09:12:06.628Z"
+        },
+        {
+          "attemptId": "attempt_71d1b740-aa8c-4101-a373-52684317d60f",
+          "taskId": "task_da3c5864-101b-4a0b-ae9c-cea8012f293b",
+          "kind": "exploration",
+          "revisionId": "revision_ea29797b-1c2a-4215-a779-6ba126b0f283",
+          "invocationId": "afc5a4e3-c0c2-4b16-bc03-e2adaae0f9be",
+          "queryHash": "20aa75e5662753befe064187ffae853cf1e91676e2e1056c267a61a2d5f03115",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:12:24.222Z",
+          "updatedAt": "2026-10-11T09:12:36.448Z"
+        }
+      ]
+    }
+  ],
+  "candidates": [
+    {
+      "candidateId": "candidate_cf611990-f479-4c3e-8fdb-87ac8c87b6f5",
+      "taskId": "task_da3c5864-101b-4a0b-ae9c-cea8012f293b",
+      "revisionId": "revision_ea29797b-1c2a-4215-a779-6ba126b0f283",
+      "resultRef": "result_24ba7e68-ef42-499b-8549-b276ed26a1c9",
+      "resultSchema": [
+        "median_monthly_projected_sales_usd"
+      ],
+      "rowCount": 1,
+      "contentHash": "beee1e04f7902a00df8a21d70e359ff5e29995fa695828b3729916fe67b2a454",
+      "sql": "WITH h AS (SELECT s.prod_id,t.calendar_year y,t.calendar_month_number m,SUM(amount_sold) a FROM sales s JOIN customers c USING(cust_id) JOIN countries co USING(country_id) JOIN times t USING(time_id) JOIN promotions p USING(promo_id) JOIN channels ch USING(channel_id) WHERE co.country_name='France' AND p.promo_total_id=1 AND ch.channel_total_id=1 AND t.calendar_year IN(2019,2020) GROUP BY 1,2,3), paired AS (SELECT prod_id,m,MAX(CASE WHEN y=2019 THEN a END) a19,MAX(CASE WHEN y=2020 THEN a END) a20 FROM h GROUP BY 1,2), projected AS (SELECT prod_id,m,a19,a20,a20*a20/a19 projected,COALESCE(cur.to_us,1) rate FROM paired LEFT JOIN currency cur ON cur.country='France' AND cur.year=2021 AND cur.month=m WHERE a19>0 AND a20 IS NOT NULL), monthly AS (SELECT m,ROUND(AVG(projected*rate),2) monthly_avg FROM projected GROUP BY m) , ranked AS (SELECT monthly_avg,ROW_NUMBER() OVER(ORDER BY monthly_avg) rn,COUNT(*) OVER() n FROM monthly) SELECT AVG(monthly_avg) median_monthly_projected_sales_usd FROM ranked WHERE rn IN ((n+1)/2,(n+2)/2)",
+      "queryHash": "e13036f919d8d5f2309d656a74485999a86416349a7bb0d39aa4b1023e7d9a8e",
+      "findings": [],
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "unknown",
+          "reason": "check_disabled"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "unknown",
+        "snapshotScope": "unbound",
+        "targets": [],
+        "unsupportedReasons": [
+          "check_disabled"
+        ]
+      },
+      "attemptId": "attempt_8ccf50cf-ec63-4566-81cd-776bb9d582fa",
+      "createdByInvocationId": "7e923007-74d4-4bc2-a21b-0056b73df931",
+      "createdAt": "2026-10-11T09:10:57.613Z",
+      "status": "ready",
+      "publishable": true
+    }
+  ],
+  "receipts": [
+    {
+      "receiptId": "publication_ebad7921-f825-4269-bf4c-fa5f9a82ea3d",
+      "taskId": "task_da3c5864-101b-4a0b-ae9c-cea8012f293b",
+      "principalId": "independent-analyst",
+      "sessionId": "local050",
+      "candidateId": "candidate_cf611990-f479-4c3e-8fdb-87ac8c87b6f5",
+      "revisionId": "revision_ea29797b-1c2a-4215-a779-6ba126b0f283",
+      "resultRef": "result_24ba7e68-ef42-499b-8549-b276ed26a1c9",
+      "format": "csv",
+      "publicRef": "/api/runtime/publications/publication_ebad7921-f825-4269-bf4c-fa5f9a82ea3d?session_id=local050",
+      "contentHash": "beee1e04f7902a00df8a21d70e359ff5e29995fa695828b3729916fe67b2a454",
+      "presentationContentHash": "467c8ccea8ee1872c1beaac920fa1541ce2c64e3f69d0c440594e2be6e457242",
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "unknown",
+          "reason": "check_disabled"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "unknown",
+        "snapshotScope": "unbound",
+        "targets": [],
+        "unsupportedReasons": [
+          "check_disabled"
+        ]
+      },
+      "disclosure": {
+        "required": true,
+        "unverifiedFields": [
+          {
+            "path": "population.eligibility",
+            "kind": "assumed"
+          },
+          {
+            "path": "population.joinMultiplicity",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.countGrain",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.denominator",
+            "kind": "assumed"
+          },
+          {
+            "path": "grouping",
+            "kind": "assumed"
+          }
+        ],
+        "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.joinMultiplicity, measure.countGrain, measure.denominator, grouping。 JOIN fanout 检查未能完整完成：check_disabled。",
+        "fanoutStatus": "unknown"
+      },
+      "physicalProfile": {
+        "version": 1,
+        "rowCount": 1,
+        "truncated": false,
+        "columns": [
+          {
+            "name": "median_monthly_projected_sales_usd",
+            "kind": "decimal",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 1,
+            "min": "2552.6949999999997",
+            "max": "2552.6949999999997"
+          }
+        ]
+      },
+      "policyVersion": "answering-publication-v1",
+      "createdByInvocationId": "7e923007-74d4-4bc2-a21b-0056b73df931",
+      "requestId": "7e923007-74d4-4bc2-a21b-0056b73df931",
+      "createdAt": "2026-10-11T09:10:57.641Z"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "algorithm": "separate customer payment sum and rental count; first film by earliest payment, then per-rating customer averages",
+  "assumptions": [
+    "同付款时间用payment_id确定；实际先查询并列"
+  ],
+  "limitations": [
+    "未凭Gold改为租赁日期或删部分月份"
+  ]
+}

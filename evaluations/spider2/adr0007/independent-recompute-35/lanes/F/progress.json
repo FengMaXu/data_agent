@@ -1,0 +1,10 @@
+{
+  "lane": "F",
+  "cases": {
+    "local220": "completed_gold_conflict",
+    "local263": "completed_gold_conflict",
+    "local264": "completed_gold_conflict",
+    "local335": "completed_ambiguous_after_recompute",
+    "local354": "completed_gold_conflict_with_local_semantic_error"
+  }
+}

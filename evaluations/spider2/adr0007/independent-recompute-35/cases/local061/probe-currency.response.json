@@ -1,0 +1,225 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_627cbd3f-58cb-47c5-8bef-ae19452baf73\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nyear | month | currency_rows | min_rate | max_rate\n2021 | 1 | 1 | 1 | 1\n2021 | 2 | 1 | 1 | 1\n2021 | 3 | 1 | 1 | 1\n2021 | 4 | 1 | 1 | 1\n2021 | 5 | 1 | 1 | 1\n2021 | 6 | 1 | 1 | 1\n2021 | 7 | 1 | 1 | 1\n2021 | 8 | 1 | 1 | 1\n2021 | 9 | 1 | 1 | 1\n2021 | 10 | 1 | 1 | 1\n2021 | 11 | 1 | 1 | 1\n2021 | 12 | 1 | 1 | 1"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_627cbd3f-58cb-47c5-8bef-ae19452baf73",
+      "preview": {
+        "columns": [
+          "year",
+          "month",
+          "currency_rows",
+          "min_rate",
+          "max_rate"
+        ],
+        "rows": [
+          [
+            2021,
+            1,
+            1,
+            1,
+            1
+          ],
+          [
+            2021,
+            2,
+            1,
+            1,
+            1
+          ],
+          [
+            2021,
+            3,
+            1,
+            1,
+            1
+          ],
+          [
+            2021,
+            4,
+            1,
+            1,
+            1
+          ],
+          [
+            2021,
+            5,
+            1,
+            1,
+            1
+          ],
+          [
+            2021,
+            6,
+            1,
+            1,
+            1
+          ],
+          [
+            2021,
+            7,
+            1,
+            1,
+            1
+          ],
+          [
+            2021,
+            8,
+            1,
+            1,
+            1
+          ],
+          [
+            2021,
+            9,
+            1,
+            1,
+            1
+          ],
+          [
+            2021,
+            10,
+            1,
+            1,
+            1
+          ],
+          [
+            2021,
+            11,
+            1,
+            1,
+            1
+          ],
+          [
+            2021,
+            12,
+            1,
+            1,
+            1
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 12,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "year",
+        "month",
+        "currency_rows",
+        "min_rate",
+        "max_rate"
+      ],
+      "rows": [
+        [
+          2021,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          2021,
+          2,
+          1,
+          1,
+          1
+        ],
+        [
+          2021,
+          3,
+          1,
+          1,
+          1
+        ],
+        [
+          2021,
+          4,
+          1,
+          1,
+          1
+        ],
+        [
+          2021,
+          5,
+          1,
+          1,
+          1
+        ],
+        [
+          2021,
+          6,
+          1,
+          1,
+          1
+        ],
+        [
+          2021,
+          7,
+          1,
+          1,
+          1
+        ],
+        [
+          2021,
+          8,
+          1,
+          1,
+          1
+        ],
+        [
+          2021,
+          9,
+          1,
+          1,
+          1
+        ],
+        [
+          2021,
+          10,
+          1,
+          1,
+          1
+        ],
+        [
+          2021,
+          11,
+          1,
+          1,
+          1
+        ],
+        [
+          2021,
+          12,
+          1,
+          1,
+          1
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 12,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_d805f086-6289-48a3-8997-301b8e099ff7"
+  }
+}

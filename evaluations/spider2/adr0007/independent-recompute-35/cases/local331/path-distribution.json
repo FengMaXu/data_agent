@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT path,COUNT(*) n FROM activity_log GROUP BY path ORDER BY path",
+  "limit": 1000
+}

@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT substr(d.date_joined,1,4) year,count(*) raw_count,count(distinct d.company_id) distinct_companies FROM companies_dates d JOIN companies_industries i USING(company_id) WHERE i.industry='Fintech' AND d.date_joined>='2019-01-01' AND d.date_joined<'2022-01-01' GROUP BY 1",
+  "limit": 100
+}

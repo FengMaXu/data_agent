@@ -1,0 +1,8 @@
+{
+  "algorithm": "cumulative interval intersection; mean positive allocation percentages of original inventory quantity",
+  "assumptions": [
+    "pick percentage denominator=inventory row available quantity",
+    "orders by ordered then id; only positive picks averaged"
+  ],
+  "checks": "Per-product allocations conserve min(total inventory,total orders); raw allocation details saved"
+}

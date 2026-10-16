@@ -1,0 +1,163 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_748f795a-cb42-46f6-9b10-066d9dce255c revisionId=revision_db672233-51b2-4023-a248-0b635984f5af\n- ✓ population.eligibility\n- ✓ population.conditions\n- ✓ population.time\n- ✓ measure.formula\n- ✓ measure.countGrain\n- ✓ grouping\n- ✓ selection\n- ✓ selection.ties\n- ✓ output\n状态：\n- 未证实（发布时披露）: population.eligibility, population.time, measure.formula, measure.countGrain, grouping, selection, selection.ties, output\n- 没有待处理的字段，可以执行结果查询\n[SPEC_FEEDBACK] revisionId=revision_db672233-51b2-4023-a248-0b635984f5af status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"model identified by name and version, associated L1_model\"}},\"population.eligibility\":{\"status\":\"assumed\",\"value\":\"Models with an L1 association and comparable non-null Stack/non-Stack scores in at least one step\"},\"population.conditions\":{\"status\":\"request\",\"value\":[\"Compare maximum non-Stack and Stack test_score within the same name/version/step; strong less-than, soft equality\"]},\"population.time\":{\"status\":\"assumed\",\"value\":{\"expression\":\"All models in database; no requested date restriction\"}},\"measure.formula\":{\"status\":\"assumed\",\"value\":{\"op\":\"custom\",\"description\":\"Count distinct (name,version,L1_model,status) after per-step classification. Each model contributes at most once to each L1/status; argmax by status.\"}},\"measure.countGrain\":{\"status\":\"assumed\",\"value\":\"Distinct model name/version per L1_model per status, not steps\"},\"grouping\":{\"status\":\"assumed\",\"value\":[\"L1_model\",\"status\"]},\"selection\":{\"status\":\"assumed\",\"value\":{\"n\":1,\"orderBy\":\"occurrences DESC within status\"}},\"selection.ties\":{\"status\":\"assumed\",\"value\":\"include_ties\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"full\",\"columns\":[\"status\",\"L1_model\",\"occurrences\"]}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_748f795a-cb42-46f6-9b10-066d9dce255c",
+    "revisionId": "revision_db672233-51b2-4023-a248-0b635984f5af",
+    "parentRevisionId": "revision_78d86c0a-e907-47e8-94d0-d8fb6b9c975a",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "model identified by name and version, associated L1_model"
+        },
+        "evidenceIds": [
+          "evidence_6a015fdb-674a-4dbb-b3e1-15f6fd50ae43"
+        ]
+      },
+      {
+        "path": "population.eligibility",
+        "status": "assumed",
+        "value": "Models with an L1 association and comparable non-null Stack/non-Stack scores in at least one step"
+      },
+      {
+        "path": "population.conditions",
+        "status": "request",
+        "value": [
+          "Compare maximum non-Stack and Stack test_score within the same name/version/step; strong less-than, soft equality"
+        ],
+        "evidenceIds": [
+          "evidence_220f6964-b770-4c48-ba4f-fdc8b90b2057"
+        ]
+      },
+      {
+        "path": "population.time",
+        "status": "assumed",
+        "value": {
+          "expression": "All models in database; no requested date restriction"
+        }
+      },
+      {
+        "path": "measure.formula",
+        "status": "assumed",
+        "value": {
+          "op": "custom",
+          "description": "Count distinct (name,version,L1_model,status) after per-step classification. Each model contributes at most once to each L1/status; argmax by status."
+        }
+      },
+      {
+        "path": "measure.countGrain",
+        "status": "assumed",
+        "value": "Distinct model name/version per L1_model per status, not steps"
+      },
+      {
+        "path": "grouping",
+        "status": "assumed",
+        "value": [
+          "L1_model",
+          "status"
+        ]
+      },
+      {
+        "path": "selection",
+        "status": "assumed",
+        "value": {
+          "n": 1,
+          "orderBy": "occurrences DESC within status"
+        }
+      },
+      {
+        "path": "selection.ties",
+        "status": "assumed",
+        "value": "include_ties"
+      },
+      {
+        "path": "output",
+        "status": "assumed",
+        "value": {
+          "rowMode": "full",
+          "columns": [
+            "status",
+            "L1_model",
+            "occurrences"
+          ]
+        }
+      }
+    ],
+    "undeclared": [],
+    "open": [],
+    "unverified": [
+      "population.eligibility",
+      "population.time",
+      "measure.formula",
+      "measure.countGrain",
+      "grouping",
+      "selection",
+      "selection.ties",
+      "output"
+    ],
+    "specFeedback": {
+      "taskId": "task_748f795a-cb42-46f6-9b10-066d9dce255c",
+      "revisionId": "revision_db672233-51b2-4023-a248-0b635984f5af",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_6a015fdb-674a-4dbb-b3e1-15f6fd50ae43",
+        "evidence_42610aec-c0d7-47b7-b4c4-327a4f9c930d",
+        "evidence_265b94cc-aa24-422f-9857-6a3a09b97e43",
+        "evidence_691ba83a-7f81-4df6-92db-6d275d4d4f4a",
+        "evidence_0ab34795-cda4-4eaf-a3ef-ec4bad81c936",
+        "evidence_2c94f880-d7d8-492a-997e-792a2c9f5aab",
+        "evidence_48ff211b-fd93-4eb0-8455-173c6b257e4e",
+        "evidence_220f6964-b770-4c48-ba4f-fdc8b90b2057"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "population.eligibility",
+        "status": "applied"
+      },
+      {
+        "path": "population.conditions",
+        "status": "applied"
+      },
+      {
+        "path": "population.time",
+        "status": "applied"
+      },
+      {
+        "path": "measure.formula",
+        "status": "applied"
+      },
+      {
+        "path": "measure.countGrain",
+        "status": "applied"
+      },
+      {
+        "path": "grouping",
+        "status": "applied"
+      },
+      {
+        "path": "selection",
+        "status": "applied"
+      },
+      {
+        "path": "selection.ties",
+        "status": "applied"
+      },
+      {
+        "path": "output",
+        "status": "applied"
+      }
+    ]
+  }
+}

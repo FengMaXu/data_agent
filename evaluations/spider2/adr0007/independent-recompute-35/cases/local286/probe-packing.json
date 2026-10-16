@@ -1,0 +1,3 @@
+{
+  "sql": "WITH so AS (SELECT DISTINCT seller_id,order_id FROM order_items),v AS (SELECT so.*,julianday(order_delivered_carrier_date)-julianday(order_approved_at) packing,julianday(order_delivered_carrier_date)-julianday(order_purchase_timestamp) purchase_to_carrier FROM so JOIN orders USING(order_id)) SELECT COUNT(*) seller_orders,SUM(packing IS NULL) missing_pack_events,SUM(packing<0) negative_pack,MIN(packing) min_packing,MAX(packing) max_packing,AVG(packing) avg_approved_pack,AVG(purchase_to_carrier) avg_purchase_to_carrier FROM v"
+}

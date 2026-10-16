@@ -1,0 +1,2568 @@
+[
+  {
+    "type": "toolCall",
+    "id": "call_00_GQh8KbiKCjPlUdHB8GT25635|6206919d-69b8-4ea6-bdad-76a6b1546d43",
+    "name": "set_answer_spec",
+    "arguments": {
+      "fields": {
+        "population.entity": {
+          "value": {
+            "name": "customer",
+            "keyColumns": [
+              "customer.customer_id"
+            ]
+          },
+          "basis": "assumed",
+          "rationale": "题面问\"Which customer\"，客户实体；Schema 中 customer_id 是 customer 主键且被 payment.customer_id 外键引用"
+        },
+        "population.eligibility": {
+          "value": "只纳入在观测期内有支付记录的客户；无任何支付记录的客户没有支付金额也无月度变化，不参与排名。同时客户至少需要两个月度观测点（相邻月份）才能产生\"变化\"。",
+          "basis": "assumed",
+          "rationale": "题面要求\"月度变化\"，没有支付记录的客户无法定义该指标"
+        },
+        "population.conditions": "n/a",
+        "population.source": {
+          "value": {
+            "tables": [
+              "payment",
+              "customer"
+            ],
+            "note": "payment.customer_id → customer.customer_id"
+          },
+          "cite": [
+            {
+              "source": "schema:payment.customer_id"
+            }
+          ]
+        },
+        "population.time": {
+          "value": "全部可用支付历史（题面未指定时间范围，不设时间过滤）",
+          "basis": "assumed",
+          "rationale": "题面未给出时间范围"
+        },
+        "population.timeField": {
+          "value": "payment.payment_date"
+        },
+        "population.missing": {
+          "value": "不补零：只在客户存在支付的相邻自然月之间计算环比；没有支付的月份不视为 0"
+        },
+        "measure.formula": {
+          "open": [
+            {
+              "op": "avg",
+              "per": "customer",
+              "of": {
+                "op": "difference",
+                "per": "customer",
+                "from": {
+                  "op": "sum",
+                  "per": "customer_month",
+                  "of": "amount"
+                },
+                "to": {
+                  "op": "sum",
+                  "per": "customer_month",
+                  "of": "amount"
+                }
+              }
+            },
+            {
+              "op": "avg",
+              "per": "customer",
+              "of": {
+                "op": "difference",
+                "per": "customer",
+                "from": {
+                  "op": "avg",
+                  "per": "customer_month",
+                  "of": "amount"
+                },
+                "to": {
+                  "op": "avg",
+                  "per": "customer_month",
+                  "of": "amount"
+                }
+              }
+            },
+            {
+              "op": "avg",
+              "per": "customer",
+              "of": {
+                "op": "change_rate",
+                "per": "customer",
+                "from": {
+                  "op": "sum",
+                  "per": "customer_month",
+                  "of": "amount"
+                },
+                "to": {
+                  "op": "sum",
+                  "per": "customer_month",
+                  "of": "amount"
+                }
+              }
+            }
+          ]
+        },
+        "measure.countGrain": {
+          "value": "在客户-自然月粒度上聚合支付金额（每个客户每月一行，对 payment.amount 求和/求平均）；再在客户粒度上对相邻月的差值求平均",
+          "basis": "assumed",
+          "rationale": "题面\"monthly\"指向自然月聚合粒度"
+        },
+        "measure.denominator": {
+          "value": "avg 的分母是该客户参与计算的相邻月份对（月度变化）个数；分母为 0 的客户不参与排名",
+          "basis": "assumed",
+          "rationale": "avg 需要明确分母"
+        },
+        "grouping": "n/a",
+        "selection": {
+          "value": {
+            "n": 1,
+            "orderBy": "avg_monthly_change desc"
+          },
+          "basis": "request",
+          "quote": "highest average monthly change"
+        },
+        "selection.ties": "include_ties",
+        "output": {
+          "value": {
+            "rowMode": "top_n",
+            "rowCount": 1,
+            "columns": [
+              "full_name"
+            ]
+          }
+        }
+      }
+    }
+  },
+  {
+    "type": "toolCall",
+    "id": "call_00_Y7GvzmnbufCxWt9WPYEc3155|9de8ec3f-a2c2-4e63-8110-87d4c419a4a8",
+    "name": "set_answer_spec",
+    "arguments": {
+      "fields": {
+        "population.joinMultiplicity": {
+          "value": "customer ↔ payment 为 1:N（payment.customer_id → customer.customer_id）。按客户聚合支付金额时每个 payment 行只计一次，不会因连接重复计数；客户端属性在客户粒度上取任一行即可。",
+          "cite": [
+            {
+              "source": "schema:payment.customer_id"
+            }
+          ]
+        }
+      },
+      "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6"
+    }
+  },
+  {
+    "type": "toolCall",
+    "id": "call_00_YCypGC9H8YinRcKz3fQ10969|359f2287-fc9d-4b7f-b10b-ee026772d589",
+    "name": "query_database",
+    "arguments": {
+      "kind": "exploration",
+      "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6",
+      "sql": "SELECT MIN(payment_date) AS min_dt, MAX(payment_date) AS max_dt, COUNT(*) AS n_payments, COUNT(DISTINCT customer_id) AS n_customers, COUNT(DISTINCT strftime('%Y-%m', payment_date)) AS n_months FROM payment;"
+    }
+  },
+  {
+    "type": "toolCall",
+    "id": "call_01_gKsrs2QXcxX8PqEw7ixQ6011|1a7434f7-70fc-478d-acaf-cd88fb8375e9",
+    "name": "query_database",
+    "arguments": {
+      "kind": "exploration",
+      "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6",
+      "sql": "SELECT months_with_payment, COUNT(*) AS n_customers FROM (SELECT customer_id, COUNT(DISTINCT strftime('%Y-%m', payment_date)) AS months_with_payment FROM payment GROUP BY customer_id) GROUP BY months_with_payment ORDER BY months_with_payment;"
+    }
+  },
+  {
+    "type": "toolCall",
+    "id": "call_00_vHStP3NZCAgZG7FRvTPT0441|59875b86-b3fc-4913-af33-315533f34ccc",
+    "name": "query_database",
+    "arguments": {
+      "kind": "exploration",
+      "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6",
+      "sql": "WITH monthly AS (\n  SELECT customer_id, strftime('%Y-%m', payment_date) AS ym, SUM(amount) AS val\n  FROM payment GROUP BY customer_id, ym\n), d AS (\n  SELECT customer_id, val - LAG(val) OVER (PARTITION BY customer_id ORDER BY ym) AS chg\n  FROM monthly\n), a AS (\n  SELECT customer_id, AVG(chg) AS metric FROM d WHERE chg IS NOT NULL GROUP BY customer_id\n)\nSELECT c.first_name || ' ' || c.last_name AS full_name\nFROM a JOIN customer c ON c.customer_id = a.customer_id\nORDER BY a.metric DESC LIMIT 1;",
+      "probe": {
+        "path": "measure.formula",
+        "alternativeId": "alternative_520953fa-1c10-4106-a9f3-6e0c191b160c"
+      }
+    }
+  },
+  {
+    "type": "toolCall",
+    "id": "call_01_7MYZk2CT4C4EgDUFcOxM8004|4754d47e-5f45-4c08-8d13-87f64b757b13",
+    "name": "query_database",
+    "arguments": {
+      "kind": "exploration",
+      "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6",
+      "sql": "WITH monthly AS (\n  SELECT customer_id, strftime('%Y-%m', payment_date) AS ym, AVG(amount) AS val\n  FROM payment GROUP BY customer_id, ym\n), d AS (\n  SELECT customer_id, val - LAG(val) OVER (PARTITION BY customer_id ORDER BY ym) AS chg\n  FROM monthly\n), a AS (\n  SELECT customer_id, AVG(chg) AS metric FROM d WHERE chg IS NOT NULL GROUP BY customer_id\n)\nSELECT c.first_name || ' ' || c.last_name AS full_name\nFROM a JOIN customer c ON c.customer_id = a.customer_id\nORDER BY a.metric DESC LIMIT 1;",
+      "probe": {
+        "path": "measure.formula",
+        "alternativeId": "alternative_bdc2569d-b60d-4e2e-9a44-bc71776bfc90"
+      }
+    }
+  },
+  {
+    "type": "toolCall",
+    "id": "call_02_bP9e8mW9k02Vk31eIsei2114|29cea3eb-d31c-48e2-b37c-745813b6b3ff",
+    "name": "query_database",
+    "arguments": {
+      "kind": "exploration",
+      "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6",
+      "sql": "WITH monthly AS (\n  SELECT customer_id, strftime('%Y-%m', payment_date) AS ym, SUM(amount) AS val\n  FROM payment GROUP BY customer_id, ym\n), d AS (\n  SELECT customer_id, (val - LAG(val) OVER (PARTITION BY customer_id ORDER BY ym)) AS chg\n  FROM monthly\n), a AS (\n  SELECT customer_id, AVG(chg) AS metric FROM d WHERE chg IS NOT NULL GROUP BY customer_id\n)\nSELECT c.first_name || ' ' || c.last_name AS full_name\nFROM a JOIN customer c ON c.customer_id = a.customer_id\nORDER BY a.metric DESC LIMIT 1;",
+      "probe": {
+        "path": "measure.formula",
+        "alternativeId": "alternative_a25301a1-d0fe-4404-9683-f4179e0c089a"
+      }
+    }
+  },
+  {
+    "type": "toolCall",
+    "id": "call_00_HMxG3iFO6xZQ6qFBzt3h5523|b0a40ca9-ca60-4894-b8f8-02a34d8f9144",
+    "name": "query_database",
+    "arguments": {
+      "kind": "exploration",
+      "probe": {
+        "alternativeId": "alternative_a25301a1-d0fe-4404-9683-f4179e0c089a",
+        "path": "measure.formula"
+      },
+      "sql": "WITH monthly AS (\n  SELECT customer_id, strftime('%Y-%m', payment_date) AS ym, SUM(amount) AS val\n  FROM payment GROUP BY customer_id, ym\n), d AS (\n  SELECT customer_id, ym, val, LAG(val) OVER (PARTITION BY customer_id ORDER BY ym) AS prev\n  FROM monthly\n), a AS (\n  SELECT customer_id, AVG((val - prev) * 1.0 / prev) AS metric\n  FROM d WHERE prev IS NOT NULL AND prev <> 0 GROUP BY customer_id\n)\nSELECT c.first_name || ' ' || c.last_name AS full_name\nFROM a JOIN customer c ON c.customer_id = a.customer_id\nORDER BY a.metric DESC LIMIT 1;",
+      "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6"
+    }
+  },
+  {
+    "type": "toolCall",
+    "id": "call_00_qQOQY5xHgiWBgi9QKQwy6474|faefe5cd-a824-49d3-9ab6-851b65bdeb28",
+    "name": "query_database",
+    "arguments": {
+      "kind": "exploration",
+      "sql": "WITH monthly AS (\n  SELECT customer_id, strftime('%Y-%m', payment_date) AS ym, SUM(amount) AS val\n  FROM payment GROUP BY customer_id, ym\n), j AS (\n  SELECT m1.customer_id AS customer_id, m1.val - m2.val AS chg\n  FROM monthly m1\n  JOIN monthly m2\n    ON m2.customer_id = m1.customer_id\n   AND m2.ym = strftime('%Y-%m', date(m1.ym || '-01', '-1 month'))\n), a AS (\n  SELECT customer_id, AVG(chg) AS metric FROM j GROUP BY customer_id\n)\nSELECT c.customer_id, c.first_name || ' ' || c.last_name AS full_name, ROUND(a.metric,2) AS avg_monthly_change\nFROM a JOIN customer c ON c.customer_id = a.customer_id\nORDER BY a.metric DESC LIMIT 5;",
+      "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6"
+    }
+  },
+  {
+    "type": "toolCall",
+    "id": "call_01_8bZ2L731eaq3Oe60W8G80857|4bba8d29-7ebf-4aa9-80d2-b5aa101fd559",
+    "name": "query_database",
+    "arguments": {
+      "kind": "exploration",
+      "sql": "WITH months AS (SELECT DISTINCT strftime('%Y-%m', payment_date) AS ym FROM payment),\ncust AS (SELECT DISTINCT customer_id FROM payment),\ngrid AS (SELECT c.customer_id, m.ym FROM cust c CROSS JOIN months m),\nfilled AS (\n  SELECT g.customer_id, g.ym, COALESCE(SUM(p.amount),0) AS val\n  FROM grid g LEFT JOIN payment p\n    ON p.customer_id = g.customer_id AND strftime('%Y-%m', p.payment_date) = g.ym\n  GROUP BY g.customer_id, g.ym\n), d AS (\n  SELECT customer_id, val - LAG(val) OVER (PARTITION BY customer_id ORDER BY ym) AS chg FROM filled\n), a AS (SELECT customer_id, AVG(chg) AS metric FROM d WHERE chg IS NOT NULL GROUP BY customer_id)\nSELECT c.customer_id, c.first_name || ' ' || c.last_name AS full_name, ROUND(a.metric,2) AS avg_monthly_change\nFROM a JOIN customer c ON c.customer_id = a.customer_id\nORDER BY a.metric DESC LIMIT 5;",
+      "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6"
+    }
+  },
+  {
+    "type": "toolCall",
+    "id": "call_02_I0J5fCgBpsFIkmXWQ8uk8710|886112c9-91c7-41fc-837d-0790ec007b8e",
+    "name": "query_database",
+    "arguments": {
+      "kind": "exploration",
+      "sql": "WITH monthly AS (\n  SELECT customer_id, strftime('%Y-%m', payment_date) AS ym, SUM(amount) AS val\n  FROM payment GROUP BY customer_id, ym\n), d AS (\n  SELECT customer_id, ym, val - LAG(val) OVER (PARTITION BY customer_id ORDER BY ym) AS chg FROM monthly\n), a AS (\n  SELECT customer_id, AVG(chg) AS metric, COUNT(*) AS n_changes FROM d WHERE chg IS NOT NULL GROUP BY customer_id\n)\nSELECT c.customer_id, c.first_name || ' ' || c.last_name AS full_name, ROUND(a.metric,2) AS avg_monthly_change, a.n_changes\nFROM a JOIN customer c ON c.customer_id = a.customer_id\nORDER BY a.metric DESC LIMIT 8;",
+      "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6"
+    }
+  },
+  {
+    "type": "toolCall",
+    "id": "call_00_dCJmxHMv1RAK0uieiIrk5183|07c9ee86-1377-425a-8c5a-304ecd36ab28",
+    "name": "query_database",
+    "arguments": {
+      "kind": "exploration",
+      "sql": "SELECT strftime('%Y-%m', payment_date) AS ym, COUNT(*) AS n_pay, COUNT(DISTINCT customer_id) AS n_cust, ROUND(SUM(amount),2) AS total\nFROM payment GROUP BY ym ORDER BY ym;",
+      "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6"
+    }
+  },
+  {
+    "type": "toolCall",
+    "id": "call_01_ARRuebuuM4fY8iwl0HFG8126|4f768cd2-22b7-49ca-a488-3d1f499d0896",
+    "name": "query_database",
+    "arguments": {
+      "kind": "exploration",
+      "sql": "SELECT customer_id, strftime('%Y-%m', payment_date) AS ym, COUNT(*) AS n_pay, ROUND(SUM(amount),2) AS total\nFROM payment WHERE customer_id IN (487,445,163,160,15)\nGROUP BY customer_id, ym ORDER BY customer_id, ym;",
+      "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6"
+    }
+  },
+  {
+    "type": "toolCall",
+    "id": "call_00_oWxU25Y7aUuvmI4zwZWz4105|f6a61741-c632-432e-a7c6-5cfc1c8261f3",
+    "name": "query_database",
+    "arguments": {
+      "kind": "exploration",
+      "probe": {
+        "alternativeId": "alternative_bdc2569d-b60d-4e2e-9a44-bc71776bfc90",
+        "path": "measure.formula"
+      },
+      "sql": "WITH monthly AS (\n  SELECT customer_id, strftime('%Y-%m', payment_date) AS ym, AVG(amount) AS val\n  FROM payment GROUP BY customer_id, ym\n), j AS (\n  SELECT m1.customer_id AS customer_id, m1.val - m2.val AS chg\n  FROM monthly m1 JOIN monthly m2\n    ON m2.customer_id = m1.customer_id\n   AND m2.ym = strftime('%Y-%m', date(m1.ym || '-01', '-1 month'))\n), a AS (SELECT customer_id, AVG(chg) AS metric FROM j GROUP BY customer_id)\nSELECT c.first_name || ' ' || c.last_name AS full_name\nFROM a JOIN customer c ON c.customer_id = a.customer_id\nORDER BY a.metric DESC LIMIT 1;",
+      "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6"
+    }
+  },
+  {
+    "type": "toolCall",
+    "id": "call_01_2Uxcq3c3dqCAqqH9UmvD3379|904dad78-2348-414b-b741-a15162b0fd20",
+    "name": "query_database",
+    "arguments": {
+      "kind": "exploration",
+      "probe": {
+        "alternativeId": "alternative_a25301a1-d0fe-4404-9683-f4179e0c089a",
+        "path": "measure.formula"
+      },
+      "sql": "WITH monthly AS (\n  SELECT customer_id, strftime('%Y-%m', payment_date) AS ym, SUM(amount) AS val\n  FROM payment GROUP BY customer_id, ym\n), j AS (\n  SELECT m1.customer_id AS customer_id, (m1.val - m2.val) * 1.0 / m2.val AS chg\n  FROM monthly m1 JOIN monthly m2\n    ON m2.customer_id = m1.customer_id\n   AND m2.ym = strftime('%Y-%m', date(m1.ym || '-01', '-1 month'))\n  WHERE m2.val <> 0\n), a AS (SELECT customer_id, AVG(chg) AS metric FROM j GROUP BY customer_id)\nSELECT c.first_name || ' ' || c.last_name AS full_name\nFROM a JOIN customer c ON c.customer_id = a.customer_id\nORDER BY a.metric DESC LIMIT 1;",
+      "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6"
+    }
+  },
+  {
+    "type": "toolCall",
+    "id": "call_00_vdnqA9bcWUFs9pl8EgxH5343|2df68a91-2022-4b55-9105-2efd0d77a07b",
+    "name": "set_answer_spec",
+    "arguments": {
+      "fields": {
+        "population.missing": {
+          "reason": "按 S07 “相邻观测不等于相邻日历期”修正：跨月缺口不得当作环比",
+          "value": "不补零（无业务证据证明缺月代表零活动）；只在两个日历月份严格相邻（如 2005-07 与 2005-08）时计算一次月度变化；跨月缺口（2005-08 → 2006-02）不计作“月度变化”而被排除。",
+          "basis": "assumed",
+          "rationale": "方法指引 S07：相邻观测不等于相邻日历期，缺一个月时不能把跨月跳跃自动当作环比；sql-rules §6 要求日历相邻时验证周期差。无业务定义确认缺月为零活动，故不补零。"
+        },
+        "measure.formula": {
+          "evidenceIds": [
+            "evidence_d083e164-d951-4c13-ba0e-c3e7ac8c9f8e",
+            "evidence_20974c42-eafe-45e7-9378-4b0d86860dbd",
+            "evidence_551176b5-1ebf-406a-b0bb-ccd43b5a7c90"
+          ],
+          "rationale": "将三候选逐词放回题面：题面说 \"change in payment amounts\"，是“支付金额”的变化，量纲应为金额（美元）→ 用绝对差值 difference，排除相对变化率（候选 C）；“payment amounts”的月度取值是该客户当月支付的金额合计 → 月内用 sum（候选 A），排除月内均值（候选 B）；外层 \"average\" 即对客户各次月度变化取平均。探针验证：A → MICHEAL FORMAN，B 与 C → ASHLEY RICHARDSON，A 与 B/C 输出不同；Jev 建议的最大概率候选为 A（概率 0.32，B 仅 0.04），故采纳 A。",
+          "value": {
+            "op": "avg",
+            "per": "customer",
+            "of": {
+              "op": "difference",
+              "per": "customer",
+              "from": {
+                "op": "sum",
+                "per": "customer_month",
+                "of": "amount"
+              },
+              "to": {
+                "op": "sum",
+                "per": "customer_month",
+                "of": "amount"
+              }
+            }
+          }
+        },
+        "selection.ties": {
+          "reason": "题面为单数 argmax（Which customer，最高值），且经验证无并列（第二位为 34.93），取恰好 1 行",
+          "value": "strict"
+        }
+      },
+      "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6"
+    }
+  },
+  {
+    "type": "toolCall",
+    "id": "call_00_JPx5sccVN8sVRzNrcMOY2012|2f0f82c4-cf5d-46b5-ad70-ac21b0f4bf1c",
+    "name": "query_database",
+    "arguments": {
+      "kind": "result",
+      "revisionId": "revision_f7ec44e3-e37e-440d-9924-245eb6a2667b",
+      "sql": "WITH monthly AS (\n  SELECT p.customer_id AS customer_id,\n         strftime('%Y-%m', p.payment_date) AS ym,\n         SUM(p.amount) AS val\n  FROM payment p\n  GROUP BY p.customer_id, strftime('%Y-%m', p.payment_date)\n), pairs AS (\n  SELECT m1.customer_id AS customer_id,\n         m1.val - m2.val AS chg\n  FROM monthly m1\n  JOIN monthly m2\n    ON m2.customer_id = m1.customer_id\n   AND m2.ym = strftime('%Y-%m', date(m1.ym || '-01', '-1 month'))\n), avg_chg AS (\n  SELECT customer_id, AVG(chg) AS avg_monthly_change\n  FROM pairs GROUP BY customer_id\n)\nSELECT c.first_name || ' ' || c.last_name AS full_name\nFROM avg_chg a\nJOIN customer c ON c.customer_id = a.customer_id\nORDER BY a.avg_monthly_change DESC\nLIMIT 1;",
+      "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6"
+    }
+  },
+  {
+    "sequence": 4,
+    "toolCallId": "call_00_GQh8KbiKCjPlUdHB8GT25635|6206919d-69b8-4ea6-bdad-76a6b1546d43",
+    "toolName": "set_answer_spec",
+    "args": {
+      "fields": {
+        "population.entity": {
+          "value": {
+            "name": "customer",
+            "keyColumns": [
+              "customer.customer_id"
+            ]
+          },
+          "basis": "assumed",
+          "rationale": "题面问\"Which customer\"，客户实体；Schema 中 customer_id 是 customer 主键且被 payment.customer_id 外键引用"
+        },
+        "population.eligibility": {
+          "value": "只纳入在观测期内有支付记录的客户；无任何支付记录的客户没有支付金额也无月度变化，不参与排名。同时客户至少需要两个月度观测点（相邻月份）才能产生\"变化\"。",
+          "basis": "assumed",
+          "rationale": "题面要求\"月度变化\"，没有支付记录的客户无法定义该指标"
+        },
+        "population.conditions": "n/a",
+        "population.source": {
+          "value": {
+            "tables": [
+              "payment",
+              "customer"
+            ],
+            "note": "payment.customer_id → customer.customer_id"
+          },
+          "cite": [
+            {
+              "source": "schema:payment.customer_id"
+            }
+          ]
+        },
+        "population.time": {
+          "value": "全部可用支付历史（题面未指定时间范围，不设时间过滤）",
+          "basis": "assumed",
+          "rationale": "题面未给出时间范围"
+        },
+        "population.timeField": {
+          "value": "payment.payment_date"
+        },
+        "population.missing": {
+          "value": "不补零：只在客户存在支付的相邻自然月之间计算环比；没有支付的月份不视为 0"
+        },
+        "measure.formula": {
+          "open": [
+            {
+              "op": "avg",
+              "per": "customer",
+              "of": {
+                "op": "difference",
+                "per": "customer",
+                "from": {
+                  "op": "sum",
+                  "per": "customer_month",
+                  "of": "amount"
+                },
+                "to": {
+                  "op": "sum",
+                  "per": "customer_month",
+                  "of": "amount"
+                }
+              }
+            },
+            {
+              "op": "avg",
+              "per": "customer",
+              "of": {
+                "op": "difference",
+                "per": "customer",
+                "from": {
+                  "op": "avg",
+                  "per": "customer_month",
+                  "of": "amount"
+                },
+                "to": {
+                  "op": "avg",
+                  "per": "customer_month",
+                  "of": "amount"
+                }
+              }
+            },
+            {
+              "op": "avg",
+              "per": "customer",
+              "of": {
+                "op": "change_rate",
+                "per": "customer",
+                "from": {
+                  "op": "sum",
+                  "per": "customer_month",
+                  "of": "amount"
+                },
+                "to": {
+                  "op": "sum",
+                  "per": "customer_month",
+                  "of": "amount"
+                }
+              }
+            }
+          ]
+        },
+        "measure.countGrain": {
+          "value": "在客户-自然月粒度上聚合支付金额（每个客户每月一行，对 payment.amount 求和/求平均）；再在客户粒度上对相邻月的差值求平均",
+          "basis": "assumed",
+          "rationale": "题面\"monthly\"指向自然月聚合粒度"
+        },
+        "measure.denominator": {
+          "value": "avg 的分母是该客户参与计算的相邻月份对（月度变化）个数；分母为 0 的客户不参与排名",
+          "basis": "assumed",
+          "rationale": "avg 需要明确分母"
+        },
+        "grouping": "n/a",
+        "selection": {
+          "value": {
+            "n": 1,
+            "orderBy": "avg_monthly_change desc"
+          },
+          "basis": "request",
+          "quote": "highest average monthly change"
+        },
+        "selection.ties": "include_ties",
+        "output": {
+          "value": {
+            "rowMode": "top_n",
+            "rowCount": 1,
+            "columns": [
+              "full_name"
+            ]
+          }
+        }
+      }
+    },
+    "startedAt": 1791643296624,
+    "isError": false,
+    "finishedAt": 1791643299711,
+    "durationMs": 3087,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "[ANSWER_SPEC_SET] taskId=task_6c06a78d-1783-4d18-8914-22b4398099f6 revisionId=revision_0dbfaa79-5ef4-4c9b-8975-7a05e0c0cc85\n- ✓ population.entity\n- ✓ population.eligibility\n- ✓ population.conditions\n- ✓ population.source\n- ✓ population.time\n- ✓ population.timeField\n- ✓ population.missing\n- ✓ measure.formula\n- ✓ measure.countGrain\n- ✓ measure.denominator\n- ✓ grouping\n- ✓ selection\n- ✓ selection.ties\n- ✓ output\n状态：\n- 待定 measure.formula: alternative_520953fa-1c10-4106-a9f3-6e0c191b160c={\"op\":\"avg\",\"per\":\"customer\",\"of\":{\"op\":\"difference\",\"per\":\"customer\",\"from\":{\"op\":\"sum\",\"per\":\"customer_month\",\"of\":\"amount\"},\"to\":{\"op\":\"sum\",\"per\":\"customer_month\",\"of\":\"amount\"}}} missing; alternative_bdc2569d-b60d-4e2e-9a44-bc71776bfc90={\"op\":\"avg\",\"per\":\"customer\",\"of\":{\"op\":\"difference\",\"per\":\"customer\",\"from\":{\"op\":\"avg\",\"per\":\"customer_month\",\"of\":\"amount\"},\"to\":{\"op\":\"avg\",\"per\":\"customer_month\",\"of\":\"amount\"}}} missing; alternative_a25301a1-d0fe-4404-9683-f4179e0c089a={\"op\":\"avg\",\"per\":\"customer\",\"of\":{\"op\":\"change_rate\",\"per\":\"customer\",\"from\":{\"op\":\"sum\",\"per\":\"customer_month\",\"of\":\"amount\"},\"to\":{\"op\":\"sum\",\"per\":\"customer_month\",\"of\":\"amount\"}}} missing; outputs=incomplete\n- 未证实（发布时披露）: population.entity, population.eligibility, population.time, population.timeField, population.missing, measure.countGrain, measure.denominator, selection.ties, output\n- 未声明: population.joinMultiplicity\n[SPEC_FEEDBACK] revisionId=revision_0dbfaa79-5ef4-4c9b-8975-7a05e0c0cc85 status=unavailable advisory_only=true\nreason: provider_http_error\nlimitations: evidence_quote_missing:evidence_49710ff6-a5b6-4214-8983-f1f858568b39\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"assumed\",\"value\":{\"name\":\"customer\",\"keyColumns\":[\"customer.customer_id\"]}},\"population.eligibility\":{\"status\":\"assumed\",\"value\":\"只纳入在观测期内有支付记录的客户；无任何支付记录的客户没有支付金额也无月度变化，不参与排名。同时客户至少需要两个月度观测点（相邻月份）才能产生\\\"变化\\\"。\"},\"population.conditions\":{\"status\":\"not_applicable\"},\"population.source\":{\"status\":\"evidence\",\"value\":{\"tables\":[\"payment\",\"customer\"],\"note\":\"payment.customer_id → customer.customer_id\"}},\"population.time\":{\"status\":\"assumed\",\"value\":{\"expression\":\"全部可用支付历史（题面未指定时间范围，不设时间过滤）\"}},\"population.timeField\":{\"status\":\"assumed\",\"value\":\"payment.payment_date\"},\"population.missing\":{\"status\":\"assumed\",\"value\":\"不补零：只在客户存在支付的相邻自然月之间计算环比；没有支付的月份不视为 0\"},\"measure.formula\":{\"status\":\"open\",\"alternatives\":[{\"id\":\"alternative_520953fa-1c10-4106-a9f3-6e0c191b160c\",\"value\":{\"op\":\"avg\",\"per\":\"customer\",\"of\":{\"op\":\"difference\",\"per\":\"customer\",\"from\":{\"op\":\"sum\",\"per\":\"customer_month\",\"of\":\"amount\"},\"to\":{\"op\":\"sum\",\"per\":\"customer_month\",\"of\":\"amount\"}}}},{\"id\":\"alternative_bdc2569d-b60d-4e2e-9a44-bc71776bfc90\",\"value\":{\"op\":\"avg\",\"per\":\"customer\",\"of\":{\"op\":\"difference\",\"per\":\"customer\",\"from\":{\"op\":\"avg\",\"per\":\"customer_month\",\"of\":\"amount\"},\"to\":{\"op\":\"avg\",\"per\":\"customer_month\",\"of\":\"amount\"}}}},{\"id\":\"alternative_a25301a1-d0fe-4404-9683-f4179e0c089a\",\"value\":{\"op\":\"avg\",\"per\":\"customer\",\"of\":{\"op\":\"change_rate\",\"per\":\"customer\",\"from\":{\"op\":\"sum\",\"per\":\"customer_month\",\"of\":\"amount\"},\"to\":{\"op\":\"sum\",\"per\":\"customer_month\",\"of\":\"amount\"}}}}]},\"measure.countGrain\":{\"status\":\"assumed\",\"value\":\"在客户-自然月粒度上聚合支付金额（每个客户每月一行，对 payment.amount 求和/求平均）；再在客户粒度上对相邻月的差值求平均\"},\"measure.denominator\":{\"status\":\"assumed\",\"value\":\"avg 的分母是该客户参与计算的相邻月份对（月度变化）个数；分母为 0 的客户不参与排名\"},\"grouping\":{\"status\":\"not_applicable\"},\"selection\":{\"status\":\"request\",\"value\":{\"n\":1,\"orderBy\":\"avg_monthly_change desc\"}},\"selection.ties\":{\"status\":\"assumed\",\"value\":\"include_ties\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"top_n\",\"rowCount\":1,\"columns\":[\"full_name\"]}}}"
+        }
+      ],
+      "details": {
+        "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6",
+        "revisionId": "revision_0dbfaa79-5ef4-4c9b-8975-7a05e0c0cc85",
+        "fields": [
+          {
+            "path": "population.entity",
+            "status": "assumed",
+            "value": {
+              "name": "customer",
+              "keyColumns": [
+                "customer.customer_id"
+              ]
+            },
+            "rationale": "题面问\"Which customer\"，客户实体；Schema 中 customer_id 是 customer 主键且被 payment.customer_id 外键引用"
+          },
+          {
+            "path": "population.eligibility",
+            "status": "assumed",
+            "value": "只纳入在观测期内有支付记录的客户；无任何支付记录的客户没有支付金额也无月度变化，不参与排名。同时客户至少需要两个月度观测点（相邻月份）才能产生\"变化\"。",
+            "rationale": "题面要求\"月度变化\"，没有支付记录的客户无法定义该指标"
+          },
+          {
+            "path": "population.conditions",
+            "status": "not_applicable"
+          },
+          {
+            "path": "population.source",
+            "status": "evidence",
+            "value": {
+              "tables": [
+                "payment",
+                "customer"
+              ],
+              "note": "payment.customer_id → customer.customer_id"
+            },
+            "evidenceIds": [
+              "evidence_49710ff6-a5b6-4214-8983-f1f858568b39"
+            ]
+          },
+          {
+            "path": "population.time",
+            "status": "assumed",
+            "value": {
+              "expression": "全部可用支付历史（题面未指定时间范围，不设时间过滤）"
+            },
+            "rationale": "题面未给出时间范围"
+          },
+          {
+            "path": "population.timeField",
+            "status": "assumed",
+            "value": "payment.payment_date"
+          },
+          {
+            "path": "population.missing",
+            "status": "assumed",
+            "value": "不补零：只在客户存在支付的相邻自然月之间计算环比；没有支付的月份不视为 0"
+          },
+          {
+            "path": "measure.formula",
+            "status": "open",
+            "alternatives": [
+              {
+                "id": "alternative_520953fa-1c10-4106-a9f3-6e0c191b160c",
+                "value": {
+                  "op": "avg",
+                  "per": "customer",
+                  "of": {
+                    "op": "difference",
+                    "per": "customer",
+                    "from": {
+                      "op": "sum",
+                      "per": "customer_month",
+                      "of": "amount"
+                    },
+                    "to": {
+                      "op": "sum",
+                      "per": "customer_month",
+                      "of": "amount"
+                    }
+                  }
+                },
+                "probe": {
+                  "alternativeId": "alternative_520953fa-1c10-4106-a9f3-6e0c191b160c",
+                  "state": "missing"
+                }
+              },
+              {
+                "id": "alternative_bdc2569d-b60d-4e2e-9a44-bc71776bfc90",
+                "value": {
+                  "op": "avg",
+                  "per": "customer",
+                  "of": {
+                    "op": "difference",
+                    "per": "customer",
+                    "from": {
+                      "op": "avg",
+                      "per": "customer_month",
+                      "of": "amount"
+                    },
+                    "to": {
+                      "op": "avg",
+                      "per": "customer_month",
+                      "of": "amount"
+                    }
+                  }
+                },
+                "probe": {
+                  "alternativeId": "alternative_bdc2569d-b60d-4e2e-9a44-bc71776bfc90",
+                  "state": "missing"
+                }
+              },
+              {
+                "id": "alternative_a25301a1-d0fe-4404-9683-f4179e0c089a",
+                "value": {
+                  "op": "avg",
+                  "per": "customer",
+                  "of": {
+                    "op": "change_rate",
+                    "per": "customer",
+                    "from": {
+                      "op": "sum",
+                      "per": "customer_month",
+                      "of": "amount"
+                    },
+                    "to": {
+                      "op": "sum",
+                      "per": "customer_month",
+                      "of": "amount"
+                    }
+                  }
+                },
+                "probe": {
+                  "alternativeId": "alternative_a25301a1-d0fe-4404-9683-f4179e0c089a",
+                  "state": "missing"
+                }
+              }
+            ],
+            "outputs": "incomplete"
+          },
+          {
+            "path": "measure.countGrain",
+            "status": "assumed",
+            "value": "在客户-自然月粒度上聚合支付金额（每个客户每月一行，对 payment.amount 求和/求平均）；再在客户粒度上对相邻月的差值求平均",
+            "rationale": "题面\"monthly\"指向自然月聚合粒度"
+          },
+          {
+            "path": "measure.denominator",
+            "status": "assumed",
+            "value": "avg 的分母是该客户参与计算的相邻月份对（月度变化）个数；分母为 0 的客户不参与排名",
+            "rationale": "avg 需要明确分母"
+          },
+          {
+            "path": "grouping",
+            "status": "not_applicable"
+          },
+          {
+            "path": "selection",
+            "status": "request",
+            "value": {
+              "n": 1,
+              "orderBy": "avg_monthly_change desc"
+            },
+            "evidenceIds": [
+              "evidence_6b2e1543-d02d-42dd-8336-38dafba6b101"
+            ]
+          },
+          {
+            "path": "selection.ties",
+            "status": "assumed",
+            "value": "include_ties"
+          },
+          {
+            "path": "output",
+            "status": "assumed",
+            "value": {
+              "rowMode": "top_n",
+              "rowCount": 1,
+              "columns": [
+                "full_name"
+              ]
+            }
+          }
+        ],
+        "undeclared": [
+          "population.joinMultiplicity"
+        ],
+        "open": [
+          "measure.formula"
+        ],
+        "unverified": [
+          "population.entity",
+          "population.eligibility",
+          "population.time",
+          "population.timeField",
+          "population.missing",
+          "measure.countGrain",
+          "measure.denominator",
+          "selection.ties",
+          "output"
+        ],
+        "specFeedback": {
+          "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6",
+          "revisionId": "revision_0dbfaa79-5ef4-4c9b-8975-7a05e0c0cc85",
+          "ruleVersion": "spec-feedback-v2",
+          "status": "unavailable",
+          "deterministicIssues": [],
+          "evidenceIds": [
+            "request_66684490c9399f4f630a1c86",
+            "evidence_49710ff6-a5b6-4214-8983-f1f858568b39",
+            "evidence_6b2e1543-d02d-42dd-8336-38dafba6b101"
+          ],
+          "limitations": [
+            "evidence_quote_missing:evidence_49710ff6-a5b6-4214-8983-f1f858568b39"
+          ],
+          "startedAt": "2026-10-10T14:41:36.642Z",
+          "inputHash": "19077d318fb8e19e43a59a72c5058ecfb9941ea0022f2ab5ff9d632e55ffc101",
+          "reason": "provider_http_error",
+          "completedAt": "2026-10-10T14:41:39.694Z",
+          "durationMs": 3052
+        },
+        "outcomes": [
+          {
+            "path": "population.entity",
+            "status": "applied"
+          },
+          {
+            "path": "population.eligibility",
+            "status": "applied"
+          },
+          {
+            "path": "population.conditions",
+            "status": "applied"
+          },
+          {
+            "path": "population.source",
+            "status": "applied"
+          },
+          {
+            "path": "population.time",
+            "status": "applied"
+          },
+          {
+            "path": "population.timeField",
+            "status": "applied"
+          },
+          {
+            "path": "population.missing",
+            "status": "applied"
+          },
+          {
+            "path": "measure.formula",
+            "status": "applied"
+          },
+          {
+            "path": "measure.countGrain",
+            "status": "applied"
+          },
+          {
+            "path": "measure.denominator",
+            "status": "applied"
+          },
+          {
+            "path": "grouping",
+            "status": "applied"
+          },
+          {
+            "path": "selection",
+            "status": "applied"
+          },
+          {
+            "path": "selection.ties",
+            "status": "applied"
+          },
+          {
+            "path": "output",
+            "status": "applied"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "sequence": 5,
+    "toolCallId": "call_00_Y7GvzmnbufCxWt9WPYEc3155|9de8ec3f-a2c2-4e63-8110-87d4c419a4a8",
+    "toolName": "set_answer_spec",
+    "args": {
+      "fields": {
+        "population.joinMultiplicity": {
+          "value": "customer ↔ payment 为 1:N（payment.customer_id → customer.customer_id）。按客户聚合支付金额时每个 payment 行只计一次，不会因连接重复计数；客户端属性在客户粒度上取任一行即可。",
+          "cite": [
+            {
+              "source": "schema:payment.customer_id"
+            }
+          ]
+        }
+      },
+      "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6"
+    },
+    "startedAt": 1791643306203,
+    "isError": false,
+    "finishedAt": 1791643307918,
+    "durationMs": 1715,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "[ANSWER_SPEC_SET] taskId=task_6c06a78d-1783-4d18-8914-22b4398099f6 revisionId=revision_d0a5cf2d-63cd-40db-9023-993f0fe9e07d\n- ✓ population.joinMultiplicity\n状态：\n- 待定 measure.formula: alternative_520953fa-1c10-4106-a9f3-6e0c191b160c={\"op\":\"avg\",\"per\":\"customer\",\"of\":{\"op\":\"difference\",\"per\":\"customer\",\"from\":{\"op\":\"sum\",\"per\":\"customer_month\",\"of\":\"amount\"},\"to\":{\"op\":\"sum\",\"per\":\"customer_month\",\"of\":\"amount\"}}} missing; alternative_bdc2569d-b60d-4e2e-9a44-bc71776bfc90={\"op\":\"avg\",\"per\":\"customer\",\"of\":{\"op\":\"difference\",\"per\":\"customer\",\"from\":{\"op\":\"avg\",\"per\":\"customer_month\",\"of\":\"amount\"},\"to\":{\"op\":\"avg\",\"per\":\"customer_month\",\"of\":\"amount\"}}} missing; alternative_a25301a1-d0fe-4404-9683-f4179e0c089a={\"op\":\"avg\",\"per\":\"customer\",\"of\":{\"op\":\"change_rate\",\"per\":\"customer\",\"from\":{\"op\":\"sum\",\"per\":\"customer_month\",\"of\":\"amount\"},\"to\":{\"op\":\"sum\",\"per\":\"customer_month\",\"of\":\"amount\"}}} missing; outputs=incomplete\n- 未证实（发布时披露）: population.entity, population.eligibility, population.time, population.timeField, population.missing, measure.countGrain, measure.denominator, selection.ties, output\n[SPEC_FEEDBACK] revisionId=revision_d0a5cf2d-63cd-40db-9023-993f0fe9e07d status=unavailable advisory_only=true\nreason: provider_http_error\nlimitations: evidence_quote_missing:evidence_49710ff6-a5b6-4214-8983-f1f858568b39, evidence_quote_missing:evidence_6480fcac-04c6-4cf6-ac92-9910887defe7\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"assumed\",\"value\":{\"name\":\"customer\",\"keyColumns\":[\"customer.customer_id\"]}},\"population.eligibility\":{\"status\":\"assumed\",\"value\":\"只纳入在观测期内有支付记录的客户；无任何支付记录的客户没有支付金额也无月度变化，不参与排名。同时客户至少需要两个月度观测点（相邻月份）才能产生\\\"变化\\\"。\"},\"population.conditions\":{\"status\":\"not_applicable\"},\"population.source\":{\"status\":\"evidence\",\"value\":{\"tables\":[\"payment\",\"customer\"],\"note\":\"payment.customer_id → customer.customer_id\"}},\"population.time\":{\"status\":\"assumed\",\"value\":{\"expression\":\"全部可用支付历史（题面未指定时间范围，不设时间过滤）\"}},\"population.timeField\":{\"status\":\"assumed\",\"value\":\"payment.payment_date\"},\"population.missing\":{\"status\":\"assumed\",\"value\":\"不补零：只在客户存在支付的相邻自然月之间计算环比；没有支付的月份不视为 0\"},\"population.joinMultiplicity\":{\"status\":\"evidence\",\"value\":\"customer ↔ payment 为 1:N（payment.customer_id → customer.customer_id）。按客户聚合支付金额时每个 payment 行只计一次，不会因连接重复计数；客户端属性在客户粒度上取任一行即可。\"},\"measure.formula\":{\"status\":\"open\",\"alternatives\":[{\"id\":\"alternative_520953fa-1c10-4106-a9f3-6e0c191b160c\",\"value\":{\"op\":\"avg\",\"per\":\"customer\",\"of\":{\"op\":\"difference\",\"per\":\"customer\",\"from\":{\"op\":\"sum\",\"per\":\"customer_month\",\"of\":\"amount\"},\"to\":{\"op\":\"sum\",\"per\":\"customer_month\",\"of\":\"amount\"}}}},{\"id\":\"alternative_bdc2569d-b60d-4e2e-9a44-bc71776bfc90\",\"value\":{\"op\":\"avg\",\"per\":\"customer\",\"of\":{\"op\":\"difference\",\"per\":\"customer\",\"from\":{\"op\":\"avg\",\"per\":\"customer_month\",\"of\":\"amount\"},\"to\":{\"op\":\"avg\",\"per\":\"customer_month\",\"of\":\"amount\"}}}},{\"id\":\"alternative_a25301a1-d0fe-4404-9683-f4179e0c089a\",\"value\":{\"op\":\"avg\",\"per\":\"customer\",\"of\":{\"op\":\"change_rate\",\"per\":\"customer\",\"from\":{\"op\":\"sum\",\"per\":\"customer_month\",\"of\":\"amount\"},\"to\":{\"op\":\"sum\",\"per\":\"customer_month\",\"of\":\"amount\"}}}}]},\"measure.countGrain\":{\"status\":\"assumed\",\"value\":\"在客户-自然月粒度上聚合支付金额（每个客户每月一行，对 payment.amount 求和/求平均）；再在客户粒度上对相邻月的差值求平均\"},\"measure.denominator\":{\"status\":\"assumed\",\"value\":\"avg 的分母是该客户参与计算的相邻月份对（月度变化）个数；分母为 0 的客户不参与排名\"},\"grouping\":{\"status\":\"not_applicable\"},\"selection\":{\"status\":\"request\",\"value\":{\"n\":1,\"orderBy\":\"avg_monthly_change desc\"}},\"selection.ties\":{\"status\":\"assumed\",\"value\":\"include_ties\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"top_n\",\"rowCount\":1,\"columns\":[\"full_name\"]}}}"
+        }
+      ],
+      "details": {
+        "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6",
+        "revisionId": "revision_d0a5cf2d-63cd-40db-9023-993f0fe9e07d",
+        "parentRevisionId": "revision_0dbfaa79-5ef4-4c9b-8975-7a05e0c0cc85",
+        "fields": [
+          {
+            "path": "population.entity",
+            "status": "assumed",
+            "value": {
+              "name": "customer",
+              "keyColumns": [
+                "customer.customer_id"
+              ]
+            },
+            "rationale": "题面问\"Which customer\"，客户实体；Schema 中 customer_id 是 customer 主键且被 payment.customer_id 外键引用"
+          },
+          {
+            "path": "population.eligibility",
+            "status": "assumed",
+            "value": "只纳入在观测期内有支付记录的客户；无任何支付记录的客户没有支付金额也无月度变化，不参与排名。同时客户至少需要两个月度观测点（相邻月份）才能产生\"变化\"。",
+            "rationale": "题面要求\"月度变化\"，没有支付记录的客户无法定义该指标"
+          },
+          {
+            "path": "population.conditions",
+            "status": "not_applicable"
+          },
+          {
+            "path": "population.source",
+            "status": "evidence",
+            "value": {
+              "tables": [
+                "payment",
+                "customer"
+              ],
+              "note": "payment.customer_id → customer.customer_id"
+            },
+            "evidenceIds": [
+              "evidence_49710ff6-a5b6-4214-8983-f1f858568b39"
+            ]
+          },
+          {
+            "path": "population.time",
+            "status": "assumed",
+            "value": {
+              "expression": "全部可用支付历史（题面未指定时间范围，不设时间过滤）"
+            },
+            "rationale": "题面未给出时间范围"
+          },
+          {
+            "path": "population.timeField",
+            "status": "assumed",
+            "value": "payment.payment_date"
+          },
+          {
+            "path": "population.missing",
+            "status": "assumed",
+            "value": "不补零：只在客户存在支付的相邻自然月之间计算环比；没有支付的月份不视为 0"
+          },
+          {
+            "path": "population.joinMultiplicity",
+            "status": "evidence",
+            "value": "customer ↔ payment 为 1:N（payment.customer_id → customer.customer_id）。按客户聚合支付金额时每个 payment 行只计一次，不会因连接重复计数；客户端属性在客户粒度上取任一行即可。",
+            "evidenceIds": [
+              "evidence_6480fcac-04c6-4cf6-ac92-9910887defe7"
+            ]
+          },
+          {
+            "path": "measure.formula",
+            "status": "open",
+            "alternatives": [
+              {
+                "id": "alternative_520953fa-1c10-4106-a9f3-6e0c191b160c",
+                "value": {
+                  "op": "avg",
+                  "per": "customer",
+                  "of": {
+                    "op": "difference",
+                    "per": "customer",
+                    "from": {
+                      "op": "sum",
+                      "per": "customer_month",
+                      "of": "amount"
+                    },
+                    "to": {
+                      "op": "sum",
+                      "per": "customer_month",
+                      "of": "amount"
+                    }
+                  }
+                },
+                "probe": {
+                  "alternativeId": "alternative_520953fa-1c10-4106-a9f3-6e0c191b160c",
+                  "state": "missing"
+                }
+              },
+              {
+                "id": "alternative_bdc2569d-b60d-4e2e-9a44-bc71776bfc90",
+                "value": {
+                  "op": "avg",
+                  "per": "customer",
+                  "of": {
+                    "op": "difference",
+                    "per": "customer",
+                    "from": {
+                      "op": "avg",
+                      "per": "customer_month",
+                      "of": "amount"
+                    },
+                    "to": {
+                      "op": "avg",
+                      "per": "customer_month",
+                      "of": "amount"
+                    }
+                  }
+                },
+                "probe": {
+                  "alternativeId": "alternative_bdc2569d-b60d-4e2e-9a44-bc71776bfc90",
+                  "state": "missing"
+                }
+              },
+              {
+                "id": "alternative_a25301a1-d0fe-4404-9683-f4179e0c089a",
+                "value": {
+                  "op": "avg",
+                  "per": "customer",
+                  "of": {
+                    "op": "change_rate",
+                    "per": "customer",
+                    "from": {
+                      "op": "sum",
+                      "per": "customer_month",
+                      "of": "amount"
+                    },
+                    "to": {
+                      "op": "sum",
+                      "per": "customer_month",
+                      "of": "amount"
+                    }
+                  }
+                },
+                "probe": {
+                  "alternativeId": "alternative_a25301a1-d0fe-4404-9683-f4179e0c089a",
+                  "state": "missing"
+                }
+              }
+            ],
+            "outputs": "incomplete"
+          },
+          {
+            "path": "measure.countGrain",
+            "status": "assumed",
+            "value": "在客户-自然月粒度上聚合支付金额（每个客户每月一行，对 payment.amount 求和/求平均）；再在客户粒度上对相邻月的差值求平均",
+            "rationale": "题面\"monthly\"指向自然月聚合粒度"
+          },
+          {
+            "path": "measure.denominator",
+            "status": "assumed",
+            "value": "avg 的分母是该客户参与计算的相邻月份对（月度变化）个数；分母为 0 的客户不参与排名",
+            "rationale": "avg 需要明确分母"
+          },
+          {
+            "path": "grouping",
+            "status": "not_applicable"
+          },
+          {
+            "path": "selection",
+            "status": "request",
+            "value": {
+              "n": 1,
+              "orderBy": "avg_monthly_change desc"
+            },
+            "evidenceIds": [
+              "evidence_6b2e1543-d02d-42dd-8336-38dafba6b101"
+            ]
+          },
+          {
+            "path": "selection.ties",
+            "status": "assumed",
+            "value": "include_ties"
+          },
+          {
+            "path": "output",
+            "status": "assumed",
+            "value": {
+              "rowMode": "top_n",
+              "rowCount": 1,
+              "columns": [
+                "full_name"
+              ]
+            }
+          }
+        ],
+        "undeclared": [],
+        "open": [
+          "measure.formula"
+        ],
+        "unverified": [
+          "population.entity",
+          "population.eligibility",
+          "population.time",
+          "population.timeField",
+          "population.missing",
+          "measure.countGrain",
+          "measure.denominator",
+          "selection.ties",
+          "output"
+        ],
+        "specFeedback": {
+          "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6",
+          "revisionId": "revision_d0a5cf2d-63cd-40db-9023-993f0fe9e07d",
+          "ruleVersion": "spec-feedback-v2",
+          "status": "unavailable",
+          "deterministicIssues": [],
+          "evidenceIds": [
+            "request_66684490c9399f4f630a1c86",
+            "evidence_49710ff6-a5b6-4214-8983-f1f858568b39",
+            "evidence_6b2e1543-d02d-42dd-8336-38dafba6b101",
+            "evidence_6480fcac-04c6-4cf6-ac92-9910887defe7"
+          ],
+          "limitations": [
+            "evidence_quote_missing:evidence_49710ff6-a5b6-4214-8983-f1f858568b39",
+            "evidence_quote_missing:evidence_6480fcac-04c6-4cf6-ac92-9910887defe7"
+          ],
+          "startedAt": "2026-10-10T14:41:46.215Z",
+          "inputHash": "f5a7b8aba5416c017c07f8ffe8af45616d4ee2eb62e06ff65a83e8804f102c22",
+          "reason": "provider_http_error",
+          "completedAt": "2026-10-10T14:41:47.895Z",
+          "durationMs": 1680
+        },
+        "outcomes": [
+          {
+            "path": "population.joinMultiplicity",
+            "status": "applied"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "sequence": 6,
+    "toolCallId": "call_00_YCypGC9H8YinRcKz3fQ10969|359f2287-fc9d-4b7f-b10b-ee026772d589",
+    "toolName": "query_database",
+    "args": {
+      "kind": "exploration",
+      "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6",
+      "sql": "SELECT MIN(payment_date) AS min_dt, MAX(payment_date) AS max_dt, COUNT(*) AS n_payments, COUNT(DISTINCT customer_id) AS n_customers, COUNT(DISTINCT strftime('%Y-%m', payment_date)) AS n_months FROM payment;"
+    },
+    "startedAt": 1791643312367,
+    "isError": false,
+    "finishedAt": 1791643312517,
+    "durationMs": 150,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_cf23b222-9638-465e-a599-153687e7e1cf\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nmin_dt | max_dt | n_payments | n_customers | n_months\n2005-05-24 22:53:30.000 | 2006-02-14 15:16:03.000 | 16049 | 599 | 5"
+        }
+      ],
+      "details": {
+        "kind": "exploration",
+        "artifact": {
+          "kind": "exploration",
+          "evidenceId": "evidence_cf23b222-9638-465e-a599-153687e7e1cf",
+          "preview": {
+            "columns": [
+              "min_dt",
+              "max_dt",
+              "n_payments",
+              "n_customers",
+              "n_months"
+            ],
+            "rows": [
+              [
+                "2005-05-24 22:53:30.000",
+                "2006-02-14 15:16:03.000",
+                16049,
+                599,
+                5
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "TEXT",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          }
+        },
+        "preview": "[Circular]",
+        "findings": [],
+        "attemptId": "attempt_c2c6b208-fcb9-4240-9352-2de030d93077"
+      }
+    }
+  },
+  {
+    "sequence": 7,
+    "toolCallId": "call_01_gKsrs2QXcxX8PqEw7ixQ6011|1a7434f7-70fc-478d-acaf-cd88fb8375e9",
+    "toolName": "query_database",
+    "args": {
+      "kind": "exploration",
+      "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6",
+      "sql": "SELECT months_with_payment, COUNT(*) AS n_customers FROM (SELECT customer_id, COUNT(DISTINCT strftime('%Y-%m', payment_date)) AS months_with_payment FROM payment GROUP BY customer_id) GROUP BY months_with_payment ORDER BY months_with_payment;"
+    },
+    "startedAt": 1791643312379,
+    "isError": false,
+    "finishedAt": 1791643312563,
+    "durationMs": 184,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_d9251bef-0897-4373-bac0-86fdae861a22\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nmonths_with_payment | n_customers\n2 | 1\n3 | 65\n4 | 396\n5 | 137"
+        }
+      ],
+      "details": {
+        "kind": "exploration",
+        "artifact": {
+          "kind": "exploration",
+          "evidenceId": "evidence_d9251bef-0897-4373-bac0-86fdae861a22",
+          "preview": {
+            "columns": [
+              "months_with_payment",
+              "n_customers"
+            ],
+            "rows": [
+              [
+                2,
+                1
+              ],
+              [
+                3,
+                65
+              ],
+              [
+                4,
+                396
+              ],
+              [
+                5,
+                137
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 4,
+            "truncated": false
+          }
+        },
+        "preview": "[Circular]",
+        "findings": [],
+        "attemptId": "attempt_aac8669a-5a90-4968-8406-b0332a30ddeb"
+      }
+    }
+  },
+  {
+    "sequence": 8,
+    "toolCallId": "call_00_vHStP3NZCAgZG7FRvTPT0441|59875b86-b3fc-4913-af33-315533f34ccc",
+    "toolName": "query_database",
+    "args": {
+      "kind": "exploration",
+      "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6",
+      "sql": "WITH monthly AS (\n  SELECT customer_id, strftime('%Y-%m', payment_date) AS ym, SUM(amount) AS val\n  FROM payment GROUP BY customer_id, ym\n), d AS (\n  SELECT customer_id, val - LAG(val) OVER (PARTITION BY customer_id ORDER BY ym) AS chg\n  FROM monthly\n), a AS (\n  SELECT customer_id, AVG(chg) AS metric FROM d WHERE chg IS NOT NULL GROUP BY customer_id\n)\nSELECT c.first_name || ' ' || c.last_name AS full_name\nFROM a JOIN customer c ON c.customer_id = a.customer_id\nORDER BY a.metric DESC LIMIT 1;",
+      "probe": {
+        "path": "measure.formula",
+        "alternativeId": "alternative_520953fa-1c10-4106-a9f3-6e0c191b160c"
+      }
+    },
+    "startedAt": 1791643336042,
+    "isError": false,
+    "finishedAt": 1791643336178,
+    "durationMs": 136,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_a0626b06-9be5-435a-b08a-394b1a40dca9\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\n[PROBE] path=measure.formula alternativeId=alternative_520953fa-1c10-4106-a9f3-6e0c191b160c rows=1 output=252d501df712\nAlternatives of the same field with equal output ids produce the same answer.\nfull_name\nHECTOR POINDEXTER"
+        }
+      ],
+      "details": {
+        "kind": "exploration",
+        "artifact": {
+          "kind": "exploration",
+          "evidenceId": "evidence_a0626b06-9be5-435a-b08a-394b1a40dca9",
+          "preview": {
+            "columns": [
+              "full_name"
+            ],
+            "rows": [
+              [
+                "HECTOR POINDEXTER"
+              ]
+            ],
+            "columnTypes": [
+              "TEXT"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          }
+        },
+        "preview": "[Circular]",
+        "findings": [],
+        "attemptId": "attempt_65dc662b-8bb5-4721-97e6-320f6ec0690e",
+        "probe": {
+          "path": "measure.formula",
+          "alternativeId": "alternative_520953fa-1c10-4106-a9f3-6e0c191b160c",
+          "rowCount": 1,
+          "state": "available",
+          "output": "252d501df712"
+        }
+      }
+    }
+  },
+  {
+    "sequence": 9,
+    "toolCallId": "call_01_7MYZk2CT4C4EgDUFcOxM8004|4754d47e-5f45-4c08-8d13-87f64b757b13",
+    "toolName": "query_database",
+    "args": {
+      "kind": "exploration",
+      "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6",
+      "sql": "WITH monthly AS (\n  SELECT customer_id, strftime('%Y-%m', payment_date) AS ym, AVG(amount) AS val\n  FROM payment GROUP BY customer_id, ym\n), d AS (\n  SELECT customer_id, val - LAG(val) OVER (PARTITION BY customer_id ORDER BY ym) AS chg\n  FROM monthly\n), a AS (\n  SELECT customer_id, AVG(chg) AS metric FROM d WHERE chg IS NOT NULL GROUP BY customer_id\n)\nSELECT c.first_name || ' ' || c.last_name AS full_name\nFROM a JOIN customer c ON c.customer_id = a.customer_id\nORDER BY a.metric DESC LIMIT 1;",
+      "probe": {
+        "path": "measure.formula",
+        "alternativeId": "alternative_bdc2569d-b60d-4e2e-9a44-bc71776bfc90"
+      }
+    },
+    "startedAt": 1791643336053,
+    "isError": false,
+    "finishedAt": 1791643336207,
+    "durationMs": 154,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_825d0e72-19b2-4ec5-9d51-d11aa05d62a4\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\n[PROBE] path=measure.formula alternativeId=alternative_bdc2569d-b60d-4e2e-9a44-bc71776bfc90 rows=1 output=5873ce90997e\nAlternatives of the same field with equal output ids produce the same answer.\nfull_name\nASHLEY RICHARDSON"
+        }
+      ],
+      "details": {
+        "kind": "exploration",
+        "artifact": {
+          "kind": "exploration",
+          "evidenceId": "evidence_825d0e72-19b2-4ec5-9d51-d11aa05d62a4",
+          "preview": {
+            "columns": [
+              "full_name"
+            ],
+            "rows": [
+              [
+                "ASHLEY RICHARDSON"
+              ]
+            ],
+            "columnTypes": [
+              "TEXT"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          }
+        },
+        "preview": "[Circular]",
+        "findings": [],
+        "attemptId": "attempt_a4425284-a095-4ec9-9e61-e32fe80c684d",
+        "probe": {
+          "path": "measure.formula",
+          "alternativeId": "alternative_bdc2569d-b60d-4e2e-9a44-bc71776bfc90",
+          "rowCount": 1,
+          "state": "available",
+          "output": "5873ce90997e"
+        }
+      }
+    }
+  },
+  {
+    "sequence": 10,
+    "toolCallId": "call_02_bP9e8mW9k02Vk31eIsei2114|29cea3eb-d31c-48e2-b37c-745813b6b3ff",
+    "toolName": "query_database",
+    "args": {
+      "kind": "exploration",
+      "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6",
+      "sql": "WITH monthly AS (\n  SELECT customer_id, strftime('%Y-%m', payment_date) AS ym, SUM(amount) AS val\n  FROM payment GROUP BY customer_id, ym\n), d AS (\n  SELECT customer_id, (val - LAG(val) OVER (PARTITION BY customer_id ORDER BY ym)) AS chg\n  FROM monthly\n), a AS (\n  SELECT customer_id, AVG(chg) AS metric FROM d WHERE chg IS NOT NULL GROUP BY customer_id\n)\nSELECT c.first_name || ' ' || c.last_name AS full_name\nFROM a JOIN customer c ON c.customer_id = a.customer_id\nORDER BY a.metric DESC LIMIT 1;",
+      "probe": {
+        "path": "measure.formula",
+        "alternativeId": "alternative_a25301a1-d0fe-4404-9683-f4179e0c089a"
+      }
+    },
+    "startedAt": 1791643336070,
+    "isError": false,
+    "finishedAt": 1791643336240,
+    "durationMs": 170,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_01076e4d-2062-466f-9717-e1a605601d53\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\n[PROBE] path=measure.formula alternativeId=alternative_a25301a1-d0fe-4404-9683-f4179e0c089a rows=1 output=252d501df712\nAlternatives of the same field with equal output ids produce the same answer.\nfull_name\nHECTOR POINDEXTER"
+        }
+      ],
+      "details": {
+        "kind": "exploration",
+        "artifact": {
+          "kind": "exploration",
+          "evidenceId": "evidence_01076e4d-2062-466f-9717-e1a605601d53",
+          "preview": {
+            "columns": [
+              "full_name"
+            ],
+            "rows": [
+              [
+                "HECTOR POINDEXTER"
+              ]
+            ],
+            "columnTypes": [
+              "TEXT"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          }
+        },
+        "preview": "[Circular]",
+        "findings": [],
+        "attemptId": "attempt_0afea078-0c16-4e5a-a847-c2da2eed91ed",
+        "probe": {
+          "path": "measure.formula",
+          "alternativeId": "alternative_a25301a1-d0fe-4404-9683-f4179e0c089a",
+          "rowCount": 1,
+          "state": "available",
+          "output": "252d501df712"
+        }
+      }
+    }
+  },
+  {
+    "sequence": 11,
+    "toolCallId": "call_00_HMxG3iFO6xZQ6qFBzt3h5523|b0a40ca9-ca60-4894-b8f8-02a34d8f9144",
+    "toolName": "query_database",
+    "args": {
+      "kind": "exploration",
+      "probe": {
+        "alternativeId": "alternative_a25301a1-d0fe-4404-9683-f4179e0c089a",
+        "path": "measure.formula"
+      },
+      "sql": "WITH monthly AS (\n  SELECT customer_id, strftime('%Y-%m', payment_date) AS ym, SUM(amount) AS val\n  FROM payment GROUP BY customer_id, ym\n), d AS (\n  SELECT customer_id, ym, val, LAG(val) OVER (PARTITION BY customer_id ORDER BY ym) AS prev\n  FROM monthly\n), a AS (\n  SELECT customer_id, AVG((val - prev) * 1.0 / prev) AS metric\n  FROM d WHERE prev IS NOT NULL AND prev <> 0 GROUP BY customer_id\n)\nSELECT c.first_name || ' ' || c.last_name AS full_name\nFROM a JOIN customer c ON c.customer_id = a.customer_id\nORDER BY a.metric DESC LIMIT 1;",
+      "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6"
+    },
+    "startedAt": 1791643341726,
+    "isError": false,
+    "finishedAt": 1791643341846,
+    "durationMs": 120,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_bd7c1357-1d86-4f99-a277-0fadac711446\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\n[PROBE] path=measure.formula alternativeId=alternative_a25301a1-d0fe-4404-9683-f4179e0c089a rows=1 output=5873ce90997e\nAlternatives of the same field with equal output ids produce the same answer.\nfull_name\nASHLEY RICHARDSON"
+        }
+      ],
+      "details": {
+        "kind": "exploration",
+        "artifact": {
+          "kind": "exploration",
+          "evidenceId": "evidence_bd7c1357-1d86-4f99-a277-0fadac711446",
+          "preview": {
+            "columns": [
+              "full_name"
+            ],
+            "rows": [
+              [
+                "ASHLEY RICHARDSON"
+              ]
+            ],
+            "columnTypes": [
+              "TEXT"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          }
+        },
+        "preview": "[Circular]",
+        "findings": [],
+        "attemptId": "attempt_df14dda6-3406-4355-b84a-d3e97b0d8687",
+        "probe": {
+          "path": "measure.formula",
+          "alternativeId": "alternative_a25301a1-d0fe-4404-9683-f4179e0c089a",
+          "rowCount": 1,
+          "state": "available",
+          "output": "5873ce90997e"
+        }
+      }
+    }
+  },
+  {
+    "sequence": 13,
+    "toolCallId": "call_00_qQOQY5xHgiWBgi9QKQwy6474|faefe5cd-a824-49d3-9ab6-851b65bdeb28",
+    "toolName": "query_database",
+    "args": {
+      "kind": "exploration",
+      "sql": "WITH monthly AS (\n  SELECT customer_id, strftime('%Y-%m', payment_date) AS ym, SUM(amount) AS val\n  FROM payment GROUP BY customer_id, ym\n), j AS (\n  SELECT m1.customer_id AS customer_id, m1.val - m2.val AS chg\n  FROM monthly m1\n  JOIN monthly m2\n    ON m2.customer_id = m1.customer_id\n   AND m2.ym = strftime('%Y-%m', date(m1.ym || '-01', '-1 month'))\n), a AS (\n  SELECT customer_id, AVG(chg) AS metric FROM j GROUP BY customer_id\n)\nSELECT c.customer_id, c.first_name || ' ' || c.last_name AS full_name, ROUND(a.metric,2) AS avg_monthly_change\nFROM a JOIN customer c ON c.customer_id = a.customer_id\nORDER BY a.metric DESC LIMIT 5;",
+      "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6"
+    },
+    "startedAt": 1791643363535,
+    "isError": false,
+    "finishedAt": 1791643363806,
+    "durationMs": 271,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_d083e164-d951-4c13-ba0e-c3e7ac8c9f8e\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\ncustomer_id | full_name | avg_monthly_change\n445 | MICHEAL FORMAN | 36.96\n15 | HELEN HARRIS | 34.93\n487 | HECTOR POINDEXTER | 32.45\n410 | CURTIS IRBY | 31.95\n160 | ERIN DUNN | 27.94"
+        }
+      ],
+      "details": {
+        "kind": "exploration",
+        "artifact": {
+          "kind": "exploration",
+          "evidenceId": "evidence_d083e164-d951-4c13-ba0e-c3e7ac8c9f8e",
+          "preview": {
+            "columns": [
+              "customer_id",
+              "full_name",
+              "avg_monthly_change"
+            ],
+            "rows": [
+              [
+                445,
+                "MICHEAL FORMAN",
+                36.96
+              ],
+              [
+                15,
+                "HELEN HARRIS",
+                34.93
+              ],
+              [
+                487,
+                "HECTOR POINDEXTER",
+                32.45
+              ],
+              [
+                410,
+                "CURTIS IRBY",
+                31.95
+              ],
+              [
+                160,
+                "ERIN DUNN",
+                27.94
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "TEXT",
+              "REAL"
+            ],
+            "rowCount": 5,
+            "truncated": false
+          }
+        },
+        "preview": "[Circular]",
+        "findings": [],
+        "attemptId": "attempt_d7f9f700-1178-466f-9863-5179e4d4dcd0"
+      }
+    }
+  },
+  {
+    "sequence": 14,
+    "toolCallId": "call_01_8bZ2L731eaq3Oe60W8G80857|4bba8d29-7ebf-4aa9-80d2-b5aa101fd559",
+    "toolName": "query_database",
+    "args": {
+      "kind": "exploration",
+      "sql": "WITH months AS (SELECT DISTINCT strftime('%Y-%m', payment_date) AS ym FROM payment),\ncust AS (SELECT DISTINCT customer_id FROM payment),\ngrid AS (SELECT c.customer_id, m.ym FROM cust c CROSS JOIN months m),\nfilled AS (\n  SELECT g.customer_id, g.ym, COALESCE(SUM(p.amount),0) AS val\n  FROM grid g LEFT JOIN payment p\n    ON p.customer_id = g.customer_id AND strftime('%Y-%m', p.payment_date) = g.ym\n  GROUP BY g.customer_id, g.ym\n), d AS (\n  SELECT customer_id, val - LAG(val) OVER (PARTITION BY customer_id ORDER BY ym) AS chg FROM filled\n), a AS (SELECT customer_id, AVG(chg) AS metric FROM d WHERE chg IS NOT NULL GROUP BY customer_id)\nSELECT c.customer_id, c.first_name || ' ' || c.last_name AS full_name, ROUND(a.metric,2) AS avg_monthly_change\nFROM a JOIN customer c ON c.customer_id = a.customer_id\nORDER BY a.metric DESC LIMIT 5;",
+      "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6"
+    },
+    "startedAt": 1791643363565,
+    "isError": false,
+    "finishedAt": 1791643363873,
+    "durationMs": 308,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_92d405d4-3f3c-4ee8-b75b-cf9709862882\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\ncustomer_id | full_name | avg_monthly_change\n163 | CATHY SPENCER | 1.99\n155 | GAIL KNIGHT | 1.25\n178 | MARION SNYDER | 1.25\n521 | ROLAND SOUTH | 1.25\n585 | PERRY SWAFFORD | 1.25"
+        }
+      ],
+      "details": {
+        "kind": "exploration",
+        "artifact": {
+          "kind": "exploration",
+          "evidenceId": "evidence_92d405d4-3f3c-4ee8-b75b-cf9709862882",
+          "preview": {
+            "columns": [
+              "customer_id",
+              "full_name",
+              "avg_monthly_change"
+            ],
+            "rows": [
+              [
+                163,
+                "CATHY SPENCER",
+                1.99
+              ],
+              [
+                155,
+                "GAIL KNIGHT",
+                1.25
+              ],
+              [
+                178,
+                "MARION SNYDER",
+                1.25
+              ],
+              [
+                521,
+                "ROLAND SOUTH",
+                1.25
+              ],
+              [
+                585,
+                "PERRY SWAFFORD",
+                1.25
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "TEXT",
+              "REAL"
+            ],
+            "rowCount": 5,
+            "truncated": false
+          }
+        },
+        "preview": "[Circular]",
+        "findings": [],
+        "attemptId": "attempt_8d8709f3-3f6e-4cc0-9964-3e56756e8009"
+      }
+    }
+  },
+  {
+    "sequence": 15,
+    "toolCallId": "call_02_I0J5fCgBpsFIkmXWQ8uk8710|886112c9-91c7-41fc-837d-0790ec007b8e",
+    "toolName": "query_database",
+    "args": {
+      "kind": "exploration",
+      "sql": "WITH monthly AS (\n  SELECT customer_id, strftime('%Y-%m', payment_date) AS ym, SUM(amount) AS val\n  FROM payment GROUP BY customer_id, ym\n), d AS (\n  SELECT customer_id, ym, val - LAG(val) OVER (PARTITION BY customer_id ORDER BY ym) AS chg FROM monthly\n), a AS (\n  SELECT customer_id, AVG(chg) AS metric, COUNT(*) AS n_changes FROM d WHERE chg IS NOT NULL GROUP BY customer_id\n)\nSELECT c.customer_id, c.first_name || ' ' || c.last_name AS full_name, ROUND(a.metric,2) AS avg_monthly_change, a.n_changes\nFROM a JOIN customer c ON c.customer_id = a.customer_id\nORDER BY a.metric DESC LIMIT 8;",
+      "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6"
+    },
+    "startedAt": 1791643363593,
+    "isError": false,
+    "finishedAt": 1791643363900,
+    "durationMs": 307,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_c84a267a-5bd0-4f22-922a-c640831f98f2\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\ncustomer_id | full_name | avg_monthly_change | n_changes\n487 | HECTOR POINDEXTER | 32.45 | 2\n445 | MICHEAL FORMAN | 30.44 | 2\n160 | ERIN DUNN | 27.94 | 2\n148 | ELEANOR HUNT | 27.61 | 3\n342 | HAROLD MARTINO | 27.43 | 2\n78 | LORI WOOD | 26.45 | 2\n147 | JOANNE ROBERTSON | 24.96 | 3\n137 | RHONDA KENNEDY | 23.95 | 3"
+        }
+      ],
+      "details": {
+        "kind": "exploration",
+        "artifact": {
+          "kind": "exploration",
+          "evidenceId": "evidence_c84a267a-5bd0-4f22-922a-c640831f98f2",
+          "preview": {
+            "columns": [
+              "customer_id",
+              "full_name",
+              "avg_monthly_change",
+              "n_changes"
+            ],
+            "rows": [
+              [
+                487,
+                "HECTOR POINDEXTER",
+                32.45,
+                2
+              ],
+              [
+                445,
+                "MICHEAL FORMAN",
+                30.44,
+                2
+              ],
+              [
+                160,
+                "ERIN DUNN",
+                27.94,
+                2
+              ],
+              [
+                148,
+                "ELEANOR HUNT",
+                27.61,
+                3
+              ],
+              [
+                342,
+                "HAROLD MARTINO",
+                27.43,
+                2
+              ],
+              [
+                78,
+                "LORI WOOD",
+                26.45,
+                2
+              ],
+              [
+                147,
+                "JOANNE ROBERTSON",
+                24.96,
+                3
+              ],
+              [
+                137,
+                "RHONDA KENNEDY",
+                23.95,
+                3
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "TEXT",
+              "REAL",
+              "INTEGER"
+            ],
+            "rowCount": 8,
+            "truncated": false
+          }
+        },
+        "preview": "[Circular]",
+        "findings": [],
+        "attemptId": "attempt_fa7bdeb2-cd0a-45e2-9660-6debff59c365"
+      }
+    }
+  },
+  {
+    "sequence": 16,
+    "toolCallId": "call_00_dCJmxHMv1RAK0uieiIrk5183|07c9ee86-1377-425a-8c5a-304ecd36ab28",
+    "toolName": "query_database",
+    "args": {
+      "kind": "exploration",
+      "sql": "SELECT strftime('%Y-%m', payment_date) AS ym, COUNT(*) AS n_pay, COUNT(DISTINCT customer_id) AS n_cust, ROUND(SUM(amount),2) AS total\nFROM payment GROUP BY ym ORDER BY ym;",
+      "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6"
+    },
+    "startedAt": 1791643372221,
+    "isError": false,
+    "finishedAt": 1791643372343,
+    "durationMs": 122,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_49678890-5d2b-4e4a-a58e-b0991a5fe664\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nym | n_pay | n_cust | total\n2005-05 | 1157 | 520 | 4824.43\n2005-06 | 2312 | 590 | 9631.88\n2005-07 | 6711 | 599 | 28373.89\n2005-08 | 5687 | 599 | 24072.13\n2006-02 | 182 | 158 | 514.18"
+        }
+      ],
+      "details": {
+        "kind": "exploration",
+        "artifact": {
+          "kind": "exploration",
+          "evidenceId": "evidence_49678890-5d2b-4e4a-a58e-b0991a5fe664",
+          "preview": {
+            "columns": [
+              "ym",
+              "n_pay",
+              "n_cust",
+              "total"
+            ],
+            "rows": [
+              [
+                "2005-05",
+                1157,
+                520,
+                4824.43
+              ],
+              [
+                "2005-06",
+                2312,
+                590,
+                9631.88
+              ],
+              [
+                "2005-07",
+                6711,
+                599,
+                28373.89
+              ],
+              [
+                "2005-08",
+                5687,
+                599,
+                24072.13
+              ],
+              [
+                "2006-02",
+                182,
+                158,
+                514.18
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER",
+              "INTEGER",
+              "REAL"
+            ],
+            "rowCount": 5,
+            "truncated": false
+          }
+        },
+        "preview": "[Circular]",
+        "findings": [],
+        "attemptId": "attempt_9a19b1ff-27d3-41ee-bed5-8bb74359c4aa"
+      }
+    }
+  },
+  {
+    "sequence": 17,
+    "toolCallId": "call_01_ARRuebuuM4fY8iwl0HFG8126|4f768cd2-22b7-49ca-a488-3d1f499d0896",
+    "toolName": "query_database",
+    "args": {
+      "kind": "exploration",
+      "sql": "SELECT customer_id, strftime('%Y-%m', payment_date) AS ym, COUNT(*) AS n_pay, ROUND(SUM(amount),2) AS total\nFROM payment WHERE customer_id IN (487,445,163,160,15)\nGROUP BY customer_id, ym ORDER BY customer_id, ym;",
+      "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6"
+    },
+    "startedAt": 1791643372234,
+    "isError": false,
+    "finishedAt": 1791643372362,
+    "durationMs": 128,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_814240a7-e34f-45f3-8558-699aace0318f\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\ncustomer_id | ym | n_pay | total\n15 | 2005-06 | 3 | 9.97\n15 | 2005-07 | 9 | 40.91\n15 | 2005-08 | 18 | 79.82\n15 | 2006-02 | 2 | 3.98\n160 | 2005-06 | 3 | 10.97\n160 | 2005-07 | 9 | 28.91\n160 | 2005-08 | 15 | 66.85\n163 | 2005-06 | 6 | 29.94\n163 | 2005-07 | 11 | 40.89\n163 | 2005-08 | 10 | 43.9\n163 | 2006-02 | 2 | 7.98\n445 | 2005-05 | 2 | 5.98\n445 | 2005-07 | 10 | 29.9\n445 | 2005-08 | 14 | 66.86\n487 | 2005-06 | 1 | 3.99\n487 | 2005-07 | 14 | 46.86\n487 | 2005-08 | 11 | 68.89"
+        }
+      ],
+      "details": {
+        "kind": "exploration",
+        "artifact": {
+          "kind": "exploration",
+          "evidenceId": "evidence_814240a7-e34f-45f3-8558-699aace0318f",
+          "preview": {
+            "columns": [
+              "customer_id",
+              "ym",
+              "n_pay",
+              "total"
+            ],
+            "rows": [
+              [
+                15,
+                "2005-06",
+                3,
+                9.97
+              ],
+              [
+                15,
+                "2005-07",
+                9,
+                40.91
+              ],
+              [
+                15,
+                "2005-08",
+                18,
+                79.82
+              ],
+              [
+                15,
+                "2006-02",
+                2,
+                3.98
+              ],
+              [
+                160,
+                "2005-06",
+                3,
+                10.97
+              ],
+              [
+                160,
+                "2005-07",
+                9,
+                28.91
+              ],
+              [
+                160,
+                "2005-08",
+                15,
+                66.85
+              ],
+              [
+                163,
+                "2005-06",
+                6,
+                29.94
+              ],
+              [
+                163,
+                "2005-07",
+                11,
+                40.89
+              ],
+              [
+                163,
+                "2005-08",
+                10,
+                43.9
+              ],
+              [
+                163,
+                "2006-02",
+                2,
+                7.98
+              ],
+              [
+                445,
+                "2005-05",
+                2,
+                5.98
+              ],
+              [
+                445,
+                "2005-07",
+                10,
+                29.9
+              ],
+              [
+                445,
+                "2005-08",
+                14,
+                66.86
+              ],
+              [
+                487,
+                "2005-06",
+                1,
+                3.99
+              ],
+              [
+                487,
+                "2005-07",
+                14,
+                46.86
+              ],
+              [
+                487,
+                "2005-08",
+                11,
+                68.89
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "TEXT",
+              "INTEGER",
+              "REAL"
+            ],
+            "rowCount": 17,
+            "truncated": false
+          }
+        },
+        "preview": "[Circular]",
+        "findings": [],
+        "attemptId": "attempt_cb8d6572-73a9-4880-aaa8-95eb5c0ab2df"
+      }
+    }
+  },
+  {
+    "sequence": 19,
+    "toolCallId": "call_00_oWxU25Y7aUuvmI4zwZWz4105|f6a61741-c632-432e-a7c6-5cfc1c8261f3",
+    "toolName": "query_database",
+    "args": {
+      "kind": "exploration",
+      "probe": {
+        "alternativeId": "alternative_bdc2569d-b60d-4e2e-9a44-bc71776bfc90",
+        "path": "measure.formula"
+      },
+      "sql": "WITH monthly AS (\n  SELECT customer_id, strftime('%Y-%m', payment_date) AS ym, AVG(amount) AS val\n  FROM payment GROUP BY customer_id, ym\n), j AS (\n  SELECT m1.customer_id AS customer_id, m1.val - m2.val AS chg\n  FROM monthly m1 JOIN monthly m2\n    ON m2.customer_id = m1.customer_id\n   AND m2.ym = strftime('%Y-%m', date(m1.ym || '-01', '-1 month'))\n), a AS (SELECT customer_id, AVG(chg) AS metric FROM j GROUP BY customer_id)\nSELECT c.first_name || ' ' || c.last_name AS full_name\nFROM a JOIN customer c ON c.customer_id = a.customer_id\nORDER BY a.metric DESC LIMIT 1;",
+      "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6"
+    },
+    "startedAt": 1791643403419,
+    "isError": false,
+    "finishedAt": 1791643403546,
+    "durationMs": 127,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_20974c42-eafe-45e7-9378-4b0d86860dbd\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\n[PROBE] path=measure.formula alternativeId=alternative_bdc2569d-b60d-4e2e-9a44-bc71776bfc90 rows=1 output=5873ce90997e\nAlternatives of the same field with equal output ids produce the same answer.\nfull_name\nASHLEY RICHARDSON"
+        }
+      ],
+      "details": {
+        "kind": "exploration",
+        "artifact": {
+          "kind": "exploration",
+          "evidenceId": "evidence_20974c42-eafe-45e7-9378-4b0d86860dbd",
+          "preview": {
+            "columns": [
+              "full_name"
+            ],
+            "rows": [
+              [
+                "ASHLEY RICHARDSON"
+              ]
+            ],
+            "columnTypes": [
+              "TEXT"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          }
+        },
+        "preview": "[Circular]",
+        "findings": [],
+        "attemptId": "attempt_fd045efe-7151-41c5-bf24-0f791e753b66",
+        "probe": {
+          "path": "measure.formula",
+          "alternativeId": "alternative_bdc2569d-b60d-4e2e-9a44-bc71776bfc90",
+          "rowCount": 1,
+          "state": "available",
+          "output": "5873ce90997e"
+        }
+      }
+    }
+  },
+  {
+    "sequence": 20,
+    "toolCallId": "call_01_2Uxcq3c3dqCAqqH9UmvD3379|904dad78-2348-414b-b741-a15162b0fd20",
+    "toolName": "query_database",
+    "args": {
+      "kind": "exploration",
+      "probe": {
+        "alternativeId": "alternative_a25301a1-d0fe-4404-9683-f4179e0c089a",
+        "path": "measure.formula"
+      },
+      "sql": "WITH monthly AS (\n  SELECT customer_id, strftime('%Y-%m', payment_date) AS ym, SUM(amount) AS val\n  FROM payment GROUP BY customer_id, ym\n), j AS (\n  SELECT m1.customer_id AS customer_id, (m1.val - m2.val) * 1.0 / m2.val AS chg\n  FROM monthly m1 JOIN monthly m2\n    ON m2.customer_id = m1.customer_id\n   AND m2.ym = strftime('%Y-%m', date(m1.ym || '-01', '-1 month'))\n  WHERE m2.val <> 0\n), a AS (SELECT customer_id, AVG(chg) AS metric FROM j GROUP BY customer_id)\nSELECT c.first_name || ' ' || c.last_name AS full_name\nFROM a JOIN customer c ON c.customer_id = a.customer_id\nORDER BY a.metric DESC LIMIT 1;",
+      "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6"
+    },
+    "startedAt": 1791643403437,
+    "isError": false,
+    "finishedAt": 1791643403579,
+    "durationMs": 142,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_551176b5-1ebf-406a-b0bb-ccd43b5a7c90\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\n[PROBE] path=measure.formula alternativeId=alternative_a25301a1-d0fe-4404-9683-f4179e0c089a rows=1 output=5873ce90997e\nAlternatives of the same field with equal output ids produce the same answer.\nfull_name\nASHLEY RICHARDSON"
+        }
+      ],
+      "details": {
+        "kind": "exploration",
+        "artifact": {
+          "kind": "exploration",
+          "evidenceId": "evidence_551176b5-1ebf-406a-b0bb-ccd43b5a7c90",
+          "preview": {
+            "columns": [
+              "full_name"
+            ],
+            "rows": [
+              [
+                "ASHLEY RICHARDSON"
+              ]
+            ],
+            "columnTypes": [
+              "TEXT"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          }
+        },
+        "preview": "[Circular]",
+        "findings": [],
+        "attemptId": "attempt_042b103a-83a6-48ef-8b04-e3dfb8d47d7a",
+        "probe": {
+          "path": "measure.formula",
+          "alternativeId": "alternative_a25301a1-d0fe-4404-9683-f4179e0c089a",
+          "rowCount": 1,
+          "state": "available",
+          "output": "5873ce90997e"
+        }
+      }
+    }
+  },
+  {
+    "sequence": 21,
+    "toolCallId": "call_00_vdnqA9bcWUFs9pl8EgxH5343|2df68a91-2022-4b55-9105-2efd0d77a07b",
+    "toolName": "set_answer_spec",
+    "args": {
+      "fields": {
+        "population.missing": {
+          "reason": "按 S07 “相邻观测不等于相邻日历期”修正：跨月缺口不得当作环比",
+          "value": "不补零（无业务证据证明缺月代表零活动）；只在两个日历月份严格相邻（如 2005-07 与 2005-08）时计算一次月度变化；跨月缺口（2005-08 → 2006-02）不计作“月度变化”而被排除。",
+          "basis": "assumed",
+          "rationale": "方法指引 S07：相邻观测不等于相邻日历期，缺一个月时不能把跨月跳跃自动当作环比；sql-rules §6 要求日历相邻时验证周期差。无业务定义确认缺月为零活动，故不补零。"
+        },
+        "measure.formula": {
+          "evidenceIds": [
+            "evidence_d083e164-d951-4c13-ba0e-c3e7ac8c9f8e",
+            "evidence_20974c42-eafe-45e7-9378-4b0d86860dbd",
+            "evidence_551176b5-1ebf-406a-b0bb-ccd43b5a7c90"
+          ],
+          "rationale": "将三候选逐词放回题面：题面说 \"change in payment amounts\"，是“支付金额”的变化，量纲应为金额（美元）→ 用绝对差值 difference，排除相对变化率（候选 C）；“payment amounts”的月度取值是该客户当月支付的金额合计 → 月内用 sum（候选 A），排除月内均值（候选 B）；外层 \"average\" 即对客户各次月度变化取平均。探针验证：A → MICHEAL FORMAN，B 与 C → ASHLEY RICHARDSON，A 与 B/C 输出不同；Jev 建议的最大概率候选为 A（概率 0.32，B 仅 0.04），故采纳 A。",
+          "value": {
+            "op": "avg",
+            "per": "customer",
+            "of": {
+              "op": "difference",
+              "per": "customer",
+              "from": {
+                "op": "sum",
+                "per": "customer_month",
+                "of": "amount"
+              },
+              "to": {
+                "op": "sum",
+                "per": "customer_month",
+                "of": "amount"
+              }
+            }
+          }
+        },
+        "selection.ties": {
+          "reason": "题面为单数 argmax（Which customer，最高值），且经验证无并列（第二位为 34.93），取恰好 1 行",
+          "value": "strict"
+        }
+      },
+      "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6"
+    },
+    "startedAt": 1791643416466,
+    "isError": false,
+    "finishedAt": 1791643417747,
+    "durationMs": 1281,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "[ANSWER_SPEC_SET] taskId=task_6c06a78d-1783-4d18-8914-22b4398099f6 revisionId=revision_f7ec44e3-e37e-440d-9924-245eb6a2667b\n- ✓ population.missing\n- ✓ measure.formula\n- ✓ selection.ties\n状态：\n- 未证实（发布时披露）: population.entity, population.eligibility, population.time, population.timeField, population.missing, measure.formula, measure.countGrain, measure.denominator, selection.ties, output\n- 没有待处理的字段，可以执行结果查询\n[SPEC_FEEDBACK] revisionId=revision_f7ec44e3-e37e-440d-9924-245eb6a2667b status=completed advisory_only=true\nassessment: population.relation=not_established\nassessment: measure.relation=not_established\nassessment: grouping.relation=not_established\nassessment: selection.relation=not_established\nassessment: output.relation=not_established\nassessment: output.coverage=partial\nlimitations: evidence_quote_missing:evidence_49710ff6-a5b6-4214-8983-f1f858568b39, evidence_quote_missing:evidence_6480fcac-04c6-4cf6-ac92-9910887defe7\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"assumed\",\"value\":{\"name\":\"customer\",\"keyColumns\":[\"customer.customer_id\"]}},\"population.eligibility\":{\"status\":\"assumed\",\"value\":\"只纳入在观测期内有支付记录的客户；无任何支付记录的客户没有支付金额也无月度变化，不参与排名。同时客户至少需要两个月度观测点（相邻月份）才能产生\\\"变化\\\"。\"},\"population.conditions\":{\"status\":\"not_applicable\"},\"population.source\":{\"status\":\"evidence\",\"value\":{\"tables\":[\"payment\",\"customer\"],\"note\":\"payment.customer_id → customer.customer_id\"}},\"population.time\":{\"status\":\"assumed\",\"value\":{\"expression\":\"全部可用支付历史（题面未指定时间范围，不设时间过滤）\"}},\"population.timeField\":{\"status\":\"assumed\",\"value\":\"payment.payment_date\"},\"population.missing\":{\"status\":\"assumed\",\"value\":\"不补零（无业务证据证明缺月代表零活动）；只在两个日历月份严格相邻（如 2005-07 与 2005-08）时计算一次月度变化；跨月缺口（2005-08 → 2006-02）不计作“月度变化”而被排除。\"},\"population.joinMultiplicity\":{\"status\":\"evidence\",\"value\":\"customer ↔ payment 为 1:N（payment.customer_id → customer.customer_id）。按客户聚合支付金额时每个 payment 行只计一次，不会因连接重复计数；客户端属性在客户粒度上取任一行即可。\"},\"measure.formula\":{\"status\":\"decided\",\"value\":{\"op\":\"avg\",\"per\":\"customer\",\"of\":{\"op\":\"difference\",\"per\":\"customer\",\"from\":{\"op\":\"sum\",\"per\":\"customer_month\",\"of\":\"amount\"},\"to\":{\"op\":\"sum\",\"per\":\"customer_month\",\"of\":\"amount\"}}},\"verified\":false},\"measure.countGrain\":{\"status\":\"assumed\",\"value\":\"在客户-自然月粒度上聚合支付金额（每个客户每月一行，对 payment.amount 求和/求平均）；再在客户粒度上对相邻月的差值求平均\"},\"measure.denominator\":{\"status\":\"assumed\",\"value\":\"avg 的分母是该客户参与计算的相邻月份对（月度变化）个数；分母为 0 的客户不参与排名\"},\"grouping\":{\"status\":\"not_applicable\"},\"selection\":{\"status\":\"request\",\"value\":{\"n\":1,\"orderBy\":\"avg_monthly_change desc\"}},\"selection.ties\":{\"status\":\"assumed\",\"value\":\"strict\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"top_n\",\"rowCount\":1,\"columns\":[\"full_name\"]}}}"
+        }
+      ],
+      "details": {
+        "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6",
+        "revisionId": "revision_f7ec44e3-e37e-440d-9924-245eb6a2667b",
+        "parentRevisionId": "revision_d0a5cf2d-63cd-40db-9023-993f0fe9e07d",
+        "fields": [
+          {
+            "path": "population.entity",
+            "status": "assumed",
+            "value": {
+              "name": "customer",
+              "keyColumns": [
+                "customer.customer_id"
+              ]
+            },
+            "rationale": "题面问\"Which customer\"，客户实体；Schema 中 customer_id 是 customer 主键且被 payment.customer_id 外键引用"
+          },
+          {
+            "path": "population.eligibility",
+            "status": "assumed",
+            "value": "只纳入在观测期内有支付记录的客户；无任何支付记录的客户没有支付金额也无月度变化，不参与排名。同时客户至少需要两个月度观测点（相邻月份）才能产生\"变化\"。",
+            "rationale": "题面要求\"月度变化\"，没有支付记录的客户无法定义该指标"
+          },
+          {
+            "path": "population.conditions",
+            "status": "not_applicable"
+          },
+          {
+            "path": "population.source",
+            "status": "evidence",
+            "value": {
+              "tables": [
+                "payment",
+                "customer"
+              ],
+              "note": "payment.customer_id → customer.customer_id"
+            },
+            "evidenceIds": [
+              "evidence_49710ff6-a5b6-4214-8983-f1f858568b39"
+            ]
+          },
+          {
+            "path": "population.time",
+            "status": "assumed",
+            "value": {
+              "expression": "全部可用支付历史（题面未指定时间范围，不设时间过滤）"
+            },
+            "rationale": "题面未给出时间范围"
+          },
+          {
+            "path": "population.timeField",
+            "status": "assumed",
+            "value": "payment.payment_date"
+          },
+          {
+            "path": "population.missing",
+            "status": "assumed",
+            "value": "不补零（无业务证据证明缺月代表零活动）；只在两个日历月份严格相邻（如 2005-07 与 2005-08）时计算一次月度变化；跨月缺口（2005-08 → 2006-02）不计作“月度变化”而被排除。",
+            "rationale": "方法指引 S07：相邻观测不等于相邻日历期，缺一个月时不能把跨月跳跃自动当作环比；sql-rules §6 要求日历相邻时验证周期差。无业务定义确认缺月为零活动，故不补零。"
+          },
+          {
+            "path": "population.joinMultiplicity",
+            "status": "evidence",
+            "value": "customer ↔ payment 为 1:N（payment.customer_id → customer.customer_id）。按客户聚合支付金额时每个 payment 行只计一次，不会因连接重复计数；客户端属性在客户粒度上取任一行即可。",
+            "evidenceIds": [
+              "evidence_6480fcac-04c6-4cf6-ac92-9910887defe7"
+            ]
+          },
+          {
+            "path": "measure.formula",
+            "status": "decided",
+            "value": {
+              "op": "avg",
+              "per": "customer",
+              "of": {
+                "op": "difference",
+                "per": "customer",
+                "from": {
+                  "op": "sum",
+                  "per": "customer_month",
+                  "of": "amount"
+                },
+                "to": {
+                  "op": "sum",
+                  "per": "customer_month",
+                  "of": "amount"
+                }
+              }
+            },
+            "verified": false,
+            "rationale": "将三候选逐词放回题面：题面说 \"change in payment amounts\"，是“支付金额”的变化，量纲应为金额（美元）→ 用绝对差值 difference，排除相对变化率（候选 C）；“payment amounts”的月度取值是该客户当月支付的金额合计 → 月内用 sum（候选 A），排除月内均值（候选 B）；外层 \"average\" 即对客户各次月度变化取平均。探针验证：A → MICHEAL FORMAN，B 与 C → ASHLEY RICHARDSON，A 与 B/C 输出不同；Jev 建议的最大概率候选为 A（概率 0.32，B 仅 0.04），故采纳 A。",
+            "alternatives": [
+              {
+                "id": "alternative_520953fa-1c10-4106-a9f3-6e0c191b160c",
+                "value": {
+                  "op": "avg",
+                  "per": "customer",
+                  "of": {
+                    "op": "difference",
+                    "per": "customer",
+                    "from": {
+                      "op": "sum",
+                      "per": "customer_month",
+                      "of": "amount"
+                    },
+                    "to": {
+                      "op": "sum",
+                      "per": "customer_month",
+                      "of": "amount"
+                    }
+                  }
+                },
+                "probe": {
+                  "alternativeId": "alternative_520953fa-1c10-4106-a9f3-6e0c191b160c",
+                  "state": "available",
+                  "rowCount": 1,
+                  "output": "252d501df712"
+                }
+              },
+              {
+                "id": "alternative_bdc2569d-b60d-4e2e-9a44-bc71776bfc90",
+                "value": {
+                  "op": "avg",
+                  "per": "customer",
+                  "of": {
+                    "op": "difference",
+                    "per": "customer",
+                    "from": {
+                      "op": "avg",
+                      "per": "customer_month",
+                      "of": "amount"
+                    },
+                    "to": {
+                      "op": "avg",
+                      "per": "customer_month",
+                      "of": "amount"
+                    }
+                  }
+                },
+                "probe": {
+                  "alternativeId": "alternative_bdc2569d-b60d-4e2e-9a44-bc71776bfc90",
+                  "state": "available",
+                  "rowCount": 1,
+                  "output": "5873ce90997e"
+                }
+              },
+              {
+                "id": "alternative_a25301a1-d0fe-4404-9683-f4179e0c089a",
+                "value": {
+                  "op": "avg",
+                  "per": "customer",
+                  "of": {
+                    "op": "change_rate",
+                    "per": "customer",
+                    "from": {
+                      "op": "sum",
+                      "per": "customer_month",
+                      "of": "amount"
+                    },
+                    "to": {
+                      "op": "sum",
+                      "per": "customer_month",
+                      "of": "amount"
+                    }
+                  }
+                },
+                "probe": {
+                  "alternativeId": "alternative_a25301a1-d0fe-4404-9683-f4179e0c089a",
+                  "state": "available",
+                  "rowCount": 1,
+                  "output": "5873ce90997e"
+                }
+              }
+            ],
+            "outputs": "distinct",
+            "advice": {
+              "recommendation": "insufficient_evidence",
+              "probabilities": [
+                {
+                  "alternativeId": "alternative_520953fa-1c10-4106-a9f3-6e0c191b160c",
+                  "probability": 0.32
+                },
+                {
+                  "alternativeId": "alternative_bdc2569d-b60d-4e2e-9a44-bc71776bfc90",
+                  "probability": 0.04
+                },
+                {
+                  "alternativeId": "alternative_a25301a1-d0fe-4404-9683-f4179e0c089a",
+                  "probability": 0
+                }
+              ],
+              "lean": {
+                "alternativeId": "alternative_520953fa-1c10-4106-a9f3-6e0c191b160c",
+                "probability": 0.32
+              }
+            }
+          },
+          {
+            "path": "measure.countGrain",
+            "status": "assumed",
+            "value": "在客户-自然月粒度上聚合支付金额（每个客户每月一行，对 payment.amount 求和/求平均）；再在客户粒度上对相邻月的差值求平均",
+            "rationale": "题面\"monthly\"指向自然月聚合粒度"
+          },
+          {
+            "path": "measure.denominator",
+            "status": "assumed",
+            "value": "avg 的分母是该客户参与计算的相邻月份对（月度变化）个数；分母为 0 的客户不参与排名",
+            "rationale": "avg 需要明确分母"
+          },
+          {
+            "path": "grouping",
+            "status": "not_applicable"
+          },
+          {
+            "path": "selection",
+            "status": "request",
+            "value": {
+              "n": 1,
+              "orderBy": "avg_monthly_change desc"
+            },
+            "evidenceIds": [
+              "evidence_6b2e1543-d02d-42dd-8336-38dafba6b101"
+            ]
+          },
+          {
+            "path": "selection.ties",
+            "status": "assumed",
+            "value": "strict"
+          },
+          {
+            "path": "output",
+            "status": "assumed",
+            "value": {
+              "rowMode": "top_n",
+              "rowCount": 1,
+              "columns": [
+                "full_name"
+              ]
+            }
+          }
+        ],
+        "undeclared": [],
+        "open": [],
+        "unverified": [
+          "population.entity",
+          "population.eligibility",
+          "population.time",
+          "population.timeField",
+          "population.missing",
+          "measure.formula",
+          "measure.countGrain",
+          "measure.denominator",
+          "selection.ties",
+          "output"
+        ],
+        "specFeedback": {
+          "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6",
+          "revisionId": "revision_f7ec44e3-e37e-440d-9924-245eb6a2667b",
+          "ruleVersion": "spec-feedback-v2",
+          "status": "completed",
+          "deterministicIssues": [],
+          "assessment": {
+            "model": "jev-1.13.0",
+            "ruleVersion": "spec-alignment-v2",
+            "sections": [
+              {
+                "section": "population",
+                "relation": {
+                  "choice": "not_established",
+                  "probabilities": {
+                    "supported": 0.12,
+                    "contradicted": 0.02,
+                    "not_established": 0.86,
+                    "not_applicable": 0
+                  },
+                  "confidence": 0.81
+                },
+                "coverage": {
+                  "choice": "complete",
+                  "probabilities": {
+                    "complete": 0.8,
+                    "partial": 0.14,
+                    "missing": 0.06,
+                    "not_applicable": 0
+                  },
+                  "confidence": 0.73
+                }
+              },
+              {
+                "section": "measure",
+                "relation": {
+                  "choice": "not_established",
+                  "probabilities": {
+                    "supported": 0.04,
+                    "contradicted": 0.07,
+                    "not_established": 0.89,
+                    "not_applicable": 0
+                  },
+                  "confidence": 0.85
+                },
+                "coverage": {
+                  "choice": "complete",
+                  "probabilities": {
+                    "complete": 0.52,
+                    "partial": 0.3,
+                    "missing": 0.18,
+                    "not_applicable": 0
+                  },
+                  "confidence": 0.36
+                }
+              },
+              {
+                "section": "grouping",
+                "relation": {
+                  "choice": "not_established",
+                  "probabilities": {
+                    "supported": 0.24,
+                    "contradicted": 0.02,
+                    "not_established": 0.47,
+                    "not_applicable": 0.27
+                  },
+                  "confidence": 0.29
+                },
+                "coverage": {
+                  "choice": "complete",
+                  "probabilities": {
+                    "complete": 0.46,
+                    "partial": 0.15,
+                    "missing": 0.12,
+                    "not_applicable": 0.27
+                  },
+                  "confidence": 0.28
+                }
+              },
+              {
+                "section": "selection",
+                "relation": {
+                  "choice": "not_established",
+                  "probabilities": {
+                    "supported": 0.28,
+                    "contradicted": 0.03,
+                    "not_established": 0.68,
+                    "not_applicable": 0
+                  },
+                  "confidence": 0.57
+                },
+                "coverage": {
+                  "choice": "complete",
+                  "probabilities": {
+                    "complete": 0.72,
+                    "partial": 0.18,
+                    "missing": 0.09,
+                    "not_applicable": 0.01
+                  },
+                  "confidence": 0.63
+                }
+              },
+              {
+                "section": "output",
+                "relation": {
+                  "choice": "not_established",
+                  "probabilities": {
+                    "supported": 0.13,
+                    "contradicted": 0.16,
+                    "not_established": 0.71,
+                    "not_applicable": 0
+                  },
+                  "confidence": 0.61
+                },
+                "coverage": {
+                  "choice": "partial",
+                  "probabilities": {
+                    "complete": 0.32,
+                    "partial": 0.47000000000000003,
+                    "missing": 0.21,
+                    "not_applicable": 0
+                  },
+                  "confidence": 0.29
+                }
+              }
+            ]
+          },
+          "inputHash": "604f5513c560c7ed2d29c655236ca7be4beeb152299133041c7e505b72540206",
+          "evidenceIds": [
+            "request_66684490c9399f4f630a1c86",
+            "evidence_49710ff6-a5b6-4214-8983-f1f858568b39",
+            "evidence_6b2e1543-d02d-42dd-8336-38dafba6b101",
+            "evidence_6480fcac-04c6-4cf6-ac92-9910887defe7",
+            "evidence_cf23b222-9638-465e-a599-153687e7e1cf",
+            "evidence_d9251bef-0897-4373-bac0-86fdae861a22",
+            "evidence_a0626b06-9be5-435a-b08a-394b1a40dca9",
+            "evidence_825d0e72-19b2-4ec5-9d51-d11aa05d62a4",
+            "evidence_01076e4d-2062-466f-9717-e1a605601d53",
+            "evidence_bd7c1357-1d86-4f99-a277-0fadac711446",
+            "evidence_d083e164-d951-4c13-ba0e-c3e7ac8c9f8e",
+            "evidence_92d405d4-3f3c-4ee8-b75b-cf9709862882",
+            "evidence_c84a267a-5bd0-4f22-922a-c640831f98f2",
+            "evidence_49678890-5d2b-4e4a-a58e-b0991a5fe664",
+            "evidence_814240a7-e34f-45f3-8558-699aace0318f",
+            "evidence_20974c42-eafe-45e7-9378-4b0d86860dbd",
+            "evidence_551176b5-1ebf-406a-b0bb-ccd43b5a7c90"
+          ],
+          "limitations": [
+            "evidence_quote_missing:evidence_49710ff6-a5b6-4214-8983-f1f858568b39",
+            "evidence_quote_missing:evidence_6480fcac-04c6-4cf6-ac92-9910887defe7"
+          ],
+          "startedAt": "2026-10-10T14:43:36.548Z",
+          "completedAt": "2026-10-10T14:43:37.711Z",
+          "durationMs": 1163
+        },
+        "outcomes": [
+          {
+            "path": "population.missing",
+            "status": "applied"
+          },
+          {
+            "path": "measure.formula",
+            "status": "applied"
+          },
+          {
+            "path": "selection.ties",
+            "status": "applied"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "sequence": 22,
+    "toolCallId": "call_00_JPx5sccVN8sVRzNrcMOY2012|2f0f82c4-cf5d-46b5-ad70-ac21b0f4bf1c",
+    "toolName": "query_database",
+    "args": {
+      "kind": "result",
+      "revisionId": "revision_f7ec44e3-e37e-440d-9924-245eb6a2667b",
+      "sql": "WITH monthly AS (\n  SELECT p.customer_id AS customer_id,\n         strftime('%Y-%m', p.payment_date) AS ym,\n         SUM(p.amount) AS val\n  FROM payment p\n  GROUP BY p.customer_id, strftime('%Y-%m', p.payment_date)\n), pairs AS (\n  SELECT m1.customer_id AS customer_id,\n         m1.val - m2.val AS chg\n  FROM monthly m1\n  JOIN monthly m2\n    ON m2.customer_id = m1.customer_id\n   AND m2.ym = strftime('%Y-%m', date(m1.ym || '-01', '-1 month'))\n), avg_chg AS (\n  SELECT customer_id, AVG(chg) AS avg_monthly_change\n  FROM pairs GROUP BY customer_id\n)\nSELECT c.first_name || ' ' || c.last_name AS full_name\nFROM avg_chg a\nJOIN customer c ON c.customer_id = a.customer_id\nORDER BY a.avg_monthly_change DESC\nLIMIT 1;",
+      "taskId": "task_6c06a78d-1783-4d18-8914-22b4398099f6"
+    },
+    "startedAt": 1791643422757,
+    "isError": false,
+    "finishedAt": 1791643423008,
+    "durationMs": 251,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "[RESULT_CANDIDATE] candidateId=candidate_d716e4c0-738e-45bb-bbe0-3d70b552d1a7 revisionId=revision_f7ec44e3-e37e-440d-9924-245eb6a2667b\nfull_name\nMICHEAL FORMAN"
+        }
+      ],
+      "details": {
+        "kind": "result",
+        "artifact": {
+          "kind": "candidate",
+          "candidateId": "candidate_d716e4c0-738e-45bb-bbe0-3d70b552d1a7",
+          "revisionId": "revision_f7ec44e3-e37e-440d-9924-245eb6a2667b",
+          "resultRef": "result_15d5836e-eb8e-4299-89fd-2a607b6ba42a"
+        },
+        "preview": {
+          "columns": [
+            "full_name"
+          ],
+          "rows": [
+            [
+              "MICHEAL FORMAN"
+            ]
+          ],
+          "columnTypes": [
+            "TEXT"
+          ],
+          "rowCount": 1,
+          "truncated": false
+        },
+        "findings": [],
+        "coverage": [
+          {
+            "checkId": "result_completeness",
+            "outcome": "clear"
+          },
+          {
+            "checkId": "result_shape",
+            "outcome": "clear"
+          },
+          {
+            "checkId": "result_identity",
+            "outcome": "clear"
+          },
+          {
+            "checkId": "join_fanout",
+            "outcome": "not_applicable"
+          },
+          {
+            "checkId": "spec_feedback",
+            "ruleVersion": "spec-feedback-v2",
+            "outcome": "finding",
+            "reason": "Advisory Spec feedback risks: output.coverage=partial; limitations: evidence_quote_missing:evidence_49710ff6-a5b6-4214-8983-f1f858568b39, evidence_quote_missing:evidence_6480fcac-04c6-4cf6-ac92-9910887defe7, population.relation=not_established, measure.relation=not_established, grouping.relation=not_established, selection.relation=not_established, output.relation=not_established. This does not change qualification or authorize a revision."
+          }
+        ],
+        "fanout": {
+          "ruleVersion": "answering-fanout-v1",
+          "status": "not_applicable",
+          "snapshotScope": "unbound",
+          "targets": []
+        },
+        "attemptId": "attempt_39e33949-aea4-4b35-b7eb-e4671e62216b"
+      }
+    }
+  }
+]

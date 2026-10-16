@@ -479,7 +479,7 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
       stored.openai_api_key && provider !== "anthropic" ? stored.openai_api_key : undefined,
     );
     const model = firstString(cfg.model, stored.default_model);
-    if (cfg.llm_enabled === false || !apiKey || !model) throw new Error("LLM_NOT_CONFIGURED: complete onboarding first");
+    if (cfg.llm_enabled === false || !apiKey || !model) throw new Error("LLM_NOT_CONFIGURED: add a model API key in Settings → Model");
     const baseUrl = firstString(cfg.base_url, stored.openai_base_url);
     const apiFormat = cfg.api_format === "chat" || cfg.apiFormat === "chat" ? "chat" : "responses";
     return { provider, model, apiKey, apiFormat, ...(baseUrl ? { baseUrl } : {}) } as const;

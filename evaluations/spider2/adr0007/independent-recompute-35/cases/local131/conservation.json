@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT PreferenceSeq,COUNT(*) n,COUNT(DISTINCT CustomerID) customers FROM Musical_Preferences GROUP BY PreferenceSeq UNION ALL SELECT -1,COUNT(*),COUNT(DISTINCT StyleID) FROM Musical_Styles",
+  "limit": 1000
+}

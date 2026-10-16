@@ -1,0 +1,73 @@
+{
+  "revealedAt": "2026-10-11T09:03:23.112Z",
+  "registry": {
+    "instance_id": "local002",
+    "attempt_id": "attempt-001",
+    "score": 0,
+    "score_source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-attempt-001.json",
+    "replayed_csv_score": 0,
+    "group": "wrong",
+    "status": "completed",
+    "publication_status": "published",
+    "duration_ms": 221911,
+    "tool_calls": 27,
+    "error": null,
+    "result_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local002/attempts/attempt-001/result.json",
+    "trace_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local002/attempts/attempt-001/trace.json",
+    "result_exists": true,
+    "trace_exists": true,
+    "sql_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local002/attempts/attempt-001/submissions/sql/local002.sql",
+    "csv_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local002.csv",
+    "sql_exists": true,
+    "csv_exists": true,
+    "gold_sql_file": null,
+    "process": {
+      "turns": 15,
+      "toolCalls": 27,
+      "explorationQueries": 14,
+      "resultQueries": 1,
+      "fanoutProbes": 1,
+      "revisions": 4
+    },
+    "fanout_metrics": {
+      "reportCount": 1,
+      "targetCount": 1,
+      "findingCount": 0,
+      "unknownCount": 1,
+      "byStatus": {
+        "clear": 0,
+        "finding": 0,
+        "not_applicable": 0,
+        "unknown": 1
+      },
+      "enabled": true
+    },
+    "spec_feedback_metrics": {
+      "reportCount": 4,
+      "byStatus": {
+        "pending": 0,
+        "completed": 3,
+        "unavailable": 1,
+        "disabled": 0
+      },
+      "deterministicIssueCount": 0,
+      "concernCount": 0,
+      "enabled": true
+    }
+  },
+  "originalSql": "WITH RECURSIVE days(d) AS (\n  SELECT '2017-01-01'\n  UNION ALL\n  SELECT date(d,'+1 day') FROM days WHERE d < '2018-08-29'\n),\nsales AS (\n  SELECT DATE(o.order_purchase_timestamp) AS d, SUM(oi.price) AS rev\n  FROM orders o\n  JOIN order_items oi ON o.order_id = oi.order_id\n  JOIN products p ON oi.product_id = p.product_id\n  WHERE p.product_category_name = 'brinquedos'\n  GROUP BY DATE(o.order_purchase_timestamp)\n),\nj AS (\n  SELECT CAST(julianday(days.d) - julianday('2017-01-01') AS INTEGER) AS x,\n         COALESCE(sales.rev, 0.0) AS y\n  FROM days LEFT JOIN sales ON sales.d = days.d\n),\nstats AS (\n  SELECT COUNT(*) AS n, SUM(x) AS sx, SUM(y) AS sy, SUM(x*x) AS sxx, SUM(x*y) AS sxy FROM j\n),\npar AS (\n  SELECT (n*sxy - sx*sy)*1.0/(n*sxx - sx*sx) AS b,\n         (sy - ((n*sxy - sx*sy)*1.0/(n*sxx - sx*sx))*sx)/n AS a\n  FROM stats\n),\ntargets(x) AS (VALUES (703),(704),(705),(706)),\noffs(k) AS (VALUES (-2),(-1),(0),(1),(2)),\ngrid AS (\n  SELECT t.x AS center_x, par.a + par.b*(t.x + o.k) AS p\n  FROM targets t, par, offs o\n)\nSELECT ROUND(SUM(p)/5.0, 2) AS total_sum_of_moving_averages\nFROM grid\n",
+  "originalCsv": "total_sum_of_moving_averages\n4340.1\n",
+  "goldSql": null,
+  "goldCsv": [
+    {
+      "path": "C:\\data-agent-eval\\Spider2\\spider2-lite\\evaluation_suite\\gold\\exec_result\\local002.csv",
+      "content": "output\r\n14334.62114"
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local002",
+    "condition_cols": [],
+    "ignore_order": true,
+    "toks": "234"
+  }
+}

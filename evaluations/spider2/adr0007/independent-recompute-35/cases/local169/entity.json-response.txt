@@ -1,0 +1,55 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_fc5d100f-7fec-4d70-8aa1-2bfd230e6822 revisionId=revision_c8916109-1dd3-4e7e-b0fd-0a830d09c1a5\n- ✓ population.entity\n状态：\n- 未声明: population.eligibility, population.conditions, population.time, measure.formula, grouping, selection, output\n[SPEC_FEEDBACK] revisionId=revision_c8916109-1dd3-4e7e-b0fd-0a830d09c1a5 status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"legislators by id_bioguide\"}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_fc5d100f-7fec-4d70-8aa1-2bfd230e6822",
+    "revisionId": "revision_c8916109-1dd3-4e7e-b0fd-0a830d09c1a5",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "legislators by id_bioguide"
+        },
+        "evidenceIds": [
+          "evidence_01138453-4d94-4d78-bf40-69111688f92b"
+        ]
+      }
+    ],
+    "undeclared": [
+      "population.eligibility",
+      "population.conditions",
+      "population.time",
+      "measure.formula",
+      "grouping",
+      "selection",
+      "output"
+    ],
+    "open": [],
+    "unverified": [],
+    "specFeedback": {
+      "taskId": "task_fc5d100f-7fec-4d70-8aa1-2bfd230e6822",
+      "revisionId": "revision_c8916109-1dd3-4e7e-b0fd-0a830d09c1a5",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_01138453-4d94-4d78-bf40-69111688f92b"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "population.entity",
+        "status": "applied"
+      }
+    ]
+  }
+}
+

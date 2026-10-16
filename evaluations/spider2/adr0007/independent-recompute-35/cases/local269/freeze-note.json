@@ -1,0 +1,7 @@
+{
+  "algorithm": "Recursive multiplicative root-to-leaf expansion then sum and equal root mean",
+  "assumptions": [
+    "final combination means outermost root packaging; intermediate cartons/boxes are not final"
+  ],
+  "validation": "Four roots; leaf totals 864,720,960,1240; mean946"
+}

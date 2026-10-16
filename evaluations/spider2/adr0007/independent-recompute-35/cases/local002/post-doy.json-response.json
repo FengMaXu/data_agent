@@ -1,0 +1,71 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_fcd356e5-5959-40b5-8d67-7c2f7b18d0cd\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nn | a | b | elapsed_prediction | doy_prediction\n606 | 227.81565697600956 | 3.55814354362977 | 10938.11113385273 | 5757.454134327785"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_fcd356e5-5959-40b5-8d67-7c2f7b18d0cd",
+      "preview": {
+        "columns": [
+          "n",
+          "a",
+          "b",
+          "elapsed_prediction",
+          "doy_prediction"
+        ],
+        "rows": [
+          [
+            606,
+            227.81565697600956,
+            3.55814354362977,
+            10938.11113385273,
+            5757.454134327785
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "REAL",
+          "REAL",
+          "REAL",
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "n",
+        "a",
+        "b",
+        "elapsed_prediction",
+        "doy_prediction"
+      ],
+      "rows": [
+        [
+          606,
+          227.81565697600956,
+          3.55814354362977,
+          10938.11113385273,
+          5757.454134327785
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "REAL",
+        "REAL",
+        "REAL",
+        "REAL"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_b9918f66-531c-4049-8c69-c52370a141b2"
+  }
+}

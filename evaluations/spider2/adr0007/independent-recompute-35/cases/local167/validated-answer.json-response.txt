@@ -1,0 +1,54 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_660eb0e7-af45-4914-9932-bcd43c1c466e\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nstate | female_legislators\nCA | 42"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_660eb0e7-af45-4914-9932-bcd43c1c466e",
+      "preview": {
+        "columns": [
+          "state",
+          "female_legislators"
+        ],
+        "rows": [
+          [
+            "CA",
+            42
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "state",
+        "female_legislators"
+      ],
+      "rows": [
+        [
+          "CA",
+          42
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_79e926c1-f670-4133-9e98-a7fc6d20933a"
+  }
+}
+

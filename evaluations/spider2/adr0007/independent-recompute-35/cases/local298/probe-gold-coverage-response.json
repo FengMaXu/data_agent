@@ -1,0 +1,157 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_80b963b4-e43c-4807-8380-83ec63ac031a\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nmode | m | current_active_customers | clipped_previous_observed | clipped_previous_calendar_active | gap_customers\nall_types | 2020-02-01 | 455 | 212579 | 212579 | 0\nall_types | 2020-03-01 | 456 | 240602 | 220350 | 37\nall_types | 2020-04-01 | 309 | 153147 | 144958 | 22\ndw_only | 2020-02-01 | 422 | 273471 | 273471 | 0\ndw_only | 2020-03-01 | 427 | 406133 | 375634 | 53\ndw_only | 2020-04-01 | 263 | 311636 | 290177 | 30"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_80b963b4-e43c-4807-8380-83ec63ac031a",
+      "preview": {
+        "columns": [
+          "mode",
+          "m",
+          "current_active_customers",
+          "clipped_previous_observed",
+          "clipped_previous_calendar_active",
+          "gap_customers"
+        ],
+        "rows": [
+          [
+            "all_types",
+            "2020-02-01",
+            455,
+            212579,
+            212579,
+            0
+          ],
+          [
+            "all_types",
+            "2020-03-01",
+            456,
+            240602,
+            220350,
+            37
+          ],
+          [
+            "all_types",
+            "2020-04-01",
+            309,
+            153147,
+            144958,
+            22
+          ],
+          [
+            "dw_only",
+            "2020-02-01",
+            422,
+            273471,
+            273471,
+            0
+          ],
+          [
+            "dw_only",
+            "2020-03-01",
+            427,
+            406133,
+            375634,
+            53
+          ],
+          [
+            "dw_only",
+            "2020-04-01",
+            263,
+            311636,
+            290177,
+            30
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "TEXT",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 6,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "mode",
+        "m",
+        "current_active_customers",
+        "clipped_previous_observed",
+        "clipped_previous_calendar_active",
+        "gap_customers"
+      ],
+      "rows": [
+        [
+          "all_types",
+          "2020-02-01",
+          455,
+          212579,
+          212579,
+          0
+        ],
+        [
+          "all_types",
+          "2020-03-01",
+          456,
+          240602,
+          220350,
+          37
+        ],
+        [
+          "all_types",
+          "2020-04-01",
+          309,
+          153147,
+          144958,
+          22
+        ],
+        [
+          "dw_only",
+          "2020-02-01",
+          422,
+          273471,
+          273471,
+          0
+        ],
+        [
+          "dw_only",
+          "2020-03-01",
+          427,
+          406133,
+          375634,
+          53
+        ],
+        [
+          "dw_only",
+          "2020-04-01",
+          263,
+          311636,
+          290177,
+          30
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "TEXT",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 6,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_2d403360-f428-4944-ad30-2d6cd5d287b9"
+  }
+}

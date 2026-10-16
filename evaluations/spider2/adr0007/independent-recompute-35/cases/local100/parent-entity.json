@@ -1,0 +1,14 @@
+{
+  "fields": {
+    "population.entity": {
+      "value": {
+        "name": "actors",
+        "keyColumns": [
+          "Person.PID"
+        ]
+      },
+      "basis": "request",
+      "quote": "actors"
+    }
+  }
+}

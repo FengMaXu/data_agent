@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT date('now') reference_date,count(*) rows,count(distinct user_id) users,sum(user_id IS NULL) missing_id,sum(birth_date IS NULL OR birth_date='') missing_birth,sum(date(birth_date) IS NULL) invalid_birth,min(birth_date) min_birth,max(birth_date) max_birth,min(register_date) min_register,max(register_date) max_register,min(withdraw_date) min_withdraw,max(withdraw_date) max_withdraw FROM mst_users",
+  "limit": 1000
+}

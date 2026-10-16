@@ -1,0 +1,65 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_1576fade-654b-4d23-b3ef-79051ddd12e9\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\ncombined_rows | income_only | missing_income | eligible_rows\n705203 | 31 | 2998 | 701863"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_1576fade-654b-4d23-b3ef-79051ddd12e9",
+      "preview": {
+        "columns": [
+          "combined_rows",
+          "income_only",
+          "missing_income",
+          "eligible_rows"
+        ],
+        "rows": [
+          [
+            705203,
+            31,
+            2998,
+            701863
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "combined_rows",
+        "income_only",
+        "missing_income",
+        "eligible_rows"
+      ],
+      "rows": [
+        [
+          705203,
+          31,
+          2998,
+          701863
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_1e947906-f720-4723-81a4-3218d7dbf6b2"
+  }
+}

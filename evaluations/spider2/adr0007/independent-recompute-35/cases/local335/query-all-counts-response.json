@@ -1,0 +1,249 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_cf5e94dc-e6cb-4725-b579-2c790f31da9a\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nconstructor_id | name | seasons\n3 | Williams | 6\n5 | Toro Rosso | 5\n15 | Sauber | 3\n18 | Minardi | 3\n17 | Jordan | 2\n21 | Arrows | 2\n1 | McLaren | 1\n4 | Renault | 1\n7 | Toyota | 1\n9 | Red Bull | 1\n11 | Honda | 1\n12 | Spyker | 1\n16 | BAR | 1\n19 | Jaguar | 1\n51 | Alfa Romeo | 1\n206 | Marussia | 1\n208 | Lotus F1 | 1\n209 | Manor Marussia | 1\n210 | Haas F1 Team | 1\n214 | Alpine F1 Team | 1"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_cf5e94dc-e6cb-4725-b579-2c790f31da9a",
+      "preview": {
+        "columns": [
+          "constructor_id",
+          "name",
+          "seasons"
+        ],
+        "rows": [
+          [
+            3,
+            "Williams",
+            6
+          ],
+          [
+            5,
+            "Toro Rosso",
+            5
+          ],
+          [
+            15,
+            "Sauber",
+            3
+          ],
+          [
+            18,
+            "Minardi",
+            3
+          ],
+          [
+            17,
+            "Jordan",
+            2
+          ],
+          [
+            21,
+            "Arrows",
+            2
+          ],
+          [
+            1,
+            "McLaren",
+            1
+          ],
+          [
+            4,
+            "Renault",
+            1
+          ],
+          [
+            7,
+            "Toyota",
+            1
+          ],
+          [
+            9,
+            "Red Bull",
+            1
+          ],
+          [
+            11,
+            "Honda",
+            1
+          ],
+          [
+            12,
+            "Spyker",
+            1
+          ],
+          [
+            16,
+            "BAR",
+            1
+          ],
+          [
+            19,
+            "Jaguar",
+            1
+          ],
+          [
+            51,
+            "Alfa Romeo",
+            1
+          ],
+          [
+            206,
+            "Marussia",
+            1
+          ],
+          [
+            208,
+            "Lotus F1",
+            1
+          ],
+          [
+            209,
+            "Manor Marussia",
+            1
+          ],
+          [
+            210,
+            "Haas F1 Team",
+            1
+          ],
+          [
+            214,
+            "Alpine F1 Team",
+            1
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 20,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "constructor_id",
+        "name",
+        "seasons"
+      ],
+      "rows": [
+        [
+          3,
+          "Williams",
+          6
+        ],
+        [
+          5,
+          "Toro Rosso",
+          5
+        ],
+        [
+          15,
+          "Sauber",
+          3
+        ],
+        [
+          18,
+          "Minardi",
+          3
+        ],
+        [
+          17,
+          "Jordan",
+          2
+        ],
+        [
+          21,
+          "Arrows",
+          2
+        ],
+        [
+          1,
+          "McLaren",
+          1
+        ],
+        [
+          4,
+          "Renault",
+          1
+        ],
+        [
+          7,
+          "Toyota",
+          1
+        ],
+        [
+          9,
+          "Red Bull",
+          1
+        ],
+        [
+          11,
+          "Honda",
+          1
+        ],
+        [
+          12,
+          "Spyker",
+          1
+        ],
+        [
+          16,
+          "BAR",
+          1
+        ],
+        [
+          19,
+          "Jaguar",
+          1
+        ],
+        [
+          51,
+          "Alfa Romeo",
+          1
+        ],
+        [
+          206,
+          "Marussia",
+          1
+        ],
+        [
+          208,
+          "Lotus F1",
+          1
+        ],
+        [
+          209,
+          "Manor Marussia",
+          1
+        ],
+        [
+          210,
+          "Haas F1 Team",
+          1
+        ],
+        [
+          214,
+          "Alpine F1 Team",
+          1
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 20,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_75024bc6-104b-4895-92ce-2d988bb64c5b"
+  }
+}

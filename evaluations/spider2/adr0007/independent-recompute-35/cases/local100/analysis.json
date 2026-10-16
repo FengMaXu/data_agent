@@ -1,0 +1,70 @@
+{
+  "instance_id": "local100",
+  "status": "gold_conflict",
+  "summary": "独立合作图集合计算25698，与原SQL实跑一致；源身份1、直接合作者2382、两步内28081，排除source/一跳得到25698。Gold15911与当前完整图不兼容，隐藏子集或历史数据原因未知。",
+  "fork_node": null,
+  "error_layer": "标准答案与本次题面/输入局部冲突",
+  "visibility": null,
+  "independent_score": 0,
+  "evidence": [
+    {
+      "source": "blind.json",
+      "pointer": "/question",
+      "quote": "Find out how many actors have a 'Shahrukh number' of 2? This means they acted in a film with someone who acted with Shahrukh Khan, but not directly with him."
+    },
+    {
+      "source": "parent-hop-counts-response.json",
+      "pointer": "/details/preview/rows",
+      "quote": "25698"
+    },
+    {
+      "source": "parent-post-graph-set-invariants-response.json",
+      "pointer": "/details/preview/rows",
+      "quote": "28081"
+    },
+    {
+      "source": "parent-post-cast-film-integrity-response.json",
+      "pointer": "/details/preview/rows",
+      "quote": "3475"
+    },
+    {
+      "source": "parent-post-gender-projection-response.json",
+      "pointer": "/details/preview/rows",
+      "quote": "15833"
+    },
+    {
+      "source": "comparison-input.json",
+      "pointer": "/goldCsv/0/content",
+      "quote": "output\r\n15911"
+    },
+    {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local100/attempts/attempt-001/trace.json",
+      "pointer": "/toolCalls/3/result/details/fields/2/value",
+      "quote": "同时该演员不曾在任何影片中与 Shah Rukh Khan 同片出演"
+    }
+  ],
+  "limitations": [
+    "Gold只给总数，无法给出其具体遗漏人物；机制/数据版本未唯一定位。",
+    "最短图算法按当前完整cast数据验证，不利用接近Gold的性别过滤来改口径。"
+  ],
+  "parent_completed": true,
+  "completed_at": "2026-10-11T10:12:38.179433+00:00",
+  "parent_field_review": {
+    "instance_id": "local100",
+    "relevant_node": "population.eligibility",
+    "node_is_confirmed_original_error": false,
+    "explanation": "当前完整二跳图25698；Gold隐藏子集/历史数据机制未知",
+    "error_layer": "标准答案与本次输入/明确要求局部冲突",
+    "visibility": "不适用：未确认原Spec语义错误",
+    "qualification": "Gold差异相关节点，不冒充原系统错误节点",
+    "original_node_declared": true,
+    "original_node_status": "request",
+    "original_node_value": "拥有至少一条 M_Cast 出演记录的演员（按 Person.PID 标识）；排除 Shah Rukh Khan 本人，并排除所有与 Shah Rukh Khan 在同片直接出演的演员（即 Shahrukh number ≤ 1 者）",
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local100/attempts/attempt-001/trace.json",
+      "pointer": "/toolCalls/3/result/details/fields/1/value",
+      "quote": "拥有至少一条 M_Cast 出演记录的演员（按 Person.PID 标识）；排除 Shah Rukh Khan 本人，并排除所有与 Shah Rukh Khan 在同片直接出演的演员（即 Shahrukh number ≤ 1 者）"
+    },
+    "primary_status": "gold_conflict"
+  }
+}

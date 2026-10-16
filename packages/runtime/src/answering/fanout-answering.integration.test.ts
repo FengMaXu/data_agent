@@ -1,4 +1,4 @@
-import Database from "better-sqlite3";
+import { DatabaseSync } from "node:sqlite";
 import { afterEach, describe, expect, it } from "vitest";
 import { InMemoryAnswering, SqlExecutionError, type AnsweringStore } from "./service.js";
 import { InMemoryAnsweringStore } from "./answering-store.js";
@@ -36,7 +36,7 @@ const schema: FanoutSchema = {
   ],
 };
 
-const databases: Database.Database[] = [];
+const databases: DatabaseSync[] = [];
 
 class RollbackFirstCandidateCommit implements AnsweringStore {
   private failed = false;
@@ -68,8 +68,8 @@ afterEach(() => {
   for (const database of databases.splice(0)) database.close();
 });
 
-function setupDatabase(): Database.Database {
-  const db = new Database(":memory:");
+function setupDatabase(): DatabaseSync {
+  const db = new DatabaseSync(":memory:");
   databases.push(db);
   db.exec(`
     CREATE TABLE customers (customer_id INTEGER PRIMARY KEY);
@@ -82,7 +82,7 @@ function setupDatabase(): Database.Database {
   return db;
 }
 
-function executor(db: Database.Database, calls: { kind: string }[]) {
+function executor(db: DatabaseSync, calls: { kind: string }[]) {
   return {
     dialect: "sqlite" as const,
     run: async (sql: string, _limit: number, options: { kind: "exploration" | "result" }) => {

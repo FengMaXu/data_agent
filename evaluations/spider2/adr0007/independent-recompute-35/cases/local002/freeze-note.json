@@ -1,0 +1,8 @@
+{
+  "algorithm": "Calendar-day OLS on toy item counts, zero filled, symmetric +/-2 day mean, sum 4",
+  "assumptions": [
+    "sales=units not revenue",
+    "all purchase statuses",
+    "zero-fill days"
+  ]
+}

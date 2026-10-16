@@ -1,0 +1,99 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_a883cfe9-523b-4ccb-99cd-f07483c7f9b2\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nm | customers | total | minimum | maximum\n2020-02-01 | 500 | 290091.1666666667 | 0 | 3519.266666666667\n2020-03-01 | 500 | 337746.36666666664 | 0 | 3742\n2020-04-01 | 500 | 316177.56666666665 | 0 | 4582.2"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_a883cfe9-523b-4ccb-99cd-f07483c7f9b2",
+      "preview": {
+        "columns": [
+          "m",
+          "customers",
+          "total",
+          "minimum",
+          "maximum"
+        ],
+        "rows": [
+          [
+            "2020-02-01",
+            500,
+            290091.1666666667,
+            0,
+            3519.266666666667
+          ],
+          [
+            "2020-03-01",
+            500,
+            337746.36666666664,
+            0,
+            3742
+          ],
+          [
+            "2020-04-01",
+            500,
+            316177.56666666665,
+            0,
+            4582.2
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "REAL",
+          "INTEGER",
+          "REAL"
+        ],
+        "rowCount": 3,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "m",
+        "customers",
+        "total",
+        "minimum",
+        "maximum"
+      ],
+      "rows": [
+        [
+          "2020-02-01",
+          500,
+          290091.1666666667,
+          0,
+          3519.266666666667
+        ],
+        [
+          "2020-03-01",
+          500,
+          337746.36666666664,
+          0,
+          3742
+        ],
+        [
+          "2020-04-01",
+          500,
+          316177.56666666665,
+          0,
+          4582.2
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "REAL",
+        "INTEGER",
+        "REAL"
+      ],
+      "rowCount": 3,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_423d15ec-605c-42c4-8e60-05c34444744f"
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT min(term_start) first_date,max(term_end) last_date,sum(term_end IS NULL) null_ends,sum(term_start>term_end) inverted,sum(substr(term_end,6)='12-31') end_dec31,sum(substr(term_start,6)='12-31') start_dec31 FROM legislators_terms",
+  "limit": 1000
+}

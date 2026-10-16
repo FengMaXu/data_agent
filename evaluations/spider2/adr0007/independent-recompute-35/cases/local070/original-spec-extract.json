@@ -1,0 +1,950 @@
+[
+  {
+    "pointer": "/toolCalls/2",
+    "call": {
+      "sequence": 3,
+      "toolCallId": "call_00_lEWE2uYGMjqNJ9KQcQ466014|7f64e925-ad4c-4802-925e-56a68cd99f5d",
+      "toolName": "set_answer_spec",
+      "args": {
+        "fields": {
+          "population.entity": {
+            "value": "cities 表中 country_code_2='cn' 的城市记录（城市-日期 行），业务键 (city_name, insert_date)",
+            "basis": "request",
+            "quote": "Chinese cities"
+          },
+          "population.eligibility": "纳入 insert_date 非空的记录；某日只要有 ≥1 条记录即视为该日期存在；缺失日期不补零。",
+          "population.conditions": {
+            "value": [
+              "country_code_2 = 'cn'",
+              "insert_date >= '2021-07-01' AND insert_date <= '2021-07-31'"
+            ],
+            "basis": "request",
+            "quote": "country_code_2 = 'cn'"
+          },
+          "population.source": {
+            "tables": [
+              "cities"
+            ]
+          },
+          "population.time": {
+            "value": {
+              "expression": "2021-07-01 至 2021-07-31",
+              "boundary": "inclusive"
+            },
+            "basis": "request",
+            "quote": "July 2021"
+          },
+          "population.timeField": "cities.insert_date",
+          "population.missing": "相邻日历期：两日期相邻当且仅当日历相差 1 天；缺期不补零，遇缺期 streak 断开。",
+          "measure.formula": {
+            "open": [
+              {
+                "op": "custom",
+                "description": "（代表城市=字典序最小 city_name）取 country_code_2='cn' 且 insert_date∈[2021-07-01,2021-07-31] 的不同日历日期集合；将日历相邻（相差 1 天）的日期归为同一 streak；统计每条 streak 的天数；选出天数最短与最长的 streak（各 1 条）；对选中 streak 的每个日期输出 1 行 = 该日期 + 该日期下 city_name 字典序最小的城市（首字母大写、其余小写）。"
+              },
+              {
+                "op": "custom",
+                "description": "（代表城市=最小 city_id）同上，但每个日期的代表城市取该日期下 city_id 最小的记录。"
+              }
+            ]
+          },
+          "measure.countGrain": "按日：每一天在结果中至多一行",
+          "grouping": "n/a",
+          "selection": {
+            "n": 1,
+            "orderBy": "streak 天数升序取 1 条（最短）与降序取 1 条（最长）"
+          },
+          "selection.ties": "include_ties",
+          "output": {
+            "rowMode": "detail",
+            "columns": [
+              "insert_date",
+              "city_name"
+            ],
+            "units": {
+              "insert_date": "日期(YYYY-MM-DD)"
+            }
+          }
+        }
+      },
+      "startedAt": 1791644676956,
+      "isError": false,
+      "finishedAt": 1791644678683,
+      "durationMs": 1727,
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "[ANSWER_SPEC_SET] taskId=task_1ade755b-ddab-4752-9d6b-623ee6e83f55 revisionId=revision_0fefed58-9d4e-431a-996b-17db8c253515\n- ✓ population.entity\n- ✓ population.eligibility\n- ✓ population.conditions\n- ✓ population.source\n- ✓ population.time\n- ✓ population.timeField\n- ✓ population.missing\n- ✓ measure.formula\n- ✓ measure.countGrain\n- ✓ grouping\n- ✓ selection\n- ✓ selection.ties\n- ✓ output\n状态：\n- 待定 measure.formula: alternative_09c40a9a-58c9-49bc-9976-10d643485df1={\"op\":\"custom\",\"description\":\"（代表城市=字典序最小 city_name）取 country_code_2='cn' 且 insert_date∈[2021-07-01,2021-07-31] 的不同日历日期集合；将日历相邻（相差 1 天）的日期归为同一 streak；统计每条 streak 的天数；选出天数最短与最长的 streak（各 1 条）；对选中 streak 的每个日期输出 1 行 = 该日期 + 该日期下 city_name 字典序最小的城市（首字母大写、其余小写）。\"} missing; alternative_29bb8f2c-6416-4a7c-a8c1-9f2427dee015={\"op\":\"custom\",\"description\":\"（代表城市=最小 city_id）同上，但每个日期的代表城市取该日期下 city_id 最小的记录。\"} missing; outputs=incomplete\n- 未证实（发布时披露）: population.eligibility, population.source, population.timeField, population.missing, measure.countGrain, selection, selection.ties, output\n[SPEC_FEEDBACK] revisionId=revision_0fefed58-9d4e-431a-996b-17db8c253515 status=unavailable advisory_only=true\nreason: provider_http_error\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"cities 表中 country_code_2='cn' 的城市记录（城市-日期 行），业务键 (city_name, insert_date)\"}},\"population.eligibility\":{\"status\":\"assumed\",\"value\":\"纳入 insert_date 非空的记录；某日只要有 ≥1 条记录即视为该日期存在；缺失日期不补零。\"},\"population.conditions\":{\"status\":\"request\",\"value\":[\"country_code_2 = 'cn'\",\"insert_date >= '2021-07-01' AND insert_date <= '2021-07-31'\"]},\"population.source\":{\"status\":\"assumed\",\"value\":{\"tables\":[\"cities\"]}},\"population.time\":{\"status\":\"request\",\"value\":{\"expression\":\"2021-07-01 至 2021-07-31\",\"boundary\":\"inclusive\"}},\"population.timeField\":{\"status\":\"assumed\",\"value\":\"cities.insert_date\"},\"population.missing\":{\"status\":\"assumed\",\"value\":\"相邻日历期：两日期相邻当且仅当日历相差 1 天；缺期不补零，遇缺期 streak 断开。\"},\"measure.formula\":{\"status\":\"open\",\"alternatives\":[{\"id\":\"alternative_09c40a9a-58c9-49bc-9976-10d643485df1\",\"value\":{\"op\":\"custom\",\"description\":\"（代表城市=字典序最小 city_name）取 country_code_2='cn' 且 insert_date∈[2021-07-01,2021-07-31] 的不同日历日期集合；将日历相邻（相差 1 天）的日期归为同一 streak；统计每条 streak 的天数；选出天数最短与最长的 streak（各 1 条）；对选中 streak 的每个日期输出 1 行 = 该日期 + 该日期下 city_name 字典序最小的城市（首字母大写、其余小写）。\"}},{\"id\":\"alternative_29bb8f2c-6416-4a7c-a8c1-9f2427dee015\",\"value\":{\"op\":\"custom\",\"description\":\"（代表城市=最小 city_id）同上，但每个日期的代表城市取该日期下 city_id 最小的记录。\"}}]},\"measure.countGrain\":{\"status\":\"assumed\",\"value\":\"按日：每一天在结果中至多一行\"},\"grouping\":{\"status\":\"not_applicable\"},\"selection\":{\"status\":\"assumed\",\"value\":{\"n\":1,\"orderBy\":\"streak 天数升序取 1 条（最短）与降序取 1 条（最长）\"}},\"selection.ties\":{\"status\":\"assumed\",\"value\":\"include_ties\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"detail\",\"columns\":[\"insert_date\",\"city_name\"],\"units\":{\"insert_date\":\"日期(YYYY-MM-DD)\"}}}}"
+          }
+        ],
+        "details": {
+          "taskId": "task_1ade755b-ddab-4752-9d6b-623ee6e83f55",
+          "revisionId": "revision_0fefed58-9d4e-431a-996b-17db8c253515",
+          "fields": [
+            {
+              "path": "population.entity",
+              "status": "request",
+              "value": {
+                "name": "cities 表中 country_code_2='cn' 的城市记录（城市-日期 行），业务键 (city_name, insert_date)"
+              },
+              "evidenceIds": [
+                "evidence_a014a997-1008-45d1-98ee-49547f07ccc4"
+              ]
+            },
+            {
+              "path": "population.eligibility",
+              "status": "assumed",
+              "value": "纳入 insert_date 非空的记录；某日只要有 ≥1 条记录即视为该日期存在；缺失日期不补零。"
+            },
+            {
+              "path": "population.conditions",
+              "status": "request",
+              "value": [
+                "country_code_2 = 'cn'",
+                "insert_date >= '2021-07-01' AND insert_date <= '2021-07-31'"
+              ],
+              "evidenceIds": [
+                "evidence_319c93ed-5b70-4c40-9b68-5b6f4f271c92"
+              ]
+            },
+            {
+              "path": "population.source",
+              "status": "assumed",
+              "value": {
+                "tables": [
+                  "cities"
+                ]
+              }
+            },
+            {
+              "path": "population.time",
+              "status": "request",
+              "value": {
+                "expression": "2021-07-01 至 2021-07-31",
+                "boundary": "inclusive"
+              },
+              "evidenceIds": [
+                "evidence_c17cdae4-5848-4789-ac7e-4c0eee51feda"
+              ]
+            },
+            {
+              "path": "population.timeField",
+              "status": "assumed",
+              "value": "cities.insert_date"
+            },
+            {
+              "path": "population.missing",
+              "status": "assumed",
+              "value": "相邻日历期：两日期相邻当且仅当日历相差 1 天；缺期不补零，遇缺期 streak 断开。"
+            },
+            {
+              "path": "measure.formula",
+              "status": "open",
+              "alternatives": [
+                {
+                  "id": "alternative_09c40a9a-58c9-49bc-9976-10d643485df1",
+                  "value": {
+                    "op": "custom",
+                    "description": "（代表城市=字典序最小 city_name）取 country_code_2='cn' 且 insert_date∈[2021-07-01,2021-07-31] 的不同日历日期集合；将日历相邻（相差 1 天）的日期归为同一 streak；统计每条 streak 的天数；选出天数最短与最长的 streak（各 1 条）；对选中 streak 的每个日期输出 1 行 = 该日期 + 该日期下 city_name 字典序最小的城市（首字母大写、其余小写）。"
+                  },
+                  "probe": {
+                    "alternativeId": "alternative_09c40a9a-58c9-49bc-9976-10d643485df1",
+                    "state": "missing"
+                  }
+                },
+                {
+                  "id": "alternative_29bb8f2c-6416-4a7c-a8c1-9f2427dee015",
+                  "value": {
+                    "op": "custom",
+                    "description": "（代表城市=最小 city_id）同上，但每个日期的代表城市取该日期下 city_id 最小的记录。"
+                  },
+                  "probe": {
+                    "alternativeId": "alternative_29bb8f2c-6416-4a7c-a8c1-9f2427dee015",
+                    "state": "missing"
+                  }
+                }
+              ],
+              "outputs": "incomplete"
+            },
+            {
+              "path": "measure.countGrain",
+              "status": "assumed",
+              "value": "按日：每一天在结果中至多一行"
+            },
+            {
+              "path": "grouping",
+              "status": "not_applicable"
+            },
+            {
+              "path": "selection",
+              "status": "assumed",
+              "value": {
+                "n": 1,
+                "orderBy": "streak 天数升序取 1 条（最短）与降序取 1 条（最长）"
+              }
+            },
+            {
+              "path": "selection.ties",
+              "status": "assumed",
+              "value": "include_ties"
+            },
+            {
+              "path": "output",
+              "status": "assumed",
+              "value": {
+                "rowMode": "detail",
+                "columns": [
+                  "insert_date",
+                  "city_name"
+                ],
+                "units": {
+                  "insert_date": "日期(YYYY-MM-DD)"
+                }
+              }
+            }
+          ],
+          "undeclared": [],
+          "open": [
+            "measure.formula"
+          ],
+          "unverified": [
+            "population.eligibility",
+            "population.source",
+            "population.timeField",
+            "population.missing",
+            "measure.countGrain",
+            "selection",
+            "selection.ties",
+            "output"
+          ],
+          "specFeedback": {
+            "taskId": "task_1ade755b-ddab-4752-9d6b-623ee6e83f55",
+            "revisionId": "revision_0fefed58-9d4e-431a-996b-17db8c253515",
+            "ruleVersion": "spec-feedback-v2",
+            "status": "unavailable",
+            "deterministicIssues": [],
+            "evidenceIds": [
+              "request_d9b6993a4da13cc9cf206591",
+              "evidence_a014a997-1008-45d1-98ee-49547f07ccc4",
+              "evidence_319c93ed-5b70-4c40-9b68-5b6f4f271c92",
+              "evidence_c17cdae4-5848-4789-ac7e-4c0eee51feda"
+            ],
+            "limitations": [],
+            "startedAt": "2026-10-10T15:04:36.973Z",
+            "inputHash": "fd7dd134c197f7b00187a3828575c4053949b27a9fe6a1802b2467dc7700de6e",
+            "reason": "provider_http_error",
+            "completedAt": "2026-10-10T15:04:38.618Z",
+            "durationMs": 1645
+          },
+          "outcomes": [
+            {
+              "path": "population.entity",
+              "status": "applied"
+            },
+            {
+              "path": "population.eligibility",
+              "status": "applied"
+            },
+            {
+              "path": "population.conditions",
+              "status": "applied"
+            },
+            {
+              "path": "population.source",
+              "status": "applied"
+            },
+            {
+              "path": "population.time",
+              "status": "applied"
+            },
+            {
+              "path": "population.timeField",
+              "status": "applied"
+            },
+            {
+              "path": "population.missing",
+              "status": "applied"
+            },
+            {
+              "path": "measure.formula",
+              "status": "applied"
+            },
+            {
+              "path": "measure.countGrain",
+              "status": "applied"
+            },
+            {
+              "path": "grouping",
+              "status": "applied"
+            },
+            {
+              "path": "selection",
+              "status": "applied"
+            },
+            {
+              "path": "selection.ties",
+              "status": "applied"
+            },
+            {
+              "path": "output",
+              "status": "applied"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "pointer": "/toolCalls/10",
+    "call": {
+      "sequence": 11,
+      "toolCallId": "call_00_m8OOPmx8qjZER8eAJXsS3670|28026c5f-7b62-4a4b-8f0f-965592d870c9",
+      "toolName": "set_answer_spec",
+      "args": {
+        "taskId": "task_1ade755b-ddab-4752-9d6b-623ee6e83f55",
+        "fields": {
+          "measure.formula": {
+            "value": {
+              "op": "custom",
+              "description": "取 country_code_2='cn' 且 insert_date∈[2021-07-01,2021-07-31] 的不同日历日期集合；将日历相邻（相差 1 天）的日期归为同一 streak（缺期断开）；统计每条 streak 的天数；选出天数最短与最长的 streak（各 1 条）；对选中 streak 的每个日期输出 1 行 = 该日期 + 该日期下 city_id 最小的记录的城市名（首字母大写、其余小写）。"
+            },
+            "rationale": "原题只要求每个日期返回恰好一条记录，但未给出同一日期有多条记录时的裁决键；sql-rules §7 要求“需要恰好 N 行或确定首条记录时使用已确认的裁决键；无依据的业务先后选择回到语义流程”，而本题无任何业务规则可引用。两个候选仅在“代表城市”上不同：字典序最小 city_name（alternative_09c40a9a，探针输出 60f443e47237）与最小 city_id（alternative_29bb8f2c，探针输出 d74704c27319），探针结果不同。选“最小 city_id”：record 的身份键是 city_id，取该日期最早插入的那条记录作为该日期的代表记录，与“exactly one record per date”的措辞一致；按字典序取城市名无任何业务含义。compare_hypotheses 本次不可用（HTTP 451），故无外部建议可循。此选择属未证实业务假定，发布时披霞。",
+            "evidenceIds": [
+              "evidence_e6129385-37ea-4ddb-9b13-9f87721b2009",
+              "evidence_449d3a57-4a04-4858-991d-658ed1293251",
+              "evidence_d0da3b9d-2a90-4dd5-881d-e351015b3872"
+            ]
+          }
+        }
+      },
+      "startedAt": 1791644781834,
+      "isError": false,
+      "finishedAt": 1791644781866,
+      "durationMs": 32,
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "[ANSWER_SPEC_UNCHANGED] taskId=task_1ade755b-ddab-4752-9d6b-623ee6e83f55 revisionId=revision_0fefed58-9d4e-431a-996b-17db8c253515\n- ✗ measure.formula: measure.formula: {\"op\":\"custom\",\"description\":\"取 country_code_2='cn' 且 insert_date∈[2021-07-01,2021-07-31] 的不同日历日期集合；将日历相邻（相差 1 天）的日期归为同一 streak（缺期断开）；统计每条 streak 的天数；选出天数最短与最长的 streak（各 1 条）；对选中 streak 的每个日期输出 1 行 = 该日期 + 该日期下 city_id 最小的记录的城市名（首字母大写、其余小写）。\"} is not one of its alternatives alternative_09c40a9a-58c9-49bc-9976-10d643485df1={\"op\":\"custom\",\"description\":\"（代表城市=字典序最小 city_name）取 country_code_2='cn' 且 insert_date∈[2021-07-01,2021-07-31] 的不同日历日期集合；将日历相邻（相差 1 天）的日期归为同一 streak；统计每条 streak 的天数；选出天数最短与最长的 streak（各 1 条）；对选中 streak 的每个日期输出 1 行 = 该日期 + 该日期下 city_name 字典序最小的城市（首字母大写、其余小写）。\"}; alternative_29bb8f2c-6416-4a7c-a8c1-9f2427dee015={\"op\":\"custom\",\"description\":\"（代表城市=最小 city_id）同上，但每个日期的代表城市取该日期下 city_id 最小的记录。\"}\n字段写法：one of: \"n/a\"; a bare value (an assumption, disclosed); {value, basis:\"request\", quote}; {value, cite:[{source, quote}]}; {value, evidenceIds}; {value, basis:\"assumed\", rationale}; {open:[value, ...]}; to decide an open field {value:<alternative>, rationale, evidenceIds?}; {notProbeable:{<alternativeId>: reason}}\n状态：\n- 待定 measure.formula: alternative_09c40a9a-58c9-49bc-9976-10d643485df1={\"op\":\"custom\",\"description\":\"（代表城市=字典序最小 city_name）取 country_code_2='cn' 且 insert_date∈[2021-07-01,2021-07-31] 的不同日历日期集合；将日历相邻（相差 1 天）的日期归为同一 streak；统计每条 streak 的天数；选出天数最短与最长的 streak（各 1 条）；对选中 streak 的每个日期输出 1 行 = 该日期 + 该日期下 city_name 字典序最小的城市（首字母大写、其余小写）。\"} output=60f443e47237; alternative_29bb8f2c-6416-4a7c-a8c1-9f2427dee015={\"op\":\"custom\",\"description\":\"（代表城市=最小 city_id）同上，但每个日期的代表城市取该日期下 city_id 最小的记录。\"} output=d74704c27319; outputs=distinct\n- 未证实（发布时披露）: population.eligibility, population.source, population.timeField, population.missing, measure.countGrain, selection, selection.ties, output\n[SPEC_FEEDBACK] revisionId=revision_0fefed58-9d4e-431a-996b-17db8c253515 status=unavailable advisory_only=true\nreason: provider_http_error\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"cities 表中 country_code_2='cn' 的城市记录（城市-日期 行），业务键 (city_name, insert_date)\"}},\"population.eligibility\":{\"status\":\"assumed\",\"value\":\"纳入 insert_date 非空的记录；某日只要有 ≥1 条记录即视为该日期存在；缺失日期不补零。\"},\"population.conditions\":{\"status\":\"request\",\"value\":[\"country_code_2 = 'cn'\",\"insert_date >= '2021-07-01' AND insert_date <= '2021-07-31'\"]},\"population.source\":{\"status\":\"assumed\",\"value\":{\"tables\":[\"cities\"]}},\"population.time\":{\"status\":\"request\",\"value\":{\"expression\":\"2021-07-01 至 2021-07-31\",\"boundary\":\"inclusive\"}},\"population.timeField\":{\"status\":\"assumed\",\"value\":\"cities.insert_date\"},\"population.missing\":{\"status\":\"assumed\",\"value\":\"相邻日历期：两日期相邻当且仅当日历相差 1 天；缺期不补零，遇缺期 streak 断开。\"},\"measure.formula\":{\"status\":\"open\",\"alternatives\":[{\"id\":\"alternative_09c40a9a-58c9-49bc-9976-10d643485df1\",\"value\":{\"op\":\"custom\",\"description\":\"（代表城市=字典序最小 city_name）取 country_code_2='cn' 且 insert_date∈[2021-07-01,2021-07-31] 的不同日历日期集合；将日历相邻（相差 1 天）的日期归为同一 streak；统计每条 streak 的天数；选出天数最短与最长的 streak（各 1 条）；对选中 streak 的每个日期输出 1 行 = 该日期 + 该日期下 city_name 字典序最小的城市（首字母大写、其余小写）。\"}},{\"id\":\"alternative_29bb8f2c-6416-4a7c-a8c1-9f2427dee015\",\"value\":{\"op\":\"custom\",\"description\":\"（代表城市=最小 city_id）同上，但每个日期的代表城市取该日期下 city_id 最小的记录。\"}}]},\"measure.countGrain\":{\"status\":\"assumed\",\"value\":\"按日：每一天在结果中至多一行\"},\"grouping\":{\"status\":\"not_applicable\"},\"selection\":{\"status\":\"assumed\",\"value\":{\"n\":1,\"orderBy\":\"streak 天数升序取 1 条（最短）与降序取 1 条（最长）\"}},\"selection.ties\":{\"status\":\"assumed\",\"value\":\"include_ties\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"detail\",\"columns\":[\"insert_date\",\"city_name\"],\"units\":{\"insert_date\":\"日期(YYYY-MM-DD)\"}}}}"
+          }
+        ],
+        "details": {
+          "taskId": "task_1ade755b-ddab-4752-9d6b-623ee6e83f55",
+          "revisionId": "revision_0fefed58-9d4e-431a-996b-17db8c253515",
+          "fields": [
+            {
+              "path": "population.entity",
+              "status": "request",
+              "value": {
+                "name": "cities 表中 country_code_2='cn' 的城市记录（城市-日期 行），业务键 (city_name, insert_date)"
+              },
+              "evidenceIds": [
+                "evidence_a014a997-1008-45d1-98ee-49547f07ccc4"
+              ]
+            },
+            {
+              "path": "population.eligibility",
+              "status": "assumed",
+              "value": "纳入 insert_date 非空的记录；某日只要有 ≥1 条记录即视为该日期存在；缺失日期不补零。"
+            },
+            {
+              "path": "population.conditions",
+              "status": "request",
+              "value": [
+                "country_code_2 = 'cn'",
+                "insert_date >= '2021-07-01' AND insert_date <= '2021-07-31'"
+              ],
+              "evidenceIds": [
+                "evidence_319c93ed-5b70-4c40-9b68-5b6f4f271c92"
+              ]
+            },
+            {
+              "path": "population.source",
+              "status": "assumed",
+              "value": {
+                "tables": [
+                  "cities"
+                ]
+              }
+            },
+            {
+              "path": "population.time",
+              "status": "request",
+              "value": {
+                "expression": "2021-07-01 至 2021-07-31",
+                "boundary": "inclusive"
+              },
+              "evidenceIds": [
+                "evidence_c17cdae4-5848-4789-ac7e-4c0eee51feda"
+              ]
+            },
+            {
+              "path": "population.timeField",
+              "status": "assumed",
+              "value": "cities.insert_date"
+            },
+            {
+              "path": "population.missing",
+              "status": "assumed",
+              "value": "相邻日历期：两日期相邻当且仅当日历相差 1 天；缺期不补零，遇缺期 streak 断开。"
+            },
+            {
+              "path": "measure.formula",
+              "status": "open",
+              "alternatives": [
+                {
+                  "id": "alternative_09c40a9a-58c9-49bc-9976-10d643485df1",
+                  "value": {
+                    "op": "custom",
+                    "description": "（代表城市=字典序最小 city_name）取 country_code_2='cn' 且 insert_date∈[2021-07-01,2021-07-31] 的不同日历日期集合；将日历相邻（相差 1 天）的日期归为同一 streak；统计每条 streak 的天数；选出天数最短与最长的 streak（各 1 条）；对选中 streak 的每个日期输出 1 行 = 该日期 + 该日期下 city_name 字典序最小的城市（首字母大写、其余小写）。"
+                  },
+                  "probe": {
+                    "alternativeId": "alternative_09c40a9a-58c9-49bc-9976-10d643485df1",
+                    "state": "available",
+                    "rowCount": 15,
+                    "output": "60f443e47237"
+                  }
+                },
+                {
+                  "id": "alternative_29bb8f2c-6416-4a7c-a8c1-9f2427dee015",
+                  "value": {
+                    "op": "custom",
+                    "description": "（代表城市=最小 city_id）同上，但每个日期的代表城市取该日期下 city_id 最小的记录。"
+                  },
+                  "probe": {
+                    "alternativeId": "alternative_29bb8f2c-6416-4a7c-a8c1-9f2427dee015",
+                    "state": "available",
+                    "rowCount": 15,
+                    "output": "d74704c27319"
+                  }
+                }
+              ],
+              "outputs": "distinct"
+            },
+            {
+              "path": "measure.countGrain",
+              "status": "assumed",
+              "value": "按日：每一天在结果中至多一行"
+            },
+            {
+              "path": "grouping",
+              "status": "not_applicable"
+            },
+            {
+              "path": "selection",
+              "status": "assumed",
+              "value": {
+                "n": 1,
+                "orderBy": "streak 天数升序取 1 条（最短）与降序取 1 条（最长）"
+              }
+            },
+            {
+              "path": "selection.ties",
+              "status": "assumed",
+              "value": "include_ties"
+            },
+            {
+              "path": "output",
+              "status": "assumed",
+              "value": {
+                "rowMode": "detail",
+                "columns": [
+                  "insert_date",
+                  "city_name"
+                ],
+                "units": {
+                  "insert_date": "日期(YYYY-MM-DD)"
+                }
+              }
+            }
+          ],
+          "undeclared": [],
+          "open": [
+            "measure.formula"
+          ],
+          "unverified": [
+            "population.eligibility",
+            "population.source",
+            "population.timeField",
+            "population.missing",
+            "measure.countGrain",
+            "selection",
+            "selection.ties",
+            "output"
+          ],
+          "specFeedback": {
+            "taskId": "task_1ade755b-ddab-4752-9d6b-623ee6e83f55",
+            "revisionId": "revision_0fefed58-9d4e-431a-996b-17db8c253515",
+            "ruleVersion": "spec-feedback-v2",
+            "status": "unavailable",
+            "deterministicIssues": [],
+            "evidenceIds": [
+              "request_d9b6993a4da13cc9cf206591",
+              "evidence_a014a997-1008-45d1-98ee-49547f07ccc4",
+              "evidence_319c93ed-5b70-4c40-9b68-5b6f4f271c92",
+              "evidence_c17cdae4-5848-4789-ac7e-4c0eee51feda"
+            ],
+            "limitations": [],
+            "startedAt": "2026-10-10T15:04:36.973Z",
+            "inputHash": "fd7dd134c197f7b00187a3828575c4053949b27a9fe6a1802b2467dc7700de6e",
+            "reason": "provider_http_error",
+            "completedAt": "2026-10-10T15:04:38.618Z",
+            "durationMs": 1645
+          },
+          "outcomes": [
+            {
+              "path": "measure.formula",
+              "status": "rejected",
+              "code": "SPEC_TRANSITION_INVALID",
+              "message": "measure.formula: {\"op\":\"custom\",\"description\":\"取 country_code_2='cn' 且 insert_date∈[2021-07-01,2021-07-31] 的不同日历日期集合；将日历相邻（相差 1 天）的日期归为同一 streak（缺期断开）；统计每条 streak 的天数；选出天数最短与最长的 streak（各 1 条）；对选中 streak 的每个日期输出 1 行 = 该日期 + 该日期下 city_id 最小的记录的城市名（首字母大写、其余小写）。\"} is not one of its alternatives alternative_09c40a9a-58c9-49bc-9976-10d643485df1={\"op\":\"custom\",\"description\":\"（代表城市=字典序最小 city_name）取 country_code_2='cn' 且 insert_date∈[2021-07-01,2021-07-31] 的不同日历日期集合；将日历相邻（相差 1 天）的日期归为同一 streak；统计每条 streak 的天数；选出天数最短与最长的 streak（各 1 条）；对选中 streak 的每个日期输出 1 行 = 该日期 + 该日期下 city_name 字典序最小的城市（首字母大写、其余小写）。\"}; alternative_29bb8f2c-6416-4a7c-a8c1-9f2427dee015={\"op\":\"custom\",\"description\":\"（代表城市=最小 city_id）同上，但每个日期的代表城市取该日期下 city_id 最小的记录。\"}"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "pointer": "/toolCalls/11",
+    "call": {
+      "sequence": 12,
+      "toolCallId": "call_00_gcXjvl509jTYgPZJNVfF5346|0b34f038-0a4f-4e0e-83bc-46a1a73e749e",
+      "toolName": "set_answer_spec",
+      "args": {
+        "fields": {
+          "measure.formula": {
+            "evidenceIds": [
+              "evidence_e6129385-37ea-4ddb-9b13-9f87721b2009",
+              "evidence_449d3a57-4a04-4858-991d-658ed1293251",
+              "evidence_d0da3b9d-2a90-4dd5-881d-e351015b3872"
+            ],
+            "rationale": "原题只要求每个日期返回恰好一条记录，但未给出同一日期有多条记录时的裁决键；sql-rules §7 要求“需要恰好 N 行或确定首条记录时使用已确认的裁决键；无依据的业务先后选择回到语义流程”，本题无任何业务规则可引用。两个候选仅在“代表城市”上不同（探针输出 60f443e47237 vs d74704c27319）。选“最小 city_id”：record 的身份键是 city_id，取该日期最早插入的那条记录作为该日期的代表记录，与“exactly one record per date”的措辞一致；按字典序取城市名无任何业务含义。compare_hypotheses 本次不可用（HTTP 451），无外部建议可循。此为未证实业务假定，发布时披霞。",
+            "value": {
+              "description": "（代表城市=最小 city_id）同上，但每个日期的代表城市取该日期下 city_id 最小的记录。",
+              "op": "custom"
+            }
+          }
+        },
+        "taskId": "task_1ade755b-ddab-4752-9d6b-623ee6e83f55"
+      },
+      "startedAt": 1791644787468,
+      "isError": false,
+      "finishedAt": 1791644787495,
+      "durationMs": 27,
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "[ANSWER_SPEC_UNCHANGED] taskId=task_1ade755b-ddab-4752-9d6b-623ee6e83f55 revisionId=revision_0fefed58-9d4e-431a-996b-17db8c253515\n- ✗ measure.formula: measure.formula: the alternatives produce different or unknown outputs; call compare_hypotheses with path \"measure.formula\" before deciding\n字段写法：one of: \"n/a\"; a bare value (an assumption, disclosed); {value, basis:\"request\", quote}; {value, cite:[{source, quote}]}; {value, evidenceIds}; {value, basis:\"assumed\", rationale}; {open:[value, ...]}; to decide an open field {value:<alternative>, rationale, evidenceIds?}; {notProbeable:{<alternativeId>: reason}}\n状态：\n- 待定 measure.formula: alternative_09c40a9a-58c9-49bc-9976-10d643485df1={\"op\":\"custom\",\"description\":\"（代表城市=字典序最小 city_name）取 country_code_2='cn' 且 insert_date∈[2021-07-01,2021-07-31] 的不同日历日期集合；将日历相邻（相差 1 天）的日期归为同一 streak；统计每条 streak 的天数；选出天数最短与最长的 streak（各 1 条）；对选中 streak 的每个日期输出 1 行 = 该日期 + 该日期下 city_name 字典序最小的城市（首字母大写、其余小写）。\"} output=60f443e47237; alternative_29bb8f2c-6416-4a7c-a8c1-9f2427dee015={\"op\":\"custom\",\"description\":\"（代表城市=最小 city_id）同上，但每个日期的代表城市取该日期下 city_id 最小的记录。\"} output=d74704c27319; outputs=distinct\n- 未证实（发布时披露）: population.eligibility, population.source, population.timeField, population.missing, measure.countGrain, selection, selection.ties, output\n[SPEC_FEEDBACK] revisionId=revision_0fefed58-9d4e-431a-996b-17db8c253515 status=unavailable advisory_only=true\nreason: provider_http_error\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"cities 表中 country_code_2='cn' 的城市记录（城市-日期 行），业务键 (city_name, insert_date)\"}},\"population.eligibility\":{\"status\":\"assumed\",\"value\":\"纳入 insert_date 非空的记录；某日只要有 ≥1 条记录即视为该日期存在；缺失日期不补零。\"},\"population.conditions\":{\"status\":\"request\",\"value\":[\"country_code_2 = 'cn'\",\"insert_date >= '2021-07-01' AND insert_date <= '2021-07-31'\"]},\"population.source\":{\"status\":\"assumed\",\"value\":{\"tables\":[\"cities\"]}},\"population.time\":{\"status\":\"request\",\"value\":{\"expression\":\"2021-07-01 至 2021-07-31\",\"boundary\":\"inclusive\"}},\"population.timeField\":{\"status\":\"assumed\",\"value\":\"cities.insert_date\"},\"population.missing\":{\"status\":\"assumed\",\"value\":\"相邻日历期：两日期相邻当且仅当日历相差 1 天；缺期不补零，遇缺期 streak 断开。\"},\"measure.formula\":{\"status\":\"open\",\"alternatives\":[{\"id\":\"alternative_09c40a9a-58c9-49bc-9976-10d643485df1\",\"value\":{\"op\":\"custom\",\"description\":\"（代表城市=字典序最小 city_name）取 country_code_2='cn' 且 insert_date∈[2021-07-01,2021-07-31] 的不同日历日期集合；将日历相邻（相差 1 天）的日期归为同一 streak；统计每条 streak 的天数；选出天数最短与最长的 streak（各 1 条）；对选中 streak 的每个日期输出 1 行 = 该日期 + 该日期下 city_name 字典序最小的城市（首字母大写、其余小写）。\"}},{\"id\":\"alternative_29bb8f2c-6416-4a7c-a8c1-9f2427dee015\",\"value\":{\"op\":\"custom\",\"description\":\"（代表城市=最小 city_id）同上，但每个日期的代表城市取该日期下 city_id 最小的记录。\"}}]},\"measure.countGrain\":{\"status\":\"assumed\",\"value\":\"按日：每一天在结果中至多一行\"},\"grouping\":{\"status\":\"not_applicable\"},\"selection\":{\"status\":\"assumed\",\"value\":{\"n\":1,\"orderBy\":\"streak 天数升序取 1 条（最短）与降序取 1 条（最长）\"}},\"selection.ties\":{\"status\":\"assumed\",\"value\":\"include_ties\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"detail\",\"columns\":[\"insert_date\",\"city_name\"],\"units\":{\"insert_date\":\"日期(YYYY-MM-DD)\"}}}}"
+          }
+        ],
+        "details": {
+          "taskId": "task_1ade755b-ddab-4752-9d6b-623ee6e83f55",
+          "revisionId": "revision_0fefed58-9d4e-431a-996b-17db8c253515",
+          "fields": [
+            {
+              "path": "population.entity",
+              "status": "request",
+              "value": {
+                "name": "cities 表中 country_code_2='cn' 的城市记录（城市-日期 行），业务键 (city_name, insert_date)"
+              },
+              "evidenceIds": [
+                "evidence_a014a997-1008-45d1-98ee-49547f07ccc4"
+              ]
+            },
+            {
+              "path": "population.eligibility",
+              "status": "assumed",
+              "value": "纳入 insert_date 非空的记录；某日只要有 ≥1 条记录即视为该日期存在；缺失日期不补零。"
+            },
+            {
+              "path": "population.conditions",
+              "status": "request",
+              "value": [
+                "country_code_2 = 'cn'",
+                "insert_date >= '2021-07-01' AND insert_date <= '2021-07-31'"
+              ],
+              "evidenceIds": [
+                "evidence_319c93ed-5b70-4c40-9b68-5b6f4f271c92"
+              ]
+            },
+            {
+              "path": "population.source",
+              "status": "assumed",
+              "value": {
+                "tables": [
+                  "cities"
+                ]
+              }
+            },
+            {
+              "path": "population.time",
+              "status": "request",
+              "value": {
+                "expression": "2021-07-01 至 2021-07-31",
+                "boundary": "inclusive"
+              },
+              "evidenceIds": [
+                "evidence_c17cdae4-5848-4789-ac7e-4c0eee51feda"
+              ]
+            },
+            {
+              "path": "population.timeField",
+              "status": "assumed",
+              "value": "cities.insert_date"
+            },
+            {
+              "path": "population.missing",
+              "status": "assumed",
+              "value": "相邻日历期：两日期相邻当且仅当日历相差 1 天；缺期不补零，遇缺期 streak 断开。"
+            },
+            {
+              "path": "measure.formula",
+              "status": "open",
+              "alternatives": [
+                {
+                  "id": "alternative_09c40a9a-58c9-49bc-9976-10d643485df1",
+                  "value": {
+                    "op": "custom",
+                    "description": "（代表城市=字典序最小 city_name）取 country_code_2='cn' 且 insert_date∈[2021-07-01,2021-07-31] 的不同日历日期集合；将日历相邻（相差 1 天）的日期归为同一 streak；统计每条 streak 的天数；选出天数最短与最长的 streak（各 1 条）；对选中 streak 的每个日期输出 1 行 = 该日期 + 该日期下 city_name 字典序最小的城市（首字母大写、其余小写）。"
+                  },
+                  "probe": {
+                    "alternativeId": "alternative_09c40a9a-58c9-49bc-9976-10d643485df1",
+                    "state": "available",
+                    "rowCount": 15,
+                    "output": "60f443e47237"
+                  }
+                },
+                {
+                  "id": "alternative_29bb8f2c-6416-4a7c-a8c1-9f2427dee015",
+                  "value": {
+                    "op": "custom",
+                    "description": "（代表城市=最小 city_id）同上，但每个日期的代表城市取该日期下 city_id 最小的记录。"
+                  },
+                  "probe": {
+                    "alternativeId": "alternative_29bb8f2c-6416-4a7c-a8c1-9f2427dee015",
+                    "state": "available",
+                    "rowCount": 15,
+                    "output": "d74704c27319"
+                  }
+                }
+              ],
+              "outputs": "distinct"
+            },
+            {
+              "path": "measure.countGrain",
+              "status": "assumed",
+              "value": "按日：每一天在结果中至多一行"
+            },
+            {
+              "path": "grouping",
+              "status": "not_applicable"
+            },
+            {
+              "path": "selection",
+              "status": "assumed",
+              "value": {
+                "n": 1,
+                "orderBy": "streak 天数升序取 1 条（最短）与降序取 1 条（最长）"
+              }
+            },
+            {
+              "path": "selection.ties",
+              "status": "assumed",
+              "value": "include_ties"
+            },
+            {
+              "path": "output",
+              "status": "assumed",
+              "value": {
+                "rowMode": "detail",
+                "columns": [
+                  "insert_date",
+                  "city_name"
+                ],
+                "units": {
+                  "insert_date": "日期(YYYY-MM-DD)"
+                }
+              }
+            }
+          ],
+          "undeclared": [],
+          "open": [
+            "measure.formula"
+          ],
+          "unverified": [
+            "population.eligibility",
+            "population.source",
+            "population.timeField",
+            "population.missing",
+            "measure.countGrain",
+            "selection",
+            "selection.ties",
+            "output"
+          ],
+          "specFeedback": {
+            "taskId": "task_1ade755b-ddab-4752-9d6b-623ee6e83f55",
+            "revisionId": "revision_0fefed58-9d4e-431a-996b-17db8c253515",
+            "ruleVersion": "spec-feedback-v2",
+            "status": "unavailable",
+            "deterministicIssues": [],
+            "evidenceIds": [
+              "request_d9b6993a4da13cc9cf206591",
+              "evidence_a014a997-1008-45d1-98ee-49547f07ccc4",
+              "evidence_319c93ed-5b70-4c40-9b68-5b6f4f271c92",
+              "evidence_c17cdae4-5848-4789-ac7e-4c0eee51feda"
+            ],
+            "limitations": [],
+            "startedAt": "2026-10-10T15:04:36.973Z",
+            "inputHash": "fd7dd134c197f7b00187a3828575c4053949b27a9fe6a1802b2467dc7700de6e",
+            "reason": "provider_http_error",
+            "completedAt": "2026-10-10T15:04:38.618Z",
+            "durationMs": 1645
+          },
+          "outcomes": [
+            {
+              "path": "measure.formula",
+              "status": "rejected",
+              "code": "SPEC_TRANSITION_INVALID",
+              "message": "measure.formula: the alternatives produce different or unknown outputs; call compare_hypotheses with path \"measure.formula\" before deciding"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "pointer": "/toolCalls/13",
+    "call": {
+      "sequence": 14,
+      "toolCallId": "call_00_lN0Vr1bTC2HOJ6C8Bj7B7390|b1dcf4bf-5896-4ce7-9d21-6e06e20db9c0",
+      "toolName": "set_answer_spec",
+      "args": {
+        "fields": {
+          "measure.formula": {
+            "evidenceIds": [
+              "evidence_bc042a5a-8182-4312-a8ca-6abb9e5672a6",
+              "evidence_449d3a57-4a04-4858-991d-658ed1293251",
+              "evidence_d0da3b9d-2a90-4dd5-881d-e351015b3872"
+            ],
+            "rationale": "compare_hypotheses 在 path=measure.formula 上给出 [ADVICE_LEAN] alternative_09c40a9a（p=0.2，对比 alternative_29bb8f2c p=0；recommendation=insufficient_evidence）。按流程以建议倾向为默认答案，无需 adviceOverride。两候选仅“同日多条记录取哪一条”不同（探针输出 60f443e47237 vs d74704c27319）；原题未给裁决键、业务文档也无定义，故选字典序最小 city_name 作为该日期的代表城市（可确定、可复现）。此为未证实业务假定，发布时披霞。",
+            "value": {
+              "description": "（代表城市=字典序最小 city_name）取 country_code_2='cn' 且 insert_date∈[2021-07-01,2021-07-31] 的不同日历日期集合；将日历相邻（相差 1 天）的日期归为同一 streak；统计每条 streak 的天数；选出天数最短与最长的 streak（各 1 条）；对选中 streak 的每个日期输出 1 行 = 该日期 + 该日期下 city_name 字典序最小的城市（首字母大写、其余小写）。",
+              "op": "custom"
+            }
+          }
+        },
+        "taskId": "task_1ade755b-ddab-4752-9d6b-623ee6e83f55"
+      },
+      "startedAt": 1791644803756,
+      "isError": false,
+      "finishedAt": 1791644804667,
+      "durationMs": 911,
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "[ANSWER_SPEC_SET] taskId=task_1ade755b-ddab-4752-9d6b-623ee6e83f55 revisionId=revision_65db097e-d644-4dd7-92da-d7372a2df0cc\n- ✓ measure.formula\n状态：\n- 未证实（发布时披露）: population.eligibility, population.source, population.timeField, population.missing, measure.formula, measure.countGrain, selection, selection.ties, output\n- 没有待处理的字段，可以执行结果查询\n[SPEC_FEEDBACK] revisionId=revision_65db097e-d644-4dd7-92da-d7372a2df0cc status=unavailable advisory_only=true\nreason: provider_http_error\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"cities 表中 country_code_2='cn' 的城市记录（城市-日期 行），业务键 (city_name, insert_date)\"}},\"population.eligibility\":{\"status\":\"assumed\",\"value\":\"纳入 insert_date 非空的记录；某日只要有 ≥1 条记录即视为该日期存在；缺失日期不补零。\"},\"population.conditions\":{\"status\":\"request\",\"value\":[\"country_code_2 = 'cn'\",\"insert_date >= '2021-07-01' AND insert_date <= '2021-07-31'\"]},\"population.source\":{\"status\":\"assumed\",\"value\":{\"tables\":[\"cities\"]}},\"population.time\":{\"status\":\"request\",\"value\":{\"expression\":\"2021-07-01 至 2021-07-31\",\"boundary\":\"inclusive\"}},\"population.timeField\":{\"status\":\"assumed\",\"value\":\"cities.insert_date\"},\"population.missing\":{\"status\":\"assumed\",\"value\":\"相邻日历期：两日期相邻当且仅当日历相差 1 天；缺期不补零，遇缺期 streak 断开。\"},\"measure.formula\":{\"status\":\"decided\",\"value\":{\"op\":\"custom\",\"description\":\"（代表城市=字典序最小 city_name）取 country_code_2='cn' 且 insert_date∈[2021-07-01,2021-07-31] 的不同日历日期集合；将日历相邻（相差 1 天）的日期归为同一 streak；统计每条 streak 的天数；选出天数最短与最长的 streak（各 1 条）；对选中 streak 的每个日期输出 1 行 = 该日期 + 该日期下 city_name 字典序最小的城市（首字母大写、其余小写）。\"},\"verified\":false},\"measure.countGrain\":{\"status\":\"assumed\",\"value\":\"按日：每一天在结果中至多一行\"},\"grouping\":{\"status\":\"not_applicable\"},\"selection\":{\"status\":\"assumed\",\"value\":{\"n\":1,\"orderBy\":\"streak 天数升序取 1 条（最短）与降序取 1 条（最长）\"}},\"selection.ties\":{\"status\":\"assumed\",\"value\":\"include_ties\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"detail\",\"columns\":[\"insert_date\",\"city_name\"],\"units\":{\"insert_date\":\"日期(YYYY-MM-DD)\"}}}}"
+          }
+        ],
+        "details": {
+          "taskId": "task_1ade755b-ddab-4752-9d6b-623ee6e83f55",
+          "revisionId": "revision_65db097e-d644-4dd7-92da-d7372a2df0cc",
+          "parentRevisionId": "revision_0fefed58-9d4e-431a-996b-17db8c253515",
+          "fields": [
+            {
+              "path": "population.entity",
+              "status": "request",
+              "value": {
+                "name": "cities 表中 country_code_2='cn' 的城市记录（城市-日期 行），业务键 (city_name, insert_date)"
+              },
+              "evidenceIds": [
+                "evidence_a014a997-1008-45d1-98ee-49547f07ccc4"
+              ]
+            },
+            {
+              "path": "population.eligibility",
+              "status": "assumed",
+              "value": "纳入 insert_date 非空的记录；某日只要有 ≥1 条记录即视为该日期存在；缺失日期不补零。"
+            },
+            {
+              "path": "population.conditions",
+              "status": "request",
+              "value": [
+                "country_code_2 = 'cn'",
+                "insert_date >= '2021-07-01' AND insert_date <= '2021-07-31'"
+              ],
+              "evidenceIds": [
+                "evidence_319c93ed-5b70-4c40-9b68-5b6f4f271c92"
+              ]
+            },
+            {
+              "path": "population.source",
+              "status": "assumed",
+              "value": {
+                "tables": [
+                  "cities"
+                ]
+              }
+            },
+            {
+              "path": "population.time",
+              "status": "request",
+              "value": {
+                "expression": "2021-07-01 至 2021-07-31",
+                "boundary": "inclusive"
+              },
+              "evidenceIds": [
+                "evidence_c17cdae4-5848-4789-ac7e-4c0eee51feda"
+              ]
+            },
+            {
+              "path": "population.timeField",
+              "status": "assumed",
+              "value": "cities.insert_date"
+            },
+            {
+              "path": "population.missing",
+              "status": "assumed",
+              "value": "相邻日历期：两日期相邻当且仅当日历相差 1 天；缺期不补零，遇缺期 streak 断开。"
+            },
+            {
+              "path": "measure.formula",
+              "status": "decided",
+              "value": {
+                "op": "custom",
+                "description": "（代表城市=字典序最小 city_name）取 country_code_2='cn' 且 insert_date∈[2021-07-01,2021-07-31] 的不同日历日期集合；将日历相邻（相差 1 天）的日期归为同一 streak；统计每条 streak 的天数；选出天数最短与最长的 streak（各 1 条）；对选中 streak 的每个日期输出 1 行 = 该日期 + 该日期下 city_name 字典序最小的城市（首字母大写、其余小写）。"
+              },
+              "verified": false,
+              "rationale": "compare_hypotheses 在 path=measure.formula 上给出 [ADVICE_LEAN] alternative_09c40a9a（p=0.2，对比 alternative_29bb8f2c p=0；recommendation=insufficient_evidence）。按流程以建议倾向为默认答案，无需 adviceOverride。两候选仅“同日多条记录取哪一条”不同（探针输出 60f443e47237 vs d74704c27319）；原题未给裁决键、业务文档也无定义，故选字典序最小 city_name 作为该日期的代表城市（可确定、可复现）。此为未证实业务假定，发布时披霞。",
+              "alternatives": [
+                {
+                  "id": "alternative_09c40a9a-58c9-49bc-9976-10d643485df1",
+                  "value": {
+                    "op": "custom",
+                    "description": "（代表城市=字典序最小 city_name）取 country_code_2='cn' 且 insert_date∈[2021-07-01,2021-07-31] 的不同日历日期集合；将日历相邻（相差 1 天）的日期归为同一 streak；统计每条 streak 的天数；选出天数最短与最长的 streak（各 1 条）；对选中 streak 的每个日期输出 1 行 = 该日期 + 该日期下 city_name 字典序最小的城市（首字母大写、其余小写）。"
+                  },
+                  "probe": {
+                    "alternativeId": "alternative_09c40a9a-58c9-49bc-9976-10d643485df1",
+                    "state": "available",
+                    "rowCount": 15,
+                    "output": "60f443e47237"
+                  }
+                },
+                {
+                  "id": "alternative_29bb8f2c-6416-4a7c-a8c1-9f2427dee015",
+                  "value": {
+                    "op": "custom",
+                    "description": "（代表城市=最小 city_id）同上，但每个日期的代表城市取该日期下 city_id 最小的记录。"
+                  },
+                  "probe": {
+                    "alternativeId": "alternative_29bb8f2c-6416-4a7c-a8c1-9f2427dee015",
+                    "state": "available",
+                    "rowCount": 15,
+                    "output": "d74704c27319"
+                  }
+                }
+              ],
+              "outputs": "distinct",
+              "advice": {
+                "recommendation": "insufficient_evidence",
+                "probabilities": [
+                  {
+                    "alternativeId": "alternative_09c40a9a-58c9-49bc-9976-10d643485df1",
+                    "probability": 0.2
+                  },
+                  {
+                    "alternativeId": "alternative_29bb8f2c-6416-4a7c-a8c1-9f2427dee015",
+                    "probability": 0
+                  }
+                ],
+                "lean": {
+                  "alternativeId": "alternative_09c40a9a-58c9-49bc-9976-10d643485df1",
+                  "probability": 0.2
+                }
+              }
+            },
+            {
+              "path": "measure.countGrain",
+              "status": "assumed",
+              "value": "按日：每一天在结果中至多一行"
+            },
+            {
+              "path": "grouping",
+              "status": "not_applicable"
+            },
+            {
+              "path": "selection",
+              "status": "assumed",
+              "value": {
+                "n": 1,
+                "orderBy": "streak 天数升序取 1 条（最短）与降序取 1 条（最长）"
+              }
+            },
+            {
+              "path": "selection.ties",
+              "status": "assumed",
+              "value": "include_ties"
+            },
+            {
+              "path": "output",
+              "status": "assumed",
+              "value": {
+                "rowMode": "detail",
+                "columns": [
+                  "insert_date",
+                  "city_name"
+                ],
+                "units": {
+                  "insert_date": "日期(YYYY-MM-DD)"
+                }
+              }
+            }
+          ],
+          "undeclared": [],
+          "open": [],
+          "unverified": [
+            "population.eligibility",
+            "population.source",
+            "population.timeField",
+            "population.missing",
+            "measure.formula",
+            "measure.countGrain",
+            "selection",
+            "selection.ties",
+            "output"
+          ],
+          "specFeedback": {
+            "taskId": "task_1ade755b-ddab-4752-9d6b-623ee6e83f55",
+            "revisionId": "revision_65db097e-d644-4dd7-92da-d7372a2df0cc",
+            "ruleVersion": "spec-feedback-v2",
+            "status": "unavailable",
+            "deterministicIssues": [],
+            "evidenceIds": [
+              "request_d9b6993a4da13cc9cf206591",
+              "evidence_a014a997-1008-45d1-98ee-49547f07ccc4",
+              "evidence_319c93ed-5b70-4c40-9b68-5b6f4f271c92",
+              "evidence_c17cdae4-5848-4789-ac7e-4c0eee51feda",
+              "evidence_449d3a57-4a04-4858-991d-658ed1293251",
+              "evidence_d0da3b9d-2a90-4dd5-881d-e351015b3872",
+              "evidence_bc042a5a-8182-4312-a8ca-6abb9e5672a6",
+              "evidence_e6129385-37ea-4ddb-9b13-9f87721b2009"
+            ],
+            "limitations": [],
+            "startedAt": "2026-10-10T15:06:43.792Z",
+            "inputHash": "e1eea034573698047bc7ca470fc409b1f14b4469702afa044f2ea2015d9c2844",
+            "reason": "provider_http_error",
+            "completedAt": "2026-10-10T15:06:44.608Z",
+            "durationMs": 816
+          },
+          "outcomes": [
+            {
+              "path": "measure.formula",
+              "status": "applied"
+            }
+          ]
+        }
+      }
+    }
+  }
+]

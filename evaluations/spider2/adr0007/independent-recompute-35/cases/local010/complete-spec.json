@@ -1,0 +1,35 @@
+{
+  "fields": {
+    "population.eligibility": {
+      "value": "All flight records with both airport city and coordinates; no extra state/time restrictions",
+      "basis": "request",
+      "quote": "all routes between them"
+    },
+    "population.conditions": "n/a",
+    "population.time": "n/a",
+    "measure.formula": {
+      "value": {
+        "op": "custom",
+        "description": "Haversine km R6371 per flight row; normalize unordered city names; mean distance per city pair across all flights; count pairs by lower-bound 1000km bins with capped 6000+; include empty bins; minimum count"
+      },
+      "cite": [
+        {
+          "source": "knowledge:haversine_formula.md",
+          "quote": "dividing by the total number of flights between those cities"
+        }
+      ]
+    },
+    "grouping": "n/a",
+    "selection": "n/a",
+    "output": {
+      "value": {
+        "rowMode": "scalar",
+        "columns": [
+          "fewest_pair_count"
+        ]
+      },
+      "basis": "request",
+      "quote": "how many pairs are there"
+    }
+  }
+}

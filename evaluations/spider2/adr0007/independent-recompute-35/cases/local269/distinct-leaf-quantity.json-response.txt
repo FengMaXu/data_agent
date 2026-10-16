@@ -1,0 +1,59 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_46bd42a0-adc0-4a0c-81a3-7727906e1509\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nmean | denominator | numerator\n530.67 | 6 | 3184"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_46bd42a0-adc0-4a0c-81a3-7727906e1509",
+      "preview": {
+        "columns": [
+          "mean",
+          "denominator",
+          "numerator"
+        ],
+        "rows": [
+          [
+            530.67,
+            6,
+            3184
+          ]
+        ],
+        "columnTypes": [
+          "REAL",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "mean",
+        "denominator",
+        "numerator"
+      ],
+      "rows": [
+        [
+          530.67,
+          6,
+          3184
+        ]
+      ],
+      "columnTypes": [
+        "REAL",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_dd0b82a1-1523-4e17-a3c3-dba648d25e5d"
+  }
+}

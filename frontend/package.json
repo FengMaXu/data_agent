@@ -21,7 +21,6 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.29.0",
-    "better-sqlite3": "^12.11.1",
     "mysql2": "3.22.3"
   },
   "devDependencies": {
@@ -52,6 +51,7 @@
     "jsdom": "^26.1.0",
     "lucide-react": "^0.577.0",
     "qrcode": "^1.5.4",
+    "rcedit": "^5.0.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-markdown": "^10.1.0",
@@ -68,6 +68,7 @@
       "zh-CN",
       "en-US"
     ],
+    "afterPack": "scripts/after-pack.cjs",
     "directories": {
       "output": "C:/Temp/data-agent-release"
     },
@@ -116,15 +117,13 @@
     ],
     "win": {
       "target": "nsis",
+      "icon": "resources/icon.ico",
       "signAndEditExecutable": false,
       "forceCodeSigning": false
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
-    },
-    "asarUnpack": [
-      "node_modules/better-sqlite3/**/*"
-    ]
+    }
   }
 }

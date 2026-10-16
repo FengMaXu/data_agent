@@ -1,0 +1,125 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_bacd5468-a0e6-477f-abd6-14875712c791\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nyear | qualifying_driver_seasons\n1950 | 27\n1951 | 22\n1952 | 29\n1953 | 28\n1954 | 27\n1955 | 22\n1956 | 25\n1957 | 19\n1958 | 24\n1959 | 20"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_bacd5468-a0e6-477f-abd6-14875712c791",
+      "preview": {
+        "columns": [
+          "year",
+          "qualifying_driver_seasons"
+        ],
+        "rows": [
+          [
+            1950,
+            27
+          ],
+          [
+            1951,
+            22
+          ],
+          [
+            1952,
+            29
+          ],
+          [
+            1953,
+            28
+          ],
+          [
+            1954,
+            27
+          ],
+          [
+            1955,
+            22
+          ],
+          [
+            1956,
+            25
+          ],
+          [
+            1957,
+            19
+          ],
+          [
+            1958,
+            24
+          ],
+          [
+            1959,
+            20
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 10,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "year",
+        "qualifying_driver_seasons"
+      ],
+      "rows": [
+        [
+          1950,
+          27
+        ],
+        [
+          1951,
+          22
+        ],
+        [
+          1952,
+          29
+        ],
+        [
+          1953,
+          28
+        ],
+        [
+          1954,
+          27
+        ],
+        [
+          1955,
+          22
+        ],
+        [
+          1956,
+          25
+        ],
+        [
+          1957,
+          19
+        ],
+        [
+          1958,
+          24
+        ],
+        [
+          1959,
+          20
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 10,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_b3b373bb-44d1-414c-ae4b-0200201e3ba1"
+  }
+}

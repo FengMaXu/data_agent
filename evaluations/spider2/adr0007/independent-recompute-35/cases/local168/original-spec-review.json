@@ -1,0 +1,1048 @@
+[
+  {
+    "sequence": 5,
+    "toolCallId": "call_00_RZVIl83p2RsXeqYmK23v1653|148a38bf-1387-4ce9-af3c-45bf740763d9",
+    "toolName": "set_answer_spec",
+    "args": {
+      "fields": {
+        "population.entity": {
+          "name": "job posting",
+          "keyColumns": [
+            "job_id"
+          ]
+        },
+        "population.eligibility": "只纳入 salary_year_avg 非空（题面要求 non-null annual average salary）的职位；salary_year_avg 为 NULL 的职位不进入总体。零薪资不作特殊处理（观测范围内 salary_year_avg 最小为 23496）。",
+        "population.source": {
+          "tables": [
+            "job_postings_fact",
+            "skills_job_dim",
+            "skills_dim"
+          ],
+          "note": "job_postings_fact 提供 job_id/薪资/远程/标题；skills_job_dim 桥接 job_id→skill_id；skills_dim 提供技能名称。"
+        },
+        "population.conditions": {
+          "open": [
+            "job_title_short = 'Data Analyst' AND job_work_from_home = 1 AND salary_year_avg IS NOT NULL",
+            "job_title = 'Data Analyst' AND job_work_from_home = 1 AND salary_year_avg IS NOT NULL"
+          ]
+        },
+        "population.time": "n/a",
+        "population.joinMultiplicity": "skills_job_dim 与 skills_dim 均为 job_id×skill_id 粒度，连接后一个职位会因技能数变成多行；先用 DISTINCT job_id（或先按职位聚合）再计算平均薪资，避免多技能职位被重复加权。",
+        "measure.formula": {
+          "op": "avg",
+          "per": "job posting",
+          "of": "salary_year_avg"
+        },
+        "measure.countGrain": "按 job posting（job_postings_fact 一行 = 一个职位）计数，一个职位只计一次",
+        "measure.denominator": "分母为「满足 population.conditions 且至少拥有前 3 热门技能之一」的职位集合，每个职位等权一次；分母为 0 时返回空结果集。",
+        "grouping": "n/a",
+        "selection": {
+          "n": 3,
+          "orderBy": "技能被要求次数（该技能在合格职位中出现的职位数）desc"
+        },
+        "selection.ties": "strict",
+        "output": {
+          "rowMode": "scalar",
+          "columns": [
+            "avg_salary"
+          ],
+          "units": {
+            "avg_salary": "USD/year"
+          },
+          "decimals": {
+            "avg_salary": 2
+          }
+        }
+      }
+    },
+    "startedAt": 1791647432581,
+    "isError": false,
+    "finishedAt": 1791647433356,
+    "durationMs": 775,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "[ANSWER_SPEC_SET] taskId=task_b769ffed-14e5-4473-844f-96854e35e9ae revisionId=revision_ea8b0ff3-5438-4678-bd93-e6bc0b9a89b2\n- ✓ population.entity\n- ✓ population.eligibility\n- ✓ population.source\n- ✓ population.conditions\n- ✓ population.time\n- ✓ population.joinMultiplicity\n- ✓ measure.formula\n- ✓ measure.countGrain\n- ✓ measure.denominator\n- ✓ grouping\n- ✓ selection\n- ✓ selection.ties\n- ✓ output\n状态：\n- 待定 population.conditions: alternative_cf122a98-8088-4603-acce-e6c3af4a0f7d=[\"job_title_short = 'Data Analyst' AND job_work_from_home = 1 AND salary_year_avg IS NOT NULL\"] missing; alternative_54e92d3a-750a-4e8d-a1c9-fa802f5c6732=[\"job_title = 'Data Analyst' AND job_work_from_home = 1 AND salary_year_avg IS NOT NULL\"] missing; outputs=incomplete\n- 未证实（发布时披露）: population.entity, population.eligibility, population.source, population.joinMultiplicity, measure.formula, measure.countGrain, measure.denominator, selection, selection.ties, output\n[SPEC_FEEDBACK] revisionId=revision_ea8b0ff3-5438-4678-bd93-e6bc0b9a89b2 status=unavailable advisory_only=true\nreason: provider_http_error\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"assumed\",\"value\":{\"name\":\"job posting\",\"keyColumns\":[\"job_id\"]}},\"population.eligibility\":{\"status\":\"assumed\",\"value\":\"只纳入 salary_year_avg 非空（题面要求 non-null annual average salary）的职位；salary_year_avg 为 NULL 的职位不进入总体。零薪资不作特殊处理（观测范围内 salary_year_avg 最小为 23496）。\"},\"population.conditions\":{\"status\":\"open\",\"alternatives\":[{\"id\":\"alternative_cf122a98-8088-4603-acce-e6c3af4a0f7d\",\"value\":[\"job_title_short = 'Data Analyst' AND job_work_from_home = 1 AND salary_year_avg IS NOT NULL\"]},{\"id\":\"alternative_54e92d3a-750a-4e8d-a1c9-fa802f5c6732\",\"value\":[\"job_title = 'Data Analyst' AND job_work_from_home = 1 AND salary_year_avg IS NOT NULL\"]}]},\"population.source\":{\"status\":\"assumed\",\"value\":{\"tables\":[\"job_postings_fact\",\"skills_job_dim\",\"skills_dim\"],\"note\":\"job_postings_fact 提供 job_id/薪资/远程/标题；skills_job_dim 桥接 job_id→skill_id；skills_dim 提供技能名称。\"}},\"population.time\":{\"status\":\"not_applicable\"},\"population.joinMultiplicity\":{\"status\":\"assumed\",\"value\":\"skills_job_dim 与 skills_dim 均为 job_id×skill_id 粒度，连接后一个职位会因技能数变成多行；先用 DISTINCT job_id（或先按职位聚合）再计算平均薪资，避免多技能职位被重复加权。\"},\"measure.formula\":{\"status\":\"assumed\",\"value\":{\"op\":\"avg\",\"per\":\"job posting\",\"of\":\"salary_year_avg\"}},\"measure.countGrain\":{\"status\":\"assumed\",\"value\":\"按 job posting（job_postings_fact 一行 = 一个职位）计数，一个职位只计一次\"},\"measure.denominator\":{\"status\":\"assumed\",\"value\":\"分母为「满足 population.conditions 且至少拥有前 3 热门技能之一」的职位集合，每个职位等权一次；分母为 0 时返回空结果集。\"},\"grouping\":{\"status\":\"not_applicable\"},\"selection\":{\"status\":\"assumed\",\"value\":{\"n\":3,\"orderBy\":\"技能被要求次数（该技能在合格职位中出现的职位数）desc\"}},\"selection.ties\":{\"status\":\"assumed\",\"value\":\"strict\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"scalar\",\"columns\":[\"avg_salary\"],\"units\":{\"avg_salary\":\"USD/year\"},\"decimals\":{\"avg_salary\":2}}}}"
+        }
+      ],
+      "details": {
+        "taskId": "task_b769ffed-14e5-4473-844f-96854e35e9ae",
+        "revisionId": "revision_ea8b0ff3-5438-4678-bd93-e6bc0b9a89b2",
+        "fields": [
+          {
+            "path": "population.entity",
+            "status": "assumed",
+            "value": {
+              "name": "job posting",
+              "keyColumns": [
+                "job_id"
+              ]
+            }
+          },
+          {
+            "path": "population.eligibility",
+            "status": "assumed",
+            "value": "只纳入 salary_year_avg 非空（题面要求 non-null annual average salary）的职位；salary_year_avg 为 NULL 的职位不进入总体。零薪资不作特殊处理（观测范围内 salary_year_avg 最小为 23496）。"
+          },
+          {
+            "path": "population.conditions",
+            "status": "open",
+            "alternatives": [
+              {
+                "id": "alternative_cf122a98-8088-4603-acce-e6c3af4a0f7d",
+                "value": [
+                  "job_title_short = 'Data Analyst' AND job_work_from_home = 1 AND salary_year_avg IS NOT NULL"
+                ],
+                "probe": {
+                  "alternativeId": "alternative_cf122a98-8088-4603-acce-e6c3af4a0f7d",
+                  "state": "missing"
+                }
+              },
+              {
+                "id": "alternative_54e92d3a-750a-4e8d-a1c9-fa802f5c6732",
+                "value": [
+                  "job_title = 'Data Analyst' AND job_work_from_home = 1 AND salary_year_avg IS NOT NULL"
+                ],
+                "probe": {
+                  "alternativeId": "alternative_54e92d3a-750a-4e8d-a1c9-fa802f5c6732",
+                  "state": "missing"
+                }
+              }
+            ],
+            "outputs": "incomplete"
+          },
+          {
+            "path": "population.source",
+            "status": "assumed",
+            "value": {
+              "tables": [
+                "job_postings_fact",
+                "skills_job_dim",
+                "skills_dim"
+              ],
+              "note": "job_postings_fact 提供 job_id/薪资/远程/标题；skills_job_dim 桥接 job_id→skill_id；skills_dim 提供技能名称。"
+            }
+          },
+          {
+            "path": "population.time",
+            "status": "not_applicable"
+          },
+          {
+            "path": "population.joinMultiplicity",
+            "status": "assumed",
+            "value": "skills_job_dim 与 skills_dim 均为 job_id×skill_id 粒度，连接后一个职位会因技能数变成多行；先用 DISTINCT job_id（或先按职位聚合）再计算平均薪资，避免多技能职位被重复加权。"
+          },
+          {
+            "path": "measure.formula",
+            "status": "assumed",
+            "value": {
+              "op": "avg",
+              "per": "job posting",
+              "of": "salary_year_avg"
+            }
+          },
+          {
+            "path": "measure.countGrain",
+            "status": "assumed",
+            "value": "按 job posting（job_postings_fact 一行 = 一个职位）计数，一个职位只计一次"
+          },
+          {
+            "path": "measure.denominator",
+            "status": "assumed",
+            "value": "分母为「满足 population.conditions 且至少拥有前 3 热门技能之一」的职位集合，每个职位等权一次；分母为 0 时返回空结果集。"
+          },
+          {
+            "path": "grouping",
+            "status": "not_applicable"
+          },
+          {
+            "path": "selection",
+            "status": "assumed",
+            "value": {
+              "n": 3,
+              "orderBy": "技能被要求次数（该技能在合格职位中出现的职位数）desc"
+            }
+          },
+          {
+            "path": "selection.ties",
+            "status": "assumed",
+            "value": "strict"
+          },
+          {
+            "path": "output",
+            "status": "assumed",
+            "value": {
+              "rowMode": "scalar",
+              "columns": [
+                "avg_salary"
+              ],
+              "units": {
+                "avg_salary": "USD/year"
+              },
+              "decimals": {
+                "avg_salary": 2
+              }
+            }
+          }
+        ],
+        "undeclared": [],
+        "open": [
+          "population.conditions"
+        ],
+        "unverified": [
+          "population.entity",
+          "population.eligibility",
+          "population.source",
+          "population.joinMultiplicity",
+          "measure.formula",
+          "measure.countGrain",
+          "measure.denominator",
+          "selection",
+          "selection.ties",
+          "output"
+        ],
+        "specFeedback": {
+          "taskId": "task_b769ffed-14e5-4473-844f-96854e35e9ae",
+          "revisionId": "revision_ea8b0ff3-5438-4678-bd93-e6bc0b9a89b2",
+          "ruleVersion": "spec-feedback-v2",
+          "status": "unavailable",
+          "deterministicIssues": [],
+          "evidenceIds": [
+            "request_2794942a6cd5526614fac2cf"
+          ],
+          "limitations": [],
+          "startedAt": "2026-10-10T15:50:32.585Z",
+          "inputHash": "dae1dc04a1c05ce58527ba9b8b67d4ae829d12a3303686c5a2dd1395a516f5a5",
+          "reason": "provider_http_error",
+          "completedAt": "2026-10-10T15:50:33.348Z",
+          "durationMs": 763
+        },
+        "outcomes": [
+          {
+            "path": "population.entity",
+            "status": "applied"
+          },
+          {
+            "path": "population.eligibility",
+            "status": "applied"
+          },
+          {
+            "path": "population.source",
+            "status": "applied"
+          },
+          {
+            "path": "population.conditions",
+            "status": "applied"
+          },
+          {
+            "path": "population.time",
+            "status": "applied"
+          },
+          {
+            "path": "population.joinMultiplicity",
+            "status": "applied"
+          },
+          {
+            "path": "measure.formula",
+            "status": "applied"
+          },
+          {
+            "path": "measure.countGrain",
+            "status": "applied"
+          },
+          {
+            "path": "measure.denominator",
+            "status": "applied"
+          },
+          {
+            "path": "grouping",
+            "status": "applied"
+          },
+          {
+            "path": "selection",
+            "status": "applied"
+          },
+          {
+            "path": "selection.ties",
+            "status": "applied"
+          },
+          {
+            "path": "output",
+            "status": "applied"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "sequence": 30,
+    "toolCallId": "call_00_bjmd8rFDAYIzN9cOylh91114|74de610c-910e-4516-9f3f-ae0e348fc455",
+    "toolName": "set_answer_spec",
+    "args": {
+      "fields": {
+        "population.conditions": {
+          "value": [
+            "job_title_short = 'Data Analyst' AND job_work_from_home = 1 AND salary_year_avg IS NOT NULL"
+          ],
+          "rationale": "候选A（job_title_short='Data Analyst'）：该列是本库规范化的职位类别字段，'Data Analyst' 正好是其 10 个枚举值之一，题面 'specifically have the Data Analyst' 中的 'the Data Analyst' 读作一个类别标签，与此字段的值形式一致；候选B（job_title='Data Analyst'）：job_title 为自由文本，同一职位存在 'Data analyst'/'data analyst'/'DATA ANALYST' 等同一职位的不同写法，精确等值会把同一职位类别拆开，做为“Data Analyst 职位”的口径不完整。两者探针输出不同（A: top3=0,1,5,n=9,avg=92689.22；B: top3=182,0,1,n=5,avg=104040.6），故不能视为等价，按上述逐词对照选择候选A并披露该选择会改变答案。",
+          "evidenceIds": [
+            "evidence_ba6933cb-36ac-451e-9bea-52ffc5a4d69d",
+            "evidence_eb69fb85-19c0-4650-9513-c1584b773194",
+            "evidence_2d4cbf48-c35f-4c43-947a-ae884a523d43"
+          ]
+        },
+        "selection": {
+          "value": {
+            "n": 3,
+            "orderBy": "要求该技能的合格职位数 desc；技能以 skills_job_dim.skill_id 标识（不要求该 skill_id 在 skills_dim 中有名称行）；并列时按 skill_id asc 破并列"
+          },
+          "reason": "原写法未说明技能的识别键；本库 skills_dim 仅 26 行而 skills_job_dim 涉及 244 个不同 skill_id，若以内连接 skills_dim.skills 计需求，合格集合内只剩 python(1) 与 qlik(187) 两个技能，'前三热门技能'无法成立且会静默丢弃 90% 以上的技能记录；因此以桥梁表的 skill_id 作为技能身份统计需求，skills_dim 仅用于命名，不参与筛选。"
+        }
+      },
+      "taskId": "task_b769ffed-14e5-4473-844f-96854e35e9ae"
+    },
+    "startedAt": 1791647623600,
+    "isError": false,
+    "finishedAt": 1791647624400,
+    "durationMs": 800,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "[ANSWER_SPEC_SET] taskId=task_b769ffed-14e5-4473-844f-96854e35e9ae revisionId=revision_02222273-6110-452b-9602-57f015067111\n- ✗ population.conditions: population.conditions: the alternatives produce different or unknown outputs; call compare_hypotheses with path \"population.conditions\" before deciding\n- ✓ selection\n字段写法：one of: \"n/a\"; a bare value (an assumption, disclosed); {value, basis:\"request\", quote}; {value, cite:[{source, quote}]}; {value, evidenceIds}; {value, basis:\"assumed\", rationale}; {open:[value, ...]}; to decide an open field {value:<alternative>, rationale, evidenceIds?}; {notProbeable:{<alternativeId>: reason}}\n状态：\n- 待定 population.conditions: alternative_cf122a98-8088-4603-acce-e6c3af4a0f7d=[\"job_title_short = 'Data Analyst' AND job_work_from_home = 1 AND salary_year_avg IS NOT NULL\"] output=3f019eaf8c9e; alternative_54e92d3a-750a-4e8d-a1c9-fa802f5c6732=[\"job_title = 'Data Analyst' AND job_work_from_home = 1 AND salary_year_avg IS NOT NULL\"] output=d20d653ba1c5; outputs=distinct\n- 未证实（发布时披露）: population.entity, population.eligibility, population.source, population.joinMultiplicity, measure.formula, measure.countGrain, measure.denominator, selection, selection.ties, output\n[SPEC_FEEDBACK] revisionId=revision_02222273-6110-452b-9602-57f015067111 status=unavailable advisory_only=true\nreason: provider_http_error\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"assumed\",\"value\":{\"name\":\"job posting\",\"keyColumns\":[\"job_id\"]}},\"population.eligibility\":{\"status\":\"assumed\",\"value\":\"只纳入 salary_year_avg 非空（题面要求 non-null annual average salary）的职位；salary_year_avg 为 NULL 的职位不进入总体。零薪资不作特殊处理（观测范围内 salary_year_avg 最小为 23496）。\"},\"population.conditions\":{\"status\":\"open\",\"alternatives\":[{\"id\":\"alternative_cf122a98-8088-4603-acce-e6c3af4a0f7d\",\"value\":[\"job_title_short = 'Data Analyst' AND job_work_from_home = 1 AND salary_year_avg IS NOT NULL\"]},{\"id\":\"alternative_54e92d3a-750a-4e8d-a1c9-fa802f5c6732\",\"value\":[\"job_title = 'Data Analyst' AND job_work_from_home = 1 AND salary_year_avg IS NOT NULL\"]}]},\"population.source\":{\"status\":\"assumed\",\"value\":{\"tables\":[\"job_postings_fact\",\"skills_job_dim\",\"skills_dim\"],\"note\":\"job_postings_fact 提供 job_id/薪资/远程/标题；skills_job_dim 桥接 job_id→skill_id；skills_dim 提供技能名称。\"}},\"population.time\":{\"status\":\"not_applicable\"},\"population.joinMultiplicity\":{\"status\":\"assumed\",\"value\":\"skills_job_dim 与 skills_dim 均为 job_id×skill_id 粒度，连接后一个职位会因技能数变成多行；先用 DISTINCT job_id（或先按职位聚合）再计算平均薪资，避免多技能职位被重复加权。\"},\"measure.formula\":{\"status\":\"assumed\",\"value\":{\"op\":\"avg\",\"per\":\"job posting\",\"of\":\"salary_year_avg\"}},\"measure.countGrain\":{\"status\":\"assumed\",\"value\":\"按 job posting（job_postings_fact 一行 = 一个职位）计数，一个职位只计一次\"},\"measure.denominator\":{\"status\":\"assumed\",\"value\":\"分母为「满足 population.conditions 且至少拥有前 3 热门技能之一」的职位集合，每个职位等权一次；分母为 0 时返回空结果集。\"},\"grouping\":{\"status\":\"not_applicable\"},\"selection\":{\"status\":\"assumed\",\"value\":{\"n\":3,\"orderBy\":\"要求该技能的合格职位数 desc；技能以 skills_job_dim.skill_id 标识（不要求该 skill_id 在 skills_dim 中有名称行）；并列时按 skill_id asc 破并列\"}},\"selection.ties\":{\"status\":\"assumed\",\"value\":\"strict\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"scalar\",\"columns\":[\"avg_salary\"],\"units\":{\"avg_salary\":\"USD/year\"},\"decimals\":{\"avg_salary\":2}}}}"
+        }
+      ],
+      "details": {
+        "taskId": "task_b769ffed-14e5-4473-844f-96854e35e9ae",
+        "revisionId": "revision_02222273-6110-452b-9602-57f015067111",
+        "parentRevisionId": "revision_ea8b0ff3-5438-4678-bd93-e6bc0b9a89b2",
+        "fields": [
+          {
+            "path": "population.entity",
+            "status": "assumed",
+            "value": {
+              "name": "job posting",
+              "keyColumns": [
+                "job_id"
+              ]
+            }
+          },
+          {
+            "path": "population.eligibility",
+            "status": "assumed",
+            "value": "只纳入 salary_year_avg 非空（题面要求 non-null annual average salary）的职位；salary_year_avg 为 NULL 的职位不进入总体。零薪资不作特殊处理（观测范围内 salary_year_avg 最小为 23496）。"
+          },
+          {
+            "path": "population.conditions",
+            "status": "open",
+            "alternatives": [
+              {
+                "id": "alternative_cf122a98-8088-4603-acce-e6c3af4a0f7d",
+                "value": [
+                  "job_title_short = 'Data Analyst' AND job_work_from_home = 1 AND salary_year_avg IS NOT NULL"
+                ],
+                "probe": {
+                  "alternativeId": "alternative_cf122a98-8088-4603-acce-e6c3af4a0f7d",
+                  "state": "available",
+                  "rowCount": 1,
+                  "output": "3f019eaf8c9e"
+                }
+              },
+              {
+                "id": "alternative_54e92d3a-750a-4e8d-a1c9-fa802f5c6732",
+                "value": [
+                  "job_title = 'Data Analyst' AND job_work_from_home = 1 AND salary_year_avg IS NOT NULL"
+                ],
+                "probe": {
+                  "alternativeId": "alternative_54e92d3a-750a-4e8d-a1c9-fa802f5c6732",
+                  "state": "available",
+                  "rowCount": 1,
+                  "output": "d20d653ba1c5"
+                }
+              }
+            ],
+            "outputs": "distinct"
+          },
+          {
+            "path": "population.source",
+            "status": "assumed",
+            "value": {
+              "tables": [
+                "job_postings_fact",
+                "skills_job_dim",
+                "skills_dim"
+              ],
+              "note": "job_postings_fact 提供 job_id/薪资/远程/标题；skills_job_dim 桥接 job_id→skill_id；skills_dim 提供技能名称。"
+            }
+          },
+          {
+            "path": "population.time",
+            "status": "not_applicable"
+          },
+          {
+            "path": "population.joinMultiplicity",
+            "status": "assumed",
+            "value": "skills_job_dim 与 skills_dim 均为 job_id×skill_id 粒度，连接后一个职位会因技能数变成多行；先用 DISTINCT job_id（或先按职位聚合）再计算平均薪资，避免多技能职位被重复加权。"
+          },
+          {
+            "path": "measure.formula",
+            "status": "assumed",
+            "value": {
+              "op": "avg",
+              "per": "job posting",
+              "of": "salary_year_avg"
+            }
+          },
+          {
+            "path": "measure.countGrain",
+            "status": "assumed",
+            "value": "按 job posting（job_postings_fact 一行 = 一个职位）计数，一个职位只计一次"
+          },
+          {
+            "path": "measure.denominator",
+            "status": "assumed",
+            "value": "分母为「满足 population.conditions 且至少拥有前 3 热门技能之一」的职位集合，每个职位等权一次；分母为 0 时返回空结果集。"
+          },
+          {
+            "path": "grouping",
+            "status": "not_applicable"
+          },
+          {
+            "path": "selection",
+            "status": "assumed",
+            "value": {
+              "n": 3,
+              "orderBy": "要求该技能的合格职位数 desc；技能以 skills_job_dim.skill_id 标识（不要求该 skill_id 在 skills_dim 中有名称行）；并列时按 skill_id asc 破并列"
+            }
+          },
+          {
+            "path": "selection.ties",
+            "status": "assumed",
+            "value": "strict"
+          },
+          {
+            "path": "output",
+            "status": "assumed",
+            "value": {
+              "rowMode": "scalar",
+              "columns": [
+                "avg_salary"
+              ],
+              "units": {
+                "avg_salary": "USD/year"
+              },
+              "decimals": {
+                "avg_salary": 2
+              }
+            }
+          }
+        ],
+        "undeclared": [],
+        "open": [
+          "population.conditions"
+        ],
+        "unverified": [
+          "population.entity",
+          "population.eligibility",
+          "population.source",
+          "population.joinMultiplicity",
+          "measure.formula",
+          "measure.countGrain",
+          "measure.denominator",
+          "selection",
+          "selection.ties",
+          "output"
+        ],
+        "specFeedback": {
+          "taskId": "task_b769ffed-14e5-4473-844f-96854e35e9ae",
+          "revisionId": "revision_02222273-6110-452b-9602-57f015067111",
+          "ruleVersion": "spec-feedback-v2",
+          "status": "unavailable",
+          "deterministicIssues": [],
+          "evidenceIds": [
+            "request_2794942a6cd5526614fac2cf",
+            "evidence_ba6933cb-36ac-451e-9bea-52ffc5a4d69d",
+            "evidence_9b769765-8c56-4575-b20a-e3a3aaa32de3",
+            "evidence_6db1b3e4-bb19-488b-a9c6-6ba65dd8dfec",
+            "evidence_5ff264e9-7957-48f0-9cb6-037d05d5b459",
+            "evidence_f6abed6d-e5dd-496d-a257-f14ecc90600b",
+            "evidence_f418d442-8ec6-45a9-86d4-dfc15f11de0e",
+            "evidence_9ba4e27f-2628-464f-aac4-a6c98c159a9a",
+            "evidence_8b31b3ad-2222-4c1f-855e-d282320eb034",
+            "evidence_b34fe073-883e-493b-afbd-1d546526554d",
+            "evidence_739d0d6a-624b-42da-8e6f-81acd95d0a33",
+            "evidence_f1072af2-72ea-4683-bd05-8b4b21fe7ed1",
+            "evidence_eb69fb85-19c0-4650-9513-c1584b773194",
+            "evidence_d42baf90-511b-430e-bc60-51a8954ad13a",
+            "evidence_ef5dbfe9-8994-48c0-a324-fb9bd56244d5",
+            "evidence_bbca1bbc-8322-400f-906c-3d3bb613a6e7",
+            "evidence_782cca8c-4dfd-489e-9ef4-6ee01a33e8a0",
+            "evidence_2d4cbf48-c35f-4c43-947a-ae884a523d43"
+          ],
+          "limitations": [],
+          "startedAt": "2026-10-10T15:53:43.617Z",
+          "inputHash": "4727ad4bde5034346db96f99fa408a335ca75b88eb73fd03edcd66b669890a5c",
+          "reason": "provider_http_error",
+          "completedAt": "2026-10-10T15:53:44.386Z",
+          "durationMs": 769
+        },
+        "outcomes": [
+          {
+            "path": "population.conditions",
+            "status": "rejected",
+            "code": "SPEC_TRANSITION_INVALID",
+            "message": "population.conditions: the alternatives produce different or unknown outputs; call compare_hypotheses with path \"population.conditions\" before deciding"
+          },
+          {
+            "path": "selection",
+            "status": "applied"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "sequence": 32,
+    "toolCallId": "call_00_V2ht9yONyui82kqcsz1B8016|048a2b9f-c80f-461d-acca-634db402d6f3",
+    "toolName": "set_answer_spec",
+    "args": {
+      "fields": {
+        "population.conditions": {
+          "value": [
+            "job_title = 'Data Analyst' AND job_work_from_home = 1 AND salary_year_avg IS NOT NULL"
+          ],
+          "rationale": "逐词对照两个候选：题面 'job postings that specifically have the Data Analyst' 中 'specifically' 要求“就是 Data Analyst 本身”而非归属某一宽类别；观测显示 job_title_short='Data Analyst' 宽口径会把 'Data Manager'、'Data Insights Analyst III'、'Decision Science Analyst' 等非 Data Analyst 标题也归入（46 个合格职位中仅 17 个标题为 Data Analyst），不满足 'specifically'。job_title='Data Analyst' 精确给出标题就是 Data Analyst 的职位（17 个）。候选探针输出不同（job_title_short：top3=0,1,5、n=9、avg=92689.22；job_title：top3=182,0,1、n=5、avg=104040.6），不能视为等价，故按 compare_hypotheses 的建议采用 alternative_54e92d3a。",
+          "evidenceIds": [
+            "evidence_ba6933cb-36ac-451e-9bea-52ffc5a4d69d",
+            "evidence_2d4cbf48-c35f-4c43-947a-ae884a523d43",
+            "evidence_d42baf90-511b-430e-bc60-51a8954ad13a"
+          ]
+        },
+        "selection": {
+          "open": [
+            {
+              "n": 3,
+              "orderBy": "要求该技能的合格职位数 desc；技能身份 = skills_job_dim.skill_id（不要求该 skill_id 在 skills_dim 中有名称行）；并列按 skill_id asc 破并列"
+            },
+            {
+              "n": 3,
+              "orderBy": "要求该技能的合格职位数 desc；技能身份 = skills_dim.skills 名称（内连接 skills_dim）；并列按 skills asc 破并列"
+            }
+          ],
+          "reason": "技能识别键在本库有两种可行口径且会改变答案（skills_dim 仅 26 行，而桥梁表涉及 244 个不同 skill_id），原写法已断言用 skill_id 但未对比另一口径，改为待定候选并逐个探针后再决定。"
+        }
+      },
+      "taskId": "task_b769ffed-14e5-4473-844f-96854e35e9ae"
+    },
+    "startedAt": 1791647639619,
+    "isError": false,
+    "finishedAt": 1791647640545,
+    "durationMs": 926,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "[ANSWER_SPEC_SET] taskId=task_b769ffed-14e5-4473-844f-96854e35e9ae revisionId=revision_908fa16c-bd41-4d2d-8058-df70d946715f\n- ✓ population.conditions\n- ✓ selection\n状态：\n- 待定 selection: alternative_35addaf8-fa4b-4472-9cb2-e9dca43e2ac8={\"n\":3,\"orderBy\":\"要求该技能的合格职位数 desc；技能身份 = skills_job_dim.skill_id（不要求该 skill_id 在 skills_dim 中有名称行）；并列按 skill_id asc 破并列\"} missing; alternative_ffa27cfb-423c-4d3c-bf80-341b1867602c={\"n\":3,\"orderBy\":\"要求该技能的合格职位数 desc；技能身份 = skills_dim.skills 名称（内连接 skills_dim）；并列按 skills asc 破并列\"} missing; outputs=incomplete\n- 未证实（发布时披露）: population.entity, population.eligibility, population.source, population.conditions, population.joinMultiplicity, measure.formula, measure.countGrain, measure.denominator, selection.ties, output\n[SPEC_FEEDBACK] revisionId=revision_908fa16c-bd41-4d2d-8058-df70d946715f status=unavailable advisory_only=true\nreason: provider_http_error\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"assumed\",\"value\":{\"name\":\"job posting\",\"keyColumns\":[\"job_id\"]}},\"population.eligibility\":{\"status\":\"assumed\",\"value\":\"只纳入 salary_year_avg 非空（题面要求 non-null annual average salary）的职位；salary_year_avg 为 NULL 的职位不进入总体。零薪资不作特殊处理（观测范围内 salary_year_avg 最小为 23496）。\"},\"population.conditions\":{\"status\":\"decided\",\"value\":[\"job_title = 'Data Analyst' AND job_work_from_home = 1 AND salary_year_avg IS NOT NULL\"],\"verified\":false},\"population.source\":{\"status\":\"assumed\",\"value\":{\"tables\":[\"job_postings_fact\",\"skills_job_dim\",\"skills_dim\"],\"note\":\"job_postings_fact 提供 job_id/薪资/远程/标题；skills_job_dim 桥接 job_id→skill_id；skills_dim 提供技能名称。\"}},\"population.time\":{\"status\":\"not_applicable\"},\"population.joinMultiplicity\":{\"status\":\"assumed\",\"value\":\"skills_job_dim 与 skills_dim 均为 job_id×skill_id 粒度，连接后一个职位会因技能数变成多行；先用 DISTINCT job_id（或先按职位聚合）再计算平均薪资，避免多技能职位被重复加权。\"},\"measure.formula\":{\"status\":\"assumed\",\"value\":{\"op\":\"avg\",\"per\":\"job posting\",\"of\":\"salary_year_avg\"}},\"measure.countGrain\":{\"status\":\"assumed\",\"value\":\"按 job posting（job_postings_fact 一行 = 一个职位）计数，一个职位只计一次\"},\"measure.denominator\":{\"status\":\"assumed\",\"value\":\"分母为「满足 population.conditions 且至少拥有前 3 热门技能之一」的职位集合，每个职位等权一次；分母为 0 时返回空结果集。\"},\"grouping\":{\"status\":\"not_applicable\"},\"selection\":{\"status\":\"open\",\"alternatives\":[{\"id\":\"alternative_35addaf8-fa4b-4472-9cb2-e9dca43e2ac8\",\"value\":{\"n\":3,\"orderBy\":\"要求该技能的合格职位数 desc；技能身份 = skills_job_dim.skill_id（不要求该 skill_id 在 skills_dim 中有名称行）；并列按 skill_id asc 破并列\"}},{\"id\":\"alternative_ffa27cfb-423c-4d3c-bf80-341b1867602c\",\"value\":{\"n\":3,\"orderBy\":\"要求该技能的合格职位数 desc；技能身份 = skills_dim.skills 名称（内连接 skills_dim）；并列按 skills asc 破并列\"}}]},\"selection.ties\":{\"status\":\"assumed\",\"value\":\"strict\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"scalar\",\"columns\":[\"avg_salary\"],\"units\":{\"avg_salary\":\"USD/year\"},\"decimals\":{\"avg_salary\":2}}}}"
+        }
+      ],
+      "details": {
+        "taskId": "task_b769ffed-14e5-4473-844f-96854e35e9ae",
+        "revisionId": "revision_908fa16c-bd41-4d2d-8058-df70d946715f",
+        "parentRevisionId": "revision_02222273-6110-452b-9602-57f015067111",
+        "fields": [
+          {
+            "path": "population.entity",
+            "status": "assumed",
+            "value": {
+              "name": "job posting",
+              "keyColumns": [
+                "job_id"
+              ]
+            }
+          },
+          {
+            "path": "population.eligibility",
+            "status": "assumed",
+            "value": "只纳入 salary_year_avg 非空（题面要求 non-null annual average salary）的职位；salary_year_avg 为 NULL 的职位不进入总体。零薪资不作特殊处理（观测范围内 salary_year_avg 最小为 23496）。"
+          },
+          {
+            "path": "population.conditions",
+            "status": "decided",
+            "value": [
+              "job_title = 'Data Analyst' AND job_work_from_home = 1 AND salary_year_avg IS NOT NULL"
+            ],
+            "verified": false,
+            "rationale": "逐词对照两个候选：题面 'job postings that specifically have the Data Analyst' 中 'specifically' 要求“就是 Data Analyst 本身”而非归属某一宽类别；观测显示 job_title_short='Data Analyst' 宽口径会把 'Data Manager'、'Data Insights Analyst III'、'Decision Science Analyst' 等非 Data Analyst 标题也归入（46 个合格职位中仅 17 个标题为 Data Analyst），不满足 'specifically'。job_title='Data Analyst' 精确给出标题就是 Data Analyst 的职位（17 个）。候选探针输出不同（job_title_short：top3=0,1,5、n=9、avg=92689.22；job_title：top3=182,0,1、n=5、avg=104040.6），不能视为等价，故按 compare_hypotheses 的建议采用 alternative_54e92d3a。",
+            "alternatives": [
+              {
+                "id": "alternative_cf122a98-8088-4603-acce-e6c3af4a0f7d",
+                "value": [
+                  "job_title_short = 'Data Analyst' AND job_work_from_home = 1 AND salary_year_avg IS NOT NULL"
+                ],
+                "probe": {
+                  "alternativeId": "alternative_cf122a98-8088-4603-acce-e6c3af4a0f7d",
+                  "state": "available",
+                  "rowCount": 1,
+                  "output": "3f019eaf8c9e"
+                }
+              },
+              {
+                "id": "alternative_54e92d3a-750a-4e8d-a1c9-fa802f5c6732",
+                "value": [
+                  "job_title = 'Data Analyst' AND job_work_from_home = 1 AND salary_year_avg IS NOT NULL"
+                ],
+                "probe": {
+                  "alternativeId": "alternative_54e92d3a-750a-4e8d-a1c9-fa802f5c6732",
+                  "state": "available",
+                  "rowCount": 1,
+                  "output": "d20d653ba1c5"
+                }
+              }
+            ],
+            "outputs": "distinct",
+            "advice": {
+              "recommendation": "alternative",
+              "probabilities": [
+                {
+                  "alternativeId": "alternative_cf122a98-8088-4603-acce-e6c3af4a0f7d",
+                  "probability": 0.25
+                },
+                {
+                  "alternativeId": "alternative_54e92d3a-750a-4e8d-a1c9-fa802f5c6732",
+                  "probability": 0.34
+                }
+              ],
+              "lean": {
+                "alternativeId": "alternative_54e92d3a-750a-4e8d-a1c9-fa802f5c6732",
+                "probability": 0.34
+              }
+            }
+          },
+          {
+            "path": "population.source",
+            "status": "assumed",
+            "value": {
+              "tables": [
+                "job_postings_fact",
+                "skills_job_dim",
+                "skills_dim"
+              ],
+              "note": "job_postings_fact 提供 job_id/薪资/远程/标题；skills_job_dim 桥接 job_id→skill_id；skills_dim 提供技能名称。"
+            }
+          },
+          {
+            "path": "population.time",
+            "status": "not_applicable"
+          },
+          {
+            "path": "population.joinMultiplicity",
+            "status": "assumed",
+            "value": "skills_job_dim 与 skills_dim 均为 job_id×skill_id 粒度，连接后一个职位会因技能数变成多行；先用 DISTINCT job_id（或先按职位聚合）再计算平均薪资，避免多技能职位被重复加权。"
+          },
+          {
+            "path": "measure.formula",
+            "status": "assumed",
+            "value": {
+              "op": "avg",
+              "per": "job posting",
+              "of": "salary_year_avg"
+            }
+          },
+          {
+            "path": "measure.countGrain",
+            "status": "assumed",
+            "value": "按 job posting（job_postings_fact 一行 = 一个职位）计数，一个职位只计一次"
+          },
+          {
+            "path": "measure.denominator",
+            "status": "assumed",
+            "value": "分母为「满足 population.conditions 且至少拥有前 3 热门技能之一」的职位集合，每个职位等权一次；分母为 0 时返回空结果集。"
+          },
+          {
+            "path": "grouping",
+            "status": "not_applicable"
+          },
+          {
+            "path": "selection",
+            "status": "open",
+            "alternatives": [
+              {
+                "id": "alternative_35addaf8-fa4b-4472-9cb2-e9dca43e2ac8",
+                "value": {
+                  "n": 3,
+                  "orderBy": "要求该技能的合格职位数 desc；技能身份 = skills_job_dim.skill_id（不要求该 skill_id 在 skills_dim 中有名称行）；并列按 skill_id asc 破并列"
+                },
+                "probe": {
+                  "alternativeId": "alternative_35addaf8-fa4b-4472-9cb2-e9dca43e2ac8",
+                  "state": "missing"
+                }
+              },
+              {
+                "id": "alternative_ffa27cfb-423c-4d3c-bf80-341b1867602c",
+                "value": {
+                  "n": 3,
+                  "orderBy": "要求该技能的合格职位数 desc；技能身份 = skills_dim.skills 名称（内连接 skills_dim）；并列按 skills asc 破并列"
+                },
+                "probe": {
+                  "alternativeId": "alternative_ffa27cfb-423c-4d3c-bf80-341b1867602c",
+                  "state": "missing"
+                }
+              }
+            ],
+            "outputs": "incomplete"
+          },
+          {
+            "path": "selection.ties",
+            "status": "assumed",
+            "value": "strict"
+          },
+          {
+            "path": "output",
+            "status": "assumed",
+            "value": {
+              "rowMode": "scalar",
+              "columns": [
+                "avg_salary"
+              ],
+              "units": {
+                "avg_salary": "USD/year"
+              },
+              "decimals": {
+                "avg_salary": 2
+              }
+            }
+          }
+        ],
+        "undeclared": [],
+        "open": [
+          "selection"
+        ],
+        "unverified": [
+          "population.entity",
+          "population.eligibility",
+          "population.source",
+          "population.conditions",
+          "population.joinMultiplicity",
+          "measure.formula",
+          "measure.countGrain",
+          "measure.denominator",
+          "selection.ties",
+          "output"
+        ],
+        "specFeedback": {
+          "taskId": "task_b769ffed-14e5-4473-844f-96854e35e9ae",
+          "revisionId": "revision_908fa16c-bd41-4d2d-8058-df70d946715f",
+          "ruleVersion": "spec-feedback-v2",
+          "status": "unavailable",
+          "deterministicIssues": [],
+          "evidenceIds": [
+            "request_2794942a6cd5526614fac2cf",
+            "evidence_ba6933cb-36ac-451e-9bea-52ffc5a4d69d",
+            "evidence_9b769765-8c56-4575-b20a-e3a3aaa32de3",
+            "evidence_6db1b3e4-bb19-488b-a9c6-6ba65dd8dfec",
+            "evidence_5ff264e9-7957-48f0-9cb6-037d05d5b459",
+            "evidence_f6abed6d-e5dd-496d-a257-f14ecc90600b",
+            "evidence_f418d442-8ec6-45a9-86d4-dfc15f11de0e",
+            "evidence_9ba4e27f-2628-464f-aac4-a6c98c159a9a",
+            "evidence_8b31b3ad-2222-4c1f-855e-d282320eb034",
+            "evidence_b34fe073-883e-493b-afbd-1d546526554d",
+            "evidence_739d0d6a-624b-42da-8e6f-81acd95d0a33",
+            "evidence_f1072af2-72ea-4683-bd05-8b4b21fe7ed1",
+            "evidence_eb69fb85-19c0-4650-9513-c1584b773194",
+            "evidence_d42baf90-511b-430e-bc60-51a8954ad13a",
+            "evidence_ef5dbfe9-8994-48c0-a324-fb9bd56244d5",
+            "evidence_bbca1bbc-8322-400f-906c-3d3bb613a6e7",
+            "evidence_782cca8c-4dfd-489e-9ef4-6ee01a33e8a0",
+            "evidence_2d4cbf48-c35f-4c43-947a-ae884a523d43"
+          ],
+          "limitations": [],
+          "startedAt": "2026-10-10T15:53:59.634Z",
+          "inputHash": "2ef2c17c1b5ded6d9bdbe5cd05b76188deca55a40915045d74385ed0f61d1906",
+          "reason": "provider_http_error",
+          "completedAt": "2026-10-10T15:54:00.476Z",
+          "durationMs": 842
+        },
+        "outcomes": [
+          {
+            "path": "population.conditions",
+            "status": "applied"
+          },
+          {
+            "path": "selection",
+            "status": "applied"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "sequence": 40,
+    "toolCallId": "call_00_QKPGicR0StRl5vAxYHSq6129|17989970-0e24-49cb-8d6e-2f4bf4d66003",
+    "toolName": "set_answer_spec",
+    "args": {
+      "fields": {
+        "selection": {
+          "value": {
+            "n": 3,
+            "orderBy": "要求该技能的合格职位数 desc；技能身份 = skills_job_dim.skill_id（不要求该 skill_id 在 skills_dim 中有名称行）；并列按 skill_id asc 破并列"
+          },
+          "rationale": "把两个候选放回题面逐词检验：题面要求 'the top three most frequently demanded skills for these positions'，即必须存在三个最常被要求的技能。候选Y（按 skills_dim.skills 名称）在本库只能给出 python 与 qlik 两个技能（合格集合内只有 2 个有名称的技能，skills_dim 仅 26 行），'前三'无法成立，且内连接会静默丢弃 90% 以上的技能需求记录（skills_job_dim 涉及 244 个 skill_id）；候选X（按 skill_id）能给出恰好三个最常被要求的技能（182、0、1），不丢弃任何需求记录，更符合题面。两候选探针最终输出不同（X: 104040.6；Y: 92850），故逐词对照后采用候选X。compare_hypotheses 对该字段不可用（HTTP 451，重试多次），本决定由题面与方法学理由作出并属未证实假设。",
+          "evidenceIds": [
+            "evidence_318c9ab2-7f1e-4f17-81fd-2fcb188147df",
+            "evidence_94faa9e4-02ac-480b-b338-ed6b9e688ad0",
+            "evidence_ba6933cb-36ac-451e-9bea-52ffc5a4d69d"
+          ]
+        }
+      },
+      "taskId": "task_b769ffed-14e5-4473-844f-96854e35e9ae"
+    },
+    "startedAt": 1791647667308,
+    "isError": false,
+    "finishedAt": 1791647668226,
+    "durationMs": 918,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "[ANSWER_SPEC_SET] taskId=task_b769ffed-14e5-4473-844f-96854e35e9ae revisionId=revision_1ddb9a9e-ff1d-462d-8513-e46559e6ac1b\n- ✓ selection\n状态：\n- 未证实（发布时披露）: population.entity, population.eligibility, population.source, population.conditions, population.joinMultiplicity, measure.formula, measure.countGrain, measure.denominator, selection, selection.ties, output\n- 没有待处理的字段，可以执行结果查询\n[SPEC_FEEDBACK] revisionId=revision_1ddb9a9e-ff1d-462d-8513-e46559e6ac1b status=unavailable advisory_only=true\nreason: provider_http_error\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"assumed\",\"value\":{\"name\":\"job posting\",\"keyColumns\":[\"job_id\"]}},\"population.eligibility\":{\"status\":\"assumed\",\"value\":\"只纳入 salary_year_avg 非空（题面要求 non-null annual average salary）的职位；salary_year_avg 为 NULL 的职位不进入总体。零薪资不作特殊处理（观测范围内 salary_year_avg 最小为 23496）。\"},\"population.conditions\":{\"status\":\"decided\",\"value\":[\"job_title = 'Data Analyst' AND job_work_from_home = 1 AND salary_year_avg IS NOT NULL\"],\"verified\":false},\"population.source\":{\"status\":\"assumed\",\"value\":{\"tables\":[\"job_postings_fact\",\"skills_job_dim\",\"skills_dim\"],\"note\":\"job_postings_fact 提供 job_id/薪资/远程/标题；skills_job_dim 桥接 job_id→skill_id；skills_dim 提供技能名称。\"}},\"population.time\":{\"status\":\"not_applicable\"},\"population.joinMultiplicity\":{\"status\":\"assumed\",\"value\":\"skills_job_dim 与 skills_dim 均为 job_id×skill_id 粒度，连接后一个职位会因技能数变成多行；先用 DISTINCT job_id（或先按职位聚合）再计算平均薪资，避免多技能职位被重复加权。\"},\"measure.formula\":{\"status\":\"assumed\",\"value\":{\"op\":\"avg\",\"per\":\"job posting\",\"of\":\"salary_year_avg\"}},\"measure.countGrain\":{\"status\":\"assumed\",\"value\":\"按 job posting（job_postings_fact 一行 = 一个职位）计数，一个职位只计一次\"},\"measure.denominator\":{\"status\":\"assumed\",\"value\":\"分母为「满足 population.conditions 且至少拥有前 3 热门技能之一」的职位集合，每个职位等权一次；分母为 0 时返回空结果集。\"},\"grouping\":{\"status\":\"not_applicable\"},\"selection\":{\"status\":\"decided\",\"value\":{\"n\":3,\"orderBy\":\"要求该技能的合格职位数 desc；技能身份 = skills_job_dim.skill_id（不要求该 skill_id 在 skills_dim 中有名称行）；并列按 skill_id asc 破并列\"},\"verified\":false},\"selection.ties\":{\"status\":\"assumed\",\"value\":\"strict\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"scalar\",\"columns\":[\"avg_salary\"],\"units\":{\"avg_salary\":\"USD/year\"},\"decimals\":{\"avg_salary\":2}}}}"
+        }
+      ],
+      "details": {
+        "taskId": "task_b769ffed-14e5-4473-844f-96854e35e9ae",
+        "revisionId": "revision_1ddb9a9e-ff1d-462d-8513-e46559e6ac1b",
+        "parentRevisionId": "revision_908fa16c-bd41-4d2d-8058-df70d946715f",
+        "fields": [
+          {
+            "path": "population.entity",
+            "status": "assumed",
+            "value": {
+              "name": "job posting",
+              "keyColumns": [
+                "job_id"
+              ]
+            }
+          },
+          {
+            "path": "population.eligibility",
+            "status": "assumed",
+            "value": "只纳入 salary_year_avg 非空（题面要求 non-null annual average salary）的职位；salary_year_avg 为 NULL 的职位不进入总体。零薪资不作特殊处理（观测范围内 salary_year_avg 最小为 23496）。"
+          },
+          {
+            "path": "population.conditions",
+            "status": "decided",
+            "value": [
+              "job_title = 'Data Analyst' AND job_work_from_home = 1 AND salary_year_avg IS NOT NULL"
+            ],
+            "verified": false,
+            "rationale": "逐词对照两个候选：题面 'job postings that specifically have the Data Analyst' 中 'specifically' 要求“就是 Data Analyst 本身”而非归属某一宽类别；观测显示 job_title_short='Data Analyst' 宽口径会把 'Data Manager'、'Data Insights Analyst III'、'Decision Science Analyst' 等非 Data Analyst 标题也归入（46 个合格职位中仅 17 个标题为 Data Analyst），不满足 'specifically'。job_title='Data Analyst' 精确给出标题就是 Data Analyst 的职位（17 个）。候选探针输出不同（job_title_short：top3=0,1,5、n=9、avg=92689.22；job_title：top3=182,0,1、n=5、avg=104040.6），不能视为等价，故按 compare_hypotheses 的建议采用 alternative_54e92d3a。",
+            "alternatives": [
+              {
+                "id": "alternative_cf122a98-8088-4603-acce-e6c3af4a0f7d",
+                "value": [
+                  "job_title_short = 'Data Analyst' AND job_work_from_home = 1 AND salary_year_avg IS NOT NULL"
+                ],
+                "probe": {
+                  "alternativeId": "alternative_cf122a98-8088-4603-acce-e6c3af4a0f7d",
+                  "state": "available",
+                  "rowCount": 1,
+                  "output": "3f019eaf8c9e"
+                }
+              },
+              {
+                "id": "alternative_54e92d3a-750a-4e8d-a1c9-fa802f5c6732",
+                "value": [
+                  "job_title = 'Data Analyst' AND job_work_from_home = 1 AND salary_year_avg IS NOT NULL"
+                ],
+                "probe": {
+                  "alternativeId": "alternative_54e92d3a-750a-4e8d-a1c9-fa802f5c6732",
+                  "state": "available",
+                  "rowCount": 1,
+                  "output": "d20d653ba1c5"
+                }
+              }
+            ],
+            "outputs": "distinct",
+            "advice": {
+              "recommendation": "alternative",
+              "probabilities": [
+                {
+                  "alternativeId": "alternative_cf122a98-8088-4603-acce-e6c3af4a0f7d",
+                  "probability": 0.25
+                },
+                {
+                  "alternativeId": "alternative_54e92d3a-750a-4e8d-a1c9-fa802f5c6732",
+                  "probability": 0.34
+                }
+              ],
+              "lean": {
+                "alternativeId": "alternative_54e92d3a-750a-4e8d-a1c9-fa802f5c6732",
+                "probability": 0.34
+              }
+            }
+          },
+          {
+            "path": "population.source",
+            "status": "assumed",
+            "value": {
+              "tables": [
+                "job_postings_fact",
+                "skills_job_dim",
+                "skills_dim"
+              ],
+              "note": "job_postings_fact 提供 job_id/薪资/远程/标题；skills_job_dim 桥接 job_id→skill_id；skills_dim 提供技能名称。"
+            }
+          },
+          {
+            "path": "population.time",
+            "status": "not_applicable"
+          },
+          {
+            "path": "population.joinMultiplicity",
+            "status": "assumed",
+            "value": "skills_job_dim 与 skills_dim 均为 job_id×skill_id 粒度，连接后一个职位会因技能数变成多行；先用 DISTINCT job_id（或先按职位聚合）再计算平均薪资，避免多技能职位被重复加权。"
+          },
+          {
+            "path": "measure.formula",
+            "status": "assumed",
+            "value": {
+              "op": "avg",
+              "per": "job posting",
+              "of": "salary_year_avg"
+            }
+          },
+          {
+            "path": "measure.countGrain",
+            "status": "assumed",
+            "value": "按 job posting（job_postings_fact 一行 = 一个职位）计数，一个职位只计一次"
+          },
+          {
+            "path": "measure.denominator",
+            "status": "assumed",
+            "value": "分母为「满足 population.conditions 且至少拥有前 3 热门技能之一」的职位集合，每个职位等权一次；分母为 0 时返回空结果集。"
+          },
+          {
+            "path": "grouping",
+            "status": "not_applicable"
+          },
+          {
+            "path": "selection",
+            "status": "decided",
+            "value": {
+              "n": 3,
+              "orderBy": "要求该技能的合格职位数 desc；技能身份 = skills_job_dim.skill_id（不要求该 skill_id 在 skills_dim 中有名称行）；并列按 skill_id asc 破并列"
+            },
+            "verified": false,
+            "rationale": "把两个候选放回题面逐词检验：题面要求 'the top three most frequently demanded skills for these positions'，即必须存在三个最常被要求的技能。候选Y（按 skills_dim.skills 名称）在本库只能给出 python 与 qlik 两个技能（合格集合内只有 2 个有名称的技能，skills_dim 仅 26 行），'前三'无法成立，且内连接会静默丢弃 90% 以上的技能需求记录（skills_job_dim 涉及 244 个 skill_id）；候选X（按 skill_id）能给出恰好三个最常被要求的技能（182、0、1），不丢弃任何需求记录，更符合题面。两候选探针最终输出不同（X: 104040.6；Y: 92850），故逐词对照后采用候选X。compare_hypotheses 对该字段不可用（HTTP 451，重试多次），本决定由题面与方法学理由作出并属未证实假设。",
+            "alternatives": [
+              {
+                "id": "alternative_35addaf8-fa4b-4472-9cb2-e9dca43e2ac8",
+                "value": {
+                  "n": 3,
+                  "orderBy": "要求该技能的合格职位数 desc；技能身份 = skills_job_dim.skill_id（不要求该 skill_id 在 skills_dim 中有名称行）；并列按 skill_id asc 破并列"
+                },
+                "probe": {
+                  "alternativeId": "alternative_35addaf8-fa4b-4472-9cb2-e9dca43e2ac8",
+                  "state": "available",
+                  "rowCount": 1,
+                  "output": "d20d653ba1c5"
+                }
+              },
+              {
+                "id": "alternative_ffa27cfb-423c-4d3c-bf80-341b1867602c",
+                "value": {
+                  "n": 3,
+                  "orderBy": "要求该技能的合格职位数 desc；技能身份 = skills_dim.skills 名称（内连接 skills_dim）；并列按 skills asc 破并列"
+                },
+                "probe": {
+                  "alternativeId": "alternative_ffa27cfb-423c-4d3c-bf80-341b1867602c",
+                  "state": "available",
+                  "rowCount": 1,
+                  "output": "9eb22599524e"
+                }
+              }
+            ],
+            "outputs": "distinct"
+          },
+          {
+            "path": "selection.ties",
+            "status": "assumed",
+            "value": "strict"
+          },
+          {
+            "path": "output",
+            "status": "assumed",
+            "value": {
+              "rowMode": "scalar",
+              "columns": [
+                "avg_salary"
+              ],
+              "units": {
+                "avg_salary": "USD/year"
+              },
+              "decimals": {
+                "avg_salary": 2
+              }
+            }
+          }
+        ],
+        "undeclared": [],
+        "open": [],
+        "unverified": [
+          "population.entity",
+          "population.eligibility",
+          "population.source",
+          "population.conditions",
+          "population.joinMultiplicity",
+          "measure.formula",
+          "measure.countGrain",
+          "measure.denominator",
+          "selection",
+          "selection.ties",
+          "output"
+        ],
+        "specFeedback": {
+          "taskId": "task_b769ffed-14e5-4473-844f-96854e35e9ae",
+          "revisionId": "revision_1ddb9a9e-ff1d-462d-8513-e46559e6ac1b",
+          "ruleVersion": "spec-feedback-v2",
+          "status": "unavailable",
+          "deterministicIssues": [],
+          "evidenceIds": [
+            "request_2794942a6cd5526614fac2cf",
+            "evidence_ba6933cb-36ac-451e-9bea-52ffc5a4d69d",
+            "evidence_9b769765-8c56-4575-b20a-e3a3aaa32de3",
+            "evidence_6db1b3e4-bb19-488b-a9c6-6ba65dd8dfec",
+            "evidence_5ff264e9-7957-48f0-9cb6-037d05d5b459",
+            "evidence_f6abed6d-e5dd-496d-a257-f14ecc90600b",
+            "evidence_f418d442-8ec6-45a9-86d4-dfc15f11de0e",
+            "evidence_9ba4e27f-2628-464f-aac4-a6c98c159a9a",
+            "evidence_8b31b3ad-2222-4c1f-855e-d282320eb034",
+            "evidence_b34fe073-883e-493b-afbd-1d546526554d",
+            "evidence_739d0d6a-624b-42da-8e6f-81acd95d0a33",
+            "evidence_f1072af2-72ea-4683-bd05-8b4b21fe7ed1",
+            "evidence_eb69fb85-19c0-4650-9513-c1584b773194",
+            "evidence_d42baf90-511b-430e-bc60-51a8954ad13a",
+            "evidence_ef5dbfe9-8994-48c0-a324-fb9bd56244d5",
+            "evidence_bbca1bbc-8322-400f-906c-3d3bb613a6e7",
+            "evidence_782cca8c-4dfd-489e-9ef4-6ee01a33e8a0",
+            "evidence_2d4cbf48-c35f-4c43-947a-ae884a523d43",
+            "evidence_318c9ab2-7f1e-4f17-81fd-2fcb188147df",
+            "evidence_94faa9e4-02ac-480b-b338-ed6b9e688ad0"
+          ],
+          "limitations": [],
+          "startedAt": "2026-10-10T15:54:27.328Z",
+          "inputHash": "6f2922b83e20ddc85d8a35ceba377d51e4755cf9a1eb728f46bf127f27a26207",
+          "reason": "provider_http_error",
+          "completedAt": "2026-10-10T15:54:28.191Z",
+          "durationMs": 863
+        },
+        "outcomes": [
+          {
+            "path": "selection",
+            "status": "applied"
+          }
+        ]
+      }
+    }
+  }
+]
