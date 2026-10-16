@@ -75,15 +75,15 @@ requires-tools:
 | `difference`、`change_rate`、`pp_difference`（百分点差） | `from`、`to`（从 from 变到 to） |
 | `custom`（以上都不适用，例如回归预测） | `description` 必填，`of` 可选 |
 
-嵌套顺序就是聚合顺序；多于一层时，每个内层都写 `per`。最外层按 `grouping` 计算，`per` 可省略。例如“各国家球员场均得分的平均值”：
+嵌套顺序就是聚合顺序；多于一层时，每个内层都写 `per`。最外层按 `grouping` 计算，`per` 可省略。例如“各区域门店月均销售额的平均值”：
 
 ```json
-{ "op": "avg", "per": "country",
-  "of": { "op": "avg", "per": "player",
-          "of": { "op": "sum", "per": "match", "of": "runs" } } }
+{ "op": "avg", "per": "region",
+  "of": { "op": "avg", "per": "store",
+          "of": { "op": "sum", "per": "month", "of": "amount" } } }
 ```
 
-把三层压成一次 `avg(runs) group by country` 是另一个口径。比率藏在 argmin 或“满足条件的对象”里时（“投球平均值最低的投手”），比率写在度量里，“最低的投手”写在 `selection`。
+把三层压成一次 `avg(amount) group by region` 是另一个口径。比率藏在 argmin 或“满足条件的对象”里时（“退货率最低的商品”），比率写在度量里，“最低的商品”写在 `selection`。
 
 ## 4. 字段写法
 
