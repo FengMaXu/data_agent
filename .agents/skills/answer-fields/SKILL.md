@@ -83,8 +83,6 @@ requires-tools:
           "of": { "op": "sum", "per": "month", "of": "amount" } } }
 ```
 
-把三层压成一次 `avg(amount) group by region` 是另一个口径。比率藏在 argmin 或“满足条件的对象”里时（“退货率最低的商品”），比率写在度量里，“最低的商品”写在 `selection`。
-
 ## 4. 字段写法
 
 | 状态 | 写法 | 系统怎么处理 |
