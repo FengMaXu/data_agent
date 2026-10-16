@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import Database from "better-sqlite3";
+import { DatabaseSync } from "node:sqlite";
 import { createMcpQueryExecutor, DATABASE_UNAVAILABLE } from "./mcp-query-executor.js";
 
 
@@ -33,7 +33,7 @@ const FLAKY_PROXY = [
 
 async function flakyExecutor(root: string, mode: string) {
   const databasePath = path.join(root, "test.db");
-  const database = new Database(databasePath);
+  const database = new DatabaseSync(databasePath);
   database.exec("CREATE TABLE t (v INTEGER); INSERT INTO t VALUES (1), (2);");
   database.close();
   const proxyPath = path.join(root, "proxy.mjs");
@@ -104,10 +104,12 @@ describe("MCP query executor", () => {
   it("uses bounded preview for exploration and one complete query for a result", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "mcp-executor-"));
     const databasePath = path.join(root, "test.db");
-    const database = new Database(databasePath);
+    const database = new DatabaseSync(databasePath);
     database.exec("CREATE TABLE values_table (value INTEGER)");
     const insert = database.prepare("INSERT INTO values_table VALUES (?)");
-    database.transaction(() => { for (let value = 0; value < 250; value += 1) insert.run(value); })();
+    database.exec("BEGIN");
+    for (let value = 0; value < 250; value += 1) insert.run(value);
+    database.exec("COMMIT");
     database.close();
 
     const executor = createMcpQueryExecutor({
@@ -142,7 +144,7 @@ describe("MCP query executor", () => {
   it("keeps declared column types from get_schema and allows the pragma_table_info lookup", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "mcp-executor-schema-"));
     const databasePath = path.join(root, "test.db");
-    const database = new Database(databasePath);
+    const database = new DatabaseSync(databasePath);
     database.exec("CREATE TABLE orders (order_id INTEGER PRIMARY KEY, status TEXT NOT NULL, amount REAL)");
     database.close();
     const executor = createMcpQueryExecutor({

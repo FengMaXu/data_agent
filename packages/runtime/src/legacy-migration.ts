@@ -1,7 +1,7 @@
 import { cp, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import Database from "better-sqlite3";
+import { DatabaseSync } from "node:sqlite";
 import { PiJsonlSessionStore } from "./session-store.js";
 
 export interface MigrationReport { migrationVersion: 1; migrationId: string; migrated: number; skipped: number; warnings: string[]; backupPath: string }
@@ -59,9 +59,9 @@ export async function migrateLegacyData(sourceRoot: string, targetRoot: string, 
   const report: MigrationReport = { migrationVersion: 1, migrationId, migrated: 0, skipped: 0, warnings: [], backupPath };
   const databases = await findFiles(source, "app.sqlite3");
   for (const databasePath of databases) {
-    let db: InstanceType<typeof Database> | undefined;
+    let db: DatabaseSync | undefined;
     try {
-      db = new Database(databasePath, { readonly: true });
+      db = new DatabaseSync(databasePath, { readOnly: true });
       const tasks = db.prepare("SELECT * FROM tasks").all();
       const sessions = db.prepare("SELECT * FROM chat_sessions").all();
       db.close();

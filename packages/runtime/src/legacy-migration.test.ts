@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { migrateLegacyData, rollbackMigration } from "./legacy-migration.js";
 import { PiJsonlSessionStore } from "./session-store.js";
-import Database from "better-sqlite3";
+import { DatabaseSync } from "node:sqlite";
 
 /**
  * Gate B — migration against representative existing data.
@@ -18,7 +18,7 @@ async function createRepresentativeLegacyRoot(root: string): Promise<void> {
   const profileDir = join(root, "AppData", "Roaming", "data_agent");
   await mkdir(profileDir, { recursive: true });
   await writeFile(join(profileDir, "app.sqlite3"), Buffer.alloc(0));
-  const db = new Database(join(profileDir, "app.sqlite3"));
+  const db = new DatabaseSync(join(profileDir, "app.sqlite3"));
   db.exec("CREATE TABLE tasks (id TEXT, name TEXT); CREATE TABLE chat_sessions (id TEXT, task_id TEXT, name TEXT, ui_transcript_json TEXT, context_messages_json TEXT, active_skills_json TEXT, attached_files_json TEXT, conversation_version INTEGER)");
   db.prepare("INSERT INTO tasks VALUES (?, ?)").run("task-1", "季度销售分析");
   db.prepare("INSERT INTO chat_sessions VALUES (?, ?, ?, ?, ?, ?, ?, ?)").run(
@@ -103,7 +103,7 @@ describe("legacy migration gate (representative data)", () => {
       const backupDbs = backupFiles.filter((f) => f.endsWith("app.sqlite3") && !f.includes("broken"));
       expect(backupDbs.length).toBeGreaterThanOrEqual(1);
       let tasks: Array<{ id: string }> = [];
-      const readable = new Database(join(report.backupPath, backupDbs[0]), { readonly: true });
+      const readable = new DatabaseSync(join(report.backupPath, backupDbs[0]), { readOnly: true });
       try {
         tasks = readable.prepare("SELECT * FROM tasks").all() as Array<{ id: string }>;
       } finally {

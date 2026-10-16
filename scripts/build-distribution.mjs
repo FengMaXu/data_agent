@@ -39,14 +39,14 @@ const bundleArgs = [
 ];
 
 // Bundle the TS Electron host into a single CJS entry so no workspace
-// node_modules are needed at runtime; better-sqlite3 stays external and is
-// unpacked via asarUnpack.
+// node_modules are needed at runtime. SQLite is Node's built-in node:sqlite,
+// so the bundle carries no native module.
 {
   const args = [
     "node_modules/esbuild/bin/esbuild",
     "packages/electron-host/dist/main.js",
     ...bundleArgs,
-    "--external:electron", "--external:better-sqlite3", "--external:mysql2", "--external:@modelcontextprotocol/sdk",
+    "--external:electron", "--external:mysql2", "--external:@modelcontextprotocol/sdk",
     "--define:import.meta.url=undefined",
     "--outfile=frontend/electron-host/main.cjs",
   ];
@@ -59,7 +59,6 @@ const bundleArgs = [
     "node_modules/esbuild/bin/esbuild",
     "packages/runtime/dist/metadata-worker.js",
     ...bundleArgs,
-    "--external:better-sqlite3",
     "--outfile=frontend/electron-host/metadata-worker.cjs",
   ];
   const result = spawnSync(process.execPath, args, { stdio: "inherit", cwd: root });

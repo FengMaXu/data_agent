@@ -5,13 +5,13 @@ import { join } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createReferenceSqliteServer } from "./reference-sqlite-mcp.js";
-import Database from "better-sqlite3";
+import { DatabaseSync } from "node:sqlite";
 
 describe("Reference SQLite MCP Server", () => {
   it("negotiates the contract, enforces limits, and blocks dangerous SQL", async () => {
     const root = await mkdtemp(join(tmpdir(), "data-agent-mcp-sqlite-"));
     const dbPath = join(root, "ref.sqlite3");
-    const seed = new (Database as any)(dbPath);
+    const seed = new DatabaseSync(dbPath);
     seed.exec("CREATE TABLE sales (id INTEGER PRIMARY KEY, region TEXT, amount REAL)");
     seed.prepare("INSERT INTO sales (region, amount) VALUES (?, ?)").run("north", 10);
     seed.prepare("INSERT INTO sales (region, amount) VALUES (?, ?)").run("south", 20);
